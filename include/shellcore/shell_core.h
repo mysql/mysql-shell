@@ -30,7 +30,7 @@ class Registry
 public:
 
 private:
-  Value::Ref _connections;
+  Value _connections;
 };
 
 
@@ -46,8 +46,8 @@ public:
   Shell_core();
 
 private:
-  Value::Ref get_global(const std::string &name);
-  bool set_global(const std::string &name, Value::Ref value);
+  Value get_global(const std::string &name);
+  bool set_global(const std::string &name, Value value);
 
 
 private:

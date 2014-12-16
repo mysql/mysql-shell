@@ -43,7 +43,7 @@ enum Value_type
   Native, //! Native C++ object references, may or may not be serializable
 
   Array, //! Array/List container
-  Dict, //! Dictionary/Map/Object container
+  Map, //! Dictionary/Map/Object container
 
   Function //! A function reference, not serializable.
 };
@@ -57,6 +57,9 @@ enum Value_type
  */
 struct Value
 {
+  typedef std::vector<Value> Array_type;
+  typedef std::map<std::string, Value> Map_type;
+
   Value_type type;
   union
   {
@@ -65,8 +68,8 @@ struct Value
     int64_t i;
     double d;
     boost::shared_ptr<class Native_object> *n;
-    boost::shared_ptr<std::vector<Value> > *list;
-    boost::shared_ptr<std::map<std::string, Value> > *map;
+    boost::shared_ptr<Array_type> *array;
+    boost::shared_ptr<Map_type> *map;
     boost::shared_ptr<class Function_base> *func;
   } value;
 
@@ -81,13 +84,24 @@ struct Value
   explicit Value(boost::shared_ptr<Function_base> f);
   explicit Value(boost::shared_ptr<Native_object> n);
 
+  //! parse a string returned by repr() back into a Value
+  static Value parse(const std::string &s);
+
   ~Value();
+
+  Value &operator= (const Value &other);
 
   bool operator == (const Value &other) const;
   bool operator != (const Value &other) const;
 
-  bool append_descr(std::string &s_out) const;
-  bool append_repr(std::string &s_out) const;
+  //! returns a human-readable description text for the value.
+  // if pprint is true, it will try to pretty-print it (like adding newlines)
+  std::string descr(bool pprint) const;
+  //! returns a string representation of the serialized object, suitable to be passed to parse()
+  std::string repr() const;
+
+  std::string &append_descr(std::string &s_out, bool pprint) const;
+  std::string &append_repr(std::string &s_out) const;
 };
 
 
@@ -102,11 +116,13 @@ class Native_object
 {
 public:
   //! Appends descriptive text to the string, suitable for showing to the user
-  virtual bool append_descr(std::string &s_out) const = 0;
+  virtual std::string &append_descr(std::string &s_out, bool pprint) const = 0;
 
   //! Returns a representation of the object suitable to be passed to a Factory
   // constructor of this object, which would create an equivalent instance of the object
-  virtual bool append_repr(std::string &s_out) const = 0;
+  // Format for repr() of Native_objects must follow this pattern:
+  // <Typename:data> where Typename is the same name used to register the type
+  virtual std::string &append_repr(std::string &s_out) const = 0;
 
   //! Returns the list of members that this object has
   virtual std::vector<std::string> get_members() const = 0;
@@ -135,7 +151,7 @@ public:
 public:
   //! Registers a function that creates an instance of a native object
   static void register_native_type(const std::string &type_name,
-                                   Value (*factory)(const std::string&));
+                                   Native_object *(*factory)(const std::string&));
 };
 
 

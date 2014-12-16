@@ -2,7 +2,7 @@
 
 using namespace shcore;
 
-JSContext::JSContext(Registry *reg)
+JS_context::JS_context(Registry *reg)
 : _context()
 {
 }
