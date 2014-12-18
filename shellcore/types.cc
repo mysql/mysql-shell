@@ -17,7 +17,9 @@
  * 02110-1301  USA
  */
 
-#include "shellcore/core_types.h"
+#include "shellcore/types.h"
+#include <stdexcept>
+#include <boost/weak_ptr.hpp>
 
 using namespace shcore;
 
@@ -41,7 +43,7 @@ Value Native_object::construct(const std::string &type_name)
 
 Value Native_object::reconstruct(const std::string &repr)
 {
-  if (repr.length() > 3 && repr.front() == '<' && repr.back() == '>')
+  if (repr.length() > 3 && repr[0] == '<' && repr[repr.size()-1] == '>')
   {
     std::string::size_type p = repr.find(':');
     if (p != std::string::npos)
@@ -132,6 +134,9 @@ Value::Value(Value_type type)
     case Map:
       value.map = new boost::shared_ptr<Map_type>();
       break;
+    case MapRef:
+      value.mapref = new boost::weak_ptr<Map_type>();
+      break;
     case Function:
       value.func = new boost::shared_ptr<Function_base>();
       break;
@@ -180,6 +185,24 @@ Value::Value(boost::shared_ptr<Native_object> n)
   value.n = new boost::shared_ptr<Native_object>(n);
 }
 
+Value::Value(boost::shared_ptr<Map_type> n)
+: type(Map)
+{
+  value.map = new boost::shared_ptr<Map_type>(n);
+}
+
+Value::Value(boost::weak_ptr<Map_type> n)
+: type(MapRef)
+{
+  value.mapref = new boost::weak_ptr<Map_type>(n);
+}
+
+Value::Value(boost::shared_ptr<Array_type> n)
+: type(Array)
+{
+  value.array = new boost::shared_ptr<Array_type>(n);
+}
+
 
 Value &Value::operator= (const Value &other)
 {
@@ -210,6 +233,9 @@ Value &Value::operator= (const Value &other)
       case Map:
         *value.map = *other.value.map;
         break;
+      case MapRef:
+        *value.mapref = *other.value.mapref;
+        break;
       case Function:
         *value.func = *other.value.func;
         break;
@@ -235,6 +261,9 @@ Value &Value::operator= (const Value &other)
         break;
       case Map:
         delete value.map;
+        break;
+      case MapRef:
+        delete value.mapref;
         break;
       case Function:
         delete value.func;
@@ -265,6 +294,9 @@ Value &Value::operator= (const Value &other)
         break;
       case Map:
         value.map = new boost::shared_ptr<Map_type>(*other.value.map);
+        break;
+      case MapRef:
+        value.mapref = new boost::weak_ptr<Map_type>(*other.value.mapref);
         break;
       case Function:
         value.func = new boost::shared_ptr<Function_base>(*other.value.func);
@@ -304,6 +336,8 @@ bool Value::operator == (const Value &other) const
         return *value.array == *other.value.array;
       case Map:
         return *value.map == *other.value.map;
+      case MapRef:
+        return *value.mapref->lock() == *other.value.mapref->lock();
       case Function:
         return *value.func == *other.value.func;
     }
@@ -334,6 +368,8 @@ bool Value::operator != (const Value &other) const
         return *value.array != *other.value.array;
       case Map:
         return *value.map != *other.value.map;
+      case MapRef:
+        return *value.mapref->lock() != *other.value.mapref->lock();
       case Function:
         return *value.func != *other.value.func;
     }
@@ -374,6 +410,8 @@ std::string &Value::append_descr(std::string &s_out, bool pprint) const
       break;
     case Map:
       break;
+    case MapRef:
+      break;
     case Function:
       break;
   }
@@ -397,6 +435,8 @@ std::string &Value::append_repr(std::string &s_out) const
     case Array:
       break;
     case Map:
+      break;
+    case MapRef:
       break;
     case Function:
       break;
@@ -425,6 +465,9 @@ Value::~Value()
       break;
     case Map:
       delete value.map;
+      break;
+    case MapRef:
+      delete value.mapref;
       break;
     case Function:
       delete value.func;

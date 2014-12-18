@@ -17,36 +17,29 @@
  * 02110-1301  USA
  */
 
-#ifndef _SHELLCORE_JS_H_
-#define _SHELLCORE_JS_H_
+#ifndef _JSCRIPT_CONTEXT_H_
+#define _JSCRIPT_CONTEXT_H_
 
-#include "shellcore/shell_core.h"
-
-#include <v8/v8.h>
+#include <include/v8.h>
+#include <string>
 
 namespace shcore {
 
-class JS_context : public Language_context
+class JScript_context
 {
 public:
-  JS_context(Registry *reg);
+  static void init();
 
+  JScript_context();
 
+  bool execute_code(const std::string &code);
 
 private:
-  v8::Local<v8::Context> _context;
-};
-
-
-
-class JS_function : public Function_base
-{
-public:
-private:
-  v8::Local<v8::ObjectTemplate> _obj;
+  v8::Isolate *_isolate;
+  v8::Isolate::Scope _isolate_scope;
+  v8::Handle<v8::Context> _context;
 };
 
 };
 
 #endif
-

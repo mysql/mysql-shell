@@ -22,7 +22,6 @@ SET(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/cmake)
 INCLUDE(libutils)
 INCLUDE(boost)
 
-
 # Common warning flags for GCC, G++, Clang and Clang++
 set(MY_WARNING_FLAGS "-Wall -Wextra -Wformat-security -Wvla")
 
@@ -31,21 +30,27 @@ set(MY_C_WARNING_FLAGS
     "${MY_WARNING_FLAGS} -Wwrite-strings -Wdeclaration-after-statement")
 	
 	
+# TODO add auto-detection/manual param taking for this
+set(V8_INCLUDE_DIR /usr/local/include/v8)
 
 set(MY_CXX_WARNING_FLAGS "${MY_CXX_WARNING_FLAGS} -Werror")
 
 
 
 link_directories( ${MY_GMOCK_LIB_DIR} )
-link_directories( ${MY_BOOST_LIB_DIR} )
 
-add_subdirectory(shellcore)
 add_subdirectory(src/libedit)
 
-# mysh cmdline util build
 
-include_directories("${PROJECT_SOURCE_DIR}/include" /usr/local/include
+# needed when compiling in osx, for v8
+add_definitions(-std=gnu++0x)
+
+add_subdirectory(shellcore)
+
+# mysh cmdline util build
+include_directories("${PROJECT_SOURCE_DIR}/include"
                     "${PROJECT_SOURCE_DIR}/src/libedit"
+                    "${BOOST_INCLUDE_DIR}"
                    )
 
 file(GLOB mysh_SRC
@@ -54,6 +59,6 @@ file(GLOB mysh_SRC
 
 add_executable(mysh ${mysh_SRC})
 target_link_libraries(mysh mysqlsh readline)
-target_link_libraries(mysh -L/usr/local/lib/v8 -lv8_base) # TODO v8 check
+target_link_libraries(mysh -L/usr/local/lib/v8 -lv8_snapshot -licudata -lv8_libbase -lv8_base -licuuc -licui18n)
 
 

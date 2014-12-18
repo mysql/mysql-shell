@@ -44,6 +44,7 @@ enum Value_type
 
   Array, //! Array/List container
   Map, //! Dictionary/Map/Object container
+  MapRef, //! A weak reference to a Map
 
   Function //! A function reference, not serializable.
 };
@@ -70,6 +71,7 @@ struct Value
     boost::shared_ptr<class Native_object> *n;
     boost::shared_ptr<Array_type> *array;
     boost::shared_ptr<Map_type> *map;
+    boost::weak_ptr<Map_type> *mapref;
     boost::shared_ptr<class Function_base> *func;
   } value;
 
@@ -83,6 +85,9 @@ struct Value
   explicit Value(double d);
   explicit Value(boost::shared_ptr<Function_base> f);
   explicit Value(boost::shared_ptr<Native_object> n);
+  explicit Value(boost::shared_ptr<Map_type> n);
+  explicit Value(boost::weak_ptr<Map_type> n);
+  explicit Value(boost::shared_ptr<Array_type> n);
 
   //! parse a string returned by repr() back into a Value
   static Value parse(const std::string &s);
@@ -115,6 +120,8 @@ struct Value
 class Native_object
 {
 public:
+  virtual ~Native_object() {}
+
   //! Appends descriptive text to the string, suitable for showing to the user
   virtual std::string &append_descr(std::string &s_out, bool pprint) const = 0;
 

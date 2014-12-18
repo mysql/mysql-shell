@@ -20,7 +20,7 @@
 #ifndef _SHELLCORE_H_
 #define _SHELLCORE_H_
 
-#include "shellcore/core_types.h"
+#include "shellcore/types.h"
 
 namespace shcore {
 
@@ -34,16 +34,44 @@ private:
 };
 
 
-class Language_context
+enum Interactive_input_state
+{
+  Input_ok,
+  Input_continued
+};
+
+
+class Shell_core;
+
+class Shell_language
 {
 public:
+  Shell_language(Shell_core *owner) : _owner(owner) {}
+
+  virtual Interactive_input_state handle_interactive_input_line(std::string &line) = 0;
+
+private:
+  Shell_core *_owner;
 };
 
 
 class Shell_core
 {
 public:
-  Shell_core();
+  enum Mode
+  {
+    Mode_SQL,
+    Mode_JScript,
+    Mode_Python
+  };
+
+  Shell_core(Mode default_mode);
+
+  Mode interactive_mode() const { return _mode; }
+  bool switch_mode(Mode mode);
+
+public:
+  Interactive_input_state handle_interactive_input_line(std::string &line);
 
 private:
   Value get_global(const std::string &name);
@@ -52,7 +80,9 @@ private:
 
 private:
   Registry _registry;
-  std::map<std::string, Language_context*> _langs;
+  std::map<Mode, Shell_language*> _langs;
+
+  Mode _mode;
 };
 
 };
