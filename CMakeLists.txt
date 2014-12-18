@@ -17,6 +17,12 @@ cmake_minimum_required (VERSION 2.8)
 
 project (mysh)
 
+SET(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/cmake)
+
+INCLUDE(libutils)
+INCLUDE(boost)
+
+
 # Common warning flags for GCC, G++, Clang and Clang++
 set(MY_WARNING_FLAGS "-Wall -Wextra -Wformat-security -Wvla")
 
@@ -27,18 +33,27 @@ set(MY_C_WARNING_FLAGS
 	
 
 set(MY_CXX_WARNING_FLAGS "${MY_CXX_WARNING_FLAGS} -Werror")
-include_directories("${PROJECT_SOURCE_DIR}/include" /usr/local/include)
+
+
 
 link_directories( ${MY_GMOCK_LIB_DIR} )
 link_directories( ${MY_BOOST_LIB_DIR} )
 
+add_subdirectory(shellcore)
+add_subdirectory(src/libedit)
+
+# mysh cmdline util build
+
+include_directories("${PROJECT_SOURCE_DIR}/include" /usr/local/include
+                    "${PROJECT_SOURCE_DIR}/src/libedit"
+                   )
+
 file(GLOB mysh_SRC
-	"${PROJECT_SOURCE_DIR}/include/shellcore/*.h"
-	"${PROJECT_SOURCE_DIR}/shellcore/*.cc"
 	"${PROJECT_SOURCE_DIR}/src/*.cc"
 )
 
-add_executable( mysh ${mysh_SRC} )
+add_executable(mysh ${mysh_SRC})
+target_link_libraries(mysh mysqlsh readline)
+target_link_libraries(mysh -L/usr/local/lib/v8 -lv8_base) # TODO v8 check
 
-target_link_libraries(mysh -L/usr/local/lib/v8 -lv8_base)
 
