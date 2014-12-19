@@ -17,32 +17,9 @@
  * 02110-1301  USA
  */
 
-#ifndef _JSCRIPT_CONTEXT_H_
-#define _JSCRIPT_CONTEXT_H_
 
-#include <string>
+// this will put the boost::error_code code in this file, which will allow us to
+// use boost::system::error_code without linking to libboost_system
+
+#define BOOST_ERROR_CODE_HEADER_ONLY
 #include <boost/system/error_code.hpp>
-
-#include "shellcore/types.h"
-
-namespace shcore {
-
-struct Interpreter_delegate;
-
-class JScript_context
-{
-public:
-  JScript_context(Interpreter_delegate *deleg);
-  ~JScript_context();
-
-  Value execute(const std::string &code, boost::system::error_code &ret_error);
-
-  static void init();
-private:
-  struct JScript_context_impl;
-  JScript_context_impl *_impl;
-};
-
-};
-
-#endif

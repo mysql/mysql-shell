@@ -48,12 +48,14 @@ class Shell_language
 public:
   Shell_language(Shell_core *owner) : _owner(owner) {}
 
-  virtual Interactive_input_state handle_interactive_input_line(std::string &line) = 0;
+  virtual Interactive_input_state handle_interactive_input(const std::string &code) = 0;
 
 private:
   Shell_core *_owner;
 };
 
+
+struct Interpreter_delegate;
 
 class Shell_core
 {
@@ -65,13 +67,13 @@ public:
     Mode_Python
   };
 
-  Shell_core(Mode default_mode);
+  Shell_core(Mode default_mode, Interpreter_delegate *shdelegate);
 
   Mode interactive_mode() const { return _mode; }
   bool switch_mode(Mode mode);
 
 public:
-  Interactive_input_state handle_interactive_input_line(std::string &line);
+  Interactive_input_state handle_interactive_input(const std::string &code);
 
 private:
   Value get_global(const std::string &name);
@@ -81,6 +83,8 @@ private:
 private:
   Registry _registry;
   std::map<Mode, Shell_language*> _langs;
+
+  Interpreter_delegate *_lang_delegate;
 
   Mode _mode;
 };

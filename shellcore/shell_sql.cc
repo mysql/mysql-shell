@@ -29,7 +29,7 @@ Shell_sql::Shell_sql(Shell_core *owner)
 }
 
 
-Interactive_input_state Shell_sql::handle_interactive_input_line(std::string &line)
+Interactive_input_state Shell_sql::handle_interactive_input(const std::string &code)
 {
   // TODO check if line contains a full statement (terminated by the delimiter)
   // and if so, consume it, otherwise return Input_continue

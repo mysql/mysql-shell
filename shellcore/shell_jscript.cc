@@ -23,16 +23,18 @@
 using namespace shcore;
 
 
-Shell_javascript::Shell_javascript(Shell_core *shcore)
+Shell_javascript::Shell_javascript(Shell_core *shcore, Interpreter_delegate *shell_deleg)
 : Shell_language(shcore)
 {
-  _js = boost::shared_ptr<JScript_context>(new JScript_context());
+  _js = boost::shared_ptr<JScript_context>(new JScript_context(shell_deleg));
 }
 
 
-Interactive_input_state Shell_javascript::handle_interactive_input_line(std::string &line)
+Interactive_input_state Shell_javascript::handle_interactive_input(const std::string &code)
 {
+  boost::system::error_code error;
 
+  _js->execute(code, error);
 
   return Input_ok;
 }

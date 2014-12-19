@@ -26,7 +26,9 @@
 #include <boost/algorithm/string.hpp>
 #include <iostream>
 
+#include "shellcore/lang_base.h"
 #include "shellcore/shell_core.h"
+#include "shellcore/jscript_context.h"
 
 using namespace shcore;
 
@@ -41,15 +43,23 @@ private:
   void process_line(const std::string &line);
   std::string prompt();
 
+  void print(const std::string &str);
+  void println(const std::string &str);
   void print_error(const std::string &error);
   void print_shell_help();
 
   void switch_shell_mode(Shell_core::Mode mode, const std::vector<std::string> &args);
 
+  void print_banner();
 private:
+  static void deleg_print(void *self, const char *text);
+private:
+  Interpreter_delegate _delegate;
+
   boost::shared_ptr<Shell_core> _shell;
 
-  std::string _line_buffer;
+  std::string _input_buffer;
+  bool _multiline_mode;
 };
 
 
@@ -59,7 +69,12 @@ Interactive_shell::Interactive_shell()
   rl_initialize();
   using_history();
 
-  _shell.reset(new Shell_core(Shell_core::Mode_JScript));
+  _multiline_mode = false;
+
+  _delegate.user_data = this;
+  _delegate.print = &Interactive_shell::deleg_print;
+
+  _shell.reset(new Shell_core(Shell_core::Mode_JScript, &_delegate));
 }
 
 
@@ -82,29 +97,47 @@ std::string Interactive_shell::prompt()
     suffix = ">>> ";
     break;
   }
+
+  if (_multiline_mode)
+    suffix = "... ";
+
   return prefix + suffix;
 }
 
 
 void Interactive_shell::switch_shell_mode(Shell_core::Mode mode, const std::vector<std::string> &args)
 {
-  _line_buffer.clear();
+  _multiline_mode = false;
+  _input_buffer.clear();
 
+  //XXX reset the history... history should be specific to each shell mode
   switch (mode)
   {
   case Shell_core::Mode_SQL:
     if (_shell->switch_mode(mode))
-      std::cout << "Switching to SQL mode... Commands end with ; \n";
+      println("Switching to SQL mode... Commands end with ;");
     break;
   case Shell_core::Mode_JScript:
     if (_shell->switch_mode(mode))
-      std::cout << "Switching to JavaScript mode...\n";
+      println("Switching to JavaScript mode...");
     break;
   case Shell_core::Mode_Python:
     if (_shell->switch_mode(mode))
-      std::cout << "Switching to Python mode...\n";
+      println("Switching to Python mode...");
     break;
   }
+}
+
+
+void Interactive_shell::print(const std::string &str)
+{
+  std::cout << str;
+}
+
+
+void Interactive_shell::println(const std::string &str)
+{
+  std::cout << str << "\n";
 }
 
 
@@ -116,14 +149,20 @@ void Interactive_shell::print_error(const std::string &error)
 
 void Interactive_shell::print_shell_help()
 {
-  std::cout << "MySQL Shell Help\n";
+  println("MySQL Shell Help");
 }
 
+
+void Interactive_shell::deleg_print(void *cdata, const char *text)
+{
+  Interactive_shell *self = (Interactive_shell*)cdata;
+  self->print(text);
+}
 
 void Interactive_shell::process_line(const std::string &line)
 {
   // check if the line is an escape/shell command
-  if (_line_buffer.empty() && !line.empty() && line[0] == '\\')
+  if (_input_buffer.empty() && !line.empty() && line[0] == '\\' && !_multiline_mode)
   {
     std::vector<std::string> tokens;
 
@@ -145,6 +184,11 @@ void Interactive_shell::process_line(const std::string &line)
     {
       print_shell_help();
     }
+    else if (line == "\\")
+    {
+      println("Multi-line input. Finish and execute with an empty line.");
+      _multiline_mode = true;
+    }
     else
     {
       print_error("Invalid shell command "+tokens.front()+". Try \\help or \\?\n");
@@ -152,18 +196,26 @@ void Interactive_shell::process_line(const std::string &line)
   }
   else
   {
-    if (_line_buffer.empty())
-      _line_buffer = line;
-    else
-      _line_buffer.append("\n").append(line);
-    std::string line = _line_buffer;
-    if (_shell->handle_interactive_input_line(line))
+    if (_multiline_mode)
     {
-      add_history(_line_buffer.substr(0, _line_buffer.size()-line.size()).c_str());
+      if (line.empty())
+        _multiline_mode = false;
+      else
+      {
+        if (_input_buffer.empty())
+          _input_buffer = line;
+        else
+          _input_buffer.append("\n").append(line);
+      }
     }
     else
+      _input_buffer = line;
+
+    if (!_multiline_mode)
     {
-      // command is not finished yet, needs more lines
+      if (_shell->handle_interactive_input(_input_buffer))
+        add_history(_input_buffer.c_str());
+      _input_buffer.clear();
     }
   }
 }
@@ -171,6 +223,8 @@ void Interactive_shell::process_line(const std::string &line)
 
 void Interactive_shell::command_loop()
 {
+  print_banner();
+
   for (;;)
   {
     char *cmd = readline(prompt().c_str());
@@ -191,25 +245,24 @@ void Interactive_shell::command_loop()
 }
 
 
-static void print_banner()
+void Interactive_shell::print_banner()
 {
-  std::cout << "Welcome to MySQL Shell 0.0.0\n" <<
-    "\n" <<
-    "Copyright (c) 2014, Oracle and/or its affiliates. All rights reserved.\n" <<
-    "\n" <<
-    "Oracle is a registered trademark of Oracle Corporation and/or its\n" <<
-    "affiliates. Other names may be trademarks of their respective\n" <<
-    "owners.\n" <<
-    "\n";
+  println("Welcome to MySQL Shell 0.0.0");
+  println("");
+  println("Copyright (c) 2014, Oracle and/or its affiliates. All rights reserved.");
+  println("");
+  println("Oracle is a registered trademark of Oracle Corporation and/or its");
+  println("affiliates. Other names may be trademarks of their respective");
+  println("owners.");
 }
 
 
 int main(int argc, char **argv)
 {
+  JScript_context::init();
+
   {
     Interactive_shell shell;
-
-    print_banner();
 
     shell.command_loop();
   }

@@ -17,30 +17,19 @@
  * 02110-1301  USA
  */
 
-#ifndef _JSCRIPT_CONTEXT_H_
-#define _JSCRIPT_CONTEXT_H_
+#ifndef _LANG_BASE_H_
+#define _LANG_BASE_H_
 
-#include <string>
 #include <boost/system/error_code.hpp>
-
-#include "shellcore/types.h"
 
 namespace shcore {
 
-struct Interpreter_delegate;
-
-class JScript_context
+struct Interpreter_delegate
 {
-public:
-  JScript_context(Interpreter_delegate *deleg);
-  ~JScript_context();
-
-  Value execute(const std::string &code, boost::system::error_code &ret_error);
-
-  static void init();
-private:
-  struct JScript_context_impl;
-  JScript_context_impl *_impl;
+  void *user_data;
+  void (*print)(void *user_data, const char *text);
+  void (*print_error)(void *user_data, const char *text);
+  void (*print_error_code)(void *user_data, const char *message, const boost::system::error_code &error);
 };
 
 };

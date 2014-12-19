@@ -30,7 +30,7 @@ class Shell_sql : public Shell_language
 public:
   Shell_sql(Shell_core *owner);
 
-  virtual Interactive_input_state handle_interactive_input_line(std::string &line);
+  virtual Interactive_input_state handle_interactive_input(const std::string &code);
 
 private:
   std::string _delimiter;

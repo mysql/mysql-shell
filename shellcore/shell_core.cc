@@ -24,7 +24,8 @@
 
 using namespace shcore;
 
-Shell_core::Shell_core(Mode default_mode)
+Shell_core::Shell_core(Mode default_mode, Interpreter_delegate *shdelegate)
+: _lang_delegate(shdelegate)
 {
   _mode = default_mode;
   switch (_mode)
@@ -33,15 +34,15 @@ Shell_core::Shell_core(Mode default_mode)
     _langs[_mode] = new Shell_sql(this);
     break;
   case Mode_JScript:
-    _langs[_mode] = new Shell_javascript(this);
+    _langs[_mode] = new Shell_javascript(this, shdelegate);
     break;
   }
 }
 
 
-Interactive_input_state Shell_core::handle_interactive_input_line(std::string &line)
+Interactive_input_state Shell_core::handle_interactive_input(const std::string &line)
 {
-  return _langs[_mode]->handle_interactive_input_line(line);
+  return _langs[_mode]->handle_interactive_input(line);
 }
 
 
