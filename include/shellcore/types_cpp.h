@@ -17,22 +17,21 @@
  * 02110-1301  USA
  */
 
-#ifndef _TYPES_JSCRIPT_H_
-#define _TYPES_JSCRIPT_H_
 
-#include "shellcore/jscript_context.h"
+#ifndef _TYPES_CPP_H_
+#define _TYPES_CPP_H_
 
 #include "shellcore/types.h"
 
-#include <include/v8.h>
-
 namespace shcore {
 
-class JScript_function : public Function_base
+class Cpp_function : public Function_base
 {
 public:
-  JScript_function(boost::shared_ptr<JScript_context> context);
-  virtual ~JScript_function();
+  typedef boost::function<Value (const shcore::Argument_list &)> Function;
+
+  Cpp_function(const std::string &name, const Function &func, const char *arg1_name, Value_type arg1_type = Undefined, ...);
+  virtual ~Cpp_function() {}
 
   virtual std::string name();
 
@@ -42,13 +41,30 @@ public:
 
   virtual bool operator == (const Function_base &other) const;
 
-  virtual bool operator != (const Function_base &other) const;
-
   virtual Value invoke(const Argument_list &args);
 
-private:
-  boost::shared_ptr<JScript_context> _js;
-  v8::Handle<v8::Function> _jsfunc;
+protected:
+  std::string _name;
+  Function _func;
+
+  std::vector<std::pair<std::string, Value_type> > _signature;
+  Value_type _return_type;
+};
+
+
+class Cpp_object_bridge : public Object_bridge
+{
+public:
+  virtual ~Cpp_object_bridge();
+
+  virtual std::vector<std::string> get_members() const;
+  virtual Value get_member(const std::string &prop) const;
+
+  virtual Value call(const std::string &name, const Argument_list &args);
+protected:
+  void add_function(boost::shared_ptr<Cpp_function> f);
+
+  std::map<std::string, boost::shared_ptr<Cpp_function>> _funcs;
 };
 
 

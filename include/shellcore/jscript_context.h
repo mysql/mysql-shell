@@ -22,6 +22,7 @@
 
 #include <string>
 #include <boost/system/error_code.hpp>
+#include <include/v8.h>
 
 #include "shellcore/types.h"
 
@@ -35,9 +36,18 @@ public:
   JScript_context(Interpreter_delegate *deleg);
   ~JScript_context();
 
-  Value execute(const std::string &code, boost::system::error_code &ret_error);
+  Value execute(const std::string &code, boost::system::error_code &ret_error) BOOST_NOEXCEPT_OR_NOTHROW;
+  bool execute_interactive(const std::string &code) BOOST_NOEXCEPT_OR_NOTHROW;
 
-  static void init();
+  v8::Isolate *isolate() const;
+  v8::Handle<v8::Context> context() const;
+
+  Value v8_value_to_shcore_value(const v8::Handle<v8::Value> &value);
+  v8::Handle<v8::Value> shcore_value_to_v8_value(const Value &value);
+  Argument_list convert_args(const v8::FunctionCallbackInfo<v8::Value>& args);
+
+  void set_global(const std::string &name, const Value &value);
+
 private:
   struct JScript_context_impl;
   JScript_context_impl *_impl;

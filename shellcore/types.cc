@@ -19,82 +19,131 @@
 
 #include "shellcore/types.h"
 #include <stdexcept>
+#include <cstdarg>
+#include <boost/format.hpp>
 #include <boost/weak_ptr.hpp>
 
 using namespace shcore;
 
-static std::map<std::string, Native_object *(*)(const std::string&)> Native_object_factory;
+typedef std::map<std::string, Object_factory*> Package;
+
+static std::map<std::string, Package> *Object_Factories = NULL;
 
 // --
 
-Value Native_object::construct(const std::string &type_name)
+void Object_factory::register_factory(const std::string &package, Object_factory *meta)
 {
+  if (Object_Factories == NULL)
+    Object_Factories = new std::map<std::string, Package>();
 
-  std::map<std::string, Native_object *(*)(const std::string&)>::iterator iter = Native_object_factory.find(type_name);
-  if (iter != Native_object_factory.end())
+  Package &pkg = (*Object_Factories)[package];
+  if (pkg.find(meta->name()) != pkg.end())
+    throw std::logic_error("Registering duplicate Object Factory "+package+"::"+meta->name());
+  pkg[meta->name()] = meta;
+}
+
+
+boost::shared_ptr<Object_bridge> Object_factory::call_constructor(const std::string &package, const std::string &name,
+                                                                  const Argument_list &args)
+{
+  std::map<std::string, Package>::iterator iter;
+  Package::iterator piter;
+  if ((iter = Object_Factories->find(package)) != Object_Factories->end()
+      && (piter = iter->second.find(name)) != iter->second.end())
   {
-    boost::shared_ptr<Native_object> n(iter->second(""));
-    if (n)
-      return Value(n);
+    return boost::shared_ptr<Object_bridge>(piter->second->construct(args));
   }
-  throw std::invalid_argument("Invalid native type name "+type_name);
+  throw std::invalid_argument("Invalid factory constructor "+package+"."+name+" invoked");
 }
 
 
-Value Native_object::reconstruct(const std::string &repr)
+std::vector<std::string> Object_factory::package_names()
 {
-  if (repr.length() > 3 && repr[0] == '<' && repr[repr.size()-1] == '>')
+  std::vector<std::string> names;
+
+  for (std::map<std::string, Package>::const_iterator iter = Object_Factories->begin();
+       iter != Object_Factories->end(); ++iter)
+    names.push_back(iter->first);
+  return names;
+}
+
+
+bool Object_factory::has_package(const std::string &package)
+{
+  return Object_Factories->find(package) != Object_Factories->end();
+}
+
+
+std::vector<std::string> Object_factory::package_contents(const std::string &package)
+{
+  std::vector<std::string> names;
+
+  std::map<std::string, Package>::iterator iter;
+  if ((iter = Object_Factories->find(package)) != Object_Factories->end())
   {
-    std::string::size_type p = repr.find(':');
-    if (p != std::string::npos)
-    {
-      std::map<std::string, Native_object *(*)(const std::string&)>::iterator iter = Native_object_factory.find(repr.substr(1, p-1));
-      if (iter != Native_object_factory.end())
-      {
-        boost::shared_ptr<Native_object> n(iter->second(repr));
-        if (n)
-          return Value(n);
-      }
-    }
+    for (Package::iterator i = iter->second.begin(); i != iter->second.end(); ++i)
+      names.push_back(i->first);
   }
-  throw std::invalid_argument("Invalid repr value "+repr);
+  return names;
 }
-
-void Native_object::register_native_type(const std::string &type_name,
-                                         Native_object *(*factory)(const std::string&))
-{
-  if (Native_object_factory.find(type_name) != Native_object_factory.end())
-    throw std::logic_error("Registering duplicate Native type "+type_name);
-  Native_object_factory[type_name] = factory;
-}
-
 
 // --
 
 //! 0 arg convenience wrapper for invoke
-bool Function_base::invoke(Value &return_value)
+Value Function_base::invoke()
 {
-  std::vector<Value> args;
-  return invoke(args, return_value);
+  Argument_list args;
+  return invoke(args);
 }
 
 //! 1 arg convenience wrapper for invoke
-bool Function_base::invoke(const Value &arg1, Value &return_value)
+Value Function_base::invoke(const Value &arg1)
 {
-  std::vector<Value> args;
+  Argument_list args;
   args.push_back(arg1);
-  return invoke(args, return_value);
+  return invoke(args);
 }
 
 //! 2 arg convenience wrapper for invoke
-bool Function_base::invoke(const Value &arg1, const Value &arg2, Value &return_value)
+Value Function_base::invoke(const Value &arg1, const Value &arg2)
 {
-  std::vector<Value> args;
+  Argument_list args;
   args.push_back(arg1);
   args.push_back(arg2);
-  return invoke(args, return_value);
+  return invoke(args);
 }
 
+// --
+
+void shcore::validate_args(const std::string &context, const Argument_list &args, Value_type vtype, ...)
+{
+  va_list vl;
+  va_start(vl, vtype);
+  Argument_list::const_iterator a = args.begin();
+  Value_type atype = vtype;
+  int i = 0;
+
+  do
+  {
+    if (atype == Undefined)
+    {
+      throw std::invalid_argument((boost::format("Too many arguments for %1%") % context).str());
+    }
+    if (atype != a->type)
+    {
+      throw std::invalid_argument((boost::format("Type mismatch in argument #%1% in %2%") % (i+1) % context).str());
+    }
+    ++a;
+    atype = (Value_type)va_arg(vl, int);
+  }
+  while (a != args.end());
+
+  if (atype != Undefined)
+  {
+    throw std::invalid_argument((boost::format("Too few arguments for %1%") % context).str());
+  }
+  va_end(vl);
+}
 
 // --
 
@@ -111,6 +160,8 @@ Value::Value(Value_type type)
 {
   switch (type)
   {
+    case Undefined:
+      break;
     case Null:
       break;
     case Bool:
@@ -125,8 +176,8 @@ Value::Value(Value_type type)
     case String:
       value.s = new std::string();
       break;
-    case Native:
-      value.n = new boost::shared_ptr<Native_object>();
+    case Object:
+      value.o = new boost::shared_ptr<Object_bridge>();
       break;
     case Array:
       value.array = new boost::shared_ptr<Array_type>();
@@ -179,10 +230,10 @@ Value::Value(boost::shared_ptr<Function_base> f)
 }
 
 
-Value::Value(boost::shared_ptr<Native_object> n)
-: type(Native)
+Value::Value(boost::shared_ptr<Object_bridge> n)
+: type(Object)
 {
-  value.n = new boost::shared_ptr<Native_object>(n);
+  value.o = new boost::shared_ptr<Object_bridge>(n);
 }
 
 Value::Value(boost::shared_ptr<Map_type> n)
@@ -210,6 +261,8 @@ Value &Value::operator= (const Value &other)
   {
     switch (type)
     {
+      case Undefined:
+        break;
       case Null:
         break;
       case Bool:
@@ -224,8 +277,8 @@ Value &Value::operator= (const Value &other)
       case String:
         *value.s = *other.value.s;
         break;
-      case Native:
-        *value.n = *other.value.n;
+      case Object:
+        *value.o = *other.value.o;
         break;
       case Array:
         *value.array = *other.value.array;
@@ -245,6 +298,7 @@ Value &Value::operator= (const Value &other)
   {
     switch (type)
     {
+      case Undefined:
       case Null:
       case Bool:
       case Integer:
@@ -253,8 +307,8 @@ Value &Value::operator= (const Value &other)
       case String:
         delete value.s;
         break;
-      case Native:
-        delete value.n;
+      case Object:
+        delete value.o;
         break;
       case Array:
         delete value.array;
@@ -272,6 +326,7 @@ Value &Value::operator= (const Value &other)
     type = other.type;
     switch (type)
     {
+      case Undefined:
       case Null:
         break;
       case Bool:
@@ -286,8 +341,8 @@ Value &Value::operator= (const Value &other)
       case String:
         value.s = new std::string(*other.value.s);
         break;
-      case Native:
-        value.n = new boost::shared_ptr<Native_object>(*other.value.n);
+      case Object:
+        value.o = new boost::shared_ptr<Object_bridge>(*other.value.o);
         break;
       case Array:
         value.array = new boost::shared_ptr<Array_type>(*other.value.array);
@@ -320,6 +375,8 @@ bool Value::operator == (const Value &other) const
   {
     switch (type)
     {
+      case Undefined:
+        return false;
       case Null:
         return true;
       case Bool:
@@ -330,8 +387,8 @@ bool Value::operator == (const Value &other) const
         return value.d == other.value.d;
       case String:
         return *value.s == *other.value.s;
-      case Native:
-        return *value.n == *other.value.n;
+      case Object:
+        return *value.o == *other.value.o;
       case Array:
         return *value.array == *other.value.array;
       case Map:
@@ -343,38 +400,6 @@ bool Value::operator == (const Value &other) const
     }
   }
   return false;
-}
-
-
-bool Value::operator != (const Value &other) const
-{
-  if (type == other.type)
-  {
-    switch (type)
-    {
-      case Null:
-        return true;
-      case Bool:
-        return value.b != other.value.b;
-      case Integer:
-        return value.i != other.value.i;
-      case Float:
-        return value.d != other.value.d;
-      case String:
-        return *value.s != *other.value.s;
-      case Native:
-        return *value.n != *other.value.n;
-      case Array:
-        return *value.array != *other.value.array;
-      case Map:
-        return *value.map != *other.value.map;
-      case MapRef:
-        return *value.mapref->lock() != *other.value.mapref->lock();
-      case Function:
-        return *value.func != *other.value.func;
-    }
-  }
-  return true;
 }
 
 
@@ -397,22 +422,38 @@ std::string &Value::append_descr(std::string &s_out, bool pprint) const
 {//XXX
   switch (type)
   {
+    case Undefined:
+      s_out.append("undefined");
+      break;
     case Null:
+      s_out.append("null");
+      break;
     case Bool:
+      s_out.append("bool");
+      break;
     case Integer:
+      s_out.append("int");
+      break;
     case Float:
+      s_out.append("fl");
       break;
     case String:
+      s_out.append("str");
       break;
-    case Native:
+    case Object:
+      s_out.append("obj");
       break;
     case Array:
+      s_out.append("arr");
       break;
     case Map:
+      s_out.append("map");
       break;
     case MapRef:
+      s_out.append("mapref");
       break;
     case Function:
+      s_out.append("func");
       break;
   }
   return s_out;
@@ -423,6 +464,7 @@ std::string &Value::append_repr(std::string &s_out) const
 {//XXX
   switch (type)
   {
+    case Undefined:
     case Null:
     case Bool:
     case Integer:
@@ -430,7 +472,7 @@ std::string &Value::append_repr(std::string &s_out) const
       break;
     case String:
       break;
-    case Native:
+    case Object:
       break;
     case Array:
       break;
@@ -449,6 +491,7 @@ Value::~Value()
 {
   switch (type)
   {
+    case Undefined:
     case Null:
     case Bool:
     case Integer:
@@ -457,8 +500,8 @@ Value::~Value()
     case String:
       delete value.s;
       break;
-    case Native:
-      delete value.n;
+    case Object:
+      delete value.o;
       break;
     case Array:
       delete value.array;
@@ -475,4 +518,82 @@ Value::~Value()
   }
 }
 
+
+
+
+const std::string &Argument_list::string_at(int i) const
+{
+  if (i >= size())
+    throw std::range_error("Insufficient number of arguments");
+  if (at(i).type != String)
+    throw Type_error((boost::format("Element at index %1% is expected to be a string") % i).str());
+  return *at(i).value.s;
+}
+
+
+bool Argument_list::bool_at(int i) const
+{
+  if (i >= size())
+    throw std::range_error("Insufficient number of arguments");
+  if (at(i).type != String)
+    throw Type_error((boost::format("Element at index %1% is expected to be a bool") % i).str());
+  return at(i).value.b;
+}
+
+
+int64_t Argument_list::int_at(int i) const
+{
+  if (i >= size())
+    throw std::range_error("Insufficient number of arguments");
+  if (at(i).type != String)
+    throw Type_error((boost::format("Element at index %1% is expected to be an int") % i).str());
+  return at(i).value.i;
+}
+
+
+double Argument_list::double_at(int i) const
+{
+  if (i >= size())
+    throw std::range_error("Insufficient number of arguments");
+  if (at(i).type != String)
+    throw Type_error((boost::format("Element at index %1% is expected to be a double") % i).str());
+  return at(i).value.d;
+}
+
+
+boost::shared_ptr<Object_bridge> Argument_list::object_at(int i) const
+{
+  if (i >= size())
+    throw std::range_error("Insufficient number of arguments");
+  if (at(i).type != String)
+    throw Type_error((boost::format("Element at index %1% is expected to be an object") % i).str());
+  return *at(i).value.o;
+}
+
+
+boost::shared_ptr<Value::Map_type> Argument_list::map_at(int i) const
+{
+  if (i >= size())
+    throw std::range_error("Insufficient number of arguments");
+  if (at(i).type != String)
+    throw Type_error((boost::format("Element at index %1% is expected to be a map") % i).str());
+  return *at(i).value.map;
+}
+
+
+boost::shared_ptr<Value::Array_type> Argument_list::array_at(int i) const
+{
+  if (i >= size())
+    throw std::range_error("Insufficient number of arguments");
+  if (at(i).type != String)
+    throw Type_error((boost::format("Element at index %1% is expected to be an array") % i).str());
+  return *at(i).value.array;
+}
+
+
+void Argument_list::ensure_count(int c, const char *context) const
+{
+  if (c != size())
+    throw std::invalid_argument((boost::format("Invalid number of arguments in %1%, expected %2% but got %3%") % context % c % size()).str());
+}
 

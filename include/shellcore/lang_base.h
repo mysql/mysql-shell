@@ -21,6 +21,7 @@
 #define _LANG_BASE_H_
 
 #include <boost/system/error_code.hpp>
+#include <string>
 
 namespace shcore {
 
@@ -28,6 +29,9 @@ struct Interpreter_delegate
 {
   void *user_data;
   void (*print)(void *user_data, const char *text);
+  std::string (*input)(void *user_data, const char *prompt);
+  std::string (*password)(void *user_data, const char *prompt);
+
   void (*print_error)(void *user_data, const char *text);
   void (*print_error_code)(void *user_data, const char *message, const boost::system::error_code &error);
 };

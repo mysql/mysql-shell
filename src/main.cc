@@ -28,7 +28,6 @@
 
 #include "shellcore/lang_base.h"
 #include "shellcore/shell_core.h"
-#include "shellcore/jscript_context.h"
 
 using namespace shcore;
 
@@ -53,6 +52,10 @@ private:
   void print_banner();
 private:
   static void deleg_print(void *self, const char *text);
+  static std::string deleg_input(void *self, const char *text);
+  static std::string deleg_password(void *self, const char *text);
+
+  void do_shell_command(const std::string &command);
 private:
   Interpreter_delegate _delegate;
 
@@ -67,14 +70,18 @@ private:
 Interactive_shell::Interactive_shell()
 {
   rl_initialize();
-  using_history();
+//  using_history();
 
   _multiline_mode = false;
 
   _delegate.user_data = this;
   _delegate.print = &Interactive_shell::deleg_print;
+  _delegate.input = &Interactive_shell::deleg_input;
+  _delegate.password = &Interactive_shell::deleg_password;
 
-  _shell.reset(new Shell_core(Shell_core::Mode_JScript, &_delegate));
+  _shell.reset(new Shell_core(&_delegate));
+
+  switch_shell_mode(Shell_core::Mode_JScript, std::vector<std::string>());
 }
 
 
@@ -84,6 +91,8 @@ std::string Interactive_shell::prompt()
   std::string suffix;
   switch (_shell->interactive_mode())
   {
+  case Shell_core::Mode_None:
+    break;
   case Shell_core::Mode_SQL:
     prefix = "mysql";
     suffix = "> ";
@@ -113,6 +122,8 @@ void Interactive_shell::switch_shell_mode(Shell_core::Mode mode, const std::vect
   //XXX reset the history... history should be specific to each shell mode
   switch (mode)
   {
+  case Shell_core::Mode_None:
+    break;
   case Shell_core::Mode_SQL:
     if (_shell->switch_mode(mode))
       println("Switching to SQL mode... Commands end with ;");
@@ -159,40 +170,71 @@ void Interactive_shell::deleg_print(void *cdata, const char *text)
   self->print(text);
 }
 
+
+std::string Interactive_shell::deleg_input(void *cdata, const char *prompt)
+{
+  std::string s;
+  char *tmp = readline(prompt);
+  if (!tmp)
+    return "";
+  s = tmp;
+  free(tmp);
+  return s;
+}
+
+
+std::string Interactive_shell::deleg_password(void *cdata, const char *prompt)
+{
+  std::string s;
+  char *tmp = readline(prompt);//XXX
+  if (!tmp)
+    return "";
+  s = tmp;
+  free(tmp);
+  return s;
+}
+
+
+void Interactive_shell::do_shell_command(const std::string &line)
+{
+  std::vector<std::string> tokens;
+
+  boost::algorithm::split(tokens, line, boost::is_any_of(" "), boost::token_compress_on);
+
+  if (tokens.front().compare("\\sql") == 0)
+  {
+    switch_shell_mode(Shell_core::Mode_SQL, tokens);
+  }
+  else if (tokens.front().compare("\\js") == 0)
+  {
+    switch_shell_mode(Shell_core::Mode_JScript, tokens);
+  }
+  else if (tokens.front().compare("\\py") == 0)
+  {
+    switch_shell_mode(Shell_core::Mode_Python, tokens);
+  }
+  else if (tokens.front().compare("\\help") == 0 || tokens.front().compare("\\?") == 0)
+  {
+    print_shell_help();
+  }
+  else if (line == "\\")
+  {
+    println("Multi-line input. Finish and execute with an empty line.");
+    _multiline_mode = true;
+  }
+  else
+  {
+    print_error("Invalid shell command "+tokens.front()+". Try \\help or \\?\n");
+  }
+}
+
+
 void Interactive_shell::process_line(const std::string &line)
 {
   // check if the line is an escape/shell command
   if (_input_buffer.empty() && !line.empty() && line[0] == '\\' && !_multiline_mode)
   {
-    std::vector<std::string> tokens;
-
-    boost::algorithm::split(tokens, line, boost::is_any_of(" "), boost::token_compress_on);
-
-    if (tokens.front().compare("\\sql") == 0)
-    {
-      switch_shell_mode(Shell_core::Mode_SQL, tokens);
-    }
-    else if (tokens.front().compare("\\js") == 0)
-    {
-      switch_shell_mode(Shell_core::Mode_JScript, tokens);
-    }
-    else if (tokens.front().compare("\\py") == 0)
-    {
-      switch_shell_mode(Shell_core::Mode_Python, tokens);
-    }
-    else if (tokens.front().compare("\\help") == 0 || tokens.front().compare("\\?") == 0)
-    {
-      print_shell_help();
-    }
-    else if (line == "\\")
-    {
-      println("Multi-line input. Finish and execute with an empty line.");
-      _multiline_mode = true;
-    }
-    else
-    {
-      print_error("Invalid shell command "+tokens.front()+". Try \\help or \\?\n");
-    }
+    do_shell_command(line);
   }
   else
   {
@@ -210,11 +252,14 @@ void Interactive_shell::process_line(const std::string &line)
     }
     else
       _input_buffer = line;
-
+    
     if (!_multiline_mode)
     {
-      if (_shell->handle_interactive_input(_input_buffer))
+      if (_shell->handle_interactive_input(_input_buffer) == Input_ok)
+      {
         add_history(_input_buffer.c_str());
+        println("");
+      }
       _input_buffer.clear();
     }
   }
@@ -259,11 +304,12 @@ void Interactive_shell::print_banner()
 
 int main(int argc, char **argv)
 {
-  JScript_context::init();
+  extern void JScript_context_init();
+
+  JScript_context_init();
 
   {
     Interactive_shell shell;
-
     shell.command_loop();
   }
 

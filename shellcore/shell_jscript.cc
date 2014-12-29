@@ -32,9 +32,7 @@ Shell_javascript::Shell_javascript(Shell_core *shcore, Interpreter_delegate *she
 
 Interactive_input_state Shell_javascript::handle_interactive_input(const std::string &code)
 {
-  boost::system::error_code error;
-
-  _js->execute(code, error);
+  _js->execute_interactive(code);
 
   return Input_ok;
 }

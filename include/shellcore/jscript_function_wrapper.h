@@ -17,41 +17,41 @@
  * 02110-1301  USA
  */
 
-#ifndef _TYPES_JSCRIPT_H_
-#define _TYPES_JSCRIPT_H_
 
-#include "shellcore/jscript_context.h"
+// Provides a generic wrapper for shcore::Function objects so that they
+// can be used from JavaScript
+
+#ifndef _JSCRIPT_FUNCTION_WRAPPER_H_
+#define _JSCRIPT_FUNCTION_WRAPPER_H_
 
 #include "shellcore/types.h"
-
 #include <include/v8.h>
 
-namespace shcore {
+namespace shcore
+{
+class JScript_context;
 
-class JScript_function : public Function_base
+class JScript_function_wrapper
 {
 public:
-  JScript_function(boost::shared_ptr<JScript_context> context);
-  virtual ~JScript_function();
+  JScript_function_wrapper(JScript_context *context);
+  ~JScript_function_wrapper();
 
-  virtual std::string name();
+  v8::Handle<v8::Object> wrap(boost::shared_ptr<Function_base> object);
 
-  virtual std::vector<std::pair<std::string, Value_type> > signature();
-
-  virtual std::pair<std::string, Value_type> return_type();
-
-  virtual bool operator == (const Function_base &other) const;
-
-  virtual bool operator != (const Function_base &other) const;
-
-  virtual Value invoke(const Argument_list &args);
+  static bool unwrap(v8::Handle<v8::Object> value, boost::shared_ptr<Function_base> &ret_function);
 
 private:
-  boost::shared_ptr<JScript_context> _js;
-  v8::Handle<v8::Function> _jsfunc;
+  static void call(const v8::FunctionCallbackInfo<v8::Value>& args);
+
+  static void wrapper_deleted(const v8::WeakCallbackData<v8::Object, boost::shared_ptr<Function_base>>& data);
+
+private:
+  JScript_context *_context;
+  v8::Persistent<v8::ObjectTemplate> _object_template;
 };
 
-
 };
+
 
 #endif

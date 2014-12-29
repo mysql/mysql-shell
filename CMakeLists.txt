@@ -35,6 +35,7 @@ set(V8_INCLUDE_DIR /usr/local/include/v8)
 
 set(MY_CXX_WARNING_FLAGS "${MY_CXX_WARNING_FLAGS} -Werror")
 
+find_package(MYSQL REQUIRED)
 
 
 link_directories( ${MY_GMOCK_LIB_DIR} )
@@ -50,15 +51,19 @@ add_subdirectory(shellcore)
 # mysh cmdline util build
 include_directories("${PROJECT_SOURCE_DIR}/include"
                     "${PROJECT_SOURCE_DIR}/src/libedit"
+                    "${MYSQL_INCLUDE_DIRS}"
                     "${BOOST_INCLUDE_DIR}"
                    )
 
 file(GLOB mysh_SRC
 	"${PROJECT_SOURCE_DIR}/src/*.cc"
+    "${PROJECT_SOURCE_DIR}/modules/*.cc"
+    "${PROJECT_SOURCE_DIR}/modules/*.h"
 )
 
 add_executable(mysh ${mysh_SRC})
 target_link_libraries(mysh mysqlsh readline)
+target_link_libraries(mysh ${MYSQL_LIBRARIES})
 target_link_libraries(mysh -L/usr/local/lib/v8 -lv8_snapshot -licudata -lv8_libbase -lv8_base -licuuc -licui18n)
 
 

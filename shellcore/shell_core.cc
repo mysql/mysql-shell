@@ -24,19 +24,10 @@
 
 using namespace shcore;
 
-Shell_core::Shell_core(Mode default_mode, Interpreter_delegate *shdelegate)
+Shell_core::Shell_core(Interpreter_delegate *shdelegate)
 : _lang_delegate(shdelegate)
 {
-  _mode = default_mode;
-  switch (_mode)
-  {
-  case Mode_SQL:
-    _langs[_mode] = new Shell_sql(this);
-    break;
-  case Mode_JScript:
-    _langs[_mode] = new Shell_javascript(this, shdelegate);
-    break;
-  }
+  _mode = Mode_None;
 }
 
 
@@ -51,7 +42,43 @@ bool Shell_core::switch_mode(Mode mode)
   if (_mode != mode)
   {
     _mode = mode;
+    if (!_langs[_mode])
+    {
+      switch (_mode)
+      {
+      case Mode_None:
+        break;
+      case Mode_SQL:
+        init_sql();
+        break;
+      case Mode_JScript:
+        init_js();
+        break;
+      case Mode_Python:
+        init_py();
+        break;
+      }
+    }
     return true;
   }
   return false;
 }
+
+
+void Shell_core::init_sql()
+{
+  _langs[Mode_SQL] = new Shell_sql(this);
+}
+
+
+void Shell_core::init_js()
+{
+  _langs[Mode_JScript] = new Shell_javascript(this, _lang_delegate);
+}
+
+
+void Shell_core::init_py()
+{
+
+}
+

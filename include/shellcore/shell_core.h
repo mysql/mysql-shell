@@ -62,12 +62,13 @@ class Shell_core
 public:
   enum Mode
   {
+    Mode_None,
     Mode_SQL,
     Mode_JScript,
     Mode_Python
   };
 
-  Shell_core(Mode default_mode, Interpreter_delegate *shdelegate);
+  Shell_core(Interpreter_delegate *shdelegate);
 
   Mode interactive_mode() const { return _mode; }
   bool switch_mode(Mode mode);
@@ -76,9 +77,9 @@ public:
   Interactive_input_state handle_interactive_input(const std::string &code);
 
 private:
-  Value get_global(const std::string &name);
-  bool set_global(const std::string &name, Value value);
-
+  void init_sql();
+  void init_js();
+  void init_py();
 
 private:
   Registry _registry;
