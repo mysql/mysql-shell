@@ -19,6 +19,7 @@
 
 
 #include "shellcore/types_jscript.h"
+#include "shellcore/object_factory.h"
 
 #include <include/v8.h>
 #include <boost/weak_ptr.hpp>
@@ -82,7 +83,7 @@ public:
     {
       v8::Handle<v8::Function> f;
       f.Cast(member);
-      std::vector<v8::Handle<v8::Value>> argv;
+      std::vector<v8::Handle<v8::Value> > argv;
 
       //XX convert the arg list
 
@@ -91,7 +92,7 @@ public:
     }
     else
     {
-      throw Invalid_value_error("Called member "+name+" of JS object is not a function");
+      throw Exception::attrib_error("Called member "+name+" of JS object is not a function");
     }
   }
   

@@ -15,6 +15,11 @@
 
 cmake_minimum_required (VERSION 2.8)
 
+if (APPLE)
+# Deployment target must be set to 10.5, to match v8, otherwise we get link errors
+set(CMAKE_OSX_DEPLOYMENT_TARGET 10.5)
+endif()
+
 project (mysh)
 
 SET(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/cmake)
@@ -43,8 +48,10 @@ link_directories( ${MY_GMOCK_LIB_DIR} )
 add_subdirectory(src/libedit)
 
 
+if (APPLE)
 # needed when compiling in osx, for v8
 add_definitions(-std=gnu++0x)
+endif()
 
 add_subdirectory(shellcore)
 

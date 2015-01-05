@@ -30,7 +30,6 @@ class Cpp_function : public Function_base
 public:
   typedef boost::function<Value (const shcore::Argument_list &)> Function;
 
-  Cpp_function(const std::string &name, const Function &func, const char *arg1_name, Value_type arg1_type = Undefined, ...);
   virtual ~Cpp_function() {}
 
   virtual std::string name();
@@ -43,7 +42,17 @@ public:
 
   virtual Value invoke(const Argument_list &args);
 
+
+  static boost::shared_ptr<Function_base> create(const std::string &name, const Function &func, const char *arg1_name, Value_type arg1_type = Undefined, ...);
+
+  static boost::shared_ptr<Function_base> create(const std::string &name, const Function &func, const std::vector<std::pair<std::string, Value_type> > &signature);
+
 protected:
+  friend class Cpp_object_bridge;
+  
+  Cpp_function(const std::string &name, const Function &func, const char *arg1_name, Value_type arg1_type = Undefined, ...);
+  Cpp_function(const std::string &name, const Function &func, const std::vector<std::pair<std::string, Value_type> > &signature);
+
   std::string _name;
   Function _func;
 
@@ -62,9 +71,10 @@ public:
 
   virtual Value call(const std::string &name, const Argument_list &args);
 protected:
-  void add_function(boost::shared_ptr<Cpp_function> f);
+  void add_method(const char *name, Cpp_function::Function func,
+                  const char *arg1_name, Value_type arg1_type = Undefined, ...);
 
-  std::map<std::string, boost::shared_ptr<Cpp_function>> _funcs;
+  std::map<std::string, boost::shared_ptr<Cpp_function> > _funcs;
 };
 
 

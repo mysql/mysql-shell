@@ -70,13 +70,24 @@ void JScript_function_wrapper::call(const v8::FunctionCallbackInfo<v8::Value>& a
 
   boost::shared_ptr<Function_base> *shared_ptr_data = static_cast<boost::shared_ptr<Function_base>*>(obj->GetAlignedPointerFromInternalField(1));
 
-  Value r = (*shared_ptr_data)->invoke(self->_context->convert_args(args));
+  try
+  {
+    Value r = (*shared_ptr_data)->invoke(self->_context->convert_args(args));
 
-  args.GetReturnValue().Set(self->_context->shcore_value_to_v8_value(r));
+    args.GetReturnValue().Set(self->_context->shcore_value_to_v8_value(r));
+  }
+  catch (Exception &exc)
+  {
+    args.GetIsolate()->ThrowException(self->_context->shcore_value_to_v8_value(Value(exc.error())));
+  }
+  catch (std::exception &exc)
+  {
+    args.GetIsolate()->ThrowException(v8::String::NewFromUtf8(args.GetIsolate(), exc.what()));
+  }
 }
 
 
-void JScript_function_wrapper::wrapper_deleted(const v8::WeakCallbackData<v8::Object, boost::shared_ptr<Function_base>>& data)
+void JScript_function_wrapper::wrapper_deleted(const v8::WeakCallbackData<v8::Object, boost::shared_ptr<Function_base> >& data)
 {
   // the JS wrapper object was deleted, so we also free the shared-ref to the object
   v8::HandleScope hscope(data.GetIsolate());

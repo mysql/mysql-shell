@@ -25,66 +25,56 @@
 
 using namespace shcore;
 
-typedef std::map<std::string, Object_factory*> Package;
-
-static std::map<std::string, Package> *Object_Factories = NULL;
-
 // --
 
-void Object_factory::register_factory(const std::string &package, Object_factory *meta)
+Exception::Exception(const boost::shared_ptr<Value::Map_type> e)
+: _error(e)
 {
-  if (Object_Factories == NULL)
-    Object_Factories = new std::map<std::string, Package>();
-
-  Package &pkg = (*Object_Factories)[package];
-  if (pkg.find(meta->name()) != pkg.end())
-    throw std::logic_error("Registering duplicate Object Factory "+package+"::"+meta->name());
-  pkg[meta->name()] = meta;
 }
 
 
-boost::shared_ptr<Object_bridge> Object_factory::call_constructor(const std::string &package, const std::string &name,
-                                                                  const Argument_list &args)
+Exception Exception::argument_error(const std::string &message)
 {
-  std::map<std::string, Package>::iterator iter;
-  Package::iterator piter;
-  if ((iter = Object_Factories->find(package)) != Object_Factories->end()
-      && (piter = iter->second.find(name)) != iter->second.end())
-  {
-    return boost::shared_ptr<Object_bridge>(piter->second->construct(args));
-  }
-  throw std::invalid_argument("Invalid factory constructor "+package+"."+name+" invoked");
+  boost::shared_ptr<Value::Map_type> error(new Value::Map_type());
+  (*error)["type"] = Value("ArgumentError");
+  (*error)["message"] = Value(message);
+  return Exception(error);
 }
 
 
-std::vector<std::string> Object_factory::package_names()
+Exception Exception::attrib_error(const std::string &message)
 {
-  std::vector<std::string> names;
-
-  for (std::map<std::string, Package>::const_iterator iter = Object_Factories->begin();
-       iter != Object_Factories->end(); ++iter)
-    names.push_back(iter->first);
-  return names;
+  boost::shared_ptr<Value::Map_type> error(new Value::Map_type());
+  (*error)["type"] = Value("AttributeError");
+  (*error)["message"] = Value(message);
+  return Exception(error);
 }
 
 
-bool Object_factory::has_package(const std::string &package)
+Exception Exception::type_error(const std::string &message)
 {
-  return Object_Factories->find(package) != Object_Factories->end();
+  boost::shared_ptr<Value::Map_type> error(new Value::Map_type());
+  (*error)["type"] = Value("TypeError");
+  (*error)["message"] = Value(message);
+  return Exception(error);
 }
 
 
-std::vector<std::string> Object_factory::package_contents(const std::string &package)
+Exception Exception::error_with_code(const std::string &type, const std::string &message, int code)
 {
-  std::vector<std::string> names;
+  boost::shared_ptr<Value::Map_type> error(new Value::Map_type());
+  (*error)["type"] = Value(type);
+  (*error)["message"] = Value(message);
+  (*error)["code"] = Value(code);
+  return Exception(error);
+}
 
-  std::map<std::string, Package>::iterator iter;
-  if ((iter = Object_Factories->find(package)) != Object_Factories->end())
-  {
-    for (Package::iterator i = iter->second.begin(); i != iter->second.end(); ++i)
-      names.push_back(i->first);
-  }
-  return names;
+
+const char *Exception::what() const BOOST_NOEXCEPT_OR_NOTHROW
+{
+  if ((*_error)["message"].type == String)
+    return (*_error)["message"].value.s->c_str();
+  return "?";
 }
 
 // --
@@ -115,41 +105,76 @@ Value Function_base::invoke(const Value &arg1, const Value &arg2)
 
 // --
 
-void shcore::validate_args(const std::string &context, const Argument_list &args, Value_type vtype, ...)
+std::string Value::Map_type::get_string(const std::string &k, const std::string &def) const
 {
-  va_list vl;
-  va_start(vl, vtype);
-  Argument_list::const_iterator a = args.begin();
-  Value_type atype = vtype;
-  int i = 0;
-
-  do
-  {
-    if (atype == Undefined)
-    {
-      throw std::invalid_argument((boost::format("Too many arguments for %1%") % context).str());
-    }
-    if (atype != a->type)
-    {
-      throw std::invalid_argument((boost::format("Type mismatch in argument #%1% in %2%") % (i+1) % context).str());
-    }
-    ++a;
-    atype = (Value_type)va_arg(vl, int);
-  }
-  while (a != args.end());
-
-  if (atype != Undefined)
-  {
-    throw std::invalid_argument((boost::format("Too few arguments for %1%") % context).str());
-  }
-  va_end(vl);
+  const_iterator iter = find(k);
+  if (iter == end())
+    return def;
+  iter->second.check_type(String);
+  return iter->second.as_string();
 }
 
-// --
+bool Value::Map_type::get_bool(const std::string &k, bool def) const
+{
+  const_iterator iter = find(k);
+  if (iter == end())
+    return def;
+  iter->second.check_type(Bool);
+  return iter->second.as_bool();
+}
+
+int64_t Value::Map_type::get_int(const std::string &k, int64_t def) const
+{
+  const_iterator iter = find(k);
+  if (iter == end())
+    return def;
+  iter->second.check_type(Integer);
+  return iter->second.as_int();
+}
+
+double Value::Map_type::get_double(const std::string &k, double def) const
+{
+  const_iterator iter = find(k);
+  if (iter == end())
+    return def;
+  iter->second.check_type(Float);
+  return iter->second.as_double();
+}
+
+boost::shared_ptr<Object_bridge> Value::Map_type::get_object(const std::string &k,
+                                                             boost::shared_ptr<Object_bridge> def) const
+{
+  const_iterator iter = find(k);
+  if (iter == end())
+    return def;
+  iter->second.check_type(Object);
+  return iter->second.as_object();
+}
+
+boost::shared_ptr<Value::Map_type> Value::Map_type::get_map(const std::string &k,
+                                                            boost::shared_ptr<Map_type> def) const
+{
+  const_iterator iter = find(k);
+  if (iter == end())
+    return def;
+  iter->second.check_type(Map);
+  return iter->second.as_map();
+}
+
+boost::shared_ptr<Value::Array_type> Value::Map_type::get_array(const std::string &k,
+                                                                boost::shared_ptr<Array_type> def) const
+{
+  const_iterator iter = find(k);
+  if (iter == end())
+    return def;
+  iter->second.check_type(Array);
+  return iter->second.as_array();
+}
+
 
 
 Value::Value(const Value &copy)
-: type(Null)
+: type(shcore::Null)
 {
   operator=(copy);
 }
@@ -162,7 +187,7 @@ Value::Value(Value_type type)
   {
     case Undefined:
       break;
-    case Null:
+    case shcore::Null:
       break;
     case Bool:
       value.b = false;
@@ -195,17 +220,17 @@ Value::Value(Value_type type)
 }
 
 
-Value::Value(bool b)
-: type(Bool)
-{
-  value.b = b;
-}
-
-
 Value::Value(const std::string &s)
 : type(String)
 {
   value.s = new std::string(s);
+}
+
+
+Value::Value(int i)
+: type(Integer)
+{
+  value.i = i;
 }
 
 
@@ -263,7 +288,7 @@ Value &Value::operator= (const Value &other)
     {
       case Undefined:
         break;
-      case Null:
+      case shcore::Null:
         break;
       case Bool:
         value.b = other.value.b;
@@ -299,7 +324,7 @@ Value &Value::operator= (const Value &other)
     switch (type)
     {
       case Undefined:
-      case Null:
+      case shcore::Null:
       case Bool:
       case Integer:
       case Float:
@@ -327,7 +352,7 @@ Value &Value::operator= (const Value &other)
     switch (type)
     {
       case Undefined:
-      case Null:
+      case shcore::Null:
         break;
       case Bool:
         value.b = other.value.b;
@@ -377,7 +402,7 @@ bool Value::operator == (const Value &other) const
     {
       case Undefined:
         return false;
-      case Null:
+      case shcore::Null:
         return true;
       case Bool:
         return value.b == other.value.b;
@@ -425,7 +450,7 @@ std::string &Value::append_descr(std::string &s_out, bool pprint) const
     case Undefined:
       s_out.append("undefined");
       break;
-    case Null:
+    case shcore::Null:
       s_out.append("null");
       break;
     case Bool:
@@ -438,7 +463,7 @@ std::string &Value::append_descr(std::string &s_out, bool pprint) const
       s_out.append("fl");
       break;
     case String:
-      s_out.append("str");
+      s_out.append(*value.s);
       break;
     case Object:
       s_out.append("obj");
@@ -447,7 +472,15 @@ std::string &Value::append_descr(std::string &s_out, bool pprint) const
       s_out.append("arr");
       break;
     case Map:
-      s_out.append("map");
+      s_out.append("{");
+      for (Map_type::const_iterator iter = (*value.map)->begin(); iter != (*value.map)->end(); ++iter)
+      {
+        if (iter != (*value.map)->begin())
+          s_out.append(", ");
+        s_out.append(iter->first).append(": ");
+        iter->second.append_descr(s_out, pprint);
+      }
+      s_out.append("}");
       break;
     case MapRef:
       s_out.append("mapref");
@@ -465,7 +498,7 @@ std::string &Value::append_repr(std::string &s_out) const
   switch (type)
   {
     case Undefined:
-    case Null:
+    case shcore::Null:
     case Bool:
     case Integer:
     case Float:
@@ -492,7 +525,7 @@ Value::~Value()
   switch (type)
   {
     case Undefined:
-    case Null:
+    case shcore::Null:
     case Bool:
     case Integer:
     case Float:
@@ -518,15 +551,20 @@ Value::~Value()
   }
 }
 
+void Value::check_type(Value_type t) const
+{
+  if (type != t)
+    throw Exception::type_error("Invalid typecast");
+}
 
-
+//---
 
 const std::string &Argument_list::string_at(int i) const
 {
   if (i >= size())
-    throw std::range_error("Insufficient number of arguments");
+    throw Exception::argument_error("Insufficient number of arguments");
   if (at(i).type != String)
-    throw Type_error((boost::format("Element at index %1% is expected to be a string") % i).str());
+    throw Exception::type_error((boost::format("Element at index %1% is expected to be a string") % i).str());
   return *at(i).value.s;
 }
 
@@ -534,9 +572,9 @@ const std::string &Argument_list::string_at(int i) const
 bool Argument_list::bool_at(int i) const
 {
   if (i >= size())
-    throw std::range_error("Insufficient number of arguments");
-  if (at(i).type != String)
-    throw Type_error((boost::format("Element at index %1% is expected to be a bool") % i).str());
+    throw Exception::argument_error("Insufficient number of arguments");
+  if (at(i).type != Bool)
+    throw Exception::type_error((boost::format("Element at index %1% is expected to be a bool") % i).str());
   return at(i).value.b;
 }
 
@@ -544,9 +582,9 @@ bool Argument_list::bool_at(int i) const
 int64_t Argument_list::int_at(int i) const
 {
   if (i >= size())
-    throw std::range_error("Insufficient number of arguments");
-  if (at(i).type != String)
-    throw Type_error((boost::format("Element at index %1% is expected to be an int") % i).str());
+    throw Exception::argument_error("Insufficient number of arguments");
+  if (at(i).type != Integer)
+    throw Exception::type_error((boost::format("Element at index %1% is expected to be an int") % i).str());
   return at(i).value.i;
 }
 
@@ -554,9 +592,9 @@ int64_t Argument_list::int_at(int i) const
 double Argument_list::double_at(int i) const
 {
   if (i >= size())
-    throw std::range_error("Insufficient number of arguments");
-  if (at(i).type != String)
-    throw Type_error((boost::format("Element at index %1% is expected to be a double") % i).str());
+    throw Exception::argument_error("Insufficient number of arguments");
+  if (at(i).type != Float)
+    throw Exception::type_error((boost::format("Element at index %1% is expected to be a double") % i).str());
   return at(i).value.d;
 }
 
@@ -564,9 +602,9 @@ double Argument_list::double_at(int i) const
 boost::shared_ptr<Object_bridge> Argument_list::object_at(int i) const
 {
   if (i >= size())
-    throw std::range_error("Insufficient number of arguments");
-  if (at(i).type != String)
-    throw Type_error((boost::format("Element at index %1% is expected to be an object") % i).str());
+    throw Exception::argument_error("Insufficient number of arguments");
+  if (at(i).type != Object)
+    throw Exception::type_error((boost::format("Element at index %1% is expected to be an object") % i).str());
   return *at(i).value.o;
 }
 
@@ -574,9 +612,9 @@ boost::shared_ptr<Object_bridge> Argument_list::object_at(int i) const
 boost::shared_ptr<Value::Map_type> Argument_list::map_at(int i) const
 {
   if (i >= size())
-    throw std::range_error("Insufficient number of arguments");
-  if (at(i).type != String)
-    throw Type_error((boost::format("Element at index %1% is expected to be a map") % i).str());
+    throw Exception::argument_error("Insufficient number of arguments");
+  if (at(i).type != Map)
+    throw Exception::type_error((boost::format("Element at index %1% is expected to be a map") % i).str());
   return *at(i).value.map;
 }
 
@@ -584,9 +622,9 @@ boost::shared_ptr<Value::Map_type> Argument_list::map_at(int i) const
 boost::shared_ptr<Value::Array_type> Argument_list::array_at(int i) const
 {
   if (i >= size())
-    throw std::range_error("Insufficient number of arguments");
-  if (at(i).type != String)
-    throw Type_error((boost::format("Element at index %1% is expected to be an array") % i).str());
+    throw Exception::argument_error("Insufficient number of arguments");
+  if (at(i).type != Array)
+    throw Exception::type_error((boost::format("Element at index %1% is expected to be an array") % i).str());
   return *at(i).value.array;
 }
 
@@ -594,6 +632,12 @@ boost::shared_ptr<Value::Array_type> Argument_list::array_at(int i) const
 void Argument_list::ensure_count(int c, const char *context) const
 {
   if (c != size())
-    throw std::invalid_argument((boost::format("Invalid number of arguments in %1%, expected %2% but got %3%") % context % c % size()).str());
+    throw Exception::argument_error((boost::format("Invalid number of arguments in %1%, expected %2% but got %3%") % context % c % size()).str());
 }
 
+
+void Argument_list::ensure_count(int minc, int maxc, const char *context) const
+{
+  if (size() < minc || size() > maxc)
+    throw Exception::argument_error((boost::format("Invalid number of arguments in %1%, expected %2% to %3% but got %4%") % context % minc % maxc % size()).str());
+}

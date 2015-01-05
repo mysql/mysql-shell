@@ -19,7 +19,11 @@
 
 #include "mod_mysql.h"
 
+#include "shellcore/object_factory.h"
+
+
 #include <boost/bind.hpp>
+#include <boost/lexical_cast.hpp>
 
 using namespace mysh;
 
@@ -32,6 +36,10 @@ public:
   Mysql_resultset(MYSQL_RES *res)
   : _result(res)
   {
+    add_method("next", boost::bind(&Mysql_resultset::next, this, _1), NULL);
+
+    _fields = mysql_fetch_fields(res);
+    _num_fields = mysql_num_fields(res);
   }
 
   virtual ~Mysql_resultset()
@@ -72,7 +80,7 @@ public:
   {
     if (prop == "count")
       return shcore::Value((int64_t)mysql_num_rows(_result));
-    return shcore::Value();
+    return shcore::Cpp_object_bridge::get_member(prop);
   }
 
   virtual void set_member(const std::string &prop, shcore::Value value)
@@ -80,7 +88,59 @@ public:
   }
 
 private:
+  shcore::Value next(const shcore::Argument_list &args)
+  {
+    args.ensure_count(0, "Mysql_resultset::next");
+
+    MYSQL_ROW row = mysql_fetch_row(_result);
+    if (!row)
+      return shcore::Value::Null();
+
+    unsigned long *lengths;
+    lengths = mysql_fetch_lengths(_result);
+
+    return row_to_doc(row, lengths);
+  }
+
+  shcore::Value row_to_doc(const MYSQL_ROW &row, unsigned long *lengths)
+  {
+    boost::shared_ptr<shcore::Value::Map_type> map(new shcore::Value::Map_type);
+
+    for (int i = 0; i < _num_fields; i++)
+    {
+      if (row[i] == NULL)
+        map->insert(std::make_pair(_fields[i].name, shcore::Value::Null()));
+      else
+      {
+        switch (_fields[i].type)
+        {
+          case MYSQL_TYPE_STRING:
+          case MYSQL_TYPE_VARCHAR:
+          case MYSQL_TYPE_VAR_STRING:
+            map->insert(std::make_pair(_fields[i].name, shcore::Value(std::string(row[i], lengths[i]))));
+            break;
+
+          case MYSQL_TYPE_TINY:
+          case MYSQL_TYPE_SHORT:
+          case MYSQL_TYPE_INT24:
+          case MYSQL_TYPE_LONG:
+          case MYSQL_TYPE_LONGLONG:
+            map->insert(std::make_pair(_fields[i].name, shcore::Value(boost::lexical_cast<int64_t>(row[i]))));
+            break;
+
+          case MYSQL_TYPE_DOUBLE:
+            map->insert(std::make_pair(_fields[i].name, shcore::Value(boost::lexical_cast<double>(row[i]))));
+            break;
+        }
+      }
+    }
+    return shcore::Value(map);
+  }
+
+private:
   MYSQL_RES *_result;
+  MYSQL_FIELD *_fields;
+  int _num_fields;
 };
 
 
@@ -89,12 +149,20 @@ private:
 
 static bool parse_mysql_connstring(const std::string &connstring,
                                    std::string &user, std::string &password,
-                                   std::string &host, int &port, std::string &sock)
+                                   std::string &host, int &port, std::string &sock,
+                                   std::string &db)
 {
-  // format is [user[:pass]]@host[:port] or user[:pass]@::socket, like what cmdline utilities use
-  std::string::size_type p = connstring.rfind('@');
-  std::string user_part = (p == std::string::npos) ? "root" : connstring.substr(0, p);
-  std::string server_part = (p == std::string::npos) ? connstring : connstring.substr(p+1);
+  // format is [user[:pass]]@host[:port][/db] or user[:pass]@::socket[/db], like what cmdline utilities use
+  std::string s = connstring;
+  std::string::size_type p = connstring.find('/');
+  if (p != std::string::npos)
+  {
+    db = connstring.substr(p+1);
+    s = connstring.substr(0, p);
+  }
+  p = s.rfind('@');
+  std::string user_part = (p == std::string::npos) ? "root" : s.substr(0, p);
+  std::string server_part = (p == std::string::npos) ? s : s.substr(p+1);
 
   if ((p = user_part.find(':')) != std::string::npos)
   {
@@ -128,26 +196,28 @@ static bool parse_mysql_connstring(const std::string &connstring,
 Mysql_connection::Mysql_connection(const std::string &uri)
 : _mysql(NULL)
 {
-  add_function(boost::shared_ptr<shcore::Cpp_function>(new shcore::Cpp_function("close", boost::bind(&Mysql_connection::close, this, _1), NULL)));
-  add_function(boost::shared_ptr<shcore::Cpp_function>(new shcore::Cpp_function("query", boost::bind(&Mysql_connection::query, this, _1),
-                                                                        "sql", shcore::String, NULL)));
+  add_method("close", boost::bind(&Mysql_connection::close, this, _1), NULL);
+  add_method("sql", boost::bind(&Mysql_connection::sql, this, _1),
+             "stmt", shcore::String,
+             "*options", shcore::Map,
+             NULL);
 
   std::string user;
   std::string pass;
   std::string host;
   int port;
   std::string sock;
+  std::string db;
   long flags = 0;
 
   _mysql = mysql_init(NULL);
 
-  if (!parse_mysql_connstring(uri, user, pass, host, port, sock))
-    throw std::invalid_argument("Could not parse URI for MySQL connection");
+  if (!parse_mysql_connstring(uri, user, pass, host, port, sock, db))
+    throw shcore::Exception::argument_error("Could not parse URI for MySQL connection");
 
-  if (!mysql_real_connect(_mysql, host.c_str(), user.c_str(), pass.c_str(), NULL, port, sock.empty() ? NULL : sock.c_str(), flags))
+  if (!mysql_real_connect(_mysql, host.c_str(), user.c_str(), pass.c_str(), db.empty() ? NULL : db.c_str(), port, sock.empty() ? NULL : sock.c_str(), flags))
   {
-    // use error class
-    throw std::runtime_error(mysql_error(_mysql));
+    throw shcore::Exception::error_with_code("MySQLError", mysql_error(_mysql), mysql_errno(_mysql));
   }
 
   //TODO strip password from uri?
@@ -159,32 +229,45 @@ shcore::Value Mysql_connection::close(const shcore::Argument_list &args)
 {
   args.ensure_count(0, "Mysql_connection::close");
 
-  mysql_close(_mysql);
+  std::cout << "disconnect\n";
+  if (_mysql)
+    mysql_close(_mysql);
   _mysql = NULL;
   return shcore::Value(shcore::Null);
 }
 
 
-shcore::Value Mysql_connection::query(const shcore::Argument_list &args)
+shcore::Value Mysql_connection::sql(const shcore::Argument_list &args)
 {
   MYSQL_RES *res;
   std::string query = args.string_at(0);
-  args.ensure_count(1, "Mysql_connection::query");
+
+  args.ensure_count(1, 2, "Mysql_connection::sql");
 
   if (mysql_real_query(_mysql, query.c_str(), query.length()) < 0)
   {
-    throw std::runtime_error(mysql_error(_mysql));
+    throw shcore::Exception::error_with_code("MySQLError", mysql_error(_mysql), mysql_errno(_mysql));
   }
 
-  res = mysql_use_result(_mysql);
+  res = mysql_store_result(_mysql);
   if (!res)
   {
-    throw std::runtime_error(mysql_error(_mysql));
+    throw shcore::Exception::error_with_code("MySQLError", mysql_error(_mysql), mysql_errno(_mysql));
   }
-
   return shcore::Value(boost::shared_ptr<shcore::Object_bridge>(new Mysql_resultset(res)));
 }
 
+Mysql_connection::~Mysql_connection()
+{
+  close(shcore::Argument_list());
+}
+
+/*
+shcore::Value Mysql_connection::stats(const shcore::Argument_list &args)
+{
+  return shcore::Value();
+}
+*/
 
 std::string Mysql_connection::class_name() const
 {
@@ -219,6 +302,7 @@ bool Mysql_connection::operator == (const Object_bridge &other) const
 
 shcore::Value Mysql_connection::get_member(const std::string &prop) const
 {
+  std::cout << "get "<<prop<<"\n";
   return Cpp_object_bridge::get_member(prop);
 }
 

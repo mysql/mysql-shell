@@ -31,11 +31,12 @@ class JScript_context;
 class Shell_javascript : public Shell_language
 {
 public:
-  Shell_javascript(Shell_core *shcore, Interpreter_delegate *shell_deleg);
+  Shell_javascript(Shell_core *shcore);
 
+  virtual void set_global(const std::string &name, const Value &value);
 
   virtual Interactive_input_state handle_interactive_input(const std::string &code);
-
+  virtual int run_script(const std::string &path, boost::system::error_code &err);
 private:
   boost::shared_ptr<JScript_context> _js;
 };

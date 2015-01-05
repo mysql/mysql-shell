@@ -28,6 +28,8 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/function.hpp>
 
+#include "shellcore/common.h"
+
 namespace shcore {
 
 /** Basic types that can be passed around code in different languages.
@@ -52,6 +54,7 @@ enum Value_type
   Function //! A function reference, not serializable.
 };
 
+class Object_bridge;
 
 /** A generic value that can be used from any language we support.
 
@@ -59,10 +62,26 @@ enum Value_type
  scripting functions or stored in the internal registry or anywhere. If serializable
  types are used, then they may also be stored as a JSON document.
  */
-struct Value
+struct SHCORE_PUBLIC Value
 {
   typedef std::vector<Value> Array_type;
-  typedef std::map<std::string, Value> Map_type;
+
+  class Map_type : public std::map<std::string, Value>
+  {
+  public:
+    inline bool has_key(const std::string &k) const { return find(k) != end(); }
+
+    std::string get_string(const std::string &k, const std::string &def="") const;
+    bool get_bool(const std::string &k, bool def=false) const;
+    int64_t get_int(const std::string &k, int64_t def=0) const;
+    double get_double(const std::string &k, double def=0.0) const;
+    boost::shared_ptr<Object_bridge> get_object(const std::string &k,
+            boost::shared_ptr<Object_bridge> def = boost::shared_ptr<Object_bridge>()) const;
+    boost::shared_ptr<Value::Map_type> get_map(const std::string &k,
+            boost::shared_ptr<Map_type> def = boost::shared_ptr<Map_type>()) const;
+    boost::shared_ptr<Value::Array_type> get_array(const std::string &k,
+            boost::shared_ptr<Array_type> def = boost::shared_ptr<Array_type>()) const;
+  };
 
   Value_type type;
   union
@@ -82,8 +101,9 @@ struct Value
   Value(const Value &copy);
 
   explicit Value(Value_type type);
-  explicit Value(bool b);
+//  explicit Value(bool b);
   explicit Value(const std::string &s);
+  explicit Value(int i);
   explicit Value(int64_t i);
   explicit Value(double d);
   explicit Value(boost::shared_ptr<Function_base> f);
@@ -91,6 +111,10 @@ struct Value
   explicit Value(boost::shared_ptr<Map_type> n);
   explicit Value(boost::weak_ptr<Map_type> n);
   explicit Value(boost::shared_ptr<Array_type> n);
+
+  static Value Null() { return Value(shcore::Null); }
+  static Value True() { return Value((bool)true); }
+  static Value False() { return Value((bool)false); }
 
   //! parse a string returned by repr() back into a Value
   static Value parse(const std::string &s);
@@ -114,10 +138,20 @@ struct Value
 
   std::string &append_descr(std::string &s_out, bool pprint) const;
   std::string &append_repr(std::string &s_out) const;
+
+  void check_type(Value_type t) const;
+
+  bool as_bool() const { check_type(Bool); return value.b; }
+  int64_t as_int() const { check_type(Integer); return value.i; }
+  double as_double() const { check_type(Float); return value.d; }
+  const std::string &as_string() const { check_type(String); return *value.s; }
+  boost::shared_ptr<Object_bridge> as_object() const { check_type(Object); return *value.o; }
+  boost::shared_ptr<Map_type> as_map() const { check_type(Map); return *value.map; }
+  boost::shared_ptr<Array_type> as_array() const { check_type(Array); return *value.array; }
 };
 
 
-class Argument_list : public std::vector<Value>
+class SHCORE_PUBLIC Argument_list : public std::vector<Value>
 {
 public:
   const std::string &string_at(int i) const;
@@ -129,6 +163,7 @@ public:
   boost::shared_ptr<Value::Array_type> array_at(int i) const;
 
   void ensure_count(int c, const char *context) const;
+  void ensure_count(int minc, int maxc, const char *context) const;
 };
 
 
@@ -150,7 +185,7 @@ template<> struct value_type_for_native<Value::Array_type> { static const Value_
  *
  * They can be instantiated through their Metaclass factory
  */
-class Object_bridge
+class SHCORE_PUBLIC Object_bridge
 {
 public:
   virtual ~Object_bridge() {}
@@ -183,43 +218,9 @@ public:
 };
 
 
-class Object_factory
-{
-public:
-  virtual ~Object_factory() {}
-
-  virtual std::string name() const = 0;
-
-  //! Factory method... creates an instance of the class
-  virtual boost::shared_ptr<Object_bridge> construct(const Argument_list &args) = 0;
-
-  //! Factory method... recreates an instance of the class through the repr value of it
-//  virtual boost::shared_ptr<Object_bridge> construct_from_repr(const std::string &repr) = 0;
-
-public:
-  //! Registers a metaclass
-  static void register_factory(const std::string &package, Object_factory *fac);
-
-  static boost::shared_ptr<Object_bridge> call_constructor(const std::string &package, const std::string &name,
-                                                           const Argument_list &args);
-
-  static std::vector<std::string> package_names();
-  static std::vector<std::string> package_contents(const std::string &package);
-
-  static bool has_package(const std::string &package);
-
-  // call_constructor_with_repr(const std::string &repr)
-};
-
-
-//! checks that the arglist in args matches the types provided in the args to the function
-// in case of a mismatch, an exception is thrown
-void validate_args(const std::string &context, const Argument_list &args, Value_type vtype, ...);
-
-
 /** Pointer to a function that may be implemented in any language.
  */
-class Function_base
+class SHCORE_PUBLIC Function_base
 {
 public:
   //! The name of the function
@@ -250,19 +251,21 @@ public:
 };
 
 
-class Invalid_value_error : public std::logic_error
+class SHCORE_PUBLIC Exception : public std::exception
 {
-public:
-  Invalid_value_error(const std::string &e) : std::logic_error(e) {}
-};
+  boost::shared_ptr<Value::Map_type> _error;
 
-
-/** Exception thrown when a Value object is attempted to be accessed as the wrong type
- */
-class Type_error : public std::logic_error
-{
 public:
-  Type_error(const std::string &e) : std::logic_error(e) {}
+  Exception(const boost::shared_ptr<Value::Map_type> e);
+
+  static Exception argument_error(const std::string &message);
+  static Exception attrib_error(const std::string &message);
+  static Exception type_error(const std::string &message);
+  static Exception error_with_code(const std::string &type, const std::string &message, int code);
+
+  virtual const char *what() const BOOST_NOEXCEPT_OR_NOTHROW;
+
+  boost::shared_ptr<Value::Map_type> error() const { return _error; }
 };
 
 };

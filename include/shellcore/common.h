@@ -17,29 +17,18 @@
  * 02110-1301  USA
  */
 
-#ifndef _SHELL_SQL_H_
-#define _SHELL_SQL_H_
 
-#include "shellcore/shell_core.h"
-#include <boost/system/error_code.hpp>
+#ifndef _SHCORE_COMMON_H_
+#define _SHCORE_COMMON_H_
 
-namespace shcore
-{
-
-class Shell_sql : public Shell_language
-{
-public:
-  Shell_sql(Shell_core *owner);
-
-  virtual void set_global(const std::string &name, const Value &value) {}
-
-  virtual Interactive_input_state handle_interactive_input(const std::string &code);
-  virtual int run_script(const std::string &path, boost::system::error_code &err);
-
-private:
-  std::string _delimiter;
-};
-
-};
+#ifdef _WIN32
+#ifdef SHCORE_EXPORT
+# define SHCORE_PUBLIC __declspec(dllexport)
+#else
+# define SHCORE_PUBLIC __declspec(dllimport)
+#endif
+#else
+# define SHCORE_PUBLIC
+#endif
 
 #endif

@@ -36,3 +36,9 @@ Interactive_input_state Shell_sql::handle_interactive_input(const std::string &c
 
   return Input_ok;
 }
+
+
+int Shell_sql::run_script(const std::string &path, boost::system::error_code &err)
+{
+  return 0;
+}

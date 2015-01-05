@@ -17,26 +17,31 @@
  * 02110-1301  USA
  */
 
-// MySQL DB access module, for use by plugins and others
-// For the module that implements interactive DB functionality see mod_db
+// Interactive DB access module
+// (the one exposed as the db variable in the shell)
 
-#ifndef _MOD_MYSQL_H_
-#define _MOD_MYSQL_H_
+#ifndef _MOD_DB_H_
+#define _MOD_DB_H_
 
 #include "shellcore/types.h"
 #include "shellcore/types_cpp.h"
 
-#include <mysql.h>
+#include "mod_mysql.h"
+
+namespace shcore
+{
+  class Shell_core;
+};
 
 namespace mysh {
 
 class Mysql_resultset;
 
-class Mysql_connection : public shcore::Cpp_object_bridge
+class Db : public shcore::Cpp_object_bridge
 {
 public:
-  Mysql_connection(const std::string &uri);
-  ~Mysql_connection();
+  Db(shcore::Shell_core *shc);
+  ~Db();
 
   virtual std::string class_name() const;
   virtual std::string &append_descr(std::string &s_out, bool pprint) const;
@@ -46,13 +51,14 @@ public:
   virtual shcore::Value get_member(const std::string &prop) const;
   virtual void set_member(const std::string &prop, shcore::Value value);
 
-  shcore::Value close(const shcore::Argument_list &args);
+  shcore::Value connect(const shcore::Argument_list &args);
+  shcore::Value connect_add(const shcore::Argument_list &args);
   shcore::Value sql(const shcore::Argument_list &args);
 //  shcore::Value stats(const shcore::Argument_list &args);
 
 private:
-  std::string _uri;
-  MYSQL *_mysql;
+  shcore::Shell_core *_shcore;
+  std::vector<boost::shared_ptr<Mysql_connection> > _conns;
 };
 
 };

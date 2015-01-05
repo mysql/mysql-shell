@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2015, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -30,14 +30,17 @@ namespace shcore {
 
 struct Interpreter_delegate;
 
+class Object_registry;
+
 class JScript_context
 {
 public:
-  JScript_context(Interpreter_delegate *deleg);
+  JScript_context(Object_registry *registry, Interpreter_delegate *deleg);
   ~JScript_context();
 
   Value execute(const std::string &code, boost::system::error_code &ret_error) BOOST_NOEXCEPT_OR_NOTHROW;
   bool execute_interactive(const std::string &code) BOOST_NOEXCEPT_OR_NOTHROW;
+  int run_script(const std::string &path, boost::system::error_code &err) BOOST_NOEXCEPT_OR_NOTHROW;
 
   v8::Isolate *isolate() const;
   v8::Handle<v8::Context> context() const;
@@ -51,6 +54,8 @@ public:
 private:
   struct JScript_context_impl;
   JScript_context_impl *_impl;
+
+  Object_registry *_registry;
 };
 
 };

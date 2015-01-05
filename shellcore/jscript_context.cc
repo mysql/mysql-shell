@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2015, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -22,13 +22,22 @@
 #include "shellcore/shell_core.h"
 #include "shellcore/jscript_object_wrapper.h"
 #include "shellcore/jscript_function_wrapper.h"
+#include "shellcore/jscript_map_wrapper.h"
+#include "shellcore/jscript_array_wrapper.h"
+#include "shellcore/object_factory.h"
+#include "shellcore/object_registry.h"
 
+#include <fstream>
+#include <cerrno>
 #include <boost/weak_ptr.hpp>
+#include <boost/format.hpp>
+#include <boost/bind.hpp>
+#include <boost/system/error_code.hpp>
 
 #include <iostream>
 
 using namespace shcore;
-
+using namespace boost::system;
 
 struct JScript_context::JScript_context_impl
 {
@@ -39,11 +48,14 @@ struct JScript_context::JScript_context_impl
   v8::Persistent<v8::ObjectTemplate> package_template;
   JScript_object_wrapper *object_wrapper;
   JScript_function_wrapper *function_wrapper;
+  JScript_map_wrapper *map_wrapper;
+  JScript_array_wrapper *array_wrapper;
 
   Interpreter_delegate *delegate;
 
   JScript_context_impl(JScript_context *owner_, Interpreter_delegate *deleg)
-  : owner(owner_), isolate(v8::Isolate::New()), object_wrapper(NULL), function_wrapper(NULL), delegate(deleg)
+  : owner(owner_), isolate(v8::Isolate::New()), object_wrapper(NULL), function_wrapper(NULL),
+    map_wrapper(NULL), array_wrapper(NULL), delegate(deleg)
   {
     v8::Isolate::Scope isolate_scope(isolate);
     v8::HandleScope handle_scope(isolate);
@@ -65,8 +77,8 @@ struct JScript_context::JScript_context_impl
     globals->Set(v8::String::NewFromUtf8(isolate, "password"),
                  v8::FunctionTemplate::New(isolate, &JScript_context_impl::f_password, client_data));
 
-    // obj = factory.mysql.open('root@localhost')
-    globals->Set(v8::String::NewFromUtf8(isolate, "Factory"), make_factory());
+    // obj = _F.mysql.open('root@localhost')
+    globals->Set(v8::String::NewFromUtf8(isolate, "_F"), make_factory());
 
     {
       v8::Handle<v8::ObjectTemplate> templ(v8::ObjectTemplate::New(isolate));
@@ -82,6 +94,9 @@ struct JScript_context::JScript_context_impl
     for (std::map<std::string, v8::Persistent<v8::Object>* >::iterator i = factory_packages.begin(); i != factory_packages.end(); ++i)
       delete i->second;
     delete object_wrapper;
+    delete function_wrapper;
+    delete map_wrapper;
+    delete array_wrapper;
   }
 
 
@@ -190,7 +205,15 @@ struct JScript_context::JScript_context_impl
       if (i > 0)
         self->delegate->print(self->delegate->user_data, " ");
 
-      self->delegate->print(self->delegate->user_data, self->v8_value_to_shcore_value(args[i]).descr(true).c_str());
+      try
+      {
+        self->delegate->print(self->delegate->user_data, self->v8_value_to_shcore_value(args[i]).descr(true).c_str());
+      }
+      catch (std::exception &e)
+      {
+        args.GetIsolate()->ThrowException(v8::String::NewFromUtf8(args.GetIsolate(), e.what()));
+        break;
+      }
     }
   }
 
@@ -239,18 +262,70 @@ struct JScript_context::JScript_context_impl
     }
     return r;
   }
+
+
+  std::string format_exception(const shcore::Value &exc)
+  {
+    try
+    {
+      if (exc.type == Map)
+      {
+        std::string type = exc.as_map()->get_string("type", "");
+        std::string message = exc.as_map()->get_string("message", "");
+        int64_t code = exc.as_map()->get_int("code", -1);
+
+        if (code < 0)
+          return (boost::format("%1%: %2%") % type % message).str();
+        else
+          return (boost::format("%1%: %2% (%3%)") % type % message % code).str();
+      }
+    }
+    catch (std::exception &e)
+    {
+      std::cerr << e.what() << ": unexpected format of exception object\n";
+    }
+    return exc.descr(false);
+  }
   
 
   void print_exception(v8::TryCatch *exc, bool to_shell=true)
   {
-    v8::String::Utf8Value exception(exc->Exception());
+    v8::Handle<v8::Message> message = exc->Message();
+    std::string exception_text = format_exception(v8_value_to_shcore_value(exc->Exception()));
 
-    if (const char *text = *exception)
+    if (message.IsEmpty())
     {
       if (to_shell)
-        delegate->print_error(delegate->user_data, std::string("JS Exception: ").append(text).append("\n").c_str());
+        delegate->print_error(delegate->user_data, std::string("JS Exception: ").append(exception_text).append("\n").c_str());
       else
-        std::cerr << std::string("JS Exception: ").append(text).append("\n");
+        std::cerr << std::string("JS Exception: ").append(exception_text).append("\n");
+    }
+    else
+    {
+      v8::String::Utf8Value filename(message->GetScriptOrigin().ResourceName());
+
+      // location
+      std::string text = (boost::format("JS Exception: %s:%i:%i: %s\n") % *filename % message->GetLineNumber() % message->GetStartColumn() % exception_text).str();
+      if (to_shell)
+        delegate->print_error(delegate->user_data, text.c_str());
+      else
+        std::cerr << text;
+
+      // code
+      v8::String::Utf8Value code(message->GetSourceLine());
+      if (to_shell)
+        delegate->print_error(delegate->user_data, (std::string(*code ? *code : "").append("\n")).c_str());
+      else
+        std::cerr << *code << "\n";
+
+      v8::String::Utf8Value stack(exc->StackTrace());
+      if (*stack && **stack)
+      {
+        if (to_shell)
+          delegate->print_error(delegate->user_data, (std::string(*stack).append("\n")).c_str());
+        else
+          std::cerr << *stack << "\n";
+      }
     }
   }
 
@@ -282,18 +357,32 @@ struct JScript_context::JScript_context_impl
       for (int32_t c = jsarray->Length(), i = 0; i < c; i++)
       {
         v8::Local<v8::Value> item(jsarray->Get(i));
-        array->push_back(v8_value_to_shcore_value(item));
+        (*array)[i] = v8_value_to_shcore_value(item);
       }
       return Value(array);
     }
-    else if (value->IsObject()) // JS object .. TODO: references to Object_bridges
+    else if (value->IsFunction())
+    {
+      throw std::logic_error("JS function wrapping not implemented");
+    }
+    else if (value->IsObject()) // JS object
     {
       v8::Handle<v8::Object> jsobject = value->ToObject();
       boost::shared_ptr<Object_bridge> object;
+      boost::shared_ptr<Value::Map_type> map;
+      boost::shared_ptr<Function_base> function;
 
-      if (JScript_object_wrapper::unwrap(jsobject, object))
+      if (JScript_map_wrapper::unwrap(jsobject, map))
+      {
+        return Value(map);
+      }
+      else if (JScript_object_wrapper::unwrap(jsobject, object))
       {
         return Value(object);
+      }
+      else if (JScript_function_wrapper::unwrap(jsobject, function))
+      {
+        return Value(function);
       }
       else
       {
@@ -344,13 +433,10 @@ struct JScript_context::JScript_context_impl
       r = wrap_object(*value.value.o);
       break;
     case Array:
-                std::cout << "wraparray not implemented\n";
-//      r = array_wrapper->wrap_instance(*value.value.array);
+      r = wrap_array(*value.value.array);
       break;
     case Map:
-        //TODO: create a wrapper/bridge object
-                std::cout << "wrapmap not implemented\n";
-//      r = map_wrapper->wrap_instance(*value.value.map);
+      r = wrap_map(*value.value.map);
       break;
     case MapRef:
       {
@@ -368,10 +454,6 @@ struct JScript_context::JScript_context_impl
     return r;
   }
 
-  static void call_function(const v8::FunctionCallbackInfo<v8::Value>& args)
-  {
-
-  }
 
   void set_global(const std::string &name, const v8::Handle<v8::Value> &value)
   {
@@ -385,6 +467,20 @@ struct JScript_context::JScript_context_impl
     if (!object_wrapper)
       object_wrapper = new JScript_object_wrapper(owner);
     return object_wrapper->wrap(o);
+  }
+
+  v8::Handle<v8::Value> wrap_map(const boost::shared_ptr<Value::Map_type> &o)
+  {
+    if (!map_wrapper)
+      map_wrapper = new JScript_map_wrapper(owner);
+    return map_wrapper->wrap(o);
+  }
+
+  v8::Handle<v8::Value> wrap_array(const boost::shared_ptr<Value::Array_type> &o)
+  {
+    if (!array_wrapper)
+      array_wrapper = new JScript_array_wrapper(owner);
+    return array_wrapper->wrap(o);
   }
 
   v8::Handle<v8::Value> wrap_function(const boost::shared_ptr<Function_base> &f)
@@ -413,16 +509,32 @@ void JScript_context_init()
 }
 
 
-JScript_context::JScript_context(Interpreter_delegate *deleg)
-: _impl(new JScript_context_impl(this, deleg))
+JScript_context::JScript_context(Object_registry *registry, Interpreter_delegate *deleg)
+: _impl(new JScript_context_impl(this, deleg)), _registry(registry)
 {
+  set_global("_G", Value(registry->_registry));
 }
-
 
 
 JScript_context::~JScript_context()
 {
   delete _impl;
+}
+
+
+void JScript_context::set_global(const std::string &name, const Value &value)
+{
+  // makes _isolate the default isolate for this context
+  v8::Isolate::Scope isolate_scope(_impl->isolate);
+  // creates a pool for all the handles that are created in this scope
+  // (except for persistent ones), which will be freed when the scope exits
+  v8::HandleScope handle_scope(_impl->isolate);
+  // catch everything that happens in this scope
+  v8::TryCatch try_catch;
+  // set _context to be the default context for everything in this scope
+  v8::Context::Scope context_scope(v8::Local<v8::Context>::New(_impl->isolate, _impl->context));
+
+  _impl->set_global(name, _impl->shcore_value_to_v8_value(value));
 }
 
 
@@ -455,11 +567,6 @@ Argument_list JScript_context::convert_args(const v8::FunctionCallbackInfo<v8::V
   return _impl->convert_args(args);
 }
 
-
-void JScript_context::set_global(const std::string &name, const Value &value)
-{
-  _impl->set_global(name, shcore_value_to_v8_value(value));
-}
 
 
 Value JScript_context::execute(const std::string &code_str, boost::system::error_code &ret_error) BOOST_NOEXCEPT_OR_NOTHROW
@@ -514,7 +621,7 @@ bool JScript_context::execute_interactive(const std::string &code_str) BOOST_NOE
   Value result = execute(code_str, error);
   if (!error)
   {
-    if (result)
+    if (result && result.type != Null)
       _impl->delegate->print(_impl->delegate->user_data, result.descr(true).c_str());
     return true;
   }
@@ -524,3 +631,55 @@ bool JScript_context::execute_interactive(const std::string &code_str) BOOST_NOE
   }
   return false;
 }
+
+
+int JScript_context::run_script(const std::string &path, boost::system::error_code &err) BOOST_NOEXCEPT_OR_NOTHROW
+{
+  // makes _isolate the default isolate for this context
+  v8::Isolate::Scope isolate_scope(_impl->isolate);
+  // creates a pool for all the handles that are created in this scope
+  // (except for persistent ones), which will be freed when the scope exits
+  v8::HandleScope handle_scope(_impl->isolate);
+  // catch everything that happens in this scope
+  v8::TryCatch try_catch;
+  // set _context to be the default context for everything in this scope
+  v8::Context::Scope context_scope(v8::Local<v8::Context>::New(_impl->isolate, _impl->context));
+  v8::ScriptOrigin origin(v8::String::NewFromUtf8(_impl->isolate, path.c_str()));
+  v8::Handle<v8::Script> script;
+  {
+    std::ifstream s(path.c_str());
+    if (s.fail())
+    {
+      err = errc::make_error_code((errc::errc_t)errno);
+      return 1;
+    }
+    s.seekg(0, std::ios_base::end);
+    std::streamsize fsize = s.tellg();
+    s.seekg(0, std::ios_base::beg);
+    char *fdata = new char[fsize+1];
+    s.read(fdata, fsize);
+    fdata[fsize] = 0;
+    script = v8::Script::Compile(v8::String::NewFromUtf8(_impl->isolate, fdata), &origin);
+    delete []fdata;
+
+    if (script.IsEmpty())
+    {
+      _impl->print_exception(&try_catch, false);
+      // XXX set the error to a proper value
+      return 1;
+    }
+  }
+
+  v8::Handle<v8::Value> result = script->Run();
+  if (result.IsEmpty())
+  {
+    _impl->print_exception(&try_catch, false);
+    // XXX set the error to a proper value
+    return 1;
+  }
+  else
+  {
+    return 0;
+  }
+}
+

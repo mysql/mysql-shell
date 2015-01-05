@@ -31,7 +31,7 @@ Cpp_object_bridge::~Cpp_object_bridge()
 std::vector<std::string> Cpp_object_bridge::get_members() const
 {
   std::vector<std::string> _members;
-  for (std::map<std::string, boost::shared_ptr<Cpp_function>>::const_iterator i = _funcs.begin(); i != _funcs.end(); ++i)
+  for (std::map<std::string, boost::shared_ptr<Cpp_function> >::const_iterator i = _funcs.begin(); i != _funcs.end(); ++i)
   {
     _members.push_back(i->first);
   }
@@ -41,29 +41,55 @@ std::vector<std::string> Cpp_object_bridge::get_members() const
 
 Value Cpp_object_bridge::get_member(const std::string &prop) const
 {
-  std::map<std::string, boost::shared_ptr<Cpp_function>>::const_iterator i;
+  std::map<std::string, boost::shared_ptr<Cpp_function> >::const_iterator i;
   if ((i = _funcs.find(prop)) != _funcs.end())
-    return Value(i->second);
-  throw std::invalid_argument("Invalid object member "+prop);
+    return Value(boost::shared_ptr<Function_base>(i->second));
+  throw Exception::attrib_error("Invalid object member "+prop);
 }
 
 
-void Cpp_object_bridge::add_function(boost::shared_ptr<Cpp_function> f)
+void Cpp_object_bridge::add_method(const char *name, Cpp_function::Function func,
+                                   const char *arg1_name, Value_type arg1_type, ...)
 {
-  _funcs[f->name()] = f;
+  std::vector<std::pair<std::string, Value_type> > signature;
+  va_list l;
+  if (arg1_name && arg1_type != Undefined)
+  {
+    const char *n;
+    Value_type t;
+
+    va_start(l, arg1_type);
+    signature.push_back(std::make_pair(arg1_name, arg1_type));
+    do
+    {
+      n = va_arg(l, const char*);
+      if (n)
+      {
+        t = (Value_type)va_arg(l, int);
+        if (t != Undefined)
+          signature.push_back(std::make_pair(n, t));
+      }
+    } while (n && t != Undefined);
+    va_end(l);
+  }
+  _funcs[name] = boost::shared_ptr<Cpp_function>(new Cpp_function(name, func, NULL));
 }
 
 
 Value Cpp_object_bridge::call(const std::string &name, const Argument_list &args)
 {
-  std::map<std::string, boost::shared_ptr<Cpp_function>>::const_iterator i;
+  std::map<std::string, boost::shared_ptr<Cpp_function> >::const_iterator i;
   if ((i = _funcs.find(name)) == _funcs.end())
-    throw std::invalid_argument("Invalid object function "+name);
+    throw Exception::attrib_error("Invalid object function "+name);
   return i->second->invoke(args);
 }
 
 //-------
 
+Cpp_function::Cpp_function(const std::string &name, const Function &func, const std::vector<std::pair<std::string, Value_type> > &signature)
+: _name(name), _func(func), _signature(signature)
+{
+}
 
 Cpp_function::Cpp_function(const std::string &name, const Function &func, const char *arg1_name, Value_type arg1_type, ...)
 : _name(name), _func(func)
@@ -120,3 +146,40 @@ Value Cpp_function::invoke(const Argument_list &args)
 {
   return _func(args);
 }
+
+
+
+boost::shared_ptr<Function_base> Cpp_function::create(const std::string &name, const Function &func, const char *arg1_name, Value_type arg1_type, ...)
+{
+  va_list l;
+  std::vector<std::pair<std::string, Value_type> > signature;
+
+  if (arg1_name && arg1_type != Undefined)
+  {
+    const char *n;
+    Value_type t;
+
+    va_start(l, arg1_type);
+    signature.push_back(std::make_pair(arg1_name, arg1_type));
+    do
+    {
+      n = va_arg(l, const char*);
+      if (n)
+      {
+        t = (Value_type)va_arg(l, int);
+        if (t != Undefined)
+          signature.push_back(std::make_pair(n, t));
+      }
+    } while (n && t != Undefined);
+    va_end(l);
+  }
+  return boost::shared_ptr<Function_base>(new Cpp_function(name, func, signature));
+}
+
+
+boost::shared_ptr<Function_base> Cpp_function::create(const std::string &name, const Function &func,
+                                                      const std::vector<std::pair<std::string, Value_type> > &signature)
+{
+  return boost::shared_ptr<Function_base>(new Cpp_function(name, func, signature));
+}
+

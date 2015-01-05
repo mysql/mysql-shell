@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2015 Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -23,11 +23,17 @@
 
 #include "editline/readline.h"
 
+#include <boost/bind.hpp>
 #include <boost/algorithm/string.hpp>
 #include <iostream>
 
+#include "shellcore/types_cpp.h"
+
 #include "shellcore/lang_base.h"
 #include "shellcore/shell_core.h"
+
+#include "../modules/mod_db.h"
+
 
 using namespace shcore;
 
@@ -37,6 +43,9 @@ class Interactive_shell
 public:
   Interactive_shell();
   void command_loop();
+  int run_script(const std::string &file);
+
+  void init_environment();
 
 private:
   void process_line(const std::string &line);
@@ -50,6 +59,10 @@ private:
   void switch_shell_mode(Shell_core::Mode mode, const std::vector<std::string> &args);
 
   void print_banner();
+
+private:
+  shcore::Value connect_db(const shcore::Argument_list &args);
+
 private:
   static void deleg_print(void *self, const char *text);
   static std::string deleg_input(void *self, const char *text);
@@ -59,6 +72,7 @@ private:
 private:
   Interpreter_delegate _delegate;
 
+  boost::shared_ptr<mysh::Db> _db;
   boost::shared_ptr<Shell_core> _shell;
 
   std::string _input_buffer;
@@ -81,7 +95,28 @@ Interactive_shell::Interactive_shell()
 
   _shell.reset(new Shell_core(&_delegate));
 
+  _db.reset(new mysh::Db(_shell.get()));
+  _shell->set_global("db", Value(_db));
+
   switch_shell_mode(Shell_core::Mode_JScript, std::vector<std::string>());
+}
+
+
+Value Interactive_shell::connect_db(const Argument_list &args)
+{
+  _db->connect(args);
+
+  return Value::Null();
+}
+
+
+void Interactive_shell::init_environment()
+{
+  _shell->set_global("connect",
+                     Value(Cpp_function::create("connect",
+                                                boost::bind(&Interactive_shell::connect_db, this, _1),
+                                                "connection_string", String,
+                                                NULL)));
 }
 
 
@@ -186,7 +221,8 @@ std::string Interactive_shell::deleg_input(void *cdata, const char *prompt)
 std::string Interactive_shell::deleg_password(void *cdata, const char *prompt)
 {
   std::string s;
-  char *tmp = readline(prompt);//XXX
+  //XXX disable echoing
+  char *tmp = readline(prompt);
   if (!tmp)
     return "";
   s = tmp;
@@ -292,9 +328,9 @@ void Interactive_shell::command_loop()
 
 void Interactive_shell::print_banner()
 {
-  println("Welcome to MySQL Shell 0.0.0");
+  println("Welcome to MySQL Shell 0.0.1");
   println("");
-  println("Copyright (c) 2014, Oracle and/or its affiliates. All rights reserved.");
+  println("Copyright (c) 2014, 2015 Oracle and/or its affiliates. All rights reserved.");
   println("");
   println("Oracle is a registered trademark of Oracle Corporation and/or its");
   println("affiliates. Other names may be trademarks of their respective");
@@ -302,15 +338,120 @@ void Interactive_shell::print_banner()
 }
 
 
+int Interactive_shell::run_script(const std::string &file)
+{
+  boost::system::error_code err;
+
+  int rc = _shell->run_script(file, err);
+  if (err)
+  {
+    std::cerr << err << "\n";
+    return 1;
+  }
+  return rc;
+}
+
+
+struct Command_line_options
+{
+  int exit_code;
+  Shell_core::Mode initial_mode;
+  std::string run_file;
+
+  std::string host;
+  std::string user;
+  int port;
+
+  Command_line_options(int argc, char **argv)
+  {
+    exit_code = 0;
+
+    initial_mode = Shell_core::Mode_JScript;
+
+    for (int i = 1; i < argc && exit_code == 0; i++)
+    {
+      char *value;
+      if (check_arg_with_value(argv, i, "--file", "-f", value))
+        run_file = value;
+      else if (check_arg_with_value(argv, i, "--host", "-h", value))
+        host = value;
+      else if (check_arg_with_value(argv, i, "--user", "-u", value))
+        user = value;
+      else if (check_arg_with_value(argv, i, "--port", "-p", value))
+        port = atoi(value);
+      else if (exit_code == 0)
+      {
+        std::cerr << argv[0] << ": unknown option " << argv[i] <<"\n";
+        exit_code = 1;
+        break;
+      }
+    }
+  }
+
+  bool check_arg(char **argv, int &argi, const char *arg, const char *larg)
+  {
+    if (strcmp(argv[argi], arg) == 0 || strcmp(argv[argi], larg) == 0)
+      return true;
+    return false;
+  }
+
+  bool check_arg_with_value(char **argv, int &argi, const char *arg, const char *larg, char *&value)
+  {
+    // --option value or -o value
+    if (strcmp(argv[argi], arg) == 0 || strcmp(argv[argi], larg) == 0)
+    {
+      // value must be in next arg
+      if (argv[argi+1] != NULL)
+      {
+        ++argi;
+        value = argv[argi];
+      }
+      else
+      {
+        std::cerr << argv[0] << ": option " << argv[argi] << " requires an argument\n";
+        exit_code = 1;
+        return false;
+      }
+      return true;
+    }
+    // -ovalue
+    else if (strncmp(argv[argi], larg, strlen(larg)) == 0 && strlen(argv[argi]) > strlen(larg))
+    {
+      value = argv[argi] + strlen(larg);
+      return true;
+    }
+    // --option=value
+    else if (strncmp(argv[argi], arg, strlen(arg)) == 0 && argv[argi][strlen(arg)] == '=')
+    {
+      // value must be after =
+      value = argv[argi] + strlen(arg)+1;
+      return true;
+    }
+    return false;
+  }
+};
+
+
 int main(int argc, char **argv)
 {
   extern void JScript_context_init();
+
+  Command_line_options options(argc, argv);
+
+  if (options.exit_code != 0)
+    return options.exit_code;
 
   JScript_context_init();
 
   {
     Interactive_shell shell;
-    shell.command_loop();
+
+    shell.init_environment();
+
+    if (!options.run_file.empty())
+      shell.run_script(options.run_file);
+    else
+      shell.command_loop();
   }
 
   return 0;

@@ -18,13 +18,8 @@
  */
 
 
-// Provides a generic wrapper for shcore::Object_bridge objects so that they
-// can be used from JavaScript
-
-// new_instance() can be used to create a JS object instance per class
-
-#ifndef _JSCRIPT_OBJECT_WRAPPER_H_
-#define _JSCRIPT_OBJECT_WRAPPER_H_
+#ifndef _JSCRIPT_ARRAY_WRAPPER_H_
+#define _JSCRIPT_ARRAY_WRAPPER_H_
 
 #include "shellcore/types.h"
 #include <include/v8.h>
@@ -33,24 +28,24 @@ namespace shcore
 {
 class JScript_context;
 
-class JScript_object_wrapper
+class JScript_array_wrapper
 {
 public:
-  JScript_object_wrapper(JScript_context *context);
-  ~JScript_object_wrapper();
+  JScript_array_wrapper(JScript_context *context);
+  ~JScript_array_wrapper();
 
-  v8::Handle<v8::Object> wrap(boost::shared_ptr<Object_bridge> object);
+  v8::Handle<v8::Object> wrap(boost::shared_ptr<Value::Array_type> array);
 
-  static bool unwrap(v8::Handle<v8::Object> value, boost::shared_ptr<Object_bridge> &ret_object);
+  static bool unwrap(v8::Handle<v8::Object> value, boost::shared_ptr<Value::Array_type> &ret_array);
 
 private:
   static void handler_getter(v8::Local<v8::Name> property, const v8::PropertyCallbackInfo<v8::Value>& info);
 
-  static void wrapper_deleted(const v8::WeakCallbackData<v8::Object, boost::shared_ptr<Object_bridge> >& data);
+  static void wrapper_deleted(const v8::WeakCallbackData<v8::Object, boost::shared_ptr<Value::Array_type> >& data);
 
 private:
   JScript_context *_context;
-  v8::Persistent<v8::ObjectTemplate> _object_template;
+  v8::Persistent<v8::ObjectTemplate> _array_template;
 };
 
 };
