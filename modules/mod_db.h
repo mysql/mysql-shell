@@ -57,6 +57,8 @@ public:
 //  shcore::Value stats(const shcore::Argument_list &args);
 
 private:
+  void print_result(MYSQL_RES *res);
+
   shcore::Shell_core *_shcore;
   std::vector<boost::shared_ptr<Mysql_connection> > _conns;
 };

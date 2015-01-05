@@ -94,11 +94,22 @@ Value Db::sql(const Argument_list &args)
   for (std::vector<boost::shared_ptr<Mysql_connection> >::iterator c = _conns.begin();
        c != _conns.end(); ++c)
   {
-    Value result = (*c)->sql(args);
+    MYSQL_RES *result = (*c)->raw_sql(args.string_at(0));
+
     // print rows from result, with stats etc
-    _shcore->print(result.descr(true));
+    print_result(result);
+
+    mysql_free_result(result);
   }
   return Value::Null();
+}
+
+
+void Db::print_result(MYSQL_RES *res)
+{
+  //XXX
+
+  _shcore->print("%1% row in set (%2% sec)\n");
 }
 
 

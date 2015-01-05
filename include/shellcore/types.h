@@ -75,12 +75,21 @@ struct SHCORE_PUBLIC Value
     bool get_bool(const std::string &k, bool def=false) const;
     int64_t get_int(const std::string &k, int64_t def=0) const;
     double get_double(const std::string &k, double def=0.0) const;
-    boost::shared_ptr<Object_bridge> get_object(const std::string &k,
-            boost::shared_ptr<Object_bridge> def = boost::shared_ptr<Object_bridge>()) const;
     boost::shared_ptr<Value::Map_type> get_map(const std::string &k,
             boost::shared_ptr<Map_type> def = boost::shared_ptr<Map_type>()) const;
     boost::shared_ptr<Value::Array_type> get_array(const std::string &k,
             boost::shared_ptr<Array_type> def = boost::shared_ptr<Array_type>()) const;
+
+    template<class C>
+    boost::shared_ptr<C> get_object(const std::string &k,
+                                    boost::shared_ptr<C> def = boost::shared_ptr<C>()) const
+    {
+      const_iterator iter = find(k);
+      if (iter == end())
+        return def;
+      iter->second.check_type(Object);
+      return iter->second.as_object<C>();
+    }
   };
 
   Value_type type;
@@ -145,7 +154,8 @@ struct SHCORE_PUBLIC Value
   int64_t as_int() const { check_type(Integer); return value.i; }
   double as_double() const { check_type(Float); return value.d; }
   const std::string &as_string() const { check_type(String); return *value.s; }
-  boost::shared_ptr<Object_bridge> as_object() const { check_type(Object); return *value.o; }
+  template<class C>
+    boost::shared_ptr<C> as_object() const { check_type(Object); return boost::static_pointer_cast<C>(*value.o); }
   boost::shared_ptr<Map_type> as_map() const { check_type(Map); return *value.map; }
   boost::shared_ptr<Array_type> as_array() const { check_type(Array); return *value.array; }
 };

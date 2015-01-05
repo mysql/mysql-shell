@@ -257,6 +257,18 @@ shcore::Value Mysql_connection::sql(const shcore::Argument_list &args)
   return shcore::Value(boost::shared_ptr<shcore::Object_bridge>(new Mysql_resultset(res)));
 }
 
+
+MYSQL_RES *Mysql_connection::raw_sql(const std::string &query)
+{
+  if (mysql_real_query(_mysql, query.c_str(), query.length()) < 0)
+  {
+    throw shcore::Exception::error_with_code("MySQLError", mysql_error(_mysql), mysql_errno(_mysql));
+  }
+
+  return mysql_use_result(_mysql);
+}
+
+
 Mysql_connection::~Mysql_connection()
 {
   close(shcore::Argument_list());

@@ -50,6 +50,8 @@ public:
   shcore::Value sql(const shcore::Argument_list &args);
 //  shcore::Value stats(const shcore::Argument_list &args);
 
+public:
+  MYSQL_RES *raw_sql(const std::string &sql);
 private:
   std::string _uri;
   MYSQL *_mysql;

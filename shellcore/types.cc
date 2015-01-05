@@ -141,16 +141,6 @@ double Value::Map_type::get_double(const std::string &k, double def) const
   return iter->second.as_double();
 }
 
-boost::shared_ptr<Object_bridge> Value::Map_type::get_object(const std::string &k,
-                                                             boost::shared_ptr<Object_bridge> def) const
-{
-  const_iterator iter = find(k);
-  if (iter == end())
-    return def;
-  iter->second.check_type(Object);
-  return iter->second.as_object();
-}
-
 boost::shared_ptr<Value::Map_type> Value::Map_type::get_map(const std::string &k,
                                                             boost::shared_ptr<Map_type> def) const
 {
