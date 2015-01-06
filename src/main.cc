@@ -309,7 +309,7 @@ void Interactive_shell::command_loop()
   for (;;)
   {
     char *cmd = readline(prompt().c_str());
-    if (!cmd)
+    if (!cmd || !cmd[0] /* workaround for Eclipse CDT not picking EOFs */ )
       break;
 
     try

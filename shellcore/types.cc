@@ -22,6 +22,11 @@
 #include <cstdarg>
 #include <boost/format.hpp>
 #include <boost/weak_ptr.hpp>
+#include <boost/algorithm/string/predicate.hpp>
+#include <boost/range/iterator_range_core.hpp>
+#include <boost/lexical_cast.hpp>
+#include <cstdio>
+#include <cstring>
 
 using namespace shcore;
 
@@ -69,6 +74,13 @@ Exception Exception::error_with_code(const std::string &type, const std::string 
   return Exception(error);
 }
 
+Exception Exception::parser_error(const std::string &message)
+{
+  boost::shared_ptr<Value::Map_type> error(new Value::Map_type());
+  (*error)["type"] = Value("ParserError");
+  (*error)["message"] = Value(message);
+  return Exception(error);
+}
 
 const char *Exception::what() const BOOST_NOEXCEPT_OR_NOTHROW
 {
@@ -377,9 +389,253 @@ Value &Value::operator= (const Value &other)
 }
 
 
+Value Value::parse_single_quoted_string(const char *pc)
+{
+  int32_t len;
+  const char *p = pc;
+
+  // calculate length
+  do
+  {
+    while (*p && *++p != '\'')
+      ;
+  } while (*p && *(p - 1) == '\\');
+
+  if (*p != '\'')
+  {
+    std::string msg = "missing closing \'";
+    throw Exception::parser_error(msg);
+  }
+  len = p - pc;
+  std::string s;
+
+  p = pc;
+  ++p;
+  while (*p != '\0' && (p - pc < len))
+  {
+	const char *pc_i = p;
+    if (*pc_i == '\\')
+    {
+	  switch( *(pc_i + 1))
+	  {
+	  case 'n':
+	    s.append("\n");
+	    break;
+	  case '"':
+	    s.append("\"");
+	    break;
+	  case '\'':
+	    s.append("\'");
+	    break;
+	  case 'a':
+	    s.append("\a");
+	    break;
+	  case 'b':
+	    s.append("\b");
+	    break;
+	  case 'f':
+	    s.append("\f");
+	    break;
+	  case 'r':
+	    s.append("\r");
+	    break;
+	  case 't':
+	    s.append("\t");
+	    break;
+	  case 'v':
+	    s.append("\v");
+	    break;
+	  case '\\':
+	    s.append("\\");
+	    break;
+	  case '\0':
+	    s.append("\0");
+	    break;
+	  }
+      p = pc_i + 2;
+    }
+    else
+    {
+      s.append(p++, 1);
+    }
+  }
+
+  return Value(s);
+}
+
+
+Value Value::parse_double_quoted_string(const char *pc)
+{
+  int32_t len;
+  const char *p = pc;
+
+  // calculate length
+  do 
+  {
+    while (*p && *++p != '"')
+      ;
+  } while (*p && *(p - 1) == '\\');
+
+  if (*p != '"')
+  {
+    throw Exception::parser_error("missing closing \"");
+  }
+  len = p - pc;
+  std::string s;
+  
+  p = pc;
+  ++p;
+  while (*p != '\0' && (p - pc < len))
+  {
+	const char *pc_i = p;
+    if (*pc_i == '\\')
+    {
+	  switch( *(pc_i + 1))
+	  {
+	  case 'n':
+	    s.append("\n");
+	    break;
+	  case '"':
+	    s.append("\"");
+	    break;
+	  case '\'':
+	    s.append("\'");
+	    break;
+	  case 'a':
+	    s.append("\a");
+	    break;
+	  case 'b':
+	    s.append("\b");
+	    break;
+	  case 'f':
+	    s.append("\f");
+	    break;
+	  case 'r':
+	    s.append("\r");
+	    break;
+	  case 't':
+	    s.append("\t");
+	    break;
+	  case 'v':
+	    s.append("\v");
+	    break;
+	  case '\\':
+	    s.append("\\");
+	    break;
+	  case '\0':
+	    s.append("\0");
+	    break;
+	  }
+      p = pc_i + 2;
+    }
+    else 
+    {
+      s.append(p++, 1);
+    }
+  }
+
+  return Value(s);
+}
+
+
+Value Value::parse_number(const char *pcc)
+{
+  const char *pc = pcc;
+  bool hasSign = false;
+  const char *pce = pc;
+
+  if (*pc == '-')
+  {
+    hasSign = true;
+    ++pc;
+  }
+  else if (*pc == '+')
+  {
+    ++pc;
+  }
+  while (*pc && isdigit(*++pc))
+    ;
+  if (tolower(*pc) == 'e' || *pc == '.') // floating point
+  {
+    double d = 0;
+    try {
+    	d= boost::lexical_cast<double>(pce);
+    } catch( boost::bad_lexical_cast &e ) {
+    	std::string s = "Error parsing float: ";
+    	s += + e.what();
+    	throw Exception::parser_error(s);
+    }
+
+    return Value(d);
+  }
+  else
+  { // int point
+    int64_t ll = 0;
+	try {
+		ll = boost::lexical_cast<int64_t>(pce);
+	} catch( boost::bad_lexical_cast &e ) {
+		std::string s = "Error parsing int: ";
+		s += e.what();
+		throw Exception::parser_error(s);
+	}
+    return Value(static_cast<int64_t>(ll));
+  }
+
+  return Value();
+}
+
+bool my_strnicmp(const char *c1, const char *c2, size_t n)
+{
+  return boost::iequals(boost::make_iterator_range(c1, c1+n), boost::make_iterator_range(c2, c2+n));
+}
+
 Value Value::parse(const std::string &s)
 {
-  //XXX
+const char *pc = s.c_str();
+  
+  if (*pc == '"')
+  {
+    return parse_double_quoted_string(pc);
+  }
+  else if (*pc == '\'')
+  {
+    return parse_single_quoted_string(pc);
+  }
+  else
+  {
+    if (isdigit(*pc) || *pc == '-' || *pc == '+') // a number
+    {
+      return parse_number(pc);
+    }
+    else // a constant between true, false, null
+    {
+      const char *pi = pc;
+      int n;
+      while (*pc && isalpha(*pc))
+        ++pc;
+
+      n = pc - pi;
+      if (n == 9 && ::my_strnicmp(pi, "Undefined", 9))
+      {
+        return Value();
+      }
+      else if (n == 4 && ::my_strnicmp(pi, "True", 4))
+      {
+        return Value(true);
+      }
+      else if (n == 5 && ::my_strnicmp(pi, "False", 5))
+      {
+        return Value(false);
+      }
+      else
+      {
+        //report_error(pi - _pc_json_start,
+        //  "one of (array, string, number, true, false, null) expected");
+        return Value();
+      }
+    }
+  }
+
   return Value();
 }
 
@@ -391,7 +647,7 @@ bool Value::operator == (const Value &other) const
     switch (type)
     {
       case Undefined:
-        return false;
+        return true;  // undefined == undefined is true
       case shcore::Null:
         return true;
       case Bool:
@@ -434,49 +690,94 @@ std::string Value::repr() const
 
 
 std::string &Value::append_descr(std::string &s_out, bool pprint) const
-{//XXX
+{
+  std::string nl = (pprint)? "\n" : "";
   switch (type)
   {
     case Undefined:
-      s_out.append("undefined");
+      s_out.append("Undefined");
+      s_out += nl;
       break;
     case shcore::Null:
       s_out.append("null");
+      s_out += nl;
       break;
     case Bool:
-      s_out.append("bool");
+      if (value.b)
+        s_out += "True";
+      else
+        s_out += "False";
+      s_out += nl;
       break;
     case Integer:
-      s_out.append("int");
+    {
+      boost::format fmt("%ld\n");
+      fmt % value.i;
+      s_out += fmt.str();
+    }
       break;
     case Float:
-      s_out.append("fl");
+    {
+      boost::format fmt("%g\n");
+      fmt % value.d;
+      s_out += fmt.str();
+    }
       break;
     case String:
-      s_out.append(*value.s);
+      s_out += *value.s;
+      s_out += nl;      
       break;
     case Object:
       s_out.append("obj");
       break;
     case Array:
-      s_out.append("arr");
+    {
+      Array_type *vec = value.array->get();
+      Array_type::iterator myend = vec->end(), mybegin = vec->begin();
+      s_out += nl; s_out += nl;
+      s_out += "[";
+      for (Array_type::iterator iter = mybegin; iter != myend; ++iter)
+      {
+        if (iter != mybegin)
+          s_out += ",";
+        s_out += nl;
+        iter->append_repr(s_out);
+      }
+      s_out += nl;
+      s_out += "]";
+      s_out += nl; s_out += nl;
+    }
       break;
     case Map:
-      s_out.append("{");
-      for (Map_type::const_iterator iter = (*value.map)->begin(); iter != (*value.map)->end(); ++iter)
+    {
+      Map_type *map = value.map->get();
+      Map_type::iterator myend = map->end(), mybegin = map->begin();
+      s_out += nl;
+      s_out += nl;
+      s_out += "{";
+      for (Map_type::iterator iter = mybegin; iter != myend; ++iter)
       {
-        if (iter != (*value.map)->begin())
-          s_out.append(", ");
-        s_out.append(iter->first).append(": ");
+        if (iter != mybegin)
+          s_out += ", ";
+        s_out += nl;
+        s_out += "\"";
+        s_out += iter->first;
+        s_out += "\" :";
         iter->second.append_descr(s_out, pprint);
       }
-      s_out.append("}");
+      s_out += nl;
+      s_out += nl;
+      s_out += "}";
+      s_out += nl;
+      s_out += "\n";
+    }
       break;
     case MapRef:
       s_out.append("mapref");
       break;
     case Function:
-      s_out.append("func");
+      // TODO:
+      //value.func->get()->append_descr(s_out, pprint);
       break;
   }
   return s_out;
@@ -484,26 +785,121 @@ std::string &Value::append_descr(std::string &s_out, bool pprint) const
 
 
 std::string &Value::append_repr(std::string &s_out) const
-{//XXX
+{
   switch (type)
   {
     case Undefined:
+      s_out.append("Undefined");
+      break;
     case shcore::Null:
+      s_out.append("null");
+      break;
     case Bool:
+    if (value.b)
+      s_out += "True";
+    else
+      s_out += "False";
+    break;
     case Integer:
+    {
+      boost::format fmt("%ld");
+      fmt % value.i;
+      s_out += fmt.str();
+    }
+    break;
     case Float:
-      break;
+    {
+      boost::format fmt("%g");
+      fmt % value.d;      
+      s_out += fmt.str();
+    }
+    break;
     case String:
-      break;
+    {
+      std::string &s = *value.s;
+      s_out += "\"";
+      for (size_t i = 0; i < s.length(); i++)
+      {
+        char c = s[i];
+        switch (c)
+        {
+        case '\n':
+          s_out += "\\n";
+          break;
+        case '\"':
+          s_out += "\\\"";
+          break;
+        case '\'':
+          s_out += "\\\'";
+          break;
+        case '\a':
+          s_out += "\\a";
+          break;
+        case '\b':
+          s_out += "\\b";
+          break;
+        case '\f':
+          s_out += "\\f";
+          break;
+        case '\r':
+          s_out += "\\r";
+          break;
+        case '\t':
+          s_out += "\\t";
+          break;
+        case '\v':
+          s_out += "\\v";
+          break;
+        case '\\':
+          s_out += "\\\\";
+          break;
+        case '\0':
+          s_out += "\\\0";
+        default:
+          s_out += c;
+        }
+      }
+      s_out += "\"";
+    }
+    break;
     case Object:
       break;
     case Array:
-      break;
+    {
+      Array_type *vec = value.array->get();
+      Array_type::iterator myend = vec->end(), mybegin = vec->begin();
+      s_out += "{";
+      for (Array_type::iterator iter = mybegin; iter != myend; ++iter)
+      {
+        if (iter != mybegin)
+          s_out += ",";
+        iter->append_repr(s_out);
+      }
+      s_out += "}";
+    }
+    break;
     case Map:
+    {
+      Map_type *map = value.map->get();
+      Map_type::iterator myend = map->end(), mybegin = map->begin();
+      s_out += "{";
+      for (Map_type::iterator iter = mybegin; iter != myend; ++iter)
+      {
+        if (iter != mybegin)
+          s_out += ", ";
+        s_out += "\"";
+        s_out += iter->first;
+        s_out += "\" : ";
+        iter->second.append_repr(s_out);
+      }
+      s_out += "}";
+    }      
       break;
     case MapRef:
       break;
     case Function:
+      // TODO:
+      //value.func->get()->append_repr(s_out);
       break;
   }
   return s_out;

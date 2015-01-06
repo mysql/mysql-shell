@@ -17,8 +17,8 @@
  * 02110-1301  USA
  */
 
-#ifndef _CORE_TYPES_H_
-#define _CORE_TYPES_H_
+#ifndef _TYPES_H_
+#define _TYPES_H_
 
 #include <vector>
 #include <map>
@@ -158,6 +158,11 @@ struct SHCORE_PUBLIC Value
     boost::shared_ptr<C> as_object() const { check_type(Object); return boost::static_pointer_cast<C>(*value.o); }
   boost::shared_ptr<Map_type> as_map() const { check_type(Map); return *value.map; }
   boost::shared_ptr<Array_type> as_array() const { check_type(Array); return *value.array; }
+
+private:
+  static Value parse_single_quoted_string(const char *pc);
+  static Value parse_double_quoted_string(const char *pc);
+  static Value parse_number(const char *pc);
 };
 
 
@@ -268,17 +273,22 @@ class SHCORE_PUBLIC Exception : public std::exception
 public:
   Exception(const boost::shared_ptr<Value::Map_type> e);
 
+  virtual ~Exception() BOOST_NOEXCEPT_OR_NOTHROW { }
+
   static Exception argument_error(const std::string &message);
   static Exception attrib_error(const std::string &message);
   static Exception type_error(const std::string &message);
   static Exception error_with_code(const std::string &type, const std::string &message, int code);
+  static Exception parser_error(const std::string &message);
 
   virtual const char *what() const BOOST_NOEXCEPT_OR_NOTHROW;
 
   boost::shared_ptr<Value::Map_type> error() const { return _error; }
 };
 
-};
+bool my_strnicmp(const char *c1, const char *c2, size_t n);
 
-#endif // _CORE_TYPES_H_
+}
+
+#endif // _TYPES_H_
 

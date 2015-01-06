@@ -16,7 +16,7 @@
 INCLUDE_DIRECTORIES(BEFORE ${CMAKE_CURRENT_SOURCE_DIR} )
 INCLUDE(CheckIncludeFiles)
 include(CheckFunctionExists)
-include(CheckCxxSourceCompiles)
+include(CheckCXXSourceCompiles)
 CHECK_INCLUDE_FILES(term.h HAVE_TERM_H)
 
 SET(CMAKE_REQUIRED_LIBRARIES ${CURSES_LIBRARY})
