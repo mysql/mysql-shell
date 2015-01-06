@@ -39,7 +39,7 @@ public:
   ~Mysql_connection();
 
   virtual std::string class_name() const;
-  virtual std::string &append_descr(std::string &s_out, bool pprint) const;
+  virtual std::string &append_descr(std::string &s_out, int indent=-1, bool quote_strings=false) const;
   virtual std::string &append_repr(std::string &s_out) const;
   virtual std::vector<std::string> get_members() const;
   virtual bool operator == (const Object_bridge &other) const;

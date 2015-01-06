@@ -145,7 +145,7 @@ struct SHCORE_PUBLIC Value
   //! returns a string representation of the serialized object, suitable to be passed to parse()
   std::string repr() const;
 
-  std::string &append_descr(std::string &s_out, bool pprint) const;
+  std::string &append_descr(std::string &s_out, int indent=-1, bool quote_strings=false) const;
   std::string &append_repr(std::string &s_out) const;
 
   void check_type(Value_type t) const;
@@ -192,6 +192,7 @@ template<> struct value_type_for_native<Object_bridge*> { static const Value_typ
 template<> struct value_type_for_native<Value::Map_type> { static const Value_type type = Map; };
 template<> struct value_type_for_native<Value::Array_type> { static const Value_type type = Array; };
 
+std::string SHCORE_PUBLIC type_name(Value_type type);
 
 /** An instance of an object, that's implemented in some language.
  *
@@ -208,7 +209,7 @@ public:
   virtual std::string class_name() const = 0;
 
   //! Appends descriptive text to the string, suitable for showing to the user
-  virtual std::string &append_descr(std::string &s_out, bool pprint) const = 0;
+  virtual std::string &append_descr(std::string &s_out, int indent=-1, bool quote_strings=false) const = 0;
 
   //! Returns a representation of the object suitable to be passed to a Factory
   // constructor of this object, which would create an equivalent instance of the object

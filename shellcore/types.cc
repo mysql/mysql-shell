@@ -91,6 +91,37 @@ const char *Exception::what() const BOOST_NOEXCEPT_OR_NOTHROW
 
 // --
 
+std::string shcore::type_name(Value_type type)
+{
+  switch (type)
+  {
+    case Undefined:
+      return "Undefined";
+    case shcore::Null:
+      return "Null";
+    case Bool:
+      return "Bool";
+    case Integer:
+      return "Integer";
+    case Float:
+      return "Float";
+    case String:
+      return "String";
+    case Object:
+      return "Object";
+    case Array:
+      return "Array";
+    case Map:
+      return "Map";
+    case MapRef:
+      return "MapRef";
+    case Function:
+      return "Function";
+  }
+}
+
+// --
+
 //! 0 arg convenience wrapper for invoke
 Value Function_base::invoke()
 {
@@ -591,7 +622,7 @@ bool my_strnicmp(const char *c1, const char *c2, size_t n)
 
 Value Value::parse(const std::string &s)
 {
-const char *pc = s.c_str();
+  const char *pc = s.c_str();
   
   if (*pc == '"')
   {
@@ -619,16 +650,17 @@ const char *pc = s.c_str();
       {
         return Value();
       }
-      else if (n == 4 && ::my_strnicmp(pi, "True", 4))
+      else if (n == 4 && ::strncmp(pi, "true", 4) == 0)
       {
         return Value(true);
       }
-      else if (n == 5 && ::my_strnicmp(pi, "False", 5))
+      else if (n == 5 && ::strncmp(pi, "false", 5) == 0)
       {
         return Value(false);
       }
       else
       {
+        throw Exception::parser_error(std::string("Can't parse ")+pc);
         //report_error(pi - _pc_json_start,
         //  "one of (array, string, number, true, false, null) expected");
         return Value();
@@ -677,7 +709,7 @@ bool Value::operator == (const Value &other) const
 std::string Value::descr(bool pprint) const
 {
   std::string s;
-  append_descr(s, pprint);
+  append_descr(s, pprint ? 0 : -1, false); // top level strings are not quoted
   return s;
 }
 
@@ -689,43 +721,42 @@ std::string Value::repr() const
 }
 
 
-std::string &Value::append_descr(std::string &s_out, bool pprint) const
+std::string &Value::append_descr(std::string &s_out, int indent, bool quote_strings) const
 {
-  std::string nl = (pprint)? "\n" : "";
+  std::string nl = (indent >= 0)? "\n" : "";
   switch (type)
   {
     case Undefined:
       s_out.append("Undefined");
-      s_out += nl;
       break;
     case shcore::Null:
       s_out.append("null");
-      s_out += nl;
       break;
     case Bool:
       if (value.b)
-        s_out += "True";
+        s_out += "true";
       else
-        s_out += "False";
-      s_out += nl;
+        s_out += "false";
       break;
     case Integer:
     {
-      boost::format fmt("%ld\n");
+      boost::format fmt("%ld");
       fmt % value.i;
       s_out += fmt.str();
     }
       break;
     case Float:
     {
-      boost::format fmt("%g\n");
+      boost::format fmt("%g");
       fmt % value.d;
       s_out += fmt.str();
     }
       break;
     case String:
-      s_out += *value.s;
-      s_out += nl;      
+      if (quote_strings)
+        s_out += "'" + *value.s + "'";
+      else
+        s_out += *value.s;
       break;
     case Object:
       s_out.append("obj");
@@ -734,42 +765,42 @@ std::string &Value::append_descr(std::string &s_out, bool pprint) const
     {
       Array_type *vec = value.array->get();
       Array_type::iterator myend = vec->end(), mybegin = vec->begin();
-      s_out += nl; s_out += nl;
       s_out += "[";
       for (Array_type::iterator iter = mybegin; iter != myend; ++iter)
       {
         if (iter != mybegin)
           s_out += ",";
         s_out += nl;
-        iter->append_repr(s_out);
+        if (indent >= 0)
+          s_out.append((indent+1)*4, ' ');
+        iter->append_descr(s_out, indent < 0 ? indent : indent+1, true);
       }
       s_out += nl;
+      if (indent > 0)
+        s_out.append(indent*4, ' ');
       s_out += "]";
-      s_out += nl; s_out += nl;
     }
       break;
     case Map:
     {
       Map_type *map = value.map->get();
       Map_type::iterator myend = map->end(), mybegin = map->begin();
-      s_out += nl;
-      s_out += nl;
-      s_out += "{";
+      s_out += "{"+nl;
       for (Map_type::iterator iter = mybegin; iter != myend; ++iter)
       {
         if (iter != mybegin)
-          s_out += ", ";
-        s_out += nl;
-        s_out += "\"";
+          s_out += ", " + nl;
+        if (indent >= 0)
+          s_out.append((indent+1)*4, ' ');
+        s_out += "'";
         s_out += iter->first;
-        s_out += "\" :";
-        iter->second.append_descr(s_out, pprint);
+        s_out += "': ";
+        iter->second.append_descr(s_out, indent < 0 ? indent : indent+1, true);
       }
       s_out += nl;
-      s_out += nl;
+      if (indent > 0)
+        s_out.append(indent*4, ' ');
       s_out += "}";
-      s_out += nl;
-      s_out += "\n";
     }
       break;
     case MapRef:
@@ -796,9 +827,9 @@ std::string &Value::append_repr(std::string &s_out) const
       break;
     case Bool:
     if (value.b)
-      s_out += "True";
+      s_out += "true";
     else
-      s_out += "False";
+      s_out += "false";
     break;
     case Integer:
     {
@@ -868,14 +899,14 @@ std::string &Value::append_repr(std::string &s_out) const
     {
       Array_type *vec = value.array->get();
       Array_type::iterator myend = vec->end(), mybegin = vec->begin();
-      s_out += "{";
+      s_out += "[";
       for (Array_type::iterator iter = mybegin; iter != myend; ++iter)
       {
         if (iter != mybegin)
-          s_out += ",";
+          s_out += ", ";
         iter->append_repr(s_out);
       }
-      s_out += "}";
+      s_out += "]";
     }
     break;
     case Map:
@@ -889,7 +920,7 @@ std::string &Value::append_repr(std::string &s_out) const
           s_out += ", ";
         s_out += "\"";
         s_out += iter->first;
-        s_out += "\" : ";
+        s_out += "\": ";
         iter->second.append_repr(s_out);
       }
       s_out += "}";

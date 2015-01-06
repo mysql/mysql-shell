@@ -119,7 +119,7 @@ std::string Db::class_name() const
 }
 
 
-std::string &Db::append_descr(std::string &s_out, bool pprint) const
+std::string &Db::append_descr(std::string &s_out, int indent, bool quote_strings) const
 {
   s_out.append("<Db>");
   return s_out;

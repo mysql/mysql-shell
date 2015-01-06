@@ -65,6 +65,18 @@ struct JScript_context::JScript_context_impl
 
     // register symbols to be exported to JS in global namespace
 
+    // repr(object) -> string
+    globals->Set(v8::String::NewFromUtf8(isolate, "repr"),
+                 v8::FunctionTemplate::New(isolate, &JScript_context_impl::f_repr, client_data));
+
+    // unrepr(string) -> object
+    globals->Set(v8::String::NewFromUtf8(isolate, "unrepr"),
+                 v8::FunctionTemplate::New(isolate, &JScript_context_impl::f_unrepr, client_data));
+
+    // type(object) -> string
+    globals->Set(v8::String::NewFromUtf8(isolate, "type"),
+                 v8::FunctionTemplate::New(isolate, &JScript_context_impl::f_type, client_data));
+
     // print('hello')
     globals->Set(v8::String::NewFromUtf8(isolate, "print"),
                  v8::FunctionTemplate::New(isolate, &JScript_context_impl::f_print, client_data));
@@ -193,6 +205,69 @@ struct JScript_context::JScript_context_impl
   }
 
   // Global functions exposed to JS
+
+  static void f_repr(const v8::FunctionCallbackInfo<v8::Value>& args)
+  {
+    v8::HandleScope handle_scope(args.GetIsolate());
+    JScript_context_impl *self = static_cast<JScript_context_impl*>(v8::External::Cast(*args.Data())->Value());
+
+    if (args.Length() != 1)
+      args.GetIsolate()->ThrowException(v8::String::NewFromUtf8(args.GetIsolate(), "repr() takes 1 argument"));
+    else
+    {
+      try
+      {
+        args.GetReturnValue().Set(v8::String::NewFromUtf8(args.GetIsolate(),
+                                  self->v8_value_to_shcore_value(args[0]).repr().c_str()));
+      }
+      catch (std::exception &e)
+      {
+        args.GetIsolate()->ThrowException(v8::String::NewFromUtf8(args.GetIsolate(), e.what()));
+      }
+    }
+  }
+
+  static void f_unrepr(const v8::FunctionCallbackInfo<v8::Value>& args)
+  {
+    v8::HandleScope handle_scope(args.GetIsolate());
+    JScript_context_impl *self = static_cast<JScript_context_impl*>(v8::External::Cast(*args.Data())->Value());
+
+    if (args.Length() != 1)
+      args.GetIsolate()->ThrowException(v8::String::NewFromUtf8(args.GetIsolate(), "unrepr() takes 1 argument"));
+    else
+    {
+      try
+      {
+        v8::String::Utf8Value s(args[0]);
+        args.GetReturnValue().Set(self->shcore_value_to_v8_value(Value::parse(*s)));
+      }
+      catch (std::exception &e)
+      {
+        args.GetIsolate()->ThrowException(v8::String::NewFromUtf8(args.GetIsolate(), e.what()));
+      }
+    }
+  }
+
+  static void f_type(const v8::FunctionCallbackInfo<v8::Value>& args)
+  {
+    v8::HandleScope handle_scope(args.GetIsolate());
+    JScript_context_impl *self = static_cast<JScript_context_impl*>(v8::External::Cast(*args.Data())->Value());
+
+    if (args.Length() != 1)
+      args.GetIsolate()->ThrowException(v8::String::NewFromUtf8(args.GetIsolate(), "type() takes 1 argument"));
+    else
+    {
+      try
+      {
+        args.GetReturnValue().Set(v8::String::NewFromUtf8(args.GetIsolate(),
+                              type_name(self->v8_value_to_shcore_value(args[0]).type).c_str()));
+      }
+      catch (std::exception &e)
+      {
+        args.GetIsolate()->ThrowException(v8::String::NewFromUtf8(args.GetIsolate(), e.what()));
+      }
+    }
+  }
 
   static void f_print(const v8::FunctionCallbackInfo<v8::Value>& args)
   {

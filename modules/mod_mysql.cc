@@ -52,7 +52,7 @@ public:
     return "mysql_resultset";
   }
 
-  virtual std::string &append_descr(std::string &s_out, bool pprint) const
+  virtual std::string &append_descr(std::string &s_out, int indent=-1, bool quote_strings=false) const
   {
     s_out.append("<mysql_resultset>");
     return s_out;
@@ -287,7 +287,7 @@ std::string Mysql_connection::class_name() const
 }
 
 
-std::string &Mysql_connection::append_descr(std::string &s_out, bool pprint) const
+std::string &Mysql_connection::append_descr(std::string &s_out, int indent, bool quote_strings) const
 {
   s_out.append("<mysql_connection:"+_uri+">");
   return s_out;
