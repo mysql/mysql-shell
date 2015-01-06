@@ -114,6 +114,7 @@ file(GLOB shcore_tests_SRC
 	"${PROJECT_SOURCE_DIR}/tests/*.cc"
 )
 
+add_definitions(-DGTEST_LANG_CXX11=0)
 add_executable( shcore.tests ${shcore_tests_SRC} )
 target_link_libraries( shcore.tests mysqlsh )
 target_link_libraries( shcore.tests gmock )
