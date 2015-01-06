@@ -62,6 +62,17 @@ namespace shcore
       EXPECT_STREQ( "\"Hello world\"", myrepr.c_str() );
     }
 
+    TEST( ValueTests, ArrayCompare)
+    {
+      Value arr1(Value::new_array());
+      Value arr2(Value::new_array());
+
+      arr1.as_array()->push_back(Value(12345));
+      arr2.as_array()->push_back(Value(12345));
+
+      EXPECT_TRUE(arr1==arr2);
+    }
+
     TEST( Parsing, Integer )
     {
       const std::string data = "1984";

@@ -38,7 +38,7 @@ public:
   JScript_context(Object_registry *registry, Interpreter_delegate *deleg);
   ~JScript_context();
 
-  Value execute(const std::string &code, boost::system::error_code &ret_error) BOOST_NOEXCEPT_OR_NOTHROW;
+  Value execute(const std::string &code, boost::system::error_code &ret_error) throw (Exception);
   bool execute_interactive(const std::string &code) BOOST_NOEXCEPT_OR_NOTHROW;
   int run_script(const std::string &path, boost::system::error_code &err) BOOST_NOEXCEPT_OR_NOTHROW;
 
@@ -50,6 +50,7 @@ public:
   Argument_list convert_args(const v8::FunctionCallbackInfo<v8::Value>& args);
 
   void set_global(const std::string &name, const Value &value);
+  Value get_global(const std::string &name);
 
 private:
   struct JScript_context_impl;

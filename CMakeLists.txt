@@ -99,14 +99,18 @@ add_executable(mysh ${mysh_SRC})
 target_link_libraries(mysh mysqlsh readline)
 target_link_libraries(mysh ${MYSQL_LIBRARIES})
 
+
+
 if( ${APPLE} )
-  target_link_libraries(mysh -L/usr/local/lib/v8 -lv8_snapshot -licudata -lv8_libbase -lv8_base -licuuc -licui18n)
+  set(V8_LINK_LIST -L/usr/local/lib/v8 -lv8_snapshot -licudata -lv8_libbase -lv8_base -licuuc -licui18n)
 elseif( ${WIN32} )
   # TODO: link in VC++
-  target_link_libraries(mysh v8_snapshot v8_libbase v8_base icuuc icui18n)
+  set(V8_LINK_LIST v8_snapshot v8_libbase v8_base icuuc icui18n)
 else()	# Linux
-  target_link_libraries(mysh -L${MY_V8_LIB_DIR} -lv8 -licuuc -licui18n)
+  set(V8_LINK_LIST -L${MY_V8_LIB_DIR} -lv8 -licuuc -licui18n)
 endif()
+
+target_link_libraries(mysh ${V8_LINK_LIST})
 
 # enable_testing()
 
@@ -127,4 +131,4 @@ else()
   target_link_libraries( shcore.tests boost_filesystem )
   target_link_libraries( shcore.tests boost_system )
 endif()
-
+target_link_libraries(shcore.tests ${V8_LINK_LIST})

@@ -36,6 +36,7 @@ JScript_object_wrapper::JScript_object_wrapper(JScript_context *context)
 
   v8::NamedPropertyHandlerConfiguration config;
   config.getter = &JScript_object_wrapper::handler_getter;
+  config.setter = &JScript_object_wrapper::handler_setter;
   templ->SetHandler(config);
 
   templ->SetInternalFieldCount(3);
@@ -88,8 +89,8 @@ void JScript_object_wrapper::handler_getter(v8::Local<v8::Name> property, const 
   if (!object)
     throw std::logic_error("bug!");
 
-  const char *prop = *v8::String::Utf8Value(property);
-  if (strcmp(prop, "__members__") == 0)
+  std::string prop = *v8::String::Utf8Value(property);
+  if (prop == "__members__")
   {
     std::vector<std::string> members((*object)->get_members());
     v8::Handle<v8::Array> marray = v8::Array::New(info.GetIsolate());
@@ -114,6 +115,29 @@ void JScript_object_wrapper::handler_getter(v8::Local<v8::Name> property, const 
     {
       info.GetIsolate()->ThrowException(self->_context->shcore_value_to_v8_value(Value(exc.error())));
     }
+  }
+}
+
+
+void JScript_object_wrapper::handler_setter(v8::Local<v8::Name> property, v8::Local<v8::Value> value, const v8::PropertyCallbackInfo<v8::Value>& info)
+{
+  v8::HandleScope hscope(info.GetIsolate());
+  v8::Handle<v8::Object> obj(info.Holder());
+  boost::shared_ptr<Object_bridge> *object = static_cast<boost::shared_ptr<Object_bridge>*>(obj->GetAlignedPointerFromInternalField(1));
+  JScript_object_wrapper *self = static_cast<JScript_object_wrapper*>(obj->GetAlignedPointerFromInternalField(2));
+
+  if (!object)
+    throw std::logic_error("bug!");
+
+  const char *prop = *v8::String::Utf8Value(property);
+  try
+  {
+    (*object)->set_member(prop, self->_context->v8_value_to_shcore_value(value));
+    info.GetReturnValue().Set(value);
+  }
+  catch (Exception &exc)
+  {
+    info.GetIsolate()->ThrowException(self->_context->shcore_value_to_v8_value(Value(exc.error())));
   }
 }
 

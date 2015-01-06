@@ -259,8 +259,14 @@ struct JScript_context::JScript_context_impl
     {
       try
       {
-        args.GetReturnValue().Set(v8::String::NewFromUtf8(args.GetIsolate(),
-                              type_name(self->v8_value_to_shcore_value(args[0]).type).c_str()));
+        Value v(self->v8_value_to_shcore_value(args[0]));
+
+        if (v.type == Object)
+          args.GetReturnValue().Set(v8::String::NewFromUtf8(args.GetIsolate(),
+                                                            ("Object:"+v.as_object<Object_bridge>()->class_name()).c_str()));
+        else
+          args.GetReturnValue().Set(v8::String::NewFromUtf8(args.GetIsolate(),
+                              type_name(v.type).c_str()));
       }
       catch (std::exception &e)
       {
@@ -445,9 +451,14 @@ struct JScript_context::JScript_context_impl
       v8::Handle<v8::Object> jsobject = value->ToObject();
       boost::shared_ptr<Object_bridge> object;
       boost::shared_ptr<Value::Map_type> map;
+      boost::shared_ptr<Value::Array_type> array;
       boost::shared_ptr<Function_base> function;
 
-      if (JScript_map_wrapper::unwrap(jsobject, map))
+      if (JScript_array_wrapper::unwrap(jsobject, array))
+      {
+        return Value(array);
+      }
+      else if (JScript_map_wrapper::unwrap(jsobject, map))
       {
         return Value(map);
       }
@@ -536,6 +547,12 @@ struct JScript_context::JScript_context_impl
     ctx->Global()->Set(v8::String::NewFromUtf8(isolate, name.c_str()), value);
   }
 
+  v8::Handle<v8::Value> get_global(const std::string &name)
+  {
+    v8::Handle<v8::Context> ctx(v8::Local<v8::Context>::New(isolate, context));
+    return ctx->Global()->Get(v8::String::NewFromUtf8(isolate, name.c_str()));
+  }
+
 
   v8::Handle<v8::Value> wrap_object(const boost::shared_ptr<Object_bridge> &o)
   {
@@ -613,6 +630,22 @@ void JScript_context::set_global(const std::string &name, const Value &value)
 }
 
 
+Value JScript_context::get_global(const std::string &name)
+{
+  // makes _isolate the default isolate for this context
+  v8::Isolate::Scope isolate_scope(_impl->isolate);
+  // creates a pool for all the handles that are created in this scope
+  // (except for persistent ones), which will be freed when the scope exits
+  v8::HandleScope handle_scope(_impl->isolate);
+  // catch everything that happens in this scope
+  v8::TryCatch try_catch;
+  // set _context to be the default context for everything in this scope
+  v8::Context::Scope context_scope(v8::Local<v8::Context>::New(_impl->isolate, _impl->context));
+
+  return _impl->v8_value_to_shcore_value(_impl->get_global(name));
+}
+
+
 v8::Isolate *JScript_context::isolate() const
 {
   return _impl->isolate;
@@ -644,7 +677,7 @@ Argument_list JScript_context::convert_args(const v8::FunctionCallbackInfo<v8::V
 
 
 
-Value JScript_context::execute(const std::string &code_str, boost::system::error_code &ret_error) BOOST_NOEXCEPT_OR_NOTHROW
+Value JScript_context::execute(const std::string &code_str, boost::system::error_code &ret_error) throw (Exception)
 {
   // makes _isolate the default isolate for this context
   v8::Isolate::Scope isolate_scope(_impl->isolate);
@@ -661,17 +694,25 @@ Value JScript_context::execute(const std::string &code_str, boost::system::error
 
   if (script.IsEmpty())
   {
+    Value e(_impl->v8_value_to_shcore_value(try_catch.Exception()));
     _impl->print_exception(&try_catch, false);
-    //XXX assign ret_error
-    return Value();
+    // TODO: wrap the Exception object in JS so that one can throw common exceptions from JS
+    if (e.type == Map)
+      throw Exception(e.as_map());
+    else
+      throw Exception::scripting_error(_impl->format_exception(e));
   }
   else
   {
     v8::Handle<v8::Value> result = script->Run();
     if (result.IsEmpty())
     {
+      Value e(_impl->v8_value_to_shcore_value(try_catch.Exception()));
       _impl->print_exception(&try_catch, false);
-      return Value();
+      if (e.type == Map)
+        throw Exception(e.as_map());
+      else
+        throw Exception::scripting_error(_impl->format_exception(e));
     }
     else
     {

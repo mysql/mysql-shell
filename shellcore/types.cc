@@ -65,6 +65,24 @@ Exception Exception::type_error(const std::string &message)
 }
 
 
+Exception Exception::logic_error(const std::string &message)
+{
+  boost::shared_ptr<Value::Map_type> error(new Value::Map_type());
+  (*error)["type"] = Value("LogicError");
+  (*error)["message"] = Value(message);
+  return Exception(error);
+}
+
+
+Exception Exception::scripting_error(const std::string &message)
+{
+  boost::shared_ptr<Value::Map_type> error(new Value::Map_type());
+  (*error)["type"] = Value("ScriptingError");
+  (*error)["message"] = Value(message);
+  return Exception(error);
+}
+
+
 Exception Exception::error_with_code(const std::string &type, const std::string &message, int code)
 {
   boost::shared_ptr<Value::Map_type> error(new Value::Map_type());
@@ -691,15 +709,15 @@ bool Value::operator == (const Value &other) const
       case String:
         return *value.s == *other.value.s;
       case Object:
-        return *value.o == *other.value.o;
+        return **value.o == **other.value.o;
       case Array:
-        return *value.array == *other.value.array;
+        return **value.array == **other.value.array;
       case Map:
-        return *value.map == *other.value.map;
+        return **value.map == **other.value.map;
       case MapRef:
         return *value.mapref->lock() == *other.value.mapref->lock();
       case Function:
-        return *value.func == *other.value.func;
+        return **value.func == **other.value.func;
     }
   }
   return false;
@@ -981,7 +999,7 @@ const std::string &Argument_list::string_at(int i) const
   if (i >= size())
     throw Exception::argument_error("Insufficient number of arguments");
   if (at(i).type != String)
-    throw Exception::type_error((boost::format("Element at index %1% is expected to be a string") % i).str());
+    throw Exception::type_error((boost::format("Argument #%1% is expected to be a string") % (i+1)).str());
   return *at(i).value.s;
 }
 
@@ -991,7 +1009,7 @@ bool Argument_list::bool_at(int i) const
   if (i >= size())
     throw Exception::argument_error("Insufficient number of arguments");
   if (at(i).type != Bool)
-    throw Exception::type_error((boost::format("Element at index %1% is expected to be a bool") % i).str());
+    throw Exception::type_error((boost::format("Argument #%1% is expected to be a bool") % (i+1)).str());
   return at(i).value.b;
 }
 
@@ -1001,7 +1019,7 @@ int64_t Argument_list::int_at(int i) const
   if (i >= size())
     throw Exception::argument_error("Insufficient number of arguments");
   if (at(i).type != Integer)
-    throw Exception::type_error((boost::format("Element at index %1% is expected to be an int") % i).str());
+    throw Exception::type_error((boost::format("Argument #%1% is expected to be an int") % (i+1)).str());
   return at(i).value.i;
 }
 
@@ -1011,7 +1029,7 @@ double Argument_list::double_at(int i) const
   if (i >= size())
     throw Exception::argument_error("Insufficient number of arguments");
   if (at(i).type != Float)
-    throw Exception::type_error((boost::format("Element at index %1% is expected to be a double") % i).str());
+    throw Exception::type_error((boost::format("Argument #%1% is expected to be a double") % (i+1)).str());
   return at(i).value.d;
 }
 
@@ -1021,7 +1039,7 @@ boost::shared_ptr<Object_bridge> Argument_list::object_at(int i) const
   if (i >= size())
     throw Exception::argument_error("Insufficient number of arguments");
   if (at(i).type != Object)
-    throw Exception::type_error((boost::format("Element at index %1% is expected to be an object") % i).str());
+    throw Exception::type_error((boost::format("Argument #%1% is expected to be an object") % (i+1)).str());
   return *at(i).value.o;
 }
 
@@ -1031,7 +1049,7 @@ boost::shared_ptr<Value::Map_type> Argument_list::map_at(int i) const
   if (i >= size())
     throw Exception::argument_error("Insufficient number of arguments");
   if (at(i).type != Map)
-    throw Exception::type_error((boost::format("Element at index %1% is expected to be a map") % i).str());
+    throw Exception::type_error((boost::format("Argument #%1% is expected to be a map") % (i+1)).str());
   return *at(i).value.map;
 }
 
@@ -1041,7 +1059,7 @@ boost::shared_ptr<Value::Array_type> Argument_list::array_at(int i) const
   if (i >= size())
     throw Exception::argument_error("Insufficient number of arguments");
   if (at(i).type != Array)
-    throw Exception::type_error((boost::format("Element at index %1% is expected to be an array") % i).str());
+    throw Exception::type_error((boost::format("Argument #%1% is expected to be an array") % (i+1)).str());
   return *at(i).value.array;
 }
 

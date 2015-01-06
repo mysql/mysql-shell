@@ -121,6 +121,9 @@ struct SHCORE_PUBLIC Value
   explicit Value(boost::weak_ptr<Map_type> n);
   explicit Value(boost::shared_ptr<Array_type> n);
 
+  static Value new_array() { return Value(boost::shared_ptr<Array_type>(new Array_type())); }
+  static Value new_map() { return Value(boost::shared_ptr<Map_type>(new Map_type())); }
+
   static Value Null() { return Value(shcore::Null); }
   static Value True() { return Value((bool)true); }
   static Value False() { return Value((bool)false); }
@@ -133,6 +136,8 @@ struct SHCORE_PUBLIC Value
   Value &operator= (const Value &other);
 
   bool operator == (const Value &other) const;
+
+  bool operator != (const Value &other) const { return !(*this == other); }
 
   operator bool() const
   {
@@ -223,6 +228,8 @@ public:
   //! Implements equality operator
   virtual bool operator == (const Object_bridge &other) const = 0;
 
+  virtual bool operator != (const Object_bridge &other) const { return !(*this == other); }
+
   //! Returns the value of a member
   virtual Value get_member(const std::string &prop) const = 0;
 
@@ -279,8 +286,10 @@ public:
   static Exception argument_error(const std::string &message);
   static Exception attrib_error(const std::string &message);
   static Exception type_error(const std::string &message);
+  static Exception logic_error(const std::string &message);
   static Exception error_with_code(const std::string &type, const std::string &message, int code);
   static Exception parser_error(const std::string &message);
+  static Exception scripting_error(const std::string &message);
 
   virtual const char *what() const BOOST_NOEXCEPT_OR_NOTHROW;
 

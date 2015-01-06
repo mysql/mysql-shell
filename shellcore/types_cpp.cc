@@ -48,6 +48,11 @@ Value Cpp_object_bridge::get_member(const std::string &prop) const
 }
 
 
+void Cpp_object_bridge::set_member(const std::string &prop, Value value)
+{
+  throw Exception::attrib_error("Can't set object member "+prop);
+}
+
 void Cpp_object_bridge::add_method(const char *name, Cpp_function::Function func,
                                    const char *arg1_name, Value_type arg1_type, ...)
 {
@@ -137,7 +142,7 @@ std::pair<std::string, Value_type> Cpp_function::return_type()
 
 bool Cpp_function::operator == (const Function_base &other) const
 {
-  throw std::logic_error("Cannot compare function objects");
+  throw Exception::logic_error("Cannot compare function objects");
   return false;
 }
 
