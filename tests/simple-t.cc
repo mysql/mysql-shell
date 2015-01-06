@@ -25,6 +25,7 @@
 
 #include "gtest/gtest.h"
 #include "shellcore/types.h"
+#include "shellcore/types_cpp.h"
 
 
 namespace shcore
@@ -50,6 +51,27 @@ namespace shcore
       EXPECT_STREQ( "20", myrepr.c_str() );
     }
 
+    TEST(ValueTests, SimpleBool)
+    {
+      EXPECT_EQ(Value::True().as_bool(), true);
+
+      EXPECT_TRUE(Value::True() == Value::True());
+      EXPECT_TRUE(Value::True() == Value(1));
+      EXPECT_FALSE(Value::True() == Value(1.1));
+      EXPECT_FALSE(Value::True() == Value("1"));
+      EXPECT_FALSE(Value::True() == Value::Null());
+
+      EXPECT_TRUE(Value::False() == Value(0));
+      EXPECT_FALSE(Value::False() == Value(0.1));
+      EXPECT_FALSE(Value::False() == Value("0"));
+      EXPECT_FALSE(Value::False() == Value::Null());
+    }
+
+    TEST(ValueTests, SimpleDouble)
+    {
+      EXPECT_EQ(Value(1.1234).as_double(), 1.1234);
+    }
+
     TEST( ValueTests, SimpleString)
     {
       const std::string input( "Hello world" );
@@ -72,6 +94,47 @@ namespace shcore
 
       EXPECT_TRUE(arr1==arr2);
     }
+
+    static Value do_test(const Argument_list &args)
+    {
+      args.ensure_count(1, 2, "do_test");
+
+      int code = args.int_at(0);
+      switch (code)
+      {
+        case 0:
+          // test string_at
+          return Value(args.string_at(1));
+      }
+      return Value::Null();
+    }
+
+    TEST(Functions, function_wrappers)
+    {
+      boost::shared_ptr<Function_base> f(Cpp_function::create("test", do_test,
+                                                              "test_index", Integer,
+                                                              "test_arg", String,
+                                                              NULL));
+
+      {
+        Argument_list args;
+
+        args.push_back(Value(1234));
+        args.push_back(Value("hello"));
+        args.push_back(Value(333));
+
+        EXPECT_THROW(f->invoke(args), Exception);
+      }
+      {
+        Argument_list args;
+
+        args.push_back(Value(0));
+        args.push_back(Value("hello"));
+
+        EXPECT_EQ(f->invoke(args), Value("hello"));
+      }
+    }
+
 
     TEST( Parsing, Integer )
     {
@@ -155,9 +218,10 @@ namespace shcore
       EXPECT_EQ(shcore::String, v.type);
       EXPECT_STREQ("Hello World", mydescr.c_str());
       EXPECT_STREQ("\"Hello World\"", myrepr.c_str());
-      
+
     }
-    
+
+
     // TODO: Parsing Map, Array
   }
 }

@@ -45,10 +45,17 @@ set(MY_WARNING_FLAGS "-Wall -Wextra -Wformat-security -Wvla")
 # Common warning flags for GCC and Clang
 set(MY_C_WARNING_FLAGS
     "${MY_WARNING_FLAGS} -Wwrite-strings -Wdeclaration-after-statement")
-	
+
+# enable gcov
+if(ENABLE_GCOV)
+    message("Enabling gcov")
+    add_definitions(-fprofile-arcs -ftest-coverage)
+endif()
+
+
 	
 # TODO add auto-detection/manual param taking for this
-if( ${APPLE} )
+if(APPLE)
   set(V8_INCLUDE_DIR /usr/local/include/v8)
 else()
   # TODO: Other OSs specify it at the command line.
@@ -56,11 +63,7 @@ endif()
 
 set(MY_CXX_WARNING_FLAGS "${MY_CXX_WARNING_FLAGS} -Werror")
 
-if( ${APPLE} )
-find_package(MYSQL REQUIRED)
-else()
 find_package(MySQL REQUIRED)
-endif()
 
 include_directories( ${MY_INCLUDE_DIR} )
 include_directories( ${V8_INCLUDE_DIR} )
@@ -101,7 +104,7 @@ target_link_libraries(mysh ${MYSQL_LIBRARIES})
 
 
 
-if( ${APPLE} )
+if(APPLE)
   set(V8_LINK_LIST -L/usr/local/lib/v8 -lv8_snapshot -licudata -lv8_libbase -lv8_base -licuuc -licui18n)
 elseif( ${WIN32} )
   # TODO: link in VC++
@@ -132,3 +135,8 @@ else()
   target_link_libraries( shcore.tests boost_system )
 endif()
 target_link_libraries(shcore.tests ${V8_LINK_LIST})
+
+if(ENABLE_GCOV)
+    target_link_libraries(shcore.tests -fprofile-arcs -ftest-coverage)
+endif()
+

@@ -109,8 +109,6 @@ struct SHCORE_PUBLIC Value
   Value() : type(Undefined) {}
   Value(const Value &copy);
 
-  explicit Value(Value_type type);
-//  explicit Value(bool b);
   explicit Value(const std::string &s);
   explicit Value(int i);
   explicit Value(int64_t i);
@@ -124,9 +122,9 @@ struct SHCORE_PUBLIC Value
   static Value new_array() { return Value(boost::shared_ptr<Array_type>(new Array_type())); }
   static Value new_map() { return Value(boost::shared_ptr<Map_type>(new Map_type())); }
 
-  static Value Null() { return Value(shcore::Null); }
-  static Value True() { return Value((bool)true); }
-  static Value False() { return Value((bool)false); }
+  static Value Null() { Value v; v.type = shcore::Null; return v; }
+  static Value True() { Value v; v.type = shcore::Bool; v.value.b = true; return v; }
+  static Value False() { Value v; v.type = shcore::Bool; v.value.b = false; return v; }
 
   //! parse a string returned by repr() back into a Value
   static Value parse(const std::string &s);
@@ -262,15 +260,6 @@ public:
   //! Invokes the function and passes back the return value.
   // arglist must match the signature
   virtual Value invoke(const Argument_list &args) = 0;
-
-  //! 0 arg convenience wrapper for invoke
-  virtual Value invoke();
-
-  //! 1 arg convenience wrapper for invoke
-  virtual Value invoke(const Value &arg1);
-
-  //! 2 arg convenience wrapper for invoke
-  virtual Value invoke(const Value &arg1, const Value &arg2);
 };
 
 

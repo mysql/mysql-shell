@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2015, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -95,7 +95,7 @@ void JScript_map_wrapper::handler_getter(v8::Local<v8::Name> property, const v8:
     int i = 0;
     for (Value::Map_type::const_iterator iter = (*map)->begin(); iter != (*map)->end(); ++iter)
     {
-      marray->Set(i, v8::String::NewFromUtf8(info.GetIsolate(), iter->first.c_str()));
+      marray->Set(i++, v8::String::NewFromUtf8(info.GetIsolate(), iter->first.c_str()));
     }
     info.GetReturnValue().Set(marray);
   }

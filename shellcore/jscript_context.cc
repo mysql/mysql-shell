@@ -417,7 +417,7 @@ struct JScript_context::JScript_context_impl
       return Value();
     }
     if (value->IsNull())
-      return Value(Null);
+      return Value::Null();
     else if (value->IsInt32())
       return Value((int64_t)value->ToInt32()->Value());
     else if (value->IsNumber())

@@ -28,6 +28,7 @@ namespace shcore {
 class Cpp_function : public Function_base
 {
 public:
+  //TODO make this work with direct function pointers and skip boost::function
   typedef boost::function<Value (const shcore::Argument_list &)> Function;
 
   virtual ~Cpp_function() {}

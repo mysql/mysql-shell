@@ -109,6 +109,11 @@ namespace tests {
       js = new JScript_context(&reg, this);
     }
 
+    ~Environment()
+    {
+      delete js;
+    }
+
     Object_registry reg;
     JScript_context *js;
   };
@@ -147,6 +152,11 @@ namespace tests {
 
     {
       Value v(Value::True());
+      ASSERT_EQ(env.js->v8_value_to_shcore_value(env.js->shcore_value_to_v8_value(v)),
+                v);
+    }
+    {
+      Value v(Value::False());
       ASSERT_EQ(env.js->v8_value_to_shcore_value(env.js->shcore_value_to_v8_value(v)),
                 v);
     }
@@ -247,6 +257,10 @@ namespace tests {
 
     boost::system::error_code error;
 
+    env.js->set_global("mapval", v);
+    ASSERT_EQ(env.js->execute("mapval.__members__", error).descr(false),
+              "[\"k1\",\"k2\",\"k3\"]");
+
     // this forces conversion of a native JS map into a Value
     Value result = env.js->execute("a={\"submap\": 444}", error);
     ASSERT_EQ(result, Value(map2));
@@ -327,4 +341,17 @@ namespace tests {
     ASSERT_THROW(env.js->execute("test_func(123)", error), shcore::Exception);
   }
 
+
+
+  TEST(JavaScript, builtin_functions)
+  {
+    v8::Isolate::Scope isolate_scope(env.js->isolate());
+    v8::HandleScope handle_scope(env.js->isolate());
+    v8::TryCatch try_catch;
+    v8::Context::Scope context_scope(v8::Local<v8::Context>::New(env.js->isolate(),
+                                                                 env.js->context()));
+    boost::system::error_code error;
+
+    ASSERT_EQ(env.js->execute("repr(unrepr(repr(\"hello world\")))", error).descr(false), "\"hello world\"");
+  }
 }}

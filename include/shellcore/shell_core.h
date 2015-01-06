@@ -67,6 +67,9 @@ public:
   Mode interactive_mode() const { return _mode; }
   bool switch_mode(Mode mode);
 
+  // sets a global variable, exposed to all supported scripting languages
+  // the value is saved in a map, so that the exposing can be deferred in
+  // case the context for some langauge is not yet created at the time this is called
   void set_global(const std::string &name, const Value &value);
 
   Object_registry *registry() { return _registry; }

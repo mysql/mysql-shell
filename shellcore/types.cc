@@ -140,32 +140,6 @@ std::string shcore::type_name(Value_type type)
 
 // --
 
-//! 0 arg convenience wrapper for invoke
-Value Function_base::invoke()
-{
-  Argument_list args;
-  return invoke(args);
-}
-
-//! 1 arg convenience wrapper for invoke
-Value Function_base::invoke(const Value &arg1)
-{
-  Argument_list args;
-  args.push_back(arg1);
-  return invoke(args);
-}
-
-//! 2 arg convenience wrapper for invoke
-Value Function_base::invoke(const Value &arg1, const Value &arg2)
-{
-  Argument_list args;
-  args.push_back(arg1);
-  args.push_back(arg2);
-  return invoke(args);
-}
-
-// --
-
 std::string Value::Map_type::get_string(const std::string &k, const std::string &def) const
 {
   const_iterator iter = find(k);
@@ -228,46 +202,6 @@ Value::Value(const Value &copy)
 : type(shcore::Null)
 {
   operator=(copy);
-}
-
-
-Value::Value(Value_type type)
-: type(type)
-{
-  switch (type)
-  {
-    case Undefined:
-      break;
-    case shcore::Null:
-      break;
-    case Bool:
-      value.b = false;
-      break;
-    case Integer:
-      value.i = 0;
-      break;
-    case Float:
-      value.d = 0.0;
-      break;
-    case String:
-      value.s = new std::string();
-      break;
-    case Object:
-      value.o = new boost::shared_ptr<Object_bridge>();
-      break;
-    case Array:
-      value.array = new boost::shared_ptr<Array_type>();
-      break;
-    case Map:
-      value.map = new boost::shared_ptr<Map_type>();
-      break;
-    case MapRef:
-      value.mapref = new boost::weak_ptr<Map_type>();
-      break;
-    case Function:
-      value.func = new boost::shared_ptr<Function_base>();
-      break;
-  }
 }
 
 
@@ -720,6 +654,57 @@ bool Value::operator == (const Value &other) const
         return **value.func == **other.value.func;
     }
   }
+  else
+  {
+    // with type conversion
+    switch (type)
+    {
+      case Undefined:
+        return false;
+      case shcore::Null:
+        return false;
+      case Bool:
+        switch (other.type)
+        {
+          case Integer:
+            if (other.value.i == 1)
+              return value.b == true;
+            else if (other.value.i == 0)
+              return value.b == false;
+            return false;
+          case Float:
+            if (other.value.d == 1.0)
+              return value.b == true;
+            else if (other.value.d == 0.0)
+              return value.b == false;
+            return false;
+          default:
+            return false;
+        }
+      case Integer:
+        switch (other.type)
+        {
+          case Bool:
+            return other.operator==(*this);
+          case Float:
+            return value.i == (int)other.value.d && ((other.value.d - (int)other.value.d) == 0.0);
+          default:
+            return false;
+        }
+      case Float:
+        switch (other.type)
+        {
+          case Bool:
+            return other.operator==(*this);
+          case Integer:
+            return other.operator==(*this);
+          default:
+            return false;
+        }
+      default:
+        return false;
+    }
+  }
   return false;
 }
 
@@ -772,7 +757,7 @@ std::string &Value::append_descr(std::string &s_out, int indent, bool quote_stri
       break;
     case String:
       if (quote_strings)
-        s_out += "'" + *value.s + "'";
+        s_out += "\"" + *value.s + "\"";
       else
         s_out += *value.s;
       break;
@@ -810,9 +795,9 @@ std::string &Value::append_descr(std::string &s_out, int indent, bool quote_stri
           s_out += ", " + nl;
         if (indent >= 0)
           s_out.append((indent+1)*4, ' ');
-        s_out += "'";
+        s_out += "\"";
         s_out += iter->first;
-        s_out += "': ";
+        s_out += "\": ";
         iter->second.append_descr(s_out, indent < 0 ? indent : indent+1, true);
       }
       s_out += nl;
