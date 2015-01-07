@@ -27,11 +27,6 @@
 #
 cmake_minimum_required (VERSION 2.8)
 
-if (APPLE)
-# Deployment target must be set to 10.5, to match v8, otherwise we get link errors
-set(CMAKE_OSX_DEPLOYMENT_TARGET 10.5)
-endif()
-
 project (mysh)
 
 SET(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/cmake)
@@ -39,7 +34,6 @@ SET(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/cmake)
 ###
 ### Detect Stuff
 ###
-
 
 INCLUDE(libutils)
 INCLUDE(boost)
@@ -86,6 +80,19 @@ else()
   # TODO: Other OSs specify it at the command line.
 endif()
 
+# GMock/GTest
+if(GMOCK_DIR)
+    message(STATUS "Determining gmock compile flags")
+    set(GMOCK_CFLAGS "-I${GMOCK_DIR}/include -I${GMOCK_DIR}/gtest/include")
+    find_library(GMOCK_LIB NAMES gmock PATHS ${GMOCK_DIR}/lib ${GMOCK_DIR}/lib/.libs)
+    find_library(GTEST_LIB NAMES gtest PATHS ${GMOCK_DIR}/gtest/lib ${GMOCK_DIR}/gtest/lib/.libs)
+    set(GMOCK_LIBRARIES ${GMOCK_LIB} ${GTEST_LIB})
+    message(STATUS "gmock cflags: ${GMOCK_CFLAGS}")
+    message(STATUS "gmock libs: ${GMOCK_LIBRARIES}")
+else()
+    message(STATUS "GMOCK_CONFIG_PATH not specified, will skip building tests")
+endif()
+
 ###
 ### Build Projects
 ###
@@ -95,8 +102,6 @@ include_directories( ${MY_INCLUDE_DIR} )
 include_directories( ${V8_INCLUDE_DIR} )
 include_directories( ${MYSQL_INCLUDE_CMAKE_DIRS} )
 
-link_directories( ${MY_GMOCK_LIB_DIR} )
-link_directories( ${BOOST_INCLUDE_DIR} )
 link_directories( ${MY_BOOST_LIB_DIR} )
 link_directories( ${MY_V8_LIB_DIR} )
 
@@ -105,7 +110,7 @@ add_subdirectory(src/libedit)
 if (APPLE)
 # needed when compiling in osx, for v8
 # has to be after src/libedit
-add_definitions(-std=gnu++0x)
+add_definitions(-std=gnu++0x -mmacosx-version-min=10.5)
 endif()
 
 
@@ -131,7 +136,7 @@ target_link_libraries(mysh ${MYSQL_LIBRARIES})
 
 if(APPLE)
   set(V8_LINK_LIST -mmacosx-version-min=10.5 -L/usr/local/lib/v8 -lv8_snapshot -licudata -lv8_libbase -lv8_base -licuuc -licui18n)
-elseif( ${WIN32} )
+elseif(WIN32)
   # TODO: link in VC++
   set(V8_LINK_LIST v8_snapshot v8_libbase v8_base icuuc icui18n)
 else()	# Linux
@@ -142,15 +147,16 @@ target_link_libraries(mysh ${V8_LINK_LIST})
 
 # enable_testing()
 
+if(GMOCK_LIBRARIES)
 file(GLOB shcore_tests_SRC
 	"${PROJECT_SOURCE_DIR}/tests/*.cc"
 )
 
-add_definitions(-DGTEST_LANG_CXX11=0)
+add_definitions(-DGTEST_LANG_CXX11=0 ${GMOCK_CFLAGS})
 add_executable( shcore.tests ${shcore_tests_SRC} )
 target_link_libraries( shcore.tests mysqlsh )
 target_link_libraries( shcore.tests gmock )
-if (${WIN32})
+if (WIN32)
   #target_link_libraries( shcore.tests gtestd )
   target_link_libraries( shcore.tests       	 libboost_filesystem-vc120-mt-gd-1_56 )
 else()
@@ -159,9 +165,11 @@ else()
   target_link_libraries( shcore.tests boost_filesystem )
   target_link_libraries( shcore.tests boost_system )
 endif()
-target_link_libraries(shcore.tests ${V8_LINK_LIST})
+target_link_libraries(shcore.tests
+        ${V8_LINK_LIST}
+        ${GMOCK_LIBRARIES})
 
 if(ENABLE_GCOV)
     target_link_libraries(shcore.tests -fprofile-arcs -ftest-coverage)
 endif()
-
+endif()
