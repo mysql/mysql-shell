@@ -221,8 +221,11 @@ std::string Interactive_shell::deleg_input(void *cdata, const char *prompt)
 std::string Interactive_shell::deleg_password(void *cdata, const char *prompt)
 {
   std::string s;
-  //XXX disable echoing
-  char *tmp = readline(prompt);
+
+  extern char *get_tty_password(const char *opt_message);
+
+  char *tmp = get_tty_password(prompt);
+
   if (!tmp)
     return "";
   s = tmp;
@@ -361,10 +364,12 @@ struct Command_line_options
   std::string host;
   std::string user;
   int port;
+  bool needs_password;
 
   Command_line_options(int argc, char **argv)
   {
     exit_code = 0;
+    needs_password = false;
 
     initial_mode = Shell_core::Mode_JScript;
 
@@ -377,8 +382,10 @@ struct Command_line_options
         host = value;
       else if (check_arg_with_value(argv, i, "--user", "-u", value))
         user = value;
-      else if (check_arg_with_value(argv, i, "--port", "-p", value))
+      else if (check_arg_with_value(argv, i, "--port", "-P", value))
         port = atoi(value);
+      else if (check_arg(argv, i, "--password", "-p"))
+        needs_password = true;
       else if (exit_code == 0)
       {
         std::cerr << argv[0] << ": unknown option " << argv[i] <<"\n";

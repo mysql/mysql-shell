@@ -36,8 +36,30 @@ project (mysh)
 
 SET(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/cmake)
 
+###
+### Detect Stuff
+###
+
+CONFIGURE_FILE(config.h.cmake   ${CMAKE_BINARY_DIR}/include/mysh_config.h)
+
 INCLUDE(libutils)
 INCLUDE(boost)
+
+INCLUDE (CheckIncludeFiles)
+INCLUDE (CheckFunctionExists)
+
+find_package(MySQL REQUIRED)
+
+CHECK_INCLUDE_FILES (pwd.h HAVE_PWD_H)
+CHECK_INCLUDE_FILES (sys/ioctl.h HAVE_SYS_IOCTL_H)
+CHECK_INCLUDE_FILES (termio.h HAVE_TERMIO_H)
+CHECK_INCLUDE_FILES (termios.h HAVE_TERMIOS_H)
+
+CHECK_FUNCTION_EXISTS (getpass HAVE_GETPASS)
+
+###
+### Handle User Options
+###
 
 # Common warning flags for GCC, G++, Clang and Clang++
 set(MY_WARNING_FLAGS "-Wall -Wextra -Wformat-security -Wvla")
@@ -46,6 +68,8 @@ set(MY_WARNING_FLAGS "-Wall -Wextra -Wformat-security -Wvla")
 set(MY_C_WARNING_FLAGS
     "${MY_WARNING_FLAGS} -Wwrite-strings -Wdeclaration-after-statement")
 
+set(MY_CXX_WARNING_FLAGS "${MY_CXX_WARNING_FLAGS} -Werror")
+
 # enable gcov
 if(ENABLE_GCOV)
     message("Enabling gcov")
@@ -53,7 +77,6 @@ if(ENABLE_GCOV)
 endif()
 
 
-	
 # TODO add auto-detection/manual param taking for this
 if(APPLE)
   set(V8_INCLUDE_DIR /usr/local/include/v8)
@@ -61,14 +84,19 @@ else()
   # TODO: Other OSs specify it at the command line.
 endif()
 
-set(MY_CXX_WARNING_FLAGS "${MY_CXX_WARNING_FLAGS} -Werror")
+if (APPLE)
+# needed when compiling in osx, for v8
+add_definitions(-std=gnu++0x)
+endif()
 
-find_package(MySQL REQUIRED)
+###
+### Build Projects
+###
 
+include_directories( ${CMAKE_BINARY_DIR}/include/ )
 include_directories( ${MY_INCLUDE_DIR} )
 include_directories( ${V8_INCLUDE_DIR} )
 include_directories( ${MYSQL_INCLUDE_CMAKE_DIRS} )
-
 
 link_directories( ${MY_GMOCK_LIB_DIR} )
 link_directories( ${BOOST_INCLUDE_DIR} )
@@ -76,13 +104,6 @@ link_directories( ${MY_BOOST_LIB_DIR} )
 link_directories( ${MY_V8_LIB_DIR} )
 
 add_subdirectory(src/libedit)
-
-
-if (APPLE)
-# needed when compiling in osx, for v8
-add_definitions(-std=gnu++0x)
-endif()
-
 add_subdirectory(shellcore)
 
 # mysh cmdline util build
@@ -101,7 +122,6 @@ file(GLOB mysh_SRC
 add_executable(mysh ${mysh_SRC})
 target_link_libraries(mysh mysqlsh readline)
 target_link_libraries(mysh ${MYSQL_LIBRARIES})
-
 
 
 if(APPLE)
