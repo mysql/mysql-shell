@@ -25,7 +25,7 @@
 #include <cstdio>
 #include <ctype.h>
 
-#ifdef HAVE_UNITSTD_H
+#ifdef HAVE_UNISTD_H
 #include <unistd.h>
 #endif
 

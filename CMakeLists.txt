@@ -130,7 +130,7 @@ target_link_libraries(mysh ${MYSQL_LIBRARIES})
 
 
 if(APPLE)
-  set(V8_LINK_LIST -L/usr/local/lib/v8 -lv8_snapshot -licudata -lv8_libbase -lv8_base -licuuc -licui18n)
+  set(V8_LINK_LIST -mmacosx-version-min=10.5 -L/usr/local/lib/v8 -lv8_snapshot -licudata -lv8_libbase -lv8_base -licuuc -licui18n)
 elseif( ${WIN32} )
   # TODO: link in VC++
   set(V8_LINK_LIST v8_snapshot v8_libbase v8_base icuuc icui18n)
