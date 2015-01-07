@@ -20,7 +20,9 @@
 #cmakedefine HAVE_SYS_IOCTL_H 1
 #cmakedefine HAVE_TERMIOS_H 1
 #cmakedefine HAVE_TERMIO_H 1
+#cmakedefine HAVE_UNISTD_H 1
 
 #cmakedefine HAVE_GETPASS 1
+
 
 #endif

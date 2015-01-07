@@ -40,7 +40,6 @@ SET(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/cmake)
 ### Detect Stuff
 ###
 
-CONFIGURE_FILE(config.h.cmake   ${CMAKE_BINARY_DIR}/include/mysh_config.h)
 
 INCLUDE(libutils)
 INCLUDE(boost)
@@ -54,8 +53,11 @@ CHECK_INCLUDE_FILES (pwd.h HAVE_PWD_H)
 CHECK_INCLUDE_FILES (sys/ioctl.h HAVE_SYS_IOCTL_H)
 CHECK_INCLUDE_FILES (termio.h HAVE_TERMIO_H)
 CHECK_INCLUDE_FILES (termios.h HAVE_TERMIOS_H)
+CHECK_INCLUDE_FILES (unistd.h HAVE_UNISTD_H)
 
 CHECK_FUNCTION_EXISTS (getpass HAVE_GETPASS)
+
+CONFIGURE_FILE(config.h.cmake   ${CMAKE_BINARY_DIR}/include/mysh_config.h)
 
 ###
 ### Handle User Options
@@ -84,11 +86,6 @@ else()
   # TODO: Other OSs specify it at the command line.
 endif()
 
-if (APPLE)
-# needed when compiling in osx, for v8
-add_definitions(-std=gnu++0x)
-endif()
-
 ###
 ### Build Projects
 ###
@@ -104,6 +101,14 @@ link_directories( ${MY_BOOST_LIB_DIR} )
 link_directories( ${MY_V8_LIB_DIR} )
 
 add_subdirectory(src/libedit)
+
+if (APPLE)
+# needed when compiling in osx, for v8
+# has to be after src/libedit
+add_definitions(-std=gnu++0x)
+endif()
+
+
 add_subdirectory(shellcore)
 
 # mysh cmdline util build

@@ -333,7 +333,7 @@ void Interactive_shell::print_banner()
 {
   println("Welcome to MySQL Shell 0.0.1");
   println("");
-  println("Copyright (c) 2014, 2015 Oracle and/or its affiliates. All rights reserved.");
+  println("Copyright (c) 2014, 2015, Oracle and/or its affiliates. All rights reserved.");
   println("");
   println("Oracle is a registered trademark of Oracle Corporation and/or its");
   println("affiliates. Other names may be trademarks of their respective");

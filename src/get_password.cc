@@ -22,7 +22,12 @@
 
 #include "mysh_config.h"
 #include <cstring>
+#include <cstdio>
+#include <ctype.h>
 
+#ifdef HAVE_UNITSTD_H
+#include <unistd.h>
+#endif
 
 #ifdef HAVE_GETPASS
 #ifdef HAVE_PWD_H
@@ -102,14 +107,14 @@ char *get_tty_password(const char *opt_message)
 *  to will not include the eol characters.
 */
 
-static void get_password(char *to,uint length,int fd, my_bool echo)
+static void get_password(char *to, int length, int fd, bool echo)
 {
   char *pos=to,*end=to+length;
 
   for (;;)
   {
     char tmp;
-    if (my_read(fd,&tmp,1,MYF(0)) != 1)
+    if (read(fd,&tmp,1) != 1)
       break;
     if (tmp == '\b' || (int) tmp == 127)
     {
