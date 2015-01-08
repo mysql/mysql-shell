@@ -37,14 +37,14 @@ class Shell_core;
 class Shell_language
 {
 public:
-  Shell_language(Shell_core *owner) {}//: _owner(owner) {}
+  Shell_language(Shell_core *owner): _owner(owner) {}
 
   virtual void set_global(const std::string &name, const Value &value) = 0;
 
   virtual Interactive_input_state handle_interactive_input(const std::string &code) = 0;
   virtual int run_script(const std::string &path, boost::system::error_code &err) = 0;
-private:
-//  Shell_core *_owner;
+protected:
+  Shell_core *_owner;
 };
 
 
@@ -71,6 +71,7 @@ public:
   // the value is saved in a map, so that the exposing can be deferred in
   // case the context for some langauge is not yet created at the time this is called
   void set_global(const std::string &name, const Value &value);
+  Value get_global(const std::string &name);
 
   Object_registry *registry() { return _registry; }
 public:

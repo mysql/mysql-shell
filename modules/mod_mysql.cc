@@ -265,7 +265,7 @@ MYSQL_RES *Mysql_connection::raw_sql(const std::string &query)
     throw shcore::Exception::error_with_code("MySQLError", mysql_error(_mysql), mysql_errno(_mysql));
   }
 
-  return mysql_use_result(_mysql);
+  return mysql_store_result(_mysql);
 }
 
 

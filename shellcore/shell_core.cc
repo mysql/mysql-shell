@@ -120,3 +120,8 @@ void Shell_core::set_global(const std::string &name, const Value &value)
     iter->second->set_global(name, value);
 }
 
+Value Shell_core::get_global(const std::string &name)
+{
+  return (_globals.count(name) > 0) ? _globals[name] : Value();
+}
+

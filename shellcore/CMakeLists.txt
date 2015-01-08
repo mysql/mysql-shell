@@ -13,6 +13,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
 
+include_directories( ${MYSQL_INCLUDE_DIRS} )
 include_directories("${CMAKE_SOURCE_DIR}/include" "${BOOST_INCLUDE_DIR}" "${V8_INCLUDE_DIR}")
 
 file(GLOB libmysqlsh_SRC

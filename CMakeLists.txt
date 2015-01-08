@@ -100,7 +100,6 @@ endif()
 include_directories( ${CMAKE_BINARY_DIR}/include/ )
 include_directories( ${MY_INCLUDE_DIR} )
 include_directories( ${V8_INCLUDE_DIR} )
-include_directories( ${MYSQL_INCLUDE_CMAKE_DIRS} )
 
 link_directories( ${MY_BOOST_LIB_DIR} )
 link_directories( ${MY_V8_LIB_DIR} )

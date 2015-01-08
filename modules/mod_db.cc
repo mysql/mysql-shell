@@ -24,6 +24,11 @@
 
 #include <boost/bind.hpp>
 #include <boost/lexical_cast.hpp>
+#include <boost/format.hpp>
+#include <ctime>
+
+#define MAX_COLUMN_LENGTH 1024
+#define MIN_COLUMN_LENGTH 4
 
 using namespace mysh;
 using namespace shcore;
@@ -94,10 +99,14 @@ Value Db::sql(const Argument_list &args)
   for (std::vector<boost::shared_ptr<Mysql_connection> >::iterator c = _conns.begin();
        c != _conns.end(); ++c)
   {
+    std::clock_t start = std::clock();
+    
     MYSQL_RES *result = (*c)->raw_sql(args.string_at(0));
+    
+    double duration = ( std::clock() - start ) / (double) CLOCKS_PER_SEC;
 
     // print rows from result, with stats etc
-    print_result(result);
+    print_result(result, duration);
 
     mysql_free_result(result);
   }
@@ -105,13 +114,136 @@ Value Db::sql(const Argument_list &args)
 }
 
 
-void Db::print_result(MYSQL_RES *res)
+void Db::print_result(MYSQL_RES *res, double duration)
 {
-  //XXX
+  // At this point it means there were no errors.
 
-  _shcore->print("%1% row in set (%2% sec)\n");
+  print_table(res);
+  
+  
+  // Prints the informative line at the end
+  my_ulonglong rows = mysql_num_rows(res);
+  _shcore->print(boost::str(boost::format("%lld %s in set (%s)\n") % rows % (rows == 1 ? "row" : "rows") % format_duration(duration)));
 }
 
+std::string Db::format_duration(double duration)
+{
+  double temp;
+  std::string str_duration;
+  
+  double minute_seconds = 60.0;
+  double hour_seconds = 3600.0;
+  double day_seconds = hour_seconds * 24;
+  
+  if (duration >= day_seconds)
+  {
+    temp = floor(duration/day_seconds);
+    duration -= temp * day_seconds;
+    
+    str_duration.append(boost::str(boost::format("%d %s") % temp % (temp == 1 ? "day" : "days")));
+  }
+  
+  if (duration >= hour_seconds)
+  {
+    temp = floor(duration/hour_seconds);
+    duration -= temp * hour_seconds;
+    
+    if (!str_duration.empty())
+      str_duration.append(", ");
+    
+    str_duration.append(boost::str(boost::format("%d %s") % temp % (temp == 1 ? "hour" : "hours")));
+  }
+  
+  if (duration >= minute_seconds)
+  {
+    temp = floor(duration/minute_seconds);
+    duration -= temp * minute_seconds;
+    
+    if (!str_duration.empty())
+      str_duration.append(", ");
+    
+    str_duration.append(boost::str(boost::format("%d %s") % temp % (temp == 1 ? "minute" : "minute")));
+  }
+  
+  if (duration)
+    str_duration.append(boost::str(boost::format("%.2f sec") % duration));
+  
+  return str_duration;
+}
+
+
+void Db::print_table(MYSQL_RES *res)
+{
+  unsigned int index = 0;
+  unsigned int field_count = mysql_num_fields(res);
+  std::vector<std::string> formats(field_count, "%-");
+  MYSQL_FIELD *fields = mysql_fetch_fields(res);
+  
+  // Calculates the max column widths and constructs the separator line.
+  std::string separator("+");
+  for(index = 0; index < field_count; index++)
+  {
+    unsigned int max_field_length;
+    max_field_length = std::max<unsigned int>(fields[index].max_length, fields[index].name_length);
+    max_field_length = std::max<unsigned int>(max_field_length, MIN_COLUMN_LENGTH);
+    fields[index].max_length = max_field_length;
+    
+    // Creates the format string to print each field
+    formats[index].append(boost::lexical_cast<std::string>(max_field_length));
+    formats[index].append("s|");
+    
+    std::string field_separator(max_field_length, '-');
+    field_separator.append("+");
+    separator.append(field_separator);
+  }
+  separator.append("\n");
+  
+
+  // Prints the initial separator line and the column headers
+  // TODO: Consider the charset information on the length calculations
+  _shcore->print(separator);
+  _shcore->print("|");
+  for(index = 0; index < field_count; index++)
+  {
+    std::string data = boost::str(boost::format(formats[index]) % fields[index].name);
+    _shcore->print(data);
+    
+    // Once the header is printed, updates the numeric fields formats
+    // so they are right aligned
+    if (IS_NUM(fields[index].type))
+      formats[index] = formats[index].replace(1, 1, "");
+
+  }
+  _shcore->print("\n");
+  _shcore->print(separator);
+  
+  
+  // Now prints the records
+  MYSQL_ROW row;
+  while((row = mysql_fetch_row(res)))
+  {
+    _shcore->print("|");
+    
+    {
+      for(index = 0; index < field_count; index++)
+      {
+        std::string data = boost::str(boost::format(formats[index]) % (row[index] ? row[index] : "NULL"));
+        _shcore->print(data);
+      }
+      _shcore->print("\n");
+    }
+  }
+  _shcore->print(separator);
+}
+
+void Db::print_json(MYSQL_RES *res)
+{
+  
+}
+void Db::print_vertical(MYSQL_RES *res)
+{
+  
+}
 
 std::string Db::class_name() const
 {

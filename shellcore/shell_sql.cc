@@ -18,6 +18,7 @@
  */
 
 #include "shellcore/shell_sql.h"
+#include "../modules/mod_db.h"
 
 using namespace shcore;
 
@@ -33,6 +34,18 @@ Interactive_input_state Shell_sql::handle_interactive_input(const std::string &c
 {
   // TODO check if line contains a full statement (terminated by the delimiter)
   // and if so, consume it, otherwise return Input_continue
+  //_owner->handle_interactive_input(code);
+  Value db = _owner->get_global("db");
+  
+  if (db)
+  {
+    boost::shared_ptr<mysh::Db> _db = db.as_object<mysh::Db>();
+    
+    shcore::Argument_list query;
+    query.push_back(Value(code));
+    _db->sql(query);
+  }
+  
 
   return Input_ok;
 }

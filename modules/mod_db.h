@@ -57,7 +57,11 @@ public:
 //  shcore::Value stats(const shcore::Argument_list &args);
 
 private:
-  void print_result(MYSQL_RES *res);
+  std::string format_duration(double duration);
+  void print_result(MYSQL_RES *res, double duration);
+  void print_table(MYSQL_RES *res);
+  void print_json(MYSQL_RES *res);
+  void print_vertical(MYSQL_RES *res);
 
   shcore::Shell_core *_shcore;
   std::vector<boost::shared_ptr<Mysql_connection> > _conns;
