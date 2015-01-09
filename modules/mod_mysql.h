@@ -35,7 +35,7 @@ class Mysql_resultset;
 class Mysql_connection : public shcore::Cpp_object_bridge
 {
 public:
-  Mysql_connection(const std::string &uri);
+  Mysql_connection(const std::string &uri, const std::string &password="");
   ~Mysql_connection();
 
   virtual std::string class_name() const;

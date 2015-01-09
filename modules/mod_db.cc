@@ -21,6 +21,7 @@
 
 #include "shellcore/object_factory.h"
 #include "shellcore/shell_core.h"
+#include "shellcore/lang_base.h"
 
 #include <boost/bind.hpp>
 #include <boost/lexical_cast.hpp>
@@ -47,6 +48,7 @@ Db::Db(Shell_core *shc)
 
   add_method("connect_add", boost::bind(&Db::connect_add, this, _1),
              "uri", shcore::String,
+             "*password", shcore::String,
              NULL);
 }
 
@@ -58,7 +60,7 @@ Db::~Db()
 
 Value Db::connect(const Argument_list &args)
 {
-  args.ensure_count(1, "Db::connect");
+  args.ensure_count(1, 2, "Db::connect");
 
   if (!_conns.empty())
   {
@@ -66,14 +68,24 @@ Value Db::connect(const Argument_list &args)
     _conns.clear();
   }
 
-  Mysql_connection *conn;
   if (args[0].type == String)
   {
     std::string uri = args.string_at(0);
+    std::string pwd;
+    if (args.size() == 1)
+    {
+      if (!_shcore->password("Enter password: ", pwd))
+      {
+        _shcore->print("Cancelled");
+        return Value::Null();
+      }
+    }
+    else
+      pwd = args.string_at(1);
+
     _shcore->print("Connecting to "+uri+"...\n");
-    conn = new Mysql_connection(uri);
-    _conns.push_back(boost::shared_ptr<Mysql_connection>(conn));
-    _shcore->print("Connection opened and assigned to variable db\n");
+    _conns.push_back(boost::shared_ptr<Mysql_connection>(new Mysql_connection(uri, pwd)));
+    _shcore->print("Connection object assigned to variable db\n");
   }
   else if (args[0].type == Map)
   {
@@ -85,8 +97,7 @@ Value Db::connect(const Argument_list &args)
     for (Value::Array_type::const_iterator iter = servers->begin(); iter != servers->end(); ++iter)
     {
       _shcore->print(iter->descr(false)+"...\n");
-      conn = new Mysql_connection(iter->as_string());
-      _conns.push_back(boost::shared_ptr<Mysql_connection>(conn));
+      _conns.push_back(boost::shared_ptr<Mysql_connection>(new Mysql_connection(iter->as_string())));
     }
   }
   return Value::Null();
@@ -97,13 +108,10 @@ Value Db::connect_add(const Argument_list &args)
 {
   args.ensure_count(1, "Db::connect_add");
 
-  Mysql_connection *conn;
-
   std::string uri = args.string_at(0);
   _shcore->print("Connecting to "+uri+"...\n");
-  conn = new Mysql_connection(uri);
-  _conns.push_back(boost::shared_ptr<Mysql_connection>(conn));
-  _shcore->print("Connection opened and added to variable db\n");
+  _conns.push_back(boost::shared_ptr<Mysql_connection>(new Mysql_connection(uri)));
+  _shcore->print("Connection object assigned to variable db\n");
 
   return Value::Null();
 }

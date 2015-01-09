@@ -82,6 +82,8 @@ public:
 
 public:
   void print(const std::string &s);
+  bool password(const std::string &s, std::string &ret_pass);
+
 private:
   void init_sql();
   void init_js();

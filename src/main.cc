@@ -24,6 +24,7 @@
 #include "editline/readline.h"
 
 #include <boost/bind.hpp>
+#include <boost/format.hpp>
 #include <boost/algorithm/string.hpp>
 #include <iostream>
 
@@ -37,24 +38,27 @@
 
 using namespace shcore;
 
+extern char *get_tty_password(const char *opt_message);
 
 class Interactive_shell
 {
 public:
-  Interactive_shell();
+  Interactive_shell(Shell_core::Mode initial_mode);
   void command_loop();
   int run_script(const std::string &file);
 
   void init_environment();
 
-private:
-  void process_line(const std::string &line);
-  std::string prompt();
+  bool connect(const std::string &uri, const std::string &password);
 
   void print(const std::string &str);
   void println(const std::string &str);
   void print_error(const std::string &error);
   void print_shell_help();
+
+private:
+  void process_line(const std::string &line);
+  std::string prompt();
 
   void switch_shell_mode(Shell_core::Mode mode, const std::vector<std::string> &args);
 
@@ -65,8 +69,8 @@ private:
 
 private:
   static void deleg_print(void *self, const char *text);
-  static std::string deleg_input(void *self, const char *text);
-  static std::string deleg_password(void *self, const char *text);
+  static bool deleg_input(void *self, const char *text, std::string &ret);
+  static bool deleg_password(void *self, const char *text, std::string &ret);
 
   void do_shell_command(const std::string &command);
 private:
@@ -81,7 +85,7 @@ private:
 
 
 
-Interactive_shell::Interactive_shell()
+Interactive_shell::Interactive_shell(Shell_core::Mode initial_mode)
 {
   rl_initialize();
 //  using_history();
@@ -98,7 +102,29 @@ Interactive_shell::Interactive_shell()
   _db.reset(new mysh::Db(_shell.get()));
   _shell->set_global("db", Value(_db));
 
-  switch_shell_mode(Shell_core::Mode_JScript, std::vector<std::string>());
+  _shell->switch_mode(initial_mode);
+}
+
+
+bool Interactive_shell::connect(const std::string &uri, const std::string &password)
+{
+  Argument_list args;
+
+  args.push_back(Value(uri));
+  if (!password.empty())
+    args.push_back(Value(password));
+
+  try
+  {
+    connect_db(args);
+  }
+  catch (std::exception &exc)
+  {
+    print_error(exc.what());
+    return false;
+  }
+
+  return true;
 }
 
 
@@ -151,26 +177,31 @@ std::string Interactive_shell::prompt()
 
 void Interactive_shell::switch_shell_mode(Shell_core::Mode mode, const std::vector<std::string> &args)
 {
-  _multiline_mode = false;
-  _input_buffer.clear();
+  Shell_core::Mode old_mode = _shell->interactive_mode();
 
-  //XXX reset the history... history should be specific to each shell mode
-  switch (mode)
+  if (old_mode != mode)
   {
-  case Shell_core::Mode_None:
-    break;
-  case Shell_core::Mode_SQL:
-    if (_shell->switch_mode(mode))
-      println("Switching to SQL mode... Commands end with ;");
-    break;
-  case Shell_core::Mode_JScript:
-    if (_shell->switch_mode(mode))
-      println("Switching to JavaScript mode...");
-    break;
-  case Shell_core::Mode_Python:
-    if (_shell->switch_mode(mode))
-      println("Switching to Python mode...");
-    break;
+    _multiline_mode = false;
+    _input_buffer.clear();
+
+    //XXX reset the history... history should be specific to each shell mode
+    switch (mode)
+    {
+      case Shell_core::Mode_None:
+        break;
+      case Shell_core::Mode_SQL:
+        if (_shell->switch_mode(mode))
+          println("Switching to SQL mode... Commands end with ;");
+        break;
+      case Shell_core::Mode_JScript:
+        if (_shell->switch_mode(mode))
+          println("Switching to JavaScript mode...");
+        break;
+      case Shell_core::Mode_Python:
+        if (_shell->switch_mode(mode))
+          println("Switching to Python mode...");
+        break;
+    }
   }
 }
 
@@ -206,31 +237,25 @@ void Interactive_shell::deleg_print(void *cdata, const char *text)
 }
 
 
-std::string Interactive_shell::deleg_input(void *cdata, const char *prompt)
+bool Interactive_shell::deleg_input(void *cdata, const char *prompt, std::string &ret)
 {
-  std::string s;
   char *tmp = readline(prompt);
   if (!tmp)
-    return "";
-  s = tmp;
+    return false;
+  ret = tmp;
   free(tmp);
-  return s;
+  return true;
 }
 
 
-std::string Interactive_shell::deleg_password(void *cdata, const char *prompt)
+bool Interactive_shell::deleg_password(void *cdata, const char *prompt, std::string &ret)
 {
-  std::string s;
-
-  extern char *get_tty_password(const char *opt_message);
-
   char *tmp = get_tty_password(prompt);
-
   if (!tmp)
-    return "";
-  s = tmp;
+    return false;
+  ret = tmp;
   free(tmp);
-  return s;
+  return true;
 }
 
 
@@ -309,6 +334,21 @@ void Interactive_shell::command_loop()
 {
   print_banner();
 
+  switch (_shell->interactive_mode())
+  {
+    case Shell_core::Mode_SQL:
+      _shell->print("Currently in SQL mode. Use \\js or \\py to switch the shell to a scripting language.\n");
+      break;
+    case Shell_core::Mode_JScript:
+      _shell->print("Currently in JavaScript mode. Use \\sql to switch to SQL mode and execute queries.\n");
+      break;
+    case Shell_core::Mode_Python:
+      _shell->print("Currently in Python mode. Use \\sql to switch to SQL mode and execute queries.\n");
+      break;
+    default:
+      break;
+  }
+
   for (;;)
   {
     char *cmd = readline(prompt().c_str());
@@ -361,13 +401,16 @@ struct Command_line_options
   Shell_core::Mode initial_mode;
   std::string run_file;
 
-  std::string host;
-  std::string user;
-  int port;
-  bool needs_password;
+  std::string uri;
+  std::string password;
 
   Command_line_options(int argc, char **argv)
   {
+    std::string host;
+    std::string user;
+    int port = 0;
+    bool needs_password;
+
     exit_code = 0;
     needs_password = false;
 
@@ -378,6 +421,8 @@ struct Command_line_options
       char *value;
       if (check_arg_with_value(argv, i, "--file", "-f", value))
         run_file = value;
+      else if (check_arg_with_value(argv, i, "--uri", NULL, value))
+        uri = value;
       else if (check_arg_with_value(argv, i, "--host", "-h", value))
         host = value;
       else if (check_arg_with_value(argv, i, "--user", "-u", value))
@@ -393,6 +438,26 @@ struct Command_line_options
         break;
       }
     }
+
+    if (needs_password)
+    {
+      char *tmp = get_tty_password("Enter password: ");
+      if (tmp)
+      {
+        password = tmp;
+        free(tmp);
+      }
+    }
+
+    if (uri.empty())
+    {
+      uri = user;
+      if (!uri.empty())
+        uri.append("@");
+      uri.append(host);
+      if (port > 0)
+        uri.append((boost::format(":%i") % port).str());
+    }
   }
 
   bool check_arg(char **argv, int &argi, const char *arg, const char *larg)
@@ -405,7 +470,7 @@ struct Command_line_options
   bool check_arg_with_value(char **argv, int &argi, const char *arg, const char *larg, char *&value)
   {
     // --option value or -o value
-    if (strcmp(argv[argi], arg) == 0 || strcmp(argv[argi], larg) == 0)
+    if (strcmp(argv[argi], arg) == 0 || (larg && strcmp(argv[argi], larg) == 0))
     {
       // value must be in next arg
       if (argv[argi+1] != NULL)
@@ -422,7 +487,7 @@ struct Command_line_options
       return true;
     }
     // -ovalue
-    else if (strncmp(argv[argi], larg, strlen(larg)) == 0 && strlen(argv[argi]) > strlen(larg))
+    else if (larg && strncmp(argv[argi], larg, strlen(larg)) == 0 && strlen(argv[argi]) > strlen(larg))
     {
       value = argv[argi] + strlen(larg);
       return true;
@@ -451,9 +516,16 @@ int main(int argc, char **argv)
   JScript_context_init();
 
   {
-    Interactive_shell shell;
+    Interactive_shell shell(Shell_core::Mode_SQL);
 
     shell.init_environment();
+
+    if (!options.uri.empty())
+    {
+      if (!shell.connect(options.uri, options.password))
+        return 1;
+      shell.println("");
+    }
 
     if (!options.run_file.empty())
       shell.run_script(options.run_file);

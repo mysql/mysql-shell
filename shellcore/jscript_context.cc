@@ -311,8 +311,9 @@ struct JScript_context::JScript_context_impl
 
     v8::HandleScope handle_scope(args.GetIsolate());
     v8::String::Utf8Value str(args[0]);
-    std::string r = self->delegate->input(self->delegate->user_data, *str);
-    args.GetReturnValue().Set(v8::String::NewFromUtf8(args.GetIsolate(), r.c_str()));
+    std::string r;
+    if (self->delegate->input(self->delegate->user_data, *str, r))
+      args.GetReturnValue().Set(v8::String::NewFromUtf8(args.GetIsolate(), r.c_str()));
   }
 
   static void f_password(const v8::FunctionCallbackInfo<v8::Value>& args)
@@ -328,8 +329,9 @@ struct JScript_context::JScript_context_impl
 
     v8::HandleScope handle_scope(args.GetIsolate());
     v8::String::Utf8Value str(args[0]);
-    std::string r = self->delegate->password(self->delegate->user_data, *str);
-    args.GetReturnValue().Set(v8::String::NewFromUtf8(args.GetIsolate(), r.c_str()));
+    std::string r;
+    if (self->delegate->password(self->delegate->user_data, *str, r))
+      args.GetReturnValue().Set(v8::String::NewFromUtf8(args.GetIsolate(), r.c_str()));
   }
 
   // --------------------

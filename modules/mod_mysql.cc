@@ -161,8 +161,21 @@ static bool parse_mysql_connstring(const std::string &connstring,
     s = connstring.substr(0, p);
   }
   p = s.rfind('@');
-  std::string user_part = (p == std::string::npos) ? "root" : s.substr(0, p);
+  std::string user_part;
   std::string server_part = (p == std::string::npos) ? s : s.substr(p+1);
+
+  if (p == std::string::npos)
+  {
+    // by default, connect using the current OS username
+#ifdef _WIN32
+    //XXX find out current username here
+#else
+    const char *tmp = getenv("USER");
+    user_part = tmp ? tmp : "";
+#endif
+  }
+  else
+    user_part = s.substr(0, p);
 
   if ((p = user_part.find(':')) != std::string::npos)
   {
@@ -193,7 +206,7 @@ static bool parse_mysql_connstring(const std::string &connstring,
 
 
 
-Mysql_connection::Mysql_connection(const std::string &uri)
+Mysql_connection::Mysql_connection(const std::string &uri, const std::string &password)
 : _mysql(NULL)
 {
   add_method("close", boost::bind(&Mysql_connection::close, this, _1), NULL);
@@ -214,6 +227,9 @@ Mysql_connection::Mysql_connection(const std::string &uri)
 
   if (!parse_mysql_connstring(uri, user, pass, host, port, sock, db))
     throw shcore::Exception::argument_error("Could not parse URI for MySQL connection");
+
+  if (!password.empty())
+    pass = password;
 
   if (!mysql_real_connect(_mysql, host.c_str(), user.c_str(), pass.c_str(), db.empty() ? NULL : db.c_str(), port, sock.empty() ? NULL : sock.c_str(), flags | CLIENT_MULTI_STATEMENTS))
   {
@@ -368,9 +384,10 @@ public:
 
   virtual boost::shared_ptr<shcore::Object_bridge> construct(const shcore::Argument_list &args)
   {
-    args.ensure_count(1, "Connection constructor");
+    args.ensure_count(1, 2, "Connection constructor");
 
-    return boost::shared_ptr<shcore::Object_bridge>(new Mysql_connection(args.string_at(0)));
+    return boost::shared_ptr<shcore::Object_bridge>(new Mysql_connection(args.string_at(0),
+                                                                         args.size() > 1 ? args.string_at(1) : ""));
   }
 };
 
