@@ -52,6 +52,8 @@ public:
 
 public:
   MYSQL_RES *raw_sql(const std::string &sql);
+  MYSQL_RES *next_result();
+  my_ulonglong affected_rows();
 private:
   std::string _uri;
   MYSQL *_mysql;

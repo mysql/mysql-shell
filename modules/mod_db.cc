@@ -104,12 +104,39 @@ Value Db::sql(const Argument_list &args)
     MYSQL_RES *result = (*c)->raw_sql(args.string_at(0));
     
     double duration = ( std::clock() - start ) / (double) CLOCKS_PER_SEC;
-
-    // print rows from result, with stats etc
-    print_result(result, duration);
-
-    mysql_free_result(result);
+    
+    do
+    {
+      if (result)
+      {
+        // Prints the informative line at the end
+        my_ulonglong rows = mysql_num_rows(result);
+        
+        if (rows)
+        {
+          // print rows from result, with stats etc
+          print_result(result, duration);
+          
+          _shcore->print(boost::str(boost::format("%lld %s in set (%s)\n") % rows % (rows == 1 ? "row" : "rows") % format_duration(duration)));
+        }
+        else
+          _shcore->print("Empty set");
+      
+        mysql_free_result(result);
+      }
+      else
+      {
+        my_ulonglong rows = (*c)->affected_rows();
+        
+        if (rows)
+          _shcore->print(boost::str(boost::format("Query OK, %lld %s affected\n") % rows % (rows == 1 ? "row" : "rows")));
+        else
+          _shcore->print("Query OK\n");
+      }
+      
+    }while((result = (*c)->next_result()));
   }
+  
   return Value::Null();
 }
 
@@ -119,11 +146,6 @@ void Db::print_result(MYSQL_RES *res, double duration)
   // At this point it means there were no errors.
 
   print_table(res);
-  
-  
-  // Prints the informative line at the end
-  my_ulonglong rows = mysql_num_rows(res);
-  _shcore->print(boost::str(boost::format("%lld %s in set (%s)\n") % rows % (rows == 1 ? "row" : "rows") % format_duration(duration)));
 }
 
 std::string Db::format_duration(double duration)

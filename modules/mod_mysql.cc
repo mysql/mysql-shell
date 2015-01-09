@@ -215,7 +215,7 @@ Mysql_connection::Mysql_connection(const std::string &uri)
   if (!parse_mysql_connstring(uri, user, pass, host, port, sock, db))
     throw shcore::Exception::argument_error("Could not parse URI for MySQL connection");
 
-  if (!mysql_real_connect(_mysql, host.c_str(), user.c_str(), pass.c_str(), db.empty() ? NULL : db.c_str(), port, sock.empty() ? NULL : sock.c_str(), flags))
+  if (!mysql_real_connect(_mysql, host.c_str(), user.c_str(), pass.c_str(), db.empty() ? NULL : db.c_str(), port, sock.empty() ? NULL : sock.c_str(), flags | CLIENT_MULTI_STATEMENTS))
   {
     throw shcore::Exception::error_with_code("MySQLError", mysql_error(_mysql), mysql_errno(_mysql));
   }
@@ -260,12 +260,35 @@ shcore::Value Mysql_connection::sql(const shcore::Argument_list &args)
 
 MYSQL_RES *Mysql_connection::raw_sql(const std::string &query)
 {
-  if (mysql_real_query(_mysql, query.c_str(), query.length()) < 0)
+  if (mysql_real_query(_mysql, query.c_str(), query.length()) != 0)
   {
     throw shcore::Exception::error_with_code("MySQLError", mysql_error(_mysql), mysql_errno(_mysql));
   }
 
   return mysql_store_result(_mysql);
+}
+
+MYSQL_RES *Mysql_connection::next_result()
+{
+  MYSQL_RES* next_result = NULL;
+
+  if(mysql_more_results(_mysql))
+  {
+    // mysql_next_result has the next return values:
+    //  0: success and there are more results
+    // -1: succeess and this is the last one
+    // >1: in case of error
+    // So we assign the result on the first two cases
+    if (mysql_next_result(_mysql) < 1)
+      next_result = mysql_store_result(_mysql);
+  }
+  
+  return next_result;
+}
+
+my_ulonglong Mysql_connection::affected_rows()
+{
+  return mysql_affected_rows(_mysql);
 }
 
 
