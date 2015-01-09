@@ -716,15 +716,6 @@ Value JScript_context::execute(const std::string &code_str, boost::system::error
     }
     else
     {
-#if 0
-      if (!result->IsUndefined())
-      {
-        // If all went well and the result wasn't undefined then print
-        // the returned value.
-        v8::String::Utf8Value str(result);
-        std::cout << ">>"<<*str << "\n";
-      }
-#endif
       return v8_value_to_shcore_value(result);
     }
   }
@@ -734,16 +725,37 @@ Value JScript_context::execute(const std::string &code_str, boost::system::error
 bool JScript_context::execute_interactive(const std::string &code_str) BOOST_NOEXCEPT_OR_NOTHROW
 {
   boost::system::error_code error;
-  Value result = execute(code_str, error);
-  if (!error)
+
+  // makes _isolate the default isolate for this context
+  v8::Isolate::Scope isolate_scope(_impl->isolate);
+  // creates a pool for all the handles that are created in this scope
+  // (except for persistent ones), which will be freed when the scope exits
+  v8::HandleScope handle_scope(_impl->isolate);
+  // catch everything that happens in this scope
+  v8::TryCatch try_catch;
+  // set _context to be the default context for everything in this scope
+  v8::Context::Scope context_scope(v8::Local<v8::Context>::New(_impl->isolate, _impl->context));
+  v8::ScriptOrigin origin(v8::String::NewFromUtf8(_impl->isolate, "(shell)"));
+  v8::Handle<v8::String> code = v8::String::NewFromUtf8(_impl->isolate, code_str.c_str());
+  v8::Handle<v8::Script> script = v8::Script::Compile(code, &origin);
+
+  if (script.IsEmpty())
   {
-    if (result && result.type != Null)
-      _impl->delegate->print(_impl->delegate->user_data, result.descr(true).c_str());
-    return true;
+    _impl->print_exception(&try_catch, false);
   }
   else
   {
-    _impl->delegate->print_error(_impl->delegate->user_data, error.message().c_str());
+    v8::Handle<v8::Value> result = script->Run();
+    if (result.IsEmpty())
+    {
+      _impl->print_exception(&try_catch, false);
+    }
+    else
+    {
+      Value r(v8_value_to_shcore_value(result));
+      if (r && r.type != Null)
+        _impl->delegate->print(_impl->delegate->user_data, r.descr(true).c_str());
+    }
   }
   return false;
 }

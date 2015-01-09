@@ -44,6 +44,10 @@ Db::Db(Shell_core *shc)
              "stmt", shcore::String,
              "*options", shcore::Map,
              NULL);
+
+  add_method("connect_add", boost::bind(&Db::connect_add, this, _1),
+             "uri", shcore::String,
+             NULL);
 }
 
 
@@ -89,6 +93,22 @@ Value Db::connect(const Argument_list &args)
 }
 
 
+Value Db::connect_add(const Argument_list &args)
+{
+  args.ensure_count(1, "Db::connect_add");
+
+  Mysql_connection *conn;
+
+  std::string uri = args.string_at(0);
+  _shcore->print("Connecting to "+uri+"...\n");
+  conn = new Mysql_connection(uri);
+  _conns.push_back(boost::shared_ptr<Mysql_connection>(conn));
+  _shcore->print("Connection opened and added to variable db\n");
+
+  return Value::Null();
+}
+
+
 Value Db::sql(const Argument_list &args)
 {
   if (_conns.empty())
@@ -99,8 +119,11 @@ Value Db::sql(const Argument_list &args)
   for (std::vector<boost::shared_ptr<Mysql_connection> >::iterator c = _conns.begin();
        c != _conns.end(); ++c)
   {
+    if (_conns.size() > 1)
+      _shcore->print((*c)->uri(Argument_list()).descr(false)+":\n");
+
     std::clock_t start = std::clock();
-    
+
     MYSQL_RES *result = (*c)->raw_sql(args.string_at(0));
     
     double duration = ( std::clock() - start ) / (double) CLOCKS_PER_SEC;
@@ -134,7 +157,10 @@ Value Db::sql(const Argument_list &args)
           _shcore->print("Query OK\n");
       }
       
-    }while((result = (*c)->next_result()));
+    } while((result = (*c)->next_result()));
+
+    if (_conns.size() > 1)
+      _shcore->print("\n");
   }
   
   return Value::Null();
@@ -288,7 +314,9 @@ std::string &Db::append_repr(std::string &s_out) const
 
 std::vector<std::string> Db::get_members() const
 {
-  return Cpp_object_bridge::get_members();
+  std::vector<std::string> members(Cpp_object_bridge::get_members());
+  members.push_back("connections");
+  return members;
 }
 
 
@@ -300,13 +328,21 @@ bool Db::operator == (const Object_bridge &other) const
 
 Value Db::get_member(const std::string &prop) const
 {
+  if (prop == "connections")
+  {
+    Value list(Value::new_array());
+    for (std::vector<boost::shared_ptr<Mysql_connection> >::const_iterator c = _conns.begin();
+         c != _conns.end(); ++c)
+      list.as_array()->push_back(Value(*c));
+    return list;
+  }
+
   if (_conns.empty())
   {
-    _shcore->print("Not connected\n");
+    _shcore->print("Not connected. Use connect(<uri>) or \\connect <uri>\n");
     return Value::Null();
   }
 
-  std::cout << "get "<<prop<<"\n";
   return Cpp_object_bridge::get_member(prop);
 }
 

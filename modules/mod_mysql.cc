@@ -225,6 +225,13 @@ Mysql_connection::Mysql_connection(const std::string &uri)
 }
 
 
+shcore::Value Mysql_connection::uri(const shcore::Argument_list &args)
+{
+  args.ensure_count(0, "Mysql_connection::uri");
+  return shcore::Value(_uri);
+}
+
+
 shcore::Value Mysql_connection::close(const shcore::Argument_list &args)
 {
   args.ensure_count(0, "Mysql_connection::close");
