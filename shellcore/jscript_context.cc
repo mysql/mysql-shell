@@ -20,12 +20,15 @@
 #include "shellcore/jscript_context.h"
 #include "shellcore/lang_base.h"
 #include "shellcore/shell_core.h"
+#include "shellcore/object_factory.h"
+#include "shellcore/object_registry.h"
+
 #include "shellcore/jscript_object_wrapper.h"
 #include "shellcore/jscript_function_wrapper.h"
 #include "shellcore/jscript_map_wrapper.h"
 #include "shellcore/jscript_array_wrapper.h"
-#include "shellcore/object_factory.h"
-#include "shellcore/object_registry.h"
+
+#include "shellcore/jscript_type_conversion.h"
 
 #include <fstream>
 #include <cerrno>
@@ -42,20 +45,17 @@ using namespace boost::system;
 struct JScript_context::JScript_context_impl
 {
   JScript_context *owner;
+  JScript_type_bridger types;
+
   v8::Isolate *isolate;
   v8::Persistent<v8::Context> context;
   std::map<std::string, v8::Persistent<v8::Object>* > factory_packages;
   v8::Persistent<v8::ObjectTemplate> package_template;
-  JScript_object_wrapper *object_wrapper;
-  JScript_function_wrapper *function_wrapper;
-  JScript_map_wrapper *map_wrapper;
-  JScript_array_wrapper *array_wrapper;
 
   Interpreter_delegate *delegate;
 
   JScript_context_impl(JScript_context *owner_, Interpreter_delegate *deleg)
-  : owner(owner_), isolate(v8::Isolate::New()), object_wrapper(NULL), function_wrapper(NULL),
-    map_wrapper(NULL), array_wrapper(NULL), delegate(deleg)
+  : owner(owner_), types(owner_), isolate(v8::Isolate::New()), delegate(deleg)
   {
     v8::Isolate::Scope isolate_scope(isolate);
     v8::HandleScope handle_scope(isolate);
@@ -105,10 +105,6 @@ struct JScript_context::JScript_context_impl
   {
     for (std::map<std::string, v8::Persistent<v8::Object>* >::iterator i = factory_packages.begin(); i != factory_packages.end(); ++i)
       delete i->second;
-    delete object_wrapper;
-    delete function_wrapper;
-    delete map_wrapper;
-    delete array_wrapper;
   }
 
 
@@ -184,7 +180,7 @@ struct JScript_context::JScript_context_impl
     {
       Value result(Object_factory::call_constructor(package, factory, self->convert_args(args)));
       if (result)
-        args.GetReturnValue().Set(self->shcore_value_to_v8_value(result));
+        args.GetReturnValue().Set(self->types.shcore_value_to_v8_value(result));
     }
     catch (std::exception &e)
     {
@@ -218,7 +214,7 @@ struct JScript_context::JScript_context_impl
       try
       {
         args.GetReturnValue().Set(v8::String::NewFromUtf8(args.GetIsolate(),
-                                  self->v8_value_to_shcore_value(args[0]).repr().c_str()));
+                                  self->types.v8_value_to_shcore_value(args[0]).repr().c_str()));
       }
       catch (std::exception &e)
       {
@@ -239,7 +235,7 @@ struct JScript_context::JScript_context_impl
       try
       {
         v8::String::Utf8Value s(args[0]);
-        args.GetReturnValue().Set(self->shcore_value_to_v8_value(Value::parse(*s)));
+        args.GetReturnValue().Set(self->types.shcore_value_to_v8_value(Value::parse(*s)));
       }
       catch (std::exception &e)
       {
@@ -259,14 +255,7 @@ struct JScript_context::JScript_context_impl
     {
       try
       {
-        Value v(self->v8_value_to_shcore_value(args[0]));
-
-        if (v.type == Object)
-          args.GetReturnValue().Set(v8::String::NewFromUtf8(args.GetIsolate(),
-                                                            ("Object:"+v.as_object<Object_bridge>()->class_name()).c_str()));
-        else
-          args.GetReturnValue().Set(v8::String::NewFromUtf8(args.GetIsolate(),
-                              type_name(v.type).c_str()));
+        args.GetReturnValue().Set(self->types.type_info(args[0]));
       }
       catch (std::exception &e)
       {
@@ -288,7 +277,7 @@ struct JScript_context::JScript_context_impl
 
       try
       {
-        self->delegate->print(self->delegate->user_data, self->v8_value_to_shcore_value(args[i]).descr(true).c_str());
+        self->delegate->print(self->delegate->user_data, self->types.v8_value_to_shcore_value(args[i]).descr(true).c_str());
       }
       catch (std::exception &e)
       {
@@ -341,7 +330,7 @@ struct JScript_context::JScript_context_impl
 
     for (int c = args.Length(), i = 0; i < c; i++)
     {
-      r.push_back(v8_value_to_shcore_value(args[i]));
+      r.push_back(types.v8_value_to_shcore_value(args[i]));
     }
     return r;
   }
@@ -374,7 +363,7 @@ struct JScript_context::JScript_context_impl
   void print_exception(v8::TryCatch *exc, bool to_shell=true)
   {
     v8::Handle<v8::Message> message = exc->Message();
-    std::string exception_text = format_exception(v8_value_to_shcore_value(exc->Exception()));
+    std::string exception_text = format_exception(types.v8_value_to_shcore_value(exc->Exception()));
 
     if (message.IsEmpty())
     {
@@ -412,137 +401,6 @@ struct JScript_context::JScript_context_impl
     }
   }
 
-  Value v8_value_to_shcore_value(const v8::Handle<v8::Value> &value)
-  {
-    if (value->IsUndefined())
-    {
-      return Value();
-    }
-    if (value->IsNull())
-      return Value::Null();
-    else if (value->IsInt32())
-      return Value((int64_t)value->ToInt32()->Value());
-    else if (value->IsNumber())
-      return Value(value->ToNumber()->Value());
-    else if (value->IsString())
-    {
-      v8::String::Utf8Value s(value->ToString());
-      return Value(std::string(*s, s.length()));
-    }
-    else if (value->IsTrue())
-      return Value(true);
-    else if (value->IsFalse())
-      return Value(false);
-    else if (value->IsArray())
-    {
-      v8::Array *jsarray = v8::Array::Cast(*value);
-      boost::shared_ptr<Value::Array_type> array(new Value::Array_type(jsarray->Length()));
-      for (int32_t c = jsarray->Length(), i = 0; i < c; i++)
-      {
-        v8::Local<v8::Value> item(jsarray->Get(i));
-        (*array)[i] = v8_value_to_shcore_value(item);
-      }
-      return Value(array);
-    }
-    else if (value->IsFunction())
-    {
-      throw std::logic_error("JS function wrapping not implemented");
-    }
-    else if (value->IsObject()) // JS object
-    {
-      v8::Handle<v8::Object> jsobject = value->ToObject();
-      boost::shared_ptr<Object_bridge> object;
-      boost::shared_ptr<Value::Map_type> map;
-      boost::shared_ptr<Value::Array_type> array;
-      boost::shared_ptr<Function_base> function;
-
-      if (JScript_array_wrapper::unwrap(jsobject, array))
-      {
-        return Value(array);
-      }
-      else if (JScript_map_wrapper::unwrap(jsobject, map))
-      {
-        return Value(map);
-      }
-      else if (JScript_object_wrapper::unwrap(jsobject, object))
-      {
-        return Value(object);
-      }
-      else if (JScript_function_wrapper::unwrap(jsobject, function))
-      {
-        return Value(function);
-      }
-      else
-      {
-        v8::Local<v8::Array> pnames(jsobject->GetPropertyNames());
-        boost::shared_ptr<Value::Map_type> map(new Value::Map_type);
-        for (int32_t c = pnames->Length(), i = 0; i < c; i++)
-        {
-          v8::Local<v8::Value> k(pnames->Get(i));
-          v8::Local<v8::Value> v(jsobject->Get(k));
-          v8::String::Utf8Value kstr(k);
-          (*map)[*kstr] = v8_value_to_shcore_value(v);
-        }
-        return Value(map);
-      }
-    }
-    else
-    {
-      v8::String::Utf8Value s(value->ToString());
-      throw std::invalid_argument("Cannot convert JS value to internal value: "+std::string(*s));
-    }
-    return Value();
-  }
-
-
-  v8::Handle<v8::Value> shcore_value_to_v8_value(const Value &value)
-  {
-    v8::Handle<v8::Value> r;
-    switch (value.type)
-    {
-    case Undefined:
-      break;
-    case Null:
-      r = v8::Null(isolate);
-      break;
-    case Bool:
-      r = v8::Boolean::New(isolate, value.value.b);
-      break;
-    case String:
-      r = v8::String::NewFromUtf8(isolate, value.value.s->c_str());
-      break;
-    case Integer:
-      r = v8::Integer::New(isolate, value.value.i);
-      break;
-    case Float:
-      r = v8::Number::New(isolate, value.value.d);
-      break;
-    case Object:
-      r = wrap_object(*value.value.o);
-      break;
-    case Array:
-      r = wrap_array(*value.value.array);
-      break;
-    case Map:
-      r = wrap_map(*value.value.map);
-      break;
-    case MapRef:
-      {
-        boost::shared_ptr<Value::Map_type> map(value.value.mapref->lock());
-        if (map)
-        {
-          std::cout << "wrapmapref not implemented\n";
-        }
-      }
-      break;
-    case shcore::Function:
-      r= wrap_function(*value.value.func);
-      break;
-    }
-    return r;
-  }
-
-
   void set_global(const std::string &name, const v8::Handle<v8::Value> &value)
   {
     v8::Handle<v8::Context> ctx(v8::Local<v8::Context>::New(isolate, context));
@@ -553,35 +411,6 @@ struct JScript_context::JScript_context_impl
   {
     v8::Handle<v8::Context> ctx(v8::Local<v8::Context>::New(isolate, context));
     return ctx->Global()->Get(v8::String::NewFromUtf8(isolate, name.c_str()));
-  }
-
-
-  v8::Handle<v8::Value> wrap_object(const boost::shared_ptr<Object_bridge> &o)
-  {
-    if (!object_wrapper)
-      object_wrapper = new JScript_object_wrapper(owner);
-    return object_wrapper->wrap(o);
-  }
-
-  v8::Handle<v8::Value> wrap_map(const boost::shared_ptr<Value::Map_type> &o)
-  {
-    if (!map_wrapper)
-      map_wrapper = new JScript_map_wrapper(owner);
-    return map_wrapper->wrap(o);
-  }
-
-  v8::Handle<v8::Value> wrap_array(const boost::shared_ptr<Value::Array_type> &o)
-  {
-    if (!array_wrapper)
-      array_wrapper = new JScript_array_wrapper(owner);
-    return array_wrapper->wrap(o);
-  }
-
-  v8::Handle<v8::Value> wrap_function(const boost::shared_ptr<Function_base> &f)
-  {
-    if (!function_wrapper)
-      function_wrapper = new JScript_function_wrapper(owner);
-    return function_wrapper->wrap(f);
   }
 };
 
@@ -606,6 +435,15 @@ void JScript_context_init()
 JScript_context::JScript_context(Object_registry *registry, Interpreter_delegate *deleg)
 : _impl(new JScript_context_impl(this, deleg)), _registry(registry)
 {
+  // initialize type conversion class now that everything is ready
+  {
+    v8::Isolate::Scope isolate_scope(_impl->isolate);
+    v8::HandleScope handle_scope(_impl->isolate);
+    v8::TryCatch try_catch;
+    v8::Context::Scope context_scope(v8::Local<v8::Context>::New(_impl->isolate, _impl->context));
+    _impl->types.init();
+  }
+
   set_global("_G", Value(registry->_registry));
 }
 
@@ -628,7 +466,7 @@ void JScript_context::set_global(const std::string &name, const Value &value)
   // set _context to be the default context for everything in this scope
   v8::Context::Scope context_scope(v8::Local<v8::Context>::New(_impl->isolate, _impl->context));
 
-  _impl->set_global(name, _impl->shcore_value_to_v8_value(value));
+  _impl->set_global(name, _impl->types.shcore_value_to_v8_value(value));
 }
 
 
@@ -644,7 +482,7 @@ Value JScript_context::get_global(const std::string &name)
   // set _context to be the default context for everything in this scope
   v8::Context::Scope context_scope(v8::Local<v8::Context>::New(_impl->isolate, _impl->context));
 
-  return _impl->v8_value_to_shcore_value(_impl->get_global(name));
+  return _impl->types.v8_value_to_shcore_value(_impl->get_global(name));
 }
 
 
@@ -662,13 +500,13 @@ v8::Handle<v8::Context> JScript_context::context() const
 
 Value JScript_context::v8_value_to_shcore_value(const v8::Handle<v8::Value> &value)
 {
-  return _impl->v8_value_to_shcore_value(value);
+  return _impl->types.v8_value_to_shcore_value(value);
 }
 
 
 v8::Handle<v8::Value> JScript_context::shcore_value_to_v8_value(const Value &value)
 {
-  return _impl->shcore_value_to_v8_value(value);
+  return _impl->types.shcore_value_to_v8_value(value);
 }
 
 
@@ -696,7 +534,7 @@ Value JScript_context::execute(const std::string &code_str, boost::system::error
 
   if (script.IsEmpty())
   {
-    Value e(_impl->v8_value_to_shcore_value(try_catch.Exception()));
+    Value e(_impl->types.v8_value_to_shcore_value(try_catch.Exception()));
     _impl->print_exception(&try_catch, false);
     // TODO: wrap the Exception object in JS so that one can throw common exceptions from JS
     if (e.type == Map)
@@ -709,7 +547,7 @@ Value JScript_context::execute(const std::string &code_str, boost::system::error
     v8::Handle<v8::Value> result = script->Run();
     if (result.IsEmpty())
     {
-      Value e(_impl->v8_value_to_shcore_value(try_catch.Exception()));
+      Value e(_impl->types.v8_value_to_shcore_value(try_catch.Exception()));
       _impl->print_exception(&try_catch, false);
       if (e.type == Map)
         throw Exception(e.as_map());

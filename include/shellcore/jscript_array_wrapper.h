@@ -39,7 +39,10 @@ public:
   static bool unwrap(v8::Handle<v8::Object> value, boost::shared_ptr<Value::Array_type> &ret_array);
 
 private:
-  static void handler_getter(v8::Local<v8::Name> property, const v8::PropertyCallbackInfo<v8::Value>& info);
+  static void handler_igetter(uint32_t index, const v8::PropertyCallbackInfo<v8::Value>& info);
+  static void handler_ienumerator(const v8::PropertyCallbackInfo<v8::Array>& info);
+  static void handler_getter(v8::Local<v8::Name> prop, const v8::PropertyCallbackInfo<v8::Value>& info);
+
 
   static void wrapper_deleted(const v8::WeakCallbackData<v8::Object, boost::shared_ptr<Value::Array_type> >& data);
 

@@ -212,7 +212,7 @@ Mysql_connection::Mysql_connection(const std::string &uri, const std::string &pa
   add_method("close", boost::bind(&Mysql_connection::close, this, _1), NULL);
   add_method("sql", boost::bind(&Mysql_connection::sql, this, _1),
              "stmt", shcore::String,
-             "*options", shcore::Map,
+             "*args", shcore::String,
              NULL);
 
   std::string user;

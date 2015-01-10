@@ -34,9 +34,17 @@ JScript_array_wrapper::JScript_array_wrapper(JScript_context *context)
   v8::Handle<v8::ObjectTemplate> templ = v8::ObjectTemplate::New(_context->isolate());
   _array_template.Reset(_context->isolate(), templ);
 
-  v8::NamedPropertyHandlerConfiguration config;
-  config.getter = &JScript_array_wrapper::handler_getter;
-  templ->SetHandler(config);
+  {
+    v8::IndexedPropertyHandlerConfiguration config;
+    config.getter = &JScript_array_wrapper::handler_igetter;
+    config.enumerator = &JScript_array_wrapper::handler_ienumerator;
+    templ->SetHandler(config);
+  }
+  {
+    v8::NamedPropertyHandlerConfiguration config;
+    config.getter = &JScript_array_wrapper::handler_getter;
+    templ->SetHandler(config);
+  }
 
   templ->SetInternalFieldCount(3);
 }
@@ -83,26 +91,53 @@ void JScript_array_wrapper::handler_getter(v8::Local<v8::Name> property, const v
   v8::HandleScope hscope(info.GetIsolate());
   v8::Handle<v8::Object> obj(info.Holder());
   boost::shared_ptr<Value::Array_type> *array = static_cast<boost::shared_ptr<Value::Array_type>*>(obj->GetAlignedPointerFromInternalField(1));
-  JScript_array_wrapper *self = static_cast<JScript_array_wrapper*>(obj->GetAlignedPointerFromInternalField(2));
+//  JScript_array_wrapper *self = static_cast<JScript_array_wrapper*>(obj->GetAlignedPointerFromInternalField(2));
 
   if (!array)
     throw std::logic_error("bug!");
 
-  const char *prop = *v8::String::Utf8Value(property);
-  if (strcmp(prop, "__members__") == 0)
+  std::string prop = *v8::String::Utf8Value(property);
+
+  /*if (prop == "__members__")
   {
     v8::Handle<v8::Array> marray = v8::Array::New(info.GetIsolate());
     marray->Set(0, v8::String::NewFromUtf8(info.GetIsolate(), "length"));
     info.GetReturnValue().Set(marray);
   }
-  else
+  else*/ if (prop == "length")
   {
-    std::cout << prop<<" NOT IMPLEMENTED!\n";
-//    Value::Array_type::const_iterator iter = (*array)->find(prop);
-//    if (iter == (*array)->end())
-//      info.GetIsolate()->ThrowException(v8::String::NewFromUtf8(info.GetIsolate(), (std::string("Invalid member ").append(prop)).c_str()));
-//    info.GetReturnValue().Set(self->_context->shcore_value_to_v8_value(iter->second));
+    info.GetReturnValue().Set(v8::Integer::New(info.GetIsolate(), (*array)->size()));
   }
+}
+
+
+void JScript_array_wrapper::handler_igetter(uint32_t index, const v8::PropertyCallbackInfo<v8::Value>& info)
+{
+  v8::HandleScope hscope(info.GetIsolate());
+  v8::Handle<v8::Object> obj(info.Holder());
+  boost::shared_ptr<Value::Array_type> *array = static_cast<boost::shared_ptr<Value::Array_type>*>(obj->GetAlignedPointerFromInternalField(1));
+  JScript_array_wrapper *self = static_cast<JScript_array_wrapper*>(obj->GetAlignedPointerFromInternalField(2));
+
+  if (!array)
+    throw std::logic_error("bug!");
+
+  if (index < (*array)->size())
+  {
+    info.GetReturnValue().Set(self->_context->shcore_value_to_v8_value((*array)->at(index)));
+  }
+}
+
+
+void JScript_array_wrapper::handler_ienumerator(const v8::PropertyCallbackInfo<v8::Array>& info)
+{
+  v8::HandleScope hscope(info.GetIsolate());
+  v8::Handle<v8::Object> obj(info.Holder());
+  boost::shared_ptr<Value::Array_type> *array = static_cast<boost::shared_ptr<Value::Array_type>*>(obj->GetAlignedPointerFromInternalField(1));
+
+  v8::Handle<v8::Array> r = v8::Array::New(info.GetIsolate(), (*array)->size());
+  for (size_t i = 0, c = (*array)->size(); i < c; i++)
+    r->Set(i, v8::Integer::New(info.GetIsolate(), i));
+  info.GetReturnValue().Set(r);
 }
 
 

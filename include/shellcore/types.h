@@ -61,6 +61,21 @@ class Object_bridge;
  Anything that can be represented using this can be passed as a parameter to 
  scripting functions or stored in the internal registry or anywhere. If serializable
  types are used, then they may also be stored as a JSON document.
+ 
+ Values are exposed to scripting languages according to the following rules:
+ 
+ - Simple types (Null, Bool, String, Integer, Float) are converted directly to the target type, both ways
+
+ - Arrays and Maps are converted directly to the target type, both ways
+
+ - Functions are wrapped into callable objects from C++ to scripting language
+ - Scripting language functions are wrapped into an instance of a language specific subclass of Function_base
+ 
+ - C++ Objects are generically wrapped into a scripting language object, except when there's a specific native counterpart
+
+ - Scripting language objects are either generically wrapped to a language specific generic object wrapper or converted to a specific C++ Object subclass
+ 
+ Example: JS Date object is converted to a C++ Date object and vice-versa, but Mysql_connection is wrapped generically
  */
 struct SHCORE_PUBLIC Value
 {
@@ -144,7 +159,7 @@ struct SHCORE_PUBLIC Value
 
   //! returns a human-readable description text for the value.
   // if pprint is true, it will try to pretty-print it (like adding newlines)
-  std::string descr(bool pprint) const;
+  std::string descr(bool pprint = false) const;
   //! returns a string representation of the serialized object, suitable to be passed to parse()
   std::string repr() const;
 

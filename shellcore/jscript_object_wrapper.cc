@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2015, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -37,6 +37,7 @@ JScript_object_wrapper::JScript_object_wrapper(JScript_context *context)
   v8::NamedPropertyHandlerConfiguration config;
   config.getter = &JScript_object_wrapper::handler_getter;
   config.setter = &JScript_object_wrapper::handler_setter;
+  config.enumerator = &JScript_object_wrapper::handler_enumerator;
   templ->SetHandler(config);
 
   templ->SetInternalFieldCount(3);
@@ -90,7 +91,7 @@ void JScript_object_wrapper::handler_getter(v8::Local<v8::Name> property, const 
     throw std::logic_error("bug!");
 
   std::string prop = *v8::String::Utf8Value(property);
-  if (prop == "__members__")
+  /*if (prop == "__members__")
   {
     std::vector<std::string> members((*object)->get_members());
     v8::Handle<v8::Array> marray = v8::Array::New(info.GetIsolate());
@@ -101,7 +102,7 @@ void JScript_object_wrapper::handler_getter(v8::Local<v8::Name> property, const 
     }
     info.GetReturnValue().Set(marray);
   }
-  else
+  else*/
   {
     try
     {
@@ -139,6 +140,26 @@ void JScript_object_wrapper::handler_setter(v8::Local<v8::Name> property, v8::Lo
   {
     info.GetIsolate()->ThrowException(self->_context->shcore_value_to_v8_value(Value(exc.error())));
   }
+}
+
+
+void JScript_object_wrapper::handler_enumerator(const v8::PropertyCallbackInfo<v8::Array>& info)
+{
+  v8::HandleScope hscope(info.GetIsolate());
+  v8::Handle<v8::Object> obj(info.Holder());
+  boost::shared_ptr<Object_bridge> *object = static_cast<boost::shared_ptr<Object_bridge>*>(obj->GetAlignedPointerFromInternalField(1));
+
+  if (!object)
+    throw std::logic_error("bug!");
+
+  std::vector<std::string> members((*object)->get_members());
+  v8::Handle<v8::Array> marray = v8::Array::New(info.GetIsolate());
+  int i = 0;
+  for (std::vector<std::string>::const_iterator iter = members.begin(); iter != members.end(); ++iter, ++i)
+  {
+    marray->Set(i, v8::String::NewFromUtf8(info.GetIsolate(), iter->c_str()));
+  }
+  info.GetReturnValue().Set(marray);
 }
 
 

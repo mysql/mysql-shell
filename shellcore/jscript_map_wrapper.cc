@@ -36,6 +36,8 @@ JScript_map_wrapper::JScript_map_wrapper(JScript_context *context)
 
   v8::NamedPropertyHandlerConfiguration config;
   config.getter = &JScript_map_wrapper::handler_getter;
+  config.setter = &JScript_map_wrapper::handler_setter;
+  config.enumerator = &JScript_map_wrapper::handler_enumerator;
   templ->SetHandler(config);
 
   templ->SetInternalFieldCount(3);
@@ -89,7 +91,7 @@ void JScript_map_wrapper::handler_getter(v8::Local<v8::Name> property, const v8:
     throw std::logic_error("bug!");
 
   const char *prop = *v8::String::Utf8Value(property);
-  if (strcmp(prop, "__members__") == 0)
+  /*if (strcmp(prop, "__members__") == 0)
   {
     v8::Handle<v8::Array> marray = v8::Array::New(info.GetIsolate());
     int i = 0;
@@ -99,7 +101,7 @@ void JScript_map_wrapper::handler_getter(v8::Local<v8::Name> property, const v8:
     }
     info.GetReturnValue().Set(marray);
   }
-  else
+  else*/
   {
     Value::Map_type::const_iterator iter = (*map)->find(prop);
     if (iter == (*map)->end())
@@ -107,6 +109,43 @@ void JScript_map_wrapper::handler_getter(v8::Local<v8::Name> property, const v8:
     else
       info.GetReturnValue().Set(self->_context->shcore_value_to_v8_value(iter->second));
   }
+}
+
+
+void JScript_map_wrapper::handler_setter(v8::Local<v8::Name> property, v8::Local<v8::Value> value, const v8::PropertyCallbackInfo<v8::Value>& info)
+{
+  v8::HandleScope hscope(info.GetIsolate());
+  v8::Handle<v8::Object> obj(info.Holder());
+  boost::shared_ptr<Value::Map_type> *map = static_cast<boost::shared_ptr<Value::Map_type>*>(obj->GetAlignedPointerFromInternalField(1));
+  JScript_map_wrapper *self = static_cast<JScript_map_wrapper*>(obj->GetAlignedPointerFromInternalField(2));
+
+  if (!map)
+    throw std::logic_error("bug!");
+
+  const char *prop = *v8::String::Utf8Value(property);
+  (**map)[prop] = self->_context->v8_value_to_shcore_value(value);
+
+  info.GetReturnValue().Set(value);
+}
+
+
+void JScript_map_wrapper::handler_enumerator(const v8::PropertyCallbackInfo<v8::Array>& info)
+{
+  v8::HandleScope hscope(info.GetIsolate());
+  v8::Handle<v8::Object> obj(info.Holder());
+  boost::shared_ptr<Value::Map_type> *map = static_cast<boost::shared_ptr<Value::Map_type>*>(obj->GetAlignedPointerFromInternalField(1));
+
+  if (!map)
+    throw std::logic_error("bug!");
+
+  v8::Handle<v8::Array> marray = v8::Array::New(info.GetIsolate());
+  int i = 0;
+  for (Value::Map_type::const_iterator iter = (*map)->begin(); iter != (*map)->end(); ++iter)
+  {
+    marray->Set(i++, v8::String::NewFromUtf8(info.GetIsolate(), iter->first.c_str()));
+  }
+  info.GetReturnValue().Set(marray);
+
 }
 
 
