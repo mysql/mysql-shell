@@ -10,7 +10,7 @@
 #include <boost/format.hpp>
 #include <cmath>
 
-#if defined(__WIN__)
+#if defined(WIN32)
 #include <time.h>
 #else
 #include <sys/times.h>
@@ -23,7 +23,7 @@
 
 unsigned long MySQL_timer::get_time()
 {
-#if defined(__WIN__)
+#if defined(WIN32)
   return clock();
 #else
   struct tms tms_tmp;

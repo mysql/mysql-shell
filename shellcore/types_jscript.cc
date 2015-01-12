@@ -133,30 +133,36 @@ throw std::logic_error("not implentned");
 
 std::string JScript_function::name()
 {
-
+  // TODO:
+  return "";
 }
 
 std::vector<std::pair<std::string, Value_type> > JScript_function::signature()
 {
-
+  // TODO:
+  return std::vector<std::pair<std::string, Value_type> >();
 }
 
 std::pair<std::string, Value_type> JScript_function::return_type()
 {
-
+  // TODO:
+  return std::pair<std::string, Value_type>();
 }
 
 bool JScript_function::operator == (const Function_base &other) const
 {
-
+  // TODO:
+  return false;
 }
 
 bool JScript_function::operator != (const Function_base &other) const
 {
-
+  // TODO:
+  return false;
 }
 
 Value JScript_function::invoke(const Argument_list &args)
 {
-
+  // TODO:
+  return Value();
 }

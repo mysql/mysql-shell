@@ -28,3 +28,7 @@ file(GLOB libmysqlsh_SRC
 
 add_library(mysqlsh ${libmysqlsh_SRC})
 
+#if( WIN32 )
+#  include(msvc)
+  CHANGE_MD_2_MT()
+#endif()

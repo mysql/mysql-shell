@@ -26,6 +26,9 @@
 #include "shellcore/types.h"
 #include "shellcore/types_cpp.h"
 
+#if WIN32
+#  include <winsock2.h>
+#endif
 #include <mysql.h>
 
 namespace mysh {

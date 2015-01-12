@@ -20,6 +20,7 @@
 #include "shellcore/obj_date.h"
 
 #include <boost/format.hpp>
+#include <cstdio>
 
 using namespace shcore;
 
@@ -142,7 +143,12 @@ Object_bridge_ref Date::from_ms(int64_t ms_since_epoch)
   time_t seconds_since_epoch = ms_since_epoch / 1000;
 
   struct tm t;
+#if WIN32
+  // TODO: a proper implementation of localtime_r
+  memcpy(&t, localtime(&seconds_since_epoch), sizeof(struct tm));
+#else
   localtime_r(&seconds_since_epoch, &t);
+#endif
 
   return Object_bridge_ref(new Date(t.tm_year+1900, t.tm_mon, t.tm_mday,
                                     t.tm_hour, t.tm_min, t.tm_sec+(float)ms/1000.0));

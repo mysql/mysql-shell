@@ -21,11 +21,14 @@
 
 #include "shellcore/types.h"
 
-#include "editline/readline.h"
+#ifndef WIN32
+#  include "editline/readline.h"
+#endif
 
 #include <boost/bind.hpp>
 #include <boost/format.hpp>
 #include <boost/algorithm/string.hpp>
+#include <boost/pointer_cast.hpp>
 #include <iostream>
 
 #include "shellcore/types_cpp.h"
@@ -34,6 +37,12 @@
 #include "shellcore/shell_core.h"
 
 #include "../modules/mod_db.h"
+
+
+#ifdef WIN32
+#  include <io.h>
+#  define isatty _isatty
+#endif
 
 
 using namespace shcore;
@@ -88,7 +97,9 @@ private:
 
 Interactive_shell::Interactive_shell(Shell_core::Mode initial_mode)
 {
+#ifndef WIN32
   rl_initialize();
+#endif  
 //  using_history();
 
   _multiline_mode = false;
@@ -102,7 +113,7 @@ Interactive_shell::Interactive_shell(Shell_core::Mode initial_mode)
   _shell.reset(new Shell_core(&_delegate));
 
   _db.reset(new mysh::Db(_shell.get()));
-  _shell->set_global("db", Value(_db));
+  _shell->set_global("db", Value( boost::static_pointer_cast<Object_bridge, mysh::Db >(_db) ));
 
   _shell->switch_mode(initial_mode);
 }
@@ -227,11 +238,23 @@ void Interactive_shell::deleg_print_error(void *cdata, const char *text)
 
 bool Interactive_shell::deleg_input(void *cdata, const char *prompt, std::string &ret)
 {
+  std::string s;
+#ifndef WIN32  
   char *tmp = readline(prompt);
   if (!tmp)
     return false;
   ret = tmp;
+#else  
+  if(!std::getline(std::cin, s))
+    return false;
+  ret = s; 
+#endif
+
+// TODO: Remove this?
+#ifndef WIN32  	
   free(tmp);
+#endif
+
   return true;
 }
 
@@ -318,7 +341,9 @@ void Interactive_shell::process_line(const std::string &line)
 
         if (!executed.empty())
         {
+#ifndef WIN32
           add_history(executed.c_str());
+#endif
           println("");
         }
       }
@@ -360,7 +385,14 @@ void Interactive_shell::command_loop()
 
   for (;;)
   {
+#ifndef WIN32
     char *cmd = readline(prompt().c_str());
+#else
+    std::string s;
+    std::getline(std::cin, s);
+    char *cmd = strdup( s.c_str() );
+#endif
+
     if (!cmd)
       break;
 

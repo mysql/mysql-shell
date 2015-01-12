@@ -27,6 +27,8 @@
 #include <boost/bind.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/format.hpp>
+#include <boost/pointer_cast.hpp>
+
 
 #define MAX_COLUMN_LENGTH 1024
 #define MIN_COLUMN_LENGTH 4
@@ -385,7 +387,9 @@ Value Db::get_member(const std::string &prop) const
     Value list(Value::new_array());
     for (std::vector<boost::shared_ptr<Mysql_connection> >::const_iterator c = _conns.begin();
          c != _conns.end(); ++c)
-      list.as_array()->push_back(Value(*c));
+
+      list.as_array()->push_back(Value(boost::static_pointer_cast<Object_bridge, Mysql_connection >(*c)));
+
     return list;
   }
 

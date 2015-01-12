@@ -173,8 +173,9 @@ struct SHCORE_PUBLIC Value
   int64_t as_int() const { check_type(Integer); return value.i; }
   double as_double() const { check_type(Float); return value.d; }
   const std::string &as_string() const { check_type(String); return *value.s; }
-  template<class C = Object_bridge>
+  template<class C>
     boost::shared_ptr<C> as_object() const { check_type(Object); return boost::static_pointer_cast<C>(*value.o); }
+  boost::shared_ptr<Object_bridge> as_object() const { check_type(Object); return boost::static_pointer_cast<Object_bridge>(*value.o); }
   boost::shared_ptr<Map_type> as_map() const { check_type(Map); return *value.map; }
   boost::shared_ptr<Array_type> as_array() const { check_type(Array); return *value.array; }
 
