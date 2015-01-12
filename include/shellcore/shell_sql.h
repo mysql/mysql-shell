@@ -33,11 +33,13 @@ public:
 
   virtual void set_global(const std::string &name, const Value &value) {}
 
-  virtual Interactive_input_state handle_interactive_input(const std::string &code);
+  virtual Interactive_input_state handle_interactive_input(std::string &code);
   virtual int run_script(const std::string &path, boost::system::error_code &err);
+  
 
 private:
   std::string _delimiter;
+  
 };
 
 };

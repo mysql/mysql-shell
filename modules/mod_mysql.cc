@@ -233,7 +233,7 @@ Mysql_connection::Mysql_connection(const std::string &uri, const std::string &pa
 
   if (!mysql_real_connect(_mysql, host.c_str(), user.c_str(), pass.c_str(), db.empty() ? NULL : db.c_str(), port, sock.empty() ? NULL : sock.c_str(), flags | CLIENT_MULTI_STATEMENTS))
   {
-    throw shcore::Exception::error_with_code("MySQLError", mysql_error(_mysql), mysql_errno(_mysql));
+    throw shcore::Exception::error_with_code_and_state("MySQLError", mysql_error(_mysql), mysql_errno(_mysql), mysql_sqlstate(_mysql));
   }
 
   //TODO strip password from uri?
@@ -269,13 +269,13 @@ shcore::Value Mysql_connection::sql(const shcore::Argument_list &args)
 
   if (mysql_real_query(_mysql, query.c_str(), query.length()) < 0)
   {
-    throw shcore::Exception::error_with_code("MySQLError", mysql_error(_mysql), mysql_errno(_mysql));
+    throw shcore::Exception::error_with_code_and_state("MySQLError", mysql_error(_mysql), mysql_errno(_mysql), mysql_sqlstate(_mysql));
   }
 
   res = mysql_store_result(_mysql);
   if (!res)
   {
-    throw shcore::Exception::error_with_code("MySQLError", mysql_error(_mysql), mysql_errno(_mysql));
+    throw shcore::Exception::error_with_code_and_state("MySQLError", mysql_error(_mysql), mysql_errno(_mysql), mysql_sqlstate(_mysql));
   }
   return shcore::Value(boost::shared_ptr<shcore::Object_bridge>(new Mysql_resultset(res)));
 }
@@ -285,7 +285,7 @@ MYSQL_RES *Mysql_connection::raw_sql(const std::string &query)
 {
   if (mysql_real_query(_mysql, query.c_str(), query.length()) != 0)
   {
-    throw shcore::Exception::error_with_code("MySQLError", mysql_error(_mysql), mysql_errno(_mysql));
+    throw shcore::Exception::error_with_code_and_state("MySQLError", mysql_error(_mysql), mysql_errno(_mysql), mysql_sqlstate(_mysql));
   }
 
   return mysql_store_result(_mysql);
@@ -312,6 +312,16 @@ MYSQL_RES *Mysql_connection::next_result()
 my_ulonglong Mysql_connection::affected_rows()
 {
   return mysql_affected_rows(_mysql);
+}
+
+unsigned int Mysql_connection::warning_count()
+{
+  return mysql_warning_count(_mysql);
+}
+
+const char *Mysql_connection::get_info()
+{
+  return _mysql->info;
 }
 
 

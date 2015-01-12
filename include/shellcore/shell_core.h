@@ -41,10 +41,12 @@ public:
 
   virtual void set_global(const std::string &name, const Value &value) = 0;
 
-  virtual Interactive_input_state handle_interactive_input(const std::string &code) = 0;
+  virtual Interactive_input_state handle_interactive_input(std::string &code) = 0;
+  virtual std::string get_handled_input() { return _last_handled; }
   virtual int run_script(const std::string &path, boost::system::error_code &err) = 0;
 protected:
   Shell_core *_owner;
+  std::string _last_handled;
 };
 
 
@@ -75,15 +77,16 @@ public:
 
   Object_registry *registry() { return _registry; }
 public:
-  Interactive_input_state handle_interactive_input(const std::string &code);
+  Interactive_input_state handle_interactive_input(std::string &code);
+  std::string get_handled_input();
   int run_script(const std::string &path, boost::system::error_code &err);
 
   Interpreter_delegate *lang_delegate() { return _lang_delegate; }
 
 public:
   void print(const std::string &s);
+  void print_error(const std::string &s);
   bool password(const std::string &s, std::string &ret_pass);
-
 private:
   void init_sql();
   void init_js();

@@ -69,6 +69,7 @@ private:
 
 private:
   static void deleg_print(void *self, const char *text);
+  static void deleg_print_error(void *self, const char *text);
   static bool deleg_input(void *self, const char *text, std::string &ret);
   static bool deleg_password(void *self, const char *text, std::string &ret);
 
@@ -94,6 +95,7 @@ Interactive_shell::Interactive_shell(Shell_core::Mode initial_mode)
 
   _delegate.user_data = this;
   _delegate.print = &Interactive_shell::deleg_print;
+  _delegate.print_error = &Interactive_shell::deleg_print_error;
   _delegate.input = &Interactive_shell::deleg_input;
   _delegate.password = &Interactive_shell::deleg_password;
 
@@ -236,6 +238,12 @@ void Interactive_shell::deleg_print(void *cdata, const char *text)
   self->print(text);
 }
 
+void Interactive_shell::deleg_print_error(void *cdata, const char *text)
+{
+  Interactive_shell *self = (Interactive_shell*)cdata;
+  self->print_error(text);
+}
+
 
 bool Interactive_shell::deleg_input(void *cdata, const char *prompt, std::string &ret)
 {
@@ -302,29 +310,32 @@ void Interactive_shell::process_line(const std::string &line)
   }
   else
   {
-    if (_multiline_mode)
-    {
-      if (line.empty())
-        _multiline_mode = false;
-      else
-      {
-        if (_input_buffer.empty())
-          _input_buffer = line;
-        else
-          _input_buffer.append("\n").append(line);
-      }
-    }
+    if (_multiline_mode && line.empty())
+      _multiline_mode = false;
     else
-      _input_buffer = line;
-    
+    {
+      if (_input_buffer.empty())
+        _input_buffer = line;
+      else
+        _input_buffer.append("\n").append(line);
+    }
+  
     if (!_multiline_mode)
     {
-      if (_shell->handle_interactive_input(_input_buffer) == Input_ok)
+      Interactive_input_state state = _shell->handle_interactive_input(_input_buffer);
+      
+      std::string executed = _shell->get_handled_input();
+      
+      if (!executed.empty())
       {
-        add_history(_input_buffer.c_str());
+        add_history(executed.c_str());
         println("");
       }
-      _input_buffer.clear();
+      
+      // Clears the buffer if OK, if continued, buffer will contain
+      // the non executed code
+      if (state == Input_ok)
+        _input_buffer.clear();
     }
   }
 }
@@ -352,7 +363,7 @@ void Interactive_shell::command_loop()
   for (;;)
   {
     char *cmd = readline(prompt().c_str());
-    if (!cmd || !cmd[0] /* workaround for Eclipse CDT not picking EOFs */ )
+    if (!cmd)
       break;
 
     try

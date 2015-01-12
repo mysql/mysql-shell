@@ -92,6 +92,16 @@ Exception Exception::error_with_code(const std::string &type, const std::string 
   return Exception(error);
 }
 
+Exception Exception::error_with_code_and_state(const std::string &type, const std::string &message, int code, const char *sqlstate)
+{
+  boost::shared_ptr<Value::Map_type> error(new Value::Map_type());
+  (*error)["type"] = Value(type);
+  (*error)["message"] = Value(message);
+  (*error)["code"] = Value(code);
+  (*error)["state"] = Value(std::string(sqlstate));
+  return Exception(error);
+}
+
 Exception Exception::parser_error(const std::string &message)
 {
   boost::shared_ptr<Value::Map_type> error(new Value::Map_type());

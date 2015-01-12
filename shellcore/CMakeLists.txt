@@ -14,12 +14,17 @@
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
 
 include_directories( ${MYSQL_INCLUDE_DIRS} )
-include_directories("${CMAKE_SOURCE_DIR}/include" "${BOOST_INCLUDE_DIR}" "${V8_INCLUDE_DIR}")
+include_directories("${CMAKE_SOURCE_DIR}/include" "${CMAKE_SOURCE_DIR}/utils" "${BOOST_INCLUDE_DIR}" "${V8_INCLUDE_DIR}")
 
 file(GLOB libmysqlsh_SRC
     "${CMAKE_SOURCE_DIR}/include/shellcore/*.h"
-	"*.cc"
+    "${CMAKE_SOURCE_DIR}/utils/utils_mysql_parsing.h"
+    "${CMAKE_SOURCE_DIR}/utils/utils_mysql_parsing.cc"
+    "${CMAKE_SOURCE_DIR}/utils/utils_time.h"
+    "${CMAKE_SOURCE_DIR}/utils/utils_time.cc"
+      "*.cc"
 )
+
 
 add_library(mysqlsh ${libmysqlsh_SRC})
 

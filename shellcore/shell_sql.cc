@@ -19,6 +19,7 @@
 
 #include "shellcore/shell_sql.h"
 #include "../modules/mod_db.h"
+#include "../utils/utils_mysql_parsing.h"
 
 using namespace shcore;
 
@@ -29,25 +30,54 @@ Shell_sql::Shell_sql(Shell_core *owner)
   _delimiter = ";";
 }
 
-
-Interactive_input_state Shell_sql::handle_interactive_input(const std::string &code)
+Interactive_input_state Shell_sql::handle_interactive_input(std::string &code)
 {
-  // TODO check if line contains a full statement (terminated by the delimiter)
-  // and if so, consume it, otherwise return Input_continue
-  //_owner->handle_interactive_input(code);
+  Interactive_input_state ret_val = Input_ok;
   Value db = _owner->get_global("db");
+  MySQL_splitter splitter;
+  
+  _last_handled.clear();
   
   if (db)
   {
     boost::shared_ptr<mysh::Db> _db = db.as_object<mysh::Db>();
+    // Parses the input string to identify individual statements in it.
+    // Will return a range for every statement that ends with the delimiter, if there
+    // is additional code after the last delimiter, a range for it will be included too.
+    std::vector<std::pair<size_t, size_t> > ranges;
+    size_t statement_count = splitter.determineStatementRanges(code.c_str(), code.length(), _delimiter, ranges, "\n");
     
-    shcore::Argument_list query;
-    query.push_back(Value(code));
-    _db->sql(query);
+    size_t index;
+    if (statement_count)
+    {
+      for(index = 0; index < statement_count; index++)
+      {
+        std::string statement = code.substr(ranges[index].first, ranges[index].second);
+        shcore::Argument_list query;
+        query.push_back(Value(statement));
+        _db->sql(query);
+      }
+    }
+    
+    if (ranges.size() > statement_count)
+    {
+      ret_val = Input_continued;
+      
+      // Sets the executed code if any
+      // and updates the remaining code too
+      if (statement_count)
+      {
+        _last_handled = code.substr(0, ranges[index].first - 1);
+      
+        // Updates the code to let only the non yet executed
+        code = code.substr(ranges[index].first, ranges[index].second);
+      }
+    }
+    else
+      _last_handled = code;
   }
-  
 
-  return Input_ok;
+  return ret_val;
 }
 
 

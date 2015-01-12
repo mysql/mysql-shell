@@ -22,11 +22,11 @@
 #include "shellcore/object_factory.h"
 #include "shellcore/shell_core.h"
 #include "shellcore/lang_base.h"
+#include "../utils/utils_time.h"
 
 #include <boost/bind.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/format.hpp>
-#include <ctime>
 
 #define MAX_COLUMN_LENGTH 1024
 #define MIN_COLUMN_LENGTH 4
@@ -124,107 +124,151 @@ Value Db::sql(const Argument_list &args)
     _shcore->print("Not connected\n");
     return Value::Null();
   }
-  for (std::vector<boost::shared_ptr<Mysql_connection> >::iterator c = _conns.begin();
-       c != _conns.end(); ++c)
+
+  // Validates for empty statements.
+  std::string statement = args.string_at(0);
+  if (statement.empty())
+    _shcore->print_error("No query specified\n");
+  else
   {
-    if (_conns.size() > 1)
-      _shcore->print((*c)->uri(Argument_list()).descr(false)+":\n");
-
-    std::clock_t start = std::clock();
-
-    MYSQL_RES *result = (*c)->raw_sql(args.string_at(0));
-    
-    double duration = ( std::clock() - start ) / (double) CLOCKS_PER_SEC;
-    
-    do
+    for (std::vector<boost::shared_ptr<Mysql_connection> >::iterator c = _conns.begin();
+         c != _conns.end(); ++c)
     {
-      if (result)
+      try
       {
-        // Prints the informative line at the end
-        my_ulonglong rows = mysql_num_rows(result);
-        
-        if (rows)
-        {
-          // print rows from result, with stats etc
-          print_result(result, duration);
-          
-          _shcore->print(boost::str(boost::format("%lld %s in set (%s)\n") % rows % (rows == 1 ? "row" : "rows") % format_duration(duration)));
-        }
-        else
-          _shcore->print("Empty set");
-      
-        mysql_free_result(result);
-      }
-      else
-      {
-        my_ulonglong rows = (*c)->affected_rows();
-        
-        if (rows)
-          _shcore->print(boost::str(boost::format("Query OK, %lld %s affected\n") % rows % (rows == 1 ? "row" : "rows")));
-        else
-          _shcore->print("Query OK\n");
-      }
-      
-    } while((result = (*c)->next_result()));
+        if (_conns.size() > 1)
+          _shcore->print((*c)->uri(Argument_list()).descr(false)+":\n");
 
-    if (_conns.size() > 1)
-      _shcore->print("\n");
+        MySQL_timer timer;
+        timer.start();
+
+        MYSQL_RES *result = (*c)->raw_sql(statement);
+        
+        timer.end();
+        
+        do
+        {
+          std::string output;
+          
+          if (result)
+          {
+            // Prints the informative line at the end
+            my_ulonglong rows = mysql_num_rows(result);
+            
+            if (rows)
+            {
+              // print rows from result, with stats etc
+              print_result(result);
+              
+              output = (boost::format("%lld %s in set") % rows % (rows == 1 ? "row" : "rows")).str();
+            }
+            else
+              output = "Empty set";
+          
+            mysql_free_result(result);
+          }
+          else
+          {
+            my_ulonglong rows = (*c)->affected_rows();
+            
+            // TODO: Verify this should print Query OK... or Query Error.
+            // Checks for a -1 value, which would indicate an error.
+            // Even so the old client printed Query OK on this case for some reason.
+            if (rows == ~(my_ulonglong) 0)
+              output = "Query OK";
+            else
+              // In case of Query OK, prints the actual number of affected rows.
+              output = (boost::format("Query OK, %lld %s affected") % rows % (rows == 1 ? "row" : "rows")).str();
+          }
+          
+          unsigned int warnings = (*c)->warning_count();
+          if (warnings)
+            output.append((boost::format(", %d warning%s") % warnings % (warnings == 1 ? "" : "s")).str());
+          
+          output.append(" ");
+          output.append((boost::format("(%s)") % timer.format_legacy(true)).str());
+          output.append("\n\n");
+          
+          _shcore->print(output);
+          
+          const char* info = (*c)->get_info();
+          if (info)
+          {
+            std::string data(info);
+            data.append("\n\n");
+            _shcore->print(data);
+          }
+          
+          if (warnings)
+            internal_sql(*c, "show warnings",boost::bind(&Db::print_warnings, this, _1, 0));
+          
+        } while((result = (*c)->next_result()));
+
+        if (_conns.size() > 1)
+        _shcore->print("\n");
+      }
+      catch (shcore::Exception &exc)
+      {
+        print_exception(exc);
+        internal_sql(*c, "show_warnings",boost::bind(&Db::print_warnings, this, _1, (*exc.error())["code"]));
+      }
+    }
   }
   
   return Value::Null();
 }
 
+void Db::internal_sql(boost::shared_ptr<Mysql_connection> conn, const std::string& sql, boost::function<void (MYSQL_RES* data)> result_handler)
+{
+  try
+  {
+    {
+      MYSQL_RES *result = conn->raw_sql(sql);
+      
+      result_handler(result);
+    }
+  }
+  catch (shcore::Exception &exc)
+  {
+    print_exception(exc);
+  }
+}
 
-void Db::print_result(MYSQL_RES *res, double duration)
+void Db::print_warnings(MYSQL_RES* data, unsigned long main_error_code)
+{
+  MYSQL_ROW row = NULL;
+  while ((row = mysql_fetch_row(data)))
+  {
+    unsigned long error = boost::lexical_cast<unsigned long>(row[1]);
+    if (error != main_error_code)
+      _shcore->print((boost::format("%s (Code %s): %s\n") % row[0] % row[1] % row[2]).str());
+  }
+}
+
+
+void Db::print_result(MYSQL_RES *res)
 {
   // At this point it means there were no errors.
 
   print_table(res);
 }
 
-std::string Db::format_duration(double duration)
+void Db::print_exception(const shcore::Exception &e)
 {
-  double temp;
-  std::string str_duration;
-  
-  double minute_seconds = 60.0;
-  double hour_seconds = 3600.0;
-  double day_seconds = hour_seconds * 24;
-  
-  if (duration >= day_seconds)
+  std::string message = (*e.error())["type"].as_string();
+  if ((*e.error()).has_key("code"))
   {
-    temp = floor(duration/day_seconds);
-    duration -= temp * day_seconds;
-    
-    str_duration.append(boost::str(boost::format("%d %s") % temp % (temp == 1 ? "day" : "days")));
+    message.append(" ");
+    message.append(((*e.error())["code"].repr()));
+                   
+    if ((*e.error()).has_key("state") && (*e.error())["state"])
+      message.append((boost::format(" (%s)") % ((*e.error())["state"].as_string())).str());
   }
   
-  if (duration >= hour_seconds)
-  {
-    temp = floor(duration/hour_seconds);
-    duration -= temp * hour_seconds;
-    
-    if (!str_duration.empty())
-      str_duration.append(", ");
-    
-    str_duration.append(boost::str(boost::format("%d %s") % temp % (temp == 1 ? "hour" : "hours")));
-  }
+  message.append(": ");
+  message.append(e.what());
   
-  if (duration >= minute_seconds)
-  {
-    temp = floor(duration/minute_seconds);
-    duration -= temp * minute_seconds;
-    
-    if (!str_duration.empty())
-      str_duration.append(", ");
-    
-    str_duration.append(boost::str(boost::format("%d %s") % temp % (temp == 1 ? "minute" : "minute")));
-  }
-  
-  if (duration)
-    str_duration.append(boost::str(boost::format("%.2f sec") % duration));
-  
-  return str_duration;
+  _shcore->print_error(message);
 }
 
 
@@ -261,7 +305,7 @@ void Db::print_table(MYSQL_RES *res)
   _shcore->print("|");
   for(index = 0; index < field_count; index++)
   {
-    std::string data = boost::str(boost::format(formats[index]) % fields[index].name);
+    std::string data = (boost::format(formats[index]) % fields[index].name).str();
     _shcore->print(data);
     
     // Once the header is printed, updates the numeric fields formats
@@ -283,7 +327,7 @@ void Db::print_table(MYSQL_RES *res)
     {
       for(index = 0; index < field_count; index++)
       {
-        std::string data = boost::str(boost::format(formats[index]) % (row[index] ? row[index] : "NULL"));
+        std::string data = (boost::format(formats[index]) % (row[index] ? row[index] : "NULL")).str();
         _shcore->print(data);
       }
       _shcore->print("\n");

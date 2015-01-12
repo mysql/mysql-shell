@@ -54,11 +54,14 @@ public:
   shcore::Value connect(const shcore::Argument_list &args);
   shcore::Value connect_add(const shcore::Argument_list &args);
   shcore::Value sql(const shcore::Argument_list &args);
+  
+  void internal_sql(boost::shared_ptr<Mysql_connection> conn, const std::string& sql, boost::function<void (MYSQL_RES* data)> result_handler);
 //  shcore::Value stats(const shcore::Argument_list &args);
 
 private:
-  std::string format_duration(double duration);
-  void print_result(MYSQL_RES *res, double duration);
+  void print_exception(const shcore::Exception &e);
+  void print_warnings(MYSQL_RES* data, unsigned long main_error_code);
+  void print_result(MYSQL_RES *res);
   void print_table(MYSQL_RES *res);
   void print_json(MYSQL_RES *res);
   void print_vertical(MYSQL_RES *res);

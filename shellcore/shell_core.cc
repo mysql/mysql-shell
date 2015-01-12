@@ -46,16 +46,24 @@ void Shell_core::print(const std::string &s)
   _lang_delegate->print(_lang_delegate->user_data, s.c_str());
 }
 
+void Shell_core::print_error(const std::string &s)
+{
+  _lang_delegate->print_error(_lang_delegate->user_data, s.c_str());
+}
 
 bool Shell_core::password(const std::string &s, std::string &ret_pass)
 {
   return _lang_delegate->password(_lang_delegate->user_data, s.c_str(), ret_pass);
 }
 
-
-Interactive_input_state Shell_core::handle_interactive_input(const std::string &line)
+Interactive_input_state Shell_core::handle_interactive_input(std::string &line)
 {
   return _langs[_mode]->handle_interactive_input(line);
+}
+
+std::string Shell_core::get_handled_input()
+{
+  return _langs[_mode]->get_handled_input();
 }
 
 

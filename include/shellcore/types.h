@@ -292,6 +292,7 @@ public:
   static Exception type_error(const std::string &message);
   static Exception logic_error(const std::string &message);
   static Exception error_with_code(const std::string &type, const std::string &message, int code);
+  static Exception error_with_code_and_state(const std::string &type, const std::string &message, int code, const char *sqlstate);
   static Exception parser_error(const std::string &message);
   static Exception scripting_error(const std::string &message);
 
