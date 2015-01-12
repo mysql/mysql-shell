@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2015, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -36,6 +36,7 @@ public:
   virtual Interactive_input_state handle_interactive_input(std::string &code);
   virtual int run_script(const std::string &path, boost::system::error_code &err);
   
+  virtual std::string prompt();
 
 private:
   std::string _delimiter;

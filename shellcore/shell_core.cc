@@ -139,3 +139,9 @@ Value Shell_core::get_global(const std::string &name)
   return (_globals.count(name) > 0) ? _globals[name] : Value();
 }
 
+
+std::string Shell_core::prompt()
+{
+  return _langs[interactive_mode()]->prompt();
+}
+

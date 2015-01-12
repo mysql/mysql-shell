@@ -39,6 +39,12 @@ Interactive_input_state Shell_javascript::handle_interactive_input(std::string &
 }
 
 
+std::string Shell_javascript::prompt()
+{
+  return "myjs> ";
+}
+
+
 int Shell_javascript::run_script(const std::string &path, boost::system::error_code &err)
 {
   return _js->run_script(path, err);

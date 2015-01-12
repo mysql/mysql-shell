@@ -37,6 +37,8 @@ public:
 
   virtual Interactive_input_state handle_interactive_input(std::string &code);
   virtual int run_script(const std::string &path, boost::system::error_code &err);
+
+  virtual std::string prompt();
 private:
   boost::shared_ptr<JScript_context> _js;
 };

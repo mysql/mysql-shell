@@ -44,6 +44,7 @@ public:
   virtual Interactive_input_state handle_interactive_input(std::string &code) = 0;
   virtual std::string get_handled_input() { return _last_handled; }
   virtual int run_script(const std::string &path, boost::system::error_code &err) = 0;
+  virtual std::string prompt() = 0;
 protected:
   Shell_core *_owner;
   std::string _last_handled;
@@ -80,6 +81,8 @@ public:
   Interactive_input_state handle_interactive_input(std::string &code);
   std::string get_handled_input();
   int run_script(const std::string &path, boost::system::error_code &err);
+
+  std::string prompt();
 
   Interpreter_delegate *lang_delegate() { return _lang_delegate; }
 

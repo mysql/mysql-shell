@@ -150,30 +150,10 @@ void Interactive_shell::init_environment()
 
 std::string Interactive_shell::prompt()
 {
-  std::string prefix;
-  std::string suffix;
-  switch (_shell->interactive_mode())
-  {
-  case Shell_core::Mode_None:
-    break;
-  case Shell_core::Mode_SQL:
-    prefix = "mysql";
-    suffix = "> ";
-    break;
-  case Shell_core::Mode_JScript:
-    prefix = "myjs";
-    suffix = "> ";
-    break;
-  case Shell_core::Mode_Python:
-    prefix = "mypy";
-    suffix = ">>> ";
-    break;
-  }
-
   if (_multiline_mode)
-    suffix = "... ";
-
-  return prefix + suffix;
+    return "... ";
+  else
+    return _shell->prompt();
 }
 
 
