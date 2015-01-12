@@ -40,6 +40,12 @@ struct JScript_type_bridger
 
   v8::Handle<v8::String> type_info(v8::Handle<v8::Value> value);
 
+
+  double call_num_method(v8::Handle<v8::Object> object, const char *method);
+
+  v8::Handle<v8::Value> native_object_to_js(Object_bridge_ref object);
+  Object_bridge_ref js_object_to_native(v8::Handle<v8::Object> object);
+
   JScript_context *owner;
 
   class JScript_object_wrapper *object_wrapper;

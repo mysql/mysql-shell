@@ -19,7 +19,7 @@
 
 #include "mod_mysql.h"
 
-#include "shellcore/object_factory.h"
+#include "shellcore/obj_date.h"
 
 
 #include <boost/bind.hpp>
@@ -52,7 +52,7 @@ public:
     return "mysql_resultset";
   }
 
-  virtual std::string &append_descr(std::string &s_out, int indent=-1, bool quote_strings=false) const
+  virtual std::string &append_descr(std::string &s_out, int indent=-1, int quote_strings=0) const
   {
     s_out.append("<mysql_resultset>");
     return s_out;
@@ -114,10 +114,14 @@ private:
       {
         switch (_fields[i].type)
         {
+          case MYSQL_TYPE_NULL:
+            (*map)[_fields[i].name] = shcore::Value::Null();
+            break;
+
           case MYSQL_TYPE_STRING:
           case MYSQL_TYPE_VARCHAR:
           case MYSQL_TYPE_VAR_STRING:
-            map->insert(std::make_pair(_fields[i].name, shcore::Value(std::string(row[i], lengths[i]))));
+            (*map)[_fields[i].name] = shcore::Value(std::string(row[i], lengths[i]));
             break;
 
           case MYSQL_TYPE_TINY:
@@ -125,11 +129,19 @@ private:
           case MYSQL_TYPE_INT24:
           case MYSQL_TYPE_LONG:
           case MYSQL_TYPE_LONGLONG:
-            map->insert(std::make_pair(_fields[i].name, shcore::Value(boost::lexical_cast<int64_t>(row[i]))));
+            (*map)[_fields[i].name] = shcore::Value(boost::lexical_cast<int64_t>(row[i]));
             break;
 
+          case MYSQL_TYPE_FLOAT:
           case MYSQL_TYPE_DOUBLE:
-            map->insert(std::make_pair(_fields[i].name, shcore::Value(boost::lexical_cast<double>(row[i]))));
+            (*map)[_fields[i].name] = shcore::Value(boost::lexical_cast<double>(row[i]));
+            break;
+
+          case MYSQL_TYPE_DATETIME:
+          case MYSQL_TYPE_TIMESTAMP:
+          case MYSQL_TYPE_DATETIME2:
+          case MYSQL_TYPE_TIMESTAMP2:
+            (*map)[_fields[i].name] = shcore::Value(shcore::Date::unrepr(row[i]));
             break;
         }
       }
@@ -212,7 +224,7 @@ Mysql_connection::Mysql_connection(const std::string &uri, const std::string &pa
   add_method("close", boost::bind(&Mysql_connection::close, this, _1), NULL);
   add_method("sql", boost::bind(&Mysql_connection::sql, this, _1),
              "stmt", shcore::String,
-             "*args", shcore::String,
+             "*args", shcore::Map,
              NULL);
 
   std::string user;
@@ -241,10 +253,11 @@ Mysql_connection::Mysql_connection(const std::string &uri, const std::string &pa
 }
 
 
-shcore::Value Mysql_connection::uri(const shcore::Argument_list &args)
+boost::shared_ptr<shcore::Object_bridge> Mysql_connection::create(const shcore::Argument_list &args)
 {
-  args.ensure_count(0, "Mysql_connection::uri");
-  return shcore::Value(_uri);
+  args.ensure_count(1, 2, "Mysql_connection()");
+  return boost::shared_ptr<shcore::Object_bridge>(new Mysql_connection(args.string_at(0),
+                                                                       args.size() > 1 ? args.string_at(1) : ""));
 }
 
 
@@ -343,7 +356,7 @@ std::string Mysql_connection::class_name() const
 }
 
 
-std::string &Mysql_connection::append_descr(std::string &s_out, int indent, bool quote_strings) const
+std::string &Mysql_connection::append_descr(std::string &s_out, int indent, int quote_strings) const
 {
   s_out.append("<mysql_connection:"+_uri+">");
   return s_out;
@@ -358,7 +371,9 @@ std::string &Mysql_connection::append_repr(std::string &s_out) const
 
 std::vector<std::string> Mysql_connection::get_members() const
 {
-  return Cpp_object_bridge::get_members();
+  std::vector<std::string> members(Cpp_object_bridge::get_members());
+  members.push_back("uri");
+  return members;
 }
 
 
@@ -370,7 +385,8 @@ bool Mysql_connection::operator == (const Object_bridge &other) const
 
 shcore::Value Mysql_connection::get_member(const std::string &prop) const
 {
-  std::cout << "get "<<prop<<"\n";
+  if (prop == "uri")
+    return shcore::Value(uri());
   return Cpp_object_bridge::get_member(prop);
 }
 
@@ -380,32 +396,12 @@ void Mysql_connection::set_member(const std::string &prop, shcore::Value value)
 }
 
 
-class Mysql_connection_factory : public shcore::Object_factory
-{
-public:
-  Mysql_connection_factory()
-  {
-  }
-
-  virtual std::string name() const
-  {
-    return "Connection";
-  }
-
-  virtual boost::shared_ptr<shcore::Object_bridge> construct(const shcore::Argument_list &args)
-  {
-    args.ensure_count(1, 2, "Connection constructor");
-
-    return boost::shared_ptr<shcore::Object_bridge>(new Mysql_connection(args.string_at(0),
-                                                                         args.size() > 1 ? args.string_at(1) : ""));
-  }
-};
-
-
+#include "shellcore/object_factory.h"
+namespace {
 static struct Auto_register {
   Auto_register()
   {
-    shcore::Object_factory::register_factory("mysql", new Mysql_connection_factory);
+    shcore::Object_factory::register_factory("mysql", "Connection", &Mysql_connection::create);
   }
 } Mysql_connection_register;
-
+};

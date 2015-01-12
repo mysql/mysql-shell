@@ -22,21 +22,23 @@
 using namespace shcore;
 
 
-typedef std::map<std::string, Object_factory*> Package;
+typedef std::map<std::string, Object_factory::Factory_function> Package;
 
 static std::map<std::string, Package> *Object_Factories = NULL;
 
 // --
 
-void Object_factory::register_factory(const std::string &package, Object_factory *meta)
+void Object_factory::register_factory(const std::string &package, const std::string &class_name,
+                                      Factory_function function)
+
 {
   if (Object_Factories == NULL)
     Object_Factories = new std::map<std::string, Package>();
 
   Package &pkg = (*Object_Factories)[package];
-  if (pkg.find(meta->name()) != pkg.end())
-    throw std::logic_error("Registering duplicate Object Factory "+package+"::"+meta->name());
-  pkg[meta->name()] = meta;
+  if (pkg.find(class_name) != pkg.end())
+    throw std::logic_error("Registering duplicate Object Factory "+package+"::"+class_name);
+  pkg[class_name] = function;
 }
 
 
@@ -48,7 +50,7 @@ boost::shared_ptr<Object_bridge> Object_factory::call_constructor(const std::str
   if ((iter = Object_Factories->find(package)) != Object_Factories->end()
       && (piter = iter->second.find(name)) != iter->second.end())
   {
-    return boost::shared_ptr<Object_bridge>(piter->second->construct(args));
+    return piter->second(args);
   }
   throw std::invalid_argument("Invalid factory constructor "+package+"."+name+" invoked");
 }

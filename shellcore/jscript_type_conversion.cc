@@ -30,6 +30,8 @@
 #include "shellcore/jscript_map_wrapper.h"
 #include "shellcore/jscript_array_wrapper.h"
 
+#include "shellcore/obj_date.h"
+
 #include <fstream>
 #include <cerrno>
 #include <boost/weak_ptr.hpp>
@@ -64,6 +66,39 @@ JScript_type_bridger::~JScript_type_bridger()
   delete function_wrapper;
   delete map_wrapper;
   delete array_wrapper;
+}
+
+
+double JScript_type_bridger::call_num_method(v8::Handle<v8::Object> object, const char *method)
+{
+  v8::Handle<v8::Function> func = v8::Handle<v8::Function>::Cast(object->Get(v8::String::NewFromUtf8(owner->isolate(), method)));
+  v8::Handle<v8::Value> result = func->Call(object, 0, NULL);
+  return result->ToNumber(owner->isolate())->Value();
+}
+
+
+v8::Handle<v8::Value> JScript_type_bridger::native_object_to_js(Object_bridge_ref object)
+{
+  if (object->class_name() == "Date")
+  {
+    boost::shared_ptr<Date> date = boost::static_pointer_cast<Date>(object);
+    return v8::Date::New(owner->isolate(), date->as_ms());
+  }
+
+  return object_wrapper->wrap(object);
+}
+
+
+Object_bridge_ref JScript_type_bridger::js_object_to_native(v8::Handle<v8::Object> object)
+{
+  std::string ctorname = *v8::String::Utf8Value(object->GetConstructorName());
+
+  if (ctorname == "Date")
+  {
+    return Date::from_ms((int64_t)call_num_method(object, "getTime"));
+  }
+
+  return Object_bridge_ref();
 }
 
 
@@ -127,9 +162,11 @@ Value JScript_type_bridger::v8_value_to_shcore_value(const v8::Handle<v8::Value>
     }
     else
     {
-      std::string ctorname = *v8::String::Utf8Value(jsobject->GetConstructorName());
+      Object_bridge_ref object = js_object_to_native(jsobject);
+      if (object)
+        return Value(object);
 
-//        std::cout << ctorname << "\n";
+
 
       v8::Local<v8::Array> pnames(jsobject->GetPropertyNames());
       boost::shared_ptr<Value::Map_type> map(new Value::Map_type);
@@ -175,12 +212,14 @@ v8::Handle<v8::Value> JScript_type_bridger::shcore_value_to_v8_value(const Value
     r = v8::Number::New(owner->isolate(), value.value.d);
     break;
   case Object:
-    r = object_wrapper->wrap(*value.value.o);
+    r = native_object_to_js(*value.value.o);
     break;
   case Array:
+    // maybe convert fully
     r = array_wrapper->wrap(*value.value.array);
     break;
   case Map:
+    // maybe convert fully
     r = map_wrapper->wrap(*value.value.map);
     break;
   case MapRef:

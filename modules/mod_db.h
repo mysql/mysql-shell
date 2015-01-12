@@ -44,7 +44,7 @@ public:
   ~Db();
 
   virtual std::string class_name() const;
-  virtual std::string &append_descr(std::string &s_out, int indent=-1, bool quote_strings=false) const;
+  virtual std::string &append_descr(std::string &s_out, int indent=-1, int quote_strings=0) const;
   virtual std::string &append_repr(std::string &s_out) const;
   virtual std::vector<std::string> get_members() const;
   virtual bool operator == (const Object_bridge &other) const;

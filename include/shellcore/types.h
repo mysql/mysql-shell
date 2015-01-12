@@ -55,6 +55,7 @@ enum Value_type
 };
 
 class Object_bridge;
+typedef boost::shared_ptr<Object_bridge> Object_bridge_ref;
 
 /** A generic value that can be used from any language we support.
 
@@ -163,7 +164,7 @@ struct SHCORE_PUBLIC Value
   //! returns a string representation of the serialized object, suitable to be passed to parse()
   std::string repr() const;
 
-  std::string &append_descr(std::string &s_out, int indent=-1, bool quote_strings=false) const;
+  std::string &append_descr(std::string &s_out, int indent=-1, int quote_strings=0) const;
   std::string &append_repr(std::string &s_out) const;
 
   void check_type(Value_type t) const;
@@ -172,7 +173,7 @@ struct SHCORE_PUBLIC Value
   int64_t as_int() const { check_type(Integer); return value.i; }
   double as_double() const { check_type(Float); return value.d; }
   const std::string &as_string() const { check_type(String); return *value.s; }
-  template<class C>
+  template<class C = Object_bridge>
     boost::shared_ptr<C> as_object() const { check_type(Object); return boost::static_pointer_cast<C>(*value.o); }
   boost::shared_ptr<Map_type> as_map() const { check_type(Map); return *value.map; }
   boost::shared_ptr<Array_type> as_array() const { check_type(Array); return *value.array; }
@@ -227,7 +228,7 @@ public:
   virtual std::string class_name() const = 0;
 
   //! Appends descriptive text to the string, suitable for showing to the user
-  virtual std::string &append_descr(std::string &s_out, int indent=-1, bool quote_strings=false) const = 0;
+  virtual std::string &append_descr(std::string &s_out, int indent=-1, int quote_strings=0) const = 0;
 
   //! Returns a representation of the object suitable to be passed to a Factory
   // constructor of this object, which would create an equivalent instance of the object

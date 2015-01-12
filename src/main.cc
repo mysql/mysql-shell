@@ -306,7 +306,14 @@ void Interactive_shell::process_line(const std::string &line)
   // check if the line is an escape/shell command
   if (_input_buffer.empty() && !line.empty() && line[0] == '\\' && !_multiline_mode)
   {
-    do_shell_command(line);
+    try
+    {
+      do_shell_command(line);
+    }
+    catch (std::exception &exc)
+    {
+      print_error(exc.what());
+    }
   }
   else
   {
@@ -322,14 +329,22 @@ void Interactive_shell::process_line(const std::string &line)
   
     if (!_multiline_mode)
     {
-      Interactive_input_state state = _shell->handle_interactive_input(_input_buffer);
-      
-      std::string executed = _shell->get_handled_input();
-      
-      if (!executed.empty())
+      Interactive_input_state state;
+      try
       {
-        add_history(executed.c_str());
-        println("");
+        state = _shell->handle_interactive_input(_input_buffer);
+
+        std::string executed = _shell->get_handled_input();
+
+        if (!executed.empty())
+        {
+          add_history(executed.c_str());
+          println("");
+        }
+      }
+      catch (std::exception &exc)
+      {
+        print_error(exc.what());
       }
       
       // Clears the buffer if OK, if continued, buffer will contain
@@ -343,21 +358,24 @@ void Interactive_shell::process_line(const std::string &line)
 
 void Interactive_shell::command_loop()
 {
-  print_banner();
-
-  switch (_shell->interactive_mode())
+  if (isatty(0)) // check if interactive
   {
-    case Shell_core::Mode_SQL:
-      _shell->print("Currently in SQL mode. Use \\js or \\py to switch the shell to a scripting language.\n");
-      break;
-    case Shell_core::Mode_JScript:
-      _shell->print("Currently in JavaScript mode. Use \\sql to switch to SQL mode and execute queries.\n");
-      break;
-    case Shell_core::Mode_Python:
-      _shell->print("Currently in Python mode. Use \\sql to switch to SQL mode and execute queries.\n");
-      break;
-    default:
-      break;
+    print_banner();
+
+    switch (_shell->interactive_mode())
+    {
+      case Shell_core::Mode_SQL:
+        _shell->print("Currently in SQL mode. Use \\js or \\py to switch the shell to a scripting language.\n");
+        break;
+      case Shell_core::Mode_JScript:
+        _shell->print("Currently in JavaScript mode. Use \\sql to switch to SQL mode and execute queries.\n");
+        break;
+      case Shell_core::Mode_Python:
+        _shell->print("Currently in Python mode. Use \\sql to switch to SQL mode and execute queries.\n");
+        break;
+      default:
+        break;
+    }
   }
 
   for (;;)
@@ -366,14 +384,7 @@ void Interactive_shell::command_loop()
     if (!cmd)
       break;
 
-    try
-    {
-      process_line(cmd);
-    }
-    catch (std::exception &exc)
-    {
-      print_error(exc.what());
-    }
+    process_line(cmd);
     free(cmd);
   }
   std::cout << "Bye!\n";

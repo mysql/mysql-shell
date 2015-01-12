@@ -137,40 +137,40 @@ Value Db::sql(const Argument_list &args)
       try
       {
         if (_conns.size() > 1)
-          _shcore->print((*c)->uri(Argument_list()).descr(false)+":\n");
+          _shcore->print((*c)->uri()+":\n");
 
         MySQL_timer timer;
         timer.start();
 
         MYSQL_RES *result = (*c)->raw_sql(statement);
-        
+
         timer.end();
-        
+
         do
         {
           std::string output;
-          
+
           if (result)
           {
             // Prints the informative line at the end
             my_ulonglong rows = mysql_num_rows(result);
-            
+
             if (rows)
             {
               // print rows from result, with stats etc
               print_result(result);
-              
+
               output = (boost::format("%lld %s in set") % rows % (rows == 1 ? "row" : "rows")).str();
             }
             else
               output = "Empty set";
-          
+
             mysql_free_result(result);
           }
           else
           {
             my_ulonglong rows = (*c)->affected_rows();
-            
+
             // TODO: Verify this should print Query OK... or Query Error.
             // Checks for a -1 value, which would indicate an error.
             // Even so the old client printed Query OK on this case for some reason.
@@ -180,17 +180,17 @@ Value Db::sql(const Argument_list &args)
               // In case of Query OK, prints the actual number of affected rows.
               output = (boost::format("Query OK, %lld %s affected") % rows % (rows == 1 ? "row" : "rows")).str();
           }
-          
+
           unsigned int warnings = (*c)->warning_count();
           if (warnings)
             output.append((boost::format(", %d warning%s") % warnings % (warnings == 1 ? "" : "s")).str());
-          
+
           output.append(" ");
           output.append((boost::format("(%s)") % timer.format_legacy(true)).str());
           output.append("\n\n");
-          
+
           _shcore->print(output);
-          
+
           const char* info = (*c)->get_info();
           if (info)
           {
@@ -198,14 +198,14 @@ Value Db::sql(const Argument_list &args)
             data.append("\n\n");
             _shcore->print(data);
           }
-          
+
           if (warnings)
             internal_sql(*c, "show warnings",boost::bind(&Db::print_warnings, this, _1, 0));
-          
+
         } while((result = (*c)->next_result()));
 
         if (_conns.size() > 1)
-        _shcore->print("\n");
+          _shcore->print("\n");
       }
       catch (shcore::Exception &exc)
       {
@@ -351,7 +351,7 @@ std::string Db::class_name() const
 }
 
 
-std::string &Db::append_descr(std::string &s_out, int indent, bool quote_strings) const
+std::string &Db::append_descr(std::string &s_out, int indent, int quote_strings) const
 {
   s_out.append("<Db>");
   return s_out;
@@ -367,7 +367,7 @@ std::string &Db::append_repr(std::string &s_out) const
 std::vector<std::string> Db::get_members() const
 {
   std::vector<std::string> members(Cpp_object_bridge::get_members());
-  members.push_back("connections");
+  members.push_back("conns");
   return members;
 }
 
@@ -380,7 +380,7 @@ bool Db::operator == (const Object_bridge &other) const
 
 Value Db::get_member(const std::string &prop) const
 {
-  if (prop == "connections")
+  if (prop == "conns")
   {
     Value list(Value::new_array());
     for (std::vector<boost::shared_ptr<Mysql_connection> >::const_iterator c = _conns.begin();

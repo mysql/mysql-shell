@@ -40,7 +40,7 @@ public:
 
   }
 
-  virtual std::string &append_descr(std::string &s_out, bool pprint) const
+  virtual std::string &append_descr(std::string &s_out, int indent=-1, int quote_strings=0) const
   {
     return s_out;
   }

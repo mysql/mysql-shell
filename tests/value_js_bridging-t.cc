@@ -44,7 +44,7 @@ public:
 
   virtual std::string class_name() const { return "Test"; }
 
-  virtual std::string &append_descr(std::string &s_out, int indent=-1, bool quote_strings=false) const
+  virtual std::string &append_descr(std::string &s_out, int indent=-1, int quote_strings=0) const
   {
     s_out.append((boost::format("<Test:%1%>") % _value).str());
     return s_out;
@@ -383,7 +383,6 @@ namespace tests {
     ASSERT_EQ(env.js->execute("repr(unrepr(repr(\"hello world\")))", error).descr(false), "\"hello world\"");
   }
 
-
   TEST(JavaScript, js_date_object)
   {
     v8::Isolate::Scope isolate_scope(env.js->isolate());
@@ -393,11 +392,11 @@ namespace tests {
                                                                  env.js->context()));
     boost::system::error_code error;
 
-    env.js->execute("dt = new Date(2014,1,1)", error);
+    Value object = env.js->execute("new Date(2014,0,1)", error);
 
-    Value v(env.js->get_global("dt"));
-
-//    ASSERT_EQ(type_name(v.type), "Object");
+    ASSERT_EQ(Object, object.type);
+    ASSERT_TRUE(object.as_object()->class_name() == "Date");
+    ASSERT_EQ("\"2014-01-01 0:00:00\"", object.repr());
   }
 
 }}

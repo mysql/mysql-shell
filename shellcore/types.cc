@@ -734,7 +734,7 @@ std::string Value::repr() const
 }
 
 
-std::string &Value::append_descr(std::string &s_out, int indent, bool quote_strings) const
+std::string &Value::append_descr(std::string &s_out, int indent, int quote_strings) const
 {
   std::string nl = (indent >= 0)? "\n" : "";
   switch (type)
@@ -767,12 +767,12 @@ std::string &Value::append_descr(std::string &s_out, int indent, bool quote_stri
       break;
     case String:
       if (quote_strings)
-        s_out += "\"" + *value.s + "\"";
+        s_out += (char)quote_strings + *value.s + (char)quote_strings;
       else
         s_out += *value.s;
       break;
     case Object:
-      s_out.append("obj");
+      as_object()->append_descr(s_out, indent, quote_strings);
       break;
     case Array:
     {
@@ -786,7 +786,7 @@ std::string &Value::append_descr(std::string &s_out, int indent, bool quote_stri
         s_out += nl;
         if (indent >= 0)
           s_out.append((indent+1)*4, ' ');
-        iter->append_descr(s_out, indent < 0 ? indent : indent+1, true);
+        iter->append_descr(s_out, indent < 0 ? indent : indent+1, '"');
       }
       s_out += nl;
       if (indent > 0)
@@ -808,7 +808,7 @@ std::string &Value::append_descr(std::string &s_out, int indent, bool quote_stri
         s_out += "\"";
         s_out += iter->first;
         s_out += "\": ";
-        iter->second.append_descr(s_out, indent < 0 ? indent : indent+1, true);
+        iter->second.append_descr(s_out, indent < 0 ? indent : indent+1, '"');
       }
       s_out += nl;
       if (indent > 0)
@@ -907,6 +907,7 @@ std::string &Value::append_repr(std::string &s_out) const
     }
     break;
     case Object:
+      s_out = (*value.o)->append_repr(s_out);
       break;
     case Array:
     {

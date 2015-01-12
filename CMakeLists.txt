@@ -148,7 +148,9 @@ target_link_libraries(mysh ${V8_LINK_LIST})
 
 if(GMOCK_LIBRARIES)
 file(GLOB shcore_tests_SRC
+    "${PROJECT_SOURCE_DIR}/modules/*.cc"
 	"${PROJECT_SOURCE_DIR}/tests/*.cc"
+	"${PROJECT_SOURCE_DIR}/src/boost_code.cc"
 )
 
 add_definitions(-DGTEST_LANG_CXX11=0 ${GMOCK_CFLAGS})
@@ -160,11 +162,11 @@ if (WIN32)
 else()
   target_link_libraries( shcore.tests pthread )
   target_link_libraries( shcore.tests boost_filesystem )
-  target_link_libraries( shcore.tests boost_system )
 endif()
 target_link_libraries(shcore.tests
         ${V8_LINK_LIST}
-        ${GMOCK_LIBRARIES})
+        ${GMOCK_LIBRARIES}
+        ${MYSQL_LIBRARIES})
 
 if(ENABLE_GCOV)
     target_link_libraries(shcore.tests -fprofile-arcs -ftest-coverage)

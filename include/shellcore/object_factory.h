@@ -25,19 +25,11 @@ namespace shcore
 class Object_factory
 {
 public:
-  virtual ~Object_factory() {}
+  typedef boost::shared_ptr<Object_bridge> (*Factory_function)(const Argument_list &args);
 
-  virtual std::string name() const = 0;
-
-  //! Factory method... creates an instance of the class
-  virtual boost::shared_ptr<Object_bridge> construct(const Argument_list &args) = 0;
-
-  //! Factory method... recreates an instance of the class through the repr value of it
-//  virtual boost::shared_ptr<Object_bridge> construct_from_repr(const std::string &repr) = 0;
-
-public:
   //! Registers a metaclass
-  static void register_factory(const std::string &package, Object_factory *fac);
+  static void register_factory(const std::string &package, const std::string &class_name,
+                               Factory_function function);
 
   static boost::shared_ptr<Object_bridge> call_constructor(const std::string &package, const std::string &name,
                                                            const Argument_list &args);
@@ -46,8 +38,6 @@ public:
   static std::vector<std::string> package_contents(const std::string &package);
 
   static bool has_package(const std::string &package);
-
-  // call_constructor_with_repr(const std::string &repr)
 };
 
 };

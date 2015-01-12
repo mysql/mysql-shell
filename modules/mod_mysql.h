@@ -39,7 +39,7 @@ public:
   ~Mysql_connection();
 
   virtual std::string class_name() const;
-  virtual std::string &append_descr(std::string &s_out, int indent=-1, bool quote_strings=false) const;
+  virtual std::string &append_descr(std::string &s_out, int indent=-1, int quote_strings=0) const;
   virtual std::string &append_repr(std::string &s_out) const;
   virtual std::vector<std::string> get_members() const;
   virtual bool operator == (const Object_bridge &other) const;
@@ -50,7 +50,9 @@ public:
   shcore::Value sql(const shcore::Argument_list &args);
 //  shcore::Value stats(const shcore::Argument_list &args);
 
-  shcore::Value uri(const shcore::Argument_list &args);
+  static boost::shared_ptr<Object_bridge> create(const shcore::Argument_list &args);
+public:
+  std::string uri() const { return _uri; }
 
 public:
   MYSQL_RES *raw_sql(const std::string &sql);
