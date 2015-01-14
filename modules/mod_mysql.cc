@@ -118,11 +118,17 @@ private:
             (*map)[_fields[i].name] = shcore::Value::Null();
             break;
 
+          case MYSQL_TYPE_DECIMAL:
+          case MYSQL_TYPE_DATE:
+          case MYSQL_TYPE_TIME:
+
           case MYSQL_TYPE_STRING:
           case MYSQL_TYPE_VARCHAR:
           case MYSQL_TYPE_VAR_STRING:
             (*map)[_fields[i].name] = shcore::Value(std::string(row[i], lengths[i]));
             break;
+
+          case MYSQL_TYPE_YEAR:
 
           case MYSQL_TYPE_TINY:
           case MYSQL_TYPE_SHORT:

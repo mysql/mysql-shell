@@ -27,6 +27,7 @@ using namespace shcore;
 Shell_sql::Shell_sql(Shell_core *owner)
 : Shell_language(owner)
 {
+  _continuing_line = 0;
   _delimiter = ";";
 }
 
@@ -35,7 +36,8 @@ Interactive_input_state Shell_sql::handle_interactive_input(std::string &code)
   Interactive_input_state ret_val = Input_ok;
   Value db = _owner->get_global("db");
   MySQL_splitter splitter;
-  
+
+  _continuing_line = 0;
   _last_handled.clear();
   
   if (db)
@@ -61,6 +63,7 @@ Interactive_input_state Shell_sql::handle_interactive_input(std::string &code)
     
     if (ranges.size() > statement_count)
     {
+      _continuing_line = '-';
       ret_val = Input_continued;
       
       // Sets the executed code if any
@@ -89,6 +92,9 @@ int Shell_sql::run_script(const std::string &path, boost::system::error_code &er
 
 std::string Shell_sql::prompt()
 {
-  return "mysql> ";
+  if (_continuing_line)
+    return "    -> ";
+  else
+    return "mysql> ";
 }
 

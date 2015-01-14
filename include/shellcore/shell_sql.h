@@ -40,6 +40,7 @@ public:
 
 private:
   std::string _delimiter;
+  int _continuing_line;
   
 };
 

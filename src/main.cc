@@ -288,7 +288,16 @@ void Interactive_shell::do_shell_command(const std::string &line)
   {
     switch_shell_mode(Shell_core::Mode_Python, tokens);
   }
-  else if (tokens.front().compare("\\help") == 0 || tokens.front().compare("\\?") == 0)
+  else if (tokens.front().compare("\\connect") == 0)
+  {
+    if (tokens.size() == 2)
+    {
+      connect(tokens[1], "");
+    }
+    else
+      print_error("\\connect <uri>");
+  }
+  else if (tokens.front().compare("\\help") == 0 || tokens.front().compare("\\?") == 0 || tokens.front().compare("\\h") == 0)
   {
     print_shell_help();
   }
