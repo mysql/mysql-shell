@@ -26,21 +26,23 @@
 #include "shellcore/types.h"
 #include "shellcore/types_cpp.h"
 
-#include "mod_mysql.h"
+#include <boost/enable_shared_from_this.hpp>
+#include <boost/weak_ptr.hpp>
 
 namespace shcore
 {
-  class Shell_core;
+  class Proxy_object;
 };
 
 namespace mysh {
 
-class Mysql_resultset;
+class Session;
+class Db_table;
 
-class Db : public shcore::Cpp_object_bridge
+class Db : public shcore::Cpp_object_bridge, public boost::enable_shared_from_this<Db>
 {
 public:
-  Db(shcore::Shell_core *shc);
+  Db(boost::shared_ptr<Session> owner, const std::string &name);
   ~Db();
 
   virtual std::string class_name() const;
@@ -51,23 +53,17 @@ public:
   virtual shcore::Value get_member(const std::string &prop) const;
   virtual void set_member(const std::string &prop, shcore::Value value);
 
-  shcore::Value connect(const shcore::Argument_list &args);
-  shcore::Value connect_add(const shcore::Argument_list &args);
-  shcore::Value sql(const shcore::Argument_list &args);
-  
-  void internal_sql(boost::shared_ptr<Mysql_connection> conn, const std::string& sql, boost::function<void (MYSQL_RES* data)> result_handler);
-//  shcore::Value stats(const shcore::Argument_list &args);
+  void cache_table_names();
 
+  boost::weak_ptr<Session> session() const { return _session; }
+
+  std::string schema() const { return _schema; }
 private:
-  void print_exception(const shcore::Exception &e);
-  void print_warnings(MYSQL_RES* data, unsigned long main_error_code);
-  void print_result(MYSQL_RES *res);
-  void print_table(MYSQL_RES *res);
-  void print_json(MYSQL_RES *res);
-  void print_vertical(MYSQL_RES *res);
+  boost::weak_ptr<Session> _session;
+  boost::shared_ptr<shcore::Value::Map_type> _tables;
+  boost::shared_ptr<shcore::Value::Map_type> _collections;
 
-  shcore::Shell_core *_shcore;
-  std::vector<boost::shared_ptr<Mysql_connection> > _conns;
+  std::string _schema;
 };
 
 };

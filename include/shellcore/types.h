@@ -81,11 +81,14 @@ typedef boost::shared_ptr<Object_bridge> Object_bridge_ref;
 struct SHCORE_PUBLIC Value
 {
   typedef std::vector<Value> Array_type;
+  typedef boost::shared_ptr<Array_type> Array_type_ref;
 
   class Map_type : public std::map<std::string, Value>
   {
   public:
     inline bool has_key(const std::string &k) const { return find(k) != end(); }
+
+    Value_type get_type(const std::string &k) const;
 
     std::string get_string(const std::string &k, const std::string &def="") const;
     bool get_bool(const std::string &k, bool def=false) const;
@@ -107,6 +110,7 @@ struct SHCORE_PUBLIC Value
       return iter->second.as_object<C>();
     }
   };
+  typedef boost::shared_ptr<Map_type> Map_type_ref;
 
   Value_type type;
   union
@@ -131,9 +135,9 @@ struct SHCORE_PUBLIC Value
   explicit Value(double d);
   explicit Value(boost::shared_ptr<Function_base> f);
   explicit Value(boost::shared_ptr<Object_bridge> o);
-  explicit Value(boost::shared_ptr<Map_type> n);
   explicit Value(boost::weak_ptr<Map_type> n);
-  explicit Value(boost::shared_ptr<Array_type> n);
+  explicit Value(Map_type_ref n);
+  explicit Value(Array_type_ref n);
 
   static Value new_array() { return Value(boost::shared_ptr<Array_type>(new Array_type())); }
   static Value new_map() { return Value(boost::shared_ptr<Map_type>(new Map_type())); }
@@ -289,8 +293,10 @@ public:
 
   virtual ~Exception() BOOST_NOEXCEPT_OR_NOTHROW { }
 
+  static Exception runtime_error(const std::string &message);
   static Exception argument_error(const std::string &message);
   static Exception attrib_error(const std::string &message);
+  static Exception value_error(const std::string &message);
   static Exception type_error(const std::string &message);
   static Exception logic_error(const std::string &message);
   static Exception error_with_code(const std::string &type, const std::string &message, int code);

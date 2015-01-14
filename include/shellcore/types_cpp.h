@@ -72,6 +72,10 @@ public:
   virtual void set_member(const std::string &prop, Value value);
 
   virtual Value call(const std::string &name, const Argument_list &args);
+
+  virtual std::string &append_descr(std::string &s_out, int indent=-1, int quote_strings=0) const;
+  virtual std::string &append_repr(std::string &s_out) const;
+
 protected:
   void add_method(const char *name, Cpp_function::Function func,
                   const char *arg1_name, Value_type arg1_type = Undefined, ...);

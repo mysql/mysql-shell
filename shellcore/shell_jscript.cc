@@ -41,7 +41,7 @@ Interactive_input_state Shell_javascript::handle_interactive_input(std::string &
 
 std::string Shell_javascript::prompt()
 {
-  return "myjs> ";
+  return "js> ";
 }
 
 

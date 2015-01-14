@@ -65,10 +65,27 @@ Exception Exception::type_error(const std::string &message)
 }
 
 
+Exception Exception::value_error(const std::string &message)
+{
+  boost::shared_ptr<Value::Map_type> error(new Value::Map_type());
+  (*error)["type"] = Value("ValueError");
+  (*error)["message"] = Value(message);
+  return Exception(error);
+}
+
 Exception Exception::logic_error(const std::string &message)
 {
   boost::shared_ptr<Value::Map_type> error(new Value::Map_type());
   (*error)["type"] = Value("LogicError");
+  (*error)["message"] = Value(message);
+  return Exception(error);
+}
+
+
+Exception Exception::runtime_error(const std::string &message)
+{
+  boost::shared_ptr<Value::Map_type> error(new Value::Map_type());
+  (*error)["type"] = Value("RuntimeError");
   (*error)["message"] = Value(message);
   return Exception(error);
 }
@@ -149,6 +166,14 @@ std::string shcore::type_name(Value_type type)
 }
 
 // --
+
+Value_type Value::Map_type::get_type(const std::string &k) const
+{
+  const_iterator iter = find(k);
+  if (iter == end())
+    return Undefined;
+  return iter->second.type;
+}
 
 std::string Value::Map_type::get_string(const std::string &k, const std::string &def) const
 {
@@ -256,7 +281,7 @@ Value::Value(boost::shared_ptr<Object_bridge> n)
   value.o = new boost::shared_ptr<Object_bridge>(n);
 }
 
-Value::Value(boost::shared_ptr<Map_type> n)
+Value::Value(Map_type_ref n)
 : type(Map)
 {
   value.map = new boost::shared_ptr<Map_type>(n);
@@ -268,7 +293,7 @@ Value::Value(boost::weak_ptr<Map_type> n)
   value.mapref = new boost::weak_ptr<Map_type>(n);
 }
 
-Value::Value(boost::shared_ptr<Array_type> n)
+Value::Value(Array_type_ref n)
 : type(Array)
 {
   value.array = new boost::shared_ptr<Array_type>(n);
@@ -772,10 +797,14 @@ std::string &Value::append_descr(std::string &s_out, int indent, int quote_strin
         s_out += *value.s;
       break;
     case Object:
+      if (!value.o || !*value.o)
+        throw Exception::value_error("Invalid object value encountered");
       as_object()->append_descr(s_out, indent, quote_strings);
       break;
     case Array:
     {
+      if (!value.array || !*value.array)
+        throw Exception::value_error("Invalid array value encountered");
       Array_type *vec = value.array->get();
       Array_type::iterator myend = vec->end(), mybegin = vec->begin();
       s_out += "[";
@@ -796,6 +825,8 @@ std::string &Value::append_descr(std::string &s_out, int indent, int quote_strin
       break;
     case Map:
     {
+      if (!value.map || !*value.map)
+        throw Exception::value_error("Invalid map value encountered");
       Map_type *map = value.map->get();
       Map_type::iterator myend = map->end(), mybegin = map->begin();
       s_out += "{"+nl;

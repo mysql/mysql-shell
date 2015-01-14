@@ -33,7 +33,32 @@
 
 namespace mysh {
 
-class Mysql_resultset;
+class Mysql_resultset : public shcore::Cpp_object_bridge
+{
+public:
+  Mysql_resultset(MYSQL_RES *res, boost::shared_ptr<shcore::Value::Map_type> options = boost::shared_ptr<shcore::Value::Map_type>());
+  virtual ~Mysql_resultset();
+
+  virtual std::string class_name() const
+  {
+    return "mysql_resultset";
+  }
+
+  virtual std::vector<std::string> get_members() const;
+  virtual bool operator == (const Object_bridge &other) const;
+  virtual shcore::Value get_member(const std::string &prop) const;
+  shcore::Value next(const shcore::Argument_list &args);
+private:
+  shcore::Value row_to_doc(const MYSQL_ROW &row, unsigned long *lengths);
+private:
+  MYSQL_RES *_result;
+  MYSQL_FIELD *_fields;
+  int _num_fields;
+  
+  bool _key_by_index;
+};
+
+
 
 class Mysql_connection : public shcore::Cpp_object_bridge
 {
@@ -50,8 +75,12 @@ public:
   virtual void set_member(const std::string &prop, shcore::Value value);
 
   shcore::Value close(const shcore::Argument_list &args);
-  shcore::Value sql(const shcore::Argument_list &args);
+  shcore::Value sql_(const shcore::Argument_list &args);
+  shcore::Value sql(const std::string &sql, shcore::Value options);
 //  shcore::Value stats(const shcore::Argument_list &args);
+
+  shcore::Value sql_one(const std::string &sql);
+  shcore::Value sql_one_(const shcore::Argument_list &args);
 
   static boost::shared_ptr<Object_bridge> create(const shcore::Argument_list &args);
 public:

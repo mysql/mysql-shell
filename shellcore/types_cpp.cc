@@ -28,6 +28,19 @@ Cpp_object_bridge::~Cpp_object_bridge()
 }
 
 
+std::string &Cpp_object_bridge::append_descr(std::string &s_out, int indent, int quote_strings) const
+{
+  s_out.append("<"+class_name()+">");
+  return s_out;
+}
+
+
+std::string &Cpp_object_bridge::append_repr(std::string &s_out) const
+{
+  return append_descr(s_out, 0, '"');
+}
+
+
 std::vector<std::string> Cpp_object_bridge::get_members() const
 {
   std::vector<std::string> _members;

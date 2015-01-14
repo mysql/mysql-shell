@@ -21,7 +21,7 @@
 
 #include "shellcore/obj_date.h"
 
-
+#include <boost/format.hpp>
 #include <boost/bind.hpp>
 #include <boost/lexical_cast.hpp>
 
@@ -30,139 +30,117 @@ using namespace mysh;
 
 #include <iostream>
 
-class mysh::Mysql_resultset : public shcore::Cpp_object_bridge
+
+Mysql_resultset::Mysql_resultset(MYSQL_RES *res, boost::shared_ptr<shcore::Value::Map_type> options)
+: _result(res), _key_by_index(false)
 {
-public:
-  Mysql_resultset(MYSQL_RES *res)
-  : _result(res)
+  if (options && options->get_bool("key_by_index", false))
+    _key_by_index = true;
+
+  add_method("next", boost::bind(&Mysql_resultset::next, this, _1), NULL);
+
+  _fields = mysql_fetch_fields(res);
+  _num_fields = mysql_num_fields(res);
+}
+
+
+Mysql_resultset::~Mysql_resultset()
+{
+  mysql_free_result(_result);
+}
+
+
+std::vector<std::string> Mysql_resultset::get_members() const
+{
+  std::vector<std::string> members(shcore::Cpp_object_bridge::get_members());
+  members.push_back("count");
+  return members;
+}
+
+bool Mysql_resultset::operator == (const Object_bridge &other) const
+{
+  return this == &other;
+}
+
+shcore::Value Mysql_resultset::get_member(const std::string &prop) const
+{
+  if (prop == "count")
+    return shcore::Value((int64_t)mysql_num_rows(_result));
+  return shcore::Cpp_object_bridge::get_member(prop);
+}
+
+shcore::Value Mysql_resultset::next(const shcore::Argument_list &args)
+{
+  args.ensure_count(0, "Mysql_resultset::next");
+
+  MYSQL_ROW row = mysql_fetch_row(_result);
+  if (!row)
+    return shcore::Value::Null();
+
+  unsigned long *lengths;
+  lengths = mysql_fetch_lengths(_result);
+
+  return row_to_doc(row, lengths);
+}
+
+
+shcore::Value Mysql_resultset::row_to_doc(const MYSQL_ROW &row, unsigned long *lengths)
+{
+  boost::shared_ptr<shcore::Value::Map_type> map(new shcore::Value::Map_type);
+
+  for (int i = 0; i < _num_fields; i++)
   {
-    add_method("next", boost::bind(&Mysql_resultset::next, this, _1), NULL);
+    std::string key = _key_by_index ? (boost::format("%i") % i).str() : _fields[i].name;
 
-    _fields = mysql_fetch_fields(res);
-    _num_fields = mysql_num_fields(res);
-  }
-
-  virtual ~Mysql_resultset()
-  {
-    mysql_free_result(_result);
-  }
-
-  virtual std::string class_name() const
-  {
-    return "mysql_resultset";
-  }
-
-  virtual std::string &append_descr(std::string &s_out, int indent=-1, int quote_strings=0) const
-  {
-    s_out.append("<mysql_resultset>");
-    return s_out;
-  }
-
-  virtual std::string &append_repr(std::string &s_out) const
-  {
-    s_out.append("<mysql_resultset>");
-    return s_out;
-  }
-
-  virtual std::vector<std::string> get_members() const
-  {
-    std::vector<std::string> members(shcore::Cpp_object_bridge::get_members());
-    members.push_back("count");
-    return members;
-  }
-
-  virtual bool operator == (const Object_bridge &other) const
-  {
-    return this == &other;
-  }
-
-  virtual shcore::Value get_member(const std::string &prop) const
-  {
-    if (prop == "count")
-      return shcore::Value((int64_t)mysql_num_rows(_result));
-    return shcore::Cpp_object_bridge::get_member(prop);
-  }
-
-  virtual void set_member(const std::string &prop, shcore::Value value)
-  {
-  }
-
-private:
-  shcore::Value next(const shcore::Argument_list &args)
-  {
-    args.ensure_count(0, "Mysql_resultset::next");
-
-    MYSQL_ROW row = mysql_fetch_row(_result);
-    if (!row)
-      return shcore::Value::Null();
-
-    unsigned long *lengths;
-    lengths = mysql_fetch_lengths(_result);
-
-    return row_to_doc(row, lengths);
-  }
-
-  shcore::Value row_to_doc(const MYSQL_ROW &row, unsigned long *lengths)
-  {
-    boost::shared_ptr<shcore::Value::Map_type> map(new shcore::Value::Map_type);
-
-    for (int i = 0; i < _num_fields; i++)
+    if (row[i] == NULL)
+      map->insert(std::make_pair(key, shcore::Value::Null()));
+    else
     {
-      if (row[i] == NULL)
-        map->insert(std::make_pair(_fields[i].name, shcore::Value::Null()));
-      else
+      switch (_fields[i].type)
       {
-        switch (_fields[i].type)
-        {
-          case MYSQL_TYPE_NULL:
-            (*map)[_fields[i].name] = shcore::Value::Null();
-            break;
+        case MYSQL_TYPE_NULL:
+          (*map)[key] = shcore::Value::Null();
+          break;
 
-          case MYSQL_TYPE_DECIMAL:
-          case MYSQL_TYPE_DATE:
-          case MYSQL_TYPE_TIME:
+        case MYSQL_TYPE_DECIMAL:
+        case MYSQL_TYPE_DATE:
+        case MYSQL_TYPE_TIME:
 
-          case MYSQL_TYPE_STRING:
-          case MYSQL_TYPE_VARCHAR:
-          case MYSQL_TYPE_VAR_STRING:
-            (*map)[_fields[i].name] = shcore::Value(std::string(row[i], lengths[i]));
-            break;
+        case MYSQL_TYPE_STRING:
+        case MYSQL_TYPE_VARCHAR:
+        case MYSQL_TYPE_VAR_STRING:
+          (*map)[key] = shcore::Value(std::string(row[i], lengths[i]));
+          break;
 
-          case MYSQL_TYPE_YEAR:
+        case MYSQL_TYPE_YEAR:
 
-          case MYSQL_TYPE_TINY:
-          case MYSQL_TYPE_SHORT:
-          case MYSQL_TYPE_INT24:
-          case MYSQL_TYPE_LONG:
-          case MYSQL_TYPE_LONGLONG:
-            (*map)[_fields[i].name] = shcore::Value(boost::lexical_cast<int64_t>(row[i]));
-            break;
+        case MYSQL_TYPE_TINY:
+        case MYSQL_TYPE_SHORT:
+        case MYSQL_TYPE_INT24:
+        case MYSQL_TYPE_LONG:
+        case MYSQL_TYPE_LONGLONG:
+          (*map)[key] = shcore::Value(boost::lexical_cast<int64_t>(row[i]));
+          break;
 
-          case MYSQL_TYPE_FLOAT:
-          case MYSQL_TYPE_DOUBLE:
-            (*map)[_fields[i].name] = shcore::Value(boost::lexical_cast<double>(row[i]));
-            break;
+        case MYSQL_TYPE_FLOAT:
+        case MYSQL_TYPE_DOUBLE:
+          (*map)[key] = shcore::Value(boost::lexical_cast<double>(row[i]));
+          break;
 
-          case MYSQL_TYPE_DATETIME:
-          case MYSQL_TYPE_TIMESTAMP:
-          case MYSQL_TYPE_DATETIME2:
-          case MYSQL_TYPE_TIMESTAMP2:
-            (*map)[_fields[i].name] = shcore::Value(shcore::Date::unrepr(row[i]));
-            break;
-        }
+        case MYSQL_TYPE_DATETIME:
+        case MYSQL_TYPE_TIMESTAMP:
+        case MYSQL_TYPE_DATETIME2:
+        case MYSQL_TYPE_TIMESTAMP2:
+          (*map)[key] = shcore::Value(shcore::Date::unrepr(row[i]));
+          break;
       }
     }
-    return shcore::Value(map);
   }
-
-private:
-  MYSQL_RES *_result;
-  MYSQL_FIELD *_fields;
-  int _num_fields;
-};
+  return shcore::Value(map);
+}
 
 
-//-----------
+//----------------------------------------------
 
 
 static bool parse_mysql_connstring(const std::string &connstring,
@@ -228,9 +206,12 @@ Mysql_connection::Mysql_connection(const std::string &uri, const std::string &pa
 : _mysql(NULL)
 {
   add_method("close", boost::bind(&Mysql_connection::close, this, _1), NULL);
-  add_method("sql", boost::bind(&Mysql_connection::sql, this, _1),
+  add_method("sql", boost::bind(&Mysql_connection::sql_, this, _1),
              "stmt", shcore::String,
              "*args", shcore::Map,
+             NULL);
+  add_method("sql_one", boost::bind(&Mysql_connection::sql_one_, this, _1),
+             "stmt", shcore::String,
              NULL);
 
   std::string user;
@@ -279,12 +260,19 @@ shcore::Value Mysql_connection::close(const shcore::Argument_list &args)
 }
 
 
-shcore::Value Mysql_connection::sql(const shcore::Argument_list &args)
+shcore::Value Mysql_connection::sql_(const shcore::Argument_list &args)
 {
-  MYSQL_RES *res;
   std::string query = args.string_at(0);
 
   args.ensure_count(1, 2, "Mysql_connection::sql");
+
+  return sql(query, shcore::Value());
+}
+
+
+shcore::Value Mysql_connection::sql(const std::string &query, shcore::Value options)
+{
+  MYSQL_RES *res;
 
   if (mysql_real_query(_mysql, query.c_str(), query.length()) < 0)
   {
@@ -296,7 +284,36 @@ shcore::Value Mysql_connection::sql(const shcore::Argument_list &args)
   {
     throw shcore::Exception::error_with_code_and_state("MySQLError", mysql_error(_mysql), mysql_errno(_mysql), mysql_sqlstate(_mysql));
   }
-  return shcore::Value(boost::shared_ptr<shcore::Object_bridge>(new Mysql_resultset(res)));
+
+  return shcore::Value(boost::shared_ptr<shcore::Object_bridge>(new Mysql_resultset(res, options && options.type == shcore::Map ? options.as_map() : boost::shared_ptr<shcore::Value::Map_type>())));
+}
+
+
+shcore::Value Mysql_connection::sql_one_(const shcore::Argument_list &args)
+{
+  std::string query = args.string_at(0);
+  args.ensure_count(1, "Mysql_connection::sql_one");
+
+  return sql_one(query);
+}
+
+
+shcore::Value Mysql_connection::sql_one(const std::string &query)
+{
+  MYSQL_RES *res;
+
+  if (mysql_real_query(_mysql, query.c_str(), query.length()) < 0)
+  {
+    throw shcore::Exception::error_with_code_and_state("MySQLError", mysql_error(_mysql), mysql_errno(_mysql), mysql_sqlstate(_mysql));
+  }
+
+  res = mysql_store_result(_mysql);
+  if (!res)
+  {
+    throw shcore::Exception::error_with_code_and_state("MySQLError", mysql_error(_mysql), mysql_errno(_mysql), mysql_sqlstate(_mysql));
+  }
+  Mysql_resultset result(res);
+  return result.next(shcore::Argument_list());
 }
 
 

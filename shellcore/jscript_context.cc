@@ -368,7 +368,7 @@ struct JScript_context::JScript_context_impl
     if (message.IsEmpty())
     {
       if (to_shell)
-        delegate->print_error(delegate->user_data, std::string("JS Exception: ").append(exception_text).append("\n").c_str());
+        delegate->print_error(delegate->user_data, std::string().append(exception_text).append("\n").c_str());
       else
         std::cerr << std::string("JS Exception: ").append(exception_text).append("\n");
     }
@@ -377,16 +377,21 @@ struct JScript_context::JScript_context_impl
       v8::String::Utf8Value filename(message->GetScriptOrigin().ResourceName());
 
       // location
-      std::string text = (boost::format("JS Exception: %s:%i:%i: %s\n") % *filename % message->GetLineNumber() % message->GetStartColumn() % exception_text).str();
-      if (to_shell)
-        delegate->print_error(delegate->user_data, text.c_str());
-      else
+      std::string text = (boost::format("%s:%i:%i: %s\n") % *filename % message->GetLineNumber() % message->GetStartColumn() % exception_text).str();
+      if (!to_shell)
         std::cerr << text;
 
       // code
       v8::String::Utf8Value code(message->GetSourceLine());
       if (to_shell)
-        delegate->print_error(delegate->user_data, (std::string(*code ? *code : "").append("\n")).c_str());
+      {
+        text.append("in ");
+        text.append(*code ? *code : "").append("\n");
+        // underline
+        text.append(3 + message->GetStartColumn(), ' ');
+        text.append(message->GetEndColumn()-message->GetStartColumn(), '^');
+        text.append("\n");
+      }
       else
         std::cerr << *code << "\n";
 
@@ -394,10 +399,13 @@ struct JScript_context::JScript_context_impl
       if (*stack && **stack)
       {
         if (to_shell)
-          delegate->print_error(delegate->user_data, (std::string(*stack).append("\n")).c_str());
+          text.append(std::string(*stack).append("\n"));
         else
           std::cerr << *stack << "\n";
       }
+
+      if (to_shell && !text.empty())
+        delegate->print_error(delegate->user_data, text.c_str());
     }
   }
 
@@ -581,14 +589,14 @@ bool JScript_context::execute_interactive(const std::string &code_str) BOOST_NOE
 
   if (script.IsEmpty())
   {
-    _impl->print_exception(&try_catch, false);
+    _impl->print_exception(&try_catch, true);
   }
   else
   {
     v8::Handle<v8::Value> result = script->Run();
     if (result.IsEmpty())
     {
-      _impl->print_exception(&try_catch, false);
+      _impl->print_exception(&try_catch, true);
     }
     else
     {

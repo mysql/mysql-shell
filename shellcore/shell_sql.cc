@@ -18,7 +18,7 @@
  */
 
 #include "shellcore/shell_sql.h"
-#include "../modules/mod_db.h"
+#include "../modules/mod_session.h"
 #include "../utils/utils_mysql_parsing.h"
 
 using namespace shcore;
@@ -34,15 +34,15 @@ Shell_sql::Shell_sql(Shell_core *owner)
 Interactive_input_state Shell_sql::handle_interactive_input(std::string &code)
 {
   Interactive_input_state ret_val = Input_ok;
-  Value db = _owner->get_global("db");
+  Value session = _owner->get_global("_S");
   MySQL_splitter splitter;
 
   _continuing_line = 0;
   _last_handled.clear();
   
-  if (db)
+  if (session)
   {
-    boost::shared_ptr<mysh::Db> _db = db.as_object<mysh::Db>();
+    boost::shared_ptr<mysh::Session> _db = session.as_object<mysh::Session>();
     // Parses the input string to identify individual statements in it.
     // Will return a range for every statement that ends with the delimiter, if there
     // is additional code after the last delimiter, a range for it will be included too.

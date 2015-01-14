@@ -36,6 +36,7 @@
 #include "shellcore/lang_base.h"
 #include "shellcore/shell_core.h"
 
+#include "../modules/mod_session.h"
 #include "../modules/mod_db.h"
 
 
@@ -65,16 +66,16 @@ public:
   void print_error(const std::string &error);
   void print_shell_help();
 
+  void print_banner();
+
 private:
   void process_line(const std::string &line);
   std::string prompt();
 
   void switch_shell_mode(Shell_core::Mode mode, const std::vector<std::string> &args);
 
-  void print_banner();
-
 private:
-  shcore::Value connect_db(const shcore::Argument_list &args);
+  shcore::Value connect_session(const shcore::Argument_list &args);
 
 private:
   static void deleg_print(void *self, const char *text);
@@ -86,6 +87,7 @@ private:
 private:
   Interpreter_delegate _delegate;
 
+  boost::shared_ptr<mysh::Session> _session;
   boost::shared_ptr<mysh::Db> _db;
   boost::shared_ptr<Shell_core> _shell;
 
@@ -112,8 +114,11 @@ Interactive_shell::Interactive_shell(Shell_core::Mode initial_mode)
 
   _shell.reset(new Shell_core(&_delegate));
 
-  _db.reset(new mysh::Db(_shell.get()));
-  _shell->set_global("db", Value( boost::static_pointer_cast<Object_bridge, mysh::Db >(_db) ));
+  _session.reset(new mysh::Session(_shell.get()));
+  _shell->set_global("_S", Value(boost::static_pointer_cast<Object_bridge>(_session)));
+
+//  _db.reset(new mysh::Db(_shell.get()));
+//  _shell->set_global("db", Value( boost::static_pointer_cast<Object_bridge, mysh::Db >(_db) ));
 
   _shell->switch_mode(initial_mode);
 }
@@ -129,7 +134,7 @@ bool Interactive_shell::connect(const std::string &uri, const std::string &passw
 
   try
   {
-    connect_db(args);
+    connect_session(args);
   }
   catch (std::exception &exc)
   {
@@ -141,9 +146,22 @@ bool Interactive_shell::connect(const std::string &uri, const std::string &passw
 }
 
 
-Value Interactive_shell::connect_db(const Argument_list &args)
+Value Interactive_shell::connect_session(const Argument_list &args)
 {
-  _db->connect(args);
+  _session->connect(args);
+
+  boost::shared_ptr<mysh::Db> db(_session->default_schema());
+  if (db)
+  {
+    if (_shell->interactive_mode() != Shell_core::Mode_SQL)
+      _shell->print("Default schema `"+db->schema()+"` accessible through db.\n");
+    _shell->set_global("db", Value(boost::static_pointer_cast<Object_bridge>(db)));
+  }
+  else
+  {
+    // XXX assign a dummy placeholder to db
+    _shell->print("No default schema selected.\n");
+  }
 
   return Value::Null();
 }
@@ -153,7 +171,7 @@ void Interactive_shell::init_environment()
 {
   _shell->set_global("connect",
                      Value(Cpp_function::create("connect",
-                                                boost::bind(&Interactive_shell::connect_db, this, _1),
+                                                boost::bind(&Interactive_shell::connect_session, this, _1),
                                                 "connection_string", String,
                                                 NULL)));
 }
@@ -374,8 +392,6 @@ void Interactive_shell::command_loop()
 {
   if (isatty(0)) // check if interactive
   {
-    print_banner();
-
     switch (_shell->interactive_mode())
     {
       case Shell_core::Mode_SQL:
@@ -560,6 +576,10 @@ int main(int argc, char **argv)
 
   {
     Interactive_shell shell(Shell_core::Mode_SQL);
+
+    // if interactive, print the copyright info
+    if (options.run_file.empty() && isatty(STDIN_FILENO))
+      shell.print_banner();
 
     shell.init_environment();
 
