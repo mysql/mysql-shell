@@ -577,8 +577,14 @@ int main(int argc, char **argv)
   {
     Interactive_shell shell(Shell_core::Mode_SQL);
 
+
     // if interactive, print the copyright info
-    if (options.run_file.empty() && isatty(STDIN_FILENO))
+    if (options.run_file.empty())
+#if defined(WIN32)
+      if(isatty(_fileno(stdin)))
+#else
+      if (isatty(STDIN_FILENO))
+#endif
       shell.print_banner();
 
     shell.init_environment();

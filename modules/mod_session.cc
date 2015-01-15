@@ -385,7 +385,7 @@ Value Session::get_db(const std::string &schema)
   {
     boost::shared_ptr<Db> db(new Db(shared_from_this(), schema));
     db->cache_table_names();
-    return Value(db);
+    return Value(boost::static_pointer_cast<Object_bridge>(db));
   }
   throw Exception::runtime_error("Session not connected");
 }
