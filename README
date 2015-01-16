@@ -5,3 +5,12 @@ Dependencies:
 - v8 (3.32.7)
 - boost (any version that will compile)
 - libmysqlclient 5.6+
+
+Build like:
+
+mkdir bld
+cd bld
+cmake .. -DGMOCK_DIR=$HOME/ng/dev/gmock-1.7.0 -DMY_BOOST_LIB_DIR=/usr/local/lib -DV8_INCLUDE_DIR=$HOME/ng/v8/v8/include -DV8_LIB_DIR=$HOME/ng/v8/v8/out/x64.debug
+
+
+
