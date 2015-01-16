@@ -22,7 +22,7 @@
 
 #include <string>
 #include <boost/system/error_code.hpp>
-#include <include/v8.h>
+#include <v8.h>
 
 #include "shellcore/types.h"
 
@@ -39,7 +39,7 @@ public:
   ~JScript_context();
 
   Value execute(const std::string &code, boost::system::error_code &ret_error) throw (Exception);
-  bool execute_interactive(const std::string &code) BOOST_NOEXCEPT_OR_NOTHROW;
+  Value execute_interactive(const std::string &code) BOOST_NOEXCEPT_OR_NOTHROW;
   int run_script(const std::string &path, boost::system::error_code &err) BOOST_NOEXCEPT_OR_NOTHROW;
 
   v8::Isolate *isolate() const;

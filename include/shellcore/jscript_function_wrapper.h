@@ -25,7 +25,7 @@
 #define _JSCRIPT_FUNCTION_WRAPPER_H_
 
 #include "shellcore/types.h"
-#include <include/v8.h>
+#include <v8.h>
 
 namespace shcore
 {

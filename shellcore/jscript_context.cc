@@ -570,7 +570,7 @@ Value JScript_context::execute(const std::string &code_str, boost::system::error
 }
 
 
-bool JScript_context::execute_interactive(const std::string &code_str) BOOST_NOEXCEPT_OR_NOTHROW
+Value JScript_context::execute_interactive(const std::string &code_str) BOOST_NOEXCEPT_OR_NOTHROW
 {
   boost::system::error_code error;
 
@@ -603,9 +603,10 @@ bool JScript_context::execute_interactive(const std::string &code_str) BOOST_NOE
       Value r(v8_value_to_shcore_value(result));
       if (r && r.type != Null)
         _impl->delegate->print(_impl->delegate->user_data, r.descr(true).c_str());
+      return r;
     }
   }
-  return false;
+  return Value();
 }
 
 

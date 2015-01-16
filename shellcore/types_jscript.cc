@@ -21,7 +21,7 @@
 #include "shellcore/types_jscript.h"
 #include "shellcore/object_factory.h"
 
-#include <include/v8.h>
+#include <v8.h>
 #include <boost/weak_ptr.hpp>
 
 using namespace shcore;

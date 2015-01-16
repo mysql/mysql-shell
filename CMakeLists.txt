@@ -16,12 +16,12 @@
 # Sample command lines
 #  (Don't delete, my copy & paste)
 # For Windows:
-#  cmake -DMY_INCLUDE_DIR=C:\src\mysql-server\MyIncludes -DMY_GMOCK_LIB_DIR=C:\src\mysql-server\MyLibs -DMY_BOOST_LIB_DIR=C:\src\mysql-server\boost\boost_1_56_0\stage\lib -DMY_V8_LIB_DIR=C:\src\mysql-server\MyLibs\v8\Debug -DBOOST_INCLUDE_DIR=C:\src\mysql-server\boost\boost_1_56_0 -DMYSQL_INCLUDE_DIRS=C:\src\mysql-server\mysql-5.6.22\include -DMYSQL_LIBRARIES=C:\src\mysql-server\mysql-5.6.22\MY_BUILD\libmysql\Debug\mysqlclient.lib -DV8_INCLUDE_DIR=C:\src\mysql-server\v8-git-mirror -DMYSQL_INCLUDE_CMAKE_DIRS=C:\src\mysql-server\mysql-5.6.22\MY_BUILD\include .. 
+#  cmake -DMY_INCLUDE_DIR=C:\src\mysql-server\MyIncludes -DMY_GMOCK_LIB_DIR=C:\src\mysql-server\MyLibs -DMY_BOOST_LIB_DIR=C:\src\mysql-server\boost\boost_1_56_0\stage\lib -DV8_LIB_DIR=C:\src\mysql-server\MyLibs\v8\Debug -DBOOST_INCLUDE_DIR=C:\src\mysql-server\boost\boost_1_56_0 -DMYSQL_INCLUDE_DIRS=C:\src\mysql-server\mysql-5.6.22\include -DMYSQL_LIBRARIES=C:\src\mysql-server\mysql-5.6.22\MY_BUILD\libmysql\Debug\mysqlclient.lib -DV8_INCLUDE_DIR=C:\src\mysql-server\v8-git-mirror -DMYSQL_INCLUDE_CMAKE_DIRS=C:\src\mysql-server\mysql-5.6.22\MY_BUILD\include .. 
 #
 # For Linux:
-#  cmake -DMY_INCLUDE_DIR=/usr/local/include:/usr/include -DMY_BOOST_LIB_DIR=/usr/local/lib -DMY_V8_LIB_DIR=/home/fernando/src/v8/v8-git-mirror/out/Debug/lib.target -DV8_INCLUDE_DIR=/home/fernando/src/v8/v8-git-mirror .. 
+#  cmake -DMY_INCLUDE_DIR=/usr/local/include:/usr/include -DMY_BOOST_LIB_DIR=/usr/local/lib -DV8_LIB_DIR=/home/fernando/src/v8/v8-git-mirror/out/Debug/lib.target -DV8_INCLUDE_DIR=/home/fernando/src/v8/v8-git-mirror .. 
 #
-#  cmake -DMY_INCLUDE_DIR=/usr/local/include -DMY_BOOST_LIB_DIR=/usr/local/lib -DMY_V8_LIB_DIR=/home/fernando/src/v8/v8-git-mirror/out/Debug/lib.target -DV8_INCLUDE_DIR=/home/fernando/src/v8/v8-git-mirror -DCMAKE_BUILD_TYPE=Debug -DCMAKE_ECLIPSE_VERSION=4.4 -DCMAKE_ECLIPSE_GENERATE_SOURCE_PROJECT=TRUE -DMYSQL_INCLUDE_DIRS=/usr/local/mysql/include  DBOOST_INCLUDE_DIR=/usr/local/include -G "Eclipse CDT4 - Unix Makefiles" ..
+#  cmake -DMY_INCLUDE_DIR=/usr/local/include -DMY_BOOST_LIB_DIR=/usr/local/lib -DV8_LIB_DIR=/home/fernando/src/v8/v8-git-mirror/out/Debug/lib.target -DV8_INCLUDE_DIR=/home/fernando/src/v8/v8-git-mirror -DCMAKE_BUILD_TYPE=Debug -DCMAKE_ECLIPSE_VERSION=4.4 -DCMAKE_ECLIPSE_GENERATE_SOURCE_PROJECT=TRUE -DMYSQL_INCLUDE_DIRS=/usr/local/mysql/include  DBOOST_INCLUDE_DIR=/usr/local/include -G "Eclipse CDT4 - Unix Makefiles" ..
 
 #
 #
@@ -79,13 +79,6 @@ if(ENABLE_GCOV)
 endif()
 
 
-# TODO add auto-detection/manual param taking for this
-if(APPLE)
-  set(V8_INCLUDE_DIR /usr/local/include/v8)
-else()
-  # TODO: Other OSs specify it at the command line.
-endif()
-
 # GMock/GTest
 if(GMOCK_DIR)
     message(STATUS "Determining gmock compile flags")
@@ -109,7 +102,7 @@ include_directories( ${V8_INCLUDE_DIR} )
 include_directories( ${MYSQL_INCLUDE_CMAKE_DIRS} )
 
 link_directories( ${MY_BOOST_LIB_DIR} )
-link_directories( ${MY_V8_LIB_DIR} )
+link_directories( ${V8_LIB_DIR} )
 
 if(NOT WIN32)
   add_subdirectory(src/libedit)
@@ -150,11 +143,11 @@ target_link_libraries(mysh ${MYSQL_LIBRARIES})
 
 
 if(APPLE)
-  set(V8_LINK_LIST -mmacosx-version-min=10.5 -L/usr/local/lib/v8 -lv8_snapshot -licudata -lv8_libbase -lv8_base -licuuc -licui18n)
+  set(V8_LINK_LIST -mmacosx-version-min=10.5 -L${V8_LIB_DIR} -lv8_snapshot -licudata -lv8_libbase -lv8_base -licuuc -licui18n)
 elseif(WIN32)
   set(V8_LINK_LIST v8_snapshot v8_libbase v8_base icuuc icui18n winmm)
 else()	# Linux
-  set(V8_LINK_LIST -L${MY_V8_LIB_DIR} -lv8 -licuuc -licui18n)
+  set(V8_LINK_LIST -L${V8_LIB_DIR} -lv8 -licuuc -licui18n)
 endif()
 
 target_link_libraries(mysh ${V8_LINK_LIST})

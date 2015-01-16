@@ -22,7 +22,7 @@
 #define _JSCRIPT_TYPE_CONVERSION_H_
 
 #include "shellcore/types.h"
-#include <include/v8.h>
+#include <v8.h>
 
 namespace shcore {
 
