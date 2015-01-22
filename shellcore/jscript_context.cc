@@ -412,7 +412,10 @@ struct JScript_context::JScript_context_impl
   void set_global(const std::string &name, const v8::Handle<v8::Value> &value)
   {
     v8::Handle<v8::Context> ctx(v8::Local<v8::Context>::New(isolate, context));
-    ctx->Global()->Set(v8::String::NewFromUtf8(isolate, name.c_str()), value);
+    if (value.IsEmpty() || !*value)
+      ctx->Global()->Set(v8::String::NewFromUtf8(isolate, name.c_str()), v8::Null(isolate));
+    else
+      ctx->Global()->Set(v8::String::NewFromUtf8(isolate, name.c_str()), value);
   }
 
   v8::Handle<v8::Value> get_global(const std::string &name)

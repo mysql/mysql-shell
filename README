@@ -1,12 +1,22 @@
-NG Shell
+MySQL Shell
 
-Dependencies:
+MySQL query and administration shell client and framework.
 
+
+DEPENDENCIES
+============
+
+- cmake 
 - v8 (3.32.7)
-- boost (any version that will compile)
+- boost (recommended 1.56)
+
 - libmysqlclient 5.6+
 
-Build like:
+- gmock (recommended 1.7.0) (for unit-tests)
+
+
+BUILD
+=====
 
 mkdir bld
 cd bld
