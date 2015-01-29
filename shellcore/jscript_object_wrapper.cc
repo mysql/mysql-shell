@@ -34,11 +34,12 @@ JScript_object_wrapper::JScript_object_wrapper(JScript_context *context)
   v8::Handle<v8::ObjectTemplate> templ = v8::ObjectTemplate::New(_context->isolate());
   _object_template.Reset(_context->isolate(), templ);
 
-  v8::NamedPropertyHandlerConfiguration config;
-  config.getter = &JScript_object_wrapper::handler_getter;
-  config.setter = &JScript_object_wrapper::handler_setter;
-  config.enumerator = &JScript_object_wrapper::handler_enumerator;
-  templ->SetHandler(config);
+  //v8::NamedPropertyHandlerConfiguration config;
+  //config.getter = &JScript_object_wrapper::handler_getter;
+  //config.setter = &JScript_object_wrapper::handler_setter;
+  //config.enumerator = &JScript_object_wrapper::handler_enumerator;
+  //templ->SetHandler(config);
+  templ->SetNamedPropertyHandler(&JScript_object_wrapper::handler_getter, &JScript_object_wrapper::handler_setter, 0, 0, &JScript_object_wrapper::handler_enumerator);
 
   templ->SetInternalFieldCount(3);
 }
@@ -80,7 +81,7 @@ void JScript_object_wrapper::wrapper_deleted(const v8::WeakCallbackData<v8::Obje
 }
 
 
-void JScript_object_wrapper::handler_getter(v8::Local<v8::Name> property, const v8::PropertyCallbackInfo<v8::Value>& info)
+void JScript_object_wrapper::handler_getter(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
 {
   v8::HandleScope hscope(info.GetIsolate());
   v8::Handle<v8::Object> obj(info.Holder());
@@ -120,7 +121,7 @@ void JScript_object_wrapper::handler_getter(v8::Local<v8::Name> property, const 
 }
 
 
-void JScript_object_wrapper::handler_setter(v8::Local<v8::Name> property, v8::Local<v8::Value> value, const v8::PropertyCallbackInfo<v8::Value>& info)
+void JScript_object_wrapper::handler_setter(v8::Local<v8::String> property, v8::Local<v8::Value> value, const v8::PropertyCallbackInfo<v8::Value>& info)
 {
   v8::HandleScope hscope(info.GetIsolate());
   v8::Handle<v8::Object> obj(info.Holder());

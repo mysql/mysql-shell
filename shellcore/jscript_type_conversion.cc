@@ -73,7 +73,7 @@ double JScript_type_bridger::call_num_method(v8::Handle<v8::Object> object, cons
 {
   v8::Handle<v8::Function> func = v8::Handle<v8::Function>::Cast(object->Get(v8::String::NewFromUtf8(owner->isolate(), method)));
   v8::Handle<v8::Value> result = func->Call(object, 0, NULL);
-  return result->ToNumber(owner->isolate())->Value();
+  return result->ToNumber()->Value();
 }
 
 

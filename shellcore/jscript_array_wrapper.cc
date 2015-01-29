@@ -35,15 +35,17 @@ JScript_array_wrapper::JScript_array_wrapper(JScript_context *context)
   _array_template.Reset(_context->isolate(), templ);
 
   {
-    v8::IndexedPropertyHandlerConfiguration config;
-    config.getter = &JScript_array_wrapper::handler_igetter;
-    config.enumerator = &JScript_array_wrapper::handler_ienumerator;
-    templ->SetHandler(config);
+    //v8::IndexedPropertyHandlerConfiguration config;
+    //config.getter = &JScript_array_wrapper::handler_igetter;
+    //config.enumerator = &JScript_array_wrapper::handler_ienumerator;
+    //templ->SetHandler(config);
+    templ->SetIndexedPropertyHandler(&JScript_array_wrapper::handler_igetter, 0, 0, 0, &JScript_array_wrapper::handler_ienumerator);
   }
   {
-    v8::NamedPropertyHandlerConfiguration config;
-    config.getter = &JScript_array_wrapper::handler_getter;
-    templ->SetHandler(config);
+    //v8::NamedPropertyHandlerConfiguration config;
+    //config.getter = &JScript_array_wrapper::handler_getter;
+    //templ->SetHandler(config);
+    templ->SetNamedPropertyHandler(&JScript_array_wrapper::handler_getter);
   }
 
   templ->SetInternalFieldCount(3);
@@ -86,7 +88,7 @@ void JScript_array_wrapper::wrapper_deleted(const v8::WeakCallbackData<v8::Objec
 }
 
 
-void JScript_array_wrapper::handler_getter(v8::Local<v8::Name> property, const v8::PropertyCallbackInfo<v8::Value>& info)
+void JScript_array_wrapper::handler_getter(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
 {
   v8::HandleScope hscope(info.GetIsolate());
   v8::Handle<v8::Object> obj(info.Holder());
