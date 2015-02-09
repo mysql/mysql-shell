@@ -39,14 +39,17 @@
 #include "../modules/mod_session.h"
 #include "../modules/mod_db.h"
 
-
 #ifdef WIN32
+#  include <m_ctype.h>
+#  include <my_sys.h>
 #  include <io.h>
 #  define isatty _isatty
 #endif
 
 
 using namespace shcore;
+
+const int MAX_READLINE_BUF = 65536;
 
 extern char *get_tty_password(const char *opt_message);
 
@@ -69,6 +72,7 @@ public:
   void print_banner();
 
 private:
+  static char *readline(const char *prompt);
   void process_line(const std::string &line);
   std::string prompt();
 
@@ -254,24 +258,30 @@ void Interactive_shell::deleg_print_error(void *cdata, const char *text)
 }
 
 
+char *Interactive_shell::readline(const char *prompt)
+{
+  char *tmp;
+#ifndef WIN32
+  tmp = ::readline(prompt);
+#else
+  tmp = (char *)malloc(MAX_READLINE_BUF);
+  if (!tmp)
+    throw Exception::runtime_error("Cannot allocate memory for Interactive_shell::readline buffer.");
+  my_win_console_fputs(&my_charset_latin1, prompt);
+  tmp = my_win_console_readline(&my_charset_latin1, tmp, MAX_READLINE_BUF);
+#endif
+  return tmp;
+}
+
+
 bool Interactive_shell::deleg_input(void *cdata, const char *prompt, std::string &ret)
 {
-  std::string s;
-#ifndef WIN32  
-  char *tmp = readline(prompt);
+  char *tmp = Interactive_shell::readline(prompt);
   if (!tmp)
     return false;
-  ret = tmp;
-#else  
-  if(!std::getline(std::cin, s))
-    return false;
-  ret = s; 
-#endif
 
-// TODO: Remove this?
-#ifndef WIN32  	
+  ret = tmp;
   free(tmp);
-#endif
 
   return true;
 }
@@ -410,14 +420,7 @@ void Interactive_shell::command_loop()
 
   for (;;)
   {
-#ifndef WIN32
-    char *cmd = readline(prompt().c_str());
-#else
-    std::string s;
-    std::getline(std::cin, s);
-    char *cmd = strdup( s.c_str() );
-#endif
-
+    char *cmd = Interactive_shell::readline(prompt().c_str());
     if (!cmd)
       break;
 

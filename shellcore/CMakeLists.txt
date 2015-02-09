@@ -1,4 +1,4 @@
-# Copyright (c) 2014, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2014, 2015, Oracle and/or its affiliates. All rights reserved.
 # 
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -32,3 +32,8 @@ add_library(mysqlsh ${libmysqlsh_SRC})
 #  include(msvc)
   CHANGE_MD_2_MT()
 #endif()
+
+add_definitions(-DSHCORE_EXPORT )
+add_definitions(-DBOOST_ALL_NO_LIB )
+
+

@@ -1,4 +1,4 @@
-# Copyright (c) 2014, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2014, 2015, Oracle and/or its affiliates. All rights reserved.
 # 
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -16,13 +16,13 @@
 # Sample command lines
 #  (Don't delete, my copy & paste)
 # For Windows:
-#  cmake -DMY_INCLUDE_DIR=C:\src\mysql-server\MyIncludes -DMY_GMOCK_LIB_DIR=C:\src\mysql-server\MyLibs -DMY_BOOST_LIB_DIR=C:\src\mysql-server\boost\boost_1_56_0\stage\lib -DV8_LIB_DIR=C:\src\mysql-server\MyLibs\v8\Debug -DBOOST_INCLUDE_DIR=C:\src\mysql-server\boost\boost_1_56_0 -DMYSQL_INCLUDE_DIRS=C:\src\mysql-server\mysql-5.6.22\include -DMYSQL_LIBRARIES=C:\src\mysql-server\mysql-5.6.22\MY_BUILD\libmysql\Debug\mysqlclient.lib -DV8_INCLUDE_DIR=C:\src\mysql-server\v8-git-mirror -DMYSQL_INCLUDE_CMAKE_DIRS=C:\src\mysql-server\mysql-5.6.22\MY_BUILD\include .. 
-#
+#  cmake -DV8_INCLUDE_DIR=C:\src\mysql-server\v8-git-v3.28.73\include -DV8_LIB_DIR=C:\src\mysql-server\MyLibs\v8\Debug -DWITH_BOOST=C:\src\mysql-server\boost\boost_1_56_0 -DGMOCK_DIR=C:\src\OpenSource\gmock-1.7.0 ..
 # For Linux:
-#  cmake -DMY_INCLUDE_DIR=/usr/local/include:/usr/include -DMY_BOOST_LIB_DIR=/usr/local/lib -DV8_LIB_DIR=/home/fernando/src/v8/v8-git-mirror/out/Debug/lib.target -DV8_INCLUDE_DIR=/home/fernando/src/v8/v8-git-mirror .. 
+#  cmake -DWITH_BOOST=/home/fernando/src/boost_1_56_0/ -DV8_LIB_DIR=/home/fernando/src/v8/v8-git-v3.28.73/out/Debug/lib.target -DV8_INCLUDE_DIR=/home/fernando/src/v8/v8-git-v3.28.73/include .. 
 #
-#  cmake -DMY_INCLUDE_DIR=/usr/local/include -DMY_BOOST_LIB_DIR=/usr/local/lib -DV8_LIB_DIR=/home/fernando/src/v8/v8-git-mirror/out/Debug/lib.target -DV8_INCLUDE_DIR=/home/fernando/src/v8/v8-git-mirror -DCMAKE_BUILD_TYPE=Debug -DCMAKE_ECLIPSE_VERSION=4.4 -DCMAKE_ECLIPSE_GENERATE_SOURCE_PROJECT=TRUE -DMYSQL_INCLUDE_DIRS=/usr/local/mysql/include  DBOOST_INCLUDE_DIR=/usr/local/include -G "Eclipse CDT4 - Unix Makefiles" ..
-
+#
+#  cmake -DWITH_BOOST=/home/fernando/src/boost_1_56_0/ -DV8_LIB_DIR=/home/fernando/src/v8/v8-git-v3.28.73/out/Debug/lib.target -DV8_INCLUDE_DIR=/home/fernando/src/v8/v8-git-v3.28.73/include -DCMAKE_BUILD_TYPE=Debug -DCMAKE_ECLIPSE_VERSION=4.4 -DCMAKE_ECLIPSE_GENERATE_SOURCE_PROJECT=TRUE --G "Eclipse CDT4 - Unix Makefiles" ..
+#
 #
 #
 cmake_minimum_required (VERSION 2.8)
@@ -42,9 +42,9 @@ include(msvc)
 INCLUDE (CheckIncludeFiles)
 INCLUDE (CheckFunctionExists)
 
-if(NOT WIN32)
-  find_package(MySQL REQUIRED)
-endif()
+
+find_package(MySQL REQUIRED)
+
 
 CHECK_INCLUDE_FILES (pwd.h HAVE_PWD_H)
 if(WIN32)
@@ -78,6 +78,7 @@ if(ENABLE_GCOV)
     add_definitions(-fprofile-arcs -ftest-coverage)
 endif()
 
+add_definitions(-DSHCORE_EXPORT )
 
 # GMock/GTest
 if(GMOCK_DIR)
@@ -97,11 +98,8 @@ endif()
 ###
 
 include_directories( ${CMAKE_BINARY_DIR}/include/ )
-include_directories( ${MY_INCLUDE_DIR} )
 include_directories( ${V8_INCLUDE_DIR} )
-include_directories( ${MYSQL_INCLUDE_CMAKE_DIRS} )
 
-link_directories( ${MY_BOOST_LIB_DIR} )
 link_directories( ${V8_LIB_DIR} )
 
 if(NOT WIN32)
@@ -136,6 +134,7 @@ add_executable(mysh ${mysh_SRC})
 
 if(WIN32)
   target_link_libraries(mysh mysqlsh)
+  add_dependencies(mysh boost_code.obj)
 else()
   target_link_libraries(mysh mysqlsh readline)
 endif()
@@ -155,34 +154,36 @@ target_link_libraries(mysh ${V8_LINK_LIST})
 # enable_testing()
 
 if(GMOCK_LIBRARIES)
-file(GLOB shcore_tests_SRC
+
+  file(GLOB shcore_tests_SRC
     "${PROJECT_SOURCE_DIR}/modules/*.cc"
 	"${PROJECT_SOURCE_DIR}/tests/*.cc"
 	"${PROJECT_SOURCE_DIR}/src/boost_code.cc"
-)
+  )
 
-add_definitions(-DGTEST_LANG_CXX11=0 ${GMOCK_CFLAGS})
-add_executable( shcore.tests ${shcore_tests_SRC} )
-target_link_libraries( shcore.tests mysqlsh )
-if (WIN32)
-  #target_link_libraries( shcore.tests gtestd )
-  target_link_libraries( shcore.tests libboost_filesystem-vc120-mt-sgd-1_56 )
-else()
-  target_link_libraries( shcore.tests pthread )
-  target_link_libraries( shcore.tests boost_filesystem )  
-endif()
-target_link_libraries(shcore.tests
+  add_definitions(-DGTEST_LANG_CXX11=0 ${GMOCK_CFLAGS})
+
+  add_executable( shcore.tests ${shcore_tests_SRC} )
+  target_link_libraries( shcore.tests mysqlsh )
+
+  if (NOT WIN32)
+    target_link_libraries( shcore.tests pthread )
+  endif()
+
+  target_link_libraries(shcore.tests
         ${V8_LINK_LIST}
         ${GMOCK_LIBRARIES}
         ${MYSQL_LIBRARIES})
 
-if(ENABLE_GCOV)
+  if(ENABLE_GCOV)
     target_link_libraries(shcore.tests -fprofile-arcs -ftest-coverage)
-endif()
+  endif()
+
 endif()
 
 
-#if( WIN32 )
+if(WIN32)
   CHANGE_MD_2_MT()
-  add_definitions(-DSHCORE_EXPORT )
-#endif()
+endif()
+
+add_definitions(-DBOOST_ALL_NO_LIB )

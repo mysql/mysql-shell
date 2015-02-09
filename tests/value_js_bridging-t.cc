@@ -1,5 +1,5 @@
 
-/* Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2014, 2015, Oracle and/or its affiliates. All rights reserved.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published by
@@ -24,6 +24,7 @@
 #include <boost/bind.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/algorithm/string.hpp>
+#include <boost/pointer_cast.hpp>
 
 #include "gtest/gtest.h"
 #include "shellcore/types.h"
@@ -307,15 +308,15 @@ namespace tests {
     boost::shared_ptr<Test_object> obj3 = boost::shared_ptr<Test_object>(new Test_object(123));
 
     ASSERT_EQ(*obj, *obj2);
-    ASSERT_EQ(Value(obj), Value(obj2));
+    ASSERT_EQ(Value(boost::static_pointer_cast<Object_bridge>(obj)), Value(boost::static_pointer_cast<Object_bridge>(obj2)));
     ASSERT_NE(*obj, *obj3);
 
-    ASSERT_EQ(Value(obj2), env.js->v8_value_to_shcore_value(env.js->shcore_value_to_v8_value(Value(obj))));
+    ASSERT_EQ(Value(boost::static_pointer_cast<Object_bridge>(obj2)), env.js->v8_value_to_shcore_value(env.js->shcore_value_to_v8_value(Value(boost::static_pointer_cast<Object_bridge>(obj)))));
 
     boost::system::error_code error;
 
     // expose the object to JS
-    env.js->set_global("test_obj", Value(obj));
+    env.js->set_global("test_obj", Value(boost::static_pointer_cast<Object_bridge>(obj)));
     ASSERT_EQ(env.js->execute("type(test_obj)", error).descr(false), "m.Test");
 
     // test getting member from obj
