@@ -91,7 +91,7 @@ void JScript_object_wrapper::handler_getter(v8::Local<v8::String> property, cons
   if (!object)
     throw std::logic_error("bug!");
 
-  std::string prop = *v8::String::Utf8Value(property);
+  v8::String::Utf8Value prop(property);
   /*if (prop == "__members__")
   {
     std::vector<std::string> members((*object)->get_members());
@@ -107,9 +107,9 @@ void JScript_object_wrapper::handler_getter(v8::Local<v8::String> property, cons
   {
     try
     {
-      Value member = (*object)->get_member(prop);
+      Value member = (*object)->get_member(*prop);
       if (!member)
-        info.GetIsolate()->ThrowException(v8::String::NewFromUtf8(info.GetIsolate(), (std::string("Invalid member ").append(prop)).c_str()));
+        info.GetIsolate()->ThrowException(v8::String::NewFromUtf8(info.GetIsolate(), (std::string("Invalid member ").append(*prop)).c_str()));
       else
         info.GetReturnValue().Set(self->_context->shcore_value_to_v8_value(member));
     }
@@ -131,10 +131,10 @@ void JScript_object_wrapper::handler_setter(v8::Local<v8::String> property, v8::
   if (!object)
     throw std::logic_error("bug!");
 
-  const char *prop = *v8::String::Utf8Value(property);
+  v8::String::Utf8Value prop(property);
   try
   {
-    (*object)->set_member(prop, self->_context->v8_value_to_shcore_value(value));
+    (*object)->set_member(*prop, self->_context->v8_value_to_shcore_value(value));
     info.GetReturnValue().Set(value);
   }
   catch (Exception &exc)

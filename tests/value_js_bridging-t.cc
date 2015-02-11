@@ -127,9 +127,14 @@ namespace tests {
     Object_registry reg;
     JScript_context *js;
   };
-  Environment env;
 
-  TEST(JavaScript, basic)
+  class JavaScript : public ::testing::Test
+  {
+  protected:
+    Environment env;
+  };
+
+  TEST_F(JavaScript, basic)
   {
     ASSERT_TRUE(env.js);
 
@@ -141,7 +146,7 @@ namespace tests {
     ASSERT_EQ(result.as_int(), 2);
   }
 
-  TEST(JavaScript, globals)
+  TEST_F(JavaScript, globals)
   {
     ASSERT_TRUE(env.js);
 
@@ -151,7 +156,7 @@ namespace tests {
   }
 
 
-  TEST(JavaScript, simple_to_js_and_back)
+  TEST_F(JavaScript, simple_to_js_and_back)
   {
     v8::Isolate::Scope isolate_scope(env.js->isolate());
     v8::HandleScope handle_scope(env.js->isolate());
@@ -209,7 +214,7 @@ namespace tests {
     }
   }
 
-  TEST(JavaScript, array_to_js)
+  TEST_F(JavaScript, array_to_js)
   {
     v8::Isolate::Scope isolate_scope(env.js->isolate());
     v8::HandleScope handle_scope(env.js->isolate());
@@ -253,7 +258,7 @@ namespace tests {
     ASSERT_EQ(result.repr(), "[1, 2, 3]");
   }
 
-  TEST(JavaScript, map_to_js)
+  TEST_F(JavaScript, map_to_js)
   {
     v8::Isolate::Scope isolate_scope(env.js->isolate());
     v8::HandleScope handle_scope(env.js->isolate());
@@ -295,7 +300,7 @@ namespace tests {
     ASSERT_EQ(result, Value(map2));
   }
 
-  TEST(JavaScript, object_to_js)
+  TEST_F(JavaScript, object_to_js)
   {
     v8::Isolate::Scope isolate_scope(env.js->isolate());
     v8::HandleScope handle_scope(env.js->isolate());
@@ -336,7 +341,7 @@ namespace tests {
   }
 
 
-  TEST(JavaScript, function_to_js)
+  TEST_F(JavaScript, function_to_js)
   {
     v8::Isolate::Scope isolate_scope(env.js->isolate());
     v8::HandleScope handle_scope(env.js->isolate());
@@ -372,7 +377,7 @@ namespace tests {
 
 
 
-  TEST(JavaScript, builtin_functions)
+  TEST_F(JavaScript, builtin_functions)
   {
     v8::Isolate::Scope isolate_scope(env.js->isolate());
     v8::HandleScope handle_scope(env.js->isolate());
@@ -384,7 +389,7 @@ namespace tests {
     ASSERT_EQ(env.js->execute("repr(unrepr(repr(\"hello world\")))", error).descr(false), "\"hello world\"");
   }
 
-  TEST(JavaScript, js_date_object)
+  TEST_F(JavaScript, js_date_object)
   {
     v8::Isolate::Scope isolate_scope(env.js->isolate());
     v8::HandleScope handle_scope(env.js->isolate());

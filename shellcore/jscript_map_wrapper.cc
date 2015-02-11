@@ -91,7 +91,7 @@ void JScript_map_wrapper::handler_getter(v8::Local<v8::String> property, const v
   if (!map)
     throw std::logic_error("bug!");
 
-  const char *prop = *v8::String::Utf8Value(property);
+  v8::String::Utf8Value prop(property);
   /*if (strcmp(prop, "__members__") == 0)
   {
     v8::Handle<v8::Array> marray = v8::Array::New(info.GetIsolate());
@@ -104,9 +104,9 @@ void JScript_map_wrapper::handler_getter(v8::Local<v8::String> property, const v
   }
   else*/
   {
-    Value::Map_type::const_iterator iter = (*map)->find(prop);
+    Value::Map_type::const_iterator iter = (*map)->find(*prop);
     if (iter == (*map)->end())
-      info.GetIsolate()->ThrowException(v8::String::NewFromUtf8(info.GetIsolate(), (std::string("Invalid member ").append(prop)).c_str()));
+      info.GetIsolate()->ThrowException(v8::String::NewFromUtf8(info.GetIsolate(), (std::string("Invalid member ").append(*prop)).c_str()));
     else
       info.GetReturnValue().Set(self->_context->shcore_value_to_v8_value(iter->second));
   }
@@ -123,8 +123,8 @@ void JScript_map_wrapper::handler_setter(v8::Local<v8::String> property, v8::Loc
   if (!map)
     throw std::logic_error("bug!");
 
-  const char *prop = *v8::String::Utf8Value(property);
-  (**map)[prop] = self->_context->v8_value_to_shcore_value(value);
+  v8::String::Utf8Value prop(property);
+  (**map)[*prop] = self->_context->v8_value_to_shcore_value(value);
 
   info.GetReturnValue().Set(value);
 }
