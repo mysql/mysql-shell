@@ -60,11 +60,6 @@ public:
   void internal_sql(boost::shared_ptr<Mysql_connection> conn, const std::string& sql, boost::function<void (MYSQL_RES* data)> result_handler);
 
   void print_exception(const shcore::Exception &e);
-  void print_warnings(MYSQL_RES* data, unsigned long main_error_code);
-  void print_result(MYSQL_RES *res);
-  void print_table(MYSQL_RES *res);
-  void print_json(MYSQL_RES *res);
-  void print_vertical(MYSQL_RES *res);
 
   boost::shared_ptr<Mysql_connection> conn() const { return _conn; }
 

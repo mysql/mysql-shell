@@ -19,7 +19,10 @@
 
 #include "shellcore/shell_sql.h"
 #include "../modules/mod_session.h"
+#include "../modules/mod_mysql.h"
 #include "../utils/utils_mysql_parsing.h"
+#include <boost/bind.hpp>
+#include <boost/format.hpp>
 
 using namespace shcore;
 
@@ -31,18 +34,18 @@ Shell_sql::Shell_sql(Shell_core *owner)
   _delimiter = ";";
 }
 
-Interactive_input_state Shell_sql::handle_interactive_input(std::string &code)
+Value Shell_sql::handle_interactive_input(std::string &code, Interactive_input_state &state)
 {
-  Interactive_input_state ret_val = Input_ok;
-  Value session = _owner->get_global("_S");
+  state = Input_ok;
+  Value session_wrapper = _owner->get_global("_S");
   MySQL_splitter splitter;
 
   _continuing_line = 0;
   _last_handled.clear();
   
-  if (session)
+  if (session_wrapper)
   {
-    boost::shared_ptr<mysh::Session> _db = session.as_object<mysh::Session>();
+    boost::shared_ptr<mysh::Session> session = session_wrapper.as_object<mysh::Session>();
     // Parses the input string to identify individual statements in it.
     // Will return a range for every statement that ends with the delimiter, if there
     // is additional code after the last delimiter, a range for it will be included too.
@@ -57,14 +60,28 @@ Interactive_input_state Shell_sql::handle_interactive_input(std::string &code)
         std::string statement = code.substr(ranges[index].first, ranges[index].second);
         shcore::Argument_list query;
         query.push_back(Value(statement));
-        _db->sql(query);
+        Value result_wrapper = session->sql(query);
+
+        if (result_wrapper)
+        {
+          boost::shared_ptr<mysh::Mysql_resultset> result = result_wrapper.as_object<mysh::Mysql_resultset>();
+
+          if (result)
+          {
+            result->print(Argument_list());
+
+            // Prints the warnings if required
+            if (result->warning_count())
+              print_warnings(session);
+          }
+        }
       }
     }
     
     if (ranges.size() > statement_count)
     {
       _continuing_line = '-';
-      ret_val = Input_continued;
+      state = Input_continued;
       
       // Sets the executed code if any
       // and updates the remaining code too
@@ -80,9 +97,42 @@ Interactive_input_state Shell_sql::handle_interactive_input(std::string &code)
       _last_handled = code;
   }
 
-  return ret_val;
+  return Value();
 }
 
+void Shell_sql::print_warnings(boost::shared_ptr<mysh::Session> session)
+{
+  Argument_list warnings_query;
+  warnings_query.push_back(Value("show warnings"));
+
+  Value::Map_type_ref options(new shcore::Value::Map_type);
+  (*options)["key_by_index"] = Value::True();
+  warnings_query.push_back(Value(options));
+
+  Value result_wrapper = session->sql(warnings_query);
+
+  if (result_wrapper)
+  {
+    boost::shared_ptr<mysh::Mysql_resultset> result = result_wrapper.as_object<mysh::Mysql_resultset>();
+
+    if (result)
+    {
+      Value record;
+
+      while ((record = result->next(Argument_list())))
+      {
+        boost::shared_ptr<Value::Map_type> row = record.as_map();
+
+        
+        unsigned long error = ((*row)["1"].as_int());
+
+        std::string type = (*row)["0"].as_string();
+        std::string msg = (*row)["2"].as_string();
+        _owner->print((boost::format("%s (Code %ld): %s\n") % type % error % msg).str());
+      }
+    }
+  }
+}
 
 int Shell_sql::run_script(const std::string &path, boost::system::error_code &err)
 {

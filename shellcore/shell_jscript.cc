@@ -30,16 +30,15 @@ Shell_javascript::Shell_javascript(Shell_core *shcore)
 }
 
 
-Interactive_input_state Shell_javascript::handle_interactive_input(std::string &code)
+Value Shell_javascript::handle_interactive_input(std::string &code, Interactive_input_state &state)
 {
   Value result = _js->execute_interactive(code);
 
-  // last result
-  _owner->set_global("_LR", result);
-
   _last_handled = code;
 
-  return Input_ok;
+  state = Input_ok;
+
+  return result;
 }
 
 

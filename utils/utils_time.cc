@@ -47,9 +47,9 @@ unsigned long MySQL_timer::end()
  len("4294967296 days, 23 hours, 59 minutes, 60.00 seconds")  ->  52
  */
 
-std::string MySQL_timer::format_legacy(bool part_seconds)
+std::string MySQL_timer::format_legacy(unsigned long raw_time, bool part_seconds)
 {
-  double duration = (double) (_end - _start) /  CLOCKS_PER_SEC;
+  double duration = (double)(raw_time) / CLOCKS_PER_SEC;
   double temp;
   std::string str_duration;
   

@@ -22,7 +22,6 @@
 #include "shellcore/object_factory.h"
 #include "shellcore/shell_core.h"
 #include "shellcore/lang_base.h"
-#include "../utils/utils_time.h"
 
 #include "shellcore/proxy_object.h"
 
@@ -99,85 +98,25 @@ Value Session::sql(const Argument_list &args)
     return Value::Null();
   }
 
-  // Validates for empty statements.
+  // Options are the statement and optionally options to modify
+  // How the resultset is created.
   std::string statement = args.string_at(0);
+  Value options;
+  if (args.size() == 2)
+    options = args[1];
+
   if (statement.empty())
     _shcore->print_error("No query specified\n");
   else
   {
     try
     {
-      MySQL_timer timer;
-      timer.start();
-
-      MYSQL_RES *result = _conn->raw_sql(statement);
-
-      timer.end();
-
-      do
-      {
-        std::string output;
-
-        if (result)
-        {
-          // Prints the informative line at the end
-          my_ulonglong rows = mysql_num_rows(result);
-
-          if (rows)
-          {
-            // print rows from result, with stats etc
-            print_result(result);
-
-            output = (boost::format("%lld %s in set") % rows % (rows == 1 ? "row" : "rows")).str();
-          }
-          else
-            output = "Empty set";
-
-          mysql_free_result(result);
-        }
-        else
-        {
-          my_ulonglong rows = _conn->affected_rows();
-
-          // TODO: Verify this should print Query OK... or Query Error.
-          // Checks for a -1 value, which would indicate an error.
-          // Even so the old client printed Query OK on this case for some reason.
-          if (rows == ~(my_ulonglong) 0)
-            output = "Query OK";
-          else
-            // In case of Query OK, prints the actual number of affected rows.
-            output = (boost::format("Query OK, %lld %s affected") % rows % (rows == 1 ? "row" : "rows")).str();
-        }
-
-        unsigned int warnings = _conn->warning_count();
-        if (warnings)
-          output.append((boost::format(", %d warning%s") % warnings % (warnings == 1 ? "" : "s")).str());
-
-        output.append(" ");
-        output.append((boost::format("(%s)") % timer.format_legacy(true)).str());
-        output.append("\n\n");
-
-        _shcore->print(output);
-
-        const char* info = _conn->get_info();
-        if (info)
-        {
-          std::string data(info);
-          data.append("\n\n");
-          _shcore->print(data);
-        }
-
-        if (warnings && _show_warnings)
-          internal_sql(_conn, "show warnings",boost::bind(&Session::print_warnings, this, _1, 0));
-
-      } while((result = _conn->next_result()));
+      Value result = _conn->sql(statement, options);
+      return result;
     }
     catch (shcore::Exception &exc)
     {
       print_exception(exc);
-
-      if (_show_warnings)
-        internal_sql(_conn, "show warnings",boost::bind(&Session::print_warnings, this, _1, (*exc.error())["code"]));
     }
   }
   
@@ -200,31 +139,19 @@ void Session::internal_sql(boost::shared_ptr<Mysql_connection> conn, const std::
   }
 }
 
-void Session::print_warnings(MYSQL_RES* data, unsigned long main_error_code)
-{
-  MYSQL_ROW row = NULL;
-  while ((row = mysql_fetch_row(data)))
-  {
-    unsigned long error = boost::lexical_cast<unsigned long>(row[1]);
-    if (error != main_error_code)
-      _shcore->print((boost::format("%s (Code %s): %s\n") % row[0] % row[1] % row[2]).str());
-  }
-}
-
-
-void Session::print_result(MYSQL_RES *res)
-{
-  // At this point it means there were no errors.
-
-  print_table(res);
-}
 
 void Session::print_exception(const shcore::Exception &e)
 {
-  std::string message = (*e.error())["type"].as_string();
+  // Removes the type, at this moment only type is MySQLError
+  // Reason is that leaving it will print things like:
+  // ERROR: MySQLError (code) message
+  // Where ERROR is added on the called print_error routine
+  //std::string message = (*e.error())["type"].as_string();
+  
+  std::string message;
   if ((*e.error()).has_key("code"))
   {
-    message.append(" ");
+    //message.append(" ");
     message.append(((*e.error())["code"].repr()));
                    
     if ((*e.error()).has_key("state") && (*e.error())["state"])
@@ -237,79 +164,6 @@ void Session::print_exception(const shcore::Exception &e)
   _shcore->print_error(message);
 }
 
-
-void Session::print_table(MYSQL_RES *res)
-{
-  unsigned int index = 0;
-  unsigned int field_count = mysql_num_fields(res);
-  std::vector<std::string> formats(field_count, "%-");
-  MYSQL_FIELD *fields = mysql_fetch_fields(res);
-  
-  // Calculates the max column widths and constructs the separator line.
-  std::string separator("+");
-  for(index = 0; index < field_count; index++)
-  {
-    unsigned int max_field_length;
-    max_field_length = std::max<unsigned int>(fields[index].max_length, fields[index].name_length);
-    max_field_length = std::max<unsigned int>(max_field_length, MIN_COLUMN_LENGTH);
-    fields[index].max_length = max_field_length;
-    
-    // Creates the format string to print each field
-    formats[index].append(boost::lexical_cast<std::string>(max_field_length));
-    formats[index].append("s|");
-    
-    std::string field_separator(max_field_length, '-');
-    field_separator.append("+");
-    separator.append(field_separator);
-  }
-  separator.append("\n");
-  
-
-  // Prints the initial separator line and the column headers
-  // TODO: Consider the charset information on the length calculations
-  _shcore->print(separator);
-  _shcore->print("|");
-  for(index = 0; index < field_count; index++)
-  {
-    std::string data = (boost::format(formats[index]) % fields[index].name).str();
-    _shcore->print(data);
-    
-    // Once the header is printed, updates the numeric fields formats
-    // so they are right aligned
-    if (IS_NUM(fields[index].type))
-      formats[index] = formats[index].replace(1, 1, "");
-
-  }
-  _shcore->print("\n");
-  _shcore->print(separator);
-  
-  
-  // Now prints the records
-  MYSQL_ROW row;
-  while((row = mysql_fetch_row(res)))
-  {
-    _shcore->print("|");
-    
-    {
-      for(index = 0; index < field_count; index++)
-      {
-        std::string data = (boost::format(formats[index]) % (row[index] ? row[index] : "NULL")).str();
-        _shcore->print(data);
-      }
-      _shcore->print("\n");
-    }
-  }
-  _shcore->print(separator);
-}
-
-void Session::print_json(MYSQL_RES *res)
-{
-  
-}
-void Session::print_vertical(MYSQL_RES *res)
-{
-  
-}
 
 std::string Session::class_name() const
 {

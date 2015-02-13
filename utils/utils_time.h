@@ -17,7 +17,8 @@ public:
   unsigned long get_time();
   unsigned long start();
   unsigned long end();
-  std::string format_legacy(bool part_seconds);
+  unsigned long raw_duration() { return _end - _start; }
+  static std::string format_legacy(unsigned long raw_time, bool part_seconds);
 
 private:
   unsigned long _start;

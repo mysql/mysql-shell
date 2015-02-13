@@ -343,6 +343,8 @@ void Interactive_shell::do_shell_command(const std::string &line)
 
 void Interactive_shell::process_line(const std::string &line)
 {
+  Interactive_input_state state = Input_ok;
+
   // check if the line is an escape/shell command
   if (_input_buffer.empty() && !line.empty() && line[0] == '\\' && !_multiline_mode)
   {
@@ -369,10 +371,22 @@ void Interactive_shell::process_line(const std::string &line)
   
     if (!_multiline_mode)
     {
-      Interactive_input_state state;
       try
       {
-        state = _shell->handle_interactive_input(_input_buffer);
+        Value result = _shell->handle_interactive_input(_input_buffer, state);
+
+        if (result)
+        {
+          boost::shared_ptr<Object_bridge> object = result.as_object();
+          Value dump_function;
+          if (object)
+            dump_function = object->get_member("__paged_output__");
+
+          if (dump_function)
+            object->call("__paged_output__", Argument_list());
+          else
+            this->print(result.descr(true).c_str());
+        }
 
         std::string executed = _shell->get_handled_input();
 

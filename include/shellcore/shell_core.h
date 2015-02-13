@@ -41,7 +41,7 @@ public:
 
   virtual void set_global(const std::string &name, const Value &value) = 0;
 
-  virtual Interactive_input_state handle_interactive_input(std::string &code) = 0;
+  virtual Value handle_interactive_input(std::string &code, Interactive_input_state &state) = 0;
   virtual std::string get_handled_input() { return _last_handled; }
   virtual int run_script(const std::string &path, boost::system::error_code &err) = 0;
   virtual std::string prompt() = 0;
@@ -78,7 +78,7 @@ public:
 
   Object_registry *registry() { return _registry; }
 public:
-  Interactive_input_state handle_interactive_input(std::string &code);
+  Value handle_interactive_input(std::string &code, Interactive_input_state &state);
   std::string get_handled_input();
   int run_script(const std::string &path, boost::system::error_code &err);
 

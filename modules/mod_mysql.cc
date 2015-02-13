@@ -24,23 +24,36 @@
 #include <boost/format.hpp>
 #include <boost/bind.hpp>
 #include <boost/lexical_cast.hpp>
+#include "../utils/utils_time.h"
 
 using namespace mysh;
 
 
 #include <iostream>
 
+#define MAX_COLUMN_LENGTH 1024
+#define MIN_COLUMN_LENGTH 4
 
-Mysql_resultset::Mysql_resultset(MYSQL_RES *res, boost::shared_ptr<shcore::Value::Map_type> options)
-: _result(res), _key_by_index(false)
+
+Mysql_resultset::Mysql_resultset(MYSQL_RES *res, unsigned long raw_duration, my_ulonglong affected_rows, unsigned int warning_count, const char *info, boost::shared_ptr<shcore::Value::Map_type> options)
+: _result(res), _raw_duration(raw_duration), _affected_rows(affected_rows), _warning_count(warning_count), _key_by_index(false)
 {
   if (options && options->get_bool("key_by_index", false))
     _key_by_index = true;
 
   add_method("next", boost::bind(&Mysql_resultset::next, this, _1), NULL);
+  add_method("__paged_output__", boost::bind(&Mysql_resultset::print, this, _1), NULL);
 
-  _fields = mysql_fetch_fields(res);
-  _num_fields = mysql_num_fields(res);
+
+  // res could be NULL on queries not returning data
+  if (res)
+  {
+    _fields = mysql_fetch_fields(res);
+    _num_fields = mysql_num_fields(res);
+  }
+
+  if (info)
+    _info.assign(info);
 }
 
 
@@ -81,6 +94,121 @@ shcore::Value Mysql_resultset::next(const shcore::Argument_list &args)
   lengths = mysql_fetch_lengths(_result);
 
   return row_to_doc(row, lengths);
+}
+
+shcore::Value Mysql_resultset::print(const shcore::Argument_list &args)
+{
+	  std::string output;
+
+    if (_result)
+    {
+      // Prints the informative line at the end
+      my_ulonglong rows = mysql_num_rows(_result);
+
+      if (rows)
+      {
+        // print rows from result, with stats etc
+        print_result();
+
+        output = (boost::format("%lld %s in set") % rows % (rows == 1 ? "row" : "rows")).str();
+      }
+      else
+        output = "Empty set";
+    }
+    else
+    {
+      // TODO: Verify this should print Query OK... or Query Error.
+      // Checks for a -1 value, which would indicate an error.
+      // Even so the old client printed Query OK on this case for some reason.
+      if (_affected_rows == ~(my_ulonglong)0)
+        output = "Query OK";
+      else
+        // In case of Query OK, prints the actual number of affected rows.
+        output = (boost::format("Query OK, %lld %s affected") % _affected_rows % (_affected_rows == 1 ? "row" : "rows")).str();
+    }
+
+    if (_warning_count)
+      output.append((boost::format(", %d warning%s") % _warning_count % (_warning_count == 1 ? "" : "s")).str());
+
+    output.append(" ");
+    output.append((boost::format("(%s)") % MySQL_timer::format_legacy(_raw_duration, true)).str());
+    output.append("\n\n");
+
+    std::cout << output;
+
+    if (!_info.empty())
+    {
+      std::cout << _info << "\n\n";
+    }
+
+    return shcore::Value();
+}
+
+void Mysql_resultset::print_result()
+{
+  print_table();
+}
+
+void Mysql_resultset::print_table()
+{
+  unsigned int index = 0;
+  unsigned int field_count = mysql_num_fields(_result);
+  std::vector<std::string> formats(field_count, "%-");
+  MYSQL_FIELD *fields = mysql_fetch_fields(_result);
+
+  // Calculates the max column widths and constructs the separator line.
+  std::string separator("+");
+  for (index = 0; index < field_count; index++)
+  {
+    unsigned int max_field_length;
+    max_field_length = std::max<unsigned int>(fields[index].max_length, fields[index].name_length);
+    max_field_length = std::max<unsigned int>(max_field_length, MIN_COLUMN_LENGTH);
+    fields[index].max_length = max_field_length;
+
+    // Creates the format string to print each field
+    formats[index].append(boost::lexical_cast<std::string>(max_field_length));
+    formats[index].append("s|");
+
+    std::string field_separator(max_field_length, '-');
+    field_separator.append("+");
+    separator.append(field_separator);
+  }
+  separator.append("\n");
+
+
+  // Prints the initial separator line and the column headers
+  // TODO: Consider the charset information on the length calculations
+  std::cout << separator << "|";
+  for (index = 0; index < field_count; index++)
+  {
+    std::string data = (boost::format(formats[index]) % fields[index].name).str();
+    std::cout << data;
+
+    // Once the header is printed, updates the numeric fields formats
+    // so they are right aligned
+    if (IS_NUM(fields[index].type))
+      formats[index] = formats[index].replace(1, 1, "");
+
+  }
+  std::cout << "\n" << separator;
+
+
+  // Now prints the records
+  MYSQL_ROW row;
+  while ((row = mysql_fetch_row(_result)))
+  {
+    std::cout << "|";
+
+    {
+      for (index = 0; index < field_count; index++)
+      {
+        std::string data = (boost::format(formats[index]) % (row[index] ? row[index] : "NULL")).str();
+        std::cout << data;
+      }
+      std::cout << "\n";
+    }
+  }
+  std::cout << separator;
 }
 
 
@@ -274,18 +402,21 @@ shcore::Value Mysql_connection::sql(const std::string &query, shcore::Value opti
 {
   MYSQL_RES *res;
 
-  if (mysql_real_query(_mysql, query.c_str(), query.length()) < 0)
+  MySQL_timer timer;
+  timer.start();
+
+  if (mysql_real_query(_mysql, query.c_str(), query.length()) != 0)
   {
     throw shcore::Exception::error_with_code_and_state("MySQLError", mysql_error(_mysql), mysql_errno(_mysql), mysql_sqlstate(_mysql));
   }
 
   res = mysql_store_result(_mysql);
-  if (!res)
-  {
-    throw shcore::Exception::error_with_code_and_state("MySQLError", mysql_error(_mysql), mysql_errno(_mysql), mysql_sqlstate(_mysql));
-  }
 
-  return shcore::Value(boost::shared_ptr<shcore::Object_bridge>(new Mysql_resultset(res, options && options.type == shcore::Map ? options.as_map() : boost::shared_ptr<shcore::Value::Map_type>())));
+  timer.end();
+
+  Mysql_resultset* result = new Mysql_resultset(res, timer.raw_duration(), mysql_affected_rows(_mysql), mysql_warning_count(_mysql), _mysql->info, options && options.type == shcore::Map ? options.as_map() : boost::shared_ptr<shcore::Value::Map_type>());
+
+  return shcore::Value(boost::shared_ptr<shcore::Object_bridge>(result));
 }
 
 
@@ -302,7 +433,7 @@ shcore::Value Mysql_connection::sql_one(const std::string &query)
 {
   MYSQL_RES *res;
 
-  if (mysql_real_query(_mysql, query.c_str(), query.length()) < 0)
+  if (mysql_real_query(_mysql, query.c_str(), query.length()) != 0)
   {
     throw shcore::Exception::error_with_code_and_state("MySQLError", mysql_error(_mysql), mysql_errno(_mysql), mysql_sqlstate(_mysql));
   }
@@ -312,6 +443,8 @@ shcore::Value Mysql_connection::sql_one(const std::string &query)
   {
     throw shcore::Exception::error_with_code_and_state("MySQLError", mysql_error(_mysql), mysql_errno(_mysql), mysql_sqlstate(_mysql));
   }
+
+  //TODO: Should we add time and affected rows??
   Mysql_resultset result(res);
   return result.next(shcore::Argument_list());
 }
@@ -344,22 +477,6 @@ MYSQL_RES *Mysql_connection::next_result()
   
   return next_result;
 }
-
-my_ulonglong Mysql_connection::affected_rows()
-{
-  return mysql_affected_rows(_mysql);
-}
-
-unsigned int Mysql_connection::warning_count()
-{
-  return mysql_warning_count(_mysql);
-}
-
-const char *Mysql_connection::get_info()
-{
-  return _mysql->info;
-}
-
 
 Mysql_connection::~Mysql_connection()
 {

@@ -36,7 +36,7 @@ namespace mysh {
 class Mysql_resultset : public shcore::Cpp_object_bridge
 {
 public:
-  Mysql_resultset(MYSQL_RES *res, boost::shared_ptr<shcore::Value::Map_type> options = boost::shared_ptr<shcore::Value::Map_type>());
+  Mysql_resultset(MYSQL_RES *res, unsigned long raw_duration = 0, my_ulonglong affected_rows = 0, unsigned int warning_count = 0, const char *info = NULL, boost::shared_ptr<shcore::Value::Map_type> options = boost::shared_ptr<shcore::Value::Map_type>());
   virtual ~Mysql_resultset();
 
   virtual std::string class_name() const
@@ -48,12 +48,25 @@ public:
   virtual bool operator == (const Object_bridge &other) const;
   virtual shcore::Value get_member(const std::string &prop) const;
   shcore::Value next(const shcore::Argument_list &args);
+  shcore::Value print(const shcore::Argument_list &args);
+
+  int warning_count() { return _warning_count; }
+
+
 private:
+  void print_result();
+  void print_table();
   shcore::Value row_to_doc(const MYSQL_ROW &row, unsigned long *lengths);
+
 private:
   MYSQL_RES *_result;
   MYSQL_FIELD *_fields;
   int _num_fields;
+  unsigned long _raw_duration;
+  my_ulonglong _affected_rows;
+  std::string _info;
+
+  int _warning_count;
   
   bool _key_by_index;
 };
@@ -89,9 +102,6 @@ public:
 public:
   MYSQL_RES *raw_sql(const std::string &sql);
   MYSQL_RES *next_result();
-  my_ulonglong affected_rows();
-  unsigned int warning_count();
-  const char *get_info();
 private:
   std::string _uri;
   MYSQL *_mysql;

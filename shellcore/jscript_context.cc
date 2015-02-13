@@ -604,8 +604,6 @@ Value JScript_context::execute_interactive(const std::string &code_str) BOOST_NO
     else
     {
       Value r(v8_value_to_shcore_value(result));
-      if (r && r.type != Null)
-        _impl->delegate->print(_impl->delegate->user_data, r.descr(true).c_str());
       return r;
     }
   }

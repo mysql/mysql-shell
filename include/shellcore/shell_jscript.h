@@ -35,7 +35,7 @@ public:
 
   virtual void set_global(const std::string &name, const Value &value);
 
-  virtual Interactive_input_state handle_interactive_input(std::string &code);
+  virtual Value handle_interactive_input(std::string &code, Interactive_input_state &state);
   virtual int run_script(const std::string &path, boost::system::error_code &err);
 
   virtual std::string prompt();

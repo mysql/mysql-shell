@@ -21,6 +21,7 @@
 #define _SHELL_SQL_H_
 
 #include "shellcore/shell_core.h"
+#include "../modules/mod_session.h"
 #include <boost/system/error_code.hpp>
 
 namespace shcore
@@ -33,8 +34,10 @@ public:
 
   virtual void set_global(const std::string &name, const Value &value) {}
 
-  virtual Interactive_input_state handle_interactive_input(std::string &code);
+  virtual Value handle_interactive_input(std::string &code, Interactive_input_state &state);
   virtual int run_script(const std::string &path, boost::system::error_code &err);
+
+  void print_warnings(boost::shared_ptr<mysh::Session> session);
   
   virtual std::string prompt();
 
