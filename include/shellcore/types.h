@@ -159,7 +159,7 @@ struct SHCORE_PUBLIC Value
 
   operator bool() const
   {
-    return type != Undefined && type != Value_type::Null;
+    return type != Undefined && type != shcore::Null;
   }
 
   //! returns a human-readable description text for the value.
