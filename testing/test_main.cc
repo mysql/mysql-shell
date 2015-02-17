@@ -34,7 +34,7 @@ int main(int argc, char **argv)
     for (int i = 0; i < ut->total_test_case_count(); i++)
     {
        const char *name = ut->GetTestCase(i)->name();
-       f << "add_test(" << name << " run_tests --gtest_filter=" << name << ")\n";
+       f << "add_test(" << name << " run_tests --gtest_filter=" << name << ".*)\n";
     }
     return 0;
   }
