@@ -29,7 +29,7 @@ cmake_minimum_required (VERSION 2.8)
 
 project (mysh)
 
-SET(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/cmake)
+SET(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/cmake ${CMAKE_SOURCE_DIR}/common/cmake)
 
 ###
 ### Detect Stuff
