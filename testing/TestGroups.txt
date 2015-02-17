@@ -1,0 +1,6 @@
+# Automatically generated, use make testgroups to update
+add_test(MySQL run_tests --gtest_filter=MySQL)
+add_test(ValueTests run_tests --gtest_filter=ValueTests)
+add_test(Functions run_tests --gtest_filter=Functions)
+add_test(Parsing run_tests --gtest_filter=Parsing)
+add_test(JavaScript run_tests --gtest_filter=JavaScript)

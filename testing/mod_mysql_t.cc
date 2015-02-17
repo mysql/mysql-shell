@@ -7,7 +7,7 @@
 #include <boost/filesystem.hpp>
 #include <boost/lexical_cast.hpp>
 
-#include "gtest/gtest.h"
+#include <gtest/gtest.h>
 #include "shellcore/types.h"
 #include "shellcore/types_cpp.h"
 

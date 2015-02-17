@@ -45,7 +45,6 @@ INCLUDE (CheckFunctionExists)
 
 find_package(MySQL REQUIRED)
 
-
 CHECK_INCLUDE_FILES (pwd.h HAVE_PWD_H)
 if(WIN32)
 else()
@@ -72,35 +71,21 @@ set(MY_C_WARNING_FLAGS
 
 set(MY_CXX_WARNING_FLAGS "${MY_CXX_WARNING_FLAGS} -Werror")
 
-# enable gcov
-if(ENABLE_GCOV)
-    message("Enabling gcov")
-    add_definitions(-fprofile-arcs -ftest-coverage)
-endif()
-
 add_definitions(-DSHCORE_EXPORT )
 
-# GMock/GTest
-if(GMOCK_DIR)
-    message(STATUS "Determining gmock compile flags")
-    set(GMOCK_CFLAGS "-I${GMOCK_DIR}/include -I${GMOCK_DIR}/gtest/include")
-    find_library(GMOCK_LIB NAMES gmock PATHS ${GMOCK_DIR}/lib ${GMOCK_DIR}/lib/.libs)
-    find_library(GTEST_LIB NAMES gtest PATHS ${GMOCK_DIR}/gtest/lib ${GMOCK_DIR}/gtest/lib/.libs)
-    set(GMOCK_LIBRARIES ${GMOCK_LIB} ${GTEST_LIB})
-    message(STATUS "gmock cflags: ${GMOCK_CFLAGS}")
-    message(STATUS "gmock libs: ${GMOCK_LIBRARIES}")
-else()
-    message(STATUS "GMOCK_CONFIG_PATH not specified, will skip building tests")
-endif()
-
-###
-### Build Projects
-###
 
 include_directories( ${CMAKE_BINARY_DIR}/include/ )
 include_directories( ${V8_INCLUDE_DIR} )
 
 link_directories( ${V8_LIB_DIR} )
+
+if(APPLE)
+  set(V8_LINK_LIST -mmacosx-version-min=10.5 -L${V8_LIB_DIR} -lv8_snapshot -licudata -lv8_libbase -lv8_base -licuuc -licui18n)
+elseif(WIN32)
+  set(V8_LINK_LIST v8_snapshot v8_libbase v8_base icuuc icui18n winmm)
+else()	# Linux
+  set(V8_LINK_LIST -L${V8_LIB_DIR} -lv8 -licuuc -licui18n)
+endif()
 
 if(NOT WIN32)
   add_subdirectory(src/libedit)
@@ -112,8 +97,20 @@ if (APPLE)
 add_definitions(-std=gnu++0x -mmacosx-version-min=10.5)
 endif()
 
+###
+### Unit-test support
+###
+include(testing)
+SETUP_TESTING()
+add_subdirectory(testing)
+
+###
+### Build Projects
+###
+
 
 add_subdirectory(shellcore)
+add_subdirectory(modules)
 
 # mysh cmdline util build
 include_directories("${PROJECT_SOURCE_DIR}/include"
@@ -126,60 +123,20 @@ endif()
 
 file(GLOB mysh_SRC
     "${PROJECT_SOURCE_DIR}/src/*.cc"
-    "${PROJECT_SOURCE_DIR}/modules/*.cc"
-    "${PROJECT_SOURCE_DIR}/modules/*.h"
 )
 
 add_executable(mysh ${mysh_SRC})
 
 if(WIN32)
-  target_link_libraries(mysh mysqlsh)
   add_dependencies(mysh boost_code.obj)
 else()
-  target_link_libraries(mysh mysqlsh readline)
+  target_link_libraries(mysh readline)
 endif()
+target_link_libraries(mysh mysqlsh mysqlshmods)
 target_link_libraries(mysh ${MYSQL_LIBRARIES})
+target_link_libraries(mysh ${V8_LINK_LIST} ${GCOV_LDFLAGS})
 
-
-if(APPLE)
-  set(V8_LINK_LIST -mmacosx-version-min=10.5 -L${V8_LIB_DIR} -lv8_snapshot -licudata -lv8_libbase -lv8_base -licuuc -licui18n)
-elseif(WIN32)
-  set(V8_LINK_LIST v8_snapshot v8_libbase v8_base icuuc icui18n winmm)
-else()	# Linux
-  set(V8_LINK_LIST -L${V8_LIB_DIR} -lv8 -licuuc -licui18n)
-endif()
-
-target_link_libraries(mysh ${V8_LINK_LIST})
-
-# enable_testing()
-
-if(GMOCK_LIBRARIES)
-
-  file(GLOB shcore_tests_SRC
-    "${PROJECT_SOURCE_DIR}/modules/*.cc"
-	"${PROJECT_SOURCE_DIR}/tests/*.cc"
-	"${PROJECT_SOURCE_DIR}/src/boost_code.cc"
-  )
-
-  add_definitions(-DGTEST_LANG_CXX11=0 ${GMOCK_CFLAGS})
-
-  add_executable( shcore.tests ${shcore_tests_SRC} )
-  target_link_libraries( shcore.tests mysqlsh )
-
-  if (NOT WIN32)
-    target_link_libraries( shcore.tests pthread )
-  endif()
-
-  target_link_libraries(shcore.tests
-        ${V8_LINK_LIST}
-        ${GMOCK_LIBRARIES}
-        ${MYSQL_LIBRARIES})
-
-  if(ENABLE_GCOV)
-    target_link_libraries(shcore.tests -fprofile-arcs -ftest-coverage)
-  endif()
-
-endif()
+install(FILES mysh DESTINATION bin)
 
 
 if(WIN32)
