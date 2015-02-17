@@ -36,6 +36,8 @@
 #include "shellcore/lang_base.h"
 #include "shellcore/shell_core.h"
 
+#include "cmdline_options.h"
+
 #include "../modules/mod_session.h"
 #include "../modules/mod_db.h"
 
@@ -471,23 +473,23 @@ int Interactive_shell::run_script(const std::string &file)
 }
 
 
-struct Command_line_options
+class Shell_command_line_options : public Command_line_options
 {
-  int exit_code;
+public:
   Shell_core::Mode initial_mode;
   std::string run_file;
 
   std::string uri;
   std::string password;
 
-  Command_line_options(int argc, char **argv)
+  Shell_command_line_options(int argc, char **argv)
+          : Command_line_options(argc, argv)
   {
     std::string host;
     std::string user;
     int port = 0;
     bool needs_password;
 
-    exit_code = 0;
     needs_password = false;
 
     initial_mode = Shell_core::Mode_JScript;
@@ -535,48 +537,6 @@ struct Command_line_options
         uri.append((boost::format(":%i") % port).str());
     }
   }
-
-  bool check_arg(char **argv, int &argi, const char *arg, const char *larg)
-  {
-    if (strcmp(argv[argi], arg) == 0 || strcmp(argv[argi], larg) == 0)
-      return true;
-    return false;
-  }
-
-  bool check_arg_with_value(char **argv, int &argi, const char *arg, const char *larg, char *&value)
-  {
-    // --option value or -o value
-    if (strcmp(argv[argi], arg) == 0 || (larg && strcmp(argv[argi], larg) == 0))
-    {
-      // value must be in next arg
-      if (argv[argi+1] != NULL)
-      {
-        ++argi;
-        value = argv[argi];
-      }
-      else
-      {
-        std::cerr << argv[0] << ": option " << argv[argi] << " requires an argument\n";
-        exit_code = 1;
-        return false;
-      }
-      return true;
-    }
-    // -ovalue
-    else if (larg && strncmp(argv[argi], larg, strlen(larg)) == 0 && strlen(argv[argi]) > strlen(larg))
-    {
-      value = argv[argi] + strlen(larg);
-      return true;
-    }
-    // --option=value
-    else if (strncmp(argv[argi], arg, strlen(arg)) == 0 && argv[argi][strlen(arg)] == '=')
-    {
-      // value must be after =
-      value = argv[argi] + strlen(arg)+1;
-      return true;
-    }
-    return false;
-  }
 };
 
 
@@ -584,7 +544,7 @@ int main(int argc, char **argv)
 {
   extern void JScript_context_init();
 
-  Command_line_options options(argc, argv);
+  Shell_command_line_options options(argc, argv);
 
   if (options.exit_code != 0)
     return options.exit_code;
