@@ -13,119 +13,115 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
+
 #
 # Set up gtest for use by targets in given folder and its sub-folders.
 #
 MACRO(SETUP_GTEST)
-  INCLUDE_DIRECTORIES(${GTEST_INCLUDE_DIR})
+  IF (WITH_GTEST)
+    INCLUDE_DIRECTORIES(${GTEST_INCLUDE_DIR})
+  ENDIF (WITH_GTEST)
 ENDMACRO(SETUP_GTEST)
 
 
-SET(WITH_GTEST $ENV{WITH_GTEST} CACHE PATH "Location of gtest build")
+IF (WITH_GTEST)
 
-#
-# TODO: Configure gtest build if sources location is given
-#
+  SET(WITH_GTEST $ENV{WITH_GTEST} CACHE PATH "Location of gtest build")
 
-IF(NOT EXISTS "${WITH_GTEST}/CMakeCache.txt")
-MESSAGE(STATUS
-  "Could not find gtest build in this location: ${WITH_GTEST}."
-)
-RETURN()
-ENDIF()
+  #
+  # TODO: Configure gtest build if sources location is given
+  #
 
-#
-# Read source location from build configuration cache and set
-# GTEST_INCLUDE_DIR.
-#
+  IF(NOT EXISTS "${WITH_GTEST}/CMakeCache.txt")
+  MESSAGE(FATAL_ERROR
+    "Could not find gtest build in this location: ${WITH_GTEST}"
+  )
+  ENDIF()
 
-LOAD_CACHE(${WITH_GTEST} READ_WITH_PREFIX GTEST_
-           CMAKE_PROJECT_NAME)
-#MESSAGE(STATUS "Gtest project name: ${GTEST_CMAKE_PROJECT_NAME}")
+  #
+  # Read source location from build configuration cache and set
+  # GTEST_INCLUDE_DIR.
+  #
 
-LOAD_CACHE(${WITH_GTEST} READ_WITH_PREFIX GTEST_
-           ${GTEST_CMAKE_PROJECT_NAME}_SOURCE_DIR)
+  LOAD_CACHE(${WITH_GTEST} READ_WITH_PREFIX GTEST_
+	    CMAKE_PROJECT_NAME)
+  #MESSAGE(STATUS "Gtest project name: ${GTEST_CMAKE_PROJECT_NAME}")
 
-SET(GTEST_INCLUDE_DIR ${GTEST_${GTEST_CMAKE_PROJECT_NAME}_SOURCE_DIR}/include
-    CACHE INTERNAL "Gtest include path")
+  LOAD_CACHE(${WITH_GTEST} READ_WITH_PREFIX GTEST_
+	    ${GTEST_CMAKE_PROJECT_NAME}_SOURCE_DIR)
 
-IF(NOT EXISTS "${GTEST_INCLUDE_DIR}/gtest/gtest.h")
-    SET(GTEST_INCLUDE_DIR ${GTEST_${GTEST_CMAKE_PROJECT_NAME}_SOURCE_DIR}/gtest/include
-        CACHE INTERNAL "Gtest include path")
-ENDIF()
+  SET(GTEST_INCLUDE_DIR ${GTEST_${GTEST_CMAKE_PROJECT_NAME}_SOURCE_DIR}/include
+      CACHE INTERNAL "Gtest include path")
 
-IF(NOT EXISTS "${GTEST_INCLUDE_DIR}/gtest/gtest.h")
-  MESSAGE(FATAL_ERROR "Could not find gtest headers at: ${GTEST_INCLUDE_DIR}")
-ENDIF()
+  IF(NOT EXISTS "${GTEST_INCLUDE_DIR}/gtest/gtest.h")
+    MESSAGE(FATAL_ERROR "Could not find gtest headers at: ${GTEST_INCLUDE_DIR}")
+  ENDIF()
 
-MESSAGE(STATUS "GTEST_INCLUDE_DIR: ${GTEST_INCLUDE_DIR}")
+  MESSAGE(STATUS "GTEST_INCLUDE_DIR: ${GTEST_INCLUDE_DIR}")
 
-#
-# Import gtest and gtest_main libraries as targets of this project
-#
-# TODO: Run build if libraries can not be found in expected locations
-#
+  #
+  # Import gtest and gtest_main libraries as targets of this project
+  #
+  # TODO: Run build if libraries can not be found in expected locations
+  #
 
-FIND_LIBRARY(gtest_location
-  NAMES libgtest gtest
-  PATHS ${WITH_GTEST} ${WITH_GTEST}/gtest
-  PATH_SUFFIXES . Release RelWithDebInfo Debug
-  NO_DEFAULT_PATH
-)
+  FIND_LIBRARY(gtest_location
+    NAMES libgtest gtest
+    PATHS ${WITH_GTEST} ${WITH_GTEST}/gtest
+    PATH_SUFFIXES . Release RelWithDebInfo Debug
+    NO_DEFAULT_PATH
+  )
 
-FIND_LIBRARY(gtest_main_location
-  NAMES libgtest_main gtest_main
-  PATHS ${WITH_GTEST} ${WITH_GTEST}/gtest
-  PATH_SUFFIXES . Release RelWithDebInfo Debug
-  NO_DEFAULT_PATH
-)
+  FIND_LIBRARY(gtest_main_location
+    NAMES libgtest_main gtest_main
+    PATHS ${WITH_GTEST} ${WITH_GTEST}/gtest
+    PATH_SUFFIXES . Release RelWithDebInfo Debug
+    NO_DEFAULT_PATH
+  )
 
-#MESSAGE("gtest location: ${gtest_location}")
-#MESSAGE("gtest_main location: ${gtest_main_location}")
+  #MESSAGE("gtest location: ${gtest_location}")
+  #MESSAGE("gtest_main location: ${gtest_main_location}")
 
 
-add_library(gtest STATIC IMPORTED)
-add_library(gtest_main STATIC IMPORTED)
+  add_library(gtest STATIC IMPORTED)
+  add_library(gtest_main STATIC IMPORTED)
 
-set_target_properties(gtest PROPERTIES
-  IMPORTED_LINK_INTERFACE_LANGUAGES "CXX"
-  IMPORTED_LOCATION "${gtest_location}"
-)
-
-set_target_properties(gtest_main PROPERTIES
-  IMPORTED_LINK_INTERFACE_LANGUAGES "CXX"
-  IMPORTED_LINK_INTERFACE_LIBRARIES "gtest"
-  IMPORTED_LOCATION "${gtest_main_location}"
-)
-
-#
-#  Setup configuration-specific locations for Win
-#  TODO: Should the same be done for OSX?
-#
-
-IF(WIN32)
-
-  FOREACH(Config Debug RelWithDebInfo MinSizeRel Release)
-
-  STRING(TOUPPER ${Config} CONFIG)
-
-  set_property(TARGET gtest APPEND PROPERTY IMPORTED_CONFIGURATIONS ${CONFIG})
   set_target_properties(gtest PROPERTIES
-    IMPORTED_LINK_INTERFACE_LANGUAGES_${CONFIG} "CXX"
-    IMPORTED_LOCATION_${CONFIG} "${WITH_GTEST}/${Config}/gtest.lib"
-    )
+    IMPORTED_LINK_INTERFACE_LANGUAGES "CXX"
+    IMPORTED_LOCATION "${gtest_location}"
+  )
 
-  set_property(TARGET gtest_main APPEND PROPERTY IMPORTED_CONFIGURATIONS ${CONFIG})
   set_target_properties(gtest_main PROPERTIES
-    IMPORTED_LINK_INTERFACE_LANGUAGES_${CONFIG} "CXX"
-    IMPORTED_LINK_INTERFACE_LIBRARIES_${CONFIG} "gtest"
-    IMPORTED_LOCATION_${CONFIG} "${WITH_GTEST}/${Config}/gtest_main.lib"
-    )
+    IMPORTED_LINK_INTERFACE_LANGUAGES "CXX"
+    IMPORTED_LINK_INTERFACE_LIBRARIES "gtest"
+    IMPORTED_LOCATION "${gtest_main_location}"
+  )
 
-  ENDFOREACH(Config)
-ELSE()
-  set_target_properties(gtest PROPERTIES
-      LINK_FLAGS "-L${gtest_location}"
+  #
+  #  Setup configuration-specific locations for Win
+  #  TODO: Should the same be done for OSX?
+  #
+
+  IF(WIN32)
+
+    FOREACH(Config Debug RelWithDebInfo MinSizeRel Release)
+
+    STRING(TOUPPER ${Config} CONFIG)
+
+    set_property(TARGET gtest APPEND PROPERTY IMPORTED_CONFIGURATIONS ${CONFIG})
+    set_target_properties(gtest PROPERTIES
+      IMPORTED_LINK_INTERFACE_LANGUAGES_${CONFIG} "CXX"
+      IMPORTED_LOCATION_${CONFIG} "${WITH_GTEST}/${Config}/gtest.lib"
       )
-ENDIF(WIN32)
 
+    set_property(TARGET gtest_main APPEND PROPERTY IMPORTED_CONFIGURATIONS ${CONFIG})
+    set_target_properties(gtest_main PROPERTIES
+      IMPORTED_LINK_INTERFACE_LANGUAGES_${CONFIG} "CXX"
+      IMPORTED_LINK_INTERFACE_LIBRARIES_${CONFIG} "gtest"
+      IMPORTED_LOCATION_${CONFIG} "${WITH_GTEST}/${Config}/gtest_main.lib"
+      )
+
+    ENDFOREACH(Config)
+  ENDIF(WIN32)
+
+ENDIF (WITH_GTEST)
