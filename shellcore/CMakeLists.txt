@@ -26,12 +26,12 @@ file(GLOB libmysqlsh_SRC
 )
 
 
-add_library(mysqlsh ${libmysqlsh_SRC})
+add_convenience_library(mysqlsh ${libmysqlsh_SRC})
 
-#if( WIN32 )
-#  include(msvc)
+if( WIN32 )
+  include(msvc)
   CHANGE_MD_2_MT()
-#endif()
+endif()
 
 add_definitions(-DSHCORE_EXPORT )
 add_definitions(-DBOOST_ALL_NO_LIB )

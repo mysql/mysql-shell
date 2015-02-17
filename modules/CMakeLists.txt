@@ -21,9 +21,13 @@ file(GLOB libmysqlshmods_SRC
 )
 
 
-add_library(mysqlshmods ${libmysqlshmods_SRC})
+add_convenience_library(mysqlshmods ${libmysqlshmods_SRC})
 
-#if( WIN32 )
-#  include(msvc)
+target_link_libraries(mysqlshmods mysqlsh)
+
+if( WIN32 )
+  include(msvc)
   CHANGE_MD_2_MT()
-#endif()
+endif()
+
+add_definitions(-DBOOST_ALL_NO_LIB )

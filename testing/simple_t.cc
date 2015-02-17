@@ -20,7 +20,6 @@
 #include <fstream>
 #include <string>
 #include <boost/shared_ptr.hpp>
-#include <boost/filesystem.hpp>
 #include <boost/lexical_cast.hpp>
 
 #include "gtest/gtest.h"

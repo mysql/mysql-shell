@@ -1,4 +1,17 @@
-
+# Copyright (c) 2014, 2015, Oracle and/or its affiliates. All rights reserved.
+# 
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; version 2 of the License.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
 
 if(WITH_TESTS)
     add_definitions(-DGTEST_LANG_CXX11=0 ${GMOCK_CFLAGS})
@@ -14,23 +27,20 @@ if(WITH_TESTS)
         "${PROJECT_SOURCE_DIR}/testing/test_main.cc"
         "${PROJECT_SOURCE_DIR}/src/boost_code.cc"
     )
-    add_executable(run_tests ${mysqlsh_tests_SRC})
-    target_link_libraries(run_tests
+    add_executable(run.tests ${mysqlsh_tests_SRC})
+    target_link_libraries(run.tests
             mysqlsh
             mysqlshmods
             gtest
             ${PROTOBUF_LIBRARY}
-            ${GCOV_LDFLAGS}
             ${V8_LINK_LIST}
             ${MYSQL_LIBRARIES}
             )
 
-    if (WIN32)
-       #target_link_libraries( run_tests gtestd )
-        target_link_libraries( run_tests libboost_filesystem-vc120-mt-sgd-1_56 )
-    else()
-        target_link_libraries( run_tests pthread )
-        target_link_libraries( run_tests boost_filesystem )
+    if (NOT WIN32)
+        target_link_libraries( run.tests pthread )
+#        target_link_libraries( run.tests boost_filesystem )
+        target_link_libraries( runt.tests, ${GCOV_LDFLAGS})
     endif()
 
     include(TestGroups.txt)
@@ -40,3 +50,8 @@ endif()
 
 
 
+add_definitions(-DBOOST_ALL_NO_LIB )
+
+if(WIN32)
+  CHANGE_MD_2_MT()
+endif()

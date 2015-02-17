@@ -16,12 +16,12 @@
 # Sample command lines
 #  (Don't delete, my copy & paste)
 # For Windows:
-#  cmake -DV8_INCLUDE_DIR=C:\src\mysql-server\v8-git-v3.28.73\include -DV8_LIB_DIR=C:\src\mysql-server\MyLibs\v8\Debug -DWITH_BOOST=C:\src\mysql-server\boost\boost_1_56_0 -DGMOCK_DIR=C:\src\OpenSource\gmock-1.7.0 ..
+#  cmake -DV8_INCLUDE_DIR=C:\src\mysql-server\v8-git-v3.28.73\include -DV8_LIB_DIR=C:\src\mysql-server\MyLibs\v8\Debug -DWITH_BOOST=C:\src\mysql-server\boost\boost_1_56_0 -DWITH_TESTS=1 -DWITH_GTEST=C:\src\OpenSource\gtest-1.7.0\MY_BUILD ..
 # For Linux:
-#  cmake -DWITH_BOOST=/home/fernando/src/boost_1_56_0/ -DV8_LIB_DIR=/home/fernando/src/v8/v8-git-v3.28.73/out/Debug/lib.target -DV8_INCLUDE_DIR=/home/fernando/src/v8/v8-git-v3.28.73/include .. 
+#  cmake -DWITH_BOOST=/home/fernando/src/boost_1_56_0/ -DV8_LIB_DIR=/home/fernando/src/v8/v8-git-v3.28.73/out/Debug/lib.target -DV8_INCLUDE_DIR=/home/fernando/src/v8/v8-git-v3.28.73/include -DWITH_TESTS=1 -DWITH_GTEST=/home/fernando/src/gtest-1.7.0/MY_BUILD .. 
 #
 #
-#  cmake -DWITH_BOOST=/home/fernando/src/boost_1_56_0/ -DV8_LIB_DIR=/home/fernando/src/v8/v8-git-v3.28.73/out/Debug/lib.target -DV8_INCLUDE_DIR=/home/fernando/src/v8/v8-git-v3.28.73/include -DCMAKE_BUILD_TYPE=Debug -DCMAKE_ECLIPSE_VERSION=4.4 -DCMAKE_ECLIPSE_GENERATE_SOURCE_PROJECT=TRUE --G "Eclipse CDT4 - Unix Makefiles" ..
+#  cmake -DWITH_BOOST=/home/fernando/src/boost_1_56_0/ -DV8_LIB_DIR=/home/fernando/src/v8/v8-git-v3.28.73/out/Debug/lib.target -DV8_INCLUDE_DIR=/home/fernando/src/v8/v8-git-v3.28.73/include -DCMAKE_BUILD_TYPE=Debug -DCMAKE_ECLIPSE_VERSION=4.4 -DCMAKE_ECLIPSE_GENERATE_SOURCE_PROJECT=TRUE --G "Eclipse CDT4 - Unix Makefiles" -DWITH_TESTS=1 -DWITH_GTEST=/home/fernando/src/gtest-1.7.0/ ..
 #
 #
 #
@@ -107,7 +107,7 @@ include_directories("${PROJECT_SOURCE_DIR}/include"
 ###
 include(testing)
 SETUP_TESTING()
-add_subdirectory(testing)
+#add_subdirectory(testing)
 
 ###
 ### Build Projects
