@@ -97,6 +97,11 @@ if (APPLE)
 add_definitions(-std=gnu++0x -mmacosx-version-min=10.5)
 endif()
 
+include_directories("${PROJECT_SOURCE_DIR}/include"
+                    "${MYSQL_INCLUDE_DIRS}"
+                    "${BOOST_INCLUDE_DIR}"
+                   )
+
 ###
 ### Unit-test support
 ###
@@ -113,10 +118,6 @@ add_subdirectory(shellcore)
 add_subdirectory(modules)
 
 # mysh cmdline util build
-include_directories("${PROJECT_SOURCE_DIR}/include"
-                    "${MYSQL_INCLUDE_DIRS}"
-                    "${BOOST_INCLUDE_DIR}"
-                   )
 if(NOT WIN32)
   include_directories( "${PROJECT_SOURCE_DIR}/src/libedit" )
 endif()				   
