@@ -107,7 +107,7 @@ include_directories("${PROJECT_SOURCE_DIR}/include"
 ###
 include(testing)
 SETUP_TESTING()
-#add_subdirectory(testing)
+add_subdirectory(testing)
 
 ###
 ### Build Projects

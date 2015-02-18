@@ -346,7 +346,7 @@ Mysql_connection::Mysql_connection(const std::string &uri, const std::string &pa
   std::string user;
   std::string pass;
   std::string host;
-  int port;
+  int port = 3306;
   std::string sock;
   std::string db;
   long flags = 0;

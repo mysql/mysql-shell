@@ -89,7 +89,7 @@ private:
   static bool deleg_input(void *self, const char *text, std::string &ret);
   static bool deleg_password(void *self, const char *text, std::string &ret);
 
-  void do_shell_command(const std::string &command);
+  bool do_shell_command(const std::string &command);
 private:
   Interpreter_delegate _delegate;
 
@@ -300,66 +300,80 @@ bool Interactive_shell::deleg_password(void *cdata, const char *prompt, std::str
 }
 
 
-void Interactive_shell::do_shell_command(const std::string &line)
+bool Interactive_shell::do_shell_command(const std::string &line)
 {
   std::vector<std::string> tokens;
 
-  boost::algorithm::split(tokens, line, boost::is_any_of(" "), boost::token_compress_on);
+  // Verifies if the command can be handled by the active shell
+  bool handled = _shell->handle_shell_command(line);
 
-  if (tokens.front().compare("\\sql") == 0)
+
+  // TODO: define if these should be processed as they are here, or if a Shell_command_handler instance should
+  //       be added to the class and implement a specific handler for each command
+  if (!handled)
   {
-    switch_shell_mode(Shell_core::Mode_SQL, tokens);
-  }
-  else if (tokens.front().compare("\\js") == 0)
-  {
-    switch_shell_mode(Shell_core::Mode_JScript, tokens);
-  }
-  else if (tokens.front().compare("\\py") == 0)
-  {
-    switch_shell_mode(Shell_core::Mode_Python, tokens);
-  }
-  else if (tokens.front().compare("\\connect") == 0)
-  {
-    if (tokens.size() == 2)
+    handled = true;
+
+    boost::algorithm::split(tokens, line, boost::is_any_of(" "), boost::token_compress_on);
+
+    if (tokens.front().compare("\\sql") == 0)
     {
-      connect(tokens[1], "");
+      switch_shell_mode(Shell_core::Mode_SQL, tokens);
+    }
+    else if (tokens.front().compare("\\js") == 0)
+    {
+      switch_shell_mode(Shell_core::Mode_JScript, tokens);
+    }
+    else if (tokens.front().compare("\\py") == 0)
+    {
+      switch_shell_mode(Shell_core::Mode_Python, tokens);
+    }
+    else if (tokens.front().compare("\\connect") == 0)
+    {
+      if (tokens.size() == 2)
+      {
+        connect(tokens[1], "");
+      }
+      else
+        print_error("\\connect <uri>");
+    }
+    else if (tokens.front().compare("\\help") == 0 || tokens.front().compare("\\?") == 0 || tokens.front().compare("\\h") == 0)
+    {
+      print_shell_help();
+    }
+    else if (line == "\\")
+    {
+      println("Multi-line input. Finish and execute with an empty line.");
+      _multiline_mode = true;
     }
     else
-      print_error("\\connect <uri>");
+      handled = false;
   }
-  else if (tokens.front().compare("\\help") == 0 || tokens.front().compare("\\?") == 0 || tokens.front().compare("\\h") == 0)
-  {
-    print_shell_help();
-  }
-  else if (line == "\\")
-  {
-    println("Multi-line input. Finish and execute with an empty line.");
-    _multiline_mode = true;
-  }
-  else
-  {
-    print_error("Invalid shell command "+tokens.front()+". Try \\help or \\?\n");
-  }
+
+  return handled;
 }
 
 
 void Interactive_shell::process_line(const std::string &line)
 {
+  bool handled_as_command = false;
   Interactive_input_state state = Input_ok;
 
   // check if the line is an escape/shell command
-  if (_input_buffer.empty() && !line.empty() && line[0] == '\\' && !_multiline_mode)
+  if (_input_buffer.empty() && !line.empty() && !_multiline_mode)
   {
     try
     {
-      do_shell_command(line);
+      handled_as_command = do_shell_command(line);
     }
     catch (std::exception &exc)
     {
       print_error(exc.what());
     }
   }
-  else
+
+
+  if (!handled_as_command)
   {
     if (_multiline_mode && line.empty())
       _multiline_mode = false;

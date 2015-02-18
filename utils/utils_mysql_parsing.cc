@@ -57,10 +57,9 @@ bool MySQL_splitter::is_line_break(const unsigned char *head, const unsigned cha
  */
 size_t MySQL_splitter::determineStatementRanges(const char *sql, size_t length,  std::string &delimiter,
                                            std::vector<std::pair<size_t, size_t> > &ranges,
-                                           const std::string &line_break)
+                                           const std::string &line_break, std::stack<std::string> &input_context_stack)
 {
   int full_statement_count = 0;
-  //_stop = false;
   const unsigned char *delimiter_head = (unsigned char*)delimiter.c_str();
   
   const unsigned char keyword[] = "delimiter";
@@ -70,11 +69,23 @@ size_t MySQL_splitter::determineStatementRanges(const char *sql, size_t length, 
   const unsigned char *end = head + length;
   const unsigned char *new_line = (unsigned char*)line_break.c_str();
   bool have_content = false; // Set when anything else but comments were found for the current statement.
+
+  ranges.clear();
   
-  while (/*!_stop && */tail < end)
+  while (tail < end)
   {
     switch (*tail)
     {
+      case '*': // Comes from a multiline comment and comment is done
+        if (*(tail + 1) == '/' && (!input_context_stack.empty() && input_context_stack.top() == "/*"))
+        {
+          if (!input_context_stack.empty())
+            input_context_stack.pop();
+
+          tail += 2;
+          head = tail; // Skip over the comment.
+        }
+        break;
       case '/': // Possible multi line comment or hidden (conditional) command.
         if (*(tail + 1) == '*')
         {
@@ -85,7 +96,10 @@ size_t MySQL_splitter::determineStatementRanges(const char *sql, size_t length, 
             while (tail < end && *tail != '*')
               tail++;
             if (tail == end) // Unfinished comment.
+            {
+              input_context_stack.push("/*");
               break;
+            }
             else
             {
               if (*++tail == '/')
@@ -98,16 +112,14 @@ size_t MySQL_splitter::determineStatementRanges(const char *sql, size_t length, 
           
           if (!is_hidden_command && !have_content)
             head = tail; // Skip over the comment.
+
+          break;
         }
-        else
-          tail++;
-        
-        break;
         
       case '-': // Possible single line comment.
       {
         const unsigned char *end_char = tail + 2;
-        if (*(tail + 1) == '-' && (*end_char == ' ' || *end_char == '\t' || is_line_break(end_char, new_line)))
+        if (*(tail + 1) == '-' && (*end_char == ' ' || *end_char == '\t' || is_line_break(end_char, new_line) || length == 2))
         {
           // Skip everything until the end of the line.
           tail += 2;
@@ -116,9 +128,6 @@ size_t MySQL_splitter::determineStatementRanges(const char *sql, size_t length, 
           if (!have_content)
             head = tail;
         }
-        else
-          tail++;
-        
         break;
       }
         
@@ -131,19 +140,32 @@ size_t MySQL_splitter::determineStatementRanges(const char *sql, size_t length, 
         
       case '"':
       case '\'':
-      case '`': // Quoted string/id. Skip this in a local loop.
+      case '`': 
       {
         have_content = true;
         char quote = *tail++;
-        while (tail < end && *tail != quote)
+
+        if (input_context_stack.empty() || input_context_stack.top() == "-")
         {
-          // Skip any escaped character too.
-          if (*tail == '\\')
+          // Quoted string/id. Skip this in a local loop if is opening quote.
+          while (tail < end && *tail != quote)
+          {
+            // Skip any escaped character too.
+            if (*tail == '\\')
+              tail++;
             tail++;
-          tail++;
+          }
+          if (*tail == quote)
+            tail++; // Skip trailing quote char to if one was there.
+          else
+          {
+            std::string q;
+            q.assign(&quote,1);
+            input_context_stack.push(q); // Sets multiline opening quote to continue processing
+          }
         }
-        if (*tail == quote)
-          tail++; // Skip trailing quote char to if one was there.
+        else // Closing quote, clears the multiline flag
+          input_context_stack.pop();
         
         break;
       }
@@ -185,23 +207,13 @@ size_t MySQL_splitter::determineStatementRanges(const char *sql, size_t length, 
               run++;
             tail = run;
             head = tail;
+
           }
-          else
-            tail++;
         }
-        else
-          tail++;
-        
         break;
       }
-        
-      default:
-        if (*tail > ' ')
-          have_content = true;
-        tail++;
-        break;
     }
-    
+
     if (*tail == *delimiter_head)
     {
       // Found possible start of the delimiter. Check if it really is.
@@ -210,10 +222,15 @@ size_t MySQL_splitter::determineStatementRanges(const char *sql, size_t length, 
       {
         // Most common case. Trim the statement and check if it is not empty before adding the range.
         head = skip_leading_whitespace(head, tail);
-        if (head < tail)
+        if (head < tail || (!input_context_stack.empty() && input_context_stack.top() == "-"))
         {
-          ranges.push_back(std::make_pair<size_t, size_t>(head - (unsigned char *)sql, tail - head));
           full_statement_count++;
+
+          if (!input_context_stack.empty())
+            input_context_stack.pop();
+
+          if (head < tail)
+            ranges.push_back(std::make_pair<size_t, size_t>(head - (unsigned char *)sql, tail - head));
         }
         head = ++tail;
         have_content = false;
@@ -224,26 +241,44 @@ size_t MySQL_splitter::determineStatementRanges(const char *sql, size_t length, 
         const unsigned char *del = delimiter_head + 1;
         while (count-- > 1 && (*run++ == *del++))
           ;
-        
+
         if (count == 0)
         {
           // Multi char delimiter is complete. Tail still points to the start of the delimiter.
           // Run points to the first character after the delimiter.
           head = skip_leading_whitespace(head, tail);
-          if (head < tail)
-            ranges.push_back(std::make_pair<size_t, size_t>(head - (unsigned char *)sql, tail - head));
+          if (head < tail || (!input_context_stack.empty() && input_context_stack.top() == "-"))
+          {
+            full_statement_count++;
+
+            if (head < tail)
+              ranges.push_back(std::make_pair<size_t, size_t>(head - (unsigned char *)sql, tail - head));
+          }
+
           tail = run;
           head = run;
           have_content = false;
         }
       }
     }
+
+    // Multiline comments are ignored, everything else is not
+    if (*tail > ' ' && (input_context_stack.empty() || input_context_stack.top() != "/*"))
+      have_content = true;
+    tail++;
   }
   
-  // Add remaining text to the range list.
+  // Add remaining text to the range list but ignores it when it is a multiline comment
   head = skip_leading_whitespace(head, tail);
-  if (head < tail)
+  if (head < tail && (input_context_stack.empty() || input_context_stack.top() != "/*"))
+  {
     ranges.push_back(std::make_pair<size_t, size_t>(head - (unsigned char *)sql, tail - head));
+
+    // If not a multiline string then sets the flag to multiline statement (not terminated)
+    if (input_context_stack.empty())
+      input_context_stack.push("-");
+  }
+    
   
   return full_statement_count;
 }

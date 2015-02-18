@@ -23,15 +23,22 @@
 #include "../utils/utils_mysql_parsing.h"
 #include <boost/bind.hpp>
 #include <boost/format.hpp>
+#include <boost/algorithm/string.hpp>
+
+#include <iostream>
+#include <fstream>
+
 
 using namespace shcore;
-
+using namespace boost::system;
 
 Shell_sql::Shell_sql(Shell_core *owner)
 : Shell_language(owner)
 {
-  _continuing_line = 0;
   _delimiter = ";";
+  SET_SHELL_COMMAND("warnings|\\W", Shell_sql::cmd_enable_auto_warnings);
+  SET_SHELL_COMMAND("nowarnings|\\w", Shell_sql::cmd_enable_auto_warnings);
+  SET_SHELL_COMMAND("source|\\.", Shell_sql::cmd_process_file);
 }
 
 Value Shell_sql::handle_interactive_input(std::string &code, Interactive_input_state &state)
@@ -40,7 +47,6 @@ Value Shell_sql::handle_interactive_input(std::string &code, Interactive_input_s
   Value session_wrapper = _owner->get_global("_S");
   MySQL_splitter splitter;
 
-  _continuing_line = 0;
   _last_handled.clear();
   
   if (session_wrapper)
@@ -50,17 +56,61 @@ Value Shell_sql::handle_interactive_input(std::string &code, Interactive_input_s
     // Will return a range for every statement that ends with the delimiter, if there
     // is additional code after the last delimiter, a range for it will be included too.
     std::vector<std::pair<size_t, size_t> > ranges;
-    size_t statement_count = splitter.determineStatementRanges(code.c_str(), code.length(), _delimiter, ranges, "\n");
+    size_t statement_count = splitter.determineStatementRanges(code.c_str(), code.length(), _delimiter, ranges, "\n", _parsing_context_stack);
+
+    // statement_count is > 0 if the splitter determined a statement was completed
+    // ranges: contains the char ranges having statements.
+    // special case: statement_count is 1 but there are no ranges: the delimiter was sent on the last call to the splitter
+    //               and it determined the continued statement is now complete, but there's no additional data for it
     
-    size_t index;
+    size_t index = 0;
+
+    // Gets the total number of ranges
+    size_t range_count = ranges.size();
+    std::vector<std::string> statements;
     if (statement_count)
     {
-      for(index = 0; index < statement_count; index++)
+      // If cache has data it is part of the found statement so it has to 
+      // be flushed at this point into the statements list for execution
+      if (!_sql_cache.empty())
       {
-        std::string statement = code.substr(ranges[index].first, ranges[index].second);
+        if (statement_count > range_count)
+          statements.push_back(_sql_cache);
+        else
+        {
+          statements.push_back(_sql_cache.append("\n").append(code.substr(ranges[0].first, ranges[0].second)));
+          index++;
+        }
+
+        _sql_cache.clear();
+      }
+
+
+      if (range_count)
+      {
+        // Now also adds the rest of the statements for execution
+        for(; index < statement_count; index++)
+          statements.push_back(code.substr(ranges[index].first, ranges[index].second));
+
+        // If there's still data, itis a partial statement: gets cached
+        if (index < range_count)
+          _sql_cache = code.substr(ranges[index].first, ranges[index].second);
+      }
+
+      code = _sql_cache;
+
+      // Executes every found statement
+      for (index = 0; index < statements.size(); index++)
+      {
         shcore::Argument_list query;
-        query.push_back(Value(statement));
+        query.push_back(Value(statements[index]));
         Value result_wrapper = session->sql(query);
+
+        if (_last_handled.empty())
+          _last_handled = statements[index];
+        else
+          _last_handled.append("\n").append(statements[index]);
+
 
         if (result_wrapper)
         {
@@ -77,25 +127,27 @@ Value Shell_sql::handle_interactive_input(std::string &code, Interactive_input_s
         }
       }
     }
-    
-    if (ranges.size() > statement_count)
+    else if (range_count)
     {
-      _continuing_line = '-';
-      state = Input_continued;
-      
-      // Sets the executed code if any
-      // and updates the remaining code too
-      if (statement_count)
-      {
-        _last_handled = code.substr(0, ranges[index].first - 1);
-      
-        // Updates the code to let only the non yet executed
-        code = code.substr(ranges[index].first, ranges[index].second);
-      }
+      if (_sql_cache.empty())
+        _sql_cache = code.substr(ranges[0].first, ranges[0].second);
+      else
+        _sql_cache.append("\n").append(code.substr(ranges[0].first, ranges[0].second));
     }
+    else // Multiline code, all is "processed"
+      code = "";
+    
+    if (_parsing_context_stack.empty())
+      state = Input_ok;
     else
-      _last_handled = code;
+      state = Input_continued;
   }
+
+  // TODO: previous to file processing the caller was caching unprocessed code and sending it again on next
+  //       call. On file processing an internal handling of this cache was required. 
+  //       Clearing the code here prevents it being sent again.
+  //       We need to decide if the caching logic we introduced on the caller is still required or not.
+  code = "";
 
   return Value();
 }
@@ -136,15 +188,65 @@ void Shell_sql::print_warnings(boost::shared_ptr<mysh::Session> session)
 
 int Shell_sql::run_script(const std::string &path, boost::system::error_code &err)
 {
+  std::string new_path = path;
+  std::string error;
+
+  if (!path.empty())
+  {
+    //TODO: do path expansion (in case ~ is used in linux)
+    int index = 0;
+    std::ifstream s(new_path.c_str());
+    if (!s.fail())
+    {
+      Interactive_input_state state;
+
+      // Processes line by line as if it were entered on the console
+      while (!s.eof())
+      {
+        std::string line;
+
+        index++;
+
+        std::getline(s, line);
+
+        handle_interactive_input(line, state);
+      }
+
+      s.close();
+    }
+    else
+      _owner->print_error((boost::format("Failed to open file '%s', error: %d") % new_path.c_str() % errno).str());
+  }
+  else
+    _owner->print_error("Usage: \\. <filename> | source <filename>");
+
   return 0;
 }
 
 
 std::string Shell_sql::prompt()
 {
-  if (_continuing_line)
-    return "    -> ";
+  if (!_parsing_context_stack.empty())
+    return (boost::format("%5s> ") % _parsing_context_stack.top().c_str()).str();
   else
     return "mysql> ";
 }
 
+//------------------ SQL COMMAND HANDLERS ------------------//
+void Shell_sql::cmd_process_file(const std::string& filename)
+{
+  // The run_script method handles the errors
+  // so nothing to be done here...
+  boost::system::error_code err;
+  run_script(filename, err);
+}
+
+void Shell_sql::cmd_enable_auto_warnings(const std::string& param)
+{
+  // To be done once the global options are in place...
+}
+
+void Shell_sql::cmd_disable_auto_warnings(const std::string& param)
+{
+  // To be done once the global options are in place...
+}

@@ -23,6 +23,7 @@
 
 #include <string>
 #include <vector>
+#include <stack>
 
 
 namespace shcore
@@ -35,7 +36,7 @@ namespace shcore
       bool is_line_break(const unsigned char *head, const unsigned char *line_break);
       size_t determineStatementRanges(const char *sql, size_t length, std::string &delimiter,
                                       std::vector<std::pair<size_t, size_t> > &ranges,
-                                      const std::string &line_break);
+                                      const std::string &line_break, std::stack<std::string> &input_context_stack);
   };
   
 }

@@ -22,6 +22,7 @@
 #include "shellcore/shell_jscript.h"
 #include "shellcore/shell_python.h"
 #include "shellcore/object_registry.h"
+#include <boost/algorithm/string.hpp>
 
 #include "shellcore/lang_base.h"
 
@@ -145,3 +146,42 @@ std::string Shell_core::prompt()
   return _langs[interactive_mode()]->prompt();
 }
 
+
+bool Shell_core::handle_shell_command(const std::string &line)
+{
+  return _langs[_mode]->handle_shell_command(line);
+}
+
+
+//------------------ COMMAND HANDLER FUNCTIONS ------------------//
+bool Shell_command_handler::process(const std::string& command_line)
+{
+  std::vector<std::string> tokens;
+  boost::algorithm::split(tokens, command_line, boost::is_any_of(" "), boost::token_compress_on);
+
+  Command_registry::iterator item = commands.find(tokens[0]);
+  if (item != commands.end())
+  {
+    tokens.erase(tokens.begin());
+    std::string command_params = boost::algorithm::join(tokens, " ");
+
+    item->second(command_params);
+  }
+
+  return item != commands.end();
+}
+
+void Shell_command_handler::add_command(const std::string& triggers, boost::function<void(const std::string&)> function)
+{
+  std::vector<std::string> tokens;
+  boost::algorithm::split(tokens, triggers, boost::is_any_of("|"), boost::token_compress_on);
+
+  std::vector<std::string>::iterator index= tokens.begin(), end = tokens.end();
+
+  // Inserts a mapping for each given token
+  while (index != end)
+  {
+    commands.insert(std::pair < const std::string&, boost::function<void(const std::string&)>>(*index, function));
+    index++;
+  }
+}

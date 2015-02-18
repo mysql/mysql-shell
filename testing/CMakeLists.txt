@@ -27,8 +27,8 @@ if(WITH_TESTS)
         "${PROJECT_SOURCE_DIR}/testing/test_main.cc"
         "${PROJECT_SOURCE_DIR}/src/boost_code.cc"
     )
-    add_executable(run.tests ${mysqlsh_tests_SRC})
-    target_link_libraries(run.tests
+    add_executable(run_unit_tests ${mysqlsh_tests_SRC})
+    target_link_libraries(run_unit_tests
             mysqlsh
             mysqlshmods
             gtest
@@ -38,8 +38,8 @@ if(WITH_TESTS)
             )
 
     if (NOT WIN32)
-        target_link_libraries( run.tests pthread )
-#        target_link_libraries( run.tests boost_filesystem )
+        target_link_libraries( run_unit_tests pthread )
+#        target_link_libraries( run_unit_tests boost_filesystem )
         target_link_libraries( runt.tests, ${GCOV_LDFLAGS})
     endif()
 
