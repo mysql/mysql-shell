@@ -42,6 +42,12 @@ include(msvc)
 INCLUDE (CheckIncludeFiles)
 INCLUDE (CheckFunctionExists)
 
+IF ( V8_INCLUDE_DIR AND V8_LIB_DIR )
+  set(HAVE_V8 "YES")         # Variable for CMake processing
+  add_definitions(-DHAVE_V8) # Preprocessor variable for generated projects
+ELSE()
+  message(WARNING "V8 is unavailable: building without JavaScript support.")
+ENDIF()
 
 find_package(MySQL REQUIRED)
 
@@ -75,27 +81,30 @@ add_definitions(-DSHCORE_EXPORT )
 
 
 include_directories( ${CMAKE_BINARY_DIR}/include/ )
-include_directories( ${V8_INCLUDE_DIR} )
 
-link_directories( ${V8_LIB_DIR} )
+IF (HAVE_V8)
+  include_directories( ${V8_INCLUDE_DIR} )
+  link_directories( ${V8_LIB_DIR} )
 
-if(APPLE)
-  set(V8_LINK_LIST -mmacosx-version-min=10.5 -L${V8_LIB_DIR} -lv8_snapshot -licudata -lv8_libbase -lv8_base -licuuc -licui18n)
-elseif(WIN32)
-  set(V8_LINK_LIST v8_snapshot v8_libbase v8_base icuuc icui18n winmm)
-else()	# Linux
-  set(V8_LINK_LIST -L${V8_LIB_DIR} -lv8 -licuuc -licui18n)
-endif()
+  if(APPLE)
+    set(V8_LINK_LIST -mmacosx-version-min=10.5 -L${V8_LIB_DIR} -lv8_snapshot -licudata -lv8_libbase -lv8_base -licuuc -licui18n)
+  elseif(WIN32)
+    set(V8_LINK_LIST v8_snapshot v8_libbase v8_base icuuc icui18n winmm)
+  else()	# Linux
+    set(V8_LINK_LIST -L${V8_LIB_DIR} -lv8 -licuuc -licui18n)
+  endif()
 
-if(NOT WIN32)
-  add_subdirectory(src/libedit)
-endif()
+  if(NOT WIN32)
+    add_subdirectory(src/libedit)
 
-if (APPLE)
-# needed when compiling in osx, for v8
-# has to be after src/libedit
-add_definitions(-std=gnu++0x -mmacosx-version-min=10.5)
-endif()
+    if (APPLE)
+    # needed when compiling in osx, for v8
+    # has to be after src/libedit
+    add_definitions(-std=gnu++0x -mmacosx-version-min=10.5)
+    endif()
+  endif()
+ENDIF()  
+
 
 include_directories("${PROJECT_SOURCE_DIR}/include"
                     "${MYSQL_INCLUDE_DIRS}"
@@ -135,7 +144,11 @@ else()
 endif()
 target_link_libraries(mysh mysqlsh mysqlshmods)
 target_link_libraries(mysh ${MYSQL_LIBRARIES})
-target_link_libraries(mysh ${V8_LINK_LIST} ${GCOV_LDFLAGS})
+
+target_link_libraries(mysh ${GCOV_LDFLAGS})
+if ( HAVE_V8 )
+  target_link_libraries(mysh ${V8_LINK_LIST})
+endif()
 
 install(FILES mysh DESTINATION bin)
 

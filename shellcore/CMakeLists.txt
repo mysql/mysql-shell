@@ -14,7 +14,8 @@
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
 
 include_directories( ${MYSQL_INCLUDE_DIRS} )
-include_directories("${CMAKE_SOURCE_DIR}/include" "${CMAKE_SOURCE_DIR}/utils" "${BOOST_INCLUDE_DIR}" "${V8_INCLUDE_DIR}")
+include_directories("${CMAKE_SOURCE_DIR}/include" "${CMAKE_SOURCE_DIR}/utils" "${BOOST_INCLUDE_DIR}")
+
 
 file(GLOB libmysqlsh_SRC
     "${CMAKE_SOURCE_DIR}/include/shellcore/*.h"
@@ -24,6 +25,18 @@ file(GLOB libmysqlsh_SRC
     "${CMAKE_SOURCE_DIR}/utils/utils_time.cc"
       "*.cc"
 )
+
+# Configures V8 accordingly...
+if ( HAVE_V8 )
+  include_directories("${V8_INCLUDE_DIR}")
+else()
+  # Removes from the project all the jscript files
+  file(GLOB js_SRC "*jscript*.cc")
+  
+  foreach(jsfile ${js_SRC})
+    list(REMOVE_ITEM libmysqlsh_SRC "${jsfile}")
+  endforeach()
+endif()  
 
 
 add_convenience_library(mysqlsh ${libmysqlsh_SRC})

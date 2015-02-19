@@ -211,8 +211,12 @@ void Interactive_shell::switch_shell_mode(Shell_core::Mode mode, const std::vect
           println("Switching to SQL mode... Commands end with ;");
         break;
       case Shell_core::Mode_JScript:
+#ifdef HAVE_V8
         if (_shell->switch_mode(mode))
           println("Switching to JavaScript mode...");
+#else
+        println("JavaScript mode is not supported on this platform, command ignored.");
+#endif
         break;
       case Shell_core::Mode_Python:
         if (_shell->switch_mode(mode))
@@ -435,7 +439,11 @@ void Interactive_shell::command_loop()
     switch (_shell->interactive_mode())
     {
       case Shell_core::Mode_SQL:
+#ifdef HAVE_V8
         _shell->print("Currently in SQL mode. Use \\js or \\py to switch the shell to a scripting language.\n");
+#else
+        _shell->print("Currently in SQL mode. Use \\py to switch the shell to python scripting.\n");
+#endif
         break;
       case Shell_core::Mode_JScript:
         _shell->print("Currently in JavaScript mode. Use \\sql to switch to SQL mode and execute queries.\n");
@@ -556,14 +564,17 @@ public:
 
 int main(int argc, char **argv)
 {
-  extern void JScript_context_init();
 
   Shell_command_line_options options(argc, argv);
 
   if (options.exit_code != 0)
     return options.exit_code;
 
+#ifdef HAVE_V8
+  extern void JScript_context_init();
+
   JScript_context_init();
+#endif
 
   {
     Interactive_shell shell(Shell_core::Mode_SQL);

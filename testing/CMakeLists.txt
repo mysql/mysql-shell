@@ -27,15 +27,23 @@ if(WITH_TESTS)
         "${PROJECT_SOURCE_DIR}/testing/test_main.cc"
         "${PROJECT_SOURCE_DIR}/src/boost_code.cc"
     )
+    
+    if ( NOT HAVE_V8 )
+      list(REMOVE_ITEM mysqlsh_tests_SRC "${PROJECT_SOURCE_DIR}/testing/value_js_bridging_t.cc")
+    endif()
+    
     add_executable(run_unit_tests ${mysqlsh_tests_SRC})
     target_link_libraries(run_unit_tests
             mysqlsh
             mysqlshmods
             gtest
             ${PROTOBUF_LIBRARY}
-            ${V8_LINK_LIST}
             ${MYSQL_LIBRARIES}
             )
+            
+    if ( HAVE_V8 )
+      target_link_libraries(run_unit_tests ${V8_LINK_LIST})
+    endif()
 
     if (NOT WIN32)
         target_link_libraries( run_unit_tests pthread )

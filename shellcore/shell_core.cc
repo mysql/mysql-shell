@@ -110,12 +110,14 @@ void Shell_core::init_sql()
 
 void Shell_core::init_js()
 {
+#ifdef HAVE_V8
   Shell_javascript *js;
   _langs[Mode_JScript] = js = new Shell_javascript(this);
 
   for (std::map<std::string, Value>::const_iterator iter = _globals.begin();
        iter != _globals.end(); ++iter)
     js->set_global(iter->first, iter->second);
+#endif
 }
 
 

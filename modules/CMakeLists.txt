@@ -14,7 +14,13 @@
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
 
 include_directories( ${MYSQL_INCLUDE_DIRS} )
-include_directories("${CMAKE_SOURCE_DIR}/include" "${CMAKE_SOURCE_DIR}/utils" "${BOOST_INCLUDE_DIR}" "${V8_INCLUDE_DIR}")
+
+include_directories("${CMAKE_SOURCE_DIR}/include" "${CMAKE_SOURCE_DIR}/utils" "${BOOST_INCLUDE_DIR}")
+
+if (HAVE_V8)
+  include_directories("${V8_INCLUDE_DIR}")
+endif()  
+
 
 file(GLOB libmysqlshmods_SRC
       "*.cc"
