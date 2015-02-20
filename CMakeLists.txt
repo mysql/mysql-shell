@@ -158,3 +158,5 @@ if(WIN32)
 endif()
 
 add_definitions(-DBOOST_ALL_NO_LIB )
+
+ADD_SUBDIRECTORY(doc)
