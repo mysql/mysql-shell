@@ -7,20 +7,42 @@ DEPENDENCIES
 ============
 
 - cmake 
-- v8 (3.32.7)
 - boost (recommended 1.56)
-
+- python 2.6+ (with python in the PATH)
 - libmysqlclient 5.6+
+- Nghshell-deps, which includes:
+a) v8 (3.28.73)
+b) gmock (recommended 1.7.0) (for unit-tests)
+c) gtest 1.7.0
+d) gyp
 
-- gmock (recommended 1.7.0) (for unit-tests)
+
 
 
 BUILD
 =====
 
+Windows instructions sample:
+
+
+cd <ngshell-deps>\v8
+(For Linux, see <ngshell-deps>\v8\build_linux32.sh or <ngshell-deps>\v8\build_linux64.sh)
+python build\gyp_8 -Dtarget_arch=ia32 -Dcomponent=static_library
+cd build
+msbuild all.sln /p:Configuration=Release
+
+cd <ngshell-deps>\ngshell-deps\v8\testing\gtest
 mkdir bld
 cd bld
-cmake .. -DGMOCK_DIR=$HOME/ng/dev/gmock-1.7.0 -DMY_BOOST_LIB_DIR=/usr/local/lib -DV8_INCLUDE_DIR=$HOME/ng/v8/v8/include -DV8_LIB_DIR=$HOME/ng/v8/v8/out/x64.debug
+cmake ..
+msbuild gtest.sln /p:Configuration=Release
 
+cd <ngshell>
+mkdir bld
+cd bld
+
+(assuming nshell-deps is downloaded in C:\src\mysql-server\ngshell-deps)
+cmake -DV8_INCLUDE_DIR=C:\src\mysql-server\ngshell-deps\v8\include -DV8_LIB_DIR=C:\src\mysql-server\ngshell-deps\v8\build\Debug\lib -DWITH_BOOST=C:\src\mysql-server\boost\boost_1_56_0 -DWITH_TESTS=1 -DWITH_GTEST=C:\src\mysql-server\ngshell-deps\v8\testing\gtest\bld ..
+msbuild all.sln /p:Configuration=Release
 
 

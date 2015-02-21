@@ -13,18 +13,6 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
 
-# Sample command lines
-#  (Don't delete, my copy & paste)
-# For Windows:
-#  cmake -DV8_INCLUDE_DIR=C:\src\mysql-server\v8-git-v3.28.73\include -DV8_LIB_DIR=C:\src\mysql-server\MyLibs\v8\Debug -DWITH_BOOST=C:\src\mysql-server\boost\boost_1_56_0 -DWITH_TESTS=1 -DWITH_GTEST=C:\src\OpenSource\gtest-1.7.0\MY_BUILD ..
-# For Linux:
-#  cmake -DWITH_BOOST=/home/fernando/src/boost_1_56_0/ -DV8_LIB_DIR=/home/fernando/src/v8/v8-git-v3.28.73/out/Debug/lib.target -DV8_INCLUDE_DIR=/home/fernando/src/v8/v8-git-v3.28.73/include -DWITH_TESTS=1 -DWITH_GTEST=/home/fernando/src/gtest-1.7.0/MY_BUILD .. 
-#
-#
-#  cmake -DWITH_BOOST=/home/fernando/src/boost_1_56_0/ -DV8_LIB_DIR=/home/fernando/src/v8/v8-git-v3.28.73/out/Debug/lib.target -DV8_INCLUDE_DIR=/home/fernando/src/v8/v8-git-v3.28.73/include -DCMAKE_BUILD_TYPE=Debug -DCMAKE_ECLIPSE_VERSION=4.4 -DCMAKE_ECLIPSE_GENERATE_SOURCE_PROJECT=TRUE --G "Eclipse CDT4 - Unix Makefiles" -DWITH_TESTS=1 -DWITH_GTEST=/home/fernando/src/gtest-1.7.0/ ..
-#
-#
-#
 cmake_minimum_required (VERSION 2.8)
 
 project (mysh)
