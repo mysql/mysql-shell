@@ -1,6 +1,3 @@
-[submodule "ext/v8"]
-	path = ext/v8
-	url = https://chromium.googlesource.com/v8/v8.git
 [submodule "common"]
 	path = common
-	url = git@myrepo.no.oracle.com:ngcommon
+	url = ../ngcommon.git
