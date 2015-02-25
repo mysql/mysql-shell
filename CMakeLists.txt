@@ -75,11 +75,11 @@ IF (HAVE_V8)
   link_directories( ${V8_LIB_DIR} )
 
   if(APPLE)
-    set(V8_LINK_LIST -mmacosx-version-min=10.5 -L${V8_LIB_DIR} -lv8_snapshot -licudata -lv8_libbase -lv8_base -licuuc -licui18n)
+    set(V8_LINK_LIST -mmacosx-version-min=10.5 -L${V8_LIB_DIR} -lv8_snapshot -lv8_libbase -lv8_base)
   elseif(WIN32)
-    set(V8_LINK_LIST v8_snapshot v8_libbase v8_base icuuc icui18n winmm)
+    set(V8_LINK_LIST v8_snapshot v8_libbase v8_base winmm)
   else()	# Linux
-    set(V8_LINK_LIST -L${V8_LIB_DIR} -lv8 -licuuc -licui18n)
+    set(V8_LINK_LIST -L${V8_LIB_DIR} -lv8)
   endif()
 
   if(NOT WIN32)
