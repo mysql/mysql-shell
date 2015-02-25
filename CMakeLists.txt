@@ -24,7 +24,6 @@ SET(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/cmake ${CMAKE_SOU
 ###
 
 INCLUDE(libutils)
-INCLUDE(boost)
 include(msvc)
 
 INCLUDE (CheckIncludeFiles)
@@ -38,6 +37,7 @@ ELSE()
 ENDIF()
 
 find_package(MySQL REQUIRED)
+find_package(Boost 1.42 REQUIRED)
 
 CHECK_INCLUDE_FILES (pwd.h HAVE_PWD_H)
 if(WIN32)
@@ -96,7 +96,7 @@ ENDIF()
 
 include_directories("${PROJECT_SOURCE_DIR}/include"
                     "${MYSQL_INCLUDE_DIRS}"
-                    "${BOOST_INCLUDE_DIR}"
+                    "${Boost_INCLUDE_DIRS}"
                    )
 
 ###

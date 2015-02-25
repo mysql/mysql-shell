@@ -15,7 +15,7 @@
 
 include_directories( ${MYSQL_INCLUDE_DIRS} )
 
-include_directories("${CMAKE_SOURCE_DIR}/include" "${CMAKE_SOURCE_DIR}/utils" "${BOOST_INCLUDE_DIR}")
+include_directories("${CMAKE_SOURCE_DIR}/include" "${CMAKE_SOURCE_DIR}/utils" "${Boost_INCLUDE_DIRS}")
 
 if (HAVE_V8)
   include_directories("${V8_INCLUDE_DIR}")
