@@ -42,7 +42,7 @@ class Shell_core;
 
 class Shell_command_handler
 {
-  typedef std::map <std::string, boost::function<void(const std::string &)>> Command_registry;
+  typedef std::map <std::string, boost::function<void(const std::string &)> > Command_registry;
 private:
   Command_registry commands;
 

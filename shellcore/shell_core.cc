@@ -183,7 +183,7 @@ void Shell_command_handler::add_command(const std::string& triggers, boost::func
   // Inserts a mapping for each given token
   while (index != end)
   {
-    commands.insert(std::pair < const std::string&, boost::function<void(const std::string&)>>(*index, function));
+    commands.insert(std::pair < const std::string&, boost::function<void(const std::string&)> >(*index, function));
     index++;
   }
 }
