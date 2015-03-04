@@ -17,8 +17,23 @@ cmake_minimum_required (VERSION 2.8)
 
 project (mysh)
 
-SET(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/cmake ${CMAKE_SOURCE_DIR}/common/cmake)
+set(CMAKE_MODULE_PATH 
+    ${CMAKE_SOURCE_DIR}/cmake
+    ${CMAKE_SOURCE_DIR}/common/cmake
+    ${CMAKE_MODULE_PATH}
+)
 
+###
+### Initial configuration
+###
+
+SET(MYSH_MAJOR 0)
+SET(MYSH_MINOR 0)
+SET(MYSH_PATCH 1)
+SET(MYSH_LEVEL "-alpha") # Empty if GA
+
+SET(MYSH_VERSION "${MYSH_MAJOR}.${MYSH_MINOR}.${MYSH_PATCH}${MYSH_LEVEL}")
+ 
 ###
 ### Detect Stuff
 ###
@@ -38,6 +53,15 @@ ENDIF()
 
 find_package(MySQL REQUIRED)
 find_package(Boost 1.42 REQUIRED)
+find_package(Curses)
+
+
+# disable optimization for boost error_code, otherwise we get link errors in Release builds
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+   SET_SOURCE_FILES_PROPERTIES(${PROJECT_SOURCE_DIR}/src/boost_code.cc PROPERTIES COMPILE_FLAGS -O0)
+elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+   SET_SOURCE_FILES_PROPERTIES(${PROJECT_SOURCE_DIR}/src/boost_code.cc PROPERTIES COMPILE_FLAGS -O0)
+endif ()
 
 CHECK_INCLUDE_FILES (pwd.h HAVE_PWD_H)
 if(WIN32)
@@ -70,32 +94,57 @@ add_definitions(-DSHCORE_EXPORT )
 
 include_directories( ${CMAKE_BINARY_DIR}/include/ )
 
+
+if(NOT WIN32)
+  add_subdirectory(src/libedit)
+endif()
+
+
 IF (HAVE_V8)
   include_directories( ${V8_INCLUDE_DIR} )
-  link_directories( ${V8_LIB_DIR} )
 
-  if(APPLE)
-    set(V8_LINK_LIST -mmacosx-version-min=10.5 -L${V8_LIB_DIR} -lv8_snapshot -lv8_libbase -lv8_base)
-  elseif(WIN32)
-    set(V8_LINK_LIST v8_snapshot v8_libbase v8_base winmm)
-  else()	# Linux
-    set(V8_LINK_LIST -L${V8_LIB_DIR} -lv8)
+  find_library(V8_LIB v8
+               PATHS ${V8_LIB_DIR}
+               NO_DEFAULT_PATH
+  )
+  set(V8_LIBS)
+  if(V8_LIB)
+    set(V8_LIBS ${V8_LIB})      # Single lib, just use it
+    message(STATUS "v8 Library Found: \"${_libname}\" at ${V8_LIB}")
+  else()
+    # Could not find "libv8", in some distributions there are multiple "libv8_*"
+    foreach(_libname v8_libplatform v8_base v8_libbase v8_snapshot)
+      find_library(_v8_lib ${_libname}
+                   PATHS ${V8_LIB_DIR}
+                   NO_DEFAULT_PATH
+      )
+      if(NOT _v8_lib)
+        message(FATAL_ERROR "Could not find the library \"v8\" or \"${_libname}\"")
+      else()
+        message(STATUS "v8 Library Found: \"${_libname}\" at ${_v8_lib}")
+      endif()
+      list(APPEND V8_LIBS ${_v8_lib})
+      SET(_v8_lib _v8_lib-NOTFOUND)
+    endforeach()
   endif()
 
-  if(NOT WIN32)
-    add_subdirectory(src/libedit)
+  if(APPLE)
+    set(V8_LINK_LIST -mmacosx-version-min=10.5 ${V8_LIBS})
+  elseif(WIN32)
+    set(V8_LINK_LIST ${V8_LIBS} winmm)
+  else()	# Linux
+    set(V8_LINK_LIST ${V8_LIBS})
+  endif()
 
-    if (APPLE)
+  if (APPLE)
     # needed when compiling in osx, for v8
     # has to be after src/libedit
     add_definitions(-std=gnu++0x -mmacosx-version-min=10.5)
-    endif()
   endif()
 ENDIF()  
 
-
 include_directories("${PROJECT_SOURCE_DIR}/include"
-                    "${MYSQL_INCLUDE_DIRS}"
+                    "${MYSQL_INCLUDE_DIR}"
                     "${Boost_INCLUDE_DIRS}"
                    )
 
@@ -131,14 +180,15 @@ else()
   target_link_libraries(mysh readline)
 endif()
 target_link_libraries(mysh mysqlsh mysqlshmods)
-target_link_libraries(mysh ${MYSQL_LIBRARIES})
 
 target_link_libraries(mysh ${GCOV_LDFLAGS})
 if ( HAVE_V8 )
   target_link_libraries(mysh ${V8_LINK_LIST})
 endif()
+# Last, to make -lrt -lpthread last, v8 needs it
+target_link_libraries(mysh ${MYSQL_LIBRARIES})
 
-install(FILES mysh DESTINATION bin)
+install(TARGETS mysh DESTINATION bin)
 
 
 if(WIN32)
@@ -148,3 +198,5 @@ endif()
 add_definitions(-DBOOST_ALL_NO_LIB )
 
 ADD_SUBDIRECTORY(doc)
+
+include(packaging)
