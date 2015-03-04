@@ -177,7 +177,7 @@ add_executable(mysh ${mysh_SRC})
 if(WIN32)
   add_dependencies(mysh boost_code.obj)
 else()
-  target_link_libraries(mysh readline)
+  target_link_libraries(mysh edit)
 endif()
 target_link_libraries(mysh mysqlsh mysqlshmods)
 
