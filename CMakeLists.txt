@@ -51,6 +51,11 @@ ELSE()
   message(WARNING "V8 is unavailable: building without JavaScript support.")
 ENDIF()
 
+# Sets default linking to static if not already defined
+if(NOT DEFINED MYSQLCLIENT_STATIC_LINKING)
+  set(MYSQLCLIENT_STATIC_LINKING TRUE)
+endif()
+
 find_package(MySQL REQUIRED)
 find_package(Boost 1.42 REQUIRED)
 find_package(Curses)

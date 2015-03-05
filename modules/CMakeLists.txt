@@ -13,9 +13,10 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
 
-include_directories( ${MYSQL_INCLUDE_DIRS} )
-
-include_directories("${CMAKE_SOURCE_DIR}/include" "${CMAKE_SOURCE_DIR}/utils" "${Boost_INCLUDE_DIRS}")
+include_directories("${CMAKE_SOURCE_DIR}/include" 
+                    "${CMAKE_SOURCE_DIR}/utils" 
+                    "${MYSQL_INCLUDE_DIR}"
+                    "${Boost_INCLUDE_DIRS}")
 
 if (HAVE_V8)
   include_directories("${V8_INCLUDE_DIR}")
