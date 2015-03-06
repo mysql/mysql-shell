@@ -53,7 +53,7 @@ using namespace shcore;
 
 const int MAX_READLINE_BUF = 65536;
 
-extern char *get_tty_password(const char *opt_message);
+extern char *mysh_get_tty_password(const char *opt_message);
 
 class Interactive_shell
 {
@@ -295,7 +295,7 @@ bool Interactive_shell::deleg_input(void *cdata, const char *prompt, std::string
 
 bool Interactive_shell::deleg_password(void *cdata, const char *prompt, std::string &ret)
 {
-  char *tmp = get_tty_password(prompt);
+  char *tmp = mysh_get_tty_password(prompt);
   if (!tmp)
     return false;
   ret = tmp;

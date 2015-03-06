@@ -63,7 +63,7 @@
 /* were just going to fake it here and get input from
    the keyboard */
 
-char *get_tty_password(const char *opt_message)
+char *mysh_get_tty_password(const char *opt_message)
 {
   char to[80];
   char *pos=to,*end=to+sizeof(to)-1;
@@ -159,7 +159,7 @@ char *my_stpnmov(char *dst, const char *src, size_t n)
   return dst;
 }
 
-char *get_tty_password_ext(const char *opt_message)
+char *mysh_get_tty_password(const char *opt_message)
 {
 #ifdef HAVE_GETPASS
   char *passbuff;
