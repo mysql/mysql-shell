@@ -541,7 +541,7 @@ public:
 
     if (needs_password)
     {
-      char *tmp = get_tty_password("Enter password: ");
+      char *tmp = mysh_get_tty_password("Enter password: ");
       if (tmp)
       {
         password = tmp;
