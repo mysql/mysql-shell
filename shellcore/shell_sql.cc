@@ -24,10 +24,7 @@
 #include <boost/bind.hpp>
 #include <boost/format.hpp>
 #include <boost/algorithm/string.hpp>
-
-#include <iostream>
 #include <fstream>
-
 
 using namespace shcore;
 using namespace boost::system;
@@ -41,7 +38,7 @@ Shell_sql::Shell_sql(Shell_core *owner)
   SET_SHELL_COMMAND("source|\\.", Shell_sql::cmd_process_file);
 }
 
-Value Shell_sql::handle_interactive_input(std::string &code, Interactive_input_state &state)
+Value Shell_sql::handle_input(std::string &code, Interactive_input_state &state, bool interactive)
 {
   state = Input_ok;
   Value session_wrapper = _owner->get_global("_S");
@@ -111,6 +108,11 @@ Value Shell_sql::handle_interactive_input(std::string &code, Interactive_input_s
         else
           _last_handled.append("\n").append(statements[index]);
 
+
+        // TODO: the --force option should skip this validation
+        //           to let it continue processing the rest of the statements
+        if (result_wrapper.type == shcore::Null)
+          return result_wrapper;
 
         if (result_wrapper)
         {
@@ -186,43 +188,6 @@ void Shell_sql::print_warnings(boost::shared_ptr<mysh::Session> session)
   }
 }
 
-int Shell_sql::run_script(const std::string &path, boost::system::error_code &err)
-{
-  std::string new_path = path;
-  std::string error;
-
-  if (!path.empty())
-  {
-    //TODO: do path expansion (in case ~ is used in linux)
-    int index = 0;
-    std::ifstream s(new_path.c_str());
-    if (!s.fail())
-    {
-      Interactive_input_state state;
-
-      // Processes line by line as if it were entered on the console
-      while (!s.eof())
-      {
-        std::string line;
-
-        index++;
-
-        std::getline(s, line);
-
-        handle_interactive_input(line, state);
-      }
-
-      s.close();
-    }
-    else
-      _owner->print_error((boost::format("Failed to open file '%s', error: %d") % new_path.c_str() % errno).str());
-  }
-  else
-    _owner->print_error("Usage: \\. <filename> | source <filename>");
-
-  return 0;
-}
-
 
 std::string Shell_sql::prompt()
 {
@@ -235,10 +200,21 @@ std::string Shell_sql::prompt()
 //------------------ SQL COMMAND HANDLERS ------------------//
 void Shell_sql::cmd_process_file(const std::string& filename)
 {
-  // The run_script method handles the errors
-  // so nothing to be done here...
-  boost::system::error_code err;
-  run_script(filename, err);
+  if (filename.empty())
+    _owner->print_error("Usage: \\. <filename> | source <filename>");
+  else
+    //TODO: do path expansion (in case ~ is used in linux)
+  {
+    std::ifstream s(filename.c_str());
+
+    if (!s.fail())
+    {
+      _owner->process_stream(s, filename);
+      s.close();
+    }
+    else
+      _owner->print_error((boost::format("Failed to open file '%s', error: %d") % filename.c_str() % errno).str());
+  }
 }
 
 void Shell_sql::cmd_enable_auto_warnings(const std::string& param)

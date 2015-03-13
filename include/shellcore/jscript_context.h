@@ -38,9 +38,8 @@ public:
   JScript_context(Object_registry *registry, Interpreter_delegate *deleg);
   ~JScript_context();
 
-  Value execute(const std::string &code, boost::system::error_code &ret_error) throw (Exception);
+  Value execute(const std::string &code, boost::system::error_code &ret_error, const std::string& source = "") throw (Exception);
   Value execute_interactive(const std::string &code) BOOST_NOEXCEPT_OR_NOTHROW;
-  int run_script(const std::string &path, boost::system::error_code &err) BOOST_NOEXCEPT_OR_NOTHROW;
 
   v8::Isolate *isolate() const;
   v8::Handle<v8::Context> context() const;

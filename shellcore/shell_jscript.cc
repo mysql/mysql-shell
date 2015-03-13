@@ -30,9 +30,31 @@ Shell_javascript::Shell_javascript(Shell_core *shcore)
 }
 
 
-Value Shell_javascript::handle_interactive_input(std::string &code, Interactive_input_state &state)
+Value Shell_javascript::handle_input(std::string &code, Interactive_input_state &state, bool interactive)
 {
-  Value result = _js->execute_interactive(code);
+  Value result;
+
+  if (interactive)
+    result = _js->execute_interactive(code);
+  else
+  {
+    try
+    {
+      boost::system::error_code err;
+
+      result = _js->execute(code, err, _owner->get_input_source());
+
+      if (err)
+      {
+        std::cerr << err << "\n";
+      }
+    }
+    catch (Exception &exc)
+    {
+      // This exception was already printed in JS
+      result = Value::Null();
+    }
+  }
 
   _last_handled = code;
 
@@ -45,12 +67,6 @@ Value Shell_javascript::handle_interactive_input(std::string &code, Interactive_
 std::string Shell_javascript::prompt()
 {
   return "js> ";
-}
-
-
-int Shell_javascript::run_script(const std::string &path, boost::system::error_code &err)
-{
-  return _js->run_script(path, err);
 }
 
 

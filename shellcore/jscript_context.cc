@@ -30,14 +30,10 @@
 
 #include "shellcore/jscript_type_conversion.h"
 
-#include <fstream>
-#include <cerrno>
 #include <boost/weak_ptr.hpp>
 #include <boost/format.hpp>
 #include <boost/bind.hpp>
 #include <boost/system/error_code.hpp>
-
-#include <iostream>
 
 using namespace shcore;
 using namespace boost::system;
@@ -528,7 +524,7 @@ Argument_list JScript_context::convert_args(const v8::FunctionCallbackInfo<v8::V
 
 
 
-Value JScript_context::execute(const std::string &code_str, boost::system::error_code &ret_error) throw (Exception)
+Value JScript_context::execute(const std::string &code_str, boost::system::error_code &ret_error, const std::string& source) throw (Exception)
 {
   // makes _isolate the default isolate for this context
   v8::Isolate::Scope isolate_scope(_impl->isolate);
@@ -539,7 +535,7 @@ Value JScript_context::execute(const std::string &code_str, boost::system::error
   v8::TryCatch try_catch;
   // set _context to be the default context for everything in this scope
   v8::Context::Scope context_scope(v8::Local<v8::Context>::New(_impl->isolate, _impl->context));
-  v8::ScriptOrigin origin(v8::String::NewFromUtf8(_impl->isolate, "(shell)"));
+  v8::ScriptOrigin origin(v8::String::NewFromUtf8(_impl->isolate, source.c_str()));
   v8::Handle<v8::String> code = v8::String::NewFromUtf8(_impl->isolate, code_str.c_str());
   v8::Handle<v8::Script> script = v8::Script::Compile(code, &origin);
 
@@ -575,8 +571,6 @@ Value JScript_context::execute(const std::string &code_str, boost::system::error
 
 Value JScript_context::execute_interactive(const std::string &code_str) BOOST_NOEXCEPT_OR_NOTHROW
 {
-  boost::system::error_code error;
-
   // makes _isolate the default isolate for this context
   v8::Isolate::Scope isolate_scope(_impl->isolate);
   // creates a pool for all the handles that are created in this scope
@@ -608,56 +602,5 @@ Value JScript_context::execute_interactive(const std::string &code_str) BOOST_NO
     }
   }
   return Value();
-}
-
-
-int JScript_context::run_script(const std::string &path, boost::system::error_code &err) BOOST_NOEXCEPT_OR_NOTHROW
-{
-  // makes _isolate the default isolate for this context
-  v8::Isolate::Scope isolate_scope(_impl->isolate);
-  // creates a pool for all the handles that are created in this scope
-  // (except for persistent ones), which will be freed when the scope exits
-  v8::HandleScope handle_scope(_impl->isolate);
-  // catch everything that happens in this scope
-  v8::TryCatch try_catch;
-  // set _context to be the default context for everything in this scope
-  v8::Context::Scope context_scope(v8::Local<v8::Context>::New(_impl->isolate, _impl->context));
-  v8::ScriptOrigin origin(v8::String::NewFromUtf8(_impl->isolate, path.c_str()));
-  v8::Handle<v8::Script> script;
-  {
-    std::ifstream s(path.c_str());
-    if (s.fail())
-    {
-      err = errc::make_error_code((errc::errc_t)errno);
-      return 1;
-    }
-    s.seekg(0, std::ios_base::end);
-    std::streamsize fsize = s.tellg();
-    s.seekg(0, std::ios_base::beg);
-    char *fdata = new char[fsize+1];
-    s.read(fdata, fsize);
-    fdata[fsize] = 0;
-    script = v8::Script::Compile(v8::String::NewFromUtf8(_impl->isolate, fdata), &origin);
-    delete []fdata;
-
-    if (script.IsEmpty())
-    {
-      _impl->print_exception(&try_catch, false);
-      // XXX set the error to a proper value
-      return 1;
-    }
-  }
-
-  v8::Handle<v8::Value> result = script->Run();
-  if (result.IsEmpty())
-  {
-    _impl->print_exception(&try_catch, false);
-    // XXX set the error to a proper value
-    return 1;
-  }
-  else
-  {
-    return 0;
-  }
 }
 

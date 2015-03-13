@@ -17,6 +17,7 @@
  * 02110-1301  USA
  */
 
+#include <fstream>
 #include "mysh.h"
 
 #include "shellcore/types.h"
@@ -60,7 +61,7 @@ class Interactive_shell
 public:
   Interactive_shell(Shell_core::Mode initial_mode);
   void command_loop();
-  int run_script(const std::string &file);
+  int process_stream(std::istream & stream, const std::string& source) { return _shell->process_stream(stream, source);  }
 
   void init_environment();
 
@@ -393,7 +394,7 @@ void Interactive_shell::process_line(const std::string &line)
     {
       try
       {
-        Value result = _shell->handle_interactive_input(_input_buffer, state);
+        Value result = _shell->handle_input(_input_buffer, state);
 
         if (result)
         {
@@ -481,20 +482,6 @@ void Interactive_shell::print_banner()
 }
 
 
-int Interactive_shell::run_script(const std::string &file)
-{
-  boost::system::error_code err;
-
-  int rc = _shell->run_script(file, err);
-  if (err)
-  {
-    std::cerr << err << "\n";
-    return 1;
-  }
-  return rc;
-}
-
-
 class Shell_command_line_options : public Command_line_options
 {
 public:
@@ -514,7 +501,7 @@ public:
 
     needs_password = false;
 
-    initial_mode = Shell_core::Mode_JScript;
+    initial_mode = Shell_core::Mode_SQL;
 
     for (int i = 1; i < argc && exit_code == 0; i++)
     {
@@ -531,6 +518,12 @@ public:
         port = atoi(value);
       else if (check_arg(argv, i, "--password", "-p"))
         needs_password = true;
+      else if (check_arg(argv, i, "--sql", "--sql"))
+        initial_mode = Shell_core::Mode_SQL;
+      else if (check_arg(argv, i, "--js", "--js"))
+        initial_mode = Shell_core::Mode_JScript;
+      else if (check_arg(argv, i, "--py", "--py"))
+        initial_mode = Shell_core::Mode_Python;
       else if (exit_code == 0)
       {
         std::cerr << argv[0] << ": unknown option " << argv[i] <<"\n";
@@ -564,6 +557,7 @@ public:
 
 int main(int argc, char **argv)
 {
+  int ret_val = 0;
 
   Shell_command_line_options options(argc, argv);
 
@@ -577,17 +571,26 @@ int main(int argc, char **argv)
 #endif
 
   {
-    Interactive_shell shell(Shell_core::Mode_SQL);
+    Interactive_shell shell(options.initial_mode);
 
+    bool is_interactive = true;
 
-    // if interactive, print the copyright info
-    if (options.run_file.empty())
 #if defined(WIN32)
-      if(isatty(_fileno(stdin)))
+    if(!isatty(_fileno(stdin) || !isatty(_fileno(stdout))))
 #else
-      if (isatty(STDIN_FILENO))
+    if (isatty(STDIN_FILENO))
 #endif
-      shell.print_banner();
+    {
+      if (!options.run_file.empty())
+      {
+        shell.print_error("--file (-f) option is forbidden when redirecting input to stdin.");
+        return 1;
+      }
+      else
+        is_interactive = false;
+    }
+    else
+      is_interactive = options.run_file.empty();
 
     shell.init_environment();
 
@@ -598,11 +601,30 @@ int main(int argc, char **argv)
       shell.println("");
     }
 
-    if (!options.run_file.empty())
-      shell.run_script(options.run_file);
-    else
+    // Three processing modes are available at this point
+    // Interactive, file processing and STDIN processing
+    if (is_interactive)
+    {
+      shell.print_banner();
       shell.command_loop();
+    }
+    else if (!options.run_file.empty())
+    {
+      std::ifstream s(options.run_file.c_str());
+      if (!s.fail())
+      {
+        ret_val = shell.process_stream(s, options.run_file);
+        s.close();
+      }
+      else
+      {
+        ret_val = 1;
+        shell.print_error((boost::format("Failed to open file '%s', error: %d") % options.run_file.c_str() % errno).str());
+      }
+    }
+    else
+      ret_val = shell.process_stream(std::cin, "STDIN");
   }
 
-  return 0;
+  return ret_val;
 }

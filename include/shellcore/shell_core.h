@@ -23,6 +23,8 @@
 #include "shellcore/types.h"
 #include <boost/system/error_code.hpp>
 
+#include <iostream>
+
 // Helper to add commands easily to the dispatcher. Use it as:
 // SET_SHELL_COMMAND("<name>", Class::method)
 // Assumption is the method has the required signature: void class::method(const std::string& params)
@@ -59,22 +61,14 @@ public:
 
   virtual void set_global(const std::string &name, const Value &value) = 0;
 
-  virtual Value handle_interactive_input(std::string &code, Interactive_input_state &state) = 0;
+  virtual Value handle_input(std::string &code, Interactive_input_state &state, bool interactive = true) = 0;
   virtual bool handle_shell_command(const std::string &code) { return _shell_command_handler.process(code); }
   virtual std::string get_handled_input() { return _last_handled; }
-  virtual int run_script(const std::string &path, boost::system::error_code &err) = 0;
   virtual std::string prompt() = 0;
 protected:
   Shell_core *_owner;
   std::string _last_handled;
   Shell_command_handler _shell_command_handler;
-
-  // The command index will match a command name to a specific command index:
-  // - A command may have many names (i.e. full name and shortcut)
-  // - The names for the same command should be mapped to a unique index
-  // - That unique index will be used to actually process the command
-  std::map<std::string, int> _command_index;
-
 };
 
 
@@ -105,10 +99,10 @@ public:
 
   Object_registry *registry() { return _registry; }
 public:
-  Value handle_interactive_input(std::string &code, Interactive_input_state &state);
+  Value handle_input(std::string &code, Interactive_input_state &state, bool interactive = true);
   virtual bool handle_shell_command(const std::string &code);
   std::string get_handled_input();
-  int run_script(const std::string &path, boost::system::error_code &err);
+  int process_stream(std::istream& stream = std::cin, const std::string& source = "(shcore)");
 
   std::string prompt();
 
@@ -118,6 +112,7 @@ public:
   void print(const std::string &s);
   void print_error(const std::string &s);
   bool password(const std::string &s, std::string &ret_pass);
+  const std::string& get_input_source() { return _input_source; }
 private:
   void init_sql();
   void init_js();
@@ -129,7 +124,7 @@ private:
   std::map<Mode, Shell_language*> _langs;
 
   Interpreter_delegate *_lang_delegate;
-
+  std::string _input_source;
   Mode _mode;
 };
 

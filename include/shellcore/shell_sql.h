@@ -35,8 +35,7 @@ public:
 
   virtual void set_global(const std::string &name, const Value &value) {}
 
-  virtual Value handle_interactive_input(std::string &code, Interactive_input_state &state);
-  virtual int run_script(const std::string &path, boost::system::error_code &err);
+  virtual Value handle_input(std::string &code, Interactive_input_state &state, bool interactive = true);
 
   void print_warnings(boost::shared_ptr<mysh::Session> session);
   

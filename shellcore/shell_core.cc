@@ -23,8 +23,12 @@
 #include "shellcore/shell_python.h"
 #include "shellcore/object_registry.h"
 #include <boost/algorithm/string.hpp>
+#include <boost/format.hpp>
+
 
 #include "shellcore/lang_base.h"
+#include <fstream>
+
 
 using namespace shcore;
 
@@ -57,9 +61,9 @@ bool Shell_core::password(const std::string &s, std::string &ret_pass)
   return _lang_delegate->password(_lang_delegate->user_data, s.c_str(), ret_pass);
 }
 
-Value Shell_core::handle_interactive_input(std::string &line, Interactive_input_state &state)
+Value Shell_core::handle_input(std::string &line, Interactive_input_state &state, bool interactive)
 {
-  return _langs[_mode]->handle_interactive_input(line, state);
+  return _langs[_mode]->handle_input(line, state, interactive);
 }
 
 std::string Shell_core::get_handled_input()
@@ -68,9 +72,55 @@ std::string Shell_core::get_handled_input()
 }
 
 
-int Shell_core::run_script(const std::string &path, boost::system::error_code &err)
+int Shell_core::process_stream(std::istream& stream, const std::string& source)
 {
-  return _langs[_mode]->run_script(path, err);
+  Interactive_input_state state;
+  int ret_val = 0;
+
+  _input_source = source;
+
+  // In SQL Mode the stdin and file are processed line by line
+  if (_mode == Shell_core::Mode_SQL)
+  {
+    while (!stream.eof())
+    {
+      std::string line;
+
+      std::getline(stream, line);
+
+      Value result = handle_input(line, state, false);
+
+      // When result type is Null it indicates there was a processing error
+      // We quit processing statements at this point.
+      //TODO: --force option should skip this validation
+      if (result.type == shcore::Null)
+      {
+        ret_val = 1;
+        break;
+      }
+    }
+  }
+  else
+  {
+    stream.seekg(0, stream.end);
+    std::streamsize fsize = stream.tellg();
+    stream.seekg(0, stream.beg);
+    char *fdata = new char[fsize + 1];
+    stream.read(fdata, fsize);
+
+    // Adds string terminator at the position next to the last
+    // read character
+    fdata[stream.gcount()] = '\0';
+
+    std::string data(fdata);
+
+    Value result = handle_input(data, state, false);
+    ret_val = (result.type == shcore::Null);
+  }
+
+  _input_source.clear();
+
+  return ret_val;
 }
 
 

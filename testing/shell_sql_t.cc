@@ -97,7 +97,7 @@ namespace shcore {
     {
       Interactive_input_state state;
       std::string query = "show databases;";
-      env.shell_sql->handle_interactive_input(query, state);
+      env.shell_sql->handle_input(query, state);
 
       // Query totally executed, input should be OK
       // Handled contains the executed statement
@@ -112,7 +112,7 @@ namespace shcore {
     {
       Interactive_input_state state;
       std::string query = "show";
-      env.shell_sql->handle_interactive_input(query, state);
+      env.shell_sql->handle_input(query, state);
 
       // Nothing is executed until the delimiter is reached and the prompt changes
       // Prompt changes to multiline mode
@@ -124,7 +124,7 @@ namespace shcore {
       // Caching the partial statements is now internal
       // we just send whatever is remaining for the query to execute
       query = "databases";
-      env.shell_sql->handle_interactive_input(query, state);
+      env.shell_sql->handle_input(query, state);
 
       // Nothing is executed until the delimiter is reached and the prompt changes
       // Prompt changes to multiline
@@ -135,7 +135,7 @@ namespace shcore {
 
       
       query = ";";
-      env.shell_sql->handle_interactive_input(query, state);
+      env.shell_sql->handle_input(query, state);
 
       // Nothing is executed until the delimiter is reached and the prompt changes
       // Prompt changes to multiline
@@ -150,7 +150,7 @@ namespace shcore {
     {
       Interactive_input_state state;
       std::string query = "show databases; show";
-      env.shell_sql->handle_interactive_input(query, state);
+      env.shell_sql->handle_input(query, state);
 
       // The first statement will be handled but the second will be hold
       // until the delimiter is found.
@@ -162,7 +162,7 @@ namespace shcore {
       EXPECT_EQ("    -> ", env.shell_sql->prompt());
 
       query = "databases;";
-      env.shell_sql->handle_interactive_input(query, state);
+      env.shell_sql->handle_input(query, state);
       EXPECT_EQ(Input_ok, state);
       EXPECT_EQ("", query);
       EXPECT_EQ("show\ndatabases", env.shell_sql->get_handled_input());
@@ -173,7 +173,7 @@ namespace shcore {
     {
       Interactive_input_state state;
       std::string query = "/*";
-      env.shell_sql->handle_interactive_input(query, state);
+      env.shell_sql->handle_input(query, state);
 
       EXPECT_EQ(Input_continued, state);
       EXPECT_EQ("", query);
@@ -181,14 +181,14 @@ namespace shcore {
       EXPECT_EQ("   /*> ", env.shell_sql->prompt());
 
       query = "this was a multiline comment";
-      env.shell_sql->handle_interactive_input(query, state);
+      env.shell_sql->handle_input(query, state);
       EXPECT_EQ(Input_continued, state);
       EXPECT_EQ("", query);
       EXPECT_EQ("", env.shell_sql->get_handled_input());
       EXPECT_EQ("   /*> ", env.shell_sql->prompt());
 
       query = "*/";
-      env.shell_sql->handle_interactive_input(query, state);
+      env.shell_sql->handle_input(query, state);
       EXPECT_EQ(Input_ok, state);
       EXPECT_EQ("", query);
       EXPECT_EQ("", env.shell_sql->get_handled_input());
@@ -199,7 +199,7 @@ namespace shcore {
     {
       Interactive_input_state state;
       std::string query = "select 'hello ";
-      env.shell_sql->handle_interactive_input(query, state);
+      env.shell_sql->handle_input(query, state);
 
       EXPECT_EQ(Input_continued, state);
       //EXPECT_EQ("select 'hello ", query);
@@ -207,7 +207,7 @@ namespace shcore {
       EXPECT_EQ("    '> ", env.shell_sql->prompt());
 
       query = "world';";
-      env.shell_sql->handle_interactive_input(query, state);
+      env.shell_sql->handle_input(query, state);
       EXPECT_EQ(Input_ok, state);
       EXPECT_EQ("", query);
       EXPECT_EQ("select 'hello \nworld'", env.shell_sql->get_handled_input());
@@ -218,7 +218,7 @@ namespace shcore {
     {
       Interactive_input_state state;
       std::string query = "select \"hello ";
-      env.shell_sql->handle_interactive_input(query, state);
+      env.shell_sql->handle_input(query, state);
 
       EXPECT_EQ(Input_continued, state);
       //EXPECT_EQ("select \"hello ", query);
@@ -226,7 +226,7 @@ namespace shcore {
       EXPECT_EQ("    \"> ", env.shell_sql->prompt());
 
       query = "world\";";
-      env.shell_sql->handle_interactive_input(query, state);
+      env.shell_sql->handle_input(query, state);
       EXPECT_EQ(Input_ok, state);
       EXPECT_EQ("", query);
       EXPECT_EQ("select \"hello \nworld\"", env.shell_sql->get_handled_input());
@@ -237,7 +237,7 @@ namespace shcore {
     {
       Interactive_input_state state;
       std::string query = "select * from `t";
-      env.shell_sql->handle_interactive_input(query, state);
+      env.shell_sql->handle_input(query, state);
 
       EXPECT_EQ(Input_continued, state);
       EXPECT_EQ("select * from `sakila`.`", query);
@@ -245,7 +245,7 @@ namespace shcore {
       EXPECT_EQ("    `> ", env.shell_sql->prompt());
 
       query = "film`;";
-      env.shell_sql->handle_interactive_input(query, state);
+      env.shell_sql->handle_input(query, state);
       EXPECT_EQ(Input_ok, state);
       EXPECT_EQ("", query);
       EXPECT_EQ("", env.shell_sql->get_handled_input());
