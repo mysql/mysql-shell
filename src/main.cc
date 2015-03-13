@@ -578,7 +578,7 @@ int main(int argc, char **argv)
 #if defined(WIN32)
     if(!isatty(_fileno(stdin) || !isatty(_fileno(stdout))))
 #else
-    if (isatty(STDIN_FILENO))
+    if (!isatty(STDIN_FILENO) || !isatty(STDOUT_FILENO))
 #endif
     {
       if (!options.run_file.empty())
