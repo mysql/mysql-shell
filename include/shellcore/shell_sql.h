@@ -41,14 +41,16 @@ public:
   
   virtual std::string prompt();
 
+  virtual bool print_help(const std::string& topic);
+
 private:
   std::string _sql_cache;
   std::string _delimiter;
   std::stack<std::string> _parsing_context_stack;
 
-  void cmd_process_file(const std::string& filename);
-  void cmd_enable_auto_warnings(const std::string& param);
-  void cmd_disable_auto_warnings(const std::string& param);
+  void cmd_process_file(const std::vector<std::string>& params);
+  void cmd_enable_auto_warnings(const std::vector<std::string>& param);
+  void cmd_disable_auto_warnings(const std::vector<std::string>& param);
 };
 
 };

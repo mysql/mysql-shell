@@ -46,6 +46,11 @@ Shell_core::~Shell_core()
 }
 
 
+bool Shell_core::print_help(const std::string& topic)
+{
+  return _langs[_mode]->print_help(topic);
+}
+
 void Shell_core::print(const std::string &s)
 {
   _lang_delegate->print(_lang_delegate->user_data, s.c_str());
@@ -211,20 +216,21 @@ bool Shell_command_handler::process(const std::string& command_line)
   std::vector<std::string> tokens;
   boost::algorithm::split(tokens, command_line, boost::is_any_of(" "), boost::token_compress_on);
 
-  Command_registry::iterator item = commands.find(tokens[0]);
-  if (item != commands.end())
+  Command_registry::iterator item = _command_dict.find(tokens[0]);
+  if (item != _command_dict.end())
   {
     tokens.erase(tokens.begin());
-    std::string command_params = boost::algorithm::join(tokens, " ");
 
-    item->second(command_params);
+    item->second->function(tokens);
   }
 
-  return item != commands.end();
+  return item != _command_dict.end();
 }
 
-void Shell_command_handler::add_command(const std::string& triggers, boost::function<void(const std::string&)> function)
+void Shell_command_handler::add_command(const std::string& triggers, const std::string& description, const std::string& help, Shell_command_function function)
 {
+  _commands.push_back({ triggers, description, help, function });
+
   std::vector<std::string> tokens;
   boost::algorithm::split(tokens, triggers, boost::is_any_of("|"), boost::token_compress_on);
 
@@ -233,7 +239,88 @@ void Shell_command_handler::add_command(const std::string& triggers, boost::func
   // Inserts a mapping for each given token
   while (index != end)
   {
-    commands.insert(std::pair < const std::string&, boost::function<void(const std::string&)> >(*index, function));
+    _command_dict.insert(std::pair < const std::string&, Shell_command* >(*index, &_commands.back()));
     index++;
   }
+}
+
+void Shell_command_handler::print_commands(const std::string& title)
+{
+  // Gets the length of the longest command
+  Command_list::iterator index, end = _commands.end();
+  int max_length = 0;
+  int max_alias_length = 0;
+
+  std::vector<std::string> tmp_commands;
+  std::vector<std::string> tmp_alias;
+
+  for (index = _commands.begin(); index != end; index++)
+  {
+    std::vector<std::string> tokens;
+    boost::algorithm::split(tokens, (*index).triggers, boost::is_any_of("|"), boost::token_compress_on);
+
+    tmp_commands.push_back(tokens[0]);
+    tokens.erase(tokens.begin());
+
+    if (!tokens.empty())
+      tmp_alias.push_back("(" + boost::algorithm::join(tokens, ",") + ")");
+    else
+      tmp_alias.push_back(" ");
+
+
+    int tmp_alias_length = tmp_alias.back().length();
+    if (tmp_alias_length > max_alias_length)
+      max_alias_length = tmp_alias_length;
+
+    int tmp_length = tmp_commands.back().length();
+    if (tmp_length > max_length)
+      max_length = tmp_length;
+  }
+
+  // Prints the command list title
+  std::cout << title;
+
+  // Prints the command list
+  std::string format = "%-";
+  format += (boost::format("%d") % (max_length)).str();
+  format += "s %-";
+  format += (boost::format("%d") % (max_alias_length)).str();
+  format += "s %s\n";
+
+  std::cout << std::endl;
+
+  size_t tmpindex = 0;
+  for (index = _commands.begin(); index != end; index++, tmpindex++)
+  {
+    std::cout << (boost::format(format.c_str()) % tmp_commands[tmpindex] % tmp_alias[tmpindex] % (*index).description.c_str()).str();
+  }
+}
+
+bool Shell_command_handler::print_command_help(const std::string& command)
+{
+  bool ret_val = false;
+
+  Command_registry::iterator item = _command_dict.find(command);
+
+  if (item != _command_dict.end())
+  {
+    // Prints the command description.
+    std::cout << item->second->description << std::endl;
+
+    // Prints additional triggers if any
+    if (item->second->triggers != command)
+    {
+      std::vector<std::string> triggers;
+      boost::algorithm::split(triggers, item->second->triggers, boost::is_any_of("|"), boost::token_compress_on);
+      std::cout << std::endl << "TRIGGERS: " << boost::algorithm::join(triggers, " or ") << std::endl;
+    }
+
+    // Prints the additional help
+    if (!item->second->help.empty())
+      std::cout << std::endl << item->second->help << std::endl;
+
+    ret_val = true;
+  }
+  
+  return ret_val;
 }

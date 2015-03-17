@@ -22,13 +22,26 @@
 
 #include "shellcore/types.h"
 #include <boost/system/error_code.hpp>
+#include <list>
 
 #include <iostream>
 
-// Helper to add commands easily to the dispatcher. Use it as:
-// SET_SHELL_COMMAND("<name>", Class::method)
-// Assumption is the method has the required signature: void class::method(const std::string& params)
-#define SET_SHELL_COMMAND(x,y) _shell_command_handler.add_command(x,boost::bind(&y,this,_1))
+// Helper to add commands in standard format to the dispatcher. 
+// Use it as:
+// SET_SHELL_COMMAND("<name>", "<description>", "<help>", Class::method)
+// Assumptions:
+// - Caller class has a command handler defined as _shell_command_handler
+// - Command method has the required signature: void class::method(const std::vector<std::string>& params)
+// - Command methid is a method on the caller class
+#define SET_SHELL_COMMAND(name,desc,help,function) _shell_command_handler.add_command(name,desc,help,boost::bind(&function,this,_1))
+
+// Helper to add commands in non standard format to the dispatcher. 
+// Use it as:
+// SET_CUSTOM_SHELL_COMMAND("<name>", "<description>", "<help>", <bound function>)
+// Assumption:
+// - Caller class has a command handler defined as _shell_command_handler
+// - Bound function receives const std::vector<std::string>& params
+#define SET_CUSTOM_SHELL_COMMAND(name,desc,help,function) _shell_command_handler.add_command(name,desc,help,function)
 
 
 namespace shcore {
@@ -42,15 +55,29 @@ enum Interactive_input_state
 class Object_registry;
 class Shell_core;
 
+typedef boost::function<void(const std::vector<std::string>&) > Shell_command_function;
+
+struct Shell_command
+{
+  std::string triggers;
+  std::string description;
+  std::string help;
+  Shell_command_function function;
+};
+
 class Shell_command_handler
 {
-  typedef std::map <std::string, boost::function<void(const std::string &)> > Command_registry;
+  typedef std::map <std::string, Shell_command*> Command_registry;
+  typedef std::list <Shell_command> Command_list;
 private:
-  Command_registry commands;
+  Command_registry _command_dict;
+  Command_list _commands;
 
 public:
   bool process(const std::string& command_line);
-  void add_command(const std::string& triggers, boost::function<void(const std::string&)> function);
+  void add_command(const std::string& triggers, const std::string& description, const std::string& help, Shell_command_function function);
+  void print_commands(const std::string& title);
+  bool print_command_help(const std::string& command);
 };
 
 
@@ -65,6 +92,7 @@ public:
   virtual bool handle_shell_command(const std::string &code) { return _shell_command_handler.process(code); }
   virtual std::string get_handled_input() { return _last_handled; }
   virtual std::string prompt() = 0;
+  virtual bool print_help(const std::string& topic) { return true;  }
 protected:
   Shell_core *_owner;
   std::string _last_handled;
@@ -113,6 +141,7 @@ public:
   void print_error(const std::string &s);
   bool password(const std::string &s, std::string &ret_pass);
   const std::string& get_input_source() { return _input_source; }
+  bool print_help(const std::string& topic);
 private:
   void init_sql();
   void init_js();

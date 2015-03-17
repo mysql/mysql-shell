@@ -251,5 +251,35 @@ namespace shcore {
       EXPECT_EQ("", env.shell_sql->get_handled_input());
       EXPECT_EQ("mysql> ", env.shell_sql->prompt());
     }
+
+    TEST(Shell_sql_test, print_help)
+    {
+      std::stringstream my_stdout;
+      std::streambuf* stdout_backup = std::cout.rdbuf();
+      std::string line;
+      std::cout.rdbuf(my_stdout.rdbuf());
+
+      // Generic topic prints the available commands
+      EXPECT_TRUE(env.shell_sql->print_help(""));
+      std::getline(my_stdout, line);
+      EXPECT_EQ("Commands available while in SQL mode.", line);
+      std::getline(my_stdout, line);
+      EXPECT_EQ("warnings   (\\W) Show warnings after every statement.", line);
+      std::getline(my_stdout, line);
+      EXPECT_EQ("nowarnings (\\w) Don't show warnings after every statement.", line);
+      std::getline(my_stdout, line);
+      EXPECT_EQ("source     (\\.) Execute an SQL script file. Takes a file name as an argument.", line);
+
+      // Specific command help print
+      EXPECT_TRUE(env.shell_sql->print_help("warnings"));
+      std::getline(my_stdout, line);
+      EXPECT_EQ("Show warnings after every statement.", line);
+      std::getline(my_stdout, line);
+      EXPECT_EQ("", line);
+      std::getline(my_stdout, line);
+      EXPECT_EQ("TRIGGERS: warnings or \\W", line);
+
+      std::cout.rdbuf(stdout_backup);
+    }
   }
 }

@@ -70,7 +70,10 @@ public:
   void print(const std::string &str);
   void println(const std::string &str);
   void print_error(const std::string &error);
-  void print_shell_help();
+
+  void cmd_print_shell_help(const std::vector<std::string>& args);
+  void cmd_start_multiline(const std::vector<std::string>& args);
+  void cmd_connect(const std::vector<std::string>& args);
 
   void print_banner();
 
@@ -100,6 +103,8 @@ private:
 
   std::string _input_buffer;
   bool _multiline_mode;
+
+  Shell_command_handler _shell_command_handler;
 };
 
 
@@ -126,6 +131,19 @@ Interactive_shell::Interactive_shell(Shell_core::Mode initial_mode)
 
 //  _db.reset(new mysh::Db(_shell.get()));
 //  _shell->set_global("db", Value( boost::static_pointer_cast<Object_bridge, mysh::Db >(_db) ));
+
+  
+  SET_SHELL_COMMAND("\\help|\\?|\\h", "Print this help.", "", Interactive_shell::cmd_print_shell_help);
+  SET_CUSTOM_SHELL_COMMAND("\\sql", "Sets shell on SQL processing mode.", "", boost::bind(&Interactive_shell::switch_shell_mode, this, Shell_core::Mode_SQL, _1));
+  SET_CUSTOM_SHELL_COMMAND("\\js", "Sets shell on JavaScript processing mode.", "", boost::bind(&Interactive_shell::switch_shell_mode, this, Shell_core::Mode_JScript, _1));
+  SET_CUSTOM_SHELL_COMMAND("\\py", "Sets shell on Python processing mode.", "", boost::bind(&Interactive_shell::switch_shell_mode, this, Shell_core::Mode_Python, _1));
+  SET_SHELL_COMMAND("\\", "Start multiline input. Finish and execute with an empty line.", "", Interactive_shell::cmd_start_multiline);
+  std::string cmd_help = 
+    "SYNTAX:\n"
+    "   \\connect <uri>\n\n"
+    "EXAMPLE:\n"
+    "   \\connect root@localhost:3306\n";
+  SET_SHELL_COMMAND("\\connect", "Connect to server.", cmd_help, Interactive_shell::cmd_connect);
 
   _shell->switch_mode(initial_mode);
 }
@@ -246,11 +264,50 @@ void Interactive_shell::print_error(const std::string &error)
 }
 
 
-void Interactive_shell::print_shell_help()
+void Interactive_shell::cmd_print_shell_help(const std::vector<std::string>& args)
 {
-  println("MySQL Shell Help");
+  bool printed = false;
+
+  // If help came with parameter attempts to print the
+  // specific help on the active shell first and global commands
+  if (!args.empty())
+  {
+    printed = _shell->print_help(args[0]);
+
+    if (!printed)
+      printed = _shell_command_handler.print_command_help(args[0]);
+  }
+
+  // If not specific help found, prints the generic help
+  if (!printed)
+  {
+    _shell_command_handler.print_commands("Global Commands.");
+
+    std::cout << std::endl;
+    std::cout << std::endl;
+
+    // Prints the active shell specific help
+    _shell->print_help("");
+
+    std::cout << std::endl << "For help on a specific command use the command as \\? <command>" << std::endl;
+  }
 }
 
+void Interactive_shell::cmd_start_multiline(const std::vector<std::string>& args)
+{
+  if (args.empty())
+    _multiline_mode = true;
+}
+
+void Interactive_shell::cmd_connect(const std::vector<std::string>& args)
+{
+  if (args.size() == 1)
+  {
+    connect(args[0], "");
+  }
+  else
+    print_error("\\connect <uri>");
+}
 
 void Interactive_shell::deleg_print(void *cdata, const char *text)
 {
@@ -307,53 +364,14 @@ bool Interactive_shell::deleg_password(void *cdata, const char *prompt, std::str
 
 bool Interactive_shell::do_shell_command(const std::string &line)
 {
-  std::vector<std::string> tokens;
-
   // Verifies if the command can be handled by the active shell
   bool handled = _shell->handle_shell_command(line);
 
 
-  // TODO: define if these should be processed as they are here, or if a Shell_command_handler instance should
-  //       be added to the class and implement a specific handler for each command
+  // Global Command Processing (xShell specific)
   if (!handled)
-  {
-    handled = true;
+    handled = _shell_command_handler.process(line);
 
-    boost::algorithm::split(tokens, line, boost::is_any_of(" "), boost::token_compress_on);
-
-    if (tokens.front().compare("\\sql") == 0)
-    {
-      switch_shell_mode(Shell_core::Mode_SQL, tokens);
-    }
-    else if (tokens.front().compare("\\js") == 0)
-    {
-      switch_shell_mode(Shell_core::Mode_JScript, tokens);
-    }
-    else if (tokens.front().compare("\\py") == 0)
-    {
-      switch_shell_mode(Shell_core::Mode_Python, tokens);
-    }
-    else if (tokens.front().compare("\\connect") == 0)
-    {
-      if (tokens.size() == 2)
-      {
-        connect(tokens[1], "");
-      }
-      else
-        print_error("\\connect <uri>");
-    }
-    else if (tokens.front().compare("\\help") == 0 || tokens.front().compare("\\?") == 0 || tokens.front().compare("\\h") == 0)
-    {
-      print_shell_help();
-    }
-    else if (line == "\\")
-    {
-      println("Multi-line input. Finish and execute with an empty line.");
-      _multiline_mode = true;
-    }
-    else
-      handled = false;
-  }
 
   return handled;
 }

@@ -33,9 +33,20 @@ Shell_sql::Shell_sql(Shell_core *owner)
 : Shell_language(owner)
 {
   _delimiter = ";";
-  SET_SHELL_COMMAND("warnings|\\W", Shell_sql::cmd_enable_auto_warnings);
-  SET_SHELL_COMMAND("nowarnings|\\w", Shell_sql::cmd_enable_auto_warnings);
-  SET_SHELL_COMMAND("source|\\.", Shell_sql::cmd_process_file);
+
+  std::string cmd_help;
+  SET_SHELL_COMMAND("warnings|\\W", "Show warnings after every statement.", "", Shell_sql::cmd_enable_auto_warnings);
+  SET_SHELL_COMMAND("nowarnings|\\w", "Don't show warnings after every statement.", "", Shell_sql::cmd_disable_auto_warnings);
+
+  cmd_help =
+    "SYNTAX:\n"
+    "   source <sql_file_path>\n"
+    "   \\. <sql_file_path>\n\n"
+    "EXAMPLES:\n"
+    "   source C:\\Users\\MySQL\\sakila.sql\n"
+    "   \\. C:\\Users\\MySQL\\sakila.sql\n";
+
+  SET_SHELL_COMMAND("source|\\.", "Execute an SQL script file. Takes a file name as an argument.", cmd_help, Shell_sql::cmd_process_file);
 }
 
 Value Shell_sql::handle_input(std::string &code, Interactive_input_state &state, bool interactive)
@@ -197,9 +208,23 @@ std::string Shell_sql::prompt()
     return "mysql> ";
 }
 
-//------------------ SQL COMMAND HANDLERS ------------------//
-void Shell_sql::cmd_process_file(const std::string& filename)
+bool Shell_sql::print_help(const std::string& topic)
 {
+  bool ret_val = true;
+  if (topic.empty())
+    _shell_command_handler.print_commands("Commands available while in SQL mode.");
+  else
+    ret_val = _shell_command_handler.print_command_help(topic);
+
+  return ret_val;
+}
+
+
+//------------------ SQL COMMAND HANDLERS ------------------//
+void Shell_sql::cmd_process_file(const std::vector<std::string>& params)
+{
+  std::string filename = boost::join(params, " ");
+
   if (filename.empty())
     _owner->print_error("Usage: \\. <filename> | source <filename>");
   else
@@ -217,12 +242,12 @@ void Shell_sql::cmd_process_file(const std::string& filename)
   }
 }
 
-void Shell_sql::cmd_enable_auto_warnings(const std::string& param)
+void Shell_sql::cmd_enable_auto_warnings(const std::vector<std::string>& params)
 {
   // To be done once the global options are in place...
 }
 
-void Shell_sql::cmd_disable_auto_warnings(const std::string& param)
+void Shell_sql::cmd_disable_auto_warnings(const std::vector<std::string>& params)
 {
   // To be done once the global options are in place...
 }
