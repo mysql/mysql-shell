@@ -74,6 +74,7 @@ public:
   void cmd_print_shell_help(const std::vector<std::string>& args);
   void cmd_start_multiline(const std::vector<std::string>& args);
   void cmd_connect(const std::vector<std::string>& args);
+  void cmd_quit(const std::vector<std::string>& args);
 
   void print_banner();
 
@@ -103,6 +104,7 @@ private:
 
   std::string _input_buffer;
   bool _multiline_mode;
+  bool _interactive;
 
   Shell_command_handler _shell_command_handler;
 };
@@ -117,6 +119,7 @@ Interactive_shell::Interactive_shell(Shell_core::Mode initial_mode)
 //  using_history();
 
   _multiline_mode = false;
+  _interactive - false;
 
   _delegate.user_data = this;
   _delegate.print = &Interactive_shell::deleg_print;
@@ -138,7 +141,8 @@ Interactive_shell::Interactive_shell(Shell_core::Mode initial_mode)
   SET_CUSTOM_SHELL_COMMAND("\\js", "Sets shell on JavaScript processing mode.", "", boost::bind(&Interactive_shell::switch_shell_mode, this, Shell_core::Mode_JScript, _1));
   SET_CUSTOM_SHELL_COMMAND("\\py", "Sets shell on Python processing mode.", "", boost::bind(&Interactive_shell::switch_shell_mode, this, Shell_core::Mode_Python, _1));
   SET_SHELL_COMMAND("\\", "Start multiline input. Finish and execute with an empty line.", "", Interactive_shell::cmd_start_multiline);
-  std::string cmd_help = 
+  SET_SHELL_COMMAND("\\quit|\\q|\\exit", "Quit mysh.", "", Interactive_shell::cmd_quit);
+  std::string cmd_help =
     "SYNTAX:\n"
     "   \\connect <uri>\n\n"
     "EXAMPLE:\n"
@@ -309,6 +313,11 @@ void Interactive_shell::cmd_connect(const std::vector<std::string>& args)
     print_error("\\connect <uri>");
 }
 
+void Interactive_shell::cmd_quit(const std::vector<std::string>& args)
+{
+  _interactive = false;
+}
+
 void Interactive_shell::deleg_print(void *cdata, const char *text)
 {
   Interactive_shell *self = (Interactive_shell*)cdata;
@@ -453,6 +462,8 @@ void Interactive_shell::process_line(const std::string &line)
 
 void Interactive_shell::command_loop()
 {
+  _interactive = true;
+
   if (isatty(0)) // check if interactive
   {
     switch (_shell->interactive_mode())
@@ -475,7 +486,7 @@ void Interactive_shell::command_loop()
     }
   }
 
-  for (;;)
+  while (_interactive)
   {
     char *cmd = Interactive_shell::readline(prompt().c_str());
     if (!cmd)
