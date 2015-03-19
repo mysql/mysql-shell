@@ -177,23 +177,23 @@ file(GLOB mysh_SRC
     "${PROJECT_SOURCE_DIR}/src/*.cc"
 )
 
-add_executable(mysh ${mysh_SRC})
+add_executable(mysqlx ${mysh_SRC})
 
 if(WIN32)
-  add_dependencies(mysh boost_code.obj)
+  add_dependencies(mysqlx boost_code.obj)
 else()
-  target_link_libraries(mysh edit)
+  target_link_libraries(mysqlx edit)
 endif()
-target_link_libraries(mysh mysqlsh mysqlshmods)
+target_link_libraries(mysqlx mysqlsh mysqlshmods)
 
-target_link_libraries(mysh ${GCOV_LDFLAGS})
+target_link_libraries(mysqlx ${GCOV_LDFLAGS})
 if ( HAVE_V8 )
-  target_link_libraries(mysh ${V8_LINK_LIST})
+  target_link_libraries(mysqlx ${V8_LINK_LIST})
 endif()
 # Last, to make -lrt -lpthread last, v8 needs it
-target_link_libraries(mysh ${MYSQL_LIBRARIES})
+target_link_libraries(mysqlx ${MYSQL_LIBRARIES})
 
-install(TARGETS mysh DESTINATION bin)
+install(TARGETS mysqlx DESTINATION bin)
 
 
 if(WIN32)
