@@ -37,6 +37,7 @@ endif()
 
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "MySQLng Shell ${MYSH_BASE_VERSION}, a library and tool for XXXXX")
 set(CPACK_PACKAGE_NAME                "mysql-ngshell${EXTRA_NAME_SUFFIX}")
+set(CPACK_PACKAGE_VENDOR              "Oracle and/or its affiliates")
 #if(EXISTS "${CMAKE_SOURCE_DIR}/COPYING")
 #  set(CPACK_RESOURCE_FILE_LICENSE     "${CMAKE_SOURCE_DIR}/COPYING")
 #else()
@@ -49,7 +50,9 @@ set(CPACK_PACKAGE_FILE_NAME           "${CPACK_PACKAGE_INSTALL_DIRECTORY}")
 if(WIN32)
   set(CPACK_GENERATOR                 "ZIP")
 else()
-  set(CPACK_GENERATOR                 "TGZ")
+  set(CPACK_SET_DESTDIR               "on")
+  set(CPACK_GENERATOR                 "TGZ;DEB")
+  set(CPACK_DEBIAN_PACKAGE_MAINTAINER "MySQL RE")
 endif()
 
 set(CPACK_SOURCE_IGNORE_FILES
