@@ -1,3 +1,6 @@
 [submodule "cdkbase"]
 	path = cdkbase
 	url = ../cdkbase.git
+[submodule "common"]
+	path = common
+	url = ../common.git
