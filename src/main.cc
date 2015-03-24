@@ -43,8 +43,6 @@
 #include "../modules/mod_db.h"
 
 #ifdef WIN32
-#  include <m_ctype.h>
-#  include <my_sys.h>
 #  include <io.h>
 #  define isatty _isatty
 #endif
@@ -337,11 +335,18 @@ char *Interactive_shell::readline(const char *prompt)
 #ifndef WIN32
   tmp = ::readline(prompt);
 #else
+  // TODO: This should be ported from the server, not used from there
+  /*
   tmp = (char *)malloc(MAX_READLINE_BUF);
   if (!tmp)
     throw Exception::runtime_error("Cannot allocate memory for Interactive_shell::readline buffer.");
   my_win_console_fputs(&my_charset_latin1, prompt);
   tmp = my_win_console_readline(&my_charset_latin1, tmp, MAX_READLINE_BUF);
+  */
+  std::string line;
+  std::cout << prompt << std::flush;
+  std::getline(std::cin, line);
+  tmp = strdup(line.c_str());
 #endif
   return tmp;
 }
