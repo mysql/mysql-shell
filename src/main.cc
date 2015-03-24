@@ -508,6 +508,9 @@ void Interactive_shell::print_banner()
   println("Oracle is a registered trademark of Oracle Corporation and/or its");
   println("affiliates. Other names may be trademarks of their respective");
   println("owners.");
+  println("");
+  println("Type '\\help', '\\h' or '\\?' for help.");
+  println("");
 }
 
 
