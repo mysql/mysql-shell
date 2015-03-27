@@ -22,14 +22,13 @@
 #include "shellcore/object_factory.h"
 #include "shellcore/shell_core.h"
 #include "shellcore/lang_base.h"
-#include "../utils/utils_time.h"
 
 #include "shellcore/proxy_object.h"
 
 #include "mod_session.h"
 #include "mod_db_table.h"
 
-#include "mod_mysql.h"
+#include "mod_connection.h"
 
 #include <boost/bind.hpp>
 #include <boost/lexical_cast.hpp>
@@ -66,7 +65,7 @@ void Db::cache_table_names()
       (*options.as_map())["key_by_index"] = Value::True();
       Value result = sess->conn()->sql("show tables in `"+_schema+"`", options);
       Value doc;
-      while ((doc = result.as_object<Mysql_resultset>()->next(Argument_list())) && doc.type != Null)
+      while ((doc = result.as_object<Base_resultset>()->next(Argument_list())) && doc.type != Null)
       {
         std::string table = (*doc.as_map())["0"].as_string();
         (*_tables)[table] = Value(Object_bridge_ref(new Db_table(shared_from_this(), table)));

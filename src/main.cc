@@ -142,9 +142,15 @@ Interactive_shell::Interactive_shell(Shell_core::Mode initial_mode)
   SET_SHELL_COMMAND("\\quit|\\q|\\exit", "Quit mysh.", "", Interactive_shell::cmd_quit);
   std::string cmd_help =
     "SYNTAX:\n"
-    "   \\connect <uri>\n\n"
+    "   \\connect <URI>\n\n"
+    "WHERE:\n"
+    "   URI is in the format of: [PROTOCOL://][user[:password]@]hostname[:port]\n"
+    "   PROTOCOL can be:\n"
+    "     mysql   for traditional MySQL connections.\n"
+    "     mysqlx  for SQL and NoSQL access in MySQL X compliant servers (MySQL 5.7+).\n\n"
     "EXAMPLE:\n"
-    "   \\connect root@localhost:3306\n";
+    "   \\connect mysqlx://root@localhost:3306\n\n"
+    "NOTE: The mysql protocol will be used as default if mysqlx is not specified.";
   SET_SHELL_COMMAND("\\connect", "Connect to server.", cmd_help, Interactive_shell::cmd_connect);
 
   _shell->switch_mode(initial_mode);
@@ -283,7 +289,7 @@ void Interactive_shell::cmd_print_shell_help(const std::vector<std::string>& arg
   // If not specific help found, prints the generic help
   if (!printed)
   {
-    _shell_command_handler.print_commands("Global Commands.");
+    _shell_command_handler.print_commands("===== Global Commands =====");
 
     std::cout << std::endl;
     std::cout << std::endl;
@@ -428,7 +434,7 @@ void Interactive_shell::process_line(const std::string &line)
       {
         Value result = _shell->handle_input(_input_buffer, state);
 
-        if (result)
+        if (result && result.type == shcore::Object)
         {
           boost::shared_ptr<Object_bridge> object = result.as_object();
           Value dump_function;

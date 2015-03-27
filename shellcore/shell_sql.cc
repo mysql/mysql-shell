@@ -19,7 +19,7 @@
 
 #include "shellcore/shell_sql.h"
 #include "../modules/mod_session.h"
-#include "../modules/mod_mysql.h"
+#include "../modules/mod_connection.h"
 #include "../utils/utils_mysql_parsing.h"
 #include <boost/bind.hpp>
 #include <boost/format.hpp>
@@ -127,7 +127,7 @@ Value Shell_sql::handle_input(std::string &code, Interactive_input_state &state,
 
         if (result_wrapper)
         {
-          boost::shared_ptr<mysh::Mysql_resultset> result = result_wrapper.as_object<mysh::Mysql_resultset>();
+          boost::shared_ptr<mysh::Base_resultset> result = result_wrapper.as_object<mysh::Base_resultset>();
 
           if (result)
           {
@@ -178,7 +178,7 @@ void Shell_sql::print_warnings(boost::shared_ptr<mysh::Session> session)
 
   if (result_wrapper)
   {
-    boost::shared_ptr<mysh::Mysql_resultset> result = result_wrapper.as_object<mysh::Mysql_resultset>();
+    boost::shared_ptr<mysh::Base_resultset> result = result_wrapper.as_object<mysh::Base_resultset>();
 
     if (result)
     {
@@ -212,7 +212,7 @@ bool Shell_sql::print_help(const std::string& topic)
 {
   bool ret_val = true;
   if (topic.empty())
-    _shell_command_handler.print_commands("Commands available while in SQL mode.");
+    _shell_command_handler.print_commands("===== SQL Mode Commands =====");
   else
     ret_val = _shell_command_handler.print_command_help(topic);
 

@@ -262,7 +262,7 @@ namespace shcore {
       // Generic topic prints the available commands
       EXPECT_TRUE(env.shell_sql->print_help(""));
       std::getline(my_stdout, line);
-      EXPECT_EQ("Commands available while in SQL mode.", line);
+      EXPECT_EQ("===== SQL Mode Commands =====", line);
       std::getline(my_stdout, line);
       EXPECT_EQ("warnings   (\\W) Show warnings after every statement.", line);
       std::getline(my_stdout, line);

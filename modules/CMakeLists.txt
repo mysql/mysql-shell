@@ -20,10 +20,11 @@ include_directories("${CMAKE_SOURCE_DIR}/include"
 
 if (HAVE_V8)
   include_directories("${V8_INCLUDE_DIR}")
-endif()  
+endif()
 
 
 file(GLOB libmysqlshmods_SRC
+      "*.h"
       "*.cc"
 )
 

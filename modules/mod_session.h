@@ -26,8 +26,9 @@
 #include "shellcore/types.h"
 #include "shellcore/types_cpp.h"
 
+#include "mod_connection.h"
+
 #include <boost/enable_shared_from_this.hpp>
-#include "mod_mysql.h"
 
 namespace shcore
 {
@@ -38,7 +39,7 @@ namespace shcore
 namespace mysh {
 
 class Db;
-class Mysql_resultset;
+
 
 class Session : public shcore::Cpp_object_bridge, public boost::enable_shared_from_this<Session>
 {
@@ -56,12 +57,10 @@ public:
 
   shcore::Value connect(const shcore::Argument_list &args);
   shcore::Value sql(const shcore::Argument_list &args);
-  
-  void internal_sql(boost::shared_ptr<Mysql_connection> conn, const std::string& sql, boost::function<void (MYSQL_RES* data)> result_handler);
 
   void print_exception(const shcore::Exception &e);
 
-  boost::shared_ptr<Mysql_connection> conn() const { return _conn; }
+  boost::shared_ptr<Base_connection> conn() const { return _conn; }
 
   boost::shared_ptr<Db> default_schema();
 
@@ -69,7 +68,7 @@ private:
   shcore::Value get_db(const std::string &schema);
 
   shcore::Shell_core *_shcore;
-  boost::shared_ptr<Mysql_connection> _conn;
+  boost::shared_ptr<Base_connection> _conn;
 
   boost::shared_ptr<shcore::Proxy_object> _schema_proxy;
 

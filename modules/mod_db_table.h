@@ -26,7 +26,7 @@
 #include "shellcore/types.h"
 #include "shellcore/types_cpp.h"
 
-#include "mod_mysql.h"
+#include "mod_connection.h"
 
 #include <boost/weak_ptr.hpp>
 

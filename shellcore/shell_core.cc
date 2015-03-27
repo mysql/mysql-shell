@@ -229,7 +229,8 @@ bool Shell_command_handler::process(const std::string& command_line)
 
 void Shell_command_handler::add_command(const std::string& triggers, const std::string& description, const std::string& help, Shell_command_function function)
 {
-  _commands.push_back({ triggers, description, help, function });
+  Shell_command command = { triggers, description, help, function };
+  _commands.push_back(command);
 
   std::vector<std::string> tokens;
   boost::algorithm::split(tokens, triggers, boost::is_any_of("|"), boost::token_compress_on);

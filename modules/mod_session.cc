@@ -32,6 +32,8 @@
 #include <boost/format.hpp>
 #include <boost/pointer_cast.hpp>
 
+#include "mod_mysql.h"
+
 
 #define MAX_COLUMN_LENGTH 1024
 #define MIN_COLUMN_LENGTH 4
@@ -84,7 +86,23 @@ Value Session::connect(const Argument_list &args)
     pwd = args.string_at(1);
 
   _shcore->print("Connecting to "+uri+"...\n");
-  _conn.reset(new Mysql_connection(uri, pwd));
+
+  std::string protocol;
+  std::string user;
+  std::string pass;
+  std::string host;
+  int port = 0;
+  std::string sock;
+  std::string db;
+
+  if (!parse_mysql_connstring(uri, protocol, user, pass, host, port, sock, db))
+    throw shcore::Exception::argument_error("Could not parse URI for MySQL connection");
+
+  // TODO: To be uncommented once the X_Protocol code is included
+  //if (protocol == "mysqlx")
+  //  _conn.reset(new X_connection(uri, pwd));
+  //else
+    _conn.reset(new Mysql_connection(uri, pwd));
 
   return Value::Null();
 }
@@ -121,22 +139,6 @@ Value Session::sql(const Argument_list &args)
   }
   
   return Value::Null();
-}
-
-void Session::internal_sql(boost::shared_ptr<Mysql_connection> conn, const std::string& sql, boost::function<void (MYSQL_RES* data)> result_handler)
-{
-  try
-  {
-    {
-      MYSQL_RES *result = conn->raw_sql(sql);
-      
-      result_handler(result);
-    }
-  }
-  catch (shcore::Exception &exc)
-  {
-    print_exception(exc);
-  }
 }
 
 
