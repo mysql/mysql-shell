@@ -170,7 +170,7 @@ std::string Mysql_row::get_value_as_string(int index)
 
 
 Mysql_connection::Mysql_connection(const std::string &uri, const std::string &password)
-: Base_connection(uri, password), _mysql(NULL)
+: Base_connection(uri), _mysql(NULL)
 {
   std::string protocol;
   std::string user;
@@ -180,10 +180,11 @@ Mysql_connection::Mysql_connection(const std::string &uri, const std::string &pa
   std::string sock;
   std::string db;
   long flags = 0;
+  int pwd_found;
 
   _mysql = mysql_init(NULL);
 
-  if (!parse_mysql_connstring(uri, protocol, user, pass, host, port, sock, db))
+  if (!parse_mysql_connstring(uri, protocol, user, pass, host, port, sock, db, pwd_found))
     throw shcore::Exception::argument_error("Could not parse URI for MySQL connection");
 
   if (!password.empty())
@@ -193,9 +194,6 @@ Mysql_connection::Mysql_connection(const std::string &uri, const std::string &pa
   {
     throw shcore::Exception::error_with_code_and_state("MySQLError", mysql_error(_mysql), mysql_errno(_mysql), mysql_sqlstate(_mysql));
   }
-
-  //TODO strip password from uri?
-  //_uri = uri;
 }
 
 

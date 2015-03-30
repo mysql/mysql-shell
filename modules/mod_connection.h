@@ -40,7 +40,8 @@ namespace mysh {
 bool parse_mysql_connstring(const std::string &connstring,
                                    std::string &protocol, std::string &user, std::string &password,
                                    std::string &host, int &port, std::string &sock,
-                                   std::string &db);
+                                   std::string &db, int &pwd_found);
+std::string strip_password(const std::string &connstring);
 class Base_resultset;
 class Base_connection : public shcore::Cpp_object_bridge
 {

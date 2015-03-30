@@ -63,7 +63,7 @@ public:
 
   void init_environment();
 
-  bool connect(const std::string &uri, const std::string &password);
+  bool connect(const std::string &uri, bool needs_password);
 
   void print(const std::string &str);
   void println(const std::string &str);
@@ -157,13 +157,56 @@ Interactive_shell::Interactive_shell(Shell_core::Mode initial_mode)
 }
 
 
-bool Interactive_shell::connect(const std::string &uri, const std::string &password)
+bool Interactive_shell::connect(const std::string &uri, bool needs_password)
 {
   Argument_list args;
 
-  args.push_back(Value(uri));
-  if (!password.empty())
-    args.push_back(Value(password));
+  std::string protocol;
+  std::string user;
+  std::string pass;
+  std::string host;
+  int port = 3306;
+  std::string sock;
+  std::string db;
+  std::string connstring;
+  int pwd_found;
+
+  if (!mysh::parse_mysql_connstring(uri, protocol, user, pass, host, port, sock, db, pwd_found))
+    throw shcore::Exception::argument_error("Could not parse URI for MySQL connection");
+  else
+  {
+    if (!pwd_found && needs_password) {
+      char *tmp = mysh_get_tty_password("Enter password: ");
+      if (tmp)
+      {
+        pass.append(tmp);
+        free(tmp);
+        connstring = user;
+
+        if (!connstring.empty()) {
+          if (!pass.empty()) {
+            connstring.append((boost::format(":%s") % pass).str());
+          }
+          connstring.append("@");
+        }
+
+        if (!sock.empty()) {
+          connstring.append(sock);
+        } else {
+          connstring.append(host);
+          if (port > 0)
+            connstring.append((boost::format(":%i") % port).str());
+        }
+
+        if (!db.empty())
+          connstring.append("/").append(db);
+
+        args.push_back(Value(connstring));
+      }
+    }
+    else
+      args.push_back(Value(uri));
+  }
 
   try
   {
@@ -311,7 +354,7 @@ void Interactive_shell::cmd_connect(const std::vector<std::string>& args)
 {
   if (args.size() == 1)
   {
-    connect(args[0], "");
+    connect(args[0], true);
   }
   else
     print_error("\\connect <uri>");
@@ -559,8 +602,10 @@ public:
         user = value;
       else if (check_arg_with_value(argv, i, "--port", "-P", value))
         port = atoi(value);
-      else if (check_arg(argv, i, "--password", "-p"))
+      else if (check_arg(argv, i, "-p", "-p"))
         needs_password = true;
+      else if (check_arg_with_value(argv, i, "--password", "-p", value))
+        password = value;
       else if (check_arg(argv, i, "--sql", "--sql"))
         initial_mode = Shell_core::Mode_SQL;
       else if (check_arg(argv, i, "--js", "--js"))
@@ -588,8 +633,12 @@ public:
     if (uri.empty())
     {
       uri = user;
-      if (!uri.empty())
+      if (!uri.empty()) {
+        if (!password.empty()) {
+          uri.append(":").append(password);
+        }
         uri.append("@");
+      }
       uri.append(host);
       if (port > 0)
         uri.append((boost::format(":%i") % port).str());
@@ -639,7 +688,7 @@ int main(int argc, char **argv)
 
     if (!options.uri.empty())
     {
-      if (!shell.connect(options.uri, options.password))
+      if (!shell.connect(options.uri, options.needs_password))
         return 1;
       shell.println("");
     }

@@ -50,9 +50,10 @@ namespace mysh {
   bool parse_mysql_connstring(const std::string &connstring,
                                      std::string &protocol, std::string &user, std::string &password,
                                      std::string &host, int &port, std::string &sock,
-                                     std::string &db)
+                                     std::string &db, int &pwd_found)
   {
     // format is [protocol://][user[:pass]]@host[:port][/db] or user[:pass]@::socket[/db], like what cmdline utilities use
+    pwd_found = 0;
     std::string remaining = connstring;
 
     std::string::size_type p;
@@ -91,10 +92,11 @@ namespace mysh {
     {
       user = user_part.substr(0, p);
       password = user_part.substr(p+1);
+      pwd_found = 1;
     }
     else
       user = user_part;
-    
+
     p = server_part.find(':');
     if (p != std::string::npos)
     {
@@ -110,6 +112,58 @@ namespace mysh {
     else
       host = server_part;
     return true;
+  }
+
+  std::string strip_password(const std::string &connstring)
+  {
+    std::string remaining = connstring;
+    std::string password;
+
+    std::string::size_type p;
+    p = remaining.find("://");
+    if (p != std::string::npos)
+    {
+      remaining = remaining.substr(p+3);
+    }
+
+    std::string s = remaining;
+    p = remaining.find('/');
+    if (p != std::string::npos)
+    {
+      s = remaining.substr(0, p);
+    }
+    p = s.rfind('@');
+    std::string user_part;
+
+    if (p == std::string::npos)
+    {
+      // by default, connect using the current OS username
+  #ifdef _WIN32
+      //XXX find out current username here
+  #else
+      const char *tmp = getenv("USER");
+      user_part = tmp ? tmp : "";
+  #endif
+    }
+    else
+      user_part = s.substr(0, p);
+
+    if ((p = user_part.find(':')) != std::string::npos)
+    {
+      password = user_part.substr(p+1);
+      if (!password.empty())
+      {
+        std::string uri_stripped = connstring;
+        std::string::size_type i = uri_stripped.find(':');
+        if (i != std::string::npos)
+          uri_stripped.erase(i, password.length()+1);
+
+        return uri_stripped;
+      }
+    }
+
+    // no password to strip, return original one
+    return connstring;
   }
 }
 
@@ -132,12 +186,10 @@ Base_connection::Base_connection(const std::string &uri, const std::string &pass
   int port = 0;
   std::string sock;
   std::string db;
+  int pwd_found;
 
-  if (!parse_mysql_connstring(uri, protocol, user, _pwd, host, port, sock, db))
+  if (!parse_mysql_connstring(uri, protocol, user, _pwd, host, port, sock, db, pwd_found))
     throw shcore::Exception::argument_error("Could not parse URI for MySQL connection");
-
-  if (!password.empty())
-    _pwd = password;
 
   _uri = uri;
 }

@@ -76,7 +76,7 @@ private:
 class Mysql_connection : public Base_connection, public boost::enable_shared_from_this<Mysql_connection>
 {
 public:
-  Mysql_connection(const std::string &uri, const std::string &password="");
+  Mysql_connection(const std::string &uri, const std::string &password);
   ~Mysql_connection();
 
   virtual std::string class_name() const { return "mysql_connection"; }

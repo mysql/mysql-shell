@@ -73,19 +73,6 @@ Value Session::connect(const Argument_list &args)
   }
 
   std::string uri = args.string_at(0);
-  std::string pwd;
-  if (args.size() == 1)
-  {
-    if (!_shcore->password("Enter password: ", pwd))
-    {
-      _shcore->print("Cancelled");
-      return Value::Null();
-    }
-  }
-  else
-    pwd = args.string_at(1);
-
-  _shcore->print("Connecting to "+uri+"...\n");
 
   std::string protocol;
   std::string user;
@@ -94,15 +81,21 @@ Value Session::connect(const Argument_list &args)
   int port = 0;
   std::string sock;
   std::string db;
+  int pwd_found;
+  std::string uri_stripped;
 
-  if (!parse_mysql_connstring(uri, protocol, user, pass, host, port, sock, db))
+  if (!parse_mysql_connstring(uri, protocol, user, pass, host, port, sock, db, pwd_found))
     throw shcore::Exception::argument_error("Could not parse URI for MySQL connection");
+
+  // strip password from uri
+  uri_stripped = strip_password(uri);
+  _shcore->print("Connecting to "+uri_stripped+"...\n");
 
   // TODO: To be uncommented once the X_Protocol code is included
   //if (protocol == "mysqlx")
   //  _conn.reset(new X_connection(uri, pwd));
   //else
-    _conn.reset(new Mysql_connection(uri, pwd));
+    _conn.reset(new Mysql_connection(uri, pass));
 
   return Value::Null();
 }
