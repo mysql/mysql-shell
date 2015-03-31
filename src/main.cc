@@ -168,7 +168,6 @@ bool Interactive_shell::connect(const std::string &uri, bool needs_password)
   int port = 3306;
   std::string sock;
   std::string db;
-  std::string connstring;
   int pwd_found;
 
   if (!mysh::parse_mysql_connstring(uri, protocol, user, pass, host, port, sock, db, pwd_found))
@@ -181,27 +180,8 @@ bool Interactive_shell::connect(const std::string &uri, bool needs_password)
       {
         pass.append(tmp);
         free(tmp);
-        connstring = user;
-
-        if (!connstring.empty()) {
-          if (!pass.empty()) {
-            connstring.append((boost::format(":%s") % pass).str());
-          }
-          connstring.append("@");
-        }
-
-        if (!sock.empty()) {
-          connstring.append(sock);
-        } else {
-          connstring.append(host);
-          if (port > 0)
-            connstring.append((boost::format(":%i") % port).str());
-        }
-
-        if (!db.empty())
-          connstring.append("/").append(db);
-
-        args.push_back(Value(connstring));
+        args.push_back(Value(uri));
+        args.push_back(Value(pass));
       }
     }
     else
