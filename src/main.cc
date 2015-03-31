@@ -75,6 +75,7 @@ public:
   void cmd_quit(const std::vector<std::string>& args);
 
   void print_banner();
+  void print_cmd_line_helper();
 
 private:
   static char *readline(const char *prompt);
@@ -548,6 +549,32 @@ void Interactive_shell::print_banner()
 }
 
 
+void Interactive_shell::print_cmd_line_helper()
+{
+  println("MySQL Shell 0.0.1");
+  println("");
+  println("Copyright (c) 2014, 2015, Oracle and/or its affiliates. All rights reserved.");
+  println("");
+  println("Oracle is a registered trademark of Oracle Corporation and/or its");
+  println("affiliates. Other names may be trademarks of their respective");
+  println("owners.");
+  println("");
+  println("Usage: mysqlx [OPTIONS]");
+  println("  --help                 Display this help and exit.");
+  println("  -f, --file=file        Process file.");
+  println("  --uri                  Connect to Uniform Resource Identifier.");
+  println("                         Format: [protocol://][user[:pass]]@host[:port][/db]");
+  println("                         or user[:pass]@::socket[/db] .");
+  println("  -h, --host=name        Connect to host.");
+  println("  -P, --port=#           Port number to use for connection.");
+  println("  -P, --password[=name]  Password to use when connecting to server");
+  println("                         If password is not given it's asked from the tty.");
+  println("  --sql                  Start in SQL mode.");
+  println("  --js                   Start in JavaScript mode.");
+  println("  --py                   Start in Python mode.");
+  println("");
+}
+
 class Shell_command_line_options : public Command_line_options
 {
 public:
@@ -556,6 +583,7 @@ public:
 
   std::string uri;
   std::string password;
+  bool print_cmd_line_helper;
 
   Shell_command_line_options(int argc, char **argv)
           : Command_line_options(argc, argv)
@@ -566,6 +594,7 @@ public:
     bool needs_password;
 
     needs_password = false;
+    print_cmd_line_helper = false;
 
     initial_mode = Shell_core::Mode_SQL;
 
@@ -592,6 +621,11 @@ public:
         initial_mode = Shell_core::Mode_JScript;
       else if (check_arg(argv, i, "--py", "--py"))
         initial_mode = Shell_core::Mode_Python;
+      else if (check_arg(argv, i, "--help", "--help"))
+      {
+        print_cmd_line_helper = true;
+        exit_code = 0;
+      }
       else if (exit_code == 0)
       {
         std::cerr << argv[0] << ": unknown option " << argv[i] <<"\n";
@@ -644,6 +678,12 @@ int main(int argc, char **argv)
 
   {
     Interactive_shell shell(options.initial_mode);
+
+  if (options.print_cmd_line_helper)
+  {
+    shell.print_cmd_line_helper();
+    return options.exit_code;
+  }
 
     bool is_interactive = true;
 
