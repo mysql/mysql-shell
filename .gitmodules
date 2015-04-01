@@ -3,4 +3,4 @@
 	url = ../cdkbase.git
 [submodule "common"]
 	path = common
-	url = ../common.git
+	url = ../ngcommon.git
