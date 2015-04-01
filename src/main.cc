@@ -567,7 +567,7 @@ void Interactive_shell::print_cmd_line_helper()
   println("                         or user[:pass]@::socket[/db] .");
   println("  -h, --host=name        Connect to host.");
   println("  -P, --port=#           Port number to use for connection.");
-  println("  -P, --password[=name]  Password to use when connecting to server");
+  println("  -p, --password[=name]  Password to use when connecting to server");
   println("                         If password is not given it's asked from the tty.");
   println("  --sql                  Start in SQL mode.");
   println("  --js                   Start in JavaScript mode.");
