@@ -300,8 +300,20 @@ void Shell_command_handler::print_commands(const std::string& title)
 bool Shell_command_handler::print_command_help(const std::string& command)
 {
   bool ret_val = false;
+  std::string cmd = command;
 
   Command_registry::iterator item = _command_dict.find(command);
+
+  // Add the escape char in order to get the help on an escaped command
+  // even without escaping it on the call: \? <command>
+  if (item == _command_dict.end())
+  {
+    if (cmd[0] != '\\')
+    {
+      cmd.insert(0, 1, '\\');
+      item = _command_dict.find(cmd);
+    }
+  }
 
   if (item != _command_dict.end())
   {
@@ -322,6 +334,6 @@ bool Shell_command_handler::print_command_help(const std::string& command)
 
     ret_val = true;
   }
-  
+
   return ret_val;
 }
