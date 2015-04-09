@@ -37,16 +37,6 @@ Shell_sql::Shell_sql(Shell_core *owner)
   std::string cmd_help;
   SET_SHELL_COMMAND("warnings|\\W", "Show warnings after every statement.", "", Shell_sql::cmd_enable_auto_warnings);
   SET_SHELL_COMMAND("nowarnings|\\w", "Don't show warnings after every statement.", "", Shell_sql::cmd_disable_auto_warnings);
-
-  cmd_help =
-    "SYNTAX:\n"
-    "   source <sql_file_path>\n"
-    "   \\. <sql_file_path>\n\n"
-    "EXAMPLES:\n"
-    "   source C:\\Users\\MySQL\\sakila.sql\n"
-    "   \\. C:\\Users\\MySQL\\sakila.sql\n";
-
-  SET_SHELL_COMMAND("source|\\.", "Execute an SQL script file. Takes a file name as an argument.", cmd_help, Shell_sql::cmd_process_file);
 }
 
 Value Shell_sql::handle_input(std::string &code, Interactive_input_state &state, bool interactive)
@@ -221,26 +211,6 @@ bool Shell_sql::print_help(const std::string& topic)
 
 
 //------------------ SQL COMMAND HANDLERS ------------------//
-void Shell_sql::cmd_process_file(const std::vector<std::string>& params)
-{
-  std::string filename = boost::join(params, " ");
-
-  if (filename.empty())
-    _owner->print_error("Usage: \\. <filename> | source <filename>");
-  else
-    //TODO: do path expansion (in case ~ is used in linux)
-  {
-    std::ifstream s(filename.c_str());
-
-    if (!s.fail())
-    {
-      _owner->process_stream(s, filename);
-      s.close();
-    }
-    else
-      _owner->print_error((boost::format("Failed to open file '%s', error: %d") % filename.c_str() % errno).str());
-  }
-}
 
 void Shell_sql::cmd_enable_auto_warnings(const std::vector<std::string>& params)
 {

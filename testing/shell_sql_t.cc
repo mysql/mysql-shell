@@ -267,8 +267,6 @@ namespace shcore {
       EXPECT_EQ("warnings   (\\W) Show warnings after every statement.", line);
       std::getline(my_stdout, line);
       EXPECT_EQ("nowarnings (\\w) Don't show warnings after every statement.", line);
-      std::getline(my_stdout, line);
-      EXPECT_EQ("source     (\\.) Execute an SQL script file. Takes a file name as an argument.", line);
 
       // Specific command help print
       EXPECT_TRUE(env.shell_sql->print_help("warnings"));

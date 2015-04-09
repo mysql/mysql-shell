@@ -66,6 +66,7 @@ bool Shell_core::password(const std::string &s, std::string &ret_pass)
   return _lang_delegate->password(_lang_delegate->user_data, s.c_str(), ret_pass);
 }
 
+
 Value Shell_core::handle_input(std::string &line, Interactive_input_state &state, bool interactive)
 {
   return _langs[_mode]->handle_input(line, state, interactive);

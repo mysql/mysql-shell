@@ -94,6 +94,10 @@ struct JScript_context::JScript_context_impl
       templ->SetNamedPropertyHandler(&JScript_context_impl::factory_package_getter, 0, 0, 0, 0, client_data);
     }
 
+    // source('module')
+    globals->Set(v8::String::NewFromUtf8(isolate, "source"),
+                 v8::FunctionTemplate::New(isolate, &JScript_context_impl::f_source, client_data));
+
     context.Reset(isolate, v8::Context::New(isolate, NULL, globals));
   }
 
@@ -317,6 +321,22 @@ struct JScript_context::JScript_context_impl
     std::string r;
     if (self->delegate->password(self->delegate->user_data, *str, r))
       args.GetReturnValue().Set(v8::String::NewFromUtf8(args.GetIsolate(), r.c_str()));
+  }
+
+  static void f_source(const v8::FunctionCallbackInfo<v8::Value>& args)
+  {
+    v8::HandleScope outer_handle_scope(args.GetIsolate());
+    JScript_context_impl *self = static_cast<JScript_context_impl*>(v8::External::Cast(*args.Data())->Value());
+
+    if (args.Length() != 1)
+    {
+      args.GetIsolate()->ThrowException(v8::String::NewFromUtf8(args.GetIsolate(), "Invalid number of parameters"));
+      return;
+    }
+
+    v8::HandleScope handle_scope(args.GetIsolate());
+    v8::String::Utf8Value str(args[0]);
+    self->delegate->source(self->delegate->user_data, *str);
   }
 
   // --------------------

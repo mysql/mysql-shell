@@ -60,9 +60,11 @@ public:
   Interactive_shell(Shell_core::Mode initial_mode);
   void command_loop();
   int process_stream(std::istream & stream, const std::string& source) { return _shell->process_stream(stream, source);  }
+  void process_file(const char *filename);
 
   void init_environment();
 
+  void cmd_process_file(const std::vector<std::string>& params);
   bool connect(const std::string &uri, bool needs_password);
 
   void print(const std::string &str);
@@ -92,6 +94,7 @@ private:
   static void deleg_print_error(void *self, const char *text);
   static bool deleg_input(void *self, const char *text, std::string &ret);
   static bool deleg_password(void *self, const char *text, std::string &ret);
+  static void deleg_source(void *self, const char *module);
 
   bool do_shell_command(const std::string &command);
 private:
@@ -125,6 +128,7 @@ Interactive_shell::Interactive_shell(Shell_core::Mode initial_mode)
   _delegate.print_error = &Interactive_shell::deleg_print_error;
   _delegate.input = &Interactive_shell::deleg_input;
   _delegate.password = &Interactive_shell::deleg_password;
+  _delegate.source = &Interactive_shell::deleg_source;
 
   _shell.reset(new Shell_core(&_delegate));
 
@@ -134,13 +138,6 @@ Interactive_shell::Interactive_shell(Shell_core::Mode initial_mode)
 //  _db.reset(new mysh::Db(_shell.get()));
 //  _shell->set_global("db", Value( boost::static_pointer_cast<Object_bridge, mysh::Db >(_db) ));
 
-  
-  SET_SHELL_COMMAND("\\help|\\?|\\h", "Print this help.", "", Interactive_shell::cmd_print_shell_help);
-  SET_CUSTOM_SHELL_COMMAND("\\sql", "Sets shell on SQL processing mode.", "", boost::bind(&Interactive_shell::switch_shell_mode, this, Shell_core::Mode_SQL, _1));
-  SET_CUSTOM_SHELL_COMMAND("\\js", "Sets shell on JavaScript processing mode.", "", boost::bind(&Interactive_shell::switch_shell_mode, this, Shell_core::Mode_JScript, _1));
-  SET_CUSTOM_SHELL_COMMAND("\\py", "Sets shell on Python processing mode.", "", boost::bind(&Interactive_shell::switch_shell_mode, this, Shell_core::Mode_Python, _1));
-  SET_SHELL_COMMAND("\\", "Start multiline input. Finish and execute with an empty line.", "", Interactive_shell::cmd_start_multiline);
-  SET_SHELL_COMMAND("\\quit|\\q|\\exit", "Quit mysh.", "", Interactive_shell::cmd_quit);
   std::string cmd_help =
     "SYNTAX:\n"
     "   \\connect <URI>\n\n"
@@ -152,9 +149,35 @@ Interactive_shell::Interactive_shell(Shell_core::Mode initial_mode)
     "EXAMPLE:\n"
     "   \\connect mysqlx://root@localhost:3306\n\n"
     "NOTE: The mysql protocol will be used as default if mysqlx is not specified.";
+
+  std::string cmd_help_source =
+    "SYNTAX:\n"
+    "   \\source <sql_file_path>\n"
+    "   \\. <sql_file_path>\n\n"
+    "EXAMPLES:\n"
+    "   \\source C:\\Users\\MySQL\\sakila.sql\n"
+    "   \\. C:\\Users\\MySQL\\sakila.sql\n\n"
+    "NOTE: Can execute files from the supported types: SQL, Javascript, or Python.\n"
+    "Processing is done using the active language set for processing mode.\n";
+
+  SET_SHELL_COMMAND("\\help|\\?|\\h", "Print this help.", "", Interactive_shell::cmd_print_shell_help);
+  SET_CUSTOM_SHELL_COMMAND("\\sql", "Sets shell on SQL processing mode.", "", boost::bind(&Interactive_shell::switch_shell_mode, this, Shell_core::Mode_SQL, _1));
+  SET_CUSTOM_SHELL_COMMAND("\\js", "Sets shell on JavaScript processing mode.", "", boost::bind(&Interactive_shell::switch_shell_mode, this, Shell_core::Mode_JScript, _1));
+  SET_CUSTOM_SHELL_COMMAND("\\py", "Sets shell on Python processing mode.", "", boost::bind(&Interactive_shell::switch_shell_mode, this, Shell_core::Mode_Python, _1));
+  SET_SHELL_COMMAND("\\source|\\.", "Execute a script file. Takes a file name as an argument.", cmd_help_source, Interactive_shell::cmd_process_file);
+  SET_SHELL_COMMAND("\\", "Start multiline input. Finish and execute with an empty line.", "", Interactive_shell::cmd_start_multiline);
+  SET_SHELL_COMMAND("\\quit|\\q|\\exit", "Quit mysh.", "", Interactive_shell::cmd_quit);
   SET_SHELL_COMMAND("\\connect", "Connect to server.", cmd_help, Interactive_shell::cmd_connect);
 
   _shell->switch_mode(initial_mode);
+}
+
+
+void Interactive_shell::cmd_process_file(const std::vector<std::string>& params)
+{
+  std::string filename = boost::join(params, " ");
+
+  Interactive_shell::process_file(filename.c_str());
 }
 
 
@@ -406,6 +429,13 @@ bool Interactive_shell::deleg_password(void *cdata, const char *prompt, std::str
 }
 
 
+void Interactive_shell::deleg_source(void *cdata, const char *module)
+{
+  Interactive_shell *self = (Interactive_shell*)cdata;
+
+  self->process_file(module);
+}
+
 bool Interactive_shell::do_shell_command(const std::string &line)
 {
   // Verifies if the command can be handled by the active shell
@@ -491,6 +521,26 @@ void Interactive_shell::process_line(const std::string &line)
       if (state == Input_ok)
         _input_buffer.clear();
     }
+  }
+}
+
+
+void Interactive_shell::process_file(const char *filename)
+{
+  if (!filename)
+    _shell->print_error("Usage: \\. <filename> | \\source <filename>");
+  else
+    //TODO: do path expansion (in case ~ is used in linux)
+  {
+    std::ifstream s(filename);
+
+    if (!s.fail())
+    {
+      _shell->process_stream(s, filename);
+      s.close();
+    }
+    else
+      _shell->print_error((boost::format("Failed to open file '%s', error: %d") % filename % errno).str());
   }
 }
 
@@ -722,17 +772,7 @@ int main(int argc, char **argv)
     }
     else if (!options.run_file.empty())
     {
-      std::ifstream s(options.run_file.c_str());
-      if (!s.fail())
-      {
-        ret_val = shell.process_stream(s, options.run_file);
-        s.close();
-      }
-      else
-      {
-        ret_val = 1;
-        shell.print_error((boost::format("Failed to open file '%s', error: %d") % options.run_file.c_str() % errno).str());
-      }
+      shell.process_file(options.run_file.c_str());
     }
     else
       ret_val = shell.process_stream(std::cin, "STDIN");
