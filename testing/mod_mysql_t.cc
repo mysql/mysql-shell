@@ -42,7 +42,7 @@ namespace shcore
       Argument_list args;
       const char *uri = getenv("MYSQL_URI");
       const char *pwd = getenv("MYSQL_PWD");
-      env.db.reset(new mysh::Mysql_connection(uri && *uri ? uri : "root@localhost", pwd ? pwd : ""));
+      env.db.reset(new mysh::Mysql_connection(uri && *uri ? uri : "root@localhost", pwd ? pwd : NULL));
     }
 
     TEST(MySQL, query)

@@ -46,7 +46,7 @@ class Base_resultset;
 class Base_connection : public shcore::Cpp_object_bridge
 {
 public:
-  Base_connection(const std::string &uri, const std::string &password="");
+  Base_connection(const std::string &uri, const char *password = NULL);
 
   // Methods from Cpp_object_bridge will be defined here
   // Since all the connections will expose the same members
@@ -81,29 +81,51 @@ private:
 class Field
 {
 public:
-  Field(const std::string& name, int max_length, int name_length, int type) :
-    _name(name), _max_length(max_length), _name_length(name_length), _type(type){}
-  const std::string& name() { return _name; };
-  const int max_length() { return _max_length; }
-  const int name_length() { return _name_length; }
-  const int type() { return _type; }
+  Field(const std::string& catalog, const std::string& db, const std::string& table, const std::string& otable, const std::string& name, const std::string& oname, int length, int type, int flags, int decimals, int charset);
 
+  const std::string& catalog() { return _catalog; };
+  const std::string& db() { return _db; };
+  const std::string& table() { return _table; };
+  const std::string& org_table() { return _org_table; };
+  const std::string& name() { return _name; };
+  const std::string& org_name() { return _org_name; };
+  const unsigned int length() { return _length; }
+  const unsigned int type() { return _type; }
+  const unsigned int flags() { return _flags; }
+  const unsigned int decimals() { return _decimals; }
+  const unsigned int charset() { return _charset; }
+
+  const unsigned int max_length() { return _max_length; }
   void max_length(int length) { _max_length = length; }
 
+  const unsigned int name_length() { return _name_length; }
+
 private:
+  std::string _catalog;
+  std::string _db;
+  std::string _table;
+  std::string _org_table;
   std::string _name;
-  int _max_length;
-  int _name_length;
-  int _type;
+  std::string _org_name;
+  unsigned long _length;
+  unsigned int _type;
+  unsigned int _flags;
+  unsigned int _decimals;
+  unsigned int _charset;
+
+  unsigned long _max_length;
+  unsigned long _name_length;
 };
 
 class Base_row
 {
 public:
   Base_row(std::vector<Field>& metadata, bool key_by_index) :_key_by_index(key_by_index), _fields(metadata){}
+  virtual ~Base_row(){}
   virtual shcore::Value get_value(int index) = 0;
   virtual std::string get_value_as_string(int index) = 0;
   shcore::Value as_document();
+  shcore::Value as_data_array();
 
 protected:
   bool _key_by_index;
@@ -113,13 +135,17 @@ protected:
 class Base_resultset : public shcore::Cpp_object_bridge
 {
 public:
-  Base_resultset(boost::shared_ptr<shcore::Value::Map_type> options = boost::shared_ptr<shcore::Value::Map_type>());
+  Base_resultset(uint64_t affected_rows, int warning_count, const char* info, boost::shared_ptr<shcore::Value::Map_type> options = boost::shared_ptr<shcore::Value::Map_type>());
 
   // Methods from Cpp_object_bridge will be defined here
   // Since all the connections will expose the same members
   virtual std::vector<std::string> get_members() const;
   virtual shcore::Value get_member(const std::string &prop) const;
   virtual bool operator == (const Object_bridge &other) const;
+
+  // Retrieves the metadata for an executed statement
+  // Returns -1 in case of error or the number of records loaded
+  virtual int fetch_metadata() = 0;
 
   // Business logic methods common to all connections
   bool has_rows();
@@ -128,15 +154,16 @@ public:
   shcore::Value print(const shcore::Argument_list &args);
   shcore::Value next(const shcore::Argument_list &args);
   shcore::Value next_result(const shcore::Argument_list &args);
+  shcore::Value get_metadata(const shcore::Argument_list &args);
+  shcore::Value fetch_all(const shcore::Argument_list &args);
 
 private:
-  void print_result(Base_row * first_row);
-  void print_table(Base_row * first_row);
+  void print_result(shcore::Value::Array_type_ref records);
+  void print_table(shcore::Value::Array_type_ref records);
 
 protected:
   // Methods requiring database interaction, must be
   // defined by the subclasses
-  virtual void fetch_metadata() = 0;
   virtual Base_row *next_row() = 0;
   virtual bool next_result() = 0;
 

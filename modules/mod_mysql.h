@@ -39,6 +39,7 @@ class Mysql_row : public Base_row
 {
 public:
   Mysql_row(std::vector<Field>& metadata, bool key_by_index, MYSQL_ROW row, unsigned long *lengths);
+  virtual ~Mysql_row() {}
 
   virtual shcore::Value get_value(int index);
   virtual std::string get_value_as_string(int index);
@@ -52,19 +53,16 @@ class Mysql_connection;
 class Mysql_resultset : public Base_resultset
 {
 public:
-  Mysql_resultset(boost::shared_ptr<Mysql_connection> owner, boost::shared_ptr<shcore::Value::Map_type> options = boost::shared_ptr<shcore::Value::Map_type>());
+  Mysql_resultset(boost::shared_ptr<Mysql_connection> owner, uint64_t affected_rows, int warning_count, const char *info, boost::shared_ptr<shcore::Value::Map_type> options = boost::shared_ptr<shcore::Value::Map_type>());
   virtual ~Mysql_resultset();
 
-  void reset(boost::shared_ptr<MYSQL_RES> res, unsigned long duration, uint64_t affected_rows, int warning_count, const char * info);
+  void reset(boost::shared_ptr<MYSQL_RES> res, unsigned long duration);
 
-  virtual std::string class_name() const
-  {
-    return "mysql_resultset";
-  }
+  virtual std::string class_name() const { return "Mysql_resultset"; }
+  virtual int fetch_metadata();
 
 protected:
   virtual Base_row* next_row();
-  virtual void fetch_metadata();
   virtual bool next_result();
 
 private:
@@ -76,10 +74,10 @@ private:
 class Mysql_connection : public Base_connection, public boost::enable_shared_from_this<Mysql_connection>
 {
 public:
-  Mysql_connection(const std::string &uri, const std::string &password);
+  Mysql_connection(const std::string &uri, const char *password = NULL);
   ~Mysql_connection();
 
-  virtual std::string class_name() const { return "mysql_connection"; }
+  virtual std::string class_name() const { return "Mysql_connection"; }
 
   virtual shcore::Value close(const shcore::Argument_list &args);
   virtual shcore::Value sql(const std::string &sql, shcore::Value options);

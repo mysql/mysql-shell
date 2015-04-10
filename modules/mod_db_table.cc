@@ -68,15 +68,15 @@ Value Db_table::get_member(const std::string &prop) const
 
   if (prop == "insert")
   {
-    std::cout << "not implemented\n";
+    shcore::print("not implemented\n");
   }
   else if (prop == "update")
   {
-    std::cout << "not implemented\n";
+    shcore::print("not implemented\n");
   }
   else if (prop == "find")
   {
-    std::cout << "not implemented\n";
+    shcore::print("not implemented\n");
   }
 
   return Cpp_object_bridge::get_member(prop);

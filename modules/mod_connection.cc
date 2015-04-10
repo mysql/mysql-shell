@@ -154,7 +154,7 @@ namespace mysh {
       if (!password.empty())
       {
         std::string uri_stripped = connstring;
-        std::string::size_type i = uri_stripped.find(':');
+        std::string::size_type i = uri_stripped.find(":" + password);
         if (i != std::string::npos)
           uri_stripped.erase(i, password.length()+1);
 
@@ -168,7 +168,7 @@ namespace mysh {
 }
 
 //----------------------------- Base_connection ----------------------------------------
-Base_connection::Base_connection(const std::string &uri, const std::string &password)
+Base_connection::Base_connection(const std::string &uri, const char *password)
 {
   add_method("close", boost::bind(&Base_connection::close, this, _1), NULL);
   add_method("sql", boost::bind(&Base_connection::sql_, this, _1),
@@ -252,13 +252,34 @@ shcore::Value Base_connection::sql_one_(const shcore::Argument_list &args)
   return sql_one(query);
 }
 
+Field::Field(const std::string& catalog, const std::string& db, const std::string& table, const std::string& otable, const std::string& name, const std::string& oname, int length, int type, int flags, int decimals, int charset):
+_catalog(catalog),
+_db(db),
+_table(table),
+_org_table(otable),
+_name(name),
+_org_name(oname),
+_length(length),
+_type(type),
+_flags(flags),
+_decimals(decimals),
+_charset(charset),
+_max_length(0),
+_name_length(name.length())
+{
+}
+
 //----------------------------- Base_resultset ----------------------------------------
 
-Base_resultset::Base_resultset(boost::shared_ptr<shcore::Value::Map_type> options)
-: _key_by_index(false), _has_resultset(false), _fetched_row_count(0)
+Base_resultset::Base_resultset(uint64_t affected_rows, int warning_count, const char* info, boost::shared_ptr<shcore::Value::Map_type> options)
+: _key_by_index(false), _has_resultset(false), _fetched_row_count(0), _affected_rows(affected_rows), _warning_count(warning_count)
 {
   if (options && options->get_bool("key_by_index", false))
     _key_by_index = true;
+
+  // Info may be NULL so validation is needed
+  if (info)
+    _info.assign(info);
 
   add_method("next_result", boost::bind(&Base_resultset::next_result, this, _1), NULL);
   add_method("next", boost::bind(&Base_resultset::next, this, _1), NULL);
@@ -268,16 +289,81 @@ Base_resultset::Base_resultset(boost::shared_ptr<shcore::Value::Map_type> option
 
 shcore::Value Base_resultset::next(const shcore::Argument_list &args)
 {
+  std::string function = class_name() + "::next";
+  bool raw = false;
+
+  args.ensure_count(0, 1, function.c_str());
+
+  if (args.size() == 1)
+    raw = args.bool_at(0);
+
   std::auto_ptr<Base_row> row(next_row());
 
-  // Returns either the row as document or NULL
-  return row.get() ? row->as_document() : shcore::Value::Null();
+  // Returns either the row as data_array, document or NULL
+  return row.get() ? raw ?row->as_data_array() : row->as_document() : shcore::Value::Null();
 }
 
 shcore::Value Base_resultset::next_result(const shcore::Argument_list &args)
 {
   return shcore::Value(next_result());
 }
+
+shcore::Value Base_resultset::get_metadata(const shcore::Argument_list &args)
+{
+  std::string function = class_name() + "::get_metadata";
+
+  args.ensure_count(0,function.c_str());
+
+  boost::shared_ptr<shcore::Value::Array_type> array(new shcore::Value::Array_type);
+  int num_fields = _metadata.size();
+
+  for (int i = 0; i < num_fields; i++)
+  {
+    boost::shared_ptr<shcore::Value::Map_type> map(new shcore::Value::Map_type);
+
+    (*map)["catalog"] = shcore::Value(_metadata[i].catalog());
+    (*map)["db"] = shcore::Value(_metadata[i].db());
+    (*map)["table"] = shcore::Value(_metadata[i].table());
+    (*map)["org_table"] = shcore::Value(_metadata[i].org_table());
+    (*map)["name"] = shcore::Value(_metadata[i].name());
+    (*map)["org_name"] = shcore::Value(_metadata[i].org_name());
+    (*map)["charset"] = shcore::Value(int(_metadata[i].charset()));
+    (*map)["length"] = shcore::Value(int(_metadata[i].length()));
+    (*map)["type"] = shcore::Value(int(_metadata[i].type()));
+    (*map)["flags"] = shcore::Value(int(_metadata[i].flags()));
+    (*map)["decimal"] = shcore::Value(int(_metadata[i].decimals()));
+
+    array->push_back(shcore::Value(map));
+  }
+
+  return shcore::Value(array);
+}
+
+
+shcore::Value Base_resultset::fetch_all(const shcore::Argument_list &args)
+{
+  std::string function = class_name() + "::fetch_all";
+
+  args.ensure_count(0, 1, function.c_str());
+
+  bool raw = false;
+
+  if (args.size() == 1)
+    raw = args.bool_at(0);
+
+  Base_row* row = NULL;
+
+  boost::shared_ptr<shcore::Value::Array_type> array(new shcore::Value::Array_type);
+
+  while((row = next_row()))
+  {
+    array->push_back(raw ? row->as_data_array() : row->as_document());
+    delete row;
+  }
+
+  return shcore::Value(array);
+}
+
 
 shcore::Value Base_row::as_document()
 {
@@ -293,6 +379,20 @@ shcore::Value Base_row::as_document()
   }
   return shcore::Value(map);
 }
+
+shcore::Value Base_row::as_data_array()
+{
+  boost::shared_ptr<shcore::Value::Array_type> array(new shcore::Value::Array_type);
+
+  int num_fields = _fields.size();
+
+  for (int i = 0; i < num_fields; i++)
+  {
+    array->push_back(get_value(i));
+  }
+  return shcore::Value(array);
+}
+
 
 std::vector<std::string> Base_resultset::get_members() const
 {
@@ -325,12 +425,18 @@ shcore::Value Base_resultset::print(const shcore::Argument_list &args)
   {
     if (has_resultset())
     {
+      shcore::Argument_list args;
+      args.push_back(shcore::Value::True());
+      shcore::Value records = fetch_all(args);
+      shcore::Value::Array_type_ref array_records = records.as_array();
+
       // Gets the first row to determine there is data to print
-      Base_row * row = next_row();
-      if (row)
+      // Base_row * row = next_row();
+
+      if (array_records->size())
       {
         // print rows from result, with stats etc
-        print_result(row);
+        print_result(array_records);
 
         output = (boost::format("%lld %s in set") % _fetched_row_count % (_fetched_row_count == 1 ? "row" : "rows")).str();
       }
@@ -356,24 +462,41 @@ shcore::Value Base_resultset::print(const shcore::Argument_list &args)
     output.append((boost::format("(%s)") % MySQL_timer::format_legacy(_raw_duration, true)).str());
     output.append("\n\n");
 
-    std::cout << output;
+    shcore::print(output);
 
     if (!_info.empty())
     {
-      std::cout << _info << "\n\n";
+      shcore::print(_info + "\n\n");
     }
   } while (next_result());
 
   return shcore::Value();
 }
 
-void Base_resultset::print_result(Base_row * first_row)
+void Base_resultset::print_result(shcore::Value::Array_type_ref records)
 {
-  print_table(first_row);
+  print_table(records);
 }
 
-void Base_resultset::print_table(Base_row * first_row)
+void Base_resultset::print_table(shcore::Value::Array_type_ref records)
 {
+  //---------
+  // Calculates the real field lengths
+  size_t row_index;
+  for(row_index = 0; row_index < records->size(); row_index++)
+  {
+    shcore::Value::Array_type_ref record = (*records)[row_index].as_array();
+
+    for(int field_index = 0; field_index < _metadata.size(); field_index++)
+    {
+
+      int field_length = (*record)[field_index].repr().length();
+      if (field_length > _metadata[field_index].max_length())
+        _metadata[field_index].max_length(field_length);
+    }
+  }
+  //-----------
+
   unsigned int index = 0;
   unsigned int field_count = _metadata.size();
   std::vector<std::string> formats(field_count, "%-");
@@ -382,7 +505,7 @@ void Base_resultset::print_table(Base_row * first_row)
   std::string separator("+");
   for (index = 0; index < field_count; index++)
   {
-    unsigned int max_field_length;
+    unsigned int max_field_length=0;
     max_field_length = std::max<unsigned int>(_metadata[index].max_length(), _metadata[index].name_length());
     max_field_length = std::max<unsigned int>(max_field_length, MIN_COLUMN_LENGTH);
     _metadata[index].max_length(max_field_length);
@@ -400,11 +523,11 @@ void Base_resultset::print_table(Base_row * first_row)
 
   // Prints the initial separator line and the column headers
   // TODO: Consider the charset information on the length calculations
-  std::cout << separator << "|";
+  shcore::print(separator + "|");
   for (index = 0; index < field_count; index++)
   {
     std::string data = (boost::format(formats[index]) % _metadata[index].name()).str();
-    std::cout << data;
+    shcore::print(data);
 
     // Once the header is printed, updates the numeric fields formats
     // so they are right aligned
@@ -412,23 +535,25 @@ void Base_resultset::print_table(Base_row * first_row)
       formats[index] = formats[index].replace(1, 1, "");
 
   }
-  std::cout << "\n" << separator;
 
+  shcore::print("\n" + separator);
 
   // Now prints the records
-  do
+  for(row_index = 0; row_index < records->size(); row_index++)
   {
-    std::cout << "|";
+    shcore::print("|");
 
+    shcore::Value::Array_type_ref record = (*records)[row_index].as_array();
+
+    for(size_t field_index = 0; field_index < _metadata.size(); field_index++)
     {
-      for (index = 0; index < field_count; index++)
-      {
-        std::string data = (boost::format(formats[index]) % (first_row->get_value_as_string(index))).str();
-        std::cout << data;
-      }
-      std::cout << "\n";
-    }
-  }while ((first_row = next_row()));
+      std::string raw_value = (*record)[field_index].repr();
+      std::string data = (boost::format(formats[field_index]) % (raw_value)).str();
 
-  std::cout << separator;
+      shcore::print(data);
+    }
+    shcore::print("\n");
+  }
+
+  shcore::print(separator);
 }

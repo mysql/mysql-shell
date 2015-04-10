@@ -24,6 +24,7 @@
 #include "shellcore/object_registry.h"
 #include <boost/algorithm/string.hpp>
 #include <boost/format.hpp>
+#include <boost/bind.hpp>
 
 
 #include "shellcore/lang_base.h"
@@ -32,17 +33,21 @@
 
 using namespace shcore;
 
+
 Shell_core::Shell_core(Interpreter_delegate *shdelegate)
 : _lang_delegate(shdelegate)
 {
   _mode = Mode_None;
   _registry = new Object_registry();
+
+  shcore::print = boost::bind(&shcore::Shell_core::print, this, _1);
 }
 
 
 Shell_core::~Shell_core()
 {
   delete _registry;
+  shcore::print = shcore::default_print;
 }
 
 
@@ -96,14 +101,15 @@ int Shell_core::process_stream(std::istream& stream, const std::string& source)
 
       Value result = handle_input(line, state, false);
 
+      // TODO: Error handling should be reviewed
       // When result type is Null it indicates there was a processing error
       // We quit processing statements at this point.
       //TODO: --force option should skip this validation
-      if (result.type == shcore::Null)
-      {
-        ret_val = 1;
-        break;
-      }
+      //if (result.type == shcore::Null)
+      //{
+      //  ret_val = 1;
+      //  break;
+      //}
     }
   }
   else
@@ -280,7 +286,7 @@ void Shell_command_handler::print_commands(const std::string& title)
   }
 
   // Prints the command list title
-  std::cout << title;
+  shcore::print(title);
 
   // Prints the command list
   std::string format = "%-";
@@ -289,12 +295,12 @@ void Shell_command_handler::print_commands(const std::string& title)
   format += (boost::format("%d") % (max_alias_length)).str();
   format += "s %s\n";
 
-  std::cout << std::endl;
+  shcore::print("\n");
 
   size_t tmpindex = 0;
   for (index = _commands.begin(); index != end; index++, tmpindex++)
   {
-    std::cout << (boost::format(format.c_str()) % tmp_commands[tmpindex] % tmp_alias[tmpindex] % (*index).description.c_str()).str();
+    shcore::print((boost::format(format.c_str()) % tmp_commands[tmpindex] % tmp_alias[tmpindex] % (*index).description.c_str()).str().c_str());
   }
 }
 
@@ -319,19 +325,19 @@ bool Shell_command_handler::print_command_help(const std::string& command)
   if (item != _command_dict.end())
   {
     // Prints the command description.
-    std::cout << item->second->description << std::endl;
+    shcore::print(item->second->description + "\n");
 
     // Prints additional triggers if any
     if (item->second->triggers != command)
     {
       std::vector<std::string> triggers;
       boost::algorithm::split(triggers, item->second->triggers, boost::is_any_of("|"), boost::token_compress_on);
-      std::cout << std::endl << "TRIGGERS: " << boost::algorithm::join(triggers, " or ") << std::endl;
+      shcore::print("\nTRIGGERS: " + boost::algorithm::join(triggers, " or ") + "\n");
     }
 
     // Prints the additional help
     if (!item->second->help.empty())
-      std::cout << std::endl << item->second->help << std::endl;
+      shcore::print("\n" + item->second->help + "\n");
 
     ret_val = true;
   }

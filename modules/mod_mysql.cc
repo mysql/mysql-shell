@@ -34,26 +34,42 @@ using namespace mysh;
 #define MIN_COLUMN_LENGTH 4
 
 
-Mysql_resultset::Mysql_resultset(boost::shared_ptr<Mysql_connection> owner, boost::shared_ptr<shcore::Value::Map_type> options)
-: Base_resultset(options), _owner(owner)
+Mysql_resultset::Mysql_resultset(boost::shared_ptr<Mysql_connection> owner, uint64_t affected_rows, int warning_count, const char *info, boost::shared_ptr<shcore::Value::Map_type> options)
+: Base_resultset(affected_rows, warning_count, info, options), _owner(owner)
 {
 }
 
-void Mysql_resultset::fetch_metadata()
+int Mysql_resultset::fetch_metadata()
 {
+  int num_fields = 0;
+
+  _metadata.clear();
+
   // res could be NULL on queries not returning data
   boost::shared_ptr<MYSQL_RES> res = _result.lock();
-  // if metadata is not already loaded
-  if (res && _metadata.empty())
+
+  if (res)
   {
-    int num_fields = mysql_num_fields(res.get());
+    num_fields = mysql_num_fields(res.get());
     MYSQL_FIELD *fields = mysql_fetch_fields(res.get());
 
     for (int index = 0; index < num_fields; index++)
     {
-      _metadata.push_back(Field(fields[index].name, fields[index].max_length, fields[index].name_length, fields[index].type));
+      _metadata.push_back(Field(fields[index].catalog,
+                                fields[index].db,
+                                fields[index].table,
+                                fields[index].org_table,
+                                fields[index].name,
+                                fields[index].org_name,
+                                fields[index].length,
+                                fields[index].type,
+                                fields[index].flags,
+                                fields[index].decimals,
+                                fields[index].charsetnr));
     }
   }
+
+  return num_fields;
 }
 
 
@@ -67,9 +83,6 @@ Base_row *Mysql_resultset::next_row()
 
   if (has_resultset())
   {
-    // Loads the metadata
-    fetch_metadata();
-
     // Loads the first row
     boost::shared_ptr<MYSQL_RES> res = _result.lock();
 
@@ -100,15 +113,10 @@ bool Mysql_resultset::next_result()
     return false;
 }
 
-void Mysql_resultset::reset(boost::shared_ptr<MYSQL_RES> res, unsigned long duration, uint64_t affected_rows, int warning_count, const char *info)
+void Mysql_resultset::reset(boost::shared_ptr<MYSQL_RES> res, unsigned long duration)
 {
   _result = res;
   _raw_duration = duration;
-  _affected_rows = affected_rows;
-  _warning_count = warning_count;
-  _info.empty();
-  if (info)
-    _info.assign(info);
 
   _has_resultset = (res != NULL);
 }
@@ -169,7 +177,7 @@ std::string Mysql_row::get_value_as_string(int index)
 //----------------------------------------------
 
 
-Mysql_connection::Mysql_connection(const std::string &uri, const std::string &password)
+Mysql_connection::Mysql_connection(const std::string &uri, const char *password)
 : Base_connection(uri), _mysql(NULL)
 {
   std::string protocol;
@@ -187,8 +195,8 @@ Mysql_connection::Mysql_connection(const std::string &uri, const std::string &pa
   if (!parse_mysql_connstring(uri, protocol, user, pass, host, port, sock, db, pwd_found))
     throw shcore::Exception::argument_error("Could not parse URI for MySQL connection");
 
-  if (!password.empty())
-    pass = password;
+  if (password)
+    pass.assign(password);
 
   if (!mysql_real_connect(_mysql, host.c_str(), user.c_str(), pass.c_str(), db.empty() ? NULL : db.c_str(), port, sock.empty() ? NULL : sock.c_str(), flags | CLIENT_MULTI_STATEMENTS))
   {
@@ -201,7 +209,7 @@ boost::shared_ptr<shcore::Object_bridge> Mysql_connection::create(const shcore::
 {
   args.ensure_count(1, 2, "Mysql_connection()");
   return boost::shared_ptr<shcore::Object_bridge>(new Mysql_connection(args.string_at(0),
-                                                                       args.size() > 1 ? args.string_at(1) : ""));
+                                                                       args.size() > 1 ? args.string_at(1).c_str() : NULL));
 }
 
 
@@ -209,7 +217,7 @@ shcore::Value Mysql_connection::close(const shcore::Argument_list &args)
 {
   args.ensure_count(0, "Mysql_connection::close");
 
-  std::cout << "disconnect\n";
+  shcore::print("disconnect\n");
   if (_mysql)
     mysql_close(_mysql);
   _mysql = NULL;
@@ -232,7 +240,7 @@ shcore::Value Mysql_connection::sql(const std::string &query, shcore::Value opti
   }
 
 
-  Mysql_resultset* result = new Mysql_resultset(shared_from_this(), options && options.type == shcore::Map ? options.as_map() : boost::shared_ptr<shcore::Value::Map_type>());
+  Mysql_resultset* result = new Mysql_resultset(shared_from_this(), mysql_affected_rows(_mysql), mysql_warning_count(_mysql), mysql_info(_mysql), options && options.type == shcore::Map ? options.as_map() : boost::shared_ptr<shcore::Value::Map_type>());
 
   if (next_result(result, true))
     return shcore::Value(boost::shared_ptr<shcore::Object_bridge>(result));
@@ -259,7 +267,7 @@ shcore::Value Mysql_connection::sql_one(const std::string &query)
     throw shcore::Exception::error_with_code_and_state("MySQLError", mysql_error(_mysql), mysql_errno(_mysql), mysql_sqlstate(_mysql));
   }
 
-  Mysql_resultset result(shared_from_this());
+  Mysql_resultset result(shared_from_this(), mysql_affected_rows(_mysql), mysql_warning_count(_mysql), mysql_info(_mysql));
 
   if(next_result(&result, true))
     return result.next(shcore::Argument_list());
@@ -284,18 +292,21 @@ bool Mysql_connection::next_result(Base_resultset *target, bool first_result)
   if (more_results == 0)
   {
     // Retrieves the next result
-    _prev_result = boost::shared_ptr<MYSQL_RES>(mysql_store_result(_mysql), &free_result<MYSQL_RES>);
+    _prev_result = boost::shared_ptr<MYSQL_RES>(mysql_use_result(_mysql), &free_result<MYSQL_RES>);
 
     _timer.end();
 
     // We need to update the received result object with the information 
     // for the next result set
-    real_target->reset(_prev_result, _timer.raw_duration(), mysql_affected_rows(_mysql), mysql_warning_count(_mysql), mysql_info(_mysql));
+    real_target->reset(_prev_result, _timer.raw_duration());
+
+    real_target->fetch_metadata();
 
     ret_val = true;
   }
   else
-    real_target->reset(boost::shared_ptr<MYSQL_RES>(), 0, 0, 0, NULL);
+    // TODO: Include the duration
+    real_target->reset(boost::shared_ptr<MYSQL_RES>(), 0);
 
   return ret_val;
 }

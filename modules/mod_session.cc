@@ -33,6 +33,9 @@
 #include <boost/pointer_cast.hpp>
 
 #include "mod_mysql.h"
+#ifdef X_PROTOCOL_ENABLED
+#include "mod_mysqlx.h"
+#endif
 
 
 #define MAX_COLUMN_LENGTH 1024
@@ -77,32 +80,35 @@ Value Session::connect(const Argument_list &args)
   std::string protocol;
   std::string user;
   std::string pass;
+  const char *pwd_override = NULL;
   std::string host;
   std::string sock;
   std::string db;
   std::string uri_stripped;
 
+  int pwd_found;
+  int port = 0;
+
+  if (!parse_mysql_connstring(uri, protocol, user, pass, host, port, sock, db, pwd_found))
+    throw shcore::Exception::argument_error("Could not parse URI for MySQL connection");
+
+  // strip password from uri
+  uri_stripped = strip_password(uri);
+  _shcore->print("Connecting to "+uri_stripped+"...\n");
+
+  // If password is received as parameter, then it overwrites
+  // Anything found on the URI
   if (2 == args.size())
-  {
-    pass = args.string_at(1);
-     _shcore->print("Connecting to "+uri+"...\n");
-  } else {
-    int pwd_found;
-    int port = 0;
+    pwd_override = args.string_at(1).c_str();
 
-    if (!parse_mysql_connstring(uri, protocol, user, pass, host, port, sock, db, pwd_found))
-      throw shcore::Exception::argument_error("Could not parse URI for MySQL connection");
-
-    // strip password from uri
-    uri_stripped = strip_password(uri);
-    _shcore->print("Connecting to "+uri_stripped+"...\n");
-  }
-
-  // TODO: To be uncommented once the X_Protocol code is included
-  //if (protocol == "mysqlx")
-  //  _conn.reset(new X_connection(uri, pwd));
-  //else
-    _conn.reset(new Mysql_connection(uri, pass));
+  if (protocol.empty() || protocol == "mysql")
+    _conn.reset(new Mysql_connection(uri, pwd_override));
+#ifdef X_PROTOCOL_ENABLED
+  else if (protocol == "mysqlx")
+    _conn.reset(new X_connection(uri, pwd_override));
+#endif
+  else
+    throw shcore::Exception::argument_error("Invalid protocol found in URI");
 
   return Value::Null();
 }

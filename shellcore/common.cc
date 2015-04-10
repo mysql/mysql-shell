@@ -18,25 +18,15 @@
  */
 
 
-#ifndef _SHCORE_COMMON_H_
-#define _SHCORE_COMMON_H_
+#include "shellcore/common.h"
+#include <iostream>
 
-#ifdef _WIN32
-#ifdef SHCORE_EXPORT
-# define SHCORE_PUBLIC __declspec(dllexport)
-#else
-# define SHCORE_PUBLIC __declspec(dllimport)
-#endif
-#else
-# define SHCORE_PUBLIC
-#endif
-
-#endif
-
-#include <boost/function.hpp>
-
-namespace shcore 
+namespace shcore
 {
-  extern void default_print(const std::string& text);
-  extern boost::function<void(std::string)> print;
+  void default_print(const std::string& text)
+  {
+    std::cout << text;
+  }
+
+  boost::function<void(std::string)> print = shcore::default_print;
 }

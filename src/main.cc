@@ -121,7 +121,7 @@ Interactive_shell::Interactive_shell(Shell_core::Mode initial_mode)
 //  using_history();
 
   _multiline_mode = false;
-  _interactive - false;
+  _interactive = false;
 
   _delegate.user_data = this;
   _delegate.print = &Interactive_shell::deleg_print;

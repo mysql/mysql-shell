@@ -25,6 +25,7 @@ using namespace shcore;
 
 Cpp_object_bridge::~Cpp_object_bridge()
 {
+  _funcs.clear();
 }
 
 

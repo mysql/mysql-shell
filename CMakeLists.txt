@@ -44,6 +44,11 @@ include(msvc)
 INCLUDE (CheckIncludeFiles)
 INCLUDE (CheckFunctionExists)
 
+IF (WITH_PROTOBUF)
+  SET(HAVE_PROTOBUF "YES")              # Variable for CMake processing
+  add_definitions(-DX_PROTOCOL_ENABLED) # Preprocessor variable for generated projects
+ENDIF()
+
 IF ( V8_INCLUDE_DIR AND V8_LIB_DIR )
   set(HAVE_V8 "YES")         # Variable for CMake processing
   add_definitions(-DHAVE_V8) # Preprocessor variable for generated projects
