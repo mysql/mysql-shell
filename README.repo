@@ -1,0 +1,95 @@
+MySQL Shell
+
+MySQL query and administration shell client and framework.
+
+
+DEPENDENCIES
+============
+
+Mandatory
+- cmake 
+- boost (recommended 1.56)
+- python 2.6+ (with python in the PATH)
+- libmysqlclient 5.6+
+
+Optional
+- nghshell-deps repo.
+- gtest 1.7
+
+
+
+
+BUILD
+=====
+
+1) Build dependencies (Optional: If willing to build the shell with JavaScript support)
+   
+   To succeed:
+   - Python should be installed and included on the PATH.
+   - Linux/OSX: <ngshell-deps>/build_linux##.sh and <ngshell-deps>/v8/build/gyp/gyp should be executable (u+x)
+   - Windows: should use a Visual Studio Command Prompt
+   
+   Procedure:
+   - Execute the build script corresponding to your platform from <ngshell-deps> folder.
+   
+   Notes:
+   - Building V8 takes some time.
+   - The build scripts are pretty simple, in windows you can run the first command on a simple command prompt and open the generated Visual Studio solution 
+     at <ngshell-deps>\v8\build to build V8 using the IDE instead of a VS Command Prompt. 
+     If you pick this way, disable warning 4265 on the v8_base project and build.(Properties/Configuration Properties/C/C++/Advanced/Disable Specific Warnings).
+
+
+2) Build the Shell
+   To properly build the shell
+   - Create a build folder (no restrictions about where it should be created)
+   - cd into the build folder
+   - Linux/OSX: 
+     - Assuming that BOOST is installed on the system.
+     - Execute: cmake <path_to_ng_shell>
+     - Execute: make
+   - Windows:
+     - Execute: cmake -G "Visual Studio 12 Win64" -DBOOST_ROOT=<path_to_boost> -DCMAKE_BUILD_TYPE=Release <path_to_ng_shell>
+     - Open the generated solution and build it.
+   
+   This will build the shell with support for the SQL Mode only.
+   
+   
+   Adding JavaScript Support
+   --------------------------
+   Is enabled by adding the next parameters to the shell call:
+   -DV8_INCLUDE_DIR=<ngshell-deps>/v8/include
+   -DV8_LIB_DIR=<ngshell-deps>/<path_to_folder_containing_the_built_libraries> 
+    This path changes across platforms so just find the libs and specify the parent path   
+
+    
+   Adding Support for Connection with X Protocol
+   ----------------------------------
+   It is enabled by adding the next parameters to the Cmake call:
+   -DWITH_PROTOBUF=<path_to_protobuf>
+   -DWITH_STATIC_LINKING=1    
+
+   
+   Adding Unit Test Support
+   ------------------------
+   GTest is required to enable Unit Testing. Make them available by adding the next parameters to the cmake call.
+   -DWITH_TESTS=1
+   -DWITH_GTEST=<path_to_gtest>
+
+   
+   Using a Custom BOOST
+   --------------------
+   You can specify the BOOST to be used (i.e. not the installed one) by adding the next parameter to the cmake call.
+   -DBOOST_ROOT=<path_to_boost> 
+    At least version 1.56 should be used.
+    Only header files are used so there's no need to build boost.
+    Use the parameter to specify the path to the uncompressed boost root folder.
+
+    
+   Using a Custom MySQL
+   --------------------
+   Specify the MySQL to be used (i.e. not the installed one) by adding the next parameter to the cmake call.
+   -DMYSQL_DIR=<path_to_mysql-folder>
+    Version 5.6 and above is recommended.
+    If MySQL is installed CMake may be able to find it even the parameter is not specified.
+    Use the parameter to specify the path to an uncompressed MySQL package.
+    
