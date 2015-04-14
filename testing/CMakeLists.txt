@@ -21,18 +21,19 @@ if(WITH_TESTS)
                 ${MYSQL_INCLUDE_DIRS}
     )
     
-    if (HAVE_PROTOBUF)
-      INCLUDE(protobuf)
-      SETUP_PROTOBUF()
-      INCLUDE_DIRECTORIES("${CMAKE_BINARY_DIR}/modules")
-    endif()
-
-
     file(GLOB mysqlsh_tests_SRC
         "${PROJECT_SOURCE_DIR}/testing/*_t.cc"
         "${PROJECT_SOURCE_DIR}/testing/test_main.cc"
         "${PROJECT_SOURCE_DIR}/src/boost_code.cc"
     )
+    
+    if (HAVE_PROTOBUF)
+      INCLUDE(protobuf)
+      SETUP_PROTOBUF()
+      INCLUDE_DIRECTORIES("${CMAKE_BINARY_DIR}/modules")
+    else()
+      list(REMOVE_ITEM mysqlsh_tests_SRC "${PROJECT_SOURCE_DIR}/testing/mod_mysqlx_t.cc")
+    endif()
     
     if ( NOT HAVE_V8 )
       list(REMOVE_ITEM mysqlsh_tests_SRC "${PROJECT_SOURCE_DIR}/testing/value_js_bridging_t.cc")

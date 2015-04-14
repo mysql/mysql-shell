@@ -108,7 +108,7 @@ namespace shcore {
       EXPECT_EQ("mysql-sql> ", env.shell_sql->prompt());
     }
 
-    TEST(Shell_sql_test, multi_line_statement)
+    TEST(Shell_sql_test, sql_multi_line_statement)
     {
       Interactive_input_state state;
       std::string query = "show";
@@ -145,6 +145,17 @@ namespace shcore {
       EXPECT_EQ("mysql-sql> ", env.shell_sql->prompt());
     }
 
+    TEST(Shell_sql_test, global_multi_line_statement)
+    {
+      Interactive_input_state state;
+      std::string query = "show\ndatabases";
+      env.shell_sql->handle_input(query, state);
+
+      // Being global multiline make sthe statement to be executed right away
+      EXPECT_EQ(Input_ok, state);
+      EXPECT_EQ("show\ndatabases", env.shell_sql->get_handled_input());
+      EXPECT_EQ("mysql-sql> ", env.shell_sql->prompt());
+    }
 
     TEST(Shell_sql_test, multiple_statements_continued)
     {
@@ -165,6 +176,36 @@ namespace shcore {
       env.shell_sql->handle_input(query, state);
       EXPECT_EQ(Input_ok, state);
       EXPECT_EQ("", query);
+      EXPECT_EQ("show\ndatabases", env.shell_sql->get_handled_input());
+      EXPECT_EQ("mysql-sql> ", env.shell_sql->prompt());
+    }
+
+    TEST(Shell_sql_test, global_multi_line_statement_ignored)
+    {
+      Interactive_input_state state;
+      std::string query = "show";
+      env.shell_sql->handle_input(query, state);
+
+      // Nothing is executed until the delimiter is reached and the prompt changes
+      // Prompt changes to multiline mode
+      EXPECT_EQ(Input_continued, state);
+      EXPECT_EQ("", env.shell_sql->get_handled_input());
+      EXPECT_EQ("        -> ", env.shell_sql->prompt());
+
+
+      query = "databases;\nshow";
+      env.shell_sql->handle_input(query, state);
+
+      // Being global multiline make sthe statement to be executed right away
+      EXPECT_EQ(Input_continued, state);
+      EXPECT_EQ("show\ndatabases", env.shell_sql->get_handled_input());
+      EXPECT_EQ("        -> ", env.shell_sql->prompt());
+
+      query = "databases;";
+      env.shell_sql->handle_input(query, state);
+
+      // Being global multiline make sthe statement to be executed right away
+      EXPECT_EQ(Input_ok, state);
       EXPECT_EQ("show\ndatabases", env.shell_sql->get_handled_input());
       EXPECT_EQ("mysql-sql> ", env.shell_sql->prompt());
     }

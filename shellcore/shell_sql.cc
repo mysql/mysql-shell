@@ -50,17 +50,30 @@ Value Shell_sql::handle_input(std::string &code, Interactive_input_state &state,
   if (session_wrapper)
   {
     boost::shared_ptr<mysh::Session> session = session_wrapper.as_object<mysh::Session>();
-    // Parses the input string to identify individual statements in it.
-    // Will return a range for every statement that ends with the delimiter, if there
-    // is additional code after the last delimiter, a range for it will be included too.
     std::vector<std::pair<size_t, size_t> > ranges;
-    size_t statement_count = splitter.determineStatementRanges(code.c_str(), code.length(), _delimiter, ranges, "\n", _parsing_context_stack);
+    size_t statement_count;
+
+    // If no cached code and new code is a multiline statement
+    // allows multiline code to bypass the splitter
+    // This way no delimiter change is needed for i.e. 
+    // stored procedures and functions
+    if (_sql_cache.empty() && code.find("\n") != std::string::npos)
+    {
+      ranges.push_back(std::make_pair<size_t, size_t>(0, code.length()));
+      statement_count = 1;
+    }
+    else
+    {
+      // Parses the input string to identify individual statements in it.
+      // Will return a range for every statement that ends with the delimiter, if there
+      // is additional code after the last delimiter, a range for it will be included too.
+      statement_count = splitter.determineStatementRanges(code.c_str(), code.length(), _delimiter, ranges, "\n", _parsing_context_stack);
+    }
 
     // statement_count is > 0 if the splitter determined a statement was completed
     // ranges: contains the char ranges having statements.
     // special case: statement_count is 1 but there are no ranges: the delimiter was sent on the last call to the splitter
     //               and it determined the continued statement is now complete, but there's no additional data for it
-    
     size_t index = 0;
 
     // Gets the total number of ranges
