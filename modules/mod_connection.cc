@@ -27,6 +27,7 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/format.hpp>
 #include <boost/pointer_cast.hpp>
+#include "shellcore/obj_date.h"
 
 #if WIN32
 #  include <winsock2.h>
@@ -282,7 +283,9 @@ Base_resultset::Base_resultset(uint64_t affected_rows, int warning_count, const 
     _info.assign(info);
 
   add_method("next_result", boost::bind(&Base_resultset::next_result, this, _1), NULL);
-  add_method("next", boost::bind(&Base_resultset::next, this, _1), NULL);
+  add_method("fetch_one", boost::bind(&Base_resultset::next, this, _1), NULL);
+  add_method("fetch_all", boost::bind(&Base_resultset::fetch_all, this, _1), NULL);
+  add_method("fetch_metadata", boost::bind(&Base_resultset::get_metadata, this, _1), NULL);
   add_method("__paged_output__", boost::bind(&Base_resultset::print, this, _1), NULL);
 }
 
@@ -300,7 +303,7 @@ shcore::Value Base_resultset::next(const shcore::Argument_list &args)
   std::auto_ptr<Base_row> row(next_row());
 
   // Returns either the row as data_array, document or NULL
-  return row.get() ? raw ?row->as_data_array() : row->as_document() : shcore::Value::Null();
+  return row.get() ? raw ? row->as_data_array() : row->as_document() : shcore::Value::Null();
 }
 
 shcore::Value Base_resultset::next_result(const shcore::Argument_list &args)
@@ -397,7 +400,11 @@ shcore::Value Base_row::as_data_array()
 std::vector<std::string> Base_resultset::get_members() const
 {
   std::vector<std::string> members(shcore::Cpp_object_bridge::get_members());
-  members.push_back("count");
+  members.push_back("fetched_row_count");
+  members.push_back("affected_rows");
+  members.push_back("warning_count");
+  members.push_back("info");
+  members.push_back("execution_time");
   return members;
 }
 
@@ -408,10 +415,25 @@ bool Base_resultset::operator == (const Object_bridge &other) const
 
 shcore::Value Base_resultset::get_member(const std::string &prop) const
 {
-  // TODO: this property maybe is not appropiate since the count is not available...
-  if (prop == "count")
+  if (prop == "fetched_row_count")
   {
-    return shcore::Value((int64_t) 0);
+    return shcore::Value((int64_t)_fetched_row_count);
+  }
+  if (prop == "affected_rows")
+  {
+    return shcore::Value((int64_t)((_affected_rows == ~(my_ulonglong)0) ? 0 : _affected_rows));
+  }
+  if (prop == "warning_count")
+  {
+    return shcore::Value(_warning_count);
+  }
+  if (prop == "info")
+  {
+    return shcore::Value(_info);
+  }
+  if (prop == "execution_time")
+  {
+    return shcore::Value(MySQL_timer::format_legacy(_raw_duration, true));
   }
 
   return shcore::Cpp_object_bridge::get_member(prop);
@@ -445,9 +467,7 @@ shcore::Value Base_resultset::print(const shcore::Argument_list &args)
     }
     else
     {
-      // TODO: Verify this should print Query OK... or Query Error.
-      // Checks for a -1 value, which would indicate an error.
-      // Even so the old client printed Query OK on this case for some reason.
+      // Some queries return -1 since affected rows do not apply to them
       if (_affected_rows == ~(my_ulonglong)0)
         output = "Query OK";
       else

@@ -133,7 +133,7 @@ Interactive_shell::Interactive_shell(Shell_core::Mode initial_mode)
   _shell.reset(new Shell_core(&_delegate));
 
   _session.reset(new mysh::Session(_shell.get()));
-  _shell->set_global("_S", Value(boost::static_pointer_cast<Object_bridge>(_session)));
+  _shell->set_global("session", Value(boost::static_pointer_cast<Object_bridge>(_session)));
 
 //  _db.reset(new mysh::Db(_shell.get()));
 //  _shell->set_global("db", Value( boost::static_pointer_cast<Object_bridge, mysh::Db >(_db) ));
@@ -214,6 +214,16 @@ bool Interactive_shell::connect(const std::string &uri, bool needs_password)
 
   try
   {
+    if (_session->is_connected())
+    {
+      shcore::print("Closing old connection...\n");
+      _session->disconnect();
+    }
+
+    // strip password from uri
+    std::string uri_stripped = mysh::strip_password(uri);
+    shcore::print("Connecting to " + uri_stripped + "...\n");
+
     connect_session(args);
   }
   catch (std::exception &exc)
@@ -240,7 +250,8 @@ Value Interactive_shell::connect_session(const Argument_list &args)
   else
   {
     // XXX assign a dummy placeholder to db
-    _shell->print("No default schema selected.\n");
+    if (_shell->interactive_mode() != Shell_core::Mode_SQL)
+      _shell->print("No default schema selected.\n");
   }
 
   return Value::Null();

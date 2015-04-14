@@ -66,7 +66,7 @@ Value Shell_javascript::handle_input(std::string &code, Interactive_input_state 
 
 std::string Shell_javascript::prompt()
 {
-  return "js> ";
+  return "mysql-js> ";
 }
 
 

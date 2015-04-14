@@ -48,10 +48,10 @@ namespace shcore
     TEST(MySQL, query)
     {
       Value result = env.db->sql("select 1 as a", Value());
-      Value row = result.as_object<Object_bridge>()->call("next", Argument_list());
+      Value row = result.as_object<Object_bridge>()->call("fetch_one", Argument_list());
       EXPECT_EQ("{\"a\": 1}", row.descr());
-      row = result.as_object<Object_bridge>()->call("next", Argument_list());
-      EXPECT_TRUE(result.as_object<Object_bridge>()->call("next", Argument_list()) == Value::Null());
+      row = result.as_object<Object_bridge>()->call("fetch_one", Argument_list());
+      EXPECT_TRUE(result.as_object<Object_bridge>()->call("fetch_one", Argument_list()) == Value::Null());
     }
 
     /* not implemented yet

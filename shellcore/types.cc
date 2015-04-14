@@ -247,6 +247,20 @@ Value::Value(const std::string &s)
 }
 
 
+Value::Value(const char *s)
+{
+  if (s)
+  {
+    type = String;
+    value.s = new std::string(s);
+  }
+  else
+  {
+    type = shcore::Null;
+  }
+}
+
+
 Value::Value(int i)
 : type(Integer)
 {
@@ -267,6 +281,11 @@ Value::Value(double d)
   value.d = d;
 }
 
+Value::Value(bool b)
+: type(Bool)
+{
+  value.b = b;
+}
 
 Value::Value(boost::shared_ptr<Function_base> f)
 : type(Function)

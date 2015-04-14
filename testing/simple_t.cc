@@ -161,24 +161,36 @@ namespace shcore
 
     TEST(Parsing, Bool)
     {
+      shcore::Value v;
+
+      v = shcore::Value(true);
+      EXPECT_EQ(shcore::Bool, v.type);
+      EXPECT_STREQ("true", v.descr().c_str());
+      EXPECT_STREQ("true", v.repr().c_str());
+
+      v = shcore::Value(false);
+      EXPECT_EQ(shcore::Bool, v.type);
+      EXPECT_STREQ("false", v.descr().c_str());
+      EXPECT_STREQ("false", v.repr().c_str());
+
       const std::string data = "false";
       const std::string data2 = "true";
-      shcore::Value v = shcore::Value::parse(data);
+
+      v = shcore::Value::parse(data);
       std::string mydescr = v.descr(true);
       std::string myrepr = v.repr();
 
-      EXPECT_EQ(shcore::Integer, v.type);
-      EXPECT_STREQ("0", mydescr.c_str());
-      EXPECT_STREQ("0", myrepr.c_str());
+      EXPECT_EQ(shcore::Bool, v.type);
+      EXPECT_STREQ("false", mydescr.c_str());
+      EXPECT_STREQ("false", myrepr.c_str());
 
       v = shcore::Value::parse(data2);
       mydescr = v.descr(true);
       myrepr = v.repr();
 
-      EXPECT_EQ(shcore::Integer, v.type);
-      EXPECT_STREQ("1", mydescr.c_str());
-      EXPECT_STREQ("1", myrepr.c_str());
-
+      EXPECT_EQ(shcore::Bool, v.type);
+      EXPECT_STREQ("true", mydescr.c_str());
+      EXPECT_STREQ("true", myrepr.c_str());
     }
 
     TEST(Parsing, Null)

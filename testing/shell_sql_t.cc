@@ -48,7 +48,7 @@ namespace shcore {
         shell_core.reset(new Shell_core(&deleg));
 
         session.reset(new mysh::Session(shell_core.get()));
-        shell_core->set_global("_S", Value(boost::static_pointer_cast<Object_bridge>(session)));
+        shell_core->set_global("session", Value(boost::static_pointer_cast<Object_bridge>(session)));
         shell_sql.reset(new Shell_sql(shell_core.get()));
       }
 
@@ -90,7 +90,7 @@ namespace shcore {
 
     TEST(Shell_sql_test, test_initial_state)
     {
-      EXPECT_EQ("mysql> ", env.shell_sql->prompt());
+      EXPECT_EQ("mysql-sql> ", env.shell_sql->prompt());
     }
 
     TEST(Shell_sql_test, full_statement)
@@ -105,7 +105,7 @@ namespace shcore {
       EXPECT_EQ(Input_ok, state);
       EXPECT_EQ("", query);
       EXPECT_EQ("show databases", env.shell_sql->get_handled_input());
-      EXPECT_EQ("mysql> ", env.shell_sql->prompt());
+      EXPECT_EQ("mysql-sql> ", env.shell_sql->prompt());
     }
 
     TEST(Shell_sql_test, multi_line_statement)
@@ -119,7 +119,7 @@ namespace shcore {
       EXPECT_EQ(Input_continued, state);
       //EXPECT_EQ("show", query);
       EXPECT_EQ("", env.shell_sql->get_handled_input());
-      EXPECT_EQ("    -> ", env.shell_sql->prompt());
+      EXPECT_EQ("        -> ", env.shell_sql->prompt());
 
       // Caching the partial statements is now internal
       // we just send whatever is remaining for the query to execute
@@ -131,7 +131,7 @@ namespace shcore {
       EXPECT_EQ(Input_continued, state);
       //EXPECT_EQ("databases", query);
       EXPECT_EQ("", env.shell_sql->get_handled_input());
-      EXPECT_EQ("    -> ", env.shell_sql->prompt());
+      EXPECT_EQ("        -> ", env.shell_sql->prompt());
 
       
       query = ";";
@@ -142,7 +142,7 @@ namespace shcore {
       EXPECT_EQ(Input_ok, state);
       EXPECT_EQ("", query);
       EXPECT_EQ("show\ndatabases", env.shell_sql->get_handled_input());
-      EXPECT_EQ("mysql> ", env.shell_sql->prompt());
+      EXPECT_EQ("mysql-sql> ", env.shell_sql->prompt());
     }
 
 
@@ -159,14 +159,14 @@ namespace shcore {
       EXPECT_EQ(Input_continued, state);
       //EXPECT_EQ("show", query);
       EXPECT_EQ("show databases", env.shell_sql->get_handled_input());
-      EXPECT_EQ("    -> ", env.shell_sql->prompt());
+      EXPECT_EQ("        -> ", env.shell_sql->prompt());
 
       query = "databases;";
       env.shell_sql->handle_input(query, state);
       EXPECT_EQ(Input_ok, state);
       EXPECT_EQ("", query);
       EXPECT_EQ("show\ndatabases", env.shell_sql->get_handled_input());
-      EXPECT_EQ("mysql> ", env.shell_sql->prompt());
+      EXPECT_EQ("mysql-sql> ", env.shell_sql->prompt());
     }
 
     TEST(Shell_sql_test, multiline_comment)
@@ -178,21 +178,21 @@ namespace shcore {
       EXPECT_EQ(Input_continued, state);
       EXPECT_EQ("", query);
       EXPECT_EQ("", env.shell_sql->get_handled_input());
-      EXPECT_EQ("   /*> ", env.shell_sql->prompt());
+      EXPECT_EQ("       /*> ", env.shell_sql->prompt());
 
       query = "this was a multiline comment";
       env.shell_sql->handle_input(query, state);
       EXPECT_EQ(Input_continued, state);
       EXPECT_EQ("", query);
       EXPECT_EQ("", env.shell_sql->get_handled_input());
-      EXPECT_EQ("   /*> ", env.shell_sql->prompt());
+      EXPECT_EQ("       /*> ", env.shell_sql->prompt());
 
       query = "*/";
       env.shell_sql->handle_input(query, state);
       EXPECT_EQ(Input_ok, state);
       EXPECT_EQ("", query);
       EXPECT_EQ("", env.shell_sql->get_handled_input());
-      EXPECT_EQ("mysql> ", env.shell_sql->prompt());
+      EXPECT_EQ("mysql-sql> ", env.shell_sql->prompt());
     }
 
     TEST(Shell_sql_test, multiline_single_quote_continued_string)
@@ -204,14 +204,14 @@ namespace shcore {
       EXPECT_EQ(Input_continued, state);
       //EXPECT_EQ("select 'hello ", query);
       EXPECT_EQ("", env.shell_sql->get_handled_input());
-      EXPECT_EQ("    '> ", env.shell_sql->prompt());
+      EXPECT_EQ("        '> ", env.shell_sql->prompt());
 
       query = "world';";
       env.shell_sql->handle_input(query, state);
       EXPECT_EQ(Input_ok, state);
       EXPECT_EQ("", query);
       EXPECT_EQ("select 'hello \nworld'", env.shell_sql->get_handled_input());
-      EXPECT_EQ("mysql> ", env.shell_sql->prompt());
+      EXPECT_EQ("mysql-sql> ", env.shell_sql->prompt());
     }
 
     TEST(Shell_sql_test, multiline_double_quote_continued_string)
@@ -223,14 +223,14 @@ namespace shcore {
       EXPECT_EQ(Input_continued, state);
       //EXPECT_EQ("select \"hello ", query);
       EXPECT_EQ("", env.shell_sql->get_handled_input());
-      EXPECT_EQ("    \"> ", env.shell_sql->prompt());
+      EXPECT_EQ("        \"> ", env.shell_sql->prompt());
 
       query = "world\";";
       env.shell_sql->handle_input(query, state);
       EXPECT_EQ(Input_ok, state);
       EXPECT_EQ("", query);
       EXPECT_EQ("select \"hello \nworld\"", env.shell_sql->get_handled_input());
-      EXPECT_EQ("mysql> ", env.shell_sql->prompt());
+      EXPECT_EQ("mysql-sql> ", env.shell_sql->prompt());
     }
 
     TEST(Shell_sql_test, DISABLED_multiline_backtick_string)
@@ -242,14 +242,14 @@ namespace shcore {
       EXPECT_EQ(Input_continued, state);
       EXPECT_EQ("select * from `sakila`.`", query);
       EXPECT_EQ("", env.shell_sql->get_handled_input());
-      EXPECT_EQ("    `> ", env.shell_sql->prompt());
+      EXPECT_EQ("        `> ", env.shell_sql->prompt());
 
       query = "film`;";
       env.shell_sql->handle_input(query, state);
       EXPECT_EQ(Input_ok, state);
       EXPECT_EQ("", query);
       EXPECT_EQ("", env.shell_sql->get_handled_input());
-      EXPECT_EQ("mysql> ", env.shell_sql->prompt());
+      EXPECT_EQ("mysql-sql> ", env.shell_sql->prompt());
     }
 
     TEST(Shell_sql_test, print_help)

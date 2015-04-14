@@ -18,7 +18,7 @@
  */
 
 // Interactive session access module
-// Exposed as _S in the shell
+// Exposed as "session" in the shell
 
 #ifndef _MOD_SESSION_H_
 #define _MOD_SESSION_H_
@@ -56,13 +56,17 @@ public:
   virtual bool operator == (const Object_bridge &other) const;
 
   shcore::Value connect(const shcore::Argument_list &args);
+  void disconnect() { _conn.reset();  }
   shcore::Value sql(const shcore::Argument_list &args);
+  shcore::Value sql_one(const shcore::Argument_list &args);
 
   void print_exception(const shcore::Exception &e);
 
   boost::shared_ptr<Base_connection> conn() const { return _conn; }
 
   boost::shared_ptr<Db> default_schema();
+
+  bool is_connected() { return _conn ? true : false;  }
 
 private:
   shcore::Value get_db(const std::string &schema);

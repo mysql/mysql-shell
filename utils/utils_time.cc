@@ -49,48 +49,59 @@ unsigned long MySQL_timer::end()
 
 std::string MySQL_timer::format_legacy(unsigned long raw_time, bool part_seconds)
 {
+  std::string str_duration;
+  
+  int days = 0;
+  int hours = 0;
+  int minutes = 0;
+  float seconds = 0.0;
+  
+  MySQL_timer::parse_duration(raw_time, days, hours, minutes, seconds);
+
+  if (days)
+    str_duration.append((boost::format("%d %s") % days % (days == 1 ? "day" : "days")).str());
+  
+  if (days || hours)
+    str_duration.append((boost::format("%s%d %s") % (str_duration.empty() ? "" : ", ") % hours % (hours == 1 ? "hour" : "hours")).str());
+  
+  if (days || hours || minutes)
+    str_duration.append((boost::format("%s%d %s") % (str_duration.empty() ? "" : ", ") % minutes % (minutes == 1 ? "minute" : "minute")).str());
+  
+  if (part_seconds)
+    str_duration.append((boost::format("%.2f sec") % seconds).str());
+  else
+    str_duration.append((boost::format("%d sec") % seconds).str());
+  
+  return str_duration;
+}
+
+void MySQL_timer::parse_duration(int raw_time, int &days, int &hours, int &minutes, float &seconds)
+{
   double duration = (double)(raw_time) / CLOCKS_PER_SEC;
   double temp;
   std::string str_duration;
-  
+
   double minute_seconds = 60.0;
   double hour_seconds = 3600.0;
   double day_seconds = hour_seconds * 24;
-  
+
   if (duration >= day_seconds)
   {
-    temp = floor(duration/day_seconds);
+    days = (int)floor(duration / day_seconds);
     duration -= temp * day_seconds;
-    
-    str_duration.append((boost::format("%d %s") % temp % (temp == 1 ? "day" : "days")).str());
   }
-  
+
   if (duration >= hour_seconds)
   {
-    temp = floor(duration/hour_seconds);
+    hours = (int)floor(duration / hour_seconds);
     duration -= temp * hour_seconds;
-    
-    if (!str_duration.empty())
-      str_duration.append(", ");
-    
-    str_duration.append((boost::format("%d %s") % temp % (temp == 1 ? "hour" : "hours")).str());
   }
-  
+
   if (duration >= minute_seconds)
   {
-    temp = floor(duration/minute_seconds);
+    minutes = (int)floor(duration / minute_seconds);
     duration -= temp * minute_seconds;
-    
-    if (!str_duration.empty())
-      str_duration.append(", ");
-    
-    str_duration.append((boost::format("%d %s") % temp % (temp == 1 ? "minute" : "minute")).str());
   }
-  
-  if (part_seconds)
-    str_duration.append((boost::format("%.2f sec") % duration).str());
-  else
-    str_duration.append((boost::format("%d sec") % duration).str());
-  
-  return str_duration;
+
+  seconds = duration;
 }

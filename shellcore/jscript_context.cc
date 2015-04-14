@@ -471,7 +471,7 @@ JScript_context::JScript_context(Object_registry *registry, Interpreter_delegate
     _impl->types.init();
   }
 
-  set_global("_G", Value(registry->_registry));
+  set_global("shell", Value(registry->_registry));
 }
 
 

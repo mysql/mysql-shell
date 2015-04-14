@@ -42,7 +42,7 @@ Shell_sql::Shell_sql(Shell_core *owner)
 Value Shell_sql::handle_input(std::string &code, Interactive_input_state &state, bool interactive)
 {
   state = Input_ok;
-  Value session_wrapper = _owner->get_global("_S");
+  Value session_wrapper = _owner->get_global("session");
   MySQL_splitter splitter;
 
   _last_handled.clear();
@@ -193,9 +193,9 @@ void Shell_sql::print_warnings(boost::shared_ptr<mysh::Session> session)
 std::string Shell_sql::prompt()
 {
   if (!_parsing_context_stack.empty())
-    return (boost::format("%5s> ") % _parsing_context_stack.top().c_str()).str();
+    return (boost::format("%9s> ") % _parsing_context_stack.top().c_str()).str();
   else
-    return "mysql> ";
+    return "mysql-sql> ";
 }
 
 bool Shell_sql::print_help(const std::string& topic)

@@ -57,6 +57,10 @@ Session::Session(Shell_core *shc)
              "stmt", shcore::String,
              "*options", shcore::Map,
              NULL);
+
+  add_method("sql_one", boost::bind(&Session::sql_one, this, _1),
+    "stmt", shcore::String,
+    NULL);
 }
 
 
@@ -68,12 +72,6 @@ Session::~Session()
 Value Session::connect(const Argument_list &args)
 {
   args.ensure_count(1, 2, "Session::connect");
-
-  if (_conn)
-  {
-    _shcore->print("Closing old connection...\n");
-    _conn.reset();
-  }
 
   std::string uri = args.string_at(0);
 
@@ -91,10 +89,6 @@ Value Session::connect(const Argument_list &args)
 
   if (!parse_mysql_connstring(uri, protocol, user, pass, host, port, sock, db, pwd_found))
     throw shcore::Exception::argument_error("Could not parse URI for MySQL connection");
-
-  // strip password from uri
-  uri_stripped = strip_password(uri);
-  _shcore->print("Connecting to "+uri_stripped+"...\n");
 
   // If password is received as parameter, then it overwrites
   // Anything found on the URI
@@ -147,6 +141,35 @@ Value Session::sql(const Argument_list &args)
   return Value::Null();
 }
 
+Value Session::sql_one(const Argument_list &args)
+{
+  if (!_conn)
+  {
+    _shcore->print("Not connected\n");
+    return Value::Null();
+  }
+
+  // Options are the statement and optionally options to modify
+  // How the resultset is created.
+  std::string statement = args.string_at(0);
+
+  if (statement.empty())
+    _shcore->print_error("No query specified\n");
+  else
+  {
+    try
+    {
+      Value result = _conn->sql_one(statement);
+      return result;
+    }
+    catch (shcore::Exception &exc)
+    {
+      print_exception(exc);
+    }
+  }
+
+  return Value::Null();
+}
 
 void Session::print_exception(const shcore::Exception &e)
 {

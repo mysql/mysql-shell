@@ -130,9 +130,11 @@ struct SHCORE_PUBLIC Value
   Value(const Value &copy);
 
   explicit Value(const std::string &s);
+  explicit Value(const char *);
   explicit Value(int i);
   explicit Value(int64_t i);
   explicit Value(double d);
+  explicit Value(bool b);
   explicit Value(boost::shared_ptr<Function_base> f);
   explicit Value(boost::shared_ptr<Object_bridge> o);
   explicit Value(boost::weak_ptr<Map_type> n);

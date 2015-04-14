@@ -269,10 +269,41 @@ void X_connection::flush()
 }
 
 
-shcore::Value X_connection::sql(const std::string &query, shcore::Value options)
+boost::shared_ptr<shcore::Object_bridge> X_connection::create(const shcore::Argument_list &args)
+{
+  args.ensure_count(1, 2, "XConnection()");
+  return boost::shared_ptr<shcore::Object_bridge>(new X_connection(args.string_at(0),
+                                                                       args.size() > 1 ? args.string_at(1).c_str() : NULL));
+}
+
+
+shcore::Value X_connection::close(const shcore::Argument_list &args)
+{
+  args.ensure_count(0, "Mysqlx_connection::close");
+
+  // This should be logged, for now commenting to
+  // avoid having unneeded output on the script mode
+  // shcore::print("disconnect\n");
+  m_wstream.close();
+  /*Mysqlx::Connection::close close;
+  std::string data;
+  close.SerializeToString(&data);
+  send_message(Mysqlx::ClientMessages::kMsgConClose, data);*/
+
+  return shcore::Value();
+}
+
+X_resultset *X_connection::_sql(const std::string &query, shcore::Value options)
 {
   int mid;
   Message* msg;
+
+  // Reads any remaining stuff from the previos result
+  // To let the comm in a clean state
+  if (_last_result && !_last_result->is_all_fetch_done())
+  {
+    shcore::Value waste(_last_result->fetch_all(shcore::Argument_list()));
+  }
 
   _timer.start();
   ++_next_stmt_id;
@@ -300,80 +331,46 @@ shcore::Value X_connection::sql(const std::string &query, shcore::Value options)
   // Creates the resultset
   X_resultset* result = new X_resultset(shared_from_this(), _next_stmt_id, affected_rows, 0, NULL, options && options.type == shcore::Map ? options.as_map() : boost::shared_ptr<shcore::Value::Map_type>());
 
+  return result;
+}
+
+shcore::Value X_connection::sql_one(const std::string &sql)
+{
+  X_resultset* result = _sql(sql, shcore::Value());
+
+  shcore::Value ret_val = shcore::Value::Null();
+
   // Prepares the resultset for processing
   if (next_result(result, true))
-    return shcore::Value(boost::shared_ptr<shcore::Object_bridge>(result));
-  else
-    return shcore::Value::Null();
-}
-
-
-
-boost::shared_ptr<shcore::Object_bridge> X_connection::create(const shcore::Argument_list &args)
-{
-  args.ensure_count(1, 2, "XConnection()");
-  return boost::shared_ptr<shcore::Object_bridge>(new X_connection(args.string_at(0),
-                                                                       args.size() > 1 ? args.string_at(1).c_str() : NULL));
-}
-
-
-shcore::Value X_connection::close(const shcore::Argument_list &args)
-{
-  args.ensure_count(0, "Mysqlx_connection::close");
-
-  shcore::print("disconnect\n");
-  m_wstream.close();
-  /*Mysqlx::Connection::close close;
-  std::string data;
-  close.SerializeToString(&data);
-  send_message(Mysqlx::ClientMessages::kMsgConClose, data);*/
-
-  return shcore::Value();
-}
-
-
-shcore::Value X_connection::sql_one(const std::string &query)
-{
-  shcore::Value ret_val = shcore::Value::Null();
-  int mid;
-  Message* msg;
-
-  _timer.start();
-  ++_next_stmt_id;
-
-  // Prepares the SQL
-  Mysqlx::Sql::PrepareStmt stmt;
-  stmt.set_stmt_id(_next_stmt_id);
-  stmt.set_stmt(query);
-  mid = Mysqlx::ClientMessages::kMsgSqlPrepStmt;
-  msg = send_receive_message(mid, &stmt, Mysqlx::ServerMessages::kMsgSqlPrepStmtOk, "preparing statement: " + query);
-
-  // Executes the query
-  Mysqlx::Sql::PreparedStmtExecute stmt_exec;
-  stmt_exec.set_stmt_id(_next_stmt_id);
-  stmt_exec.set_cursor_id(_next_stmt_id);
-  mid = Mysqlx::ClientMessages::kMsgSqlPrepStmtExec;
-  msg = send_receive_message(mid, &stmt_exec, Mysqlx::ServerMessages::kMsgSqlPrepStmtExecOk, "executing statement: " + query);
-
-  // Retrieves the affected rows
-  Mysqlx::Sql::PreparedStmtExecuteOk *exec_done = dynamic_cast<Mysqlx::Sql::PreparedStmtExecuteOk *>(msg);
-  uint64_t affected_rows = 0;
-  if (exec_done->has_rows_affected())
-    affected_rows = exec_done->rows_affected();
-
-  // Creates the resultset
-  X_resultset result(shared_from_this(), _next_stmt_id, affected_rows, 0, NULL);
-
-  // Prepares the resultset for processing
-  if (next_result(&result, true))
   {
     shcore::Argument_list no_args;
 
-    ret_val = result.next(no_args);
+    ret_val = result->next(no_args);
 
     // Reads any remaining record to keep the tx buffers consistent
-    while (result.next(no_args));
+    while (result->next(no_args));
   }
+
+  delete result;
+
+  return ret_val;
+}
+
+shcore::Value X_connection::sql(const std::string &query, shcore::Value options)
+{
+  shcore::Value ret_val = shcore::Value::Null();
+
+  // Creates the resultset
+  X_resultset* result = _sql(query, options);
+
+  // Prepares the resultset for processing
+  if (next_result(result, true))
+  {
+    _last_result = boost::shared_ptr<X_resultset>(result);
+    ret_val = shcore::Value(boost::shared_ptr<shcore::Object_bridge>(_last_result));
+  }
+  else
+    delete result;
 
   return ret_val;
 }

@@ -92,6 +92,7 @@ private:
   MYSQL *_mysql;
 
   boost::shared_ptr<MYSQL_RES> _prev_result;
+  virtual Mysql_resultset *_sql(const std::string &sql, shcore::Value options);
 };
 
 };

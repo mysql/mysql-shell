@@ -17,9 +17,6 @@
  * 02110-1301  USA
  */
 
-// Interactive session access module
-// Exposed as _S in the shell
-
 #ifndef _MOD_CONNECTION_H_
 #define _MOD_CONNECTION_H_
 

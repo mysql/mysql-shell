@@ -38,6 +38,7 @@ typedef google::protobuf::Message Message;
 
 namespace mysh {
 
+class X_resultset;
 class X_connection : public mysh::Base_connection, public boost::enable_shared_from_this<X_connection>
 {
   typedef boost::asio::ip::tcp tcp;
@@ -74,6 +75,8 @@ protected:
 
 private:
   int _next_stmt_id;
+  X_resultset *_sql(const std::string &query, shcore::Value options);
+  boost::shared_ptr<X_resultset> _last_result;
 };
 
 

@@ -217,7 +217,9 @@ shcore::Value Mysql_connection::close(const shcore::Argument_list &args)
 {
   args.ensure_count(0, "Mysql_connection::close");
 
-  shcore::print("disconnect\n");
+  // This should be logged, for now commenting to
+  // avoid having unneeded output on the script mode
+  // shcore::print("disconnect\n");
   if (_mysql)
     mysql_close(_mysql);
   _mysql = NULL;
@@ -225,12 +227,18 @@ shcore::Value Mysql_connection::close(const shcore::Argument_list &args)
 }
 
 
-
-
-shcore::Value Mysql_connection::sql(const std::string &query, shcore::Value options)
+Mysql_resultset *Mysql_connection::_sql(const std::string &query, shcore::Value options)
 {
   if (_prev_result)
+  {
     _prev_result.reset();
+
+    while (mysql_next_result(_mysql) == 0)
+    {
+      MYSQL_RES *trailing_result = mysql_use_result(_mysql);
+      mysql_free_result(trailing_result);
+    }
+  }
 
   _timer.start();
 
@@ -239,13 +247,23 @@ shcore::Value Mysql_connection::sql(const std::string &query, shcore::Value opti
     throw shcore::Exception::error_with_code_and_state("MySQLError", mysql_error(_mysql), mysql_errno(_mysql), mysql_sqlstate(_mysql));
   }
 
-
   Mysql_resultset* result = new Mysql_resultset(shared_from_this(), mysql_affected_rows(_mysql), mysql_warning_count(_mysql), mysql_info(_mysql), options && options.type == shcore::Map ? options.as_map() : boost::shared_ptr<shcore::Value::Map_type>());
+
+  return result;
+}
+
+
+shcore::Value Mysql_connection::sql(const std::string &query, shcore::Value options)
+{
+  Mysql_resultset* result = _sql(query, options);
 
   if (next_result(result, true))
     return shcore::Value(boost::shared_ptr<shcore::Object_bridge>(result));
   else
+  {
+    delete result;
     return shcore::Value::Null();
+  }
 }
 
 template <class T>
@@ -257,23 +275,15 @@ static void free_result(T* result)
 
 shcore::Value Mysql_connection::sql_one(const std::string &query)
 {
-  if (_prev_result)
-    _prev_result.reset();
+  Mysql_resultset* result = _sql(query, shcore::Value());
+  shcore::Value ret_val = shcore::Value::Null();
 
-  _timer.start();
+  if(next_result(result, true))
+    ret_val = result->next(shcore::Argument_list());
 
-  if (mysql_real_query(_mysql, query.c_str(), query.length()) != 0)
-  {
-    throw shcore::Exception::error_with_code_and_state("MySQLError", mysql_error(_mysql), mysql_errno(_mysql), mysql_sqlstate(_mysql));
-  }
+  delete result;
 
-  Mysql_resultset result(shared_from_this(), mysql_affected_rows(_mysql), mysql_warning_count(_mysql), mysql_info(_mysql));
-
-  if(next_result(&result, true))
-    return result.next(shcore::Argument_list());
-  else
-    // TODO: Trow exception since nothing was read?
-    return shcore::Value::Null();
+  return ret_val;
 }
 
 bool Mysql_connection::next_result(Base_resultset *target, bool first_result)
@@ -284,7 +294,11 @@ bool Mysql_connection::next_result(Base_resultset *target, bool first_result)
   int more_results = 0;
 
   if (!first_result)
+  {
+    _prev_result.reset();
+    _prev_result.reset();
     more_results = mysql_next_result(_mysql);
+  }
 
   Mysql_resultset *real_target = dynamic_cast<Mysql_resultset *> (target);
 
@@ -292,7 +306,8 @@ bool Mysql_connection::next_result(Base_resultset *target, bool first_result)
   if (more_results == 0)
   {
     // Retrieves the next result
-    _prev_result = boost::shared_ptr<MYSQL_RES>(mysql_use_result(_mysql), &free_result<MYSQL_RES>);
+    MYSQL_RES* result = mysql_use_result(_mysql);
+    _prev_result = boost::shared_ptr<MYSQL_RES>(result, &free_result<MYSQL_RES>);
 
     _timer.end();
 
