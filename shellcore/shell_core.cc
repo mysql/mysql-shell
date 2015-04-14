@@ -136,8 +136,10 @@ int Shell_core::process_stream(std::istream& stream, const std::string& source)
 }
 
 
-bool Shell_core::switch_mode(Mode mode)
+bool Shell_core::switch_mode(Mode mode, bool &lang_initialized)
 {
+  lang_initialized = false;
+
   if (_mode != mode)
   {
     _mode = mode;
@@ -152,9 +154,11 @@ bool Shell_core::switch_mode(Mode mode)
         break;
       case Mode_JScript:
         init_js();
+        lang_initialized = true;
         break;
       case Mode_Python:
         init_py();
+        lang_initialized = true;
         break;
       }
     }
@@ -185,7 +189,6 @@ void Shell_core::init_js()
 
 void Shell_core::init_py()
 {
-
 }
 
 

@@ -117,7 +117,7 @@ public:
   ~Shell_core();
 
   Mode interactive_mode() const { return _mode; }
-  bool switch_mode(Mode mode);
+  bool switch_mode(Mode mode, bool &lang_initialized);
 
   // sets a global variable, exposed to all supported scripting languages
   // the value is saved in a map, so that the exposing can be deferred in

@@ -45,6 +45,8 @@
 #ifdef WIN32
 #  include <io.h>
 #  define isatty _isatty
+#  include <ShlObj.h>
+#  include <comdef.h>
 #endif
 
 
@@ -63,6 +65,7 @@ public:
   void process_file(const char *filename);
 
   void init_environment();
+  void init_scripts(Shell_core::Mode mode);
 
   void cmd_process_file(const std::vector<std::string>& params);
   bool connect(const std::string &uri, bool needs_password);
@@ -169,7 +172,14 @@ Interactive_shell::Interactive_shell(Shell_core::Mode initial_mode)
   SET_SHELL_COMMAND("\\quit|\\q|\\exit", "Quit mysh.", "", Interactive_shell::cmd_quit);
   SET_SHELL_COMMAND("\\connect", "Connect to server.", cmd_help, Interactive_shell::cmd_connect);
 
-  _shell->switch_mode(initial_mode);
+  bool lang_initialized;
+  if (initial_mode != Shell_core::Mode_Python)
+  {
+    _shell->switch_mode(initial_mode, lang_initialized);
+
+    if (lang_initialized)
+      init_scripts(initial_mode);
+  }
 }
 
 
@@ -267,6 +277,46 @@ void Interactive_shell::init_environment()
                                                 NULL)));
 }
 
+// load scripts for standard locations in order to be able to implement standard routines
+void Interactive_shell::init_scripts(Shell_core::Mode mode)
+{
+  std::string extension;
+
+  if (mode == Shell_core::Mode_JScript)
+    extension.append("js");
+  else if (mode == Shell_core::Mode_Python)
+    extension.append(".py");
+  else
+    return;
+
+  std::vector<std::string> scripts_paths;
+
+#ifndef WIN32
+  scripts_paths.push_back("~/.mysqlx/shellrc");
+  scripts_paths.push_back("/usr/share/mysqlx/js/shellrc");
+#else
+  // Fetch Local Roaming App Data folder path.
+  char szPath[MAX_PATH];
+  HRESULT hr;
+
+  if (SUCCEEDED(hr = SHGetFolderPathA(NULL, CSIDL_APPDATA, NULL, 0, szPath)))
+  {
+    std::string path(szPath);
+    path += "\\MySql\\mysqlx\\shellrc";
+    scripts_paths.push_back(path);
+  }
+  else
+  {
+    // we couldn't fetch the Local Roaming App Data folder path so let's thrown an ERROR and exit
+    // TODO: One logging support is implement, this should be changed to a log entry
+    _com_error err(hr);
+    print_error((boost::format("Error when gathering the APPDATA folder path: %s") % err.ErrorMessage()).str());
+  }
+#endif
+
+  for(std::vector<std::string>::iterator i = scripts_paths.begin(); i != scripts_paths.end(); ++i)
+    process_file(((*i).append(extension)).c_str());
+}
 
 std::string Interactive_shell::prompt()
 {
@@ -280,6 +330,7 @@ std::string Interactive_shell::prompt()
 void Interactive_shell::switch_shell_mode(Shell_core::Mode mode, const std::vector<std::string> &args)
 {
   Shell_core::Mode old_mode = _shell->interactive_mode();
+  bool lang_initialized = false;
 
   if (old_mode != mode)
   {
@@ -292,22 +343,30 @@ void Interactive_shell::switch_shell_mode(Shell_core::Mode mode, const std::vect
       case Shell_core::Mode_None:
         break;
       case Shell_core::Mode_SQL:
-        if (_shell->switch_mode(mode))
+        if (_shell->switch_mode(mode, lang_initialized))
           println("Switching to SQL mode... Commands end with ;");
         break;
       case Shell_core::Mode_JScript:
 #ifdef HAVE_V8
-        if (_shell->switch_mode(mode))
+        if (_shell->switch_mode(mode, lang_initialized))
           println("Switching to JavaScript mode...");
 #else
         println("JavaScript mode is not supported on this platform, command ignored.");
 #endif
         break;
       case Shell_core::Mode_Python:
-        if (_shell->switch_mode(mode))
+      // TODO: remove following #if 0 #endif as soon as Python mode is implemented
+#if 0
+        if (_shell->switch_mode(mode, lang_initialized))
           println("Switching to Python mode...");
+#endif
+        println("Python mode is not yet supported, command ignored.");
         break;
     }
+
+    // load scripts for standard locations
+    if (lang_initialized)
+      init_scripts(mode);
   }
 }
 
@@ -550,7 +609,7 @@ void Interactive_shell::process_file(const char *filename)
       _shell->process_stream(s, filename);
       s.close();
     }
-    else
+      // TODO: add a log entry once logging is
       _shell->print_error((boost::format("Failed to open file '%s', error: %d") % filename % errno).str());
   }
 }
@@ -680,8 +739,9 @@ public:
         initial_mode = Shell_core::Mode_SQL;
       else if (check_arg(argv, i, "--js", "--js"))
         initial_mode = Shell_core::Mode_JScript;
-      else if (check_arg(argv, i, "--py", "--py"))
-        initial_mode = Shell_core::Mode_Python;
+      // TODO: Remove the following comment as soon as Python mode is implemented
+      //else if (check_arg(argv, i, "--py", "--py"))
+      //  initial_mode = Shell_core::Mode_Python;
       else if (check_arg(argv, i, "--help", "--help"))
       {
         print_cmd_line_helper = true;
