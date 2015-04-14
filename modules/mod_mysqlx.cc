@@ -68,7 +68,7 @@ X_connection::X_connection(const std::string &uri, const char *password)
    } while (error && endpoint_iterator != end);
 
    if (error)
-        throw std::runtime_error(error.message());
+     throw shcore::Exception::runtime_error(error.message());
   
   auth(user.c_str(), pass.c_str());
 }
@@ -271,7 +271,7 @@ void X_connection::flush()
 
 boost::shared_ptr<shcore::Object_bridge> X_connection::create(const shcore::Argument_list &args)
 {
-  args.ensure_count(1, 2, "XConnection()");
+  args.ensure_count(1, 2, "Mysqlx_connection()");
   return boost::shared_ptr<shcore::Object_bridge>(new X_connection(args.string_at(0),
                                                                        args.size() > 1 ? args.string_at(1).c_str() : NULL));
 }
@@ -329,6 +329,7 @@ X_resultset *X_connection::_sql(const std::string &query, shcore::Value options)
     affected_rows = exec_done->rows_affected();
 
   // Creates the resultset
+  // TODO: The warning count is not returned upon SQL Execution
   X_resultset* result = new X_resultset(shared_from_this(), _next_stmt_id, affected_rows, 0, NULL, options && options.type == shcore::Map ? options.as_map() : boost::shared_ptr<shcore::Value::Map_type>());
 
   return result;
@@ -405,7 +406,10 @@ bool X_connection::next_result(Base_resultset *target, bool first_result)
           msg = read_response(mid);
 
           if (msg)
+          {
             delete msg;
+            msg = NULL;
+          }
 
         }
         while(mid == Mysqlx::ServerMessages::kMsgSqlRow);
@@ -435,11 +439,11 @@ bool X_connection::next_result(Base_resultset *target, bool first_result)
 
           msg = send_receive_message(mid, &fetch_rows, responses, "fetching rows");
         }
-
-        // Sets the response with the required data
-        _timer.end();
-        real_target->reset(_timer.raw_duration(), mid, msg);
       }
+
+      // Sets the response with the required data
+      _timer.end();
+      real_target->reset(_timer.raw_duration(), mid, msg);
     }
   }
   else

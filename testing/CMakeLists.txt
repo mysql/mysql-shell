@@ -20,6 +20,12 @@ if(WITH_TESTS)
                 ${CMAKE_SOURCE_DIR}/include
                 ${MYSQL_INCLUDE_DIRS}
     )
+    
+    if (HAVE_PROTOBUF)
+      INCLUDE(protobuf)
+      SETUP_PROTOBUF()
+      INCLUDE_DIRECTORIES("${CMAKE_BINARY_DIR}/modules")
+    endif()
 
 
     file(GLOB mysqlsh_tests_SRC
@@ -33,6 +39,7 @@ if(WITH_TESTS)
     endif()
     
     add_executable(run_unit_tests ${mysqlsh_tests_SRC})
+    add_dependencies(run_unit_tests mysqlshmods)
     target_link_libraries(run_unit_tests
             mysqlsh
             mysqlshmods

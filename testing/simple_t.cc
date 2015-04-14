@@ -52,6 +52,18 @@ namespace shcore
 
     TEST(ValueTests, SimpleBool)
     {
+      shcore::Value v;
+
+      v = shcore::Value(true);
+      EXPECT_EQ(shcore::Bool, v.type);
+      EXPECT_STREQ("true", v.descr().c_str());
+      EXPECT_STREQ("true", v.repr().c_str());
+
+      v = shcore::Value(false);
+      EXPECT_EQ(shcore::Bool, v.type);
+      EXPECT_STREQ("false", v.descr().c_str());
+      EXPECT_STREQ("false", v.repr().c_str());
+
       EXPECT_EQ(Value::True().as_bool(), true);
 
       EXPECT_TRUE(Value::True() == Value::True());
@@ -162,16 +174,6 @@ namespace shcore
     TEST(Parsing, Bool)
     {
       shcore::Value v;
-
-      v = shcore::Value(true);
-      EXPECT_EQ(shcore::Bool, v.type);
-      EXPECT_STREQ("true", v.descr().c_str());
-      EXPECT_STREQ("true", v.repr().c_str());
-
-      v = shcore::Value(false);
-      EXPECT_EQ(shcore::Bool, v.type);
-      EXPECT_STREQ("false", v.descr().c_str());
-      EXPECT_STREQ("false", v.repr().c_str());
 
       const std::string data = "false";
       const std::string data2 = "true";

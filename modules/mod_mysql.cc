@@ -296,7 +296,6 @@ bool Mysql_connection::next_result(Base_resultset *target, bool first_result)
   if (!first_result)
   {
     _prev_result.reset();
-    _prev_result.reset();
     more_results = mysql_next_result(_mysql);
   }
 
@@ -307,21 +306,23 @@ bool Mysql_connection::next_result(Base_resultset *target, bool first_result)
   {
     // Retrieves the next result
     MYSQL_RES* result = mysql_use_result(_mysql);
-    _prev_result = boost::shared_ptr<MYSQL_RES>(result, &free_result<MYSQL_RES>);
 
-    _timer.end();
+    if (result)
+      _prev_result = boost::shared_ptr<MYSQL_RES>(result, &free_result<MYSQL_RES>);
 
-    // We need to update the received result object with the information 
-    // for the next result set
-    real_target->reset(_prev_result, _timer.raw_duration());
-
-    real_target->fetch_metadata();
-
+    // Only returns true when this method was called and there were
+    // Additional results
     ret_val = true;
   }
-  else
-    // TODO: Include the duration
-    real_target->reset(boost::shared_ptr<MYSQL_RES>(), 0);
+
+  _timer.end();
+
+  // We need to update the received result object with the information 
+  // for the next result set
+  real_target->reset(_prev_result, _timer.raw_duration());
+
+  if (_prev_result)
+    real_target->fetch_metadata();
 
   return ret_val;
 }

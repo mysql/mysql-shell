@@ -158,12 +158,6 @@ include_directories("${PROJECT_SOURCE_DIR}/include"
                     "${Boost_INCLUDE_DIRS}"
                    )
 
-###
-### Unit-test support
-###
-include(testing)
-SETUP_TESTING()
-add_subdirectory(testing)
 
 ###
 ### Build Projects
@@ -172,6 +166,14 @@ add_subdirectory(testing)
 
 add_subdirectory(shellcore)
 add_subdirectory(modules)
+
+###
+### Unit-test support
+###
+include(testing)
+SETUP_TESTING()
+add_subdirectory(testing)
+
 
 # mysh cmdline util build
 if(NOT WIN32)

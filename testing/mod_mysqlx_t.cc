@@ -25,49 +25,21 @@
 #include "shellcore/types.h"
 #include "shellcore/types_cpp.h"
 
-#include "../modules/mod_mysql.h"
+#include "../modules/mod_mysqlx.h"
 
 namespace shcore
 {
-  namespace mod_mysql_tests
+  namespace mod_mysqlx_tests
   {
     struct Environment
     {
-      boost::shared_ptr<mysh::Mysql_connection> db;
+      boost::shared_ptr<mysh::X_connection> db;
     } env;
 
+
     //-------------------------- Connection Tests --------------------------
-    TEST(Mysql_connection_test, connect_errors)
-    {
-      Argument_list args;
-      const char *uri = getenv("MYSQL_URI");
-      const char *pwd = getenv("MYSQL_PWD");
-      std::string mysql_uri;
 
-      if (uri)
-      {
-        mysql_uri.assign(uri);
-        mysql_uri = "mysql://" + mysql_uri;
-      }
-      else
-        mysql_uri = "mysql://root@localhost";
-
-      mysh::Mysql_connection *conn;
-      std::string temp_uri;
-
-      // Error parsing URI
-      temp_uri = mysql_uri + ":fake_port"; // Fake non numeric port will made URI invalid
-      EXPECT_THROW(conn = new mysh::Mysql_connection(temp_uri, NULL), shcore::Exception);
-
-      // Connection Error (using invalid port)
-      temp_uri = mysql_uri + ":4563"; // Fake invalid port will made connection fail
-      EXPECT_THROW(conn = new mysh::Mysql_connection(temp_uri, NULL), shcore::Exception);
-
-      // Connection Error (using invalid password)
-      EXPECT_THROW(conn = new mysh::Mysql_connection(mysql_uri, "fake_pwd"), shcore::Exception);
-    }
-
-    TEST(Mysql_connection_test, connect_success)
+    TEST(Mysqlx_connection_test, connect_errors)
     {
       Argument_list args;
       const char *uri = getenv("MYSQL_URI");
@@ -77,15 +49,45 @@ namespace shcore
       if (uri)
       {
         x_uri.assign(uri);
-        x_uri = "mysql://" + x_uri;
+        x_uri = "mysqlx://" + x_uri;
       }
       else
-        x_uri = "mysql://root@localhost";
+        x_uri = "mysqlx://root@localhost";
 
-      env.db.reset(new mysh::Mysql_connection(uri, pwd ? pwd : NULL));
+      mysh::X_connection *conn;
+      std::string temp_uri;
+
+      // Error parsing URI
+      temp_uri = x_uri + ":fake_port"; // Fake non numeric port will made URI invalid
+      EXPECT_THROW(conn = new mysh::X_connection(temp_uri, NULL), shcore::Exception);
+
+      // Connection Error (using invalid port)
+      temp_uri = x_uri + ":4563"; // Fake invalid port will made connection fail
+      EXPECT_THROW(conn = new mysh::X_connection(temp_uri, NULL), shcore::Exception);
+
+      // Connection Error (using invalid password)
+      EXPECT_THROW(conn = new mysh::X_connection(x_uri, "fake_pwd"), shcore::Exception);
     }
 
-    TEST(Mysql_connection_test, sql_no_results_drop_unexisting_schema)
+    TEST(Mysqlx_connection_test, connect_success)
+    {
+      Argument_list args;
+      const char *uri = getenv("MYSQL_URI");
+      const char *pwd = getenv("MYSQL_PWD");
+      std::string x_uri;
+
+      if (uri)
+      {
+        x_uri.assign(uri);
+        x_uri = "mysqlx://" + x_uri;
+      }
+      else
+        x_uri = "mysqlx://root@localhost";
+
+      env.db.reset(new mysh::X_connection(uri, pwd ? pwd : NULL));
+    }
+
+    TEST(Mysqlx_connection_test, sql_no_results_drop_unexisting_schema)
     {
       Value result;
       boost::shared_ptr<Object_bridge> result_ptr;
@@ -97,14 +99,16 @@ namespace shcore
       // Database does not exist to a warning will be generated
       result = env.db->sql("drop schema if exists shell_tests", Value());
       result_ptr = result.as_object<Object_bridge>();
-      data = result_ptr->get_member("warning_count");
-      EXPECT_EQ(1, data.as_int());
+
+      // TODO: Warning count is not available on the X Protocol yet
+      //data = result_ptr->get_member("warning_count");
+      //EXPECT_EQ(1, data.as_int());
 
       data = result_ptr->get_member("affected_rows");
       EXPECT_EQ(0, data.as_int());
     }
 
-    TEST(Mysql_connection_test, sql_no_results_drop_existing_schema)
+    TEST(Mysqlx_connection_test, sql_no_results_drop_existing_schema)
     {
       Value result;
       boost::shared_ptr<Object_bridge> result_ptr;
@@ -129,17 +133,7 @@ namespace shcore
       EXPECT_EQ(0, data.as_int());
     }
 
-    TEST(Mysql_connection_test, sql_invalid_query)
-    {
-      // Creates the test database
-      EXPECT_THROW(env.db->sql("select * from hopefully.unexisting", Value()), shcore::Exception);
-
-      // Creates the test database
-      EXPECT_THROW(env.db->sql_one("select * from hopefully.unexisting"), shcore::Exception);
-    }
-
-
-    TEST(Mysql_connection_test, sql_single_result)
+    TEST(Mysqlx_connection_test, sql_single_result)
     {
       Value result;
       boost::shared_ptr<Object_bridge> result_ptr;
@@ -148,7 +142,7 @@ namespace shcore
       // Creates the test database
       result = env.db->sql("show databases", Value());
       result_ptr = result.as_object<Object_bridge>();
-      mysh::Mysql_resultset *real_result = dynamic_cast<mysh::Mysql_resultset *>(result_ptr.get());
+      mysh::X_resultset *real_result = dynamic_cast<mysh::X_resultset *>(result_ptr.get());
 
       // The unique result should be returned and ready to be read
       if (!real_result)
@@ -158,7 +152,7 @@ namespace shcore
       EXPECT_FALSE(env.db->next_result(real_result));
     }
 
-    TEST(Mysql_connection_test, sql_multiple_results)
+    TEST(Mysqlx_connection_test, DISABLED_sql_multiple_results)
     {
       Value result;
       boost::shared_ptr<Object_bridge> result_ptr;
@@ -183,12 +177,12 @@ namespace shcore
 
       result = env.db->sql("call shell_tests.sp()", Value());
       result_ptr = result.as_object<Object_bridge>();
-      mysh::Mysql_resultset *real_result = dynamic_cast<mysh::Mysql_resultset *>(result_ptr.get());
+      mysh::X_resultset *real_result = dynamic_cast<mysh::X_resultset *>(result_ptr.get());
 
       // First result returned by the sp
       if (!real_result)
         FAIL();
-      
+
       // Second result returned by the sp
       EXPECT_TRUE(env.db->next_result(real_result));
 
@@ -204,27 +198,33 @@ namespace shcore
       EXPECT_EQ(0, data.as_int());
     }
 
-
-    TEST(Mysql_resultset_test, sql_one)
+    TEST(Mysqlx_connection_test, sql_invalid_query)
     {
-      Value result = env.db->sql_one("select 1 as a");
-      EXPECT_EQ("{\"a\": 1}", result.descr());
+      // Creates the test database
+      EXPECT_THROW(env.db->sql("select * from hopefully.unexisting", Value()), shcore::Exception);
+
+      // Creates the test database
+      EXPECT_THROW(env.db->sql_one("select * from hopefully.unexisting"), shcore::Exception);
     }
+
+    TEST(Mysqlx_connection_test, sql_one)
+    {
+      Value result = env.db->sql_one("select 1 as sample");
+      EXPECT_EQ("{\"sample\": 1}", result.descr());
+    }
+
 
     //-------------------------- Resultset Tests --------------------------
 
-    TEST(Mysql_resultset_test, sql_metadata_content)
+    TEST(Mysqlx_resultset_test, sql_metadata_content)
     {
       boost::shared_ptr<Object_bridge> result_ptr;
-      mysh::Mysql_resultset *real_result;
+      mysh::X_resultset *real_result;
       Value data;
 
       Value result = env.db->sql("show databases", shcore::Value());
       result_ptr = result.as_object<Object_bridge>();
-      real_result = dynamic_cast<mysh::Mysql_resultset *>(result_ptr.get());
-
-      // This query only has 1 column
-      EXPECT_EQ(1, real_result->fetch_metadata());
+      real_result = dynamic_cast<mysh::X_resultset *>(result_ptr.get());
 
       data = real_result->call("fetch_metadata", shcore::Argument_list());
       boost::shared_ptr<shcore::Value::Array_type> array = data.as_array();
@@ -246,10 +246,10 @@ namespace shcore
       EXPECT_EQ(1, map->count("decimal"));
     }
 
-    TEST(Mysql_resultset_test, sql_fetch_table_metadata)
+    TEST(Mysqlx_resultset_test, sql_fetch_table_metadata)
     {
       boost::shared_ptr<Object_bridge> result_ptr;
-      mysh::Mysql_resultset *real_result;
+      mysh::X_resultset *real_result;
       Value data;
 
       std::string create_table =
@@ -283,9 +283,9 @@ namespace shcore
       EXPECT_EQ("alpha", (*map)["org_table"].as_string());
       EXPECT_EQ("idalpha", (*map)["name"].as_string());
       EXPECT_EQ("idalpha", (*map)["org_name"].as_string());
-      EXPECT_EQ(11, (*map)["length"].as_int());
 
       // TODO: At the moment these values support is not well defined
+      // EXPECT_EQ(11, (*map)["length"].as_int());
       //EXPECT_EQ("", (*map)["charset"]);
       //EXPECT_EQ("", (*map)["type"]);
       //EXPECT_EQ("", (*map)["flags"]);
@@ -298,13 +298,12 @@ namespace shcore
       EXPECT_EQ("alpha", (*map)["org_table"].as_string());
       EXPECT_EQ("alphacol", (*map)["name"].as_string());
       EXPECT_EQ("alphacol", (*map)["org_name"].as_string());
-      EXPECT_EQ(45, (*map)["length"].as_int());
     }
 
-    TEST(Mysql_resultset_test, sql_fetch_one)
+    TEST(Mysqlx_resultset_test, sql_fetch_one)
     {
       boost::shared_ptr<Object_bridge> result_ptr;
-      mysh::Mysql_resultset *real_result;
+      mysh::X_resultset *real_result;
       Value data;
 
       Value result = env.db->sql("INSERT INTO `shell_tests`.`alpha` VALUES(1, 'first'), (2, 'second'), (3, 'third')", shcore::Value());
@@ -344,10 +343,10 @@ namespace shcore
       EXPECT_EQ(3, result_ptr->get_member("fetched_row_count").as_int());
     }
 
-    TEST(Mysql_resultset_test, sql_fetch_all)
+    TEST(Mysqlx_resultset_test, sql_fetch_all)
     {
       boost::shared_ptr<Object_bridge> result_ptr;
-      mysh::Mysql_resultset *real_result;
+      mysh::X_resultset *real_result;
       Value data;
 
       Value result = env.db->sql("select * from shell_tests.alpha", shcore::Value());
@@ -397,7 +396,7 @@ namespace shcore
       EXPECT_EQ(3, result_ptr->get_member("fetched_row_count").as_int());
     }
 
-    TEST(Mysql_resultset_test, sql_single_result)
+    TEST(Mysqlx_resultset_test, sql_single_result)
     {
       Value result;
       boost::shared_ptr<Object_bridge> result_ptr;
@@ -406,7 +405,7 @@ namespace shcore
       // Creates the test database
       result = env.db->sql("show databases", Value());
       result_ptr = result.as_object<Object_bridge>();
-      mysh::Mysql_resultset *real_result = dynamic_cast<mysh::Mysql_resultset *>(result_ptr.get());
+      mysh::X_resultset *real_result = dynamic_cast<mysh::X_resultset *>(result_ptr.get());
 
       // The unique result should be returned and ready to be read
       if (!real_result)
@@ -416,7 +415,7 @@ namespace shcore
       EXPECT_FALSE(result_ptr->call("next_result", shcore::Argument_list()).as_bool());
     }
 
-    TEST(Mysql_resultset_test, sql_multiple_results)
+    TEST(Mysqlx_resultset_test, DISABLED_sql_multiple_results)
     {
       Value result;
       boost::shared_ptr<Object_bridge> result_ptr;
@@ -436,7 +435,7 @@ namespace shcore
 
       result = env.db->sql("call shell_tests.sp()", Value());
       result_ptr = result.as_object<Object_bridge>();
-      mysh::Mysql_resultset *real_result = dynamic_cast<mysh::Mysql_resultset *>(result_ptr.get());
+      mysh::X_resultset *real_result = dynamic_cast<mysh::X_resultset *>(result_ptr.get());
 
       // First result returned by the sp
       if (!real_result)
