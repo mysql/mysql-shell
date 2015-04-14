@@ -251,6 +251,9 @@ size_t MySQL_splitter::determineStatementRanges(const char *sql, size_t length, 
           {
             full_statement_count++;
 
+            if (!input_context_stack.empty())
+              input_context_stack.pop();
+
             if (head < tail)
               ranges.push_back(std::make_pair<size_t, size_t>(head - (unsigned char *)sql, tail - head));
           }

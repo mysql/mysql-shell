@@ -145,6 +145,58 @@ namespace shcore {
       EXPECT_EQ("mysql-sql> ", env.shell_sql->prompt());
     }
 
+    TEST(Shell_sql_test, sql_multi_line_string_delimiter)
+    {
+      Interactive_input_state state;
+      std::string query = "delimiter %%%";
+      env.shell_sql->handle_input(query, state);
+
+      // Nothing is executed until the delimiter is reached and the prompt changes
+      // Prompt changes to multiline mode
+      EXPECT_EQ(Input_ok, state);
+
+
+      query = "show";
+      env.shell_sql->handle_input(query, state);
+
+      // Nothing is executed until the delimiter is reached and the prompt changes
+      // Prompt changes to multiline mode
+      EXPECT_EQ(Input_continued, state);
+      //EXPECT_EQ("show", query);
+      EXPECT_EQ("", env.shell_sql->get_handled_input());
+      EXPECT_EQ("        -> ", env.shell_sql->prompt());
+
+      // Caching the partial statements is now internal
+      // we just send whatever is remaining for the query to execute
+      query = "databases";
+      env.shell_sql->handle_input(query, state);
+
+      // Nothing is executed until the delimiter is reached and the prompt changes
+      // Prompt changes to multiline
+      EXPECT_EQ(Input_continued, state);
+      //EXPECT_EQ("databases", query);
+      EXPECT_EQ("", env.shell_sql->get_handled_input());
+      EXPECT_EQ("        -> ", env.shell_sql->prompt());
+
+
+      query = "%%%";
+      env.shell_sql->handle_input(query, state);
+
+      // Nothing is executed until the delimiter is reached and the prompt changes
+      // Prompt changes to multiline
+      EXPECT_EQ(Input_ok, state);
+      EXPECT_EQ("", query);
+      EXPECT_EQ("show\ndatabases", env.shell_sql->get_handled_input());
+      EXPECT_EQ("mysql-sql> ", env.shell_sql->prompt());
+
+      query = "delimiter ;";
+      env.shell_sql->handle_input(query, state);
+
+      // Nothing is executed until the delimiter is reached and the prompt changes
+      // Prompt changes to multiline mode
+      EXPECT_EQ(Input_ok, state);
+    }
+
     TEST(Shell_sql_test, global_multi_line_statement)
     {
       Interactive_input_state state;
