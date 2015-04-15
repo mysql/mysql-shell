@@ -283,7 +283,7 @@ void Interactive_shell::init_scripts(Shell_core::Mode mode)
   std::string extension;
 
   if (mode == Shell_core::Mode_JScript)
-    extension.append("js");
+    extension.append(".js");
   else if (mode == Shell_core::Mode_Python)
     extension.append(".py");
   else
@@ -292,18 +292,39 @@ void Interactive_shell::init_scripts(Shell_core::Mode mode)
   std::vector<std::string> scripts_paths;
 
 #ifndef WIN32
-  scripts_paths.push_back("~/.mysqlx/shellrc");
-  scripts_paths.push_back("/usr/share/mysqlx/js/shellrc");
+  const char *homedir;
+
+  homedir = getenv("HOME");
+
+  std::string user_file;
+  if (homedir)
+    user_file.assign(homedir);
+
+  user_file.append("/.mysqlx/shellrc");
+  std::string global_file("/usr/share/mysqlx/js/shellrc");
+
+  user_file += extension;
+  global_file += extension;
+
+  if (access(user_file.c_str(), F_OK) != -1)
+    scripts_paths.push_back(user_file);
+
+  if (access(global_file.c_str(), F_OK) != -1)
+    scripts_paths.push_back(global_file);
 #else
   // Fetch Local Roaming App Data folder path.
   char szPath[MAX_PATH];
   HRESULT hr;
-
   if (SUCCEEDED(hr = SHGetFolderPathA(NULL, CSIDL_APPDATA, NULL, 0, szPath)))
   {
     std::string path(szPath);
-    path += "\\MySql\\mysqlx\\shellrc";
-    scripts_paths.push_back(path);
+    path += "\\MySql\\mysqlx\\shellrc" + extension;
+
+    DWORD dwAttrib = GetFileAttributesA(path.c_str());
+
+    if (dwAttrib != INVALID_FILE_ATTRIBUTES &&
+      !(dwAttrib & FILE_ATTRIBUTE_DIRECTORY))
+      scripts_paths.push_back(path);
   }
   else
   {
@@ -315,7 +336,7 @@ void Interactive_shell::init_scripts(Shell_core::Mode mode)
 #endif
 
   for(std::vector<std::string>::iterator i = scripts_paths.begin(); i != scripts_paths.end(); ++i)
-    process_file(((*i).append(extension)).c_str());
+    process_file((*i).c_str());
 }
 
 std::string Interactive_shell::prompt()
@@ -609,8 +630,11 @@ void Interactive_shell::process_file(const char *filename)
       _shell->process_stream(s, filename);
       s.close();
     }
+    else
+    {
       // TODO: add a log entry once logging is
       _shell->print_error((boost::format("Failed to open file '%s', error: %d") % filename % errno).str());
+    }
   }
 }
 
