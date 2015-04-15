@@ -583,7 +583,7 @@ void Interactive_shell::process_line(const std::string &line)
         {
           boost::shared_ptr<Object_bridge> object = result.as_object();
           Value dump_function;
-          if (object)
+          if (object && object->has_member("__paged_output__"))
             dump_function = object->get_member("__paged_output__");
 
           if (dump_function)

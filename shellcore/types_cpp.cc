@@ -61,6 +61,12 @@ Value Cpp_object_bridge::get_member(const std::string &prop) const
   throw Exception::attrib_error("Invalid object member "+prop);
 }
 
+bool Cpp_object_bridge::has_member(const std::string &prop) const
+{
+  std::map<std::string, boost::shared_ptr<Cpp_function> >::const_iterator i;
+  return ((i = _funcs.find(prop)) != _funcs.end());
+}
+
 
 void Cpp_object_bridge::set_member(const std::string &prop, Value value)
 {

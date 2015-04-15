@@ -86,7 +86,7 @@ struct JScript_context::JScript_context_impl
                  v8::FunctionTemplate::New(isolate, &JScript_context_impl::f_password, client_data));
 
     // obj = _F.mysql.open('root@localhost')
-    globals->Set(v8::String::NewFromUtf8(isolate, "_F"), make_factory());
+    globals->Set(v8::String::NewFromUtf8(isolate, "shell"), make_factory());
 
     {
       v8::Handle<v8::ObjectTemplate> templ(v8::ObjectTemplate::New(isolate));
@@ -471,7 +471,7 @@ JScript_context::JScript_context(Object_registry *registry, Interpreter_delegate
     _impl->types.init();
   }
 
-  set_global("shell", Value(registry->_registry));
+  set_global("globals", Value(registry->_registry));
 }
 
 

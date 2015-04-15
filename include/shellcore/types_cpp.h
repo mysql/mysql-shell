@@ -69,6 +69,7 @@ public:
 
   virtual std::vector<std::string> get_members() const;
   virtual Value get_member(const std::string &prop) const;
+  virtual bool has_member(const std::string &prop) const;
   virtual void set_member(const std::string &prop, Value value);
 
   virtual Value call(const std::string &name, const Argument_list &args);

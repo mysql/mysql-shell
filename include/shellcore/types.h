@@ -254,6 +254,9 @@ public:
   //! Returns the value of a member
   virtual Value get_member(const std::string &prop) const = 0;
 
+  //! Verifies if the object has a member
+  virtual bool has_member(const std::string &prop) const = 0;
+
   //! Sets the value of a member
   virtual void set_member(const std::string &prop, Value value) = 0;
 

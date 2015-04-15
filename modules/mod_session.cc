@@ -221,8 +221,6 @@ std::string &Session::append_repr(std::string &s_out) const
 std::vector<std::string> Session::get_members() const
 {
   std::vector<std::string> members(Cpp_object_bridge::get_members());
-  members.push_back("connection");
-  members.push_back("conn");
   members.push_back("dbs");
   members.push_back("schemas");
   return members;
@@ -231,14 +229,7 @@ std::vector<std::string> Session::get_members() const
 
 Value Session::get_member(const std::string &prop) const
 {
-  if (prop == "conn" || prop == "connection")
-  {
-    if (!_conn)
-      return Value::Null();
-    else
-      return Value(boost::static_pointer_cast<Object_bridge>(_conn));
-  }
-  else if (prop == "dbs" || prop == "schemas")
+  if (prop == "dbs" || prop == "schemas")
   {
     return Value(boost::static_pointer_cast<Object_bridge>(_schema_proxy));
   }
