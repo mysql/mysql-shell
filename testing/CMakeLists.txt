@@ -53,6 +53,10 @@ if(WITH_TESTS)
       target_link_libraries(run_unit_tests ${V8_LINK_LIST})
     endif()
 
+    if ( HAVE_PYTHON )
+      target_link_libraries(run_unit_tests ${PYTHON_LIBRARIES})
+    endif()
+
     if (NOT WIN32)
       target_link_libraries(run_unit_tests pthread ${GCOV_LDFLAGS})
     endif()

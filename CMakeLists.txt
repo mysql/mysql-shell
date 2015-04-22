@@ -43,6 +43,7 @@ include(msvc)
 
 INCLUDE (CheckIncludeFiles)
 INCLUDE (CheckFunctionExists)
+INCLUDE (FindPythonLibs)
 
 IF (WITH_PROTOBUF)
   SET(HAVE_PROTOBUF "YES")              # Variable for CMake processing
@@ -54,6 +55,14 @@ IF ( V8_INCLUDE_DIR AND V8_LIB_DIR )
   add_definitions(-DHAVE_V8) # Preprocessor variable for generated projects
 ELSE()
   message(WARNING "V8 is unavailable: building without JavaScript support.")
+ENDIF()
+
+IF ( PYTHONLIBS_FOUND )
+  set(HAVE_PYTHON "YES")         # Variable for CMake processing
+  add_definitions(-DHAVE_PYTHON) # Preprocessor variable for generated projects
+  message(STATUS "Python ${PYTHONLIBS_VERSION_STRING} found: ${PYTHON_LIBRARIES}")
+ELSE()
+  message(WARNING "Python is unavailable: building without Python support.")
 ENDIF()
 
 # Sets default linking to static if not already defined
@@ -153,6 +162,10 @@ IF (HAVE_V8)
   endif()
 ENDIF()  
 
+IF (HAVE_PYTHON)
+  include_directories(${PYTHON_INCLUDE_DIRS})
+ENDIF()
+
 include_directories("${PROJECT_SOURCE_DIR}/include"
                     "${MYSQL_INCLUDE_DIR}"
                     "${Boost_INCLUDE_DIRS}"
@@ -197,6 +210,10 @@ target_link_libraries(mysqlx ${GCOV_LDFLAGS})
 if ( HAVE_V8 )
   target_link_libraries(mysqlx ${V8_LINK_LIST})
 endif()
+if ( HAVE_PYTHON )
+  target_link_libraries(mysqlx ${PYTHON_LIBRARIES})
+endif()
+
 # Last, to make -lrt -lpthread last, v8 needs it
 target_link_libraries(mysqlx ${MYSQL_LIBRARIES})
 

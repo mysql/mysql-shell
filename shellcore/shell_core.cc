@@ -189,6 +189,7 @@ void Shell_core::init_js()
 
 void Shell_core::init_py()
 {
+  _langs[Mode_Python] = new Shell_python(this);
 }
 
 

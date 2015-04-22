@@ -32,12 +32,23 @@ if ( HAVE_V8 )
 else()
   # Removes from the project all the jscript files
   file(GLOB js_SRC "*jscript*.cc")
-  
+
   foreach(jsfile ${js_SRC})
     list(REMOVE_ITEM libmysqlsh_SRC "${jsfile}")
   endforeach()
-endif()  
+endif()
 
+# Configures Python accordingly...
+if ( HAVE_PYTHON )
+  include_directories("${PYTHON_INCLUDE_DIR}")
+else()
+  # Removes from the project all the python files
+  file(GLOB python_SRC "*python*.cc")
+
+  foreach(pyfile ${python_SRC})
+    list(REMOVE_ITEM libmysqlsh_SRC "${pyfile}")
+  endforeach()
+endif()
 
 add_convenience_library(mysqlsh ${libmysqlsh_SRC})
 

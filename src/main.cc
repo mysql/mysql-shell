@@ -30,6 +30,7 @@
 #include <boost/format.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/pointer_cast.hpp>
+#include <boost/scope_exit.hpp>
 #include <iostream>
 
 #include "shellcore/types_cpp.h"
@@ -376,12 +377,8 @@ void Interactive_shell::switch_shell_mode(Shell_core::Mode mode, const std::vect
 #endif
         break;
       case Shell_core::Mode_Python:
-      // TODO: remove following #if 0 #endif as soon as Python mode is implemented
-#if 0
         if (_shell->switch_mode(mode, lang_initialized))
           println("Switching to Python mode...");
-#endif
-        println("Python mode is not yet supported, command ignored.");
         break;
     }
 
@@ -819,6 +816,17 @@ int main(int argc, char **argv)
   extern void JScript_context_init();
 
   JScript_context_init();
+#endif
+
+#ifdef HAVE_PYTHON
+  extern void Python_context_init();
+  extern void Python_context_deinit();
+
+  Python_context_init();
+
+  BOOST_SCOPE_EXIT(void) {
+    Python_context_deinit();
+  } BOOST_SCOPE_EXIT_END
 #endif
 
   {
