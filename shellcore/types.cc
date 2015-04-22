@@ -261,6 +261,19 @@ Value::Value(const char *s)
 }
 
 
+Value::Value(const char *s, size_t n)
+{
+  if (s)
+  {
+    type = String;
+    value.s = new std::string(s, n);
+  }
+  else
+  {
+    type = shcore::Null;
+  }
+}
+
 Value::Value(int i)
 : type(Integer)
 {

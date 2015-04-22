@@ -115,7 +115,7 @@ Value JScript_type_bridger::v8_value_to_shcore_value(const v8::Handle<v8::Value>
   else if (value->IsString())
   {
     v8::String::Utf8Value s(value->ToString());
-    return Value(std::string(*s, s.length()));
+    return Value(*s, s.length());
   }
   else if (value->IsTrue())
     return Value(true);

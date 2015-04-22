@@ -131,6 +131,7 @@ struct SHCORE_PUBLIC Value
 
   explicit Value(const std::string &s);
   explicit Value(const char *);
+  explicit Value(const char *, size_t n);
   explicit Value(int i);
   explicit Value(int64_t i);
   explicit Value(double d);
