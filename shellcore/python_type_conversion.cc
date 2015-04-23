@@ -77,7 +77,7 @@ Value Python_type_bridger::pyobj_to_shcore_value(PyObject *py) const
     long value = PyInt_AsLong(py);
     if (value == -1)
       check_err = true;
-    retval = Value(value);
+    retval = Value((int64_t)value);
   }
   else if (py == Py_False)
     return Value(false);
@@ -88,7 +88,7 @@ Value Python_type_bridger::pyobj_to_shcore_value(PyObject *py) const
     long value = PyLong_AsLong(py);
     if (value == -1)
       check_err = true;
-    retval = Value(value);
+    retval = Value((int64_t)value);
   }
   else if (PyFloat_Check(py))
   {
