@@ -36,7 +36,7 @@ Python_context::Python_context() throw (Exception)
   PyObject *main = PyImport_AddModule("__main__");
   _globals = PyModule_GetDict(main);
 
-  if (!main || !globals)
+  if (!main || !_globals)
   {
     throw Exception::runtime_error("Error initializing python context.");
     PyErr_Print();
