@@ -22,8 +22,6 @@
 
 #include "shellcore/shell_core.h"
 
-
-
 namespace shcore {
 
 class JScript_context;

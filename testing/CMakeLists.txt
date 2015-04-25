@@ -38,6 +38,10 @@ if(WITH_TESTS)
     if ( NOT HAVE_V8 )
       list(REMOVE_ITEM mysqlsh_tests_SRC "${PROJECT_SOURCE_DIR}/testing/value_js_bridging_t.cc")
     endif()
+
+    if (NOT HAVE_PYTHON )
+      list(REMOVE_ITEM mysqlsh_tests_SRC "${PROJECT_SOURCE_DIR}/testing/value_py_bridging_t.cc")
+    endif()
     
     add_executable(run_unit_tests ${mysqlsh_tests_SRC})
     add_dependencies(run_unit_tests mysqlshmods)

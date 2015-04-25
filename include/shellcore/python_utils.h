@@ -17,39 +17,51 @@
  * 02110-1301  USA
  */
 
-#ifndef _PYTHON_CONTEXT_H_
-#define _PYTHON_CONTEXT_H_
-
-#include "shellcore/shell_python.h"
+#ifndef _PYTHON_UTILS_H_
+#define _PYTHON_UTILS_H_
 
 #include <Python.h>
-#include "shellcore/python_type_conversion.h"
 
-namespace shcore {
-
-class Python_context
+// Must be placed when Python code will be called
+struct WillEnterPython
 {
-public:
-  Python_context() throw (Exception);
-  ~Python_context();
+  PyGILState_STATE state;
+  bool locked;
 
-  Value execute(const std::string &code);
+  WillEnterPython()
+  : state(PyGILState_Ensure()), locked(true)
+  {
+  }
 
-  Value pyobj_to_shcore_value(PyObject *value);
-  PyObject *shcore_value_to_pyobj(const Value &value);
+  ~WillEnterPython()
+  {
+    if (locked)
+      PyGILState_Release(state);
+  }
 
-  PyObject *get_global(const std::string &value); 
-  void set_global(const std::string &name, const Value &value);
-private:
-  struct Python_context_impl;
-  Python_context_impl *_impl;
-
-  PyObject *_globals;
-  PyThreadState *_main_thread_state;
-
-  Python_type_bridger types;
+  void release()
+  {
+    if (locked)
+      PyGILState_Release(state);
+    locked = false;
+  }
 };
 
-}
+
+// Must be placed when non-python code will be called from a Python handler/callback
+struct WillLeavePython
+{
+  PyThreadState *save;
+
+  WillLeavePython()
+  : save(PyEval_SaveThread())
+  {
+  }
+
+  ~WillLeavePython()
+  {
+    PyEval_RestoreThread(save);
+  }
+};
 
 #endif

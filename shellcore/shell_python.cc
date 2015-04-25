@@ -19,18 +19,11 @@
 
 #include "shellcore/shell_python.h"
 #include "shellcore/python_context.h"
+#include "shellcore/python_utils.h"
 
 #include <Python.h>
 
 using namespace shcore;
-
-void Python_context_init() {
-  Py_InitializeEx(0);
-}
-
-void Python_context_deinit() {
-  Py_Finalize();
-}
 
 Shell_python::Shell_python(Shell_core *shcore)
 : Shell_language(shcore)
@@ -42,6 +35,7 @@ Value Shell_python::handle_input(std::string &code, Interactive_input_state &sta
 {
   Value result;
 
+  WillEnterPython lock;
   result = _py->execute(code);
 
   _last_handled = code;

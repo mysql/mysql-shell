@@ -576,15 +576,19 @@ void Interactive_shell::process_line(const std::string &line)
       {
         Value result = _shell->handle_input(_input_buffer, state);
 
-        if (result && result.type == shcore::Object)
-        {
-          boost::shared_ptr<Object_bridge> object = result.as_object();
-          Value dump_function;
-          if (object && object->has_member("__paged_output__"))
-            dump_function = object->get_member("__paged_output__");
+        if (result) {
+          if (result.type == shcore::Object)
+          {
+            boost::shared_ptr<Object_bridge> object = result.as_object();
+            Value dump_function;
+            if (object && object->has_member("__paged_output__"))
+              dump_function = object->get_member("__paged_output__");
 
-          if (dump_function)
-            object->call("__paged_output__", Argument_list());
+            if (dump_function)
+              object->call("__paged_output__", Argument_list());
+            else
+              this->print(result.descr(true).c_str());
+          }
           else
             this->print(result.descr(true).c_str());
         }
@@ -820,13 +824,9 @@ int main(int argc, char **argv)
 
 #ifdef HAVE_PYTHON
   extern void Python_context_init();
-  extern void Python_context_deinit();
 
   Python_context_init();
 
-  BOOST_SCOPE_EXIT(void) {
-    Python_context_deinit();
-  } BOOST_SCOPE_EXIT_END
 #endif
 
   {
