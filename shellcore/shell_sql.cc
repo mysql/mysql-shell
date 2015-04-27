@@ -41,6 +41,7 @@ Shell_sql::Shell_sql(Shell_core *owner)
 
 Value Shell_sql::handle_input(std::string &code, Interactive_input_state &state, bool interactive)
 {
+  Value ret_val = Value::Null();
   state = Input_ok;
   Value session_wrapper = _owner->get_global("session");
   MySQL_splitter splitter;
@@ -115,32 +116,12 @@ Value Shell_sql::handle_input(std::string &code, Interactive_input_state &state,
       {
         shcore::Argument_list query;
         query.push_back(Value(statements[index]));
-        Value result_wrapper = session->sql(query);
+        ret_val = session->sql(query);
 
         if (_last_handled.empty())
           _last_handled = statements[index];
         else
           _last_handled.append("\n").append(statements[index]);
-
-
-        // TODO: the --force option should skip this validation
-        //           to let it continue processing the rest of the statements
-        if (result_wrapper.type == shcore::Null)
-          return result_wrapper;
-
-        if (result_wrapper)
-        {
-          boost::shared_ptr<mysh::Base_resultset> result = result_wrapper.as_object<mysh::Base_resultset>();
-
-          if (result)
-          {
-            result->print(Argument_list());
-
-            // Prints the warnings if required
-            if (result->warning_count())
-              print_warnings(session);
-          }
-        }
       }
     }
     else if (range_count)
@@ -165,43 +146,8 @@ Value Shell_sql::handle_input(std::string &code, Interactive_input_state &state,
   //       We need to decide if the caching logic we introduced on the caller is still required or not.
   code = "";
 
-  return Value();
+  return ret_val;
 }
-
-void Shell_sql::print_warnings(boost::shared_ptr<mysh::Session> session)
-{
-  Argument_list warnings_query;
-  warnings_query.push_back(Value("show warnings"));
-
-  Value::Map_type_ref options(new shcore::Value::Map_type);
-  (*options)["key_by_index"] = Value::True();
-  warnings_query.push_back(Value(options));
-
-  Value result_wrapper = session->sql(warnings_query);
-
-  if (result_wrapper)
-  {
-    boost::shared_ptr<mysh::Base_resultset> result = result_wrapper.as_object<mysh::Base_resultset>();
-
-    if (result)
-    {
-      Value record;
-
-      while ((record = result->next(Argument_list())))
-      {
-        boost::shared_ptr<Value::Map_type> row = record.as_map();
-
-        
-        unsigned long error = ((*row)["1"].as_int());
-
-        std::string type = (*row)["0"].as_string();
-        std::string msg = (*row)["2"].as_string();
-        _owner->print((boost::format("%s (Code %ld): %s\n") % type % error % msg).str());
-      }
-    }
-  }
-}
-
 
 std::string Shell_sql::prompt()
 {

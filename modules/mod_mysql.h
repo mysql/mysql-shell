@@ -63,10 +63,8 @@ public:
 
 protected:
   virtual Base_row* next_row();
-  virtual bool next_result();
 
 private:
-  boost::weak_ptr<Mysql_connection> _owner;
   boost::weak_ptr<MYSQL_RES> _result;
 };
 

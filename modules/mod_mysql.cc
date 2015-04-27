@@ -35,7 +35,7 @@ using namespace mysh;
 
 
 Mysql_resultset::Mysql_resultset(boost::shared_ptr<Mysql_connection> owner, uint64_t affected_rows, int warning_count, const char *info, boost::shared_ptr<shcore::Value::Map_type> options)
-: Base_resultset(affected_rows, warning_count, info, options), _owner(owner)
+: Base_resultset(owner, affected_rows, warning_count, info, options)
 {
 }
 
@@ -102,15 +102,6 @@ Base_row *Mysql_resultset::next_row()
     }
   }
   return ret_val;
-}
-
-bool Mysql_resultset::next_result()
-{
-  boost::shared_ptr<Mysql_connection> owner = _owner.lock();
-  if (owner)
-    return _owner.lock()->next_result(this);
-  else
-    return false;
 }
 
 void Mysql_resultset::reset(boost::shared_ptr<MYSQL_RES> res, unsigned long duration)

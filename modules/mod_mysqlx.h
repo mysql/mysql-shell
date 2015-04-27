@@ -112,9 +112,8 @@ public:
 
 protected:
   virtual Base_row* next_row();
-  virtual bool next_result();
 
-  boost::weak_ptr<X_connection> _owner;
+  boost::weak_ptr<X_connection> _xowner;
 
 private:
   int _cursor_id;

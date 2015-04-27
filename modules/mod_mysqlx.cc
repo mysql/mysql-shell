@@ -19,12 +19,6 @@
 
 #include "mod_mysqlx.h"
 
-/*#include "shellcore/obj_date.h"
-
-#include <boost/format.hpp>
-#include <boost/bind.hpp>
-#include <boost/lexical_cast.hpp>*/
-
 using namespace mysh;
 
 
@@ -498,7 +492,7 @@ X_row::~X_row()
 
 
 X_resultset::X_resultset(boost::shared_ptr<X_connection> owner, int cursor_id, uint64_t affected_rows, int warning_count, const char *info, boost::shared_ptr<shcore::Value::Map_type> options) :
-Base_resultset(affected_rows, warning_count, info, options), _owner(owner), _cursor_id(cursor_id), _next_mid(0),
+Base_resultset(owner, affected_rows, warning_count, info, options), _xowner(owner), _cursor_id(cursor_id), _next_mid(0),
 _current_fetch_done(false), _all_fetch_done(false)
 {
 }
@@ -513,7 +507,7 @@ Base_row* X_resultset::next_row()
   // TODO: Does it always have a resultset??
   if (has_resultset())
   {
-    boost::shared_ptr<X_connection> owner = _owner.lock();
+    boost::shared_ptr<X_connection> owner = _xowner.lock();
 
     if (!is_current_fetch_done() && owner)
     {
@@ -559,7 +553,7 @@ int X_resultset::fetch_metadata()
 {
   // Fetch the metadata
   int ret_val = 0;
-  boost::shared_ptr<X_connection> owner = _owner.lock();
+  boost::shared_ptr<X_connection> owner = _xowner.lock();
 
   _metadata.clear();
 
@@ -613,15 +607,6 @@ int X_resultset::fetch_metadata()
   return ret_val;
 }
 
-bool X_resultset::next_result()
-{
-  boost::shared_ptr<X_connection> owner = _owner.lock();
-  if (owner)
-    return owner->next_result(this);
-  else
-    return false;
-}
-
 void X_resultset::reset(unsigned long duration, int next_mid, ::google::protobuf::Message* next_message)
 {
   _next_mid = next_mid;
@@ -640,8 +625,6 @@ void X_resultset::reset(unsigned long duration, int next_mid, ::google::protobuf
   // The statement may have a set of rows (may be empty tho)
   _has_resultset = (_next_mid != Mysqlx::ServerMessages::MSG_NOT_SET);
 }
-
-
 
 #include "shellcore/object_factory.h"
 namespace {

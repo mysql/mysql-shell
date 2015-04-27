@@ -132,7 +132,7 @@ protected:
 class Base_resultset : public shcore::Cpp_object_bridge
 {
 public:
-  Base_resultset(uint64_t affected_rows, int warning_count, const char* info, boost::shared_ptr<shcore::Value::Map_type> options = boost::shared_ptr<shcore::Value::Map_type>());
+  Base_resultset(boost::shared_ptr<Base_connection> owner, uint64_t affected_rows, int warning_count, const char* info, boost::shared_ptr<shcore::Value::Map_type> options = boost::shared_ptr<shcore::Value::Map_type>());
 
   // Methods from Cpp_object_bridge will be defined here
   // Since all the connections will expose the same members
@@ -157,13 +157,15 @@ public:
 private:
   void print_result(shcore::Value::Array_type_ref records);
   void print_table(shcore::Value::Array_type_ref records);
+  void print_warnings();
 
 protected:
   // Methods requiring database interaction, must be
   // defined by the subclasses
   virtual Base_row *next_row() = 0;
-  virtual bool next_result() = 0;
+  bool next_result();
 
+  boost::weak_ptr<Base_connection> _owner;
 
   bool _key_by_index;
   std::vector<Field> _metadata;

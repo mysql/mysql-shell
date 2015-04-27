@@ -101,6 +101,19 @@ int Shell_core::process_stream(std::istream& stream, const std::string& source)
 
       Value result = handle_input(line, state, false);
 
+      // Prints results in batch mode
+      if (result && result.type == shcore::Object)
+      {
+        boost::shared_ptr<Object_bridge> object = result.as_object();
+        Value dump_function;
+        if (object && object->has_member("__paged_output__"))
+          dump_function = object->get_member("__paged_output__");
+
+        if (dump_function)
+          object->call("__paged_output__", Argument_list());
+      }
+
+
       // TODO: Error handling should be reviewed
       // When result type is Null it indicates there was a processing error
       // We quit processing statements at this point.

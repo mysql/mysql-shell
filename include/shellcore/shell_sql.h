@@ -37,8 +37,6 @@ public:
 
   virtual Value handle_input(std::string &code, Interactive_input_state &state, bool interactive = true);
 
-  void print_warnings(boost::shared_ptr<mysh::Session> session);
-  
   virtual std::string prompt();
 
   virtual bool print_help(const std::string& topic);

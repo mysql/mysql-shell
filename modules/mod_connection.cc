@@ -272,8 +272,8 @@ _name_length(name.length())
 
 //----------------------------- Base_resultset ----------------------------------------
 
-Base_resultset::Base_resultset(uint64_t affected_rows, int warning_count, const char* info, boost::shared_ptr<shcore::Value::Map_type> options)
-: _key_by_index(false), _has_resultset(false), _fetched_row_count(0), _affected_rows(affected_rows), _warning_count(warning_count)
+Base_resultset::Base_resultset(boost::shared_ptr<Base_connection> owner, uint64_t affected_rows, int warning_count, const char* info, boost::shared_ptr<shcore::Value::Map_type> options)
+: _key_by_index(false), _has_resultset(false), _fetched_row_count(0), _affected_rows(affected_rows), _warning_count(warning_count), _owner(owner)
 {
   if (options && options->get_bool("key_by_index", false))
     _key_by_index = true;
@@ -310,6 +310,16 @@ shcore::Value Base_resultset::next_result(const shcore::Argument_list &args)
 {
   return shcore::Value(next_result());
 }
+
+bool Base_resultset::next_result()
+{
+  boost::shared_ptr<Base_connection> owner = _owner.lock();
+  if (owner)
+    return owner->next_result(this);
+  else
+    return false;
+}
+
 
 shcore::Value Base_resultset::get_metadata(const shcore::Argument_list &args)
 {
@@ -488,6 +498,11 @@ shcore::Value Base_resultset::print(const shcore::Argument_list &args)
     {
       shcore::print(_info + "\n\n");
     }
+
+    // Prints the warnings if there were any
+    if (_warning_count)
+      print_warnings();
+
   } while (next_result());
 
   return shcore::Value();
@@ -576,4 +591,40 @@ void Base_resultset::print_table(shcore::Value::Array_type_ref records)
   }
 
   shcore::print(separator);
+}
+
+void Base_resultset::print_warnings()
+{
+
+  Value::Map_type_ref options(new shcore::Value::Map_type);
+  (*options)["key_by_index"] = Value::True();
+
+  boost::shared_ptr<Base_connection> conn = _owner.lock();
+
+  if (conn)
+  {
+    Value result_wrapper = conn->sql("show warnings", shcore::Value(options));
+
+    if (result_wrapper)
+    {
+      boost::shared_ptr<mysh::Base_resultset> result = result_wrapper.as_object<mysh::Base_resultset>();
+
+      if (result)
+      {
+        Value record;
+
+        while ((record = result->next(Argument_list())))
+        {
+          boost::shared_ptr<Value::Map_type> row = record.as_map();
+
+
+          unsigned long error = ((*row)["1"].as_int());
+
+          std::string type = (*row)["0"].as_string();
+          std::string msg = (*row)["2"].as_string();
+          shcore::print((boost::format("%s (Code %ld): %s\n") % type % error % msg).str());
+        }
+      }
+    }
+  }
 }
