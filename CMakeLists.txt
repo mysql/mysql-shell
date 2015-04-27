@@ -148,7 +148,7 @@ IF (HAVE_V8)
   endif()
 
   if(APPLE)
-    set(V8_LINK_LIST -mmacosx-version-min=10.5 ${V8_LIBS})
+    set(V8_LINK_LIST -mmacosx-version-min=10.7 ${V8_LIBS})
   elseif(WIN32)
     set(V8_LINK_LIST ${V8_LIBS} winmm)
   else()	# Linux
@@ -158,7 +158,7 @@ IF (HAVE_V8)
   if (APPLE)
     # needed when compiling in osx, for v8
     # has to be after src/libedit
-    add_definitions(-std=gnu++0x -mmacosx-version-min=10.5)
+    add_definitions(-std=gnu++0x -mmacosx-version-min=10.7)
   endif()
 ENDIF()  
 
