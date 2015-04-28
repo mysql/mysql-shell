@@ -115,6 +115,9 @@ Message *X_connection::read_response(int &mid)
         case Mysqlx::ServerMessages::kMsgAuthOk:
           ret_val = new Mysqlx::Session::authenticateOk();
           break;
+        case  Mysqlx::ServerMessages::kMsgAuthFail:
+          ret_val = new Mysqlx::Session::authenticateFail();
+          break;
         case Mysqlx::ServerMessages::kMsgOk:
           ret_val = new Mysqlx::Ok();
           break;
