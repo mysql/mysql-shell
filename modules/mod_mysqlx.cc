@@ -112,34 +112,34 @@ Message *X_connection::read_response(int &mid)
     {
       switch (mid)
       {
-        case Mysqlx::ServerMessages::kMsgAuthOk:
-          ret_val = new Mysqlx::Session::authenticateOk();
+        case Mysqlx::ServerMessages_Type_SESS_AUTH_OK:
+          ret_val = new Mysqlx::Session::AuthenticateOk();
           break;
-        case  Mysqlx::ServerMessages::kMsgAuthFail:
-          ret_val = new Mysqlx::Session::authenticateFail();
+        case  Mysqlx::ServerMessages_Type_SESS_AUTH_FAIL:
+          ret_val = new Mysqlx::Session::AuthenticateFail();
           break;
-        case Mysqlx::ServerMessages::kMsgOk:
+        case Mysqlx::ServerMessages_Type_OK:
           ret_val = new Mysqlx::Ok();
           break;
-        case Mysqlx::ServerMessages::kMsgSqlCursorFetchDone:
+        case Mysqlx::ServerMessages_Type_SQL_CURSOR_FETCH_DONE:
           ret_val = new Mysqlx::Sql::CursorFetchDone();
           break;
-        case Mysqlx::ServerMessages::kMsgSqlCursorCloseOk:
+        case Mysqlx::ServerMessages_Type_SQL_CURSOR_CLOSE_OK:
           ret_val = new Mysqlx::Sql::CursorCloseOk();
           break;
-        case Mysqlx::ServerMessages::kMsgSqlColumnMeta:
+        case Mysqlx::ServerMessages_Type_SQL_COLUMN_META:
           ret_val = new Mysqlx::Sql::ColumnMetaData();
           break;
-        case Mysqlx::ServerMessages::kMsgSqlRow:
+        case Mysqlx::ServerMessages_Type_SQL_ROW:
           ret_val = new Mysqlx::Sql::Row();
           break;
-        case Mysqlx::ServerMessages::kMsgSqlPrepStmtExecOk:
+        case Mysqlx::ServerMessages_Type_SQL_PREP_STMT_EXEC_OK:
           ret_val = new Mysqlx::Sql::PreparedStmtExecuteOk();
           break;
-        case Mysqlx::ServerMessages::kMsgSqlPrepStmtOk:
+        case Mysqlx::ServerMessages_Type_SQL_PREP_STMT_OK:
           ret_val = new Mysqlx::Sql::PrepareStmtOk();
           break;
-        case Mysqlx::ServerMessages::kMsgErr:
+        case Mysqlx::ServerMessages_Type_ERROR:
           ret_val = new Mysqlx::Error();
           break;
         default:
@@ -154,7 +154,7 @@ Message *X_connection::read_response(int &mid)
 
       // TODO: SERVER: Sending incomplete error messages, i.e. invalid cursor id
       // error->ParseFromString(mbuf);
-      if (mid == Mysqlx::ServerMessages::kMsgErr)
+      if (mid == Mysqlx::ServerMessages_Type_ERROR)
         ret_val->ParsePartialFromString(mbuf);
       else
         ret_val->ParseFromString(mbuf);
@@ -218,7 +218,7 @@ Message *X_connection::send_receive_message(int& mid, Message *msg, int response
  */
 void X_connection::handle_wrong_response(int mid, Message *msg, const std::string& info)
 {
-  if (mid == Mysqlx::ServerMessages::kMsgErr)
+  if (mid == Mysqlx::ServerMessages_Type_ERROR)
   {
     Mysqlx::Error *error = dynamic_cast<Mysqlx::Error *>(msg);
     std::string error_message(error->msg());
@@ -240,12 +240,12 @@ void X_connection::handle_wrong_response(int mid, Message *msg, const std::strin
 
 void X_connection::auth(const char *user, const char *pass)
 {
-    Mysqlx::Session::authenticateStart m;
+    Mysqlx::Session::AuthenticateStart m;
 
     m.set_mech_name("plain");
     m.set_auth_data(user);
     m.set_initial_response(pass);
-    send_message(Mysqlx::ClientMessages::kMsgAuthStart, &m);
+    send_message(Mysqlx::ClientMessages_Type_SESS_AUTH_START, &m);
 
     int mid;
     Message *r = read_response(mid);
@@ -253,7 +253,7 @@ void X_connection::auth(const char *user, const char *pass)
     if (r)
       delete r;
 
-    if (mid != Mysqlx::ServerMessages::kMsgAuthOk )
+    if (mid != Mysqlx::ServerMessages_Type_SESS_AUTH_OK )
     {
       throw shcore::Exception::argument_error("Authentication failed...");
     }
@@ -285,7 +285,7 @@ shcore::Value X_connection::close(const shcore::Argument_list &args)
   /*Mysqlx::Connection::close close;
   std::string data;
   close.SerializeToString(&data);
-  send_message(Mysqlx::ClientMessages::kMsgConClose, data);*/
+  send_message(Mysqlx::ClientMessages_Type_CON_CLOSE, data);*/
 
   return shcore::Value();
 }
@@ -309,15 +309,15 @@ X_resultset *X_connection::_sql(const std::string &query, shcore::Value options)
   Mysqlx::Sql::PrepareStmt stmt;
   stmt.set_stmt_id(_next_stmt_id);
   stmt.set_stmt(query);
-  mid = Mysqlx::ClientMessages::kMsgSqlPrepStmt;
-  msg = send_receive_message(mid, &stmt, Mysqlx::ServerMessages::kMsgSqlPrepStmtOk, "preparing statement: " + query);
+  mid = Mysqlx::ClientMessages_Type_SQL_PREP_STMT;
+  msg = send_receive_message(mid, &stmt, Mysqlx::ServerMessages_Type_SQL_PREP_STMT_OK, "preparing statement: " + query);
 
   // Executes the query
   Mysqlx::Sql::PreparedStmtExecute stmt_exec;
   stmt_exec.set_stmt_id(_next_stmt_id);
   stmt_exec.set_cursor_id(_next_stmt_id);
-  mid = Mysqlx::ClientMessages::kMsgSqlPrepStmtExec;
-  msg = send_receive_message(mid, &stmt_exec, Mysqlx::ServerMessages::kMsgSqlPrepStmtExecOk, "executing statement: " + query);
+  mid = Mysqlx::ClientMessages_Type_SQL_PREP_STMT_EXEC;
+  msg = send_receive_message(mid, &stmt_exec, Mysqlx::ServerMessages_Type_SQL_PREP_STMT_EXEC_OK, "executing statement: " + query);
 
   // Retrieves the affected rows
   Mysqlx::Sql::PreparedStmtExecuteOk *exec_done = dynamic_cast<Mysqlx::Sql::PreparedStmtExecuteOk *>(msg);
@@ -385,7 +385,7 @@ bool X_connection::next_result(Base_resultset *target, bool first_result)
   bool ret_val = false;
   X_resultset *real_target = dynamic_cast<X_resultset *> (target);
 
-  int mid = Mysqlx::ServerMessages::kMsgSqlCursorFetchDoneMore;
+  int mid = Mysqlx::ServerMessages_Type_SQL_CURSOR_FETCH_DONE_MORE;
   Message* msg;
 
   // Just to ensure the right instance was received as parameter
@@ -409,11 +409,11 @@ bool X_connection::next_result(Base_resultset *target, bool first_result)
           }
 
         }
-        while(mid == Mysqlx::ServerMessages::kMsgSqlRow);
+        while(mid == Mysqlx::ServerMessages_Type_SQL_ROW);
       }
 
       // Still results to be read
-      if (mid == Mysqlx::ServerMessages::kMsgSqlCursorFetchDoneMore)
+      if (mid == Mysqlx::ServerMessages_Type_SQL_CURSOR_FETCH_DONE_MORE)
       {
         mid = 0;
         msg = NULL;
@@ -428,11 +428,11 @@ bool X_connection::next_result(Base_resultset *target, bool first_result)
           fetch_rows.set_cursor_id(real_target->get_cursor_id());
           fetch_rows.set_fetch_limit(0); // This is not used anyways
 
-          mid = Mysqlx::ClientMessages::kMsgSqlCursorFetchRows;
+          mid = Mysqlx::ClientMessages_Type_SQL_CURSOR_FETCH_ROWS;
           std::set<int> responses;
-          responses.insert(Mysqlx::ServerMessages::kMsgSqlCursorFetchDone);
-          responses.insert(Mysqlx::ServerMessages::kMsgSqlCursorFetchDoneMore);
-          responses.insert(Mysqlx::ServerMessages::kMsgSqlRow);
+          responses.insert(Mysqlx::ServerMessages_Type_SQL_CURSOR_FETCH_DONE);
+          responses.insert(Mysqlx::ServerMessages_Type_SQL_CURSOR_FETCH_DONE_MORE);
+          responses.insert(Mysqlx::ServerMessages_Type_SQL_ROW);
 
           msg = send_receive_message(mid, &fetch_rows, responses, "fetching rows");
         }
@@ -468,14 +468,14 @@ shcore::Value X_row::get_value(int index)
       return shcore::Value(field.scalar().v_double());
     else if (field.scalar().has_v_float())
       return shcore::Value(field.scalar().v_float());
-    else if (field.scalar().has_v_null())
-      return shcore::Value::Null();
+    //else if (field.scalar().has_v_null())
+    //  return shcore::Value::Null();
     else if (field.scalar().has_v_opaque())
       return shcore::Value(field.scalar().v_opaque());
-    else if (field.scalar().has_v_singed_int())
-      return shcore::Value(field.scalar().v_singed_int());
+    else if (field.scalar().has_v_signed_int())
+      return shcore::Value(field.scalar().v_signed_int());
     else if (field.scalar().has_v_unsigned_int())
-      return shcore::Value(field.scalar().v_singed_int());
+      return shcore::Value(int64_t(field.scalar().v_unsigned_int()));
   }
 
   return shcore::Value::Null();
@@ -519,14 +519,14 @@ Base_row* X_resultset::next_row()
       if (!_next_message)
         _next_message = owner.get()->read_response(_next_mid);
 
-      if (_next_mid == Mysqlx::ServerMessages::kMsgSqlRow)
+      if (_next_mid == Mysqlx::ServerMessages_Type_SQL_ROW)
       {
         ret_val = new X_row(_metadata, _key_by_index, dynamic_cast<Mysqlx::Sql::Row *>(_next_message));
 
         // Each read row increases the count
         _fetched_row_count++;
       }
-      else if (_next_mid == Mysqlx::ServerMessages::kMsgSqlCursorFetchDone)
+      else if (_next_mid == Mysqlx::ServerMessages_Type_SQL_CURSOR_FETCH_DONE)
       {
         _all_fetch_done = true;
         _current_fetch_done = true;
@@ -534,12 +534,12 @@ Base_row* X_resultset::next_row()
         // Closes the cursor
         Mysqlx::Sql::CursorClose fetch_done;
         fetch_done.set_cursor_id(_cursor_id);
-        int mid = Mysqlx::ClientMessages::kMsgSqlCursorClose;
-        Message *response = owner->send_receive_message(mid, &fetch_done, Mysqlx::ServerMessages::kMsgSqlCursorCloseOk, "closing cursor");
+        int mid = Mysqlx::ClientMessages_Type_SQL_CURSOR_CLOSE;
+        Message *response = owner->send_receive_message(mid, &fetch_done, Mysqlx::ServerMessages_Type_SQL_CURSOR_CLOSE_OK, "closing cursor");
 
         delete response;
       }
-      else if (_next_mid == Mysqlx::ServerMessages::kMsgSqlCursorFetchDoneMore)
+      else if (_next_mid == Mysqlx::ServerMessages_Type_SQL_CURSOR_FETCH_DONE_MORE)
         _current_fetch_done = true;
       else
       {
@@ -565,13 +565,13 @@ int X_resultset::fetch_metadata()
     Mysqlx::Sql::CursorFetchMetaData fetch_meta;
     fetch_meta.set_cursor_id(get_cursor_id());
 
-    int mid = Mysqlx::ClientMessages::kMsgSqlCursorFetchMeta;
+    int mid = Mysqlx::ClientMessages_Type_SQL_CURSOR_FETCH_META;
     std::set<int> responses;
-    responses.insert(Mysqlx::ServerMessages::kMsgSqlColumnMeta);
-    responses.insert(Mysqlx::ServerMessages::kMsgErr);
+    responses.insert(Mysqlx::ServerMessages_Type_SQL_COLUMN_META);
+    responses.insert(Mysqlx::ServerMessages_Type_ERROR);
     Message* msg = owner->send_receive_message(mid, &fetch_meta, responses, "fetching metadata");
 
-    if (mid == Mysqlx::ServerMessages::kMsgSqlColumnMeta )
+    if (mid == Mysqlx::ServerMessages_Type_SQL_COLUMN_META )
     {
       do
       {
@@ -591,11 +591,11 @@ int X_resultset::fetch_metadata()
 
         msg = owner->read_response(mid);
 
-      } while (mid != Mysqlx::ServerMessages::kMsgSqlCursorFetchDone);
+      } while (mid != Mysqlx::ServerMessages_Type_SQL_CURSOR_FETCH_DONE);
 
       ret_val = _metadata.size();
     }
-    else if (mid == Mysqlx::ServerMessages::kMsgErr)
+    else if (mid == Mysqlx::ServerMessages_Type_ERROR)
     {
       // Since metadata will be empty, it implies the result had no records
       Mysqlx::Error *error = dynamic_cast<Mysqlx::Error *>(msg);
@@ -615,18 +615,17 @@ void X_resultset::reset(unsigned long duration, int next_mid, ::google::protobuf
   _next_mid = next_mid;
 
   // Nothing to be read anymnore on these cases
-  _all_fetch_done = (_next_mid == Mysqlx::ServerMessages::kMsgSqlCursorFetchDone ||
-                     _next_mid == Mysqlx::ServerMessages::MSG_NOT_SET);
+  _all_fetch_done = (_next_mid == Mysqlx::ServerMessages_Type_SQL_CURSOR_FETCH_DONE);
 
   // Nothing to be read for the current result on these cases
-  _current_fetch_done = (_next_mid == Mysqlx::ServerMessages::kMsgSqlCursorFetchDone ||
-                         _next_mid == Mysqlx::ServerMessages::kMsgSqlCursorFetchDoneMore);
+  _current_fetch_done = (_next_mid == Mysqlx::ServerMessages_Type_SQL_CURSOR_FETCH_DONE ||
+                         _next_mid == Mysqlx::ServerMessages_Type_SQL_CURSOR_FETCH_DONE_MORE);
 
   _raw_duration = duration;
   _next_message = next_message;
 
   // The statement may have a set of rows (may be empty tho)
-  _has_resultset = (_next_mid != Mysqlx::ServerMessages::MSG_NOT_SET);
+  _has_resultset = (_next_mid != Mysqlx::ServerMessages_Type_SQL_CURSOR_FETCH_DONE);
 }
 
 #include "shellcore/object_factory.h"
