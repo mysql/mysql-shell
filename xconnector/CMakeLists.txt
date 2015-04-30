@@ -15,12 +15,12 @@
 
 include_directories("${Boost_INCLUDE_DIRS}")
 
-file(GLOB libmysqlxconnector_SRC
+file(GLOB libmysqlxtest_SRC
       "*.cc"
       "*.h"
 )
 
-add_library(mysqlxconnector ${libmysqlxconnector_SRC})
+add_library(mysqlxtest ${libmysqlxtest_SRC})
 
 MACRO(SHELL_ADD_PROTOBUF target)
   INCLUDE_DIRECTORIES(${CMAKE_CURRENT_BINARY_DIR})
@@ -39,7 +39,7 @@ file(GLOB proto_SRC
       "${CMAKE_SOURCE_DIR}/common/protocol/*.proto"
 )
 
-SHELL_ADD_PROTOBUF(mysqlxconnector ${proto_SRC})
+SHELL_ADD_PROTOBUF(mysqlxtest ${proto_SRC})
 
 if( WIN32 )
   include(msvc)

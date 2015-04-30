@@ -45,7 +45,7 @@ endif()
 
 
 add_convenience_library(mysqlshmods ${libmysqlshmods_SRC})
-target_link_libraries(mysqlshmods mysqlsh mysqlxconnector)
+target_link_libraries(mysqlshmods mysqlsh mysqlxtest)
 
 
 if( WIN32 )

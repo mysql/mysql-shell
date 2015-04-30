@@ -236,7 +236,7 @@ bool X_connection::next_result(Base_resultset *target, bool first_result)
   X_resultset *real_target = dynamic_cast<X_resultset *> (target);
 
   int mid = Mysqlx::ServerMessages_Type_SQL_CURSOR_FETCH_DONE_MORE;
-  Message* msg;
+  Message* msg = NULL;
 
   // Just to ensure the right instance was received as parameter
   if (real_target)
