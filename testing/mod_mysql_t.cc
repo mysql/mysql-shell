@@ -72,6 +72,7 @@ namespace shcore
       Argument_list args;
       const char *uri = getenv("MYSQL_URI");
       const char *pwd = getenv("MYSQL_PWD");
+      const char *port = getenv("MYSQL_PORT");
       std::string x_uri;
 
       if (uri)
@@ -82,7 +83,13 @@ namespace shcore
       else
         x_uri = "mysql://root@localhost";
 
-      env.db.reset(new mysh::Mysql_connection(uri, pwd ? pwd : NULL));
+      if (port)
+      {
+        x_uri.append(":");
+        x_uri.append(port);
+      }
+
+      env.db.reset(new mysh::Mysql_connection(x_uri, pwd ? pwd : NULL));
     }
 
     TEST(Mysql_connection_test, sql_no_results_drop_unexisting_schema)

@@ -79,9 +79,17 @@ namespace shcore {
     {
       const char *uri = getenv("MYSQL_URI");
       const char *pwd = getenv("MYSQL_PWD");
+      const char *port = getenv("MYSQL_PORT");
+
+      std::string x_uri(uri);
+      if (port)
+      {
+        x_uri.append(":");
+        x_uri.append(port);
+      }
 
       Argument_list args;
-      args.push_back(Value(uri));
+      args.push_back(Value(x_uri));
       if (pwd)
         args.push_back(Value(pwd));
 

@@ -615,7 +615,8 @@ void X_resultset::reset(unsigned long duration, int next_mid, ::google::protobuf
   _next_mid = next_mid;
 
   // Nothing to be read anymnore on these cases
-  _all_fetch_done = (_next_mid == Mysqlx::ServerMessages_Type_SQL_CURSOR_FETCH_DONE);
+  _all_fetch_done = (_next_mid == Mysqlx::ServerMessages_Type_SQL_CURSOR_FETCH_DONE ||
+                     _next_mid == 0);
 
   // Nothing to be read for the current result on these cases
   _current_fetch_done = (_next_mid == Mysqlx::ServerMessages_Type_SQL_CURSOR_FETCH_DONE ||
@@ -625,7 +626,7 @@ void X_resultset::reset(unsigned long duration, int next_mid, ::google::protobuf
   _next_message = next_message;
 
   // The statement may have a set of rows (may be empty tho)
-  _has_resultset = (_next_mid != Mysqlx::ServerMessages_Type_SQL_CURSOR_FETCH_DONE);
+  _has_resultset = (_next_mid != 0);
 }
 
 #include "shellcore/object_factory.h"
