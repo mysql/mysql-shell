@@ -177,6 +177,7 @@ include_directories("${PROJECT_SOURCE_DIR}/include"
 ###
 
 
+add_subdirectory(xconnector)
 add_subdirectory(shellcore)
 add_subdirectory(modules)
 

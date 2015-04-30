@@ -13,40 +13,33 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
 
-include_directories("${CMAKE_SOURCE_DIR}/include" 
-                    "${CMAKE_SOURCE_DIR}/utils" 
-                    "${CMAKE_SOURCE_DIR}/xconnector" 
-                    "${MYSQL_INCLUDE_DIR}"
-                    "${Boost_INCLUDE_DIRS}")
+include_directories("${Boost_INCLUDE_DIRS}")
 
-if (HAVE_V8)
-  include_directories("${V8_INCLUDE_DIR}")
-endif()
-
-
-file(GLOB libmysqlshmods_SRC
-      "*.h"
+file(GLOB libmysqlxconnector_SRC
       "*.cc"
       "*.h"
 )
 
-if (NOT HAVE_PROTOBUF)
-  # Removes from the project the X protocol files
-  file(GLOB x_SRC "*mysqlx*")
-  
-  foreach(xfile ${x_SRC})
-    list(REMOVE_ITEM libmysqlshmods_SRC "${xfile}")
-  endforeach()  
-else()
-  include_directories("${CMAKE_BINARY_DIR}/xconnector")
-  INCLUDE(protobuf)
-  SETUP_PROTOBUF()
-endif()
+add_library(mysqlxconnector ${libmysqlxconnector_SRC})
 
+MACRO(SHELL_ADD_PROTOBUF target)
+  INCLUDE_DIRECTORIES(${CMAKE_CURRENT_BINARY_DIR})
+  PROTOBUF_GENERATE_CPP(PROTO_SRCS PROTO_HDRS ${ARGN})
+  set_source_files_properties(${PROTO_SRCS} ${PROTO_HDRS} PROPERTIES GENERATED TRUE)
+  SOURCE_GROUP(Protobuf FILES ${PROTO_SRCS} ${PROTO_HDRS})
+  ADD_LIBRARY(${target}_pb STATIC ${PROTO_SRCS} ${PROTO_HDRS})
+  TARGET_LINK_LIBRARIES(${target}_pb ${PROTOBUF_LIBRARY})
+  TARGET_LINK_LIBRARIES(${target} ${target}_pb)
+ENDMACRO()
 
-add_convenience_library(mysqlshmods ${libmysqlshmods_SRC})
-target_link_libraries(mysqlshmods mysqlsh mysqlxconnector)
+INCLUDE(protobuf)
+SETUP_PROTOBUF()
 
+file(GLOB proto_SRC
+      "${CMAKE_SOURCE_DIR}/common/protocol/*.proto"
+)
+
+SHELL_ADD_PROTOBUF(mysqlxconnector ${proto_SRC})
 
 if( WIN32 )
   include(msvc)

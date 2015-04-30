@@ -16,6 +16,7 @@
 if(WITH_TESTS)
     add_definitions(-DGTEST_LANG_CXX11=0 ${GMOCK_CFLAGS})
     include_directories(${CMAKE_SOURCE_DIR}/testing/include 
+                ${CMAKE_SOURCE_DIR}/xconnector
                 ${GTEST_INCLUDE_DIR} 
                 ${CMAKE_SOURCE_DIR}/include
                 ${MYSQL_INCLUDE_DIRS}
@@ -30,7 +31,7 @@ if(WITH_TESTS)
     if (HAVE_PROTOBUF)
       INCLUDE(protobuf)
       SETUP_PROTOBUF()
-      INCLUDE_DIRECTORIES("${CMAKE_BINARY_DIR}/modules")
+      INCLUDE_DIRECTORIES("${CMAKE_BINARY_DIR}/xconnector")
     else()
       list(REMOVE_ITEM mysqlsh_tests_SRC "${PROJECT_SOURCE_DIR}/testing/mod_mysqlx_t.cc")
     endif()

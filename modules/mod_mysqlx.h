@@ -28,13 +28,12 @@
 #include "mod_connection.h"
 
 #include <list>
-#include <boost/asio.hpp>
-#include <google/protobuf/message.h>
+#include "mysqlx_connector.h"
+//#include <google/protobuf/message.h>
 
-#undef ERROR //Needed to avoid conflict with ERROR in mysqlx.pb.h
-#include "mysqlx.pb.h"
+//typedef google::protobuf::Message Message;
 
-typedef google::protobuf::Message Message;
+
 
 namespace mysh {
 
@@ -48,13 +47,6 @@ public:
 
   virtual std::string class_name() const { return "X_connection"; }
 
-  // X Protocol Methods
-  void send_message(int mid, Message *msg);
-  void send_message(int mid, const std::string &mdata);
-  Message *read_response(int &mid);
-  Message *send_receive_message(int& mid, Message *msg, std::set<int> responses, const std::string& info);
-  Message *send_receive_message(int& mid, Message *msg, int response_id, const std::string& info);
-  void handle_wrong_response(int mid, Message *msg, const std::string& info);
   void auth(const char *user, const char *pass);
   void flush();
 
@@ -67,11 +59,10 @@ public:
 
   static boost::shared_ptr<Object_bridge> create(const shcore::Argument_list &args);
   
-  
+  boost::shared_ptr<Mysqlx_connector> get_protobuf() { return _protobuf; }
 
 protected:
-  boost::asio::io_service ios;
-  boost::asio::buffered_write_stream<boost::asio::ip::tcp::socket> m_wstream;
+  boost::shared_ptr<Mysqlx_connector> _protobuf;
 
 private:
   int _next_stmt_id;
