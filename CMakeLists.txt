@@ -169,6 +169,7 @@ ENDIF()
 include_directories("${PROJECT_SOURCE_DIR}/include"
                     "${MYSQL_INCLUDE_DIR}"
                     "${Boost_INCLUDE_DIRS}"
+                    "${CMAKE_SOURCE_DIR}/utils"
                    )
 
 

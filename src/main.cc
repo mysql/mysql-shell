@@ -21,6 +21,7 @@
 #include "mysh.h"
 
 #include "shellcore/types.h"
+#include "utils_file.h"
 
 #ifndef WIN32
 #  include "editline/readline.h"
@@ -46,8 +47,6 @@
 #ifdef WIN32
 #  include <io.h>
 #  define isatty _isatty
-#  include <ShlObj.h>
-#  include <comdef.h>
 #endif
 
 
@@ -292,52 +291,35 @@ void Interactive_shell::init_scripts(Shell_core::Mode mode)
 
   std::vector<std::string> scripts_paths;
 
+  std::string user_file = "";
+
+  ensure_dir_exists(get_user_config_path());
+  
+  try 
+  {
+    std::string path = shcore::get_user_config_path();
+    path += std::string(".shellrc");
+    user_file = path;
+    
+    user_file += extension;
+    if(file_exists(user_file))
+      scripts_paths.push_back(user_file);
 #ifndef WIN32
-  const char *homedir;
+    std::string global_file("/usr/share/mysqlx/js/shellrc");
 
-  homedir = getenv("HOME");
+    global_file += extension;
 
-  std::string user_file;
-  if (homedir)
-    user_file.assign(homedir);
-
-  user_file.append("/.mysqlx/shellrc");
-  std::string global_file("/usr/share/mysqlx/js/shellrc");
-
-  user_file += extension;
-  global_file += extension;
-
-  if (access(user_file.c_str(), F_OK) != -1)
-    scripts_paths.push_back(user_file);
-
-  if (access(global_file.c_str(), F_OK) != -1)
-    scripts_paths.push_back(global_file);
-#else
-  // Fetch Local Roaming App Data folder path.
-  char szPath[MAX_PATH];
-  HRESULT hr;
-  if (SUCCEEDED(hr = SHGetFolderPathA(NULL, CSIDL_APPDATA, NULL, 0, szPath)))
-  {
-    std::string path(szPath);
-    path += "\\MySql\\mysqlx\\shellrc" + extension;
-
-    DWORD dwAttrib = GetFileAttributesA(path.c_str());
-
-    if (dwAttrib != INVALID_FILE_ATTRIBUTES &&
-      !(dwAttrib & FILE_ATTRIBUTE_DIRECTORY))
-      scripts_paths.push_back(path);
-  }
-  else
-  {
-    // we couldn't fetch the Local Roaming App Data folder path so let's thrown an ERROR and exit
-    // TODO: One logging support is implement, this should be changed to a log entry
-    _com_error err(hr);
-    print_error((boost::format("Error when gathering the APPDATA folder path: %s") % err.ErrorMessage()).str());
-  }
+    if(file_exists(global_file))
+      scripts_paths.push_back(global_file);
 #endif
 
-  for(std::vector<std::string>::iterator i = scripts_paths.begin(); i != scripts_paths.end(); ++i)
-    process_file((*i).c_str());
+    for (std::vector<std::string>::iterator i = scripts_paths.begin(); i != scripts_paths.end(); ++i)
+      process_file((*i).c_str());
+  }
+  catch (std::exception &e)
+  {
+    print_error(e.what());
+  }
 }
 
 std::string Interactive_shell::prompt()
@@ -377,8 +359,12 @@ void Interactive_shell::switch_shell_mode(Shell_core::Mode mode, const std::vect
 #endif
         break;
       case Shell_core::Mode_Python:
+      // TODO: remove following #if 0 #endif as soon as Python mode is implemented
+#if 0
         if (_shell->switch_mode(mode, lang_initialized))
           println("Switching to Python mode...");
+#endif
+        println("Python mode is not yet supported, command ignored.");
         break;
     }
 
@@ -576,19 +562,15 @@ void Interactive_shell::process_line(const std::string &line)
       {
         Value result = _shell->handle_input(_input_buffer, state);
 
-        if (result) {
-          if (result.type == shcore::Object)
-          {
-            boost::shared_ptr<Object_bridge> object = result.as_object();
-            Value dump_function;
-            if (object && object->has_member("__paged_output__"))
-              dump_function = object->get_member("__paged_output__");
+        if (result && result.type == shcore::Object)
+        {
+          boost::shared_ptr<Object_bridge> object = result.as_object();
+          Value dump_function;
+          if (object && object->has_member("__paged_output__"))
+            dump_function = object->get_member("__paged_output__");
 
-            if (dump_function)
-              object->call("__paged_output__", Argument_list());
-            else
-              this->print(result.descr(true).c_str());
-          }
+          if (dump_function)
+            object->call("__paged_output__", Argument_list());
           else
             this->print(result.descr(true).c_str());
         }

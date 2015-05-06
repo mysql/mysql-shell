@@ -15,6 +15,8 @@
 
 include_directories( ${MYSQL_INCLUDE_DIRS} )
 include_directories("${CMAKE_SOURCE_DIR}/include" "${CMAKE_SOURCE_DIR}/utils" "${Boost_INCLUDE_DIRS}")
+include_directories( "${CMAKE_SOURCE_DIR}/common/uuid/include" )
+include_directories( "${CMAKE_SOURCE_DIR}/common/myjson/include" )
 
 
 file(GLOB libmysqlsh_SRC
@@ -23,7 +25,13 @@ file(GLOB libmysqlsh_SRC
     "${CMAKE_SOURCE_DIR}/utils/utils_mysql_parsing.cc"
     "${CMAKE_SOURCE_DIR}/utils/utils_time.h"
     "${CMAKE_SOURCE_DIR}/utils/utils_time.cc"
+    "${CMAKE_SOURCE_DIR}/utils/utils_file.h"
+    "${CMAKE_SOURCE_DIR}/utils/utils_file.cc"
       "*.cc"
+    "${CMAKE_SOURCE_DIR}/common/uuid/src/uuid_gen.cc"
+    "${CMAKE_SOURCE_DIR}/common/myjson/src/json_parser.cc"
+    "${CMAKE_SOURCE_DIR}/common/myjson/src/mutable_myjson.cc"
+    "${CMAKE_SOURCE_DIR}/common/myjson/src/myjson.cc"
 )
 
 # Configures V8 accordingly...
@@ -59,5 +67,5 @@ endif()
 
 add_definitions(-DSHCORE_EXPORT )
 add_definitions(-DBOOST_ALL_NO_LIB )
-
+add_definitions(-Dmyjsonlib_EXPORTS )
 
