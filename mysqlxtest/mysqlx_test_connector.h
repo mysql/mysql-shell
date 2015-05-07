@@ -31,7 +31,12 @@
 
 typedef google::protobuf::Message Message;
 
-namespace mysh {
+namespace mysqlx {
+  bool parse_mysql_connstring(const std::string &connstring,
+    std::string &protocol, std::string &user, std::string &password,
+    std::string &host, int &port, std::string &sock,
+    std::string &db, int &pwd_found);
+
   class Mysqlx_test_connector
   {
     typedef boost::asio::ip::tcp tcp;
@@ -49,6 +54,32 @@ namespace mysh {
 
     void flush();
     void close();
+
+    // Overrides for Client Session Messages
+    void send_message(Mysqlx::Session::AuthenticateStart *m){ send_message(Mysqlx::ClientMessages_Type_SESS_AUTH_START, m); };
+    void send_message(Mysqlx::Session::AuthenticateContinue *m){ send_message(Mysqlx::ClientMessages_Type_SESS_AUTH_CONT, m); };
+    void send_message(Mysqlx::Session::Reset *m){ send_message(Mysqlx::ClientMessages_Type_SESS_RESET, m); };
+    void send_message(Mysqlx::Session::Close *m){ send_message(Mysqlx::ClientMessages_Type_SESS_CLOSE, m); };
+
+    // Overrides for SQL Messages
+    void send_message(Mysqlx::Sql::PrepareStmt *m){ send_message(Mysqlx::ClientMessages_Type_SQL_PREP_STMT_CLOSE, m); };
+    void send_message(Mysqlx::Sql::PreparedStmtClose *m){ send_message(Mysqlx::ClientMessages_Type_SQL_PREP_STMT, m); };
+    void send_message(Mysqlx::Sql::PreparedStmtExecute *m){ send_message(Mysqlx::ClientMessages_Type_SQL_PREP_STMT_EXEC, m); };
+    void send_message(Mysqlx::Sql::CursorFetchMetaData *m){ send_message(Mysqlx::ClientMessages_Type_SQL_CURSOR_FETCH_META, m); };
+    void send_message(Mysqlx::Sql::CursorFetchRows *m){ send_message(Mysqlx::ClientMessages_Type_SQL_CURSOR_FETCH_ROWS, m); };
+    void send_message(Mysqlx::Sql::CursorsPoll *m){ send_message(Mysqlx::ClientMessages_Type_SQL_CURSORS_POLL, m); };
+    void send_message(Mysqlx::Sql::CursorClose *m){ send_message(Mysqlx::ClientMessages_Type_SQL_CURSOR_CLOSE, m); };
+
+    // Overrides for CRUD operations
+    void send_message(Mysqlx::Crud::PrepareFind *m){ send_message(Mysqlx::ClientMessages_Type_CRUD_PREP_FIND, m); };
+    void send_message(Mysqlx::Crud::PrepareInsert *m){ send_message(Mysqlx::ClientMessages_Type_CRUD_PREP_INSERT, m); };
+    void send_message(Mysqlx::Crud::PrepareUpdate *m){ send_message(Mysqlx::ClientMessages_Type_CRUD_PREP_UPDATE, m); };
+    void send_message(Mysqlx::Crud::PrepareDelete *m){ send_message(Mysqlx::ClientMessages_Type_CRUD_PREP_DELETE, m); };
+
+    // Overrides for Connection
+    void send_message(Mysqlx::Connection::CapabilitiesGet *m){ send_message(Mysqlx::ClientMessages_Type_CON_GET_CAP, m); };
+    void send_message(Mysqlx::Connection::CapabilitiesSet *m){ send_message(Mysqlx::ClientMessages_Type_CON_SET_CAP, m); };
+    void send_message(Mysqlx::Connection::Close *m){ send_message(Mysqlx::ClientMessages_Type_CON_CLOSE, m); };
 
   protected:
     boost::asio::io_service ios;

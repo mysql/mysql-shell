@@ -48,13 +48,22 @@ if(WITH_TESTS)
     
     add_executable(run_unit_tests ${mysqlsh_tests_SRC})
     add_dependencies(run_unit_tests mysqlshmods)
+    if (HAVE_PROTOBUF)
+      add_dependencies(run_unit_tests mysqlxtest)
+    endif()
     target_link_libraries(run_unit_tests
             mysqlsh
             mysqlshmods
             gtest
-            ${PROTOBUF_LIBRARY}
             ${MYSQL_LIBRARIES}
             )
+
+    if (HAVE_PROTOBUF)
+      target_link_libraries(run_unit_tests
+              ${PROTOBUF_LIBRARY}
+              mysqlxtest
+              )
+    endif()
             
     if ( HAVE_V8 )
       target_link_libraries(run_unit_tests ${V8_LINK_LIST})

@@ -53,10 +53,10 @@ namespace mysh {
 
     static boost::shared_ptr<Object_bridge> create(const shcore::Argument_list &args);
 
-    boost::shared_ptr<Mysqlx_test_connector> get_protobuf() { return _protobuf; }
+    boost::shared_ptr<mysqlx::Mysqlx_test_connector> get_protobuf() { return _protobuf; }
 
   protected:
-    boost::shared_ptr<Mysqlx_test_connector> _protobuf;
+    boost::shared_ptr<mysqlx::Mysqlx_test_connector> _protobuf;
 
   private:
     int _next_stmt_id;

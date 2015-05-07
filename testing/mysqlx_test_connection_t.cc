@@ -21,7 +21,6 @@
 #include <boost/lexical_cast.hpp>
 
 #include <gtest/gtest.h>
-#include "../modules/mod_connection.h"
 
 #include "../mysqlxtest/mysqlx_test_connector.h"
 
@@ -39,27 +38,26 @@ namespace shcore
       std::string sock;
       std::string db;
 
-      boost::shared_ptr<mysh::Mysqlx_test_connector> conn;
+      boost::shared_ptr<mysqlx::Mysqlx_test_connector> conn;
     } env;
 
     TEST(Mysqlx_test_connection, connection)
     {
-      Argument_list args;
       const char *uri = getenv("MYSQL_URI");
       const char *pwd = getenv("MYSQL_PWD");
       std::string x_uri;
 
       int port, pwd_found = 0;
 
-      mysh::parse_mysql_connstring(uri, env.protocol, env.user, env.password, env.host, port, env.sock, env.db, pwd_found);
+      mysqlx::parse_mysql_connstring(uri, env.protocol, env.user, env.password, env.host, port, env.sock, env.db, pwd_found);
       if (pwd)
         env.password.assign(pwd);
 
       // Connection Error (using invalid port)
-      EXPECT_THROW(env.conn.reset(new mysh::Mysqlx_test_connector(env.host, "45632")), boost::system::system_error);
+      EXPECT_THROW(env.conn.reset(new mysqlx::Mysqlx_test_connector(env.host, "45632")), boost::system::system_error);
 
       // Connection will now succeed.
-      EXPECT_NO_THROW(env.conn.reset(new mysh::Mysqlx_test_connector(env.host, "33060")));
+      EXPECT_NO_THROW(env.conn.reset(new mysqlx::Mysqlx_test_connector(env.host, "33060")));
     }
 
     TEST(Mysqlx_test_connection, sample_authenticate_failure)
@@ -70,7 +68,7 @@ namespace shcore
       m.set_mech_name("plain");
       m.set_auth_data(env.user);
       m.set_initial_response("a_fake_password");
-      env.conn->send_message(Mysqlx::ClientMessages_Type_SESS_AUTH_START, &m);
+      env.conn->send_message(&m);
 
       int response_message_id;
       Message *response = env.conn->read_response(response_message_id);
@@ -96,14 +94,14 @@ namespace shcore
     TEST(Mysqlx_test_connection, sample_authenticate_success)
     {
       // Reconnects to attempt the authentication failure.
-      EXPECT_NO_THROW(env.conn.reset(new mysh::Mysqlx_test_connector(env.host, "33060")));
+      EXPECT_NO_THROW(env.conn.reset(new mysqlx::Mysqlx_test_connector(env.host, "33060")));
 
       Mysqlx::Session::AuthenticateStart m;
 
       m.set_mech_name("plain");
       m.set_auth_data(env.user);
       m.set_initial_response(env.password);
-      env.conn->send_message(Mysqlx::ClientMessages_Type_SESS_AUTH_START, &m);
+      env.conn->send_message(&m);
 
       int response_message_id;
       Message *response = env.conn->read_response(response_message_id);

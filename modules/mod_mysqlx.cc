@@ -82,7 +82,7 @@ X_connection::X_connection(const std::string &uri, const char *password)
 
   try
   {
-    _protobuf = boost::shared_ptr<Mysqlx_test_connector>(new Mysqlx_test_connector(host, ss.str()));
+    _protobuf = boost::shared_ptr<mysqlx::Mysqlx_test_connector>(new mysqlx::Mysqlx_test_connector(host, ss.str()));
   }
   CATCH_AND_TRANSLATE();
 
