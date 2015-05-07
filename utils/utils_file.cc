@@ -21,6 +21,7 @@
 
 #include <stdexcept>
 #include <boost/format.hpp>
+#include <fstream>
 
 #ifdef WIN32
 #  include <ShlObj.h>
@@ -34,12 +35,10 @@
 #  include <sys/stat.h>
 #endif
 
-
 using namespace shcore;
 
 namespace shcore
 {
-
   /*
    * Returns the config path ($HOME\mysqlx in Unix or %AppData%\mysql\mysql in Windows).
    */
@@ -95,7 +94,6 @@ namespace shcore
     else
       return false;
 #endif
-
   }
 
   /*
@@ -127,7 +125,7 @@ namespace shcore
       if(mkdir(dir_path, 0700) != 0)
         throw std::runtime_error((boost::format("Error when verifying dir %s exists: %s") % dir_path % shcore::get_last_error()).str());
     }
-    else 
+    else
     {
       throw std::runtime_error((boost::format("Error when verifying dir %s exists: %s") % dir_path % shcore::get_last_error()).str());
     }
@@ -169,5 +167,29 @@ namespace shcore
     fmt % errnum;
     return fmt.str();
 #endif
+  }
+
+  bool load_text_file(const std::string& path, std::string& data)
+  {
+    bool ret_val = false;
+
+    std::ifstream s(path.c_str());
+    if (!s.fail())
+    {
+      s.seekg(0, std::ios_base::end);
+      std::streamsize fsize = s.tellg();
+      s.seekg(0, std::ios_base::beg);
+      char *fdata = new char[fsize + 1];
+      s.read(fdata, fsize);
+
+      // Adds string terminator at the position next to the last
+      // read character
+      fdata[s.gcount()] = '\0';
+
+      data.assign(fdata);
+      ret_val = true;
+    }
+
+    return ret_val;
   }
 }

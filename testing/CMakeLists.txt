@@ -38,6 +38,7 @@ if(WITH_TESTS)
     
     if ( NOT HAVE_V8 )
       list(REMOVE_ITEM mysqlsh_tests_SRC "${PROJECT_SOURCE_DIR}/testing/value_js_bridging_t.cc")
+      list(REMOVE_ITEM mysqlsh_tests_SRC "${PROJECT_SOURCE_DIR}/testing/shell_js_t.cc")
     endif()
 
     if (NOT HAVE_PYTHON )
@@ -56,6 +57,10 @@ if(WITH_TESTS)
             
     if ( HAVE_V8 )
       target_link_libraries(run_unit_tests ${V8_LINK_LIST})
+      
+      add_custom_command(TARGET run_unit_tests PRE_BUILD
+                            COMMAND ${CMAKE_COMMAND} -E copy_directory
+                            ${CMAKE_SOURCE_DIR}/testing/modules $<TARGET_FILE_DIR:run_unit_tests>)
     endif()
 
     if ( HAVE_PYTHON )

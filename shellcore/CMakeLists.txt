@@ -19,6 +19,26 @@ include_directories( "${CMAKE_SOURCE_DIR}/common/uuid/include" )
 include_directories( "${CMAKE_SOURCE_DIR}/common/myjson/include" )
 
 
+# Will generate the js_core_definitions file which will contain the 
+# core.js file in a variable.
+if ( HAVE_V8 )
+  # Loads the core.js file
+  FILE(READ "${CMAKE_SOURCE_DIR}/scripting/core.js" JS_CORE_MODULE)
+
+  # Strips the copyright notice from it
+  string(FIND "${JS_CORE_MODULE}" "function" COPYRIGHT_END)
+  string(SUBSTRING "${JS_CORE_MODULE}" 0 ${COPYRIGHT_END}+2 COPYRIGHT_TEXT)
+  string(REPLACE "${COPYRIGHT_TEXT}" "" JS_CORE_MODULE_STRIPPED "${JS_CORE_MODULE}")
+
+  # Updates format to be a C++ multiline definition
+  string(REPLACE "\\" "\\\\" JS_CORE_MODULE_PREPARED "${JS_CORE_MODULE_STRIPPED}")
+  string(REPLACE "\n" "\\n\"\n\"" JS_CORE_MODULE_UPDATED "${JS_CORE_MODULE_PREPARED}")
+  
+  # Creates the target file containing the code ready for processing
+  configure_file("${CMAKE_SOURCE_DIR}/include/shellcore/jscript_core_definitions.h.in" 
+                 "${CMAKE_SOURCE_DIR}/include/shellcore/jscript_core_definitions.h")
+endif()
+
 file(GLOB libmysqlsh_SRC
     "${CMAKE_SOURCE_DIR}/include/shellcore/*.h"
     "${CMAKE_SOURCE_DIR}/utils/utils_mysql_parsing.h"

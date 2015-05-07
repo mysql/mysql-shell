@@ -28,5 +28,6 @@ namespace shcore
   bool file_exists(const std::string& filename);
   void ensure_dir_exists(const std::string& path);
   std::string get_last_error();
+  bool load_text_file(const std::string& path, std::string& data);
 }
 #endif /* defined(__mysh__utils_file__) */

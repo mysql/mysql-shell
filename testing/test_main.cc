@@ -19,6 +19,12 @@
 
 int main(int argc, char **argv)
 {
+#ifdef HAVE_V8
+  extern void JScript_context_init();
+
+  JScript_context_init();
+#endif
+
   ::testing::InitGoogleTest(&argc, argv);
 
   const char *generate_option = "--generate_test_groups=";
