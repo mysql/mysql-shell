@@ -17,10 +17,9 @@
  * 02110-1301  USA
  */
 
-#include "mysqlx_connector.h"
+#include "mysqlx_test_connector.h"
 
 using namespace mysh;
-
 
 #include <iostream>
 
@@ -28,36 +27,32 @@ using namespace mysh;
 #include <string>
 #include <iostream>
 
-Mysqlx_connector::Mysqlx_connector(const std::string &host, const std::string &port)
+Mysqlx_test_connector::Mysqlx_test_connector(const std::string &host, const std::string &port)
 : _socket(_ios)
 {
   tcp::resolver resolver(_ios);
-  std::stringstream ss;
-   ss << port;
-
-   tcp::resolver::query query(host, ss.str());
-
+  tcp::resolver::query query(host, port);
 
 #if BOOST_VERSION >= 104700
-   boost::asio::connect(_socket, resolver.resolve(query));
+  boost::asio::connect(_socket, resolver.resolve(query));
 #else
-   tcp::resolver::iterator endpoint_iterator = resolver.resolve(query);
-   tcp::resolver::iterator end;
-   boost::system::error_code error = boost::asio::error::host_not_found;
-   while (error && endpoint_iterator != end)
-   {
-     _socket.close();
-     _socket.connect(*endpoint_iterator++, error);
-   }
-   if (error)
-     throw boost::system::system_error(error);
+  tcp::resolver::iterator endpoint_iterator = resolver.resolve(query);
+  tcp::resolver::iterator end;
+  boost::system::error_code error = boost::asio::error::host_not_found;
+  while (error && endpoint_iterator != end)
+  {
+    _socket.close();
+    _socket.connect(*endpoint_iterator++, error);
+  }
+  if (error)
+    throw boost::system::system_error(error);
 #endif
 }
 
-void Mysqlx_connector::send_message(int mid, Message *msg)
+void Mysqlx_test_connector::send_message(int mid, Message *msg)
 {
   char buf[5];
-  *(int32_t*)buf = htonl(msg->ByteSize()+5);
+  *(int32_t*)buf = htonl(msg->ByteSize() + 5);
   buf[4] = mid;
   _socket.write_some(boost::asio::buffer(buf, 5));
   std::string mbuf;
@@ -66,18 +61,17 @@ void Mysqlx_connector::send_message(int mid, Message *msg)
   flush();
 }
 
-void Mysqlx_connector::send_message(int mid, const std::string &mdata)
+void Mysqlx_test_connector::send_message(int mid, const std::string &mdata)
 {
   char buf[5];
-  *(int32_t*)buf = htonl(mdata.size()+5);
+  *(int32_t*)buf = htonl(mdata.size() + 5);
   buf[4] = mid;
   _socket.write_some(boost::asio::buffer(buf, 5));
   _socket.write_some(boost::asio::buffer(mdata.data(), mdata.length()));
   flush();
 }
 
-
-Message *Mysqlx_connector::read_response(int &mid)
+Message *Mysqlx_test_connector::read_response(int &mid)
 {
   char buf[5];
 
@@ -173,7 +167,7 @@ Message *Mysqlx_connector::read_response(int &mid)
 
   return ret_val;
 }
-/* 
+/*
  * send_receive_message
  *
  * Handles a happy path of communication with the server:
@@ -182,7 +176,7 @@ Message *Mysqlx_connector::read_response(int &mid)
  *
  * If any of the expected responses is not received then an exception is trown
  */
-Message *Mysqlx_connector::send_receive_message(int& mid, Message *msg, std::set<int> responses, const std::string& info)
+Message *Mysqlx_test_connector::send_receive_message(int& mid, Message *msg, std::set<int> responses, const std::string& info)
 {
   send_message(mid, msg);
 
@@ -203,7 +197,7 @@ Message *Mysqlx_connector::send_receive_message(int& mid, Message *msg, std::set
  *
  * If the expected response is not received then an exception is trown
  */
-Message *Mysqlx_connector::send_receive_message(int& mid, Message *msg, int response_id, const std::string& info)
+Message *Mysqlx_test_connector::send_receive_message(int& mid, Message *msg, int response_id, const std::string& info)
 {
   send_message(mid, msg);
 
@@ -220,7 +214,7 @@ Message *Mysqlx_connector::send_receive_message(int& mid, Message *msg, int resp
  * Throws the proper exception based on the received response on the
  * send_receive_message methods above
  */
-void Mysqlx_connector::handle_wrong_response(int mid, Message *msg, const std::string& info)
+void Mysqlx_test_connector::handle_wrong_response(int mid, Message *msg, const std::string& info)
 {
   if (mid == Mysqlx::ServerMessages_Type_ERROR)
   {
@@ -242,14 +236,12 @@ void Mysqlx_connector::handle_wrong_response(int mid, Message *msg, const std::s
   }
 }
 
-
-void Mysqlx_connector::flush()
+void Mysqlx_test_connector::flush()
 {
   //_socket.flush();
 }
 
-
-void Mysqlx_connector::close()
+void Mysqlx_test_connector::close()
 {
   // This should be logged, for now commenting to
   // avoid having unneeded output on the script mode
@@ -261,9 +253,7 @@ void Mysqlx_connector::close()
   send_message(Mysqlx::ClientMessages::kMsgConClose, data);*/
 }
 
-
-
-Mysqlx_connector::~Mysqlx_connector()
+Mysqlx_test_connector::~Mysqlx_test_connector()
 {
   close();
 }

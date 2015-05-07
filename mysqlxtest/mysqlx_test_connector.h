@@ -29,34 +29,31 @@
 #undef ERROR //Needed to avoid conflict with ERROR in mysqlx.pb.h
 #include "mysqlx.pb.h"
 
-
 typedef google::protobuf::Message Message;
 
 namespace mysh {
-
-  class Mysqlx_connector
+  class Mysqlx_test_connector
   {
     typedef boost::asio::ip::tcp tcp;
 
-    public:
-      Mysqlx_connector(const std::string &host, const std::string &port);
-      ~Mysqlx_connector();
+  public:
+    Mysqlx_test_connector(const std::string &host, const std::string &port);
+    ~Mysqlx_test_connector();
 
-      void send_message(int mid, Message *msg);
-      void send_message(int mid, const std::string &mdata);
-      Message *read_response(int &mid);
-      Message *send_receive_message(int& mid, Message *msg, std::set<int> responses, const std::string& info);
-      Message *send_receive_message(int& mid, Message *msg, int response_id, const std::string& info);
-      void handle_wrong_response(int mid, Message *msg, const std::string& info);
+    void send_message(int mid, Message *msg);
+    void send_message(int mid, const std::string &mdata);
+    Message *read_response(int &mid);
+    Message *send_receive_message(int& mid, Message *msg, std::set<int> responses, const std::string& info);
+    Message *send_receive_message(int& mid, Message *msg, int response_id, const std::string& info);
+    void handle_wrong_response(int mid, Message *msg, const std::string& info);
 
-      void flush();
-      void close();
+    void flush();
+    void close();
 
-    protected:
-      boost::asio::io_service ios;
-      boost::asio::io_service _ios;
-      boost::asio::ip::tcp::socket _socket;
-      //boost::asio::buffered_write_stream<boost::asio::ip::tcp::socket> m_wstream;
+  protected:
+    boost::asio::io_service ios;
+    boost::asio::io_service _ios;
+    boost::asio::ip::tcp::socket _socket;
   };
 };
 

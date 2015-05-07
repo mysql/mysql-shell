@@ -21,13 +21,11 @@
 
 using namespace mysh;
 
-
 #include <iostream>
 
 #include <boost/asio.hpp>
 #include <string>
 #include <iostream>
-
 
 /*
 * Helper function to ensure the exceptions generated on the mysqlx_connector
@@ -73,59 +71,55 @@ X_connection::X_connection(const std::string &uri, const char *password)
   std::string db;
   int pwd_found;
 
-  
   if (!parse_mysql_connstring(uri, protocol, user, pass, host, port, sock, db, pwd_found))
     throw shcore::Exception::argument_error("Could not parse URI for MySQL connection");
 
   if (password)
     pass.assign(password);
 
-   std::stringstream ss;
-   ss << port;
+  std::stringstream ss;
+  ss << port;
 
-   try
-   {
-     _protobuf = boost::shared_ptr<Mysqlx_connector>(new Mysqlx_connector(host, ss.str()));
-   }
-   CATCH_AND_TRANSLATE();
+  try
+  {
+    _protobuf = boost::shared_ptr<Mysqlx_test_connector>(new Mysqlx_test_connector(host, ss.str()));
+  }
+  CATCH_AND_TRANSLATE();
 
   auth(user.c_str(), pass.c_str());
 }
 
 void X_connection::auth(const char *user, const char *pass)
 {
-    Mysqlx::Session::AuthenticateStart m;
+  Mysqlx::Session::AuthenticateStart m;
 
-    m.set_mech_name("plain");
-    m.set_auth_data(user);
-    m.set_initial_response(pass);
-    _protobuf->send_message(Mysqlx::ClientMessages_Type_SESS_AUTH_START, &m);
+  m.set_mech_name("plain");
+  m.set_auth_data(user);
+  m.set_initial_response(pass);
+  _protobuf->send_message(Mysqlx::ClientMessages_Type_SESS_AUTH_START, &m);
 
-    int mid;
-    try
-    {
-      Message *r = _protobuf->read_response(mid);
+  int mid;
+  try
+  {
+    Message *r = _protobuf->read_response(mid);
 
-      if (r)
-        delete r;
-    }
-    CATCH_AND_TRANSLATE();
+    if (r)
+      delete r;
+  }
+  CATCH_AND_TRANSLATE();
 
-    if (mid != Mysqlx::ServerMessages_Type_SESS_AUTH_OK )
-    {
-      throw shcore::Exception::argument_error("Authentication failed...");
-    }
+  if (mid != Mysqlx::ServerMessages_Type_SESS_AUTH_OK)
+  {
+    throw shcore::Exception::argument_error("Authentication failed...");
+  }
 }
-
-
 
 boost::shared_ptr<shcore::Object_bridge> X_connection::create(const shcore::Argument_list &args)
 {
   args.ensure_count(1, 2, "Mysqlx_connection()");
   return boost::shared_ptr<shcore::Object_bridge>(new X_connection(args.string_at(0),
-                                                                       args.size() > 1 ? args.string_at(1).c_str() : NULL));
+    args.size() > 1 ? args.string_at(1).c_str() : NULL));
 }
-
 
 X_resultset *X_connection::_sql(const std::string &query, shcore::Value options)
 {
@@ -222,13 +216,10 @@ shcore::Value X_connection::close(const shcore::Argument_list &args)
   return shcore::Value();
 }
 
-
 X_connection::~X_connection()
 {
   close(shcore::Argument_list());
 }
-
-
 
 bool X_connection::next_result(Base_resultset *target, bool first_result)
 {
@@ -259,7 +250,6 @@ bool X_connection::next_result(Base_resultset *target, bool first_result)
               delete msg;
               msg = NULL;
             }
-
           } while (mid == Mysqlx::ServerMessages_Type_SQL_ROW);
         }
 
@@ -301,13 +291,12 @@ bool X_connection::next_result(Base_resultset *target, bool first_result)
   return ret_val;
 }
 
-X_row::X_row(std::vector<Field>& metadata, bool key_by_index, Mysqlx::Sql::Row *row): Base_row(metadata, key_by_index), _row(row)
+X_row::X_row(std::vector<Field>& metadata, bool key_by_index, Mysqlx::Sql::Row *row) : Base_row(metadata, key_by_index), _row(row)
 {
 }
 
 shcore::Value X_row::get_value(int index)
 {
-
   Mysqlx::Datatypes::Any field(_row->field(index));
 
   // TODO: Is there a way a field has nothing (like in mysql NULL)
@@ -345,13 +334,11 @@ X_row::~X_row()
     delete _row;
 }
 
-
 X_resultset::X_resultset(boost::shared_ptr<X_connection> owner, int cursor_id, uint64_t affected_rows, int warning_count, const char *info, boost::shared_ptr<shcore::Value::Map_type> options) :
 Base_resultset(owner, affected_rows, warning_count, info, options), _xowner(owner), _cursor_id(cursor_id), _next_mid(0),
 _current_fetch_done(false), _all_fetch_done(false)
 {
 }
-
 
 X_resultset::~X_resultset(){}
 
@@ -448,7 +435,6 @@ int X_resultset::fetch_metadata()
             0)); // charset: not supported yet
 
           msg = owner->get_protobuf()->read_response(mid);
-
         } while (mid != Mysqlx::ServerMessages_Type_SQL_CURSOR_FETCH_DONE);
 
         ret_val = _metadata.size();
@@ -476,11 +462,11 @@ void X_resultset::reset(unsigned long duration, int next_mid, ::google::protobuf
 
   // Nothing to be read anymnore on these cases
   _all_fetch_done = (_next_mid == Mysqlx::ServerMessages_Type_SQL_CURSOR_FETCH_DONE ||
-                     _next_mid == 0);
+    _next_mid == 0);
 
   // Nothing to be read for the current result on these cases
   _current_fetch_done = (_next_mid == Mysqlx::ServerMessages_Type_SQL_CURSOR_FETCH_DONE ||
-                         _next_mid == Mysqlx::ServerMessages_Type_SQL_CURSOR_FETCH_DONE_MORE);
+    _next_mid == Mysqlx::ServerMessages_Type_SQL_CURSOR_FETCH_DONE_MORE);
 
   _raw_duration = duration;
   _next_message = next_message;
@@ -491,11 +477,10 @@ void X_resultset::reset(unsigned long duration, int next_mid, ::google::protobuf
 
 #include "shellcore/object_factory.h"
 namespace {
-static struct Auto_register {
-  Auto_register()
-  {
-    shcore::Object_factory::register_factory("mysqlx", "Connection", &X_connection::create);
-  }
-} Mysql_connection_register;
-
+  static struct Auto_register {
+    Auto_register()
+    {
+      shcore::Object_factory::register_factory("mysqlx", "Connection", &X_connection::create);
+    }
+  } Mysql_connection_register;
 };

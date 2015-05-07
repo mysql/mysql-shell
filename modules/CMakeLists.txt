@@ -15,7 +15,7 @@
 
 include_directories("${CMAKE_SOURCE_DIR}/include" 
                     "${CMAKE_SOURCE_DIR}/utils" 
-                    "${CMAKE_SOURCE_DIR}/xconnector" 
+                    "${CMAKE_SOURCE_DIR}/mysqlxtest" 
                     "${MYSQL_INCLUDE_DIR}"
                     "${Boost_INCLUDE_DIRS}")
 
@@ -38,7 +38,7 @@ if (NOT HAVE_PROTOBUF)
     list(REMOVE_ITEM libmysqlshmods_SRC "${xfile}")
   endforeach()  
 else()
-  include_directories("${CMAKE_BINARY_DIR}/xconnector")
+  include_directories("${CMAKE_BINARY_DIR}/mysqlxtest")
   INCLUDE(protobuf)
   SETUP_PROTOBUF()
 endif()
