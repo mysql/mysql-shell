@@ -32,6 +32,9 @@
 #include "shellcore/shell_sql.h"
 #include "../modules/mod_session.h"
 #include "../modules/mod_db.h"
+#include "shellcore/common.h"
+#include "test_utils.h"
+#include "boost/algorithm/string.hpp"
 
 
 namespace shcore {
@@ -43,23 +46,11 @@ namespace shcore {
     public:
       Environment()
       {
-        deleg.print = print;
-        deleg.password = password;
-        shell_core.reset(new Shell_core(&deleg));
+        shell_core.reset(new Shell_core(&output_handler.deleg));
 
         session.reset(new mysh::Session(shell_core.get()));
         shell_core->set_global("session", Value(boost::static_pointer_cast<Object_bridge>(session)));
         shell_sql.reset(new Shell_sql(shell_core.get()));
-      }
-
-      static void print(void *, const char *text)
-      {
-        std::cout << text << "\n";
-      }
-
-      static bool password(void *cdata, const char *prompt, std::string &ret)
-      {
-        return true;
       }
 
       ~Environment()
@@ -67,41 +58,50 @@ namespace shcore {
       }
 
 
-      Interpreter_delegate deleg;
+      Shell_test_output_handler output_handler;
       boost::shared_ptr<Shell_core> shell_core;
       boost::shared_ptr<Shell_sql> shell_sql;
       boost::shared_ptr<mysh::Session> session;
     };
 
-    Environment env;
-
-    TEST(Shell_sql_test, connection)
+    class Shell_sql_test : public ::testing::Test
     {
-      const char *uri = getenv("MYSQL_URI");
-      const char *pwd = getenv("MYSQL_PWD");
-      const char *port = getenv("MYSQL_PORT");
+    protected:
+      Environment env;
 
-      std::string x_uri(uri);
-      if (port)
+      virtual void SetUp()
       {
-        x_uri.append(":");
-        x_uri.append(port);
+        connect();
       }
 
-      Argument_list args;
-      args.push_back(Value(x_uri));
-      if (pwd)
-        args.push_back(Value(pwd));
+      void connect()
+      {
+        const char *uri = getenv("MYSQL_URI");
+        const char *pwd = getenv("MYSQL_PWD");
+        const char *port = getenv("MYSQL_PORT");
 
-      env.session->connect(args);
-    }
+        std::string x_uri(uri);
+        if (port)
+        {
+          x_uri.append(":");
+          x_uri.append(port);
+        }
 
-    TEST(Shell_sql_test, test_initial_state)
+        Argument_list args;
+        args.push_back(Value(x_uri));
+        if (pwd)
+          args.push_back(Value(pwd));
+
+        env.session->connect(args);
+      }
+    };
+
+    TEST_F(Shell_sql_test, test_initial_state)
     {
       EXPECT_EQ("mysql-sql> ", env.shell_sql->prompt());
     }
 
-    TEST(Shell_sql_test, full_statement)
+    TEST_F(Shell_sql_test, full_statement)
     {
       Interactive_input_state state;
       std::string query = "show databases;";
@@ -116,7 +116,7 @@ namespace shcore {
       EXPECT_EQ("mysql-sql> ", env.shell_sql->prompt());
     }
 
-    TEST(Shell_sql_test, sql_multi_line_statement)
+    TEST_F(Shell_sql_test, sql_multi_line_statement)
     {
       Interactive_input_state state;
       std::string query = "show";
@@ -153,7 +153,7 @@ namespace shcore {
       EXPECT_EQ("mysql-sql> ", env.shell_sql->prompt());
     }
 
-    TEST(Shell_sql_test, sql_multi_line_string_delimiter)
+    TEST_F(Shell_sql_test, sql_multi_line_string_delimiter)
     {
       Interactive_input_state state;
       std::string query = "delimiter %%%";
@@ -205,7 +205,7 @@ namespace shcore {
       EXPECT_EQ(Input_ok, state);
     }
 
-    TEST(Shell_sql_test, global_multi_line_statement)
+    TEST_F(Shell_sql_test, global_multi_line_statement)
     {
       Interactive_input_state state;
       std::string query = "show\ndatabases";
@@ -217,7 +217,7 @@ namespace shcore {
       EXPECT_EQ("mysql-sql> ", env.shell_sql->prompt());
     }
 
-    TEST(Shell_sql_test, multiple_statements_continued)
+    TEST_F(Shell_sql_test, multiple_statements_continued)
     {
       Interactive_input_state state;
       std::string query = "show databases; show";
@@ -240,7 +240,7 @@ namespace shcore {
       EXPECT_EQ("mysql-sql> ", env.shell_sql->prompt());
     }
 
-    TEST(Shell_sql_test, global_multi_line_statement_ignored)
+    TEST_F(Shell_sql_test, global_multi_line_statement_ignored)
     {
       Interactive_input_state state;
       std::string query = "show";
@@ -270,7 +270,7 @@ namespace shcore {
       EXPECT_EQ("mysql-sql> ", env.shell_sql->prompt());
     }
 
-    TEST(Shell_sql_test, multiline_comment)
+    TEST_F(Shell_sql_test, multiline_comment)
     {
       Interactive_input_state state;
       std::string query = "/*";
@@ -296,7 +296,7 @@ namespace shcore {
       EXPECT_EQ("mysql-sql> ", env.shell_sql->prompt());
     }
 
-    TEST(Shell_sql_test, multiline_single_quote_continued_string)
+    TEST_F(Shell_sql_test, multiline_single_quote_continued_string)
     {
       Interactive_input_state state;
       std::string query = "select 'hello ";
@@ -315,7 +315,7 @@ namespace shcore {
       EXPECT_EQ("mysql-sql> ", env.shell_sql->prompt());
     }
 
-    TEST(Shell_sql_test, multiline_double_quote_continued_string)
+    TEST_F(Shell_sql_test, multiline_double_quote_continued_string)
     {
       Interactive_input_state state;
       std::string query = "select \"hello ";
@@ -334,7 +334,7 @@ namespace shcore {
       EXPECT_EQ("mysql-sql> ", env.shell_sql->prompt());
     }
 
-    TEST(Shell_sql_test, DISABLED_multiline_backtick_string)
+    TEST_F(Shell_sql_test, DISABLED_multiline_backtick_string)
     {
       Interactive_input_state state;
       std::string query = "select * from `t";
@@ -353,32 +353,23 @@ namespace shcore {
       EXPECT_EQ("mysql-sql> ", env.shell_sql->prompt());
     }
 
-    TEST(Shell_sql_test, print_help)
+    TEST_F(Shell_sql_test, print_help)
     {
-      std::stringstream my_stdout;
-      std::streambuf* stdout_backup = std::cout.rdbuf();
-      std::string line;
-      std::cout.rdbuf(my_stdout.rdbuf());
+      std::vector<std::string> lines;
 
       // Generic topic prints the available commands
       EXPECT_TRUE(env.shell_sql->print_help(""));
-      std::getline(my_stdout, line);
-      EXPECT_EQ("===== SQL Mode Commands =====", line);
-      std::getline(my_stdout, line);
-      EXPECT_EQ("warnings   (\\W) Show warnings after every statement.", line);
-      std::getline(my_stdout, line);
-      EXPECT_EQ("nowarnings (\\w) Don't show warnings after every statement.", line);
+      boost::algorithm::split(lines, env.output_handler.std_out, boost::is_any_of("\n"), boost::token_compress_on);
+      EXPECT_EQ("===== SQL Mode Commands =====", lines[0]);
+      EXPECT_EQ("warnings   (\\W) Show warnings after every statement.", lines[1]);
+      EXPECT_EQ("nowarnings (\\w) Don't show warnings after every statement.", lines[2]);
+      env.output_handler.wipe_out();
 
       // Specific command help print
       EXPECT_TRUE(env.shell_sql->print_help("warnings"));
-      std::getline(my_stdout, line);
-      EXPECT_EQ("Show warnings after every statement.", line);
-      std::getline(my_stdout, line);
-      EXPECT_EQ("", line);
-      std::getline(my_stdout, line);
-      EXPECT_EQ("TRIGGERS: warnings or \\W", line);
-
-      std::cout.rdbuf(stdout_backup);
+      boost::algorithm::split(lines, env.output_handler.std_out, boost::is_any_of("\n"), boost::token_compress_on);
+      EXPECT_EQ("Show warnings after every statement.", lines[0]);
+      EXPECT_EQ("TRIGGERS: warnings or \\W", lines[1]);
     }
   }
 }

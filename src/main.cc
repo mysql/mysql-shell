@@ -49,7 +49,6 @@
 #  define isatty _isatty
 #endif
 
-
 using namespace shcore;
 
 const int MAX_READLINE_BUF = 65536;
@@ -61,8 +60,8 @@ class Interactive_shell
 public:
   Interactive_shell(Shell_core::Mode initial_mode);
   void command_loop();
-  int process_stream(std::istream & stream, const std::string& source) { return _shell->process_stream(stream, source);  }
-  void process_file(const char *filename);
+  int process_stream(std::istream & stream, const std::string& source) { return _shell->process_stream(stream, source, _batch_continue_on_error); }
+  int process_file(const char *filename);
 
   void init_environment();
   void init_scripts(Shell_core::Mode mode);
@@ -81,6 +80,9 @@ public:
 
   void print_banner();
   void print_cmd_line_helper();
+
+  /* Processing Options */
+  void set_force(bool value) { _batch_continue_on_error = value; }
 
 private:
   static char *readline(const char *prompt);
@@ -110,18 +112,18 @@ private:
   std::string _input_buffer;
   bool _multiline_mode;
   bool _interactive;
+  bool _batch_continue_on_error;
 
   Shell_command_handler _shell_command_handler;
 };
 
-
-
-Interactive_shell::Interactive_shell(Shell_core::Mode initial_mode)
+Interactive_shell::Interactive_shell(Shell_core::Mode initial_mode) :
+_batch_continue_on_error(false)
 {
 #ifndef WIN32
   rl_initialize();
-#endif  
-//  using_history();
+#endif
+  //  using_history();
 
   _multiline_mode = false;
   _interactive = false;
@@ -138,8 +140,8 @@ Interactive_shell::Interactive_shell(Shell_core::Mode initial_mode)
   _session.reset(new mysh::Session(_shell.get()));
   _shell->set_global("session", Value(boost::static_pointer_cast<Object_bridge>(_session)));
 
-//  _db.reset(new mysh::Db(_shell.get()));
-//  _shell->set_global("db", Value( boost::static_pointer_cast<Object_bridge, mysh::Db >(_db) ));
+  //  _db.reset(new mysh::Db(_shell.get()));
+  //  _shell->set_global("db", Value( boost::static_pointer_cast<Object_bridge, mysh::Db >(_db) ));
 
   std::string cmd_help =
     "SYNTAX:\n"
@@ -182,14 +184,12 @@ Interactive_shell::Interactive_shell(Shell_core::Mode initial_mode)
   }
 }
 
-
 void Interactive_shell::cmd_process_file(const std::vector<std::string>& params)
 {
   std::string filename = boost::join(params, " ");
 
   Interactive_shell::process_file(filename.c_str());
 }
-
 
 bool Interactive_shell::connect(const std::string &uri, bool needs_password)
 {
@@ -245,7 +245,6 @@ bool Interactive_shell::connect(const std::string &uri, bool needs_password)
   return true;
 }
 
-
 Value Interactive_shell::connect_session(const Argument_list &args)
 {
   _session->connect(args);
@@ -254,7 +253,7 @@ Value Interactive_shell::connect_session(const Argument_list &args)
   if (db)
   {
     if (_shell->interactive_mode() != Shell_core::Mode_SQL)
-      _shell->print("Default schema `"+db->schema()+"` accessible through db.\n");
+      _shell->print("Default schema `" + db->schema() + "` accessible through db.\n");
     _shell->set_global("db", Value(boost::static_pointer_cast<Object_bridge>(db)));
   }
   else
@@ -267,14 +266,13 @@ Value Interactive_shell::connect_session(const Argument_list &args)
   return Value::Null();
 }
 
-
 void Interactive_shell::init_environment()
 {
   _shell->set_global("connect",
-                     Value(Cpp_function::create("connect",
-                                                boost::bind(&Interactive_shell::connect_session, this, _1),
-                                                "connection_string", String,
-                                                NULL)));
+    Value(Cpp_function::create("connect",
+    boost::bind(&Interactive_shell::connect_session, this, _1),
+    "connection_string", String,
+    NULL)));
 }
 
 // load scripts for standard locations in order to be able to implement standard routines
@@ -294,15 +292,15 @@ void Interactive_shell::init_scripts(Shell_core::Mode mode)
   std::string user_file = "";
 
   ensure_dir_exists(get_user_config_path());
-  
-  try 
+
+  try
   {
     std::string path = shcore::get_user_config_path();
     path += std::string(".shellrc");
     user_file = path;
-    
+
     user_file += extension;
-    if(file_exists(user_file))
+    if (file_exists(user_file))
       scripts_paths.push_back(user_file);
 #ifndef WIN32
     std::string global_file("/usr/share/mysqlx/js/shellrc");
@@ -329,7 +327,6 @@ std::string Interactive_shell::prompt()
   else
     return _shell->prompt();
 }
-
 
 void Interactive_shell::switch_shell_mode(Shell_core::Mode mode, const std::vector<std::string> &args)
 {
@@ -359,7 +356,7 @@ void Interactive_shell::switch_shell_mode(Shell_core::Mode mode, const std::vect
 #endif
         break;
       case Shell_core::Mode_Python:
-      // TODO: remove following #if 0 #endif as soon as Python mode is implemented
+        // TODO: remove following #if 0 #endif as soon as Python mode is implemented
 #if 0
         if (_shell->switch_mode(mode, lang_initialized))
           println("Switching to Python mode...");
@@ -374,24 +371,20 @@ void Interactive_shell::switch_shell_mode(Shell_core::Mode mode, const std::vect
   }
 }
 
-
 void Interactive_shell::print(const std::string &str)
 {
   std::cout << str;
 }
-
 
 void Interactive_shell::println(const std::string &str)
 {
   std::cout << str << "\n";
 }
 
-
 void Interactive_shell::print_error(const std::string &error)
 {
   std::cerr << "ERROR: " << error << "\n";
 }
-
 
 void Interactive_shell::cmd_print_shell_help(const std::vector<std::string>& args)
 {
@@ -455,7 +448,6 @@ void Interactive_shell::deleg_print_error(void *cdata, const char *text)
   self->print_error(text);
 }
 
-
 char *Interactive_shell::readline(const char *prompt)
 {
   char *tmp;
@@ -466,7 +458,7 @@ char *Interactive_shell::readline(const char *prompt)
   /*
   tmp = (char *)malloc(MAX_READLINE_BUF);
   if (!tmp)
-    throw Exception::runtime_error("Cannot allocate memory for Interactive_shell::readline buffer.");
+  throw Exception::runtime_error("Cannot allocate memory for Interactive_shell::readline buffer.");
   my_win_console_fputs(&my_charset_latin1, prompt);
   tmp = my_win_console_readline(&my_charset_latin1, tmp, MAX_READLINE_BUF);
   */
@@ -477,7 +469,6 @@ char *Interactive_shell::readline(const char *prompt)
 #endif
   return tmp;
 }
-
 
 bool Interactive_shell::deleg_input(void *cdata, const char *prompt, std::string &ret)
 {
@@ -491,7 +482,6 @@ bool Interactive_shell::deleg_input(void *cdata, const char *prompt, std::string
   return true;
 }
 
-
 bool Interactive_shell::deleg_password(void *cdata, const char *prompt, std::string &ret)
 {
   char *tmp = mysh_get_tty_password(prompt);
@@ -501,7 +491,6 @@ bool Interactive_shell::deleg_password(void *cdata, const char *prompt, std::str
   free(tmp);
   return true;
 }
-
 
 void Interactive_shell::deleg_source(void *cdata, const char *module)
 {
@@ -515,15 +504,12 @@ bool Interactive_shell::do_shell_command(const std::string &line)
   // Verifies if the command can be handled by the active shell
   bool handled = _shell->handle_shell_command(line);
 
-
   // Global Command Processing (xShell specific)
   if (!handled)
     handled = _shell_command_handler.process(line);
 
-
   return handled;
 }
-
 
 void Interactive_shell::process_line(const std::string &line)
 {
@@ -543,7 +529,6 @@ void Interactive_shell::process_line(const std::string &line)
     }
   }
 
-
   if (!handled_as_command)
   {
     if (_multiline_mode && line.empty())
@@ -555,7 +540,7 @@ void Interactive_shell::process_line(const std::string &line)
       else
         _input_buffer.append("\n").append(line);
     }
-  
+
     if (!_multiline_mode)
     {
       try
@@ -589,7 +574,7 @@ void Interactive_shell::process_line(const std::string &line)
       {
         print_error(exc.what());
       }
-      
+
       // Clears the buffer if OK, if continued, buffer will contain
       // the non executed code
       if (state == Input_ok)
@@ -598,9 +583,11 @@ void Interactive_shell::process_line(const std::string &line)
   }
 }
 
-
-void Interactive_shell::process_file(const char *filename)
+int Interactive_shell::process_file(const char *filename)
 {
+  // Default return value will be 1 indicating there were errors
+  bool ret_val = 1;
+
   if (!filename)
     _shell->print_error("Usage: \\. <filename> | \\source <filename>");
   else
@@ -610,7 +597,14 @@ void Interactive_shell::process_file(const char *filename)
 
     if (!s.fail())
     {
-      _shell->process_stream(s, filename);
+      // The return value now depends on the stream processing
+      ret_val = _shell->process_stream(s, filename, _batch_continue_on_error);
+
+      // When force is used, we do not care of the processing
+      // errors
+      if (_batch_continue_on_error)
+        ret_val = 0;
+
       s.close();
     }
     else
@@ -619,8 +613,9 @@ void Interactive_shell::process_file(const char *filename)
       _shell->print_error((boost::format("Failed to open file '%s', error: %d") % filename % errno).str());
     }
   }
-}
 
+  return ret_val;
+}
 
 void Interactive_shell::command_loop()
 {
@@ -660,7 +655,6 @@ void Interactive_shell::command_loop()
   std::cout << "Bye!\n";
 }
 
-
 void Interactive_shell::print_banner()
 {
   println("Welcome to MySQL Shell 0.0.1");
@@ -674,7 +668,6 @@ void Interactive_shell::print_banner()
   println("Type '\\help', '\\h' or '\\?' for help.");
   println("");
 }
-
 
 void Interactive_shell::print_cmd_line_helper()
 {
@@ -711,9 +704,10 @@ public:
   std::string uri;
   std::string password;
   bool print_cmd_line_helper;
+  bool force;
 
   Shell_command_line_options(int argc, char **argv)
-          : Command_line_options(argc, argv)
+    : Command_line_options(argc, argv)
   {
     std::string host;
     std::string user;
@@ -724,6 +718,7 @@ public:
     print_cmd_line_helper = false;
 
     initial_mode = Shell_core::Mode_SQL;
+    force = false;
 
     for (int i = 1; i < argc && exit_code == 0; i++)
     {
@@ -754,9 +749,13 @@ public:
         print_cmd_line_helper = true;
         exit_code = 0;
       }
+      else if (check_arg(argv, i, "--force", "--force"))
+      {
+        force = true;
+      }
       else if (exit_code == 0)
       {
-        std::cerr << argv[0] << ": unknown option " << argv[i] <<"\n";
+        std::cerr << argv[0] << ": unknown option " << argv[i] << "\n";
         exit_code = 1;
         break;
       }
@@ -788,7 +787,6 @@ public:
   }
 };
 
-
 int main(int argc, char **argv)
 {
   int ret_val = 0;
@@ -814,16 +812,18 @@ int main(int argc, char **argv)
   {
     Interactive_shell shell(options.initial_mode);
 
-  if (options.print_cmd_line_helper)
-  {
-    shell.print_cmd_line_helper();
-    return options.exit_code;
-  }
+    shell.set_force(options.force);
+
+    if (options.print_cmd_line_helper)
+    {
+      shell.print_cmd_line_helper();
+      return options.exit_code;
+    }
 
     bool is_interactive = true;
 
 #if defined(WIN32)
-    if(!isatty(_fileno(stdin) || !isatty(_fileno(stdout))))
+    if (!isatty(_fileno(stdin) || !isatty(_fileno(stdout))))
 #else
     if (!isatty(STDIN_FILENO) || !isatty(STDOUT_FILENO))
 #endif
@@ -857,7 +857,7 @@ int main(int argc, char **argv)
     }
     else if (!options.run_file.empty())
     {
-      shell.process_file(options.run_file.c_str());
+      ret_val = shell.process_file(options.run_file.c_str());
     }
     else
       ret_val = shell.process_stream(std::cin, "STDIN");

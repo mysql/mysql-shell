@@ -32,6 +32,7 @@
 #include "shellcore/types_cpp.h"
 #include "shellcore/object_registry.h"
 #include "shellcore/jscript_context.h"
+#include "test_utils.h"
 
 extern void JScript_context_init();
 
@@ -107,16 +108,7 @@ namespace tests {
     {
       JScript_context_init();
 
-      static Interpreter_delegate deleg;
-
-      deleg.print = print;
-
-      js = new JScript_context(&reg, &deleg);
-    }
-
-    static void print(void *, const char *text)
-    {
-      std::cout << text << "\n";
+      js = new JScript_context(&reg, &output_handler.deleg);
     }
 
     ~Environment()
@@ -124,6 +116,7 @@ namespace tests {
       delete js;
     }
 
+    Shell_test_output_handler output_handler;
     Object_registry reg;
     JScript_context *js;
   };

@@ -23,6 +23,7 @@ if(WITH_TESTS)
     )
     
     file(GLOB mysqlsh_tests_SRC
+        "${PROJECT_SOURCE_DIR}/testing/*.h"
         "${PROJECT_SOURCE_DIR}/testing/*_t.cc"
         "${PROJECT_SOURCE_DIR}/testing/test_main.cc"
         "${PROJECT_SOURCE_DIR}/src/boost_code.cc"
@@ -62,6 +63,11 @@ if(WITH_TESTS)
                             COMMAND ${CMAKE_COMMAND} -E copy_directory
                             ${CMAKE_SOURCE_DIR}/testing/modules $<TARGET_FILE_DIR:run_unit_tests>)
     endif()
+    
+    add_custom_command(TARGET run_unit_tests PRE_BUILD
+                          COMMAND ${CMAKE_COMMAND} -E copy_directory
+                          ${CMAKE_SOURCE_DIR}/testing/data $<TARGET_FILE_DIR:run_unit_tests>)
+    
 
     if ( HAVE_PYTHON )
       target_link_libraries(run_unit_tests ${PYTHON_LIBRARIES})

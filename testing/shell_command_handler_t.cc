@@ -50,8 +50,6 @@ namespace shcore {
 
     };
 
-    Environment env;
-
     class Command_handler_tests: public ::testing::Test
     {
     public:
@@ -66,6 +64,8 @@ namespace shcore {
       Shell_command_handler _shell_command_handler;
       std::string _function;
       std::vector<std::string> _params;
+      Environment env;
+
 
       void cmd_one(const std::vector<std::string>& params)
       {

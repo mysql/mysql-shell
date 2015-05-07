@@ -32,6 +32,7 @@ Shell_javascript::Shell_javascript(Shell_core *shcore)
 
 Value Shell_javascript::handle_input(std::string &code, Interactive_input_state &state, bool interactive)
 {
+  // Undefined to be returned in case of errors
   Value result;
 
   if (interactive)
@@ -46,13 +47,13 @@ Value Shell_javascript::handle_input(std::string &code, Interactive_input_state 
 
       if (err)
       {
-        std::cerr << err << "\n";
+        _owner->print_error(err.message());
       }
     }
     catch (Exception &exc)
     {
       // This exception was already printed in JS
-      result = Value::Null();
+      // and the correct return_value of undefined is set
     }
   }
 

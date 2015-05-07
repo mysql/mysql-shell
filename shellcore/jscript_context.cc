@@ -493,10 +493,12 @@ struct JScript_context::JScript_context_impl
   void print_exception(v8::TryCatch *exc, bool to_shell = true)
   {
     v8::Handle<v8::Message> message = exc->Message();
-    // TODO: JS Exceptions do not map properly to shcore objects
-    //std::string exception_text = format_exception(types.v8_value_to_shcore_value(exc->Exception()));
+    std::string exception_text;
     v8::String::Utf8Value exec_error(exc->Exception());
-    std::string exception_text(*exec_error);
+    if (*exec_error)
+      exception_text = *exec_error;
+    else
+      exception_text = format_exception(types.v8_value_to_shcore_value(exc->Exception()));
 
     if (message.IsEmpty())
     {
@@ -740,33 +742,40 @@ Value JScript_context::execute(const std::string &code_str, boost::system::error
   v8::Handle<v8::String> code = v8::String::NewFromUtf8(_impl->isolate, code_str.c_str());
   v8::Handle<v8::Script> script = v8::Script::Compile(code, &origin);
 
-  if (script.IsEmpty())
-  {
-    Value e(_impl->types.v8_value_to_shcore_value(try_catch.Exception()));
-    _impl->print_exception(&try_catch, false);
-    // TODO: wrap the Exception object in JS so that one can throw common exceptions from JS
-    if (e.type == Map)
-      throw Exception(e.as_map());
-    else
-      throw Exception::scripting_error(_impl->format_exception(e));
-  }
-  else
+  // Since ret_val can't be used to check whether all was ok or not
+  // Will use a boolean flag
+  Value ret_val;
+  bool executed_ok = false;
+
+  if (!script.IsEmpty())
   {
     v8::Handle<v8::Value> result = script->Run();
-    if (result.IsEmpty())
+    if (!result.IsEmpty())
+    {
+      ret_val = v8_value_to_shcore_value(result);
+      executed_ok = true;
+    }
+  }
+
+  if (!executed_ok)
+  {
+    if (try_catch.HasCaught())
     {
       Value e(_impl->types.v8_value_to_shcore_value(try_catch.Exception()));
+
       _impl->print_exception(&try_catch, false);
+
+      // TODO: wrap the Exception object in JS so that one can throw common exceptions from JS
       if (e.type == Map)
         throw Exception(e.as_map());
       else
         throw Exception::scripting_error(_impl->format_exception(e));
     }
     else
-    {
-      return v8_value_to_shcore_value(result);
-    }
+      throw shcore::Exception::logic_error("Unexpected error processing script, no exception caught!");
   }
+
+  return ret_val;
 }
 
 Value JScript_context::execute_interactive(const std::string &code_str) BOOST_NOEXCEPT_OR_NOTHROW

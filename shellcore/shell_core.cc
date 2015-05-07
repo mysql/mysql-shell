@@ -82,8 +82,13 @@ std::string Shell_core::get_handled_input()
   return _langs[_mode]->get_handled_input();
 }
 
-
-int Shell_core::process_stream(std::istream& stream, const std::string& source)
+/*
+* process_stream will process the content of an opened stream until EOF is found.
+* return values:
+* - 1 in case of any processing error is found.
+* - 0 if no processing errors were found.
+*/
+int Shell_core::process_stream(std::istream& stream, const std::string& source, bool continue_on_error)
 {
   Interactive_input_state state;
   int ret_val = 0;
@@ -113,16 +118,11 @@ int Shell_core::process_stream(std::istream& stream, const std::string& source)
           object->call("__paged_output__", Argument_list());
       }
 
+      // Undefined is to be used as error condition
+      ret_val = (ret_val || result.type == shcore::Undefined);
 
-      // TODO: Error handling should be reviewed
-      // When result type is Null it indicates there was a processing error
-      // We quit processing statements at this point.
-      //TODO: --force option should skip this validation
-      //if (result.type == shcore::Null)
-      //{
-      //  ret_val = 1;
-      //  break;
-      //}
+      if (ret_val && !continue_on_error)
+        break;
     }
   }
   else
@@ -140,7 +140,7 @@ int Shell_core::process_stream(std::istream& stream, const std::string& source)
     std::string data(fdata);
 
     Value result = handle_input(data, state, false);
-    ret_val = (result.type == shcore::Null);
+    ret_val = (result.type == shcore::Undefined);
   }
 
   _input_source.clear();

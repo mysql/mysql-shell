@@ -41,13 +41,13 @@ Shell_sql::Shell_sql(Shell_core *owner)
 
 Value Shell_sql::handle_input(std::string &code, Interactive_input_state &state, bool interactive)
 {
-  Value ret_val = Value::Null();
+  Value ret_val;
   state = Input_ok;
   Value session_wrapper = _owner->get_global("session");
   MySQL_splitter splitter;
 
   _last_handled.clear();
-  
+
   if (session_wrapper)
   {
     boost::shared_ptr<mysh::Session> session = session_wrapper.as_object<mysh::Session>();
@@ -56,7 +56,7 @@ Value Shell_sql::handle_input(std::string &code, Interactive_input_state &state,
 
     // If no cached code and new code is a multiline statement
     // allows multiline code to bypass the splitter
-    // This way no delimiter change is needed for i.e. 
+    // This way no delimiter change is needed for i.e.
     // stored procedures and functions
     if (_sql_cache.empty() && code.find("\n") != std::string::npos)
     {
@@ -82,7 +82,7 @@ Value Shell_sql::handle_input(std::string &code, Interactive_input_state &state,
     std::vector<std::string> statements;
     if (statement_count)
     {
-      // If cache has data it is part of the found statement so it has to 
+      // If cache has data it is part of the found statement so it has to
       // be flushed at this point into the statements list for execution
       if (!_sql_cache.empty())
       {
@@ -97,11 +97,10 @@ Value Shell_sql::handle_input(std::string &code, Interactive_input_state &state,
         _sql_cache.clear();
       }
 
-
       if (range_count)
       {
         // Now also adds the rest of the statements for execution
-        for(; index < statement_count; index++)
+        for (; index < statement_count; index++)
           statements.push_back(code.substr(ranges[index].first, ranges[index].second));
 
         // If there's still data, itis a partial statement: gets cached
@@ -116,7 +115,15 @@ Value Shell_sql::handle_input(std::string &code, Interactive_input_state &state,
       {
         shcore::Argument_list query;
         query.push_back(Value(statements[index]));
-        ret_val = session->sql(query);
+
+        try
+        {
+          ret_val = session->sql(query);
+        }
+        catch (shcore::Exception &exc)
+        {
+          session->print_exception(exc);
+        }
 
         if (_last_handled.empty())
           _last_handled = statements[index];
@@ -133,7 +140,11 @@ Value Shell_sql::handle_input(std::string &code, Interactive_input_state &state,
     }
     else // Multiline code, all is "processed"
       code = "";
-    
+
+    // Nothing was processed so it is not an error
+    if (!statement_count)
+      ret_val = Value::Null();
+
     if (_parsing_context_stack.empty())
       state = Input_ok;
     else
@@ -141,7 +152,7 @@ Value Shell_sql::handle_input(std::string &code, Interactive_input_state &state,
   }
 
   // TODO: previous to file processing the caller was caching unprocessed code and sending it again on next
-  //       call. On file processing an internal handling of this cache was required. 
+  //       call. On file processing an internal handling of this cache was required.
   //       Clearing the code here prevents it being sent again.
   //       We need to decide if the caching logic we introduced on the caller is still required or not.
   code = "";
@@ -167,7 +178,6 @@ bool Shell_sql::print_help(const std::string& topic)
 
   return ret_val;
 }
-
 
 //------------------ SQL COMMAND HANDLERS ------------------//
 

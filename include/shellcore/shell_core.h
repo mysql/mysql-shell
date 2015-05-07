@@ -130,7 +130,7 @@ public:
   Value handle_input(std::string &code, Interactive_input_state &state, bool interactive = true);
   virtual bool handle_shell_command(const std::string &code);
   std::string get_handled_input();
-  int process_stream(std::istream& stream = std::cin, const std::string& source = "(shcore)");
+  int process_stream(std::istream& stream = std::cin, const std::string& source = "(shcore)", bool continue_on_error = false);
 
   std::string prompt();
 
