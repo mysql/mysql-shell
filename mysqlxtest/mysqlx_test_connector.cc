@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -169,25 +169,25 @@ namespace mysqlx
           case Mysqlx::ServerMessages_Type_NOTICE:
             ret_val = new Mysqlx::Notice();
             break;
-          case Mysqlx::ServerMessages_Type_PARAM_CHANGE:
+          case Mysqlx::ServerMessages_Type_PARAMETER_CHANGED_NOTIFICATION:
             ret_val = new Mysqlx::ParameterChangedNotification();
             break;
-          case Mysqlx::ServerMessages_Type_CON_CAPABILITIES:
+          case Mysqlx::ServerMessages_Type_CONN_CAPABILITIES:
             ret_val = new Mysqlx::Connection::Capabilities();
             break;
-          case Mysqlx::ServerMessages_Type_SESS_AUTH_CONT:
+          case Mysqlx::ServerMessages_Type_SESS_AUTHENTICATE_CONTINUE:
             ret_val = new Mysqlx::Session::AuthenticateContinue();
             break;
-          case Mysqlx::ServerMessages_Type_SESS_AUTH_OK:
+          case Mysqlx::ServerMessages_Type_SESS_AUTHENTICATE_OK:
             ret_val = new Mysqlx::Session::AuthenticateOk();
             break;
-          case Mysqlx::ServerMessages_Type_SQL_PREP_STMT_OK:
+          case Mysqlx::ServerMessages_Type_SQL_PREPARE_STMT_OK:
             ret_val = new Mysqlx::Sql::PrepareStmtOk();
             break;
-          case Mysqlx::ServerMessages_Type_SQL_PREP_STMT_EXEC_OK:
+          case Mysqlx::ServerMessages_Type_SQL_PREPARED_STMT_EXECUTE_OK:
             ret_val = new Mysqlx::Sql::PreparedStmtExecuteOk();
             break;
-          case Mysqlx::ServerMessages_Type_SQL_COLUMN_META:
+          case Mysqlx::ServerMessages_Type_SQL_COLUMN_META_DATA:
             ret_val = new Mysqlx::Sql::ColumnMetaData();
             break;
           case Mysqlx::ServerMessages_Type_SQL_ROW:
@@ -205,11 +205,14 @@ namespace mysqlx
           case Mysqlx::ServerMessages_Type_SQL_CURSOR_CLOSE_OK:
             ret_val = new Mysqlx::Sql::CursorCloseOk();
             break;
-          case Mysqlx::ServerMessages_Type_SQL_CURSOR_FETCH_DONE_MORE:
+          case Mysqlx::ServerMessages_Type_SQL_CURSOR_FETCH_DONE_MORE_RESULTSETS:
             ret_val = new Mysqlx::Sql::CursorFetchDoneMoreResultsets();
             break;
-          case  Mysqlx::ServerMessages_Type_SESS_AUTH_FAIL:
+          case  Mysqlx::ServerMessages_Type_SESS_AUTHENTICATE_FAIL:
             ret_val = new Mysqlx::Session::AuthenticateFail();
+            break;
+          case Mysqlx::ServerMessages_Type_SQL_STMT_EXECUTE_OK:
+            ret_val = new Mysqlx::Sql::StmtExecuteOk();
             break;
           default:
             delete[] mbuf;

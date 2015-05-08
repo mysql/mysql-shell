@@ -73,7 +73,7 @@ namespace shcore
       int response_message_id;
       Message *response = env.conn->read_response(response_message_id);
 
-      EXPECT_EQ(Mysqlx::ServerMessages_Type_SESS_AUTH_FAIL, response_message_id);
+      EXPECT_EQ(Mysqlx::ServerMessages_Type_SESS_AUTHENTICATE_FAIL, response_message_id);
       if (response)
       {
         // AuthenticateFail as defined in mysqlx_session.proto:
@@ -106,7 +106,7 @@ namespace shcore
       int response_message_id;
       Message *response = env.conn->read_response(response_message_id);
 
-      EXPECT_EQ(Mysqlx::ServerMessages_Type_SESS_AUTH_OK, response_message_id);
+      EXPECT_EQ(Mysqlx::ServerMessages_Type_SESS_AUTHENTICATE_OK, response_message_id);
       if (response)
       {
         // AuthenticateOk as defined in mysqlx_session.proto:

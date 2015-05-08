@@ -96,7 +96,7 @@ void X_connection::auth(const char *user, const char *pass)
   m.set_mech_name("plain");
   m.set_auth_data(user);
   m.set_initial_response(pass);
-  _protobuf->send_message(Mysqlx::ClientMessages_Type_SESS_AUTH_START, &m);
+  _protobuf->send_message(&m);
 
   int mid;
   try
@@ -108,7 +108,7 @@ void X_connection::auth(const char *user, const char *pass)
   }
   CATCH_AND_TRANSLATE();
 
-  if (mid != Mysqlx::ServerMessages_Type_SESS_AUTH_OK)
+  if (mid != Mysqlx::ServerMessages_Type_SESS_AUTHENTICATE_OK)
   {
     throw shcore::Exception::argument_error("Authentication failed...");
   }
@@ -144,15 +144,15 @@ X_resultset *X_connection::_sql(const std::string &query, shcore::Value options)
     Mysqlx::Sql::PrepareStmt stmt;
     stmt.set_stmt_id(_next_stmt_id);
     stmt.set_stmt(query);
-    mid = Mysqlx::ClientMessages_Type_SQL_PREP_STMT;
-    msg = _protobuf->send_receive_message(mid, &stmt, Mysqlx::ServerMessages_Type_SQL_PREP_STMT_OK, "preparing statement: " + query);
+    mid = Mysqlx::ClientMessages_Type_SQL_PREPARE_STMT;
+    msg = _protobuf->send_receive_message(mid, &stmt, Mysqlx::ServerMessages_Type_SQL_PREPARE_STMT_OK, "preparing statement: " + query);
 
     // Executes the query
     Mysqlx::Sql::PreparedStmtExecute stmt_exec;
     stmt_exec.set_stmt_id(_next_stmt_id);
     stmt_exec.set_cursor_id(_next_stmt_id);
-    mid = Mysqlx::ClientMessages_Type_SQL_PREP_STMT_EXEC;
-    msg = _protobuf->send_receive_message(mid, &stmt_exec, Mysqlx::ServerMessages_Type_SQL_PREP_STMT_EXEC_OK, "executing statement: " + query);
+    mid = Mysqlx::ClientMessages_Type_SQL_PREPARED_STMT_EXECUTE;
+    msg = _protobuf->send_receive_message(mid, &stmt_exec, Mysqlx::ServerMessages_Type_SQL_PREPARED_STMT_EXECUTE_OK, "executing statement: " + query);
 
     // Retrieves the affected rows
     Mysqlx::Sql::PreparedStmtExecuteOk *exec_done = dynamic_cast<Mysqlx::Sql::PreparedStmtExecuteOk *>(msg);
@@ -226,7 +226,7 @@ bool X_connection::next_result(Base_resultset *target, bool first_result)
   bool ret_val = false;
   X_resultset *real_target = dynamic_cast<X_resultset *> (target);
 
-  int mid = Mysqlx::ServerMessages_Type_SQL_CURSOR_FETCH_DONE_MORE;
+  int mid = Mysqlx::ServerMessages_Type_SQL_CURSOR_FETCH_DONE_MORE_RESULTSETS;
   Message* msg = NULL;
 
   // Just to ensure the right instance was received as parameter
@@ -254,7 +254,7 @@ bool X_connection::next_result(Base_resultset *target, bool first_result)
         }
 
         // Still results to be read
-        if (mid == Mysqlx::ServerMessages_Type_SQL_CURSOR_FETCH_DONE_MORE)
+        if (mid == Mysqlx::ServerMessages_Type_SQL_CURSOR_FETCH_DONE_MORE_RESULTSETS)
         {
           mid = 0;
           msg = NULL;
@@ -271,7 +271,7 @@ bool X_connection::next_result(Base_resultset *target, bool first_result)
             mid = Mysqlx::ClientMessages_Type_SQL_CURSOR_FETCH_ROWS;
             std::set<int> responses;
             responses.insert(Mysqlx::ServerMessages_Type_SQL_CURSOR_FETCH_DONE);
-            responses.insert(Mysqlx::ServerMessages_Type_SQL_CURSOR_FETCH_DONE_MORE);
+            responses.insert(Mysqlx::ServerMessages_Type_SQL_CURSOR_FETCH_DONE_MORE_RESULTSETS);
             responses.insert(Mysqlx::ServerMessages_Type_SQL_ROW);
 
             msg = _protobuf->send_receive_message(mid, &fetch_rows, responses, "fetching rows");
@@ -380,7 +380,7 @@ Base_row* X_resultset::next_row()
 
           delete response;
         }
-        else if (_next_mid == Mysqlx::ServerMessages_Type_SQL_CURSOR_FETCH_DONE_MORE)
+        else if (_next_mid == Mysqlx::ServerMessages_Type_SQL_CURSOR_FETCH_DONE_MORE_RESULTSETS)
           _current_fetch_done = true;
         else
         {
@@ -410,13 +410,13 @@ int X_resultset::fetch_metadata()
 
     try
     {
-      int mid = Mysqlx::ClientMessages_Type_SQL_CURSOR_FETCH_META;
+      int mid = Mysqlx::ClientMessages_Type_SQL_CURSOR_FETCH_META_DATA;
       std::set<int> responses;
-      responses.insert(Mysqlx::ServerMessages_Type_SQL_COLUMN_META);
+      responses.insert(Mysqlx::ServerMessages_Type_SQL_COLUMN_META_DATA);
       responses.insert(Mysqlx::ServerMessages_Type_ERROR);
       Message* msg = owner->get_protobuf()->send_receive_message(mid, &fetch_meta, responses, "fetching metadata");
 
-      if (mid == Mysqlx::ServerMessages_Type_SQL_COLUMN_META)
+      if (mid == Mysqlx::ServerMessages_Type_SQL_COLUMN_META_DATA)
       {
         do
         {
@@ -431,7 +431,7 @@ int X_resultset::fetch_metadata()
             0, // length: not supported yet
             meta->type(),
             0, // flags: not supported yet
-            meta->decimals(),
+            meta->fractional_digits(),// decimals are now sent as fractional digits
             0)); // charset: not supported yet
 
           msg = owner->get_protobuf()->read_response(mid);
@@ -466,7 +466,7 @@ void X_resultset::reset(unsigned long duration, int next_mid, ::google::protobuf
 
   // Nothing to be read for the current result on these cases
   _current_fetch_done = (_next_mid == Mysqlx::ServerMessages_Type_SQL_CURSOR_FETCH_DONE ||
-    _next_mid == Mysqlx::ServerMessages_Type_SQL_CURSOR_FETCH_DONE_MORE);
+                         _next_mid == Mysqlx::ServerMessages_Type_SQL_CURSOR_FETCH_DONE_MORE_RESULTSETS);
 
   _raw_duration = duration;
   _next_message = next_message;
