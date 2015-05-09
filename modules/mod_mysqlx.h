@@ -80,13 +80,13 @@ namespace mysh {
   class X_resultset : public Base_resultset
   {
   public:
-    X_resultset(boost::shared_ptr<X_connection> owner, int cursor_id, uint64_t affected_rows, int warning_count, const char *info, boost::shared_ptr<shcore::Value::Map_type> options = boost::shared_ptr<shcore::Value::Map_type>());
+    X_resultset(boost::shared_ptr<X_connection> owner, bool has_data, int cursor_id, uint64_t affected_rows, int warning_count, const char *info, boost::shared_ptr<shcore::Value::Map_type> options = boost::shared_ptr<shcore::Value::Map_type>());
     virtual ~X_resultset();
 
     virtual std::string class_name() const  { return "X_resultset"; }
     virtual int fetch_metadata();
 
-    void reset(unsigned long duration, int next_mid, ::google::protobuf::Message* next_message);
+    void reset(unsigned long duration, int next_mid = -1, ::google::protobuf::Message* next_message = NULL);
     int get_cursor_id() { return _cursor_id; }
     bool is_all_fetch_done()  { return _all_fetch_done; }
     bool is_current_fetch_done()  { return _current_fetch_done; }

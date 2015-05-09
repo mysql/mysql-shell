@@ -27,12 +27,10 @@
 
 using namespace mysh;
 
-
 #include <iostream>
 
 #define MAX_COLUMN_LENGTH 1024
 #define MIN_COLUMN_LENGTH 4
-
 
 Mysql_resultset::Mysql_resultset(boost::shared_ptr<Mysql_connection> owner, uint64_t affected_rows, int warning_count, const char *info, boost::shared_ptr<shcore::Value::Map_type> options)
 : Base_resultset(owner, affected_rows, warning_count, info, options)
@@ -71,7 +69,6 @@ int Mysql_resultset::fetch_metadata()
 
   return num_fields;
 }
-
 
 Mysql_resultset::~Mysql_resultset()
 {
@@ -164,9 +161,7 @@ std::string Mysql_row::get_value_as_string(int index)
   return _row[index] ? _row[index] : "NULL";
 }
 
-
 //----------------------------------------------
-
 
 Mysql_connection::Mysql_connection(const std::string &uri, const char *password)
 : Base_connection(uri), _mysql(NULL)
@@ -178,7 +173,7 @@ Mysql_connection::Mysql_connection(const std::string &uri, const char *password)
   int port = 3306;
   std::string sock;
   std::string db;
-  long flags = 0;
+  long flags = CLIENT_MULTI_RESULTS;
   int pwd_found;
 
   _mysql = mysql_init(NULL);
@@ -189,12 +184,11 @@ Mysql_connection::Mysql_connection(const std::string &uri, const char *password)
   if (password)
     pass.assign(password);
 
-  if (!mysql_real_connect(_mysql, host.c_str(), user.c_str(), pass.c_str(), db.empty() ? NULL : db.c_str(), port, sock.empty() ? NULL : sock.c_str(), flags | CLIENT_MULTI_STATEMENTS))
+  if (!mysql_real_connect(_mysql, host.c_str(), user.c_str(), pass.c_str(), db.empty() ? NULL : db.c_str(), port, sock.empty() ? NULL : sock.c_str(), flags))
   {
     throw shcore::Exception::error_with_code_and_state("MySQLError", mysql_error(_mysql), mysql_errno(_mysql), mysql_sqlstate(_mysql));
   }
 }
-
 
 boost::shared_ptr<shcore::Object_bridge> Mysql_connection::create(const shcore::Argument_list &args)
 {
@@ -202,7 +196,6 @@ boost::shared_ptr<shcore::Object_bridge> Mysql_connection::create(const shcore::
   return boost::shared_ptr<shcore::Object_bridge>(new Mysql_connection(args.string_at(0),
                                                                        args.size() > 1 ? args.string_at(1).c_str() : NULL));
 }
-
 
 shcore::Value Mysql_connection::close(const shcore::Argument_list &args)
 {
@@ -216,7 +209,6 @@ shcore::Value Mysql_connection::close(const shcore::Argument_list &args)
   _mysql = NULL;
   return shcore::Value(shcore::Null);
 }
-
 
 Mysql_resultset *Mysql_connection::_sql(const std::string &query, shcore::Value options)
 {
@@ -243,7 +235,6 @@ Mysql_resultset *Mysql_connection::_sql(const std::string &query, shcore::Value 
   return result;
 }
 
-
 shcore::Value Mysql_connection::sql(const std::string &query, shcore::Value options)
 {
   Mysql_resultset* result = _sql(query, options);
@@ -269,7 +260,7 @@ shcore::Value Mysql_connection::sql_one(const std::string &query)
   Mysql_resultset* result = _sql(query, shcore::Value());
   shcore::Value ret_val = shcore::Value::Null();
 
-  if(next_result(result, true))
+  if (next_result(result, true))
     ret_val = result->next(shcore::Argument_list());
 
   delete result;
@@ -308,7 +299,7 @@ bool Mysql_connection::next_result(Base_resultset *target, bool first_result)
 
   _timer.end();
 
-  // We need to update the received result object with the information 
+  // We need to update the received result object with the information
   // for the next result set
   real_target->reset(_prev_result, _timer.raw_duration());
 
@@ -326,18 +317,16 @@ Mysql_connection::~Mysql_connection()
 /*
 shcore::Value Mysql_connection::stats(const shcore::Argument_list &args)
 {
-  return shcore::Value();
+return shcore::Value();
 }
 */
 
-
-
 #include "shellcore/object_factory.h"
 namespace {
-static struct Auto_register {
-  Auto_register()
-  {
-    shcore::Object_factory::register_factory("mysql", "Connection", &Mysql_connection::create);
-  }
-} Mysql_connection_register;
+  static struct Auto_register {
+    Auto_register()
+    {
+      shcore::Object_factory::register_factory("mysql", "Connection", &Mysql_connection::create);
+    }
+  } Mysql_connection_register;
 };

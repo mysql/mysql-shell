@@ -182,13 +182,14 @@ add_subdirectory(mysqlxtest)
 add_subdirectory(shellcore)
 add_subdirectory(modules)
 
-###
-### Unit-test support
-###
-include(testing)
-SETUP_TESTING()
-add_subdirectory(testing)
-
+IF(WITH_TESTS)
+  ###
+  ### Unit-test support
+  ###
+  include(testing)
+  SETUP_TESTING()
+  add_subdirectory(testing)
+ENDIF()
 
 # mysh cmdline util build
 if(NOT WIN32)

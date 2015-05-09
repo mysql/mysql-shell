@@ -66,7 +66,6 @@ namespace shcore {
     protected:
       Environment _env;
       std::string _file_name;
-      std::ifstream _stream;
       int _ret_val;
 
       void connect()
@@ -97,11 +96,11 @@ namespace shcore {
 
         _file_name = path;
 
-        _stream = std::ifstream(_file_name);
-        if (_stream.fail())
+        std::ifstream stream(_file_name.c_str());
+        if (stream.fail())
           FAIL();
 
-        _ret_val = _env.shell_core->process_stream(_stream, _file_name, continue_on_error);
+        _ret_val = _env.shell_core->process_stream(stream, _file_name, continue_on_error);
       }
     };
 

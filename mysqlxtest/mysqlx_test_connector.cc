@@ -141,12 +141,10 @@ namespace mysqlx
   Message *Mysqlx_test_connector::read_response(int &mid)
   {
     char buf[5];
-
     Message* ret_val = NULL;
-
     boost::system::error_code error;
 
-    _socket.read_some(boost::asio::buffer(buf, 5), error);
+    std::size_t length = boost::asio::read(_socket, boost::asio::buffer(buf, 5), boost::asio::transfer_all(), error);
 
     if (!error)
     {
@@ -154,7 +152,7 @@ namespace mysqlx
       mid = buf[4];
       char *mbuf = new char[msglen];
 
-      _socket.read_some(boost::asio::buffer(mbuf, msglen), error);
+      std::size_t length = boost::asio::read(_socket, boost::asio::buffer(mbuf, msglen), boost::asio::transfer_all(), error);
 
       if (!error)
       {
@@ -225,7 +223,14 @@ namespace mysqlx
         }
 
         // Parses the received message
-        ret_val->ParseFromString(mbuf);
+        ret_val->ParseFromString(std::string(mbuf, msglen));
+
+        if (!ret_val->IsInitialized())
+        {
+          std::string error("Message is not properly initialized : ");
+          error += ret_val->InitializationErrorString();
+          throw std::runtime_error(error);
+        }
       }
 
       delete[] mbuf;
