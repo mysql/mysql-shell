@@ -56,35 +56,35 @@ namespace mysqlx {
     void close();
 
     // Overrides for Client Session Messages
-    void send_message(Mysqlx::Session::AuthenticateStart *m){ send_message(Mysqlx::ClientMessages_Type_SESS_AUTHENTICATE_START, m); };
-    void send_message(Mysqlx::Session::AuthenticateContinue *m){ send_message(Mysqlx::ClientMessages_Type_SESS_AUTHENTICATE_CONTINUE, m); };
-    void send_message(Mysqlx::Session::Reset *m){ send_message(Mysqlx::ClientMessages_Type_SESS_RESET, m); };
-    void send_message(Mysqlx::Session::Close *m){ send_message(Mysqlx::ClientMessages_Type_SESS_CLOSE, m); };
+    void send_message(Mysqlx::Session::AuthenticateStart *m){ send_message(Mysqlx::ClientMessages::SESS_AUTHENTICATE_START, m); };
+    void send_message(Mysqlx::Session::AuthenticateContinue *m){ send_message(Mysqlx::ClientMessages::SESS_AUTHENTICATE_CONTINUE, m); };
+    void send_message(Mysqlx::Session::Reset *m){ send_message(Mysqlx::ClientMessages::SESS_RESET, m); };
+    void send_message(Mysqlx::Session::Close *m){ send_message(Mysqlx::ClientMessages::SESS_CLOSE, m); };
 
     // Overrides for SQL Messages
-    void send_message(Mysqlx::Sql::PrepareStmt *m){ send_message(Mysqlx::ClientMessages_Type_SQL_PREPARE_STMT, m); };
-    void send_message(Mysqlx::Sql::PreparedStmtClose *m){ send_message(Mysqlx::ClientMessages_Type_SQL_PREPARED_STMT_CLOSE, m); };
-    void send_message(Mysqlx::Sql::PreparedStmtExecute *m){ send_message(Mysqlx::ClientMessages_Type_SQL_PREPARED_STMT_EXECUTE, m); };
-    void send_message(Mysqlx::Sql::CursorFetchMetaData *m){ send_message(Mysqlx::ClientMessages_Type_SQL_CURSOR_FETCH_META_DATA, m); };
-    void send_message(Mysqlx::Sql::CursorFetchRows *m){ send_message(Mysqlx::ClientMessages_Type_SQL_CURSOR_FETCH_ROWS, m); };
-    void send_message(Mysqlx::Sql::CursorsPoll *m){ send_message(Mysqlx::ClientMessages_Type_SQL_CURSORS_POLL, m); };
-    void send_message(Mysqlx::Sql::CursorClose *m){ send_message(Mysqlx::ClientMessages_Type_SQL_CURSOR_CLOSE, m); };
-    void send_message(Mysqlx::Sql::StmtExecute *m){ send_message(Mysqlx::ClientMessages_Type_SQL_STMT_EXECUTE, m); };
+    void send_message(Mysqlx::Sql::PrepareStmt *m){ send_message(Mysqlx::ClientMessages::SQL_PREPARE_STMT, m); };
+    void send_message(Mysqlx::Sql::PreparedStmtClose *m){ send_message(Mysqlx::ClientMessages::SQL_PREPARED_STMT_CLOSE, m); };
+    void send_message(Mysqlx::Sql::PreparedStmtExecute *m){ send_message(Mysqlx::ClientMessages::SQL_PREPARED_STMT_EXECUTE, m); };
+    void send_message(Mysqlx::Sql::CursorFetchMetaData *m){ send_message(Mysqlx::ClientMessages::SQL_CURSOR_FETCH_META_DATA, m); };
+    void send_message(Mysqlx::Sql::CursorFetchRows *m){ send_message(Mysqlx::ClientMessages::SQL_CURSOR_FETCH_ROWS, m); };
+    void send_message(Mysqlx::Sql::CursorsPoll *m){ send_message(Mysqlx::ClientMessages::SQL_CURSORS_POLL, m); };
+    void send_message(Mysqlx::Sql::CursorClose *m){ send_message(Mysqlx::ClientMessages::SQL_CURSOR_CLOSE, m); };
+    void send_message(Mysqlx::Sql::StmtExecute *m){ send_message(Mysqlx::ClientMessages::SQL_STMT_EXECUTE, m); };
 
     // Overrides for CRUD operations
-    void send_message(Mysqlx::Crud::PrepareFind *m){ send_message(Mysqlx::ClientMessages_Type_CRUD_PREPARE_FIND, m); };
-    void send_message(Mysqlx::Crud::PrepareInsert *m){ send_message(Mysqlx::ClientMessages_Type_CRUD_PREPARE_INSERT, m); };
-    void send_message(Mysqlx::Crud::PrepareUpdate *m){ send_message(Mysqlx::ClientMessages_Type_CRUD_PREPARE_UPDATE, m); };
-    void send_message(Mysqlx::Crud::PrepareDelete *m){ send_message(Mysqlx::ClientMessages_Type_CRUD_PREPARE_DELETE, m); };
-    void send_message(Mysqlx::Crud::Find *m){ send_message(Mysqlx::ClientMessages_Type_CRUD_FIND, m); };
-    void send_message(Mysqlx::Crud::Insert *m){ send_message(Mysqlx::ClientMessages_Type_CRUD_INSERT, m); };
-    void send_message(Mysqlx::Crud::Update *m){ send_message(Mysqlx::ClientMessages_Type_CRUD_UPDATE, m); };
-    void send_message(Mysqlx::Crud::Delete *m){ send_message(Mysqlx::ClientMessages_Type_CRUD_DELETE, m); };
+    void send_message(Mysqlx::Crud::PrepareFind *m){ send_message(Mysqlx::ClientMessages::CRUD_PREPARE_FIND, m); };
+    void send_message(Mysqlx::Crud::PrepareInsert *m){ send_message(Mysqlx::ClientMessages::CRUD_PREPARE_INSERT, m); };
+    void send_message(Mysqlx::Crud::PrepareUpdate *m){ send_message(Mysqlx::ClientMessages::CRUD_PREPARE_UPDATE, m); };
+    void send_message(Mysqlx::Crud::PrepareDelete *m){ send_message(Mysqlx::ClientMessages::CRUD_PREPARE_DELETE, m); };
+    void send_message(Mysqlx::Crud::Find *m){ send_message(Mysqlx::ClientMessages::CRUD_FIND, m); };
+    void send_message(Mysqlx::Crud::Insert *m){ send_message(Mysqlx::ClientMessages::CRUD_INSERT, m); };
+    void send_message(Mysqlx::Crud::Update *m){ send_message(Mysqlx::ClientMessages::CRUD_UPDATE, m); };
+    void send_message(Mysqlx::Crud::Delete *m){ send_message(Mysqlx::ClientMessages::CRUD_DELETE, m); };
 
     // Overrides for Connection
-    void send_message(Mysqlx::Connection::CapabilitiesGet *m){ send_message(Mysqlx::ClientMessages_Type_CON_CAPABILITIES_GET, m); };
-    void send_message(Mysqlx::Connection::CapabilitiesSet *m){ send_message(Mysqlx::ClientMessages_Type_CON_CAPABILITIES_SET, m); };
-    void send_message(Mysqlx::Connection::Close *m){ send_message(Mysqlx::ClientMessages_Type_CON_CLOSE, m); };
+    void send_message(Mysqlx::Connection::CapabilitiesGet *m){ send_message(Mysqlx::ClientMessages::CON_CAPABILITIES_GET, m); };
+    void send_message(Mysqlx::Connection::CapabilitiesSet *m){ send_message(Mysqlx::ClientMessages::CON_CAPABILITIES_SET, m); };
+    void send_message(Mysqlx::Connection::Close *m){ send_message(Mysqlx::ClientMessages::CON_CLOSE, m); };
 
   protected:
     boost::asio::io_service ios;

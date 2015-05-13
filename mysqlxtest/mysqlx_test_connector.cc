@@ -158,58 +158,58 @@ namespace mysqlx
       {
         switch (mid)
         {
-          case Mysqlx::ServerMessages_Type_OK:
+          case Mysqlx::ServerMessages::OK:
             ret_val = new Mysqlx::Ok();
             break;
-          case Mysqlx::ServerMessages_Type_ERROR:
+          case Mysqlx::ServerMessages::ERROR:
             ret_val = new Mysqlx::Error();
             break;
-          case Mysqlx::ServerMessages_Type_NOTICE:
+          case Mysqlx::ServerMessages::NOTICE:
             ret_val = new Mysqlx::Notice();
             break;
-          case Mysqlx::ServerMessages_Type_PARAMETER_CHANGED_NOTIFICATION:
+          case Mysqlx::ServerMessages::PARAMETER_CHANGED_NOTIFICATION:
             ret_val = new Mysqlx::ParameterChangedNotification();
             break;
-          case Mysqlx::ServerMessages_Type_CONN_CAPABILITIES:
+          case Mysqlx::ServerMessages::CONN_CAPABILITIES:
             ret_val = new Mysqlx::Connection::Capabilities();
             break;
-          case Mysqlx::ServerMessages_Type_SESS_AUTHENTICATE_CONTINUE:
+          case Mysqlx::ServerMessages::SESS_AUTHENTICATE_CONTINUE:
             ret_val = new Mysqlx::Session::AuthenticateContinue();
             break;
-          case Mysqlx::ServerMessages_Type_SESS_AUTHENTICATE_OK:
+          case Mysqlx::ServerMessages::SESS_AUTHENTICATE_OK:
             ret_val = new Mysqlx::Session::AuthenticateOk();
             break;
-          case Mysqlx::ServerMessages_Type_SQL_PREPARE_STMT_OK:
+          case Mysqlx::ServerMessages::SQL_PREPARE_STMT_OK:
             ret_val = new Mysqlx::Sql::PrepareStmtOk();
             break;
-          case Mysqlx::ServerMessages_Type_SQL_PREPARED_STMT_EXECUTE_OK:
+          case Mysqlx::ServerMessages::SQL_PREPARED_STMT_EXECUTE_OK:
             ret_val = new Mysqlx::Sql::PreparedStmtExecuteOk();
             break;
-          case Mysqlx::ServerMessages_Type_SQL_COLUMN_META_DATA:
+          case Mysqlx::ServerMessages::SQL_COLUMN_META_DATA:
             ret_val = new Mysqlx::Sql::ColumnMetaData();
             break;
-          case Mysqlx::ServerMessages_Type_SQL_ROW:
+          case Mysqlx::ServerMessages::SQL_ROW:
             ret_val = new Mysqlx::Sql::Row();
             break;
-          case Mysqlx::ServerMessages_Type_SQL_CURSOR_FETCH_DONE:
+          case Mysqlx::ServerMessages::SQL_CURSOR_FETCH_DONE:
             ret_val = new Mysqlx::Sql::CursorFetchDone();
             break;
-          case Mysqlx::ServerMessages_Type_SQL_CURSOR_FETCH_SUSPENDED:
+          case Mysqlx::ServerMessages::SQL_CURSOR_FETCH_SUSPENDED:
             ret_val = new Mysqlx::Sql::CursorFetchSuspended();
             break;
-          case Mysqlx::ServerMessages_Type_SQL_CURSORS_POLL:
+          case Mysqlx::ServerMessages::SQL_CURSORS_POLL:
             ret_val = new Mysqlx::Sql::CursorsPoll();
             break;
-          case Mysqlx::ServerMessages_Type_SQL_CURSOR_CLOSE_OK:
+          case Mysqlx::ServerMessages::SQL_CURSOR_CLOSE_OK:
             ret_val = new Mysqlx::Sql::CursorCloseOk();
             break;
-          case Mysqlx::ServerMessages_Type_SQL_CURSOR_FETCH_DONE_MORE_RESULTSETS:
+          case Mysqlx::ServerMessages::SQL_CURSOR_FETCH_DONE_MORE_RESULTSETS:
             ret_val = new Mysqlx::Sql::CursorFetchDoneMoreResultsets();
             break;
-          case  Mysqlx::ServerMessages_Type_SESS_AUTHENTICATE_FAIL:
+          case  Mysqlx::ServerMessages::SESS_AUTHENTICATE_FAIL:
             ret_val = new Mysqlx::Session::AuthenticateFail();
             break;
-          case Mysqlx::ServerMessages_Type_SQL_STMT_EXECUTE_OK:
+          case Mysqlx::ServerMessages::SQL_STMT_EXECUTE_OK:
             ret_val = new Mysqlx::Sql::StmtExecuteOk();
             break;
           default:
@@ -291,7 +291,7 @@ namespace mysqlx
    */
   void Mysqlx_test_connector::handle_wrong_response(int mid, Message *msg, const std::string& info)
   {
-    if (mid == Mysqlx::ServerMessages_Type_ERROR)
+    if (mid == Mysqlx::ServerMessages::ERROR)
     {
       Mysqlx::Error *error = dynamic_cast<Mysqlx::Error *>(msg);
       std::string error_message(error->msg());
