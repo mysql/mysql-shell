@@ -34,65 +34,62 @@
 #include "mod_connection.h"
 
 namespace mysh {
+  class Mysql_row : public Base_row
+  {
+  public:
+    Mysql_row(MYSQL_ROW row, unsigned long *lengths, std::vector<Field>* metadata = NULL);
+    virtual ~Mysql_row() {}
 
-class Mysql_row : public Base_row
-{
-public:
-  Mysql_row(std::vector<Field>& metadata, bool key_by_index, MYSQL_ROW row, unsigned long *lengths);
-  virtual ~Mysql_row() {}
+    virtual shcore::Value get_value(int index);
+    virtual std::string get_value_as_string(int index);
 
-  virtual shcore::Value get_value(int index);
-  virtual std::string get_value_as_string(int index);
+  private:
+    MYSQL_ROW _row;
+    unsigned long *_lengths;
+  };
 
-private:
-  MYSQL_ROW _row;
-  unsigned long *_lengths;
-};
+  class Mysql_connection;
+  class Mysql_resultset : public Base_resultset
+  {
+  public:
+    Mysql_resultset(boost::shared_ptr<Mysql_connection> owner, uint64_t affected_rows, int warning_count, const char *info, boost::shared_ptr<shcore::Value::Map_type> options = boost::shared_ptr<shcore::Value::Map_type>());
+    virtual ~Mysql_resultset();
 
-class Mysql_connection;
-class Mysql_resultset : public Base_resultset
-{
-public:
-  Mysql_resultset(boost::shared_ptr<Mysql_connection> owner, uint64_t affected_rows, int warning_count, const char *info, boost::shared_ptr<shcore::Value::Map_type> options = boost::shared_ptr<shcore::Value::Map_type>());
-  virtual ~Mysql_resultset();
+    void reset(boost::shared_ptr<MYSQL_RES> res, unsigned long duration);
 
-  void reset(boost::shared_ptr<MYSQL_RES> res, unsigned long duration);
+    virtual std::string class_name() const { return "Mysql_resultset"; }
+    virtual int fetch_metadata();
 
-  virtual std::string class_name() const { return "Mysql_resultset"; }
-  virtual int fetch_metadata();
+  protected:
+    virtual Base_row* next_row();
 
-protected:
-  virtual Base_row* next_row();
+  private:
+    boost::weak_ptr<MYSQL_RES> _result;
+  };
 
-private:
-  boost::weak_ptr<MYSQL_RES> _result;
-};
+  class Mysql_connection : public Base_connection, public boost::enable_shared_from_this<Mysql_connection>
+  {
+  public:
+    Mysql_connection(const std::string &uri, const char *password = NULL);
+    ~Mysql_connection();
 
+    virtual std::string class_name() const { return "Mysql_connection"; }
 
-class Mysql_connection : public Base_connection, public boost::enable_shared_from_this<Mysql_connection>
-{
-public:
-  Mysql_connection(const std::string &uri, const char *password = NULL);
-  ~Mysql_connection();
+    virtual shcore::Value close(const shcore::Argument_list &args);
+    virtual shcore::Value sql(const std::string &sql, shcore::Value options);
+    virtual shcore::Value sql_one(const std::string &sql);
 
-  virtual std::string class_name() const { return "Mysql_connection"; }
+    virtual bool next_result(Base_resultset *target, bool first_result = false);
 
-  virtual shcore::Value close(const shcore::Argument_list &args);
-  virtual shcore::Value sql(const std::string &sql, shcore::Value options);
-  virtual shcore::Value sql_one(const std::string &sql);
+    static boost::shared_ptr<Object_bridge> create(const shcore::Argument_list &args);
 
-  virtual bool next_result(Base_resultset *target, bool first_result = false);
+  private:
+    std::string _uri;
+    MYSQL *_mysql;
 
-  static boost::shared_ptr<Object_bridge> create(const shcore::Argument_list &args);
-
-private:
-  std::string _uri;
-  MYSQL *_mysql;
-
-  boost::shared_ptr<MYSQL_RES> _prev_result;
-  virtual Mysql_resultset *_sql(const std::string &sql, shcore::Value options);
-};
-
+    boost::shared_ptr<MYSQL_RES> _prev_result;
+    virtual Mysql_resultset *_sql(const std::string &sql, shcore::Value options);
+  };
 };
 
 #endif

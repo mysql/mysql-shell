@@ -17,7 +17,6 @@
  * 02110-1301  USA
  */
 
-
 // shcore to JS/v8 type conversion or bridging
 #include "shellcore/jscript_type_conversion.h"
 
@@ -44,12 +43,10 @@
 using namespace shcore;
 using namespace boost::system;
 
-
 JScript_type_bridger::JScript_type_bridger(JScript_context *context)
 : owner(context)
 {
 }
-
 
 void JScript_type_bridger::init()
 {
@@ -59,7 +56,6 @@ void JScript_type_bridger::init()
   function_wrapper = new JScript_function_wrapper(owner);
 }
 
-
 JScript_type_bridger::~JScript_type_bridger()
 {
   delete object_wrapper;
@@ -68,14 +64,12 @@ JScript_type_bridger::~JScript_type_bridger()
   delete array_wrapper;
 }
 
-
 double JScript_type_bridger::call_num_method(v8::Handle<v8::Object> object, const char *method)
 {
   v8::Handle<v8::Function> func = v8::Handle<v8::Function>::Cast(object->Get(v8::String::NewFromUtf8(owner->isolate(), method)));
   v8::Handle<v8::Value> result = func->Call(object, 0, NULL);
   return result->ToNumber()->Value();
 }
-
 
 v8::Handle<v8::Value> JScript_type_bridger::native_object_to_js(Object_bridge_ref object)
 {
@@ -88,7 +82,6 @@ v8::Handle<v8::Value> JScript_type_bridger::native_object_to_js(Object_bridge_re
   return object_wrapper->wrap(object);
 }
 
-
 Object_bridge_ref JScript_type_bridger::js_object_to_native(v8::Handle<v8::Object> object)
 {
   std::string ctorname = *v8::String::Utf8Value(object->GetConstructorName());
@@ -100,7 +93,6 @@ Object_bridge_ref JScript_type_bridger::js_object_to_native(v8::Handle<v8::Objec
 
   return Object_bridge_ref();
 }
-
 
 Value JScript_type_bridger::v8_value_to_shcore_value(const v8::Handle<v8::Value> &value)
 {
@@ -134,7 +126,8 @@ Value JScript_type_bridger::v8_value_to_shcore_value(const v8::Handle<v8::Value>
   }
   else if (value->IsFunction())
   {
-    throw Exception::logic_error("JS function wrapping not implemented");
+    //throw Exception::logic_error("JS function wrapping not implemented");
+    return Value::Null();
   }
   else if (value->IsObject()) // JS object
   {
@@ -166,8 +159,6 @@ Value JScript_type_bridger::v8_value_to_shcore_value(const v8::Handle<v8::Value>
       if (object)
         return Value(object);
 
-
-
       v8::Local<v8::Array> pnames(jsobject->GetPropertyNames());
       boost::shared_ptr<Value::Map_type> map(new Value::Map_type);
       for (int32_t c = pnames->Length(), i = 0; i < c; i++)
@@ -183,61 +174,59 @@ Value JScript_type_bridger::v8_value_to_shcore_value(const v8::Handle<v8::Value>
   else
   {
     v8::String::Utf8Value s(value->ToString());
-    throw std::invalid_argument("Cannot convert JS value to internal value: "+std::string(*s));
+    throw std::invalid_argument("Cannot convert JS value to internal value: " + std::string(*s));
   }
   return Value();
 }
-
 
 v8::Handle<v8::Value> JScript_type_bridger::shcore_value_to_v8_value(const Value &value)
 {
   v8::Handle<v8::Value> r;
   switch (value.type)
   {
-  case Undefined:
-    break;
-  case Null:
-    r = v8::Null(owner->isolate());
-    break;
-  case Bool:
-    r = v8::Boolean::New(owner->isolate(), value.value.b);
-    break;
-  case String:
-    r = v8::String::NewFromUtf8(owner->isolate(), value.value.s->c_str());
-    break;
-  case Integer:
-    r = v8::Integer::New(owner->isolate(), value.value.i);
-    break;
-  case Float:
-    r = v8::Number::New(owner->isolate(), value.value.d);
-    break;
-  case Object:
-    r = native_object_to_js(*value.value.o);
-    break;
-  case Array:
-    // maybe convert fully
-    r = array_wrapper->wrap(*value.value.array);
-    break;
-  case Map:
-    // maybe convert fully
-    r = map_wrapper->wrap(*value.value.map);
-    break;
-  case MapRef:
+    case Undefined:
+      break;
+    case Null:
+      r = v8::Null(owner->isolate());
+      break;
+    case Bool:
+      r = v8::Boolean::New(owner->isolate(), value.value.b);
+      break;
+    case String:
+      r = v8::String::NewFromUtf8(owner->isolate(), value.value.s->c_str());
+      break;
+    case Integer:
+      r = v8::Integer::New(owner->isolate(), value.value.i);
+      break;
+    case Float:
+      r = v8::Number::New(owner->isolate(), value.value.d);
+      break;
+    case Object:
+      r = native_object_to_js(*value.value.o);
+      break;
+    case Array:
+      // maybe convert fully
+      r = array_wrapper->wrap(*value.value.array);
+      break;
+    case Map:
+      // maybe convert fully
+      r = map_wrapper->wrap(*value.value.map);
+      break;
+    case MapRef:
     {
-      boost::shared_ptr<Value::Map_type> map(value.value.mapref->lock());
-      if (map)
-      {
-        std::cout << "wrapmapref not implemented\n";
-      }
+                 boost::shared_ptr<Value::Map_type> map(value.value.mapref->lock());
+                 if (map)
+                 {
+                   std::cout << "wrapmapref not implemented\n";
+                 }
     }
-    break;
-  case shcore::Function:
-    r= function_wrapper->wrap(*value.value.func);
-    break;
+      break;
+    case shcore::Function:
+      r = function_wrapper->wrap(*value.value.func);
+      break;
   }
   return r;
 }
-
 
 v8::Handle<v8::String> JScript_type_bridger::type_info(v8::Handle<v8::Value> value)
 {
@@ -272,7 +261,7 @@ v8::Handle<v8::String> JScript_type_bridger::type_info(v8::Handle<v8::Value> val
     else if (JScript_map_wrapper::unwrap(jsobject, map))
       return v8::String::NewFromUtf8(owner->isolate(), "m.Map");
     else if (JScript_object_wrapper::unwrap(jsobject, object))
-      return v8::String::NewFromUtf8(owner->isolate(), ("m."+object->class_name()).c_str());
+      return v8::String::NewFromUtf8(owner->isolate(), ("m." + object->class_name()).c_str());
     else if (JScript_function_wrapper::unwrap(jsobject, function))
       return v8::String::NewFromUtf8(owner->isolate(), "m.Function");
     else

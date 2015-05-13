@@ -30,7 +30,8 @@
 #include <list>
 #include "mysqlx_test_connector.h"
 
-namespace mysh {
+namespace mysh
+{
   class X_resultset;
   class X_connection : public mysh::Base_connection, public boost::enable_shared_from_this<X_connection>
   {
@@ -48,6 +49,8 @@ namespace mysh {
     virtual shcore::Value close(const shcore::Argument_list &args);
     virtual shcore::Value sql(const std::string &sql, shcore::Value options);
     virtual shcore::Value sql_one(const std::string &sql);
+
+    shcore::Value table_insert(shcore::Value::Map_type_ref data);
 
     virtual bool next_result(Base_resultset *target, bool first_result = false);
 
@@ -67,11 +70,13 @@ namespace mysh {
   class X_row : public Base_row
   {
   public:
-    X_row(std::vector<Field>& metadata, bool key_by_index, Mysqlx::Sql::Row *row);
+    X_row(Mysqlx::Sql::Row *row, std::vector<Field>* metadata = NULL);
     virtual ~X_row();
 
     virtual shcore::Value get_value(int index);
     virtual std::string get_value_as_string(int index);
+
+    void add_field(shcore::Value value);
 
   private:
     Mysqlx::Sql::Row *_row;
@@ -102,6 +107,34 @@ namespace mysh {
     bool _current_fetch_done;
     bool _all_fetch_done;
     Message* _next_message;
+  };
+
+  class Crud_definition : public shcore::Cpp_object_bridge
+  {
+  public:
+    Crud_definition(const shcore::Argument_list &args);
+    // T the moment will put these since we don't really care about them
+    virtual std::string class_name() const { return "TableInsert"; }
+    virtual bool operator == (const Object_bridge &other) const { return false; }
+    void update_functions(const std::string& source);
+
+  protected:
+    boost::weak_ptr<X_connection> _conn;
+    shcore::Value::Map_type_ref _data;
+    std::map<std::string, std::set<std::string> > _enable_paths;
+    void enable_function_after(const std::string& name, const std::string& after);
+  };
+
+  class TableInsert : public Crud_definition
+  {
+  private:
+    TableInsert(const shcore::Argument_list &args);
+  public:
+    static boost::shared_ptr<shcore::Object_bridge> TableInsert::create(const shcore::Argument_list &args);
+    shcore::Value insert(const shcore::Argument_list &args);
+    shcore::Value values(const shcore::Argument_list &args);
+    shcore::Value bind(const shcore::Argument_list &args);
+    shcore::Value run(const shcore::Argument_list &args);
   };
 };
 

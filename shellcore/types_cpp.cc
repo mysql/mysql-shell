@@ -22,55 +22,51 @@
 
 using namespace shcore;
 
-
 Cpp_object_bridge::~Cpp_object_bridge()
 {
   _funcs.clear();
 }
 
-
 std::string &Cpp_object_bridge::append_descr(std::string &s_out, int indent, int quote_strings) const
 {
-  s_out.append("<"+class_name()+">");
+  s_out.append("<" + class_name() + ">");
   return s_out;
 }
-
 
 std::string &Cpp_object_bridge::append_repr(std::string &s_out) const
 {
   return append_descr(s_out, 0, '"');
 }
 
-
 std::vector<std::string> Cpp_object_bridge::get_members() const
 {
   std::vector<std::string> _members;
   for (std::map<std::string, boost::shared_ptr<Cpp_function> >::const_iterator i = _funcs.begin(); i != _funcs.end(); ++i)
   {
-    _members.push_back(i->first);
+    // Only returns the enabled functions
+    if (_enabled_functions.at(i->first))
+      _members.push_back(i->first);
   }
   return _members;
 }
 
-
 Value Cpp_object_bridge::get_member(const std::string &prop) const
 {
   std::map<std::string, boost::shared_ptr<Cpp_function> >::const_iterator i;
-  if ((i = _funcs.find(prop)) != _funcs.end())
+  if ((i = _funcs.find(prop)) != _funcs.end() && _enabled_functions.at(prop))
     return Value(boost::shared_ptr<Function_base>(i->second));
-  throw Exception::attrib_error("Invalid object member "+prop);
+  throw Exception::attrib_error("Invalid object member " + prop);
 }
 
 bool Cpp_object_bridge::has_member(const std::string &prop) const
 {
   std::map<std::string, boost::shared_ptr<Cpp_function> >::const_iterator i;
-  return ((i = _funcs.find(prop)) != _funcs.end());
+  return ((i = _funcs.find(prop)) != _funcs.end() && _enabled_functions.at(prop));
 }
-
 
 void Cpp_object_bridge::set_member(const std::string &prop, Value value)
 {
-  throw Exception::attrib_error("Can't set object member "+prop);
+  throw Exception::attrib_error("Can't set object member " + prop);
 }
 
 void Cpp_object_bridge::add_method(const char *name, Cpp_function::Function func,
@@ -97,15 +93,22 @@ void Cpp_object_bridge::add_method(const char *name, Cpp_function::Function func
     } while (n && t != Undefined);
     va_end(l);
   }
+
   _funcs[name] = boost::shared_ptr<Cpp_function>(new Cpp_function(name, func, NULL));
+  _enabled_functions[name] = true;
 }
 
+void Cpp_object_bridge::enable_method(const char *name, bool enable)
+{
+  if (_enabled_functions.count(name))
+    _enabled_functions[name] = enable;
+}
 
 Value Cpp_object_bridge::call(const std::string &name, const Argument_list &args)
 {
   std::map<std::string, boost::shared_ptr<Cpp_function> >::const_iterator i;
   if ((i = _funcs.find(name)) == _funcs.end())
-    throw Exception::attrib_error("Invalid object function "+name);
+    throw Exception::attrib_error("Invalid object function " + name);
   return i->second->invoke(args);
 }
 
@@ -141,24 +144,20 @@ Cpp_function::Cpp_function(const std::string &name, const Function &func, const 
   }
 }
 
-
 std::string Cpp_function::name()
 {
   return _name;
 }
-
 
 std::vector<std::pair<std::string, Value_type> > Cpp_function::signature()
 {
   return _signature;
 }
 
-
 std::pair<std::string, Value_type> Cpp_function::return_type()
 {
   return std::make_pair("", _return_type);
 }
-
 
 bool Cpp_function::operator == (const Function_base &other) const
 {
@@ -166,13 +165,10 @@ bool Cpp_function::operator == (const Function_base &other) const
   return false;
 }
 
-
 Value Cpp_function::invoke(const Argument_list &args)
 {
   return _func(args);
 }
-
-
 
 boost::shared_ptr<Function_base> Cpp_function::create(const std::string &name, const Function &func, const char *arg1_name, Value_type arg1_type, ...)
 {
@@ -201,10 +197,8 @@ boost::shared_ptr<Function_base> Cpp_function::create(const std::string &name, c
   return boost::shared_ptr<Function_base>(new Cpp_function(name, func, signature));
 }
 
-
 boost::shared_ptr<Function_base> Cpp_function::create(const std::string &name, const Function &func,
                                                       const std::vector<std::pair<std::string, Value_type> > &signature)
 {
   return boost::shared_ptr<Function_base>(new Cpp_function(name, func, signature));
 }
-

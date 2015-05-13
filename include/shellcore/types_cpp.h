@@ -78,10 +78,13 @@ public:
   virtual std::string &append_repr(std::string &s_out) const;
 
 protected:
-  void add_method(const char *name, Cpp_function::Function func,
+  virtual void add_method(const char *name, Cpp_function::Function func,
                   const char *arg1_name, Value_type arg1_type = Undefined, ...);
 
+  void enable_method(const char *name, bool enable);
+
   std::map<std::string, boost::shared_ptr<Cpp_function> > _funcs;
+  std::map<std::string, bool> _enabled_functions;
 };
 
 

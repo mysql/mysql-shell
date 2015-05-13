@@ -64,8 +64,11 @@ function ModuleHandler()
     }
   }
   
-  this.get_module = function(name)
+  this.get_module = function(name, reload)
   {
+    if (typeof reload !== 'undefined' && reload)
+      delete this._module_cache[name];
+    
     // Loads the module if not done already.
     if (typeof this._module_cache[name] === 'undefined')
     {
@@ -99,9 +102,9 @@ if (path)
 // be appended to the received object, i.e. to the context globals.
 this.shell.js.module_handler = new ModuleHandler();
 
-this.require = function(module_name)
+this.require = function(module_name, reload)
 {
-  return this.shell.js.module_handler.get_module(module_name);
+  return this.shell.js.module_handler.get_module(module_name, reload);
 }
 
 

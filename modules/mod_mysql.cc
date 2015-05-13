@@ -91,7 +91,8 @@ Base_row *Mysql_resultset::next_row()
         unsigned long *lengths;
         lengths = mysql_fetch_lengths(res.get());
 
-        ret_val = new Mysql_row(_metadata, _key_by_index, mysql_row, lengths);
+        ret_val = new Mysql_row(mysql_row, lengths, &_metadata);
+        ret_val->set_key_by_index(_key_by_index);
 
         // Each read row increases the count
         _fetched_row_count++;
@@ -109,7 +110,7 @@ void Mysql_resultset::reset(boost::shared_ptr<MYSQL_RES> res, unsigned long dura
   _has_resultset = (res != NULL);
 }
 
-Mysql_row::Mysql_row(std::vector<Field>& metadata, bool key_by_index, MYSQL_ROW row, unsigned long *lengths) : Base_row(metadata, key_by_index), _row(row), _lengths(lengths)
+Mysql_row::Mysql_row(MYSQL_ROW row, unsigned long *lengths, std::vector<Field>* metadata) : Base_row(metadata), _row(row), _lengths(lengths)
 {
 }
 
@@ -119,7 +120,7 @@ shcore::Value Mysql_row::get_value(int index)
     return shcore::Value::Null();
   else
   {
-    switch (_fields[index].type())
+    switch ((*_fields)[index].type())
     {
       case MYSQL_TYPE_NULL:
         return shcore::Value::Null();

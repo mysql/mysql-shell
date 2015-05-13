@@ -1135,3 +1135,9 @@ void Argument_list::ensure_count(int minc, int maxc, const char *context) const
   if (size() < minc || size() > maxc)
     throw Exception::argument_error((boost::format("Invalid number of arguments in %1%, expected %2% to %3% but got %4%") % context % minc % maxc % size()).str());
 }
+
+void Argument_list::ensure_at_least(int minc, const char *context) const
+{
+  if (size() < minc)
+    throw Exception::argument_error((boost::format("Invalid number of arguments in %1%, expected at least %2% but got %4%") % context % minc % size()).str());
+}

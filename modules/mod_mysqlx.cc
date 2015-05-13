@@ -20,10 +20,14 @@
 #include "mod_mysqlx.h"
 
 using namespace mysh;
+using namespace shcore;
 
 #include <iostream>
 
 #include <boost/asio.hpp>
+#include <boost/bind.hpp>
+#include <boost/algorithm/string.hpp>
+
 #include <string>
 #include <iostream>
 
@@ -206,6 +210,72 @@ X_connection::~X_connection()
   close(shcore::Argument_list());
 }
 
+shcore::Value X_connection::table_insert(shcore::Value::Map_type_ref data)
+{
+  //----SAMPLE IMPLEMENTATION
+  // This implementation allows performing a table insert operation as:
+  //
+  // table.insert(['col1', 'col2','col3']).values(['val1', val2', 'val3']).run()
+  //
+  // The definitive implementation should consider many different cases
+  // and also many validations must be included
+  uint64_t affected_rows = 0;
+
+  try
+  {
+    Mysqlx::Crud::Insert insert;
+    insert.mutable_collection()->set_schema((*data)["schema"].as_string());
+    insert.mutable_collection()->set_name((*data)["collection"].as_string());
+    insert.set_data_model(Mysqlx::Crud::DataModel((*data)["data_model"].as_int()));
+
+    if (data->has_key("Fields"))
+    {
+      if (data->has_key("Values"))
+      {
+        shcore::Value::Array_type_ref fields = (*data)["Fields"].as_array();
+        shcore::Value::Array_type_ref values = (*data)["Values"].as_array();
+
+        if (fields->size() == values->size())
+        {
+          Mysqlx::Crud::Column *column;
+          size_t index;
+
+          // Creates the projection
+          for (index = 0; index < fields->size(); index++)
+          {
+            column = insert.mutable_projection()->Add();
+            column->set_name(fields->at(index).as_string());
+          }
+
+          // Creates the row list
+          X_row *row = new X_row(insert.mutable_row()->Add());
+          for (index = 0; index < fields->size(); index++)
+          {
+            row->add_field(values->at(index));
+          }
+        }
+      }
+    }
+    else if (data->has_key("FieldsAndValues"))
+    {
+    }
+
+    int mid = Mysqlx::ClientMessages_Type_CRUD_INSERT;
+    Message* msg = _protobuf->send_receive_message(mid, &insert, Mysqlx::ServerMessages_Type_SQL_STMT_EXECUTE_OK, "Inserting record...");
+
+    Mysqlx::Sql::StmtExecuteOk *insert_ok = dynamic_cast<Mysqlx::Sql::StmtExecuteOk *>(msg);
+
+    if (insert_ok->has_rows_affected())
+      affected_rows = insert_ok->rows_affected();
+  }
+  CATCH_AND_TRANSLATE();
+
+  // Creates the resultset
+  X_resultset* result = new X_resultset(shared_from_this(), false, _next_stmt_id, affected_rows, 0, NULL);
+
+  return shcore::Value(boost::shared_ptr<shcore::Object_bridge>(result));
+}
+
 bool X_connection::next_result(Base_resultset *target, bool first_result)
 {
   bool ret_val = false;
@@ -272,7 +342,7 @@ bool X_connection::next_result(Base_resultset *target, bool first_result)
   return ret_val;
 }
 
-X_row::X_row(std::vector<Field>& metadata, bool key_by_index, Mysqlx::Sql::Row *row) : Base_row(metadata, key_by_index), _row(row)
+X_row::X_row(Mysqlx::Sql::Row *row, std::vector<Field>* metadata) : Base_row(metadata), _row(row)
 {
 }
 
@@ -311,6 +381,47 @@ std::string X_row::get_value_as_string(int index)
   return value.repr();
 }
 
+void X_row::add_field(shcore::Value value)
+{
+  Mysqlx::Datatypes::Any *field = _row->add_field();
+
+  field->set_type(Mysqlx::Datatypes::Any::SCALAR);
+
+  switch (value.type)
+  {
+    case shcore::Value_type::Null:
+    case shcore::Value_type::Undefined:
+      field->mutable_scalar()->set_type(Mysqlx::Datatypes::Scalar::V_NULL);
+      break;
+    case shcore::Value_type::Bool:
+      field->mutable_scalar()->set_type(Mysqlx::Datatypes::Scalar::V_BOOL);
+      field->mutable_scalar()->set_v_bool(value.as_bool());
+      break;
+    case shcore::Value_type::Float:
+      field->mutable_scalar()->set_type(Mysqlx::Datatypes::Scalar::V_DOUBLE);
+      field->mutable_scalar()->set_v_double(value.as_double());
+      break;
+    case shcore::Value_type::Integer:
+      field->mutable_scalar()->set_type(Mysqlx::Datatypes::Scalar::V_UINT);
+      field->mutable_scalar()->set_v_unsigned_int(value.as_int());
+      break;
+    case shcore::Value_type::String:
+      field->mutable_scalar()->set_type(Mysqlx::Datatypes::Scalar::V_STRING);
+      field->mutable_scalar()->mutable_v_string()->set_value(value.as_string());
+      break;
+    case shcore::Value_type::Array:
+      break;
+    case shcore::Value_type::Function:
+      break;
+    case shcore::Value_type::Map:
+      break;
+    case shcore::Value_type::MapRef:
+      break;
+    case shcore::Value_type::Object:
+      break;
+  }
+}
+
 X_row::~X_row()
 {
   if (_row)
@@ -344,7 +455,8 @@ Base_row* X_resultset::next_row()
 
         if (_next_mid == Mysqlx::ServerMessages_Type_SQL_ROW)
         {
-          ret_val = new X_row(_metadata, _key_by_index, dynamic_cast<Mysqlx::Sql::Row *>(_next_message));
+          ret_val = new X_row(dynamic_cast<Mysqlx::Sql::Row *>(_next_message), &_metadata);
+          ret_val->set_key_by_index(_key_by_index);
 
           // Each read row increases the count
           _fetched_row_count++;
@@ -441,12 +553,156 @@ void X_resultset::reset(unsigned long duration, int next_mid, ::google::protobuf
   _raw_duration = duration;
 }
 
+Crud_definition::Crud_definition(const shcore::Argument_list &args)
+{
+  args.ensure_at_least(1, "Crud_definition");
+
+  boost::shared_ptr<mysh::X_connection> connection = args[0].as_object<mysh::X_connection>();
+  _conn = boost::weak_ptr<X_connection>(connection);
+}
+
+void Crud_definition::enable_function_after(const std::string& name, const std::string& after_functions)
+{
+  std::vector<std::string> tokens;
+  boost::algorithm::split(tokens, after_functions, boost::is_any_of(", "), boost::token_compress_on);
+  std::set<std::string> after(tokens.begin(), tokens.end());
+  _enable_paths[name] = after;
+}
+
+void Crud_definition::update_functions(const std::string& source)
+{
+  std::map<std::string, bool>::iterator it, end = _enabled_functions.end();
+
+  for (it = _enabled_functions.begin(); it != end; it++)
+  {
+    size_t count = _enable_paths[it->first].count(source);
+    enable_method(it->first.c_str(), _enable_paths[it->first].count(source));
+  }
+}
+
+/*
+* Class constructor represents the call to the first method on the
+* call chain, on this case insert.
+* It will reveive not only the parameter documented on the insert function
+* but also other initialization data for the object:
+* - The connection represents the intermediate class in charge of actually
+*   creating the message.
+* - Message information that is not provided through the different functions
+*/
+TableInsert::TableInsert(const shcore::Argument_list &args) :
+Crud_definition(args)
+{
+  args.ensure_count(3, "TableInsert");
+
+  std::string path;
+  _data.reset(new shcore::Value::Map_type());
+  // TODO: Perhaps the data model can be received from the caller
+  //       so this class can be used both for tables and collections
+  (*_data)["data_model"] = Value(Mysqlx::Crud::DataModel::TABLE);
+  (*_data)["schema"] = args[1];
+  (*_data)["collection"] = args[2];
+
+  // The values function should not be enabled if values were already given
+  add_method("insert", boost::bind(&TableInsert::insert, this, _1), "data");
+  add_method("values", boost::bind(&TableInsert::values, this, _1), "data");
+  add_method("bind", boost::bind(&TableInsert::bind, this, _1), "data");
+  add_method("run", boost::bind(&TableInsert::run, this, _1), "data");
+
+  // Initial function update
+  enable_function_after("insert", "");
+  enable_function_after("values", "insert, insertFields");
+  enable_function_after("bind", "insert, insertFields, insertFieldsAndValues, values");
+  enable_function_after("run", "insert, insertFields, insertFieldsAndValues, values, bind");
+
+  update_functions("");
+}
+
+shcore::Value TableInsert::insert(const shcore::Argument_list &args)
+{
+  // Each method validates the received parameters
+  args.ensure_count(0, 1, "TableInsert::insert");
+
+  std::string path;
+  if (args.size())
+  {
+    switch (args[0].type)
+    {
+      case shcore::Value_type::Array:
+        path = "Fields";
+        break;
+      case shcore::Value_type::Map:
+        path = "FieldsAndValues";
+        break;
+      default:
+        throw shcore::Exception::argument_error("Invalid data received on TableInsert::insert");
+    }
+
+    // Stores the data
+    (*_data)[path] = args[0];
+  }
+
+  // Updates the exposed functions
+  update_functions("insert" + path);
+
+  return Value(Object_bridge_ref(this));
+}
+
+shcore::Value TableInsert::values(const shcore::Argument_list &args)
+{
+  // Each method validates the received parameters
+  args.ensure_count(1, "TableInsert::values");
+
+  // Adds the parameters to the data map
+  (*_data)["Values"] = args[0];
+
+  // Updates the exposed functions
+  update_functions("values");
+
+  // Returns the same object
+  return Value(Object_bridge_ref(this));
+}
+
+shcore::Value TableInsert::bind(const shcore::Argument_list &args)
+{
+  // TODO: Logic to determine the kind of parameter passed
+  //       Should end up adding one of the next to the data dictionary:
+  //       - ValuesAndSubQueries
+  //       - ParamsValuesAndSubQueries
+  //       - IteratorObject
+
+  // Updates the exposed functions
+  update_functions("bind");
+
+  return Value(Object_bridge_ref(this));
+}
+
+shcore::Value TableInsert::run(const shcore::Argument_list &args)
+{
+  // TODO: Callback handling logic
+  shcore::Value ret_val;
+  boost::shared_ptr<mysh::X_connection> connection(_conn.lock());
+
+  if (connection)
+  {
+    ret_val = connection->table_insert(_data);
+  }
+
+  return ret_val;
+}
+
+boost::shared_ptr<shcore::Object_bridge> TableInsert::create(const shcore::Argument_list &args)
+{
+  args.ensure_count(3, 4, "TableInsert()");
+  return boost::shared_ptr<shcore::Object_bridge>(new TableInsert(args));
+}
+
 #include "shellcore/object_factory.h"
 namespace {
   static struct Auto_register {
     Auto_register()
     {
       shcore::Object_factory::register_factory("mysqlx", "Connection", &X_connection::create);
+      shcore::Object_factory::register_factory("mysqlx", "TableInsert", &TableInsert::create);
     }
-  } Mysql_connection_register;
+  } Mysqlx_register;
 };

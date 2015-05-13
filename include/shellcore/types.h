@@ -206,6 +206,7 @@ public:
 
   void ensure_count(int c, const char *context) const;
   void ensure_count(int minc, int maxc, const char *context) const;
+  void ensure_at_least(int minc, const char *context) const;
 };
 
 

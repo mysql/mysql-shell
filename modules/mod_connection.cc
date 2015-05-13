@@ -36,18 +36,15 @@
 #include <mysql.h>
 #include "mod_connection.h"
 
-
 #define MAX_COLUMN_LENGTH 1024
 #define MIN_COLUMN_LENGTH 4
 
 using namespace mysh;
 using namespace shcore;
 
-
 #include <iostream>
 
 namespace mysh {
-
   bool parse_mysql_connstring(const std::string &connstring,
                                      std::string &protocol, std::string &user, std::string &password,
                                      std::string &host, int &port, std::string &sock,
@@ -61,30 +58,30 @@ namespace mysh {
     p = remaining.find("://");
     if (p != std::string::npos)
     {
-      protocol = connstring.substr(0,p);
-      remaining = remaining.substr(p+3);
+      protocol = connstring.substr(0, p);
+      remaining = remaining.substr(p + 3);
     }
 
     std::string s = remaining;
     p = remaining.find('/');
     if (p != std::string::npos)
     {
-      db = remaining.substr(p+1);
+      db = remaining.substr(p + 1);
       s = remaining.substr(0, p);
     }
     p = s.rfind('@');
     std::string user_part;
-    std::string server_part = (p == std::string::npos) ? s : s.substr(p+1);
+    std::string server_part = (p == std::string::npos) ? s : s.substr(p + 1);
 
     if (p == std::string::npos)
     {
       // by default, connect using the current OS username
-  #ifdef _WIN32
+#ifdef _WIN32
       //XXX find out current username here
-  #else
+#else
       const char *tmp = getenv("USER");
       user_part = tmp ? tmp : "";
-  #endif
+#endif
     }
     else
       user_part = s.substr(0, p);
@@ -92,7 +89,7 @@ namespace mysh {
     if ((p = user_part.find(':')) != std::string::npos)
     {
       user = user_part.substr(0, p);
-      password = user_part.substr(p+1);
+      password = user_part.substr(p + 1);
       pwd_found = 1;
     }
     else
@@ -102,13 +99,13 @@ namespace mysh {
     if (p != std::string::npos)
     {
       host = server_part.substr(0, p);
-      server_part = server_part.substr(p+1);
+      server_part = server_part.substr(p + 1);
       p = server_part.find(':');
       if (p != std::string::npos)
-        sock = server_part.substr(p+1);
+        sock = server_part.substr(p + 1);
       else
-        if (!sscanf(server_part.substr(0, p).c_str(), "%i", &port))
-          return false;
+      if (!sscanf(server_part.substr(0, p).c_str(), "%i", &port))
+        return false;
     }
     else
       host = server_part;
@@ -124,7 +121,7 @@ namespace mysh {
     p = remaining.find("://");
     if (p != std::string::npos)
     {
-      remaining = remaining.substr(p+3);
+      remaining = remaining.substr(p + 3);
     }
 
     std::string s = remaining;
@@ -139,25 +136,25 @@ namespace mysh {
     if (p == std::string::npos)
     {
       // by default, connect using the current OS username
-  #ifdef _WIN32
+#ifdef _WIN32
       //XXX find out current username here
-  #else
+#else
       const char *tmp = getenv("USER");
       user_part = tmp ? tmp : "";
-  #endif
+#endif
     }
     else
       user_part = s.substr(0, p);
 
     if ((p = user_part.find(':')) != std::string::npos)
     {
-      password = user_part.substr(p+1);
+      password = user_part.substr(p + 1);
       if (!password.empty())
       {
         std::string uri_stripped = connstring;
         std::string::size_type i = uri_stripped.find(":" + password);
         if (i != std::string::npos)
-          uri_stripped.erase(i, password.length()+1);
+          uri_stripped.erase(i, password.length() + 1);
 
         return uri_stripped;
       }
@@ -195,19 +192,16 @@ Base_connection::Base_connection(const std::string &uri, const char *password)
   _uri = uri;
 }
 
-
 std::string &Base_connection::append_descr(std::string &s_out, int indent, int quote_strings) const
 {
   s_out.append("<" + class_name() + ":" + _uri + ">");
   return s_out;
 }
 
-
 std::string &Base_connection::append_repr(std::string &s_out) const
 {
   return append_descr(s_out, false);
 }
-
 
 std::vector<std::string> Base_connection::get_members() const
 {
@@ -216,14 +210,12 @@ std::vector<std::string> Base_connection::get_members() const
   return members;
 }
 
-
 shcore::Value Base_connection::get_member(const std::string &prop) const
 {
   if (prop == "uri")
     return shcore::Value(_uri);
   return Cpp_object_bridge::get_member(prop);
 }
-
 
 bool Base_connection::operator == (const Object_bridge &other) const
 {
@@ -241,7 +233,6 @@ shcore::Value Base_connection::sql_(const shcore::Argument_list &args)
   return sql(query, shcore::Value());
 }
 
-
 shcore::Value Base_connection::sql_one_(const shcore::Argument_list &args)
 {
   std::string function = class_name() + "::sql_one";
@@ -253,7 +244,7 @@ shcore::Value Base_connection::sql_one_(const shcore::Argument_list &args)
   return sql_one(query);
 }
 
-Field::Field(const std::string& catalog, const std::string& db, const std::string& table, const std::string& otable, const std::string& name, const std::string& oname, int length, int type, int flags, int decimals, int charset):
+Field::Field(const std::string& catalog, const std::string& db, const std::string& table, const std::string& otable, const std::string& name, const std::string& oname, int length, int type, int flags, int decimals, int charset) :
 _catalog(catalog),
 _db(db),
 _table(table),
@@ -289,7 +280,6 @@ Base_resultset::Base_resultset(boost::shared_ptr<Base_connection> owner, uint64_
   add_method("__paged_output__", boost::bind(&Base_resultset::print, this, _1), NULL);
 }
 
-
 shcore::Value Base_resultset::next(const shcore::Argument_list &args)
 {
   std::string function = class_name() + "::next";
@@ -320,12 +310,11 @@ bool Base_resultset::next_result()
     return false;
 }
 
-
 shcore::Value Base_resultset::get_metadata(const shcore::Argument_list &args)
 {
   std::string function = class_name() + "::get_metadata";
 
-  args.ensure_count(0,function.c_str());
+  args.ensure_count(0, function.c_str());
 
   boost::shared_ptr<shcore::Value::Array_type> array(new shcore::Value::Array_type);
   int num_fields = _metadata.size();
@@ -352,7 +341,6 @@ shcore::Value Base_resultset::get_metadata(const shcore::Argument_list &args)
   return shcore::Value(array);
 }
 
-
 shcore::Value Base_resultset::fetch_all(const shcore::Argument_list &args)
 {
   std::string function = class_name() + "::fetch_all";
@@ -368,7 +356,7 @@ shcore::Value Base_resultset::fetch_all(const shcore::Argument_list &args)
 
   boost::shared_ptr<shcore::Value::Array_type> array(new shcore::Value::Array_type);
 
-  while((row = next_row()))
+  while ((row = next_row()))
   {
     array->push_back(raw ? row->as_data_array() : row->as_document());
     delete row;
@@ -377,35 +365,52 @@ shcore::Value Base_resultset::fetch_all(const shcore::Argument_list &args)
   return shcore::Value(array);
 }
 
+Base_row::Base_row(std::vector<Field>* metadata) :_fields(metadata)
+{
+  _key_by_index = false;
+}
 
 shcore::Value Base_row::as_document()
 {
-  boost::shared_ptr<shcore::Value::Map_type> map(new shcore::Value::Map_type);
-
-  int num_fields = _fields.size();
-
-  for (int i = 0; i < num_fields; i++)
+  boost::shared_ptr<shcore::Value::Map_type> map;
+  if (_fields)
   {
-    std::string key = _key_by_index ? (boost::format("%i") % i).str() : _fields[i].name();
+    map.reset(new shcore::Value::Map_type);
 
-    (*map)[key] = get_value(i);
+    int num_fields = _fields->size();
+
+    for (int i = 0; i < num_fields; i++)
+    {
+      std::string key = _key_by_index ? (boost::format("%i") % i).str() : (*_fields)[i].name();
+
+      (*map)[key] = get_value(i);
+    }
   }
+  else
+    throw shcore::Exception::logic_error("Metadata is required to create row document.");
+
   return shcore::Value(map);
 }
 
 shcore::Value Base_row::as_data_array()
 {
-  boost::shared_ptr<shcore::Value::Array_type> array(new shcore::Value::Array_type);
-
-  int num_fields = _fields.size();
-
-  for (int i = 0; i < num_fields; i++)
+  boost::shared_ptr<shcore::Value::Array_type> array;
+  if (_fields)
   {
-    array->push_back(get_value(i));
+    array.reset(new shcore::Value::Array_type);
+
+    int num_fields = _fields->size();
+
+    for (int i = 0; i < num_fields; i++)
+    {
+      array->push_back(get_value(i));
+    }
   }
+  else
+    throw shcore::Exception::logic_error("Metadata is required to create row data array.");
+
   return shcore::Value(array);
 }
-
 
 std::vector<std::string> Base_resultset::get_members() const
 {
@@ -502,7 +507,6 @@ shcore::Value Base_resultset::print(const shcore::Argument_list &args)
     // Prints the warnings if there were any
     if (_warning_count)
       print_warnings();
-
   } while (next_result());
 
   return shcore::Value();
@@ -518,13 +522,12 @@ void Base_resultset::print_table(shcore::Value::Array_type_ref records)
   //---------
   // Calculates the real field lengths
   size_t row_index;
-  for(row_index = 0; row_index < records->size(); row_index++)
+  for (row_index = 0; row_index < records->size(); row_index++)
   {
     shcore::Value::Array_type_ref record = (*records)[row_index].as_array();
 
-    for(int field_index = 0; field_index < _metadata.size(); field_index++)
+    for (int field_index = 0; field_index < _metadata.size(); field_index++)
     {
-
       int field_length = (*record)[field_index].repr().length();
       if (field_length > _metadata[field_index].max_length())
         _metadata[field_index].max_length(field_length);
@@ -540,7 +543,7 @@ void Base_resultset::print_table(shcore::Value::Array_type_ref records)
   std::string separator("+");
   for (index = 0; index < field_count; index++)
   {
-    unsigned int max_field_length=0;
+    unsigned int max_field_length = 0;
     max_field_length = std::max<unsigned int>(_metadata[index].max_length(), _metadata[index].name_length());
     max_field_length = std::max<unsigned int>(max_field_length, MIN_COLUMN_LENGTH);
     _metadata[index].max_length(max_field_length);
@@ -555,7 +558,6 @@ void Base_resultset::print_table(shcore::Value::Array_type_ref records)
   }
   separator.append("\n");
 
-
   // Prints the initial separator line and the column headers
   // TODO: Consider the charset information on the length calculations
   shcore::print(separator + "|");
@@ -568,19 +570,18 @@ void Base_resultset::print_table(shcore::Value::Array_type_ref records)
     // so they are right aligned
     if (IS_NUM(_metadata[index].type()))
       formats[index] = formats[index].replace(1, 1, "");
-
   }
 
   shcore::print("\n" + separator);
 
   // Now prints the records
-  for(row_index = 0; row_index < records->size(); row_index++)
+  for (row_index = 0; row_index < records->size(); row_index++)
   {
     shcore::print("|");
 
     shcore::Value::Array_type_ref record = (*records)[row_index].as_array();
 
-    for(size_t field_index = 0; field_index < _metadata.size(); field_index++)
+    for (size_t field_index = 0; field_index < _metadata.size(); field_index++)
     {
       std::string raw_value = (*record)[field_index].repr();
       std::string data = (boost::format(formats[field_index]) % (raw_value)).str();
@@ -595,7 +596,6 @@ void Base_resultset::print_table(shcore::Value::Array_type_ref records)
 
 void Base_resultset::print_warnings()
 {
-
   Value::Map_type_ref options(new shcore::Value::Map_type);
   (*options)["key_by_index"] = Value::True();
 
@@ -616,7 +616,6 @@ void Base_resultset::print_warnings()
         while ((record = result->next(Argument_list())))
         {
           boost::shared_ptr<Value::Map_type> row = record.as_map();
-
 
           unsigned long error = ((*row)["1"].as_int());
 
