@@ -131,11 +131,10 @@ namespace tests {
   {
     ASSERT_TRUE(env.js);
 
-    boost::system::error_code error;
-    Value result = env.js->execute("'hello world'", error);
+    Value result = env.js->execute("'hello world'");
     ASSERT_EQ(result.repr(), "\"hello world\"");
 
-    result = env.js->execute("1+1", error);
+    result = env.js->execute("1+1");
     ASSERT_EQ(result.as_int(), 2);
   }
 
@@ -143,7 +142,6 @@ namespace tests {
   {
     ASSERT_TRUE(env.js);
 
-    boost::system::error_code error;
     env.js->set_global("testglobal", Value(12345));
     ASSERT_EQ(env.js->get_global("testglobal").repr(), "12345");
   }
@@ -231,23 +229,21 @@ namespace tests {
 
     ASSERT_EQ(env.js->v8_value_to_shcore_value(env.js->shcore_value_to_v8_value(v)), v);
 
-    boost::system::error_code error;
-
     // addressing a wrapped Value array from JS
     env.js->set_global("arr", v);
-    ASSERT_EQ(env.js->execute("arr[0]", error).repr(), Value(123).repr());
+    ASSERT_EQ(env.js->execute("arr[0]").repr(), Value(123).repr());
 
-    ASSERT_EQ(env.js->execute("arr.length", error).repr(), Value(3).repr());
+    ASSERT_EQ(env.js->execute("arr.length").repr(), Value(3).repr());
 
     // tests enumeration
-    env.js->execute("type(arr[0])", error);
+    env.js->execute("type(arr[0])");
 
-    env.js->execute("for (i in arr) { g = i; }", error);
+    env.js->execute("for (i in arr) { g = i; }");
     // enumrated array keys become strings, this is normal
     ASSERT_EQ(Value("2").repr(), env.js->get_global("g").repr());
 
     // this forces conversion of a native JS array into a Value
-    Value result = env.js->execute("[1,2,3]", error);
+    Value result = env.js->execute("[1,2,3]");
     ASSERT_EQ(result.repr(), "[1, 2, 3]");
   }
 
@@ -275,21 +271,19 @@ namespace tests {
 
     ASSERT_EQ(env.js->v8_value_to_shcore_value(env.js->shcore_value_to_v8_value(v)), v);
 
-    boost::system::error_code error;
-
     env.js->set_global("mapval", v);
 
     // test enumerator
     ASSERT_EQ("[\"k1\",\"k2\",\"k3\"]",
-              env.js->execute("Object.keys(mapval)", error).descr(false));
+              env.js->execute("Object.keys(mapval)").descr(false));
 
     // test setter
-    env.js->execute("mapval[\"k4\"] = 'test'", error);
+    env.js->execute("mapval[\"k4\"] = 'test'");
     ASSERT_EQ((*map).size(), 4);
     ASSERT_EQ((*map)["k4"].descr(false), Value("test").descr(false));
 
     // this forces conversion of a native JS map into a Value
-    Value result = env.js->execute("a={\"submap\": 444}", error);
+    Value result = env.js->execute("a={\"submap\": 444}");
     ASSERT_EQ(result, Value(map2));
   }
 
@@ -311,17 +305,15 @@ namespace tests {
 
     ASSERT_EQ(Value(boost::static_pointer_cast<Object_bridge>(obj2)), env.js->v8_value_to_shcore_value(env.js->shcore_value_to_v8_value(Value(boost::static_pointer_cast<Object_bridge>(obj)))));
 
-    boost::system::error_code error;
-
     // expose the object to JS
     env.js->set_global("test_obj", Value(boost::static_pointer_cast<Object_bridge>(obj)));
-    ASSERT_EQ(env.js->execute("type(test_obj)", error).descr(false), "m.Test");
+    ASSERT_EQ(env.js->execute("type(test_obj)").descr(false), "m.Test");
 
     // test getting member from obj
-    ASSERT_EQ(env.js->execute("test_obj.constant", error).descr(false), "BLA");
+    ASSERT_EQ(env.js->execute("test_obj.constant").descr(false), "BLA");
 
     // test setting member of obj
-    env.js->execute("test_obj.value=42", error);
+    env.js->execute("test_obj.value=42");
 
     ASSERT_EQ(obj->_value, 42);
   }
@@ -359,13 +351,11 @@ namespace tests {
 
     env.js->set_global("test_func", v);
 
-    boost::system::error_code error;
+    ASSERT_EQ(env.js->execute("type(test_func)").descr(false), "m.Function");
 
-    ASSERT_EQ(env.js->execute("type(test_func)", error).descr(false), "m.Function");
+    ASSERT_EQ(env.js->execute("test_func('hello')").descr(false), "HELLO");
 
-    ASSERT_EQ(env.js->execute("test_func('hello')", error).descr(false), "HELLO");
-
-    ASSERT_THROW(env.js->execute("test_func(123)", error), shcore::Exception);
+    ASSERT_THROW(env.js->execute("test_func(123)"), shcore::Exception);
   }
 
 
@@ -377,9 +367,8 @@ namespace tests {
     v8::TryCatch try_catch;
     v8::Context::Scope context_scope(v8::Local<v8::Context>::New(env.js->isolate(),
                                                                  env.js->context()));
-    boost::system::error_code error;
 
-    ASSERT_EQ(env.js->execute("repr(unrepr(repr(\"hello world\")))", error).descr(false), "\"hello world\"");
+    ASSERT_EQ(env.js->execute("repr(unrepr(repr(\"hello world\")))").descr(false), "\"hello world\"");
   }
 
   TEST_F(JavaScript, js_date_object)
@@ -389,9 +378,7 @@ namespace tests {
     v8::TryCatch try_catch;
     v8::Context::Scope context_scope(v8::Local<v8::Context>::New(env.js->isolate(),
                                                                  env.js->context()));
-    boost::system::error_code error;
-
-    Value object = env.js->execute("new Date(2014,0,1)", error);
+    Value object = env.js->execute("new Date(2014,0,1)");
 
     ASSERT_EQ(Object, object.type);
     ASSERT_TRUE(object.as_object()->class_name() == "Date");

@@ -572,7 +572,7 @@ void X_resultset::reset(unsigned long duration, int next_mid, ::google::protobuf
                            _next_mid == Mysqlx::ServerMessages::SQL_CURSOR_FETCH_DONE_MORE_RESULTSETS);
   }
 
-  if (duration >= 0)
+  if (duration != (unsigned long)-1)
     _raw_duration = duration;
 }
 

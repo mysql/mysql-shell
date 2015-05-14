@@ -727,7 +727,7 @@ Argument_list JScript_context::convert_args(const v8::FunctionCallbackInfo<v8::V
   return _impl->convert_args(args);
 }
 
-Value JScript_context::execute(const std::string &code_str, boost::system::error_code &ret_error, const std::string& source) throw (Exception)
+Value JScript_context::execute(const std::string &code_str, const std::string& source) throw (Exception)
 {
   // makes _isolate the default isolate for this context
   v8::Isolate::Scope isolate_scope(_impl->isolate);
@@ -763,7 +763,7 @@ Value JScript_context::execute(const std::string &code_str, boost::system::error
     {
       Value e(_impl->types.v8_value_to_shcore_value(try_catch.Exception()));
 
-      _impl->print_exception(&try_catch, false);
+     // _impl->print_exception(&try_catch, false);
 
       // TODO: wrap the Exception object in JS so that one can throw common exceptions from JS
       if (e.type == Map)
@@ -806,8 +806,17 @@ Value JScript_context::execute_interactive(const std::string &code_str) BOOST_NO
     }
     else
     {
-      Value r(v8_value_to_shcore_value(result));
-      return r;
+      try
+      {
+        return Value(v8_value_to_shcore_value(result));
+      }
+      catch (std::exception &exc)
+      {
+        // we used to let the exception bubble up, but somehow, exceptions thrown from v8_value_to_shcore_value() 
+        // aren't being caught from main.cc, leading to a crash due to unhandled exception.. so we catch and print it here
+        _impl->delegate->print_error(_impl->delegate->user_data, std::string("INTERNAL ERROR: ").append(exc.what()).c_str());
+        return Value();
+      }
     }
   }
   return Value();

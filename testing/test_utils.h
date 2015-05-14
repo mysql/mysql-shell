@@ -14,7 +14,7 @@
    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA */
 
    
-#include "shellcore/lang_base.h";
+#include "shellcore/lang_base.h"
 
 class Shell_test_output_handler
 {

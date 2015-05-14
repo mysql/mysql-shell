@@ -134,7 +134,7 @@ namespace mysh
   private:
     TableInsert(const shcore::Argument_list &args);
   public:
-    static boost::shared_ptr<shcore::Object_bridge> TableInsert::create(const shcore::Argument_list &args);
+    static boost::shared_ptr<shcore::Object_bridge> create(const shcore::Argument_list &args);
     shcore::Value insert(const shcore::Argument_list &args);
     shcore::Value values(const shcore::Argument_list &args);
     shcore::Value bind(const shcore::Argument_list &args);

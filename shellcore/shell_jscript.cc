@@ -41,19 +41,11 @@ Value Shell_javascript::handle_input(std::string &code, Interactive_input_state 
   {
     try
     {
-      boost::system::error_code err;
-
-      result = _js->execute(code, err, _owner->get_input_source());
-
-      if (err)
-      {
-        _owner->print_error(err.message());
-      }
+      result = _js->execute(code, _owner->get_input_source());
     }
-    catch (Exception &exc)
+    catch (std::exception &exc)
     {
-      // This exception was already printed in JS
-      // and the correct return_value of undefined is set
+      _owner->print_error(exc.what());
     }
   }
 
@@ -67,6 +59,16 @@ Value Shell_javascript::handle_input(std::string &code, Interactive_input_state 
 
 std::string Shell_javascript::prompt()
 {
+  try
+  {
+    shcore::Value value = _js->execute("shell.js_prompt ? shell.js_prompt() : null", "shell.js_prompt");
+    if (value && value.type == String)
+      return value.as_string();
+  }
+  catch (std::exception &exc)
+  {
+    _owner->print_error(std::string("Exception in JS prompt function: ")+exc.what());
+  }
   return "mysql-js> ";
 }
 
