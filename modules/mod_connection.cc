@@ -550,9 +550,11 @@ void Base_resultset::print_table(shcore::Value::Array_type_ref records)
 
     // Creates the format string to print each field
     formats[index].append(boost::lexical_cast<std::string>(max_field_length));
-    formats[index].append("s|");
-
-    std::string field_separator(max_field_length, '-');
+    if (index == field_count-1)
+      formats[index].append("s |");
+    else
+      formats[index].append("s | ");
+    std::string field_separator(max_field_length+2, '-');
     field_separator.append("+");
     separator.append(field_separator);
   }
@@ -560,7 +562,7 @@ void Base_resultset::print_table(shcore::Value::Array_type_ref records)
 
   // Prints the initial separator line and the column headers
   // TODO: Consider the charset information on the length calculations
-  shcore::print(separator + "|");
+  shcore::print(separator + "| ");
   for (index = 0; index < field_count; index++)
   {
     std::string data = (boost::format(formats[index]) % _metadata[index].name()).str();
@@ -577,13 +579,13 @@ void Base_resultset::print_table(shcore::Value::Array_type_ref records)
   // Now prints the records
   for (row_index = 0; row_index < records->size(); row_index++)
   {
-    shcore::print("|");
+    shcore::print("| ");
 
     shcore::Value::Array_type_ref record = (*records)[row_index].as_array();
 
     for (size_t field_index = 0; field_index < _metadata.size(); field_index++)
     {
-      std::string raw_value = (*record)[field_index].repr();
+      std::string raw_value = (*record)[field_index].descr();
       std::string data = (boost::format(formats[field_index]) % (raw_value)).str();
 
       shcore::print(data);
