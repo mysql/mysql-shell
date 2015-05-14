@@ -133,7 +133,7 @@ namespace mysh
   class Base_resultset : public shcore::Cpp_object_bridge
   {
   public:
-    Base_resultset(boost::shared_ptr<Base_connection> owner, uint64_t affected_rows, int warning_count, const char* info, boost::shared_ptr<shcore::Value::Map_type> options = boost::shared_ptr<shcore::Value::Map_type>());
+    Base_resultset(boost::shared_ptr<Base_connection> owner, uint64_t affected_rows, uint64_t last_insert_id, int warning_count, const char* info, boost::shared_ptr<shcore::Value::Map_type> options = boost::shared_ptr<shcore::Value::Map_type>());
 
     // Methods from Cpp_object_bridge will be defined here
     // Since all the connections will expose the same members
@@ -176,6 +176,7 @@ namespace mysh
 
     unsigned long _raw_duration;
     uint64_t _affected_rows;
+    uint64_t _last_insert_id;
     std::string _info;
     int _warning_count;
   };

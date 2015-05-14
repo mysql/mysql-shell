@@ -112,7 +112,7 @@ void X_connection::auth(const char *user, const char *pass)
   }
   CATCH_AND_TRANSLATE();
 
-  if (mid != Mysqlx::ServerMessages_Type_SESS_AUTHENTICATE_OK)
+  if (mid != Mysqlx::ServerMessages::SESS_AUTHENTICATE_OK)
   {
     throw shcore::Exception::argument_error("Authentication failed...");
   }
@@ -133,55 +133,59 @@ X_resultset *X_connection::_sql(const std::string &query, shcore::Value options)
   // Reads any remaining stuff from the previos result
   // To let the comm in a clean state
   if (_last_result && !_last_result->is_all_fetch_done())
-  {
-    shcore::Value waste(_last_result->fetch_all(shcore::Argument_list()));
-  }
+    flush_result(_last_result.get(), true);
 
   _timer.start();
   ++_next_stmt_id;
 
-  uint64_t affected_rows = 0;
   bool has_data = false;
 
   try
   {
     Mysqlx::Sql::StmtExecute stmt;
     stmt.set_stmt(query);
-    mid = Mysqlx::ClientMessages_Type_SQL_STMT_EXECUTE;
-    msg = _protobuf->send_receive_message(mid, &stmt, Mysqlx::ServerMessages_Type_SQL_STMT_EXECUTE_OK, "executing statement: " + query);
+    mid = Mysqlx::ClientMessages::SQL_STMT_EXECUTE;
 
-    Mysqlx::Sql::StmtExecuteOk *stmt_ok = dynamic_cast<Mysqlx::Sql::StmtExecuteOk *>(msg);
-    if (stmt_ok->has_rows_affected())
-      affected_rows = stmt_ok->rows_affected();
-    has_data = stmt_ok->result_created();
+    std::set<int> responses;
+    responses.insert(Mysqlx::ServerMessages::SQL_STMT_EXECUTE_OK);
+    responses.insert(Mysqlx::ServerMessages::SQL_COLUMN_META_DATA);
+
+    msg = _protobuf->send_receive_message(mid, &stmt, responses, "executing statement: " + query);
+
+    has_data = mid == Mysqlx::ServerMessages::SQL_COLUMN_META_DATA;
   }
   CATCH_AND_TRANSLATE();
 
-  // Creates the resultset
-  // TODO: The warning count is not returned upon SQL Execution
-  X_resultset* result = new X_resultset(shared_from_this(), has_data, _next_stmt_id, affected_rows, 0, NULL, options && options.type == shcore::Map ? options.as_map() : boost::shared_ptr<shcore::Value::Map_type>());
+  X_resultset* result = new X_resultset(shared_from_this(), has_data, _next_stmt_id, 0, 0, 0, NULL, mid, msg, options && options.type == shcore::Map ? options.as_map() : boost::shared_ptr<shcore::Value::Map_type>());
+
+  // If no data will be returned then loads the resultset metadata
+  // And fills the timer data as well
+  if (mid == Mysqlx::ServerMessages::SQL_STMT_EXECUTE_OK)
+  {
+    _timer.end();
+
+    result->set_result_metadata(msg);
+    result->reset(_timer.raw_duration());
+  }
 
   return result;
 }
 
-shcore::Value X_connection::sql_one(const std::string &sql)
+shcore::Value X_connection::sql_one(const std::string &query)
 {
-  X_resultset* result = _sql(sql, shcore::Value());
-
   shcore::Value ret_val = shcore::Value::Null();
 
-  // Prepares the resultset for processing
-  if (next_result(result, true))
+  // Executes the normal query
+  sql(query, shcore::Value());
+
+  if (_last_result->has_resultset())
   {
     shcore::Argument_list no_args;
+    ret_val = _last_result->next(no_args);
 
-    ret_val = result->next(no_args);
-
-    // Reads any remaining record to keep the tx buffers consistent
-    while (result->next(no_args));
+    // Reads whatever is remaining, we do not care about it
+    flush_result(_last_result.get(), true);
   }
-
-  delete result;
 
   return ret_val;
 }
@@ -191,15 +195,19 @@ shcore::Value X_connection::sql(const std::string &query, shcore::Value options)
   // Creates the resultset
   _last_result.reset(_sql(query, options));
 
-  // Calls next result so the initial metadata is loaded
-  // if any
-  next_result(_last_result.get(), true);
+  // Calls next result so the metadata is loaded
+  // if any result
+  if (_last_result->has_resultset())
+    next_result(_last_result.get(), true);
 
   return shcore::Value(boost::shared_ptr<shcore::Object_bridge>(_last_result));
 }
 
 shcore::Value X_connection::close(const shcore::Argument_list &args)
 {
+  if (_last_result && !_last_result->is_all_fetch_done())
+    flush_result(_last_result.get(), true);
+
   _protobuf->close();
 
   return shcore::Value();
@@ -220,6 +228,7 @@ shcore::Value X_connection::table_insert(shcore::Value::Map_type_ref data)
   // The definitive implementation should consider many different cases
   // and also many validations must be included
   uint64_t affected_rows = 0;
+  uint64_t last_insert_id = 0;
 
   try
   {
@@ -260,20 +269,80 @@ shcore::Value X_connection::table_insert(shcore::Value::Map_type_ref data)
     {
     }
 
-    int mid = Mysqlx::ClientMessages_Type_CRUD_INSERT;
-    Message* msg = _protobuf->send_receive_message(mid, &insert, Mysqlx::ServerMessages_Type_SQL_STMT_EXECUTE_OK, "Inserting record...");
+    int mid = Mysqlx::ClientMessages::CRUD_INSERT;
+    Message* msg = _protobuf->send_receive_message(mid, &insert, Mysqlx::ServerMessages::SQL_STMT_EXECUTE_OK, "Inserting record...");
 
     Mysqlx::Sql::StmtExecuteOk *insert_ok = dynamic_cast<Mysqlx::Sql::StmtExecuteOk *>(msg);
 
     if (insert_ok->has_rows_affected())
       affected_rows = insert_ok->rows_affected();
+    if (insert_ok->has_last_insert_id())
+      last_insert_id = insert_ok->last_insert_id();
   }
   CATCH_AND_TRANSLATE();
 
   // Creates the resultset
-  X_resultset* result = new X_resultset(shared_from_this(), false, _next_stmt_id, affected_rows, 0, NULL);
+  X_resultset* result = new X_resultset(shared_from_this(), false, _next_stmt_id, affected_rows, 0, 0, NULL, 0, NULL);
 
   return shcore::Value(boost::shared_ptr<shcore::Object_bridge>(result));
+}
+
+// Used to consume all the remaining messages of the current result
+// If complete false it will only flush the messages about the current result
+// If it is true it will flush the messages for all the results in the respnse being processed
+void X_connection::flush_result(X_resultset *target, bool complete)
+{
+  Message *msg;
+  int mid;
+  bool done_flushing = false;
+  try
+  {
+    do
+    {
+      msg = _protobuf->read_response(mid);
+
+      if (msg && mid != Mysqlx::ServerMessages::SQL_STMT_EXECUTE_OK)
+      {
+        delete msg;
+        msg = NULL;
+      }
+
+      if (mid == Mysqlx::ServerMessages::ERROR)
+        _protobuf->handle_wrong_response(mid, msg, "flushing result");
+      else
+      {
+        if (complete)
+          done_flushing = (mid == Mysqlx::ServerMessages::SQL_CURSOR_FETCH_DONE ||
+                           mid == Mysqlx::ServerMessages::SQL_STMT_EXECUTE_OK);
+        else
+          done_flushing = (mid == Mysqlx::ServerMessages::SQL_CURSOR_FETCH_DONE ||
+                           mid == Mysqlx::ServerMessages::SQL_CURSOR_FETCH_DONE_MORE_RESULTSETS ||
+                           mid == Mysqlx::ServerMessages::SQL_STMT_EXECUTE_OK);
+      }
+    } while (!done_flushing);
+
+    // Updates the target based on the last message read
+    if (mid != Mysqlx::ServerMessages::SQL_STMT_EXECUTE_OK)
+      target->reset(-1, mid, msg);
+
+    // If done reading finally reads the statement exec ok message to get the
+    // result metadata
+    if (mid == Mysqlx::ServerMessages::SQL_CURSOR_FETCH_DONE || mid == Mysqlx::ServerMessages::SQL_STMT_EXECUTE_OK)
+    {
+      if (mid == Mysqlx::ServerMessages::SQL_CURSOR_FETCH_DONE)
+        msg = _protobuf->read_response(mid);
+
+      if (mid == Mysqlx::ServerMessages::SQL_STMT_EXECUTE_OK)
+      {
+        target->set_result_metadata(msg);
+        delete msg;
+        msg = NULL;
+      }
+      else
+        _protobuf->handle_wrong_response(mid, msg, "fetching result.");
+    }
+  }
+  CATCH_AND_TRANSLATE();
 }
 
 bool X_connection::next_result(Base_resultset *target, bool first_result)
@@ -282,62 +351,23 @@ bool X_connection::next_result(Base_resultset *target, bool first_result)
   X_resultset *real_target = dynamic_cast<X_resultset *> (target);
 
   // Just to ensure the right instance was received as parameter
-  if (real_target)
+  if (real_target && real_target->has_resultset())
   {
-    if (first_result && !real_target->has_resultset())
+    // The first call to next result is done to fetch the metadata
+    // Subsequent calls to next_result need to ensure all the messages on the
+    // tx buffer are cleared out first
+    if (!first_result && !real_target->is_current_fetch_done())
+      flush_result(real_target, false);
+
+    if (!real_target->is_all_fetch_done())
     {
-      // Sets the response with the required data
+      ret_val = true;
+      real_target->fetch_metadata();
+
       _timer.end();
       real_target->reset(_timer.raw_duration());
-      ret_val = true;
-    }
-    else
-    {
-      int mid = 0;
-      Message* msg = NULL;
-
-      // Switching to the next result will be done only
-      // if there is still data to be read
-      try
-      {
-        if (!real_target->is_all_fetch_done())
-        {
-          // Burns out the remaining records for the current result
-          if (!first_result && !real_target->is_current_fetch_done())
-          {
-            do
-            {
-              msg = _protobuf->read_response(mid);
-
-              if (msg)
-              {
-                delete msg;
-                msg = NULL;
-              }
-            } while (mid == Mysqlx::ServerMessages_Type_SQL_ROW);
-          }
-
-          // Fetches the metadata when required
-          if (first_result || mid == Mysqlx::ServerMessages_Type_SQL_CURSOR_FETCH_DONE_MORE_RESULTSETS)
-          {
-            mid = 0;
-            msg = NULL;
-            ret_val = true;
-
-            // Loads the metadata
-            target->fetch_metadata();
-          }
-        }
-      }
-      CATCH_AND_TRANSLATE();
-
-      // Sets the response with the required data
-      _timer.end();
-      real_target->reset(_timer.raw_duration(), mid, msg);
     }
   }
-  else
-    throw shcore::Exception::logic_error("Invalid parameter received, target should be an instance of X_resultset;");
 
   return ret_val;
 }
@@ -428,8 +458,8 @@ X_row::~X_row()
     delete _row;
 }
 
-X_resultset::X_resultset(boost::shared_ptr<X_connection> owner, bool has_data, int cursor_id, uint64_t affected_rows, int warning_count, const char *info, boost::shared_ptr<shcore::Value::Map_type> options) :
-Base_resultset(owner, affected_rows, warning_count, info, options), _xowner(owner), _cursor_id(cursor_id), _next_mid(0),
+X_resultset::X_resultset(boost::shared_ptr<X_connection> owner, bool has_data, int cursor_id, uint64_t affected_rows, uint64_t last_insert_id, int warning_count, const char *info, int next_mid, Message* next_message, boost::shared_ptr<shcore::Value::Map_type> options) :
+Base_resultset(owner, affected_rows, last_insert_id, warning_count, info, options), _xowner(owner), _cursor_id(cursor_id), _next_mid(next_mid), _next_message(next_message),
 _current_fetch_done(!has_data), _all_fetch_done(!has_data)
 {
   _has_resultset = has_data;
@@ -453,7 +483,7 @@ Base_row* X_resultset::next_row()
         // This variable must be cleaned out at the end
         _next_message = owner->get_protobuf()->read_response(_next_mid);
 
-        if (_next_mid == Mysqlx::ServerMessages_Type_SQL_ROW)
+        if (_next_mid == Mysqlx::ServerMessages::SQL_ROW)
         {
           ret_val = new X_row(dynamic_cast<Mysqlx::Sql::Row *>(_next_message), &_metadata);
           ret_val->set_key_by_index(_key_by_index);
@@ -461,17 +491,15 @@ Base_row* X_resultset::next_row()
           // Each read row increases the count
           _fetched_row_count++;
         }
-        else if (_next_mid == Mysqlx::ServerMessages_Type_SQL_CURSOR_FETCH_DONE)
+        else if (_next_mid == Mysqlx::ServerMessages::SQL_CURSOR_FETCH_DONE)
         {
-          _all_fetch_done = true;
-          _current_fetch_done = true;
+          reset(-1, _next_mid, _next_message);
+          owner->flush_result(this, true);
         }
-        else if (_next_mid == Mysqlx::ServerMessages_Type_SQL_CURSOR_FETCH_DONE_MORE_RESULTSETS)
+        else if (_next_mid == Mysqlx::ServerMessages::SQL_CURSOR_FETCH_DONE_MORE_RESULTSETS)
           _current_fetch_done = true;
         else
-        {
-          // TODO: Should probably trow exception???
-        }
+          owner->get_protobuf()->handle_wrong_response(_next_mid, _next_message, "fetching result.");
       }
       CATCH_AND_TRANSLATE();
     }
@@ -493,41 +521,35 @@ int X_resultset::fetch_metadata()
   {
     try
     {
-      int mid;
-      std::set<int> responses;
-      responses.insert(Mysqlx::ServerMessages_Type_SQL_COLUMN_META_DATA);
-      responses.insert(Mysqlx::ServerMessages_Type_ERROR);
-      Message* msg;
-      do
+      while (_next_mid == Mysqlx::ServerMessages::SQL_COLUMN_META_DATA)
       {
-        msg = owner->get_protobuf()->read_response(mid);
+        Mysqlx::Sql::ColumnMetaData *meta = dynamic_cast<Mysqlx::Sql::ColumnMetaData *>(_next_message);
 
-        if (mid == Mysqlx::ServerMessages_Type_SQL_COLUMN_META_DATA)
-        {
-          Mysqlx::Sql::ColumnMetaData *meta = dynamic_cast<Mysqlx::Sql::ColumnMetaData *>(msg);
+        _metadata.push_back(Field(meta->catalog(),
+          meta->schema(),
+          meta->table(),
+          meta->original_table(),
+          meta->name(),
+          meta->original_name(),
+          0, // length: not supported yet
+          meta->type(),
+          0, // flags: not supported yet
+          meta->fractional_digits(),// decimals are now sent as fractional digits
+          0)); // charset: not supported yet
 
-          _metadata.push_back(Field(meta->catalog(),
-            meta->schema(),
-            meta->table(),
-            meta->original_table(),
-            meta->name(),
-            meta->original_name(),
-            0, // length: not supported yet
-            meta->type(),
-            0, // flags: not supported yet
-            meta->fractional_digits(),// decimals are now sent as fractional digits
-            0)); // charset: not supported yet
+        ret_val++;
 
-          ret_val++;
-        }
-        else if (mid == Mysqlx::ServerMessages_Type_ERROR)
-        {
-          // Since metadata will be empty, it implies the result had no records
-          Mysqlx::Error *error = dynamic_cast<Mysqlx::Error *>(msg);
-          std::cout << "Error retrieving metadata: " << error->msg() << std::endl;
-          ret_val = -1;
-        }
-      } while (mid == Mysqlx::ServerMessages_Type_SQL_COLUMN_META_DATA);
+        _next_message = owner->get_protobuf()->read_response(_next_mid);
+      }
+
+      // Validates exit in case of error...
+      if (_next_mid == Mysqlx::ServerMessages::ERROR)
+      {
+        // Since metadata will be empty, it implies the result had no records
+        Mysqlx::Error *error = dynamic_cast<Mysqlx::Error *>(_next_message);
+        std::cout << "Error retrieving metadata: " << error->msg() << std::endl;
+        ret_val = -1;
+      }
     }
     CATCH_AND_TRANSLATE();
   }
@@ -543,14 +565,26 @@ void X_resultset::reset(unsigned long duration, int next_mid, ::google::protobuf
     _next_message = next_message;
 
     // Nothing to be read anymnore on these cases
-    _all_fetch_done = (_next_mid == Mysqlx::ServerMessages_Type_SQL_CURSOR_FETCH_DONE);
+    _all_fetch_done = (_next_mid == Mysqlx::ServerMessages::SQL_CURSOR_FETCH_DONE);
 
     // Nothing to be read for the current result on these cases
-    _current_fetch_done = (_next_mid == Mysqlx::ServerMessages_Type_SQL_CURSOR_FETCH_DONE ||
-                           _next_mid == Mysqlx::ServerMessages_Type_SQL_CURSOR_FETCH_DONE_MORE_RESULTSETS);
+    _current_fetch_done = (_next_mid == Mysqlx::ServerMessages::SQL_CURSOR_FETCH_DONE ||
+                           _next_mid == Mysqlx::ServerMessages::SQL_CURSOR_FETCH_DONE_MORE_RESULTSETS);
   }
 
-  _raw_duration = duration;
+  if (duration >= 0)
+    _raw_duration = duration;
+}
+
+void X_resultset::set_result_metadata(Message *msg)
+{
+  Mysqlx::Sql::StmtExecuteOk *stmt_exec_ok = dynamic_cast<Mysqlx::Sql::StmtExecuteOk*>(msg);
+
+  if (stmt_exec_ok->has_rows_affected())
+    _affected_rows = stmt_exec_ok->rows_affected();
+
+  if (stmt_exec_ok->has_last_insert_id())
+    _last_insert_id = stmt_exec_ok->last_insert_id();
 }
 
 Crud_definition::Crud_definition(const shcore::Argument_list &args)

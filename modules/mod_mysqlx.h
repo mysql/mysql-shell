@@ -47,8 +47,8 @@ namespace mysh
 
     // Connector Implementation
     virtual shcore::Value close(const shcore::Argument_list &args);
-    virtual shcore::Value sql(const std::string &sql, shcore::Value options);
-    virtual shcore::Value sql_one(const std::string &sql);
+    virtual shcore::Value sql(const std::string &query, shcore::Value options);
+    virtual shcore::Value sql_one(const std::string &query);
 
     shcore::Value table_insert(shcore::Value::Map_type_ref data);
 
@@ -57,6 +57,8 @@ namespace mysh
     static boost::shared_ptr<Object_bridge> create(const shcore::Argument_list &args);
 
     boost::shared_ptr<mysqlx::Mysqlx_test_connector> get_protobuf() { return _protobuf; }
+
+    void flush_result(X_resultset *target, bool complete);
 
   protected:
     boost::shared_ptr<mysqlx::Mysqlx_test_connector> _protobuf;
@@ -85,13 +87,14 @@ namespace mysh
   class X_resultset : public Base_resultset
   {
   public:
-    X_resultset(boost::shared_ptr<X_connection> owner, bool has_data, int cursor_id, uint64_t affected_rows, int warning_count, const char *info, boost::shared_ptr<shcore::Value::Map_type> options = boost::shared_ptr<shcore::Value::Map_type>());
+    X_resultset(boost::shared_ptr<X_connection> owner, bool has_data, int cursor_id, uint64_t affected_rows, uint64_t last_insert_id, int warning_count, const char *info, int next_mid, Message* next_message, boost::shared_ptr<shcore::Value::Map_type> options = boost::shared_ptr<shcore::Value::Map_type>());
     virtual ~X_resultset();
 
     virtual std::string class_name() const  { return "X_resultset"; }
     virtual int fetch_metadata();
 
-    void reset(unsigned long duration, int next_mid = -1, ::google::protobuf::Message* next_message = NULL);
+    void reset(unsigned long duration = -1, int next_mid = 0, ::google::protobuf::Message* next_message = NULL);
+    void set_result_metadata(Message *msg);
     int get_cursor_id() { return _cursor_id; }
     bool is_all_fetch_done()  { return _all_fetch_done; }
     bool is_current_fetch_done()  { return _current_fetch_done; }
@@ -104,9 +107,10 @@ namespace mysh
   private:
     int _cursor_id;
     int _next_mid;
+    Message* _next_message;
+
     bool _current_fetch_done;
     bool _all_fetch_done;
-    Message* _next_message;
   };
 
   class Crud_definition : public shcore::Cpp_object_bridge

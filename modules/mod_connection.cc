@@ -263,8 +263,8 @@ _name_length(name.length())
 
 //----------------------------- Base_resultset ----------------------------------------
 
-Base_resultset::Base_resultset(boost::shared_ptr<Base_connection> owner, uint64_t affected_rows, int warning_count, const char* info, boost::shared_ptr<shcore::Value::Map_type> options)
-: _key_by_index(false), _has_resultset(false), _fetched_row_count(0), _affected_rows(affected_rows), _warning_count(warning_count), _owner(owner)
+Base_resultset::Base_resultset(boost::shared_ptr<Base_connection> owner, uint64_t affected_rows, uint64_t last_insert_id, int warning_count, const char* info, boost::shared_ptr<shcore::Value::Map_type> options)
+: _key_by_index(false), _has_resultset(false), _fetched_row_count(0), _affected_rows(affected_rows), _last_insert_id(last_insert_id), _warning_count(warning_count), _owner(owner)
 {
   if (options && options->get_bool("key_by_index", false))
     _key_by_index = true;

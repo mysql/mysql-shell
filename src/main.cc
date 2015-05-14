@@ -547,16 +547,21 @@ void Interactive_shell::process_line(const std::string &line)
       {
         Value result = _shell->handle_input(_input_buffer, state);
 
-        if (result && result.type == shcore::Object)
+        if (result)
         {
-          boost::shared_ptr<Object_bridge> object = result.as_object();
           Value dump_function;
-          if (object && object->has_member("__paged_output__"))
-            dump_function = object->get_member("__paged_output__");
+          if (result.type == shcore::Object)
+          {
+            boost::shared_ptr<Object_bridge> object = result.as_object();
+            if (object && object->has_member("__paged_output__"))
+              dump_function = object->get_member("__paged_output__");
 
-          if (dump_function)
-            object->call("__paged_output__", Argument_list());
-          else
+            if (dump_function)
+              object->call("__paged_output__", Argument_list());
+          }
+
+          // If the function is not found the values still needs to be printed
+          if (!dump_function)
             this->print(result.descr(true).c_str());
         }
 

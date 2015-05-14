@@ -33,7 +33,7 @@ using namespace mysh;
 #define MIN_COLUMN_LENGTH 4
 
 Mysql_resultset::Mysql_resultset(boost::shared_ptr<Mysql_connection> owner, uint64_t affected_rows, int warning_count, const char *info, boost::shared_ptr<shcore::Value::Map_type> options)
-: Base_resultset(owner, affected_rows, warning_count, info, options)
+: Base_resultset(owner, affected_rows, _last_insert_id, warning_count, info, options)
 {
 }
 
