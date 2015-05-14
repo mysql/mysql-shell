@@ -419,35 +419,35 @@ void X_row::add_field(shcore::Value value)
 
   switch (value.type)
   {
-    case shcore::Value_type::Null:
-    case shcore::Value_type::Undefined:
+    case Null:
+    case Undefined:
       field->mutable_scalar()->set_type(Mysqlx::Datatypes::Scalar::V_NULL);
       break;
-    case shcore::Value_type::Bool:
+    case Bool:
       field->mutable_scalar()->set_type(Mysqlx::Datatypes::Scalar::V_BOOL);
       field->mutable_scalar()->set_v_bool(value.as_bool());
       break;
-    case shcore::Value_type::Float:
+    case Float:
       field->mutable_scalar()->set_type(Mysqlx::Datatypes::Scalar::V_DOUBLE);
       field->mutable_scalar()->set_v_double(value.as_double());
       break;
-    case shcore::Value_type::Integer:
+    case Integer:
       field->mutable_scalar()->set_type(Mysqlx::Datatypes::Scalar::V_UINT);
       field->mutable_scalar()->set_v_unsigned_int(value.as_int());
       break;
-    case shcore::Value_type::String:
+    case String:
       field->mutable_scalar()->set_type(Mysqlx::Datatypes::Scalar::V_STRING);
       field->mutable_scalar()->mutable_v_string()->set_value(value.as_string());
       break;
-    case shcore::Value_type::Array:
+    case Array:
       break;
-    case shcore::Value_type::Function:
+    case Function:
       break;
-    case shcore::Value_type::Map:
+    case Map:
       break;
-    case shcore::Value_type::MapRef:
+    case MapRef:
       break;
-    case shcore::Value_type::Object:
+    case Object:
       break;
   }
 }
@@ -632,7 +632,7 @@ Crud_definition(args)
   _data.reset(new shcore::Value::Map_type());
   // TODO: Perhaps the data model can be received from the caller
   //       so this class can be used both for tables and collections
-  (*_data)["data_model"] = Value(Mysqlx::Crud::DataModel::TABLE);
+  (*_data)["data_model"] = Value(Mysqlx::Crud::TABLE);
   (*_data)["schema"] = args[1];
   (*_data)["collection"] = args[2];
 
@@ -661,10 +661,10 @@ shcore::Value TableInsert::insert(const shcore::Argument_list &args)
   {
     switch (args[0].type)
     {
-      case shcore::Value_type::Array:
+      case Array:
         path = "Fields";
         break;
-      case shcore::Value_type::Map:
+      case Map:
         path = "FieldsAndValues";
         break;
       default:
