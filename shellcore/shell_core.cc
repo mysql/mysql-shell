@@ -26,13 +26,10 @@
 #include <boost/format.hpp>
 #include <boost/bind.hpp>
 
-
 #include "shellcore/lang_base.h"
 #include <fstream>
 
-
 using namespace shcore;
-
 
 Shell_core::Shell_core(Interpreter_delegate *shdelegate)
 : _lang_delegate(shdelegate)
@@ -43,13 +40,11 @@ Shell_core::Shell_core(Interpreter_delegate *shdelegate)
   shcore::print = boost::bind(&shcore::Shell_core::print, this, _1);
 }
 
-
 Shell_core::~Shell_core()
 {
   delete _registry;
   shcore::print = shcore::default_print;
 }
-
 
 bool Shell_core::print_help(const std::string& topic)
 {
@@ -70,7 +65,6 @@ bool Shell_core::password(const std::string &s, std::string &ret_pass)
 {
   return _lang_delegate->password(_lang_delegate->user_data, s.c_str(), ret_pass);
 }
-
 
 Value Shell_core::handle_input(std::string &line, Interactive_input_state &state, bool interactive)
 {
@@ -115,7 +109,12 @@ int Shell_core::process_stream(std::istream& stream, const std::string& source, 
           dump_function = object->get_member("__paged_output__");
 
         if (dump_function)
-          object->call("__paged_output__", Argument_list());
+        {
+          Argument_list args;
+          args.push_back(Value(_output_format));
+
+          object->call("__paged_output__", args);
+        }
       }
 
       // Undefined is to be used as error condition
@@ -148,7 +147,6 @@ int Shell_core::process_stream(std::istream& stream, const std::string& source, 
   return ret_val;
 }
 
-
 bool Shell_core::switch_mode(Mode mode, bool &lang_initialized)
 {
   lang_initialized = false;
@@ -160,19 +158,19 @@ bool Shell_core::switch_mode(Mode mode, bool &lang_initialized)
     {
       switch (_mode)
       {
-      case Mode_None:
-        break;
-      case Mode_SQL:
-        init_sql();
-        break;
-      case Mode_JScript:
-        init_js();
-        lang_initialized = true;
-        break;
-      case Mode_Python:
-        init_py();
-        lang_initialized = true;
-        break;
+        case Mode_None:
+          break;
+        case Mode_SQL:
+          init_sql();
+          break;
+        case Mode_JScript:
+          init_js();
+          lang_initialized = true;
+          break;
+        case Mode_Python:
+          init_py();
+          lang_initialized = true;
+          break;
       }
     }
     return true;
@@ -180,12 +178,10 @@ bool Shell_core::switch_mode(Mode mode, bool &lang_initialized)
   return false;
 }
 
-
 void Shell_core::init_sql()
 {
   _langs[Mode_SQL] = new Shell_sql(this);
 }
-
 
 void Shell_core::init_js()
 {
@@ -199,15 +195,12 @@ void Shell_core::init_js()
 #endif
 }
 
-
 void Shell_core::init_py()
 {
 #ifdef HAVE_PYTHON
   _langs[Mode_Python] = new Shell_python(this);
 #endif
 }
-
-
 
 void Shell_core::set_global(const std::string &name, const Value &value)
 {
@@ -223,18 +216,15 @@ Value Shell_core::get_global(const std::string &name)
   return (_globals.count(name) > 0) ? _globals[name] : Value();
 }
 
-
 std::string Shell_core::prompt()
 {
   return _langs[interactive_mode()]->prompt();
 }
 
-
 bool Shell_core::handle_shell_command(const std::string &line)
 {
   return _langs[_mode]->handle_shell_command(line);
 }
-
 
 //------------------ COMMAND HANDLER FUNCTIONS ------------------//
 bool Shell_command_handler::process(const std::string& command_line)
@@ -261,7 +251,7 @@ void Shell_command_handler::add_command(const std::string& triggers, const std::
   std::vector<std::string> tokens;
   boost::algorithm::split(tokens, triggers, boost::is_any_of("|"), boost::token_compress_on);
 
-  std::vector<std::string>::iterator index= tokens.begin(), end = tokens.end();
+  std::vector<std::string>::iterator index = tokens.begin(), end = tokens.end();
 
   // Inserts a mapping for each given token
   while (index != end)
@@ -293,7 +283,6 @@ void Shell_command_handler::print_commands(const std::string& title)
       tmp_alias.push_back("(" + boost::algorithm::join(tokens, ",") + ")");
     else
       tmp_alias.push_back(" ");
-
 
     int tmp_alias_length = tmp_alias.back().length();
     if (tmp_alias_length > max_alias_length)

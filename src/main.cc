@@ -83,6 +83,7 @@ public:
 
   /* Processing Options */
   void set_force(bool value) { _batch_continue_on_error = value; }
+  void set_output_format(const std::string& format);
 
 private:
   static char *readline(const char *prompt);
@@ -113,6 +114,7 @@ private:
   bool _multiline_mode;
   bool _interactive;
   bool _batch_continue_on_error;
+  std::string _output_format;
 
   Shell_command_handler _shell_command_handler;
 };
@@ -127,6 +129,7 @@ _batch_continue_on_error(false)
 
   _multiline_mode = false;
   _interactive = false;
+  _output_format = "normal";
 
   _delegate.user_data = this;
   _delegate.print = &Interactive_shell::deleg_print;
@@ -383,7 +386,12 @@ void Interactive_shell::println(const std::string &str)
 
 void Interactive_shell::print_error(const std::string &error)
 {
-  std::cerr << "ERROR: " << error << "\n";
+  if (_output_format == "json")
+  {
+    std::cerr << "{\"error\": \"" << error << "\"}\n";
+  }
+  else
+    std::cerr << "ERROR: " << error << "\n";
 }
 
 void Interactive_shell::cmd_print_shell_help(const std::vector<std::string>& args)
@@ -511,6 +519,12 @@ bool Interactive_shell::do_shell_command(const std::string &line)
   return handled;
 }
 
+void Interactive_shell::set_output_format(const std::string& format)
+{
+  _output_format = format;
+  _shell->set_output_format(format);
+}
+
 void Interactive_shell::process_line(const std::string &line)
 {
   bool handled_as_command = false;
@@ -557,12 +571,26 @@ void Interactive_shell::process_line(const std::string &line)
               dump_function = object->get_member("__paged_output__");
 
             if (dump_function)
-              object->call("__paged_output__", Argument_list());
+            {
+              Argument_list args;
+              args.push_back(Value(_output_format));
+              object->call("__paged_output__", args);
+            }
           }
 
           // If the function is not found the values still needs to be printed
           if (!dump_function)
-            this->print(result.descr(true).c_str());
+          {
+            if (_output_format == "json")
+            {
+              std::string output = "{\"__result__\": ";
+              output += result.repr().c_str();
+              output += "}\n";
+              print(output);
+            }
+            else
+              print(result.descr(true).c_str());
+          }
         }
 
         std::string executed = _shell->get_handled_input();
@@ -708,6 +736,7 @@ public:
 
   std::string uri;
   std::string password;
+  std::string output_format;
   bool print_cmd_line_helper;
   bool force;
 
@@ -746,6 +775,9 @@ public:
         initial_mode = Shell_core::Mode_SQL;
       else if (check_arg(argv, i, "--js", "--js"))
         initial_mode = Shell_core::Mode_JScript;
+      else if (check_arg(argv, i, "--json", "--json"))
+        output_format = "json";
+
       // TODO: Remove the following comment as soon as Python mode is implemented
       //else if (check_arg(argv, i, "--py", "--py"))
       //  initial_mode = Shell_core::Mode_Python;
@@ -818,6 +850,7 @@ int main(int argc, char **argv)
     Interactive_shell shell(options.initial_mode);
 
     shell.set_force(options.force);
+    shell.set_output_format(options.output_format);
 
     if (options.print_cmd_line_helper)
     {

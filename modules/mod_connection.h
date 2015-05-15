@@ -156,8 +156,10 @@ namespace mysh
     shcore::Value fetch_all(const shcore::Argument_list &args);
 
   private:
-    void print_result(shcore::Value::Array_type_ref records);
+    void print_json();
+    void print_normal();
     void print_table(shcore::Value::Array_type_ref records);
+    shcore::Value get_warnings(bool by_index = true);
     void print_warnings();
 
   protected:

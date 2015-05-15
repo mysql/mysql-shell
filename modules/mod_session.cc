@@ -166,9 +166,10 @@ void Session::print_exception(const shcore::Exception &e)
 
     if ((*e.error()).has_key("state") && (*e.error())["state"])
       message.append((boost::format(" (%s)") % ((*e.error())["state"].as_string())).str());
+
+    message.append(": ");
   }
 
-  message.append(": ");
   message.append(e.what());
 
   _shcore->print_error(message);
@@ -210,7 +211,7 @@ Value Session::get_member(const std::string &prop) const
 
   if (!_conn)
   {
-    _shcore->print("Not connected. Use connect(<uri>) or \\connect <uri>\n");
+    _shcore->print_error("Not connected. Use connect(<uri>) or \\connect <uri>\n");
     return Value::Null();
   }
 

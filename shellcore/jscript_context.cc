@@ -490,9 +490,10 @@ struct JScript_context::JScript_context_impl
     return exc.descr(false);
   }
 
-  void print_exception(v8::TryCatch *exc, bool to_shell = true)
+  void print_exception(v8::TryCatch *exc)
   {
     v8::Handle<v8::Message> message = exc->Message();
+
     std::string exception_text;
     v8::String::Utf8Value exec_error(exc->Exception());
     if (*exec_error)
@@ -501,46 +502,28 @@ struct JScript_context::JScript_context_impl
       exception_text = format_exception(types.v8_value_to_shcore_value(exc->Exception()));
 
     if (message.IsEmpty())
-    {
-      if (to_shell)
         delegate->print_error(delegate->user_data, std::string().append(exception_text).append("\n").c_str());
-      else
-        std::cerr << std::string("JS Exception: ").append(exception_text).append("\n");
-    }
     else
     {
       v8::String::Utf8Value filename(message->GetScriptOrigin().ResourceName());
 
       // location
       std::string text = (boost::format("%s:%i:%i: %s\n") % *filename % message->GetLineNumber() % message->GetStartColumn() % exception_text).str();
-      if (!to_shell)
-        std::cerr << text;
 
       // code
       v8::String::Utf8Value code(message->GetSourceLine());
-      if (to_shell)
-      {
-        text.append("in ");
-        text.append(*code ? *code : "").append("\n");
-        // underline
-        text.append(3 + message->GetStartColumn(), ' ');
-        text.append(message->GetEndColumn() - message->GetStartColumn(), '^');
-        text.append("\n");
-      }
-      else
-        std::cerr << *code << "\n";
+      text.append("in ");
+      text.append(*code ? *code : "").append("\n");
+      // underline
+      text.append(3 + message->GetStartColumn(), ' ');
+      text.append(message->GetEndColumn() - message->GetStartColumn(), '^');
+      text.append("\n");
 
       v8::String::Utf8Value stack(exc->StackTrace());
       if (*stack && **stack)
-      {
-        if (to_shell)
-          text.append(std::string(*stack).append("\n"));
-        else
-          std::cerr << *stack << "\n";
-      }
+        text.append(std::string(*stack).append("\n"));
 
-      if (to_shell && !text.empty())
-        delegate->print_error(delegate->user_data, text.c_str());
+      delegate->print_error(delegate->user_data, text.c_str());
     }
   }
 
@@ -763,7 +746,7 @@ Value JScript_context::execute(const std::string &code_str, const std::string& s
     {
       Value e(_impl->types.v8_value_to_shcore_value(try_catch.Exception()));
 
-     // _impl->print_exception(&try_catch, false);
+      // _impl->print_exception(&try_catch, false);
 
       // TODO: wrap the Exception object in JS so that one can throw common exceptions from JS
       if (e.type == Map)
@@ -794,16 +777,12 @@ Value JScript_context::execute_interactive(const std::string &code_str) BOOST_NO
   v8::Handle<v8::Script> script = v8::Script::Compile(code, &origin);
 
   if (script.IsEmpty())
-  {
-    _impl->print_exception(&try_catch, true);
-  }
+    _impl->print_exception(&try_catch);
   else
   {
     v8::Handle<v8::Value> result = script->Run();
     if (result.IsEmpty())
-    {
-      _impl->print_exception(&try_catch, true);
-    }
+      _impl->print_exception(&try_catch);
     else
     {
       try
@@ -812,10 +791,9 @@ Value JScript_context::execute_interactive(const std::string &code_str) BOOST_NO
       }
       catch (std::exception &exc)
       {
-        // we used to let the exception bubble up, but somehow, exceptions thrown from v8_value_to_shcore_value() 
+        // we used to let the exception bubble up, but somehow, exceptions thrown from v8_value_to_shcore_value()
         // aren't being caught from main.cc, leading to a crash due to unhandled exception.. so we catch and print it here
         _impl->delegate->print_error(_impl->delegate->user_data, std::string("INTERNAL ERROR: ").append(exc.what()).c_str());
-        return Value();
       }
     }
   }

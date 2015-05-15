@@ -456,6 +456,54 @@ shcore::Value Base_resultset::get_member(const std::string &prop) const
 
 shcore::Value Base_resultset::print(const shcore::Argument_list &args)
 {
+  std::string function = class_name() + "::print";
+
+  args.ensure_count(0, 1, function.c_str());
+
+  std::string format;
+  if (args.size() > 0)
+    format = args.string_at(0);
+
+  if (format == "json")
+    print_json();
+  else
+    print_normal();
+
+  return shcore::Value();
+}
+
+void Base_resultset::print_json()
+{
+  shcore::Value::Map_type_ref data(new shcore::Value::Map_type);
+
+  if (has_resultset())
+  {
+    shcore::Argument_list args;
+    args.push_back(shcore::Value::False());
+    shcore::Value records = fetch_all(args);
+
+    (*data)["row_count"] = Value(int64_t(_fetched_row_count));
+    (*data)["rows"] = records;
+  }
+  else
+  {
+    (*data)["affected_rows"] = Value(int64_t(_affected_rows));
+  }
+
+  (*data)["duration"] = Value(MySQL_timer::format_legacy(_raw_duration, true));
+  (*data)["warning_count"] = Value(_warning_count);
+  (*data)["info"] = Value(_info);
+
+  if (_warning_count)
+    (*data)["warnings"] = get_warnings(false);
+
+  shcore::Value map(data);
+
+  shcore::print(map.repr() + "\n");
+}
+
+void Base_resultset::print_normal()
+{
   std::string output;
 
   do
@@ -473,7 +521,7 @@ shcore::Value Base_resultset::print(const shcore::Argument_list &args)
       if (array_records->size())
       {
         // print rows from result, with stats etc
-        print_result(array_records);
+        print_table(array_records);
 
         output = (boost::format("%lld %s in set") % _fetched_row_count % (_fetched_row_count == 1 ? "row" : "rows")).str();
       }
@@ -508,13 +556,6 @@ shcore::Value Base_resultset::print(const shcore::Argument_list &args)
     if (_warning_count)
       print_warnings();
   } while (next_result());
-
-  return shcore::Value();
-}
-
-void Base_resultset::print_result(shcore::Value::Array_type_ref records)
-{
-  print_table(records);
 }
 
 void Base_resultset::print_table(shcore::Value::Array_type_ref records)
@@ -550,11 +591,11 @@ void Base_resultset::print_table(shcore::Value::Array_type_ref records)
 
     // Creates the format string to print each field
     formats[index].append(boost::lexical_cast<std::string>(max_field_length));
-    if (index == field_count-1)
+    if (index == field_count - 1)
       formats[index].append("s |");
     else
       formats[index].append("s | ");
-    std::string field_separator(max_field_length+2, '-');
+    std::string field_separator(max_field_length + 2, '-');
     field_separator.append("+");
     separator.append(field_separator);
   }
@@ -596,13 +637,14 @@ void Base_resultset::print_table(shcore::Value::Array_type_ref records)
   shcore::print(separator);
 }
 
-void Base_resultset::print_warnings()
+shcore::Value Base_resultset::get_warnings(bool by_index)
 {
+  Value ret_val;
+
   Value::Map_type_ref options(new shcore::Value::Map_type);
-  (*options)["key_by_index"] = Value::True();
+  (*options)["key_by_index"] = Value(by_index);
 
   boost::shared_ptr<Base_connection> conn = _owner.lock();
-
   if (conn)
   {
     Value result_wrapper = conn->sql("show warnings", shcore::Value(options));
@@ -610,22 +652,35 @@ void Base_resultset::print_warnings()
     if (result_wrapper)
     {
       boost::shared_ptr<mysh::Base_resultset> result = result_wrapper.as_object<mysh::Base_resultset>();
+      shcore::Argument_list args;
+      args.push_back(Value::False());
+      ret_val = result->fetch_all(args);
+    }
+  }
+  return ret_val;
+}
 
-      if (result)
-      {
-        Value record;
+void Base_resultset::print_warnings()
+{
+  Value warnings = get_warnings();
 
-        while ((record = result->next(Argument_list())))
-        {
-          boost::shared_ptr<Value::Map_type> row = record.as_map();
+  if (warnings)
+  {
+    Value::Array_type_ref warning_list = warnings.as_array();
+    size_t index = 0, size = warning_list->size();
 
-          unsigned long error = ((*row)["1"].as_int());
+    while (index < size)
+    {
+      Value record = warning_list->at(index);
+      boost::shared_ptr<Value::Map_type> row = record.as_map();
 
-          std::string type = (*row)["0"].as_string();
-          std::string msg = (*row)["2"].as_string();
-          shcore::print((boost::format("%s (Code %ld): %s\n") % type % error % msg).str());
-        }
-      }
+      unsigned long error = ((*row)["1"].as_int());
+
+      std::string type = (*row)["0"].as_string();
+      std::string msg = (*row)["2"].as_string();
+      shcore::print((boost::format("%s (Code %ld): %s\n") % type % error % msg).str());
+
+      index++;
     }
   }
 }
