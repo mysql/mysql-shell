@@ -20,6 +20,7 @@
 #include "shellcore/jscript_object_wrapper.h"
 #include "shellcore/jscript_context.h"
 
+#include <boost/format.hpp>
 #include <iostream>
 
 using namespace shcore;
@@ -34,12 +35,8 @@ JScript_object_wrapper::JScript_object_wrapper(JScript_context *context)
   v8::Handle<v8::ObjectTemplate> templ = v8::ObjectTemplate::New(_context->isolate());
   _object_template.Reset(_context->isolate(), templ);
 
-  //v8::NamedPropertyHandlerConfiguration config;
-  //config.getter = &JScript_object_wrapper::handler_getter;
-  //config.setter = &JScript_object_wrapper::handler_setter;
-  //config.enumerator = &JScript_object_wrapper::handler_enumerator;
-  //templ->SetHandler(config);
   templ->SetNamedPropertyHandler(&JScript_object_wrapper::handler_getter, &JScript_object_wrapper::handler_setter, 0, 0, &JScript_object_wrapper::handler_enumerator);
+  templ->SetIndexedPropertyHandler(&JScript_object_wrapper::handler_igetter, &JScript_object_wrapper::handler_isetter, 0, 0, &JScript_object_wrapper::handler_ienumerator);
 
   templ->SetInternalFieldCount(3);
 }
@@ -104,14 +101,25 @@ void JScript_object_wrapper::handler_getter(v8::Local<v8::String> property, cons
     info.GetReturnValue().Set(marray);
   }
   else*/
+  if (strcmp(*prop, "length") == 0 && (*object)->has_member("__length__"))
+  {
+    try
+    {
+      info.GetReturnValue().Set(self->_context->shcore_value_to_v8_value((*object)->call("__length__", Argument_list())));
+      return;
+    }
+    catch (Exception &exc)
+    {
+      if (!exc.is_attribute())
+        info.GetIsolate()->ThrowException(self->_context->shcore_value_to_v8_value(Value(exc.error())));
+      // fallthrough
+    }
+  }
   {
     try
     {
       Value member = (*object)->get_member(*prop);
-      if (!member)
-        info.GetIsolate()->ThrowException(v8::String::NewFromUtf8(info.GetIsolate(), (std::string("Invalid member ").append(*prop)).c_str()));
-      else
-        info.GetReturnValue().Set(self->_context->shcore_value_to_v8_value(member));
+      info.GetReturnValue().Set(self->_context->shcore_value_to_v8_value(member));
     }
     catch (Exception &exc)
     {
@@ -162,6 +170,75 @@ void JScript_object_wrapper::handler_enumerator(const v8::PropertyCallbackInfo<v
   }
   info.GetReturnValue().Set(marray);
 }
+
+
+void JScript_object_wrapper::handler_igetter(uint32_t i, const v8::PropertyCallbackInfo<v8::Value>& info)
+{
+  v8::HandleScope hscope(info.GetIsolate());
+  v8::Handle<v8::Object> obj(info.Holder());
+  boost::shared_ptr<Object_bridge> *object = static_cast<boost::shared_ptr<Object_bridge>*>(obj->GetAlignedPointerFromInternalField(1));
+  JScript_object_wrapper *self = static_cast<JScript_object_wrapper*>(obj->GetAlignedPointerFromInternalField(2));
+
+  if (!object)
+    throw std::logic_error("bug!");
+
+  {
+    try
+    {
+      Value member = (*object)->get_member((boost::format("%u")%i).str());
+      info.GetReturnValue().Set(self->_context->shcore_value_to_v8_value(member));
+    }
+    catch (Exception &exc)
+    {
+      info.GetIsolate()->ThrowException(self->_context->shcore_value_to_v8_value(Value(exc.error())));
+    }
+  }
+}
+
+
+void JScript_object_wrapper::handler_isetter(uint32_t i, v8::Local<v8::Value> value, const v8::PropertyCallbackInfo<v8::Value>& info)
+{
+  v8::HandleScope hscope(info.GetIsolate());
+  v8::Handle<v8::Object> obj(info.Holder());
+  boost::shared_ptr<Object_bridge> *object = static_cast<boost::shared_ptr<Object_bridge>*>(obj->GetAlignedPointerFromInternalField(1));
+  JScript_object_wrapper *self = static_cast<JScript_object_wrapper*>(obj->GetAlignedPointerFromInternalField(2));
+
+  if (!object)
+    throw std::logic_error("bug!");
+
+  try
+  {
+    (*object)->set_member((boost::format("%u")%i).str(), self->_context->v8_value_to_shcore_value(value));
+    info.GetReturnValue().Set(value);
+  }
+  catch (Exception &exc)
+  {
+    info.GetIsolate()->ThrowException(self->_context->shcore_value_to_v8_value(Value(exc.error())));
+  }
+}
+
+
+void JScript_object_wrapper::handler_ienumerator(const v8::PropertyCallbackInfo<v8::Array>& info)
+{
+  v8::HandleScope hscope(info.GetIsolate());
+  v8::Handle<v8::Object> obj(info.Holder());
+  boost::shared_ptr<Object_bridge> *object = static_cast<boost::shared_ptr<Object_bridge>*>(obj->GetAlignedPointerFromInternalField(1));
+
+  if (!object)
+    throw std::logic_error("bug!");
+
+  std::vector<std::string> members((*object)->get_members());
+  v8::Handle<v8::Array> marray = v8::Array::New(info.GetIsolate());
+  int i = 0;
+  for (std::vector<std::string>::const_iterator iter = members.begin(); iter != members.end(); ++iter, ++i)
+  {
+    uint32_t x = 0;
+    if (sscanf(iter->c_str(), "%u", &x) == 1)
+        marray->Set(i, v8::Integer::New(info.GetIsolate(), x));
+  }
+  info.GetReturnValue().Set(marray);
+}
+
 
 
 bool JScript_object_wrapper::unwrap(v8::Handle<v8::Object> value, boost::shared_ptr<Object_bridge> &ret_object)

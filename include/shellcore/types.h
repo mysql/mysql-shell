@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2015, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -311,7 +311,14 @@ public:
   static Exception parser_error(const std::string &message);
   static Exception scripting_error(const std::string &message);
 
+  bool is_argument() const;
+  bool is_attribute() const;
+  bool is_value() const;
+  bool is_type() const;
+
   virtual const char *what() const BOOST_NOEXCEPT_OR_NOTHROW;
+
+  const char *type() const BOOST_NOEXCEPT_OR_NOTHROW;
 
   boost::shared_ptr<Value::Map_type> error() const { return _error; }
 };

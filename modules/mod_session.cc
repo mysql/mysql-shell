@@ -169,7 +169,6 @@ void Session::print_exception(const shcore::Exception &e)
 
     message.append(": ");
   }
-
   message.append(e.what());
 
   _shcore->print_error(message);

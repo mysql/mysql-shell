@@ -134,6 +134,38 @@ const char *Exception::what() const BOOST_NOEXCEPT_OR_NOTHROW
   return "?";
 }
 
+
+const char *Exception::type() const BOOST_NOEXCEPT_OR_NOTHROW
+{
+  if ((*_error)["type"].type == String)
+    return (*_error)["type"].value.s->c_str();
+  return "Exception";
+}
+
+
+bool Exception::is_argument() const
+{
+  return strcmp(type(), "ArgumentError") == 0;
+}
+
+
+bool Exception::is_attribute() const
+{
+  return strcmp(type(), "AttributeError") == 0;
+}
+
+
+bool Exception::is_value() const
+{
+  return strcmp(type(), "ValueError") == 0;
+}
+
+
+bool Exception::is_type() const
+{
+  return strcmp(type(), "TypeError") == 0;
+}
+
 // --
 
 std::string shcore::type_name(Value_type type)

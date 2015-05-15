@@ -98,6 +98,78 @@ public:
   }
 };
 
+
+class Maparray : public shcore::Cpp_object_bridge
+{
+public:
+  std::vector<shcore::Value> values;
+  std::map<std::string, int> keys;
+
+  Maparray()
+  {
+    add_method("__length__", boost::bind(&Maparray::get_length, this, _1), NULL);
+  }
+
+  shcore::Value get_length(const shcore::Argument_list &args)
+  {
+    return shcore::Value((int)values.size());
+  }
+
+  virtual std::string class_name() const { return "MapArray"; }
+
+  virtual std::string &append_descr(std::string &s_out, int indent=-1, int quote_strings=0) const
+  {
+    s_out.append((boost::format("<MapArray>")).str());
+    return s_out;
+  }
+
+  virtual std::string &append_repr(std::string &s_out) const
+  {
+    return append_descr(s_out);
+  }
+
+  //! Returns the list of members that this object has
+  virtual std::vector<std::string> get_members() const
+  {
+    std::vector<std::string> l = shcore::Cpp_object_bridge::get_members();
+    for (std::map<std::string, int>::const_iterator i = keys.begin(); i != keys.end(); ++i)
+      l.push_back(i->first);
+    return l;
+  }
+
+  //! Implements equality operator
+  virtual bool operator == (const Object_bridge &other) const
+  {
+    return false;
+  }
+
+  //! Returns the value of a member
+  virtual shcore::Value get_member(const std::string &prop) const
+  {
+    unsigned int index = 0;
+    if (sscanf(prop.c_str(), "%u", &index) == 1)
+    {
+      if (index > values.size()-1)
+        return shcore::Value();
+      return values[index];
+    }
+    else
+    {
+      std::map<std::string, int>::const_iterator it;
+      if ((it = keys.find(prop)) != keys.end())
+        return values[it->second];
+    }
+    return shcore::Cpp_object_bridge::get_member(prop);
+  }
+
+  void add_item(const std::string &key, shcore::Value value)
+  {
+    values.push_back(value);
+    keys[key] = values.size()-1;
+  }
+};
+
+
 namespace shcore {
 
 namespace tests {
@@ -131,7 +203,7 @@ namespace tests {
   {
     ASSERT_TRUE(env.js);
 
-    Value result = env.js->execute("'hello world'");
+    shcore::Value result = env.js->execute("'hello world'");
     ASSERT_EQ(result.repr(), "\"hello world\"");
 
     result = env.js->execute("1+1");
@@ -156,50 +228,50 @@ namespace tests {
                                                                  env.js->context()));
 
     {
-      Value v(Value::True());
+      shcore::Value v(Value::True());
       ASSERT_EQ(env.js->v8_value_to_shcore_value(env.js->shcore_value_to_v8_value(v)),
                 v);
     }
     {
-      Value v(Value::False());
+      shcore::Value v(Value::False());
       ASSERT_EQ(env.js->v8_value_to_shcore_value(env.js->shcore_value_to_v8_value(v)),
                 v);
     }
     {
-      Value v(Value(1234));
+      shcore::Value v(Value(1234));
       ASSERT_EQ(env.js->v8_value_to_shcore_value(env.js->shcore_value_to_v8_value(v)),
                 v);
     }
     {
-      Value v(Value(1234));
+      shcore::Value v(Value(1234));
       ASSERT_EQ(env.js->v8_value_to_shcore_value(env.js->shcore_value_to_v8_value(v)).repr(),
                 "1234");
     }
     {
-      Value v(Value("hello"));
+      shcore::Value v(Value("hello"));
       ASSERT_EQ(env.js->v8_value_to_shcore_value(env.js->shcore_value_to_v8_value(v)),
                 v);
     }
     {
-      Value v(Value(123.45));
+      shcore::Value v(Value(123.45));
       ASSERT_EQ(env.js->v8_value_to_shcore_value(env.js->shcore_value_to_v8_value(v)),
                 v);
     }
     {
-      Value v(Value::Null());
+      shcore::Value v(Value::Null());
       ASSERT_EQ(env.js->v8_value_to_shcore_value(env.js->shcore_value_to_v8_value(v)),
                 v);
     }
 
     {
-      Value v1(Value(123));
-      Value v2(Value(1234));
+      shcore::Value v1(Value(123));
+      shcore::Value v2(Value(1234));
       ASSERT_NE(env.js->v8_value_to_shcore_value(env.js->shcore_value_to_v8_value(v1)),
                 v2);
     }
     {
-      Value v1(Value(123));
-      Value v2(Value("123"));
+      shcore::Value v1(Value(123));
+      shcore::Value v2(Value("123"));
       ASSERT_NE(env.js->v8_value_to_shcore_value(env.js->shcore_value_to_v8_value(v1)),
                 v2);
     }
@@ -221,7 +293,7 @@ namespace tests {
     arr->push_back(Value("text"));
     arr->push_back(Value(arr2));
 
-    Value v(arr);
+    shcore::Value v(arr);
 
     // this will also test conversion of a wrapped array
     ASSERT_EQ(env.js->v8_value_to_shcore_value(env.js->shcore_value_to_v8_value(v)).repr(),
@@ -229,7 +301,7 @@ namespace tests {
 
     ASSERT_EQ(env.js->v8_value_to_shcore_value(env.js->shcore_value_to_v8_value(v)), v);
 
-    // addressing a wrapped Value array from JS
+    // addressing a wrapped shcore::Value array from JS
     env.js->set_global("arr", v);
     ASSERT_EQ(env.js->execute("arr[0]").repr(), Value(123).repr());
 
@@ -243,7 +315,7 @@ namespace tests {
     ASSERT_EQ(Value("2").repr(), env.js->get_global("g").repr());
 
     // this forces conversion of a native JS array into a Value
-    Value result = env.js->execute("[1,2,3]");
+    shcore::Value result = env.js->execute("[1,2,3]");
     ASSERT_EQ(result.repr(), "[1, 2, 3]");
   }
 
@@ -263,7 +335,7 @@ namespace tests {
     (*map)["k2"] = Value("text");
     (*map)["k3"] = Value(map2);
 
-    Value v(map);
+    shcore::Value v(map);
 
     // this will also test conversion of a wrapped array
     ASSERT_EQ(env.js->v8_value_to_shcore_value(env.js->shcore_value_to_v8_value(v)).repr(),
@@ -283,7 +355,7 @@ namespace tests {
     ASSERT_EQ((*map)["k4"].descr(false), Value("test").descr(false));
 
     // this forces conversion of a native JS map into a Value
-    Value result = env.js->execute("a={\"submap\": 444}");
+    shcore::Value result = env.js->execute("a={\"submap\": 444}");
     ASSERT_EQ(result, Value(map2));
   }
 
@@ -319,7 +391,36 @@ namespace tests {
   }
 
 
-  Value do_test(const Argument_list &args)
+  TEST_F(JavaScript, maparray_to_js)
+  {
+    v8::Isolate::Scope isolate_scope(env.js->isolate());
+    v8::HandleScope handle_scope(env.js->isolate());
+    v8::TryCatch try_catch;
+    v8::Context::Scope context_scope(v8::Local<v8::Context>::New(env.js->isolate(),
+                                                                 env.js->context()));
+
+    boost::shared_ptr<Maparray> obj = boost::shared_ptr<Maparray>(new Maparray());
+
+    obj->add_item("one", Value(42));
+    obj->add_item("two", Value("hello"));
+    obj->add_item("three", Value::Null());
+
+    // expose the object to JS
+    env.js->set_global("test_ma", Value(boost::static_pointer_cast<Object_bridge>(obj)));
+    ASSERT_EQ(env.js->execute("type(test_ma)").descr(false), "m.MapArray");
+
+    ASSERT_EQ(env.js->execute("test_ma.length").descr(false), "3");
+    ASSERT_EQ(env.js->execute("test_ma[0]").descr(false), "42");
+    ASSERT_EQ(env.js->execute("test_ma[1]").descr(false), "hello");
+    ASSERT_EQ(env.js->execute("test_ma[2]").descr(false), "null");
+
+    ASSERT_EQ(env.js->execute("test_ma['one']").descr(false), "42");
+    ASSERT_EQ(env.js->execute("test_ma['two']").descr(false), "hello");
+    ASSERT_EQ(env.js->execute("test_ma['three']").descr(false), "null");
+  }
+
+
+  shcore::Value do_test(const Argument_list &args)
   {
     args.ensure_count(1, "do_test");
     return Value(boost::to_upper_copy(args.string_at(0)));
@@ -337,8 +438,8 @@ namespace tests {
     boost::shared_ptr<Function_base> func(Cpp_function::create("do_test",
                                                        boost::bind(do_test, _1), "bla", String, NULL));
 
-    Value v(func);
-    Value v2(func);
+    shcore::Value v(func);
+    shcore::Value v2(func);
 
 #ifdef __clang__
 #pragma clang diagnostic push
@@ -378,7 +479,7 @@ namespace tests {
     v8::TryCatch try_catch;
     v8::Context::Scope context_scope(v8::Local<v8::Context>::New(env.js->isolate(),
                                                                  env.js->context()));
-    Value object = env.js->execute("new Date(2014,0,1)");
+    shcore::Value object = env.js->execute("new Date(2014,0,1)");
 
     ASSERT_EQ(Object, object.type);
     ASSERT_TRUE(object.as_object()->class_name() == "Date");
