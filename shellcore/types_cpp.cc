@@ -43,9 +43,7 @@ std::vector<std::string> Cpp_object_bridge::get_members() const
   std::vector<std::string> _members;
   for (std::map<std::string, boost::shared_ptr<Cpp_function> >::const_iterator i = _funcs.begin(); i != _funcs.end(); ++i)
   {
-    // Only returns the enabled functions
-    if (_enabled_functions.at(i->first))
-      _members.push_back(i->first);
+    _members.push_back(i->first);
   }
   return _members;
 }
@@ -53,7 +51,7 @@ std::vector<std::string> Cpp_object_bridge::get_members() const
 Value Cpp_object_bridge::get_member(const std::string &prop) const
 {
   std::map<std::string, boost::shared_ptr<Cpp_function> >::const_iterator i;
-  if ((i = _funcs.find(prop)) != _funcs.end() && _enabled_functions.at(prop))
+  if ((i = _funcs.find(prop)) != _funcs.end())
     return Value(boost::shared_ptr<Function_base>(i->second));
   throw Exception::attrib_error("Invalid object member " + prop);
 }
@@ -61,7 +59,7 @@ Value Cpp_object_bridge::get_member(const std::string &prop) const
 bool Cpp_object_bridge::has_member(const std::string &prop) const
 {
   std::map<std::string, boost::shared_ptr<Cpp_function> >::const_iterator i;
-  return ((i = _funcs.find(prop)) != _funcs.end() && _enabled_functions.at(prop));
+  return ((i = _funcs.find(prop)) != _funcs.end());
 }
 
 void Cpp_object_bridge::set_member(const std::string &prop, Value value)
@@ -95,13 +93,6 @@ void Cpp_object_bridge::add_method(const char *name, Cpp_function::Function func
   }
 
   _funcs[name] = boost::shared_ptr<Cpp_function>(new Cpp_function(name, func, NULL));
-  _enabled_functions[name] = true;
-}
-
-void Cpp_object_bridge::enable_method(const char *name, bool enable)
-{
-  if (_enabled_functions.count(name))
-    _enabled_functions[name] = enable;
 }
 
 Value Cpp_object_bridge::call(const std::string &name, const Argument_list &args)

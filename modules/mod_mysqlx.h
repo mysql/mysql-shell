@@ -120,13 +120,33 @@ namespace mysh
     // T the moment will put these since we don't really care about them
     virtual std::string class_name() const { return "TableInsert"; }
     virtual bool operator == (const Object_bridge &other) const { return false; }
-    void update_functions(const std::string& source);
+
+    // Overrides to consider enabled/disabled status
+    virtual std::vector<std::string> get_members() const;
+    virtual shcore::Value get_member(const std::string &prop) const;
+    virtual bool has_member(const std::string &prop) const;
+    virtual shcore::Value call(const std::string &name, const shcore::Argument_list &args);
 
   protected:
     boost::weak_ptr<X_connection> _conn;
     shcore::Value::Map_type_ref _data;
+
+    // The CRUD operations will use "dynamic" functions to control the method chaining.
+    // A dynamic function is one that will be enabled/disabled based on the method
+    // chain sequence.
+
+    // Holds the dynamic functions enable/disable status
+    std::map<std::string, bool> _enabled_functions;
+
+    // Holds relation of 'enabled' states for every dynamic function
     std::map<std::string, std::set<std::string> > _enable_paths;
-    void enable_function_after(const std::string& name, const std::string& after);
+
+    // Registers a dynamic function and it's associated 'enabled' states
+    void register_dynamic_function(const std::string& name, const std::string& enable_after);
+
+    // Enable/disable functions based on the received and registered states
+    void update_functions(const std::string& state);
+    void enable_function(const char *name, bool enable);
   };
 
   class TableInsert : public Crud_definition

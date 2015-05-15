@@ -13,12 +13,10 @@
    along with this program; if not, write to the Free Software
    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA */
 
-   
 #include "shellcore/lang_base.h"
 
 class Shell_test_output_handler
 {
-
 public:
   // You can define per-test set-up and tear-down logic as usual.
   Shell_test_output_handler()
@@ -51,9 +49,9 @@ public:
     return true;
   }
 
-  
-  void wipe_out() {std_out.clear(); }
-  void wipe_err() {std_err.clear(); }
+  void wipe_out() { std_out.clear(); }
+  void wipe_err() { std_err.clear(); }
+  void wipe_all() { std_out.clear(); std_err.clear(); }
 
   shcore::Interpreter_delegate deleg;
   std::string std_err;

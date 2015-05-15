@@ -27,6 +27,7 @@
 
 #include "shellcore/shell_core.h"
 #include "shellcore/shell_jscript.h"
+#include "test_utils.h"
 
 namespace shcore {
   class Shell_js_test : public ::testing::Test
@@ -49,10 +50,7 @@ namespace shcore {
     // You can define per-test set-up and tear-down logic as usual.
     virtual void SetUp()
     {
-      deleg.user_data = this;
-      deleg.print = &Shell_js_test::deleg_print;
-      deleg.print_error = &Shell_js_test::deleg_print_error;
-      shell_core.reset(new Shell_core(&deleg));
+      shell_core.reset(new Shell_core(&output_handler.deleg));
       bool initialized(false);
 
       shell_js.reset(new Shell_javascript(shell_core.get()));
@@ -62,60 +60,64 @@ namespace shcore {
     {
     }
 
-    static void deleg_print(void *user_data, const char *text)
+    void execute(const std::string& code)
     {
-      Shell_js_test* target = (Shell_js_test*)(user_data);
-      target->std_out.assign(text);
+      std::string _code(code);
+      Interactive_input_state state;
+      shell_js->handle_input(_code, state, true);
     }
 
-    static void deleg_print_error(void *user_data, const char *text)
+    void exec_and_out_equals(const std::string& code, const std::string& out = "", const std::string& err = "")
     {
-      Shell_js_test* target = (Shell_js_test*)(user_data);
-      target->std_err.assign(text);
+      execute(code);
+      EXPECT_EQ(out, output_handler.std_out);
+      EXPECT_EQ(err, output_handler.std_err);
+
+      output_handler.wipe_all();
     }
 
-    std::string std_err;
-    std::string std_out;
-    Interpreter_delegate deleg;
+    void exec_and_out_contains(const std::string& code, const std::string& out = "", const std::string& err = "")
+    {
+      execute(code);
+
+      if (out.length())
+        EXPECT_NE(-1, int(output_handler.std_out.find(out)));
+
+      if (err.length())
+        EXPECT_NE(-1, int(output_handler.std_err.find(err)));
+
+      output_handler.wipe_all();
+    }
+
     boost::shared_ptr<Shell_core> shell_core;
     boost::shared_ptr<Shell_javascript> shell_js;
+    Shell_test_output_handler output_handler;
   };
 
   TEST_F(Shell_js_test, require_failures)
   {
-    std::string code;
-    Interactive_input_state state;
-
     // This module actually exists but will fail because
     // it parent folder has not been added to the module
     // directory list.
-    code = "var mymodule = require('fail_wont_compile')";
-    shell_js->handle_input(code, state, true);
-
+    execute("var mymodule = require('fail_wont_compile')");
     std::string expected = "Module fail_wont_compile was not found";
-    EXPECT_NE(-1, int(std_err.find(expected)));
-    std_out.clear();
-    std_err.clear();
+    EXPECT_NE(-1, int(output_handler.std_err.find(expected)));
+    output_handler.wipe_all();
 
     // Adds a module directory
-    code = "shell.js.module_paths[shell.js.module_paths.length] = './js'";
-    shell_js->handle_input(code, state, true);
-    EXPECT_TRUE(std_out.empty());
-    EXPECT_TRUE(std_err.empty());
+    execute("shell.js.module_paths[shell.js.module_paths.length] = './js'");
+    EXPECT_TRUE(output_handler.std_out.empty());
+    EXPECT_TRUE(output_handler.std_err.empty());
 
-    code = "var mymodule = require('fail_wont_compile')";
-    shell_js->handle_input(code, state, true);
+    execute("var mymodule = require('fail_wont_compile')");
     expected = "my_object is not defined";
-    EXPECT_NE(-1, int(std_err.find(expected)));
-    std_out.clear();
-    std_err.clear();
+    EXPECT_NE(-1, int(output_handler.std_err.find(expected)));
+    output_handler.wipe_all();
 
-    code = "var empty_module = require('fail_empty')";
-    shell_js->handle_input(code, state, true);
+    execute("var empty_module = require('fail_empty')");
     expected = "Module fail_empty is empty";
-    EXPECT_NE(-1, int(std_err.find(expected)));
-    std_out.clear();
-    std_err.clear();
+    EXPECT_NE(-1, int(output_handler.std_err.find(expected)));
+    output_handler.wipe_all();
   }
 
   TEST_F(Shell_js_test, require_success)
@@ -124,39 +126,138 @@ namespace shcore {
     Interactive_input_state state;
 
     // Adds a module directory
-    code = "shell.js.module_paths[shell.js.module_paths.length] = './js'";
-    shell_js->handle_input(code, state, true);
-    EXPECT_TRUE(std_out.empty());
-    EXPECT_TRUE(std_err.empty());
+    execute("shell.js.module_paths[shell.js.module_paths.length] = './js'");
+    EXPECT_TRUE(output_handler.std_out.empty());
+    EXPECT_TRUE(output_handler.std_err.empty());
 
-    code = "var my_module = require('success')";
-    std_err = "";
-    std_out = "";
-    shell_js->handle_input(code, state, true);
-    EXPECT_TRUE(std_err.empty());
-    EXPECT_TRUE(std_out.empty());
+    output_handler.wipe_all();
+    execute("var my_module = require('success')");
+    EXPECT_TRUE(output_handler.std_err.empty());
+    EXPECT_TRUE(output_handler.std_out.empty());
 
-    code = "print(Object.keys(my_module).length)";
-    shell_js->handle_input(code, state, true);
-    EXPECT_TRUE(std_err.empty());
-    EXPECT_EQ("1", std_out);
+    execute("print(Object.keys(my_module).length)");
+    EXPECT_TRUE(output_handler.std_err.empty());
+    EXPECT_EQ("1", output_handler.std_out);
 
-    std_out = "";
-    code = "print(my_module.ok_message)";
-    shell_js->handle_input(code, state, true);
-    EXPECT_TRUE(std_err.empty());
-    EXPECT_EQ("module imported ok", std_out);
+    output_handler.wipe_out();
+    execute("print(my_module.ok_message)");
+    EXPECT_TRUE(output_handler.std_err.empty());
+    EXPECT_EQ("module imported ok", output_handler.std_out);
 
-    std_out = "";
-    code = "print(typeof unexisting)";
-    shell_js->handle_input(code, state, true);
-    EXPECT_TRUE(std_err.empty());
-    EXPECT_EQ("undefined", std_out);
+    output_handler.wipe_out();
+    execute("print(typeof unexisting)");
+    EXPECT_TRUE(output_handler.std_err.empty());
+    EXPECT_EQ("undefined", output_handler.std_out);
 
-    std_out = "";
-    code = "print(in_global_context)";
-    shell_js->handle_input(code, state, true);
-    EXPECT_TRUE(std_err.empty());
-    EXPECT_EQ("This is here because of JS", std_out);
+    output_handler.wipe_out();
+    execute("print(in_global_context)");
+    EXPECT_TRUE(output_handler.std_err.empty());
+    EXPECT_EQ("This is here because of JS", output_handler.std_out);
+  }
+
+  TEST_F(Shell_js_test, crud_table_insert_chaining)
+  {
+    std::string xuri;
+    const char *uri = getenv("MYSQL_URI");
+    if (uri)
+      xuri.assign(uri);
+
+    // Creates a connection object
+    exec_and_out_equals("var conn = _F.mysqlx.Connection('" + xuri + "');");
+
+    // Creates the table insert object
+    exec_and_out_equals("var ti = _F.mysqlx.TableInsert(conn, 'schema', 'table');");
+
+    // Gets the available functions on creation
+    exec_and_out_equals("var functs = Object.keys(ti);");
+
+    // Tets the only available function is insert
+    exec_and_out_equals("print(functs.length)", "1");
+    exec_and_out_equals("print(functs.indexOf('insert') == 0)", "true");
+    exec_and_out_equals("print(functs.indexOf('values') == -1)", "true");
+    exec_and_out_equals("print(functs.indexOf('bind') == -1)", "true");
+    exec_and_out_equals("print(functs.indexOf('run') == -1)", "true");
+
+    // Tets only insert can be called
+    exec_and_out_contains("ti.values('');", "", "Forbidden usage of values");
+    exec_and_out_contains("ti.bind('');", "", "Forbidden usage of bind");
+    exec_and_out_contains("ti.run('');", "", "Forbidden usage of run");
+    exec_and_out_equals("ti.insert([])");
+
+    // Once insert is called we go to the next 'state'
+    exec_and_out_equals("functs = Object.keys(ti);");
+    exec_and_out_equals("print(functs.length)", "3");
+    exec_and_out_equals("print(functs.indexOf('insert') == -1)", "true");
+    exec_and_out_equals("print(functs.indexOf('values') != -1)", "true");
+    exec_and_out_equals("print(functs.indexOf('bind') != -1)", "true");
+    exec_and_out_equals("print(functs.indexOf('run') != -1)", "true");
+
+    // Tets insert can not longer be called
+    exec_and_out_contains("ti.insert([]);", "", "Forbidden usage of insert");
+
+    // Executes values and it will ensure the same methods still available since
+    // values can be repeated
+    exec_and_out_equals("ti.values([])");
+
+    exec_and_out_equals("functs = Object.keys(ti);");
+    exec_and_out_equals("print(functs.length)", "3");
+    exec_and_out_equals("print(functs.indexOf('insert') == -1)", "true");
+    exec_and_out_equals("print(functs.indexOf('values') != -1)", "true");
+    exec_and_out_equals("print(functs.indexOf('bind') != -1)", "true");
+    exec_and_out_equals("print(functs.indexOf('run') != -1)", "true");
+
+    // Tets insert can not longer be called
+    exec_and_out_contains("ti.insert([]);", "", "Forbidden usage of insert");
+
+    // Now executes bind and the only available method will be run
+    exec_and_out_equals("ti.bind([])");
+
+    exec_and_out_equals("functs = Object.keys(ti);");
+    exec_and_out_equals("print(functs.length)", "1");
+    exec_and_out_equals("print(functs.indexOf('insert') == -1)", "true");
+    exec_and_out_equals("print(functs.indexOf('values') == -1)", "true");
+    exec_and_out_equals("print(functs.indexOf('bind') == -1)", "true");
+    exec_and_out_equals("print(functs.indexOf('run') != -1)", "true");
+
+    // Tets the other methods can't longer be called
+    exec_and_out_contains("ti.insert([]);", "", "Forbidden usage of insert");
+    exec_and_out_contains("ti.values([]);", "", "Forbidden usage of values");
+    exec_and_out_contains("ti.bind([]);", "", "Forbidden usage of bind");
+
+    // Creates the table insert object
+    exec_and_out_equals("var ti = _F.mysqlx.TableInsert(conn, 'schema', 'table');");
+
+    // Executes insert passing FieldsAndValues and the Values method should not
+    // be available after
+    exec_and_out_equals("ti.insert({})");
+
+    // Once insert is called we go to the next 'state'
+    exec_and_out_equals("functs = Object.keys(ti);");
+    exec_and_out_equals("print(functs.length)", "2");
+    exec_and_out_equals("print(functs.indexOf('insert') == -1)", "true");
+    exec_and_out_equals("print(functs.indexOf('values') == -1)", "true");
+    exec_and_out_equals("print(functs.indexOf('bind') != -1)", "true");
+    exec_and_out_equals("print(functs.indexOf('run') != -1)", "true");
+
+    exec_and_out_contains("ti.insert([]);", "", "Forbidden usage of insert");
+    exec_and_out_contains("ti.values([]);", "", "Forbidden usage of values");
+
+    // Creates the table insert object
+    exec_and_out_equals("var ti = _F.mysqlx.TableInsert(conn, 'schema', 'table');");
+
+    // Executes insert + bind, values  only run should be available after
+    exec_and_out_equals("ti.insert([]).bind([])");
+
+    // Once insert is called we go to the next 'state'
+    exec_and_out_equals("functs = Object.keys(ti);");
+    exec_and_out_equals("print(functs.length)", "1");
+    exec_and_out_equals("print(functs.indexOf('insert') == -1)", "true");
+    exec_and_out_equals("print(functs.indexOf('values') == -1)", "true");
+    exec_and_out_equals("print(functs.indexOf('bind') == -1)", "true");
+    exec_and_out_equals("print(functs.indexOf('run') != -1)", "true");
+
+    exec_and_out_contains("ti.insert([]);", "", "Forbidden usage of insert");
+    exec_and_out_contains("ti.values([]);", "", "Forbidden usage of values");
+    exec_and_out_contains("ti.bind([]);", "", "Forbidden usage of bind");
   }
 }
