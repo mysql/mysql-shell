@@ -87,16 +87,28 @@ function ModuleHandler()
 this.shell.js = {}
 
 this.shell.js.module_paths = [];
-  
-this.shell.js.module_paths[0] = './modules/js';
 
-var path = os.get_user_config_path();
+// Searches for MYSQLX_HOME
+var path = os.get_mysqlx_home_path();
 if (path)
-  this.shell.js.module_paths[1] = path + '/modules/js';
+  this.shell.js.module_paths[this.shell.js.module_paths.length] = path + '/lib/modules/js';
 
-path = os.getenv('MYSQLX_JS_MODULE_PATH');
+// If MYSQLX_HOME not found, sets the current directory as a valid module path
+else
+  this.shell.js.module_paths[this.shell.js.module_paths.length] = './modules/js';
+
+// Now adds the User Config Path
+path = os.get_user_config_path();
 if (path)
-  this.shell.js.module_paths[2] = path;
+  this.shell.js.module_paths[this.shell.js.module_paths.length] = path + '/modules/js';
+
+// Finally sees if there are additional configured paths
+path = os.getenv('MYSQLX_JS_MODULE_PATHS');
+if (path)
+{
+  var paths = path.split(';');
+  this.shell.js.module_paths = this.shell.js.module_paths.concat(paths);
+}
 
 // An instance of the module handler and the require function will
 // be appended to the received object, i.e. to the context globals.

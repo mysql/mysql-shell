@@ -207,6 +207,9 @@ struct JScript_context::JScript_context_impl
     object->Set(v8::String::NewFromUtf8(isolate, "get_user_config_path"),
       v8::FunctionTemplate::New(isolate, &JScript_context_impl::os_get_user_config_path, client_data));
 
+    object->Set(v8::String::NewFromUtf8(isolate, "get_mysqlx_home_path"),
+                v8::FunctionTemplate::New(isolate, &JScript_context_impl::os_get_mysqlx_home_path, client_data));
+
     object->Set(v8::String::NewFromUtf8(isolate, "file_exists"),
       v8::FunctionTemplate::New(isolate, &JScript_context_impl::os_file_exists, client_data));
 
@@ -602,12 +605,32 @@ struct JScript_context::JScript_context_impl
     v8::HandleScope handle_scope(args.GetIsolate());
 
     if (args.Length() != 0)
-      args.GetIsolate()->ThrowException(v8::String::NewFromUtf8(args.GetIsolate(), "get_config_path() takes 0 arguments"));
+      args.GetIsolate()->ThrowException(v8::String::NewFromUtf8(args.GetIsolate(), "get_user_config_path() takes 0 arguments"));
     else
     {
       try
       {
         std::string path = get_user_config_path();
+        args.GetReturnValue().Set(v8::String::NewFromUtf8(args.GetIsolate(), path.c_str()));
+      }
+      catch (...)
+      {
+        args.GetReturnValue().Set(v8::Null(args.GetIsolate()));
+      }
+    }
+  }
+
+  static void os_get_mysqlx_home_path(const v8::FunctionCallbackInfo<v8::Value>& args)
+  {
+    v8::HandleScope handle_scope(args.GetIsolate());
+
+    if (args.Length() != 0)
+      args.GetIsolate()->ThrowException(v8::String::NewFromUtf8(args.GetIsolate(), "get_mysqlx_home_path() takes 0 arguments"));
+    else
+    {
+      try
+      {
+        std::string path = get_mysqlx_home_path();
         args.GetReturnValue().Set(v8::String::NewFromUtf8(args.GetIsolate(), path.c_str()));
       }
       catch (...)

@@ -14,6 +14,7 @@
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
 
 include_directories( ${MYSQL_INCLUDE_DIRS} )
+include_directories( ${CMAKE_BINARY_DIR} )
 include_directories("${CMAKE_SOURCE_DIR}/include" "${CMAKE_SOURCE_DIR}/utils" "${Boost_INCLUDE_DIRS}")
 include_directories( "${CMAKE_SOURCE_DIR}/common/uuid/include" )
 include_directories( "${CMAKE_SOURCE_DIR}/common/myjson/include" )
@@ -36,7 +37,7 @@ if ( HAVE_V8 )
   
   # Creates the target file containing the code ready for processing
   configure_file("${CMAKE_SOURCE_DIR}/include/shellcore/jscript_core_definitions.h.in" 
-                 "${CMAKE_SOURCE_DIR}/include/shellcore/jscript_core_definitions.h")
+                 "${CMAKE_BINARY_DIR}/shellcore/jscript_core_definitions.h")
 endif()
 
 file(GLOB libmysqlsh_SRC
@@ -52,6 +53,7 @@ file(GLOB libmysqlsh_SRC
     "${CMAKE_SOURCE_DIR}/common/myjson/src/json_parser.cc"
     "${CMAKE_SOURCE_DIR}/common/myjson/src/mutable_myjson.cc"
     "${CMAKE_SOURCE_DIR}/common/myjson/src/myjson.cc"
+    "${CMAKE_BINARY_DIR}/shellcore/jscript_core_definitions.h"
 )
 
 # Configures V8 accordingly...

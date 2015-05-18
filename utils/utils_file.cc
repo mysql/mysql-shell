@@ -21,6 +21,7 @@
 
 #include <stdexcept>
 #include <boost/format.hpp>
+#include <boost/algorithm/string.hpp>
 #include <fstream>
 
 #ifdef WIN32
@@ -33,6 +34,13 @@
 #  include <sys/types.h>
 #  include <dirent.h>
 #  include <sys/stat.h>
+
+#ifdef __APPLE__
+#include <mach-o/dyld.h>
+#include <limits.h>
+#else
+#include <linux/limits.h>
+#endif
 #endif
 
 using namespace shcore;
@@ -73,6 +81,74 @@ namespace shcore
       return path;
     }
 #endif
+  }
+
+  /*
+  * Returns what should be considered the HOME folder for the shell.
+  * If MYSQLX_HOME is defined, returns its value.
+  * If not, it will try to identify the value based on the binary full path:
+  * In a standard setup the binary will be at <MYSQLX_HOME>/bin
+  * 
+  * If that is the case MYSQLX_HOME is determined by trimming out
+  * /bin/mysqlx from the full executable name.
+  *
+  * An empty value would indicate MYSQLX_HOME is unknown.
+  */
+  std::string get_mysqlx_home_path()
+  {
+    std::string ret_val;
+    std::string exe_path;
+    std::string path_separator;
+    const char* env_home = getenv("MYSQLX_HOME");
+
+    if (env_home)
+      ret_val.assign(env_home);
+    else
+    {
+#ifdef WIN32
+      HMODULE hModule = GetModuleHandleA(NULL);
+      char path[MAX_PATH];
+      GetModuleFileNameA(hModule, path, MAX_PATH);
+      exe_path.assign(path);
+      path_separator = "\\";
+#else
+      path_separator = "/";
+#ifdef __APPLE__
+      char path[PATH_MAX];
+      char real_path[PATH_MAX];
+      uint32_t buffsize = sizeof(path);
+      _NSGetExecutablePath(path, &buffsize);
+
+      // _NSGetExecutablePath may return tricky constructs on paths
+      // like symbolic links or things like i.e /path/to/./mysqlx
+      // we need to normalize that
+      realpath(path, real_path);
+      exe_path.assign(real_path);
+#else
+      char path[PATH_MAX];
+      readlink("/proc/self/exe", path, PATH_MAX);
+      exe_path.assign(path);
+#endif
+#endif
+      // If the exe path was found now we check if it can be considered the standard installation
+      // by checking the parent folder is "bin"
+      if (!exe_path.empty())
+      {
+        std::vector<std::string> tokens;
+        boost::algorithm::split(tokens, exe_path, boost::is_any_of(path_separator), boost::token_compress_on);
+        tokens.erase(tokens.end() - 1);
+
+        if (tokens.at(tokens.size() - 1) == "bin")
+        {
+          // It seems to be a standard installation so re remove the bin folder
+          // and the parent is MYSQLX_HOME!
+          tokens.erase(tokens.end() - 1);
+          ret_val = boost::algorithm::join(tokens, path_separator);
+        }
+      }
+    }
+
+    return ret_val;
   }
 
   /*
@@ -122,7 +198,7 @@ namespace shcore
     else if (ENOENT == errno)
     {
       /* Directory does not exist. */
-      if(mkdir(dir_path, 0700) != 0)
+      if (mkdir(dir_path, 0700) != 0)
         throw std::runtime_error((boost::format("Error when verifying dir %s exists: %s") % dir_path % shcore::get_last_error()).str());
     }
     else

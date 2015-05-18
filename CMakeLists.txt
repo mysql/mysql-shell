@@ -221,7 +221,7 @@ endif()
 target_link_libraries(mysqlx ${MYSQL_LIBRARIES})
 
 install(TARGETS mysqlx DESTINATION bin)
-
+install(DIRECTORY scripting/modules DESTINATION lib)
 
 if(WIN32)
   CHANGE_MD_2_MT()
