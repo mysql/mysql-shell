@@ -43,7 +43,9 @@ SHELL_ADD_PROTOBUF(mysqlxtest ${proto_SRC})
 
 if( WIN32 )
   include(msvc)
-  CHANGE_MD_2_MT()
+  if(NOT WINDOWS_RUNTIME_MD)
+    CHANGE_MD_2_MT()
+  endif()
 endif()
 
 add_definitions(-DBOOST_ALL_NO_LIB )

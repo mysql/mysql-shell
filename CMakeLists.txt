@@ -99,6 +99,10 @@ CONFIGURE_FILE(config.h.cmake   ${CMAKE_BINARY_DIR}/include/mysh_config.h)
 ### Handle User Options
 ###
 
+if(NOT WINDOWS_RUNTIME_MD)
+  add_definitions(-DNo_mysqlshtypes)
+endif()
+
 # Common warning flags for GCC, G++, Clang and Clang++
 set(MY_WARNING_FLAGS "-Wall -Wextra -Wformat-security -Wvla")
 
@@ -107,8 +111,6 @@ set(MY_C_WARNING_FLAGS
     "${MY_WARNING_FLAGS} -Wwrite-strings -Wdeclaration-after-statement")
 
 set(MY_CXX_WARNING_FLAGS "${MY_CXX_WARNING_FLAGS} -Werror")
-
-add_definitions(-DSHCORE_EXPORT )
 
 
 include_directories( ${CMAKE_BINARY_DIR}/include/ )
@@ -177,7 +179,17 @@ include_directories("${PROJECT_SOURCE_DIR}/include"
 ### Build Projects
 ###
 
+if(WIN32)
+  if(WINDOWS_RUNTIME_MD)
+    add_definitions(-DUSING_V8_SHARED)
+  endif()
+endif()
 
+
+if(WINDOWS_RUNTIME_MD)
+  add_subdirectory(types)
+  remove_definitions(-Dmysqlshtypes_EXPORTS)
+endif()
 add_subdirectory(mysqlxtest)
 add_subdirectory(shellcore)
 add_subdirectory(modules)
@@ -203,7 +215,9 @@ file(GLOB mysh_SRC
 add_executable(mysqlx ${mysh_SRC})
 
 if(WIN32)
-  add_dependencies(mysqlx boost_code.obj)
+  if(NOT WINDOWS_RUNTIME_MD)
+    add_dependencies(mysqlx boost_code.obj)
+  endif()
 else()
   target_link_libraries(mysqlx edit)
 endif()
@@ -224,7 +238,9 @@ install(TARGETS mysqlx DESTINATION bin)
 install(DIRECTORY scripting/modules DESTINATION lib)
 
 if(WIN32)
-  CHANGE_MD_2_MT()
+  if(NOT WINDOWS_RUNTIME_MD)
+    CHANGE_MD_2_MT()
+  endif()
 endif()
 
 add_definitions(-DBOOST_ALL_NO_LIB )

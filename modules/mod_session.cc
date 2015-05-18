@@ -45,7 +45,7 @@ using namespace shcore;
 
 #include <iostream>
 
-Session::Session(Shell_core *shc)
+Session::Session(IShell_core *shc)
 : _shcore(shc), _show_warnings(false)
 {
   _schema_proxy.reset(new Proxy_object(boost::bind(&Session::get_db, this, _1)));

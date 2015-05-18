@@ -23,8 +23,10 @@
 #ifndef _MOD_SESSION_H_
 #define _MOD_SESSION_H_
 
+#include "mod_common.h"
 #include "shellcore/types.h"
 #include "shellcore/types_cpp.h"
+#include "shellcore/ishell_core.h"
 
 #include "mod_connection.h"
 
@@ -41,10 +43,10 @@ namespace mysh {
 class Db;
 
 
-class Session : public shcore::Cpp_object_bridge, public boost::enable_shared_from_this<Session>
+class MOD_PUBLIC Session : public shcore::Cpp_object_bridge, public boost::enable_shared_from_this<Session>
 {
 public:
-  Session(shcore::Shell_core *shc);
+  Session(shcore::IShell_core *shc);
   ~Session();
 
   virtual std::string class_name() const;
@@ -71,7 +73,7 @@ public:
 private:
   shcore::Value get_db(const std::string &schema);
 
-  shcore::Shell_core *_shcore;
+  shcore::IShell_core *_shcore;
   boost::shared_ptr<Base_connection> _conn;
 
   boost::shared_ptr<shcore::Proxy_object> _schema_proxy;

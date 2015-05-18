@@ -21,6 +21,7 @@
 #define _SHELL_SQL_H_
 
 #include "shellcore/shell_core.h"
+#include "shellcore/ishell_core.h"
 #include "../modules/mod_session.h"
 #include <boost/system/error_code.hpp>
 #include <stack>
@@ -31,7 +32,7 @@ namespace shcore
 class Shell_sql : public Shell_language
 {
 public:
-  Shell_sql(Shell_core *owner);
+  Shell_sql(IShell_core *owner);
 
   virtual void set_global(const std::string &name, const Value &value) {}
 

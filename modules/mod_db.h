@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2015, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -23,6 +23,7 @@
 #ifndef _MOD_DB_H_
 #define _MOD_DB_H_
 
+#include "mod_common.h"
 #include "shellcore/types.h"
 #include "shellcore/types_cpp.h"
 
@@ -39,7 +40,7 @@ namespace mysh {
 class Session;
 class Db_table;
 
-class Db : public shcore::Cpp_object_bridge, public boost::enable_shared_from_this<Db>
+class MOD_PUBLIC Db : public shcore::Cpp_object_bridge, public boost::enable_shared_from_this<Db>
 {
 public:
   Db(boost::shared_ptr<Session> owner, const std::string &name);

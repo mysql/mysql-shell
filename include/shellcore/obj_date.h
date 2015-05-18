@@ -24,7 +24,7 @@
 
 namespace shcore
 {
-  class Date : public Cpp_object_bridge
+  class TYPES_COMMON_PUBLIC Date : public Cpp_object_bridge
   {
   public:
     Date(int year, int month, int day, int hour, int min, float sec);

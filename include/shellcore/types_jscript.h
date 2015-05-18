@@ -28,11 +28,11 @@
 
 namespace shcore {
 
-class JScript_function : public Function_base
+class SHCORE_PUBLIC JScript_function : public Function_base
 {
 public:
   JScript_function(boost::shared_ptr<JScript_context> context);
-  virtual ~JScript_function();
+  virtual ~JScript_function() {}
 
   virtual std::string name();
 

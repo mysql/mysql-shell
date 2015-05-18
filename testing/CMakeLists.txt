@@ -96,5 +96,7 @@ endif()
 add_definitions(-DBOOST_ALL_NO_LIB )
 
 if(WIN32)
-  CHANGE_MD_2_MT()
+  if(NOT WINDOWS_RUNTIME_MD)
+    CHANGE_MD_2_MT()
+  endif()
 endif()

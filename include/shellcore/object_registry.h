@@ -27,7 +27,7 @@
 namespace shcore
 {
 
-class Object_registry
+class SHCORE_PUBLIC Object_registry
 {
 public:
   typedef std::list<boost::shared_ptr<Object_bridge> > Object_list;

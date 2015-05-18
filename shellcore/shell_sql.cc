@@ -29,7 +29,7 @@
 using namespace shcore;
 using namespace boost::system;
 
-Shell_sql::Shell_sql(Shell_core *owner)
+Shell_sql::Shell_sql(IShell_core *owner)
 : Shell_language(owner)
 {
   _delimiter = ";";

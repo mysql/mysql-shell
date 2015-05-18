@@ -278,6 +278,10 @@ Base_resultset::Base_resultset(boost::shared_ptr<Base_connection> owner, uint64_
   add_method("fetch_all", boost::bind(&Base_resultset::fetch_all, this, _1), NULL);
   add_method("fetch_metadata", boost::bind(&Base_resultset::get_metadata, this, _1), NULL);
   add_method("__paged_output__", boost::bind(&Base_resultset::print, this, _1), NULL);
+  add_method("affected_rows", boost::bind(&Base_resultset::affected_rows, this, _1), NULL);
+  add_method("fetched_row_count", boost::bind(&Base_resultset::fetched_row_count, this, _1), NULL);
+  add_method("warning_count", boost::bind(&Base_resultset::warning_count, this, _1), NULL);
+  add_method("execution_time", boost::bind(&Base_resultset::execution_time, this, _1), NULL);
 }
 
 shcore::Value Base_resultset::next(const shcore::Argument_list &args)
@@ -426,6 +430,26 @@ std::vector<std::string> Base_resultset::get_members() const
 bool Base_resultset::operator == (const Object_bridge &other) const
 {
   return this == &other;
+}
+
+shcore::Value Base_resultset::fetched_row_count(const shcore::Argument_list &args)
+{
+  return get_member("fetched_row_count");
+}
+
+shcore::Value Base_resultset::affected_rows(const shcore::Argument_list &args)
+{
+  return get_member("affected_rows");
+}
+
+shcore::Value Base_resultset::warning_count(const shcore::Argument_list &args)
+{
+  return get_member("warning_count");
+}
+
+shcore::Value Base_resultset::execution_time(const shcore::Argument_list &args)
+{
+  return get_member("execution_time");
 }
 
 shcore::Value Base_resultset::get_member(const std::string &prop) const

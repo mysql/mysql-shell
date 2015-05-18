@@ -645,7 +645,7 @@ struct JScript_context::JScript_context_impl
 
  Must be called once when the program is started.
  */
-void JScript_context_init()
+void SHCORE_PUBLIC JScript_context_init()
 {
   static bool inited = false;
   if (!inited)

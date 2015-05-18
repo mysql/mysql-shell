@@ -20,6 +20,7 @@
 #ifndef _MOD_CONNECTION_H_
 #define _MOD_CONNECTION_H_
 
+#include "mod_common.h"
 #include "shellcore/types.h"
 #include "shellcore/types_cpp.h"
 #include "../utils/utils_time.h"
@@ -34,13 +35,13 @@ namespace shcore
 
 namespace mysh
 {
-  bool parse_mysql_connstring(const std::string &connstring,
+  bool MOD_PUBLIC parse_mysql_connstring(const std::string &connstring,
                                      std::string &protocol, std::string &user, std::string &password,
                                      std::string &host, int &port, std::string &sock,
                                      std::string &db, int &pwd_found);
-  std::string strip_password(const std::string &connstring);
+  std::string MOD_PUBLIC strip_password(const std::string &connstring);
   class Base_resultset;
-  class Base_connection : public shcore::Cpp_object_bridge
+  class MOD_PUBLIC Base_connection : public shcore::Cpp_object_bridge
   {
   public:
     Base_connection(const std::string &uri, const char *password = NULL);
@@ -75,7 +76,7 @@ namespace mysh
     std::string _pwd;
   };
 
-  class Field
+  class MOD_PUBLIC Field
   {
   public:
     Field(const std::string& catalog, const std::string& db, const std::string& table, const std::string& otable, const std::string& name, const std::string& oname, int length, int type, int flags, int decimals, int charset);
@@ -154,6 +155,10 @@ namespace mysh
     shcore::Value next_result(const shcore::Argument_list &args);
     shcore::Value get_metadata(const shcore::Argument_list &args);
     shcore::Value fetch_all(const shcore::Argument_list &args);
+    shcore::Value affected_rows(const shcore::Argument_list &args);
+    shcore::Value fetched_row_count(const shcore::Argument_list &args);
+    shcore::Value warning_count(const shcore::Argument_list &args);
+    shcore::Value execution_time(const shcore::Argument_list &args);
 
   private:
     void print_json();

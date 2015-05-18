@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2015, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -31,6 +31,7 @@
 #endif
 
 #include <mysql.h>
+#include "mod_common.h"
 #include "mod_connection.h"
 
 namespace mysh {
@@ -49,7 +50,7 @@ namespace mysh {
   };
 
   class Mysql_connection;
-  class Mysql_resultset : public Base_resultset
+  class MOD_PUBLIC Mysql_resultset : public Base_resultset
   {
   public:
     Mysql_resultset(boost::shared_ptr<Mysql_connection> owner, uint64_t affected_rows, int warning_count, const char *info, boost::shared_ptr<shcore::Value::Map_type> options = boost::shared_ptr<shcore::Value::Map_type>());
@@ -67,7 +68,7 @@ namespace mysh {
     boost::weak_ptr<MYSQL_RES> _result;
   };
 
-  class Mysql_connection : public Base_connection, public boost::enable_shared_from_this<Mysql_connection>
+  class MOD_PUBLIC Mysql_connection : public Base_connection, public boost::enable_shared_from_this<Mysql_connection>
   {
   public:
     Mysql_connection(const std::string &uri, const char *password = NULL);

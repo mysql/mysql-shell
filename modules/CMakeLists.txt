@@ -1,4 +1,4 @@
-# Copyright (c) 2014, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2014, 2015, Oracle and/or its affiliates. All rights reserved.
 # 
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -28,6 +28,7 @@ file(GLOB libmysqlshmods_SRC
       "*.h"
       "*.cc"
       "*.h"
+      "${CMAKE_SOURCE_DIR}/src/boost_code.cc"
 )
 
 if (NOT HAVE_PROTOBUF)
@@ -43,14 +44,30 @@ else()
   SETUP_PROTOBUF()
 endif()
 
+if(WINDOWS_RUNTIME_MD)
+  add_convenience_library_dll(mysqlshmods ${libmysqlshmods_SRC})
+else()
+  add_convenience_library(mysqlshmods ${libmysqlshmods_SRC})
+endif()
+target_link_libraries(mysqlshmods mysqlxtest)
 
-add_convenience_library(mysqlshmods ${libmysqlshmods_SRC})
-target_link_libraries(mysqlshmods mysqlsh mysqlxtest)
-
+if(WINDOWS_RUNTIME_MD)
+  target_link_libraries(mysqlshmods mysqlshtypes)
+  target_link_libraries(mysqlshmods ${MYSQL_LIBRARIES})
+else()
+  target_link_libraries(mysqlshmods mysqlsh mysqlxtest)
+  target_link_libraries(mysqlshmods ${MYSQL_LIBRARIES})
+endif()
 
 if( WIN32 )
   include(msvc)
-  CHANGE_MD_2_MT()
+  if(NOT WINDOWS_RUNTIME_MD)
+    CHANGE_MD_2_MT()
+  endif()
 endif()
+
+install(DIRECTORY "${CMAKE_SOURCE_DIR}/modules/" DESTINATION "include/modules" FILES_MATCHING PATTERN "*.h" )
+install(DIRECTORY "${CMAKE_SOURCE_DIR}/utils/" DESTINATION "include/utils" FILES_MATCHING PATTERN "*.h" )
+install(TARGETS mysqlshmods DESTINATION lib)
 
 add_definitions(-DBOOST_ALL_NO_LIB )

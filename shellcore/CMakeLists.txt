@@ -13,6 +13,8 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
 
+remove_definitions(-Dmysqlshmods_EXPORTS)
+
 include_directories( ${MYSQL_INCLUDE_DIRS} )
 include_directories( ${CMAKE_BINARY_DIR} )
 include_directories("${CMAKE_SOURCE_DIR}/include" "${CMAKE_SOURCE_DIR}/utils" "${Boost_INCLUDE_DIRS}")
@@ -54,7 +56,21 @@ file(GLOB libmysqlsh_SRC
     "${CMAKE_SOURCE_DIR}/common/myjson/src/mutable_myjson.cc"
     "${CMAKE_SOURCE_DIR}/common/myjson/src/myjson.cc"
     "${CMAKE_BINARY_DIR}/shellcore/jscript_core_definitions.h"
+    "${CMAKE_SOURCE_DIR}/src/boost_code.cc"
 )
+
+if(NOT WINDOWS_RUNTIME_MD)
+  list(APPEND libmysqlsh_SRC "${CMAKE_SOURCE_DIR}/types/ishell_core.cc")
+else()
+  list(REMOVE_ITEM libmysqlsh_SRC "${CMAKE_SOURCE_DIR}/shellcore/types.cc")
+  list(REMOVE_ITEM libmysqlsh_SRC "${CMAKE_SOURCE_DIR}/shellcore/types_cpp.cc")
+  list(REMOVE_ITEM libmysqlsh_SRC "${CMAKE_SOURCE_DIR}/shellcore/object_factory.cc")
+  list(REMOVE_ITEM libmysqlsh_SRC "${CMAKE_SOURCE_DIR}/shellcore/proxy_object.cc")
+#  list(REMOVE_ITEM libmysqlsh_SRC "${CMAKE_SOURCE_DIR}/shellcore/shell_core.cc")
+  list(REMOVE_ITEM libmysqlsh_SRC "${CMAKE_SOURCE_DIR}/shellcore/common.cc")
+  list(REMOVE_ITEM libmysqlsh_SRC "${CMAKE_SOURCE_DIR}/shellcore/obj_date.cc")
+endif()
+
 
 # Configures V8 accordingly...
 if ( HAVE_V8 )
@@ -80,14 +96,30 @@ else()
   endforeach()
 endif()
 
-add_convenience_library(mysqlsh ${libmysqlsh_SRC})
+if(WINDOWS_RUNTIME_MD)
+  add_convenience_library_dll(mysqlsh ${libmysqlsh_SRC})
+else()
+  add_convenience_library(mysqlsh ${libmysqlsh_SRC})
+endif()  
+
+if(WINDOWS_RUNTIME_MD)
+  target_link_libraries(mysqlsh mysqlshmods)
+  target_link_libraries(mysqlsh mysqlshtypes)
+  target_link_libraries(mysqlsh ${V8_LINK_LIST})
+  target_link_libraries(mysqlsh ${MYSQL_LIBRARIES})
+endif()
 
 if( WIN32 )
   include(msvc)
-  CHANGE_MD_2_MT()
+  if(NOT WINDOWS_RUNTIME_MD)  
+    CHANGE_MD_2_MT()
+  endif()
 endif()
+
+install(DIRECTORY "${CMAKE_SOURCE_DIR}/include/shellcore/" DESTINATION "include/shellcore" FILES_MATCHING PATTERN "*.h" )
+install(TARGETS mysqlsh DESTINATION lib)
 
 add_definitions(-DSHCORE_EXPORT )
 add_definitions(-DBOOST_ALL_NO_LIB )
-add_definitions(-Dmyjsonlib_EXPORTS )
+add_definitions(-Dmyjson_EXPORTS )
 

@@ -19,11 +19,12 @@
 #ifndef _OBJECT_FACTORY_H_
 #define _OBJECT_FACTORY_H_
 
+#include "shellcore/types_common.h"
 #include "shellcore/types.h"
 
 namespace shcore
 {
-  class Object_factory
+  class TYPES_COMMON_PUBLIC Object_factory
   {
   public:
     typedef boost::shared_ptr<Object_bridge>(*Factory_function)(const Argument_list &args);

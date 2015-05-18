@@ -32,7 +32,7 @@
 using namespace shcore;
 
 Shell_core::Shell_core(Interpreter_delegate *shdelegate)
-: _lang_delegate(shdelegate)
+: _lang_delegate(shdelegate), IShell_core()
 {
   _mode = Mode_None;
   _registry = new Object_registry();

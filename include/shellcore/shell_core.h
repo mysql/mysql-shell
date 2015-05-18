@@ -20,7 +20,9 @@
 #ifndef _SHELLCORE_H_
 #define _SHELLCORE_H_
 
+#include "shellcore/common.h"
 #include "shellcore/types.h"
+#include "shellcore/ishell_core.h"
 #include <boost/system/error_code.hpp>
 #include <list>
 
@@ -45,12 +47,7 @@
 
 namespace shcore
 {
-  enum Interactive_input_state
-  {
-    Input_ok,
-    Input_continued
-  };
-
+  
   class Object_registry;
   class Shell_core;
 
@@ -64,7 +61,7 @@ namespace shcore
     Shell_command_function function;
   };
 
-  class Shell_command_handler
+  class SHCORE_PUBLIC Shell_command_handler
   {
     typedef std::map <std::string, Shell_command*> Command_registry;
     typedef std::list <Shell_command> Command_list;
@@ -79,10 +76,10 @@ namespace shcore
     bool print_command_help(const std::string& command);
   };
 
-  class Shell_language
+  class SHCORE_PUBLIC Shell_language
   {
   public:
-    Shell_language(Shell_core *owner) : _owner(owner) {}
+    Shell_language(IShell_core *owner): _owner(owner) {}
 
     virtual void set_global(const std::string &name, const Value &value) = 0;
 
@@ -92,53 +89,46 @@ namespace shcore
     virtual std::string prompt() = 0;
     virtual bool print_help(const std::string& topic) { return true; }
   protected:
-    Shell_core *_owner;
+    IShell_core *_owner;
     std::string _last_handled;
     Shell_command_handler _shell_command_handler;
   };
 
   struct Interpreter_delegate;
 
-  class Shell_core
+  class SHCORE_PUBLIC Shell_core : public shcore::IShell_core
   {
   public:
-    enum Mode
-    {
-      Mode_None,
-      Mode_SQL,
-      Mode_JScript,
-      Mode_Python
-    };
 
     Shell_core(Interpreter_delegate *shdelegate);
-    ~Shell_core();
+    virtual ~Shell_core();
 
-    Mode interactive_mode() const { return _mode; }
-    bool switch_mode(Mode mode, bool &lang_initialized);
+    virtual Mode interactive_mode() const { return _mode; }
+    virtual bool switch_mode(Mode mode, bool &lang_initialized);
 
     // sets a global variable, exposed to all supported scripting languages
     // the value is saved in a map, so that the exposing can be deferred in
     // case the context for some langauge is not yet created at the time this is called
-    void set_global(const std::string &name, const Value &value);
-    Value get_global(const std::string &name);
+    virtual void set_global(const std::string &name, const Value &value);
+    virtual Value get_global(const std::string &name);
 
-    Object_registry *registry() { return _registry; }
+    virtual Object_registry *registry() { return _registry; }
   public:
-    Value handle_input(std::string &code, Interactive_input_state &state, bool interactive = true);
+    virtual Value handle_input(std::string &code, Interactive_input_state &state, bool interactive = true);
     virtual bool handle_shell_command(const std::string &code);
-    std::string get_handled_input();
-    int process_stream(std::istream& stream = std::cin, const std::string& source = "(shcore)", bool continue_on_error = false);
+    virtual std::string get_handled_input();
+    virtual int process_stream(std::istream& stream = std::cin, const std::string& source = "(shcore)", bool continue_on_error = false);
 
-    std::string prompt();
+    virtual std::string prompt();
 
-    Interpreter_delegate *lang_delegate() { return _lang_delegate; }
-    void set_output_format(const std::string &format){ _output_format = format; }
+    virtual Interpreter_delegate *lang_delegate() { return _lang_delegate; }
+    virtual void set_output_format(const std::string &format){ _output_format = format; }
   public:
-    void print(const std::string &s);
-    void print_error(const std::string &s);
-    bool password(const std::string &s, std::string &ret_pass);
-    const std::string& get_input_source() { return _input_source; }
-    bool print_help(const std::string& topic);
+    virtual void print(const std::string &s);
+    virtual void print_error(const std::string &s);
+    virtual bool password(const std::string &s, std::string &ret_pass);
+    virtual const std::string& get_input_source() { return _input_source; }
+    virtual bool print_help(const std::string& topic);
   private:
     void init_sql();
     void init_js();

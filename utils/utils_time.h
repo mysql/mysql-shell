@@ -9,9 +9,11 @@
 #ifndef __mysh__utils_time__
 #define __mysh__utils_time__
 
+#include "shellcore/types_common.h"
+#include "shellcore/common.h"
 #include <string>
 
-class MySQL_timer
+class TYPES_COMMON_PUBLIC MySQL_timer
 {
 public:
   unsigned long get_time();

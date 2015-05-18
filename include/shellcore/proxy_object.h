@@ -20,11 +20,12 @@
 #ifndef _PROXY_OBJECT_H_
 #define _PROXY_OBJECT_H_
 
+#include "shellcore/types_common.h"
 #include "types_cpp.h"
 
 namespace shcore {
 
-class Proxy_object : public shcore::Cpp_object_bridge
+class TYPES_COMMON_PUBLIC Proxy_object : public shcore::Cpp_object_bridge
 {
 public:
   virtual std::string class_name() const { return "Proxy_object"; }

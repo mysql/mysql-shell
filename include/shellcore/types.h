@@ -20,6 +20,8 @@
 #ifndef _TYPES_H_
 #define _TYPES_H_
 
+#include "types_common.h"
+
 #include <vector>
 #include <map>
 #include <string>
@@ -78,12 +80,12 @@ typedef boost::shared_ptr<Object_bridge> Object_bridge_ref;
  
  Example: JS Date object is converted to a C++ Date object and vice-versa, but Mysql_connection is wrapped generically
  */
-struct SHCORE_PUBLIC Value
+struct TYPES_COMMON_PUBLIC Value
 {
   typedef std::vector<Value> Array_type;
   typedef boost::shared_ptr<Array_type> Array_type_ref;
 
-  class Map_type : public std::map<std::string, Value>
+  class TYPES_COMMON_PUBLIC Map_type : public std::map<std::string, Value>
   {
   public:
     inline bool has_key(const std::string &k) const { return find(k) != end(); }
@@ -193,7 +195,7 @@ private:
 };
 
 
-class SHCORE_PUBLIC Argument_list : public std::vector<Value>
+class TYPES_COMMON_PUBLIC Argument_list : public std::vector<Value>
 {
 public:
   const std::string &string_at(int i) const;
@@ -220,7 +222,7 @@ template<> struct value_type_for_native<Object_bridge*> { static const Value_typ
 template<> struct value_type_for_native<Value::Map_type> { static const Value_type type = Map; };
 template<> struct value_type_for_native<Value::Array_type> { static const Value_type type = Array; };
 
-std::string SHCORE_PUBLIC type_name(Value_type type);
+std::string TYPES_COMMON_PUBLIC type_name(Value_type type);
 
 /** An instance of an object, that's implemented in some language.
  *
@@ -229,7 +231,7 @@ std::string SHCORE_PUBLIC type_name(Value_type type);
  *
  * They can be instantiated through their Metaclass factory
  */
-class SHCORE_PUBLIC Object_bridge
+class TYPES_COMMON_PUBLIC Object_bridge
 {
 public:
   virtual ~Object_bridge() {}
@@ -269,7 +271,7 @@ public:
 
 /** Pointer to a function that may be implemented in any language.
  */
-class SHCORE_PUBLIC Function_base
+class TYPES_COMMON_PUBLIC Function_base
 {
 public:
   //! The name of the function
@@ -291,7 +293,7 @@ public:
 };
 
 
-class SHCORE_PUBLIC Exception : public std::exception
+class TYPES_COMMON_PUBLIC Exception : public std::exception
 {
   boost::shared_ptr<Value::Map_type> _error;
 

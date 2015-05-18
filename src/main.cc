@@ -38,6 +38,7 @@
 
 #include "shellcore/lang_base.h"
 #include "shellcore/shell_core.h"
+#include "shellcore/ishell_core.h"
 
 #include "cmdline_options.h"
 
@@ -140,7 +141,7 @@ _batch_continue_on_error(false)
 
   _shell.reset(new Shell_core(&_delegate));
 
-  _session.reset(new mysh::Session(_shell.get()));
+  _session.reset(new mysh::Session(dynamic_cast<shcore::IShell_core*>(_shell.get()) ));
   _shell->set_global("session", Value(boost::static_pointer_cast<Object_bridge>(_session)));
 
   //  _db.reset(new mysh::Db(_shell.get()));

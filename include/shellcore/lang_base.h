@@ -23,9 +23,12 @@
 #include <boost/system/error_code.hpp>
 #include <string>
 
+#include "shellcore/types_common.h"
+#include "common.h"
+
 namespace shcore {
 
-struct Interpreter_delegate
+struct TYPES_COMMON_PUBLIC Interpreter_delegate
 {
   void *user_data;
   void (*print)(void *user_data, const char *text);
