@@ -20,6 +20,7 @@
 
 #include "shellcore/common.h"
 #include <iostream>
+#include <string>
 
 namespace shcore
 {

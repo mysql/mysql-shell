@@ -25,14 +25,14 @@
 
 #ifdef _WIN32
 # ifdef _DLL
-#ifdef SHCORE_EXPORT
-# define SHCORE_PUBLIC __declspec(dllexport)
-#else
-# define SHCORE_PUBLIC __declspec(dllimport)
-#endif
-#else
-# define SHCORE_PUBLIC
-#endif
+#  ifdef SHCORE_EXPORT
+#   define SHCORE_PUBLIC __declspec(dllexport)
+#  else
+#   define SHCORE_PUBLIC __declspec(dllimport)
+#  endif
+# else
+#  define SHCORE_PUBLIC
+# endif
 #else
 # define SHCORE_PUBLIC
 #endif
@@ -42,7 +42,7 @@
 namespace shcore 
 {
   extern void TYPES_COMMON_PUBLIC default_print(const std::string& text);
-  extern "C++" boost::function<void(std::string)> TYPES_COMMON_PUBLIC print;
+  extern "C++" TYPES_COMMON_PUBLIC boost::function<void(std::string)> print;
 }
 
 #endif
