@@ -21,7 +21,7 @@
 #define _PYTHON_ARRAY_WRAPPER_H_
 
 #include "shellcore/types.h"
-#include <Python.h>
+#include "shellcore/python_context.h"
 
 namespace shcore
 {

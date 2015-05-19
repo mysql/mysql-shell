@@ -18,7 +18,6 @@
  */
 
 #include "shellcore/python_array_wrapper.h"
-#include "shellcore/python_context.h"
 
 using namespace shcore;
 
