@@ -39,11 +39,12 @@ SET(MYSH_VERSION "${MYSH_MAJOR}.${MYSH_MINOR}.${MYSH_PATCH}${MYSH_LEVEL}")
 ###
 
 INCLUDE(libutils)
-include(msvc)
+INCLUDE(msvc)
+INCLUDE(ssl)
 
-INCLUDE (CheckIncludeFiles)
-INCLUDE (CheckFunctionExists)
-INCLUDE (FindPythonLibs)
+INCLUDE(CheckIncludeFiles)
+INCLUDE(CheckFunctionExists)
+INCLUDE(FindPythonLibs)
 
 IF (WITH_PROTOBUF)
   SET(HAVE_PROTOBUF "YES")              # Variable for CMake processing
@@ -82,6 +83,10 @@ elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
    SET_SOURCE_FILES_PROPERTIES(${PROJECT_SOURCE_DIR}/src/boost_code.cc PROPERTIES COMPILE_FLAGS -O0)
 endif ()
 
+
+##
+## Configure style system detection (generation of config.h)
+##
 CHECK_INCLUDE_FILES (pwd.h HAVE_PWD_H)
 if(WIN32)
 else()
@@ -94,6 +99,26 @@ endif()
 CHECK_FUNCTION_EXISTS (getpass HAVE_GETPASS)
 
 CONFIGURE_FILE(config.h.cmake   ${CMAKE_BINARY_DIR}/include/mysh_config.h)
+
+include(CheckCXXSourceCompiles)
+
+MACRO (MY_CHECK_CXX_COMPILER_FLAG FLAG RESULT)
+  SET(SAVE_CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS}")
+  SET(CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS} ${FLAG}")
+  CHECK_CXX_SOURCE_COMPILES("int main(void) { return 0; }" ${RESULT}
+    FAIL_REGEX "argument unused during compilation"
+    FAIL_REGEX "unsupported .*option"
+    FAIL_REGEX "unknown .*option"
+    FAIL_REGEX "unrecognized .*option"
+    FAIL_REGEX "ignoring unknown option"
+    FAIL_REGEX "[Ww]arning: [Oo]ption"
+    )
+  SET(CMAKE_REQUIRED_FLAGS "${SAVE_CMAKE_REQUIRED_FLAGS}")
+ENDMACRO()
+
+# Add bundled yassl/taocrypt or system openssl.
+MYSQL_CHECK_SSL()
+
 
 ###
 ### Handle User Options
