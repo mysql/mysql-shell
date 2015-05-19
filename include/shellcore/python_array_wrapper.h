@@ -20,8 +20,8 @@
 #ifndef _PYTHON_ARRAY_WRAPPER_H_
 #define _PYTHON_ARRAY_WRAPPER_H_
 
-#include "shellcore/types.h"
 #include "shellcore/python_context.h"
+#include "shellcore/types.h"
 
 namespace shcore
 {

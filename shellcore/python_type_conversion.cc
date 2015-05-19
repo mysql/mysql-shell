@@ -17,8 +17,8 @@
  * 02110-1301  USA
  */
 
-#include "shellcore/python_type_conversion.h"
 #include "shellcore/python_array_wrapper.h"
+#include "shellcore/python_type_conversion.h"
 
 using namespace shcore;
 

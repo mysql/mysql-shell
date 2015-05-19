@@ -20,9 +20,10 @@
 #ifndef _PYTHON_CONTEXT_H_
 #define _PYTHON_CONTEXT_H_
 
+#include <Python.h>
+
 #include "shellcore/shell_python.h"
 
-#include <Python.h>
 #include "shellcore/python_type_conversion.h"
 #include "shellcore/lang_base.h"
 #include <string>
