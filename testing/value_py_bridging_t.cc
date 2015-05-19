@@ -33,6 +33,9 @@
 #include "shellcore/python_context.h"
 #include "shellcore/python_utils.h"
 
+#include "shellcore/python_array_wrapper.h"
+#include "test_utils.h"
+
 extern void Python_context_init();
 
 class Test_object : public shcore::Cpp_object_bridge
@@ -52,7 +55,7 @@ namespace tests {
     {
       Python_context_init();
 
-      py = new Python_context();
+      py = new Python_context(&output_handler.deleg);
     }
 
     static void print(void *, const char *text)
@@ -65,6 +68,7 @@ namespace tests {
       delete py;
     }
 
+    Shell_test_output_handler output_handler;
     Python_context *py;
   };
 
@@ -124,17 +128,18 @@ namespace tests {
   {
     ASSERT_TRUE(py);
 
+    boost::system::error_code error;
     WillEnterPython lock;
-    Value result = py->execute("'hello world'");
+    Value result = py->execute("'hello world'", error);
     ASSERT_EQ(result.repr(), "\"hello world\"");
 
-    result = py->execute("1+1");
+    result = py->execute("1+1", error);
     ASSERT_EQ(result.as_int(), 2);
 
-    result = py->execute("");
+    result = py->execute("", error);
     ASSERT_EQ(result, Value());
 
-    result = py->execute("1+1+");
+    result = py->execute("1+1+", error);
     ASSERT_EQ(result, Value());
   }
 
@@ -144,6 +149,38 @@ namespace tests {
 
     WillEnterPython lock;
     py->set_global("testglobal", Value(12345));
-    ASSERT_EQ((py->pyobj_to_shcore_value(py->get_global("testglobal"))).repr(), "12345");
+    ASSERT_EQ(py->get_global("testglobal").repr(), "12345");
+  }
+
+  TEST_F(Python, array_to_py)
+  {
+    boost::system::error_code error;
+    boost::shared_ptr<Value::Array_type> arr2(new Value::Array_type);
+    arr2->push_back(Value(444));
+
+    boost::shared_ptr<Value::Array_type> arr(new Value::Array_type);
+    arr->push_back(Value(123));
+    arr->push_back(Value("text"));
+    arr->push_back(Value(arr2));
+
+    Value v(arr);
+
+    WillEnterPython lock;
+    // this will also test conversion of a wrapped array
+    ASSERT_EQ(py->pyobj_to_shcore_value(py->shcore_value_to_pyobj(v)).repr(), "[123, \"text\", [444]]");
+
+    ASSERT_EQ(py->pyobj_to_shcore_value(py->shcore_value_to_pyobj(v)), v);
+
+    py->set_global("arr", v);
+    ASSERT_EQ(py->get_global("arr").repr(), "[123, \"text\", [444]]");
+
+    ASSERT_EQ(py->execute("arr[0]", error).repr(), Value(123).repr());
+
+// TODO:    py->execute("foo = shell.List()", error);
+// TODO:    py->execute("shell.List.insert(0, \"1\")", error);
+
+
+    // this forces conversion of a native Python list into a Value
+    ASSERT_EQ(py->execute("[1,2,3]", error).repr(), "[1, 2, 3]");
   }
 }}

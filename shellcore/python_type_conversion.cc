@@ -18,50 +18,32 @@
  */
 
 #include "shellcore/python_type_conversion.h"
+#include "shellcore/python_array_wrapper.h"
 
 using namespace shcore;
 
 Python_type_bridger::Python_type_bridger(Python_context *context)
-: owner(context)
+: _owner(context)
 {
 }
 
 
 Python_type_bridger::~Python_type_bridger()
 {
-/*
-  delete object_wrapper;
-  delete function_wrapper;
-  delete map_wrapper;
-  delete array_wrapper;
-*/
+  delete _array_wrapper;
 }
 
 
 void Python_type_bridger::init()
 {
-/*
-  object_wrapper = new JScript_object_wrapper(owner);
-  map_wrapper = new JScript_map_wrapper(owner);
-  array_wrapper = new JScript_array_wrapper(owner);
-  function_wrapper = new JScript_function_wrapper(owner);
-*/
+  _array_wrapper = new Python_array_wrapper(_owner);
 }
 
-
+/* TODO:
 PyObject *Python_type_bridger::native_object_to_py(Object_bridge_ref object)
 {
-/*
-  if (object->class_name() == "Date")
-  {
-
-    boost::shared_ptr<Date> date = boost::static_pointer_cast<Date>(object);
-    return v8::Date::New(owner->isolate(), date->as_ms());
-  }
-
-  return object_wrapper->wrap(object);
-*/
 }
+*/
 
 
 Value Python_type_bridger::pyobj_to_shcore_value(PyObject *py) const
@@ -111,12 +93,32 @@ Value Python_type_bridger::pyobj_to_shcore_value(PyObject *py) const
     retval = pyobj_to_shcore_value(ref);
     Py_DECREF(ref);
   }  // } TODO: else if (Buffer/MemoryView || Tuple || List || Dictionary || DateTime || generic_object) {
+  else if (PyList_Check(py))
+  {
+    boost::shared_ptr<Value::Array_type> array(new Value::Array_type);
+
+    for (Py_ssize_t c = PyList_Size(py), i = 0; i < c; i++)
+    {
+      PyObject *item = PyList_GetItem(py, i);
+      array->push_back(pyobj_to_shcore_value(item));
+    }
+    return Value(array);
+  }
   else
   {
-    PyObject *obj_repr = PyObject_Repr(py);
-    const char *s = PyString_AsString(obj_repr);
-    throw std::invalid_argument("Cannot convert Python value to internal value: "+std::string(s));
-    Py_DECREF(obj_repr);
+    boost::shared_ptr<Value::Array_type> array;
+
+    if (Python_array_wrapper::unwrap(py, array))
+    {
+      return Value(array);
+    }
+    else
+    {
+      PyObject *obj_repr = PyObject_Repr(py);
+      const char *s = PyString_AsString(obj_repr);
+      throw std::invalid_argument("Cannot convert Python value to internal value: "+std::string(s));
+      Py_DECREF(obj_repr);
+    }
   }
 
   if (check_err)
@@ -130,6 +132,7 @@ Value Python_type_bridger::pyobj_to_shcore_value(PyObject *py) const
   }
   return retval;
 }
+
 
 PyObject *Python_type_bridger::shcore_value_to_pyobj(const Value &value)
 {
@@ -157,11 +160,11 @@ PyObject *Python_type_bridger::shcore_value_to_pyobj(const Value &value)
     r = PyFloat_FromDouble(value.value.d);
     break;
   case Object:
-    r = native_object_to_py(*value.value.o);
+    // TODO:
+    // r = native_object_to_py(*value.value.o);
     break;
   case Array:
-    // TODO: maybe convert fully
-    //r = array_wrapper->wrap(*value.value.array);
+    r = _array_wrapper->wrap(*value.value.array);
     break;
   case Map:
     // TODO: maybe convert fully

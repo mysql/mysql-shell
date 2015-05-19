@@ -361,11 +361,12 @@ void Interactive_shell::switch_shell_mode(Shell_core::Mode mode, const std::vect
         break;
       case Shell_core::Mode_Python:
         // TODO: remove following #if 0 #endif as soon as Python mode is implemented
-#if 0
+#ifdef HAVE_PYTHON
         if (_shell->switch_mode(mode, lang_initialized))
           println("Switching to Python mode...");
-#endif
+#else
         println("Python mode is not yet supported, command ignored.");
+#endif
         break;
     }
 
@@ -778,10 +779,8 @@ public:
         initial_mode = Shell_core::Mode_JScript;
       else if (check_arg(argv, i, "--json", "--json"))
         output_format = "json";
-
-      // TODO: Remove the following comment as soon as Python mode is implemented
-      //else if (check_arg(argv, i, "--py", "--py"))
-      //  initial_mode = Shell_core::Mode_Python;
+      else if (check_arg(argv, i, "--py", "--py"))
+        initial_mode = Shell_core::Mode_Python;
       else if (check_arg(argv, i, "--help", "--help"))
       {
         print_cmd_line_helper = true;

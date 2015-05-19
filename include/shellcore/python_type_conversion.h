@@ -49,7 +49,8 @@ struct Python_type_bridger
   Object_bridge_ref js_object_to_native(v8::Handle<v8::Object> object);
   */
 
-  Python_context *owner;
+  Python_context *_owner;
+  class Python_array_wrapper *_array_wrapper;
 
   /*
   class JScript_object_wrapper *object_wrapper;

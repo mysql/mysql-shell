@@ -24,30 +24,128 @@
 
 #include <Python.h>
 #include "shellcore/python_type_conversion.h"
+#include "shellcore/lang_base.h"
+#include <string>
 
 namespace shcore {
+
+class AutoPyObject
+  {
+  private:
+    PyObject *object;
+    bool autorelease;
+  public:
+    AutoPyObject()
+      : object(0), autorelease(false)
+    {
+    }
+
+    // Assigning another auto object always makes this one ref-counting as they share
+    // now the same object. Same for the assignment operator.
+    AutoPyObject(const AutoPyObject &other)
+      : object(other.object), autorelease(true)
+    {
+      Py_XINCREF(object);
+    }
+
+    AutoPyObject(PyObject *py, bool retain = true)
+    : object(py)
+    {
+      autorelease = retain;
+      if (autorelease)
+      {
+        // Leave the braces in place, even though this is a one liner. They will silence LLVM.
+        Py_XINCREF(object);
+      }
+    }
+
+    ~AutoPyObject()
+    {
+      if (autorelease)
+      {
+        Py_XDECREF(object);
+      }
+    }
+
+    AutoPyObject &operator= (PyObject *other)
+    {
+      if (object == other) // Ignore assignments of the same object.
+        return *this;
+
+      // Auto release only if we actually have increased its ref count.
+      // Always make this auto object auto-releasing after that as we get an object that might
+      // be shared by another instance.
+      if (autorelease)
+      {
+        Py_XDECREF(object);
+      }
+
+      object = other;
+      autorelease = true;
+      Py_XINCREF(object);
+
+      return *this;
+    }
+
+    operator bool()
+    {
+      return object != 0;
+    }
+
+    operator PyObject*()
+    {
+      return object;
+    }
+
+    PyObject* operator->()
+    {
+      return object;
+    }
+  };
+
+struct Interpreter_delegate;
 
 class Python_context
 {
 public:
-  Python_context() throw (Exception);
+  Python_context(Interpreter_delegate *deleg) throw (Exception);
   ~Python_context();
 
-  Value execute(const std::string &code);
+  static Python_context *get();
+  static Python_context *get_and_check();
+  PyObject *get_shell_module();
+
+  Value execute(const std::string &code, boost::system::error_code &ret_error, const std::string& source = "") throw (Exception);
+  Value execute_interactive(const std::string &code) BOOST_NOEXCEPT_OR_NOTHROW;
 
   Value pyobj_to_shcore_value(PyObject *value);
   PyObject *shcore_value_to_pyobj(const Value &value);
 
-  PyObject *get_global(const std::string &value); 
+  Value get_global(const std::string &value);
   void set_global(const std::string &name, const Value &value);
-private:
-  struct Python_context_impl;
-  Python_context_impl *_impl;
 
+  static void set_python_error(const std::exception &exc, const std::string &location="");
+  bool pystring_to_string(PyObject *strobject, std::string &ret_string, bool convert=false);
+
+  AutoPyObject get_shell_list_class();
+
+  Interpreter_delegate *_delegate;
+
+private:
   PyObject *_globals;
   PyThreadState *_main_thread_state;
 
-  Python_type_bridger types;
+  Python_type_bridger _types;
+
+  PyObject *_shell_module;
+
+  PyObject *shell_print(PyObject *self, PyObject *args);
+
+  void register_shell_module();
+  void init_shell_list_type();
+
+protected:
+  AutoPyObject _shell_list_class;
 };
 
 }
