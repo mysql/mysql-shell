@@ -14,6 +14,7 @@
    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA */
 
 #include "shellcore/lang_base.h"
+#include "shellcore/shell_core.h"
 
 class Shell_test_output_handler
 {
@@ -57,4 +58,71 @@ public:
   std::string std_err;
   std::string std_out;
   std::string ret_pwd;
+};
+
+class Shell_core_test_wrapper : public ::testing::Test
+{
+protected:
+  // You can define per-test set-up and tear-down logic as usual.
+  virtual void SetUp()
+  {
+    _shell_core.reset(new shcore::Shell_core(&output_handler.deleg));
+
+    const char *uri = getenv("MYSQL_URI");
+    if (uri)
+      _uri.assign(uri);
+
+    const char *pwd = getenv("MYSQL_PWD");
+    if (pwd)
+      _pwd.assign(pwd);
+
+    const char *port = getenv("MYSQL_PORT");
+    if (port)
+      _mysql_port.assign(port);
+  }
+
+  shcore::Value execute(const std::string& code)
+  {
+    std::string _code(code);
+    shcore::Interactive_input_state state;
+    return _shell_core->handle_input(_code, state, true);
+  }
+
+  shcore::Value exec_and_out_equals(const std::string& code, const std::string& out = "", const std::string& err = "")
+  {
+    shcore::Value ret_val = execute(code);
+    EXPECT_EQ(out, output_handler.std_out);
+    EXPECT_EQ(err, output_handler.std_err);
+
+    output_handler.wipe_all();
+
+    return ret_val;
+  }
+
+  shcore::Value exec_and_out_contains(const std::string& code, const std::string& out = "", const std::string& err = "")
+  {
+    shcore::Value ret_val = execute(code);
+
+    if (out.length())
+      EXPECT_NE(-1, int(output_handler.std_out.find(out)));
+
+    if (err.length())
+      EXPECT_NE(-1, int(output_handler.std_err.find(err)));
+
+    output_handler.wipe_all();
+
+    return ret_val;
+  }
+
+  Shell_test_output_handler output_handler;
+  boost::shared_ptr<shcore::Shell_core> _shell_core;
+  void wipe_out() { output_handler.wipe_out(); }
+  void wipe_err() { output_handler.wipe_err(); }
+  void wipe_all() { output_handler.wipe_all(); }
+
+  std::string _uri;
+  std::string _pwd;
+  std::string _mysql_port;
+
+  shcore::Interpreter_delegate deleg;
 };

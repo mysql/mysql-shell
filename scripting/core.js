@@ -119,5 +119,17 @@ this.require = function(module_name, reload)
   return this.shell.js.module_handler.get_module(module_name, reload);
 }
 
+// Object.keys(object) returns the enumerable properties found directly 
+// on the object while iterating them also includes the ones defined on
+// the prototype chain.
+this.dir = function(object)
+{
+  var keys = []
+  for(k in object)
+    keys[keys.length] = k;
+  
+  return keys;
+}
+
 
 

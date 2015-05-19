@@ -697,7 +697,7 @@ Value Value::parse(const std::string &s)
         ++pc;
 
       n = pc - pi;
-      if (n == 9 && ::my_strnicmp(pi, "Undefined", 9))
+      if (n == 9 && ::my_strnicmp(pi, "undefined", 9))
       {
         return Value();
       }
@@ -829,7 +829,7 @@ std::string &Value::append_descr(std::string &s_out, int indent, int quote_strin
   switch (type)
   {
     case Undefined:
-      s_out.append("Undefined");
+      s_out.append("undefined");
       break;
     case shcore::Null:
       s_out.append("null");
@@ -928,7 +928,7 @@ std::string &Value::append_repr(std::string &s_out) const
   switch (type)
   {
     case Undefined:
-      s_out.append("Undefined");
+      s_out.append("undefined");
       break;
     case shcore::Null:
       s_out.append("null");

@@ -76,7 +76,12 @@ if(WITH_TESTS)
     add_custom_command(TARGET run_unit_tests PRE_BUILD
                           COMMAND ${CMAKE_COMMAND} -E copy_directory
                           ${CMAKE_SOURCE_DIR}/testing/data $<TARGET_FILE_DIR:run_unit_tests>)
-    
+                          
+    # This is to copy the mysqlx into the build directory to make them
+    # available for running the unit tests
+    add_custom_command(TARGET run_unit_tests PRE_BUILD
+                          COMMAND ${CMAKE_COMMAND} -E copy_directory
+                          ${CMAKE_SOURCE_DIR}/scripting/modules $<TARGET_FILE_DIR:run_unit_tests>/modules)
 
     if ( HAVE_PYTHON )
       target_link_libraries(run_unit_tests ${PYTHON_LIBRARIES})

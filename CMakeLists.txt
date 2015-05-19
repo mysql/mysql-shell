@@ -237,6 +237,12 @@ target_link_libraries(mysqlx ${MYSQL_LIBRARIES})
 install(TARGETS mysqlx DESTINATION bin)
 install(DIRECTORY scripting/modules DESTINATION lib)
 
+# This is to copy the modules into the build directory to make them
+# available for debugging purposes
+add_custom_command(TARGET mysqlx PRE_BUILD
+                      COMMAND ${CMAKE_COMMAND} -E copy_directory
+                      ${CMAKE_SOURCE_DIR}/scripting/modules $<TARGET_FILE_DIR:mysqlx>/modules)
+
 if(WIN32)
   if(NOT WINDOWS_RUNTIME_MD)
     CHANGE_MD_2_MT()
@@ -244,6 +250,8 @@ if(WIN32)
 endif()
 
 add_definitions(-DBOOST_ALL_NO_LIB )
+
+
 
 ADD_SUBDIRECTORY(doc)
 

@@ -203,8 +203,8 @@ namespace shcore
       std::string myrepr = v.repr();
 
       EXPECT_EQ(shcore::Undefined, v.type);
-      EXPECT_STREQ("Undefined", mydescr.c_str());
-      EXPECT_STREQ("Undefined", myrepr.c_str());
+      EXPECT_STREQ("undefined", mydescr.c_str());
+      EXPECT_STREQ("undefined", myrepr.c_str());
 
     }
 

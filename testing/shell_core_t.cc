@@ -1,4 +1,3 @@
-
 /* Copyright (c) 2014, 2015, Oracle and/or its affiliates. All rights reserved.
 
  This program is free software; you can redistribute it and/or modify
@@ -14,7 +13,6 @@
  along with this program; if not, write to the Free Software
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA */
 
-
 #include <cstdio>
 #include <cstdlib>
 #include <fstream>
@@ -28,17 +26,13 @@
 #include "shellcore/types_cpp.h"
 #include "shellcore/common.h"
 
-
 #include "shellcore/shell_core.h"
 #include "shellcore/shell_sql.h"
 #include "../modules/mod_session.h"
 #include "../modules/mod_db.h"
 #include "test_utils.h"
 
-
 namespace shcore {
-
-
   namespace shell_core_tests {
     class Environment
     {
@@ -119,14 +113,14 @@ namespace shcore {
       EXPECT_NE(-1, _env.output_handler.std_out.find("first_result"));
       EXPECT_NE(-1, _env.output_handler.std_err.find("Table 'unexisting.whatever' doesn't exist"));
       EXPECT_EQ(-1, _env.output_handler.std_out.find("second_result"));
-      
+
       // Failed without the force option
       process("sql/sql_err.sql", true);
       EXPECT_EQ(1, _ret_val);
       EXPECT_NE(-1, _env.output_handler.std_out.find("first_result"));
       EXPECT_NE(-1, _env.output_handler.std_err.find("Table 'unexisting.whatever' doesn't exist"));
       EXPECT_NE(-1, _env.output_handler.std_out.find("second_result"));
-      
+
       // JS tests: outputs are not validated since in batch mode there's no autoprinting of resultsets
       // Error is also directed to the std::cerr directly
       bool initialized = false;
@@ -134,18 +128,13 @@ namespace shcore {
       process("js/js_ok.js", true);
       EXPECT_EQ(0, _ret_val);
 
-
       std::stringstream my_stderr;
       std::streambuf* stderr_backup = std::cerr.rdbuf();
       std::string line;
       std::cerr.rdbuf(my_stderr.rdbuf());
 
       process("js/js_err.js", true);
-      EXPECT_EQ(1, _ret_val);
-      std::getline(my_stderr, line);
-      EXPECT_NE(-1, line.find("Table 'unexisting.whatever' doesn't exist"));
-
-      std::cerr.rdbuf(stderr_backup);
+      EXPECT_NE(-1, _env.output_handler.std_err.find("Table 'unexisting.whatever' doesn't exist"));
     }
   }
 }

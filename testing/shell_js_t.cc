@@ -30,68 +30,17 @@
 #include "test_utils.h"
 
 namespace shcore {
-  class Shell_js_test : public ::testing::Test
+  class Shell_js_test : public Shell_core_test_wrapper
   {
   protected:
-    // Per-test-case set-up.
-    // Called before the first test in this test case.
-    // Can be omitted if not needed.
-    static void SetUpTestCase()
-    {
-    }
-
-    // Per-test-case tear-down.
-    // Called after the last test in this test case.
-    // Can be omitted if not needed.
-    static void TearDownTestCase()
-    {
-    }
-
     // You can define per-test set-up and tear-down logic as usual.
     virtual void SetUp()
     {
-      shell_core.reset(new Shell_core(&output_handler.deleg));
-      bool initialized(false);
+      Shell_core_test_wrapper::SetUp();
 
-      shell_js.reset(new Shell_javascript(shell_core.get()));
+      bool initilaized(false);
+      _shell_core->switch_mode(Shell_core::Mode_JScript, initilaized);
     }
-
-    virtual void TearDown()
-    {
-    }
-
-    void execute(const std::string& code)
-    {
-      std::string _code(code);
-      Interactive_input_state state;
-      shell_js->handle_input(_code, state, true);
-    }
-
-    void exec_and_out_equals(const std::string& code, const std::string& out = "", const std::string& err = "")
-    {
-      execute(code);
-      EXPECT_EQ(out, output_handler.std_out);
-      EXPECT_EQ(err, output_handler.std_err);
-
-      output_handler.wipe_all();
-    }
-
-    void exec_and_out_contains(const std::string& code, const std::string& out = "", const std::string& err = "")
-    {
-      execute(code);
-
-      if (out.length())
-        EXPECT_NE(-1, int(output_handler.std_out.find(out)));
-
-      if (err.length())
-        EXPECT_NE(-1, int(output_handler.std_err.find(err)));
-
-      output_handler.wipe_all();
-    }
-
-    boost::shared_ptr<Shell_core> shell_core;
-    boost::shared_ptr<Shell_javascript> shell_js;
-    Shell_test_output_handler output_handler;
   };
 
   TEST_F(Shell_js_test, require_failures)
