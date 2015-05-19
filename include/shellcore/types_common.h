@@ -38,6 +38,7 @@
 
 
 #ifdef No_mysqlshtypes
+# undef TYPES_COMMON_PUBLIC
 # define TYPES_COMMON_PUBLIC SHCORE_PUBLIC
 #endif
 
