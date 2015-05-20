@@ -116,9 +116,10 @@ MACRO (MY_CHECK_CXX_COMPILER_FLAG FLAG RESULT)
   SET(CMAKE_REQUIRED_FLAGS "${SAVE_CMAKE_REQUIRED_FLAGS}")
 ENDMACRO()
 
+if(WITH_SSL)
 # Add bundled yassl/taocrypt or system openssl.
 MYSQL_CHECK_SSL()
-
+endif()
 
 ###
 ### Handle User Options
