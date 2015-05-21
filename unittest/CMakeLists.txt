@@ -15,7 +15,7 @@
 
 if(WITH_TESTS)
     add_definitions(-DGTEST_LANG_CXX11=0 ${GMOCK_CFLAGS})
-    include_directories(${CMAKE_SOURCE_DIR}/testing/include 
+    include_directories(${CMAKE_SOURCE_DIR}/unittest/include 
                 ${CMAKE_SOURCE_DIR}/mysqlxtest
                 ${GTEST_INCLUDE_DIR} 
                 ${CMAKE_SOURCE_DIR}/include
@@ -23,9 +23,9 @@ if(WITH_TESTS)
     )
     
     file(GLOB mysqlsh_tests_SRC
-        "${PROJECT_SOURCE_DIR}/testing/*.h"
-        "${PROJECT_SOURCE_DIR}/testing/*_t.cc"
-        "${PROJECT_SOURCE_DIR}/testing/test_main.cc"
+        "${PROJECT_SOURCE_DIR}/unittest/*.h"
+        "${PROJECT_SOURCE_DIR}/unittest/*_t.cc"
+        "${PROJECT_SOURCE_DIR}/unittest/test_main.cc"
         "${PROJECT_SOURCE_DIR}/src/boost_code.cc"
     )
     
@@ -34,16 +34,16 @@ if(WITH_TESTS)
       SETUP_PROTOBUF()
       INCLUDE_DIRECTORIES("${CMAKE_BINARY_DIR}/mysqlxtest")
     else()
-      list(REMOVE_ITEM mysqlsh_tests_SRC "${PROJECT_SOURCE_DIR}/testing/mod_mysqlx_t.cc")
+      list(REMOVE_ITEM mysqlsh_tests_SRC "${PROJECT_SOURCE_DIR}/unittest/mod_mysqlx_t.cc")
     endif()
     
     if ( NOT HAVE_V8 )
-      list(REMOVE_ITEM mysqlsh_tests_SRC "${PROJECT_SOURCE_DIR}/testing/value_js_bridging_t.cc")
-      list(REMOVE_ITEM mysqlsh_tests_SRC "${PROJECT_SOURCE_DIR}/testing/shell_js_t.cc")
+      list(REMOVE_ITEM mysqlsh_tests_SRC "${PROJECT_SOURCE_DIR}/unittest/value_js_bridging_t.cc")
+      list(REMOVE_ITEM mysqlsh_tests_SRC "${PROJECT_SOURCE_DIR}/unittest/shell_js_t.cc")
     endif()
 
     if (NOT HAVE_PYTHON )
-      list(REMOVE_ITEM mysqlsh_tests_SRC "${PROJECT_SOURCE_DIR}/testing/value_py_bridging_t.cc")
+      list(REMOVE_ITEM mysqlsh_tests_SRC "${PROJECT_SOURCE_DIR}/unittest/value_py_bridging_t.cc")
     endif()
     
     add_executable(run_unit_tests ${mysqlsh_tests_SRC})
@@ -70,12 +70,12 @@ if(WITH_TESTS)
       
       add_custom_command(TARGET run_unit_tests PRE_BUILD
                             COMMAND ${CMAKE_COMMAND} -E copy_directory
-                            ${CMAKE_SOURCE_DIR}/testing/modules $<TARGET_FILE_DIR:run_unit_tests>)
+                            ${CMAKE_SOURCE_DIR}/unittest/modules $<TARGET_FILE_DIR:run_unit_tests>)
     endif()
     
     add_custom_command(TARGET run_unit_tests PRE_BUILD
                           COMMAND ${CMAKE_COMMAND} -E copy_directory
-                          ${CMAKE_SOURCE_DIR}/testing/data $<TARGET_FILE_DIR:run_unit_tests>)
+                          ${CMAKE_SOURCE_DIR}/unittest/data $<TARGET_FILE_DIR:run_unit_tests>)
                           
     # This is to copy the mysqlx into the build directory to make them
     # available for running the unit tests

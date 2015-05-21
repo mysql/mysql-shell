@@ -226,7 +226,7 @@ IF(WITH_TESTS)
   ###
   include(testing)
   SETUP_TESTING()
-  add_subdirectory(testing)
+  add_subdirectory(unittest)
 ENDIF()
 
 # mysh cmdline util build
