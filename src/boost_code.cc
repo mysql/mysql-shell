@@ -19,7 +19,8 @@
 
 
 // this will put the boost::error_code code in this file, which will allow us to
-// use boost::system::error_code without linking to libboost_system
+// use boost::system::error_code and boost::system::system_category without linking to libboost_system
 
 #define BOOST_ERROR_CODE_HEADER_ONLY
 #include <boost/system/error_code.hpp>
+#include <boost/asio/error.hpp>
