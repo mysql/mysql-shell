@@ -39,10 +39,10 @@
 
 #include <boost/function.hpp>
 
-namespace shcore 
+namespace shcore
 {
   extern void TYPES_COMMON_PUBLIC default_print(const std::string& text);
-  extern "C++" TYPES_COMMON_PUBLIC boost::function<void(std::string)> print;
+  extern TYPES_COMMON_PUBLIC boost::function<void(std::string)> print;
 }
 
 #endif
