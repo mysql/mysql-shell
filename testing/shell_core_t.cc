@@ -128,11 +128,6 @@ namespace shcore {
       process("js/js_ok.js", true);
       EXPECT_EQ(0, _ret_val);
 
-      std::stringstream my_stderr;
-      std::streambuf* stderr_backup = std::cerr.rdbuf();
-      std::string line;
-      std::cerr.rdbuf(my_stderr.rdbuf());
-
       process("js/js_err.js", true);
       EXPECT_NE(-1, _env.output_handler.std_err.find("Table 'unexisting.whatever' doesn't exist"));
     }
