@@ -88,7 +88,7 @@ if(WITH_TESTS)
     endif()
 
     if (NOT WIN32)
-      target_link_libraries(run_unit_tests pthread ${GCOV_LDFLAGS})
+      target_link_libraries(run_unit_tests pthread lboost_system ${GCOV_LDFLAGS})
     endif()
 
     include(TestGroups.txt)
