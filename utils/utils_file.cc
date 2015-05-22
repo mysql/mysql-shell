@@ -120,7 +120,7 @@ namespace shcore
       if (realpath(path, real_path))
         exe_path.assign(real_path);
       else
-        std::cout << "get_binary_folder: Readlink failed with error " << errno << std::endl
+        std::cout << "get_binary_folder: Readlink failed with error " << errno << std::endl;
     }
     else
       std::cout << "get_binary_folder: _NSGetExecutablePath failed." << std::endl;
@@ -131,7 +131,7 @@ namespace shcore
     if (-1 != readlink("/proc/self/exe", path, PATH_MAX))
       exe_path.assign(path);
     else
-      std::cout << "get_binary_folder: Readlink failed with error " << errno << std::endl
+      std::cout << "get_binary_folder: Readlink failed with error " << errno << std::endl;
 #endif
 #endif
 #endif
