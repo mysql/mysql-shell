@@ -77,10 +77,8 @@ find_package(Curses)
 
 
 # disable optimization for boost error_code, otherwise we get link errors in Release builds
-if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-   SET_SOURCE_FILES_PROPERTIES(${PROJECT_SOURCE_DIR}/src/boost_code.cc PROPERTIES COMPILE_FLAGS -O0)
-elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
-   SET_SOURCE_FILES_PROPERTIES(${PROJECT_SOURCE_DIR}/src/boost_code.cc PROPERTIES COMPILE_FLAGS -O0)
+if (CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+  SET_SOURCE_FILES_PROPERTIES(${PROJECT_SOURCE_DIR}/src/boost_code.cc PROPERTIES COMPILE_FLAGS -O0)
 endif ()
 
 
