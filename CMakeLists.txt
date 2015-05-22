@@ -199,6 +199,15 @@ include_directories("${PROJECT_SOURCE_DIR}/include"
                    )
 
 
+IF(WITH_TESTS)
+  ###
+  ### Unit-test support
+  ###
+  include(testing)
+  SETUP_TESTING()
+  add_subdirectory(unittest)
+ENDIF()
+
 ###
 ### Build Projects
 ###
@@ -217,15 +226,6 @@ endif()
 add_subdirectory(mysqlxtest)
 add_subdirectory(shellcore)
 add_subdirectory(modules)
-
-IF(WITH_TESTS)
-  ###
-  ### Unit-test support
-  ###
-  include(testing)
-  SETUP_TESTING()
-  add_subdirectory(unittest)
-ENDIF()
 
 # mysh cmdline util build
 if(NOT WIN32)
