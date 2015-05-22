@@ -29,21 +29,40 @@
 
 namespace shcore
 {
-  namespace mod_mysqlx_tests
+  namespace tests
   {
-    struct Environment
+  	class Mysqlx_test : public ::testing::Test
     {
+    public:
+      const char *uri;
+      const char *pwd;
+      std::string x_uri;
       boost::shared_ptr<mysh::X_connection> db;
-    } env;
+
+    protected:
+      virtual void SetUp()
+      {
+        uri = getenv("MYSQL_URI");
+        pwd =  getenv("MYSQL_PWD");
+
+        if (uri)
+        {
+          x_uri.assign(uri);
+          x_uri = "mysqlx://" + x_uri;
+        }
+        else
+          x_uri = "mysqlx://root@localhost";
+        
+        db.reset(new mysh::X_connection(uri, pwd ? pwd : NULL));
+      }
+    };
 
 
     //-------------------------- Connection Tests --------------------------
 
-    TEST(Mysqlx_connection_test, connect_errors)
+    TEST_F(Mysqlx_test, connect_errors)
     {
       Argument_list args;
-      const char *uri = getenv("MYSQL_URI");
-      const char *pwd = getenv("MYSQL_PWD");
       std::string x_uri;
 
       if (uri)
@@ -69,35 +88,17 @@ namespace shcore
       EXPECT_THROW(conn = new mysh::X_connection(x_uri, "fake_pwd"), shcore::Exception);
     }
 
-    TEST(Mysqlx_connection_test, connect_success)
-    {
-      Argument_list args;
-      const char *uri = getenv("MYSQL_URI");
-      const char *pwd = getenv("MYSQL_PWD");
-      std::string x_uri;
-
-      if (uri)
-      {
-        x_uri.assign(uri);
-        x_uri = "mysqlx://" + x_uri;
-      }
-      else
-        x_uri = "mysqlx://root@localhost";
-
-      env.db.reset(new mysh::X_connection(uri, pwd ? pwd : NULL));
-    }
-
-    TEST(Mysqlx_connection_test, sql_no_results_drop_unexisting_schema)
+    TEST_F(Mysqlx_test, sql_no_results_drop_unexisting_schema)
     {
       Value result;
       boost::shared_ptr<Object_bridge> result_ptr;
       Value data;
 
       // Cleanup to ensure next tests succeed
-      result = env.db->sql("drop schema if exists shell_tests", Value());
+      result = db->sql("drop schema if exists shell_tests", Value());
 
       // Database does not exist to a warning will be generated
-      result = env.db->sql("drop schema if exists shell_tests", Value());
+      result = db->sql("drop schema if exists shell_tests", Value());
       result_ptr = result.as_object<Object_bridge>();
 
       // TODO: Warning count is not available on the X Protocol yet
@@ -108,14 +109,14 @@ namespace shcore
       EXPECT_EQ(0, data.as_int());
     }
 
-    TEST(Mysqlx_connection_test, sql_no_results_drop_existing_schema)
+    TEST_F(Mysqlx_test, sql_no_results_drop_existing_schema)
     {
       Value result;
       boost::shared_ptr<Object_bridge> result_ptr;
       Value data;
 
       // Now creates the database
-      result = env.db->sql("create schema shell_tests", Value());
+      result = db->sql("create schema shell_tests", Value());
       result_ptr = result.as_object<Object_bridge>();
       data = result_ptr->get_member("warning_count");
       EXPECT_EQ(0, data.as_int());
@@ -124,7 +125,7 @@ namespace shcore
       EXPECT_EQ(1, data.as_int());
 
       // Database does not exist to a warning will be generated
-      result = env.db->sql("drop schema if exists shell_tests", Value());
+      result = db->sql("drop schema if exists shell_tests", Value());
       result_ptr = result.as_object<Object_bridge>();
       data = result_ptr->get_member("warning_count");
       EXPECT_EQ(0, data.as_int());
@@ -133,14 +134,14 @@ namespace shcore
       EXPECT_EQ(0, data.as_int());
     }
 
-    TEST(Mysqlx_connection_test, sql_single_result)
+    TEST_F(Mysqlx_test, sql_single_result)
     {
       Value result;
       boost::shared_ptr<Object_bridge> result_ptr;
       Value data;
 
       // Creates the test database
-      result = env.db->sql("show databases", Value());
+      result = db->sql("show databases", Value());
       result_ptr = result.as_object<Object_bridge>();
       mysh::X_resultset *real_result = dynamic_cast<mysh::X_resultset *>(result_ptr.get());
 
@@ -149,10 +150,10 @@ namespace shcore
         FAIL();
 
       // There should NOT be a second result
-      EXPECT_FALSE(env.db->next_result(real_result));
+      EXPECT_FALSE(db->next_result(real_result));
     }
 
-    TEST(Mysqlx_connection_test, DISABLED_sql_multiple_results)
+    TEST_F(Mysqlx_test, DISABLED_sql_multiple_results)
     {
       Value result;
       boost::shared_ptr<Object_bridge> result_ptr;
@@ -165,17 +166,17 @@ namespace shcore
         "  show databases;\n"
         "end\n";
 
-      result = env.db->sql("create schema shell_tests", Value());
+      result = db->sql("create schema shell_tests", Value());
       result_ptr = result.as_object<Object_bridge>();
       data = result_ptr->get_member("affected_rows");
       EXPECT_EQ(1, data.as_int());
 
-      result = env.db->sql(sp, Value());
+      result = db->sql(sp, Value());
       result_ptr = result.as_object<Object_bridge>();
       data = result_ptr->get_member("affected_rows");
       EXPECT_EQ(0, data.as_int());
 
-      result = env.db->sql("call shell_tests.sp()", Value());
+      result = db->sql("call shell_tests.sp()", Value());
       result_ptr = result.as_object<Object_bridge>();
       mysh::X_resultset *real_result = dynamic_cast<mysh::X_resultset *>(result_ptr.get());
 
@@ -184,45 +185,45 @@ namespace shcore
         FAIL();
 
       // Second result returned by the sp
-      EXPECT_TRUE(env.db->next_result(real_result));
+      EXPECT_TRUE(db->next_result(real_result));
 
       // The result of processing the actual sp
-      EXPECT_TRUE(env.db->next_result(real_result));
+      EXPECT_TRUE(db->next_result(real_result));
 
       // There should NOT be any additional result
-      EXPECT_FALSE(env.db->next_result(real_result));
+      EXPECT_FALSE(db->next_result(real_result));
 
       // We drop the test schema
-      result = env.db->sql("drop schema shell_tests", Value());
+      result = db->sql("drop schema shell_tests", Value());
       data = result_ptr->get_member("affected_rows");
       EXPECT_EQ(0, data.as_int());
     }
 
-    TEST(Mysqlx_connection_test, sql_invalid_query)
+    TEST_F(Mysqlx_test, sql_invalid_query)
     {
       // Creates the test database
-      EXPECT_THROW(env.db->sql("select * from hopefully.unexisting", Value()), shcore::Exception);
+      EXPECT_THROW(db->sql("select * from hopefully.unexisting", Value()), shcore::Exception);
 
       // Creates the test database
-      EXPECT_THROW(env.db->sql_one("select * from hopefully.unexisting"), shcore::Exception);
+      EXPECT_THROW(db->sql_one("select * from hopefully.unexisting"), shcore::Exception);
     }
 
-    TEST(Mysqlx_connection_test, sql_one)
+    TEST_F(Mysqlx_test, sql_one)
     {
-      Value result = env.db->sql_one("select 1 as sample");
+      Value result = db->sql_one("select 1 as sample");
       EXPECT_EQ("{\"sample\": 1}", result.descr());
     }
 
 
     //-------------------------- Resultset Tests --------------------------
 
-    TEST(Mysqlx_resultset_test, sql_metadata_content)
+    TEST_F(Mysqlx_test, sql_metadata_content)
     {
       boost::shared_ptr<Object_bridge> result_ptr;
       mysh::X_resultset *real_result;
       Value data;
 
-      Value result = env.db->sql("show databases", shcore::Value());
+      Value result = db->sql("show databases", shcore::Value());
       result_ptr = result.as_object<Object_bridge>();
       real_result = dynamic_cast<mysh::X_resultset *>(result_ptr.get());
 
@@ -246,7 +247,7 @@ namespace shcore
       EXPECT_EQ(1, map->count("decimal"));
     }
 
-    TEST(Mysqlx_resultset_test, sql_fetch_table_metadata)
+    TEST_F(Mysqlx_test, sql_fetch_table_metadata)
     {
       boost::shared_ptr<Object_bridge> result_ptr;
       mysh::X_resultset *real_result;
@@ -259,17 +260,17 @@ namespace shcore
         "PRIMARY KEY(`idalpha`)"
         ") ENGINE = InnoDB DEFAULT CHARSET = utf8";
 
-      Value result = env.db->sql("create schema shell_tests", shcore::Value());
+      Value result = db->sql("create schema shell_tests", shcore::Value());
       result_ptr = result.as_object<Object_bridge>();
 
       EXPECT_EQ(1, result_ptr->get_member("affected_rows").as_int());
 
-      result = env.db->sql(create_table, shcore::Value());
+      result = db->sql(create_table, shcore::Value());
       result_ptr = result.as_object<Object_bridge>();
 
       EXPECT_EQ(0, result_ptr->get_member("affected_rows").as_int());
 
-      result = env.db->sql("select * from shell_tests.alpha", shcore::Value());
+      result = db->sql("select * from shell_tests.alpha", shcore::Value());
       result_ptr = result.as_object<Object_bridge>();
       data = result_ptr->call("fetch_metadata", shcore::Argument_list());
 
@@ -300,18 +301,18 @@ namespace shcore
       EXPECT_EQ("alphacol", (*map)["org_name"].as_string());
     }
 
-    TEST(Mysqlx_resultset_test, sql_fetch_one)
+    TEST_F(Mysqlx_test, sql_fetch_one)
     {
       boost::shared_ptr<Object_bridge> result_ptr;
       mysh::X_resultset *real_result;
       Value data;
 
-      Value result = env.db->sql("INSERT INTO `shell_tests`.`alpha` VALUES(1, 'first'), (2, 'second'), (3, 'third')", shcore::Value());
+      Value result = db->sql("INSERT INTO `shell_tests`.`alpha` VALUES(1, 'first'), (2, 'second'), (3, 'third')", shcore::Value());
       result_ptr = result.as_object<Object_bridge>();
 
       EXPECT_EQ(3, result_ptr->get_member("affected_rows").as_int());
 
-      result = env.db->sql("select * from shell_tests.alpha", shcore::Value());
+      result = db->sql("select * from shell_tests.alpha", shcore::Value());
       result_ptr = result.as_object<Object_bridge>();
 
       // Fetches the first record with no arguments
@@ -343,13 +344,13 @@ namespace shcore
       EXPECT_EQ(3, result_ptr->get_member("fetched_row_count").as_int());
     }
 
-    TEST(Mysqlx_resultset_test, sql_fetch_all)
+    TEST_F(Mysqlx_test, sql_fetch_all)
     {
       boost::shared_ptr<Object_bridge> result_ptr;
       mysh::X_resultset *real_result;
       Value data;
 
-      Value result = env.db->sql("select * from shell_tests.alpha", shcore::Value());
+      Value result = db->sql("select * from shell_tests.alpha", shcore::Value());
       result_ptr = result.as_object<Object_bridge>();
 
       // Fetches all the records with no arguments
@@ -367,7 +368,7 @@ namespace shcore
       EXPECT_EQ(3, result_ptr->get_member("fetched_row_count").as_int());
 
 
-      result = env.db->sql("select * from shell_tests.alpha", shcore::Value());
+      result = db->sql("select * from shell_tests.alpha", shcore::Value());
       result_ptr = result.as_object<Object_bridge>();
 
       // Fetches the records with the RAW argument set to false
@@ -377,7 +378,7 @@ namespace shcore
       EXPECT_EQ(expected, data.descr());
       EXPECT_EQ(3, result_ptr->get_member("fetched_row_count").as_int());
 
-      result = env.db->sql("select * from shell_tests.alpha", shcore::Value());
+      result = db->sql("select * from shell_tests.alpha", shcore::Value());
       result_ptr = result.as_object<Object_bridge>();
 
       // Fetches the records with the RAW argument set to true
@@ -396,14 +397,14 @@ namespace shcore
       EXPECT_EQ(3, result_ptr->get_member("fetched_row_count").as_int());
     }
 
-    TEST(Mysqlx_resultset_test, sql_single_result)
+    TEST_F(Mysqlx_test, sql_single_result_next)
     {
       Value result;
       boost::shared_ptr<Object_bridge> result_ptr;
       Value data;
 
       // Creates the test database
-      result = env.db->sql("show databases", Value());
+      result = db->sql("show databases", Value());
       result_ptr = result.as_object<Object_bridge>();
       mysh::X_resultset *real_result = dynamic_cast<mysh::X_resultset *>(result_ptr.get());
 
@@ -415,7 +416,7 @@ namespace shcore
       EXPECT_FALSE(result_ptr->call("next_result", shcore::Argument_list()).as_bool());
     }
 
-    TEST(Mysqlx_resultset_test, DISABLED_sql_multiple_results)
+    TEST_F(Mysqlx_test, DISABLED_sql_multiple_results_next)
     {
       Value result;
       boost::shared_ptr<Object_bridge> result_ptr;
@@ -428,12 +429,12 @@ namespace shcore
         "  show databases;\n"
         "end\n";
 
-      result = env.db->sql(sp, Value());
+      result = db->sql(sp, Value());
       result_ptr = result.as_object<Object_bridge>();
       data = result_ptr->get_member("affected_rows");
       EXPECT_EQ(0, data.as_int());
 
-      result = env.db->sql("call shell_tests.sp()", Value());
+      result = db->sql("call shell_tests.sp()", Value());
       result_ptr = result.as_object<Object_bridge>();
       mysh::X_resultset *real_result = dynamic_cast<mysh::X_resultset *>(result_ptr.get());
 
@@ -451,13 +452,13 @@ namespace shcore
       EXPECT_FALSE(result_ptr->call("next_result", shcore::Argument_list()).as_bool());
 
       // We drop the test schema
-      result = env.db->sql("drop schema shell_tests", Value());
+      result = db->sql("drop schema shell_tests", Value());
       data = result_ptr->get_member("affected_rows");
       EXPECT_EQ(0, data.as_int());
     }
 
     /* not implemented yet
-    TEST(MySQL, query_with_binds_int)
+    TEST_F(MySQL, query_with_binds_int)
     {
       {
         Argument_list args;
@@ -467,7 +468,7 @@ namespace shcore
         params.as_array()->push_back(Value(43));
         args.push_back(params);
 
-        Value result = env.db->sql(args);
+        Value result = db->sql(args);
         Value row = result.as_object<Object_bridge>()->call("next", Argument_list());
         EXPECT_EQ("{\"a\": 42, \"b\": 43}", row.descr());
       }
@@ -480,13 +481,13 @@ namespace shcore
         (*params.as_map())["second"] = Value(43);
         args.push_back(params);
 
-        Value result = env.db->sql(args);
+        Value result = db->sql(args);
         Value row = result.as_object<Object_bridge>()->call("next", Argument_list());
         EXPECT_EQ("{\"a\": 42, \"b\": 43}", row.descr());
       }
     }
 
-    TEST(MySQL, query_with_binds_date)
+    TEST_F(MySQL, query_with_binds_date)
     {
       {
         Argument_list args;
@@ -496,7 +497,7 @@ namespace shcore
         params.as_array()->push_back(Value(43));
         args.push_back(params);
 
-        Value result = env.db->sql(args);
+        Value result = db->sql(args);
         Value row = result.as_object<Object_bridge>()->call("next", Argument_list());
         EXPECT_EQ("{\"a\": 42, \"b\": 43}", row.descr());
       }
@@ -509,7 +510,7 @@ namespace shcore
         (*params.as_map())["second"] = Value(43);
         args.push_back(params);
 
-        Value result = env.db->sql(args);
+        Value result = db->sql(args);
         Value row = result.as_object<Object_bridge>()->call("next", Argument_list());
         EXPECT_EQ("{\"a\": 42, \"b\": 43}", row.descr());
       }
