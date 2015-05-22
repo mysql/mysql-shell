@@ -23,6 +23,7 @@
 #include <boost/format.hpp>
 #include <boost/algorithm/string.hpp>
 #include <fstream>
+#include <iostream>
 
 #ifdef WIN32
 #  include <ShlObj.h>
@@ -83,12 +84,77 @@ namespace shcore
 #endif
   }
 
+  std::string get_binary_folder()
+  {
+    std::string ret_val;
+    std::string exe_path;
+    std::string path_separator;
+
+    // TODO: warning should be printed with log_warning when available
+#ifdef WIN32
+    HMODULE hModule = GetModuleHandleA(NULL);
+    if (hModule)
+    {
+      char path[MAX_PATH];
+      if (GetModuleFileNameA(hModule, path, MAX_PATH))
+      {
+        exe_path.assign(path);
+        path_separator = "\\";
+      }
+      else
+        std::cout << "get_binary_folder: GetModuleFileNameA failed with error " << GetLastError() << std::endl;
+    }
+    else
+      std::cout << "get_binary_folder: GetModuleHandleA failed with error " << GetLastError() << std::endl;
+#else
+    path_separator = "/";
+#ifdef __APPLE__
+    char path[PATH_MAX];
+    char real_path[PATH_MAX];
+    uint32_t buffsize = sizeof(path);
+    if (!_NSGetExecutablePath(path, &buffsize))
+    {
+      // _NSGetExecutablePath may return tricky constructs on paths
+      // like symbolic links or things like i.e /path/to/./mysqlx
+      // we need to normalize that
+      if (realpath(path, real_path))
+        exe_path.assign(real_path);
+      else
+        std::cout << "get_binary_folder: Readlink failed with error " << errno << std::endl
+    }
+    else
+      std::cout << "get_binary_folder: _NSGetExecutablePath failed." << std::endl;
+
+#else
+#ifdef __linux__
+    char path[PATH_MAX];
+    if (-1 != readlink("/proc/self/exe", path, PATH_MAX))
+      exe_path.assign(path);
+    else
+      std::cout << "get_binary_folder: Readlink failed with error " << errno << std::endl
+#endif
+#endif
+#endif
+    // If the exe path was found now we check if it can be considered the standard installation
+    // by checking the parent folder is "bin"
+    if (!exe_path.empty())
+    {
+      std::vector<std::string> tokens;
+      boost::algorithm::split(tokens, exe_path, boost::is_any_of(path_separator), boost::token_compress_on);
+      tokens.erase(tokens.end() - 1);
+
+      ret_val = boost::algorithm::join(tokens, path_separator);
+    }
+
+    return ret_val;
+  }
+
   /*
   * Returns what should be considered the HOME folder for the shell.
   * If MYSQLX_HOME is defined, returns its value.
   * If not, it will try to identify the value based on the binary full path:
   * In a standard setup the binary will be at <MYSQLX_HOME>/bin
-  * 
+  *
   * If that is the case MYSQLX_HOME is determined by trimming out
   * /bin/mysqlx from the full executable name.
   *
@@ -97,7 +163,7 @@ namespace shcore
   std::string get_mysqlx_home_path()
   {
     std::string ret_val;
-    std::string exe_path;
+    std::string binary_folder;
     std::string path_separator;
     const char* env_home = getenv("MYSQLX_HOME");
 
@@ -106,37 +172,18 @@ namespace shcore
     else
     {
 #ifdef WIN32
-      HMODULE hModule = GetModuleHandleA(NULL);
-      char path[MAX_PATH];
-      GetModuleFileNameA(hModule, path, MAX_PATH);
-      exe_path.assign(path);
       path_separator = "\\";
 #else
       path_separator = "/";
-#ifdef __APPLE__
-      char path[PATH_MAX];
-      char real_path[PATH_MAX];
-      uint32_t buffsize = sizeof(path);
-      _NSGetExecutablePath(path, &buffsize);
+#endif
+      binary_folder = get_binary_folder();
 
-      // _NSGetExecutablePath may return tricky constructs on paths
-      // like symbolic links or things like i.e /path/to/./mysqlx
-      // we need to normalize that
-      realpath(path, real_path);
-      exe_path.assign(real_path);
-#else
-      char path[PATH_MAX];
-      readlink("/proc/self/exe", path, PATH_MAX);
-      exe_path.assign(path);
-#endif
-#endif
       // If the exe path was found now we check if it can be considered the standard installation
       // by checking the parent folder is "bin"
-      if (!exe_path.empty())
+      if (!binary_folder.empty())
       {
         std::vector<std::string> tokens;
-        boost::algorithm::split(tokens, exe_path, boost::is_any_of(path_separator), boost::token_compress_on);
-        tokens.erase(tokens.end() - 1);
+        boost::algorithm::split(tokens, binary_folder, boost::is_any_of(path_separator), boost::token_compress_on);
 
         if (tokens.at(tokens.size() - 1) == "bin")
         {

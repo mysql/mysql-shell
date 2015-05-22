@@ -27,6 +27,7 @@ namespace shcore
 {
   std::string SHCORE_PUBLIC get_user_config_path();
   std::string SHCORE_PUBLIC get_mysqlx_home_path();
+  std::string SHCORE_PUBLIC get_binary_folder();
   bool SHCORE_PUBLIC file_exists(const std::string& filename);
   void SHCORE_PUBLIC ensure_dir_exists(const std::string& path);
   std::string SHCORE_PUBLIC get_last_error();

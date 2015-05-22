@@ -195,6 +195,7 @@ struct JScript_context::JScript_context_impl
     return object;
   }
 
+  // TODO: Creation of the OS module should be moved to a different place.
   v8::Handle<v8::ObjectTemplate> make_os_object()
   {
     v8::Handle<v8::ObjectTemplate> object = v8::ObjectTemplate::New(isolate);
@@ -209,6 +210,9 @@ struct JScript_context::JScript_context_impl
 
     object->Set(v8::String::NewFromUtf8(isolate, "get_mysqlx_home_path"),
                 v8::FunctionTemplate::New(isolate, &JScript_context_impl::os_get_mysqlx_home_path, client_data));
+
+    object->Set(v8::String::NewFromUtf8(isolate, "get_binary_folder"),
+                v8::FunctionTemplate::New(isolate, &JScript_context_impl::os_get_binary_folder, client_data));
 
     object->Set(v8::String::NewFromUtf8(isolate, "file_exists"),
       v8::FunctionTemplate::New(isolate, &JScript_context_impl::os_file_exists, client_data));
@@ -631,6 +635,26 @@ struct JScript_context::JScript_context_impl
       try
       {
         std::string path = get_mysqlx_home_path();
+        args.GetReturnValue().Set(v8::String::NewFromUtf8(args.GetIsolate(), path.c_str()));
+      }
+      catch (...)
+      {
+        args.GetReturnValue().Set(v8::Null(args.GetIsolate()));
+      }
+    }
+  }
+
+  static void os_get_binary_folder(const v8::FunctionCallbackInfo<v8::Value>& args)
+  {
+    v8::HandleScope handle_scope(args.GetIsolate());
+
+    if (args.Length() != 0)
+      args.GetIsolate()->ThrowException(v8::String::NewFromUtf8(args.GetIsolate(), "get_binary_folder() takes 0 arguments"));
+    else
+    {
+      try
+      {
+        std::string path = get_binary_folder();
         args.GetReturnValue().Set(v8::String::NewFromUtf8(args.GetIsolate(), path.c_str()));
       }
       catch (...)

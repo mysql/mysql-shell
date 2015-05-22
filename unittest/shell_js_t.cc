@@ -54,7 +54,7 @@ namespace shcore {
     output_handler.wipe_all();
 
     // Adds a module directory
-    execute("shell.js.module_paths[shell.js.module_paths.length] = './js'");
+    execute("shell.js.module_paths[shell.js.module_paths.length] = os.get_binary_folder() + '/js'");
     EXPECT_TRUE(output_handler.std_out.empty());
     EXPECT_TRUE(output_handler.std_err.empty());
 
@@ -75,7 +75,7 @@ namespace shcore {
     Interactive_input_state state;
 
     // Adds a module directory
-    execute("shell.js.module_paths[shell.js.module_paths.length] = './js'");
+    execute("shell.js.module_paths[shell.js.module_paths.length] = os.get_binary_folder() + '/js'");
     EXPECT_TRUE(output_handler.std_out.empty());
     EXPECT_TRUE(output_handler.std_err.empty());
 

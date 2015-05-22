@@ -95,7 +95,14 @@ if (path)
 
 // If MYSQLX_HOME not found, sets the current directory as a valid module path
 else
-  this.shell.js.module_paths[this.shell.js.module_paths.length] = './modules/js';
+{
+  path = os.get_binary_folder();
+  if (path)
+    this.shell.js.module_paths[this.shell.js.module_paths.length] = path + '/modules/js';
+  else
+    this.shell.js.module_paths[this.shell.js.module_paths.length] = './modules/js';
+}
+  
 
 // Now adds the User Config Path
 path = os.get_user_config_path();

@@ -31,6 +31,7 @@
 #include "../modules/mod_session.h"
 #include "../modules/mod_db.h"
 #include "test_utils.h"
+#include "utils_file.h"
 
 namespace shcore {
   namespace shell_core_tests {
@@ -88,7 +89,7 @@ namespace shcore {
         _env.output_handler.wipe_out();
         _env.output_handler.wipe_err();
 
-        _file_name = path;
+        _file_name = get_binary_folder() + "/" + path;
 
         std::ifstream stream(_file_name.c_str());
         if (stream.fail())
