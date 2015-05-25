@@ -141,7 +141,7 @@ _batch_continue_on_error(false)
 
   _shell.reset(new Shell_core(&_delegate));
 
-  _session.reset(new mysh::Session(dynamic_cast<shcore::IShell_core*>(_shell.get()) ));
+  _session.reset(new mysh::Session(dynamic_cast<shcore::IShell_core*>(_shell.get())));
   _shell->set_global("session", Value(boost::static_pointer_cast<Object_bridge>(_session)));
 
   //  _db.reset(new mysh::Db(_shell.get()));
@@ -295,7 +295,7 @@ void Interactive_shell::init_scripts(Shell_core::Mode mode)
 
   std::string user_file = "";
 
-  ensure_dir_exists(get_user_config_path());
+  get_user_config_path();
 
   try
   {

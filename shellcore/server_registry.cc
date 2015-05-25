@@ -17,7 +17,6 @@
 * 02110-1301  USA
 */
 
-
 #include "shellcore/server_registry.h"
 #include "uuid_gen.h"
 #include "myjson/myjson.h"
@@ -54,10 +53,7 @@
 #  include <windows.h>
 #endif
 
-
-
 using namespace shcore;
-
 
 // Extracted from header "my_aes.h"
 
@@ -77,18 +73,16 @@ extern "C" int my_aes_get_size(uint32 source_length, enum my_aes_opmode mode);
 extern "C" int my_aes_encrypt(const unsigned char *source, uint32 source_length,
   unsigned char *dest,
   const unsigned char *key, uint32 key_length,
-  enum my_aes_opmode mode, const unsigned char *iv);
+enum my_aes_opmode mode, const unsigned char *iv);
 
 extern "C" int my_aes_decrypt(const unsigned char *source, uint32 source_length,
   unsigned char *dest,
   const unsigned char *key, uint32 key_length,
-  enum my_aes_opmode mode, const unsigned char *iv);
-
+enum my_aes_opmode mode, const unsigned char *iv);
 
 Connection_options::Keywords_table Connection_options::_keywords_table;
 
 std::string Server_registry::_file_path = ".mysql_server_registry.cnf";
-
 
 void Connection_options::Keywords_table::validate_options_mandatory_included(Connection_options& options)
 {
@@ -116,7 +110,6 @@ int Server_registry::encrypt_buffer(const char *plain, int plain_len, char ciphe
   return -1;
 }
 
-
 int Server_registry::decrypt_buffer(const char *cipher, int cipher_len, char plain[], const char *my_key)
 {
   int aes_length;
@@ -131,7 +124,6 @@ int Server_registry::decrypt_buffer(const char *cipher, int cipher_len, char pla
   return -1;
 }
 
-
 Server_registry::Server_registry()
 {
   // Use a random seed for UUIDs
@@ -142,12 +134,12 @@ Server_registry::Server_registry()
   gen.seed(now);
   init_uuid(vargen());
 
-  ensure_dir_exists(get_user_config_path());
+  get_user_config_path();
 
   std::string path = shcore::get_user_config_path();
   path += Server_registry::_file_path;
   _filename = path;
-  
+
   _filename_lock = _filename + ".lock";
 
   _lock = new Lock_file(_filename_lock);
@@ -157,11 +149,10 @@ Server_registry::Server_registry()
   }
   catch (...)
   {
-    if(_lock) delete _lock;
+    if (_lock) delete _lock;
     throw;
   }
 }
-
 
 void Server_registry::load_file()
 {
@@ -180,7 +171,7 @@ void Server_registry::load_file()
     std::string s;
     iff->seekg(0, iff->end);
     int pos = iff->tellg();
-    if(pos != -1)
+    if (pos != -1)
       s.resize(static_cast<std::string::size_type>(pos));
     iff->seekg(0, std::ios::beg);
     iff->read(&(s[0]), s.size());
@@ -198,9 +189,8 @@ void Server_registry::load_file()
 
       std::string cs_uuid;
       constr.get_text("uuid", cs_uuid);
-      
-      add_connection_options(cs_uuid, "");
 
+      add_connection_options(cs_uuid, "");
 
       myjson::MYJSON::iterator myend2 = constr.end();
       for (myjson::MYJSON::iterator it2 = constr.begin(); it2 != myend2; ++it2)
@@ -219,14 +209,14 @@ void Server_registry::load_file()
           const std::string s_decipher(static_cast<const char *>(decipher));
           set_value(cs_uuid, s_key, s_decipher);
         }
-        else 
+        else
         {
           set_value(cs_uuid, it2.key(), it2.data());
         }
       }
     }
   }
-  else 
+  else
   {
     nerrno = errno;
     std::string errmsj = (boost::format("Cannot open file %s: %s") % _filename % std::strerror(nerrno)).str();
@@ -234,18 +224,16 @@ void Server_registry::load_file()
   }
 }
 
-
 Server_registry::~Server_registry()
 {
   end_uuid();
 }
 
-
 std::string Server_registry::get_new_uuid()
 {
   uuid_type uuid;
   generate_uuid(uuid);
-  
+
   // TODO: rewrite to simulate an sticky std::setw using boost functors
 
   std::stringstream str;
@@ -256,15 +244,14 @@ std::string Server_registry::get_new_uuid()
   str << "-" << std::setw(2) << (int)uuid[6] << std::setw(2) << (int)uuid[7];
   str << "-" << std::setw(2) << (int)uuid[8] << std::setw(2) << (int)uuid[9];
   str << "-" << std::setw(2) << (int)uuid[10] << std::setw(2) << (int)uuid[11]
-    << std::setw(2) << (int)uuid[12] << std::setw(2) << (int)uuid[13] 
+    << std::setw(2) << (int)uuid[12] << std::setw(2) << (int)uuid[13]
     << std::setw(2) << (int)uuid[14] << std::setw(2) << (int)uuid[15];
   //*/
 
-  //std::copy(uuid, uuid + 15, boost::make_function_output_iterator( boost::lambda::var(str) << std::setw(2) << (int)(boost::lambda::_1) ));  
+  //std::copy(uuid, uuid + 15, boost::make_function_output_iterator( boost::lambda::var(str) << std::setw(2) << (int)(boost::lambda::_1) ));
 
   return str.str();
 }
-
 
 Connection_options& Server_registry::add_connection_options(const std::string options)
 {
@@ -276,7 +263,6 @@ Connection_options& Server_registry::add_connection_options(const std::string op
   return _connections[""];
 }
 
-
 Connection_options& Server_registry::add_connection_options(const std::string uuid, const std::string options)
 {
   Connection_options cs(options);
@@ -285,12 +271,10 @@ Connection_options& Server_registry::add_connection_options(const std::string uu
   return _connections[uuid];
 }
 
-
 void Server_registry::remove_connection_options(Connection_options &options)
 {
   _connections.erase(options._uuid);
 }
-
 
 Connection_options& Server_registry::get_connection_options(const std::string &uuid)
 {
@@ -298,13 +282,11 @@ Connection_options& Server_registry::get_connection_options(const std::string &u
   return _connections[my_uuid];
 }
 
-
 std::string Server_registry::get_name(const std::string &uuid) const
-{ 
+{
   const Connection_options& cs = _connections.at(uuid);
   return cs.get_name();
 }
-
 
 std::string Server_registry::get_server(const std::string &uuid) const
 {
@@ -312,13 +294,11 @@ std::string Server_registry::get_server(const std::string &uuid) const
   return cs.get_server();
 }
 
-
 std::string Server_registry::get_user(const std::string &uuid) const
 {
   const Connection_options& cs = _connections.at(uuid);
   return cs.get_user();
 }
-
 
 std::string Server_registry::get_port(const std::string &uuid) const
 {
@@ -326,13 +306,11 @@ std::string Server_registry::get_port(const std::string &uuid) const
   return cs.get_port();
 }
 
-
 std::string Server_registry::get_password(const std::string &uuid) const
 {
   const Connection_options& cs = _connections.at(uuid);
   return cs.get_password();
 }
-
 
 std::string Server_registry::get_protocol(const std::string &uuid) const
 {
@@ -340,19 +318,16 @@ std::string Server_registry::get_protocol(const std::string &uuid) const
   return cs.get_protocol();
 }
 
-
 std::string Server_registry::get_value(const std::string &uuid, const std::string &name) const
 {
   const Connection_options& cs = _connections.at(uuid);
   return cs.get_value(name);
 }
 
-
 void Server_registry::set_connection_options(const std::string &uuid, const Connection_options &conn_str)
-{ 
+{
   _connections[uuid] = conn_str;
 }
-
 
 void Server_registry::set_name(const std::string &uuid, const std::string &name)
 {
@@ -360,13 +335,11 @@ void Server_registry::set_name(const std::string &uuid, const std::string &name)
   cs.set_name(name);
 }
 
-
 void Server_registry::set_server(const std::string &uuid, const std::string &server)
 {
   Connection_options& cs = _connections[uuid];
   cs.set_server(server);
 }
-
 
 void Server_registry::set_user(const std::string &uuid, const std::string &user)
 {
@@ -374,13 +347,11 @@ void Server_registry::set_user(const std::string &uuid, const std::string &user)
   cs.set_user(user);
 }
 
-
 void Server_registry::set_port(const std::string &uuid, const std::string &port)
 {
   Connection_options& cs = _connections[uuid];
   cs.set_port(port);
 }
-
 
 void Server_registry::set_password(const std::string &uuid, const std::string &password)
 {
@@ -388,20 +359,17 @@ void Server_registry::set_password(const std::string &uuid, const std::string &p
   cs.set_password(password);
 }
 
-
 void Server_registry::set_protocol(const std::string &uuid, const std::string &protocol)
 {
   Connection_options& cs = _connections[uuid];
   cs.set_protocol(protocol);
 }
 
-
 void Server_registry::set_value(const std::string &uuid, const std::string &name, const std::string &value)
 {
   Connection_options& cs = _connections[uuid];
   cs.set_value(name, value);
 }
-
 
 void Server_registry::merge()
 {
@@ -425,7 +393,7 @@ void Server_registry::merge()
         uuid_checked = true;
         myjs->append_value(it2->first.c_str(), it2->second.c_str());
       }
-      else if(it2->first == "password")
+      else if (it2->first == "password")
       {
         // encrypt password
         char cipher[4096];
@@ -454,9 +422,9 @@ void Server_registry::merge()
 
   myfile.done();
   std::string fulljson = myfile.as_json(true);
-  char *json_data = (char *)std::malloc(sizeof(char) * ( fulljson.size() + 1 ));
+  char *json_data = (char *)std::malloc(sizeof(char)* (fulljson.size() + 1));
   std::memcpy(json_data, fulljson.c_str(), fulljson.size());
-  
+
   Lock_file lock2(_filename_lock);
   std::ofstream of(_filename.c_str(), std::ios::trunc | std::ios::binary);
   of.write(json_data, fulljson.size());
@@ -464,48 +432,40 @@ void Server_registry::merge()
   std::free(json_data);
 }
 
-
 Connection_options::Connection_options(std::string Connection_options) : _Connection_options(Connection_options)
 {
   if (!Connection_options.empty())
     parse();
 }
 
-
 Connection_options::Connection_options() : _uuid(Server_registry::get_new_uuid())
 {
 }
-
 
 std::string Connection_options::get_uuid() const
 {
   return _uuid;
 }
 
-
 std::string Connection_options::get_Connection_options() const
 {
   return _Connection_options;
 }
-
 
 std::string Connection_options::get_name() const
 {
   return at(_keywords_table[(int)Name]);
 }
 
-
 std::string Connection_options::get_server() const
 {
   return at(_keywords_table[Server]);
 }
 
-
 std::string Connection_options::get_user() const
 {
   return at(_keywords_table[User]);
 }
-
 
 std::string Connection_options::get_port() const
 {
@@ -513,24 +473,20 @@ std::string Connection_options::get_port() const
   return at(_keywords_table[Port]);
 }
 
-
 std::string Connection_options::get_password() const
 {
   return at(_keywords_table[Password]);
 }
-
 
 std::string Connection_options::get_protocol() const
 {
   return at(_keywords_table[Protocol]);
 }
 
-
 std::string Connection_options::get_value(const std::string &name) const
 {
   return at(name);
 }
-
 
 void Connection_options::set_connection_options(const std::string &conn_str)
 {
@@ -539,48 +495,40 @@ void Connection_options::set_connection_options(const std::string &conn_str)
   parse();
 }
 
-
 void Connection_options::set_name(const std::string &name)
 {
   operator[](_keywords_table[Name]) = name;
 }
-
 
 void Connection_options::set_server(const std::string &server)
 {
   operator[](_keywords_table[Server]) = server;
 }
 
-
 void Connection_options::set_user(const std::string &user)
 {
   operator[](_keywords_table[User]) = user;
 }
-
 
 void Connection_options::set_port(const std::string &port)
 {
   operator[](_keywords_table[Port]) = boost::lexical_cast<std::string>(port);
 }
 
-
 void Connection_options::set_password(const std::string &password)
 {
   operator[](_keywords_table[Password]) = password;
 }
-
 
 void Connection_options::set_protocol(const std::string &protocol)
 {
   operator[](_keywords_table[Protocol]) = protocol;
 }
 
-
 void Connection_options::set_value(const std::string& name, const std::string& value)
 {
   operator[](name) = value;
 }
-
 
 void Connection_options::parse()
 {
@@ -604,17 +552,15 @@ void Connection_options::parse()
     p_start = p_i + 1;
 
     if (p_i == std::string::npos) break;
-  } 
-  while (true);
+  } while (true);
 
   // Validate that all essential fields have been included in the connections options.
   _keywords_table.validate_options_mandatory_included(*this);
 }
 
-
 #ifdef _WIN32
 Lock_file::Lock_file(const std::string &path) throw (std::invalid_argument, std::runtime_error, file_locked_error)
-  : path(path), handle(0)
+: path(path), handle(0)
 {
   if (path.empty()) throw std::invalid_argument("invalid path");
 
@@ -659,40 +605,40 @@ Lock_file::Status Lock_file::check(const std::string &path)
   {
     switch (GetLastError())
     {
-    case ERROR_SHARING_VIOLATION:
-      // if file cannot be opened for writing, it is locked...
-      // so open it for reading to check the owner process id written in it
-      h = CreateFileA(path.c_str(),
-        GENERIC_READ,
-        FILE_SHARE_WRITE | FILE_SHARE_READ,
-        NULL,
-        OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-      if (h != INVALID_HANDLE_VALUE)
-      {
-        char buffer[32];
-        DWORD bytes_read;
-        if (ReadFile(h, buffer, sizeof(buffer), &bytes_read, NULL))
+      case ERROR_SHARING_VIOLATION:
+        // if file cannot be opened for writing, it is locked...
+        // so open it for reading to check the owner process id written in it
+        h = CreateFileA(path.c_str(),
+          GENERIC_READ,
+          FILE_SHARE_WRITE | FILE_SHARE_READ,
+          NULL,
+          OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+        if (h != INVALID_HANDLE_VALUE)
         {
+          char buffer[32];
+          DWORD bytes_read;
+          if (ReadFile(h, buffer, sizeof(buffer), &bytes_read, NULL))
+          {
+            CloseHandle(h);
+            buffer[bytes_read] = 0;
+            if (atoi(buffer) == GetCurrentProcessId())
+              return LockedSelf;
+            return LockedOther;
+          }
           CloseHandle(h);
-          buffer[bytes_read] = 0;
-          if (atoi(buffer) == GetCurrentProcessId())
-            return LockedSelf;
           return LockedOther;
         }
-        CloseHandle(h);
+        // if the file is locked for read, assume its locked by some unrelated process
+        // since this class never locks it for read
         return LockedOther;
-      }
-      // if the file is locked for read, assume its locked by some unrelated process
-      // since this class never locks it for read
-      return LockedOther;
-      //throw std::runtime_error(strfmt("Could not read process id from lock file (%i)", GetLastError());
-      break;
-    case ERROR_FILE_NOT_FOUND:
-      return NotLocked;
-    case ERROR_PATH_NOT_FOUND:
-      throw std::invalid_argument("Invalid path");
-    default:
-      throw std::runtime_error((boost::format("Could not open lock file (%i)") % GetLastError()).str());
+        //throw std::runtime_error(strfmt("Could not read process id from lock file (%i)", GetLastError());
+        break;
+      case ERROR_FILE_NOT_FOUND:
+        return NotLocked;
+      case ERROR_PATH_NOT_FOUND:
+        throw std::invalid_argument("Invalid path");
+      default:
+        throw std::runtime_error((boost::format("Could not open lock file (%i)") % GetLastError()).str());
     }
   }
   else
@@ -704,7 +650,7 @@ Lock_file::Status Lock_file::check(const std::string &path)
 }
 #else
 Lock_file::Lock_file(const std::string &apath) throw (std::invalid_argument, std::runtime_error, file_locked_error)
-  : path(apath)
+: path(apath)
 {
   if (path.empty()) throw std::invalid_argument("invalid path");
 

@@ -53,7 +53,9 @@ namespace shcore
    */
   std::string get_user_config_path()
   {
+    std::string path_separator;
     std::string path;
+    std::vector < std::string> to_append;
 
     const char* usr_config_path = getenv("MYSQLX_USER_CONFIG_PATH");
 
@@ -61,6 +63,7 @@ namespace shcore
       path.assign(usr_config_path);
 
 #ifdef WIN32
+    path_separator = "\\";
     if (path.empty())
     {
       char szPath[MAX_PATH];
@@ -75,8 +78,10 @@ namespace shcore
       }
     }
 
-    path += "\\MySQL\\mysqlx\\";
+    to_append.push_back("MySQL");
+    to_append.push_back("mysqlx");
 #else
+    path_separator = "/";
     if (path.empty())
     {
       char* cpath = std::getenv("HOME");
@@ -85,10 +90,21 @@ namespace shcore
         path.assign(cpath);
     }
 
-    if (!path.empty())
-      path += "/.mysqlx/";
-
+    to_append.push_back(".mysqlx");
 #endif
+
+    // Up to know the path must exist since it was retrieved from OS standard means
+    // we need to guarantee the rest of the path exists
+    if (!path.empty())
+    {
+      for (size_t index = 0; index < to_append.size(); index++)
+      {
+        path += path_separator + to_append[index];
+        ensure_dir_exists(path);
+      }
+
+      path += path_separator;
+    }
 
     return path;
   }
