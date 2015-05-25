@@ -35,59 +35,44 @@
 
 namespace shcore {
   namespace shell_core_tests {
-    class Environment
-    {
-    public:
-      Environment()
-      {
-        shell_core.reset(new Shell_core(&output_handler.deleg));
-        session.reset(new mysh::Session(shell_core.get()));
-        shell_core->set_global("session", Value(boost::static_pointer_cast<Object_bridge>(session)));
-        bool initialized = false;
-        shell_core->switch_mode(Shell_core::Mode_SQL, initialized);
-      }
-
-      ~Environment()
-      {
-      }
-
-      boost::shared_ptr<Shell_core> shell_core;
-      boost::shared_ptr<mysh::Session> session;
-      Shell_test_output_handler output_handler;
-    };
-
-    class Shell_core_test : public ::testing::Test
+    class Shell_core_test : public Shell_core_test_wrapper
     {
     protected:
-      Environment _env;
+      boost::shared_ptr<mysh::Session> _session;
       std::string _file_name;
       int _ret_val;
 
+      virtual void SetUp()
+      {
+        Shell_core_test_wrapper::SetUp();
+
+        bool initilaized(false);
+        _shell_core->switch_mode(Shell_core::Mode_SQL, initilaized);
+
+        _session.reset(new mysh::Session(_shell_core.get()));
+        _shell_core->set_global("session", Value(boost::static_pointer_cast<Object_bridge>(_session)));
+      }
+
       void connect()
       {
-        const char *uri = getenv("MYSQL_URI");
-        const char *pwd = getenv("MYSQL_PWD");
-        const char *port = getenv("MYSQL_PORT");
-
-        std::string x_uri(uri);
-        if (port)
+        std::string uri = _uri;
+        if (!_mysql_port.empty())
         {
-          x_uri.append(":");
-          x_uri.append(port);
+          uri.append(":");
+          uri.append(_mysql_port);
         }
 
         Argument_list args;
-        args.push_back(Value(x_uri));
-        if (pwd)
-          args.push_back(Value(pwd));
+        args.push_back(Value(uri));
+        if (!_pwd.empty())
+          args.push_back(Value(_pwd));
 
-        _env.session->connect(args);
+        _session->connect(args);
       }
 
       void process(const std::string& path, bool continue_on_error)
       {
-        _env.output_handler.wipe_out();
-        _env.output_handler.wipe_err();
+        wipe_all();
 
         _file_name = get_binary_folder() + "/" + path;
 
@@ -95,7 +80,7 @@ namespace shcore {
         if (stream.fail())
           FAIL();
 
-        _ret_val = _env.shell_core->process_stream(stream, _file_name, continue_on_error);
+        _ret_val = _shell_core->process_stream(stream, _file_name, continue_on_error);
       }
     };
 
@@ -106,31 +91,31 @@ namespace shcore {
       // Successfully processed file
       process("sql/sql_ok.sql", false);
       EXPECT_EQ(0, _ret_val);
-      EXPECT_NE(-1, _env.output_handler.std_out.find("first_result"));
+      EXPECT_NE(-1, output_handler.std_out.find("first_result"));
 
       // Failed without the force option
       process("sql/sql_err.sql", false);
       EXPECT_EQ(1, _ret_val);
-      EXPECT_NE(-1, _env.output_handler.std_out.find("first_result"));
-      EXPECT_NE(-1, _env.output_handler.std_err.find("Table 'unexisting.whatever' doesn't exist"));
-      EXPECT_EQ(-1, _env.output_handler.std_out.find("second_result"));
+      EXPECT_NE(-1, output_handler.std_out.find("first_result"));
+      EXPECT_NE(-1, output_handler.std_err.find("Table 'unexisting.whatever' doesn't exist"));
+      EXPECT_EQ(-1, output_handler.std_out.find("second_result"));
 
       // Failed without the force option
       process("sql/sql_err.sql", true);
       EXPECT_EQ(1, _ret_val);
-      EXPECT_NE(-1, _env.output_handler.std_out.find("first_result"));
-      EXPECT_NE(-1, _env.output_handler.std_err.find("Table 'unexisting.whatever' doesn't exist"));
-      EXPECT_NE(-1, _env.output_handler.std_out.find("second_result"));
+      EXPECT_NE(-1, output_handler.std_out.find("first_result"));
+      EXPECT_NE(-1, output_handler.std_err.find("Table 'unexisting.whatever' doesn't exist"));
+      EXPECT_NE(-1, output_handler.std_out.find("second_result"));
 
       // JS tests: outputs are not validated since in batch mode there's no autoprinting of resultsets
       // Error is also directed to the std::cerr directly
       bool initialized = false;
-      _env.shell_core->switch_mode(Shell_core::Mode_JScript, initialized);
+      _shell_core->switch_mode(Shell_core::Mode_JScript, initialized);
       process("js/js_ok.js", true);
       EXPECT_EQ(0, _ret_val);
 
       process("js/js_err.js", true);
-      EXPECT_NE(-1, _env.output_handler.std_err.find("Table 'unexisting.whatever' doesn't exist"));
+      EXPECT_NE(-1, output_handler.std_err.find("Table 'unexisting.whatever' doesn't exist"));
     }
   }
 }
