@@ -53,35 +53,44 @@ namespace shcore
    */
   std::string get_user_config_path()
   {
+    std::string path;
+
+    const char* usr_config_path = getenv("MYSQLX_USER_CONFIG_PATH");
+
+    if (usr_config_path)
+      path.assign(usr_config_path);
+
 #ifdef WIN32
-    char szPath[MAX_PATH];
-    HRESULT hr;
+    if (path.empty())
+    {
+      char szPath[MAX_PATH];
+      HRESULT hr;
 
-    if (SUCCEEDED(hr = SHGetFolderPathA(NULL, CSIDL_APPDATA, NULL, 0, szPath)))
-    {
-      std::string path(szPath);
-      path += "\\MySQL\\mysqlx\\";
-      return path;
+      if (SUCCEEDED(hr = SHGetFolderPathA(NULL, CSIDL_APPDATA, NULL, 0, szPath)))
+        path.assign(szPath);
+      else
+      {
+        _com_error err(hr);
+        throw std::runtime_error((boost::format("Error when gathering the APPDATA folder path: %s") % err.ErrorMessage()).str());
+      }
     }
-    else
-    {
-      _com_error err(hr);
-      throw std::runtime_error((boost::format("Error when gathering the APPDATA folder path: %s") % err.ErrorMessage()).str());
-    }
+
+    path += "\\MySQL\\mysqlx\\";
 #else
-    char* cpath = std::getenv("HOME");
+    if (path.empty())
+    {
+      char* cpath = std::getenv("HOME");
 
-    if (cpath == NULL)
-    {
-      return "";
+      if (cpath != NULL)
+        path.assign(cpath);
     }
-    else
-    {
-      std::string path(cpath);
+
+    if (!path.empty())
       path += "/.mysqlx/";
-      return path;
-    }
+
 #endif
+
+    return path;
   }
 
   std::string get_binary_folder()
