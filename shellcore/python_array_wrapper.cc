@@ -36,9 +36,7 @@ static int list_init(PyShListObject *self, PyObject *args, PyObject *kwds)
   {
     try
     {
-      shcore::Value v = Value(static_cast<Value::Array_type*>(PyCObject_AsVoidPtr(valueptr)));
-      Value::Array_type *content = new Value::Array_type(v);
-      self->array = new Value::Array_type_ref(content);
+      self->array->reset(static_cast<Value::Array_type*>(PyCObject_AsVoidPtr(valueptr)));
     }
     catch (std::exception &exc)
     {
@@ -406,7 +404,7 @@ void Python_context::init_shell_list_type()
   PyShListObjectType.tp_new = PyType_GenericNew;
   if (PyType_Ready(&PyShListObjectType) < 0)
   {
-    throw std::runtime_error("Could not initialize GRT List type in python");
+    throw std::runtime_error("Could not initialize Shcore Array type in python");
   }
 
   Py_INCREF(&PyShListObjectType);
@@ -414,6 +412,7 @@ void Python_context::init_shell_list_type()
 
   _shell_list_class = PyDict_GetItemString(PyModule_GetDict(get_shell_module()), "List");
 }
+
 
 Python_array_wrapper::Python_array_wrapper(Python_context *context)
 : _context(context)

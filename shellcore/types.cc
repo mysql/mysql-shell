@@ -264,6 +264,21 @@ boost::shared_ptr<Value::Array_type> Value::Map_type::get_array(const std::strin
 }
 
 
+void Value::Map_type::merge_contents(boost::shared_ptr<Map_type> source, bool overwrite)
+{
+  Value::Map_type::const_iterator iter;
+  for (iter = source->begin(); iter != source->end(); ++iter)
+  {
+    std::string k= iter->first;
+    Value v = iter->second;
+
+    if (!overwrite && this->has_key(k))
+      continue;
+
+    (*this)[k] = v;
+  }
+}
+
 
 Value::Value(const Value &copy)
 : type(shcore::Null)

@@ -100,6 +100,7 @@ struct TYPES_COMMON_PUBLIC Value
             boost::shared_ptr<Map_type> def = boost::shared_ptr<Map_type>()) const;
     boost::shared_ptr<Value::Array_type> get_array(const std::string &k,
             boost::shared_ptr<Array_type> def = boost::shared_ptr<Array_type>()) const;
+    void merge_contents(boost::shared_ptr<Map_type> source, bool overwrite);
 
     template<class C>
     boost::shared_ptr<C> get_object(const std::string &k,

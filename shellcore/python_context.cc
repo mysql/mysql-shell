@@ -267,6 +267,10 @@ AutoPyObject Python_context::get_shell_list_class()
   return _shell_list_class;
 }
 
+AutoPyObject Python_context::get_shell_dict_class()
+{
+  return _shell_dict_class;
+}
 
 static PyObject *shell_print(PyObject *self, PyObject *args)
 {
@@ -332,6 +336,6 @@ void Python_context::register_shell_module() {
   PyModule_AddStringConstant(module, "OBJECT", (char*)shcore::type_name(Object).c_str());
 
   init_shell_list_type();
-  //init_shell_dict_type();
+  init_shell_dict_type();
   //init_shell_object_type();
 }

@@ -129,6 +129,7 @@ public:
   bool pystring_to_string(PyObject *strobject, std::string &ret_string, bool convert=false);
 
   AutoPyObject get_shell_list_class();
+  AutoPyObject get_shell_dict_class();
 
   Interpreter_delegate *_delegate;
 
@@ -144,9 +145,11 @@ private:
 
   void register_shell_module();
   void init_shell_list_type();
+  void init_shell_dict_type();
 
 protected:
   AutoPyObject _shell_list_class;
+  AutoPyObject _shell_dict_class;
 };
 
 }

@@ -18,6 +18,7 @@
  */
 
 #include "shellcore/python_array_wrapper.h"
+#include "shellcore/python_map_wrapper.h"
 #include "shellcore/python_type_conversion.h"
 
 using namespace shcore;
@@ -31,12 +32,14 @@ Python_type_bridger::Python_type_bridger(Python_context *context)
 Python_type_bridger::~Python_type_bridger()
 {
   delete _array_wrapper;
+  delete _map_wrapper;
 }
 
 
 void Python_type_bridger::init()
 {
   _array_wrapper = new Python_array_wrapper(_owner);
+  _map_wrapper = new Python_map_wrapper(_owner);
 }
 
 /* TODO:
@@ -92,7 +95,7 @@ Value Python_type_bridger::pyobj_to_shcore_value(PyObject *py) const
     PyObject *ref = PyUnicode_AsUTF8String(py);
     retval = pyobj_to_shcore_value(ref);
     Py_DECREF(ref);
-  }  // } TODO: else if (Buffer/MemoryView || Tuple || List || Dictionary || DateTime || generic_object) {
+  }  // } TODO: else if (Buffer/MemoryView || Tuple || DateTime || generic_object) {
   else if (PyList_Check(py))
   {
     boost::shared_ptr<Value::Array_type> array(new Value::Array_type);
@@ -104,13 +107,32 @@ Value Python_type_bridger::pyobj_to_shcore_value(PyObject *py) const
     }
     return Value(array);
   }
+  else if (PyDict_Check(py))
+  {
+    boost::shared_ptr<Value::Map_type> map(new Value::Map_type);
+
+    PyObject *key, *value;
+    Py_ssize_t pos = 0;
+
+    while (PyDict_Next(py, &pos, &key, &value))
+    {
+      (*map)[PyString_AsString(key)] = pyobj_to_shcore_value(value);
+    }
+
+    return Value(map);
+  }
   else
   {
     boost::shared_ptr<Value::Array_type> array;
+    boost::shared_ptr<Value::Map_type> map;
 
     if (Python_array_wrapper::unwrap(py, array))
     {
       return Value(array);
+    }
+    else if (Python_map_wrapper::unwrap(py, map))
+    {
+      return Value(map);
     }
     else
     {
@@ -167,8 +189,7 @@ PyObject *Python_type_bridger::shcore_value_to_pyobj(const Value &value)
     r = _array_wrapper->wrap(*value.value.array);
     break;
   case Map:
-    // TODO: maybe convert fully
-    //r = map_wrapper->wrap(*value.value.map);
+    r = _map_wrapper->wrap(*value.value.map);
     break;
   case MapRef:
     /*

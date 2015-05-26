@@ -186,4 +186,45 @@ namespace tests {
 // TODO: disabled due to PyRun_String issue
     //ASSERT_EQ(py->execute("[1,2,3]", error).repr(), "[1, 2, 3]");
   }
+
+  TEST_F(Python, map_to_py)
+  {
+    boost::system::error_code error;
+    boost::shared_ptr<Value::Map_type> map2(new Value::Map_type);
+    (*map2)["submap"] = Value(444);
+
+    boost::shared_ptr<Value::Map_type> map(new Value::Map_type);
+    (*map)["k1"] = Value(123);
+    (*map)["k2"] = Value("text");
+    (*map)["k3"] = Value(map2);
+
+    Value v(map);
+
+    WillEnterPython lock;
+
+    // this will also test conversion of a wrapped array
+    ASSERT_EQ(py->pyobj_to_shcore_value(py->shcore_value_to_pyobj(v)).repr(),
+              "{\"k1\": 123, \"k2\": \"text\", \"k3\": {\"submap\": 444}}");
+
+    ASSERT_EQ(py->pyobj_to_shcore_value(py->shcore_value_to_pyobj(v)), v);
+
+
+    py->set_global("mapval", v);
+    ASSERT_EQ(py->get_global("mapval").repr(), "{\"k1\": 123, \"k2\": \"text\", \"k3\": {\"submap\": 444}}");
+
+/*  TODO: disabled due to PyRun_String issue
+    // test enumerator
+    ASSERT_EQ("[\"k1\",\"k2\",\"k3\"]",
+              py->execute("Object.keys(mapval)").descr(false));
+
+    // test setter
+    py->execute("mapval[\"k4\"] = 'test'", error);
+    ASSERT_EQ((*map).size(), 4);
+    ASSERT_EQ((*map)["k4"].descr(false), Value("test").descr(false));
+
+    // this forces conversion of a native JS map into a Value
+    shcore::Value result = py->execute("a={\"submap\": 444}");
+    ASSERT_EQ(result, Value(map2));
+*/
+  }
 }}

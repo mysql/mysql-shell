@@ -17,38 +17,39 @@
  * 02110-1301  USA
  */
 
-#ifndef _PYTHON_TYPE_CONVERSION_H_
-#define _PYTHON_TYPE_CONVERSION_H_
+#ifndef _PYTHON_MAP_WRAPPER_H_
+#define _PYTHON_MAP_WRAPPER_H_
 
+#include "shellcore/python_context.h"
 #include "shellcore/types.h"
-#include <Python.h>
 
-namespace shcore {
-
+namespace shcore
+{
 class Python_context;
 
-struct Python_type_bridger
+/*
+ * Wraps an map object as a Python sequence object
+ */
+struct PyShDictObject
 {
-  Python_type_bridger(Python_context *context);
-  ~Python_type_bridger();
-
-  void init();
-
-  Value pyobj_to_shcore_value(PyObject *value) const;
-  PyObject *shcore_value_to_pyobj(const Value &value);
-
-  PyObject *native_object_to_py(Object_bridge_ref object);
-
-  Python_context *_owner;
-  class Python_array_wrapper *_array_wrapper;
-  class Python_map_wrapper *_map_wrapper;
-
-  /*
-  class Python_object_wrapper *_object_wrapper;
-  class Python_function_wrapper *_function_wraper;
-  */
+  PyObject_HEAD
+  shcore::Value::Map_type_ref *map;
 };
 
-}
+class Python_map_wrapper
+{
+public:
+  Python_map_wrapper(Python_context *context);
+  ~Python_map_wrapper();
+
+  PyObject *wrap(boost::shared_ptr<Value::Map_type> map);
+  static bool unwrap(PyObject *value, boost::shared_ptr<Value::Map_type> &ret_object);
+
+private:
+  Python_context *_context;
+  PyShDictObject *_map_wrapper;
+};
+
+};
 
 #endif
