@@ -41,5 +41,17 @@ namespace shcore
 
     static bool has_package(const std::string &package);
   };
+
+#define REGISTER_OBJECT(M,O) shcore::Object_bridge_register<O>M ## _ ## O ## _register(#M,#O);
+#define REGISTER_ALIASED_OBJECT(M,O,C) shcore::Object_bridge_register<C>M ## _ ## O ## _register(#M,#O);
+
+  template<class ObjectBridgeClass>
+  struct Object_bridge_register
+  {
+    Object_bridge_register(const std::string &module_name, const std::string &object_name)
+    {
+      shcore::Object_factory::register_factory(module_name, object_name, &ObjectBridgeClass::create);
+    }
+  };
 };
 #endif //_OBJECT_FACTORY_H_

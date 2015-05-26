@@ -15,6 +15,7 @@
 
 #include "shellcore/lang_base.h"
 #include "shellcore/shell_core.h"
+#include "boost/algorithm/string.hpp"
 
 class Shell_test_output_handler
 {
@@ -125,4 +126,52 @@ protected:
   std::string _mysql_port;
 
   shcore::Interpreter_delegate deleg;
+};
+
+// Helper class to ease the creation of tests on the CRUD operations
+// Specially on the chained methods
+class Crud_test_wrapper : public ::Shell_core_test_wrapper
+{
+protected:
+  std::set<std::string> _functions;
+
+  // Sets the functions that will be available for chaining
+  // in a CRUD operation
+  void set_functions(const std::string &functions)
+  {
+    boost::algorithm::split(_functions, functions, boost::is_any_of(", "), boost::token_compress_on);
+  }
+
+  // Validates only the specified functions are available
+  // non listed functions are validated for unavailability
+  void ensure_available_functions(const std::string& functions)
+  {
+    std::set<std::string> valid_functions;
+    boost::algorithm::split(valid_functions, functions, boost::is_any_of(", "), boost::token_compress_on);
+
+    // Retrieves the active functions on the crud operation
+    exec_and_out_equals("var real_functions = dir(crud);");
+
+    // Ensures the number of available functions is the expected
+    std::stringstream ss;
+    ss << valid_functions.size();
+
+    exec_and_out_equals("print(real_functions.length)", ss.str());
+
+    std::set<std::string>::iterator index, end = _functions.end();
+    for (index = _functions.begin(); index != end; index++)
+    {
+      // If the function is suppossed to be valid it needs to be available on the
+      // crud dir
+      if (valid_functions.find(*index) != valid_functions.end())
+        exec_and_out_equals("print(real_functions.indexOf('" + *index + "') != -1)", "true");
+
+      // If not, should not be on the crud dir and calling it should be illegal
+      else
+      {
+        exec_and_out_equals("print(real_functions.indexOf('" + *index + "') == -1)", "true");
+        exec_and_out_contains("crud." + *index + "('');", "", "Forbidden usage of " + *index);
+      }
+    }
+  }
 };

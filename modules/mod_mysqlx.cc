@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2015 Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -30,6 +30,17 @@ using namespace shcore;
 
 #include <string>
 #include <iostream>
+#include <iomanip>
+
+#include "uuid_gen.h"
+
+#include "shellcore/object_factory.h"
+#include "mod_crud_collection_add.h"
+#include "mod_crud_table_insert.h"
+
+REGISTER_ALIASED_OBJECT(mysqlx, Connection, X_connection);
+REGISTER_OBJECT(mysqlx, CollectionAdd);
+REGISTER_OBJECT(mysqlx, TableInsert);
 
 /*
 * Helper function to ensure the exceptions generated on the mysqlx_connector
@@ -218,7 +229,134 @@ X_connection::~X_connection()
   close(shcore::Argument_list());
 }
 
-shcore::Value X_connection::table_insert(shcore::Value::Map_type_ref data)
+shcore::Value X_connection::crud_execute(const std::string& id, shcore::Value::Map_type_ref data)
+{
+  shcore::Value ret_val;
+
+  if (id == "TableInsert")
+    ret_val = crud_table_insert(data);
+  else if (id == "CollectionAdd")
+    ret_val = crud_collection_add(data);
+
+  return ret_val;
+}
+
+std::string get_new_uuid()
+{
+  uuid_type uuid;
+  generate_uuid(uuid);
+
+  std::stringstream str;
+  str << std::hex << std::noshowbase << std::setfill('0') << std::setw(2);
+  //*
+  str << (int)uuid[0] << std::setw(2) << (int)uuid[1] << std::setw(2) << (int)uuid[2] << std::setw(2) << (int)uuid[3];
+  str << std::setw(2) << (int)uuid[4] << std::setw(2) << (int)uuid[5];
+  str << std::setw(2) << (int)uuid[6] << std::setw(2) << (int)uuid[7];
+  str << std::setw(2) << (int)uuid[8] << std::setw(2) << (int)uuid[9];
+  str << std::setw(2) << (int)uuid[10] << std::setw(2) << (int)uuid[11]
+    << std::setw(2) << (int)uuid[12] << std::setw(2) << (int)uuid[13]
+    << std::setw(2) << (int)uuid[14] << std::setw(2) << (int)uuid[15];
+
+  return str.str();
+}
+
+shcore::Value X_connection::crud_collection_add(shcore::Value::Map_type_ref data)
+{
+  //----SAMPLE IMPLEMENTATION
+  // This implementation allows performing a table insert operation as:
+  //
+  // table.insert(['col1', 'col2','col3']).values(['val1', val2', 'val3']).run()
+  //
+  // The definitive implementation should consider many different cases
+  // and also many validations must be included
+  uint64_t affected_rows = 0;
+  uint64_t last_insert_id = 0;
+  uuid_type uuid;
+
+  try
+  {
+    Mysqlx::Crud::Insert insert;
+    insert.mutable_collection()->set_schema((*data)["schema"].as_string());
+    insert.mutable_collection()->set_name((*data)["collection"].as_string());
+    insert.set_data_model(Mysqlx::Crud::DataModel((*data)["data_model"].as_int()));
+
+    std::vector<std::string> json_docs;
+    size_t count = 0;
+
+    if (data->has_key("Documents"))
+    {
+      shcore::Value::Map_type_ref doc;
+      shcore::Value::Array_type_ref doc_collection;
+
+      switch ((*data)["Documents"].type)
+      {
+        case shcore::Map:
+          doc = (*data)["Documents"].as_map();
+          if (!doc->has_key("_id"))
+          {
+            (*doc)["_id"] = shcore::Value(get_new_uuid());
+          }
+
+          // Appends the document to the list to be inserted
+          json_docs.push_back((*data)["Documents"].repr());
+          break;
+        case shcore::Array:
+          doc_collection = (*data)["Documents"].as_array();
+          count = doc_collection->size();
+          for (size_t index = 0; index < count; index++)
+          {
+            if ((*doc_collection)[index].type == shcore::Map)
+            {
+              doc = (*doc_collection)[index].as_map();
+              if (!doc->has_key("_id"))
+                (*doc)["_id"] = shcore::Value(get_new_uuid());
+
+              // Appends the document to the list to be inserted
+              json_docs.push_back((*doc_collection)[index].repr());
+            }
+            else
+              throw shcore::Exception::argument_error("Invalid document specified on list for add operation.");
+          }
+          break;
+        default:
+          throw shcore::Exception::argument_error("Invalid document specified on add operation.");
+          break;
+      }
+    }
+
+    // Here it gors the implementation in case no Documents are specified
+    // i.e. uses an iterator instead
+    else
+      throw shcore::Exception::logic_error("No documents specified on add operation.");
+
+    int mid = Mysqlx::ClientMessages::CRUD_INSERT;
+
+    // Assumming there were docs, if not a failure should have been raised already
+    // Creates the row list
+    for (size_t index = 0; index < json_docs.size(); index++)
+    {
+      Mysqlx::Sql::Row* row = insert.mutable_row()->Add();
+      X_row::add_field(row, shcore::Value(json_docs[index]));
+    }
+
+    Message* msg = _protobuf->send_receive_message(mid, &insert, Mysqlx::ServerMessages::SQL_STMT_EXECUTE_OK, "Inserting documents...");
+
+    Mysqlx::Sql::StmtExecuteOk *insert_ok = dynamic_cast<Mysqlx::Sql::StmtExecuteOk *>(msg);
+
+    if (insert_ok->has_rows_affected())
+      affected_rows = insert_ok->rows_affected();
+    if (insert_ok->has_last_insert_id())
+      last_insert_id = insert_ok->last_insert_id();
+  }
+  CATCH_AND_TRANSLATE();
+
+  // Creates a resultset with the received info
+  X_resultset* result = new X_resultset(shared_from_this(), false, _next_stmt_id, affected_rows, 0, 0, NULL, 0, NULL);
+
+  return shcore::Value(boost::shared_ptr<shcore::Object_bridge>(result));
+}
+
+shcore::Value X_connection::crud_table_insert(shcore::Value::Map_type_ref data)
 {
   //----SAMPLE IMPLEMENTATION
   // This implementation allows performing a table insert operation as:
@@ -257,11 +395,9 @@ shcore::Value X_connection::table_insert(shcore::Value::Map_type_ref data)
           }
 
           // Creates the row list
-          X_row *row = new X_row(insert.mutable_row()->Add());
+          Mysqlx::Sql::Row *row = insert.mutable_row()->Add();
           for (index = 0; index < fields->size(); index++)
-          {
-            row->add_field(values->at(index));
-          }
+            X_row::add_field(row, values->at(index));
         }
       }
     }
@@ -411,9 +547,9 @@ std::string X_row::get_value_as_string(int index)
   return value.repr();
 }
 
-void X_row::add_field(shcore::Value value)
+void X_row::add_field(Mysqlx::Sql::Row *row, shcore::Value value)
 {
-  Mysqlx::Datatypes::Any *field = _row->add_field();
+  Mysqlx::Datatypes::Any *field = row->add_field();
 
   field->set_type(Mysqlx::Datatypes::Any::SCALAR);
 
@@ -586,218 +722,3 @@ void X_resultset::set_result_metadata(Message *msg)
   if (stmt_exec_ok->has_last_insert_id())
     _last_insert_id = stmt_exec_ok->last_insert_id();
 }
-
-Crud_definition::Crud_definition(const shcore::Argument_list &args)
-{
-  args.ensure_at_least(1, "Crud_definition");
-
-  try
-  {
-    boost::shared_ptr<mysh::X_connection> connection = args[0].as_object<mysh::X_connection>();
-    _conn = boost::weak_ptr<X_connection>(connection);
-  }
-  catch (shcore::Exception &e)
-  {
-    // Invalid typecast exception is the only option
-    // The exception is recreated with a more explicit message
-    throw shcore::Exception::argument_error("Invalid connection used on CRUD operation.");
-  }
-}
-
-std::vector<std::string> Crud_definition::get_members() const
-{
-  std::vector<std::string> _members;
-  for (std::map<std::string, boost::shared_ptr<shcore::Cpp_function> >::const_iterator i = _funcs.begin(); i != _funcs.end(); ++i)
-  {
-    // Only returns the enabled functions
-    if (_enabled_functions.at(i->first))
-      _members.push_back(i->first);
-  }
-  return _members;
-}
-
-Value Crud_definition::get_member(const std::string &prop) const
-{
-  std::map<std::string, boost::shared_ptr<shcore::Cpp_function> >::const_iterator i;
-  if ((i = _funcs.find(prop)) == _funcs.end())
-    throw shcore::Exception::attrib_error("Invalid object member " + prop);
-  else if (!_enabled_functions.at(prop))
-    throw shcore::Exception::logic_error("Forbidden usage of " + prop);
-  else
-    return Value(boost::shared_ptr<shcore::Function_base>(i->second));
-}
-
-bool Crud_definition::has_member(const std::string &prop) const
-{
-  std::map<std::string, boost::shared_ptr<shcore::Cpp_function> >::const_iterator i;
-  return ((i = _funcs.find(prop)) != _funcs.end() && _enabled_functions.at(prop));
-}
-
-Value Crud_definition::call(const std::string &name, const shcore::Argument_list &args)
-{
-  std::map<std::string, boost::shared_ptr<shcore::Cpp_function> >::const_iterator i;
-  if ((i = _funcs.find(name)) == _funcs.end() || !_enabled_functions.at(name))
-    throw shcore::Exception::attrib_error("Invalid object function " + name);
-  return i->second->invoke(args);
-}
-
-/*
-* This method registers the "dynamic" behavior of the functions exposed by the object.
-* Parameters:
-*   - name: indicates the exposed function to be enabled/disabled.
-*   - enable_after: indicate the "states" under which the function should be enabled.
-*/
-void Crud_definition::register_dynamic_function(const std::string& name, const std::string& enable_after)
-{
-  // Adds the function to the enabled/disabled state registry
-  _enabled_functions[name] = true;
-
-  // Splits the 'enable' states and associates them to the function
-  std::vector<std::string> tokens;
-  boost::algorithm::split(tokens, enable_after, boost::is_any_of(", "), boost::token_compress_on);
-  std::set<std::string> after(tokens.begin(), tokens.end());
-  _enable_paths[name] = after;
-}
-
-void Crud_definition::update_functions(const std::string& source)
-{
-  std::map<std::string, bool>::iterator it, end = _enabled_functions.end();
-
-  for (it = _enabled_functions.begin(); it != end; it++)
-  {
-    size_t count = _enable_paths[it->first].count(source);
-    enable_function(it->first.c_str(), count > 0);
-  }
-}
-
-void Crud_definition::enable_function(const char *name, bool enable)
-{
-  if (_enabled_functions.find(name) != _enabled_functions.end())
-    _enabled_functions[name] = enable;
-}
-
-/*
-* Class constructor represents the call to the first method on the
-* call chain, on this case insert.
-* It will reveive not only the parameter documented on the insert function
-* but also other initialization data for the object:
-* - The connection represents the intermediate class in charge of actually
-*   creating the message.
-* - Message information that is not provided through the different functions
-*/
-TableInsert::TableInsert(const shcore::Argument_list &args) :
-Crud_definition(args)
-{
-  args.ensure_count(3, "TableInsert");
-
-  std::string path;
-  _data.reset(new shcore::Value::Map_type());
-  (*_data)["data_model"] = Value(Mysqlx::Crud::TABLE);
-  (*_data)["schema"] = args[1];
-  (*_data)["collection"] = args[2];
-
-  // The values function should not be enabled if values were already given
-  add_method("insert", boost::bind(&TableInsert::insert, this, _1), "data");
-  add_method("values", boost::bind(&TableInsert::values, this, _1), "data");
-  add_method("bind", boost::bind(&TableInsert::bind, this, _1), "data");
-  add_method("run", boost::bind(&TableInsert::run, this, _1), "data");
-
-  // Registers the dynamic function behavior
-  register_dynamic_function("insert", "");
-  register_dynamic_function("values", "insert, insertFields, values");
-  register_dynamic_function("bind", "insert, insertFields, insertFieldsAndValues, values");
-  register_dynamic_function("run", "insert, insertFields, insertFieldsAndValues, values, bind");
-
-  // Initial function update
-  update_functions("");
-}
-
-shcore::Value TableInsert::insert(const shcore::Argument_list &args)
-{
-  // Each method validates the received parameters
-  args.ensure_count(0, 1, "TableInsert::insert");
-
-  std::string path;
-  if (args.size())
-  {
-    switch (args[0].type)
-    {
-      case Array:
-        path = "Fields";
-        break;
-      case Map:
-        path = "FieldsAndValues";
-        break;
-      default:
-        throw shcore::Exception::argument_error("Invalid data received on TableInsert::insert");
-    }
-
-    // Stores the data
-    (*_data)[path] = args[0];
-  }
-
-  // Updates the exposed functions
-  update_functions("insert" + path);
-
-  return Value(Object_bridge_ref(this));
-}
-
-shcore::Value TableInsert::values(const shcore::Argument_list &args)
-{
-  // Each method validates the received parameters
-  args.ensure_count(1, "TableInsert::values");
-
-  // Adds the parameters to the data map
-  (*_data)["Values"] = args[0];
-
-  // Updates the exposed functions
-  update_functions("values");
-
-  // Returns the same object
-  return Value(Object_bridge_ref(this));
-}
-
-shcore::Value TableInsert::bind(const shcore::Argument_list &args)
-{
-  // TODO: Logic to determine the kind of parameter passed
-  //       Should end up adding one of the next to the data dictionary:
-  //       - ValuesAndSubQueries
-  //       - ParamsValuesAndSubQueries
-  //       - IteratorObject
-
-  // Updates the exposed functions
-  update_functions("bind");
-
-  return Value(Object_bridge_ref(this));
-}
-
-shcore::Value TableInsert::run(const shcore::Argument_list &args)
-{
-  // TODO: Callback handling logic
-  shcore::Value ret_val;
-  boost::shared_ptr<mysh::X_connection> connection(_conn.lock());
-
-  if (connection)
-  {
-    ret_val = connection->table_insert(_data);
-  }
-
-  return ret_val;
-}
-
-boost::shared_ptr<shcore::Object_bridge> TableInsert::create(const shcore::Argument_list &args)
-{
-  args.ensure_count(3, 4, "TableInsert()");
-  return boost::shared_ptr<shcore::Object_bridge>(new TableInsert(args));
-}
-
-#include "shellcore/object_factory.h"
-namespace {
-  static struct Auto_register {
-    Auto_register()
-    {
-      shcore::Object_factory::register_factory("mysqlx", "Connection", &X_connection::create);
-      shcore::Object_factory::register_factory("mysqlx", "TableInsert", &TableInsert::create);
-    }
-  } Mysqlx_register;
-};

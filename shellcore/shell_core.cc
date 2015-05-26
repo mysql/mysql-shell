@@ -25,8 +25,10 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/format.hpp>
 #include <boost/bind.hpp>
+#include <boost/random.hpp>
 
 #include "shellcore/lang_base.h"
+#include "uuid_gen.h"
 #include <fstream>
 
 using namespace shcore;
@@ -34,6 +36,14 @@ using namespace shcore;
 Shell_core::Shell_core(Interpreter_delegate *shdelegate)
 : _lang_delegate(shdelegate), IShell_core()
 {
+  // Use a random seed for UUIDs
+  std::time_t now = std::time(NULL);
+  boost::uniform_int<> dist(INT_MIN, INT_MAX);
+  boost::mt19937 gen;
+  boost::variate_generator<boost::mt19937 &, boost::uniform_int<> > vargen(gen, dist);
+  gen.seed(now);
+  init_uuid(vargen());
+
   _mode = Mode_None;
   _registry = new Object_registry();
 

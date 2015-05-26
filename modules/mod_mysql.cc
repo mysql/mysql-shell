@@ -29,6 +29,9 @@ using namespace mysh;
 
 #include <iostream>
 
+#include "shellcore/object_factory.h"
+REGISTER_ALIASED_OBJECT(mysql, Connection, Mysql_connection);
+
 #define MAX_COLUMN_LENGTH 1024
 #define MIN_COLUMN_LENGTH 4
 
@@ -321,13 +324,3 @@ shcore::Value Mysql_connection::stats(const shcore::Argument_list &args)
 return shcore::Value();
 }
 */
-
-#include "shellcore/object_factory.h"
-namespace {
-  static struct Auto_register {
-    Auto_register()
-    {
-      shcore::Object_factory::register_factory("mysql", "Connection", &Mysql_connection::create);
-    }
-  } Mysql_connection_register;
-};

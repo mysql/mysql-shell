@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2015 Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -50,7 +50,9 @@ namespace mysh
     virtual shcore::Value sql(const std::string &query, shcore::Value options);
     virtual shcore::Value sql_one(const std::string &query);
 
-    shcore::Value table_insert(shcore::Value::Map_type_ref data);
+    shcore::Value crud_execute(const std::string& id, shcore::Value::Map_type_ref data);
+    shcore::Value crud_table_insert(shcore::Value::Map_type_ref data);
+    shcore::Value crud_collection_add(shcore::Value::Map_type_ref data);
 
     virtual bool next_result(Base_resultset *target, bool first_result = false);
 
@@ -78,7 +80,7 @@ namespace mysh
     virtual shcore::Value get_value(int index);
     virtual std::string get_value_as_string(int index);
 
-    void add_field(shcore::Value value);
+    static void add_field(Mysqlx::Sql::Row *row, shcore::Value value);
 
   private:
     Mysqlx::Sql::Row *_row;
@@ -111,54 +113,6 @@ namespace mysh
 
     bool _current_fetch_done;
     bool _all_fetch_done;
-  };
-
-  class Crud_definition : public shcore::Cpp_object_bridge
-  {
-  public:
-    Crud_definition(const shcore::Argument_list &args);
-    // T the moment will put these since we don't really care about them
-    virtual std::string class_name() const { return "TableInsert"; }
-    virtual bool operator == (const Object_bridge &other) const { return false; }
-
-    // Overrides to consider enabled/disabled status
-    virtual std::vector<std::string> get_members() const;
-    virtual shcore::Value get_member(const std::string &prop) const;
-    virtual bool has_member(const std::string &prop) const;
-    virtual shcore::Value call(const std::string &name, const shcore::Argument_list &args);
-
-  protected:
-    boost::weak_ptr<X_connection> _conn;
-    shcore::Value::Map_type_ref _data;
-
-    // The CRUD operations will use "dynamic" functions to control the method chaining.
-    // A dynamic function is one that will be enabled/disabled based on the method
-    // chain sequence.
-
-    // Holds the dynamic functions enable/disable status
-    std::map<std::string, bool> _enabled_functions;
-
-    // Holds relation of 'enabled' states for every dynamic function
-    std::map<std::string, std::set<std::string> > _enable_paths;
-
-    // Registers a dynamic function and it's associated 'enabled' states
-    void register_dynamic_function(const std::string& name, const std::string& enable_after);
-
-    // Enable/disable functions based on the received and registered states
-    void update_functions(const std::string& state);
-    void enable_function(const char *name, bool enable);
-  };
-
-  class TableInsert : public Crud_definition
-  {
-  private:
-    TableInsert(const shcore::Argument_list &args);
-  public:
-    static boost::shared_ptr<shcore::Object_bridge> create(const shcore::Argument_list &args);
-    shcore::Value insert(const shcore::Argument_list &args);
-    shcore::Value values(const shcore::Argument_list &args);
-    shcore::Value bind(const shcore::Argument_list &args);
-    shcore::Value run(const shcore::Argument_list &args);
   };
 };
 

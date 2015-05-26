@@ -19,10 +19,11 @@ include_directories("${CMAKE_SOURCE_DIR}/include"
                     "${MYSQL_INCLUDE_DIR}"
                     "${Boost_INCLUDE_DIRS}")
 
+include_directories( "${CMAKE_SOURCE_DIR}/common/uuid/include" )
+
 if (HAVE_V8)
   include_directories("${V8_INCLUDE_DIR}")
 endif()
-
 
 file(GLOB libmysqlshmods_SRC
       "*.h"

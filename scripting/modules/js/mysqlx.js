@@ -339,14 +339,23 @@ Object.defineProperty(Schema.prototype, '_loadObjects',
         var object;
         
         if (type == "BASE TABLE"){
+          // TODO: temporary logic to allow requesting collections
+          //       This should be placed into it's own else if once
+          //       Collections are identifiable.
+          // NOTE: No collections will be added as schema.collection
+          //       for the moment until this gets fixed
+          if (typeof this._collections[name] === "undefined")
+          {
+            object = this._new_collection(name, true);
+            this._collections[name] = object;
+          }
+          
           if (typeof this._tables[name] === "undefined")
           {
             object = this._new_table(name, true);
             this._tables[name] = object;
           }
         }
-        
-        // TODO: Add else if for the collections
         else
         {
           if (typeof this._views[name] === "undefined")
@@ -386,7 +395,7 @@ Schema.prototype.getCollection = function(name)
 {
   if ( typeof this._collections[name] === "undefined")
   {
-    var collection = new Collection(this, name, true, true)
+    var collection = this._new_collection(name, true, true)
     
     if (typeof collection !== 'undefined')
     {
@@ -525,19 +534,44 @@ Object.defineProperty(Table.prototype, '_verify',
 Table.prototype.insert = function(data)
 {
   var insert = this._new_crud('insert');
-  return insert.insert(data);
+  
+  if (typeof data === "undefined")
+    return insert.insert();
+  else
+    return insert.insert(data);  
 }
 
 exports.mysqlx.Table = Table;
 
 
 //--- Collection Object
-function Collection(schema, name, in_db, verify)
+function Collection(schema, name, connection, in_db, verify)
 {
+  var _conn = connection;
+  
   DatabaseObject.call(this, schema.getSession(), schema, name, in_db);
   
   if (typeof verify === "boolean" && verify)
     this._verify()
+  
+  function _instantiate_add(schema, collection)
+  {
+    return _F.mysqlx.CollectionAdd(_conn, schema, collection);
+  }
+  
+  Object.defineProperty(this, '_new_crud', 
+  {
+    value: function(type)
+    {
+      switch(type)
+      {
+        case 'add':
+          return _instantiate_add(this.schema.name, this.name);
+          break;
+      }
+    }
+  });
+  
 }
 
 Collection.prototype = Object.create(DatabaseObject.prototype);
@@ -552,8 +586,9 @@ Collection.prototype._verify = function()
   {
     var data = res.fetch_all(true);
     
-    //TODO: Define the proper type
-    if (data.length == 1 && data[0][1] == "COLLECTION")
+    //TODO: Update this to the right validation once
+    //      collections are identifiable
+    if (data.length == 1 && data[0][1] == "BASE TABLE")
       is_valid = true;
   }
   
@@ -563,6 +598,17 @@ Collection.prototype._verify = function()
     throw (error);
   }
 }
+
+Collection.prototype.add = function(data)
+{
+  var add = this._new_crud('add');
+  
+  if (typeof data === "undefined")
+    return add.add();
+  else
+    return add.add(data);
+}
+
 
 exports.mysqlx.Collection = Collection;
 
