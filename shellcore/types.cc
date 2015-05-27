@@ -37,7 +37,6 @@ Exception::Exception(const boost::shared_ptr<Value::Map_type> e)
 {
 }
 
-
 Exception Exception::argument_error(const std::string &message)
 {
   boost::shared_ptr<Value::Map_type> error(new Value::Map_type());
@@ -45,7 +44,6 @@ Exception Exception::argument_error(const std::string &message)
   (*error)["message"] = Value(message);
   return Exception(error);
 }
-
 
 Exception Exception::attrib_error(const std::string &message)
 {
@@ -55,7 +53,6 @@ Exception Exception::attrib_error(const std::string &message)
   return Exception(error);
 }
 
-
 Exception Exception::type_error(const std::string &message)
 {
   boost::shared_ptr<Value::Map_type> error(new Value::Map_type());
@@ -63,7 +60,6 @@ Exception Exception::type_error(const std::string &message)
   (*error)["message"] = Value(message);
   return Exception(error);
 }
-
 
 Exception Exception::value_error(const std::string &message)
 {
@@ -81,7 +77,6 @@ Exception Exception::logic_error(const std::string &message)
   return Exception(error);
 }
 
-
 Exception Exception::runtime_error(const std::string &message)
 {
   boost::shared_ptr<Value::Map_type> error(new Value::Map_type());
@@ -90,7 +85,6 @@ Exception Exception::runtime_error(const std::string &message)
   return Exception(error);
 }
 
-
 Exception Exception::scripting_error(const std::string &message)
 {
   boost::shared_ptr<Value::Map_type> error(new Value::Map_type());
@@ -98,7 +92,6 @@ Exception Exception::scripting_error(const std::string &message)
   (*error)["message"] = Value(message);
   return Exception(error);
 }
-
 
 Exception Exception::error_with_code(const std::string &type, const std::string &message, int code)
 {
@@ -130,36 +123,31 @@ Exception Exception::parser_error(const std::string &message)
 const char *Exception::what() const BOOST_NOEXCEPT_OR_NOTHROW
 {
   if ((*_error)["message"].type == String)
-    return (*_error)["message"].value.s->c_str();
+  return (*_error)["message"].value.s->c_str();
   return "?";
 }
-
 
 const char *Exception::type() const BOOST_NOEXCEPT_OR_NOTHROW
 {
   if ((*_error)["type"].type == String)
-    return (*_error)["type"].value.s->c_str();
+  return (*_error)["type"].value.s->c_str();
   return "Exception";
 }
-
 
 bool Exception::is_argument() const
 {
   return strcmp(type(), "ArgumentError") == 0;
 }
 
-
 bool Exception::is_attribute() const
 {
   return strcmp(type(), "AttributeError") == 0;
 }
 
-
 bool Exception::is_value() const
 {
   return strcmp(type(), "ValueError") == 0;
 }
-
 
 bool Exception::is_type() const
 {
@@ -263,13 +251,12 @@ boost::shared_ptr<Value::Array_type> Value::Map_type::get_array(const std::strin
   return iter->second.as_array();
 }
 
-
 void Value::Map_type::merge_contents(boost::shared_ptr<Map_type> source, bool overwrite)
 {
   Value::Map_type::const_iterator iter;
   for (iter = source->begin(); iter != source->end(); ++iter)
   {
-    std::string k= iter->first;
+    std::string k = iter->first;
     Value v = iter->second;
 
     if (!overwrite && this->has_key(k))
@@ -279,20 +266,17 @@ void Value::Map_type::merge_contents(boost::shared_ptr<Map_type> source, bool ov
   }
 }
 
-
 Value::Value(const Value &copy)
 : type(shcore::Null)
 {
   operator=(copy);
 }
 
-
 Value::Value(const std::string &s)
 : type(String)
 {
   value.s = new std::string(s);
 }
-
 
 Value::Value(const char *s)
 {
@@ -306,7 +290,6 @@ Value::Value(const char *s)
     type = shcore::Null;
   }
 }
-
 
 Value::Value(const char *s, size_t n)
 {
@@ -327,13 +310,11 @@ Value::Value(int i)
   value.i = i;
 }
 
-
 Value::Value(int64_t i)
 : type(Integer)
 {
   value.i = i;
 }
-
 
 Value::Value(double d)
 : type(Float)
@@ -352,7 +333,6 @@ Value::Value(boost::shared_ptr<Function_base> f)
 {
   value.func = new boost::shared_ptr<Function_base>(f);
 }
-
 
 Value::Value(boost::shared_ptr<Object_bridge> n)
 : type(Object)
@@ -377,7 +357,6 @@ Value::Value(Array_type_ref n)
 {
   value.array = new boost::shared_ptr<Array_type>(n);
 }
-
 
 Value &Value::operator= (const Value &other)
 {
@@ -485,233 +464,311 @@ Value &Value::operator= (const Value &other)
   return *this;
 }
 
+Value Value::parse_map(char **pc)
+{
+  Map_type_ref map(new Map_type());
 
-Value Value::parse_single_quoted_string(const char *pc)
+  // Skips the opening {
+  ++*pc;
+
+  bool done = false;
+  while (!done)
+  {
+    Value key, value;
+    if (**pc != '"' && **pc != '\'')
+      throw Exception::parser_error("Error parsing map, unexpected character reading key.");
+    else
+    {
+      key = parse_string(pc, **pc);
+
+      // Skips the spaces
+      while (**pc == ' ' || **pc == '\t' || **pc == '\n')++*pc;
+
+      if (**pc != ':')
+        throw Exception::parser_error("Error parsing map, unexpected item value separator.");
+
+      // skips the :
+      ++*pc;
+
+      // Skips the spaces
+      while (**pc == ' ' || **pc == '\t' || **pc == '\n')++*pc;
+
+      value = parse(pc);
+
+      (*map)[key.as_string()] = value;
+
+      // Skips the spaces
+      while (**pc == ' ' || **pc == '\t' || **pc == '\n')++*pc;
+
+      if (**pc == '}')
+      {
+        done = true;
+
+        // Skips the }
+        ++*pc;
+      }
+      else if (**pc == ',')
+        ++*pc;
+      else
+        throw Exception::parser_error("Error parsing map, unexpected item separator.");
+
+      // Skips the spaces
+      while (**pc == ' ' || **pc == '\t' || **pc == '\n')++*pc;
+    }
+  }
+
+  return Value(map);
+}
+
+Value Value::parse_array(char **pc)
+{
+  Array_type_ref array(new Array_type());
+
+  // Skips the opening [
+  ++*pc;
+
+  // Skips the spaces
+  while (**pc == ' ' || **pc == '\t' || **pc == '\n')++*pc;
+
+  bool done = false;
+  while (!done)
+  {
+    array->push_back(parse(pc));
+
+    // Skips the spaces
+    while (**pc == ' ' || **pc == '\t' || **pc == '\n')++*pc;
+
+    if (**pc == ']')
+    {
+      done = true;
+
+      // Skips the ]
+      ++*pc;
+    }
+    else if (**pc == ',')
+      ++*pc;
+    else
+      throw Exception::parser_error("Error parsing array, unexpected value separator.");
+
+    // Skips the spaces
+    while (**pc == ' ' || **pc == '\t' || **pc == '\n')++*pc;
+  }
+
+  return Value(array);
+}
+
+Value Value::parse_string(char **pc, char quote)
 {
   int32_t len;
-  const char *p = pc;
+  char *p = *pc;
 
   // calculate length
   do
   {
-    while (*p && *++p != '\'')
+    while (*p && *++p != quote)
       ;
   } while (*p && *(p - 1) == '\\');
 
-  if (*p != '\'')
+  if (*p != quote)
   {
-    std::string msg = "missing closing \'";
+    std::string msg = "missing closing ";
+    msg.append(&quote);
     throw Exception::parser_error(msg);
   }
-  len = p - pc;
+  len = p - *pc;
   std::string s;
 
-  p = pc;
-  ++p;
-  while (*p != '\0' && (p - pc < len))
+  p = *pc;
+  ++*pc;
+  while (**pc != '\0' && (*pc - p < len))
   {
-	const char *pc_i = p;
+    char *pc_i = *pc;
     if (*pc_i == '\\')
     {
-	  switch( *(pc_i + 1))
-	  {
-	  case 'n':
-	    s.append("\n");
-	    break;
-	  case '"':
-	    s.append("\"");
-	    break;
-	  case '\'':
-	    s.append("\'");
-	    break;
-	  case 'a':
-	    s.append("\a");
-	    break;
-	  case 'b':
-	    s.append("\b");
-	    break;
-	  case 'f':
-	    s.append("\f");
-	    break;
-	  case 'r':
-	    s.append("\r");
-	    break;
-	  case 't':
-	    s.append("\t");
-	    break;
-	  case 'v':
-	    s.append("\v");
-	    break;
-	  case '\\':
-	    s.append("\\");
-	    break;
-	  case '\0':
-	    s.append("\0");
-	    break;
-	  }
-      p = pc_i + 2;
+      switch (*(pc_i + 1))
+      {
+        case 'n':
+          s.append("\n");
+          break;
+        case '"':
+          s.append("\"");
+          break;
+        case '\'':
+          s.append("\'");
+          break;
+        case 'a':
+          s.append("\a");
+          break;
+        case 'b':
+          s.append("\b");
+          break;
+        case 'f':
+          s.append("\f");
+          break;
+        case 'r':
+          s.append("\r");
+          break;
+        case 't':
+          s.append("\t");
+          break;
+        case 'v':
+          s.append("\v");
+          break;
+        case '\\':
+          s.append("\\");
+          break;
+        case '\0':
+          s.append("\0");
+          break;
+      }
+      *pc = pc_i + 2;
     }
     else
     {
-      s.append(p++, 1);
+      s.append(*pc, 1);
+      ++*pc;
     }
   }
+
+  // Skips the closing quote
+  ++*pc;
 
   return Value(s);
 }
 
-
-Value Value::parse_double_quoted_string(const char *pc)
+Value Value::parse_single_quoted_string(char **pc)
 {
-  int32_t len;
-  const char *p = pc;
-
-  // calculate length
-  do 
-  {
-    while (*p && *++p != '"')
-      ;
-  } while (*p && *(p - 1) == '\\');
-
-  if (*p != '"')
-  {
-    throw Exception::parser_error("missing closing \"");
-  }
-  len = p - pc;
-  std::string s;
-  
-  p = pc;
-  ++p;
-  while (*p != '\0' && (p - pc < len))
-  {
-	const char *pc_i = p;
-    if (*pc_i == '\\')
-    {
-	  switch( *(pc_i + 1))
-	  {
-	  case 'n':
-	    s.append("\n");
-	    break;
-	  case '"':
-	    s.append("\"");
-	    break;
-	  case '\'':
-	    s.append("\'");
-	    break;
-	  case 'a':
-	    s.append("\a");
-	    break;
-	  case 'b':
-	    s.append("\b");
-	    break;
-	  case 'f':
-	    s.append("\f");
-	    break;
-	  case 'r':
-	    s.append("\r");
-	    break;
-	  case 't':
-	    s.append("\t");
-	    break;
-	  case 'v':
-	    s.append("\v");
-	    break;
-	  case '\\':
-	    s.append("\\");
-	    break;
-	  case '\0':
-	    s.append("\0");
-	    break;
-	  }
-      p = pc_i + 2;
-    }
-    else 
-    {
-      s.append(p++, 1);
-    }
-  }
-
-  return Value(s);
+  return parse_string(pc, '\'');
 }
 
-
-Value Value::parse_number(const char *pcc)
+Value Value::parse_double_quoted_string(char **pc)
 {
-  const char *pc = pcc;
-  bool hasSign = false;
+  return parse_string(pc, '"');
+}
+
+Value Value::parse_number(char **pcc)
+{
+  Value ret_val;
+  char *pc = *pcc;
   const char *pce = pc;
 
-  if (*pc == '-')
-  {
-    hasSign = true;
+  // Sign can appear at the beggining
+  if (*pc == '-' || *pc == '+')
     ++pc;
-  }
-  else if (*pc == '+')
-  {
-    ++pc;
-  }
-  while (*pc && isdigit(*++pc))
-    ;
-  if (tolower(*pc) == 'e' || *pc == '.') // floating point
-  {
-    double d = 0;
-    try {
-    	d= boost::lexical_cast<double>(pce);
-    } catch( boost::bad_lexical_cast &e ) {
-    	std::string s = "Error parsing float: ";
-    	s += + e.what();
-    	throw Exception::parser_error(s);
-    }
 
-    return Value(d);
+  // Continues while there are digits
+  while (*pc && isdigit(*++pc));
+
+  bool is_integer = true;
+  if (tolower(*pc) == '.')
+  {
+    is_integer = false;
+
+    // Skips the .
+    ++pc;
+
+    // Continues while there are digits
+    while (*pc && isdigit(*++pc));
+  }
+
+  if (tolower(*pc) == 'e') // exponential
+  {
+    is_integer = false;
+
+    // Skips the e
+    ++pc;
+
+    // Sign can appear for exponential numbers
+    if (*pc == '-' || *pc == '+')
+      ++pc;
+
+    // Continues while there are digits
+    while (*pc && isdigit(*++pc));
+  }
+
+  size_t len = pc - *pcc;
+  std::string number(*pcc, len);
+
+  if (is_integer)
+  {
+    int64_t ll = 0;
+    try
+    {
+      ll = boost::lexical_cast<int64_t>(number.c_str());
+    }
+    catch (boost::bad_lexical_cast &e)
+    {
+      std::string s = "Error parsing int: ";
+      s += e.what();
+      throw Exception::parser_error(s);
+    }
+    ret_val = Value(static_cast<int64_t>(ll));
   }
   else
-  { // int point
-    int64_t ll = 0;
-	try {
-		ll = boost::lexical_cast<int64_t>(pce);
-	} catch( boost::bad_lexical_cast &e ) {
-		std::string s = "Error parsing int: ";
-		s += e.what();
-		throw Exception::parser_error(s);
-	}
-    return Value(static_cast<int64_t>(ll));
+  {
+    double d = 0;
+    try
+    {
+      d = boost::lexical_cast<double>(number.c_str());
+    }
+    catch (boost::bad_lexical_cast &e)
+    {
+      std::string s = "Error parsing float: ";
+      s += +e.what();
+      throw Exception::parser_error(s);
+    }
+
+    ret_val = Value(d);
   }
 
-  return Value();
+  *pcc = pc;
+
+  return ret_val;
 }
 
 bool my_strnicmp(const char *c1, const char *c2, size_t n)
 {
-  return boost::iequals(boost::make_iterator_range(c1, c1+n), boost::make_iterator_range(c2, c2+n));
+  return boost::iequals(boost::make_iterator_range(c1, c1 + n), boost::make_iterator_range(c2, c2 + n));
 }
 
 Value Value::parse(const std::string &s)
 {
-  const char *pc = s.c_str();
-  
-  if (*pc == '"')
+  char *pc = const_cast<char *>(s.c_str());
+  return parse(&pc);
+}
+
+Value Value::parse(char **pc)
+{
+  if (**pc == '{')
+  {
+    return parse_map(pc);
+  }
+  else if (**pc == '[')
+  {
+    return parse_array(pc);
+  }
+  else if (**pc == '"')
   {
     return parse_double_quoted_string(pc);
   }
-  else if (*pc == '\'')
+  else if (**pc == '\'')
   {
     return parse_single_quoted_string(pc);
   }
   else
   {
-    if (isdigit(*pc) || *pc == '-' || *pc == '+') // a number
+    if (isdigit(**pc) || **pc == '-' || **pc == '+') // a number
     {
       return parse_number(pc);
     }
     else // a constant between true, false, null
     {
-      const char *pi = pc;
+      const char *pi = *pc;
       int n;
-      while (*pc && isalpha(*pc))
-        ++pc;
+      while (*pc && isalpha(**pc))
+        ++*pc;
 
-      n = pc - pi;
+      n = *pc - pi;
       if (n == 9 && ::my_strnicmp(pi, "undefined", 9))
       {
         return Value();
@@ -720,13 +777,17 @@ Value Value::parse(const std::string &s)
       {
         return Value(true);
       }
+      else if (n == 4 && ::strncmp(pi, "null", 4) == 0)
+      {
+        return Value::Null();
+      }
       else if (n == 5 && ::strncmp(pi, "false", 5) == 0)
       {
         return Value(false);
       }
       else
       {
-        throw Exception::parser_error(std::string("Can't parse ")+pc);
+        throw Exception::parser_error(std::string("Can't parse ") + *pc);
         //report_error(pi - _pc_json_start,
         //  "one of (array, string, number, true, false, null) expected");
         return Value();
@@ -736,7 +797,6 @@ Value Value::parse(const std::string &s)
 
   return Value();
 }
-
 
 bool Value::operator == (const Value &other) const
 {
@@ -822,7 +882,6 @@ bool Value::operator == (const Value &other) const
   return false;
 }
 
-
 std::string Value::descr(bool pprint) const
 {
   std::string s;
@@ -837,10 +896,9 @@ std::string Value::repr() const
   return s;
 }
 
-
 std::string &Value::append_descr(std::string &s_out, int indent, int quote_strings) const
 {
-  std::string nl = (indent >= 0)? "\n" : "";
+  std::string nl = (indent >= 0) ? "\n" : "";
   switch (type)
   {
     case Undefined:
@@ -857,16 +915,16 @@ std::string &Value::append_descr(std::string &s_out, int indent, int quote_strin
       break;
     case Integer:
     {
-      boost::format fmt("%ld");
-      fmt % value.i;
-      s_out += fmt.str();
+                  boost::format fmt("%ld");
+                  fmt % value.i;
+                  s_out += fmt.str();
     }
       break;
     case Float:
     {
-      boost::format fmt("%g");
-      fmt % value.d;
-      s_out += fmt.str();
+                boost::format fmt("%g");
+                fmt % value.d;
+                s_out += fmt.str();
     }
       break;
     case String:
@@ -882,48 +940,48 @@ std::string &Value::append_descr(std::string &s_out, int indent, int quote_strin
       break;
     case Array:
     {
-      if (!value.array || !*value.array)
-        throw Exception::value_error("Invalid array value encountered");
-      Array_type *vec = value.array->get();
-      Array_type::iterator myend = vec->end(), mybegin = vec->begin();
-      s_out += "[";
-      for (Array_type::iterator iter = mybegin; iter != myend; ++iter)
-      {
-        if (iter != mybegin)
-          s_out += ",";
-        s_out += nl;
-        if (indent >= 0)
-          s_out.append((indent+1)*4, ' ');
-        iter->append_descr(s_out, indent < 0 ? indent : indent+1, '"');
-      }
-      s_out += nl;
-      if (indent > 0)
-        s_out.append(indent*4, ' ');
-      s_out += "]";
+                if (!value.array || !*value.array)
+                  throw Exception::value_error("Invalid array value encountered");
+                Array_type *vec = value.array->get();
+                Array_type::iterator myend = vec->end(), mybegin = vec->begin();
+                s_out += "[";
+                for (Array_type::iterator iter = mybegin; iter != myend; ++iter)
+                {
+                  if (iter != mybegin)
+                    s_out += ",";
+                  s_out += nl;
+                  if (indent >= 0)
+                    s_out.append((indent + 1) * 4, ' ');
+                  iter->append_descr(s_out, indent < 0 ? indent : indent + 1, '"');
+                }
+                s_out += nl;
+                if (indent > 0)
+                  s_out.append(indent * 4, ' ');
+                s_out += "]";
     }
       break;
     case Map:
     {
-      if (!value.map || !*value.map)
-        throw Exception::value_error("Invalid map value encountered");
-      Map_type *map = value.map->get();
-      Map_type::iterator myend = map->end(), mybegin = map->begin();
-      s_out += "{"+nl;
-      for (Map_type::iterator iter = mybegin; iter != myend; ++iter)
-      {
-        if (iter != mybegin)
-          s_out += ", " + nl;
-        if (indent >= 0)
-          s_out.append((indent+1)*4, ' ');
-        s_out += "\"";
-        s_out += iter->first;
-        s_out += "\": ";
-        iter->second.append_descr(s_out, indent < 0 ? indent : indent+1, '"');
-      }
-      s_out += nl;
-      if (indent > 0)
-        s_out.append(indent*4, ' ');
-      s_out += "}";
+              if (!value.map || !*value.map)
+                throw Exception::value_error("Invalid map value encountered");
+              Map_type *map = value.map->get();
+              Map_type::iterator myend = map->end(), mybegin = map->begin();
+              s_out += "{" + nl;
+              for (Map_type::iterator iter = mybegin; iter != myend; ++iter)
+              {
+                if (iter != mybegin)
+                  s_out += ", " + nl;
+                if (indent >= 0)
+                  s_out.append((indent + 1) * 4, ' ');
+                s_out += "\"";
+                s_out += iter->first;
+                s_out += "\": ";
+                iter->second.append_descr(s_out, indent < 0 ? indent : indent + 1, '"');
+              }
+              s_out += nl;
+              if (indent > 0)
+                s_out.append(indent * 4, ' ');
+              s_out += "}";
     }
       break;
     case MapRef:
@@ -937,7 +995,6 @@ std::string &Value::append_descr(std::string &s_out, int indent, int quote_strin
   return s_out;
 }
 
-
 std::string &Value::append_repr(std::string &s_out) const
 {
   switch (type)
@@ -949,106 +1006,106 @@ std::string &Value::append_repr(std::string &s_out) const
       s_out.append("null");
       break;
     case Bool:
-    if (value.b)
-      s_out += "true";
-    else
-      s_out += "false";
-    break;
+      if (value.b)
+        s_out += "true";
+      else
+        s_out += "false";
+      break;
     case Integer:
     {
-      boost::format fmt("%ld");
-      fmt % value.i;
-      s_out += fmt.str();
+                  boost::format fmt("%ld");
+                  fmt % value.i;
+                  s_out += fmt.str();
     }
-    break;
+      break;
     case Float:
     {
-      boost::format fmt("%g");
-      fmt % value.d;      
-      s_out += fmt.str();
+                boost::format fmt("%g");
+                fmt % value.d;
+                s_out += fmt.str();
     }
-    break;
+      break;
     case String:
     {
-      std::string &s = *value.s;
-      s_out += "\"";
-      for (size_t i = 0; i < s.length(); i++)
-      {
-        char c = s[i];
-        switch (c)
-        {
-        case '\n':
-          s_out += "\\n";
-          break;
-        case '\"':
-          s_out += "\\\"";
-          break;
-        case '\'':
-          s_out += "\\\'";
-          break;
-        case '\a':
-          s_out += "\\a";
-          break;
-        case '\b':
-          s_out += "\\b";
-          break;
-        case '\f':
-          s_out += "\\f";
-          break;
-        case '\r':
-          s_out += "\\r";
-          break;
-        case '\t':
-          s_out += "\\t";
-          break;
-        case '\v':
-          s_out += "\\v";
-          break;
-        case '\\':
-          s_out += "\\\\";
-          break;
-        case '\0':
-          s_out += "\\\0";
-        default:
-          s_out += c;
-        }
-      }
-      s_out += "\"";
+                 std::string &s = *value.s;
+                 s_out += "\"";
+                 for (size_t i = 0; i < s.length(); i++)
+                 {
+                   char c = s[i];
+                   switch (c)
+                   {
+                     case '\n':
+                       s_out += "\\n";
+                       break;
+                     case '\"':
+                       s_out += "\\\"";
+                       break;
+                     case '\'':
+                       s_out += "\\\'";
+                       break;
+                     case '\a':
+                       s_out += "\\a";
+                       break;
+                     case '\b':
+                       s_out += "\\b";
+                       break;
+                     case '\f':
+                       s_out += "\\f";
+                       break;
+                     case '\r':
+                       s_out += "\\r";
+                       break;
+                     case '\t':
+                       s_out += "\\t";
+                       break;
+                     case '\v':
+                       s_out += "\\v";
+                       break;
+                     case '\\':
+                       s_out += "\\\\";
+                       break;
+                     case '\0':
+                       s_out += "\\\0";
+                     default:
+                       s_out += c;
+                   }
+                 }
+                 s_out += "\"";
     }
-    break;
+      break;
     case Object:
       s_out = (*value.o)->append_repr(s_out);
       break;
     case Array:
     {
-      Array_type *vec = value.array->get();
-      Array_type::iterator myend = vec->end(), mybegin = vec->begin();
-      s_out += "[";
-      for (Array_type::iterator iter = mybegin; iter != myend; ++iter)
-      {
-        if (iter != mybegin)
-          s_out += ", ";
-        iter->append_repr(s_out);
-      }
-      s_out += "]";
+                Array_type *vec = value.array->get();
+                Array_type::iterator myend = vec->end(), mybegin = vec->begin();
+                s_out += "[";
+                for (Array_type::iterator iter = mybegin; iter != myend; ++iter)
+                {
+                  if (iter != mybegin)
+                    s_out += ", ";
+                  iter->append_repr(s_out);
+                }
+                s_out += "]";
     }
-    break;
+      break;
     case Map:
     {
-      Map_type *map = value.map->get();
-      Map_type::iterator myend = map->end(), mybegin = map->begin();
-      s_out += "{";
-      for (Map_type::iterator iter = mybegin; iter != myend; ++iter)
-      {
-        if (iter != mybegin)
-          s_out += ", ";
-        s_out += "\"";
-        s_out += iter->first;
-        s_out += "\": ";
-        iter->second.append_repr(s_out);
-      }
-      s_out += "}";
-    }      
+              Map_type *map = value.map->get();
+              Map_type::iterator myend = map->end(), mybegin = map->begin();
+              s_out += "{";
+              for (Map_type::iterator iter = mybegin; iter != myend; ++iter)
+              {
+                if (iter != mybegin)
+                  s_out += ", ";
+                s_out += "\"";
+                s_out += iter->first;
+                s_out += "\": ";
+                iter->second.append_repr(s_out);
+              }
+              s_out += "}";
+    }
       break;
     case MapRef:
       break;
@@ -1059,7 +1116,6 @@ std::string &Value::append_repr(std::string &s_out) const
   }
   return s_out;
 }
-
 
 Value::~Value()
 {
@@ -1105,77 +1161,69 @@ const std::string &Argument_list::string_at(int i) const
   if (i >= size())
     throw Exception::argument_error("Insufficient number of arguments");
   if (at(i).type != String)
-    throw Exception::type_error((boost::format("Argument #%1% is expected to be a string") % (i+1)).str());
+    throw Exception::type_error((boost::format("Argument #%1% is expected to be a string") % (i + 1)).str());
   return *at(i).value.s;
 }
-
 
 bool Argument_list::bool_at(int i) const
 {
   if (i >= size())
     throw Exception::argument_error("Insufficient number of arguments");
   if (at(i).type != Bool)
-    throw Exception::type_error((boost::format("Argument #%1% is expected to be a bool") % (i+1)).str());
+    throw Exception::type_error((boost::format("Argument #%1% is expected to be a bool") % (i + 1)).str());
   return at(i).value.b;
 }
-
 
 int64_t Argument_list::int_at(int i) const
 {
   if (i >= size())
     throw Exception::argument_error("Insufficient number of arguments");
   if (at(i).type != Integer)
-    throw Exception::type_error((boost::format("Argument #%1% is expected to be an int") % (i+1)).str());
+    throw Exception::type_error((boost::format("Argument #%1% is expected to be an int") % (i + 1)).str());
   return at(i).value.i;
 }
-
 
 double Argument_list::double_at(int i) const
 {
   if (i >= size())
     throw Exception::argument_error("Insufficient number of arguments");
   if (at(i).type != Float)
-    throw Exception::type_error((boost::format("Argument #%1% is expected to be a double") % (i+1)).str());
+    throw Exception::type_error((boost::format("Argument #%1% is expected to be a double") % (i + 1)).str());
   return at(i).value.d;
 }
-
 
 boost::shared_ptr<Object_bridge> Argument_list::object_at(int i) const
 {
   if (i >= size())
     throw Exception::argument_error("Insufficient number of arguments");
   if (at(i).type != Object)
-    throw Exception::type_error((boost::format("Argument #%1% is expected to be an object") % (i+1)).str());
+    throw Exception::type_error((boost::format("Argument #%1% is expected to be an object") % (i + 1)).str());
   return *at(i).value.o;
 }
-
 
 boost::shared_ptr<Value::Map_type> Argument_list::map_at(int i) const
 {
   if (i >= size())
     throw Exception::argument_error("Insufficient number of arguments");
   if (at(i).type != Map)
-    throw Exception::type_error((boost::format("Argument #%1% is expected to be a map") % (i+1)).str());
+    throw Exception::type_error((boost::format("Argument #%1% is expected to be a map") % (i + 1)).str());
   return *at(i).value.map;
 }
-
 
 boost::shared_ptr<Value::Array_type> Argument_list::array_at(int i) const
 {
   if (i >= size())
     throw Exception::argument_error("Insufficient number of arguments");
   if (at(i).type != Array)
-    throw Exception::type_error((boost::format("Argument #%1% is expected to be an array") % (i+1)).str());
+    throw Exception::type_error((boost::format("Argument #%1% is expected to be an array") % (i + 1)).str());
   return *at(i).value.array;
 }
-
 
 void Argument_list::ensure_count(int c, const char *context) const
 {
   if (c != size())
     throw Exception::argument_error((boost::format("Invalid number of arguments in %1%, expected %2% but got %3%") % context % c % size()).str());
 }
-
 
 void Argument_list::ensure_count(int minc, int maxc, const char *context) const
 {
