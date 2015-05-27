@@ -144,7 +144,7 @@ X_resultset *X_connection::_sql(const std::string &query, shcore::Value options)
   // Reads any remaining stuff from the previos result
   // To let the comm in a clean state
   if (_last_result && !_last_result->is_all_fetch_done())
-    flush_result(_last_result.get(), true);
+    _last_result->flush_messages(true);
 
   _timer.start();
   ++_next_stmt_id;
@@ -167,7 +167,8 @@ X_resultset *X_connection::_sql(const std::string &query, shcore::Value options)
   }
   CATCH_AND_TRANSLATE();
 
-  X_resultset* result = new X_resultset(shared_from_this(), has_data, _next_stmt_id, 0, 0, 0, NULL, mid, msg, options && options.type == shcore::Map ? options.as_map() : boost::shared_ptr<shcore::Value::Map_type>());
+  X_resultset* result = new X_resultset(shared_from_this(), has_data, _next_stmt_id, 0, 0, 0, NULL, mid, msg, true,
+                                        options && options.type == shcore::Map ? options.as_map() : boost::shared_ptr<shcore::Value::Map_type>());
 
   // If no data will be returned then loads the resultset metadata
   // And fills the timer data as well
@@ -195,7 +196,7 @@ shcore::Value X_connection::sql_one(const std::string &query)
     ret_val = _last_result->next(no_args);
 
     // Reads whatever is remaining, we do not care about it
-    flush_result(_last_result.get(), true);
+    _last_result->flush_messages(true);
   }
 
   return ret_val;
@@ -217,7 +218,7 @@ shcore::Value X_connection::sql(const std::string &query, shcore::Value options)
 shcore::Value X_connection::close(const shcore::Argument_list &args)
 {
   if (_last_result && !_last_result->is_all_fetch_done())
-    flush_result(_last_result.get(), true);
+    _last_result->flush_messages(true);
 
   _protobuf->close();
 
@@ -351,7 +352,7 @@ shcore::Value X_connection::crud_collection_add(shcore::Value::Map_type_ref data
   CATCH_AND_TRANSLATE();
 
   // Creates a resultset with the received info
-  X_resultset* result = new X_resultset(shared_from_this(), false, _next_stmt_id, affected_rows, 0, 0, NULL, 0, NULL);
+  X_resultset* result = new X_resultset(shared_from_this(), false, _next_stmt_id, affected_rows, 0, 0, NULL, 0, NULL, false);
 
   return shcore::Value(boost::shared_ptr<shcore::Object_bridge>(result));
 }
@@ -418,67 +419,9 @@ shcore::Value X_connection::crud_table_insert(shcore::Value::Map_type_ref data)
   CATCH_AND_TRANSLATE();
 
   // Creates the resultset
-  X_resultset* result = new X_resultset(shared_from_this(), false, _next_stmt_id, affected_rows, 0, 0, NULL, 0, NULL);
+  X_resultset* result = new X_resultset(shared_from_this(), false, _next_stmt_id, affected_rows, 0, 0, NULL, 0, NULL, false);
 
   return shcore::Value(boost::shared_ptr<shcore::Object_bridge>(result));
-}
-
-// Used to consume all the remaining messages of the current result
-// If complete false it will only flush the messages about the current result
-// If it is true it will flush the messages for all the results in the respnse being processed
-void X_connection::flush_result(X_resultset *target, bool complete)
-{
-  Message *msg;
-  int mid;
-  bool done_flushing = false;
-  try
-  {
-    do
-    {
-      msg = _protobuf->read_response(mid);
-
-      if (msg && mid != Mysqlx::ServerMessages::SQL_STMT_EXECUTE_OK)
-      {
-        delete msg;
-        msg = NULL;
-      }
-
-      if (mid == Mysqlx::ServerMessages::ERROR)
-        _protobuf->handle_wrong_response(mid, msg, "flushing result");
-      else
-      {
-        if (complete)
-          done_flushing = (mid == Mysqlx::ServerMessages::SQL_CURSOR_FETCH_DONE ||
-                           mid == Mysqlx::ServerMessages::SQL_STMT_EXECUTE_OK);
-        else
-          done_flushing = (mid == Mysqlx::ServerMessages::SQL_CURSOR_FETCH_DONE ||
-                           mid == Mysqlx::ServerMessages::SQL_CURSOR_FETCH_DONE_MORE_RESULTSETS ||
-                           mid == Mysqlx::ServerMessages::SQL_STMT_EXECUTE_OK);
-      }
-    } while (!done_flushing);
-
-    // Updates the target based on the last message read
-    if (mid != Mysqlx::ServerMessages::SQL_STMT_EXECUTE_OK)
-      target->reset(-1, mid, msg);
-
-    // If done reading finally reads the statement exec ok message to get the
-    // result metadata
-    if (mid == Mysqlx::ServerMessages::SQL_CURSOR_FETCH_DONE || mid == Mysqlx::ServerMessages::SQL_STMT_EXECUTE_OK)
-    {
-      if (mid == Mysqlx::ServerMessages::SQL_CURSOR_FETCH_DONE)
-        msg = _protobuf->read_response(mid);
-
-      if (mid == Mysqlx::ServerMessages::SQL_STMT_EXECUTE_OK)
-      {
-        target->set_result_metadata(msg);
-        delete msg;
-        msg = NULL;
-      }
-      else
-        _protobuf->handle_wrong_response(mid, msg, "fetching result.");
-    }
-  }
-  CATCH_AND_TRANSLATE();
 }
 
 bool X_connection::next_result(Base_resultset *target, bool first_result)
@@ -493,7 +436,7 @@ bool X_connection::next_result(Base_resultset *target, bool first_result)
     // Subsequent calls to next_result need to ensure all the messages on the
     // tx buffer are cleared out first
     if (!first_result && !real_target->is_current_fetch_done())
-      flush_result(real_target, false);
+      real_target->flush_messages(false);
 
     if (!real_target->is_all_fetch_done())
     {
@@ -594,9 +537,25 @@ X_row::~X_row()
     delete _row;
 }
 
-X_resultset::X_resultset(boost::shared_ptr<X_connection> owner, bool has_data, int cursor_id, uint64_t affected_rows, uint64_t last_insert_id, int warning_count, const char *info, int next_mid, Message* next_message, boost::shared_ptr<shcore::Value::Map_type> options) :
-Base_resultset(owner, affected_rows, last_insert_id, warning_count, info, options), _xowner(owner), _cursor_id(cursor_id), _next_mid(next_mid), _next_message(next_message),
-_current_fetch_done(!has_data), _all_fetch_done(!has_data)
+X_resultset::X_resultset(boost::shared_ptr<X_connection> owner,
+                         bool has_data,
+                         int cursor_id,
+                         uint64_t affected_rows,
+                         uint64_t last_insert_id,
+                         int warning_count,
+                         const char *info,
+                         int next_mid,
+                         Message* next_message,
+                         bool expect_metadata,
+                         boost::shared_ptr<shcore::Value::Map_type> options) :
+Base_resultset(owner, affected_rows, last_insert_id, warning_count, info, options),
+  _xowner(owner),
+  _cursor_id(cursor_id),
+  _next_mid(next_mid),
+  _next_message(next_message),
+  _current_fetch_done(!has_data),
+  _all_fetch_done(!has_data),
+  _expect_metadata(expect_metadata)
 {
   _has_resultset = has_data;
 }
@@ -628,10 +587,7 @@ Base_row* X_resultset::next_row()
           _fetched_row_count++;
         }
         else if (_next_mid == Mysqlx::ServerMessages::SQL_CURSOR_FETCH_DONE)
-        {
-          reset(-1, _next_mid, _next_message);
-          owner->flush_result(this, true);
-        }
+          flush_messages(true);
         else if (_next_mid == Mysqlx::ServerMessages::SQL_CURSOR_FETCH_DONE_MORE_RESULTSETS)
           _current_fetch_done = true;
         else
@@ -643,6 +599,71 @@ Base_row* X_resultset::next_row()
 
   _next_message = NULL;
   return ret_val;
+}
+
+// Used to consume all the remaining messages of the current resultset that are coming from the
+// server.
+// If complete false it will only flush the messages about the current result in the resultset
+// If it is true it will flush all the messages for the result set
+void X_resultset::flush_messages(bool complete)
+{
+  Message *msg;
+  int mid;
+  bool done_flushing = false;
+  try
+  {
+    boost::shared_ptr<X_connection> owner = _xowner.lock();
+    if (owner)
+    {
+      do
+      {
+        // Handles any error properly
+        if (_next_mid == Mysqlx::ServerMessages::ERROR)
+          owner->get_protobuf()->handle_wrong_response(mid, msg, "flushing result");
+        else
+        {
+          // Complete flush ends on fetch done or stmt execute ok
+          // note that stmt execute ok is only received by results
+          // with resultset metadata, so is not always present.
+          if (complete)
+          {
+            if (_expect_metadata)
+              done_flushing = _next_mid == Mysqlx::ServerMessages::SQL_STMT_EXECUTE_OK;
+            else
+              done_flushing = _next_mid == Mysqlx::ServerMessages::SQL_CURSOR_FETCH_DONE;
+
+            _all_fetch_done = done_flushing;
+            _current_fetch_done = done_flushing;
+          }
+          else
+          {
+            done_flushing = (_next_mid == Mysqlx::ServerMessages::SQL_CURSOR_FETCH_DONE ||
+                             _next_mid == Mysqlx::ServerMessages::SQL_CURSOR_FETCH_DONE_MORE_RESULTSETS ||
+                             _next_mid == Mysqlx::ServerMessages::SQL_STMT_EXECUTE_OK);
+
+            // On simple resultset request, if this is the last resultset then we need to continue reading if
+            // metadata is expected
+            if (_next_mid == Mysqlx::ServerMessages::SQL_CURSOR_FETCH_DONE && _expect_metadata)
+              done_flushing = false;
+
+            _current_fetch_done = done_flushing;
+          }
+
+          reset(-1, _next_mid, _next_message);
+
+          if (done_flushing && _expect_metadata)
+            set_result_metadata(_next_message);
+
+          delete _next_message;
+          _next_message = NULL;
+
+          if (!done_flushing)
+            _next_message = owner->get_protobuf()->read_response(_next_mid);
+        }
+      } while (!done_flushing);
+    }
+  }
+  CATCH_AND_TRANSLATE();
 }
 
 int X_resultset::fetch_metadata()
@@ -701,7 +722,10 @@ void X_resultset::reset(unsigned long duration, int next_mid, ::google::protobuf
     _next_message = next_message;
 
     // Nothing to be read anymnore on these cases
-    _all_fetch_done = (_next_mid == Mysqlx::ServerMessages::SQL_CURSOR_FETCH_DONE);
+    if (_expect_metadata)
+      _all_fetch_done = (_next_mid == Mysqlx::ServerMessages::SQL_STMT_EXECUTE_OK);
+    else
+      _all_fetch_done = (_next_mid == Mysqlx::ServerMessages::SQL_CURSOR_FETCH_DONE);
 
     // Nothing to be read for the current result on these cases
     _current_fetch_done = (_next_mid == Mysqlx::ServerMessages::SQL_CURSOR_FETCH_DONE ||

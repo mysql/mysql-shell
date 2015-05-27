@@ -60,8 +60,6 @@ namespace mysh
 
     boost::shared_ptr<mysqlx::Mysqlx_test_connector> get_protobuf() { return _protobuf; }
 
-    void flush_result(X_resultset *target, bool complete);
-
   protected:
     boost::shared_ptr<mysqlx::Mysqlx_test_connector> _protobuf;
 
@@ -89,7 +87,17 @@ namespace mysh
   class X_resultset : public Base_resultset
   {
   public:
-    X_resultset(boost::shared_ptr<X_connection> owner, bool has_data, int cursor_id, uint64_t affected_rows, uint64_t last_insert_id, int warning_count, const char *info, int next_mid, Message* next_message, boost::shared_ptr<shcore::Value::Map_type> options = boost::shared_ptr<shcore::Value::Map_type>());
+    X_resultset(boost::shared_ptr<X_connection> owner,
+                bool has_data,
+                int cursor_id,
+                uint64_t affected_rows,
+                uint64_t last_insert_id,
+                int warning_count,
+                const char *info,
+                int next_mid,
+                Message* next_message,
+                bool expect_metadata,
+                boost::shared_ptr<shcore::Value::Map_type> options = boost::shared_ptr<shcore::Value::Map_type>());
     virtual ~X_resultset();
 
     virtual std::string class_name() const  { return "X_resultset"; }
@@ -100,6 +108,7 @@ namespace mysh
     int get_cursor_id() { return _cursor_id; }
     bool is_all_fetch_done()  { return _all_fetch_done; }
     bool is_current_fetch_done()  { return _current_fetch_done; }
+    void flush_messages(bool complete);
 
   protected:
     virtual Base_row* next_row();
@@ -111,6 +120,7 @@ namespace mysh
     int _next_mid;
     Message* _next_message;
 
+    bool _expect_metadata;
     bool _current_fetch_done;
     bool _all_fetch_done;
   };
