@@ -36,10 +36,13 @@ using namespace shcore;
 
 #include "shellcore/object_factory.h"
 #include "mod_crud_collection_add.h"
+#include "mod_crud_collection_find.h"
 #include "mod_crud_table_insert.h"
+#include "mod_result.h"
 
 REGISTER_ALIASED_OBJECT(mysqlx, Connection, X_connection);
 REGISTER_OBJECT(mysqlx, CollectionAdd);
+REGISTER_OBJECT(mysqlx, CollectionFind);
 REGISTER_OBJECT(mysqlx, TableInsert);
 
 /*
@@ -238,6 +241,8 @@ shcore::Value X_connection::crud_execute(const std::string& id, shcore::Value::M
     ret_val = crud_table_insert(data);
   else if (id == "CollectionAdd")
     ret_val = crud_collection_add(data);
+  else if (id == "CollectionFind")
+    ret_val = crud_collection_find(data);
 
   return ret_val;
 }
@@ -355,6 +360,106 @@ shcore::Value X_connection::crud_collection_add(shcore::Value::Map_type_ref data
   X_resultset* result = new X_resultset(shared_from_this(), false, _next_stmt_id, affected_rows, 0, 0, NULL, 0, NULL, false);
 
   return shcore::Value(boost::shared_ptr<shcore::Object_bridge>(result));
+}
+
+shcore::Value X_connection::crud_collection_find(shcore::Value::Map_type_ref data)
+{
+  // The definitive implementation should consider many different cases
+  // and also many validations must be included
+  uint64_t affected_rows = 0;
+  uint64_t last_insert_id = 0;
+  uuid_type uuid;
+  int mid;
+  Message* msg;
+
+  // Reads any remaining stuff from the previos result
+  // To let the comm in a clean state
+  if (_last_result && !_last_result->is_all_fetch_done())
+    _last_result->flush_messages(true);
+
+  _timer.start();
+  ++_next_stmt_id;
+
+  bool has_data = false;
+
+  try
+  {
+    Mysqlx::Crud::Find find;
+    find.mutable_collection()->set_schema((*data)["schema"].as_string());
+    find.mutable_collection()->set_name((*data)["collection"].as_string());
+    find.set_data_model(Mysqlx::Crud::DataModel((*data)["data_model"].as_int()));
+
+    std::vector<std::string> json_docs;
+    size_t count = 0;
+
+    if (data->has_key("find.SearchCondition"))
+    {
+      // TODO: Uncomment once the Projection parser is fully implemented
+      //std::string filter = (*data)["find.SearchCondition"].as_string();
+      //Expr_parser expression(filter);
+      //find.set_allocated_criteria(expression.expr().release());
+    }
+
+    if (data->has_key("fields.SearchFields"))
+    {
+      // TODO: Set the fields when the Projection parser is implemented
+    }
+
+    if (data->has_key("groupby.SearchFields"))
+    {
+      // TODO: Set the ordering when the Projection parser is implemented
+    }
+
+    if (data->has_key("having.SearchCondition"))
+    {
+      // TODO: Sets the value when the Expression parser for collections
+      //       is implemented and HAVING is supported
+    }
+
+    if (data->has_key("SortFields"))
+    {
+      // TODO: Set the ordering when the Srot parser is implemented
+    }
+
+    if (data->has_key("LimitOffset"))
+      find.mutable_limit()->set_skip((*data)["LimitOffset"].as_int());
+
+    if (data->has_key("NumberOfRows"))
+      find.mutable_limit()->set_offset((*data)["NumberOfRows"].as_int());
+
+    mid = Mysqlx::ClientMessages::CRUD_FIND;
+
+    std::set<int> responses;
+    responses.insert(Mysqlx::ServerMessages::SQL_STMT_EXECUTE_OK);
+    responses.insert(Mysqlx::ServerMessages::SQL_COLUMN_META_DATA);
+
+    msg = _protobuf->send_receive_message(mid, &find, responses, "Finding documents...");
+
+    has_data = mid == Mysqlx::ServerMessages::SQL_COLUMN_META_DATA;
+  }
+  CATCH_AND_TRANSLATE();
+
+  Collection_resultset* result = new Collection_resultset(shared_from_this(), has_data, _next_stmt_id, 0, 0, 0, NULL, mid, msg, false, boost::shared_ptr<shcore::Value::Map_type>());
+
+  // If no data will be returned then loads the resultset metadata
+  // And fills the timer data as well
+  if (mid == Mysqlx::ServerMessages::SQL_STMT_EXECUTE_OK)
+  {
+    _timer.end();
+
+    result->set_result_metadata(msg);
+    result->reset(_timer.raw_duration());
+  }
+
+  // Creates the resultset
+  _last_result.reset(result);
+
+  // Calls next result so the metadata is loaded
+  // if any result
+  if (_last_result->has_resultset())
+    next_result(_last_result.get(), true);
+
+  return shcore::Value(boost::shared_ptr<shcore::Object_bridge>(_last_result));
 }
 
 shcore::Value X_connection::crud_table_insert(shcore::Value::Map_type_ref data)
@@ -535,214 +640,4 @@ X_row::~X_row()
 {
   if (_row)
     delete _row;
-}
-
-X_resultset::X_resultset(boost::shared_ptr<X_connection> owner,
-                         bool has_data,
-                         int cursor_id,
-                         uint64_t affected_rows,
-                         uint64_t last_insert_id,
-                         int warning_count,
-                         const char *info,
-                         int next_mid,
-                         Message* next_message,
-                         bool expect_metadata,
-                         boost::shared_ptr<shcore::Value::Map_type> options) :
-Base_resultset(owner, affected_rows, last_insert_id, warning_count, info, options),
-  _xowner(owner),
-  _cursor_id(cursor_id),
-  _next_mid(next_mid),
-  _next_message(next_message),
-  _current_fetch_done(!has_data),
-  _all_fetch_done(!has_data),
-  _expect_metadata(expect_metadata)
-{
-  _has_resultset = has_data;
-}
-
-X_resultset::~X_resultset(){}
-
-Base_row* X_resultset::next_row()
-{
-  Base_row* ret_val = NULL;
-
-  if (has_resultset())
-  {
-    boost::shared_ptr<X_connection> owner = _xowner.lock();
-
-    if (!is_current_fetch_done() && owner)
-    {
-      try
-      {
-        // Reads the next message
-        // This variable must be cleaned out at the end
-        _next_message = owner->get_protobuf()->read_response(_next_mid);
-
-        if (_next_mid == Mysqlx::ServerMessages::SQL_ROW)
-        {
-          ret_val = new X_row(dynamic_cast<Mysqlx::Sql::Row *>(_next_message), &_metadata);
-          ret_val->set_key_by_index(_key_by_index);
-
-          // Each read row increases the count
-          _fetched_row_count++;
-        }
-        else if (_next_mid == Mysqlx::ServerMessages::SQL_CURSOR_FETCH_DONE)
-          flush_messages(true);
-        else if (_next_mid == Mysqlx::ServerMessages::SQL_CURSOR_FETCH_DONE_MORE_RESULTSETS)
-          _current_fetch_done = true;
-        else
-          owner->get_protobuf()->handle_wrong_response(_next_mid, _next_message, "fetching result.");
-      }
-      CATCH_AND_TRANSLATE();
-    }
-  }
-
-  _next_message = NULL;
-  return ret_val;
-}
-
-// Used to consume all the remaining messages of the current resultset that are coming from the
-// server.
-// If complete false it will only flush the messages about the current result in the resultset
-// If it is true it will flush all the messages for the result set
-void X_resultset::flush_messages(bool complete)
-{
-  Message *msg;
-  int mid;
-  bool done_flushing = false;
-  try
-  {
-    boost::shared_ptr<X_connection> owner = _xowner.lock();
-    if (owner)
-    {
-      do
-      {
-        // Handles any error properly
-        if (_next_mid == Mysqlx::ServerMessages::ERROR)
-          owner->get_protobuf()->handle_wrong_response(mid, msg, "flushing result");
-        else
-        {
-          // Complete flush ends on fetch done or stmt execute ok
-          // note that stmt execute ok is only received by results
-          // with resultset metadata, so is not always present.
-          if (complete)
-          {
-            if (_expect_metadata)
-              done_flushing = _next_mid == Mysqlx::ServerMessages::SQL_STMT_EXECUTE_OK;
-            else
-              done_flushing = _next_mid == Mysqlx::ServerMessages::SQL_CURSOR_FETCH_DONE;
-
-            _all_fetch_done = done_flushing;
-            _current_fetch_done = done_flushing;
-          }
-          else
-          {
-            done_flushing = (_next_mid == Mysqlx::ServerMessages::SQL_CURSOR_FETCH_DONE ||
-                             _next_mid == Mysqlx::ServerMessages::SQL_CURSOR_FETCH_DONE_MORE_RESULTSETS ||
-                             _next_mid == Mysqlx::ServerMessages::SQL_STMT_EXECUTE_OK);
-
-            // On simple resultset request, if this is the last resultset then we need to continue reading if
-            // metadata is expected
-            if (_next_mid == Mysqlx::ServerMessages::SQL_CURSOR_FETCH_DONE && _expect_metadata)
-              done_flushing = false;
-
-            _current_fetch_done = done_flushing;
-          }
-
-          reset(-1, _next_mid, _next_message);
-
-          if (done_flushing && _expect_metadata)
-            set_result_metadata(_next_message);
-
-          delete _next_message;
-          _next_message = NULL;
-
-          if (!done_flushing)
-            _next_message = owner->get_protobuf()->read_response(_next_mid);
-        }
-      } while (!done_flushing);
-    }
-  }
-  CATCH_AND_TRANSLATE();
-}
-
-int X_resultset::fetch_metadata()
-{
-  // Fetch the metadata
-  int ret_val = 0;
-  boost::shared_ptr<X_connection> owner = _xowner.lock();
-
-  _metadata.clear();
-
-  if (owner)
-  {
-    try
-    {
-      while (_next_mid == Mysqlx::ServerMessages::SQL_COLUMN_META_DATA)
-      {
-        Mysqlx::Sql::ColumnMetaData *meta = dynamic_cast<Mysqlx::Sql::ColumnMetaData *>(_next_message);
-
-        _metadata.push_back(Field(meta->catalog(),
-          meta->schema(),
-          meta->table(),
-          meta->original_table(),
-          meta->name(),
-          meta->original_name(),
-          0, // length: not supported yet
-          meta->type(),
-          0, // flags: not supported yet
-          meta->fractional_digits(),// decimals are now sent as fractional digits
-          0)); // charset: not supported yet
-
-        ret_val++;
-
-        _next_message = owner->get_protobuf()->read_response(_next_mid);
-      }
-
-      // Validates exit in case of error...
-      if (_next_mid == Mysqlx::ServerMessages::ERROR)
-      {
-        // Since metadata will be empty, it implies the result had no records
-        Mysqlx::Error *error = dynamic_cast<Mysqlx::Error *>(_next_message);
-        std::cout << "Error retrieving metadata: " << error->msg() << std::endl;
-        ret_val = -1;
-      }
-    }
-    CATCH_AND_TRANSLATE();
-  }
-
-  return ret_val;
-}
-
-void X_resultset::reset(unsigned long duration, int next_mid, ::google::protobuf::Message* next_message)
-{
-  if (next_mid)
-  {
-    _next_mid = next_mid;
-    _next_message = next_message;
-
-    // Nothing to be read anymnore on these cases
-    if (_expect_metadata)
-      _all_fetch_done = (_next_mid == Mysqlx::ServerMessages::SQL_STMT_EXECUTE_OK);
-    else
-      _all_fetch_done = (_next_mid == Mysqlx::ServerMessages::SQL_CURSOR_FETCH_DONE);
-
-    // Nothing to be read for the current result on these cases
-    _current_fetch_done = (_next_mid == Mysqlx::ServerMessages::SQL_CURSOR_FETCH_DONE ||
-                           _next_mid == Mysqlx::ServerMessages::SQL_CURSOR_FETCH_DONE_MORE_RESULTSETS);
-  }
-
-  if (duration != (unsigned long)-1)
-    _raw_duration = duration;
-}
-
-void X_resultset::set_result_metadata(Message *msg)
-{
-  Mysqlx::Sql::StmtExecuteOk *stmt_exec_ok = dynamic_cast<Mysqlx::Sql::StmtExecuteOk*>(msg);
-
-  if (stmt_exec_ok->has_rows_affected())
-    _affected_rows = stmt_exec_ok->rows_affected();
-
-  if (stmt_exec_ok->has_last_insert_id())
-    _last_insert_id = stmt_exec_ok->last_insert_id();
 }

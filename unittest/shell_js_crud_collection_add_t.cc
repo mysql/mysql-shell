@@ -93,7 +93,7 @@ namespace shcore {
 
   TEST_F(Shell_js_crud_collection_add_tests, add_validations)
   {
-    exec_and_out_equals("var mysqlx = require('myx').mysqlx;");
+    exec_and_out_equals("var mysqlx = require('mysqlx').mysqlx;");
     exec_and_out_equals("var session = mysqlx.openNodeSession('" + _uri + "');");
     exec_and_out_equals("session.executeSql('drop schema if exists js_shell_test;');");
     exec_and_out_equals("session.executeSql('create schema js_shell_test;');");

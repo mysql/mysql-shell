@@ -312,7 +312,7 @@ struct JScript_context::JScript_context_impl
       try
       {
         v8::String::Utf8Value s(args[0]);
-        args.GetReturnValue().Set(self->types.shcore_value_to_v8_value(Value::parse(*s)));
+        args.GetReturnValue().Set(self->types.shcore_value_to_v8_value(Value::parse(std::string(*s))));
       }
       catch (std::exception &e)
       {

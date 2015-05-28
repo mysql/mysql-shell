@@ -66,6 +66,10 @@ namespace mysh
     // Enable/disable functions based on the received and registered states
     void update_functions(const std::string& state);
     void enable_function(const char *name, bool enable);
+
+    void set_expression(const std::string &source, const std::string &field, shcore::Value value);
+    void set_projection(const std::string &source, const std::string &field, shcore::Value value);
+    void set_order(const std::string &source, const std::string &field, shcore::Value value);
   };
 };
 

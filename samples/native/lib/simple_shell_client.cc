@@ -110,8 +110,8 @@ boost::shared_ptr<Result_set> Simple_shell_client::process_line(const std::strin
       // If true returns as data array, if false, returns as document.
       shcore::IShell_core::Mode mode = _shell->interactive_mode();
       args.push_back(shcore::Value::True());
-      shcore::Value result = object->call("fetch_all", args);
-      shcore::Value metadata = object->call("fetch_metadata", Argument_list());
+      shcore::Value result = object->call("all", args);
+      shcore::Value metadata = object->call("getColumnMetadata", Argument_list());
 
       boost::shared_ptr<shcore::Value::Array_type> arr_result = result.as_array();
       if (arr_result->begin() == arr_result->end())

@@ -105,10 +105,18 @@ protected:
     shcore::Value ret_val = execute(code);
 
     if (out.length())
+    {
+      SCOPED_TRACE("STDOUT missing: " + out);
+      SCOPED_TRACE("STDOUT actual: " + output_handler.std_out);
       EXPECT_NE(-1, int(output_handler.std_out.find(out)));
+    }
 
     if (err.length())
+    {
+      SCOPED_TRACE("STDERR missing: " + err);
+      SCOPED_TRACE("STDERR actual: " + output_handler.std_err);
       EXPECT_NE(-1, int(output_handler.std_err.find(err)));
+    }
 
     output_handler.wipe_all();
 
@@ -156,7 +164,10 @@ protected:
     std::stringstream ss;
     ss << valid_functions.size();
 
-    exec_and_out_equals("print(real_functions.length)", ss.str());
+    {
+      SCOPED_TRACE("Unexpected number of available functions.");
+      exec_and_out_equals("print(real_functions.length)", ss.str());
+    }
 
     std::set<std::string>::iterator index, end = _functions.end();
     for (index = _functions.begin(); index != end; index++)
@@ -164,11 +175,15 @@ protected:
       // If the function is suppossed to be valid it needs to be available on the
       // crud dir
       if (valid_functions.find(*index) != valid_functions.end())
+      {
+        SCOPED_TRACE("Function " + *index + " should be available and is not.");
         exec_and_out_equals("print(real_functions.indexOf('" + *index + "') != -1)", "true");
+      }
 
       // If not, should not be on the crud dir and calling it should be illegal
       else
       {
+        SCOPED_TRACE("Function " + *index + " should NOT be available.");
         exec_and_out_equals("print(real_functions.indexOf('" + *index + "') == -1)", "true");
         exec_and_out_contains("crud." + *index + "('');", "", "Forbidden usage of " + *index);
       }

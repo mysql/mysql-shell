@@ -109,7 +109,7 @@ BaseSession.prototype.getSchemas = function()
     
     if (res)
     {
-      var data = res.fetch_all(true);
+      var data = res.all(true);
       
       // Creates a new schema object if not exists already
       for(index in data)
@@ -171,7 +171,7 @@ BaseSession.prototype.getDefaultSchema = function()
 {
   var schema = null;
   var res = this._query_data('default_schema');
-  var data = res.fetch_one(true);
+  var data = res.next(true);
   
   if (data[0] != null)
     schema = this.getSchema(data[0])
@@ -307,7 +307,7 @@ Object.defineProperty(Schema.prototype, '_verify',
     
     if (res)
     {
-      var data = res.fetch_all(true);
+      var data = res.all(true);
 
       if (data.length == 1 && data[0][0] == this.name)
         is_valid = true;
@@ -329,7 +329,7 @@ Object.defineProperty(Schema.prototype, '_loadObjects',
     
     if (res)
     {
-      var data = res.fetch_all(true);
+      var data = res.all(true);
       
       // Creates a new table/view/collection object if not exists already
       for(index in data)
@@ -517,7 +517,7 @@ Object.defineProperty(Table.prototype, '_verify',
     
     if (res)
     {
-      var data = res.fetch_all(true);
+      var data = res.all(true);
 
       if (data.length == 1 && data[0][1] == "BASE TABLE")
         is_valid = true;
@@ -554,21 +554,22 @@ function Collection(schema, name, connection, in_db, verify)
   if (typeof verify === "boolean" && verify)
     this._verify()
   
-  function _instantiate_add(schema, collection)
+  function _instantiate_crud(type, schema, collection)
   {
+    switch(type)
+    {
+      case 'add':
     return _F.mysqlx.CollectionAdd(_conn, schema, collection);
+      case 'find':
+        return _F.mysqlx.CollectionFind(_conn, schema, collection);
+    }
   }
   
   Object.defineProperty(this, '_new_crud', 
   {
     value: function(type)
     {
-      switch(type)
-      {
-        case 'add':
-          return _instantiate_add(this.schema.name, this.name);
-          break;
-      }
+      return _instantiate_crud(type, this.schema.name, this.name);
     }
   });
   
@@ -584,7 +585,7 @@ Collection.prototype._verify = function()
   
   if (res)
   {
-    var data = res.fetch_all(true);
+    var data = res.all(true);
     
     //TODO: Update this to the right validation once
     //      collections are identifiable
@@ -609,6 +610,15 @@ Collection.prototype.add = function(data)
     return add.add(data);
 }
 
+Collection.prototype.find = function(data)
+{
+  var find = this._new_crud('find');
+  
+  if (typeof data === "undefined")
+    return find.find();
+  else
+    return find.find(data);
+}
 
 exports.mysqlx.Collection = Collection;
 

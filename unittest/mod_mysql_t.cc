@@ -1,4 +1,3 @@
-
 /* Copyright (c) 2014, 2015, Oracle and/or its affiliates. All rights reserved.
 
  This program is free software; you can redistribute it and/or modify
@@ -44,7 +43,7 @@ namespace shcore
       virtual void SetUp()
       {
         uri = getenv("MYSQL_URI");
-        pwd =  getenv("MYSQL_PWD");
+        pwd = getenv("MYSQL_PWD");
         port = getenv("MYSQL_PORT");
 
         if (uri)
@@ -60,9 +59,9 @@ namespace shcore
           x_uri.append(":");
           x_uri.append(port);
         }
-         db.reset(new mysh::Mysql_connection(x_uri, pwd ? pwd : NULL));
+        db.reset(new mysh::Mysql_connection(x_uri, pwd ? pwd : NULL));
       }
-    };    
+    };
 
     //-------------------------- Connection Tests --------------------------
     TEST_F(Mysql_test, connect_errors)
@@ -146,7 +145,6 @@ namespace shcore
       EXPECT_THROW(db->sql_one("select * from hopefully.unexisting"), shcore::Exception);
     }
 
-
     TEST_F(Mysql_test, sql_single_result)
     {
       Value result;
@@ -212,7 +210,6 @@ namespace shcore
       EXPECT_EQ(0, data.as_int());
     }
 
-
     TEST_F(Mysql_test, sql_one)
     {
       Value result = db->sql_one("select 1 as a");
@@ -234,7 +231,7 @@ namespace shcore
       // This query only has 1 column
       EXPECT_EQ(1, real_result->fetch_metadata());
 
-      data = real_result->call("fetch_metadata", shcore::Argument_list());
+      data = real_result->call("getColumnMetadata", shcore::Argument_list());
       boost::shared_ptr<shcore::Value::Array_type> array = data.as_array();
       EXPECT_EQ(1, array->size());
       boost::shared_ptr<shcore::Value::Map_type> map = (*array)[0].as_map();
@@ -279,7 +276,7 @@ namespace shcore
 
       result = db->sql("select * from shell_tests.alpha", shcore::Value());
       result_ptr = result.as_object<Object_bridge>();
-      data = result_ptr->call("fetch_metadata", shcore::Argument_list());
+      data = result_ptr->call("getColumnMetadata", shcore::Argument_list());
 
       boost::shared_ptr<shcore::Value::Array_type> array = data.as_array();
       EXPECT_EQ(2, array->size());
@@ -326,14 +323,14 @@ namespace shcore
       // Fetches the first record with no arguments
       // A document is expected
       shcore::Argument_list args;
-      data = result_ptr->call("fetch_one", args);
+      data = result_ptr->call("next", args);
       EXPECT_EQ("{\"alphacol\": \"first\", \"idalpha\": 1}", data.descr());
       EXPECT_EQ(1, result_ptr->get_member("fetched_row_count").as_int());
 
       // Fetches the second record with the RAW argument set to false
       // Same format as default is expected
       args.push_back(shcore::Value(false));
-      data = result_ptr->call("fetch_one", args);
+      data = result_ptr->call("next", args);
       EXPECT_EQ("{\"alphacol\": \"second\", \"idalpha\": 2}", data.descr());
       EXPECT_EQ(2, result_ptr->get_member("fetched_row_count").as_int());
 
@@ -341,12 +338,12 @@ namespace shcore
       // No document is expected, value array instead
       args.clear();
       args.push_back(shcore::Value(true));
-      data = result_ptr->call("fetch_one", args);
+      data = result_ptr->call("next", args);
       EXPECT_EQ("[3,\"third\"]", data.descr());
       EXPECT_EQ(3, result_ptr->get_member("fetched_row_count").as_int());
 
       // Next attempt to fetch anything should return null
-      data = result_ptr->call("fetch_one", args);
+      data = result_ptr->call("next", args);
       EXPECT_EQ("null", data.descr());
 
       EXPECT_EQ(3, result_ptr->get_member("fetched_row_count").as_int());
@@ -364,7 +361,7 @@ namespace shcore
       // Fetches all the records with no arguments
       // A list of documents is expected
       shcore::Argument_list args;
-      data = result_ptr->call("fetch_all", args);
+      data = result_ptr->call("all", args);
       std::string expected =
         "["
         "{\"alphacol\": \"first\", \"idalpha\": 1},"
@@ -375,14 +372,13 @@ namespace shcore
       EXPECT_EQ(expected, data.descr());
       EXPECT_EQ(3, result_ptr->get_member("fetched_row_count").as_int());
 
-
       result = db->sql("select * from shell_tests.alpha", shcore::Value());
       result_ptr = result.as_object<Object_bridge>();
 
       // Fetches the records with the RAW argument set to false
       // Same format as default is expected
       args.push_back(shcore::Value(false));
-      data = result_ptr->call("fetch_all", args);
+      data = result_ptr->call("all", args);
       EXPECT_EQ(expected, data.descr());
       EXPECT_EQ(3, result_ptr->get_member("fetched_row_count").as_int());
 
@@ -393,7 +389,7 @@ namespace shcore
       // A list of lists is expected
       args.clear();
       args.push_back(shcore::Value(true));
-      data = result_ptr->call("fetch_all", args);
+      data = result_ptr->call("all", args);
 
       expected =
         "["
@@ -421,7 +417,7 @@ namespace shcore
         FAIL();
 
       // There should NOT be a second result
-      EXPECT_FALSE(result_ptr->call("next_result", shcore::Argument_list()).as_bool());
+      EXPECT_FALSE(result_ptr->call("nextResult", shcore::Argument_list()).as_bool());
     }
 
     TEST_F(Mysql_test, sql_multiple_results_next)
@@ -451,13 +447,13 @@ namespace shcore
         FAIL();
 
       // Second result returned by the sp
-      EXPECT_TRUE(result_ptr->call("next_result", shcore::Argument_list()).as_bool());
+      EXPECT_TRUE(result_ptr->call("nextResult", shcore::Argument_list()).as_bool());
 
       // The result of processing the actual sp
-      EXPECT_TRUE(result_ptr->call("next_result", shcore::Argument_list()).as_bool());
+      EXPECT_TRUE(result_ptr->call("nextResult", shcore::Argument_list()).as_bool());
 
       // There should NOT be any additional result
-      EXPECT_FALSE(result_ptr->call("next_result", shcore::Argument_list()).as_bool());
+      EXPECT_FALSE(result_ptr->call("nextResult", shcore::Argument_list()).as_bool());
 
       // We drop the test schema
       result = db->sql("drop schema shell_tests", Value());
@@ -468,61 +464,61 @@ namespace shcore
     /* not implemented yet
     TEST(MySQL, query_with_binds_int)
     {
-      {
-        Argument_list args;
-        args.push_back(Value("select ? as a, ? as b"));
-        Value params(Value::new_array());
-        params.as_array()->push_back(Value(42));
-        params.as_array()->push_back(Value(43));
-        args.push_back(params);
+    {
+    Argument_list args;
+    args.push_back(Value("select ? as a, ? as b"));
+    Value params(Value::new_array());
+    params.as_array()->push_back(Value(42));
+    params.as_array()->push_back(Value(43));
+    args.push_back(params);
 
-        Value result = env.db->sql(args);
-        Value row = result.as_object<Object_bridge>()->call("next", Argument_list());
-        EXPECT_EQ("{\"a\": 42, \"b\": 43}", row.descr());
-      }
+    Value result = env.db->sql(args);
+    Value row = result.as_object<Object_bridge>()->call("next", Argument_list());
+    EXPECT_EQ("{\"a\": 42, \"b\": 43}", row.descr());
+    }
 
-      {
-        Argument_list args;
-        args.push_back(Value("select :first as a, :second as b"));
-        Value params(Value::new_map());
-        (*params.as_map())["first"] = Value(42);
-        (*params.as_map())["second"] = Value(43);
-        args.push_back(params);
+    {
+    Argument_list args;
+    args.push_back(Value("select :first as a, :second as b"));
+    Value params(Value::new_map());
+    (*params.as_map())["first"] = Value(42);
+    (*params.as_map())["second"] = Value(43);
+    args.push_back(params);
 
-        Value result = env.db->sql(args);
-        Value row = result.as_object<Object_bridge>()->call("next", Argument_list());
-        EXPECT_EQ("{\"a\": 42, \"b\": 43}", row.descr());
-      }
+    Value result = env.db->sql(args);
+    Value row = result.as_object<Object_bridge>()->call("next", Argument_list());
+    EXPECT_EQ("{\"a\": 42, \"b\": 43}", row.descr());
+    }
     }
 
     TEST(MySQL, query_with_binds_date)
     {
-      {
-        Argument_list args;
-        args.push_back(Value("select ? as a, ? as b"));
-        Value params(Value::new_array());
-        params.as_array()->push_back(Value(42));
-        params.as_array()->push_back(Value(43));
-        args.push_back(params);
+    {
+    Argument_list args;
+    args.push_back(Value("select ? as a, ? as b"));
+    Value params(Value::new_array());
+    params.as_array()->push_back(Value(42));
+    params.as_array()->push_back(Value(43));
+    args.push_back(params);
 
-        Value result = env.db->sql(args);
-        Value row = result.as_object<Object_bridge>()->call("next", Argument_list());
-        EXPECT_EQ("{\"a\": 42, \"b\": 43}", row.descr());
-      }
-
-      {
-        Argument_list args;
-        args.push_back(Value("select :first as 1, :second as b"));
-        Value params(Value::new_map());
-        (*params.as_map())["first"] = Value(42);
-        (*params.as_map())["second"] = Value(43);
-        args.push_back(params);
-
-        Value result = env.db->sql(args);
-        Value row = result.as_object<Object_bridge>()->call("next", Argument_list());
-        EXPECT_EQ("{\"a\": 42, \"b\": 43}", row.descr());
-      }
+    Value result = env.db->sql(args);
+    Value row = result.as_object<Object_bridge>()->call("next", Argument_list());
+    EXPECT_EQ("{\"a\": 42, \"b\": 43}", row.descr());
     }
-     */
+
+    {
+    Argument_list args;
+    args.push_back(Value("select :first as 1, :second as b"));
+    Value params(Value::new_map());
+    (*params.as_map())["first"] = Value(42);
+    (*params.as_map())["second"] = Value(43);
+    args.push_back(params);
+
+    Value result = env.db->sql(args);
+    Value row = result.as_object<Object_bridge>()->call("next", Argument_list());
+    EXPECT_EQ("{\"a\": 42, \"b\": 43}", row.descr());
+    }
+    }
+    */
   }
 }

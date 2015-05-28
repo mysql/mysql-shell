@@ -151,10 +151,10 @@ namespace mysh
     bool has_resultset() { return _has_resultset; };
     int warning_count() { return _warning_count; }
     shcore::Value print(const shcore::Argument_list &args);
-    shcore::Value next(const shcore::Argument_list &args);
+    virtual shcore::Value next(const shcore::Argument_list &args);
     shcore::Value next_result(const shcore::Argument_list &args);
     shcore::Value get_metadata(const shcore::Argument_list &args);
-    shcore::Value fetch_all(const shcore::Argument_list &args);
+    virtual shcore::Value fetch_all(const shcore::Argument_list &args);
     shcore::Value affected_rows(const shcore::Argument_list &args);
     shcore::Value fetched_row_count(const shcore::Argument_list &args);
     shcore::Value warning_count(const shcore::Argument_list &args);

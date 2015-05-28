@@ -273,15 +273,15 @@ Base_resultset::Base_resultset(boost::shared_ptr<Base_connection> owner, uint64_
   if (info)
     _info.assign(info);
 
-  add_method("next_result", boost::bind(&Base_resultset::next_result, this, _1), NULL);
-  add_method("fetch_one", boost::bind(&Base_resultset::next, this, _1), NULL);
-  add_method("fetch_all", boost::bind(&Base_resultset::fetch_all, this, _1), NULL);
-  add_method("fetch_metadata", boost::bind(&Base_resultset::get_metadata, this, _1), NULL);
+  add_method("nextResult", boost::bind(&Base_resultset::next_result, this, _1), NULL);
+  add_method("next", boost::bind(&Base_resultset::next, this, _1), NULL);
+  add_method("all", boost::bind(&Base_resultset::fetch_all, this, _1), NULL);
+  add_method("getColumnMetadata", boost::bind(&Base_resultset::get_metadata, this, _1), NULL);
   add_method("__paged_output__", boost::bind(&Base_resultset::print, this, _1), NULL);
-  add_method("affected_rows", boost::bind(&Base_resultset::affected_rows, this, _1), NULL);
-  add_method("fetched_row_count", boost::bind(&Base_resultset::fetched_row_count, this, _1), NULL);
-  add_method("warning_count", boost::bind(&Base_resultset::warning_count, this, _1), NULL);
-  add_method("execution_time", boost::bind(&Base_resultset::execution_time, this, _1), NULL);
+  add_method("affectedRows", boost::bind(&Base_resultset::affected_rows, this, _1), NULL);
+  add_method("fetchedRowCount", boost::bind(&Base_resultset::fetched_row_count, this, _1), NULL);
+  add_method("warningCount", boost::bind(&Base_resultset::warning_count, this, _1), NULL);
+  add_method("executionTime", boost::bind(&Base_resultset::execution_time, this, _1), NULL);
 }
 
 shcore::Value Base_resultset::next(const shcore::Argument_list &args)
@@ -347,7 +347,7 @@ shcore::Value Base_resultset::get_metadata(const shcore::Argument_list &args)
 
 shcore::Value Base_resultset::fetch_all(const shcore::Argument_list &args)
 {
-  std::string function = class_name() + "::fetch_all";
+  std::string function = class_name() + "::all";
 
   args.ensure_count(0, 1, function.c_str());
 

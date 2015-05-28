@@ -17,6 +17,7 @@
  * 02110-1301  USA
  */
 
+//#include "expr_parser.h"
 #include <boost/bind.hpp>
 #include <boost/algorithm/string.hpp>
 
@@ -126,4 +127,83 @@ shcore::Value Crud_definition::execute(const shcore::Argument_list &args)
     ret_val = connection->crud_execute(class_name(), _data);
 
   return ret_val;
+}
+
+void Crud_definition::set_expression(const std::string &source, const std::string &field, shcore::Value value)
+{
+  // First validates that the received value is a string
+  if (value.type != shcore::String)
+    throw shcore::Exception::argument_error(source + ": string parameter required.");
+
+  // TODO: remove this exception when the Expression_parser is fully implemented
+  throw shcore::Exception::logic_error(source + ": not yet implemented.");
+
+  // Now validates that it is a valid expression
+  try
+  {
+    // TODO: uncomment when the expression parser is fully implemented.
+    //Expr_parser expression(value.as_string());
+    //expression.expr();
+
+    (*_data)[field] = value;
+  }
+  catch (std::runtime_error &e)
+  {
+    std::string error = source;
+    error.append(": ");
+    error.append(e.what());
+    throw shcore::Exception::argument_error(error);
+  }
+}
+
+void Crud_definition::set_projection(const std::string &source, const std::string &field, shcore::Value value)
+{
+  // First validates that the received value is a string
+  if (value.type != shcore::String)
+    throw shcore::Exception::argument_error(source + ": string parameter required.");
+
+  // TODO: remove this exception when the Proj_parser is implemented
+  throw shcore::Exception::logic_error(source + ": not yet implemented.");
+
+  // Now validates that it is a valid expression
+  try
+  {
+    // TODO: The projection parser should be called just to ensure the received data is correct
+    //Proj_parser projection(value.as_string());
+
+    (*_data)[field] = value;
+  }
+  catch (std::runtime_error &e)
+  {
+    std::string error = source;
+    error.append(": ");
+    error.append(e.what());
+    throw shcore::Exception::argument_error(error);
+  }
+}
+
+void Crud_definition::set_order(const std::string &source, const std::string &field, shcore::Value value)
+{
+  // First validates that the received value is a string
+  if (value.type != shcore::String)
+    throw shcore::Exception::argument_error(source + ": string parameter required.");
+
+  // TODO: remove this exception when the Order_parser is implemented
+  throw shcore::Exception::logic_error(source + ": not yet implemented.");
+
+  // Now validates that it is a valid expression
+  try
+  {
+    // TODO: The projection parser should be called just to ensure the received data is correct
+    //Order_parser order(value.as_string());
+
+    (*_data)[field] = value;
+  }
+  catch (std::runtime_error &e)
+  {
+    std::string error = source;
+    error.append(": ");
+    error.append(e.what());
+    throw shcore::Exception::argument_error(error);
+  }
 }
