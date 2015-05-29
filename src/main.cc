@@ -61,7 +61,7 @@ class Interactive_shell
 public:
   Interactive_shell(Shell_core::Mode initial_mode);
   void command_loop();
-  int process_stream(std::istream & stream, const std::string& source) { return _shell->process_stream(stream, source, _batch_continue_on_error); }
+  int process_stream(std::istream & stream, const std::string& source);
   int process_file(const char *filename);
 
   void init_environment();
@@ -85,6 +85,7 @@ public:
   /* Processing Options */
   void set_force(bool value) { _batch_continue_on_error = value; }
   void set_output_format(const std::string& format);
+  void set_interactive(bool value) { _interactive = value; }
 
 private:
   static char *readline(const char *prompt);
@@ -311,7 +312,7 @@ void Interactive_shell::init_scripts(Shell_core::Mode mode)
 
     global_file += extension;
 
-    if(file_exists(global_file))
+    if (file_exists(global_file))
       scripts_paths.push_back(global_file);
 #endif
 
@@ -652,11 +653,35 @@ int Interactive_shell::process_file(const char *filename)
   return ret_val;
 }
 
+int Interactive_shell::process_stream(std::istream & stream, const std::string& source)
+{
+  // If interactive is set, it means that the shell was started with the option to
+  // Emulate interactive mode while processing the stream
+  if (_interactive)
+  {
+    while (!stream.eof())
+    {
+      std::string line;
+
+      std::getline(stream, line);
+
+      print(prompt());
+
+      println(line);
+
+      process_line(line);
+    }
+
+    // Being interactive, we do not care about the return value
+    return 0;
+  }
+  else
+    return _shell->process_stream(stream, source, _batch_continue_on_error);
+}
+
 void Interactive_shell::command_loop()
 {
-  _interactive = true;
-
-  if (isatty(0)) // check if interactive
+  if (_interactive) // check if interactive
   {
     switch (_shell->interactive_mode())
     {
@@ -741,6 +766,7 @@ public:
   std::string output_format;
   bool print_cmd_line_helper;
   bool force;
+  bool interactive;
 
   Shell_command_line_options(int argc, char **argv)
     : Command_line_options(argc, argv)
@@ -755,6 +781,7 @@ public:
 
     initial_mode = Shell_core::Mode_SQL;
     force = false;
+    interactive = false;
 
     for (int i = 1; i < argc && exit_code == 0; i++)
     {
@@ -787,9 +814,9 @@ public:
         exit_code = 0;
       }
       else if (check_arg(argv, i, "--force", "--force"))
-      {
         force = true;
-      }
+      else if (check_arg(argv, i, "--interactive", "-i"))
+        interactive = true;
       else if (exit_code == 0)
       {
         std::cerr << argv[0] << ": unknown option " << argv[i] << "\n";
@@ -859,6 +886,7 @@ int main(int argc, char **argv)
     }
 
     bool is_interactive = true;
+    bool from_stdin = false;
 
 #if defined(WIN32)
     if (!isatty(_fileno(stdin) || !isatty(_fileno(stdout))))
@@ -866,6 +894,8 @@ int main(int argc, char **argv)
     if (!isatty(STDIN_FILENO) || !isatty(STDOUT_FILENO))
 #endif
     {
+      from_stdin = true;
+
       if (!options.run_file.empty())
       {
         shell.print_error("--file (-f) option is forbidden when redirecting input to stdin.");
@@ -876,6 +906,16 @@ int main(int argc, char **argv)
     }
     else
       is_interactive = options.run_file.empty();
+
+    // The --interactive option forces the shell to work emulating the
+    // interactive mode no matter if:
+    // - Input is being redirected from file
+    // - Input is being redirected from STDIN
+    // - It is not running on a terminal
+    if (options.interactive)
+      is_interactive = true;
+
+    shell.set_interactive(is_interactive);
 
     shell.init_environment();
 
@@ -888,17 +928,16 @@ int main(int argc, char **argv)
 
     // Three processing modes are available at this point
     // Interactive, file processing and STDIN processing
-    if (is_interactive)
+
+    if (from_stdin)
+      ret_val = shell.process_stream(std::cin, "STDIN");
+    else if (!options.run_file.empty())
+      ret_val = shell.process_file(options.run_file.c_str());
+    else if (is_interactive)
     {
       shell.print_banner();
       shell.command_loop();
     }
-    else if (!options.run_file.empty())
-    {
-      ret_val = shell.process_file(options.run_file.c_str());
-    }
-    else
-      ret_val = shell.process_stream(std::cin, "STDIN");
   }
 
   return ret_val;
