@@ -40,17 +40,6 @@ namespace mysqlx
 class Token
 {
 public:
-  enum TokenType;
-  Token(TokenType type, const std::string& text);
-  // TODO: it is better if this one returns a pointer (std::string*)
-  const std::string& get_text() const;
-  TokenType get_type() const;
-
-private:
-  TokenType _type;
-  std::string _text;
-
-public:
   enum TokenType
   {
     NOT = 1,
@@ -109,6 +98,15 @@ public:
     DOUBLESTAR = 54,
     MOD = 55
   };
+
+  Token(TokenType type, const std::string& text);
+  // TODO: it is better if this one returns a pointer (std::string*)
+  const std::string& get_text() const;
+  TokenType get_type() const;
+
+private:
+  TokenType _type;
+  std::string _text;
 };
 
 class Expr_builder
