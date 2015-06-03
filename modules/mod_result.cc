@@ -255,7 +255,8 @@ void X_resultset::reset(unsigned long duration, int next_mid, ::google::protobuf
 
     // Nothing to be read for the current result on these cases
     _current_fetch_done = (_next_mid == Mysqlx::ServerMessages::SQL_CURSOR_FETCH_DONE ||
-                           _next_mid == Mysqlx::ServerMessages::SQL_CURSOR_FETCH_DONE_MORE_RESULTSETS);
+                           _next_mid == Mysqlx::ServerMessages::SQL_CURSOR_FETCH_DONE_MORE_RESULTSETS ||
+                           _all_fetch_done);
   }
 
   if (duration != (unsigned long)-1)
@@ -266,11 +267,16 @@ void X_resultset::set_result_metadata(Message *msg)
 {
   Mysqlx::Sql::StmtExecuteOk *stmt_exec_ok = dynamic_cast<Mysqlx::Sql::StmtExecuteOk*>(msg);
 
-  if (stmt_exec_ok->has_rows_affected())
-    _affected_rows = stmt_exec_ok->rows_affected();
+  if (stmt_exec_ok)
+  {
+    if (stmt_exec_ok->has_rows_affected())
+      _affected_rows = stmt_exec_ok->rows_affected();
 
-  if (stmt_exec_ok->has_last_insert_id())
-    _last_insert_id = stmt_exec_ok->last_insert_id();
+    if (stmt_exec_ok->has_last_insert_id())
+      _last_insert_id = stmt_exec_ok->last_insert_id();
+  }
+  else
+    throw shcore::Exception::logic_error("Unexpected message to set resultset metadata.");
 }
 
 Collection_resultset::Collection_resultset(boost::shared_ptr<X_connection> owner,

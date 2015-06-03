@@ -44,6 +44,7 @@
 
 #include "../modules/mod_session.h"
 #include "../modules/mod_db.h"
+#include <sys/stat.h>
 
 #ifdef WIN32
 #  include <io.h>
@@ -887,18 +888,35 @@ int main(int argc, char **argv)
 
     bool is_interactive = true;
     bool from_stdin = false;
+    bool from_file = false;
+
+    int __stdin_fileno;
+    int __stdout_fileno;
 
 #if defined(WIN32)
-    if (!isatty(_fileno(stdin) || !isatty(_fileno(stdout))))
+    __stdin_fileno = _fileno(stdin);
+    __stdout_fileno = _fileno(stdout);
 #else
-    if (!isatty(STDIN_FILENO) || !isatty(STDOUT_FILENO))
+    __stdin_fileno = STDIN_FILENO;
+    __stdout_fileno = STDOUT_FILENO;
+
 #endif
+    if (!isatty(__stdin_fileno) || !isatty(__stdout_fileno))
     {
+      // Here we know the input comes from stdin
       from_stdin = true;
 
-      if (!options.run_file.empty())
+      // Now we find out if it is a redirected file or not
+      struct stat stats;
+      int result = fstat(__stdin_fileno, &stats);
+
+      if (result == 0)
+        from_file = (stats.st_mode & S_IFREG) == S_IFREG;
+
+      // Can't process both redirected file and file from parameter.
+      if (from_file && !options.run_file.empty())
       {
-        shell.print_error("--file (-f) option is forbidden when redirecting input to stdin.");
+        shell.print_error("--file (-f) option is forbidden when redirecting a file to stdin.");
         return 1;
       }
       else
@@ -929,7 +947,7 @@ int main(int argc, char **argv)
     // Three processing modes are available at this point
     // Interactive, file processing and STDIN processing
 
-    if (from_stdin)
+    if (from_stdin && from_file)
       ret_val = shell.process_stream(std::cin, "STDIN");
     else if (!options.run_file.empty())
       ret_val = shell.process_file(options.run_file.c_str());
