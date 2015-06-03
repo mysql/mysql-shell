@@ -113,7 +113,8 @@ namespace shcore {
       SCOPED_TRACE("Testing parameter validation on find");
       exec_and_out_equals("collection.find();");
       exec_and_out_contains("collection.find(5);", "", "CollectionFind::find: string parameter required.");
-      exec_and_out_contains("collection.find('test = 2');", "", "CollectionFind::find: not yet implemented.");
+      exec_and_out_contains("collection.find('test = \"2');", "", "CollectionFind::find: Unterminated quoted string starting at 8");
+      exec_and_out_equals("collection.find('test = \"2\"');");
     }
 
     {
@@ -172,20 +173,72 @@ namespace shcore {
     exec_and_out_equals("var result = collection.add({name: 'alma', age: 13, gender: 'female'}).execute();");
     exec_and_out_equals("var result = collection.add({name: 'carol', age: 14, gender: 'female'}).execute();");
     exec_and_out_equals("var result = collection.add({name: 'donna', age: 16, gender: 'female'}).execute();");
+    exec_and_out_equals("var result = collection.add({name: 'angel', age: 14, gender: 'male'}).execute();");
 
     // Testing the find function
     {
       SCOPED_TRACE("Testing full find");
       exec_and_out_equals("var records = collection.find().execute().all();");
+      exec_and_out_equals("print(records.length);", "7");
+    }
+
+    // Testing the find function with some criteria
+    {
+      SCOPED_TRACE("Testing full find");
+      exec_and_out_equals("var records = collection.find('gender = \"male\"').execute().all();");
+      exec_and_out_equals("print(records.length);", "4");
+
+      exec_and_out_equals("var records = collection.find('gender = \"female\"').execute().all();");
+      exec_and_out_equals("print(records.length);", "3");
+
+      exec_and_out_equals("var records = collection.find('age = 13').execute().all();");
+      exec_and_out_equals("print(records.length);", "1");
+
+      exec_and_out_equals("var records = collection.find('age = 14').execute().all();");
+      exec_and_out_equals("print(records.length);", "3");
+
+      exec_and_out_equals("var records = collection.find('age < 17').execute().all();");
       exec_and_out_equals("print(records.length);", "6");
+
+      exec_and_out_equals("var records = collection.find('name like \"a%\"').execute().all();");
+      exec_and_out_equals("print(records.length);", "3");
+
+      exec_and_out_equals("var records = collection.find('name like \"a%\" and age < 15').execute().all();");
+      exec_and_out_equals("print(records.length);", "2");
     }
 
     {
-      // TODO: The skip and limit are a mess and need to be fixed!!
-      //       the test is designed to pass with the current version of the plugin but needs to be fixed.
       SCOPED_TRACE("Testing limit and offset");
-      exec_and_out_equals("var records = collection.find().limit(3).skip(3).execute().all();");
+      exec_and_out_equals("var records = collection.find().limit(4).execute().all();");
+      exec_and_out_equals("print(records.length);", "4");
+
+      SCOPED_TRACE("Testing limit and offset");
+      exec_and_out_equals("var records = collection.find().limit(4).skip(1).execute().all();");
+      exec_and_out_equals("print(records.length);", "4");
+
+      SCOPED_TRACE("Testing limit and offset");
+      exec_and_out_equals("var records = collection.find().limit(4).skip(2).execute().all();");
+      exec_and_out_equals("print(records.length);", "4");
+
+      SCOPED_TRACE("Testing limit and offset");
+      exec_and_out_equals("var records = collection.find().limit(4).skip(3).execute().all();");
+      exec_and_out_equals("print(records.length);", "4");
+
+      SCOPED_TRACE("Testing limit and offset");
+      exec_and_out_equals("var records = collection.find().limit(4).skip(4).execute().all();");
       exec_and_out_equals("print(records.length);", "3");
+
+      SCOPED_TRACE("Testing limit and offset");
+      exec_and_out_equals("var records = collection.find().limit(4).skip(5).execute().all();");
+      exec_and_out_equals("print(records.length);", "2");
+
+      SCOPED_TRACE("Testing limit and offset");
+      exec_and_out_equals("var records = collection.find().limit(4).skip(6).execute().all();");
+      exec_and_out_equals("print(records.length);", "1");
+
+      SCOPED_TRACE("Testing limit and offset");
+      exec_and_out_equals("var records = collection.find().limit(4).skip(7).execute().all();");
+      exec_and_out_equals("print(records.length);", "0");
     }
   }
 }

@@ -562,6 +562,8 @@ function Collection(schema, name, connection, in_db, verify)
     return _F.mysqlx.CollectionAdd(_conn, schema, collection);
       case 'find':
         return _F.mysqlx.CollectionFind(_conn, schema, collection);
+      case 'remove':
+        return _F.mysqlx.CollectionRemove(_conn, schema, collection);
     }
   }
   
@@ -618,6 +620,16 @@ Collection.prototype.find = function(data)
     return find.find();
   else
     return find.find(data);
+}
+
+Collection.prototype.remove = function(data)
+{
+  var remove = this._new_crud('remove');
+  
+  if (typeof data === "undefined")
+    return remove.remove();
+  else
+    return remove.remove(data);
 }
 
 exports.mysqlx.Collection = Collection;

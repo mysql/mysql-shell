@@ -54,6 +54,7 @@ namespace mysh
     shcore::Value crud_table_insert(shcore::Value::Map_type_ref data);
     shcore::Value crud_collection_add(shcore::Value::Map_type_ref data);
     shcore::Value crud_collection_find(shcore::Value::Map_type_ref data);
+    shcore::Value crud_collection_remove(shcore::Value::Map_type_ref data);
 
     virtual bool next_result(Base_resultset *target, bool first_result = false);
 

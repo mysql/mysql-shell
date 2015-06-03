@@ -17,6 +17,7 @@
  * 02110-1301  USA
  */
 
+#include "expr_parser.h"
 #include "mod_mysqlx.h"
 
 using namespace mysh;
@@ -37,12 +38,14 @@ using namespace shcore;
 #include "shellcore/object_factory.h"
 #include "mod_crud_collection_add.h"
 #include "mod_crud_collection_find.h"
+#include "mod_crud_collection_remove.h"
 #include "mod_crud_table_insert.h"
 #include "mod_result.h"
 
 REGISTER_ALIASED_OBJECT(mysqlx, Connection, X_connection);
 REGISTER_OBJECT(mysqlx, CollectionAdd);
 REGISTER_OBJECT(mysqlx, CollectionFind);
+REGISTER_OBJECT(mysqlx, CollectionRemove);
 REGISTER_OBJECT(mysqlx, TableInsert);
 
 /*
@@ -243,6 +246,8 @@ shcore::Value X_connection::crud_execute(const std::string& id, shcore::Value::M
     ret_val = crud_collection_add(data);
   else if (id == "CollectionFind")
     ret_val = crud_collection_find(data);
+  else if (id == "CollectionRemove")
+    ret_val = crud_collection_remove(data);
 
   return ret_val;
 }
@@ -389,15 +394,11 @@ shcore::Value X_connection::crud_collection_find(shcore::Value::Map_type_ref dat
     find.mutable_collection()->set_name((*data)["collection"].as_string());
     find.set_data_model(Mysqlx::Crud::DataModel((*data)["data_model"].as_int()));
 
-    std::vector<std::string> json_docs;
-    size_t count = 0;
-
     if (data->has_key("find.SearchCondition"))
     {
-      // TODO: Uncomment once the Projection parser is fully implemented
-      //std::string filter = (*data)["find.SearchCondition"].as_string();
-      //Expr_parser expression(filter);
-      //find.set_allocated_criteria(expression.expr().release());
+      std::string filter = (*data)["find.SearchCondition"].as_string();
+      mysqlx::Expr_parser expression(filter, true);
+      find.set_allocated_criteria(expression.expr().release());
     }
 
     if (data->has_key("fields.SearchFields"))
@@ -414,6 +415,9 @@ shcore::Value X_connection::crud_collection_find(shcore::Value::Map_type_ref dat
     {
       // TODO: Sets the value when the Expression parser for collections
       //       is implemented and HAVING is supported
+      //std::string filter = (*data)["having.SearchCondition"].as_string();
+      //mysqlx::Expr_parser expression(filter, true);
+      //find.set...(expression.expr().release());
     }
 
     if (data->has_key("SortFields"))
@@ -421,11 +425,13 @@ shcore::Value X_connection::crud_collection_find(shcore::Value::Map_type_ref dat
       // TODO: Set the ordering when the Srot parser is implemented
     }
 
-    if (data->has_key("LimitOffset"))
-      find.mutable_limit()->set_skip((*data)["LimitOffset"].as_int());
-
     if (data->has_key("NumberOfRows"))
-      find.mutable_limit()->set_offset((*data)["NumberOfRows"].as_int());
+    {
+      find.mutable_limit()->set_skip((*data)["NumberOfRows"].as_int());
+
+      if (data->has_key("LimitOffset"))
+        find.mutable_limit()->set_offset((*data)["LimitOffset"].as_int());
+    }
 
     mid = Mysqlx::ClientMessages::CRUD_FIND;
 
@@ -458,6 +464,66 @@ shcore::Value X_connection::crud_collection_find(shcore::Value::Map_type_ref dat
   // if any result
   if (_last_result->has_resultset())
     next_result(_last_result.get(), true);
+
+  return shcore::Value(boost::shared_ptr<shcore::Object_bridge>(_last_result));
+}
+
+shcore::Value X_connection::crud_collection_remove(shcore::Value::Map_type_ref data)
+{
+  // The definitive implementation should consider many different cases
+  // and also many validations must be included
+  uint64_t affected_rows = 0;
+  uint64_t last_insert_id = 0;
+  uuid_type uuid;
+  int mid;
+  Message* msg;
+
+  // Reads any remaining stuff from the previos result
+  // To let the comm in a clean state
+  if (_last_result && !_last_result->is_all_fetch_done())
+    _last_result->flush_messages(true);
+
+  _timer.start();
+  ++_next_stmt_id;
+
+  bool has_data = false;
+
+  try
+  {
+    Mysqlx::Crud::Delete remove;
+    remove.mutable_collection()->set_schema((*data)["schema"].as_string());
+    remove.mutable_collection()->set_name((*data)["collection"].as_string());
+    remove.set_data_model(Mysqlx::Crud::DataModel((*data)["data_model"].as_int()));
+
+    if (data->has_key("SearchCondition"))
+    {
+      std::string filter = (*data)["SearchCondition"].as_string();
+      mysqlx::Expr_parser expression(filter, true);
+      remove.set_allocated_criteria(expression.expr().release());
+    }
+
+    if (data->has_key("SortFields"))
+    {
+      // TODO: Set the ordering when the Srot parser is implemented
+    }
+
+    if (data->has_key("NumberOfRows"))
+      remove.mutable_limit()->set_skip((*data)["NumberOfRows"].as_int());
+
+    mid = Mysqlx::ClientMessages::CRUD_DELETE;
+
+    msg = _protobuf->send_receive_message(mid, &remove, Mysqlx::ServerMessages::SQL_STMT_EXECUTE_OK, "Deleting documents...");
+  }
+  CATCH_AND_TRANSLATE();
+
+  X_resultset* result = new X_resultset(shared_from_this(), false, _next_stmt_id, 0, 0, 0, NULL, mid, msg, false);
+
+  _timer.end();
+  result->set_result_metadata(msg);
+  result->reset(_timer.raw_duration());
+
+  // Creates the resultset
+  _last_result.reset(result);
 
   return shcore::Value(boost::shared_ptr<shcore::Object_bridge>(_last_result));
 }
