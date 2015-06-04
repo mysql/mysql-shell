@@ -125,7 +125,6 @@ struct Tokenizer::maps map;
 Tokenizer::Tokenizer(const std::string& input) : _input(input)
 {
   _pos = 0;
-  get_tokens();
 }
 
 bool Tokenizer::next_char_is(tokens_t::size_type i, int tok)
@@ -489,7 +488,7 @@ bool Tokenizer::cmp_icase::operator()(const std::string& lhs, const std::string&
 
 Expr_parser::Expr_parser(const std::string& expr_str, bool document_mode) : _document_mode(document_mode), _tokenizer(expr_str)
 {
-  
+  _tokenizer.get_tokens();
 }
 
 void Expr_parser::paren_expr_list(::google::protobuf::RepeatedPtrField< ::Mysqlx::Expr::Expr >* expr_list)
@@ -539,24 +538,24 @@ std::auto_ptr<Mysqlx::Expr::Expr> Expr_parser::function_call()
   return e;
 }
 
-void Expr_parser::docpath_member(Mysqlx::Expr::DocumentPathItem* item)
+void Expr_parser::docpath_member(Mysqlx::Expr::DocumentPathItem& item)
 {
   _tokenizer.consume_token(Token::DOT);
-  item->set_type(Mysqlx::Expr::DocumentPathItem::MEMBER);
+  item.set_type(Mysqlx::Expr::DocumentPathItem::MEMBER);
   if (_tokenizer.cur_token_type_is(Token::IDENT))
   {
     const std::string& ident = _tokenizer.consume_token(Token::IDENT);
-    item->set_value(ident.c_str(), ident.size());
+    item.set_value(ident.c_str(), ident.size());
   }
   else if (_tokenizer.cur_token_type_is(Token::LSTRING))
   {
     const std::string& lstring = _tokenizer.consume_token(Token::LSTRING);
-    item->set_value(lstring.c_str(), lstring.size());
+    item.set_value(lstring.c_str(), lstring.size());
   }
   else if (_tokenizer.cur_token_type_is(Token::MUL))
   {
     const std::string& mul = _tokenizer.consume_token(Token::MUL);
-    item->set_value(mul.c_str(), mul.size());
+    item.set_value(mul.c_str(), mul.size());
   }
   else
   {
@@ -564,13 +563,13 @@ void Expr_parser::docpath_member(Mysqlx::Expr::DocumentPathItem* item)
   }
 }
 
-void Expr_parser::docpath_array_loc(Mysqlx::Expr::DocumentPathItem* item)
+void Expr_parser::docpath_array_loc(Mysqlx::Expr::DocumentPathItem& item)
 {
   _tokenizer.consume_token(Token::LSQBRACKET);
   if (_tokenizer.cur_token_type_is(Token::MUL))
   {
     _tokenizer.consume_token(Token::RSQBRACKET);
-    item->set_type(Mysqlx::Expr::DocumentPathItem::ARRAY_INDEX_ASTERISK);
+    item.set_type(Mysqlx::Expr::DocumentPathItem::ARRAY_INDEX_ASTERISK);
   }
   else if (_tokenizer.cur_token_type_is(Token::LNUM))
   {
@@ -579,8 +578,8 @@ void Expr_parser::docpath_array_loc(Mysqlx::Expr::DocumentPathItem* item)
     if (v < 0)
       throw Parser_error((boost::format("Array index cannot be negative at %d") % _tokenizer.get_token_pos()).str());
     _tokenizer.consume_token(Token::RSQBRACKET);
-    item->set_type(Mysqlx::Expr::DocumentPathItem::ARRAY_INDEX);
-    item->set_index(v);
+    item.set_type(Mysqlx::Expr::DocumentPathItem::ARRAY_INDEX);
+    item.set_index(v);
   }
   else
   {
@@ -588,23 +587,23 @@ void Expr_parser::docpath_array_loc(Mysqlx::Expr::DocumentPathItem* item)
   }
 }
 
-void Expr_parser::document_path(Mysqlx::Expr::ColumnIdentifier* colid)
+void Expr_parser::document_path(Mysqlx::Expr::ColumnIdentifier& colid)
 {
   // Parse a JSON-style document path, like WL#7909, but prefix by @. instead of $.
   while (true)
   {
     if (_tokenizer.cur_token_type_is(Token::DOT))
     {
-      docpath_member(colid->mutable_document_path()->Add());
+      docpath_member(*colid.mutable_document_path()->Add());
     }
     else if (_tokenizer.cur_token_type_is(Token::LSQBRACKET))
     {
-      docpath_array_loc(colid->mutable_document_path()->Add());
+      docpath_array_loc(*colid.mutable_document_path()->Add());
     }
     else if (_tokenizer.cur_token_type_is(Token::DOUBLESTAR))
     {
       _tokenizer.consume_token(Token::DOUBLESTAR);
-      Mysqlx::Expr::DocumentPathItem* item = colid->mutable_document_path()->Add();
+      Mysqlx::Expr::DocumentPathItem* item = colid.mutable_document_path()->Add();
       item->set_type(Mysqlx::Expr::DocumentPathItem::DOUBLE_ASTERISK);
     }
     else
@@ -612,8 +611,8 @@ void Expr_parser::document_path(Mysqlx::Expr::ColumnIdentifier* colid)
       break;
     }
   }
-  size_t size = colid->document_path_size();
-  if (size > 0 && (colid->document_path(size - 1).type() == Mysqlx::Expr::DocumentPathItem::DOUBLE_ASTERISK))
+  size_t size = colid.document_path_size();
+  if (size > 0 && (colid.document_path(size - 1).type() == Mysqlx::Expr::DocumentPathItem::DOUBLE_ASTERISK))
   {
     throw Parser_error((boost::format("JSON path may not end in '**' at %d") % _tokenizer.get_token_pos()).str());
   }
@@ -650,7 +649,7 @@ std::auto_ptr<Mysqlx::Expr::Expr> Expr_parser::column_identifier()
     if (_tokenizer.cur_token_type_is(Token::AT))
     {
       _tokenizer.consume_token(Token::AT);
-      document_path(colid);
+      document_path(*colid);
     }
   }
   else
@@ -663,7 +662,7 @@ std::auto_ptr<Mysqlx::Expr::Expr> Expr_parser::column_identifier()
       const std::string& value = _tokenizer.consume_token(Token::IDENT);
       item->set_value(value.c_str(), value.size());
     }
-    document_path(colid);
+    document_path(*colid);
   }
   e->set_type(Mysqlx::Expr::Expr::IDENT);
   return e;
@@ -861,7 +860,6 @@ std::auto_ptr<Mysqlx::Expr::Expr> Expr_parser::ilri_expr()
   if (_tokenizer.tokens_available())
   {
     ::google::protobuf::RepeatedPtrField< ::Mysqlx::Expr::Expr >* params = e->mutable_operator_()->mutable_param();
-    //lhs.release();
     const Token& op_name_tok = _tokenizer.peek_token();
     const std::string& op_name = op_name_tok.get_text();
     bool has_op_name = true;
@@ -970,11 +968,6 @@ std::auto_ptr<Mysqlx::Expr::Expr> Expr_parser::expr()
 {
   return or_expr();
 }
-
-/*std::auto_ptr<Mysqlx::Expr::Expr> Expr_parser::expr_into(Mysqlx::Expr::Expr* e)
-{
-  return or_expr();
-}*/
 
 std::string Expr_unparser::any_to_string(const Mysqlx::Datatypes::Any& a)
 {
@@ -1206,4 +1199,30 @@ std::string Expr_unparser::expr_to_string(const Mysqlx::Expr::Expr& e)
   }
 
   return "";
+}
+
+std::string Expr_unparser::column_to_string(const Mysqlx::Crud::Column& c)
+{
+  std::string result = c.name();
+  if (c.document_path_size() != 0)
+    result += "@" + Expr_unparser::document_path_to_string(c.document_path());
+  if (c.has_alias())
+    result += " as " + c.alias();
+  return result;
+}
+
+std::string Expr_unparser::column_list_to_string(std::vector<Mysqlx::Crud::Column*>& columns)
+{
+  std::string result("projection (");
+  std::vector<Mysqlx::Crud::Column*>::const_iterator it, myend = columns.end();
+  int i = 0;
+  for (it = columns.begin(); it != myend; ++it, ++i)
+  {
+    std::string strcol = Expr_unparser::column_to_string(**it);
+    result += strcol;
+    if (i + 1 < columns.size())
+      result += ", ";
+  }
+  result += ")";
+  return result;
 }

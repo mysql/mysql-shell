@@ -27,11 +27,11 @@
 #include <memory>
 #include <stdexcept>
 
-//#include <boost/shared_ptr.hpp>
 #include <boost/function.hpp>
 
 #include "mysqlx_datatypes.pb.h"
 #include "mysqlx_expr.pb.h"
+#include "mysqlx_crud.pb.h"
 
 namespace mysqlx
 {
@@ -94,7 +94,8 @@ namespace mysqlx
       YEAR = 52,
       PLACEHOLDER = 53,
       DOUBLESTAR = 54,
-      MOD = 55
+      MOD = 55,
+      AS = 56
     };
 
     Token(TokenType type, const std::string& text);
@@ -145,8 +146,9 @@ namespace mysqlx
     std::vector<Token>::const_iterator begin() const { return _tokens.begin(); }
     std::vector<Token>::const_iterator end() const { return _tokens.end(); }
 
-  private:
     void get_tokens();
+
+protected:  
     std::vector<Token> _tokens;
     std::string _input;
     tokens_t::size_type _pos;
@@ -239,6 +241,7 @@ namespace mysqlx
       }
     };
 
+public:
     struct maps map;
   };
 
@@ -252,9 +255,9 @@ namespace mysqlx
     void paren_expr_list(::google::protobuf::RepeatedPtrField< ::Mysqlx::Expr::Expr >* expr_list);
     std::auto_ptr<Mysqlx::Expr::Identifier> identifier();
     std::auto_ptr<Mysqlx::Expr::Expr> function_call();
-    void docpath_member(Mysqlx::Expr::DocumentPathItem* item);
-    void docpath_array_loc(Mysqlx::Expr::DocumentPathItem* item);
-    void document_path(Mysqlx::Expr::ColumnIdentifier* colid);
+    void docpath_member(Mysqlx::Expr::DocumentPathItem& item);
+    void docpath_array_loc(Mysqlx::Expr::DocumentPathItem& item);
+    void document_path(Mysqlx::Expr::ColumnIdentifier& colid);
     std::auto_ptr<Mysqlx::Expr::Expr> column_identifier();
     std::auto_ptr<Mysqlx::Expr::Expr> atomic_expr();
     std::auto_ptr<Mysqlx::Expr::Expr> parse_left_assoc_binary_op_expr(std::set<Token::TokenType>& types, inner_parser_t inner_parser);
@@ -267,7 +270,6 @@ namespace mysqlx
     std::auto_ptr<Mysqlx::Expr::Expr> and_expr();
     std::auto_ptr<Mysqlx::Expr::Expr> or_expr();
     std::auto_ptr<Mysqlx::Expr::Expr> expr();
-    //std::auto_ptr<Mysqlx::Expr::Expr> expr_into(Mysqlx::Expr::Expr *e);
 
     std::vector<Token>::const_iterator begin() const { return _tokenizer.begin(); }
     std::vector<Token>::const_iterator end() const { return _tokenizer.end(); }
@@ -289,6 +291,8 @@ namespace mysqlx
     static std::string operator_to_string(const Mysqlx::Expr::Operator& op);
     static std::string quote_identifier(const std::string& id);
     static std::string expr_to_string(const Mysqlx::Expr::Expr& e);
+static std::string column_to_string(const Mysqlx::Crud::Column& c);
+  static std::string column_list_to_string(std::vector<Mysqlx::Crud::Column*>& columns);
 
     static void replace(std::string& target, const std::string& old_val, const std::string& new_val);
   };
