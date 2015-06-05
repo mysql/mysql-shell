@@ -1,4 +1,3 @@
-
 /*
 * Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
 *
@@ -25,7 +24,6 @@
 #include <boost/lexical_cast.hpp>
 
 using namespace mysqlx;
-
 
 Proj_parser::Proj_parser(const std::string& expr_str, bool document_mode, bool allow_alias) : _document_mode(document_mode), _allow_alias(allow_alias), _tokenizer(expr_str)
 {
@@ -56,7 +54,7 @@ std::vector<Mysqlx::Crud::Column*> Proj_parser::projection()
  *   column_identifier ::= ( IDENT [ DOT IDENT [ DOT IDENT ] ] [ '@' document_path ] ) [as_rule]
  * document_mode = true:
  *   column_identifier ::=  ( [ IDENT ] document_path ) [as_rule]
- * 
+ *
  * NOTE: 'as_rule' only applies if allow_alias is true (see Proj_parser ctor)
  * as_rule ::= AS IDENT
  */

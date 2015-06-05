@@ -25,20 +25,20 @@
 #include <vector>
 #include <stack>
 
-
 namespace shcore
 {
-  class MySQL_splitter
+  namespace mysql
   {
-    public:
+    namespace splitter
+    {
       // String SQL parsing functions (from WB)
       const unsigned char* skip_leading_whitespace(const unsigned char *head, const unsigned char *tail);
       bool is_line_break(const unsigned char *head, const unsigned char *line_break);
       size_t determineStatementRanges(const char *sql, size_t length, std::string &delimiter,
                                       std::vector<std::pair<size_t, size_t> > &ranges,
                                       const std::string &line_break, std::stack<std::string> &input_context_stack);
-  };
-  
+    }
+  }
 }
 
 #endif

@@ -67,8 +67,8 @@ namespace mysh
     void update_functions(const std::string& state);
     void enable_function(const char *name, bool enable);
 
-    void set_expression(const std::string &source, const std::string &field, shcore::Value value);
-    void set_projection(const std::string &source, const std::string &field, shcore::Value value);
+    void set_filter(const std::string &source, const std::string &field, shcore::Value value, bool collection);
+    void set_columns(const std::string &source, const std::string &field, shcore::Value value, bool collection, bool with_alias);
     void set_order(const std::string &source, const std::string &field, shcore::Value value);
   };
 };

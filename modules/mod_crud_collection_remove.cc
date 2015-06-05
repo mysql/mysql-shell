@@ -61,7 +61,7 @@ shcore::Value CollectionRemove::remove(const shcore::Argument_list &args)
   std::string path;
   if (args.size())
   {
-    set_expression("CollectionRemove::remove", "SearchCondition", args[0]);
+    set_filter("CollectionRemove::remove", "SearchCondition", args[0], true);
 
     path = "SearchCondition";
   }

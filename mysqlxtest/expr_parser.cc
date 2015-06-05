@@ -1,4 +1,3 @@
-
 /*
  * Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
  *
@@ -107,7 +106,6 @@ Mysqlx::Expr::Expr* Expr_builder::build_unary_op(const std::string& name, Mysqlx
 
 Token::Token(Token::TokenType type, const std::string& text) : _type(type), _text(text)
 {
-
 }
 
 const std::string& Token::get_text() const
@@ -195,7 +193,7 @@ void Tokenizer::get_tokens()
       // int -> digit +
       // expo -> 'E' | 'e'
       // sign -> '-' | '+'
-      while (i < _input.size() && std::isdigit(c = _input[i]))      
+      while (i < _input.size() && std::isdigit(c = _input[i]))
         ++i;
       if (i < _input.size() && _input[i] == '.')
       {
@@ -300,7 +298,7 @@ void Tokenizer::get_tokens()
           ++i;
           _tokens.push_back(Token(Token::NE, std::string("!=")));
         }
-        else 
+        else
         {
           _tokens.push_back(Token(Token::BANG, std::string(1, c)));
         }
@@ -328,7 +326,7 @@ void Tokenizer::get_tokens()
         {
           ++i;
           _tokens.push_back(Token(Token::RSHIFT, std::string(">>")));
-        } 
+        }
         else if (next_char_is(i, '='))
         {
           ++i;
@@ -384,8 +382,8 @@ void Tokenizer::get_tokens()
           {
             // break if we have a quote char that's not double
             break;
-          } 
-          else if ((c == quote_char) || (c == '\\'  && quote_char != '`' ))
+          }
+          else if ((c == quote_char) || (c == '\\'  && quote_char != '`'))
           {
             // && quote_char != '`'
             // this quote char has to be doubled
@@ -405,7 +403,7 @@ void Tokenizer::get_tokens()
         {
           _tokens.push_back(Token(Token::IDENT, val));
         }
-        else 
+        else
         {
           _tokens.push_back(Token(Token::LSTRING, val));
         }
@@ -414,7 +412,7 @@ void Tokenizer::get_tokens()
       {
         throw Parser_error((boost::format("Unknown character at %d") % i).str());
       }
-    } 
+    }
     else
     {
       size_t start = i;
@@ -620,7 +618,7 @@ void Expr_parser::document_path(Mysqlx::Expr::ColumnIdentifier& colid)
 
 std::auto_ptr<Mysqlx::Expr::Expr> Expr_parser::column_identifier()
 {
-  std::auto_ptr<Mysqlx::Expr::Expr> e = std::auto_ptr<Mysqlx::Expr::Expr>(new Mysqlx::Expr::Expr());  
+  std::auto_ptr<Mysqlx::Expr::Expr> e = std::auto_ptr<Mysqlx::Expr::Expr>(new Mysqlx::Expr::Expr());
   if (!_document_mode)
   {
     std::vector<std::string> parts;
@@ -700,7 +698,7 @@ std::auto_ptr<Mysqlx::Expr::Expr> Expr_parser::atomic_expr()
     {
       return std::auto_ptr<Mysqlx::Expr::Expr>(Expr_builder::build_literal_expr(Expr_builder::build_double_any(boost::lexical_cast<double>(val.c_str()) * sign)));
     }
-    else 
+    else
     {
       return std::auto_ptr<Mysqlx::Expr::Expr>(Expr_builder::build_literal_expr(Expr_builder::build_int_any(boost::lexical_cast<int>(val.c_str()) * sign)));
     }
@@ -721,7 +719,7 @@ std::auto_ptr<Mysqlx::Expr::Expr> Expr_parser::atomic_expr()
     return std::auto_ptr<Mysqlx::Expr::Expr>(Expr_builder::build_literal_expr(Expr_builder::build_null_any()));
   }
   else if (type == Token::LNUM)
-  { 
+  {
     const std::string& val = t.get_text();
     if (val.find(".") != std::string::npos)
     {
@@ -742,7 +740,7 @@ std::auto_ptr<Mysqlx::Expr::Expr> Expr_parser::atomic_expr()
     std::auto_ptr<Mysqlx::Expr::Expr> operand(NULL);
     e->set_type(Mysqlx::Expr::Expr::OPERATOR);
     operand = expr();
-    
+
     Mysqlx::Expr::Operator* op = e->mutable_operator_();
     op->set_name("interval");
     op->mutable_param()->AddAllocated(operand.get());
@@ -757,7 +755,7 @@ std::auto_ptr<Mysqlx::Expr::Expr> Expr_parser::atomic_expr()
       throw Parser_error((boost::format("Expected interval units at %d") % _tokenizer.get_token_pos()).str());
     }
     const Token& val = _tokenizer.consume_any_token();
-    std::auto_ptr<Mysqlx::Expr::Expr> param = std::auto_ptr<Mysqlx::Expr::Expr>(Expr_builder::build_literal_expr(Expr_builder::build_string_any(val.get_text())) );
+    std::auto_ptr<Mysqlx::Expr::Expr> param = std::auto_ptr<Mysqlx::Expr::Expr>(Expr_builder::build_literal_expr(Expr_builder::build_string_any(val.get_text())));
     e->mutable_operator_()->mutable_param()->AddAllocated(param.get());
     param.release();
     return e;
@@ -765,7 +763,7 @@ std::auto_ptr<Mysqlx::Expr::Expr> Expr_parser::atomic_expr()
   else if (type == Token::IDENT)
   {
     _tokenizer.unget_token();
-    if (_tokenizer.next_token_type(Token::LPAREN) || 
+    if (_tokenizer.next_token_type(Token::LPAREN) ||
       (_tokenizer.next_token_type(Token::DOT) && _tokenizer.pos_token_type_is(_tokenizer.get_token_pos() + 2, Token::IDENT) && _tokenizer.pos_token_type_is(_tokenizer.get_token_pos() + 3, Token::LPAREN)))
     {
       return function_call();
@@ -784,7 +782,7 @@ std::auto_ptr<Mysqlx::Expr::Expr> Expr_parser::parse_left_assoc_binary_op_expr(s
   std::auto_ptr<Mysqlx::Expr::Expr> lhs = std::auto_ptr<Mysqlx::Expr::Expr>(inner_parser(this));
   while (_tokenizer.tokens_available() && _tokenizer.is_type_within_set(types))
   {
-    std::auto_ptr<Mysqlx::Expr::Expr> e = std::auto_ptr<Mysqlx::Expr::Expr> (new Mysqlx::Expr::Expr());
+    std::auto_ptr<Mysqlx::Expr::Expr> e = std::auto_ptr<Mysqlx::Expr::Expr>(new Mysqlx::Expr::Expr());
     e->set_type(Mysqlx::Expr::Expr::OPERATOR);
     const Token &t = _tokenizer.consume_any_token();
     const std::string& op_val = t.get_text();
@@ -904,7 +902,7 @@ std::auto_ptr<Mysqlx::Expr::Expr> Expr_parser::ilri_expr()
     {
       _tokenizer.consume_token(Token::BETWEEN);
       params->AddAllocated(lhs.get());
-      std::auto_ptr<Mysqlx::Expr::Expr> tmp = comp_expr();      
+      std::auto_ptr<Mysqlx::Expr::Expr> tmp = comp_expr();
       params->AddAllocated(tmp.get());
       tmp.release();
       _tokenizer.consume_token(Token::AND);
@@ -920,7 +918,7 @@ std::auto_ptr<Mysqlx::Expr::Expr> Expr_parser::ilri_expr()
       params->AddAllocated(tmp.get());
       tmp.release();
     }
-    else 
+    else
     {
       if (is_not)
         throw Parser_error((boost::format("Unknown token after NOT as pos %d") % _tokenizer.get_token_pos()).str());
@@ -939,7 +937,7 @@ std::auto_ptr<Mysqlx::Expr::Expr> Expr_parser::ilri_expr()
         lhs.release();
         lhs.reset(expr);
       }
-      else 
+      else
       {
         lhs.release();
         lhs = e;
@@ -975,7 +973,7 @@ std::string Expr_unparser::any_to_string(const Mysqlx::Datatypes::Any& a)
   {
     return Expr_unparser::scalar_to_string(a.scalar());
   }
-  else 
+  else
   {
     // TODO: handle objects & array here
     throw Parser_error("Unknown type tag at Any" + a.DebugString());
@@ -994,26 +992,26 @@ std::string Expr_unparser::scalar_to_string(const Mysqlx::Datatypes::Scalar& s)
 {
   switch (s.type())
   {
-  case Mysqlx::Datatypes::Scalar::V_SINT:
-    return (boost::format("%d") % s.v_signed_int()).str();
-  case Mysqlx::Datatypes::Scalar::V_DOUBLE:
-    return (boost::format("%f") % s.v_double()).str();
-  case Mysqlx::Datatypes::Scalar::V_BOOL:
+    case Mysqlx::Datatypes::Scalar::V_SINT:
+      return (boost::format("%d") % s.v_signed_int()).str();
+    case Mysqlx::Datatypes::Scalar::V_DOUBLE:
+      return (boost::format("%f") % s.v_double()).str();
+    case Mysqlx::Datatypes::Scalar::V_BOOL:
     {
       if (s.v_bool())
         return "TRUE";
       else
         return "FALSE";
     }
-  case Mysqlx::Datatypes::Scalar::V_OCTETS:
-  {
-    const char* value = s.v_opaque().c_str();
-    return "\"" + Expr_unparser::escape_literal(value) + "\"";
-  }
-  case Mysqlx::Datatypes::Scalar::V_NULL:
-    return "NULL";
-  default:
-    throw Parser_error("Unknown type tag at Scalar: " + s.DebugString());
+    case Mysqlx::Datatypes::Scalar::V_OCTETS:
+    {
+      const char* value = s.v_opaque().c_str();
+      return "\"" + Expr_unparser::escape_literal(value) + "\"";
+    }
+    case Mysqlx::Datatypes::Scalar::V_NULL:
+      return "NULL";
+    default:
+      throw Parser_error("Unknown type tag at Scalar: " + s.DebugString());
   }
 }
 
@@ -1026,18 +1024,18 @@ std::string Expr_unparser::document_path_to_string(const ::google::protobuf::Rep
     const Mysqlx::Expr::DocumentPathItem& dpi = dp.Get(i);
     switch (dpi.type())
     {
-    case Mysqlx::Expr::DocumentPathItem::MEMBER:
-      parts.push_back("." + dpi.value());
-      break;
-    case Mysqlx::Expr::DocumentPathItem::ARRAY_INDEX:
-      parts.push_back((boost::format("[%d]") % dpi.index()).str());
-      break;
-    case Mysqlx::Expr::DocumentPathItem::ARRAY_INDEX_ASTERISK:
-      parts.push_back("[*]");
-      break;
-    case Mysqlx::Expr::DocumentPathItem::DOUBLE_ASTERISK:
-      parts.push_back("**");
-      break;
+      case Mysqlx::Expr::DocumentPathItem::MEMBER:
+        parts.push_back("." + dpi.value());
+        break;
+      case Mysqlx::Expr::DocumentPathItem::ARRAY_INDEX:
+        parts.push_back((boost::format("[%d]") % dpi.index()).str());
+        break;
+      case Mysqlx::Expr::DocumentPathItem::ARRAY_INDEX_ASTERISK:
+        parts.push_back("[*]");
+        break;
+      case Mysqlx::Expr::DocumentPathItem::DOUBLE_ASTERISK:
+        parts.push_back("**");
+        break;
     }
   }
 
@@ -1139,7 +1137,7 @@ std::string Expr_unparser::operator_to_string(const Mysqlx::Expr::Operator& op)
       return name + " ( " + Expr_unparser::expr_to_string(ps.Get(0)) + ")";
     }
   }
-  else 
+  else
   {
     throw Parser_error((boost::format("Unknown operator structure %s") % op.name()).str());
   }
@@ -1160,9 +1158,9 @@ void Expr_unparser::replace(std::string& target, const std::string& old_val, con
 }
 
 std::string Expr_unparser::quote_identifier(const std::string& id)
-{ 
+{
   if (id.find("`") != std::string::npos || id.find("\"") != std::string::npos || id.find("'") != std::string::npos || id.find("@") != std::string::npos || id.find(".") != std::string::npos)
-  { 
+  {
     std::string result = id;
     Expr_unparser::replace(result, "`", "``");
     return "`" + result + "`";

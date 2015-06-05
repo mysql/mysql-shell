@@ -44,7 +44,6 @@ Value Shell_sql::handle_input(std::string &code, Interactive_input_state &state,
   Value ret_val;
   state = Input_ok;
   Value session_wrapper = _owner->get_global("session");
-  MySQL_splitter splitter;
 
   _last_handled.clear();
 
@@ -68,7 +67,7 @@ Value Shell_sql::handle_input(std::string &code, Interactive_input_state &state,
       // Parses the input string to identify individual statements in it.
       // Will return a range for every statement that ends with the delimiter, if there
       // is additional code after the last delimiter, a range for it will be included too.
-      statement_count = splitter.determineStatementRanges(code.c_str(), code.length(), _delimiter, ranges, "\n", _parsing_context_stack);
+      statement_count = shcore::mysql::splitter::determineStatementRanges(code.c_str(), code.length(), _delimiter, ranges, "\n", _parsing_context_stack);
     }
 
     // statement_count is > 0 if the splitter determined a statement was completed

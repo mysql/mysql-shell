@@ -121,14 +121,14 @@ namespace shcore {
       SCOPED_TRACE("Testing parameter validation on fields");
       exec_and_out_contains("collection.find().fields();", "", "Invalid number of arguments in CollectionFind::fields");
       exec_and_out_contains("collection.find().fields(5);", "", "CollectionFind::fields: string parameter required.");
-      exec_and_out_contains("collection.find().fields('');", "", "CollectionFind::fields: not yet implemented.");
+      exec_and_out_contains("collection.find().fields('name as alias');", "", "");
     }
 
     {
       SCOPED_TRACE("Testing parameter validation on groupBy");
       exec_and_out_contains("collection.find().groupBy();", "", "Invalid number of arguments in CollectionFind::groupBy");
       exec_and_out_contains("collection.find().groupBy(5);", "", "CollectionFind::groupBy: string parameter required.");
-      exec_and_out_contains("collection.find().groupBy('');", "", "CollectionFind::groupBy: not yet implemented.");
+      exec_and_out_contains("collection.find().groupBy('name');", "", "");
     }
 
     {

@@ -148,7 +148,7 @@ namespace mysqlx
 
     void get_tokens();
 
-protected:  
+  protected:
     std::vector<Token> _tokens;
     std::string _input;
     tokens_t::size_type _pos;
@@ -241,7 +241,7 @@ protected:
       }
     };
 
-public:
+  public:
     struct maps map;
   };
 
@@ -291,8 +291,8 @@ public:
     static std::string operator_to_string(const Mysqlx::Expr::Operator& op);
     static std::string quote_identifier(const std::string& id);
     static std::string expr_to_string(const Mysqlx::Expr::Expr& e);
-static std::string column_to_string(const Mysqlx::Crud::Column& c);
-  static std::string column_list_to_string(std::vector<Mysqlx::Crud::Column*>& columns);
+    static std::string column_to_string(const Mysqlx::Crud::Column& c);
+    static std::string column_list_to_string(std::vector<Mysqlx::Crud::Column*>& columns);
 
     static void replace(std::string& target, const std::string& old_val, const std::string& new_val);
   };

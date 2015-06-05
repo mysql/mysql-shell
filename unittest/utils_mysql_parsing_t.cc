@@ -1,4 +1,3 @@
-
 /* Copyright (c) 2014, 2015, Oracle and/or its affiliates. All rights reserved.
 
  This program is free software; you can redistribute it and/or modify
@@ -14,7 +13,6 @@
  along with this program; if not, write to the Free Software
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA */
 
-
 #include <cstdio>
 #include <cstdlib>
 #include <fstream>
@@ -26,18 +24,13 @@
 #include "gtest/gtest.h"
 #include "../utils/utils_mysql_parsing.h"
 
-
 namespace shcore {
-
-
   namespace sql_shell_tests {
-
     class TestMySQLSplitter : public ::testing::Test
     {
     protected:
       std::stack<std::string> multiline_flags;
       std::string delimiter;
-      MySQL_splitter splitter;
       std::vector<std::pair<size_t, size_t> > ranges;
       std::string sql;
 
@@ -51,7 +44,7 @@ namespace shcore {
         // Sends the received sql and returns the statement count considered by the splitter along with
         // status data in delimiter, ranges and multiline_flags
         sql = data;
-        return splitter.determineStatementRanges(sql.c_str(), sql.length(), delimiter, ranges, "\n", multiline_flags);
+        return shcore::mysql::splitter::determineStatementRanges(sql.c_str(), sql.length(), delimiter, ranges, "\n", multiline_flags);
       }
     };
 
@@ -74,7 +67,6 @@ namespace shcore {
       EXPECT_EQ("-", multiline_flags.top());
       EXPECT_EQ(1, ranges.size());
       EXPECT_EQ("databases", sql.substr(ranges[0].first, ranges[0].second));
-
 
       EXPECT_EQ(1, send_sql(";"));
       EXPECT_TRUE(multiline_flags.empty());
@@ -134,7 +126,7 @@ namespace shcore {
       EXPECT_EQ(1, send_sql(sql));
       EXPECT_TRUE(multiline_flags.empty());
       EXPECT_EQ(1, ranges.size());
-      EXPECT_EQ(sql.substr(0, sql.length()-1), sql.substr(ranges[0].first, ranges[0].second));
+      EXPECT_EQ(sql.substr(0, sql.length() - 1), sql.substr(ranges[0].first, ranges[0].second));
 
       sql = "#this is an valid comment\n"
             "show databases;";

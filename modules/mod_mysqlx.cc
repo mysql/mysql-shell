@@ -17,7 +17,7 @@
  * 02110-1301  USA
  */
 
-#include "expr_parser.h"
+#include "mysqlx_parser.h"
 #include "mod_mysqlx.h"
 
 using namespace mysh;
@@ -397,27 +397,26 @@ shcore::Value X_connection::crud_collection_find(shcore::Value::Map_type_ref dat
     if (data->has_key("find.SearchCondition"))
     {
       std::string filter = (*data)["find.SearchCondition"].as_string();
-      mysqlx::Expr_parser expression(filter, true);
-      find.set_allocated_criteria(expression.expr().release());
+      find.set_allocated_criteria(mysqlx::parser::parse_collection_filter(filter).release());
     }
 
     if (data->has_key("fields.SearchFields"))
     {
-      // TODO: Set the fields when the Projection parser is implemented
+      std::string str_columns = (*data)["fields.SearchFields"].as_string();
+      std::vector<Mysqlx::Crud::Column*> columns = mysqlx::parser::parse_collection_column_list_with_alias(str_columns);
+
+      for (size_t index = 0; index < columns.size(); index++)
+        find.mutable_projection()->AddAllocated(columns[index]);
     }
 
     if (data->has_key("groupby.SearchFields"))
     {
-      // TODO: Set the ordering when the Projection parser is implemented
+      // TODO: Not supported by protocol
     }
 
     if (data->has_key("having.SearchCondition"))
     {
-      // TODO: Sets the value when the Expression parser for collections
-      //       is implemented and HAVING is supported
-      //std::string filter = (*data)["having.SearchCondition"].as_string();
-      //mysqlx::Expr_parser expression(filter, true);
-      //find.set...(expression.expr().release());
+      // TODO: Not supported by protocol
     }
 
     if (data->has_key("SortFields"))
@@ -498,8 +497,7 @@ shcore::Value X_connection::crud_collection_remove(shcore::Value::Map_type_ref d
     if (data->has_key("SearchCondition"))
     {
       std::string filter = (*data)["SearchCondition"].as_string();
-      mysqlx::Expr_parser expression(filter, true);
-      remove.set_allocated_criteria(expression.expr().release());
+      remove.set_allocated_criteria(mysqlx::parser::parse_collection_filter(filter).release());
     }
 
     if (data->has_key("SortFields"))

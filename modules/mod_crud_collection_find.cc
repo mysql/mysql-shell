@@ -69,7 +69,7 @@ shcore::Value CollectionFind::find(const shcore::Argument_list &args)
   std::string path;
   if (args.size())
   {
-    set_expression("CollectionFind::find", "find.SearchCondition", args[0]);
+    set_filter("CollectionFind::find", "find.SearchCondition", args[0], true);
 
     path = "SearchCondition";
   }
@@ -84,7 +84,7 @@ shcore::Value CollectionFind::fields(const shcore::Argument_list &args)
 {
   args.ensure_count(1, "CollectionFind::fields");
 
-  set_projection("CollectionFind::fields", "fields.SearchFields", args[0]);
+  set_columns("CollectionFind::fields", "fields.SearchFields", args[0], true, true);
 
   return Value(Object_bridge_ref(this));
 }
@@ -93,7 +93,7 @@ shcore::Value CollectionFind::group_by(const shcore::Argument_list &args)
 {
   args.ensure_count(1, "CollectionFind::groupBy");
 
-  set_projection("CollectionFind::groupBy", "groupby.SearchFields", args[0]);
+  set_columns("CollectionFind::groupBy", "groupby.SearchFields", args[0], true, false);
 
   return Value(Object_bridge_ref(this));
 }
@@ -102,7 +102,7 @@ shcore::Value CollectionFind::having(const shcore::Argument_list &args)
 {
   args.ensure_count(1, "CollectionFind::having");
 
-  set_projection("CollectionFind::having", "having.SearchCondition", args[0]);
+  set_filter("CollectionFind::having", "having.SearchCondition", args[0], true);
 
   return Value(Object_bridge_ref(this));
 }
@@ -111,7 +111,7 @@ shcore::Value CollectionFind::sort(const shcore::Argument_list &args)
 {
   args.ensure_count(1, "CollectionFind::sort");
 
-  set_projection("CollectionFind::sort", "SortFields", args[0]);
+  set_order("CollectionFind::sort", "SortFields", args[0]);
 
   return Value(Object_bridge_ref(this));
 }
