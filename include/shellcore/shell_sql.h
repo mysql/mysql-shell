@@ -22,7 +22,6 @@
 
 #include "shellcore/shell_core.h"
 #include "shellcore/ishell_core.h"
-#include "../modules/mod_session.h"
 #include <boost/system/error_code.hpp>
 #include <stack>
 

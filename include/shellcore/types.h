@@ -84,9 +84,13 @@ namespace shcore {
     typedef std::vector<Value> Array_type;
     typedef boost::shared_ptr<Array_type> Array_type_ref;
 
-    class TYPES_COMMON_PUBLIC Map_type : public std::map<std::string, Value>
+    class TYPES_COMMON_PUBLIC Map_type
     {
     public:
+      typedef std::map<std::string, Value> container_type;
+      typedef container_type::const_iterator const_iterator;
+      typedef container_type::iterator iterator;
+
       inline bool has_key(const std::string &k) const { return find(k) != end(); }
 
       Value_type get_type(const std::string &k) const;
@@ -111,6 +115,25 @@ namespace shcore {
         iter->second.check_type(Object);
         return iter->second.as_object<C>();
       }
+
+      const_iterator find(const std::string &k) const { return _map.find(k); }
+      iterator find(const std::string &k) { return _map.find(k); }
+
+      void erase(const std::string &k) { _map.erase(k); }
+
+      const_iterator begin() const { return _map.begin(); }
+      iterator begin() { return _map.begin(); }
+
+      const_iterator end() const { return _map.end(); }
+      iterator end() { return _map.end(); }
+
+      container_type::mapped_type& operator [](const std::string &k) { return _map[k]; }
+      bool operator == (const Map_type &other) const { return _map == other._map; }
+
+      size_t size() const { return _map.size(); }
+      size_t count(const std::string &k) const { return _map.count(k); }
+    private:
+      container_type _map;
     };
     typedef boost::shared_ptr<Map_type> Map_type_ref;
 
@@ -143,6 +166,8 @@ namespace shcore {
     explicit Value(boost::weak_ptr<Map_type> n);
     explicit Value(Map_type_ref n);
     explicit Value(Array_type_ref n);
+
+    static Value wrap(Object_bridge *o) { return Value(boost::shared_ptr<Object_bridge>(o)); }
 
     static Value new_array() { return Value(boost::shared_ptr<Array_type>(new Array_type())); }
     static Value new_map() { return Value(boost::shared_ptr<Map_type>(new Map_type())); }
@@ -198,7 +223,7 @@ namespace shcore {
     static Value parse_number(char **pc);
   };
 
-  class TYPES_COMMON_PUBLIC Argument_list : public std::vector<Value>
+  class TYPES_COMMON_PUBLIC Argument_list
   {
   public:
     const std::string &string_at(int i) const;
@@ -212,6 +237,15 @@ namespace shcore {
     void ensure_count(int c, const char *context) const;
     void ensure_count(int minc, int maxc, const char *context) const;
     void ensure_at_least(int minc, const char *context) const;
+
+    void push_back(const Value &value) { _args.push_back(value); }
+    size_t size() const { return _args.size(); }
+    const Value &at(size_t i) const { return _args.at(i); }
+    Value &operator [](size_t i) { return _args[i]; }
+    const Value &operator [](size_t i) const { return _args[i]; }
+    void clear() { _args.clear(); }
+  private:
+    std::vector<Value> _args;
   };
 
   template<class T> struct value_type_for_native { };
