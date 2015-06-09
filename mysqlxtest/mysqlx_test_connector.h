@@ -20,8 +20,8 @@
 // MySQL DB access module, for use by plugins and others
 // For the module that implements interactive DB functionality see mod_db
 
-#ifndef _MYSQLX_CONNECTOR_H_
-#define _MYSQLX_CONNECTOR_H_
+#ifndef _MYSQLX_TEST_CONNECTOR_H_
+#define _MYSQLX_TEST_CONNECTOR_H_
 
 #include <boost/asio.hpp>
 #include <google/protobuf/message.h>

@@ -45,8 +45,21 @@ class Proj_parser
 public:
   Proj_parser(const std::string& expr_str, bool document_mode = false, bool allow_alias = true);
 
-  std::vector<Mysqlx::Crud::Column*> projection();
-  std::auto_ptr<Mysqlx::Crud::Column> column_identifier();
+  template<typename Container>
+  void parse(Container &result)
+  {
+    Mysqlx::Crud::Column *colid = result.Add();
+    column_identifier(*colid);
+
+    while (_tokenizer.cur_token_type_is(Token::COMMA))
+    {
+      _tokenizer.consume_token(Token::COMMA);
+      colid = result.Add();
+      column_identifier(*colid);
+    }
+  }
+
+  void column_identifier(Mysqlx::Crud::Column &column);
   void docpath_member(Mysqlx::Expr::DocumentPathItem& item);
   void docpath_array_loc(Mysqlx::Expr::DocumentPathItem& item);
   void document_path(Mysqlx::Crud::Column& col);

@@ -29,40 +29,44 @@ namespace mysqlx
 {
   namespace parser
   {
-    std::auto_ptr<Mysqlx::Expr::Expr> parse_collection_filter(const std::string &source)
+    inline std::auto_ptr<Mysqlx::Expr::Expr> parse_collection_filter(const std::string &source)
     {
       Expr_parser parser(source, true);
       return parser.expr();
     }
 
-    std::auto_ptr<Mysqlx::Expr::Expr> parse_table_filter(const std::string &source)
+    inline std::auto_ptr<Mysqlx::Expr::Expr> parse_table_filter(const std::string &source)
     {
       Expr_parser parser(source);
       return parser.expr();
     }
 
-    std::vector<Mysqlx::Crud::Column*> parse_collection_column_list(const std::string &source)
+    template<typename Container>
+    inline void parse_collection_column_list(Container &container, const std::string &source)
     {
       Proj_parser parser(source, true, false);
-      return parser.projection();
+      parser.parse(container);
     }
 
-    std::vector<Mysqlx::Crud::Column*> parse_collection_column_list_with_alias(const std::string &source)
+    template<typename Container>
+    inline void parse_collection_column_list_with_alias(Container &container, const std::string &source)
     {
       Proj_parser parser(source, true, true);
-      return parser.projection();
+      parser.parse(container);
     }
 
-    std::vector<Mysqlx::Crud::Column*> parse_table_column_list(const std::string &source)
+    template<typename Container>
+    inline void parse_table_column_list(Container &container, const std::string &source)
     {
       Proj_parser parser(source, false, false);
-      return parser.projection();
+      parser.parse(container);
     }
 
-    std::vector<Mysqlx::Crud::Column*> parse_table_column_list_with_alias(const std::string &source)
+    template<typename Container>
+    inline void parse_table_column_list_with_alias(Container &container, const std::string &source)
     {
       Proj_parser parser(source, false, true);
-      return parser.projection();
+      parser.parse(container);
     }
   };
 };

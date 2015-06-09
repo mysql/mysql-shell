@@ -25,28 +25,10 @@
 
 using namespace mysqlx;
 
-Proj_parser::Proj_parser(const std::string& expr_str, bool document_mode, bool allow_alias) : _document_mode(document_mode), _allow_alias(allow_alias), _tokenizer(expr_str)
+Proj_parser::Proj_parser(const std::string& expr_str, bool document_mode, bool allow_alias)
+: _tokenizer(expr_str), _document_mode(document_mode), _allow_alias(allow_alias)
 {
   _tokenizer.get_tokens();
-}
-
-/*
- * projection ::= column_identifier ( COMMA column_identifier )*
- */
-std::vector<Mysqlx::Crud::Column*> Proj_parser::projection()
-{
-  std::vector<Mysqlx::Crud::Column*> result;
-  std::auto_ptr<Mysqlx::Crud::Column> colid = column_identifier();
-  result.push_back(colid.get());
-  colid.release();
-  while (_tokenizer.cur_token_type_is(Token::COMMA))
-  {
-    _tokenizer.consume_token(Token::COMMA);
-    colid = column_identifier();
-    result.push_back(colid.get());
-    colid.release();
-  }
-  return result;
 }
 
 /*
@@ -58,9 +40,8 @@ std::vector<Mysqlx::Crud::Column*> Proj_parser::projection()
  * NOTE: 'as_rule' only applies if allow_alias is true (see Proj_parser ctor)
  * as_rule ::= AS IDENT
  */
-std::auto_ptr<Mysqlx::Crud::Column> Proj_parser::column_identifier()
+void Proj_parser::column_identifier(Mysqlx::Crud::Column &col)
 {
-  std::auto_ptr<Mysqlx::Crud::Column> col(new Mysqlx::Crud::Column());
   if (!_document_mode)
   {
     std::vector<std::string> parts;
@@ -82,24 +63,24 @@ std::auto_ptr<Mysqlx::Crud::Column> Proj_parser::column_identifier()
       if (i + 1 < parts.size())
         fullname += ".";
     }
-    col->set_name(fullname.c_str());
+    col.set_name(fullname.c_str());
 
     if (_tokenizer.cur_token_type_is(Token::AT))
     {
       _tokenizer.consume_token(Token::AT);
-      document_path(*(col.get()));
+      document_path(col);
     }
   }
   else
   {
     if (_tokenizer.cur_token_type_is(Token::IDENT))
     {
-      Mysqlx::Expr::DocumentPathItem& item = *col->mutable_document_path()->Add();
+      Mysqlx::Expr::DocumentPathItem& item = *col.mutable_document_path()->Add();
       item.set_type(Mysqlx::Expr::DocumentPathItem::MEMBER);
       const std::string& value = _tokenizer.consume_token(Token::IDENT);
       item.set_value(value.c_str(), value.size());
     }
-    document_path(*(col.get()));
+    document_path(col);
   }
   if (_tokenizer.cur_token_type_is(Token::AS))
   {
@@ -107,14 +88,13 @@ std::auto_ptr<Mysqlx::Crud::Column> Proj_parser::column_identifier()
     {
       _tokenizer.consume_token(Token::AS);
       const std::string& alias = _tokenizer.consume_token(Token::IDENT);
-      col->set_alias(alias.c_str());
+      col.set_alias(alias.c_str());
     }
     else
     {
       throw Parser_error((boost::format("Unexpected token 'AS' at pos %d") % _tokenizer.get_token_pos()).str());
     }
   }
-  return col;
 }
 
 /*
@@ -205,3 +185,4 @@ void Proj_parser::document_path(Mysqlx::Crud::Column& col)
     throw Parser_error((boost::format("JSON path may not end in '**' at %d") % _tokenizer.get_token_pos()).str());
   }
 }
+
