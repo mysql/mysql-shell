@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 1015, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -188,6 +188,8 @@ Mysql_connection::Mysql_connection(const std::string &uri, const char *password)
   if (password)
     pass.assign(password);
 
+  unsigned int tcp = MYSQL_PROTOCOL_TCP;
+  mysql_options(_mysql, MYSQL_OPT_PROTOCOL, &tcp);
   if (!mysql_real_connect(_mysql, host.c_str(), user.c_str(), pass.c_str(), db.empty() ? NULL : db.c_str(), port, sock.empty() ? NULL : sock.c_str(), flags))
   {
     throw shcore::Exception::error_with_code_and_state("MySQLError", mysql_error(_mysql), mysql_errno(_mysql), mysql_sqlstate(_mysql));
