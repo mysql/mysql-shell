@@ -16,6 +16,7 @@
 include_directories("${CMAKE_SOURCE_DIR}/include" 
                     "${CMAKE_SOURCE_DIR}/utils" 
                     "${CMAKE_SOURCE_DIR}/mysqlxtest" 
+                    "${CMAKE_SOURCE_DIR}/mysqlxtest/common"
                     "${MYSQL_INCLUDE_DIR}"
                     "${Boost_INCLUDE_DIRS}")
 
