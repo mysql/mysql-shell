@@ -403,10 +403,7 @@ shcore::Value X_connection::crud_collection_find(shcore::Value::Map_type_ref dat
     if (data->has_key("fields.SearchFields"))
     {
       std::string str_columns = (*data)["fields.SearchFields"].as_string();
-      std::vector<Mysqlx::Crud::Column*> columns = mysqlx::parser::parse_collection_column_list_with_alias(str_columns);
-
-      for (size_t index = 0; index < columns.size(); index++)
-        find.mutable_projection()->AddAllocated(columns[index]);
+      mysqlx::parser::parse_collection_column_list_with_alias(*find.mutable_projection(), str_columns);
     }
 
     if (data->has_key("groupby.SearchFields"))

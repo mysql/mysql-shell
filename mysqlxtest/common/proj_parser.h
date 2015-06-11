@@ -58,6 +58,7 @@ public:
       column_identifier(*colid);
     }
   }
+  std::vector<Mysqlx::Crud::Column*> projection(); 
 
   void column_identifier(Mysqlx::Crud::Column &column);
   void docpath_member(Mysqlx::Expr::DocumentPathItem& item);

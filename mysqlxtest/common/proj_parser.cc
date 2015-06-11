@@ -186,3 +186,20 @@ void Proj_parser::document_path(Mysqlx::Crud::Column& col)
   }
 }
 
+
+std::vector<Mysqlx::Crud::Column*> Proj_parser::projection()
+{
+  std::vector<Mysqlx::Crud::Column*> result;
+
+  Mysqlx::Crud::Column *colid = new Mysqlx::Crud::Column();
+  result.push_back(colid);
+
+  while (_tokenizer.cur_token_type_is(Token::COMMA))
+  {
+    _tokenizer.consume_token(Token::COMMA);
+    colid = new Mysqlx::Crud::Column();
+    result.push_back(colid);
+  }
+  return result;
+}
+

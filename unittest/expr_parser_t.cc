@@ -25,7 +25,7 @@
 #include <boost/lexical_cast.hpp>
 
 #include <gtest/gtest.h>
-#include "../mysqlxtest/expr_parser.h"
+#include "../mysqlxtest/common/expr_parser.h"
 #include "shellcore/types_cpp.h"
 
 #include "mysqlx_datatypes.pb.h"
