@@ -730,9 +730,9 @@ std::auto_ptr<Mysqlx::Expr::Expr> Expr_parser::atomic_expr()
       return std::auto_ptr<Mysqlx::Expr::Expr>(Expr_builder::build_literal_expr(Expr_builder::build_int_any(boost::lexical_cast<int>(val.c_str()))));
     }
   }
-  else if (type == Token::TRUE || type == Token::FALSE)
+  else if (type == Token::TRUE_ || type == Token::FALSE_)
   {
-    return std::auto_ptr<Mysqlx::Expr::Expr>(Expr_builder::build_literal_expr(Expr_builder::build_bool_any(type == Token::TRUE)));
+    return std::auto_ptr<Mysqlx::Expr::Expr>(Expr_builder::build_literal_expr(Expr_builder::build_bool_any(type == Token::TRUE_)));
   }
   else if (type == Token::INTERVAL)
   {
@@ -877,9 +877,9 @@ std::auto_ptr<Mysqlx::Expr::Expr> Expr_parser::ilri_expr()
       params->AddAllocated(tmp.get());
       tmp.release();
     }
-    else if (_tokenizer.cur_token_type_is(Token::IN))
+    else if (_tokenizer.cur_token_type_is(Token::IN_))
     {
-      _tokenizer.consume_token(Token::IN);
+      _tokenizer.consume_token(Token::IN_);
       params->AddAllocated(lhs.get());
       paren_expr_list(params);
     }

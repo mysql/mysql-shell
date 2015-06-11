@@ -29,6 +29,12 @@
 #include <iostream>
 #include <limits>
 
+#ifdef WIN32
+#  define snprintf _snprintf
+#  pragma push_macro("ERROR")
+#  undef ERROR
+#endif
+
 using namespace mysqlx;
 
 bool mysqlx::parse_mysql_connstring(const std::string &connstring,
@@ -621,37 +627,37 @@ static ColumnMetadata unwrap_column_metadata(Mysqlx::Sql::ColumnMetaData *column
   switch (column_data->type())
   {
     case Mysqlx::Sql::ColumnMetaData::SINT:
-      column.type = SINT;
+      column.type = mysqlx::SINT;
       break;
     case Mysqlx::Sql::ColumnMetaData::UINT:
-      column.type = UINT;
+      column.type = mysqlx::UINT;
       break;
     case Mysqlx::Sql::ColumnMetaData::DOUBLE:
-      column.type = DOUBLE;
+      column.type = mysqlx::DOUBLE;
       break;
     case Mysqlx::Sql::ColumnMetaData::FLOAT:
-      column.type = FLOAT;
+      column.type = mysqlx::FLOAT;
       break;
     case Mysqlx::Sql::ColumnMetaData::BYTES:
-      column.type = BYTES;
+      column.type = mysqlx::BYTES;
       break;
     case Mysqlx::Sql::ColumnMetaData::TIME:
-      column.type = TIME;
+      column.type = mysqlx::TIME;
       break;
     case Mysqlx::Sql::ColumnMetaData::DATETIME:
-      column.type = DATETIME;
+      column.type = mysqlx::DATETIME;
       break;
     case Mysqlx::Sql::ColumnMetaData::SET:
-      column.type = SET;
+      column.type = mysqlx::SET;
       break;
     case Mysqlx::Sql::ColumnMetaData::ENUM:
-      column.type = ENUM;
+      column.type = mysqlx::ENUM;
       break;
     case Mysqlx::Sql::ColumnMetaData::BIT:
-      column.type = BIT;
+      column.type = mysqlx::BIT;
       break;
     case Mysqlx::Sql::ColumnMetaData::DECIMAL:
-      column.type = DECIMAL;
+      column.type = mysqlx::DECIMAL;
       break;
   }
   column.name = column_data->name();
@@ -951,3 +957,7 @@ int Row::numFields() const
 {
   return m_data->field_size();
 }
+
+#ifdef WIN32
+#  pragma pop_macro("ERROR")
+#endif

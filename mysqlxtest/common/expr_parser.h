@@ -50,10 +50,10 @@ namespace mysqlx
       LSQBRACKET = 8,
       RSQBRACKET = 9,
       BETWEEN = 10,
-      TRUE = 11,
+      TRUE_ = 11,
       T_NULL = 12,
-      FALSE = 13,
-      IN = 14,
+      FALSE_ = 13,
+      IN_ = 14,
       LIKE = 15,
       INTERVAL = 16,
       REGEXP = 17,
@@ -177,7 +177,7 @@ namespace mysqlx
         reserved_words["is"] = Token::IS;
         reserved_words["not"] = Token::NOT;
         reserved_words["like"] = Token::LIKE;
-        reserved_words["in"] = Token::IN;
+        reserved_words["in"] = Token::IN_;
         reserved_words["regexp"] = Token::REGEXP;
         reserved_words["between"] = Token::BETWEEN;
         reserved_words["interval"] = Token::INTERVAL;
@@ -185,8 +185,8 @@ namespace mysqlx
         reserved_words["div"] = Token::DIV;
         reserved_words["hex"] = Token::HEX;
         reserved_words["bin"] = Token::BIN;
-        reserved_words["true"] = Token::TRUE;
-        reserved_words["false"] = Token::FALSE;
+        reserved_words["true"] = Token::TRUE_;
+        reserved_words["false"] = Token::FALSE_;
         reserved_words["null"] = Token::T_NULL;
         reserved_words["second"] = Token::SECOND;
         reserved_words["minute"] = Token::MINUTE;
