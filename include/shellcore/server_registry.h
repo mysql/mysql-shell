@@ -102,7 +102,7 @@ private:
 };
 
 
-class SHCORE_PUBLIC Connection_options : public std::map<std::string, std::string>
+class SHCORE_PUBLIC Connection_options
 {
 public:
   // Parses the connection string and fills a map with the individual key value pairs.
@@ -139,7 +139,26 @@ public:
     Protocol = 5
   };
 
+  typedef std::map<std::string, std::string> map_t;
+  typedef map_t::iterator iterator;
+  typedef map_t::const_iterator const_iterator;
+  typedef map_t::mapped_type mapped_type;
+  typedef map_t::key_type key_type;
+  
+  map_t::iterator begin() { return _data.begin(); }
+  map_t::iterator end() { return _data.end(); }
+  map_t::const_iterator begin() const { return _data.begin(); }
+  map_t::const_iterator end() const { return _data.end(); }
+  size_t size() const { return _data.size(); }
+  void clear() { return _data.clear(); }
+  mapped_type& at(key_type& key) { return _data.at(key); }
+  const mapped_type& at(const key_type& key) const { return _data.at(key); }
+  mapped_type& operator[](const key_type& key) { return _data.operator[](key); }
+  iterator find(const key_type& key) { return _data.find(key); }
+  const_iterator find(const key_type& key) const { return _data.find(key); }
+
 private:  
+  map_t _data;
 
   struct Keywords_table
   {
