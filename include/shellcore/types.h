@@ -212,6 +212,7 @@ namespace shcore {
     boost::shared_ptr<Object_bridge> as_object() const { check_type(Object); return boost::static_pointer_cast<Object_bridge>(*value.o); }
     boost::shared_ptr<Map_type> as_map() const { check_type(Map); return *value.map; }
     boost::shared_ptr<Array_type> as_array() const { check_type(Array); return *value.array; }
+    boost::shared_ptr<Function_base> as_function() const { check_type(Function); return boost::static_pointer_cast<Function_base>(*value.func); }
 
   private:
     static Value parse(char **pc);
@@ -304,8 +305,6 @@ namespace shcore {
     virtual Value call(const std::string &name, const Argument_list &args) = 0;
   };
 
-  /** Pointer to a function that may be implemented in any language.
-   */
   class TYPES_COMMON_PUBLIC Function_base
   {
   public:
@@ -326,6 +325,10 @@ namespace shcore {
     // arglist must match the signature
     virtual Value invoke(const Argument_list &args) = 0;
   };
+
+  /** Pointer to a function that may be implemented in any language.
+   */
+  typedef boost::shared_ptr<Function_base> Function_base_ref;
 
   class TYPES_COMMON_PUBLIC Exception : public std::exception
   {

@@ -267,10 +267,24 @@ AutoPyObject Python_context::get_shell_list_class()
   return _shell_list_class;
 }
 
+
 AutoPyObject Python_context::get_shell_dict_class()
 {
   return _shell_dict_class;
 }
+
+
+AutoPyObject Python_context::get_shell_object_class()
+{
+  return _shell_object_class;
+}
+
+
+AutoPyObject Python_context::get_shell_function_class()
+{
+  return _shell_function_class;
+}
+
 
 static PyObject *shell_print(PyObject *self, PyObject *args)
 {
@@ -334,8 +348,10 @@ void Python_context::register_shell_module() {
   PyModule_AddStringConstant(module, "LIST", (char*)shcore::type_name(Array).c_str());
   PyModule_AddStringConstant(module, "DICT", (char*)shcore::type_name(Map).c_str());
   PyModule_AddStringConstant(module, "OBJECT", (char*)shcore::type_name(Object).c_str());
+  PyModule_AddStringConstant(module, "FUNCTION", (char*)shcore::type_name(Function).c_str());
 
   init_shell_list_type();
   init_shell_dict_type();
-  //init_shell_object_type();
+  init_shell_object_type();
+  init_shell_function_type();
 }

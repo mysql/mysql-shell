@@ -19,6 +19,8 @@
 
 #include "shellcore/python_array_wrapper.h"
 #include "shellcore/python_map_wrapper.h"
+#include "shellcore/python_object_wrapper.h"
+#include "shellcore/python_function_wrapper.h"
 #include "shellcore/python_type_conversion.h"
 
 using namespace shcore;
@@ -33,6 +35,8 @@ Python_type_bridger::~Python_type_bridger()
 {
   delete _array_wrapper;
   delete _map_wrapper;
+  delete _object_wrapper;
+  delete _function_wrapper;
 }
 
 
@@ -40,6 +44,8 @@ void Python_type_bridger::init()
 {
   _array_wrapper = new Python_array_wrapper(_owner);
   _map_wrapper = new Python_map_wrapper(_owner);
+  _object_wrapper = new Python_object_wrapper(_owner);
+  _function_wrapper = new Python_function_wrapper(_owner);
 }
 
 /* TODO:
@@ -125,6 +131,8 @@ Value Python_type_bridger::pyobj_to_shcore_value(PyObject *py) const
   {
     boost::shared_ptr<Value::Array_type> array;
     boost::shared_ptr<Value::Map_type> map;
+    boost::shared_ptr<Object_bridge> object;
+    boost::shared_ptr<Function_base> function;
 
     if (Python_array_wrapper::unwrap(py, array))
     {
@@ -133,6 +141,14 @@ Value Python_type_bridger::pyobj_to_shcore_value(PyObject *py) const
     else if (Python_map_wrapper::unwrap(py, map))
     {
       return Value(map);
+    }
+    else if (Python_object_wrapper::unwrap(py, object))
+    {
+      return Value(object);
+    }
+    else if (Python_function_wrapper::unwrap(py, function))
+    {
+      return Value(function);
     }
     else
     {
@@ -182,8 +198,7 @@ PyObject *Python_type_bridger::shcore_value_to_pyobj(const Value &value)
     r = PyFloat_FromDouble(value.value.d);
     break;
   case Object:
-    // TODO:
-    // r = native_object_to_py(*value.value.o);
+    r = _object_wrapper->wrap(*value.value.o);
     break;
   case Array:
     r = _array_wrapper->wrap(*value.value.array);
@@ -203,7 +218,7 @@ PyObject *Python_type_bridger::shcore_value_to_pyobj(const Value &value)
     */
     break;
   case shcore::Function:
-    // TODO: r= function_wrapper->wrap(*value.value.func);
+    r = _function_wrapper->wrap(*value.value.func);
     break;
   }
   return r;

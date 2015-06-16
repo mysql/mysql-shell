@@ -41,7 +41,62 @@ extern void Python_context_init();
 class Test_object : public shcore::Cpp_object_bridge
 {
 public:
+  int _value;
 
+  Test_object(int v) : _value(v) {}
+
+  virtual std::string class_name() const { return "Test"; }
+
+  virtual std::string &append_descr(std::string &s_out, int indent=-1, int quote_strings=0) const
+  {
+    s_out.append((boost::format("<Test:%1%>") % _value).str());
+    return s_out;
+  }
+
+  virtual std::string &append_repr(std::string &s_out) const
+  {
+    return append_descr(s_out);
+  }
+
+  //! Returns the list of members that this object has
+  virtual std::vector<std::string> get_members() const
+  {
+    std::vector<std::string> l = shcore::Cpp_object_bridge::get_members();
+    return l;
+  }
+
+  //! Implements equality operator
+  virtual bool operator == (const Object_bridge &other) const
+  {
+    if (class_name() == other.class_name())
+      return _value == ((Test_object*)&other)->_value;
+    return false;
+  }
+
+  //! Returns the value of a member
+  virtual shcore::Value get_member(const std::string &prop) const
+  {
+    if (prop == "value")
+      return shcore::Value(_value);
+    else if (prop == "constant")
+      return shcore::Value("BLA");
+    return shcore::Cpp_object_bridge::get_member(prop);
+  }
+
+  //! Sets the value of a member
+  virtual void set_member(const std::string &prop, shcore::Value value)
+  {
+    if (prop == "value")
+      _value = value.as_int();
+    else
+      shcore::Cpp_object_bridge::set_member(prop, value);
+  }
+
+  //! Calls the named method with the given args
+  virtual shcore::Value call(const std::string &name, const shcore::Argument_list &args)
+  {
+    return Cpp_object_bridge::call(name, args);
+  }
 };
 
 namespace shcore {
@@ -225,6 +280,75 @@ namespace tests {
     // this forces conversion of a native JS map into a Value
     shcore::Value result = py->execute("a={\"submap\": 444}");
     ASSERT_EQ(result, Value(map2));
+*/
+  }
+
+  TEST_F(Python, object_to_py)
+  {
+    boost::system::error_code error;
+    boost::shared_ptr<Test_object> obj = boost::shared_ptr<Test_object>(new Test_object(1234));
+    boost::shared_ptr<Test_object> obj2 = boost::shared_ptr<Test_object>(new Test_object(1234));
+    boost::shared_ptr<Test_object> obj3 = boost::shared_ptr<Test_object>(new Test_object(123));
+
+    ASSERT_EQ(*obj, *obj2);
+    ASSERT_EQ(Value(boost::static_pointer_cast<Object_bridge>(obj)), Value(boost::static_pointer_cast<Object_bridge>(obj2)));
+    ASSERT_NE(*obj, *obj3);
+
+    WillEnterPython lock;
+
+    ASSERT_EQ(Value(boost::static_pointer_cast<Object_bridge>(obj2)), py->pyobj_to_shcore_value(py->shcore_value_to_pyobj(Value(boost::static_pointer_cast<Object_bridge>(obj)))));
+
+    // expose the object to JS
+    py->set_global("test_obj", Value(boost::static_pointer_cast<Object_bridge>(obj)));
+
+/*  TODO: disabled due to PyRun_String issue
+    ASSERT_EQ(py->execute("type(test_obj)").descr(false), "m.Test");
+
+    // test getting member from obj
+    ASSERT_EQ(py->execute("test_obj.constant").descr(false), "BLA");
+
+    // test setting member of obj
+    py->execute("test_obj.value=42");
+
+    ASSERT_EQ(obj->_value, 42);
+*/
+  }
+
+
+  shcore::Value do_tests(const Argument_list &args)
+  {
+    args.ensure_count(1, "do_tests");
+    return Value(boost::to_upper_copy(args.string_at(0)));
+  }
+
+  TEST_F(Python, function_to_py)
+  {
+    boost::system::error_code error;
+    boost::shared_ptr<Function_base> func(Cpp_function::create("do_tests",
+                                                       boost::bind(do_tests, _1), "bla", String, NULL));
+
+    shcore::Value v(func);
+    shcore::Value v2(func);
+
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-value"
+    ASSERT_THROW((v == v2), Exception);
+#pragma clang diagnostic pop
+#else
+    ASSERT_THROW((v == v2), Exception);
+#endif
+
+    WillEnterPython lock;
+
+    py->set_global("test_func", v);
+
+/*  TODO: disabled due to PyRun_String issue
+    ASSERT_EQ(py->execute("type(test_func)").descr(false), "m.Function");
+
+    ASSERT_EQ(py->execute("test_func('hello')").descr(false), "HELLO");
+
+    ASSERT_THROW(py->execute("test_func(123)"), shcore::Exception);
 */
   }
 }}

@@ -130,6 +130,8 @@ public:
 
   AutoPyObject get_shell_list_class();
   AutoPyObject get_shell_dict_class();
+  AutoPyObject get_shell_object_class();
+  AutoPyObject get_shell_function_class();
 
   Interpreter_delegate *_delegate;
 
@@ -146,10 +148,14 @@ private:
   void register_shell_module();
   void init_shell_list_type();
   void init_shell_dict_type();
+  void init_shell_object_type();
+  void init_shell_function_type();
 
 protected:
   AutoPyObject _shell_list_class;
   AutoPyObject _shell_dict_class;
+  AutoPyObject _shell_object_class;
+  AutoPyObject _shell_function_class;
 };
 
 }
