@@ -90,8 +90,8 @@ As sample session would be
 sql> use sakila;
 sql> select * from actor limit 5;
 \quit
-js> session.sql("show databases").fetch_all();
-js> session.sql("show tables from sakila").fetch_all();
+js> session.sql("show databases").all();
+js> session.sql("show tables from sakila").all();
 js> var s=input("Give me your money: ");
 Give me your money:
 50 USD
@@ -99,7 +99,7 @@ js> print(s);
 50 USD
 js> var data=session.sql("select * from sakila.actor limit 3");
 js> var rec;
-js> while(rec=data.fetch_one()) { print(rec) }
+js> while(rec=data.next()) { print(rec) }
 {
     "actor_id": 1,
     "first_name": "PENELOPE",

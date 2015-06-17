@@ -84,10 +84,10 @@ void print_doc_result_set(Document_result_set *doc)
   for (std::vector<shcore::Value>::const_iterator it = data->begin(); it != myend; ++it)
   {
     // public std::map<std::string, Value>
-    std::map<std::string, shcore::Value> *mymap = dynamic_cast<std::map<std::string, shcore::Value>*>(it->as_map().get());
-    std::map<std::string, shcore::Value>::const_iterator myend2 = mymap->end();
+    shcore::Value::Map_type *mymap = dynamic_cast<shcore::Value::Map_type *>(it->as_map().get());
+    shcore::Value::Map_type::const_iterator myend2 = mymap->end();
     std::cout << "{" << std::endl;
-    for (std::map<std::string, shcore::Value>::const_iterator it2 = mymap->begin(); it2 != myend2; ++it2)
+    for (shcore::Value::Map_type::const_iterator it2 = mymap->begin(); it2 != myend2; ++it2)
     {
       std::cout << "\t\"" << it2->first << " : ";
       shcore::Value val = it2->second;

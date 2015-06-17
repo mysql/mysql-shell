@@ -51,3 +51,6 @@ if( WIN32 )
 endif()
 
 add_definitions(-DBOOST_ALL_NO_LIB )
+
+install(TARGETS mysqlxtest DESTINATION lib)
+install(TARGETS mysqlxtest_pb DESTINATION lib)

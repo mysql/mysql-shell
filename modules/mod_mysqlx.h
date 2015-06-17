@@ -33,7 +33,7 @@
 namespace mysh
 {
   class X_resultset;
-  class X_connection : public mysh::Base_connection, public boost::enable_shared_from_this<X_connection>
+  class MOD_PUBLIC X_connection : public mysh::Base_connection, public boost::enable_shared_from_this<X_connection>
   {
     typedef boost::asio::ip::tcp tcp;
   public:
@@ -71,7 +71,7 @@ namespace mysh
     boost::shared_ptr<X_resultset> _last_result;
   };
 
-  class X_row : public Base_row
+  class MOD_PUBLIC X_row : public Base_row
   {
   public:
     X_row(Mysqlx::Sql::Row *row, std::vector<Field>* metadata = NULL);

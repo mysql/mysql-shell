@@ -31,6 +31,7 @@ file(GLOB libmysqlshmods_SRC
       "*.cc"
       "*.h"
       "${CMAKE_SOURCE_DIR}/src/boost_code.cc"
+      "${CMAKE_SOURCE_DIR}/common/uuid/src/uuid_gen.cc"
 )
 
 if (NOT HAVE_PROTOBUF)

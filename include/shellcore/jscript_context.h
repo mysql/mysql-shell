@@ -32,7 +32,7 @@ struct Interpreter_delegate;
 
 class Object_registry;
 
-class JScript_context
+class SHCORE_PUBLIC JScript_context
 {
 public:
   JScript_context(Object_registry *registry, Interpreter_delegate *deleg);

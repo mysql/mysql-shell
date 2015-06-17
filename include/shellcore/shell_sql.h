@@ -28,7 +28,7 @@
 namespace shcore
 {
 
-class Shell_sql : public Shell_language
+class SHCORE_PUBLIC Shell_sql : public Shell_language
 {
 public:
   Shell_sql(IShell_core *owner);

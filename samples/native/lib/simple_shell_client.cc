@@ -101,10 +101,10 @@ boost::shared_ptr<Result_set> Simple_shell_client::process_line(const std::strin
     {
       boost::shared_ptr<Object_bridge> object = result.as_object();
 
-      shcore::Value affected_rows = object->call("affected_rows", Argument_list());
-      shcore::Value fetched_row_count = object->call("fetched_row_count", Argument_list());
-      shcore::Value warning_count = object->call("warning_count", Argument_list());
-      shcore::Value execution_time = object->call("execution_time", Argument_list());
+      shcore::Value affected_rows = object->call("affectedRows", Argument_list());
+      shcore::Value fetched_row_count = object->call("fetchedRowCount", Argument_list());
+      shcore::Value warning_count = object->call("warningCount", Argument_list());
+      shcore::Value execution_time = object->call("executionTime", Argument_list());
 
       shcore::Argument_list args;
       // If true returns as data array, if false, returns as document.
