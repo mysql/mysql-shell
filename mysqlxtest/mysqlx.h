@@ -40,7 +40,9 @@ namespace Mysqlx
   }
 }
 
-namespace mysqlx {
+namespace mysqlx
+{
+
   typedef google::protobuf::Message Message;
 
   bool parse_mysql_connstring(const std::string &connstring,
@@ -92,7 +94,7 @@ namespace mysqlx {
   typedef boost::shared_ptr<Session> SessionRef;
 
 
-  SessionRef openSession(const std::string &uri, const std::string *pass);
+  SessionRef openSession(const std::string &uri, const std::string &pass);
 
   SessionRef openSession(const std::string &host, int port, const std::string &schema,
                          const std::string &user, const std::string &pass);
@@ -246,8 +248,6 @@ namespace mysqlx {
   class Row
   {
   public:
-    FieldType fieldType(int field) const;
-
     bool isNullField(int field) const;
     int32_t sIntField(int field) const;
     uint32_t uIntField(int field) const;
@@ -285,12 +285,12 @@ namespace mysqlx {
     int64_t lastInsertId() const { return m_last_insert_id; }
     int64_t affectedRows() const { return m_affected_rows; }
 
-    bool ready() const;
+    bool ready();
     void wait();
 
     Row *next();
     bool nextResult();
-    bool mayHaveData() const;
+    void discardData();
 
   private:
     Result();

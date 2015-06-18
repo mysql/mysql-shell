@@ -98,7 +98,7 @@ namespace shcore {
     exec_and_out_equals("session.executeSql('drop schema if exists js_shell_test;');");
     exec_and_out_equals("session.executeSql('create schema js_shell_test;');");
     exec_and_out_equals("session.executeSql('use js_shell_test;');");
-    exec_and_out_equals("session.executeSql(\"create table `mycoll`(`doc` JSON, `_id` VARBINARY(16) GENERATED ALWAYS AS(unhex(jsn_unquote(jsn_extract(doc, '$._id')))) stored PRIMARY KEY)\")");
+    exec_and_out_equals("session.executeSql(\"create table `mycoll`(`doc` JSON, `_id` VARBINARY(16) GENERATED ALWAYS AS(unhex(json_unquote(json_extract(doc, '$._id')))) stored PRIMARY KEY)\")");
 
     exec_and_out_equals("var schema = session.getSchema('js_shell_test');");
     exec_and_out_equals("var collection = schema.getCollection('mycoll');");

@@ -203,9 +203,9 @@ void Tokenizer::get_tokens()
         if (i < _input.size() && std::toupper(_input[i]) == 'E')
         {
           ++i;
-          if (i < _input.size() && ((c = _input[i]) == '-') || (c == '+'))
+          if (i < _input.size() && (((c = _input[i]) == '-') || (c == '+')))
             ++i;
-          int j = i;
+          size_t  j = i;
           while (i < _input.size() && std::isdigit(_input[i]))
             i++;
           if (i == j)
@@ -352,7 +352,7 @@ void Tokenizer::get_tokens()
             ++i;
           if (i < _input.size() && std::toupper(_input[i]) == 'E')
           {
-            if (i < _input.size() && ((c = _input[i]) == '+') || (c == '-'))
+            if (i < _input.size() && (((c = _input[i]) == '+') || (c == '-')))
               ++i;
             size_t j = i;
             while (i < _input.size() && std::isdigit(_input[i]))
@@ -484,7 +484,7 @@ bool Tokenizer::cmp_icase::operator()(const std::string& lhs, const std::string&
   return _stricmp(c_lhs, c_rhs) < 0;
 }
 
-Expr_parser::Expr_parser(const std::string& expr_str, bool document_mode) : _document_mode(document_mode), _tokenizer(expr_str)
+Expr_parser::Expr_parser(const std::string& expr_str, bool document_mode) : _tokenizer(expr_str), _document_mode(document_mode)
 {
   _tokenizer.get_tokens();
 }
@@ -1213,7 +1213,7 @@ std::string Expr_unparser::column_list_to_string(std::vector<Mysqlx::Crud::Colum
 {
   std::string result("projection (");
   std::vector<Mysqlx::Crud::Column*>::const_iterator it, myend = columns.end();
-  int i = 0;
+  std::size_t i = 0;
   for (it = columns.begin(); it != myend; ++it, ++i)
   {
     std::string strcol = Expr_unparser::column_to_string(**it);

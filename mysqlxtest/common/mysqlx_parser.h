@@ -42,28 +42,28 @@ namespace mysqlx
     }
 
     template<typename Container>
-    inline void parse_collection_column_list(Container &container, const std::string &source)
+    void parse_collection_column_list(Container &container, const std::string &source)
     {
       Proj_parser parser(source, true, false);
       parser.parse(container);
     }
 
     template<typename Container>
-    inline void parse_collection_column_list_with_alias(Container &container, const std::string &source)
+    void parse_collection_column_list_with_alias(Container &container, const std::string &source)
     {
       Proj_parser parser(source, true, true);
       parser.parse(container);
     }
 
     template<typename Container>
-    inline void parse_table_column_list(Container &container, const std::string &source)
+    void parse_table_column_list(Container &container, const std::string &source)
     {
       Proj_parser parser(source, false, false);
       parser.parse(container);
     }
 
     template<typename Container>
-    inline void parse_table_column_list_with_alias(Container &container, const std::string &source)
+    void parse_table_column_list_with_alias(Container &container, const std::string &source)
     {
       Proj_parser parser(source, false, true);
       parser.parse(container);

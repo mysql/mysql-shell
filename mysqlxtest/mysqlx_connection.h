@@ -23,7 +23,7 @@
 
 #undef ERROR //Needed to avoid conflict with ERROR in mysqlx.pb.h
 #include "mysqlx.pb.h"
-//#include "mysqlx_admin.pb.h"
+#include "mysqlx_admin.pb.h"
 #include "mysqlx_connection.pb.h"
 #include "mysqlx_crud.pb.h"
 #include "mysqlx_datatypes.pb.h"
@@ -32,6 +32,7 @@
 #include "mysqlx_sql.pb.h"
 
 #include <boost/asio.hpp>
+#include <boost/shared_ptr.hpp>
 
 
 #include "xerrmsg.h"
@@ -51,8 +52,8 @@ namespace mysqlx
   public:
     Connection();
 
-    void connect(const std::string &uri, const std::string *pass);
-
+    void connect(const std::string &uri, const std::string &pass);
+    void connect(const std::string &host, int port);
     void connect(const std::string &host, int port, const std::string &schema,
                  const std::string &user, const std::string &pass);
 
@@ -92,6 +93,7 @@ namespace mysqlx
     void send(const Mysqlx::Connection::CapabilitiesSet &m) { send(Mysqlx::ClientMessages::CON_CAPABILITIES_SET, m); };
     void send(const Mysqlx::Connection::Close &m) { send(Mysqlx::ClientMessages::CON_CLOSE, m); };
 
+    boost::asio::ip::tcp::socket &socket() { return m_socket; }
   public:
     Result *execute_sql(const std::string &sql);
 
@@ -111,6 +113,8 @@ namespace mysqlx
     bool m_trace_packets;
   };
   
+  typedef boost::shared_ptr<Connection> ConnectionRef;
+
 }
 
 #endif

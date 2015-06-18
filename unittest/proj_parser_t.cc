@@ -1,4 +1,3 @@
-
 /* Copyright (c) 2014, 2015, Oracle and/or its affiliates. All rights reserved.
 
  This program is free software; you can redistribute it and/or modify
@@ -37,7 +36,6 @@ namespace shcore
 {
   namespace proj_parser_tests
   {
-
     void print_tokens(const Proj_parser& p, std::stringstream& out)
     {
       bool first = true;
@@ -53,6 +51,23 @@ namespace shcore
       out << "]";
     }
 
+    class DummyColumnContainer
+    {
+    public:
+      DummyColumnContainer(std::vector<Mysqlx::Crud::Column*>& columns) :
+      _columns(columns){}
+
+      Mysqlx::Crud::Column* Add()
+      {
+        Mysqlx::Crud::Column* new_col = new Mysqlx::Crud::Column();
+        _columns.push_back(new_col);
+        return new_col;
+      }
+
+    private:
+      std::vector<Mysqlx::Crud::Column*>& _columns;
+    };
+
     void parse_and_assert_expr(const std::string& input, const std::string& token_list, const std::string& unparsed, bool document_mode = false, bool allow_alias = true)
     {
       std::stringstream out, out_tokens;
@@ -60,7 +75,9 @@ namespace shcore
       print_tokens(p, out_tokens);
       std::string token_list2 = out_tokens.str();
       ASSERT_TRUE(token_list == token_list2);
-      std::vector<Mysqlx::Crud::Column*> cols = p.projection();
+      std::vector<Mysqlx::Crud::Column*> cols;
+      DummyColumnContainer container(cols);
+      p.parse(container);
       std::string s = Expr_unparser::column_list_to_string(cols);
       out << s;
       std::string outstr = out.str();
@@ -69,7 +86,6 @@ namespace shcore
 
     TEST(Proj_parser_tests, x_test)
     {
-      
       parse_and_assert_expr("a@.b[0][0].c**.d.\"a weird\\\"key name\"",
         "[19, 23, 22, 19, 8, 21, 9, 8, 21, 9, 22, 19, 54, 22, 19, 22, 20]", "projection (a@.b[0][0].c**.d.a weird\"key name)");
       parse_and_assert_expr("a, col1, b",
@@ -86,7 +102,6 @@ namespace shcore
         "[19, 22, 19, 8, 21, 9, 8, 21, 9, 22, 19, 56, 19, 24, 19, 56, 19]", "projection (@.x.a[1][0].c as mycol, @.col1 as alias1)", true);
       EXPECT_ANY_THROW(parse_and_assert_expr("x.a[1][0].c as mycol, col1 as alias1",
         "[19, 22, 19, 8, 21, 9, 8, 21, 9, 22, 19, 56, 19, 24, 19, 56, 19]", "projection (@.x.a[1][0].c as mycol, @.col1 as alias1)", true, false));
-        
     }
   };
 };

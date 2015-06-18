@@ -166,7 +166,8 @@ void Crud_definition::set_columns(const std::string &source, const std::string &
   {
     // We use the parser directly for simplicity
     mysqlx::Proj_parser parser(value.as_string(), collection, with_alias);
-    parser.projection();
+    //parser.parse();
+    //parser.projection();
 
     (*_data)[field] = value;
   }
