@@ -225,35 +225,56 @@ Result *Connection::execute_sql(const std::string &sql)
     exec.set_stmt(sql);
     send(exec);
   }
-  return new Result(this, true, true);
+
+  Result *result = new Result(this, true, true);
+
+  result->wait();
+
+  return result;
 }
 
 Result *Connection::execute_find(const Mysqlx::Crud::Find &m)
 {
   send(m);
 
-  return new Result(this, false, true);
+  Result *result = new Result(this, false, true);
+
+  result->wait();
+
+  return result;
 }
 
 Result *Connection::execute_update(const Mysqlx::Crud::Update &m)
 {
   send(m);
 
-  return new Result(this, false, false);
+  Result *result = new Result(this, false, false);
+
+  result->wait();
+
+  return result;
 }
 
 Result *Connection::execute_insert(const Mysqlx::Crud::Insert &m)
 {
   send(m);
 
-  return new Result(this, false, false);
+  Result *result = new Result(this, false, false);
+
+  result->wait();
+
+  return result;
 }
 
 Result *Connection::execute_delete(const Mysqlx::Crud::Delete &m)
 {
   send(m);
 
-  return new Result(this, false, false);
+  Result *result = new Result(this, false, false);
+
+  result->wait();
+
+  return result;
 }
 
 void Connection::authenticate_plain(const std::string &user, const std::string &pass, const std::string &db)
@@ -532,6 +553,19 @@ std::auto_ptr<mysqlx::Message> Result::read_next(int &mid)
   switch (m_state)
   {
     case ReadMetadataI:
+    {
+                        switch (mid)
+                        {
+                          case Mysqlx::ServerMessages::SQL_STMT_EXECUTE_OK:
+                            m_state = ReadDone;
+                            return msg;
+
+                          case Mysqlx::ServerMessages::SQL_COLUMN_META_DATA:
+                            m_state = ReadMetadata;
+                            return msg;
+                        }
+                        break;
+    }
     case ReadMetadata:
     {
                        switch (mid)

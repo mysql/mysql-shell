@@ -32,7 +32,7 @@
 #include "../modules/mod_crud_collection_find.h"
 
 namespace shcore {
-  class Shell_js_crud_collection_find_tests : public Crud_test_wrapper
+  class DISABLED_Shell_js_crud_collection_find_tests : public Crud_test_wrapper
   {
   protected:
     // You can define per-test set-up and tear-down logic as usual.
@@ -48,16 +48,30 @@ namespace shcore {
     }
   };
 
-  TEST_F(Shell_js_crud_collection_find_tests, chain_combinations)
+  TEST_F(DISABLED_Shell_js_crud_collection_find_tests, initialization)
+  {
+    exec_and_out_equals("var mysqlx = require('mysqlx').mysqlx;");
+
+    exec_and_out_equals("var session = mysqlx.openNodeSession('" + _uri + "');");
+
+    exec_and_out_equals("session.executeSql('drop schema if exists js_shell_test;')");
+    exec_and_out_equals("session.executeSql('create schema js_shell_test;')");
+    exec_and_out_equals("session.executeSql('use js_shell_test;')");
+    exec_and_out_equals("session.executeSql(\"create table `collection1`(`doc` JSON, `_id` VARBINARY(16) GENERATED ALWAYS AS(unhex(json_unquote(json_extract(doc, '$._id')))) stored PRIMARY KEY)\")");
+  }
+
+  TEST_F(DISABLED_Shell_js_crud_collection_find_tests, chain_combinations)
   {
     // NOTE: No data validation is done on this test, only tests
     //       different combinations of chained methods.
+    exec_and_out_equals("var mysqlx = require('mysqlx').mysqlx;");
 
-    // Creates a connection object
-    exec_and_out_equals("var conn = _F.mysqlx.Connection('" + _uri + "');");
+    exec_and_out_equals("var session = mysqlx.openSession('" + _uri + "');");
 
-    // Creates the collection add object
-    exec_and_out_equals("var crud = _F.mysqlx.CollectionFind(conn, 'schema', 'collection');");
+    exec_and_out_equals("var collection = session.js_shell_test.getCollection('collection1');");
+
+    // Creates the collection find object
+    exec_and_out_equals("var crud = collection.find();");
 
     //-------- ---------------------Test 1------------------------//
     // Initial validation, any new CollectionFind object only has
@@ -96,7 +110,7 @@ namespace shcore {
     }
   }
 
-  TEST_F(Shell_js_crud_collection_find_tests, find_validations)
+  TEST_F(DISABLED_Shell_js_crud_collection_find_tests, find_validations)
   {
     exec_and_out_equals("var mysqlx = require('mysqlx').mysqlx;");
     exec_and_out_equals("var session = mysqlx.openNodeSession('" + _uri + "');");
@@ -155,7 +169,7 @@ namespace shcore {
     exec_and_out_contains("collection.find().bind();", "", "CollectionFind::bind: not yet implemented.");
   }
 
-  TEST_F(Shell_js_crud_collection_find_tests, find_execution)
+  TEST_F(DISABLED_Shell_js_crud_collection_find_tests, find_execution)
   {
     exec_and_out_equals("var mysqlx = require('mysqlx').mysqlx;");
     exec_and_out_equals("var session = mysqlx.openNodeSession('" + _uri + "');");

@@ -17,7 +17,6 @@
 * 02110-1301  USA
 */
 
-
 #ifndef _MOD_COMMON_H_
 #define _MOD_COMMON_H_
 

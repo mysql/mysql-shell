@@ -1,4 +1,3 @@
-
 /* Copyright (c) 2014, 2015, Oracle and/or its affiliates. All rights reserved.
 
  This program is free software; you can redistribute it and/or modify
@@ -14,7 +13,6 @@
  along with this program; if not, write to the Free Software
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA */
 
-
 #include <cstdio>
 #include <cstdlib>
 #include <fstream>
@@ -26,16 +24,10 @@
 #include "shellcore/lang_base.h"
 #include "shellcore/types_cpp.h"
 
-
 #include "shellcore/shell_core.h"
 #include "shellcore/shell_sql.h"
-#include "../modules/mod_session.h"
-#include "../modules/mod_db.h"
-
 
 namespace shcore {
-
-
   namespace command_handler_tests {
     class Environment
     {
@@ -47,10 +39,9 @@ namespace shcore {
       ~Environment()
       {
       }
-
     };
 
-    class Command_handler_tests: public ::testing::Test
+    class Command_handler_tests : public ::testing::Test
     {
     public:
       Command_handler_tests()
@@ -65,7 +56,6 @@ namespace shcore {
       std::string _function;
       std::vector<std::string> _params;
       Environment env;
-
 
       void cmd_one(const std::vector<std::string>& params)
       {
@@ -132,7 +122,6 @@ namespace shcore {
       EXPECT_EQ("different", _params[2]);
       EXPECT_EQ("parameters", _params[3]);
     }
-
 
     TEST_F(Command_handler_tests, printing_commands)
     {

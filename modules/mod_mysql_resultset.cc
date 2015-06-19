@@ -26,112 +26,139 @@
 #include <string>
 #include <iostream>
 #include <iomanip>
-#include "mod_result.h"
+#include "mod_mysql_resultset.h"
+#include "mysql.h"
 
 using namespace mysh;
 using namespace shcore;
+using namespace mysh::mysql;
 
-/*
-* Helper function to ensure the exceptions generated on the mysqlx_connector
-* are properly translated to the corresponding shcore::Exception type
-*/
-static void translate_exception()
+Resultset::Resultset(boost::shared_ptr< ::mysql::Result> result)
+: _result(result)
 {
-  try
-  {
-    throw;
-  }
-  catch (boost::system::system_error &e)
-  {
-    throw shcore::Exception::runtime_error(e.what());
-  }
-  catch (std::runtime_error &e)
-  {
-    throw shcore::Exception::runtime_error(e.what());
-  }
-  catch (std::logic_error &e)
-  {
-    throw shcore::Exception::logic_error(e.what());
-  }
-  catch (...)
-  {
-    throw;
-  }
 }
 
-#define CATCH_AND_TRANSLATE()   \
-  catch (...)                   \
-{ translate_exception(); }
-
-X_resultset::X_resultset(boost::shared_ptr<mysh::X_connection> owner,
-                         bool has_data,
-                         int cursor_id,
-                         uint64_t affected_rows,
-                         uint64_t last_insert_id,
-                         int warning_count,
-                         const char *info,
-                         int next_mid,
-                         Message* next_message,
-                         bool expect_metadata,
-                         boost::shared_ptr<shcore::Value::Map_type> options) :
-Base_resultset(owner, affected_rows, last_insert_id, warning_count, info, options),
-  _xowner(owner),
-  _cursor_id(cursor_id),
-  _next_mid(next_mid),
-  _next_message(next_message),
-  _current_fetch_done(!has_data),
-  _all_fetch_done(!has_data),
-  _expect_metadata(expect_metadata)
+shcore::Value Resultset::next(const shcore::Argument_list &args)
 {
-  _has_resultset = has_data;
+  args.ensure_count(0, "Resultset::next");
+  Row *inner_row = _result->next();
+
+  if (inner_row)
+  {
+    mysh::Row *value_row = new mysh::Row();
+
+    std::vector<Field> metadata(_result->get_metadata());
+
+    for (size_t index = 0; index < metadata.size(); index++)
+      value_row->add_item(metadata[index].name(), inner_row->get_value(index));
+
+    return shcore::Value::wrap(value_row);
+  }
+
+  return shcore::Value::Null();
 }
 
-X_resultset::~X_resultset(){}
-
-Base_row* X_resultset::next_row()
+shcore::Value Resultset::next_result(const shcore::Argument_list &args)
 {
-  Base_row* ret_val = NULL;
+  args.ensure_count(0, "Resultset::nextResult");
 
-  if (has_resultset())
+  return shcore::Value(_result->next_result());
+}
+
+shcore::Value Resultset::all(const shcore::Argument_list &args)
+{
+  args.ensure_count(0, "Resultset::all");
+
+  boost::shared_ptr<shcore::Value::Array_type> array(new shcore::Value::Array_type);
+
+  shcore::Value record = next(args);
+
+  while (record)
   {
-    boost::shared_ptr<mysh::X_connection> owner = _xowner.lock();
+    array->push_back(record);
+    record = next(args);
+  }
 
-    if (!is_current_fetch_done() && owner)
+  return shcore::Value(array);
+}
+
+shcore::Value Resultset::get_member(const std::string &prop) const
+{
+  if (prop == "fetchedRowCount")
+    return shcore::Value((int64_t)_result->fetched_row_count());
+
+  if (prop == "affectedRows")
+    return shcore::Value((int64_t)((_result->affected_rows() == ~(my_ulonglong)0) ? 0 : _result->affected_rows()));
+
+  if (prop == "warningCount")
+    return shcore::Value(_result->warning_count());
+
+  if (prop == "warnings")
+  {
+    Result* inner_warnings = _result->query_warnings();
+    boost::shared_ptr<Resultset> warnings(new Resultset(boost::shared_ptr<Result>(inner_warnings)));
+    return warnings->all(shcore::Argument_list());
+  }
+
+  if (prop == "info")
+    return shcore::Value(_result->info());
+
+  if (prop == "executionTime")
+    return shcore::Value(MySQL_timer::format_legacy(_result->execution_time(), true));
+
+  if (prop == "lastInsertId")
+    return shcore::Value((int)_result->last_insert_id());
+
+  if (prop == "info")
+    return shcore::Value(_result->info());
+
+  if (prop == "hasData")
+    return Value(_result->has_resultset());
+
+  if (prop == "columnMetadata")
+  {
+    std::vector<Field> metadata(_result->get_metadata());
+
+    boost::shared_ptr<shcore::Value::Array_type> array(new shcore::Value::Array_type);
+
+    int num_fields = metadata.size();
+
+    for (int i = 0; i < num_fields; i++)
     {
-      try
-      {
-        // Reads the next message
-        // This variable must be cleaned out at the end
-        _next_message = owner->get_protobuf()->read_response(_next_mid);
+      boost::shared_ptr<shcore::Value::Map_type> map(new shcore::Value::Map_type);
 
-        if (_next_mid == Mysqlx::ServerMessages::SQL_ROW)
-        {
-          ret_val = new X_row(dynamic_cast<Mysqlx::Sql::Row *>(_next_message), &_metadata);
-          ret_val->set_key_by_index(_key_by_index);
+      (*map)["catalog"] = shcore::Value(metadata[i].catalog());
+      (*map)["db"] = shcore::Value(metadata[i].db());
+      (*map)["table"] = shcore::Value(metadata[i].table());
+      (*map)["org_table"] = shcore::Value(metadata[i].org_table());
+      (*map)["name"] = shcore::Value(metadata[i].name());
+      (*map)["org_name"] = shcore::Value(metadata[i].org_name());
+      (*map)["charset"] = shcore::Value(int(metadata[i].charset()));
+      (*map)["length"] = shcore::Value(int(metadata[i].length()));
+      (*map)["type"] = shcore::Value(int(metadata[i].type()));
+      (*map)["flags"] = shcore::Value(int(metadata[i].flags()));
+      (*map)["decimal"] = shcore::Value(int(metadata[i].decimals()));
+      (*map)["max_length"] = shcore::Value(int(metadata[i].max_length()));
+      (*map)["name_length"] = shcore::Value(int(metadata[i].name_length()));
 
-          // Each read row increases the count
-          _fetched_row_count++;
-        }
-        else if (_next_mid == Mysqlx::ServerMessages::SQL_CURSOR_FETCH_DONE)
-          flush_messages(true);
-        else if (_next_mid == Mysqlx::ServerMessages::SQL_CURSOR_FETCH_DONE_MORE_RESULTSETS)
-          _current_fetch_done = true;
-        else
-          owner->get_protobuf()->handle_wrong_response(_next_mid, _next_message, "fetching result.");
-      }
-      CATCH_AND_TRANSLATE();
+      // Temporal hack to identify numeric values
+      (*map)["is_numeric"] = shcore::Value(IS_NUM(metadata[i].type()));
+
+      array->push_back(shcore::Value(map));
     }
+
+    return shcore::Value(array);
   }
 
-  _next_message = NULL;
-  return ret_val;
+  return BaseResultset::get_member(prop);
 }
 
+#if 0
 // Used to consume all the remaining messages of the current resultset that are coming from the
 // server.
 // If complete false it will only flush the messages about the current result in the resultset
 // If it is true it will flush all the messages for the result set
-void X_resultset::flush_messages(bool complete)
+void Resultset::flush_messages(bool complete)
 {
   Message *msg;
   int mid;
@@ -192,7 +219,7 @@ void X_resultset::flush_messages(bool complete)
   CATCH_AND_TRANSLATE();
 }
 
-int X_resultset::fetch_metadata()
+int Resultset::fetch_metadata()
 {
   // Fetch the metadata
   int ret_val = 0;
@@ -240,7 +267,7 @@ int X_resultset::fetch_metadata()
   return ret_val;
 }
 
-void X_resultset::reset(unsigned long duration, int next_mid, ::google::protobuf::Message* next_message)
+void Resultset::reset(unsigned long duration, int next_mid, ::google::protobuf::Message* next_message)
 {
   if (next_mid)
   {
@@ -263,7 +290,7 @@ void X_resultset::reset(unsigned long duration, int next_mid, ::google::protobuf
     _raw_duration = duration;
 }
 
-void X_resultset::set_result_metadata(Message *msg)
+void Resultset::set_result_metadata(Message *msg)
 {
   Mysqlx::Sql::StmtExecuteOk *stmt_exec_ok = dynamic_cast<Mysqlx::Sql::StmtExecuteOk*>(msg);
 
@@ -278,62 +305,4 @@ void X_resultset::set_result_metadata(Message *msg)
   else
     throw shcore::Exception::logic_error("Unexpected message to set resultset metadata.");
 }
-
-Collection_resultset::Collection_resultset(boost::shared_ptr<X_connection> owner,
-                     bool has_data,
-                     int cursor_id,
-                     uint64_t affected_rows,
-                     uint64_t last_insert_id,
-                     int warning_count,
-                     const char *info,
-                     int next_mid,
-                     Message* next_message,
-                     bool expect_metadata,
-                     boost::shared_ptr<shcore::Value::Map_type> options) :
-                     X_resultset(owner, has_data, cursor_id, affected_rows, last_insert_id, warning_count,
-                     info, next_mid, next_message, expect_metadata, options)
-{
-}
-
-shcore::Value Collection_resultset::next(const shcore::Argument_list &args)
-{
-  Value ret_val = Value::Null();
-
-  std::string function = class_name() + "::next";
-  bool raw = false;
-
-  args.ensure_count(0, function.c_str());
-
-  // Gets the next row
-  std::auto_ptr<Base_row> row(next_row());
-
-  if (row.get())
-  {
-    // Now parses the document and returns it
-    Value document = row->get_value(0);
-
-    ret_val = Value::parse(document.as_string());
-  }
-
-  return ret_val;
-}
-
-shcore::Value Collection_resultset::fetch_all(const shcore::Argument_list &args)
-{
-  Value::Array_type_ref array(new Value::Array_type());
-
-  std::string function = class_name() + "::all";
-  bool raw = false;
-
-  args.ensure_count(0, function.c_str());
-
-  // Gets the next row
-  Value record = next(args);
-  while (record)
-  {
-    array->push_back(record);
-    record = next(args);
-  }
-
-  return Value(array);
-}
+#endif

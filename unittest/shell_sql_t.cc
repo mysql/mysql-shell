@@ -1,4 +1,3 @@
-
 /* Copyright (c) 2014, 2015, Oracle and/or its affiliates. All rights reserved.
 
  This program is free software; you can redistribute it and/or modify
@@ -14,7 +13,6 @@
  along with this program; if not, write to the Free Software
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA */
 
-
 #include <cstdio>
 #include <cstdlib>
 #include <fstream>
@@ -27,19 +25,16 @@
 #include "shellcore/lang_base.h"
 #include "shellcore/types_cpp.h"
 
-
 #include "shellcore/shell_core.h"
 #include "shellcore/shell_sql.h"
-#include "../modules/mod_session.h"
-#include "../modules/mod_db.h"
+#include "../modules/base_session.h"
+//#include "../modules/mod_session.h"
+//#include "../modules/mod_schema.h"
 #include "shellcore/common.h"
 #include "test_utils.h"
 #include "boost/algorithm/string.hpp"
 
-
 namespace shcore {
-
-
   namespace sql_shell_tests {
     class Environment
     {
@@ -48,8 +43,6 @@ namespace shcore {
       {
         shell_core.reset(new Shell_core(&output_handler.deleg));
 
-        session.reset(new mysh::Session(shell_core.get()));
-        shell_core->set_global("session", Value(boost::static_pointer_cast<Object_bridge>(session)));
         shell_sql.reset(new Shell_sql(shell_core.get()));
       }
 
@@ -57,11 +50,9 @@ namespace shcore {
       {
       }
 
-
       Shell_test_output_handler output_handler;
       boost::shared_ptr<Shell_core> shell_core;
       boost::shared_ptr<Shell_sql> shell_sql;
-      boost::shared_ptr<mysh::Session> session;
     };
 
     class Shell_sql_test : public ::testing::Test
@@ -92,7 +83,8 @@ namespace shcore {
         if (pwd)
           args.push_back(Value(pwd));
 
-        env.session->connect(args);
+        boost::shared_ptr<mysh::BaseSession> session(mysh::connect_session(args));
+        env.shell_core->set_global("session", Value(boost::static_pointer_cast<Object_bridge>(session)));
       }
     };
 
@@ -141,7 +133,6 @@ namespace shcore {
       EXPECT_EQ("", env.shell_sql->get_handled_input());
       EXPECT_EQ("        -> ", env.shell_sql->prompt());
 
-      
       query = ";";
       env.shell_sql->handle_input(query, state);
 
@@ -162,7 +153,6 @@ namespace shcore {
       // Nothing is executed until the delimiter is reached and the prompt changes
       // Prompt changes to multiline mode
       EXPECT_EQ(Input_ok, state);
-
 
       query = "show";
       env.shell_sql->handle_input(query, state);
@@ -185,7 +175,6 @@ namespace shcore {
       //EXPECT_EQ("databases", query);
       EXPECT_EQ("", env.shell_sql->get_handled_input());
       EXPECT_EQ("        -> ", env.shell_sql->prompt());
-
 
       query = "%%%";
       env.shell_sql->handle_input(query, state);
@@ -251,7 +240,6 @@ namespace shcore {
       EXPECT_EQ(Input_continued, state);
       EXPECT_EQ("", env.shell_sql->get_handled_input());
       EXPECT_EQ("        -> ", env.shell_sql->prompt());
-
 
       query = "databases;\nshow";
       env.shell_sql->handle_input(query, state);

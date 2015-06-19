@@ -13,6 +13,7 @@
  along with this program; if not, write to the Free Software
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA */
 
+#include "proj_parser.h"
 #include <cstdio>
 #include <cstdlib>
 #include <fstream>
@@ -51,33 +52,27 @@ namespace shcore
       out << "]";
     }
 
-    class DummyColumnContainer
-    {
-    public:
-      DummyColumnContainer(std::vector<Mysqlx::Crud::Column*>& columns) :
-      _columns(columns){}
-
-      Mysqlx::Crud::Column* Add()
-      {
-        Mysqlx::Crud::Column* new_col = new Mysqlx::Crud::Column();
-        _columns.push_back(new_col);
-        return new_col;
-      }
-
-    private:
-      std::vector<Mysqlx::Crud::Column*>& _columns;
-    };
-
     void parse_and_assert_expr(const std::string& input, const std::string& token_list, const std::string& unparsed, bool document_mode = false, bool allow_alias = true)
     {
+      struct Wrap
+      {
+        std::vector<Mysqlx::Crud::Column*> &cols;
+        Wrap(std::vector<Mysqlx::Crud::Column*> &c) : cols(c) {}
+        Mysqlx::Crud::Column *Add()
+        {
+          Mysqlx::Crud::Column *tmp = new Mysqlx::Crud::Column();
+          cols.push_back(tmp);
+          return tmp;
+        };
+      };
       std::stringstream out, out_tokens;
       Proj_parser p(input, document_mode, allow_alias);
       print_tokens(p, out_tokens);
       std::string token_list2 = out_tokens.str();
       ASSERT_TRUE(token_list == token_list2);
       std::vector<Mysqlx::Crud::Column*> cols;
-      DummyColumnContainer container(cols);
-      p.parse(container);
+      Wrap wrapped_cols(cols);
+      p.parse(wrapped_cols);
       std::string s = Expr_unparser::column_list_to_string(cols);
       out << s;
       std::string outstr = out.str();

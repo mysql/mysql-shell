@@ -23,8 +23,10 @@ if(WITH_TESTS)
     add_definitions(-DGTEST_LANG_CXX11=0 ${GMOCK_CFLAGS})
     include_directories(${CMAKE_SOURCE_DIR}/unittest/include 
                 ${CMAKE_SOURCE_DIR}/mysqlxtest
+                ${CMAKE_SOURCE_DIR}/mysqlxtest/common
                 ${GTEST_INCLUDE_DIR} 
                 ${CMAKE_SOURCE_DIR}/include
+                ${CMAKE_SOURCE_DIR}/modules
                 ${MYSQL_INCLUDE_DIRS}
     )
 

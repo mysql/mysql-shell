@@ -17,6 +17,7 @@ remove_definitions(-Dmysqlshmods_EXPORTS)
 
 include_directories( ${MYSQL_INCLUDE_DIRS} )
 include_directories( ${CMAKE_BINARY_DIR} )
+include_directories( ${CMAKE_SOURCE_DIR}/mysqlxtest)
 include_directories("${CMAKE_SOURCE_DIR}/include" "${CMAKE_SOURCE_DIR}/utils" "${Boost_INCLUDE_DIRS}")
 include_directories( "${CMAKE_SOURCE_DIR}/common/uuid/include" )
 include_directories( "${CMAKE_SOURCE_DIR}/common/myjson/include" )

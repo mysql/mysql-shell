@@ -19,20 +19,20 @@
 #include <boost/bind.hpp>
 #include "mod_crud_collection_remove.h"
 
-using namespace mysh;
+using namespace mysh::mysqlx;
 using namespace shcore;
 
 CollectionRemove::CollectionRemove(const shcore::Argument_list &args) :
-Crud_definition(args)
+Crud_definition()
 {
   // _conn, schema, collection
   args.ensure_count(3, "CollectionRemove");
 
-  std::string path;
+  /*std::string path;
   _data.reset(new shcore::Value::Map_type());
   (*_data)["data_model"] = Value(Mysqlx::Crud::DOCUMENT);
   (*_data)["schema"] = args[1];
-  (*_data)["collection"] = args[2];
+  (*_data)["collection"] = args[2];*/
 
   // Exposes the methods available for chaining
   add_method("remove", boost::bind(&CollectionRemove::remove, this, _1), "data");
@@ -88,7 +88,7 @@ shcore::Value CollectionRemove::limit(const shcore::Argument_list &args)
   if (args[0].type != shcore::Integer)
     throw shcore::Exception::argument_error("CollectionRemove::limit: integer parameter required.");
 
-  (*_data)["NumberOfRows"] = args[0];
+  //(*_data)["NumberOfRows"] = args[0];
 
   update_functions("limit");
 
@@ -101,9 +101,9 @@ shcore::Value CollectionRemove::bind(const shcore::Argument_list &args)
 
   return Value(Object_bridge_ref(this));
 }
-
+/*
 boost::shared_ptr<shcore::Object_bridge> CollectionRemove::create(const shcore::Argument_list &args)
 {
-  args.ensure_count(3, 4, "CollectionRemove()");
-  return boost::shared_ptr<shcore::Object_bridge>(new CollectionRemove(args));
-}
+args.ensure_count(3, 4, "CollectionRemove()");
+return boost::shared_ptr<shcore::Object_bridge>(new CollectionRemove(args));
+}*/

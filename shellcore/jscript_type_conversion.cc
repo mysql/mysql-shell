@@ -73,7 +73,7 @@ double JScript_type_bridger::call_num_method(v8::Handle<v8::Object> object, cons
 
 v8::Handle<v8::Value> JScript_type_bridger::native_object_to_js(Object_bridge_ref object)
 {
-  if (object->class_name() == "Date")
+  if (object && object->class_name() == "Date")
   {
     boost::shared_ptr<Date> date = boost::static_pointer_cast<Date>(object);
     return v8::Date::New(owner->isolate(), date->as_ms());

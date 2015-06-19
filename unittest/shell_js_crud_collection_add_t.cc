@@ -32,7 +32,7 @@
 #include "../modules/mod_crud_collection_add.h"
 
 namespace shcore {
-  class Shell_js_crud_collection_add_tests : public Crud_test_wrapper
+  class DISABLED_Shell_js_crud_collection_add_tests : public Crud_test_wrapper
   {
   protected:
     // You can define per-test set-up and tear-down logic as usual.
@@ -48,50 +48,39 @@ namespace shcore {
     }
   };
 
-  TEST_F(Shell_js_crud_collection_add_tests, chain_combinations)
+  TEST_F(DISABLED_Shell_js_crud_collection_add_tests, initialization)
+  {
+    exec_and_out_equals("var mysqlx = require('mysqlx').mysqlx;");
+
+    exec_and_out_equals("var session = mysqlx.openNodeSession('" + _uri + "');");
+
+    exec_and_out_equals("session.executeSql('drop schema if exists js_shell_test;')");
+    exec_and_out_equals("session.executeSql('create schema js_shell_test;')");
+    exec_and_out_equals("session.executeSql('use js_shell_test;')");
+    exec_and_out_equals("session.executeSql(\"create table `collection1`(`doc` JSON, `_id` VARBINARY(16) GENERATED ALWAYS AS(unhex(json_unquote(json_extract(doc, '$._id')))) stored PRIMARY KEY)\")");
+  }
+
+  TEST_F(DISABLED_Shell_js_crud_collection_add_tests, chain_combinations)
   {
     // NOTE: No data validation is done on this test, only tests
     //       different combinations of chained methods.
+    exec_and_out_equals("var mysqlx = require('mysqlx').mysqlx;");
 
-    // Creates a connection object
-    exec_and_out_equals("var conn = _F.mysqlx.Connection('" + _uri + "');");
+    exec_and_out_equals("var session = mysqlx.openSession('" + _uri + "');");
 
-    // Creates the collection add object
-    exec_and_out_equals("var crud = _F.mysqlx.CollectionAdd(conn, 'schema', 'collection');");
+    exec_and_out_equals("var collection = session.js_shell_test.getCollection('collection1');");
+
+    // Creates the collection find object
+    exec_and_out_equals("var crud = collection.add([]);");
 
     //-------- ---------------------Test 1------------------------//
     // Initial validation, any new CollectionAdd object only has
     // the add function available upon creation
     //-------------------------------------------------------------
-    ensure_available_functions("add");
-
-    //-------- ---------------------Test 2-------------------------
-    // Tests the happy path validating only the right functions
-    // are available following the chained call
-    // this is ColumnAdd.add([]).bind([]).execute()
-    //-------------------------------------------------------------
-    exec_and_out_equals("crud.add([])");
-    ensure_available_functions("bind execute");
-
-    // Now executes bind and the only available method will be execute
-    exec_and_out_equals("crud.bind([])");
     ensure_available_functions("execute");
-
-    //-------- ---------------------Test 3-------------------------
-    // Tests an alternative where add is called with no parameters
-    // on this case bind is not optional but mandatory so after add
-    // execute should not be available
-    //-------------------------------------------------------------
-
-    // Creates the collection add object
-    exec_and_out_equals("var crud = _F.mysqlx.CollectionAdd(conn, 'schema', 'collection');");
-
-    // Executes insert + bind, values  only execute should be available after
-    exec_and_out_equals("crud.add()");
-    ensure_available_functions("bind");
   }
 
-  TEST_F(Shell_js_crud_collection_add_tests, add_validations)
+  TEST_F(DISABLED_Shell_js_crud_collection_add_tests, add_validations)
   {
     exec_and_out_equals("var mysqlx = require('mysqlx').mysqlx;");
     exec_and_out_equals("var session = mysqlx.openNodeSession('" + _uri + "');");

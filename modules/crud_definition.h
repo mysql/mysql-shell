@@ -24,17 +24,17 @@
 #define _MOD_CRUD_DEFINITION_H_
 
 #include "shellcore/types_cpp.h"
-#include "mod_mysqlx.h"
 
 #include <set>
 
 namespace mysh
 {
-  class X_connection;
+namespace mysqlx
+{
   class Crud_definition : public shcore::Cpp_object_bridge
   {
   public:
-    Crud_definition(const shcore::Argument_list &args);
+    Crud_definition();
     // T the moment will put these since we don't really care about them
     virtual bool operator == (const Object_bridge &other) const { return false; }
 
@@ -45,11 +45,8 @@ namespace mysh
     virtual shcore::Value call(const std::string &name, const shcore::Argument_list &args);
 
     // The last step on CRUD operations
-    shcore::Value execute(const shcore::Argument_list &args);
+    virtual shcore::Value execute(const shcore::Argument_list &args) = 0;
   protected:
-    boost::weak_ptr<X_connection> _conn;
-    shcore::Value::Map_type_ref _data;
-
     // The CRUD operations will use "dynamic" functions to control the method chaining.
     // A dynamic function is one that will be enabled/disabled based on the method
     // chain sequence.
@@ -71,6 +68,7 @@ namespace mysh
     void set_columns(const std::string &source, const std::string &field, shcore::Value value, bool collection, bool with_alias);
     void set_order(const std::string &source, const std::string &field, shcore::Value value);
   };
-};
+}
+}
 
 #endif

@@ -20,7 +20,6 @@
 #ifndef _MYSQLX_PARSER_H_
 #define _MYSQLX_PARSER_H_
 
-#include "expr_parser.h"
 #include "proj_parser.h"
 
 #include <string>

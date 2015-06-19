@@ -27,16 +27,19 @@
 
 namespace mysh
 {
-  class TableInsert : public Crud_definition
+  namespace mysqlx
   {
-  public:
-    TableInsert(const shcore::Argument_list &args);
-  public:
-    virtual std::string class_name() const { return "TableInsert"; }
-    static boost::shared_ptr<shcore::Object_bridge> create(const shcore::Argument_list &args);
-    shcore::Value insert(const shcore::Argument_list &args);
-    shcore::Value values(const shcore::Argument_list &args);
-    shcore::Value bind(const shcore::Argument_list &args);
+    class TableInsert : public Crud_definition
+    {
+    public:
+      TableInsert(const shcore::Argument_list &args);
+    public:
+      virtual std::string class_name() const { return "TableInsert"; }
+      static boost::shared_ptr<shcore::Object_bridge> create(const shcore::Argument_list &args);
+      shcore::Value insert(const shcore::Argument_list &args);
+      shcore::Value values(const shcore::Argument_list &args);
+      shcore::Value bind(const shcore::Argument_list &args);
+    };
   };
 };
 

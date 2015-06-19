@@ -20,42 +20,32 @@
 // Interactive Table access module
 // (the one exposed as the table members of the db object in the shell)
 
-#ifndef _MOD_DB_TABLE_H_
-#define _MOD_DB_TABLE_H_
+#ifndef _MOD_MYSQLX_TABLE_H_
+#define _MOD_MYSQLX_TABLE_H_
 
+#include "base_database_object.h"
 #include "shellcore/types.h"
 #include "shellcore/types_cpp.h"
 
-#include "mod_connection.h"
-
-#include <boost/weak_ptr.hpp>
-
-namespace shcore
+namespace mysh
 {
-  class Shell_core;
-};
+  namespace mysqlx
+  {
+    class Schema;
 
-namespace mysh {
+    class Table : public DatabaseObject
+    {
+    public:
+      Table(boost::shared_ptr<Schema> owner, const std::string &name);
+      Table(boost::shared_ptr<const Schema> owner, const std::string &name);
+      virtual ~Table();
 
-class Db;
+      virtual std::string class_name() const { return "Table"; }
 
-class Db_table : public shcore::Cpp_object_bridge
-{
-public:
-  Db_table(boost::shared_ptr<Db> owner, const std::string &name);
-  ~Db_table();
-
-  virtual std::string &append_descr(std::string &s_out, int indent, int quote_strings) const;
-
-  virtual std::string class_name() const;
-  virtual std::vector<std::string> get_members() const;
-  virtual shcore::Value get_member(const std::string &prop) const;
-  virtual bool operator == (const Object_bridge &other) const;
-private:
-  boost::weak_ptr<Db> _owner;
-  std::string _table_name;
-};
-
-};
+    private:
+      boost::shared_ptr< ::mysqlx::Table> _table_impl;
+    };
+  }
+}
 
 #endif

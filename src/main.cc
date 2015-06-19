@@ -42,8 +42,8 @@
 
 #include "cmdline_options.h"
 
-#include "../modules/mod_session.h"
-#include "../modules/mod_db.h"
+#include "../modules/base_session.h"
+//#include "../modules/mod_schema.h"
 #include <sys/stat.h>
 
 #ifdef WIN32
@@ -109,8 +109,8 @@ private:
 private:
   Interpreter_delegate _delegate;
 
-  boost::shared_ptr<mysh::Session> _session;
-  boost::shared_ptr<mysh::Db> _db;
+  boost::shared_ptr<mysh::BaseSession> _session;
+  //boost::shared_ptr<mysh::mysqlx::Schema> _db;
   boost::shared_ptr<Shell_core> _shell;
 
   std::string _input_buffer;
@@ -143,11 +143,11 @@ _batch_continue_on_error(false)
 
   _shell.reset(new Shell_core(&_delegate));
 
-  _session.reset(new mysh::Session(dynamic_cast<shcore::IShell_core*>(_shell.get())));
-  _shell->set_global("session", Value(boost::static_pointer_cast<Object_bridge>(_session)));
+  //_session.reset(new mysh::mysqlx::Session(dynamic_cast<shcore::IShell_core*>(_shell.get())));
+  //_shell->set_global("session", Value(boost::static_pointer_cast<Object_bridge>(_session)));
 
-  //  _db.reset(new mysh::Db(_shell.get()));
-  //  _shell->set_global("db", Value( boost::static_pointer_cast<Object_bridge, mysh::Db >(_db) ));
+  //  _db.reset(new mysh::Schema(_shell.get()));
+  //  _shell->set_global("db", Value( boost::static_pointer_cast<Object_bridge, mysh::Schema >(_db) ));
 
   std::string cmd_help =
     "SYNTAX:\n"
@@ -230,7 +230,7 @@ bool Interactive_shell::connect(const std::string &uri, bool needs_password)
 
   try
   {
-    if (_session->is_connected())
+    if (_session && _session->is_connected())
     {
       shcore::print("Closing old connection...\n");
       _session->disconnect();
@@ -253,14 +253,19 @@ bool Interactive_shell::connect(const std::string &uri, bool needs_password)
 
 Value Interactive_shell::connect_session(const Argument_list &args)
 {
-  _session->connect(args);
+  // TODO: Review if this replacement is correct
+  boost::shared_ptr<mysh::BaseSession> new_session(mysh::connect_session(args));
+  _session.reset(new_session, new_session.get());
 
-  boost::shared_ptr<mysh::Db> db(_session->default_schema());
-  if (db)
+  _shell->set_global("session", Value(boost::static_pointer_cast<Object_bridge>(_session)));
+
+  Value default_schema = _session->get_member("defaultSchema");
+  if (default_schema)
   {
-    if (_shell->interactive_mode() != Shell_core::Mode_SQL)
-      _shell->print("Default schema `" + db->schema() + "` accessible through db.\n");
-    _shell->set_global("db", Value(boost::static_pointer_cast<Object_bridge>(db)));
+    // TODO: Uncomment this...
+    //if (_shell->interactive_mode() != Shell_core::Mode_SQL)
+    //  _shell->print("Default schema `" + db->schema() + "` accessible through db.\n");
+    _shell->set_global("db", default_schema);
   }
   else
   {

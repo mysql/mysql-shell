@@ -40,6 +40,7 @@ public:
   virtual std::string prompt();
 
   virtual bool print_help(const std::string& topic);
+  void print_exception(const shcore::Exception &e);
 
 private:
   std::string _sql_cache;

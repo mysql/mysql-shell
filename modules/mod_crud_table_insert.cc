@@ -19,7 +19,7 @@
 #include <boost/bind.hpp>
 #include "mod_crud_table_insert.h"
 
-using namespace mysh;
+using namespace mysh::mysqlx;
 using namespace shcore;
 
 /*
@@ -32,15 +32,15 @@ using namespace shcore;
 * - Message information that is not provided through the different functions
 */
 TableInsert::TableInsert(const shcore::Argument_list &args) :
-Crud_definition(args)
+Crud_definition()
 {
   args.ensure_count(3, "TableInsert");
 
-  std::string path;
+  /*std::string path;
   _data.reset(new shcore::Value::Map_type());
   (*_data)["data_model"] = shcore::Value(Mysqlx::Crud::TABLE);
   (*_data)["schema"] = args[1];
-  (*_data)["collection"] = args[2];
+  (*_data)["collection"] = args[2];*/
 
   // The values function should not be enabled if values were already given
   add_method("insert", boost::bind(&TableInsert::insert, this, _1), "data");
@@ -78,7 +78,7 @@ shcore::Value TableInsert::insert(const shcore::Argument_list &args)
     }
 
     // Stores the data
-    (*_data)[path] = args[0];
+    //(*_data)[path] = args[0];
   }
 
   // Updates the exposed functions
@@ -93,7 +93,7 @@ shcore::Value TableInsert::values(const shcore::Argument_list &args)
   args.ensure_count(1, "TableInsert::values");
 
   // Adds the parameters to the data map
-  (*_data)["Values"] = args[0];
+  //(*_data)["Values"] = args[0];
 
   // Updates the exposed functions
   update_functions("values");
@@ -116,8 +116,8 @@ shcore::Value TableInsert::bind(const shcore::Argument_list &args)
   return Value(Object_bridge_ref(this));
 }
 
-boost::shared_ptr<shcore::Object_bridge> TableInsert::create(const shcore::Argument_list &args)
+/*boost::shared_ptr<shcore::Object_bridge> TableInsert::create(const shcore::Argument_list &args)
 {
-  args.ensure_count(3, 4, "TableInsert()");
-  return boost::shared_ptr<shcore::Object_bridge>(new TableInsert(args));
-}
+args.ensure_count(3, 4, "TableInsert()");
+return boost::shared_ptr<shcore::Object_bridge>(new TableInsert(args));
+}*/

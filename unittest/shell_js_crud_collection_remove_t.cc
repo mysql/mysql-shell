@@ -32,7 +32,7 @@
 #include "../modules/mod_crud_collection_remove.h"
 
 namespace shcore {
-  class Shell_js_crud_collection_remove_tests : public Crud_test_wrapper
+  class DISABLED_Shell_js_crud_collection_remove_tests : public Crud_test_wrapper
   {
   protected:
     // You can define per-test set-up and tear-down logic as usual.
@@ -48,7 +48,7 @@ namespace shcore {
     }
   };
 
-  TEST_F(Shell_js_crud_collection_remove_tests, DISABLED_chain_combinations)
+  TEST_F(DISABLED_Shell_js_crud_collection_remove_tests, DISABLED_chain_combinations)
   {
     // NOTE: No data validation is done on this test, only tests
     //       different combinations of chained methods.
@@ -89,7 +89,7 @@ namespace shcore {
     }
   }
 
-  TEST_F(Shell_js_crud_collection_remove_tests, remove_validations)
+  TEST_F(DISABLED_Shell_js_crud_collection_remove_tests, remove_validations)
   {
     exec_and_out_equals("var mysqlx = require('mysqlx').mysqlx;");
     exec_and_out_equals("var session = mysqlx.openNodeSession('" + _uri + "');");
@@ -127,7 +127,7 @@ namespace shcore {
     exec_and_out_contains("collection.remove().bind();", "", "CollectionRemove::bind: not yet implemented.");
   }
 
-  TEST_F(Shell_js_crud_collection_remove_tests, remove_execution)
+  TEST_F(DISABLED_Shell_js_crud_collection_remove_tests, remove_execution)
   {
     exec_and_out_equals("var mysqlx = require('mysqlx').mysqlx;");
     exec_and_out_equals("var session = mysqlx.openNodeSession('" + _uri + "');");

@@ -24,19 +24,26 @@
 #define _MOD_CRUD_COLLECTION_ADD_H_
 
 #include "crud_definition.h"
+#include "mysqlx_crud.h"
 
 namespace mysh
 {
-  class CollectionAdd : public Crud_definition
+  namespace mysqlx
   {
-  public:
-    CollectionAdd(const shcore::Argument_list &args);
-  public:
-    virtual std::string class_name() const { return "CollectionAdd"; }
-    static boost::shared_ptr<shcore::Object_bridge> create(const shcore::Argument_list &args);
-    shcore::Value add(const shcore::Argument_list &args);
-    shcore::Value bind(const shcore::Argument_list &args);
-  };
-};
+    class CollectionAdd : public Crud_definition
+    {
+    public:
+      CollectionAdd(const ::mysqlx::AddStatement &add);
+    public:
+      virtual std::string class_name() const { return "CollectionAdd"; }
+      shcore::Value add(const shcore::Argument_list &args);
+
+      virtual shcore::Value execute(const shcore::Argument_list &args);
+      ::mysqlx::AddStatement *stmt() { return _add.get(); }
+    private:
+      std::auto_ptr< ::mysqlx::AddStatement> _add;
+    };
+  }
+}
 
 #endif

@@ -30,7 +30,7 @@
 #include "test_utils.h"
 
 namespace shcore {
-  class Shell_js_crud_table_insert_tests : public Crud_test_wrapper
+  class DISABLED_Shell_js_crud_table_insert_tests : public Crud_test_wrapper
   {
   protected:
     // You can define per-test set-up and tear-down logic as usual.
@@ -45,7 +45,7 @@ namespace shcore {
     }
   };
 
-  TEST_F(Shell_js_crud_table_insert_tests, chain_combinations)
+  TEST_F(DISABLED_Shell_js_crud_table_insert_tests, chain_combinations)
   {
     // Creates a connection object
     exec_and_out_equals("var conn = _F.mysqlx.Connection('" + _uri + "');");

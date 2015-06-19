@@ -19,20 +19,20 @@
 #include <boost/bind.hpp>
 #include "mod_crud_collection_find.h"
 
-using namespace mysh;
+using namespace mysh::mysqlx;
 using namespace shcore;
 
 CollectionFind::CollectionFind(const shcore::Argument_list &args) :
-Crud_definition(args)
+Crud_definition()
 {
   // _conn, schema, collection
-  args.ensure_count(3, "CollectionFind");
+  /*  args.ensure_count(3, "CollectionFind");
 
-  std::string path;
-  _data.reset(new shcore::Value::Map_type());
-  (*_data)["data_model"] = Value(Mysqlx::Crud::DOCUMENT);
-  (*_data)["schema"] = args[1];
-  (*_data)["collection"] = args[2];
+    std::string path;
+    _data.reset(new shcore::Value::Map_type());
+    (*_data)["data_model"] = Value(Mysqlx::Crud::DOCUMENT);
+    (*_data)["schema"] = args[1];
+    (*_data)["collection"] = args[2];*/
 
   // Exposes the methods available for chaining
   add_method("find", boost::bind(&CollectionFind::find, this, _1), "data");
@@ -123,7 +123,7 @@ shcore::Value CollectionFind::skip(const shcore::Argument_list &args)
   if (args[0].type != shcore::Integer)
     throw shcore::Exception::argument_error("CollectionFind::skip: integer parameter required.");
 
-  (*_data)["LimitOffset"] = args[0];
+  //(*_data)["LimitOffset"] = args[0];
 
   update_functions("skip");
 
@@ -137,7 +137,7 @@ shcore::Value CollectionFind::limit(const shcore::Argument_list &args)
   if (args[0].type != shcore::Integer)
     throw shcore::Exception::argument_error("CollectionFind::limit: integer parameter required.");
 
-  (*_data)["NumberOfRows"] = args[0];
+  //(*_data)["NumberOfRows"] = args[0];
 
   update_functions("limit");
 

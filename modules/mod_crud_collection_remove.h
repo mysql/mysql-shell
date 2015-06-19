@@ -27,17 +27,20 @@
 
 namespace mysh
 {
-  class CollectionRemove : public Crud_definition
+  namespace mysqlx
   {
-  public:
-    CollectionRemove(const shcore::Argument_list &args);
-  public:
-    virtual std::string class_name() const { return "CollectionRemove"; }
-    static boost::shared_ptr<shcore::Object_bridge> create(const shcore::Argument_list &args);
-    shcore::Value remove(const shcore::Argument_list &args);
-    shcore::Value order_by(const shcore::Argument_list &args);
-    shcore::Value limit(const shcore::Argument_list &args);
-    shcore::Value bind(const shcore::Argument_list &args);
+    class CollectionRemove : public Crud_definition
+    {
+    public:
+      CollectionRemove(const shcore::Argument_list &args);
+    public:
+      virtual std::string class_name() const { return "CollectionRemove"; }
+      static boost::shared_ptr<shcore::Object_bridge> create(const shcore::Argument_list &args);
+      shcore::Value remove(const shcore::Argument_list &args);
+      shcore::Value order_by(const shcore::Argument_list &args);
+      shcore::Value limit(const shcore::Argument_list &args);
+      shcore::Value bind(const shcore::Argument_list &args);
+    };
   };
 };
 

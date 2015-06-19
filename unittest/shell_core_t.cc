@@ -28,8 +28,7 @@
 
 #include "shellcore/shell_core.h"
 #include "shellcore/shell_sql.h"
-#include "../modules/mod_session.h"
-#include "../modules/mod_db.h"
+#include "../modules/base_session.h"
 #include "test_utils.h"
 #include "utils_file.h"
 
@@ -38,7 +37,6 @@ namespace shcore {
     class Shell_core_test : public Shell_core_test_wrapper
     {
     protected:
-      boost::shared_ptr<mysh::Session> _session;
       std::string _file_name;
       int _ret_val;
 
@@ -48,9 +46,6 @@ namespace shcore {
 
         bool initilaized(false);
         _shell_core->switch_mode(Shell_core::Mode_SQL, initilaized);
-
-        _session.reset(new mysh::Session(_shell_core.get()));
-        _shell_core->set_global("session", Value(boost::static_pointer_cast<Object_bridge>(_session)));
       }
 
       void connect()
@@ -68,7 +63,9 @@ namespace shcore {
         if (!_pwd.empty())
           args.push_back(Value(_pwd));
 
-        _session->connect(args);
+        boost::shared_ptr<mysh::BaseSession> session(mysh::connect_session(args));
+
+        _shell_core->set_global("session", Value(boost::static_pointer_cast<Object_bridge>(session)));
       }
 
       void process(const std::string& path, bool continue_on_error)
