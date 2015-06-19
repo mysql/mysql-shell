@@ -24,12 +24,23 @@ file(GLOB libmysqlxtest_SRC
 
 add_library(mysqlxtest ${libmysqlxtest_SRC})
 
+# For now, "samples/native/lib" compiles against this library when
+# creating a shared library, so we need to make sure the code is
+# position independent. CMake 2.8.10 has a property flag
+# CMAKE_POSITION_INDEPENDENT_CODE.
+if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_C_COMPILER_ID MATCHES "Clang")
+  set_target_properties(mysqlxtest PROPERTIES COMPILE_FLAGS "-fPIC")
+endif()
+
 MACRO(SHELL_ADD_PROTOBUF target)
   INCLUDE_DIRECTORIES(${CMAKE_CURRENT_BINARY_DIR})
   PROTOBUF_GENERATE_CPP(PROTO_SRCS PROTO_HDRS ${ARGN})
   set_source_files_properties(${PROTO_SRCS} ${PROTO_HDRS} PROPERTIES GENERATED TRUE)
   SOURCE_GROUP(Protobuf FILES ${PROTO_SRCS} ${PROTO_HDRS})
   ADD_LIBRARY(${target}_pb STATIC ${PROTO_SRCS} ${PROTO_HDRS})
+  if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_C_COMPILER_ID MATCHES "Clang")
+    set_target_properties(${target}_pb PROPERTIES COMPILE_FLAGS "-fPIC")
+  endif()
   TARGET_LINK_LIBRARIES(${target}_pb ${PROTOBUF_LIBRARY})
   TARGET_LINK_LIBRARIES(${target} ${target}_pb)
 ENDMACRO()
