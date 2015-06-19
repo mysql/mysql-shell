@@ -221,7 +221,7 @@ void ApiBaseSession::_load_schemas()
 
         if (!schema.empty())
         {
-          boost::shared_ptr<Schema> object(new Schema(shared_from_this(), schema));
+          boost::shared_ptr<Schema> object(new Schema(_get_shared_this(), schema));
           (*_schemas)[schema] = shcore::Value(boost::static_pointer_cast<Object_bridge>(object));
         }
 
@@ -252,7 +252,7 @@ shcore::Value ApiBaseSession::get_schema(const shcore::Argument_list &args) cons
   {
     if (_session)
     {
-      boost::shared_ptr<Schema> schema(new Schema(shared_from_this(), name));
+      boost::shared_ptr<Schema> schema(new Schema(_get_shared_this(), name));
 
       // Here this call will also validate the schema is valid
       schema->cache_table_objects();
@@ -298,11 +298,18 @@ void ApiBaseSession::_update_default_schema(const std::string& name)
       _default_schema = (*_schemas)[name].as_object<Schema>();
     else
     {
-      _default_schema.reset(new Schema(shared_from_this(), name));
+      _default_schema.reset(new Schema(_get_shared_this(), name));
       _default_schema->cache_table_objects();
       (*_schemas)[name] = Value(boost::static_pointer_cast<Object_bridge>(_default_schema));
     }
   }
+}
+
+boost::shared_ptr<ApiBaseSession> Session::_get_shared_this() const
+{
+  boost::shared_ptr<const Session> shared = shared_from_this();
+
+  return boost::const_pointer_cast<Session>(shared);
 }
 
 boost::shared_ptr<shcore::Object_bridge> Session::create(const shcore::Argument_list &args)
@@ -321,11 +328,19 @@ NodeSession::NodeSession() :ApiBaseSession()
              NULL);
 }
 
+boost::shared_ptr<ApiBaseSession> NodeSession::_get_shared_this() const
+{
+  boost::shared_ptr<const NodeSession> shared = shared_from_this();
+
+  return boost::const_pointer_cast<NodeSession>(shared);
+}
+
 boost::shared_ptr<shcore::Object_bridge> NodeSession::create(const shcore::Argument_list &args)
 {
   boost::shared_ptr<NodeSession> session(new NodeSession());
-
+  
   session->connect(args);
 
   return boost::static_pointer_cast<Object_bridge>(session);
 }
+

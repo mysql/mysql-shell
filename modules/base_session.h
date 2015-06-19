@@ -48,7 +48,7 @@ namespace mysh
 
     virtual bool operator == (const Object_bridge &other) const;
 
-    virtual std::vector<std::string> BaseSession::get_members() const;
+    virtual std::vector<std::string> get_members() const;
 
     // Virtual methods from ISession
     virtual shcore::Value connect(const shcore::Argument_list &args) = 0;

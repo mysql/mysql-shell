@@ -70,7 +70,7 @@ namespace mysh
   namespace mysqlx
   {
     class Schema;
-    class MOD_PUBLIC ApiBaseSession : public BaseSession, public boost::enable_shared_from_this<ApiBaseSession>
+    class MOD_PUBLIC ApiBaseSession : public BaseSession
     {
     public:
       ApiBaseSession();
@@ -94,10 +94,11 @@ namespace mysh
 
       void flush_last_result();
     protected:
+      virtual boost::shared_ptr<ApiBaseSession> _get_shared_this() const = 0;
       boost::shared_ptr< ::mysqlx::Result> _last_result;
       void _update_default_schema(const std::string& name);
-      void _load_default_schema();
-      void _load_schemas();
+      virtual void _load_default_schema();
+      virtual void _load_schemas();
 
       boost::shared_ptr< ::mysqlx::Session> _session;
 
@@ -115,6 +116,8 @@ namespace mysh
       virtual ~Session(){};
       virtual std::string class_name() const { return "Session"; };
       static boost::shared_ptr<shcore::Object_bridge> create(const shcore::Argument_list &args);
+
+      virtual boost::shared_ptr<ApiBaseSession> _get_shared_this() const;
     };
 
     class MOD_PUBLIC NodeSession : public ApiBaseSession, public boost::enable_shared_from_this<NodeSession>
@@ -124,6 +127,7 @@ namespace mysh
       virtual ~NodeSession(){};
       virtual std::string class_name() const { return "NodeSession"; };
       static boost::shared_ptr<shcore::Object_bridge> create(const shcore::Argument_list &args);
+      virtual boost::shared_ptr<ApiBaseSession> _get_shared_this() const;
     };
   }
 }
