@@ -28,6 +28,16 @@
 #include "gtest/gtest.h"
 #include "../utils/utils_time.h"
 
+#if defined(WIN32)
+#include <time.h>
+#else
+#include <sys/times.h>
+#ifdef _SC_CLK_TCK				// For mit-pthreads
+#undef CLOCKS_PER_SEC
+#define CLOCKS_PER_SEC (sysconf(_SC_CLK_TCK))
+#endif
+#endif
+
 namespace shcore
 {
   namespace utils_time_tests
@@ -39,10 +49,11 @@ namespace shcore
       int hours;
       int minutes;
       float seconds;
+	  unsigned long clocks_per_second = CLOCKS_PER_SEC;
 
-      int clocks_per_minute = 60 * CLOCKS_PER_SEC;
-      int clocks_per_hour = 60 * clocks_per_minute;
-      int clocks_per_day = 24 * clocks_per_hour;
+      unsigned long clocks_per_minute = 60 * clocks_per_second;
+      unsigned long clocks_per_hour = 60 * clocks_per_minute;
+      unsigned long clocks_per_day = 24 * clocks_per_hour;
 
       // Sets some seconds as value.
       raw_time = 56 * CLOCKS_PER_SEC;
@@ -82,9 +93,9 @@ namespace shcore
       unsigned long raw_time;
       std::string formatted;
 
-      int clocks_per_minute = 60 * CLOCKS_PER_SEC;
-      int clocks_per_hour = 60 * clocks_per_minute;
-      int clocks_per_day = 24 * clocks_per_hour;
+      unsigned long clocks_per_minute = 60 * CLOCKS_PER_SEC;
+      unsigned long  clocks_per_hour = 60 * clocks_per_minute;
+      unsigned long  clocks_per_day = 24 * clocks_per_hour;
 
       // Sets some seconds as value.
       raw_time = 1.5 * CLOCKS_PER_SEC;

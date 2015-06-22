@@ -87,7 +87,8 @@ std::string MySQL_timer::format_legacy(unsigned long raw_time, bool part_seconds
 
 void MySQL_timer::parse_duration(unsigned long raw_time, int &days, int &hours, int &minutes, float &seconds)
 {
-  double duration = (double)(raw_time) / CLOCKS_PER_SEC;
+  unsigned long closk_per_second = CLOCKS_PER_SEC;
+  double duration = (double)(raw_time) / closk_per_second;
   std::string str_duration;
 
   double minute_seconds = 60.0;

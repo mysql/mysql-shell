@@ -41,7 +41,7 @@ using namespace mysh::mysqlx;
 using namespace shcore;
 
 Schema::Schema(boost::shared_ptr<ApiBaseSession> session, const std::string &schema)
-: DatabaseObject(session, NULL, schema), _schema_impl(session->session_obj()->getSchema(schema))
+: DatabaseObject(session, boost::shared_ptr<DatabaseObject>(), schema), _schema_impl(session->session_obj()->getSchema(schema))
 {
   add_method("getTables", boost::bind(&DatabaseObject::get_member_method, this, _1, "getTables", "tables"), "name", shcore::String, NULL);
   add_method("getCollections", boost::bind(&DatabaseObject::get_member_method, this, _1, "getCollections", "collections"), "name", shcore::String, NULL);

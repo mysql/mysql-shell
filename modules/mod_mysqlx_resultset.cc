@@ -93,7 +93,7 @@ shcore::Value Resultset::get_member(const std::string &prop) const
 
 shcore::Value Resultset::next(const shcore::Argument_list &args)
 {
-  boost::shared_ptr<std::vector< ::mysqlx::ColumnMetadata>> metadata = _result->columnMetadata();
+  boost::shared_ptr<std::vector< ::mysqlx::ColumnMetadata> > metadata = _result->columnMetadata();
   if (metadata->size() > 0)
   {
     ::mysqlx::Row *row = _result->next();

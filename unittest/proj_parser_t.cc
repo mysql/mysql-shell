@@ -52,19 +52,21 @@ namespace shcore
       out << "]";
     }
 
+	  struct Wrap
+	  {
+		std::vector<Mysqlx::Crud::Column*> &cols;
+		Wrap(std::vector<Mysqlx::Crud::Column*> &c) : cols(c) {}
+		Mysqlx::Crud::Column *Add()
+		{
+		  Mysqlx::Crud::Column *tmp = new Mysqlx::Crud::Column();
+		  cols.push_back(tmp);
+		  return tmp;
+		};
+	  };
+	  
     void parse_and_assert_expr(const std::string& input, const std::string& token_list, const std::string& unparsed, bool document_mode = false, bool allow_alias = true)
     {
-      struct Wrap
-      {
-        std::vector<Mysqlx::Crud::Column*> &cols;
-        Wrap(std::vector<Mysqlx::Crud::Column*> &c) : cols(c) {}
-        Mysqlx::Crud::Column *Add()
-        {
-          Mysqlx::Crud::Column *tmp = new Mysqlx::Crud::Column();
-          cols.push_back(tmp);
-          return tmp;
-        };
-      };
+
       std::stringstream out, out_tokens;
       Proj_parser p(input, document_mode, allow_alias);
       print_tokens(p, out_tokens);

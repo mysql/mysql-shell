@@ -40,7 +40,7 @@ using namespace shcore;
 #include <iostream>
 
 Schema::Schema(boost::shared_ptr<Session> session, const std::string &schema)
-: DatabaseObject(session, NULL, schema)
+: DatabaseObject(boost::dynamic_pointer_cast<BaseSession>(session), boost::shared_ptr<DatabaseObject>(), schema)
 {
   add_method("getTables", boost::bind(&DatabaseObject::get_member_method, this, _1, "getTables", "tables"), "name", shcore::String, NULL);
   add_method("getViews", boost::bind(&DatabaseObject::get_member_method, this, _1, "getViews", "views"), "name", shcore::String, NULL);
