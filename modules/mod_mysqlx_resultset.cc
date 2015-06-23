@@ -19,6 +19,7 @@
 
 #include "mod_mysqlx_resultset.h"
 #include "mysqlx.h"
+#include "shellcore/common.h"
 
 using namespace mysh;
 using namespace shcore;
@@ -91,7 +92,7 @@ shcore::Value Resultset::get_member(const std::string &prop) const
   return ret_val;
 }
 
-shcore::Value Resultset::next(const shcore::Argument_list &args)
+shcore::Value Resultset::next(const shcore::Argument_list &UNUSED(args))
 {
   boost::shared_ptr<std::vector< ::mysqlx::ColumnMetadata> > metadata = _result->columnMetadata();
   if (metadata->size() > 0)
@@ -140,7 +141,6 @@ shcore::Value Resultset::all(const shcore::Argument_list &args)
   Value::Array_type_ref array(new Value::Array_type());
 
   std::string function = class_name() + "::all";
-  bool raw = false;
 
   args.ensure_count(0, function.c_str());
 
@@ -172,7 +172,6 @@ shcore::Value Collection_resultset::next(const shcore::Argument_list &args)
   Value ret_val = Value::Null();
 
   std::string function = class_name() + "::next";
-  bool raw = false;
 
   args.ensure_count(0, function.c_str());
 

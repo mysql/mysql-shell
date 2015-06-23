@@ -18,6 +18,7 @@
  */
 #include <boost/bind.hpp>
 #include "mod_crud_collection_remove.h"
+#include "shellcore/common.h"
 
 using namespace mysh::mysqlx;
 using namespace shcore;
@@ -95,7 +96,7 @@ shcore::Value CollectionRemove::limit(const shcore::Argument_list &args)
   return Value(Object_bridge_ref(this));
 }
 
-shcore::Value CollectionRemove::bind(const shcore::Argument_list &args)
+shcore::Value CollectionRemove::bind(const shcore::Argument_list &UNUSED(args))
 {
   throw shcore::Exception::logic_error("CollectionRemove::bind: not yet implemented.");
 

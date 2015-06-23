@@ -240,11 +240,11 @@ namespace shcore
 
       EXPECT_TRUE(map->has_key("false"));
       EXPECT_EQ(shcore::Bool, (*map)["false"].type);
-      EXPECT_EQ(false, (*map)["false"].as_bool());
+      EXPECT_FALSE((*map)["false"].as_bool());
 
       EXPECT_TRUE(map->has_key("true"));
       EXPECT_EQ(shcore::Bool, (*map)["true"].type);
-      EXPECT_EQ(true, (*map)["true"].as_bool());
+      EXPECT_TRUE((*map)["true"].as_bool());
 
       EXPECT_TRUE(map->has_key("string"));
       EXPECT_EQ(shcore::String, (*map)["string"].type);
@@ -305,10 +305,10 @@ namespace shcore
       EXPECT_EQ("document", (*nested)["nested"].as_string());
 
       EXPECT_EQ(shcore::Bool, (*array)[6].type);
-      EXPECT_EQ(true, (*array)[6].as_bool());
+      EXPECT_TRUE((*array)[6].as_bool());
 
       EXPECT_EQ(shcore::Bool, (*array)[7].type);
-      EXPECT_EQ(false, (*array)[7].as_bool());
+      EXPECT_FALSE((*array)[7].as_bool());
 
       EXPECT_EQ(shcore::Null, (*array)[8].type);
       EXPECT_EQ(NULL, (*array)[8]);

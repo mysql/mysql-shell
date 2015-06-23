@@ -38,7 +38,7 @@ Shell_sql::Shell_sql(IShell_core *owner)
   SET_SHELL_COMMAND("nowarnings|\\w", "Don't show warnings after every statement.", "", Shell_sql::cmd_disable_auto_warnings);
 }
 
-Value Shell_sql::handle_input(std::string &code, Interactive_input_state &state, bool interactive)
+Value Shell_sql::handle_input(std::string &code, Interactive_input_state &state, bool UNUSED(interactive))
 {
   Value ret_val;
   state = Input_ok;
@@ -214,12 +214,12 @@ void Shell_sql::print_exception(const shcore::Exception &e)
 
 //------------------ SQL COMMAND HANDLERS ------------------//
 
-void Shell_sql::cmd_enable_auto_warnings(const std::vector<std::string>& params)
+void Shell_sql::cmd_enable_auto_warnings(const std::vector<std::string>& UNUSED(params))
 {
   // To be done once the global options are in place...
 }
 
-void Shell_sql::cmd_disable_auto_warnings(const std::vector<std::string>& params)
+void Shell_sql::cmd_disable_auto_warnings(const std::vector<std::string>& UNUSED(params))
 {
   // To be done once the global options are in place...
 }

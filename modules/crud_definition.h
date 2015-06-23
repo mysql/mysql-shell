@@ -24,6 +24,7 @@
 #define _MOD_CRUD_DEFINITION_H_
 
 #include "shellcore/types_cpp.h"
+#include "shellcore/common.h"
 
 #include <set>
 
@@ -36,7 +37,7 @@ namespace mysqlx
   public:
     Crud_definition();
     // T the moment will put these since we don't really care about them
-    virtual bool operator == (const Object_bridge &other) const { return false; }
+    virtual bool operator == (const Object_bridge & ) const { return false; }
 
     // Overrides to consider enabled/disabled status
     virtual std::vector<std::string> get_members() const;

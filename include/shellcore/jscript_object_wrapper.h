@@ -27,7 +27,7 @@
 #define _JSCRIPT_OBJECT_WRAPPER_H_
 
 #include "shellcore/types.h"
-#include <v8.h>
+#include "shellcore/include_v8.h"
 
 namespace shcore
 {

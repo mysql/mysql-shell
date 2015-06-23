@@ -20,6 +20,7 @@
 #include "shellcore/python_context.h"
 #include "shellcore/python_utils.h"
 #include "shellcore/shell_core.h"
+#include "shellcore/common.h"
 
 #include "shellcore/python_type_conversion.h"
 
@@ -128,7 +129,7 @@ PyObject *Python_context::get_shell_module() {
 }
 
 
-Value Python_context::execute(const std::string &code, boost::system::error_code &ret_error, const std::string& source) throw (Exception)
+Value Python_context::execute(const std::string &code, boost::system::error_code &UNUSED(ret_error), const std::string& UNUSED(source)) throw (Exception)
 {
   PyObject *py_result;
   Value retvalue;
@@ -286,7 +287,7 @@ AutoPyObject Python_context::get_shell_function_class()
 }
 
 
-static PyObject *shell_print(PyObject *self, PyObject *args)
+static PyObject *shell_print(PyObject *UNUSED(self), PyObject *args)
 {
   Python_context *ctx;
   std::string text;

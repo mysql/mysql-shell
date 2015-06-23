@@ -25,7 +25,10 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/format.hpp>
 #include <boost/bind.hpp>
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wshadow"
 #include <boost/random.hpp>
+#pragma GCC diagnostic pop
 
 #include "shellcore/lang_base.h"
 #include "uuid_gen.h"
@@ -34,7 +37,7 @@
 using namespace shcore;
 
 Shell_core::Shell_core(Interpreter_delegate *shdelegate)
-: _lang_delegate(shdelegate), IShell_core()
+: IShell_core(), _lang_delegate(shdelegate)
 {
   // Use a random seed for UUIDs
   std::time_t now = std::time(NULL);

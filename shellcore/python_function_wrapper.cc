@@ -21,6 +21,7 @@
 #include <string>
 #include <sstream>
 #include "shellcore/python_utils.h"
+#include "shellcore/common.h"
 
 using namespace shcore;
 
@@ -33,7 +34,7 @@ static void method_dealloc(PyShFuncObject *self)
 }
 
 
-static PyObject *method_call(PyShFuncObject *self, PyObject *args, PyObject *kw)
+static PyObject *method_call(PyShFuncObject *self, PyObject *args, PyObject *UNUSED(kw))
 {
   Python_context *ctx = Python_context::get_and_check();
   if (!ctx)

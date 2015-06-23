@@ -20,6 +20,7 @@
 
 #include "shellcore/types_jscript.h"
 #include "shellcore/object_factory.h"
+#include "shellcore/common.h"
 
 #include <v8.h>
 #include <boost/weak_ptr.hpp>
@@ -30,7 +31,7 @@ using namespace shcore;
 class JScript_object : public Object_bridge
 {
 public:
-  JScript_object(boost::shared_ptr<JScript_context> context)
+  JScript_object(boost::shared_ptr<JScript_context> UNUSED(context))
   {
 
   }
@@ -40,7 +41,7 @@ public:
 
   }
 
-  virtual std::string &append_descr(std::string &s_out, int indent=-1, int quote_strings=0) const
+  virtual std::string &append_descr(std::string &s_out, int UNUSED(indent)=-1, int UNUSED(quote_strings)=0) const
   {
     return s_out;
   }
@@ -56,22 +57,22 @@ public:
     return mlist;
   }
 
-  virtual bool operator == (const Object_bridge &other) const
+  virtual bool operator == (const Object_bridge &UNUSED(other)) const
   {
     return false;
   }
 
-  virtual bool operator != (const Object_bridge &other) const
+  virtual bool operator != (const Object_bridge &UNUSED(other)) const
   {
     return false;
   }
 
-  virtual Value get_property(const std::string &prop) const
+  virtual Value get_property(const std::string &UNUSED(prop)) const
   {
     return Value();
   }
 
-  virtual void set_property(const std::string &prop, Value value)
+  virtual void set_property(const std::string &UNUSED(prop), Value UNUSED(value))
   {
 
   }
@@ -108,12 +109,12 @@ class JScript_object_factory : public Object_factory
 public:
   JScript_object_factory(boost::shared_ptr<JScript_context> context, v8::Handle<v8::Object> constructor);
 
-  virtual boost::shared_ptr<Object_bridge> construct(const Argument_list &args)
+  virtual boost::shared_ptr<Object_bridge> construct(const Argument_list &UNUSED(args))
   {
     return construct_from_repr("");
   }
 
-  virtual boost::shared_ptr<Object_bridge> construct_from_repr(const std::string &repr)
+  virtual boost::shared_ptr<Object_bridge> construct_from_repr(const std::string &UNUSED(repr))
   {
     return boost::shared_ptr<Object_bridge>();
   }
@@ -128,7 +129,7 @@ private:
 JScript_function::JScript_function(boost::shared_ptr<JScript_context> context)
 : _js(context)
 {
-throw std::logic_error("not implentned");
+throw std::logic_error("not implemented");
 }
 
 std::string JScript_function::name()
@@ -149,19 +150,19 @@ std::pair<std::string, Value_type> JScript_function::return_type()
   return std::pair<std::string, Value_type>();
 }
 
-bool JScript_function::operator == (const Function_base &other) const
+bool JScript_function::operator == (const Function_base &UNUSED(other)) const
 {
   // TODO:
   return false;
 }
 
-bool JScript_function::operator != (const Function_base &other) const
+bool JScript_function::operator != (const Function_base &UNUSED(other)) const
 {
   // TODO:
   return false;
 }
 
-Value JScript_function::invoke(const Argument_list &args)
+Value JScript_function::invoke(const Argument_list &UNUSED(args))
 {
   // TODO:
   return Value();

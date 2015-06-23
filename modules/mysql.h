@@ -58,16 +58,16 @@ namespace mysh
       const std::string& org_table() { return _org_table; };
       const std::string& name() { return _name; };
       const std::string& org_name() { return _org_name; };
-      const unsigned int length() { return _length; }
-      const unsigned int type() { return _type; }
-      const unsigned int flags() { return _flags; }
-      const unsigned int decimals() { return _decimals; }
-      const unsigned int charset() { return _charset; }
+      const int length() { return _length; }
+      const int type() { return _type; }
+      const int flags() { return _flags; }
+      const int decimals() { return _decimals; }
+      const int charset() { return _charset; }
 
-      const unsigned int max_length() { return _max_length; }
-      void max_length(int length) { _max_length = length; }
+      const int max_length() { return _max_length; }
+      void max_length(int length_) { _max_length = length_; }
 
-      const unsigned int name_length() { return _name_length; }
+      const int name_length() { return _name_length; }
 
     private:
       std::string _catalog;
@@ -76,14 +76,14 @@ namespace mysh
       std::string _org_table;
       std::string _name;
       std::string _org_name;
-      unsigned long _length;
-      unsigned int _type;
-      unsigned int _flags;
-      unsigned int _decimals;
-      unsigned int _charset;
+      long _length;
+      int _type;
+      int _flags;
+      int _decimals;
+      int _charset;
 
-      unsigned long _max_length;
-      unsigned long _name_length;
+      long _max_length;
+      long _name_length;
     };
 
     class Row

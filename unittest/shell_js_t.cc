@@ -72,7 +72,6 @@ namespace shcore {
   TEST_F(Shell_js_test, require_success)
   {
     std::string code;
-    Interactive_input_state state;
 
     // Adds a module directory
     execute("shell.js.module_paths[shell.js.module_paths.length] = os.get_binary_folder() + '/js'");

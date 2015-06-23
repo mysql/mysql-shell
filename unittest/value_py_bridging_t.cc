@@ -32,6 +32,7 @@
 #include "shellcore/object_registry.h"
 #include "shellcore/python_context.h"
 #include "shellcore/python_utils.h"
+#include "shellcore/common.h"
 
 #include "shellcore/python_array_wrapper.h"
 #include "test_utils.h"
@@ -47,7 +48,7 @@ public:
 
   virtual std::string class_name() const { return "Test"; }
 
-  virtual std::string &append_descr(std::string &s_out, int indent=-1, int quote_strings=0) const
+  virtual std::string &append_descr(std::string &s_out, int UNUSED(indent)=-1, int UNUSED(quote_strings)=0) const
   {
     s_out.append((boost::format("<Test:%1%>") % _value).str());
     return s_out;

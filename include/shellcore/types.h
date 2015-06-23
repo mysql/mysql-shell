@@ -227,17 +227,17 @@ namespace shcore {
   class TYPES_COMMON_PUBLIC Argument_list
   {
   public:
-    const std::string &string_at(int i) const;
-    bool bool_at(int i) const;
-    int64_t int_at(int i) const;
-    double double_at(int i) const;
-    boost::shared_ptr<Object_bridge> object_at(int i) const;
-    boost::shared_ptr<Value::Map_type> map_at(int i) const;
-    boost::shared_ptr<Value::Array_type> array_at(int i) const;
+    const std::string &string_at(unsigned int i) const;
+    bool bool_at(unsigned int i) const;
+    int64_t int_at(unsigned int i) const;
+    double double_at(unsigned int i) const;
+    boost::shared_ptr<Object_bridge> object_at(unsigned int i) const;
+    boost::shared_ptr<Value::Map_type> map_at(unsigned int i) const;
+    boost::shared_ptr<Value::Array_type> array_at(unsigned int i) const;
 
-    void ensure_count(int c, const char *context) const;
-    void ensure_count(int minc, int maxc, const char *context) const;
-    void ensure_at_least(int minc, const char *context) const;
+    void ensure_count(unsigned int c, const char *context) const;
+    void ensure_count(unsigned int minc, unsigned  int maxc, const char *context) const;
+    void ensure_at_least(unsigned int minc, const char *context) const;
 
     void push_back(const Value &value) { _args.push_back(value); }
     size_t size() const { return _args.size(); }

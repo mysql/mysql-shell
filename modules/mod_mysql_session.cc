@@ -66,7 +66,7 @@ Value Session::connect(const Argument_list &args)
 {
   args.ensure_count(1, 2, "Session::connect");
 
-  std::string uri = args.string_at(0);
+  std::string uri_ = args.string_at(0);
 
   std::string protocol;
   std::string user;
@@ -80,7 +80,7 @@ Value Session::connect(const Argument_list &args)
   int pwd_found;
   int port = 0;
 
-  if (!parse_mysql_connstring(uri, protocol, user, pass, host, port, sock, db, pwd_found))
+  if (!parse_mysql_connstring(uri_, protocol, user, pass, host, port, sock, db, pwd_found))
     throw shcore::Exception::argument_error("Could not parse URI for MySQL connection");
 
   // If password is received as parameter, then it overwrites
@@ -88,7 +88,7 @@ Value Session::connect(const Argument_list &args)
   if (2 == args.size())
     pwd_override = args.string_at(1).c_str();
 
-  _conn.reset(new Connection(uri, pwd_override));
+  _conn.reset(new Connection(uri_, pwd_override));
 
   _load_schemas();
   _load_default_schema();

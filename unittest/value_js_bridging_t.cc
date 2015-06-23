@@ -33,6 +33,7 @@
 #include "shellcore/object_registry.h"
 #include "shellcore/jscript_context.h"
 #include "test_utils.h"
+#include "shellcore/common.h"
 
 extern void JScript_context_init();
 
@@ -46,7 +47,7 @@ public:
 
   virtual std::string class_name() const { return "Test"; }
 
-  virtual std::string &append_descr(std::string &s_out, int indent=-1, int quote_strings=0) const
+  virtual std::string &append_descr(std::string &s_out, int UNUSED(indent)=-1, int UNUSED(quote_strings)=0) const
   {
     s_out.append((boost::format("<Test:%1%>") % _value).str());
     return s_out;
@@ -110,14 +111,14 @@ public:
     add_method("__length__", boost::bind(&Maparray::get_length, this, _1), NULL);
   }
 
-  shcore::Value get_length(const shcore::Argument_list &args)
+  shcore::Value get_length(const shcore::Argument_list &UNUSED(args))
   {
     return shcore::Value((int)values.size());
   }
 
   virtual std::string class_name() const { return "MapArray"; }
 
-  virtual std::string &append_descr(std::string &s_out, int indent=-1, int quote_strings=0) const
+  virtual std::string &append_descr(std::string &s_out, int UNUSED(indent)=-1, int UNUSED(quote_strings)=0) const
   {
     s_out.append((boost::format("<MapArray>")).str());
     return s_out;
@@ -138,7 +139,7 @@ public:
   }
 
   //! Implements equality operator
-  virtual bool operator == (const Object_bridge &other) const
+  virtual bool operator == (const Object_bridge &UNUSED(other)) const
   {
     return false;
   }

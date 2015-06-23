@@ -155,20 +155,20 @@ Value JScript_type_bridger::v8_value_to_shcore_value(const v8::Handle<v8::Value>
     }
     else
     {
-      Object_bridge_ref object = js_object_to_native(jsobject);
-      if (object)
-        return Value(object);
+      Object_bridge_ref object_ref = js_object_to_native(jsobject);
+      if (object_ref)
+        return Value(object_ref);
 
       v8::Local<v8::Array> pnames(jsobject->GetPropertyNames());
-      boost::shared_ptr<Value::Map_type> map(new Value::Map_type);
+      boost::shared_ptr<Value::Map_type> map_ptr(new Value::Map_type);
       for (int32_t c = pnames->Length(), i = 0; i < c; i++)
       {
         v8::Local<v8::Value> k(pnames->Get(i));
         v8::Local<v8::Value> v(jsobject->Get(k));
         v8::String::Utf8Value kstr(k);
-        (*map)[*kstr] = v8_value_to_shcore_value(v);
+        (*map_ptr)[*kstr] = v8_value_to_shcore_value(v);
       }
-      return Value(map);
+      return Value(map_ptr);
     }
   }
   else

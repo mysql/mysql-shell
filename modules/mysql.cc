@@ -31,15 +31,16 @@ using namespace mysh::mysql;
 #include <iostream>
 
 #include "shellcore/object_factory.h"
+#include "shellcore/common.h"
 
 #define MAX_COLUMN_LENGTH 1024
 #define MIN_COLUMN_LENGTH 4
 
-Result::Result(boost::shared_ptr<Connection> owner, my_ulonglong affected_rows, unsigned int warning_count, const char *info)
-: _connection(owner), _affected_rows(affected_rows), _last_insert_id(0), _warning_count(0), _fetched_row_count(0), _execution_time(0), _has_resultset(false)
+Result::Result(boost::shared_ptr<Connection> owner, my_ulonglong affected_rows_, unsigned int UNUSED(warning_count_), const char *info_)
+: _connection(owner), _affected_rows(affected_rows_), _last_insert_id(0), _warning_count(0), _fetched_row_count(0), _execution_time(0), _has_resultset(false)
 {
-  if (info)
-    _info.assign(info);
+  if (info_)
+    _info.assign(info_);
 }
 
 int Result::fetch_metadata()
@@ -127,25 +128,25 @@ void Result::reset(boost::shared_ptr<MYSQL_RES> res, unsigned long duration)
   _execution_time = duration;
 }
 
-Field::Field(const std::string& catalog, const std::string& db, const std::string& table, const std::string& otable, const std::string& name, const std::string& oname, int length, int type, int flags, int decimals, int charset) :
-_catalog(catalog),
-_db(db),
-_table(table),
+Field::Field(const std::string& catalog_, const std::string& db_, const std::string& table_, const std::string& otable, const std::string& name_, const std::string& oname, int length_, int type_, int flags_, int decimals_, int charset_) :
+_catalog(catalog_),
+_db(db_),
+_table(table_),
 _org_table(otable),
-_name(name),
+_name(name_),
 _org_name(oname),
-_length(length),
-_type(type),
-_flags(flags),
-_decimals(decimals),
-_charset(charset),
+_length(length_),
+_type(type_),
+_flags(flags_),
+_decimals(decimals_),
+_charset(charset_),
 _max_length(0),
-_name_length(name.length())
+_name_length(name_.length())
 {
 }
 
 Row::Row(MYSQL_ROW row, unsigned long *lengths, std::vector<Field>* metadata) :
-_metadata(metadata), _row(row), _lengths(lengths)
+_row(row), _lengths(lengths), _metadata(metadata)
 {
 }
 
@@ -199,7 +200,7 @@ std::string Row::get_value_as_string(int index)
 
 //----------------------------------------------
 
-Connection::Connection(const std::string &uri, const char *password)
+Connection::Connection(const std::string &uri_, const char *password)
 : _mysql(NULL)
 {
   std::string protocol;
@@ -214,13 +215,13 @@ Connection::Connection(const std::string &uri, const char *password)
 
   _mysql = mysql_init(NULL);
 
-  if (!parse_mysql_connstring(uri, protocol, user, pass, host, port, sock, db, pwd_found))
+  if (!parse_mysql_connstring(uri_, protocol, user, pass, host, port, sock, db, pwd_found))
     throw shcore::Exception::argument_error("Could not parse URI for MySQL connection");
 
   if (password)
     pass.assign(password);
 
-  _uri = strip_password(uri);
+  _uri = strip_password(uri_);
 
   unsigned int tcp = MYSQL_PROTOCOL_TCP;
   mysql_options(_mysql, MYSQL_OPT_PROTOCOL, &tcp);

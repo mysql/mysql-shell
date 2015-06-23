@@ -22,6 +22,7 @@
 
 #include "shellcore/shell_core.h"
 #include "shellcore/ishell_core.h"
+#include "shellcore/common.h"
 #include <boost/system/error_code.hpp>
 #include <stack>
 
@@ -32,8 +33,9 @@ class SHCORE_PUBLIC Shell_sql : public Shell_language
 {
 public:
   Shell_sql(IShell_core *owner);
+  virtual ~Shell_sql() {};
 
-  virtual void set_global(const std::string &name, const Value &value) {}
+  virtual void set_global(const std::string & , const Value & ) {}
 
   virtual Value handle_input(std::string &code, Interactive_input_state &state, bool interactive = true);
 

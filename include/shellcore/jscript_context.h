@@ -22,7 +22,7 @@
 
 #include <string>
 #include <boost/system/error_code.hpp>
-#include <v8.h>
+#include "shellcore/include_v8.h"
 
 #include "shellcore/types.h"
 

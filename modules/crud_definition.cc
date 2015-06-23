@@ -113,7 +113,7 @@ void Crud_definition::enable_function(const char *name, bool enable)
     _enabled_functions[name] = enable;
 }
 
-shcore::Value Crud_definition::execute(const shcore::Argument_list &args)
+shcore::Value Crud_definition::execute(const shcore::Argument_list &UNUSED(args))
 {
   // TODO: Callback handling logic
   shcore::Value ret_val;
@@ -125,7 +125,7 @@ shcore::Value Crud_definition::execute(const shcore::Argument_list &args)
   return ret_val;
 }
 
-void Crud_definition::set_filter(const std::string &source, const std::string &field, shcore::Value value, bool collection)
+void Crud_definition::set_filter(const std::string &UNUSED(source), const std::string &UNUSED(field), shcore::Value UNUSED(value), bool UNUSED(collection))
 {
   /*// First validates that the received value is a string
   if (value.type != shcore::String)
@@ -150,7 +150,7 @@ void Crud_definition::set_filter(const std::string &source, const std::string &f
   }*/
 }
 
-void Crud_definition::set_columns(const std::string &source, const std::string &field, shcore::Value value, bool collection, bool with_alias)
+void Crud_definition::set_columns(const std::string &UNUSED(source), const std::string &UNUSED(field), shcore::Value UNUSED(value), bool UNUSED(collection), bool UNUSED(with_alias))
 {
   /*// First validates that the received value is a string
   if (value.type != shcore::String)
@@ -175,7 +175,7 @@ void Crud_definition::set_columns(const std::string &source, const std::string &
   }*/
 }
 
-void Crud_definition::set_order(const std::string &source, const std::string &field, shcore::Value value)
+void Crud_definition::set_order(const std::string &UNUSED(source), const std::string &UNUSED(field), shcore::Value UNUSED(value))
 {
   /*// First validates that the received value is a string
   if (value.type != shcore::String)

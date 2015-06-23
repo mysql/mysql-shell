@@ -16,6 +16,7 @@
 #include "shellcore/lang_base.h"
 #include "shellcore/shell_core.h"
 #include "boost/algorithm/string.hpp"
+#include "shellcore/common.h"
 
 class Shell_test_output_handler
 {
@@ -44,7 +45,7 @@ public:
     target->std_err.append(text);
   }
 
-  static bool password(void *user_data, const char *prompt, std::string &ret)
+  static bool password(void *user_data, const char *UNUSED(prompt), std::string &ret)
   {
     Shell_test_output_handler* target = (Shell_test_output_handler*)(user_data);
     ret = target->ret_pwd;

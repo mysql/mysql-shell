@@ -39,6 +39,7 @@
 #include "shellcore/lang_base.h"
 #include "shellcore/shell_core.h"
 #include "shellcore/ishell_core.h"
+#include "shellcore/common.h"
 
 #include "cmdline_options.h"
 
@@ -339,7 +340,7 @@ std::string Interactive_shell::prompt()
     return _shell->prompt();
 }
 
-void Interactive_shell::switch_shell_mode(Shell_core::Mode mode, const std::vector<std::string> &args)
+void Interactive_shell::switch_shell_mode(Shell_core::Mode mode, const std::vector<std::string> &UNUSED(args))
 {
   Shell_core::Mode old_mode = _shell->interactive_mode();
   bool lang_initialized = false;
@@ -448,7 +449,7 @@ void Interactive_shell::cmd_connect(const std::vector<std::string>& args)
     print_error("\\connect <uri>");
 }
 
-void Interactive_shell::cmd_quit(const std::vector<std::string>& args)
+void Interactive_shell::cmd_quit(const std::vector<std::string>& UNUSED(args))
 {
   _interactive = false;
 }
@@ -487,7 +488,7 @@ char *Interactive_shell::readline(const char *prompt)
   return tmp;
 }
 
-bool Interactive_shell::deleg_input(void *cdata, const char *prompt, std::string &ret)
+bool Interactive_shell::deleg_input(void *UNUSED(cdata), const char *prompt, std::string &ret)
 {
   char *tmp = Interactive_shell::readline(prompt);
   if (!tmp)
@@ -499,7 +500,7 @@ bool Interactive_shell::deleg_input(void *cdata, const char *prompt, std::string
   return true;
 }
 
-bool Interactive_shell::deleg_password(void *cdata, const char *prompt, std::string &ret)
+bool Interactive_shell::deleg_password(void *UNUSED(cdata), const char *prompt, std::string &ret)
 {
   char *tmp = mysh_get_tty_password(prompt);
   if (!tmp)
@@ -780,9 +781,9 @@ public:
     std::string host;
     std::string user;
     int port = 0;
-    bool needs_password;
+    bool needs_password_;
 
-    needs_password = false;
+    needs_password_ = false;
     print_cmd_line_helper = false;
 
     initial_mode = Shell_core::Mode_SQL;
@@ -803,7 +804,7 @@ public:
       else if (check_arg_with_value(argv, i, "--port", "-P", value))
         port = atoi(value);
       else if (check_arg(argv, i, "-p", "-p"))
-        needs_password = true;
+        needs_password_ = true;
       else if (check_arg_with_value(argv, i, "--password", "-p", value))
         password = value;
       else if (check_arg(argv, i, "--sql", "--sql"))
@@ -831,7 +832,7 @@ public:
       }
     }
 
-    if (needs_password)
+    if (needs_password_)
     {
       char *tmp = mysh_get_tty_password("Enter password: ");
       if (tmp)

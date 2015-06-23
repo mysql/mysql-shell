@@ -433,7 +433,6 @@ struct JScript_context::JScript_context_impl
 
     if (result.IsEmpty())
     {
-      v8::Handle<v8::Message> message = try_catch.Message();
       v8::String::Utf8Value exec_error(try_catch.Exception());
       std::string exception_text = "Error loading module at " + std::string(*v8::String::Utf8Value(origin)) + ". ";
       exception_text.append(*exec_error);

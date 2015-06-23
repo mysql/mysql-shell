@@ -18,6 +18,7 @@
  */
 #include <boost/bind.hpp>
 #include "mod_crud_table_insert.h"
+#include "shellcore/common.h"
 
 using namespace mysh::mysqlx;
 using namespace shcore;
@@ -102,7 +103,7 @@ shcore::Value TableInsert::values(const shcore::Argument_list &args)
   return Value(Object_bridge_ref(this));
 }
 
-shcore::Value TableInsert::bind(const shcore::Argument_list &args)
+shcore::Value TableInsert::bind(const shcore::Argument_list &UNUSED(args))
 {
   // TODO: Logic to determine the kind of parameter passed
   //       Should end up adding one of the next to the data dictionary:

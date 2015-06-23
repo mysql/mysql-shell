@@ -182,6 +182,8 @@ std::string shcore::type_name(Value_type type)
       return "MapRef";
     case Function:
       return "Function";
+    default:
+      return "";
   }
 }
 
@@ -650,7 +652,6 @@ Value Value::parse_number(char **pcc)
 {
   Value ret_val;
   char *pc = *pcc;
-  const char *pce = pc;
 
   // Sign can appear at the beggining
   if (*pc == '-' || *pc == '+')
@@ -1156,7 +1157,7 @@ void Value::check_type(Value_type t) const
 
 //---
 
-const std::string &Argument_list::string_at(int i) const
+const std::string &Argument_list::string_at(unsigned int i) const
 {
   if (i >= size())
     throw Exception::argument_error("Insufficient number of arguments");
@@ -1165,7 +1166,7 @@ const std::string &Argument_list::string_at(int i) const
   return *at(i).value.s;
 }
 
-bool Argument_list::bool_at(int i) const
+bool Argument_list::bool_at(unsigned int i) const
 {
   if (i >= size())
     throw Exception::argument_error("Insufficient number of arguments");
@@ -1174,7 +1175,7 @@ bool Argument_list::bool_at(int i) const
   return at(i).value.b;
 }
 
-int64_t Argument_list::int_at(int i) const
+int64_t Argument_list::int_at(unsigned int i) const
 {
   if (i >= size())
     throw Exception::argument_error("Insufficient number of arguments");
@@ -1183,7 +1184,7 @@ int64_t Argument_list::int_at(int i) const
   return at(i).value.i;
 }
 
-double Argument_list::double_at(int i) const
+double Argument_list::double_at(unsigned int i) const
 {
   if (i >= size())
     throw Exception::argument_error("Insufficient number of arguments");
@@ -1192,7 +1193,7 @@ double Argument_list::double_at(int i) const
   return at(i).value.d;
 }
 
-boost::shared_ptr<Object_bridge> Argument_list::object_at(int i) const
+boost::shared_ptr<Object_bridge> Argument_list::object_at(unsigned int i) const
 {
   if (i >= size())
     throw Exception::argument_error("Insufficient number of arguments");
@@ -1201,7 +1202,7 @@ boost::shared_ptr<Object_bridge> Argument_list::object_at(int i) const
   return *at(i).value.o;
 }
 
-boost::shared_ptr<Value::Map_type> Argument_list::map_at(int i) const
+boost::shared_ptr<Value::Map_type> Argument_list::map_at(unsigned int i) const
 {
   if (i >= size())
     throw Exception::argument_error("Insufficient number of arguments");
@@ -1210,7 +1211,7 @@ boost::shared_ptr<Value::Map_type> Argument_list::map_at(int i) const
   return *at(i).value.map;
 }
 
-boost::shared_ptr<Value::Array_type> Argument_list::array_at(int i) const
+boost::shared_ptr<Value::Array_type> Argument_list::array_at(unsigned int i) const
 {
   if (i >= size())
     throw Exception::argument_error("Insufficient number of arguments");
@@ -1219,19 +1220,19 @@ boost::shared_ptr<Value::Array_type> Argument_list::array_at(int i) const
   return *at(i).value.array;
 }
 
-void Argument_list::ensure_count(int c, const char *context) const
+void Argument_list::ensure_count(unsigned int c, const char *context) const
 {
   if (c != size())
     throw Exception::argument_error((boost::format("Invalid number of arguments in %1%, expected %2% but got %3%") % context % c % size()).str());
 }
 
-void Argument_list::ensure_count(int minc, int maxc, const char *context) const
+void Argument_list::ensure_count(unsigned int minc, unsigned int maxc, const char *context) const
 {
   if (size() < minc || size() > maxc)
     throw Exception::argument_error((boost::format("Invalid number of arguments in %1%, expected %2% to %3% but got %4%") % context % minc % maxc % size()).str());
 }
 
-void Argument_list::ensure_at_least(int minc, const char *context) const
+void Argument_list::ensure_at_least(unsigned int minc, const char *context) const
 {
   if (size() < minc)
     throw Exception::argument_error((boost::format("Invalid number of arguments in %1%, expected at least %2% but got %4%") % context % minc % size()).str());

@@ -35,7 +35,10 @@
 
 #include <boost/format.hpp>
 #include <boost/lexical_cast.hpp>
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wshadow"
 #include <boost/random.hpp>
+#pragma GCC diagnostic pop
 #include <boost/algorithm/string.hpp>
 //#include <boost/function_output_iterator.hpp>
 //#include <boost/lambda/lambda.hpp>
@@ -379,7 +382,6 @@ void Server_registry::merge()
   std::map<std::string, Connection_options>::iterator myend = _connections.end();
   for (std::map<std::string, Connection_options>::iterator it = _connections.begin(); it != myend; ++it)
   {
-    const std::string& uuid = it->first;
     Connection_options& cs = it->second;
     bool uuid_checked = false;
 
@@ -416,7 +418,7 @@ void Server_registry::merge()
     }
 
     myjs->done();
-    myfile.append_document(uuid.c_str(), *myjs);
+    myfile.append_document(it->first.c_str(), *myjs);
     delete myjs;
   }
 
@@ -432,9 +434,9 @@ void Server_registry::merge()
   std::free(json_data);
 }
 
-Connection_options::Connection_options(std::string Connection_options) : _Connection_options(Connection_options)
+Connection_options::Connection_options(std::string options) : _Connection_options(options)
 {
-  if (!Connection_options.empty())
+  if (!options.empty())
     parse();
 }
 

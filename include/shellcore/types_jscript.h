@@ -24,7 +24,7 @@
 
 #include "shellcore/types.h"
 
-#include <v8.h>
+#include "shellcore/include_v8.h"
 
 namespace shcore {
 

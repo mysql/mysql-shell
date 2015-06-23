@@ -22,7 +22,7 @@
 #include "shellcore/object_factory.h"
 #include "shellcore/shell_core.h"
 #include "shellcore/lang_base.h"
-
+#include "shellcore/common.h"
 #include "shellcore/proxy_object.h"
 #include "base_session.h"
 
@@ -48,7 +48,7 @@ DatabaseObject::~DatabaseObject()
 {
 }
 
-std::string &DatabaseObject::append_descr(std::string &s_out, int indent, int quote_strings) const
+std::string &DatabaseObject::append_descr(std::string &s_out, int UNUSED(indent), int UNUSED(quote_strings)) const
 {
   s_out.append("<" + class_name() + ":" + _name + ">");
   return s_out;

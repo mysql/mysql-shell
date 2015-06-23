@@ -87,7 +87,7 @@ namespace shcore
     virtual bool handle_shell_command(const std::string &code) { return _shell_command_handler.process(code); }
     virtual std::string get_handled_input() { return _last_handled; }
     virtual std::string prompt() = 0;
-    virtual bool print_help(const std::string& topic) { return true; }
+    virtual bool print_help(const std::string& ) { return true; }
   protected:
     IShell_core *_owner;
     std::string _last_handled;

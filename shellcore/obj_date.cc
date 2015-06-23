@@ -18,6 +18,7 @@
  */
 
 #include "shellcore/obj_date.h"
+#include "shellcore/common.h"
 
 #include <boost/format.hpp>
 #include <cstdio>
@@ -53,7 +54,7 @@ bool Date::operator == (const Date &other) const
   return false;
 }
 
-std::string &Date::append_descr(std::string &s_out, int indent, int quote_strings) const
+std::string &Date::append_descr(std::string &s_out, int UNUSED(indent), int quote_strings) const
 {
   if (quote_strings)
     s_out.push_back((char)quote_strings);

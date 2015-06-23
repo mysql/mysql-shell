@@ -18,6 +18,7 @@
  */
 
 #include "shellcore/types_cpp.h"
+#include "shellcore/common.h"
 #include <cstdarg>
 
 using namespace shcore;
@@ -27,7 +28,7 @@ Cpp_object_bridge::~Cpp_object_bridge()
   _funcs.clear();
 }
 
-std::string &Cpp_object_bridge::append_descr(std::string &s_out, int indent, int quote_strings) const
+std::string &Cpp_object_bridge::append_descr(std::string &s_out, int UNUSED(indent), int UNUSED(quote_strings)) const
 {
   s_out.append("<" + class_name() + ">");
   return s_out;
@@ -62,7 +63,7 @@ bool Cpp_object_bridge::has_member(const std::string &prop) const
   return ((i = _funcs.find(prop)) != _funcs.end());
 }
 
-void Cpp_object_bridge::set_member(const std::string &prop, Value value)
+void Cpp_object_bridge::set_member(const std::string &prop, Value UNUSED(value))
 {
   throw Exception::attrib_error("Can't set object member " + prop);
 }
@@ -105,13 +106,13 @@ Value Cpp_object_bridge::call(const std::string &name, const Argument_list &args
 
 //-------
 
-Cpp_function::Cpp_function(const std::string &name, const Function &func, const std::vector<std::pair<std::string, Value_type> > &signature)
-: _name(name), _func(func), _signature(signature)
+Cpp_function::Cpp_function(const std::string &name_, const Function &func, const std::vector<std::pair<std::string, Value_type> > &signature_)
+: _name(name_), _func(func), _signature(signature_)
 {
 }
 
-Cpp_function::Cpp_function(const std::string &name, const Function &func, const char *arg1_name, Value_type arg1_type, ...)
-: _name(name), _func(func)
+Cpp_function::Cpp_function(const std::string &name_, const Function &func, const char *arg1_name, Value_type arg1_type, ...)
+: _name(name_), _func(func)
 {
   va_list l;
   if (arg1_name && arg1_type != Undefined)
@@ -150,7 +151,7 @@ std::pair<std::string, Value_type> Cpp_function::return_type()
   return std::make_pair("", _return_type);
 }
 
-bool Cpp_function::operator == (const Function_base &other) const
+bool Cpp_function::operator == (const Function_base &UNUSED(other)) const
 {
   throw Exception::logic_error("Cannot compare function objects");
   return false;
