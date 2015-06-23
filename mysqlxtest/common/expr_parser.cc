@@ -1027,6 +1027,9 @@ std::string Expr_unparser::document_path_to_string(const ::google::protobuf::Rep
       case Mysqlx::Expr::DocumentPathItem::MEMBER:
         parts.push_back("." + dpi.value());
         break;
+      case Mysqlx::Expr::DocumentPathItem::MEMBER_ASTERISK:
+        parts.push_back(".*" + dpi.value());
+        break;
       case Mysqlx::Expr::DocumentPathItem::ARRAY_INDEX:
         parts.push_back((boost::format("[%d]") % dpi.index()).str());
         break;

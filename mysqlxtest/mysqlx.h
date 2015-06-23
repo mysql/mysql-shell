@@ -24,7 +24,7 @@
 #define _MYSQLX_CONNECTOR_H_
 
 #include <stdexcept>
-#include <google/protobuf/message.h>
+#include <vector>
 #include <map>
 
 #include "xdatetime.h"
@@ -40,10 +40,11 @@ namespace Mysqlx
   }
 }
 
+namespace google { namespace protobuf { class Message; }}
+
 namespace mysqlx
 {
-
-  typedef google::protobuf::Message Message;
+	typedef google::protobuf::Message Message;
 
   bool parse_mysql_connstring(const std::string &connstring,
     std::string &protocol, std::string &user, std::string &password,
@@ -301,7 +302,11 @@ namespace mysqlx
     std::auto_ptr<Row> read_row();
     void read_stmt_ok();
 
-    std::auto_ptr<mysqlx::Message> read_next(int &mid);
+    int get_message_id();
+    std::auto_ptr<mysqlx::Message> pop_message() { return current_message; }
+
+    std::auto_ptr<mysqlx::Message> current_message;
+    int                            current_message_id;
 
     friend class Connection;
     Connection *m_owner;
@@ -311,13 +316,13 @@ namespace mysqlx
 
     bool m_needs_stmt_ok;
     enum {
-      ReadStmtOkI,
-      ReadMetadataI,
+      ReadStmtOkI, // initial state
+      ReadMetadataI, // initial state
       ReadMetadata,
       ReadRows,
       ReadStmtOk,
-      ReadDone,
-      ReadError
+      ReadDone, // end
+      ReadError // end
     } m_state;
   };
 };

@@ -20,6 +20,7 @@
 #ifndef _MYSQLX_PARSER_H_
 #define _MYSQLX_PARSER_H_
 
+#include "expr_parser.h"
 #include "proj_parser.h"
 
 #include <string>
@@ -28,13 +29,13 @@ namespace mysqlx
 {
   namespace parser
   {
-    inline std::auto_ptr<Mysqlx::Expr::Expr> parse_collection_filter(const std::string &source)
+    std::auto_ptr<Mysqlx::Expr::Expr> parse_collection_filter(const std::string &source)
     {
       Expr_parser parser(source, true);
       return parser.expr();
     }
 
-    inline std::auto_ptr<Mysqlx::Expr::Expr> parse_table_filter(const std::string &source)
+    std::auto_ptr<Mysqlx::Expr::Expr> parse_table_filter(const std::string &source)
     {
       Expr_parser parser(source);
       return parser.expr();

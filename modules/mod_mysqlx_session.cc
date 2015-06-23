@@ -42,6 +42,7 @@ REGISTER_OBJECT(mysqlx, Session);
 REGISTER_OBJECT(mysqlx, NodeSession);
 
 #include <iostream>
+#include <set>
 
 ApiBaseSession::ApiBaseSession()
 : _show_warnings(false)
@@ -338,9 +339,8 @@ boost::shared_ptr<ApiBaseSession> NodeSession::_get_shared_this() const
 boost::shared_ptr<shcore::Object_bridge> NodeSession::create(const shcore::Argument_list &args)
 {
   boost::shared_ptr<NodeSession> session(new NodeSession());
-  
+
   session->connect(args);
 
   return boost::static_pointer_cast<Object_bridge>(session);
 }
-

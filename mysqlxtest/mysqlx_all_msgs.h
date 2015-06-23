@@ -118,9 +118,6 @@ static struct init_message_factory
     client_msgs_by_name["SESS_CLOSE"] = std::make_pair(&create<Mysqlx::Session::Close>, Mysqlx::ClientMessages::SESS_CLOSE);
     client_msgs_by_id[Mysqlx::ClientMessages::SESS_CLOSE] = std::make_pair(&create<Mysqlx::Session::Close>, "SESS_CLOSE");
     client_msgs_by_full_name["Mysqlx.Session.Close"] = "SESS_CLOSE";
-    client_msgs_by_name["ADMIN_COMMAND_EXECUTE"] = std::make_pair(&create<Mysqlx::Admin::CommandExecute>, Mysqlx::ClientMessages::ADMIN_COMMAND_EXECUTE);
-    client_msgs_by_id[Mysqlx::ClientMessages::ADMIN_COMMAND_EXECUTE] = std::make_pair(&create<Mysqlx::Admin::CommandExecute>, "ADMIN_COMMAND_EXECUTE");
-    client_msgs_by_full_name["Mysqlx.Admin.CommandExecute"] = "ADMIN_COMMAND_EXECUTE";
     client_msgs_by_name["SQL_CURSOR_CLOSE"] = std::make_pair(&create<Mysqlx::Sql::CursorClose>, Mysqlx::ClientMessages::SQL_CURSOR_CLOSE);
     client_msgs_by_id[Mysqlx::ClientMessages::SQL_CURSOR_CLOSE] = std::make_pair(&create<Mysqlx::Sql::CursorClose>, "SQL_CURSOR_CLOSE");
     client_msgs_by_full_name["Mysqlx.Sql.CursorClose"] = "SQL_CURSOR_CLOSE";

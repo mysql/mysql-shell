@@ -24,38 +24,38 @@
 
 using namespace mysqlx;
 
-Schema::Schema(boost::shared_ptr<Session> conn, const std::string &name)
-: m_sess(conn), m_name(name)
+Schema::Schema(boost::shared_ptr<Session> conn, const std::string &name_)
+: m_sess(conn), m_name(name_)
 {
 }
 
 
-boost::shared_ptr<Table> Schema::getTable(const std::string &name)
+boost::shared_ptr<Table> Schema::getTable(const std::string &name_)
 {
-  std::map<std::string, boost::shared_ptr<Table> >::const_iterator iter = m_tables.find(name);
+  std::map<std::string, boost::shared_ptr<Table> >::const_iterator iter = m_tables.find(name_);
   if (iter != m_tables.end())
     return iter->second;
-  return m_tables[name] = boost::shared_ptr<Table>(new Table(shared_from_this(), name));
+  return m_tables[name_] = boost::shared_ptr<Table>(new Table(shared_from_this(), name_));
 }
 
 
-boost::shared_ptr<Collection> Schema::getCollection(const std::string &name)
+boost::shared_ptr<Collection> Schema::getCollection(const std::string &name_)
 {
-  std::map<std::string, boost::shared_ptr<Collection> >::const_iterator iter = m_collections.find(name);
+  std::map<std::string, boost::shared_ptr<Collection> >::const_iterator iter = m_collections.find(name_);
   if (iter != m_collections.end())
     return iter->second;
-  return m_collections[name] = boost::shared_ptr<Collection>(new Collection(shared_from_this(), name));
+  return m_collections[name_] = boost::shared_ptr<Collection>(new Collection(shared_from_this(), name_));
 }
 
 
-Table::Table(boost::shared_ptr<Schema> schema, const std::string &name)
-: m_schema(schema), m_name(name)
+Table::Table(boost::shared_ptr<Schema> schema, const std::string &name_)
+: m_schema(schema), m_name(name_)
 {
 }
 
 
-Collection::Collection(boost::shared_ptr<Schema> schema, const std::string &name)
-: m_schema(schema), m_name(name)
+Collection::Collection(boost::shared_ptr<Schema> schema, const std::string &name_)
+: m_schema(schema), m_name(name_)
 {
 }
 
@@ -138,16 +138,16 @@ Result *Find_Base::execute()
 }
 
 
-Find_Base &Find_Skip::skip(uint64_t skip)
+Find_Base &Find_Skip::skip(uint64_t skip_)
 {
-  m_find->mutable_limit()->set_skip(skip);
+  m_find->mutable_limit()->set_offset(skip_);
   return *this;
 }
 
 
-Find_Skip &Find_Limit::limit(uint64_t limit)
+Find_Skip &Find_Limit::limit(uint64_t limit_)
 {
-  m_find->mutable_limit()->set_offset(limit);
+  m_find->mutable_limit()->set_offset(limit_);
   return *this;
 }
 
@@ -285,9 +285,9 @@ Result *Remove_Base::execute()
 }
 
 
-Remove_Base &Remove_Limit::limit(uint64_t limit)
+Remove_Base &Remove_Limit::limit(uint64_t limit_)
 {
-  m_delete->mutable_limit()->set_offset(limit);
+  m_delete->mutable_limit()->set_offset(limit_);
   return *this;
 }
 
@@ -381,7 +381,7 @@ Modify_Operation &Modify_Operation::arrayAppend(const std::string &path, const D
 }
 
 
-Modify_Operation &Modify_Limit::limit(uint64_t limit)
+Modify_Operation &Modify_Limit::limit(uint64_t limit_)
 {
   return *this;
 }

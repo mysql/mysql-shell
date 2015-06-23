@@ -48,14 +48,14 @@ public:
   template<typename Container>
   void parse(Container &result)
   {
-    Mysqlx::Crud::Column *colid = result.Add();
-    column_identifier(*colid);
+    Mysqlx::Crud::Projection *proj = result.Add();
+//    docpath_member(*proj);
 
     while (_tokenizer.cur_token_type_is(Token::COMMA))
     {
       _tokenizer.consume_token(Token::COMMA);
-      colid = result.Add();
-      column_identifier(*colid);
+//      colid = result.Add();
+//      column_identifier(*proj);
     }
   }
 
