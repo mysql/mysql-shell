@@ -44,7 +44,7 @@ namespace shcore {
   {
     exec_and_out_equals("var mysql = require('mysql').mysql;");
 
-    exec_and_out_equals("var session = mysql.openSession('" + _uri + "');");
+    exec_and_out_equals("var session = mysql.openSession('" + _mysql_uri + "');");
 
     exec_and_out_equals("session.executeSql('drop schema if exists js_shell_test;')");
     exec_and_out_equals("session.executeSql('create schema js_shell_test;')");
@@ -64,7 +64,7 @@ namespace shcore {
   {
     exec_and_out_equals("var mysql = require('mysql').mysql;");
 
-    exec_and_out_equals("var session = mysql.openSession('" + _uri + "');");
+    exec_and_out_equals("var session = mysql.openSession('" + _mysql_uri + "');");
 
     exec_and_out_equals("var result = session.executeSql('use js_shell_test;');");
 
@@ -82,7 +82,7 @@ namespace shcore {
   {
     exec_and_out_equals("var mysql = require('mysql').mysql;");
 
-    exec_and_out_equals("var session = mysql.openSession('" + _uri + "');");
+    exec_and_out_equals("var session = mysql.openSession('" + _mysql_uri + "');");
 
     exec_and_out_equals("var result = session.executeSql('select * from js_shell_test.table1;');");
 
@@ -100,7 +100,7 @@ namespace shcore {
   {
     exec_and_out_equals("var mysql = require('mysql').mysql;");
 
-    exec_and_out_equals("var session = mysql.openSession('" + _uri + "');");
+    exec_and_out_equals("var session = mysql.openSession('" + _mysql_uri + "');");
 
     exec_and_out_equals("var result = session.executeSql('insert into js_shell_test.table1 (`name`) values(\"four\");');");
 

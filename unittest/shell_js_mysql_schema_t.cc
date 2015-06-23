@@ -44,7 +44,7 @@ namespace shcore {
   {
     exec_and_out_equals("var mysql = require('mysql').mysql;");
 
-    exec_and_out_equals("var session = mysql.openSession('" + _uri + "');");
+    exec_and_out_equals("var session = mysql.openSession('" + _mysql_uri + "');");
 
     exec_and_out_equals("session.executeSql('drop schema if exists js_shell_test;')");
     exec_and_out_equals("session.executeSql('create schema js_shell_test;')");
@@ -58,7 +58,7 @@ namespace shcore {
   {
     exec_and_out_equals("var mysql = require('mysql').mysql;");
 
-    exec_and_out_equals("var session = mysql.openSession('" + _uri + "');");
+    exec_and_out_equals("var session = mysql.openSession('" + _mysql_uri + "');");
 
     exec_and_out_equals("print(session.mysql.getName());", "mysql");
   }
@@ -68,7 +68,7 @@ namespace shcore {
   {
     exec_and_out_equals("var mysql = require('mysql').mysql;");
 
-    exec_and_out_equals("var session = mysql.openSession('" + _uri + "');");
+    exec_and_out_equals("var session = mysql.openSession('" + _mysql_uri + "');");
 
     exec_and_out_equals("print(session.mysql.name);", "mysql");
   }
@@ -78,9 +78,9 @@ namespace shcore {
   {
     exec_and_out_equals("var mysql = require('mysql').mysql;");
 
-    std::string uri = mysh::strip_password(_uri);
+    std::string uri = mysh::strip_password(_mysql_uri);
 
-    exec_and_out_equals("var session = mysql.openSession('" + _uri + "');");
+    exec_and_out_equals("var session = mysql.openSession('" + _mysql_uri + "');");
 
     exec_and_out_equals("var schema = session.mysql;");
 
@@ -94,9 +94,9 @@ namespace shcore {
   {
     exec_and_out_equals("var mysql = require('mysql').mysql;");
 
-    std::string uri = mysh::strip_password(_uri);
+    std::string uri = mysh::strip_password(_mysql_uri);
 
-    exec_and_out_equals("var session = mysql.openSession('" + _uri + "');");
+    exec_and_out_equals("var session = mysql.openSession('" + _mysql_uri + "');");
 
     exec_and_out_equals("var schema = session.mysql;");
 
@@ -108,9 +108,9 @@ namespace shcore {
   {
     exec_and_out_equals("var mysql = require('mysql').mysql;");
 
-    std::string uri = mysh::strip_password(_uri);
+    std::string uri = mysh::strip_password(_mysql_uri);
 
-    exec_and_out_equals("var session = mysql.openSession('" + _uri + "');");
+    exec_and_out_equals("var session = mysql.openSession('" + _mysql_uri + "');");
 
     exec_and_out_equals("var schema = session.mysql;");
 
@@ -124,9 +124,9 @@ namespace shcore {
   {
     exec_and_out_equals("var mysql = require('mysql').mysql;");
 
-    std::string uri = mysh::strip_password(_uri);
+    std::string uri = mysh::strip_password(_mysql_uri);
 
-    exec_and_out_equals("var session = mysql.openSession('" + _uri + "');");
+    exec_and_out_equals("var session = mysql.openSession('" + _mysql_uri + "');");
 
     exec_and_out_equals("var schema = session.mysql;");
 
@@ -138,7 +138,7 @@ namespace shcore {
   {
     exec_and_out_equals("var mysql = require('mysql').mysql;");
 
-    exec_and_out_equals("var session = mysql.openSession('" + _uri + "');");
+    exec_and_out_equals("var session = mysql.openSession('" + _mysql_uri + "');");
 
     exec_and_out_equals("var tables = session.js_shell_test.getTables();");
 
@@ -150,7 +150,7 @@ namespace shcore {
   {
     exec_and_out_equals("var mysql = require('mysql').mysql;");
 
-    exec_and_out_equals("var session = mysql.openSession('" + _uri + "');");
+    exec_and_out_equals("var session = mysql.openSession('" + _mysql_uri + "');");
 
     exec_and_out_equals("print(session.js_shell_test.tables.table1)", "<Table:table1>");
   }
@@ -160,7 +160,7 @@ namespace shcore {
   {
     exec_and_out_equals("var mysql = require('mysql').mysql;");
 
-    exec_and_out_equals("var session = mysql.openSession('" + _uri + "');");
+    exec_and_out_equals("var session = mysql.openSession('" + _mysql_uri + "');");
 
     exec_and_out_equals("var views = session.js_shell_test.getViews();");
 
@@ -172,7 +172,7 @@ namespace shcore {
   {
     exec_and_out_equals("var mysql = require('mysql').mysql;");
 
-    exec_and_out_equals("var session = mysql.openSession('" + _uri + "');");
+    exec_and_out_equals("var session = mysql.openSession('" + _mysql_uri + "');");
 
     exec_and_out_equals("print(session.js_shell_test.views.view1)", "<View:view1>");
   }
@@ -182,7 +182,7 @@ namespace shcore {
   {
     exec_and_out_equals("var mysql = require('mysql').mysql;");
 
-    exec_and_out_equals("var session = mysql.openSession('" + _uri + "');");
+    exec_and_out_equals("var session = mysql.openSession('" + _mysql_uri + "');");
 
     exec_and_out_equals("var table = session.js_shell_test.getTable('table1');");
 
@@ -194,7 +194,7 @@ namespace shcore {
   {
     exec_and_out_equals("var mysql = require('mysql').mysql;");
 
-    exec_and_out_equals("var session = mysql.openSession('" + _uri + "');");
+    exec_and_out_equals("var session = mysql.openSession('" + _mysql_uri + "');");
 
     exec_and_out_equals("var view = session.js_shell_test.getView('view1');");
 
@@ -206,7 +206,7 @@ namespace shcore {
   {
     exec_and_out_equals("var mysql = require('mysql').mysql;");
 
-    exec_and_out_equals("var session = mysql.openSession('" + _uri + "');");
+    exec_and_out_equals("var session = mysql.openSession('" + _mysql_uri + "');");
 
     exec_and_out_equals("print(session.js_shell_test.table1)", "<Table:table1>");
     exec_and_out_equals("print(session.js_shell_test.view1)", "<View:view1>");

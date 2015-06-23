@@ -71,7 +71,10 @@ protected:
 
     const char *uri = getenv("MYSQL_URI");
     if (uri)
+    {
       _uri.assign(uri);
+      _mysql_uri.assign(uri);
+    }
 
     const char *pwd = getenv("MYSQL_PWD");
     if (pwd)
@@ -79,7 +82,10 @@ protected:
 
     const char *port = getenv("MYSQL_PORT");
     if (port)
+    {
       _mysql_port.assign(port);
+      _mysql_uri += ":" + _mysql_port;
+    }
   }
 
   shcore::Value execute(const std::string& code)
@@ -132,6 +138,7 @@ protected:
   std::string _uri;
   std::string _pwd;
   std::string _mysql_port;
+  std::string _mysql_uri;
 
   shcore::Interpreter_delegate deleg;
 };
