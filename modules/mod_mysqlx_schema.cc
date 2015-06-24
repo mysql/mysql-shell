@@ -43,6 +43,21 @@ using namespace shcore;
 Schema::Schema(boost::shared_ptr<ApiBaseSession> session, const std::string &schema)
 : DatabaseObject(session, boost::shared_ptr<DatabaseObject>(), schema), _schema_impl(session->session_obj()->getSchema(schema))
 {
+	init();
+}
+
+Schema::Schema(boost::shared_ptr<const ApiBaseSession> session, const std::string &schema) :
+DatabaseObject(boost::const_pointer_cast<ApiBaseSession>(session), boost::shared_ptr<DatabaseObject>(), schema)
+{
+	init();
+}
+
+Schema::~Schema()
+{
+}
+
+void Schema::init()
+{
   add_method("getTables", boost::bind(&DatabaseObject::get_member_method, this, _1, "getTables", "tables"), "name", shcore::String, NULL);
   add_method("getCollections", boost::bind(&DatabaseObject::get_member_method, this, _1, "getCollections", "collections"), "name", shcore::String, NULL);
   add_method("getViews", boost::bind(&DatabaseObject::get_member_method, this, _1, "getViews", "views"), "name", shcore::String, NULL);
@@ -53,16 +68,7 @@ Schema::Schema(boost::shared_ptr<ApiBaseSession> session, const std::string &sch
 
   _tables = Value::new_map().as_map();
   _views = Value::new_map().as_map();
-  _collections = Value::new_map().as_map();
-}
-
-Schema::Schema(boost::shared_ptr<const ApiBaseSession> session, const std::string &schema) :
-Schema(boost::const_pointer_cast<ApiBaseSession>(session), schema)
-{
-}
-
-Schema::~Schema()
-{
+  _collections = Value::new_map().as_map();	
 }
 
 void Schema::cache_table_objects()

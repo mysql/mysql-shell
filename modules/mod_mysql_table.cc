@@ -30,7 +30,7 @@ Table::Table(boost::shared_ptr<Schema> owner, const std::string &name)
 }
 
 Table::Table(boost::shared_ptr<const Schema> owner, const std::string &name)
-: Table(boost::const_pointer_cast<Schema>(owner), name)
+: DatabaseObject(owner->_session.lock(), boost::const_pointer_cast<Schema>(owner), name)
 {
 }
 

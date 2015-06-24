@@ -67,6 +67,8 @@ namespace mysh
       shcore::Value find_in_collection(const std::string& name, boost::shared_ptr<shcore::Value::Map_type>source) const;
       shcore::Value getTable(const shcore::Argument_list &args);
       shcore::Value getView(const shcore::Argument_list &args);
+	  
+	  void init();
     };
   };
 };

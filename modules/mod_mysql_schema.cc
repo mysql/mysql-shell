@@ -42,6 +42,17 @@ using namespace shcore;
 Schema::Schema(boost::shared_ptr<Session> session, const std::string &schema)
 : DatabaseObject(boost::dynamic_pointer_cast<BaseSession>(session), boost::shared_ptr<DatabaseObject>(), schema)
 {
+  init();
+}
+
+Schema::Schema(boost::shared_ptr<const Session> session, const std::string &schema) :
+DatabaseObject(boost::const_pointer_cast<Session>(session), boost::shared_ptr<DatabaseObject>(), schema)
+{
+  init();
+}
+
+void Schema::init()
+{
   add_method("getTables", boost::bind(&DatabaseObject::get_member_method, this, _1, "getTables", "tables"), "name", shcore::String, NULL);
   add_method("getViews", boost::bind(&DatabaseObject::get_member_method, this, _1, "getViews", "views"), "name", shcore::String, NULL);
 
@@ -50,11 +61,6 @@ Schema::Schema(boost::shared_ptr<Session> session, const std::string &schema)
 
   _tables = Value::new_map().as_map();
   _views = Value::new_map().as_map();
-}
-
-Schema::Schema(boost::shared_ptr<const Session> session, const std::string &schema) :
-Schema(boost::const_pointer_cast<Session>(session), schema)
-{
 }
 
 Schema::~Schema()

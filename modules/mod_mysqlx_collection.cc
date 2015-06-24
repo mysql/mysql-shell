@@ -30,15 +30,21 @@ using namespace shcore;
 Collection::Collection(boost::shared_ptr<Schema> owner, const std::string &name)
 : DatabaseObject(owner->_session.lock(), owner, name), _collection_impl(owner->_schema_impl->getCollection(name))
 {
-  add_method("add", boost::bind(&Collection::add_, this, _1), "searchCriteria", shcore::String, NULL);
-  add_method("modify", boost::bind(&Collection::modify_, this, _1), "searchCriteria", shcore::String, NULL);
-  add_method("find", boost::bind(&Collection::find_, this, _1), "searchCriteria", shcore::String, NULL);
-  add_method("remove", boost::bind(&Collection::remove_, this, _1), "searchCriteria", shcore::String, NULL);
+	init();
 }
 
 Collection::Collection(boost::shared_ptr<const Schema> owner, const std::string &name) :
-Collection(boost::const_pointer_cast<Schema>(owner), name)
+DatabaseObject(owner->_session.lock(), boost::const_pointer_cast<Schema>(owner), name)
 {
+	init();
+}
+
+void Collection::init()
+{
+  add_method("add", boost::bind(&Collection::add_, this, _1), "searchCriteria", shcore::String, NULL);
+  add_method("modify", boost::bind(&Collection::modify_, this, _1), "searchCriteria", shcore::String, NULL);
+  add_method("find", boost::bind(&Collection::find_, this, _1), "searchCriteria", shcore::String, NULL);
+  add_method("remove", boost::bind(&Collection::remove_, this, _1), "searchCriteria", shcore::String, NULL);	
 }
 
 Collection::~Collection()

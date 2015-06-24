@@ -47,6 +47,8 @@ namespace mysh
       shcore::Value find_(const shcore::Argument_list &args);
       shcore::Value modify_(const shcore::Argument_list &args);
       shcore::Value remove_(const shcore::Argument_list &args);
+	
+	  void init();
 
     private:
       boost::shared_ptr< ::mysqlx::Collection> _collection_impl;
