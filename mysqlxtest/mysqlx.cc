@@ -46,6 +46,7 @@
 #include <iostream>
 #include <limits>
 #include <mysql/service_my_snprintf.h>
+#include "compilerutils.h"
 
 #ifdef WIN32
 #  define snprintf _snprintf
@@ -292,7 +293,7 @@ Result *Connection::execute_delete(const Mysqlx::Crud::Delete &m)
 }
 
 
-void Connection::authenticate_plain(const std::string &user, const std::string &pass, const std::string &db)
+void Connection::authenticate_plain(const std::string &user, const std::string &pass, const std::string &UNUSED(db))
 {
   {
     Mysqlx::Session::AuthenticateStart auth;

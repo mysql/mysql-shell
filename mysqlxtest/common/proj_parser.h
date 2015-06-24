@@ -25,6 +25,7 @@
 
 #include "expr_parser.h"
 #include "mysqlx_crud.pb.h"
+#include "../compilerutils.h"
 
 #include <memory>
 
@@ -46,7 +47,7 @@ public:
   Proj_parser(const std::string& expr_str, bool document_mode = false, bool allow_alias = true);
 
   template<typename Container>
-  void parse(Container &result)
+  void parse(Container &UNUSED(result))
   {
 //    Mysqlx::Crud::Projection *proj = result.Add();
 //    docpath_member(*proj);

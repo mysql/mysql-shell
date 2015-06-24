@@ -22,6 +22,8 @@
 
 #include "mysqlx_parser.h"
 
+#include "compilerutils.h"
+
 using namespace mysqlx;
 
 Schema::Schema(boost::shared_ptr<Session> conn, const std::string &name_)
@@ -48,14 +50,14 @@ boost::shared_ptr<Collection> Schema::getCollection(const std::string &name_)
 }
 
 
-Table::Table(boost::shared_ptr<Schema> schema, const std::string &name_)
-: m_schema(schema), m_name(name_)
+Table::Table(boost::shared_ptr<Schema> schema_, const std::string &name_)
+: m_schema(schema_), m_name(name_)
 {
 }
 
 
-Collection::Collection(boost::shared_ptr<Schema> schema, const std::string &name_)
-: m_schema(schema), m_name(name_)
+Collection::Collection(boost::shared_ptr<Schema> schema_, const std::string &name_)
+: m_schema(schema_), m_name(name_)
 {
 }
 
@@ -96,7 +98,7 @@ Collection_Statement::Collection_Statement(boost::shared_ptr<Collection> coll)
 }
 
 
-Collection_Statement &Collection_Statement::bind(const std::string &name, const DocumentValue &value)
+Collection_Statement &Collection_Statement::bind(const std::string &UNUSED(name), const DocumentValue &UNUSED(value))
 {
   return *this;
 }
@@ -152,20 +154,20 @@ Find_Skip &Find_Limit::limit(uint64_t limit_)
 }
 
 
-Find_Limit &Find_Sort::sort(const std::string &sortFields)
+Find_Limit &Find_Sort::sort(const std::string &UNUSED(sortFields))
 {
   return *this;
 }
 
 
-Find_Sort &Find_Having::having(const std::string &searchCondition)
+Find_Sort &Find_Having::having(const std::string &UNUSED(searchCondition))
 {
 //  m_find->set_allocated_having(Expr_parser(searchFields, true).expr().release());
   return *this;
 }
 
 
-Find_Having &Find_GroupBy::groupBy(const std::string &searchFields)
+Find_Having &Find_GroupBy::groupBy(const std::string &UNUSED(searchFields))
 {
 //  m_find->set_allocated_group_by(Proj_parser(searchFields, true).expr().release());
   return *this;
@@ -302,7 +304,7 @@ RemoveStatement::RemoveStatement(boost::shared_ptr<Collection> coll, const std::
 }
 
 
-Remove_Limit &RemoveStatement::orderBy(const std::string &sortFields)
+Remove_Limit &RemoveStatement::orderBy(const std::string &UNUSED(sortFields))
 {
   return *this;
 }
@@ -345,49 +347,49 @@ Result *Modify_Base::execute()
 }
 
 
-Modify_Operation &Modify_Operation::remove(const std::string &path)
+Modify_Operation &Modify_Operation::remove(const std::string &UNUSED(path))
 {
   return *this;
 }
 
 
-Modify_Operation &Modify_Operation::set(const std::string &path, const DocumentValue &value)
+Modify_Operation &Modify_Operation::set(const std::string &UNUSED(path), const DocumentValue &UNUSED(value))
 {
   return *this;
 }
 
 
-Modify_Operation &Modify_Operation::replace(const std::string &path, const DocumentValue &value)
+Modify_Operation &Modify_Operation::replace(const std::string &UNUSED(path), const DocumentValue &UNUSED(value))
 {
   return *this;
 }
 
 
-Modify_Operation &Modify_Operation::merge(const Document &doc)
+Modify_Operation &Modify_Operation::merge(const Document &UNUSED(doc))
 {
   return *this;
 }
 
 
-Modify_Operation &Modify_Operation::arrayInsert(const std::string &path, int index, const DocumentValue &value)
+Modify_Operation &Modify_Operation::arrayInsert(const std::string &UNUSED(path), int UNUSED(index), const DocumentValue &UNUSED(value))
 {
   return *this;
 }
 
 
-Modify_Operation &Modify_Operation::arrayAppend(const std::string &path, const DocumentValue &value)
+Modify_Operation &Modify_Operation::arrayAppend(const std::string &UNUSED(path), const DocumentValue &UNUSED(value))
 {
   return *this;
 }
 
 
-Modify_Operation &Modify_Limit::limit(uint64_t limit_)
+Modify_Operation &Modify_Limit::limit(uint64_t UNUSED(limit_))
 {
   return *this;
 }
 
 
-ModifyStatement::ModifyStatement(boost::shared_ptr<Collection> coll, const std::string &searchCondition)
+ModifyStatement::ModifyStatement(boost::shared_ptr<Collection> coll, const std::string &UNUSED(searchCondition))
 : Modify_Limit(coll)
 {
   m_update->mutable_collection()->set_schema(coll->schema()->name());
@@ -397,7 +399,7 @@ ModifyStatement::ModifyStatement(boost::shared_ptr<Collection> coll, const std::
 }
 
 
-Modify_Limit &ModifyStatement::orderBy(const std::string &sortFields)
+Modify_Limit &ModifyStatement::orderBy(const std::string &UNUSED(sortFields))
 {
   return *this;
 }
