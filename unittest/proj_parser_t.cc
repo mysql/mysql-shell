@@ -27,6 +27,7 @@
 #include <gtest/gtest.h>
 #include "../mysqlxtest/common/proj_parser.h"
 #include "shellcore/types_cpp.h"
+#include "shellcore/common.h"
 
 #include "mysqlx_datatypes.pb.h"
 #include "mysqlx_expr.pb.h"
@@ -64,7 +65,7 @@ namespace shcore
       };
     };
 
-    void parse_and_assert_expr(const std::string& input, const std::string& token_list, const std::string& unparsed, bool document_mode = false, bool allow_alias = true)
+    void parse_and_assert_expr(const std::string& input, const std::string& token_list, const std::string& UNUSED(unparsed), bool document_mode = false, bool allow_alias = true)
     {
       std::stringstream out, out_tokens;
       Proj_parser p(input, document_mode, allow_alias);

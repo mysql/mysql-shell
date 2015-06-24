@@ -22,6 +22,7 @@
 #include "shellcore/object_factory.h"
 #include "shellcore/shell_core.h"
 #include "shellcore/lang_base.h"
+#include "shellcore/common.h"
 
 #include <boost/bind.hpp>
 #include <boost/lexical_cast.hpp>
@@ -157,8 +158,8 @@ void BaseResultset::print_normal()
     else
     {
       // Some queries return -1 since affected rows do not apply to them
-      int affected_rows = get_member("affectedRows").as_int();
-      if (affected_rows == ~(unsigned long)0)
+      uint64_t affected_rows = get_member("affectedRows").as_uint();
+      if (affected_rows == ~(uint64_t)0)
         output = "Query OK";
       else
         // In case of Query OK, prints the actual number of affected rows.
@@ -196,7 +197,7 @@ void BaseResultset::print_table(shcore::Value::Array_type_ref records)
   for (row_index = 0; row_index < records->size(); row_index++)
   {
     boost::shared_ptr<Row> row = (*records)[row_index].as_object<Row>();
-    for (int field_index = 0; field_index < metadata->size(); field_index++)
+    for (size_t field_index = 0; field_index < metadata->size(); field_index++)
     {
       int field_length = row->values[field_index].repr().length();
 
@@ -299,7 +300,7 @@ Row::Row()
   add_method("getLength", boost::bind(&Row::get_member_method, this, _1, "getLength", "__length__"), NULL);
 }
 
-std::string &Row::append_descr(std::string &s_out, int indent, int quote_strings) const
+std::string &Row::append_descr(std::string &s_out, int UNUSED(indent), int UNUSED(quote_strings)) const
 {
   s_out.append((boost::format("<MapArray>")).str());
   return s_out;
@@ -331,7 +332,7 @@ std::vector<std::string> Row::get_members() const
 }
 
 //! Implements equality operator
-bool Row::operator == (const Object_bridge &other) const
+bool Row::operator == (const Object_bridge &UNUSED(other)) const
 {
   return false;
 }

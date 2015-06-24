@@ -55,7 +55,7 @@ Value ApiBaseSession::connect(const Argument_list &args)
   std::string function_name = class_name() + ".connect";
   args.ensure_count(1, 2, function_name.c_str());
 
-  std::string uri = args.string_at(0);
+  std::string uri_ = args.string_at(0);
 
   std::string pwd_override;
 
@@ -64,11 +64,11 @@ Value ApiBaseSession::connect(const Argument_list &args)
   if (2 == args.size())
     pwd_override = args.string_at(1).c_str();
 
-  _uri = mysh::strip_password(uri);
+  _uri = mysh::strip_password(uri_);
 
   try
   {
-    _session = ::mysqlx::openSession(uri, pwd_override);
+    _session = ::mysqlx::openSession(uri_, pwd_override);
   }
   CATCH_AND_TRANSLATE();
 

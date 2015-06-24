@@ -32,6 +32,12 @@
 
 #include <boost/enable_shared_from_this.hpp>
 
+#ifdef __GNUC__
+  #define ATTR_UNUSED __attribute__((unused))
+#else
+  #define ATTR_UNUSED
+#endif
+
 namespace shcore
 {
   class Proxy_object;
@@ -41,7 +47,7 @@ namespace shcore
 * Helper function to ensure the exceptions generated on the mysqlx_connector
 * are properly translated to the corresponding shcore::Exception type
 */
-static void translate_exception()
+static void ATTR_UNUSED translate_exception()
 {
   try
   {

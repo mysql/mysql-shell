@@ -932,10 +932,10 @@ std::auto_ptr<Mysqlx::Expr::Expr> Expr_parser::ilri_expr()
       if (is_not)
       {
         // wrap if `NOT'-prefixed
-        Mysqlx::Expr::Expr* expr = Expr_builder::build_unary_op("NOT", e.get());
+        Mysqlx::Expr::Expr* expr_ = Expr_builder::build_unary_op("NOT", e.get());
         e.release();
         lhs.release();
-        lhs.reset(expr);
+        lhs.reset(expr_);
       }
       else
       {
@@ -1129,15 +1129,15 @@ std::string Expr_unparser::operator_to_string(const Mysqlx::Expr::Operator& op)
   }
   else if (ps.size() == 1)
   {
-    const std::string name = op.name();
-    if (name.size() == 1)
+    const std::string name_ = op.name();
+    if (name_.size() == 1)
     {
-      return name + Expr_unparser::expr_to_string(ps.Get(0));
+      return name_ + Expr_unparser::expr_to_string(ps.Get(0));
     }
     else
     {
       // something like NOT
-      return name + " ( " + Expr_unparser::expr_to_string(ps.Get(0)) + ")";
+      return name_ + " ( " + Expr_unparser::expr_to_string(ps.Get(0)) + ")";
     }
   }
   else

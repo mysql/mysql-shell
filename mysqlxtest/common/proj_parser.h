@@ -48,7 +48,7 @@ public:
   template<typename Container>
   void parse(Container &result)
   {
-    Mysqlx::Crud::Projection *proj = result.Add();
+//    Mysqlx::Crud::Projection *proj = result.Add();
 //    docpath_member(*proj);
 
     while (_tokenizer.cur_token_type_is(Token::COMMA))

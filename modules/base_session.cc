@@ -22,6 +22,7 @@
 #include "shellcore/object_factory.h"
 #include "shellcore/shell_core.h"
 #include "shellcore/lang_base.h"
+#include "shellcore/common.h"
 
 #include "shellcore/proxy_object.h"
 
@@ -165,11 +166,9 @@ boost::shared_ptr<mysh::BaseSession> mysh::connect_session(const shcore::Argumen
   std::string protocol;
   std::string user;
   std::string pass;
-  const char *pwd_override = NULL;
   std::string host;
   std::string sock;
   std::string db;
-  std::string uri_stripped;
 
   int pwd_found;
   int port = 0;
@@ -206,7 +205,7 @@ BaseSession::BaseSession()
   add_method("setDefaultSchema", boost::bind(&BaseSession::set_default_schema, this, _1), "name", shcore::String, NULL);
 }
 
-std::string &BaseSession::append_descr(std::string &s_out, int indent, int quote_strings) const
+std::string &BaseSession::append_descr(std::string &s_out, int UNUSED(indent), int UNUSED(quote_strings)) const
 {
   if (!is_connected())
     s_out.append("<" + class_name() + ":disconnected>");

@@ -58,16 +58,16 @@ namespace mysh
       const std::string& org_table() { return _org_table; };
       const std::string& name() { return _name; };
       const std::string& org_name() { return _org_name; };
-      const int length() { return _length; }
-      const int type() { return _type; }
-      const int flags() { return _flags; }
-      const int decimals() { return _decimals; }
-      const int charset() { return _charset; }
+      long length() { return _length; }
+      int type() { return _type; }
+      int flags() { return _flags; }
+      int decimals() { return _decimals; }
+      int charset() { return _charset; }
 
-      const int max_length() { return _max_length; }
+      long max_length() { return _max_length; }
       void max_length(int length_) { _max_length = length_; }
 
-      const int name_length() { return _name_length; }
+      long name_length() { return _name_length; }
 
     private:
       std::string _catalog;

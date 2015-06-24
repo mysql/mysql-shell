@@ -194,6 +194,9 @@ PyObject *Python_type_bridger::shcore_value_to_pyobj(const Value &value)
   case Integer:
     r = PyInt_FromSsize_t(value.value.i);
     break;
+  case UInteger:
+    r = PyInt_FromSsize_t(value.value.ui);
+    break;
   case Float:
     r = PyFloat_FromDouble(value.value.d);
     break;

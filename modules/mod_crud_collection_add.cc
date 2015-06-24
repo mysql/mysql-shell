@@ -23,8 +23,8 @@
 using namespace mysh::mysqlx;
 using namespace shcore;
 
-CollectionAdd::CollectionAdd(const ::mysqlx::AddStatement &add)
-: _add(new ::mysqlx::AddStatement(add))
+CollectionAdd::CollectionAdd(const ::mysqlx::AddStatement &add_)
+: _add(new ::mysqlx::AddStatement(add_))
 {
   // Exposes the methods available for chaining
   add_method("add", boost::bind(&CollectionAdd::add, this, _1), "data");

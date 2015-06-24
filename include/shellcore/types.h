@@ -52,7 +52,9 @@ namespace shcore {
     Map, //! Dictionary/Map/Object container
     MapRef, //! A weak reference to a Map
 
-    Function //! A function reference, not serializable.
+    Function, //! A function reference, not serializable.
+
+    UInteger //! unsigned 64bit integer numbers
   };
 
   class Object_bridge;
@@ -66,7 +68,7 @@ namespace shcore {
 
    Values are exposed to scripting languages according to the following rules:
 
-   - Simple types (Null, Bool, String, Integer, Float) are converted directly to the target type, both ways
+   - Simple types (Null, Bool, String, Integer, Float, UInteger) are converted directly to the target type, both ways
 
    - Arrays and Maps are converted directly to the target type, both ways
 
@@ -98,6 +100,7 @@ namespace shcore {
       std::string get_string(const std::string &k, const std::string &def = "") const;
       bool get_bool(const std::string &k, bool def = false) const;
       int64_t get_int(const std::string &k, int64_t def = 0) const;
+      uint64_t get_uint(const std::string &k, uint64_t def = 0) const;
       double get_double(const std::string &k, double def = 0.0) const;
       boost::shared_ptr<Value::Map_type> get_map(const std::string &k,
               boost::shared_ptr<Map_type> def = boost::shared_ptr<Map_type>()) const;
@@ -143,6 +146,7 @@ namespace shcore {
       bool b;
       std::string *s;
       int64_t i;
+      uint64_t ui;
       double d;
       boost::shared_ptr<class Object_bridge> *o;
       boost::shared_ptr<Array_type> *array;
@@ -158,7 +162,9 @@ namespace shcore {
     explicit Value(const char *);
     explicit Value(const char *, size_t n);
     explicit Value(int i);
+    explicit Value(unsigned int ui);
     explicit Value(int64_t i);
+    explicit Value(uint64_t ui);
     explicit Value(double d);
     explicit Value(bool b);
     explicit Value(boost::shared_ptr<Function_base> f);
@@ -205,6 +211,7 @@ namespace shcore {
 
     bool as_bool() const { check_type(Bool); return value.b; }
     int64_t as_int() const { check_type(Integer); return value.i; }
+    uint64_t as_uint() const { check_type(UInteger); return value.ui; }
     double as_double() const { check_type(Float); return value.d; }
     const std::string &as_string() const { check_type(String); return *value.s; }
     template<class C>
@@ -253,6 +260,7 @@ namespace shcore {
 
   template<> struct value_type_for_native<bool> { static const Value_type type = Bool; };
   template<> struct value_type_for_native<int64_t> { static const Value_type type = Integer; };
+  template<> struct value_type_for_native<uint64_t> { static const Value_type type = UInteger; };
   template<> struct value_type_for_native<double> { static const Value_type type = Float; };
   template<> struct value_type_for_native<std::string> { static const Value_type type = String; };
   template<> struct value_type_for_native<Object_bridge*> { static const Value_type type = Object; };

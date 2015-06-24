@@ -168,6 +168,8 @@ std::string shcore::type_name(Value_type type)
       return "Bool";
     case Integer:
       return "Integer";
+    case UInteger:
+      return "UInteger";
     case Float:
       return "Float";
     case String:
@@ -222,6 +224,15 @@ int64_t Value::Map_type::get_int(const std::string &k, int64_t def) const
     return def;
   iter->second.check_type(Integer);
   return iter->second.as_int();
+}
+
+uint64_t Value::Map_type::get_uint(const std::string &k, uint64_t def) const
+{
+  const_iterator iter = find(k);
+  if (iter == end())
+    return def;
+  iter->second.check_type(UInteger);
+  return iter->second.as_uint();
 }
 
 double Value::Map_type::get_double(const std::string &k, double def) const
@@ -318,6 +329,12 @@ Value::Value(int64_t i)
   value.i = i;
 }
 
+Value::Value(uint64_t ui)
+: type(UInteger)
+{
+  value.ui = ui;
+}
+
 Value::Value(double d)
 : type(Float)
 {
@@ -376,6 +393,9 @@ Value &Value::operator= (const Value &other)
       case Integer:
         value.i = other.value.i;
         break;
+      case UInteger:
+        value.ui = other.value.ui;
+        break;
       case Float:
         value.d = other.value.d;
         break;
@@ -407,6 +427,7 @@ Value &Value::operator= (const Value &other)
       case shcore::Null:
       case Bool:
       case Integer:
+      case UInteger:
       case Float:
         break;
       case String:
@@ -439,6 +460,9 @@ Value &Value::operator= (const Value &other)
         break;
       case Integer:
         value.i = other.value.i;
+        break;
+        case UInteger:
+        value.ui = other.value.ui;
         break;
       case Float:
         value.d = other.value.d;
@@ -813,6 +837,8 @@ bool Value::operator == (const Value &other) const
         return value.b == other.value.b;
       case Integer:
         return value.i == other.value.i;
+      case UInteger:
+        return value.ui == other.value.ui;
       case Float:
         return value.d == other.value.d;
       case String:
@@ -847,6 +873,12 @@ bool Value::operator == (const Value &other) const
             else if (other.value.i == 0)
               return value.b == false;
             return false;
+          case UInteger:
+            if (other.value.ui == 1)
+              return value.b == true;
+            else if (other.value.ui == 0)
+              return value.b == false;
+            return false;
           case Float:
             if (other.value.d == 1.0)
               return value.b == true;
@@ -866,12 +898,23 @@ bool Value::operator == (const Value &other) const
           default:
             return false;
         }
+      case UInteger:
+        switch (other.type)
+        {
+          case Bool:
+            return other.operator==(*this);
+          case Float:
+            return value.ui == (unsigned int)other.value.d && ((other.value.d - (int)other.value.d) == 0.0);
+          default:
+            return false;
+        }
       case Float:
         switch (other.type)
         {
           case Bool:
             return other.operator==(*this);
           case Integer:
+          case UInteger:
             return other.operator==(*this);
           default:
             return false;
@@ -918,6 +961,13 @@ std::string &Value::append_descr(std::string &s_out, int indent, int quote_strin
     {
                   boost::format fmt("%ld");
                   fmt % value.i;
+                  s_out += fmt.str();
+    }
+      break;
+    case UInteger:
+    {
+                  boost::format fmt("%ld");
+                  fmt % value.ui;
                   s_out += fmt.str();
     }
       break;
@@ -1016,6 +1066,13 @@ std::string &Value::append_repr(std::string &s_out) const
     {
                   boost::format fmt("%ld");
                   fmt % value.i;
+                  s_out += fmt.str();
+    }
+      break;
+    case UInteger:
+    {
+                  boost::format fmt("%ld");
+                  fmt % value.ui;
                   s_out += fmt.str();
     }
       break;
@@ -1126,6 +1183,7 @@ Value::~Value()
     case shcore::Null:
     case Bool:
     case Integer:
+    case UInteger:
     case Float:
       break;
     case String:
