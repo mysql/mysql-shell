@@ -30,14 +30,14 @@ namespace mysqlx
     m_useconds(0), m_valid(false)
     {}
 
-    Time(uint8_t hour,
-         uint8_t minutes,
-         uint8_t seconds,
-         uint32_t useconds = 0)
-    : m_hour(hour), m_minutes(minutes), m_seconds(seconds),
-    m_useconds(useconds), m_valid(true)
+    Time(uint8_t hour_,
+         uint8_t minutes_,
+         uint8_t seconds_,
+         uint32_t useconds_ = 0)
+    : m_hour(hour_), m_minutes(minutes_), m_seconds(seconds_),
+    m_useconds(useconds_), m_valid(true)
     {
-      if (hour > 23 || minutes > 59 || seconds > 59 || useconds >= 1000000)
+      if (hour_ > 23 || minutes_ > 59 || seconds_ > 59 || useconds_ >= 1000000)
         m_valid = false;
     }
 
@@ -178,23 +178,23 @@ namespace mysqlx
       }
     }
 
-    DateTime(uint16_t year,
-             uint8_t month,
-             uint8_t day,
+    DateTime(uint16_t year_,
+             uint8_t month_,
+             uint8_t day_,
 
-             uint8_t hour = 0xff,
-             uint8_t minutes = 0,
-             uint8_t seconds = 0,
-             uint32_t useconds = 0)
-    : m_year(year), m_month(month), m_day(day),
-    m_hour(hour), m_minutes(minutes), m_seconds(seconds),
-    m_useconds(useconds), m_valid(true)
+             uint8_t hour_ = 0xff,
+             uint8_t minutes_ = 0,
+             uint8_t seconds_ = 0,
+             uint32_t useconds_ = 0)
+    : m_year(year_), m_month(month_), m_day(day_),
+    m_hour(hour_), m_minutes(minutes_), m_seconds(seconds_),
+    m_useconds(useconds_), m_valid(true)
     {
-      if (year > 9999 || month > 12 || day > 31)
+      if (year_ > 9999 || month_ > 12 || day_ > 31)
         m_valid = false;
-      if (hour != 0xff)
+      if (hour_ != 0xff)
       {
-        if (hour > 23 || minutes > 59 || seconds > 59 || useconds >= 1000000)
+        if (hour_ > 23 || minutes_ > 59 || seconds_ > 59 || useconds_ >= 1000000)
           m_valid = false;
       }
     }
