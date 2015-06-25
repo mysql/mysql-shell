@@ -50,101 +50,101 @@ namespace shcore {
 
     TEST_F(TestMySQLSplitter, full_statement)
     {
-      EXPECT_EQ(1, send_sql("show databases;"));
+      EXPECT_EQ(1, static_cast<int>(static_cast<int>(send_sql("show databases;"))));
       EXPECT_TRUE(multiline_flags.empty());
-      EXPECT_EQ(1, ranges.size());
+      EXPECT_EQ(1, static_cast<int>(static_cast<int>(ranges.size())));
       EXPECT_EQ("show databases", sql.substr(ranges[0].first, ranges[0].second));
     }
 
     TEST_F(TestMySQLSplitter, by_line_continued_statement)
     {
-      EXPECT_EQ(0, send_sql("show"));
+      EXPECT_EQ(0, static_cast<int>(static_cast<int>(send_sql("show"))));
       EXPECT_EQ("-", multiline_flags.top());
-      EXPECT_EQ(1, ranges.size());
+      EXPECT_EQ(1, static_cast<int>(static_cast<int>(ranges.size())));
       EXPECT_EQ("show", sql.substr(ranges[0].first, ranges[0].second));
 
-      EXPECT_EQ(0, send_sql("databases"));
+      EXPECT_EQ(0, static_cast<int>(static_cast<int>(send_sql("databases"))));
       EXPECT_EQ("-", multiline_flags.top());
-      EXPECT_EQ(1, ranges.size());
+      EXPECT_EQ(1, static_cast<int>(static_cast<int>(ranges.size())));
       EXPECT_EQ("databases", sql.substr(ranges[0].first, ranges[0].second));
 
-      EXPECT_EQ(1, send_sql(";"));
+      EXPECT_EQ(1, static_cast<int>(static_cast<int>(send_sql(";"))));
       EXPECT_TRUE(multiline_flags.empty());
-      EXPECT_EQ(0, ranges.size());
+      EXPECT_EQ(0, static_cast<int>(static_cast<int>(ranges.size())));
     }
 
     TEST_F(TestMySQLSplitter, script_continued_statement)
     {
-      EXPECT_EQ(1, send_sql("show\ndatabases\n;\n"));
+      EXPECT_EQ(1, static_cast<int>(static_cast<int>(send_sql("show\ndatabases\n;\n"))));
       EXPECT_TRUE(multiline_flags.empty());
-      EXPECT_EQ(1, ranges.size());
+      EXPECT_EQ(1, static_cast<int>(static_cast<int>(ranges.size())));
       EXPECT_EQ("show\ndatabases\n", sql.substr(ranges[0].first, ranges[0].second));
     }
 
     TEST_F(TestMySQLSplitter, ignore_empty_statements)
     {
-      EXPECT_EQ(1, send_sql("show databases;\n;"));
+      EXPECT_EQ(1, static_cast<int>(static_cast<int>(send_sql("show databases;\n;"))));
       EXPECT_TRUE(multiline_flags.empty());
-      EXPECT_EQ(1, ranges.size());
+      EXPECT_EQ(1, static_cast<int>(static_cast<int>(ranges.size())));
       EXPECT_EQ("show databases", sql.substr(ranges[0].first, ranges[0].second));
 
-      EXPECT_EQ(0, send_sql(";"));
+      EXPECT_EQ(0, static_cast<int>(static_cast<int>(send_sql(";"))));
       EXPECT_TRUE(multiline_flags.empty());
-      EXPECT_EQ(0, ranges.size());
+      EXPECT_EQ(0, static_cast<int>(static_cast<int>(ranges.size())));
     }
 
     TEST_F(TestMySQLSplitter, single_line_comments)
     {
       sql = "-- shows the database list\n"
             "show databases;";
-      EXPECT_EQ(1, send_sql(sql));
+      EXPECT_EQ(1, static_cast<int>(send_sql(sql)));
       EXPECT_TRUE(multiline_flags.empty());
-      EXPECT_EQ(1, ranges.size());
+      EXPECT_EQ(1, static_cast<int>(static_cast<int>(ranges.size())));
       EXPECT_EQ("show databases", sql.substr(ranges[0].first, ranges[0].second));
 
       sql = "--\tshows the database list\n"
         "show databases;";
-      EXPECT_EQ(1, send_sql(sql));
+      EXPECT_EQ(1, static_cast<int>(send_sql(sql)));
       EXPECT_TRUE(multiline_flags.empty());
-      EXPECT_EQ(1, ranges.size());
+      EXPECT_EQ(1, static_cast<int>(static_cast<int>(ranges.size())));
       EXPECT_EQ("show databases", sql.substr(ranges[0].first, ranges[0].second));
 
       sql = "--\n"
             "show databases;";
-      EXPECT_EQ(1, send_sql(sql));
+      EXPECT_EQ(1, static_cast<int>(send_sql(sql)));
       EXPECT_TRUE(multiline_flags.empty());
-      EXPECT_EQ(1, ranges.size());
+      EXPECT_EQ(1, static_cast<int>(ranges.size()));
       EXPECT_EQ("show databases", sql.substr(ranges[0].first, ranges[0].second));
 
       sql = "--";
-      EXPECT_EQ(0, send_sql(sql));
+      EXPECT_EQ(0, static_cast<int>(send_sql(sql)));
       EXPECT_TRUE(multiline_flags.empty());
-      EXPECT_EQ(0, ranges.size());
+      EXPECT_EQ(0, static_cast<int>(ranges.size()));
 
       sql = "--this is an invalid comment, should be considered part of statement\n"
             "show databases;";
-      EXPECT_EQ(1, send_sql(sql));
+      EXPECT_EQ(1, static_cast<int>(send_sql(sql)));
       EXPECT_TRUE(multiline_flags.empty());
-      EXPECT_EQ(1, ranges.size());
+      EXPECT_EQ(1, static_cast<int>(ranges.size()));
       EXPECT_EQ(sql.substr(0, sql.length() - 1), sql.substr(ranges[0].first, ranges[0].second));
 
       sql = "#this is an valid comment\n"
             "show databases;";
-      EXPECT_EQ(1, send_sql(sql));
+      EXPECT_EQ(1, static_cast<int>(send_sql(sql)));
       EXPECT_TRUE(multiline_flags.empty());
-      EXPECT_EQ(1, ranges.size());
+      EXPECT_EQ(1, static_cast<int>(ranges.size()));
       EXPECT_EQ("show databases", sql.substr(ranges[0].first, ranges[0].second));
 
       sql = "show databases; #this is an valid comment\n";
-      EXPECT_EQ(1, send_sql(sql));
+      EXPECT_EQ(1, static_cast<int>(send_sql(sql)));
       EXPECT_TRUE(multiline_flags.empty());
-      EXPECT_EQ(1, ranges.size());
+      EXPECT_EQ(1, static_cast<int>(ranges.size()));
       EXPECT_EQ("show databases", sql.substr(ranges[0].first, ranges[0].second));
 
       sql = "--this is an invalid comment, state should indicate a continued statement";
-      EXPECT_EQ(0, send_sql(sql));
+      EXPECT_EQ(0, static_cast<int>(send_sql(sql)));
       EXPECT_EQ("-", multiline_flags.top());
-      EXPECT_EQ(1, ranges.size());
+      EXPECT_EQ(1, static_cast<int>(ranges.size()));
       EXPECT_EQ(sql, sql.substr(ranges[0].first, ranges[0].second));
     }
 
@@ -155,9 +155,9 @@ namespace shcore {
         "and should be ignored\n"
         "and ends here */\n"
         "show databases;";
-      EXPECT_EQ(1, send_sql(sql));
+      EXPECT_EQ(1, static_cast<int>(send_sql(sql)));
       EXPECT_TRUE(multiline_flags.empty());
-      EXPECT_EQ(1, ranges.size());
+      EXPECT_EQ(1, static_cast<int>(ranges.size()));
       EXPECT_EQ("show databases", sql.substr(ranges[0].first, ranges[0].second));
 
       sql = "/*\n"
@@ -166,76 +166,76 @@ namespace shcore {
         "and ends on next line\n"
         "*/\n"
         "show databases;";
-      EXPECT_EQ(1, send_sql(sql));
+      EXPECT_EQ(1, static_cast<int>(send_sql(sql)));
       EXPECT_TRUE(multiline_flags.empty());
-      EXPECT_EQ(1, ranges.size());
+      EXPECT_EQ(1, static_cast<int>(ranges.size()));
       EXPECT_EQ("show databases", sql.substr(ranges[0].first, ranges[0].second));
     }
 
     TEST_F(TestMySQLSplitter, multi_line_comments_line_by_line)
     {
-      EXPECT_EQ(0, send_sql("/*"));
+      EXPECT_EQ(0, static_cast<int>(send_sql("/*")));
       EXPECT_EQ("/*", multiline_flags.top());  // Multiline comment flag is set
-      EXPECT_EQ(0, ranges.size());
+      EXPECT_EQ(0, static_cast<int>(ranges.size()));
 
-      EXPECT_EQ(0, send_sql("This is a comment"));
+      EXPECT_EQ(0, static_cast<int>(send_sql("This is a comment")));
       EXPECT_EQ("/*", multiline_flags.top()); // Multiline comment flag continues
-      EXPECT_EQ(0, ranges.size());
+      EXPECT_EQ(0, static_cast<int>(ranges.size()));
 
-      EXPECT_EQ(0, send_sql("processed line by line"));
+      EXPECT_EQ(0, static_cast<int>(send_sql("processed line by line")));
       EXPECT_EQ("/*", multiline_flags.top()); // Multiline comment flag continues
-      EXPECT_EQ(0, ranges.size());
+      EXPECT_EQ(0, static_cast<int>(ranges.size()));
 
-      EXPECT_EQ(0, send_sql("and finishes next line"));
+      EXPECT_EQ(0, static_cast<int>(send_sql("and finishes next line")));
       EXPECT_EQ("/*", multiline_flags.top()); // Multiline comment flag continues
-      EXPECT_EQ(0, ranges.size());
+      EXPECT_EQ(0, static_cast<int>(ranges.size()));
 
-      EXPECT_EQ(0, send_sql("*/"));
+      EXPECT_EQ(0, static_cast<int>(send_sql("*/")));
       EXPECT_TRUE(multiline_flags.empty()); // Multiline comment flag is cleared
-      EXPECT_EQ(0, ranges.size());
+      EXPECT_EQ(0, static_cast<int>(ranges.size()));
 
-      EXPECT_EQ(1, send_sql("show databases;"));
+      EXPECT_EQ(1, static_cast<int>(send_sql("show databases;")));
       EXPECT_TRUE(multiline_flags.empty());
-      EXPECT_EQ(1, ranges.size());
+      EXPECT_EQ(1, static_cast<int>(ranges.size()));
       EXPECT_EQ("show databases", sql.substr(ranges[0].first, ranges[0].second));
     }
 
     TEST_F(TestMySQLSplitter, continued_backtick_string)
     {
-      EXPECT_EQ(0, send_sql("select * from `t1"));
+      EXPECT_EQ(0, static_cast<int>(send_sql("select * from `t1")));
       EXPECT_EQ("`", multiline_flags.top());  // Multiline backtick flag is set
-      EXPECT_EQ(1, ranges.size());
+      EXPECT_EQ(1, static_cast<int>(ranges.size()));
       EXPECT_EQ(sql, sql.substr(ranges[0].first, ranges[0].second));
 
-      EXPECT_EQ(1, send_sql("`;"));
+      EXPECT_EQ(1, static_cast<int>(send_sql("`;")));
       EXPECT_TRUE(multiline_flags.empty());  // Multiline backtick flag is cleared
-      EXPECT_EQ(1, ranges.size());
+      EXPECT_EQ(1, static_cast<int>(ranges.size()));
       EXPECT_EQ("`", sql.substr(ranges[0].first, ranges[0].second));
     }
 
     TEST_F(TestMySQLSplitter, continued_single_quote_string)
     {
-      EXPECT_EQ(0, send_sql("select * from t1 where name = 'this"));
+      EXPECT_EQ(0, static_cast<int>(send_sql("select * from t1 where name = 'this")));
       EXPECT_EQ("'", multiline_flags.top());  // Multiline backtick flag is set
-      EXPECT_EQ(1, ranges.size());
+      EXPECT_EQ(1, static_cast<int>(ranges.size()));
       EXPECT_EQ(sql, sql.substr(ranges[0].first, ranges[0].second));
 
-      EXPECT_EQ(1, send_sql("thing';"));
+      EXPECT_EQ(1, static_cast<int>(send_sql("thing';")));
       EXPECT_TRUE(multiline_flags.empty());  // Multiline backtick flag is cleared
-      EXPECT_EQ(1, ranges.size());
+      EXPECT_EQ(1, static_cast<int>(ranges.size()));
       EXPECT_EQ("thing'", sql.substr(ranges[0].first, ranges[0].second));
     }
 
     TEST_F(TestMySQLSplitter, continued_double_quote_string)
     {
-      EXPECT_EQ(0, send_sql("select * from t1 where name = 'this"));
+      EXPECT_EQ(0, static_cast<int>(send_sql("select * from t1 where name = 'this")));
       EXPECT_EQ("'", multiline_flags.top());  // Multiline backtick flag is set
-      EXPECT_EQ(1, ranges.size());
+      EXPECT_EQ(1, static_cast<int>(ranges.size()));
       EXPECT_EQ(sql, sql.substr(ranges[0].first, ranges[0].second));
 
-      EXPECT_EQ(1, send_sql("\";"));
+      EXPECT_EQ(1, static_cast<int>(send_sql("\";")));
       EXPECT_TRUE(multiline_flags.empty());  // Multiline backtick flag is cleared
-      EXPECT_EQ(1, ranges.size());
+      EXPECT_EQ(1, static_cast<int>(ranges.size()));
       EXPECT_EQ("\"", sql.substr(ranges[0].first, ranges[0].second));
     }
 
@@ -244,9 +244,9 @@ namespace shcore {
       sql = "show databases;\n"
             "select * from whatever;\n"
             "drop database whatever;\n";
-      EXPECT_EQ(3, send_sql(sql));
+      EXPECT_EQ(3, static_cast<int>(send_sql(sql)));
       EXPECT_TRUE(multiline_flags.empty());
-      EXPECT_EQ(3, ranges.size());
+      EXPECT_EQ(3, static_cast<int>(ranges.size()));
       EXPECT_EQ("show databases", sql.substr(ranges[0].first, ranges[0].second));
       EXPECT_EQ("select * from whatever", sql.substr(ranges[1].first, ranges[1].second));
       EXPECT_EQ("drop database whatever", sql.substr(ranges[2].first, ranges[2].second));
@@ -254,13 +254,13 @@ namespace shcore {
 
     TEST_F(TestMySQLSplitter, delimiter_change)
     {
-      EXPECT_EQ(0, send_sql("delimiter \\"));
+      EXPECT_EQ(0, static_cast<int>(send_sql("delimiter \\")));
       EXPECT_EQ("\\", delimiter);
-      EXPECT_EQ(0, ranges.size());
+      EXPECT_EQ(0, static_cast<int>(ranges.size()));
 
-      EXPECT_EQ(0, send_sql("delimiter ;"));
+      EXPECT_EQ(0, static_cast<int>(send_sql("delimiter ;")));
       EXPECT_EQ(";", delimiter);
-      EXPECT_EQ(0, ranges.size());
+      EXPECT_EQ(0, static_cast<int>(ranges.size()));
 
       sql = "delimiter \\\n"
             "show databases;\n"
@@ -273,9 +273,9 @@ namespace shcore {
                               "select * from whatever;\n"
                               "drop database whatever;\n";
 
-      EXPECT_EQ(1, send_sql(sql));
+      EXPECT_EQ(1, static_cast<int>(send_sql(sql)));
       EXPECT_TRUE(multiline_flags.empty());
-      EXPECT_EQ(1, ranges.size());
+      EXPECT_EQ(1, static_cast<int>(ranges.size()));
       EXPECT_EQ(statement, sql.substr(ranges[0].first, ranges[0].second));
     }
   }

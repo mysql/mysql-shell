@@ -352,7 +352,7 @@ namespace tests {
 
     // test setter
     env.js->execute("mapval[\"k4\"] = 'test'");
-    ASSERT_EQ((*map).size(), 4);
+    ASSERT_EQ(static_cast<int>((*map).size()), 4);
     ASSERT_EQ((*map)["k4"].descr(false), Value("test").descr(false));
 
     // this forces conversion of a native JS map into a Value

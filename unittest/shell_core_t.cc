@@ -89,21 +89,21 @@ namespace shcore {
       // Successfully processed file
       process("sql/sql_ok.sql", false);
       EXPECT_EQ(0, _ret_val);
-      EXPECT_NE(-1, output_handler.std_out.find("first_result"));
+      EXPECT_NE(-1, static_cast<int>(output_handler.std_out.find("first_result")));
 
       // Failed without the force option
       process("sql/sql_err.sql", false);
       EXPECT_EQ(1, _ret_val);
-      EXPECT_NE(-1, output_handler.std_out.find("first_result"));
-      EXPECT_NE(-1, output_handler.std_err.find("Table 'unexisting.whatever' doesn't exist"));
-      EXPECT_EQ(-1, output_handler.std_out.find("second_result"));
+      EXPECT_NE(-1, static_cast<int>(output_handler.std_out.find("first_result")));
+      EXPECT_NE(-1, static_cast<int>(output_handler.std_err.find("Table 'unexisting.whatever' doesn't exist")));
+      EXPECT_EQ(-1, static_cast<int>(output_handler.std_out.find("second_result")));
 
       // Failed without the force option
       process("sql/sql_err.sql", true);
       EXPECT_EQ(1, _ret_val);
-      EXPECT_NE(-1, output_handler.std_out.find("first_result"));
-      EXPECT_NE(-1, output_handler.std_err.find("Table 'unexisting.whatever' doesn't exist"));
-      EXPECT_NE(-1, output_handler.std_out.find("second_result"));
+      EXPECT_NE(-1, static_cast<int>(output_handler.std_out.find("first_result")));
+      EXPECT_NE(-1, static_cast<int>(output_handler.std_err.find("Table 'unexisting.whatever' doesn't exist")));
+      EXPECT_NE(-1, static_cast<int>(output_handler.std_out.find("second_result")));
 
       // JS tests: outputs are not validated since in batch mode there's no autoprinting of resultsets
       // Error is also directed to the std::cerr directly
@@ -113,7 +113,7 @@ namespace shcore {
       EXPECT_EQ(0, _ret_val);
 
       process("js/js_err.js", true);
-      EXPECT_NE(-1, output_handler.std_err.find("Table 'unexisting.whatever' doesn't exist"));
+      EXPECT_NE(-1, static_cast<int>(output_handler.std_err.find("Table 'unexisting.whatever' doesn't exist")));
     }
   }
 }

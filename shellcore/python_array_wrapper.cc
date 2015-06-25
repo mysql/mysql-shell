@@ -17,7 +17,16 @@
  * 02110-1301  USA
  */
 
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-private-field"
+#endif
+
 #include "shellcore/python_array_wrapper.h"
+
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 
 using namespace shcore;
 

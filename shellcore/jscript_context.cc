@@ -17,7 +17,17 @@
  * 02110-1301  USA
  */
 
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-private-field"
+#endif
+
 #include "shellcore/jscript_context.h"
+
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
+
 #include "shellcore/lang_base.h"
 #include "shellcore/shell_core.h"
 #include "shellcore/object_factory.h"
@@ -190,7 +200,7 @@ struct JScript_context::JScript_context_impl
   v8::Handle<v8::ObjectTemplate> make_shell_object()
   {
     v8::Handle<v8::ObjectTemplate> object = v8::ObjectTemplate::New(isolate);
-    v8::Local<v8::External> client_data(v8::External::New(isolate, this));
+    //v8::Local<v8::External> client_data(v8::External::New(isolate, this));
 
     return object;
   }

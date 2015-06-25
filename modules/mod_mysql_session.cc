@@ -17,7 +17,16 @@
  * 02110-1301  USA
  */
 
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-private-field"
+#endif
+
 #include "mod_mysql_session.h"
+
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 
 #include "shellcore/object_factory.h"
 #include "shellcore/shell_core.h"

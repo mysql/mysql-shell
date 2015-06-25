@@ -54,7 +54,8 @@
 
 using namespace shcore;
 
-const int MAX_READLINE_BUF = 65536;
+// TODO: This should be ported from the server, not used from there (see comment bellow)
+//const int MAX_READLINE_BUF = 65536;
 
 extern char *mysh_get_tty_password(const char *opt_message);
 
