@@ -14,6 +14,11 @@
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA */
 
 
+/* python_contex.h includes Python.h so it needs to be the first include to avoid
+ * error: "_POSIX_C_SOURCE" redefined
+ */
+#include "shellcore/python_context.h"
+
 #include <cstdio>
 #include <cstdlib>
 #include <fstream>
@@ -30,7 +35,6 @@
 #include "shellcore/lang_base.h"
 #include "shellcore/types_cpp.h"
 #include "shellcore/object_registry.h"
-#include "shellcore/python_context.h"
 #include "shellcore/python_utils.h"
 #include "shellcore/common.h"
 
