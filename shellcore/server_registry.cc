@@ -676,7 +676,12 @@ Lock_file::Lock_file(const std::string &apath) throw (std::invalid_argument, std
     throw std::runtime_error((boost::format("%s while locking file") % std::strerror(errno)).str());
   }
 
-  ftruncate(fd, 0);
+  if (ftruncate(fd, 0) < 0 )
+  {
+    close(fd);
+    fd = -1;
+    throw std::runtime_error((boost::format("%s while truncating file") % std::strerror(errno)).str());
+  }
 
   char pid[32];
   snprintf(pid, sizeof(pid), "%i", getpid());
