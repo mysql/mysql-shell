@@ -20,8 +20,8 @@
 #ifndef _PYTHON_TYPE_CONVERSION_H_
 #define _PYTHON_TYPE_CONVERSION_H_
 
-#include "shellcore/types.h"
 #include <Python.h>
+#include "shellcore/types.h"
 
 namespace shcore {
 

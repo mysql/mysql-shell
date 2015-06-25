@@ -17,11 +17,11 @@
  * 02110-1301  USA
  */
 
+#include <Python.h>
+
 #include "shellcore/shell_python.h"
 #include "shellcore/python_context.h"
 #include "shellcore/python_utils.h"
-
-#include <Python.h>
 
 using namespace shcore;
 

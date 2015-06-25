@@ -17,14 +17,14 @@
  * 02110-1301  USA
  */
 
+#include <Python.h>
+
 #include "shellcore/python_context.h"
 #include "shellcore/python_utils.h"
 #include "shellcore/shell_core.h"
 #include "shellcore/common.h"
 
 #include "shellcore/python_type_conversion.h"
-
-#include <Python.h>
 
 // used to identify a proper SHELL context object as a PyCObject
 static const char *SHELLTypeSignature= "SHELLCONTEXT";
