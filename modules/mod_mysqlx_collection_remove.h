@@ -20,8 +20,8 @@
 // MySQL DB access module, for use by plugins and others
 // For the module that implements interactive DB functionality see mod_db
 
-#ifndef _MOD_CRUD_TABLE_INSERT_H_
-#define _MOD_CRUD_TABLE_INSERT_H_
+#ifndef _MOD_CRUD_COLLECTION_REMOVE_H_
+#define _MOD_CRUD_COLLECTION_REMOVE_H_
 
 #include "crud_definition.h"
 
@@ -29,15 +29,17 @@ namespace mysh
 {
   namespace mysqlx
   {
-    class TableInsert : public Crud_definition
+    class Collection;
+    class CollectionRemove : public Crud_definition, public boost::enable_shared_from_this<CollectionRemove>
     {
     public:
-      TableInsert(const shcore::Argument_list &args);
+      CollectionRemove(boost::shared_ptr<Collection> owner);
     public:
-      virtual std::string class_name() const { return "TableInsert"; }
+      virtual std::string class_name() const { return "CollectionRemove"; }
       static boost::shared_ptr<shcore::Object_bridge> create(const shcore::Argument_list &args);
-      shcore::Value insert(const shcore::Argument_list &args);
-      shcore::Value values(const shcore::Argument_list &args);
+      shcore::Value remove(const shcore::Argument_list &args);
+      shcore::Value order_by(const shcore::Argument_list &args);
+      shcore::Value limit(const shcore::Argument_list &args);
       shcore::Value bind(const shcore::Argument_list &args);
     };
   };

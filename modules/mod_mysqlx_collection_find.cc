@@ -17,14 +17,15 @@
  * 02110-1301  USA
  */
 #include <boost/bind.hpp>
-#include "mod_crud_collection_find.h"
+#include "mod_mysqlx_collection.h"
+#include "mod_mysqlx_collection_find.h"
 #include "shellcore/common.h"
 
 using namespace mysh::mysqlx;
 using namespace shcore;
 
-CollectionFind::CollectionFind(const shcore::Argument_list &UNUSED(args)) :
-Crud_definition()
+CollectionFind::CollectionFind(boost::shared_ptr<Collection> owner)
+: Crud_definition(boost::static_pointer_cast<DatabaseObject>(owner))
 {
   // _conn, schema, collection
   /*  args.ensure_count(3, "CollectionFind");
@@ -150,10 +151,4 @@ shcore::Value CollectionFind::bind(const shcore::Argument_list &UNUSED(args))
   throw shcore::Exception::logic_error("CollectionFind::bind: not yet implemented.");
 
   return Value(Object_bridge_ref(this));
-}
-
-boost::shared_ptr<shcore::Object_bridge> CollectionFind::create(const shcore::Argument_list &args)
-{
-  args.ensure_count(3, 4, "CollectionFind()");
-  return boost::shared_ptr<shcore::Object_bridge>(new CollectionFind(args));
 }

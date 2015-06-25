@@ -43,13 +43,13 @@ using namespace shcore;
 Schema::Schema(boost::shared_ptr<ApiBaseSession> session, const std::string &schema)
 : DatabaseObject(session, boost::shared_ptr<DatabaseObject>(), schema), _schema_impl(session->session_obj()->getSchema(schema))
 {
-	init();
+  init();
 }
 
 Schema::Schema(boost::shared_ptr<const ApiBaseSession> session, const std::string &schema) :
 DatabaseObject(boost::const_pointer_cast<ApiBaseSession>(session), boost::shared_ptr<DatabaseObject>(), schema)
 {
-	init();
+  init();
 }
 
 Schema::~Schema()
@@ -68,7 +68,7 @@ void Schema::init()
 
   _tables = Value::new_map().as_map();
   _views = Value::new_map().as_map();
-  _collections = Value::new_map().as_map();	
+  _collections = Value::new_map().as_map();
 }
 
 void Schema::cache_table_objects()
@@ -91,19 +91,27 @@ void Schema::cache_table_objects()
             std::string object_type = row->stringField(1);
             if (object_type == "BASE TABLE" || object_type == "LOCAL TEMPORARY")
             {
-              (*_tables)[object_name] = Value::wrap(new Table(shared_from_this(), object_name));
+              boost::shared_ptr<Table> table(new Table(shared_from_this(), object_name));
+              (*_tables)[object_name] = Value(boost::static_pointer_cast<Object_bridge>(table));
 
               // TODO: Temporary hack to allow accessing collections throught getCollection.
               //       Collections can't be accessed until show full tables or other mechanism
               //       is in place.
               //       Note: all tables can be accessed as collections, it's user responsibility for now
               //       to only access this way real collections
-              (*_collections)[object_name] = Value::wrap(new Collection(shared_from_this(), object_name));
+              boost::shared_ptr<Collection> collection(new Collection(shared_from_this(), object_name));
+              (*_collections)[object_name] = Value(boost::static_pointer_cast<Object_bridge>(collection));
             }
             else if (object_type == "VIEW" || object_type == "SYSTEM VIEW")
-              (*_views)[object_name] = Value::wrap(new View(shared_from_this(), object_name));
-            //else
-            //  (*_collections)[object_name] = Value::wrap(new Collection(shared_from_this(), object_name));
+            {
+              boost::shared_ptr<Collection> view(new Collection(shared_from_this(), object_name));
+              (*_views)[object_name] = Value(boost::static_pointer_cast<Object_bridge>(view));
+            }
+            /*else
+            {
+            boost::shared_ptr<Collection> collection(new Collection(shared_from_this(), object_name));
+            (*_collections)[object_name] = Value(boost::static_pointer_cast<Object_bridge>(collection));
+            }*/
           }
           else
             break;
@@ -196,17 +204,20 @@ Value Schema::_load_object(const std::string& name, const std::string& type) con
 
           if (type.empty() || (type == "TABLE" && (object_type == "BASE TABLE" || object_type == "LOCAL TEMPORARY")))
           {
-            ret_val = Value::wrap(new Table(shared_from_this(), object_name));
+            boost::shared_ptr<Table> table(new Table(shared_from_this(), object_name));
+            ret_val = Value(boost::static_pointer_cast<Object_bridge>(table));
             (*_tables)[name] = ret_val;
           }
           else if (type.empty() || (type == "VIEW" && (object_type == "VIEW" || object_type == "SYSTEM VIEW")))
           {
-            ret_val = Value::wrap(new Table(shared_from_this(), object_name));
+            boost::shared_ptr<View> view(new View(shared_from_this(), object_name));
+            ret_val = Value(boost::static_pointer_cast<Object_bridge>(view));
             (*_views)[name] = ret_val;
           }
           else if (type.empty() || (type == "COLLECTION"))
           {
-            ret_val = Value::wrap(new Table(shared_from_this(), object_name));
+            boost::shared_ptr<Collection> collection(new Collection(shared_from_this(), object_name));
+            ret_val = Value(boost::static_pointer_cast<Object_bridge>(collection));
             (*_collections)[name] = ret_val;
           }
         }

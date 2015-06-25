@@ -20,28 +20,35 @@
 // MySQL DB access module, for use by plugins and others
 // For the module that implements interactive DB functionality see mod_db
 
-#ifndef _MOD_CRUD_COLLECTION_REMOVE_H_
-#define _MOD_CRUD_COLLECTION_REMOVE_H_
+#ifndef _MOD_CRUD_COLLECTION_ADD_H_
+#define _MOD_CRUD_COLLECTION_ADD_H_
 
 #include "crud_definition.h"
+#include "mysqlx_crud.h"
 
 namespace mysh
 {
   namespace mysqlx
   {
-    class CollectionRemove : public Crud_definition
+    class Collection;
+    class CollectionAdd : public Crud_definition, public boost::enable_shared_from_this<CollectionAdd>
     {
     public:
-      CollectionRemove(const shcore::Argument_list &args);
-    public:
-      virtual std::string class_name() const { return "CollectionRemove"; }
-      static boost::shared_ptr<shcore::Object_bridge> create(const shcore::Argument_list &args);
-      shcore::Value remove(const shcore::Argument_list &args);
-      shcore::Value order_by(const shcore::Argument_list &args);
-      shcore::Value limit(const shcore::Argument_list &args);
-      shcore::Value bind(const shcore::Argument_list &args);
+      CollectionAdd(boost::shared_ptr<Collection> owner);
+
+      virtual std::string class_name() const { return "CollectionAdd"; }
+
+      shcore::Value add(const shcore::Argument_list &args);
+      virtual shcore::Value execute(const shcore::Argument_list &args);
+
+      ::mysqlx::AddStatement *stmt() { return _add_statement.get(); }
+
+    private:
+      std::string get_new_uuid();
+
+      std::auto_ptr< ::mysqlx::AddStatement> _add_statement;
     };
-  };
-};
+  }
+}
 
 #endif

@@ -17,17 +17,18 @@
  * 02110-1301  USA
  */
 #include <boost/bind.hpp>
-#include "mod_crud_collection_remove.h"
+#include "mod_mysqlx_collection_remove.h"
+#include "mod_mysqlx_collection.h"
 #include "shellcore/common.h"
 
 using namespace mysh::mysqlx;
 using namespace shcore;
 
-CollectionRemove::CollectionRemove(const shcore::Argument_list &args) :
-Crud_definition()
+CollectionRemove::CollectionRemove(boost::shared_ptr<Collection> owner)
+:Crud_definition(boost::static_pointer_cast<DatabaseObject>(owner))
 {
   // _conn, schema, collection
-  args.ensure_count(3, "CollectionRemove");
+  //args.ensure_count(3, "CollectionRemove");
 
   /*std::string path;
   _data.reset(new shcore::Value::Map_type());

@@ -26,6 +26,11 @@
 #include "base_database_object.h"
 #include "shellcore/types.h"
 #include "shellcore/types_cpp.h"
+#include "mysqlx_crud.h"
+
+#include "mod_mysqlx_collection_add.h"
+#include "mod_mysqlx_collection_find.h"
+#include "mod_mysqlx_collection_remove.h"
 
 namespace mysh
 {
@@ -33,7 +38,7 @@ namespace mysh
   {
     class Schema;
 
-    class Collection : public DatabaseObject
+    class Collection : public DatabaseObject, public boost::enable_shared_from_this<Collection>
     {
     public:
       Collection(boost::shared_ptr<Schema> owner, const std::string &name);
@@ -47,11 +52,16 @@ namespace mysh
       shcore::Value find_(const shcore::Argument_list &args);
       shcore::Value modify_(const shcore::Argument_list &args);
       shcore::Value remove_(const shcore::Argument_list &args);
-	
-	  void init();
+
+      void init();
 
     private:
       boost::shared_ptr< ::mysqlx::Collection> _collection_impl;
+
+      // Allows initial functions on the CRUD operations
+      friend shcore::Value CollectionAdd::add(const shcore::Argument_list &args);
+      friend shcore::Value CollectionFind::find(const shcore::Argument_list &args);
+      friend shcore::Value CollectionRemove::remove(const shcore::Argument_list &args);
     };
   }
 }

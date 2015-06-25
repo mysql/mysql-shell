@@ -29,10 +29,10 @@
 #include "shellcore/shell_jscript.h"
 #include "test_utils.h"
 
-#include "../modules/mod_crud_collection_add.h"
+#include "../modules/mod_mysqlx_collection_add.h"
 
 namespace shcore {
-  class DISABLED_Shell_js_crud_collection_add_tests : public Crud_test_wrapper
+  class Shell_js_mysqlx_collection_add_tests : public Crud_test_wrapper
   {
   protected:
     // You can define per-test set-up and tear-down logic as usual.
@@ -44,11 +44,11 @@ namespace shcore {
       _shell_core->switch_mode(Shell_core::Mode_JScript, initilaized);
 
       // Sets the correct functions to be validated
-      set_functions("add bind execute");
+      set_functions("add execute");
     }
   };
 
-  TEST_F(DISABLED_Shell_js_crud_collection_add_tests, initialization)
+  TEST_F(Shell_js_mysqlx_collection_add_tests, initialization)
   {
     exec_and_out_equals("var mysqlx = require('mysqlx').mysqlx;");
 
@@ -60,14 +60,12 @@ namespace shcore {
     exec_and_out_equals("session.executeSql(\"create table `collection1`(`doc` JSON, `_id` VARBINARY(16) GENERATED ALWAYS AS(unhex(json_unquote(json_extract(doc, '$._id')))) stored PRIMARY KEY)\")");
   }
 
-  TEST_F(DISABLED_Shell_js_crud_collection_add_tests, chain_combinations)
+  TEST_F(Shell_js_mysqlx_collection_add_tests, chain_combinations)
   {
     // NOTE: No data validation is done on this test, only tests
     //       different combinations of chained methods.
     exec_and_out_equals("var mysqlx = require('mysqlx').mysqlx;");
-
     exec_and_out_equals("var session = mysqlx.openSession('" + _uri + "');");
-
     exec_and_out_equals("var collection = session.js_shell_test.getCollection('collection1');");
 
     // Creates the collection find object
@@ -80,35 +78,27 @@ namespace shcore {
     ensure_available_functions("execute");
   }
 
-  TEST_F(DISABLED_Shell_js_crud_collection_add_tests, add_validations)
+  TEST_F(Shell_js_mysqlx_collection_add_tests, add_validations)
   {
     exec_and_out_equals("var mysqlx = require('mysqlx').mysqlx;");
-    exec_and_out_equals("var session = mysqlx.openNodeSession('" + _uri + "');");
-    exec_and_out_equals("session.executeSql('drop schema if exists js_shell_test;');");
-    exec_and_out_equals("session.executeSql('create schema js_shell_test;');");
-    exec_and_out_equals("session.executeSql('use js_shell_test;');");
-    exec_and_out_equals("session.executeSql(\"create table `mycoll`(`doc` JSON, `_id` VARBINARY(16) GENERATED ALWAYS AS(unhex(json_unquote(json_extract(doc, '$._id')))) stored PRIMARY KEY)\")");
-
-    exec_and_out_equals("var schema = session.getSchema('js_shell_test');");
-    exec_and_out_equals("var collection = schema.getCollection('mycoll');");
+    exec_and_out_equals("var session = mysqlx.openSession('" + _uri + "');");
+    exec_and_out_equals("var collection = session.js_shell_test.getCollection('collection1');");
 
     // Test add attempt with no data
-    exec_and_out_contains("collection.add().bind().execute();", "", "No documents specified on add operation.");
+    exec_and_out_contains("collection.add().execute();", "", "Invalid number of arguments in Collection::add, expected 1 but got 0");
 
     // Test add attempt with non document
-    exec_and_out_contains("collection.add(45).bind().execute();", "", "Invalid document specified on add operation.");
+    exec_and_out_contains("collection.add(45).execute();", "", "Invalid document specified on add operation.");
 
     // Test add collection with invalid document
-    exec_and_out_contains("collection.add(['invalid data']).bind().execute();", "", "Invalid document specified on list for add operation.");
+    exec_and_out_contains("collection.add(['invalid data']).execute();", "", "Invalid document specified on list for add operation.");
 
     // Test adding a single document
-    exec_and_out_equals("var result = collection.add({name: 'my first', passed: 'document', count: 1}).bind().execute();");
-    exec_and_out_equals("print (result.affected_rows)", "1");
+    exec_and_out_equals("var result = collection.add({name: 'my first', passed: 'document', count: 1}).execute();");
+    exec_and_out_equals("print (result.affectedRows)", "1");
 
     // Test adding multiple documents
-    exec_and_out_equals("var result = collection.add([{name: 'my second', passed: 'again', count: 2}, {name: 'my third', passed: 'once again', cound: 4}]).bind().execute();");
-    exec_and_out_equals("print (result.affected_rows)", "2");
-
-    exec_and_out_equals("session.executeSql('drop schema js_shell_test;');");
+    exec_and_out_equals("var result = collection.add([{name: 'my second', passed: 'again', count: 2}, {name: 'my third', passed: 'once again', cound: 4}]).execute();");
+    exec_and_out_equals("print (result.affectedRows)", "2");
   }
 }

@@ -22,12 +22,13 @@
 #include <boost/algorithm/string.hpp>
 
 #include "crud_definition.h"
+#include "base_database_object.h"
 
 using namespace mysh;
 using namespace mysh::mysqlx;
 using namespace shcore;
 
-Crud_definition::Crud_definition()
+Crud_definition::Crud_definition(boost::shared_ptr<DatabaseObject> owner) : _owner(owner)
 {
   try
   {

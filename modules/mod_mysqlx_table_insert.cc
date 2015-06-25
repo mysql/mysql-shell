@@ -17,7 +17,8 @@
  * 02110-1301  USA
  */
 #include <boost/bind.hpp>
-#include "mod_crud_table_insert.h"
+#include "mod_mysqlx_table_insert.h"
+#include "mod_mysqlx_table.h"
 #include "shellcore/common.h"
 
 using namespace mysh::mysqlx;
@@ -32,10 +33,10 @@ using namespace shcore;
 *   creating the message.
 * - Message information that is not provided through the different functions
 */
-TableInsert::TableInsert(const shcore::Argument_list &args) :
-Crud_definition()
+TableInsert::TableInsert(boost::shared_ptr<Table> owner)
+:Crud_definition(boost::static_pointer_cast<DatabaseObject>(owner))
 {
-  args.ensure_count(3, "TableInsert");
+  //args.ensure_count(3, "TableInsert");
 
   /*std::string path;
   _data.reset(new shcore::Value::Map_type());

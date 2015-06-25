@@ -29,7 +29,7 @@
 #include "shellcore/shell_jscript.h"
 #include "test_utils.h"
 
-#include "../modules/mod_crud_collection_find.h"
+#include "../modules/mod_mysqlx_collection_find.h"
 
 namespace shcore {
   class DISABLED_Shell_js_crud_collection_find_tests : public Crud_test_wrapper

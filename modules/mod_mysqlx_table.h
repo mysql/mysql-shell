@@ -26,6 +26,7 @@
 #include "base_database_object.h"
 #include "shellcore/types.h"
 #include "shellcore/types_cpp.h"
+#include "mysqlx_crud.h"
 
 namespace mysh
 {
@@ -33,7 +34,7 @@ namespace mysh
   {
     class Schema;
 
-    class Table : public DatabaseObject
+    class Table : public DatabaseObject, public boost::enable_shared_from_this<Table>
     {
     public:
       Table(boost::shared_ptr<Schema> owner, const std::string &name);

@@ -25,7 +25,7 @@ using namespace mysh::mysql;
 using namespace shcore;
 
 Table::Table(boost::shared_ptr<Schema> owner, const std::string &name)
-: DatabaseObject(owner->_session.lock(), owner, name)
+: DatabaseObject(owner->_session.lock(), boost::static_pointer_cast<DatabaseObject>(owner), name)
 {
 }
 
