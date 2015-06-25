@@ -307,10 +307,18 @@ namespace shcore
 #else
     char sys_err[64];
     int errnum = errno;
-    const char *r;
 
-    r = strerror_r(errno, sys_err, sizeof(sys_err));
+#if ((defined _POSIX_C_SOURCE && (_POSIX_C_SOURCE >= 200112L)) ||    \
+       (defined _XOPEN_SOURCE   && (_XOPEN_SOURCE >= 600)))      &&    \
+      ! defined _GNU_SOURCE
+    int r = strerror_r(errno, sys_err, sizeof(sys_err));
     (void)r;  // silence unused variable;
+#elif defined _GNU_SOURCE
+    const char *r = strerror_r(errno, sys_err, sizeof(sys_err));
+    (void)r;  // silence unused variable;
+#else
+    strerror_r(errno, sys_err, sizeof(sys_err));
+#endif
 
     std::string s = sys_err;
     s += "with errno %d.";
