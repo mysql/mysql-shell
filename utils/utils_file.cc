@@ -307,9 +307,11 @@ namespace shcore
 #else
     char sys_err[64];
     int errnum = errno;
-    const char *ret;
+    const char *r;
 
-    ret = strerror_r(errno, sys_err, sizeof(sys_err));
+    r = strerror_r(errno, sys_err, sizeof(sys_err));
+    (void)r;  // silence unused variable;
+
     std::string s = sys_err;
     s += "with errno %d.";
     boost::format fmt(s);
