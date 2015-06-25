@@ -27,6 +27,7 @@
 #include <boost/bind.hpp>
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wshadow"
+#pragma GCC diagnostic ignored "-Wunused-parameter"
 #include <boost/random.hpp>
 #pragma GCC diagnostic pop
 

@@ -219,6 +219,7 @@ PyObject *Python_type_bridger::shcore_value_to_pyobj(const Value &value)
       }
     }
     */
+    r = Py_None;
     break;
   case shcore::Function:
     r = _function_wrapper->wrap(*value.value.func);

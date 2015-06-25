@@ -37,6 +37,7 @@
 #include <boost/lexical_cast.hpp>
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wshadow"
+#pragma GCC diagnostic ignored "-Wunused-parameter"
 #include <boost/random.hpp>
 #pragma GCC diagnostic pop
 #include <boost/algorithm/string.hpp>
