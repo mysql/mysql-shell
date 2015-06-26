@@ -47,10 +47,8 @@ namespace mysh
       shcore::Value bind(const shcore::Argument_list &args);
 
       virtual shcore::Value execute(const shcore::Argument_list &args);
-
-      ::mysqlx::FindStatement *stmt() { return _find.get(); }
     private:
-      std::auto_ptr< ::mysqlx::FindStatement> _find;
+      std::auto_ptr< ::mysqlx::FindStatement> _find_statement;
     };
   };
 };

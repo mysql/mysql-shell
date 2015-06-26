@@ -32,7 +32,7 @@
 #include "../modules/mod_mysqlx_collection_find.h"
 
 namespace shcore {
-  class DISABLED_Shell_js_crud_collection_find_tests : public Crud_test_wrapper
+  class Shell_js_mysqlx_collection_find_tests : public Crud_test_wrapper
   {
   protected:
     // You can define per-test set-up and tear-down logic as usual.
@@ -48,7 +48,7 @@ namespace shcore {
     }
   };
 
-  TEST_F(DISABLED_Shell_js_crud_collection_find_tests, initialization)
+  TEST_F(Shell_js_mysqlx_collection_find_tests, initialization)
   {
     exec_and_out_equals("var mysqlx = require('mysqlx').mysqlx;");
 
@@ -60,7 +60,7 @@ namespace shcore {
     exec_and_out_equals("session.executeSql(\"create table `collection1`(`doc` JSON, `_id` VARBINARY(16) GENERATED ALWAYS AS(unhex(json_unquote(json_extract(doc, '$._id')))) stored PRIMARY KEY)\")");
   }
 
-  TEST_F(DISABLED_Shell_js_crud_collection_find_tests, chain_combinations)
+  TEST_F(Shell_js_mysqlx_collection_find_tests, chain_combinations)
   {
     // NOTE: No data validation is done on this test, only tests
     //       different combinations of chained methods.
@@ -73,16 +73,7 @@ namespace shcore {
     // Creates the collection find object
     exec_and_out_equals("var crud = collection.find();");
 
-    //-------- ---------------------Test 1------------------------//
-    // Initial validation, any new CollectionFind object only has
-    // the find function available upon creation
-    //-------------------------------------------------------------
-    {
-      SCOPED_TRACE("CollectionFind: testing initial function availability.");
-      ensure_available_functions("find");
-    }
-
-    //-------- ---------------------Test 2-------------------------
+    //-------- ----------------------------------------------------
     // Tests the happy path validating only the right functions
     // are available following the chained call
     // this is CollectionFind.find().skip(#).limit(#).execute()
@@ -91,7 +82,6 @@ namespace shcore {
     //       once they are enabled
     {
       SCOPED_TRACE("Testing function availability after find.");
-      exec_and_out_equals("crud.find()");
       ensure_available_functions("fields, groupBy, sort, limit, bind, execute");
     }
 
@@ -110,17 +100,15 @@ namespace shcore {
     }
   }
 
-  TEST_F(DISABLED_Shell_js_crud_collection_find_tests, find_validations)
+  TEST_F(Shell_js_mysqlx_collection_find_tests, find_validations)
   {
     exec_and_out_equals("var mysqlx = require('mysqlx').mysqlx;");
+
     exec_and_out_equals("var session = mysqlx.openNodeSession('" + _uri + "');");
-    exec_and_out_equals("session.executeSql('drop schema if exists js_shell_test;');");
-    exec_and_out_equals("session.executeSql('create schema js_shell_test;');");
-    exec_and_out_equals("session.executeSql('use js_shell_test;');");
-    exec_and_out_equals("session.executeSql(\"create table `mycoll`(`doc` JSON, `_id` VARBINARY(16) GENERATED ALWAYS AS(unhex(json_unquote(json_extract(doc, '$._id')))) stored PRIMARY KEY)\")");
 
     exec_and_out_equals("var schema = session.getSchema('js_shell_test');");
-    exec_and_out_equals("var collection = schema.getCollection('mycoll');");
+
+    exec_and_out_equals("var collection = schema.getCollection('collection1');");
 
     // Testing the find function
     {
@@ -169,17 +157,12 @@ namespace shcore {
     exec_and_out_contains("collection.find().bind();", "", "CollectionFind::bind: not yet implemented.");
   }
 
-  TEST_F(DISABLED_Shell_js_crud_collection_find_tests, find_execution)
+  TEST_F(Shell_js_mysqlx_collection_find_tests, find_execution)
   {
     exec_and_out_equals("var mysqlx = require('mysqlx').mysqlx;");
     exec_and_out_equals("var session = mysqlx.openNodeSession('" + _uri + "');");
-    exec_and_out_equals("session.executeSql('drop schema if exists js_shell_test;');");
-    exec_and_out_equals("session.executeSql('create schema js_shell_test;');");
-    exec_and_out_equals("session.executeSql('use js_shell_test;');");
-    exec_and_out_equals("session.executeSql(\"create table `mycoll`(`doc` JSON, `_id` VARBINARY(16) GENERATED ALWAYS AS(unhex(json_unquote(json_extract(doc, '$._id')))) stored PRIMARY KEY)\")");
-
     exec_and_out_equals("var schema = session.getSchema('js_shell_test');");
-    exec_and_out_equals("var collection = schema.getCollection('mycoll');");
+    exec_and_out_equals("var collection = schema.getCollection('collection1');");
 
     exec_and_out_equals("var result = collection.add({name: 'jack', age: 17, gender: 'male'}).execute();");
     exec_and_out_equals("var result = collection.add({name: 'adam', age: 15, gender: 'male'}).execute();");

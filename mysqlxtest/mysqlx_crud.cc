@@ -31,7 +31,6 @@ Schema::Schema(boost::shared_ptr<Session> conn, const std::string &name_)
 {
 }
 
-
 boost::shared_ptr<Table> Schema::getTable(const std::string &name_)
 {
   std::map<std::string, boost::shared_ptr<Table> >::const_iterator iter = m_tables.find(name_);
@@ -39,7 +38,6 @@ boost::shared_ptr<Table> Schema::getTable(const std::string &name_)
     return iter->second;
   return m_tables[name_] = boost::shared_ptr<Table>(new Table(shared_from_this(), name_));
 }
-
 
 boost::shared_ptr<Collection> Schema::getCollection(const std::string &name_)
 {
@@ -49,18 +47,15 @@ boost::shared_ptr<Collection> Schema::getCollection(const std::string &name_)
   return m_collections[name_] = boost::shared_ptr<Collection>(new Collection(shared_from_this(), name_));
 }
 
-
 Table::Table(boost::shared_ptr<Schema> schema_, const std::string &name_)
 : m_schema(schema_), m_name(name_)
 {
 }
 
-
 Collection::Collection(boost::shared_ptr<Schema> schema_, const std::string &name_)
 : m_schema(schema_), m_name(name_)
 {
 }
-
 
 FindStatement Collection::find(const std::string &searchCondition)
 {
@@ -86,17 +81,14 @@ RemoveStatement Collection::remove(const std::string &searchCondition)
   return tmp;
 }
 
-
 Statement::~Statement()
 {
 }
 
-
 Collection_Statement::Collection_Statement(boost::shared_ptr<Collection> coll)
-  : m_coll(coll)
+: m_coll(coll)
 {
 }
-
 
 Collection_Statement &Collection_Statement::bind(const std::string &UNUSED(name), const DocumentValue &UNUSED(value))
 {
@@ -110,19 +102,16 @@ Find_Base::Find_Base(boost::shared_ptr<Collection> coll)
 {
 }
 
-
 Find_Base::Find_Base(const Find_Base &other)
 : Collection_Statement(other.m_coll), m_find(other.m_find)
 {
 }
-
 
 Find_Base &Find_Base::operator = (const Find_Base &other)
 {
   m_find = other.m_find;
   return *this;
 }
-
 
 Result *Find_Base::execute()
 {
@@ -139,40 +128,34 @@ Result *Find_Base::execute()
   return result;
 }
 
-
 Find_Base &Find_Skip::skip(uint64_t skip_)
 {
   m_find->mutable_limit()->set_offset(skip_);
   return *this;
 }
 
-
 Find_Skip &Find_Limit::limit(uint64_t limit_)
 {
-  m_find->mutable_limit()->set_offset(limit_);
+  m_find->mutable_limit()->set_row_count(limit_);
   return *this;
 }
-
 
 Find_Limit &Find_Sort::sort(const std::string &UNUSED(sortFields))
 {
   return *this;
 }
 
-
 Find_Sort &Find_Having::having(const std::string &UNUSED(searchCondition))
 {
-//  m_find->set_allocated_having(Expr_parser(searchFields, true).expr().release());
+  //  m_find->set_allocated_having(Expr_parser(searchFields, true).expr().release());
   return *this;
 }
-
 
 Find_Having &Find_GroupBy::groupBy(const std::string &UNUSED(searchFields))
 {
-//  m_find->set_allocated_group_by(Proj_parser(searchFields, true).expr().release());
+  //  m_find->set_allocated_group_by(Proj_parser(searchFields, true).expr().release());
   return *this;
 }
-
 
 FindStatement::FindStatement(boost::shared_ptr<Collection> coll, const std::string &searchCondition)
 : Find_GroupBy(coll)
@@ -180,9 +163,10 @@ FindStatement::FindStatement(boost::shared_ptr<Collection> coll, const std::stri
   m_find->mutable_collection()->set_schema(coll->schema()->name());
   m_find->mutable_collection()->set_name(coll->name());
   m_find->set_data_model(Mysqlx::Crud::DOCUMENT);
-  m_find->set_allocated_criteria(parser::parse_collection_filter(searchCondition).release());
-}
 
+  if (!searchCondition.empty())
+    m_find->set_allocated_criteria(parser::parse_collection_filter(searchCondition).release());
+}
 
 Find_GroupBy &FindStatement::fields(const std::string &searchFields)
 {
@@ -191,28 +175,23 @@ Find_GroupBy &FindStatement::fields(const std::string &searchFields)
   return *this;
 }
 
-
 //----------------------------------
-
 
 Add_Base::Add_Base(boost::shared_ptr<Collection> coll)
 : Collection_Statement(coll), m_insert(new Mysqlx::Crud::Insert())
 {
 }
 
-
 Add_Base::Add_Base(const Add_Base &other)
 : Collection_Statement(other.m_coll), m_insert(other.m_insert)
 {
 }
-
 
 Add_Base &Add_Base::operator = (const Add_Base &other)
 {
   m_insert = other.m_insert;
   return *this;
 }
-
 
 Result *Add_Base::execute()
 {
@@ -228,7 +207,6 @@ Result *Add_Base::execute()
   return result;
 }
 
-
 AddStatement::AddStatement(boost::shared_ptr<Collection> coll, const Document &doc)
 : Add_Base(coll)
 {
@@ -237,7 +215,6 @@ AddStatement::AddStatement(boost::shared_ptr<Collection> coll, const Document &d
   m_insert->set_data_model(Mysqlx::Crud::DOCUMENT);
   add(doc);
 }
-
 
 AddStatement &AddStatement::add(const Document &doc)
 {
@@ -249,28 +226,23 @@ AddStatement &AddStatement::add(const Document &doc)
   return *this;
 }
 
-
 //--------------------------------------------------------------
-
 
 Remove_Base::Remove_Base(boost::shared_ptr<Collection> coll)
 : Collection_Statement(coll), m_delete(new Mysqlx::Crud::Delete())
 {
 }
 
-
 Remove_Base::Remove_Base(const Remove_Base &other)
 : Collection_Statement(other.m_coll), m_delete(other.m_delete)
 {
 }
-
 
 Remove_Base &Remove_Base::operator = (const Remove_Base &other)
 {
   m_delete = other.m_delete;
   return *this;
 }
-
 
 Result *Remove_Base::execute()
 {
@@ -286,13 +258,11 @@ Result *Remove_Base::execute()
   return result;
 }
 
-
 Remove_Base &Remove_Limit::limit(uint64_t limit_)
 {
   m_delete->mutable_limit()->set_offset(limit_);
   return *this;
 }
-
 
 RemoveStatement::RemoveStatement(boost::shared_ptr<Collection> coll, const std::string &searchCondition)
 : Remove_Limit(coll)
@@ -303,12 +273,10 @@ RemoveStatement::RemoveStatement(boost::shared_ptr<Collection> coll, const std::
   m_delete->set_allocated_criteria(parser::parse_collection_filter(searchCondition).release());
 }
 
-
 Remove_Limit &RemoveStatement::orderBy(const std::string &UNUSED(sortFields))
 {
   return *this;
 }
-
 
 //--------------------------------------------------------------
 
@@ -317,12 +285,10 @@ Modify_Base::Modify_Base(boost::shared_ptr<Collection> coll)
 {
 }
 
-
 Modify_Base::Modify_Base(const Modify_Base &other)
 : Collection_Statement(other.m_coll), m_update(other.m_update)
 {
 }
-
 
 Modify_Base &Modify_Base::operator = (const Modify_Base &other)
 {
@@ -330,7 +296,6 @@ Modify_Base &Modify_Base::operator = (const Modify_Base &other)
   m_update = other.m_update;
   return *this;
 }
-
 
 Result *Modify_Base::execute()
 {
@@ -346,48 +311,40 @@ Result *Modify_Base::execute()
   return result;
 }
 
-
 Modify_Operation &Modify_Operation::remove(const std::string &UNUSED(path))
 {
   return *this;
 }
-
 
 Modify_Operation &Modify_Operation::set(const std::string &UNUSED(path), const DocumentValue &UNUSED(value))
 {
   return *this;
 }
 
-
 Modify_Operation &Modify_Operation::replace(const std::string &UNUSED(path), const DocumentValue &UNUSED(value))
 {
   return *this;
 }
-
 
 Modify_Operation &Modify_Operation::merge(const Document &UNUSED(doc))
 {
   return *this;
 }
 
-
 Modify_Operation &Modify_Operation::arrayInsert(const std::string &UNUSED(path), int UNUSED(index), const DocumentValue &UNUSED(value))
 {
   return *this;
 }
-
 
 Modify_Operation &Modify_Operation::arrayAppend(const std::string &UNUSED(path), const DocumentValue &UNUSED(value))
 {
   return *this;
 }
 
-
 Modify_Operation &Modify_Limit::limit(uint64_t UNUSED(limit_))
 {
   return *this;
 }
-
 
 ModifyStatement::ModifyStatement(boost::shared_ptr<Collection> coll, const std::string &UNUSED(searchCondition))
 : Modify_Limit(coll)
@@ -395,9 +352,8 @@ ModifyStatement::ModifyStatement(boost::shared_ptr<Collection> coll, const std::
   m_update->mutable_collection()->set_schema(coll->schema()->name());
   m_update->mutable_collection()->set_name(coll->name());
   m_update->set_data_model(Mysqlx::Crud::DOCUMENT);
-//  m_update->set_allocated_criteria(parser::parse_collection_filter(searchCondition).release());
+  //  m_update->set_allocated_criteria(parser::parse_collection_filter(searchCondition).release());
 }
-
 
 Modify_Limit &ModifyStatement::orderBy(const std::string &UNUSED(sortFields))
 {

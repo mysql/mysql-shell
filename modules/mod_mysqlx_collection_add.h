@@ -41,8 +41,6 @@ namespace mysh
       shcore::Value add(const shcore::Argument_list &args);
       virtual shcore::Value execute(const shcore::Argument_list &args);
 
-      ::mysqlx::AddStatement *stmt() { return _add_statement.get(); }
-
     private:
       std::string get_new_uuid();
 

@@ -211,8 +211,8 @@ namespace shcore {
 
     bool as_bool() const { check_type(Bool); return value.b; }
     int64_t as_int() const { check_type(Integer); return value.i; }
-    uint64_t as_uint() const { check_type(UInteger); return value.ui; }
-    double as_double() const { check_type(Float); return value.d; }
+    uint64_t as_uint() const;
+    double as_double() const;
     const std::string &as_string() const { check_type(String); return *value.s; }
     template<class C>
     boost::shared_ptr<C> as_object() const { check_type(Object); return boost::static_pointer_cast<C>(*value.o); }

@@ -17,8 +17,9 @@
  * 02110-1301  USA
  */
 #include <boost/bind.hpp>
-#include "mod_mysqlx_collection.h"
 #include "mod_mysqlx_collection_find.h"
+#include "mod_mysqlx_collection.h"
+#include "mod_mysqlx_resultset.h"
 #include "shellcore/common.h"
 
 using namespace mysh::mysqlx;
@@ -27,15 +28,6 @@ using namespace shcore;
 CollectionFind::CollectionFind(boost::shared_ptr<Collection> owner)
 : Crud_definition(boost::static_pointer_cast<DatabaseObject>(owner))
 {
-  // _conn, schema, collection
-  /*  args.ensure_count(3, "CollectionFind");
-
-    std::string path;
-    _data.reset(new shcore::Value::Map_type());
-    (*_data)["data_model"] = Value(Mysqlx::Crud::DOCUMENT);
-    (*_data)["schema"] = args[1];
-    (*_data)["collection"] = args[2];*/
-
   // Exposes the methods available for chaining
   add_method("find", boost::bind(&CollectionFind::find, this, _1), "data");
   add_method("fields", boost::bind(&CollectionFind::fields, this, _1), "data");
@@ -56,7 +48,7 @@ CollectionFind::CollectionFind(boost::shared_ptr<Collection> owner)
   register_dynamic_function("limit", "find, fields, groupBy, having, sort");
   register_dynamic_function("skip", "limit");
   register_dynamic_function("bind", "find, fields, groupBy, having, sort, skip, limit");
-  register_dynamic_function("execute", "find, findSearchCondition, fields, groupBy, having, sort, skip, limit, bind");
+  register_dynamic_function("execute", "find, fields, groupBy, having, sort, skip, limit, bind");
 
   // Initial function update
   update_functions("");
@@ -67,88 +59,130 @@ shcore::Value CollectionFind::find(const shcore::Argument_list &args)
   // Each method validates the received parameters
   args.ensure_count(0, 1, "CollectionFind::find");
 
-  // default path is with no arguments
-  std::string path;
-  if (args.size())
+  boost::shared_ptr<Collection> collection(boost::static_pointer_cast<Collection>(_owner.lock()));
+
+  if (collection)
   {
-    set_filter("CollectionFind::find", "find.SearchCondition", args[0], true);
+    try
+    {
+      std::string search_condition;
+      if (args.size())
+        search_condition = args[0].as_string();
 
-    path = "SearchCondition";
+      _find_statement.reset(new ::mysqlx::FindStatement(collection->_collection_impl->find(search_condition)));
+
+      // Updates the exposed functions
+      update_functions("find");
+    }
+    CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionFind::find", "string");
+
+    return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
   }
-
-  // Updates the exposed functions
-  update_functions("find" + path);
-
-  return Value(Object_bridge_ref(this));
 }
 
 shcore::Value CollectionFind::fields(const shcore::Argument_list &args)
 {
   args.ensure_count(1, "CollectionFind::fields");
 
-  set_columns("CollectionFind::fields", "fields.SearchFields", args[0], true, true);
+  try
+  {
+    _find_statement->fields(args[0].as_string());
 
-  return Value(Object_bridge_ref(this));
+    update_functions("find");
+  }
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionFind::fields", "string");
+
+  return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
 shcore::Value CollectionFind::group_by(const shcore::Argument_list &args)
 {
   args.ensure_count(1, "CollectionFind::groupBy");
 
-  set_columns("CollectionFind::groupBy", "groupby.SearchFields", args[0], true, false);
+  try
+  {
+    _find_statement->groupBy(args[0].as_string());
 
-  return Value(Object_bridge_ref(this));
+    update_functions("groupBy");
+  }
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionFind::groupBy", "string");
+
+  return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
 shcore::Value CollectionFind::having(const shcore::Argument_list &args)
 {
   args.ensure_count(1, "CollectionFind::having");
 
-  set_filter("CollectionFind::having", "having.SearchCondition", args[0], true);
+  try
+  {
+    _find_statement->having(args[0].as_string());
 
-  return Value(Object_bridge_ref(this));
+    update_functions("having");
+  }
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionFind::having", "string");
+
+  return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
 shcore::Value CollectionFind::sort(const shcore::Argument_list &args)
 {
   args.ensure_count(1, "CollectionFind::sort");
 
-  set_order("CollectionFind::sort", "SortFields", args[0]);
+  try
+  {
+    _find_statement->sort(args[0].as_string());
 
-  return Value(Object_bridge_ref(this));
-}
+    // Remove and update test suite when sort is enabled
+    throw shcore::Exception::logic_error("not yet implemented.");
 
-shcore::Value CollectionFind::skip(const shcore::Argument_list &args)
-{
-  args.ensure_count(1, "CollectionFind::skip");
+    update_functions("sort");
+  }
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionFind::sort", "string");
 
-  if (args[0].type != shcore::Integer)
-    throw shcore::Exception::argument_error("CollectionFind::skip: integer parameter required.");
-
-  //(*_data)["LimitOffset"] = args[0];
-
-  update_functions("skip");
-
-  return Value(Object_bridge_ref(this));
+  return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
 shcore::Value CollectionFind::limit(const shcore::Argument_list &args)
 {
   args.ensure_count(1, "CollectionFind::limit");
 
-  if (args[0].type != shcore::Integer)
-    throw shcore::Exception::argument_error("CollectionFind::limit: integer parameter required.");
+  try
+  {
+    _find_statement->limit(args[0].as_uint());
 
-  //(*_data)["NumberOfRows"] = args[0];
+    update_functions("limit");
+  }
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionFind::limit", "integer");
 
-  update_functions("limit");
+  return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
+}
 
-  return Value(Object_bridge_ref(this));
+shcore::Value CollectionFind::skip(const shcore::Argument_list &args)
+{
+  args.ensure_count(1, "CollectionFind::skip");
+
+  try
+  {
+    _find_statement->skip(args[0].as_uint());
+
+    update_functions("skip");
+  }
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionFind::skip", "integer");
+
+  return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
 shcore::Value CollectionFind::bind(const shcore::Argument_list &UNUSED(args))
 {
   throw shcore::Exception::logic_error("CollectionFind::bind: not yet implemented.");
 
-  return Value(Object_bridge_ref(this));
+  return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
+}
+
+shcore::Value CollectionFind::execute(const shcore::Argument_list &args)
+{
+  args.ensure_count(0, "CollectionFind::execute");
+
+  return shcore::Value::wrap(new mysqlx::Collection_resultset(boost::shared_ptr< ::mysqlx::Result>(_find_statement->execute())));
 }

@@ -461,7 +461,7 @@ Value &Value::operator= (const Value &other)
       case Integer:
         value.i = other.value.i;
         break;
-        case UInteger:
+      case UInteger:
         value.ui = other.value.ui;
         break;
       case Float:
@@ -966,9 +966,9 @@ std::string &Value::append_descr(std::string &s_out, int indent, int quote_strin
       break;
     case UInteger:
     {
-                  boost::format fmt("%ld");
-                  fmt % value.ui;
-                  s_out += fmt.str();
+                   boost::format fmt("%ld");
+                   fmt % value.ui;
+                   s_out += fmt.str();
     }
       break;
     case Float:
@@ -1071,9 +1071,9 @@ std::string &Value::append_repr(std::string &s_out) const
       break;
     case UInteger:
     {
-                  boost::format fmt("%ld");
-                  fmt % value.ui;
-                  s_out += fmt.str();
+                   boost::format fmt("%ld");
+                   fmt % value.ui;
+                   s_out += fmt.str();
     }
       break;
     case Float:
@@ -1211,6 +1211,35 @@ void Value::check_type(Value_type t) const
 {
   if (type != t)
     throw Exception::type_error("Invalid typecast");
+}
+
+uint64_t Value::as_uint() const
+{
+  uint64_t ret_val;
+
+  if (type == UInteger)
+    ret_val = value.ui;
+  else if (type == Integer && value.i >= 0)
+    ret_val = (uint64_t)value.i;
+  else
+    throw Exception::type_error("Invalid typecast");
+
+  return ret_val;
+}
+
+double Value::as_double() const
+{
+  double ret_val;
+  if (type == Float)
+    ret_val = value.d;
+  else if (type == Integer)
+    ret_val = (double)value.i;
+  else if (type == UInteger)
+    ret_val = (double)value.ui;
+  else
+    throw Exception::type_error("Invalid typecast");
+
+  return ret_val;
 }
 
 //---

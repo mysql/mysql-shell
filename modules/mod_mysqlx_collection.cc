@@ -54,8 +54,6 @@ Collection::~Collection()
 
 shcore::Value Collection::add_(const shcore::Argument_list &args)
 {
-  args.ensure_count(1, "Collection::add");
-
   boost::shared_ptr<CollectionAdd> collectionAdd(new CollectionAdd(shared_from_this()));
 
   return collectionAdd->add(args);
@@ -81,9 +79,7 @@ shcore::Value Collection::remove_(const shcore::Argument_list &args)
 
 shcore::Value Collection::find_(const shcore::Argument_list &args)
 {
-  std::string searchCriteria;
-  args.ensure_count(1, "Collection::find");
-  searchCriteria = args.string_at(0);
-  // return shcore::Value::wrap(new CollectionFind(_coll->find(searchCriteria)));
-  return shcore::Value();
+  boost::shared_ptr<CollectionFind> collectionFind(new CollectionFind(shared_from_this()));
+
+  return collectionFind->find(args);
 }

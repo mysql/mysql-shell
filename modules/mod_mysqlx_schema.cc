@@ -75,7 +75,7 @@ void Schema::cache_table_objects()
 {
   try
   {
-    boost::shared_ptr<Session> sess(boost::dynamic_pointer_cast<Session>(_session.lock()));
+    boost::shared_ptr<ApiBaseSession> sess(boost::dynamic_pointer_cast<ApiBaseSession>(_session.lock()));
     if (sess)
     {
       {
@@ -190,7 +190,7 @@ Value Schema::_load_object(const std::string& name, const std::string& type) con
   Value ret_val;
   try
   {
-    boost::shared_ptr<Session> sess(boost::dynamic_pointer_cast<Session>(_session.lock()));
+    boost::shared_ptr<ApiBaseSession> sess(boost::dynamic_pointer_cast<ApiBaseSession>(_session.lock()));
     if (sess)
     {
       {

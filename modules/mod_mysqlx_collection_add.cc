@@ -17,6 +17,7 @@
  * 02110-1301  USA
  */
 #include <boost/bind.hpp>
+#include "mod_mysqlx_collection_add.h"
 #include "mod_mysqlx_collection.h"
 #include "mod_mysqlx_resultset.h"
 #include "uuid_gen.h"
