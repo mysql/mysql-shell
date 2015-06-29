@@ -28,8 +28,6 @@
 
 using namespace mysh::mysql;
 
-#include <iostream>
-
 #include "shellcore/object_factory.h"
 #include "shellcore/common.h"
 

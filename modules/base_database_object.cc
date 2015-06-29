@@ -34,8 +34,6 @@
 using namespace mysh;
 using namespace shcore;
 
-#include <iostream>
-
 DatabaseObject::DatabaseObject(boost::shared_ptr<BaseSession> session, boost::shared_ptr<DatabaseObject> schema, const std::string &name)
 : _session(session), _schema(schema), _name(name)
 {

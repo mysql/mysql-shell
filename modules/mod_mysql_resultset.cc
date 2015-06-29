@@ -17,14 +17,11 @@
  * 02110-1301  USA
  */
 
-#include <iostream>
-
 #include <boost/asio.hpp>
 #include <boost/bind.hpp>
 #include <boost/algorithm/string.hpp>
 
 #include <string>
-#include <iostream>
 #include <iomanip>
 #include "mod_mysql_resultset.h"
 #include "mysql.h"

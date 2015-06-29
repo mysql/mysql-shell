@@ -85,7 +85,7 @@ namespace shcore {
     exec_and_out_equals("var collection = session.js_shell_test.getCollection('collection1');");
 
     // Test add attempt with no data
-    exec_and_out_contains("collection.add().execute();", "", "Invalid number of arguments in Collection::add, expected 1 but got 0");
+    exec_and_out_contains("collection.add().execute();", "", "Invalid number of arguments in CollectionAdd::add, expected 1 but got 0");
 
     // Test add attempt with non document
     exec_and_out_contains("collection.add(45).execute();", "", "Invalid document specified on add operation.");

@@ -35,8 +35,6 @@ using namespace shcore;
 #define MAX_COLUMN_LENGTH 1024
 #define MIN_COLUMN_LENGTH 4
 
-#include <iostream>
-
 BaseResultset::BaseResultset()
 {
   add_method("nextResult", boost::bind(&BaseResultset::next_result, this, _1), NULL);

@@ -24,8 +24,6 @@ using namespace mysh;
 using namespace mysh::mysqlx;
 using namespace shcore;
 
-#include <iostream>
-
 View::View(boost::shared_ptr<Schema> owner, const std::string &name)
 : DatabaseObject(owner->_session.lock(), boost::static_pointer_cast<DatabaseObject>(owner), name)//, _table_impl(owner->_schema_impl->getTable(name))
 {

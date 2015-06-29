@@ -41,7 +41,6 @@ using namespace mysh::mysqlx;
 REGISTER_OBJECT(mysqlx, Session);
 REGISTER_OBJECT(mysqlx, NodeSession);
 
-#include <iostream>
 #include <set>
 
 ApiBaseSession::ApiBaseSession()

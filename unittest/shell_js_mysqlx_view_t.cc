@@ -37,6 +37,16 @@ namespace shcore {
 
       bool initilaized(false);
       _shell_core->switch_mode(Shell_core::Mode_JScript, initilaized);
+
+/*      exec_and_out_equals("var mysqlx = require('mysqlx').mysqlx;");
+
+      exec_and_out_equals("var session = mysqlx.openNodeSession('" + _uri + "');");
+
+      exec_and_out_equals("session.executeSql('drop schema if exists js_shell_test;')");
+      exec_and_out_equals("session.executeSql('create schema js_shell_test;')");
+      exec_and_out_equals("session.executeSql('use js_shell_test;')");
+      exec_and_out_equals("session.executeSql('create table table1 (name varchar(50));')");
+      exec_and_out_equals("session.executeSql('create view view1 (my_name) as select name from table1;')");*/
     }
   };
 
@@ -114,7 +124,7 @@ namespace shcore {
 
     std::string uri = mysh::strip_password(_uri);
 
-    exec_and_out_equals("var session = mysqlx.openSession('" + _uri + "');");
+     exec_and_out_equals("var session = mysqlx.openSession('" + _uri + "');");
 
     exec_and_out_equals("var view = session.js_shell_test.view1;");
 

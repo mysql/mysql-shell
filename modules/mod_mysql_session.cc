@@ -52,8 +52,6 @@ using namespace shcore;
 
 REGISTER_OBJECT(mysql, Session);
 
-#include <iostream>
-
 Session::Session()
 : _show_warnings(false)
 {

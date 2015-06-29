@@ -75,7 +75,7 @@ void Schema::cache_table_objects()
 {
   try
   {
-    boost::shared_ptr<ApiBaseSession> sess(boost::dynamic_pointer_cast<ApiBaseSession>(_session.lock()));
+    boost::shared_ptr<ApiBaseSession> sess(boost::static_pointer_cast<ApiBaseSession>(_session.lock()));
     if (sess)
     {
       {
@@ -89,6 +89,7 @@ void Schema::cache_table_objects()
           {
             std::string object_name = row->stringField(0);
             std::string object_type = row->stringField(1);
+
             if (object_type == "BASE TABLE" || object_type == "LOCAL TEMPORARY")
             {
               boost::shared_ptr<Table> table(new Table(shared_from_this(), object_name));
@@ -104,7 +105,7 @@ void Schema::cache_table_objects()
             }
             else if (object_type == "VIEW" || object_type == "SYSTEM VIEW")
             {
-              boost::shared_ptr<Collection> view(new Collection(shared_from_this(), object_name));
+              boost::shared_ptr<View> view(new View(shared_from_this(), object_name));
               (*_views)[object_name] = Value(boost::static_pointer_cast<Object_bridge>(view));
             }
             /*else

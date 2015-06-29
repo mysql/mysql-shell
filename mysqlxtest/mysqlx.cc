@@ -115,8 +115,8 @@ bool mysqlx::parse_mysql_connstring(const std::string &connstring,
     if (p != std::string::npos)
       sock = server_part.substr(p + 1);
     else
-      if (!sscanf(server_part.substr(0, p).c_str(), "%i", &port))
-        return false;
+    if (!sscanf(server_part.substr(0, p).c_str(), "%i", &port))
+      return false;
   }
   else
     host = server_part;
@@ -125,34 +125,28 @@ bool mysqlx::parse_mysql_connstring(const std::string &connstring,
 
 using namespace mysqlx;
 
-
 Error::Error(int err, const std::string &message)
 : std::runtime_error(message), _message(message), _error(err)
 {
 }
 
-
 Error::~Error() BOOST_NOEXCEPT_OR_NOTHROW
 {
 }
 
-
 AuthError::~AuthError() BOOST_NOEXCEPT_OR_NOTHROW
 {
 }
-
 
 static void throw_server_error(const Mysqlx::Error &error)
 {
   throw Error(error.code(), error.msg());
 }
 
-
 Session::Session()
 {
   m_connection = new Connection();
 }
-
 
 Session::~Session()
 {
@@ -166,7 +160,6 @@ boost::shared_ptr<Session> mysqlx::openSession(const std::string &uri, const std
   return session;
 }
 
-
 boost::shared_ptr<Session> mysqlx::openSession(const std::string &host, int port, const std::string &schema,
                                                const std::string &user, const std::string &pass)
 {
@@ -175,16 +168,12 @@ boost::shared_ptr<Session> mysqlx::openSession(const std::string &host, int port
   return session;
 }
 
-
-
 Connection::Connection()
 : m_socket(m_ios), m_trace_packets(false)
 {
   if (getenv("MYSQLX_TRACE_CONNECTION"))
     m_trace_packets = true;
 }
-
-
 
 void Connection::connect(const std::string &uri, const std::string &pass)
 {
@@ -197,7 +186,7 @@ void Connection::connect(const std::string &uri, const std::string &pass)
     throw Error(CR_WRONG_HOST_INFO, "Unable to parse connection string");
 
   if (protocol != "mysqlx" && !protocol.empty())
-    throw Error(CR_WRONG_HOST_INFO, "Unsupported protocol "+protocol);
+    throw Error(CR_WRONG_HOST_INFO, "Unsupported protocol " + protocol);
 
   if (!pass.empty())
     password = pass;
@@ -229,11 +218,10 @@ void Connection::connect(const std::string &host, int port)
         throw Error(CR_UNKNOWN_HOST, error.message());
 
       default:
-        throw Error(CR_CONNECTION_ERROR, error.message()+" connecting to "+host+":"+ports);
+        throw Error(CR_CONNECTION_ERROR, error.message() + " connecting to " + host + ":" + ports);
     }
   }
 }
-
 
 void Connection::connect(const std::string &host, int port, const std::string &schema,
                          const std::string &user, const std::string &pass)
@@ -243,12 +231,10 @@ void Connection::connect(const std::string &host, int port, const std::string &s
   authenticate_plain(user, pass, schema);
 }
 
-
 void Connection::close()
 {
   m_socket.close();
 }
-
 
 Result *Connection::execute_sql(const std::string &sql)
 {
@@ -260,14 +246,12 @@ Result *Connection::execute_sql(const std::string &sql)
   return new Result(this, true, true);
 }
 
-
 Result *Connection::execute_find(const Mysqlx::Crud::Find &m)
 {
   send(m);
 
   return new Result(this, false, true);
 }
-
 
 Result *Connection::execute_update(const Mysqlx::Crud::Update &m)
 {
@@ -276,7 +260,6 @@ Result *Connection::execute_update(const Mysqlx::Crud::Update &m)
   return new Result(this, false, false);
 }
 
-
 Result *Connection::execute_insert(const Mysqlx::Crud::Insert &m)
 {
   send(m);
@@ -284,14 +267,12 @@ Result *Connection::execute_insert(const Mysqlx::Crud::Insert &m)
   return new Result(this, false, false);
 }
 
-
 Result *Connection::execute_delete(const Mysqlx::Crud::Delete &m)
 {
   send(m);
 
   return new Result(this, false, false);
 }
-
 
 void Connection::authenticate_plain(const std::string &user, const std::string &pass, const std::string &UNUSED(db))
 {
@@ -312,29 +293,28 @@ void Connection::authenticate_plain(const std::string &user, const std::string &
   }
 
   {
-    int mid;
-    std::auto_ptr<Message> message(recv(mid));
-    switch (mid)
+  int mid;
+  std::auto_ptr<Message> message(recv(mid));
+  switch (mid)
+  {
+    case Mysqlx::ServerMessages::SESS_AUTHENTICATE_OK:
+      break;
+
+    case Mysqlx::ServerMessages::SESS_AUTHENTICATE_FAIL:
     {
-      case Mysqlx::ServerMessages::SESS_AUTHENTICATE_OK:
-        break;
-
-      case Mysqlx::ServerMessages::SESS_AUTHENTICATE_FAIL:
-      {
-        Mysqlx::Session::AuthenticateFail *fail(static_cast<Mysqlx::Session::AuthenticateFail*>(message.get()));
-        throw AuthError(fail->msg());
-      }
-
-      case Mysqlx::ServerMessages::ERROR:
-        throw_server_error(*static_cast<Mysqlx::Error*>(message.get()));
-
-      default:
-        throw Error(CR_MALFORMED_PACKET, "Unexpected message received from server");
-        break;
+                                                         Mysqlx::Session::AuthenticateFail *fail(static_cast<Mysqlx::Session::AuthenticateFail*>(message.get()));
+                                                         throw AuthError(fail->msg());
     }
+
+    case Mysqlx::ServerMessages::ERROR:
+      throw_server_error(*static_cast<Mysqlx::Error*>(message.get()));
+
+    default:
+      throw Error(CR_MALFORMED_PACKET, "Unexpected message received from server");
+      break;
   }
 }
-
+}
 
 void Connection::send(int mid, const Message &msg)
 {
@@ -374,7 +354,6 @@ void Connection::send(int mid, const Message &msg)
     }
   }
 }
-
 
 Message *Connection::recv(int &mid)
 {
@@ -500,7 +479,6 @@ Message *Connection::recv(int &mid)
   return ret_val;
 }
 
-
 boost::shared_ptr<Schema> Session::getSchema(const std::string &name)
 {
   std::map<std::string, boost::shared_ptr<Schema> >::const_iterator iter = m_schemas.find(name);
@@ -510,31 +488,26 @@ boost::shared_ptr<Schema> Session::getSchema(const std::string &name)
   return m_schemas[name] = boost::shared_ptr<Schema>(new Schema(shared_from_this(), name));
 }
 
-
 Result *Session::executeSql(const std::string &sql)
 {
   return m_connection->execute_sql(sql);
 }
-
 
 Document::Document(const std::string &doc)
 : m_data(new std::string(doc))
 {
 }
 
-
 Document::Document(const Document &doc)
 : m_data(doc.m_data)
 {
 }
-
 
 Result::Result(Connection *owner, bool needs_stmt_ok, bool expect_data)
 : m_owner(owner), m_last_insert_id(-1), m_affected_rows(-1), m_needs_stmt_ok(needs_stmt_ok),
   m_state(expect_data ? ReadMetadataI : ReadStmtOkI)
 {
 }
-
 
 Result::~Result()
 {
@@ -543,7 +516,6 @@ Result::~Result()
     nextResult();
 }
 
-
 boost::shared_ptr<std::vector<ColumnMetadata> > Result::columnMetadata()
 {
   if (m_state == ReadMetadataI)
@@ -551,13 +523,11 @@ boost::shared_ptr<std::vector<ColumnMetadata> > Result::columnMetadata()
   return m_columns;
 }
 
-
 bool Result::ready()
 {
   // if we've read something (ie not on initial state), then we're ready
   return m_state != ReadMetadataI && m_state != ReadStmtOkI;
 }
-
 
 void Result::wait()
 {
@@ -566,7 +536,6 @@ void Result::wait()
   if (m_state == ReadStmtOkI)
     read_stmt_ok();
 }
-
 
 int Result::get_message_id()
 {
@@ -588,73 +557,73 @@ int Result::get_message_id()
   {
     case ReadMetadataI:
     {
-      switch (current_message_id)
-      {
-        case Mysqlx::ServerMessages::SQL_STMT_EXECUTE_OK:
-          m_state = ReadDone;
-          return current_message_id;
+                        switch (current_message_id)
+                        {
+                          case Mysqlx::ServerMessages::SQL_STMT_EXECUTE_OK:
+                            m_state = ReadDone;
+                            return current_message_id;
 
-        case Mysqlx::ServerMessages::SQL_COLUMN_META_DATA:
-          m_state = ReadMetadata;
-          return current_message_id;
-      }
-      break;
+                          case Mysqlx::ServerMessages::SQL_COLUMN_META_DATA:
+                            m_state = ReadMetadata;
+                            return current_message_id;
+                        }
+                        break;
     }
     case ReadMetadata:
     {
-      // while reading metadata, we can either get more metadata
-      // start getting rows (which also signals end of metadata)
-      // or EORows, which signals end of metadata AND empty resultset
-      switch (current_message_id)
-      {
-        case Mysqlx::ServerMessages::SQL_COLUMN_META_DATA:
-          m_state = ReadMetadata;
-          return current_message_id;
+                       // while reading metadata, we can either get more metadata
+                       // start getting rows (which also signals end of metadata)
+                       // or EORows, which signals end of metadata AND empty resultset
+                       switch (current_message_id)
+                       {
+                         case Mysqlx::ServerMessages::SQL_COLUMN_META_DATA:
+                           m_state = ReadMetadata;
+                           return current_message_id;
 
-        case Mysqlx::ServerMessages::SQL_ROW:
-          m_state = ReadRows;
-          return current_message_id;
+                         case Mysqlx::ServerMessages::SQL_ROW:
+                           m_state = ReadRows;
+                           return current_message_id;
 
-        case Mysqlx::ServerMessages::SQL_CURSOR_FETCH_DONE:
-          // empty resultset
-          if (m_needs_stmt_ok)
-            m_state = ReadStmtOk;
-          else
-            m_state = ReadDone;
-          return current_message_id;
-      }
-      break;
+                         case Mysqlx::ServerMessages::SQL_CURSOR_FETCH_DONE:
+                           // empty resultset
+                           if (m_needs_stmt_ok)
+                             m_state = ReadStmtOk;
+                           else
+                             m_state = ReadDone;
+                           return current_message_id;
+                       }
+                       break;
     }
     case ReadRows:
     {
-      switch (current_message_id)
-      {
-        case Mysqlx::ServerMessages::SQL_ROW:
-          return current_message_id;
+                   switch (current_message_id)
+                   {
+                     case Mysqlx::ServerMessages::SQL_ROW:
+                       return current_message_id;
 
-        case Mysqlx::ServerMessages::SQL_CURSOR_FETCH_DONE:
-          if (m_needs_stmt_ok)
-            m_state = ReadStmtOk;
-          else
-            m_state = ReadDone;
-          return current_message_id;
+                     case Mysqlx::ServerMessages::SQL_CURSOR_FETCH_DONE:
+                       if (m_needs_stmt_ok)
+                         m_state = ReadStmtOk;
+                       else
+                         m_state = ReadDone;
+                       return current_message_id;
 
-        case Mysqlx::ServerMessages::SQL_CURSOR_FETCH_DONE_MORE_RESULTSETS:
-          m_state = ReadMetadata;
-          return current_message_id;
-      }
-      break;
+                     case Mysqlx::ServerMessages::SQL_CURSOR_FETCH_DONE_MORE_RESULTSETS:
+                       m_state = ReadMetadata;
+                       return current_message_id;
+                   }
+                   break;
     }
     case ReadStmtOkI:
     case ReadStmtOk:
     {
-      switch (current_message_id)
-      {
-        case Mysqlx::ServerMessages::SQL_STMT_EXECUTE_OK:
-          m_state = ReadDone;
-          return current_message_id;
-      }
-      break;
+                     switch (current_message_id)
+                     {
+                       case Mysqlx::ServerMessages::SQL_STMT_EXECUTE_OK:
+                         m_state = ReadDone;
+                         return current_message_id;
+                     }
+                     break;
     }
     case ReadError:
     case ReadDone:
@@ -665,7 +634,6 @@ int Result::get_message_id()
   m_state = ReadError;
   throw Error(CR_COMMANDS_OUT_OF_SYNC, "Unexpected message received from server");
 }
-
 
 static ColumnMetadata unwrap_column_metadata(Mysqlx::Sql::ColumnMetaData *column_data)
 {
@@ -727,7 +695,6 @@ static ColumnMetadata unwrap_column_metadata(Mysqlx::Sql::ColumnMetaData *column
   return column;
 }
 
-
 void Result::read_metadata()
 {
   if (m_state != ReadMetadata && m_state != ReadMetadataI)
@@ -757,7 +724,6 @@ void Result::read_metadata()
   }
 }
 
-
 std::auto_ptr<Row> Result::read_row()
 {
   if (m_state != ReadRows)
@@ -774,7 +740,6 @@ std::auto_ptr<Row> Result::read_row()
 
   return std::auto_ptr<Row>();
 }
-
 
 void Result::read_stmt_ok()
 {
@@ -799,7 +764,6 @@ void Result::read_stmt_ok()
     m_last_insert_id = ok->last_insert_id();
 }
 
-
 bool Result::nextResult()
 {
   // flush left over rows
@@ -816,7 +780,6 @@ bool Result::nextResult()
     read_stmt_ok();
   return false;
 }
-
 
 Row *Result::next()
 {
@@ -837,16 +800,14 @@ Row *Result::next()
 void Result::discardData()
 {
   // Flushes the leftover data
+  wait();
   while (nextResult());
 }
-
-
 
 Row::Row(boost::shared_ptr<std::vector<ColumnMetadata> > columns, std::auto_ptr<Mysqlx::Sql::Row> data)
 : m_columns(columns), m_data(data)
 {
 }
-
 
 void Row::check_field(int field, FieldType type) const
 {
@@ -860,7 +821,6 @@ void Row::check_field(int field, FieldType type) const
     throw Error(CR_MALFORMED_PACKET, "Unexpected data received from server");
 }
 
-
 bool Row::isNullField(int field) const
 {
   if (field < 0 || field >= (int)m_columns->size())
@@ -871,7 +831,6 @@ bool Row::isNullField(int field) const
   return false;
 }
 
-
 int32_t Row::sIntField(int field) const
 {
   int64_t t = sInt64Field(field);
@@ -881,7 +840,6 @@ int32_t Row::sIntField(int field) const
   return (int32_t)t;
 }
 
-
 uint32_t Row::uIntField(int field) const
 {
   uint64_t t = uInt64Field(field);
@@ -890,7 +848,6 @@ uint32_t Row::uIntField(int field) const
 
   return (uint32_t)t;
 }
-
 
 int64_t Row::sInt64Field(int field) const
 {
@@ -908,7 +865,6 @@ int64_t Row::sInt64Field(int field) const
   throw std::invalid_argument("field of wrong type");
 }
 
-
 uint64_t Row::uInt64Field(int field) const
 {
   check_field(field, UINT);
@@ -925,7 +881,6 @@ uint64_t Row::uInt64Field(int field) const
   throw std::invalid_argument("field of wrong type");
 }
 
-
 const std::string &Row::stringField(int field) const
 {
   check_field(field, BYTES);
@@ -935,7 +890,6 @@ const std::string &Row::stringField(int field) const
     return m_data->field(field).scalar().v_opaque();
   throw std::invalid_argument("field of wrong type");
 }
-
 
 const char *Row::stringField(int field, size_t &rlength) const
 {
@@ -951,7 +905,6 @@ const char *Row::stringField(int field, size_t &rlength) const
   throw std::invalid_argument("field of wrong type");
 }
 
-
 float Row::floatField(int field) const
 {
   check_field(field, FLOAT);
@@ -964,7 +917,6 @@ float Row::floatField(int field) const
   throw std::invalid_argument("field of wrong type");
 }
 
-
 double Row::doubleField(int field) const
 {
   check_field(field, DOUBLE);
@@ -976,8 +928,6 @@ double Row::doubleField(int field) const
   }
   throw std::invalid_argument("field of wrong type");
 }
-
-
 
 DateTime Row::dateTimeField(int field) const
 {
@@ -994,7 +944,6 @@ DateTime Row::dateTimeField(int field) const
   throw std::invalid_argument("field of wrong type");
 }
 
-
 Time Row::timeField(int field) const
 {
   check_field(field, TIME);
@@ -1009,7 +958,6 @@ Time Row::timeField(int field) const
   }
   throw std::invalid_argument("field of wrong type");
 }
-
 
 int Row::numFields() const
 {

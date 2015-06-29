@@ -40,8 +40,6 @@
 using namespace mysh;
 using namespace shcore;
 
-#include <iostream>
-
 bool mysh::parse_mysql_connstring(const std::string &connstring,
                             std::string &protocol, std::string &user, std::string &password,
                             std::string &host, int &port, std::string &sock,
