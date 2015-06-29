@@ -21,7 +21,7 @@
 
 #include "simple_shell_client.h"
 
-#include "boost/shared_ptr.hpp"
+#include <boost/shared_ptr.hpp>
 
 
 void print_table_result_set(Table_result_set* tbl)

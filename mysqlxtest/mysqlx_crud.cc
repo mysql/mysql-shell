@@ -260,7 +260,7 @@ Result *Remove_Base::execute()
 
 Remove_Base &Remove_Limit::limit(uint64_t limit_)
 {
-  m_delete->mutable_limit()->set_offset(limit_);
+  m_delete->mutable_limit()->set_row_count(limit_);
   return *this;
 }
 
@@ -270,7 +270,9 @@ RemoveStatement::RemoveStatement(boost::shared_ptr<Collection> coll, const std::
   m_delete->mutable_collection()->set_schema(coll->schema()->name());
   m_delete->mutable_collection()->set_name(coll->name());
   m_delete->set_data_model(Mysqlx::Crud::DOCUMENT);
-  m_delete->set_allocated_criteria(parser::parse_collection_filter(searchCondition).release());
+
+  if (!searchCondition.empty())
+    m_delete->set_allocated_criteria(parser::parse_collection_filter(searchCondition).release());
 }
 
 Remove_Limit &RemoveStatement::orderBy(const std::string &UNUSED(sortFields))

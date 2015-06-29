@@ -15,8 +15,8 @@
 
 #include "shellcore/lang_base.h"
 #include "shellcore/shell_core.h"
-#include "boost/algorithm/string.hpp"
 #include "shellcore/common.h"
+#include <boost/algorithm/string.hpp>
 
 class Shell_test_output_handler
 {

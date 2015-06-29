@@ -32,7 +32,7 @@
 #include "../modules/mod_mysqlx_collection_remove.h"
 
 namespace shcore {
-  class DISABLED_Shell_js_crud_collection_remove_tests : public Crud_test_wrapper
+  class Shell_js_mysqlx_collection_remove_tests : public Crud_test_wrapper
   {
   protected:
     // You can define per-test set-up and tear-down logic as usual.
@@ -48,27 +48,33 @@ namespace shcore {
     }
   };
 
-  TEST_F(DISABLED_Shell_js_crud_collection_remove_tests, DISABLED_chain_combinations)
+  TEST_F(Shell_js_mysqlx_collection_remove_tests, initialization)
+  {
+    exec_and_out_equals("var mysqlx = require('mysqlx').mysqlx;");
+
+    exec_and_out_equals("var session = mysqlx.openNodeSession('" + _uri + "');");
+
+    exec_and_out_equals("session.executeSql('drop schema if exists js_shell_test;')");
+    exec_and_out_equals("session.executeSql('create schema js_shell_test;')");
+    exec_and_out_equals("session.executeSql('use js_shell_test;')");
+    exec_and_out_equals("session.executeSql(\"create table `collection1`(`doc` JSON, `_id` VARBINARY(16) GENERATED ALWAYS AS(unhex(json_unquote(json_extract(doc, '$._id')))) stored PRIMARY KEY)\")");
+  }
+
+  TEST_F(Shell_js_mysqlx_collection_remove_tests, chain_combinations)
   {
     // NOTE: No data validation is done on this test, only tests
     //       different combinations of chained methods.
 
-    // Creates a connection object
-    exec_and_out_equals("var conn = _F.mysqlx.Connection('" + _uri + "');");
+    exec_and_out_equals("var mysqlx = require('mysqlx').mysqlx;");
 
-    // Creates the collection add object
-    exec_and_out_equals("var crud = _F.mysqlx.CollectionRemove(conn, 'schema', 'collection');");
+    exec_and_out_equals("var session = mysqlx.openSession('" + _uri + "');");
 
-    //-------- ---------------------Test 1------------------------//
-    // Initial validation, any new CollectionRemove object only has
-    // the remove function available upon creation
-    //-------------------------------------------------------------
-    {
-      SCOPED_TRACE("CollectionRemove: testing initial function availability.");
-      ensure_available_functions("remove");
-    }
+    exec_and_out_equals("var collection = session.js_shell_test.getCollection('collection1');");
 
-    //-------- ---------------------Test 2-------------------------
+    // Creates the collection find object
+    exec_and_out_equals("var crud = collection.remove();");
+
+    //-------- ----------------------------------------------------
     // Tests the happy path validating only the right functions
     // are available following the chained call
     // this is CollectionRemove.remove().limit(#).execute()
@@ -77,7 +83,6 @@ namespace shcore {
     //       once they are enabled
     {
       SCOPED_TRACE("Testing function availability after remove.");
-      exec_and_out_equals("crud.remove()");
       ensure_available_functions("orderBy, limit, bind, execute");
     }
 
@@ -89,17 +94,12 @@ namespace shcore {
     }
   }
 
-  TEST_F(DISABLED_Shell_js_crud_collection_remove_tests, remove_validations)
+  TEST_F(Shell_js_mysqlx_collection_remove_tests, remove_validations)
   {
     exec_and_out_equals("var mysqlx = require('mysqlx').mysqlx;");
     exec_and_out_equals("var session = mysqlx.openNodeSession('" + _uri + "');");
-    exec_and_out_equals("session.executeSql('drop schema if exists js_shell_test;');");
-    exec_and_out_equals("session.executeSql('create schema js_shell_test;');");
-    exec_and_out_equals("session.executeSql('use js_shell_test;');");
-    exec_and_out_equals("session.executeSql(\"create table `mycoll`(`doc` JSON, `_id` VARBINARY(16) GENERATED ALWAYS AS(unhex(json_unquote(json_extract(doc, '$._id')))) stored PRIMARY KEY)\")");
-
     exec_and_out_equals("var schema = session.getSchema('js_shell_test');");
-    exec_and_out_equals("var collection = schema.getCollection('mycoll');");
+    exec_and_out_equals("var collection = schema.getCollection('collection1');");
 
     // Testing the remove function
     {
@@ -114,7 +114,6 @@ namespace shcore {
       SCOPED_TRACE("Testing parameter validation on orderBy");
       exec_and_out_contains("collection.remove().orderBy();", "", "Invalid number of arguments in CollectionRemove::orderBy");
       exec_and_out_contains("collection.remove().orderBy(5);", "", "CollectionRemove::orderBy: string parameter required.");
-      exec_and_out_contains("collection.remove().orderBy('');", "", "CollectionRemove::orderBy: not yet implemented.");
     }
 
     {
@@ -127,17 +126,12 @@ namespace shcore {
     exec_and_out_contains("collection.remove().bind();", "", "CollectionRemove::bind: not yet implemented.");
   }
 
-  TEST_F(DISABLED_Shell_js_crud_collection_remove_tests, remove_execution)
+  TEST_F(Shell_js_mysqlx_collection_remove_tests, remove_execution)
   {
     exec_and_out_equals("var mysqlx = require('mysqlx').mysqlx;");
     exec_and_out_equals("var session = mysqlx.openNodeSession('" + _uri + "');");
-    exec_and_out_equals("session.executeSql('drop schema if exists js_shell_test;');");
-    exec_and_out_equals("session.executeSql('create schema js_shell_test;');");
-    exec_and_out_equals("session.executeSql('use js_shell_test;');");
-    exec_and_out_equals("session.executeSql(\"create table `mycoll`(`doc` JSON, `_id` VARBINARY(16) GENERATED ALWAYS AS(unhex(json_unquote(json_extract(doc, '$._id')))) stored PRIMARY KEY)\")");
-
     exec_and_out_equals("var schema = session.getSchema('js_shell_test');");
-    exec_and_out_equals("var collection = schema.getCollection('mycoll');");
+    exec_and_out_equals("var collection = schema.getCollection('collection1');");
 
     exec_and_out_equals("var result = collection.add({name: 'jack', age: 17, gender: 'male'}).execute();");
     exec_and_out_equals("var result = collection.add({name: 'adam', age: 15, gender: 'male'}).execute();");
@@ -150,7 +144,7 @@ namespace shcore {
     {
       SCOPED_TRACE("Testing remove");
       exec_and_out_equals("var result = collection.remove('age = 13').execute();");
-      exec_and_out_equals("print(result.affectedRows())", "1");
+      exec_and_out_equals("print(result.affectedRows)", "1");
 
       exec_and_out_equals("var records = collection.find().execute().all();");
       exec_and_out_equals("print(records.length);", "6");
@@ -159,7 +153,7 @@ namespace shcore {
     {
       SCOPED_TRACE("Testing remove with limits");
       exec_and_out_equals("var result = collection.remove('gender = \"male\"').limit(2).execute();");
-      exec_and_out_equals("print(result.affectedRows())", "2");
+      exec_and_out_equals("print(result.affectedRows)", "2");
 
       exec_and_out_equals("var records = collection.find().execute().all();");
       exec_and_out_equals("print(records.length);", "4");
@@ -168,7 +162,7 @@ namespace shcore {
     {
       SCOPED_TRACE("Testing full remove");
       exec_and_out_equals("var result = collection.remove().execute();");
-      exec_and_out_equals("print(result.affectedRows())", "4");
+      exec_and_out_equals("print(result.affectedRows)", "4");
 
       exec_and_out_equals("var records = collection.find().execute().all();");
       exec_and_out_equals("print(records.length);", "0");

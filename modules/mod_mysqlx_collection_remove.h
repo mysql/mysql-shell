@@ -24,6 +24,7 @@
 #define _MOD_CRUD_COLLECTION_REMOVE_H_
 
 #include "crud_definition.h"
+#include "mysqlx_crud.h"
 
 namespace mysh
 {
@@ -41,6 +42,10 @@ namespace mysh
       shcore::Value order_by(const shcore::Argument_list &args);
       shcore::Value limit(const shcore::Argument_list &args);
       shcore::Value bind(const shcore::Argument_list &args);
+
+      virtual shcore::Value execute(const shcore::Argument_list &args);
+    private:
+      std::auto_ptr< ::mysqlx::RemoveStatement> _remove_statement;
     };
   };
 };

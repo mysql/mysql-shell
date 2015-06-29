@@ -26,7 +26,7 @@
 #include "shellcore/types.h"
 #include "shellcore/types_cpp.h"
 #include "utils_time.h"
-#include "boost/enable_shared_from_this.hpp"
+#include <boost/enable_shared_from_this.hpp>
 
 #if WIN32
 #  include <winsock2.h>

@@ -52,7 +52,7 @@ shcore::Value CollectionAdd::add(const shcore::Argument_list &args)
 
   if (raw_owner)
   {
-    boost::shared_ptr<Collection> collection(boost::static_pointer_cast<Collection>(_owner.lock()));
+    boost::shared_ptr<Collection> collection(boost::static_pointer_cast<Collection>(raw_owner));
 
     if (collection)
     {
@@ -83,6 +83,8 @@ shcore::Value CollectionAdd::add(const shcore::Argument_list &args)
             if (!shell_doc->has_key("_id"))
               (*shell_doc)["_id"] = Value(get_new_uuid());
 
+            //TODO: we are assumming that repr returns a valid JSON document
+            //      we should introduce a routine that vensures that is correct.
             ::mysqlx::Document inner_doc(element.repr());
 
             if (!index)

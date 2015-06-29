@@ -32,7 +32,7 @@
 //#include "../modules/mod_schema.h"
 #include "shellcore/common.h"
 #include "test_utils.h"
-#include "boost/algorithm/string.hpp"
+#include <boost/algorithm/string.hpp>
 
 namespace shcore {
   namespace sql_shell_tests {
