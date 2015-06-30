@@ -37,28 +37,21 @@ namespace shcore {
 
       bool initilaized(false);
       _shell_core->switch_mode(Shell_core::Mode_JScript, initilaized);
+
+      exec_and_out_equals("var mysql = require('mysql').mysql;");
+
+      exec_and_out_equals("var session = mysql.openSession('" + _mysql_uri + "');");
+
+      exec_and_out_equals("session.executeSql('drop schema if exists js_shell_test;')");
+      exec_and_out_equals("session.executeSql('create schema js_shell_test;')");
+      exec_and_out_equals("session.executeSql('use js_shell_test;')");
+      exec_and_out_equals("session.executeSql('create table table1 (name varchar(50));')");
     }
   };
-
-  TEST_F(Shell_js_mysql_table_tests, initialization)
-  {
-    exec_and_out_equals("var mysql = require('mysql').mysql;");
-
-    exec_and_out_equals("var session = mysql.openSession('" + _mysql_uri + "');");
-
-    exec_and_out_equals("session.executeSql('drop schema if exists js_shell_test;')");
-    exec_and_out_equals("session.executeSql('create schema js_shell_test;')");
-    exec_and_out_equals("session.executeSql('use js_shell_test;')");
-    exec_and_out_equals("session.executeSql('create table table1 (name varchar(50));')");
-  }
 
   // Tests table.getName()
   TEST_F(Shell_js_mysql_table_tests, mysql_schema_get_name)
   {
-    exec_and_out_equals("var mysql = require('mysql').mysql;");
-
-    exec_and_out_equals("var session = mysql.openSession('" + _mysql_uri + "');");
-
     exec_and_out_equals("var table = session.js_shell_test.table1;");
 
     exec_and_out_equals("print(table.getName());", "table1");
@@ -67,10 +60,6 @@ namespace shcore {
   // Tests table.name
   TEST_F(Shell_js_mysql_table_tests, mysql_schema_name)
   {
-    exec_and_out_equals("var mysql = require('mysql').mysql;");
-
-    exec_and_out_equals("var session = mysql.openSession('" + _mysql_uri + "');");
-
     exec_and_out_equals("var table = session.js_shell_test.table1;");
 
     exec_and_out_equals("print(table.name);", "table1");
@@ -79,11 +68,7 @@ namespace shcore {
   // Tests table.getSession()
   TEST_F(Shell_js_mysql_table_tests, mysql_schema_get_session)
   {
-    exec_and_out_equals("var mysql = require('mysql').mysql;");
-
     std::string uri = mysh::strip_password(_mysql_uri);
-
-    exec_and_out_equals("var session = mysql.openSession('" + _mysql_uri + "');");
 
     exec_and_out_equals("var table = session.js_shell_test.table1;");
 
@@ -95,11 +80,7 @@ namespace shcore {
   // Tests table.session
   TEST_F(Shell_js_mysql_table_tests, mysql_schema_session)
   {
-    exec_and_out_equals("var mysql = require('mysql').mysql;");
-
     std::string uri = mysh::strip_password(_mysql_uri);
-
-    exec_and_out_equals("var session = mysql.openSession('" + _mysql_uri + "');");
 
     exec_and_out_equals("var table = session.js_shell_test.table1;");
 
@@ -109,11 +90,7 @@ namespace shcore {
   // Tests table.getSchema()
   TEST_F(Shell_js_mysql_table_tests, mysql_schema_get_schema)
   {
-    exec_and_out_equals("var mysql = require('mysql').mysql;");
-
     std::string uri = mysh::strip_password(_mysql_uri);
-
-    exec_and_out_equals("var session = mysql.openSession('" + _mysql_uri + "');");
 
     exec_and_out_equals("var table = session.js_shell_test.table1;");
 
@@ -125,11 +102,7 @@ namespace shcore {
   // Tests table.schema
   TEST_F(Shell_js_mysql_table_tests, mysql_schema_schema)
   {
-    exec_and_out_equals("var mysql = require('mysql').mysql;");
-
     std::string uri = mysh::strip_password(_mysql_uri);
-
-    exec_and_out_equals("var session = mysql.openSession('" + _mysql_uri + "');");
 
     exec_and_out_equals("var table = session.js_shell_test.table1;");
 

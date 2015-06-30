@@ -38,7 +38,7 @@ namespace shcore {
       bool initilaized(false);
       _shell_core->switch_mode(Shell_core::Mode_JScript, initilaized);
 
-/*      exec_and_out_equals("var mysqlx = require('mysqlx').mysqlx;");
+      exec_and_out_equals("var mysqlx = require('mysqlx').mysqlx;");
 
       exec_and_out_equals("var session = mysqlx.openNodeSession('" + _uri + "');");
 
@@ -46,30 +46,14 @@ namespace shcore {
       exec_and_out_equals("session.executeSql('create schema js_shell_test;')");
       exec_and_out_equals("session.executeSql('use js_shell_test;')");
       exec_and_out_equals("session.executeSql('create table table1 (name varchar(50));')");
-      exec_and_out_equals("session.executeSql('create view view1 (my_name) as select name from table1;')");*/
+      exec_and_out_equals("session.executeSql('create view view1 (my_name) as select name from table1;')");
     }
   };
 
-  TEST_F(Shell_js_mysqlx_view_tests, initialization)
-  {
-    exec_and_out_equals("var mysqlx = require('mysqlx').mysqlx;");
-
-    exec_and_out_equals("var session = mysqlx.openNodeSession('" + _uri + "');");
-
-    exec_and_out_equals("session.executeSql('drop schema if exists js_shell_test;')");
-    exec_and_out_equals("session.executeSql('create schema js_shell_test;')");
-    exec_and_out_equals("session.executeSql('use js_shell_test;')");
-    exec_and_out_equals("session.executeSql('create table table1 (name varchar(50));')");
-    exec_and_out_equals("session.executeSql('create view view1 (my_name) as select name from table1;')");
-  }
 
   // Tests view.getName()
   TEST_F(Shell_js_mysqlx_view_tests, mysqlx_view_get_name)
   {
-    exec_and_out_equals("var mysqlx = require('mysqlx').mysqlx;");
-
-    exec_and_out_equals("var session = mysqlx.openSession('" + _uri + "');");
-
     exec_and_out_equals("var view = session.js_shell_test.view1;");
 
     exec_and_out_equals("print(view.getName());", "view1");
@@ -78,10 +62,6 @@ namespace shcore {
   // Tests view.name
   TEST_F(Shell_js_mysqlx_view_tests, mysqlx_view_name)
   {
-    exec_and_out_equals("var mysqlx = require('mysqlx').mysqlx;");
-
-    exec_and_out_equals("var session = mysqlx.openSession('" + _uri + "');");
-
     exec_and_out_equals("var view = session.js_shell_test.view1;");
 
     exec_and_out_equals("print(view.name);", "view1");
@@ -90,41 +70,29 @@ namespace shcore {
   // Tests view.getSession()
   TEST_F(Shell_js_mysqlx_view_tests, mysqlx_view_get_session)
   {
-    exec_and_out_equals("var mysqlx = require('mysqlx').mysqlx;");
-
     std::string uri = mysh::strip_password(_uri);
-
-    exec_and_out_equals("var session = mysqlx.openSession('" + _uri + "');");
 
     exec_and_out_equals("var view = session.js_shell_test.view1;");
 
     exec_and_out_equals("var view_session = view.getSession();");
 
-    exec_and_out_equals("print(view_session)", "<Session:" + uri + ">");
+    exec_and_out_equals("print(view_session)", "<NodeSession:" + uri + ">");
   }
 
   // Tests view.session
   TEST_F(Shell_js_mysqlx_view_tests, mysqlx_view_session)
   {
-    exec_and_out_equals("var mysqlx = require('mysqlx').mysqlx;");
-
     std::string uri = mysh::strip_password(_uri);
-
-    exec_and_out_equals("var session = mysqlx.openSession('" + _uri + "');");
 
     exec_and_out_equals("var view = session.js_shell_test.view1;");
 
-    exec_and_out_equals("print(view.session)", "<Session:" + uri + ">");
+    exec_and_out_equals("print(view.session)", "<NodeSession:" + uri + ">");
   }
 
   // Tests view.getSchema()
   TEST_F(Shell_js_mysqlx_view_tests, mysqlx_view_get_schema)
   {
-    exec_and_out_equals("var mysqlx = require('mysqlx').mysqlx;");
-
     std::string uri = mysh::strip_password(_uri);
-
-     exec_and_out_equals("var session = mysqlx.openSession('" + _uri + "');");
 
     exec_and_out_equals("var view = session.js_shell_test.view1;");
 
@@ -136,11 +104,7 @@ namespace shcore {
   // Tests view.schema
   TEST_F(Shell_js_mysqlx_view_tests, mysqlx_view_schema)
   {
-    exec_and_out_equals("var mysqlx = require('mysqlx').mysqlx;");
-
     std::string uri = mysh::strip_password(_uri);
-
-    exec_and_out_equals("var session = mysqlx.openSession('" + _uri + "');");
 
     exec_and_out_equals("var view = session.js_shell_test.view1;");
 

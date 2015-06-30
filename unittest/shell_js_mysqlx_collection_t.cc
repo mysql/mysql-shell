@@ -37,28 +37,21 @@ namespace shcore {
 
       bool initilaized(false);
       _shell_core->switch_mode(Shell_core::Mode_JScript, initilaized);
+
+      exec_and_out_equals("var mysqlx = require('mysqlx').mysqlx;");
+
+      exec_and_out_equals("var session = mysqlx.openNodeSession('" + _uri + "');");
+
+      exec_and_out_equals("session.executeSql('drop schema if exists js_shell_test;')");
+      exec_and_out_equals("session.executeSql('create schema js_shell_test;')");
+      exec_and_out_equals("session.executeSql('use js_shell_test;')");
+      exec_and_out_equals("session.executeSql(\"create table `collection1`(`doc` JSON, `_id` VARBINARY(16) GENERATED ALWAYS AS(unhex(json_unquote(json_extract(doc, '$._id')))) stored PRIMARY KEY)\")");
     }
   };
-
-  TEST_F(Shell_js_mysqlx_collection_tests, initialization)
-  {
-    exec_and_out_equals("var mysqlx = require('mysqlx').mysqlx;");
-
-    exec_and_out_equals("var session = mysqlx.openNodeSession('" + _uri + "');");
-
-    exec_and_out_equals("session.executeSql('drop schema if exists js_shell_test;')");
-    exec_and_out_equals("session.executeSql('create schema js_shell_test;')");
-    exec_and_out_equals("session.executeSql('use js_shell_test;')");
-    exec_and_out_equals("session.executeSql(\"create table `collection1`(`doc` JSON, `_id` VARBINARY(16) GENERATED ALWAYS AS(unhex(json_unquote(json_extract(doc, '$._id')))) stored PRIMARY KEY)\")");
-  }
 
   // Tests collection.getName()
   TEST_F(Shell_js_mysqlx_collection_tests, mysqlx_collection_get_name)
   {
-    exec_and_out_equals("var mysqlx = require('mysqlx').mysqlx;");
-
-    exec_and_out_equals("var session = mysqlx.openSession('" + _uri + "');");
-
     exec_and_out_equals("var collection = session.js_shell_test.getCollection('collection1');");
 
     exec_and_out_equals("print(collection.getName());", "collection1");
@@ -67,10 +60,6 @@ namespace shcore {
   // Tests collection.name
   TEST_F(Shell_js_mysqlx_collection_tests, mysqlx_collection_name)
   {
-    exec_and_out_equals("var mysqlx = require('mysqlx').mysqlx;");
-
-    exec_and_out_equals("var session = mysqlx.openSession('" + _uri + "');");
-
     exec_and_out_equals("var collection = session.js_shell_test.getCollection('collection1');");
 
     exec_and_out_equals("print(collection.name);", "collection1");
@@ -79,41 +68,29 @@ namespace shcore {
   // Tests collection.getSession()
   TEST_F(Shell_js_mysqlx_collection_tests, mysqlx_collection_get_session)
   {
-    exec_and_out_equals("var mysqlx = require('mysqlx').mysqlx;");
-
     std::string uri = mysh::strip_password(_uri);
-
-    exec_and_out_equals("var session = mysqlx.openSession('" + _uri + "');");
 
     exec_and_out_equals("var collection = session.js_shell_test.getCollection('collection1');");
 
     exec_and_out_equals("var collection_session = collection.getSession();");
 
-    exec_and_out_equals("print(collection_session)", "<Session:" + uri + ">");
+    exec_and_out_equals("print(collection_session)", "<NodeSession:" + uri + ">");
   }
 
   // Tests collection.session
   TEST_F(Shell_js_mysqlx_collection_tests, mysqlx_collection_session)
   {
-    exec_and_out_equals("var mysqlx = require('mysqlx').mysqlx;");
-
     std::string uri = mysh::strip_password(_uri);
-
-    exec_and_out_equals("var session = mysqlx.openSession('" + _uri + "');");
 
     exec_and_out_equals("var collection = session.js_shell_test.getCollection('collection1');");
 
-    exec_and_out_equals("print(collection.session)", "<Session:" + uri + ">");
+    exec_and_out_equals("print(collection.session)", "<NodeSession:" + uri + ">");
   }
 
   // Tests collection.getSchema()
   TEST_F(Shell_js_mysqlx_collection_tests, mysqlx_collection_get_schema)
   {
-    exec_and_out_equals("var mysqlx = require('mysqlx').mysqlx;");
-
     std::string uri = mysh::strip_password(_uri);
-
-    exec_and_out_equals("var session = mysqlx.openSession('" + _uri + "');");
 
     exec_and_out_equals("var collection = session.js_shell_test.getCollection('collection1');");
 
@@ -125,11 +102,7 @@ namespace shcore {
   // Tests collection.schema
   TEST_F(Shell_js_mysqlx_collection_tests, mysqlx_collection_schema)
   {
-    exec_and_out_equals("var mysqlx = require('mysqlx').mysqlx;");
-
     std::string uri = mysh::strip_password(_uri);
-
-    exec_and_out_equals("var session = mysqlx.openSession('" + _uri + "');");
 
     exec_and_out_equals("var collection = session.js_shell_test.getCollection('collection1');");
 
