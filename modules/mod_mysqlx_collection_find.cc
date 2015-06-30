@@ -75,9 +75,9 @@ shcore::Value CollectionFind::find(const shcore::Argument_list &args)
       update_functions("find");
     }
     CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionFind::find", "string");
-
-    return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
   }
+  
+  return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
 shcore::Value CollectionFind::fields(const shcore::Argument_list &args)

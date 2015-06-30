@@ -67,9 +67,9 @@ shcore::Value CollectionRemove::remove(const shcore::Argument_list &args)
       update_functions("remove");
     }
     CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionRemove::remove", "string");
-
-    return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
   }
+  
+  return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
 shcore::Value CollectionRemove::order_by(const shcore::Argument_list &args)
