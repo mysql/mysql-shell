@@ -103,9 +103,7 @@ void BaseResultset::print_json()
 
   if (get_member("hasData").as_bool())
   {
-    shcore::Argument_list args;
-    args.push_back(shcore::Value::False());
-    shcore::Value records = all(args);
+    shcore::Value records = all(shcore::Argument_list());
 
     (*data)["row_count"] = get_member("fetchedRowCount");
     (*data)["rows"] = records;
@@ -298,9 +296,29 @@ Row::Row()
   add_method("getLength", boost::bind(&Row::get_member_method, this, _1, "getLength", "__length__"), NULL);
 }
 
-std::string &Row::append_descr(std::string &s_out, int UNUSED(indent), int UNUSED(quote_strings)) const
+std::string &Row::append_descr(std::string &s_out, int indent, int UNUSED(quote_strings)) const
 {
-  s_out.append((boost::format("<MapArray>")).str());
+  std::string nl = (indent >= 0) ? "\n" : "";
+  s_out += "[";
+  for (size_t index = 0; index < values.size(); index++)
+  {
+    if (index > 0)
+      s_out += ",";
+
+    s_out += nl;
+
+    if (indent >= 0)
+      s_out.append((indent + 1) * 4, ' ');
+
+    values[index].append_descr(s_out, indent < 0 ? indent : indent + 1, '"');
+  }
+
+  s_out += nl;
+  if (indent > 0)
+    s_out.append(indent * 4, ' ');
+
+  s_out += "]";
+
   return s_out;
 }
 
