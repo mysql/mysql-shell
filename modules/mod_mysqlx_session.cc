@@ -54,8 +54,6 @@ Value ApiBaseSession::connect(const Argument_list &args)
   std::string function_name = class_name() + ".connect";
   args.ensure_count(1, 2, function_name.c_str());
 
-  std::string uri_ = args.string_at(0);
-
   std::string pwd_override;
 
   // If password is received as parameter, then it overwrites
@@ -63,11 +61,50 @@ Value ApiBaseSession::connect(const Argument_list &args)
   if (2 == args.size())
     pwd_override = args.string_at(1).c_str();
 
-  _uri = mysh::strip_password(uri_);
-
   try
   {
-    _session = ::mysqlx::openSession(uri_, pwd_override);
+    if (args[0].type == String)
+    {
+      std::string uri_ = args.string_at(0);
+      _uri = mysh::strip_password(uri_);
+      _session = ::mysqlx::openSession(uri_, pwd_override);
+    }
+    else if (args[0].type == Map)
+    {
+      std::string host;
+      int port = 33060;
+      std::string schema;
+      std::string user;
+      std::string password;
+
+      shcore::Value::Map_type_ref options = args[0].as_map();
+
+      if (options->has_key("host"))
+        host = (*options)["host"].as_string();
+
+      if (options->has_key("port"))
+        port = (*options)["port"].as_int();
+
+      if (options->has_key("schema"))
+        schema = (*options)["schema"].as_string();
+
+      if (options->has_key("dbUser"))
+        user = (*options)["dbUser"].as_string();
+
+      if (options->has_key("dbPassword"))
+        password = (*options)["dbPassword"].as_string();
+
+      if (!pwd_override.empty())
+        password = pwd_override;
+
+      _session = ::mysqlx::openSession(host, port, schema, user, password);
+
+      std::stringstream str;
+      str << user << "@" << host << ":" << port;
+      _uri = str.str();
+    }
+    else
+      throw shcore::Exception::argument_error("Unexpected argument on connection data.");
   }
   CATCH_AND_TRANSLATE();
 

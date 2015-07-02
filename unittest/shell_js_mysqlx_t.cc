@@ -52,7 +52,7 @@ namespace shcore {
     exec_and_out_equals("print(typeof mysqlx.openNodeSession);", "function");
   }
 
-  TEST_F(Shell_js_mysqlx_tests, mysqlx_open_session)
+  TEST_F(Shell_js_mysqlx_tests, mysqlx_open_session_uri)
   {
     exec_and_out_equals("var mysqlx = require('mysqlx').mysqlx;");
 
@@ -75,7 +75,116 @@ namespace shcore {
     exec_and_out_equals("print(members[7] == 'uri');", "true");
   }
 
-  TEST_F(Shell_js_mysqlx_tests, mysqlx_open_node_session)
+  TEST_F(Shell_js_mysqlx_tests, mysqlx_open_session_uri_password)
+  {
+    exec_and_out_equals("var mysqlx = require('mysqlx').mysqlx;");
+
+    // Assuming _uri is in the format user:password@host
+    int port = 3306, pwd_found;
+    std::string protocol, user, password, host, sock, schema;
+    mysh::parse_mysql_connstring(_uri, protocol, user, password, host, port, sock, schema, pwd_found);
+
+    std::string uri = mysh::strip_password(_uri);
+
+    if (!_pwd.empty())
+      password = _pwd;
+
+    exec_and_out_equals("var session = mysqlx.openSession('" + _uri + "', '" + password + "');");
+    exec_and_out_equals("print(session);", "<Session:" + uri + ">");
+
+    // Ensures the right members exist
+    exec_and_out_equals("var members = dir(session);");
+    exec_and_out_equals("print(members.length >= 8)", "true");
+    exec_and_out_equals("print(members[0] == 'getDefaultSchema');", "true");
+    exec_and_out_equals("print(members[1] == 'getSchema');", "true");
+    exec_and_out_equals("print(members[2] == 'getSchemas');", "true");
+    exec_and_out_equals("print(members[3] == 'getUri');", "true");
+    exec_and_out_equals("print(members[4] == 'setDefaultSchema');", "true");
+    exec_and_out_equals("print(members[5] == 'defaultSchema');", "true");
+    exec_and_out_equals("print(members[6] == 'schemas');", "true");
+    exec_and_out_equals("print(members[7] == 'uri');", "true");
+  }
+
+  TEST_F(Shell_js_mysqlx_tests, mysqlx_open_session_data)
+  {
+    exec_and_out_equals("var mysqlx = require('mysqlx').mysqlx;");
+
+    // Assuming _uri is in the format user:password@host
+    int port = 33060, pwd_found;
+    std::string protocol, user, password, host, sock, schema;
+    mysh::parse_mysql_connstring(_uri, protocol, user, password, host, port, sock, schema, pwd_found);
+
+    if (!_pwd.empty())
+      password = _pwd;
+
+    std::stringstream connection_data;
+    connection_data << "{";
+    connection_data << "\"host\": '" << host << "',";
+    connection_data << "\"port\": " << port << ",";
+    connection_data << "\"schema\": '" << schema << "',";
+    connection_data << "\"dbUser\": '" << user << "',";
+    connection_data << "\"dbPassword\": '" << password << "'";
+    connection_data << "}";
+
+    std::stringstream uri;
+    uri << user << "@" << host << ":" << port;
+
+    exec_and_out_equals("var session = mysqlx.openSession(" + connection_data.str() + ");");
+    exec_and_out_equals("print(session);", "<Session:" + uri.str() + ">");
+
+    // Ensures the right members exist
+    exec_and_out_equals("var members = dir(session);");
+    exec_and_out_equals("print(members.length >= 8)", "true");
+    exec_and_out_equals("print(members[0] == 'getDefaultSchema');", "true");
+    exec_and_out_equals("print(members[1] == 'getSchema');", "true");
+    exec_and_out_equals("print(members[2] == 'getSchemas');", "true");
+    exec_and_out_equals("print(members[3] == 'getUri');", "true");
+    exec_and_out_equals("print(members[4] == 'setDefaultSchema');", "true");
+    exec_and_out_equals("print(members[5] == 'defaultSchema');", "true");
+    exec_and_out_equals("print(members[6] == 'schemas');", "true");
+    exec_and_out_equals("print(members[7] == 'uri');", "true");
+  }
+
+  TEST_F(Shell_js_mysqlx_tests, mysqlx_open_session_data_password)
+  {
+    exec_and_out_equals("var mysqlx = require('mysqlx').mysqlx;");
+
+    // Assuming _uri is in the format user:password@host
+    int port = 33060, pwd_found;
+    std::string protocol, user, password, host, sock, schema;
+    mysh::parse_mysql_connstring(_uri, protocol, user, password, host, port, sock, schema, pwd_found);
+
+    if (!_pwd.empty())
+      password = _pwd;
+
+    std::stringstream connection_data;
+    connection_data << "{";
+    connection_data << "\"host\": '" << host << "',";
+    connection_data << "\"port\": " << port << ",";
+    connection_data << "\"schema\": '" << schema << "',";
+    connection_data << "\"dbUser\": '" << user << "'";
+    connection_data << "}";
+
+    std::stringstream uri;
+    uri << user << "@" << host << ":" << port;
+
+    exec_and_out_equals("var session = mysqlx.openSession(" + connection_data.str() + ", '" + password + "');");
+    exec_and_out_equals("print(session);", "<Session:" + uri.str() + ">");
+
+    // Ensures the right members exist
+    exec_and_out_equals("var members = dir(session);");
+    exec_and_out_equals("print(members.length >= 8)", "true");
+    exec_and_out_equals("print(members[0] == 'getDefaultSchema');", "true");
+    exec_and_out_equals("print(members[1] == 'getSchema');", "true");
+    exec_and_out_equals("print(members[2] == 'getSchemas');", "true");
+    exec_and_out_equals("print(members[3] == 'getUri');", "true");
+    exec_and_out_equals("print(members[4] == 'setDefaultSchema');", "true");
+    exec_and_out_equals("print(members[5] == 'defaultSchema');", "true");
+    exec_and_out_equals("print(members[6] == 'schemas');", "true");
+    exec_and_out_equals("print(members[7] == 'uri');", "true");
+  }
+
+  TEST_F(Shell_js_mysqlx_tests, mysqlx_open_node_session_uri)
   {
     exec_and_out_equals("var mysqlx = require('mysqlx').mysqlx;");
 
@@ -83,6 +192,118 @@ namespace shcore {
     std::string uri = mysh::strip_password(_uri);
     exec_and_out_equals("var session = mysqlx.openNodeSession('" + _uri + "');");
     exec_and_out_equals("print(session);", "<NodeSession:" + uri + ">");
+
+    // Ensures the right members exist
+    exec_and_out_equals("var members = dir(session);");
+    exec_and_out_equals("print(members.length >= 9)", "true");
+    exec_and_out_equals("print(members[0] == 'executeSql');", "true");
+    exec_and_out_equals("print(members[1] == 'getDefaultSchema');", "true");
+    exec_and_out_equals("print(members[2] == 'getSchema');", "true");
+    exec_and_out_equals("print(members[3] == 'getSchemas');", "true");
+    exec_and_out_equals("print(members[4] == 'getUri');", "true");
+    exec_and_out_equals("print(members[5] == 'setDefaultSchema');", "true");
+    exec_and_out_equals("print(members[6] == 'defaultSchema');", "true");
+    exec_and_out_equals("print(members[7] == 'schemas');", "true");
+    exec_and_out_equals("print(members[8] == 'uri');", "true");
+  }
+
+  TEST_F(Shell_js_mysqlx_tests, mysqlx_open_node_session_uri_password)
+  {
+    exec_and_out_equals("var mysqlx = require('mysqlx').mysqlx;");
+
+    // Assuming _uri is in the format user:password@host
+    int port = 3306, pwd_found;
+    std::string protocol, user, password, host, sock, schema;
+    mysh::parse_mysql_connstring(_uri, protocol, user, password, host, port, sock, schema, pwd_found);
+
+    std::string uri = mysh::strip_password(_uri);
+
+    if (!_pwd.empty())
+      password = _pwd;
+
+    exec_and_out_equals("var session = mysqlx.openNodeSession('" + _uri + "', '" + password + "');");
+    exec_and_out_equals("print(session);", "<NodeSession:" + uri + ">");
+
+    // Ensures the right members exist
+    exec_and_out_equals("var members = dir(session);");
+    exec_and_out_equals("print(members.length >= 9)", "true");
+    exec_and_out_equals("print(members[0] == 'executeSql');", "true");
+    exec_and_out_equals("print(members[1] == 'getDefaultSchema');", "true");
+    exec_and_out_equals("print(members[2] == 'getSchema');", "true");
+    exec_and_out_equals("print(members[3] == 'getSchemas');", "true");
+    exec_and_out_equals("print(members[4] == 'getUri');", "true");
+    exec_and_out_equals("print(members[5] == 'setDefaultSchema');", "true");
+    exec_and_out_equals("print(members[6] == 'defaultSchema');", "true");
+    exec_and_out_equals("print(members[7] == 'schemas');", "true");
+    exec_and_out_equals("print(members[8] == 'uri');", "true");
+  }
+
+  TEST_F(Shell_js_mysqlx_tests, mysqlx_open_node_session_data)
+  {
+    exec_and_out_equals("var mysqlx = require('mysqlx').mysqlx;");
+
+    // Assuming _uri is in the format user:password@host
+    int port = 33060, pwd_found;
+    std::string protocol, user, password, host, sock, schema;
+    mysh::parse_mysql_connstring(_uri, protocol, user, password, host, port, sock, schema, pwd_found);
+
+    if (!_pwd.empty())
+      password = _pwd;
+
+    std::stringstream connection_data;
+    connection_data << "{";
+    connection_data << "\"host\": '" << host << "',";
+    connection_data << "\"port\": " << port << ",";
+    connection_data << "\"schema\": '" << schema << "',";
+    connection_data << "\"dbUser\": '" << user << "',";
+    connection_data << "\"dbPassword\": '" << password << "'";
+    connection_data << "}";
+
+    std::stringstream uri;
+    uri << user << "@" << host << ":" << port;
+
+    exec_and_out_equals("var session = mysqlx.openNodeSession(" + connection_data.str() + ");");
+    exec_and_out_equals("print(session);", "<NodeSession:" + uri.str() + ">");
+
+    // Ensures the right members exist
+    exec_and_out_equals("var members = dir(session);");
+    exec_and_out_equals("print(members.length >= 9)", "true");
+    exec_and_out_equals("print(members[0] == 'executeSql');", "true");
+    exec_and_out_equals("print(members[1] == 'getDefaultSchema');", "true");
+    exec_and_out_equals("print(members[2] == 'getSchema');", "true");
+    exec_and_out_equals("print(members[3] == 'getSchemas');", "true");
+    exec_and_out_equals("print(members[4] == 'getUri');", "true");
+    exec_and_out_equals("print(members[5] == 'setDefaultSchema');", "true");
+    exec_and_out_equals("print(members[6] == 'defaultSchema');", "true");
+    exec_and_out_equals("print(members[7] == 'schemas');", "true");
+    exec_and_out_equals("print(members[8] == 'uri');", "true");
+  }
+
+  TEST_F(Shell_js_mysqlx_tests, mysqlx_open_node_session_data_password)
+  {
+    exec_and_out_equals("var mysqlx = require('mysqlx').mysqlx;");
+
+    // Assuming _uri is in the format user:password@host
+    int port = 33060, pwd_found;
+    std::string protocol, user, password, host, sock, schema;
+    mysh::parse_mysql_connstring(_uri, protocol, user, password, host, port, sock, schema, pwd_found);
+
+    if (!_pwd.empty())
+      password = _pwd;
+
+    std::stringstream connection_data;
+    connection_data << "{";
+    connection_data << "\"host\": '" << host << "',";
+    connection_data << "\"port\": " << port << ",";
+    connection_data << "\"schema\": '" << schema << "',";
+    connection_data << "\"dbUser\": '" << user << "'";
+    connection_data << "}";
+
+    std::stringstream uri;
+    uri << user << "@" << host << ":" << port;
+
+    exec_and_out_equals("var session = mysqlx.openNodeSession(" + connection_data.str() + ", '" + password + "');");
+    exec_and_out_equals("print(session);", "<NodeSession:" + uri.str() + ">");
 
     // Ensures the right members exist
     exec_and_out_equals("var members = dir(session);");

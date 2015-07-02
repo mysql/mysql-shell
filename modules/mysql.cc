@@ -229,6 +229,25 @@ Connection::Connection(const std::string &uri_, const char *password)
   }
 }
 
+Connection::Connection(const std::string &host, int port, const std::string &socket, const std::string &user, const std::string &password, const std::string &schema)
+: _mysql(NULL)
+{
+  long flags = CLIENT_MULTI_RESULTS;
+
+  _mysql = mysql_init(NULL);
+
+  std::stringstream str;
+  str << user << "@" << host << ":" << port;
+  _uri = str.str();
+
+  unsigned int tcp = MYSQL_PROTOCOL_TCP;
+  mysql_options(_mysql, MYSQL_OPT_PROTOCOL, &tcp);
+  if (!mysql_real_connect(_mysql, host.c_str(), user.c_str(), password.c_str(), schema.empty() ? NULL : schema.c_str(), port, socket.empty() ? NULL : socket.c_str(), flags))
+  {
+    throw shcore::Exception::error_with_code_and_state("MySQLError", mysql_error(_mysql), mysql_errno(_mysql), mysql_sqlstate(_mysql));
+  }
+}
+
 void Connection::close()
 {
   // This should be logged, for now commenting to

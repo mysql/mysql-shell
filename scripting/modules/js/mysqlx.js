@@ -20,17 +20,26 @@
 exports.mysqlx = {}
 
 // Connection functions
-exports.mysqlx.openSession = function(connection_data)
+exports.mysqlx.openSession = function(connection_data, password)
 {
-  var session = _F.mysqlx.Session(connection_data);
+  var session;
+
+  if (typeof(password) == 'undefined')
+    session = _F.mysqlx.Session(connection_data);
+  else
+    session = _F.mysqlx.Session(connection_data, password);
   
   return session;
 }
 
-exports.mysqlx.openNodeSession = function(connection_data)
+exports.mysqlx.openNodeSession = function(connection_data, password)
 {
-  // At some point this will instantiate a nodeSession object
-  var session = _F.mysqlx.NodeSession(connection_data);
+  var session;
+  
+  if (typeof(password) == 'undefined')
+    session = _F.mysqlx.NodeSession(connection_data);
+  else
+    session = _F.mysqlx.NodeSession(connection_data, password);
   
   return session;
 }

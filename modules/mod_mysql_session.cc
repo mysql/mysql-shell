@@ -73,8 +73,6 @@ Value Session::connect(const Argument_list &args)
 {
   args.ensure_count(1, 2, "Session::connect");
 
-  std::string uri_ = args.string_at(0);
-
   std::string protocol;
   std::string user;
   std::string pass;
@@ -87,15 +85,53 @@ Value Session::connect(const Argument_list &args)
   int pwd_found;
   int port = 0;
 
-  if (!parse_mysql_connstring(uri_, protocol, user, pass, host, port, sock, db, pwd_found))
-    throw shcore::Exception::argument_error("Could not parse URI for MySQL connection");
-
   // If password is received as parameter, then it overwrites
   // Anything found on the URI
   if (2 == args.size())
     pwd_override = args.string_at(1).c_str();
 
-  _conn.reset(new Connection(uri_, pwd_override));
+  if (args[0].type == String)
+  {
+    std::string uri_ = args.string_at(0);
+
+    if (!parse_mysql_connstring(uri_, protocol, user, pass, host, port, sock, db, pwd_found))
+      throw shcore::Exception::argument_error("Could not parse URI for MySQL connection");
+
+    _conn.reset(new Connection(uri_, pwd_override));
+  }
+  else if (args[0].type == Map)
+  {
+    std::string host;
+    int port = 33060;
+    std::string schema;
+    std::string socket;
+    std::string user;
+    std::string password;
+
+    shcore::Value::Map_type_ref options = args[0].as_map();
+
+    if (options->has_key("host"))
+      host = (*options)["host"].as_string();
+
+    if (options->has_key("port"))
+      port = (*options)["port"].as_int();
+
+    if (options->has_key("schema"))
+      schema = (*options)["schema"].as_string();
+
+    if (options->has_key("dbUser"))
+      user = (*options)["dbUser"].as_string();
+
+    if (options->has_key("dbPassword"))
+      password = (*options)["dbPassword"].as_string();
+
+    if (pwd_override)
+      password.assign(pwd_override);
+
+    _conn.reset(new Connection(host, port, socket, user, password, schema));
+  }
+  else
+    throw shcore::Exception::argument_error("Unexpected argument on connection data.");
 
   _load_schemas();
   _load_default_schema();

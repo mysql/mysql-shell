@@ -20,9 +20,14 @@
 exports.mysql = {}
 
 // Connection functions
-exports.mysql.openSession = function(connection_data)
+exports.mysql.openSession = function(connection_data, password)
 {
-  var session = _F.mysql.Session(connection_data);
+  var session;
+
+  if (typeof(password) == 'undefined')
+    session = _F.mysql.Session(connection_data);
+  else
+    session = _F.mysql.Session(connection_data, password);
   
   return session;
 }
