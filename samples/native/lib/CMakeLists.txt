@@ -137,5 +137,6 @@ else()
       "${MYSQL_CLIENT_LIB}")
   endif()
 
-  install(TARGETS shell_client_lib DESTINATION lib)
 endif()
+
+install(TARGETS shell_client_lib DESTINATION lib)
