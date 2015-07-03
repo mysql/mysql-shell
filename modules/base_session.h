@@ -23,20 +23,21 @@
 #ifndef _MOD_CORE_SESSION_H_
 #define _MOD_CORE_SESSION_H_
 
+#include "mod_common.h"
 #include "shellcore/types.h"
 #include "shellcore/types_cpp.h"
 #include "shellcore/ishell_core.h"
 
 namespace mysh
 {
-  bool parse_mysql_connstring(const std::string &connstring,
+  bool MOD_PUBLIC parse_mysql_connstring(const std::string &connstring,
                               std::string &protocol, std::string &user, std::string &password,
                               std::string &host, int &port, std::string &sock,
                               std::string &db, int &pwd_found);
 
-  std::string strip_password(const std::string &connstring);
+  std::string MOD_PUBLIC strip_password(const std::string &connstring);
 
-  class BaseSession : public shcore::Cpp_object_bridge
+  class MOD_PUBLIC BaseSession : public shcore::Cpp_object_bridge
   {
   public:
     BaseSession();
@@ -64,7 +65,7 @@ namespace mysh
     shcore::Value get_member_method(const shcore::Argument_list &args, const std::string& method, const std::string& prop);
   };
 
-  boost::shared_ptr<mysh::BaseSession> connect_session(const shcore::Argument_list &args);
+  boost::shared_ptr<mysh::BaseSession> MOD_PUBLIC connect_session(const shcore::Argument_list &args);
 };
 
 #endif

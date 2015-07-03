@@ -36,7 +36,7 @@ IMPORTANT: Use the parameter "-DWINDOWS_RUNTIME_MD=1" to generate DLL binaries w
 interop in managed sample)
 cmake -DV8_INCLUDE_DIR=C:\src\mysql-server\ng-deps-qa-MD\v8\include -DV8_LIB_DIR=C:\src\mysql-server\ng-deps-qa-MD\v8\build\Debug\lib -DBOOST_ROOT=C:\src\mysql-server\boost\boost_1_57_0 -DMYSQL_DIR="C:\MySQL\mysql-5.6.22-win32-MD-debug" -DPROTOBUF_LIBRARY=C:\src\mysql-server\protobuf\protobuf-2.6.1\vsprojects\Debug\libprotobuf.lib -DPROTOBUF_INCLUDE_DIR=C:\src\mysql-server\protobuf\protobuf-2.6.1\src -DWITH_PROTOBUF=C:\src\mysql-server\protobuf\protobuf-2.6.1 -DWINDOWS_RUNTIME_MD=1 -DCMAKE_INSTALL_PREFIX=C:\src\mysql-server\ngshell-install-script-MD-2\install_image2 ..
 
-8. Copy the files v8.dll & v8.lib to the path CMAKE_INSTALL_PREFIX\lib
+8. The previous step will automatically copy the v8.dll & v8.lib to the CMAKE_INSTALL_PREFIX/lib folder.
 
 9. Build the shell:
   msbuild mysh.sln /p:Configuration=Debug
@@ -50,7 +50,14 @@ cd <native-dir>
 mkdir MY_BUILD
 cd MY_BUILD
 cmake -DHEADERS_DIR=C:\src\mysql-server\ngshell-install-script-MD-2\install_image2\include -DLIBS_DIR=C:\src\mysql-server\ngshell-install-script-MD-2\install_image2\lib -DMYSQL_CLIENT_LIB="C:\MySQL\mysql-5.6.22-win32-MD-debug\lib\mysqlclient.lib" -DBOOST_INCLUDE_DIR=C:\src\mysql-server\boost\boost_1_57_0 ..
+cmake -DDEPLOY_DIR=C:\src\mysql-server\ngshell-install-script-MD-2\install_image2 -DMYSQL_CLIENT_LIB="C:\MySQL\mysql-5.6.22-win32-MD-debug\lib\mysqlclient.lib" -DBOOST_INCLUDE_DIR=C:\src\mysql-server\boost\boost_1_57_0 ..
 msbuild sample_client.sln /p:Configuration=Debug
+
+12. Now for the native sample run the install script to copy DEPLOY_DIR (same as CMAKE_INSTALL_PREFIX in main shell build).
+
+msbuild INSTALL.vcxproj
+
+13. Now you can zip the whole contents of DEPLOY_DIR (C:\src\mysql-server\ngshell-install-script-MD-2\install_image2), that's the bundle for clients to use.
 
 
 On Linux:
@@ -63,14 +70,19 @@ cd MY_BUILD
 cmake -DV8_INCLUDE_DIR=/home/fernando/src/ng-qa/ngshell-deps/v8/include -DV8_LIB_DIR=/home/fernando/src/ng-qa/ngshell-deps/v8/out/x64.debug/lib.target -DWITH_TESTS=1 -DWITH_GTEST=/home/fernando/src/ng-qa/ngshell-deps/v8/testing/gtest/bld/ -DMYSQL_DIR=/home/fernando/src/mysql-server/mysql-advanced-5.6.24-linux-glibc2.5-x86_64/ -DCMAKE_BUILD_TYPE=Debug -DCMAKE_INSTALL_PREFIX=/home/fernando/src/ngshell-install-script-final/install_image/ -DPROTOBUF_INCLUDE_DIR=/usr/local/include/ -DPROTOBUF_LIBRARY=/usr/local/lib64/ ..
 make
 make install
-1. Please copy the libv8.so file to the path specified CMAKE_INSTALL_PREFIX/lib
+1. The previous step will automatically copy the libv8.so  to the CMAKE_INSTALL_PREFIX/lib folder.
 2. Next you can build the native sample, for example:
 cd <shell-root>/samples/native
 mkdir MY_BUILD
 cd MY_BUILD
-cmake -DHEADERS_DIR=/home/fernando/src/ngshell-install-script-final/install_image/include/ -DLIBS_DIR=/home/fernando/src/ngshell-install-script-final/install_image/lib/ -DMYSQL_CLIENT_LIB="/home/fernando/src/mysql-server/mysql-advanced-5.6.24-linux-glibc2.5-x86_64/lib/libmysqlclient.so" -DPYTHON_LIBS=/usr/lib64/libpython2.7.so ..
+cmake -DDEPLOY_DIR=/home/fernando/src/ngshell-readonly-frozen-7/deployed/ -DMYSQL_CLIENT_LIB="/home/fernando/src/mysql-server/mysql-advanced-5.6.24-linux-glibc2.5-x86_64/lib/libmysqlclient.so" -DPROTOBUF_LIBRARY=/usr/local/lib64/libprotobuf.so -DPYTHON_LIBS=/usr/lib64/libpython2.7.so ..
 make
-3. Now you can run the sample client with ./shell_client_app
+
+3. Now you can run 
+  make install
+To copy the shell abstraction the CMAKE_INSTALL_PREFIX/DEPLOY_DIR, zip everything and make the bundle available to clients.
+
+4. You can also run the sample client with ./shell_client_app
 
 
 

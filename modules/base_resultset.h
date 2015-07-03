@@ -23,6 +23,7 @@
 #ifndef _MOD_CORE_RESULT_SET_H_
 #define _MOD_CORE_RESULT_SET_H_
 
+#include "mod_common.h"
 #include "shellcore/types.h"
 #include "shellcore/types_cpp.h"
 
@@ -53,7 +54,7 @@ namespace mysh
     void print_warnings();
   };
 
-  class Row : public shcore::Cpp_object_bridge
+  class MOD_PUBLIC Row : public shcore::Cpp_object_bridge
   {
   public:
     Row();

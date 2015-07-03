@@ -41,8 +41,7 @@
 
 #include "shellcore/types.h"
 #include "shellcore/shell_core.h"
-#include "modules/mod_db.h"
-#include "modules/mod_session.h"
+#include "modules/base_session.h"
 #include "shellcore/lang_base.h"
 
 #define HAVE_V8
@@ -67,8 +66,7 @@ protected:
   virtual void source(const char* module);
 private:
   shcore::Interpreter_delegate _delegate;
-  boost::shared_ptr<mysh::Session> _session;
-  boost::shared_ptr<mysh::Db> _db;
+  boost::shared_ptr<mysh::BaseSession> _session;
   boost::shared_ptr<shcore::Shell_core> _shell;
 
   static void deleg_print(void *self, const char *text);

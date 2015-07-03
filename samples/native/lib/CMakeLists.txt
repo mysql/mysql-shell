@@ -13,9 +13,6 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
 
-
-# cmake -DHEADERS_DIR=... -DLIBS_DIR=.. -DMYSQL_CLIENT_LIB=... ..
-
 # ----------------------------------------------------------------------
 # Sample lib source
 # ----------------------------------------------------------------------
@@ -28,7 +25,7 @@ file(GLOB lib_SRC
 
 add_library(shell_client_lib SHARED ${lib_SRC})
 
-include_directories(${HEADERS_DIR})
+include_directories("${DEPLOY_DIR}/include")
 
 add_definitions(-DSHELL_CLIENT_NATIVE_EXPORTS)
 add_definitions(-DBOOST_ALL_NO_LIB)
@@ -53,8 +50,8 @@ endif()
 # Find V8, might be one or multiple libraries
 # ----------------------------------------------------------------------
 
-find_library(lib_v8 "v8" "${LIBS_DIR}"
-             PATHS ${LIBS_DIR}
+find_library(lib_v8 "v8" "${DEPLOY_DIR}/lib"
+             PATHS "${DEPLOY_DIR}/lib"
              NO_DEFAULT_PATH
 )
 if(NOT lib_v8)
@@ -81,10 +78,10 @@ find_library(lib_v8 "v8")
 # Common libraries for Windows and Unix
 # ----------------------------------------------------------------------
 
-find_library(lib_mysqlsh "mysqlsh" "${LIBS_DIR}")
-find_library(lib_mysqlshmods "mysqlshmods" "${LIBS_DIR}")
-find_library(lib_mysqlxtest "mysqlxtest" "${LIBS_DIR}")
-find_library(lib_mysqlxtest_pb "mysqlxtest_pb" "${LIBS_DIR}")
+find_library(lib_mysqlsh "mysqlsh" "${DEPLOY_DIR}/lib")
+find_library(lib_mysqlshmods "mysqlshmods" "${DEPLOY_DIR}/lib")
+find_library(lib_mysqlxtest "mysqlxtest" "${DEPLOY_DIR}/lib")
+find_library(lib_mysqlxtest_pb "mysqlxtest_pb" "${DEPLOY_DIR}/lib")
 
 # ----------------------------------------------------------------------
 # Find Windows/Unix specific libraries and set libraries to link with
@@ -92,7 +89,7 @@ find_library(lib_mysqlxtest_pb "mysqlxtest_pb" "${LIBS_DIR}")
 
 if(WIN32)
 
-  find_library(lib_mysqlshtypes "mysqlshtypes" "${LIBS_DIR}")
+  find_library(lib_mysqlshtypes "mysqlshtypes" "${DEPLOY_DIR}/lib")
 
   target_link_libraries(shell_client_lib
     ${lib_mysqlsh}
@@ -108,6 +105,9 @@ else()
     ${lib_mysqlsh}
     ${lib_mysqlshmods}
     ${lib_mysqlxtest}
+    ${lib_mysqlxtest_pb}
     ${lib_v8}
     "${MYSQL_CLIENT_LIB}")
 endif()
+
+install(TARGETS shell_client_lib DESTINATION lib)

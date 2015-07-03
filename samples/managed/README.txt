@@ -39,6 +39,13 @@ END OF IMPORTANT
 4. Now you can build the sample C# client, open the project at managed/app/SimpleShellClientSharp.csproj
 
 5. Add/correct the assembly reference to simple_shell_client_managed.dll created in step 3.
+Also copy the whole set of dependencies into the managed\app\bin\Debug folder of the managed sample:
+- mysqlsh.dll
+- mysqlshmods.dll
+- mysqlshtypes.dll
+- shell_client_lib.dll
+- simple_shell_client_managed.dll
+- v8.dll
 
 6. You can run the sample.
   (For sample input, refer to README.txt in native sample).

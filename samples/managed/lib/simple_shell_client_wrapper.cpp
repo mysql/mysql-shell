@@ -26,6 +26,7 @@
 
 #include "shellcore/ishell_core.h"
 #include "simple_client_shell_wrapper.h"
+#include "modules/base_resultset.h"
 
 using namespace MySqlX::Shell;
 using namespace System::Runtime::InteropServices;
@@ -101,17 +102,16 @@ List<Dictionary<String^, Object^>^>^ SimpleClientShell::get_managed_doc_result(D
   List<Dictionary<String^, Object^>^>^ result = gcnew List<Dictionary<String^, Object^>^>();
   boost::shared_ptr<std::vector<shcore::Value> > data = doc->get_data();
   std::vector<shcore::Value>::const_iterator myend = data->end();
-  // a document is an array of maps
+  // a document is an array of objects of type mysh::Row
   for (std::vector<shcore::Value>::const_iterator it = data->begin(); it != myend; ++it)
   {
-    std::map<std::string, shcore::Value> *mymap = dynamic_cast<std::map<std::string, shcore::Value>*>(it->as_map().get());
-    std::map<std::string, shcore::Value>::const_iterator myend2 = mymap->end();
+    boost::shared_ptr<mysh::Row> row = it->as_object<mysh::Row>();
     Dictionary<String^, Object^>^ dic = gcnew Dictionary<String^, Object^>();
-
-    for (std::map<std::string, shcore::Value>::const_iterator it2 = mymap->begin(); it2 != myend2; ++it2)
+    std::map<std::string, int>::const_iterator it2, myend2 = row->keys.end();
+    for (it2 = row->keys.begin(); it2 != myend2; ++it2)
     {
       Object^ o;
-      shcore::Value val = it2->second;
+      shcore::Value& val = row->values[it2->second];
       switch (val.type)
       {
       case shcore::Integer:
@@ -146,39 +146,33 @@ List<array<Object^>^>^ SimpleClientShell::get_managed_table_result_set(Table_res
   for (int i = 0; i < dataset->size(); ++i)
   {
     shcore::Value& v_row = (*dataset)[i];
-    if (v_row.type == shcore::Array)
+    boost::shared_ptr<mysh::Row> row = v_row.as_object<mysh::Row>();
+    array<Object^>^ arr = gcnew array<Object^>(metadata->size());
+    std::cout << std::endl;
+    for (size_t i = 0; i < metadata->size(); i++)
     {
-      // should always be true
-      array<Object^>^ arr = gcnew array<Object^>(metadata->size());
-      std::vector<shcore::Value>* row = v_row.as_array().get();
-      std::vector<shcore::Value>::const_iterator myend = row->end();
-
-      std::cout << std::endl;
-      int i = 0;
-      for (std::vector<shcore::Value>::const_iterator it = row->begin(); it != myend; ++it)
+      shcore::Value& val = row->values[i];
+      Object^ o;
+      switch (val.type)
       {
-        Object^ o;
-        switch (it->type)
-        {
-        case shcore::Integer:
-          o = gcnew Int32(it->as_int());
-          break;
-        case shcore::String:
-          o = msclr::interop::marshal_as<String^>(it->as_string());
-          break;
-        case shcore::Bool:
-          o = gcnew Boolean(it->as_bool());
-          break;
-        case shcore::Float:
-          o = gcnew Double(it->as_double());
-          break;
-        default:
-          o = msclr::interop::marshal_as<String^>(it->descr());
-        }
-        arr->SetValue(o, i++);
+      case shcore::Integer:
+        o = gcnew Int32(val.as_int());
+        break;
+      case shcore::String:
+        o = msclr::interop::marshal_as<String^>(val.as_string());
+        break;
+      case shcore::Bool:
+        o = gcnew Boolean(val.as_bool());
+        break;
+      case shcore::Float:
+        o = gcnew Double(val.as_double());
+        break;
+      default:
+        o = msclr::interop::marshal_as<String^>(val.descr());
       }
-      result->Add(arr);
+      arr->SetValue(o, (int)i++);
     }
+    result->Add(arr);
   }
   return result;
 }

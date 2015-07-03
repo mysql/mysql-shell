@@ -17,6 +17,8 @@ cmake_minimum_required (VERSION 2.8)
 
 project(sample_client)
 
+set(CMAKE_INSTALL_PREFIX "${DEPLOY_DIR}")
+
 file(GLOB app_SRC
       "${PROJECT_SOURCE_DIR}/app/simple_shell_client_app.cc"
       "${PROJECT_SOURCE_DIR}/app/boost_code.cc"
@@ -24,7 +26,7 @@ file(GLOB app_SRC
 
 add_executable(shell_client_app ${app_SRC})
 
-include_directories(${HEADERS_DIR})
+include_directories("${DEPLOY_DIR}/include")
 include_directories(${BOOST_INCLUDE_DIR})
 include_directories("${PROJECT_SOURCE_DIR}/lib")
 
@@ -35,7 +37,7 @@ if(WIN32)
 else()
   target_link_libraries(shell_client_app
     shell_client_lib
-    ${PYTHON_LIBS}
+    ${PYTHON_LIBS} ${PROTOBUF_LIBRARY}
   )
 endif()
 

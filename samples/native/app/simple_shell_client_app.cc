@@ -22,6 +22,7 @@
 #include "simple_shell_client.h"
 
 #include <boost/shared_ptr.hpp>
+#include "modules/base_resultset.h"
 
 
 void print_table_result_set(Table_result_set* tbl)
@@ -40,34 +41,29 @@ void print_table_result_set(Table_result_set* tbl)
   for (int i = 0; i < dataset->size(); ++i)
   {
     shcore::Value& v_row = (*dataset)[i];
-    if (v_row.type == shcore::Array)
+    boost::shared_ptr<mysh::Row> row = v_row.as_object<mysh::Row>();   
+    for (size_t i = 0; i < metadata->size(); i++)
     {
-      // should always be true
-      std::vector<shcore::Value>* row = v_row.as_array().get();
-      std::vector<shcore::Value>::const_iterator myend = row->end();
-
-      std::cout << std::endl;
-      for (std::vector<shcore::Value>::const_iterator it = row->begin(); it != myend; ++it)
+      shcore::Value& val = row->values[i];
+      switch (val.type)
       {
-        switch (it->type)
-        {
-        case shcore::Integer:
-          std::cout << it->as_int() << '\t';
-          break;
-        case shcore::String:
-          std::cout << it->as_string() << '\t';
-          break;
-        case shcore::Bool:
-          std::cout << it->as_bool() << '\t';
-          break;
-        case shcore::Float:
-          std::cout << it->as_double() << '\t';
-          break;
-        default:
-          std::cout << it->descr() << "\t";
-        }
+      case shcore::Integer:
+        std::cout << val.as_int() << '\t';
+        break;
+      case shcore::String:
+        std::cout << val.as_string() << '\t';
+        break;
+      case shcore::Bool:
+        std::cout << val.as_bool() << '\t';
+        break;
+      case shcore::Float:
+        std::cout << val.as_double() << '\t';
+        break;
+      default:
+        std::cout << val.descr() << "\t";
       }
     }
+    std::cout << std::endl;
   }
   std::cout << std::endl << std::endl;
   std::cout << "warning count: " << tbl->get_warning_count() << std::endl;
@@ -80,37 +76,47 @@ void print_doc_result_set(Document_result_set *doc)
 {
   boost::shared_ptr<std::vector<shcore::Value> > data = doc->get_data();
   std::vector<shcore::Value>::const_iterator myend = data->end();
-  // a document is an array of maps
+  // a document is an array of objects of type mysh::Row
+  int i = 0;
+  std::cout << "{";
   for (std::vector<shcore::Value>::const_iterator it = data->begin(); it != myend; ++it)
   {
-    // public std::map<std::string, Value>
-    shcore::Value::Map_type *mymap = dynamic_cast<shcore::Value::Map_type *>(it->as_map().get());
-    shcore::Value::Map_type::const_iterator myend2 = mymap->end();
-    std::cout << "{" << std::endl;
-    for (shcore::Value::Map_type::const_iterator it2 = mymap->begin(); it2 != myend2; ++it2)
+if (i++ != 0)
+      std::cout << ",\n";
+    boost::shared_ptr<mysh::Row> row = it->as_object<mysh::Row>();
+    row->values.size();
+    std::cout << "[" << std::endl;
+    std::map<std::string, int>::const_iterator it2, myend = row->keys.end();
+    size_t j = 0;
+    for (it2 = row->keys.begin(); it2 != myend; ++it2)
     {
       std::cout << "\t\"" << it2->first << " : ";
-      shcore::Value val = it2->second;
+shcore::Value& val = row->values[it2->second];
       switch (val.type)
       {
       case shcore::Integer:
-        std::cout << "\"" << val.as_int() << "\"," << std::endl;
+        std::cout << "\"" << val.as_int() << "\"";
         break;
       case shcore::String:
-        std::cout << "\"" << val.as_string() << "\"," << std::endl;
+        std::cout << "\"" << val.as_string() << "\"";
         break;
       case shcore::Bool:
-        std::cout << "\"" << val.as_bool() << "\"," << std::endl;
+        std::cout << "\"" << val.as_bool() << "\"";
         break;
       case shcore::Float:
-        std::cout << "\"" << val.as_double() << "\"," << std::endl;
+        std::cout << "\"" << val.as_double() << "\"";
         break;
       default:
-        std::cout << "\"" << val.descr() << "\"," << std::endl;
+        std::cout << "\"" << val.descr() << "\"";
       }
+      if (++j >= row->keys.size())
+        std::cout << std::endl;
+      else
+        std::cout << "," << std::endl;
     }
-    std::cout << "}" << std::endl;
+    std::cout << "]";
   }
+  std::cout << "}" << std::endl;
 }
 
 

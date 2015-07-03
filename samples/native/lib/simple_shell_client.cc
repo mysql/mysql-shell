@@ -25,9 +25,7 @@
 #include "shellcore/shell_core.h"
 #include "shellcore/lang_base.h"
 
-#include "modules/mod_db.h"
-#include "modules/mod_session.h"
-
+#include "modules/base_session.h"
 
 using namespace shcore;
 
@@ -44,9 +42,6 @@ Simple_shell_client::Simple_shell_client()
   _delegate.source = &Simple_shell_client::deleg_source;
 
   _shell.reset(new Shell_core(&_delegate));
-
-  _session.reset(new mysh::Session(_shell.get()));
-  _shell->set_global("session", Value(boost::static_pointer_cast<Object_bridge>(_session)));
 
   bool lang_initialized;
   _shell->switch_mode(mode, lang_initialized);
@@ -65,17 +60,19 @@ Simple_shell_client::Simple_shell_client()
 
 shcore::Value Simple_shell_client::connect_session(const shcore::Argument_list &args)
 {
-  _session->connect(args);
+  boost::shared_ptr<mysh::BaseSession> new_session(mysh::connect_session(args));
+  _session.reset(new_session, new_session.get());
 
-  boost::shared_ptr<mysh::Db> db(_session->default_schema());
-  if (db)
+  _shell->set_global("session", Value(boost::static_pointer_cast<Object_bridge>(_session)));
+
+  Value default_schema = _session->get_member("defaultSchema");
+  if (default_schema)
   {
-    if (_shell->interactive_mode() != Shell_core::Mode_SQL)
-      _shell->print("Default schema `" + db->schema() + "` accessible through db.\n");
-    _shell->set_global("db", Value(boost::static_pointer_cast<Object_bridge>(db)));
+    _shell->set_global("db", default_schema);
   }
   else
   {
+    // XXX assign a dummy placeholder to db
     if (_shell->interactive_mode() != Shell_core::Mode_SQL)
       _shell->print("No default schema selected.\n");
   }
@@ -101,15 +98,14 @@ boost::shared_ptr<Result_set> Simple_shell_client::process_line(const std::strin
     {
       boost::shared_ptr<Object_bridge> object = result.as_object();
 
-      shcore::Value affected_rows = object->call("affectedRows", Argument_list());
-      shcore::Value fetched_row_count = object->call("fetchedRowCount", Argument_list());
-      shcore::Value warning_count = object->call("warningCount", Argument_list());
-      shcore::Value execution_time = object->call("executionTime", Argument_list());
+      shcore::Value affected_rows = object->call("getAffectedRows", Argument_list());
+      shcore::Value fetched_row_count = object->call("getFetchedRowCount", Argument_list());
+      shcore::Value warning_count = object->call("getWarningCount", Argument_list());
+      shcore::Value execution_time = object->call("getExecutionTime", Argument_list());
 
       shcore::Argument_list args;
       // If true returns as data array, if false, returns as document.
       shcore::IShell_core::Mode mode = _shell->interactive_mode();
-      args.push_back(shcore::Value::True());
       shcore::Value result = object->call("all", args);
       shcore::Value metadata = object->call("getColumnMetadata", Argument_list());
 
@@ -129,12 +125,9 @@ boost::shared_ptr<Result_set> Simple_shell_client::process_line(const std::strin
     else if (result.type == shcore::Array)
     {
       boost::shared_ptr<shcore::Value::Array_type> arr_result = result.as_array();
-      if (arr_result->begin()->type == shcore::Map)
-      {
-        // create document result
-        boost::shared_ptr<Document_result_set> doc(new Document_result_set(arr_result, -1, -1, ""));
-        return doc;
-      }
+      // create document result
+      boost::shared_ptr<Document_result_set> doc(new Document_result_set(arr_result, -1, -1, ""));
+      return doc;
     }
 
     //std::string executed = _shell->get_handled_input();
@@ -197,7 +190,7 @@ bool Simple_shell_client::connect(const std::string &uri)
 
   try
   {
-    if (_session->is_connected())
+    if (_session && _session->is_connected())
     {
       shcore::print("Closing old connection...\n");
       _session->disconnect();

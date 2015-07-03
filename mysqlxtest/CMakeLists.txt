@@ -63,5 +63,8 @@ endif()
 
 add_definitions(-DBOOST_ALL_NO_LIB )
 
+install(DIRECTORY "${CMAKE_SOURCE_DIR}/mysqlxtest/" DESTINATION "include/" FILES_MATCHING PATTERN "*.h" )
+install(DIRECTORY "${CMAKE_SOURCE_DIR}/mysqlxtest/common/" DESTINATION "include/common/" FILES_MATCHING PATTERN "*.h" )
+install(DIRECTORY "${CMAKE_BINARY_DIR}/mysqlxtest/" DESTINATION "include/" FILES_MATCHING PATTERN "*.h" )
 install(TARGETS mysqlxtest DESTINATION lib)
 install(TARGETS mysqlxtest_pb DESTINATION lib)
