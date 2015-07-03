@@ -17,6 +17,8 @@
  * 02110-1301  USA
  */
 
+#ifndef SIMPLE_SHELL_CLIENT_H_
+#define SIMPLE_SHELL_CLIENT_H_
 
 #ifdef _WIN32
 # if _DLL
@@ -32,8 +34,6 @@
 # define SHELL_CLIENT_NATIVE_PUBLIC
 #endif
 
-
-
 #include <string>
 #include <vector>
 #include <stdexcept>
@@ -43,8 +43,6 @@
 #include "shellcore/shell_core.h"
 #include "modules/base_session.h"
 #include "shellcore/lang_base.h"
-
-#define HAVE_V8
 
 class Result_set;
 class Result_set_metadata;
@@ -68,6 +66,7 @@ private:
   shcore::Interpreter_delegate _delegate;
   boost::shared_ptr<mysh::BaseSession> _session;
   boost::shared_ptr<shcore::Shell_core> _shell;
+  boost::shared_ptr<Result_set> _last_result;
 
   static void deleg_print(void *self, const char *text);
   static void deleg_print_error(void *self, const char *text);
@@ -77,6 +76,7 @@ private:
 
   shcore::Value connect_session(const shcore::Argument_list &args);
   boost::shared_ptr<Result_set> process_line(const std::string &line);
+  void process_result(shcore::Value result);
   bool do_shell_command(const std::string &line);
   bool connect(const std::string &uri);
   boost::shared_ptr<std::vector<Result_set_metadata> > populate_metadata(shcore::Value& metadata);
@@ -122,7 +122,7 @@ public:
   {}
   virtual ~Result_set() { }
   int64_t get_affected_rows() { return _affected_rows; }
-  int get_warning_count() { return _warning_count;  }
+  int get_warning_count() { return _warning_count; }
   std::string get_execution_time() { return _execution_time; }
 protected:
   int64_t _affected_rows;
@@ -136,7 +136,6 @@ public:
   Table_result_set(boost::shared_ptr<std::vector<shcore::Value> > data, boost::shared_ptr<std::vector<Result_set_metadata> > metadata,
     int64_t affected_rows, int warning_count, std::string execution_time) : Result_set(affected_rows, warning_count, execution_time), _metadata(metadata), _data(data)
   {
-
   }
   boost::shared_ptr<std::vector<Result_set_metadata> > get_metadata() { return _metadata; }
   boost::shared_ptr<std::vector<shcore::Value> > get_data() { return _data; }
@@ -158,3 +157,5 @@ public:
 protected:
   boost::shared_ptr<std::vector<shcore::Value> > _data;
 };
+
+#endif

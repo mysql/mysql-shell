@@ -23,24 +23,21 @@
 #include "shellcore/shell_core.h"
 
 namespace shcore {
+  class JScript_context;
 
-class JScript_context;
+  class Shell_javascript : public Shell_language
+  {
+  public:
+    Shell_javascript(Shell_core *shcore);
 
-class Shell_javascript : public Shell_language
-{
-public:
-  Shell_javascript(Shell_core *shcore);
+    virtual void set_global(const std::string &name, const Value &value);
 
-  virtual void set_global(const std::string &name, const Value &value);
+    virtual void handle_input(std::string &code, Interactive_input_state &state, boost::function<void(shcore::Value)> result_processor, bool interactive = true);
 
-  virtual Value handle_input(std::string &code, Interactive_input_state &state, bool interactive = true);
-
-  virtual std::string prompt();
-private:
-  boost::shared_ptr<JScript_context> _js;
-};
-
+    virtual std::string prompt();
+  private:
+    boost::shared_ptr<JScript_context> _js;
+  };
 };
 
 #endif
-

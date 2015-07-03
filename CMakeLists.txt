@@ -290,4 +290,9 @@ add_definitions(-DBOOST_ALL_NO_LIB )
 
 ADD_SUBDIRECTORY(doc)
 
+
+IF (WITH_SAMPLES)
+  add_subdirectory(samples/native)
+ENDIF()
+
 include(packaging)

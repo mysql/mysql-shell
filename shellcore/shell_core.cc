@@ -80,9 +80,9 @@ bool Shell_core::password(const std::string &s, std::string &ret_pass)
   return _lang_delegate->password(_lang_delegate->user_data, s.c_str(), ret_pass);
 }
 
-Value Shell_core::handle_input(std::string &line, Interactive_input_state &state, bool interactive)
+void Shell_core::handle_input(std::string &code, Interactive_input_state &state, boost::function<void(shcore::Value)> result_processor, bool interactive)
 {
-  return _langs[_mode]->handle_input(line, state, interactive);
+  _langs[_mode]->handle_input(code, state, result_processor, interactive);
 }
 
 std::string Shell_core::get_handled_input()
@@ -99,7 +99,7 @@ std::string Shell_core::get_handled_input()
 int Shell_core::process_stream(std::istream& stream, const std::string& source, bool continue_on_error)
 {
   Interactive_input_state state;
-  int ret_val = 0;
+  _global_return_code = 0;
 
   _input_source = source;
 
@@ -112,29 +112,9 @@ int Shell_core::process_stream(std::istream& stream, const std::string& source, 
 
       std::getline(stream, line);
 
-      Value result = handle_input(line, state, false);
+      handle_input(line, state, boost::bind(&Shell_core::process_result, this, _1, true), false);
 
-      // Prints results in batch mode
-      if (result && result.type == shcore::Object)
-      {
-        boost::shared_ptr<Object_bridge> object = result.as_object();
-        Value dump_function;
-        if (object && object->has_member("__paged_output__"))
-          dump_function = object->get_member("__paged_output__");
-
-        if (dump_function)
-        {
-          Argument_list args;
-          args.push_back(Value(_output_format));
-
-          object->call("__paged_output__", args);
-        }
-      }
-
-      // Undefined is to be used as error condition
-      ret_val = (ret_val || result.type == shcore::Undefined);
-
-      if (ret_val && !continue_on_error)
+      if (_global_return_code && !continue_on_error)
         break;
     }
   }
@@ -152,13 +132,38 @@ int Shell_core::process_stream(std::istream& stream, const std::string& source, 
 
     std::string data(fdata);
 
-    Value result = handle_input(data, state, false);
-    ret_val = (result.type == shcore::Undefined);
+    handle_input(data, state, boost::bind(&Shell_core::process_result, this, _1, false), false);
   }
 
   _input_source.clear();
 
-  return ret_val;
+  return _global_return_code;
+}
+
+void Shell_core::process_result(shcore::Value result, bool print_data)
+{
+  if (print_data)
+  {
+    // Prints results in batch mode
+    if (result && result.type == shcore::Object)
+    {
+      boost::shared_ptr<Object_bridge> object = result.as_object();
+      Value dump_function;
+      if (object && object->has_member("__paged_output__"))
+        dump_function = object->get_member("__paged_output__");
+
+      if (dump_function)
+      {
+        Argument_list args;
+        args.push_back(Value(_output_format));
+
+        object->call("__paged_output__", args);
+      }
+    }
+  }
+
+  // Undefined is to be used as error condition
+  _global_return_code = (_global_return_code || result.type == shcore::Undefined);
 }
 
 bool Shell_core::switch_mode(Mode mode, bool &lang_initialized)

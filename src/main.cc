@@ -93,6 +93,7 @@ public:
 private:
   static char *readline(const char *prompt);
   void process_line(const std::string &line);
+  void process_result(shcore::Value result);
   std::string prompt();
 
   void switch_shell_mode(Shell_core::Mode mode, const std::vector<std::string> &args);
@@ -570,39 +571,7 @@ void Interactive_shell::process_line(const std::string &line)
     {
       try
       {
-        Value result = _shell->handle_input(_input_buffer, state);
-
-        if (result)
-        {
-          Value dump_function;
-          if (result.type == shcore::Object)
-          {
-            boost::shared_ptr<Object_bridge> object = result.as_object();
-            if (object && object->has_member("__paged_output__"))
-              dump_function = object->get_member("__paged_output__");
-
-            if (dump_function)
-            {
-              Argument_list args;
-              args.push_back(Value(_output_format));
-              object->call("__paged_output__", args);
-            }
-          }
-
-          // If the function is not found the values still needs to be printed
-          if (!dump_function)
-          {
-            if (_output_format == "json")
-            {
-              std::string output = "{\"__result__\": ";
-              output += result.repr().c_str();
-              output += "}\n";
-              print(output);
-            }
-            else
-              print(result.descr(true).c_str());
-          }
-        }
+        _shell->handle_input(_input_buffer, state, boost::bind(&Interactive_shell::process_result, this, _1));
 
         std::string executed = _shell->get_handled_input();
 
@@ -623,6 +592,41 @@ void Interactive_shell::process_line(const std::string &line)
       // the non executed code
       if (state == Input_ok)
         _input_buffer.clear();
+    }
+  }
+}
+
+void Interactive_shell::process_result(shcore::Value result)
+{
+  if (result)
+  {
+    Value dump_function;
+    if (result.type == shcore::Object)
+    {
+      boost::shared_ptr<Object_bridge> object = result.as_object();
+      if (object && object->has_member("__paged_output__"))
+        dump_function = object->get_member("__paged_output__");
+
+      if (dump_function)
+      {
+        Argument_list args;
+        args.push_back(Value(_output_format));
+        object->call("__paged_output__", args);
+      }
+    }
+
+    // If the function is not found the values still needs to be printed
+    if (!dump_function)
+    {
+      if (_output_format == "json")
+      {
+        std::string output = "{\"__result__\": ";
+        output += result.repr().c_str();
+        output += "}\n";
+        print(output);
+      }
+      else
+        print(result.descr(true).c_str());
     }
   }
 }

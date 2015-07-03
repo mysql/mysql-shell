@@ -26,7 +26,16 @@ file(GLOB app_SRC
 
 add_executable(shell_client_app ${app_SRC})
 
-include_directories("${DEPLOY_DIR}/include")
+if (WITH_SAMPLES)
+  include_directories("${PROJECT_SOURCE_DIR}/include"
+                      "${MYSQL_INCLUDE_DIR}"
+                      "${Boost_INCLUDE_DIRS}"
+                      "${CMAKE_SOURCE_DIR}/utils"
+                      "${CMAKE_SOURCE_DIR}"
+                     )
+else()
+  include_directories("${DEPLOY_DIR}/include")
+endif()
 include_directories(${BOOST_INCLUDE_DIR})
 include_directories("${PROJECT_SOURCE_DIR}/lib")
 

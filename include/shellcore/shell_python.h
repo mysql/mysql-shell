@@ -23,23 +23,21 @@
 #include "shellcore/shell_core.h"
 
 namespace shcore {
+  class Python_context;
 
-class Python_context;
+  class Shell_python : public Shell_language
+  {
+  public:
+    Shell_python(Shell_core *shcore);
 
-class Shell_python : public Shell_language
-{
-public:
-  Shell_python(Shell_core *shcore);
+    virtual void set_global(const std::string &name, const Value &value);
 
-  virtual void set_global(const std::string &name, const Value &value);
+    virtual void handle_input(std::string &code, Interactive_input_state &state, boost::function<void(shcore::Value)> result_processor, bool interactive = true);
 
-  virtual Value handle_input(std::string &code, Interactive_input_state &state, bool interactive = true);
-
-  virtual std::string prompt();
-private:
-  boost::shared_ptr<Python_context> _py;
-};
-
+    virtual std::string prompt();
+  private:
+    boost::shared_ptr<Python_context> _py;
+  };
 };
 
 #endif

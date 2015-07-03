@@ -29,7 +29,6 @@
 
 using namespace shcore;
 
-
 Simple_shell_client::Simple_shell_client()
 {
   Shell_core::Mode mode = Shell_core::Mode_SQL;
@@ -89,11 +88,25 @@ boost::shared_ptr<Result_set> Simple_shell_client::process_line(const std::strin
   try
   {
     std::string l = line;
-    Value result = _shell->handle_input(l, state);
+    _shell->handle_input(l, state, boost::bind(&Simple_shell_client::process_result, this, _1));
 
+    return _last_result;
+  }
+  catch (std::exception &exc)
+  {
+    //print_err(exc.what());
+    throw;
+  }
+}
 
-    if (!result)
-      return empty_result;
+void Simple_shell_client::process_result(shcore::Value result)
+{
+  bool handled_as_command = false;
+  Interactive_input_state state = Input_ok;
+  _last_result = boost::shared_ptr<Result_set>(new Result_set(-1, -1, ""));
+
+  if (result)
+  {
     if (result.type == shcore::Object)
     {
       boost::shared_ptr<Object_bridge> object = result.as_object();
@@ -110,34 +123,24 @@ boost::shared_ptr<Result_set> Simple_shell_client::process_line(const std::strin
       shcore::Value metadata = object->call("getColumnMetadata", Argument_list());
 
       boost::shared_ptr<shcore::Value::Array_type> arr_result = result.as_array();
-      if (arr_result->begin() == arr_result->end())
-      {
-        return empty_result;
-      }
-      else // object
+
+      if (arr_result->size())
       {
         // create tabular result
         boost::shared_ptr<std::vector<Result_set_metadata> > meta = populate_metadata(metadata);
-        boost::shared_ptr<Table_result_set> tbl(new Table_result_set(arr_result, meta, affected_rows.as_int(), warning_count.as_int(), execution_time.as_string()));
-        return tbl;
+        _last_result.reset(new Table_result_set(arr_result, meta, affected_rows.as_int(), warning_count.as_int(), execution_time.as_string()));
+        return;
       }
     }
     else if (result.type == shcore::Array)
     {
       boost::shared_ptr<shcore::Value::Array_type> arr_result = result.as_array();
-      // create document result
-      boost::shared_ptr<Document_result_set> doc(new Document_result_set(arr_result, -1, -1, ""));
-      return doc;
+      _last_result.reset(new Document_result_set(arr_result, -1, -1, ""));
     }
+  }
 
-    //std::string executed = _shell->get_handled_input();
-    return empty_result;
-  }
-  catch (std::exception &exc)
-  {
-    //print_err(exc.what());
-    throw;
-  }
+  //std::string executed = _shell->get_handled_input();
+  return;
 }
 
 boost::shared_ptr<std::vector<Result_set_metadata> > Simple_shell_client::populate_metadata(shcore::Value& metadata)
@@ -212,7 +215,6 @@ bool Simple_shell_client::connect(const std::string &uri)
   return true;
 }
 
-
 bool Simple_shell_client::do_shell_command(const std::string &line)
 {
   bool handled = _shell->handle_shell_command(line);
@@ -238,24 +240,24 @@ void Simple_shell_client::switch_mode(shcore::Shell_core::Mode mode)
   {
     switch (mode)
     {
-    case Shell_core::Mode_None:
-      break;
-    case Shell_core::Mode_SQL:
-      _shell->switch_mode(mode, lang_initialized);
-      break;
-    case Shell_core::Mode_JScript:
+      case Shell_core::Mode_None:
+        break;
+      case Shell_core::Mode_SQL:
+        _shell->switch_mode(mode, lang_initialized);
+        break;
+      case Shell_core::Mode_JScript:
 #ifdef HAVE_V8
-      _shell->switch_mode(mode, lang_initialized);
+        _shell->switch_mode(mode, lang_initialized);
 #endif
-      break;
-    case Shell_core::Mode_Python:
-      // TODO: remove following #if 0 #endif as soon as Python mode is implemented
+        break;
+      case Shell_core::Mode_Python:
+        // TODO: remove following #if 0 #endif as soon as Python mode is implemented
 #if 0
-      _shell->switch_mode(mode, lang_initialized);
+        _shell->switch_mode(mode, lang_initialized);
 #else
-      throw std::runtime_error("Python mode not implemented yet");
+        throw std::runtime_error("Python mode not implemented yet");
 #endif
-      break;
+        break;
     }
   }
 }
@@ -298,12 +300,10 @@ void Simple_shell_client::deleg_source(void *self, const char *module)
 
 void Simple_shell_client::print(const char *text)
 {
-
 }
 
 void Simple_shell_client::print_error(const char *text)
 {
-
 }
 
 bool Simple_shell_client::input(const char *text, std::string &ret)
@@ -318,5 +318,4 @@ bool Simple_shell_client::password(const char *text, std::string &ret)
 
 void Simple_shell_client::source(const char* module)
 {
-
 }

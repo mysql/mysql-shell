@@ -23,9 +23,11 @@ file(GLOB lib_SRC
       "boost_code.cc"
 )
 
-add_library(shell_client_lib SHARED ${lib_SRC})
-
-include_directories("${DEPLOY_DIR}/include")
+if (WIN32)
+  add_library(shell_client_lib SHARED ${lib_SRC})
+else()
+  add_library(shell_client_lib ${lib_SRC})
+endif()
 
 add_definitions(-DSHELL_CLIENT_NATIVE_EXPORTS)
 add_definitions(-DBOOST_ALL_NO_LIB)
@@ -46,68 +48,94 @@ elseif(BOOST_ROOT)
   link_directories("${BOOST_ROOT}/lib")
 endif()
 
-# ----------------------------------------------------------------------
-# Find V8, might be one or multiple libraries
-# ----------------------------------------------------------------------
+if (WITH_SAMPLES)
+  include_directories("${PROJECT_SOURCE_DIR}/include"
+                      "${MYSQL_INCLUDE_DIR}"
+                      "${Boost_INCLUDE_DIRS}"
+                      "${CMAKE_SOURCE_DIR}/utils"
+                      "${CMAKE_SOURCE_DIR}"
+                     )
 
-find_library(lib_v8 "v8" "${DEPLOY_DIR}/lib"
-             PATHS "${DEPLOY_DIR}/lib"
-             NO_DEFAULT_PATH
-)
-if(NOT lib_v8)
-  set(lib_v8 "")
-  # Could not find "libv8", in some distributions there are multiple "libv8_*"
-  foreach(_libname v8_libplatform v8_base v8_libbase v8_snapshot)
-    find_library(_v8_lib_${_libname} ${_libname}
-                 PATHS ${LIBS_DIR}
-                 NO_DEFAULT_PATH
-    )
-    if(NOT _v8_lib_${_libname})
-      message(FATAL_ERROR "Could not find the library \"v8\" or \"${_libname}\"")
-    endif()
-    list(APPEND lib_v8 ${_v8_lib_${_libname}})
-  endforeach()
-endif()
+  target_link_libraries(shell_client_lib mysqlsh mysqlshmods)
 
-message(STATUS "v8 Libraries Found: ${lib_v8}")
+  target_link_libraries(shell_client_lib ${GCOV_LDFLAGS})
+  if ( HAVE_V8 )
+    include_directories( ${V8_INCLUDE_DIR} )
+    target_link_libraries(shell_client_lib ${V8_LINK_LIST})
+  endif()
+  if ( HAVE_PYTHON )
+    include_directories(${PYTHON_INCLUDE_DIRS})
+    target_link_libraries(shell_client_lib ${PYTHON_LIBRARIES})
+  endif()
 
-# If not found, try system path and assume just one library
-find_library(lib_v8 "v8")
-
-# ----------------------------------------------------------------------
-# Common libraries for Windows and Unix
-# ----------------------------------------------------------------------
-
-find_library(lib_mysqlsh "mysqlsh" "${DEPLOY_DIR}/lib")
-find_library(lib_mysqlshmods "mysqlshmods" "${DEPLOY_DIR}/lib")
-find_library(lib_mysqlxtest "mysqlxtest" "${DEPLOY_DIR}/lib")
-find_library(lib_mysqlxtest_pb "mysqlxtest_pb" "${DEPLOY_DIR}/lib")
-
-# ----------------------------------------------------------------------
-# Find Windows/Unix specific libraries and set libraries to link with
-# ----------------------------------------------------------------------
-
-if(WIN32)
-
-  find_library(lib_mysqlshtypes "mysqlshtypes" "${DEPLOY_DIR}/lib")
-
-  target_link_libraries(shell_client_lib
-    ${lib_mysqlsh}
-    ${lib_mysqlshmods}
-    ${lib_mysqlshtypes}
-    ${lib_mysqlxtest}
-    ${lib_mysqlxtest_pb}
-    ${lib_v8}
-    "${MYSQL_CLIENT_LIB}")
+  # Last, to make -lrt -lpthread last, v8 needs it
+  target_link_libraries(shell_client_lib ${MYSQL_LIBRARIES})
 else()
+  include_directories("${DEPLOY_DIR}/include")
 
-  target_link_libraries(shell_client_lib
-    ${lib_mysqlsh}
-    ${lib_mysqlshmods}
-    ${lib_mysqlxtest}
-    ${lib_mysqlxtest_pb}
-    ${lib_v8}
-    "${MYSQL_CLIENT_LIB}")
+  # ----------------------------------------------------------------------
+  # Find V8, might be one or multiple libraries
+  # ----------------------------------------------------------------------
+
+  find_library(lib_v8 "v8" "${DEPLOY_DIR}/lib"
+               PATHS "${DEPLOY_DIR}/lib"
+               NO_DEFAULT_PATH
+  )
+  if(NOT lib_v8)
+    set(lib_v8 "")
+    # Could not find "libv8", in some distributions there are multiple "libv8_*"
+    foreach(_libname v8_libplatform v8_base v8_libbase v8_snapshot)
+      find_library(_v8_lib_${_libname} ${_libname}
+                   PATHS ${LIBS_DIR}
+                   NO_DEFAULT_PATH
+      )
+      if(NOT _v8_lib_${_libname})
+        message(FATAL_ERROR "Could not find the library \"v8\" or \"${_libname}\"")
+      endif()
+      list(APPEND lib_v8 ${_v8_lib_${_libname}})
+    endforeach()
+  endif()
+
+  message(STATUS "v8 Libraries Found: ${lib_v8}")
+
+  # If not found, try system path and assume just one library
+  find_library(lib_v8 "v8")
+
+  # ----------------------------------------------------------------------
+  # Common libraries for Windows and Unix
+  # ----------------------------------------------------------------------
+
+  find_library(lib_mysqlsh "mysqlsh" "${DEPLOY_DIR}/lib")
+  find_library(lib_mysqlshmods "mysqlshmods" "${DEPLOY_DIR}/lib")
+  find_library(lib_mysqlxtest "mysqlxtest" "${DEPLOY_DIR}/lib")
+  find_library(lib_mysqlxtest_pb "mysqlxtest_pb" "${DEPLOY_DIR}/lib")
+
+  # ----------------------------------------------------------------------
+  # Find Windows/Unix specific libraries and set libraries to link with
+  # ----------------------------------------------------------------------
+
+  if(WIN32)
+
+    find_library(lib_mysqlshtypes "mysqlshtypes" "${DEPLOY_DIR}/lib")
+
+    target_link_libraries(shell_client_lib
+      ${lib_mysqlsh}
+      ${lib_mysqlshmods}
+      ${lib_mysqlshtypes}
+      ${lib_mysqlxtest}
+      ${lib_mysqlxtest_pb}
+      ${lib_v8}
+      "${MYSQL_CLIENT_LIB}")
+  else()
+
+    target_link_libraries(shell_client_lib
+      ${lib_mysqlsh}
+      ${lib_mysqlshmods}
+      ${lib_mysqlxtest}
+      ${lib_mysqlxtest_pb}
+      ${lib_v8}
+      "${MYSQL_CLIENT_LIB}")
+  endif()
+
+  install(TARGETS shell_client_lib DESTINATION lib)
 endif()
-
-install(TARGETS shell_client_lib DESTINATION lib)

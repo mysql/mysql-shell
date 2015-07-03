@@ -22,15 +22,13 @@
 
 using namespace shcore;
 
-
 Shell_javascript::Shell_javascript(Shell_core *shcore)
 : Shell_language(shcore)
 {
   _js = boost::shared_ptr<JScript_context>(new JScript_context(shcore->registry(), shcore->lang_delegate()));
 }
 
-
-Value Shell_javascript::handle_input(std::string &code, Interactive_input_state &state, bool interactive)
+void Shell_javascript::handle_input(std::string &code, Interactive_input_state &state, boost::function<void(shcore::Value)> result_processor, bool interactive)
 {
   // Undefined to be returned in case of errors
   Value result;
@@ -53,9 +51,8 @@ Value Shell_javascript::handle_input(std::string &code, Interactive_input_state 
 
   state = Input_ok;
 
-  return result;
+  result_processor(result);
 }
-
 
 std::string Shell_javascript::prompt()
 {
@@ -67,14 +64,12 @@ std::string Shell_javascript::prompt()
   }
   catch (std::exception &exc)
   {
-    _owner->print_error(std::string("Exception in JS prompt function: ")+exc.what());
+    _owner->print_error(std::string("Exception in JS prompt function: ") + exc.what());
   }
   return "mysql-js> ";
 }
-
 
 void Shell_javascript::set_global(const std::string &name, const Value &value)
 {
   _js->set_global(name, value);
 }
-

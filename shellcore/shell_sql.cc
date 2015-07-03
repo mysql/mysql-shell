@@ -38,7 +38,7 @@ Shell_sql::Shell_sql(IShell_core *owner)
   SET_SHELL_COMMAND("nowarnings|\\w", "Don't show warnings after every statement.", "", Shell_sql::cmd_disable_auto_warnings);
 }
 
-Value Shell_sql::handle_input(std::string &code, Interactive_input_state &state, bool UNUSED(interactive))
+void Shell_sql::handle_input(std::string &code, Interactive_input_state &state, boost::function<void(shcore::Value)> result_processor, bool interactive)
 {
   Value ret_val;
   state = Input_ok;
@@ -120,7 +120,11 @@ Value Shell_sql::handle_input(std::string &code, Interactive_input_state &state,
           try
           {
             if (session->has_member("executeSql"))
+            {
               ret_val = session->call("executeSql", query);
+
+              result_processor(ret_val);
+            }
             else
               throw shcore::Exception::logic_error("The current session can't be used for SQL execution.");
           }
@@ -166,7 +170,9 @@ Value Shell_sql::handle_input(std::string &code, Interactive_input_state &state,
   //       We need to decide if the caching logic we introduced on the caller is still required or not.
   code = "";
 
-  return ret_val;
+  // If ret_val still Undefined, it means there was an error on the processing
+  if (ret_val.type == Undefined)
+    result_processor(ret_val);
 }
 
 std::string Shell_sql::prompt()

@@ -28,32 +28,30 @@
 
 namespace shcore
 {
+  class SHCORE_PUBLIC Shell_sql : public Shell_language
+  {
+  public:
+    Shell_sql(IShell_core *owner);
+    virtual ~Shell_sql() {};
 
-class SHCORE_PUBLIC Shell_sql : public Shell_language
-{
-public:
-  Shell_sql(IShell_core *owner);
-  virtual ~Shell_sql() {};
+    virtual void set_global(const std::string &, const Value &) {}
 
-  virtual void set_global(const std::string & , const Value & ) {}
+    virtual void handle_input(std::string &code, Interactive_input_state &state, boost::function<void(shcore::Value)> result_processor, bool interactive = true);
 
-  virtual Value handle_input(std::string &code, Interactive_input_state &state, bool interactive = true);
+    virtual std::string prompt();
 
-  virtual std::string prompt();
+    virtual bool print_help(const std::string& topic);
+    void print_exception(const shcore::Exception &e);
 
-  virtual bool print_help(const std::string& topic);
-  void print_exception(const shcore::Exception &e);
+  private:
+    std::string _sql_cache;
+    std::string _delimiter;
+    std::stack<std::string> _parsing_context_stack;
 
-private:
-  std::string _sql_cache;
-  std::string _delimiter;
-  std::stack<std::string> _parsing_context_stack;
-
-  void cmd_process_file(const std::vector<std::string>& params);
-  void cmd_enable_auto_warnings(const std::vector<std::string>& param);
-  void cmd_disable_auto_warnings(const std::vector<std::string>& param);
-};
-
+    void cmd_process_file(const std::vector<std::string>& params);
+    void cmd_enable_auto_warnings(const std::vector<std::string>& param);
+    void cmd_disable_auto_warnings(const std::vector<std::string>& param);
+  };
 };
 
 #endif

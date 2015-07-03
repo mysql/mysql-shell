@@ -39,7 +39,7 @@ Shell_python::Shell_python(Shell_core *shcore)
 /*
  * Handle shell input on Python mode
  */
-Value Shell_python::handle_input(std::string &code, Interactive_input_state &state, bool interactive)
+void Shell_python::handle_input(std::string &code, Interactive_input_state &state, boost::function<void(shcore::Value)> result_processor, bool interactive)
 {
   Value result;
 
@@ -54,8 +54,8 @@ Value Shell_python::handle_input(std::string &code, Interactive_input_state &sta
     try
     {
       boost::system::error_code err;
-  	  WillEnterPython lock;
-  	  result = _py->execute(code, err, _owner->get_input_source());
+      WillEnterPython lock;
+      result = _py->execute(code, err, _owner->get_input_source());
 
       if (err)
       {
@@ -73,8 +73,10 @@ Value Shell_python::handle_input(std::string &code, Interactive_input_state &sta
 
   state = Input_ok;
 
-  return result;
+  result_processor(result);
 }
+
+
 
 /*
  * Shell prompt string

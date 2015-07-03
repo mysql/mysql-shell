@@ -17,6 +17,7 @@
 #include "shellcore/shell_core.h"
 #include "shellcore/common.h"
 #include <boost/algorithm/string.hpp>
+#include <boost/bind.hpp>
 
 class Shell_test_output_handler
 {
@@ -89,11 +90,19 @@ protected:
     }
   }
 
+  void process_result(shcore::Value result)
+  {
+    _returned_value = result;
+  }
+
   shcore::Value execute(const std::string& code)
   {
     std::string _code(code);
     shcore::Interactive_input_state state;
-    return _shell_core->handle_input(_code, state, true);
+
+    _shell_core->handle_input(_code, state, boost::bind(&Shell_core_test_wrapper::process_result, this, _1), true);
+
+    return _returned_value;
   }
 
   shcore::Value exec_and_out_equals(const std::string& code, const std::string& out = "", const std::string& err = "")
@@ -140,6 +149,8 @@ protected:
   std::string _pwd;
   std::string _mysql_port;
   std::string _mysql_uri;
+
+  shcore::Value _returned_value;
 
   shcore::Interpreter_delegate deleg;
 };

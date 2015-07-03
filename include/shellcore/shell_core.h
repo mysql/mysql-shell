@@ -47,7 +47,6 @@
 
 namespace shcore
 {
-  
   class Object_registry;
   class Shell_core;
 
@@ -79,15 +78,15 @@ namespace shcore
   class SHCORE_PUBLIC Shell_language
   {
   public:
-    Shell_language(IShell_core *owner): _owner(owner) {}
+    Shell_language(IShell_core *owner) : _owner(owner) {}
 
     virtual void set_global(const std::string &name, const Value &value) = 0;
 
-    virtual Value handle_input(std::string &code, Interactive_input_state &state, bool interactive = true) = 0;
+    virtual void handle_input(std::string &code, Interactive_input_state &state, boost::function<void(shcore::Value)> result_processor, bool interactive = true) = 0;
     virtual bool handle_shell_command(const std::string &code) { return _shell_command_handler.process(code); }
     virtual std::string get_handled_input() { return _last_handled; }
     virtual std::string prompt() = 0;
-    virtual bool print_help(const std::string& ) { return true; }
+    virtual bool print_help(const std::string&) { return true; }
   protected:
     IShell_core *_owner;
     std::string _last_handled;
@@ -114,7 +113,7 @@ namespace shcore
 
     virtual Object_registry *registry() { return _registry; }
   public:
-    virtual Value handle_input(std::string &code, Interactive_input_state &state, bool interactive = true);
+    virtual void handle_input(std::string &code, Interactive_input_state &state, boost::function<void(shcore::Value)> result_processor, bool interactive = true);
     virtual bool handle_shell_command(const std::string &code);
     virtual std::string get_handled_input();
     virtual int process_stream(std::istream& stream = std::cin, const std::string& source = "(shcore)", bool continue_on_error = false);
@@ -134,6 +133,8 @@ namespace shcore
     void init_js();
     void init_py();
 
+    void process_result(shcore::Value result, bool print_data);
+
   private:
     Object_registry *_registry;
     std::map<std::string, Value> _globals;
@@ -143,6 +144,7 @@ namespace shcore
     std::string _input_source;
     Mode _mode;
     std::string _output_format;
+    int _global_return_code;
   };
 };
 
