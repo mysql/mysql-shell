@@ -173,7 +173,7 @@ IF (HAVE_V8)
     endforeach()
   endif()
 
-  file(COPY ${V8_LIBS} DESTINATION "${CMAKE_INSTALL_PREFIX}/lib")
+ install(FILES ${V8_LIBS} DESTINATION lib)
   if(WINDOWS_RUNTIME_MD)
     # for MD runtime we also need DLL, not just lib, but dll is on parent directory.
     set(V8_DLL ${V8_LIBS})
@@ -181,7 +181,7 @@ IF (HAVE_V8)
     get_filename_component(V8_FILE ${V8_DLL} NAME)
     get_filename_component(V8_DLL ${V8_DLL} DIRECTORY)
     get_filename_component(V8_DLL ${V8_DLL} DIRECTORY)
-    file(COPY "${V8_DLL}/${V8_FILE}" DESTINATION "${CMAKE_INSTALL_PREFIX}/lib")
+    install(FILES "${V8_DLL}/${V8_FILE}" DESTINATION lib)
   endif()
 
   if(APPLE)
