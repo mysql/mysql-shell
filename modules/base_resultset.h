@@ -49,7 +49,8 @@ namespace mysh
     // Printing functions
     shcore::Value print(const shcore::Argument_list &args);
     void print_json();
-    void print_normal();
+    void print_normal(bool interactive, const std::string& format);
+    void print_tabbed(shcore::Value::Array_type_ref records);
     void print_table(shcore::Value::Array_type_ref records);
     void print_warnings();
   };

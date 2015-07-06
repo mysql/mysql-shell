@@ -109,15 +109,19 @@ shcore::Value Resultset::next(const shcore::Argument_list &UNUSED(args))
         {
           case ::mysqlx::SINT:
             field_value = Value(row->sInt64Field(index));
+            break;
           case ::mysqlx::UINT:
-            field_value = Value(row->sInt64Field(index));//TODO: add UInt64 in shcore Value
-            //return Value(_row->uInt64Field(index));
+            field_value = Value(row->uInt64Field(index));
+            break;
           case ::mysqlx::DOUBLE:
             field_value = Value(row->doubleField(index));
+            break;
           case ::mysqlx::FLOAT:
             field_value = Value(row->floatField(index));
+            break;
           case ::mysqlx::BYTES:
             field_value = Value(row->stringField(index));
+            break;
           case ::mysqlx::TIME:
           case ::mysqlx::DATETIME:
           case ::mysqlx::SET:

@@ -71,7 +71,7 @@ public:
   void init_scripts(Shell_core::Mode mode);
 
   void cmd_process_file(const std::vector<std::string>& params);
-  bool connect(const std::string &uri, bool needs_password);
+  bool connect(const std::string &uri, bool needs_password, bool interactive);
 
   void print(const std::string &str);
   void println(const std::string &str);
@@ -88,7 +88,7 @@ public:
   /* Processing Options */
   void set_force(bool value) { _batch_continue_on_error = value; }
   void set_output_format(const std::string& format);
-  void set_interactive(bool value) { _interactive = value; }
+  void set_interactive(bool value);
 
 private:
   static char *readline(const char *prompt);
@@ -200,7 +200,7 @@ void Interactive_shell::cmd_process_file(const std::vector<std::string>& params)
   Interactive_shell::process_file(filename.c_str());
 }
 
-bool Interactive_shell::connect(const std::string &uri, bool needs_password)
+bool Interactive_shell::connect(const std::string &uri, bool needs_password, bool interactive)
 {
   Argument_list args;
 
@@ -235,13 +235,18 @@ bool Interactive_shell::connect(const std::string &uri, bool needs_password)
   {
     if (_session && _session->is_connected())
     {
-      shcore::print("Closing old connection...\n");
+      if (interactive)
+        shcore::print("Closing old connection...\n");
+
       _session->disconnect();
     }
 
     // strip password from uri
-    std::string uri_stripped = mysh::strip_password(uri);
-    shcore::print("Connecting to " + uri_stripped + "...\n");
+    if (interactive)
+    {
+      std::string uri_stripped = mysh::strip_password(uri);
+      shcore::print("Connecting to " + uri_stripped + "...\n");
+    }
 
     connect_session(args);
   }
@@ -273,7 +278,7 @@ Value Interactive_shell::connect_session(const Argument_list &args)
   else
   {
     // XXX assign a dummy placeholder to db
-    if (_shell->interactive_mode() != Shell_core::Mode_SQL)
+    if (_shell->is_interactive() && _shell->interactive_mode() != Shell_core::Mode_SQL)
       _shell->print("No default schema selected.\n");
   }
 
@@ -445,7 +450,7 @@ void Interactive_shell::cmd_connect(const std::vector<std::string>& args)
 {
   if (args.size() == 1)
   {
-    connect(args[0], true);
+    connect(args[0], true, true);
   }
   else
     print_error("\\connect <uri>");
@@ -537,6 +542,12 @@ void Interactive_shell::set_output_format(const std::string& format)
   _shell->set_output_format(format);
 }
 
+void Interactive_shell::set_interactive(bool value)
+{
+  _interactive = value;
+  _shell->set_interactive(value);
+}
+
 void Interactive_shell::process_line(const std::string &line)
 {
   bool handled_as_command = false;
@@ -610,6 +621,7 @@ void Interactive_shell::process_result(shcore::Value result)
       if (dump_function)
       {
         Argument_list args;
+        args.push_back(Value(_interactive));
         args.push_back(Value(_output_format));
         object->call("__paged_output__", args);
       }
@@ -729,7 +741,7 @@ void Interactive_shell::command_loop()
 
 void Interactive_shell::print_banner()
 {
-  println("Welcome to MySQL Shell 0.0.1");
+  println("Welcome to MySQLx Shell 0.0.1");
   println("");
   println("Copyright (c) 2014, 2015, Oracle and/or its affiliates. All rights reserved.");
   println("");
@@ -743,7 +755,7 @@ void Interactive_shell::print_banner()
 
 void Interactive_shell::print_cmd_line_helper()
 {
-  println("MySQL Shell 0.0.1");
+  println("MySQLx Shell 0.0.1");
   println("");
   println("Copyright (c) 2014, 2015, Oracle and/or its affiliates. All rights reserved.");
   println("");
@@ -759,11 +771,20 @@ void Interactive_shell::print_cmd_line_helper()
   println("                         or user[:pass]@::socket[/db] .");
   println("  -h, --host=name        Connect to host.");
   println("  -P, --port=#           Port number to use for connection.");
+  println("  -u, --user=name        User for the connection to the server.");
   println("  -p, --password[=name]  Password to use when connecting to server");
   println("                         If password is not given it's asked from the tty.");
   println("  --sql                  Start in SQL mode.");
   println("  --js                   Start in JavaScript mode.");
   println("  --py                   Start in Python mode.");
+  println("  --py                   Start in Python mode.");
+  println("  --json                 Produce output in JSON format.");
+  println("  --table                Produce output in table format (default for interactive mode).");
+  println("                         This option can be used to force that format when running in batch mode.");
+  println("  -i, --interactive      To use in batch mode, it forces emulation of interactive mode processing.");
+  println("                         Each line on the batch is processed as if it were in interactive mode.");
+  println("  --force                To use in SQL batch mode, forces processing to continue if an error is found.");
+
   println("");
 }
 
@@ -818,6 +839,8 @@ public:
         initial_mode = Shell_core::Mode_JScript;
       else if (check_arg(argv, i, "--json", "--json"))
         output_format = "json";
+      else if (check_arg(argv, i, "--table", "--table"))
+        output_format = "table";
       else if (check_arg(argv, i, "--py", "--py"))
         initial_mode = Shell_core::Mode_Python;
       else if (check_arg(argv, i, "--help", "--help"))
@@ -950,15 +973,13 @@ int main(int argc, char **argv)
 
     if (!options.uri.empty())
     {
-      if (!shell.connect(options.uri, options.needs_password))
+      if (!shell.connect(options.uri, options.needs_password, is_interactive))
         return 1;
-      shell.println("");
     }
 
     // Three processing modes are available at this point
     // Interactive, file processing and STDIN processing
-
-    if (from_stdin && from_file)
+    if (from_stdin)
       ret_val = shell.process_stream(std::cin, "STDIN");
     else if (!options.run_file.empty())
       ret_val = shell.process_file(options.run_file.c_str());

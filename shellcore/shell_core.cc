@@ -155,6 +155,7 @@ void Shell_core::process_result(shcore::Value result, bool print_data)
       if (dump_function)
       {
         Argument_list args;
+        args.push_back(Value(_interactive));
         args.push_back(Value(_output_format));
 
         object->call("__paged_output__", args);

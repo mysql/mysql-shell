@@ -160,10 +160,19 @@ shcore::Value Row::get_value(int index)
         return shcore::Value::Null();
       case MYSQL_TYPE_DECIMAL:
       case MYSQL_TYPE_DATE:
+      case MYSQL_TYPE_NEWDATE:
       case MYSQL_TYPE_TIME:
+      case MYSQL_TYPE_TIME2:
       case MYSQL_TYPE_STRING:
       case MYSQL_TYPE_VARCHAR:
       case MYSQL_TYPE_VAR_STRING:
+      case MYSQL_TYPE_NEWDECIMAL:
+      case MYSQL_TYPE_TINY_BLOB:
+      case MYSQL_TYPE_MEDIUM_BLOB:
+      case MYSQL_TYPE_LONG_BLOB:
+      case MYSQL_TYPE_BLOB:
+      case MYSQL_TYPE_GEOMETRY:
+
         return shcore::Value(std::string(_row[index], _lengths[index]));
 
       case MYSQL_TYPE_YEAR:
@@ -184,6 +193,12 @@ shcore::Value Row::get_value(int index)
       case MYSQL_TYPE_DATETIME2:
       case MYSQL_TYPE_TIMESTAMP2:
         return shcore::Value(shcore::Date::unrepr(_row[index]));
+        break;
+
+      case MYSQL_TYPE_BIT:
+      case MYSQL_TYPE_ENUM:
+      case MYSQL_TYPE_SET:
+        // TODO: Read these types properly
         break;
     }
   }

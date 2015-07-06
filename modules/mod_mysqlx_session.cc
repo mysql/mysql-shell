@@ -142,6 +142,10 @@ Value ApiBaseSession::executeSql(const Argument_list &args)
         flush_last_result();
 
         _last_result.reset(_session->executeSql(statement));
+
+        // Calls wait so any error is properly triggered at execution time
+        _last_result->wait();
+
         ret_val = shcore::Value::wrap(new Resultset(_last_result));
       }
       CATCH_AND_TRANSLATE();

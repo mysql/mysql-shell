@@ -83,16 +83,20 @@ shcore::Value BaseResultset::print(const shcore::Argument_list &args)
 {
   std::string function = class_name() + "::print";
 
-  args.ensure_count(0, 1, function.c_str());
+  args.ensure_count(0, 2, function.c_str());
 
   std::string format;
+  bool interactive = true;
   if (args.size() > 0)
-  format = args.string_at(0);
+    interactive = args.bool_at(0);
+
+  if (args.size() > 1)
+    format = args.string_at(1);
 
   if (format == "json")
-  print_json();
+    print_json();
   else
-  print_normal();
+    print_normal(interactive, format);
 
   return shcore::Value();
 }
@@ -125,7 +129,7 @@ void BaseResultset::print_json()
   shcore::print(map.repr() + "\n");
 }
 
-void BaseResultset::print_normal()
+void BaseResultset::print_normal(bool interactive, const std::string& format)
 {
   std::string output;
 
@@ -143,7 +147,10 @@ void BaseResultset::print_normal()
       if (array_records->size())
       {
         // print rows from result, with stats etc
-        print_table(array_records);
+        if (interactive || format == "table")
+          print_table(array_records);
+        else
+          print_tabbed(array_records);
 
         int row_count = int(array_records->size());
         output = (boost::format("%lld %s in set") % row_count % (row_count == 1 ? "row" : "rows")).str();
@@ -154,7 +161,7 @@ void BaseResultset::print_normal()
     else
     {
       // Some queries return -1 since affected rows do not apply to them
-      uint64_t affected_rows = get_member("affectedRows").as_uint();
+      int affected_rows = get_member("affectedRows").as_int();
       if (affected_rows == ~(uint64_t)0)
         output = "Query OK";
       else
@@ -162,26 +169,61 @@ void BaseResultset::print_normal()
         output = (boost::format("Query OK, %lld %s affected") % affected_rows % (affected_rows == 1 ? "row" : "rows")).str();
     }
 
-    int warning_count = get_member("warningCount").as_int();
-    if (warning_count)
-      output.append((boost::format(", %d warning%s") % warning_count % (warning_count == 1 ? "" : "s")).str());
+    // This information output is only printed in interactive mode
+    int warning_count = 0;
+    if (interactive)
+    {
+      warning_count = get_member("warningCount").as_int();
 
-    output.append(" ");
-    output.append((boost::format("(%s)") % get_member("executionTime").as_string()).str());
-    output.append("\n\n");
+      if (warning_count)
+        output.append((boost::format(", %d warning%s") % warning_count % (warning_count == 1 ? "" : "s")).str());
 
-    shcore::print(output);
+      output.append(" ");
+      output.append((boost::format("(%s)") % get_member("executionTime").as_string()).str());
+      output.append("\n");
+
+      shcore::print(output);
+    }
 
     std::string info = get_member("info").as_string();
     if (!info.empty())
-    {
-      shcore::print(info + "\n\n");
-    }
+      shcore::print("\n" + info + "\n");
 
     // Prints the warnings if there were any
     if (warning_count)
       print_warnings();
   } while (next_result(shcore::Argument_list()).as_bool());
+}
+
+void BaseResultset::print_tabbed(shcore::Value::Array_type_ref records)
+{
+  boost::shared_ptr<shcore::Value::Array_type> metadata = get_member("columnMetadata").as_array();
+
+  unsigned int index = 0;
+  unsigned int field_count = metadata->size();
+  std::vector<std::string> formats(field_count, "%-");
+
+  // Prints the initial separator line and the column headers
+  // TODO: Consider the charset information on the length calculations
+  for (index = 0; index < field_count; index++)
+  {
+    std::string data = (*(*metadata)[index].as_map())["name"].as_string();
+    shcore::print(data);
+    shcore::print(index < (field_count - 1) ? "\t" : "\n");
+  }
+
+  // Now prints the records
+  for (size_t row_index = 0; row_index < records->size(); row_index++)
+  {
+    boost::shared_ptr<Row> row = (*records)[row_index].as_object<Row>();
+
+    for (size_t field_index = 0; field_index < field_count; field_index++)
+    {
+      std::string raw_value = row->values[field_index].descr();
+      shcore::print(raw_value);
+      shcore::print(field_index < (field_count - 1) ? "\t" : "\n");
+    }
+  }
 }
 
 void BaseResultset::print_table(shcore::Value::Array_type_ref records)
