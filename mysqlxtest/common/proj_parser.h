@@ -23,6 +23,7 @@
 
 #define _EXPR_PARSER_HAS_PROJECTION_KEYWORDS_ 1
 
+#include <boost/format.hpp>
 #include "expr_parser.h"
 #include "mysqlx_crud.pb.h"
 #include "../compilerutils.h"
@@ -32,44 +33,38 @@
 namespace mysqlx
 {
 
-class Proj_tokenizer : public Tokenizer
-{
-public:
-  Proj_tokenizer(const std::string& input) : Tokenizer(input) 
-  { 
-    map.reserved_words["as"] = Token::AS;
-  }
-};
-
 class Proj_parser
 {
 public:
   Proj_parser(const std::string& expr_str, bool document_mode = false, bool allow_alias = true);
 
   template<typename Container>
-  void parse(Container &UNUSED(result))
+  void parse(Container &result)
   {
-//    Mysqlx::Crud::Projection *proj = result.Add();
-//    docpath_member(*proj);
+    Mysqlx::Crud::Projection *colid = result.Add();
+    column_identifier(*colid);
 
     while (_tokenizer.cur_token_type_is(Token::COMMA))
     {
       _tokenizer.consume_token(Token::COMMA);
-//      colid = result.Add();
-//      column_identifier(*proj);
+      colid = result.Add();
+      column_identifier(*colid);
     }
+    if (_tokenizer.tokens_available())    
+      throw Parser_error((boost::format("Expr parser: Expected EOF, instead stopped at token position %d") % _tokenizer.get_token_pos()).str());
   }
 
-  void column_identifier(Mysqlx::Crud::Column &column);
+  const std::string& id();
+  void column_identifier(Mysqlx::Crud::Projection &column);
   void docpath_member(Mysqlx::Expr::DocumentPathItem& item);
   void docpath_array_loc(Mysqlx::Expr::DocumentPathItem& item);
-  void document_path(Mysqlx::Crud::Column& col);
+  void document_path(Mysqlx::Crud::Projection& col);
 
   std::vector<Token>::const_iterator begin() const { return _tokenizer.begin(); }
   std::vector<Token>::const_iterator end() const { return _tokenizer.end(); }
 
 private:
-  Proj_tokenizer _tokenizer;
+  Tokenizer _tokenizer;
   bool _document_mode;
   bool _allow_alias;
 };

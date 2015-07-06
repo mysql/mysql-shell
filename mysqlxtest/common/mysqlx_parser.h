@@ -29,13 +29,13 @@ namespace mysqlx
 {
   namespace parser
   {
-    std::auto_ptr<Mysqlx::Expr::Expr> parse_collection_filter(const std::string &source)
+    inline Mysqlx::Expr::Expr* parse_collection_filter(const std::string &source)
     {
       Expr_parser parser(source, true);
       return parser.expr();
     }
 
-    std::auto_ptr<Mysqlx::Expr::Expr> parse_table_filter(const std::string &source)
+    inline Mysqlx::Expr::Expr* parse_table_filter(const std::string &source)
     {
       Expr_parser parser(source);
       return parser.expr();

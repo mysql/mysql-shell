@@ -165,7 +165,7 @@ FindStatement::FindStatement(boost::shared_ptr<Collection> coll, const std::stri
   m_find->set_data_model(Mysqlx::Crud::DOCUMENT);
 
   if (!searchCondition.empty())
-    m_find->set_allocated_criteria(parser::parse_collection_filter(searchCondition).release());
+    m_find->set_allocated_criteria(parser::parse_collection_filter(searchCondition));
 }
 
 Find_GroupBy &FindStatement::fields(const std::string &searchFields)
@@ -272,7 +272,7 @@ RemoveStatement::RemoveStatement(boost::shared_ptr<Collection> coll, const std::
   m_delete->set_data_model(Mysqlx::Crud::DOCUMENT);
 
   if (!searchCondition.empty())
-    m_delete->set_allocated_criteria(parser::parse_collection_filter(searchCondition).release());
+    m_delete->set_allocated_criteria(parser::parse_collection_filter(searchCondition));
 }
 
 Remove_Limit &RemoveStatement::orderBy(const std::string &UNUSED(sortFields))

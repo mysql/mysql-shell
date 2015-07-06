@@ -12,7 +12,7 @@
  You should have received a copy of the GNU General Public License
  along with this program; if not, write to the Free Software
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA */
-#include "expr_parser.h"
+
 
 #include <cstdio>
 #include <cstdlib>
@@ -52,16 +52,31 @@ namespace shcore
       out << "]";
     }
 
-    void parse_and_assert_expr(const std::string& input, const std::string& token_list, const std::string& unparsed)
+    void parse_and_assert_expr(const std::string& input, const std::string& token_list, const std::string& unparsed, bool document_mode = false, Mysqlx::Expr::Expr** expr = NULL)
     {
       std::stringstream out, out_tokens;
-      Expr_parser p(input);
+      Expr_parser p(input, document_mode);
       print_tokens(p, out_tokens);
       ASSERT_TRUE(token_list == out_tokens.str());
-      std::auto_ptr<Mysqlx::Expr::Expr> e = p.expr();
+      std::auto_ptr<Mysqlx::Expr::Expr> e(p.expr());
       std::string s = Expr_unparser::expr_to_string(*(e.get()));
+      if (expr != NULL)
+        *expr = e.release();
       out << s;
       ASSERT_TRUE(unparsed == out.str());
+    }
+
+    void assert_member_type(Mysqlx::Expr::Expr* expr, Mysqlx::Expr::DocumentPathItem_Type type_expected)
+    {
+      EXPECT_TRUE(expr->has_identifier());
+      const Mysqlx::Expr::ColumnIdentifier& colid = expr->identifier();
+      EXPECT_TRUE(colid.document_path_size() == 1);
+      for (int i = 0; i < colid.document_path_size(); i++)
+      {
+        const Mysqlx::Expr::DocumentPathItem& item = colid.document_path(i);
+        Mysqlx::Expr::DocumentPathItem_Type type = item.type();
+        EXPECT_TRUE(type == type_expected);
+      }
     }
 
     TEST(Expr_parser_tests, x_test)
@@ -159,6 +174,22 @@ namespace shcore
       parse_and_assert_expr("a + 0.0271e2",
         "[19, 36, 21]", "(a + 2.710000)");
       EXPECT_ANY_THROW(parse_and_assert_expr("`ident\\``", "", ""));
+
+      parse_and_assert_expr("*", "[38]", "*");
+      parse_and_assert_expr("table1.*", "[19, 22, 38]", "table1.*");
+      parse_and_assert_expr("schema.table1.*", "[19, 22, 19, 22, 38]", "schema.table1.*");
+      parse_and_assert_expr("bla@.foo.bar", "[19, 23, 22, 19, 22, 19]", "bla@.foo.bar");
+      parse_and_assert_expr("bla@.\"foo\".bar", "[19, 23, 22, 20, 22, 19]", "bla@.foo.bar");
+      parse_and_assert_expr(".foo", "[22, 19]", "@.foo", true);
+      parse_and_assert_expr(".\"foo\"", "[22, 20]", "@.foo", true);
+      parse_and_assert_expr(".*", "[22, 38]", "@.*", true);
+
+      Mysqlx::Expr::Expr *expr;
+      parse_and_assert_expr(".*", "[22, 38]", "@.*", true, &expr);
+      assert_member_type(expr, Mysqlx::Expr::DocumentPathItem_Type_MEMBER_ASTERISK);
+
+      parse_and_assert_expr(".\"*\"", "[22, 20]", "@.*", true, &expr);
+      assert_member_type(expr, Mysqlx::Expr::DocumentPathItem_Type_MEMBER);
     }
   };
 };

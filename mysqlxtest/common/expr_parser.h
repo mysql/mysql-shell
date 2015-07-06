@@ -171,94 +171,25 @@ namespace mysqlx
 
   public:
 
-    struct cmp_icase
+    struct Cmp_icase
     {
       bool operator()(const std::string& lhs, const std::string& rhs) const;
     };
 
-    struct maps
+    struct Maps
     {
     public:
-      typedef std::map<std::string, Token::TokenType, cmp_icase> reserved_words_t;
+      typedef std::map<std::string, Token::TokenType, Cmp_icase> reserved_words_t;
       reserved_words_t reserved_words;
       std::set<Token::TokenType> interval_units;
-      std::map<std::string, std::string, cmp_icase> operator_names;
-      std::map<std::string, std::string, cmp_icase> unary_operator_names;
+      std::map<std::string, std::string, Cmp_icase> operator_names;
+      std::map<std::string, std::string, Cmp_icase> unary_operator_names;
 
-      maps()
-      {
-        reserved_words["and"] = Token::AND;
-        reserved_words["or"] = Token::OR;
-        reserved_words["xor"] = Token::XOR;
-        reserved_words["is"] = Token::IS;
-        reserved_words["not"] = Token::NOT;
-        reserved_words["like"] = Token::LIKE;
-        reserved_words["in"] = Token::IN_;
-        reserved_words["regexp"] = Token::REGEXP;
-        reserved_words["between"] = Token::BETWEEN;
-        reserved_words["interval"] = Token::INTERVAL;
-        reserved_words["escape"] = Token::ESCAPE;
-        reserved_words["div"] = Token::DIV;
-        reserved_words["hex"] = Token::HEX;
-        reserved_words["bin"] = Token::BIN;
-        reserved_words["true"] = Token::TRUE_;
-        reserved_words["false"] = Token::FALSE_;
-        reserved_words["null"] = Token::T_NULL;
-        reserved_words["second"] = Token::SECOND;
-        reserved_words["minute"] = Token::MINUTE;
-        reserved_words["hour"] = Token::HOUR;
-        reserved_words["day"] = Token::DAY;
-        reserved_words["week"] = Token::WEEK;
-        reserved_words["month"] = Token::MONTH;
-        reserved_words["quarter"] = Token::QUARTER;
-        reserved_words["year"] = Token::YEAR;
-        reserved_words["microsecond"] = Token::MICROSECOND;
-
-        interval_units.insert(Token::MICROSECOND);
-        interval_units.insert(Token::SECOND);
-        interval_units.insert(Token::MINUTE);
-        interval_units.insert(Token::HOUR);
-        interval_units.insert(Token::DAY);
-        interval_units.insert(Token::WEEK);
-        interval_units.insert(Token::MONTH);
-        interval_units.insert(Token::QUARTER);
-        interval_units.insert(Token::YEAR);
-
-        operator_names["="] = "==";
-        operator_names["and"] = "&&";
-        operator_names["or"] = "||";
-        operator_names["not"] = "not";
-        operator_names["xor"] = "xor";
-        operator_names["is"] = "is";
-        operator_names["between"] = "between";
-        operator_names["in"] = "in";
-        operator_names["like"] = "like";
-        operator_names["!="] = "!=";
-        operator_names["<>"] = "!=";
-        operator_names[">"] = ">";
-        operator_names[">="] = ">=";
-        operator_names["<"] = "<";
-        operator_names["<="] = "<=";
-        operator_names["&"] = "&";
-        operator_names["|"] = "|";
-        operator_names["<<"] = "<<";
-        operator_names[">>"] = ">>";
-        operator_names["+"] = "+";
-        operator_names["-"] = "-";
-        operator_names["*"] = "*";
-        operator_names["/"] = "/";
-        operator_names["~"] = "~";
-        operator_names["%"] = "%";
-
-        unary_operator_names["+"] = "sign_plus";
-        unary_operator_names["-"] = "sign_minus";
-        unary_operator_names["~"] = "~";
-        unary_operator_names["not"] = "not";
-      }
+      Maps();
     };
 
   public:
-    struct maps map;
+    static Maps map;
   };
 
   class Expr_parser
@@ -266,31 +197,33 @@ namespace mysqlx
   public:
     Expr_parser(const std::string& expr_str, bool document_mode = false);
 
-    typedef boost::function<std::auto_ptr<Mysqlx::Expr::Expr>(Expr_parser*)> inner_parser_t;
+    typedef boost::function<Mysqlx::Expr::Expr*(Expr_parser*)> inner_parser_t;
 
     void paren_expr_list(::google::protobuf::RepeatedPtrField< ::Mysqlx::Expr::Expr >* expr_list);
-    std::auto_ptr<Mysqlx::Expr::Identifier> identifier();
-    std::auto_ptr<Mysqlx::Expr::Expr> function_call();
+    Mysqlx::Expr::Identifier* identifier();
+    Mysqlx::Expr::Expr* function_call();
     void docpath_member(Mysqlx::Expr::DocumentPathItem& item);
     void docpath_array_loc(Mysqlx::Expr::DocumentPathItem& item);
     void document_path(Mysqlx::Expr::ColumnIdentifier& colid);
-    std::auto_ptr<Mysqlx::Expr::Expr> column_identifier();
-    std::auto_ptr<Mysqlx::Expr::Expr> atomic_expr();
-    std::auto_ptr<Mysqlx::Expr::Expr> parse_left_assoc_binary_op_expr(std::set<Token::TokenType>& types, inner_parser_t inner_parser);
-    std::auto_ptr<Mysqlx::Expr::Expr> mul_div_expr();
-    std::auto_ptr<Mysqlx::Expr::Expr> add_sub_expr();
-    std::auto_ptr<Mysqlx::Expr::Expr> shift_expr();
-    std::auto_ptr<Mysqlx::Expr::Expr> bit_expr();
-    std::auto_ptr<Mysqlx::Expr::Expr> comp_expr();
-    std::auto_ptr<Mysqlx::Expr::Expr> ilri_expr();
-    std::auto_ptr<Mysqlx::Expr::Expr> and_expr();
-    std::auto_ptr<Mysqlx::Expr::Expr> or_expr();
-    std::auto_ptr<Mysqlx::Expr::Expr> expr();
+    const std::string& id();
+    Mysqlx::Expr::Expr* column_identifier();
+    Mysqlx::Expr::Expr* atomic_expr();
+    Mysqlx::Expr::Expr* parse_left_assoc_binary_op_expr(std::set<Token::TokenType>& types, inner_parser_t inner_parser);
+    Mysqlx::Expr::Expr* mul_div_expr();
+    Mysqlx::Expr::Expr* add_sub_expr();
+    Mysqlx::Expr::Expr* shift_expr();
+    Mysqlx::Expr::Expr* bit_expr();
+    Mysqlx::Expr::Expr* comp_expr();
+    Mysqlx::Expr::Expr* ilri_expr();
+    Mysqlx::Expr::Expr* and_expr();
+    Mysqlx::Expr::Expr* or_expr();
+    Mysqlx::Expr::Expr* expr();
 
     std::vector<Token>::const_iterator begin() const { return _tokenizer.begin(); }
     std::vector<Token>::const_iterator end() const { return _tokenizer.end(); }
 
   private:
+    Mysqlx::Expr::Expr* my_expr();
     Tokenizer _tokenizer;
     bool _document_mode;
   };
@@ -307,8 +240,9 @@ namespace mysqlx
     static std::string operator_to_string(const Mysqlx::Expr::Operator& op);
     static std::string quote_identifier(const std::string& id);
     static std::string expr_to_string(const Mysqlx::Expr::Expr& e);
-    static std::string column_to_string(const Mysqlx::Crud::Column& c);
-    static std::string column_list_to_string(std::vector<Mysqlx::Crud::Column*>& columns);
+    static std::string column_to_string(const Mysqlx::Crud::Projection& c);
+    static std::string column_list_to_string(google::protobuf::RepeatedPtrField< ::Mysqlx::Crud::Projection > columns);
+    
 
     static void replace(std::string& target, const std::string& old_val, const std::string& new_val);
   };
