@@ -68,3 +68,4 @@ install(DIRECTORY "${CMAKE_SOURCE_DIR}/mysqlxtest/common/" DESTINATION "include/
 install(DIRECTORY "${CMAKE_BINARY_DIR}/mysqlxtest/" DESTINATION "include/" FILES_MATCHING PATTERN "*.h" )
 install(TARGETS mysqlxtest DESTINATION lib)
 install(TARGETS mysqlxtest_pb DESTINATION lib)
+install(FILES ${PROTOBUF_LIBRARY} DESTINATION lib)
