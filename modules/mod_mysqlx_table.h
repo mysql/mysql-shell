@@ -28,6 +28,10 @@
 #include "shellcore/types_cpp.h"
 #include "mysqlx_crud.h"
 
+#include "mod_mysqlx_table_insert.h"
+#include "mod_mysqlx_table_select.h"
+#include "mod_mysqlx_table_delete.h"
+
 namespace mysh
 {
   namespace mysqlx
@@ -44,7 +48,20 @@ namespace mysh
       virtual std::string class_name() const { return "Table"; }
 
     private:
+      shcore::Value insert_(const shcore::Argument_list &args);
+      shcore::Value select_(const shcore::Argument_list &args);
+      shcore::Value update_(const shcore::Argument_list &args);
+      shcore::Value delete_(const shcore::Argument_list &args);
+
+      void init();
+
+    private:
       boost::shared_ptr< ::mysqlx::Table> _table_impl;
+
+      // Allows initial functions on the CRUD operations
+      friend shcore::Value TableInsert::insert(const shcore::Argument_list &args);
+      friend shcore::Value TableSelect::select(const shcore::Argument_list &args);
+      friend shcore::Value TableDelete::remove(const shcore::Argument_list &args);
     };
   }
 }

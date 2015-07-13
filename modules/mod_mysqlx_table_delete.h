@@ -20,8 +20,8 @@
 // MySQL DB access module, for use by plugins and others
 // For the module that implements interactive DB functionality see mod_db
 
-#ifndef _MOD_CRUD_TABLE_INSERT_H_
-#define _MOD_CRUD_TABLE_INSERT_H_
+#ifndef _MOD_CRUD_TABLE_DELETE_H_
+#define _MOD_CRUD_TABLE_DELETE_H_
 
 #include "crud_definition.h"
 #include "mysqlx_crud.h"
@@ -31,21 +31,22 @@ namespace mysh
   namespace mysqlx
   {
     class Table;
-    class TableInsert : public Crud_definition, public boost::enable_shared_from_this<TableInsert>
+    class TableDelete : public Crud_definition, public boost::enable_shared_from_this<TableDelete>
     {
     public:
-      TableInsert(boost::shared_ptr<Table> owner);
+      TableDelete(boost::shared_ptr<Table> owner);
     public:
-      virtual std::string class_name() const { return "TableInsert"; }
+      virtual std::string class_name() const { return "TableDelete"; }
       static boost::shared_ptr<shcore::Object_bridge> create(const shcore::Argument_list &args);
-      shcore::Value insert(const shcore::Argument_list &args);
-      shcore::Value values(const shcore::Argument_list &args);
+      shcore::Value remove(const shcore::Argument_list &args);
+      shcore::Value where(const shcore::Argument_list &args);
+      shcore::Value order_by(const shcore::Argument_list &args);
+      shcore::Value limit(const shcore::Argument_list &args);
       shcore::Value bind(const shcore::Argument_list &args);
-      ::mysqlx::TableValue map_value(shcore::Value source);
 
       virtual shcore::Value execute(const shcore::Argument_list &args);
     private:
-      std::auto_ptr< ::mysqlx::InsertStatement> _insert_statement;
+      std::auto_ptr< ::mysqlx::DeleteStatement> _delete_statement;
     };
   };
 };

@@ -484,13 +484,13 @@ Result *Select_Base::execute()
   return result;
 }
 
-Select_Base &Select_Skip::skip(uint64_t skip_)
+Select_Base &Select_Offset::offset(uint64_t offset_)
 {
-  m_find->mutable_limit()->set_offset(skip_);
+  m_find->mutable_limit()->set_offset(offset_);
   return *this;
 }
 
-Select_Skip &Select_Limit::limit(uint64_t limit_)
+Select_Offset &Select_Limit::limit(uint64_t limit_)
 {
   m_find->mutable_limit()->set_row_count(limit_);
   return *this;

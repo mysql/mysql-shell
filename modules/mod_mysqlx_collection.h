@@ -29,8 +29,8 @@
 #include "mysqlx_crud.h"
 
 #include "mod_mysqlx_collection_add.h"
-#include "mod_mysqlx_collection_find.h"
 #include "mod_mysqlx_collection_remove.h"
+#include "mod_mysqlx_collection_find.h"
 
 namespace mysh
 {

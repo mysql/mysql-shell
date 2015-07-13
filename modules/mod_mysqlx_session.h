@@ -80,7 +80,7 @@ namespace mysh
     {
     public:
       ApiBaseSession();
-      virtual ~ApiBaseSession() {};
+      virtual ~ApiBaseSession() { flush_last_result(); }
 
       virtual std::vector<std::string> get_members() const;
       virtual shcore::Value get_member(const std::string &prop) const;

@@ -30,7 +30,7 @@
 #include "test_utils.h"
 
 namespace shcore {
-  class DISABLED_Shell_js_crud_table_insert_tests : public Crud_test_wrapper
+  class Shell_js_crud_table_insert_tests : public Crud_test_wrapper
   {
   protected:
     // You can define per-test set-up and tear-down logic as usual.
@@ -45,31 +45,52 @@ namespace shcore {
     }
   };
 
-  TEST_F(DISABLED_Shell_js_crud_table_insert_tests, chain_combinations)
+  TEST_F(Shell_js_crud_table_insert_tests, initialization)
   {
-    // Creates a connection object
-    exec_and_out_equals("var conn = _F.mysqlx.Connection('" + _uri + "');");
+    exec_and_out_equals("var mysqlx = require('mysqlx').mysqlx;");
 
-    // Creates the table insert object
-    exec_and_out_equals("var crud = _F.mysqlx.TableInsert(conn, 'schema', 'table');");
+    exec_and_out_equals("var session = mysqlx.openNodeSession('" + _uri + "');");
 
-    //-------- ---------------------Test 1------------------------//
-    // Initial validation, any new TableInsert object only has
-    // the insert function available upon creation
+    exec_and_out_equals("session.executeSql('drop schema if exists js_shell_test;')");
+    exec_and_out_equals("session.executeSql('create schema js_shell_test;')");
+    exec_and_out_equals("session.executeSql('use js_shell_test;')");
+    exec_and_out_equals("session.executeSql('create table table1 (name varchar(50), age integer, gender varchar(20));')");
+  }
+
+  TEST_F(Shell_js_crud_table_insert_tests, chain_combinations)
+  {
+    // NOTE: No data validation is done on this test, only tests
+    //       different combinations of chained methods.
+    exec_and_out_equals("var mysqlx = require('mysqlx').mysqlx;");
+    exec_and_out_equals("var session = mysqlx.openSession('" + _uri + "');");
+    exec_and_out_equals("var table = session.js_shell_test.getTable('table1');");
+
+    //-------- ---------------------Test 1-------------------------
+    // Tests the happy path table.insert().values().bind().execute()
     //-------------------------------------------------------------
-    ensure_available_functions("insert");
+    exec_and_out_equals("var crud = table.insert();");
+    ensure_available_functions("values");
 
-    //-------- ---------------------Test 2-------------------------
-    // Tests the happy path validating only the right functions
-    // are available following the chained call
-    // this is TableInsert.insert([]).values([]).bind([]).execute()
-    //-------------------------------------------------------------
-    exec_and_out_equals("crud.insert([])");
+    exec_and_out_equals("crud.values([1,2,3,4,5])");
     ensure_available_functions("values,bind,execute");
 
-    // Executes values and it will ensure the same methods still available since
-    // values can be repeated
-    exec_and_out_equals("crud.values([])");
+    exec_and_out_equals("crud.values([6,7,8,9,10])");
+    ensure_available_functions("values,bind,execute");
+
+    // Now executes bind and the only available method will be execute
+    exec_and_out_equals("crud.bind([])");
+    ensure_available_functions("execute");
+
+    //-------- ---------------------Test 2-------------------------
+    // Tests the happy path table.insert([column names]).values().bind().execute()
+    //-------------------------------------------------------------
+    exec_and_out_equals("var crud = table.insert(['id', 'name']);");
+    ensure_available_functions("values");
+
+    exec_and_out_equals("crud.values([1,2,3,4,5])");
+    ensure_available_functions("values,bind,execute");
+
+    exec_and_out_equals("crud.values([6,7,8,9,10])");
     ensure_available_functions("values,bind,execute");
 
     // Now executes bind and the only available method will be execute
@@ -77,30 +98,72 @@ namespace shcore {
     ensure_available_functions("execute");
 
     //-------- ---------------------Test 3-------------------------
-    // Test the case when insert is called without parameters, on such case
-    // execute should not be enabled until values or bind is called
+    // Tests the happy path table.insert({columns:values}).values().bind().execute()
     //-------------------------------------------------------------
-    // Creates a new table insert object
-    exec_and_out_equals("var crud = _F.mysqlx.TableInsert(conn, 'schema', 'table');");
-    exec_and_out_equals("crud.insert()");
-    ensure_available_functions("values,bind");
+    exec_and_out_equals("var crud = table.insert({id:3, name:'whatever'});");
+    ensure_available_functions("bind, execute");
 
-    //-------- ---------------------Test 4-------------------------
-    // Test the case when insert is called FieldsAndValues, on such case
-    // values should be disabled
-    //-------------------------------------------------------------
-    // Creates a new table insert object
-    exec_and_out_equals("var crud = _F.mysqlx.TableInsert(conn, 'schema', 'table');");
-    exec_and_out_equals("crud.insert({})");
-    ensure_available_functions("bind,execute");
-
-    //-------- ---------------------Test 5-------------------------
-    // Test the case when insert and bind are called, ensures methods
-    // behind bind are no longer enabled
-    //-------------------------------------------------------------
-    // Creates a new table insert object
-    exec_and_out_equals("var crud = _F.mysqlx.TableInsert(conn, 'schema', 'table');");
-    exec_and_out_equals("crud.insert([]).bind([])");
+    // Now executes bind and the only available method will be execute
+    exec_and_out_equals("crud.bind([])");
     ensure_available_functions("execute");
+  }
+
+  TEST_F(Shell_js_crud_table_insert_tests, insert_validations)
+  {
+    exec_and_out_equals("var mysqlx = require('mysqlx').mysqlx;");
+    exec_and_out_equals("var session = mysqlx.openSession('" + _uri + "');");
+    exec_and_out_equals("var table = session.js_shell_test.getTable('table1');");
+
+    // Tests insert with invalid parameter
+    exec_and_out_contains("table.insert(28).execute();", "", "Invalid data received on TableInsert::insert");
+
+    // Test add attempt with no data
+    exec_and_out_contains("table.insert(['id', 45]).execute();", "", "Invalid column name at position 2.");
+
+    // Test add attempt with column list but invalid values
+    exec_and_out_contains("table.insert(['id','name']).values(5).execute();", "", "Invalid parameter received, expected data array.");
+
+    // Test add attempt with column list but unsupported values
+    exec_and_out_contains("table.insert(['id','name']).values([1, session]).execute();", "", "Unsupported value received for table insert operation: <Session");
+
+    // Test add attempt with invalid column name
+    exec_and_out_contains("table.insert(['id', 'name', 'gender']).values([15, 'walter', 'male']).execute();", "", "Unknown column 'id' in 'field list'");
+  }
+
+  TEST_F(Shell_js_crud_table_insert_tests, insert_execution)
+  {
+    exec_and_out_equals("var mysqlx = require('mysqlx').mysqlx;");
+    exec_and_out_equals("var session = mysqlx.openSession('" + _uri + "');");
+    exec_and_out_equals("var table = session.js_shell_test.getTable('table1');");
+
+    // Insert without columns
+    {
+      SCOPED_TRACE("Testing insert without columns.");
+      exec_and_out_equals("var result = table.insert().values(['jack', 17, 'male']).execute();");
+      exec_and_out_equals("print (result.affectedRows)", "1");
+    }
+
+    // Insert with columns
+    {
+      SCOPED_TRACE("Testing insert without columns.");
+      exec_and_out_equals("var result = table.insert(['age', 'name', 'gender']).values([21, 'john', 'male']).execute();");
+      exec_and_out_equals("print (result.affectedRows)", "1");
+    }
+
+    // Inserting multiple records
+    {
+      SCOPED_TRACE("Testing insert without columns.");
+      exec_and_out_equals("var insert = table.insert(['name', 'age', 'gender'])");
+      exec_and_out_equals("insert.values(['clark', 22,'male'])");
+      exec_and_out_equals("insert.values(['mary', 13,'female'])");
+      exec_and_out_equals("var result = insert.execute()");
+      exec_and_out_equals("print (result.affectedRows)", "2");
+    }
+
+    // Inserting document
+    {
+      exec_and_out_equals("var result = table.insert({age:14, name:'jackie', gender: 'female'}).execute();");
+      exec_and_out_equals("print (result.affectedRows)", "1");
+    }
   }
 }

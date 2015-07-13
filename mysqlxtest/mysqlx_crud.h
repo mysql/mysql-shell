@@ -95,24 +95,24 @@ namespace mysqlx
     boost::shared_ptr<Mysqlx::Crud::Find> m_find;
   };
 
-  class Select_Skip : public Select_Base
+  class Select_Offset : public Select_Base
   {
   public:
-    Select_Skip(boost::shared_ptr<Table> table) : Select_Base(table) {}
-    Select_Skip(const Select_Skip &other) : Select_Base(other) {}
-    Select_Skip &operator = (const Select_Skip &other) { Select_Base::operator=(other); return *this; }
+    Select_Offset(boost::shared_ptr<Table> table) : Select_Base(table) {}
+    Select_Offset(const Select_Offset &other) : Select_Base(other) {}
+    Select_Offset &operator = (const Select_Offset &other) { Select_Base::operator=(other); return *this; }
 
-    Select_Base &skip(uint64_t skip);
+    Select_Base &offset(uint64_t skip);
   };
 
-  class Select_Limit : public Select_Skip
+  class Select_Limit : public Select_Offset
   {
   public:
-    Select_Limit(boost::shared_ptr<Table> table) : Select_Skip(table) {}
-    Select_Limit(const Select_Limit &other) : Select_Skip(other) {}
-    Select_Limit &operator = (const Select_Limit &other) { Select_Skip::operator=(other); return *this; }
+    Select_Limit(boost::shared_ptr<Table> table) : Select_Offset(table) {}
+    Select_Limit(const Select_Limit &other) : Select_Offset(other) {}
+    Select_Limit &operator = (const Select_Limit &other) { Select_Offset::operator=(other); return *this; }
 
-    Select_Skip &limit(uint64_t limit);
+    Select_Offset &limit(uint64_t limit);
   };
 
   class Select_Sort : public Select_Limit
