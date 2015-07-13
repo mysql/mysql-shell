@@ -44,7 +44,7 @@ namespace google { namespace protobuf { class Message; }}
 
 namespace mysqlx
 {
-	typedef google::protobuf::Message Message;
+  typedef google::protobuf::Message Message;
 
   bool parse_mysql_connstring(const std::string &connstring,
     std::string &protocol, std::string &user, std::string &password,
@@ -154,6 +154,137 @@ namespace mysqlx
     boost::shared_ptr<std::string> m_data;
   };
 
+  class TableValue
+  {
+  public:
+    enum Type
+    {
+      TInteger,
+      TUInteger,
+      TNull,
+      TDouble,
+      TFloat,
+      TBool,
+      TString,
+      TOctets,
+    };
+
+    TableValue(const TableValue &other)
+    {
+      m_type = other.m_type;
+      m_value.b = other.m_value.b;
+      m_value.d = other.m_value.d;
+      m_value.f = other.m_value.f;
+      m_value.i = other.m_value.i;
+      m_value.ui = other.m_value.ui;
+
+      if (m_type == TString || m_type == TOctets)
+        m_value.s = new std::string(*other.m_value.s);
+    }
+
+    explicit TableValue(const std::string &s, Type type = TString)
+    {
+      m_type = type;
+      m_value.s = new std::string(s);
+    }
+
+    explicit TableValue(int64_t n)
+    {
+      m_type = TInteger;
+      m_value.i = n;
+    }
+
+    explicit TableValue(uint64_t n)
+    {
+      m_type = TUInteger;
+      m_value.ui = n;
+    }
+
+    explicit TableValue(double n)
+    {
+      m_type = TDouble;
+      m_value.d = n;
+    }
+
+    explicit TableValue(float n)
+    {
+      m_type = TFloat;
+      m_value.f = n;
+    }
+
+    explicit TableValue(bool n)
+    {
+      m_type = TBool;
+      m_value.b = n;
+    }
+
+    explicit TableValue()
+    {
+      m_type = TNull;
+    }
+
+    ~TableValue()
+    {
+      if (m_type == TString || m_type == TOctets)
+        delete m_value.s;
+    }
+
+    inline Type type() const { return m_type; }
+
+    inline operator uint64_t ()
+    {
+      if (m_type != TUInteger)
+        throw std::logic_error("type error");
+      return m_value.ui;
+    }
+
+    inline operator int64_t ()
+    {
+      if (m_type != TInteger)
+        throw std::logic_error("type error");
+      return m_value.i;
+    }
+
+    inline operator double()
+    {
+      if (m_type != TDouble)
+        throw std::logic_error("type error");
+      return m_value.d;
+    }
+
+    inline operator float()
+    {
+      if (m_type != TFloat)
+        throw std::logic_error("type error");
+      return m_value.f;
+    }
+
+    inline operator bool()
+    {
+      if (m_type != TBool)
+        throw std::logic_error("type error");
+      return m_value.b;
+    }
+
+    inline operator const std::string & ()
+    {
+      if (m_type != TString && m_type != TOctets)
+        throw std::logic_error("type error");
+      return *m_value.s;
+    }
+
+  private:
+    Type m_type;
+    union
+    {
+      std::string *s;
+      int64_t i;
+      uint64_t ui;
+      double d;
+      float f;
+      bool b;
+    } m_value;
+  };
 
   class DocumentValue
   {
@@ -293,14 +424,23 @@ namespace mysqlx
     bool nextResult();
     void discardData();
 
+    struct Warning
+    {
+      std::string text;
+      int code;
+      bool is_note;
+    };
+    const std::vector<Warning> &getWarnings() const { return m_warnings; }
   private:
     Result();
     Result(const Result &o);
-    Result(Connection *owner, bool needs_stmt_ok, bool expect_data);
+    Result(Connection *owner, bool expect_data);
 
     void read_metadata();
     std::auto_ptr<Row> read_row();
     void read_stmt_ok();
+
+    void handle_notice(int32_t type, const std::string &data);
 
     int get_message_id();
     std::auto_ptr<mysqlx::Message> pop_message() { return current_message; }
@@ -314,7 +454,8 @@ namespace mysqlx
     int64_t m_last_insert_id;
     int64_t m_affected_rows;
 
-    bool m_needs_stmt_ok;
+    std::vector<Warning> m_warnings;
+
     enum {
       ReadStmtOkI, // initial state
       ReadMetadataI, // initial state

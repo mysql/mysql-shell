@@ -50,6 +50,7 @@
 
 #include <boost/asio.hpp>
 #include <boost/shared_ptr.hpp>
+#include <boost/function.hpp>
 
 #include "xerrmsg.h"
 
@@ -63,10 +64,14 @@
 
 namespace mysqlx
 {
+  typedef boost::function<void (int,std::string)> Local_notice_handler;
+
   class Connection
   {
   public:
     Connection();
+
+    Local_notice_handler set_local_notice_handler(Local_notice_handler handler);
 
     void connect(const std::string &uri, const std::string &pass);
     void connect(const std::string &host, int port);
@@ -76,7 +81,9 @@ namespace mysqlx
     void close();
 
     void send(int mid, const Message &msg);
-    Message *recv(int &mid);
+    Message *recv_next(int &mid);
+
+    Message *recv_raw(int &mid);
 
     // Overrides for Client Session Messages
     void send(const Mysqlx::Session::AuthenticateStart &m) { send(Mysqlx::ClientMessages::SESS_AUTHENTICATE_START, m); };
@@ -85,20 +92,9 @@ namespace mysqlx
     void send(const Mysqlx::Session::Close &m) { send(Mysqlx::ClientMessages::SESS_CLOSE, m); };
 
     // Overrides for SQL Messages
-    void send(const Mysqlx::Sql::PrepareStmt &m) { send(Mysqlx::ClientMessages::SQL_PREPARE_STMT, m); };
-    void send(const Mysqlx::Sql::PreparedStmtClose &m) { send(Mysqlx::ClientMessages::SQL_PREPARED_STMT_CLOSE, m); };
-    void send(const Mysqlx::Sql::PreparedStmtExecute &m) { send(Mysqlx::ClientMessages::SQL_PREPARED_STMT_EXECUTE, m); };
-    void send(const Mysqlx::Sql::CursorFetchMetaData &m) { send(Mysqlx::ClientMessages::SQL_CURSOR_FETCH_META_DATA, m); };
-    void send(const Mysqlx::Sql::CursorFetchRows &m) { send(Mysqlx::ClientMessages::SQL_CURSOR_FETCH_ROWS, m); };
-    void send(const Mysqlx::Sql::CursorsPoll &m) { send(Mysqlx::ClientMessages::SQL_CURSORS_POLL, m); };
-    void send(const Mysqlx::Sql::CursorClose &m) { send(Mysqlx::ClientMessages::SQL_CURSOR_CLOSE, m); };
     void send(const Mysqlx::Sql::StmtExecute &m) { send(Mysqlx::ClientMessages::SQL_STMT_EXECUTE, m); };
 
     // Overrides for CRUD operations
-    void send(const Mysqlx::Crud::PrepareFind &m) { send(Mysqlx::ClientMessages::CRUD_PREPARE_FIND, m); };
-    void send(const Mysqlx::Crud::PrepareInsert &m) { send(Mysqlx::ClientMessages::CRUD_PREPARE_INSERT, m); };
-    void send(const Mysqlx::Crud::PrepareUpdate &m) { send(Mysqlx::ClientMessages::CRUD_PREPARE_UPDATE, m); };
-    void send(const Mysqlx::Crud::PrepareDelete &m) { send(Mysqlx::ClientMessages::CRUD_PREPARE_DELETE, m); };
     void send(const Mysqlx::Crud::Find &m) { send(Mysqlx::ClientMessages::CRUD_FIND, m); };
     void send(const Mysqlx::Crud::Insert &m) { send(Mysqlx::ClientMessages::CRUD_INSERT, m); };
     void send(const Mysqlx::Crud::Update &m) { send(Mysqlx::ClientMessages::CRUD_UPDATE, m); };
@@ -120,10 +116,13 @@ namespace mysqlx
 
   private:
     void authenticate_plain(const std::string &user, const std::string &pass, const std::string &db);
+    void authenticate_mysql41(const std::string &user, const std::string &pass, const std::string &db);
 
   private:
     typedef boost::asio::ip::tcp tcp;
-    
+
+    Local_notice_handler m_local_notice_handler;
+
     boost::asio::io_service m_ios;
     boost::asio::ip::tcp::socket m_socket;
     bool m_trace_packets;

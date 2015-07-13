@@ -58,6 +58,179 @@ namespace mysqlx
     std::string m_name;
   };
 
+  // -------------------------------------------------------
+
+  class Statement
+  {
+  public:
+    virtual ~Statement();
+    virtual Result *execute() = 0;
+  };
+
+  // -------------------------------------------------------
+
+  class Table_Statement : public Statement
+  {
+  public:
+    Table_Statement(boost::shared_ptr<Table> table);
+    //Table_Statement &bind(const std::string &name, const DocumentValue &value);
+
+    boost::shared_ptr<Table> table() const { return m_table; }
+
+  protected:
+    boost::shared_ptr<Table> m_table;
+  };
+
+  // -------------------------------------------------------
+
+  class Select_Base : public Table_Statement
+  {
+  public:
+    Select_Base(boost::shared_ptr<Table> table);
+    Select_Base(const Select_Base &other);
+    Select_Base &operator = (const Select_Base &other);
+
+    virtual Result *execute();
+  protected:
+    boost::shared_ptr<Mysqlx::Crud::Find> m_find;
+  };
+
+  class Select_Skip : public Select_Base
+  {
+  public:
+    Select_Skip(boost::shared_ptr<Table> table) : Select_Base(table) {}
+    Select_Skip(const Select_Skip &other) : Select_Base(other) {}
+    Select_Skip &operator = (const Select_Skip &other) { Select_Base::operator=(other); return *this; }
+
+    Select_Base &skip(uint64_t skip);
+  };
+
+  class Select_Limit : public Select_Skip
+  {
+  public:
+    Select_Limit(boost::shared_ptr<Table> table) : Select_Skip(table) {}
+    Select_Limit(const Select_Limit &other) : Select_Skip(other) {}
+    Select_Limit &operator = (const Select_Limit &other) { Select_Skip::operator=(other); return *this; }
+
+    Select_Skip &limit(uint64_t limit);
+  };
+
+  class Select_Sort : public Select_Limit
+  {
+  public:
+    Select_Sort(boost::shared_ptr<Table> table) : Select_Limit(table) {}
+    Select_Sort(const Select_Sort &other) : Select_Limit(other) {}
+    Select_Sort &operator = (const Select_Sort &other) { Select_Limit::operator=(other); return *this; }
+
+    Select_Limit &sort(const std::string &sortFields);
+  };
+
+  class Select_Having : public Select_Sort
+  {
+  public:
+    Select_Having(boost::shared_ptr<Table> table) : Select_Sort(table) {}
+    Select_Having(const Select_Having &other) : Select_Sort(other) {}
+    Select_Having &operator = (const Select_Having &other) { Select_Sort::operator=(other); return *this; }
+
+    Select_Sort &having(const std::string &searchCondition);
+  };
+
+  class Select_GroupBy : public Select_Having
+  {
+  public:
+    Select_GroupBy(boost::shared_ptr<Table> table) : Select_Having(table) {}
+    Select_GroupBy(const Select_GroupBy &other) : Select_Having(other) {}
+    Select_GroupBy &operator = (const Select_Having &other) { Select_Having::operator=(other); return *this; }
+
+    Select_Having &groupBy(const std::string &searchFields);
+  };
+
+  class SelectStatement : public Select_GroupBy
+  {
+  public:
+    SelectStatement(boost::shared_ptr<Table> table, const std::string &fieldList);
+    SelectStatement(const SelectStatement &other) : Select_GroupBy(other) {}
+    SelectStatement &operator = (const SelectStatement &other) { Select_GroupBy::operator=(other); return *this; }
+
+    Select_GroupBy &where(const std::string &searchCondition);
+  };
+
+  // -------------------------------------------------------
+
+  class Insert_Base : public Table_Statement
+  {
+  public:
+    Insert_Base(boost::shared_ptr<Table> table);
+    Insert_Base(const Insert_Base &other);
+    Insert_Base &operator = (const Insert_Base &other);
+
+    virtual Result *execute();
+  protected:
+    boost::shared_ptr<Mysqlx::Crud::Insert> m_insert;
+  };
+
+  class Insert_Values : public Insert_Base
+  {
+  public:
+    Insert_Values(boost::shared_ptr<Table> table);
+    Insert_Values(const Insert_Base &other);
+    Insert_Values &operator = (const Insert_Values &other);
+
+    Insert_Values &values(const std::vector<TableValue> &row);
+  };
+
+  class InsertStatement : public Insert_Values
+  {
+  public:
+    InsertStatement(boost::shared_ptr<Table> coll);
+    InsertStatement(const InsertStatement &other) : Insert_Values(other) {}
+    InsertStatement &operator = (const InsertStatement &other) { Insert_Values::operator=(other); return *this; }
+
+    Insert_Values &insert(const std::vector<std::string> &columns);
+  };
+
+  class Delete_Base : public Table_Statement
+  {
+  public:
+    Delete_Base(boost::shared_ptr<Table> table);
+    Delete_Base(const Delete_Base &other);
+    Delete_Base &operator = (const Delete_Base &other);
+
+    virtual Result *execute();
+  protected:
+    boost::shared_ptr<Mysqlx::Crud::Delete> m_delete;
+  };
+
+  class Delete_Limit : public Delete_Base
+  {
+  public:
+    Delete_Limit(boost::shared_ptr<Table> table) : Delete_Base(table) {}
+    Delete_Limit(const Delete_Limit &other) : Delete_Base(other) {}
+    Delete_Limit &operator = (const Delete_Limit &other) { Delete_Base::operator=(other); return *this; }
+
+    Delete_Base &limit(uint64_t limit);
+  };
+
+  class Delete_OrderBy : public Delete_Limit
+  {
+  public:
+    Delete_OrderBy(boost::shared_ptr<Table> table) : Delete_Limit(table) {}
+    Delete_OrderBy(const Delete_Limit &other) : Delete_Limit(other) {}
+    Delete_OrderBy &operator = (const Delete_OrderBy &other) { Delete_Limit::operator=(other); return *this; }
+
+    Delete_Limit &orderBy(const std::string &sortFields);
+  };
+
+  class DeleteStatement : public Delete_OrderBy
+  {
+  public:
+    DeleteStatement(boost::shared_ptr<Table> table);
+    DeleteStatement(const DeleteStatement &other) : Delete_OrderBy(other) {}
+    DeleteStatement &operator = (const DeleteStatement &other) { Delete_OrderBy::operator=(other); return *this; }
+
+    Delete_OrderBy &where(const std::string &searchCondition);
+  };
+
   class Table : public boost::enable_shared_from_this<Table>
   {
   public:
@@ -66,18 +239,13 @@ namespace mysqlx
     boost::shared_ptr<Schema> schema() const { return m_schema.lock(); }
     const std::string& name() const { return m_name; }
 
+    DeleteStatement remove();
+    InsertStatement insert();
+    SelectStatement select(const std::string& fieldList);
+
   private:
     boost::weak_ptr<Schema> m_schema;
     std::string m_name;
-  };
-
-  // -------------------------------------------------------
-
-  class Statement
-  {
-  public:
-    virtual ~Statement();
-    virtual Result *execute() = 0;
   };
 
   // -------------------------------------------------------
@@ -93,7 +261,6 @@ namespace mysqlx
   protected:
     boost::shared_ptr<Collection> m_coll;
   };
-
 
   class Find_Base : public Collection_Statement
   {
@@ -181,7 +348,6 @@ namespace mysqlx
     boost::shared_ptr<Mysqlx::Crud::Insert> m_insert;
   };
 
-
   class AddStatement : public Add_Base
   {
   public:
@@ -206,7 +372,6 @@ namespace mysqlx
     boost::shared_ptr<Mysqlx::Crud::Update> m_update;
   };
 
-
   class Modify_Operation : public Modify_Base
   {
   public:
@@ -222,7 +387,6 @@ namespace mysqlx
     Modify_Operation &arrayAppend(const std::string &path, const DocumentValue &value);
   };
 
-
   class Modify_Limit : public Modify_Operation
   {
   public:
@@ -232,7 +396,6 @@ namespace mysqlx
 
     Modify_Operation &limit(uint64_t limit);
   };
-
 
   class ModifyStatement : public Modify_Limit
   {
@@ -297,7 +460,6 @@ namespace mysqlx
     boost::weak_ptr<Schema> m_schema;
     std::string m_name;
   };
-
 };
 
 #endif

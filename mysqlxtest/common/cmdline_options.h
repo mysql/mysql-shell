@@ -41,6 +41,22 @@ protected:
     return false;
   }
 
+  bool is_quote_char(const char single_char)
+  {
+	if (single_char == '\'' || single_char == '"' || single_char == '`')
+      return true;
+
+    return false;
+  }
+
+  bool should_remove_qoutes(const char first, const char last)
+  {
+	if (!is_quote_char(first) || !is_quote_char(last))
+	  return false;
+
+	return first == last;
+  }
+
   bool check_arg_with_value(char **argv, int &argi, const char *arg, const char *larg, char *&value)
   {
     // --option value or -o value
@@ -64,6 +80,14 @@ protected:
     else if (larg && strncmp(argv[argi], larg, strlen(larg)) == 0 && strlen(argv[argi]) > strlen(larg))
     {
       value = argv[argi] + strlen(larg);
+      std::size_t length = strlen(value);
+
+	  if (length > 0 && should_remove_qoutes(value[0], value[length - 1]))
+      {
+        value[length - 1] = 0;
+        value = value + 1;
+      }
+
       return true;
     }
     // --option=value
@@ -71,6 +95,14 @@ protected:
     {
       // value must be after =
       value = argv[argi] + strlen(arg)+1;
+	  std::size_t length = strlen(value);
+
+	  if (length > 0 && should_remove_qoutes(value[0], value[length - 1]))
+	  {
+		value[length - 1] = 0;
+		value = value + 1;
+	  }
+
       return true;
     }
     return false;
