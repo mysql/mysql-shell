@@ -296,3 +296,7 @@ IF (WITH_SAMPLES)
 ENDIF()
 
 include(packaging)
+
+if(WIN32)
+  remove_definitions(-DUNICODE)
+endif()

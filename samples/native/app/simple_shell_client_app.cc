@@ -189,6 +189,24 @@ int main(int argc, char* argv[])
     }
   }
 
+  shell.switch_mode(shcore::IShell_core::Mode_Python);
+  while (!(input = get_query_from_prompt("py> ")).empty())
+  {
+    if (input == "\\quit") break;
+    boost::shared_ptr<Result_set> result = shell.execute(input);
+    Result_set* res = result.get();
+    Document_result_set *doc = dynamic_cast<Document_result_set*>(res);
+
+    if (doc != NULL)
+    {
+      print_doc_result_set(doc);
+    }
+    else
+    {
+      // Empty result...
+      empty_result = true;
+    }
+  }
 	return 0;
 }
 
