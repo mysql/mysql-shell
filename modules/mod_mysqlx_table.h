@@ -31,6 +31,7 @@
 #include "mod_mysqlx_table_insert.h"
 #include "mod_mysqlx_table_select.h"
 #include "mod_mysqlx_table_delete.h"
+#include "mod_mysqlx_table_update.h"
 
 namespace mysh
 {
@@ -62,6 +63,7 @@ namespace mysh
       friend shcore::Value TableInsert::insert(const shcore::Argument_list &args);
       friend shcore::Value TableSelect::select(const shcore::Argument_list &args);
       friend shcore::Value TableDelete::remove(const shcore::Argument_list &args);
+      friend shcore::Value TableUpdate::update(const shcore::Argument_list &args);
     };
   }
 }

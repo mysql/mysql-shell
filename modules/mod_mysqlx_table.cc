@@ -23,8 +23,8 @@
 
 #include "mod_mysqlx_table_insert.h"
 #include "mod_mysqlx_table_delete.h"
-//#include "mod_mysqlx_table_select.h"
-//#include "mod_mysqlx_table_update.h"
+#include "mod_mysqlx_table_update.h"
+#include "mod_mysqlx_table_select.h"
 
 using namespace mysh;
 using namespace mysh::mysqlx;
@@ -45,7 +45,7 @@ DatabaseObject(owner->_session.lock(), boost::const_pointer_cast<Schema>(owner),
 void Table::init()
 {
   add_method("insert", boost::bind(&Table::insert_, this, _1), "searchCriteria", shcore::String, NULL);
-  add_method("modify", boost::bind(&Table::update_, this, _1), "searchCriteria", shcore::String, NULL);
+  add_method("update", boost::bind(&Table::update_, this, _1), "searchCriteria", shcore::String, NULL);
   add_method("select", boost::bind(&Table::select_, this, _1), "searchCriteria", shcore::String, NULL);
   add_method("delete", boost::bind(&Table::delete_, this, _1), "searchCriteria", shcore::String, NULL);
 }
@@ -63,11 +63,9 @@ shcore::Value Table::insert_(const shcore::Argument_list &args)
 
 shcore::Value Table::update_(const shcore::Argument_list &args)
 {
-  /*std::string searchCriteria;
-  args.ensure_count(1, "Collection::modify");
-  searchCriteria = args.string_at(0);
-  // return shcore::Value::wrap(new CollectionFind(_coll->find(searchCriteria)));*/
-  return shcore::Value();
+  boost::shared_ptr<TableUpdate> tableUpdate(new TableUpdate(shared_from_this()));
+
+  return tableUpdate->update(args);
 }
 
 shcore::Value Table::delete_(const shcore::Argument_list &args)

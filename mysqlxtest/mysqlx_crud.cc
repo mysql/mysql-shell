@@ -19,6 +19,7 @@
 
 #include "mysqlx_crud.h"
 #include "mysqlx_connection.h"
+#include "mysqlx_datatypes.pb.h"
 
 #include "mysqlx_parser.h"
 
@@ -50,6 +51,12 @@ boost::shared_ptr<Collection> Schema::getCollection(const std::string &name_)
 Table::Table(boost::shared_ptr<Schema> schema_, const std::string &name_)
 : m_schema(schema_), m_name(name_)
 {
+}
+
+UpdateStatement Table::update()
+{
+  UpdateStatement tmp(shared_from_this());
+  return tmp;
 }
 
 DeleteStatement Table::remove()
@@ -387,6 +394,52 @@ Table_Statement::Table_Statement(boost::shared_ptr<Table> table)
 {
 }
 
+Mysqlx::Datatypes::Any* Table_Statement::convert_table_value(const TableValue& value)
+{
+  Mysqlx::Datatypes::Any *any = new Mysqlx::Datatypes::Any();
+  any->set_type(Mysqlx::Datatypes::Any::SCALAR);
+  Mysqlx::Datatypes::Scalar *my_scalar(any->mutable_scalar());
+
+  mysqlx::TableValue column_value(value);
+
+  switch (value.type())
+  {
+    case TableValue::TInteger:
+      my_scalar->set_type(Mysqlx::Datatypes::Scalar::V_SINT);
+      my_scalar->set_v_signed_int(column_value);
+      break;
+    case TableValue::TUInteger:
+      my_scalar->set_type(Mysqlx::Datatypes::Scalar::V_UINT);
+      my_scalar->set_v_unsigned_int(column_value);
+      break;
+    case TableValue::TBool:
+      my_scalar->set_type(Mysqlx::Datatypes::Scalar::V_BOOL);
+      my_scalar->set_v_bool(column_value);
+      break;
+    case TableValue::TDouble:
+      my_scalar->set_type(Mysqlx::Datatypes::Scalar::V_DOUBLE);
+      my_scalar->set_v_double(column_value);
+      break;
+    case TableValue::TFloat:
+      my_scalar->set_type(Mysqlx::Datatypes::Scalar::V_FLOAT);
+      my_scalar->set_v_float(column_value);
+      break;
+    case TableValue::TNull:
+      my_scalar->set_type(Mysqlx::Datatypes::Scalar::V_NULL);
+      break;
+    case TableValue::TOctets:
+      my_scalar->set_type(Mysqlx::Datatypes::Scalar::V_OCTETS);
+      my_scalar->set_v_opaque(column_value);
+      break;
+    case TableValue::TString:
+      my_scalar->set_type(Mysqlx::Datatypes::Scalar::V_STRING);
+      my_scalar->mutable_v_string()->set_value(column_value);
+      break;
+  }
+
+  return any;
+}
+
 //Collection_Statement &Collection_Statement::bind(const std::string &UNUSED(name), const DocumentValue &UNUSED(value))
 //{
 //  return *this;
@@ -449,6 +502,94 @@ Delete_OrderBy &DeleteStatement::where(const std::string& searchCondition)
     m_delete->set_allocated_criteria(parser::parse_table_filter(searchCondition));
 
   return *this;
+}
+
+//--------------------------------------------------------------
+
+Update_Base::Update_Base(boost::shared_ptr<Table> table)
+: Table_Statement(table), m_update(new Mysqlx::Crud::Update())
+{
+}
+
+Update_Base::Update_Base(const Update_Base &other)
+: Table_Statement(other.m_table), m_update(other.m_update)
+{
+}
+
+Update_Base &Update_Base::operator = (const Update_Base &other)
+{
+  m_update = other.m_update;
+  return *this;
+}
+
+Result *Update_Base::execute()
+{
+  if (!m_update->IsInitialized())
+    throw std::logic_error("UpdateStatement is not completely initialized: " + m_update->InitializationErrorString());
+
+  SessionRef session(m_table->schema()->session());
+
+  Result *result(session->connection()->execute_update(*m_update));
+
+  result->wait();
+
+  return result;
+}
+
+Update_Base &Update_Limit::limit(uint64_t limit_)
+{
+  m_update->mutable_limit()->set_row_count(limit_);
+  return *this;
+}
+
+Update_Limit &Update_OrderBy::orderBy(const std::string &sortFields)
+{
+  //if (!sortFields.empty())
+  //  m_update->set_allocated_criteria(parser::parse_table_filter(searchCondition));
+  return *this;
+}
+
+Update_OrderBy &Update_Where::where(const std::string& searchCondition)
+{
+  if (!searchCondition.empty())
+    m_update->set_allocated_criteria(parser::parse_table_filter(searchCondition));
+
+  return *this;
+}
+
+Update_Set &Update_Set::set(const std::string &field, const TableValue& value)
+{
+  Mysqlx::Crud::UpdateOperation *operation = m_update->mutable_operation()->Add();
+
+  operation->mutable_source()->set_name(field);
+
+  operation->set_operation(Mysqlx::Crud::UpdateOperation::SET);
+  operation->mutable_value()->set_type(Mysqlx::Expr::Expr::LITERAL);
+  operation->mutable_value()->set_allocated_constant(convert_table_value(value));
+
+  return *this;
+}
+
+Update_Set &Update_Set::set(const std::string &field, const std::string& expression)
+{
+  Mysqlx::Crud::UpdateOperation *operation = m_update->mutable_operation()->Add();
+
+  operation->mutable_source()->set_name(field);
+
+  operation->set_operation(Mysqlx::Crud::UpdateOperation::SET);
+
+  Expr_parser parser(expression);
+  operation->set_allocated_value(parser.expr());
+
+  return *this;
+}
+
+UpdateStatement::UpdateStatement(boost::shared_ptr<Table> table)
+: Update_Set(table)
+{
+  m_update->mutable_collection()->set_schema(table->schema()->name());
+  m_update->mutable_collection()->set_name(table->name());
+  m_update->set_data_model(Mysqlx::Crud::TABLE);
 }
 
 //--------------------------------------------------------------
@@ -575,48 +716,7 @@ Insert_Values &Insert_Values::values(const std::vector<TableValue> &row_data)
   std::vector<TableValue>::const_iterator index, end = row_data.end();
 
   for (index = row_data.begin(); index != end; index++)
-  {
-    Mysqlx::Datatypes::Any *any(row->mutable_field()->Add());
-    any->set_type(Mysqlx::Datatypes::Any::SCALAR);
-    Mysqlx::Datatypes::Scalar *value(any->mutable_scalar());
-
-    mysqlx::TableValue column_value(*index);
-
-    switch (index->type())
-    {
-      case TableValue::TInteger:
-        value->set_type(Mysqlx::Datatypes::Scalar::V_SINT);
-        value->set_v_signed_int(column_value);
-        break;
-      case TableValue::TUInteger:
-        value->set_type(Mysqlx::Datatypes::Scalar::V_UINT);
-        value->set_v_unsigned_int(column_value);
-        break;
-      case TableValue::TBool:
-        value->set_type(Mysqlx::Datatypes::Scalar::V_BOOL);
-        value->set_v_bool(column_value);
-        break;
-      case TableValue::TDouble:
-        value->set_type(Mysqlx::Datatypes::Scalar::V_DOUBLE);
-        value->set_v_double(column_value);
-        break;
-      case TableValue::TFloat:
-        value->set_type(Mysqlx::Datatypes::Scalar::V_FLOAT);
-        value->set_v_float(column_value);
-        break;
-      case TableValue::TNull:
-        value->set_type(Mysqlx::Datatypes::Scalar::V_NULL);
-        break;
-      case TableValue::TOctets:
-        value->set_type(Mysqlx::Datatypes::Scalar::V_OCTETS);
-        value->set_v_opaque(column_value);
-        break;
-      case TableValue::TString:
-        value->set_type(Mysqlx::Datatypes::Scalar::V_STRING);
-        value->mutable_v_string()->set_value(column_value);
-        break;
-    }
-  }
+    row->mutable_field()->AddAllocated(convert_table_value(*index));
 
   return *this;
 }

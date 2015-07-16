@@ -20,6 +20,7 @@
 #include "mod_mysqlx_session.h"
 #include "mod_mysqlx_schema.h"
 #include "mod_mysqlx_resultset.h"
+#include "mod_mysqlx_expression.h"
 #include "shellcore/object_factory.h"
 #include "shellcore/shell_core.h"
 #include "shellcore/lang_base.h"
@@ -40,6 +41,7 @@ using namespace mysh::mysqlx;
 
 REGISTER_OBJECT(mysqlx, Session);
 REGISTER_OBJECT(mysqlx, NodeSession);
+REGISTER_OBJECT(mysqlx, Expression);
 
 #include <set>
 

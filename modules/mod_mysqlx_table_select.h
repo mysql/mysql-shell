@@ -23,15 +23,14 @@
 #ifndef _MOD_CRUD_TABLE_SELECT_H_
 #define _MOD_CRUD_TABLE_SELECT_H_
 
-#include "crud_definition.h"
-#include "mysqlx_crud.h"
+#include "table_crud_definition.h"
 
 namespace mysh
 {
   namespace mysqlx
   {
     class Table;
-    class TableSelect : public Crud_definition, public boost::enable_shared_from_this<TableSelect>
+    class TableSelect : public Table_crud_definition, public boost::enable_shared_from_this<TableSelect>
     {
     public:
       TableSelect(boost::shared_ptr<Table> owner);

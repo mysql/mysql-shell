@@ -26,7 +26,7 @@ using namespace mysh::mysqlx;
 using namespace shcore;
 
 TableDelete::TableDelete(boost::shared_ptr<Table> owner)
-:Crud_definition(boost::static_pointer_cast<DatabaseObject>(owner))
+:Table_crud_definition(boost::static_pointer_cast<DatabaseObject>(owner))
 {
   // Exposes the methods available for chaining
   add_method("delete", boost::bind(&TableDelete::remove, this, _1), "data");
@@ -34,7 +34,6 @@ TableDelete::TableDelete(boost::shared_ptr<Table> owner)
   add_method("orderBy", boost::bind(&TableDelete::order_by, this, _1), "data");
   add_method("limit", boost::bind(&TableDelete::limit, this, _1), "data");
   add_method("bind", boost::bind(&TableDelete::bind, this, _1), "data");
-  add_method("execute", boost::bind(&Crud_definition::execute, this, _1), "data");
 
   // Registers the dynamic function behavior
   register_dynamic_function("delete", "");

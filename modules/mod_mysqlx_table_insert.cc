@@ -36,7 +36,7 @@ using namespace shcore;
 * - Message information that is not provided through the different functions
 */
 TableInsert::TableInsert(boost::shared_ptr<Table> owner)
-:Crud_definition(boost::static_pointer_cast<DatabaseObject>(owner))
+:Table_crud_definition(boost::static_pointer_cast<DatabaseObject>(owner))
 {
   // The values function should not be enabled if values were already given
   add_method("insert", boost::bind(&TableInsert::insert, this, _1), "data");
@@ -51,40 +51,6 @@ TableInsert::TableInsert(boost::shared_ptr<Table> owner)
 
   // Initial function update
   update_functions("");
-}
-
-::mysqlx::TableValue TableInsert::map_value(shcore::Value source)
-{
-  switch (source.type)
-  {
-    case shcore::Null:
-      return ::mysqlx::TableValue();
-      break;
-    case shcore::Bool:
-      return ::mysqlx::TableValue(source.as_bool());
-      break;
-    case shcore::String:
-      return ::mysqlx::TableValue(source.as_string());
-      break;
-    case shcore::Integer:
-      return ::mysqlx::TableValue(source.as_int());
-      break;
-    case shcore::UInteger:
-      return ::mysqlx::TableValue(source.as_uint());
-      break;
-    case shcore::Float:
-      return ::mysqlx::TableValue(source.as_double());
-      break;
-    case shcore::Object:
-    case shcore::Array:
-    case shcore::Map:
-    case shcore::MapRef:
-    case shcore::Function:
-      std::stringstream str;
-      str << "Unsupported value received for table insert operation: " << source.descr();
-      throw shcore::Exception::argument_error(str.str());
-      break;
-  }
 }
 
 shcore::Value TableInsert::insert(const shcore::Argument_list &args)
@@ -140,7 +106,7 @@ shcore::Value TableInsert::insert(const shcore::Argument_list &args)
                   for (index; index != end; index++)
                   {
                     columns.push_back(index->first);
-                    values.push_back(map_value(index->second));
+                    values.push_back(map_table_value(index->second));
                   }
 
                   _insert_statement->insert(columns);
@@ -172,7 +138,7 @@ shcore::Value TableInsert::values(const shcore::Argument_list &args)
                                 end = sh_data->end();
 
     for (index; index != end; index++)
-      values.push_back(map_value(*index));
+      values.push_back(map_table_value(*index));
 
     _insert_statement->values(values);
   }

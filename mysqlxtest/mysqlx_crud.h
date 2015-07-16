@@ -31,6 +31,11 @@ namespace Mysqlx
     class Insert;
     class Delete;
   }
+
+  namespace Datatypes
+  {
+    class Any;
+  }
 }
 
 namespace mysqlx
@@ -78,6 +83,8 @@ namespace mysqlx
     boost::shared_ptr<Table> table() const { return m_table; }
 
   protected:
+    Mysqlx::Datatypes::Any* convert_table_value(const TableValue& value);
+
     boost::shared_ptr<Table> m_table;
   };
 
@@ -231,6 +238,67 @@ namespace mysqlx
     Delete_OrderBy &where(const std::string &searchCondition);
   };
 
+  class Update_Base : public Table_Statement
+  {
+  public:
+    Update_Base(boost::shared_ptr<Table> table);
+    Update_Base(const Update_Base &other);
+    Update_Base &operator = (const Update_Base &other);
+
+    virtual Result *execute();
+  protected:
+    boost::shared_ptr<Mysqlx::Crud::Update> m_update;
+  };
+
+  class Update_Limit : public Update_Base
+  {
+  public:
+    Update_Limit(boost::shared_ptr<Table> table) : Update_Base(table) {}
+    Update_Limit(const Update_Limit &other) : Update_Base(other) {}
+    Update_Limit &operator = (const Update_Limit &other) { Update_Base::operator=(other); return *this; }
+
+    Update_Base &limit(uint64_t limit);
+  };
+
+  class Update_OrderBy : public Update_Limit
+  {
+  public:
+    Update_OrderBy(boost::shared_ptr<Table> table) : Update_Limit(table) {}
+    Update_OrderBy(const Update_Limit &other) : Update_Limit(other) {}
+    Update_OrderBy &operator = (const Update_OrderBy &other) { Update_Limit::operator=(other); return *this; }
+
+    Update_Limit &orderBy(const std::string &sortFields);
+  };
+
+  class Update_Where : public Update_OrderBy
+  {
+  public:
+    Update_Where(boost::shared_ptr<Table> table) : Update_OrderBy(table) {}
+    Update_Where(const Update_OrderBy &other) : Update_OrderBy(other) {}
+    Update_Where &operator = (const Update_Where &other) { Update_OrderBy::operator=(other); return *this; }
+
+    Update_OrderBy &where(const std::string &searchCondition);
+  };
+
+  class Update_Set : public Update_Where
+  {
+  public:
+    Update_Set(boost::shared_ptr<Table> table) : Update_Where(table) {}
+    Update_Set(const Update_Where &other) : Update_Where(other) {}
+    Update_Set &operator = (const Update_Set &other) { Update_Where::operator=(other); return *this; }
+
+    Update_Set &set(const std::string &field, const TableValue& value);
+    Update_Set &set(const std::string &field, const std::string& expression);
+  };
+
+  class UpdateStatement : public Update_Set
+  {
+  public:
+    UpdateStatement(boost::shared_ptr<Table> table);
+    UpdateStatement(const UpdateStatement &other) : Update_Set(other) {}
+    UpdateStatement &operator = (const UpdateStatement &other) { Update_Set::operator=(other); return *this; }
+  };
+
   class Table : public boost::enable_shared_from_this<Table>
   {
   public:
@@ -239,6 +307,7 @@ namespace mysqlx
     boost::shared_ptr<Schema> schema() const { return m_schema.lock(); }
     const std::string& name() const { return m_name; }
 
+    UpdateStatement update();
     DeleteStatement remove();
     InsertStatement insert();
     SelectStatement select(const std::string& fieldList);

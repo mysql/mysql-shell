@@ -23,15 +23,14 @@
 #ifndef _MOD_CRUD_TABLE_INSERT_H_
 #define _MOD_CRUD_TABLE_INSERT_H_
 
-#include "crud_definition.h"
-#include "mysqlx_crud.h"
+#include "table_crud_definition.h"
 
 namespace mysh
 {
   namespace mysqlx
   {
     class Table;
-    class TableInsert : public Crud_definition, public boost::enable_shared_from_this<TableInsert>
+    class TableInsert : public Table_crud_definition, public boost::enable_shared_from_this<TableInsert>
     {
     public:
       TableInsert(boost::shared_ptr<Table> owner);
@@ -41,7 +40,6 @@ namespace mysh
       shcore::Value insert(const shcore::Argument_list &args);
       shcore::Value values(const shcore::Argument_list &args);
       shcore::Value bind(const shcore::Argument_list &args);
-      ::mysqlx::TableValue map_value(shcore::Value source);
 
       virtual shcore::Value execute(const shcore::Argument_list &args);
     private:

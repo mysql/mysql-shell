@@ -17,35 +17,40 @@
  * 02110-1301  USA
  */
 
-// MySQL DB access module, for use by plugins and others
-// For the module that implements interactive DB functionality see mod_db
+// Interactive Expression access module
+// Exposed as "Expression" in the shell
 
-#ifndef _MOD_CRUD_TABLE_DELETE_H_
-#define _MOD_CRUD_TABLE_DELETE_H_
+#ifndef _MOD_MYSQLX_EXPRESSION_H_
+#define _MOD_MYSQLX_EXPRESSION_H_
 
-#include "table_crud_definition.h"
+#include "mod_common.h"
+#include "shellcore/types.h"
+#include "shellcore/types_cpp.h"
+#include "shellcore/ishell_core.h"
 
 namespace mysh
 {
   namespace mysqlx
   {
-    class Table;
-    class TableDelete : public Table_crud_definition, public boost::enable_shared_from_this<TableDelete>
+    class MOD_PUBLIC Expression : public shcore::Cpp_object_bridge
     {
     public:
-      TableDelete(boost::shared_ptr<Table> owner);
-    public:
-      virtual std::string class_name() const { return "TableDelete"; }
-      static boost::shared_ptr<shcore::Object_bridge> create(const shcore::Argument_list &args);
-      shcore::Value remove(const shcore::Argument_list &args);
-      shcore::Value where(const shcore::Argument_list &args);
-      shcore::Value order_by(const shcore::Argument_list &args);
-      shcore::Value limit(const shcore::Argument_list &args);
-      shcore::Value bind(const shcore::Argument_list &args);
+      Expression(const std::string &expression) { _data = expression; }
+      virtual ~Expression() {};
 
-      virtual shcore::Value execute(const shcore::Argument_list &args);
+      // Virtual methods from object bridge
+      virtual std::string class_name() const { return "Expression"; };
+      virtual bool operator == (const Object_bridge &other) const;
+
+      virtual shcore::Value get_member(const std::string &prop) const;
+      std::vector<std::string> get_members() const;
+
+      static boost::shared_ptr<shcore::Object_bridge> create(const shcore::Argument_list &args);
+
+      std::string get_data() { return _data; };
+
     private:
-      std::auto_ptr< ::mysqlx::DeleteStatement> _delete_statement;
+      std::string _data;
     };
   };
 };

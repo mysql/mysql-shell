@@ -26,7 +26,7 @@ using namespace mysh::mysqlx;
 using namespace shcore;
 
 TableSelect::TableSelect(boost::shared_ptr<Table> owner)
-: Crud_definition(boost::static_pointer_cast<DatabaseObject>(owner))
+: Table_crud_definition(boost::static_pointer_cast<DatabaseObject>(owner))
 {
   // Exposes the methods available for chaining
   add_method("select", boost::bind(&TableSelect::select, this, _1), "data");
@@ -37,7 +37,6 @@ TableSelect::TableSelect(boost::shared_ptr<Table> owner)
   add_method("limit", boost::bind(&TableSelect::limit, this, _1), "data");
   add_method("offset", boost::bind(&TableSelect::offset, this, _1), "data");
   add_method("bind", boost::bind(&TableSelect::bind, this, _1), "data");
-  add_method("execute", boost::bind(&Crud_definition::execute, this, _1), "data");
 
   // Registers the dynamic function behavior
   register_dynamic_function("select", "");
