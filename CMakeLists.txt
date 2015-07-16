@@ -44,7 +44,9 @@ INCLUDE(ssl)
 
 INCLUDE(CheckIncludeFiles)
 INCLUDE(CheckFunctionExists)
-INCLUDE(FindPythonLibs)
+if(HAVE_PYTHON)
+  INCLUDE(FindPythonLibs)
+endif()
 
 IF (WITH_PROTOBUF)
   SET(HAVE_PROTOBUF "YES")              # Variable for CMake processing

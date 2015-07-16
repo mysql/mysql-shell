@@ -85,18 +85,9 @@ else()
   endforeach()
 endif()
 
-if(WINDOWS_RUNTIME_MD)
-  add_convenience_library_dll(mysqlsh ${libmysqlsh_SRC})
-else()
-  add_convenience_library(mysqlsh ${libmysqlsh_SRC})
-endif()
-
 # Configures Python accordingly...
 if ( HAVE_PYTHON )
   include_directories("${PYTHON_INCLUDE_DIR}")
-  if ( WINDOWS_RUNTIME_MD )
-    target_link_libraries(mysqlsh ${PYTHON_LIBRARIES})
-  endif()
   
   install(FILES ${PYTHON_LIBRARIES} DESTINATION lib)
   if(WINDOWS_RUNTIME_MD)
@@ -113,6 +104,18 @@ else()
   foreach(pyfile ${python_SRC})
     list(REMOVE_ITEM libmysqlsh_SRC "${pyfile}")
   endforeach()
+endif()
+
+if(WINDOWS_RUNTIME_MD)
+  add_convenience_library_dll(mysqlsh ${libmysqlsh_SRC})
+else()
+  add_convenience_library(mysqlsh ${libmysqlsh_SRC})
+endif()
+
+if ( HAVE_PYTHON )
+  if ( WINDOWS_RUNTIME_MD )
+    target_link_libraries(mysqlsh ${PYTHON_LIBRARIES})
+  endif()
 endif()
 
 if(WINDOWS_RUNTIME_MD)
