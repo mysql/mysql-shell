@@ -27,6 +27,10 @@
 
 #include "modules/base_session.h"
 
+#ifdef HAVE_PYTHON
+  extern "C" void Python_context_init();
+#endif
+
 using namespace shcore;
 
 Simple_shell_client::Simple_shell_client()
@@ -44,6 +48,10 @@ Simple_shell_client::Simple_shell_client()
 
   bool lang_initialized;
   _shell->switch_mode(mode, lang_initialized);
+
+#ifdef HAVE_PYTHON
+  Python_context_init();
+#endif
 
 #ifdef HAVE_V8
   extern void JScript_context_init();
