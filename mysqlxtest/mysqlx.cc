@@ -171,7 +171,7 @@ boost::shared_ptr<Session> mysqlx::openSession(const std::string &host, int port
 }
 
 Connection::Connection()
-: m_socket(m_ios), m_trace_packets(false)
+: m_socket(m_ios), m_deadline(m_ios), m_trace_packets(false)
 {
   if (getenv("MYSQLX_TRACE_CONNECTION"))
     m_trace_packets = true;
@@ -475,114 +475,204 @@ Message *Connection::recv_next(int &mid)
   }
 }
 
-Message *Connection::recv_raw(int &mid)
+void Connection::handle_async_deadline_timeout(const boost::system::error_code &ec, bool &finished)
 {
-  char buf[5];
-  Message* ret_val = NULL;
+  finished = true;
+
+  if (boost::asio::error::operation_aborted == ec)
+    return;
+
   boost::system::error_code error;
 
-  /*std::size_t length = */boost::asio::read(m_socket, boost::asio::buffer(buf, 5), boost::asio::transfer_all(), error);
+  m_socket.cancel(error);
+}
+
+void Connection::handle_async_read(const boost::system::error_code &ec, std::size_t data_size, std::size_t &received_data)
+{
+  received_data = std::numeric_limits<std::size_t>::max();
+
+  if (boost::asio::error::operation_aborted != ec)
+  {
+    m_deadline.cancel();
+
+    if (ec)
+      throw ec;
+  }
+
+  received_data = data_size;
+}
+
+Message *Connection::recv_raw_with_deadline(int &mid, const std::size_t deadline_miliseconds)
+{
+  bool deadline_occured = false;
+  char header_buffer[5];
+  std::size_t header_received = 0;
+  boost::system::error_code remember_error;
+
+  m_deadline.expires_from_now(boost::posix_time::milliseconds(deadline_miliseconds));
+
+  m_socket.async_read_some(boost::asio::buffer(header_buffer, sizeof(header_buffer)), boost::bind(&Connection::handle_async_read, this, _1, _2, boost::ref(header_received)));
+  m_deadline.async_wait(boost::bind(&Connection::handle_async_deadline_timeout, this, _1, boost::ref(deadline_occured)));
+
+  while (!deadline_occured && 0 == header_received)
+  {
+    try
+    {
+      m_ios.run_one();
+    }
+    catch (const boost::system::error_code &ec)
+    {
+      if (ec)
+        remember_error = ec;
+    }
+  }
+
+  throw_mysqlx_error(remember_error);
+
+  if (std::numeric_limits<std::size_t>::max() != header_received && header_received > 0)
+    return recv_message_with_header(mid, header_buffer, header_received);
+
+  return NULL;
+}
+
+Message *Connection::recv_payload(const int mid, const std::size_t msglen)
+{
+  boost::system::error_code error;
+  Message* ret_val = NULL;
+  char *mbuf = new char[msglen];
+
+  boost::asio::read(m_socket, boost::asio::buffer(mbuf, msglen), boost::asio::transfer_all(), error);
 
   if (!error)
   {
-#ifdef WORDS_BIGENDIAN
-    std::swap(buf[0], buf[3]);
-    std::swap(buf[1], buf[2]);
-#endif
-    uint32_t msglen = *(uint32_t*)buf - 1;
-    mid = buf[4];
-    char *mbuf = new char[msglen];
-
-    boost::asio::read(m_socket, boost::asio::buffer(mbuf, msglen), boost::asio::transfer_all(), error);
-
-    if (!error)
+    switch (mid)
     {
-      switch (mid)
-      {
-        case Mysqlx::ServerMessages::OK:
-          ret_val = new Mysqlx::Ok();
-          break;
-        case Mysqlx::ServerMessages::ERROR:
-          ret_val = new Mysqlx::Error();
-          break;
-        case Mysqlx::ServerMessages::NOTICE:
-          ret_val = new Mysqlx::Notice::Frame();
-          break;
-        case Mysqlx::ServerMessages::CONN_CAPABILITIES:
-          ret_val = new Mysqlx::Connection::Capabilities();
-          break;
-        case Mysqlx::ServerMessages::SESS_AUTHENTICATE_CONTINUE:
-          ret_val = new Mysqlx::Session::AuthenticateContinue();
-          break;
-        case Mysqlx::ServerMessages::SESS_AUTHENTICATE_OK:
-          ret_val = new Mysqlx::Session::AuthenticateOk();
-          break;
-        case Mysqlx::ServerMessages::SQL_COLUMN_META_DATA:
-          ret_val = new Mysqlx::Sql::ColumnMetaData();
-          break;
-        case Mysqlx::ServerMessages::SQL_ROW:
-          ret_val = new Mysqlx::Sql::Row();
-          break;
-        case Mysqlx::ServerMessages::SQL_RESULT_FETCH_DONE:
-          ret_val = new Mysqlx::Sql::CursorFetchDone();
-          break;
-        case Mysqlx::ServerMessages::SQL_RESULT_FETCH_DONE_MORE_RESULTSETS:
-          ret_val = new Mysqlx::Sql::CursorFetchDoneMoreResultsets();
-          break;
-        case  Mysqlx::ServerMessages::SESS_AUTHENTICATE_FAIL:
-          ret_val = new Mysqlx::Session::AuthenticateFail();
-          break;
-        case Mysqlx::ServerMessages::SQL_STMT_EXECUTE_OK:
-          ret_val = new Mysqlx::Sql::StmtExecuteOk();
-          break;
-      }
-
-      if (!ret_val)
-      {
-        delete[] mbuf;
-        std::stringstream ss;
-        ss << "Unknown message received from server ";
-        ss << mid;
-        throw Error(CR_MALFORMED_PACKET, ss.str());
-      }
-
-      // Parses the received message
-      ret_val->ParseFromString(std::string(mbuf, msglen));
-
-      if (m_trace_packets)
-      {
-        std::string out;
-        google::protobuf::TextFormat::Printer p;
-        p.SetInitialIndentLevel(1);
-        p.PrintToString(*ret_val, &out);
-        std::cout << "<<<< RECEIVE " << ret_val->GetDescriptor()->full_name() << "\n" << out << "\n";
-      }
-
-      if (!ret_val->IsInitialized())
-      {
-        delete[] mbuf;
-        delete ret_val;
-        std::string err("Message is not properly initialized: ");
-        err += ret_val->InitializationErrorString();
-        throw Error(CR_MALFORMED_PACKET, err);
-      }
+      case Mysqlx::ServerMessages::OK:
+        ret_val = new Mysqlx::Ok();
+        break;
+      case Mysqlx::ServerMessages::ERROR:
+        ret_val = new Mysqlx::Error();
+        break;
+      case Mysqlx::ServerMessages::NOTICE:
+        ret_val = new Mysqlx::Notice::Frame();
+        break;
+      case Mysqlx::ServerMessages::CONN_CAPABILITIES:
+        ret_val = new Mysqlx::Connection::Capabilities();
+        break;
+      case Mysqlx::ServerMessages::SESS_AUTHENTICATE_CONTINUE:
+        ret_val = new Mysqlx::Session::AuthenticateContinue();
+        break;
+      case Mysqlx::ServerMessages::SESS_AUTHENTICATE_OK:
+        ret_val = new Mysqlx::Session::AuthenticateOk();
+        break;
+      case Mysqlx::ServerMessages::SQL_COLUMN_META_DATA:
+        ret_val = new Mysqlx::Sql::ColumnMetaData();
+        break;
+      case Mysqlx::ServerMessages::SQL_ROW:
+        ret_val = new Mysqlx::Sql::Row();
+        break;
+      case Mysqlx::ServerMessages::SQL_RESULT_FETCH_DONE:
+        ret_val = new Mysqlx::Sql::CursorFetchDone();
+        break;
+      case Mysqlx::ServerMessages::SQL_RESULT_FETCH_DONE_MORE_RESULTSETS:
+        ret_val = new Mysqlx::Sql::CursorFetchDoneMoreResultsets();
+        break;
+      case  Mysqlx::ServerMessages::SESS_AUTHENTICATE_FAIL:
+        ret_val = new Mysqlx::Session::AuthenticateFail();
+        break;
+      case Mysqlx::ServerMessages::SQL_STMT_EXECUTE_OK:
+        ret_val = new Mysqlx::Sql::StmtExecuteOk();
+        break;
     }
-    delete[] mbuf;
+
+    if (!ret_val)
+    {
+      delete[] mbuf;
+      std::stringstream ss;
+      ss << "Unknown message received from server ";
+      ss << mid;
+      throw Error(CR_MALFORMED_PACKET, ss.str());
+    }
+
+    // Parses the received message
+    ret_val->ParseFromString(std::string(mbuf, msglen));
+
+    if (m_trace_packets)
+    {
+      std::string out;
+      google::protobuf::TextFormat::Printer p;
+      p.SetInitialIndentLevel(1);
+      p.PrintToString(*ret_val, &out);
+      std::cout << "<<<< RECEIVE " << ret_val->GetDescriptor()->full_name() << "\n" << out << "\n";
+    }
+
+    if (!ret_val->IsInitialized())
+    {
+      delete[] mbuf;
+      delete ret_val;
+      std::string err("Message is not properly initialized: ");
+      err += ret_val->InitializationErrorString();
+      throw Error(CR_MALFORMED_PACKET, err);
+    }
+  }
+
+  delete[] mbuf;
+
+  return ret_val;
+}
+
+Message *Connection::recv_raw(int &mid)
+{
+  char buf[5];
+
+  return recv_message_with_header(mid, buf, 0);
+}
+
+Message *Connection::recv_message_with_header(int &mid, char(&header_buffer)[5], const std::size_t header_offset)
+{
+  Message* ret_val = NULL;
+  boost::system::error_code error;
+
+  boost::asio::read(m_socket, boost::asio::buffer(header_buffer + header_offset,
+                                                  5 - header_offset),
+                    boost::asio::transfer_all(), error);
+
+#ifdef WORDS_BIGENDIAN
+  std::swap(header_buffer[0], header_buffer[3]);
+  std::swap(header_buffer[1], header_buffer[2]);
+#endif
+
+  if (!error)
+  {
+    uint32_t msglen = *(uint32_t*)header_buffer - 1;
+    mid = header_buffer[4];
+
+    ret_val = recv_payload(mid, msglen);
   }
   else
   {
-    switch (error.value())
-    {
-      case boost::asio::error::connection_reset:
-      case boost::asio::error::connection_aborted:
-      case boost::asio::error::broken_pipe:
-        throw Error(CR_SERVER_GONE_ERROR, error.message());
-
-      default:
-        throw Error(CR_UNKNOWN_ERROR, error.message());
-    }
+    throw_mysqlx_error(error);
   }
+
   return ret_val;
+}
+
+void Connection::throw_mysqlx_error(const boost::system::error_code &error)
+{
+  if (!error)
+    return;
+
+  switch (error.value())
+  {
+    case boost::asio::error::eof:
+    case boost::asio::error::connection_reset:
+    case boost::asio::error::connection_aborted:
+    case boost::asio::error::broken_pipe:
+      throw Error(CR_SERVER_GONE_ERROR, error.message());
+
+    default:
+      throw Error(CR_UNKNOWN_ERROR, error.message());
+  }
 }
 
 boost::shared_ptr<Schema> Session::getSchema(const std::string &name)
@@ -610,8 +700,13 @@ Document::Document(const Document &doc)
 }
 
 Result::Result(Connection *owner, bool expect_data)
-: m_owner(owner), m_last_insert_id(-1), m_affected_rows(-1),
+: current_message(NULL), m_owner(owner), m_last_insert_id(-1), m_affected_rows(-1),
   m_state(expect_data ? ReadMetadataI : ReadStmtOkI)
+{
+}
+
+Result::Result()
+: current_message(NULL)
 {
 }
 
@@ -620,6 +715,8 @@ Result::~Result()
   // flush the resultset from the pipe
   while (m_state != ReadError && m_state != ReadDone)
     nextResult();
+
+  delete current_message;
 }
 
 boost::shared_ptr<std::vector<ColumnMetadata> > Result::columnMetadata()
@@ -666,14 +763,14 @@ void Result::handle_notice(int32_t type, const std::string &data)
 
 int Result::get_message_id()
 {
-  if (NULL != current_message.get())
+  if (NULL != current_message)
   {
     return current_message_id;
   }
 
   Local_notice_handler handler = m_owner->set_local_notice_handler(boost::bind(&Result::handle_notice, this, _1, _2));
 
-  current_message.reset(m_owner->recv_next(current_message_id));
+  current_message = m_owner->recv_next(current_message_id);
 
   m_owner->set_local_notice_handler(handler);
 
@@ -760,11 +857,20 @@ int Result::get_message_id()
   throw Error(CR_COMMANDS_OUT_OF_SYNC, "Unexpected message received from server");
 }
 
-static ColumnMetadata unwrap_column_metadata(Mysqlx::Sql::ColumnMetaData *column_data)
+mysqlx::Message* Result::pop_message()
+{
+  mysqlx::Message *result = current_message;
+
+  current_message = NULL;
+
+  return result;
+}
+
+static ColumnMetadata unwrap_column_metadata(const Mysqlx::Sql::ColumnMetaData &column_data)
 {
   ColumnMetadata column;
 
-  switch (column_data->type())
+  switch (column_data.type())
   {
     case Mysqlx::Sql::ColumnMetaData::SINT:
       column.type = mysqlx::SINT;
@@ -800,23 +906,23 @@ static ColumnMetadata unwrap_column_metadata(Mysqlx::Sql::ColumnMetaData *column
       column.type = mysqlx::DECIMAL;
       break;
   }
-  column.name = column_data->name();
-  column.original_name = column_data->original_name();
+  column.name = column_data.name();
+  column.original_name = column_data.original_name();
 
-  column.table = column_data->table();
-  column.original_table = column_data->original_table();
+  column.table = column_data.table();
+  column.original_table = column_data.original_table();
 
-  column.schema = column_data->schema();
-  column.catalog = column_data->catalog();
+  column.schema = column_data.schema();
+  column.catalog = column_data.catalog();
 
-  column.charset = column_data->charset();
+  column.charset = column_data.charset();
 
-  column.fractional_digits = column_data->fractional_digits();
+  column.fractional_digits = column_data.fractional_digits();
 
-  column.length = column_data->length();
+  column.length = column_data.length();
 
-  column.flags = column_data->flags();
-  column.content_type = column_data->content_type();
+  column.flags = column_data.flags();
+  column.content_type = column_data.content_type();
   return column;
 }
 
@@ -830,13 +936,12 @@ void Result::read_metadata()
   // META_DATA
 
   int msgid = -1;
-  std::auto_ptr<mysqlx::Message> msg;
   m_columns.reset(new std::vector<ColumnMetadata>());
   while (m_state == ReadMetadata || m_state == ReadMetadataI)
   {
     if (-1 != msgid)
     {
-      pop_message();
+      delete pop_message();
     }
 
     msgid = get_message_id();
@@ -844,7 +949,9 @@ void Result::read_metadata()
     if (msgid == Mysqlx::ServerMessages::SQL_COLUMN_META_DATA)
     {
       msgid = -1;
-      m_columns->push_back(unwrap_column_metadata(static_cast<Mysqlx::Sql::ColumnMetaData*>(pop_message().release())));
+      std::auto_ptr<Mysqlx::Sql::ColumnMetaData> column_data(static_cast<Mysqlx::Sql::ColumnMetaData*>(pop_message()));
+
+      m_columns->push_back(unwrap_column_metadata(*column_data));
     }
   }
 }
@@ -861,7 +968,7 @@ std::auto_ptr<Row> Result::read_row()
   int mid = get_message_id();
 
   if (mid == Mysqlx::ServerMessages::SQL_ROW)
-    return std::auto_ptr<Row>(new Row(m_columns, std::auto_ptr<Mysqlx::Sql::Row>(static_cast<Mysqlx::Sql::Row*>(pop_message().release()))));
+    return std::auto_ptr<Row>(new Row(m_columns, static_cast<Mysqlx::Sql::Row*>(pop_message())));
 
   return std::auto_ptr<Row>();
 }
@@ -875,7 +982,7 @@ void Result::read_stmt_ok()
   // STMT_EXEC_OK
 
   if (Mysqlx::ServerMessages::SQL_RESULT_FETCH_DONE == get_message_id())
-    pop_message();
+    delete pop_message();
 
   if (Mysqlx::ServerMessages::SQL_STMT_EXECUTE_OK != get_message_id())
     throw std::runtime_error("Unexpected message id");
@@ -934,9 +1041,14 @@ void Result::discardData()
   while (nextResult());
 }
 
-Row::Row(boost::shared_ptr<std::vector<ColumnMetadata> > columns, std::auto_ptr<Mysqlx::Sql::Row> data)
+Row::Row(boost::shared_ptr<std::vector<ColumnMetadata> > columns, Mysqlx::Sql::Row *data)
 : m_columns(columns), m_data(data)
 {
+}
+
+Row::~Row()
+{
+  delete m_data;
 }
 
 void Row::check_field(int field, FieldType type) const

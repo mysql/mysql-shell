@@ -120,6 +120,37 @@ Collection_Statement &Collection_Statement::bind(const std::string &UNUSED(name)
   return *this;
 }
 
+Mysqlx::Datatypes::Any* Collection_Statement::convert_document_value(const DocumentValue& value)
+{
+  Mysqlx::Datatypes::Any *any = new Mysqlx::Datatypes::Any();
+  any->set_type(Mysqlx::Datatypes::Any::SCALAR);
+  Mysqlx::Datatypes::Scalar *my_scalar(any->mutable_scalar());
+
+  mysqlx::DocumentValue column_value(value);
+
+  switch (value.type())
+  {
+    case DocumentValue::TInteger:
+      my_scalar->set_type(Mysqlx::Datatypes::Scalar::V_SINT);
+      my_scalar->set_v_signed_int(column_value);
+      break;
+    case DocumentValue::TFloat:
+      my_scalar->set_type(Mysqlx::Datatypes::Scalar::V_DOUBLE);
+      my_scalar->set_v_double(column_value);
+      break;
+    case DocumentValue::TString:
+      my_scalar->set_type(Mysqlx::Datatypes::Scalar::V_STRING);
+      my_scalar->mutable_v_string()->set_value(column_value);
+      break;
+    case DocumentValue::TDocument:
+      my_scalar->set_type(Mysqlx::Datatypes::Scalar::V_OCTETS);
+      my_scalar->set_v_opaque(column_value);
+      break;
+  }
+
+  return any;
+}
+
 // -----
 
 Find_Base::Find_Base(boost::shared_ptr<Collection> coll)
@@ -338,24 +369,60 @@ Result *Modify_Base::execute()
   return result;
 }
 
-Modify_Operation &Modify_Operation::remove(const std::string &UNUSED(path))
+Modify_Base &Modify_Limit::limit(uint64_t limit_)
+{
+  m_update->mutable_limit()->set_row_count(limit_);
+  return *this;
+}
+
+Modify_Limit &Modify_Sort::sort(const std::string &UNUSED(sortFields))
 {
   return *this;
 }
 
-Modify_Operation &Modify_Operation::set(const std::string &UNUSED(path), const DocumentValue &UNUSED(value))
+Modify_Operation &Modify_Operation::set_operation(Mysqlx::Crud::UpdateOperation_UpdateType type, const std::string &path, const DocumentValue *value)
 {
+  google::protobuf::RepeatedPtrField< ::Mysqlx::Crud::Projection > items;
+  parser::parse_collection_column_list(items, path);
+
+  Mysqlx::Crud::UpdateOperation * operation = m_update->mutable_operation()->Add();
+
+  operation->set_operation(type);
+
+  Mysqlx::Expr::DocumentPathItem *item = new Mysqlx::Expr::DocumentPathItem(items.Get(0).target_path().Get(0));
+  operation->mutable_source()->mutable_document_path()->AddAllocated(item);
+
+  if (value)
+  {
+    if (value->type() == DocumentValue::TExpression)
+    {
+      DocumentValue expression(*value);
+      Expr_parser parser(expression, true);
+      operation->set_allocated_value(parser.expr());
+    }
+    else
+    {
+      operation->mutable_value()->set_type(Mysqlx::Expr::Expr::LITERAL);
+      operation->mutable_value()->set_allocated_constant(convert_document_value(*value));
+    }
+  }
+
   return *this;
 }
 
-Modify_Operation &Modify_Operation::replace(const std::string &UNUSED(path), const DocumentValue &UNUSED(value))
+Modify_Operation &Modify_Operation::remove(const std::string &path)
 {
-  return *this;
+  return set_operation(Mysqlx::Crud::UpdateOperation::ITEM_REMOVE, path);
 }
 
-Modify_Operation &Modify_Operation::merge(const Document &UNUSED(doc))
+Modify_Operation &Modify_Operation::set(const std::string &path, const DocumentValue &value)
 {
-  return *this;
+  return set_operation(Mysqlx::Crud::UpdateOperation::ITEM_SET, path, &value);
+}
+
+Modify_Operation &Modify_Operation::change(const std::string &path, const DocumentValue &value)
+{
+  return set_operation(Mysqlx::Crud::UpdateOperation::ITEM_REPLACE, path, &value);
 }
 
 Modify_Operation &Modify_Operation::arrayInsert(const std::string &UNUSED(path), int UNUSED(index), const DocumentValue &UNUSED(value))
@@ -363,28 +430,20 @@ Modify_Operation &Modify_Operation::arrayInsert(const std::string &UNUSED(path),
   return *this;
 }
 
-Modify_Operation &Modify_Operation::arrayAppend(const std::string &UNUSED(path), const DocumentValue &UNUSED(value))
+Modify_Operation &Modify_Operation::arrayAppend(const std::string &path, const DocumentValue &value)
 {
-  return *this;
+  return set_operation(Mysqlx::Crud::UpdateOperation::ARRAY_APPEND, path, &value);
 }
 
-Modify_Operation &Modify_Limit::limit(uint64_t UNUSED(limit_))
-{
-  return *this;
-}
-
-ModifyStatement::ModifyStatement(boost::shared_ptr<Collection> coll, const std::string &UNUSED(searchCondition))
-: Modify_Limit(coll)
+ModifyStatement::ModifyStatement(boost::shared_ptr<Collection> coll, const std::string& searchCondition)
+: Modify_Operation(coll)
 {
   m_update->mutable_collection()->set_schema(coll->schema()->name());
   m_update->mutable_collection()->set_name(coll->name());
   m_update->set_data_model(Mysqlx::Crud::DOCUMENT);
-  //  m_update->set_allocated_criteria(parser::parse_collection_filter(searchCondition).release());
-}
 
-Modify_Limit &ModifyStatement::orderBy(const std::string &UNUSED(sortFields))
-{
-  return *this;
+  if (!searchCondition.empty())
+    m_update->set_allocated_criteria(parser::parse_collection_filter(searchCondition));
 }
 
 //--------------------------------------------------------------

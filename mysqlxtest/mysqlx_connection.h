@@ -84,6 +84,8 @@ namespace mysqlx
     Message *recv_next(int &mid);
 
     Message *recv_raw(int &mid);
+    Message *recv_payload(const int mid, const std::size_t msglen);
+    Message *recv_raw_with_deadline(int &mid, const std::size_t deadline_miliseconds);
 
     // Overrides for Client Session Messages
     void send(const Mysqlx::Session::AuthenticateStart &m) { send(Mysqlx::ClientMessages::SESS_AUTHENTICATE_START, m); };
@@ -118,6 +120,13 @@ namespace mysqlx
     void authenticate_plain(const std::string &user, const std::string &pass, const std::string &db);
     void authenticate_mysql41(const std::string &user, const std::string &pass, const std::string &db);
 
+    void handle_async_deadline_timeout(const boost::system::error_code &ec, bool &finished);
+    void handle_async_read(const boost::system::error_code &ec, std::size_t data_size, std::size_t &received_data);
+
+    Message *recv_message_with_header(int &mid, char (&header_buffer)[5], const std::size_t header_offset);
+
+    void throw_mysqlx_error(const boost::system::error_code &ec);
+
   private:
     typedef boost::asio::ip::tcp tcp;
 
@@ -125,6 +134,7 @@ namespace mysqlx
 
     boost::asio::io_service m_ios;
     boost::asio::ip::tcp::socket m_socket;
+    boost::asio::deadline_timer m_deadline;
     bool m_trace_packets;
   };
   

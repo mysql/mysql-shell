@@ -31,7 +31,6 @@
 
 #include <boost/enable_shared_from_this.hpp>
 
-
 namespace Mysqlx
 {
   namespace Sql
@@ -40,7 +39,7 @@ namespace Mysqlx
   }
 }
 
-namespace google { namespace protobuf { class Message; }}
+namespace google { namespace protobuf { class Message; } }
 
 namespace mysqlx
 {
@@ -50,7 +49,6 @@ namespace mysqlx
     std::string &protocol, std::string &user, std::string &password,
     std::string &host, int &port, std::string &sock,
     std::string &db, int &pwd_found);
-
 
   class Result;
 
@@ -86,7 +84,6 @@ namespace mysqlx
 
     boost::shared_ptr<Schema> getSchema(const std::string &name);
 
-
     Connection *connection() { return m_connection; }
   private:
     Connection *m_connection;
@@ -94,12 +91,10 @@ namespace mysqlx
   };
   typedef boost::shared_ptr<Session> SessionRef;
 
-
   SessionRef openSession(const std::string &uri, const std::string &pass);
 
   SessionRef openSession(const std::string &host, int port, const std::string &schema,
                          const std::string &user, const std::string &pass);
-
 
   enum FieldType
   {
@@ -140,7 +135,6 @@ namespace mysqlx
     uint32_t flags;
     uint32_t content_type;
   };
-
 
   class Document
   {
@@ -294,12 +288,26 @@ namespace mysqlx
       TString,
       TInteger,
       TFloat,
-      TDocument
+      TDocument,
+      TExpression
     };
 
-    explicit DocumentValue(const std::string &s)
+    DocumentValue(const DocumentValue &other)
     {
-      m_type = TString;
+      m_type = other.m_type;
+      m_value.f = other.m_value.f;
+      m_value.i = other.m_value.i;
+
+      if (m_type == TString || m_type == TExpression)
+        m_value.s = new std::string(*other.m_value.s);
+
+      if (m_type == TDocument)
+        m_value.d = new Document(*other.m_value.d);
+    }
+
+    explicit DocumentValue(const std::string &s, bool expression = false)
+    {
+      m_type = expression ? TExpression : TString;
       m_value.s = new std::string(s);
     }
 
@@ -331,7 +339,7 @@ namespace mysqlx
     {
       if (m_type == TDocument)
         delete m_value.d;
-      else if (m_type == TString)
+      else if (m_type == TString || m_type == TExpression)
         delete m_value.s;
     }
 
@@ -344,7 +352,7 @@ namespace mysqlx
       return m_value.i;
     }
 
-    inline operator double ()
+    inline operator double()
     {
       if (m_type != TFloat)
         throw std::logic_error("type error");
@@ -353,7 +361,7 @@ namespace mysqlx
 
     inline operator const std::string & ()
     {
-      if (m_type != TString)
+      if (m_type != TString && m_type != TExpression)
         throw std::logic_error("type error");
       return *m_value.s;
     }
@@ -362,7 +370,7 @@ namespace mysqlx
     {
       if (m_type != TDocument)
         throw std::logic_error("type error");
-        return *m_value.d;
+      return *m_value.d;
     }
 
   private:
@@ -376,10 +384,11 @@ namespace mysqlx
     } m_value;
   };
 
-
   class Row
   {
   public:
+    ~Row();
+
     bool isNullField(int field) const;
     int32_t sIntField(int field) const;
     uint32_t uIntField(int field) const;
@@ -399,14 +408,13 @@ namespace mysqlx
 
   private:
     friend class Result;
-    Row(boost::shared_ptr<std::vector<ColumnMetadata> > columns, std::auto_ptr<Mysqlx::Sql::Row> data);
+    Row(boost::shared_ptr<std::vector<ColumnMetadata> > columns, Mysqlx::Sql::Row *data);
 
     void check_field(int field, FieldType type) const;
 
     boost::shared_ptr<std::vector<ColumnMetadata> > m_columns;
-    std::auto_ptr<Mysqlx::Sql::Row> m_data;
+    Mysqlx::Sql::Row *m_data;
   };
-  
 
   class Result
   {
@@ -443,9 +451,9 @@ namespace mysqlx
     void handle_notice(int32_t type, const std::string &data);
 
     int get_message_id();
-    std::auto_ptr<mysqlx::Message> pop_message() { return current_message; }
+    mysqlx::Message* pop_message();
 
-    std::auto_ptr<mysqlx::Message> current_message;
+    mysqlx::Message* current_message;
     int                            current_message_id;
 
     friend class Connection;

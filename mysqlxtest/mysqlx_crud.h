@@ -30,6 +30,7 @@ namespace Mysqlx
     class Update;
     class Insert;
     class Delete;
+    enum UpdateOperation_UpdateType;
   }
 
   namespace Datatypes
@@ -328,6 +329,8 @@ namespace mysqlx
     boost::shared_ptr<Collection> collection() const { return m_coll; }
 
   protected:
+    Mysqlx::Datatypes::Any* convert_document_value(const DocumentValue& value);
+
     boost::shared_ptr<Collection> m_coll;
   };
 
@@ -441,39 +444,49 @@ namespace mysqlx
     boost::shared_ptr<Mysqlx::Crud::Update> m_update;
   };
 
-  class Modify_Operation : public Modify_Base
+  class Modify_Limit : public Modify_Base
   {
   public:
-    Modify_Operation(boost::shared_ptr<Collection> coll) : Modify_Base(coll) {}
-    Modify_Operation(const Modify_Operation &other) : Modify_Base(other) {}
-    Modify_Operation &operator = (const Modify_Operation &other) { Modify_Base::operator=(other); return *this; }
-
-    Modify_Operation &remove(const std::string &path);
-    Modify_Operation &set(const std::string &path, const DocumentValue &value);
-    Modify_Operation &replace(const std::string &path, const DocumentValue &value);
-    Modify_Operation &merge(const Document &doc);
-    Modify_Operation &arrayInsert(const std::string &path, int index, const DocumentValue &value);
-    Modify_Operation &arrayAppend(const std::string &path, const DocumentValue &value);
-  };
-
-  class Modify_Limit : public Modify_Operation
-  {
-  public:
-    Modify_Limit(boost::shared_ptr<Collection> coll) : Modify_Operation(coll) {}
-    Modify_Limit(const Modify_Limit &other) : Modify_Operation(other) {}
+    Modify_Limit(boost::shared_ptr<Collection> coll) : Modify_Base(coll) {}
+    Modify_Limit(const Modify_Limit &other) : Modify_Base(other) {}
     Modify_Limit &operator = (const Modify_Limit &other) { Modify_Base::operator=(other); return *this; }
 
-    Modify_Operation &limit(uint64_t limit);
+    Modify_Base &limit(uint64_t limit);
   };
 
-  class ModifyStatement : public Modify_Limit
+  class Modify_Sort : public Modify_Limit
+  {
+  public:
+    Modify_Sort(boost::shared_ptr<Collection> coll) : Modify_Limit(coll) {}
+    Modify_Sort(const Modify_Sort &other) : Modify_Limit(other) {}
+    Modify_Sort &operator = (const Modify_Sort &other) { Modify_Limit::operator=(other); return *this; }
+
+    Modify_Limit &sort(const std::string &sortFields);
+  };
+
+  class Modify_Operation : public Modify_Sort
+  {
+  public:
+    Modify_Operation(boost::shared_ptr<Collection> coll) : Modify_Sort(coll) {}
+    Modify_Operation(const Modify_Operation &other) : Modify_Sort(other) {}
+    Modify_Operation &operator = (const Modify_Operation &other) { Modify_Sort::operator=(other); return *this; }
+
+    Modify_Operation &remove(const std::string &path);
+    Modify_Operation &set(const std::string &path, const DocumentValue &value); // For raw values
+    Modify_Operation &change(const std::string &path, const DocumentValue &value);
+    Modify_Operation &arrayInsert(const std::string &path, int index, const DocumentValue &value);
+    Modify_Operation &arrayAppend(const std::string &path, const DocumentValue &value);
+
+  private:
+    Modify_Operation &set_operation(Mysqlx::Crud::UpdateOperation_UpdateType type, const std::string &path, const DocumentValue *value = NULL);
+  };
+
+  class ModifyStatement : public Modify_Operation
   {
   public:
     ModifyStatement(boost::shared_ptr<Collection> coll, const std::string &searchCondition);
-    ModifyStatement(const ModifyStatement &other) : Modify_Limit(other) {}
-    ModifyStatement &operator = (const ModifyStatement &other) { Modify_Limit::operator=(other); return *this; }
-
-    Modify_Limit &orderBy(const std::string &sortFields);
+    ModifyStatement(const ModifyStatement &other) : Modify_Operation(other) {}
+    ModifyStatement &operator = (const ModifyStatement &other) { Modify_Operation::operator=(other); return *this; }
   };
 
   // -------------------------------------------------------
