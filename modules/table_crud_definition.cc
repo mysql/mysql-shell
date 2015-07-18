@@ -55,7 +55,7 @@ using namespace mysh::mysqlx;
                          {
                            std::string expr_data = expression->get_data();
                            if (expr_data.empty())
-                             return ::mysqlx::TableValue(expr_data, ::mysqlx::TableValue::Type::TExpression);
+                             return ::mysqlx::TableValue(expr_data, ::mysqlx::TableValue::TExpression);
                            else
                              throw shcore::Exception::argument_error("Expressions can not be empty.");
                          }

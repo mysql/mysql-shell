@@ -380,14 +380,14 @@ Modify_Limit &Modify_Sort::sort(const std::string &UNUSED(sortFields))
   return *this;
 }
 
-Modify_Operation &Modify_Operation::set_operation(Mysqlx::Crud::UpdateOperation_UpdateType type, const std::string &path, const DocumentValue *value)
+Modify_Operation &Modify_Operation::set_operation(int type, const std::string &path, const DocumentValue *value)
 {
   google::protobuf::RepeatedPtrField< ::Mysqlx::Crud::Projection > items;
   parser::parse_collection_column_list(items, path);
 
   Mysqlx::Crud::UpdateOperation * operation = m_update->mutable_operation()->Add();
 
-  operation->set_operation(type);
+  operation->set_operation( Mysqlx::Crud::UpdateOperation_UpdateType(type));
 
   Mysqlx::Expr::DocumentPathItem *item = new Mysqlx::Expr::DocumentPathItem(items.Get(0).target_path().Get(0));
   operation->mutable_source()->mutable_document_path()->AddAllocated(item);

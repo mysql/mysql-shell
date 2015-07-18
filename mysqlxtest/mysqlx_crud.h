@@ -30,7 +30,6 @@ namespace Mysqlx
     class Update;
     class Insert;
     class Delete;
-    enum UpdateOperation_UpdateType;
   }
 
   namespace Datatypes
@@ -478,7 +477,7 @@ namespace mysqlx
     Modify_Operation &arrayAppend(const std::string &path, const DocumentValue &value);
 
   private:
-    Modify_Operation &set_operation(Mysqlx::Crud::UpdateOperation_UpdateType type, const std::string &path, const DocumentValue *value = NULL);
+    Modify_Operation &set_operation(int type, const std::string &path, const DocumentValue *value = NULL);
   };
 
   class ModifyStatement : public Modify_Operation
