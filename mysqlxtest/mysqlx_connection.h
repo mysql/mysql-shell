@@ -70,6 +70,7 @@ namespace mysqlx
   {
   public:
     Connection();
+    ~Connection(){ close(); }
 
     Local_notice_handler set_local_notice_handler(Local_notice_handler handler);
 

@@ -33,6 +33,7 @@
 #include "mysqlx.h"
 #include "mysqlx_connection.h"
 #include "mysqlx_crud.h"
+#include "mysqlx_row.h"
 
 #include "my_config.h"
 
@@ -49,6 +50,7 @@
 #include <iostream>
 #include <limits>
 #include "compilerutils.h"
+#include "xdecimal.h"
 
 #ifdef WIN32
 #  define snprintf _snprintf
@@ -233,6 +235,13 @@ void Connection::connect(const std::string &host, int port, const std::string &s
 
 void Connection::close()
 {
+  Mysqlx::Session::Close close;
+
+  send(Mysqlx::ClientMessages::SESS_CLOSE, close);
+
+  int mid;
+  std::auto_ptr<Message> message(recv_raw(mid));
+
   m_socket.close();
 }
 
@@ -572,10 +581,10 @@ Message *Connection::recv_payload(const int mid, const std::size_t msglen)
         ret_val = new Mysqlx::Sql::Row();
         break;
       case Mysqlx::ServerMessages::SQL_RESULT_FETCH_DONE:
-        ret_val = new Mysqlx::Sql::CursorFetchDone();
+        ret_val = new Mysqlx::Sql::ResultFetchDone();
         break;
       case Mysqlx::ServerMessages::SQL_RESULT_FETCH_DONE_MORE_RESULTSETS:
-        ret_val = new Mysqlx::Sql::CursorFetchDoneMoreResultsets();
+        ret_val = new Mysqlx::Sql::ResultFetchDoneMoreResultsets();
         break;
       case  Mysqlx::ServerMessages::SESS_AUTHENTICATE_FAIL:
         ret_val = new Mysqlx::Session::AuthenticateFail();
@@ -1058,9 +1067,6 @@ void Row::check_field(int field, FieldType type) const
 
   if (m_columns->at(field).type != type)
     throw std::range_error("invalid field type");
-
-  if (!m_data->field(field).has_scalar())
-    throw Error(CR_MALFORMED_PACKET, "Unexpected data received from server");
 }
 
 bool Row::isNullField(int field) const
@@ -1068,7 +1074,7 @@ bool Row::isNullField(int field) const
   if (field < 0 || field >= (int)m_columns->size())
     throw std::range_error("invalid field index");
 
-  if (!m_data->field(field).has_scalar() || m_data->field(field).scalar().type() == Mysqlx::Datatypes::Scalar::V_NULL)
+  if (m_data->field(field).empty())
     return true;
   return false;
 }
@@ -1094,111 +1100,128 @@ uint32_t Row::uIntField(int field) const
 int64_t Row::sInt64Field(int field) const
 {
   check_field(field, SINT);
+  const std::string& field_val = m_data->field(field);
 
-  Mysqlx::Datatypes::Scalar::Type stype = m_data->field(field).scalar().type();
-  if (stype == Mysqlx::Datatypes::Scalar::V_SINT && m_data->field(field).scalar().has_v_signed_int())
-    return m_data->field(field).scalar().v_signed_int();
-  else if (stype == Mysqlx::Datatypes::Scalar::V_UINT && m_data->field(field).scalar().has_v_unsigned_int())
-  {
-    int64_t t = (int64_t)m_data->field(field).scalar().v_unsigned_int();
-    if (t >= 0)
-      return t;
-  }
-  throw std::invalid_argument("field of wrong type");
+  return Row_decoder::s64_from_buffer(field_val);
 }
+
 
 uint64_t Row::uInt64Field(int field) const
 {
   check_field(field, UINT);
+  const std::string& field_val = m_data->field(field);
 
-  Mysqlx::Datatypes::Scalar::Type stype = m_data->field(field).scalar().type();
-  if (stype == Mysqlx::Datatypes::Scalar::V_UINT && m_data->field(field).scalar().has_v_unsigned_int())
-    return m_data->field(field).scalar().v_unsigned_int();
-  else if (stype == Mysqlx::Datatypes::Scalar::V_SINT && m_data->field(field).scalar().has_v_signed_int())
-  {
-    int64_t t = m_data->field(field).scalar().v_signed_int();
-    if (t >= 0)
-      return (uint64_t)t;
-  }
-  throw std::invalid_argument("field of wrong type");
+  return Row_decoder::u64_from_buffer(field_val);
 }
 
-const std::string &Row::stringField(int field) const
+uint64_t Row::bitField(int field) const
 {
-  //temporarily disabled until decimal is implemented properly  check_field(field, BYTES);
+  check_field(field, BIT);
+  const std::string& field_val = m_data->field(field);
 
-  if (m_data->field(field).scalar().type() == Mysqlx::Datatypes::Scalar::V_OCTETS
-      && m_data->field(field).scalar().has_v_opaque())
-    return m_data->field(field).scalar().v_opaque();
-  throw std::invalid_argument("field of wrong type");
+  return Row_decoder::u64_from_buffer(field_val);
 }
+
+std::string Row::stringField(int field) const
+{
+  size_t length;
+  check_field(field, BYTES);
+
+  const std::string& field_val = m_data->field(field);
+
+  const char* res = Row_decoder::string_from_buffer(field_val, length);
+  return std::string(res, length);
+}
+
+std::string Row::decimalField(int field) const
+  {
+  check_field(field, DECIMAL);
+
+  const std::string& field_val = m_data->field(field);
+
+  mysqlx::Decimal decimal = Row_decoder::decimal_from_buffer(field_val);
+
+  return std::string(decimal.str());
+  }
+
+std::string Row::setFieldStr(int field) const
+{
+  check_field(field, SET);
+
+  const std::string& field_val = m_data->field(field);
+
+  return Row_decoder::set_from_buffer_as_str(field_val);
+}
+
+std::set<std::string> Row::setField(int field) const
+{
+  std::set<std::string> result;
+  check_field(field, SET);
+
+  const std::string& field_val = m_data->field(field);
+  Row_decoder::set_from_buffer(field_val, result);
+
+  return result;
+}
+
+std::string Row::enumField(int field) const
+  {
+  size_t length;
+  check_field(field, ENUM);
+
+  const std::string& field_val = m_data->field(field);
+
+  const char* res = Row_decoder::string_from_buffer(field_val, length);
+  return std::string(res, length);
+  }
 
 const char *Row::stringField(int field, size_t &rlength) const
 {
   check_field(field, BYTES);
 
-  if (m_data->field(field).scalar().type() == Mysqlx::Datatypes::Scalar::V_OCTETS
-      && m_data->field(field).scalar().has_v_opaque())
-  {
-    const std::string &tmp(m_data->field(field).scalar().v_opaque());
-    rlength = tmp.length();
-    return tmp.data();
-  }
-  throw std::invalid_argument("field of wrong type");
+  const std::string& field_val = m_data->field(field);
+
+  return Row_decoder::string_from_buffer(field_val, rlength);
 }
+
 
 float Row::floatField(int field) const
 {
   check_field(field, FLOAT);
 
-  if (m_data->field(field).scalar().type() == Mysqlx::Datatypes::Scalar::V_FLOAT
-      && m_data->field(field).scalar().has_v_float())
-  {
-    return m_data->field(field).scalar().v_float();
-  }
-  throw std::invalid_argument("field of wrong type");
+  const std::string& field_val = m_data->field(field);
+
+  return Row_decoder::float_from_buffer(field_val);
 }
+
 
 double Row::doubleField(int field) const
 {
   check_field(field, DOUBLE);
 
-  if (m_data->field(field).scalar().type() == Mysqlx::Datatypes::Scalar::V_DOUBLE
-      && m_data->field(field).scalar().has_v_double())
-  {
-    return m_data->field(field).scalar().v_double();
-  }
-  throw std::invalid_argument("field of wrong type");
+  const std::string& field_val = m_data->field(field);
+
+  return Row_decoder::double_from_buffer(field_val);
 }
+
 
 DateTime Row::dateTimeField(int field) const
 {
   check_field(field, DATETIME);
 
-  if (m_data->field(field).scalar().type() == Mysqlx::Datatypes::Scalar::V_OCTETS
-      && m_data->field(field).scalar().has_v_opaque())
-  {
-    DateTime dt(m_data->field(field).scalar().v_opaque());
-    if (!dt)
-      throw Error(CR_MALFORMED_PACKET, "Invalid data received");
-    return dt;
-  }
-  throw std::invalid_argument("field of wrong type");
+  const std::string& field_val = m_data->field(field);
+
+  return Row_decoder::datetime_from_buffer(field_val);
 }
+
 
 Time Row::timeField(int field) const
 {
   check_field(field, TIME);
 
-  if (m_data->field(field).scalar().type() == Mysqlx::Datatypes::Scalar::V_OCTETS
-      && m_data->field(field).scalar().has_v_opaque())
-  {
-    Time t(m_data->field(field).scalar().v_opaque());
-    if (!t)
-      throw Error(CR_MALFORMED_PACKET, "Invalid data received");
-    return t;
-  }
-  throw std::invalid_argument("field of wrong type");
+  const std::string& field_val = m_data->field(field);
+
+  return Row_decoder::time_from_buffer(field_val);
 }
 
 int Row::numFields() const

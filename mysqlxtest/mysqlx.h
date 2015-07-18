@@ -26,6 +26,7 @@
 #include <stdexcept>
 #include <vector>
 #include <map>
+#include <set>
 
 #include "xdatetime.h"
 
@@ -395,15 +396,17 @@ namespace mysqlx
     uint32_t uIntField(int field) const;
     int64_t sInt64Field(int field) const;
     uint64_t uInt64Field(int field) const;
-    const std::string &stringField(int field) const;
+    uint64_t bitField(int field) const;
+    std::string stringField(int field) const;
+    std::string decimalField(int field) const;
+    std::string setFieldStr(int field) const;
+    std::set<std::string> setField(int field) const;
+    std::string enumField(int field) const;
     const char *stringField(int field, size_t &rlength) const;
     float floatField(int field) const;
     double doubleField(int field) const;
-
     DateTime dateTimeField(int field) const;
     Time timeField(int field) const;
-
-    //XXXstd::set<std::string> setField(int field) const;
 
     int numFields() const;
 
@@ -416,6 +419,7 @@ namespace mysqlx
     boost::shared_ptr<std::vector<ColumnMetadata> > m_columns;
     Mysqlx::Sql::Row *m_data;
   };
+
 
   class Result
   {
