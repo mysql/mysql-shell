@@ -123,24 +123,24 @@ namespace mysqlx
     Select_Offset &limit(uint64_t limit);
   };
 
-  class Select_Sort : public Select_Limit
+  class Select_OrderBy : public Select_Limit
   {
   public:
-    Select_Sort(boost::shared_ptr<Table> table) : Select_Limit(table) {}
-    Select_Sort(const Select_Sort &other) : Select_Limit(other) {}
-    Select_Sort &operator = (const Select_Sort &other) { Select_Limit::operator=(other); return *this; }
+    Select_OrderBy(boost::shared_ptr<Table> table) : Select_Limit(table) {}
+    Select_OrderBy(const Select_OrderBy &other) : Select_Limit(other) {}
+    Select_OrderBy &operator = (const Select_OrderBy &other) { Select_Limit::operator=(other); return *this; }
 
-    Select_Limit &sort(const std::string &sortFields);
+    Select_Limit &orderBy(const std::string &sortFields);
   };
 
-  class Select_Having : public Select_Sort
+  class Select_Having : public Select_OrderBy
   {
   public:
-    Select_Having(boost::shared_ptr<Table> table) : Select_Sort(table) {}
-    Select_Having(const Select_Having &other) : Select_Sort(other) {}
-    Select_Having &operator = (const Select_Having &other) { Select_Sort::operator=(other); return *this; }
+    Select_Having(boost::shared_ptr<Table> table) : Select_OrderBy(table) {}
+    Select_Having(const Select_Having &other) : Select_OrderBy(other) {}
+    Select_Having &operator = (const Select_Having &other) { Select_OrderBy::operator=(other); return *this; }
 
-    Select_Sort &having(const std::string &searchCondition);
+    Select_OrderBy &having(const std::string &searchCondition);
   };
 
   class Select_GroupBy : public Select_Having
@@ -520,7 +520,7 @@ namespace mysqlx
     RemoveStatement(const RemoveStatement &other) : Remove_Limit(other) {}
     RemoveStatement &operator = (const RemoveStatement &other) { Remove_Limit::operator=(other); return *this; }
 
-    Remove_Limit &orderBy(const std::string &sortFields);
+    Remove_Limit &sort(const std::string &sortFields);
   };
 
   // -------------------------------------------------------

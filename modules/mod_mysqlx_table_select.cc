@@ -33,7 +33,7 @@ TableSelect::TableSelect(boost::shared_ptr<Table> owner)
   add_method("where", boost::bind(&TableSelect::where, this, _1), "data");
   add_method("groupBy", boost::bind(&TableSelect::group_by, this, _1), "data");
   add_method("having", boost::bind(&TableSelect::having, this, _1), "data");
-  add_method("sort", boost::bind(&TableSelect::sort, this, _1), "data");
+  add_method("orderBy", boost::bind(&TableSelect::order_by, this, _1), "data");
   add_method("limit", boost::bind(&TableSelect::limit, this, _1), "data");
   add_method("offset", boost::bind(&TableSelect::offset, this, _1), "data");
   add_method("bind", boost::bind(&TableSelect::bind, this, _1), "data");
@@ -43,11 +43,11 @@ TableSelect::TableSelect(boost::shared_ptr<Table> owner)
   register_dynamic_function("where", "select");
   register_dynamic_function("groupBy", "select, where");
   register_dynamic_function("having", "groupBy");
-  register_dynamic_function("sort", "select, where, groupBy, having");
-  register_dynamic_function("limit", "select, where, groupBy, having, sort");
+  register_dynamic_function("orderBy", "select, where, groupBy, having");
+  register_dynamic_function("limit", "select, where, groupBy, having, orderBy");
   register_dynamic_function("offset", "limit");
-  register_dynamic_function("bind", "select, where, groupBy, having, sort, offset, limit");
-  register_dynamic_function("execute", "select, where, groupBy, having, sort, offset, limit, bind");
+  register_dynamic_function("bind", "select, where, groupBy, having, orderBy, offset, limit");
+  register_dynamic_function("execute", "select, where, groupBy, having, orderBy, offset, limit, bind");
 
   // Initial function update
   update_functions("");
@@ -66,14 +66,14 @@ shcore::Value TableSelect::select(const shcore::Argument_list &args)
     {
       std::string field_list;
       if (args.size())
-        field_list = args[0].as_string();
+        field_list = args.string_at(0);
 
       _select_statement.reset(new ::mysqlx::SelectStatement(table->_table_impl->select(field_list)));
 
       // Updates the exposed functions
       update_functions("select");
     }
-    CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableSelect::select", "string");
+    CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableSelect::select");
   }
 
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
@@ -85,11 +85,11 @@ shcore::Value TableSelect::where(const shcore::Argument_list &args)
 
   try
   {
-    _select_statement->where(args[0].as_string());
+    _select_statement->where(args.string_at(0));
 
     update_functions("where");
   }
-  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableSelect::where", "string");
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableSelect::where");
 
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
@@ -100,11 +100,11 @@ shcore::Value TableSelect::group_by(const shcore::Argument_list &args)
 
   try
   {
-    _select_statement->groupBy(args[0].as_string());
+    _select_statement->groupBy(args.string_at(0));
 
     update_functions("groupBy");
   }
-  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableSelect::groupBy", "string");
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableSelect::groupBy");
 
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
@@ -115,29 +115,29 @@ shcore::Value TableSelect::having(const shcore::Argument_list &args)
 
   try
   {
-    _select_statement->having(args[0].as_string());
+    _select_statement->having(args.string_at(0));
 
     update_functions("having");
   }
-  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableSelect::having", "string");
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableSelect::having");
 
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
-shcore::Value TableSelect::sort(const shcore::Argument_list &args)
+shcore::Value TableSelect::order_by(const shcore::Argument_list &args)
 {
-  args.ensure_count(1, "TableSelect::sort");
+  args.ensure_count(1, "TableSelect::orderBy");
 
   try
   {
-    _select_statement->sort(args[0].as_string());
+    _select_statement->orderBy(args.string_at(0));
 
-    // Remove and update test suite when sort is enabled
+    // Remove and update test suite when orderBy is enabled
     throw shcore::Exception::logic_error("not yet implemented.");
 
-    update_functions("sort");
+    update_functions("orderBy");
   }
-  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableSelect::sort", "string");
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableSelect::orderBy");
 
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
@@ -148,11 +148,11 @@ shcore::Value TableSelect::limit(const shcore::Argument_list &args)
 
   try
   {
-    _select_statement->limit(args[0].as_uint());
+    _select_statement->limit(args.uint_at(0));
 
     update_functions("limit");
   }
-  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableSelect::limit", "integer");
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableSelect::limit");
 
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
@@ -163,11 +163,11 @@ shcore::Value TableSelect::offset(const shcore::Argument_list &args)
 
   try
   {
-    _select_statement->offset(args[0].as_uint());
+    _select_statement->offset(args.uint_at(0));
 
     update_functions("offset");
   }
-  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableSelect::offset", "integer");
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableSelect::offset");
 
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }

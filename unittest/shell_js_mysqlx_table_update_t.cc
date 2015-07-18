@@ -130,28 +130,30 @@ namespace shcore {
 
     {
       SCOPED_TRACE("Testing parameter validation on set");
-      exec_and_out_contains("table.update().set(5);", "", "TableUpdate::set: expected dictionary with fields and values to update.");
+      exec_and_out_contains("table.update().set();", "", "Invalid number of arguments in TableUpdate::set, expected 1 but got 0");
+      exec_and_out_contains("table.update().set(5);", "", "TableUpdate::set: Argument #1 is expected to be a map");
       exec_and_out_contains("table.update().set({name: session});", "", "TableUpdate::set: Unsupported value received for table update operation on field \"name\", received: <NodeSession:");
       exec_and_out_equals("table.update().set({age: 17});");
     }
 
     {
       SCOPED_TRACE("Testing parameter validation on where");
-      exec_and_out_contains("table.update().set({age: 17}).where(5);", "", "TableUpdate::where: string parameter required.");
+      exec_and_out_contains("table.update().set({age: 17}).where();", "", "Invalid number of arguments in TableUpdate::where, expected 1 but got 0");
+      exec_and_out_contains("table.update().set({age: 17}).where(5);", "", "TableUpdate::where: Argument #1 is expected to be a string");
       exec_and_out_contains("table.update().set({age: 17}).where('name = \"2');", "", "TableUpdate::where: Unterminated quoted string starting at 8");
       exec_and_out_contains("table.update().set({age: 17}).where('name = \"2\"');");
     }
 
     {
       SCOPED_TRACE("Testing parameter validation on orderBy");
-      exec_and_out_contains("table.update().set({age: 17}).orderBy();", "", "Invalid number of arguments in TableUpdate::orderBy");
-      exec_and_out_contains("table.update().set({age: 17}).orderBy(5);", "", "TableUpdate::orderBy: string parameter required.");
+      exec_and_out_contains("table.update().set({age: 17}).orderBy();", "", "Invalid number of arguments in TableUpdate::orderBy, expected 1 but got 0");
+      exec_and_out_contains("table.update().set({age: 17}).orderBy(5);", "", "TableUpdate::orderBy: Argument #1 is expected to be a string");
     }
 
     {
       SCOPED_TRACE("Testing parameter validation on limit");
-      exec_and_out_contains("table.update().set({age: 17}).limit();", "", "Invalid number of arguments in TableUpdate::limit");
-      exec_and_out_contains("table.update().set({age: 17}).limit('');", "", "TableUpdate::limit: integer parameter required.");
+      exec_and_out_contains("table.update().set({age: 17}).limit();", "", "Invalid number of arguments in TableUpdate::limit, expected 1 but got 0");
+      exec_and_out_contains("table.update().set({age: 17}).limit('');", "", "TableUpdate::limit: Argument #1 is expected to be an unsigned int");
       exec_and_out_contains("table.update().set({age: 17}).limit(5);");
     }
 

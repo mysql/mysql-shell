@@ -63,7 +63,7 @@ shcore::Value TableDelete::remove(const shcore::Argument_list &args)
       // Updates the exposed functions
       update_functions("delete");
     }
-    CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableDelete::delete", "string");
+    CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableDelete::delete");
   }
 
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
@@ -80,12 +80,12 @@ shcore::Value TableDelete::where(const shcore::Argument_list &args)
   {
     try
     {
-      _delete_statement->where(args[0].as_string());
+      _delete_statement->where(args.string_at(0));
 
       // Updates the exposed functions
       update_functions("where");
     }
-    CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableDelete::where", "string");
+    CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableDelete::where");
   }
 
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
@@ -97,11 +97,11 @@ shcore::Value TableDelete::order_by(const shcore::Argument_list &args)
 
   try
   {
-    _delete_statement->orderBy(args[0].as_string());
+    _delete_statement->orderBy(args.string_at(0));
 
     update_functions("orderBy");
   }
-  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableDelete::orderBy", "string");
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableDelete::orderBy");
 
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
@@ -112,11 +112,11 @@ shcore::Value TableDelete::limit(const shcore::Argument_list &args)
 
   try
   {
-    _delete_statement->limit(args[0].as_uint());
+    _delete_statement->limit(args.uint_at(0));
 
     update_functions("limit");
   }
-  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableDelete::limit", "integer");
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableDelete::limit");
 
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }

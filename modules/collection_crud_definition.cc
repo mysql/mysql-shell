@@ -17,33 +17,26 @@
  * 02110-1301  USA
  */
 
-#include "table_crud_definition.h"
+#include "collection_crud_definition.h"
 #include "mod_mysqlx_expression.h"
 #include <sstream>
 
 using namespace mysh::mysqlx;
 
-::mysqlx::TableValue Table_crud_definition::map_table_value(shcore::Value source)
+::mysqlx::DocumentValue Collection_crud_definition::map_document_value(shcore::Value source)
 {
   switch (source.type)
   {
-    case shcore::Null:
-      return ::mysqlx::TableValue();
-      break;
     case shcore::Bool:
-      return ::mysqlx::TableValue(source.as_bool());
+    case shcore::UInteger:
+    case shcore::Integer:
+      return ::mysqlx::DocumentValue(source.as_int());
       break;
     case shcore::String:
-      return ::mysqlx::TableValue(source.as_string());
-      break;
-    case shcore::Integer:
-      return ::mysqlx::TableValue(source.as_int());
-      break;
-    case shcore::UInteger:
-      return ::mysqlx::TableValue(source.as_uint());
+      return ::mysqlx::DocumentValue(source.as_string());
       break;
     case shcore::Float:
-      return ::mysqlx::TableValue(source.as_double());
+      return ::mysqlx::DocumentValue(source.as_double());
       break;
     case shcore::Object:
     {
@@ -55,7 +48,7 @@ using namespace mysh::mysqlx;
                          {
                            std::string expr_data = expression->get_data();
                            if (expr_data.empty())
-                             return ::mysqlx::TableValue(expr_data, ::mysqlx::TableValue::Type::TExpression);
+                            return ::mysqlx::DocumentValue(expr_data, true);
                            else
                              throw shcore::Exception::argument_error("Expressions can not be empty.");
                          }
@@ -67,6 +60,7 @@ using namespace mysh::mysqlx;
                          }
     }
       break;
+    case shcore::Null:
     case shcore::Array:
     case shcore::Map:
     case shcore::MapRef:

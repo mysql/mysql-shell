@@ -71,10 +71,10 @@ namespace shcore {
     exec_and_out_equals("var crud = table.insert();");
     ensure_available_functions("values");
 
-    exec_and_out_equals("crud.values([1,2,3,4,5])");
+    exec_and_out_equals("crud.values(1,2,3,4,5)");
     ensure_available_functions("values,bind,execute");
 
-    exec_and_out_equals("crud.values([6,7,8,9,10])");
+    exec_and_out_equals("crud.values(6,7,8,9,10)");
     ensure_available_functions("values,bind,execute");
 
     // Now executes bind and the only available method will be execute
@@ -87,10 +87,10 @@ namespace shcore {
     exec_and_out_equals("var crud = table.insert(['id', 'name']);");
     ensure_available_functions("values");
 
-    exec_and_out_equals("crud.values([1,2,3,4,5])");
+    exec_and_out_equals("crud.values(1,2,3,4,5)");
     ensure_available_functions("values,bind,execute");
 
-    exec_and_out_equals("crud.values([6,7,8,9,10])");
+    exec_and_out_equals("crud.values(6,7,8,9,10)");
     ensure_available_functions("values,bind,execute");
 
     // Now executes bind and the only available method will be execute
@@ -115,19 +115,21 @@ namespace shcore {
     exec_and_out_equals("var table = session.js_shell_test.getTable('table1');");
 
     // Tests insert with invalid parameter
-    exec_and_out_contains("table.insert(28).execute();", "", "Invalid data received on TableInsert::insert");
+    exec_and_out_contains("table.insert(28).execute();", "", "TableInsert::insert: Argument #1 is expected to be either string, a list of strings or a map with fields and values");
+
+    exec_and_out_contains("table.insert('name', 28).execute();", "", "TableInsert::insert: Argument #2 is expected to be a string");
 
     // Test add attempt with no data
-    exec_and_out_contains("table.insert(['id', 45]).execute();", "", "Invalid column name at position 2.");
+    exec_and_out_contains("table.insert(['id', 45]).execute();", "", "TableInsert::insert: Element #2 is expected to be a string");
 
     // Test add attempt with column list but invalid values
-    exec_and_out_contains("table.insert(['id','name']).values(5).execute();", "", "Invalid parameter received, expected data array.");
+    exec_and_out_contains("table.insert(['id','name']).values([5]).execute();", "", "Unsupported value received: [5]");
 
     // Test add attempt with column list but unsupported values
-    exec_and_out_contains("table.insert(['id','name']).values([1, session]).execute();", "", "Unsupported value received for table insert operation: <Session");
+    exec_and_out_contains("table.insert(['id','name']).values(1, session).execute();", "", "Unsupported value received: <Session");
 
     // Test add attempt with invalid column name
-    exec_and_out_contains("table.insert(['id', 'name', 'gender']).values([15, 'walter', 'male']).execute();", "", "Unknown column 'id' in 'field list'");
+    exec_and_out_contains("table.insert(['id', 'name', 'gender']).values(15, 'walter', 'male').execute();", "", "Unknown column 'id' in 'field list'");
   }
 
   TEST_F(Shell_js_crud_table_insert_tests, insert_execution)
@@ -139,23 +141,23 @@ namespace shcore {
     // Insert without columns
     {
       SCOPED_TRACE("Testing insert without columns.");
-      exec_and_out_equals("var result = table.insert().values(['jack', 17, 'male']).execute();");
+      exec_and_out_equals("var result = table.insert().values('jack', 17, 'male').execute();");
       exec_and_out_equals("print (result.affectedRows)", "1");
     }
 
     // Insert with columns
     {
       SCOPED_TRACE("Testing insert without columns.");
-      exec_and_out_equals("var result = table.insert(['age', 'name', 'gender']).values([21, 'john', 'male']).execute();");
+      exec_and_out_equals("var result = table.insert(['age', 'name', 'gender']).values(21, 'john', 'male').execute();");
       exec_and_out_equals("print (result.affectedRows)", "1");
     }
 
     // Inserting multiple records
     {
       SCOPED_TRACE("Testing insert without columns.");
-      exec_and_out_equals("var insert = table.insert(['name', 'age', 'gender'])");
-      exec_and_out_equals("insert.values(['clark', 22,'male'])");
-      exec_and_out_equals("insert.values(['mary', 13,'female'])");
+      exec_and_out_equals("var insert = table.insert('name', 'age', 'gender')");
+      exec_and_out_equals("insert.values('clark', 22,'male')");
+      exec_and_out_equals("insert.values('mary', 13,'female')");
       exec_and_out_equals("var result = insert.execute()");
       exec_and_out_equals("print (result.affectedRows)", "2");
     }

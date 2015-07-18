@@ -44,7 +44,7 @@ namespace shcore {
       _shell_core->switch_mode(Shell_core::Mode_JScript, initilaized);
 
       // Sets the correct functions to be validated
-      set_functions("remove, orderBy, limit, bind, execute");
+      set_functions("remove, sort, limit, bind, execute");
     }
   };
 
@@ -83,7 +83,7 @@ namespace shcore {
     //       once they are enabled
     {
       SCOPED_TRACE("Testing function availability after remove.");
-      ensure_available_functions("orderBy, limit, bind, execute");
+      ensure_available_functions("sort, limit, bind, execute");
     }
 
     // Now executes limit
@@ -105,21 +105,21 @@ namespace shcore {
     {
       SCOPED_TRACE("Testing parameter validation on remove");
       exec_and_out_equals("collection.remove();");
-      exec_and_out_contains("collection.remove(5);", "", "CollectionRemove::remove: string parameter required.");
+      exec_and_out_contains("collection.remove(5);", "", "CollectionRemove::remove: Argument #1 is expected to be a string");
       exec_and_out_contains("collection.remove('test = \"2');", "", "CollectionRemove::remove: Unterminated quoted string starting at 8");
       exec_and_out_equals("collection.remove('test = \"2\"');");
     }
 
     {
-      SCOPED_TRACE("Testing parameter validation on orderBy");
-      exec_and_out_contains("collection.remove().orderBy();", "", "Invalid number of arguments in CollectionRemove::orderBy");
-      exec_and_out_contains("collection.remove().orderBy(5);", "", "CollectionRemove::orderBy: string parameter required.");
+      SCOPED_TRACE("Testing parameter validation on sort");
+      exec_and_out_contains("collection.remove().sort();", "", "Invalid number of arguments in CollectionRemove::sort, expected 1 but got 0");
+      exec_and_out_contains("collection.remove().sort(5);", "", "CollectionRemove::sort: Argument #1 is expected to be a string");
     }
 
     {
       SCOPED_TRACE("Testing parameter validation on limit");
-      exec_and_out_contains("collection.remove().limit();", "", "Invalid number of arguments in CollectionRemove::limit");
-      exec_and_out_contains("collection.remove().limit('');", "", "CollectionRemove::limit: integer parameter required.");
+      exec_and_out_contains("collection.remove().limit();", "", "Invalid number of arguments in CollectionRemove::limit, expected 1 but got 0");
+      exec_and_out_contains("collection.remove().limit('');", "", "CollectionRemove::limit: Argument #1 is expected to be an unsigned int");
       exec_and_out_equals("collection.remove().limit(5);");
     }
 

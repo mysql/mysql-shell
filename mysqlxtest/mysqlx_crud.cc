@@ -331,7 +331,7 @@ RemoveStatement::RemoveStatement(boost::shared_ptr<Collection> coll, const std::
     m_delete->set_allocated_criteria(parser::parse_collection_filter(searchCondition));
 }
 
-Remove_Limit &RemoveStatement::orderBy(const std::string &UNUSED(sortFields))
+Remove_Limit &RemoveStatement::sort(const std::string &UNUSED(sortFields))
 {
   return *this;
 }
@@ -696,12 +696,12 @@ Select_Offset &Select_Limit::limit(uint64_t limit_)
   return *this;
 }
 
-Select_Limit &Select_Sort::sort(const std::string &UNUSED(sortFields))
+Select_Limit &Select_OrderBy::orderBy(const std::string &UNUSED(sortFields))
 {
   return *this;
 }
 
-Select_Sort &Select_Having::having(const std::string &UNUSED(searchCondition))
+Select_OrderBy &Select_Having::having(const std::string &UNUSED(searchCondition))
 {
   //  m_find->set_allocated_having(Expr_parser(searchFields, true).expr().release());
   return *this;

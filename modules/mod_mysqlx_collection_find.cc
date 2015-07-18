@@ -26,7 +26,7 @@ using namespace mysh::mysqlx;
 using namespace shcore;
 
 CollectionFind::CollectionFind(boost::shared_ptr<Collection> owner)
-: Crud_definition(boost::static_pointer_cast<DatabaseObject>(owner))
+: Collection_crud_definition(boost::static_pointer_cast<DatabaseObject>(owner))
 {
   // Exposes the methods available for chaining
   add_method("find", boost::bind(&CollectionFind::find, this, _1), "data");
@@ -37,7 +37,6 @@ CollectionFind::CollectionFind(boost::shared_ptr<Collection> owner)
   add_method("skip", boost::bind(&CollectionFind::skip, this, _1), "data");
   add_method("limit", boost::bind(&CollectionFind::limit, this, _1), "data");
   add_method("bind", boost::bind(&CollectionFind::bind, this, _1), "data");
-  add_method("execute", boost::bind(&Crud_definition::execute, this, _1), "data");
 
   // Registers the dynamic function behavior
   register_dynamic_function("find", "");
@@ -67,16 +66,16 @@ shcore::Value CollectionFind::find(const shcore::Argument_list &args)
     {
       std::string search_condition;
       if (args.size())
-        search_condition = args[0].as_string();
+        search_condition = args.string_at(0);
 
       _find_statement.reset(new ::mysqlx::FindStatement(collection->_collection_impl->find(search_condition)));
 
       // Updates the exposed functions
       update_functions("find");
     }
-    CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionFind::find", "string");
+    CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionFind::find");
   }
-  
+
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
@@ -86,11 +85,11 @@ shcore::Value CollectionFind::fields(const shcore::Argument_list &args)
 
   try
   {
-    _find_statement->fields(args[0].as_string());
+    _find_statement->fields(args.string_at(0));
 
     update_functions("find");
   }
-  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionFind::fields", "string");
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionFind::fields");
 
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
@@ -101,11 +100,11 @@ shcore::Value CollectionFind::group_by(const shcore::Argument_list &args)
 
   try
   {
-    _find_statement->groupBy(args[0].as_string());
+    _find_statement->groupBy(args.string_at(0));
 
     update_functions("groupBy");
   }
-  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionFind::groupBy", "string");
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionFind::groupBy");
 
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
@@ -116,11 +115,11 @@ shcore::Value CollectionFind::having(const shcore::Argument_list &args)
 
   try
   {
-    _find_statement->having(args[0].as_string());
+    _find_statement->having(args.string_at(0));
 
     update_functions("having");
   }
-  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionFind::having", "string");
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionFind::having");
 
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
@@ -131,14 +130,14 @@ shcore::Value CollectionFind::sort(const shcore::Argument_list &args)
 
   try
   {
-    _find_statement->sort(args[0].as_string());
+    _find_statement->sort(args.string_at(0));
 
     // Remove and update test suite when sort is enabled
     throw shcore::Exception::logic_error("not yet implemented.");
 
     update_functions("sort");
   }
-  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionFind::sort", "string");
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionFind::sort");
 
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
@@ -149,11 +148,11 @@ shcore::Value CollectionFind::limit(const shcore::Argument_list &args)
 
   try
   {
-    _find_statement->limit(args[0].as_uint());
+    _find_statement->limit(args.uint_at(0));
 
     update_functions("limit");
   }
-  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionFind::limit", "integer");
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionFind::limit");
 
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
@@ -164,11 +163,11 @@ shcore::Value CollectionFind::skip(const shcore::Argument_list &args)
 
   try
   {
-    _find_statement->skip(args[0].as_uint());
+    _find_statement->skip(args.uint_at(0));
 
     update_functions("skip");
   }
-  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionFind::skip", "integer");
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionFind::skip");
 
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }

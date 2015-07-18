@@ -1271,13 +1271,39 @@ int64_t Argument_list::int_at(unsigned int i) const
   return at(i).value.i;
 }
 
+uint64_t Argument_list::uint_at(unsigned int i) const
+{
+  if (i >= size())
+    throw Exception::argument_error("Insufficient number of arguments");
+
+  uint64_t ret_val;
+
+  if (at(i).type == UInteger)
+    ret_val = at(i).value.ui;
+  else if (at(i).type == Integer && at(i).value.i >= 0)
+    ret_val = (uint64_t)at(i).value.i;
+  else
+    throw Exception::type_error((boost::format("Argument #%1% is expected to be an unsigned int") % (i + 1)).str());
+
+  return ret_val;
+}
+
 double Argument_list::double_at(unsigned int i) const
 {
   if (i >= size())
     throw Exception::argument_error("Insufficient number of arguments");
-  if (at(i).type != Float)
+
+  double ret_val;
+  if (at(i).type == Float)
+    ret_val = at(i).value.d;
+  else if (at(i).type == Integer)
+    ret_val = (double)at(i).value.i;
+  else if (at(i).type == UInteger)
+    ret_val = (double)at(i).value.ui;
+  else
     throw Exception::type_error((boost::format("Argument #%1% is expected to be a double") % (i + 1)).str());
-  return at(i).value.d;
+
+  return ret_val;
 }
 
 boost::shared_ptr<Object_bridge> Argument_list::object_at(unsigned int i) const
@@ -1322,5 +1348,5 @@ void Argument_list::ensure_count(unsigned int minc, unsigned int maxc, const cha
 void Argument_list::ensure_at_least(unsigned int minc, const char *context) const
 {
   if (size() < minc)
-    throw Exception::argument_error((boost::format("Invalid number of arguments in %1%, expected at least %2% but got %4%") % context % minc % size()).str());
+    throw Exception::argument_error((boost::format("Invalid number of arguments in %1%, expected at least %2% but got %3%") % context % minc % size()).str());
 }

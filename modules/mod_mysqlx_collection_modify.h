@@ -20,8 +20,8 @@
 // MySQL DB access module, for use by plugins and others
 // For the module that implements interactive DB functionality see mod_db
 
-#ifndef _MOD_CRUD_COLLECTION_FIND_H_
-#define _MOD_CRUD_COLLECTION_FIND_H_
+#ifndef _MOD_CRUD_COLLECTION_MODIFY_H_
+#define _MOD_CRUD_COLLECTION_MODIFY_H_
 
 #include "collection_crud_definition.h"
 
@@ -30,24 +30,27 @@ namespace mysh
   namespace mysqlx
   {
     class Collection;
-    class CollectionFind : public Collection_crud_definition, public boost::enable_shared_from_this<CollectionFind>
+    class CollectionModify : public Collection_crud_definition, public boost::enable_shared_from_this<CollectionModify>
     {
     public:
-      CollectionFind(boost::shared_ptr<Collection> owner);
+      CollectionModify(boost::shared_ptr<Collection> owner);
     public:
-      virtual std::string class_name() const { return "CollectionFind"; }
-      shcore::Value find(const shcore::Argument_list &args);
-      shcore::Value fields(const shcore::Argument_list &args);
-      shcore::Value group_by(const shcore::Argument_list &args);
-      shcore::Value having(const shcore::Argument_list &args);
+      virtual std::string class_name() const { return "CollectionModify"; }
+      static boost::shared_ptr<shcore::Object_bridge> create(const shcore::Argument_list &args);
+      shcore::Value modify(const shcore::Argument_list &args);
+      shcore::Value set(const shcore::Argument_list &args);
+      shcore::Value change(const shcore::Argument_list &args);
+      shcore::Value unset(const shcore::Argument_list &args);
+      shcore::Value array_insert(const shcore::Argument_list &args);
+      shcore::Value array_append(const shcore::Argument_list &args);
+      shcore::Value array_delete(const shcore::Argument_list &args);
       shcore::Value sort(const shcore::Argument_list &args);
-      shcore::Value skip(const shcore::Argument_list &args);
       shcore::Value limit(const shcore::Argument_list &args);
       shcore::Value bind(const shcore::Argument_list &args);
 
       virtual shcore::Value execute(const shcore::Argument_list &args);
     private:
-      std::auto_ptr< ::mysqlx::FindStatement> _find_statement;
+      std::auto_ptr< ::mysqlx::ModifyStatement> _modify_statement;
     };
   };
 };

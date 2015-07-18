@@ -40,7 +40,7 @@ namespace mysh
       shcore::Value where(const shcore::Argument_list &args);
       shcore::Value group_by(const shcore::Argument_list &args);
       shcore::Value having(const shcore::Argument_list &args);
-      shcore::Value sort(const shcore::Argument_list &args);
+      shcore::Value order_by(const shcore::Argument_list &args);
       shcore::Value limit(const shcore::Argument_list &args);
       shcore::Value offset(const shcore::Argument_list &args);
       shcore::Value bind(const shcore::Argument_list &args);

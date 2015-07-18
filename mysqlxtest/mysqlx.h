@@ -161,6 +161,7 @@ namespace mysqlx
       TBool,
       TString,
       TOctets,
+      TExpression,
     };
 
     TableValue(const TableValue &other)
@@ -219,7 +220,7 @@ namespace mysqlx
 
     ~TableValue()
     {
-      if (m_type == TString || m_type == TOctets)
+      if (m_type == TString || m_type == TOctets || m_type == TExpression)
         delete m_value.s;
     }
 
@@ -262,7 +263,7 @@ namespace mysqlx
 
     inline operator const std::string & ()
     {
-      if (m_type != TString && m_type != TOctets)
+      if (m_type != TString && m_type != TOctets && m_type != TExpression)
         throw std::logic_error("type error");
       return *m_value.s;
     }

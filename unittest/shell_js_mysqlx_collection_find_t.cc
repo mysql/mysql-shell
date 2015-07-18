@@ -114,43 +114,43 @@ namespace shcore {
     {
       SCOPED_TRACE("Testing parameter validation on find");
       exec_and_out_equals("collection.find();");
-      exec_and_out_contains("collection.find(5);", "", "CollectionFind::find: string parameter required.");
+      exec_and_out_contains("collection.find(5);", "", "CollectionFind::find: Argument #1 is expected to be a string");
       exec_and_out_contains("collection.find('test = \"2');", "", "CollectionFind::find: Unterminated quoted string starting at 8");
       exec_and_out_equals("collection.find('test = \"2\"');");
     }
 
     {
       SCOPED_TRACE("Testing parameter validation on fields");
-      exec_and_out_contains("collection.find().fields();", "", "Invalid number of arguments in CollectionFind::fields");
-      exec_and_out_contains("collection.find().fields(5);", "", "CollectionFind::fields: string parameter required.");
+      exec_and_out_contains("collection.find().fields();", "", "Invalid number of arguments in CollectionFind::fields, expected 1 but got 0");
+      exec_and_out_contains("collection.find().fields(5);", "", "CollectionFind::fields: Argument #1 is expected to be a string");
       exec_and_out_contains("collection.find().fields('name as alias');", "", "");
     }
 
     {
       SCOPED_TRACE("Testing parameter validation on groupBy");
-      exec_and_out_contains("collection.find().groupBy();", "", "Invalid number of arguments in CollectionFind::groupBy");
-      exec_and_out_contains("collection.find().groupBy(5);", "", "CollectionFind::groupBy: string parameter required.");
+      exec_and_out_contains("collection.find().groupBy();", "", "Invalid number of arguments in CollectionFind::groupBy, expected 1 but got 0");
+      exec_and_out_contains("collection.find().groupBy(5);", "", "CollectionFind::groupBy: Argument #1 is expected to be a string");
       exec_and_out_contains("collection.find().groupBy('name');", "", "");
     }
 
     {
       SCOPED_TRACE("Testing parameter validation on sort");
-      exec_and_out_contains("collection.find().sort();", "", "Invalid number of arguments in CollectionFind::sort");
-      exec_and_out_contains("collection.find().sort(5);", "", "CollectionFind::sort: string parameter required.");
+      exec_and_out_contains("collection.find().sort();", "", "Invalid number of arguments in CollectionFind::sort, expected 1 but got 0");
+      exec_and_out_contains("collection.find().sort(5);", "", "CollectionFind::sort: Argument #1 is expected to be a string");
       exec_and_out_contains("collection.find().sort('');", "", "CollectionFind::sort: not yet implemented.");
     }
 
     {
       SCOPED_TRACE("Testing parameter validation on limit");
-      exec_and_out_contains("collection.find().limit();", "", "Invalid number of arguments in CollectionFind::limit");
-      exec_and_out_contains("collection.find().limit('');", "", "CollectionFind::limit: integer parameter required.");
+      exec_and_out_contains("collection.find().limit();", "", "Invalid number of arguments in CollectionFind::limit, expected 1 but got 0");
+      exec_and_out_contains("collection.find().limit('');", "", "CollectionFind::limit: Argument #1 is expected to be an unsigned int");
       exec_and_out_equals("collection.find().limit(5);");
     }
 
     {
       SCOPED_TRACE("Testing parameter validation on skip");
-      exec_and_out_contains("collection.find().limit(1).skip();", "", "Invalid number of arguments in CollectionFind::skip");
-      exec_and_out_contains("collection.find().limit(1).skip('');", "", "CollectionFind::skip: integer parameter required.");
+      exec_and_out_contains("collection.find().limit(1).skip();", "", "Invalid number of arguments in CollectionFind::skip, expected 1 but got 0");
+      exec_and_out_contains("collection.find().limit(1).skip('');", "", "CollectionFind::skip: Argument #1 is expected to be an unsigned int");
       exec_and_out_equals("collection.find().limit(1).skip(5);");
     }
 

@@ -21,7 +21,7 @@
 #include "mod_mysqlx_table.h"
 #include "shellcore/common.h"
 #include "mod_mysqlx_resultset.h"
-#include <sstream>
+#include <boost/format.hpp>
 
 using namespace mysh::mysqlx;
 using namespace shcore;
@@ -55,68 +55,86 @@ TableInsert::TableInsert(boost::shared_ptr<Table> owner)
 
 shcore::Value TableInsert::insert(const shcore::Argument_list &args)
 {
-  // Each method validates the received parameters
-  args.ensure_count(0, 1, "TableInsert::insert");
-
   boost::shared_ptr<Table> table(boost::static_pointer_cast<Table>(_owner.lock()));
 
   std::string path;
 
   if (table)
   {
-    _insert_statement.reset(new ::mysqlx::InsertStatement(table->_table_impl->insert()));
-
-    if (args.size())
+    try
     {
-      shcore::Value::Map_type_ref sh_columns_and_values;
+      _insert_statement.reset(new ::mysqlx::InsertStatement(table->_table_impl->insert()));
 
-      std::vector < std::string > columns;
-
-      switch (args[0].type)
+      if (args.size())
       {
-        case Array:
+        shcore::Value::Map_type_ref sh_columns_and_values;
+
+        std::vector < std::string > columns;
+
+        // An array with the fields was received as parameter
+        if (args.size() == 1 && args[0].type == Array)
         {
-                    path = "Fields";
-                    shcore::Value::Array_type_ref sh_columns;
-                    sh_columns = args[0].as_array();
+          path = "Fields";
+          shcore::Value::Array_type_ref sh_columns;
+          sh_columns = args[0].as_array();
 
-                    for (size_t index = 0; index < sh_columns->size(); index++)
-                    {
-                      if ((*sh_columns)[index].type == shcore::String)
-                        columns.push_back((*sh_columns)[index].as_string());
-                      else
-                      {
-                        std::stringstream str;
-                        str << "Invalid column name at position " << (index + 1) << ".";
-                        throw shcore::Exception::argument_error(str.str());
-                      }
-                    }
+          for (size_t index = 0; index < sh_columns->size(); index++)
+          {
+            if ((*sh_columns)[index].type == shcore::String)
+              columns.push_back((*sh_columns)[index].as_string());
+            else
+              throw shcore::Exception::argument_error((boost::format("Element #%1% is expected to be a string") % (index + 1)).str());
+          }
 
-                    _insert_statement->insert(columns);
+          _insert_statement->insert(columns);
         }
-          break;
-        case Map:
+
+        // A map with fields and values was received as parameter
+        else if (args.size() == 1 && args[0].type == Map)
         {
-                  std::vector < ::mysqlx::TableValue > values;
-                  path = "FieldsAndValues";
-                  sh_columns_and_values = args[0].as_map();
-                  shcore::Value::Map_type::iterator index = sh_columns_and_values->begin(),
-                                                    end = sh_columns_and_values->end();
+          std::vector < ::mysqlx::TableValue > values;
+          path = "FieldsAndValues";
+          sh_columns_and_values = args[0].as_map();
+          shcore::Value::Map_type::iterator index = sh_columns_and_values->begin(),
+                                            end = sh_columns_and_values->end();
 
-                  for (index; index != end; index++)
-                  {
-                    columns.push_back(index->first);
-                    values.push_back(map_table_value(index->second));
-                  }
+          for (index; index != end; index++)
+          {
+            columns.push_back(index->first);
+            values.push_back(map_table_value(index->second));
+          }
 
-                  _insert_statement->insert(columns);
-                  _insert_statement->values(values);
+          _insert_statement->insert(columns);
+          _insert_statement->values(values);
         }
-          break;
-        default:
-          throw shcore::Exception::argument_error("Invalid data received on TableInsert::insert");
+
+        // Each parameter is a field
+        else
+        {
+          for (unsigned int index = 0; index < args.size(); index++)
+          {
+            if (args[index].type == shcore::String)
+              columns.push_back(args.string_at(index));
+            else
+            {
+              std::string error;
+
+              if (args.size() == 1)
+                error = (boost::format("Argument #%1% is expected to be either string, a list of strings or a map with fields and values") % (index + 1)).str();
+              else
+                error = (boost::format("Argument #%1% is expected to be a string") % (index + 1)).str();
+
+              throw shcore::Exception::type_error(error);
+            }
+          }
+
+          _insert_statement->insert(columns);
+
+          path = "Fields";
+        }
       }
     }
+    CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableInsert::insert");
   }
 
   // Updates the exposed functions
@@ -128,25 +146,21 @@ shcore::Value TableInsert::insert(const shcore::Argument_list &args)
 shcore::Value TableInsert::values(const shcore::Argument_list &args)
 {
   // Each method validates the received parameters
-  args.ensure_count(1, "TableInsert::values");
+  args.ensure_at_least(1, "TableInsert::values");
 
-  if (args[0].type == Array)
+  try
   {
     std::vector < ::mysqlx::TableValue > values;
-    Value::Array_type_ref sh_data = args[0].as_array();
-    Value::Array_type::iterator index = sh_data->begin(),
-                                end = sh_data->end();
 
-    for (index; index != end; index++)
-      values.push_back(map_table_value(*index));
+    for (size_t index = 0; index < args.size(); index++)
+      values.push_back(map_table_value(args[index]));
 
     _insert_statement->values(values);
-  }
-  else
-    throw Exception::argument_error("Invalid parameter received, expected data array.");
 
-  // Updates the exposed functions
-  update_functions("values");
+    // Updates the exposed functions
+    update_functions("values");
+  }
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableInsert::values");
 
   // Returns the same object
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));

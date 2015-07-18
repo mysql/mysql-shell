@@ -124,21 +124,22 @@ namespace shcore {
 
     {
       SCOPED_TRACE("Testing parameter validation on where");
-      exec_and_out_contains("table.delete().where(5);", "", " TableDelete::where: string parameter required.");
+      exec_and_out_contains("table.delete().where();", "", "Invalid number of arguments in TableDelete::where, expected 1 but got 0");
+      exec_and_out_contains("table.delete().where(5);", "", "TableDelete::where: Argument #1 is expected to be a string");
       exec_and_out_contains("table.delete().where('test = \"2');", "", "TableDelete::where: Unterminated quoted string starting at 8");
       exec_and_out_equals("table.delete().where('test = \"2\"');");
     }
 
     {
       SCOPED_TRACE("Testing parameter validation on orderBy");
-      exec_and_out_contains("table.delete().orderBy();", "", "Invalid number of arguments in TableDelete::orderBy");
-      exec_and_out_contains("table.delete().orderBy(5);", "", "TableDelete::orderBy: string parameter required.");
+      exec_and_out_contains("table.delete().orderBy();", "", "Invalid number of arguments in TableDelete::orderBy, expected 1 but got 0");
+      exec_and_out_contains("table.delete().orderBy(5);", "", "TableDelete::orderBy: Argument #1 is expected to be a string");
     }
 
     {
       SCOPED_TRACE("Testing parameter validation on limit");
-      exec_and_out_contains("table.delete().limit();", "", "Invalid number of arguments in TableDelete::limit");
-      exec_and_out_contains("table.delete().limit('');", "", "TableDelete::limit: integer parameter required.");
+      exec_and_out_contains("table.delete().limit();", "", "Invalid number of arguments in TableDelete::limit, expected 1 but got 0");
+      exec_and_out_contains("table.delete().limit('');", "", "TableDelete::limit: Argument #1 is expected to be an unsigned int");
       exec_and_out_equals("table.delete().limit(5);");
     }
 

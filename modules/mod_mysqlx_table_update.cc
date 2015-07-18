@@ -67,7 +67,7 @@ shcore::Value TableUpdate::update(const shcore::Argument_list &args)
       // Updates the exposed functions
       update_functions("update");
     }
-    CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableUpdate::update", "string");
+    CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableUpdate::update");
   }
 
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
@@ -76,43 +76,38 @@ shcore::Value TableUpdate::update(const shcore::Argument_list &args)
 shcore::Value TableUpdate::set(const shcore::Argument_list &args)
 {
   // Each method validates the received parameters
-  args.ensure_count(1, "TableUpdate::where");
+  args.ensure_count(1, "TableUpdate::set");
 
-  boost::shared_ptr<Table> table(boost::static_pointer_cast<Table>(_owner.lock()));
-
-  if (args[0].type != shcore::Map)
-    throw shcore::Exception::argument_error("TableUpdate::set: expected dictionary with fields and values to update.");
-
-  shcore::Value::Map_type_ref values = args[0].as_map();
-  shcore::Value::Map_type::iterator index, end = values->end();
-
-  // Iterates over the values to be updated
-  for (index = values->begin(); index != end; index++)
+  try
   {
-    std::string field = index->first;
-    shcore::Value value = index->second;
+    shcore::Value::Map_type_ref values = args.map_at(0);
+    shcore::Value::Map_type::iterator index, end = values->end();
 
-    // Only expression objects are allowed as values
-    std::string expr_data;
-    if (value.type == shcore::Object)
+    // Iterates over the values to be updated
+    for (index = values->begin(); index != end; index++)
     {
-      shcore::Object_bridge_ref object = value.as_object();
+      std::string field = index->first;
+      shcore::Value value = index->second;
 
-      boost::shared_ptr<Expression> expression = boost::dynamic_pointer_cast<Expression>(object);
-
-      if (expression)
-        expr_data = expression->get_data();
-      else
+      // Only expression objects are allowed as values
+      std::string expr_data;
+      if (value.type == shcore::Object)
       {
-        std::stringstream str;
-        str << "TableUpdate::set: Unsupported value received for table update operation on field \"" << field << "\", received: " << value.descr();
-        throw shcore::Exception::argument_error(str.str());
-      }
-    }
+        shcore::Object_bridge_ref object = value.as_object();
 
-    // Calls set for each of the values
-    try
-    {
+        boost::shared_ptr<Expression> expression = boost::dynamic_pointer_cast<Expression>(object);
+
+        if (expression)
+          expr_data = expression->get_data();
+        else
+        {
+          std::stringstream str;
+          str << "TableUpdate::set: Unsupported value received for table update operation on field \"" << field << "\", received: " << value.descr();
+          throw shcore::Exception::argument_error(str.str());
+        }
+      }
+
+      // Calls set for each of the values
       if (!expr_data.empty())
         _update_statement->set(field, expr_data);
       else
@@ -120,8 +115,8 @@ shcore::Value TableUpdate::set(const shcore::Argument_list &args)
 
       update_functions("set");
     }
-    CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableUpdate::where", "string");
   }
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableUpdate::set");
 
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
@@ -131,19 +126,14 @@ shcore::Value TableUpdate::where(const shcore::Argument_list &args)
   // Each method validates the received parameters
   args.ensure_count(1, "TableUpdate::where");
 
-  boost::shared_ptr<Table> table(boost::static_pointer_cast<Table>(_owner.lock()));
-
-  if (table)
+  try
   {
-    try
-    {
-      _update_statement->where(args[0].as_string());
+    _update_statement->where(args.string_at(0));
 
-      // Updates the exposed functions
-      update_functions("where");
-    }
-    CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableUpdate::where", "string");
+    // Updates the exposed functions
+    update_functions("where");
   }
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableUpdate::where");
 
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
@@ -154,11 +144,11 @@ shcore::Value TableUpdate::order_by(const shcore::Argument_list &args)
 
   try
   {
-    _update_statement->orderBy(args[0].as_string());
+    _update_statement->orderBy(args.string_at(0));
 
     update_functions("orderBy");
   }
-  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableUpdate::orderBy", "string");
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableUpdate::orderBy");
 
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
@@ -169,11 +159,11 @@ shcore::Value TableUpdate::limit(const shcore::Argument_list &args)
 
   try
   {
-    _update_statement->limit(args[0].as_uint());
+    _update_statement->limit(args.uint_at(0));
 
     update_functions("limit");
   }
-  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableUpdate::limit", "integer");
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableUpdate::limit");
 
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }

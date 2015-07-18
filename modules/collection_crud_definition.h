@@ -20,33 +20,38 @@
 // MySQL DB access module, for use by plugins and others
 // For the module that implements interactive DB functionality see mod_db
 
-#ifndef _MOD_CRUD_COLLECTION_REMOVE_H_
-#define _MOD_CRUD_COLLECTION_REMOVE_H_
+#ifndef _MOD_COLLECTION_CRUD_DEFINITION_H_
+#define _MOD_COLLECTION_CRUD_DEFINITION_H_
 
-#include "collection_crud_definition.h"
+#include "shellcore/types_cpp.h"
+#include "shellcore/common.h"
+#include "crud_definition.h"
+#include "mysqlx_crud.h"
+
+#include <boost/weak_ptr.hpp>
+#include <boost/enable_shared_from_this.hpp>
+
+#include <set>
+
+#ifdef __GNUC__
+#define ATTR_UNUSED __attribute__((unused))
+#else
+#define ATTR_UNUSED
+#endif
 
 namespace mysh
 {
   namespace mysqlx
   {
-    class Collection;
-    class CollectionRemove : public Collection_crud_definition, public boost::enable_shared_from_this<CollectionRemove>
+    class Collection_crud_definition : public Crud_definition
     {
     public:
-      CollectionRemove(boost::shared_ptr<Collection> owner);
-    public:
-      virtual std::string class_name() const { return "CollectionRemove"; }
-      static boost::shared_ptr<shcore::Object_bridge> create(const shcore::Argument_list &args);
-      shcore::Value remove(const shcore::Argument_list &args);
-      shcore::Value sort(const shcore::Argument_list &args);
-      shcore::Value limit(const shcore::Argument_list &args);
-      shcore::Value bind(const shcore::Argument_list &args);
+      Collection_crud_definition(boost::shared_ptr<DatabaseObject> owner) :Crud_definition(owner){}
 
-      virtual shcore::Value execute(const shcore::Argument_list &args);
-    private:
-      std::auto_ptr< ::mysqlx::RemoveStatement> _remove_statement;
+    protected:
+      ::mysqlx::DocumentValue map_document_value(shcore::Value source);
     };
-  };
-};
+  }
+}
 
 #endif

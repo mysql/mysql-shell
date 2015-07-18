@@ -44,7 +44,7 @@ namespace shcore {
       _shell_core->switch_mode(Shell_core::Mode_JScript, initilaized);
 
       // Sets the correct functions to be validated
-      set_functions("select, where, groupBy, having, sort, offset, limit, bind, execute");
+      set_functions("select, where, groupBy, having, orderBy, offset, limit, bind, execute");
     }
   };
 
@@ -82,14 +82,14 @@ namespace shcore {
     //       once they are enabled
     {
       SCOPED_TRACE("Testing function availability after select.");
-      ensure_available_functions("where, groupBy, sort, limit, bind, execute");
+      ensure_available_functions("where, groupBy, orderBy, limit, bind, execute");
     }
 
     // Now executes where
     {
       SCOPED_TRACE("Testing function availability after where.");
       exec_and_out_equals("crud.where('age > 13')");
-      ensure_available_functions("groupBy, sort, limit, bind, execute");
+      ensure_available_functions("groupBy, orderBy, limit, bind, execute");
     }
 
     // Now executes limit
@@ -121,43 +121,43 @@ namespace shcore {
     {
       SCOPED_TRACE("Testing parameter validation on select");
       exec_and_out_equals("table.select();");
-      exec_and_out_contains("table.select(5);", "", "TableSelect::select: string parameter required.");
+      exec_and_out_contains("table.select(5);", "", "TableSelect::select: Argument #1 is expected to be a string");
       exec_and_out_contains("table.select('name');");
     }
 
     {
       SCOPED_TRACE("Testing parameter validation on fields");
-      exec_and_out_contains("table.select().where();", "", "Invalid number of arguments in TableSelect::where");
-      exec_and_out_contains("table.select().where(5);", "", "TableSelect::where: string parameter required.");
+      exec_and_out_contains("table.select().where();", "", "Invalid number of arguments in TableSelect::where, expected 1 but got 0");
+      exec_and_out_contains("table.select().where(5);", "", "TableSelect::where: Argument #1 is expected to be a string");
       exec_and_out_contains("table.select().where('name = \"whatever');", "", "");
       exec_and_out_contains("table.select().where('name = \"whatever\"');", "", "");
     }
 
     {
       SCOPED_TRACE("Testing parameter validation on groupBy");
-      exec_and_out_contains("table.select().groupBy();", "", "Invalid number of arguments in TableSelect::groupBy");
-      exec_and_out_contains("table.select().groupBy(5);", "", "TableSelect::groupBy: string parameter required.");
+      exec_and_out_contains("table.select().groupBy();", "", "Invalid number of arguments in TableSelect::groupBy, expected 1 but got 0");
+      exec_and_out_contains("table.select().groupBy(5);", "", "TableSelect::groupBy: Argument #1 is expected to be a string");
       exec_and_out_contains("table.select().groupBy('name');", "", "");
     }
 
     {
-      SCOPED_TRACE("Testing parameter validation on sort");
-      exec_and_out_contains("table.select().sort();", "", "Invalid number of arguments in TableSelect::sort");
-      exec_and_out_contains("table.select().sort(5);", "", "TableSelect::sort: string parameter required.");
-      exec_and_out_contains("table.select().sort('');", "", "TableSelect::sort: not yet implemented.");
+      SCOPED_TRACE("Testing parameter validation on orderBy");
+      exec_and_out_contains("table.select().orderBy();", "", "Invalid number of arguments in TableSelect::orderBy, expected 1 but got 0");
+      exec_and_out_contains("table.select().orderBy(5);", "", "TableSelect::orderBy: Argument #1 is expected to be a string");
+      exec_and_out_contains("table.select().orderBy('');", "", "TableSelect::orderBy: not yet implemented.");
     }
 
     {
       SCOPED_TRACE("Testing parameter validation on limit");
-      exec_and_out_contains("table.select().limit();", "", "Invalid number of arguments in TableSelect::limit");
-      exec_and_out_contains("table.select().limit('');", "", "TableSelect::limit: integer parameter required.");
+      exec_and_out_contains("table.select().limit();", "", "Invalid number of arguments in TableSelect::limit, expected 1 but got 0");
+      exec_and_out_contains("table.select().limit('');", "", "TableSelect::limit: Argument #1 is expected to be an unsigned int");
       exec_and_out_equals("table.select().limit(5);");
     }
 
     {
       SCOPED_TRACE("Testing parameter validation on offset");
-      exec_and_out_contains("table.select().limit(1).offset();", "", "Invalid number of arguments in TableSelect::offset");
-      exec_and_out_contains("table.select().limit(1).offset('');", "", "TableSelect::offset: integer parameter required.");
+      exec_and_out_contains("table.select().limit(1).offset();", "", "Invalid number of arguments in TableSelect::offset, expected 1 but got 0");
+      exec_and_out_contains("table.select().limit(1).offset('');", "", "TableSelect::offset: Argument #1 is expected to be an unsigned int");
       exec_and_out_equals("table.select().limit(1).offset(5);");
     }
 

@@ -23,15 +23,14 @@
 #ifndef _MOD_CRUD_COLLECTION_ADD_H_
 #define _MOD_CRUD_COLLECTION_ADD_H_
 
-#include "crud_definition.h"
-#include "mysqlx_crud.h"
+#include "collection_crud_definition.h"
 
 namespace mysh
 {
   namespace mysqlx
   {
     class Collection;
-    class CollectionAdd : public Crud_definition, public boost::enable_shared_from_this<CollectionAdd>
+    class CollectionAdd : public Collection_crud_definition, public boost::enable_shared_from_this<CollectionAdd>
     {
     public:
       CollectionAdd(boost::shared_ptr<Collection> owner);
