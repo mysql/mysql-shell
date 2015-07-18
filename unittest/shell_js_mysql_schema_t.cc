@@ -40,14 +40,13 @@ namespace shcore {
 
       exec_and_out_equals("var mysql = require('mysql').mysql;");
 
-      exec_and_out_equals("var session = mysql.openSession('" + _mysql_uri + "');");
+      exec_and_out_equals("var session = mysql.getSession('" + _mysql_uri + "');");
 
       exec_and_out_equals("session.executeSql('drop schema if exists js_shell_test;')");
       exec_and_out_equals("session.executeSql('create schema js_shell_test;')");
       exec_and_out_equals("session.executeSql('use js_shell_test;')");
       exec_and_out_equals("var result = session.executeSql('create table table1 (name varchar(50));')");
       exec_and_out_equals("session.executeSql('create view view1 (my_name) as select name from table1;')");
-
     }
   };
 
@@ -155,7 +154,7 @@ namespace shcore {
   TEST_F(Shell_js_mysql_schema_tests, mysql_schema_object)
   {
     exec_and_out_equals("print(session.js_shell_test.table1)", "<Table:table1>");
-    
+
     exec_and_out_equals("print(session.js_shell_test.view1)", "<View:view1>");
   }
 }

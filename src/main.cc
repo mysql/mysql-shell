@@ -28,9 +28,8 @@
 #endif
 
 #ifdef HAVE_PYTHON
-  extern "C" void Python_context_init();
+extern "C" void Python_context_init();
 #endif
-
 
 #include <boost/bind.hpp>
 #include <boost/format.hpp>
@@ -243,7 +242,7 @@ bool Interactive_shell::connect(const std::string &uri, bool needs_password, boo
       if (interactive)
         shcore::print("Closing old connection...\n");
 
-      _session->disconnect();
+      _session->close(shcore::Argument_list());
     }
 
     // strip password from uri

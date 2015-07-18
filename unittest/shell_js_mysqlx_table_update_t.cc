@@ -52,12 +52,14 @@ namespace shcore {
   {
     exec_and_out_equals("var mysqlx = require('mysqlx').mysqlx;");
 
-    exec_and_out_equals("var session = mysqlx.openNodeSession('" + _uri + "');");
+    exec_and_out_equals("var session = mysqlx.getNodeSession('" + _uri + "');");
 
     exec_and_out_equals("session.executeSql('drop schema if exists js_shell_test;')");
     exec_and_out_equals("session.executeSql('create schema js_shell_test;')");
     exec_and_out_equals("session.executeSql('use js_shell_test;')");
     exec_and_out_equals("session.executeSql('create table table1 (name varchar(50), age integer, gender varchar(20));')");
+
+    exec_and_out_equals("session.close();");
   }
 
   TEST_F(Shell_js_mysqlx_table_update_tests, chain_combinations)
@@ -67,7 +69,7 @@ namespace shcore {
 
     exec_and_out_equals("var mysqlx = require('mysqlx').mysqlx;");
 
-    exec_and_out_equals("var session = mysqlx.openSession('" + _uri + "');");
+    exec_and_out_equals("var session = mysqlx.getSession('" + _uri + "');");
 
     exec_and_out_equals("var table = session.js_shell_test.getTable('table1');");
 
@@ -113,12 +115,14 @@ namespace shcore {
       exec_and_out_equals("crud.limit(1)");
       ensure_available_functions("bind, execute");
     }
+
+    exec_and_out_equals("session.close();");
   }
 
   TEST_F(Shell_js_mysqlx_table_update_tests, update_validations)
   {
     exec_and_out_equals("var mysqlx = require('mysqlx').mysqlx;");
-    exec_and_out_equals("var session = mysqlx.openNodeSession('" + _uri + "');");
+    exec_and_out_equals("var session = mysqlx.getNodeSession('" + _uri + "');");
     exec_and_out_equals("var schema = session.getSchema('js_shell_test');");
     exec_and_out_equals("var table = schema.getTable('table1');");
 
@@ -158,12 +162,14 @@ namespace shcore {
     }
 
     exec_and_out_contains("table.update().set({age: 17}).bind();", "", "TableUpdate::bind: not yet implemented.");
+
+    exec_and_out_equals("session.close();");
   }
 
   TEST_F(Shell_js_mysqlx_table_update_tests, update_execution)
   {
     exec_and_out_equals("var mysqlx = require('mysqlx').mysqlx;");
-    exec_and_out_equals("var session = mysqlx.openNodeSession('" + _uri + "');");
+    exec_and_out_equals("var session = mysqlx.getNodeSession('" + _uri + "');");
     exec_and_out_equals("var schema = session.getSchema('js_shell_test');");
     exec_and_out_equals("var table = schema.getTable('table1');");
 
@@ -213,5 +219,7 @@ namespace shcore {
       exec_and_out_equals("var records = table.select().where('gender = \"female\"').execute().all();");
       exec_and_out_equals("print(records.length);", "7");
     }
+
+    exec_and_out_equals("session.close();");
   }
 }

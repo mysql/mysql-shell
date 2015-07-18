@@ -33,9 +33,9 @@
 #include <boost/enable_shared_from_this.hpp>
 
 #ifdef __GNUC__
-  #define ATTR_UNUSED __attribute__((unused))
+#define ATTR_UNUSED __attribute__((unused))
 #else
-  #define ATTR_UNUSED
+#define ATTR_UNUSED
 #endif
 
 namespace shcore
@@ -86,7 +86,7 @@ namespace mysh
       virtual shcore::Value get_member(const std::string &prop) const;
 
       virtual shcore::Value connect(const shcore::Argument_list &args);
-      virtual void disconnect() { _session.reset(); }
+      virtual shcore::Value close(const shcore::Argument_list &args);
       virtual shcore::Value executeSql(const shcore::Argument_list &args);
       virtual bool is_connected() const { return _session ? true : false; }
       virtual std::string uri() const { return _uri; };

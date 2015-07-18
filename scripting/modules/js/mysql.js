@@ -20,7 +20,7 @@
 exports.mysql = {}
 
 // Connection functions
-exports.mysql.openSession = function(connection_data, password)
+exports.mysql.getSession = function(connection_data, password)
 {
   var session;
 

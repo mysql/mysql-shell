@@ -52,12 +52,14 @@ namespace shcore {
   {
     exec_and_out_equals("var mysqlx = require('mysqlx').mysqlx;");
 
-    exec_and_out_equals("var session = mysqlx.openNodeSession('" + _uri + "');");
+    exec_and_out_equals("var session = mysqlx.getNodeSession('" + _uri + "');");
 
     exec_and_out_equals("session.executeSql('drop schema if exists js_shell_test;')");
     exec_and_out_equals("session.executeSql('create schema js_shell_test;')");
     exec_and_out_equals("session.executeSql('use js_shell_test;')");
     exec_and_out_equals("session.executeSql(\"create table `collection1`(`doc` JSON, `_id` VARBINARY(16) GENERATED ALWAYS AS(unhex(json_unquote(json_extract(doc, '$._id')))) stored PRIMARY KEY)\")");
+
+    exec_and_out_equals("session.close();");
   }
 
   TEST_F(Shell_js_mysqlx_collection_remove_tests, chain_combinations)
@@ -67,7 +69,7 @@ namespace shcore {
 
     exec_and_out_equals("var mysqlx = require('mysqlx').mysqlx;");
 
-    exec_and_out_equals("var session = mysqlx.openSession('" + _uri + "');");
+    exec_and_out_equals("var session = mysqlx.getSession('" + _uri + "');");
 
     exec_and_out_equals("var collection = session.js_shell_test.getCollection('collection1');");
 
@@ -92,12 +94,14 @@ namespace shcore {
       exec_and_out_equals("crud.limit(1)");
       ensure_available_functions("bind, execute");
     }
+
+    exec_and_out_equals("session.close();");
   }
 
   TEST_F(Shell_js_mysqlx_collection_remove_tests, remove_validations)
   {
     exec_and_out_equals("var mysqlx = require('mysqlx').mysqlx;");
-    exec_and_out_equals("var session = mysqlx.openNodeSession('" + _uri + "');");
+    exec_and_out_equals("var session = mysqlx.getNodeSession('" + _uri + "');");
     exec_and_out_equals("var schema = session.getSchema('js_shell_test');");
     exec_and_out_equals("var collection = schema.getCollection('collection1');");
 
@@ -124,12 +128,14 @@ namespace shcore {
     }
 
     exec_and_out_contains("collection.remove().bind();", "", "CollectionRemove::bind: not yet implemented.");
+
+    exec_and_out_equals("session.close();");
   }
 
   TEST_F(Shell_js_mysqlx_collection_remove_tests, remove_execution)
   {
     exec_and_out_equals("var mysqlx = require('mysqlx').mysqlx;");
-    exec_and_out_equals("var session = mysqlx.openNodeSession('" + _uri + "');");
+    exec_and_out_equals("var session = mysqlx.getNodeSession('" + _uri + "');");
     exec_and_out_equals("var schema = session.getSchema('js_shell_test');");
     exec_and_out_equals("var collection = schema.getCollection('collection1');");
 

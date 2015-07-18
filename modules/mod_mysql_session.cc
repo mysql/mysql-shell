@@ -57,6 +57,7 @@ Session::Session()
 {
   //_schema_proxy.reset(new Proxy_object(boost::bind(&Session::get_db, this, _1)));
 
+  add_method("close", boost::bind(&Session::close, this, _1), "data");
   add_method("executeSql", boost::bind(&Session::executeSql, this, _1),
     "stmt", shcore::String,
     NULL);
@@ -137,6 +138,15 @@ Value Session::connect(const Argument_list &args)
   _load_default_schema();
 
   return Value::Null();
+}
+
+Value Session::close(const Argument_list &args)
+{
+  args.ensure_count(0, "Session::close");
+
+  _conn.reset();
+
+  return shcore::Value();
 }
 
 Value Session::executeSql(const Argument_list &args)

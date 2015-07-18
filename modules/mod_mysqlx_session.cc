@@ -49,6 +49,8 @@ ApiBaseSession::ApiBaseSession()
 : _show_warnings(false)
 {
   _schemas.reset(new shcore::Value::Map_type);
+
+  add_method("close", boost::bind(&ApiBaseSession::close, this, _1), "data");
 }
 
 Value ApiBaseSession::connect(const Argument_list &args)
@@ -114,6 +116,17 @@ Value ApiBaseSession::connect(const Argument_list &args)
   _load_default_schema();
 
   return Value::Null();
+}
+
+Value ApiBaseSession::close(const Argument_list &args)
+{
+  std::string function_name = class_name() + ".close";
+
+  args.ensure_count(0, function_name.c_str());
+
+  _session.reset();
+
+  return shcore::Value();
 }
 
 Value ApiBaseSession::executeSql(const Argument_list &args)

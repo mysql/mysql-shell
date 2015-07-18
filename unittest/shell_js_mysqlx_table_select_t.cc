@@ -52,7 +52,7 @@ namespace shcore {
   {
     exec_and_out_equals("var mysqlx = require('mysqlx').mysqlx;");
 
-    exec_and_out_equals("var session = mysqlx.openNodeSession('" + _uri + "');");
+    exec_and_out_equals("var session = mysqlx.getNodeSession('" + _uri + "');");
 
     exec_and_out_equals("session.executeSql('drop schema if exists js_shell_test;')");
     exec_and_out_equals("session.executeSql('create schema js_shell_test;')");
@@ -66,7 +66,7 @@ namespace shcore {
     //       different combinations of chained methods.
     exec_and_out_equals("var mysqlx = require('mysqlx').mysqlx;");
 
-    exec_and_out_equals("var session = mysqlx.openSession('" + _uri + "');");
+    exec_and_out_equals("var session = mysqlx.getSession('" + _uri + "');");
 
     exec_and_out_equals("var table = session.js_shell_test.getTable('table1');");
 
@@ -105,13 +105,15 @@ namespace shcore {
       exec_and_out_equals("crud.offset(1)");
       ensure_available_functions("bind execute");
     }
+
+    exec_and_out_equals("session.close();");
   }
 
   TEST_F(Shell_js_mysqlx_table_select_tests, select_validations)
   {
     exec_and_out_equals("var mysqlx = require('mysqlx').mysqlx;");
 
-    exec_and_out_equals("var session = mysqlx.openNodeSession('" + _uri + "');");
+    exec_and_out_equals("var session = mysqlx.getNodeSession('" + _uri + "');");
 
     exec_and_out_equals("var schema = session.getSchema('js_shell_test');");
 
@@ -167,7 +169,7 @@ namespace shcore {
   TEST_F(Shell_js_mysqlx_table_select_tests, select_execution)
   {
     exec_and_out_equals("var mysqlx = require('mysqlx').mysqlx;");
-    exec_and_out_equals("var session = mysqlx.openNodeSession('" + _uri + "');");
+    exec_and_out_equals("var session = mysqlx.getNodeSession('" + _uri + "');");
     exec_and_out_equals("var schema = session.getSchema('js_shell_test');");
     exec_and_out_equals("var table = schema.getTable('table1');");
 

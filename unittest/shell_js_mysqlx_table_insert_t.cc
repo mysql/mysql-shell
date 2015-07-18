@@ -49,7 +49,7 @@ namespace shcore {
   {
     exec_and_out_equals("var mysqlx = require('mysqlx').mysqlx;");
 
-    exec_and_out_equals("var session = mysqlx.openNodeSession('" + _uri + "');");
+    exec_and_out_equals("var session = mysqlx.getNodeSession('" + _uri + "');");
 
     exec_and_out_equals("session.executeSql('drop schema if exists js_shell_test;')");
     exec_and_out_equals("session.executeSql('create schema js_shell_test;')");
@@ -62,7 +62,7 @@ namespace shcore {
     // NOTE: No data validation is done on this test, only tests
     //       different combinations of chained methods.
     exec_and_out_equals("var mysqlx = require('mysqlx').mysqlx;");
-    exec_and_out_equals("var session = mysqlx.openSession('" + _uri + "');");
+    exec_and_out_equals("var session = mysqlx.getSession('" + _uri + "');");
     exec_and_out_equals("var table = session.js_shell_test.getTable('table1');");
 
     //-------- ---------------------Test 1-------------------------
@@ -106,12 +106,14 @@ namespace shcore {
     // Now executes bind and the only available method will be execute
     exec_and_out_equals("crud.bind([])");
     ensure_available_functions("execute");
+
+    exec_and_out_equals("session.close();");
   }
 
   TEST_F(Shell_js_crud_table_insert_tests, insert_validations)
   {
     exec_and_out_equals("var mysqlx = require('mysqlx').mysqlx;");
-    exec_and_out_equals("var session = mysqlx.openSession('" + _uri + "');");
+    exec_and_out_equals("var session = mysqlx.getSession('" + _uri + "');");
     exec_and_out_equals("var table = session.js_shell_test.getTable('table1');");
 
     // Tests insert with invalid parameter
@@ -130,12 +132,14 @@ namespace shcore {
 
     // Test add attempt with invalid column name
     exec_and_out_contains("table.insert(['id', 'name', 'gender']).values(15, 'walter', 'male').execute();", "", "Unknown column 'id' in 'field list'");
+
+    exec_and_out_equals("session.close();");
   }
 
   TEST_F(Shell_js_crud_table_insert_tests, insert_execution)
   {
     exec_and_out_equals("var mysqlx = require('mysqlx').mysqlx;");
-    exec_and_out_equals("var session = mysqlx.openSession('" + _uri + "');");
+    exec_and_out_equals("var session = mysqlx.getSession('" + _uri + "');");
     exec_and_out_equals("var table = session.js_shell_test.getTable('table1');");
 
     // Insert without columns
@@ -167,5 +171,7 @@ namespace shcore {
       exec_and_out_equals("var result = table.insert({age:14, name:'jackie', gender: 'female'}).execute();");
       exec_and_out_equals("print (result.affectedRows)", "1");
     }
+
+    exec_and_out_equals("session.close();");
   }
 }
