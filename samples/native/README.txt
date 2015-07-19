@@ -49,7 +49,6 @@ msbuild install.vcxproj
 cd <native-dir>
 mkdir MY_BUILD
 cd MY_BUILD
-cmake -DHEADERS_DIR=C:\src\mysql-server\ngshell-install-script-MD-2\install_image2\include -DLIBS_DIR=C:\src\mysql-server\ngshell-install-script-MD-2\install_image2\lib -DMYSQL_CLIENT_LIB="C:\MySQL\mysql-5.6.22-win32-MD-debug\lib\mysqlclient.lib" -DBOOST_INCLUDE_DIR=C:\src\mysql-server\boost\boost_1_57_0 ..
 cmake -DDEPLOY_DIR=C:\src\mysql-server\ngshell-install-script-MD-2\install_image2 -DMYSQL_CLIENT_LIB="C:\MySQL\mysql-5.6.22-win32-MD-debug\lib\mysqlclient.lib" -DBOOST_INCLUDE_DIR=C:\src\mysql-server\boost\boost_1_57_0 ..
 msbuild sample_client.sln /p:Configuration=Debug
 
@@ -102,14 +101,14 @@ As sample session would be
 sql> use sakila;
 sql> select * from actor limit 5;
 \quit
-js> session.sql("show databases").all();
-js> session.sql("show tables from sakila").all();
+js> session.executeSql("show databases").all();
+js> session.executeSql("show tables from sakila").all();
 js> var s=input("Give me your money: ");
 Give me your money:
 50 USD
 js> print(s);
 50 USD
-js> var data=session.sql("select * from sakila.actor limit 3");
+js> var data=session.executeSql("select * from sakila.actor limit 3");
 js> var rec;
 js> while(rec=data.next()) { print(rec) }
 {

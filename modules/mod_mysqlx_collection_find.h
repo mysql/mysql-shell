@@ -23,15 +23,14 @@
 #ifndef _MOD_CRUD_COLLECTION_FIND_H_
 #define _MOD_CRUD_COLLECTION_FIND_H_
 
-#include "crud_definition.h"
-#include "mysqlx_crud.h"
+#include "collection_crud_definition.h"
 
 namespace mysh
 {
   namespace mysqlx
   {
     class Collection;
-    class CollectionFind : public Crud_definition, public boost::enable_shared_from_this<CollectionFind>
+    class CollectionFind : public Collection_crud_definition, public boost::enable_shared_from_this<CollectionFind>
     {
     public:
       CollectionFind(boost::shared_ptr<Collection> owner);

@@ -29,8 +29,9 @@
 #include "mysqlx_crud.h"
 
 #include "mod_mysqlx_collection_add.h"
-#include "mod_mysqlx_collection_find.h"
 #include "mod_mysqlx_collection_remove.h"
+#include "mod_mysqlx_collection_find.h"
+#include "mod_mysqlx_collection_modify.h"
 
 namespace mysh
 {
@@ -62,6 +63,7 @@ namespace mysh
       friend shcore::Value CollectionAdd::add(const shcore::Argument_list &args);
       friend shcore::Value CollectionFind::find(const shcore::Argument_list &args);
       friend shcore::Value CollectionRemove::remove(const shcore::Argument_list &args);
+      friend shcore::Value CollectionModify::modify(const shcore::Argument_list &args);
     };
   }
 }

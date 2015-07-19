@@ -52,12 +52,14 @@ namespace shcore {
   {
     exec_and_out_equals("var mysqlx = require('mysqlx').mysqlx;");
 
-    exec_and_out_equals("var session = mysqlx.openNodeSession('" + _uri + "');");
+    exec_and_out_equals("var session = mysqlx.getNodeSession('" + _uri + "');");
 
     exec_and_out_equals("session.executeSql('drop schema if exists js_shell_test;')");
     exec_and_out_equals("session.executeSql('create schema js_shell_test;')");
     exec_and_out_equals("session.executeSql('use js_shell_test;')");
     exec_and_out_equals("session.executeSql(\"create table `collection1`(`doc` JSON, `_id` VARBINARY(16) GENERATED ALWAYS AS(unhex(json_unquote(json_extract(doc, '$._id')))) stored PRIMARY KEY)\")");
+
+    exec_and_out_equals("session.close();");
   }
 
   TEST_F(Shell_js_mysqlx_collection_add_tests, chain_combinations)
@@ -65,7 +67,7 @@ namespace shcore {
     // NOTE: No data validation is done on this test, only tests
     //       different combinations of chained methods.
     exec_and_out_equals("var mysqlx = require('mysqlx').mysqlx;");
-    exec_and_out_equals("var session = mysqlx.openSession('" + _uri + "');");
+    exec_and_out_equals("var session = mysqlx.getSession('" + _uri + "');");
     exec_and_out_equals("var collection = session.js_shell_test.getCollection('collection1');");
 
     // Creates the collection find object
@@ -76,22 +78,24 @@ namespace shcore {
     // the add function available upon creation
     //-------------------------------------------------------------
     ensure_available_functions("execute");
+
+    exec_and_out_equals("session.close();");
   }
 
   TEST_F(Shell_js_mysqlx_collection_add_tests, add_validations)
   {
     exec_and_out_equals("var mysqlx = require('mysqlx').mysqlx;");
-    exec_and_out_equals("var session = mysqlx.openSession('" + _uri + "');");
+    exec_and_out_equals("var session = mysqlx.getSession('" + _uri + "');");
     exec_and_out_equals("var collection = session.js_shell_test.getCollection('collection1');");
 
     // Test add attempt with no data
     exec_and_out_contains("collection.add().execute();", "", "Invalid number of arguments in CollectionAdd::add, expected 1 but got 0");
 
     // Test add attempt with non document
-    exec_and_out_contains("collection.add(45).execute();", "", "Invalid document specified on add operation.");
+    exec_and_out_contains("collection.add(45).execute();", "", "CollectionAdd::add: Argument is expected to be either a document or a list of documents");
 
     // Test add collection with invalid document
-    exec_and_out_contains("collection.add(['invalid data']).execute();", "", "Invalid document specified on list for add operation.");
+    exec_and_out_contains("collection.add(['invalid data']).execute();", "", "CollectionAdd::add: Element #1 is expected to be a document");
 
     // Test adding a single document
     exec_and_out_equals("var result = collection.add({name: 'my first', passed: 'document', count: 1}).execute();");
@@ -100,5 +104,7 @@ namespace shcore {
     // Test adding multiple documents
     exec_and_out_equals("var result = collection.add([{name: 'my second', passed: 'again', count: 2}, {name: 'my third', passed: 'once again', cound: 4}]).execute();");
     exec_and_out_equals("print (result.affectedRows)", "2");
+
+    exec_and_out_equals("session.close();");
   }
 }

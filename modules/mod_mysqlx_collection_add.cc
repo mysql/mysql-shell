@@ -24,16 +24,16 @@
 
 #include <iomanip>
 #include <sstream>
+#include <boost/format.hpp>
 
 using namespace mysh::mysqlx;
 using namespace shcore;
 
 CollectionAdd::CollectionAdd(boost::shared_ptr<Collection> owner)
-:Crud_definition(boost::static_pointer_cast<DatabaseObject>(owner))
+:Collection_crud_definition(boost::static_pointer_cast<DatabaseObject>(owner))
 {
   // Exposes the methods available for chaining
   add_method("add", boost::bind(&CollectionAdd::add, this, _1), "data");
-  add_method("execute", boost::bind(&Crud_definition::execute, this, _1), "data");
 
   // Registers the dynamic function behavior
   register_dynamic_function("add", "");
@@ -56,46 +56,50 @@ shcore::Value CollectionAdd::add(const shcore::Argument_list &args)
 
     if (collection)
     {
-      shcore::Value::Array_type_ref shell_docs;
-
-      if (args[0].type == Map)
+      try
       {
-        // On a single document parameter, creates an array and processes it as a list of
-        // documents, only advantage of this is avoid duplicating validation and setup logic
-        shell_docs.reset(new Value::Array_type());
-        shell_docs->push_back(args[0]);
-      }
-      else if (args[0].type == Array)
-        shell_docs = args[0].as_array();
-      else
-        throw shcore::Exception::argument_error("Invalid document specified on add operation.");
+        shcore::Value::Array_type_ref shell_docs;
 
-      if (shell_docs)
-      {
-        size_t index, size = shell_docs->size();
-        for (index = 0; index < size; index++)
+        if (args[0].type == Map)
         {
-          Value element = shell_docs->at(index);
-          if (element.type == Map)
+          // On a single document parameter, creates an array and processes it as a list of
+          // documents, only advantage of this is avoid duplicating validation and setup logic
+          shell_docs.reset(new Value::Array_type());
+          shell_docs->push_back(args[0]);
+        }
+        else if (args[0].type == Array)
+          shell_docs = args[0].as_array();
+        else
+          throw shcore::Exception::argument_error("Argument is expected to be either a document or a list of documents");
+
+        if (shell_docs)
+        {
+          size_t index, size = shell_docs->size();
+          for (index = 0; index < size; index++)
           {
-            Value::Map_type_ref shell_doc = element.as_map();
+            Value element = shell_docs->at(index);
+            if (element.type == Map)
+            {
+              Value::Map_type_ref shell_doc = element.as_map();
 
-            if (!shell_doc->has_key("_id"))
-              (*shell_doc)["_id"] = Value(get_new_uuid());
+              if (!shell_doc->has_key("_id"))
+                (*shell_doc)["_id"] = Value(get_new_uuid());
 
-            //TODO: we are assumming that repr returns a valid JSON document
-            //      we should introduce a routine that vensures that is correct.
-            ::mysqlx::Document inner_doc(element.repr());
+              //TODO: we are assumming that repr returns a valid JSON document
+              //      we should introduce a routine that vensures that is correct.
+              ::mysqlx::Document inner_doc(element.repr());
 
-            if (!index)
-              _add_statement.reset(new ::mysqlx::AddStatement(collection->_collection_impl->add(inner_doc)));
+              if (!index)
+                _add_statement.reset(new ::mysqlx::AddStatement(collection->_collection_impl->add(inner_doc)));
+              else
+                _add_statement->add(inner_doc);
+            }
             else
-              _add_statement->add(inner_doc);
+              throw shcore::Exception::argument_error((boost::format("Element #%1% is expected to be a document") % (index + 1)).str());
           }
-          else
-            throw shcore::Exception::argument_error("Invalid document specified on list for add operation.");
         }
       }
+      CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionAdd::add");
     }
   }
 

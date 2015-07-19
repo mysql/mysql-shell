@@ -40,7 +40,7 @@ namespace shcore {
 
       exec_and_out_equals("var mysqlx = require('mysqlx').mysqlx;");
 
-      exec_and_out_equals("var session = mysqlx.openNodeSession('" + _uri + "');");
+      exec_and_out_equals("var session = mysqlx.getNodeSession('" + _uri + "');");
 
       exec_and_out_equals("session.executeSql('drop schema if exists js_shell_test;')");
       exec_and_out_equals("session.executeSql('create schema js_shell_test;')");
@@ -49,7 +49,6 @@ namespace shcore {
       exec_and_out_equals("session.executeSql('create view view1 (my_name) as select name from table1;')");
     }
   };
-
 
   // Tests view.getName()
   TEST_F(Shell_js_mysqlx_view_tests, mysqlx_view_get_name)

@@ -27,6 +27,10 @@
 
 #include "modules/base_session.h"
 
+#ifdef HAVE_PYTHON
+  extern "C" void Python_context_init();
+#endif
+
 using namespace shcore;
 
 Simple_shell_client::Simple_shell_client()
@@ -44,6 +48,10 @@ Simple_shell_client::Simple_shell_client()
 
   bool lang_initialized;
   _shell->switch_mode(mode, lang_initialized);
+
+#ifdef HAVE_PYTHON
+  Python_context_init();
+#endif
 
 #ifdef HAVE_V8
   extern void JScript_context_init();
@@ -246,17 +254,10 @@ void Simple_shell_client::switch_mode(shcore::Shell_core::Mode mode)
         _shell->switch_mode(mode, lang_initialized);
         break;
       case Shell_core::Mode_JScript:
-#ifdef HAVE_V8
         _shell->switch_mode(mode, lang_initialized);
-#endif
         break;
       case Shell_core::Mode_Python:
-        // TODO: remove following #if 0 #endif as soon as Python mode is implemented
-#if 0
         _shell->switch_mode(mode, lang_initialized);
-#else
-        throw std::runtime_error("Python mode not implemented yet");
-#endif
         break;
     }
   }

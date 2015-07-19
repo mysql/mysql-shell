@@ -24,6 +24,7 @@
 #include "mod_mysqlx_collection_add.h"
 #include "mod_mysqlx_collection_find.h"
 #include "mod_mysqlx_collection_remove.h"
+#include "mod_mysqlx_collection_modify.h"
 
 using namespace mysh;
 using namespace mysh::mysqlx;
@@ -63,11 +64,9 @@ shcore::Value Collection::add_(const shcore::Argument_list &args)
 
 shcore::Value Collection::modify_(const shcore::Argument_list &args)
 {
-  std::string searchCriteria;
-  args.ensure_count(1, "Collection::modify");
-  searchCriteria = args.string_at(0);
-  // return shcore::Value::wrap(new CollectionFind(_coll->find(searchCriteria)));
-  return shcore::Value();
+  boost::shared_ptr<CollectionModify> collectionModify(new CollectionModify(shared_from_this()));
+
+  return collectionModify->modify(args);
 }
 
 shcore::Value Collection::remove_(const shcore::Argument_list &args)

@@ -40,7 +40,7 @@ namespace shcore {
 
       exec_and_out_equals("var mysql = require('mysql').mysql;");
 
-      exec_and_out_equals("var session = mysql.openSession('" + _mysql_uri + "');");
+      exec_and_out_equals("var session = mysql.getSession('" + _mysql_uri + "');");
 
       exec_and_out_equals("session.executeSql('drop schema if exists js_shell_test;')");
       exec_and_out_equals("session.executeSql('create schema js_shell_test;')");

@@ -23,15 +23,14 @@
 #ifndef _MOD_CRUD_COLLECTION_REMOVE_H_
 #define _MOD_CRUD_COLLECTION_REMOVE_H_
 
-#include "crud_definition.h"
-#include "mysqlx_crud.h"
+#include "collection_crud_definition.h"
 
 namespace mysh
 {
   namespace mysqlx
   {
     class Collection;
-    class CollectionRemove : public Crud_definition, public boost::enable_shared_from_this<CollectionRemove>
+    class CollectionRemove : public Collection_crud_definition, public boost::enable_shared_from_this<CollectionRemove>
     {
     public:
       CollectionRemove(boost::shared_ptr<Collection> owner);
@@ -39,7 +38,7 @@ namespace mysh
       virtual std::string class_name() const { return "CollectionRemove"; }
       static boost::shared_ptr<shcore::Object_bridge> create(const shcore::Argument_list &args);
       shcore::Value remove(const shcore::Argument_list &args);
-      shcore::Value order_by(const shcore::Argument_list &args);
+      shcore::Value sort(const shcore::Argument_list &args);
       shcore::Value limit(const shcore::Argument_list &args);
       shcore::Value bind(const shcore::Argument_list &args);
 

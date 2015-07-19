@@ -20,7 +20,7 @@
 exports.mysqlx = {}
 
 // Connection functions
-exports.mysqlx.openSession = function(connection_data, password)
+exports.mysqlx.getSession = function(connection_data, password)
 {
   var session;
 
@@ -32,7 +32,7 @@ exports.mysqlx.openSession = function(connection_data, password)
   return session;
 }
 
-exports.mysqlx.openNodeSession = function(connection_data, password)
+exports.mysqlx.getNodeSession = function(connection_data, password)
 {
   var session;
   

@@ -26,11 +26,11 @@
 #include <stdexcept>
 #include <vector>
 #include <map>
+#include <set>
 
 #include "xdatetime.h"
 
 #include <boost/enable_shared_from_this.hpp>
-
 
 namespace Mysqlx
 {
@@ -40,17 +40,16 @@ namespace Mysqlx
   }
 }
 
-namespace google { namespace protobuf { class Message; }}
+namespace google { namespace protobuf { class Message; } }
 
 namespace mysqlx
 {
-	typedef google::protobuf::Message Message;
+  typedef google::protobuf::Message Message;
 
   bool parse_mysql_connstring(const std::string &connstring,
     std::string &protocol, std::string &user, std::string &password,
     std::string &host, int &port, std::string &sock,
     std::string &db, int &pwd_found);
-
 
   class Result;
 
@@ -86,7 +85,6 @@ namespace mysqlx
 
     boost::shared_ptr<Schema> getSchema(const std::string &name);
 
-
     Connection *connection() { return m_connection; }
   private:
     Connection *m_connection;
@@ -94,12 +92,10 @@ namespace mysqlx
   };
   typedef boost::shared_ptr<Session> SessionRef;
 
-
   SessionRef openSession(const std::string &uri, const std::string &pass);
 
   SessionRef openSession(const std::string &host, int port, const std::string &schema,
                          const std::string &user, const std::string &pass);
-
 
   enum FieldType
   {
@@ -141,7 +137,6 @@ namespace mysqlx
     uint32_t content_type;
   };
 
-
   class Document
   {
   public:
@@ -154,6 +149,138 @@ namespace mysqlx
     boost::shared_ptr<std::string> m_data;
   };
 
+  class TableValue
+  {
+  public:
+    enum Type
+    {
+      TInteger,
+      TUInteger,
+      TNull,
+      TDouble,
+      TFloat,
+      TBool,
+      TString,
+      TOctets,
+      TExpression,
+    };
+
+    TableValue(const TableValue &other)
+    {
+      m_type = other.m_type;
+      m_value.b = other.m_value.b;
+      m_value.d = other.m_value.d;
+      m_value.f = other.m_value.f;
+      m_value.i = other.m_value.i;
+      m_value.ui = other.m_value.ui;
+
+      if (m_type == TString || m_type == TOctets)
+        m_value.s = new std::string(*other.m_value.s);
+    }
+
+    explicit TableValue(const std::string &s, Type type = TString)
+    {
+      m_type = type;
+      m_value.s = new std::string(s);
+    }
+
+    explicit TableValue(int64_t n)
+    {
+      m_type = TInteger;
+      m_value.i = n;
+    }
+
+    explicit TableValue(uint64_t n)
+    {
+      m_type = TUInteger;
+      m_value.ui = n;
+    }
+
+    explicit TableValue(double n)
+    {
+      m_type = TDouble;
+      m_value.d = n;
+    }
+
+    explicit TableValue(float n)
+    {
+      m_type = TFloat;
+      m_value.f = n;
+    }
+
+    explicit TableValue(bool n)
+    {
+      m_type = TBool;
+      m_value.b = n;
+    }
+
+    explicit TableValue()
+    {
+      m_type = TNull;
+    }
+
+    ~TableValue()
+    {
+      if (m_type == TString || m_type == TOctets || m_type == TExpression)
+        delete m_value.s;
+    }
+
+    inline Type type() const { return m_type; }
+
+    inline operator uint64_t ()
+    {
+      if (m_type != TUInteger)
+        throw std::logic_error("type error");
+      return m_value.ui;
+    }
+
+    inline operator int64_t ()
+    {
+      if (m_type != TInteger)
+        throw std::logic_error("type error");
+      return m_value.i;
+    }
+
+    inline operator double()
+    {
+      if (m_type != TDouble)
+        throw std::logic_error("type error");
+      return m_value.d;
+    }
+
+    inline operator float()
+    {
+      if (m_type != TFloat)
+        throw std::logic_error("type error");
+      return m_value.f;
+    }
+
+    inline operator bool()
+    {
+      if (m_type != TBool)
+        throw std::logic_error("type error");
+      return m_value.b;
+    }
+
+    inline operator const std::string & ()
+    {
+      if (m_type != TString && m_type != TOctets && m_type != TExpression)
+        throw std::logic_error("type error");
+      return *m_value.s;
+    }
+
+  private:
+    Type m_type;
+    union
+    {
+      std::string *s;
+      int64_t i;
+      uint64_t ui;
+      double d;
+      float f;
+      bool b;
+    } m_value;
+  };
 
   class DocumentValue
   {
@@ -163,12 +290,26 @@ namespace mysqlx
       TString,
       TInteger,
       TFloat,
-      TDocument
+      TDocument,
+      TExpression
     };
 
-    explicit DocumentValue(const std::string &s)
+    DocumentValue(const DocumentValue &other)
     {
-      m_type = TString;
+      m_type = other.m_type;
+      m_value.f = other.m_value.f;
+      m_value.i = other.m_value.i;
+
+      if (m_type == TString || m_type == TExpression)
+        m_value.s = new std::string(*other.m_value.s);
+
+      if (m_type == TDocument)
+        m_value.d = new Document(*other.m_value.d);
+    }
+
+    explicit DocumentValue(const std::string &s, bool expression = false)
+    {
+      m_type = expression ? TExpression : TString;
       m_value.s = new std::string(s);
     }
 
@@ -200,7 +341,7 @@ namespace mysqlx
     {
       if (m_type == TDocument)
         delete m_value.d;
-      else if (m_type == TString)
+      else if (m_type == TString || m_type == TExpression)
         delete m_value.s;
     }
 
@@ -213,7 +354,7 @@ namespace mysqlx
       return m_value.i;
     }
 
-    inline operator double ()
+    inline operator double()
     {
       if (m_type != TFloat)
         throw std::logic_error("type error");
@@ -222,7 +363,7 @@ namespace mysqlx
 
     inline operator const std::string & ()
     {
-      if (m_type != TString)
+      if (m_type != TString && m_type != TExpression)
         throw std::logic_error("type error");
       return *m_value.s;
     }
@@ -231,7 +372,7 @@ namespace mysqlx
     {
       if (m_type != TDocument)
         throw std::logic_error("type error");
-        return *m_value.d;
+      return *m_value.d;
     }
 
   private:
@@ -245,37 +386,40 @@ namespace mysqlx
     } m_value;
   };
 
-
   class Row
   {
   public:
+    ~Row();
+
     bool isNullField(int field) const;
     int32_t sIntField(int field) const;
     uint32_t uIntField(int field) const;
     int64_t sInt64Field(int field) const;
     uint64_t uInt64Field(int field) const;
-    const std::string &stringField(int field) const;
+    uint64_t bitField(int field) const;
+    std::string stringField(int field) const;
+    std::string decimalField(int field) const;
+    std::string setFieldStr(int field) const;
+    std::set<std::string> setField(int field) const;
+    std::string enumField(int field) const;
     const char *stringField(int field, size_t &rlength) const;
     float floatField(int field) const;
     double doubleField(int field) const;
-
     DateTime dateTimeField(int field) const;
     Time timeField(int field) const;
-
-    //XXXstd::set<std::string> setField(int field) const;
 
     int numFields() const;
 
   private:
     friend class Result;
-    Row(boost::shared_ptr<std::vector<ColumnMetadata> > columns, std::auto_ptr<Mysqlx::Sql::Row> data);
+    Row(boost::shared_ptr<std::vector<ColumnMetadata> > columns, Mysqlx::Sql::Row *data);
 
     void check_field(int field, FieldType type) const;
 
     boost::shared_ptr<std::vector<ColumnMetadata> > m_columns;
-    std::auto_ptr<Mysqlx::Sql::Row> m_data;
+    Mysqlx::Sql::Row *m_data;
   };
-  
+
 
   class Result
   {
@@ -293,19 +437,28 @@ namespace mysqlx
     bool nextResult();
     void discardData();
 
+    struct Warning
+    {
+      std::string text;
+      int code;
+      bool is_note;
+    };
+    const std::vector<Warning> &getWarnings() const { return m_warnings; }
   private:
     Result();
     Result(const Result &o);
-    Result(Connection *owner, bool needs_stmt_ok, bool expect_data);
+    Result(Connection *owner, bool expect_data);
 
     void read_metadata();
     std::auto_ptr<Row> read_row();
     void read_stmt_ok();
 
-    int get_message_id();
-    std::auto_ptr<mysqlx::Message> pop_message() { return current_message; }
+    void handle_notice(int32_t type, const std::string &data);
 
-    std::auto_ptr<mysqlx::Message> current_message;
+    int get_message_id();
+    mysqlx::Message* pop_message();
+
+    mysqlx::Message* current_message;
     int                            current_message_id;
 
     friend class Connection;
@@ -314,7 +467,8 @@ namespace mysqlx
     int64_t m_last_insert_id;
     int64_t m_affected_rows;
 
-    bool m_needs_stmt_ok;
+    std::vector<Warning> m_warnings;
+
     enum {
       ReadStmtOkI, // initial state
       ReadMetadataI, // initial state

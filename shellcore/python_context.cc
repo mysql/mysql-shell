@@ -26,12 +26,20 @@
 
 #include "shellcore/python_type_conversion.h"
 
+#ifdef _WINDOWS
+#  include <windows.h>
+#endif
+
 // used to identify a proper SHELL context object as a PyCObject
 static const char *SHELLTypeSignature= "SHELLCONTEXT";
 
-using namespace shcore;
+namespace shcore
+{
 
 void Python_context_init() {
+#ifdef _WINDOWS
+  Py_NoSiteFlag = 1;
+#endif
   Py_InitializeEx(0);
 }
 
@@ -355,4 +363,5 @@ void Python_context::register_shell_module() {
   init_shell_dict_type();
   init_shell_object_type();
   init_shell_function_type();
+}
 }

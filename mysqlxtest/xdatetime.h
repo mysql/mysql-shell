@@ -284,11 +284,14 @@ namespace mysqlx
   {
     if (v)
     {
-      os << v.year() << "/" << v.month() << "/" << v.day();
+      os << v.year() << "/" 
+        << static_cast<int>(v.month()) << "/" 
+        << static_cast<int>(v.day());
       if (v.has_time())
       {
         double us = v.seconds() + v.useconds()/1000000.0;
-        os << " " << v.hour() << ":" << v.minutes() << ":" << us;
+        os << " " << static_cast<int>(v.hour()) 
+          << ":" << static_cast<int>(v.minutes()) << ":" << us;
       }
     }
     return os;
@@ -299,7 +302,8 @@ namespace mysqlx
     if (v)
     {
       double us = v.seconds() + v.useconds()/1000000.0;
-      os << " " << v.hour() << ":" << v.minutes() << ":" << us;
+      os << " " << static_cast<int>(v.hour()) << 
+            ":" << static_cast<int>(v.minutes()) << ":" << us;
     }
     return os;
   }

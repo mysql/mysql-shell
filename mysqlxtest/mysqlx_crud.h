@@ -31,6 +31,11 @@ namespace Mysqlx
     class Insert;
     class Delete;
   }
+
+  namespace Datatypes
+  {
+    class Any;
+  }
 }
 
 namespace mysqlx
@@ -58,6 +63,242 @@ namespace mysqlx
     std::string m_name;
   };
 
+  // -------------------------------------------------------
+
+  class Statement
+  {
+  public:
+    virtual ~Statement();
+    virtual Result *execute() = 0;
+  };
+
+  // -------------------------------------------------------
+
+  class Table_Statement : public Statement
+  {
+  public:
+    Table_Statement(boost::shared_ptr<Table> table);
+    //Table_Statement &bind(const std::string &name, const DocumentValue &value);
+
+    boost::shared_ptr<Table> table() const { return m_table; }
+
+  protected:
+    Mysqlx::Datatypes::Any* convert_table_value(const TableValue& value);
+
+    boost::shared_ptr<Table> m_table;
+  };
+
+  // -------------------------------------------------------
+
+  class Select_Base : public Table_Statement
+  {
+  public:
+    Select_Base(boost::shared_ptr<Table> table);
+    Select_Base(const Select_Base &other);
+    Select_Base &operator = (const Select_Base &other);
+
+    virtual Result *execute();
+  protected:
+    boost::shared_ptr<Mysqlx::Crud::Find> m_find;
+  };
+
+  class Select_Offset : public Select_Base
+  {
+  public:
+    Select_Offset(boost::shared_ptr<Table> table) : Select_Base(table) {}
+    Select_Offset(const Select_Offset &other) : Select_Base(other) {}
+    Select_Offset &operator = (const Select_Offset &other) { Select_Base::operator=(other); return *this; }
+
+    Select_Base &offset(uint64_t skip);
+  };
+
+  class Select_Limit : public Select_Offset
+  {
+  public:
+    Select_Limit(boost::shared_ptr<Table> table) : Select_Offset(table) {}
+    Select_Limit(const Select_Limit &other) : Select_Offset(other) {}
+    Select_Limit &operator = (const Select_Limit &other) { Select_Offset::operator=(other); return *this; }
+
+    Select_Offset &limit(uint64_t limit);
+  };
+
+  class Select_OrderBy : public Select_Limit
+  {
+  public:
+    Select_OrderBy(boost::shared_ptr<Table> table) : Select_Limit(table) {}
+    Select_OrderBy(const Select_OrderBy &other) : Select_Limit(other) {}
+    Select_OrderBy &operator = (const Select_OrderBy &other) { Select_Limit::operator=(other); return *this; }
+
+    Select_Limit &orderBy(const std::string &sortFields);
+  };
+
+  class Select_Having : public Select_OrderBy
+  {
+  public:
+    Select_Having(boost::shared_ptr<Table> table) : Select_OrderBy(table) {}
+    Select_Having(const Select_Having &other) : Select_OrderBy(other) {}
+    Select_Having &operator = (const Select_Having &other) { Select_OrderBy::operator=(other); return *this; }
+
+    Select_OrderBy &having(const std::string &searchCondition);
+  };
+
+  class Select_GroupBy : public Select_Having
+  {
+  public:
+    Select_GroupBy(boost::shared_ptr<Table> table) : Select_Having(table) {}
+    Select_GroupBy(const Select_GroupBy &other) : Select_Having(other) {}
+    Select_GroupBy &operator = (const Select_Having &other) { Select_Having::operator=(other); return *this; }
+
+    Select_Having &groupBy(const std::string &searchFields);
+  };
+
+  class SelectStatement : public Select_GroupBy
+  {
+  public:
+    SelectStatement(boost::shared_ptr<Table> table, const std::string &fieldList);
+    SelectStatement(const SelectStatement &other) : Select_GroupBy(other) {}
+    SelectStatement &operator = (const SelectStatement &other) { Select_GroupBy::operator=(other); return *this; }
+
+    Select_GroupBy &where(const std::string &searchCondition);
+  };
+
+  // -------------------------------------------------------
+
+  class Insert_Base : public Table_Statement
+  {
+  public:
+    Insert_Base(boost::shared_ptr<Table> table);
+    Insert_Base(const Insert_Base &other);
+    Insert_Base &operator = (const Insert_Base &other);
+
+    virtual Result *execute();
+  protected:
+    boost::shared_ptr<Mysqlx::Crud::Insert> m_insert;
+  };
+
+  class Insert_Values : public Insert_Base
+  {
+  public:
+    Insert_Values(boost::shared_ptr<Table> table);
+    Insert_Values(const Insert_Base &other);
+    Insert_Values &operator = (const Insert_Values &other);
+
+    Insert_Values &values(const std::vector<TableValue> &row);
+  };
+
+  class InsertStatement : public Insert_Values
+  {
+  public:
+    InsertStatement(boost::shared_ptr<Table> coll);
+    InsertStatement(const InsertStatement &other) : Insert_Values(other) {}
+    InsertStatement &operator = (const InsertStatement &other) { Insert_Values::operator=(other); return *this; }
+
+    Insert_Values &insert(const std::vector<std::string> &columns);
+  };
+
+  class Delete_Base : public Table_Statement
+  {
+  public:
+    Delete_Base(boost::shared_ptr<Table> table);
+    Delete_Base(const Delete_Base &other);
+    Delete_Base &operator = (const Delete_Base &other);
+
+    virtual Result *execute();
+  protected:
+    boost::shared_ptr<Mysqlx::Crud::Delete> m_delete;
+  };
+
+  class Delete_Limit : public Delete_Base
+  {
+  public:
+    Delete_Limit(boost::shared_ptr<Table> table) : Delete_Base(table) {}
+    Delete_Limit(const Delete_Limit &other) : Delete_Base(other) {}
+    Delete_Limit &operator = (const Delete_Limit &other) { Delete_Base::operator=(other); return *this; }
+
+    Delete_Base &limit(uint64_t limit);
+  };
+
+  class Delete_OrderBy : public Delete_Limit
+  {
+  public:
+    Delete_OrderBy(boost::shared_ptr<Table> table) : Delete_Limit(table) {}
+    Delete_OrderBy(const Delete_Limit &other) : Delete_Limit(other) {}
+    Delete_OrderBy &operator = (const Delete_OrderBy &other) { Delete_Limit::operator=(other); return *this; }
+
+    Delete_Limit &orderBy(const std::string &sortFields);
+  };
+
+  class DeleteStatement : public Delete_OrderBy
+  {
+  public:
+    DeleteStatement(boost::shared_ptr<Table> table);
+    DeleteStatement(const DeleteStatement &other) : Delete_OrderBy(other) {}
+    DeleteStatement &operator = (const DeleteStatement &other) { Delete_OrderBy::operator=(other); return *this; }
+
+    Delete_OrderBy &where(const std::string &searchCondition);
+  };
+
+  class Update_Base : public Table_Statement
+  {
+  public:
+    Update_Base(boost::shared_ptr<Table> table);
+    Update_Base(const Update_Base &other);
+    Update_Base &operator = (const Update_Base &other);
+
+    virtual Result *execute();
+  protected:
+    boost::shared_ptr<Mysqlx::Crud::Update> m_update;
+  };
+
+  class Update_Limit : public Update_Base
+  {
+  public:
+    Update_Limit(boost::shared_ptr<Table> table) : Update_Base(table) {}
+    Update_Limit(const Update_Limit &other) : Update_Base(other) {}
+    Update_Limit &operator = (const Update_Limit &other) { Update_Base::operator=(other); return *this; }
+
+    Update_Base &limit(uint64_t limit);
+  };
+
+  class Update_OrderBy : public Update_Limit
+  {
+  public:
+    Update_OrderBy(boost::shared_ptr<Table> table) : Update_Limit(table) {}
+    Update_OrderBy(const Update_Limit &other) : Update_Limit(other) {}
+    Update_OrderBy &operator = (const Update_OrderBy &other) { Update_Limit::operator=(other); return *this; }
+
+    Update_Limit &orderBy(const std::string &sortFields);
+  };
+
+  class Update_Where : public Update_OrderBy
+  {
+  public:
+    Update_Where(boost::shared_ptr<Table> table) : Update_OrderBy(table) {}
+    Update_Where(const Update_OrderBy &other) : Update_OrderBy(other) {}
+    Update_Where &operator = (const Update_Where &other) { Update_OrderBy::operator=(other); return *this; }
+
+    Update_OrderBy &where(const std::string &searchCondition);
+  };
+
+  class Update_Set : public Update_Where
+  {
+  public:
+    Update_Set(boost::shared_ptr<Table> table) : Update_Where(table) {}
+    Update_Set(const Update_Where &other) : Update_Where(other) {}
+    Update_Set &operator = (const Update_Set &other) { Update_Where::operator=(other); return *this; }
+
+    Update_Set &set(const std::string &field, const TableValue& value);
+    Update_Set &set(const std::string &field, const std::string& expression);
+  };
+
+  class UpdateStatement : public Update_Set
+  {
+  public:
+    UpdateStatement(boost::shared_ptr<Table> table);
+    UpdateStatement(const UpdateStatement &other) : Update_Set(other) {}
+    UpdateStatement &operator = (const UpdateStatement &other) { Update_Set::operator=(other); return *this; }
+  };
+
   class Table : public boost::enable_shared_from_this<Table>
   {
   public:
@@ -66,18 +307,14 @@ namespace mysqlx
     boost::shared_ptr<Schema> schema() const { return m_schema.lock(); }
     const std::string& name() const { return m_name; }
 
+    UpdateStatement update();
+    DeleteStatement remove();
+    InsertStatement insert();
+    SelectStatement select(const std::string& fieldList);
+
   private:
     boost::weak_ptr<Schema> m_schema;
     std::string m_name;
-  };
-
-  // -------------------------------------------------------
-
-  class Statement
-  {
-  public:
-    virtual ~Statement();
-    virtual Result *execute() = 0;
   };
 
   // -------------------------------------------------------
@@ -91,9 +328,10 @@ namespace mysqlx
     boost::shared_ptr<Collection> collection() const { return m_coll; }
 
   protected:
+    Mysqlx::Datatypes::Any* convert_document_value(const DocumentValue& value);
+
     boost::shared_ptr<Collection> m_coll;
   };
-
 
   class Find_Base : public Collection_Statement
   {
@@ -181,7 +419,6 @@ namespace mysqlx
     boost::shared_ptr<Mysqlx::Crud::Insert> m_insert;
   };
 
-
   class AddStatement : public Add_Base
   {
   public:
@@ -206,42 +443,49 @@ namespace mysqlx
     boost::shared_ptr<Mysqlx::Crud::Update> m_update;
   };
 
-
-  class Modify_Operation : public Modify_Base
+  class Modify_Limit : public Modify_Base
   {
   public:
-    Modify_Operation(boost::shared_ptr<Collection> coll) : Modify_Base(coll) {}
-    Modify_Operation(const Modify_Operation &other) : Modify_Base(other) {}
-    Modify_Operation &operator = (const Modify_Operation &other) { Modify_Base::operator=(other); return *this; }
-
-    Modify_Operation &remove(const std::string &path);
-    Modify_Operation &set(const std::string &path, const DocumentValue &value);
-    Modify_Operation &replace(const std::string &path, const DocumentValue &value);
-    Modify_Operation &merge(const Document &doc);
-    Modify_Operation &arrayInsert(const std::string &path, int index, const DocumentValue &value);
-    Modify_Operation &arrayAppend(const std::string &path, const DocumentValue &value);
-  };
-
-
-  class Modify_Limit : public Modify_Operation
-  {
-  public:
-    Modify_Limit(boost::shared_ptr<Collection> coll) : Modify_Operation(coll) {}
-    Modify_Limit(const Modify_Limit &other) : Modify_Operation(other) {}
+    Modify_Limit(boost::shared_ptr<Collection> coll) : Modify_Base(coll) {}
+    Modify_Limit(const Modify_Limit &other) : Modify_Base(other) {}
     Modify_Limit &operator = (const Modify_Limit &other) { Modify_Base::operator=(other); return *this; }
 
-    Modify_Operation &limit(uint64_t limit);
+    Modify_Base &limit(uint64_t limit);
   };
 
+  class Modify_Sort : public Modify_Limit
+  {
+  public:
+    Modify_Sort(boost::shared_ptr<Collection> coll) : Modify_Limit(coll) {}
+    Modify_Sort(const Modify_Sort &other) : Modify_Limit(other) {}
+    Modify_Sort &operator = (const Modify_Sort &other) { Modify_Limit::operator=(other); return *this; }
 
-  class ModifyStatement : public Modify_Limit
+    Modify_Limit &sort(const std::string &sortFields);
+  };
+
+  class Modify_Operation : public Modify_Sort
+  {
+  public:
+    Modify_Operation(boost::shared_ptr<Collection> coll) : Modify_Sort(coll) {}
+    Modify_Operation(const Modify_Operation &other) : Modify_Sort(other) {}
+    Modify_Operation &operator = (const Modify_Operation &other) { Modify_Sort::operator=(other); return *this; }
+
+    Modify_Operation &remove(const std::string &path);
+    Modify_Operation &set(const std::string &path, const DocumentValue &value); // For raw values
+    Modify_Operation &change(const std::string &path, const DocumentValue &value);
+    Modify_Operation &arrayInsert(const std::string &path, int index, const DocumentValue &value);
+    Modify_Operation &arrayAppend(const std::string &path, const DocumentValue &value);
+
+  private:
+    Modify_Operation &set_operation(int type, const std::string &path, const DocumentValue *value = NULL);
+  };
+
+  class ModifyStatement : public Modify_Operation
   {
   public:
     ModifyStatement(boost::shared_ptr<Collection> coll, const std::string &searchCondition);
-    ModifyStatement(const ModifyStatement &other) : Modify_Limit(other) {}
-    ModifyStatement &operator = (const ModifyStatement &other) { Modify_Limit::operator=(other); return *this; }
-
-    Modify_Limit &orderBy(const std::string &sortFields);
+    ModifyStatement(const ModifyStatement &other) : Modify_Operation(other) {}
+    ModifyStatement &operator = (const ModifyStatement &other) { Modify_Operation::operator=(other); return *this; }
   };
 
   // -------------------------------------------------------
@@ -275,7 +519,7 @@ namespace mysqlx
     RemoveStatement(const RemoveStatement &other) : Remove_Limit(other) {}
     RemoveStatement &operator = (const RemoveStatement &other) { Remove_Limit::operator=(other); return *this; }
 
-    Remove_Limit &orderBy(const std::string &sortFields);
+    Remove_Limit &sort(const std::string &sortFields);
   };
 
   // -------------------------------------------------------
@@ -297,7 +541,6 @@ namespace mysqlx
     boost::weak_ptr<Schema> m_schema;
     std::string m_name;
   };
-
 };
 
 #endif

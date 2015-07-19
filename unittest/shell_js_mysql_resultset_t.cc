@@ -44,7 +44,7 @@ namespace shcore {
   {
     exec_and_out_equals("var mysql = require('mysql').mysql;");
 
-    exec_and_out_equals("var session = mysql.openSession('" + _mysql_uri + "');");
+    exec_and_out_equals("var session = mysql.getSession('" + _mysql_uri + "');");
 
     exec_and_out_equals("session.executeSql('drop schema if exists js_shell_test;')");
     exec_and_out_equals("session.executeSql('create schema js_shell_test;')");
@@ -57,6 +57,8 @@ namespace shcore {
     exec_and_out_equals("session.executeSql('insert into table1 (`name`) values(\"one\");')");
     exec_and_out_equals("session.executeSql('insert into table1 (`name`) values(\"two\");')");
     exec_and_out_equals("session.executeSql('insert into table1 (`name`) values(\"three\");')");
+
+    exec_and_out_equals("session.close();");
   }
 
   // Tests resultset.hasData and resultset.getHasData()
@@ -64,7 +66,7 @@ namespace shcore {
   {
     exec_and_out_equals("var mysql = require('mysql').mysql;");
 
-    exec_and_out_equals("var session = mysql.openSession('" + _mysql_uri + "');");
+    exec_and_out_equals("var session = mysql.getSession('" + _mysql_uri + "');");
 
     exec_and_out_equals("var result = session.executeSql('use js_shell_test;');");
 
@@ -75,6 +77,8 @@ namespace shcore {
 
     exec_and_out_equals("print(result.hasData);", "true");
     exec_and_out_equals("print(result.getHasData());", "true");
+
+    exec_and_out_equals("session.close();");
   }
 
   // Tests resultset.columnMetadata and resultset.getColumnMetadata()
@@ -82,7 +86,7 @@ namespace shcore {
   {
     exec_and_out_equals("var mysql = require('mysql').mysql;");
 
-    exec_and_out_equals("var session = mysql.openSession('" + _mysql_uri + "');");
+    exec_and_out_equals("var session = mysql.getSession('" + _mysql_uri + "');");
 
     exec_and_out_equals("var result = session.executeSql('select * from js_shell_test.table1;');");
 
@@ -93,6 +97,8 @@ namespace shcore {
     exec_and_out_equals("var metadata = result.columnMetadata");
 
     exec_and_out_equals("print(metadata[0].name)", "id");
+
+    exec_and_out_equals("session.close();");
   }
 
   // Tests resultset.lastInsertId and resultset.getLastInsertId()
@@ -100,11 +106,13 @@ namespace shcore {
   {
     exec_and_out_equals("var mysql = require('mysql').mysql;");
 
-    exec_and_out_equals("var session = mysql.openSession('" + _mysql_uri + "');");
+    exec_and_out_equals("var session = mysql.getSession('" + _mysql_uri + "');");
 
     exec_and_out_equals("var result = session.executeSql('insert into js_shell_test.table1 (`name`) values(\"four\");');");
 
     exec_and_out_equals("print(result.lastInsertId)", "4");
     exec_and_out_equals("print(result.getLastInsertId())", "4");
+
+    exec_and_out_equals("session.close();");
   }
 }

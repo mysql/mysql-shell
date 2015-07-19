@@ -26,21 +26,20 @@ using namespace mysh::mysqlx;
 using namespace shcore;
 
 CollectionRemove::CollectionRemove(boost::shared_ptr<Collection> owner)
-:Crud_definition(boost::static_pointer_cast<DatabaseObject>(owner))
+:Collection_crud_definition(boost::static_pointer_cast<DatabaseObject>(owner))
 {
   // Exposes the methods available for chaining
   add_method("remove", boost::bind(&CollectionRemove::remove, this, _1), "data");
-  add_method("orderBy", boost::bind(&CollectionRemove::order_by, this, _1), "data");
+  add_method("sort", boost::bind(&CollectionRemove::sort, this, _1), "data");
   add_method("limit", boost::bind(&CollectionRemove::limit, this, _1), "data");
   add_method("bind", boost::bind(&CollectionRemove::bind, this, _1), "data");
-  add_method("execute", boost::bind(&Crud_definition::execute, this, _1), "data");
 
   // Registers the dynamic function behavior
   register_dynamic_function("remove", "");
-  register_dynamic_function("orderBy", "remove");
-  register_dynamic_function("limit", "remove, orderBy");
-  register_dynamic_function("bind", "remove, orderBy, limit");
-  register_dynamic_function("execute", "remove, orderBy, limit, bind");
+  register_dynamic_function("sort", "remove");
+  register_dynamic_function("limit", "remove, sort");
+  register_dynamic_function("bind", "remove, sort, limit");
+  register_dynamic_function("execute", "remove, sort, limit, bind");
 
   // Initial function update
   update_functions("");
@@ -59,30 +58,30 @@ shcore::Value CollectionRemove::remove(const shcore::Argument_list &args)
     {
       std::string search_condition;
       if (args.size())
-        search_condition = args[0].as_string();
+        search_condition = args.string_at(0);
 
       _remove_statement.reset(new ::mysqlx::RemoveStatement(collection->_collection_impl->remove(search_condition)));
 
       // Updates the exposed functions
       update_functions("remove");
     }
-    CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionRemove::remove", "string");
+    CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionRemove::remove");
   }
-  
+
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
-shcore::Value CollectionRemove::order_by(const shcore::Argument_list &args)
+shcore::Value CollectionRemove::sort(const shcore::Argument_list &args)
 {
-  args.ensure_count(1, "CollectionRemove::orderBy");
+  args.ensure_count(1, "CollectionRemove::sort");
 
   try
   {
-    _remove_statement->orderBy(args[0].as_string());
+    _remove_statement->sort(args.string_at(0));
 
-    update_functions("orderBy");
+    update_functions("sort");
   }
-  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionRemove::orderBy", "string");
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionRemove::sort");
 
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
@@ -93,11 +92,11 @@ shcore::Value CollectionRemove::limit(const shcore::Argument_list &args)
 
   try
   {
-    _remove_statement->limit(args[0].as_uint());
+    _remove_statement->limit(args.uint_at(0));
 
     update_functions("limit");
   }
-  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionRemove::limit", "integer");
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionRemove::limit");
 
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }

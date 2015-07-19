@@ -19,6 +19,12 @@
 
 #include "mod_mysqlx_schema.h"
 #include "mod_mysqlx_table.h"
+#include <boost/bind.hpp>
+
+#include "mod_mysqlx_table_insert.h"
+#include "mod_mysqlx_table_delete.h"
+#include "mod_mysqlx_table_update.h"
+#include "mod_mysqlx_table_select.h"
 
 using namespace mysh;
 using namespace mysh::mysqlx;
@@ -27,13 +33,51 @@ using namespace shcore;
 Table::Table(boost::shared_ptr<Schema> owner, const std::string &name)
 : DatabaseObject(owner->_session.lock(), boost::static_pointer_cast<DatabaseObject>(owner), name), _table_impl(owner->_schema_impl->getTable(name))
 {
+  init();
 }
 
 Table::Table(boost::shared_ptr<const Schema> owner, const std::string &name) :
 DatabaseObject(owner->_session.lock(), boost::const_pointer_cast<Schema>(owner), name)
 {
+  init();
+}
+
+void Table::init()
+{
+  add_method("insert", boost::bind(&Table::insert_, this, _1), "searchCriteria", shcore::String, NULL);
+  add_method("update", boost::bind(&Table::update_, this, _1), "searchCriteria", shcore::String, NULL);
+  add_method("select", boost::bind(&Table::select_, this, _1), "searchCriteria", shcore::String, NULL);
+  add_method("delete", boost::bind(&Table::delete_, this, _1), "searchCriteria", shcore::String, NULL);
 }
 
 Table::~Table()
 {
+}
+
+shcore::Value Table::insert_(const shcore::Argument_list &args)
+{
+  boost::shared_ptr<TableInsert> tableInsert(new TableInsert(shared_from_this()));
+
+  return tableInsert->insert(args);
+}
+
+shcore::Value Table::update_(const shcore::Argument_list &args)
+{
+  boost::shared_ptr<TableUpdate> tableUpdate(new TableUpdate(shared_from_this()));
+
+  return tableUpdate->update(args);
+}
+
+shcore::Value Table::delete_(const shcore::Argument_list &args)
+{
+  boost::shared_ptr<TableDelete> tableDelete(new TableDelete(shared_from_this()));
+
+  return tableDelete->remove(args);
+}
+
+shcore::Value Table::select_(const shcore::Argument_list &args)
+{
+  boost::shared_ptr<TableSelect> tableSelect(new TableSelect(shared_from_this()));
+
+  return tableSelect->select(args);
 }

@@ -41,7 +41,7 @@
 * Helper function to ensure the exceptions generated on the mysqlx_connector
 * are properly translated to the corresponding shcore::Exception type
 */
-static void ATTR_UNUSED translate_crud_exception(const std::string& operation, const std::string& param_type)
+static void ATTR_UNUSED translate_crud_exception(const std::string& operation)
 {
   try
   {
@@ -49,10 +49,7 @@ static void ATTR_UNUSED translate_crud_exception(const std::string& operation, c
   }
   catch (shcore::Exception &e)
   {
-    if (e.is_type())
-      throw shcore::Exception::argument_error(operation + ": " + param_type + " parameter required.");
-    else
-      throw shcore::Exception::argument_error(operation + ": " + e.what());
+    throw shcore::Exception::argument_error(operation + ": " + e.what());
   }
   catch (std::runtime_error &e)
   {
@@ -64,9 +61,9 @@ static void ATTR_UNUSED translate_crud_exception(const std::string& operation, c
   }
 }
 
-#define CATCH_AND_TRANSLATE_CRUD_EXCEPTION(operation,param_type)   \
+#define CATCH_AND_TRANSLATE_CRUD_EXCEPTION(operation)   \
   catch (...)                   \
-{ translate_crud_exception(operation, param_type); }
+{ translate_crud_exception(operation); }
 
 namespace mysh
 {

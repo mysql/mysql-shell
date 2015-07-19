@@ -22,6 +22,7 @@
 
 #include <Python.h>
 
+#include "shellcore/types_common.h"
 #include "shellcore/shell_python.h"
 
 #include "shellcore/python_type_conversion.h"
@@ -29,6 +30,8 @@
 #include <string>
 
 namespace shcore {
+
+extern "C" void TYPES_COMMON_PUBLIC Python_context_init();
 
 class AutoPyObject
   {
@@ -106,7 +109,7 @@ class AutoPyObject
 
 struct Interpreter_delegate;
 
-class Python_context
+class TYPES_COMMON_PUBLIC Python_context
 {
 public:
   Python_context(Interpreter_delegate *deleg) throw (Exception);

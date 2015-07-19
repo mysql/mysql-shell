@@ -237,6 +237,7 @@ namespace shcore {
     const std::string &string_at(unsigned int i) const;
     bool bool_at(unsigned int i) const;
     int64_t int_at(unsigned int i) const;
+    uint64_t uint_at(unsigned int i) const;
     double double_at(unsigned int i) const;
     boost::shared_ptr<Object_bridge> object_at(unsigned int i) const;
     boost::shared_ptr<Value::Map_type> map_at(unsigned int i) const;

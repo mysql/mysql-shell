@@ -44,7 +44,7 @@ namespace shcore {
       _shell_core->switch_mode(Shell_core::Mode_JScript, initilaized);
 
       // Sets the correct functions to be validated
-      set_functions("remove, orderBy, limit, bind, execute");
+      set_functions("remove, sort, limit, bind, execute");
     }
   };
 
@@ -52,12 +52,14 @@ namespace shcore {
   {
     exec_and_out_equals("var mysqlx = require('mysqlx').mysqlx;");
 
-    exec_and_out_equals("var session = mysqlx.openNodeSession('" + _uri + "');");
+    exec_and_out_equals("var session = mysqlx.getNodeSession('" + _uri + "');");
 
     exec_and_out_equals("session.executeSql('drop schema if exists js_shell_test;')");
     exec_and_out_equals("session.executeSql('create schema js_shell_test;')");
     exec_and_out_equals("session.executeSql('use js_shell_test;')");
     exec_and_out_equals("session.executeSql(\"create table `collection1`(`doc` JSON, `_id` VARBINARY(16) GENERATED ALWAYS AS(unhex(json_unquote(json_extract(doc, '$._id')))) stored PRIMARY KEY)\")");
+
+    exec_and_out_equals("session.close();");
   }
 
   TEST_F(Shell_js_mysqlx_collection_remove_tests, chain_combinations)
@@ -67,7 +69,7 @@ namespace shcore {
 
     exec_and_out_equals("var mysqlx = require('mysqlx').mysqlx;");
 
-    exec_and_out_equals("var session = mysqlx.openSession('" + _uri + "');");
+    exec_and_out_equals("var session = mysqlx.getSession('" + _uri + "');");
 
     exec_and_out_equals("var collection = session.js_shell_test.getCollection('collection1');");
 
@@ -83,7 +85,7 @@ namespace shcore {
     //       once they are enabled
     {
       SCOPED_TRACE("Testing function availability after remove.");
-      ensure_available_functions("orderBy, limit, bind, execute");
+      ensure_available_functions("sort, limit, bind, execute");
     }
 
     // Now executes limit
@@ -92,12 +94,14 @@ namespace shcore {
       exec_and_out_equals("crud.limit(1)");
       ensure_available_functions("bind, execute");
     }
+
+    exec_and_out_equals("session.close();");
   }
 
   TEST_F(Shell_js_mysqlx_collection_remove_tests, remove_validations)
   {
     exec_and_out_equals("var mysqlx = require('mysqlx').mysqlx;");
-    exec_and_out_equals("var session = mysqlx.openNodeSession('" + _uri + "');");
+    exec_and_out_equals("var session = mysqlx.getNodeSession('" + _uri + "');");
     exec_and_out_equals("var schema = session.getSchema('js_shell_test');");
     exec_and_out_equals("var collection = schema.getCollection('collection1');");
 
@@ -105,31 +109,33 @@ namespace shcore {
     {
       SCOPED_TRACE("Testing parameter validation on remove");
       exec_and_out_equals("collection.remove();");
-      exec_and_out_contains("collection.remove(5);", "", "CollectionRemove::remove: string parameter required.");
+      exec_and_out_contains("collection.remove(5);", "", "CollectionRemove::remove: Argument #1 is expected to be a string");
       exec_and_out_contains("collection.remove('test = \"2');", "", "CollectionRemove::remove: Unterminated quoted string starting at 8");
       exec_and_out_equals("collection.remove('test = \"2\"');");
     }
 
     {
-      SCOPED_TRACE("Testing parameter validation on orderBy");
-      exec_and_out_contains("collection.remove().orderBy();", "", "Invalid number of arguments in CollectionRemove::orderBy");
-      exec_and_out_contains("collection.remove().orderBy(5);", "", "CollectionRemove::orderBy: string parameter required.");
+      SCOPED_TRACE("Testing parameter validation on sort");
+      exec_and_out_contains("collection.remove().sort();", "", "Invalid number of arguments in CollectionRemove::sort, expected 1 but got 0");
+      exec_and_out_contains("collection.remove().sort(5);", "", "CollectionRemove::sort: Argument #1 is expected to be a string");
     }
 
     {
       SCOPED_TRACE("Testing parameter validation on limit");
-      exec_and_out_contains("collection.remove().limit();", "", "Invalid number of arguments in CollectionRemove::limit");
-      exec_and_out_contains("collection.remove().limit('');", "", "CollectionRemove::limit: integer parameter required.");
+      exec_and_out_contains("collection.remove().limit();", "", "Invalid number of arguments in CollectionRemove::limit, expected 1 but got 0");
+      exec_and_out_contains("collection.remove().limit('');", "", "CollectionRemove::limit: Argument #1 is expected to be an unsigned int");
       exec_and_out_equals("collection.remove().limit(5);");
     }
 
     exec_and_out_contains("collection.remove().bind();", "", "CollectionRemove::bind: not yet implemented.");
+
+    exec_and_out_equals("session.close();");
   }
 
   TEST_F(Shell_js_mysqlx_collection_remove_tests, remove_execution)
   {
     exec_and_out_equals("var mysqlx = require('mysqlx').mysqlx;");
-    exec_and_out_equals("var session = mysqlx.openNodeSession('" + _uri + "');");
+    exec_and_out_equals("var session = mysqlx.getNodeSession('" + _uri + "');");
     exec_and_out_equals("var schema = session.getSchema('js_shell_test');");
     exec_and_out_equals("var collection = schema.getCollection('collection1');");
 

@@ -56,7 +56,7 @@ namespace mysh
 
       // Virtual methods from ISession
       virtual shcore::Value connect(const shcore::Argument_list &args);
-      virtual void disconnect() { _conn.reset(); }
+      virtual shcore::Value close(const shcore::Argument_list &args);
       virtual shcore::Value executeSql(const shcore::Argument_list &args);
       virtual bool is_connected() const { return _conn ? true : false; }
 

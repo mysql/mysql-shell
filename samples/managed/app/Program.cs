@@ -84,6 +84,16 @@ namespace SimpleShellClientSharp
           PrintDocumentResulSet(doc);
       }
 
+      shell.SwitchMode(Mode.Python);
+      while ((query = ReadLineFromPrompt("py")) != null)
+      {
+        if (query == @"\quit") break;
+        ResultSet rs = shell.Execute(query);
+        DocumentResultSet doc = rs as DocumentResultSet;
+        if (doc != null)
+          PrintDocumentResulSet(doc);
+      }
+
       shell.Dispose();
     }
 
