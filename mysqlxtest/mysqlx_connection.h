@@ -70,7 +70,7 @@ namespace mysqlx
   {
   public:
     Connection();
-    ~Connection(){ close(); }
+    ~Connection();
 
     Local_notice_handler set_local_notice_handler(Local_notice_handler handler);
 
@@ -80,6 +80,7 @@ namespace mysqlx
                  const std::string &user, const std::string &pass);
 
     void close();
+    void set_closed();
 
     void send(int mid, const Message &msg);
     Message *recv_next(int &mid);
@@ -137,6 +138,7 @@ namespace mysqlx
     boost::asio::ip::tcp::socket m_socket;
     boost::asio::deadline_timer m_deadline;
     bool m_trace_packets;
+    bool m_closed;
   };
   
   typedef boost::shared_ptr<Connection> ConnectionRef;

@@ -173,11 +173,25 @@ boost::shared_ptr<Session> mysqlx::openSession(const std::string &host, int port
 }
 
 Connection::Connection()
-: m_socket(m_ios), m_deadline(m_ios), m_trace_packets(false)
+: m_socket(m_ios), m_deadline(m_ios), m_trace_packets(false), m_closed(true)
 {
   if (getenv("MYSQLX_TRACE_CONNECTION"))
     m_trace_packets = true;
 }
+
+
+Connection::~Connection()
+{
+  try
+  {
+    close();
+  }
+  catch (Error &e)
+  {
+    // ignore close errors
+  }
+}
+
 
 void Connection::connect(const std::string &uri, const std::string &pass)
 {
@@ -222,6 +236,8 @@ void Connection::connect(const std::string &host, int port)
 
   if (error)
     throw Error(CR_CONNECTION_ERROR, error.message() + " connecting to " + host + ":" + ports);
+
+  m_closed = false;
 }
 
 void Connection::connect(const std::string &host, int port, const std::string &schema,
@@ -233,17 +249,36 @@ void Connection::connect(const std::string &host, int port, const std::string &s
   //authenticate_mysql41(user, pass, schema);
 }
 
+
+void Connection::set_closed()
+{
+  m_closed = true;
+}
+
+
 void Connection::close()
 {
-  Mysqlx::Session::Close close;
-
-  send(Mysqlx::ClientMessages::SESS_CLOSE, close);
+  if (!m_closed)
+  {
+    send(Mysqlx::Session::Close());
+    m_closed = true;
 
   int mid;
+    try
+    {
   std::auto_ptr<Message> message(recv_raw(mid));
-
+      if (mid != Mysqlx::ServerMessages::OK)
+        throw Error(CR_COMMANDS_OUT_OF_SYNC, "Unexpected message received in response to Session.Close");
   m_socket.close();
 }
+    catch (...)
+    {
+      m_socket.close();
+      throw;
+    }
+  }
+}
+
 
 Result *Connection::execute_sql(const std::string &sql)
 {

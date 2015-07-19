@@ -146,6 +146,9 @@ Mysqlx::Datatypes::Any* Collection_Statement::convert_document_value(const Docum
       my_scalar->set_type(Mysqlx::Datatypes::Scalar::V_OCTETS);
       my_scalar->set_v_opaque(column_value);
       break;
+    case DocumentValue::TExpression:
+      // XXX TODO
+      break;
   }
 
   return any;
@@ -493,6 +496,9 @@ Mysqlx::Datatypes::Any* Table_Statement::convert_table_value(const TableValue& v
     case TableValue::TString:
       my_scalar->set_type(Mysqlx::Datatypes::Scalar::V_STRING);
       my_scalar->mutable_v_string()->set_value(column_value);
+      break;
+    case TableValue::TExpression:
+      //XXX TODO
       break;
   }
 
