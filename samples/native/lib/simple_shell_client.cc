@@ -204,7 +204,7 @@ bool Simple_shell_client::connect(const std::string &uri)
     if (_session && _session->is_connected())
     {
       shcore::print("Closing old connection...\n");
-      _session->disconnect();
+      _session->close(shcore::Argument_list());
     }
 
     // strip password from uri
