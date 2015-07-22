@@ -37,7 +37,7 @@ static PyObject *dict_keys(PyShDictObject *self, PyObject *args)
 {
   if (args)
   {
-    PyErr_SetString(PyExc_ValueError, "method takes no arguments");
+    Python_context::set_python_error(PyExc_ValueError, "method takes no arguments");
     return NULL;
   }
 
@@ -55,7 +55,7 @@ static PyObject *dict_items(PyShDictObject *self, PyObject *args)
 {
   if (args)
   {
-    PyErr_SetString(PyExc_ValueError, "method takes no arguments");
+    Python_context::set_python_error(PyExc_ValueError, "method takes no arguments");
     return NULL;
   }
 
@@ -80,7 +80,7 @@ static PyObject *dict_values(PyShDictObject *self, PyObject *args)
 {
   if (args)
   {
-    PyErr_SetString(PyExc_ValueError, "method takes no arguments");
+    Python_context::set_python_error(PyExc_ValueError, "method takes no arguments");
     return NULL;
   }
   Python_context *ctx= Python_context::get_and_check();
@@ -100,7 +100,7 @@ static PyObject *dict_has_key(PyShDictObject *self, PyObject *arg)
 {
   if (!arg)
   {
-    PyErr_SetString(PyExc_ValueError, "missing required argument");
+    Python_context::set_python_error(PyExc_ValueError, "missing required argument");
     return NULL;
   }
 
@@ -121,7 +121,7 @@ static PyObject *dict_update(PyShDictObject *self, PyObject *arg)
 
   if (!arg)
   {
-    PyErr_SetString(PyExc_ValueError, "dict argument required for update()");
+    Python_context::set_python_error(PyExc_ValueError, "dict argument required for update()");
     return NULL;
   }
 
@@ -139,7 +139,7 @@ static PyObject *dict_update(PyShDictObject *self, PyObject *arg)
 
   if (value.type != Map)
   {
-    PyErr_SetString(PyExc_ValueError, "dict argument is not a dictionary");
+    Python_context::set_python_error(PyExc_ValueError, "dict argument is not a dictionary");
     return NULL;
   }
 
@@ -161,7 +161,7 @@ static PyObject *dict_get(PyShDictObject *self, PyObject *arg)
 
   if (!arg)
   {
-    PyErr_SetString(PyExc_ValueError, "dict argument required for get()");
+    Python_context::set_python_error(PyExc_ValueError, "dict argument required for get()");
     return NULL;
   }
 
@@ -182,7 +182,7 @@ static PyObject *dict_get(PyShDictObject *self, PyObject *arg)
       else
       {
         std::string err = std::string("invalid key: ") + key;
-        PyErr_SetString(PyExc_IndexError, err.c_str());
+        Python_context::set_python_error(PyExc_IndexError, err.c_str());
       }
     }
   }
@@ -201,7 +201,7 @@ static PyObject *dict_setdefault(PyShDictObject *self, PyObject *arg)
 
   if (!arg)
   {
-    PyErr_SetString(PyExc_ValueError, "dict argument required for setdefault()");
+    Python_context::set_python_error(PyExc_ValueError, "dict argument required for setdefault()");
     return NULL;
   }
 
@@ -298,7 +298,7 @@ static PyObject *dict_subscript(PyShDictObject *self, PyObject *key)
 
   if (!PyString_Check(key))
   {
-    PyErr_SetString(PyExc_KeyError, "shell.Dict key must be a string");
+    Python_context::set_python_error(PyExc_KeyError, "shell.Dict key must be a string");
     return NULL;
   }
   const char *k= PyString_AsString(key);
@@ -327,7 +327,7 @@ static int dict_as_subscript(PyShDictObject *self, PyObject *key, PyObject *valu
 
   if (!PyString_Check(key))
   {
-    PyErr_SetString(PyExc_KeyError, "shell.Dict key must be a string");
+    Python_context::set_python_error(PyExc_KeyError, "shell.Dict key must be a string");
     return -1;
   }
   const char *k = PyString_AsString(key);
@@ -407,11 +407,11 @@ static PyObject *dict_getattro(PyShDictObject *self, PyObject *attr_name)
       else
       {
         std::string err = std::string("unknown attribute : ") + attrname;
-        PyErr_SetString(PyExc_IndexError, err.c_str());
+        Python_context::set_python_error(PyExc_IndexError, err.c_str());
       }
     }
   }
-  PyErr_SetString(PyExc_KeyError, "shell.Dict key must be a string");
+  Python_context::set_python_error(PyExc_KeyError, "shell.Dict key must be a string");
   return NULL;
 }
 

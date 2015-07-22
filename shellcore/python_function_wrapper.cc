@@ -58,7 +58,7 @@ static PyObject *method_call(PyShFuncObject *self, PyObject *args, PyObject *UNU
     " arguments (" << (int)PyTuple_Size(args) <<
     " given)";
 
-    PyErr_SetString(PyExc_TypeError, err.str().c_str());
+    Python_context::set_python_error(PyExc_TypeError, err.str().c_str());
     return NULL;
   }
 

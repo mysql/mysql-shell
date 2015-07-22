@@ -35,6 +35,7 @@ using namespace shcore;
 Exception::Exception(const boost::shared_ptr<Value::Map_type> e)
 : _error(e)
 {
+  log_error(what());
 }
 
 Exception Exception::argument_error(const std::string &message)
@@ -42,7 +43,8 @@ Exception Exception::argument_error(const std::string &message)
   boost::shared_ptr<Value::Map_type> error(new Value::Map_type());
   (*error)["type"] = Value("ArgumentError");
   (*error)["message"] = Value(message);
-  return Exception(error);
+  Exception e(error);
+  return e;
 }
 
 Exception Exception::attrib_error(const std::string &message)
@@ -50,7 +52,8 @@ Exception Exception::attrib_error(const std::string &message)
   boost::shared_ptr<Value::Map_type> error(new Value::Map_type());
   (*error)["type"] = Value("AttributeError");
   (*error)["message"] = Value(message);
-  return Exception(error);
+  Exception e(error);
+  return e;
 }
 
 Exception Exception::type_error(const std::string &message)
@@ -58,7 +61,8 @@ Exception Exception::type_error(const std::string &message)
   boost::shared_ptr<Value::Map_type> error(new Value::Map_type());
   (*error)["type"] = Value("TypeError");
   (*error)["message"] = Value(message);
-  return Exception(error);
+  Exception e(error);
+  return e;
 }
 
 Exception Exception::value_error(const std::string &message)
@@ -66,7 +70,8 @@ Exception Exception::value_error(const std::string &message)
   boost::shared_ptr<Value::Map_type> error(new Value::Map_type());
   (*error)["type"] = Value("ValueError");
   (*error)["message"] = Value(message);
-  return Exception(error);
+  Exception e(error);
+  return e;
 }
 
 Exception Exception::logic_error(const std::string &message)
@@ -74,7 +79,8 @@ Exception Exception::logic_error(const std::string &message)
   boost::shared_ptr<Value::Map_type> error(new Value::Map_type());
   (*error)["type"] = Value("LogicError");
   (*error)["message"] = Value(message);
-  return Exception(error);
+  Exception e(error);
+  return e;
 }
 
 Exception Exception::runtime_error(const std::string &message)
@@ -82,7 +88,8 @@ Exception Exception::runtime_error(const std::string &message)
   boost::shared_ptr<Value::Map_type> error(new Value::Map_type());
   (*error)["type"] = Value("RuntimeError");
   (*error)["message"] = Value(message);
-  return Exception(error);
+  Exception e(error);
+  return e;
 }
 
 Exception Exception::scripting_error(const std::string &message)
@@ -90,7 +97,8 @@ Exception Exception::scripting_error(const std::string &message)
   boost::shared_ptr<Value::Map_type> error(new Value::Map_type());
   (*error)["type"] = Value("ScriptingError");
   (*error)["message"] = Value(message);
-  return Exception(error);
+  Exception e(error);
+  return e;
 }
 
 Exception Exception::error_with_code(const std::string &type, const std::string &message, int code)
@@ -99,7 +107,8 @@ Exception Exception::error_with_code(const std::string &type, const std::string 
   (*error)["type"] = Value(type);
   (*error)["message"] = Value(message);
   (*error)["code"] = Value(code);
-  return Exception(error);
+  Exception e(error);
+  return e;
 }
 
 Exception Exception::error_with_code_and_state(const std::string &type, const std::string &message, int code, const char *sqlstate)
@@ -109,7 +118,8 @@ Exception Exception::error_with_code_and_state(const std::string &type, const st
   (*error)["message"] = Value(message);
   (*error)["code"] = Value(code);
   (*error)["state"] = Value(std::string(sqlstate));
-  return Exception(error);
+  Exception e(error);  
+  return e;
 }
 
 Exception Exception::parser_error(const std::string &message)
@@ -117,7 +127,8 @@ Exception Exception::parser_error(const std::string &message)
   boost::shared_ptr<Value::Map_type> error(new Value::Map_type());
   (*error)["type"] = Value("ParserError");
   (*error)["message"] = Value(message);
-  return Exception(error);
+  Exception e(error);
+  return e;
 }
 
 const char *Exception::what() const BOOST_NOEXCEPT_OR_NOTHROW

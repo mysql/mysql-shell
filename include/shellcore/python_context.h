@@ -129,6 +129,7 @@ public:
   void set_global(const std::string &name, const Value &value);
 
   static void set_python_error(const std::exception &exc, const std::string &location="");
+  static void set_python_error(PyObject *obj, const std::string &location);
   bool pystring_to_string(PyObject *strobject, std::string &ret_string, bool convert=false);
 
   AutoPyObject get_shell_list_class();

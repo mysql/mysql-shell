@@ -24,7 +24,7 @@ int main(int argc, char **argv)
 
   JScript_context_init();
 #endif
-  //::testing::GTEST_FLAG(filter) = "Shell_js_crud_table_insert_tests*";
+  ::testing::GTEST_FLAG(filter) = "Shell_application_log_tests*";
   ::testing::InitGoogleTest(&argc, argv);
 
   const char *generate_option = "--generate_test_groups=";

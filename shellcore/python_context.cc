@@ -126,7 +126,7 @@ Python_context *Python_context::get_and_check()
   }
   catch (std::exception &exc)
   {
-    PyErr_SetString(PyExc_SystemError, "Could not get SHELL context: "); // TODO: add exc content
+    Python_context::set_python_error(PyExc_SystemError, "Could not get SHELL context: "); // TODO: add exc content
   }
   return NULL;
 }
@@ -219,6 +219,11 @@ void Python_context::set_python_error(const std::exception &exc, const std::stri
   PyErr_SetString(PyExc_SystemError, (location.empty() ? exc.what() : location + ": " + exc.what()).c_str());
 }
 
+void Python_context::set_python_error(PyObject *obj, const std::string &location)
+{
+  log_error(location.c_str());
+  PyErr_SetString(obj, location.c_str());
+}
 
 bool Python_context::pystring_to_string(PyObject *strobject, std::string &ret_string, bool convert)
 {

@@ -128,7 +128,7 @@ static PyObject *object_getattro(PyShObjObject *self, PyObject *attr_name)
     else
     {
       std::string err = std::string("unknown attribute : ") + attrname;
-      PyErr_SetString(PyExc_IndexError, err.c_str());
+      Python_context::set_python_error(PyExc_IndexError, err.c_str());
     }
   }
   return NULL;
@@ -191,7 +191,7 @@ static PyObject *call_object_method(shcore::Object_bridge *object, Value method,
     " arguments (" << (int)PyTuple_Size(args) <<
     " given)";
 
-    PyErr_SetString(PyExc_TypeError, err.str().c_str());
+    Python_context::set_python_error(PyExc_TypeError, err.str().c_str());
     return NULL;
   }
 
@@ -240,14 +240,14 @@ object_callmethod(PyShObjObject *self, PyObject *args)
 
   if (PyTuple_Size(args) < 1 || !(method_name = PyTuple_GetItem(args, 0)) || !PyString_Check(method_name))
   {
-    PyErr_SetString(PyExc_TypeError, "1st argument must be name of method to call");
+    Python_context::set_python_error(PyExc_TypeError, "1st argument must be name of method to call");
     return NULL;
   }
 
   const Value method = self->object->get()->get_member(PyString_AsString(method_name));
   if (!method)
   {
-    PyErr_SetString(PyExc_TypeError, "invalid method");
+    Python_context::set_python_error(PyExc_TypeError, "invalid method");
     return NULL;
   }
 

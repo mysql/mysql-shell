@@ -92,7 +92,7 @@ PyObject *list_item(PyShListObject *self, Py_ssize_t index)
 
   if (index < 0 || index >= (int) self->array->get()->size())
   {
-    PyErr_SetString(PyExc_IndexError, "list index out of range");
+    Python_context::set_python_error(PyExc_IndexError, "list index out of range");
     return NULL;
   }
 
@@ -102,7 +102,7 @@ PyObject *list_item(PyShListObject *self, Py_ssize_t index)
   }
   catch (std::exception &exc)
   {
-    PyErr_SetString(PyExc_RuntimeError, exc.what());
+    Python_context::set_python_error(PyExc_RuntimeError, exc.what());
     return NULL;
   }
 }
@@ -115,7 +115,7 @@ int list_assign(PyShListObject *self, Py_ssize_t index, PyObject *value)
 
   if (index < 0 || index >= (int) self->array->get()->size())
   {
-    PyErr_SetString(PyExc_IndexError, "list index out of range");
+    Python_context::set_python_error(PyExc_IndexError, "list index out of range");
     return -1;
   }
 
@@ -132,7 +132,7 @@ int list_assign(PyShListObject *self, Py_ssize_t index, PyObject *value)
   }
   catch (std::exception &exc)
   {
-    PyErr_SetString(PyExc_RuntimeError, exc.what());
+    Python_context::set_python_error(PyExc_RuntimeError, exc.what());
   }
 
   return -1;
@@ -190,7 +190,7 @@ PyObject *list_append(PyShListObject *self, PyObject *v)
 {
   if (!v)
   {
-    PyErr_SetString(PyExc_ValueError, "missing argument");
+    Python_context::set_python_error(PyExc_ValueError, "missing argument");
     return NULL;
   }
 
@@ -242,7 +242,7 @@ PyObject *list_remove(PyShListObject *self, PyObject *v)
 {
   if (!v)
   {
-    PyErr_SetString(PyExc_ValueError, "missing argument");
+    Python_context::set_python_error(PyExc_ValueError, "missing argument");
     return NULL;
   }
 
@@ -413,7 +413,7 @@ void Python_context::init_shell_list_type()
   PyShListObjectType.tp_new = PyType_GenericNew;
   if (PyType_Ready(&PyShListObjectType) < 0)
   {
-    throw std::runtime_error("Could not initialize Shcore Array type in python");
+        throw std::runtime_error("Could not initialize Shcore Array type in python");
   }
 
   Py_INCREF(&PyShListObjectType);

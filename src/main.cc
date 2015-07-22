@@ -31,9 +31,11 @@
 extern "C" void Python_context_init();
 #endif
 
+
 #include <boost/bind.hpp>
 #include <boost/format.hpp>
 #include <boost/algorithm/string.hpp>
+#include <boost/lexical_cast.hpp>
 #include <boost/pointer_cast.hpp>
 #include <boost/scope_exit.hpp>
 #include <iostream>
@@ -66,7 +68,7 @@ extern char *mysh_get_tty_password(const char *opt_message);
 class Interactive_shell
 {
 public:
-  Interactive_shell(Shell_core::Mode initial_mode);
+  Interactive_shell(Shell_core::Mode initial_mode, ngcommon::Logger::LOG_LEVEL log_level = ngcommon::Logger::LOG_NONE);
   void command_loop();
   int process_stream(std::istream & stream, const std::string& source);
   int process_file(const char *filename);
@@ -94,11 +96,14 @@ public:
   void set_output_format(const std::string& format);
   void set_interactive(bool value);
 
+  void set_log_level(ngcommon::Logger::LOG_LEVEL level) { if (_logger) _logger->set_log_level(level); }
+
 private:
   static char *readline(const char *prompt);
   void process_line(const std::string &line);
   void process_result(shcore::Value result);
   std::string prompt();
+  ngcommon::Logger* _logger;
 
   void switch_shell_mode(Shell_core::Mode mode, const std::vector<std::string> &args);
 
@@ -129,9 +134,14 @@ private:
   Shell_command_handler _shell_command_handler;
 };
 
-Interactive_shell::Interactive_shell(Shell_core::Mode initial_mode) :
+Interactive_shell::Interactive_shell(Shell_core::Mode initial_mode, ngcommon::Logger::LOG_LEVEL log_level) :
 _batch_continue_on_error(false)
 {
+  std::string log_path = get_user_config_path();
+  log_path += "mysqlx.log";
+  ngcommon::Logger::create_instance(log_path.c_str(), false, log_level);
+  _logger = ngcommon::Logger::singleton();
+
 #ifndef WIN32
   rl_initialize();
 #endif
@@ -407,6 +417,7 @@ void Interactive_shell::println(const std::string &str)
 
 void Interactive_shell::print_error(const std::string &error)
 {
+  log_error(error.c_str());
   if (_output_format == "json")
   {
     std::cerr << "{\"error\": \"" << error << "\"}\n";
@@ -788,6 +799,7 @@ void Interactive_shell::print_cmd_line_helper()
   println("  -i, --interactive      To use in batch mode, it forces emulation of interactive mode processing.");
   println("                         Each line on the batch is processed as if it were in interactive mode.");
   println("  --force                To use in SQL batch mode, forces processing to continue if an error is found.");
+  println("  --log-level=value      The log level. Value is an int in the range [1,8], default (1).");
 
   println("");
 }
@@ -804,6 +816,7 @@ public:
   bool print_cmd_line_helper;
   bool force;
   bool interactive;
+  ngcommon::Logger::LOG_LEVEL log_level = ngcommon::Logger::LOG_ERROR;
 
   Shell_command_line_options(int argc, char **argv)
     : Command_line_options(argc, argv)
@@ -812,6 +825,7 @@ public:
     std::string user;
     int port = 0;
     bool needs_password_;
+    char* log_level_value;
 
     needs_password_ = false;
     print_cmd_line_helper = false;
@@ -856,6 +870,21 @@ public:
         force = true;
       else if (check_arg(argv, i, "--interactive", "-i"))
         interactive = true;
+      else if (check_arg_with_value(argv, i, "--log-level", NULL, log_level_value))
+      {
+        try
+        {
+          int nlog_level = boost::lexical_cast<int>(log_level_value);
+          if (nlog_level < 1 || nlog_level > 8)
+            throw 1;
+          log_level = static_cast<ngcommon::Logger::LOG_LEVEL>(nlog_level);
+        }
+        catch (...)
+        {
+          std::cerr << "Value for --log-level must be an integer between 1 and 8.\n";
+          exit_code = 1;
+        }
+      }
       else if (exit_code == 0)
       {
         std::cerr << argv[0] << ": unknown option " << argv[i] << "\n";
@@ -912,7 +941,7 @@ int main(int argc, char **argv)
 #endif
 
   {
-    Interactive_shell shell(options.initial_mode);
+    Interactive_shell shell(options.initial_mode, options.log_level);
 
     shell.set_force(options.force);
     shell.set_output_format(options.output_format);
