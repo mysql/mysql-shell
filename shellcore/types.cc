@@ -35,7 +35,7 @@ using namespace shcore;
 Exception::Exception(const boost::shared_ptr<Value::Map_type> e)
 : _error(e)
 {
-  log_error(what());
+  log_error("%s", what());
 }
 
 Exception Exception::argument_error(const std::string &message)

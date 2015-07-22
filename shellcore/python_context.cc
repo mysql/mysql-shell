@@ -221,7 +221,7 @@ void Python_context::set_python_error(const std::exception &exc, const std::stri
 
 void Python_context::set_python_error(PyObject *obj, const std::string &location)
 {
-  log_error(location.c_str());
+  log_error("%s", location.c_str());
   PyErr_SetString(obj, location.c_str());
 }
 

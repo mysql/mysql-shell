@@ -417,7 +417,7 @@ void Interactive_shell::println(const std::string &str)
 
 void Interactive_shell::print_error(const std::string &error)
 {
-  log_error(error.c_str());
+  log_error("%s", error.c_str());
   if (_output_format == "json")
   {
     std::cerr << "{\"error\": \"" << error << "\"}\n";
@@ -816,10 +816,10 @@ public:
   bool print_cmd_line_helper;
   bool force;
   bool interactive;
-  ngcommon::Logger::LOG_LEVEL log_level = ngcommon::Logger::LOG_ERROR;
+  ngcommon::Logger::LOG_LEVEL log_level;
 
   Shell_command_line_options(int argc, char **argv)
-    : Command_line_options(argc, argv)
+    : Command_line_options(argc, argv), log_level(ngcommon::Logger::LOG_ERROR)
   {
     std::string host;
     std::string user;
