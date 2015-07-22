@@ -245,7 +245,7 @@ void Connection::connect(const std::string &host, int port, const std::string &s
 {
   connect(host, port);
 
-  authenticate_plain(user, pass, schema); (user, pass, schema);
+  authenticate_plain(user, pass, schema);
   //authenticate_mysql41(user, pass, schema);
 }
 

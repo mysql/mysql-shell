@@ -71,6 +71,7 @@ using namespace mysh::mysqlx;
     case shcore::Map:
     case shcore::MapRef:
     case shcore::Function:
+      case shcore::Undefined:
       std::stringstream str;
       str << "Unsupported value received: " << source.descr();
       throw shcore::Exception::argument_error(str.str());
