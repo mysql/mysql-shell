@@ -24,6 +24,11 @@ int main(int argc, char **argv)
 
   JScript_context_init();
 #endif
+  if (!getenv("MYSQL_URI"))
+  {
+    std::cerr << "WARNING: The MYSQL_URI MYSQL_PWD and MYSQL_PORT environment variables are not set\n";
+  }
+
   //::testing::GTEST_FLAG(filter) = "Shell_js_crud_table_insert_tests*";
   ::testing::InitGoogleTest(&argc, argv);
 
