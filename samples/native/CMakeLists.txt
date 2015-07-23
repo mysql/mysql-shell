@@ -24,6 +24,7 @@ file(GLOB app_SRC
       "${PROJECT_SOURCE_DIR}/app/boost_code.cc"
 )
 
+add_definitions(-DBOOST_ALL_NO_LIB)
 add_executable(shell_client_app ${app_SRC})
 
 if (WITH_SAMPLES)
@@ -50,4 +51,3 @@ else()
   )
 endif()
 
-add_definitions(-DBOOST_ALL_NO_LIB)
