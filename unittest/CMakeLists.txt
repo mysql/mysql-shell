@@ -24,6 +24,7 @@ if(WITH_TESTS)
     include_directories(${CMAKE_SOURCE_DIR}/unittest/include 
                 ${CMAKE_SOURCE_DIR}/mysqlxtest
                 ${CMAKE_SOURCE_DIR}/mysqlxtest/common
+                ${CMAKE_SOURCE_DIR}/ext/rapidjson/include
                 ${GTEST_INCLUDE_DIR} 
                 ${CMAKE_SOURCE_DIR}/include
                 ${CMAKE_SOURCE_DIR}/modules

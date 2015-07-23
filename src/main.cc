@@ -31,7 +31,6 @@
 extern "C" void Python_context_init();
 #endif
 
-
 #include <boost/bind.hpp>
 #include <boost/format.hpp>
 #include <boost/algorithm/string.hpp>
@@ -418,9 +417,14 @@ void Interactive_shell::println(const std::string &str)
 void Interactive_shell::print_error(const std::string &error)
 {
   log_error("%s", error.c_str());
-  if (_output_format == "json")
+  if (_output_format == "jsonraw" || _output_format == "jsonpretty")
   {
-    std::cerr << "{\"error\": \"" << error << "\"}\n";
+    shcore::JSON_dumper dumper(_output_format == "jsonpretty");
+    dumper.start_object();
+    dumper.append_string("error", error);
+    dumper.end_object();
+
+    std::cerr << dumper.str() << "\n";
   }
   else
     std::cerr << "ERROR: " << error << "\n";
@@ -645,12 +649,14 @@ void Interactive_shell::process_result(shcore::Value result)
     // If the function is not found the values still needs to be printed
     if (!dump_function)
     {
-      if (_output_format == "json")
+      if (_output_format == "jsonraw" || _output_format == "jsonpretty")
       {
-        std::string output = "{\"__result__\": ";
-        output += result.repr().c_str();
-        output += "}\n";
-        print(output);
+        shcore::JSON_dumper dumper(_output_format == "jsonpretty");
+        dumper.start_object();
+        dumper.append_value("result", result);
+        dumper.end_object();
+
+        print(dumper.str());
       }
       else
         print(result.descr(true).c_str());
@@ -855,8 +861,18 @@ public:
         initial_mode = Shell_core::Mode_SQL;
       else if (check_arg(argv, i, "--js", "--js"))
         initial_mode = Shell_core::Mode_JScript;
-      else if (check_arg(argv, i, "--json", "--json"))
+      else if (check_arg_with_value(argv, i, "--json", NULL, value, "raw"))
+      {
+        if (strcmp(value, "raw") != 0 && strcmp(value, "pretty") != 0)
+        {
+          std::cerr << "Value for --json must be either pretty or raw.\n";
+          exit_code = 1;
+          break;
+        }
+
         output_format = "json";
+        output_format.append(value);
+      }
       else if (check_arg(argv, i, "--table", "--table"))
         output_format = "table";
       else if (check_arg(argv, i, "--py", "--py"))

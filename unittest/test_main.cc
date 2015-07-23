@@ -24,23 +24,22 @@ int main(int argc, char **argv)
 
   JScript_context_init();
 #endif
-  ::testing::GTEST_FLAG(filter) = "Shell_application_log_tests*";
   ::testing::InitGoogleTest(&argc, argv);
 
   const char *generate_option = "--generate_test_groups=";
   if (argc > 1 && strncmp(argv[1], generate_option, strlen(generate_option)) == 0)
   {
-    const char *path = strchr(argv[1], '=')+1;
+    const char *path = strchr(argv[1], '=') + 1;
     std::ofstream f(path);
 
-    std::cout << "Updating "<<path<<"...\n";
+    std::cout << "Updating " << path << "...\n";
     f << "# Automatically generated, use make testgroups to update\n";
 
     ::testing::UnitTest *ut = ::testing::UnitTest::GetInstance();
     for (int i = 0; i < ut->total_test_case_count(); i++)
     {
-       const char *name = ut->GetTestCase(i)->name();
-       f << "add_test(" << name << " run_unit_tests --gtest_filter=" << name << ".*)\n";
+      const char *name = ut->GetTestCase(i)->name();
+      f << "add_test(" << name << " run_unit_tests --gtest_filter=" << name << ".*)\n";
     }
     return 0;
   }

@@ -93,15 +93,15 @@ shcore::Value BaseResultset::print(const shcore::Argument_list &args)
   if (args.size() > 1)
     format = args.string_at(1);
 
-  if (format == "json")
-    print_json();
+  if (format == "jsonraw" || format == "jsonpretty")
+    print_json(format);
   else
     print_normal(interactive, format);
 
   return shcore::Value();
 }
 
-void BaseResultset::print_json()
+void BaseResultset::print_json(const std::string& format)
 {
   shcore::Value::Map_type_ref data(new shcore::Value::Map_type);
 
@@ -126,7 +126,7 @@ void BaseResultset::print_json()
 
   shcore::Value map(data);
 
-  shcore::print(map.repr() + "\n");
+  shcore::print(map.json(format == "jsonpretty") + "\n");
 }
 
 void BaseResultset::print_normal(bool interactive, const std::string& format)
@@ -362,6 +362,17 @@ std::string &Row::append_descr(std::string &s_out, int indent, int UNUSED(quote_
   s_out += "]";
 
   return s_out;
+}
+
+void Row::append_json(const shcore::JSON_dumper& dumper) const
+{
+  dumper.start_array();
+
+  Value::Array_type::const_iterator index, end = values.end();
+  for (index = values.begin(); index != end; index++)
+    dumper.append_value(*index);
+
+  dumper.end_array();
 }
 
 std::string &Row::append_repr(std::string &s_out) const

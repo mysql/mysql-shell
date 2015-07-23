@@ -22,6 +22,7 @@ include_directories("${CMAKE_SOURCE_DIR}/include" "${CMAKE_SOURCE_DIR}/utils" "$
 include_directories( "${CMAKE_SOURCE_DIR}/common/uuid/include" )
 include_directories( "${CMAKE_SOURCE_DIR}/common/myjson/include" )
 include_directories( "${CMAKE_SOURCE_DIR}/common/logger" )
+include_directories( "${CMAKE_SOURCE_DIR}/ext/rapidjson/include" )
 
 
 # Will generate the js_core_definitions file which will contain the 
@@ -52,6 +53,8 @@ file(GLOB libmysqlsh_SRC
     "${CMAKE_SOURCE_DIR}/utils/utils_time.cc"
     "${CMAKE_SOURCE_DIR}/utils/utils_file.h"
     "${CMAKE_SOURCE_DIR}/utils/utils_file.cc"
+    "${CMAKE_SOURCE_DIR}/utils/utils_json.h"
+    "${CMAKE_SOURCE_DIR}/utils/utils_json.cc"
       "*.cc"
     "${CMAKE_SOURCE_DIR}/common/uuid/src/uuid_gen.cc"
     "${CMAKE_SOURCE_DIR}/common/myjson/src/json_parser.cc"

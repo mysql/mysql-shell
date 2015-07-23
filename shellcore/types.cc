@@ -27,6 +27,8 @@
 #include <boost/lexical_cast.hpp>
 #include <cstdio>
 #include <cstring>
+#include <sstream>
+#include <rapidjson/prettywriter.h>
 
 using namespace shcore;
 
@@ -118,7 +120,7 @@ Exception Exception::error_with_code_and_state(const std::string &type, const st
   (*error)["message"] = Value(message);
   (*error)["code"] = Value(code);
   (*error)["state"] = Value(std::string(sqlstate));
-  Exception e(error);  
+  Exception e(error);
   return e;
 }
 
@@ -937,6 +939,16 @@ bool Value::operator == (const Value &other) const
   return false;
 }
 
+std::string Value::json(bool pprint) const
+{
+  std::stringstream s;
+  JSON_dumper dumper(pprint);
+
+  dumper.append_value(*this);
+
+  return dumper.str();
+}
+
 std::string Value::descr(bool pprint) const
 {
   std::string s;
@@ -1360,4 +1372,11 @@ void Argument_list::ensure_at_least(unsigned int minc, const char *context) cons
 {
   if (size() < minc)
     throw Exception::argument_error((boost::format("Invalid number of arguments in %1%, expected at least %2% but got %3%") % context % minc % size()).str());
+}
+
+void Object_bridge::append_json(const JSON_dumper& dumper) const
+{
+  dumper.start_object();
+  dumper.append_string("class", class_name());
+  dumper.end_object();
 }

@@ -57,6 +57,16 @@ std::string &DatabaseObject::append_repr(std::string &s_out) const
   return append_descr(s_out, false);
 }
 
+void DatabaseObject::append_json(const shcore::JSON_dumper& dumper) const
+{
+  dumper.start_object();
+
+  dumper.append_string("class", class_name());
+  dumper.append_string("name", _name);
+
+  dumper.end_object();
+}
+
 std::vector<std::string> DatabaseObject::get_members() const
 {
   std::vector<std::string> members(Cpp_object_bridge::get_members());

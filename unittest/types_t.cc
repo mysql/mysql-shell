@@ -32,17 +32,21 @@ namespace shcore
       shcore::Value v(20);
       std::string mydescr = v.descr(true);
       std::string myrepr = v.repr();
+      std::string myjson = v.json();
 
       EXPECT_EQ(shcore::Integer, v.type);
       EXPECT_STREQ("20", mydescr.c_str());
       EXPECT_STREQ("20", myrepr.c_str());
+      EXPECT_STREQ("20", myjson.c_str());
 
       shcore::Value v2 = Value::parse(myrepr);
       mydescr = v2.descr(true);
       myrepr = v2.repr();
+      myjson = v2.json();
       EXPECT_EQ(shcore::Integer, v2.type);
       EXPECT_STREQ("20", mydescr.c_str());
       EXPECT_STREQ("20", myrepr.c_str());
+      EXPECT_STREQ("20", myjson.c_str());
     }
 
     TEST(ValueTests, SimpleBool)
@@ -53,11 +57,13 @@ namespace shcore
       EXPECT_EQ(shcore::Bool, v.type);
       EXPECT_STREQ("true", v.descr().c_str());
       EXPECT_STREQ("true", v.repr().c_str());
+      EXPECT_STREQ("true", v.json().c_str());
 
       v = shcore::Value(false);
       EXPECT_EQ(shcore::Bool, v.type);
       EXPECT_STREQ("false", v.descr().c_str());
       EXPECT_STREQ("false", v.repr().c_str());
+      EXPECT_STREQ("false", v.json().c_str());
 
       EXPECT_EQ(Value::True().as_bool(), true);
 
@@ -84,10 +90,22 @@ namespace shcore
       shcore::Value v(input);
       std::string mydescr = v.descr(true);
       std::string myrepr = v.repr();
+      std::string myjson = v.json();
 
       EXPECT_EQ(shcore::String, v.type);
       EXPECT_STREQ("Hello world", mydescr.c_str());
       EXPECT_STREQ("\"Hello world\"", myrepr.c_str());
+      EXPECT_STREQ("\"Hello world\"", myjson.c_str());
+
+      shcore::Value v2("Hello / world");
+      mydescr = v2.descr(true);
+      myrepr = v2.repr();
+      myjson = v2.json();
+
+      EXPECT_EQ(shcore::String, v.type);
+      EXPECT_STREQ("Hello / world", mydescr.c_str());
+      EXPECT_STREQ("\"Hello / world\"", myrepr.c_str());
+      EXPECT_STREQ("\"Hello / world\"", myjson.c_str());
     }
 
     TEST(ValueTests, ArrayCompare)

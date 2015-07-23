@@ -48,7 +48,7 @@ namespace mysh
 
     // Printing functions
     shcore::Value print(const shcore::Argument_list &args);
-    void print_json();
+    void print_json(const std::string& format);
     void print_normal(bool interactive, const std::string& format);
     void print_tabbed(shcore::Value::Array_type_ref records);
     void print_table(shcore::Value::Array_type_ref records);
@@ -68,6 +68,7 @@ namespace mysh
 
     virtual std::string &append_descr(std::string &s_out, int indent = -1, int quote_strings = 0) const;
     virtual std::string &append_repr(std::string &s_out) const;
+    virtual void append_json(const shcore::JSON_dumper& dumper) const;
 
     //! Returns the list of members that this object has
     virtual std::vector<std::string> get_members() const;

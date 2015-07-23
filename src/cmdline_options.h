@@ -42,22 +42,27 @@ protected:
     return false;
   }
 
-  bool check_arg_with_value(char **argv, int &argi, const char *arg, const char *larg, char *&value)
+  bool check_arg_with_value(char **argv, int &argi, const char *arg, const char *larg, char *&value, char* def = NULL)
   {
     // --option value or -o value
     if (strcmp(argv[argi], arg) == 0 || (larg && strcmp(argv[argi], larg) == 0))
     {
-      // value must be in next arg
-      if (argv[argi+1] != NULL)
+      // value must be in next arg and can't start with - which indicates next option
+      if (argv[argi + 1] != NULL && strncmp(argv[argi + 1], "-", 1)!=0)
       {
         ++argi;
         value = argv[argi];
       }
       else
       {
-        std::cerr << argv[0] << ": option " << argv[argi] << " requires an argument\n";
-        exit_code = 1;
-        return false;
+        if (def)
+          value = def;
+        else
+        {
+          std::cerr << argv[0] << ": option " << argv[argi] << " requires an argument\n";
+          exit_code = 1;
+          return false;
+        }
       }
       return true;
     }
