@@ -143,6 +143,8 @@ include_directories( ${CMAKE_BINARY_DIR}/include/ )
 
 
 if(NOT WIN32)
+  # make some overzealous warnings into non errors
+  set(MY_CXX_WARNING_FLAGS "${MY_CXX_WARNING_FLAGS} -Wno-error=unused-value,unused-variable")
   add_subdirectory(src/libedit)
 endif()
 
@@ -199,7 +201,7 @@ IF (HAVE_V8)
     # has to be after src/libedit
     add_definitions(-std=gnu++0x -mmacosx-version-min=10.7)
   endif()
-ENDIF()  
+ENDIF()
 
 IF (HAVE_PYTHON)
   include_directories(${PYTHON_INCLUDE_DIRS})
@@ -243,7 +245,7 @@ add_subdirectory(modules)
 # mysh cmdline util build
 if(NOT WIN32)
   include_directories( "${PROJECT_SOURCE_DIR}/src/libedit" )
-endif()				   
+endif()
 
 file(GLOB mysh_SRC
     "${PROJECT_SOURCE_DIR}/src/*.cc"

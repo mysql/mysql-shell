@@ -84,7 +84,7 @@ Value Session::connect(const Argument_list &args)
   std::string uri_stripped;
 
   int pwd_found;
-  int port = 0;
+  int port = 3306;
 
   // If password is received as parameter, then it overwrites
   // Anything found on the URI
@@ -102,13 +102,6 @@ Value Session::connect(const Argument_list &args)
   }
   else if (args[0].type == Map)
   {
-    std::string host;
-    int port = 33060;
-    std::string schema;
-    std::string socket;
-    std::string user;
-    std::string password;
-
     shcore::Value::Map_type_ref options = args[0].as_map();
 
     if (options->has_key("host"))
@@ -118,18 +111,18 @@ Value Session::connect(const Argument_list &args)
       port = (*options)["port"].as_int();
 
     if (options->has_key("schema"))
-      schema = (*options)["schema"].as_string();
+      db = (*options)["schema"].as_string();
 
     if (options->has_key("dbUser"))
       user = (*options)["dbUser"].as_string();
 
     if (options->has_key("dbPassword"))
-      password = (*options)["dbPassword"].as_string();
+      pass = (*options)["dbPassword"].as_string();
 
     if (pwd_override)
-      password.assign(pwd_override);
+      pass.assign(pwd_override);
 
-    _conn.reset(new Connection(host, port, socket, user, password, schema));
+    _conn.reset(new Connection(host, port, sock, user, pass, db));
   }
   else
     throw shcore::Exception::argument_error("Unexpected argument on connection data.");

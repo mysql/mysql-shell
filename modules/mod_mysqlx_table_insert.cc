@@ -98,7 +98,7 @@ shcore::Value TableInsert::insert(const shcore::Argument_list &args)
           shcore::Value::Map_type::iterator index = sh_columns_and_values->begin(),
                                             end = sh_columns_and_values->end();
 
-          for (index; index != end; index++)
+          for (; index != end; index++)
           {
             columns.push_back(index->first);
             values.push_back(map_table_value(index->second));
