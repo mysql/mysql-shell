@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
@@ -34,7 +34,8 @@ namespace shcore
   // they
   class TYPES_COMMON_PUBLIC Writer_base
   {
-  protected:
+    protected:
+  
     class SStream
     {
     public:
@@ -49,7 +50,9 @@ namespace shcore
 
     SStream _data;
 
-  public:
+    public:
+    virtual ~Writer_base(){}
+    
     virtual void start_array() = 0;
     virtual void end_array() = 0;
     virtual void start_object() = 0;
@@ -71,6 +74,7 @@ namespace shcore
   {
   public:
     Raw_writer() :_writer(_data){};
+    virtual ~Raw_writer(){}
 
     virtual void start_array(){ _writer.StartArray(); }
     virtual void end_array() { _writer.EndArray(); }
@@ -94,6 +98,7 @@ namespace shcore
   {
   public:
     Pretty_writer() :_writer(_data){};
+    virtual ~Pretty_writer(){}
 
     virtual void start_array(){ _writer.StartArray(); }
     virtual void end_array() { _writer.EndArray(); }
@@ -116,21 +121,9 @@ namespace shcore
   struct Value;
   class TYPES_COMMON_PUBLIC JSON_dumper
   {
-    class SStream
-    {
-    public:
-      void Put(char c)
-      {
-        data += c;
-      }
-      void Flush(){}
-
-      ::std::string data;
-    };
-
   public:
     JSON_dumper(bool pprint = false);
-    ~JSON_dumper();
+    virtual ~JSON_dumper();
 
     void start_array()  const { _writer->start_array(); }
     void end_array()    const { _writer->end_array(); }
