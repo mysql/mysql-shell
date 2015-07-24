@@ -75,6 +75,8 @@ else()
 #  list(REMOVE_ITEM libmysqlsh_SRC "${CMAKE_SOURCE_DIR}/shellcore/shell_core.cc")
   list(REMOVE_ITEM libmysqlsh_SRC "${CMAKE_SOURCE_DIR}/shellcore/common.cc")
   list(REMOVE_ITEM libmysqlsh_SRC "${CMAKE_SOURCE_DIR}/shellcore/obj_date.cc")
+  list(REMOVE_ITEM libmysqlsh_SRC "${CMAKE_SOURCE_DIR}/utils/utils_json.h")
+  list(REMOVE_ITEM libmysqlsh_SRC "${CMAKE_SOURCE_DIR}/utils/utils_json.cc")
 endif()
 
 

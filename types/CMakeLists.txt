@@ -28,6 +28,8 @@ file(GLOB libmysqlshtypes_SRC
     "${CMAKE_SOURCE_DIR}/shellcore/obj_date.cc"
     "${CMAKE_SOURCE_DIR}/types/ishell_core.cc"
     "${CMAKE_SOURCE_DIR}/common/logger/logger.cc"
+    "${CMAKE_SOURCE_DIR}/utils/utils_json.h"
+    "${CMAKE_SOURCE_DIR}/utils/utils_json.cc"
 )
 
 if(WINDOWS_RUNTIME_MD)
