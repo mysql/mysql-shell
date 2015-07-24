@@ -54,7 +54,7 @@ using namespace mysh::mysqlx;
                          if (expression)
                          {
                            std::string expr_data = expression->get_data();
-                           if (expr_data.empty())
+                           if (!expr_data.empty())
                              return ::mysqlx::TableValue(expr_data, ::mysqlx::TableValue::TExpression);
                            else
                              throw shcore::Exception::argument_error("Expressions can not be empty.");
@@ -71,7 +71,7 @@ using namespace mysh::mysqlx;
     case shcore::Map:
     case shcore::MapRef:
     case shcore::Function:
-      case shcore::Undefined:
+    case shcore::Undefined:
       std::stringstream str;
       str << "Unsupported value received: " << source.descr();
       throw shcore::Exception::argument_error(str.str());
