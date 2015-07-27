@@ -51,7 +51,7 @@ public:
       column_identifier(*colid);
     }
     if (_tokenizer.tokens_available())    
-      throw Parser_error((boost::format("Expr parser: Expected EOF, instead stopped at token position %d") % _tokenizer.get_token_pos()).str());
+      throw Parser_error((boost::format("Projection parser: Expected EOF, instead stopped at token position %d") % _tokenizer.get_token_pos()).str());
   }
 
   const std::string& id();

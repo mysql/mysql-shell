@@ -69,6 +69,8 @@ Tokenizer::Maps::Maps()
   reserved_words["year"] = Token::YEAR;
   reserved_words["microsecond"] = Token::MICROSECOND;
   reserved_words["as"] = Token::AS;
+  reserved_words["asc"] = Token::ASC;
+  reserved_words["desc"] = Token::DESC;
 
   interval_units.insert(Token::MICROSECOND);
   interval_units.insert(Token::SECOND);
@@ -1377,12 +1379,36 @@ std::string Expr_unparser::column_to_string(const Mysqlx::Crud::Projection& c)
   return result;
 }
 
+std::string Expr_unparser::order_to_string(const Mysqlx::Crud::Order& c)
+{
+  std::string result = Expr_unparser::expr_to_string(c.field());
+  if (( !c.has_direction() ) || ( c.direction() == Mysqlx::Crud::Order_Direction_ASC ))
+    result += " asc";
+  else
+    result += " desc";
+  return result;
+}
+
 std::string Expr_unparser::column_list_to_string(google::protobuf::RepeatedPtrField< ::Mysqlx::Crud::Projection > columns)
 {
   std::string result("projection (");
   for (int i = 0; i < columns.size(); i++)
   {
     std::string strcol = Expr_unparser::column_to_string(columns.Get(i));
+    result += strcol;
+    if (i + 1 < columns.size())
+      result += ", ";
+  }
+  result += ")";
+  return result;
+}
+
+std::string Expr_unparser::order_list_to_string(google::protobuf::RepeatedPtrField< ::Mysqlx::Crud::Order> columns)
+{
+  std::string result("orderby (");
+  for (int i = 0; i < columns.size(); i++)
+  {
+    std::string strcol = Expr_unparser::order_to_string(columns.Get(i));
     result += strcol;
     if (i + 1 < columns.size())
       result += ", ";
