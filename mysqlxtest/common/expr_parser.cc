@@ -37,7 +37,6 @@
 
 using namespace mysqlx;
 
-
 struct Tokenizer::Maps Tokenizer::map;
 
 Tokenizer::Maps::Maps()
@@ -843,7 +842,7 @@ Mysqlx::Expr::Expr* Expr_parser::atomic_expr()
     const std::string& val = t.get_text();
     if (val.find(".") != std::string::npos)
     {
-            return Expr_builder::build_literal_expr(Expr_builder::build_double_any(boost::lexical_cast<double>(val.c_str())));
+      return Expr_builder::build_literal_expr(Expr_builder::build_double_any(boost::lexical_cast<double>(val.c_str())));
     }
     else
     {
@@ -883,12 +882,12 @@ Mysqlx::Expr::Expr* Expr_parser::atomic_expr()
   else if (type == Token::MUL)
   {
     _tokenizer.unget_token();
-return column_identifier();
+    return column_identifier();
   }
   else if (type == Token::IDENT || type == Token::DOT)
   {
     _tokenizer.unget_token();
-    if ( type == Token::IDENT && ( _tokenizer.next_token_type(Token::LPAREN) ||
+    if (type == Token::IDENT && (_tokenizer.next_token_type(Token::LPAREN) ||
       (_tokenizer.next_token_type(Token::DOT) && _tokenizer.pos_token_type_is(_tokenizer.get_token_pos() + 2, Token::IDENT) && _tokenizer.pos_token_type_is(_tokenizer.get_token_pos() + 3, Token::LPAREN))))
     {
       return function_call();
@@ -1126,12 +1125,12 @@ Mysqlx::Expr::Expr* Expr_parser::my_expr()
  */
 Mysqlx::Expr::Expr* Expr_parser::expr()
 {
- std::auto_ptr<Mysqlx::Expr::Expr> result(or_expr());
- if (_tokenizer.tokens_available())
- {
-   throw Parser_error((boost::format("Expr parser: Expected EOF, instead stopped at position %d") % _tokenizer.get_token_pos()).str());
- }
- return result.release();
+  std::auto_ptr<Mysqlx::Expr::Expr> result(or_expr());
+  if (_tokenizer.tokens_available())
+  {
+    throw Parser_error((boost::format("Expr parser: Expected EOF, instead stopped at position %d") % _tokenizer.get_token_pos()).str());
+  }
+  return result.release();
 }
 
 std::string Expr_unparser::any_to_string(const Mysqlx::Datatypes::Any& a)
@@ -1165,15 +1164,15 @@ std::string Expr_unparser::scalar_to_string(const Mysqlx::Datatypes::Scalar& s)
       return (boost::format("%f") % s.v_double()).str();
     case Mysqlx::Datatypes::Scalar::V_BOOL:
     {
-      if (s.v_bool())
-        return "TRUE";
-      else
-        return "FALSE";
+                                            if (s.v_bool())
+                                              return "TRUE";
+                                            else
+                                              return "FALSE";
     }
     case Mysqlx::Datatypes::Scalar::V_OCTETS:
     {
-      const char* value = s.v_opaque().c_str();
-      return "\"" + Expr_unparser::escape_literal(value) + "\"";
+                                              const char* value = s.v_opaque().c_str();
+                                              return "\"" + Expr_unparser::escape_literal(value) + "\"";
     }
     case Mysqlx::Datatypes::Scalar::V_NULL:
       return "NULL";
@@ -1371,18 +1370,18 @@ std::string Expr_unparser::expr_to_string(const Mysqlx::Expr::Expr& e)
 
 std::string Expr_unparser::column_to_string(const Mysqlx::Crud::Projection& c)
 {
-  std::string result = c.target_alias();
-  if (c.target_path_size() != 0)
-    result += "@" + Expr_unparser::document_path_to_string(c.target_path());
-  //if (c.has_alias())
-  //  result += " as " + c.alias();
+  std::string result;
+
+  if (c.has_alias())
+    result = c.alias();
+
   return result;
 }
 
 std::string Expr_unparser::order_to_string(const Mysqlx::Crud::Order& c)
 {
-  std::string result = Expr_unparser::expr_to_string(c.field());
-  if (( !c.has_direction() ) || ( c.direction() == Mysqlx::Crud::Order_Direction_ASC ))
+  std::string result = Expr_unparser::expr_to_string(c.expr());
+  if ((!c.has_direction()) || (c.direction() == Mysqlx::Crud::Order_Direction_ASC))
     result += " asc";
   else
     result += " desc";

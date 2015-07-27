@@ -280,6 +280,12 @@ void Connection::close()
 }
 
 
+Result *Connection::recv_result()
+{
+  return new Result(this, true);
+}
+
+
 Result *Connection::execute_sql(const std::string &sql)
 {
   {
@@ -609,17 +615,17 @@ Message *Connection::recv_payload(const int mid, const std::size_t msglen)
       case Mysqlx::ServerMessages::SESS_AUTHENTICATE_OK:
         ret_val = new Mysqlx::Session::AuthenticateOk();
         break;
-      case Mysqlx::ServerMessages::SQL_COLUMN_META_DATA:
-        ret_val = new Mysqlx::Sql::ColumnMetaData();
+      case Mysqlx::ServerMessages::RESULTSET_COLUMN_META_DATA:
+        ret_val = new Mysqlx::Resultset::ColumnMetaData();
         break;
-      case Mysqlx::ServerMessages::SQL_ROW:
-        ret_val = new Mysqlx::Sql::Row();
+      case Mysqlx::ServerMessages::RESULTSET_ROW:
+        ret_val = new Mysqlx::Resultset::Row();
         break;
-      case Mysqlx::ServerMessages::SQL_RESULT_FETCH_DONE:
-        ret_val = new Mysqlx::Sql::ResultFetchDone();
+      case Mysqlx::ServerMessages::RESULTSET_FETCH_DONE:
+        ret_val = new Mysqlx::Resultset::FetchDone();
         break;
-      case Mysqlx::ServerMessages::SQL_RESULT_FETCH_DONE_MORE_RESULTSETS:
-        ret_val = new Mysqlx::Sql::ResultFetchDoneMoreResultsets();
+      case Mysqlx::ServerMessages::RESULTSET_FETCH_DONE_MORE_RESULTSETS:
+        ret_val = new Mysqlx::Resultset::FetchDoneMoreResultsets();
         break;
       case  Mysqlx::ServerMessages::SESS_AUTHENTICATE_FAIL:
         ret_val = new Mysqlx::Session::AuthenticateFail();
@@ -835,7 +841,7 @@ int Result::get_message_id()
                             m_state = ReadDone;
                             return current_message_id;
 
-                          case Mysqlx::ServerMessages::SQL_COLUMN_META_DATA:
+        case Mysqlx::ServerMessages::RESULTSET_COLUMN_META_DATA:
                             m_state = ReadMetadata;
                             return current_message_id;
                         }
@@ -848,15 +854,15 @@ int Result::get_message_id()
                        // or EORows, which signals end of metadata AND empty resultset
                        switch (current_message_id)
                        {
-                         case Mysqlx::ServerMessages::SQL_COLUMN_META_DATA:
+      case Mysqlx::ServerMessages::RESULTSET_COLUMN_META_DATA:
                            m_state = ReadMetadata;
                            return current_message_id;
 
-                         case Mysqlx::ServerMessages::SQL_ROW:
+        case Mysqlx::ServerMessages::RESULTSET_ROW:
                            m_state = ReadRows;
                            return current_message_id;
 
-                         case Mysqlx::ServerMessages::SQL_RESULT_FETCH_DONE:
+        case Mysqlx::ServerMessages::RESULTSET_FETCH_DONE:
                            // empty resultset
                            m_state = ReadStmtOk;
                            return current_message_id;
@@ -867,14 +873,14 @@ int Result::get_message_id()
     {
                    switch (current_message_id)
                    {
-                     case Mysqlx::ServerMessages::SQL_ROW:
+        case Mysqlx::ServerMessages::RESULTSET_ROW:
                        return current_message_id;
 
-                     case Mysqlx::ServerMessages::SQL_RESULT_FETCH_DONE:
+        case Mysqlx::ServerMessages::RESULTSET_FETCH_DONE:
                        m_state = ReadStmtOk;
                        return current_message_id;
 
-                     case Mysqlx::ServerMessages::SQL_RESULT_FETCH_DONE_MORE_RESULTSETS:
+        case Mysqlx::ServerMessages::RESULTSET_FETCH_DONE_MORE_RESULTSETS:
                        m_state = ReadMetadata;
                        return current_message_id;
                    }
@@ -910,43 +916,44 @@ mysqlx::Message* Result::pop_message()
   return result;
 }
 
-static ColumnMetadata unwrap_column_metadata(const Mysqlx::Sql::ColumnMetaData &column_data)
+
+static ColumnMetadata unwrap_column_metadata(const Mysqlx::Resultset::ColumnMetaData &column_data)
 {
   ColumnMetadata column;
 
   switch (column_data.type())
   {
-    case Mysqlx::Sql::ColumnMetaData::SINT:
+    case Mysqlx::Resultset::ColumnMetaData::SINT:
       column.type = mysqlx::SINT;
       break;
-    case Mysqlx::Sql::ColumnMetaData::UINT:
+    case Mysqlx::Resultset::ColumnMetaData::UINT:
       column.type = mysqlx::UINT;
       break;
-    case Mysqlx::Sql::ColumnMetaData::DOUBLE:
+    case Mysqlx::Resultset::ColumnMetaData::DOUBLE:
       column.type = mysqlx::DOUBLE;
       break;
-    case Mysqlx::Sql::ColumnMetaData::FLOAT:
+    case Mysqlx::Resultset::ColumnMetaData::FLOAT:
       column.type = mysqlx::FLOAT;
       break;
-    case Mysqlx::Sql::ColumnMetaData::BYTES:
+    case Mysqlx::Resultset::ColumnMetaData::BYTES:
       column.type = mysqlx::BYTES;
       break;
-    case Mysqlx::Sql::ColumnMetaData::TIME:
+    case Mysqlx::Resultset::ColumnMetaData::TIME:
       column.type = mysqlx::TIME;
       break;
-    case Mysqlx::Sql::ColumnMetaData::DATETIME:
+    case Mysqlx::Resultset::ColumnMetaData::DATETIME:
       column.type = mysqlx::DATETIME;
       break;
-    case Mysqlx::Sql::ColumnMetaData::SET:
+    case Mysqlx::Resultset::ColumnMetaData::SET:
       column.type = mysqlx::SET;
       break;
-    case Mysqlx::Sql::ColumnMetaData::ENUM:
+    case Mysqlx::Resultset::ColumnMetaData::ENUM:
       column.type = mysqlx::ENUM;
       break;
-    case Mysqlx::Sql::ColumnMetaData::BIT:
+    case Mysqlx::Resultset::ColumnMetaData::BIT:
       column.type = mysqlx::BIT;
       break;
-    case Mysqlx::Sql::ColumnMetaData::DECIMAL:
+    case Mysqlx::Resultset::ColumnMetaData::DECIMAL:
       column.type = mysqlx::DECIMAL;
       break;
   }
@@ -990,10 +997,10 @@ void Result::read_metadata()
 
     msgid = get_message_id();
 
-    if (msgid == Mysqlx::ServerMessages::SQL_COLUMN_META_DATA)
+    if (msgid == Mysqlx::ServerMessages::RESULTSET_COLUMN_META_DATA)
     {
       msgid = -1;
-      std::auto_ptr<Mysqlx::Sql::ColumnMetaData> column_data(static_cast<Mysqlx::Sql::ColumnMetaData*>(pop_message()));
+      std::auto_ptr<Mysqlx::Resultset::ColumnMetaData> column_data(static_cast<Mysqlx::Resultset::ColumnMetaData*>(pop_message()));
 
       m_columns->push_back(unwrap_column_metadata(*column_data));
     }
@@ -1011,8 +1018,8 @@ std::auto_ptr<Row> Result::read_row()
   // SQL_CURSOR_FETCH_DONE_MORE_RESULTSETS
   int mid = get_message_id();
 
-  if (mid == Mysqlx::ServerMessages::SQL_ROW)
-    return std::auto_ptr<Row>(new Row(m_columns, static_cast<Mysqlx::Sql::Row*>(pop_message())));
+  if (mid == Mysqlx::ServerMessages::RESULTSET_ROW)
+    return std::auto_ptr<Row>(new Row(m_columns, static_cast<Mysqlx::Resultset::Row*>(pop_message())));
 
   return std::auto_ptr<Row>();
 }
@@ -1025,7 +1032,7 @@ void Result::read_stmt_ok()
   // msgs we can get in this state:
   // STMT_EXEC_OK
 
-  if (Mysqlx::ServerMessages::SQL_RESULT_FETCH_DONE == get_message_id())
+  if (Mysqlx::ServerMessages::RESULTSET_FETCH_DONE == get_message_id())
     delete pop_message();
 
   if (Mysqlx::ServerMessages::SQL_STMT_EXECUTE_OK != get_message_id())
@@ -1085,7 +1092,9 @@ void Result::discardData()
   while (nextResult());
 }
 
-Row::Row(boost::shared_ptr<std::vector<ColumnMetadata> > columns, Mysqlx::Sql::Row *data)
+
+
+Row::Row(boost::shared_ptr<std::vector<ColumnMetadata> > columns, Mysqlx::Resultset::Row *data)
 : m_columns(columns), m_data(data)
 {
 }

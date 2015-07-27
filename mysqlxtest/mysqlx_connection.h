@@ -89,6 +89,8 @@ namespace mysqlx
     Message *recv_payload(const int mid, const std::size_t msglen);
     Message *recv_raw_with_deadline(int &mid, const std::size_t deadline_miliseconds);
 
+    Result *recv_result();    
+
     // Overrides for Client Session Messages
     void send(const Mysqlx::Session::AuthenticateStart &m) { send(Mysqlx::ClientMessages::SESS_AUTHENTICATE_START, m); };
     void send(const Mysqlx::Session::AuthenticateContinue &m) { send(Mysqlx::ClientMessages::SESS_AUTHENTICATE_CONTINUE, m); };

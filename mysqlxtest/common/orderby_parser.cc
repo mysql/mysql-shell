@@ -26,7 +26,7 @@
 using namespace mysqlx;
 
 Orderby_parser::Orderby_parser(const std::string& expr_str, bool document_mode)
-  : Expr_parser(expr_str, document_mode)
+: Expr_parser(expr_str, document_mode)
 {
 }
 
@@ -40,7 +40,7 @@ void Orderby_parser::column_identifier(Mysqlx::Crud::Order &orderby_expr)
   if (!_document_mode)
   {
     std::vector<std::string> parts;
-    orderby_expr.set_allocated_field(my_expr());
+    orderby_expr.set_allocated_expr(my_expr());
   }
   if (_tokenizer.cur_token_type_is(Token::ASC))
   {

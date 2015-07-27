@@ -74,7 +74,7 @@ void Proj_parser::column_identifier(Mysqlx::Crud::Projection &col)
       if (i + 1 < parts.size())
         fullname += ".";
     }
-    col.set_target_alias(fullname.c_str());
+    col.set_alias(fullname.c_str());
 
     if (_tokenizer.cur_token_type_is(Token::AT))
     {
@@ -86,10 +86,8 @@ void Proj_parser::column_identifier(Mysqlx::Crud::Projection &col)
   {
     if (_tokenizer.cur_token_type_is(Token::IDENT))
     {
-      Mysqlx::Expr::DocumentPathItem& item = *col.add_target_path();
-      item.set_type(Mysqlx::Expr::DocumentPathItem::MEMBER);
-      const std::string& value = _tokenizer.consume_token(Token::IDENT);
-      item.set_value(value.c_str(), value.size());
+      const std::string& alias = _tokenizer.consume_token(Token::IDENT);
+      col.set_alias(alias);
     }
     document_path(col);
   }
@@ -170,30 +168,44 @@ void Proj_parser::docpath_array_loc(Mysqlx::Expr::DocumentPathItem& item)
 void Proj_parser::document_path(Mysqlx::Crud::Projection& col)
 {
   // Parse a JSON-style document path, like WL#7909, but prefix by @. instead of $.
+  std::string alias;
+  if (col.has_alias())
+  {
+    alias = col.alias();
+  }
+  Mysqlx::Expr::DocumentPathItem path;
   while (true)
   {
     if (_tokenizer.cur_token_type_is(Token::DOT))
     {
-      docpath_member(*col.add_target_path());
+      docpath_member(path);
+      if (path.has_value())
+        alias.append(".").append(*path.mutable_value());
     }
     else if (_tokenizer.cur_token_type_is(Token::LSQBRACKET))
     {
-      docpath_array_loc(*col.add_target_path());
+      docpath_array_loc(path);
+      if (path.has_value())
+        alias.append("[" + *path.mutable_value() + "]");
     }
     else if (_tokenizer.cur_token_type_is(Token::DOUBLESTAR))
     {
       _tokenizer.consume_token(Token::DOUBLESTAR);
-      Mysqlx::Expr::DocumentPathItem& item = *col.add_target_path();
-      item.set_type(Mysqlx::Expr::DocumentPathItem::DOUBLE_ASTERISK);
+      alias.append("**");
     }
     else
     {
       break;
     }
   }
-  size_t size = col.target_path_size();
-  if (size > 0 && (col.target_path(size - 1).type() == Mysqlx::Expr::DocumentPathItem::DOUBLE_ASTERISK))
+
+  if (alias.length() >= 2 && (0 == alias.compare(alias.length() - 2, 2, "**")))
   {
     throw Parser_error((boost::format("JSON path may not end in '**' at %d") % _tokenizer.get_token_pos()).str());
+  }
+
+  if (alias.length() > 0)
+  {
+    col.set_alias(alias);
   }
 }

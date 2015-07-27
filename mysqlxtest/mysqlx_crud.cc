@@ -392,8 +392,13 @@ Modify_Operation &Modify_Operation::set_operation(int type, const std::string &p
 
   operation->set_operation( Mysqlx::Crud::UpdateOperation_UpdateType(type));
 
-  Mysqlx::Expr::DocumentPathItem *item = new Mysqlx::Expr::DocumentPathItem(items.Get(0).target_path().Get(0));
-  operation->mutable_source()->mutable_document_path()->AddAllocated(item);
+  if (items.Get(0).has_alias())
+  {
+    Mysqlx::Expr::DocumentPathItem* proj_path_item = new Mysqlx::Expr::DocumentPathItem();
+    proj_path_item->set_type(Mysqlx::Expr::DocumentPathItem_Type_MEMBER);
+    proj_path_item->set_value(items.Get(0).alias());
+    operation->mutable_source()->mutable_document_path()->AddAllocated(proj_path_item);
+  }
 
   if (value)
   {

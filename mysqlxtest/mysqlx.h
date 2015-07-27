@@ -34,7 +34,7 @@
 
 namespace Mysqlx
 {
-  namespace Sql
+  namespace Resultset
   {
     class Row;
   }
@@ -412,12 +412,12 @@ namespace mysqlx
 
   private:
     friend class Result;
-    Row(boost::shared_ptr<std::vector<ColumnMetadata> > columns, Mysqlx::Sql::Row *data);
+    Row(boost::shared_ptr<std::vector<ColumnMetadata> > columns, Mysqlx::Resultset::Row *data);
 
     void check_field(int field, FieldType type) const;
 
     boost::shared_ptr<std::vector<ColumnMetadata> > m_columns;
-    Mysqlx::Sql::Row *m_data;
+    Mysqlx::Resultset::Row *m_data;
   };
 
 
