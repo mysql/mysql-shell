@@ -197,13 +197,10 @@ _batch_continue_on_error(false)
   SET_SHELL_COMMAND("\\connect", "Connect to server.", cmd_help, Interactive_shell::cmd_connect);
 
   bool lang_initialized;
-  if (initial_mode != Shell_core::Mode_Python)
-  {
-    _shell->switch_mode(initial_mode, lang_initialized);
+  _shell->switch_mode(initial_mode, lang_initialized);
 
-    if (lang_initialized)
-      init_scripts(initial_mode);
-  }
+  if (lang_initialized)
+    init_scripts(initial_mode);
 }
 
 void Interactive_shell::cmd_process_file(const std::vector<std::string>& params)
@@ -292,7 +289,9 @@ Value Interactive_shell::connect_session(const Argument_list &args)
   {
     // XXX assign a dummy placeholder to db
     if (_shell->is_interactive() && _shell->interactive_mode() != Shell_core::Mode_SQL)
+    {
       _shell->print("No default schema selected.\n");
+    }
   }
 
   return Value::Null();
@@ -951,9 +950,7 @@ int main(int argc, char **argv)
 #endif
 
 #ifdef HAVE_PYTHON
-
   Python_context_init();
-
 #endif
 
   {
@@ -1021,8 +1018,16 @@ int main(int argc, char **argv)
 
     if (!options.uri.empty())
     {
-      if (!shell.connect(options.uri, options.needs_password, is_interactive))
+      try
+      {
+        if (!shell.connect(options.uri, options.needs_password, is_interactive))
+          return 1;
+      }
+      catch (std::exception &e)
+      {
+        shell.print_error(e.what());
         return 1;
+      }
     }
 
     // Three processing modes are available at this point

@@ -70,6 +70,8 @@ namespace shcore
     virtual bool has_member(const std::string &prop) const;
     virtual void set_member(const std::string &prop, Value value);
 
+    virtual bool has_method(const std::string &name) const;
+
     virtual Value call(const std::string &name, const Argument_list &args);
 
     virtual std::string &append_descr(std::string &s_out, int indent = -1, int quote_strings = 0) const;

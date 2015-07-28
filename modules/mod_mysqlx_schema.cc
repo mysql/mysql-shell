@@ -138,6 +138,7 @@ std::vector<std::string> Schema::get_members() const
   return members;
 }
 
+
 Value Schema::get_member(const std::string &prop) const
 {
   // Retrieves the member first from the parent

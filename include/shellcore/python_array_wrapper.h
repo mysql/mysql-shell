@@ -36,19 +36,9 @@ struct PyShListObject
   shcore::Value::Array_type_ref *array;
 };
 
-class Python_array_wrapper
-{
-public:
-  Python_array_wrapper(Python_context *context);
-  ~Python_array_wrapper();
 
-  PyObject *wrap(boost::shared_ptr<Value::Array_type> array);
-  static bool unwrap(PyObject *value, boost::shared_ptr<Value::Array_type> &ret_array);
-
-private:
-  Python_context *_context;
-  PyShListObject *_array_wrapper;
-};
+PyObject *wrap(boost::shared_ptr<Value::Array_type> array);
+bool unwrap(PyObject *value, boost::shared_ptr<Value::Array_type> &ret_array);
 
 };
 

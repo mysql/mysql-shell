@@ -68,6 +68,11 @@ void Cpp_object_bridge::set_member(const std::string &prop, Value UNUSED(value))
   throw Exception::attrib_error("Can't set object member " + prop);
 }
 
+bool Cpp_object_bridge::has_method(const std::string &name) const
+{
+  return (_funcs.find(name) != _funcs.end());
+}
+
 void Cpp_object_bridge::add_method(const char *name, Cpp_function::Function func,
                                    const char *arg1_name, Value_type arg1_type, ...)
 {

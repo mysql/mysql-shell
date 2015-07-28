@@ -189,6 +189,15 @@ std::vector<std::string> ApiBaseSession::get_members() const
   return members;
 }
 
+bool ApiBaseSession::has_member(const std::string &prop) const
+{
+  if (BaseSession::has_member(prop))
+    return true;
+  if (prop == "uri" || prop == "schemas" || prop == "defaultSchema")
+    return true;
+  return false;
+}
+
 Value ApiBaseSession::get_member(const std::string &prop) const
 {
   // Retrieves the member first from the parent
@@ -377,7 +386,7 @@ boost::shared_ptr<shcore::Object_bridge> Session::create(const shcore::Argument_
   return boost::static_pointer_cast<Object_bridge>(session);
 }
 
-NodeSession::NodeSession() :ApiBaseSession()
+NodeSession::NodeSession() : ApiBaseSession()
 {
   add_method("executeSql", boost::bind(&Session::executeSql, this, _1),
              "stmt", shcore::String,

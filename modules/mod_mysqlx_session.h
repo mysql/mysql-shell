@@ -84,6 +84,7 @@ namespace mysh
 
       virtual std::vector<std::string> get_members() const;
       virtual shcore::Value get_member(const std::string &prop) const;
+      virtual bool has_member(const std::string &prop) const;
 
       virtual shcore::Value connect(const shcore::Argument_list &args);
       virtual shcore::Value close(const shcore::Argument_list &args);

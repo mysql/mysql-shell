@@ -31,14 +31,16 @@ using namespace mysh::mysqlx;
 using namespace shcore;
 
 Table::Table(boost::shared_ptr<Schema> owner, const std::string &name)
-: DatabaseObject(owner->_session.lock(), boost::static_pointer_cast<DatabaseObject>(owner), name), _table_impl(owner->_schema_impl->getTable(name))
+: DatabaseObject(owner->_session.lock(), boost::static_pointer_cast<DatabaseObject>(owner), name)
 {
+  _table_impl = owner->_schema_impl->getTable(name);
   init();
 }
 
 Table::Table(boost::shared_ptr<const Schema> owner, const std::string &name) :
 DatabaseObject(owner->_session.lock(), boost::const_pointer_cast<Schema>(owner), name)
 {
+  _table_impl = owner->_schema_impl->getTable(name);
   init();
 }
 

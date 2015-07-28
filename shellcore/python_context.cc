@@ -160,16 +160,35 @@ Value Python_context::execute(const std::string &code, boost::system::error_code
 
 Value Python_context::execute_interactive(const std::string &code) BOOST_NOEXCEPT_OR_NOTHROW
 {
-  // TODO:
-
-  PyObject *py_result;
   Value retvalue;
 
-  // PyRun_SimpleString(code.c_str());
-  py_result = PyRun_String(code.c_str(), Py_single_input /* with Py_eval_input print won't work */, _globals, _globals);
+  /*
+   PyRun_String() works as follows:
+   If the 2nd param is Py_single_input, the function will take any code as input
+   and execute it. But the return value will always be None.
 
-  // TODO/WARNING: Py_single_input always returns Py_None
+   If it is Py_eval_input, then the function will evaluate the code as an expression
+   and return the result. But that will produce a syntax error if the code is NOT
+   an expression.
 
+   What we want is to be able to execute any arbitrary code and get it to return
+   the expression result if it's an expression or None (or whatever) if it's not.
+   That doesn't seem to be possible.
+
+   OTOH sys.displayhook is called whenever the interpreter is outputting interactive
+   evaluation results, with the original object (not string). So we workaround by
+   installing a temporary displayhook to capture the evaluation results...
+   */
+
+  PyObject *orig_hook = PySys_GetObject((char*)"displayhook");
+  Py_INCREF(orig_hook);
+
+  PySys_SetObject((char*)"displayhook", PyDict_GetItemString(PyModule_GetDict(_shell_module), (char*)"interactivehook"));
+
+  PyObject *py_result = PyRun_String(code.c_str(), Py_single_input, _globals, _globals);
+
+  PySys_SetObject((char*)"displayhook", orig_hook);
+  Py_DECREF(orig_hook);
   if (!py_result)
   {
     // TODO: use log_debug() as soon as logging is integrated
@@ -177,7 +196,13 @@ Value Python_context::execute_interactive(const std::string &code) BOOST_NOEXCEP
     return Value();
   }
 
-  return Value(_types.pyobj_to_shcore_value(py_result));
+  if (!_captured_eval_result.empty())
+  {
+    Value tmp(_types.pyobj_to_shcore_value(_captured_eval_result.back()));
+    _captured_eval_result.pop_back();
+    return tmp;
+  }
+  return Value::Null();
 }
 
 
@@ -300,7 +325,7 @@ AutoPyObject Python_context::get_shell_function_class()
 }
 
 
-static PyObject *shell_print(PyObject *UNUSED(self), PyObject *args)
+PyObject *Python_context::shell_print(PyObject *UNUSED(self), PyObject *args)
 {
   Python_context *ctx;
   std::string text;
@@ -336,10 +361,35 @@ static PyObject *shell_print(PyObject *UNUSED(self), PyObject *args)
 }
 
 
+PyObject *Python_context::shell_interactive_eval_hook(PyObject *UNUSED(self), PyObject *args)
+{
+  Python_context *ctx;
+  std::string text;
+
+  if (!(ctx = Python_context::get_and_check()))
+    return NULL;
+
+  if (PyTuple_Size(args) == 1)
+    ctx->_captured_eval_result.push_back(PyTuple_GetItem(args, 0));
+  else
+  {
+    char buff[100];
+    snprintf(buff, sizeof(buff), "interactivehook() takes exactly 1 argument (%i given)", (int)PyTuple_Size(args));
+    PyErr_SetString(PyExc_TypeError, buff);
+    return NULL;
+  }
+  
+  Py_INCREF(Py_None);
+  return Py_None;
+}
+
+
 /* Register shell related functionality as a module */
 static PyMethodDef ShellModuleMethods[] = {
-{"write",  shell_print, METH_VARARGS,
-"Write a string in the SHELL shell."},
+{"write", &Python_context::shell_print, METH_VARARGS,
+  "Write a string in the SHELL shell."},
+{"interactivehook", &Python_context::shell_interactive_eval_hook, METH_VARARGS,
+  "Custom displayhook to capture interactive expr evaluation results."},
 {NULL, NULL, 0, NULL}        /* Sentinel */
 };
 

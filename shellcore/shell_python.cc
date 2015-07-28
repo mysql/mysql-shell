@@ -48,7 +48,6 @@ void Shell_python::handle_input(std::string &code, Interactive_input_state &stat
     WillEnterPython lock;
     result = _py->execute_interactive(code);
   }
-
   else
   {
     try
@@ -56,7 +55,6 @@ void Shell_python::handle_input(std::string &code, Interactive_input_state &stat
       boost::system::error_code err;
       WillEnterPython lock;
       result = _py->execute(code, err, _owner->get_input_source());
-
       if (err)
       {
         _owner->print_error(err.message());
@@ -68,7 +66,6 @@ void Shell_python::handle_input(std::string &code, Interactive_input_state &stat
       // and the correct return_value of undefined is set
     }
   }
-
   _last_handled = code;
 
   state = Input_ok;

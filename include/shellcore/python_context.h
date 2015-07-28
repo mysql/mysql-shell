@@ -28,6 +28,7 @@
 #include "shellcore/python_type_conversion.h"
 #include "shellcore/lang_base.h"
 #include <string>
+#include <list>
 
 namespace shcore {
 
@@ -139,6 +140,10 @@ public:
 
   Interpreter_delegate *_delegate;
 
+public:
+  static PyObject *shell_print(PyObject *self, PyObject *args);
+  static PyObject *shell_interactive_eval_hook(PyObject *self, PyObject *args);
+
 private:
   PyObject *_globals;
   PyThreadState *_main_thread_state;
@@ -147,13 +152,13 @@ private:
 
   PyObject *_shell_module;
 
-  PyObject *shell_print(PyObject *self, PyObject *args);
-
   void register_shell_module();
   void init_shell_list_type();
   void init_shell_dict_type();
   void init_shell_object_type();
   void init_shell_function_type();
+
+  std::list<AutoPyObject> _captured_eval_result;
 
 protected:
   AutoPyObject _shell_list_class;

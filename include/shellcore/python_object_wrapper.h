@@ -27,6 +27,11 @@ namespace shcore
 {
 class Python_context;
 
+struct PyMemberCache
+{
+  std::map<std::string, AutoPyObject> members;
+};
+
 /*
  * Wraps a native/bridged C++ object reference as a Python sequence object
  */
@@ -34,21 +39,11 @@ struct PyShObjObject
 {
   PyObject_HEAD
   shcore::Object_bridge_ref *object;
+  PyMemberCache *cache;
 };
 
-class Python_object_wrapper
-{
-public:
-  Python_object_wrapper(Python_context *context);
-  ~Python_object_wrapper();
-
-  PyObject *wrap(boost::shared_ptr<Object_bridge> object);
-  static bool unwrap(PyObject *value, boost::shared_ptr<Object_bridge> &ret_object);
-
-private:
-  Python_context *_context;
-  PyShObjObject *_object_wrapper;
-};
+PyObject *wrap(boost::shared_ptr<Object_bridge> object);
+bool unwrap(PyObject *value, boost::shared_ptr<Object_bridge> &ret_object);
 
 };
 
