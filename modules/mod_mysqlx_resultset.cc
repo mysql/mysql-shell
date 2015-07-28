@@ -82,9 +82,9 @@ shcore::Value Resultset::get_member(const std::string &prop) const
                                            type == ::mysqlx::DECIMAL);
 
       array->push_back(shcore::Value(map));
-
-      return shcore::Value(array);
     }
+
+    ret_val = shcore::Value(array);
   }
   else
     ret_val = BaseResultset::get_member(prop);
