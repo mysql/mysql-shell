@@ -1370,11 +1370,11 @@ std::string Expr_unparser::expr_to_string(const Mysqlx::Expr::Expr& e)
 
 std::string Expr_unparser::column_to_string(const Mysqlx::Crud::Projection& c)
 {
-  std::string result;
+  const Mysqlx::Expr::ColumnIdentifier& colid = c.source().identifier();
+  std::string result = Expr_unparser::column_identifier_to_string(colid);
 
   if (c.has_alias())
-    result = c.alias();
-
+    result += " as " + c.alias();
   return result;
 }
 
