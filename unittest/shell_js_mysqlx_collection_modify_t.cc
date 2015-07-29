@@ -44,7 +44,7 @@ namespace shcore {
       _shell_core->switch_mode(Shell_core::Mode_JScript, initilaized);
 
       // Sets the correct functions to be validated
-      set_functions("modify, set, change, unset, arrayInsert, arrayAppend, arrayDelete, sort, limit, bind, execute");
+      set_functions("modify, set, unset, arrayInsert, arrayAppend, arrayDelete, sort, limit, bind, execute");
     }
   };
 
@@ -83,77 +83,65 @@ namespace shcore {
     {
       SCOPED_TRACE("Testing function availability after modify.");
       exec_and_out_equals("var crud = collection.modify();");
-      ensure_available_functions("set, change, unset, arrayInsert, arrayAppend, arrayDelete");
+      ensure_available_functions("set, unset, arrayInsert, arrayAppend, arrayDelete");
     }
 
     {
       SCOPED_TRACE("Testing function availability after set.");
       exec_and_out_equals("var crud = collection.modify();");
-      ensure_available_functions("set, change, unset, arrayInsert, arrayAppend, arrayDelete");
+      ensure_available_functions("set, unset, arrayInsert, arrayAppend, arrayDelete");
 
       // Empty set of values does not trigger a change
       exec_and_out_equals("crud.set({})");
-      ensure_available_functions("set, change, unset, arrayInsert, arrayAppend, arrayDelete");
+      ensure_available_functions("set, unset, arrayInsert, arrayAppend, arrayDelete");
 
       // Empty set of values does not trigger a change
       exec_and_out_equals("crud.set({name:'dummy'})");
-      ensure_available_functions("set, change, unset, arrayInsert, arrayAppend, arrayDelete, sort, limit, bind, execute");
-    }
-
-    {
-      SCOPED_TRACE("Testing function availability after change.");
-      exec_and_out_equals("var crud = collection.modify();");
-      ensure_available_functions("set, change, unset, arrayInsert, arrayAppend, arrayDelete");
-
-      exec_and_out_equals("crud.change({})");
-      ensure_available_functions("set, change, unset, arrayInsert, arrayAppend, arrayDelete");
-
-      exec_and_out_equals("crud.change({name:'another'})");
-      ensure_available_functions("set, change, unset, arrayInsert, arrayAppend, arrayDelete, sort, limit, bind, execute");
+      ensure_available_functions("set, unset, arrayInsert, arrayAppend, arrayDelete, sort, limit, bind, execute");
     }
 
     {
       SCOPED_TRACE("Testing function availability after unset.");
       exec_and_out_equals("var crud = collection.modify();");
-      ensure_available_functions("set, change, unset, arrayInsert, arrayAppend, arrayDelete");
+      ensure_available_functions("set, unset, arrayInsert, arrayAppend, arrayDelete");
 
       exec_and_out_equals("crud.unset([])");
-      ensure_available_functions("set, change, unset, arrayInsert, arrayAppend, arrayDelete");
+      ensure_available_functions("set, unset, arrayInsert, arrayAppend, arrayDelete");
 
       exec_and_out_equals("crud.unset(['name','last_name'])");
-      ensure_available_functions("set, change, unset, arrayInsert, arrayAppend, arrayDelete, sort, limit, bind, execute");
+      ensure_available_functions("set, unset, arrayInsert, arrayAppend, arrayDelete, sort, limit, bind, execute");
 
       // Tests passing multiple parameters
       exec_and_out_equals("var crud = collection.modify();");
       exec_and_out_equals("crud.unset('name','last_name')");
-      ensure_available_functions("set, change, unset, arrayInsert, arrayAppend, arrayDelete, sort, limit, bind, execute");
+      ensure_available_functions("set, unset, arrayInsert, arrayAppend, arrayDelete, sort, limit, bind, execute");
     }
 
     {
       SCOPED_TRACE("Testing function availability after arrayInsert.");
       exec_and_out_equals("var crud = collection.modify();");
-      ensure_available_functions("set, change, unset, arrayInsert, arrayAppend, arrayDelete");
+      ensure_available_functions("set, unset, arrayInsert, arrayAppend, arrayDelete");
 
       exec_and_out_equals("crud.arrayInsert('hobbies',3,'run')");
-      ensure_available_functions("set, change, unset, arrayInsert, arrayAppend, arrayDelete, sort, limit, bind, execute");
+      ensure_available_functions("set, unset, arrayInsert, arrayAppend, arrayDelete, sort, limit, bind, execute");
     }
 
     {
       SCOPED_TRACE("Testing function availability after arrayAppend.");
       exec_and_out_equals("var crud = collection.modify();");
-      ensure_available_functions("set, change, unset, arrayInsert, arrayAppend, arrayDelete");
+      ensure_available_functions("set, unset, arrayInsert, arrayAppend, arrayDelete");
 
       exec_and_out_equals("crud.arrayAppend('hobbies','skate')");
-      ensure_available_functions("set, change, unset, arrayInsert, arrayAppend, arrayDelete, sort, limit, bind, execute");
+      ensure_available_functions("set, unset, arrayInsert, arrayAppend, arrayDelete, sort, limit, bind, execute");
     }
 
     {
       SCOPED_TRACE("Testing function availability after arrayDelete.");
       exec_and_out_equals("var crud = collection.modify();");
-      ensure_available_functions("set, change, unset, arrayInsert, arrayAppend, arrayDelete");
+      ensure_available_functions("set, unset, arrayInsert, arrayAppend, arrayDelete");
 
       exec_and_out_equals("crud.arrayDelete('hobbies',5)");
-      ensure_available_functions("set, change, unset, arrayInsert, arrayAppend, arrayDelete, sort, limit, bind, execute");
+      ensure_available_functions("set, unset, arrayInsert, arrayAppend, arrayDelete, sort, limit, bind, execute");
     }
 
     {
@@ -193,15 +181,6 @@ namespace shcore {
       exec_and_out_contains("collection.modify().set({name:session});", "", "CollectionModify::set: Unsupported value received: <Session:");
       exec_and_out_contains("collection.modify().set({age:expr('13+25')});");
       exec_and_out_equals("collection.modify().set({name:'john'});");
-    }
-
-    {
-      SCOPED_TRACE("Testing parameter validation on change");
-      exec_and_out_contains("collection.modify().change();", "", "Invalid number of arguments in CollectionModify::change, expected 1 but got 0");
-      exec_and_out_contains("collection.modify().change([]);", "", "CollectionModify::change: Argument #1 is expected to be a map");
-      exec_and_out_contains("collection.modify().change({name:session});", "", "CollectionModify::change: Unsupported value received: <Session:");
-      exec_and_out_contains("collection.modify().change({age:expr('13+25')});");
-      exec_and_out_equals("collection.modify().change({name:'john'});");
     }
 
     {
@@ -279,15 +258,6 @@ namespace shcore {
     {
       SCOPED_TRACE("Testing set");
       exec_and_out_equals("var result = collection.modify('age = 13').set({gender:'male', age:expr('13+1')}).execute();");
-      exec_and_out_equals("print(result.affectedRows)", "1");
-
-      exec_and_out_equals("var records = collection.find().execute().all();");
-      exec_and_out_equals("print(records.length);", "6");
-    }
-
-    {
-      SCOPED_TRACE("Testing change");
-      exec_and_out_equals("var result = collection.modify('age = 13').change({gender:'male', age:expr('13+1')}).execute();");
       exec_and_out_equals("print(result.affectedRows)", "1");
 
       exec_and_out_equals("var records = collection.find().execute().all();");
