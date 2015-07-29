@@ -75,7 +75,9 @@ namespace mysh
       shcore::Value getTable(const shcore::Argument_list &args);
       shcore::Value getCollection(const shcore::Argument_list &args);
       shcore::Value getView(const shcore::Argument_list &args);
-	  
+
+      shcore::Value createCollection(const shcore::Argument_list &args);
+
       void init();
     };
   }

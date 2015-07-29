@@ -93,6 +93,7 @@ namespace mysh
       virtual shcore::Value connect(const shcore::Argument_list &args);
       virtual shcore::Value close(const shcore::Argument_list &args);
       virtual shcore::Value executeSql(const shcore::Argument_list &args);
+              shcore::Value executeAdminCommand(const std::string& command, const shcore::Argument_list &args);
       virtual bool is_connected() const { return _session ? true : false; }
       virtual std::string uri() const { return _uri; };
 
@@ -105,6 +106,7 @@ namespace mysh
 
       void flush_last_result();
     protected:
+      ::mysqlx::ArgumentValue get_argument_value(shcore::Value source);
       virtual boost::shared_ptr<ApiBaseSession> _get_shared_this() const = 0;
       boost::shared_ptr< ::mysqlx::Result> _last_result;
       void _update_default_schema(const std::string& name);

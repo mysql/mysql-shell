@@ -415,7 +415,16 @@ void Interactive_shell::println(const std::string &str)
 
 void Interactive_shell::print_error(const std::string &error)
 {
-  Value error_val = Value::parse(error);
+  Value error_val;
+  try
+  {
+    error_val = Value::parse(error);
+  }
+  catch (shcore::Exception &e)
+  {
+    error_val = Value(error);
+  }
+
   log_error("%s", error.c_str());
   std::string message;
 
@@ -457,7 +466,6 @@ void Interactive_shell::print_error(const std::string &error)
   }
 
   std::cerr << message << "\n";
-
 }
 
 void Interactive_shell::cmd_print_shell_help(const std::vector<std::string>& args)

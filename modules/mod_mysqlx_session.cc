@@ -170,6 +170,72 @@ Value ApiBaseSession::executeSql(const Argument_list &args)
   return ret_val;
 }
 
+::mysqlx::ArgumentValue ApiBaseSession::get_argument_value(shcore::Value source)
+{
+  ::mysqlx::ArgumentValue ret_val;
+  switch (source.type)
+  {
+    case shcore::Bool:
+    case shcore::UInteger:
+    case shcore::Integer:
+      ret_val = ::mysqlx::ArgumentValue(source.as_int());
+      break;
+    case shcore::String:
+      ret_val = ::mysqlx::ArgumentValue(source.as_string());
+      break;
+    case shcore::Float:
+      ret_val = ::mysqlx::ArgumentValue(source.as_double());
+      break;
+    case shcore::Object:
+    case shcore::Null:
+    case shcore::Array:
+    case shcore::Map:
+    case shcore::MapRef:
+    case shcore::Function:
+    case shcore::Undefined:
+      std::stringstream str;
+      str << "Unsupported value received: " << source.descr();
+      throw shcore::Exception::argument_error(str.str());
+      break;
+  }
+
+  return ret_val;
+}
+
+Value ApiBaseSession::executeAdminCommand(const std::string& command, const Argument_list &args)
+{
+  std::string function_name = class_name() + ".executeAdminCommand";
+  args.ensure_at_least(1, function_name.c_str());
+
+  // Will return the result of the SQL execution
+  // In case of error will be Undefined
+  Value ret_val;
+  if (!_session)
+    throw Exception::logic_error("Not connected.");
+  else
+  {
+    // Converts the arguments from shcore to mysqlxtest format
+    std::vector<::mysqlx::ArgumentValue> arguments;
+    for (size_t index = 0; index < args.size(); index++)
+      arguments.push_back(get_argument_value(args[index]));
+
+    try
+    {
+      flush_last_result();
+
+      _last_result.reset(_session->executeStmt("xplugin", command, arguments));
+
+      // Calls wait so any error is properly triggered at execution time
+      _last_result->wait();
+
+      ret_val = shcore::Value::wrap(new Resultset(_last_result));
+    }
+    CATCH_AND_TRANSLATE();
+  }
+
+  return ret_val;
+}
+
 std::vector<std::string> ApiBaseSession::get_members() const
 {
   std::vector<std::string> members(BaseSession::get_members());

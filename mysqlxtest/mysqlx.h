@@ -68,7 +68,6 @@ namespace mysqlx
   class Schema;
   class Connection;
 
-
   class ArgumentValue
   {
   public:
@@ -90,6 +89,16 @@ namespace mysqlx
       m_value = other.m_value;
       if (m_type == TString || m_type == TOctets)
         m_value.s = new std::string(*other.m_value.s);
+    }
+
+    ArgumentValue &operator = (const ArgumentValue &other)
+    {
+      m_type = other.m_type;
+      m_value = other.m_value;
+      if (m_type == TString || m_type == TOctets)
+        m_value.s = new std::string(*other.m_value.s);
+
+      return *this;
     }
 
     explicit ArgumentValue(const std::string &s, Type type = TString)
@@ -196,8 +205,6 @@ namespace mysqlx
     } m_value;
   };
 
-
-
   class Session : public boost::enable_shared_from_this<Session>
   {
   public:
@@ -274,7 +281,6 @@ namespace mysqlx
     boost::shared_ptr<std::string> m_data;
   };
 
-
   class Row
   {
   public:
@@ -308,7 +314,6 @@ namespace mysqlx
     boost::shared_ptr<std::vector<ColumnMetadata> > m_columns;
     Mysqlx::Resultset::Row *m_data;
   };
-
 
   class Result
   {

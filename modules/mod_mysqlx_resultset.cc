@@ -48,7 +48,7 @@ shcore::Value Resultset::get_member(const std::string &prop) const
   else if (prop == "info")
     ret_val = Value(""); // TODO: Info not being provided on X Protocol
   else if (prop == "hasData")
-    ret_val = Value(_result->columnMetadata()->size() > 0);
+    ret_val = Value(_result->columnMetadata() && (_result->columnMetadata()->size() > 0));
   else if (prop == "columnMetadata")
   {
     boost::shared_ptr<shcore::Value::Array_type> array(new shcore::Value::Array_type);
