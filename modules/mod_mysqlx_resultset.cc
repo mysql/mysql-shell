@@ -161,9 +161,9 @@ shcore::Value Resultset::all(const shcore::Argument_list &args)
 
 shcore::Value Resultset::next_result(const shcore::Argument_list &args)
 {
-  args.ensure_count(0, "Resultset::nextResult");
+  args.ensure_count(0, "Resultset::nextDataSet");
 
-  return shcore::Value(_result->nextResult());
+  return shcore::Value(_result->nextDataSet());
 }
 
 Collection_resultset::Collection_resultset(boost::shared_ptr< ::mysqlx::Result> result)
@@ -185,5 +185,12 @@ shcore::Value Collection_resultset::next(const shcore::Argument_list &args)
     if (r.get())
       return Value::parse(r->stringField(0));
   }
+  return shcore::Value();
+}
+
+shcore::Value Collection_resultset::print(const shcore::Argument_list &args)
+{
+  print_json("jsonpretty");
+
   return shcore::Value();
 }

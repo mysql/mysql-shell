@@ -44,7 +44,7 @@ namespace shcore {
       _shell_core->switch_mode(Shell_core::Mode_JScript, initilaized);
 
       // Sets the correct functions to be validated
-      set_functions("find, fields, groupBy, having, sort, skip, limit, bind, execute");
+      set_functions("find, fields, groupBy, having, sort, limit, skip, , bind, execute");
     }
   };
 
@@ -87,6 +87,24 @@ namespace shcore {
       ensure_available_functions("fields, groupBy, sort, limit, bind, execute");
     }
 
+    {
+      exec_and_out_equals("var crud = crud.fields(['name']);");
+      SCOPED_TRACE("Testing function availability after fields.");
+      ensure_available_functions("groupBy, sort, limit, bind, execute");
+    }
+
+    {
+      exec_and_out_equals("var crud = crud.groupBy(['name']);");
+      SCOPED_TRACE("Testing function availability after groupBy.");
+      ensure_available_functions("having, sort, limit, bind, execute");
+    }
+
+    {
+      exec_and_out_equals("var crud = crud.having('age > 10');");
+      SCOPED_TRACE("Testing function availability after having.");
+      ensure_available_functions("sort, limit, bind, execute");
+    }
+
     // Now executes limit
     {
       SCOPED_TRACE("Testing function availability after limit.");
@@ -114,7 +132,6 @@ namespace shcore {
 
     exec_and_out_equals("var collection = schema.getCollection('collection1');");
 
-    // Testing the find function
     {
       SCOPED_TRACE("Testing parameter validation on find");
       exec_and_out_equals("collection.find();");
@@ -126,15 +143,26 @@ namespace shcore {
     {
       SCOPED_TRACE("Testing parameter validation on fields");
       exec_and_out_contains("collection.find().fields();", "", "Invalid number of arguments in CollectionFind::fields, expected 1 but got 0");
-      exec_and_out_contains("collection.find().fields(5);", "", "CollectionFind::fields: Argument #1 is expected to be a string");
-      exec_and_out_contains("collection.find().fields('name as alias');", "", "");
+      exec_and_out_contains("collection.find().fields(5);", "", "CollectionFind::fields: Argument #1 is expected to be an array");
+      exec_and_out_contains("collection.find().fields([]);", "", "CollectionFind::fields: Field selection criteria can not be empty");
+      exec_and_out_contains("collection.find().fields(['name as alias', 5]);", "", "CollectionFind::fields: Element #2 is expected to be a string");
+      exec_and_out_contains("collection.find().fields(['name as alias']);", "", "");
     }
 
     {
       SCOPED_TRACE("Testing parameter validation on groupBy");
       exec_and_out_contains("collection.find().groupBy();", "", "Invalid number of arguments in CollectionFind::groupBy, expected 1 but got 0");
-      exec_and_out_contains("collection.find().groupBy(5);", "", "CollectionFind::groupBy: Argument #1 is expected to be a string");
-      exec_and_out_contains("collection.find().groupBy('name');", "", "");
+      exec_and_out_contains("collection.find().groupBy(5);", "", "CollectionFind::groupBy: Argument #1 is expected to be an array");
+      exec_and_out_contains("collection.find().groupBy([]);", "", "CollectionFind::groupBy: Grouping criteria can not be empty");
+      exec_and_out_contains("collection.find().groupBy(['name', 5]);", "", "CollectionFind::groupBy: Element #2 is expected to be a string");
+      exec_and_out_contains("collection.find().groupBy(['name']);", "", "");
+    }
+
+    {
+      SCOPED_TRACE("Testing parameter validation on having");
+      exec_and_out_contains("collection.find().groupBy(['name']).having();", "", "Invalid number of arguments in CollectionFind::having, expected 1 but got 0");
+      exec_and_out_contains("collection.find().groupBy(['name']).having(5);", "", "CollectionFind::having: Argument #1 is expected to be a string");
+      exec_and_out_contains("collection.find().groupBy(['name']).having('age > 5');", "", "");
     }
 
     {
@@ -185,9 +213,8 @@ namespace shcore {
       exec_and_out_equals("print(records.length);", "7");
     }
 
-    // Testing the find function with some criteria
     {
-      SCOPED_TRACE("Testing full find");
+      SCOPED_TRACE("Testing find with filtering");
       exec_and_out_equals("var records = collection.find('gender = \"male\"').execute().all();");
       exec_and_out_equals("print(records.length);", "4");
 
@@ -208,6 +235,25 @@ namespace shcore {
 
       exec_and_out_equals("var records = collection.find('name like \"a%\" and age < 15').execute().all();");
       exec_and_out_equals("print(records.length);", "2");
+    }
+
+    {
+      SCOPED_TRACE("Testing find with field selection criteria");
+      exec_and_out_equals("var result = collection.find().fields(['name','age']).execute();");
+      exec_and_out_equals("var record = result.next();");
+      exec_and_out_equals("print(dir(record).length);", "2");
+      exec_and_out_equals("print(record.name != '');", "true");
+      exec_and_out_equals("print(record.age != '');", "true");
+      exec_and_out_contains("print(record.gender != '');", "", "Invalid member gender");
+      exec_and_out_equals("result.all();"); // Temporal hack: flushes the rest of the data
+
+      exec_and_out_equals("var result = collection.find().fields(['age']).execute();");
+      exec_and_out_equals("var record = result.next();");
+      exec_and_out_equals("print(dir(record).length);", "1");
+      exec_and_out_equals("print(record.age != '');", "true");
+      exec_and_out_contains("print(record.name != '');", "", "Invalid member name");
+      exec_and_out_contains("print(record.gender != '');", "", "Invalid member gender");
+      exec_and_out_equals("result.all();"); // Temporal hack: flushes the rest of the data
     }
 
     {

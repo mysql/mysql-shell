@@ -37,7 +37,7 @@ using namespace shcore;
 
 BaseResultset::BaseResultset()
 {
-  add_method("nextResult", boost::bind(&BaseResultset::next_result, this, _1), NULL);
+  add_method("nextDataSet", boost::bind(&BaseResultset::next_result, this, _1), NULL);
   add_method("next", boost::bind(&BaseResultset::next, this, _1), NULL);
   add_method("all", boost::bind(&BaseResultset::all, this, _1), NULL);
   add_method("__paged_output__", boost::bind(&BaseResultset::print, this, _1), NULL);

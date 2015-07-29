@@ -17,6 +17,7 @@
  * 02110-1301  USA
  */
 #include <boost/bind.hpp>
+#include <boost/format.hpp>
 #include "mod_mysqlx_collection_find.h"
 #include "mod_mysqlx_collection.h"
 #include "mod_mysqlx_resultset.h"
@@ -85,9 +86,27 @@ shcore::Value CollectionFind::fields(const shcore::Argument_list &args)
 
   try
   {
-    _find_statement->fields(args.string_at(0));
+    Value::Array_type_ref shell_fields = args.array_at(0);
+    Value::Array_type::const_iterator index, end = shell_fields->end();
 
-    update_functions("find");
+    std::vector<std::string> fields;
+
+    int count = 0;
+    for (index = shell_fields->begin(); index != end; index++)
+    {
+      count++;
+      if (index->type != shcore::String)
+        throw shcore::Exception::argument_error((boost::format("Element #%1% is expected to be a string") % count).str());
+      else
+        fields.push_back((*index).as_string());
+    }
+
+    if (fields.size() == 0)
+      throw shcore::Exception::argument_error("Field selection criteria can not be empty");
+
+    _find_statement->fields(fields);
+
+    update_functions("fields");
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionFind::fields");
 
@@ -100,7 +119,25 @@ shcore::Value CollectionFind::group_by(const shcore::Argument_list &args)
 
   try
   {
-    _find_statement->groupBy(args.string_at(0));
+    Value::Array_type_ref shell_fields = args.array_at(0);
+    Value::Array_type::const_iterator index, end = shell_fields->end();
+
+    std::vector<std::string> fields;
+
+    int count = 0;
+    for (index = shell_fields->begin(); index != end; index++)
+    {
+      count++;
+      if (index->type != shcore::String)
+        throw shcore::Exception::argument_error((boost::format("Element #%1% is expected to be a string") % count).str());
+      else
+        fields.push_back(index->as_string());
+    }
+
+    if (fields.size() == 0)
+      throw shcore::Exception::argument_error("Grouping criteria can not be empty");
+
+    _find_statement->groupBy(fields);
 
     update_functions("groupBy");
   }

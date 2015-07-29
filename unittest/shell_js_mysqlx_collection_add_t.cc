@@ -73,11 +73,7 @@ namespace shcore {
     // Creates the collection find object
     exec_and_out_equals("var crud = collection.add([]);");
 
-    //-------- ---------------------Test 1------------------------//
-    // Initial validation, any new CollectionAdd object only has
-    // the add function available upon creation
-    //-------------------------------------------------------------
-    ensure_available_functions("execute");
+    ensure_available_functions("add, execute");
 
     exec_and_out_equals("session.close();");
   }
@@ -97,12 +93,25 @@ namespace shcore {
     // Test add collection with invalid document
     exec_and_out_contains("collection.add(['invalid data']).execute();", "", "CollectionAdd::add: Element #1 is expected to be a document");
 
+    exec_and_out_equals("session.close();");
+  }
+
+  TEST_F(Shell_js_mysqlx_collection_add_tests, add_execution)
+  {
+    exec_and_out_equals("var mysqlx = require('mysqlx').mysqlx;");
+    exec_and_out_equals("var session = mysqlx.getSession('" + _uri + "');");
+    exec_and_out_equals("var collection = session.js_shell_test.getCollection('collection1');");
+
     // Test adding a single document
     exec_and_out_equals("var result = collection.add({name: 'my first', passed: 'document', count: 1}).execute();");
     exec_and_out_equals("print (result.affectedRows)", "1");
 
     // Test adding multiple documents
-    exec_and_out_equals("var result = collection.add([{name: 'my second', passed: 'again', count: 2}, {name: 'my third', passed: 'once again', cound: 4}]).execute();");
+    exec_and_out_equals("var result = collection.add([{name: 'my second', passed: 'again', count: 2}, {name: 'my third', passed: 'once again', count: 3}]).execute();");
+    exec_and_out_equals("print (result.affectedRows)", "2");
+
+    // Test adding multiple documents with chained adds
+    exec_and_out_equals("var result = collection.add({name: 'my fourth', passed: 'again', count: 4}).add({name: 'my fifth', passed: 'once again', count: 5}).execute();");
     exec_and_out_equals("print (result.affectedRows)", "2");
 
     exec_and_out_equals("session.close();");

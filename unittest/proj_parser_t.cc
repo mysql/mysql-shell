@@ -13,7 +13,6 @@
  along with this program; if not, write to the Free Software
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA */
 
-
 #include <cstdio>
 #include <cstdlib>
 #include <fstream>
@@ -65,44 +64,46 @@ namespace shcore
       std::string s = Expr_unparser::column_list_to_string(cols);
       out << s;
       std::string outstr = out.str();
+
+      SCOPED_TRACE("ACTUAL: " + outstr);
+      SCOPED_TRACE("EXPECT: " + unparsed);
+
       ASSERT_TRUE(unparsed == outstr);
     }
 
     TEST(Proj_parser_tests, x_test)
     {
-      
       parse_and_assert_expr("@a.b[0][0].c**.d.\"a weird\\\"key name\"",
-        "[23, 19, 22, 19, 8, 21, 9, 8, 21, 9, 22, 19, 54, 22, 19, 22, 20]", "projection (@.a.b[0][0].c**.d.a weird\"key name)", true);
+        "[23, 19, 22, 19, 8, 21, 9, 8, 21, 9, 22, 19, 54, 22, 19, 22, 20]", "projection (@.a.b[0][0].c**.d.a weird\"key name as @a.b[0][0].c**.d.\"a weird\\\"key name\")", true);
       parse_and_assert_expr("col1",
         "[19]", "projection (col1)");
       // Unit tests with alias are disabled for now.
       parse_and_assert_expr("a as x1",
         "[19, 56, 19]", "projection (a as x1)");
       EXPECT_ANY_THROW(parse_and_assert_expr("a as x1, col1 as x2, b as x3",
-        "[19, 56, 19, 24, 19, 56, 19, 24, 19, 56, 19]", "projection (a as x1, col1 as x2, b as x3)", false, false));        
+        "[19, 56, 19, 24, 19, 56, 19, 24, 19, 56, 19]", "projection (a as x1, col1 as x2, b as x3)", false, false));
       parse_and_assert_expr("x.a[1][0].c",
-        "[19, 22, 19, 8, 21, 9, 8, 21, 9, 22, 19]", "projection (@.x.a[1][0].c)", true);
+        "[19, 22, 19, 8, 21, 9, 8, 21, 9, 22, 19]", "projection (@.x.a[1][0].c as x.a[1][0].c)", true);
       parse_and_assert_expr("x.a[1][0].c as mycol",
         "[19, 22, 19, 8, 21, 9, 8, 21, 9, 22, 19, 56, 19]", "projection (@.x.a[1][0].c as mycol)", true);
       EXPECT_ANY_THROW(parse_and_assert_expr("x.a[1][0].c as mycol, col1 as alias1",
         "[19, 22, 19, 8, 21, 9, 8, 21, 9, 22, 19, 56, 19, 24, 19, 56, 19]", "projection (@.x.a[1][0].c as mycol, @.col1 as alias1)", true));
       EXPECT_ANY_THROW(parse_and_assert_expr("x.a[1][0].c as mycol, col1 as alias1",
         "[19, 22, 19, 8, 21, 9, 8, 21, 9, 22, 19, 56, 19, 24, 19, 56, 19]", "projection (@.x.a[1][0].c as mycol, @.col1 as alias1)", true, false));
-      
 
       EXPECT_ANY_THROW(parse_and_assert_expr("@foo.bar", "[23, 19, 22, 19]", "projection(@.foo.baar)"));
       parse_and_assert_expr("bar@foo.bar", "[19, 23, 19, 22, 19]", "projection (bar@.foo.bar)");
       parse_and_assert_expr("bar@foo.bar as bla", "[19, 23, 19, 22, 19, 56, 19]", "projection (bar@.foo.bar as bla)");
       parse_and_assert_expr("bar@foo.bar bla", "[19, 23, 19, 22, 19, 19]", "projection (bar@.foo.bar as bla)");
 
-      EXPECT_ANY_THROW(parse_and_assert_expr("bar@foo.bar bla", "[19, 23, 19, 22, 19, 19]", "projection (@.foo.baar)", true));
-      parse_and_assert_expr("@foo.bar", "[23, 19, 22, 19]", "projection (@.foo.bar)", true);
-      parse_and_assert_expr("foo.bar", "[19, 22, 19]", "projection (@.foo.bar)", true);
+      EXPECT_ANY_THROW(parse_and_assert_expr("bar@foo.bar bla", "[19, 23, 19, 22, 19, 19]", "projection (@.foo.baar as bar@foo.bar)", true));
+      parse_and_assert_expr("@foo.bar", "[23, 19, 22, 19]", "projection (@.foo.bar as @foo.bar)", true);
+      parse_and_assert_expr("foo.bar", "[19, 22, 19]", "projection (@.foo.bar as foo.bar)", true);
       EXPECT_ANY_THROW(parse_and_assert_expr("foo.bar as a.b.c", "[19, 22, 19, 56, 19, 22, 19, 22, 19]", "projection (@.foo.baar)", true));
       parse_and_assert_expr("foo.bar as aaa", "[19, 22, 19, 56, 19]", "projection (@.foo.bar as aaa)", true);
       parse_and_assert_expr("foo.bar as `a.b.c`", "[19, 22, 19, 56, 19]", "projection (@.foo.bar as a.b.c)", true);
-      parse_and_assert_expr("bla", "[19]", "projection (@.bla)", true);
-      EXPECT_ANY_THROW(parse_and_assert_expr("bla, ble", "[19, 24, 19]", "projection (@.foo.baar)", true));
+      parse_and_assert_expr("bla", "[19]", "projection (@.bla as bla)", true);
+      EXPECT_ANY_THROW(parse_and_assert_expr("bla, ble", "[19, 24, 19]", "projection (@.foo.baar as bla, ble)", true));
     }
   };
 };

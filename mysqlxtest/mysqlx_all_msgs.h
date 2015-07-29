@@ -45,9 +45,6 @@ static struct init_message_factory
     server_msgs_by_name["SQL_STMT_EXECUTE_OK"] = std::make_pair(&create<Mysqlx::Sql::StmtExecuteOk>, Mysqlx::ServerMessages::SQL_STMT_EXECUTE_OK);
     server_msgs_by_id[Mysqlx::ServerMessages::SQL_STMT_EXECUTE_OK] = std::make_pair(&create<Mysqlx::Sql::StmtExecuteOk>, "SQL_STMT_EXECUTE_OK");
     server_msgs_by_full_name["Mysqlx.Sql.StmtExecuteOk"] = "SQL_STMT_EXECUTE_OK";
-    server_msgs_by_name["SESS_AUTHENTICATE_FAIL"] = std::make_pair(&create<Mysqlx::Session::AuthenticateFail>, Mysqlx::ServerMessages::SESS_AUTHENTICATE_FAIL);
-    server_msgs_by_id[Mysqlx::ServerMessages::SESS_AUTHENTICATE_FAIL] = std::make_pair(&create<Mysqlx::Session::AuthenticateFail>, "SESS_AUTHENTICATE_FAIL");
-    server_msgs_by_full_name["Mysqlx.Session.AuthenticateFail"] = "SESS_AUTHENTICATE_FAIL";
     server_msgs_by_name["ERROR"] = std::make_pair(&create<Mysqlx::Error>, Mysqlx::ServerMessages::ERROR);
     server_msgs_by_id[Mysqlx::ServerMessages::ERROR] = std::make_pair(&create<Mysqlx::Error>, "ERROR");
     server_msgs_by_full_name["Mysqlx.Error"] = "ERROR";

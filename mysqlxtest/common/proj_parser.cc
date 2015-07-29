@@ -75,7 +75,8 @@ void Proj_parser::column_identifier(Mysqlx::Crud::Projection &col)
     }
     std::auto_ptr<Mysqlx::Expr::Expr> source(new Mysqlx::Expr::Expr());
     std::auto_ptr<Mysqlx::Expr::ColumnIdentifier> colid(new Mysqlx::Expr::ColumnIdentifier());
-    colid->set_name(fullname.c_str());    
+    colid->set_name(fullname.c_str());
+    source->set_type(Mysqlx::Expr::Expr::IDENT);
     source->set_allocated_identifier(colid.release());
     col.set_allocated_source(source.release());
 
@@ -97,9 +98,13 @@ void Proj_parser::column_identifier(Mysqlx::Crud::Projection &col)
     {
       const std::string& ident = _tokenizer.consume_token(Token::IDENT);
       Mysqlx::Expr::Expr* e = new Mysqlx::Expr::Expr();
+
+      e->set_type(Mysqlx::Expr::Expr::IDENT);
       Mysqlx::Expr::ColumnIdentifier* colid = e->mutable_identifier();
       col.set_allocated_source(e);
-      colid->mutable_document_path()->Add()->set_value(ident.c_str(), ident.size());
+      Mysqlx::Expr::DocumentPathItem *item = colid->mutable_document_path()->Add();
+      item->set_type(Mysqlx::Expr::DocumentPathItem::MEMBER);
+      item->set_value(ident.c_str(), ident.size());
       document_path(*colid);
     }
     else
@@ -107,26 +112,25 @@ void Proj_parser::column_identifier(Mysqlx::Crud::Projection &col)
       throw Parser_error((boost::format("Identifier expected at pos %d") % _tokenizer.get_token_pos()).str());
     }
   }
-  if (_tokenizer.cur_token_type_is(Token::AS))
+
+  // Sets the alias token
+  if (_allow_alias)
   {
-    if (_allow_alias)
+    if (_tokenizer.cur_token_type_is(Token::AS))
     {
       _tokenizer.consume_token(Token::AS);
       const std::string& alias = _tokenizer.consume_token(Token::IDENT);
       col.set_alias(alias.c_str());
     }
-    else
+    else if (_tokenizer.cur_token_type_is(Token::IDENT))
     {
-      throw Parser_error((boost::format("Unexpected token 'AS' at pos %d") % _tokenizer.get_token_pos()).str());
+      const std::string& alias = _tokenizer.consume_token(Token::IDENT);
+      col.set_alias(alias.c_str());
     }
-  }
-  else if (_tokenizer.cur_token_type_is(Token::IDENT))
-  {
-    const std::string& alias = _tokenizer.consume_token(Token::IDENT);
-    col.set_alias(alias.c_str());
+    else if (_document_mode)
+      col.set_alias(_tokenizer.get_input());
   }
 }
-
 
 /*
  * docpath_member ::= DOT ( IDENT | LSTRING | MUL )

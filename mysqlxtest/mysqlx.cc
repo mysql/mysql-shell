@@ -138,9 +138,6 @@ Error::~Error() BOOST_NOEXCEPT_OR_NOTHROW
 {
 }
 
-AuthError::~AuthError() BOOST_NOEXCEPT_OR_NOTHROW
-{
-}
 
 static void throw_server_error(const Mysqlx::Error &error)
 {
@@ -179,7 +176,6 @@ Connection::Connection()
     m_trace_packets = true;
 }
 
-
 Connection::~Connection()
 {
   try
@@ -191,7 +187,6 @@ Connection::~Connection()
     // ignore close errors
   }
 }
-
 
 void Connection::connect(const std::string &uri, const std::string &pass)
 {
@@ -249,12 +244,10 @@ void Connection::connect(const std::string &host, int port, const std::string &s
   //authenticate_mysql41(user, pass, schema);
 }
 
-
 void Connection::set_closed()
 {
   m_closed = true;
 }
-
 
 void Connection::close()
 {
@@ -263,14 +256,14 @@ void Connection::close()
     send(Mysqlx::Session::Close());
     m_closed = true;
 
-  int mid;
+    int mid;
     try
     {
-  std::auto_ptr<Message> message(recv_raw(mid));
+      std::auto_ptr<Message> message(recv_raw(mid));
       if (mid != Mysqlx::ServerMessages::OK)
         throw Error(CR_COMMANDS_OUT_OF_SYNC, "Unexpected message received in response to Session.Close");
-  m_socket.close();
-}
+      m_socket.close();
+    }
     catch (...)
     {
       m_socket.close();
@@ -279,12 +272,10 @@ void Connection::close()
   }
 }
 
-
 Result *Connection::recv_result()
 {
   return new Result(this, true);
 }
-
 
 Result *Connection::execute_sql(const std::string &sql)
 {
@@ -292,6 +283,59 @@ Result *Connection::execute_sql(const std::string &sql)
     Mysqlx::Sql::StmtExecute exec;
     exec.set_namespace_("sql");
     exec.set_stmt(sql);
+    send(exec);
+  }
+  return new Result(this, true);
+}
+
+Result *Connection::execute_stmt(const std::string &ns, const std::string &sql, const std::vector<ArgumentValue> &args)
+{
+  {
+    Mysqlx::Sql::StmtExecute exec;
+    exec.set_namespace_(ns);
+    exec.set_stmt(sql);
+
+    for (std::vector<ArgumentValue>::const_iterator iter = args.begin();
+         iter != args.end(); ++iter)
+    {
+      Mysqlx::Datatypes::Any *any = exec.mutable_args()->Add();
+
+      any->set_type(Mysqlx::Datatypes::Any::SCALAR);
+      switch (iter->type())
+      {
+        case ArgumentValue::TInteger:
+          any->mutable_scalar()->set_type(Mysqlx::Datatypes::Scalar::V_SINT);
+          any->mutable_scalar()->set_v_signed_int(*iter);
+          break;
+        case ArgumentValue::TUInteger:
+          any->mutable_scalar()->set_type(Mysqlx::Datatypes::Scalar::V_UINT);
+          any->mutable_scalar()->set_v_unsigned_int(*iter);
+          break;
+        case ArgumentValue::TNull:
+          any->mutable_scalar()->set_type(Mysqlx::Datatypes::Scalar::V_NULL);
+          break;
+        case ArgumentValue::TDouble:
+          any->mutable_scalar()->set_type(Mysqlx::Datatypes::Scalar::V_DOUBLE);
+          any->mutable_scalar()->set_v_double(*iter);
+          break;
+        case ArgumentValue::TFloat:
+          any->mutable_scalar()->set_type(Mysqlx::Datatypes::Scalar::V_FLOAT);
+          any->mutable_scalar()->set_v_float(*iter);
+          break;
+        case ArgumentValue::TBool:
+          any->mutable_scalar()->set_type(Mysqlx::Datatypes::Scalar::V_BOOL);
+          any->mutable_scalar()->set_v_bool(*iter);
+          break;
+        case ArgumentValue::TString:
+          any->mutable_scalar()->set_type(Mysqlx::Datatypes::Scalar::V_STRING);
+          any->mutable_scalar()->mutable_v_string()->set_value(*iter);
+          break;
+        case ArgumentValue::TOctets:
+          any->mutable_scalar()->set_type(Mysqlx::Datatypes::Scalar::V_OCTETS);
+          any->mutable_scalar()->set_v_opaque(*iter);
+          break;
+      }
+    }
     send(exec);
   }
   return new Result(this, true);
@@ -433,12 +477,6 @@ void Connection::authenticate_plain(const std::string &user, const std::string &
   {
     case Mysqlx::ServerMessages::SESS_AUTHENTICATE_OK:
       break;
-
-    case Mysqlx::ServerMessages::SESS_AUTHENTICATE_FAIL:
-    {
-                                                         Mysqlx::Session::AuthenticateFail *fail(static_cast<Mysqlx::Session::AuthenticateFail*>(message.get()));
-                                                         throw AuthError(fail->msg());
-    }
 
     case Mysqlx::ServerMessages::ERROR:
       throw_server_error(*static_cast<Mysqlx::Error*>(message.get()));
@@ -627,9 +665,6 @@ Message *Connection::recv_payload(const int mid, const std::size_t msglen)
       case Mysqlx::ServerMessages::RESULTSET_FETCH_DONE_MORE_RESULTSETS:
         ret_val = new Mysqlx::Resultset::FetchDoneMoreResultsets();
         break;
-      case  Mysqlx::ServerMessages::SESS_AUTHENTICATE_FAIL:
-        ret_val = new Mysqlx::Session::AuthenticateFail();
-        break;
       case Mysqlx::ServerMessages::SQL_STMT_EXECUTE_OK:
         ret_val = new Mysqlx::Sql::StmtExecuteOk();
         break;
@@ -739,6 +774,12 @@ Result *Session::executeSql(const std::string &sql)
   return m_connection->execute_sql(sql);
 }
 
+Result *Session::executeStmt(const std::string &ns, const std::string &stmt,
+                             const std::vector<ArgumentValue> &args)
+{
+  return m_connection->execute_stmt(ns, stmt, args);
+}
+
 Document::Document(const std::string &doc)
 : m_data(new std::string(doc))
 {
@@ -764,7 +805,7 @@ Result::~Result()
 {
   // flush the resultset from the pipe
   while (m_state != ReadError && m_state != ReadDone)
-    nextResult();
+    nextDataSet();
 
   delete current_message;
 }
@@ -841,7 +882,7 @@ int Result::get_message_id()
                             m_state = ReadDone;
                             return current_message_id;
 
-        case Mysqlx::ServerMessages::RESULTSET_COLUMN_META_DATA:
+                          case Mysqlx::ServerMessages::RESULTSET_COLUMN_META_DATA:
                             m_state = ReadMetadata;
                             return current_message_id;
                         }
@@ -854,15 +895,15 @@ int Result::get_message_id()
                        // or EORows, which signals end of metadata AND empty resultset
                        switch (current_message_id)
                        {
-      case Mysqlx::ServerMessages::RESULTSET_COLUMN_META_DATA:
+                         case Mysqlx::ServerMessages::RESULTSET_COLUMN_META_DATA:
                            m_state = ReadMetadata;
                            return current_message_id;
 
-        case Mysqlx::ServerMessages::RESULTSET_ROW:
+                         case Mysqlx::ServerMessages::RESULTSET_ROW:
                            m_state = ReadRows;
                            return current_message_id;
 
-        case Mysqlx::ServerMessages::RESULTSET_FETCH_DONE:
+                         case Mysqlx::ServerMessages::RESULTSET_FETCH_DONE:
                            // empty resultset
                            m_state = ReadStmtOk;
                            return current_message_id;
@@ -873,14 +914,14 @@ int Result::get_message_id()
     {
                    switch (current_message_id)
                    {
-        case Mysqlx::ServerMessages::RESULTSET_ROW:
+                     case Mysqlx::ServerMessages::RESULTSET_ROW:
                        return current_message_id;
 
-        case Mysqlx::ServerMessages::RESULTSET_FETCH_DONE:
+                     case Mysqlx::ServerMessages::RESULTSET_FETCH_DONE:
                        m_state = ReadStmtOk;
                        return current_message_id;
 
-        case Mysqlx::ServerMessages::RESULTSET_FETCH_DONE_MORE_RESULTSETS:
+                     case Mysqlx::ServerMessages::RESULTSET_FETCH_DONE_MORE_RESULTSETS:
                        m_state = ReadMetadata;
                        return current_message_id;
                    }
@@ -915,7 +956,6 @@ mysqlx::Message* Result::pop_message()
 
   return result;
 }
-
 
 static ColumnMetadata unwrap_column_metadata(const Mysqlx::Resultset::ColumnMetaData &column_data)
 {
@@ -1013,9 +1053,9 @@ std::auto_ptr<Row> Result::read_row()
     throw std::logic_error("read_row() called at wrong time");
 
   // msgs we can get in this state:
-  // SQL_ROW
-  // SQL_CURSOR_FETCH_DONE
-  // SQL_CURSOR_FETCH_DONE_MORE_RESULTSETS
+  // RESULTSET_ROW
+  // RESULTSET_FETCH_DONE
+  // RESULTSET_FETCH_DONE_MORE_RESULTSETS
   int mid = get_message_id();
 
   if (mid == Mysqlx::ServerMessages::RESULTSET_ROW)
@@ -1047,7 +1087,7 @@ void Result::read_stmt_ok()
     m_last_insert_id = ok->last_insert_id();
 }
 
-bool Result::nextResult()
+bool Result::nextDataSet()
 {
   // flush left over rows
   while (m_state == ReadRows)
@@ -1089,10 +1129,8 @@ void Result::discardData()
 {
   // Flushes the leftover data
   wait();
-  while (nextResult());
+  while (nextDataSet());
 }
-
-
 
 Row::Row(boost::shared_ptr<std::vector<ColumnMetadata> > columns, Mysqlx::Resultset::Row *data)
 : m_columns(columns), m_data(data)
@@ -1149,7 +1187,6 @@ int64_t Row::sInt64Field(int field) const
   return Row_decoder::s64_from_buffer(field_val);
 }
 
-
 uint64_t Row::uInt64Field(int field) const
 {
   check_field(field, UINT);
@@ -1178,7 +1215,7 @@ std::string Row::stringField(int field) const
 }
 
 std::string Row::decimalField(int field) const
-  {
+{
   check_field(field, DECIMAL);
 
   const std::string& field_val = m_data->field(field);
@@ -1186,7 +1223,7 @@ std::string Row::decimalField(int field) const
   mysqlx::Decimal decimal = Row_decoder::decimal_from_buffer(field_val);
 
   return std::string(decimal.str());
-  }
+}
 
 std::string Row::setFieldStr(int field) const
 {
@@ -1209,7 +1246,7 @@ std::set<std::string> Row::setField(int field) const
 }
 
 std::string Row::enumField(int field) const
-  {
+{
   size_t length;
   check_field(field, ENUM);
 
@@ -1217,7 +1254,7 @@ std::string Row::enumField(int field) const
 
   const char* res = Row_decoder::string_from_buffer(field_val, length);
   return std::string(res, length);
-  }
+}
 
 const char *Row::stringField(int field, size_t &rlength) const
 {
@@ -1228,7 +1265,6 @@ const char *Row::stringField(int field, size_t &rlength) const
   return Row_decoder::string_from_buffer(field_val, rlength);
 }
 
-
 float Row::floatField(int field) const
 {
   check_field(field, FLOAT);
@@ -1237,7 +1273,6 @@ float Row::floatField(int field) const
 
   return Row_decoder::float_from_buffer(field_val);
 }
-
 
 double Row::doubleField(int field) const
 {
@@ -1248,7 +1283,6 @@ double Row::doubleField(int field) const
   return Row_decoder::double_from_buffer(field_val);
 }
 
-
 DateTime Row::dateTimeField(int field) const
 {
   check_field(field, DATETIME);
@@ -1257,7 +1291,6 @@ DateTime Row::dateTimeField(int field) const
 
   return Row_decoder::datetime_from_buffer(field_val);
 }
-
 
 Time Row::timeField(int field) const
 {

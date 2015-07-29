@@ -71,7 +71,7 @@ InsertStatement Table::insert()
   return tmp;
 }
 
-SelectStatement Table::select(const std::string& fieldList)
+SelectStatement Table::select(const std::vector<std::string> &fieldList)
 {
   SelectStatement tmp(shared_from_this(), fieldList);
   return tmp;
@@ -204,15 +204,31 @@ Find_Limit &Find_Sort::sort(const std::string &UNUSED(sortFields))
   return *this;
 }
 
-Find_Sort &Find_Having::having(const std::string &UNUSED(searchCondition))
+Find_Sort &Find_Having::having(const std::string &searchCondition)
 {
-  //  m_find->set_allocated_having(Expr_parser(searchFields, true).expr().release());
+  if (!searchCondition.empty())
+    m_find->set_allocated_grouping_criteria(parser::parse_collection_filter(searchCondition));
+
   return *this;
 }
 
-Find_Having &Find_GroupBy::groupBy(const std::string &UNUSED(searchFields))
+Find_Having &Find_GroupBy::groupBy(const std::vector<std::string> &searchFields)
 {
-  //  m_find->set_allocated_group_by(Proj_parser(searchFields, true).expr().release());
+  std::vector<std::string>::const_iterator index, end = searchFields.end();
+
+  for (index = searchFields.begin(); index != end; index++)
+    m_find->mutable_grouping()->AddAllocated(parser::parse_table_filter(*index));
+
+  return *this;
+}
+
+Find_GroupBy &FindStatement::fields(const std::vector<std::string> &searchFields)
+{
+  std::vector<std::string>::const_iterator index, end = searchFields.end();
+
+  for (index = searchFields.begin(); index != end; index++)
+    parser::parse_collection_column_list_with_alias(*m_find->mutable_projection(), *index);
+
   return *this;
 }
 
@@ -225,13 +241,6 @@ FindStatement::FindStatement(boost::shared_ptr<Collection> coll, const std::stri
 
   if (!searchCondition.empty())
     m_find->set_allocated_criteria(parser::parse_collection_filter(searchCondition));
-}
-
-Find_GroupBy &FindStatement::fields(const std::string &searchFields)
-{
-  parser::parse_collection_column_list_with_alias(*m_find->mutable_projection(), searchFields);
-
-  return *this;
 }
 
 //----------------------------------
@@ -390,7 +399,7 @@ Modify_Operation &Modify_Operation::set_operation(int type, const std::string &p
 
   Mysqlx::Crud::UpdateOperation * operation = m_update->mutable_operation()->Add();
 
-  operation->set_operation( Mysqlx::Crud::UpdateOperation_UpdateType(type));
+  operation->set_operation(Mysqlx::Crud::UpdateOperation_UpdateType(type));
 
   if (items.Get(0).has_alias())
   {
@@ -712,19 +721,25 @@ Select_Limit &Select_OrderBy::orderBy(const std::string &UNUSED(sortFields))
   return *this;
 }
 
-Select_OrderBy &Select_Having::having(const std::string &UNUSED(searchCondition))
+Select_OrderBy &Select_Having::having(const std::string &searchCondition)
 {
-  //  m_find->set_allocated_having(Expr_parser(searchFields, true).expr().release());
+  if (!searchCondition.empty())
+    m_find->set_allocated_grouping_criteria(parser::parse_table_filter(searchCondition));
+
   return *this;
 }
 
-Select_Having &Select_GroupBy::groupBy(const std::string &UNUSED(searchFields))
+Select_Having &Select_GroupBy::groupBy(const std::vector<std::string> &searchFields)
 {
-  //  m_find->set_allocated_group_by(Proj_parser(searchFields, true).expr().release());
+  std::vector<std::string>::const_iterator index, end = searchFields.end();
+
+  for (index = searchFields.begin(); index != end; index++)
+    m_find->mutable_grouping()->AddAllocated(parser::parse_table_filter(*index));
+
   return *this;
 }
 
-SelectStatement::SelectStatement(boost::shared_ptr<Table> table, const std::string &fieldList)
+SelectStatement::SelectStatement(boost::shared_ptr<Table> table, const std::vector<std::string> &fieldList)
 : Select_GroupBy(table)
 {
   m_find->mutable_collection()->set_schema(table->schema()->name());
@@ -732,7 +747,12 @@ SelectStatement::SelectStatement(boost::shared_ptr<Table> table, const std::stri
   m_find->set_data_model(Mysqlx::Crud::TABLE);
 
   if (!fieldList.empty())
-    parser::parse_table_column_list_with_alias(*m_find->mutable_projection(), fieldList);
+  {
+    std::vector<std::string>::const_iterator index, end = fieldList.end();
+
+    for (index = fieldList.begin(); index != end; index++)
+      parser::parse_table_column_list_with_alias(*m_find->mutable_projection(), *index);
+  }
 }
 
 Select_GroupBy &SelectStatement::where(const std::string &searchCondition)

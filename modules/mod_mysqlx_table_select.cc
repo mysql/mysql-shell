@@ -17,6 +17,7 @@
  * 02110-1301  USA
  */
 #include <boost/bind.hpp>
+#include <boost/format.hpp>
 #include "mod_mysqlx_table_select.h"
 #include "mod_mysqlx_table.h"
 #include "mod_mysqlx_resultset.h"
@@ -64,11 +65,28 @@ shcore::Value TableSelect::select(const shcore::Argument_list &args)
   {
     try
     {
-      std::string field_list;
-      if (args.size())
-        field_list = args.string_at(0);
+      std::vector<std::string> fields;
 
-      _select_statement.reset(new ::mysqlx::SelectStatement(table->_table_impl->select(field_list)));
+      if (args.size())
+      {
+        Value::Array_type_ref shell_fields = args.array_at(0);
+        Value::Array_type::const_iterator index, end = shell_fields->end();
+
+        int count = 0;
+        for (index = shell_fields->begin(); index != end; index++)
+        {
+          count++;
+          if (index->type != shcore::String)
+            throw shcore::Exception::argument_error((boost::format("Element #%1% is expected to be a string") % count).str());
+          else
+            fields.push_back(index->as_string());
+        }
+
+        if (fields.size() == 0)
+          throw shcore::Exception::argument_error("Field selection criteria can not be empty");
+      }
+
+      _select_statement.reset(new ::mysqlx::SelectStatement(table->_table_impl->select(fields)));
 
       // Updates the exposed functions
       update_functions("select");
@@ -100,7 +118,25 @@ shcore::Value TableSelect::group_by(const shcore::Argument_list &args)
 
   try
   {
-    _select_statement->groupBy(args.string_at(0));
+    Value::Array_type_ref shell_fields = args.array_at(0);
+    Value::Array_type::const_iterator index, end = shell_fields->end();
+
+    std::vector<std::string> fields;
+
+    int count = 0;
+    for (index = shell_fields->begin(); index != end; index++)
+    {
+      count++;
+      if (index->type != shcore::String)
+        throw shcore::Exception::argument_error((boost::format("Element #%1% is expected to be a string") % count).str());
+      else
+        fields.push_back(index->as_string());
+    }
+
+    if (fields.size() == 0)
+      throw shcore::Exception::argument_error("Grouping criteria can not be empty");
+
+    _select_statement->groupBy(fields);
 
     update_functions("groupBy");
   }

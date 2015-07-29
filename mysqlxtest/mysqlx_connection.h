@@ -114,6 +114,7 @@ namespace mysqlx
     boost::asio::ip::tcp::socket &socket() { return m_socket; }
   public:
     Result *execute_sql(const std::string &sql);
+    Result *execute_stmt(const std::string &ns, const std::string &sql, const std::vector<ArgumentValue> &args);
 
     Result *execute_find(const Mysqlx::Crud::Find &m);
     Result *execute_update(const Mysqlx::Crud::Update &m);

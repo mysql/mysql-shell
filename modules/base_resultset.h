@@ -47,7 +47,7 @@ namespace mysh
     shcore::Value get_member_method(const shcore::Argument_list &args, const std::string& method, const std::string& prop);
 
     // Printing functions
-    shcore::Value print(const shcore::Argument_list &args);
+    virtual shcore::Value print(const shcore::Argument_list &args);
     void print_json(const std::string& format);
     void print_normal(bool interactive, const std::string& format);
     void print_tabbed(shcore::Value::Array_type_ref records);

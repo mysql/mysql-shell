@@ -165,6 +165,7 @@ namespace mysqlx
     std::vector<Token>::const_iterator end() const { return _tokens.end(); }
 
     void get_tokens();
+    std::string get_input() { return _input; }
 
   protected:
     std::vector<Token> _tokens;
