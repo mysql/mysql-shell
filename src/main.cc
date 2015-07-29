@@ -415,18 +415,49 @@ void Interactive_shell::println(const std::string &str)
 
 void Interactive_shell::print_error(const std::string &error)
 {
+  Value error_val = Value::parse(error);
   log_error("%s", error.c_str());
-  if (_output_format == "jsonraw" || _output_format == "jsonpretty")
-  {
-    shcore::JSON_dumper dumper(_output_format == "jsonpretty");
-    dumper.start_object();
-    dumper.append_string("error", error);
-    dumper.end_object();
+  std::string message;
 
-    std::cerr << dumper.str() << "\n";
+  if (_output_format.find("json") == 0)
+  {
+    Value::Map_type_ref error_map(new Value::Map_type());
+
+    Value error_obj(error_map);
+
+    (*error_map)["error"] = error_val;
+
+    message = error_obj.json(_output_format == "jsonpretty");
   }
   else
-    std::cerr << "ERROR: " << error << "\n";
+  {
+    message = "ERROR: ";
+    if (error_val.type == shcore::Map)
+    {
+      Value::Map_type_ref error_map = error_val.as_map();
+
+      if (error_map->has_key("code"))
+      {
+        //message.append(" ");
+        message.append(((*error_map)["code"].repr()));
+
+        if (error_map->has_key("state") && (*error_map)["state"])
+          message.append(" (" + (*error_map)["state"].as_string() + ")");
+
+        message.append(": ");
+      }
+
+      if (error_map->has_key("message"))
+        message.append((*error_map)["message"].as_string());
+      else
+        message.append("?");
+    }
+    else
+      message = error_val.descr();
+  }
+
+  std::cerr << message << "\n";
+
 }
 
 void Interactive_shell::cmd_print_shell_help(const std::vector<std::string>& args)

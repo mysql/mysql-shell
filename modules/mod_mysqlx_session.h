@@ -53,6 +53,10 @@ static void ATTR_UNUSED translate_exception()
   {
     throw;
   }
+  catch (::mysqlx::Error &e)
+  {
+    throw shcore::Exception::error_with_code("Server", e.what(), e.error());
+  }
   catch (std::runtime_error &e)
   {
     throw shcore::Exception::runtime_error(e.what());

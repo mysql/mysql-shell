@@ -196,26 +196,9 @@ bool Shell_sql::print_help(const std::string& topic)
 
 void Shell_sql::print_exception(const shcore::Exception &e)
 {
-  // Removes the type, at this moment only type is MySQLError
-  // Reason is that leaving it will print things like:
-  // ERROR: MySQLError (code) message
-  // Where ERROR is added on the called print_error routine
-  //std::string message = (*e.error())["type"].as_string();
-
-  std::string message;
-  if ((*e.error()).has_key("code"))
-  {
-    //message.append(" ");
-    message.append(((*e.error())["code"].repr()));
-
-    if ((*e.error()).has_key("state") && (*e.error())["state"])
-      message.append((boost::format(" (%s)") % ((*e.error())["state"].as_string())).str());
-
-    message.append(": ");
-  }
-  message.append(e.what());
-
-  _owner->print_error(message);
+  // Sends a description of the exception data to the error handler wich will define the final format.
+  shcore::Value exception(e.error());
+  _owner->print_error(exception.descr());
 }
 
 //------------------ SQL COMMAND HANDLERS ------------------//
