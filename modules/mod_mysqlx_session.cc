@@ -215,7 +215,7 @@ Value ApiBaseSession::executeAdminCommand(const std::string& command, const Argu
   else
   {
     // Converts the arguments from shcore to mysqlxtest format
-    std::vector<::mysqlx::ArgumentValue> arguments;
+    std::vector< ::mysqlx::ArgumentValue> arguments;
     for (size_t index = 0; index < args.size(); index++)
       arguments.push_back(get_argument_value(args[index]));
 
