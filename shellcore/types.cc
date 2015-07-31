@@ -29,6 +29,7 @@
 #include <cstring>
 #include <sstream>
 #include <rapidjson/prettywriter.h>
+#include <limits>
 
 using namespace shcore;
 
@@ -1242,7 +1243,7 @@ int64_t Value::as_int() const
 
   if (type == Integer)
     ret_val = value.i;
-  else if (type == UInteger && value.ui <= INT64_MAX)
+  else if (type == UInteger && value.ui <= std::numeric_limits<int64_t>::max())
     ret_val = (int64_t)value.ui;
   else
     throw Exception::type_error("Invalid typecast");

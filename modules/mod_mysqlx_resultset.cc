@@ -40,7 +40,7 @@ shcore::Value Resultset::get_member(const std::string &prop) const
   else if (prop == "affectedRows")
     ret_val = Value(_result->affectedRows());
   else if (prop == "warningCount")
-    ret_val = Value(_result->getWarnings().size());
+    ret_val = Value(uint64_t(_result->getWarnings().size()));
   else if (prop == "executionTime")
     ret_val = Value("0"); // TODO: Execution time not being provided on X Protocol
   else if (prop == "lastInsertId")
