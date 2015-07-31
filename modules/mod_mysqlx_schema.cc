@@ -86,6 +86,7 @@ void Schema::cache_table_objects()
 
         shcore::Argument_list args;
         args.push_back(Value(_name));
+        args.push_back(Value(""));
 
         Value myres = sess->executeAdminCommand("list_objects", args);
         boost::shared_ptr<mysh::mysqlx::Resultset> my_res = myres.as_object<mysh::mysqlx::Resultset>();

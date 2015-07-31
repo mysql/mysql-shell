@@ -259,7 +259,7 @@ namespace mysqlx
     std::string schema;
     std::string catalog;
 
-    std::string charset;
+    uint64_t collation;
 
     uint32_t fractional_digits;
 
@@ -323,6 +323,7 @@ namespace mysqlx
     boost::shared_ptr<std::vector<ColumnMetadata> > columnMetadata();
     int64_t lastInsertId() const { return m_last_insert_id; }
     int64_t affectedRows() const { return m_affected_rows; }
+    std::string infoMessage() const { return m_info_message; }
 
     bool ready();
     void wait();
@@ -347,7 +348,7 @@ namespace mysqlx
     std::auto_ptr<Row> read_row();
     void read_stmt_ok();
 
-    void handle_notice(int32_t type, const std::string &data);
+    bool handle_notice(int32_t type, const std::string &data);
 
     int get_message_id();
     mysqlx::Message* pop_message();
@@ -360,6 +361,7 @@ namespace mysqlx
     boost::shared_ptr<std::vector<ColumnMetadata> > m_columns;
     int64_t m_last_insert_id;
     int64_t m_affected_rows;
+    std::string m_info_message;
 
     std::vector<Warning> m_warnings;
 

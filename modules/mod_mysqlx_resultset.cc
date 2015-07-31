@@ -65,7 +65,7 @@ shcore::Value Resultset::get_member(const std::string &prop) const
       (*map)["org_table"] = shcore::Value(_result->columnMetadata()->at(i).original_table);
       (*map)["name"] = shcore::Value(_result->columnMetadata()->at(i).name);
       (*map)["org_name"] = shcore::Value(_result->columnMetadata()->at(i).original_name);
-      (*map)["charset"] = shcore::Value(_result->columnMetadata()->at(i).charset);
+      (*map)["collation"] = shcore::Value(_result->columnMetadata()->at(i).collation);
       (*map)["length"] = shcore::Value(int(_result->columnMetadata()->at(i).length));
       (*map)["type"] = shcore::Value(int(_result->columnMetadata()->at(i).type)); // TODO: Translate to MySQL Type
       (*map)["flags"] = shcore::Value(int(_result->columnMetadata()->at(i).flags));
