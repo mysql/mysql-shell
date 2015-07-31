@@ -46,6 +46,7 @@ BaseResultset::BaseResultset()
   add_method("getAffectedRows", boost::bind(&BaseResultset::get_member_method, this, _1, "getAffectedRows", "affectedRows"), NULL);
   add_method("getFetchedRowCount", boost::bind(&BaseResultset::get_member_method, this, _1, "getFetchedRowCount", "fetchedRowCount"), NULL);
   add_method("getWarningCount", boost::bind(&BaseResultset::get_member_method, this, _1, "getWarningCount", "warningCount"), NULL);
+  add_method("getWarnings", boost::bind(&BaseResultset::get_member_method, this, _1, "getWarnings", "warnings"), NULL);
   add_method("getExecutionTime", boost::bind(&BaseResultset::get_member_method, this, _1, "getExecutionTime", "executionTime"), NULL);
   add_method("getLastInsertId", boost::bind(&BaseResultset::get_member_method, this, _1, "getLastInsertId", "lastInsertId"), NULL);
   add_method("getInfo", boost::bind(&BaseResultset::get_member_method, this, _1, "getInfo", "info"), NULL);
@@ -83,25 +84,29 @@ shcore::Value BaseResultset::print(const shcore::Argument_list &args)
 {
   std::string function = class_name() + "::print";
 
-  args.ensure_count(0, 2, function.c_str());
+  args.ensure_count(0, 3, function.c_str());
 
   std::string format;
   bool interactive = true;
+  bool show_warnings = false;
   if (args.size() > 0)
     interactive = args.bool_at(0);
 
   if (args.size() > 1)
     format = args.string_at(1);
 
+  if (args.size() > 2)
+    show_warnings = args.bool_at(2);
+
   if (format == "jsonraw" || format == "jsonpretty")
-    print_json(format);
+    print_json(format, show_warnings);
   else
-    print_normal(interactive, format);
+    print_normal(interactive, format, show_warnings);
 
   return shcore::Value();
 }
 
-void BaseResultset::print_json(const std::string& format)
+void BaseResultset::print_json(const std::string& format, bool show_warnings)
 {
   shcore::Value::Map_type_ref data(new shcore::Value::Map_type);
 
@@ -121,15 +126,15 @@ void BaseResultset::print_json(const std::string& format)
   (*data)["warning_count"] = get_member("warningCount");
   (*data)["info"] = get_member("info");
 
-  if ((*data)["warning_count"].as_int())
-  (*data)["warnings"] = get_member("warnings");
+  if ((*data)["warning_count"].as_int() && show_warnings)
+    (*data)["warnings"] = get_member("warnings");
 
   shcore::Value map(data);
 
   shcore::print(map.json(format == "jsonpretty") + "\n");
 }
 
-void BaseResultset::print_normal(bool interactive, const std::string& format)
+void BaseResultset::print_normal(bool interactive, const std::string& format, bool show_warnings)
 {
   std::string output;
 
@@ -173,7 +178,7 @@ void BaseResultset::print_normal(bool interactive, const std::string& format)
     int warning_count = 0;
     if (interactive)
     {
-      warning_count = get_member("warningCount").as_int();
+      warning_count = get_member("warningCount").as_uint();
 
       if (warning_count)
         output.append((boost::format(", %d warning%s") % warning_count % (warning_count == 1 ? "" : "s")).str());
@@ -190,7 +195,7 @@ void BaseResultset::print_normal(bool interactive, const std::string& format)
       shcore::print("\n" + info + "\n");
 
     // Prints the warnings if there were any
-    if (warning_count)
+    if (warning_count && show_warnings)
       print_warnings();
   } while (next_result(shcore::Argument_list()).as_bool());
 }
@@ -219,7 +224,7 @@ void BaseResultset::print_tabbed(shcore::Value::Array_type_ref records)
 
     for (size_t field_index = 0; field_index < field_count; field_index++)
     {
-      std::string raw_value = row->values[field_index].descr();
+      std::string raw_value = row->get_member(field_index).descr();
       shcore::print(raw_value);
       shcore::print(field_index < (field_count - 1) ? "\t" : "\n");
     }
@@ -237,7 +242,7 @@ void BaseResultset::print_table(shcore::Value::Array_type_ref records)
     boost::shared_ptr<Row> row = (*records)[row_index].as_object<Row>();
     for (size_t field_index = 0; field_index < metadata->size(); field_index++)
     {
-      int field_length = row->values[field_index].repr().length();
+      int field_length = row->get_member(field_index).repr().length();
 
       if (field_length >(*(*metadata)[field_index].as_map())["max_length"].as_int())
         (*(*metadata)[field_index].as_map())["max_length"] = Value(field_length);
@@ -297,7 +302,7 @@ void BaseResultset::print_table(shcore::Value::Array_type_ref records)
 
     for (size_t field_index = 0; field_index < metadata->size(); field_index++)
     {
-      std::string raw_value = row->values[field_index].descr();
+      std::string raw_value = row->get_member(field_index).descr();
       std::string data = (boost::format(formats[field_index]) % (raw_value)).str();
 
       shcore::print(data);
@@ -320,12 +325,12 @@ void BaseResultset::print_warnings()
     while (index < size)
     {
       Value record = warning_list->at(index);
-      boost::shared_ptr<Value::Map_type> row = record.as_map();
+      boost::shared_ptr<mysh::Row> row = record.as_object<mysh::Row>();
 
-      unsigned long error = ((*row)["1"].as_int());
+      unsigned long error = row->get_member("Code").as_int();
 
-      std::string type = (*row)["0"].as_string();
-      std::string msg = (*row)["2"].as_string();
+      std::string type = row->get_member("Level").as_string();
+      std::string msg = row->get_member("Message").as_string();
       shcore::print((boost::format("%s (Code %ld): %s\n") % type % error % msg).str());
 
       index++;
@@ -342,7 +347,7 @@ std::string &Row::append_descr(std::string &s_out, int indent, int UNUSED(quote_
 {
   std::string nl = (indent >= 0) ? "\n" : "";
   s_out += "[";
-  for (size_t index = 0; index < values.size(); index++)
+  for (size_t index = 0; index < value_iterators.size(); index++)
   {
     if (index > 0)
       s_out += ",";
@@ -352,7 +357,7 @@ std::string &Row::append_descr(std::string &s_out, int indent, int UNUSED(quote_
     if (indent >= 0)
       s_out.append((indent + 1) * 4, ' ');
 
-    values[index].append_descr(s_out, indent < 0 ? indent : indent + 1, '"');
+    value_iterators[index]->second.append_descr(s_out, indent < 0 ? indent : indent + 1, '"');
   }
 
   s_out += nl;
@@ -366,13 +371,12 @@ std::string &Row::append_descr(std::string &s_out, int indent, int UNUSED(quote_
 
 void Row::append_json(const shcore::JSON_dumper& dumper) const
 {
-  dumper.start_array();
+  dumper.start_object();
 
-  Value::Array_type::const_iterator index, end = values.end();
-  for (index = values.begin(); index != end; index++)
-    dumper.append_value(*index);
+  for (size_t index = 0; index < value_iterators.size(); index++)
+    dumper.append_value(value_iterators[index]->first, value_iterators[index]->second);
 
-  dumper.end_array();
+  dumper.end_object();
 }
 
 std::string &Row::append_repr(std::string &s_out) const
@@ -394,8 +398,8 @@ std::vector<std::string> Row::get_members() const
   std::vector<std::string> l = shcore::Cpp_object_bridge::get_members();
   l.push_back("__length__");
 
-  for (std::map<std::string, int>::const_iterator i = keys.begin(); i != keys.end(); ++i)
-    l.push_back(i->first);
+  for (size_t index = 0; index < value_iterators.size(); index++)
+    l.push_back(value_iterators[index]->first);
 
   return l;
 }
@@ -415,25 +419,27 @@ shcore::Value Row::get_member(const std::string &prop) const
   {
     unsigned int index = 0;
     if (sscanf(prop.c_str(), "%u", &index) == 1)
-    {
-      if (index > values.size() - 1)
-        return shcore::Value();
-
-      return values[index];
-    }
+      return get_member(index);
     else
     {
-      std::map<std::string, int>::const_iterator it;
-      if ((it = keys.find(prop)) != keys.end())
-        return values[it->second];
+      std::map<std::string, shcore::Value>::const_iterator it;
+      if ((it = values.find(prop)) != values.end())
+        return it->second;
     }
   }
 
   return shcore::Cpp_object_bridge::get_member(prop);
 }
 
+shcore::Value Row::get_member(size_t index) const
+{
+  if (index < value_iterators.size())
+    return value_iterators[index]->second;
+  else
+    return shcore::Value();
+}
+
 void Row::add_item(const std::string &key, shcore::Value value)
 {
-  values.push_back(value);
-  keys[key] = values.size() - 1;
+  value_iterators.push_back(values.insert(values.end(), std::pair<std::string, shcore::Value>(key, value)));
 }

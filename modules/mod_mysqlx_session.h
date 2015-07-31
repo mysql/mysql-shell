@@ -99,6 +99,7 @@ namespace mysh
 
       virtual shcore::Value get_schema(const shcore::Argument_list &args) const;
       virtual shcore::Value set_default_schema(const shcore::Argument_list &args);
+      shcore::Value set_fetch_warnings(const shcore::Argument_list &args);
 
       boost::shared_ptr< ::mysqlx::Session> session_obj() const { return _session; }
 

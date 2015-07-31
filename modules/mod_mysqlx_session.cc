@@ -51,6 +51,7 @@ ApiBaseSession::ApiBaseSession()
   _schemas.reset(new shcore::Value::Map_type);
 
   add_method("close", boost::bind(&ApiBaseSession::close, this, _1), "data");
+  add_method("setFetchWarnings", boost::bind(&ApiBaseSession::set_fetch_warnings, this, _1), "data");
 }
 
 Value ApiBaseSession::connect(const Argument_list &args)
@@ -419,6 +420,23 @@ shcore::Value ApiBaseSession::set_default_schema(const shcore::Argument_list &ar
     throw Exception::runtime_error("Session not connected");
 
   return get_member("defaultSchema");
+}
+
+shcore::Value ApiBaseSession::set_fetch_warnings(const shcore::Argument_list &args)
+{
+  Value ret_val;
+
+  args.ensure_count(1, (class_name() + "::setFetchWarnings").c_str());
+
+  bool enable = args.bool_at(0);
+  std::string command = enable ? "enable_notices" : "disable_notices";
+
+  shcore::Argument_list command_args;
+  command_args.push_back(Value("warnings"));
+
+  executeAdminCommand(command, command_args);
+
+  return ret_val;
 }
 
 void ApiBaseSession::_update_default_schema(const std::string& name)

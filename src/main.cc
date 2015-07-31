@@ -86,6 +86,8 @@ public:
   void cmd_start_multiline(const std::vector<std::string>& args);
   void cmd_connect(const std::vector<std::string>& args);
   void cmd_quit(const std::vector<std::string>& args);
+  void cmd_warnings(const std::vector<std::string>& args);
+  void cmd_nowarnings(const std::vector<std::string>& args);
 
   void print_banner();
   void print_cmd_line_helper();
@@ -126,6 +128,7 @@ private:
 
   std::string _input_buffer;
   bool _multiline_mode;
+  bool _show_warnings;
   bool _interactive;
   bool _batch_continue_on_error;
   std::string _output_format;
@@ -134,7 +137,7 @@ private:
 };
 
 Interactive_shell::Interactive_shell(Shell_core::Mode initial_mode, ngcommon::Logger::LOG_LEVEL log_level) :
-_batch_continue_on_error(false)
+_batch_continue_on_error(false), _show_warnings(false)
 {
   std::string log_path = get_user_config_path();
   log_path += "mysqlx.log";
@@ -195,6 +198,8 @@ _batch_continue_on_error(false)
   SET_SHELL_COMMAND("\\", "Start multiline input. Finish and execute with an empty line.", "", Interactive_shell::cmd_start_multiline);
   SET_SHELL_COMMAND("\\quit|\\q|\\exit", "Quit mysh.", "", Interactive_shell::cmd_quit);
   SET_SHELL_COMMAND("\\connect", "Connect to server.", cmd_help, Interactive_shell::cmd_connect);
+  SET_SHELL_COMMAND("\\warnings|\\W", "Show warnings after every statement..", cmd_help, Interactive_shell::cmd_warnings);
+  SET_SHELL_COMMAND("\\nowarnings|\\w", "Don't show warnings after every statement..", cmd_help, Interactive_shell::cmd_nowarnings);
 
   bool lang_initialized;
   _shell->switch_mode(initial_mode, lang_initialized);
@@ -518,6 +523,24 @@ void Interactive_shell::cmd_quit(const std::vector<std::string>& UNUSED(args))
   _interactive = false;
 }
 
+void Interactive_shell::cmd_warnings(const std::vector<std::string>& UNUSED(args))
+{
+  _show_warnings = true;
+
+  _shell->set_show_warnings(_show_warnings);
+
+  println("Show warnings enabled.");
+}
+
+void Interactive_shell::cmd_nowarnings(const std::vector<std::string>& UNUSED(args))
+{
+  _show_warnings = false;
+
+  _shell->set_show_warnings(_show_warnings);
+
+  println("Show warnings disabled.");
+}
+
 void Interactive_shell::deleg_print(void *cdata, const char *text)
 {
   Interactive_shell *self = (Interactive_shell*)cdata;
@@ -680,6 +703,7 @@ void Interactive_shell::process_result(shcore::Value result)
         Argument_list args;
         args.push_back(Value(_interactive));
         args.push_back(Value(_output_format));
+        args.push_back(Value(_show_warnings));
         object->call("__paged_output__", args);
       }
     }

@@ -215,7 +215,7 @@ namespace shcore {
     void check_type(Value_type t) const;
 
     bool as_bool() const { check_type(Bool); return value.b; }
-    int64_t as_int() const { check_type(Integer); return value.i; }
+    int64_t as_int() const;
     uint64_t as_uint() const;
     double as_double() const;
     const std::string &as_string() const { check_type(String); return *value.s; }

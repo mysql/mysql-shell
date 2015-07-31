@@ -157,7 +157,7 @@ void Shell_core::process_result(shcore::Value result, bool print_data)
         Argument_list args;
         args.push_back(Value(_interactive));
         args.push_back(Value(_output_format));
-
+        args.push_back(Value(_show_warnings));
         object->call("__paged_output__", args);
       }
     }

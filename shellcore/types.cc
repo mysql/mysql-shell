@@ -1236,6 +1236,20 @@ void Value::check_type(Value_type t) const
     throw Exception::type_error("Invalid typecast");
 }
 
+int64_t Value::as_int() const
+{
+  int64_t ret_val;
+
+  if (type == Integer)
+    ret_val = value.i;
+  else if (type == UInteger && value.ui <= INT64_MAX)
+    ret_val = (int64_t)value.ui;
+  else
+    throw Exception::type_error("Invalid typecast");
+
+  return ret_val;
+}
+
 uint64_t Value::as_uint() const
 {
   uint64_t ret_val;

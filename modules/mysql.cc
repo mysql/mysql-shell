@@ -34,8 +34,8 @@ using namespace mysh::mysql;
 #define MAX_COLUMN_LENGTH 1024
 #define MIN_COLUMN_LENGTH 4
 
-Result::Result(boost::shared_ptr<Connection> owner, my_ulonglong affected_rows_, unsigned int UNUSED(warning_count_), const char *info_)
-: _connection(owner), _affected_rows(affected_rows_), _last_insert_id(0), _warning_count(0), _fetched_row_count(0), _execution_time(0), _has_resultset(false)
+Result::Result(boost::shared_ptr<Connection> owner, my_ulonglong affected_rows_, unsigned int warning_count_, const char *info_)
+: _connection(owner), _affected_rows(affected_rows_), _last_insert_id(0), _warning_count(warning_count_), _fetched_row_count(0), _execution_time(0), _has_resultset(false)
 {
   if (info_)
     _info.assign(info_);

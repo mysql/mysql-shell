@@ -32,10 +32,6 @@ Shell_sql::Shell_sql(IShell_core *owner)
 : Shell_language(owner)
 {
   _delimiter = ";";
-
-  std::string cmd_help;
-  SET_SHELL_COMMAND("warnings|\\W", "Show warnings after every statement.", "", Shell_sql::cmd_enable_auto_warnings);
-  SET_SHELL_COMMAND("nowarnings|\\w", "Don't show warnings after every statement.", "", Shell_sql::cmd_disable_auto_warnings);
 }
 
 void Shell_sql::handle_input(std::string &code, Interactive_input_state &state, boost::function<void(shcore::Value)> result_processor, bool interactive)
@@ -199,16 +195,4 @@ void Shell_sql::print_exception(const shcore::Exception &e)
   // Sends a description of the exception data to the error handler wich will define the final format.
   shcore::Value exception(e.error());
   _owner->print_error(exception.descr());
-}
-
-//------------------ SQL COMMAND HANDLERS ------------------//
-
-void Shell_sql::cmd_enable_auto_warnings(const std::vector<std::string>& UNUSED(params))
-{
-  // To be done once the global options are in place...
-}
-
-void Shell_sql::cmd_disable_auto_warnings(const std::vector<std::string>& UNUSED(params))
-{
-  // To be done once the global options are in place...
 }

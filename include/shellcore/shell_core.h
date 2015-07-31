@@ -123,6 +123,7 @@ namespace shcore
     virtual Interpreter_delegate *lang_delegate() { return _lang_delegate; }
     virtual void set_output_format(const std::string &format){ _output_format = format; }
     virtual void set_interactive(bool value) { _interactive = value; }
+    virtual void set_show_warnings(bool value) { _show_warnings = value; }
     bool is_interactive() { return _interactive; }
   public:
     virtual void print(const std::string &s);
@@ -147,6 +148,7 @@ namespace shcore
     Mode _mode;
     std::string _output_format;
     bool _interactive;
+    bool _show_warnings;
     int _global_return_code;
   };
 };

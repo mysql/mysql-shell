@@ -40,7 +40,7 @@ shcore::Value Resultset::get_member(const std::string &prop) const
   else if (prop == "affectedRows")
     ret_val = Value(_result->affectedRows());
   else if (prop == "warningCount")
-    ret_val = Value(0); // TODO: Warning count not being received on X Protocol
+    ret_val = Value(_result->getWarnings().size());
   else if (prop == "executionTime")
     ret_val = Value("0"); // TODO: Execution time not being provided on X Protocol
   else if (prop == "lastInsertId")
@@ -82,6 +82,28 @@ shcore::Value Resultset::get_member(const std::string &prop) const
                                            type == ::mysqlx::DECIMAL);
 
       array->push_back(shcore::Value(map));
+    }
+
+    ret_val = shcore::Value(array);
+  }
+  else if (prop == "warnings")
+  {
+    boost::shared_ptr<shcore::Value::Array_type> array(new shcore::Value::Array_type);
+
+    std::vector< ::mysqlx::Result::Warning> warnings = _result->getWarnings();
+
+    if (warnings.size())
+    {
+      for (size_t index = 0; index < warnings.size(); index++)
+      {
+        mysh::Row *warning_row = new mysh::Row();
+
+        warning_row->add_item("Level", shcore::Value(warnings[index].is_note ? "Note" : "Warning"));
+        warning_row->add_item("Code", shcore::Value(warnings[index].code));
+        warning_row->add_item("Message", shcore::Value(warnings[index].text));
+
+        array->push_back(shcore::Value::wrap(warning_row));
+      }
     }
 
     ret_val = shcore::Value(array);
@@ -190,7 +212,12 @@ shcore::Value Collection_resultset::next(const shcore::Argument_list &args)
 
 shcore::Value Collection_resultset::print(const shcore::Argument_list &args)
 {
-  print_json("jsonpretty");
+  bool show_warnings = false;
+
+  if (args.size() > 2)
+    show_warnings = args.bool_at(2);
+
+  print_json("jsonpretty", show_warnings);
 
   return shcore::Value();
 }
