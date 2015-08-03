@@ -860,7 +860,6 @@ void Interactive_shell::print_cmd_line_helper()
   println("  --sql                  Start in SQL mode.");
   println("  --js                   Start in JavaScript mode.");
   println("  --py                   Start in Python mode.");
-  println("  --py                   Start in Python mode.");
   println("  --json                 Produce output in JSON format.");
   println("  --table                Produce output in table format (default for interactive mode).");
   println("                         This option can be used to force that format when running in batch mode.");
