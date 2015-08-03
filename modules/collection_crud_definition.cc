@@ -27,6 +27,8 @@ using namespace mysh::mysqlx;
 {
   switch (source.type)
   {
+    case shcore::Undefined:
+      throw shcore::Exception::argument_error("Invalid value");
     case shcore::Bool:
     case shcore::UInteger:
     case shcore::Integer:
@@ -40,24 +42,24 @@ using namespace mysh::mysqlx;
       break;
     case shcore::Object:
     {
-                         shcore::Object_bridge_ref object = source.as_object();
+      shcore::Object_bridge_ref object = source.as_object();
 
-                         boost::shared_ptr<Expression> expression = boost::dynamic_pointer_cast<Expression>(object);
+      boost::shared_ptr<Expression> expression = boost::dynamic_pointer_cast<Expression>(object);
 
-                         if (expression)
-                         {
-                           std::string expr_data = expression->get_data();
-                           if (!expr_data.empty())
-                            return ::mysqlx::DocumentValue(expr_data, true);
-                           else
-                             throw shcore::Exception::argument_error("Expressions can not be empty.");
-                         }
-                         else
-                         {
-                           std::stringstream str;
-                           str << "Unsupported value received: " << source.descr() << ".";
-                           throw shcore::Exception::argument_error(str.str());
-                         }
+      if (expression)
+      {
+        std::string expr_data = expression->get_data();
+        if (expr_data.empty())
+          return ::mysqlx::DocumentValue(expr_data, true);
+        else
+          throw shcore::Exception::argument_error("Expressions can not be empty.");
+      }
+      else
+      {
+        std::stringstream str;
+        str << "Unsupported value received: " << source.descr() << ".";
+        throw shcore::Exception::argument_error(str.str());
+      }
     }
       break;
     case shcore::Null:
@@ -65,7 +67,6 @@ using namespace mysh::mysqlx;
     case shcore::Map:
     case shcore::MapRef:
     case shcore::Function:
-    case shcore::Undefined:
       std::stringstream str;
       str << "Unsupported value received: " << source.descr();
       throw shcore::Exception::argument_error(str.str());

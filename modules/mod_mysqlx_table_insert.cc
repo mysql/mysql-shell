@@ -95,9 +95,10 @@ shcore::Value TableInsert::insert(const shcore::Argument_list &args)
           std::vector < ::mysqlx::TableValue > values;
           path = "FieldsAndValues";
           sh_columns_and_values = args[0].as_map();
-          shcore::Value::Map_type::iterator index, end = sh_columns_and_values->end();
+          shcore::Value::Map_type::iterator index = sh_columns_and_values->begin(),
+                                            end = sh_columns_and_values->end();
 
-          for (index = sh_columns_and_values->begin(); index != end; index++)
+          for (; index != end; index++)
           {
             columns.push_back(index->first);
             values.push_back(map_table_value(index->second));

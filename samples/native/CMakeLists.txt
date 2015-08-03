@@ -29,6 +29,7 @@ if (CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 endif ()
 
 
+add_definitions(-DBOOST_ALL_NO_LIB)
 add_executable(shell_client_app ${app_SRC})
 
 if (WITH_SAMPLES)
@@ -55,4 +56,3 @@ else()
   )
 endif()
 
-add_definitions(-DBOOST_ALL_NO_LIB)

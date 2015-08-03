@@ -166,8 +166,8 @@ void BaseResultset::print_normal(bool interactive, const std::string& format, bo
     else
     {
       // Some queries return -1 since affected rows do not apply to them
-      int affected_rows = get_member("affectedRows").as_int();
-      if (affected_rows == ~(uint64_t)0)
+      uint64_t affected_rows = get_member("affectedRows").as_uint();
+      if (affected_rows == (uint64_t)-1)
         output = "Query OK";
       else
         // In case of Query OK, prints the actual number of affected rows.
