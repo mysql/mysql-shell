@@ -144,13 +144,24 @@ shcore::Value Resultset::next(const shcore::Argument_list &UNUSED(args))
           case ::mysqlx::BYTES:
             field_value = Value(row->stringField(index));
             break;
-          case ::mysqlx::TIME:
-          case ::mysqlx::DATETIME:
-          case ::mysqlx::SET:
-          case ::mysqlx::ENUM:
-          case ::mysqlx::BIT:
           case ::mysqlx::DECIMAL:
-            //XXX TODO
+            field_value = Value(row->decimalField(index));
+            break;
+          case ::mysqlx::TIME:
+            field_value = Value(row->timeField(index));
+            break;
+          case ::mysqlx::DATETIME:
+            field_value = Value(row->dateTimeField(index));
+            break;
+          case ::mysqlx::ENUM:
+            field_value = Value(row->enumField(index));
+            break;
+          case ::mysqlx::BIT:
+            field_value = Value(row->bitField(index));
+            break;
+          //TODO: Fix the handling of SET
+          case ::mysqlx::SET:
+            //field_value = Value(row->setField(index));
             break;
         }
         value_row->add_item(metadata->at(index).name, field_value);

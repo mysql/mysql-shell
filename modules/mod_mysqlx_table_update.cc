@@ -144,7 +144,14 @@ shcore::Value TableUpdate::order_by(const shcore::Argument_list &args)
 
   try
   {
-    _update_statement->orderBy(args.string_at(0));
+    std::vector<std::string> fields;
+
+    parse_string_list(args, fields);
+
+    if (fields.size() == 0)
+      throw shcore::Exception::argument_error("Order criteria can not be empty");
+
+    _update_statement->orderBy(fields);
 
     update_functions("orderBy");
   }

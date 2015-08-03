@@ -199,8 +199,13 @@ Find_Skip &Find_Limit::limit(uint64_t limit_)
   return *this;
 }
 
-Find_Limit &Find_Sort::sort(const std::string &UNUSED(sortFields))
+Find_Limit &Find_Sort::sort(const std::vector<std::string> &sortFields)
 {
+  std::vector<std::string>::const_iterator index, end = sortFields.end();
+
+  for (index = sortFields.begin(); index != end; index++)
+    parser::parse_collection_sort_column(*m_find->mutable_order(), *index);
+
   return *this;
 }
 
@@ -348,8 +353,13 @@ RemoveStatement::RemoveStatement(boost::shared_ptr<Collection> coll, const std::
     m_delete->set_allocated_criteria(parser::parse_collection_filter(searchCondition));
 }
 
-Remove_Limit &RemoveStatement::sort(const std::string &UNUSED(sortFields))
+Remove_Limit &RemoveStatement::sort(const std::vector<std::string> &sortFields)
 {
+  std::vector<std::string>::const_iterator index, end = sortFields.end();
+
+  for (index = sortFields.begin(); index != end; index++)
+    parser::parse_collection_sort_column(*m_delete->mutable_order(), *index);
+
   return *this;
 }
 
@@ -392,8 +402,13 @@ Modify_Base &Modify_Limit::limit(uint64_t limit_)
   return *this;
 }
 
-Modify_Limit &Modify_Sort::sort(const std::string &UNUSED(sortFields))
+Modify_Limit &Modify_Sort::sort(const std::vector<std::string> &sortFields)
 {
+  std::vector<std::string>::const_iterator index, end = sortFields.end();
+
+  for (index = sortFields.begin(); index != end; index++)
+    parser::parse_collection_sort_column(*m_update->mutable_order(), *index);
+
   return *this;
 }
 
@@ -565,10 +580,13 @@ Delete_Base &Delete_Limit::limit(uint64_t limit_)
   return *this;
 }
 
-Delete_Limit &Delete_OrderBy::orderBy(const std::string &sortFields)
+Delete_Limit &Delete_OrderBy::orderBy(const std::vector<std::string> &sortFields)
 {
-  //if (!sortFields.empty())
-  //  m_delete->set_allocated_criteria(parser::parse_table_filter(searchCondition));
+  std::vector<std::string>::const_iterator index, end = sortFields.end();
+
+  for (index = sortFields.begin(); index != end; index++)
+    parser::parse_table_sort_column(*m_delete->mutable_order(), *index);
+
   return *this;
 }
 
@@ -626,10 +644,13 @@ Update_Base &Update_Limit::limit(uint64_t limit_)
   return *this;
 }
 
-Update_Limit &Update_OrderBy::orderBy(const std::string &sortFields)
+Update_Limit &Update_OrderBy::orderBy(const std::vector<std::string> &sortFields)
 {
-  //if (!sortFields.empty())
-  //  m_update->set_allocated_criteria(parser::parse_table_filter(searchCondition));
+  std::vector<std::string>::const_iterator index, end = sortFields.end();
+
+  for (index = sortFields.begin(); index != end; index++)
+    parser::parse_table_sort_column(*m_update->mutable_order(), *index);
+
   return *this;
 }
 
@@ -721,8 +742,13 @@ Select_Offset &Select_Limit::limit(uint64_t limit_)
   return *this;
 }
 
-Select_Limit &Select_OrderBy::orderBy(const std::string &UNUSED(sortFields))
+Select_Limit &Select_OrderBy::orderBy(const std::vector<std::string> &sortFields)
 {
+  std::vector<std::string>::const_iterator index, end = sortFields.end();
+
+  for (index = sortFields.begin(); index != end; index++)
+    parser::parse_table_sort_column(*m_find->mutable_order(), *index);
+
   return *this;
 }
 

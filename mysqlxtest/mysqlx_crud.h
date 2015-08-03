@@ -361,7 +361,7 @@ namespace mysqlx
     Select_OrderBy(const Select_OrderBy &other) : Select_Limit(other) {}
     Select_OrderBy &operator = (const Select_OrderBy &other) { Select_Limit::operator=(other); return *this; }
 
-    Select_Limit &orderBy(const std::string &sortFields);
+    Select_Limit &orderBy(const std::vector<std::string> &sortFields);
   };
 
   class Select_Having : public Select_OrderBy
@@ -457,7 +457,7 @@ namespace mysqlx
     Delete_OrderBy(const Delete_Limit &other) : Delete_Limit(other) {}
     Delete_OrderBy &operator = (const Delete_OrderBy &other) { Delete_Limit::operator=(other); return *this; }
 
-    Delete_Limit &orderBy(const std::string &sortFields);
+    Delete_Limit &orderBy(const std::vector<std::string> &sortFields);
   };
 
   class DeleteStatement : public Delete_OrderBy
@@ -499,7 +499,7 @@ namespace mysqlx
     Update_OrderBy(const Update_Limit &other) : Update_Limit(other) {}
     Update_OrderBy &operator = (const Update_OrderBy &other) { Update_Limit::operator=(other); return *this; }
 
-    Update_Limit &orderBy(const std::string &sortFields);
+    Update_Limit &orderBy(const std::vector<std::string> &sortFields);
   };
 
   class Update_Where : public Update_OrderBy
@@ -604,7 +604,7 @@ namespace mysqlx
     Find_Sort(const Find_Sort &other) : Find_Limit(other) {}
     Find_Sort &operator = (const Find_Sort &other) { Find_Limit::operator=(other); return *this; }
 
-    Find_Limit &sort(const std::string &sortFields);
+    Find_Limit &sort(const std::vector<std::string> &sortFields);
   };
 
   class Find_Having : public Find_Sort
@@ -692,7 +692,7 @@ namespace mysqlx
     Modify_Sort(const Modify_Sort &other) : Modify_Limit(other) {}
     Modify_Sort &operator = (const Modify_Sort &other) { Modify_Limit::operator=(other); return *this; }
 
-    Modify_Limit &sort(const std::string &sortFields);
+    Modify_Limit &sort(const std::vector<std::string> &sortFields);
   };
 
   class Modify_Operation : public Modify_Sort
@@ -751,7 +751,7 @@ namespace mysqlx
     RemoveStatement(const RemoveStatement &other) : Remove_Limit(other) {}
     RemoveStatement &operator = (const RemoveStatement &other) { Remove_Limit::operator=(other); return *this; }
 
-    Remove_Limit &sort(const std::string &sortFields);
+    Remove_Limit &sort(const std::vector<std::string> &sortFields);
   };
 
   // -------------------------------------------------------

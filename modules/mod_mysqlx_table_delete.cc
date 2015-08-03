@@ -97,7 +97,14 @@ shcore::Value TableDelete::order_by(const shcore::Argument_list &args)
 
   try
   {
-    _delete_statement->orderBy(args.string_at(0));
+    std::vector<std::string> fields;
+
+    parse_string_list(args, fields);
+
+    if (fields.size() == 0)
+      throw shcore::Exception::argument_error("Order criteria can not be empty");
+
+    _delete_statement->orderBy(fields);
 
     update_functions("orderBy");
   }

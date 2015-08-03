@@ -146,7 +146,7 @@ namespace shcore {
 
     {
       SCOPED_TRACE("Testing function availability after sort.");
-      exec_and_out_equals("crud.sort('')");
+      exec_and_out_equals("crud.sort(['name'])");
       ensure_available_functions("limit, bind, execute");
     }
 
@@ -216,7 +216,10 @@ namespace shcore {
     {
       SCOPED_TRACE("Testing parameter validation on sort");
       exec_and_out_contains("collection.modify().unset('name').sort();", "", "Invalid number of arguments in CollectionModify::sort, expected 1 but got 0");
-      exec_and_out_contains("collection.modify().unset('name').sort(5);", "", "CollectionModify::sort: Argument #1 is expected to be a string");
+      exec_and_out_contains("collection.modify().unset('name').sort(5);", "", "CollectionModify::sort: Argument #1 is expected to be an array");
+      exec_and_out_contains("collection.modify().unset('name').sort([]);", "", "CollectionModify::sort: Sort criteria can not be empty");
+      exec_and_out_contains("collection.modify().unset('name').sort(['name', 5]);", "", "CollectionModify::sort: Element #2 is expected to be a string");
+      exec_and_out_contains("collection.modify().unset('name').sort(['name']);", "", "");
     }
 
     {

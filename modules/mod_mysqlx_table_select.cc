@@ -69,18 +69,7 @@ shcore::Value TableSelect::select(const shcore::Argument_list &args)
 
       if (args.size())
       {
-        Value::Array_type_ref shell_fields = args.array_at(0);
-        Value::Array_type::const_iterator index, end = shell_fields->end();
-
-        int count = 0;
-        for (index = shell_fields->begin(); index != end; index++)
-        {
-          count++;
-          if (index->type != shcore::String)
-            throw shcore::Exception::argument_error((boost::format("Element #%1% is expected to be a string") % count).str());
-          else
-            fields.push_back(index->as_string());
-        }
+        parse_string_list(args, fields);
 
         if (fields.size() == 0)
           throw shcore::Exception::argument_error("Field selection criteria can not be empty");
@@ -118,20 +107,9 @@ shcore::Value TableSelect::group_by(const shcore::Argument_list &args)
 
   try
   {
-    Value::Array_type_ref shell_fields = args.array_at(0);
-    Value::Array_type::const_iterator index, end = shell_fields->end();
-
     std::vector<std::string> fields;
 
-    int count = 0;
-    for (index = shell_fields->begin(); index != end; index++)
-    {
-      count++;
-      if (index->type != shcore::String)
-        throw shcore::Exception::argument_error((boost::format("Element #%1% is expected to be a string") % count).str());
-      else
-        fields.push_back(index->as_string());
-    }
+    parse_string_list(args, fields);
 
     if (fields.size() == 0)
       throw shcore::Exception::argument_error("Grouping criteria can not be empty");
@@ -166,10 +144,14 @@ shcore::Value TableSelect::order_by(const shcore::Argument_list &args)
 
   try
   {
-    _select_statement->orderBy(args.string_at(0));
+    std::vector<std::string> fields;
 
-    // Remove and update test suite when orderBy is enabled
-    throw shcore::Exception::logic_error("not yet implemented.");
+    parse_string_list(args, fields);
+
+    if (fields.size() == 0)
+      throw shcore::Exception::argument_error("Order criteria can not be empty");
+
+    _select_statement->orderBy(fields);
 
     update_functions("orderBy");
   }

@@ -105,6 +105,12 @@ namespace shcore {
       ensure_available_functions("sort, limit, bind, execute");
     }
 
+    {
+      exec_and_out_equals("var crud = crud.sort(['age']);");
+      SCOPED_TRACE("Testing function availability after sort.");
+      ensure_available_functions("limit, bind, execute");
+    }
+
     // Now executes limit
     {
       SCOPED_TRACE("Testing function availability after limit.");
@@ -168,8 +174,10 @@ namespace shcore {
     {
       SCOPED_TRACE("Testing parameter validation on sort");
       exec_and_out_contains("collection.find().sort();", "", "Invalid number of arguments in CollectionFind::sort, expected 1 but got 0");
-      exec_and_out_contains("collection.find().sort(5);", "", "CollectionFind::sort: Argument #1 is expected to be a string");
-      exec_and_out_contains("collection.find().sort('');", "", "CollectionFind::sort: not yet implemented.");
+      exec_and_out_contains("collection.find().sort(5);", "", "CollectionFind::sort: Argument #1 is expected to be an array");
+      exec_and_out_contains("collection.find().sort([]);", "", "CollectionFind::sort: Sort criteria can not be empty");
+      exec_and_out_contains("collection.find().sort(['name', 5]);", "", "CollectionFind::sort: Element #2 is expected to be a string");
+      exec_and_out_contains("collection.find().sort(['name']);", "", "");
     }
 
     {
@@ -254,6 +262,27 @@ namespace shcore {
       exec_and_out_contains("print(record.name != '');", "", "Invalid member name");
       exec_and_out_contains("print(record.gender != '');", "", "Invalid member gender");
       exec_and_out_equals("result.all();"); // Temporal hack: flushes the rest of the data
+    }
+
+    {
+      SCOPED_TRACE("Testing sort");
+      exec_and_out_equals("var records = collection.find().sort(['name']).execute().all();");
+      exec_and_out_equals("print(records[0].name);", "adam");
+      exec_and_out_equals("print(records[1].name);", "alma");
+      exec_and_out_equals("print(records[2].name);", "angel");
+      exec_and_out_equals("print(records[3].name);", "brian");
+      exec_and_out_equals("print(records[4].name);", "carol");
+      exec_and_out_equals("print(records[5].name);", "donna");
+      exec_and_out_equals("print(records[6].name);", "jack");
+
+      exec_and_out_equals("var records = collection.find().sort(['name desc']).execute().all();");
+      exec_and_out_equals("print(records[0].name);", "jack");
+      exec_and_out_equals("print(records[1].name);", "donna");
+      exec_and_out_equals("print(records[2].name);", "carol");
+      exec_and_out_equals("print(records[3].name);", "brian");
+      exec_and_out_equals("print(records[4].name);", "angel");
+      exec_and_out_equals("print(records[5].name);", "alma");
+      exec_and_out_equals("print(records[6].name);", "adam");
     }
 
     {

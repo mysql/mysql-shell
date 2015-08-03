@@ -75,16 +75,8 @@ shcore::Value TableInsert::insert(const shcore::Argument_list &args)
         if (args.size() == 1 && args[0].type == Array)
         {
           path = "Fields";
-          shcore::Value::Array_type_ref sh_columns;
-          sh_columns = args[0].as_array();
 
-          for (size_t index = 0; index < sh_columns->size(); index++)
-          {
-            if ((*sh_columns)[index].type == shcore::String)
-              columns.push_back((*sh_columns)[index].as_string());
-            else
-              throw shcore::Exception::argument_error((boost::format("Element #%1% is expected to be a string") % (index + 1)).str());
-          }
+          parse_string_list(args, columns);
 
           _insert_statement->insert(columns);
         }

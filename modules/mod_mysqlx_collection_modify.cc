@@ -221,7 +221,14 @@ shcore::Value CollectionModify::sort(const shcore::Argument_list &args)
 
   try
   {
-    _modify_statement->sort(args.string_at(0));
+    std::vector<std::string> fields;
+
+    parse_string_list(args, fields);
+
+    if (fields.size() == 0)
+      throw shcore::Exception::argument_error("Sort criteria can not be empty");
+
+    _modify_statement->sort(fields);
 
     update_functions("sort");
   }

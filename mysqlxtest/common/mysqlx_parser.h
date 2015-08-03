@@ -22,6 +22,7 @@
 
 #include "expr_parser.h"
 #include "proj_parser.h"
+#include "orderby_parser.h"
 
 #include <string>
 
@@ -39,6 +40,20 @@ namespace mysqlx
     {
       Expr_parser parser(source);
       return parser.expr();
+    }
+
+    template<typename Container>
+    void parse_collection_sort_column(Container &container, const std::string &source)
+    {
+      Orderby_parser parser(source, true);
+      return parser.parse(container);
+    }
+
+    template<typename Container>
+    void parse_table_sort_column(Container &container, const std::string &source)
+    {
+      Orderby_parser parser(source, false);
+      return parser.parse(container);
     }
 
     template<typename Container>

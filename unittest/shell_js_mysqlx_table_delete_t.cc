@@ -98,7 +98,7 @@ namespace shcore {
     // Now executes orderBy
     {
       SCOPED_TRACE("Testing function availability after orderBy.");
-      exec_and_out_equals("crud.orderBy(\"name\")");
+      exec_and_out_equals("crud.orderBy(['name'])");
       ensure_available_functions("limit, bind, execute");
     }
 
@@ -137,7 +137,10 @@ namespace shcore {
     {
       SCOPED_TRACE("Testing parameter validation on orderBy");
       exec_and_out_contains("table.delete().orderBy();", "", "Invalid number of arguments in TableDelete::orderBy, expected 1 but got 0");
-      exec_and_out_contains("table.delete().orderBy(5);", "", "TableDelete::orderBy: Argument #1 is expected to be a string");
+      exec_and_out_contains("table.delete().orderBy(5);", "", "TableDelete::orderBy: Argument #1 is expected to be an array");
+      exec_and_out_contains("table.delete().orderBy([]);", "", "TableDelete::orderBy: Order criteria can not be empty");
+      exec_and_out_contains("table.delete().orderBy(['test', 5]);", "", "TableDelete::orderBy: Element #2 is expected to be a string");
+      exec_and_out_contains("table.delete().orderBy(['test']);", "", "");
     }
 
     {

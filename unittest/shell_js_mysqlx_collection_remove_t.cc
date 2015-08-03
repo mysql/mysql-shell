@@ -117,7 +117,10 @@ namespace shcore {
     {
       SCOPED_TRACE("Testing parameter validation on sort");
       exec_and_out_contains("collection.remove().sort();", "", "Invalid number of arguments in CollectionRemove::sort, expected 1 but got 0");
-      exec_and_out_contains("collection.remove().sort(5);", "", "CollectionRemove::sort: Argument #1 is expected to be a string");
+      exec_and_out_contains("collection.remove().sort(5);", "", "CollectionRemove::sort: Argument #1 is expected to be an array");
+      exec_and_out_contains("collection.remove().sort([]);", "", "CollectionRemove::sort: Sort criteria can not be empty");
+      exec_and_out_contains("collection.remove().sort(['name', 5]);", "", "CollectionRemove::sort: Element #2 is expected to be a string");
+      exec_and_out_contains("collection.remove().sort(['name']);", "", "");
     }
 
     {

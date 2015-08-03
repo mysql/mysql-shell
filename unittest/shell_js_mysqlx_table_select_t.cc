@@ -92,6 +92,27 @@ namespace shcore {
       ensure_available_functions("groupBy, orderBy, limit, bind, execute");
     }
 
+    // Now executes groupBy
+    {
+      SCOPED_TRACE("Testing function availability after groupBy.");
+      exec_and_out_equals("crud.groupBy(['age'])");
+      ensure_available_functions("having, orderBy, limit, bind, execute");
+    }
+
+    // Now executes having
+    {
+      SCOPED_TRACE("Testing function availability after groupBy.");
+      exec_and_out_equals("crud.having('age < 13')");
+      ensure_available_functions("orderBy, limit, bind, execute");
+    }
+
+    // Now executes having
+    {
+      SCOPED_TRACE("Testing function availability after groupBy.");
+      exec_and_out_equals("crud.orderBy(['name ASC'])");
+      ensure_available_functions("limit, bind, execute");
+    }
+
     // Now executes limit
     {
       SCOPED_TRACE("Testing function availability after limit.");
@@ -156,8 +177,10 @@ namespace shcore {
     {
       SCOPED_TRACE("Testing parameter validation on orderBy");
       exec_and_out_contains("table.select().orderBy();", "", "Invalid number of arguments in TableSelect::orderBy, expected 1 but got 0");
-      exec_and_out_contains("table.select().orderBy(5);", "", "TableSelect::orderBy: Argument #1 is expected to be a string");
-      exec_and_out_contains("table.select().orderBy('');", "", "TableSelect::orderBy: not yet implemented.");
+      exec_and_out_contains("table.select().orderBy(5);", "", "TableSelect::orderBy: Argument #1 is expected to be an array");
+      exec_and_out_contains("table.select().orderBy([]);", "", "TableSelect::orderBy: Order criteria can not be empty");
+      exec_and_out_contains("table.select().orderBy(['test', 5]);", "", "TableSelect::orderBy: Element #2 is expected to be a string");
+      exec_and_out_contains("table.select().orderBy(['test']);", "", "");
     }
 
     {
@@ -242,6 +265,27 @@ namespace shcore {
 
       exec_and_out_equals("var records = table.select().where('name like \"a%\" and age < 15').execute().all();");
       exec_and_out_equals("print(records.length);", "2");
+    }
+
+    {
+      SCOPED_TRACE("Testing orderBy");
+      exec_and_out_equals("var records = table.select().orderBy(['name']).execute().all();");
+      exec_and_out_equals("print(records[0].name);", "adam");
+      exec_and_out_equals("print(records[1].name);", "alma");
+      exec_and_out_equals("print(records[2].name);", "angel");
+      exec_and_out_equals("print(records[3].name);", "brian");
+      exec_and_out_equals("print(records[4].name);", "carol");
+      exec_and_out_equals("print(records[5].name);", "donna");
+      exec_and_out_equals("print(records[6].name);", "jack");
+
+      exec_and_out_equals("var records = table.select().orderBy(['name desc']).execute().all();");
+      exec_and_out_equals("print(records[0].name);", "jack");
+      exec_and_out_equals("print(records[1].name);", "donna");
+      exec_and_out_equals("print(records[2].name);", "carol");
+      exec_and_out_equals("print(records[3].name);", "brian");
+      exec_and_out_equals("print(records[4].name);", "angel");
+      exec_and_out_equals("print(records[5].name);", "alma");
+      exec_and_out_equals("print(records[6].name);", "adam");
     }
 
     {

@@ -105,7 +105,7 @@ namespace shcore {
     // Now executes orderBy
     {
       SCOPED_TRACE("Testing function availability after orderBy.");
-      exec_and_out_equals("crud.orderBy(\"name\")");
+      exec_and_out_equals("crud.orderBy(['name'])");
       ensure_available_functions("limit, bind, execute");
     }
 
@@ -151,7 +151,10 @@ namespace shcore {
     {
       SCOPED_TRACE("Testing parameter validation on orderBy");
       exec_and_out_contains("table.update().set({age: 17}).orderBy();", "", "Invalid number of arguments in TableUpdate::orderBy, expected 1 but got 0");
-      exec_and_out_contains("table.update().set({age: 17}).orderBy(5);", "", "TableUpdate::orderBy: Argument #1 is expected to be a string");
+      exec_and_out_contains("table.update().set({age: 17}).orderBy(5);", "", "TableUpdate::orderBy: Argument #1 is expected to be an array");
+      exec_and_out_contains("table.update().set({age: 17}).orderBy([]);", "", "TableUpdate::orderBy: Order criteria can not be empty");
+      exec_and_out_contains("table.update().set({age: 17}).orderBy(['test', 5]);", "", "TableUpdate::orderBy: Element #2 is expected to be a string");
+      exec_and_out_contains("table.update().set({age: 17}).orderBy(['test']);", "", "");
     }
 
     {
