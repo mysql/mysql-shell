@@ -286,11 +286,16 @@ AddStatement::AddStatement(boost::shared_ptr<Collection> coll, const Document &d
 
 AddStatement &AddStatement::add(const Document &doc)
 {
-  Mysqlx::Datatypes::Any *any(m_insert->mutable_row()->Add()->mutable_field()->Add());
+  Mysqlx::Expr::Expr *expr(m_insert->mutable_row()->Add()->mutable_field()->Add());
+  expr->set_type(Mysqlx::Expr::Expr::LITERAL);
+
+  Mysqlx::Datatypes::Any *any = new Mysqlx::Datatypes::Any();
   any->set_type(Mysqlx::Datatypes::Any::SCALAR);
   Mysqlx::Datatypes::Scalar *value(any->mutable_scalar());
   value->set_type(Mysqlx::Datatypes::Scalar::V_OCTETS);
   value->set_v_opaque(doc.str());
+
+  expr->set_allocated_constant(any);
   return *this;
 }
 
@@ -806,7 +811,13 @@ Insert_Values &Insert_Values::values(const std::vector<TableValue> &row_data)
   std::vector<TableValue>::const_iterator index, end = row_data.end();
 
   for (index = row_data.begin(); index != end; index++)
-    row->mutable_field()->AddAllocated(convert_table_value(*index));
+  {
+    Mysqlx::Expr::Expr* expr = new Mysqlx::Expr::Expr();
+    expr->set_type(Mysqlx::Expr::Expr::LITERAL);
+    Mysqlx::Datatypes::Any* any = convert_table_value(*index);
+    expr->set_allocated_constant(any);
+    row->mutable_field()->AddAllocated(expr);
+  }
 
   return *this;
 }

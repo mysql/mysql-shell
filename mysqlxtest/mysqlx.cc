@@ -426,12 +426,15 @@ void Connection::authenticate_mysql41(const std::string &user, const std::string
       }
       }
 
+  bool done = false;
+  while (!done)
       {
       int mid;
       std::auto_ptr<Message> message(recv_raw(mid));
       switch (mid)
       {
       case Mysqlx::ServerMessages::SESS_AUTHENTICATE_OK:
+        done = true;
       break;
 
       case Mysqlx::ServerMessages::ERROR:
@@ -556,8 +559,25 @@ void Connection::dispatch_notice(Mysqlx::Notice::Frame *frame)
           break;
     }
         else
+    {
+      if (frame->type() == 3)
+      {
+        Mysqlx::Notice::SessionStateChanged change;
+        change.ParseFromString(frame->payload());
+        if (!change.IsInitialized())
+          std::cerr << "Invalid notice received from server " << change.InitializationErrorString() << "\n";
+        else
+        {
+          if (change.param() == Mysqlx::Notice::SessionStateChanged::ACCOUNT_EXPIRED)
+          {
+            std::cout << "NOTICE: Account password expired\n";
+            return;
+          }
+        }
+      }
           std::cout << "Unhandled local notice\n";
       }
+  }
       else
       {
         std::cout << "Unhandled global notice\n";
