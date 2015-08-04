@@ -435,7 +435,7 @@ void Server_registry::merge()
   std::free(json_data);
 }
 
-Connection_options::Connection_options(std::string options) : _Connection_options(options)
+Connection_options::Connection_options(std::string options) : _connection_options(options)
 {
   if (!options.empty())
     parse();
@@ -450,9 +450,9 @@ std::string Connection_options::get_uuid() const
   return _uuid;
 }
 
-std::string Connection_options::get_Connection_options() const
+std::string Connection_options::get_connection_options() const
 {
-  return _Connection_options;
+  return _connection_options;
 }
 
 std::string Connection_options::get_name() const
@@ -493,7 +493,7 @@ std::string Connection_options::get_value(const std::string &name) const
 
 void Connection_options::set_connection_options(const std::string &conn_str)
 {
-  _Connection_options = conn_str;
+  _connection_options = conn_str;
   clear();
   parse();
 }
@@ -539,9 +539,9 @@ void Connection_options::parse()
 
   do
   {
-    p_i = _Connection_options.find(';', p_start);
+    p_i = _connection_options.find(';', p_start);
 
-    std::string buf = _Connection_options.substr(p_start, p_i - p_start);
+    std::string buf = _connection_options.substr(p_start, p_i - p_start);
     std::string::size_type p_eq = buf.find('=');
     std::string key = buf.substr(0, p_eq);
     std::string value = buf.substr(p_eq + 1);
