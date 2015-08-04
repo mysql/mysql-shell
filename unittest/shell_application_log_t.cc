@@ -26,16 +26,15 @@
 #include "gtest/gtest.h"
 #include "test_utils.h"
 #include "base_session.h"
-#include "utils_file.h"
+#include "utils/utils_file.h"
 
 namespace shcore {
-
   class Shell_application_log_tests : public Shell_core_test_wrapper
-  {  
+  {
   protected:
     static int i;
     ngcommon::Logger* _logger;
-    
+
     static void my_hook(const char* message, ngcommon::Logger::LOG_LEVEL level, const char* domain)
     {
       std::string msg = "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '' at line 1";
@@ -69,7 +68,7 @@ namespace shcore {
       _logger->detach_log_hook(my_hook);
     }
   };
-  
+
   TEST_F(Shell_application_log_tests, test)
   {
     // issue an stmt with syntax error, then check the log.

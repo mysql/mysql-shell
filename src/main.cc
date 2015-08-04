@@ -21,7 +21,7 @@
 #include "mysh.h"
 
 #include "shellcore/types.h"
-#include "utils_file.h"
+#include "utils/utils_file.h"
 
 #ifndef WIN32
 #  include "editline/readline.h"

@@ -31,7 +31,7 @@
 #include <boost/function.hpp>
 
 #include "shellcore/common.h"
-#include "utils_json.h"
+#include "utils/utils_json.h"
 
 namespace shcore {
   /** Basic types that can be passed around code in different languages.
