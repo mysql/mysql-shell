@@ -21,8 +21,6 @@
 #include "xdatetime.h"
 #include "xdecimal.h"
 
-//TODO: rm #include "decimal.h"
-
 #include <google/protobuf/io/coded_stream.h>
 #include <google/protobuf/wire_format_lite.h>
 #include <google/protobuf/wire_format_lite_inl.h>
@@ -94,6 +92,12 @@ void Row_decoder::set_from_buffer(const std::string& buffer, std::set<std::strin
       bool ok = input_buffer.ReadString(&elem, static_cast<int>(len));
       if (!ok)
       {
+        if (result.empty() && (0x01 == len))
+        {
+          /*special case for empty set*/
+          break;
+        }
+        else
         throw std::invalid_argument("error reading value");
       }
       result.insert(elem);
@@ -122,6 +126,12 @@ std::string Row_decoder::set_from_buffer_as_str(const std::string& buffer)
       bool ok = input_buffer.ReadString(&elem, static_cast<int>(len));
       if (!ok)
       {
+        if (result.empty() && (0x01 == len))
+        {
+          /*special case for empty set*/
+          break;
+        }
+        else
         throw std::invalid_argument("error reading value");
       }
       if (!result.empty())
@@ -188,7 +198,7 @@ void Row_decoder::read_required_uint64(
 
 DateTime Row_decoder::datetime_from_buffer(const std::string& buffer)
 {
-  google::protobuf::uint64 year, month, day, hour = 0xff, minutes = 0, seconds = 0, useconds = 0;
+  google::protobuf::uint64 year, month, day, hour = 0, minutes = 0, seconds = 0, useconds = 0;
   std::string& _buf = const_cast<std::string&>(buffer);
   google::protobuf::uint8* field_buff = reinterpret_cast<google::protobuf::uint8*>(&_buf[0]);
 
@@ -238,9 +248,8 @@ Time Row_decoder::time_from_buffer(const std::string& buffer)
   input_buffer.ReadVarint64(&useconds);
 
 RETURN:
-  /*TODO: Time type does not support sign currently*/
-  return Time(
-    static_cast<uint8_t>(hour),
+  return Time((sign != 0x00),
+    static_cast<uint32_t>(hour),
     static_cast<uint8_t>(minutes),
     static_cast<uint8_t>(seconds),
     static_cast<uint32_t>(useconds));

@@ -74,6 +74,238 @@ namespace mysqlx
 
   // -------------------------------------------------------
 
+  class TableValue
+  {
+  public:
+    enum Type
+    {
+      TInteger,
+      TUInteger,
+      TNull,
+      TDouble,
+      TFloat,
+      TBool,
+      TString,
+      TOctets,
+      TExpression,
+    };
+
+    TableValue(const TableValue &other)
+    {
+      m_type = other.m_type;
+      m_value = other.m_value;
+      if (m_type == TString || m_type == TOctets)
+        m_value.s = new std::string(*other.m_value.s);
+    }
+
+    explicit TableValue(const std::string &s, Type type = TString)
+    {
+      m_type = type;
+      m_value.s = new std::string(s);
+    }
+
+    explicit TableValue(int64_t n)
+    {
+      m_type = TInteger;
+      m_value.i = n;
+    }
+
+    explicit TableValue(uint64_t n)
+    {
+      m_type = TUInteger;
+      m_value.ui = n;
+    }
+
+    explicit TableValue(double n)
+    {
+      m_type = TDouble;
+      m_value.d = n;
+    }
+
+    explicit TableValue(float n)
+    {
+      m_type = TFloat;
+      m_value.f = n;
+    }
+
+    explicit TableValue(bool n)
+    {
+      m_type = TBool;
+      m_value.b = n;
+    }
+
+    explicit TableValue()
+    {
+      m_type = TNull;
+    }
+
+    ~TableValue()
+    {
+      if (m_type == TString || m_type == TOctets || m_type == TExpression)
+        delete m_value.s;
+    }
+
+    inline Type type() const { return m_type; }
+
+    inline operator uint64_t () const
+    {
+      if (m_type != TUInteger)
+        throw std::logic_error("type error");
+      return m_value.ui;
+    }
+
+    inline operator int64_t () const
+    {
+      if (m_type != TInteger)
+        throw std::logic_error("type error");
+      return m_value.i;
+    }
+
+    inline operator double() const
+    {
+      if (m_type != TDouble)
+        throw std::logic_error("type error");
+      return m_value.d;
+    }
+
+    inline operator float() const
+    {
+      if (m_type != TFloat)
+        throw std::logic_error("type error");
+      return m_value.f;
+    }
+
+    inline operator bool() const
+    {
+      if (m_type != TBool)
+        throw std::logic_error("type error");
+      return m_value.b;
+    }
+
+    inline operator const std::string & () const
+    {
+      if (m_type != TString && m_type != TOctets && m_type != TExpression)
+        throw std::logic_error("type error");
+      return *m_value.s;
+    }
+
+  private:
+    Type m_type;
+    union
+    {
+      std::string *s;
+      int64_t i;
+      uint64_t ui;
+      double d;
+      float f;
+      bool b;
+    } m_value;
+  };
+
+  class DocumentValue
+  {
+  public:
+    enum Type
+    {
+      TString,
+      TInteger,
+      TFloat,
+      TDocument,
+      TExpression
+    };
+
+    DocumentValue(const DocumentValue &other)
+    {
+      m_type = other.m_type;
+      m_value = other.m_value;
+
+      if (m_type == TString || m_type == TExpression)
+        m_value.s = new std::string(*other.m_value.s);
+      else if (m_type == TDocument)
+        m_value.d = new Document(*other.m_value.d);
+    }
+
+    explicit DocumentValue(const std::string &s, bool expression = false)
+    {
+      m_type = expression ? TExpression : TString;
+      m_value.s = new std::string(s);
+    }
+
+    explicit DocumentValue(int64_t n)
+    {
+      m_type = TInteger;
+      m_value.i = n;
+    }
+
+    explicit DocumentValue(uint64_t n)
+    {
+      m_type = TInteger;
+      m_value.i = n;
+    }
+
+    explicit DocumentValue(double n)
+    {
+      m_type = TFloat;
+      m_value.f = n;
+    }
+
+    explicit DocumentValue(const Document &doc)
+    {
+      m_type = TDocument;
+      m_value.d = new Document(doc);
+    }
+
+    ~DocumentValue()
+    {
+      if (m_type == TDocument)
+        delete m_value.d;
+      else if (m_type == TString || m_type == TExpression)
+        delete m_value.s;
+    }
+
+    inline Type type() const { return m_type; }
+
+    inline operator int64_t () const
+    {
+      if (m_type != TInteger)
+        throw std::logic_error("type error");
+      return m_value.i;
+    }
+
+    inline operator double() const
+    {
+      if (m_type != TFloat)
+        throw std::logic_error("type error");
+      return m_value.f;
+    }
+
+    inline operator const std::string & () const
+    {
+      if (m_type != TString && m_type != TExpression)
+        throw std::logic_error("type error");
+      return *m_value.s;
+    }
+
+    inline operator const Document & () const
+    {
+      if (m_type != TDocument)
+        throw std::logic_error("type error");
+      return *m_value.d;
+    }
+
+  private:
+    Type m_type;
+    union
+    {
+      std::string *s;
+      int64_t i;
+      double f;
+      Document *d;
+    } m_value;
+  };
+
+  // -------------------------------------------------------
+
   class Table_Statement : public Statement
   {
   public:
@@ -129,7 +361,7 @@ namespace mysqlx
     Select_OrderBy(const Select_OrderBy &other) : Select_Limit(other) {}
     Select_OrderBy &operator = (const Select_OrderBy &other) { Select_Limit::operator=(other); return *this; }
 
-    Select_Limit &orderBy(const std::string &sortFields);
+    Select_Limit &orderBy(const std::vector<std::string> &sortFields);
   };
 
   class Select_Having : public Select_OrderBy
@@ -149,13 +381,13 @@ namespace mysqlx
     Select_GroupBy(const Select_GroupBy &other) : Select_Having(other) {}
     Select_GroupBy &operator = (const Select_Having &other) { Select_Having::operator=(other); return *this; }
 
-    Select_Having &groupBy(const std::string &searchFields);
+    Select_Having &groupBy(const std::vector<std::string> &searchFields);
   };
 
   class SelectStatement : public Select_GroupBy
   {
   public:
-    SelectStatement(boost::shared_ptr<Table> table, const std::string &fieldList);
+    SelectStatement(boost::shared_ptr<Table> table, const std::vector<std::string> &fieldList);
     SelectStatement(const SelectStatement &other) : Select_GroupBy(other) {}
     SelectStatement &operator = (const SelectStatement &other) { Select_GroupBy::operator=(other); return *this; }
 
@@ -225,7 +457,7 @@ namespace mysqlx
     Delete_OrderBy(const Delete_Limit &other) : Delete_Limit(other) {}
     Delete_OrderBy &operator = (const Delete_OrderBy &other) { Delete_Limit::operator=(other); return *this; }
 
-    Delete_Limit &orderBy(const std::string &sortFields);
+    Delete_Limit &orderBy(const std::vector<std::string> &sortFields);
   };
 
   class DeleteStatement : public Delete_OrderBy
@@ -267,7 +499,7 @@ namespace mysqlx
     Update_OrderBy(const Update_Limit &other) : Update_Limit(other) {}
     Update_OrderBy &operator = (const Update_OrderBy &other) { Update_Limit::operator=(other); return *this; }
 
-    Update_Limit &orderBy(const std::string &sortFields);
+    Update_Limit &orderBy(const std::vector<std::string> &sortFields);
   };
 
   class Update_Where : public Update_OrderBy
@@ -310,7 +542,7 @@ namespace mysqlx
     UpdateStatement update();
     DeleteStatement remove();
     InsertStatement insert();
-    SelectStatement select(const std::string& fieldList);
+    SelectStatement select(const std::vector<std::string> &fieldList);
 
   private:
     boost::weak_ptr<Schema> m_schema;
@@ -372,7 +604,7 @@ namespace mysqlx
     Find_Sort(const Find_Sort &other) : Find_Limit(other) {}
     Find_Sort &operator = (const Find_Sort &other) { Find_Limit::operator=(other); return *this; }
 
-    Find_Limit &sort(const std::string &sortFields);
+    Find_Limit &sort(const std::vector<std::string> &sortFields);
   };
 
   class Find_Having : public Find_Sort
@@ -392,7 +624,7 @@ namespace mysqlx
     Find_GroupBy(const Find_GroupBy &other) : Find_Having(other) {}
     Find_GroupBy &operator = (const Find_Having &other) { Find_Having::operator=(other); return *this; }
 
-    Find_Having &groupBy(const std::string &searchFields);
+    Find_Having &groupBy(const std::vector<std::string> &searchFields);
   };
 
   class FindStatement : public Find_GroupBy
@@ -402,7 +634,7 @@ namespace mysqlx
     FindStatement(const FindStatement &other) : Find_GroupBy(other) {}
     FindStatement &operator = (const FindStatement &other) { Find_GroupBy::operator=(other); return *this; }
 
-    Find_GroupBy &fields(const std::string &searchFields);
+    Find_GroupBy &fields(const std::vector<std::string> &searchFields);
   };
 
   // -------------------------------------------------------
@@ -460,7 +692,7 @@ namespace mysqlx
     Modify_Sort(const Modify_Sort &other) : Modify_Limit(other) {}
     Modify_Sort &operator = (const Modify_Sort &other) { Modify_Limit::operator=(other); return *this; }
 
-    Modify_Limit &sort(const std::string &sortFields);
+    Modify_Limit &sort(const std::vector<std::string> &sortFields);
   };
 
   class Modify_Operation : public Modify_Sort
@@ -519,7 +751,7 @@ namespace mysqlx
     RemoveStatement(const RemoveStatement &other) : Remove_Limit(other) {}
     RemoveStatement &operator = (const RemoveStatement &other) { Remove_Limit::operator=(other); return *this; }
 
-    Remove_Limit &sort(const std::string &sortFields);
+    Remove_Limit &sort(const std::vector<std::string> &sortFields);
   };
 
   // -------------------------------------------------------

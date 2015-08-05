@@ -207,4 +207,37 @@ namespace shcore {
 
     exec_and_out_equals("session.close();");
   }
+
+  // Tests session.<schema>
+  TEST_F(Shell_js_mysqlx_session_tests, set_fetch_warnings)
+  {
+    exec_and_out_equals("var mysqlx = require('mysqlx').mysqlx;");
+
+    exec_and_out_equals("var session = mysqlx.getNodeSession('" + _uri + "');");
+
+    // Now direct and indirect access
+    exec_and_out_equals("session.setFetchWarnings(true);");
+
+    exec_and_out_equals("var result = session.executeSql('drop database if exists unexisting;');");
+
+    exec_and_out_equals("print(result.warningCount);", "1");
+
+    exec_and_out_equals("print(result.warnings.length);", "1");
+
+    exec_and_out_equals("print(result.getWarnings().length);", "1");
+
+    exec_and_out_contains("print(result.warnings[0].Message);", "Can't drop database 'unexisting'; database doesn't exist");
+
+    exec_and_out_equals("session.setFetchWarnings(false);");
+
+    exec_and_out_equals("var result = session.executeSql('drop database if exists unexisting;');");
+
+    exec_and_out_equals("print(result.warningCount);", "0");
+
+    exec_and_out_equals("print(result.warnings.length);", "0");
+
+    exec_and_out_equals("print(result.getWarnings().length);", "0");
+
+    exec_and_out_equals("session.close();");
+  }
 }

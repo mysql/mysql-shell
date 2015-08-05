@@ -17,6 +17,7 @@
  * 02110-1301  USA
  */
 #include <boost/bind.hpp>
+#include <boost/format.hpp>
 #include "mod_mysqlx_collection_find.h"
 #include "mod_mysqlx_collection.h"
 #include "mod_mysqlx_resultset.h"
@@ -85,9 +86,16 @@ shcore::Value CollectionFind::fields(const shcore::Argument_list &args)
 
   try
   {
-    _find_statement->fields(args.string_at(0));
+    std::vector<std::string> fields;
 
-    update_functions("find");
+    parse_string_list(args, fields);
+
+    if (fields.size() == 0)
+      throw shcore::Exception::argument_error("Field selection criteria can not be empty");
+
+    _find_statement->fields(fields);
+
+    update_functions("fields");
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionFind::fields");
 
@@ -100,7 +108,14 @@ shcore::Value CollectionFind::group_by(const shcore::Argument_list &args)
 
   try
   {
-    _find_statement->groupBy(args.string_at(0));
+    std::vector<std::string> fields;
+
+    parse_string_list(args, fields);
+
+    if (fields.size() == 0)
+      throw shcore::Exception::argument_error("Grouping criteria can not be empty");
+
+    _find_statement->groupBy(fields);
 
     update_functions("groupBy");
   }
@@ -130,10 +145,14 @@ shcore::Value CollectionFind::sort(const shcore::Argument_list &args)
 
   try
   {
-    _find_statement->sort(args.string_at(0));
+    std::vector<std::string> fields;
 
-    // Remove and update test suite when sort is enabled
-    throw shcore::Exception::logic_error("not yet implemented.");
+    parse_string_list(args, fields);
+
+    if (fields.size() == 0)
+      throw shcore::Exception::argument_error("Sort criteria can not be empty");
+
+    _find_statement->sort(fields);
 
     update_functions("sort");
   }

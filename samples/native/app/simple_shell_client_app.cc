@@ -44,7 +44,7 @@ void print_table_result_set(Table_result_set* tbl)
     boost::shared_ptr<mysh::Row> row = v_row.as_object<mysh::Row>();   
     for (size_t i = 0; i < metadata->size(); i++)
     {
-      shcore::Value& val = row->values[i];
+      shcore::Value val = row->get_member(i);
       switch (val.type)
       {
       case shcore::Integer:
@@ -86,12 +86,10 @@ if (i++ != 0)
     boost::shared_ptr<mysh::Row> row = it->as_object<mysh::Row>();
     row->values.size();
     std::cout << "[" << std::endl;
-    std::map<std::string, int>::const_iterator it2, myend = row->keys.end();
-    size_t j = 0;
-    for (it2 = row->keys.begin(); it2 != myend; ++it2)
+    for(size_t index = 0; index < row->value_iterators.size(); index++)
     {
-      std::cout << "\t\"" << it2->first << " : ";
-shcore::Value& val = row->values[it2->second];
+      std::cout << "\t\"" << row->value_iterators[index]->first << " : ";
+      shcore::Value& val = row->value_iterators[index]->second;
       switch (val.type)
       {
       case shcore::Integer:
@@ -109,7 +107,7 @@ shcore::Value& val = row->values[it2->second];
       default:
         std::cout << "\"" << val.descr() << "\"";
       }
-      if (++j >= row->keys.size())
+      if (index >= row->value_iterators.size())
         std::cout << std::endl;
       else
         std::cout << "," << std::endl;

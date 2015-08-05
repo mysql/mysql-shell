@@ -13,6 +13,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
 
+include_directories( "${CMAKE_SOURCE_DIR}/common/logger" )
 
 file(GLOB libmysqlshtypes_SRC
     "${CMAKE_SOURCE_DIR}/include/shellcore/*.h"
@@ -26,6 +27,9 @@ file(GLOB libmysqlshtypes_SRC
     "${CMAKE_SOURCE_DIR}/src/boost_code.cc"
     "${CMAKE_SOURCE_DIR}/shellcore/obj_date.cc"
     "${CMAKE_SOURCE_DIR}/types/ishell_core.cc"
+    "${CMAKE_SOURCE_DIR}/common/logger/logger.cc"
+    "${CMAKE_SOURCE_DIR}/utils/utils_json.h"
+    "${CMAKE_SOURCE_DIR}/utils/utils_json.cc"
 )
 
 if(WINDOWS_RUNTIME_MD)
@@ -41,5 +45,6 @@ if( WIN32 )
 endif()
 
 add_definitions(-DBOOST_ALL_NO_LIB)
+add_definitions(-DNGCOMMON_EXPORTS )
 
 install(TARGETS mysqlshtypes DESTINATION lib)

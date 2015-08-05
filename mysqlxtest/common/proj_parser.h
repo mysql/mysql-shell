@@ -43,22 +43,16 @@ public:
   {
     Mysqlx::Crud::Projection *colid = result.Add();
     column_identifier(*colid);
-
-    while (_tokenizer.cur_token_type_is(Token::COMMA))
-    {
-      _tokenizer.consume_token(Token::COMMA);
-      colid = result.Add();
-      column_identifier(*colid);
-    }
+    
     if (_tokenizer.tokens_available())    
-      throw Parser_error((boost::format("Expr parser: Expected EOF, instead stopped at token position %d") % _tokenizer.get_token_pos()).str());
+      throw Parser_error((boost::format("Projection parser: Expected EOF, instead stopped at token position %d") % _tokenizer.get_token_pos()).str());
   }
 
   const std::string& id();
   void column_identifier(Mysqlx::Crud::Projection &column);
   void docpath_member(Mysqlx::Expr::DocumentPathItem& item);
   void docpath_array_loc(Mysqlx::Expr::DocumentPathItem& item);
-  void document_path(Mysqlx::Crud::Projection& col);
+  void document_path(Mysqlx::Expr::ColumnIdentifier& col);
 
   std::vector<Token>::const_iterator begin() const { return _tokenizer.begin(); }
   std::vector<Token>::const_iterator end() const { return _tokenizer.end(); }

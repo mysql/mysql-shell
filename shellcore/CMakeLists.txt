@@ -21,6 +21,8 @@ include_directories( ${CMAKE_SOURCE_DIR}/mysqlxtest)
 include_directories("${CMAKE_SOURCE_DIR}/include" "${CMAKE_SOURCE_DIR}/utils" "${Boost_INCLUDE_DIRS}")
 include_directories( "${CMAKE_SOURCE_DIR}/common/uuid/include" )
 include_directories( "${CMAKE_SOURCE_DIR}/common/myjson/include" )
+include_directories( "${CMAKE_SOURCE_DIR}/common/logger" )
+include_directories( "${CMAKE_SOURCE_DIR}/ext/rapidjson/include" )
 
 
 # Will generate the js_core_definitions file which will contain the 
@@ -51,6 +53,8 @@ file(GLOB libmysqlsh_SRC
     "${CMAKE_SOURCE_DIR}/utils/utils_time.cc"
     "${CMAKE_SOURCE_DIR}/utils/utils_file.h"
     "${CMAKE_SOURCE_DIR}/utils/utils_file.cc"
+    "${CMAKE_SOURCE_DIR}/utils/utils_json.h"
+    "${CMAKE_SOURCE_DIR}/utils/utils_json.cc"
       "*.cc"
     "${CMAKE_SOURCE_DIR}/common/uuid/src/uuid_gen.cc"
     "${CMAKE_SOURCE_DIR}/common/myjson/src/json_parser.cc"
@@ -62,6 +66,7 @@ file(GLOB libmysqlsh_SRC
 
 if(NOT WINDOWS_RUNTIME_MD)
   list(APPEND libmysqlsh_SRC "${CMAKE_SOURCE_DIR}/types/ishell_core.cc")
+  list(APPEND libmysqlsh_SRC "${CMAKE_SOURCE_DIR}/common/logger/logger.cc")
 else()
   list(REMOVE_ITEM libmysqlsh_SRC "${CMAKE_SOURCE_DIR}/shellcore/types.cc")
   list(REMOVE_ITEM libmysqlsh_SRC "${CMAKE_SOURCE_DIR}/shellcore/types_cpp.cc")
@@ -70,6 +75,8 @@ else()
 #  list(REMOVE_ITEM libmysqlsh_SRC "${CMAKE_SOURCE_DIR}/shellcore/shell_core.cc")
   list(REMOVE_ITEM libmysqlsh_SRC "${CMAKE_SOURCE_DIR}/shellcore/common.cc")
   list(REMOVE_ITEM libmysqlsh_SRC "${CMAKE_SOURCE_DIR}/shellcore/obj_date.cc")
+  list(REMOVE_ITEM libmysqlsh_SRC "${CMAKE_SOURCE_DIR}/utils/utils_json.h")
+  list(REMOVE_ITEM libmysqlsh_SRC "${CMAKE_SOURCE_DIR}/utils/utils_json.cc")
 endif()
 
 
@@ -138,7 +145,6 @@ install(TARGETS mysqlsh DESTINATION lib)
 add_definitions(-DSHCORE_EXPORT )
 add_definitions(-DBOOST_ALL_NO_LIB )
 add_definitions(-Dmyjson_EXPORTS )
-
 if(WIN32)
   remove_definitions(-DUNICODE)
 endif()

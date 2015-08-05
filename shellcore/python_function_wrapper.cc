@@ -50,21 +50,23 @@ static PyObject *method_call(PyShFuncObject *self, PyObject *args, PyObject *UNU
   if (!ctx)
     return NULL;
 
-  if ((int)self->func->get()->signature().size() != PyTuple_Size(args))
+  boost::shared_ptr<Function_base> func(*self->func);
+
+  if (func->signature().size() != (size_t)PyTuple_Size(args))
   {
     std::stringstream err;
-    err << self->func->get()->name().c_str() << "()" <<
-    " takes " << (int)self->func->get()->signature().size() <<
+    err << func->name().c_str() << "()" <<
+    " takes " << (int)func->signature().size() <<
     " arguments (" << (int)PyTuple_Size(args) <<
     " given)";
 
-    PyErr_SetString(PyExc_TypeError, err.str().c_str());
+    Python_context::set_python_error(PyExc_TypeError, err.str().c_str());
     return NULL;
   }
 
   Argument_list r;
 
-  for (int c = self->func->get()->signature().size(), i = 0; i < c; i++)
+  for (size_t c = func->signature().size(), i = 0; i < c; i++)
   {
     PyObject *argval= PyTuple_GetItem(args, i);
 
@@ -86,7 +88,7 @@ static PyObject *method_call(PyShFuncObject *self, PyObject *args, PyObject *UNU
     {
       WillLeavePython lock;
 
-      result = self->func->get()->invoke(r);
+      result = func->invoke(r);
     }
     return ctx->shcore_value_to_pyobj(result);
   }
@@ -197,30 +199,15 @@ void Python_context::init_shell_function_type()
 }
 
 
-Python_function_wrapper::Python_function_wrapper(Python_context *context)
-: _context(context)
+PyObject *shcore::wrap(boost::shared_ptr<Function_base> func)
 {
-  _function_wrapper = PyObject_New(PyShFuncObject, &PyShFuncObjectType);
-
-  Py_INCREF(&PyShFuncObjectType);
+  PyShFuncObject *wrapper = PyObject_New(PyShFuncObject, &PyShFuncObjectType);
+  wrapper->func = new Function_base_ref(func);
+  return reinterpret_cast<PyObject*>(wrapper);
 }
 
 
-Python_function_wrapper::~Python_function_wrapper()
-{
-  PyObject_Del(_function_wrapper);
-  Py_DECREF(&PyShFuncObjectType);
-}
-
-
-PyObject *Python_function_wrapper::wrap(boost::shared_ptr<Function_base> func)
-{
-  _function_wrapper->func = new Function_base_ref(func);
-  return reinterpret_cast<PyObject*>(_function_wrapper);
-}
-
-
-bool Python_function_wrapper::unwrap(PyObject *value, boost::shared_ptr<Function_base> &ret_func)
+bool shcore::unwrap(PyObject *value, boost::shared_ptr<Function_base> &ret_func)
 {
   Python_context *ctx = Python_context::get_and_check();
   if (!ctx) return false;

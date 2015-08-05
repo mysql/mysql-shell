@@ -92,6 +92,27 @@ namespace shcore {
       ensure_available_functions("groupBy, orderBy, limit, bind, execute");
     }
 
+    // Now executes groupBy
+    {
+      SCOPED_TRACE("Testing function availability after groupBy.");
+      exec_and_out_equals("crud.groupBy(['age'])");
+      ensure_available_functions("having, orderBy, limit, bind, execute");
+    }
+
+    // Now executes having
+    {
+      SCOPED_TRACE("Testing function availability after groupBy.");
+      exec_and_out_equals("crud.having('age < 13')");
+      ensure_available_functions("orderBy, limit, bind, execute");
+    }
+
+    // Now executes having
+    {
+      SCOPED_TRACE("Testing function availability after groupBy.");
+      exec_and_out_equals("crud.orderBy(['name ASC'])");
+      ensure_available_functions("limit, bind, execute");
+    }
+
     // Now executes limit
     {
       SCOPED_TRACE("Testing function availability after limit.");
@@ -123,8 +144,10 @@ namespace shcore {
     {
       SCOPED_TRACE("Testing parameter validation on select");
       exec_and_out_equals("table.select();");
-      exec_and_out_contains("table.select(5);", "", "TableSelect::select: Argument #1 is expected to be a string");
-      exec_and_out_contains("table.select('name');");
+      exec_and_out_contains("table.select(5);", "", "TableSelect::select: Argument #1 is expected to be an array");
+      exec_and_out_contains("table.select([]);", "", "TableSelect::select: Field selection criteria can not be empty");
+      exec_and_out_contains("table.select(['name as alias', 5]);", "", "TableSelect::select: Element #2 is expected to be a string");
+      exec_and_out_contains("table.select(['name']);");
     }
 
     {
@@ -138,15 +161,26 @@ namespace shcore {
     {
       SCOPED_TRACE("Testing parameter validation on groupBy");
       exec_and_out_contains("table.select().groupBy();", "", "Invalid number of arguments in TableSelect::groupBy, expected 1 but got 0");
-      exec_and_out_contains("table.select().groupBy(5);", "", "TableSelect::groupBy: Argument #1 is expected to be a string");
-      exec_and_out_contains("table.select().groupBy('name');", "", "");
+      exec_and_out_contains("table.select().groupBy(5);", "", "TableSelect::groupBy: Argument #1 is expected to be an array");
+      exec_and_out_contains("table.select().groupBy([]);", "", "TableSelect::groupBy: Grouping criteria can not be empty");
+      exec_and_out_contains("table.select().groupBy(['name', 5]);", "", "TableSelect::groupBy: Element #2 is expected to be a string");
+      exec_and_out_contains("table.select().groupBy(['name']);", "", "");
+    }
+
+    {
+      SCOPED_TRACE("Testing parameter validation on having");
+      exec_and_out_contains("table.select().groupBy(['name']).having();", "", "Invalid number of arguments in TableSelect::having, expected 1 but got 0");
+      exec_and_out_contains("table.select().groupBy(['name']).having(5);", "", "TableSelect::having: Argument #1 is expected to be a string");
+      exec_and_out_contains("table.select().groupBy(['name']).having('age > 5');", "", "");
     }
 
     {
       SCOPED_TRACE("Testing parameter validation on orderBy");
       exec_and_out_contains("table.select().orderBy();", "", "Invalid number of arguments in TableSelect::orderBy, expected 1 but got 0");
-      exec_and_out_contains("table.select().orderBy(5);", "", "TableSelect::orderBy: Argument #1 is expected to be a string");
-      exec_and_out_contains("table.select().orderBy('');", "", "TableSelect::orderBy: not yet implemented.");
+      exec_and_out_contains("table.select().orderBy(5);", "", "TableSelect::orderBy: Argument #1 is expected to be an array");
+      exec_and_out_contains("table.select().orderBy([]);", "", "TableSelect::orderBy: Order criteria can not be empty");
+      exec_and_out_contains("table.select().orderBy(['test', 5]);", "", "TableSelect::orderBy: Element #2 is expected to be a string");
+      exec_and_out_contains("table.select().orderBy(['test']);", "", "");
     }
 
     {
@@ -191,8 +225,21 @@ namespace shcore {
     // Testing column filtering
     {
       SCOPED_TRACE("Testing select with column filtering");
-      exec_and_out_equals("var records = table.select().execute().all();");
-      exec_and_out_equals("print(records.length);", "7");
+      exec_and_out_equals("var result = table.select(['name', 'age']).execute()");
+      exec_and_out_equals("var record = result.next();");
+      exec_and_out_equals("print(record.getLength());", "2");
+      exec_and_out_equals("print(record.name != '');", "true");
+      exec_and_out_equals("print(record.age != '');", "true");
+      exec_and_out_contains("print(record.gender != '');", "", "Invalid object member gender");
+      exec_and_out_equals("result.all();"); // Temporal hack: flushes the rest of the data
+
+      exec_and_out_equals("var result = table.select(['name']).execute()");
+      exec_and_out_equals("var record = result.next();");
+      exec_and_out_equals("print(record.getLength());", "1");
+      exec_and_out_equals("print(record.name != '');", "true");
+      exec_and_out_contains("print(record.age != '');", "", "Invalid object member age");
+      exec_and_out_contains("print(record.gender != '');", "", "Invalid object member gender");
+      exec_and_out_equals("result.all();"); // Temporal hack: flushes the rest of the data
     }
 
     // Testing the select function with some criteria
@@ -218,6 +265,27 @@ namespace shcore {
 
       exec_and_out_equals("var records = table.select().where('name like \"a%\" and age < 15').execute().all();");
       exec_and_out_equals("print(records.length);", "2");
+    }
+
+    {
+      SCOPED_TRACE("Testing orderBy");
+      exec_and_out_equals("var records = table.select().orderBy(['name']).execute().all();");
+      exec_and_out_equals("print(records[0].name);", "adam");
+      exec_and_out_equals("print(records[1].name);", "alma");
+      exec_and_out_equals("print(records[2].name);", "angel");
+      exec_and_out_equals("print(records[3].name);", "brian");
+      exec_and_out_equals("print(records[4].name);", "carol");
+      exec_and_out_equals("print(records[5].name);", "donna");
+      exec_and_out_equals("print(records[6].name);", "jack");
+
+      exec_and_out_equals("var records = table.select().orderBy(['name desc']).execute().all();");
+      exec_and_out_equals("print(records[0].name);", "jack");
+      exec_and_out_equals("print(records[1].name);", "donna");
+      exec_and_out_equals("print(records[2].name);", "carol");
+      exec_and_out_equals("print(records[3].name);", "brian");
+      exec_and_out_equals("print(records[4].name);", "angel");
+      exec_and_out_equals("print(records[5].name);", "alma");
+      exec_and_out_equals("print(records[6].name);", "adam");
     }
 
     {

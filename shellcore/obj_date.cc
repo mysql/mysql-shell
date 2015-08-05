@@ -72,6 +72,20 @@ std::string &Date::append_repr(std::string &s_out) const
   return append_descr(s_out, 0, '"');
 }
 
+void Date::append_json(const shcore::JSON_dumper& dumper) const
+{
+  dumper.start_object();
+
+  dumper.append_int("year", _year);
+  dumper.append_int("month", _month);
+  dumper.append_int("day", _day);
+  dumper.append_int("hour", _hour);
+  dumper.append_int("minute", _min);
+  dumper.append_float("second", _sec);
+
+  dumper.end_object();
+}
+
 std::vector<std::string> Date::get_members() const
 {
   return Cpp_object_bridge::get_members();

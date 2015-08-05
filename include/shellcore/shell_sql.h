@@ -49,8 +49,6 @@ namespace shcore
     std::stack<std::string> _parsing_context_stack;
 
     void cmd_process_file(const std::vector<std::string>& params);
-    void cmd_enable_auto_warnings(const std::vector<std::string>& param);
-    void cmd_disable_auto_warnings(const std::vector<std::string>& param);
   };
 };
 

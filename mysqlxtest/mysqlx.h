@@ -34,7 +34,7 @@
 
 namespace Mysqlx
 {
-  namespace Sql
+  namespace Resultset
   {
     class Row;
   }
@@ -65,16 +65,145 @@ namespace mysqlx
     int _error;
   };
 
-  class AuthError : public std::runtime_error
-  {
-  public:
-    AuthError(const std::string &message)
-    : std::runtime_error(message) {}
-    virtual ~AuthError() BOOST_NOEXCEPT_OR_NOTHROW;
-  };
-
   class Schema;
   class Connection;
+
+  class ArgumentValue
+  {
+  public:
+    enum Type
+    {
+      TInteger,
+      TUInteger,
+      TNull,
+      TDouble,
+      TFloat,
+      TBool,
+      TString,
+      TOctets,
+    };
+
+    ArgumentValue(const ArgumentValue &other)
+    {
+      m_type = other.m_type;
+      m_value = other.m_value;
+      if (m_type == TString || m_type == TOctets)
+        m_value.s = new std::string(*other.m_value.s);
+    }
+
+    ArgumentValue &operator = (const ArgumentValue &other)
+    {
+      m_type = other.m_type;
+      m_value = other.m_value;
+      if (m_type == TString || m_type == TOctets)
+        m_value.s = new std::string(*other.m_value.s);
+
+      return *this;
+    }
+
+    explicit ArgumentValue(const std::string &s, Type type = TString)
+    {
+      m_type = type;
+      m_value.s = new std::string(s);
+    }
+
+    explicit ArgumentValue(int64_t n)
+    {
+      m_type = TInteger;
+      m_value.i = n;
+    }
+
+    explicit ArgumentValue(uint64_t n)
+    {
+      m_type = TUInteger;
+      m_value.ui = n;
+    }
+
+    explicit ArgumentValue(double n)
+    {
+      m_type = TDouble;
+      m_value.d = n;
+    }
+
+    explicit ArgumentValue(float n)
+    {
+      m_type = TFloat;
+      m_value.f = n;
+    }
+
+    explicit ArgumentValue(bool n)
+    {
+      m_type = TBool;
+      m_value.b = n;
+    }
+
+    explicit ArgumentValue()
+    {
+      m_type = TNull;
+    }
+
+    ~ArgumentValue()
+    {
+      if (m_type == TString || m_type == TOctets)
+        delete m_value.s;
+    }
+
+    inline Type type() const { return m_type; }
+
+    inline operator uint64_t () const
+    {
+      if (m_type != TUInteger)
+        throw std::logic_error("type error");
+      return m_value.ui;
+    }
+
+    inline operator int64_t () const
+    {
+      if (m_type != TInteger)
+        throw std::logic_error("type error");
+      return m_value.i;
+    }
+
+    inline operator double() const
+    {
+      if (m_type != TDouble)
+        throw std::logic_error("type error");
+      return m_value.d;
+    }
+
+    inline operator float() const
+    {
+      if (m_type != TFloat)
+        throw std::logic_error("type error");
+      return m_value.f;
+    }
+
+    inline operator bool() const
+    {
+      if (m_type != TBool)
+        throw std::logic_error("type error");
+      return m_value.b;
+    }
+
+    inline operator const std::string & () const
+    {
+      if (m_type != TString && m_type != TOctets)
+        throw std::logic_error("type error");
+      return *m_value.s;
+    }
+
+  private:
+    Type m_type;
+    union
+    {
+      std::string *s;
+      int64_t i;
+      uint64_t ui;
+      double d;
+      float f;
+      bool b;
+    } m_value;
+  };
 
   class Session : public boost::enable_shared_from_this<Session>
   {
@@ -82,6 +211,9 @@ namespace mysqlx
     Session();
     ~Session();
     Result *executeSql(const std::string &sql);
+
+    Result *executeStmt(const std::string &ns, const std::string &stmt,
+                        const std::vector<ArgumentValue> &args);
 
     boost::shared_ptr<Schema> getSchema(const std::string &name);
 
@@ -127,7 +259,7 @@ namespace mysqlx
     std::string schema;
     std::string catalog;
 
-    std::string charset;
+    uint64_t collation;
 
     uint32_t fractional_digits;
 
@@ -147,243 +279,6 @@ namespace mysqlx
 
   private:
     boost::shared_ptr<std::string> m_data;
-  };
-
-  class TableValue
-  {
-  public:
-    enum Type
-    {
-      TInteger,
-      TUInteger,
-      TNull,
-      TDouble,
-      TFloat,
-      TBool,
-      TString,
-      TOctets,
-      TExpression,
-    };
-
-    TableValue(const TableValue &other)
-    {
-      m_type = other.m_type;
-      m_value.b = other.m_value.b;
-      m_value.d = other.m_value.d;
-      m_value.f = other.m_value.f;
-      m_value.i = other.m_value.i;
-      m_value.ui = other.m_value.ui;
-
-      if (m_type == TString || m_type == TOctets)
-        m_value.s = new std::string(*other.m_value.s);
-    }
-
-    explicit TableValue(const std::string &s, Type type = TString)
-    {
-      m_type = type;
-      m_value.s = new std::string(s);
-    }
-
-    explicit TableValue(int64_t n)
-    {
-      m_type = TInteger;
-      m_value.i = n;
-    }
-
-    explicit TableValue(uint64_t n)
-    {
-      m_type = TUInteger;
-      m_value.ui = n;
-    }
-
-    explicit TableValue(double n)
-    {
-      m_type = TDouble;
-      m_value.d = n;
-    }
-
-    explicit TableValue(float n)
-    {
-      m_type = TFloat;
-      m_value.f = n;
-    }
-
-    explicit TableValue(bool n)
-    {
-      m_type = TBool;
-      m_value.b = n;
-    }
-
-    explicit TableValue()
-    {
-      m_type = TNull;
-    }
-
-    ~TableValue()
-    {
-      if (m_type == TString || m_type == TOctets || m_type == TExpression)
-        delete m_value.s;
-    }
-
-    inline Type type() const { return m_type; }
-
-    inline operator uint64_t ()
-    {
-      if (m_type != TUInteger)
-        throw std::logic_error("type error");
-      return m_value.ui;
-    }
-
-    inline operator int64_t ()
-    {
-      if (m_type != TInteger)
-        throw std::logic_error("type error");
-      return m_value.i;
-    }
-
-    inline operator double()
-    {
-      if (m_type != TDouble)
-        throw std::logic_error("type error");
-      return m_value.d;
-    }
-
-    inline operator float()
-    {
-      if (m_type != TFloat)
-        throw std::logic_error("type error");
-      return m_value.f;
-    }
-
-    inline operator bool()
-    {
-      if (m_type != TBool)
-        throw std::logic_error("type error");
-      return m_value.b;
-    }
-
-    inline operator const std::string & ()
-    {
-      if (m_type != TString && m_type != TOctets && m_type != TExpression)
-        throw std::logic_error("type error");
-      return *m_value.s;
-    }
-
-  private:
-    Type m_type;
-    union
-    {
-      std::string *s;
-      int64_t i;
-      uint64_t ui;
-      double d;
-      float f;
-      bool b;
-    } m_value;
-  };
-
-  class DocumentValue
-  {
-  public:
-    enum Type
-    {
-      TString,
-      TInteger,
-      TFloat,
-      TDocument,
-      TExpression
-    };
-
-    DocumentValue(const DocumentValue &other)
-    {
-      m_type = other.m_type;
-      m_value.f = other.m_value.f;
-      m_value.i = other.m_value.i;
-
-      if (m_type == TString || m_type == TExpression)
-        m_value.s = new std::string(*other.m_value.s);
-
-      if (m_type == TDocument)
-        m_value.d = new Document(*other.m_value.d);
-    }
-
-    explicit DocumentValue(const std::string &s, bool expression = false)
-    {
-      m_type = expression ? TExpression : TString;
-      m_value.s = new std::string(s);
-    }
-
-    explicit DocumentValue(int64_t n)
-    {
-      m_type = TInteger;
-      m_value.i = n;
-    }
-
-    explicit DocumentValue(uint64_t n)
-    {
-      m_type = TInteger;
-      m_value.i = n;
-    }
-
-    explicit DocumentValue(double n)
-    {
-      m_type = TFloat;
-      m_value.f = n;
-    }
-
-    explicit DocumentValue(const Document &doc)
-    {
-      m_type = TDocument;
-      m_value.d = new Document(doc);
-    }
-
-    ~DocumentValue()
-    {
-      if (m_type == TDocument)
-        delete m_value.d;
-      else if (m_type == TString || m_type == TExpression)
-        delete m_value.s;
-    }
-
-    inline Type type() const { return m_type; }
-
-    inline operator int64_t ()
-    {
-      if (m_type != TInteger)
-        throw std::logic_error("type error");
-      return m_value.i;
-    }
-
-    inline operator double()
-    {
-      if (m_type != TFloat)
-        throw std::logic_error("type error");
-      return m_value.f;
-    }
-
-    inline operator const std::string & ()
-    {
-      if (m_type != TString && m_type != TExpression)
-        throw std::logic_error("type error");
-      return *m_value.s;
-    }
-
-    inline operator const Document & ()
-    {
-      if (m_type != TDocument)
-        throw std::logic_error("type error");
-      return *m_value.d;
-    }
-
-  private:
-    Type m_type;
-    union
-    {
-      std::string *s;
-      int64_t i;
-      double f;
-      Document *d;
-    } m_value;
   };
 
   class Row
@@ -412,14 +307,13 @@ namespace mysqlx
 
   private:
     friend class Result;
-    Row(boost::shared_ptr<std::vector<ColumnMetadata> > columns, Mysqlx::Sql::Row *data);
+    Row(boost::shared_ptr<std::vector<ColumnMetadata> > columns, Mysqlx::Resultset::Row *data);
 
     void check_field(int field, FieldType type) const;
 
     boost::shared_ptr<std::vector<ColumnMetadata> > m_columns;
-    Mysqlx::Sql::Row *m_data;
+    Mysqlx::Resultset::Row *m_data;
   };
-
 
   class Result
   {
@@ -429,12 +323,13 @@ namespace mysqlx
     boost::shared_ptr<std::vector<ColumnMetadata> > columnMetadata();
     int64_t lastInsertId() const { return m_last_insert_id; }
     int64_t affectedRows() const { return m_affected_rows; }
+    std::string infoMessage() const { return m_info_message; }
 
     bool ready();
     void wait();
 
     Row *next();
-    bool nextResult();
+    bool nextDataSet();
     void discardData();
 
     struct Warning
@@ -453,7 +348,7 @@ namespace mysqlx
     std::auto_ptr<Row> read_row();
     void read_stmt_ok();
 
-    void handle_notice(int32_t type, const std::string &data);
+    bool handle_notice(int32_t type, const std::string &data);
 
     int get_message_id();
     mysqlx::Message* pop_message();
@@ -466,6 +361,7 @@ namespace mysqlx
     boost::shared_ptr<std::vector<ColumnMetadata> > m_columns;
     int64_t m_last_insert_id;
     int64_t m_affected_rows;
+    std::string m_info_message;
 
     std::vector<Warning> m_warnings;
 

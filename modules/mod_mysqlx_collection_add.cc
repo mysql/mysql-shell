@@ -36,7 +36,7 @@ CollectionAdd::CollectionAdd(boost::shared_ptr<Collection> owner)
   add_method("add", boost::bind(&CollectionAdd::add, this, _1), "data");
 
   // Registers the dynamic function behavior
-  register_dynamic_function("add", "");
+  register_dynamic_function("add", ",add");
   register_dynamic_function("execute", "add");
 
   // Initial function update
@@ -89,7 +89,7 @@ shcore::Value CollectionAdd::add(const shcore::Argument_list &args)
               //      we should introduce a routine that vensures that is correct.
               ::mysqlx::Document inner_doc(element.repr());
 
-              if (!index)
+              if (!_add_statement.get())
                 _add_statement.reset(new ::mysqlx::AddStatement(collection->_collection_impl->add(inner_doc)));
               else
                 _add_statement->add(inner_doc);

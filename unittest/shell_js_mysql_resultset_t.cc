@@ -51,9 +51,6 @@ namespace shcore {
     exec_and_out_equals("session.executeSql('use js_shell_test;')");
     exec_and_out_equals("session.executeSql('create table table1 (id int auto_increment primary key, name varchar(50));')");
 
-    // TODO: should be enabled once collection crud is available
-    //exec_and_out_equals("session.executeSql(\"create table `collection1`(`doc` JSON, `_id` VARBINARY(16) GENERATED ALWAYS AS(unhex(json_unquote(json_extract(doc, '$._id')))) stored PRIMARY KEY)\")");
-
     exec_and_out_equals("session.executeSql('insert into table1 (`name`) values(\"one\");')");
     exec_and_out_equals("session.executeSql('insert into table1 (`name`) values(\"two\");')");
     exec_and_out_equals("session.executeSql('insert into table1 (`name`) values(\"three\");')");

@@ -71,7 +71,7 @@ InsertStatement Table::insert()
   return tmp;
 }
 
-SelectStatement Table::select(const std::string& fieldList)
+SelectStatement Table::select(const std::vector<std::string> &fieldList)
 {
   SelectStatement tmp(shared_from_this(), fieldList);
   return tmp;
@@ -199,20 +199,41 @@ Find_Skip &Find_Limit::limit(uint64_t limit_)
   return *this;
 }
 
-Find_Limit &Find_Sort::sort(const std::string &UNUSED(sortFields))
+Find_Limit &Find_Sort::sort(const std::vector<std::string> &sortFields)
 {
+  std::vector<std::string>::const_iterator index, end = sortFields.end();
+
+  for (index = sortFields.begin(); index != end; index++)
+    parser::parse_collection_sort_column(*m_find->mutable_order(), *index);
+
   return *this;
 }
 
-Find_Sort &Find_Having::having(const std::string &UNUSED(searchCondition))
+Find_Sort &Find_Having::having(const std::string &searchCondition)
 {
-  //  m_find->set_allocated_having(Expr_parser(searchFields, true).expr().release());
+  if (!searchCondition.empty())
+    m_find->set_allocated_grouping_criteria(parser::parse_collection_filter(searchCondition));
+
   return *this;
 }
 
-Find_Having &Find_GroupBy::groupBy(const std::string &UNUSED(searchFields))
+Find_Having &Find_GroupBy::groupBy(const std::vector<std::string> &searchFields)
 {
-  //  m_find->set_allocated_group_by(Proj_parser(searchFields, true).expr().release());
+  std::vector<std::string>::const_iterator index, end = searchFields.end();
+
+  for (index = searchFields.begin(); index != end; index++)
+    m_find->mutable_grouping()->AddAllocated(parser::parse_table_filter(*index));
+
+  return *this;
+}
+
+Find_GroupBy &FindStatement::fields(const std::vector<std::string> &searchFields)
+{
+  std::vector<std::string>::const_iterator index, end = searchFields.end();
+
+  for (index = searchFields.begin(); index != end; index++)
+    parser::parse_collection_column_list_with_alias(*m_find->mutable_projection(), *index);
+
   return *this;
 }
 
@@ -225,13 +246,6 @@ FindStatement::FindStatement(boost::shared_ptr<Collection> coll, const std::stri
 
   if (!searchCondition.empty())
     m_find->set_allocated_criteria(parser::parse_collection_filter(searchCondition));
-}
-
-Find_GroupBy &FindStatement::fields(const std::string &searchFields)
-{
-  parser::parse_collection_column_list_with_alias(*m_find->mutable_projection(), searchFields);
-
-  return *this;
 }
 
 //----------------------------------
@@ -277,11 +291,16 @@ AddStatement::AddStatement(boost::shared_ptr<Collection> coll, const Document &d
 
 AddStatement &AddStatement::add(const Document &doc)
 {
-  Mysqlx::Datatypes::Any *any(m_insert->mutable_row()->Add()->mutable_field()->Add());
+  Mysqlx::Expr::Expr *expr(m_insert->mutable_row()->Add()->mutable_field()->Add());
+  expr->set_type(Mysqlx::Expr::Expr::LITERAL);
+
+  Mysqlx::Datatypes::Any *any = new Mysqlx::Datatypes::Any();
   any->set_type(Mysqlx::Datatypes::Any::SCALAR);
   Mysqlx::Datatypes::Scalar *value(any->mutable_scalar());
   value->set_type(Mysqlx::Datatypes::Scalar::V_OCTETS);
   value->set_v_opaque(doc.str());
+
+  expr->set_allocated_constant(any);
   return *this;
 }
 
@@ -334,8 +353,13 @@ RemoveStatement::RemoveStatement(boost::shared_ptr<Collection> coll, const std::
     m_delete->set_allocated_criteria(parser::parse_collection_filter(searchCondition));
 }
 
-Remove_Limit &RemoveStatement::sort(const std::string &UNUSED(sortFields))
+Remove_Limit &RemoveStatement::sort(const std::vector<std::string> &sortFields)
 {
+  std::vector<std::string>::const_iterator index, end = sortFields.end();
+
+  for (index = sortFields.begin(); index != end; index++)
+    parser::parse_collection_sort_column(*m_delete->mutable_order(), *index);
+
   return *this;
 }
 
@@ -378,8 +402,13 @@ Modify_Base &Modify_Limit::limit(uint64_t limit_)
   return *this;
 }
 
-Modify_Limit &Modify_Sort::sort(const std::string &UNUSED(sortFields))
+Modify_Limit &Modify_Sort::sort(const std::vector<std::string> &sortFields)
 {
+  std::vector<std::string>::const_iterator index, end = sortFields.end();
+
+  for (index = sortFields.begin(); index != end; index++)
+    parser::parse_collection_sort_column(*m_update->mutable_order(), *index);
+
   return *this;
 }
 
@@ -390,10 +419,15 @@ Modify_Operation &Modify_Operation::set_operation(int type, const std::string &p
 
   Mysqlx::Crud::UpdateOperation * operation = m_update->mutable_operation()->Add();
 
-  operation->set_operation( Mysqlx::Crud::UpdateOperation_UpdateType(type));
+  operation->set_operation(Mysqlx::Crud::UpdateOperation_UpdateType(type));
 
-  Mysqlx::Expr::DocumentPathItem *item = new Mysqlx::Expr::DocumentPathItem(items.Get(0).target_path().Get(0));
-  operation->mutable_source()->mutable_document_path()->AddAllocated(item);
+  if (items.Get(0).has_alias())
+  {
+    Mysqlx::Expr::DocumentPathItem* proj_path_item = new Mysqlx::Expr::DocumentPathItem();
+    proj_path_item->set_type(Mysqlx::Expr::DocumentPathItem_Type_MEMBER);
+    proj_path_item->set_value(items.Get(0).alias());
+    operation->mutable_source()->mutable_document_path()->AddAllocated(proj_path_item);
+  }
 
   if (value)
   {
@@ -546,10 +580,13 @@ Delete_Base &Delete_Limit::limit(uint64_t limit_)
   return *this;
 }
 
-Delete_Limit &Delete_OrderBy::orderBy(const std::string &sortFields)
+Delete_Limit &Delete_OrderBy::orderBy(const std::vector<std::string> &sortFields)
 {
-  //if (!sortFields.empty())
-  //  m_delete->set_allocated_criteria(parser::parse_table_filter(searchCondition));
+  std::vector<std::string>::const_iterator index, end = sortFields.end();
+
+  for (index = sortFields.begin(); index != end; index++)
+    parser::parse_table_sort_column(*m_delete->mutable_order(), *index);
+
   return *this;
 }
 
@@ -607,10 +644,13 @@ Update_Base &Update_Limit::limit(uint64_t limit_)
   return *this;
 }
 
-Update_Limit &Update_OrderBy::orderBy(const std::string &sortFields)
+Update_Limit &Update_OrderBy::orderBy(const std::vector<std::string> &sortFields)
 {
-  //if (!sortFields.empty())
-  //  m_update->set_allocated_criteria(parser::parse_table_filter(searchCondition));
+  std::vector<std::string>::const_iterator index, end = sortFields.end();
+
+  for (index = sortFields.begin(); index != end; index++)
+    parser::parse_table_sort_column(*m_update->mutable_order(), *index);
+
   return *this;
 }
 
@@ -702,24 +742,35 @@ Select_Offset &Select_Limit::limit(uint64_t limit_)
   return *this;
 }
 
-Select_Limit &Select_OrderBy::orderBy(const std::string &UNUSED(sortFields))
+Select_Limit &Select_OrderBy::orderBy(const std::vector<std::string> &sortFields)
 {
+  std::vector<std::string>::const_iterator index, end = sortFields.end();
+
+  for (index = sortFields.begin(); index != end; index++)
+    parser::parse_table_sort_column(*m_find->mutable_order(), *index);
+
   return *this;
 }
 
-Select_OrderBy &Select_Having::having(const std::string &UNUSED(searchCondition))
+Select_OrderBy &Select_Having::having(const std::string &searchCondition)
 {
-  //  m_find->set_allocated_having(Expr_parser(searchFields, true).expr().release());
+  if (!searchCondition.empty())
+    m_find->set_allocated_grouping_criteria(parser::parse_table_filter(searchCondition));
+
   return *this;
 }
 
-Select_Having &Select_GroupBy::groupBy(const std::string &UNUSED(searchFields))
+Select_Having &Select_GroupBy::groupBy(const std::vector<std::string> &searchFields)
 {
-  //  m_find->set_allocated_group_by(Proj_parser(searchFields, true).expr().release());
+  std::vector<std::string>::const_iterator index, end = searchFields.end();
+
+  for (index = searchFields.begin(); index != end; index++)
+    m_find->mutable_grouping()->AddAllocated(parser::parse_table_filter(*index));
+
   return *this;
 }
 
-SelectStatement::SelectStatement(boost::shared_ptr<Table> table, const std::string &fieldList)
+SelectStatement::SelectStatement(boost::shared_ptr<Table> table, const std::vector<std::string> &fieldList)
 : Select_GroupBy(table)
 {
   m_find->mutable_collection()->set_schema(table->schema()->name());
@@ -727,7 +778,12 @@ SelectStatement::SelectStatement(boost::shared_ptr<Table> table, const std::stri
   m_find->set_data_model(Mysqlx::Crud::TABLE);
 
   if (!fieldList.empty())
-    parser::parse_table_column_list_with_alias(*m_find->mutable_projection(), fieldList);
+  {
+    std::vector<std::string>::const_iterator index, end = fieldList.end();
+
+    for (index = fieldList.begin(); index != end; index++)
+      parser::parse_table_column_list_with_alias(*m_find->mutable_projection(), *index);
+  }
 }
 
 Select_GroupBy &SelectStatement::where(const std::string &searchCondition)
@@ -781,7 +837,13 @@ Insert_Values &Insert_Values::values(const std::vector<TableValue> &row_data)
   std::vector<TableValue>::const_iterator index, end = row_data.end();
 
   for (index = row_data.begin(); index != end; index++)
-    row->mutable_field()->AddAllocated(convert_table_value(*index));
+  {
+    Mysqlx::Expr::Expr* expr = new Mysqlx::Expr::Expr();
+    expr->set_type(Mysqlx::Expr::Expr::LITERAL);
+    Mysqlx::Datatypes::Any* any = convert_table_value(*index);
+    expr->set_allocated_constant(any);
+    row->mutable_field()->AddAllocated(expr);
+  }
 
   return *this;
 }

@@ -47,9 +47,9 @@ namespace mysh
     shcore::Value get_member_method(const shcore::Argument_list &args, const std::string& method, const std::string& prop);
 
     // Printing functions
-    shcore::Value print(const shcore::Argument_list &args);
-    void print_json();
-    void print_normal(bool interactive, const std::string& format);
+    virtual shcore::Value print(const shcore::Argument_list &args);
+    void print_json(const std::string& format, bool show_warnings);
+    void print_normal(bool interactive, const std::string& format, bool show_warnings);
     void print_tabbed(shcore::Value::Array_type_ref records);
     void print_table(shcore::Value::Array_type_ref records);
     void print_warnings();
@@ -63,11 +63,12 @@ namespace mysh
     shcore::Value get_member_method(const shcore::Argument_list &args, const std::string& method, const std::string& prop);
 
   public:
-    shcore::Value::Array_type values;
-    std::map<std::string, int> keys;
+    std::map<std::string, shcore::Value> values;
+    std::vector<std::map<std::string, shcore::Value>::iterator> value_iterators;
 
     virtual std::string &append_descr(std::string &s_out, int indent = -1, int quote_strings = 0) const;
     virtual std::string &append_repr(std::string &s_out) const;
+    virtual void append_json(const shcore::JSON_dumper& dumper) const;
 
     //! Returns the list of members that this object has
     virtual std::vector<std::string> get_members() const;
@@ -76,6 +77,7 @@ namespace mysh
 
     //! Returns the value of a member
     virtual shcore::Value get_member(const std::string &prop) const;
+    shcore::Value get_member(size_t index) const;
 
     void add_item(const std::string &key, shcore::Value value);
   };

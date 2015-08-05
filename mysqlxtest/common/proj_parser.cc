@@ -44,12 +44,11 @@ const std::string& Proj_parser::id()
 
 /*
  * document_mode = false:
- *   column_identifier ::= ( IDENT [ DOT IDENT [ DOT IDENT ] ] [ '@' document_path ] ) [as_rule]
+ *   column_identifier ::= ( IDENT [ DOT IDENT [ DOT IDENT ] ] ) [as_rule]
  * document_mode = true:
- *   column_identifier ::=  ( [ IDENT ] document_path ) [as_rule]
- * *** as_rule is currently disabled ***
+ *   column_identifier ::=  ( [ @ ] IDENT ) => ( document_path ) [as_rule]
  * NOTE: 'as_rule' only applies if allow_alias is true (see Proj_parser ctor)
- * as_rule ::= AS IDENT
+ * as_rule ::= [AS] IDENT
  */
 void Proj_parser::column_identifier(Mysqlx::Crud::Projection &col)
 {
@@ -74,38 +73,63 @@ void Proj_parser::column_identifier(Mysqlx::Crud::Projection &col)
       if (i + 1 < parts.size())
         fullname += ".";
     }
-    col.set_target_alias(fullname.c_str());
+    std::auto_ptr<Mysqlx::Expr::Expr> source(new Mysqlx::Expr::Expr());
+    std::auto_ptr<Mysqlx::Expr::ColumnIdentifier> colid(new Mysqlx::Expr::ColumnIdentifier());
+    colid->set_name(fullname.c_str());
+    source->set_type(Mysqlx::Expr::Expr::IDENT);
+    source->set_allocated_identifier(colid.release());
+    col.set_allocated_source(source.release());
 
     if (_tokenizer.cur_token_type_is(Token::AT))
     {
       _tokenizer.consume_token(Token::AT);
-      document_path(col);
+      const std::string& ident = _tokenizer.consume_token(Token::IDENT);
+      Mysqlx::Expr::ColumnIdentifier* colid = col.mutable_source()->mutable_identifier();
+      colid->mutable_document_path()->Add()->set_value(ident.c_str(), ident.size());
+      document_path(*colid);
     }
   }
   else
   {
+    // Must assume any identifier its a path
+    if (_tokenizer.cur_token_type_is(Token::AT))
+      _tokenizer.consume_token(Token::AT);
     if (_tokenizer.cur_token_type_is(Token::IDENT))
     {
-      Mysqlx::Expr::DocumentPathItem& item = *col.add_target_path();
-      item.set_type(Mysqlx::Expr::DocumentPathItem::MEMBER);
-      const std::string& value = _tokenizer.consume_token(Token::IDENT);
-      item.set_value(value.c_str(), value.size());
+      const std::string& ident = _tokenizer.consume_token(Token::IDENT);
+      Mysqlx::Expr::Expr* e = new Mysqlx::Expr::Expr();
+
+      e->set_type(Mysqlx::Expr::Expr::IDENT);
+      Mysqlx::Expr::ColumnIdentifier* colid = e->mutable_identifier();
+      col.set_allocated_source(e);
+      Mysqlx::Expr::DocumentPathItem *item = colid->mutable_document_path()->Add();
+      item->set_type(Mysqlx::Expr::DocumentPathItem::MEMBER);
+      item->set_value(ident.c_str(), ident.size());
+      document_path(*colid);
     }
-    document_path(col);
+    else
+    {
+      throw Parser_error((boost::format("Identifier expected at pos %d") % _tokenizer.get_token_pos()).str());
+    }
   }
-  /*if (_tokenizer.cur_token_type_is(Token::AS))
+
+  // Sets the alias token
+  if (_allow_alias)
   {
-    if (_allow_alias)
+    if (_tokenizer.cur_token_type_is(Token::AS))
     {
       _tokenizer.consume_token(Token::AS);
       const std::string& alias = _tokenizer.consume_token(Token::IDENT);
       col.set_alias(alias.c_str());
     }
-    else
+    else if (_tokenizer.cur_token_type_is(Token::IDENT))
     {
-      throw Parser_error((boost::format("Unexpected token 'AS' at pos %d") % _tokenizer.get_token_pos()).str());
+      const std::string& alias = _tokenizer.consume_token(Token::IDENT);
+      col.set_alias(alias.c_str());
     }
-  }*/
+    else if (_document_mode)
+      col.set_alias(_tokenizer.get_input());
+  }
 }
 
 /*
@@ -167,32 +191,33 @@ void Proj_parser::docpath_array_loc(Mysqlx::Expr::DocumentPathItem& item)
 /*
  * document_path ::= ( docpath_member | docpath_array_loc | '**' )+
  */
-void Proj_parser::document_path(Mysqlx::Crud::Projection& col)
+void Proj_parser::document_path(Mysqlx::Expr::ColumnIdentifier& colid)
 {
   // Parse a JSON-style document path, like WL#7909, but prefix by @. instead of $.
   while (true)
   {
     if (_tokenizer.cur_token_type_is(Token::DOT))
     {
-      docpath_member(*col.add_target_path());
+      docpath_member(*colid.mutable_document_path()->Add());
     }
     else if (_tokenizer.cur_token_type_is(Token::LSQBRACKET))
     {
-      docpath_array_loc(*col.add_target_path());
+      docpath_array_loc(*colid.mutable_document_path()->Add());
     }
     else if (_tokenizer.cur_token_type_is(Token::DOUBLESTAR))
     {
       _tokenizer.consume_token(Token::DOUBLESTAR);
-      Mysqlx::Expr::DocumentPathItem& item = *col.add_target_path();
-      item.set_type(Mysqlx::Expr::DocumentPathItem::DOUBLE_ASTERISK);
+      Mysqlx::Expr::DocumentPathItem* item = colid.mutable_document_path()->Add();
+      item->set_type(Mysqlx::Expr::DocumentPathItem::DOUBLE_ASTERISK);
     }
     else
     {
       break;
     }
   }
-  size_t size = col.target_path_size();
-  if (size > 0 && (col.target_path(size - 1).type() == Mysqlx::Expr::DocumentPathItem::DOUBLE_ASTERISK))
+
+  size_t size = colid.document_path_size();
+  if (size > 0 && (colid.document_path(size - 1).type() == Mysqlx::Expr::DocumentPathItem::DOUBLE_ASTERISK))
   {
     throw Parser_error((boost::format("JSON path may not end in '**' at %d") % _tokenizer.get_token_pos()).str());
   }

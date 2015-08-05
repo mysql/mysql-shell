@@ -157,7 +157,7 @@ void Shell_core::process_result(shcore::Value result, bool print_data)
         Argument_list args;
         args.push_back(Value(_interactive));
         args.push_back(Value(_output_format));
-
+        args.push_back(Value(_show_warnings));
         object->call("__paged_output__", args);
       }
     }
@@ -218,7 +218,12 @@ void Shell_core::init_js()
 void Shell_core::init_py()
 {
 #ifdef HAVE_PYTHON
-  _langs[Mode_Python] = new Shell_python(this);
+  Shell_python *py;
+  _langs[Mode_Python] = py = new Shell_python(this);
+
+  for (std::map<std::string, Value>::const_iterator iter = _globals.begin();
+       iter != _globals.end(); ++iter)
+    py->set_global(iter->first, iter->second);
 #endif
 }
 

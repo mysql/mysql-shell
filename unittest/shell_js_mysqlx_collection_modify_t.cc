@@ -44,7 +44,7 @@ namespace shcore {
       _shell_core->switch_mode(Shell_core::Mode_JScript, initilaized);
 
       // Sets the correct functions to be validated
-      set_functions("modify, set, change, unset, arrayInsert, arrayAppend, arrayDelete, sort, limit, bind, execute");
+      set_functions("modify, set, unset, arrayInsert, arrayAppend, arrayDelete, sort, limit, bind, execute");
     }
   };
 
@@ -56,8 +56,8 @@ namespace shcore {
 
     exec_and_out_equals("session.executeSql('drop schema if exists js_shell_test;')");
     exec_and_out_equals("session.executeSql('create schema js_shell_test;')");
-    exec_and_out_equals("session.executeSql('use js_shell_test;')");
-    exec_and_out_equals("session.executeSql(\"create table `collection1`(`doc` JSON, `_id` VARBINARY(16) GENERATED ALWAYS AS(unhex(json_unquote(json_extract(doc, '$._id')))) stored PRIMARY KEY)\")");
+
+    exec_and_out_equals("session.js_shell_test.createCollection('collection1')");
 
     exec_and_out_equals("session.close();");
   }
@@ -83,82 +83,70 @@ namespace shcore {
     {
       SCOPED_TRACE("Testing function availability after modify.");
       exec_and_out_equals("var crud = collection.modify();");
-      ensure_available_functions("set, change, unset, arrayInsert, arrayAppend, arrayDelete");
+      ensure_available_functions("set, unset, arrayInsert, arrayAppend, arrayDelete");
     }
 
     {
       SCOPED_TRACE("Testing function availability after set.");
       exec_and_out_equals("var crud = collection.modify();");
-      ensure_available_functions("set, change, unset, arrayInsert, arrayAppend, arrayDelete");
+      ensure_available_functions("set, unset, arrayInsert, arrayAppend, arrayDelete");
 
       // Empty set of values does not trigger a change
       exec_and_out_equals("crud.set({})");
-      ensure_available_functions("set, change, unset, arrayInsert, arrayAppend, arrayDelete");
+      ensure_available_functions("set, unset, arrayInsert, arrayAppend, arrayDelete");
 
       // Empty set of values does not trigger a change
       exec_and_out_equals("crud.set({name:'dummy'})");
-      ensure_available_functions("set, change, unset, arrayInsert, arrayAppend, arrayDelete, sort, limit, bind, execute");
-    }
-
-    {
-      SCOPED_TRACE("Testing function availability after change.");
-      exec_and_out_equals("var crud = collection.modify();");
-      ensure_available_functions("set, change, unset, arrayInsert, arrayAppend, arrayDelete");
-
-      exec_and_out_equals("crud.change({})");
-      ensure_available_functions("set, change, unset, arrayInsert, arrayAppend, arrayDelete");
-
-      exec_and_out_equals("crud.change({name:'another'})");
-      ensure_available_functions("set, change, unset, arrayInsert, arrayAppend, arrayDelete, sort, limit, bind, execute");
+      ensure_available_functions("set, unset, arrayInsert, arrayAppend, arrayDelete, sort, limit, bind, execute");
     }
 
     {
       SCOPED_TRACE("Testing function availability after unset.");
       exec_and_out_equals("var crud = collection.modify();");
-      ensure_available_functions("set, change, unset, arrayInsert, arrayAppend, arrayDelete");
+      ensure_available_functions("set, unset, arrayInsert, arrayAppend, arrayDelete");
 
       exec_and_out_equals("crud.unset([])");
-      ensure_available_functions("set, change, unset, arrayInsert, arrayAppend, arrayDelete");
+      ensure_available_functions("set, unset, arrayInsert, arrayAppend, arrayDelete");
 
       exec_and_out_equals("crud.unset(['name','last_name'])");
-      ensure_available_functions("set, change, unset, arrayInsert, arrayAppend, arrayDelete, sort, limit, bind, execute");
+      ensure_available_functions("set, unset, arrayInsert, arrayAppend, arrayDelete, sort, limit, bind, execute");
 
       // Tests passing multiple parameters
       exec_and_out_equals("var crud = collection.modify();");
       exec_and_out_equals("crud.unset('name','last_name')");
-      ensure_available_functions("set, change, unset, arrayInsert, arrayAppend, arrayDelete, sort, limit, bind, execute");
+      ensure_available_functions("set, unset, arrayInsert, arrayAppend, arrayDelete, sort, limit, bind, execute");
     }
 
     {
       SCOPED_TRACE("Testing function availability after arrayInsert.");
       exec_and_out_equals("var crud = collection.modify();");
-      ensure_available_functions("set, change, unset, arrayInsert, arrayAppend, arrayDelete");
+      ensure_available_functions("set, unset, arrayInsert, arrayAppend, arrayDelete");
 
       exec_and_out_equals("crud.arrayInsert('hobbies',3,'run')");
-      ensure_available_functions("set, change, unset, arrayInsert, arrayAppend, arrayDelete, sort, limit, bind, execute");
+      ensure_available_functions("set, unset, arrayInsert, arrayAppend, arrayDelete, sort, limit, bind, execute");
     }
 
     {
       SCOPED_TRACE("Testing function availability after arrayAppend.");
       exec_and_out_equals("var crud = collection.modify();");
-      ensure_available_functions("set, change, unset, arrayInsert, arrayAppend, arrayDelete");
+      ensure_available_functions("set, unset, arrayInsert, arrayAppend, arrayDelete");
 
       exec_and_out_equals("crud.arrayAppend('hobbies','skate')");
-      ensure_available_functions("set, change, unset, arrayInsert, arrayAppend, arrayDelete, sort, limit, bind, execute");
+      ensure_available_functions("set, unset, arrayInsert, arrayAppend, arrayDelete, sort, limit, bind, execute");
     }
 
     {
       SCOPED_TRACE("Testing function availability after arrayDelete.");
       exec_and_out_equals("var crud = collection.modify();");
-      ensure_available_functions("set, change, unset, arrayInsert, arrayAppend, arrayDelete");
+      ensure_available_functions("set, unset, arrayInsert, arrayAppend, arrayDelete");
 
       exec_and_out_equals("crud.arrayDelete('hobbies',5)");
-      ensure_available_functions("set, change, unset, arrayInsert, arrayAppend, arrayDelete, sort, limit, bind, execute");
+      ensure_available_functions("set, unset, arrayInsert, arrayAppend, arrayDelete, sort, limit, bind, execute");
     }
 
     {
       SCOPED_TRACE("Testing function availability after sort.");
-      exec_and_out_equals("crud.sort('')");
+      exec_and_out_equals("crud.sort(['name'])");
       ensure_available_functions("limit, bind, execute");
     }
 
@@ -196,15 +184,6 @@ namespace shcore {
     }
 
     {
-      SCOPED_TRACE("Testing parameter validation on change");
-      exec_and_out_contains("collection.modify().change();", "", "Invalid number of arguments in CollectionModify::change, expected 1 but got 0");
-      exec_and_out_contains("collection.modify().change([]);", "", "CollectionModify::change: Argument #1 is expected to be a map");
-      exec_and_out_contains("collection.modify().change({name:session});", "", "CollectionModify::change: Unsupported value received: <Session:");
-      exec_and_out_contains("collection.modify().change({age:expr('13+25')});");
-      exec_and_out_equals("collection.modify().change({name:'john'});");
-    }
-
-    {
       SCOPED_TRACE("Testing parameter validation on unset");
       exec_and_out_contains("collection.modify().unset();", "", "Invalid number of arguments in CollectionModify::unset, expected at least 1 but got 0");
       exec_and_out_contains("collection.modify().unset({});", "", "CollectionModify::unset: Argument #1 is expected to be either string or list of strings");
@@ -237,7 +216,10 @@ namespace shcore {
     {
       SCOPED_TRACE("Testing parameter validation on sort");
       exec_and_out_contains("collection.modify().unset('name').sort();", "", "Invalid number of arguments in CollectionModify::sort, expected 1 but got 0");
-      exec_and_out_contains("collection.modify().unset('name').sort(5);", "", "CollectionModify::sort: Argument #1 is expected to be a string");
+      exec_and_out_contains("collection.modify().unset('name').sort(5);", "", "CollectionModify::sort: Argument #1 is expected to be an array");
+      exec_and_out_contains("collection.modify().unset('name').sort([]);", "", "CollectionModify::sort: Sort criteria can not be empty");
+      exec_and_out_contains("collection.modify().unset('name').sort(['name', 5]);", "", "CollectionModify::sort: Element #2 is expected to be a string");
+      exec_and_out_contains("collection.modify().unset('name').sort(['name']);", "", "");
     }
 
     {
@@ -279,15 +261,6 @@ namespace shcore {
     {
       SCOPED_TRACE("Testing set");
       exec_and_out_equals("var result = collection.modify('age = 13').set({gender:'male', age:expr('13+1')}).execute();");
-      exec_and_out_equals("print(result.affectedRows)", "1");
-
-      exec_and_out_equals("var records = collection.find().execute().all();");
-      exec_and_out_equals("print(records.length);", "6");
-    }
-
-    {
-      SCOPED_TRACE("Testing change");
-      exec_and_out_equals("var result = collection.modify('age = 13').change({gender:'male', age:expr('13+1')}).execute();");
       exec_and_out_equals("print(result.affectedRows)", "1");
 
       exec_and_out_equals("var records = collection.find().execute().all();");

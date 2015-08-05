@@ -210,7 +210,8 @@ ENDIF()
 include_directories("${PROJECT_SOURCE_DIR}/include"
                     "${MYSQL_INCLUDE_DIR}"
                     "${Boost_INCLUDE_DIRS}"
-                    "${CMAKE_SOURCE_DIR}/utils"
+                    "${CMAKE_SOURCE_DIR}"
+                    "${CMAKE_SOURCE_DIR}/ext/rapidjson/include"
                    )
 
 
@@ -304,3 +305,7 @@ include(packaging)
 if(WIN32)
   remove_definitions(-DUNICODE)
 endif()
+
+install(DIRECTORY "${CMAKE_SOURCE_DIR}/utils/" DESTINATION "include/utils" FILES_MATCHING PATTERN "*.h" )
+install(DIRECTORY "${CMAKE_SOURCE_DIR}/common/logger" DESTINATION "include/common" FILES_MATCHING PATTERN "*.h" )
+install(DIRECTORY "${CMAKE_SOURCE_DIR}/ext/rapidjson/include/rapidjson" DESTINATION "include" FILES_MATCHING PATTERN "*.h" )

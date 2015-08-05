@@ -30,57 +30,205 @@
 
 #include <string>
 #include <sstream>
+#include "shellcore/types_cpp.h"
 #include "shellcore/python_utils.h"
 
 using namespace shcore;
 
 
-static int object_init(PyShObjObject *self, PyObject *args, PyObject *kwds)
+
+/** Wraps a GRT method as a Python object
+ */
+struct PyShMethodObject
+{
+  PyObject_HEAD
+
+  boost::shared_ptr<Cpp_object_bridge> *object;
+  std::string *method;
+};
+
+
+static PyObject *call_object_method(boost::shared_ptr<Cpp_object_bridge> object, const char *method, PyObject *args)
+{
+  Python_context *ctx = Python_context::get_and_check();
+  if (!ctx)
+    return NULL;
+
+  Argument_list arglist;
+
+  for (Py_ssize_t a= 0; a < PyTuple_Size(args); a++)
+  {
+    PyObject *argval= PyTuple_GetItem(args, a);
+
+    try
+    {
+      arglist.push_back(ctx->pyobj_to_shcore_value(argval));
+    }
+    catch (Exception &e)
+    {
+      char buffer[100];
+      snprintf(buffer, sizeof(buffer), "argument #%li", a);
+      Python_context::set_python_error(e, buffer);
+      return NULL;
+    }
+  }
+
+  try
+  {
+    WillLeavePython lock;
+    return ctx->shcore_value_to_pyobj(object->call(method, arglist));
+  }
+  catch (Exception &e)
+  {
+    Python_context::set_python_error(e);
+    return NULL;
+  }
+  return NULL;
+}
+
+
+static void method_dealloc(PyShMethodObject *self)
+{
+  delete self->object;
+  delete self->method;
+
+  PyObject_FREE(self);
+}
+
+
+static PyObject* method_call(PyShMethodObject *self, PyObject *args, PyObject *UNUSED(kw))
+{
+  return call_object_method(*self->object, self->method->c_str(), args);
+}
+
+
+static PyTypeObject PyShMethodObjectType =
+{
+  PyObject_HEAD_INIT(&PyType_Type) //PyObject_VAR_HEAD
+  0,
+  "shcore.ObjectMethod", //char *tp_name; /* For printing, in format "<module>.<name>" */
+  sizeof(PyShMethodObject), 0, //int tp_basicsize, tp_itemsize; /* For allocation */
+
+  /* Methods to implement standard operations */
+
+  (destructor)method_dealloc, //  destructor tp_dealloc;
+  0, //  printfunc tp_print;
+  0, //  getattrfunc tp_getattr;
+  0, //  setattrfunc tp_setattr;
+  0, //(cmpfunc)object_compare, //  cmpfunc tp_compare;
+  0, //(reprfunc)object_repr,//  reprfunc tp_repr;
+
+  /* Method suites for standard classes */
+
+  0, //  PyNumberMethods *tp_as_number;
+  0,//  PySequenceMethods *tp_as_sequence;
+  0, //  PyMappingMethods *tp_as_mapping;
+
+  /* More standard operations (here for binary compatibility) */
+
+  0, //  hashfunc tp_hash;
+  (ternaryfunc)method_call, //  ternaryfunc tp_call;
+  0, //  reprfunc tp_str;
+  PyObject_GenericGetAttr, //  getattrofunc tp_getattro;
+  PyObject_GenericSetAttr, //  setattrofunc tp_setattro;
+
+  /* Functions to access object as input/output buffer */
+  0, //  PyBufferProcs *tp_as_buffer;
+
+  /* Flags to define presence of optional/expanded features */
+  Py_TPFLAGS_DEFAULT, //  long tp_flags;
+
+  0, //  char *tp_doc; /* Documentation string */
+
+  /* Assigned meaning in release 2.0 */
+  /* call function for all accessible objects */
+  0, //  traverseproc tp_traverse;
+
+  /* delete references to contained objects */
+  0, //  inquiry tp_clear;
+
+  /* Assigned meaning in release 2.1 */
+  /* rich comparisons */
+  0, //  richcmpfunc tp_richcompare;
+
+  /* weak reference enabler */
+  0, //  long tp_weaklistoffset;
+
+  /* Added in release 2.2 */
+  /* Iterators */
+  0, //  getiterfunc tp_iter;
+  0, //  iternextfunc tp_iternext;
+
+  /* Attribute descriptor and subclassing stuff */
+  0, //  struct PyMethodDef *tp_methods;
+  0, //  struct PyMemberDef *tp_members;
+  0, //  struct PyGetSetDef *tp_getset;
+  0, //  struct _typeobject *tp_base;
+  0, //  PyObject *tp_dict;
+  0, //  descrgetfunc tp_descr_get;
+  0, //  descrsetfunc tp_descr_set;
+  0, //  long tp_dictoffset;
+  0, //  initproc tp_init;
+  PyType_GenericAlloc, //  allocfunc tp_alloc;
+  PyType_GenericNew, //  newfunc tp_new;
+  0, //  freefunc tp_free; /* Low-level free-memory routine */
+  0, //  inquiry tp_is_gc; /* For PyObject_IS_GC */
+  0, //  PyObject *tp_bases;
+  0, //  PyObject *tp_mro; /* method resolution order */
+  0, //  PyObject *tp_cache;
+  0, //  PyObject *tp_subclasses;
+  0, //  PyObject *tp_weaklist;
+  0, // tp_del
+#if (PY_MAJOR_VERSION == 2) && (PY_MINOR_VERSION > 5)
+  0  // tp_version_tag
+#endif
+};
+
+
+static PyObject *wrap_method(boost::shared_ptr<Cpp_object_bridge> object, const char *method_name)
+{
+  // create a method call object and return it
+  PyShMethodObject *method= PyObject_New(PyShMethodObject, &PyShMethodObjectType);
+  if (!method)
+    return NULL;
+  method->object= new boost::shared_ptr<Cpp_object_bridge>(object);
+  method->method= new std::string(method_name);
+  return (PyObject*)method;
+}
+
+//----------------------------------------------------------------
+
+static int object_init(PyShObjObject *self, PyObject *args, PyObject *UNUSED(kwds))
 {
   Python_context *ctx = Python_context::get_and_check();
   if (ctx)
   {
-    PyObject *valueptr = NULL;
-    static const char *kwlist[] = {"__valueptr__", 0};
-
-    if (!PyArg_ParseTupleAndKeywords(args, kwds, "|O", (char**)kwlist, &valueptr))
+    if (!PyArg_ParseTuple(args, ""))
       return -1;
 
     delete self->object;
+    delete self->cache;
 
-    if (valueptr && valueptr != Py_None)
+    try
     {
-      try
-      {
-        self->object->reset(static_cast<Object_bridge*>(PyCObject_AsVoidPtr(valueptr)));
-      }
-      catch (std::exception &exc)
-      {
-        Python_context::set_python_error(exc);
-        return -1;
-      }
+      self->object = new Object_bridge_ref();
+      self->cache = new PyMemberCache();
     }
-    else
+    catch (std::exception &exc)
     {
-      try
-      {
-        self->object = new Object_bridge_ref();
-      }
-      catch (std::exception &exc)
-      {
-        Python_context::set_python_error(exc);
-        return -1;
-      }
+      Python_context::set_python_error(exc);
+      return -1;
     }
     return 0;
   }
   return -1;
 }
 
-
+//session.schemas.sakila.city.select().execute()
 static void object_dealloc(PyShObjObject *self)
 {
   delete self->object;
+  delete self->cache;
 
   self->ob_type->tp_free(self);
 }
@@ -98,7 +246,7 @@ static int object_compare(PyShObjObject *self, PyShObjObject *other)
 static PyObject *object_printable(PyShObjObject *self)
 {
   std::string s;
-  return PyString_FromString(self->object->get()->append_repr(s).c_str());
+  return PyString_FromString((*self->object)->append_repr(s).c_str());
 }
 
 
@@ -107,28 +255,47 @@ static PyObject *object_getattro(PyShObjObject *self, PyObject *attr_name)
   if (PyString_Check(attr_name))
   {
     const char *attrname = PyString_AsString(attr_name);
-
     PyObject *object;
     if ((object= PyObject_GenericGetAttr((PyObject*)self, attr_name)))
       return object;
     PyErr_Clear();
 
-    if (self->object->get()->has_member(attrname))
+    boost::shared_ptr<Cpp_object_bridge> cobj(boost::static_pointer_cast<Cpp_object_bridge>(*self->object));
+
+    if (cobj->has_method(attrname))
+      return wrap_method(cobj, attrname);
+
+    shcore::Value member;
+    try
+    {
+      member = (*self->object)->get_member(attrname);
+    }
+    catch (Exception &exc)
+    {
+      if (!exc.is_attribute())
+        throw;
+    }
+    if (member)
     {
       Python_context *ctx = Python_context::get_and_check();
       if (!ctx) return NULL;
-      return ctx->shcore_value_to_pyobj(self->object->get()->get_member(attrname));
+      object = ctx->shcore_value_to_pyobj(member);
+      self->cache->members[attrname] = object;
+      return object;
     }
-    // TODO: can the object attribute be a method?
-    //else if (self->object->get()->has_method(attrname))
-    //{
-      // create a method call object and return it
-      // TODO
-    //  return (PyObject*)method;
+    else if (strcmp(attrname, "__members__") == 0)
+    {
+      std::vector<std::string> members((*self->object)->get_members());
+      PyObject *list = PyList_New(members.size());
+      int i = 0;
+      for (std::vector<std::string>::const_iterator iter = members.begin(); iter != members.end(); ++iter)
+        PyList_SET_ITEM(list, i++, PyString_FromString(iter->c_str()));
+      return list;
+    }
     else
     {
-      std::string err = std::string("unknown attribute : ") + attrname;
-      PyErr_SetString(PyExc_IndexError, err.c_str());
+      std::string err = std::string("unknown attribute: ") + attrname;
+      Python_context::set_python_error(PyExc_IndexError, err.c_str());
     }
   }
   return NULL;
@@ -141,7 +308,7 @@ static int object_setattro(PyShObjObject *self, PyObject *attr_name, PyObject *a
   {
     const char *attrname = PyString_AsString(attr_name);
 
-    if (self->object->get()->has_member(attrname))
+    if ((*self->object)->has_member(attrname))
     {
       Python_context *ctx = Python_context::get_and_check();
       if (!ctx) return -1;
@@ -159,7 +326,7 @@ static int object_setattro(PyShObjObject *self, PyObject *attr_name, PyObject *a
       }
       try
       {
-        self->object->get()->set_member(attrname, value);
+        (*self->object)->set_member(attrname, value);
       }
       catch (const std::exception &exc)
       {
@@ -175,7 +342,7 @@ static int object_setattro(PyShObjObject *self, PyObject *attr_name, PyObject *a
 }
 
 
-static PyObject *call_object_method(shcore::Object_bridge *object, Value method, PyObject *args)
+static PyObject *call_object_method(boost::shared_ptr<shcore::Object_bridge> object, Value method, PyObject *args)
 {
   Python_context *ctx = Python_context::get_and_check();
   if (!ctx)
@@ -191,7 +358,7 @@ static PyObject *call_object_method(shcore::Object_bridge *object, Value method,
     " arguments (" << (int)PyTuple_Size(args) <<
     " given)";
 
-    PyErr_SetString(PyExc_TypeError, err.str().c_str());
+    Python_context::set_python_error(PyExc_TypeError, err.str().c_str());
     return NULL;
   }
 
@@ -240,14 +407,14 @@ object_callmethod(PyShObjObject *self, PyObject *args)
 
   if (PyTuple_Size(args) < 1 || !(method_name = PyTuple_GetItem(args, 0)) || !PyString_Check(method_name))
   {
-    PyErr_SetString(PyExc_TypeError, "1st argument must be name of method to call");
+    Python_context::set_python_error(PyExc_TypeError, "1st argument must be name of method to call");
     return NULL;
   }
 
-  const Value method = self->object->get()->get_member(PyString_AsString(method_name));
+  const Value method = (*self->object)->get_member(PyString_AsString(method_name));
   if (!method)
   {
-    PyErr_SetString(PyExc_TypeError, "invalid method");
+    Python_context::set_python_error(PyExc_TypeError, "invalid method");
     return NULL;
   }
 
@@ -265,7 +432,7 @@ object_callmethod(PyShObjObject *self, PyObject *args)
     return NULL;
   }
 
-  return call_object_method(self->object->get(), method, PyTuple_GetSlice(args, 1, PyTuple_Size(args)));
+  return call_object_method(*self->object, method, PyTuple_GetSlice(args, 1, PyTuple_Size(args)));
 }
 
 
@@ -384,35 +551,22 @@ void Python_context::init_shell_object_type()
 }
 
 
-Python_object_wrapper::Python_object_wrapper(Python_context *context)
-: _context(context)
+PyObject *shcore::wrap(boost::shared_ptr<Object_bridge> object)
 {
-  _object_wrapper = PyObject_New(PyShObjObject, &PyShObjObjectType);
-
-  Py_INCREF(&PyShObjObjectType);
+  PyShObjObject *wrapper = PyObject_New(PyShObjObject, &PyShObjObjectType);
+  wrapper->object = new Object_bridge_ref(object);
+  wrapper->cache = new PyMemberCache();
+  return reinterpret_cast<PyObject*>(wrapper);
 }
 
 
-Python_object_wrapper::~Python_object_wrapper()
-{
-  PyObject_Del(_object_wrapper);
-  Py_DECREF(&PyShObjObjectType);
-}
-
-
-PyObject *Python_object_wrapper::wrap(boost::shared_ptr<Object_bridge> object)
-{
-  _object_wrapper->object = new Object_bridge_ref(object);
-  return reinterpret_cast<PyObject*>(_object_wrapper);
-}
-
-
-bool Python_object_wrapper::unwrap(PyObject *value, boost::shared_ptr<Object_bridge> &ret_object)
+bool shcore::unwrap(PyObject *value, boost::shared_ptr<Object_bridge> &ret_object)
 {
   Python_context *ctx = Python_context::get_and_check();
   if (!ctx) return false;
 
-  if (PyObject_IsInstance(value, ctx->get_shell_object_class())) {
+  if (PyObject_IsInstance(value, ctx->get_shell_object_class()))
+  {
     ret_object = *((PyShObjObject*)value)->object;
     return true;
   }

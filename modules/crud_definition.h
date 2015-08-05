@@ -104,9 +104,7 @@ namespace mysh
       void update_functions(const std::string& state);
       void enable_function(const char *name, bool enable);
 
-      void set_filter(const std::string &source, const std::string &field, shcore::Value value, bool collection);
-      void set_columns(const std::string &source, const std::string &field, shcore::Value value, bool collection, bool with_alias);
-      void set_order(const std::string &source, const std::string &field, shcore::Value value);
+      void parse_string_list(const shcore::Argument_list &args, std::vector<std::string> &data);
     };
   }
 }

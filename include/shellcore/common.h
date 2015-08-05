@@ -17,11 +17,11 @@
  * 02110-1301  USA
  */
 
-
 #ifndef _SHCORE_COMMON_H_
 #define _SHCORE_COMMON_H_
 
 #include "shellcore/types_common.h"
+#include "common/logger/logger.h"
 
 #ifdef _WIN32
 # ifdef _DLL

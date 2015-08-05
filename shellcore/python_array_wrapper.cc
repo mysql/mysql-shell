@@ -92,7 +92,7 @@ PyObject *list_item(PyShListObject *self, Py_ssize_t index)
 
   if (index < 0 || index >= (int) self->array->get()->size())
   {
-    PyErr_SetString(PyExc_IndexError, "list index out of range");
+    Python_context::set_python_error(PyExc_IndexError, "list index out of range");
     return NULL;
   }
 
@@ -102,7 +102,7 @@ PyObject *list_item(PyShListObject *self, Py_ssize_t index)
   }
   catch (std::exception &exc)
   {
-    PyErr_SetString(PyExc_RuntimeError, exc.what());
+    Python_context::set_python_error(PyExc_RuntimeError, exc.what());
     return NULL;
   }
 }
@@ -115,7 +115,7 @@ int list_assign(PyShListObject *self, Py_ssize_t index, PyObject *value)
 
   if (index < 0 || index >= (int) self->array->get()->size())
   {
-    PyErr_SetString(PyExc_IndexError, "list index out of range");
+    Python_context::set_python_error(PyExc_IndexError, "list index out of range");
     return -1;
   }
 
@@ -132,7 +132,7 @@ int list_assign(PyShListObject *self, Py_ssize_t index, PyObject *value)
   }
   catch (std::exception &exc)
   {
-    PyErr_SetString(PyExc_RuntimeError, exc.what());
+    Python_context::set_python_error(PyExc_RuntimeError, exc.what());
   }
 
   return -1;
@@ -190,7 +190,7 @@ PyObject *list_append(PyShListObject *self, PyObject *v)
 {
   if (!v)
   {
-    PyErr_SetString(PyExc_ValueError, "missing argument");
+    Python_context::set_python_error(PyExc_ValueError, "missing argument");
     return NULL;
   }
 
@@ -242,7 +242,7 @@ PyObject *list_remove(PyShListObject *self, PyObject *v)
 {
   if (!v)
   {
-    PyErr_SetString(PyExc_ValueError, "missing argument");
+    Python_context::set_python_error(PyExc_ValueError, "missing argument");
     return NULL;
   }
 
@@ -413,7 +413,7 @@ void Python_context::init_shell_list_type()
   PyShListObjectType.tp_new = PyType_GenericNew;
   if (PyType_Ready(&PyShListObjectType) < 0)
   {
-    throw std::runtime_error("Could not initialize Shcore Array type in python");
+    throw Exception::runtime_error("Could not initialize Shcore Array type in python");
   }
 
   Py_INCREF(&PyShListObjectType);
@@ -423,35 +423,21 @@ void Python_context::init_shell_list_type()
 }
 
 
-Python_array_wrapper::Python_array_wrapper(Python_context *context)
-: _context(context)
+PyObject *shcore::wrap(boost::shared_ptr<Value::Array_type> array)
 {
-  _array_wrapper = PyObject_New(PyShListObject, &PyShListObjectType);
-
-  Py_INCREF(&PyShListObjectType);
+  PyShListObject *wrapper = PyObject_New(PyShListObject, &PyShListObjectType);
+  wrapper->array = new Value::Array_type_ref(array);
+  return reinterpret_cast<PyObject*>(wrapper);
 }
 
 
-Python_array_wrapper::~Python_array_wrapper()
-{
-  PyObject_Del(_array_wrapper);
-  Py_DECREF(&PyShListObjectType);
-}
-
-
-PyObject *Python_array_wrapper::wrap(boost::shared_ptr<Value::Array_type> array)
-{
-  _array_wrapper->array = new Value::Array_type_ref(array);
-  return reinterpret_cast<PyObject*>(_array_wrapper);
-}
-
-
-bool Python_array_wrapper::unwrap(PyObject *value, boost::shared_ptr<Value::Array_type> &ret_object)
+bool shcore::unwrap(PyObject *value, boost::shared_ptr<Value::Array_type> &ret_object)
 {
   Python_context *ctx = Python_context::get_and_check();
   if (!ctx) return false;
 
-  if (PyObject_IsInstance(value, ctx->get_shell_list_class())) {
+  if (PyObject_IsInstance(value, ctx->get_shell_list_class()))
+  {
     ret_object = *((PyShListObject*)value)->array;
     return true;
   }

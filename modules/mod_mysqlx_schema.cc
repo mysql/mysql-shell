@@ -30,6 +30,7 @@
 #include "mod_mysqlx_table.h"
 #include "mod_mysqlx_collection.h"
 #include "mod_mysqlx_view.h"
+#include "mod_mysqlx_resultset.h"
 
 #include <boost/bind.hpp>
 #include <boost/lexical_cast.hpp>
@@ -66,6 +67,8 @@ void Schema::init()
   add_method("getCollection", boost::bind(&Schema::getCollection, this, _1), "name", shcore::String, NULL);
   add_method("getView", boost::bind(&Schema::getView, this, _1), "name", shcore::String, NULL);
 
+  add_method("createCollection", boost::bind(&Schema::createCollection, this, _1), "name", shcore::String, NULL);
+
   _tables = Value::new_map().as_map();
   _views = Value::new_map().as_map();
   _collections = Value::new_map().as_map();
@@ -80,42 +83,39 @@ void Schema::cache_table_objects()
     {
       {
         sess->flush_last_result();
-        std::auto_ptr< ::mysqlx::Result> result(sess->session_obj()->executeSql("show full tables in `" + this->_name + "`"));
-        std::auto_ptr< ::mysqlx::Row> row;
-        for (;;)
+
+        shcore::Argument_list args;
+        args.push_back(Value(_name));
+        args.push_back(Value(""));
+
+        Value myres = sess->executeAdminCommand("list_objects", args);
+        boost::shared_ptr<mysh::mysqlx::Resultset> my_res = myres.as_object<mysh::mysqlx::Resultset>();
+
+        Value raw_entry;
+
+        while ((raw_entry = my_res->next(shcore::Argument_list())))
         {
-          row.reset(result->next());
-          if (row.get())
+          boost::shared_ptr<mysh::Row> row = raw_entry.as_object<mysh::Row>();
+          std::string object_name = row->get_member("name").as_string();
+          std::string object_type = row->get_member("type").as_string();
+
+          if (object_type == "TABLE")
           {
-            std::string object_name = row->stringField(0);
-            std::string object_type = row->stringField(1);
-
-            if (object_type == "BASE TABLE" || object_type == "LOCAL TEMPORARY")
-            {
-              boost::shared_ptr<Table> table(new Table(shared_from_this(), object_name));
-              (*_tables)[object_name] = Value(boost::static_pointer_cast<Object_bridge>(table));
-
-              // TODO: Temporary hack to allow accessing collections throught getCollection.
-              //       Collections can't be accessed until show full tables or other mechanism
-              //       is in place.
-              //       Note: all tables can be accessed as collections, it's user responsibility for now
-              //       to only access this way real collections
-              boost::shared_ptr<Collection> collection(new Collection(shared_from_this(), object_name));
-              (*_collections)[object_name] = Value(boost::static_pointer_cast<Object_bridge>(collection));
-            }
-            else if (object_type == "VIEW" || object_type == "SYSTEM VIEW")
-            {
-              boost::shared_ptr<View> view(new View(shared_from_this(), object_name));
-              (*_views)[object_name] = Value(boost::static_pointer_cast<Object_bridge>(view));
-            }
-            /*else
-            {
+            boost::shared_ptr<Table> table(new Table(shared_from_this(), object_name));
+            (*_tables)[object_name] = Value(boost::static_pointer_cast<Object_bridge>(table));
+          }
+          else if (object_type == "VIEW")
+          {
+            boost::shared_ptr<View> view(new View(shared_from_this(), object_name));
+            (*_views)[object_name] = Value(boost::static_pointer_cast<Object_bridge>(view));
+          }
+          else if (object_type == "COLLECTION")
+          {
             boost::shared_ptr<Collection> collection(new Collection(shared_from_this(), object_name));
             (*_collections)[object_name] = Value(boost::static_pointer_cast<Object_bridge>(collection));
-            }*/
           }
           else
-            break;
+            throw shcore::Exception::logic_error((boost::format("Unexpected object type returned from server, object: %s%, type %s%") % object_name % object_type).str());
         }
       }
     }
@@ -196,6 +196,7 @@ Value Schema::_load_object(const std::string& name, const std::string& type) con
     {
       {
         sess->flush_last_result();
+
         std::auto_ptr< ::mysqlx::Result> result(sess->session_obj()->executeSql("show full tables in `" + _name + "` like '" + name + "';"));
         std::auto_ptr< ::mysqlx::Row> row(result->next());
         if (row.get())
@@ -257,4 +258,27 @@ shcore::Value Schema::getView(const shcore::Argument_list &args)
   std::string name = args.string_at(0);
 
   return find_in_collection(name, _views);
+}
+
+shcore::Value Schema::createCollection(const shcore::Argument_list &args)
+{
+  Value ret_val;
+
+  args.ensure_count(1, (class_name() + "::createCollection").c_str());
+
+  // Creates the collection on the server
+  shcore::Argument_list command_args;
+  command_args.push_back(Value(_name));
+  command_args.push_back(args[0]);
+
+  boost::shared_ptr<ApiBaseSession> sess(boost::static_pointer_cast<ApiBaseSession>(_session.lock()));
+  sess->executeAdminCommand("create_collection", command_args);
+
+  // If this is reached it imlies all went OK on the previous operation
+  std::string name = args.string_at(0);
+  boost::shared_ptr<Collection> collection(new Collection(shared_from_this(), name));
+  ret_val = Value(boost::static_pointer_cast<Object_bridge>(collection));
+  (*_collections)[name] = ret_val;
+
+  return ret_val;
 }

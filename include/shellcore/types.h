@@ -31,6 +31,7 @@
 #include <boost/function.hpp>
 
 #include "shellcore/common.h"
+#include "utils/utils_json.h"
 
 namespace shcore {
   /** Basic types that can be passed around code in different languages.
@@ -201,8 +202,12 @@ namespace shcore {
     //! returns a human-readable description text for the value.
     // if pprint is true, it will try to pretty-print it (like adding newlines)
     std::string descr(bool pprint = false) const;
+
     //! returns a string representation of the serialized object, suitable to be passed to parse()
     std::string repr() const;
+
+    //! returns a JSON representation of the object
+    std::string json(bool pprint = false) const;
 
     std::string &append_descr(std::string &s_out, int indent = -1, int quote_strings = 0) const;
     std::string &append_repr(std::string &s_out) const;
@@ -210,7 +215,7 @@ namespace shcore {
     void check_type(Value_type t) const;
 
     bool as_bool() const { check_type(Bool); return value.b; }
-    int64_t as_int() const { check_type(Integer); return value.i; }
+    int64_t as_int() const;
     uint64_t as_uint() const;
     double as_double() const;
     const std::string &as_string() const { check_type(String); return *value.s; }
@@ -283,6 +288,9 @@ namespace shcore {
     virtual ~Object_bridge() {}
 
     virtual std::string class_name() const = 0;
+
+    //! Appends JSON representation of the object if supported
+    virtual void append_json(const JSON_dumper& dumper) const;
 
     //! Appends descriptive text to the string, suitable for showing to the user
     virtual std::string &append_descr(std::string &s_out, int indent = -1, int quote_strings = 0) const = 0;

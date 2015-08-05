@@ -32,10 +32,6 @@ Shell_sql::Shell_sql(IShell_core *owner)
 : Shell_language(owner)
 {
   _delimiter = ";";
-
-  std::string cmd_help;
-  SET_SHELL_COMMAND("warnings|\\W", "Show warnings after every statement.", "", Shell_sql::cmd_enable_auto_warnings);
-  SET_SHELL_COMMAND("nowarnings|\\w", "Don't show warnings after every statement.", "", Shell_sql::cmd_disable_auto_warnings);
 }
 
 void Shell_sql::handle_input(std::string &code, Interactive_input_state &state, boost::function<void(shcore::Value)> result_processor, bool UNUSED(interactive))
@@ -196,36 +192,7 @@ bool Shell_sql::print_help(const std::string& topic)
 
 void Shell_sql::print_exception(const shcore::Exception &e)
 {
-  // Removes the type, at this moment only type is MySQLError
-  // Reason is that leaving it will print things like:
-  // ERROR: MySQLError (code) message
-  // Where ERROR is added on the called print_error routine
-  //std::string message = (*e.error())["type"].as_string();
-
-  std::string message;
-  if ((*e.error()).has_key("code"))
-  {
-    //message.append(" ");
-    message.append(((*e.error())["code"].repr()));
-
-    if ((*e.error()).has_key("state") && (*e.error())["state"])
-      message.append((boost::format(" (%s)") % ((*e.error())["state"].as_string())).str());
-
-    message.append(": ");
-  }
-  message.append(e.what());
-
-  _owner->print_error(message);
-}
-
-//------------------ SQL COMMAND HANDLERS ------------------//
-
-void Shell_sql::cmd_enable_auto_warnings(const std::vector<std::string>& UNUSED(params))
-{
-  // To be done once the global options are in place...
-}
-
-void Shell_sql::cmd_disable_auto_warnings(const std::vector<std::string>& UNUSED(params))
-{
-  // To be done once the global options are in place...
+  // Sends a description of the exception data to the error handler wich will define the final format.
+  shcore::Value exception(e.error());
+  _owner->print_error(exception.descr());
 }

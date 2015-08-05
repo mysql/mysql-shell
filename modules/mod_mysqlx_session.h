@@ -53,6 +53,10 @@ static void ATTR_UNUSED translate_exception()
   {
     throw;
   }
+  catch (::mysqlx::Error &e)
+  {
+    throw shcore::Exception::error_with_code("Server", e.what(), e.error());
+  }
   catch (std::runtime_error &e)
   {
     throw shcore::Exception::runtime_error(e.what());
@@ -84,15 +88,18 @@ namespace mysh
 
       virtual std::vector<std::string> get_members() const;
       virtual shcore::Value get_member(const std::string &prop) const;
+      virtual bool has_member(const std::string &prop) const;
 
       virtual shcore::Value connect(const shcore::Argument_list &args);
       virtual shcore::Value close(const shcore::Argument_list &args);
       virtual shcore::Value executeSql(const shcore::Argument_list &args);
+              shcore::Value executeAdminCommand(const std::string& command, const shcore::Argument_list &args);
       virtual bool is_connected() const { return _session ? true : false; }
       virtual std::string uri() const { return _uri; };
 
       virtual shcore::Value get_schema(const shcore::Argument_list &args) const;
       virtual shcore::Value set_default_schema(const shcore::Argument_list &args);
+      shcore::Value set_fetch_warnings(const shcore::Argument_list &args);
 
       boost::shared_ptr< ::mysqlx::Session> session_obj() const { return _session; }
 
@@ -100,6 +107,7 @@ namespace mysh
 
       void flush_last_result();
     protected:
+      ::mysqlx::ArgumentValue get_argument_value(shcore::Value source);
       virtual boost::shared_ptr<ApiBaseSession> _get_shared_this() const = 0;
       boost::shared_ptr< ::mysqlx::Result> _last_result;
       void _update_default_schema(const std::string& name);

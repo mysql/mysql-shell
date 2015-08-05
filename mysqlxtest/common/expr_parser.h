@@ -111,7 +111,9 @@ namespace mysqlx
       PLACEHOLDER = 53,
       DOUBLESTAR = 54,
       MOD = 55,
-      AS = 56
+      AS = 56,
+      ASC = 57,
+      DESC = 58
     };
 
     Token(TokenType type, const std::string& text);
@@ -163,6 +165,7 @@ namespace mysqlx
     std::vector<Token>::const_iterator end() const { return _tokens.end(); }
 
     void get_tokens();
+    std::string get_input() { return _input; }
 
   protected:
     std::vector<Token> _tokens;
@@ -222,7 +225,7 @@ namespace mysqlx
     std::vector<Token>::const_iterator begin() const { return _tokenizer.begin(); }
     std::vector<Token>::const_iterator end() const { return _tokenizer.end(); }
 
-  private:
+  protected:
     Mysqlx::Expr::Expr* my_expr();
     Tokenizer _tokenizer;
     bool _document_mode;
@@ -241,7 +244,9 @@ namespace mysqlx
     static std::string quote_identifier(const std::string& id);
     static std::string expr_to_string(const Mysqlx::Expr::Expr& e);
     static std::string column_to_string(const Mysqlx::Crud::Projection& c);
-    static std::string column_list_to_string(google::protobuf::RepeatedPtrField< ::Mysqlx::Crud::Projection > columns);
+    static std::string order_to_string(const Mysqlx::Crud::Order& c);
+    static std::string column_list_to_string(google::protobuf::RepeatedPtrField< ::Mysqlx::Crud::Projection > columns);    
+    static std::string order_list_to_string(google::protobuf::RepeatedPtrField< ::Mysqlx::Crud::Order> columns);
     
 
     static void replace(std::string& target, const std::string& old_val, const std::string& new_val);

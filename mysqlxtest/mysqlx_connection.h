@@ -51,6 +51,7 @@
 #include <boost/asio.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/function.hpp>
+#include <list>
 
 #include "xerrmsg.h"
 
@@ -64,7 +65,7 @@
 
 namespace mysqlx
 {
-  typedef boost::function<void (int,std::string)> Local_notice_handler;
+  typedef boost::function<bool (int,std::string)> Local_notice_handler;
 
   class Connection
   {
@@ -72,7 +73,8 @@ namespace mysqlx
     Connection();
     ~Connection();
 
-    Local_notice_handler set_local_notice_handler(Local_notice_handler handler);
+    void push_local_notice_handler(Local_notice_handler handler);
+    void pop_local_notice_handler();
 
     void connect(const std::string &uri, const std::string &pass);
     void connect(const std::string &host, int port);
@@ -88,6 +90,8 @@ namespace mysqlx
     Message *recv_raw(int &mid);
     Message *recv_payload(const int mid, const std::size_t msglen);
     Message *recv_raw_with_deadline(int &mid, const std::size_t deadline_miliseconds);
+
+    Result *recv_result();    
 
     // Overrides for Client Session Messages
     void send(const Mysqlx::Session::AuthenticateStart &m) { send(Mysqlx::ClientMessages::SESS_AUTHENTICATE_START, m); };
@@ -112,18 +116,21 @@ namespace mysqlx
     boost::asio::ip::tcp::socket &socket() { return m_socket; }
   public:
     Result *execute_sql(const std::string &sql);
+    Result *execute_stmt(const std::string &ns, const std::string &sql, const std::vector<ArgumentValue> &args);
 
     Result *execute_find(const Mysqlx::Crud::Find &m);
     Result *execute_update(const Mysqlx::Crud::Update &m);
     Result *execute_insert(const Mysqlx::Crud::Insert &m);
     Result *execute_delete(const Mysqlx::Crud::Delete &m);
 
-  private:
     void authenticate_plain(const std::string &user, const std::string &pass, const std::string &db);
     void authenticate_mysql41(const std::string &user, const std::string &pass, const std::string &db);
 
+  private:
     void handle_async_deadline_timeout(const boost::system::error_code &ec, bool &finished);
     void handle_async_read(const boost::system::error_code &ec, std::size_t data_size, std::size_t &received_data);
+
+    void dispatch_notice(Mysqlx::Notice::Frame *frame);
 
     Message *recv_message_with_header(int &mid, char (&header_buffer)[5], const std::size_t header_offset);
 
@@ -132,7 +139,7 @@ namespace mysqlx
   private:
     typedef boost::asio::ip::tcp tcp;
 
-    Local_notice_handler m_local_notice_handler;
+    std::list<Local_notice_handler> m_local_notice_handlers;
 
     boost::asio::io_service m_ios;
     boost::asio::ip::tcp::socket m_socket;

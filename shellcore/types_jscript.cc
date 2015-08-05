@@ -33,12 +33,10 @@ class JScript_object : public Object_bridge
 public:
   JScript_object(boost::shared_ptr<JScript_context> UNUSED(context))
   {
-
   }
 
   virtual ~JScript_object()
   {
-
   }
 
   virtual std::string &append_descr(std::string &s_out, int UNUSED(indent)=-1, int UNUSED(quote_strings)=0) const
@@ -74,7 +72,6 @@ public:
 
   virtual void set_property(const std::string &UNUSED(prop), Value UNUSED(value))
   {
-
   }
 
   virtual Value call(const std::string &name, const Argument_list &args)

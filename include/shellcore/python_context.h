@@ -28,6 +28,7 @@
 #include "shellcore/python_type_conversion.h"
 #include "shellcore/lang_base.h"
 #include <string>
+#include <list>
 
 namespace shcore {
 
@@ -129,6 +130,7 @@ public:
   void set_global(const std::string &name, const Value &value);
 
   static void set_python_error(const std::exception &exc, const std::string &location="");
+  static void set_python_error(PyObject *obj, const std::string &location);
   bool pystring_to_string(PyObject *strobject, std::string &ret_string, bool convert=false);
 
   AutoPyObject get_shell_list_class();
@@ -138,6 +140,10 @@ public:
 
   Interpreter_delegate *_delegate;
 
+public:
+  static PyObject *shell_print(PyObject *self, PyObject *args);
+  static PyObject *shell_interactive_eval_hook(PyObject *self, PyObject *args);
+
 private:
   PyObject *_globals;
   PyThreadState *_main_thread_state;
@@ -146,13 +152,13 @@ private:
 
   PyObject *_shell_module;
 
-  PyObject *shell_print(PyObject *self, PyObject *args);
-
   void register_shell_module();
   void init_shell_list_type();
   void init_shell_dict_type();
   void init_shell_object_type();
   void init_shell_function_type();
+
+  std::list<AutoPyObject> _captured_eval_result;
 
 protected:
   AutoPyObject _shell_list_class;

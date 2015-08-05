@@ -40,7 +40,7 @@ shcore::Value Resultset::get_member(const std::string &prop) const
   else if (prop == "affectedRows")
     ret_val = Value(_result->affectedRows());
   else if (prop == "warningCount")
-    ret_val = Value(0); // TODO: Warning count not being received on X Protocol
+    ret_val = Value(uint64_t(_result->getWarnings().size()));
   else if (prop == "executionTime")
     ret_val = Value("0"); // TODO: Execution time not being provided on X Protocol
   else if (prop == "lastInsertId")
@@ -48,7 +48,7 @@ shcore::Value Resultset::get_member(const std::string &prop) const
   else if (prop == "info")
     ret_val = Value(""); // TODO: Info not being provided on X Protocol
   else if (prop == "hasData")
-    ret_val = Value(_result->columnMetadata()->size() > 0);
+    ret_val = Value(_result->columnMetadata() && (_result->columnMetadata()->size() > 0));
   else if (prop == "columnMetadata")
   {
     boost::shared_ptr<shcore::Value::Array_type> array(new shcore::Value::Array_type);
@@ -65,7 +65,7 @@ shcore::Value Resultset::get_member(const std::string &prop) const
       (*map)["org_table"] = shcore::Value(_result->columnMetadata()->at(i).original_table);
       (*map)["name"] = shcore::Value(_result->columnMetadata()->at(i).name);
       (*map)["org_name"] = shcore::Value(_result->columnMetadata()->at(i).original_name);
-      (*map)["charset"] = shcore::Value(_result->columnMetadata()->at(i).charset);
+      (*map)["collation"] = shcore::Value(_result->columnMetadata()->at(i).collation);
       (*map)["length"] = shcore::Value(int(_result->columnMetadata()->at(i).length));
       (*map)["type"] = shcore::Value(int(_result->columnMetadata()->at(i).type)); // TODO: Translate to MySQL Type
       (*map)["flags"] = shcore::Value(int(_result->columnMetadata()->at(i).flags));
@@ -82,9 +82,31 @@ shcore::Value Resultset::get_member(const std::string &prop) const
                                            type == ::mysqlx::DECIMAL);
 
       array->push_back(shcore::Value(map));
-
-      return shcore::Value(array);
     }
+
+    ret_val = shcore::Value(array);
+  }
+  else if (prop == "warnings")
+  {
+    boost::shared_ptr<shcore::Value::Array_type> array(new shcore::Value::Array_type);
+
+    std::vector< ::mysqlx::Result::Warning> warnings = _result->getWarnings();
+
+    if (warnings.size())
+    {
+      for (size_t index = 0; index < warnings.size(); index++)
+      {
+        mysh::Row *warning_row = new mysh::Row();
+
+        warning_row->add_item("Level", shcore::Value(warnings[index].is_note ? "Note" : "Warning"));
+        warning_row->add_item("Code", shcore::Value(warnings[index].code));
+        warning_row->add_item("Message", shcore::Value(warnings[index].text));
+
+        array->push_back(shcore::Value::wrap(warning_row));
+      }
+    }
+
+    ret_val = shcore::Value(array);
   }
   else
     ret_val = BaseResultset::get_member(prop);
@@ -122,13 +144,24 @@ shcore::Value Resultset::next(const shcore::Argument_list &UNUSED(args))
           case ::mysqlx::BYTES:
             field_value = Value(row->stringField(index));
             break;
-          case ::mysqlx::TIME:
-          case ::mysqlx::DATETIME:
-          case ::mysqlx::SET:
-          case ::mysqlx::ENUM:
-          case ::mysqlx::BIT:
           case ::mysqlx::DECIMAL:
-            //XXX TODO
+            field_value = Value(row->decimalField(index));
+            break;
+          case ::mysqlx::TIME:
+            field_value = Value(row->timeField(index));
+            break;
+          case ::mysqlx::DATETIME:
+            field_value = Value(row->dateTimeField(index));
+            break;
+          case ::mysqlx::ENUM:
+            field_value = Value(row->enumField(index));
+            break;
+          case ::mysqlx::BIT:
+            field_value = Value(row->bitField(index));
+            break;
+          //TODO: Fix the handling of SET
+          case ::mysqlx::SET:
+            //field_value = Value(row->setField(index));
             break;
         }
         value_row->add_item(metadata->at(index).name, field_value);
@@ -161,9 +194,9 @@ shcore::Value Resultset::all(const shcore::Argument_list &args)
 
 shcore::Value Resultset::next_result(const shcore::Argument_list &args)
 {
-  args.ensure_count(0, "Resultset::nextResult");
+  args.ensure_count(0, "Resultset::nextDataSet");
 
-  return shcore::Value(_result->nextResult());
+  return shcore::Value(_result->nextDataSet());
 }
 
 Collection_resultset::Collection_resultset(boost::shared_ptr< ::mysqlx::Result> result)
@@ -185,5 +218,17 @@ shcore::Value Collection_resultset::next(const shcore::Argument_list &args)
     if (r.get())
       return Value::parse(r->stringField(0));
   }
+  return shcore::Value();
+}
+
+shcore::Value Collection_resultset::print(const shcore::Argument_list &args)
+{
+  bool show_warnings = false;
+
+  if (args.size() > 2)
+    show_warnings = args.bool_at(2);
+
+  print_json("jsonpretty", show_warnings);
+
   return shcore::Value();
 }

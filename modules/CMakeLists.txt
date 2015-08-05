@@ -17,6 +17,7 @@ include_directories("${CMAKE_SOURCE_DIR}/include"
                     "${CMAKE_SOURCE_DIR}/utils" 
                     "${CMAKE_SOURCE_DIR}/mysqlxtest" 
                     "${CMAKE_SOURCE_DIR}/mysqlxtest/common"
+                    "${CMAKE_SOURCE_DIR}/ext/rapidjson/include"
                     "${MYSQL_INCLUDE_DIR}"
                     "${Boost_INCLUDE_DIRS}")
 
@@ -70,7 +71,6 @@ if( WIN32 )
 endif()
 
 install(DIRECTORY "${CMAKE_SOURCE_DIR}/modules/" DESTINATION "include/modules" FILES_MATCHING PATTERN "*.h" )
-install(DIRECTORY "${CMAKE_SOURCE_DIR}/utils/" DESTINATION "include/utils" FILES_MATCHING PATTERN "*.h" )
 install(TARGETS mysqlshmods DESTINATION lib)
 
 add_definitions(-DBOOST_ALL_NO_LIB )

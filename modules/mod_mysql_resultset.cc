@@ -57,7 +57,7 @@ shcore::Value Resultset::next(const shcore::Argument_list &args)
 
 shcore::Value Resultset::next_result(const shcore::Argument_list &args)
 {
-  args.ensure_count(0, "Resultset::nextResult");
+  args.ensure_count(0, "Resultset::nextDataSet");
 
   return shcore::Value(_result->next_result());
 }

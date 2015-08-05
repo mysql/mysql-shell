@@ -39,7 +39,6 @@ namespace mysh
       static boost::shared_ptr<shcore::Object_bridge> create(const shcore::Argument_list &args);
       shcore::Value modify(const shcore::Argument_list &args);
       shcore::Value set(const shcore::Argument_list &args);
-      shcore::Value change(const shcore::Argument_list &args);
       shcore::Value unset(const shcore::Argument_list &args);
       shcore::Value array_insert(const shcore::Argument_list &args);
       shcore::Value array_append(const shcore::Argument_list &args);

@@ -40,10 +40,6 @@ struct Python_type_bridger
   PyObject *native_object_to_py(Object_bridge_ref object);
 
   Python_context *_owner;
-  class Python_array_wrapper *_array_wrapper;
-  class Python_map_wrapper *_map_wrapper;
-  class Python_object_wrapper *_object_wrapper;
-  class Python_function_wrapper *_function_wrapper;
 };
 
 }

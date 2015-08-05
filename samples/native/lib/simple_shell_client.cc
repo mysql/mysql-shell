@@ -89,7 +89,6 @@ shcore::Value Simple_shell_client::connect_session(const shcore::Argument_list &
 
 boost::shared_ptr<Result_set> Simple_shell_client::process_line(const std::string &line)
 {
-  bool handled_as_command = false;
   Interactive_input_state state = Input_ok;
   boost::shared_ptr<Result_set> empty_result = boost::shared_ptr<Result_set>(new Result_set(-1, -1, ""));
 
@@ -109,7 +108,6 @@ boost::shared_ptr<Result_set> Simple_shell_client::process_line(const std::strin
 
 void Simple_shell_client::process_result(shcore::Value result)
 {
-  bool handled_as_command = false;
   Interactive_input_state state = Input_ok;
   _last_result = boost::shared_ptr<Result_set>(new Result_set(-1, -1, ""));
 

@@ -353,24 +353,5 @@ namespace shcore {
       EXPECT_EQ("", env.shell_sql->get_handled_input());
       EXPECT_EQ("mysql-sql> ", env.shell_sql->prompt());
     }
-
-    TEST_F(Shell_sql_test, print_help)
-    {
-      std::vector<std::string> lines;
-
-      // Generic topic prints the available commands
-      EXPECT_TRUE(env.shell_sql->print_help(""));
-      boost::algorithm::split(lines, env.output_handler.std_out, boost::is_any_of("\n"), boost::token_compress_on);
-      EXPECT_EQ("===== SQL Mode Commands =====", lines[0]);
-      EXPECT_EQ("warnings   (\\W) Show warnings after every statement.", lines[1]);
-      EXPECT_EQ("nowarnings (\\w) Don't show warnings after every statement.", lines[2]);
-      env.output_handler.wipe_out();
-
-      // Specific command help print
-      EXPECT_TRUE(env.shell_sql->print_help("warnings"));
-      boost::algorithm::split(lines, env.output_handler.std_out, boost::is_any_of("\n"), boost::token_compress_on);
-      EXPECT_EQ("Show warnings after every statement.", lines[0]);
-      EXPECT_EQ("TRIGGERS: warnings or \\W", lines[1]);
-    }
   }
 }

@@ -47,7 +47,8 @@ namespace shcore {
       exec_and_out_equals("session.executeSql('use js_shell_test;')");
       exec_and_out_equals("var result = session.executeSql('create table table1 (name varchar(50));')");
       exec_and_out_equals("session.executeSql('create view view1 (my_name) as select name from table1;')");
-      exec_and_out_equals("session.executeSql(\"create table `collection1`(`doc` JSON, `_id` VARBINARY(16) GENERATED ALWAYS AS(unhex(json_unquote(json_extract(doc, '$._id')))) stored PRIMARY KEY)\")");
+
+      exec_and_out_equals("session.js_shell_test.createCollection('collection1')");
     }
   };
 
@@ -181,5 +182,13 @@ namespace shcore {
 
     // TODO: Uncomment once the collections can be retrieved
     //exec_and_out_equals("print(session.js_shell_test.collection1)", "<Collection:collection1>");
+  }
+
+  // Tests schema.createCollection()
+  TEST_F(Shell_js_mysqlx_schema_tests, mysqlx_schema_create_collection)
+  {
+    exec_and_out_equals("var collection = session.js_shell_test.createCollection('test_collection');");
+
+    exec_and_out_equals("print(collection)", "<Collection:test_collection>");
   }
 }

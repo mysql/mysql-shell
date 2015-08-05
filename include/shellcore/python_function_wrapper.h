@@ -36,19 +36,8 @@ struct PyShFuncObject
   shcore::Function_base_ref *func;
 };
 
-class Python_function_wrapper
-{
-public:
-  Python_function_wrapper(Python_context *context);
-  ~Python_function_wrapper();
-
-  PyObject *wrap(boost::shared_ptr<Function_base> func);
-  static bool unwrap(PyObject *value, boost::shared_ptr<Function_base> &ret_func);
-
-private:
-  Python_context *_context;
-  PyShFuncObject *_function_wrapper;
-};
+PyObject *wrap(boost::shared_ptr<Function_base> func);
+bool unwrap(PyObject *value, boost::shared_ptr<Function_base> &ret_func);
 
 };
 

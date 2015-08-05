@@ -69,6 +69,8 @@ Tokenizer::Maps::Maps()
   reserved_words["year"] = Token::YEAR;
   reserved_words["microsecond"] = Token::MICROSECOND;
   reserved_words["as"] = Token::AS;
+  reserved_words["asc"] = Token::ASC;
+  reserved_words["desc"] = Token::DESC;
 
   interval_units.insert(Token::MICROSECOND);
   interval_units.insert(Token::SECOND);
@@ -677,7 +679,7 @@ void Expr_parser::docpath_array_loc(Mysqlx::Expr::DocumentPathItem& item)
 }
 
 /*
- * document_path ::= docpath_member | docpath_array_loc | ( DOUBLESTAR )
+ * document_path ::= ( docpath_member | docpath_array_loc | ( DOUBLESTAR ))+
  */
 void Expr_parser::document_path(Mysqlx::Expr::ColumnIdentifier& colid)
 {
@@ -841,7 +843,7 @@ Mysqlx::Expr::Expr* Expr_parser::atomic_expr()
     const std::string& val = t.get_text();
     if (val.find(".") != std::string::npos)
     {
-            return Expr_builder::build_literal_expr(Expr_builder::build_double_any(boost::lexical_cast<double>(val.c_str())));
+      return Expr_builder::build_literal_expr(Expr_builder::build_double_any(boost::lexical_cast<double>(val.c_str())));
     }
     else
     {
@@ -1369,11 +1371,21 @@ std::string Expr_unparser::expr_to_string(const Mysqlx::Expr::Expr& e)
 
 std::string Expr_unparser::column_to_string(const Mysqlx::Crud::Projection& c)
 {
-  std::string result = c.target_alias();
-  if (c.target_path_size() != 0)
-    result += "@" + Expr_unparser::document_path_to_string(c.target_path());
-  //if (c.has_alias())
-  //  result += " as " + c.alias();
+  const Mysqlx::Expr::ColumnIdentifier& colid = c.source().identifier();
+  std::string result = Expr_unparser::column_identifier_to_string(colid);
+
+  if (c.has_alias())
+    result += " as " + c.alias();
+  return result;
+}
+
+std::string Expr_unparser::order_to_string(const Mysqlx::Crud::Order& c)
+{
+  std::string result = Expr_unparser::expr_to_string(c.expr());
+  if ((!c.has_direction()) || (c.direction() == Mysqlx::Crud::Order_Direction_ASC))
+    result += " asc";
+  else
+    result += " desc";
   return result;
 }
 
@@ -1383,6 +1395,20 @@ std::string Expr_unparser::column_list_to_string(google::protobuf::RepeatedPtrFi
   for (int i = 0; i < columns.size(); i++)
   {
     std::string strcol = Expr_unparser::column_to_string(columns.Get(i));
+    result += strcol;
+    if (i + 1 < columns.size())
+      result += ", ";
+  }
+  result += ")";
+  return result;
+}
+
+std::string Expr_unparser::order_list_to_string(google::protobuf::RepeatedPtrField< ::Mysqlx::Crud::Order> columns)
+{
+  std::string result("orderby (");
+  for (int i = 0; i < columns.size(); i++)
+  {
+    std::string strcol = Expr_unparser::order_to_string(columns.Get(i));
     result += strcol;
     if (i + 1 < columns.size())
       result += ", ";

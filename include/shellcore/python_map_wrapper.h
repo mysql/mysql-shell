@@ -25,30 +25,17 @@
 
 namespace shcore
 {
-class Python_context;
-
-/*
- * Wraps an map object as a Python sequence object
- */
-struct PyShDictObject
-{
-  PyObject_HEAD
-  shcore::Value::Map_type_ref *map;
-};
-
-class Python_map_wrapper
-{
-public:
-  Python_map_wrapper(Python_context *context);
-  ~Python_map_wrapper();
+  /*
+   * Wraps an map object as a Python sequence object
+   */
+  struct PyShDictObject
+  {
+    PyObject_HEAD
+    shcore::Value::Map_type_ref *map;
+  };
 
   PyObject *wrap(boost::shared_ptr<Value::Map_type> map);
-  static bool unwrap(PyObject *value, boost::shared_ptr<Value::Map_type> &ret_object);
-
-private:
-  Python_context *_context;
-  PyShDictObject *_map_wrapper;
-};
+  bool unwrap(PyObject *value, boost::shared_ptr<Value::Map_type> &ret_object);
 
 };
 

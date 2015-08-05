@@ -111,7 +111,7 @@ public:
 
   // generates a connection string.
   std::string get_uuid() const;
-  std::string get_Connection_options() const;
+  std::string get_connection_options() const;
   std::string get_name() const;
   std::string get_server() const;
   std::string get_user() const;
@@ -196,7 +196,7 @@ private:
   
   static struct Keywords_table _keywords_table;
 
-  std::string _Connection_options;
+  std::string _connection_options;
   std::string _uuid;
   Connection_protocol _protocol;
 

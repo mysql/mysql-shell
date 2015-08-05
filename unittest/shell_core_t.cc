@@ -30,7 +30,7 @@
 #include "shellcore/shell_sql.h"
 #include "../modules/base_session.h"
 #include "test_utils.h"
-#include "utils_file.h"
+#include "utils/utils_file.h"
 
 namespace shcore {
   namespace shell_core_tests {

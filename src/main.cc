@@ -21,7 +21,7 @@
 #include "mysh.h"
 
 #include "shellcore/types.h"
-#include "utils_file.h"
+#include "utils/utils_file.h"
 
 #ifndef WIN32
 #  include "editline/readline.h"
@@ -34,6 +34,7 @@ extern "C" void Python_context_init();
 #include <boost/bind.hpp>
 #include <boost/format.hpp>
 #include <boost/algorithm/string.hpp>
+#include <boost/lexical_cast.hpp>
 #include <boost/pointer_cast.hpp>
 #include <boost/scope_exit.hpp>
 #include <iostream>
@@ -66,7 +67,7 @@ extern char *mysh_get_tty_password(const char *opt_message);
 class Interactive_shell
 {
 public:
-  Interactive_shell(Shell_core::Mode initial_mode);
+  Interactive_shell(Shell_core::Mode initial_mode, ngcommon::Logger::LOG_LEVEL log_level = ngcommon::Logger::LOG_NONE);
   void command_loop();
   int process_stream(std::istream & stream, const std::string& source);
   int process_file(const char *filename);
@@ -85,6 +86,8 @@ public:
   void cmd_start_multiline(const std::vector<std::string>& args);
   void cmd_connect(const std::vector<std::string>& args);
   void cmd_quit(const std::vector<std::string>& args);
+  void cmd_warnings(const std::vector<std::string>& args);
+  void cmd_nowarnings(const std::vector<std::string>& args);
 
   void print_banner();
   void print_cmd_line_helper();
@@ -94,11 +97,14 @@ public:
   void set_output_format(const std::string& format);
   void set_interactive(bool value);
 
+  void set_log_level(ngcommon::Logger::LOG_LEVEL level) { if (_logger) _logger->set_log_level(level); }
+
 private:
   static char *readline(const char *prompt);
   void process_line(const std::string &line);
   void process_result(shcore::Value result);
   std::string prompt();
+  ngcommon::Logger* _logger;
 
   void switch_shell_mode(Shell_core::Mode mode, const std::vector<std::string> &args);
 
@@ -122,6 +128,7 @@ private:
 
   std::string _input_buffer;
   bool _multiline_mode;
+  bool _show_warnings;
   bool _interactive;
   bool _batch_continue_on_error;
   std::string _output_format;
@@ -129,9 +136,14 @@ private:
   Shell_command_handler _shell_command_handler;
 };
 
-Interactive_shell::Interactive_shell(Shell_core::Mode initial_mode) :
-_batch_continue_on_error(false)
+Interactive_shell::Interactive_shell(Shell_core::Mode initial_mode, ngcommon::Logger::LOG_LEVEL log_level) :
+_batch_continue_on_error(false), _show_warnings(false)
 {
+  std::string log_path = get_user_config_path();
+  log_path += "mysqlx.log";
+  ngcommon::Logger::create_instance(log_path.c_str(), false, log_level);
+  _logger = ngcommon::Logger::singleton();
+
 #ifndef WIN32
   rl_initialize();
 #endif
@@ -186,15 +198,14 @@ _batch_continue_on_error(false)
   SET_SHELL_COMMAND("\\", "Start multiline input. Finish and execute with an empty line.", "", Interactive_shell::cmd_start_multiline);
   SET_SHELL_COMMAND("\\quit|\\q|\\exit", "Quit mysh.", "", Interactive_shell::cmd_quit);
   SET_SHELL_COMMAND("\\connect", "Connect to server.", cmd_help, Interactive_shell::cmd_connect);
+  SET_SHELL_COMMAND("\\warnings|\\W", "Show warnings after every statement..", cmd_help, Interactive_shell::cmd_warnings);
+  SET_SHELL_COMMAND("\\nowarnings|\\w", "Don't show warnings after every statement..", cmd_help, Interactive_shell::cmd_nowarnings);
 
   bool lang_initialized;
-  if (initial_mode != Shell_core::Mode_Python)
-  {
-    _shell->switch_mode(initial_mode, lang_initialized);
+  _shell->switch_mode(initial_mode, lang_initialized);
 
-    if (lang_initialized)
-      init_scripts(initial_mode);
-  }
+  if (lang_initialized)
+    init_scripts(initial_mode);
 }
 
 void Interactive_shell::cmd_process_file(const std::vector<std::string>& params)
@@ -283,7 +294,9 @@ Value Interactive_shell::connect_session(const Argument_list &args)
   {
     // XXX assign a dummy placeholder to db
     if (_shell->is_interactive() && _shell->interactive_mode() != Shell_core::Mode_SQL)
+    {
       _shell->print("No default schema selected.\n");
+    }
   }
 
   return Value::Null();
@@ -407,12 +420,57 @@ void Interactive_shell::println(const std::string &str)
 
 void Interactive_shell::print_error(const std::string &error)
 {
-  if (_output_format == "json")
+  Value error_val;
+  try
   {
-    std::cerr << "{\"error\": \"" << error << "\"}\n";
+    error_val = Value::parse(error);
+  }
+  catch (shcore::Exception &e)
+  {
+    error_val = Value(error);
+  }
+
+  log_error("%s", error.c_str());
+  std::string message;
+
+  if (_output_format.find("json") == 0)
+  {
+    Value::Map_type_ref error_map(new Value::Map_type());
+
+    Value error_obj(error_map);
+
+    (*error_map)["error"] = error_val;
+
+    message = error_obj.json(_output_format == "jsonpretty");
   }
   else
-    std::cerr << "ERROR: " << error << "\n";
+  {
+    message = "ERROR: ";
+    if (error_val.type == shcore::Map)
+    {
+      Value::Map_type_ref error_map = error_val.as_map();
+
+      if (error_map->has_key("code"))
+      {
+        //message.append(" ");
+        message.append(((*error_map)["code"].repr()));
+
+        if (error_map->has_key("state") && (*error_map)["state"])
+          message.append(" (" + (*error_map)["state"].as_string() + ")");
+
+        message.append(": ");
+      }
+
+      if (error_map->has_key("message"))
+        message.append((*error_map)["message"].as_string());
+      else
+        message.append("?");
+    }
+    else
+      message = error_val.descr();
+  }
+
+  std::cerr << message << "\n";
 }
 
 void Interactive_shell::cmd_print_shell_help(const std::vector<std::string>& args)
@@ -463,6 +521,24 @@ void Interactive_shell::cmd_connect(const std::vector<std::string>& args)
 void Interactive_shell::cmd_quit(const std::vector<std::string>& UNUSED(args))
 {
   _interactive = false;
+}
+
+void Interactive_shell::cmd_warnings(const std::vector<std::string>& UNUSED(args))
+{
+  _show_warnings = true;
+
+  _shell->set_show_warnings(_show_warnings);
+
+  println("Show warnings enabled.");
+}
+
+void Interactive_shell::cmd_nowarnings(const std::vector<std::string>& UNUSED(args))
+{
+  _show_warnings = false;
+
+  _shell->set_show_warnings(_show_warnings);
+
+  println("Show warnings disabled.");
 }
 
 void Interactive_shell::deleg_print(void *cdata, const char *text)
@@ -627,6 +703,7 @@ void Interactive_shell::process_result(shcore::Value result)
         Argument_list args;
         args.push_back(Value(_interactive));
         args.push_back(Value(_output_format));
+        args.push_back(Value(_show_warnings));
         object->call("__paged_output__", args);
       }
     }
@@ -634,12 +711,14 @@ void Interactive_shell::process_result(shcore::Value result)
     // If the function is not found the values still needs to be printed
     if (!dump_function)
     {
-      if (_output_format == "json")
+      if (_output_format == "jsonraw" || _output_format == "jsonpretty")
       {
-        std::string output = "{\"__result__\": ";
-        output += result.repr().c_str();
-        output += "}\n";
-        print(output);
+        shcore::JSON_dumper dumper(_output_format == "jsonpretty");
+        dumper.start_object();
+        dumper.append_value("result", result);
+        dumper.end_object();
+
+        print(dumper.str());
       }
       else
         print(result.descr(true).c_str());
@@ -781,13 +860,13 @@ void Interactive_shell::print_cmd_line_helper()
   println("  --sql                  Start in SQL mode.");
   println("  --js                   Start in JavaScript mode.");
   println("  --py                   Start in Python mode.");
-  println("  --py                   Start in Python mode.");
   println("  --json                 Produce output in JSON format.");
   println("  --table                Produce output in table format (default for interactive mode).");
   println("                         This option can be used to force that format when running in batch mode.");
   println("  -i, --interactive      To use in batch mode, it forces emulation of interactive mode processing.");
   println("                         Each line on the batch is processed as if it were in interactive mode.");
   println("  --force                To use in SQL batch mode, forces processing to continue if an error is found.");
+  println("  --log-level=value      The log level. Value is an int in the range [1,8], default (1).");
 
   println("");
 }
@@ -804,14 +883,16 @@ public:
   bool print_cmd_line_helper;
   bool force;
   bool interactive;
+  ngcommon::Logger::LOG_LEVEL log_level;
 
   Shell_command_line_options(int argc, char **argv)
-    : Command_line_options(argc, argv)
+    : Command_line_options(argc, argv), log_level(ngcommon::Logger::LOG_ERROR)
   {
     std::string host;
     std::string user;
     int port = 0;
     bool needs_password_;
+    char* log_level_value;
 
     needs_password_ = false;
     print_cmd_line_helper = false;
@@ -841,8 +922,18 @@ public:
         initial_mode = Shell_core::Mode_SQL;
       else if (check_arg(argv, i, "--js", "--js"))
         initial_mode = Shell_core::Mode_JScript;
-      else if (check_arg(argv, i, "--json", "--json"))
+      else if (check_arg_with_value(argv, i, "--json", NULL, value, "raw"))
+      {
+        if (strcmp(value, "raw") != 0 && strcmp(value, "pretty") != 0)
+        {
+          std::cerr << "Value for --json must be either pretty or raw.\n";
+          exit_code = 1;
+          break;
+        }
+
         output_format = "json";
+        output_format.append(value);
+      }
       else if (check_arg(argv, i, "--table", "--table"))
         output_format = "table";
       else if (check_arg(argv, i, "--py", "--py"))
@@ -856,6 +947,21 @@ public:
         force = true;
       else if (check_arg(argv, i, "--interactive", "-i"))
         interactive = true;
+      else if (check_arg_with_value(argv, i, "--log-level", NULL, log_level_value))
+      {
+        try
+        {
+          int nlog_level = boost::lexical_cast<int>(log_level_value);
+          if (nlog_level < 1 || nlog_level > 8)
+            throw 1;
+          log_level = static_cast<ngcommon::Logger::LOG_LEVEL>(nlog_level);
+        }
+        catch (...)
+        {
+          std::cerr << "Value for --log-level must be an integer between 1 and 8.\n";
+          exit_code = 1;
+        }
+      }
       else if (exit_code == 0)
       {
         std::cerr << argv[0] << ": unknown option " << argv[i] << "\n";
@@ -906,13 +1012,11 @@ int main(int argc, char **argv)
 #endif
 
 #ifdef HAVE_PYTHON
-
   Python_context_init();
-
 #endif
 
   {
-    Interactive_shell shell(options.initial_mode);
+    Interactive_shell shell(options.initial_mode, options.log_level);
 
     shell.set_force(options.force);
     shell.set_output_format(options.output_format);
@@ -976,8 +1080,16 @@ int main(int argc, char **argv)
 
     if (!options.uri.empty())
     {
-      if (!shell.connect(options.uri, options.needs_password, is_interactive))
+      try
+      {
+        if (!shell.connect(options.uri, options.needs_password, is_interactive))
+          return 1;
+      }
+      catch (std::exception &e)
+      {
+        shell.print_error(e.what());
         return 1;
+      }
     }
 
     // Three processing modes are available at this point

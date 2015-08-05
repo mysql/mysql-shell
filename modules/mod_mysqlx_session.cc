@@ -51,6 +51,7 @@ ApiBaseSession::ApiBaseSession()
   _schemas.reset(new shcore::Value::Map_type);
 
   add_method("close", boost::bind(&ApiBaseSession::close, this, _1), "data");
+  add_method("setFetchWarnings", boost::bind(&ApiBaseSession::set_fetch_warnings, this, _1), "data");
 }
 
 Value ApiBaseSession::connect(const Argument_list &args)
@@ -170,6 +171,72 @@ Value ApiBaseSession::executeSql(const Argument_list &args)
   return ret_val;
 }
 
+::mysqlx::ArgumentValue ApiBaseSession::get_argument_value(shcore::Value source)
+{
+  ::mysqlx::ArgumentValue ret_val;
+  switch (source.type)
+  {
+    case shcore::Bool:
+    case shcore::UInteger:
+    case shcore::Integer:
+      ret_val = ::mysqlx::ArgumentValue(source.as_int());
+      break;
+    case shcore::String:
+      ret_val = ::mysqlx::ArgumentValue(source.as_string());
+      break;
+    case shcore::Float:
+      ret_val = ::mysqlx::ArgumentValue(source.as_double());
+      break;
+    case shcore::Object:
+    case shcore::Null:
+    case shcore::Array:
+    case shcore::Map:
+    case shcore::MapRef:
+    case shcore::Function:
+    case shcore::Undefined:
+      std::stringstream str;
+      str << "Unsupported value received: " << source.descr();
+      throw shcore::Exception::argument_error(str.str());
+      break;
+  }
+
+  return ret_val;
+}
+
+Value ApiBaseSession::executeAdminCommand(const std::string& command, const Argument_list &args)
+{
+  std::string function_name = class_name() + ".executeAdminCommand";
+  args.ensure_at_least(1, function_name.c_str());
+
+  // Will return the result of the SQL execution
+  // In case of error will be Undefined
+  Value ret_val;
+  if (!_session)
+    throw Exception::logic_error("Not connected.");
+  else
+  {
+    // Converts the arguments from shcore to mysqlxtest format
+    std::vector< ::mysqlx::ArgumentValue> arguments;
+    for (size_t index = 0; index < args.size(); index++)
+      arguments.push_back(get_argument_value(args[index]));
+
+    try
+    {
+      flush_last_result();
+
+      _last_result.reset(_session->executeStmt("xplugin", command, arguments));
+
+      // Calls wait so any error is properly triggered at execution time
+      _last_result->wait();
+
+      ret_val = shcore::Value::wrap(new Resultset(_last_result));
+    }
+    CATCH_AND_TRANSLATE();
+  }
+
+  return ret_val;
+}
+
 std::vector<std::string> ApiBaseSession::get_members() const
 {
   std::vector<std::string> members(BaseSession::get_members());
@@ -187,6 +254,15 @@ std::vector<std::string> ApiBaseSession::get_members() const
     members.push_back(*index);
 
   return members;
+}
+
+bool ApiBaseSession::has_member(const std::string &prop) const
+{
+  if (BaseSession::has_member(prop))
+    return true;
+  if (prop == "uri" || prop == "schemas" || prop == "defaultSchema")
+    return true;
+  return false;
 }
 
 Value ApiBaseSession::get_member(const std::string &prop) const
@@ -346,6 +422,23 @@ shcore::Value ApiBaseSession::set_default_schema(const shcore::Argument_list &ar
   return get_member("defaultSchema");
 }
 
+shcore::Value ApiBaseSession::set_fetch_warnings(const shcore::Argument_list &args)
+{
+  Value ret_val;
+
+  args.ensure_count(1, (class_name() + "::setFetchWarnings").c_str());
+
+  bool enable = args.bool_at(0);
+  std::string command = enable ? "enable_notices" : "disable_notices";
+
+  shcore::Argument_list command_args;
+  command_args.push_back(Value("warnings"));
+
+  executeAdminCommand(command, command_args);
+
+  return ret_val;
+}
+
 void ApiBaseSession::_update_default_schema(const std::string& name)
 {
   if (!name.empty())
@@ -377,7 +470,7 @@ boost::shared_ptr<shcore::Object_bridge> Session::create(const shcore::Argument_
   return boost::static_pointer_cast<Object_bridge>(session);
 }
 
-NodeSession::NodeSession() :ApiBaseSession()
+NodeSession::NodeSession() : ApiBaseSession()
 {
   add_method("executeSql", boost::bind(&Session::executeSql, this, _1),
              "stmt", shcore::String,

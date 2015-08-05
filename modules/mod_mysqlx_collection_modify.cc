@@ -33,7 +33,6 @@ CollectionModify::CollectionModify(boost::shared_ptr<Collection> owner)
   // Exposes the methods available for chaining
   add_method("modify", boost::bind(&CollectionModify::modify, this, _1), "data");
   add_method("set", boost::bind(&CollectionModify::set, this, _1), "data");
-  add_method("change", boost::bind(&CollectionModify::change, this, _1), "data");
   add_method("unset", boost::bind(&CollectionModify::unset, this, _1), "data");
   add_method("arrayInsert", boost::bind(&CollectionModify::array_insert, this, _1), "data");
   add_method("arrayAppend", boost::bind(&CollectionModify::array_append, this, _1), "data");
@@ -45,7 +44,6 @@ CollectionModify::CollectionModify(boost::shared_ptr<Collection> owner)
   // Registers the dynamic function behavior
   register_dynamic_function("modify", "");
   register_dynamic_function("set", "modify, operation");
-  register_dynamic_function("change", "modify, operation");
   register_dynamic_function("unset", "modify, operation");
   register_dynamic_function("arrayInsert", "modify, operation");
   register_dynamic_function("arrayAppend", "modify, operation");
@@ -103,28 +101,6 @@ shcore::Value CollectionModify::set(const shcore::Argument_list &args)
       update_functions("operation");
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionModify::set");
-
-  return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
-}
-
-shcore::Value CollectionModify::change(const shcore::Argument_list &args)
-{
-  // Each method validates the received parameters
-  args.ensure_count(1, "CollectionModify::change");
-
-  try
-  {
-    shcore::Value::Map_type_ref values = args.map_at(0);
-    shcore::Value::Map_type::iterator index, end = values->end();
-
-    // Iterates over the values to be updated
-    for (index = values->begin(); index != end; index++)
-      _modify_statement->change(index->first, map_document_value(index->second));
-
-    if (values->size())
-      update_functions("operation");
-  }
-  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionModify::change");
 
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
@@ -245,7 +221,14 @@ shcore::Value CollectionModify::sort(const shcore::Argument_list &args)
 
   try
   {
-    _modify_statement->sort(args.string_at(0));
+    std::vector<std::string> fields;
+
+    parse_string_list(args, fields);
+
+    if (fields.size() == 0)
+      throw shcore::Exception::argument_error("Sort criteria can not be empty");
+
+    _modify_statement->sort(fields);
 
     update_functions("sort");
   }

@@ -64,16 +64,17 @@ namespace shcore {
 
     // Ensures the right members exist
     exec_and_out_equals("var members = dir(session);");
-    exec_and_out_equals("print(members.length >= 9)", "true");
+    exec_and_out_equals("print(members.length >= 10)", "true");
     exec_and_out_equals("print(members[0] == 'close');", "true");
     exec_and_out_equals("print(members[1] == 'getDefaultSchema');", "true");
     exec_and_out_equals("print(members[2] == 'getSchema');", "true");
     exec_and_out_equals("print(members[3] == 'getSchemas');", "true");
     exec_and_out_equals("print(members[4] == 'getUri');", "true");
     exec_and_out_equals("print(members[5] == 'setDefaultSchema');", "true");
-    exec_and_out_equals("print(members[6] == 'defaultSchema');", "true");
-    exec_and_out_equals("print(members[7] == 'schemas');", "true");
-    exec_and_out_equals("print(members[8] == 'uri');", "true");
+    exec_and_out_equals("print(members[6] == 'setFetchWarnings');", "true");
+    exec_and_out_equals("print(members[7] == 'defaultSchema');", "true");
+    exec_and_out_equals("print(members[8] == 'schemas');", "true");
+    exec_and_out_equals("print(members[9] == 'uri');", "true");
 
     exec_and_out_equals("session.close();");
   }
@@ -97,16 +98,17 @@ namespace shcore {
 
     // Ensures the right members exist
     exec_and_out_equals("var members = dir(session);");
-    exec_and_out_equals("print(members.length >= 9)", "true");
+    exec_and_out_equals("print(members.length >= 10)", "true");
     exec_and_out_equals("print(members[0] == 'close');", "true");
     exec_and_out_equals("print(members[1] == 'getDefaultSchema');", "true");
     exec_and_out_equals("print(members[2] == 'getSchema');", "true");
     exec_and_out_equals("print(members[3] == 'getSchemas');", "true");
     exec_and_out_equals("print(members[4] == 'getUri');", "true");
     exec_and_out_equals("print(members[5] == 'setDefaultSchema');", "true");
-    exec_and_out_equals("print(members[6] == 'defaultSchema');", "true");
-    exec_and_out_equals("print(members[7] == 'schemas');", "true");
-    exec_and_out_equals("print(members[8] == 'uri');", "true");
+    exec_and_out_equals("print(members[6] == 'setFetchWarnings');", "true");
+    exec_and_out_equals("print(members[7] == 'defaultSchema');", "true");
+    exec_and_out_equals("print(members[8] == 'schemas');", "true");
+    exec_and_out_equals("print(members[9] == 'uri');", "true");
 
     exec_and_out_equals("session.close();");
   }
@@ -140,16 +142,17 @@ namespace shcore {
 
     // Ensures the right members exist
     exec_and_out_equals("var members = dir(session);");
-    exec_and_out_equals("print(members.length >= 9)", "true");
+    exec_and_out_equals("print(members.length >= 10)", "true");
     exec_and_out_equals("print(members[0] == 'close');", "true");
     exec_and_out_equals("print(members[1] == 'getDefaultSchema');", "true");
     exec_and_out_equals("print(members[2] == 'getSchema');", "true");
     exec_and_out_equals("print(members[3] == 'getSchemas');", "true");
     exec_and_out_equals("print(members[4] == 'getUri');", "true");
     exec_and_out_equals("print(members[5] == 'setDefaultSchema');", "true");
-    exec_and_out_equals("print(members[6] == 'defaultSchema');", "true");
-    exec_and_out_equals("print(members[7] == 'schemas');", "true");
-    exec_and_out_equals("print(members[8] == 'uri');", "true");
+    exec_and_out_equals("print(members[6] == 'setFetchWarnings');", "true");
+    exec_and_out_equals("print(members[7] == 'defaultSchema');", "true");
+    exec_and_out_equals("print(members[8] == 'schemas');", "true");
+    exec_and_out_equals("print(members[9] == 'uri');", "true");
 
     exec_and_out_equals("session.close();");
   }
@@ -182,16 +185,17 @@ namespace shcore {
 
     // Ensures the right members exist
     exec_and_out_equals("var members = dir(session);");
-    exec_and_out_equals("print(members.length >= 9)", "true");
+    exec_and_out_equals("print(members.length >= 10)", "true");
     exec_and_out_equals("print(members[0] == 'close');", "true");
     exec_and_out_equals("print(members[1] == 'getDefaultSchema');", "true");
     exec_and_out_equals("print(members[2] == 'getSchema');", "true");
     exec_and_out_equals("print(members[3] == 'getSchemas');", "true");
     exec_and_out_equals("print(members[4] == 'getUri');", "true");
     exec_and_out_equals("print(members[5] == 'setDefaultSchema');", "true");
-    exec_and_out_equals("print(members[6] == 'defaultSchema');", "true");
-    exec_and_out_equals("print(members[7] == 'schemas');", "true");
-    exec_and_out_equals("print(members[8] == 'uri');", "true");
+    exec_and_out_equals("print(members[6] == 'setFetchWarnings');", "true");
+    exec_and_out_equals("print(members[7] == 'defaultSchema');", "true");
+    exec_and_out_equals("print(members[8] == 'schemas');", "true");
+    exec_and_out_equals("print(members[9] == 'uri');", "true");
 
     exec_and_out_equals("session.close();");
   }
@@ -207,7 +211,7 @@ namespace shcore {
 
     // Ensures the right members exist
     exec_and_out_equals("var members = dir(session);");
-    exec_and_out_equals("print(members.length >= 9)", "true");
+    exec_and_out_equals("print(members.length >= 11)", "true");
     exec_and_out_equals("print(members[0] == 'close');", "true");
     exec_and_out_equals("print(members[1] == 'executeSql');", "true");
     exec_and_out_equals("print(members[2] == 'getDefaultSchema');", "true");
@@ -215,9 +219,10 @@ namespace shcore {
     exec_and_out_equals("print(members[4] == 'getSchemas');", "true");
     exec_and_out_equals("print(members[5] == 'getUri');", "true");
     exec_and_out_equals("print(members[6] == 'setDefaultSchema');", "true");
-    exec_and_out_equals("print(members[7] == 'defaultSchema');", "true");
-    exec_and_out_equals("print(members[8] == 'schemas');", "true");
-    exec_and_out_equals("print(members[9] == 'uri');", "true");
+    exec_and_out_equals("print(members[7] == 'setFetchWarnings');", "true");
+    exec_and_out_equals("print(members[8] == 'defaultSchema');", "true");
+    exec_and_out_equals("print(members[9] == 'schemas');", "true");
+    exec_and_out_equals("print(members[10] == 'uri');", "true");
 
     exec_and_out_equals("session.close();");
   }
@@ -241,7 +246,7 @@ namespace shcore {
 
     // Ensures the right members exist
     exec_and_out_equals("var members = dir(session);");
-    exec_and_out_equals("print(members.length >= 10)", "true");
+    exec_and_out_equals("print(members.length >= 11)", "true");
     exec_and_out_equals("print(members[0] == 'close');", "true");
     exec_and_out_equals("print(members[1] == 'executeSql');", "true");
     exec_and_out_equals("print(members[2] == 'getDefaultSchema');", "true");
@@ -249,9 +254,10 @@ namespace shcore {
     exec_and_out_equals("print(members[4] == 'getSchemas');", "true");
     exec_and_out_equals("print(members[5] == 'getUri');", "true");
     exec_and_out_equals("print(members[6] == 'setDefaultSchema');", "true");
-    exec_and_out_equals("print(members[7] == 'defaultSchema');", "true");
-    exec_and_out_equals("print(members[8] == 'schemas');", "true");
-    exec_and_out_equals("print(members[9] == 'uri');", "true");
+    exec_and_out_equals("print(members[7] == 'setFetchWarnings');", "true");
+    exec_and_out_equals("print(members[8] == 'defaultSchema');", "true");
+    exec_and_out_equals("print(members[9] == 'schemas');", "true");
+    exec_and_out_equals("print(members[10] == 'uri');", "true");
 
     exec_and_out_equals("session.close();");
   }
@@ -285,7 +291,7 @@ namespace shcore {
 
     // Ensures the right members exist
     exec_and_out_equals("var members = dir(session);");
-    exec_and_out_equals("print(members.length >= 10)", "true");
+    exec_and_out_equals("print(members.length >= 11)", "true");
     exec_and_out_equals("print(members[0] == 'close');", "true");
     exec_and_out_equals("print(members[1] == 'executeSql');", "true");
     exec_and_out_equals("print(members[2] == 'getDefaultSchema');", "true");
@@ -293,9 +299,10 @@ namespace shcore {
     exec_and_out_equals("print(members[4] == 'getSchemas');", "true");
     exec_and_out_equals("print(members[5] == 'getUri');", "true");
     exec_and_out_equals("print(members[6] == 'setDefaultSchema');", "true");
-    exec_and_out_equals("print(members[7] == 'defaultSchema');", "true");
-    exec_and_out_equals("print(members[8] == 'schemas');", "true");
-    exec_and_out_equals("print(members[9] == 'uri');", "true");
+    exec_and_out_equals("print(members[7] == 'setFetchWarnings');", "true");
+    exec_and_out_equals("print(members[8] == 'defaultSchema');", "true");
+    exec_and_out_equals("print(members[9] == 'schemas');", "true");
+    exec_and_out_equals("print(members[10] == 'uri');", "true");
 
     exec_and_out_equals("session.close();");
   }
@@ -328,7 +335,7 @@ namespace shcore {
 
     // Ensures the right members exist
     exec_and_out_equals("var members = dir(session);");
-    exec_and_out_equals("print(members.length >= 10)", "true");
+    exec_and_out_equals("print(members.length >= 11)", "true");
     exec_and_out_equals("print(members[0] == 'close');", "true");
     exec_and_out_equals("print(members[1] == 'executeSql');", "true");
     exec_and_out_equals("print(members[2] == 'getDefaultSchema');", "true");
@@ -336,9 +343,10 @@ namespace shcore {
     exec_and_out_equals("print(members[4] == 'getSchemas');", "true");
     exec_and_out_equals("print(members[5] == 'getUri');", "true");
     exec_and_out_equals("print(members[6] == 'setDefaultSchema');", "true");
-    exec_and_out_equals("print(members[7] == 'defaultSchema');", "true");
-    exec_and_out_equals("print(members[8] == 'schemas');", "true");
-    exec_and_out_equals("print(members[9] == 'uri');", "true");
+    exec_and_out_equals("print(members[7] == 'setFetchWarnings');", "true");
+    exec_and_out_equals("print(members[8] == 'defaultSchema');", "true");
+    exec_and_out_equals("print(members[9] == 'schemas');", "true");
+    exec_and_out_equals("print(members[10] == 'uri');", "true");
 
     exec_and_out_equals("session.close();");
   }

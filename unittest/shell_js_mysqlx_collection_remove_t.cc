@@ -56,8 +56,8 @@ namespace shcore {
 
     exec_and_out_equals("session.executeSql('drop schema if exists js_shell_test;')");
     exec_and_out_equals("session.executeSql('create schema js_shell_test;')");
-    exec_and_out_equals("session.executeSql('use js_shell_test;')");
-    exec_and_out_equals("session.executeSql(\"create table `collection1`(`doc` JSON, `_id` VARBINARY(16) GENERATED ALWAYS AS(unhex(json_unquote(json_extract(doc, '$._id')))) stored PRIMARY KEY)\")");
+
+    exec_and_out_equals("session.js_shell_test.createCollection('collection1')");
 
     exec_and_out_equals("session.close();");
   }
@@ -117,7 +117,10 @@ namespace shcore {
     {
       SCOPED_TRACE("Testing parameter validation on sort");
       exec_and_out_contains("collection.remove().sort();", "", "Invalid number of arguments in CollectionRemove::sort, expected 1 but got 0");
-      exec_and_out_contains("collection.remove().sort(5);", "", "CollectionRemove::sort: Argument #1 is expected to be a string");
+      exec_and_out_contains("collection.remove().sort(5);", "", "CollectionRemove::sort: Argument #1 is expected to be an array");
+      exec_and_out_contains("collection.remove().sort([]);", "", "CollectionRemove::sort: Sort criteria can not be empty");
+      exec_and_out_contains("collection.remove().sort(['name', 5]);", "", "CollectionRemove::sort: Element #2 is expected to be a string");
+      exec_and_out_contains("collection.remove().sort(['name']);", "", "");
     }
 
     {
