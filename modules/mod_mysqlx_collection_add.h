@@ -30,6 +30,14 @@ namespace mysh
   namespace mysqlx
   {
     class Collection;
+
+    /**
+    * Handler for Add operations on Collections.
+    * \todo Document add({document})
+    * \todo Document add([{document}, {document}, ...])
+    * \todo Document add([{document}, {document}, ...])
+    * \todo Update execute to support options and document it
+    */
     class CollectionAdd : public Collection_crud_definition, public boost::enable_shared_from_this<CollectionAdd>
     {
     public:

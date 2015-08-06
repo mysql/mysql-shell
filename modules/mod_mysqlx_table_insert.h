@@ -30,6 +30,15 @@ namespace mysh
   namespace mysqlx
   {
     class Table;
+
+    /**
+    * Handler for Insert operations on Tables.
+    * \todo Document insert()
+    * \todo Document insert([field, field, field, ...])
+    * \todo Document values([val, val, val, ...])
+    * \todo Implement and document bind({var:val, var:val, ...})
+    * \todo Update execute to support options and document it
+    */
     class TableInsert : public Table_crud_definition, public boost::enable_shared_from_this<TableInsert>
     {
     public:

@@ -30,6 +30,12 @@ namespace mysh
   namespace mysqlx
   {
     class Collection;
+
+    /**
+    * Handler for Find operation on Collections.
+    * \todo Implement and document bind({var:val, var:val, ...})
+    * \todo Update execute to support options and document it
+    */
     class CollectionFind : public Collection_crud_definition, public boost::enable_shared_from_this<CollectionFind>
     {
     public:
@@ -41,11 +47,24 @@ namespace mysh
       shcore::Value group_by(const shcore::Argument_list &args);
       shcore::Value having(const shcore::Argument_list &args);
       shcore::Value sort(const shcore::Argument_list &args);
-      shcore::Value skip(const shcore::Argument_list &args);
       shcore::Value limit(const shcore::Argument_list &args);
+      shcore::Value skip(const shcore::Argument_list &args);
       shcore::Value bind(const shcore::Argument_list &args);
 
       virtual shcore::Value execute(const shcore::Argument_list &args);
+
+#ifdef DOXYGEN
+      CollectionFindRef find(String searchCondition);
+      CollectionFindRef fields(List projectedSearchExprStr);
+      CollectionFindRef groupBy(List searchExprStr);
+      CollectionFindRef having(String searchCondition);
+      CollectionFindRef sort(List sortExprStr);
+      CollectionFindRef limit(Integer numberOfRows);
+      CollectionFindRef skip(Integer limitOffset);
+      CollectionFindRef bind(Map placeHolderValues);
+      Collection_resultset execute(ExecuteOptions opt);
+#endif
+
     private:
       std::auto_ptr< ::mysqlx::FindStatement> _find_statement;
     };

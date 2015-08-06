@@ -54,6 +54,18 @@ CollectionFind::CollectionFind(boost::shared_ptr<Collection> owner)
   update_functions("");
 }
 
+#ifdef DOXYGEN
+/**
+* Sets the search condition to identify the Documents to be retrieved from the owner Collection.
+* This method is called automatically when Collection.find(searchCondition) is called.
+* Calling this method is allowed only for the first time, after that its usage is forbidden since the internal class state has been updated to handle the rest of the Find operation.
+*
+* \param searchCondition: An optional expression to identify the documents to be retrieved, if not specified all the documents will be included on the result.
+* \return CollectionFindRef returns itself with it's state updated as the searchCondition was established.
+*/
+CollectionFindRef CollectionFind::find(String searchCondition)
+{}
+#endif
 shcore::Value CollectionFind::find(const shcore::Argument_list &args)
 {
   // Each method validates the received parameters
@@ -80,6 +92,17 @@ shcore::Value CollectionFind::find(const shcore::Argument_list &args)
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
+#ifdef DOXYGEN
+/**
+* Sets a field filter, if used the CollectionFind operation will only return the fields that were included.
+* Calling this method is allowed only for the first time and only if the search criteria has been set by calling CollectionFind.find(searchCriteria), after that its usage is forbidden since the internal class state has been updated to handle the rest of the Find operation.
+*
+* \param projectedSearchExprStr: A list of string expressions identifying the fields to be extracted, alias support is suported on these fields.
+* \return CollectionFindRef returns itself with it's state updated as the field list has been stablished.
+*/
+CollectionFindRef CollectionFind::fields(List projectedSearchExprStr)
+{}
+#endif
 shcore::Value CollectionFind::fields(const shcore::Argument_list &args)
 {
   args.ensure_count(1, "CollectionFind::fields");
@@ -102,6 +125,17 @@ shcore::Value CollectionFind::fields(const shcore::Argument_list &args)
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
+#ifdef DOXYGEN
+/**
+* Sets a grouping criteria for the resultset, if used the CollectionFind operation will group the records using the stablished criteria.
+* Calling this method is allowed only for the first time and only if the search criteria has been set by calling CollectionFind.find(searchCriteria), after that its usage is forbidden since the internal class state has been updated to handle the rest of the Find operation.
+*
+* \param searchExprStr: A list of string expressions identifying the grouping criteria.
+* \return CollectionFindRef returns itself with it's state updated as the grouping criteria has been set.
+*/
+CollectionFindRef CollectionFind::groupBy(List searchExprStr)
+{}
+#endif
 shcore::Value CollectionFind::group_by(const shcore::Argument_list &args)
 {
   args.ensure_count(1, "CollectionFind::groupBy");
@@ -124,6 +158,17 @@ shcore::Value CollectionFind::group_by(const shcore::Argument_list &args)
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
+#ifdef DOXYGEN
+/**
+* Sets a condition for records to be considered in agregate function operations, if used the CollectionFind operation will only consider the records matching the stablished criteria.
+* Calling this method is allowed only for the first time and only if the grouping criteria has been set by calling CollectionFind.groupBy(groupCriteria), after that its usage is forbidden since the internal class state has been updated to handle the rest of the Find operation.
+*
+* \param searchCondition: A condition on the agregate functions used on the grouping criteria.
+* \return CollectionFindRef returns itself with it's state updated as the grouping condition has been set.
+*/
+CollectionFindRef CollectionFind::having(String searchCondition)
+{}
+#endif
 shcore::Value CollectionFind::having(const shcore::Argument_list &args)
 {
   args.ensure_count(1, "CollectionFind::having");
@@ -139,6 +184,17 @@ shcore::Value CollectionFind::having(const shcore::Argument_list &args)
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
+#ifdef DOXYGEN
+/**
+* Sets the sorting criteria to be used on the Resultset, if used the CollectionFind operation will return the records sorted with the defined criteria.
+* Calling this method is allowed only for the first time and only if the search criteria has been set by calling CollectionFind.find(searchCriteria), after that its usage is forbidden since the internal class state has been updated to handle the rest of the Find operation.
+*
+* \param sortExprStr: A list containing the sort criteria expressions to be used on the operation.
+* \return CollectionFindRef returns itself with it's state updated as the grouping condition has been set.
+*/
+CollectionFindRef CollectionFind::sort(List sortExprStr)
+{}
+#endif
 shcore::Value CollectionFind::sort(const shcore::Argument_list &args)
 {
   args.ensure_count(1, "CollectionFind::sort");
@@ -161,6 +217,17 @@ shcore::Value CollectionFind::sort(const shcore::Argument_list &args)
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
+#ifdef DOXYGEN
+/**
+* Sets the maximum number of documents to be returned on the find operation, if used the CollectionFind operation will return at most numberOfRows documents.
+* Calling this method is allowed only for the first time and only if the search criteria has been set by calling CollectionFind.find(searchCriteria), after that its usage is forbidden since the internal class state has been updated to handle the rest of the Find operation.
+*
+* \param numberOfRows: The maximum number of documents to be retrieved.
+* \return CollectionFindRef returns itself with it's state updated as the grouping condition has been set.
+*/
+CollectionFindRef CollectionFind::limit(Integer numberOfRows)
+{}
+#endif
 shcore::Value CollectionFind::limit(const shcore::Argument_list &args)
 {
   args.ensure_count(1, "CollectionFind::limit");
@@ -176,6 +243,17 @@ shcore::Value CollectionFind::limit(const shcore::Argument_list &args)
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
+#ifdef DOXYGEN
+/**
+* Sets number of records to skip on the resultset when a limit has been defined.
+* Calling this method is allowed only for the first time and only if a limit has been set by calling CollectionFind.limit(numberOfRows), after that its usage is forbidden since the internal class state has been updated to handle the rest of the Find operation.
+*
+* \param limitOffset: The number of documents to skip before start including them on the Resultset.
+* \return CollectionFindRef returns itself with it's state updated as the grouping condition has been set.
+*/
+CollectionFindRef CollectionFind::skip(Integer limitOffset)
+{}
+#endif
 shcore::Value CollectionFind::skip(const shcore::Argument_list &args)
 {
   args.ensure_count(1, "CollectionFind::skip");
@@ -198,6 +276,15 @@ shcore::Value CollectionFind::bind(const shcore::Argument_list &UNUSED(args))
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
+#ifdef DOXYGEN
+/**
+* Executes the Find operation with all the configured options and returns.
+*
+* \return Collection_resultset A Collection resultset object that can be used to retrieve the results of the find operation.
+*/
+Collection_resultset CollectionFind::execute(ExecuteOptions opt)
+{}
+#endif
 shcore::Value CollectionFind::execute(const shcore::Argument_list &args)
 {
   args.ensure_count(0, "CollectionFind::execute");

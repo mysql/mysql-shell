@@ -30,6 +30,19 @@ namespace mysh
   namespace mysqlx
   {
     class Collection;
+
+    /**
+    * Handler for Modify operations on Collections.
+    * \todo Document set()
+    * \todo Document unset()
+    * \todo Document arrayInsert()
+    * \todo Document arrayAppend()
+    * \todo Document arraydelete()
+    * \todo Document sort([expr, expr, ...])
+    * \todo Document limit(lim)
+    * \todo Implement and document bind({var:val, var:val, ...})
+    * \todo Update execute to support options and document it
+    */
     class CollectionModify : public Collection_crud_definition, public boost::enable_shared_from_this<CollectionModify>
     {
     public:

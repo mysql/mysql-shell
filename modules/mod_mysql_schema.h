@@ -43,6 +43,13 @@ namespace mysh
     class ClassicSession;
     class Table;
 
+    /**
+    * Represents a Schema retrieved with a session created using the MySQL Protocol.
+    * \todo Document tables and getTables()
+    * \todo Document views and getViews()
+    * \todo Document getTable()
+    * \todo Document getView()
+    */
     class MOD_PUBLIC Schema : public DatabaseObject, public boost::enable_shared_from_this<Schema>
     {
     public:

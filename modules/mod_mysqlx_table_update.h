@@ -30,6 +30,17 @@ namespace mysh
   namespace mysqlx
   {
     class Table;
+
+    /**
+    * Handler for Update operations on Tables.
+    * \todo Document update()
+    * \todo Document set(field, value)
+    * \todo Document where(searchCriteria)
+    * \todo Document orderBy([expr, expr, ...])
+    * \todo Document limit(lim)
+    * \todo Implement and document bind({var:val, var:val, ...})
+    * \todo Update execute to support options and document it
+    */
     class TableUpdate : public Table_crud_definition, public boost::enable_shared_from_this<TableUpdate>
     {
     public:

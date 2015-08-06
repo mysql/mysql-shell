@@ -43,6 +43,17 @@ namespace mysh
   namespace mysql
   {
     class Schema;
+    /**
+    * Enables interaction with a MySQL Server using the MySQL Protocol.
+    * \todo Document getUri
+    * \todo Document getSchema
+    * \todo Document getSchemas
+    * \todo Document getDefaultSchema
+    * \todo Document setDefaultSchema
+    * \todo Document connect
+    * \todo Document close
+    * \todo Document executeSql
+    */
     class MOD_PUBLIC ClassicSession : public ShellBaseSession, public boost::enable_shared_from_this<ClassicSession>
     {
     public:
@@ -67,6 +78,12 @@ namespace mysh
       static boost::shared_ptr<shcore::Object_bridge> create(const shcore::Argument_list &args);
 
       Connection *connection();
+
+#ifdef DOXYGEN
+      String uri; //!< Same as getUri()
+      List schemas; //!< Same as getSchemas()
+      Schema defaultSchema; //!< Same as getDefaultSchema()
+#endif
 
     private:
       void _update_default_schema(const std::string& name);

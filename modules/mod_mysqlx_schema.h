@@ -46,6 +46,18 @@ namespace mysh
     class Table;
     class Collection;
 
+    /**
+    * Represents a Schema as retrived from a session created using the X Protocol.
+    * \todo Document tables and getTables()
+    * \todo Document views and getViews()
+    * \todo Document collections and getCollections()
+    * \todo Document getTable()
+    * \todo Document getView()
+    * \todo Document getCollection()
+    * \todo Document createCollection
+    * \todo Implement and Document getCollectionAsTable()
+    * \todo Implement and Document drop()
+    */
     class MOD_PUBLIC Schema : public DatabaseObject, public boost::enable_shared_from_this<Schema>
     {
     public:

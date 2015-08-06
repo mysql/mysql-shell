@@ -30,6 +30,19 @@ namespace mysh
   namespace mysqlx
   {
     class Table;
+
+    /**
+    * Handler for Select operation on Tables.
+    * \todo Document select([field, field, ...])
+    * \todo Document where(searchCriteria)
+    * \todo Document groupBy([expr, expr, ...])
+    * \todo Document having(condition)
+    * \todo Document orderBy([expr, expr, ...])
+    * \todo Document limit(lim)
+    * \todo Document offset(off)
+    * \todo Implement and document bind({var:val, var:val, ...})
+    * \todo Update execute to support options and document it
+    */
     class TableSelect : public Table_crud_definition, public boost::enable_shared_from_this<TableSelect>
     {
     public:

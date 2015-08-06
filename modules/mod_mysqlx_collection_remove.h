@@ -30,6 +30,15 @@ namespace mysh
   namespace mysqlx
   {
     class Collection;
+
+    /**
+    * Handler for Remove operation on Collections.
+    * \todo Document remove(searchCriteria)
+    * \todo Document sort([expr, expr, ...])
+    * \todo Document limit(lim)
+    * \todo Implement and document bind({var:val, var:val, ...})
+    * \todo Update execute to support options and document it
+    */
     class CollectionRemove : public Collection_crud_definition, public boost::enable_shared_from_this<CollectionRemove>
     {
     public:

@@ -54,6 +54,57 @@ BaseSession::BaseSession()
   add_method("setFetchWarnings", boost::bind(&BaseSession::set_fetch_warnings, this, _1), "data");
 }
 
+#ifdef DOXYGEN
+/**
+* \brief Connects to a X Protocol enabled MySQL Product.
+* \param connectionData: string representation of the connection data in URI format.
+* \param password: optional parameter, the password could be specified through this parameter or embedded on the connectionData string.
+*
+* \return Null
+*
+* The URI format is as follows:
+* [user[:password]]\@localhost[:port][/schema]
+*
+* JavaScript Example
+* \code{.js}
+* // Using password.
+* var pwd = "mypwd";
+* session.connect("rennox\@localhost/sakila", pwd);
+*
+* // With password embedded on the URI.
+* session.connect("rennox:mypwd\@localhost:33460/sakila");
+* \endcode
+*/
+Undefined BaseSession::connect(String connectionData, String password)
+{}
+
+/**
+* \brief Connects to a X Protocol enabled MySQL Product.
+* \param connectionData: Dictionary containing the connection data.
+* \param password: optional parameter, the password could be specified through this parameter or embedded on the connectionData dictionary.
+*
+* The connection data is specified on the connectionData dictionary with the next entries:
+* - host: the host for the target MySQL Product.
+* - port: the port where the target product is listening.
+* - schema: the schema to be set as default for this session.
+* - dbUser: the user name to be used on the connection.
+* - dbPassword: the user password.
+*
+* \return undefined
+*
+* JavaScript Example
+* \code{.js}
+* // Using password
+* var pwd = "mypwd";
+* session.connect({dbUser:"rennox", host:"localhost", schema:"sakila"}, mypwd);
+*
+* // With password embedded on the connectionData
+* session.connect({dbUser:"rennox", host:"localhost", port:3307, dbPassword: pwd});
+* \endcode
+*/
+Undefined BaseSession::connect(Map connectionData, String password)
+{}
+#endif
 Value BaseSession::connect(const Argument_list &args)
 {
   std::string function_name = class_name() + ".connect";
@@ -118,6 +169,14 @@ Value BaseSession::connect(const Argument_list &args)
 
   return Value::Null();
 }
+
+#ifdef DOXYGEN
+/**
+* \brief Closes the session.
+*/
+Undefined BaseSession::close()
+{}
+#endif
 
 Value BaseSession::close(const Argument_list &args)
 {
@@ -265,6 +324,26 @@ bool BaseSession::has_member(const std::string &prop) const
   return false;
 }
 
+#ifdef DOXYGEN
+/**
+* \brief Retrieves the Schema configured as default for the session, if none, returns Null.
+*/
+Schema BaseSession::getDefaultSchema()
+{}
+
+/**
+* \brief Retrieves the List of Schemas available on the session.
+*/
+List BaseSession::getSchemas()
+{}
+
+/**
+* \brief Retrieves the connectionData in string format.
+*/
+String BaseSession::getUri()
+{}
+#endif
+
 Value BaseSession::get_member(const std::string &prop) const
 {
   // Retrieves the member first from the parent
@@ -399,6 +478,8 @@ shcore::Value BaseSession::get_schema(const shcore::Argument_list &args) const
   return (*_schemas)[name];
 }
 
+Schema setDefaultSchema();
+
 shcore::Value BaseSession::set_default_schema(const shcore::Argument_list &args)
 {
   std::string function_name = class_name() + ".setDefaultSchema";
@@ -421,6 +502,8 @@ shcore::Value BaseSession::set_default_schema(const shcore::Argument_list &args)
 
   return get_member("defaultSchema");
 }
+
+//Undefined setFetchWarnings(Bool value);
 
 shcore::Value BaseSession::set_fetch_warnings(const shcore::Argument_list &args)
 {
@@ -492,3 +575,19 @@ boost::shared_ptr<shcore::Object_bridge> NodeSession::create(const shcore::Argum
 
   return boost::static_pointer_cast<Object_bridge>(session);
 }
+
+#ifdef DOXYGEN
+/**
+* Executes an sql statement and returns a Resultset object
+* \param sql: The statement to be executed
+*
+* \return Resultset object
+*
+* JavaScript Example
+* \code{.js}
+* var result = session.executeSql("show databases");
+* \endcode
+*/
+Resultset NodeSession::executeSql(String sql)
+{}
+#endif

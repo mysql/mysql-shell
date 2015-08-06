@@ -34,6 +34,24 @@ namespace mysh
 {
   namespace mysqlx
   {
+    /**
+    * Allows browsing through the result information after performing an operation on the database.
+    * \todo Document columnMetadata and getColumnMetadata()
+    * \todo Document lastInsertId and getLastInsertId()
+    * \todo Document affectedRows and getAffectedRows()
+    * \todo Document warnings and getWarnings()
+    * \todo Document executionTime and getExecutionTime()
+    * \todo review info and getInfo()
+    * \todo review hasData and getHasData()
+    * \todo delete warningCount and getWarningCount()
+    * \todo delete fetchedRowCount and getfetchedRowCount()
+    * \todo Document nextDataSet()
+    * \todo Document next()
+    * \todo Document all()
+    * \todo Implement and Document buffer()
+    * \todo Implement and Document flush()
+    * \todo Implement and Document rewind()
+    */
     class Resultset : public BaseResultset
     {
     public:
@@ -56,6 +74,13 @@ namespace mysh
     private:
       int _cursor_id;
     };
+
+    /**
+    * Allows browsing through the result information after performing an operation on a Collection.
+    * Works similar to the Resultset class except that next() and all() return Documents.
+    * \todo Document next()
+    * \todo Document all()
+    */
 
     class Collection_resultset : public Resultset
     {

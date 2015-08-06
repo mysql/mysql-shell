@@ -30,6 +30,16 @@ namespace mysh
   namespace mysqlx
   {
     class Table;
+
+    /**
+    * Handler for Delete operation on Tables.
+    * \todo Document delete()
+    * \todo Document where(searchCriteria)
+    * \todo Document orderBy([expr, expr, ...])
+    * \todo Document limit(lim)
+    * \todo Implement and document bind({var:val, var:val, ...})
+    * \todo Update execute to support options and document it
+    */
     class TableDelete : public Table_crud_definition, public boost::enable_shared_from_this<TableDelete>
     {
     public:

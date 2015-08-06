@@ -43,14 +43,6 @@ namespace shcore
   class Proxy_object;
 };
 
-#ifdef DOXYGEN
-#define String std::string
-#define Map void
-#define Array void
-#define Undefined void
-#define Resultset void
-#endif
-
 /*
 * Helper function to ensure the exceptions generated on the mysqlx_connector
 * are properly translated to the corresponding shcore::Exception type
@@ -89,7 +81,10 @@ namespace mysh
   {
     class Schema;
     /**
-    * Enables interaction with an X Protocol enabled MySQL Product.
+    * Base functionality for Session classes through the X Protocol.
+    * \todo Document setDefaultSchema()
+    * \todo Implement and document createSchema()
+    * \todo Implement and document dropSchema()
     */
     class MOD_PUBLIC BaseSession : public ShellBaseSession
     {
@@ -101,11 +96,6 @@ namespace mysh
       virtual shcore::Value get_member(const std::string &prop) const;
       virtual bool has_member(const std::string &prop) const;
 
-#ifdef DOXYGEN
-      Undefined connect(String connectData, String password = "");
-      Undefined connect(Map connectData, String password = "");
-      Resultset executeSql(String sql);
-#endif
       virtual shcore::Value connect(const shcore::Argument_list &args);
       virtual shcore::Value close(const shcore::Argument_list &args);
       virtual shcore::Value executeSql(const shcore::Argument_list &args);
@@ -122,6 +112,21 @@ namespace mysh
       static boost::shared_ptr<shcore::Object_bridge> create(const shcore::Argument_list &args);
 
       void flush_last_result();
+
+#ifdef DOXYGEN
+      String uri; //!< Same as getUri()
+      List schemas; //!< Same as getSchemas()
+      Schema defaultSchema; //!< Same as getDefaultSchema()
+
+      Undefined connect(String connectionData, String password);
+      Undefined connect(Map connectionData, String password);
+      Schema getDefaultSchema();
+      Schema getSchema(String name);
+      List getSchemas();
+      String getUri();
+      Undefined close();
+      Undefined setFetchWarnings(Bool value);
+#endif
     protected:
       ::mysqlx::ArgumentValue get_argument_value(shcore::Value source);
       virtual boost::shared_ptr<BaseSession> _get_shared_this() const = 0;
@@ -139,6 +144,9 @@ namespace mysh
       bool _show_warnings;
     };
 
+    /**
+    * Enables interaction with an X Protocol enabled MySQL Server.
+    */
     class MOD_PUBLIC Session : public BaseSession, public boost::enable_shared_from_this<Session>
     {
     public:
@@ -150,6 +158,10 @@ namespace mysh
       virtual boost::shared_ptr<BaseSession> _get_shared_this() const;
     };
 
+    /**
+    * Enables interaction with an X Protocol enabled MySQL Server, inclusing SQL Execution.
+    * \todo Refactor and update documentation for executeSql()
+    */
     class MOD_PUBLIC NodeSession : public BaseSession, public boost::enable_shared_from_this<NodeSession>
     {
     public:
@@ -158,6 +170,9 @@ namespace mysh
       virtual std::string class_name() const { return "NodeSession"; };
       static boost::shared_ptr<shcore::Object_bridge> create(const shcore::Argument_list &args);
       virtual boost::shared_ptr<BaseSession> _get_shared_this() const;
+#ifdef DOXYGEN
+      Resultset executeSql(String sql);
+#endif
     };
   }
 }

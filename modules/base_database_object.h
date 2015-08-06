@@ -39,7 +39,12 @@ namespace mysh
 {
   class ShellBaseSession;
   class CoreSchema;
-
+  /**
+  * Provides base functionality for database objects.
+  * \todo Document name and getName()
+  * \todo Document session and getSession()
+  * \todo Document schema and getSchema()
+  */
   class MOD_PUBLIC DatabaseObject : public shcore::Cpp_object_bridge
   {
   public:

@@ -39,6 +39,20 @@ namespace mysh
   {
     class Schema;
 
+    /**
+    * Represents a Table on an Schema, retrieved with a session created using the X Protocol.
+    * \todo Document insert()
+    * \todo Document insert([field, field,...])
+    * \todo Document insert({field:value, field:value,...})
+    * \todo Document select()
+    * \todo Document select([field, field, ...])
+    * \todo Document update()
+    * \todo Document delete()
+    * \todo Implement and document as()
+    * \todo Implement and document getIndexes()
+    * \todo Implement and document count()
+    * \todo Implement and document drop()
+    */
     class Table : public DatabaseObject, public boost::enable_shared_from_this<Table>
     {
     public:

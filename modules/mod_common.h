@@ -34,4 +34,18 @@
 # define MOD_PUBLIC
 #endif
 
+#ifdef DOXYGEN
+// These data types are needed for documentation of the Dev-API
+#define String std::string
+#define Integer int
+#define Bool bool
+#define Map void
+#define List void
+#define Undefined void
+#define Resultset void
+#define Null void
+#define CollectionFindRef void
+#define ExecuteOptions int
+#endif
+
 #endif
