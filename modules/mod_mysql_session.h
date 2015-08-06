@@ -43,14 +43,14 @@ namespace mysh
   namespace mysql
   {
     class Schema;
-    class MOD_PUBLIC Session : public BaseSession, public boost::enable_shared_from_this<Session>
+    class MOD_PUBLIC ClassicSession : public ShellBaseSession, public boost::enable_shared_from_this<ClassicSession>
     {
     public:
-      Session();
-      virtual ~Session() {};
+      ClassicSession();
+      virtual ~ClassicSession() {};
 
       // Virtual methods from object bridge
-      virtual std::string class_name() const { return "Session"; };
+      virtual std::string class_name() const { return "ClassicSession"; };
       virtual shcore::Value get_member(const std::string &prop) const;
       std::vector<std::string> get_members() const;
 

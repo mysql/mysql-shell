@@ -50,29 +50,29 @@
 using namespace mysh::mysql;
 using namespace shcore;
 
-REGISTER_OBJECT(mysql, Session);
+REGISTER_OBJECT(mysql, ClassicSession);
 
-Session::Session()
+ClassicSession::ClassicSession()
 : _show_warnings(false)
 {
-  //_schema_proxy.reset(new Proxy_object(boost::bind(&Session::get_db, this, _1)));
+  //_schema_proxy.reset(new Proxy_object(boost::bind(&ClassicSession::get_db, this, _1)));
 
-  add_method("close", boost::bind(&Session::close, this, _1), "data");
-  add_method("executeSql", boost::bind(&Session::executeSql, this, _1),
+  add_method("close", boost::bind(&ClassicSession::close, this, _1), "data");
+  add_method("executeSql", boost::bind(&ClassicSession::executeSql, this, _1),
     "stmt", shcore::String,
     NULL);
 
   _schemas.reset(new shcore::Value::Map_type);
 }
 
-Connection *Session::connection()
+Connection *ClassicSession::connection()
 {
   return _conn.get();
 }
 
-Value Session::connect(const Argument_list &args)
+Value ClassicSession::connect(const Argument_list &args)
 {
-  args.ensure_count(1, 2, "Session::connect");
+  args.ensure_count(1, 2, "ClassicSession::connect");
 
   std::string protocol;
   std::string user;
@@ -133,18 +133,18 @@ Value Session::connect(const Argument_list &args)
   return Value::Null();
 }
 
-Value Session::close(const Argument_list &args)
+Value ClassicSession::close(const Argument_list &args)
 {
-  args.ensure_count(0, "Session::close");
+  args.ensure_count(0, "ClassicSession::close");
 
   _conn.reset();
 
   return shcore::Value();
 }
 
-Value Session::executeSql(const Argument_list &args)
+Value ClassicSession::executeSql(const Argument_list &args)
 {
-  args.ensure_count(1, "Session::sql");
+  args.ensure_count(1, "ClassicSession::sql");
   // Will return the result of the SQL execution
   // In case of error will be Undefined
   Value ret_val;
@@ -165,14 +165,14 @@ Value Session::executeSql(const Argument_list &args)
   return ret_val;
 }
 
-std::string Session::uri() const
+std::string ClassicSession::uri() const
 {
   return _conn->uri();
 }
 
-std::vector<std::string> Session::get_members() const
+std::vector<std::string> ClassicSession::get_members() const
 {
-  std::vector<std::string> members(BaseSession::get_members());
+  std::vector<std::string> members(ShellBaseSession::get_members());
 
   // This function is here only to append the schemas as direct members
   // Will use a set to prevent duplicates
@@ -189,7 +189,7 @@ std::vector<std::string> Session::get_members() const
   return members;
 }
 
-Value Session::get_member(const std::string &prop) const
+Value ClassicSession::get_member(const std::string &prop) const
 {
   // Retrieves the member first from the parent
   Value ret_val;
@@ -198,8 +198,8 @@ Value Session::get_member(const std::string &prop) const
   // retrieve it since it may throw invalid member otherwise
   // If not on the parent classes and not here then we can safely assume
   // it is a schema and attempt loading it as such
-  if (BaseSession::has_member(prop))
-    ret_val = BaseSession::get_member(prop);
+  if (ShellBaseSession::has_member(prop))
+    ret_val = ShellBaseSession::get_member(prop);
   else if (prop == "schemas")
     ret_val = Value(_schemas);
   else if (prop == "uri")
@@ -224,7 +224,7 @@ Value Session::get_member(const std::string &prop) const
   return ret_val;
 }
 
-void Session::_load_default_schema()
+void ClassicSession::_load_default_schema()
 {
   _default_schema.reset();
 
@@ -252,7 +252,7 @@ void Session::_load_default_schema()
   }
 }
 
-void Session::_load_schemas()
+void ClassicSession::_load_schemas()
 {
   if (_conn)
   {
@@ -281,7 +281,7 @@ void Session::_load_schemas()
   }
 }
 
-shcore::Value Session::get_schema(const shcore::Argument_list &args) const
+shcore::Value ClassicSession::get_schema(const shcore::Argument_list &args) const
 {
   std::string function_name = class_name() + ".getSchema";
   args.ensure_count(1, function_name.c_str());
@@ -307,16 +307,16 @@ shcore::Value Session::get_schema(const shcore::Argument_list &args) const
       (*_schemas)[name] = Value(boost::static_pointer_cast<Object_bridge>(schema));
     }
     else
-      throw Exception::runtime_error("Session not connected");
+      throw Exception::runtime_error("ClassicSession not connected");
   }
 
   // If this point is reached, the schema will be there!
   return (*_schemas)[name];
 }
 
-shcore::Value Session::set_default_schema(const shcore::Argument_list &args)
+shcore::Value ClassicSession::set_default_schema(const shcore::Argument_list &args)
 {
-  args.ensure_count(1, "Session.setDefaultSchema");
+  args.ensure_count(1, "ClassicSession.setDefaultSchema");
 
   if (_conn)
   {
@@ -330,12 +330,12 @@ shcore::Value Session::set_default_schema(const shcore::Argument_list &args)
     _update_default_schema(name);
   }
   else
-    throw Exception::runtime_error("Session not connected");
+    throw Exception::runtime_error("ClassicSession not connected");
 
   return get_member("defaultSchema");
 }
 
-void Session::_update_default_schema(const std::string& name)
+void ClassicSession::_update_default_schema(const std::string& name)
 {
   if (!name.empty())
   {
@@ -350,9 +350,9 @@ void Session::_update_default_schema(const std::string& name)
   }
 }
 
-boost::shared_ptr<shcore::Object_bridge> Session::create(const shcore::Argument_list &args)
+boost::shared_ptr<shcore::Object_bridge> ClassicSession::create(const shcore::Argument_list &args)
 {
-  boost::shared_ptr<Session> session(new Session());
+  boost::shared_ptr<ClassicSession> session(new ClassicSession());
 
   session->connect(args);
 

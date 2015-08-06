@@ -34,7 +34,7 @@
 using namespace mysh;
 using namespace shcore;
 
-DatabaseObject::DatabaseObject(boost::shared_ptr<BaseSession> session, boost::shared_ptr<DatabaseObject> schema, const std::string &name)
+DatabaseObject::DatabaseObject(boost::shared_ptr<ShellBaseSession> session, boost::shared_ptr<DatabaseObject> schema, const std::string &name)
 : _session(session), _schema(schema), _name(name)
 {
   add_method("getName", boost::bind(&DatabaseObject::get_member_method, this, _1, "getName", "name"), NULL);

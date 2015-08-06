@@ -122,7 +122,7 @@ private:
 private:
   Interpreter_delegate _delegate;
 
-  boost::shared_ptr<mysh::BaseSession> _session;
+  boost::shared_ptr<mysh::ShellBaseSession> _session;
   //boost::shared_ptr<mysh::mysqlx::Schema> _db;
   boost::shared_ptr<Shell_core> _shell;
 
@@ -277,7 +277,7 @@ bool Interactive_shell::connect(const std::string &uri, bool needs_password, boo
 Value Interactive_shell::connect_session(const Argument_list &args)
 {
   // TODO: Review if this replacement is correct
-  boost::shared_ptr<mysh::BaseSession> new_session(mysh::connect_session(args));
+  boost::shared_ptr<mysh::ShellBaseSession> new_session(mysh::connect_session(args));
   _session.reset(new_session, new_session.get());
 
   _shell->set_global("session", Value(boost::static_pointer_cast<Object_bridge>(_session)));

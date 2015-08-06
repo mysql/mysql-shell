@@ -43,6 +43,14 @@ namespace shcore
   class Proxy_object;
 };
 
+#ifdef DOXYGEN
+#define String std::string
+#define Map void
+#define Array void
+#define Undefined void
+#define Resultset void
+#endif
+
 /*
 * Helper function to ensure the exceptions generated on the mysqlx_connector
 * are properly translated to the corresponding shcore::Exception type
@@ -80,20 +88,28 @@ namespace mysh
   namespace mysqlx
   {
     class Schema;
-    class MOD_PUBLIC ApiBaseSession : public BaseSession
+    /**
+    * Enables interaction with an X Protocol enabled MySQL Product.
+    */
+    class MOD_PUBLIC BaseSession : public ShellBaseSession
     {
     public:
-      ApiBaseSession();
-      virtual ~ApiBaseSession() { flush_last_result(); }
+      BaseSession();
+      virtual ~BaseSession() { flush_last_result(); }
 
       virtual std::vector<std::string> get_members() const;
       virtual shcore::Value get_member(const std::string &prop) const;
       virtual bool has_member(const std::string &prop) const;
 
+#ifdef DOXYGEN
+      Undefined connect(String connectData, String password = "");
+      Undefined connect(Map connectData, String password = "");
+      Resultset executeSql(String sql);
+#endif
       virtual shcore::Value connect(const shcore::Argument_list &args);
       virtual shcore::Value close(const shcore::Argument_list &args);
       virtual shcore::Value executeSql(const shcore::Argument_list &args);
-              shcore::Value executeAdminCommand(const std::string& command, const shcore::Argument_list &args);
+      shcore::Value executeAdminCommand(const std::string& command, const shcore::Argument_list &args);
       virtual bool is_connected() const { return _session ? true : false; }
       virtual std::string uri() const { return _uri; };
 
@@ -108,7 +124,7 @@ namespace mysh
       void flush_last_result();
     protected:
       ::mysqlx::ArgumentValue get_argument_value(shcore::Value source);
-      virtual boost::shared_ptr<ApiBaseSession> _get_shared_this() const = 0;
+      virtual boost::shared_ptr<BaseSession> _get_shared_this() const = 0;
       boost::shared_ptr< ::mysqlx::Result> _last_result;
       void _update_default_schema(const std::string& name);
       virtual void _load_default_schema();
@@ -123,7 +139,7 @@ namespace mysh
       bool _show_warnings;
     };
 
-    class MOD_PUBLIC Session : public ApiBaseSession, public boost::enable_shared_from_this<Session>
+    class MOD_PUBLIC Session : public BaseSession, public boost::enable_shared_from_this<Session>
     {
     public:
       Session(){};
@@ -131,17 +147,17 @@ namespace mysh
       virtual std::string class_name() const { return "Session"; };
       static boost::shared_ptr<shcore::Object_bridge> create(const shcore::Argument_list &args);
 
-      virtual boost::shared_ptr<ApiBaseSession> _get_shared_this() const;
+      virtual boost::shared_ptr<BaseSession> _get_shared_this() const;
     };
 
-    class MOD_PUBLIC NodeSession : public ApiBaseSession, public boost::enable_shared_from_this<NodeSession>
+    class MOD_PUBLIC NodeSession : public BaseSession, public boost::enable_shared_from_this<NodeSession>
     {
     public:
       NodeSession();
       virtual ~NodeSession(){};
       virtual std::string class_name() const { return "NodeSession"; };
       static boost::shared_ptr<shcore::Object_bridge> create(const shcore::Argument_list &args);
-      virtual boost::shared_ptr<ApiBaseSession> _get_shared_this() const;
+      virtual boost::shared_ptr<BaseSession> _get_shared_this() const;
     };
   }
 }

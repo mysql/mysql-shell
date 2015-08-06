@@ -44,7 +44,7 @@ void Shell_sql::handle_input(std::string &code, Interactive_input_state &state, 
 
   if (session_wrapper)
   {
-    boost::shared_ptr<mysh::BaseSession> session = session_wrapper.as_object<mysh::BaseSession>();
+    boost::shared_ptr<mysh::ShellBaseSession> session = session_wrapper.as_object<mysh::ShellBaseSession>();
 
     if (session)
     {

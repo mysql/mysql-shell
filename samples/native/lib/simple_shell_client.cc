@@ -67,7 +67,7 @@ Simple_shell_client::Simple_shell_client()
 
 shcore::Value Simple_shell_client::connect_session(const shcore::Argument_list &args)
 {
-  boost::shared_ptr<mysh::BaseSession> new_session(mysh::connect_session(args));
+  boost::shared_ptr<mysh::ShellBaseSession> new_session(mysh::connect_session(args));
   _session.reset(new_session, new_session.get());
 
   _shell->set_global("session", Value(boost::static_pointer_cast<Object_bridge>(_session)));

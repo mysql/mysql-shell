@@ -96,7 +96,7 @@ namespace shcore {
         if (pwd)
           args.push_back(Value(pwd));
 
-        boost::shared_ptr<mysh::BaseSession> session(mysh::connect_session(args));
+        boost::shared_ptr<mysh::ShellBaseSession> session(mysh::connect_session(args));
         env.shell_core->set_global("session", Value(boost::static_pointer_cast<Object_bridge>(session)));
       }
     };

@@ -37,11 +37,11 @@ namespace mysh
 
   std::string MOD_PUBLIC strip_password(const std::string &connstring);
 
-  class MOD_PUBLIC BaseSession : public shcore::Cpp_object_bridge
+  class MOD_PUBLIC ShellBaseSession : public shcore::Cpp_object_bridge
   {
   public:
-    BaseSession();
-    virtual ~BaseSession() {};
+    ShellBaseSession();
+    virtual ~ShellBaseSession() {};
 
     // Virtual methods from object bridge
     virtual std::string &append_descr(std::string &s_out, int indent = -1, int quote_strings = 0) const;
@@ -66,7 +66,7 @@ namespace mysh
     shcore::Value get_member_method(const shcore::Argument_list &args, const std::string& method, const std::string& prop);
   };
 
-  boost::shared_ptr<mysh::BaseSession> MOD_PUBLIC connect_session(const shcore::Argument_list &args);
+  boost::shared_ptr<mysh::ShellBaseSession> MOD_PUBLIC connect_session(const shcore::Argument_list &args);
 };
 
 #endif

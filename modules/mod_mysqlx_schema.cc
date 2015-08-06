@@ -41,14 +41,14 @@ using namespace mysh;
 using namespace mysh::mysqlx;
 using namespace shcore;
 
-Schema::Schema(boost::shared_ptr<ApiBaseSession> session, const std::string &schema)
+Schema::Schema(boost::shared_ptr<BaseSession> session, const std::string &schema)
 : DatabaseObject(session, boost::shared_ptr<DatabaseObject>(), schema), _schema_impl(session->session_obj()->getSchema(schema))
 {
   init();
 }
 
-Schema::Schema(boost::shared_ptr<const ApiBaseSession> session, const std::string &schema) :
-DatabaseObject(boost::const_pointer_cast<ApiBaseSession>(session), boost::shared_ptr<DatabaseObject>(), schema)
+Schema::Schema(boost::shared_ptr<const BaseSession> session, const std::string &schema) :
+DatabaseObject(boost::const_pointer_cast<BaseSession>(session), boost::shared_ptr<DatabaseObject>(), schema)
 {
   init();
 }
@@ -78,7 +78,7 @@ void Schema::cache_table_objects()
 {
   try
   {
-    boost::shared_ptr<ApiBaseSession> sess(boost::static_pointer_cast<ApiBaseSession>(_session.lock()));
+    boost::shared_ptr<BaseSession> sess(boost::static_pointer_cast<BaseSession>(_session.lock()));
     if (sess)
     {
       {
@@ -191,7 +191,7 @@ Value Schema::_load_object(const std::string& name, const std::string& type) con
   Value ret_val;
   try
   {
-    boost::shared_ptr<ApiBaseSession> sess(boost::dynamic_pointer_cast<ApiBaseSession>(_session.lock()));
+    boost::shared_ptr<BaseSession> sess(boost::dynamic_pointer_cast<BaseSession>(_session.lock()));
     if (sess)
     {
       {
@@ -271,7 +271,7 @@ shcore::Value Schema::createCollection(const shcore::Argument_list &args)
   command_args.push_back(Value(_name));
   command_args.push_back(args[0]);
 
-  boost::shared_ptr<ApiBaseSession> sess(boost::static_pointer_cast<ApiBaseSession>(_session.lock()));
+  boost::shared_ptr<BaseSession> sess(boost::static_pointer_cast<BaseSession>(_session.lock()));
   sess->executeAdminCommand("create_collection", command_args);
 
   // If this is reached it imlies all went OK on the previous operation

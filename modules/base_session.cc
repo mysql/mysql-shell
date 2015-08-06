@@ -159,7 +159,7 @@ std::string mysh::strip_password(const std::string &connstring)
   return connstring;
 }
 
-boost::shared_ptr<mysh::BaseSession> mysh::connect_session(const shcore::Argument_list &args)
+boost::shared_ptr<mysh::ShellBaseSession> mysh::connect_session(const shcore::Argument_list &args)
 {
   std::string protocol;
   std::string user;
@@ -173,14 +173,14 @@ boost::shared_ptr<mysh::BaseSession> mysh::connect_session(const shcore::Argumen
 
   std::string uri = args.string_at(0);
 
-  boost::shared_ptr<BaseSession> ret_val;
+  boost::shared_ptr<ShellBaseSession> ret_val;
 
   if (!parse_mysql_connstring(uri, protocol, user, pass, host, port, sock, db, pwd_found))
     throw shcore::Exception::argument_error("Could not parse URI for MySQL connection");
 
   if (protocol.empty() || protocol == "mysql")
   {
-    ret_val.reset(new mysql::Session());
+    ret_val.reset(new mysql::ClassicSession());
   }
   else if (protocol == "mysqlx")
   {
@@ -194,16 +194,16 @@ boost::shared_ptr<mysh::BaseSession> mysh::connect_session(const shcore::Argumen
   return ret_val;
 }
 
-BaseSession::BaseSession()
+ShellBaseSession::ShellBaseSession()
 {
-  add_method("getDefaultSchema", boost::bind(&BaseSession::get_member_method, this, _1, "getDefaultSchema", "defaultSchema"), NULL);
-  add_method("getSchema", boost::bind(&BaseSession::get_schema, this, _1), "name", shcore::String, NULL);
-  add_method("getSchemas", boost::bind(&BaseSession::get_member_method, this, _1, "getSchemas", "schemas"), NULL);
-  add_method("getUri", boost::bind(&BaseSession::get_member_method, this, _1, "getUri", "uri"), NULL);
-  add_method("setDefaultSchema", boost::bind(&BaseSession::set_default_schema, this, _1), "name", shcore::String, NULL);
+  add_method("getDefaultSchema", boost::bind(&ShellBaseSession::get_member_method, this, _1, "getDefaultSchema", "defaultSchema"), NULL);
+  add_method("getSchema", boost::bind(&ShellBaseSession::get_schema, this, _1), "name", shcore::String, NULL);
+  add_method("getSchemas", boost::bind(&ShellBaseSession::get_member_method, this, _1, "getSchemas", "schemas"), NULL);
+  add_method("getUri", boost::bind(&ShellBaseSession::get_member_method, this, _1, "getUri", "uri"), NULL);
+  add_method("setDefaultSchema", boost::bind(&ShellBaseSession::set_default_schema, this, _1), "name", shcore::String, NULL);
 }
 
-std::string &BaseSession::append_descr(std::string &s_out, int UNUSED(indent), int UNUSED(quote_strings)) const
+std::string &ShellBaseSession::append_descr(std::string &s_out, int UNUSED(indent), int UNUSED(quote_strings)) const
 {
   if (!is_connected())
     s_out.append("<" + class_name() + ":disconnected>");
@@ -212,12 +212,12 @@ std::string &BaseSession::append_descr(std::string &s_out, int UNUSED(indent), i
   return s_out;
 }
 
-std::string &BaseSession::append_repr(std::string &s_out) const
+std::string &ShellBaseSession::append_repr(std::string &s_out) const
 {
   return append_descr(s_out, false);
 }
 
-void BaseSession::append_json(const shcore::JSON_dumper& dumper) const
+void ShellBaseSession::append_json(const shcore::JSON_dumper& dumper) const
 {
   dumper.start_object();
 
@@ -230,7 +230,7 @@ void BaseSession::append_json(const shcore::JSON_dumper& dumper) const
   dumper.end_object();
 }
 
-std::vector<std::string> BaseSession::get_members() const
+std::vector<std::string> ShellBaseSession::get_members() const
 {
   std::vector<std::string> members(Cpp_object_bridge::get_members());
   members.push_back("defaultSchema");
@@ -239,7 +239,7 @@ std::vector<std::string> BaseSession::get_members() const
   return members;
 }
 
-shcore::Value BaseSession::get_member_method(const shcore::Argument_list &args, const std::string& method, const std::string& prop)
+shcore::Value ShellBaseSession::get_member_method(const shcore::Argument_list &args, const std::string& method, const std::string& prop)
 {
   std::string function = class_name() + "::" + method;
   args.ensure_count(0, function.c_str());
@@ -247,7 +247,7 @@ shcore::Value BaseSession::get_member_method(const shcore::Argument_list &args, 
   return get_member(prop);
 }
 
-bool BaseSession::operator == (const Object_bridge &other) const
+bool ShellBaseSession::operator == (const Object_bridge &other) const
 {
   return class_name() == other.class_name() && this == &other;
 }

@@ -64,7 +64,7 @@ protected:
   virtual void source(const char* module);
 private:
   shcore::Interpreter_delegate _delegate;
-  boost::shared_ptr<mysh::BaseSession> _session;
+  boost::shared_ptr<mysh::ShellBaseSession> _session;
   boost::shared_ptr<shcore::Shell_core> _shell;
   boost::shared_ptr<Result_set> _last_result;
 

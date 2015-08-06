@@ -42,15 +42,15 @@ namespace mysh
 {
   namespace mysqlx
   {
-    class ApiBaseSession;
+    class BaseSession;
     class Table;
     class Collection;
 
     class MOD_PUBLIC Schema : public DatabaseObject, public boost::enable_shared_from_this<Schema>
     {
     public:
-      Schema(boost::shared_ptr<ApiBaseSession> owner, const std::string &name);
-      Schema(boost::shared_ptr<const ApiBaseSession> owner, const std::string &name);
+      Schema(boost::shared_ptr<BaseSession> owner, const std::string &name);
+      Schema(boost::shared_ptr<const BaseSession> owner, const std::string &name);
       ~Schema();
 
       virtual std::string class_name() const { return "Schema"; };

@@ -45,16 +45,16 @@ REGISTER_OBJECT(mysqlx, Expression);
 
 #include <set>
 
-ApiBaseSession::ApiBaseSession()
+BaseSession::BaseSession()
 : _show_warnings(false)
 {
   _schemas.reset(new shcore::Value::Map_type);
 
-  add_method("close", boost::bind(&ApiBaseSession::close, this, _1), "data");
-  add_method("setFetchWarnings", boost::bind(&ApiBaseSession::set_fetch_warnings, this, _1), "data");
+  add_method("close", boost::bind(&BaseSession::close, this, _1), "data");
+  add_method("setFetchWarnings", boost::bind(&BaseSession::set_fetch_warnings, this, _1), "data");
 }
 
-Value ApiBaseSession::connect(const Argument_list &args)
+Value BaseSession::connect(const Argument_list &args)
 {
   std::string function_name = class_name() + ".connect";
   args.ensure_count(1, 2, function_name.c_str());
@@ -119,7 +119,7 @@ Value ApiBaseSession::connect(const Argument_list &args)
   return Value::Null();
 }
 
-Value ApiBaseSession::close(const Argument_list &args)
+Value BaseSession::close(const Argument_list &args)
 {
   std::string function_name = class_name() + ".close";
 
@@ -130,7 +130,7 @@ Value ApiBaseSession::close(const Argument_list &args)
   return shcore::Value();
 }
 
-Value ApiBaseSession::executeSql(const Argument_list &args)
+Value BaseSession::executeSql(const Argument_list &args)
 {
   std::string function_name = class_name() + ".executeSql";
   args.ensure_count(1, function_name.c_str());
@@ -171,7 +171,7 @@ Value ApiBaseSession::executeSql(const Argument_list &args)
   return ret_val;
 }
 
-::mysqlx::ArgumentValue ApiBaseSession::get_argument_value(shcore::Value source)
+::mysqlx::ArgumentValue BaseSession::get_argument_value(shcore::Value source)
 {
   ::mysqlx::ArgumentValue ret_val;
   switch (source.type)
@@ -203,7 +203,7 @@ Value ApiBaseSession::executeSql(const Argument_list &args)
   return ret_val;
 }
 
-Value ApiBaseSession::executeAdminCommand(const std::string& command, const Argument_list &args)
+Value BaseSession::executeAdminCommand(const std::string& command, const Argument_list &args)
 {
   std::string function_name = class_name() + ".executeAdminCommand";
   args.ensure_at_least(1, function_name.c_str());
@@ -237,9 +237,9 @@ Value ApiBaseSession::executeAdminCommand(const std::string& command, const Argu
   return ret_val;
 }
 
-std::vector<std::string> ApiBaseSession::get_members() const
+std::vector<std::string> BaseSession::get_members() const
 {
-  std::vector<std::string> members(BaseSession::get_members());
+  std::vector<std::string> members(ShellBaseSession::get_members());
 
   // This function is here only to append the schemas as direct members
   // Using a set to prevent duplicates
@@ -256,16 +256,16 @@ std::vector<std::string> ApiBaseSession::get_members() const
   return members;
 }
 
-bool ApiBaseSession::has_member(const std::string &prop) const
+bool BaseSession::has_member(const std::string &prop) const
 {
-  if (BaseSession::has_member(prop))
+  if (ShellBaseSession::has_member(prop))
     return true;
   if (prop == "uri" || prop == "schemas" || prop == "defaultSchema")
     return true;
   return false;
 }
 
-Value ApiBaseSession::get_member(const std::string &prop) const
+Value BaseSession::get_member(const std::string &prop) const
 {
   // Retrieves the member first from the parent
   Value ret_val;
@@ -274,8 +274,8 @@ Value ApiBaseSession::get_member(const std::string &prop) const
   // retrieve it since it may throw invalid member otherwise
   // If not on the parent classes and not here then we can safely assume
   // it is a schema and attempt loading it as such
-  if (BaseSession::has_member(prop))
-    ret_val = BaseSession::get_member(prop);
+  if (ShellBaseSession::has_member(prop))
+    ret_val = ShellBaseSession::get_member(prop);
   else if (prop == "uri")
     ret_val = Value(_uri);
   else if (prop == "schemas")
@@ -300,13 +300,13 @@ Value ApiBaseSession::get_member(const std::string &prop) const
   return ret_val;
 }
 
-void ApiBaseSession::flush_last_result()
+void BaseSession::flush_last_result()
 {
   if (_last_result)
     _last_result->discardData();
 }
 
-void ApiBaseSession::_load_default_schema()
+void BaseSession::_load_default_schema()
 {
   try
   {
@@ -333,7 +333,7 @@ void ApiBaseSession::_load_default_schema()
   CATCH_AND_TRANSLATE();
 }
 
-void ApiBaseSession::_load_schemas()
+void BaseSession::_load_schemas()
 {
   try
   {
@@ -366,7 +366,7 @@ void ApiBaseSession::_load_schemas()
   CATCH_AND_TRANSLATE();
 }
 
-shcore::Value ApiBaseSession::get_schema(const shcore::Argument_list &args) const
+shcore::Value BaseSession::get_schema(const shcore::Argument_list &args) const
 {
   std::string function_name = class_name() + ".getSchema";
   args.ensure_count(1, function_name.c_str());
@@ -399,7 +399,7 @@ shcore::Value ApiBaseSession::get_schema(const shcore::Argument_list &args) cons
   return (*_schemas)[name];
 }
 
-shcore::Value ApiBaseSession::set_default_schema(const shcore::Argument_list &args)
+shcore::Value BaseSession::set_default_schema(const shcore::Argument_list &args)
 {
   std::string function_name = class_name() + ".setDefaultSchema";
   args.ensure_count(1, function_name.c_str());
@@ -422,7 +422,7 @@ shcore::Value ApiBaseSession::set_default_schema(const shcore::Argument_list &ar
   return get_member("defaultSchema");
 }
 
-shcore::Value ApiBaseSession::set_fetch_warnings(const shcore::Argument_list &args)
+shcore::Value BaseSession::set_fetch_warnings(const shcore::Argument_list &args)
 {
   Value ret_val;
 
@@ -439,7 +439,7 @@ shcore::Value ApiBaseSession::set_fetch_warnings(const shcore::Argument_list &ar
   return ret_val;
 }
 
-void ApiBaseSession::_update_default_schema(const std::string& name)
+void BaseSession::_update_default_schema(const std::string& name)
 {
   if (!name.empty())
   {
@@ -454,7 +454,7 @@ void ApiBaseSession::_update_default_schema(const std::string& name)
   }
 }
 
-boost::shared_ptr<ApiBaseSession> Session::_get_shared_this() const
+boost::shared_ptr<BaseSession> Session::_get_shared_this() const
 {
   boost::shared_ptr<const Session> shared = shared_from_this();
 
@@ -470,14 +470,14 @@ boost::shared_ptr<shcore::Object_bridge> Session::create(const shcore::Argument_
   return boost::static_pointer_cast<Object_bridge>(session);
 }
 
-NodeSession::NodeSession() : ApiBaseSession()
+NodeSession::NodeSession() : BaseSession()
 {
   add_method("executeSql", boost::bind(&Session::executeSql, this, _1),
              "stmt", shcore::String,
              NULL);
 }
 
-boost::shared_ptr<ApiBaseSession> NodeSession::_get_shared_this() const
+boost::shared_ptr<BaseSession> NodeSession::_get_shared_this() const
 {
   boost::shared_ptr<const NodeSession> shared = shared_from_this();
 

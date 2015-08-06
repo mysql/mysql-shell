@@ -60,7 +60,7 @@ namespace shcore {
       _shell_core->switch_mode(Shell_core::Mode_JScript, initilaized);
 
       exec_and_out_equals("var mysql = require('mysql').mysql;");
-      exec_and_out_equals("var session = mysql.getSession('" + _mysql_uri + "');");
+      exec_and_out_equals("var session = mysql.getClassicSession('" + _mysql_uri + "');");
     }
 
     virtual void TearDown()

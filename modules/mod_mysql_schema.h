@@ -40,14 +40,14 @@ namespace mysh
 {
   namespace mysql
   {
-    class Session;
+    class ClassicSession;
     class Table;
 
     class MOD_PUBLIC Schema : public DatabaseObject, public boost::enable_shared_from_this<Schema>
     {
     public:
-      Schema(boost::shared_ptr<Session> owner, const std::string &name);
-      Schema(boost::shared_ptr<const Session> owner, const std::string &name);
+      Schema(boost::shared_ptr<ClassicSession> owner, const std::string &name);
+      Schema(boost::shared_ptr<const ClassicSession> owner, const std::string &name);
       ~Schema();
 
       virtual std::string class_name() const{ return "Schema"; };
@@ -67,8 +67,8 @@ namespace mysh
       shcore::Value find_in_collection(const std::string& name, boost::shared_ptr<shcore::Value::Map_type>source) const;
       shcore::Value getTable(const shcore::Argument_list &args);
       shcore::Value getView(const shcore::Argument_list &args);
-	  
-	  void init();
+
+      void init();
     };
   };
 };
