@@ -144,15 +144,12 @@ std::string mysh::strip_password(const std::string &connstring)
   if ((p = user_part.find(':')) != std::string::npos)
   {
     password = user_part.substr(p + 1);
-    if (!password.empty())
-    {
-      std::string uri_stripped = connstring;
-      std::string::size_type i = uri_stripped.find(":" + password);
-      if (i != std::string::npos)
-        uri_stripped.erase(i, password.length() + 1);
+    std::string uri_stripped = connstring;
+    std::string::size_type i = uri_stripped.find(":" + password);
+    if (i != std::string::npos)
+      uri_stripped.erase(i, password.length() + 1);
 
-      return uri_stripped;
-    }
+    return uri_stripped;
   }
 
   // no password to strip, return original one
@@ -178,14 +175,10 @@ boost::shared_ptr<mysh::ShellBaseSession> mysh::connect_session(const shcore::Ar
   if (!parse_mysql_connstring(uri, protocol, user, pass, host, port, sock, db, pwd_found))
     throw shcore::Exception::argument_error("Could not parse URI for MySQL connection");
 
-  if (protocol.empty() || protocol == "mysql")
-  {
-    ret_val.reset(new mysql::ClassicSession());
-  }
-  else if (protocol == "mysqlx")
-  {
+  if (protocol.empty() || protocol == "mysqlx")
     ret_val.reset(new mysh::mysqlx::NodeSession());
-  }
+  else if (protocol == "mysql")
+    ret_val.reset(new mysql::ClassicSession());
   else
     throw shcore::Exception::argument_error("Invalid protocol specified for MySQL connection.");
 

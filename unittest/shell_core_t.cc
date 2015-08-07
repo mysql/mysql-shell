@@ -50,16 +50,10 @@ namespace shcore {
 
       void connect()
       {
-        std::string uri = _uri;
-        std::cout << uri;
-        if (!_mysql_port.empty())
-        {
-          uri.append(":");
-          uri.append(_mysql_port);
-        }
-
+        //std::string uri = _uri;
+        std::cout << _mysql_uri;
         Argument_list args;
-        args.push_back(Value(uri));
+        args.push_back(Value(_mysql_uri));
         if (!_pwd.empty())
           args.push_back(Value(_pwd));
 

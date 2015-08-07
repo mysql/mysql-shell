@@ -28,10 +28,9 @@ class Command_line_options
 {
 public:
   int exit_code;
-  bool needs_password;
 protected:
   Command_line_options(int UNUSED(argc), char **UNUSED(argv))
-          : exit_code(0)
+    : exit_code(0)
   {
   }
 

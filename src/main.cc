@@ -76,7 +76,7 @@ public:
   void init_scripts(Shell_core::Mode mode);
 
   void cmd_process_file(const std::vector<std::string>& params);
-  bool connect(const std::string &uri, bool needs_password, bool interactive);
+  bool connect(const std::string &uri, bool interactive);
 
   void print(const std::string &str);
   void println(const std::string &str);
@@ -178,7 +178,7 @@ _batch_continue_on_error(false), _show_warnings(false)
     "     mysqlx  for SQL and NoSQL access in MySQL X compliant servers (MySQL 5.7+).\n\n"
     "EXAMPLE:\n"
     "   \\connect mysqlx://root@localhost:3306\n\n"
-    "NOTE: The mysql protocol will be used as default if mysqlx is not specified.";
+    "NOTE: The mysqlx protocol will be used as default if mysql is not specified.";
 
   std::string cmd_help_source =
     "SYNTAX:\n"
@@ -215,37 +215,8 @@ void Interactive_shell::cmd_process_file(const std::vector<std::string>& params)
   Interactive_shell::process_file(filename.c_str());
 }
 
-bool Interactive_shell::connect(const std::string &uri, bool needs_password, bool interactive)
+bool Interactive_shell::connect(const std::string &uri, bool interactive)
 {
-  Argument_list args;
-
-  std::string protocol;
-  std::string user;
-  std::string pass;
-  std::string host;
-  int port = 3306;
-  std::string sock;
-  std::string db;
-  int pwd_found;
-
-  if (!mysh::parse_mysql_connstring(uri, protocol, user, pass, host, port, sock, db, pwd_found))
-    throw shcore::Exception::argument_error("Could not parse URI for MySQL connection");
-  else
-  {
-    if (!pwd_found && needs_password) {
-      char *tmp = mysh_get_tty_password("Enter password: ");
-      if (tmp)
-      {
-        pass.append(tmp);
-        free(tmp);
-        args.push_back(Value(uri));
-        args.push_back(Value(pass));
-      }
-    }
-    else
-      args.push_back(Value(uri));
-  }
-
   try
   {
     if (_session && _session->is_connected())
@@ -263,6 +234,8 @@ bool Interactive_shell::connect(const std::string &uri, bool needs_password, boo
       shcore::print("Connecting to " + uri_stripped + "...\n");
     }
 
+    Argument_list args;
+    args.push_back(Value(uri));
     connect_session(args);
   }
   catch (std::exception &exc)
@@ -276,8 +249,39 @@ bool Interactive_shell::connect(const std::string &uri, bool needs_password, boo
 
 Value Interactive_shell::connect_session(const Argument_list &args)
 {
-  // TODO: Review if this replacement is correct
-  boost::shared_ptr<mysh::ShellBaseSession> new_session(mysh::connect_session(args));
+  std::string protocol;
+  std::string user;
+  std::string pass;
+  std::string host;
+  int port = 3306;
+  std::string sock;
+  std::string db;
+  int pwd_found;
+
+  Argument_list connect_args(args);
+
+  // Handles the case where the password needs to be prompted
+  if (!mysh::parse_mysql_connstring(args[0].as_string(), protocol, user, pass, host, port, sock, db, pwd_found))
+    throw shcore::Exception::argument_error("Could not parse URI for MySQL connection");
+  else
+  {
+    // This implies the URI is defined as user:@
+    // So the : indicating there should be a password is there but the actual password is empty
+    // It means we need to prompt fopr the password
+    if (pwd_found && pass.empty())
+    {
+      char *tmp = mysh_get_tty_password("Enter password: ");
+      if (tmp)
+      {
+        pass.assign(tmp);
+        free(tmp);
+        connect_args.push_back(Value(pass));
+      }
+    }
+  }
+
+  // Performs the connection
+  boost::shared_ptr<mysh::ShellBaseSession> new_session(mysh::connect_session(connect_args));
   _session.reset(new_session, new_session.get());
 
   _shell->set_global("session", Value(boost::static_pointer_cast<Object_bridge>(_session)));
@@ -512,7 +516,7 @@ void Interactive_shell::cmd_connect(const std::vector<std::string>& args)
 {
   if (args.size() == 1)
   {
-    connect(args[0], true, true);
+    connect(args[0], true);
   }
   else
     print_error("\\connect <uri>");
@@ -855,7 +859,10 @@ void Interactive_shell::print_cmd_line_helper()
   println("  -h, --host=name        Connect to host.");
   println("  -P, --port=#           Port number to use for connection.");
   println("  -u, --user=name        User for the connection to the server.");
-  println("  -p, --password[=name]  Password to use when connecting to server");
+  println("  --password=name        Password to use when connecting to server");
+  println("  -p                     Request password prompt to set the password");
+  println("  -D --database=name     Database to use.");
+  println("  --session-type=name    Type of session to be created. Either classic or node.");
   println("                         If password is not given it's asked from the tty.");
   println("  --sql                  Start in SQL mode.");
   println("  --js                   Start in JavaScript mode.");
@@ -885,16 +892,124 @@ public:
   bool interactive;
   ngcommon::Logger::LOG_LEVEL log_level;
 
-  Shell_command_line_options(int argc, char **argv)
-    : Command_line_options(argc, argv), log_level(ngcommon::Logger::LOG_ERROR)
+  // Takes the URI and the individual connection parameters and overrides
+  // On the URI as specified on the parameters
+  void configure_connection_string(const std::string &connstring,
+                              std::string &protocol, std::string &user,
+                              std::string &password, std::string &host,
+                              int &port, std::string &database, bool prompt_pwd)
   {
+    std::string uri_protocol;
+    std::string uri_user;
+    std::string uri_password;
+    std::string uri_host;
+    int uri_port = 0;
+    std::string uri_sock;
+    std::string uri_database;
+    int pwd_found;
+
+    bool conn_params_defined = false;
+
+    // First validates the URI if specified
+    if (!connstring.empty())
+    {
+      if (!mysh::parse_mysql_connstring(connstring, uri_protocol, uri_user, uri_password, uri_host, uri_port, uri_sock, uri_database, pwd_found))
+      {
+        std::cerr << "Invalid value specified in --uri parameter.\n";
+        exit_code = 1;
+        return;
+      }
+    }
+
+    // URI was either empty or valid, in any case we need to override whatever was configured on the uri_* variables
+    // With what was received on the individual parameters.
+    if (!protocol.empty() || !user.empty() || !password.empty() || !host.empty() || !database.empty() || port)
+    {
+      // This implies URI recreation process should be done to either
+      // - Create an URI if none was specified.
+      // - Update the URI with the parameters overriding it's values.
+      conn_params_defined = true;
+
+      if (!protocol.empty())
+        uri_protocol = protocol;
+
+      if (!user.empty())
+        uri_user = user;
+
+      if (!password.empty())
+        uri_password = password;
+
+      if (!host.empty())
+        uri_host = host;
+
+      if (!database.empty())
+        uri_database = database;
+
+      if (port)
+        uri_port = port;
+    }
+
+    // If needed we construct the URi from the individual parameters
+    if (conn_params_defined)
+    {
+      // Configures the URI string
+      if (!uri_protocol.empty())
+      {
+        uri.append(uri_protocol);
+        uri.append("://");
+      }
+
+      // Sets the user and password
+      if (!uri_user.empty())
+      {
+        uri.append(uri_user);
+
+        // If password needs to be prompted appends the : but not the password
+        if (prompt_pwd)
+          uri.append(":");
+
+        // If the password will not be prompted and is defined appends both :password
+        else if (!uri_password.empty())
+        {
+          uri.append(":").append(uri_password);
+        }
+
+        uri.append("@");
+      }
+
+      // Sets the host
+      if (!uri_host.empty())
+        uri.append(uri_host);
+
+      // Sets the port
+      if (!uri_host.empty() && port > 0)
+        uri.append((boost::format(":%i") % port).str());
+
+      // Sets the database
+      if (!uri_database.empty())
+      {
+        uri.append("/");
+        uri.append(uri_database);
+      }
+    }
+
+    // Or we take the URI as defined since no overrides were done
+    else
+      uri = connstring;
+  }
+
+  Shell_command_line_options(int argc, char **argv)
+  : Command_line_options(argc, argv), log_level(ngcommon::Logger::LOG_ERROR)
+  {
+    std::string connection_string;
     std::string host;
     std::string user;
+    std::string protocol;
+    std::string database;
     int port = 0;
-    bool needs_password_;
     char* log_level_value;
+    bool needs_password = false;
 
-    needs_password_ = false;
     print_cmd_line_helper = false;
 
     initial_mode = Shell_core::Mode_SQL;
@@ -907,17 +1022,32 @@ public:
       if (check_arg_with_value(argv, i, "--file", "-f", value))
         run_file = value;
       else if (check_arg_with_value(argv, i, "--uri", NULL, value))
-        uri = value;
+        connection_string = value;
       else if (check_arg_with_value(argv, i, "--host", "-h", value))
         host = value;
       else if (check_arg_with_value(argv, i, "--user", "-u", value))
         user = value;
       else if (check_arg_with_value(argv, i, "--port", "-P", value))
         port = atoi(value);
+      else if (check_arg_with_value(argv, i, "--database", "-D", value))
+        database = value;
       else if (check_arg(argv, i, "-p", "-p"))
-        needs_password_ = true;
-      else if (check_arg_with_value(argv, i, "--password", "-p", value))
+        needs_password = true;
+      else if (check_arg_with_value(argv, i, "--password", NULL, value))
         password = value;
+      else if (check_arg_with_value(argv, i, "--session-type", NULL, value))
+      {
+        if (strcmp(value, "classic") == 0)
+          protocol = "mysql";
+        else if (strcmp(value, "node") == 0)
+          protocol = "mysqlx";
+        else
+        {
+          std::cerr << "Value for --session-type must be either node or classic.\n";
+          exit_code = 1;
+          break;
+        }
+      }
       else if (check_arg(argv, i, "--sql", "--sql"))
         initial_mode = Shell_core::Mode_SQL;
       else if (check_arg(argv, i, "--js", "--js"))
@@ -970,29 +1100,8 @@ public:
       }
     }
 
-    if (needs_password_)
-    {
-      char *tmp = mysh_get_tty_password("Enter password: ");
-      if (tmp)
-      {
-        password = tmp;
-        free(tmp);
-      }
-    }
-
-    if (uri.empty())
-    {
-      uri = user;
-      if (!uri.empty()) {
-        if (!password.empty()) {
-          uri.append(":").append(password);
-        }
-        uri.append("@");
-      }
-      uri.append(host);
-      if (port > 0)
-        uri.append((boost::format(":%i") % port).str());
-    }
+    // Configures the URI using all hte associated parameters
+    configure_connection_string(connection_string, protocol, user, password, host, port, database, needs_password);
   }
 };
 
@@ -1082,7 +1191,7 @@ int main(int argc, char **argv)
     {
       try
       {
-        if (!shell.connect(options.uri, options.needs_password, is_interactive))
+        if (!shell.connect(options.uri, is_interactive))
           return 1;
       }
       catch (std::exception &e)
