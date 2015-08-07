@@ -81,6 +81,7 @@ public:
   void print(const std::string &str);
   void println(const std::string &str);
   void print_error(const std::string &error);
+  void print_json_info(const std::string &info, const std::string& label = "info");
 
   void cmd_print_shell_help(const std::vector<std::string>& args);
   void cmd_start_multiline(const std::vector<std::string>& args);
@@ -231,7 +232,12 @@ bool Interactive_shell::connect(const std::string &uri, bool interactive)
     if (interactive)
     {
       std::string uri_stripped = mysh::strip_password(uri);
-      shcore::print("Connecting to " + uri_stripped + "...\n");
+
+      std::string message = "Connecting to " + uri_stripped + "...";
+      if (_output_format.find("json") == 0)
+        print_json_info(message);
+      else
+        shcore::print(message + "\n");
     }
 
     Argument_list args;
@@ -282,25 +288,29 @@ Value Interactive_shell::connect_session(const Argument_list &args)
 
   // Performs the connection
   boost::shared_ptr<mysh::ShellBaseSession> new_session(mysh::connect_session(connect_args));
+
   _session.reset(new_session, new_session.get());
 
   _shell->set_global("session", Value(boost::static_pointer_cast<Object_bridge>(_session)));
 
+  // The default schemas is retrieved it will return null if none is set
   Value default_schema = _session->get_member("defaultSchema");
-  if (default_schema)
+
+  // Whatever default schema is returned is ok to be set on db
+  _shell->set_global("db", default_schema);
+
+  if (_interactive)
   {
-    // TODO: Uncomment this...
-    //if (_shell->interactive_mode() != Shell_core::Mode_SQL)
-    //  _shell->print("Default schema `" + db->schema() + "` accessible through db.\n");
-    _shell->set_global("db", default_schema);
-  }
-  else
-  {
-    // XXX assign a dummy placeholder to db
-    if (_shell->is_interactive() && _shell->interactive_mode() != Shell_core::Mode_SQL)
-    {
-      _shell->print("No default schema selected.\n");
-    }
+    std::string message;
+    if (default_schema)
+      message = "Default schema `" + db + "` accessible through db.";
+    else
+      message = "No default schema selected.";
+
+    if (_output_format.find("json") == 0)
+      print_json_info(message);
+    else
+      shcore::print(message + "\n");
   }
 
   return Value::Null();
@@ -475,6 +485,17 @@ void Interactive_shell::print_error(const std::string &error)
   }
 
   std::cerr << message << "\n";
+}
+
+void Interactive_shell::print_json_info(const std::string &info, const std::string& label)
+{
+  shcore::JSON_dumper dumper(_output_format == "jsonpretty");
+  dumper.start_object();
+  dumper.append_string(label);
+  dumper.append_string(info);
+  dumper.end_object();
+
+  shcore::print(dumper.str() + "\n");
 }
 
 void Interactive_shell::cmd_print_shell_help(const std::vector<std::string>& args)
@@ -794,23 +815,32 @@ void Interactive_shell::command_loop()
 {
   if (_interactive) // check if interactive
   {
+    std::string message;
     switch (_shell->interactive_mode())
     {
       case Shell_core::Mode_SQL:
 #ifdef HAVE_V8
-        _shell->print("Currently in SQL mode. Use \\js or \\py to switch the shell to a scripting language.\n");
+        message = "Currently in SQL mode. Use \\js or \\py to switch the shell to a scripting language.";
 #else
-        _shell->print("Currently in SQL mode. Use \\py to switch the shell to python scripting.\n");
+        message = "Currently in SQL mode. Use \\py to switch the shell to python scripting.";
 #endif
         break;
       case Shell_core::Mode_JScript:
-        _shell->print("Currently in JavaScript mode. Use \\sql to switch to SQL mode and execute queries.\n");
+        message = "Currently in JavaScript mode. Use \\sql to switch to SQL mode and execute queries.";
         break;
       case Shell_core::Mode_Python:
-        _shell->print("Currently in Python mode. Use \\sql to switch to SQL mode and execute queries.\n");
+        message = "Currently in Python mode. Use \\sql to switch to SQL mode and execute queries.";
         break;
       default:
         break;
+    }
+
+    if (!message.empty())
+    {
+      if (_output_format.find("json") == 0)
+        print_json_info(message);
+      else
+        shcore::print(message + "\n");
     }
   }
 

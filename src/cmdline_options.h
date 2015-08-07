@@ -41,7 +41,7 @@ protected:
     return false;
   }
 
-  bool check_arg_with_value(char **argv, int &argi, const char *arg, const char *larg, char *&value, const char* def = NULL)
+  bool check_arg_with_value(char **argv, int &argi, const char *arg, const char *larg, char *&value, char* def = NULL)
   {
     // --option value or -o value
     if (strcmp(argv[argi], arg) == 0 || (larg && strcmp(argv[argi], larg) == 0))
@@ -55,7 +55,7 @@ protected:
       else
       {
         if (def)
-          strcpy(value, def);
+          value = def;
         else
         {
           std::cerr << argv[0] << ": option " << argv[argi] << " requires an argument\n";
