@@ -45,7 +45,7 @@ bool mysh::parse_mysql_connstring(const std::string &connstring,
                             std::string &host, int &port, std::string &sock,
                             std::string &db, int &pwd_found)
 {
-  // format is [protocol://][user[:pass]]@host[:port][/db] or user[:pass]@::socket[/db], like what cmdline utilities use
+  // format is [user[:pass]]@host[:port][/db] or user[:pass]@::socket[/db], like what cmdline utilities use
   pwd_found = 0;
   std::string remaining = connstring;
 
@@ -156,31 +156,25 @@ std::string mysh::strip_password(const std::string &connstring)
   return connstring;
 }
 
-boost::shared_ptr<mysh::ShellBaseSession> mysh::connect_session(const shcore::Argument_list &args)
+boost::shared_ptr<mysh::ShellBaseSession> mysh::connect_session(const shcore::Argument_list &args, SessionType session_type)
 {
-  std::string protocol;
-  std::string user;
-  std::string pass;
-  std::string host;
-  std::string sock;
-  std::string db;
-
-  int pwd_found;
-  int port = 0;
-
-  std::string uri = args.string_at(0);
-
   boost::shared_ptr<ShellBaseSession> ret_val;
 
-  if (!parse_mysql_connstring(uri, protocol, user, pass, host, port, sock, db, pwd_found))
-    throw shcore::Exception::argument_error("Could not parse URI for MySQL connection");
-
-  if (protocol.empty() || protocol == "mysqlx")
-    ret_val.reset(new mysh::mysqlx::NodeSession());
-  else if (protocol == "mysql")
-    ret_val.reset(new mysql::ClassicSession());
-  else
-    throw shcore::Exception::argument_error("Invalid protocol specified for MySQL connection.");
+  switch (session_type)
+  {
+    case Application:
+      ret_val.reset(new mysh::mysqlx::Session());
+      break;
+    case Node:
+      ret_val.reset(new mysh::mysqlx::NodeSession());
+      break;
+    case Classic:
+      ret_val.reset(new mysql::ClassicSession());
+      break;
+    default:
+      throw shcore::Exception::argument_error("Invalid session type specified for MySQL connection.");
+      break;
+  }
 
   ret_val->connect(args);
 

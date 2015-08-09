@@ -76,7 +76,7 @@ public:
   void init_scripts(Shell_core::Mode mode);
 
   void cmd_process_file(const std::vector<std::string>& params);
-  bool connect(const std::string &uri, bool interactive);
+  bool connect(const std::string &uri, bool interactive, mysh::SessionType session_type);
 
   void print(const std::string &str);
   void println(const std::string &str);
@@ -86,6 +86,8 @@ public:
   void cmd_print_shell_help(const std::vector<std::string>& args);
   void cmd_start_multiline(const std::vector<std::string>& args);
   void cmd_connect(const std::vector<std::string>& args);
+  void cmd_connect_node(const std::vector<std::string>& args);
+  void cmd_connect_classic(const std::vector<std::string>& args);
   void cmd_quit(const std::vector<std::string>& args);
   void cmd_warnings(const std::vector<std::string>& args);
   void cmd_nowarnings(const std::vector<std::string>& args);
@@ -110,7 +112,7 @@ private:
   void switch_shell_mode(Shell_core::Mode mode, const std::vector<std::string> &args);
 
 private:
-  shcore::Value connect_session(const shcore::Argument_list &args);
+  shcore::Value connect_session(const shcore::Argument_list &args, mysh::SessionType session_type);
 
 private:
   static void deleg_print(void *self, const char *text);
@@ -171,15 +173,11 @@ _batch_continue_on_error(false), _show_warnings(false)
 
   std::string cmd_help =
     "SYNTAX:\n"
-    "   \\connect <URI>\n\n"
+    "   \\connect%1% <URI>\n\n"
     "WHERE:\n"
-    "   URI is in the format of: [PROTOCOL://][user[:password]@]hostname[:port]\n"
-    "   PROTOCOL can be:\n"
-    "     mysql   for traditional MySQL connections.\n"
-    "     mysqlx  for SQL and NoSQL access in MySQL X compliant servers (MySQL 5.7+).\n\n"
+    "   URI is in the format of: [user[:password]@]hostname[:port]\n"
     "EXAMPLE:\n"
-    "   \\connect mysqlx://root@localhost:3306\n\n"
-    "NOTE: The mysqlx protocol will be used as default if mysql is not specified.";
+    "   \\connect%1% root@localhost\n";
 
   std::string cmd_help_source =
     "SYNTAX:\n"
@@ -198,9 +196,11 @@ _batch_continue_on_error(false), _show_warnings(false)
   SET_SHELL_COMMAND("\\source|\\.", "Execute a script file. Takes a file name as an argument.", cmd_help_source, Interactive_shell::cmd_process_file);
   SET_SHELL_COMMAND("\\", "Start multiline input. Finish and execute with an empty line.", "", Interactive_shell::cmd_start_multiline);
   SET_SHELL_COMMAND("\\quit|\\q|\\exit", "Quit mysh.", "", Interactive_shell::cmd_quit);
-  SET_SHELL_COMMAND("\\connect", "Connect to server.", cmd_help, Interactive_shell::cmd_connect);
-  SET_SHELL_COMMAND("\\warnings|\\W", "Show warnings after every statement..", cmd_help, Interactive_shell::cmd_warnings);
-  SET_SHELL_COMMAND("\\nowarnings|\\w", "Don't show warnings after every statement..", cmd_help, Interactive_shell::cmd_nowarnings);
+  SET_SHELL_COMMAND("\\connect", "Connect to server using an application mode session.", (boost::format(cmd_help) % "").str(), Interactive_shell::cmd_connect);
+  SET_SHELL_COMMAND("\\connect_node", "Connect to server using a node session.", (boost::format(cmd_help) % "_node").str(), Interactive_shell::cmd_connect_node);
+  SET_SHELL_COMMAND("\\connect_classic", "Connect to server using the MySQL protocol.", (boost::format(cmd_help) % "_classic").str(), Interactive_shell::cmd_connect_classic);
+  SET_SHELL_COMMAND("\\warnings|\\W", "Show warnings after every statement..", "", Interactive_shell::cmd_warnings);
+  SET_SHELL_COMMAND("\\nowarnings|\\w", "Don't show warnings after every statement..", "", Interactive_shell::cmd_nowarnings);
 
   bool lang_initialized;
   _shell->switch_mode(initial_mode, lang_initialized);
@@ -216,7 +216,7 @@ void Interactive_shell::cmd_process_file(const std::vector<std::string>& params)
   Interactive_shell::process_file(filename.c_str());
 }
 
-bool Interactive_shell::connect(const std::string &uri, bool interactive)
+bool Interactive_shell::connect(const std::string &uri, bool interactive, mysh::SessionType session_type)
 {
   try
   {
@@ -231,9 +231,24 @@ bool Interactive_shell::connect(const std::string &uri, bool interactive)
     // strip password from uri
     if (interactive)
     {
+      std::string stype;
+
+      switch (session_type)
+      {
+        case mysh::Application:
+          stype = "Application";
+          break;
+        case mysh::Node:
+          stype = "Node";
+          break;
+        case mysh::Classic:
+          stype = "Classic";
+          break;
+      }
+
       std::string uri_stripped = mysh::strip_password(uri);
 
-      std::string message = "Connecting to " + uri_stripped + "...";
+      std::string message = "Creating " + stype + " Session to " + uri_stripped + "...";
       if (_output_format.find("json") == 0)
         print_json_info(message);
       else
@@ -242,7 +257,7 @@ bool Interactive_shell::connect(const std::string &uri, bool interactive)
 
     Argument_list args;
     args.push_back(Value(uri));
-    connect_session(args);
+    connect_session(args, session_type);
   }
   catch (std::exception &exc)
   {
@@ -253,7 +268,7 @@ bool Interactive_shell::connect(const std::string &uri, bool interactive)
   return true;
 }
 
-Value Interactive_shell::connect_session(const Argument_list &args)
+Value Interactive_shell::connect_session(const Argument_list &args, mysh::SessionType session_type)
 {
   std::string protocol;
   std::string user;
@@ -287,7 +302,7 @@ Value Interactive_shell::connect_session(const Argument_list &args)
   }
 
   // Performs the connection
-  boost::shared_ptr<mysh::ShellBaseSession> new_session(mysh::connect_session(connect_args));
+  boost::shared_ptr<mysh::ShellBaseSession> new_session(mysh::connect_session(connect_args, session_type));
 
   _session.reset(new_session, new_session.get());
 
@@ -318,11 +333,6 @@ Value Interactive_shell::connect_session(const Argument_list &args)
 
 void Interactive_shell::init_environment()
 {
-  _shell->set_global("connect",
-    Value(Cpp_function::create("connect",
-    boost::bind(&Interactive_shell::connect_session, this, _1),
-    "connection_string", String,
-    NULL)));
 }
 
 // load scripts for standard locations in order to be able to implement standard routines
@@ -537,10 +547,30 @@ void Interactive_shell::cmd_connect(const std::vector<std::string>& args)
 {
   if (args.size() == 1)
   {
-    connect(args[0], true);
+    connect(args[0], true, mysh::Application);
   }
   else
     print_error("\\connect <uri>");
+}
+
+void Interactive_shell::cmd_connect_node(const std::vector<std::string>& args)
+{
+  if (args.size() == 1)
+  {
+    connect(args[0], true, mysh::Node);
+  }
+  else
+    print_error("\\connect_node <uri>");
+}
+
+void Interactive_shell::cmd_connect_classic(const std::vector<std::string>& args)
+{
+  if (args.size() == 1)
+  {
+    connect(args[0], true, mysh::Classic);
+  }
+  else
+    print_error("\\connect_classic <uri>");
 }
 
 void Interactive_shell::cmd_quit(const std::vector<std::string>& UNUSED(args))
@@ -884,16 +914,18 @@ void Interactive_shell::print_cmd_line_helper()
   println("  --help                 Display this help and exit.");
   println("  -f, --file=file        Process file.");
   println("  --uri                  Connect to Uniform Resource Identifier.");
-  println("                         Format: [protocol://][user[:pass]]@host[:port][/db]");
+  println("                         Format: [user[:pass]]@host[:port][/db]");
   println("                         or user[:pass]@::socket[/db] .");
   println("  -h, --host=name        Connect to host.");
   println("  -P, --port=#           Port number to use for connection.");
-  println("  -u, --user=name        User for the connection to the server.");
-  println("  --password=name        Password to use when connecting to server");
+  println("  -u, --dbuser=name      User for the connection to the server.");
+  println("  --user=name            An alias for dbuser.");
+  println("  --dbpassword=name      Password to use when connecting to server");
+  println("  --password=name        An alias for dbpassword.");
   println("  -p                     Request password prompt to set the password");
-  println("  -D --database=name     Database to use.");
-  println("  --session-type=name    Type of session to be created. Either classic or node.");
-  println("                         If password is not given it's asked from the tty.");
+  println("  -D --schema=name       Schema to use.");
+  println("  --database=name        An alias for schema.");
+  println("  --session-type=name    Type of session to be created. Either app, node or classic.");
   println("  --sql                  Start in SQL mode.");
   println("  --js                   Start in JavaScript mode.");
   println("  --py                   Start in Python mode.");
@@ -917,6 +949,7 @@ public:
   std::string uri;
   std::string password;
   std::string output_format;
+  mysh::SessionType session_type;
   bool print_cmd_line_helper;
   bool force;
   bool interactive;
@@ -925,9 +958,9 @@ public:
   // Takes the URI and the individual connection parameters and overrides
   // On the URI as specified on the parameters
   void configure_connection_string(const std::string &connstring,
-                              std::string &protocol, std::string &user,
-                              std::string &password, std::string &host,
-                              int &port, std::string &database, bool prompt_pwd)
+                              std::string &user, std::string &password,
+                              std::string &host, int &port,
+                              std::string &database, bool prompt_pwd)
   {
     std::string uri_protocol;
     std::string uri_user;
@@ -953,15 +986,12 @@ public:
 
     // URI was either empty or valid, in any case we need to override whatever was configured on the uri_* variables
     // With what was received on the individual parameters.
-    if (!protocol.empty() || !user.empty() || !password.empty() || !host.empty() || !database.empty() || port)
+    if (!user.empty() || !password.empty() || !host.empty() || !database.empty() || port)
     {
       // This implies URI recreation process should be done to either
       // - Create an URI if none was specified.
       // - Update the URI with the parameters overriding it's values.
       conn_params_defined = true;
-
-      if (!protocol.empty())
-        uri_protocol = protocol;
 
       if (!user.empty())
         uri_user = user;
@@ -1042,7 +1072,9 @@ public:
 
     print_cmd_line_helper = false;
 
-    initial_mode = Shell_core::Mode_SQL;
+    session_type = mysh::Application;
+
+    initial_mode = Shell_core::Mode_JScript;
     force = false;
     interactive = false;
 
@@ -1055,25 +1087,33 @@ public:
         connection_string = value;
       else if (check_arg_with_value(argv, i, "--host", "-h", value))
         host = value;
-      else if (check_arg_with_value(argv, i, "--user", "-u", value))
+      else if (check_arg_with_value(argv, i, "--dbuser", "-u", value))
+        user = value;
+      else if (check_arg_with_value(argv, i, "--user", NULL, value))
         user = value;
       else if (check_arg_with_value(argv, i, "--port", "-P", value))
         port = atoi(value);
-      else if (check_arg_with_value(argv, i, "--database", "-D", value))
+      else if (check_arg_with_value(argv, i, "--schema", "-D", value))
+        database = value;
+      else if (check_arg_with_value(argv, i, "--database", NULL, value))
         database = value;
       else if (check_arg(argv, i, "-p", "-p"))
         needs_password = true;
+      else if (check_arg_with_value(argv, i, "--dbpassword", NULL, value))
+        password = value;
       else if (check_arg_with_value(argv, i, "--password", NULL, value))
         password = value;
       else if (check_arg_with_value(argv, i, "--session-type", NULL, value))
       {
         if (strcmp(value, "classic") == 0)
-          protocol = "mysql";
+          session_type = mysh::Classic;
         else if (strcmp(value, "node") == 0)
-          protocol = "mysqlx";
+          session_type = mysh::Node;
+        else if (strcmp(value, "app") == 0)
+          session_type = mysh::Application;
         else
         {
-          std::cerr << "Value for --session-type must be either node or classic.\n";
+          std::cerr << "Value for --session-type must be either app, node or classic.\n";
           exit_code = 1;
           break;
         }
@@ -1082,6 +1122,8 @@ public:
         initial_mode = Shell_core::Mode_SQL;
       else if (check_arg(argv, i, "--js", "--js"))
         initial_mode = Shell_core::Mode_JScript;
+      else if (check_arg(argv, i, "--py", "--py"))
+        initial_mode = Shell_core::Mode_Python;
       else if (check_arg_with_value(argv, i, "--json", NULL, value, "raw"))
       {
         if (strcmp(value, "raw") != 0 && strcmp(value, "pretty") != 0)
@@ -1096,8 +1138,6 @@ public:
       }
       else if (check_arg(argv, i, "--table", "--table"))
         output_format = "table";
-      else if (check_arg(argv, i, "--py", "--py"))
-        initial_mode = Shell_core::Mode_Python;
       else if (check_arg(argv, i, "--help", "--help"))
       {
         print_cmd_line_helper = true;
@@ -1131,7 +1171,7 @@ public:
     }
 
     // Configures the URI using all hte associated parameters
-    configure_connection_string(connection_string, protocol, user, password, host, port, database, needs_password);
+    configure_connection_string(connection_string, user, password, host, port, database, needs_password);
   }
 };
 
@@ -1221,7 +1261,7 @@ int main(int argc, char **argv)
     {
       try
       {
-        if (!shell.connect(options.uri, is_interactive))
+        if (!shell.connect(options.uri, is_interactive, options.session_type))
           return 1;
       }
       catch (std::exception &e)

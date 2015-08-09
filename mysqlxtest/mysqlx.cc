@@ -65,7 +65,7 @@ bool mysqlx::parse_mysql_connstring(const std::string &connstring,
                                     std::string &host, int &port, std::string &sock,
                                     std::string &db, int &pwd_found)
 {
-  // format is [protocol://][user[:pass]]@host[:port][/db] or user[:pass]@::socket[/db], like what cmdline utilities use
+  // format is [user[:pass]]@host[:port][/db] or user[:pass]@::socket[/db], like what cmdline utilities use
   pwd_found = 0;
   std::string remaining = connstring;
 

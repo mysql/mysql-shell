@@ -28,7 +28,7 @@
 #include "modules/base_session.h"
 
 #ifdef HAVE_PYTHON
-  extern "C" void Python_context_init();
+extern "C" void Python_context_init();
 #endif
 
 using namespace shcore;
@@ -67,7 +67,7 @@ Simple_shell_client::Simple_shell_client()
 
 shcore::Value Simple_shell_client::connect_session(const shcore::Argument_list &args)
 {
-  boost::shared_ptr<mysh::ShellBaseSession> new_session(mysh::connect_session(args));
+  boost::shared_ptr<mysh::ShellBaseSession> new_session(mysh::connect_session(args, mysh::Node));
   _session.reset(new_session, new_session.get());
 
   _shell->set_global("session", Value(boost::static_pointer_cast<Object_bridge>(_session)));
