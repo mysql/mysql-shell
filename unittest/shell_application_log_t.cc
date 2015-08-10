@@ -75,7 +75,7 @@ namespace shcore {
     execute("print('x';");
     std::string std_err = "(shell):1:9: SyntaxError: Unexpected token ;\nin print('x';\n            ^\nSyntaxError: Unexpected token ;\n";
     EXPECT_TRUE(std_err == this->output_handler.std_err);
-    execute("session.executeSql('select * from sakila.actor1 limit').all();");
+    execute("session.sql('select * from sakila.actor1 limit');");
     // The hook was invoked
     EXPECT_EQ(1, Shell_application_log_tests::i);
   }

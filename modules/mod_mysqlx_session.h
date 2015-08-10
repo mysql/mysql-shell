@@ -98,8 +98,9 @@ namespace mysh
 
       virtual shcore::Value connect(const shcore::Argument_list &args);
       virtual shcore::Value close(const shcore::Argument_list &args);
-      virtual shcore::Value executeSql(const shcore::Argument_list &args);
+      virtual shcore::Value sql(const shcore::Argument_list &args);
       shcore::Value executeAdminCommand(const std::string& command, const shcore::Argument_list &args);
+      shcore::Value executeSql(const std::string& query, const shcore::Argument_list &args);
       virtual bool is_connected() const { return _session ? true : false; }
       virtual std::string uri() const { return _uri; };
 
@@ -129,6 +130,7 @@ namespace mysh
 #endif
     protected:
       ::mysqlx::ArgumentValue get_argument_value(shcore::Value source);
+      shcore::Value executeStmt(const std::string &domain, const std::string& command, const shcore::Argument_list &args);
       virtual boost::shared_ptr<BaseSession> _get_shared_this() const = 0;
       boost::shared_ptr< ::mysqlx::Result> _last_result;
       void _update_default_schema(const std::string& name);
@@ -160,7 +162,6 @@ namespace mysh
 
     /**
     * Enables interaction with an X Protocol enabled MySQL Server, inclusing SQL Execution.
-    * \todo Refactor and update documentation for executeSql()
     */
     class MOD_PUBLIC NodeSession : public BaseSession, public boost::enable_shared_from_this<NodeSession>
     {
@@ -170,8 +171,9 @@ namespace mysh
       virtual std::string class_name() const { return "NodeSession"; };
       static boost::shared_ptr<shcore::Object_bridge> create(const shcore::Argument_list &args);
       virtual boost::shared_ptr<BaseSession> _get_shared_this() const;
+      shcore::Value sql(const shcore::Argument_list &args);
 #ifdef DOXYGEN
-      Resultset executeSql(String sql);
+      Resultset sql(String sql);
 #endif
     };
   }

@@ -82,8 +82,6 @@ void Schema::cache_table_objects()
     if (sess)
     {
       {
-        sess->flush_last_result();
-
         shcore::Argument_list args;
         args.push_back(Value(_name));
         args.push_back(Value(""));
@@ -194,38 +192,45 @@ Value Schema::_load_object(const std::string& name, const std::string& type) con
     boost::shared_ptr<BaseSession> sess(boost::dynamic_pointer_cast<BaseSession>(_session.lock()));
     if (sess)
     {
+      shcore::Argument_list args;
+      args.push_back(Value(_name));
+      args.push_back(Value(name));
+
+      Value myres = sess->executeAdminCommand("list_objects", args);
+      boost::shared_ptr<mysh::mysqlx::Resultset> my_res = myres.as_object<mysh::mysqlx::Resultset>();
+
+      Value raw_entry = my_res->next(shcore::Argument_list());
+
+      if (raw_entry)
       {
-        sess->flush_last_result();
+        boost::shared_ptr<mysh::Row> row = raw_entry.as_object<mysh::Row>();
+        std::string object_name = row->get_member("name").as_string();
+        std::string object_type = row->get_member("type").as_string();
 
-        std::auto_ptr< ::mysqlx::Result> result(sess->session_obj()->executeSql("show full tables in `" + _name + "` like '" + name + "';"));
-        std::auto_ptr< ::mysqlx::Row> row(result->next());
-        if (row.get())
+        if (type.empty() || type == object_type)
         {
-          std::string object_name = row->stringField(0);
-          std::string object_type = row->stringField(1);
-
-          if (type.empty() || (type == "TABLE" && (object_type == "BASE TABLE" || object_type == "LOCAL TEMPORARY")))
+          if (object_type == "TABLE")
           {
             boost::shared_ptr<Table> table(new Table(shared_from_this(), object_name));
             ret_val = Value(boost::static_pointer_cast<Object_bridge>(table));
             (*_tables)[name] = ret_val;
           }
-          else if (type.empty() || (type == "VIEW" && (object_type == "VIEW" || object_type == "SYSTEM VIEW")))
+          else if (object_type == "VIEW")
           {
             boost::shared_ptr<View> view(new View(shared_from_this(), object_name));
             ret_val = Value(boost::static_pointer_cast<Object_bridge>(view));
             (*_views)[name] = ret_val;
           }
-          else if (type.empty() || (type == "COLLECTION"))
+          else if (object_type == "COLLECTION")
           {
             boost::shared_ptr<Collection> collection(new Collection(shared_from_this(), object_name));
             ret_val = Value(boost::static_pointer_cast<Object_bridge>(collection));
             (*_collections)[name] = ret_val;
           }
         }
-
-        result->discardData();
       }
+
+      my_res->all(shcore::Argument_list());
     }
   }
   CATCH_AND_TRANSLATE();

@@ -52,7 +52,7 @@ namespace mysh
     * \todo Document setDefaultSchema
     * \todo Document connect
     * \todo Document close
-    * \todo Document executeSql
+    * \todo Document sql
     */
     class MOD_PUBLIC ClassicSession : public ShellBaseSession, public boost::enable_shared_from_this<ClassicSession>
     {
@@ -68,7 +68,7 @@ namespace mysh
       // Virtual methods from ISession
       virtual shcore::Value connect(const shcore::Argument_list &args);
       virtual shcore::Value close(const shcore::Argument_list &args);
-      virtual shcore::Value executeSql(const shcore::Argument_list &args);
+      virtual shcore::Value sql(const shcore::Argument_list &args);
       virtual bool is_connected() const { return _conn ? true : false; }
 
       virtual std::string uri() const;

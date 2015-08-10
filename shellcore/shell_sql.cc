@@ -115,9 +115,16 @@ void Shell_sql::handle_input(std::string &code, Interactive_input_state &state, 
 
           try
           {
-            if (session->has_member("executeSql"))
+            if (session->has_member("sql"))
             {
-              ret_val = session->call("executeSql", query);
+              ret_val = session->call("sql", query);
+
+              // This is needed because now SQL execution differs on MySQL and X Protocol
+              // MySQL Already returns a Resultset object
+              // X Protocol returns a SqlExecute object so we check for that and
+              // call execute if beeded.
+              if (ret_val.as_object()->has_member("execute"))
+                ret_val = ret_val.as_object()->call("execute", shcore::Argument_list());
 
               result_processor(ret_val);
             }

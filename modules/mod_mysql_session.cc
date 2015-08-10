@@ -58,7 +58,7 @@ ClassicSession::ClassicSession()
   //_schema_proxy.reset(new Proxy_object(boost::bind(&ClassicSession::get_db, this, _1)));
 
   add_method("close", boost::bind(&ClassicSession::close, this, _1), "data");
-  add_method("executeSql", boost::bind(&ClassicSession::executeSql, this, _1),
+  add_method("sql", boost::bind(&ClassicSession::sql, this, _1),
     "stmt", shcore::String,
     NULL);
 
@@ -142,7 +142,7 @@ Value ClassicSession::close(const Argument_list &args)
   return shcore::Value();
 }
 
-Value ClassicSession::executeSql(const Argument_list &args)
+Value ClassicSession::sql(const Argument_list &args)
 {
   args.ensure_count(1, "ClassicSession::sql");
   // Will return the result of the SQL execution
@@ -233,7 +233,7 @@ void ClassicSession::_load_default_schema()
     shcore::Argument_list query;
     query.push_back(Value("select schema()"));
 
-    Value res = executeSql(query);
+    Value res = sql(query);
 
     boost::shared_ptr<Resultset> rset = res.as_object<Resultset>();
     Value next_row = rset->next(shcore::Argument_list());
@@ -259,7 +259,7 @@ void ClassicSession::_load_schemas()
     shcore::Argument_list query;
     query.push_back(Value("show databases;"));
 
-    Value res = executeSql(query);
+    Value res = sql(query);
 
     shcore::Argument_list args;
     boost::shared_ptr<Resultset> rset = res.as_object<Resultset>();
@@ -325,7 +325,7 @@ shcore::Value ClassicSession::set_default_schema(const shcore::Argument_list &ar
     shcore::Argument_list query;
     query.push_back(Value("use " + name + ";"));
 
-    Value res = executeSql(query);
+    Value res = sql(query);
 
     _update_default_schema(name);
   }

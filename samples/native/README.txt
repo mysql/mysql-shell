@@ -101,14 +101,14 @@ As sample session would be
 sql> use sakila;
 sql> select * from actor limit 5;
 \quit
-js> session.executeSql("show databases").all();
-js> session.executeSql("show tables from sakila").all();
+js> session.sql("show databases").execute().all();
+js> session.sql("show tables from sakila").execute().all();
 js> var s=input("Give me your money: ");
 Give me your money:
 50 USD
 js> print(s);
 50 USD
-js> var data=session.executeSql("select * from sakila.actor limit 3");
+js> var data=session.sql("select * from sakila.actor limit 3").execute();
 js> var rec;
 js> while(rec=data.next()) { print(rec) }
 {

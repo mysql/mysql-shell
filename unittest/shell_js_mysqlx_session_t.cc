@@ -218,7 +218,7 @@ namespace shcore {
     // Now direct and indirect access
     exec_and_out_equals("session.setFetchWarnings(true);");
 
-    exec_and_out_equals("var result = session.executeSql('drop database if exists unexisting;');");
+    exec_and_out_equals("var result = session.sql('drop database if exists unexisting;').execute();");
 
     exec_and_out_equals("print(result.warningCount);", "1");
 
@@ -230,7 +230,7 @@ namespace shcore {
 
     exec_and_out_equals("session.setFetchWarnings(false);");
 
-    exec_and_out_equals("var result = session.executeSql('drop database if exists unexisting;');");
+    exec_and_out_equals("var result = session.sql('drop database if exists unexisting;').execute();");
 
     exec_and_out_equals("print(result.warningCount);", "0");
 

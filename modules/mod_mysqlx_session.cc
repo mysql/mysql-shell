@@ -24,6 +24,7 @@
 #include "shellcore/object_factory.h"
 #include "shellcore/shell_core.h"
 #include "shellcore/lang_base.h"
+#include "mod_mysqlx_session_sql.h"
 
 #include "shellcore/proxy_object.h"
 
@@ -189,43 +190,20 @@ Value BaseSession::close(const Argument_list &args)
   return shcore::Value();
 }
 
-Value BaseSession::executeSql(const Argument_list &args)
+Value BaseSession::sql(const Argument_list &args)
 {
-  std::string function_name = class_name() + ".executeSql";
+  std::string function_name = class_name() + ".sql";
   args.ensure_count(1, function_name.c_str());
-  // Will return the result of the SQL execution
-  // In case of error will be Undefined
+
+  // NOTE: This function is no longer exposed as part of the API but it kept
+  //       since it is used internally.
+  //       until further cleanup is done let it live here.
   Value ret_val;
-  if (!_session)
-    throw Exception::logic_error("Not connected.");
-  else
+  try
   {
-    // Options are the statement and optionally options to modify
-    // How the resultset is created.
-    std::string statement = args.string_at(0);
-    Value options;
-    if (args.size() == 2)
-      options = args[1];
-
-    if (statement.empty())
-      throw Exception::argument_error("No query specified.");
-    else
-    {
-      try
-      {
-        // Cleans out the comm buffer
-        flush_last_result();
-
-        _last_result.reset(_session->executeSql(statement));
-
-        // Calls wait so any error is properly triggered at execution time
-        _last_result->wait();
-
-        ret_val = shcore::Value::wrap(new Resultset(_last_result));
-      }
-      CATCH_AND_TRANSLATE();
-    }
+    ret_val = executeSql(args.string_at(0), shcore::Argument_list());
   }
+  CATCH_AND_TRANSLATE();
 
   return ret_val;
 }
@@ -262,11 +240,21 @@ Value BaseSession::executeSql(const Argument_list &args)
   return ret_val;
 }
 
+Value BaseSession::executeSql(const std::string& statement, const Argument_list &args)
+{
+  return executeStmt("sql", statement, args);
+}
+
 Value BaseSession::executeAdminCommand(const std::string& command, const Argument_list &args)
 {
   std::string function_name = class_name() + ".executeAdminCommand";
   args.ensure_at_least(1, function_name.c_str());
 
+  return executeStmt("xplugin", command, args);
+}
+
+Value BaseSession::executeStmt(const std::string &domain, const std::string& command, const Argument_list &args)
+{
   // Will return the result of the SQL execution
   // In case of error will be Undefined
   Value ret_val;
@@ -283,7 +271,7 @@ Value BaseSession::executeAdminCommand(const std::string& command, const Argumen
     {
       flush_last_result();
 
-      _last_result.reset(_session->executeStmt("xplugin", command, arguments));
+      _last_result.reset(_session->executeStmt(domain, command, arguments));
 
       // Calls wait so any error is properly triggered at execution time
       _last_result->wait();
@@ -555,9 +543,7 @@ boost::shared_ptr<shcore::Object_bridge> Session::create(const shcore::Argument_
 
 NodeSession::NodeSession() : BaseSession()
 {
-  add_method("executeSql", boost::bind(&Session::executeSql, this, _1),
-             "stmt", shcore::String,
-             NULL);
+  add_method("sql", boost::bind(&NodeSession::sql, this, _1), "sql", shcore::String, NULL);
 }
 
 boost::shared_ptr<BaseSession> NodeSession::_get_shared_this() const
@@ -585,9 +571,15 @@ boost::shared_ptr<shcore::Object_bridge> NodeSession::create(const shcore::Argum
 *
 * JavaScript Example
 * \code{.js}
-* var result = session.executeSql("show databases");
+* var result = session.sql("show databases").execute();
 * \endcode
 */
-Resultset NodeSession::executeSql(String sql)
+Resultset NodeSession::sql(String sql)
 {}
 #endif
+shcore::Value NodeSession::sql(const shcore::Argument_list &args)
+{
+  boost::shared_ptr<SqlExecute> sql_execute(new SqlExecute(shared_from_this()));
+
+  return sql_execute->sql(args);
+}

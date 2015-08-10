@@ -1074,6 +1074,7 @@ public:
 
     session_type = mysh::Application;
 
+    char default_json[4] = "raw";
     initial_mode = Shell_core::Mode_JScript;
     force = false;
     interactive = false;
@@ -1124,7 +1125,7 @@ public:
         initial_mode = Shell_core::Mode_JScript;
       else if (check_arg(argv, i, "--py", "--py"))
         initial_mode = Shell_core::Mode_Python;
-      else if (check_arg_with_value(argv, i, "--json", NULL, value, "raw"))
+      else if (check_arg_with_value(argv, i, "--json", NULL, value, default_json))
       {
         if (strcmp(value, "raw") != 0 && strcmp(value, "pretty") != 0)
         {
