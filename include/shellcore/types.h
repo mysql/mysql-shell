@@ -371,10 +371,13 @@ namespace shcore {
     bool is_attribute() const;
     bool is_value() const;
     bool is_type() const;
+    bool is_server() const;
 
     virtual const char *what() const BOOST_NOEXCEPT_OR_NOTHROW;
 
     const char *type() const BOOST_NOEXCEPT_OR_NOTHROW;
+
+    int64_t code() const BOOST_NOEXCEPT_OR_NOTHROW;
 
     boost::shared_ptr<Value::Map_type> error() const { return _error; }
   };
