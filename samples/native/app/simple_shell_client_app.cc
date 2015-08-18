@@ -87,7 +87,7 @@ void print_doc_result_set(Document_result_set *doc)
     {
       std::cout << "\"" << it->as_string() << "\"";
       continue;
-    }    
+    }
     boost::shared_ptr<mysh::Row> row = it->as_object<mysh::Row>();
     row->values.size();
     std::cout << "[" << std::endl;
@@ -180,8 +180,13 @@ int main(int argc, char* argv[])
     boost::shared_ptr<Result_set> result = shell.execute(input);
     Result_set* res = result.get();
     Document_result_set *doc = dynamic_cast<Document_result_set*>(res);
+    Table_result_set* tbl = dynamic_cast<Table_result_set*>(res);
 
-    if (doc != NULL)
+    if (tbl != NULL)
+    {
+      print_table_result_set(tbl);
+    }
+    else if (doc != NULL)
     {
       print_doc_result_set(doc);
     }

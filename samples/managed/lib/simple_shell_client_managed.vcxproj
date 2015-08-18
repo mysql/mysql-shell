@@ -12,11 +12,11 @@
   </ItemGroup>
   <PropertyGroup>
     <BoostHeaderPath>C:\src\mysql-server\boost\boost_1_57_0</BoostHeaderPath>
-    <NativeSampleHeaderPath>C:\src\mysql-server\ngshell-install-script-MD-2\samples\native\lib</NativeSampleHeaderPath>
-    <MySqlXShellHeadersPath>C:\src\mysql-server\ngshell-install-script-MD-2\install_image\include</MySqlXShellHeadersPath>
-    <MySqlXShellLibsPath>C:\src\mysql-server\ngshell-install-script-MD-2\install_image\lib</MySqlXShellLibsPath>
-    <MySqlServerLibsPath>C:\MySQL\mysql-5.6.22-win32-MD-debug\lib\</MySqlServerLibsPath>
-    <NativeSampleLibPath>C:\src\mysql-server\ngshell-install-script-MD-2\samples\native\MY_BUILD\lib\Debug</NativeSampleLibPath>
+    <NativeSampleHeaderPath>C:\src\mysql-server\ngshell-readonly-develop-9\samples\native\lib</NativeSampleHeaderPath>
+    <MySqlXShellHeadersPath>C:\src\mysql-server\ngshell-readonly-develop-9\deployed.x86\include</MySqlXShellHeadersPath>
+    <MySqlXShellLibsPath>C:\src\mysql-server\ngshell-readonly-develop-9\deployed.x86\lib</MySqlXShellLibsPath>
+    <MySqlServerLibsPath>C:\MySQL\16083054.mysql-5.7.9-winx64-debug-test\lib\</MySqlServerLibsPath>
+    <NativeSampleLibPath>C:\src\mysql-server\ngshell-readonly-develop-9\MY_BUILD.x86\samples\native\lib\Debug</NativeSampleLibPath>
   </PropertyGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{083E5ED7-2E3C-4DD5-8055-D67CD0DB6AE9}</ProjectGuid>

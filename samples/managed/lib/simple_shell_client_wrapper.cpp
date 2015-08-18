@@ -103,15 +103,21 @@ List<Dictionary<String^, Object^>^>^ SimpleClientShell::get_managed_doc_result(D
   boost::shared_ptr<std::vector<shcore::Value> > data = doc->get_data();
   std::vector<shcore::Value>::const_iterator myend = data->end();
   // a document is an array of objects of type mysh::Row
-  for (std::vector<shcore::Value>::const_iterator it = data->begin(); it != myend; ++it)
+  int i = 0;
+  for (std::vector<shcore::Value>::const_iterator it = data->begin(); it != myend; ++it, ++i)
   {
-    boost::shared_ptr<mysh::Row> row = it->as_object<mysh::Row>();
     Dictionary<String^, Object^>^ dic = gcnew Dictionary<String^, Object^>();
-    std::map<std::string, int>::const_iterator it2, myend2 = row->keys.end();
-    for (it2 = row->keys.begin(); it2 != myend2; ++it2)
+    if (it->type == shcore::String)
+    {
+      dic->Add((gcnew Int32(i))->ToString(), msclr::interop::marshal_as<String^>(it->as_string()));
+      result->Add(dic);
+      continue;
+    }
+    boost::shared_ptr<mysh::Row> row = it->as_object<mysh::Row>();
+    for (size_t idx = 0; idx < row->value_iterators.size(); idx++)
     {
       Object^ o;
-      shcore::Value& val = row->values[it2->second];
+      shcore::Value& val = row->value_iterators[idx]->second;
       switch (val.type)
       {
       case shcore::Integer:
@@ -129,7 +135,7 @@ List<Dictionary<String^, Object^>^>^ SimpleClientShell::get_managed_doc_result(D
       default:
         o = msclr::interop::marshal_as<String^>(val.descr());
       }
-      dic->Add(msclr::interop::marshal_as<String^>(it2->first), o);
+      dic->Add(msclr::interop::marshal_as<String^>(row->value_iterators[idx]->first), o);
     }
     result->Add(dic);
   }
@@ -151,7 +157,7 @@ List<array<Object^>^>^ SimpleClientShell::get_managed_table_result_set(Table_res
     std::cout << std::endl;
     for (size_t i = 0; i < metadata->size(); i++)
     {
-      shcore::Value& val = row->values[i];
+      shcore::Value& val = row->value_iterators[i]->second;
       Object^ o;
       switch (val.type)
       {
@@ -170,7 +176,7 @@ List<array<Object^>^>^ SimpleClientShell::get_managed_table_result_set(Table_res
       default:
         o = msclr::interop::marshal_as<String^>(val.descr());
       }
-      arr->SetValue(o, (int)i++);
+      arr->SetValue(o, (int)i);
     }
     result->Add(arr);
   }

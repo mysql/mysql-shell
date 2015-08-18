@@ -62,7 +62,7 @@ namespace SimpleShellClientSharp
     static void Main(string[] args)
     {
       MySimpleClientShell shell = new MySimpleClientShell();
-      shell.MakeConnection("root:123@localhost:3305");
+      shell.MakeConnection("root:123@localhost:33060");
       shell.SwitchMode(Mode.SQL);
       string query;
       while ((query = ReadLineFromPrompt("sql")) != null)
@@ -80,7 +80,10 @@ namespace SimpleShellClientSharp
         if (query == @"\quit") break;
         ResultSet rs = shell.Execute(query);
         DocumentResultSet doc = rs as DocumentResultSet;
-        if(doc != null)
+        TableResultSet tbl = rs as TableResultSet;
+        if (tbl != null)
+          PrintTableResulSet(tbl);
+        else if (doc != null)
           PrintDocumentResulSet(doc);
       }
 

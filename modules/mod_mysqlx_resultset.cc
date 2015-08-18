@@ -53,6 +53,8 @@ shcore::Value Resultset::get_member(const std::string &prop) const
   {
     boost::shared_ptr<shcore::Value::Array_type> array(new shcore::Value::Array_type);
 
+    if (!_result->columnMetadata()) return ret_val = shcore::Value(array);
+
     int num_fields = _result->columnMetadata()->size();
 
     for (int i = 0; i < num_fields; i++)
@@ -212,7 +214,7 @@ shcore::Value Collection_resultset::next(const shcore::Argument_list &args)
 
   args.ensure_count(0, function.c_str());
 
-  if (_result->columnMetadata()->size())
+  if (_result->columnMetadata() && _result->columnMetadata()->size())
   {
     std::auto_ptr< ::mysqlx::Row> r(_result->next());
     if (r.get())

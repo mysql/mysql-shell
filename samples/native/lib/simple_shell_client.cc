@@ -116,15 +116,17 @@ void Simple_shell_client::process_result(shcore::Value result)
     if (result.type == shcore::Object)
     {
       boost::shared_ptr<Object_bridge> object = result.as_object();
-
-      shcore::Value affected_rows = object->call("getAffectedRows", Argument_list());
-      shcore::Value fetched_row_count = object->call("getFetchedRowCount", Argument_list());
-      shcore::Value warning_count = object->call("getWarningCount", Argument_list());
-      shcore::Value execution_time = object->call("getExecutionTime", Argument_list());
+      
+      shcore::Value affected_rows = object->has_member("getAffectedRows")? object->call("getAffectedRows", Argument_list()) : shcore::Value(-1);
+      shcore::Value fetched_row_count = object->has_member("getFetchedRowCount") ? object->call("getFetchedRowCount", Argument_list()) : shcore::Value(-1);
+      shcore::Value warning_count = object->has_member("getWarningCount") ? object->call("getWarningCount", Argument_list()) : shcore::Value(-1);
+      shcore::Value execution_time = object->has_member("getExecutionTime") ? object->call("getExecutionTime", Argument_list()) : shcore::Value("");
 
       shcore::Argument_list args;
       // If true returns as data array, if false, returns as document.
       shcore::IShell_core::Mode mode = _shell->interactive_mode();
+      if (!object->has_member("all") || !object->has_member("getColumnMetadata"))
+        return;
       shcore::Value result = object->call("all", args);
       shcore::Value metadata = object->call("getColumnMetadata", Argument_list());
 
