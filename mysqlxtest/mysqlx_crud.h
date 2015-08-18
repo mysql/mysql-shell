@@ -35,6 +35,7 @@ namespace Mysqlx
   namespace Datatypes
   {
     class Any;
+    class Scalar;
   }
 }
 
@@ -315,7 +316,7 @@ namespace mysqlx
     boost::shared_ptr<Table> table() const { return m_table; }
 
   protected:
-    Mysqlx::Datatypes::Any* convert_table_value(const TableValue& value);
+    Mysqlx::Datatypes::Scalar* convert_table_value(const TableValue& value);
 
     boost::shared_ptr<Table> m_table;
   };
@@ -560,7 +561,7 @@ namespace mysqlx
     boost::shared_ptr<Collection> collection() const { return m_coll; }
 
   protected:
-    Mysqlx::Datatypes::Any* convert_document_value(const DocumentValue& value);
+    Mysqlx::Datatypes::Scalar* convert_document_value(const DocumentValue& value);
 
     boost::shared_ptr<Collection> m_coll;
   };

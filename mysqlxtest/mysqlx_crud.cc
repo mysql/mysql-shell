@@ -120,11 +120,9 @@ Collection_Statement &Collection_Statement::bind(const std::string &UNUSED(name)
   return *this;
 }
 
-Mysqlx::Datatypes::Any* Collection_Statement::convert_document_value(const DocumentValue& value)
+Mysqlx::Datatypes::Scalar* Collection_Statement::convert_document_value(const DocumentValue& value)
 {
-  Mysqlx::Datatypes::Any *any = new Mysqlx::Datatypes::Any();
-  any->set_type(Mysqlx::Datatypes::Any::SCALAR);
-  Mysqlx::Datatypes::Scalar *my_scalar(any->mutable_scalar());
+  Mysqlx::Datatypes::Scalar *my_scalar = new Mysqlx::Datatypes::Scalar;
 
   mysqlx::DocumentValue column_value(value);
 
@@ -151,7 +149,7 @@ Mysqlx::Datatypes::Any* Collection_Statement::convert_document_value(const Docum
       break;
   }
 
-  return any;
+  return my_scalar;
 }
 
 // -----
@@ -291,16 +289,9 @@ AddStatement::AddStatement(boost::shared_ptr<Collection> coll, const Document &d
 
 AddStatement &AddStatement::add(const Document &doc)
 {
-  Mysqlx::Expr::Expr *expr(m_insert->mutable_row()->Add()->mutable_field()->Add());
-  expr->set_type(Mysqlx::Expr::Expr::LITERAL);
-
-  Mysqlx::Datatypes::Any *any = new Mysqlx::Datatypes::Any();
-  any->set_type(Mysqlx::Datatypes::Any::SCALAR);
-  Mysqlx::Datatypes::Scalar *value(any->mutable_scalar());
-  value->set_type(Mysqlx::Datatypes::Scalar::V_OCTETS);
-  value->set_v_opaque(doc.str());
-
-  expr->set_allocated_constant(any);
+  DocumentValue expression(doc);
+  Expr_parser parser(expression, true);
+  m_insert->mutable_row()->Add()->mutable_field()->AddAllocated(parser.expr());
   return *this;
 }
 
@@ -440,7 +431,7 @@ Modify_Operation &Modify_Operation::set_operation(int type, const std::string &p
     else
     {
       operation->mutable_value()->set_type(Mysqlx::Expr::Expr::LITERAL);
-      operation->mutable_value()->set_allocated_constant(convert_document_value(*value));
+      operation->mutable_value()->set_allocated_literal(convert_document_value(*value));
     }
   }
 
@@ -490,11 +481,9 @@ Table_Statement::Table_Statement(boost::shared_ptr<Table> table)
 {
 }
 
-Mysqlx::Datatypes::Any* Table_Statement::convert_table_value(const TableValue& value)
+Mysqlx::Datatypes::Scalar* Table_Statement::convert_table_value(const TableValue& value)
 {
-  Mysqlx::Datatypes::Any *any = new Mysqlx::Datatypes::Any();
-  any->set_type(Mysqlx::Datatypes::Any::SCALAR);
-  Mysqlx::Datatypes::Scalar *my_scalar(any->mutable_scalar());
+  Mysqlx::Datatypes::Scalar *my_scalar = new Mysqlx::Datatypes::Scalar;
 
   mysqlx::TableValue column_value(value);
 
@@ -536,7 +525,7 @@ Mysqlx::Datatypes::Any* Table_Statement::convert_table_value(const TableValue& v
       break;
   }
 
-  return any;
+  return my_scalar;
 }
 
 //Collection_Statement &Collection_Statement::bind(const std::string &UNUSED(name), const DocumentValue &UNUSED(value))
@@ -670,7 +659,7 @@ Update_Set &Update_Set::set(const std::string &field, const TableValue& value)
 
   operation->set_operation(Mysqlx::Crud::UpdateOperation::SET);
   operation->mutable_value()->set_type(Mysqlx::Expr::Expr::LITERAL);
-  operation->mutable_value()->set_allocated_constant(convert_table_value(value));
+  operation->mutable_value()->set_allocated_literal(convert_table_value(value));
 
   return *this;
 }
@@ -840,8 +829,8 @@ Insert_Values &Insert_Values::values(const std::vector<TableValue> &row_data)
   {
     Mysqlx::Expr::Expr* expr = new Mysqlx::Expr::Expr();
     expr->set_type(Mysqlx::Expr::Expr::LITERAL);
-    Mysqlx::Datatypes::Any* any = convert_table_value(*index);
-    expr->set_allocated_constant(any);
+    Mysqlx::Datatypes::Scalar* scalar = convert_table_value(*index);
+    expr->set_allocated_literal(scalar);
     row->mutable_field()->AddAllocated(expr);
   }
 

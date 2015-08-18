@@ -81,8 +81,13 @@ void print_doc_result_set(Document_result_set *doc)
   std::cout << "{";
   for (std::vector<shcore::Value>::const_iterator it = data->begin(); it != myend; ++it)
   {
-if (i++ != 0)
+    if (i++ != 0)
       std::cout << ",\n";
+    if (it->type == shcore::String)
+    {
+      std::cout << "\"" << it->as_string() << "\"";
+      continue;
+    }    
     boost::shared_ptr<mysh::Row> row = it->as_object<mysh::Row>();
     row->values.size();
     std::cout << "[" << std::endl;
@@ -143,7 +148,7 @@ int main(int argc, char* argv[])
   // ...
   MyShell shell;
   // CHANGEME: Set up connection string here as required
-  shell.make_connection("root:123@localhost:3305");
+  shell.make_connection("root:123@localhost:33060");
 
   bool empty_result = false;
   // Run shell in SQL mode

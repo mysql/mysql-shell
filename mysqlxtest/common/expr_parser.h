@@ -129,12 +129,12 @@ namespace mysqlx
   class Expr_builder
   {
   public:
-    static Mysqlx::Datatypes::Any* build_null_any();
-    static Mysqlx::Datatypes::Any* build_double_any(double d);
-    static Mysqlx::Datatypes::Any* build_int_any(google::protobuf::int64 i);
-    static Mysqlx::Datatypes::Any* build_string_any(const std::string& s);
-    static Mysqlx::Datatypes::Any* build_bool_any(bool b);
-    static Mysqlx::Expr::Expr* build_literal_expr(Mysqlx::Datatypes::Any* a);
+    static Mysqlx::Datatypes::Scalar* build_null_scalar();
+    static Mysqlx::Datatypes::Scalar* build_double_scalar(double d);
+    static Mysqlx::Datatypes::Scalar* build_int_scalar(google::protobuf::int64 i);
+    static Mysqlx::Datatypes::Scalar* build_string_scalar(const std::string& s);
+    static Mysqlx::Datatypes::Scalar* build_bool_scalar(bool b);
+    static Mysqlx::Expr::Expr* build_literal_expr(Mysqlx::Datatypes::Scalar* sc);
     static Mysqlx::Expr::Expr* build_unary_op(const std::string& name, Mysqlx::Expr::Expr* param);
   };
 
