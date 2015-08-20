@@ -40,7 +40,7 @@ namespace Mysqlx
   }
 }
 
-namespace google { namespace protobuf { class Message; } }
+namespace google { namespace protobuf { class Message; }}
 
 namespace mysqlx
 {
@@ -68,6 +68,24 @@ namespace mysqlx
   class Schema;
   class Connection;
 
+  struct Ssl_config
+  {
+    Ssl_config()
+    {
+      key      = NULL;
+      ca       = NULL;
+      ca_path  = NULL;
+      cert     = NULL;
+      cipher   = NULL;
+    }
+
+    const char *key;
+    const char *ca;
+    const char *ca_path;
+    const char *cert;
+    const char *cipher;
+  };
+
   class ArgumentValue
   {
   public:
@@ -88,7 +106,7 @@ namespace mysqlx
       m_type = other.m_type;
       m_value = other.m_value;
       if (m_type == TString || m_type == TOctets)
-        m_value.s = new std::string(*other.m_value.s);
+          m_value.s = new std::string(*other.m_value.s);
     }
 
     ArgumentValue &operator = (const ArgumentValue &other)
@@ -168,28 +186,28 @@ namespace mysqlx
     {
       if (m_type != TDouble)
         throw std::logic_error("type error");
-      return m_value.d;
+        return m_value.d;
     }
 
     inline operator float() const
     {
       if (m_type != TFloat)
         throw std::logic_error("type error");
-      return m_value.f;
+        return m_value.f;
     }
 
     inline operator bool() const
     {
       if (m_type != TBool)
         throw std::logic_error("type error");
-      return m_value.b;
+        return m_value.b;
     }
 
     inline operator const std::string & () const
     {
       if (m_type != TString && m_type != TOctets)
         throw std::logic_error("type error");
-      return *m_value.s;
+        return *m_value.s;
     }
 
   private:
@@ -208,7 +226,7 @@ namespace mysqlx
   class Session : public boost::enable_shared_from_this<Session>
   {
   public:
-    Session();
+    Session(const mysqlx::Ssl_config &ssl_config);
     ~Session();
     Result *executeSql(const std::string &sql);
 
@@ -224,10 +242,10 @@ namespace mysqlx
   };
   typedef boost::shared_ptr<Session> SessionRef;
 
-  SessionRef openSession(const std::string &uri, const std::string &pass);
-
+  SessionRef openSession(const std::string &uri, const std::string &pass, const mysqlx::Ssl_config &ssl_config, const bool cap_expired_password);
   SessionRef openSession(const std::string &host, int port, const std::string &schema,
-                         const std::string &user, const std::string &pass);
+                         const std::string &user, const std::string &pass,
+                         const mysqlx::Ssl_config &ssl_config);
 
   enum FieldType
   {
@@ -331,6 +349,7 @@ namespace mysqlx
     Row *next();
     bool nextDataSet();
     void discardData();
+    void mark_error();
 
     struct Warning
     {
@@ -354,7 +373,7 @@ namespace mysqlx
     mysqlx::Message* pop_message();
 
     mysqlx::Message* current_message;
-    int                            current_message_id;
+    int              current_message_id;
 
     friend class Connection;
     Connection *m_owner;

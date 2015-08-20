@@ -166,28 +166,28 @@ namespace mysqlx
     {
       if (m_type != TDouble)
         throw std::logic_error("type error");
-      return m_value.d;
+        return m_value.d;
     }
 
     inline operator float() const
     {
       if (m_type != TFloat)
         throw std::logic_error("type error");
-      return m_value.f;
+        return m_value.f;
     }
 
     inline operator bool() const
     {
       if (m_type != TBool)
         throw std::logic_error("type error");
-      return m_value.b;
+        return m_value.b;
     }
 
     inline operator const std::string & () const
     {
       if (m_type != TString && m_type != TOctets && m_type != TExpression)
         throw std::logic_error("type error");
-      return *m_value.s;
+        return *m_value.s;
     }
 
   private:
@@ -273,27 +273,27 @@ namespace mysqlx
       return m_value.i;
     }
 
-    inline operator double() const
+    inline operator double () const
     {
       if (m_type != TFloat)
         throw std::logic_error("type error");
-      return m_value.f;
+        return m_value.f;
     }
 
     inline operator const std::string & () const
     {
       if (m_type != TString && m_type != TExpression)
         throw std::logic_error("type error");
-      return *m_value.s;
+        return *m_value.s;
     }
 
     inline operator const Document & () const
     {
       if (m_type != TDocument)
         throw std::logic_error("type error");
-      return *m_value.d;
+        return *m_value.d;
     }
-
+    
   private:
     Type m_type;
     union

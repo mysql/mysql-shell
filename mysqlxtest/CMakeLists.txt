@@ -13,13 +13,17 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
 
-include_directories("${Boost_INCLUDE_DIRS}" ${CMAKE_CURRENT_SOURCE_DIR}/common)
+include_directories("${Boost_INCLUDE_DIRS}" ${CMAKE_CURRENT_SOURCE_DIR}/common ${CMAKE_CURRENT_SOURCE_DIR})
 
 file(GLOB libmysqlxtest_SRC
       "common/*.cc"
       "common/*.h"
+      "myasio/*.cc"
+      "myasio/*.h"
       "*.cc"
       "*.h"
+      "${CMAKE_SOURCE_DIR}/common/mysqlx/auth_mysql41.h"
+      "${CMAKE_SOURCE_DIR}/common/mysqlx/auth_mysql41.cc"
 )
 
 add_library(mysqlxtest ${libmysqlxtest_SRC})

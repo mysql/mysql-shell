@@ -111,7 +111,7 @@ Statement::~Statement()
 }
 
 Collection_Statement::Collection_Statement(boost::shared_ptr<Collection> coll)
-: m_coll(coll)
+  : m_coll(coll)
 {
 }
 
@@ -410,7 +410,7 @@ Modify_Operation &Modify_Operation::set_operation(int type, const std::string &p
 
   Mysqlx::Crud::UpdateOperation * operation = m_update->mutable_operation()->Add();
 
-  operation->set_operation(Mysqlx::Crud::UpdateOperation_UpdateType(type));
+  operation->set_operation( Mysqlx::Crud::UpdateOperation_UpdateType(type));
 
   if (items.Get(0).has_alias())
   {

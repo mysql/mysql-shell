@@ -1,14 +1,14 @@
 # Copyright (c) 2014, 2015, Oracle and/or its affiliates. All rights reserved.
-# 
+#
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; version 2 of the License.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
@@ -17,7 +17,7 @@ cmake_minimum_required (VERSION 2.8)
 
 project (mysh)
 
-set(CMAKE_MODULE_PATH 
+set(CMAKE_MODULE_PATH
     ${CMAKE_SOURCE_DIR}/cmake
     ${CMAKE_SOURCE_DIR}/common/cmake
     ${CMAKE_MODULE_PATH}
@@ -33,7 +33,7 @@ SET(MYSH_PATCH 2)
 SET(MYSH_LEVEL "-alpha") # Empty if GA
 
 SET(MYSH_VERSION "${MYSH_MAJOR}.${MYSH_MINOR}.${MYSH_PATCH}${MYSH_LEVEL}")
- 
+
 ###
 ### Detect Stuff
 ###
@@ -51,7 +51,11 @@ endif()
 IF (WITH_PROTOBUF)
   SET(HAVE_PROTOBUF "YES")              # Variable for CMake processing
   add_definitions(-DX_PROTOCOL_ENABLED) # Preprocessor variable for generated projects
+ELSE()
+  message(ERROR "Protobuf 2.5.0 or newer required")
 ENDIF()
+
+add_definitions(-DMYSQLXTEST_STANDALONE)
 
 IF ( V8_INCLUDE_DIR AND V8_LIB_DIR )
   set(HAVE_V8 "YES")         # Variable for CMake processing
@@ -211,6 +215,7 @@ include_directories("${PROJECT_SOURCE_DIR}/include"
                     "${MYSQL_INCLUDE_DIR}"
                     "${Boost_INCLUDE_DIRS}"
                     "${CMAKE_SOURCE_DIR}"
+                    "${CMAKE_SOURCE_DIR}/common"
                     "${CMAKE_SOURCE_DIR}/ext/rapidjson/include"
                    )
 

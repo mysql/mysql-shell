@@ -28,6 +28,8 @@
 
 #include "shellcore/proxy_object.h"
 
+#include "mysqlx.h"
+
 #include <boost/bind.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/format.hpp>
@@ -124,7 +126,7 @@ Value BaseSession::connect(const Argument_list &args)
     {
       std::string uri_ = args.string_at(0);
       _uri = mysh::strip_password(uri_);
-      _session = ::mysqlx::openSession(uri_, pwd_override);
+      _session = ::mysqlx::openSession(uri_, pwd_override, ::mysqlx::Ssl_config(), true);
     }
     else if (args[0].type == Map)
     {
@@ -154,7 +156,7 @@ Value BaseSession::connect(const Argument_list &args)
       if (!pwd_override.empty())
         password = pwd_override;
 
-      _session = ::mysqlx::openSession(host, port, schema, user, password);
+      _session = ::mysqlx::openSession(host, port, schema, user, password, ::mysqlx::Ssl_config());
 
       std::stringstream str;
       str << user << "@" << host << ":" << port;
