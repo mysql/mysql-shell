@@ -24,6 +24,9 @@
 #include <cstring>
 #include <cstdio>
 #include <ctype.h>
+#include <stdlib.h>
+
+#include "mysql/get_password.h"
 
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
@@ -218,3 +221,18 @@ char *mysh_get_tty_password(const char *opt_message)
 
 #endif /* !_WIN32 */
 
+
+extern "C" {
+char *yassl_mysql_get_tty_password_ext(const char *opt_message,
+                           strdup_handler_t strdup_function)
+{
+  char *tmp = mysh_get_tty_password(opt_message);
+  if (tmp)
+  {
+    char *tmp2 = strdup_function(tmp, 0);
+    free(tmp);
+    return tmp2;
+  }
+  return NULL;
+}
+}

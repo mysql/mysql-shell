@@ -162,7 +162,9 @@ shcore::Value Row::get_value(int index)
       case MYSQL_TYPE_DATE:
       case MYSQL_TYPE_NEWDATE:
       case MYSQL_TYPE_TIME:
+#if MYSQL_MAJOR_VERSION > 5 || (MYSQL_MAJOR_VERSION == 5 && MYSQL_MINOR_VERSION >= 7)
       case MYSQL_TYPE_TIME2:
+#endif
       case MYSQL_TYPE_STRING:
       case MYSQL_TYPE_VARCHAR:
       case MYSQL_TYPE_VAR_STRING:
@@ -190,8 +192,10 @@ shcore::Value Row::get_value(int index)
 
       case MYSQL_TYPE_DATETIME:
       case MYSQL_TYPE_TIMESTAMP:
+#if MYSQL_MAJOR_VERSION > 5 || (MYSQL_MAJOR_VERSION == 5 && MYSQL_MINOR_VERSION >= 7)
       case MYSQL_TYPE_DATETIME2:
       case MYSQL_TYPE_TIMESTAMP2:
+#endif
         return shcore::Value(shcore::Date::unrepr(_row[index]));
         break;
 

@@ -48,12 +48,11 @@ if(HAVE_PYTHON)
   INCLUDE(FindPythonLibs)
 endif()
 
-IF (WITH_PROTOBUF)
-  SET(HAVE_PROTOBUF "YES")              # Variable for CMake processing
-  add_definitions(-DX_PROTOCOL_ENABLED) # Preprocessor variable for generated projects
-ELSE()
-  message(ERROR "Protobuf 2.5.0 or newer required")
-ENDIF()
+INCLUDE(protobuf)
+SETUP_PROTOBUF()
+
+SET(HAVE_PROTOBUF "YES")              # Variable for CMake processing
+add_definitions(-DX_PROTOCOL_ENABLED) # Preprocessor variable for generated projects
 
 add_definitions(-DMYSQLXTEST_STANDALONE)
 
@@ -67,7 +66,8 @@ ENDIF()
 IF ( PYTHONLIBS_FOUND )
   set(HAVE_PYTHON "YES")         # Variable for CMake processing
   add_definitions(-DHAVE_PYTHON) # Preprocessor variable for generated projects
-  message(STATUS "Python ${PYTHONLIBS_VERSION_STRING} found: ${PYTHON_LIBRARIES}")
+  message(STATUS "Python ${PYTHONLIBS_VERSION_STRING}")
+  message(STATUS "PYTHON_LIRARIES: ${PYTHON_LIBRARIES}")
 ELSE()
   message(WARNING "Python is unavailable: building without Python support.")
 ENDIF()
@@ -78,9 +78,21 @@ if(NOT DEFINED MYSQLCLIENT_STATIC_LINKING)
 endif()
 
 find_package(MySQL REQUIRED)
+add_definitions(-DHAVE_LIBMYSQLCLIENT)
+
 find_package(Boost 1.42 REQUIRED)
 find_package(Curses)
 
+# Check whether boost::system can be compiled into the binary
+include(CheckCXXSourceCompiles)
+CHECK_CXX_SOURCE_COMPILES(${PROJECT_SOURCE_DIR}/src/boost_code.cc BOOST_SYSTEM_COMPILES)
+
+if (BOOST_SYSTEM_COMPILES)
+  set(BOOST_SOURCE_CODE "${PROJECT_SOURCE_DIR}/boost_code.cc")
+else()
+  message(STATUS "Boost requires linkage")
+  set(BOOST_LIBRARIES boost_system)
+endif()
 
 # disable optimization for boost error_code, otherwise we get link errors in Release builds
 if (CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
@@ -91,20 +103,8 @@ endif ()
 ##
 ## Configure style system detection (generation of config.h)
 ##
-CHECK_INCLUDE_FILES (pwd.h HAVE_PWD_H)
-if(WIN32)
-else()
-  CHECK_INCLUDE_FILES (sys/ioctl.h HAVE_SYS_IOCTL_H)
-  CHECK_INCLUDE_FILES (termio.h HAVE_TERMIO_H)
-  CHECK_INCLUDE_FILES (termios.h HAVE_TERMIOS_H)
-  CHECK_INCLUDE_FILES (unistd.h HAVE_UNISTD_H)
-endif()
-
-CHECK_FUNCTION_EXISTS (getpass HAVE_GETPASS)
-
+INCLUDE(configure.cmake)
 CONFIGURE_FILE(config.h.cmake   ${CMAKE_BINARY_DIR}/include/mysh_config.h)
-
-include(CheckCXXSourceCompiles)
 
 MACRO (MY_CHECK_CXX_COMPILER_FLAG FLAG RESULT)
   SET(SAVE_CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS}")
@@ -120,10 +120,16 @@ MACRO (MY_CHECK_CXX_COMPILER_FLAG FLAG RESULT)
   SET(CMAKE_REQUIRED_FLAGS "${SAVE_CMAKE_REQUIRED_FLAGS}")
 ENDMACRO()
 
-if(WITH_SSL)
+# Must be before MYSQL_CHECK_SSL()
+include_directories( ${CMAKE_BINARY_DIR}/include/ ${PROJECT_SOURCE_DIR}/include)
+
 # Add bundled yassl/taocrypt or system openssl.
-MYSQL_CHECK_SSL()
-endif()
+IF (WITH_SSL)
+  MYSQL_CHECK_SSL()
+ENDIF()
+MESSAGE(STATUS "SSL_LIBRARIES:    ${SSL_LIBRARIES}")
+MESSAGE(STATUS "SSL_DEFINES:      ${SSL_DEFINES}")
+MESSAGE(STATUS "SSL_INCLUDE_DIRS: ${SSL_INCLUDE_DIRS}")
 
 ###
 ### Handle User Options
@@ -143,7 +149,6 @@ set(MY_C_WARNING_FLAGS
 set(MY_CXX_WARNING_FLAGS "${MY_CXX_WARNING_FLAGS} -Werror")
 
 
-include_directories( ${CMAKE_BINARY_DIR}/include/ )
 
 
 if(NOT WIN32)
@@ -207,13 +212,9 @@ IF (HAVE_V8)
   endif()
 ENDIF()
 
-IF (HAVE_PYTHON)
-  include_directories(${PYTHON_INCLUDE_DIRS})
-ENDIF()
-
-include_directories("${PROJECT_SOURCE_DIR}/include"
-                    "${MYSQL_INCLUDE_DIR}"
+include_directories(${MYSQL_INCLUDE_DIR}
                     "${Boost_INCLUDE_DIRS}"
+                    "${PYTHON_INCLUDE_DIRS}"
                     "${CMAKE_SOURCE_DIR}"
                     "${CMAKE_SOURCE_DIR}/common"
                     "${CMAKE_SOURCE_DIR}/ext/rapidjson/include"
@@ -253,11 +254,12 @@ if(NOT WIN32)
   include_directories( "${PROJECT_SOURCE_DIR}/src/libedit" )
 endif()
 
-file(GLOB mysh_SRC
-    "${PROJECT_SOURCE_DIR}/src/*.cc"
+set(mysh_SRC
+    "${PROJECT_SOURCE_DIR}/src/main.cc"
+    "${PROJECT_SOURCE_DIR}/src/get_password.cc"
 )
 
-add_executable(mysqlx ${mysh_SRC})
+add_executable(mysqlx ${mysh_SRC} ${BOOST_SOURCE_CODE})
 
 if(WIN32)
   if(NOT WINDOWS_RUNTIME_MD)
@@ -266,18 +268,9 @@ if(WIN32)
 else()
   target_link_libraries(mysqlx edit)
 endif()
-target_link_libraries(mysqlx mysqlsh mysqlshmods)
-
-target_link_libraries(mysqlx ${GCOV_LDFLAGS})
-if ( HAVE_V8 )
-  target_link_libraries(mysqlx ${V8_LINK_LIST})
-endif()
-if ( HAVE_PYTHON )
-  target_link_libraries(mysqlx ${PYTHON_LIBRARIES})
-endif()
 
 # Last, to make -lrt -lpthread last, v8 needs it
-target_link_libraries(mysqlx ${MYSQL_LIBRARIES})
+target_link_libraries(mysqlx mysqlshmods mysqlsh mysqlxtest ${V8_LINK_LIST} ${PYTHON_LIBRARIES} ${BOOST_LIBRARIES} ${SSL_LIBRARIES} ${MYSQL_LIBRARIES} ${GCOV_LDFLAGS})
 
 install(TARGETS mysqlx DESTINATION bin)
 install(DIRECTORY scripting/modules DESTINATION lib)
@@ -295,8 +288,6 @@ if(WIN32)
 endif()
 
 add_definitions(-DBOOST_ALL_NO_LIB )
-
-
 
 ADD_SUBDIRECTORY(doc)
 

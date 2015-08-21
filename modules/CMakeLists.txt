@@ -18,7 +18,6 @@ include_directories("${CMAKE_SOURCE_DIR}/include"
                     "${CMAKE_SOURCE_DIR}/mysqlxtest" 
                     "${CMAKE_SOURCE_DIR}/mysqlxtest/common"
                     "${CMAKE_SOURCE_DIR}/ext/rapidjson/include"
-                    "${MYSQL_INCLUDE_DIR}"
                     "${Boost_INCLUDE_DIRS}")
 
 include_directories( "${CMAKE_SOURCE_DIR}/common/uuid/include" )
@@ -28,40 +27,34 @@ if (HAVE_V8)
 endif()
 
 file(GLOB libmysqlshmods_SRC
-      "*.h"
-      "*.cc"
-      "*.h"
-      "${CMAKE_SOURCE_DIR}/src/boost_code.cc"
+      "base_*.cc"
+      "base_*.h"
+      "collection_*.cc"
+      "collection_*.h"
+      "table_*.cc"
+      "table_*.h"
+      "crud_*.cc"
+      "crud_*.h"
+      "dynamic_*.cc"
+      "dynamic_*.h"
+      "mod_mysqlx_*.cc"
+      "mod_mysqlx_*.h"
+      ${BOOST_SOURCE_CODE}
       "${CMAKE_SOURCE_DIR}/common/uuid/src/uuid_gen.cc"
 )
 
-if (NOT HAVE_PROTOBUF)
-  # Removes from the project the X protocol files
-  file(GLOB x_SRC "*mysqlx*")
-  
-  foreach(xfile ${x_SRC})
-    list(REMOVE_ITEM libmysqlshmods_SRC "${xfile}")
-  endforeach()  
-else()
-  include_directories("${CMAKE_BINARY_DIR}/mysqlxtest")
-  INCLUDE(protobuf)
-  SETUP_PROTOBUF()
+if (TRUE)
+  file(GLOB MYSQL_CLASSIC_SRC 
+          mysql.h mysql.cc
+          "mod_mysql_*.cc"
+          "mod_mysql_*.h")
 endif()
 
-if(WINDOWS_RUNTIME_MD)
-  add_convenience_library_dll(mysqlshmods ${libmysqlshmods_SRC})
-else()
-  add_convenience_library(mysqlshmods ${libmysqlshmods_SRC})
-endif()
-target_link_libraries(mysqlshmods mysqlxtest)
+include_directories("${CMAKE_BINARY_DIR}/mysqlxtest")
+INCLUDE(protobuf)
+SETUP_PROTOBUF()
 
-if(WINDOWS_RUNTIME_MD)
-  target_link_libraries(mysqlshmods mysqlshtypes)
-  target_link_libraries(mysqlshmods ${MYSQL_LIBRARIES})
-else()
-  target_link_libraries(mysqlshmods mysqlsh mysqlxtest)
-  target_link_libraries(mysqlshmods ${MYSQL_LIBRARIES})
-endif()
+add_convenience_library(mysqlshmods ${libmysqlshmods_SRC} ${MYSQL_CLASSIC_SRC})
 
 if( WIN32 )
   include(msvc)
@@ -71,6 +64,5 @@ if( WIN32 )
 endif()
 
 install(DIRECTORY "${CMAKE_SOURCE_DIR}/modules/" DESTINATION "include/modules" FILES_MATCHING PATTERN "*.h" )
-install(TARGETS mysqlshmods DESTINATION lib)
 
 add_definitions(-DBOOST_ALL_NO_LIB )

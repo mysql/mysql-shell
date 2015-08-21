@@ -55,13 +55,13 @@ file(GLOB libmysqlsh_SRC
     "${CMAKE_SOURCE_DIR}/utils/utils_file.cc"
     "${CMAKE_SOURCE_DIR}/utils/utils_json.h"
     "${CMAKE_SOURCE_DIR}/utils/utils_json.cc"
-      "*.cc"
+    "*.cc"
     "${CMAKE_SOURCE_DIR}/common/uuid/src/uuid_gen.cc"
     "${CMAKE_SOURCE_DIR}/common/myjson/src/json_parser.cc"
     "${CMAKE_SOURCE_DIR}/common/myjson/src/mutable_myjson.cc"
     "${CMAKE_SOURCE_DIR}/common/myjson/src/myjson.cc"
     "${CMAKE_BINARY_DIR}/shellcore/jscript_core_definitions.h"
-    "${CMAKE_SOURCE_DIR}/src/boost_code.cc"
+    "${BOOST_SOURCE_CODE}"
 )
 
 if(NOT WINDOWS_RUNTIME_MD)

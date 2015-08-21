@@ -13,7 +13,14 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
 
-include_directories("${Boost_INCLUDE_DIRS}" ${CMAKE_CURRENT_SOURCE_DIR}/common ${CMAKE_CURRENT_SOURCE_DIR})
+
+include_directories("${Boost_INCLUDE_DIRS}" 
+    ${SSL_INCLUDE_DIRS}
+    ${CMAKE_SOURCE_DIR}/common/yassl/taocrypt/mySTL
+    ${CMAKE_CURRENT_SOURCE_DIR}/common 
+    ${CMAKE_CURRENT_SOURCE_DIR})
+
+add_definitions(${SSL_DEFINES} -DUSE_SYS_STL)
 
 file(GLOB libmysqlxtest_SRC
       "common/*.cc"
@@ -27,15 +34,18 @@ file(GLOB libmysqlxtest_SRC
 )
 
 
-if(WITH_SSL)
-  include_directories( ${CMAKE_SOURCE_DIR}/common/yassl/taocrypt/include )
-  include_directories( ${CMAKE_SOURCE_DIR}/common/yassl/taocrypt/mySTL )
-  include_directories( ${CMAKE_SOURCE_DIR}/common/yassl/include )
-  add_definitions(-DHAVE_YASSL )
-  add_definitions(-DYASSL_PREFIX )
-endif()
+file(GLOB proto_SRC
+      "${CMAKE_SOURCE_DIR}/common/protocol/*.proto"
+)
 
-add_library(mysqlxtest ${libmysqlxtest_SRC})
+INCLUDE_DIRECTORIES(${CMAKE_CURRENT_BINARY_DIR})
+PROTOBUF_GENERATE_CPP(PROTO_SRCS PROTO_HDRS ${proto_SRC})
+set_source_files_properties(${PROTO_SRCS} ${PROTO_HDRS} PROPERTIES GENERATED TRUE)
+SOURCE_GROUP(Protobuf FILES ${PROTO_SRCS} ${PROTO_HDRS})
+
+add_library(mysqlxtest ${libmysqlxtest_SRC} ${PROTO_SRCS} ${PROTO_HDRS})
+
+target_link_libraries(mysqlxtest ${PROTOBUF_LIBRARIES})
 
 # For now, "samples/native/lib" compiles against this library when
 # creating a shared library, so we need to make sure the code is
@@ -45,27 +55,6 @@ if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_C_COMPILER_ID MATCHES "Clang")
   set_target_properties(mysqlxtest PROPERTIES COMPILE_FLAGS "-fPIC -Wno-error=unused-value")
 endif()
 
-MACRO(SHELL_ADD_PROTOBUF target)
-  INCLUDE_DIRECTORIES(${CMAKE_CURRENT_BINARY_DIR})
-  PROTOBUF_GENERATE_CPP(PROTO_SRCS PROTO_HDRS ${ARGN})
-  set_source_files_properties(${PROTO_SRCS} ${PROTO_HDRS} PROPERTIES GENERATED TRUE)
-  SOURCE_GROUP(Protobuf FILES ${PROTO_SRCS} ${PROTO_HDRS})
-  ADD_LIBRARY(${target}_pb STATIC ${PROTO_SRCS} ${PROTO_HDRS})
-  if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_C_COMPILER_ID MATCHES "Clang")
-    set_target_properties(${target}_pb PROPERTIES COMPILE_FLAGS "-fPIC -Wno-unused-parameter -Wno-shadow")
-  endif()
-  TARGET_LINK_LIBRARIES(${target}_pb ${PROTOBUF_LIBRARY})
-  TARGET_LINK_LIBRARIES(${target} ${target}_pb)
-ENDMACRO()
-
-INCLUDE(protobuf)
-SETUP_PROTOBUF()
-
-file(GLOB proto_SRC
-      "${CMAKE_SOURCE_DIR}/common/protocol/*.proto"
-)
-
-SHELL_ADD_PROTOBUF(mysqlxtest ${proto_SRC})
 
 if( WIN32 )
   include(msvc)
@@ -80,5 +69,4 @@ install(DIRECTORY "${CMAKE_SOURCE_DIR}/mysqlxtest/" DESTINATION "include/" FILES
 install(DIRECTORY "${CMAKE_SOURCE_DIR}/mysqlxtest/common/" DESTINATION "include/common/" FILES_MATCHING PATTERN "*.h" )
 install(DIRECTORY "${CMAKE_BINARY_DIR}/mysqlxtest/" DESTINATION "include/" FILES_MATCHING PATTERN "*.h" )
 install(TARGETS mysqlxtest DESTINATION lib)
-install(TARGETS mysqlxtest_pb DESTINATION lib)
 install(FILES ${PROTOBUF_LIBRARY} DESTINATION lib)

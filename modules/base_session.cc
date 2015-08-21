@@ -31,7 +31,9 @@
 #include <boost/format.hpp>
 #include <boost/pointer_cast.hpp>
 
+#ifdef HAVE_LIBMYSQLCLIENT
 #include "mod_mysql_session.h"
+#endif
 #include "mod_mysqlx_session.h"
 
 #define MAX_COLUMN_LENGTH 1024
@@ -168,9 +170,11 @@ boost::shared_ptr<mysh::ShellBaseSession> mysh::connect_session(const shcore::Ar
     case Node:
       ret_val.reset(new mysh::mysqlx::NodeSession());
       break;
+#ifdef HAVE_LIBMYSQLCLIENT
     case Classic:
       ret_val.reset(new mysql::ClassicSession());
       break;
+#endif
     default:
       throw shcore::Exception::argument_error("Invalid session type specified for MySQL connection.");
       break;
