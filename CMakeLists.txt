@@ -41,6 +41,7 @@ SET(MYSH_VERSION "${MYSH_MAJOR}.${MYSH_MINOR}.${MYSH_PATCH}${MYSH_LEVEL}")
 INCLUDE(libutils)
 INCLUDE(msvc)
 INCLUDE(ssl)
+INCLUDE(readline)
 
 INCLUDE(CheckIncludeFiles)
 INCLUDE(CheckFunctionExists)
