@@ -70,6 +70,34 @@ Connection *ClassicSession::connection()
   return _conn.get();
 }
 
+#ifdef DOXYGEN
+/**
+* Connects to a database enabling this session instance to run operations against the connected database server.
+* During this call a connection is opened against the given URI and the schema data is cached.
+* \sa close()
+* \param connectionData the connection string used to connect to the database. The connection string can be of the format [user[:pass]]@host[:port][/db] or user[:pass]@::socket[/db]
+* \param password if provided, will override the password in the connection string.
+* \return No return value
+*/
+Undefined ClassicSession::connect(String connectionData, String password)
+{}
+
+/**
+* Connects to a database enabling this session instance to run operations against the connected database server.
+* During this call a connection is opened against the given URI and the schema data is cached.
+* \sa close()
+* \param connectionData a map with the connection data as key value pairs, the following keys are recognized:
+*  - host, the host to use for the connection (can be an IP or DNS name)
+*  - port, the TCP port where the server is listening (default ports are 3306 for MySQL classic & 33060 for MySQL X).
+*  - schema, the current database for the connection's session.
+*  - dbUser, the user to authenticate against.
+*  - dbPassword, the password of the user user to authenticate against.
+* \param password if provided, will override the password in the connection string.
+* \return No return value
+*/
+Undefined ClassicSession::connect(Map connectionData, String password)
+{}
+#endif
 Value ClassicSession::connect(const Argument_list &args)
 {
   args.ensure_count(1, 2, "ClassicSession::connect");
@@ -133,6 +161,13 @@ Value ClassicSession::connect(const Argument_list &args)
   return Value::Null();
 }
 
+#ifdef DOXYGEN
+/**
+* Closes the connection associated with this session.
+*/
+Undefined ClassicSession::close()
+{}
+#endif
 Value ClassicSession::close(const Argument_list &args)
 {
   args.ensure_count(0, "ClassicSession::close");
@@ -142,6 +177,15 @@ Value ClassicSession::close(const Argument_list &args)
   return shcore::Value();
 }
 
+#ifdef DOXYGEN
+/**
+* Executes a query against the database and returns a  Resultset object wrapping the result.
+* \param query the SQL query to execute against the database.
+* \return The Resultset.
+*/
+Resultset ClassicSession::sql(String query)
+{}
+#endif
 Value ClassicSession::sql(const Argument_list &args)
 {
   args.ensure_count(1, "ClassicSession::sql");
@@ -165,6 +209,15 @@ Value ClassicSession::sql(const Argument_list &args)
   return ret_val;
 }
 
+#ifdef DOXYGEN
+/**
+* Returns the connection string passed to connect() method.
+* \return The URI of the form user@host:port (not including the password or the database).
+* \sa connect
+*/
+String ClassicSession::getUri()
+{}
+#endif
 std::string ClassicSession::uri() const
 {
   return _conn->uri();
@@ -281,6 +334,15 @@ void ClassicSession::_load_schemas()
   }
 }
 
+#ifdef DOXYGEN
+/**
+* Returns the current schema of this session.
+* \sa Schema
+* \return An schema object for the current schema.
+*/
+Schema ClassicSession::getSchema()
+{}
+#endif
 shcore::Value ClassicSession::get_schema(const shcore::Argument_list &args) const
 {
   std::string function_name = class_name() + ".getSchema";
@@ -314,6 +376,14 @@ shcore::Value ClassicSession::get_schema(const shcore::Argument_list &args) cons
   return (*_schemas)[name];
 }
 
+#ifdef DOXYGEN
+/**
+* Sets the default schema for this session's connection.
+* \return The new schema.
+*/
+Schema ClassicSession::setDefaultSchema(String schema)
+{}
+#endif
 shcore::Value ClassicSession::set_default_schema(const shcore::Argument_list &args)
 {
   args.ensure_count(1, "ClassicSession.setDefaultSchema");

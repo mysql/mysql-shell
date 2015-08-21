@@ -43,6 +43,41 @@ CollectionAdd::CollectionAdd(boost::shared_ptr<Collection> owner)
   update_functions("");
 }
 
+#ifdef DOXYGEN
+/**
+* Add a document to the collection. The document doc must have a property named '_id' with the universal unique identifier (uuid) that uniquely identifies the document.
+* If the property is not there, it is added with an auto generated uuid.
+* This method must be invoked before execute, add can be invoked as many times as required, after it, the following methods can be invoked: execute.
+* \sa execute()
+* \param document: the document to add
+* \return the same instance of the collection the method was invoked with.
+* \code{.js}
+* // open a connection
+* var mysqlx = require('mysqlx').mysqlx;
+* var mysession = mysqlx.getNodeSession("root:123@localhost:33060");
+* // create some initial data
+* var collection = mysession.js_shell_test.getCollection('collection1');
+* var result = collection.add({ name: 'my first', passed: 'document', count: 1}).execute();
+* var result = collection.add([{name: 'my second', passed: 'again', count: 2}, {name: 'my third', passed: 'once again', count: 3}]).execute();
+* // check results
+* var crud = collection.find();
+* crud.execute();
+* \endcode
+*/
+CollectionAdd CollectionAdd::add({ document })
+{}
+
+/**
+* Adds a set of documents to the collection. Each document must have a property named '_id' with the universal unique identifier (uuid) that uniquely identifies the document.
+* If the property is not there, it is added with an auto generated uuid.
+* This method must be invoked before execute, add can be invoked as many times as required, after it, the following methods can be invoked: execute.
+* \sa execute()
+* \param {document, document, ...}: the document(s) to add
+* \return the same instance of the collection the method was invoked with.
+*/
+CollectionAdd CollectionAdd::add({document, document, ...})
+{}
+#endif
 shcore::Value CollectionAdd::add(const shcore::Argument_list &args)
 {
   // Each method validates the received parameters
@@ -128,6 +163,16 @@ std::string CollectionAdd::get_new_uuid()
   return str.str();
 }
 
+#ifdef DOXYGEN
+/**
+* Execute the batch of insert document statements. Returning a result object.
+* This method must be invoked after the method add has been invoked at least once.
+* \sa add()
+* \return the result of the batch insert.
+*/
+Result CollectionAdd::execute()
+{}
+#endif
 shcore::Value CollectionAdd::execute(const shcore::Argument_list &args)
 {
   args.ensure_count(0, "CollectionAdd::execute");

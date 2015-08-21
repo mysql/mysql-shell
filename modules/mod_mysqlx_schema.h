@@ -48,13 +48,6 @@ namespace mysh
 
     /**
     * Represents a Schema as retrived from a session created using the X Protocol.
-    * \todo Document tables and getTables()
-    * \todo Document views and getViews()
-    * \todo Document collections and getCollections()
-    * \todo Document getTable()
-    * \todo Document getView()
-    * \todo Document getCollection()
-    * \todo Document createCollection
     * \todo Implement and Document getCollectionAsTable()
     * \todo Implement and Document drop()
     */
@@ -76,6 +69,53 @@ namespace mysh
       friend class Table;
       friend class Collection;
       friend class View;
+#ifdef DOXYGEN
+      /**
+      * Returns a list of tables as a map, for each entry being the key, an string, the table name and the data the Table object.
+      * \sa getTables(), getViews(), getCollections()
+      */
+      Map tables;
+
+      /**
+      * Returns a list of tables as a map, for each entry being the key, an string, the table name and the data the Table object.
+      * \sa tables
+      * \return the map with the tables.
+      */
+      Map getTables()
+      {}
+
+      /**
+      * Returns a list of views as a map, for each entry being the key, an string, the view name and the data the View object.
+      * \sa getTables(), getViews(), getCollections()
+      */
+      Map views;
+
+      /**
+      * Returns a list of views as a map, for each entry being the key, an string, the view name and the data the View object.
+      * \sa getTables(), getViews(), getCollections()
+      * \return the map with the views.
+      */
+      Map getViews()
+      {}
+
+      /**
+      * Returns a list of collections as a map, for each entry being the key, an string, the collection name and the data the CollectionRef object.
+      * \sa getTables(), getViews(), getCollections()
+      */
+      Map collections;
+
+      /**
+      * Returns a list of collections as a map, for each entry being the key, an string, the collection name and the data the CollectionRef object.
+      * \sa getTables(), getViews(), getCollections()
+      * \return the map of collections.
+      */
+      Map getCollections();
+
+      Table getTable(String name);
+      View getView(String name);
+      CollectionRef getCollection(String name);
+      CollectionRef createCollection(String name);
+#endif
     private:
       shcore::Value _load_object(const std::string& name, const std::string& type = "") const;
       boost::shared_ptr< ::mysqlx::Schema> _schema_impl;

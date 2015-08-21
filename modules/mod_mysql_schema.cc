@@ -141,6 +141,16 @@ Value Schema::get_member(const std::string &prop) const
   return ret_val;
 }
 
+#ifdef DOXYGEN
+/**
+* Returns the table of the given name for this schema.
+* \sa Table
+* \param name the name of the table to look for.
+* \return the Table object matching the name.
+*/
+Table Schema::getTable(String name)
+{}
+#endif
 shcore::Value Schema::getTable(const shcore::Argument_list &args)
 {
   args.ensure_count(1, (class_name() + "::getTable").c_str());
@@ -155,6 +165,16 @@ shcore::Value Schema::getTable(const shcore::Argument_list &args)
   //return shcore::Value::wrap(new Table(shared_from_this(), name));
 }
 
+#ifdef DOXYGEN
+/**
+* Returns the view of the given name for this schema.
+* \sa View
+* \param name the name of the view to look for.
+* \return the View object matching the name.
+*/
+View Schema::getView(String name)
+{}
+#endif
 shcore::Value Schema::getView(const shcore::Argument_list &args)
 {
   args.ensure_count(1, (class_name() + "::getCollection").c_str());

@@ -51,6 +51,41 @@ TableUpdate::TableUpdate(boost::shared_ptr<Table> owner)
   update_functions("");
 }
 
+#ifdef DOXYGEN
+/**
+* Creates a new TableUpdate object and returns it.
+* After this method invocation the following methods can be invoked: set.
+* \sa execute(), set()
+* \return a new TableUpdate object.
+* \code{.js}
+* // open a connection
+* var mysqlx = require('mysqlx').mysqlx;
+* var mysession = mysqlx.getNodeSession("root:123@localhost:33060");
+* // create some initial data
+* mysession.sql('drop schema if exists js_shell_test;').execute();
+* mysession.sql('create schema js_shell_test;').execute();
+* mysession.sql('use js_shell_test;').execute();
+* mysession.sql('create table table1 (name varchar(50), age integer, gender varchar(20));').execute();
+* // create some initial data, populate table
+* var schema = mysession.getSchema('js_shell_test');
+* var table = schema.getTable('table1');
+* var result = table.insert({name: 'jack', age: 17, gender: 'male'}).execute();
+* var result = table.insert({name: 'adam', age: 15, gender: 'male'}).execute();
+* var result = table.insert({name: 'brian', age: 14, gender: 'male'}).execute();
+* // check results
+* table.select().execute();
+* // update a record
+* var crud = table.update();
+* crud.set({ name: 'adam x'}).where("name = 'adam'");
+* crud.execute();
+* table.select().execute();
+* // check results again
+* table.select().execute();
+* \endcode
+*/
+TableUpdate TableUpdate::update()
+{}
+#endif
 shcore::Value TableUpdate::update(const shcore::Argument_list &args)
 {
   // Each method validates the received parameters
@@ -73,6 +108,19 @@ shcore::Value TableUpdate::update(const shcore::Argument_list &args)
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
+#ifdef DOXYGEN
+/**
+* Sets the pairs of field name / field value to modify in this update operation.
+* Calling this method is allowed only for the first time.
+* After this method invocation the following methods can be invoked: where, orderBy, limit, bind, execute.
+* 
+* \sa where(), orderBy(), limit(), bind(), execute()
+* \param { field : value, field : value, ... } a set of key value pairs where the key is the field name and the value is the value name. Both are Strings value can be an expression.
+* \return The same TableUpdate object where the method was invoked.
+*/
+TableUpdate TableUpdate::set({ field : value, field : value, ... })
+{}
+#endif
 shcore::Value TableUpdate::set(const shcore::Argument_list &args)
 {
   // Each method validates the received parameters
@@ -121,6 +169,18 @@ shcore::Value TableUpdate::set(const shcore::Argument_list &args)
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
+#ifdef DOXYGEN
+/**
+* Sets the where expression used to filter out rows (those not meeting the search criteria won't be updated).
+* Calling this method is allowed only for the first time.
+* After this method invocation the following methods can be invoked: orderBy, limit, bind, execute.
+* \sa orderBy(), limit(), bind(), execute()
+* \param searchCriteria an String representing a valid expression to filter out rows.
+* \return The same TableUpdate object where the method was invoked.
+*/
+TableUpdate TableUpdate::where(searchCriteria)
+{}
+#endif
 shcore::Value TableUpdate::where(const shcore::Argument_list &args)
 {
   // Each method validates the received parameters
@@ -138,6 +198,19 @@ shcore::Value TableUpdate::where(const shcore::Argument_list &args)
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
+#ifdef DOXYGEN
+/**
+* Sets the sorting criteria to be used on the Resultset, if used the TableUpdate operation will return the records sorted with the defined criteria.
+* Calling this method is allowed only for the first time and only if the search criteria has been set by calling TableUpdate.where(), after that its usage is forbidden since the internal class state has been updated to handle the rest of the TableUpdate operation.
+* And after this method invocation the following methods can be invoked: limit, bind, execute.
+*
+* \sa limit(), bind(), execute()
+* \param [expr, expr, ...] A list containing the sort criteria expressions to be used on the operation.
+* \return the same TableUpdate object where the method was applied.
+*/
+TableUpdate TableUpdate::orderBy([expr, expr, ...])
+{}
+#endif
 shcore::Value TableUpdate::order_by(const shcore::Argument_list &args)
 {
   args.ensure_count(1, "TableUpdate::orderBy");
@@ -160,6 +233,19 @@ shcore::Value TableUpdate::order_by(const shcore::Argument_list &args)
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
+#ifdef DOXYGEN
+/**
+* Sets the maximum number of documents to be returned on the update operation, if used the TableUpdate operation will return at most numberOfRows documents.
+* Calling this method is allowed only for the first time and only if the search criteria has been set by calling TableSelect.where(searchCriteria), after that its usage is forbidden since the internal class state has been updated to handle the rest of the TableUpdate operation.
+* After this method invocation the following methods can be invoked: offset, bind, execute.
+*
+* \sa offset(), bind(), execute().
+* \param lim The maximum number of documents to be retrieved.
+* \return the same TableUpdate object where the method was applied.
+*/
+TableUpdate TableUpdate::limit(lim)
+{}
+#endif
 shcore::Value TableUpdate::limit(const shcore::Argument_list &args)
 {
   args.ensure_count(1, "TableUpdate::limit");
@@ -175,6 +261,15 @@ shcore::Value TableUpdate::limit(const shcore::Argument_list &args)
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
+#ifdef DOXYGEN
+/**
+* Sets the bindings mappings for the TableUpdate.
+* \param { var:val, var : val, ... } a map of key value pairs where each key is the name of a parameter and each value is the value of the parameter.
+* \return the same TableUpdate object where the method was applied.
+*/
+TableUpdate TableUpdate::bind({ var:val, var : val, ... })
+{}
+#endif
 shcore::Value TableUpdate::bind(const shcore::Argument_list &UNUSED(args))
 {
   throw shcore::Exception::logic_error("TableUpdate::bind: not yet implemented.");
@@ -182,6 +277,15 @@ shcore::Value TableUpdate::bind(const shcore::Argument_list &UNUSED(args))
   return Value(Object_bridge_ref(this));
 }
 
+#ifdef DOXYGEN
+/**
+* Executes the TableUpdate operation with all the configured options and returns.
+* \param opt the execution options (currently not used).
+* \return a ResultSet object that can be used to retrieve the results.
+*/
+ResultSet TableUpdate::execute(ExecuteOptions opt)
+{}
+#endif
 shcore::Value TableUpdate::execute(const shcore::Argument_list &args)
 {
   args.ensure_count(0, "TableUpdate::execute");

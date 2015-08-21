@@ -47,7 +47,6 @@ namespace mysh
       virtual ~View();
 
       virtual std::string class_name() const { return "View"; }
-
       //private:
       //boost::shared_ptr< ::mysqlx::Table> _table_impl;
     };

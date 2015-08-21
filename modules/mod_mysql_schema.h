@@ -45,10 +45,6 @@ namespace mysh
 
     /**
     * Represents a Schema retrieved with a session created using the MySQL Protocol.
-    * \todo Document tables and getTables()
-    * \todo Document views and getViews()
-    * \todo Document getTable()
-    * \todo Document getView()
     */
     class MOD_PUBLIC Schema : public DatabaseObject, public boost::enable_shared_from_this<Schema>
     {
@@ -66,6 +62,31 @@ namespace mysh
 
       friend class Table;
       friend class View;
+
+#ifdef DOXYGEN
+
+      /**
+      * Returns a list of tables for this schema.
+      * This method is run against a local cache of objects, if you want to see lastest changes by other sessions you may need to create a new copy the schema object with session.getSchema().
+      * \sa Table      
+      * \return The list of tables as a Map(String, Table).
+      */
+      Map getTables()
+      {}
+
+      /**
+      * Returns a list of views for this schema.
+      * This method is run against a local cache of objects, if you want to see lastest changes by other sessions you may need to create a new copy the schema object with session.getSchema().
+      * \sa View
+      * \return The list of views as a Map(String, View).
+      */
+      Map getViews()
+      {}
+
+      Table getTable(String name);
+      View getView(String name);
+#endif
+
     private:
       boost::shared_ptr<shcore::Value::Map_type> _tables;
       boost::shared_ptr<shcore::Value::Map_type> _views;

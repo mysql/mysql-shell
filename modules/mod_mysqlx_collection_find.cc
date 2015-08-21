@@ -59,9 +59,23 @@ CollectionFind::CollectionFind(boost::shared_ptr<Collection> owner)
 * Sets the search condition to identify the Documents to be retrieved from the owner Collection.
 * This method is called automatically when Collection.find(searchCondition) is called.
 * Calling this method is allowed only for the first time, after that its usage is forbidden since the internal class state has been updated to handle the rest of the Find operation.
-*
+* After this method invocation, the following methods can be invoked: fields, groupBy, sort, limit, bind, execute.
+* 
+* \sa fields(), groupBy(), sort(), limit(), bind(), execute()
 * \param searchCondition: An optional expression to identify the documents to be retrieved, if not specified all the documents will be included on the result.
 * \return CollectionFindRef returns itself with it's state updated as the searchCondition was established.
+* \code{.js}
+* // open a connection
+* var mysqlx = require('mysqlx').mysqlx;
+* var mysession = mysqlx.getNodeSession("root:123@localhost:33060");
+* // create some initial data
+* var collection = mysession.js_shell_test.getCollection('collection1');
+* var result = collection.add({ name: 'my first', passed: 'document', count: 1}).execute();
+* var result = collection.add([{name: 'my second', passed: 'again', count: 2}, {name: 'my third', passed: 'once again', count: 3}]).execute();
+* // check results
+* var crud = collection.find();
+* crud.execute();
+* \endcode
 */
 CollectionFindRef CollectionFind::find(String searchCondition)
 {}
@@ -96,7 +110,9 @@ shcore::Value CollectionFind::find(const shcore::Argument_list &args)
 /**
 * Sets a field filter, if used the CollectionFind operation will only return the fields that were included.
 * Calling this method is allowed only for the first time and only if the search criteria has been set by calling CollectionFind.find(searchCriteria), after that its usage is forbidden since the internal class state has been updated to handle the rest of the Find operation.
+* After this method invocation the following methods can be invoked: groupBy, sort, limit, bind, execute.
 *
+* \sa groupBy(), sort(), limit(), bind(), execute()
 * \param projectedSearchExprStr: A list of string expressions identifying the fields to be extracted, alias support is suported on these fields.
 * \return CollectionFindRef returns itself with it's state updated as the field list has been stablished.
 */
@@ -129,7 +145,9 @@ shcore::Value CollectionFind::fields(const shcore::Argument_list &args)
 /**
 * Sets a grouping criteria for the resultset, if used the CollectionFind operation will group the records using the stablished criteria.
 * Calling this method is allowed only for the first time and only if the search criteria has been set by calling CollectionFind.find(searchCriteria), after that its usage is forbidden since the internal class state has been updated to handle the rest of the Find operation.
-*
+* After method groupBy invocation the following methods can be invoked: having, sort, limit, bind, execute.
+* 
+* \sa find(), fields(), having(), sort(), limit(), bind(), execute().
 * \param searchExprStr: A list of string expressions identifying the grouping criteria.
 * \return CollectionFindRef returns itself with it's state updated as the grouping criteria has been set.
 */
@@ -162,7 +180,9 @@ shcore::Value CollectionFind::group_by(const shcore::Argument_list &args)
 /**
 * Sets a condition for records to be considered in agregate function operations, if used the CollectionFind operation will only consider the records matching the stablished criteria.
 * Calling this method is allowed only for the first time and only if the grouping criteria has been set by calling CollectionFind.groupBy(groupCriteria), after that its usage is forbidden since the internal class state has been updated to handle the rest of the Find operation.
-*
+* After this method invocation the following methods can be invoked: sort, limit, bind, execute.
+* 
+* \sa groupBy(), sort(), limit(), bind(), execute().
 * \param searchCondition: A condition on the agregate functions used on the grouping criteria.
 * \return CollectionFindRef returns itself with it's state updated as the grouping condition has been set.
 */
@@ -188,7 +208,9 @@ shcore::Value CollectionFind::having(const shcore::Argument_list &args)
 /**
 * Sets the sorting criteria to be used on the Resultset, if used the CollectionFind operation will return the records sorted with the defined criteria.
 * Calling this method is allowed only for the first time and only if the search criteria has been set by calling CollectionFind.find(searchCriteria), after that its usage is forbidden since the internal class state has been updated to handle the rest of the Find operation.
-*
+* After this method invocation the following methods can be invoked: limit, bind, execute.
+* 
+* \sa find(), fields(), groupBy(), having(), limit(), bind(), execute()
 * \param sortExprStr: A list containing the sort criteria expressions to be used on the operation.
 * \return CollectionFindRef returns itself with it's state updated as the grouping condition has been set.
 */
@@ -221,7 +243,9 @@ shcore::Value CollectionFind::sort(const shcore::Argument_list &args)
 /**
 * Sets the maximum number of documents to be returned on the find operation, if used the CollectionFind operation will return at most numberOfRows documents.
 * Calling this method is allowed only for the first time and only if the search criteria has been set by calling CollectionFind.find(searchCriteria), after that its usage is forbidden since the internal class state has been updated to handle the rest of the Find operation.
+* After this method invocation the following methods can be invoked: skip, bind, execute.
 *
+* \sa find(), fields(), groupBy(), having(), sort(), skip(), bind(), execute()
 * \param numberOfRows: The maximum number of documents to be retrieved.
 * \return CollectionFindRef returns itself with it's state updated as the grouping condition has been set.
 */
@@ -247,7 +271,9 @@ shcore::Value CollectionFind::limit(const shcore::Argument_list &args)
 /**
 * Sets number of records to skip on the resultset when a limit has been defined.
 * Calling this method is allowed only for the first time and only if a limit has been set by calling CollectionFind.limit(numberOfRows), after that its usage is forbidden since the internal class state has been updated to handle the rest of the Find operation.
+* After this method, the following methods can be invoked: bind, execute.
 *
+* \sa bind(), execute()
 * \param limitOffset: The number of documents to skip before start including them on the Resultset.
 * \return CollectionFindRef returns itself with it's state updated as the grouping condition has been set.
 */
@@ -279,6 +305,7 @@ shcore::Value CollectionFind::bind(const shcore::Argument_list &UNUSED(args))
 #ifdef DOXYGEN
 /**
 * Executes the Find operation with all the configured options and returns.
+* This method can be invoked after any of the following methods: find, fields, groupBy, having, sort, skip, limit, bind.
 *
 * \return Collection_resultset A Collection resultset object that can be used to retrieve the results of the find operation.
 */

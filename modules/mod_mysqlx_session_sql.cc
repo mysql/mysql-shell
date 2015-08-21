@@ -43,6 +43,18 @@ _session(owner), Dynamic_object()
   update_functions("");
 }
 
+#ifdef DOXYGEN
+/**
+* Sets the sql statement to execute.
+* This method can be invoked any number of times, each time will reset the sql statement to the value of the parameter.
+* After this method, the following methods can be invoked: bind, execute.
+* \sa execute(), bind()
+* \param sql
+* \return the same instance where this method was invoked.
+*/
+SqlExecute SqlExecute::sql(String sql)
+{}
+#endif
 shcore::Value SqlExecute::sql(const shcore::Argument_list &args)
 {
   // Each method validates the received parameters
@@ -61,6 +73,30 @@ shcore::Value SqlExecute::sql(const shcore::Argument_list &args)
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
+#ifdef DOXYGEN
+
+/**
+* Registers a parameter with the SQL statement.
+* This method can be invoked any number of times, each time will add the parameter to the list of parameters.
+* After this method the following methods can be invoked: execute.
+* TODO: the bind methods seems to lack a facility to associate a parameter name with its value.
+* \param val the parameter name
+* \sa bind()
+* \return the same instance where this method was invoked.
+*/
+SqlExecute SqlExecute::bind(val)
+{}
+
+/**
+* Registers a set of parameters with the SQL statement.
+* This method can be invoked any number of times, each time will add the parameters to the list of parameters.
+* After this method the following methods can be invoked: execute.
+* \param {val, val, ...} the array of parameter names.
+* \return the same instance where this method was invoked.
+*/
+SqlExecute SqlExecute::bind({val, val, ...})
+{}
+#endif
 shcore::Value SqlExecute::bind(const shcore::Argument_list &args)
 {
   args.ensure_count(1, "SqlExecute::sql");
@@ -79,6 +115,14 @@ shcore::Value SqlExecute::bind(const shcore::Argument_list &args)
   return Value(Object_bridge_ref(this));
 }
 
+#ifdef DOXYGEN
+/**
+* Executes the sql statement with the bound parameters and returns a resulset with the value.
+* This method can be invoked any number of times. Can be invoked after the following methods: sql (at least once), bind (zero or more).
+*/
+Resultset SqlExecute::execute(String sql)
+{}
+#endif
 shcore::Value SqlExecute::execute(const shcore::Argument_list &args)
 {
   args.ensure_count(0, "SqlExecute::execute");

@@ -43,6 +43,7 @@ CollectionModify::CollectionModify(boost::shared_ptr<Collection> owner)
 
   // Registers the dynamic function behavior
   register_dynamic_function("modify", "");
+  // TODO: shouldnt be enforced to invoke 'set' at least once before execute, bind, etc? 
   register_dynamic_function("set", "modify, operation");
   register_dynamic_function("unset", "modify, operation");
   register_dynamic_function("arrayInsert", "modify, operation");
@@ -57,6 +58,37 @@ CollectionModify::CollectionModify(boost::shared_ptr<Collection> owner)
   update_functions("");
 }
 
+#ifdef DOXYGEN
+/**
+* Sets the search condition for the to be executed modify operation.
+* The method must be invoked before any other, and after it the following methods can be invoked:
+* set, unset, arrayInsert, arrayAppend, arrayDelete.
+*
+* \sa set(), unset(), arrayInsert(), arrayAppend(), arrayDelete()
+* \param searchCondition: an optional string specifying the filter condition to use.
+* \return the same instance collection where the method was invoked.
+* \code{.js}
+* // open a connection
+* var mysqlx = require('mysqlx').mysqlx;
+* var mysession = mysqlx.getNodeSession("root:123@localhost:33060");
+* // create some initial data
+* var collection = mysession.js_shell_test.getCollection('collection1');
+* var result = collection.add({ name: 'my first', passed: 'document', count: 1}).execute();
+* var result = collection.add([{name: 'my second', passed: 'again', count: 2}, {name: 'my third', passed: 'once again', count: 3}]).execute();
+* // check results
+* var crud = collection.find();
+* crud.execute();
+* var crud = collection.modify("name like 'my first'");
+* crud.set({name:'dummy'});
+* crud.execute();
+* // check results
+* var crud = collection.find();
+* crud.execute();
+* \endcode
+*/
+CollectionModify CollectionModify::modify([String searchCondition])
+{}
+#endif
 shcore::Value CollectionModify::modify(const shcore::Argument_list &args)
 {
   // Each method validates the received parameters
@@ -83,6 +115,24 @@ shcore::Value CollectionModify::modify(const shcore::Argument_list &args)
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
+#ifdef DOXYGEN
+/**
+* Sets the set clause values for the field's document to be change in the to be executed modify operation.
+* This method can be invoked as many times as necessary. Each time is called a key value pair will replace in the 
+* set clause for the matching key entry (or leave it unchanged if not matching for a given key is provided).
+* TODO: Underlying logic may need to be changed to use a mix of ITEM_SET & ITEM_REPLACE instead of ITEM_SET only.
+* The method must be invoked after the following methods: modify.
+* And after at least one invocation the following methods can be executed: set, unset, arrayInsert, arrayAppend, arrayDelete.
+*
+* \sa modify(), unset(), arrayInsert(), arrayAppend(), arrayDelete()
+* \param map the map with the key value pairs for the set clause of the modify statement, each entry in the form key (string column name) and value 
+* (expression or value where value can be any of if int, string, double).
+* TODO: How object type, accepted by document value, is used?
+* \return the same instance collection where the method was invoked.
+*/
+CollectionModify CollectionModify::set(Map map)
+{}
+#endif
 shcore::Value CollectionModify::set(const shcore::Argument_list &args)
 {
   // Each method validates the received parameters
@@ -105,6 +155,23 @@ shcore::Value CollectionModify::set(const shcore::Argument_list &args)
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
+#ifdef DOXYGEN
+/**
+* Unsets the set clause values for the field's document to be change in the to be executed modify operation.
+* This method can be invoked as many times as necessary. Each time is called a key value pair will be removed in the
+* set clause for the matching key entry (or leave it unchanged if not matching for a given key is provided).
+* The method must be invoked after the following methods: modify.
+* And after at least one invocation the following methods can be executed: set, unset, arrayInsert, arrayAppend, arrayDelete.
+* TODO: what happens when invoked on a column not previously set?
+*
+* \sa modify(), arrayInsert(), arrayAppend(), arrayDelete()
+* \param string {, string ...}: a Map or array of key value pairs with the keys (field names) of the key/value pairs to remove from the set clause.
+* TODO: How object type, accepted by document value, is used?
+* \return the same instance collection where the method was invoked.
+*/
+CollectionModify CollectionModify::unset(string {, string ...})
+{}
+#endif
 shcore::Value CollectionModify::unset(const shcore::Argument_list &args)
 {
   // Each method validates the received parameters
@@ -180,6 +247,25 @@ shcore::Value CollectionModify::array_insert(const shcore::Argument_list &args)
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
+#ifdef DOXYGEN
+/**
+* Appends a key value pair to the set clause values for the field's document to be change in the to be executed
+* modify operation.
+* This method can be invoked as many times as necessary. Each time is called a key value pair will be added in the
+* set clause.
+* The method must be invoked after the following methods: modify.
+* And after at least one invocation the following methods can be executed: set, unset, arrayInsert, arrayAppend, arrayDelete.
+* TODO: what happens when invoked on a column not previously set?
+*
+* \sa set(), modify(), arrayInsert(), arrayAppend(), arrayDelete()
+* \param name an string with the key (field name) of the key/value pair to append to the set clause.
+* \param value the value of the given field name (can be an String, integer, floating point or object).
+* TODO: How object type, accepted by document value, is used?
+* \return the same instance collection where the method was invoked.
+*/
+CollectionModify CollectionModify::array_append(String name, int value)
+{}
+#endif
 shcore::Value CollectionModify::array_append(const shcore::Argument_list &args)
 {
   // Each method validates the received parameters
@@ -215,6 +301,21 @@ shcore::Value CollectionModify::array_delete(const shcore::Argument_list &args)
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
+#ifdef DOXYGEN
+/**
+* Sets the fields names use to order the result set in the to be executed modify operation.
+* This method is usually used in combination with limit to fix the amount of documents to be modified.
+* The method must be invoked after the following methods: modify.
+* And after at least one invocation the following methods can be executed: limit, bind, execute.
+*
+* \sa limit(), bind(), execute()
+* \param sortExprStr a list of strings with the field names to order by. The list can include the ASC/DESC for ascending/descending order for each field, 
+*   for example "mycol1 asc, mycol2 desc" if order is not specified the default is ASC.
+* \return the same instance collection where the method was invoked.
+*/
+CollectionModify CollectionModify::sort(List sortExprStr)
+{}
+#endif
 shcore::Value CollectionModify::sort(const shcore::Argument_list &args)
 {
   args.ensure_count(1, "CollectionModify::sort");
@@ -237,6 +338,20 @@ shcore::Value CollectionModify::sort(const shcore::Argument_list &args)
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
+#ifdef DOXYGEN
+/**
+* Sets the limit of the number of documents to affect by this modify operation.
+* This method is used in combination with order to set a fixed amount of documents to affect by a given criteria.
+* The method must be invoked after the following methods: sort.
+* And after at least one invocation the following methods can be executed: bind, execute.
+*
+* \sa bind(), execute()
+* \param numberOfDocs the number of documents to affect in the modify execution.
+* \return the same instance collection where the method was invoked.
+*/
+CollectionModify CollectionModify::limit(Integer numberOfDocs)
+{}
+#endif
 shcore::Value CollectionModify::limit(const shcore::Argument_list &args)
 {
   args.ensure_count(1, "CollectionModify::limit");
@@ -259,6 +374,19 @@ shcore::Value CollectionModify::bind(const shcore::Argument_list &UNUSED(args))
   return Value(Object_bridge_ref(this));
 }
 
+#ifdef DOXYGEN
+/**
+* Excutes the modify statement against a MySQLX server returning the a Result set of the operation.
+* This method can be invoked as many times as necessary.
+* The method must be invoked after the following methods: modify, sort, limit, bind.
+*
+* \sa modify(), sort(), limit(), bind()
+* \param opt the execution options, currently ignored.
+* \return a collection resultset describing the effects of the operation.
+*/
+Collection_resultset CollectionModify::execute(ExecuteOptions opt)
+{}
+#endif
 shcore::Value CollectionModify::execute(const shcore::Argument_list &args)
 {
   args.ensure_count(0, "CollectionModify::execute");

@@ -45,14 +45,8 @@ namespace mysh
     class Schema;
     /**
     * Enables interaction with a MySQL Server using the MySQL Protocol.
-    * \todo Document getUri
-    * \todo Document getSchema
-    * \todo Document getSchemas
-    * \todo Document getDefaultSchema
-    * \todo Document setDefaultSchema
-    * \todo Document connect
-    * \todo Document close
-    * \todo Document sql
+    *
+    * Provides facilities to open/close a connection, execute queries and schema info management.
     */
     class MOD_PUBLIC ClassicSession : public ShellBaseSession, public boost::enable_shared_from_this<ClassicSession>
     {
@@ -83,6 +77,32 @@ namespace mysh
       String uri; //!< Same as getUri()
       List schemas; //!< Same as getSchemas()
       Schema defaultSchema; //!< Same as getDefaultSchema()
+
+      Undefined connect(String connectionData, String password);
+      Undefined connect(Map connectionData, String password);
+      String getUri();
+      Schema getSchema();
+
+      /**
+      * Returns the list of schemas currently available for this session.
+      * \sa schemas
+      * \return An array of schemas
+      */
+      Schema[] getSchemas()
+      {}
+
+      Undefined close();
+      Schema setDefaultSchema(String schema);
+
+      /**
+      * Returns the current default schema for this session's connection.
+      * \return the Schema object for the default schema.
+      */
+      Schema getDefaultSchema()
+      {}
+
+      Resultset sql(String query);
+
 #endif
 
     private:

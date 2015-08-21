@@ -54,6 +54,42 @@ TableSelect::TableSelect(boost::shared_ptr<Table> owner)
   update_functions("");
 }
 
+#ifdef DOXYGEN
+/**
+* Creates a new select statement and returns it.
+* The method must be executed first. After it is invoked, the following methods can be invoked: where, groupBy, orderBy, limit, bind, execute.
+* \sa where(), groupBy(), orderBy(), limit(), bind(), execute().
+* \param [field, field, ...], a optional array of Strings representing field names, which will become the projection (the columns in the result set) of the select statement. 
+*   If no field list is provided then the select returns all the fields in the underlying table.
+* \return a new TableSelect object.
+* \code{.js}
+* // open a connection
+* var mysqlx = require('mysqlx').mysqlx;
+* var mysession = mysqlx.getNodeSession("root:123@localhost:33060");
+* // create some initial data
+* mysession.sql('drop schema if exists js_shell_test;').execute();
+* mysession.sql('create schema js_shell_test;').execute();
+* mysession.sql('use js_shell_test;').execute();
+* mysession.sql('create table table1 (name varchar(50), age integer, gender varchar(20));').execute();
+* // create some initial data, populate table
+* var schema = mysession.getSchema('js_shell_test');
+* var table = schema.getTable('table1');
+* var result = table.insert({name: 'jack', age: 17, gender: 'male'}).execute();
+* var result = table.insert({name: 'adam', age: 15, gender: 'male'}).execute();
+* var result = table.insert({name: 'brian', age: 14, gender: 'male'}).execute();
+* // check results
+* table.select().execute();
+* // delete a record
+* var crud = table.delete();
+* crud.where('age = 15');
+* crud.execute();
+* // check results again
+* table.select().execute();
+* \endcode
+*/
+TableSelect TableSelect::select([field, field, ...])
+{}
+#endif
 shcore::Value TableSelect::select(const shcore::Argument_list &args)
 {
   // Each method validates the received parameters
@@ -86,6 +122,18 @@ shcore::Value TableSelect::select(const shcore::Argument_list &args)
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
+#ifdef DOXYGEN
+/**
+* Sets the expression with the search criteria, those rows that met it will be retrieved in the result.
+* This method can be invoked after the select method.
+* After this method invocation the following methods can be invoked: groupBy, orderBy, limit, bind, execute.
+* \sa select(), groupBy(), orderBy(), limit(), bind(), execute().
+* \param searchCriteria an String with the expression criteria to use to filter out those rows that don't meet it.
+* \return the same TableSelect object where the method was applied.
+*/
+TableSelect TableSelect::where(searchCriteria)
+{}
+#endif
 shcore::Value TableSelect::where(const shcore::Argument_list &args)
 {
   args.ensure_count(1, "TableSelect::where");
@@ -101,6 +149,19 @@ shcore::Value TableSelect::where(const shcore::Argument_list &args)
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
+#ifdef DOXYGEN
+/**
+* Sets a grouping criteria for the resultset, if used, the TableSelect operation will group the records using the stablished criteria.
+* This method can be invoked after the following method have been invoked: where.
+* This method can be invoked after the methods find and fields. And after method groupBy invocation the following methods can be invoked: having, sort, limit, bind, execute.
+*
+* \sa select(), where(), having(), sort(), limit(), bind(), execute().
+* \param searchExprStr: A list of string expressions identifying the grouping criteria.
+* \return the same TableSelect object where the method was applied.
+*/
+TableSelect TableSelect::groupBy(List searchExprStr)
+{}
+#endif
 shcore::Value TableSelect::group_by(const shcore::Argument_list &args)
 {
   args.ensure_count(1, "TableSelect::groupBy");
@@ -123,6 +184,19 @@ shcore::Value TableSelect::group_by(const shcore::Argument_list &args)
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
+#ifdef DOXYGEN
+/**
+* Sets a condition for records to be considered in agregate function operations, if used the CollectionFind operation will only consider the records matching the stablished criteria.
+* Calling this method is allowed only for the first time and only if the grouping criteria has been set by calling TableSelect.groupBy(groupCriteria), after that its usage is forbidden since the internal class state has been updated to handle the rest of the Select operation.
+* After this method invocation the following methods can be invoked: sort, limit, bind, execute.
+*
+* \sa groupBy(), sort(), limit(), bind(), execute().
+* \param searchCondition: A condition on the agregate functions used on the grouping criteria.
+* \return the same TableSelect object where the method was applied.
+*/
+TableSelect TableSelect::having(String searchCondition)
+{}
+#endif
 shcore::Value TableSelect::having(const shcore::Argument_list &args)
 {
   args.ensure_count(1, "TableSelect::having");
@@ -138,6 +212,19 @@ shcore::Value TableSelect::having(const shcore::Argument_list &args)
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
+#ifdef DOXYGEN
+/**
+* Sets the sorting criteria to be used on the Resultset, if used the TableSelect operation will return the records sorted with the defined criteria.
+* Calling this method is allowed only for the first time and only if the search criteria has been set by calling TableSelect.where(), after that its usage is forbidden since the internal class state has been updated to handle the rest of the TableSelect operation.
+* And after this method invocation the following methods can be invoked: limit, bind, execute.
+*
+* \sa limit(), bind(), execute()
+* \param sortExprStr: A list containing the sort criteria expressions to be used on the operation.
+* \return the same TableSelect object where the method was applied.
+*/
+TableSelect TableSelect::orderBy(List sortExprStr)
+{}
+#endif
 shcore::Value TableSelect::order_by(const shcore::Argument_list &args)
 {
   args.ensure_count(1, "TableSelect::orderBy");
@@ -160,6 +247,19 @@ shcore::Value TableSelect::order_by(const shcore::Argument_list &args)
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
+#ifdef DOXYGEN
+/**
+* Sets the maximum number of documents to be returned on the select operation, if used the TableSelect operation will return at most numberOfRows documents.
+* Calling this method is allowed only for the first time and only if the search criteria has been set by calling TableSelect.where(searchCriteria), after that its usage is forbidden since the internal class state has been updated to handle the rest of the TableSelect operation.
+* After this method invocation the following methods can be invoked: offset, bind, execute.
+*
+* \sa offset(), bind(), execute().
+* \param numberOfRows: The maximum number of documents to be retrieved.
+* \return the same TableSelect object where the method was applied.
+*/
+TableSelect TableSelect::limit(Integer numberOfRows)
+{}
+#endif
 shcore::Value TableSelect::limit(const shcore::Argument_list &args)
 {
   args.ensure_count(1, "TableSelect::limit");
@@ -175,6 +275,19 @@ shcore::Value TableSelect::limit(const shcore::Argument_list &args)
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
+#ifdef DOXYGEN
+/**
+* Sets number of records to skip on the resultset when a limit has been defined.
+* Calling this method is allowed only for the first time and only if a limit has been set by calling TableSelect.limit(numberOfRows), after that its usage is forbidden since the internal class state has been updated to handle the rest of the TableSelect operation.
+* After this method, the following methods can be invoked: bind, execute.
+*
+* \sa limit(), bind(), execute()
+* \param limitOffset: The number of documents to skip before start including them on the Resultset.
+* \return the same TableSelect object where the method was applied.
+*/
+TableSelect TableSelect::offset(Integer limitOffset)
+{}
+#endif
 shcore::Value TableSelect::offset(const shcore::Argument_list &args)
 {
   args.ensure_count(1, "TableSelect::offset");
@@ -190,6 +303,15 @@ shcore::Value TableSelect::offset(const shcore::Argument_list &args)
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
+#ifdef DOXYGEN
+/**
+* Sets the bindings mappings for the TableSelect.
+* \param { var:val, var : val, ... } a Map a map of key value pairs where each key is the name of a parameter and each value is the value of the parameter.
+* \return the same TableSelect object where the method was applied.
+*/
+TableSelect TableSelect::bind({ var:val, var : val, ... })
+{}
+#endif
 shcore::Value TableSelect::bind(const shcore::Argument_list &UNUSED(args))
 {
   throw shcore::Exception::logic_error("TableSelect::bind: not yet implemented.");
@@ -197,6 +319,15 @@ shcore::Value TableSelect::bind(const shcore::Argument_list &UNUSED(args))
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
+#ifdef DOXYGEN
+/**
+* Executes the TableSelect operation with all the configured options and returns.
+* \param opt the execution options (currently not used).
+* \return a ResultSet object that can be used to retrieve the results.
+*/
+ResultSet TableSelect::execute(ExecuteOptions opt)
+{}
+#endif
 shcore::Value TableSelect::execute(const shcore::Argument_list &args)
 {
   args.ensure_count(0, "TableSelect::execute");

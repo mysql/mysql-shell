@@ -116,6 +116,15 @@ shcore::Value Resultset::get_member(const std::string &prop) const
   return ret_val;
 }
 
+#ifdef DOXYGEN
+/**
+* Reads the next row of data and returns it.
+* \sa nextDataSet(), all()
+* \return the next row of data.
+*/
+Row next()
+{}
+#endif
 shcore::Value Resultset::next(const shcore::Argument_list &UNUSED(args))
 {
   boost::shared_ptr<std::vector< ::mysqlx::ColumnMetadata> > metadata = _result->columnMetadata();
@@ -175,6 +184,15 @@ shcore::Value Resultset::next(const shcore::Argument_list &UNUSED(args))
   return shcore::Value();
 }
 
+#ifdef DOXYTGEN
+/**
+* Calls successively next() until the whole result set is read and returns all the rows read.
+* \sa next()
+* \return an array of Row objects.
+*/
+Row[] Resultset::all()
+{}
+#endif
 shcore::Value Resultset::all(const shcore::Argument_list &args)
 {
   Value::Array_type_ref array(new Value::Array_type());
@@ -206,6 +224,15 @@ Collection_resultset::Collection_resultset(boost::shared_ptr< ::mysqlx::Result> 
 {
 }
 
+#ifdef DOXYGEN
+/**
+* Reads the next row of data and returns it.
+* \sa nextDataSet(), all()
+* \return the next row of data.
+*/
+Row Resultset::next()
+{}
+#endif
 shcore::Value Collection_resultset::next(const shcore::Argument_list &args)
 {
   Value ret_val = Value::Null();

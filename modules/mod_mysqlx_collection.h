@@ -41,11 +41,6 @@ namespace mysh
 
     /**
     * Represents a Collection on an Schema, retrieved with a session created using the X Protocol.
-    * \todo Document add({document})
-    * \todo Document add([{document}, {document}, ...])
-    * \todo Document modify(searchCriteria)
-    * \todo Document find(searchCriteria)
-    * \todo Document remove(searchCriteria)
     * \todo Implement and document as()
     * \todo Implement and document createIndex()
     * \todo Implement and document dropIndex()
@@ -70,6 +65,15 @@ namespace mysh
       shcore::Value remove_(const shcore::Argument_list &args);
 
       void init();
+
+#ifdef DOXYGEN
+      // TODO: these are not generated in doxygen becuase they are private.
+      Collection add(document doc);
+      Collection add({ document }, { document }, ...);
+      Collection find(String searchCriteria);
+      Collection modify(String searchCondition);
+      Collection remove(String searchCondition);
+#endif
 
     private:
       boost::shared_ptr< ::mysqlx::Collection> _collection_impl;

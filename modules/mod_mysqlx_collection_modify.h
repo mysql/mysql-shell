@@ -33,13 +33,8 @@ namespace mysh
 
     /**
     * Handler for Modify operations on Collections.
-    * \todo Document set()
-    * \todo Document unset()
     * \todo Document arrayInsert()
-    * \todo Document arrayAppend()
     * \todo Document arraydelete()
-    * \todo Document sort([expr, expr, ...])
-    * \todo Document limit(lim)
     * \todo Implement and document bind({var:val, var:val, ...})
     * \todo Update execute to support options and document it
     */
@@ -61,6 +56,20 @@ namespace mysh
       shcore::Value bind(const shcore::Argument_list &args);
 
       virtual shcore::Value execute(const shcore::Argument_list &args);
+#ifdef DOXYGEN
+      CollectionModify modify([String searchCondition]);
+      CollectionModify set(Map map);
+      CollectionModify unset(string {, string ...});
+      CollectionModify array_append(String name, int value);
+      CollectionModify array_append(String name, String value);
+      CollectionModify array_append(String name, double value);
+      CollectionModify array_append(String name, object value);
+      CollectionModify sort(List sortExprStr);
+      CollectionModify limit(Integer numberOfRows);
+      CollectionModify skip(Integer limitOffset);
+      CollectionModify bind(Map placeHolderValues);
+      Collection_resultset execute(ExecuteOptions opt);
+#endif
     private:
       std::auto_ptr< ::mysqlx::ModifyStatement> _modify_statement;
     };

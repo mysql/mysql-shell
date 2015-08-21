@@ -82,7 +82,6 @@ namespace mysh
     class Schema;
     /**
     * Base functionality for Session classes through the X Protocol.
-    * \todo Document setDefaultSchema()
     * \todo Implement and document createSchema()
     * \todo Implement and document dropSchema()
     */
@@ -127,6 +126,7 @@ namespace mysh
       String getUri();
       Undefined close();
       Undefined setFetchWarnings(Bool value);
+      Schema setDefaultSchema(String name);
 #endif
     protected:
       ::mysqlx::ArgumentValue get_argument_value(shcore::Value source);

@@ -59,6 +59,17 @@ namespace mysh
       shcore::Value bind(const shcore::Argument_list &args);
 
       virtual shcore::Value execute(const shcore::Argument_list &args);
+#ifdef DOXYGEN
+      TableSelect select([field, field, ...]);
+      TableSelect where(searchCriteria);
+      TableSelect groupBy([expr, expr, ...]);
+      TableSelect having(String searchCondition);
+      TableSelect orderBy([expr, expr, ...]);
+      TableSelect limit(Integer numberOfRows);
+      TableSelect offset(Integer limitOffset);
+      TableSelect bind({ var:val, var : val, ... });
+      Resultset execute(ExecuteOptions opt)
+#endif
     private:
       std::auto_ptr< ::mysqlx::SelectStatement> _select_statement;
     };

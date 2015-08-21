@@ -41,9 +41,6 @@ namespace mysh
   class CoreSchema;
   /**
   * Provides base functionality for database objects.
-  * \todo Document name and getName()
-  * \todo Document session and getSession()
-  * \todo Document schema and getSchema()
   */
   class MOD_PUBLIC DatabaseObject : public shcore::Cpp_object_bridge
   {
@@ -62,6 +59,34 @@ namespace mysh
     virtual bool operator == (const Object_bridge &other) const;
 
     shcore::Value get_member_method(const shcore::Argument_list &args, const std::string& method, const std::string& prop);
+#ifdef DOXYGEN
+
+    String name; //!< Same as getName()
+    ClassicSession session; //!< Same as getSession()
+    Schema schema; //!< Same as getSchema()
+
+    /**
+    * Returns the name of this database object.
+    * \return the name as an String object.
+    */
+    String getName()
+    {}
+
+    /**
+    * Returns the ClassicSession object of this database object.
+    * \return the object for this session of this database object.
+    */
+    ClassicSession getSession()
+    {}
+
+    /**
+    * Returns the schema object of this database object.
+    * \return the object for this schema of this database object.
+    */
+    Schema getSchema()
+    {}
+    
+#endif
 
   protected:
     boost::weak_ptr<ShellBaseSession> _session;

@@ -238,6 +238,17 @@ Value Schema::_load_object(const std::string& name, const std::string& type) con
   return ret_val;
 }
 
+#ifdef DOXYGEN
+/**
+* Returns a Table object with the associated name in the current schema. If not table with the name, Undefined is returned.
+* This method is run against a local cache of objects, if you want to see lastest changes by other sessions you may need to create a new copy the schema object with session.getSchema().
+* \sa getCollection(), getView()
+* \param name the name of the table to retrieve.
+* \return the Table object or undefined.
+*/
+Table Schema::getTable(String name)
+{}
+#endif
 shcore::Value Schema::getTable(const shcore::Argument_list &args)
 {
   args.ensure_count(1, (class_name() + "::getTable").c_str());
@@ -247,6 +258,17 @@ shcore::Value Schema::getTable(const shcore::Argument_list &args)
   return find_in_collection(name, _tables);
 }
 
+#ifdef DOXYGEN
+/**
+* Returns a Collection object with the associated name in the current schema. If not collection with the name, Undefined is returned.
+* This method is run against a local cache of objects, if you want to see lastest changes by other sessions you may need to create a new copy the schema object with session.getSchema().
+* \sa getTable(), getCollection(), getView()
+* \param name the name of the collection to retrieve.
+* \return the Collection object or undefined.
+*/
+CollectionRef Schema::getCollection(String name)
+{}
+#endif
 shcore::Value Schema::getCollection(const shcore::Argument_list &args)
 {
   args.ensure_count(1, (class_name() + "::getCollection").c_str());
@@ -256,6 +278,17 @@ shcore::Value Schema::getCollection(const shcore::Argument_list &args)
   return find_in_collection(name, _collections);
 }
 
+#ifdef DOXYGEN
+/**
+* Returns a View object with the associated name in the current schema. If not view with the name, Undefined is returned.
+* This method is run against a local cache of objects, if you want to see lastest changes by other sessions you may need to create a new copy the schema object with session.getSchema().
+* \sa getCollection(), getTable()
+* \param name the name of the view to retrieve.
+* \return the View object or undefined.
+*/
+View Schema::getView(String name)
+{}
+#endif
 shcore::Value Schema::getView(const shcore::Argument_list &args)
 {
   args.ensure_count(1, (class_name() + "::getCollection").c_str());
@@ -265,6 +298,17 @@ shcore::Value Schema::getView(const shcore::Argument_list &args)
   return find_in_collection(name, _views);
 }
 
+#ifdef DOXYGEN
+/**
+* Creates in the current schema a new collection with the specified name and retrieves an object representing the new collection created.
+* TODO: What are the valid identifiers for collection names?
+* \sa getCollections(), getCollection()
+* \param name the name of the colllection.
+* \return the new created collection.
+*/
+CollectionRef Schema::createCollection(String name)
+{}
+#endif
 shcore::Value Schema::createCollection(const shcore::Argument_list &args)
 {
   Value ret_val;

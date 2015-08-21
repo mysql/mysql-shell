@@ -53,6 +53,54 @@ TableInsert::TableInsert(boost::shared_ptr<Table> owner)
   update_functions("");
 }
 
+#ifdef DOXYGEN
+/**
+* Creates a new TableInsert object and returns it.
+* After this method invokation the following methods can be invoked: values, bind, execute.
+* \sa values(), bind(), execute()
+* \return a new TableInsert object.
+* \code{.js}
+* // open a connection
+* var mysqlx = require('mysqlx').mysqlx;
+* var mysession = mysqlx.getNodeSession("root:123@localhost:33060");
+* // create some initial data
+* mysession.sql('drop schema if exists js_shell_test;').execute();
+* mysession.sql('create schema js_shell_test;').execute();
+* mysession.sql('use js_shell_test;').execute();
+* mysession.sql('create table table1 (name varchar(50), age integer, gender varchar(20));').execute();
+* // create some initial data, populate table
+* var schema = mysession.getSchema('js_shell_test');
+* var table = schema.getTable('table1');
+* var result = table.insert({name: 'jack', age: 17, gender: 'male'}).execute();
+* var result = table.insert({name: 'adam', age: 15, gender: 'male'}).execute();
+* var result = table.insert({name: 'brian', age: 14, gender: 'male'}).execute();
+* // check results
+* table.select().execute();
+* \endcode
+*/
+TableInsert TableInsert::insert()
+{}
+
+/**
+* Creates a new TableInsert object with the field list provided and returns it.
+* After thsi method invokation the following methods can be invoked: values, bind, execute.
+* \sa values(), bind(), execute()
+* \param [field, field, field, ...] a list of strings each one representeting a field name.
+* \return a new TableInsert object.
+*/
+TableInsert TableInsert::insert([field, field, field, ...])
+{}
+
+/**
+* Creates a new TableInsert object with the map of field and values provided and returns it.
+* After thsi method invokation the following methods can be invoked: values, bind, execute.
+* \sa values(), bind(), execute()
+* \param { field: value, field : value, field : value, ... } a map of field / values where each key is a field name and each value a field value.
+* \return the same TableInsert object where this method was invoked.
+*/
+TableInsert TableInsert::insert({ field: value, field : value, field : value, ... })
+{}
+#endif
 shcore::Value TableInsert::insert(const shcore::Argument_list &args)
 {
   boost::shared_ptr<Table> table(boost::static_pointer_cast<Table>(_owner.lock()));
@@ -135,6 +183,18 @@ shcore::Value TableInsert::insert(const shcore::Argument_list &args)
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
+#ifdef DOXYGEN
+/**
+* Sets the values for the fields of the row to insert.
+* This method can be invoked right after the invocation of the following methods: insert.
+* After this method invocation the following methods can be invoked: bind, execute.
+* \sa insert(), bind(), execute()
+* \param [val, val, val, ...] the list of values to match with the fields, represents the 'values' clause in an insert statement. Each value can be any of String, Integer, Double or Object.
+* \return the same TableInsert object where this method was invoked.
+*/
+TableInsert TableInsert::values([val, val, val, ...])
+{}
+#endif
 shcore::Value TableInsert::values(const shcore::Argument_list &args)
 {
   // Each method validates the received parameters
@@ -158,6 +218,19 @@ shcore::Value TableInsert::values(const shcore::Argument_list &args)
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
+#ifdef DOXYGEN
+/**
+* TODO: rewrite this when this method is actually implemented.
+* Sets the bindings of parameter names and values.
+* This method can be invoked after the following methods: insert with map, values.
+* After this method invocation the followin methods can be invoked: execute.
+* \sa insert(), values(), execute()
+* \param { var:val, var : val, ... } a map with the mappings between paremeter names and parameter values.
+* \return the same TableInsert object where this method was invoked.
+*/
+TableInsert TableInsert::bind({ var:val, var : val, ... })
+{}
+#endif
 shcore::Value TableInsert::bind(const shcore::Argument_list &UNUSED(args))
 {
   // TODO: Logic to determine the kind of parameter passed
@@ -172,6 +245,19 @@ shcore::Value TableInsert::bind(const shcore::Argument_list &UNUSED(args))
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
+#ifdef DOXYGEN
+/**
+* Executes the insert statement with the configured options.
+* This method can be invoked as many times as required.
+* This method can be invoked after the following methods has been invoked: insert, values, bind.
+* \sa insert(), values(), bind()
+* TODO: rewrite this when execution options are supported.
+* \param opt options to execute, not currently accepted
+* \return a ResultSet with the results of the operation.
+*/
+Resultset TableInsert::execute(ExecuteOptions opt)
+{}
+#endif
 shcore::Value TableInsert::execute(const shcore::Argument_list &args)
 {
   args.ensure_count(0, "TableInsert::execute");

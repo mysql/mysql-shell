@@ -33,9 +33,6 @@ namespace mysh
 
     /**
     * Handler for Insert operations on Tables.
-    * \todo Document insert()
-    * \todo Document insert([field, field, field, ...])
-    * \todo Document values([val, val, val, ...])
     * \todo Implement and document bind({var:val, var:val, ...})
     * \todo Update execute to support options and document it
     */
@@ -51,6 +48,14 @@ namespace mysh
       shcore::Value bind(const shcore::Argument_list &args);
 
       virtual shcore::Value execute(const shcore::Argument_list &args);
+#ifdef DOXYGEN
+      TableInsert insert();
+      TableInsert insert([field, field, field, ...]);
+      TableInsert insert({field : value, field : value, field : value, ...});
+      TableInsert values([val, val, val, ...]);
+      TableInsert bind({ var:val, var : val, ... });
+      Resultset execute(ExecuteOptions opt);
+#endif
     private:
       std::auto_ptr< ::mysqlx::InsertStatement> _insert_statement;
     };

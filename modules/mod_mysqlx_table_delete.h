@@ -33,10 +33,6 @@ namespace mysh
 
     /**
     * Handler for Delete operation on Tables.
-    * \todo Document delete()
-    * \todo Document where(searchCriteria)
-    * \todo Document orderBy([expr, expr, ...])
-    * \todo Document limit(lim)
     * \todo Implement and document bind({var:val, var:val, ...})
     * \todo Update execute to support options and document it
     */
@@ -54,6 +50,14 @@ namespace mysh
       shcore::Value bind(const shcore::Argument_list &args);
 
       virtual shcore::Value execute(const shcore::Argument_list &args);
+#ifdef DOXYGEN
+      TableDelete remove();
+      TableDelete where(searchCriteria);
+      TableDelete orderBy([expr, expr, ...]);
+      TableDelete limit(lim);
+      TableDelete bind({ var:val, var : val, ... });
+      Resultset execute(ExecuteOptions opt);
+#endif
     private:
       std::auto_ptr< ::mysqlx::DeleteStatement> _delete_statement;
     };

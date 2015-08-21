@@ -60,8 +60,8 @@ BaseSession::BaseSession()
 #ifdef DOXYGEN
 /**
 * \brief Connects to a X Protocol enabled MySQL Product.
-* \param connectionData: string representation of the connection data in URI format.
-* \param password: optional parameter, the password could be specified through this parameter or embedded on the connectionData string.
+* \param connectionData string representation of the connection data in URI format.
+* \param password optional parameter, the password could be specified through this parameter or embedded on the connectionData string.
 *
 * \return Null
 *
@@ -83,8 +83,8 @@ Undefined BaseSession::connect(String connectionData, String password)
 
 /**
 * \brief Connects to a X Protocol enabled MySQL Product.
-* \param connectionData: Dictionary containing the connection data.
-* \param password: optional parameter, the password could be specified through this parameter or embedded on the connectionData dictionary.
+* \param connectionData Dictionary containing the connection data.
+* \param password optional parameter, the password could be specified through this parameter or embedded on the connectionData dictionary.
 *
 * The connection data is specified on the connectionData dictionary with the next entries:
 * - host: the host for the target MySQL Product.
@@ -102,7 +102,7 @@ Undefined BaseSession::connect(String connectionData, String password)
 * session.connect({dbUser:"rennox", host:"localhost", schema:"sakila"}, mypwd);
 *
 * // With password embedded on the connectionData
-* session.connect({dbUser:"rennox", host:"localhost", port:3307, dbPassword: pwd});
+* session.connect({dbUser:"rennox", host:"localhost", port:33060, dbPassword: pwd});
 * \endcode
 */
 Undefined BaseSession::connect(Map connectionData, String password)
@@ -176,6 +176,7 @@ Value BaseSession::connect(const Argument_list &args)
 #ifdef DOXYGEN
 /**
 * \brief Closes the session.
+* After closing the session it is still possible to make read only operation to gather metadata info, like getTable(name) or getSchemas().
 */
 Undefined BaseSession::close()
 {}
@@ -470,6 +471,19 @@ shcore::Value BaseSession::get_schema(const shcore::Argument_list &args) const
 
 Schema setDefaultSchema();
 
+#ifdef DOXYGEN
+/**
+* Sets the new default schema for this session, and returns the schema object for it.
+* At the database level, this is equivalent at issuing the following SQL query:
+*   use <new-default-schema>;
+* 
+* \sa getSchemas(), getSchema()
+* \param name the name of the new schema to switch to.
+* \return the Schema object for the new schema.
+*/
+Schema BaseSession::setDefaultSchema(String name)
+{}
+#endif
 shcore::Value BaseSession::set_default_schema(const shcore::Argument_list &args)
 {
   std::string function_name = class_name() + ".setDefaultSchema";
@@ -567,7 +581,7 @@ boost::shared_ptr<shcore::Object_bridge> NodeSession::create(const shcore::Argum
 #ifdef DOXYGEN
 /**
 * Executes an sql statement and returns a Resultset object
-* \param sql: The statement to be executed
+* \param sql The statement to be executed
 *
 * \return Resultset object
 *

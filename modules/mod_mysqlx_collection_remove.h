@@ -33,9 +33,6 @@ namespace mysh
 
     /**
     * Handler for Remove operation on Collections.
-    * \todo Document remove(searchCriteria)
-    * \todo Document sort([expr, expr, ...])
-    * \todo Document limit(lim)
     * \todo Implement and document bind({var:val, var:val, ...})
     * \todo Update execute to support options and document it
     */
@@ -52,6 +49,13 @@ namespace mysh
       shcore::Value bind(const shcore::Argument_list &args);
 
       virtual shcore::Value execute(const shcore::Argument_list &args);
+#ifdef DOXYGEN
+      CollectionRemove remove([String searchCondition]);
+      CollectionRemove sort(List sortExprStr);
+      CollectionRemove limit(Integer numberOfRows);
+      CollectionRemove bind(Map placeHolderValues);
+      Collection_resultset execute(ExecuteOptions opt);
+#endif
     private:
       std::auto_ptr< ::mysqlx::RemoveStatement> _remove_statement;
     };

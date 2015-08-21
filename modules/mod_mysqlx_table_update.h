@@ -33,11 +33,6 @@ namespace mysh
 
     /**
     * Handler for Update operations on Tables.
-    * \todo Document update()
-    * \todo Document set(field, value)
-    * \todo Document where(searchCriteria)
-    * \todo Document orderBy([expr, expr, ...])
-    * \todo Document limit(lim)
     * \todo Implement and document bind({var:val, var:val, ...})
     * \todo Update execute to support options and document it
     */
@@ -56,6 +51,15 @@ namespace mysh
       shcore::Value bind(const shcore::Argument_list &args);
 
       virtual shcore::Value execute(const shcore::Argument_list &args);
+#ifdef DOXYGEN
+      TableUpdate update();
+      TableUpdate set({ field : value, field : value, ... });
+      TableUpdate where(searchCriteria);
+      TableUpdate orderBy([expr, expr, ...]);
+      TableUpdate limit(lim);
+      TableUpdate bind({ var:val, var : val, ... });
+      ResultSet execute(ExecuteOptions opt);
+#endif
     private:
       std::auto_ptr< ::mysqlx::UpdateStatement> _update_statement;
     };
