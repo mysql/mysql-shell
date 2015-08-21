@@ -26,6 +26,15 @@ file(GLOB libmysqlxtest_SRC
       "${CMAKE_SOURCE_DIR}/common/mysqlx/auth_mysql41.cc"
 )
 
+
+if(WITH_SSL)
+  include_directories( ${CMAKE_SOURCE_DIR}/common/yassl/taocrypt/include )
+  include_directories( ${CMAKE_SOURCE_DIR}/common/yassl/taocrypt/mySTL )
+  include_directories( ${CMAKE_SOURCE_DIR}/common/yassl/include )
+  add_definitions(-DHAVE_YASSL )
+  add_definitions(-DYASSL_PREFIX )
+endif()
+
 add_library(mysqlxtest ${libmysqlxtest_SRC})
 
 # For now, "samples/native/lib" compiles against this library when

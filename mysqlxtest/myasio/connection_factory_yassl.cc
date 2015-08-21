@@ -19,6 +19,10 @@
 
 #if defined(HAVE_YASSL)
 
+#ifdef WIN32
+#  define WIN32_LEAN_AND_MEAN
+#endif
+
 #include "myasio/wrapper_yassl.h"
 #include "myasio/options_ssl.h"
 #include "myasio/connection_factory_yassl.h"
