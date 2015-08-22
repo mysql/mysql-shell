@@ -128,6 +128,9 @@ include_directories( ${CMAKE_BINARY_DIR}/include/ ${PROJECT_SOURCE_DIR}/include)
 IF (WITH_SSL)
   MYSQL_CHECK_SSL()
 ENDIF()
+
+MYSQL_CHECK_EDITLINE()
+
 MESSAGE(STATUS "SSL_LIBRARIES:    ${SSL_LIBRARIES}")
 MESSAGE(STATUS "SSL_DEFINES:      ${SSL_DEFINES}")
 MESSAGE(STATUS "SSL_INCLUDE_DIRS: ${SSL_INCLUDE_DIRS}")
@@ -155,7 +158,7 @@ set(MY_CXX_WARNING_FLAGS "${MY_CXX_WARNING_FLAGS} -Werror")
 if(NOT WIN32)
   # make some overzealous warnings into non errors
   set(MY_CXX_WARNING_FLAGS "${MY_CXX_WARNING_FLAGS} -Wno-error=unused-value,unused-variable")
-  add_subdirectory(src/libedit)
+  #  add_subdirectory(src/libedit)
 endif()
 
 
@@ -187,7 +190,6 @@ IF (HAVE_V8)
     endforeach()
   endif()
 
- install(FILES ${V8_LIBS} DESTINATION lib)
   if(WINDOWS_RUNTIME_MD)
     # for MD runtime we also need DLL, not just lib, but dll is on parent directory.
     set(V8_DLL ${V8_LIBS})
@@ -247,8 +249,8 @@ if(WINDOWS_RUNTIME_MD)
   remove_definitions(-Dmysqlshtypes_EXPORTS)
 endif()
 add_subdirectory(mysqlxtest)
-add_subdirectory(shellcore)
 add_subdirectory(modules)
+add_subdirectory(shellcore)
 
 # mysh cmdline util build
 if(NOT WIN32)
@@ -271,7 +273,7 @@ else()
 endif()
 
 # Last, to make -lrt -lpthread last, v8 needs it
-target_link_libraries(mysqlx mysqlshmods mysqlsh mysqlxtest ${V8_LINK_LIST} ${PYTHON_LIBRARIES} ${BOOST_LIBRARIES} ${SSL_LIBRARIES} ${MYSQL_LIBRARIES} ${GCOV_LDFLAGS})
+target_link_libraries(mysqlx mysqlsh ${GCOV_LDFLAGS})
 
 install(TARGETS mysqlx DESTINATION bin)
 install(DIRECTORY scripting/modules DESTINATION lib)
@@ -288,10 +290,9 @@ if(WIN32)
   endif()
 endif()
 
-add_definitions(-DBOOST_ALL_NO_LIB )
+add_definitions(-DBOOST_ALL_NO_LIB)
 
 ADD_SUBDIRECTORY(doc)
-
 
 IF (WITH_SAMPLES)
   add_subdirectory(samples/native)

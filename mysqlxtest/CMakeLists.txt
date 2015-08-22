@@ -43,9 +43,7 @@ PROTOBUF_GENERATE_CPP(PROTO_SRCS PROTO_HDRS ${proto_SRC})
 set_source_files_properties(${PROTO_SRCS} ${PROTO_HDRS} PROPERTIES GENERATED TRUE)
 SOURCE_GROUP(Protobuf FILES ${PROTO_SRCS} ${PROTO_HDRS})
 
-add_library(mysqlxtest ${libmysqlxtest_SRC} ${PROTO_SRCS} ${PROTO_HDRS})
-
-target_link_libraries(mysqlxtest ${PROTOBUF_LIBRARIES})
+add_convenience_library(mysqlxtest ${libmysqlxtest_SRC} ${PROTO_SRCS} ${PROTO_HDRS})
 
 # For now, "samples/native/lib" compiles against this library when
 # creating a shared library, so we need to make sure the code is
@@ -68,5 +66,3 @@ add_definitions(-DBOOST_ALL_NO_LIB )
 install(DIRECTORY "${CMAKE_SOURCE_DIR}/mysqlxtest/" DESTINATION "include/" FILES_MATCHING PATTERN "*.h" )
 install(DIRECTORY "${CMAKE_SOURCE_DIR}/mysqlxtest/common/" DESTINATION "include/common/" FILES_MATCHING PATTERN "*.h" )
 install(DIRECTORY "${CMAKE_BINARY_DIR}/mysqlxtest/" DESTINATION "include/" FILES_MATCHING PATTERN "*.h" )
-install(TARGETS mysqlxtest DESTINATION lib)
-install(FILES ${PROTOBUF_LIBRARY} DESTINATION lib)

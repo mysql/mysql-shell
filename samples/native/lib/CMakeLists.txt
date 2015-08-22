@@ -139,4 +139,4 @@ else()
 
 endif()
 
-install(TARGETS shell_client_lib DESTINATION lib)
+#install(TARGETS shell_client_lib DESTINATION lib)

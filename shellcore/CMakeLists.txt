@@ -95,15 +95,14 @@ endif()
 # Configures Python accordingly...
 if ( HAVE_PYTHON )
   include_directories("${PYTHON_INCLUDE_DIR}")
-  
-  install(FILES ${PYTHON_LIBRARIES} DESTINATION lib)
+
   if(WINDOWS_RUNTIME_MD)
     set(PY_DLL ${PYTHON_LIBRARIES})
     string(REPLACE ".lib" ".dll" PY_DLL ${PY_DLL})
     get_filename_component(PY_FILE ${PY_DLL} NAME)
     get_filename_component(PY_DLL ${PY_DLL} DIRECTORY)
     install(FILES "${PY_DLL}/${PY_FILE}" DESTINATION lib)
-  endif()  
+  endif()
 else()
   # Removes from the project all the python files
   file(GLOB python_SRC "*python*.cc")
@@ -114,27 +113,23 @@ else()
 endif()
 
 if(WINDOWS_RUNTIME_MD)
-  add_convenience_library_dll(mysqlsh ${libmysqlsh_SRC})
+  add_library_dll(mysqlsh ${libmysqlsh_SRC})
 else()
-  add_convenience_library(mysqlsh ${libmysqlsh_SRC})
+  add_library(mysqlsh ${libmysqlsh_SRC})
 endif()
 
-if ( HAVE_PYTHON )
-  if ( WINDOWS_RUNTIME_MD )
-    target_link_libraries(mysqlsh ${PYTHON_LIBRARIES})
-  endif()
-endif()
-
-if(WINDOWS_RUNTIME_MD)
-  target_link_libraries(mysqlsh mysqlshmods)
-  target_link_libraries(mysqlsh mysqlshtypes)
-  target_link_libraries(mysqlsh ${V8_LINK_LIST})
-  target_link_libraries(mysqlsh ${MYSQL_LIBRARIES})
-endif()
+target_link_libraries(mysqlsh mysqlshmods mysqlxtest)
+target_link_libraries(mysqlsh
+            ${V8_LINK_LIST}
+            ${PYTHON_LIBRARIES}
+            ${SSL_LIBRARIES}
+            ${MYSQL_LIBRARIES}
+            ${BOOST_LIBRARIES}
+            ${PROTOBUF_LIBRARY})
 
 if( WIN32 )
   include(msvc)
-  if(NOT WINDOWS_RUNTIME_MD)  
+  if(NOT WINDOWS_RUNTIME_MD)
     CHANGE_MD_2_MT()
   endif()
 endif()

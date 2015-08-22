@@ -36,6 +36,7 @@ if(WITH_TESTS)
         "${PROJECT_SOURCE_DIR}/unittest/*_t.cc"
         "${PROJECT_SOURCE_DIR}/unittest/test_main.cc"
         "${PROJECT_SOURCE_DIR}/src/boost_code.cc"
+        "${PROJECT_SOURCE_DIR}/src/get_password.cc"
     )
 
     if (HAVE_PROTOBUF)
@@ -57,22 +58,16 @@ if(WITH_TESTS)
 
     add_executable(run_unit_tests ${mysqlsh_tests_SRC})
     add_dependencies(run_unit_tests mysqlshmods)
-    if (HAVE_PROTOBUF)
-      add_dependencies(run_unit_tests mysqlxtest)
-    endif()
+    add_dependencies(run_unit_tests mysqlxtest)
     target_link_libraries(run_unit_tests
             mysqlsh
             mysqlshmods
+            mysqlxtest
             gtest
+            ${SSL_LIBRARIES}
             ${MYSQL_LIBRARIES}
-            )
-
-    if (HAVE_PROTOBUF)
-      target_link_libraries(run_unit_tests
-              ${PROTOBUF_LIBRARY}
-              mysqlxtest
-              )
-    endif()
+            ${PROTOBUF_LIBRARY}
+    )
 
     if ( HAVE_V8 )
       target_link_libraries(run_unit_tests ${V8_LINK_LIST})
