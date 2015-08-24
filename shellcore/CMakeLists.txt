@@ -17,7 +17,8 @@ remove_definitions(-Dmysqlshmods_EXPORTS)
 
 include_directories( ${MYSQL_INCLUDE_DIRS} )
 include_directories( ${CMAKE_BINARY_DIR} )
-include_directories( ${CMAKE_SOURCE_DIR}/mysqlxtest)
+include_directories( "${CMAKE_SOURCE_DIR}/mysqlxtest")
+include_directories("${CMAKE_SOURCE_DIR}/mysqlxtest/common")
 include_directories("${CMAKE_SOURCE_DIR}/include" "${CMAKE_SOURCE_DIR}/utils" "${Boost_INCLUDE_DIRS}")
 include_directories( "${CMAKE_SOURCE_DIR}/common/uuid/include" )
 include_directories( "${CMAKE_SOURCE_DIR}/common/myjson/include" )
@@ -112,13 +113,38 @@ else()
   endforeach()
 endif()
 
+file(GLOB libmysqlshmods_SRC
+      "../modules/base_*.cc"
+      "../modules/base_*.h"
+      "../modules/collection_*.cc"
+      "../modules/collection_*.h"
+      "../modules/table_*.cc"
+      "../modules/table_*.h"
+      "../modules/crud_*.cc"
+      "../modules/crud_*.h"
+      "../modules/dynamic_*.cc"
+      "../modules/dynamic_*.h"
+      "../modules/mod_mysqlx_*.cc"
+      "../modules/mod_mysqlx_*.h"
+      "../modules/mod_mysql_*.cc"
+      "../modules/mod_mysql_*.h"
+      "../modules/mysql.cc"
+      "../modules/mysql.h"
+      "${CMAKE_SOURCE_DIR}/common/uuid/src/uuid_gen.cc"
+)
+
+#Protobuf related includes
+INCLUDE(protobuf)
+SETUP_PROTOBUF()
+include_directories("${CMAKE_BINARY_DIR}/mysqlxtest")
+
 if(WINDOWS_RUNTIME_MD)
-  add_library_dll(mysqlsh ${libmysqlsh_SRC})
+  add_library_dll(mysqlsh ${libmysqlsh_SRC} ${libmysqlshmods_SRC})
 else()
-  add_library(mysqlsh ${libmysqlsh_SRC})
+  add_library(mysqlsh ${libmysqlsh_SRC} ${libmysqlshmods_SRC})
 endif()
 
-target_link_libraries(mysqlsh mysqlshmods mysqlxtest)
+target_link_libraries(mysqlsh mysqlxtest)
 target_link_libraries(mysqlsh
             ${V8_LINK_LIST}
             ${PYTHON_LIBRARIES}
@@ -135,6 +161,7 @@ if( WIN32 )
 endif()
 
 install(DIRECTORY "${CMAKE_SOURCE_DIR}/include/shellcore/" DESTINATION "include/shellcore" FILES_MATCHING PATTERN "*.h" )
+install(DIRECTORY "${CMAKE_SOURCE_DIR}/modules/" DESTINATION "include/modules" FILES_MATCHING PATTERN "*.h" )
 install(TARGETS mysqlsh DESTINATION lib)
 
 add_definitions(-DSHCORE_EXPORT )

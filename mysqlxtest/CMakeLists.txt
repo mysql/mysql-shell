@@ -44,6 +44,7 @@ set_source_files_properties(${PROTO_SRCS} ${PROTO_HDRS} PROPERTIES GENERATED TRU
 SOURCE_GROUP(Protobuf FILES ${PROTO_SRCS} ${PROTO_HDRS})
 
 add_convenience_library(mysqlxtest ${libmysqlxtest_SRC} ${PROTO_SRCS} ${PROTO_HDRS})
+target_link_libraries(mysqlxtest ${PROTOBUF_LIBRARY})
 
 # For now, "samples/native/lib" compiles against this library when
 # creating a shared library, so we need to make sure the code is

@@ -53,4 +53,5 @@ target_link_libraries(shell_client_app
     ${SSL_LIBRARIES} ${MYSQL_LIBRARIES}
     ${PYTHON_LIBS} ${PROTOBUF_LIBRARY}
 )
+MESSAGE("---->${PROTOBUF_LIBRARY}")
 

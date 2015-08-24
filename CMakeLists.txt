@@ -86,10 +86,27 @@ find_package(Curses)
 
 # Check whether boost::system can be compiled into the binary
 include(CheckCXXSourceCompiles)
-CHECK_CXX_SOURCE_COMPILES(${PROJECT_SOURCE_DIR}/src/boost_code.cc BOOST_SYSTEM_COMPILES)
+#SET(CMAKE_REQUIRED_FLAGS "-DBOOST_ALL_NO_LIB -DBOOST_ERROR_CODE_HEADER_ONLY")
+ SET(CMAKE_REQUIRED_INCLUDES ${Boost_INCLUDE_DIRS})
+
+ SET(BOOST_SOURCE
+ "
+ #define BOOST_ERROR_CODE_HEADER_ONLY
+ #include <boost/system/error_code.hpp>
+ int main()
+ {
+   boost::system::error_code error;
+   return error.value();
+  }
+ ")
+
+
+ SET(BOOST_SYSTEM_COMPILES "BOOST_SYSTEM_COMPILES")
+
+ CHECK_CXX_SOURCE_COMPILES("${BOOST_SOURCE}" BOOST_SYSTEM_COMPILES)
 
 if (BOOST_SYSTEM_COMPILES)
-  set(BOOST_SOURCE_CODE "${PROJECT_SOURCE_DIR}/boost_code.cc")
+  set(BOOST_SOURCE_CODE "${PROJECT_SOURCE_DIR}/src/boost_code.cc")
 else()
   message(STATUS "Boost requires linkage")
   set(BOOST_LIBRARIES boost_system)
@@ -249,7 +266,6 @@ if(WINDOWS_RUNTIME_MD)
   remove_definitions(-Dmysqlshtypes_EXPORTS)
 endif()
 add_subdirectory(mysqlxtest)
-add_subdirectory(modules)
 add_subdirectory(shellcore)
 
 # mysh cmdline util build

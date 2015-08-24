@@ -57,11 +57,10 @@ if(WITH_TESTS)
     endif()
 
     add_executable(run_unit_tests ${mysqlsh_tests_SRC})
-    add_dependencies(run_unit_tests mysqlshmods)
+    add_dependencies(run_unit_tests mysqlsh)
     add_dependencies(run_unit_tests mysqlxtest)
     target_link_libraries(run_unit_tests
             mysqlsh
-            mysqlshmods
             mysqlxtest
             gtest
             ${SSL_LIBRARIES}
