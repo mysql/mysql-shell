@@ -122,7 +122,7 @@ shcore::Value CollectionAdd::add(const shcore::Argument_list &args)
 
               //TODO: we are assumming that repr returns a valid JSON document
               //      we should introduce a routine that vensures that is correct.
-              ::mysqlx::Document inner_doc(element.repr());
+              ::mysqlx::Document inner_doc(element.json());
 
               if (!_add_statement.get())
                 _add_statement.reset(new ::mysqlx::AddStatement(collection->_collection_impl->add(inner_doc)));

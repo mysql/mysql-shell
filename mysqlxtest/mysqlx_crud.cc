@@ -289,9 +289,20 @@ AddStatement::AddStatement(boost::shared_ptr<Collection> coll, const Document &d
 
 AddStatement &AddStatement::add(const Document &doc)
 {
+  Mysqlx::Expr::Expr *expr(m_insert->mutable_row()->Add()->mutable_field()->Add());
+  expr->set_type(Mysqlx::Expr::Expr::LITERAL);
+
+  Mysqlx::Datatypes::Scalar *value = new Mysqlx::Datatypes::Scalar();
+  value->set_type(Mysqlx::Datatypes::Scalar::V_OCTETS);
+  value->set_v_opaque(doc.str());
+
+  expr->set_allocated_literal(value);
+
+  /* TODO: Add support for adding expressions representing documents
   DocumentValue expression(doc);
+  m_insert->mutable_row()->Add()
   Expr_parser parser(expression, true);
-  m_insert->mutable_row()->Add()->mutable_field()->AddAllocated(parser.expr());
+  m_insert->mutable_row()->Add()->mutable_field()->AddAllocated(parser.expr());*/
   return *this;
 }
 

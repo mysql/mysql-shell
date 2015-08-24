@@ -282,9 +282,13 @@ namespace mysqlx
 
     inline operator const std::string & () const
     {
-      if (m_type != TString && m_type != TExpression)
+      if (m_type != TString && m_type != TExpression && m_type != TDocument)
         throw std::logic_error("type error");
-        return *m_value.s;
+
+        if (m_type == TDocument)
+          return m_value.d->str();
+        else
+          return *m_value.s;
     }
 
     inline operator const Document & () const
