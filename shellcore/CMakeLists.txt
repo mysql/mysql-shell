@@ -139,7 +139,7 @@ SETUP_PROTOBUF()
 include_directories("${CMAKE_BINARY_DIR}/mysqlxtest")
 
 if(WINDOWS_RUNTIME_MD)
-  add_library_dll(mysqlsh ${libmysqlsh_SRC} ${libmysqlshmods_SRC})
+  add_library(mysqlsh SHARED ${libmysqlsh_SRC} ${libmysqlshmods_SRC})
 else()
   add_library(mysqlsh ${libmysqlsh_SRC} ${libmysqlshmods_SRC})
 endif()
