@@ -287,11 +287,13 @@ target_link_libraries(mysqlx mysqlsh ${GCOV_LDFLAGS})
 install(TARGETS mysqlx DESTINATION bin)
 install(DIRECTORY scripting/modules DESTINATION lib)
 
-# This is to copy the modules into the build directory to make them
-# available for debugging purposes
-add_custom_command(TARGET mysqlx PRE_BUILD
-                      COMMAND ${CMAKE_COMMAND} -E copy_directory
-                      ${CMAKE_SOURCE_DIR}/scripting/modules $<TARGET_FILE_DIR:mysqlx>/modules)
+IF(CMAKE_BUILD_TYPE MATCHES Debug)
+  # This is to copy the modules into the build directory to make them
+  # available for debugging purposes
+  add_custom_command(TARGET mysqlx PRE_BUILD
+                        COMMAND ${CMAKE_COMMAND} -E copy_directory
+                        ${CMAKE_SOURCE_DIR}/scripting/modules $<TARGET_FILE_DIR:mysqlx>/modules)
+ENDIF()
 
 if(WIN32)
   if(NOT WINDOWS_RUNTIME_MD)
@@ -328,10 +330,12 @@ if(WINDOWS_RUNTIME_MD)
   get_filename_component(V8_DLL ${V8_DLL} DIRECTORY)
   install(FILES "${V8_DLL}/${V8_FILE}" DESTINATION bin)
 
-  # Copies the dll to the binary location to enable debugging
-  add_custom_command(TARGET mysqlx PRE_BUILD
-                      COMMAND ${CMAKE_COMMAND} -E copy
-                      "${V8_DLL}/${V8_FILE}" $<TARGET_FILE_DIR:mysqlx>/${V8_FILE})
+  if(CMAKE_BUILD_TYPE MATCHES Debug)
+    # Copies the dll to the binary location to enable debugging
+    add_custom_command(TARGET mysqlx PRE_BUILD
+                        COMMAND ${CMAKE_COMMAND} -E copy
+                        "${V8_DLL}/${V8_FILE}" $<TARGET_FILE_DIR:mysqlx>/${V8_FILE})
+  endif()
 endif()
 
 # This should be there for both MD and non MD windows builds
@@ -343,10 +347,12 @@ if (HAVE_PYTHON)
     get_filename_component(PY_DLL ${PY_DLL} DIRECTORY)
     install(FILES "${PY_DLL}/${PY_FILE}" DESTINATION bin)
   
-    # Copies the dll to the binary location to enable debugging
-    add_custom_command(TARGET mysqlx PRE_BUILD
-                        COMMAND ${CMAKE_COMMAND} -E copy
-                        "${PY_DLL}/${PY_FILE}" $<TARGET_FILE_DIR:mysqlx>/${PY_FILE})
+    if(CMAKE_BUILD_TYPE MATCHES Debug)
+      # Copies the dll to the binary location to enable debugging
+      add_custom_command(TARGET mysqlx PRE_BUILD
+                          COMMAND ${CMAKE_COMMAND} -E copy
+                          "${PY_DLL}/${PY_FILE}" $<TARGET_FILE_DIR:mysqlx>/${PY_FILE})
+    endif()
   endif()
 endif()
 
