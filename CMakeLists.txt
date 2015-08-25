@@ -86,7 +86,7 @@ find_package(Curses)
 
 # Check whether boost::system can be compiled into the binary
 include(CheckCXXSourceCompiles)
-#SET(CMAKE_REQUIRED_FLAGS "-DBOOST_ALL_NO_LIB -DBOOST_ERROR_CODE_HEADER_ONLY")
+ SET(CMAKE_REQUIRED_FLAGS "-DBOOST_ALL_NO_LIB")
  SET(CMAKE_REQUIRED_INCLUDES ${Boost_INCLUDE_DIRS})
 
  SET(BOOST_SOURCE
@@ -235,11 +235,14 @@ ENDIF()
 
 include_directories(${MYSQL_INCLUDE_DIR}
                     "${Boost_INCLUDE_DIRS}"
-                    "${PYTHON_INCLUDE_DIRS}"
                     "${CMAKE_SOURCE_DIR}"
                     "${CMAKE_SOURCE_DIR}/common"
                     "${CMAKE_SOURCE_DIR}/ext/rapidjson/include"
                    )
+                   
+IF (HAVE_PYTHON)                   
+  include_directories(${PYTHON_INCLUDE_DIRS})
+ENDIF()
 
 
 IF(WITH_TESTS)
