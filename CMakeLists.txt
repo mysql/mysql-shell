@@ -207,17 +207,6 @@ IF (HAVE_V8)
     endforeach()
   endif()
 
-  install(FILES ${V8_LIBS} DESTINATION lib)
-  if(WINDOWS_RUNTIME_MD)
-    # for MD runtime we also need DLL, not just lib, but dll is on parent directory.
-    set(V8_DLL ${V8_LIBS})
-    string(REPLACE ".lib" ".dll" V8_DLL ${V8_DLL})
-    get_filename_component(V8_FILE ${V8_DLL} NAME)
-    get_filename_component(V8_DLL ${V8_DLL} DIRECTORY)
-    get_filename_component(V8_DLL ${V8_DLL} DIRECTORY)
-    install(FILES "${V8_DLL}/${V8_FILE}" DESTINATION lib)
-  endif()
-
   if(APPLE)
     set(V8_LINK_LIST -mmacosx-version-min=10.7 ${V8_LIBS})
   elseif(WIN32)
@@ -324,6 +313,40 @@ if(WIN32)
   remove_definitions(-DUNICODE)
 endif()
 
+# Installation instructions
+install(FILES ${V8_LIBS} DESTINATION lib)
 install(DIRECTORY "${CMAKE_SOURCE_DIR}/utils/" DESTINATION "include/utils" FILES_MATCHING PATTERN "*.h" )
 install(DIRECTORY "${CMAKE_SOURCE_DIR}/common/logger" DESTINATION "include/common" FILES_MATCHING PATTERN "*.h" )
 install(DIRECTORY "${CMAKE_SOURCE_DIR}/ext/rapidjson/include/rapidjson" DESTINATION "include" FILES_MATCHING PATTERN "*.h" )
+
+if(WINDOWS_RUNTIME_MD)
+  # for MD runtime we also need DLL, not just lib, but dll is on parent directory.
+  set(V8_DLL ${V8_LIBS})
+  string(REPLACE ".lib" ".dll" V8_DLL ${V8_DLL})
+  get_filename_component(V8_FILE ${V8_DLL} NAME)
+  get_filename_component(V8_DLL ${V8_DLL} DIRECTORY)
+  get_filename_component(V8_DLL ${V8_DLL} DIRECTORY)
+  install(FILES "${V8_DLL}/${V8_FILE}" DESTINATION bin)
+
+  # Copies the dll to the binary location to enable debugging
+  add_custom_command(TARGET mysqlx PRE_BUILD
+                      COMMAND ${CMAKE_COMMAND} -E copy
+                      "${V8_DLL}/${V8_FILE}" $<TARGET_FILE_DIR:mysqlx>/${V8_FILE})
+endif()
+
+# This should be there for both MD and non MD windows builds
+if (HAVE_PYTHON)
+  if (WIN32)
+    set(PY_DLL ${PYTHON_LIBRARIES})
+    string(REPLACE ".lib" ".dll" PY_DLL ${PY_DLL})
+    get_filename_component(PY_FILE ${PY_DLL} NAME)
+    get_filename_component(PY_DLL ${PY_DLL} DIRECTORY)
+    install(FILES "${PY_DLL}/${PY_FILE}" DESTINATION bin)
+  
+    # Copies the dll to the binary location to enable debugging
+    add_custom_command(TARGET mysqlx PRE_BUILD
+                        COMMAND ${CMAKE_COMMAND} -E copy
+                        "${PY_DLL}/${PY_FILE}" $<TARGET_FILE_DIR:mysqlx>/${PY_FILE})
+  endif()
+endif()
+
