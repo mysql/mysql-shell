@@ -35,7 +35,7 @@ namespace shcore
     Input_continued
   };
 
-  class TYPES_COMMON_PUBLIC IShell_core
+  class SHCORE_PUBLIC IShell_core
   {
   public:
     enum Mode

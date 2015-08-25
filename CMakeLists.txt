@@ -207,6 +207,7 @@ IF (HAVE_V8)
     endforeach()
   endif()
 
+  install(FILES ${V8_LIBS} DESTINATION lib)
   if(WINDOWS_RUNTIME_MD)
     # for MD runtime we also need DLL, not just lib, but dll is on parent directory.
     set(V8_DLL ${V8_LIBS})
@@ -262,7 +263,7 @@ endif()
 
 
 if(WINDOWS_RUNTIME_MD)
-  add_subdirectory(types)
+  #add_subdirectory(types)
   remove_definitions(-Dmysqlshtypes_EXPORTS)
 endif()
 add_subdirectory(mysqlxtest)

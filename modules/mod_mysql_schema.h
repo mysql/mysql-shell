@@ -46,7 +46,7 @@ namespace mysh
     /**
     * Represents a Schema retrieved with a session created using the MySQL Protocol.
     */
-    class MOD_PUBLIC Schema : public DatabaseObject, public boost::enable_shared_from_this<Schema>
+    class SHCORE_PUBLIC Schema : public DatabaseObject, public boost::enable_shared_from_this<Schema>
     {
     public:
       Schema(boost::shared_ptr<ClassicSession> owner, const std::string &name);

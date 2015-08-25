@@ -48,7 +48,7 @@ namespace mysh
     *
     * Provides facilities to open/close a connection, execute queries and schema info management.
     */
-    class MOD_PUBLIC ClassicSession : public ShellBaseSession, public boost::enable_shared_from_this<ClassicSession>
+    class SHCORE_PUBLIC ClassicSession : public ShellBaseSession, public boost::enable_shared_from_this<ClassicSession>
     {
     public:
       ClassicSession();

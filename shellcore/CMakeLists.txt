@@ -65,20 +65,20 @@ file(GLOB libmysqlsh_SRC
     "${BOOST_SOURCE_CODE}"
 )
 
-if(NOT WINDOWS_RUNTIME_MD)
+#if(NOT WINDOWS_RUNTIME_MD)
   list(APPEND libmysqlsh_SRC "${CMAKE_SOURCE_DIR}/types/ishell_core.cc")
   list(APPEND libmysqlsh_SRC "${CMAKE_SOURCE_DIR}/common/logger/logger.cc")
-else()
-  list(REMOVE_ITEM libmysqlsh_SRC "${CMAKE_SOURCE_DIR}/shellcore/types.cc")
-  list(REMOVE_ITEM libmysqlsh_SRC "${CMAKE_SOURCE_DIR}/shellcore/types_cpp.cc")
-  list(REMOVE_ITEM libmysqlsh_SRC "${CMAKE_SOURCE_DIR}/shellcore/object_factory.cc")
-  list(REMOVE_ITEM libmysqlsh_SRC "${CMAKE_SOURCE_DIR}/shellcore/proxy_object.cc")
-#  list(REMOVE_ITEM libmysqlsh_SRC "${CMAKE_SOURCE_DIR}/shellcore/shell_core.cc")
-  list(REMOVE_ITEM libmysqlsh_SRC "${CMAKE_SOURCE_DIR}/shellcore/common.cc")
-  list(REMOVE_ITEM libmysqlsh_SRC "${CMAKE_SOURCE_DIR}/shellcore/obj_date.cc")
-  list(REMOVE_ITEM libmysqlsh_SRC "${CMAKE_SOURCE_DIR}/utils/utils_json.h")
-  list(REMOVE_ITEM libmysqlsh_SRC "${CMAKE_SOURCE_DIR}/utils/utils_json.cc")
-endif()
+#else()
+#  list(REMOVE_ITEM libmysqlsh_SRC "${CMAKE_SOURCE_DIR}/shellcore/types.cc")
+#  list(REMOVE_ITEM libmysqlsh_SRC "${CMAKE_SOURCE_DIR}/shellcore/types_cpp.cc")
+#  list(REMOVE_ITEM libmysqlsh_SRC "${CMAKE_SOURCE_DIR}/shellcore/object_factory.cc")
+# list(REMOVE_ITEM libmysqlsh_SRC "${CMAKE_SOURCE_DIR}/shellcore/proxy_object.cc")
+##  list(REMOVE_ITEM libmysqlsh_SRC "${CMAKE_SOURCE_DIR}/shellcore/shell_core.cc")
+#  list(REMOVE_ITEM libmysqlsh_SRC "${CMAKE_SOURCE_DIR}/shellcore/common.cc")
+#  list(REMOVE_ITEM libmysqlsh_SRC "${CMAKE_SOURCE_DIR}/shellcore/obj_date.cc")
+#  list(REMOVE_ITEM libmysqlsh_SRC "${CMAKE_SOURCE_DIR}/utils/utils_json.h")
+#  list(REMOVE_ITEM libmysqlsh_SRC "${CMAKE_SOURCE_DIR}/utils/utils_json.cc")
+#endif()
 
 
 # Configures V8 accordingly...
@@ -97,6 +97,7 @@ endif()
 if ( HAVE_PYTHON )
   include_directories("${PYTHON_INCLUDE_DIR}")
 
+  install(FILES ${PYTHON_LIBRARIES} DESTINATION lib)
   if(WINDOWS_RUNTIME_MD)
     set(PY_DLL ${PYTHON_LIBRARIES})
     string(REPLACE ".lib" ".dll" PY_DLL ${PY_DLL})
@@ -165,6 +166,7 @@ install(DIRECTORY "${CMAKE_SOURCE_DIR}/modules/" DESTINATION "include/modules" F
 install(TARGETS mysqlsh DESTINATION lib)
 
 add_definitions(-DSHCORE_EXPORT )
+add_definitions(-DNGCOMMON_EXPORTS )
 add_definitions(-DBOOST_ALL_NO_LIB )
 add_definitions(-Dmyjson_EXPORTS )
 if(WIN32)

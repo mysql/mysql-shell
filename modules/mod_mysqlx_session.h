@@ -85,7 +85,7 @@ namespace mysh
     * \todo Implement and document createSchema()
     * \todo Implement and document dropSchema()
     */
-    class MOD_PUBLIC BaseSession : public ShellBaseSession
+    class SHCORE_PUBLIC BaseSession : public ShellBaseSession
     {
     public:
       BaseSession();
@@ -149,7 +149,7 @@ namespace mysh
     /**
     * Enables interaction with an X Protocol enabled MySQL Server.
     */
-    class MOD_PUBLIC Session : public BaseSession, public boost::enable_shared_from_this<Session>
+    class SHCORE_PUBLIC Session : public BaseSession, public boost::enable_shared_from_this<Session>
     {
     public:
       Session(){};
@@ -163,7 +163,7 @@ namespace mysh
     /**
     * Enables interaction with an X Protocol enabled MySQL Server, inclusing SQL Execution.
     */
-    class MOD_PUBLIC NodeSession : public BaseSession, public boost::enable_shared_from_this<NodeSession>
+    class SHCORE_PUBLIC NodeSession : public BaseSession, public boost::enable_shared_from_this<NodeSession>
     {
     public:
       NodeSession();

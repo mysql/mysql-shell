@@ -51,7 +51,7 @@ namespace mysh
     * \todo Implement and Document getCollectionAsTable()
     * \todo Implement and Document drop()
     */
-    class MOD_PUBLIC Schema : public DatabaseObject, public boost::enable_shared_from_this<Schema>
+    class SHCORE_PUBLIC Schema : public DatabaseObject, public boost::enable_shared_from_this<Schema>
     {
     public:
       Schema(boost::shared_ptr<BaseSession> owner, const std::string &name);

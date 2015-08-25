@@ -25,7 +25,7 @@
 
 namespace shcore
 {
-  class TYPES_COMMON_PUBLIC Cpp_function : public Function_base
+  class SHCORE_PUBLIC Cpp_function : public Function_base
   {
   public:
     //TODO make this work with direct function pointers and skip boost::function
@@ -60,7 +60,7 @@ namespace shcore
     Value_type _return_type;
   };
 
-  class TYPES_COMMON_PUBLIC Cpp_object_bridge : public Object_bridge
+  class SHCORE_PUBLIC Cpp_object_bridge : public Object_bridge
   {
   public:
     virtual ~Cpp_object_bridge();

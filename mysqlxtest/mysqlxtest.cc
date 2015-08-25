@@ -50,6 +50,12 @@ const char CMD_ARG_SEPARATOR = '\t';
 
 #include <mysql/service_my_snprintf.h>
 
+#ifdef _MSC_VER
+#  pragma push_macro("ERROR")
+#  undef ERROR
+#endif
+
+
 using namespace google::protobuf;
 
 typedef std::map<std::string, std::string> Message_by_full_name;
@@ -1837,3 +1843,7 @@ int main(int argc, char **argv)
 
 
 #include "mysqlx_all_msgs.h"
+
+#ifdef _MSC_VER
+#  pragma pop_macro("ERROR")
+#endif

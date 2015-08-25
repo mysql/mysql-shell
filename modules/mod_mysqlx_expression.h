@@ -32,7 +32,7 @@ namespace mysh
 {
   namespace mysqlx
   {
-    class MOD_PUBLIC Expression : public shcore::Cpp_object_bridge
+    class SHCORE_PUBLIC Expression : public shcore::Cpp_object_bridge
     {
     public:
       Expression(const std::string &expression) { _data = expression; }

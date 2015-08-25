@@ -42,7 +42,7 @@ namespace mysh
   /**
   * Provides base functionality for database objects.
   */
-  class MOD_PUBLIC DatabaseObject : public shcore::Cpp_object_bridge
+  class SHCORE_PUBLIC DatabaseObject : public shcore::Cpp_object_bridge
   {
   public:
     DatabaseObject(boost::shared_ptr<ShellBaseSession> session, boost::shared_ptr<DatabaseObject> schema, const std::string &name);

@@ -11,12 +11,12 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup>
-    <BoostHeaderPath>C:\src\mysql-server\boost\boost_1_57_0</BoostHeaderPath>
-    <NativeSampleHeaderPath>C:\src\mysql-server\ngshell-readonly-develop-9\samples\native\lib</NativeSampleHeaderPath>
-    <MySqlXShellHeadersPath>C:\src\mysql-server\ngshell-readonly-develop-9\deployed.x86\include</MySqlXShellHeadersPath>
-    <MySqlXShellLibsPath>C:\src\mysql-server\ngshell-readonly-develop-9\deployed.x86\lib</MySqlXShellLibsPath>
-    <MySqlServerLibsPath>C:\MySQL\16083054.mysql-5.7.9-winx64-debug-test\lib\</MySqlServerLibsPath>
-    <NativeSampleLibPath>C:\src\mysql-server\ngshell-readonly-develop-9\MY_BUILD.x86\samples\native\lib\Debug</NativeSampleLibPath>
+    <BoostHeaderPath>C:\src\mysql-server\boost\boost_1_58_0</BoostHeaderPath>
+    <NativeSampleHeaderPath>C:\src\mysql-server\ngshell-readonly-develop-frozen-8\samples\native\lib</NativeSampleHeaderPath>
+    <MySqlXShellHeadersPath>C:\src\mysql-server\ngshell-readonly-develop-frozen-8\deployed.x86\include</MySqlXShellHeadersPath>
+    <MySqlXShellLibsPath>C:\src\mysql-server\ngshell-readonly-develop-frozen-8\deployed.x86\lib</MySqlXShellLibsPath>
+    <MySqlServerLibsPath>C:\MySQL\mysql-5.6.22-win32-MD-debug\lib\</MySqlServerLibsPath>
+    <NativeSampleLibPath>C:\src\mysql-server\ngshell-readonly-develop-frozen-8\MY_BUILD.MD.x86\samples\native\lib\Debug</NativeSampleLibPath>
   </PropertyGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{083E5ED7-2E3C-4DD5-8055-D67CD0DB6AE9}</ProjectGuid>
@@ -71,7 +71,7 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>winmm.lib;$(MySqlXShellLibsPath)\mysqlsh.lib;$(MySqlXShellLibsPath)\mysqlshmods.lib;$(MySqlXShellLibsPath)\mysqlshtypes.lib;$(MySqlXShellLibsPath)\v8.lib;$(MySqlServerLibsPath)\mysqlclient.lib;$(NativeSampleLibPath)\shell_client_lib.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>winmm.lib;$(MySqlXShellLibsPath)\mysqlsh.lib;$(MySqlXShellLibsPath)\v8.lib;$(MySqlServerLibsPath)\mysqlclient.lib;$(NativeSampleLibPath)\shell_client_lib.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">

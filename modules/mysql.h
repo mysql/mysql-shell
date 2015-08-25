@@ -47,7 +47,7 @@ namespace mysh
         std::string _pwd;
         };*/
 
-    class MOD_PUBLIC Field
+    class SHCORE_PUBLIC Field
     {
     public:
       Field(const std::string& catalog, const std::string& db, const std::string& table, const std::string& otable, const std::string& name, const std::string& oname, int length, int type, int flags, int decimals, int charset);
@@ -102,7 +102,7 @@ namespace mysh
     };
 
     class Connection;
-    class MOD_PUBLIC Result
+    class SHCORE_PUBLIC Result
     {
     public:
       Result(boost::shared_ptr<Connection> owner, my_ulonglong affected_rows, unsigned int warning_count, const char *info);
@@ -146,7 +146,7 @@ namespace mysh
       bool _has_resultset;
     };
 
-    class MOD_PUBLIC Connection : public boost::enable_shared_from_this<Connection>
+    class SHCORE_PUBLIC Connection : public boost::enable_shared_from_this<Connection>
     {
     public:
       Connection(const std::string &uri, const char *password = NULL);

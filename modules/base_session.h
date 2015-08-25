@@ -30,12 +30,12 @@
 
 namespace mysh
 {
-  bool MOD_PUBLIC parse_mysql_connstring(const std::string &connstring,
+  bool SHCORE_PUBLIC parse_mysql_connstring(const std::string &connstring,
                               std::string &protocol, std::string &user, std::string &password,
                               std::string &host, int &port, std::string &sock,
                               std::string &db, int &pwd_found);
 
-  std::string MOD_PUBLIC strip_password(const std::string &connstring);
+  std::string SHCORE_PUBLIC strip_password(const std::string &connstring);
 
   // The session types that can be produced by connect_session
   enum SessionType
@@ -45,7 +45,7 @@ namespace mysh
     Classic
   };
 
-  class MOD_PUBLIC ShellBaseSession : public shcore::Cpp_object_bridge
+  class SHCORE_PUBLIC ShellBaseSession : public shcore::Cpp_object_bridge
   {
   public:
     ShellBaseSession();
@@ -74,7 +74,7 @@ namespace mysh
     shcore::Value get_member_method(const shcore::Argument_list &args, const std::string& method, const std::string& prop);
   };
 
-  boost::shared_ptr<mysh::ShellBaseSession> MOD_PUBLIC connect_session(const shcore::Argument_list &args, SessionType session_type);
+  boost::shared_ptr<mysh::ShellBaseSession> SHCORE_PUBLIC connect_session(const shcore::Argument_list &args, SessionType session_type);
 };
 
 #endif

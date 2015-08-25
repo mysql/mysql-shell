@@ -32,7 +32,7 @@ namespace shcore
 {
   // This class is to wrap the Raw and Pretty writers from rapidjson since
   // they
-  class TYPES_COMMON_PUBLIC Writer_base
+  class SHCORE_PUBLIC Writer_base
   {
     protected:
   
@@ -70,7 +70,7 @@ namespace shcore
     std::string str() { return _data.data; }
   };
 
-  class TYPES_COMMON_PUBLIC Raw_writer :public Writer_base
+  class SHCORE_PUBLIC Raw_writer :public Writer_base
   {
   public:
     Raw_writer() :_writer(_data){};
@@ -94,7 +94,7 @@ namespace shcore
     Writer<SStream>_writer;
   };
 
-  class TYPES_COMMON_PUBLIC Pretty_writer :public Writer_base
+  class SHCORE_PUBLIC Pretty_writer :public Writer_base
   {
   public:
     Pretty_writer() :_writer(_data){};
@@ -119,7 +119,7 @@ namespace shcore
   };
 
   struct Value;
-  class TYPES_COMMON_PUBLIC JSON_dumper
+  class SHCORE_PUBLIC JSON_dumper
   {
   public:
     JSON_dumper(bool pprint = false);

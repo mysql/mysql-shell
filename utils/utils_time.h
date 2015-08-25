@@ -24,7 +24,7 @@
 #include "shellcore/common.h"
 #include <string>
 
-class TYPES_COMMON_PUBLIC MySQL_timer
+class SHCORE_PUBLIC MySQL_timer
 {
 public:
   unsigned long get_time();
