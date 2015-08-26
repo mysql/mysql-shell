@@ -143,12 +143,6 @@ namespace mysh
       {}
 
       Resultset sql(String query);
-
-      /**
-      * \page Session Remarks
-      * this is a sample page
-      */
-
 #endif
 
     private:
