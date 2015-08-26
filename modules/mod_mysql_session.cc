@@ -52,6 +52,51 @@ using namespace shcore;
 
 REGISTER_OBJECT(mysql, ClassicSession);
 
+#ifdef DOXYGEN
+/**
+* Creates a ClassicSession instance using the provided connection data.
+* \param connectionData the connection string used to connect to the database.
+* \param password if provided, will override the password in the connection string.
+* \return An ClassicSession instance.
+*
+* A ClassicSession object uses the traditional MySQL Protocol to allow executing operations on the connected MySQL Server.
+*
+* The format of the connection string can be as follows for connections using the TCP protocol:
+*
+* [user[:pass]\@]host[:port][/db]
+*
+* or as follows for connections using a socket or named pipe:
+*
+* [user[:pass\@] ::socket[/db]
+*
+* \sa ClassicSession
+*/
+ClassicSession getClassicSession(String connectionData, String password)
+{
+  ClassicSession a;
+  return a;
+}
+
+/**
+* This function works the same as the function above, except that the connection data comes enclosed on a dictionary object.
+* \param connectionData a map with the connection data as key value pairs, the following keys are recognized:
+*  - host, the host to use for the connection (can be an IP or DNS name)
+*  - port, the TCP port where the server is listening (default value is 3306).
+*  - schema, the current database for the connection's session.
+*  - dbUser, the user to authenticate against.
+*  - dbPassword, the password of the user user to authenticate against.
+* \param password if provided, will override the password in the connection string.
+* \return An ClassicSession instance.
+*
+* \sa ClassicSession
+*/
+ClassicSession getClassicSession(Map connectionData, String password)
+{
+  ClassicSession a;
+  return a;
+}
+#endif
+
 ClassicSession::ClassicSession()
 : _show_warnings(false)
 {
@@ -70,34 +115,6 @@ Connection *ClassicSession::connection()
   return _conn.get();
 }
 
-#ifdef DOXYGEN
-/**
-* Connects to a database enabling this session instance to run operations against the connected database server.
-* During this call a connection is opened against the given URI and the schema data is cached.
-* \sa close()
-* \param connectionData the connection string used to connect to the database. The connection string can be of the format [user[:pass]]@host[:port][/db] or user[:pass]@::socket[/db]
-* \param password if provided, will override the password in the connection string.
-* \return No return value
-*/
-Undefined ClassicSession::connect(String connectionData, String password)
-{}
-
-/**
-* Connects to a database enabling this session instance to run operations against the connected database server.
-* During this call a connection is opened against the given URI and the schema data is cached.
-* \sa close()
-* \param connectionData a map with the connection data as key value pairs, the following keys are recognized:
-*  - host, the host to use for the connection (can be an IP or DNS name)
-*  - port, the TCP port where the server is listening (default ports are 3306 for MySQL classic & 33060 for MySQL X).
-*  - schema, the current database for the connection's session.
-*  - dbUser, the user to authenticate against.
-*  - dbPassword, the password of the user user to authenticate against.
-* \param password if provided, will override the password in the connection string.
-* \return No return value
-*/
-Undefined ClassicSession::connect(Map connectionData, String password)
-{}
-#endif
 Value ClassicSession::connect(const Argument_list &args)
 {
   args.ensure_count(1, 2, "ClassicSession::connect");
@@ -163,7 +180,7 @@ Value ClassicSession::connect(const Argument_list &args)
 
 #ifdef DOXYGEN
 /**
-* Closes the connection associated with this session.
+* Closes the internal connection to the MySQL Server held on ths session object.
 */
 Undefined ClassicSession::close()
 {}
@@ -212,7 +229,7 @@ Value ClassicSession::sql(const Argument_list &args)
 #ifdef DOXYGEN
 /**
 * Returns the connection string passed to connect() method.
-* \return The URI of the form user@host:port (not including the password or the database).
+* \return A string representation of the connection data in URI format (excluding the password or the database).
 * \sa connect
 */
 String ClassicSession::getUri()
@@ -336,11 +353,14 @@ void ClassicSession::_load_schemas()
 
 #ifdef DOXYGEN
 /**
-* Returns the current schema of this session.
-* \sa Schema
+* Returns the current schema of this session
+* Retrieves a Schema object from the current session through it's name.
+* \param name The name of the Schema object to be retrieved.
 * \return An schema object for the current schema.
+* \exception An exception is thrown if the given name is not a valid schema on the Session.
+* \sa Schema
 */
-Schema ClassicSession::getSchema()
+Schema ClassicSession::getSchema(String name)
 {}
 #endif
 shcore::Value ClassicSession::get_schema(const shcore::Argument_list &args) const

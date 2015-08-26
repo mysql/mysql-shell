@@ -77,13 +77,66 @@ static void ATTR_UNUSED translate_exception()
 
 namespace mysh
 {
+  /**
+  * Encloses the functions and classes available to interact with an X Protocol enabled MySQL Product.
+  *
+  * The objects contained on this module provide a full API to interact with the different MySQL Products implementing the
+  * X Protocol.
+  *
+  * In the case of a MySQL Server the API will enable doing operations on the different database objects such as schema management operations and both table and
+  * collection management and CRUD operations. (CRUD: Create, Read, Update, Delete).
+  *
+  * Intention of the module is to provide a full API for development through scripting languages such as JavaScript and Python, this would be normally achieved through a normal session.
+  *
+  * If specialized SQL work is required, SQL execution is also available through a NodeSession, which is intended to work specifically with MySQL Servers.
+  */
   namespace mysqlx
   {
+#ifdef DOXYGEN
+    Session getSession(String connectionData, String password);
+    Session getSession(Map connectionData, String password);
+    NodeSession getNodeSession(String connectionData, String password);
+    NodeSession getNodeSession(Map connectionData, String password);
+#endif
+
     class Schema;
     /**
     * Base functionality for Session classes through the X Protocol.
     * \todo Implement and document createSchema()
     * \todo Implement and document dropSchema()
+    *
+    * This class encloses the core functionaliti to be made available on both the Session and NodeSession classes, such functionality includes
+    *
+    * - Accessing available schemas.
+    * - Schema management operations.
+    * - Enabling/disabling warning generation.
+    * - Retrieval of connection information.
+    *
+    * \b Dynamic \b Properties
+    *
+    * In addition to the properties documented above, when a session object is created the schemas available on the target
+    * MySQL Server are cached.
+    *
+    * A dynamic property is added to the session object in order to access each available Schema as a session member.
+    *
+    * These dynamic properties are named as the Schema's name, so the schemas are accessible as follows:
+    *
+    * \code{.js}
+    * // Establishes the connection.
+    * var mysqlx = require('mysqlx').mysqlx;
+    * var session = mysqlx.getSession("myuser@localhost", pwd);
+    *
+    * // Getting a schema through the getSchema function
+    * var schema = session.getSchema("sakila");
+    *
+    * // Getting a schema through a session property
+    * var schema = session.sakila;
+    * \endcode
+    *
+    * \sa mysqlx.getSession(String connectionData, String password)
+    * \sa mysqlx.getSession(Map connectionData, String password)
+    * \sa mysqlx.getNodeSession(String connectionData, String password)
+    * \sa mysqlx.getNodeSession(Map connectionData, String password)
     */
     class SHCORE_PUBLIC BaseSession : public ShellBaseSession
     {
@@ -115,14 +168,12 @@ namespace mysh
 
 #ifdef DOXYGEN
       String uri; //!< Same as getUri()
-      List schemas; //!< Same as getSchemas()
+      Map schemas; //!< Same as getSchemas()
       Schema defaultSchema; //!< Same as getDefaultSchema()
 
-      Undefined connect(String connectionData, String password);
-      Undefined connect(Map connectionData, String password);
       Schema getDefaultSchema();
       Schema getSchema(String name);
-      List getSchemas();
+      Map getSchemas();
       String getUri();
       Undefined close();
       Undefined setFetchWarnings(Bool value);
@@ -147,7 +198,11 @@ namespace mysh
     };
 
     /**
-    * Enables interaction with an X Protocol enabled MySQL Server.
+    * Enables interaction with an X Protocol enabled MySQL Product.
+    *
+    * Note that this class inherits the behavior described on the BaseSession class.
+    *
+    * /sa BaseSession
     */
     class SHCORE_PUBLIC Session : public BaseSession, public boost::enable_shared_from_this<Session>
     {
@@ -161,7 +216,11 @@ namespace mysh
     };
 
     /**
-    * Enables interaction with an X Protocol enabled MySQL Server, inclusing SQL Execution.
+    * Enables interaction with an X Protocol enabled MySQL Server, this includes SQL Execution.
+    *
+    * Note that this class inherits the behavior described on the BaseSession class.
+    *
+    * /sa BaseSession
     */
     class SHCORE_PUBLIC NodeSession : public BaseSession, public boost::enable_shared_from_this<NodeSession>
     {

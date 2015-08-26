@@ -48,6 +48,70 @@ REGISTER_OBJECT(mysqlx, Expression);
 
 #include <set>
 
+#ifdef DOXYGEN
+/**
+* Creates a Session instance using the provided connection data.
+* \param connectionData the connection string used to connect to the database.
+* \param password if provided, will override the password in the connection string.
+* \return An Session instance.
+*
+* A Session object uses the X Protocol to allow executing operations on the connected MySQL Product.
+*
+* The format of the connection string can be as follows for connections using the TCP protocol:
+*
+* [user[:pass]\@]host[:port][/db]
+*
+* or as follows for connections using a socket or named pipe:
+*
+* [user[:pass\@] ::socket[/db]
+*
+* \sa Session
+*/
+Session getSession(String connectionData, String password)
+{
+  Session a;
+  return a;
+}
+
+/**
+* This function works the same as the function above, except that the connection data comes enclosed on a dictionary object.
+* \param connectionData a map with the connection data as key value pairs, the following keys are recognized:
+*  - host, the host to use for the connection (can be an IP or DNS name)
+*  - port, the TCP port where the server is listening (default value is 33060).
+*  - schema, the current database for the connection's session.
+*  - dbUser, the user to authenticate against.
+*  - dbPassword, the password of the user user to authenticate against.
+* \param password if provided, will override the password in the connection string.
+* \return An Session instance.
+*
+* \sa Session
+*/
+Session getSession(Map connectionData, String password)
+{
+  Session a;
+  return a;
+}
+
+/**
+* This function works the same as getSession(String connectionData, String password), except that it will return a NodeSession object which allows SQL Execution.
+*/
+NodeSession getNodeSession(String connectionData, String password)
+{
+  NodeSession a;
+  return a;
+}
+
+/**
+* This function works the same as getSession(Map connectionData, String password), except that it will return a NodeSession object which allows SQL Execution.
+*/
+NodeSession getNodeSession(Map connectionData, String password)
+{
+  NodeSession a;
+  return a;
+}
+
+#endif
+
 BaseSession::BaseSession()
 : _show_warnings(false)
 {
@@ -57,57 +121,6 @@ BaseSession::BaseSession()
   add_method("setFetchWarnings", boost::bind(&BaseSession::set_fetch_warnings, this, _1), "data");
 }
 
-#ifdef DOXYGEN
-/**
-* \brief Connects to a X Protocol enabled MySQL Product.
-* \param connectionData string representation of the connection data in URI format.
-* \param password optional parameter, the password could be specified through this parameter or embedded on the connectionData string.
-*
-* \return Null
-*
-* The URI format is as follows:
-* [user[:password]]\@localhost[:port][/schema]
-*
-* JavaScript Example
-* \code{.js}
-* // Using password.
-* var pwd = "mypwd";
-* session.connect("rennox\@localhost/sakila", pwd);
-*
-* // With password embedded on the URI.
-* session.connect("rennox:mypwd\@localhost:33460/sakila");
-* \endcode
-*/
-Undefined BaseSession::connect(String connectionData, String password)
-{}
-
-/**
-* \brief Connects to a X Protocol enabled MySQL Product.
-* \param connectionData Dictionary containing the connection data.
-* \param password optional parameter, the password could be specified through this parameter or embedded on the connectionData dictionary.
-*
-* The connection data is specified on the connectionData dictionary with the next entries:
-* - host: the host for the target MySQL Product.
-* - port: the port where the target product is listening.
-* - schema: the schema to be set as default for this session.
-* - dbUser: the user name to be used on the connection.
-* - dbPassword: the user password.
-*
-* \return undefined
-*
-* JavaScript Example
-* \code{.js}
-* // Using password
-* var pwd = "mypwd";
-* session.connect({dbUser:"rennox", host:"localhost", schema:"sakila"}, mypwd);
-*
-* // With password embedded on the connectionData
-* session.connect({dbUser:"rennox", host:"localhost", port:33060, dbPassword: pwd});
-* \endcode
-*/
-Undefined BaseSession::connect(Map connectionData, String password)
-{}
-#endif
 Value BaseSession::connect(const Argument_list &args)
 {
   std::string function_name = class_name() + ".connect";
@@ -193,6 +206,12 @@ Value BaseSession::close(const Argument_list &args)
   return shcore::Value();
 }
 
+/**
+* Creates a SqlExecute object to allow running the received SQL statement on the target MySQL Server.
+* \param statement A string containing the SQL statement to be executed.
+* \return A Resultset object to allow pulling the statement result data.
+* \sa SqlExecute, Resultset
+*/
 Value BaseSession::sql(const Argument_list &args)
 {
   std::string function_name = class_name() + ".sql";
@@ -476,7 +495,7 @@ Schema setDefaultSchema();
 * Sets the new default schema for this session, and returns the schema object for it.
 * At the database level, this is equivalent at issuing the following SQL query:
 *   use <new-default-schema>;
-* 
+*
 * \sa getSchemas(), getSchema()
 * \param name the name of the new schema to switch to.
 * \return the Schema object for the new schema.
