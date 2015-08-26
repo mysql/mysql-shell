@@ -30,7 +30,7 @@
 #include <boost/function.hpp>
 
 // Avoid warnings from includes of other project and protobuf
-#if defined __GNUC__
+#if __GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 6)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wshadow"
 #pragma GCC diagnostic ignored "-Wunused-parameter"
@@ -43,7 +43,7 @@
 #include "mysqlx_expr.pb.h"
 #include "mysqlx_crud.pb.h"
 
-#ifdef __GNUC__
+#if __GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 6)
 #pragma GCC diagnostic pop
 #elif defined _MSC_VER
 #pragma warning (pop)

@@ -88,6 +88,18 @@ if(WITH_TESTS)
 
     if ( HAVE_PYTHON )
       target_link_libraries(run_unit_tests ${PYTHON_LIBRARIES})
+
+      if(CMAKE_BUILD_TYPE MATCHES Debug)
+        set(PY_DLL ${PYTHON_LIBRARIES})
+        string(REPLACE ".lib" ".dll" PY_DLL ${PY_DLL})
+        get_filename_component(PY_FILE ${PY_DLL} NAME)
+        get_filename_component(PY_DLL ${PY_DLL} DIRECTORY)
+  
+        # Copies the dll to the binary location to enable debugging
+        add_custom_command(TARGET run_unit_tests PRE_BUILD
+                            COMMAND ${CMAKE_COMMAND} -E copy
+                            "${PY_DLL}/${PY_FILE}" $<TARGET_FILE_DIR:run_unit_tests>/${PY_FILE})
+      endif()
     endif()
 
     if (NOT WIN32)

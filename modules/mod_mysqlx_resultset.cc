@@ -138,42 +138,48 @@ shcore::Value Resultset::next(const shcore::Argument_list &UNUSED(args))
       for (size_t index = 0; index < metadata->size(); index++)
       {
         Value field_value;
-        switch (metadata->at(index).type)
+
+        if (row->isNullField(index))
+          field_value = Value::Null();
+        else
         {
-          case ::mysqlx::SINT:
-            field_value = Value(row->sInt64Field(index));
-            break;
-          case ::mysqlx::UINT:
-            field_value = Value(row->uInt64Field(index));
-            break;
-          case ::mysqlx::DOUBLE:
-            field_value = Value(row->doubleField(index));
-            break;
-          case ::mysqlx::FLOAT:
-            field_value = Value(row->floatField(index));
-            break;
-          case ::mysqlx::BYTES:
-            field_value = Value(row->stringField(index));
-            break;
-          case ::mysqlx::DECIMAL:
-            field_value = Value(row->decimalField(index));
-            break;
-          case ::mysqlx::TIME:
-            field_value = Value(row->timeField(index));
-            break;
-          case ::mysqlx::DATETIME:
-            field_value = Value(row->dateTimeField(index));
-            break;
-          case ::mysqlx::ENUM:
-            field_value = Value(row->enumField(index));
-            break;
-          case ::mysqlx::BIT:
-            field_value = Value(row->bitField(index));
-            break;
-          //TODO: Fix the handling of SET
-          case ::mysqlx::SET:
-            //field_value = Value(row->setField(index));
-            break;
+          switch (metadata->at(index).type)
+          {
+            case ::mysqlx::SINT:
+              field_value = Value(row->sInt64Field(index));
+              break;
+            case ::mysqlx::UINT:
+              field_value = Value(row->uInt64Field(index));
+              break;
+            case ::mysqlx::DOUBLE:
+              field_value = Value(row->doubleField(index));
+              break;
+            case ::mysqlx::FLOAT:
+              field_value = Value(row->floatField(index));
+              break;
+            case ::mysqlx::BYTES:
+              field_value = Value(row->stringField(index));
+              break;
+            case ::mysqlx::DECIMAL:
+              field_value = Value(row->decimalField(index));
+              break;
+            case ::mysqlx::TIME:
+              field_value = Value(row->timeField(index));
+              break;
+            case ::mysqlx::DATETIME:
+              field_value = Value(row->dateTimeField(index));
+              break;
+            case ::mysqlx::ENUM:
+              field_value = Value(row->enumField(index));
+              break;
+            case ::mysqlx::BIT:
+              field_value = Value(row->bitField(index));
+              break;
+              //TODO: Fix the handling of SET
+            case ::mysqlx::SET:
+              //field_value = Value(row->setField(index));
+              break;
+          }
         }
         value_row->add_item(metadata->at(index).name, field_value);
       }

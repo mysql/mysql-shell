@@ -669,7 +669,7 @@ void Expr_parser::docpath_array_loc(Mysqlx::Expr::DocumentPathItem& item)
 }
 
 /*
- * document_path ::= ( docpath_member | docpath_array_loc | ( DOUBLESTAR ))+
+ * document_path ::= docpath_member | docpath_array_loc | ( DOUBLESTAR )
  */
 void Expr_parser::document_path(Mysqlx::Expr::ColumnIdentifier& colid)
 {

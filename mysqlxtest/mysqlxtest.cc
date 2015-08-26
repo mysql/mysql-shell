@@ -38,7 +38,6 @@
 #include "utils_mysql_parsing.h"
 
 #include "m_string.h" // needed by writer.h, but has to be included after expr_parser.h
-#undef min
 #include <rapidjson/writer.h>
 
 #include <iostream>
@@ -75,6 +74,7 @@ static Message_by_id client_msgs_by_id;
 bool OPT_quiet = false;
 bool OPT_show_warnings = false;
 bool OPT_fatal_errors = false;
+static int OPT_expect_error = 0;
 
 static int current_line_number = 0;
 
@@ -378,6 +378,7 @@ public:
     m_commands["setsession "]  = &Command::cmd_setsession;
     m_commands["setsession"]  = &Command::cmd_setsession; // for setsession with no args
     m_commands["closesession"]= &Command::cmd_closesession;
+    m_commands["expecterror "] = &Command::cmd_expecterror;
     m_commands["quiet"]       = &Command::cmd_quiet;
     m_commands["noquiet"]     = &Command::cmd_noquiet;
     m_commands["varfile "]     = &Command::cmd_varfile;
@@ -909,7 +910,30 @@ private:
     else
       name = s;
 
+    try
+    {
     context.m_cm->create(name, user, pass, db);
+      if (OPT_expect_error != 0)
+      {
+        std::cout << "ERROR: Operation succeeded but was expecting error " << OPT_expect_error << "\n";
+        OPT_expect_error = 0;
+        if (OPT_fatal_errors)
+          return Stop_with_failure;
+      }
+    }
+    catch (mysqlx::Error &err)
+    {
+      if (OPT_expect_error == 0)
+        throw;
+
+      if (err.error() != OPT_expect_error)
+        std::cout << "ERROR: Was expecting error " << OPT_expect_error <<" but instead got " << err.what() << " (" << err.error() << ")\n";
+      else
+        std::cout << "Got expected error " << err.what() << " (" << err.error() << ")\n";
+      OPT_expect_error = 0;
+      if (OPT_fatal_errors)
+        return Stop_with_failure;
+    }
 
     return Continue;
   }
@@ -926,6 +950,18 @@ private:
   Result cmd_closesession(Execution_context &context, const std::string &args)
   {
     context.m_cm->close_active();
+    return Continue;
+  }
+
+  Result cmd_expecterror(Execution_context &context, const std::string &args)
+  {
+    if (!args.empty())
+      OPT_expect_error = atoi(args.c_str());
+    else
+    {
+      std::cerr << "expecterror requires an errno argument\n";
+      return Stop_with_failure;
+    }
     return Continue;
   }
 
@@ -1578,6 +1614,9 @@ public:
     std::cout << "  Performs authentication steps expecting an error (use with --no-auth)\n";
     std::cout << "-->fatalerrors/nofatalerrors\n";
     std::cout << "  Whether to immediately exit on MySQL errors\n";
+    std::cout << "-->expecterror <errno>\n";
+    std::cout << "  Expect a specific errof for the next command and fail if something else occurs\n";
+    std::cout << "  Works for: newsession\n";
     std::cout << "-->newsession <name>\t<user>\t<pass>\t<db>\n";
     std::cout << "  Create a new connection with given name and account\n";
     std::cout << "-->setsession <name>\n";

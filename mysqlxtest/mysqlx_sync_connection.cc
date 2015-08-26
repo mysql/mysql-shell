@@ -251,11 +251,11 @@ error_code Mysqlx_sync_connection::write(const void *data, const std::size_t dat
 {
   details::Callback_executor executor(m_service);
   Const_buffer_sequence      buffers;
-  std::size_t offset = 0;
 
   for (;;)
   {
-    buffers.push_back(boost::asio::buffer((char*)data + offset, data_length - offset));
+    buffers.push_back(boost::asio::buffer((char*)data + executor.get_number_of_bytes(),
+                                    data_length - executor.get_number_of_bytes()));
 
     m_async_connection->async_write(buffers, executor.get_data_callback());
     error_code err = executor.wait();
@@ -264,7 +264,6 @@ error_code Mysqlx_sync_connection::write(const void *data, const std::size_t dat
     if (executor.get_number_of_bytes() < data_length)
     {
       buffers.clear();
-      offset = data_length - (offset + executor.get_number_of_bytes());
     }
     else
       return err;
