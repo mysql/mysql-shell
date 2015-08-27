@@ -55,6 +55,10 @@ static void ATTR_UNUSED translate_crud_exception(const std::string& operation)
   {
     throw shcore::Exception::runtime_error(operation + ": " + e.what());
   }
+  catch (std::logic_error &e)
+  {
+    throw shcore::Exception::logic_error(operation + ": " + e.what());
+  }
   catch (...)
   {
     throw;

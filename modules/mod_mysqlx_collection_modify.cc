@@ -34,6 +34,7 @@ CollectionModify::CollectionModify(boost::shared_ptr<Collection> owner)
   add_method("modify", boost::bind(&CollectionModify::modify, this, _1), "data");
   add_method("set", boost::bind(&CollectionModify::set, this, _1), "data");
   add_method("unset", boost::bind(&CollectionModify::unset, this, _1), "data");
+  add_method("merge", boost::bind(&CollectionModify::merge, this, _1), "data");
   add_method("arrayInsert", boost::bind(&CollectionModify::array_insert, this, _1), "data");
   add_method("arrayAppend", boost::bind(&CollectionModify::array_append, this, _1), "data");
   add_method("arrayDelete", boost::bind(&CollectionModify::array_delete, this, _1), "data");
@@ -43,9 +44,9 @@ CollectionModify::CollectionModify(boost::shared_ptr<Collection> owner)
 
   // Registers the dynamic function behavior
   register_dynamic_function("modify", "");
-  // TODO: shouldnt be enforced to invoke 'set' at least once before execute, bind, etc? 
   register_dynamic_function("set", "modify, operation");
   register_dynamic_function("unset", "modify, operation");
+  register_dynamic_function("merge", "modify, operation");
   register_dynamic_function("arrayInsert", "modify, operation");
   register_dynamic_function("arrayAppend", "modify, operation");
   register_dynamic_function("arrayDelete", "modify, operation");
@@ -118,14 +119,14 @@ shcore::Value CollectionModify::modify(const shcore::Argument_list &args)
 #ifdef DOXYGEN
 /**
 * Sets the set clause values for the field's document to be change in the to be executed modify operation.
-* This method can be invoked as many times as necessary. Each time is called a key value pair will replace in the 
+* This method can be invoked as many times as necessary. Each time is called a key value pair will replace in the
 * set clause for the matching key entry (or leave it unchanged if not matching for a given key is provided).
 * TODO: Underlying logic may need to be changed to use a mix of ITEM_SET & ITEM_REPLACE instead of ITEM_SET only.
 * The method must be invoked after the following methods: modify.
 * And after at least one invocation the following methods can be executed: set, unset, arrayInsert, arrayAppend, arrayDelete.
 *
 * \sa modify(), unset(), arrayInsert(), arrayAppend(), arrayDelete()
-* \param map the map with the key value pairs for the set clause of the modify statement, each entry in the form key (string column name) and value 
+* \param map the map with the key value pairs for the set clause of the modify statement, each entry in the form key (string column name) and value
 * (expression or value where value can be any of if int, string, double).
 * TODO: How object type, accepted by document value, is used?
 * \return the same instance collection where the method was invoked.
@@ -136,19 +137,14 @@ CollectionModify CollectionModify::set(Map map)
 shcore::Value CollectionModify::set(const shcore::Argument_list &args)
 {
   // Each method validates the received parameters
-  args.ensure_count(1, "CollectionModify::set");
+  args.ensure_count(2, "CollectionModify::set");
 
   try
   {
-    shcore::Value::Map_type_ref values = args.map_at(0);
-    shcore::Value::Map_type::iterator index, end = values->end();
+    std::string field = args.string_at(0);
+    _modify_statement->set(field, map_document_value(args[1]));
 
-    // Iterates over the values to be updated
-    for (index = values->begin(); index != end; index++)
-      _modify_statement->set(index->first, map_document_value(index->second));
-
-    if (values->size())
-      update_functions("operation");
+    update_functions("operation");
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionModify::set");
 
@@ -230,14 +226,34 @@ shcore::Value CollectionModify::unset(const shcore::Argument_list &args)
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
-shcore::Value CollectionModify::array_insert(const shcore::Argument_list &args)
+shcore::Value CollectionModify::merge(const shcore::Argument_list &args)
 {
   // Each method validates the received parameters
-  args.ensure_count(3, "CollectionModify::arrayInsert");
+  args.ensure_count(1, "CollectionModify::merge");
 
   try
   {
-    //_modify_statement.update something
+    shcore::Value::Map_type_ref items = args.map_at(0);
+
+    Value object_as_json(args[0].json());
+
+    _modify_statement->merge(map_document_value(object_as_json));
+
+    update_functions("operation");
+  }
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionModify::merge");
+
+  return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
+}
+
+shcore::Value CollectionModify::array_insert(const shcore::Argument_list &args)
+{
+  // Each method validates the received parameters
+  args.ensure_count(2, "CollectionModify::arrayInsert");
+
+  try
+  {
+    _modify_statement->arrayInsert(args.string_at(0), map_document_value(args[1]));
 
     // Updates the exposed functions
     update_functions("operation");
@@ -287,11 +303,11 @@ shcore::Value CollectionModify::array_append(const shcore::Argument_list &args)
 shcore::Value CollectionModify::array_delete(const shcore::Argument_list &args)
 {
   // Each method validates the received parameters
-  args.ensure_count(2, "CollectionModify::arrayDelete");
+  args.ensure_count(1, "CollectionModify::arrayDelete");
 
   try
   {
-    //_modify_statement->
+    _modify_statement->arrayDelete(args.string_at(0));
 
     // Updates the exposed functions
     update_functions("operation");
@@ -309,7 +325,7 @@ shcore::Value CollectionModify::array_delete(const shcore::Argument_list &args)
 * And after at least one invocation the following methods can be executed: limit, bind, execute.
 *
 * \sa limit(), bind(), execute()
-* \param sortExprStr a list of strings with the field names to order by. The list can include the ASC/DESC for ascending/descending order for each field, 
+* \param sortExprStr a list of strings with the field names to order by. The list can include the ASC/DESC for ascending/descending order for each field,
 *   for example "mycol1 asc, mycol2 desc" if order is not specified the default is ASC.
 * \return the same instance collection where the method was invoked.
 */

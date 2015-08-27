@@ -50,9 +50,9 @@ using namespace mysh::mysqlx;
       {
         std::string expr_data = expression->get_data();
         if (expr_data.empty())
-          return ::mysqlx::DocumentValue(expr_data, true);
-        else
           throw shcore::Exception::argument_error("Expressions can not be empty.");
+        else
+          return ::mysqlx::DocumentValue(expr_data, true);
       }
       else
       {

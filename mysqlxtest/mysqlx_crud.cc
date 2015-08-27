@@ -111,7 +111,7 @@ Statement::~Statement()
 }
 
 Collection_Statement::Collection_Statement(boost::shared_ptr<Collection> coll)
-  : m_coll(coll)
+: m_coll(coll)
 {
 }
 
@@ -414,23 +414,32 @@ Modify_Limit &Modify_Sort::sort(const std::vector<std::string> &sortFields)
   return *this;
 }
 
-Modify_Operation &Modify_Operation::set_operation(int type, const std::string &path, const DocumentValue *value)
+Modify_Operation &Modify_Operation::set_operation(int type, const std::string &path, const DocumentValue *value, bool validate_array)
 {
-  google::protobuf::RepeatedPtrField< ::Mysqlx::Crud::Projection > items;
-  parser::parse_collection_column_list(items, path);
-
+  // Sets the operation
   Mysqlx::Crud::UpdateOperation * operation = m_update->mutable_operation()->Add();
+  operation->set_operation(Mysqlx::Crud::UpdateOperation_UpdateType(type));
 
-  operation->set_operation( Mysqlx::Crud::UpdateOperation_UpdateType(type));
+  Mysqlx::Expr::Expr *docpath = parser::parse_column_identifier(path.empty() ? "@" : path);
+  Mysqlx::Expr::ColumnIdentifier identifier(docpath->identifier());
 
-  if (items.Get(0).has_alias())
+  // Validates the source is an array item
+  int size = identifier.document_path().size();
+  if (size)
   {
-    Mysqlx::Expr::DocumentPathItem* proj_path_item = new Mysqlx::Expr::DocumentPathItem();
-    proj_path_item->set_type(Mysqlx::Expr::DocumentPathItem_Type_MEMBER);
-    proj_path_item->set_value(items.Get(0).alias());
-    operation->mutable_source()->mutable_document_path()->AddAllocated(proj_path_item);
+    if (validate_array)
+    {
+      if (identifier.document_path().Get(size - 1).type() != Mysqlx::Expr::DocumentPathItem::ARRAY_INDEX)
+        throw std::logic_error("An array document path must be specified");
+    }
   }
+  else if (type != Mysqlx::Crud::UpdateOperation::ITEM_MERGE)
+    throw std::logic_error("Invalid document path");
 
+  // Sets the source
+  operation->mutable_source()->CopyFrom(identifier);
+
+  // Sets the value if applicable
   if (value)
   {
     if (value->type() == DocumentValue::TExpression)
@@ -446,12 +455,19 @@ Modify_Operation &Modify_Operation::set_operation(int type, const std::string &p
     }
   }
 
+  delete docpath;
+
   return *this;
 }
 
 Modify_Operation &Modify_Operation::remove(const std::string &path)
 {
   return set_operation(Mysqlx::Crud::UpdateOperation::ITEM_REMOVE, path);
+}
+
+Modify_Operation &Modify_Operation::arrayDelete(const std::string &path)
+{
+  return set_operation(Mysqlx::Crud::UpdateOperation::ITEM_REMOVE, path, NULL, true);
 }
 
 Modify_Operation &Modify_Operation::set(const std::string &path, const DocumentValue &value)
@@ -464,9 +480,14 @@ Modify_Operation &Modify_Operation::change(const std::string &path, const Docume
   return set_operation(Mysqlx::Crud::UpdateOperation::ITEM_REPLACE, path, &value);
 }
 
-Modify_Operation &Modify_Operation::arrayInsert(const std::string &UNUSED(path), int UNUSED(index), const DocumentValue &UNUSED(value))
+Modify_Operation &Modify_Operation::merge(const DocumentValue &document)
 {
-  return *this;
+  return set_operation(Mysqlx::Crud::UpdateOperation::ITEM_MERGE, "", &document);
+}
+
+Modify_Operation &Modify_Operation::arrayInsert(const std::string &path, const DocumentValue &value)
+{
+  return set_operation(Mysqlx::Crud::UpdateOperation::ARRAY_INSERT, path, &value, true);
 }
 
 Modify_Operation &Modify_Operation::arrayAppend(const std::string &path, const DocumentValue &value)

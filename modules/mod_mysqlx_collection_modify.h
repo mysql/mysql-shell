@@ -48,6 +48,7 @@ namespace mysh
       shcore::Value modify(const shcore::Argument_list &args);
       shcore::Value set(const shcore::Argument_list &args);
       shcore::Value unset(const shcore::Argument_list &args);
+      shcore::Value merge(const shcore::Argument_list &args);
       shcore::Value array_insert(const shcore::Argument_list &args);
       shcore::Value array_append(const shcore::Argument_list &args);
       shcore::Value array_delete(const shcore::Argument_list &args);
