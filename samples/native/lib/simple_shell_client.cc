@@ -134,9 +134,20 @@ void Simple_shell_client::process_result(shcore::Value result)
 
       if (arr_result->size())
       {
-        // create tabular result
-        boost::shared_ptr<std::vector<Result_set_metadata> > meta = populate_metadata(metadata);
-        _last_result.reset(new Table_result_set(arr_result, meta, affected_rows.as_int(), warning_count.as_int(), execution_time.as_string()));
+        if (arr_result->at(0).type == shcore::Object)
+        {
+          // create tabular result
+          boost::shared_ptr<std::vector<Result_set_metadata> > meta = populate_metadata(metadata);
+          _last_result.reset(new Table_result_set(arr_result, meta, affected_rows.as_int(), warning_count.as_int(), execution_time.as_string()));
+        }
+        else if (arr_result->at(0).type == shcore::Map)
+        {
+          _last_result.reset(new Document_result_set(arr_result, -1, -1, ""));
+        }
+        else 
+        {
+          throw std::runtime_error("Unknow data type returned from query.");
+        }
         return;
       }
     }

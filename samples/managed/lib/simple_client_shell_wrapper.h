@@ -88,6 +88,7 @@ public:
 
 private:
   Custom_shell* _obj;
+  Object^ wrap_value(const shcore::Value& val);
   List<Dictionary<String^, Object^>^>^ get_managed_doc_result(Document_result_set *doc);
   List<array<Object^>^>^ get_managed_table_result_set(Table_result_set* tbl);
   List<ResultSetMetadata^>^ get_managed_metadata(Table_result_set* tbl);
