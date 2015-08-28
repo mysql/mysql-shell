@@ -78,7 +78,7 @@ namespace mysqlx
       LSTRING = 20,
       LNUM = 21,
       DOT = 22,
-      AT = 23,
+      //AT = 23,
       COMMA = 24,
       EQ = 25,
       NE = 26,
@@ -113,7 +113,8 @@ namespace mysqlx
       MOD = 55,
       AS = 56,
       ASC = 57,
-      DESC = 58
+      DESC = 58,
+      DOLLAR = 59
     };
 
     Token(TokenType type, const std::string& text);

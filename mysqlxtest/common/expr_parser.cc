@@ -314,9 +314,9 @@ void Tokenizer::get_tokens()
       {
         _tokens.push_back(Token(Token::DIV, std::string(1, c)));
       }
-      else if (c == '@')
+      else if (c == '$')
       {
-        _tokens.push_back(Token(Token::AT, std::string(1, c)));
+        _tokens.push_back(Token(Token::DOLLAR, std::string(1, c)));
       }
       else if (c == '%')
       {
@@ -673,7 +673,7 @@ void Expr_parser::docpath_array_loc(Mysqlx::Expr::DocumentPathItem& item)
  */
 void Expr_parser::document_path(Mysqlx::Expr::ColumnIdentifier& colid)
 {
-  // Parse a JSON-style document path, like WL#7909, but prefix by @. instead of $.
+  // Parse a JSON-style document path, like WL#7909, prefixing with $
   while (true)
   {
     if (_tokenizer.cur_token_type_is(Token::DOT))
@@ -715,7 +715,7 @@ const std::string& Expr_parser::id()
 
 /*
  * if not document_mode:
- *    column_identifier ::= id [ DOT id [ DOT id ] ] [ AT document_path ]
+ *    column_identifier ::= id [ DOT id [ DOT id ] ] [ $ document_path ]
  *  else
  *    column_identifier ::= IDENT document_path
  */
@@ -747,9 +747,9 @@ Mysqlx::Expr::Expr* Expr_parser::column_identifier()
       else if (i == 2)
         colid->set_schema_name(s.c_str(), s.size());
     }
-    if (_tokenizer.cur_token_type_is(Token::AT))
+    if (_tokenizer.cur_token_type_is(Token::DOLLAR))
     {
-      _tokenizer.consume_token(Token::AT);
+      _tokenizer.consume_token(Token::DOLLAR);
       document_path(*colid);
     }
   }
@@ -785,7 +785,7 @@ Mysqlx::Expr::Expr* Expr_parser::atomic_expr()
   {
     return Expr_builder::build_literal_expr(Expr_builder::build_string_scalar("?"));
   }
-  else if (type == Token::AT)
+  else if (type == Token::DOLLAR)
   {
     // TODO: make sure this doesn't interfere with un-prefixed JSON paths
     std::auto_ptr<Mysqlx::Expr::Expr> e = std::auto_ptr<Mysqlx::Expr::Expr>(new Mysqlx::Expr::Expr());
@@ -873,7 +873,7 @@ Mysqlx::Expr::Expr* Expr_parser::atomic_expr()
   else if (type == Token::MUL)
   {
     _tokenizer.unget_token();
-return column_identifier();
+    return column_identifier();
   }
   else if (type == Token::IDENT || type == Token::DOT)
   {
@@ -1221,7 +1221,7 @@ std::string Expr_unparser::column_identifier_to_string(const Mysqlx::Expr::Colum
   }
   std::string dp = Expr_unparser::document_path_to_string(colid.document_path());
   if (!dp.empty())
-    s = s + "@" + dp;
+    s = s + "$" + dp;
   return s;
 }
 
@@ -1319,7 +1319,7 @@ void Expr_unparser::replace(std::string& target, const std::string& old_val, con
 
 std::string Expr_unparser::quote_identifier(const std::string& id)
 {
-  if (id.find("`") != std::string::npos || id.find("\"") != std::string::npos || id.find("'") != std::string::npos || id.find("@") != std::string::npos || id.find(".") != std::string::npos)
+  if (id.find("`") != std::string::npos || id.find("\"") != std::string::npos || id.find("'") != std::string::npos || id.find("$") != std::string::npos || id.find(".") != std::string::npos)
   {
     std::string result = id;
     Expr_unparser::replace(result, "`", "``");
@@ -1349,7 +1349,7 @@ std::string Expr_unparser::expr_to_string(const Mysqlx::Expr::Expr& e)
   }
   else if (e.type() == Mysqlx::Expr::Expr::VARIABLE)
   {
-    return std::string("@") + Expr_unparser::quote_identifier(e.variable());
+    return std::string("$") + Expr_unparser::quote_identifier(e.variable());
   }
   else
   {

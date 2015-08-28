@@ -46,7 +46,7 @@ const std::string& Proj_parser::id()
  * document_mode = false:
  *   column_identifier ::= ( IDENT [ DOT IDENT [ DOT IDENT ] ] ) [as_rule]
  * document_mode = true:
- *   column_identifier ::=  ( [ @ ] IDENT ) => ( document_path ) [as_rule]
+ *   column_identifier ::=  ( [ $ ] IDENT ) => ( document_path ) [as_rule]
  * NOTE: 'as_rule' only applies if allow_alias is true (see Proj_parser ctor)
  * as_rule ::= [AS] IDENT
  */
@@ -80,9 +80,9 @@ void Proj_parser::column_identifier(Mysqlx::Crud::Projection &col)
     source->set_allocated_identifier(colid.release());
     col.set_allocated_source(source.release());
 
-    if (_tokenizer.cur_token_type_is(Token::AT))
+    if (_tokenizer.cur_token_type_is(Token::DOLLAR))
     {
-      _tokenizer.consume_token(Token::AT);
+      _tokenizer.consume_token(Token::DOLLAR);
       const std::string& ident = _tokenizer.consume_token(Token::IDENT);
       Mysqlx::Expr::ColumnIdentifier* colid = col.mutable_source()->mutable_identifier();
       colid->mutable_document_path()->Add()->set_value(ident.c_str(), ident.size());
@@ -92,8 +92,8 @@ void Proj_parser::column_identifier(Mysqlx::Crud::Projection &col)
   else
   {
     // Must assume any identifier its a path
-    if (_tokenizer.cur_token_type_is(Token::AT))
-      _tokenizer.consume_token(Token::AT);
+    if (_tokenizer.cur_token_type_is(Token::DOLLAR))
+      _tokenizer.consume_token(Token::DOLLAR);
     if (_tokenizer.cur_token_type_is(Token::IDENT))
     {
       const std::string& ident = _tokenizer.consume_token(Token::IDENT);

@@ -117,8 +117,8 @@ namespace shcore
         "[19, 36, 19, 36, 37, 19, 27, 21]", "(((a + b) + -c) > 2)");
       parse_and_assert_expr("now () + b + c > 2",
         "[19, 6, 7, 36, 19, 36, 19, 27, 21]", "(((now() + b) + c) > 2)");
-      parse_and_assert_expr("now () + @b + c > 2",
-        "[19, 6, 7, 36, 23, 19, 36, 19, 27, 21]", "(((now() + @b) + c) > 2)");
+      parse_and_assert_expr("now () + $b + c > 2",
+        "[19, 6, 7, 36, 59, 19, 36, 19, 27, 21]", "(((now() + $b) + c) > 2)");
       parse_and_assert_expr("now () - interval +2 day > some_other_time() or something_else IS NOT NULL",
         "[19, 6, 7, 37, 16, 36, 21, 48, 27, 19, 6, 7, 3, 19, 5, 1, 12]", "(((now() - INTERVAL 2 day) > some_other_time()) || NOT ( (something_else IS NULL)))");
       parse_and_assert_expr("\"two quotes to one\"\"\"",
@@ -145,8 +145,8 @@ namespace shcore
         "[19, 1, 10, 21, 2, 21]", "NOT ( a BETWEEN 1 AND 2)");
       parse_and_assert_expr("a in (1,2,a.b(3),4,5,x)",
         "[19, 14, 6, 21, 24, 21, 24, 19, 22, 19, 6, 21, 7, 24, 21, 24, 21, 24, 19, 7]", "a IN (1, 2, b(3), 4, 5, x)");
-      parse_and_assert_expr("a not in (1,2,3,4,5,@x)",
-        "[19, 1, 14, 6, 21, 24, 21, 24, 21, 24, 21, 24, 21, 24, 23, 19, 7]", "NOT ( a IN (1, 2, 3, 4, 5, @x))");
+      parse_and_assert_expr("a not in (1,2,3,4,5,$x)",
+        "[19, 1, 14, 6, 21, 24, 21, 24, 21, 24, 21, 24, 21, 24, 59, 19, 7]", "NOT ( a IN (1, 2, 3, 4, 5, $x))");
       parse_and_assert_expr("a like b escape c",
         "[19, 15, 19, 18, 19]", "a LIKE b ESCAPE c");
       parse_and_assert_expr("a not like b escape c",
@@ -157,16 +157,16 @@ namespace shcore
         "[19, 6, 21, 36, 21, 7, 14, 6, 21, 24, 21, 24, 21, 7]", "`a crazy \"function\"``'name'`((1 + 3)) IN (3, 4, 5)");
       parse_and_assert_expr("`a crazy \"function\"``'name'`(1 + 3) in (3, 4, 5)",
         "[19, 6, 21, 36, 21, 7, 14, 6, 21, 24, 21, 24, 21, 7]", "`a crazy \"function\"``'name'`((1 + 3)) IN (3, 4, 5)");
-      parse_and_assert_expr("a@.b",
-        "[19, 23, 22, 19]", "a@.b");
-      parse_and_assert_expr("a@.b[0][0].c**.d.\"a weird\\\"key name\"",
-        "[19, 23, 22, 19, 8, 21, 9, 8, 21, 9, 22, 19, 54, 22, 19, 22, 20]", "a@.b[0][0].c**.d.a weird\"key name");
-      parse_and_assert_expr("a@.*",
-        "[19, 23, 22, 38]", "a@.*");
-      parse_and_assert_expr("a@[0].*",
-        "[19, 23, 8, 21, 9, 22, 38]", "a@[0].*");
-      parse_and_assert_expr("a@**[0].*",
-        "[19, 23, 54, 8, 21, 9, 22, 38]", "a@**[0].*");
+      parse_and_assert_expr("a$.b",
+        "[19, 59, 22, 19]", "a$.b");
+      parse_and_assert_expr("a$.b[0][0].c**.d.\"a weird\\\"key name\"",
+        "[19, 59, 22, 19, 8, 21, 9, 8, 21, 9, 22, 19, 54, 22, 19, 22, 20]", "a$.b[0][0].c**.d.a weird\"key name");
+      parse_and_assert_expr("a$.*",
+        "[19, 59, 22, 38]", "a$.*");
+      parse_and_assert_expr("a$[0].*",
+        "[19, 59, 8, 21, 9, 22, 38]", "a$[0].*");
+      parse_and_assert_expr("a$**[0].*",
+        "[19, 59, 54, 8, 21, 9, 22, 38]", "a$**[0].*");
       parse_and_assert_expr("a + 314.1592e-2",
         "[19, 36, 21]", "(a + 3.141592)");
       parse_and_assert_expr("a + 0.0271e+2",
@@ -178,17 +178,17 @@ namespace shcore
       parse_and_assert_expr("*", "[38]", "*");
       parse_and_assert_expr("table1.*", "[19, 22, 38]", "table1.*");
       parse_and_assert_expr("schema.table1.*", "[19, 22, 19, 22, 38]", "schema.table1.*");
-      parse_and_assert_expr("bla@.foo.bar", "[19, 23, 22, 19, 22, 19]", "bla@.foo.bar");
-      parse_and_assert_expr("bla@.\"foo\".bar", "[19, 23, 22, 20, 22, 19]", "bla@.foo.bar");
-      parse_and_assert_expr(".foo", "[22, 19]", "@.foo", true);
-      parse_and_assert_expr(".\"foo\"", "[22, 20]", "@.foo", true);
-      parse_and_assert_expr(".*", "[22, 38]", "@.*", true);
+      parse_and_assert_expr("bla$.foo.bar", "[19, 59, 22, 19, 22, 19]", "bla$.foo.bar");
+      parse_and_assert_expr("bla$.\"foo\".bar", "[19, 59, 22, 20, 22, 19]", "bla$.foo.bar");
+      parse_and_assert_expr(".foo", "[22, 19]", "$.foo", true);
+      parse_and_assert_expr(".\"foo\"", "[22, 20]", "$.foo", true);
+      parse_and_assert_expr(".*", "[22, 38]", "$.*", true);
 
       Mysqlx::Expr::Expr *expr;
-      parse_and_assert_expr(".*", "[22, 38]", "@.*", true, &expr);
+      parse_and_assert_expr(".*", "[22, 38]", "$.*", true, &expr);
       assert_member_type(expr, Mysqlx::Expr::DocumentPathItem_Type_MEMBER_ASTERISK);
 
-      parse_and_assert_expr(".\"*\"", "[22, 20]", "@.*", true, &expr);
+      parse_and_assert_expr(".\"*\"", "[22, 20]", "$.*", true, &expr);
       assert_member_type(expr, Mysqlx::Expr::DocumentPathItem_Type_MEMBER);
     }
   };
