@@ -57,27 +57,23 @@ CollectionFind::CollectionFind(boost::shared_ptr<Collection> owner)
 #ifdef DOXYGEN
 /**
 * Sets the search condition to identify the Documents to be retrieved from the owner Collection.
-* This method is called automatically when Collection.find(searchCondition) is called.
-* Calling this method is allowed only for the first time, after that its usage is forbidden since the internal class state has been updated to handle the rest of the Find operation.
-* After this method invocation, the following methods can be invoked: fields, groupBy, sort, limit, bind, execute.
-* 
-* \sa fields(), groupBy(), sort(), limit(), bind(), execute()
-* \param searchCondition: An optional expression to identify the documents to be retrieved, if not specified all the documents will be included on the result.
-* \return CollectionFindRef returns itself with it's state updated as the searchCondition was established.
-* \code{.js}
-* // open a connection
-* var mysqlx = require('mysqlx').mysqlx;
-* var mysession = mysqlx.getNodeSession("root:123@localhost:33060");
-* // create some initial data
-* var collection = mysession.js_shell_test.getCollection('collection1');
-* var result = collection.add({ name: 'my first', passed: 'document', count: 1}).execute();
-* var result = collection.add([{name: 'my second', passed: 'again', count: 2}, {name: 'my third', passed: 'once again', count: 3}]).execute();
-* // check results
-* var crud = collection.find();
-* crud.execute();
-* \endcode
+* \param searchCondition: An optional expression to identify the documents to be retrieved;
+* if not specified all the documents will be included on the result unless a limit is set.
+* \return This CollectionFind object.
+*
+* This function is called automatically when Collection.find(searchCondition) is called.
+*
+* After this function invocation, the following functions can be invoked:
+*
+* - fields(List projectedSearchExprStr)
+* - groupBy(List searchExprStr)
+* - sort(List sortExprStr)
+* - limit(Integer numberOfRows)
+* - execute(ExecuteOptions options).
+*
+* \sa Usage examples at execute(ExecuteOptions options).
 */
-CollectionFindRef CollectionFind::find(String searchCondition)
+CollectionFind CollectionFind::find(String searchCondition)
 {}
 #endif
 shcore::Value CollectionFind::find(const shcore::Argument_list &args)
@@ -108,15 +104,27 @@ shcore::Value CollectionFind::find(const shcore::Argument_list &args)
 
 #ifdef DOXYGEN
 /**
-* Sets a field filter, if used the CollectionFind operation will only return the fields that were included.
-* Calling this method is allowed only for the first time and only if the search criteria has been set by calling CollectionFind.find(searchCriteria), after that its usage is forbidden since the internal class state has been updated to handle the rest of the Find operation.
-* After this method invocation the following methods can be invoked: groupBy, sort, limit, bind, execute.
+* Sets a document field filter.
+* \param projectedSearchExprStr: A list of string expressions identifying the fields to be extracted, alias support is enabled on these fields.
+* \return This CollectionFind object.
 *
-* \sa groupBy(), sort(), limit(), bind(), execute()
-* \param projectedSearchExprStr: A list of string expressions identifying the fields to be extracted, alias support is suported on these fields.
-* \return CollectionFindRef returns itself with it's state updated as the field list has been stablished.
+* If called, the CollectionFind operation will only return the fields that were included on the filter.
+*
+* Calling this function is allowed only for the first time and only if the search criteria has been set by calling CollectionFind.find(searchCriteria), after that its usage is forbidden since the internal class state has been updated to handle the rest of the Find operation.
+*
+* This function can be invoked after:
+* - find(String searchCondition)
+*
+* After this function invocation, the following functions can be invoked:
+*
+* - groupBy(List searchExprStr)
+* - sort(List sortExprStr);
+* - limit(Integer numberOfRows);
+* - execute(ExecuteOptions options), including usage examples.
+*
+* \sa Usage examples at execute(ExecuteOptions options).
 */
-CollectionFindRef CollectionFind::fields(List projectedSearchExprStr)
+CollectionFind CollectionFind::fields(List projectedSearchExprStr)
 {}
 #endif
 shcore::Value CollectionFind::fields(const shcore::Argument_list &args)
@@ -143,15 +151,28 @@ shcore::Value CollectionFind::fields(const shcore::Argument_list &args)
 
 #ifdef DOXYGEN
 /**
-* Sets a grouping criteria for the resultset, if used the CollectionFind operation will group the records using the stablished criteria.
-* Calling this method is allowed only for the first time and only if the search criteria has been set by calling CollectionFind.find(searchCriteria), after that its usage is forbidden since the internal class state has been updated to handle the rest of the Find operation.
-* After method groupBy invocation the following methods can be invoked: having, sort, limit, bind, execute.
-* 
-* \sa find(), fields(), having(), sort(), limit(), bind(), execute().
+* Sets a grouping criteria for the resultset.
 * \param searchExprStr: A list of string expressions identifying the grouping criteria.
-* \return CollectionFindRef returns itself with it's state updated as the grouping criteria has been set.
+* \return This CollectionFind object.
+*
+* If used, the CollectionFind operation will group the records using the stablished criteria.
+*
+* Calling this function is allowed only for the first time and only if the search criteria has been set by calling CollectionFind.find(searchCriteria), after that its usage is forbidden since the internal class state has been updated to handle the rest of the Find operation.
+*
+* This function can be invoked after:
+* - find(String searchCondition)
+* - fields(List projectedSearchExprStr)
+*
+* After this function invocation the following functions can be invoked:
+*
+* - having(String searchCondition)
+* - sort(List sortExprStr);
+* - limit(Integer numberOfRows);
+* - execute(ExecuteOptions options).
+*
+* \sa Usage examples at execute(ExecuteOptions options).
 */
-CollectionFindRef CollectionFind::groupBy(List searchExprStr)
+CollectionFind CollectionFind::groupBy(List searchExprStr)
 {}
 #endif
 shcore::Value CollectionFind::group_by(const shcore::Argument_list &args)
@@ -178,15 +199,27 @@ shcore::Value CollectionFind::group_by(const shcore::Argument_list &args)
 
 #ifdef DOXYGEN
 /**
-* Sets a condition for records to be considered in agregate function operations, if used the CollectionFind operation will only consider the records matching the stablished criteria.
-* Calling this method is allowed only for the first time and only if the grouping criteria has been set by calling CollectionFind.groupBy(groupCriteria), after that its usage is forbidden since the internal class state has been updated to handle the rest of the Find operation.
-* After this method invocation the following methods can be invoked: sort, limit, bind, execute.
-* 
-* \sa groupBy(), sort(), limit(), bind(), execute().
+* Sets a condition for records to be considered in agregate function operations.
 * \param searchCondition: A condition on the agregate functions used on the grouping criteria.
-* \return CollectionFindRef returns itself with it's state updated as the grouping condition has been set.
+* \return This CollectionFind object.
+*
+* If used the CollectionFind operation will only consider the records matching the stablished criteria.
+*
+* Calling this function is allowed only for the first time and only if the grouping criteria has been set by calling CollectionFind.groupBy(groupCriteria), after that its usage is forbidden since the internal class state has been updated to handle the rest of the Find operation.
+*
+* This function can be invoked after:
+*
+* - groupBy(List searchExprStr)
+*
+* After this function invocation, the following functions can be invoked:
+*
+* - sort(List sortExprStr)
+* - limit(Integer numberOfRows)
+* - execute(ExecuteOptions options).
+*
+* \sa Usage examples at execute(ExecuteOptions options).
 */
-CollectionFindRef CollectionFind::having(String searchCondition)
+CollectionFind CollectionFind::having(String searchCondition)
 {}
 #endif
 shcore::Value CollectionFind::having(const shcore::Argument_list &args)
@@ -206,15 +239,32 @@ shcore::Value CollectionFind::having(const shcore::Argument_list &args)
 
 #ifdef DOXYGEN
 /**
-* Sets the sorting criteria to be used on the Resultset, if used the CollectionFind operation will return the records sorted with the defined criteria.
-* Calling this method is allowed only for the first time and only if the search criteria has been set by calling CollectionFind.find(searchCriteria), after that its usage is forbidden since the internal class state has been updated to handle the rest of the Find operation.
-* After this method invocation the following methods can be invoked: limit, bind, execute.
-* 
-* \sa find(), fields(), groupBy(), having(), limit(), bind(), execute()
-* \param sortExprStr: A list containing the sort criteria expressions to be used on the operation.
-* \return CollectionFindRef returns itself with it's state updated as the grouping condition has been set.
+* Sets the sorting criteria to be used on the Resultset.
+* \param sortExprStr: A list of expression strings defining the sort criteria for the returned documents.
+* \return This CollectionFind object.
+*
+* If used the CollectionFind operation will return the records sorted with the defined criteria.
+*
+* The elements of sortExprStr are usually strings defining the field name on which the sorting will be based. Each criterion could be followed by asc or desc to indicate ascending
+* or descending order respectivelly. If no order is specified, ascending will be used by default.
+*
+* Calling this function is allowed only for the first time and only if the search criteria has been set by calling CollectionFind.find(searchCriteria), after that its usage is forbidden since the internal class state has been updated to handle the rest of the Find operation.
+*
+* This function can be invoked after:
+*
+* - find(String searchCondition)
+* - fields(List projectedSearchExprStr)
+* - groupBy(List searchExprStr)
+* - having(String searchCondition)
+*
+* After this function invocation, the following functions can be invoked:
+*
+* - limit(Integer numberOfRows)
+* - execute(ExecuteOptions options).
+*
+* \sa Usage examples at execute(ExecuteOptions options).
 */
-CollectionFindRef CollectionFind::sort(List sortExprStr)
+CollectionFind CollectionFind::sort(List sortExprStr)
 {}
 #endif
 shcore::Value CollectionFind::sort(const shcore::Argument_list &args)
@@ -241,15 +291,28 @@ shcore::Value CollectionFind::sort(const shcore::Argument_list &args)
 
 #ifdef DOXYGEN
 /**
-* Sets the maximum number of documents to be returned on the find operation, if used the CollectionFind operation will return at most numberOfRows documents.
-* Calling this method is allowed only for the first time and only if the search criteria has been set by calling CollectionFind.find(searchCriteria), after that its usage is forbidden since the internal class state has been updated to handle the rest of the Find operation.
-* After this method invocation the following methods can be invoked: skip, bind, execute.
-*
-* \sa find(), fields(), groupBy(), having(), sort(), skip(), bind(), execute()
+* Sets the maximum number of documents to be returned on the find operation.
 * \param numberOfRows: The maximum number of documents to be retrieved.
-* \return CollectionFindRef returns itself with it's state updated as the grouping condition has been set.
+* \return This CollectionFind object.
+*
+* If used, the CollectionFind operation will return at most numberOfRows documents.
+*
+* This function can be invoked after:
+*
+* - find(String searchCondition)
+* - fields(List projectedSearchExprStr)
+* - groupBy(List searchExprStr)
+* - having(String searchCondition)
+* - sort(List sortExprStr)
+*
+* After this function invocation, the following functions can be invoked:
+*
+* - skip(Integer limitOffset)
+* - execute(ExecuteOptions options).
+*
+* \sa Usage examples at execute(ExecuteOptions options).
 */
-CollectionFindRef CollectionFind::limit(Integer numberOfRows)
+CollectionFind CollectionFind::limit(Integer numberOfRows)
 {}
 #endif
 shcore::Value CollectionFind::limit(const shcore::Argument_list &args)
@@ -270,14 +333,24 @@ shcore::Value CollectionFind::limit(const shcore::Argument_list &args)
 #ifdef DOXYGEN
 /**
 * Sets number of records to skip on the resultset when a limit has been defined.
-* Calling this method is allowed only for the first time and only if a limit has been set by calling CollectionFind.limit(numberOfRows), after that its usage is forbidden since the internal class state has been updated to handle the rest of the Find operation.
-* After this method, the following methods can be invoked: bind, execute.
-*
-* \sa bind(), execute()
 * \param limitOffset: The number of documents to skip before start including them on the Resultset.
-* \return CollectionFindRef returns itself with it's state updated as the grouping condition has been set.
+* \return This CollectionFind object.
+*
+* Calling this function is allowed only for the first time and only if a limit has been set by calling CollectionFind.limit(numberOfRows), after that its usage is forbidden since the internal class state has been updated to handle the rest of the Find operation.
+*
+* This function can be invoked after:
+*
+* - limit(Integer numberOfRows)
+*
+* After this function invocation, the following functions can be invoked:
+*
+* - execute(ExecuteOptions options).* After this function, the following functions can be invoked: execute.
+*
+* \sa execute(ExecuteOptions options), including usage examples.
+*
+* \sa Usage examples at execute(ExecuteOptions options).
 */
-CollectionFindRef CollectionFind::skip(Integer limitOffset)
+CollectionFind CollectionFind::skip(Integer limitOffset)
 {}
 #endif
 shcore::Value CollectionFind::skip(const shcore::Argument_list &args)
@@ -305,11 +378,48 @@ shcore::Value CollectionFind::bind(const shcore::Argument_list &UNUSED(args))
 #ifdef DOXYGEN
 /**
 * Executes the Find operation with all the configured options and returns.
-* This method can be invoked after any of the following methods: find, fields, groupBy, having, sort, skip, limit, bind.
-*
 * \return Collection_resultset A Collection resultset object that can be used to retrieve the results of the find operation.
+*
+* This function can be invoked after any other function on this class.
+*
+* Examples:
+* \code{.js}
+* // open a connection
+* var mysqlx = require('mysqlx').mysqlx;
+* var mysession = mysqlx.getSession("myuser@localhost", mypwd);
+*
+* // Assuming a collection named friends exists on the test schema
+* var collection = mysession.test.friends;
+*
+* // create some initial data
+* collection.add([{name: 'jack', last_name = 'black', age: 17, gender: 'male'},
+*                 {name: 'adam', last_name = 'sandler', age: 15, gender: 'male'},
+*                 {name: 'brian', last_name = 'adams', age: 14, gender: 'male'},
+*                 {name: 'alma', last_name = 'lopez', age: 13, gender: 'female'},
+*                 {name: 'carol', last_name = 'shiffield', age: 14, gender: 'female'},
+*                 {name: 'donna', last_name = 'summers', age: 16, gender: 'female'},
+*                 {name: 'angel', last_name = 'down', age: 14, gender: 'male'}]).execute();
+*
+* // Retrieve all the documents from the collection
+* var res_all = collection.find().execute();
+*
+* // Retrieve the documents for all males
+* var res_males = collection.find('gender="male"').execute();
+*
+* // Retrieve the name and last name only
+* var res_partial = collection.find().fields(['name', 'last_name']).execute();
+*
+* // Retrieve the documents sorted by age in descending order
+* var res_sorted = collection.find().fields(['name', 'last_name', 'age']).sort(['age desc']).execute();
+*
+* // Retrieve the four younger friends
+* var res_youngest = collection.find().sort(['age']).limit(4).execute();
+*
+* // Retrieve the four younger friends after the youngest
+* var res = collection.find().sort(['age']).limit(4).skip(1).execute();
+* \endcode
 */
-Collection_resultset CollectionFind::execute(ExecuteOptions opt)
+Collection_resultset CollectionFind::execute(ExecuteOptions options)
 {}
 #endif
 shcore::Value CollectionFind::execute(const shcore::Argument_list &args)

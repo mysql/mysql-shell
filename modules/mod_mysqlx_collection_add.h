@@ -32,8 +32,14 @@ namespace mysh
     class Collection;
 
     /**
-    * Handler for Add operations on Collections.
+    * Handler for document addition on a Collection.
     * \todo Update execute to support options and document it
+    *
+    * This object provides the necessary functions to allow adding documents into a collection.
+    *
+    * This object should only be created by calling any of the add functions on the collection object where the documents will be added.
+    *
+    * \sa Collection
     */
     class CollectionAdd : public Collection_crud_definition, public boost::enable_shared_from_this<CollectionAdd>
     {
@@ -46,9 +52,9 @@ namespace mysh
       virtual shcore::Value execute(const shcore::Argument_list &args);
 
 #ifdef DOXYGEN
-      CollectionAdd add({ document });
-      CollectionAdd add({document, document, ...});
-      Result execute();
+      CollectionAdd add(Document document);
+      CollectionAdd add(List documents);
+      Resultset execute();
 #endif
 
     private:

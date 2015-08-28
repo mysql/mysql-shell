@@ -47,34 +47,24 @@ CollectionRemove::CollectionRemove(boost::shared_ptr<Collection> owner)
 
 #ifdef DOXYGEN
 /**
-* Sets the search condition for the to be executed remove operation.
-* This method returns a new CollectionRemove object each time is invoked.
-* The method must be invoked before any other, and after at least one invocation the following methods can be executed:
-* sort, limit, bind, execute.
+* Sets the search condition to identify the Documents to be removed from the owner Collection.
+* \param searchCondition: An optional expression to identify the documents to be removed;
+* if not specified all the documents will be removed from the collection unless a limit is set.
+* \return This CollectionFind object.
 *
-* \sa sort(), limit(), bind(), execute()
-* \param searchCondition an optional string specifying the filter condition to use.
-* \return the same instance collection where the method was invoked.
-* \code{.js}
-* // open a connection
-* var mysqlx = require('mysqlx').mysqlx;
-* var mysession = mysqlx.getNodeSession("root:123@localhost:33060");
-* // create some initial data
-* var collection = mysession.js_shell_test.getCollection('collection1');
-* var result = collection.add({ name: 'my first', passed: 'document', count: 1}).execute();
-* var result = collection.add([{name: 'my second', passed: 'again', count: 2}, {name: 'my third', passed: 'once again', count: 3}]).execute();
-* // check results
-* var crud = collection.find();
-* crud.execute();
-* // delete one doc
-* var crud = collection.remove("name like 'my first'");
-* crud.execute();
-* // check results
-* var crud = collection.find();
-* crud.execute();
-* \endcode
+* This function is called automatically when Collection.remove(searchCondition) is called.
+*
+* The actual removal of the documents will occur only when the execute method is called.
+*
+* After this function invocation, the following functions can be invoked:
+*
+* - sort(List sortExprStr)
+* - limit(Integer numberOfRows)
+* - execute(ExecuteOptions options).
+*
+* \sa Usage examples at execute(ExecuteOptions options).
 */
-CollectionRemove CollectionRemove::remove([String searchCondition])
+CollectionRemove CollectionRemove::remove(String searchCondition)
 {}
 #endif
 shcore::Value CollectionRemove::remove(const shcore::Argument_list &args)
@@ -105,15 +95,23 @@ shcore::Value CollectionRemove::remove(const shcore::Argument_list &args)
 
 #ifdef DOXYGEN
 /**
-* Sets the fields names use to order the result set in the to be executed remove operation.
-* This method is usually used in combination with limit to fix the amount of documents to be removed.
-* The method must be invoked after the following methods: modify.
-* And after at least one invocation the following methods can be executed: limit, bind, execute.
+* Sets the order in which the removal should be done.
+* \param sortExprStr: A list of expression strings defining a sort criteria, the deletion will be done following the order defined by this criteria.
+* \return This CollectionRemove object.
 *
-* \sa limit(), bind(), execute()
-* \param sortExprStr a list of strings with the field names to order by. The list can include the ASC/DESC for ascending/descending order for each field, 
-*   for example "mycol1 asc, mycol2 desc" if order is not specified the default is ASC.
-* \return the same instance collection where the method was invoked.
+* The elements of sortExprStr list are usually strings defining the field name on which the sorting will be based. Each criterion could be followed by asc or desc to indicate ascending
+* or descending order respectivelly. If no order is specified, ascending will be used by default.
+*
+* This method is usually used in combination with limit to fix the amount of documents to be removed.
+*
+* This function can be invoked after:
+*
+* - remove(String searchCondition)
+*
+* After this function invocation, the following functions can be invoked:
+*
+* - limit(Integer numberOfRows)
+* - execute(ExecuteOptions options).
 */
 CollectionRemove CollectionRemove::sort(List sortExprStr)
 {}
@@ -141,15 +139,22 @@ shcore::Value CollectionRemove::sort(const shcore::Argument_list &args)
 }
 
 #ifdef DOXYGEN
+
 /**
-* Sets the limit of the number of documents to affect by this remove operation.
-* This method is used in combination with order to set a fixed amount of documents to affect by a given criteria.
-* The method must be invoked after the following methods: sort.
-* And after at least one invocation the following methods can be executed: bind, execute.
-*
-* \sa  bind(), execute()
+* Sets a limit for the documents to be deleted.
 * \param numberOfDocs the number of documents to affect in the remove execution.
-* \return the same instance collection where the method was invoked.
+* \return This CollectionRemove object.
+*
+* This method is usually used in combination with sort to fix the amount of documents to be removed.
+*
+* This function can be invoked after:
+*
+* - remove(String searchCondition)
+* - sort(List sortExprStr)
+*
+* After this function invocation, the following functions can be invoked:
+*
+* - execute(ExecuteOptions options).
 */
 CollectionRemove CollectionRemove::limit(Integer numberOfDocs)
 {}
@@ -178,11 +183,37 @@ shcore::Value CollectionRemove::bind(const shcore::Argument_list &UNUSED(args))
 
 #ifdef DOXYGEN
 /**
-* Excutes the modify statement against a MySQLX server returning the a Result set of the operation.
+* Executes the removal operation with the configured filter and limit.
+* \return Collection_resultset A Collection resultset object that can be used to retrieve the results of the find operation.
 *
-* \sa modify(), sort(), limit(), bind()
-* \param opt the execution options, currently ignored.
-* \return a collection resultset describing the effects of the operation.
+* This function can be invoked after any other function on this class.
+*
+* \code{.js}
+* // open a connection
+* var mysqlx = require('mysqlx').mysqlx;
+* var mysession = mysqlx.getSession("myuser@localhost", mypwd);
+*
+* // Assuming a collection named friends exists on the test schema
+* var collection = mysession.test.friends;
+*
+* // create some initial data
+* collection.add([{name: 'jack', last_name = 'black', age: 17, gender: 'male'},
+*                 {name: 'adam', last_name = 'sandler', age: 15, gender: 'male'},
+*                 {name: 'brian', last_name = 'adams', age: 14, gender: 'male'},
+*                 {name: 'alma', last_name = 'lopez', age: 13, gender: 'female'},
+*                 {name: 'carol', last_name = 'shiffield', age: 14, gender: 'female'},
+*                 {name: 'donna', last_name = 'summers', age: 16, gender: 'female'},
+*                 {name: 'angel', last_name = 'down', age: 14, gender: 'male'}]).execute();
+*
+* // Remove the youngest
+* var res_youngest = collection.remove().sort(['age', 'name']).limit(1).execute();
+*
+* // Remove the males
+* var res_males = collection.remove('gender="male"').execute();
+*
+* // Removes all the documents
+* var res_all = collection.remove().execute();
+* \endcode
 */
 Collection_resultset CollectionRemove::execute(ExecuteOptions opt)
 {}

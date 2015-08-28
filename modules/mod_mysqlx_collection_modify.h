@@ -32,11 +32,15 @@ namespace mysh
     class Collection;
 
     /**
-    * Handler for Modify operations on Collections.
-    * \todo Document arrayInsert()
-    * \todo Document arraydelete()
+    * Handler for document update operations on a Collection.
     * \todo Implement and document bind({var:val, var:val, ...})
     * \todo Update execute to support options and document it
+    *
+    * This object provides the necessary functions to allow updating documents on a collection.
+    *
+    * This object should only be created by calling the modify function on the collection object on which the documents will be updated.
+    *
+    * \sa Collection
     */
     class CollectionModify : public Collection_crud_definition, public boost::enable_shared_from_this<CollectionModify>
     {
@@ -58,13 +62,14 @@ namespace mysh
 
       virtual shcore::Value execute(const shcore::Argument_list &args);
 #ifdef DOXYGEN
-      CollectionModify modify([String searchCondition]);
-      CollectionModify set(Map map);
-      CollectionModify unset(string {, string ...});
-      CollectionModify array_append(String name, int value);
-      CollectionModify array_append(String name, String value);
-      CollectionModify array_append(String name, double value);
-      CollectionModify array_append(String name, object value);
+      CollectionModify modify(String searchCondition);
+      CollectionModify set(String attribute, Value value);
+      CollectionModify unset(String attribute);
+      CollectionModify unset(List attributes);
+      CollectionModify merge(Document document);
+      CollectionModify arrayAppend(String path, Value value);
+      CollectionModify arrayInsert(String path, Value value);
+      CollectionModify arrayDelete(String path);
       CollectionModify sort(List sortExprStr);
       CollectionModify limit(Integer numberOfRows);
       CollectionModify skip(Integer limitOffset);

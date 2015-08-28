@@ -32,9 +32,15 @@ namespace mysh
     class Collection;
 
     /**
-    * Handler for Find operation on Collections.
+    * Handler for document selection on a Collection.
     * \todo Implement and document bind({var:val, var:val, ...})
     * \todo Update execute to support options and document it
+    *
+    * This object provides the necessary functions to allow selecting document data from a collection.
+    *
+    * This object should only be created by calling the find function on the collection object from which the documents will be retrieved.
+    *
+    * \sa Collection
     */
     class CollectionFind : public Collection_crud_definition, public boost::enable_shared_from_this<CollectionFind>
     {
@@ -54,15 +60,15 @@ namespace mysh
       virtual shcore::Value execute(const shcore::Argument_list &args);
 
 #ifdef DOXYGEN
-      CollectionFindRef find(String searchCondition);
-      CollectionFindRef fields(List projectedSearchExprStr);
-      CollectionFindRef groupBy(List searchExprStr);
-      CollectionFindRef having(String searchCondition);
-      CollectionFindRef sort(List sortExprStr);
-      CollectionFindRef limit(Integer numberOfRows);
-      CollectionFindRef skip(Integer limitOffset);
-      CollectionFindRef bind(Map placeHolderValues);
-      Collection_resultset execute(ExecuteOptions opt);
+      CollectionFind find(String searchCondition);
+      CollectionFind fields(List projectedSearchExprStr);
+      CollectionFind groupBy(List searchExprStr);
+      CollectionFind having(String searchCondition);
+      CollectionFind sort(List sortExprStr);
+      CollectionFind limit(Integer numberOfRows);
+      CollectionFind skip(Integer limitOffset);
+      CollectionFind bind(Map placeHolderValues);
+      Collection_resultset execute(ExecuteOptions options);
 #endif
 
     private:

@@ -32,9 +32,15 @@ namespace mysh
     class Collection;
 
     /**
-    * Handler for Remove operation on Collections.
+    * Handler for document removal from a Collection.
     * \todo Implement and document bind({var:val, var:val, ...})
     * \todo Update execute to support options and document it
+    *
+    * This object provides the necessary functions to allow removing documents from a collection.
+    *
+    * This object should only be created by calling the remove function on the collection object from which the documents will be removed.
+    *
+    * \sa Collection
     */
     class CollectionRemove : public Collection_crud_definition, public boost::enable_shared_from_this<CollectionRemove>
     {
@@ -50,7 +56,7 @@ namespace mysh
 
       virtual shcore::Value execute(const shcore::Argument_list &args);
 #ifdef DOXYGEN
-      CollectionRemove remove([String searchCondition]);
+      CollectionRemove remove(String searchCondition);
       CollectionRemove sort(List sortExprStr);
       CollectionRemove limit(Integer numberOfRows);
       CollectionRemove bind(Map placeHolderValues);

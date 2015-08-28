@@ -45,37 +45,53 @@ CollectionAdd::CollectionAdd(boost::shared_ptr<Collection> owner)
 
 #ifdef DOXYGEN
 /**
-* Add a document to the collection. The document doc must have a property named '_id' with the universal unique identifier (uuid) that uniquely identifies the document.
-* If the property is not there, it is added with an auto generated uuid.
-* This method must be invoked before execute, add can be invoked as many times as required, after it, the following methods can be invoked: execute.
-* \sa execute()
-* \param document: the document to add
-* \return the same instance of the collection the method was invoked with.
+* Adds a document into a collection.
+* \param A documents to be added into the collection.
+* \return This CollectionAdd object.
+*
+* To be added, the document must have a property named '_id' with a universal unique identifier (UUID), if this property is missing, it is set with an auto generated UUID.
+*
+* This method can be called many times, every time it is called the received document will be cached into an internal list.
+*
+* The actual addition into the collection will occur only when the execute method is called.
+*
+* Example:
 * \code{.js}
 * // open a connection
 * var mysqlx = require('mysqlx').mysqlx;
-* var mysession = mysqlx.getNodeSession("root:123@localhost:33060");
-* // create some initial data
-* var collection = mysession.js_shell_test.getCollection('collection1');
-* var result = collection.add({ name: 'my first', passed: 'document', count: 1}).execute();
-* var result = collection.add([{name: 'my second', passed: 'again', count: 2}, {name: 'my third', passed: 'once again', count: 3}]).execute();
-* // check results
-* var crud = collection.find();
-* crud.execute();
+* var mysession = mysqlx.getSession("myuser@localhost", mypwd);
+*
+* // creates a collection and adds a document into it
+* var collection = mysession.sampledb.createCollection('sample');
+* var result = collection.add({ name: 'jhon', last_name: 'doe'}).execute();
 * \endcode
 */
-CollectionAdd CollectionAdd::add({ document })
+CollectionAdd CollectionAdd::add(Document document)
 {}
 
 /**
-* Adds a set of documents to the collection. Each document must have a property named '_id' with the universal unique identifier (uuid) that uniquely identifies the document.
-* If the property is not there, it is added with an auto generated uuid.
-* This method must be invoked before execute, add can be invoked as many times as required, after it, the following methods can be invoked: execute.
-* \sa execute()
-* \param {document, document, ...}: the document(s) to add
-* \return the same instance of the collection the method was invoked with.
+* Adds a list of documents into a collection.
+* \param A list of documents to be added into the collection.
+* \return This CollectionAdd object.
+*
+* To be added, each document must have a property named '_id' with a universal unique identifier (UUID), if this property is missing, it is set with an auto generated UUID.
+*
+* This method can be called many times, every time it is called the received documents will be cached into an internal list.
+*
+* The actual addition into the collection will occur only when the execute method is called.
+*
+* Example:
+* \code{.js}
+* // open a connection
+* var mysqlx = require('mysqlx').mysqlx;
+* var mysession = mysqlx.getSession("myuser@localhost", mypwd);
+*
+* // creates a collection and adds documents into it
+* var collection = mysession.sampledb.createCollection('sample');
+* var result = collection.add([{ name: 'john', last_name: 'doe'}, { name: 'jane', last_name: 'doe'}]).execute();
+* \endcode
 */
-CollectionAdd CollectionAdd::add({document, document, ...})
+CollectionAdd CollectionAdd::add(List documents)
 {}
 #endif
 shcore::Value CollectionAdd::add(const shcore::Argument_list &args)
@@ -165,12 +181,14 @@ std::string CollectionAdd::get_new_uuid()
 
 #ifdef DOXYGEN
 /**
-* Execute the batch of insert document statements. Returning a result object.
-* This method must be invoked after the method add has been invoked at least once.
-* \sa add()
-* \return the result of the batch insert.
+* Executes the document addition for the documents cached on this object.
+* \return A Resultset object.
+*
+* Calling this function when no documents have been added is forbidden.
+* \sa add(Document document)
+* \sa add(List documents)
 */
-Result CollectionAdd::execute()
+Resultset CollectionAdd::execute()
 {}
 #endif
 shcore::Value CollectionAdd::execute(const shcore::Argument_list &args)

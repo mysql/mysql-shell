@@ -57,25 +57,39 @@ Collection::~Collection()
 
 #ifdef DOXYGEN
 /**
-* Adds a document to the collection. The document doc must have a property named '_id' with the universal unique identifier (uuid) that uniquely identifies the document.
-* If the property is not there, it is added with an auto generated uuid.
-* This method must be invoked before execute method, add can be invoked as many times as required.
-* \sa add()
-* \param doc the document to add.
-* \return the same instance of the collection the method was invoked with.
+* Adds a document to a collection.
+* \param A documents to be added into the collection.
+* \return A CollectionAdd object.
+*
+* To be added, the document must have a property named '_id' with a universal unique identifier (UUID). If the property is missing, it is set with an auto generated UUID.
+*
+* This method creates a CollectionAdd object which is a document addition handler, the received document is added into this handler.
+*
+* The CollectionAdd has other functions that allow specifying the way the addition occurs.
+*
+* The addition is done when the execute method is called on the handler.
+*
+* \sa CollectionAdd
 */
-Collection Collection::add(document doc)
+CollectionAdd Collection::add(Document document)
 {}
 
 /**
-* Adds a set of documents to the collection. Each document must have a property named '_id' with the universal unique identifier (uuid) that uniquely identifies the document.
-* If the property is not there, it is added with an auto generated uuid.
-* This method must be invoked before execute, add can be invoked as many times as required.
-* \sa add()
-* \param document the array of documents to add.
-* \return the same instance of the collection the method was invoked with.
+* Adds a list of documents to a collection.
+* \param The document list to be added into the collection.
+* \return A CollectionAdd object.
+*
+* Every document to be added must have a property named '_id' with a universal unique identifier (UUID). If the property is missing, it is set with an auto generated UUID.
+*
+* This method creates a CollectionAdd object which is a document addition handler, the received documents are added into this handler.
+*
+* The CollectionAdd has other functions that allow specifying the way the addition occurs.
+*
+* The addition is done when the execute method is called on the handler.
+*
+* \sa CollectionAdd
 */
-Collection Collection::add({ document }, { document }, ...)
+CollectionAdd Collection::add(List documents)
 {}
 #endif
 shcore::Value Collection::add_(const shcore::Argument_list &args)
@@ -87,13 +101,19 @@ shcore::Value Collection::add_(const shcore::Argument_list &args)
 
 #ifdef DOXYGEN
 /**
-* Sets the search condition of the statement to modify documents.
-* This method needs to be invoked first, and can be invoked once, after it, the folllowing methods can be invoked: set, unset, arrayInsert, arrayAppend, arrayDelete,
-* sort, limit, bind, execute.
+* Updates documents in a collection.
 * \param searchCondition An optional string with the filter expression of the documents to be modified.
-* \return the same instance of the collection the method was invoked with.
+* \return A CollectionFind object.
+*
+* This method creates a CollectionModify object which is a document update handler.
+*
+* The CollectionModify object has several functions that allow specifying the way the update occurs, if a searchCondition was specified, it will be set on the handler.
+*
+* The update is done when the execute method is called on the handler.
+*
+* \sa CollectionModify
 */
-Collection Collection::modify(String searchCondition)
+CollectionModify Collection::modify(String searchCondition)
 {}
 #endif
 shcore::Value Collection::modify_(const shcore::Argument_list &args)
@@ -105,12 +125,19 @@ shcore::Value Collection::modify_(const shcore::Argument_list &args)
 
 #ifdef DOXYGEN
 /**
-* Sets the search condition of the statement to move documents.
-* This method needs to be invoked first, and can be invoked once, after it the following methods can be invoked: sort, limit, bind, execute
+* Removes documents from a collection.
 * \param searchCondition An optional string with the filter expression of the documents to be removed.
-* \return the same instance of the collection the method was invoked with.
+* \return A CollectionRemove object.
+*
+* This method creates a CollectionRemove object which is a document removal handler.
+*
+* The CollectionRemove object has several functions that allow specifying what should be deleted and how, if a searchCondition was specified, it will be set on the handler.
+*
+* The removal is done when the execute method is called on the handler.
+*
+* \sa CollectionRemove
 */
-Collection Collection::remove(String searchCondition)
+CollectionRemove Collection::remove(String searchCondition)
 {}
 #endif
 shcore::Value Collection::remove_(const shcore::Argument_list &args)
@@ -122,12 +149,19 @@ shcore::Value Collection::remove_(const shcore::Argument_list &args)
 
 #ifdef DOXYGEN
 /**
-* Sets the search condition to identify the Documents to be retrieved from the owner Collection.
-* This method needs to be invoked first, and can be invoked once, after it, the following methods can be invoked: fields, groupBy, sort, limit, bind, execute.
-* \param searchCondition: An optional expression to identify the documents to be retrieved, if not specified all the documents will be included on the result.
-* \return itself (the collection instance) with it's state updated as the searchCondition was established.
+* Retrieves documents from a collection.
+* \param searchCondition An optional string with the filter expression of the documents to be retrieved.
+* \return A CollectionFind object.
+*
+* This method creates a CollectionFind object which is a document selection handler.
+*
+* The CollectionFind object has several functions that allow specifying what should be retrieved from the collection, if a searchCondition was specified, it will be set on the handler.
+*
+* The selection will be returned when the execute method is called on the handler.
+*
+* \sa CollectionFind
 */
-Collection Collection::find(String searchCriteria)
+CollectionFind Collection::find(String searchCriteria)
 {}
 #endif
 shcore::Value Collection::find_(const shcore::Argument_list &args)

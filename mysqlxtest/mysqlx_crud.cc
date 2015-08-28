@@ -420,7 +420,7 @@ Modify_Operation &Modify_Operation::set_operation(int type, const std::string &p
   Mysqlx::Crud::UpdateOperation * operation = m_update->mutable_operation()->Add();
   operation->set_operation(Mysqlx::Crud::UpdateOperation_UpdateType(type));
 
-  Mysqlx::Expr::Expr *docpath = parser::parse_column_identifier(path.empty() ? "@" : path);
+  Mysqlx::Expr::Expr *docpath = parser::parse_column_identifier(path.empty() ? "$" : path);
   Mysqlx::Expr::ColumnIdentifier identifier(docpath->identifier());
 
   // Validates the source is an array item

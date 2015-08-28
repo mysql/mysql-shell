@@ -58,6 +58,14 @@ namespace mysh
 
       virtual std::string class_name() const { return "Collection"; }
 
+#ifdef DOXYGEN
+      CollectionAdd add(Document doc);
+      CollectionAdd add(List documents);
+      CollectionFind find(String searchCriteria);
+      CollectionRemove remove(String searchCondition);
+      CollectionModify modify(String searchCondition);
+#endif
+
     private:
       shcore::Value add_(const shcore::Argument_list &args);
       shcore::Value find_(const shcore::Argument_list &args);
@@ -65,17 +73,6 @@ namespace mysh
       shcore::Value remove_(const shcore::Argument_list &args);
 
       void init();
-
-#ifdef DOXYGEN
-      // TODO: these are not generated in doxygen becuase they are private.
-      Collection add(document doc);
-      Collection add({ document }, { document }, ...);
-      Collection find(String searchCriteria);
-      Collection modify(String searchCondition);
-      Collection remove(String searchCondition);
-#endif
-
-    private:
       boost::shared_ptr< ::mysqlx::Collection> _collection_impl;
 
       // Allows initial functions on the CRUD operations
