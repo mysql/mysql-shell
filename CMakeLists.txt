@@ -271,6 +271,7 @@ set(mysh_SRC
     "${PROJECT_SOURCE_DIR}/src/get_password.cc"
 )
 
+add_definitions(-DMYSH_VERSION="${MYSH_VERSION}")
 add_executable(mysqlx ${mysh_SRC} ${BOOST_SOURCE_CODE})
 
 if(WIN32)

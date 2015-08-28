@@ -888,7 +888,9 @@ void Interactive_shell::command_loop()
 
 void Interactive_shell::print_banner()
 {
-  println("Welcome to MySQLx Shell 0.0.1");
+  std::string welcome_msg("Welcome to MySQLx Shell ");
+  welcome_msg += MYSH_VERSION;
+  println(welcome_msg);
   println("");
   println("Copyright (c) 2014, 2015, Oracle and/or its affiliates. All rights reserved.");
   println("");
@@ -936,6 +938,7 @@ void Interactive_shell::print_cmd_line_helper()
   println("                         Each line on the batch is processed as if it were in interactive mode.");
   println("  --force                To use in SQL batch mode, forces processing to continue if an error is found.");
   println("  --log-level=value      The log level. Value is an int in the range [1,8], default (1).");
+  println("  --version              Prints the version of MySQL X Shell.");
 
   println("");
 }
@@ -951,6 +954,7 @@ public:
   std::string output_format;
   mysh::SessionType session_type;
   bool print_cmd_line_helper;
+  bool print_version;
   bool force;
   bool interactive;
   ngcommon::Logger::LOG_LEVEL log_level;
@@ -1071,6 +1075,7 @@ public:
     bool needs_password = false;
 
     print_cmd_line_helper = false;
+    print_version = false;
 
     session_type = mysh::Application;
 
@@ -1144,6 +1149,11 @@ public:
         print_cmd_line_helper = true;
         exit_code = 0;
       }
+      else if (check_arg(argv, i, "--version", "--version"))
+      {
+        print_version = true;
+        exit_code = 0;
+      }
       else if (check_arg(argv, i, "--force", "--force"))
         force = true;
       else if (check_arg(argv, i, "--interactive", "-i"))
@@ -1201,7 +1211,14 @@ int main(int argc, char **argv)
     shell.set_force(options.force);
     shell.set_output_format(options.output_format);
 
-    if (options.print_cmd_line_helper)
+    if (options.print_version)
+    {
+      std::string version_msg("MySQL X Shell Version ");
+      version_msg += MYSH_VERSION;
+      shell.print(version_msg);
+      return options.exit_code;
+    }
+    else if (options.print_cmd_line_helper)
     {
       shell.print_cmd_line_helper();
       return options.exit_code;
