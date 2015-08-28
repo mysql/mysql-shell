@@ -30,6 +30,12 @@ namespace mysh
   namespace mysqlx
   {
     class Table;
+
+    /**
+    * Handler for Update operations on Tables.
+    * \todo Implement and document bind({var:val, var:val, ...})
+    * \todo Update execute to support options and document it
+    */
     class TableUpdate : public Table_crud_definition, public boost::enable_shared_from_this<TableUpdate>
     {
     public:
@@ -45,6 +51,15 @@ namespace mysh
       shcore::Value bind(const shcore::Argument_list &args);
 
       virtual shcore::Value execute(const shcore::Argument_list &args);
+#ifdef DOXYGEN
+      TableUpdate update();
+      TableUpdate set({ field : value, field : value, ... });
+      TableUpdate where(searchCriteria);
+      TableUpdate orderBy([expr, expr, ...]);
+      TableUpdate limit(lim);
+      TableUpdate bind({ var:val, var : val, ... });
+      ResultSet execute(ExecuteOptions opt);
+#endif
     private:
       std::auto_ptr< ::mysqlx::UpdateStatement> _update_statement;
     };

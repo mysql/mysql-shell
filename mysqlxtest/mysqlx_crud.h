@@ -35,6 +35,7 @@ namespace Mysqlx
   namespace Datatypes
   {
     class Any;
+    class Scalar;
   }
 }
 
@@ -281,9 +282,13 @@ namespace mysqlx
 
     inline operator const std::string & () const
     {
-      if (m_type != TString && m_type != TExpression)
+      if (m_type != TString && m_type != TExpression && m_type != TDocument)
         throw std::logic_error("type error");
-      return *m_value.s;
+
+      if (m_type == TDocument)
+        return m_value.d->str();
+      else
+        return *m_value.s;
     }
 
     inline operator const Document & () const
@@ -315,7 +320,7 @@ namespace mysqlx
     boost::shared_ptr<Table> table() const { return m_table; }
 
   protected:
-    Mysqlx::Datatypes::Any* convert_table_value(const TableValue& value);
+    Mysqlx::Datatypes::Scalar* convert_table_value(const TableValue& value);
 
     boost::shared_ptr<Table> m_table;
   };
@@ -560,7 +565,7 @@ namespace mysqlx
     boost::shared_ptr<Collection> collection() const { return m_coll; }
 
   protected:
-    Mysqlx::Datatypes::Any* convert_document_value(const DocumentValue& value);
+    Mysqlx::Datatypes::Scalar* convert_document_value(const DocumentValue& value);
 
     boost::shared_ptr<Collection> m_coll;
   };
@@ -705,11 +710,13 @@ namespace mysqlx
     Modify_Operation &remove(const std::string &path);
     Modify_Operation &set(const std::string &path, const DocumentValue &value); // For raw values
     Modify_Operation &change(const std::string &path, const DocumentValue &value);
-    Modify_Operation &arrayInsert(const std::string &path, int index, const DocumentValue &value);
+    Modify_Operation &merge(const DocumentValue &value);
+    Modify_Operation &arrayInsert(const std::string &path, const DocumentValue &value);
     Modify_Operation &arrayAppend(const std::string &path, const DocumentValue &value);
+    Modify_Operation &arrayDelete(const std::string &path);
 
   private:
-    Modify_Operation &set_operation(int type, const std::string &path, const DocumentValue *value = NULL);
+    Modify_Operation &set_operation(int type, const std::string &path, const DocumentValue *value = NULL, bool validateArray = false);
   };
 
   class ModifyStatement : public Modify_Operation

@@ -36,6 +36,18 @@ namespace mysqlx
       return parser.expr();
     }
 
+    inline void parse_document_path(const std::string& source, Mysqlx::Expr::ColumnIdentifier& colid)
+    {
+      Expr_parser parser(source, true);
+      return parser.document_path(colid);
+    }
+
+    inline Mysqlx::Expr::Expr* parse_column_identifier(const std::string& source)
+    {
+      Expr_parser parser(source, true);
+      return parser.column_identifier();
+    }
+
     inline Mysqlx::Expr::Expr* parse_table_filter(const std::string &source)
     {
       Expr_parser parser(source);

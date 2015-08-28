@@ -30,6 +30,18 @@ namespace mysh
   namespace mysqlx
   {
     class Collection;
+
+    /**
+    * Handler for document selection on a Collection.
+    * \todo Implement and document bind({var:val, var:val, ...})
+    * \todo Update execute to support options and document it
+    *
+    * This object provides the necessary functions to allow selecting document data from a collection.
+    *
+    * This object should only be created by calling the find function on the collection object from which the documents will be retrieved.
+    *
+    * \sa Collection
+    */
     class CollectionFind : public Collection_crud_definition, public boost::enable_shared_from_this<CollectionFind>
     {
     public:
@@ -41,11 +53,24 @@ namespace mysh
       shcore::Value group_by(const shcore::Argument_list &args);
       shcore::Value having(const shcore::Argument_list &args);
       shcore::Value sort(const shcore::Argument_list &args);
-      shcore::Value skip(const shcore::Argument_list &args);
       shcore::Value limit(const shcore::Argument_list &args);
+      shcore::Value skip(const shcore::Argument_list &args);
       shcore::Value bind(const shcore::Argument_list &args);
 
       virtual shcore::Value execute(const shcore::Argument_list &args);
+
+#ifdef DOXYGEN
+      CollectionFind find(String searchCondition);
+      CollectionFind fields(List projectedSearchExprStr);
+      CollectionFind groupBy(List searchExprStr);
+      CollectionFind having(String searchCondition);
+      CollectionFind sort(List sortExprStr);
+      CollectionFind limit(Integer numberOfRows);
+      CollectionFind skip(Integer limitOffset);
+      CollectionFind bind(Map placeHolderValues);
+      Collection_resultset execute(ExecuteOptions options);
+#endif
+
     private:
       std::auto_ptr< ::mysqlx::FindStatement> _find_statement;
     };

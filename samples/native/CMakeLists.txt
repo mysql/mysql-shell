@@ -22,12 +22,12 @@ set(CMAKE_INSTALL_PREFIX "${DEPLOY_DIR}")
 file(GLOB app_SRC
       "${PROJECT_SOURCE_DIR}/app/simple_shell_client_app.cc"
       "${PROJECT_SOURCE_DIR}/app/boost_code.cc"
+      "${PROJECT_SOURCE_DIR}/../../src/get_password.cc"
 )
 
 if (CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   SET_SOURCE_FILES_PROPERTIES(${PROJECT_SOURCE_DIR}/app/boost_code.cc PROPERTIES COMPILE_FLAGS -O0)
 endif ()
-
 
 add_definitions(-DBOOST_ALL_NO_LIB)
 add_executable(shell_client_app ${app_SRC})
@@ -47,12 +47,10 @@ include_directories("${PROJECT_SOURCE_DIR}/lib")
 
 add_subdirectory(lib)
 
-if(WIN32)
-  target_link_libraries(shell_client_app shell_client_lib ${PYTHON_LIBS})
-else()
-  target_link_libraries(shell_client_app
+target_link_libraries(shell_client_app
     shell_client_lib
+    mysqlsh
+    ${SSL_LIBRARIES} ${MYSQL_LIBRARIES}
     ${PYTHON_LIBS} ${PROTOBUF_LIBRARY}
-  )
-endif()
+)
 

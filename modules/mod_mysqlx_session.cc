@@ -24,8 +24,11 @@
 #include "shellcore/object_factory.h"
 #include "shellcore/shell_core.h"
 #include "shellcore/lang_base.h"
+#include "mod_mysqlx_session_sql.h"
 
 #include "shellcore/proxy_object.h"
+
+#include "mysqlx.h"
 
 #include <boost/bind.hpp>
 #include <boost/lexical_cast.hpp>
@@ -45,16 +48,80 @@ REGISTER_OBJECT(mysqlx, Expression);
 
 #include <set>
 
-ApiBaseSession::ApiBaseSession()
+#ifdef DOXYGEN
+/**
+* Creates a Session instance using the provided connection data.
+* \param connectionData the connection string used to connect to the database.
+* \param password if provided, will override the password in the connection string.
+* \return An Session instance.
+*
+* A Session object uses the X Protocol to allow executing operations on the connected MySQL Product.
+*
+* The format of the connection string can be as follows for connections using the TCP protocol:
+*
+* [user[:pass]\@]host[:port][/db]
+*
+* or as follows for connections using a socket or named pipe:
+*
+* [user[:pass\@] ::socket[/db]
+*
+* \sa Session
+*/
+Session getSession(String connectionData, String password)
+{
+  Session a;
+  return a;
+}
+
+/**
+* This function works the same as the function above, except that the connection data comes enclosed on a dictionary object.
+* \param connectionData a map with the connection data as key value pairs, the following keys are recognized:
+*  - host, the host to use for the connection (can be an IP or DNS name)
+*  - port, the TCP port where the server is listening (default value is 33060).
+*  - schema, the current database for the connection's session.
+*  - dbUser, the user to authenticate against.
+*  - dbPassword, the password of the user user to authenticate against.
+* \param password if provided, will override the password in the connection string.
+* \return An Session instance.
+*
+* \sa Session
+*/
+Session getSession(Map connectionData, String password)
+{
+  Session a;
+  return a;
+}
+
+/**
+* This function works the same as getSession(String connectionData, String password), except that it will return a NodeSession object which allows SQL Execution.
+*/
+NodeSession getNodeSession(String connectionData, String password)
+{
+  NodeSession a;
+  return a;
+}
+
+/**
+* This function works the same as getSession(Map connectionData, String password), except that it will return a NodeSession object which allows SQL Execution.
+*/
+NodeSession getNodeSession(Map connectionData, String password)
+{
+  NodeSession a;
+  return a;
+}
+
+#endif
+
+BaseSession::BaseSession()
 : _show_warnings(false)
 {
   _schemas.reset(new shcore::Value::Map_type);
 
-  add_method("close", boost::bind(&ApiBaseSession::close, this, _1), "data");
-  add_method("setFetchWarnings", boost::bind(&ApiBaseSession::set_fetch_warnings, this, _1), "data");
+  add_method("close", boost::bind(&BaseSession::close, this, _1), "data");
+  add_method("setFetchWarnings", boost::bind(&BaseSession::set_fetch_warnings, this, _1), "data");
 }
 
-Value ApiBaseSession::connect(const Argument_list &args)
+Value BaseSession::connect(const Argument_list &args)
 {
   std::string function_name = class_name() + ".connect";
   args.ensure_count(1, 2, function_name.c_str());
@@ -72,7 +139,7 @@ Value ApiBaseSession::connect(const Argument_list &args)
     {
       std::string uri_ = args.string_at(0);
       _uri = mysh::strip_password(uri_);
-      _session = ::mysqlx::openSession(uri_, pwd_override);
+      _session = ::mysqlx::openSession(uri_, pwd_override, ::mysqlx::Ssl_config(), true);
     }
     else if (args[0].type == Map)
     {
@@ -102,7 +169,7 @@ Value ApiBaseSession::connect(const Argument_list &args)
       if (!pwd_override.empty())
         password = pwd_override;
 
-      _session = ::mysqlx::openSession(host, port, schema, user, password);
+      _session = ::mysqlx::openSession(host, port, schema, user, password, ::mysqlx::Ssl_config());
 
       std::stringstream str;
       str << user << "@" << host << ":" << port;
@@ -119,7 +186,16 @@ Value ApiBaseSession::connect(const Argument_list &args)
   return Value::Null();
 }
 
-Value ApiBaseSession::close(const Argument_list &args)
+#ifdef DOXYGEN
+/**
+* \brief Closes the session.
+* After closing the session it is still possible to make read only operation to gather metadata info, like getTable(name) or getSchemas().
+*/
+Undefined BaseSession::close()
+{}
+#endif
+
+Value BaseSession::close(const Argument_list &args)
 {
   std::string function_name = class_name() + ".close";
 
@@ -130,48 +206,31 @@ Value ApiBaseSession::close(const Argument_list &args)
   return shcore::Value();
 }
 
-Value ApiBaseSession::executeSql(const Argument_list &args)
+/**
+* Creates a SqlExecute object to allow running the received SQL statement on the target MySQL Server.
+* \param statement A string containing the SQL statement to be executed.
+* \return A Resultset object to allow pulling the statement result data.
+* \sa SqlExecute, Resultset
+*/
+Value BaseSession::sql(const Argument_list &args)
 {
-  std::string function_name = class_name() + ".executeSql";
+  std::string function_name = class_name() + ".sql";
   args.ensure_count(1, function_name.c_str());
-  // Will return the result of the SQL execution
-  // In case of error will be Undefined
+
+  // NOTE: This function is no longer exposed as part of the API but it kept
+  //       since it is used internally.
+  //       until further cleanup is done let it live here.
   Value ret_val;
-  if (!_session)
-    throw Exception::logic_error("Not connected.");
-  else
+  try
   {
-    // Options are the statement and optionally options to modify
-    // How the resultset is created.
-    std::string statement = args.string_at(0);
-    Value options;
-    if (args.size() == 2)
-      options = args[1];
-
-    if (statement.empty())
-      throw Exception::argument_error("No query specified.");
-    else
-    {
-      try
-      {
-        // Cleans out the comm buffer
-        flush_last_result();
-
-        _last_result.reset(_session->executeSql(statement));
-
-        // Calls wait so any error is properly triggered at execution time
-        _last_result->wait();
-
-        ret_val = shcore::Value::wrap(new Resultset(_last_result));
-      }
-      CATCH_AND_TRANSLATE();
-    }
+    ret_val = executeSql(args.string_at(0), shcore::Argument_list());
   }
+  CATCH_AND_TRANSLATE();
 
   return ret_val;
 }
 
-::mysqlx::ArgumentValue ApiBaseSession::get_argument_value(shcore::Value source)
+::mysqlx::ArgumentValue BaseSession::get_argument_value(shcore::Value source)
 {
   ::mysqlx::ArgumentValue ret_val;
   switch (source.type)
@@ -203,11 +262,21 @@ Value ApiBaseSession::executeSql(const Argument_list &args)
   return ret_val;
 }
 
-Value ApiBaseSession::executeAdminCommand(const std::string& command, const Argument_list &args)
+Value BaseSession::executeSql(const std::string& statement, const Argument_list &args)
+{
+  return executeStmt("sql", statement, args);
+}
+
+Value BaseSession::executeAdminCommand(const std::string& command, const Argument_list &args)
 {
   std::string function_name = class_name() + ".executeAdminCommand";
   args.ensure_at_least(1, function_name.c_str());
 
+  return executeStmt("xplugin", command, args);
+}
+
+Value BaseSession::executeStmt(const std::string &domain, const std::string& command, const Argument_list &args)
+{
   // Will return the result of the SQL execution
   // In case of error will be Undefined
   Value ret_val;
@@ -224,7 +293,7 @@ Value ApiBaseSession::executeAdminCommand(const std::string& command, const Argu
     {
       flush_last_result();
 
-      _last_result.reset(_session->executeStmt("xplugin", command, arguments));
+      _last_result.reset(_session->executeStmt(domain, command, arguments));
 
       // Calls wait so any error is properly triggered at execution time
       _last_result->wait();
@@ -237,9 +306,9 @@ Value ApiBaseSession::executeAdminCommand(const std::string& command, const Argu
   return ret_val;
 }
 
-std::vector<std::string> ApiBaseSession::get_members() const
+std::vector<std::string> BaseSession::get_members() const
 {
-  std::vector<std::string> members(BaseSession::get_members());
+  std::vector<std::string> members(ShellBaseSession::get_members());
 
   // This function is here only to append the schemas as direct members
   // Using a set to prevent duplicates
@@ -256,16 +325,36 @@ std::vector<std::string> ApiBaseSession::get_members() const
   return members;
 }
 
-bool ApiBaseSession::has_member(const std::string &prop) const
+bool BaseSession::has_member(const std::string &prop) const
 {
-  if (BaseSession::has_member(prop))
+  if (ShellBaseSession::has_member(prop))
     return true;
   if (prop == "uri" || prop == "schemas" || prop == "defaultSchema")
     return true;
   return false;
 }
 
-Value ApiBaseSession::get_member(const std::string &prop) const
+#ifdef DOXYGEN
+/**
+* \brief Retrieves the Schema configured as default for the session, if none, returns Null.
+*/
+Schema BaseSession::getDefaultSchema()
+{}
+
+/**
+* \brief Retrieves the List of Schemas available on the session.
+*/
+List BaseSession::getSchemas()
+{}
+
+/**
+* \brief Retrieves the connectionData in string format.
+*/
+String BaseSession::getUri()
+{}
+#endif
+
+Value BaseSession::get_member(const std::string &prop) const
 {
   // Retrieves the member first from the parent
   Value ret_val;
@@ -274,8 +363,8 @@ Value ApiBaseSession::get_member(const std::string &prop) const
   // retrieve it since it may throw invalid member otherwise
   // If not on the parent classes and not here then we can safely assume
   // it is a schema and attempt loading it as such
-  if (BaseSession::has_member(prop))
-    ret_val = BaseSession::get_member(prop);
+  if (ShellBaseSession::has_member(prop))
+    ret_val = ShellBaseSession::get_member(prop);
   else if (prop == "uri")
     ret_val = Value(_uri);
   else if (prop == "schemas")
@@ -300,13 +389,13 @@ Value ApiBaseSession::get_member(const std::string &prop) const
   return ret_val;
 }
 
-void ApiBaseSession::flush_last_result()
+void BaseSession::flush_last_result()
 {
   if (_last_result)
     _last_result->discardData();
 }
 
-void ApiBaseSession::_load_default_schema()
+void BaseSession::_load_default_schema()
 {
   try
   {
@@ -333,7 +422,7 @@ void ApiBaseSession::_load_default_schema()
   CATCH_AND_TRANSLATE();
 }
 
-void ApiBaseSession::_load_schemas()
+void BaseSession::_load_schemas()
 {
   try
   {
@@ -366,7 +455,7 @@ void ApiBaseSession::_load_schemas()
   CATCH_AND_TRANSLATE();
 }
 
-shcore::Value ApiBaseSession::get_schema(const shcore::Argument_list &args) const
+shcore::Value BaseSession::get_schema(const shcore::Argument_list &args) const
 {
   std::string function_name = class_name() + ".getSchema";
   args.ensure_count(1, function_name.c_str());
@@ -399,7 +488,22 @@ shcore::Value ApiBaseSession::get_schema(const shcore::Argument_list &args) cons
   return (*_schemas)[name];
 }
 
-shcore::Value ApiBaseSession::set_default_schema(const shcore::Argument_list &args)
+Schema setDefaultSchema();
+
+#ifdef DOXYGEN
+/**
+* Sets the new default schema for this session, and returns the schema object for it.
+* At the database level, this is equivalent at issuing the following SQL query:
+*   use <new-default-schema>;
+*
+* \sa getSchemas(), getSchema()
+* \param name the name of the new schema to switch to.
+* \return the Schema object for the new schema.
+*/
+Schema BaseSession::setDefaultSchema(String name)
+{}
+#endif
+shcore::Value BaseSession::set_default_schema(const shcore::Argument_list &args)
 {
   std::string function_name = class_name() + ".setDefaultSchema";
   args.ensure_count(1, function_name.c_str());
@@ -422,7 +526,9 @@ shcore::Value ApiBaseSession::set_default_schema(const shcore::Argument_list &ar
   return get_member("defaultSchema");
 }
 
-shcore::Value ApiBaseSession::set_fetch_warnings(const shcore::Argument_list &args)
+//Undefined setFetchWarnings(Bool value);
+
+shcore::Value BaseSession::set_fetch_warnings(const shcore::Argument_list &args)
 {
   Value ret_val;
 
@@ -439,7 +545,7 @@ shcore::Value ApiBaseSession::set_fetch_warnings(const shcore::Argument_list &ar
   return ret_val;
 }
 
-void ApiBaseSession::_update_default_schema(const std::string& name)
+void BaseSession::_update_default_schema(const std::string& name)
 {
   if (!name.empty())
   {
@@ -454,7 +560,7 @@ void ApiBaseSession::_update_default_schema(const std::string& name)
   }
 }
 
-boost::shared_ptr<ApiBaseSession> Session::_get_shared_this() const
+boost::shared_ptr<BaseSession> Session::_get_shared_this() const
 {
   boost::shared_ptr<const Session> shared = shared_from_this();
 
@@ -470,14 +576,12 @@ boost::shared_ptr<shcore::Object_bridge> Session::create(const shcore::Argument_
   return boost::static_pointer_cast<Object_bridge>(session);
 }
 
-NodeSession::NodeSession() : ApiBaseSession()
+NodeSession::NodeSession() : BaseSession()
 {
-  add_method("executeSql", boost::bind(&Session::executeSql, this, _1),
-             "stmt", shcore::String,
-             NULL);
+  add_method("sql", boost::bind(&NodeSession::sql, this, _1), "sql", shcore::String, NULL);
 }
 
-boost::shared_ptr<ApiBaseSession> NodeSession::_get_shared_this() const
+boost::shared_ptr<BaseSession> NodeSession::_get_shared_this() const
 {
   boost::shared_ptr<const NodeSession> shared = shared_from_this();
 
@@ -491,4 +595,26 @@ boost::shared_ptr<shcore::Object_bridge> NodeSession::create(const shcore::Argum
   session->connect(args);
 
   return boost::static_pointer_cast<Object_bridge>(session);
+}
+
+#ifdef DOXYGEN
+/**
+* Executes an sql statement and returns a Resultset object
+* \param sql The statement to be executed
+*
+* \return Resultset object
+*
+* JavaScript Example
+* \code{.js}
+* var result = session.sql("show databases").execute();
+* \endcode
+*/
+Resultset NodeSession::sql(String sql)
+{}
+#endif
+shcore::Value NodeSession::sql(const shcore::Argument_list &args)
+{
+  boost::shared_ptr<SqlExecute> sql_execute(new SqlExecute(shared_from_this()));
+
+  return sql_execute->sql(args);
 }

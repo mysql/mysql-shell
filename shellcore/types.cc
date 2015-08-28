@@ -148,6 +148,22 @@ const char *Exception::type() const BOOST_NOEXCEPT_OR_NOTHROW
   return "Exception";
 }
 
+int64_t Exception::code() const BOOST_NOEXCEPT_OR_NOTHROW
+{
+  if ((*_error).find("code") != (*_error).end())
+  {
+    try
+    {
+      return (*_error)["code"].as_int();
+    }
+    catch (...)
+    {
+      return 0; //as it's not int
+    }
+  }
+  return 0;
+}
+
 bool Exception::is_argument() const
 {
   return strcmp(type(), "ArgumentError") == 0;
@@ -166,6 +182,11 @@ bool Exception::is_value() const
 bool Exception::is_type() const
 {
   return strcmp(type(), "TypeError") == 0;
+}
+
+bool Exception::is_server() const
+{
+  return strcmp(type(), "Server") == 0;
 }
 
 // --

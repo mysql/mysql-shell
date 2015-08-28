@@ -1,3 +1,3 @@
-session.executeSql('select "first_result" as myresult');
-session.executeSql('select * from unexisting.whatever');
-session.executeSql('select "second_result" as secondtry');
+session.sql('select "first_result" as myresult');
+session.sql('select * from unexisting.whatever');
+session.sql('select "second_result" as secondtry');

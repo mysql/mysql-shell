@@ -30,6 +30,12 @@ namespace mysh
   namespace mysqlx
   {
     class Table;
+
+    /**
+    * Handler for Delete operation on Tables.
+    * \todo Implement and document bind({var:val, var:val, ...})
+    * \todo Update execute to support options and document it
+    */
     class TableDelete : public Table_crud_definition, public boost::enable_shared_from_this<TableDelete>
     {
     public:
@@ -44,6 +50,14 @@ namespace mysh
       shcore::Value bind(const shcore::Argument_list &args);
 
       virtual shcore::Value execute(const shcore::Argument_list &args);
+#ifdef DOXYGEN
+      TableDelete remove();
+      TableDelete where(searchCriteria);
+      TableDelete orderBy([expr, expr, ...]);
+      TableDelete limit(lim);
+      TableDelete bind({ var:val, var : val, ... });
+      Resultset execute(ExecuteOptions opt);
+#endif
     private:
       std::auto_ptr< ::mysqlx::DeleteStatement> _delete_statement;
     };

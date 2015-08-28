@@ -54,10 +54,10 @@ namespace shcore {
 
     exec_and_out_equals("var session = mysqlx.getNodeSession('" + _uri + "');");
 
-    exec_and_out_equals("session.executeSql('drop schema if exists js_shell_test;')");
-    exec_and_out_equals("session.executeSql('create schema js_shell_test;')");
-    exec_and_out_equals("session.executeSql('use js_shell_test;')");
-    exec_and_out_equals("session.executeSql('create table table1 (name varchar(50), age integer, gender varchar(20));')");
+    exec_and_out_equals("session.sql('drop schema if exists js_shell_test;').execute();");
+    exec_and_out_equals("session.sql('create schema js_shell_test;').execute();");
+    exec_and_out_equals("session.sql('use js_shell_test;').execute();");
+    exec_and_out_equals("session.sql('create table table1 (name varchar(50), age integer, gender varchar(20));').execute();");
 
     exec_and_out_equals("session.close();");
   }

@@ -33,6 +33,9 @@ namespace mysh
   {
     class Schema;
 
+    /**
+    * Represents a Table on an Schema, retrieved with a session created using the MySQL Protocol.
+    */
     class Table : public DatabaseObject
     {
     public:

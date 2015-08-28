@@ -20,14 +20,14 @@
 exports.mysql = {}
 
 // Connection functions
-exports.mysql.getSession = function(connection_data, password)
+exports.mysql.getClassicSession = function(connection_data, password)
 {
   var session;
 
   if (typeof(password) == 'undefined')
-    session = _F.mysql.Session(connection_data);
+    session = _F.mysql.ClassicSession(connection_data);
   else
-    session = _F.mysql.Session(connection_data, password);
+    session = _F.mysql.ClassicSession(connection_data, password);
   
   return session;
 }

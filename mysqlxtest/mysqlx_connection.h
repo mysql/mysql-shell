@@ -24,7 +24,7 @@
 #undef ERROR //Needed to avoid conflict with ERROR in mysqlx.pb.h
 
 // Avoid warnings from includes of other project and protobuf
-#if defined __GNUC__
+#if __GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 6)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wshadow"
 #pragma GCC diagnostic ignored "-Wunused-parameter"
@@ -42,7 +42,7 @@
 #include "mysqlx_session.pb.h"
 #include "mysqlx_sql.pb.h"
 
-#ifdef __GNUC__
+#if __GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 6)
 #pragma GCC diagnostic pop
 #elif defined _MSC_VER
 #pragma warning (pop)
@@ -53,36 +53,40 @@
 #include <boost/function.hpp>
 #include <list>
 
+#include "mysqlx_sync_connection.h"
 #include "xerrmsg.h"
 
 #define CR_UNKNOWN_ERROR        2000
-#define CR_UNKNOWN_HOST         2005
 #define CR_CONNECTION_ERROR     2002
+#define CR_UNKNOWN_HOST         2005
 #define CR_SERVER_GONE_ERROR    2006
-#define CR_MALFORMED_PACKET     2027
 #define CR_WRONG_HOST_INFO      2009
 #define CR_COMMANDS_OUT_OF_SYNC 2014
+#define CR_SSL_CONNECTION_ERROR 2026
+#define CR_MALFORMED_PACKET     2027
 
 namespace mysqlx
 {
   typedef boost::function<bool (int,std::string)> Local_notice_handler;
 
+  struct Ssl_config;
+
   class Connection
   {
   public:
-    Connection();
+    Connection(const Ssl_config &ssl_config);
     ~Connection();
 
     void push_local_notice_handler(Local_notice_handler handler);
     void pop_local_notice_handler();
 
-    void connect(const std::string &uri, const std::string &pass);
+    void connect(const std::string &uri, const std::string &pass, const bool cap_expired_password = false); //XXX capabilities flags
     void connect(const std::string &host, int port);
-    void connect(const std::string &host, int port, const std::string &schema,
-                 const std::string &user, const std::string &pass);
 
     void close();
     void set_closed();
+
+    void enable_tls();
 
     void send(int mid, const Message &msg);
     Message *recv_next(int &mid);
@@ -113,7 +117,7 @@ namespace mysqlx
     void send(const Mysqlx::Connection::CapabilitiesSet &m) { send(Mysqlx::ClientMessages::CON_CAPABILITIES_SET, m); };
     void send(const Mysqlx::Connection::Close &m) { send(Mysqlx::ClientMessages::CON_CLOSE, m); };
 
-    boost::asio::ip::tcp::socket &socket() { return m_socket; }
+//    boost::asio::ip::tcp::socket &socket() { return m_socket; }
   public:
     Result *execute_sql(const std::string &sql);
     Result *execute_stmt(const std::string &ns, const std::string &sql, const std::vector<ArgumentValue> &args);
@@ -123,17 +127,15 @@ namespace mysqlx
     Result *execute_insert(const Mysqlx::Crud::Insert &m);
     Result *execute_delete(const Mysqlx::Crud::Delete &m);
 
+    void setup_capability(const std::string &name, const bool value);
+
+    void authenticate(const std::string &user, const std::string &pass, const std::string &schema);
     void authenticate_plain(const std::string &user, const std::string &pass, const std::string &db);
     void authenticate_mysql41(const std::string &user, const std::string &pass, const std::string &db);
 
   private:
-    void handle_async_deadline_timeout(const boost::system::error_code &ec, bool &finished);
-    void handle_async_read(const boost::system::error_code &ec, std::size_t data_size, std::size_t &received_data);
-
     void dispatch_notice(Mysqlx::Notice::Frame *frame);
-
     Message *recv_message_with_header(int &mid, char (&header_buffer)[5], const std::size_t header_offset);
-
     void throw_mysqlx_error(const boost::system::error_code &ec);
 
   private:
@@ -142,7 +144,7 @@ namespace mysqlx
     std::list<Local_notice_handler> m_local_notice_handlers;
 
     boost::asio::io_service m_ios;
-    boost::asio::ip::tcp::socket m_socket;
+    Mysqlx_sync_connection m_sync_connection;
     boost::asio::deadline_timer m_deadline;
     bool m_trace_packets;
     bool m_closed;
@@ -150,6 +152,6 @@ namespace mysqlx
   
   typedef boost::shared_ptr<Connection> ConnectionRef;
 
-}
+} // namespace mysqlx
 
-#endif
+#endif // _MYSQLX_CONNECTION_H_

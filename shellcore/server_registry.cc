@@ -21,7 +21,6 @@
 #include "uuid_gen.h"
 #include "myjson/myjson.h"
 #include "myjson/mutable_myjson.h"
-#include "my_global.h"
 #include "utils_file.h"
 
 #include <cstring>
@@ -56,6 +55,8 @@
 #else
 #  include <windows.h>
 #endif
+
+#include "my_global.h"
 
 using namespace shcore;
 

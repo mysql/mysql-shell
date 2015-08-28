@@ -30,6 +30,19 @@ namespace mysh
   namespace mysqlx
   {
     class Table;
+
+    /**
+    * Handler for Select operation on Tables.
+    * \todo Document select([field, field, ...])
+    * \todo Document where(searchCriteria)
+    * \todo Document groupBy([expr, expr, ...])
+    * \todo Document having(condition)
+    * \todo Document orderBy([expr, expr, ...])
+    * \todo Document limit(lim)
+    * \todo Document offset(off)
+    * \todo Implement and document bind({var:val, var:val, ...})
+    * \todo Update execute to support options and document it
+    */
     class TableSelect : public Table_crud_definition, public boost::enable_shared_from_this<TableSelect>
     {
     public:
@@ -46,6 +59,17 @@ namespace mysh
       shcore::Value bind(const shcore::Argument_list &args);
 
       virtual shcore::Value execute(const shcore::Argument_list &args);
+#ifdef DOXYGEN
+      TableSelect select([field, field, ...]);
+      TableSelect where(searchCriteria);
+      TableSelect groupBy([expr, expr, ...]);
+      TableSelect having(String searchCondition);
+      TableSelect orderBy([expr, expr, ...]);
+      TableSelect limit(Integer numberOfRows);
+      TableSelect offset(Integer limitOffset);
+      TableSelect bind({ var:val, var : val, ... });
+      Resultset execute(ExecuteOptions opt)
+#endif
     private:
       std::auto_ptr< ::mysqlx::SelectStatement> _select_statement;
     };

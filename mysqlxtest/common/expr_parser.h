@@ -30,7 +30,7 @@
 #include <boost/function.hpp>
 
 // Avoid warnings from includes of other project and protobuf
-#if defined __GNUC__
+#if __GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 6)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wshadow"
 #pragma GCC diagnostic ignored "-Wunused-parameter"
@@ -43,7 +43,7 @@
 #include "mysqlx_expr.pb.h"
 #include "mysqlx_crud.pb.h"
 
-#ifdef __GNUC__
+#if __GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 6)
 #pragma GCC diagnostic pop
 #elif defined _MSC_VER
 #pragma warning (pop)
@@ -78,7 +78,7 @@ namespace mysqlx
       LSTRING = 20,
       LNUM = 21,
       DOT = 22,
-      AT = 23,
+      //AT = 23,
       COMMA = 24,
       EQ = 25,
       NE = 26,
@@ -113,7 +113,8 @@ namespace mysqlx
       MOD = 55,
       AS = 56,
       ASC = 57,
-      DESC = 58
+      DESC = 58,
+      DOLLAR = 59
     };
 
     Token(TokenType type, const std::string& text);
@@ -129,12 +130,12 @@ namespace mysqlx
   class Expr_builder
   {
   public:
-    static Mysqlx::Datatypes::Any* build_null_any();
-    static Mysqlx::Datatypes::Any* build_double_any(double d);
-    static Mysqlx::Datatypes::Any* build_int_any(google::protobuf::int64 i);
-    static Mysqlx::Datatypes::Any* build_string_any(const std::string& s);
-    static Mysqlx::Datatypes::Any* build_bool_any(bool b);
-    static Mysqlx::Expr::Expr* build_literal_expr(Mysqlx::Datatypes::Any* a);
+    static Mysqlx::Datatypes::Scalar* build_null_scalar();
+    static Mysqlx::Datatypes::Scalar* build_double_scalar(double d);
+    static Mysqlx::Datatypes::Scalar* build_int_scalar(google::protobuf::int64 i);
+    static Mysqlx::Datatypes::Scalar* build_string_scalar(const std::string& s);
+    static Mysqlx::Datatypes::Scalar* build_bool_scalar(bool b);
+    static Mysqlx::Expr::Expr* build_literal_expr(Mysqlx::Datatypes::Scalar* sc);
     static Mysqlx::Expr::Expr* build_unary_op(const std::string& name, Mysqlx::Expr::Expr* param);
   };
 

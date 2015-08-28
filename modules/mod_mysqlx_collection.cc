@@ -55,6 +55,43 @@ Collection::~Collection()
 {
 }
 
+#ifdef DOXYGEN
+/**
+* Adds a document to a collection.
+* \param A documents to be added into the collection.
+* \return A CollectionAdd object.
+*
+* To be added, the document must have a property named '_id' with a universal unique identifier (UUID). If the property is missing, it is set with an auto generated UUID.
+*
+* This method creates a CollectionAdd object which is a document addition handler, the received document is added into this handler.
+*
+* The CollectionAdd has other functions that allow specifying the way the addition occurs.
+*
+* The addition is done when the execute method is called on the handler.
+*
+* \sa CollectionAdd
+*/
+CollectionAdd Collection::add(Document document)
+{}
+
+/**
+* Adds a list of documents to a collection.
+* \param The document list to be added into the collection.
+* \return A CollectionAdd object.
+*
+* Every document to be added must have a property named '_id' with a universal unique identifier (UUID). If the property is missing, it is set with an auto generated UUID.
+*
+* This method creates a CollectionAdd object which is a document addition handler, the received documents are added into this handler.
+*
+* The CollectionAdd has other functions that allow specifying the way the addition occurs.
+*
+* The addition is done when the execute method is called on the handler.
+*
+* \sa CollectionAdd
+*/
+CollectionAdd Collection::add(List documents)
+{}
+#endif
 shcore::Value Collection::add_(const shcore::Argument_list &args)
 {
   boost::shared_ptr<CollectionAdd> collectionAdd(new CollectionAdd(shared_from_this()));
@@ -62,6 +99,23 @@ shcore::Value Collection::add_(const shcore::Argument_list &args)
   return collectionAdd->add(args);
 }
 
+#ifdef DOXYGEN
+/**
+* Updates documents in a collection.
+* \param searchCondition An optional string with the filter expression of the documents to be modified.
+* \return A CollectionFind object.
+*
+* This method creates a CollectionModify object which is a document update handler.
+*
+* The CollectionModify object has several functions that allow specifying the way the update occurs, if a searchCondition was specified, it will be set on the handler.
+*
+* The update is done when the execute method is called on the handler.
+*
+* \sa CollectionModify
+*/
+CollectionModify Collection::modify(String searchCondition)
+{}
+#endif
 shcore::Value Collection::modify_(const shcore::Argument_list &args)
 {
   boost::shared_ptr<CollectionModify> collectionModify(new CollectionModify(shared_from_this()));
@@ -69,6 +123,23 @@ shcore::Value Collection::modify_(const shcore::Argument_list &args)
   return collectionModify->modify(args);
 }
 
+#ifdef DOXYGEN
+/**
+* Removes documents from a collection.
+* \param searchCondition An optional string with the filter expression of the documents to be removed.
+* \return A CollectionRemove object.
+*
+* This method creates a CollectionRemove object which is a document removal handler.
+*
+* The CollectionRemove object has several functions that allow specifying what should be deleted and how, if a searchCondition was specified, it will be set on the handler.
+*
+* The removal is done when the execute method is called on the handler.
+*
+* \sa CollectionRemove
+*/
+CollectionRemove Collection::remove(String searchCondition)
+{}
+#endif
 shcore::Value Collection::remove_(const shcore::Argument_list &args)
 {
   boost::shared_ptr<CollectionRemove> collectionRemove(new CollectionRemove(shared_from_this()));
@@ -76,6 +147,23 @@ shcore::Value Collection::remove_(const shcore::Argument_list &args)
   return collectionRemove->remove(args);
 }
 
+#ifdef DOXYGEN
+/**
+* Retrieves documents from a collection.
+* \param searchCondition An optional string with the filter expression of the documents to be retrieved.
+* \return A CollectionFind object.
+*
+* This method creates a CollectionFind object which is a document selection handler.
+*
+* The CollectionFind object has several functions that allow specifying what should be retrieved from the collection, if a searchCondition was specified, it will be set on the handler.
+*
+* The selection will be returned when the execute method is called on the handler.
+*
+* \sa CollectionFind
+*/
+CollectionFind Collection::find(String searchCriteria)
+{}
+#endif
 shcore::Value Collection::find_(const shcore::Argument_list &args)
 {
   boost::shared_ptr<CollectionFind> collectionFind(new CollectionFind(shared_from_this()));

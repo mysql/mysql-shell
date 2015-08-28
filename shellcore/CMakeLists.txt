@@ -17,7 +17,8 @@ remove_definitions(-Dmysqlshmods_EXPORTS)
 
 include_directories( ${MYSQL_INCLUDE_DIRS} )
 include_directories( ${CMAKE_BINARY_DIR} )
-include_directories( ${CMAKE_SOURCE_DIR}/mysqlxtest)
+include_directories( "${CMAKE_SOURCE_DIR}/mysqlxtest")
+include_directories("${CMAKE_SOURCE_DIR}/mysqlxtest/common")
 include_directories("${CMAKE_SOURCE_DIR}/include" "${CMAKE_SOURCE_DIR}/utils" "${Boost_INCLUDE_DIRS}")
 include_directories( "${CMAKE_SOURCE_DIR}/common/uuid/include" )
 include_directories( "${CMAKE_SOURCE_DIR}/common/myjson/include" )
@@ -55,29 +56,29 @@ file(GLOB libmysqlsh_SRC
     "${CMAKE_SOURCE_DIR}/utils/utils_file.cc"
     "${CMAKE_SOURCE_DIR}/utils/utils_json.h"
     "${CMAKE_SOURCE_DIR}/utils/utils_json.cc"
-      "*.cc"
+    "*.cc"
     "${CMAKE_SOURCE_DIR}/common/uuid/src/uuid_gen.cc"
     "${CMAKE_SOURCE_DIR}/common/myjson/src/json_parser.cc"
     "${CMAKE_SOURCE_DIR}/common/myjson/src/mutable_myjson.cc"
     "${CMAKE_SOURCE_DIR}/common/myjson/src/myjson.cc"
     "${CMAKE_BINARY_DIR}/shellcore/jscript_core_definitions.h"
-    "${CMAKE_SOURCE_DIR}/src/boost_code.cc"
+    "${BOOST_SOURCE_CODE}"
 )
 
-if(NOT WINDOWS_RUNTIME_MD)
+#if(NOT WINDOWS_RUNTIME_MD)
   list(APPEND libmysqlsh_SRC "${CMAKE_SOURCE_DIR}/types/ishell_core.cc")
   list(APPEND libmysqlsh_SRC "${CMAKE_SOURCE_DIR}/common/logger/logger.cc")
-else()
-  list(REMOVE_ITEM libmysqlsh_SRC "${CMAKE_SOURCE_DIR}/shellcore/types.cc")
-  list(REMOVE_ITEM libmysqlsh_SRC "${CMAKE_SOURCE_DIR}/shellcore/types_cpp.cc")
-  list(REMOVE_ITEM libmysqlsh_SRC "${CMAKE_SOURCE_DIR}/shellcore/object_factory.cc")
-  list(REMOVE_ITEM libmysqlsh_SRC "${CMAKE_SOURCE_DIR}/shellcore/proxy_object.cc")
-#  list(REMOVE_ITEM libmysqlsh_SRC "${CMAKE_SOURCE_DIR}/shellcore/shell_core.cc")
-  list(REMOVE_ITEM libmysqlsh_SRC "${CMAKE_SOURCE_DIR}/shellcore/common.cc")
-  list(REMOVE_ITEM libmysqlsh_SRC "${CMAKE_SOURCE_DIR}/shellcore/obj_date.cc")
-  list(REMOVE_ITEM libmysqlsh_SRC "${CMAKE_SOURCE_DIR}/utils/utils_json.h")
-  list(REMOVE_ITEM libmysqlsh_SRC "${CMAKE_SOURCE_DIR}/utils/utils_json.cc")
-endif()
+#else()
+#  list(REMOVE_ITEM libmysqlsh_SRC "${CMAKE_SOURCE_DIR}/shellcore/types.cc")
+#  list(REMOVE_ITEM libmysqlsh_SRC "${CMAKE_SOURCE_DIR}/shellcore/types_cpp.cc")
+#  list(REMOVE_ITEM libmysqlsh_SRC "${CMAKE_SOURCE_DIR}/shellcore/object_factory.cc")
+# list(REMOVE_ITEM libmysqlsh_SRC "${CMAKE_SOURCE_DIR}/shellcore/proxy_object.cc")
+##  list(REMOVE_ITEM libmysqlsh_SRC "${CMAKE_SOURCE_DIR}/shellcore/shell_core.cc")
+#  list(REMOVE_ITEM libmysqlsh_SRC "${CMAKE_SOURCE_DIR}/shellcore/common.cc")
+#  list(REMOVE_ITEM libmysqlsh_SRC "${CMAKE_SOURCE_DIR}/shellcore/obj_date.cc")
+#  list(REMOVE_ITEM libmysqlsh_SRC "${CMAKE_SOURCE_DIR}/utils/utils_json.h")
+#  list(REMOVE_ITEM libmysqlsh_SRC "${CMAKE_SOURCE_DIR}/utils/utils_json.cc")
+#endif()
 
 
 # Configures V8 accordingly...
@@ -95,15 +96,8 @@ endif()
 # Configures Python accordingly...
 if ( HAVE_PYTHON )
   include_directories("${PYTHON_INCLUDE_DIR}")
-  
+
   install(FILES ${PYTHON_LIBRARIES} DESTINATION lib)
-  if(WINDOWS_RUNTIME_MD)
-    set(PY_DLL ${PYTHON_LIBRARIES})
-    string(REPLACE ".lib" ".dll" PY_DLL ${PY_DLL})
-    get_filename_component(PY_FILE ${PY_DLL} NAME)
-    get_filename_component(PY_DLL ${PY_DLL} DIRECTORY)
-    install(FILES "${PY_DLL}/${PY_FILE}" DESTINATION lib)
-  endif()  
 else()
   # Removes from the project all the python files
   file(GLOB python_SRC "*python*.cc")
@@ -113,36 +107,63 @@ else()
   endforeach()
 endif()
 
+file(GLOB libmysqlshmods_SRC
+      "../modules/base_*.cc"
+      "../modules/base_*.h"
+      "../modules/collection_*.cc"
+      "../modules/collection_*.h"
+      "../modules/table_*.cc"
+      "../modules/table_*.h"
+      "../modules/crud_*.cc"
+      "../modules/crud_*.h"
+      "../modules/dynamic_*.cc"
+      "../modules/dynamic_*.h"
+      "../modules/mod_mysqlx_*.cc"
+      "../modules/mod_mysqlx_*.h"
+      "../modules/mod_mysql_*.cc"
+      "../modules/mod_mysql_*.h"
+      "../modules/mysql.cc"
+      "../modules/mysql.h"
+      "${CMAKE_SOURCE_DIR}/common/uuid/src/uuid_gen.cc"
+)
+
+#Protobuf related includes
+INCLUDE(protobuf)
+SETUP_PROTOBUF()
+include_directories("${CMAKE_BINARY_DIR}/mysqlxtest")
+
 if(WINDOWS_RUNTIME_MD)
-  add_convenience_library_dll(mysqlsh ${libmysqlsh_SRC})
+  add_library(mysqlsh SHARED ${libmysqlsh_SRC} ${libmysqlshmods_SRC})
 else()
-  add_convenience_library(mysqlsh ${libmysqlsh_SRC})
+  add_library(mysqlsh ${libmysqlsh_SRC} ${libmysqlshmods_SRC})
 endif()
 
-if ( HAVE_PYTHON )
-  if ( WINDOWS_RUNTIME_MD )
-    target_link_libraries(mysqlsh ${PYTHON_LIBRARIES})
-  endif()
-endif()
-
-if(WINDOWS_RUNTIME_MD)
-  target_link_libraries(mysqlsh mysqlshmods)
-  target_link_libraries(mysqlsh mysqlshtypes)
-  target_link_libraries(mysqlsh ${V8_LINK_LIST})
-  target_link_libraries(mysqlsh ${MYSQL_LIBRARIES})
-endif()
+target_link_libraries(mysqlsh mysqlxtest)
+target_link_libraries(mysqlsh
+            ${V8_LINK_LIST}
+            ${PYTHON_LIBRARIES}
+            ${SSL_LIBRARIES}
+            ${MYSQL_LIBRARIES}
+            ${BOOST_LIBRARIES}
+            ${PROTOBUF_LIBRARY})
 
 if( WIN32 )
   include(msvc)
-  if(NOT WINDOWS_RUNTIME_MD)  
+  if(NOT WINDOWS_RUNTIME_MD)
     CHANGE_MD_2_MT()
   endif()
 endif()
 
 install(DIRECTORY "${CMAKE_SOURCE_DIR}/include/shellcore/" DESTINATION "include/shellcore" FILES_MATCHING PATTERN "*.h" )
-install(TARGETS mysqlsh DESTINATION lib)
+install(DIRECTORY "${CMAKE_SOURCE_DIR}/modules/" DESTINATION "include/modules" FILES_MATCHING PATTERN "*.h" )
+if(WINDOWS_RUNTIME_MD)
+  install(TARGETS mysqlsh DESTINATION bin)
+else()  
+  install(TARGETS mysqlsh DESTINATION lib)
+endif()
 
 add_definitions(-DSHCORE_EXPORT )
+add_definitions(-DNGCOMMON_EXPORTS )
 add_definitions(-DBOOST_ALL_NO_LIB )
 add_definitions(-Dmyjson_EXPORTS )
 if(WIN32)

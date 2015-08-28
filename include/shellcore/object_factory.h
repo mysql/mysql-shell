@@ -24,7 +24,7 @@
 
 namespace shcore
 {
-  class TYPES_COMMON_PUBLIC Object_factory
+  class SHCORE_PUBLIC Object_factory
   {
   public:
     typedef boost::shared_ptr<Object_bridge>(*Factory_function)(const Argument_list &args);

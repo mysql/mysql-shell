@@ -98,7 +98,7 @@ void Row_decoder::set_from_buffer(const std::string& buffer, std::set<std::strin
           break;
         }
         else
-        throw std::invalid_argument("error reading value");
+          throw std::invalid_argument("error reading value");
       }
       result.insert(elem);
     }
@@ -132,7 +132,7 @@ std::string Row_decoder::set_from_buffer_as_str(const std::string& buffer)
           break;
         }
         else
-        throw std::invalid_argument("error reading value");
+          throw std::invalid_argument("error reading value");
       }
       if (!result.empty())
         result.append(",");

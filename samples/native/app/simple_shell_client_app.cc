@@ -25,6 +25,48 @@
 #include "modules/base_resultset.h"
 
 
+void print_tab_value(const shcore::Value& val)
+{
+  switch (val.type)
+  {
+  case shcore::Integer:
+    std::cout << val.as_int() << '\t';
+    break;
+  case shcore::String:
+    std::cout << val.as_string() << '\t';
+    break;
+  case shcore::Bool:
+    std::cout << val.as_bool() << '\t';
+    break;
+  case shcore::Float:
+    std::cout << val.as_double() << '\t';
+    break;
+  default:
+    std::cout << val.descr() << "\t";
+  }
+}
+
+void print_doc_value(const shcore::Value& val)
+{
+  switch (val.type)
+  {
+  case shcore::Integer:
+    std::cout << "\"" << val.as_int() << "\"";
+    break;
+  case shcore::String:
+    std::cout << "\"" << val.as_string() << "\"";
+    break;
+  case shcore::Bool:
+    std::cout << "\"" << val.as_bool() << "\"";
+    break;
+  case shcore::Float:
+    std::cout << "\"" << val.as_double() << "\"";
+    break;
+  default:
+    std::cout << "\"" << val.descr() << "\"";
+  }
+}
+
 void print_table_result_set(Table_result_set* tbl)
 {
   // a table result set is an array of shcore::Value's each of them in turn is an array (vector) of shcore::Value's (escalars)
@@ -41,26 +83,25 @@ void print_table_result_set(Table_result_set* tbl)
   for (int i = 0; i < dataset->size(); ++i)
   {
     shcore::Value& v_row = (*dataset)[i];
-    boost::shared_ptr<mysh::Row> row = v_row.as_object<mysh::Row>();   
-    for (size_t i = 0; i < metadata->size(); i++)
+    if (v_row.type == shcore::Object)
     {
-      shcore::Value val = row->get_member(i);
-      switch (val.type)
+      // Object
+      boost::shared_ptr<mysh::Row> row = v_row.as_object<mysh::Row>();
+      for (size_t i = 0; i < metadata->size(); i++)
       {
-      case shcore::Integer:
-        std::cout << val.as_int() << '\t';
-        break;
-      case shcore::String:
-        std::cout << val.as_string() << '\t';
-        break;
-      case shcore::Bool:
-        std::cout << val.as_bool() << '\t';
-        break;
-      case shcore::Float:
-        std::cout << val.as_double() << '\t';
-        break;
-      default:
-        std::cout << val.descr() << "\t";
+        shcore::Value& val = row->get_member(i);
+        print_tab_value(val);
+      }
+    }
+    else if (v_row.type == shcore::Map)
+    {
+      // Map
+      boost::shared_ptr<shcore::Value::Map_type> map = v_row.as_map();
+      
+      for (shcore::Value::Map_type::const_iterator it = map->begin(); it != map->end(); ++it)
+      {
+        const shcore::Value &val = it->second;
+        print_tab_value(val);
       }
     }
     std::cout << std::endl;
@@ -81,38 +122,47 @@ void print_doc_result_set(Document_result_set *doc)
   std::cout << "{";
   for (std::vector<shcore::Value>::const_iterator it = data->begin(); it != myend; ++it)
   {
-if (i++ != 0)
+    if (i++ != 0)
       std::cout << ",\n";
-    boost::shared_ptr<mysh::Row> row = it->as_object<mysh::Row>();
-    row->values.size();
-    std::cout << "[" << std::endl;
-    for(size_t index = 0; index < row->value_iterators.size(); index++)
+    if (it->type == shcore::String)
     {
-      std::cout << "\t\"" << row->value_iterators[index]->first << " : ";
-      shcore::Value& val = row->value_iterators[index]->second;
-      switch (val.type)
-      {
-      case shcore::Integer:
-        std::cout << "\"" << val.as_int() << "\"";
-        break;
-      case shcore::String:
-        std::cout << "\"" << val.as_string() << "\"";
-        break;
-      case shcore::Bool:
-        std::cout << "\"" << val.as_bool() << "\"";
-        break;
-      case shcore::Float:
-        std::cout << "\"" << val.as_double() << "\"";
-        break;
-      default:
-        std::cout << "\"" << val.descr() << "\"";
-      }
-      if (index >= row->value_iterators.size())
-        std::cout << std::endl;
-      else
-        std::cout << "," << std::endl;
+      std::cout << "\"" << it->as_string() << "\"";
+      continue;
     }
-    std::cout << "]";
+    if (it->type == shcore::Map)
+    {
+      boost::shared_ptr<shcore::Value::Map_type> map = it->as_map();
+      std::cout << "[" << std::endl;
+      size_t index = 0, size = map->size();
+      for (shcore::Value::Map_type::const_iterator it = map->begin(); it != map->end(); ++it)
+      {
+        std::cout << "\t\"" << it->first << " : ";
+        const shcore::Value& val = it->second;
+        print_doc_value(val);
+        if (index++ >= size)
+          std::cout << std::endl;
+        else
+          std::cout << "," << std::endl;
+      }
+      std::cout << "]";
+    }
+    else
+    {
+      boost::shared_ptr<mysh::Row> row = it->as_object<mysh::Row>();
+      row->values.size();
+      std::cout << "[" << std::endl;
+      for (size_t index = 0; index < row->value_iterators.size(); index++)
+      {
+        std::cout << "\t\"" << row->value_iterators[index]->first << " : ";
+        shcore::Value& val = row->value_iterators[index]->second;
+        print_doc_value(val);
+        if (index >= row->value_iterators.size())
+          std::cout << std::endl;
+        else
+          std::cout << "," << std::endl;
+      }
+      std::cout << "]";
+    }
   }
   std::cout << "}" << std::endl;
 }
@@ -143,7 +193,7 @@ int main(int argc, char* argv[])
   // ...
   MyShell shell;
   // CHANGEME: Set up connection string here as required
-  shell.make_connection("root:123@localhost:3305");
+  shell.make_connection("root:123@localhost:33060");
 
   bool empty_result = false;
   // Run shell in SQL mode
@@ -175,8 +225,13 @@ int main(int argc, char* argv[])
     boost::shared_ptr<Result_set> result = shell.execute(input);
     Result_set* res = result.get();
     Document_result_set *doc = dynamic_cast<Document_result_set*>(res);
+    Table_result_set* tbl = dynamic_cast<Table_result_set*>(res);
 
-    if (doc != NULL)
+    if (tbl != NULL)
+    {
+      print_table_result_set(tbl);
+    }
+    else if (doc != NULL)
     {
       print_doc_result_set(doc);
     }

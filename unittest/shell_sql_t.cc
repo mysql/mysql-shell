@@ -84,19 +84,20 @@ namespace shcore {
         const char *pwd = getenv("MYSQL_PWD");
         const char *port = getenv("MYSQL_PORT");
 
-        std::string x_uri(uri);
+        std::string mysql_uri = "mysql://";
+        mysql_uri.append(uri);
         if (port)
         {
-          x_uri.append(":");
-          x_uri.append(port);
+          mysql_uri.append(":");
+          mysql_uri.append(port);
         }
 
         Argument_list args;
-        args.push_back(Value(x_uri));
+        args.push_back(Value(mysql_uri));
         if (pwd)
           args.push_back(Value(pwd));
 
-        boost::shared_ptr<mysh::BaseSession> session(mysh::connect_session(args));
+        boost::shared_ptr<mysh::ShellBaseSession> session(mysh::connect_session(args, mysh::Classic));
         env.shell_core->set_global("session", Value(boost::static_pointer_cast<Object_bridge>(session)));
       }
     };

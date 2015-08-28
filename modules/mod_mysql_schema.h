@@ -40,14 +40,17 @@ namespace mysh
 {
   namespace mysql
   {
-    class Session;
+    class ClassicSession;
     class Table;
 
-    class MOD_PUBLIC Schema : public DatabaseObject, public boost::enable_shared_from_this<Schema>
+    /**
+    * Represents a Schema retrieved with a session created using the MySQL Protocol.
+    */
+    class SHCORE_PUBLIC Schema : public DatabaseObject, public boost::enable_shared_from_this<Schema>
     {
     public:
-      Schema(boost::shared_ptr<Session> owner, const std::string &name);
-      Schema(boost::shared_ptr<const Session> owner, const std::string &name);
+      Schema(boost::shared_ptr<ClassicSession> owner, const std::string &name);
+      Schema(boost::shared_ptr<const ClassicSession> owner, const std::string &name);
       ~Schema();
 
       virtual std::string class_name() const{ return "Schema"; };
@@ -59,6 +62,31 @@ namespace mysh
 
       friend class Table;
       friend class View;
+
+#ifdef DOXYGEN
+
+      /**
+      * Returns a list of tables for this schema.
+      * This method is run against a local cache of objects, if you want to see lastest changes by other sessions you may need to create a new copy the schema object with session.getSchema().
+      * \sa Table      
+      * \return The list of tables as a Map(String, Table).
+      */
+      Map getTables()
+      {}
+
+      /**
+      * Returns a list of views for this schema.
+      * This method is run against a local cache of objects, if you want to see lastest changes by other sessions you may need to create a new copy the schema object with session.getSchema().
+      * \sa View
+      * \return The list of views as a Map(String, View).
+      */
+      Map getViews()
+      {}
+
+      Table getTable(String name);
+      View getView(String name);
+#endif
+
     private:
       boost::shared_ptr<shcore::Value::Map_type> _tables;
       boost::shared_ptr<shcore::Value::Map_type> _views;
@@ -67,8 +95,8 @@ namespace mysh
       shcore::Value find_in_collection(const std::string& name, boost::shared_ptr<shcore::Value::Map_type>source) const;
       shcore::Value getTable(const shcore::Argument_list &args);
       shcore::Value getView(const shcore::Argument_list &args);
-	  
-	  void init();
+
+      void init();
     };
   };
 };

@@ -53,6 +53,8 @@ shcore::Value Resultset::get_member(const std::string &prop) const
   {
     boost::shared_ptr<shcore::Value::Array_type> array(new shcore::Value::Array_type);
 
+    if (!_result->columnMetadata()) return ret_val = shcore::Value(array);
+
     int num_fields = _result->columnMetadata()->size();
 
     for (int i = 0; i < num_fields; i++)
@@ -114,6 +116,15 @@ shcore::Value Resultset::get_member(const std::string &prop) const
   return ret_val;
 }
 
+#ifdef DOXYGEN
+/**
+* Reads the next row of data and returns it.
+* \sa nextDataSet(), all()
+* \return the next row of data.
+*/
+Row next()
+{}
+#endif
 shcore::Value Resultset::next(const shcore::Argument_list &UNUSED(args))
 {
   boost::shared_ptr<std::vector< ::mysqlx::ColumnMetadata> > metadata = _result->columnMetadata();
@@ -127,42 +138,48 @@ shcore::Value Resultset::next(const shcore::Argument_list &UNUSED(args))
       for (size_t index = 0; index < metadata->size(); index++)
       {
         Value field_value;
-        switch (metadata->at(index).type)
+
+        if (row->isNullField(index))
+          field_value = Value::Null();
+        else
         {
-          case ::mysqlx::SINT:
-            field_value = Value(row->sInt64Field(index));
-            break;
-          case ::mysqlx::UINT:
-            field_value = Value(row->uInt64Field(index));
-            break;
-          case ::mysqlx::DOUBLE:
-            field_value = Value(row->doubleField(index));
-            break;
-          case ::mysqlx::FLOAT:
-            field_value = Value(row->floatField(index));
-            break;
-          case ::mysqlx::BYTES:
-            field_value = Value(row->stringField(index));
-            break;
-          case ::mysqlx::DECIMAL:
-            field_value = Value(row->decimalField(index));
-            break;
-          case ::mysqlx::TIME:
-            field_value = Value(row->timeField(index));
-            break;
-          case ::mysqlx::DATETIME:
-            field_value = Value(row->dateTimeField(index));
-            break;
-          case ::mysqlx::ENUM:
-            field_value = Value(row->enumField(index));
-            break;
-          case ::mysqlx::BIT:
-            field_value = Value(row->bitField(index));
-            break;
-          //TODO: Fix the handling of SET
-          case ::mysqlx::SET:
-            //field_value = Value(row->setField(index));
-            break;
+          switch (metadata->at(index).type)
+          {
+            case ::mysqlx::SINT:
+              field_value = Value(row->sInt64Field(index));
+              break;
+            case ::mysqlx::UINT:
+              field_value = Value(row->uInt64Field(index));
+              break;
+            case ::mysqlx::DOUBLE:
+              field_value = Value(row->doubleField(index));
+              break;
+            case ::mysqlx::FLOAT:
+              field_value = Value(row->floatField(index));
+              break;
+            case ::mysqlx::BYTES:
+              field_value = Value(row->stringField(index));
+              break;
+            case ::mysqlx::DECIMAL:
+              field_value = Value(row->decimalField(index));
+              break;
+            case ::mysqlx::TIME:
+              field_value = Value(row->timeField(index));
+              break;
+            case ::mysqlx::DATETIME:
+              field_value = Value(row->dateTimeField(index));
+              break;
+            case ::mysqlx::ENUM:
+              field_value = Value(row->enumField(index));
+              break;
+            case ::mysqlx::BIT:
+              field_value = Value(row->bitField(index));
+              break;
+              //TODO: Fix the handling of SET
+            case ::mysqlx::SET:
+              //field_value = Value(row->setField(index));
+              break;
+          }
         }
         value_row->add_item(metadata->at(index).name, field_value);
       }
@@ -173,6 +190,15 @@ shcore::Value Resultset::next(const shcore::Argument_list &UNUSED(args))
   return shcore::Value();
 }
 
+#ifdef DOXYTGEN
+/**
+* Calls successively next() until the whole result set is read and returns all the rows read.
+* \sa next()
+* \return an array of Row objects.
+*/
+Row[] Resultset::all()
+{}
+#endif
 shcore::Value Resultset::all(const shcore::Argument_list &args)
 {
   Value::Array_type_ref array(new Value::Array_type());
@@ -204,6 +230,15 @@ Collection_resultset::Collection_resultset(boost::shared_ptr< ::mysqlx::Result> 
 {
 }
 
+#ifdef DOXYGEN
+/**
+* Reads the next row of data and returns it.
+* \sa nextDataSet(), all()
+* \return the next row of data.
+*/
+Row Resultset::next()
+{}
+#endif
 shcore::Value Collection_resultset::next(const shcore::Argument_list &args)
 {
   Value ret_val = Value::Null();
@@ -212,7 +247,7 @@ shcore::Value Collection_resultset::next(const shcore::Argument_list &args)
 
   args.ensure_count(0, function.c_str());
 
-  if (_result->columnMetadata()->size())
+  if (_result->columnMetadata() && _result->columnMetadata()->size())
   {
     std::auto_ptr< ::mysqlx::Row> r(_result->next());
     if (r.get())

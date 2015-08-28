@@ -44,16 +44,16 @@ namespace shcore {
   {
     exec_and_out_equals("var mysql = require('mysql').mysql;");
 
-    exec_and_out_equals("var session = mysql.getSession('" + _mysql_uri + "');");
+    exec_and_out_equals("var session = mysql.getClassicSession('" + _mysql_uri + "');");
 
-    exec_and_out_equals("session.executeSql('drop schema if exists js_shell_test;')");
-    exec_and_out_equals("session.executeSql('create schema js_shell_test;')");
-    exec_and_out_equals("session.executeSql('use js_shell_test;')");
-    exec_and_out_equals("session.executeSql('create table table1 (id int auto_increment primary key, name varchar(50));')");
+    exec_and_out_equals("session.sql('drop schema if exists js_shell_test;')");
+    exec_and_out_equals("session.sql('create schema js_shell_test;')");
+    exec_and_out_equals("session.sql('use js_shell_test;')");
+    exec_and_out_equals("session.sql('create table table1 (id int auto_increment primary key, name varchar(50));')");
 
-    exec_and_out_equals("session.executeSql('insert into table1 (`name`) values(\"one\");')");
-    exec_and_out_equals("session.executeSql('insert into table1 (`name`) values(\"two\");')");
-    exec_and_out_equals("session.executeSql('insert into table1 (`name`) values(\"three\");')");
+    exec_and_out_equals("session.sql('insert into table1 (`name`) values(\"one\");')");
+    exec_and_out_equals("session.sql('insert into table1 (`name`) values(\"two\");')");
+    exec_and_out_equals("session.sql('insert into table1 (`name`) values(\"three\");')");
 
     exec_and_out_equals("session.close();");
   }
@@ -63,14 +63,14 @@ namespace shcore {
   {
     exec_and_out_equals("var mysql = require('mysql').mysql;");
 
-    exec_and_out_equals("var session = mysql.getSession('" + _mysql_uri + "');");
+    exec_and_out_equals("var session = mysql.getClassicSession('" + _mysql_uri + "');");
 
-    exec_and_out_equals("var result = session.executeSql('use js_shell_test;');");
+    exec_and_out_equals("var result = session.sql('use js_shell_test;');");
 
     exec_and_out_equals("print(result.hasData);", "false");
     exec_and_out_equals("print(result.getHasData());", "false");
 
-    exec_and_out_equals("var result = session.executeSql('select * from table1;');");
+    exec_and_out_equals("var result = session.sql('select * from table1;');");
 
     exec_and_out_equals("print(result.hasData);", "true");
     exec_and_out_equals("print(result.getHasData());", "true");
@@ -83,9 +83,9 @@ namespace shcore {
   {
     exec_and_out_equals("var mysql = require('mysql').mysql;");
 
-    exec_and_out_equals("var session = mysql.getSession('" + _mysql_uri + "');");
+    exec_and_out_equals("var session = mysql.getClassicSession('" + _mysql_uri + "');");
 
-    exec_and_out_equals("var result = session.executeSql('select * from js_shell_test.table1;');");
+    exec_and_out_equals("var result = session.sql('select * from js_shell_test.table1;');");
 
     exec_and_out_equals("var metadata = result.getColumnMetadata()");
 
@@ -103,9 +103,9 @@ namespace shcore {
   {
     exec_and_out_equals("var mysql = require('mysql').mysql;");
 
-    exec_and_out_equals("var session = mysql.getSession('" + _mysql_uri + "');");
+    exec_and_out_equals("var session = mysql.getClassicSession('" + _mysql_uri + "');");
 
-    exec_and_out_equals("var result = session.executeSql('insert into js_shell_test.table1 (`name`) values(\"four\");');");
+    exec_and_out_equals("var result = session.sql('insert into js_shell_test.table1 (`name`) values(\"four\");');");
 
     exec_and_out_equals("print(result.lastInsertId)", "4");
     exec_and_out_equals("print(result.getLastInsertId())", "4");

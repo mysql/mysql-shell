@@ -25,7 +25,7 @@
 
 namespace shcore {
 
-class TYPES_COMMON_PUBLIC Proxy_object : public shcore::Cpp_object_bridge
+class SHCORE_PUBLIC Proxy_object : public shcore::Cpp_object_bridge
 {
 public:
   virtual std::string class_name() const { return "Proxy_object"; }

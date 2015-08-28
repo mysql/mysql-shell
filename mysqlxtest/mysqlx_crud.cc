@@ -120,11 +120,9 @@ Collection_Statement &Collection_Statement::bind(const std::string &UNUSED(name)
   return *this;
 }
 
-Mysqlx::Datatypes::Any* Collection_Statement::convert_document_value(const DocumentValue& value)
+Mysqlx::Datatypes::Scalar* Collection_Statement::convert_document_value(const DocumentValue& value)
 {
-  Mysqlx::Datatypes::Any *any = new Mysqlx::Datatypes::Any();
-  any->set_type(Mysqlx::Datatypes::Any::SCALAR);
-  Mysqlx::Datatypes::Scalar *my_scalar(any->mutable_scalar());
+  Mysqlx::Datatypes::Scalar *my_scalar = new Mysqlx::Datatypes::Scalar;
 
   mysqlx::DocumentValue column_value(value);
 
@@ -151,7 +149,7 @@ Mysqlx::Datatypes::Any* Collection_Statement::convert_document_value(const Docum
       break;
   }
 
-  return any;
+  return my_scalar;
 }
 
 // -----
@@ -294,13 +292,17 @@ AddStatement &AddStatement::add(const Document &doc)
   Mysqlx::Expr::Expr *expr(m_insert->mutable_row()->Add()->mutable_field()->Add());
   expr->set_type(Mysqlx::Expr::Expr::LITERAL);
 
-  Mysqlx::Datatypes::Any *any = new Mysqlx::Datatypes::Any();
-  any->set_type(Mysqlx::Datatypes::Any::SCALAR);
-  Mysqlx::Datatypes::Scalar *value(any->mutable_scalar());
+  Mysqlx::Datatypes::Scalar *value = new Mysqlx::Datatypes::Scalar();
   value->set_type(Mysqlx::Datatypes::Scalar::V_OCTETS);
   value->set_v_opaque(doc.str());
 
-  expr->set_allocated_constant(any);
+  expr->set_allocated_literal(value);
+
+  /* TODO: Add support for adding expressions representing documents
+  DocumentValue expression(doc);
+  m_insert->mutable_row()->Add()
+  Expr_parser parser(expression, true);
+  m_insert->mutable_row()->Add()->mutable_field()->AddAllocated(parser.expr());*/
   return *this;
 }
 
@@ -412,23 +414,32 @@ Modify_Limit &Modify_Sort::sort(const std::vector<std::string> &sortFields)
   return *this;
 }
 
-Modify_Operation &Modify_Operation::set_operation(int type, const std::string &path, const DocumentValue *value)
+Modify_Operation &Modify_Operation::set_operation(int type, const std::string &path, const DocumentValue *value, bool validate_array)
 {
-  google::protobuf::RepeatedPtrField< ::Mysqlx::Crud::Projection > items;
-  parser::parse_collection_column_list(items, path);
-
+  // Sets the operation
   Mysqlx::Crud::UpdateOperation * operation = m_update->mutable_operation()->Add();
-
   operation->set_operation(Mysqlx::Crud::UpdateOperation_UpdateType(type));
 
-  if (items.Get(0).has_alias())
-  {
-    Mysqlx::Expr::DocumentPathItem* proj_path_item = new Mysqlx::Expr::DocumentPathItem();
-    proj_path_item->set_type(Mysqlx::Expr::DocumentPathItem_Type_MEMBER);
-    proj_path_item->set_value(items.Get(0).alias());
-    operation->mutable_source()->mutable_document_path()->AddAllocated(proj_path_item);
-  }
+  Mysqlx::Expr::Expr *docpath = parser::parse_column_identifier(path.empty() ? "$" : path);
+  Mysqlx::Expr::ColumnIdentifier identifier(docpath->identifier());
 
+  // Validates the source is an array item
+  int size = identifier.document_path().size();
+  if (size)
+  {
+    if (validate_array)
+    {
+      if (identifier.document_path().Get(size - 1).type() != Mysqlx::Expr::DocumentPathItem::ARRAY_INDEX)
+        throw std::logic_error("An array document path must be specified");
+    }
+  }
+  else if (type != Mysqlx::Crud::UpdateOperation::ITEM_MERGE)
+    throw std::logic_error("Invalid document path");
+
+  // Sets the source
+  operation->mutable_source()->CopyFrom(identifier);
+
+  // Sets the value if applicable
   if (value)
   {
     if (value->type() == DocumentValue::TExpression)
@@ -440,9 +451,11 @@ Modify_Operation &Modify_Operation::set_operation(int type, const std::string &p
     else
     {
       operation->mutable_value()->set_type(Mysqlx::Expr::Expr::LITERAL);
-      operation->mutable_value()->set_allocated_constant(convert_document_value(*value));
+      operation->mutable_value()->set_allocated_literal(convert_document_value(*value));
     }
   }
+
+  delete docpath;
 
   return *this;
 }
@@ -450,6 +463,11 @@ Modify_Operation &Modify_Operation::set_operation(int type, const std::string &p
 Modify_Operation &Modify_Operation::remove(const std::string &path)
 {
   return set_operation(Mysqlx::Crud::UpdateOperation::ITEM_REMOVE, path);
+}
+
+Modify_Operation &Modify_Operation::arrayDelete(const std::string &path)
+{
+  return set_operation(Mysqlx::Crud::UpdateOperation::ITEM_REMOVE, path, NULL, true);
 }
 
 Modify_Operation &Modify_Operation::set(const std::string &path, const DocumentValue &value)
@@ -462,9 +480,14 @@ Modify_Operation &Modify_Operation::change(const std::string &path, const Docume
   return set_operation(Mysqlx::Crud::UpdateOperation::ITEM_REPLACE, path, &value);
 }
 
-Modify_Operation &Modify_Operation::arrayInsert(const std::string &UNUSED(path), int UNUSED(index), const DocumentValue &UNUSED(value))
+Modify_Operation &Modify_Operation::merge(const DocumentValue &document)
 {
-  return *this;
+  return set_operation(Mysqlx::Crud::UpdateOperation::ITEM_MERGE, "", &document);
+}
+
+Modify_Operation &Modify_Operation::arrayInsert(const std::string &path, const DocumentValue &value)
+{
+  return set_operation(Mysqlx::Crud::UpdateOperation::ARRAY_INSERT, path, &value, true);
 }
 
 Modify_Operation &Modify_Operation::arrayAppend(const std::string &path, const DocumentValue &value)
@@ -490,11 +513,9 @@ Table_Statement::Table_Statement(boost::shared_ptr<Table> table)
 {
 }
 
-Mysqlx::Datatypes::Any* Table_Statement::convert_table_value(const TableValue& value)
+Mysqlx::Datatypes::Scalar* Table_Statement::convert_table_value(const TableValue& value)
 {
-  Mysqlx::Datatypes::Any *any = new Mysqlx::Datatypes::Any();
-  any->set_type(Mysqlx::Datatypes::Any::SCALAR);
-  Mysqlx::Datatypes::Scalar *my_scalar(any->mutable_scalar());
+  Mysqlx::Datatypes::Scalar *my_scalar = new Mysqlx::Datatypes::Scalar;
 
   mysqlx::TableValue column_value(value);
 
@@ -536,7 +557,7 @@ Mysqlx::Datatypes::Any* Table_Statement::convert_table_value(const TableValue& v
       break;
   }
 
-  return any;
+  return my_scalar;
 }
 
 //Collection_Statement &Collection_Statement::bind(const std::string &UNUSED(name), const DocumentValue &UNUSED(value))
@@ -670,7 +691,7 @@ Update_Set &Update_Set::set(const std::string &field, const TableValue& value)
 
   operation->set_operation(Mysqlx::Crud::UpdateOperation::SET);
   operation->mutable_value()->set_type(Mysqlx::Expr::Expr::LITERAL);
-  operation->mutable_value()->set_allocated_constant(convert_table_value(value));
+  operation->mutable_value()->set_allocated_literal(convert_table_value(value));
 
   return *this;
 }
@@ -840,8 +861,8 @@ Insert_Values &Insert_Values::values(const std::vector<TableValue> &row_data)
   {
     Mysqlx::Expr::Expr* expr = new Mysqlx::Expr::Expr();
     expr->set_type(Mysqlx::Expr::Expr::LITERAL);
-    Mysqlx::Datatypes::Any* any = convert_table_value(*index);
-    expr->set_allocated_constant(any);
+    Mysqlx::Datatypes::Scalar* scalar = convert_table_value(*index);
+    expr->set_allocated_literal(scalar);
     row->mutable_field()->AddAllocated(expr);
   }
 

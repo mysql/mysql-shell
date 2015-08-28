@@ -75,7 +75,8 @@ protected:
     if (uri)
     {
       _uri.assign(uri);
-      _mysql_uri.assign(uri);
+      _mysql_uri = "mysql://";
+      _mysql_uri.append(uri);
     }
 
     const char *pwd = getenv("MYSQL_PWD");

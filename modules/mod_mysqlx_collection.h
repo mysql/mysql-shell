@@ -39,6 +39,16 @@ namespace mysh
   {
     class Schema;
 
+    /**
+    * Represents a Collection on an Schema, retrieved with a session created using the X Protocol.
+    * \todo Implement and document as()
+    * \todo Implement and document createIndex()
+    * \todo Implement and document dropIndex()
+    * \todo Implement and document getIndexes()
+    * \todo Implement and document newDoc()
+    * \todo Implement and document count()
+    * \todo Implement and document drop()
+    */
     class Collection : public DatabaseObject, public boost::enable_shared_from_this<Collection>
     {
     public:
@@ -48,6 +58,14 @@ namespace mysh
 
       virtual std::string class_name() const { return "Collection"; }
 
+#ifdef DOXYGEN
+      CollectionAdd add(Document doc);
+      CollectionAdd add(List documents);
+      CollectionFind find(String searchCriteria);
+      CollectionRemove remove(String searchCondition);
+      CollectionModify modify(String searchCondition);
+#endif
+
     private:
       shcore::Value add_(const shcore::Argument_list &args);
       shcore::Value find_(const shcore::Argument_list &args);
@@ -55,8 +73,6 @@ namespace mysh
       shcore::Value remove_(const shcore::Argument_list &args);
 
       void init();
-
-    private:
       boost::shared_ptr< ::mysqlx::Collection> _collection_impl;
 
       // Allows initial functions on the CRUD operations

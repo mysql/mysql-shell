@@ -34,8 +34,8 @@ using namespace System::Reflection;
 
 [assembly:AssemblyDelaySign(false)];
 [assembly:AssemblyKeyName("ConnectorNet")];
-[assembly:AssemblyVersion("0.0.1")];
-[assembly:AssemblyInformationalVersion("0.0.1")];
+[assembly:AssemblyVersion("0.0.2")];
+[assembly:AssemblyInformationalVersion("0.0.2")];
 
 
 void Custom_shell::print(const char *text)
@@ -79,14 +79,8 @@ SimpleClientShell::SimpleClientShell()
 
 void SimpleClientShell::MakeConnection(String ^connstr)
 {
-  //__try {
-    std::string n_connstr = msclr::interop::marshal_as<std::string>(connstr);
-    _obj->make_connection(n_connstr);
-  /*}
-  __except
-  {
-    throw gcnew Exception(msclr::interop::marshal_as<String^>(e.what()));
-  }*/
+  std::string n_connstr = msclr::interop::marshal_as<std::string>(connstr);
+  _obj->make_connection(n_connstr);
 }
 
 void SimpleClientShell::SwitchMode(Mode^ mode)
@@ -97,39 +91,62 @@ void SimpleClientShell::SwitchMode(Mode^ mode)
   _obj->switch_mode(n_mode);
 }
 
+Object^ SimpleClientShell::wrap_value(const shcore::Value& val)
+{
+  Object^ o;
+  switch (val.type)
+  {
+  case shcore::Integer:
+    o = gcnew Int32(val.as_int());
+    break;
+  case shcore::String:
+    o = msclr::interop::marshal_as<String^>(val.as_string());
+    break;
+  case shcore::Bool:
+    o = gcnew Boolean(val.as_bool());
+    break;
+  case shcore::Float:
+    o = gcnew Double(val.as_double());
+    break;
+  default:
+    o = msclr::interop::marshal_as<String^>(val.descr());
+  }
+  return o;
+}
+
 List<Dictionary<String^, Object^>^>^ SimpleClientShell::get_managed_doc_result(Document_result_set *doc)
 {
   List<Dictionary<String^, Object^>^>^ result = gcnew List<Dictionary<String^, Object^>^>();
   boost::shared_ptr<std::vector<shcore::Value> > data = doc->get_data();
   std::vector<shcore::Value>::const_iterator myend = data->end();
   // a document is an array of objects of type mysh::Row
-  for (std::vector<shcore::Value>::const_iterator it = data->begin(); it != myend; ++it)
+  int i = 0;
+  for (std::vector<shcore::Value>::const_iterator it = data->begin(); it != myend; ++it, ++i)
   {
-    boost::shared_ptr<mysh::Row> row = it->as_object<mysh::Row>();
     Dictionary<String^, Object^>^ dic = gcnew Dictionary<String^, Object^>();
-    std::map<std::string, int>::const_iterator it2, myend2 = row->keys.end();
-    for (it2 = row->keys.begin(); it2 != myend2; ++it2)
+    if (it->type == shcore::String)
     {
-      Object^ o;
-      shcore::Value& val = row->values[it2->second];
-      switch (val.type)
+      dic->Add((gcnew Int32(i))->ToString(), msclr::interop::marshal_as<String^>(it->as_string()));
+    }
+    else if (it->type == shcore::Map)
+    {
+      boost::shared_ptr<shcore::Value::Map_type> map = it->as_map();
+      size_t index = 0, size = map->size();
+      for (shcore::Value::Map_type::const_iterator it = map->begin(); it != map->end(); ++it)
       {
-      case shcore::Integer:
-        o = gcnew Int32(val.as_int());
-        break;
-      case shcore::String:
-        o = msclr::interop::marshal_as<String^>(val.as_string());
-        break;
-      case shcore::Bool:
-        o = gcnew Boolean(val.as_bool());
-        break;
-      case shcore::Float:
-        o = gcnew Double(val.as_double());
-        break;
-      default:
-        o = msclr::interop::marshal_as<String^>(val.descr());
+        Object^ o = wrap_value(it->second);
+        dic->Add(msclr::interop::marshal_as<String^>(it->first), o);
       }
-      dic->Add(msclr::interop::marshal_as<String^>(it2->first), o);
+    }
+    else
+    {
+      boost::shared_ptr<mysh::Row> row = it->as_object<mysh::Row>();
+      for (size_t idx = 0; idx < row->value_iterators.size(); idx++)
+      {
+        shcore::Value& val = row->value_iterators[idx]->second;
+        Object^ o = wrap_value(val);
+        dic->Add(msclr::interop::marshal_as<String^>(row->value_iterators[idx]->first), o);
+      }
     }
     result->Add(dic);
   }
@@ -146,33 +163,32 @@ List<array<Object^>^>^ SimpleClientShell::get_managed_table_result_set(Table_res
   for (int i = 0; i < dataset->size(); ++i)
   {
     shcore::Value& v_row = (*dataset)[i];
-    boost::shared_ptr<mysh::Row> row = v_row.as_object<mysh::Row>();
-    array<Object^>^ arr = gcnew array<Object^>(metadata->size());
-    std::cout << std::endl;
-    for (size_t i = 0; i < metadata->size(); i++)
+    if (v_row.type == shcore::Object)
     {
-      shcore::Value& val = row->values[i];
-      Object^ o;
-      switch (val.type)
+      boost::shared_ptr<mysh::Row> row = v_row.as_object<mysh::Row>();
+      array<Object^>^ arr = gcnew array<Object^>(metadata->size());
+      for (size_t i = 0; i < metadata->size(); i++)
       {
-      case shcore::Integer:
-        o = gcnew Int32(val.as_int());
-        break;
-      case shcore::String:
-        o = msclr::interop::marshal_as<String^>(val.as_string());
-        break;
-      case shcore::Bool:
-        o = gcnew Boolean(val.as_bool());
-        break;
-      case shcore::Float:
-        o = gcnew Double(val.as_double());
-        break;
-      default:
-        o = msclr::interop::marshal_as<String^>(val.descr());
+        shcore::Value& val = row->value_iterators[i]->second;
+        Object^ o = wrap_value(val);
+        arr->SetValue(o, (int)i);
       }
-      arr->SetValue(o, (int)i++);
+      result->Add(arr);
     }
-    result->Add(arr);
+    else if (v_row.type == shcore::Map)
+    {
+      // Map
+      array<Object^>^ arr = gcnew array<Object^>(metadata->size());
+      boost::shared_ptr<shcore::Value::Map_type> map = v_row.as_map();
+      size_t i = 0;
+      for (shcore::Value::Map_type::const_iterator it = map->begin(); it != map->end(); ++it, ++i)
+      {
+        const shcore::Value &val = it->second;
+        Object^ o = wrap_value(val);
+        arr->SetValue(o, (int)i);
+      }
+      result->Add(arr);
+    }
   }
   return result;
 }

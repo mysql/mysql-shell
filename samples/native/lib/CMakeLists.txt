@@ -56,7 +56,7 @@ if (WITH_SAMPLES)
                       "${CMAKE_SOURCE_DIR}"
                      )
 
-  target_link_libraries(shell_client_lib mysqlsh mysqlshmods)
+  target_link_libraries(shell_client_lib mysqlsh)
 
   target_link_libraries(shell_client_lib ${GCOV_LDFLAGS})
   if ( HAVE_V8 )
@@ -106,7 +106,6 @@ else()
   # ----------------------------------------------------------------------
 
   find_library(lib_mysqlsh "mysqlsh" "${DEPLOY_DIR}/lib")
-  find_library(lib_mysqlshmods "mysqlshmods" "${DEPLOY_DIR}/lib")
   find_library(lib_mysqlxtest "mysqlxtest" "${DEPLOY_DIR}/lib")
   find_library(lib_mysqlxtest_pb "mysqlxtest_pb" "${DEPLOY_DIR}/lib")
 
@@ -120,7 +119,6 @@ else()
 
     target_link_libraries(shell_client_lib
       ${lib_mysqlsh}
-      ${lib_mysqlshmods}
       ${lib_mysqlshtypes}
       ${lib_mysqlxtest}
       ${lib_mysqlxtest_pb}
@@ -130,7 +128,6 @@ else()
 
     target_link_libraries(shell_client_lib
       ${lib_mysqlsh}
-      ${lib_mysqlshmods}
       ${lib_mysqlxtest}
       ${lib_mysqlxtest_pb}
       ${lib_v8}

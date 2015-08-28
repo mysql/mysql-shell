@@ -82,12 +82,12 @@ namespace shcore {
 
    Example: JS Date object is converted to a C++ Date object and vice-versa, but Mysql_connection is wrapped generically
    */
-  struct TYPES_COMMON_PUBLIC Value
+  struct SHCORE_PUBLIC Value
   {
     typedef std::vector<Value> Array_type;
     typedef boost::shared_ptr<Array_type> Array_type_ref;
 
-    class TYPES_COMMON_PUBLIC Map_type
+    class SHCORE_PUBLIC Map_type
     {
     public:
       typedef std::map<std::string, Value> container_type;
@@ -236,7 +236,7 @@ namespace shcore {
     static Value parse_number(char **pc);
   };
 
-  class TYPES_COMMON_PUBLIC Argument_list
+  class SHCORE_PUBLIC Argument_list
   {
   public:
     const std::string &string_at(unsigned int i) const;
@@ -273,7 +273,7 @@ namespace shcore {
   template<> struct value_type_for_native<Value::Map_type> { static const Value_type type = Map; };
   template<> struct value_type_for_native<Value::Array_type> { static const Value_type type = Array; };
 
-  std::string TYPES_COMMON_PUBLIC type_name(Value_type type);
+  std::string SHCORE_PUBLIC type_name(Value_type type);
 
   /** An instance of an object, that's implemented in some language.
    *
@@ -282,7 +282,7 @@ namespace shcore {
    *
    * They can be instantiated through their Metaclass factory
    */
-  class TYPES_COMMON_PUBLIC Object_bridge
+  class SHCORE_PUBLIC Object_bridge
   {
   public:
     virtual ~Object_bridge() {}
@@ -322,7 +322,7 @@ namespace shcore {
     virtual Value call(const std::string &name, const Argument_list &args) = 0;
   };
 
-  class TYPES_COMMON_PUBLIC Function_base
+  class SHCORE_PUBLIC Function_base
   {
   public:
     //! The name of the function
@@ -347,7 +347,7 @@ namespace shcore {
    */
   typedef boost::shared_ptr<Function_base> Function_base_ref;
 
-  class TYPES_COMMON_PUBLIC Exception : public std::exception
+  class SHCORE_PUBLIC Exception : public std::exception
   {
     boost::shared_ptr<Value::Map_type> _error;
 
@@ -371,10 +371,13 @@ namespace shcore {
     bool is_attribute() const;
     bool is_value() const;
     bool is_type() const;
+    bool is_server() const;
 
     virtual const char *what() const BOOST_NOEXCEPT_OR_NOTHROW;
 
     const char *type() const BOOST_NOEXCEPT_OR_NOTHROW;
+
+    int64_t code() const BOOST_NOEXCEPT_OR_NOTHROW;
 
     boost::shared_ptr<Value::Map_type> error() const { return _error; }
   };

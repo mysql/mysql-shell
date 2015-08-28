@@ -43,6 +43,57 @@ CollectionAdd::CollectionAdd(boost::shared_ptr<Collection> owner)
   update_functions("");
 }
 
+#ifdef DOXYGEN
+/**
+* Adds a document into a collection.
+* \param A documents to be added into the collection.
+* \return This CollectionAdd object.
+*
+* To be added, the document must have a property named '_id' with a universal unique identifier (UUID), if this property is missing, it is set with an auto generated UUID.
+*
+* This method can be called many times, every time it is called the received document will be cached into an internal list.
+*
+* The actual addition into the collection will occur only when the execute method is called.
+*
+* Example:
+* \code{.js}
+* // open a connection
+* var mysqlx = require('mysqlx').mysqlx;
+* var mysession = mysqlx.getSession("myuser@localhost", mypwd);
+*
+* // creates a collection and adds a document into it
+* var collection = mysession.sampledb.createCollection('sample');
+* var result = collection.add({ name: 'jhon', last_name: 'doe'}).execute();
+* \endcode
+*/
+CollectionAdd CollectionAdd::add(Document document)
+{}
+
+/**
+* Adds a list of documents into a collection.
+* \param A list of documents to be added into the collection.
+* \return This CollectionAdd object.
+*
+* To be added, each document must have a property named '_id' with a universal unique identifier (UUID), if this property is missing, it is set with an auto generated UUID.
+*
+* This method can be called many times, every time it is called the received documents will be cached into an internal list.
+*
+* The actual addition into the collection will occur only when the execute method is called.
+*
+* Example:
+* \code{.js}
+* // open a connection
+* var mysqlx = require('mysqlx').mysqlx;
+* var mysession = mysqlx.getSession("myuser@localhost", mypwd);
+*
+* // creates a collection and adds documents into it
+* var collection = mysession.sampledb.createCollection('sample');
+* var result = collection.add([{ name: 'john', last_name: 'doe'}, { name: 'jane', last_name: 'doe'}]).execute();
+* \endcode
+*/
+CollectionAdd CollectionAdd::add(List documents)
+{}
+#endif
 shcore::Value CollectionAdd::add(const shcore::Argument_list &args)
 {
   // Each method validates the received parameters
@@ -87,7 +138,7 @@ shcore::Value CollectionAdd::add(const shcore::Argument_list &args)
 
               //TODO: we are assumming that repr returns a valid JSON document
               //      we should introduce a routine that vensures that is correct.
-              ::mysqlx::Document inner_doc(element.repr());
+              ::mysqlx::Document inner_doc(element.json());
 
               if (!_add_statement.get())
                 _add_statement.reset(new ::mysqlx::AddStatement(collection->_collection_impl->add(inner_doc)));
@@ -128,6 +179,18 @@ std::string CollectionAdd::get_new_uuid()
   return str.str();
 }
 
+#ifdef DOXYGEN
+/**
+* Executes the document addition for the documents cached on this object.
+* \return A Resultset object.
+*
+* Calling this function when no documents have been added is forbidden.
+* \sa add(Document document)
+* \sa add(List documents)
+*/
+Resultset CollectionAdd::execute()
+{}
+#endif
 shcore::Value CollectionAdd::execute(const shcore::Argument_list &args)
 {
   args.ensure_count(0, "CollectionAdd::execute");

@@ -50,20 +50,14 @@ namespace shcore {
 
       void connect()
       {
-        std::string uri = _uri;
-        std::cout << uri;
-        if (!_mysql_port.empty())
-        {
-          uri.append(":");
-          uri.append(_mysql_port);
-        }
-
+        //std::string uri = _uri;
+        std::cout << _mysql_uri;
         Argument_list args;
-        args.push_back(Value(uri));
+        args.push_back(Value(_mysql_uri));
         if (!_pwd.empty())
           args.push_back(Value(_pwd));
 
-        boost::shared_ptr<mysh::BaseSession> session(mysh::connect_session(args));
+        boost::shared_ptr<mysh::ShellBaseSession> session(mysh::connect_session(args, mysh::Classic));
 
         _shell_core->set_global("session", Value(boost::static_pointer_cast<Object_bridge>(session)));
       }

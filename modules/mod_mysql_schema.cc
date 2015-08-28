@@ -37,14 +37,14 @@
 using namespace mysh::mysql;
 using namespace shcore;
 
-Schema::Schema(boost::shared_ptr<Session> session, const std::string &schema)
-: DatabaseObject(boost::dynamic_pointer_cast<BaseSession>(session), boost::shared_ptr<DatabaseObject>(), schema)
+Schema::Schema(boost::shared_ptr<ClassicSession> session, const std::string &schema)
+: DatabaseObject(boost::dynamic_pointer_cast<ShellBaseSession>(session), boost::shared_ptr<DatabaseObject>(), schema)
 {
   init();
 }
 
-Schema::Schema(boost::shared_ptr<const Session> session, const std::string &schema) :
-DatabaseObject(boost::const_pointer_cast<Session>(session), boost::shared_ptr<DatabaseObject>(), schema)
+Schema::Schema(boost::shared_ptr<const ClassicSession> session, const std::string &schema) :
+DatabaseObject(boost::const_pointer_cast<ClassicSession>(session), boost::shared_ptr<DatabaseObject>(), schema)
 {
   init();
 }
@@ -67,7 +67,7 @@ Schema::~Schema()
 
 void Schema::cache_table_objects()
 {
-  boost::shared_ptr<Session> sess(boost::dynamic_pointer_cast<Session>(_session.lock()));
+  boost::shared_ptr<ClassicSession> sess(boost::dynamic_pointer_cast<ClassicSession>(_session.lock()));
   if (sess)
   {
     Result *result = sess->connection()->executeSql("show full tables in `" + _name + "`");
@@ -141,6 +141,16 @@ Value Schema::get_member(const std::string &prop) const
   return ret_val;
 }
 
+#ifdef DOXYGEN
+/**
+* Returns the table of the given name for this schema.
+* \sa Table
+* \param name the name of the table to look for.
+* \return the Table object matching the name.
+*/
+Table Schema::getTable(String name)
+{}
+#endif
 shcore::Value Schema::getTable(const shcore::Argument_list &args)
 {
   args.ensure_count(1, (class_name() + "::getTable").c_str());
@@ -155,6 +165,16 @@ shcore::Value Schema::getTable(const shcore::Argument_list &args)
   //return shcore::Value::wrap(new Table(shared_from_this(), name));
 }
 
+#ifdef DOXYGEN
+/**
+* Returns the view of the given name for this schema.
+* \sa View
+* \param name the name of the view to look for.
+* \return the View object matching the name.
+*/
+View Schema::getView(String name)
+{}
+#endif
 shcore::Value Schema::getView(const shcore::Argument_list &args)
 {
   args.ensure_count(1, (class_name() + "::getCollection").c_str());
@@ -181,7 +201,7 @@ shcore::Value Schema::find_in_collection(const std::string& name, boost::shared_
 Value Schema::_load_object(const std::string& name, const std::string& type) const
 {
   Value ret_val;
-  boost::shared_ptr<Session> sess(boost::dynamic_pointer_cast<Session>(_session.lock()));
+  boost::shared_ptr<ClassicSession> sess(boost::dynamic_pointer_cast<ClassicSession>(_session.lock()));
   if (sess)
   {
     Result *result = sess->connection()->executeSql("show full tables in `" + _name + "` like '" + name + "';");

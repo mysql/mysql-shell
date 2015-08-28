@@ -36,6 +36,7 @@ if(WITH_TESTS)
         "${PROJECT_SOURCE_DIR}/unittest/*_t.cc"
         "${PROJECT_SOURCE_DIR}/unittest/test_main.cc"
         "${PROJECT_SOURCE_DIR}/src/boost_code.cc"
+        "${PROJECT_SOURCE_DIR}/src/get_password.cc"
     )
 
     if (HAVE_PROTOBUF)
@@ -56,23 +57,16 @@ if(WITH_TESTS)
     endif()
 
     add_executable(run_unit_tests ${mysqlsh_tests_SRC})
-    add_dependencies(run_unit_tests mysqlshmods)
-    if (HAVE_PROTOBUF)
-      add_dependencies(run_unit_tests mysqlxtest)
-    endif()
+    add_dependencies(run_unit_tests mysqlsh)
+    add_dependencies(run_unit_tests mysqlxtest)
     target_link_libraries(run_unit_tests
             mysqlsh
-            mysqlshmods
+            mysqlxtest
             gtest
+            ${SSL_LIBRARIES}
             ${MYSQL_LIBRARIES}
-            )
-
-    if (HAVE_PROTOBUF)
-      target_link_libraries(run_unit_tests
-              ${PROTOBUF_LIBRARY}
-              mysqlxtest
-              )
-    endif()
+            ${PROTOBUF_LIBRARY}
+    )
 
     if ( HAVE_V8 )
       target_link_libraries(run_unit_tests ${V8_LINK_LIST})
@@ -94,6 +88,18 @@ if(WITH_TESTS)
 
     if ( HAVE_PYTHON )
       target_link_libraries(run_unit_tests ${PYTHON_LIBRARIES})
+
+      if(CMAKE_BUILD_TYPE MATCHES Debug)
+        set(PY_DLL ${PYTHON_LIBRARIES})
+        string(REPLACE ".lib" ".dll" PY_DLL ${PY_DLL})
+        get_filename_component(PY_FILE ${PY_DLL} NAME)
+        get_filename_component(PY_DLL ${PY_DLL} DIRECTORY)
+  
+        # Copies the dll to the binary location to enable debugging
+        add_custom_command(TARGET run_unit_tests PRE_BUILD
+                            COMMAND ${CMAKE_COMMAND} -E copy
+                            "${PY_DLL}/${PY_FILE}" $<TARGET_FILE_DIR:run_unit_tests>/${PY_FILE})
+      endif()
     endif()
 
     if (NOT WIN32)

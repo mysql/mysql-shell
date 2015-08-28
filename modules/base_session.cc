@@ -31,7 +31,9 @@
 #include <boost/format.hpp>
 #include <boost/pointer_cast.hpp>
 
+#ifdef HAVE_LIBMYSQLCLIENT
 #include "mod_mysql_session.h"
+#endif
 #include "mod_mysqlx_session.h"
 
 #define MAX_COLUMN_LENGTH 1024
@@ -45,7 +47,7 @@ bool mysh::parse_mysql_connstring(const std::string &connstring,
                             std::string &host, int &port, std::string &sock,
                             std::string &db, int &pwd_found)
 {
-  // format is [protocol://][user[:pass]]@host[:port][/db] or user[:pass]@::socket[/db], like what cmdline utilities use
+  // format is [user[:pass]]@host[:port][/db] or user[:pass]@::socket[/db], like what cmdline utilities use
   pwd_found = 0;
   std::string remaining = connstring;
 
@@ -144,66 +146,55 @@ std::string mysh::strip_password(const std::string &connstring)
   if ((p = user_part.find(':')) != std::string::npos)
   {
     password = user_part.substr(p + 1);
-    if (!password.empty())
-    {
-      std::string uri_stripped = connstring;
-      std::string::size_type i = uri_stripped.find(":" + password);
-      if (i != std::string::npos)
-        uri_stripped.erase(i, password.length() + 1);
+    std::string uri_stripped = connstring;
+    std::string::size_type i = uri_stripped.find(":" + password);
+    if (i != std::string::npos)
+      uri_stripped.erase(i, password.length() + 1);
 
-      return uri_stripped;
-    }
+    return uri_stripped;
   }
 
   // no password to strip, return original one
   return connstring;
 }
 
-boost::shared_ptr<mysh::BaseSession> mysh::connect_session(const shcore::Argument_list &args)
+boost::shared_ptr<mysh::ShellBaseSession> mysh::connect_session(const shcore::Argument_list &args, SessionType session_type)
 {
-  std::string protocol;
-  std::string user;
-  std::string pass;
-  std::string host;
-  std::string sock;
-  std::string db;
+  boost::shared_ptr<ShellBaseSession> ret_val;
 
-  int pwd_found;
-  int port = 0;
-
-  std::string uri = args.string_at(0);
-
-  boost::shared_ptr<BaseSession> ret_val;
-
-  if (!parse_mysql_connstring(uri, protocol, user, pass, host, port, sock, db, pwd_found))
-    throw shcore::Exception::argument_error("Could not parse URI for MySQL connection");
-
-  if (protocol.empty() || protocol == "mysql")
+  switch (session_type)
   {
-    ret_val.reset(new mysql::Session());
+    case Application:
+      ret_val.reset(new mysh::mysqlx::Session());
+      break;
+    case Node:
+      ret_val.reset(new mysh::mysqlx::NodeSession());
+      break;
+#ifdef HAVE_LIBMYSQLCLIENT
+    case Classic:
+      ret_val.reset(new mysql::ClassicSession());
+      break;
+#endif
+    default:
+      throw shcore::Exception::argument_error("Invalid session type specified for MySQL connection.");
+      break;
   }
-  else if (protocol == "mysqlx")
-  {
-    ret_val.reset(new mysh::mysqlx::NodeSession());
-  }
-  else
-    throw shcore::Exception::argument_error("Invalid protocol specified for MySQL connection.");
 
   ret_val->connect(args);
 
   return ret_val;
 }
 
-BaseSession::BaseSession()
+ShellBaseSession::ShellBaseSession()
 {
-  add_method("getDefaultSchema", boost::bind(&BaseSession::get_member_method, this, _1, "getDefaultSchema", "defaultSchema"), NULL);
-  add_method("getSchema", boost::bind(&BaseSession::get_schema, this, _1), "name", shcore::String, NULL);
-  add_method("getSchemas", boost::bind(&BaseSession::get_member_method, this, _1, "getSchemas", "schemas"), NULL);
-  add_method("getUri", boost::bind(&BaseSession::get_member_method, this, _1, "getUri", "uri"), NULL);
-  add_method("setDefaultSchema", boost::bind(&BaseSession::set_default_schema, this, _1), "name", shcore::String, NULL);
+  add_method("getDefaultSchema", boost::bind(&ShellBaseSession::get_member_method, this, _1, "getDefaultSchema", "defaultSchema"), NULL);
+  add_method("getSchema", boost::bind(&ShellBaseSession::get_schema, this, _1), "name", shcore::String, NULL);
+  add_method("getSchemas", boost::bind(&ShellBaseSession::get_member_method, this, _1, "getSchemas", "schemas"), NULL);
+  add_method("getUri", boost::bind(&ShellBaseSession::get_member_method, this, _1, "getUri", "uri"), NULL);
+  add_method("setDefaultSchema", boost::bind(&ShellBaseSession::set_default_schema, this, _1), "name", shcore::String, NULL);
 }
 
-std::string &BaseSession::append_descr(std::string &s_out, int UNUSED(indent), int UNUSED(quote_strings)) const
+std::string &ShellBaseSession::append_descr(std::string &s_out, int UNUSED(indent), int UNUSED(quote_strings)) const
 {
   if (!is_connected())
     s_out.append("<" + class_name() + ":disconnected>");
@@ -212,12 +203,12 @@ std::string &BaseSession::append_descr(std::string &s_out, int UNUSED(indent), i
   return s_out;
 }
 
-std::string &BaseSession::append_repr(std::string &s_out) const
+std::string &ShellBaseSession::append_repr(std::string &s_out) const
 {
   return append_descr(s_out, false);
 }
 
-void BaseSession::append_json(const shcore::JSON_dumper& dumper) const
+void ShellBaseSession::append_json(const shcore::JSON_dumper& dumper) const
 {
   dumper.start_object();
 
@@ -230,7 +221,7 @@ void BaseSession::append_json(const shcore::JSON_dumper& dumper) const
   dumper.end_object();
 }
 
-std::vector<std::string> BaseSession::get_members() const
+std::vector<std::string> ShellBaseSession::get_members() const
 {
   std::vector<std::string> members(Cpp_object_bridge::get_members());
   members.push_back("defaultSchema");
@@ -239,7 +230,7 @@ std::vector<std::string> BaseSession::get_members() const
   return members;
 }
 
-shcore::Value BaseSession::get_member_method(const shcore::Argument_list &args, const std::string& method, const std::string& prop)
+shcore::Value ShellBaseSession::get_member_method(const shcore::Argument_list &args, const std::string& method, const std::string& prop)
 {
   std::string function = class_name() + "::" + method;
   args.ensure_count(0, function.c_str());
@@ -247,7 +238,7 @@ shcore::Value BaseSession::get_member_method(const shcore::Argument_list &args, 
   return get_member(prop);
 }
 
-bool BaseSession::operator == (const Object_bridge &other) const
+bool ShellBaseSession::operator == (const Object_bridge &other) const
 {
   return class_name() == other.class_name() && this == &other;
 }

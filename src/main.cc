@@ -76,15 +76,18 @@ public:
   void init_scripts(Shell_core::Mode mode);
 
   void cmd_process_file(const std::vector<std::string>& params);
-  bool connect(const std::string &uri, bool needs_password, bool interactive);
+  bool connect(const std::string &uri, bool interactive, mysh::SessionType session_type);
 
   void print(const std::string &str);
   void println(const std::string &str);
   void print_error(const std::string &error);
+  void print_json_info(const std::string &info, const std::string& label = "info");
 
   void cmd_print_shell_help(const std::vector<std::string>& args);
   void cmd_start_multiline(const std::vector<std::string>& args);
   void cmd_connect(const std::vector<std::string>& args);
+  void cmd_connect_node(const std::vector<std::string>& args);
+  void cmd_connect_classic(const std::vector<std::string>& args);
   void cmd_quit(const std::vector<std::string>& args);
   void cmd_warnings(const std::vector<std::string>& args);
   void cmd_nowarnings(const std::vector<std::string>& args);
@@ -109,7 +112,7 @@ private:
   void switch_shell_mode(Shell_core::Mode mode, const std::vector<std::string> &args);
 
 private:
-  shcore::Value connect_session(const shcore::Argument_list &args);
+  shcore::Value connect_session(const shcore::Argument_list &args, mysh::SessionType session_type);
 
 private:
   static void deleg_print(void *self, const char *text);
@@ -122,7 +125,7 @@ private:
 private:
   Interpreter_delegate _delegate;
 
-  boost::shared_ptr<mysh::BaseSession> _session;
+  boost::shared_ptr<mysh::ShellBaseSession> _session;
   //boost::shared_ptr<mysh::mysqlx::Schema> _db;
   boost::shared_ptr<Shell_core> _shell;
 
@@ -170,15 +173,11 @@ _batch_continue_on_error(false), _show_warnings(false)
 
   std::string cmd_help =
     "SYNTAX:\n"
-    "   \\connect <URI>\n\n"
+    "   \\connect%1% <URI>\n\n"
     "WHERE:\n"
-    "   URI is in the format of: [PROTOCOL://][user[:password]@]hostname[:port]\n"
-    "   PROTOCOL can be:\n"
-    "     mysql   for traditional MySQL connections.\n"
-    "     mysqlx  for SQL and NoSQL access in MySQL X compliant servers (MySQL 5.7+).\n\n"
+    "   URI is in the format of: [user[:password]@]hostname[:port]\n"
     "EXAMPLE:\n"
-    "   \\connect mysqlx://root@localhost:3306\n\n"
-    "NOTE: The mysql protocol will be used as default if mysqlx is not specified.";
+    "   \\connect%1% root@localhost\n";
 
   std::string cmd_help_source =
     "SYNTAX:\n"
@@ -197,9 +196,11 @@ _batch_continue_on_error(false), _show_warnings(false)
   SET_SHELL_COMMAND("\\source|\\.", "Execute a script file. Takes a file name as an argument.", cmd_help_source, Interactive_shell::cmd_process_file);
   SET_SHELL_COMMAND("\\", "Start multiline input. Finish and execute with an empty line.", "", Interactive_shell::cmd_start_multiline);
   SET_SHELL_COMMAND("\\quit|\\q|\\exit", "Quit mysh.", "", Interactive_shell::cmd_quit);
-  SET_SHELL_COMMAND("\\connect", "Connect to server.", cmd_help, Interactive_shell::cmd_connect);
-  SET_SHELL_COMMAND("\\warnings|\\W", "Show warnings after every statement..", cmd_help, Interactive_shell::cmd_warnings);
-  SET_SHELL_COMMAND("\\nowarnings|\\w", "Don't show warnings after every statement..", cmd_help, Interactive_shell::cmd_nowarnings);
+  SET_SHELL_COMMAND("\\connect", "Connect to server using an application mode session.", (boost::format(cmd_help) % "").str(), Interactive_shell::cmd_connect);
+  SET_SHELL_COMMAND("\\connect_node", "Connect to server using a node session.", (boost::format(cmd_help) % "_node").str(), Interactive_shell::cmd_connect_node);
+  SET_SHELL_COMMAND("\\connect_classic", "Connect to server using the MySQL protocol.", (boost::format(cmd_help) % "_classic").str(), Interactive_shell::cmd_connect_classic);
+  SET_SHELL_COMMAND("\\warnings|\\W", "Show warnings after every statement..", "", Interactive_shell::cmd_warnings);
+  SET_SHELL_COMMAND("\\nowarnings|\\w", "Don't show warnings after every statement..", "", Interactive_shell::cmd_nowarnings);
 
   bool lang_initialized;
   _shell->switch_mode(initial_mode, lang_initialized);
@@ -215,37 +216,8 @@ void Interactive_shell::cmd_process_file(const std::vector<std::string>& params)
   Interactive_shell::process_file(filename.c_str());
 }
 
-bool Interactive_shell::connect(const std::string &uri, bool needs_password, bool interactive)
+bool Interactive_shell::connect(const std::string &uri, bool interactive, mysh::SessionType session_type)
 {
-  Argument_list args;
-
-  std::string protocol;
-  std::string user;
-  std::string pass;
-  std::string host;
-  int port = 3306;
-  std::string sock;
-  std::string db;
-  int pwd_found;
-
-  if (!mysh::parse_mysql_connstring(uri, protocol, user, pass, host, port, sock, db, pwd_found))
-    throw shcore::Exception::argument_error("Could not parse URI for MySQL connection");
-  else
-  {
-    if (!pwd_found && needs_password) {
-      char *tmp = mysh_get_tty_password("Enter password: ");
-      if (tmp)
-      {
-        pass.append(tmp);
-        free(tmp);
-        args.push_back(Value(uri));
-        args.push_back(Value(pass));
-      }
-    }
-    else
-      args.push_back(Value(uri));
-  }
-
   try
   {
     if (_session && _session->is_connected())
@@ -259,11 +231,33 @@ bool Interactive_shell::connect(const std::string &uri, bool needs_password, boo
     // strip password from uri
     if (interactive)
     {
+      std::string stype;
+
+      switch (session_type)
+      {
+        case mysh::Application:
+          stype = "Application";
+          break;
+        case mysh::Node:
+          stype = "Node";
+          break;
+        case mysh::Classic:
+          stype = "Classic";
+          break;
+      }
+
       std::string uri_stripped = mysh::strip_password(uri);
-      shcore::print("Connecting to " + uri_stripped + "...\n");
+
+      std::string message = "Creating " + stype + " Session to " + uri_stripped + "...";
+      if (_output_format.find("json") == 0)
+        print_json_info(message);
+      else
+        shcore::print(message + "\n");
     }
 
-    connect_session(args);
+    Argument_list args;
+    args.push_back(Value(uri));
+    connect_session(args, session_type);
   }
   catch (std::exception &exc)
   {
@@ -274,29 +268,64 @@ bool Interactive_shell::connect(const std::string &uri, bool needs_password, boo
   return true;
 }
 
-Value Interactive_shell::connect_session(const Argument_list &args)
+Value Interactive_shell::connect_session(const Argument_list &args, mysh::SessionType session_type)
 {
-  // TODO: Review if this replacement is correct
-  boost::shared_ptr<mysh::BaseSession> new_session(mysh::connect_session(args));
+  std::string protocol;
+  std::string user;
+  std::string pass;
+  std::string host;
+  int port = 3306;
+  std::string sock;
+  std::string db;
+  int pwd_found;
+
+  Argument_list connect_args(args);
+
+  // Handles the case where the password needs to be prompted
+  if (!mysh::parse_mysql_connstring(args[0].as_string(), protocol, user, pass, host, port, sock, db, pwd_found))
+    throw shcore::Exception::argument_error("Could not parse URI for MySQL connection");
+  else
+  {
+    // This implies the URI is defined as user:@
+    // So the : indicating there should be a password is there but the actual password is empty
+    // It means we need to prompt fopr the password
+    if (pwd_found && pass.empty())
+    {
+      char *tmp = mysh_get_tty_password("Enter password: ");
+      if (tmp)
+      {
+        pass.assign(tmp);
+        free(tmp);
+        connect_args.push_back(Value(pass));
+      }
+    }
+  }
+
+  // Performs the connection
+  boost::shared_ptr<mysh::ShellBaseSession> new_session(mysh::connect_session(connect_args, session_type));
+
   _session.reset(new_session, new_session.get());
 
   _shell->set_global("session", Value(boost::static_pointer_cast<Object_bridge>(_session)));
 
+  // The default schemas is retrieved it will return null if none is set
   Value default_schema = _session->get_member("defaultSchema");
-  if (default_schema)
+
+  // Whatever default schema is returned is ok to be set on db
+  _shell->set_global("db", default_schema);
+
+  if (_interactive)
   {
-    // TODO: Uncomment this...
-    //if (_shell->interactive_mode() != Shell_core::Mode_SQL)
-    //  _shell->print("Default schema `" + db->schema() + "` accessible through db.\n");
-    _shell->set_global("db", default_schema);
-  }
-  else
-  {
-    // XXX assign a dummy placeholder to db
-    if (_shell->is_interactive() && _shell->interactive_mode() != Shell_core::Mode_SQL)
-    {
-      _shell->print("No default schema selected.\n");
-    }
+    std::string message;
+    if (default_schema)
+      message = "Default schema `" + db + "` accessible through db.";
+    else
+      message = "No default schema selected.";
+
+    if (_output_format.find("json") == 0)
+      print_json_info(message);
+    else
+      shcore::print(message + "\n");
   }
 
   return Value::Null();
@@ -304,11 +333,6 @@ Value Interactive_shell::connect_session(const Argument_list &args)
 
 void Interactive_shell::init_environment()
 {
-  _shell->set_global("connect",
-    Value(Cpp_function::create("connect",
-    boost::bind(&Interactive_shell::connect_session, this, _1),
-    "connection_string", String,
-    NULL)));
 }
 
 // load scripts for standard locations in order to be able to implement standard routines
@@ -473,6 +497,17 @@ void Interactive_shell::print_error(const std::string &error)
   std::cerr << message << "\n";
 }
 
+void Interactive_shell::print_json_info(const std::string &info, const std::string& label)
+{
+  shcore::JSON_dumper dumper(_output_format == "jsonpretty");
+  dumper.start_object();
+  dumper.append_string(label);
+  dumper.append_string(info);
+  dumper.end_object();
+
+  shcore::print(dumper.str() + "\n");
+}
+
 void Interactive_shell::cmd_print_shell_help(const std::vector<std::string>& args)
 {
   bool printed = false;
@@ -512,10 +547,30 @@ void Interactive_shell::cmd_connect(const std::vector<std::string>& args)
 {
   if (args.size() == 1)
   {
-    connect(args[0], true, true);
+    connect(args[0], true, mysh::Application);
   }
   else
     print_error("\\connect <uri>");
+}
+
+void Interactive_shell::cmd_connect_node(const std::vector<std::string>& args)
+{
+  if (args.size() == 1)
+  {
+    connect(args[0], true, mysh::Node);
+  }
+  else
+    print_error("\\connect_node <uri>");
+}
+
+void Interactive_shell::cmd_connect_classic(const std::vector<std::string>& args)
+{
+  if (args.size() == 1)
+  {
+    connect(args[0], true, mysh::Classic);
+  }
+  else
+    print_error("\\connect_classic <uri>");
 }
 
 void Interactive_shell::cmd_quit(const std::vector<std::string>& UNUSED(args))
@@ -790,23 +845,32 @@ void Interactive_shell::command_loop()
 {
   if (_interactive) // check if interactive
   {
+    std::string message;
     switch (_shell->interactive_mode())
     {
       case Shell_core::Mode_SQL:
 #ifdef HAVE_V8
-        _shell->print("Currently in SQL mode. Use \\js or \\py to switch the shell to a scripting language.\n");
+        message = "Currently in SQL mode. Use \\js or \\py to switch the shell to a scripting language.";
 #else
-        _shell->print("Currently in SQL mode. Use \\py to switch the shell to python scripting.\n");
+        message = "Currently in SQL mode. Use \\py to switch the shell to python scripting.";
 #endif
         break;
       case Shell_core::Mode_JScript:
-        _shell->print("Currently in JavaScript mode. Use \\sql to switch to SQL mode and execute queries.\n");
+        message = "Currently in JavaScript mode. Use \\sql to switch to SQL mode and execute queries.";
         break;
       case Shell_core::Mode_Python:
-        _shell->print("Currently in Python mode. Use \\sql to switch to SQL mode and execute queries.\n");
+        message = "Currently in Python mode. Use \\sql to switch to SQL mode and execute queries.";
         break;
       default:
         break;
+    }
+
+    if (!message.empty())
+    {
+      if (_output_format.find("json") == 0)
+        print_json_info(message);
+      else
+        shcore::print(message + "\n");
     }
   }
 
@@ -824,7 +888,9 @@ void Interactive_shell::command_loop()
 
 void Interactive_shell::print_banner()
 {
-  println("Welcome to MySQLx Shell 0.0.1");
+  std::string welcome_msg("Welcome to MySQLx Shell ");
+  welcome_msg += MYSH_VERSION;
+  println(welcome_msg);
   println("");
   println("Copyright (c) 2014, 2015, Oracle and/or its affiliates. All rights reserved.");
   println("");
@@ -850,13 +916,18 @@ void Interactive_shell::print_cmd_line_helper()
   println("  --help                 Display this help and exit.");
   println("  -f, --file=file        Process file.");
   println("  --uri                  Connect to Uniform Resource Identifier.");
-  println("                         Format: [protocol://][user[:pass]]@host[:port][/db]");
+  println("                         Format: [user[:pass]]@host[:port][/db]");
   println("                         or user[:pass]@::socket[/db] .");
   println("  -h, --host=name        Connect to host.");
   println("  -P, --port=#           Port number to use for connection.");
-  println("  -u, --user=name        User for the connection to the server.");
-  println("  -p, --password[=name]  Password to use when connecting to server");
-  println("                         If password is not given it's asked from the tty.");
+  println("  -u, --dbuser=name      User for the connection to the server.");
+  println("  --user=name            An alias for dbuser.");
+  println("  --dbpassword=name      Password to use when connecting to server");
+  println("  --password=name        An alias for dbpassword.");
+  println("  -p                     Request password prompt to set the password");
+  println("  -D --schema=name       Schema to use.");
+  println("  --database=name        An alias for schema.");
+  println("  --session-type=name    Type of session to be created. Either app, node or classic.");
   println("  --sql                  Start in SQL mode.");
   println("  --js                   Start in JavaScript mode.");
   println("  --py                   Start in Python mode.");
@@ -867,6 +938,7 @@ void Interactive_shell::print_cmd_line_helper()
   println("                         Each line on the batch is processed as if it were in interactive mode.");
   println("  --force                To use in SQL batch mode, forces processing to continue if an error is found.");
   println("  --log-level=value      The log level. Value is an int in the range [1,8], default (1).");
+  println("  --version              Prints the version of MySQL X Shell.");
 
   println("");
 }
@@ -880,24 +952,135 @@ public:
   std::string uri;
   std::string password;
   std::string output_format;
+  mysh::SessionType session_type;
   bool print_cmd_line_helper;
+  bool print_version;
   bool force;
   bool interactive;
   ngcommon::Logger::LOG_LEVEL log_level;
 
-  Shell_command_line_options(int argc, char **argv)
-    : Command_line_options(argc, argv), log_level(ngcommon::Logger::LOG_ERROR)
+  // Takes the URI and the individual connection parameters and overrides
+  // On the URI as specified on the parameters
+  void configure_connection_string(const std::string &connstring,
+                              std::string &user, std::string &password,
+                              std::string &host, int &port,
+                              std::string &database, bool prompt_pwd)
   {
+    std::string uri_protocol;
+    std::string uri_user;
+    std::string uri_password;
+    std::string uri_host;
+    int uri_port = 0;
+    std::string uri_sock;
+    std::string uri_database;
+    int pwd_found;
+
+    bool conn_params_defined = false;
+
+    // First validates the URI if specified
+    if (!connstring.empty())
+    {
+      if (!mysh::parse_mysql_connstring(connstring, uri_protocol, uri_user, uri_password, uri_host, uri_port, uri_sock, uri_database, pwd_found))
+      {
+        std::cerr << "Invalid value specified in --uri parameter.\n";
+        exit_code = 1;
+        return;
+      }
+    }
+
+    // URI was either empty or valid, in any case we need to override whatever was configured on the uri_* variables
+    // With what was received on the individual parameters.
+    if (!user.empty() || !password.empty() || !host.empty() || !database.empty() || port)
+    {
+      // This implies URI recreation process should be done to either
+      // - Create an URI if none was specified.
+      // - Update the URI with the parameters overriding it's values.
+      conn_params_defined = true;
+
+      if (!user.empty())
+        uri_user = user;
+
+      if (!password.empty())
+        uri_password = password;
+
+      if (!host.empty())
+        uri_host = host;
+
+      if (!database.empty())
+        uri_database = database;
+
+      if (port)
+        uri_port = port;
+    }
+
+    // If needed we construct the URi from the individual parameters
+    if (conn_params_defined)
+    {
+      // Configures the URI string
+      if (!uri_protocol.empty())
+      {
+        uri.append(uri_protocol);
+        uri.append("://");
+      }
+
+      // Sets the user and password
+      if (!uri_user.empty())
+      {
+        uri.append(uri_user);
+
+        // If password needs to be prompted appends the : but not the password
+        if (prompt_pwd)
+          uri.append(":");
+
+        // If the password will not be prompted and is defined appends both :password
+        else if (!uri_password.empty())
+        {
+          uri.append(":").append(uri_password);
+        }
+
+        uri.append("@");
+      }
+
+      // Sets the host
+      if (!uri_host.empty())
+        uri.append(uri_host);
+
+      // Sets the port
+      if (!uri_host.empty() && port > 0)
+        uri.append((boost::format(":%i") % port).str());
+
+      // Sets the database
+      if (!uri_database.empty())
+      {
+        uri.append("/");
+        uri.append(uri_database);
+      }
+    }
+
+    // Or we take the URI as defined since no overrides were done
+    else
+      uri = connstring;
+  }
+
+  Shell_command_line_options(int argc, char **argv)
+  : Command_line_options(argc, argv), log_level(ngcommon::Logger::LOG_ERROR)
+  {
+    std::string connection_string;
     std::string host;
     std::string user;
+    std::string protocol;
+    std::string database;
     int port = 0;
-    bool needs_password_;
     char* log_level_value;
+    bool needs_password = false;
 
-    needs_password_ = false;
     print_cmd_line_helper = false;
+    print_version = false;
 
-    initial_mode = Shell_core::Mode_SQL;
+    session_type = mysh::Application;
+
+    char default_json[4] = "raw";
+    initial_mode = Shell_core::Mode_JScript;
     force = false;
     interactive = false;
 
@@ -907,22 +1090,47 @@ public:
       if (check_arg_with_value(argv, i, "--file", "-f", value))
         run_file = value;
       else if (check_arg_with_value(argv, i, "--uri", NULL, value))
-        uri = value;
+        connection_string = value;
       else if (check_arg_with_value(argv, i, "--host", "-h", value))
         host = value;
-      else if (check_arg_with_value(argv, i, "--user", "-u", value))
+      else if (check_arg_with_value(argv, i, "--dbuser", "-u", value))
+        user = value;
+      else if (check_arg_with_value(argv, i, "--user", NULL, value))
         user = value;
       else if (check_arg_with_value(argv, i, "--port", "-P", value))
         port = atoi(value);
+      else if (check_arg_with_value(argv, i, "--schema", "-D", value))
+        database = value;
+      else if (check_arg_with_value(argv, i, "--database", NULL, value))
+        database = value;
       else if (check_arg(argv, i, "-p", "-p"))
-        needs_password_ = true;
-      else if (check_arg_with_value(argv, i, "--password", "-p", value))
+        needs_password = true;
+      else if (check_arg_with_value(argv, i, "--dbpassword", NULL, value))
         password = value;
+      else if (check_arg_with_value(argv, i, "--password", NULL, value))
+        password = value;
+      else if (check_arg_with_value(argv, i, "--session-type", NULL, value))
+      {
+        if (strcmp(value, "classic") == 0)
+          session_type = mysh::Classic;
+        else if (strcmp(value, "node") == 0)
+          session_type = mysh::Node;
+        else if (strcmp(value, "app") == 0)
+          session_type = mysh::Application;
+        else
+        {
+          std::cerr << "Value for --session-type must be either app, node or classic.\n";
+          exit_code = 1;
+          break;
+        }
+      }
       else if (check_arg(argv, i, "--sql", "--sql"))
         initial_mode = Shell_core::Mode_SQL;
       else if (check_arg(argv, i, "--js", "--js"))
         initial_mode = Shell_core::Mode_JScript;
-      else if (check_arg_with_value(argv, i, "--json", NULL, value, "raw"))
+      else if (check_arg(argv, i, "--py", "--py"))
+        initial_mode = Shell_core::Mode_Python;
+      else if (check_arg_with_value(argv, i, "--json", NULL, value, default_json))
       {
         if (strcmp(value, "raw") != 0 && strcmp(value, "pretty") != 0)
         {
@@ -936,11 +1144,14 @@ public:
       }
       else if (check_arg(argv, i, "--table", "--table"))
         output_format = "table";
-      else if (check_arg(argv, i, "--py", "--py"))
-        initial_mode = Shell_core::Mode_Python;
       else if (check_arg(argv, i, "--help", "--help"))
       {
         print_cmd_line_helper = true;
+        exit_code = 0;
+      }
+      else if (check_arg(argv, i, "--version", "--version"))
+      {
+        print_version = true;
         exit_code = 0;
       }
       else if (check_arg(argv, i, "--force", "--force"))
@@ -970,29 +1181,8 @@ public:
       }
     }
 
-    if (needs_password_)
-    {
-      char *tmp = mysh_get_tty_password("Enter password: ");
-      if (tmp)
-      {
-        password = tmp;
-        free(tmp);
-      }
-    }
-
-    if (uri.empty())
-    {
-      uri = user;
-      if (!uri.empty()) {
-        if (!password.empty()) {
-          uri.append(":").append(password);
-        }
-        uri.append("@");
-      }
-      uri.append(host);
-      if (port > 0)
-        uri.append((boost::format(":%i") % port).str());
-    }
+    // Configures the URI using all hte associated parameters
+    configure_connection_string(connection_string, user, password, host, port, database, needs_password);
   }
 };
 
@@ -1021,7 +1211,14 @@ int main(int argc, char **argv)
     shell.set_force(options.force);
     shell.set_output_format(options.output_format);
 
-    if (options.print_cmd_line_helper)
+    if (options.print_version)
+    {
+      std::string version_msg("MySQL X Shell Version ");
+      version_msg += MYSH_VERSION;
+      shell.print(version_msg);
+      return options.exit_code;
+    }
+    else if (options.print_cmd_line_helper)
     {
       shell.print_cmd_line_helper();
       return options.exit_code;
@@ -1082,7 +1279,7 @@ int main(int argc, char **argv)
     {
       try
       {
-        if (!shell.connect(options.uri, options.needs_password, is_interactive))
+        if (!shell.connect(options.uri, is_interactive, options.session_type))
           return 1;
       }
       catch (std::exception &e)

@@ -47,7 +47,7 @@ namespace shcore {
 
     std::string uri = mysh::strip_password(_mysql_uri);
 
-    exec_and_out_equals("var session = mysql.getSession('" + _mysql_uri + "');");
+    exec_and_out_equals("var session = mysql.getClassicSession('" + _mysql_uri + "');");
 
     exec_and_out_equals("print(session.getUri());", uri);
 
@@ -61,7 +61,7 @@ namespace shcore {
 
     std::string uri = mysh::strip_password(_mysql_uri);
 
-    exec_and_out_equals("var session = mysql.getSession('" + _mysql_uri + "');");
+    exec_and_out_equals("var session = mysql.getClassicSession('" + _mysql_uri + "');");
 
     exec_and_out_equals("print(session.uri);", uri);
 
@@ -75,7 +75,7 @@ namespace shcore {
       SCOPED_TRACE("retrieving the default schema for first time");
       exec_and_out_equals("var mysql = require('mysql').mysql;");
 
-      exec_and_out_equals("var session = mysql.getSession('" + _mysql_uri + "');");
+      exec_and_out_equals("var session = mysql.getClassicSession('" + _mysql_uri + "');");
 
       // Attempts to get the default schema
       exec_and_out_equals("var schema = session.getDefaultSchema();");
@@ -111,7 +111,7 @@ namespace shcore {
       SCOPED_TRACE("retrieving the default schema for first time");
       exec_and_out_equals("var mysql = require('mysql').mysql;");
 
-      exec_and_out_equals("var session = mysql.getSession('" + _mysql_uri + "');");
+      exec_and_out_equals("var session = mysql.getClassicSession('" + _mysql_uri + "');");
 
       // Attempts to get the default schema
       exec_and_out_equals("print(session.defaultSchema);", "null");
@@ -141,7 +141,7 @@ namespace shcore {
   {
     exec_and_out_equals("var mysql = require('mysql').mysql;");
 
-    exec_and_out_equals("var session = mysql.getSession('" + _mysql_uri + "');");
+    exec_and_out_equals("var session = mysql.getClassicSession('" + _mysql_uri + "');");
 
     // Triggers the schema load
     exec_and_out_equals("var schemas = session.getSchemas();");
@@ -159,7 +159,7 @@ namespace shcore {
   {
     exec_and_out_equals("var mysql = require('mysql').mysql;");
 
-    exec_and_out_equals("var session = mysql.getSession('" + _mysql_uri + "');");
+    exec_and_out_equals("var session = mysql.getClassicSession('" + _mysql_uri + "');");
 
     // Ensures the schemas have not been loaded
     exec_and_out_equals("print(session.schemas.mysql);", "<Schema:mysql>");
@@ -173,7 +173,7 @@ namespace shcore {
   {
     exec_and_out_equals("var mysql = require('mysql').mysql;");
 
-    exec_and_out_equals("var session = mysql.getSession('" + _mysql_uri + "');");
+    exec_and_out_equals("var session = mysql.getClassicSession('" + _mysql_uri + "');");
 
     // Checks schema retrieval
     exec_and_out_equals("var schema = session.getSchema('mysql');");
@@ -193,7 +193,7 @@ namespace shcore {
   {
     exec_and_out_equals("var mysql = require('mysql').mysql;");
 
-    exec_and_out_equals("var session = mysql.getSession('" + _mysql_uri + "');");
+    exec_and_out_equals("var session = mysql.getClassicSession('" + _mysql_uri + "');");
 
     // Now direct and indirect access
     exec_and_out_equals("print(session.mysql);", "<Schema:mysql>");

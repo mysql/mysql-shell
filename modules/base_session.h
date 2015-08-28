@@ -30,18 +30,26 @@
 
 namespace mysh
 {
-  bool MOD_PUBLIC parse_mysql_connstring(const std::string &connstring,
+  bool SHCORE_PUBLIC parse_mysql_connstring(const std::string &connstring,
                               std::string &protocol, std::string &user, std::string &password,
                               std::string &host, int &port, std::string &sock,
                               std::string &db, int &pwd_found);
 
-  std::string MOD_PUBLIC strip_password(const std::string &connstring);
+  std::string SHCORE_PUBLIC strip_password(const std::string &connstring);
 
-  class MOD_PUBLIC BaseSession : public shcore::Cpp_object_bridge
+  // The session types that can be produced by connect_session
+  enum SessionType
+  {
+    Application,
+    Node,
+    Classic
+  };
+
+  class SHCORE_PUBLIC ShellBaseSession : public shcore::Cpp_object_bridge
   {
   public:
-    BaseSession();
-    virtual ~BaseSession() {};
+    ShellBaseSession();
+    virtual ~ShellBaseSession() {};
 
     // Virtual methods from object bridge
     virtual std::string &append_descr(std::string &s_out, int indent = -1, int quote_strings = 0) const;
@@ -55,7 +63,7 @@ namespace mysh
     // Virtual methods from ISession
     virtual shcore::Value connect(const shcore::Argument_list &args) = 0;
     virtual shcore::Value close(const shcore::Argument_list &args) = 0;
-    virtual shcore::Value executeSql(const shcore::Argument_list &args) = 0;
+    virtual shcore::Value sql(const shcore::Argument_list &args) = 0;
     virtual bool is_connected() const = 0;
     virtual std::string uri() const = 0;
 
@@ -66,7 +74,7 @@ namespace mysh
     shcore::Value get_member_method(const shcore::Argument_list &args, const std::string& method, const std::string& prop);
   };
 
-  boost::shared_ptr<mysh::BaseSession> MOD_PUBLIC connect_session(const shcore::Argument_list &args);
+  boost::shared_ptr<mysh::ShellBaseSession> SHCORE_PUBLIC connect_session(const shcore::Argument_list &args, SessionType session_type);
 };
 
 #endif

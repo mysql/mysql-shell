@@ -30,6 +30,17 @@ namespace mysh
   namespace mysqlx
   {
     class Collection;
+
+    /**
+    * Handler for document addition on a Collection.
+    * \todo Update execute to support options and document it
+    *
+    * This object provides the necessary functions to allow adding documents into a collection.
+    *
+    * This object should only be created by calling any of the add functions on the collection object where the documents will be added.
+    *
+    * \sa Collection
+    */
     class CollectionAdd : public Collection_crud_definition, public boost::enable_shared_from_this<CollectionAdd>
     {
     public:
@@ -39,6 +50,12 @@ namespace mysh
 
       shcore::Value add(const shcore::Argument_list &args);
       virtual shcore::Value execute(const shcore::Argument_list &args);
+
+#ifdef DOXYGEN
+      CollectionAdd add(Document document);
+      CollectionAdd add(List documents);
+      Resultset execute();
+#endif
 
     private:
       std::string get_new_uuid();

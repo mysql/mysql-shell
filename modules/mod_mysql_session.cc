@@ -50,29 +50,74 @@
 using namespace mysh::mysql;
 using namespace shcore;
 
-REGISTER_OBJECT(mysql, Session);
+REGISTER_OBJECT(mysql, ClassicSession);
 
-Session::Session()
+#ifdef DOXYGEN
+/**
+* Creates a ClassicSession instance using the provided connection data.
+* \param connectionData the connection string used to connect to the database.
+* \param password if provided, will override the password in the connection string.
+* \return An ClassicSession instance.
+*
+* A ClassicSession object uses the traditional MySQL Protocol to allow executing operations on the connected MySQL Server.
+*
+* The format of the connection string can be as follows for connections using the TCP protocol:
+*
+* [user[:pass]\@]host[:port][/db]
+*
+* or as follows for connections using a socket or named pipe:
+*
+* [user[:pass\@] ::socket[/db]
+*
+* \sa ClassicSession
+*/
+ClassicSession getClassicSession(String connectionData, String password)
+{
+  ClassicSession a;
+  return a;
+}
+
+/**
+* This function works the same as the function above, except that the connection data comes enclosed on a dictionary object.
+* \param connectionData a map with the connection data as key value pairs, the following keys are recognized:
+*  - host, the host to use for the connection (can be an IP or DNS name)
+*  - port, the TCP port where the server is listening (default value is 3306).
+*  - schema, the current database for the connection's session.
+*  - dbUser, the user to authenticate against.
+*  - dbPassword, the password of the user user to authenticate against.
+* \param password if provided, will override the password in the connection string.
+* \return An ClassicSession instance.
+*
+* \sa ClassicSession
+*/
+ClassicSession getClassicSession(Map connectionData, String password)
+{
+  ClassicSession a;
+  return a;
+}
+#endif
+
+ClassicSession::ClassicSession()
 : _show_warnings(false)
 {
-  //_schema_proxy.reset(new Proxy_object(boost::bind(&Session::get_db, this, _1)));
+  //_schema_proxy.reset(new Proxy_object(boost::bind(&ClassicSession::get_db, this, _1)));
 
-  add_method("close", boost::bind(&Session::close, this, _1), "data");
-  add_method("executeSql", boost::bind(&Session::executeSql, this, _1),
+  add_method("close", boost::bind(&ClassicSession::close, this, _1), "data");
+  add_method("sql", boost::bind(&ClassicSession::sql, this, _1),
     "stmt", shcore::String,
     NULL);
 
   _schemas.reset(new shcore::Value::Map_type);
 }
 
-Connection *Session::connection()
+Connection *ClassicSession::connection()
 {
   return _conn.get();
 }
 
-Value Session::connect(const Argument_list &args)
+Value ClassicSession::connect(const Argument_list &args)
 {
-  args.ensure_count(1, 2, "Session::connect");
+  args.ensure_count(1, 2, "ClassicSession::connect");
 
   std::string protocol;
   std::string user;
@@ -133,18 +178,34 @@ Value Session::connect(const Argument_list &args)
   return Value::Null();
 }
 
-Value Session::close(const Argument_list &args)
+#ifdef DOXYGEN
+/**
+* Closes the internal connection to the MySQL Server held on ths session object.
+*/
+Undefined ClassicSession::close()
+{}
+#endif
+Value ClassicSession::close(const Argument_list &args)
 {
-  args.ensure_count(0, "Session::close");
+  args.ensure_count(0, "ClassicSession::close");
 
   _conn.reset();
 
   return shcore::Value();
 }
 
-Value Session::executeSql(const Argument_list &args)
+#ifdef DOXYGEN
+/**
+* Executes a query against the database and returns a  Resultset object wrapping the result.
+* \param query the SQL query to execute against the database.
+* \return The Resultset.
+*/
+Resultset ClassicSession::sql(String query)
+{}
+#endif
+Value ClassicSession::sql(const Argument_list &args)
 {
-  args.ensure_count(1, "Session::sql");
+  args.ensure_count(1, "ClassicSession::sql");
   // Will return the result of the SQL execution
   // In case of error will be Undefined
   Value ret_val;
@@ -165,14 +226,23 @@ Value Session::executeSql(const Argument_list &args)
   return ret_val;
 }
 
-std::string Session::uri() const
+#ifdef DOXYGEN
+/**
+* Returns the connection string passed to connect() method.
+* \return A string representation of the connection data in URI format (excluding the password or the database).
+* \sa connect
+*/
+String ClassicSession::getUri()
+{}
+#endif
+std::string ClassicSession::uri() const
 {
   return _conn->uri();
 }
 
-std::vector<std::string> Session::get_members() const
+std::vector<std::string> ClassicSession::get_members() const
 {
-  std::vector<std::string> members(BaseSession::get_members());
+  std::vector<std::string> members(ShellBaseSession::get_members());
 
   // This function is here only to append the schemas as direct members
   // Will use a set to prevent duplicates
@@ -189,7 +259,7 @@ std::vector<std::string> Session::get_members() const
   return members;
 }
 
-Value Session::get_member(const std::string &prop) const
+Value ClassicSession::get_member(const std::string &prop) const
 {
   // Retrieves the member first from the parent
   Value ret_val;
@@ -198,8 +268,8 @@ Value Session::get_member(const std::string &prop) const
   // retrieve it since it may throw invalid member otherwise
   // If not on the parent classes and not here then we can safely assume
   // it is a schema and attempt loading it as such
-  if (BaseSession::has_member(prop))
-    ret_val = BaseSession::get_member(prop);
+  if (ShellBaseSession::has_member(prop))
+    ret_val = ShellBaseSession::get_member(prop);
   else if (prop == "schemas")
     ret_val = Value(_schemas);
   else if (prop == "uri")
@@ -224,7 +294,7 @@ Value Session::get_member(const std::string &prop) const
   return ret_val;
 }
 
-void Session::_load_default_schema()
+void ClassicSession::_load_default_schema()
 {
   _default_schema.reset();
 
@@ -233,7 +303,7 @@ void Session::_load_default_schema()
     shcore::Argument_list query;
     query.push_back(Value("select schema()"));
 
-    Value res = executeSql(query);
+    Value res = sql(query);
 
     boost::shared_ptr<Resultset> rset = res.as_object<Resultset>();
     Value next_row = rset->next(shcore::Argument_list());
@@ -252,14 +322,14 @@ void Session::_load_default_schema()
   }
 }
 
-void Session::_load_schemas()
+void ClassicSession::_load_schemas()
 {
   if (_conn)
   {
     shcore::Argument_list query;
     query.push_back(Value("show databases;"));
 
-    Value res = executeSql(query);
+    Value res = sql(query);
 
     shcore::Argument_list args;
     boost::shared_ptr<Resultset> rset = res.as_object<Resultset>();
@@ -281,7 +351,19 @@ void Session::_load_schemas()
   }
 }
 
-shcore::Value Session::get_schema(const shcore::Argument_list &args) const
+#ifdef DOXYGEN
+/**
+* Returns the current schema of this session
+* Retrieves a Schema object from the current session through it's name.
+* \param name The name of the Schema object to be retrieved.
+* \return An schema object for the current schema.
+* \exception An exception is thrown if the given name is not a valid schema on the Session.
+* \sa Schema
+*/
+Schema ClassicSession::getSchema(String name)
+{}
+#endif
+shcore::Value ClassicSession::get_schema(const shcore::Argument_list &args) const
 {
   std::string function_name = class_name() + ".getSchema";
   args.ensure_count(1, function_name.c_str());
@@ -307,16 +389,24 @@ shcore::Value Session::get_schema(const shcore::Argument_list &args) const
       (*_schemas)[name] = Value(boost::static_pointer_cast<Object_bridge>(schema));
     }
     else
-      throw Exception::runtime_error("Session not connected");
+      throw Exception::runtime_error("ClassicSession not connected");
   }
 
   // If this point is reached, the schema will be there!
   return (*_schemas)[name];
 }
 
-shcore::Value Session::set_default_schema(const shcore::Argument_list &args)
+#ifdef DOXYGEN
+/**
+* Sets the default schema for this session's connection.
+* \return The new schema.
+*/
+Schema ClassicSession::setDefaultSchema(String schema)
+{}
+#endif
+shcore::Value ClassicSession::set_default_schema(const shcore::Argument_list &args)
 {
-  args.ensure_count(1, "Session.setDefaultSchema");
+  args.ensure_count(1, "ClassicSession.setDefaultSchema");
 
   if (_conn)
   {
@@ -325,17 +415,17 @@ shcore::Value Session::set_default_schema(const shcore::Argument_list &args)
     shcore::Argument_list query;
     query.push_back(Value("use " + name + ";"));
 
-    Value res = executeSql(query);
+    Value res = sql(query);
 
     _update_default_schema(name);
   }
   else
-    throw Exception::runtime_error("Session not connected");
+    throw Exception::runtime_error("ClassicSession not connected");
 
   return get_member("defaultSchema");
 }
 
-void Session::_update_default_schema(const std::string& name)
+void ClassicSession::_update_default_schema(const std::string& name)
 {
   if (!name.empty())
   {
@@ -350,9 +440,9 @@ void Session::_update_default_schema(const std::string& name)
   }
 }
 
-boost::shared_ptr<shcore::Object_bridge> Session::create(const shcore::Argument_list &args)
+boost::shared_ptr<shcore::Object_bridge> ClassicSession::create(const shcore::Argument_list &args)
 {
-  boost::shared_ptr<Session> session(new Session());
+  boost::shared_ptr<ClassicSession> session(new ClassicSession());
 
   session->connect(args);
 

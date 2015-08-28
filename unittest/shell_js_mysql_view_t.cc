@@ -40,13 +40,13 @@ namespace shcore {
 
       exec_and_out_equals("var mysql = require('mysql').mysql;");
 
-      exec_and_out_equals("var session = mysql.getSession('" + _mysql_uri + "');");
+      exec_and_out_equals("var session = mysql.getClassicSession('" + _mysql_uri + "');");
 
-      exec_and_out_equals("session.executeSql('drop schema if exists js_shell_test;')");
-      exec_and_out_equals("session.executeSql('create schema js_shell_test;')");
-      exec_and_out_equals("session.executeSql('use js_shell_test;')");
-      exec_and_out_equals("session.executeSql('create table table1 (name varchar(50));')");
-      exec_and_out_equals("session.executeSql('create view view1 (my_name) as select name from table1;')");
+      exec_and_out_equals("session.sql('drop schema if exists js_shell_test;')");
+      exec_and_out_equals("session.sql('create schema js_shell_test;')");
+      exec_and_out_equals("session.sql('use js_shell_test;')");
+      exec_and_out_equals("session.sql('create table table1 (name varchar(50));')");
+      exec_and_out_equals("session.sql('create view view1 (my_name) as select name from table1;')");
     }
   };
 
@@ -75,7 +75,7 @@ namespace shcore {
 
     exec_and_out_equals("var view_session = view.getSession();");
 
-    exec_and_out_equals("print(view_session)", "<Session:" + uri + ">");
+    exec_and_out_equals("print(view_session)", "<ClassicSession:" + uri + ">");
   }
 
   // Tests view.session
@@ -85,7 +85,7 @@ namespace shcore {
 
     exec_and_out_equals("var view = session.js_shell_test.view1;");
 
-    exec_and_out_equals("print(view.session)", "<Session:" + uri + ">");
+    exec_and_out_equals("print(view.session)", "<ClassicSession:" + uri + ">");
   }
 
   // Tests view.getSchema()

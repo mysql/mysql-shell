@@ -28,7 +28,7 @@
 #include "modules/base_session.h"
 
 #ifdef HAVE_PYTHON
-  extern "C" void Python_context_init();
+extern "C" void Python_context_init();
 #endif
 
 using namespace shcore;
@@ -67,7 +67,7 @@ Simple_shell_client::Simple_shell_client()
 
 shcore::Value Simple_shell_client::connect_session(const shcore::Argument_list &args)
 {
-  boost::shared_ptr<mysh::BaseSession> new_session(mysh::connect_session(args));
+  boost::shared_ptr<mysh::ShellBaseSession> new_session(mysh::connect_session(args, mysh::Node));
   _session.reset(new_session, new_session.get());
 
   _shell->set_global("session", Value(boost::static_pointer_cast<Object_bridge>(_session)));
@@ -116,15 +116,17 @@ void Simple_shell_client::process_result(shcore::Value result)
     if (result.type == shcore::Object)
     {
       boost::shared_ptr<Object_bridge> object = result.as_object();
-
-      shcore::Value affected_rows = object->call("getAffectedRows", Argument_list());
-      shcore::Value fetched_row_count = object->call("getFetchedRowCount", Argument_list());
-      shcore::Value warning_count = object->call("getWarningCount", Argument_list());
-      shcore::Value execution_time = object->call("getExecutionTime", Argument_list());
+      
+      shcore::Value affected_rows = object->has_member("getAffectedRows")? object->call("getAffectedRows", Argument_list()) : shcore::Value(-1);
+      shcore::Value fetched_row_count = object->has_member("getFetchedRowCount") ? object->call("getFetchedRowCount", Argument_list()) : shcore::Value(-1);
+      shcore::Value warning_count = object->has_member("getWarningCount") ? object->call("getWarningCount", Argument_list()) : shcore::Value(-1);
+      shcore::Value execution_time = object->has_member("getExecutionTime") ? object->call("getExecutionTime", Argument_list()) : shcore::Value("");
 
       shcore::Argument_list args;
       // If true returns as data array, if false, returns as document.
       shcore::IShell_core::Mode mode = _shell->interactive_mode();
+      if (!object->has_member("all") || !object->has_member("getColumnMetadata"))
+        return;
       shcore::Value result = object->call("all", args);
       shcore::Value metadata = object->call("getColumnMetadata", Argument_list());
 
@@ -132,9 +134,20 @@ void Simple_shell_client::process_result(shcore::Value result)
 
       if (arr_result->size())
       {
-        // create tabular result
-        boost::shared_ptr<std::vector<Result_set_metadata> > meta = populate_metadata(metadata);
-        _last_result.reset(new Table_result_set(arr_result, meta, affected_rows.as_int(), warning_count.as_int(), execution_time.as_string()));
+        if (arr_result->at(0).type == shcore::Object)
+        {
+          // create tabular result
+          boost::shared_ptr<std::vector<Result_set_metadata> > meta = populate_metadata(metadata);
+          _last_result.reset(new Table_result_set(arr_result, meta, affected_rows.as_int(), warning_count.as_int(), execution_time.as_string()));
+        }
+        else if (arr_result->at(0).type == shcore::Map)
+        {
+          _last_result.reset(new Document_result_set(arr_result, -1, -1, ""));
+        }
+        else 
+        {
+          throw std::runtime_error("Unknow data type returned from query.");
+        }
         return;
       }
     }

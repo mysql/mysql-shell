@@ -40,12 +40,12 @@ namespace shcore {
 
       exec_and_out_equals("var mysql = require('mysql').mysql;");
 
-      exec_and_out_equals("var session = mysql.getSession('" + _mysql_uri + "');");
+      exec_and_out_equals("var session = mysql.getClassicSession('" + _mysql_uri + "');");
 
-      exec_and_out_equals("session.executeSql('drop schema if exists js_shell_test;')");
-      exec_and_out_equals("session.executeSql('create schema js_shell_test;')");
-      exec_and_out_equals("session.executeSql('use js_shell_test;')");
-      exec_and_out_equals("session.executeSql('create table table1 (name varchar(50));')");
+      exec_and_out_equals("session.sql('drop schema if exists js_shell_test;')");
+      exec_and_out_equals("session.sql('create schema js_shell_test;')");
+      exec_and_out_equals("session.sql('use js_shell_test;')");
+      exec_and_out_equals("session.sql('create table table1 (name varchar(50));')");
     }
   };
 
@@ -74,7 +74,7 @@ namespace shcore {
 
     exec_and_out_equals("var table_session = table.getSession();");
 
-    exec_and_out_equals("print(table_session)", "<Session:" + uri + ">");
+    exec_and_out_equals("print(table_session)", "<ClassicSession:" + uri + ">");
   }
 
   // Tests table.session
@@ -84,7 +84,7 @@ namespace shcore {
 
     exec_and_out_equals("var table = session.js_shell_test.table1;");
 
-    exec_and_out_equals("print(table.session)", "<Session:" + uri + ">");
+    exec_and_out_equals("print(table.session)", "<ClassicSession:" + uri + ">");
   }
 
   // Tests table.getSchema()

@@ -56,6 +56,33 @@ Table::~Table()
 {
 }
 
+#ifdef DOXYGEN
+/**
+* Creates an insert object with column mappings to be defined.
+* \sa update, delete, select, TableInsert
+* \return a new TableInsert object.
+*/
+TableInsert Table::insert()
+{}
+
+/**
+* Creates an insert object with a list of column names.
+* \sa update, delete, select, TableInsert
+* \param [field, field, ...] one of several field names passed as an array parameter.
+* \return a new TableInsert object.
+*/
+TableInsert Table::insert([field, field, ...])
+{}
+
+/**
+* Creates an insert object with a set of mappings (field name, value of field).
+* \sa update, delete, select, TableInsert
+* \param { field : value, field : value, ... } a map with a set of key value pair mappings where the key is a field name and the field value is the value.
+* \return a new TableInsert object.
+*/
+TableInsert Table::insert({ field : value, field : value, ... })
+{}
+#endif
 shcore::Value Table::insert_(const shcore::Argument_list &args)
 {
   boost::shared_ptr<TableInsert> tableInsert(new TableInsert(shared_from_this()));
@@ -63,6 +90,15 @@ shcore::Value Table::insert_(const shcore::Argument_list &args)
   return tableInsert->insert(args);
 }
 
+#ifdef DOXYGEN
+/**
+* Creates an Update object and returns it.
+* \sa insert, delete, select, TableUpdate
+* \return a new TableUpdate object.
+*/
+TableUpdate Table::update()
+{}
+#endif
 shcore::Value Table::update_(const shcore::Argument_list &args)
 {
   boost::shared_ptr<TableUpdate> tableUpdate(new TableUpdate(shared_from_this()));
@@ -70,6 +106,15 @@ shcore::Value Table::update_(const shcore::Argument_list &args)
   return tableUpdate->update(args);
 }
 
+#ifdef DOXYGEN
+/**
+* Creates a Delete object and returns it.
+* \sa insert, update, select, TableDelete
+* \return a new TableDelete object.
+*/
+TableDelete Table::delete()
+{}
+#endif
 shcore::Value Table::delete_(const shcore::Argument_list &args)
 {
   boost::shared_ptr<TableDelete> tableDelete(new TableDelete(shared_from_this()));
@@ -77,6 +122,25 @@ shcore::Value Table::delete_(const shcore::Argument_list &args)
   return tableDelete->remove(args);
 }
 
+#ifdef DOXYGEN
+/**
+* Creates a Select object and returns it.
+* \sa insert, delete, update, TableSelect
+* \return a new TableSelect object.
+*/
+TableSelect Table::select()
+{}
+
+/**
+* Creates a Select object and returns it with the specified projection (list of fields to return).
+* \sa insert, delete, update, TableSelect
+* \param [field, field, ...] one or more Strings each with the name of a field to retrieve in this select statement.
+*   each field can be of the form "identifier [[AS] alias]", that is, after the column name optionally include the AS keyword and then an ALIAS
+* \return a new TableSelect object.
+*/
+TableSelect Table::select([field, field, ...])
+{}
+#endif
 shcore::Value Table::select_(const shcore::Argument_list &args)
 {
   boost::shared_ptr<TableSelect> tableSelect(new TableSelect(shared_from_this()));

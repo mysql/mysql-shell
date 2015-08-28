@@ -55,7 +55,7 @@ namespace mysh
     void print_warnings();
   };
 
-  class MOD_PUBLIC Row : public shcore::Cpp_object_bridge
+  class SHCORE_PUBLIC Row : public shcore::Cpp_object_bridge
   {
   public:
     Row();

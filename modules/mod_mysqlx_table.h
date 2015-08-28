@@ -39,6 +39,13 @@ namespace mysh
   {
     class Schema;
 
+    /**
+    * Represents a Table on an Schema, retrieved with a session created using the X Protocol.
+    * \todo Implement and document as()
+    * \todo Implement and document getIndexes()
+    * \todo Implement and document count()
+    * \todo Implement and document drop()
+    */
     class Table : public DatabaseObject, public boost::enable_shared_from_this<Table>
     {
     public:
@@ -47,7 +54,15 @@ namespace mysh
       virtual ~Table();
 
       virtual std::string class_name() const { return "Table"; }
-
+#ifdef DOXYGEN
+      TableInsert insert();
+      TableInsert insert([field, field, ...]);
+      TableInsert insert({ field:value, field : value, ... });
+      TableSelect select();
+      TableSelect select([field, field, ...]);
+      TableUpdate update();
+      TableDelete delete();
+#endif
     private:
       shcore::Value insert_(const shcore::Argument_list &args);
       shcore::Value select_(const shcore::Argument_list &args);

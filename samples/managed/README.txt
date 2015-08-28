@@ -18,7 +18,7 @@ And reedit the property values with the correct paths, where
 - MySqlXShellHeadersPath is the path well all MySql Xshell headers are located like (C:\Program Files (x86)\mysh\include) or
   xshell root folder.
 - MySqlXShellLibsPath is the path of all MySql Shell .lib files like (C:\Program Files (x86)\mysh\lib), or a path that contains
-  mysqlsh.lib, mysqlshmods.lib, mysqlshtypes.lib, v8.lib, mysqlclient.lib
+  mysqlsh.lib, mysqlshtypes.lib, v8.lib, mysqlclient.lib
 - MySqlServerLibsPath, lib path for mysqlclient.lib
 - NativeSampleLibPath, the path where the native/lib output is generated (file shell_client_lib.lib).
 
@@ -41,7 +41,6 @@ END OF IMPORTANT
 5. Add/correct the assembly reference to simple_shell_client_managed.dll created in step 3.
 Also copy the whole set of dependencies into the managed\app\bin\Debug folder of the managed sample:
 - mysqlsh.dll
-- mysqlshmods.dll
 - mysqlshtypes.dll
 - shell_client_lib.dll
 - simple_shell_client_managed.dll

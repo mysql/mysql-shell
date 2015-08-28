@@ -30,6 +30,18 @@ namespace mysh
   namespace mysqlx
   {
     class Collection;
+
+    /**
+    * Handler for document update operations on a Collection.
+    * \todo Implement and document bind({var:val, var:val, ...})
+    * \todo Update execute to support options and document it
+    *
+    * This object provides the necessary functions to allow updating documents on a collection.
+    *
+    * This object should only be created by calling the modify function on the collection object on which the documents will be updated.
+    *
+    * \sa Collection
+    */
     class CollectionModify : public Collection_crud_definition, public boost::enable_shared_from_this<CollectionModify>
     {
     public:
@@ -40,6 +52,7 @@ namespace mysh
       shcore::Value modify(const shcore::Argument_list &args);
       shcore::Value set(const shcore::Argument_list &args);
       shcore::Value unset(const shcore::Argument_list &args);
+      shcore::Value merge(const shcore::Argument_list &args);
       shcore::Value array_insert(const shcore::Argument_list &args);
       shcore::Value array_append(const shcore::Argument_list &args);
       shcore::Value array_delete(const shcore::Argument_list &args);
@@ -48,6 +61,21 @@ namespace mysh
       shcore::Value bind(const shcore::Argument_list &args);
 
       virtual shcore::Value execute(const shcore::Argument_list &args);
+#ifdef DOXYGEN
+      CollectionModify modify(String searchCondition);
+      CollectionModify set(String attribute, Value value);
+      CollectionModify unset(String attribute);
+      CollectionModify unset(List attributes);
+      CollectionModify merge(Document document);
+      CollectionModify arrayAppend(String path, Value value);
+      CollectionModify arrayInsert(String path, Value value);
+      CollectionModify arrayDelete(String path);
+      CollectionModify sort(List sortExprStr);
+      CollectionModify limit(Integer numberOfRows);
+      CollectionModify skip(Integer limitOffset);
+      CollectionModify bind(Map placeHolderValues);
+      Collection_resultset execute(ExecuteOptions opt);
+#endif
     private:
       std::auto_ptr< ::mysqlx::ModifyStatement> _modify_statement;
     };

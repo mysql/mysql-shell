@@ -45,6 +45,28 @@ CollectionRemove::CollectionRemove(boost::shared_ptr<Collection> owner)
   update_functions("");
 }
 
+#ifdef DOXYGEN
+/**
+* Sets the search condition to identify the Documents to be removed from the owner Collection.
+* \param searchCondition: An optional expression to identify the documents to be removed;
+* if not specified all the documents will be removed from the collection unless a limit is set.
+* \return This CollectionFind object.
+*
+* This function is called automatically when Collection.remove(searchCondition) is called.
+*
+* The actual removal of the documents will occur only when the execute method is called.
+*
+* After this function invocation, the following functions can be invoked:
+*
+* - sort(List sortExprStr)
+* - limit(Integer numberOfRows)
+* - execute(ExecuteOptions options).
+*
+* \sa Usage examples at execute(ExecuteOptions options).
+*/
+CollectionRemove CollectionRemove::remove(String searchCondition)
+{}
+#endif
 shcore::Value CollectionRemove::remove(const shcore::Argument_list &args)
 {
   // Each method validates the received parameters
@@ -71,6 +93,29 @@ shcore::Value CollectionRemove::remove(const shcore::Argument_list &args)
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
+#ifdef DOXYGEN
+/**
+* Sets the order in which the removal should be done.
+* \param sortExprStr: A list of expression strings defining a sort criteria, the deletion will be done following the order defined by this criteria.
+* \return This CollectionRemove object.
+*
+* The elements of sortExprStr list are usually strings defining the field name on which the sorting will be based. Each criterion could be followed by asc or desc to indicate ascending
+* or descending order respectivelly. If no order is specified, ascending will be used by default.
+*
+* This method is usually used in combination with limit to fix the amount of documents to be removed.
+*
+* This function can be invoked after:
+*
+* - remove(String searchCondition)
+*
+* After this function invocation, the following functions can be invoked:
+*
+* - limit(Integer numberOfRows)
+* - execute(ExecuteOptions options).
+*/
+CollectionRemove CollectionRemove::sort(List sortExprStr)
+{}
+#endif
 shcore::Value CollectionRemove::sort(const shcore::Argument_list &args)
 {
   args.ensure_count(1, "CollectionRemove::sort");
@@ -93,6 +138,27 @@ shcore::Value CollectionRemove::sort(const shcore::Argument_list &args)
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
+#ifdef DOXYGEN
+
+/**
+* Sets a limit for the documents to be deleted.
+* \param numberOfDocs the number of documents to affect in the remove execution.
+* \return This CollectionRemove object.
+*
+* This method is usually used in combination with sort to fix the amount of documents to be removed.
+*
+* This function can be invoked after:
+*
+* - remove(String searchCondition)
+* - sort(List sortExprStr)
+*
+* After this function invocation, the following functions can be invoked:
+*
+* - execute(ExecuteOptions options).
+*/
+CollectionRemove CollectionRemove::limit(Integer numberOfDocs)
+{}
+#endif
 shcore::Value CollectionRemove::limit(const shcore::Argument_list &args)
 {
   args.ensure_count(1, "CollectionRemove::limit");
@@ -115,6 +181,43 @@ shcore::Value CollectionRemove::bind(const shcore::Argument_list &UNUSED(args))
   return Value(Object_bridge_ref(this));
 }
 
+#ifdef DOXYGEN
+/**
+* Executes the removal operation with the configured filter and limit.
+* \return Collection_resultset A Collection resultset object that can be used to retrieve the results of the find operation.
+*
+* This function can be invoked after any other function on this class.
+*
+* \code{.js}
+* // open a connection
+* var mysqlx = require('mysqlx').mysqlx;
+* var mysession = mysqlx.getSession("myuser@localhost", mypwd);
+*
+* // Assuming a collection named friends exists on the test schema
+* var collection = mysession.test.friends;
+*
+* // create some initial data
+* collection.add([{name: 'jack', last_name = 'black', age: 17, gender: 'male'},
+*                 {name: 'adam', last_name = 'sandler', age: 15, gender: 'male'},
+*                 {name: 'brian', last_name = 'adams', age: 14, gender: 'male'},
+*                 {name: 'alma', last_name = 'lopez', age: 13, gender: 'female'},
+*                 {name: 'carol', last_name = 'shiffield', age: 14, gender: 'female'},
+*                 {name: 'donna', last_name = 'summers', age: 16, gender: 'female'},
+*                 {name: 'angel', last_name = 'down', age: 14, gender: 'male'}]).execute();
+*
+* // Remove the youngest
+* var res_youngest = collection.remove().sort(['age', 'name']).limit(1).execute();
+*
+* // Remove the males
+* var res_males = collection.remove('gender="male"').execute();
+*
+* // Removes all the documents
+* var res_all = collection.remove().execute();
+* \endcode
+*/
+Collection_resultset CollectionRemove::execute(ExecuteOptions opt)
+{}
+#endif
 shcore::Value CollectionRemove::execute(const shcore::Argument_list &args)
 {
   args.ensure_count(0, "CollectionRemove::execute");

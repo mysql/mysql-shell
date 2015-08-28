@@ -40,24 +40,70 @@ namespace shcore
 
 namespace mysh
 {
+  /**
+  * Encloses the functions and classes available to interact with a MySQL Server using the traditional
+  * MySQL Protocol.
+  *
+  * Use this module to create a session using the traditional MySQL Protocol, for example for MySQL Servers where
+  * the X Protocol is not available.
+  *
+  * Note that the API interface on this module is very limited, even you can load schemas, tables and views as objects
+  * there are no operations available on them.
+  *
+  * The real purpose of this module is to allow SQL Execution on MySQL Servers where the X Protocol is not enabled.
+  */
   namespace mysql
   {
+#ifdef DOXYGEN
+    ClassicSession getClassicSession(String connectionData, String password);
+    ClassicSession getClassicSession(Map connectionData, String password);
+#endif
+
     class Schema;
-    class MOD_PUBLIC Session : public BaseSession, public boost::enable_shared_from_this<Session>
+    /**
+    * Enables interaction with a MySQL Server using the MySQL Protocol.
+    *
+    * Provides facilities to execute queries and retrieve database objects.
+    *
+    * \b Dynamic \b Properties
+    *
+    * In addition to the properties documented above, when a session object is created the schemas available on the target
+    * MySQL Server are cached.
+    *
+    * A dynamic property is added to the session object in order to access each available Schema as a session member.
+    *
+    * These dynamic properties are named as the Schema's name, so the schemas are accessible as follows:
+    *
+    * \code{.js}
+    * // Establishes the connection.
+    * var mysql = require('mysql').mysql;
+    * var session = mysql.getClassicSession("myuser@localhost", pwd);
+    *
+    * // Getting a schema through the getSchema function
+    * var schema = session.getSchema("sakila");
+    *
+    * // Getting a schema through a session property
+    * var schema = session.sakila;
+    * \endcode
+    *
+    * \sa mysql.getClassicSession(String connectionData, String password)
+    * \sa mysql.getClassicSession(Map connectionData, String password)
+    */
+    class SHCORE_PUBLIC ClassicSession : public ShellBaseSession, public boost::enable_shared_from_this<ClassicSession>
     {
     public:
-      Session();
-      virtual ~Session() {};
+      ClassicSession();
+      virtual ~ClassicSession() {};
 
       // Virtual methods from object bridge
-      virtual std::string class_name() const { return "Session"; };
+      virtual std::string class_name() const { return "ClassicSession"; };
       virtual shcore::Value get_member(const std::string &prop) const;
       std::vector<std::string> get_members() const;
 
       // Virtual methods from ISession
       virtual shcore::Value connect(const shcore::Argument_list &args);
       virtual shcore::Value close(const shcore::Argument_list &args);
-      virtual shcore::Value executeSql(const shcore::Argument_list &args);
+      virtual shcore::Value sql(const shcore::Argument_list &args);
       virtual bool is_connected() const { return _conn ? true : false; }
 
       virtual std::string uri() const;
@@ -67,6 +113,37 @@ namespace mysh
       static boost::shared_ptr<shcore::Object_bridge> create(const shcore::Argument_list &args);
 
       Connection *connection();
+
+#ifdef DOXYGEN
+      String uri; //!< Same as getUri()
+      Map schemas; //!< Same as getSchemas()
+      Schema defaultSchema; //!< Same as getDefaultSchema()
+
+      String getUri();
+      Schema getSchema(String name);
+
+      /**
+      * Retrieves the schema objects that were cached when the session was created.
+      * \return A Map object containing as keys the schema names and as values the schema objects.
+      * \sa Schema
+      */
+      Map getSchemas()
+      {}
+
+      Undefined close();
+      Schema setDefaultSchema(String schema);
+
+      /**
+      * Retrieves if any, the schema configured as default on the current session.
+      * \return the Schema object or Null.
+      * \section (Dynamic Attributes)
+      * this is a sample section
+      */
+      Schema getDefaultSchema()
+      {}
+
+      Resultset sql(String query);
+#endif
 
     private:
       void _update_default_schema(const std::string& name);

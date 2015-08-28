@@ -14,6 +14,7 @@ a) ng-deps (v8)
 b) Protobuf 2.6.1 (optional)
 c) MySql Server libclient
 d) boost 1.57 (no need to recompile, as only headers are used).
+e) Python 2.7
 
 3. To build the server in MD mode, apply patch file cmake-server-patch.txt to the cmake server file
    <server>/cmake/os/windows.cmake
@@ -93,6 +94,9 @@ errors like syntax issues). Both the native sample & managed sample use this app
 The sample just does an REPL in SQL, then switch to JS and another REPL
 each REPL is broken with the "\quit" command.
 
+IMPORTANT: The sample session loads the mysqlx module, and thus assumes, there is a module folder in the same 
+path than shell library.
+
 Sample Session:
 
  Sample session, first in SQL, until command \quit is entered, then in
@@ -101,21 +105,41 @@ As sample session would be
 sql> use sakila;
 sql> select * from actor limit 5;
 \quit
-js> session.executeSql("show databases").all();
-js> session.executeSql("show tables from sakila").all();
-js> var s=input("Give me your money: ");
-Give me your money:
-50 USD
-js> print(s);
-50 USD
-js> var data=session.executeSql("select * from sakila.actor limit 3");
-js> var rec;
-js> while(rec=data.next()) { print(rec) }
-{
-    "actor_id": 1,
-    "first_name": "PENELOPE",
-    "last_name": "GUINESS",
-    "last_update": "2006-02-15 4:34:33"
-}
+js> var mysqlx = require('mysqlx').mysqlx;
+js> var mysession = mysqlx.getNodeSession("root:123@localhost:33060");
+js> mysession.sql("show databases").execute();
+js> dir(mysession);
+js> dir(mysession.mysql);
+js> mysession.sql('drop schema if exists js_shell_test;').execute();
+js> mysession.sql('create schema js_shell_test;').execute();
+js> mysession.sql('use js_shell_test;').execute();
+js> mysession.sql('create table table1 (name varchar(50), age integer, gender varchar(20));').execute();
+
+js> var schema = mysession.getSchema('js_shell_test');
+js> var table = schema.getTable('table1');
+
+js> var result = table.insert({name: 'jack', age: 17, gender: 'male'}).execute();
+js> var result = table.insert({name: 'adam', age: 15, gender: 'male'}).execute();
+js> var result = table.insert({name: 'brian', age: 14, gender: 'male'}).execute();
+js> var result = table.insert({name: 'alma', age: 13, gender: 'female'}).execute();
+js> var result = table.insert({name: 'carol', age: 14, gender: 'female'}).execute();
+js> var result = table.insert({name: 'donna', age: 16, gender: 'female'}).execute();
+js> var result = table.insert({name: 'angel', age: 14, gender: 'male'}).execute();
+
+js> table.select().execute();
+
+js> var crud = table.delete();
+js> crud.where('age = 15');
+js> crud.execute();
+js> table.select().execute();
+
+js> var result = table.insert({name: 'adam', age: 15, gender: 'male'}).execute();
+
+js> var crud = table.update();
+js> crud.set({ name: 'Adam Sanders'}).where("name = 'adam'");
+js> crud.execute();
+js> table.select().execute();
+
+
 // etc...
 js> 

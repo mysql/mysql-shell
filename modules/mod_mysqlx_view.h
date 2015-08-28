@@ -33,6 +33,12 @@ namespace mysh
   {
     class Schema;
 
+    /**
+    * Represents a View on an Schema, retrieved with a session created using the X Protocol.
+    * \todo Implement and document select()
+    * \todo Implement and document select([field, field, ...])
+    * \todo Implement and document drop()
+    */
     class View : public DatabaseObject
     {
     public:
@@ -41,7 +47,6 @@ namespace mysh
       virtual ~View();
 
       virtual std::string class_name() const { return "View"; }
-
       //private:
       //boost::shared_ptr< ::mysqlx::Table> _table_impl;
     };

@@ -48,7 +48,7 @@ namespace shcore {
     exec_and_out_equals("var exports = dir(mysql);");
     exec_and_out_equals("print(exports.length);", "1");
 
-    exec_and_out_equals("print(typeof mysql.getSession);", "function");
+    exec_and_out_equals("print(typeof mysql.getClassicSession);", "function");
   }
 
   TEST_F(Shell_js_mysql_tests, mysql_open_session_uri)
@@ -58,19 +58,19 @@ namespace shcore {
     // Assuming _uri is in the format user:password@host
     std::string uri = mysh::strip_password(_mysql_uri);
 
-    exec_and_out_equals("var session = mysql.getSession('" + _mysql_uri + "');");
-    exec_and_out_equals("print(session);", "<Session:" + uri + ">");
+    exec_and_out_equals("var session = mysql.getClassicSession('" + _mysql_uri + "');");
+    exec_and_out_equals("print(session);", "<ClassicSession:" + uri + ">");
 
     // Ensures the right members exist
     exec_and_out_equals("var members = dir(session);");
     exec_and_out_equals("print(members.length >= 10)", "true");
     exec_and_out_equals("print(members[0] == 'close');", "true");
-    exec_and_out_equals("print(members[1] == 'executeSql');", "true");
-    exec_and_out_equals("print(members[2] == 'getDefaultSchema');", "true");
-    exec_and_out_equals("print(members[3] == 'getSchema');", "true");
-    exec_and_out_equals("print(members[4] == 'getSchemas');", "true");
-    exec_and_out_equals("print(members[5] == 'getUri');", "true");
-    exec_and_out_equals("print(members[6] == 'setDefaultSchema');", "true");
+    exec_and_out_equals("print(members[1] == 'getDefaultSchema');", "true");
+    exec_and_out_equals("print(members[2] == 'getSchema');", "true");
+    exec_and_out_equals("print(members[3] == 'getSchemas');", "true");
+    exec_and_out_equals("print(members[4] == 'getUri');", "true");
+    exec_and_out_equals("print(members[5] == 'setDefaultSchema');", "true");
+    exec_and_out_equals("print(members[6] == 'sql');", "true");
     exec_and_out_equals("print(members[7] == 'defaultSchema');", "true");
     exec_and_out_equals("print(members[8] == 'schemas');", "true");
     exec_and_out_equals("print(members[9] == 'uri');", "true");
@@ -92,19 +92,19 @@ namespace shcore {
     if (!_pwd.empty())
       password = _pwd;
 
-    exec_and_out_equals("var session = mysql.getSession('" + _mysql_uri + "', '" + password + "');");
-    exec_and_out_equals("print(session);", "<Session:" + uri + ">");
+    exec_and_out_equals("var session = mysql.getClassicSession('" + _mysql_uri + "', '" + password + "');");
+    exec_and_out_equals("print(session);", "<ClassicSession:" + uri + ">");
 
     // Ensures the right members exist
     exec_and_out_equals("var members = dir(session);");
     exec_and_out_equals("print(members.length >= 10)", "true");
     exec_and_out_equals("print(members[0] == 'close');", "true");
-    exec_and_out_equals("print(members[1] == 'executeSql');", "true");
-    exec_and_out_equals("print(members[2] == 'getDefaultSchema');", "true");
-    exec_and_out_equals("print(members[3] == 'getSchema');", "true");
-    exec_and_out_equals("print(members[4] == 'getSchemas');", "true");
-    exec_and_out_equals("print(members[5] == 'getUri');", "true");
-    exec_and_out_equals("print(members[6] == 'setDefaultSchema');", "true");
+    exec_and_out_equals("print(members[1] == 'getDefaultSchema');", "true");
+    exec_and_out_equals("print(members[2] == 'getSchema');", "true");
+    exec_and_out_equals("print(members[3] == 'getSchemas');", "true");
+    exec_and_out_equals("print(members[4] == 'getUri');", "true");
+    exec_and_out_equals("print(members[5] == 'setDefaultSchema');", "true");
+    exec_and_out_equals("print(members[6] == 'sql');", "true");
     exec_and_out_equals("print(members[7] == 'defaultSchema');", "true");
     exec_and_out_equals("print(members[8] == 'schemas');", "true");
     exec_and_out_equals("print(members[9] == 'uri');", "true");
@@ -136,19 +136,19 @@ namespace shcore {
     std::stringstream uri;
     uri << user << "@" << host << ":" << port;
 
-    exec_and_out_equals("var session = mysql.getSession(" + connection_data.str() + ");");
-    exec_and_out_equals("print(session);", "<Session:" + uri.str() + ">");
+    exec_and_out_equals("var session = mysql.getClassicSession(" + connection_data.str() + ");");
+    exec_and_out_equals("print(session);", "<ClassicSession:" + uri.str() + ">");
 
     // Ensures the right members exist
     exec_and_out_equals("var members = dir(session);");
     exec_and_out_equals("print(members.length >= 10)", "true");
     exec_and_out_equals("print(members[0] == 'close');", "true");
-    exec_and_out_equals("print(members[1] == 'executeSql');", "true");
-    exec_and_out_equals("print(members[2] == 'getDefaultSchema');", "true");
-    exec_and_out_equals("print(members[3] == 'getSchema');", "true");
-    exec_and_out_equals("print(members[4] == 'getSchemas');", "true");
-    exec_and_out_equals("print(members[5] == 'getUri');", "true");
-    exec_and_out_equals("print(members[6] == 'setDefaultSchema');", "true");
+    exec_and_out_equals("print(members[1] == 'getDefaultSchema');", "true");
+    exec_and_out_equals("print(members[2] == 'getSchema');", "true");
+    exec_and_out_equals("print(members[3] == 'getSchemas');", "true");
+    exec_and_out_equals("print(members[4] == 'getUri');", "true");
+    exec_and_out_equals("print(members[5] == 'setDefaultSchema');", "true");
+    exec_and_out_equals("print(members[6] == 'sql');", "true");
     exec_and_out_equals("print(members[7] == 'defaultSchema');", "true");
     exec_and_out_equals("print(members[8] == 'schemas');", "true");
     exec_and_out_equals("print(members[9] == 'uri');", "true");
@@ -179,19 +179,19 @@ namespace shcore {
     std::stringstream uri;
     uri << user << "@" << host << ":" << port;
 
-    exec_and_out_equals("var session = mysql.getSession(" + connection_data.str() + ", '" + password + "');");
-    exec_and_out_equals("print(session);", "<Session:" + uri.str() + ">");
+    exec_and_out_equals("var session = mysql.getClassicSession(" + connection_data.str() + ", '" + password + "');");
+    exec_and_out_equals("print(session);", "<ClassicSession:" + uri.str() + ">");
 
     // Ensures the right members exist
     exec_and_out_equals("var members = dir(session);");
     exec_and_out_equals("print(members.length >= 10)", "true");
     exec_and_out_equals("print(members[0] == 'close');", "true");
-    exec_and_out_equals("print(members[1] == 'executeSql');", "true");
-    exec_and_out_equals("print(members[2] == 'getDefaultSchema');", "true");
-    exec_and_out_equals("print(members[3] == 'getSchema');", "true");
-    exec_and_out_equals("print(members[4] == 'getSchemas');", "true");
-    exec_and_out_equals("print(members[5] == 'getUri');", "true");
-    exec_and_out_equals("print(members[6] == 'setDefaultSchema');", "true");
+    exec_and_out_equals("print(members[1] == 'getDefaultSchema');", "true");
+    exec_and_out_equals("print(members[2] == 'getSchema');", "true");
+    exec_and_out_equals("print(members[3] == 'getSchemas');", "true");
+    exec_and_out_equals("print(members[4] == 'getUri');", "true");
+    exec_and_out_equals("print(members[5] == 'setDefaultSchema');", "true");
+    exec_and_out_equals("print(members[6] == 'sql');", "true");
     exec_and_out_equals("print(members[7] == 'defaultSchema');", "true");
     exec_and_out_equals("print(members[8] == 'schemas');", "true");
     exec_and_out_equals("print(members[9] == 'uri');", "true");

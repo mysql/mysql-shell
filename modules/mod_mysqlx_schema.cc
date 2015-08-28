@@ -41,14 +41,14 @@ using namespace mysh;
 using namespace mysh::mysqlx;
 using namespace shcore;
 
-Schema::Schema(boost::shared_ptr<ApiBaseSession> session, const std::string &schema)
+Schema::Schema(boost::shared_ptr<BaseSession> session, const std::string &schema)
 : DatabaseObject(session, boost::shared_ptr<DatabaseObject>(), schema), _schema_impl(session->session_obj()->getSchema(schema))
 {
   init();
 }
 
-Schema::Schema(boost::shared_ptr<const ApiBaseSession> session, const std::string &schema) :
-DatabaseObject(boost::const_pointer_cast<ApiBaseSession>(session), boost::shared_ptr<DatabaseObject>(), schema)
+Schema::Schema(boost::shared_ptr<const BaseSession> session, const std::string &schema) :
+DatabaseObject(boost::const_pointer_cast<BaseSession>(session), boost::shared_ptr<DatabaseObject>(), schema)
 {
   init();
 }
@@ -78,12 +78,10 @@ void Schema::cache_table_objects()
 {
   try
   {
-    boost::shared_ptr<ApiBaseSession> sess(boost::static_pointer_cast<ApiBaseSession>(_session.lock()));
+    boost::shared_ptr<BaseSession> sess(boost::static_pointer_cast<BaseSession>(_session.lock()));
     if (sess)
     {
       {
-        sess->flush_last_result();
-
         shcore::Argument_list args;
         args.push_back(Value(_name));
         args.push_back(Value(""));
@@ -191,41 +189,48 @@ Value Schema::_load_object(const std::string& name, const std::string& type) con
   Value ret_val;
   try
   {
-    boost::shared_ptr<ApiBaseSession> sess(boost::dynamic_pointer_cast<ApiBaseSession>(_session.lock()));
+    boost::shared_ptr<BaseSession> sess(boost::dynamic_pointer_cast<BaseSession>(_session.lock()));
     if (sess)
     {
+      shcore::Argument_list args;
+      args.push_back(Value(_name));
+      args.push_back(Value(name));
+
+      Value myres = sess->executeAdminCommand("list_objects", args);
+      boost::shared_ptr<mysh::mysqlx::Resultset> my_res = myres.as_object<mysh::mysqlx::Resultset>();
+
+      Value raw_entry = my_res->next(shcore::Argument_list());
+
+      if (raw_entry)
       {
-        sess->flush_last_result();
+        boost::shared_ptr<mysh::Row> row = raw_entry.as_object<mysh::Row>();
+        std::string object_name = row->get_member("name").as_string();
+        std::string object_type = row->get_member("type").as_string();
 
-        std::auto_ptr< ::mysqlx::Result> result(sess->session_obj()->executeSql("show full tables in `" + _name + "` like '" + name + "';"));
-        std::auto_ptr< ::mysqlx::Row> row(result->next());
-        if (row.get())
+        if (type.empty() || type == object_type)
         {
-          std::string object_name = row->stringField(0);
-          std::string object_type = row->stringField(1);
-
-          if (type.empty() || (type == "TABLE" && (object_type == "BASE TABLE" || object_type == "LOCAL TEMPORARY")))
+          if (object_type == "TABLE")
           {
             boost::shared_ptr<Table> table(new Table(shared_from_this(), object_name));
             ret_val = Value(boost::static_pointer_cast<Object_bridge>(table));
             (*_tables)[name] = ret_val;
           }
-          else if (type.empty() || (type == "VIEW" && (object_type == "VIEW" || object_type == "SYSTEM VIEW")))
+          else if (object_type == "VIEW")
           {
             boost::shared_ptr<View> view(new View(shared_from_this(), object_name));
             ret_val = Value(boost::static_pointer_cast<Object_bridge>(view));
             (*_views)[name] = ret_val;
           }
-          else if (type.empty() || (type == "COLLECTION"))
+          else if (object_type == "COLLECTION")
           {
             boost::shared_ptr<Collection> collection(new Collection(shared_from_this(), object_name));
             ret_val = Value(boost::static_pointer_cast<Object_bridge>(collection));
             (*_collections)[name] = ret_val;
           }
         }
-
-        result->discardData();
       }
+
+      my_res->all(shcore::Argument_list());
     }
   }
   CATCH_AND_TRANSLATE();
@@ -233,6 +238,17 @@ Value Schema::_load_object(const std::string& name, const std::string& type) con
   return ret_val;
 }
 
+#ifdef DOXYGEN
+/**
+* Returns a Table object with the associated name in the current schema. If not table with the name, Undefined is returned.
+* This method is run against a local cache of objects, if you want to see lastest changes by other sessions you may need to create a new copy the schema object with session.getSchema().
+* \sa getCollection(), getView()
+* \param name the name of the table to retrieve.
+* \return the Table object or undefined.
+*/
+Table Schema::getTable(String name)
+{}
+#endif
 shcore::Value Schema::getTable(const shcore::Argument_list &args)
 {
   args.ensure_count(1, (class_name() + "::getTable").c_str());
@@ -242,6 +258,17 @@ shcore::Value Schema::getTable(const shcore::Argument_list &args)
   return find_in_collection(name, _tables);
 }
 
+#ifdef DOXYGEN
+/**
+* Returns a Collection object with the associated name in the current schema. If not collection with the name, Undefined is returned.
+* This method is run against a local cache of objects, if you want to see lastest changes by other sessions you may need to create a new copy the schema object with session.getSchema().
+* \sa getTable(), getCollection(), getView()
+* \param name the name of the collection to retrieve.
+* \return the Collection object or undefined.
+*/
+CollectionRef Schema::getCollection(String name)
+{}
+#endif
 shcore::Value Schema::getCollection(const shcore::Argument_list &args)
 {
   args.ensure_count(1, (class_name() + "::getCollection").c_str());
@@ -251,6 +278,17 @@ shcore::Value Schema::getCollection(const shcore::Argument_list &args)
   return find_in_collection(name, _collections);
 }
 
+#ifdef DOXYGEN
+/**
+* Returns a View object with the associated name in the current schema. If not view with the name, Undefined is returned.
+* This method is run against a local cache of objects, if you want to see lastest changes by other sessions you may need to create a new copy the schema object with session.getSchema().
+* \sa getCollection(), getTable()
+* \param name the name of the view to retrieve.
+* \return the View object or undefined.
+*/
+View Schema::getView(String name)
+{}
+#endif
 shcore::Value Schema::getView(const shcore::Argument_list &args)
 {
   args.ensure_count(1, (class_name() + "::getCollection").c_str());
@@ -260,6 +298,17 @@ shcore::Value Schema::getView(const shcore::Argument_list &args)
   return find_in_collection(name, _views);
 }
 
+#ifdef DOXYGEN
+/**
+* Creates in the current schema a new collection with the specified name and retrieves an object representing the new collection created.
+* TODO: What are the valid identifiers for collection names?
+* \sa getCollections(), getCollection()
+* \param name the name of the colllection.
+* \return the new created collection.
+*/
+CollectionRef Schema::createCollection(String name)
+{}
+#endif
 shcore::Value Schema::createCollection(const shcore::Argument_list &args)
 {
   Value ret_val;
@@ -271,7 +320,7 @@ shcore::Value Schema::createCollection(const shcore::Argument_list &args)
   command_args.push_back(Value(_name));
   command_args.push_back(args[0]);
 
-  boost::shared_ptr<ApiBaseSession> sess(boost::static_pointer_cast<ApiBaseSession>(_session.lock()));
+  boost::shared_ptr<BaseSession> sess(boost::static_pointer_cast<BaseSession>(_session.lock()));
   sess->executeAdminCommand("create_collection", command_args);
 
   // If this is reached it imlies all went OK on the previous operation
