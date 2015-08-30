@@ -194,7 +194,6 @@ Value BaseSession::connect(const Argument_list &args)
 Undefined BaseSession::close()
 {}
 #endif
-
 Value BaseSession::close(const Argument_list &args)
 {
   std::string function_name = class_name() + ".close";
@@ -224,6 +223,39 @@ Value BaseSession::sql(const Argument_list &args)
   try
   {
     ret_val = executeSql(args.string_at(0), shcore::Argument_list());
+  }
+  CATCH_AND_TRANSLATE();
+
+  return ret_val;
+}
+
+#ifdef DOXYGEN
+/**
+* Creates a schema on the database and returns the corresponding object.
+* \param name A string value indicating the schema name.
+* \return The created schema object.
+* \exception An exception is thrown if an error occurs creating the Session.
+*/
+Schema BaseSession::createSchema(String name)
+{}
+#endif
+Value BaseSession::createSchema(const Argument_list &args)
+{
+  std::string function_name = class_name() + ".createSchema";
+  args.ensure_count(1, function_name.c_str());
+
+  Value ret_val;
+  try
+  {
+    std::string schema = args.string_at(0);
+    std::string statement = "create schema " + schema;
+    ret_val = executeStmt("sql", statement, shcore::Argument_list());
+
+    // if reached this point it indicates that there were no errors
+    boost::shared_ptr<Schema> object(new Schema(_get_shared_this(), schema));
+    ret_val = shcore::Value(boost::static_pointer_cast<Object_bridge>(object));
+
+    (*_schemas)[schema] = ret_val;
   }
   CATCH_AND_TRANSLATE();
 

@@ -228,6 +228,47 @@ Value ClassicSession::sql(const Argument_list &args)
 
 #ifdef DOXYGEN
 /**
+* Creates a schema on the database and returns the corresponding object.
+* \param name A string value indicating the schema name.
+* \return The created schema object.
+* \exception An exception is thrown if an error occurs creating the Session.
+*/
+Schema ClassicSession::createSchema(String name)
+{}
+#endif
+Value ClassicSession::createSchema(const Argument_list &args)
+{
+  args.ensure_count(1, "ClassicSession::createSchema");
+
+  Value ret_val;
+  if (!_conn)
+    throw Exception::logic_error("Not connected.");
+  else
+  {
+    // Options are the statement and optionally options to modify
+    // How the resultset is created.
+    std::string schema = args.string_at(0);
+
+    if (schema.empty())
+      throw Exception::argument_error("The schema name can not be empty.");
+    else
+    {
+      std::string statement = "create schema " + schema;
+      ret_val = Value::wrap(new Resultset(boost::shared_ptr<Result>(_conn->executeSql(statement))));
+
+      boost::shared_ptr<Schema> object(new Schema(shared_from_this(), schema));
+
+      // If reached this point it indicates the schema was created successfully
+      ret_val = shcore::Value(boost::static_pointer_cast<Object_bridge>(object));
+      (*_schemas)[schema] = ret_val;
+    }
+  }
+
+  return ret_val;
+}
+
+#ifdef DOXYGEN
+/**
 * Returns the connection string passed to connect() method.
 * \return A string representation of the connection data in URI format (excluding the password or the database).
 * \sa connect

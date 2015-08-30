@@ -187,6 +187,7 @@ boost::shared_ptr<mysh::ShellBaseSession> mysh::connect_session(const shcore::Ar
 
 ShellBaseSession::ShellBaseSession()
 {
+  add_method("createSchema", boost::bind(&ShellBaseSession::createSchema, this, _1), "name", shcore::String, NULL);
   add_method("getDefaultSchema", boost::bind(&ShellBaseSession::get_member_method, this, _1, "getDefaultSchema", "defaultSchema"), NULL);
   add_method("getSchema", boost::bind(&ShellBaseSession::get_schema, this, _1), "name", shcore::String, NULL);
   add_method("getSchemas", boost::bind(&ShellBaseSession::get_member_method, this, _1, "getSchemas", "schemas"), NULL);

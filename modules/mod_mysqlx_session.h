@@ -151,6 +151,7 @@ namespace mysh
       virtual shcore::Value connect(const shcore::Argument_list &args);
       virtual shcore::Value close(const shcore::Argument_list &args);
       virtual shcore::Value sql(const shcore::Argument_list &args);
+      virtual shcore::Value createSchema(const shcore::Argument_list &args);
       shcore::Value executeAdminCommand(const std::string& command, const shcore::Argument_list &args);
       shcore::Value executeSql(const std::string& query, const shcore::Argument_list &args);
       virtual bool is_connected() const { return _session ? true : false; }
@@ -171,13 +172,14 @@ namespace mysh
       Map schemas; //!< Same as getSchemas()
       Schema defaultSchema; //!< Same as getDefaultSchema()
 
+      Schema createSchema(String name);
       Schema getDefaultSchema();
+      Schema setDefaultSchema(String name);
       Schema getSchema(String name);
       Map getSchemas();
       String getUri();
       Undefined close();
       Undefined setFetchWarnings(Bool value);
-      Schema setDefaultSchema(String name);
 #endif
     protected:
       ::mysqlx::ArgumentValue get_argument_value(shcore::Value source);

@@ -40,6 +40,59 @@ namespace shcore {
     }
   };
 
+  TEST_F(Shell_js_mysqlx_session_tests, mysqlx_session_members)
+  {
+    exec_and_out_equals("var mysqlx = require('mysqlx').mysqlx;");
+
+    std::string uri = mysh::strip_password(_uri);
+
+    exec_and_out_equals("var session = mysqlx.getSession('" + _uri + "');");
+
+    // Ensures the right members exist
+    exec_and_out_equals("var members = dir(session);");
+    exec_and_out_equals("print(members.length >= 11)", "true");
+    exec_and_out_equals("print(members[0] == 'close');", "true");
+    exec_and_out_equals("print(members[1] == 'createSchema');", "true");
+    exec_and_out_equals("print(members[2] == 'getDefaultSchema');", "true");
+    exec_and_out_equals("print(members[3] == 'getSchema');", "true");
+    exec_and_out_equals("print(members[4] == 'getSchemas');", "true");
+    exec_and_out_equals("print(members[5] == 'getUri');", "true");
+    exec_and_out_equals("print(members[6] == 'setDefaultSchema');", "true");
+    exec_and_out_equals("print(members[7] == 'setFetchWarnings');", "true");
+    exec_and_out_equals("print(members[8] == 'defaultSchema');", "true");
+    exec_and_out_equals("print(members[9] == 'schemas');", "true");
+    exec_and_out_equals("print(members[10] == 'uri');", "true");
+
+    exec_and_out_equals("session.close();");
+  }
+
+  TEST_F(Shell_js_mysqlx_session_tests, mysqlx_node_session_members)
+  {
+    exec_and_out_equals("var mysqlx = require('mysqlx').mysqlx;");
+
+    std::string uri = mysh::strip_password(_uri);
+
+    exec_and_out_equals("var session = mysqlx.getNodeSession('" + _uri + "');");
+
+    // Ensures the right members exist
+    exec_and_out_equals("var members = dir(session);");
+    exec_and_out_equals("print(members.length >= 12)", "true");
+    exec_and_out_equals("print(members[0] == 'close');", "true");
+    exec_and_out_equals("print(members[1] == 'createSchema');", "true");
+    exec_and_out_equals("print(members[2] == 'getDefaultSchema');", "true");
+    exec_and_out_equals("print(members[3] == 'getSchema');", "true");
+    exec_and_out_equals("print(members[4] == 'getSchemas');", "true");
+    exec_and_out_equals("print(members[5] == 'getUri');", "true");
+    exec_and_out_equals("print(members[6] == 'setDefaultSchema');", "true");
+    exec_and_out_equals("print(members[7] == 'setFetchWarnings');", "true");
+    exec_and_out_equals("print(members[8] == 'sql');", "true");
+    exec_and_out_equals("print(members[9] == 'defaultSchema');", "true");
+    exec_and_out_equals("print(members[10] == 'schemas');", "true");
+    exec_and_out_equals("print(members[11] == 'uri');", "true");
+
+    exec_and_out_equals("session.close();");
+  }
+
   // Tests session.getDefaultSchema()
   TEST_F(Shell_js_mysqlx_session_tests, mysqlx_base_session_get_uri)
   {
@@ -237,6 +290,33 @@ namespace shcore {
     exec_and_out_equals("print(result.warnings.length);", "0");
 
     exec_and_out_equals("print(result.getWarnings().length);", "0");
+
+    exec_and_out_equals("session.close();");
+  }
+
+  // Tests session.<schema>
+  TEST_F(Shell_js_mysqlx_session_tests, create_schema)
+  {
+    exec_and_out_equals("var mysqlx = require('mysqlx').mysqlx;");
+
+    exec_and_out_equals("var session = mysqlx.getNodeSession('" + _uri + "');");
+
+    // Cleans environment
+    exec_and_out_equals("session.sql('drop database if exists mysqlx_test_create_schema_1').execute();");
+
+    // Happy path
+    exec_and_out_equals("var s = session.createSchema('mysqlx_test_create_schema_1');");
+
+    exec_and_out_equals("print(s);", "<Schema:mysqlx_test_create_schema_1>");
+
+    // Error, existing schema
+    exec_and_out_contains("var s2 = session.createSchema('mysqlx_test_create_schema_1');", "", "Server: Can't create database 'mysqlx_test_create_schema_1'; database exists (1007)");
+
+    // Error, passing non string
+    exec_and_out_contains("var s2 = session.createSchema(45);", "", "TypeError: Argument #1 is expected to be a string");
+
+    // Drops the database
+    exec_and_out_equals("session.sql('drop database mysqlx_test_create_schema_1').execute();");
 
     exec_and_out_equals("session.close();");
   }

@@ -104,6 +104,7 @@ namespace mysh
       virtual shcore::Value connect(const shcore::Argument_list &args);
       virtual shcore::Value close(const shcore::Argument_list &args);
       virtual shcore::Value sql(const shcore::Argument_list &args);
+      virtual shcore::Value createSchema(const shcore::Argument_list &args);
       virtual bool is_connected() const { return _conn ? true : false; }
 
       virtual std::string uri() const;
@@ -119,6 +120,7 @@ namespace mysh
       Map schemas; //!< Same as getSchemas()
       Schema defaultSchema; //!< Same as getDefaultSchema()
 
+      Schema createSchema(String name);
       String getUri();
       Schema getSchema(String name);
 

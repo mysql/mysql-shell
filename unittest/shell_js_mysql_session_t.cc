@@ -41,6 +41,33 @@ namespace shcore {
   };
 
   // Tests session.getDefaultSchema()
+  TEST_F(Shell_js_mysql_session_tests, mysql_classic_session_members)
+  {
+    exec_and_out_equals("var mysql = require('mysql').mysql;");
+
+    std::string uri = mysh::strip_password(_mysql_uri);
+
+    exec_and_out_equals("var session = mysql.getClassicSession('" + _mysql_uri + "');");
+
+    // Ensures the right members exist
+    exec_and_out_equals("var members = dir(session);");
+    exec_and_out_equals("print(members.length >= 11)", "true");
+    exec_and_out_equals("print(members[0] == 'close');", "true");
+    exec_and_out_equals("print(members[1] == 'createSchema');", "true");
+    exec_and_out_equals("print(members[2] == 'getDefaultSchema');", "true");
+    exec_and_out_equals("print(members[3] == 'getSchema');", "true");
+    exec_and_out_equals("print(members[4] == 'getSchemas');", "true");
+    exec_and_out_equals("print(members[5] == 'getUri');", "true");
+    exec_and_out_equals("print(members[6] == 'setDefaultSchema');", "true");
+    exec_and_out_equals("print(members[7] == 'sql');", "true");
+    exec_and_out_equals("print(members[8] == 'defaultSchema');", "true");
+    exec_and_out_equals("print(members[9] == 'schemas');", "true");
+    exec_and_out_equals("print(members[10] == 'uri');", "true");
+
+    exec_and_out_equals("session.close();");
+  }
+
+  // Tests session.getDefaultSchema()
   TEST_F(Shell_js_mysql_session_tests, mysql_base_session_get_uri)
   {
     exec_and_out_equals("var mysql = require('mysql').mysql;");
@@ -204,6 +231,33 @@ namespace shcore {
 
     // Now direct and indirect access
     exec_and_out_contains("print(session.unexisting_schema);;", "", "Unknown database 'unexisting_schema'");
+
+    exec_and_out_equals("session.close();");
+  }
+
+  // Tests session.<schema>
+  TEST_F(Shell_js_mysql_session_tests, create_schema)
+  {
+    exec_and_out_equals("var mysql = require('mysql').mysql;");
+
+    exec_and_out_equals("var session = mysql.getClassicSession('" + _mysql_uri + "');");
+
+    // Cleans environment
+    exec_and_out_equals("session.sql('drop database if exists mysql_test_create_schema_1')");
+
+    // Happy path
+    exec_and_out_equals("var s = session.createSchema('mysql_test_create_schema_1');");
+
+    exec_and_out_equals("print(s);", "<Schema:mysql_test_create_schema_1>");
+
+    // Error, existing schema
+    exec_and_out_contains("var s2 = session.createSchema('mysql_test_create_schema_1');", "", "MySQLError: Can't create database 'mysql_test_create_schema_1'; database exists (1007)");
+
+    // Error, passing non string
+    exec_and_out_contains("var s2 = session.createSchema(45);", "", "TypeError: Argument #1 is expected to be a string");
+
+    // Drops the database
+    exec_and_out_equals("session.sql('drop database mysql_test_create_schema_1')");
 
     exec_and_out_equals("session.close();");
   }
