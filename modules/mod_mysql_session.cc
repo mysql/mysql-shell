@@ -67,15 +67,11 @@ REGISTER_OBJECT(mysql, ClassicSession);
 *
 * or as follows for connections using a socket or named pipe:
 *
-* [user[:pass\@] ::socket[/db]
+* [user[:pass\@]\::socket[/db]
 *
 * \sa ClassicSession
 */
-ClassicSession getClassicSession(String connectionData, String password)
-{
-  ClassicSession a;
-  return a;
-}
+ClassicSession getClassicSession(String connectionData, String password){}
 
 /**
 * This function works the same as the function above, except that the connection data comes enclosed on a dictionary object.
@@ -90,11 +86,7 @@ ClassicSession getClassicSession(String connectionData, String password)
 *
 * \sa ClassicSession
 */
-ClassicSession getClassicSession(Map connectionData, String password)
-{
-  ClassicSession a;
-  return a;
-}
+ClassicSession getClassicSession(Map connectionData, String password){}
 #endif
 
 ClassicSession::ClassicSession()
@@ -180,12 +172,11 @@ Value ClassicSession::connect(const Argument_list &args)
 
 #ifdef DOXYGEN
 /**
-* Closes the internal connection to the MySQL Server held on ths session object.
+* Closes the internal connection to the MySQL Server held on this session object.
 */
-Undefined ClassicSession::close()
-{}
+Undefined ClassicSession::close(){}
 #endif
-Value ClassicSession::close(const Argument_list &args)
+Value ClassicSession::close(const shcore::Argument_list &args)
 {
   args.ensure_count(0, "ClassicSession::close");
 
@@ -198,12 +189,12 @@ Value ClassicSession::close(const Argument_list &args)
 /**
 * Executes a query against the database and returns a  Resultset object wrapping the result.
 * \param query the SQL query to execute against the database.
-* \return The Resultset.
+* \return A Resultset object.
+* \exception An exception is thrown if an error occurs on the SQL execution.
 */
-Resultset ClassicSession::sql(String query)
-{}
+Resultset ClassicSession::sql(String query){}
 #endif
-Value ClassicSession::sql(const Argument_list &args)
+Value ClassicSession::sql(const shcore::Argument_list &args)
 {
   args.ensure_count(1, "ClassicSession::sql");
   // Will return the result of the SQL execution
@@ -233,10 +224,9 @@ Value ClassicSession::sql(const Argument_list &args)
 * \return The created schema object.
 * \exception An exception is thrown if an error occurs creating the Session.
 */
-Schema ClassicSession::createSchema(String name)
-{}
+Schema ClassicSession::createSchema(String name){}
 #endif
-Value ClassicSession::createSchema(const Argument_list &args)
+Value ClassicSession::createSchema(const shcore::Argument_list &args)
 {
   args.ensure_count(1, "ClassicSession::createSchema");
 
@@ -273,8 +263,7 @@ Value ClassicSession::createSchema(const Argument_list &args)
 * \return A string representation of the connection data in URI format (excluding the password or the database).
 * \sa connect
 */
-String ClassicSession::getUri()
-{}
+String ClassicSession::getUri(){}
 #endif
 std::string ClassicSession::uri() const
 {
@@ -300,6 +289,25 @@ std::vector<std::string> ClassicSession::get_members() const
   return members;
 }
 
+#ifdef DOXYGEN
+/**
+* Retrieves the Schema configured as default for the session.
+* \return A Schema object or Null
+*/
+Schema ClassicSession::getDefaultSchema(){}
+
+/**
+* Retrieves the Schemas available on the session.
+* \return A Map containing the Schema objects available o the session.
+*/
+Map ClassicSession::getSchemas(){}
+
+/**
+* Retrieves the connection data for this session in string format.
+* \return A string representing the connection data.
+*/
+String ClassicSession::getUri(){}
+#endif
 Value ClassicSession::get_member(const std::string &prop) const
 {
   // Retrieves the member first from the parent
@@ -394,15 +402,13 @@ void ClassicSession::_load_schemas()
 
 #ifdef DOXYGEN
 /**
-* Returns the current schema of this session
 * Retrieves a Schema object from the current session through it's name.
 * \param name The name of the Schema object to be retrieved.
-* \return An schema object for the current schema.
+* \return The Schema object with the given name.
 * \exception An exception is thrown if the given name is not a valid schema on the Session.
 * \sa Schema
 */
-Schema ClassicSession::getSchema(String name)
-{}
+Schema ClassicSession::getSchema(String name){}
 #endif
 shcore::Value ClassicSession::get_schema(const shcore::Argument_list &args) const
 {
@@ -442,8 +448,7 @@ shcore::Value ClassicSession::get_schema(const shcore::Argument_list &args) cons
 * Sets the default schema for this session's connection.
 * \return The new schema.
 */
-Schema ClassicSession::setDefaultSchema(String schema)
-{}
+Schema ClassicSession::setDefaultSchema(String schema){}
 #endif
 shcore::Value ClassicSession::set_default_schema(const shcore::Argument_list &args)
 {

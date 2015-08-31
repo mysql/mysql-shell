@@ -121,30 +121,13 @@ namespace mysh
       Schema defaultSchema; //!< Same as getDefaultSchema()
 
       Schema createSchema(String name);
-      String getUri();
       Schema getSchema(String name);
-
-      /**
-      * Retrieves the schema objects that were cached when the session was created.
-      * \return A Map object containing as keys the schema names and as values the schema objects.
-      * \sa Schema
-      */
-      Map getSchemas()
-      {}
-
-      Undefined close();
+      Schema getDefaultSchema();
       Schema setDefaultSchema(String schema);
-
-      /**
-      * Retrieves if any, the schema configured as default on the current session.
-      * \return the Schema object or Null.
-      * \section (Dynamic Attributes)
-      * this is a sample section
-      */
-      Schema getDefaultSchema()
-      {}
-
+      Map getSchemas();
+      String getUri();
       Resultset sql(String query);
+      Undefined close();
 #endif
 
     private:

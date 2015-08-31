@@ -80,8 +80,7 @@ CollectionModify::CollectionModify(boost::shared_ptr<Collection> owner)
 * \sa Usage examples at execute(ExecuteOptions options).
 * \sa Collection
 */
-CollectionModify CollectionModify::modify(String searchCondition)
-{}
+CollectionModify CollectionModify::modify(String searchCondition){}
 #endif
 shcore::Value CollectionModify::modify(const shcore::Argument_list &args)
 {
@@ -122,7 +121,7 @@ shcore::Value CollectionModify::modify(const shcore::Argument_list &args)
 *
 * The attribute addition will be done on the collection's documents once the execute method is called.
 *
-* This function can be invoked after:
+* This function can be invoked multiple times after:
 *
 * - modify(String searchCondition)
 * - set(String attribute, Value value)
@@ -148,8 +147,7 @@ shcore::Value CollectionModify::modify(const shcore::Argument_list &args)
 *
 * \sa Usage examples at execute(ExecuteOptions options).
 */
-CollectionModify CollectionModify::set(String attribute, Value value)
-{}
+CollectionModify CollectionModify::set(String attribute, Value value){}
 #endif
 shcore::Value CollectionModify::set(const shcore::Argument_list &args)
 {
@@ -179,7 +177,7 @@ shcore::Value CollectionModify::set(const shcore::Argument_list &args)
 *
 * The attribute removal will be done on the collection's documents once the execute method is called.
 *
-* This function can be invoked after:
+* This function can be invoked multiple times after:
 *
 * - modify(String searchCondition)
 * - set(String attribute, Value value)
@@ -205,8 +203,7 @@ shcore::Value CollectionModify::set(const shcore::Argument_list &args)
 *
 * \sa Usage examples at execute(ExecuteOptions options).
 */
-CollectionModify CollectionModify::unset(String attribute)
-{}
+CollectionModify CollectionModify::unset(String attribute){}
 
 /**
 * Removes attributes from documents in a collection.
@@ -218,7 +215,7 @@ CollectionModify CollectionModify::unset(String attribute)
 *
 * The attribute removal will be done on the collection's documents once the execute method is called.
 *
-* This function can be invoked after:
+* This function can be invoked multiple times after:
 *
 * - modify(String searchCondition)
 * - set(String attribute, Value value)
@@ -244,8 +241,7 @@ CollectionModify CollectionModify::unset(String attribute)
 *
 * \sa Usage examples at execute(ExecuteOptions options).
 */
-CollectionModify CollectionModify::unset(List attributes)
-{}
+CollectionModify CollectionModify::unset(List attributes){}
 #endif
 shcore::Value CollectionModify::unset(const shcore::Argument_list &args)
 {
@@ -316,7 +312,7 @@ shcore::Value CollectionModify::unset(const shcore::Argument_list &args)
 *
 * The attribute addition will be done on the collection's documents once the execute method is called.
 *
-* This function can be invoked after:
+* This function can be invoked multiple times after:
 *
 * - modify(String searchCondition)
 * - set(String attribute, Value value)
@@ -342,8 +338,7 @@ shcore::Value CollectionModify::unset(const shcore::Argument_list &args)
 *
 * \sa Usage examples at execute(ExecuteOptions options).
 */
-CollectionModify CollectionModify::merge(Document document)
-{}
+CollectionModify CollectionModify::merge(Document document){}
 #endif
 shcore::Value CollectionModify::merge(const shcore::Argument_list &args)
 {
@@ -376,7 +371,7 @@ shcore::Value CollectionModify::merge(const shcore::Argument_list &args)
 *
 * The insertion of the value will be done on the collection's documents once the execute method is called.
 *
-* This function can be invoked after:
+* This function can be invoked multiple times after:
 *
 * - modify(String searchCondition)
 * - set(String attribute, Value value)
@@ -402,8 +397,7 @@ shcore::Value CollectionModify::merge(const shcore::Argument_list &args)
 *
 * \sa Usage examples at execute(ExecuteOptions options).
 */
-CollectionModify CollectionModify::arrayInsert(String path, Value value)
-{}
+CollectionModify CollectionModify::arrayInsert(String path, Value value){}
 #endif
 shcore::Value CollectionModify::array_insert(const shcore::Argument_list &args)
 {
@@ -431,7 +425,7 @@ shcore::Value CollectionModify::array_insert(const shcore::Argument_list &args)
 *
 * Adds an opertion into the modify handler to append a value into an array attribute on the documents that were included on the selection filter and limit.
 *
-* This function can be invoked after:
+* This function can be invoked multiple times after:
 *
 * - modify(String searchCondition)
 * - set(String attribute, Value value)
@@ -459,8 +453,7 @@ shcore::Value CollectionModify::array_insert(const shcore::Argument_list &args)
 *
 * \sa Usage examples at execute(ExecuteOptions options).
 */
-CollectionModify CollectionModify::arrayAppend(String path, Value value)
-{}
+CollectionModify CollectionModify::arrayAppend(String path, Value value){}
 #endif
 shcore::Value CollectionModify::array_append(const shcore::Argument_list &args)
 {
@@ -490,7 +483,7 @@ shcore::Value CollectionModify::array_append(const shcore::Argument_list &args)
 *
 * The attribute deletion will be done on the collection's documents once the execute method is called.
 *
-* This function can be invoked after:
+* This function can be invoked multiple times after:
 *
 * - modify(String searchCondition)
 * - set(String attribute, Value value)
@@ -516,8 +509,7 @@ shcore::Value CollectionModify::array_append(const shcore::Argument_list &args)
 *
 * \sa Usage examples at execute(ExecuteOptions options).
 */
-CollectionModify CollectionModify::arrayDelete(String path, Value value)
-{}
+CollectionModify CollectionModify::arrayDelete(String path, Value value){}
 #endif
 shcore::Value CollectionModify::array_delete(const shcore::Argument_list &args)
 {
@@ -547,7 +539,7 @@ shcore::Value CollectionModify::array_delete(const shcore::Argument_list &args)
 *
 * This method is usually used in combination with limit to fix the amount of documents to be updated.
 *
-* This function can be invoked after:
+* This function can be invoked only once after:
 *
 * - set(String attribute, Value value)
 * - unset(String attribute)
@@ -564,8 +556,7 @@ shcore::Value CollectionModify::array_delete(const shcore::Argument_list &args)
 *
 * \sa Usage examples at execute(ExecuteOptions options).
 */
-CollectionModify CollectionModify::sort(List sortExprStr)
-{}
+CollectionModify CollectionModify::sort(List sortExprStr){}
 #endif
 shcore::Value CollectionModify::sort(const shcore::Argument_list &args)
 {
@@ -597,7 +588,7 @@ shcore::Value CollectionModify::sort(const shcore::Argument_list &args)
 *
 * This method is usually used in combination with sort to fix the amount of documents to be updated.
 *
-* This function can be invoked after:
+* This function can be invoked only once after:
 *
 * - set(String attribute, Value value)
 * - unset(String attribute)
@@ -614,8 +605,7 @@ shcore::Value CollectionModify::sort(const shcore::Argument_list &args)
 *
 * \sa Usage examples at execute(ExecuteOptions options).
 */
-CollectionModify CollectionModify::limit(Integer numberOfDocs)
-{}
+CollectionModify CollectionModify::limit(Integer numberOfDocs){}
 #endif
 shcore::Value CollectionModify::limit(const shcore::Argument_list &args)
 {
@@ -688,8 +678,7 @@ shcore::Value CollectionModify::bind(const shcore::Argument_list &UNUSED(args))
 * var res_car = collection.modify().arrayDelete('hobbies[0]').sort(['age']).limit(1).execute();*
 * \endcode
 */
-Collection_resultset CollectionModify::execute(ExecuteOptions opt)
-{}
+Collection_resultset CollectionModify::execute(ExecuteOptions opt){}
 #endif
 shcore::Value CollectionModify::execute(const shcore::Argument_list &args)
 {

@@ -31,7 +31,11 @@ namespace mysh
   {
     class NodeSession;
     /**
-    * Handler for SQL operations, supports parameter binding
+    * Handler for execution SQL statements, supports parameter binding.
+    * \todo Update execute to support options and document it
+    *
+    * This object should only be created by calling the sql function a NodeSession instance.
+    * \sa NodeSession
     */
     class SqlExecute : public Dynamic_object, public boost::enable_shared_from_this<SqlExecute>
     {
@@ -42,10 +46,10 @@ namespace mysh
       shcore::Value bind(const shcore::Argument_list &args);
       virtual shcore::Value execute(const shcore::Argument_list &args);
 #ifdef DOXYGEN
-      bind(val);
-      bind({val, val, ...});
-      sql(String sql);
-      Resultset execute(String sql);
+      sql(String statement);
+      bind(Value value);
+      bind(List values);
+      Resultset execute(ExecuteOptions options);
 #endif
     private:
       boost::weak_ptr<NodeSession> _session;

@@ -122,8 +122,7 @@ shcore::Value Resultset::get_member(const std::string &prop) const
 * \sa nextDataSet(), all()
 * \return the next row of data.
 */
-Row next()
-{}
+Row next(){}
 #endif
 shcore::Value Resultset::next(const shcore::Argument_list &UNUSED(args))
 {
@@ -196,8 +195,7 @@ shcore::Value Resultset::next(const shcore::Argument_list &UNUSED(args))
 * \sa next()
 * \return an array of Row objects.
 */
-Row[] Resultset::all()
-{}
+Row[] Resultset::all(){}
 #endif
 shcore::Value Resultset::all(const shcore::Argument_list &args)
 {
@@ -236,8 +234,7 @@ Collection_resultset::Collection_resultset(boost::shared_ptr< ::mysqlx::Result> 
 * \sa nextDataSet(), all()
 * \return the next row of data.
 */
-Row Resultset::next()
-{}
+Row Resultset::next(){}
 #endif
 shcore::Value Collection_resultset::next(const shcore::Argument_list &args)
 {

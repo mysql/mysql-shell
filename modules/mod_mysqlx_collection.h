@@ -40,7 +40,7 @@ namespace mysh
     class Schema;
 
     /**
-    * Represents a Collection on an Schema, retrieved with a session created using the X Protocol.
+    * Represents a Collection on an Schema, retrieved with session created using the mysqlx module.
     * \todo Implement and document as()
     * \todo Implement and document createIndex()
     * \todo Implement and document dropIndex()

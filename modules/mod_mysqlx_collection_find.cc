@@ -73,8 +73,7 @@ CollectionFind::CollectionFind(boost::shared_ptr<Collection> owner)
 *
 * \sa Usage examples at execute(ExecuteOptions options).
 */
-CollectionFind CollectionFind::find(String searchCondition)
-{}
+CollectionFind CollectionFind::find(String searchCondition){}
 #endif
 shcore::Value CollectionFind::find(const shcore::Argument_list &args)
 {
@@ -112,7 +111,7 @@ shcore::Value CollectionFind::find(const shcore::Argument_list &args)
 *
 * Calling this function is allowed only for the first time and only if the search criteria has been set by calling CollectionFind.find(searchCriteria), after that its usage is forbidden since the internal class state has been updated to handle the rest of the Find operation.
 *
-* This function can be invoked after:
+* This function can be invoked only once after:
 * - find(String searchCondition)
 *
 * After this function invocation, the following functions can be invoked:
@@ -124,8 +123,7 @@ shcore::Value CollectionFind::find(const shcore::Argument_list &args)
 *
 * \sa Usage examples at execute(ExecuteOptions options).
 */
-CollectionFind CollectionFind::fields(List projectedSearchExprStr)
-{}
+CollectionFind CollectionFind::fields(List projectedSearchExprStr){}
 #endif
 shcore::Value CollectionFind::fields(const shcore::Argument_list &args)
 {
@@ -157,9 +155,7 @@ shcore::Value CollectionFind::fields(const shcore::Argument_list &args)
 *
 * If used, the CollectionFind operation will group the records using the stablished criteria.
 *
-* Calling this function is allowed only for the first time and only if the search criteria has been set by calling CollectionFind.find(searchCriteria), after that its usage is forbidden since the internal class state has been updated to handle the rest of the Find operation.
-*
-* This function can be invoked after:
+* This function can be only once invoked after:
 * - find(String searchCondition)
 * - fields(List projectedSearchExprStr)
 *
@@ -172,8 +168,7 @@ shcore::Value CollectionFind::fields(const shcore::Argument_list &args)
 *
 * \sa Usage examples at execute(ExecuteOptions options).
 */
-CollectionFind CollectionFind::groupBy(List searchExprStr)
-{}
+CollectionFind CollectionFind::groupBy(List searchExprStr){}
 #endif
 shcore::Value CollectionFind::group_by(const shcore::Argument_list &args)
 {
@@ -205,9 +200,7 @@ shcore::Value CollectionFind::group_by(const shcore::Argument_list &args)
 *
 * If used the CollectionFind operation will only consider the records matching the stablished criteria.
 *
-* Calling this function is allowed only for the first time and only if the grouping criteria has been set by calling CollectionFind.groupBy(groupCriteria), after that its usage is forbidden since the internal class state has been updated to handle the rest of the Find operation.
-*
-* This function can be invoked after:
+* This function can be invoked only once after:
 *
 * - groupBy(List searchExprStr)
 *
@@ -219,8 +212,7 @@ shcore::Value CollectionFind::group_by(const shcore::Argument_list &args)
 *
 * \sa Usage examples at execute(ExecuteOptions options).
 */
-CollectionFind CollectionFind::having(String searchCondition)
-{}
+CollectionFind CollectionFind::having(String searchCondition){}
 #endif
 shcore::Value CollectionFind::having(const shcore::Argument_list &args)
 {
@@ -245,12 +237,10 @@ shcore::Value CollectionFind::having(const shcore::Argument_list &args)
 *
 * If used the CollectionFind operation will return the records sorted with the defined criteria.
 *
-* The elements of sortExprStr are usually strings defining the field name on which the sorting will be based. Each criterion could be followed by asc or desc to indicate ascending
-* or descending order respectivelly. If no order is specified, ascending will be used by default.
+* The elements of sortExprStr list are strings defining the column name on which the sorting will be based in the form of "attribute [ ASC | DESC ]".
+* If no order criteria is specified, ascending will be used by default.
 *
-* Calling this function is allowed only for the first time and only if the search criteria has been set by calling CollectionFind.find(searchCriteria), after that its usage is forbidden since the internal class state has been updated to handle the rest of the Find operation.
-*
-* This function can be invoked after:
+* This function can be invoked only once after:
 *
 * - find(String searchCondition)
 * - fields(List projectedSearchExprStr)
@@ -264,8 +254,7 @@ shcore::Value CollectionFind::having(const shcore::Argument_list &args)
 *
 * \sa Usage examples at execute(ExecuteOptions options).
 */
-CollectionFind CollectionFind::sort(List sortExprStr)
-{}
+CollectionFind CollectionFind::sort(List sortExprStr){}
 #endif
 shcore::Value CollectionFind::sort(const shcore::Argument_list &args)
 {
@@ -297,7 +286,7 @@ shcore::Value CollectionFind::sort(const shcore::Argument_list &args)
 *
 * If used, the CollectionFind operation will return at most numberOfRows documents.
 *
-* This function can be invoked after:
+* This function can be invoked only once after:
 *
 * - find(String searchCondition)
 * - fields(List projectedSearchExprStr)
@@ -312,8 +301,7 @@ shcore::Value CollectionFind::sort(const shcore::Argument_list &args)
 *
 * \sa Usage examples at execute(ExecuteOptions options).
 */
-CollectionFind CollectionFind::limit(Integer numberOfRows)
-{}
+CollectionFind CollectionFind::limit(Integer numberOfRows){}
 #endif
 shcore::Value CollectionFind::limit(const shcore::Argument_list &args)
 {
@@ -332,26 +320,21 @@ shcore::Value CollectionFind::limit(const shcore::Argument_list &args)
 
 #ifdef DOXYGEN
 /**
-* Sets number of records to skip on the resultset when a limit has been defined.
+* Sets number of documents to skip on the resultset when a limit has been defined.
 * \param limitOffset: The number of documents to skip before start including them on the Resultset.
 * \return This CollectionFind object.
 *
-* Calling this function is allowed only for the first time and only if a limit has been set by calling CollectionFind.limit(numberOfRows), after that its usage is forbidden since the internal class state has been updated to handle the rest of the Find operation.
-*
-* This function can be invoked after:
+* This function can be invoked only once after:
 *
 * - limit(Integer numberOfRows)
 *
 * After this function invocation, the following functions can be invoked:
 *
-* - execute(ExecuteOptions options).* After this function, the following functions can be invoked: execute.
-*
-* \sa execute(ExecuteOptions options), including usage examples.
+* - execute(ExecuteOptions options).
 *
 * \sa Usage examples at execute(ExecuteOptions options).
 */
-CollectionFind CollectionFind::skip(Integer limitOffset)
-{}
+CollectionFind CollectionFind::skip(Integer limitOffset){}
 #endif
 shcore::Value CollectionFind::skip(const shcore::Argument_list &args)
 {
@@ -419,8 +402,7 @@ shcore::Value CollectionFind::bind(const shcore::Argument_list &UNUSED(args))
 * var res = collection.find().sort(['age']).limit(4).skip(1).execute();
 * \endcode
 */
-Collection_resultset CollectionFind::execute(ExecuteOptions options)
-{}
+Collection_resultset CollectionFind::execute(ExecuteOptions options){}
 #endif
 shcore::Value CollectionFind::execute(const shcore::Argument_list &args)
 {

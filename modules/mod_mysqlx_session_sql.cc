@@ -45,15 +45,23 @@ _session(owner), Dynamic_object()
 
 #ifdef DOXYGEN
 /**
-* Sets the sql statement to execute.
-* This method can be invoked any number of times, each time will reset the sql statement to the value of the parameter.
-* After this method, the following methods can be invoked: bind, execute.
-* \sa execute(), bind()
-* \param sql
-* \return the same instance where this method was invoked.
+* Sets the sql statement to be executed by this handler.
+* \param statement A string containing the SQL statement to be executed.
+* \return This SqlExecute object.
+*
+* This function is called automatically when NodeSession.sql(sql) is called.
+*
+* Parameter binding is supported and can be done by using the \b ? placeholder instead of passing values directly on the SQL statement.
+* Parameters are bound in positional order.
+*
+* The actual execution of the SQL statement will occur when the execute() function is called.
+*
+* After this function invocation, the following functions can be invoked:
+* - bind(Value value)
+* - bind(List values)
+* - execute(ExecuteOptions options).
 */
-SqlExecute SqlExecute::sql(String sql)
-{}
+SqlExecute SqlExecute::sql(String statement){}
 #endif
 shcore::Value SqlExecute::sql(const shcore::Argument_list &args)
 {
@@ -76,26 +84,42 @@ shcore::Value SqlExecute::sql(const shcore::Argument_list &args)
 #ifdef DOXYGEN
 
 /**
-* Registers a parameter with the SQL statement.
-* This method can be invoked any number of times, each time will add the parameter to the list of parameters.
-* After this method the following methods can be invoked: execute.
-* TODO: the bind methods seems to lack a facility to associate a parameter name with its value.
-* \param val the parameter name
-* \sa bind()
-* \return the same instance where this method was invoked.
+* Registers a parameter to be bound on the execution of the SQL statement.
+* \param value the value to be bound.
+* \return This SqlExecute object.
+*
+* This method can be invoked any number of times, each time the received parameter will be added to an internal binding list.
+*
+* This function can be invoked after:
+* - sql(String statement)
+* - bind(Value value)
+* - bind(List values)
+*
+* After this function invocation, the following functions can be invoked:
+* - bind(Value value)
+* - bind(List values)
+* - execute(ExecuteOptions options).
 */
-SqlExecute SqlExecute::bind(val)
-{}
+SqlExecute SqlExecute::bind(Value value){}
 
 /**
-* Registers a set of parameters with the SQL statement.
-* This method can be invoked any number of times, each time will add the parameters to the list of parameters.
-* After this method the following methods can be invoked: execute.
-* \param {val, val, ...} the array of parameter names.
-* \return the same instance where this method was invoked.
+* Registers a list of parameter to be bound on the execution of the SQL statement.
+* \param values the value list to be bound.
+* \return This SqlExecute object.
+*
+* This method can be invoked any number of times, each time the received parameter will be added to an internal binding list.
+*
+* This function can be invoked after:
+* - sql(String statement)
+* - bind(Value value)
+* - bind(List values)
+*
+* After this function invocation, the following functions can be invoked:
+* - bind(Value value)
+* - bind(List values)
+* - execute(ExecuteOptions options).
 */
-SqlExecute SqlExecute::bind({val, val, ...})
-{}
+SqlExecute SqlExecute::bind(List values){}
 #endif
 shcore::Value SqlExecute::bind(const shcore::Argument_list &args)
 {
@@ -117,11 +141,15 @@ shcore::Value SqlExecute::bind(const shcore::Argument_list &args)
 
 #ifdef DOXYGEN
 /**
-* Executes the sql statement with the bound parameters and returns a resulset with the value.
-* This method can be invoked any number of times. Can be invoked after the following methods: sql (at least once), bind (zero or more).
+* Executes the sql statement.
+* \return A Resultset object.
+*
+* This function can be invoked after:
+* - sql(String statement)
+* - bind(Value value)
+* - bind(List values)
 */
-Resultset SqlExecute::execute(String sql)
-{}
+Resultset SqlExecute::execute(ExecuteOptions options){}
 #endif
 shcore::Value SqlExecute::execute(const shcore::Argument_list &args)
 {

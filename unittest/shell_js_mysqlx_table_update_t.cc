@@ -91,8 +91,8 @@ namespace shcore {
     // Now executes set
     {
       SCOPED_TRACE("Testing function availability after where.");
-      exec_and_out_equals("crud.set({name: 'Jack'})");
-      ensure_available_functions("where, orderBy, limit, bind, execute");
+      exec_and_out_equals("crud.set('name', 'Jack')");
+      ensure_available_functions("set, where, orderBy, limit, bind, execute");
     }
 
     // Now executes where
@@ -134,37 +134,37 @@ namespace shcore {
 
     {
       SCOPED_TRACE("Testing parameter validation on set");
-      exec_and_out_contains("table.update().set();", "", "Invalid number of arguments in TableUpdate::set, expected 1 but got 0");
-      exec_and_out_contains("table.update().set(5);", "", "TableUpdate::set: Argument #1 is expected to be a map");
-      exec_and_out_contains("table.update().set({name: session});", "", "TableUpdate::set: Unsupported value received for table update operation on field \"name\", received: <NodeSession:");
-      exec_and_out_equals("table.update().set({age: 17});");
+      exec_and_out_contains("table.update().set();", "", "Invalid number of arguments in TableUpdate::set, expected 2 but got 0");
+      exec_and_out_contains("table.update().set(5, 17);", "", "TableUpdate::set: Argument #1 is expected to be a string");
+      exec_and_out_contains("table.update().set('name', session);", "", "TableUpdate::set: Unsupported value received for table update operation on field \"name\", received: <NodeSession:");
+      exec_and_out_equals("table.update().set('age', 17);");
     }
 
     {
       SCOPED_TRACE("Testing parameter validation on where");
-      exec_and_out_contains("table.update().set({age: 17}).where();", "", "Invalid number of arguments in TableUpdate::where, expected 1 but got 0");
-      exec_and_out_contains("table.update().set({age: 17}).where(5);", "", "TableUpdate::where: Argument #1 is expected to be a string");
-      exec_and_out_contains("table.update().set({age: 17}).where('name = \"2');", "", "TableUpdate::where: Unterminated quoted string starting at 8");
-      exec_and_out_contains("table.update().set({age: 17}).where('name = \"2\"');");
+      exec_and_out_contains("table.update().set('age', 17).where();", "", "Invalid number of arguments in TableUpdate::where, expected 1 but got 0");
+      exec_and_out_contains("table.update().set('age', 17).where(5);", "", "TableUpdate::where: Argument #1 is expected to be a string");
+      exec_and_out_contains("table.update().set('age', 17).where('name = \"2');", "", "TableUpdate::where: Unterminated quoted string starting at 8");
+      exec_and_out_contains("table.update().set('age', 17).where('name = \"2\"');");
     }
 
     {
       SCOPED_TRACE("Testing parameter validation on orderBy");
-      exec_and_out_contains("table.update().set({age: 17}).orderBy();", "", "Invalid number of arguments in TableUpdate::orderBy, expected 1 but got 0");
-      exec_and_out_contains("table.update().set({age: 17}).orderBy(5);", "", "TableUpdate::orderBy: Argument #1 is expected to be an array");
-      exec_and_out_contains("table.update().set({age: 17}).orderBy([]);", "", "TableUpdate::orderBy: Order criteria can not be empty");
-      exec_and_out_contains("table.update().set({age: 17}).orderBy(['test', 5]);", "", "TableUpdate::orderBy: Element #2 is expected to be a string");
-      exec_and_out_contains("table.update().set({age: 17}).orderBy(['test']);", "", "");
+      exec_and_out_contains("table.update().set('age', 17).orderBy();", "", "Invalid number of arguments in TableUpdate::orderBy, expected 1 but got 0");
+      exec_and_out_contains("table.update().set('age', 17).orderBy(5);", "", "TableUpdate::orderBy: Argument #1 is expected to be an array");
+      exec_and_out_contains("table.update().set('age', 17).orderBy([]);", "", "TableUpdate::orderBy: Order criteria can not be empty");
+      exec_and_out_contains("table.update().set('age', 17).orderBy(['test', 5]);", "", "TableUpdate::orderBy: Element #2 is expected to be a string");
+      exec_and_out_contains("table.update().set('age', 17).orderBy(['test']);", "", "");
     }
 
     {
       SCOPED_TRACE("Testing parameter validation on limit");
-      exec_and_out_contains("table.update().set({age: 17}).limit();", "", "Invalid number of arguments in TableUpdate::limit, expected 1 but got 0");
-      exec_and_out_contains("table.update().set({age: 17}).limit('');", "", "TableUpdate::limit: Argument #1 is expected to be an unsigned int");
-      exec_and_out_contains("table.update().set({age: 17}).limit(5);");
+      exec_and_out_contains("table.update().set('age', 17).limit();", "", "Invalid number of arguments in TableUpdate::limit, expected 1 but got 0");
+      exec_and_out_contains("table.update().set('age', 17).limit('');", "", "TableUpdate::limit: Argument #1 is expected to be an unsigned int");
+      exec_and_out_contains("table.update().set('age', 17).limit(5);");
     }
 
-    exec_and_out_contains("table.update().set({age: 17}).bind();", "", "TableUpdate::bind: not yet implemented.");
+    exec_and_out_contains("table.update().set('age', 17).bind();", "", "TableUpdate::bind: not yet implemented.");
 
     exec_and_out_equals("session.close();");
   }
@@ -186,7 +186,7 @@ namespace shcore {
 
     {
       SCOPED_TRACE("Testing update");
-      exec_and_out_equals("var result = table.update().set({name:'aline'}).where('age = 13').execute();");
+      exec_and_out_equals("var result = table.update().set('name', 'aline').where('age = 13').execute();");
       exec_and_out_equals("print(result.affectedRows)", "1");
 
       exec_and_out_equals("var records = table.select().where('name = \"aline\"').execute().all();");
@@ -195,7 +195,7 @@ namespace shcore {
 
     {
       SCOPED_TRACE("Testing with expression");
-      exec_and_out_equals("var result = table.update().set({age:expr('13+10')}).where('age = 13').execute();");
+      exec_and_out_equals("var result = table.update().set('age', expr('13+10')).where('age = 13').execute();");
       exec_and_out_equals("print(result.affectedRows)", "1");
 
       exec_and_out_equals("var records = table.select().where('age = 23').execute().all();");
@@ -204,7 +204,7 @@ namespace shcore {
 
     {
       SCOPED_TRACE("Testing update with limits");
-      exec_and_out_equals("var result = table.update().set({age:15}).where('age = 14').limit(2).execute();");
+      exec_and_out_equals("var result = table.update().set('age', 15).where('age = 14').limit(2).execute();");
       exec_and_out_equals("print(result.affectedRows)", "2");
 
       exec_and_out_equals("var records = table.select().where('age = 15').execute().all();");
@@ -216,7 +216,7 @@ namespace shcore {
 
     {
       SCOPED_TRACE("Testing full update");
-      exec_and_out_equals("var result = table.update().set({gender:'female'}).execute();");
+      exec_and_out_equals("var result = table.update().set('gender', 'female').execute();");
       exec_and_out_equals("print(result.affectedRows)", "4");
 
       exec_and_out_equals("var records = table.select().where('gender = \"female\"').execute().all();");

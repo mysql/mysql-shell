@@ -47,14 +47,14 @@ CollectionRemove::CollectionRemove(boost::shared_ptr<Collection> owner)
 
 #ifdef DOXYGEN
 /**
-* Sets the search condition to identify the Documents to be removed from the owner Collection.
-* \param searchCondition: An optional expression to identify the documents to be removed;
-* if not specified all the documents will be removed from the collection unless a limit is set.
-* \return This CollectionFind object.
+* Sets the search condition to filter the Documents to be deleted from the owner Collection.
+* \param searchCondition: An optional expression to filter the documents to be deleted;
+* if not specified all the documents will be deleted from the collection unless a limit is set.
+* \return This CollectionRemove object.
 *
 * This function is called automatically when Collection.remove(searchCondition) is called.
 *
-* The actual removal of the documents will occur only when the execute method is called.
+* The actual deletion of the documents will occur only when the execute method is called.
 *
 * After this function invocation, the following functions can be invoked:
 *
@@ -64,8 +64,7 @@ CollectionRemove::CollectionRemove(boost::shared_ptr<Collection> owner)
 *
 * \sa Usage examples at execute(ExecuteOptions options).
 */
-CollectionRemove CollectionRemove::remove(String searchCondition)
-{}
+CollectionRemove CollectionRemove::remove(String searchCondition){}
 #endif
 shcore::Value CollectionRemove::remove(const shcore::Argument_list &args)
 {
@@ -95,16 +94,16 @@ shcore::Value CollectionRemove::remove(const shcore::Argument_list &args)
 
 #ifdef DOXYGEN
 /**
-* Sets the order in which the removal should be done.
+* Sets the order in which the deletion should be done.
 * \param sortExprStr: A list of expression strings defining a sort criteria, the deletion will be done following the order defined by this criteria.
 * \return This CollectionRemove object.
 *
-* The elements of sortExprStr list are usually strings defining the field name on which the sorting will be based. Each criterion could be followed by asc or desc to indicate ascending
-* or descending order respectivelly. If no order is specified, ascending will be used by default.
+* The elements of sortExprStr list are strings defining the column name on which the sorting will be based in the form of "columnIdentifier [ ASC | DESC ]".
+* If no order criteria is specified, ascending will be used by default.
 *
-* This method is usually used in combination with limit to fix the amount of documents to be removed.
+* This method is usually used in combination with limit to fix the amount of documents to be deleted.
 *
-* This function can be invoked after:
+* This function can be invoked only once after:
 *
 * - remove(String searchCondition)
 *
@@ -113,8 +112,7 @@ shcore::Value CollectionRemove::remove(const shcore::Argument_list &args)
 * - limit(Integer numberOfRows)
 * - execute(ExecuteOptions options).
 */
-CollectionRemove CollectionRemove::sort(List sortExprStr)
-{}
+CollectionRemove CollectionRemove::sort(List sortExprStr){}
 #endif
 shcore::Value CollectionRemove::sort(const shcore::Argument_list &args)
 {
@@ -145,9 +143,9 @@ shcore::Value CollectionRemove::sort(const shcore::Argument_list &args)
 * \param numberOfDocs the number of documents to affect in the remove execution.
 * \return This CollectionRemove object.
 *
-* This method is usually used in combination with sort to fix the amount of documents to be removed.
+* This method is usually used in combination with sort to fix the amount of documents to be deleted.
 *
-* This function can be invoked after:
+* This function can be invoked only once after:
 *
 * - remove(String searchCondition)
 * - sort(List sortExprStr)
@@ -156,8 +154,7 @@ shcore::Value CollectionRemove::sort(const shcore::Argument_list &args)
 *
 * - execute(ExecuteOptions options).
 */
-CollectionRemove CollectionRemove::limit(Integer numberOfDocs)
-{}
+CollectionRemove CollectionRemove::limit(Integer numberOfDocs){}
 #endif
 shcore::Value CollectionRemove::limit(const shcore::Argument_list &args)
 {
@@ -183,8 +180,8 @@ shcore::Value CollectionRemove::bind(const shcore::Argument_list &UNUSED(args))
 
 #ifdef DOXYGEN
 /**
-* Executes the removal operation with the configured filter and limit.
-* \return Collection_resultset A Collection resultset object that can be used to retrieve the results of the find operation.
+* Executes the document deletion with the configured filter and limit.
+* \return Collection_resultset A Collection resultset object that can be used to retrieve the results of the deletion operation.
 *
 * This function can be invoked after any other function on this class.
 *
@@ -215,8 +212,7 @@ shcore::Value CollectionRemove::bind(const shcore::Argument_list &UNUSED(args))
 * var res_all = collection.remove().execute();
 * \endcode
 */
-Collection_resultset CollectionRemove::execute(ExecuteOptions opt)
-{}
+Collection_resultset CollectionRemove::execute(ExecuteOptions opt){}
 #endif
 shcore::Value CollectionRemove::execute(const shcore::Argument_list &args)
 {

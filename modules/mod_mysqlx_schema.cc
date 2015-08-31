@@ -246,8 +246,7 @@ Value Schema::_load_object(const std::string& name, const std::string& type) con
 * \param name the name of the table to retrieve.
 * \return the Table object or undefined.
 */
-Table Schema::getTable(String name)
-{}
+Table Schema::getTable(String name){}
 #endif
 shcore::Value Schema::getTable(const shcore::Argument_list &args)
 {
@@ -266,8 +265,7 @@ shcore::Value Schema::getTable(const shcore::Argument_list &args)
 * \param name the name of the collection to retrieve.
 * \return the Collection object or undefined.
 */
-CollectionRef Schema::getCollection(String name)
-{}
+CollectionRef Schema::getCollection(String name){}
 #endif
 shcore::Value Schema::getCollection(const shcore::Argument_list &args)
 {
@@ -286,8 +284,7 @@ shcore::Value Schema::getCollection(const shcore::Argument_list &args)
 * \param name the name of the view to retrieve.
 * \return the View object or undefined.
 */
-View Schema::getView(String name)
-{}
+View Schema::getView(String name){}
 #endif
 shcore::Value Schema::getView(const shcore::Argument_list &args)
 {
@@ -306,8 +303,7 @@ shcore::Value Schema::getView(const shcore::Argument_list &args)
 * \param name the name of the colllection.
 * \return the new created collection.
 */
-CollectionRef Schema::createCollection(String name)
-{}
+CollectionRef Schema::createCollection(String name){}
 #endif
 shcore::Value Schema::createCollection(const shcore::Argument_list &args)
 {

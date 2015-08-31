@@ -30,7 +30,7 @@ using namespace mysh;
 using namespace shcore;
 using namespace mysh::mysql;
 
-Resultset::Resultset(boost::shared_ptr< ::mysql::Result> result)
+Resultset::Resultset(boost::shared_ptr<Result> result)
 : _result(result)
 {
 }

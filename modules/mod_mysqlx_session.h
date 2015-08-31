@@ -173,9 +173,9 @@ namespace mysh
       Schema defaultSchema; //!< Same as getDefaultSchema()
 
       Schema createSchema(String name);
+      Schema getSchema(String name);
       Schema getDefaultSchema();
       Schema setDefaultSchema(String name);
-      Schema getSchema(String name);
       Map getSchemas();
       String getUri();
       Undefined close();
@@ -204,7 +204,9 @@ namespace mysh
     *
     * Note that this class inherits the behavior described on the BaseSession class.
     *
-    * /sa BaseSession
+    * In the future this class will be improved to support interacting not only with MySQL Server but with other products.
+    *
+    * \sa BaseSession
     */
     class SHCORE_PUBLIC Session : public BaseSession, public boost::enable_shared_from_this<Session>
     {
@@ -222,7 +224,7 @@ namespace mysh
     *
     * Note that this class inherits the behavior described on the BaseSession class.
     *
-    * /sa BaseSession
+    * \sa BaseSession
     */
     class SHCORE_PUBLIC NodeSession : public BaseSession, public boost::enable_shared_from_this<NodeSession>
     {
