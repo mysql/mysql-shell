@@ -299,6 +299,11 @@ void Connection::set_closed()
   m_closed = true;
 }
 
+bool Connection::is_closed() const
+{
+  return m_closed;
+}
+
 void Connection::close()
 {
   if (!m_closed)

@@ -85,6 +85,7 @@ namespace mysqlx
 
     void close();
     void set_closed();
+    bool is_closed() const;
 
     void enable_tls();
 
