@@ -113,8 +113,8 @@ namespace mysh
 
       Table getTable(String name);
       View getView(String name);
-      CollectionRef getCollection(String name);
-      CollectionRef createCollection(String name);
+      Collection getCollection(String name);
+      Collection createCollection(String name);
 #endif
     private:
       shcore::Value _load_object(const std::string& name, const std::string& type = "") const;

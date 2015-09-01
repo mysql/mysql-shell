@@ -40,6 +40,8 @@ DatabaseObject::DatabaseObject(boost::shared_ptr<ShellBaseSession> session, boos
   add_method("getName", boost::bind(&DatabaseObject::get_member_method, this, _1, "getName", "name"), NULL);
   add_method("getSession", boost::bind(&DatabaseObject::get_member_method, this, _1, "getSession", "session"), NULL);
   add_method("getSchema", boost::bind(&DatabaseObject::get_member_method, this, _1, "getSchema", "schema"), NULL);
+  add_method("drop", boost::bind(&DatabaseObject::drop, this, _1), "data");
+  add_method("existInDatabase", boost::bind(&DatabaseObject::existInDatabase, this, _1), "data");
 }
 
 DatabaseObject::~DatabaseObject()
@@ -129,4 +131,28 @@ Value DatabaseObject::get_member(const std::string &prop) const
     ret_val = Cpp_object_bridge::get_member(prop);
 
   return ret_val;
+}
+
+#ifdef DOXYGEN
+/**
+* Drops this object from the database.
+*/
+Undefined DatabaseObject::drop(){}
+#endif
+shcore::Value DatabaseObject::drop(const shcore::Argument_list &args)
+{
+  _session.lock()->drop_db_object(class_name(), _name, _schema._empty() ? "" : _schema.lock()->get_member("name").as_string());
+
+  return shcore::Value();
+}
+
+#ifdef DOXYGEN
+/**
+* Verifies if this object exists in the database.
+*/
+Undefined DatabaseObject::existInDatabase(){}
+#endif
+shcore::Value DatabaseObject::existInDatabase(const shcore::Argument_list &args)
+{
+  return shcore::Value(_session.lock()->db_object_exists(class_name(), _name, _schema._empty() ? "" : _schema.lock()->get_member("name").as_string()));
 }

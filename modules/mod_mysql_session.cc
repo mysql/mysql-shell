@@ -494,3 +494,69 @@ boost::shared_ptr<shcore::Object_bridge> ClassicSession::create(const shcore::Ar
 
   return session;
 }
+
+void ClassicSession::drop_db_object(const std::string &type, const std::string &name, const std::string& owner)
+{
+  std::string statement;
+
+  if (type == "Schema")
+    statement = "drop schema `" + name + "`";
+  else if (type == "View")
+    statement = "drop view `" + owner + "`.`" + name + "`";
+  else
+    statement = "drop table `" + owner + "`.`" + name + "`";
+
+  // We execute the statement, any error will be reported properly
+  _conn->executeSql(statement);
+}
+
+/*
+* This function verifies if the given object exist in the database, works for schemas, tables and views.
+* The check for tables and views is done is done based on the type.
+* If type is not specified and an object with the name is found, the type will be returned.
+*/
+
+bool ClassicSession::db_object_exists(std::string &type, const std::string &name, const std::string& owner)
+{
+  std::string statement;
+  bool ret_val = false;
+
+  if (type == "Schema")
+  {
+    statement = "show databases like \"" + name + "\"";
+    Result *res = _conn->executeSql(statement);
+    if (res->has_resultset())
+    {
+      Row *row = res->next();
+      if (row)
+        ret_val = true;
+    }
+  }
+  else
+  {
+    statement = "show full tables from `" + owner + "` like \"" + name + "\"";
+    Result *res = _conn->executeSql(statement);
+
+    if (res->has_resultset())
+    {
+      Row *row = res->next();
+
+      if (row)
+      {
+        std::string db_type = row->get_value(1).as_string();
+
+        if (type == "Table" && (db_type == "BASE TABLE" || db_type == "LOCAL TEMPORARY"))
+          ret_val = true;
+        else if (type == "View" && (db_type == "VIEW" || db_type == "SYSTEM VIEW"))
+          ret_val = true;
+        else if (type.empty())
+        {
+          ret_val = true;
+          type = db_type;
+        }
+      }
+    }
+  }
+
+  return ret_val;
+}

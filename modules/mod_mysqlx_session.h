@@ -90,6 +90,7 @@ namespace mysh
   *
   * If specialized SQL work is required, SQL execution is also available through a NodeSession, which is intended to work specifically with MySQL Servers.
   */
+  class DatabaseObject;
   namespace mysqlx
   {
 #ifdef DOXYGEN
@@ -159,6 +160,10 @@ namespace mysh
 
       virtual shcore::Value get_schema(const shcore::Argument_list &args) const;
       virtual shcore::Value set_default_schema(const shcore::Argument_list &args);
+
+      virtual void drop_db_object(const std::string &type, const std::string &name, const std::string& owner);
+      virtual bool db_object_exists(std::string &type, const std::string &name, const std::string& owner);
+
       shcore::Value set_fetch_warnings(const shcore::Argument_list &args);
 
       boost::shared_ptr< ::mysqlx::Session> session_obj() const { return _session; }

@@ -108,4 +108,20 @@ namespace shcore {
 
     exec_and_out_equals("print(collection.schema)", "<Schema:js_shell_test>");
   }
+
+  // Tests collection.drop() and collection.existInDatabase()
+  TEST_F(Shell_js_mysqlx_collection_tests, mysqlx_collection_drop_exist_in_database)
+  {
+    exec_and_out_equals("var schema = session.createSchema('my_sample_schema');");
+
+    exec_and_out_equals("var collection = schema.createCollection('my_sample_collection');");
+
+    exec_and_out_equals("print(collection.existInDatabase());", "true");
+
+    exec_and_out_equals("collection.drop();");
+
+    exec_and_out_equals("print(collection.existInDatabase());", "false");
+
+    exec_and_out_equals("schema.drop();");
+  }
 }

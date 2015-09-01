@@ -52,6 +52,7 @@ namespace mysh
   *
   * The real purpose of this module is to allow SQL Execution on MySQL Servers where the X Protocol is not enabled.
   */
+  class DatabaseObject;
   namespace mysql
   {
 #ifdef DOXYGEN
@@ -110,6 +111,9 @@ namespace mysh
       virtual std::string uri() const;
       virtual shcore::Value get_schema(const shcore::Argument_list &args) const;
       virtual shcore::Value set_default_schema(const shcore::Argument_list &args);
+
+      virtual void drop_db_object(const std::string &type, const std::string &name, const std::string& owner);
+      virtual bool db_object_exists(std::string &type, const std::string &name, const std::string& owner);
 
       static boost::shared_ptr<shcore::Object_bridge> create(const shcore::Argument_list &args);
 

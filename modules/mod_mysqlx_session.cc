@@ -34,6 +34,7 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/format.hpp>
 #include <boost/pointer_cast.hpp>
+#include <boost/algorithm/string.hpp>
 
 #define MAX_COLUMN_LENGTH 1024
 #define MIN_COLUMN_LENGTH 4
@@ -571,6 +572,76 @@ void BaseSession::_update_default_schema(const std::string& name)
       (*_schemas)[name] = Value(boost::static_pointer_cast<Object_bridge>(_default_schema));
     }
   }
+}
+
+void BaseSession::drop_db_object(const std::string &type, const std::string &name, const std::string& owner)
+{
+  if (type == "Schema")
+    executeStmt("sql", "drop schema `" + name + "`", shcore::Argument_list());
+  else if (type == "View")
+    executeStmt("sql", "drop view `" + owner + "`.`" + name + "`", shcore::Argument_list());
+  else
+  {
+    shcore::Argument_list command_args;
+    command_args.push_back(Value(owner));
+    command_args.push_back(Value(name));
+
+    executeAdminCommand("drop_collection", command_args);
+  }
+}
+
+/*
+* This function verifies if the given object exist in the database, works for schemas, tables, views and collections.
+* The check for tables, views and collections is done is done based on the type.
+* If type is not specified and an object with the name is found, the type will be returned.
+*/
+bool BaseSession::db_object_exists(std::string &type, const std::string &name, const std::string& owner)
+{
+  std::string statement;
+  bool ret_val = false;
+
+  if (type == "Schema")
+  {
+    shcore::Value res = executeStmt("sql", "show databases like \"" + name + "\"", shcore::Argument_list());
+    boost::shared_ptr<Resultset> res_obj = res.as_object<Resultset>();
+
+    ret_val = res_obj->all(shcore::Argument_list()).as_array()->size() > 0;
+  }
+  else
+  {
+    shcore::Argument_list args;
+    args.push_back(Value(owner));
+    args.push_back(Value(name));
+
+    Value myres = executeAdminCommand("list_objects", args);
+    boost::shared_ptr<mysh::mysqlx::Resultset> my_res = myres.as_object<mysh::mysqlx::Resultset>();
+
+    Value raw_entry = my_res->next(shcore::Argument_list());
+
+    if (raw_entry)
+    {
+      boost::shared_ptr<mysh::Row> row = raw_entry.as_object<mysh::Row>();
+      std::string object_name = row->get_member("name").as_string();
+      std::string object_type = row->get_member("type").as_string();
+
+      if (type.empty())
+      {
+        type = object_type;
+        ret_val = true;
+      }
+      else
+      {
+        boost::algorithm::to_upper(type);
+
+        if (type == object_type)
+          ret_val = true;
+      }
+    }
+
+    my_res->all(shcore::Argument_list());
+  }
+
+  return ret_val;
 }
 
 boost::shared_ptr<BaseSession> Session::_get_shared_this() const

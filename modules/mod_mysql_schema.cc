@@ -201,29 +201,45 @@ shcore::Value Schema::find_in_collection(const std::string& name, boost::shared_
 Value Schema::_load_object(const std::string& name, const std::string& type) const
 {
   Value ret_val;
+
+  std::string found_type(type);
+  if (_session.lock()->db_object_exists(found_type, name, _name))
+
+  if (found_type == "BASE TABLE" || found_type == "LOCAL TEMPORARY")
+  {
+    ret_val = Value::wrap(new Table(shared_from_this(), name));
+    (*_tables)[name] = ret_val;
+  }
+  else if (found_type == "VIEW" || found_type == "SYSTEM VIEW")
+  {
+    ret_val = Value::wrap(new View(shared_from_this(), name));
+    (*_views)[name] = ret_val;
+  }
+  /*
+
   boost::shared_ptr<ClassicSession> sess(boost::dynamic_pointer_cast<ClassicSession>(_session.lock()));
   if (sess)
   {
-    Result *result = sess->connection()->executeSql("show full tables in `" + _name + "` like '" + name + "';");
-    Row *row = result->next();
+  Result *result = sess->connection()->executeSql("show full tables in `" + _name + "` like '" + name + "';");
+  Row *row = result->next();
 
-    if (row)
-    {
-      std::string object_name = row->get_value_as_string(0);
-      std::string object_type = row->get_value_as_string(1);
+  if (row)
+  {
+  std::string object_name = row->get_value_as_string(0);
+  std::string object_type = row->get_value_as_string(1);
 
-      if (type.empty() || (type == "TABLE" && (object_type == "BASE TABLE" || object_type == "LOCAL TEMPORARY")))
-      {
-        ret_val = Value::wrap(new Table(shared_from_this(), object_name));
-        (*_tables)[object_name] = ret_val;
-      }
-      else if (type.empty() || (type == "VIEW" && (object_type == "VIEW" || object_type == "SYSTEM VIEW")))
-      {
-        ret_val = Value::wrap(new View(shared_from_this(), object_name));
-        (*_views)[object_name] = ret_val;
-      }
-    }
+  if (type.empty() || (type == "TABLE" && (object_type == "BASE TABLE" || object_type == "LOCAL TEMPORARY")))
+  {
+  ret_val = Value::wrap(new Table(shared_from_this(), object_name));
+  (*_tables)[object_name] = ret_val;
   }
+  else if (type.empty() || (type == "VIEW" && (object_type == "VIEW" || object_type == "SYSTEM VIEW")))
+  {
+  ret_val = Value::wrap(new View(shared_from_this(), object_name));
+  (*_views)[object_name] = ret_val;
+  }
+  }
+  }*/
 
   return ret_val;
 }
