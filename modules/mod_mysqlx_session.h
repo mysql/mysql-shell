@@ -77,6 +77,7 @@ static void ATTR_UNUSED translate_exception()
 
 namespace mysh
 {
+  class DatabaseObject;
   /**
   * Encloses the functions and classes available to interact with an X Protocol enabled MySQL Product.
   *
@@ -90,7 +91,6 @@ namespace mysh
   *
   * If specialized SQL work is required, SQL execution is also available through a NodeSession, which is intended to work specifically with MySQL Servers.
   */
-  class DatabaseObject;
   namespace mysqlx
   {
 #ifdef DOXYGEN

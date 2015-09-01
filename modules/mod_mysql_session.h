@@ -40,6 +40,7 @@ namespace shcore
 
 namespace mysh
 {
+  class DatabaseObject;
   /**
   * Encloses the functions and classes available to interact with a MySQL Server using the traditional
   * MySQL Protocol.
@@ -52,7 +53,6 @@ namespace mysh
   *
   * The real purpose of this module is to allow SQL Execution on MySQL Servers where the X Protocol is not enabled.
   */
-  class DatabaseObject;
   namespace mysql
   {
 #ifdef DOXYGEN
