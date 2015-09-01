@@ -204,16 +204,17 @@ Value Schema::_load_object(const std::string& name, const std::string& type) con
 
   std::string found_type(type);
   if (_session.lock()->db_object_exists(found_type, name, _name))
-
-  if (found_type == "BASE TABLE" || found_type == "LOCAL TEMPORARY")
   {
-    ret_val = Value::wrap(new Table(shared_from_this(), name));
-    (*_tables)[name] = ret_val;
-  }
-  else if (found_type == "VIEW" || found_type == "SYSTEM VIEW")
-  {
-    ret_val = Value::wrap(new View(shared_from_this(), name));
-    (*_views)[name] = ret_val;
+    if (found_type == "BASE TABLE" || found_type == "LOCAL TEMPORARY")
+    {
+      ret_val = Value::wrap(new Table(shared_from_this(), name));
+      (*_tables)[name] = ret_val;
+    }
+    else if (found_type == "VIEW" || found_type == "SYSTEM VIEW")
+    {
+      ret_val = Value::wrap(new View(shared_from_this(), name));
+      (*_views)[name] = ret_val;
+    }
   }
   /*
 
