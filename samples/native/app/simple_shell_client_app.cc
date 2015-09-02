@@ -89,7 +89,7 @@ void print_table_result_set(Table_result_set* tbl)
       boost::shared_ptr<mysh::Row> row = v_row.as_object<mysh::Row>();
       for (size_t i = 0; i < metadata->size(); i++)
       {
-        shcore::Value& val = row->get_member(i);
+        const shcore::Value& val = row->get_member(i);
         print_tab_value(val);
       }
     }

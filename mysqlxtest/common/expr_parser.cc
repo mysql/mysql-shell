@@ -586,7 +586,7 @@ bool Tokenizer::Cmp_icase::operator()(const std::string& lhs, const std::string&
   return _stricmp(c_lhs, c_rhs) < 0;
 }
 
-Expr_parser::Expr_parser(const std::string& expr_str, bool document_mode, bool allow_alias) : _tokenizer(expr_str), _document_mode(document_mode), _allow_alias(allow_alias)
+Expr_parser::Expr_parser(const std::string& expr_str, bool document_mode, bool allow_alias) : _tokenizer(expr_str), _document_mode(document_mode), _allow_alias(allow_alias), _placeholder_pos(0)
 {
   _tokenizer.get_tokens();
 }

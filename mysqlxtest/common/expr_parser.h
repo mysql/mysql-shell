@@ -255,7 +255,7 @@ namespace mysqlx
     // placeholder
     typedef std::map<std::string, int> map_placeholder_to_pos_t;
     map_placeholder_to_pos_t _placeholder_name_to_pos;
-    int _placeholder_pos = 0;
+    int _placeholder_pos;
     Mysqlx::Expr::Expr* placeholder();
     // cast
     Mysqlx::Expr::Expr* my_expr();
