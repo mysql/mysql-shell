@@ -26,7 +26,7 @@
 using namespace mysqlx;
 
 Proj_parser::Proj_parser(const std::string& expr_str, bool document_mode, bool allow_alias)
-  : Expr_parser(expr_str, document_mode, allow_alias)
+: Expr_parser(expr_str, document_mode, allow_alias)
 {
 }
 
@@ -46,8 +46,8 @@ const std::string& Proj_parser::id()
  */
 void Proj_parser::source_expression(Mysqlx::Crud::Projection &col)
 {
-  if ( _document_mode && _tokenizer.cur_token_type_is(Token::DOLLAR))
-    {
+  if (_document_mode && _tokenizer.cur_token_type_is(Token::DOLLAR))
+  {
     _tokenizer.consume_token(Token::DOLLAR);
     Mysqlx::Expr::ColumnIdentifier* colid = col.mutable_source()->mutable_identifier();
     col.mutable_source()->set_type(Mysqlx::Expr::Expr::IDENT);
@@ -57,24 +57,25 @@ void Proj_parser::source_expression(Mysqlx::Crud::Projection &col)
       colid->mutable_document_path()->Add()->set_value(ident.c_str(), ident.size());
     }
     document_path(*colid);
-    }
-    else
+  }
+  else
+    col.set_allocated_source(my_expr());
+
+  // Sets the alias token
+  if (_allow_alias)
+  {
+    if (_tokenizer.cur_token_type_is(Token::AS))
     {
-      col.set_allocated_source(my_expr());
-    // Sets the alias token
-    if (_allow_alias)
-    {
-      if (_tokenizer.cur_token_type_is(Token::AS))
-      {
-        _tokenizer.consume_token(Token::AS);
-        const std::string& alias = _tokenizer.consume_token(Token::IDENT);
-        col.set_alias(alias.c_str());
-      }
-      else if (_tokenizer.cur_token_type_is(Token::IDENT))
-      {
-        const std::string& alias = _tokenizer.consume_token(Token::IDENT);
-        col.set_alias(alias.c_str());
-      }
+      _tokenizer.consume_token(Token::AS);
+      const std::string& alias = _tokenizer.consume_token(Token::IDENT);
+      col.set_alias(alias.c_str());
     }
+    else if (_tokenizer.cur_token_type_is(Token::IDENT))
+    {
+      const std::string& alias = _tokenizer.consume_token(Token::IDENT);
+      col.set_alias(alias.c_str());
+    }
+    else if (_document_mode)
+      col.set_alias(_tokenizer.get_input());
   }
 }
