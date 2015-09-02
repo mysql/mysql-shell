@@ -74,36 +74,47 @@ namespace shcore
     TEST(Proj_parser_tests, x_test)
     {
       parse_and_assert_expr("$a.b[0][0].c**.d.\"a weird\\\"key name\"",
-        "[59, 19, 22, 19, 8, 21, 9, 8, 21, 9, 22, 19, 54, 22, 19, 22, 20]", "projection ($.a.b[0][0].c**.d.a weird\"key name as $a.b[0][0].c**.d.\"a weird\\\"key name\")", true);
+        "[77, 19, 22, 19, 8, 76, 9, 8, 76, 9, 22, 19, 54, 22, 19, 22, 20]", "projection ($.a.b[0][0].c**.d.a weird\"key name)", true);
+
+
       parse_and_assert_expr("col1",
         "[19]", "projection (col1)");
-      // Unit tests with alias are disabled for now.
       parse_and_assert_expr("a as x1",
         "[19, 56, 19]", "projection (a as x1)");
       EXPECT_ANY_THROW(parse_and_assert_expr("a as x1, col1 as x2, b as x3",
         "[19, 56, 19, 24, 19, 56, 19, 24, 19, 56, 19]", "projection (a as x1, col1 as x2, b as x3)", false, false));
       parse_and_assert_expr("x.a[1][0].c",
-        "[19, 22, 19, 8, 21, 9, 8, 21, 9, 22, 19]", "projection ($.x.a[1][0].c as x.a[1][0].c)", true);
+        "[19, 22, 19, 8, 76, 9, 8, 76, 9, 22, 19]", "projection ($.x.a[1][0].c)", true);
       parse_and_assert_expr("x.a[1][0].c as mycol",
-        "[19, 22, 19, 8, 21, 9, 8, 21, 9, 22, 19, 56, 19]", "projection ($.x.a[1][0].c as mycol)", true);
+        "[19, 22, 19, 8, 76, 9, 8, 76, 9, 22, 19, 56, 19]", "projection ($.x.a[1][0].c as mycol)", true);
       EXPECT_ANY_THROW(parse_and_assert_expr("x.a[1][0].c as mycol, col1 as alias1",
-        "[19, 22, 19, 8, 21, 9, 8, 21, 9, 22, 19, 56, 19, 24, 19, 56, 19]", "projection ($.x.a[1][0].c as mycol, $.col1 as alias1)", true));
+        "[19, 22, 19, 8, 76, 9, 8, 76, 9, 22, 19, 56, 19, 24, 19, 56, 19]", "projection ($.x.a[1][0].c as mycol, $.col1 as alias1)", true));
       EXPECT_ANY_THROW(parse_and_assert_expr("x.a[1][0].c as mycol, col1 as alias1",
-        "[19, 22, 19, 8, 21, 9, 8, 21, 9, 22, 19, 56, 19, 24, 19, 56, 19]", "projection ($.x.a[1][0].c as mycol, $.col1 as alias1)", true, false));
+        "[19, 22, 19, 8, 76, 9, 8, 76, 9, 22, 19, 56, 19, 24, 19, 56, 19]", "projection ($.x.a[1][0].c as mycol, $.col1 as alias1)", true, false));
+      EXPECT_ANY_THROW(parse_and_assert_expr("$foo.bar", "[77, 19, 22, 19]", "projection ($.foo.bar)"));
 
-      EXPECT_ANY_THROW(parse_and_assert_expr("$foo.bar", "[59, 19, 22, 19]", "projection($.foo.baar)"));
-      parse_and_assert_expr("bar$foo.bar", "[19, 59, 19, 22, 19]", "projection (bar$.foo.bar)");
-      parse_and_assert_expr("bar$foo.bar as bla", "[19, 59, 19, 22, 19, 56, 19]", "projection (bar$.foo.bar as bla)");
-      parse_and_assert_expr("bar$foo.bar bla", "[19, 59, 19, 22, 19, 19]", "projection (bar$.foo.bar as bla)");
-
-      EXPECT_ANY_THROW(parse_and_assert_expr("bar$foo.bar bla", "[19, 59, 19, 22, 19, 19]", "projection ($.foo.baar as bar$foo.bar)", true));
-      parse_and_assert_expr("$foo.bar", "[59, 19, 22, 19]", "projection ($.foo.bar as $foo.bar)", true);
-      parse_and_assert_expr("foo.bar", "[19, 22, 19]", "projection ($.foo.bar as foo.bar)", true);
-      EXPECT_ANY_THROW(parse_and_assert_expr("foo.bar as a.b.c", "[19, 22, 19, 56, 19, 22, 19, 22, 19]", "projection ($.foo.baar)", true));
+      parse_and_assert_expr("bar$foo.bar", "[19, 77, 19, 22, 19]", "projection (bar$.foo.bar)");
+      parse_and_assert_expr("bar$foo.bar as bla", "[19, 77, 19, 22, 19, 56, 19]", "projection (bar$.foo.bar as bla)");
+      parse_and_assert_expr("bar$foo.bar bla", "[19, 77, 19, 22, 19, 19]", "projection (bar$.foo.bar as bla)");
+      EXPECT_ANY_THROW(parse_and_assert_expr("bar$foo.bar bla", "[19, 77, 19, 22, 19, 19]", "projection ($.foo.bar)", true));
+      parse_and_assert_expr("foo.bar", "[19, 22, 19]", "projection ($.foo.bar)", true);
+      EXPECT_ANY_THROW(parse_and_assert_expr("foo.bar as a.b.c", "[19, 22, 19, 56, 19, 22, 19, 22, 19]", "projection ($.foo.bar)", true));
       parse_and_assert_expr("foo.bar as aaa", "[19, 22, 19, 56, 19]", "projection ($.foo.bar as aaa)", true);
+
       parse_and_assert_expr("foo.bar as `a.b.c`", "[19, 22, 19, 56, 19]", "projection ($.foo.bar as a.b.c)", true);
-      parse_and_assert_expr("bla", "[19]", "projection ($.bla as bla)", true);
-      EXPECT_ANY_THROW(parse_and_assert_expr("bla, ble", "[19, 24, 19]", "projection ($.foo.baar as bla, ble)", true));
+      parse_and_assert_expr("bla", "[19]", "projection ($.bla)", true);
+      EXPECT_ANY_THROW(parse_and_assert_expr("bla, ble", "[19, 24, 19]", "projection ($.foo.bar, ble)", true));
+      
+      parse_and_assert_expr("$foo.bar", "[77, 19, 22, 19]", "projection ($.foo.bar)", true);
+
+      parse_and_assert_expr("concat(foo, ' ', bar)", "[19, 6, 19, 24, 20, 24, 19, 7]", "projection (concat($.foo, \" \", $.bar))", true);
+
+      parse_and_assert_expr("a > now() + interval (2 + x) MiNuTe",
+        "[19, 27, 19, 6, 7, 36, 16, 6, 76, 36, 19, 7, 46]", "projection ((a > (now() + INTERVAL (2 + x) MiNuTe)))");
+      parse_and_assert_expr("a between 1 and 2",
+        "[19, 10, 76, 2, 76]", "projection (a BETWEEN 1 AND 2)");
+      parse_and_assert_expr("(1 + 3) in (3, 4, 5)",
+        "[6, 76, 36, 76, 7, 14, 6, 76, 24, 76, 24, 76, 7]", "projection ((1 + 3) IN (3, 4, 5))");
     }
   };
 };

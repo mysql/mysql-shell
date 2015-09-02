@@ -71,6 +71,25 @@ Tokenizer::Maps::Maps()
   reserved_words["as"] = Token::AS;
   reserved_words["asc"] = Token::ASC;
   reserved_words["desc"] = Token::DESC;
+  reserved_words["cast"] = Token::CAST;
+  reserved_words["character"] = Token::CHARACTER;
+  reserved_words["set"] = Token::SET;
+  reserved_words["charset"] = Token::CHARSET;
+  reserved_words["ascii"] = Token::ASCII;
+  reserved_words["unicode"] = Token::UNICODE;
+  reserved_words["byte"] = Token::BYTE;
+  reserved_words["binary"] = Token::BINARY;
+  reserved_words["char"] = Token::CHAR;
+  reserved_words["nchar"] = Token::NCHAR;
+  reserved_words["date"] = Token::DATE;
+  reserved_words["datetime"] = Token::DATETIME;
+  reserved_words["time"] = Token::TIME;
+  reserved_words["decimal"] = Token::DECIMAL;
+  reserved_words["signed"] = Token::SIGNED;
+  reserved_words["unsigned"] = Token::UNSIGNED;
+  reserved_words["integer"] = Token::INTEGER;
+  reserved_words["int"] = Token::INTEGER;
+  reserved_words["json"] = Token::JSON;
 
   interval_units.insert(Token::MICROSECOND);
   interval_units.insert(Token::SECOND);
@@ -278,8 +297,12 @@ void Tokenizer::get_tokens()
           if (i == j)
             throw Parser_error((boost::format("Tokenizer: Missing exponential value for floating point at char %d") % i).str());
         }
+_tokens.push_back(Token(Token::LNUM, std::string(_input, start, i - start)));
       }
-      _tokens.push_back(Token(Token::LNUM, std::string(_input, start, i - start)));
+      else 
+      {
+        _tokens.push_back(Token(Token::LINTEGER, std::string(_input, start, i - start)));
+      }
       if (i < _input.size())
         --i;
     }
@@ -350,6 +373,14 @@ void Tokenizer::get_tokens()
       {
         _tokens.push_back(Token(Token::RSQBRACKET, std::string(1, c)));
       }
+      else if (c == '{')
+      {
+        _tokens.push_back(Token(Token::LCURLY, std::string(1, c)));
+      }
+      else if (c == '}')
+      {
+        _tokens.push_back(Token(Token::RCURLY, std::string(1, c)));
+      }
       else if (c == '~')
       {
         _tokens.push_back(Token(Token::NEG, std::string(1, c)));
@@ -357,6 +388,10 @@ void Tokenizer::get_tokens()
       else if (c == ',')
       {
         _tokens.push_back(Token(Token::COMMA, std::string(1, c)));
+      }
+      else if (c == ':')
+      {
+        _tokens.push_back(Token(Token::COLON, std::string(1, c)));
       }
       else if (c == '!')
       {
@@ -551,7 +586,7 @@ bool Tokenizer::Cmp_icase::operator()(const std::string& lhs, const std::string&
   return _stricmp(c_lhs, c_rhs) < 0;
 }
 
-Expr_parser::Expr_parser(const std::string& expr_str, bool document_mode) : _tokenizer(expr_str), _document_mode(document_mode)
+Expr_parser::Expr_parser(const std::string& expr_str, bool document_mode, bool allow_alias) : _tokenizer(expr_str), _document_mode(document_mode), _allow_alias(allow_alias)
 {
   _tokenizer.get_tokens();
 }
@@ -589,7 +624,7 @@ Mysqlx::Expr::Identifier* Expr_parser::identifier()
   if (_tokenizer.next_token_type(Token::DOT))
   {
     const std::string& schema_name = _tokenizer.consume_token(Token::IDENT);
-    id->set_name(schema_name.c_str(), schema_name.size());
+    id->set_schema_name(schema_name.c_str(), schema_name.size());
     _tokenizer.consume_token(Token::DOT);
   }
   const std::string& name = _tokenizer.consume_token(Token::IDENT);
@@ -642,7 +677,7 @@ void Expr_parser::docpath_member(Mysqlx::Expr::DocumentPathItem& item)
 }
 
 /*
- * docpath_array_loc ::= LSQBRACKET ( MUL | LNUM ) RSQBRACKET
+ * docpath_array_loc ::= LSQBRACKET ( MUL | LINTEGER ) RSQBRACKET
  */
 void Expr_parser::docpath_array_loc(Mysqlx::Expr::DocumentPathItem& item)
 {
@@ -652,9 +687,9 @@ void Expr_parser::docpath_array_loc(Mysqlx::Expr::DocumentPathItem& item)
     _tokenizer.consume_token(Token::RSQBRACKET);
     item.set_type(Mysqlx::Expr::DocumentPathItem::ARRAY_INDEX_ASTERISK);
   }
-  else if (_tokenizer.cur_token_type_is(Token::LNUM))
+  else if (_tokenizer.cur_token_type_is(Token::LINTEGER))
   {
-    const std::string& value = _tokenizer.consume_token(Token::LNUM);
+    const std::string& value = _tokenizer.consume_token(Token::LINTEGER);
     int v = boost::lexical_cast<int>(value.c_str(), value.size());
     if (v < 0)
       throw Parser_error((boost::format("Array index cannot be negative at %d") % _tokenizer.get_token_pos()).str());
@@ -664,12 +699,12 @@ void Expr_parser::docpath_array_loc(Mysqlx::Expr::DocumentPathItem& item)
   }
   else
   {
-    throw Parser_error((boost::format("Exception token type MUL or LNUM in JSON path array index at token pos %d") % _tokenizer.get_token_pos()).str());
+    throw Parser_error((boost::format("Exception token type MUL or LINTEGER in JSON path array index at token pos %d") % _tokenizer.get_token_pos()).str());
   }
 }
 
 /*
- * document_path ::= docpath_member | docpath_array_loc | ( DOUBLESTAR )
+ * document_path ::= ( docpath_member | docpath_array_loc | ( DOUBLESTAR ))+
  */
 void Expr_parser::document_path(Mysqlx::Expr::ColumnIdentifier& colid)
 {
@@ -715,9 +750,9 @@ const std::string& Expr_parser::id()
 
 /*
  * if not document_mode:
- *    column_identifier ::= id [ DOT id [ DOT id ] ] [ $ document_path ]
+ *    column_identifier ::= id [ DOT id [ DOT id ] ] [ $ [ IDENT ] document_path ]
  *  else
- *    column_identifier ::= IDENT document_path
+ *    column_identifier ::= [ DOLLAR ] IDENT document_path
  */
 Mysqlx::Expr::Expr* Expr_parser::column_identifier()
 {
@@ -750,11 +785,18 @@ Mysqlx::Expr::Expr* Expr_parser::column_identifier()
     if (_tokenizer.cur_token_type_is(Token::DOLLAR))
     {
       _tokenizer.consume_token(Token::DOLLAR);
+      if (_tokenizer.cur_token_type_is(Token::IDENT))
+      {
+        const std::string& ident = _tokenizer.consume_token(Token::IDENT);
+        colid->mutable_document_path()->Add()->set_value(ident.c_str(), ident.size());
+      }
       document_path(*colid);
     }
   }
   else
   {
+    if (_tokenizer.cur_token_type_is(Token::DOLLAR))
+      _tokenizer.consume_token(Token::DOLLAR);
     Mysqlx::Expr::ColumnIdentifier* colid = e->mutable_identifier();
     if (_tokenizer.cur_token_type_is(Token::IDENT))
     {
@@ -772,9 +814,9 @@ Mysqlx::Expr::Expr* Expr_parser::column_identifier()
 /*
  * atomic_expr ::=
  *   PLACEHOLDER | ( AT IDENT ) | ( LPAREN expr RPAREN ) | ( [ PLUS | MINUS ] LNUM ) |
- *   (( PLUS | MINUS | NOT | NEG ) atomic_expr ) | LSTRING | NULL | LNUM | TRUE | FALSE |
+ *   (( PLUS | MINUS | NOT | NEG ) atomic_expr ) | LSTRING | NULL | LNUM | LINTEGER | TRUE | FALSE |
  *   ( INTERVAL expr ( MICROSECOND | SECOND | MINUTE | HOUR | DAY | WEEK | MONTH | QUARTER | YEAR )) |
- *   function_call | column_identifier
+ *   function_call | column_identifier | cast | binary | placeholder | json_doc
  */
 Mysqlx::Expr::Expr* Expr_parser::atomic_expr()
 {
@@ -800,15 +842,16 @@ Mysqlx::Expr::Expr* Expr_parser::atomic_expr()
     _tokenizer.consume_token(Token::RPAREN);
     return e.release();
   }
-  else if (_tokenizer.cur_token_type_is(Token::LNUM) && ((type == Token::PLUS) || (type == Token::MINUS)))
+  else if ((_tokenizer.cur_token_type_is(Token::LNUM) || _tokenizer.cur_token_type_is(Token::LINTEGER)) && ((type == Token::PLUS) || (type == Token::MINUS)))
   {
-    const std::string& val = _tokenizer.consume_token(Token::LNUM);
+    const Token& token = _tokenizer.consume_any_token();
+    const std::string& val = token.get_text();
     int sign = (type == Token::PLUS) ? 1 : -1;
-    if (val.find(".") != std::string::npos)
+    if (token.get_type() == Token::LNUM)
     {
       return Expr_builder::build_literal_expr(Expr_builder::build_double_scalar(boost::lexical_cast<double>(val.c_str()) * sign));
     }
-    else
+    else // Token::LINTEGER
     {
       return Expr_builder::build_literal_expr(Expr_builder::build_int_scalar(boost::lexical_cast<int>(val.c_str()) * sign));
     }
@@ -828,14 +871,14 @@ Mysqlx::Expr::Expr* Expr_parser::atomic_expr()
   {
     return Expr_builder::build_literal_expr(Expr_builder::build_null_scalar());
   }
-  else if (type == Token::LNUM)
+  else if ((type == Token::LNUM) || (type == Token::LINTEGER))
   {
     const std::string& val = t.get_text();
-    if (val.find(".") != std::string::npos)
+    if (t.get_type() == Token::LNUM)
     {
       return Expr_builder::build_literal_expr(Expr_builder::build_double_scalar(boost::lexical_cast<double>(val.c_str())));
     }
-    else
+    else // Token::LINTEGER
     {
       return Expr_builder::build_literal_expr(Expr_builder::build_int_scalar(boost::lexical_cast<int>(val.c_str())));
     }
@@ -875,6 +918,26 @@ Mysqlx::Expr::Expr* Expr_parser::atomic_expr()
     _tokenizer.unget_token();
     return column_identifier();
   }
+  else if (type == Token::CAST)
+  {
+    _tokenizer.unget_token();
+    return cast();
+  }
+  else if (type == Token::PLACEHOLDER || type == Token::COLON)
+  {
+    _tokenizer.unget_token();
+    return placeholder();
+  }
+  else if (type == Token::LCURLY)
+  {
+    _tokenizer.unget_token();
+    return json_doc();
+  }
+  else if (type == Token::BINARY)
+  {
+    _tokenizer.unget_token();
+    return binary();
+  }
   else if (type == Token::IDENT || type == Token::DOT)
   {
     _tokenizer.unget_token();
@@ -889,6 +952,302 @@ Mysqlx::Expr::Expr* Expr_parser::atomic_expr()
     }
   }
   throw Parser_error((boost::format("Unknown token type = %d when expecting atomic expression at %d") % type % _tokenizer.get_token_pos()).str());
+}
+
+/**
+ * json_key_value ::= LSTRING COLON expr
+ */
+void Expr_parser::json_key_value(Mysqlx::Expr::Object* obj)
+{
+  Mysqlx::Expr::Object_ObjectField* fld = obj->add_fld();
+  const std::string& key = _tokenizer.consume_token(Token::LSTRING);
+  _tokenizer.consume_token(Token::COLON);
+  fld->set_key(key.c_str());
+  fld->set_allocated_value(my_expr());
+}
+
+/**
+* json_doc ::= LCURLY ( json_key_value ( COMMA json_key_value )* )? RCURLY
+*/
+Mysqlx::Expr::Expr* Expr_parser::json_doc()
+{
+
+  std::auto_ptr<Mysqlx::Expr::Expr> result(new Mysqlx::Expr::Expr());
+  Mysqlx::Expr::Object* obj = result->mutable_object();
+  result->set_type(Mysqlx::Expr::Expr_Type_OBJECT);
+  _tokenizer.consume_token(Token::LCURLY);
+  const Token& tok = _tokenizer.peek_token();
+  if (_tokenizer.cur_token_type_is(Token::LSTRING))
+  {
+    json_key_value(obj);
+    while (_tokenizer.cur_token_type_is(Token::COMMA))
+    {
+      _tokenizer.consume_any_token();
+      json_key_value(obj);
+    }
+  }
+  _tokenizer.consume_token(Token::RCURLY);
+  return result.release();
+}
+
+/**
+ * placeholder ::= ( COLON INT ) | ( COLON IDENT ) | PLACECHOLDER
+ */
+Mysqlx::Expr::Expr* Expr_parser::placeholder()
+{
+  std::auto_ptr<Mysqlx::Expr::Expr> result(new Mysqlx::Expr::Expr());
+  result->set_type(Mysqlx::Expr::Expr_Type_PLACEHOLDER);
+
+  std::string placeholder_name;
+  if (_tokenizer.cur_token_type_is(Token::COLON))
+  {
+    _tokenizer.consume_token(Token::COLON);
+    
+    if (_tokenizer.cur_token_type_is(Token::LINTEGER))
+      placeholder_name = _tokenizer.consume_token(Token::LINTEGER);
+    else if (_tokenizer.cur_token_type_is(Token::IDENT))
+      placeholder_name = _tokenizer.consume_token(Token::IDENT);
+    else
+      placeholder_name = boost::lexical_cast<std::string>(_placeholder_pos);
+  }
+  else if (_tokenizer.cur_token_type_is(Token::PLACEHOLDER))
+  {
+    _tokenizer.consume_token(Token::PLACEHOLDER);
+    placeholder_name = boost::lexical_cast<std::string>(_placeholder_pos);
+  }
+
+  map_placeholder_to_pos_t::const_iterator pos = _placeholder_name_to_pos.find(placeholder_name);
+  if (pos != _placeholder_name_to_pos.end())
+  {
+    result->set_position(pos->second);
+  }
+  else 
+  {
+    result->set_position(_placeholder_pos);
+    _placeholder_name_to_pos[placeholder_name] = _placeholder_pos;
+    ++_placeholder_pos;
+  }
+
+  return result.release();
+}
+
+/**
+ * cast ::= CAST LPAREN expr AS cast_data_type RPAREN
+ */
+Mysqlx::Expr::Expr* Expr_parser::cast()
+{
+  _tokenizer.consume_token(Token::CAST);
+  _tokenizer.consume_token(Token::LPAREN);
+  std::auto_ptr<Mysqlx::Expr::Expr> e(my_expr());
+  std::auto_ptr<Mysqlx::Expr::Expr> result(new Mysqlx::Expr::Expr());
+  // function
+  result->set_type(Mysqlx::Expr::Expr::FUNC_CALL);
+  Mysqlx::Expr::FunctionCall* func = result->mutable_function_call();
+  std::auto_ptr<Mysqlx::Expr::Identifier> id = std::auto_ptr<Mysqlx::Expr::Identifier>(new Mysqlx::Expr::Identifier());
+  id->set_name(std::string("cast"));
+  func->set_allocated_name(id.release());
+  // params
+  // 1st arg, expr
+  _tokenizer.consume_token(Token::AS);
+::google::protobuf::RepeatedPtrField< ::Mysqlx::Expr::Expr >* params = func->mutable_param();
+  params->AddAllocated(e.release());
+  // 2nd arg, cast_data_type
+  const std::string& type_to_cast = cast_data_type();
+  std::auto_ptr<Mysqlx::Expr::Expr> type_expr(new Mysqlx::Expr::Expr());
+  type_expr->set_type(Mysqlx::Expr::Expr::LITERAL);
+  Mysqlx::Datatypes::Scalar* sc(type_expr->mutable_literal());
+  sc->set_type(Mysqlx::Datatypes::Scalar_Type_V_OCTETS);
+  sc->set_v_opaque(type_to_cast);
+  params->AddAllocated(type_expr.release());
+  _tokenizer.consume_token(Token::RPAREN);
+
+  return result.release();
+}
+
+/**
+ * cast_data_type ::= ( BINARY dimension? ) | ( CHAR dimension? opt_binary ) | ( NCHAR dimension? ) | ( DATE ) | ( DATETIME dimension? ) | ( TIME dimension? )
+ *   | ( DECIMAL dimension? ) | ( SIGNED INTEGER? ) | ( UNSIGNED INTEGER? ) | INTEGER | JSON
+ */
+std::string Expr_parser::cast_data_type()
+{
+  std::string result;
+  const Token& token = _tokenizer.peek_token();
+  Token::TokenType type = token.get_type();
+
+  if ((type == Token::BINARY) || (type == Token::NCHAR) || (type == Token::DATETIME) || (type == Token::TIME))
+  {
+    result += token.get_text();
+    _tokenizer.consume_any_token();
+    std::string dimension = cast_data_type_dimension();
+    if (!dimension.empty())
+      result += dimension;
+  }
+  else if (type == Token::DECIMAL)
+  {
+    result += token.get_text();
+    _tokenizer.consume_any_token();
+    std::string dimension = cast_data_type_dimension(true);
+    if (!dimension.empty())
+      result += dimension;
+  }
+  else if (type == Token::DATE)
+  {
+    _tokenizer.consume_any_token();
+    result += token.get_text();
+  }
+  else if (type == Token::CHAR)
+  {
+    result += token.get_text();
+    _tokenizer.consume_any_token();
+    if (_tokenizer.cur_token_type_is(Token::LPAREN))
+      result += cast_data_type_dimension();
+    const std::string& opt_binary_result = opt_binary();
+    if (!opt_binary_result.empty())
+      result += " " + opt_binary_result;
+  }
+  else if (type == Token::SIGNED)
+  {
+    result += token.get_text();
+    _tokenizer.consume_any_token();
+    if (_tokenizer.cur_token_type_is(Token::INTEGER))
+      result += " " + _tokenizer.consume_token(Token::INTEGER);
+  }
+  else if (type == Token::UNSIGNED)
+  {
+    result += token.get_text();
+    _tokenizer.consume_any_token();
+    if (_tokenizer.cur_token_type_is(Token::INTEGER))
+      result += " " + _tokenizer.consume_token(Token::INTEGER);
+  }
+  else if (type == Token::INTEGER)
+  {
+    result += token.get_text();
+    _tokenizer.consume_any_token();
+  }
+  else if (type == Token::JSON)
+  {
+    result += token.get_text();
+    _tokenizer.consume_any_token();
+  }
+  else
+  {
+    throw Parser_error((boost::format("Unknown token type = %d when expecting atomic expression at %d") % token.get_type() % _tokenizer.get_token_pos()).str());
+  }
+
+  return result;
+}
+
+/**
+ * dimension ::= LPAREN LINTEGER RPAREN
+ */
+std::string Expr_parser::cast_data_type_dimension(bool double_dimension)
+{
+  if (!_tokenizer.cur_token_type_is(Token::LPAREN))
+    return "";
+  _tokenizer.consume_token(Token::LPAREN);
+  std::string result = "(" + _tokenizer.consume_token(Token::LINTEGER);
+  if (double_dimension)
+  {
+    _tokenizer.consume_token(Token::COMMA);
+    result += ", " + _tokenizer.consume_token(Token::LINTEGER);
+  }
+  result += ")";
+  _tokenizer.consume_token(Token::RPAREN);
+  return result;
+}
+
+/**
+ * opt_binary ::= ( ASCII BINARY? ) | ( UNICODE BINARY? ) | ( BINARY ( ASCII | UNICODE | charset_def )? ) | BYTE | < nothing >
+ */
+std::string Expr_parser::opt_binary()
+{
+  std::string result;
+  const Token& token = _tokenizer.peek_token();
+  if (token.get_type() == Token::ASCII)
+  {
+    result += token.get_text();
+    _tokenizer.consume_any_token();
+    if (_tokenizer.cur_token_type_is(Token::BINARY))
+      result += " " + _tokenizer.consume_any_token().get_text();
+    return result;
+  }
+  else if (token.get_type() == Token::UNICODE)
+  {
+    result += token.get_text();
+    _tokenizer.consume_any_token();
+    if (_tokenizer.cur_token_type_is(Token::BINARY))
+      result += " " + _tokenizer.consume_any_token().get_text();
+    return result;
+  }
+  else if (token.get_type() == Token::BINARY)
+  {
+    result += token.get_text();
+    _tokenizer.consume_any_token();
+    const Token& token2 = _tokenizer.peek_token();
+    if ((token2.get_type() == Token::ASCII) || (token2.get_type() == Token::UNICODE))
+      result += " " + token2.get_text();
+    else if ((token2.get_type() == Token::CHARACTER) || (token2.get_type() == Token::CHARSET))
+      result += " " + charset_def();
+    return result;
+  }
+  else if (token.get_type() == Token::BYTE)
+    return token.get_text();
+  else
+    return "";
+}
+
+/**
+ * charset_def ::= (( CHARACTER SET ) | CHARSET ) ( IDENT | STRING | BINARY )
+ */
+std::string Expr_parser::charset_def()
+{
+  std::string result;
+  const Token& token = _tokenizer.consume_any_token();
+  if (token.get_type() == Token::CHARACTER)
+  {
+    _tokenizer.consume_token(Token::SET);    
+  }
+  else if (token.get_type() == Token::CHARSET)
+  {
+    /* nothing */
+  }
+  else 
+  {
+    throw Parser_error((boost::format("Expected CHARACTER or CHARSET token, but got unknown token type = %d when expecting atomic expression at %d") % _tokenizer.peek_token().get_type() % _tokenizer.get_token_pos()).str());
+  }
+
+  const Token& token2 = _tokenizer.peek_token();
+  if ((token2.get_type() == Token::IDENT) || (token2.get_type() == Token::LSTRING) || (token2.get_type() == Token::BINARY))
+  {
+    _tokenizer.consume_any_token();
+    result = "charset " + token2.get_text();
+  }
+  else 
+  {
+    throw Parser_error((boost::format("Expected either IDENT, LSTRING or BINARY, but got unknown token type = %d when expecting atomic expression at %d") % token2.get_type() % _tokenizer.get_token_pos()).str());
+  }
+  return result;
+}
+
+/**
+ * binary ::= BINARY expr
+ */
+Mysqlx::Expr::Expr *Expr_parser::binary()
+{
+  // binary
+  _tokenizer.consume_token(Token::BINARY);
+
+  std::auto_ptr<Mysqlx::Expr::Expr> e = std::auto_ptr<Mysqlx::Expr::Expr>(new Mysqlx::Expr::Expr());
+  e->set_type(Mysqlx::Expr::Expr::FUNC_CALL);
+  Mysqlx::Expr::FunctionCall* func = e->mutable_function_call();
+  std::auto_ptr<Mysqlx::Expr::Identifier> id = std::auto_ptr<Mysqlx::Expr::Identifier>(new Mysqlx::Expr::Identifier());
+  id->set_name(std::string("binary"));
+  func->set_allocated_name(id.release());
+  ::google::protobuf::RepeatedPtrField< ::Mysqlx::Expr::Expr >* params = func->mutable_param();
+  // expr
+  Mysqlx::Expr::Expr* arg = my_expr();
+  params->AddAllocated(arg);
+  return e.release();
 }
 
 Mysqlx::Expr::Expr* Expr_parser::parse_left_assoc_binary_op_expr(std::set<Token::TokenType>& types, inner_parser_t inner_parser)
@@ -1351,6 +1710,14 @@ std::string Expr_unparser::expr_to_string(const Mysqlx::Expr::Expr& e)
   {
     return std::string("$") + Expr_unparser::quote_identifier(e.variable());
   }
+  else if (e.type() == Mysqlx::Expr::Expr::OBJECT)
+  {
+    return Expr_unparser::object_to_string(e.object());
+  }
+  else if (e.type() == Mysqlx::Expr::Expr::PLACEHOLDER)
+  {
+    return Expr_unparser::placeholder_to_string(e);
+  }
   else
   {
     throw Parser_error((boost::format("Unknown expression type: %d") % e.type()).str());
@@ -1359,10 +1726,31 @@ std::string Expr_unparser::expr_to_string(const Mysqlx::Expr::Expr& e)
   return "";
 }
 
+std::string Expr_unparser::placeholder_to_string(const Mysqlx::Expr::Expr& e)
+{
+  std::string result = ":" + boost::lexical_cast<std::string>(e.position());
+  return result;
+}
+
+std::string Expr_unparser::object_to_string(const Mysqlx::Expr::Object& o)
+{
+  bool first = true;
+  std::string result = "{ ";
+  for (int i = 0; i < o.fld_size(); ++i)
+  {
+    if (first) first = false;
+    else result += ", ";
+    const Mysqlx::Expr::Object_ObjectField& fld = o.fld(i);
+    result += "'" + fld.key() + "' : ";
+    result += Expr_unparser::expr_to_string(fld.value());
+  }
+  result += " }";
+  return result;
+}
+
 std::string Expr_unparser::column_to_string(const Mysqlx::Crud::Projection& c)
 {
-  const Mysqlx::Expr::ColumnIdentifier& colid = c.source().identifier();
-  std::string result = Expr_unparser::column_identifier_to_string(colid);
+  std::string result = Expr_unparser::expr_to_string(c.source());
 
   if (c.has_alias())
     result += " as " + c.alias();

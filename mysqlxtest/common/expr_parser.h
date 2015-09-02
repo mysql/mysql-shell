@@ -114,7 +114,29 @@ namespace mysqlx
       AS = 56,
       ASC = 57,
       DESC = 58,
-      DOLLAR = 59
+      CAST = 59,
+      CHARACTER = 60,
+      SET = 61,
+      CHARSET = 62,
+      ASCII = 63,
+      UNICODE = 64,
+      BYTE = 65,
+      BINARY = 66,
+      CHAR = 67,
+      NCHAR = 68,
+      DATE = 69,
+      DATETIME = 70,
+      TIME = 71,
+      DECIMAL = 72,
+      SIGNED = 73,
+      UNSIGNED = 74,
+      INTEGER = 75,  // 'integer' keyword
+      LINTEGER = 76, // integer number
+      DOLLAR = 77,
+      JSON = 78,
+      COLON = 79,
+      LCURLY = 80,
+      RCURLY = 81
     };
 
     Token(TokenType type, const std::string& text);
@@ -166,7 +188,7 @@ namespace mysqlx
     std::vector<Token>::const_iterator end() const { return _tokens.end(); }
 
     void get_tokens();
-    std::string get_input() { return _input; }
+    const std::string& get_input() { return _input; }
 
   protected:
     std::vector<Token> _tokens;
@@ -199,7 +221,7 @@ namespace mysqlx
   class Expr_parser
   {
   public:
-    Expr_parser(const std::string& expr_str, bool document_mode = false);
+    Expr_parser(const std::string& expr_str, bool document_mode = false, bool allow_alias = false);
 
     typedef boost::function<Mysqlx::Expr::Expr*(Expr_parser*)> inner_parser_t;
 
@@ -227,9 +249,25 @@ namespace mysqlx
     std::vector<Token>::const_iterator end() const { return _tokenizer.end(); }
 
   protected:
+    // json
+    void json_key_value(Mysqlx::Expr::Object* obj);
+    Mysqlx::Expr::Expr* json_doc();
+    // placeholder
+    typedef std::map<std::string, int> map_placeholder_to_pos_t;
+    map_placeholder_to_pos_t _placeholder_name_to_pos;
+    int _placeholder_pos = 0;
+    Mysqlx::Expr::Expr* placeholder();
+    // cast
     Mysqlx::Expr::Expr* my_expr();
+    Mysqlx::Expr::Expr* cast();
+    Mysqlx::Expr::Expr *binary();
+    std::string cast_data_type();
+    std::string cast_data_type_dimension(bool double_dimension = false);
+    std::string opt_binary();
+    std::string charset_def();
     Tokenizer _tokenizer;
     bool _document_mode;
+    bool _allow_alias;
   };
 
   class Expr_unparser
@@ -244,6 +282,8 @@ namespace mysqlx
     static std::string operator_to_string(const Mysqlx::Expr::Operator& op);
     static std::string quote_identifier(const std::string& id);
     static std::string expr_to_string(const Mysqlx::Expr::Expr& e);
+    static std::string object_to_string(const Mysqlx::Expr::Object& o);
+    static std::string placeholder_to_string(const Mysqlx::Expr::Expr& e);
     static std::string column_to_string(const Mysqlx::Crud::Projection& c);
     static std::string order_to_string(const Mysqlx::Crud::Order& c);
     static std::string column_list_to_string(google::protobuf::RepeatedPtrField< ::Mysqlx::Crud::Projection > columns);    
