@@ -94,8 +94,8 @@ namespace mysh
   namespace mysqlx
   {
 #ifdef DOXYGEN
-    Session getSession(String connectionData, String password);
-    Session getSession(Map connectionData, String password);
+    XSession getSession(String connectionData, String password);
+    XSession getSession(Map connectionData, String password);
     NodeSession getNodeSession(String connectionData, String password);
     NodeSession getNodeSession(Map connectionData, String password);
 #endif
@@ -103,10 +103,8 @@ namespace mysh
     class Schema;
     /**
     * Base functionality for Session classes through the X Protocol.
-    * \todo Implement and document createSchema()
-    * \todo Implement and document dropSchema()
     *
-    * This class encloses the core functionaliti to be made available on both the Session and NodeSession classes, such functionality includes
+    * This class encloses the core functionaliti to be made available on both the XSession and NodeSession classes, such functionality includes
     *
     * - Accessing available schemas.
     * - Schema management operations.
@@ -213,12 +211,12 @@ namespace mysh
     *
     * \sa BaseSession
     */
-    class SHCORE_PUBLIC Session : public BaseSession, public boost::enable_shared_from_this<Session>
+    class SHCORE_PUBLIC XSession : public BaseSession, public boost::enable_shared_from_this<XSession>
     {
     public:
-      Session(){};
-      virtual ~Session(){};
-      virtual std::string class_name() const { return "Session"; };
+      XSession(){};
+      virtual ~XSession(){};
+      virtual std::string class_name() const { return "XSession"; };
       static boost::shared_ptr<shcore::Object_bridge> create(const shcore::Argument_list &args);
 
       virtual boost::shared_ptr<BaseSession> _get_shared_this() const;

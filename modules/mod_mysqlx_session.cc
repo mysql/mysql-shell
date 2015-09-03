@@ -43,7 +43,7 @@ using namespace mysh;
 using namespace shcore;
 using namespace mysh::mysqlx;
 
-REGISTER_OBJECT(mysqlx, Session);
+REGISTER_OBJECT(mysqlx, XSession);
 REGISTER_OBJECT(mysqlx, NodeSession);
 REGISTER_OBJECT(mysqlx, Expression);
 
@@ -51,12 +51,12 @@ REGISTER_OBJECT(mysqlx, Expression);
 
 #ifdef DOXYGEN
 /**
-* Creates a Session instance using the provided connection data.
+* Creates a XSession instance using the provided connection data.
 * \param connectionData the connection string used to connect to the database.
 * \param password if provided, will override the password in the connection string.
-* \return An Session instance.
+* \return An XSession instance.
 *
-* A Session object uses the X Protocol to allow executing operations on the connected MySQL Product.
+* A XSession object uses the X Protocol to allow executing operations on the connected MySQL Product.
 *
 * The format of the connection string can be as follows for connections using the TCP protocol:
 *
@@ -66,9 +66,9 @@ REGISTER_OBJECT(mysqlx, Expression);
 *
 * [user[:pass\@]\::socket[/db]
 *
-* \sa Session
+* \sa XSession
 */
-Session getSession(String connectionData, String password){}
+XSession getSession(String connectionData, String password){}
 
 /**
 * This function works the same as the function above, except that the connection data comes enclosed on a dictionary object.
@@ -79,11 +79,11 @@ Session getSession(String connectionData, String password){}
 *  - dbUser, the user to authenticate against.
 *  - dbPassword, the password of the user user to authenticate against.
 * \param password if provided, will override the password in the connection string.
-* \return An Session instance.
+* \return An XSession instance.
 *
-* \sa Session
+* \sa XSession
 */
-Session getSession(Map connectionData, String password){}
+XSession getSession(Map connectionData, String password){}
 
 /**
 * This function works the same as getSession(String connectionData, String password), except that it will return a NodeSession object which allows SQL Execution.
@@ -212,7 +212,7 @@ Value BaseSession::sql(const Argument_list &args)
 * Creates a schema on the database and returns the corresponding object.
 * \param name A string value indicating the schema name.
 * \return The created schema object.
-* \exception An exception is thrown if an error occurs creating the Session.
+* \exception An exception is thrown if an error occurs creating the XSession.
 */
 Schema BaseSession::createSchema(String name){}
 #endif
@@ -468,7 +468,7 @@ void BaseSession::_load_schemas()
 * Retrieves a Schema object from the current session through it's name.
 * \param name The name of the Schema object to be retrieved.
 * \return The Schema object with the given name.
-* \exception An exception is thrown if the given name is not a valid schema on the Session.
+* \exception An exception is thrown if the given name is not a valid schema on the XSession.
 * \sa Schema
 */
 Schema BaseSession::getSchema(String name){}
@@ -500,7 +500,7 @@ shcore::Value BaseSession::get_schema(const shcore::Argument_list &args) const
       (*_schemas)[name] = Value(boost::static_pointer_cast<Object_bridge>(schema));
     }
     else
-      throw Exception::runtime_error("Session not connected");
+      throw Exception::runtime_error("XSession not connected");
   }
 
   // If this point is reached, the schema will be there!
@@ -537,7 +537,7 @@ shcore::Value BaseSession::set_default_schema(const shcore::Argument_list &args)
     _update_default_schema(name);
   }
   else
-    throw Exception::runtime_error("Session not connected");
+    throw Exception::runtime_error("XSession not connected");
 
   return get_member("defaultSchema");
 }
@@ -546,7 +546,7 @@ shcore::Value BaseSession::set_fetch_warnings(const shcore::Argument_list &args)
 {
   Value ret_val;
 
-  args.ensure_count(1, (class_name() + "::setFetchWarnings").c_str());
+  args.ensure_count(1, (class_name() + ".setFetchWarnings").c_str());
 
   bool enable = args.bool_at(0);
   std::string command = enable ? "enable_notices" : "disable_notices";
@@ -644,16 +644,16 @@ bool BaseSession::db_object_exists(std::string &type, const std::string &name, c
   return ret_val;
 }
 
-boost::shared_ptr<BaseSession> Session::_get_shared_this() const
+boost::shared_ptr<BaseSession> XSession::_get_shared_this() const
 {
-  boost::shared_ptr<const Session> shared = shared_from_this();
+  boost::shared_ptr<const XSession> shared = shared_from_this();
 
-  return boost::const_pointer_cast<Session>(shared);
+  return boost::const_pointer_cast<XSession>(shared);
 }
 
-boost::shared_ptr<shcore::Object_bridge> Session::create(const shcore::Argument_list &args)
+boost::shared_ptr<shcore::Object_bridge> XSession::create(const shcore::Argument_list &args)
 {
-  boost::shared_ptr<Session> session(new Session());
+  boost::shared_ptr<XSession> session(new XSession());
 
   session->connect(args);
 

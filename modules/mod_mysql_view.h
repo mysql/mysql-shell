@@ -31,19 +31,19 @@ namespace mysh
 {
   namespace mysql
   {
-    class Schema;
+    class ClassicSchema;
 
     /**
-    * Represents a View on an Schema, retrieved with a session created using the MySQL Protocol.
+    * Represents a ClassicView on an ClassicSchema, retrieved with a session created using the MySQL Protocol.
     */
-    class View : public DatabaseObject
+    class ClassicView : public DatabaseObject
     {
     public:
-      View(boost::shared_ptr<Schema> owner, const std::string &name);
-      View(boost::shared_ptr<const Schema> owner, const std::string &name);
-      virtual ~View();
+      ClassicView(boost::shared_ptr<ClassicSchema> owner, const std::string &name);
+      ClassicView(boost::shared_ptr<const ClassicSchema> owner, const std::string &name);
+      virtual ~ClassicView();
 
-      virtual std::string class_name() const { return "View"; }
+      virtual std::string class_name() const { return "ClassicView"; }
     };
   }
 }

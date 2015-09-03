@@ -41,35 +41,35 @@ namespace mysh
   namespace mysql
   {
     class ClassicSession;
-    class Table;
+    class ClassicTable;
 
     /**
     * Represents a Schema retrieved with a session created using the MySQL Protocol.
     */
-    class SHCORE_PUBLIC Schema : public DatabaseObject, public boost::enable_shared_from_this<Schema>
+    class SHCORE_PUBLIC ClassicSchema : public DatabaseObject, public boost::enable_shared_from_this<ClassicSchema>
     {
     public:
-      Schema(boost::shared_ptr<ClassicSession> owner, const std::string &name);
-      Schema(boost::shared_ptr<const ClassicSession> owner, const std::string &name);
-      ~Schema();
+      ClassicSchema(boost::shared_ptr<ClassicSession> owner, const std::string &name);
+      ClassicSchema(boost::shared_ptr<const ClassicSession> owner, const std::string &name);
+      ~ClassicSchema();
 
-      virtual std::string class_name() const{ return "Schema"; };
+      virtual std::string class_name() const{ return "ClassicSchema"; };
 
       virtual std::vector<std::string> get_members() const;
       virtual shcore::Value get_member(const std::string &prop) const;
 
       void cache_table_objects();
 
-      friend class Table;
-      friend class View;
+      friend class ClassicTable;
+      friend class ClassicView;
 
 #ifdef DOXYGEN
 
       /**
       * Returns a list of tables for this schema.
       * This method is run against a local cache of objects, if you want to see lastest changes by other sessions you may need to create a new copy the schema object with session.getSchema().
-      * \sa Table      
-      * \return The list of tables as a Map(String, Table).
+      * \sa ClassicTable
+      * \return The list of tables as a Map(String, ClassicTable).
       */
       Map getTables()
       {}
@@ -77,14 +77,14 @@ namespace mysh
       /**
       * Returns a list of views for this schema.
       * This method is run against a local cache of objects, if you want to see lastest changes by other sessions you may need to create a new copy the schema object with session.getSchema().
-      * \sa View
-      * \return The list of views as a Map(String, View).
+      * \sa ClassicView
+      * \return The list of views as a Map(String, ClassicView).
       */
       Map getViews()
       {}
 
-      Table getTable(String name);
-      View getView(String name);
+      ClassicTable getTable(String name);
+      ClassicView getView(String name);
 #endif
 
     private:

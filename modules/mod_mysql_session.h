@@ -60,7 +60,7 @@ namespace mysh
     ClassicSession getClassicSession(Map connectionData, String password);
 #endif
 
-    class Schema;
+    class ClassicSchema;
     /**
     * Enables interaction with a MySQL Server using the MySQL Protocol.
     *
@@ -71,9 +71,9 @@ namespace mysh
     * In addition to the properties documented above, when a session object is created the schemas available on the target
     * MySQL Server are cached.
     *
-    * A dynamic property is added to the session object in order to access each available Schema as a session member.
+    * A dynamic property is added to the session object in order to access each available ClassicSchema as a session member.
     *
-    * These dynamic properties are named as the Schema's name, so the schemas are accessible as follows:
+    * These dynamic properties are named as the ClassicSchema's name, so the schemas are accessible as follows:
     *
     * \code{.js}
     * // Establishes the connection.
@@ -122,12 +122,12 @@ namespace mysh
 #ifdef DOXYGEN
       String uri; //!< Same as getUri()
       Map schemas; //!< Same as getSchemas()
-      Schema defaultSchema; //!< Same as getDefaultSchema()
+      ClassicSchema defaultSchema; //!< Same as getDefaultSchema()
 
-      Schema createSchema(String name);
-      Schema getSchema(String name);
-      Schema getDefaultSchema();
-      Schema setDefaultSchema(String schema);
+      ClassicSchema createSchema(String name);
+      ClassicSchema getSchema(String name);
+      ClassicSchema getDefaultSchema();
+      ClassicSchema setDefaultSchema(String schema);
       Map getSchemas();
       String getUri();
       Resultset sql(String query);
@@ -141,7 +141,7 @@ namespace mysh
 
       boost::shared_ptr<Connection> _conn;
 
-      boost::shared_ptr<Schema> _default_schema;
+      boost::shared_ptr<ClassicSchema> _default_schema;
       boost::shared_ptr<shcore::Value::Map_type> _schemas;
 
       //boost::shared_ptr<shcore::Proxy_object> _schema_proxy;

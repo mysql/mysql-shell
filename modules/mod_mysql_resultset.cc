@@ -30,14 +30,14 @@ using namespace mysh;
 using namespace shcore;
 using namespace mysh::mysql;
 
-Resultset::Resultset(boost::shared_ptr<Result> result)
+ClassicResultset::ClassicResultset(boost::shared_ptr<Result> result)
 : _result(result)
 {
 }
 
-shcore::Value Resultset::next(const shcore::Argument_list &args)
+shcore::Value ClassicResultset::next(const shcore::Argument_list &args)
 {
-  args.ensure_count(0, "Resultset::next");
+  args.ensure_count(0, "ClassicResultset.next");
   Row *inner_row = _result->next();
 
   if (inner_row)
@@ -55,16 +55,16 @@ shcore::Value Resultset::next(const shcore::Argument_list &args)
   return shcore::Value::Null();
 }
 
-shcore::Value Resultset::next_result(const shcore::Argument_list &args)
+shcore::Value ClassicResultset::next_result(const shcore::Argument_list &args)
 {
-  args.ensure_count(0, "Resultset::nextDataSet");
+  args.ensure_count(0, "ClassicResultset.nextDataSet");
 
   return shcore::Value(_result->next_result());
 }
 
-shcore::Value Resultset::all(const shcore::Argument_list &args)
+shcore::Value ClassicResultset::all(const shcore::Argument_list &args)
 {
-  args.ensure_count(0, "Resultset::all");
+  args.ensure_count(0, "ClassicResultset.all");
 
   boost::shared_ptr<shcore::Value::Array_type> array(new shcore::Value::Array_type);
 
@@ -79,7 +79,7 @@ shcore::Value Resultset::all(const shcore::Argument_list &args)
   return shcore::Value(array);
 }
 
-shcore::Value Resultset::get_member(const std::string &prop) const
+shcore::Value ClassicResultset::get_member(const std::string &prop) const
 {
   if (prop == "fetchedRowCount")
     return shcore::Value((int64_t)_result->fetched_row_count());
@@ -93,7 +93,7 @@ shcore::Value Resultset::get_member(const std::string &prop) const
   if (prop == "warnings")
   {
     Result* inner_warnings = _result->query_warnings();
-    boost::shared_ptr<Resultset> warnings(new Resultset(boost::shared_ptr<Result>(inner_warnings)));
+    boost::shared_ptr<ClassicResultset> warnings(new ClassicResultset(boost::shared_ptr<Result>(inner_warnings)));
     return warnings->all(shcore::Argument_list());
   }
 

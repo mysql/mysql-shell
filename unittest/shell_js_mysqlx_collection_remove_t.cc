@@ -109,28 +109,28 @@ namespace shcore {
     {
       SCOPED_TRACE("Testing parameter validation on remove");
       exec_and_out_equals("collection.remove();");
-      exec_and_out_contains("collection.remove(5);", "", "CollectionRemove::remove: Argument #1 is expected to be a string");
-      exec_and_out_contains("collection.remove('test = \"2');", "", "CollectionRemove::remove: Unterminated quoted string starting at 8");
+      exec_and_out_contains("collection.remove(5);", "", "CollectionRemove.remove: Argument #1 is expected to be a string");
+      exec_and_out_contains("collection.remove('test = \"2');", "", "CollectionRemove.remove: Unterminated quoted string starting at 8");
       exec_and_out_equals("collection.remove('test = \"2\"');");
     }
 
     {
       SCOPED_TRACE("Testing parameter validation on sort");
-      exec_and_out_contains("collection.remove().sort();", "", "Invalid number of arguments in CollectionRemove::sort, expected 1 but got 0");
-      exec_and_out_contains("collection.remove().sort(5);", "", "CollectionRemove::sort: Argument #1 is expected to be an array");
-      exec_and_out_contains("collection.remove().sort([]);", "", "CollectionRemove::sort: Sort criteria can not be empty");
-      exec_and_out_contains("collection.remove().sort(['name', 5]);", "", "CollectionRemove::sort: Element #2 is expected to be a string");
+      exec_and_out_contains("collection.remove().sort();", "", "Invalid number of arguments in CollectionRemove.sort, expected 1 but got 0");
+      exec_and_out_contains("collection.remove().sort(5);", "", "CollectionRemove.sort: Argument #1 is expected to be an array");
+      exec_and_out_contains("collection.remove().sort([]);", "", "CollectionRemove.sort: Sort criteria can not be empty");
+      exec_and_out_contains("collection.remove().sort(['name', 5]);", "", "CollectionRemove.sort: Element #2 is expected to be a string");
       exec_and_out_contains("collection.remove().sort(['name']);", "", "");
     }
 
     {
       SCOPED_TRACE("Testing parameter validation on limit");
-      exec_and_out_contains("collection.remove().limit();", "", "Invalid number of arguments in CollectionRemove::limit, expected 1 but got 0");
-      exec_and_out_contains("collection.remove().limit('');", "", "CollectionRemove::limit: Argument #1 is expected to be an unsigned int");
+      exec_and_out_contains("collection.remove().limit();", "", "Invalid number of arguments in CollectionRemove.limit, expected 1 but got 0");
+      exec_and_out_contains("collection.remove().limit('');", "", "CollectionRemove.limit: Argument #1 is expected to be an unsigned int");
       exec_and_out_equals("collection.remove().limit(5);");
     }
 
-    exec_and_out_contains("collection.remove().bind();", "", "CollectionRemove::bind: not yet implemented.");
+    exec_and_out_contains("collection.remove().bind();", "", "CollectionRemove.bind: not yet implemented.");
 
     exec_and_out_equals("session.close();");
   }

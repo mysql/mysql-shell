@@ -95,7 +95,7 @@ CollectionAdd CollectionAdd::add(List documents){}
 shcore::Value CollectionAdd::add(const shcore::Argument_list &args)
 {
   // Each method validates the received parameters
-  args.ensure_count(1, "CollectionAdd::add");
+  args.ensure_count(1, "CollectionAdd.add");
 
   boost::shared_ptr<DatabaseObject> raw_owner(_owner.lock());
 
@@ -148,7 +148,7 @@ shcore::Value CollectionAdd::add(const shcore::Argument_list &args)
           }
         }
       }
-      CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionAdd::add");
+      CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionAdd.add");
     }
   }
 
@@ -190,7 +190,7 @@ Resultset CollectionAdd::execute(){}
 #endif
 shcore::Value CollectionAdd::execute(const shcore::Argument_list &args)
 {
-  args.ensure_count(0, "CollectionAdd::execute");
+  args.ensure_count(0, "CollectionAdd.execute");
 
   return shcore::Value::wrap(new mysqlx::Collection_resultset(boost::shared_ptr< ::mysqlx::Result>(_add_statement->execute())));
 }

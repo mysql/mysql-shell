@@ -85,13 +85,13 @@ namespace shcore {
     exec_and_out_equals("var collection = session.js_shell_test.getCollection('collection1');");
 
     // Test add attempt with no data
-    exec_and_out_contains("collection.add().execute();", "", "Invalid number of arguments in CollectionAdd::add, expected 1 but got 0");
+    exec_and_out_contains("collection.add().execute();", "", "Invalid number of arguments in CollectionAdd.add, expected 1 but got 0");
 
     // Test add attempt with non document
-    exec_and_out_contains("collection.add(45).execute();", "", "CollectionAdd::add: Argument is expected to be either a document or a list of documents");
+    exec_and_out_contains("collection.add(45).execute();", "", "CollectionAdd.add: Argument is expected to be either a document or a list of documents");
 
     // Test add collection with invalid document
-    exec_and_out_contains("collection.add(['invalid data']).execute();", "", "CollectionAdd::add: Element #1 is expected to be a document");
+    exec_and_out_contains("collection.add(['invalid data']).execute();", "", "CollectionAdd.add: Element #1 is expected to be a document");
 
     exec_and_out_equals("session.close();");
   }

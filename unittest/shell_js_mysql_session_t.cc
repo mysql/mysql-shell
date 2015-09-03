@@ -116,7 +116,7 @@ namespace shcore {
 
       // Now uses the formal method
       exec_and_out_equals("var schema = session.getDefaultSchema();");
-      exec_and_out_equals("print(schema);", "<Schema:mysql>");
+      exec_and_out_equals("print(schema);", "<ClassicSchema:mysql>");
     };
 
     {
@@ -125,7 +125,7 @@ namespace shcore {
 
       // Now uses the formal method
       exec_and_out_equals("var schema = session.getDefaultSchema();");
-      exec_and_out_equals("print(schema);", "<Schema:information_schema>");
+      exec_and_out_equals("print(schema);", "<ClassicSchema:information_schema>");
     };
 
     exec_and_out_equals("session.close();");
@@ -149,7 +149,7 @@ namespace shcore {
       exec_and_out_equals("session.setDefaultSchema('mysql');");
 
       // Now uses the formal method
-      exec_and_out_equals("print(session.defaultSchema);", "<Schema:mysql>");
+      exec_and_out_equals("print(session.defaultSchema);", "<ClassicSchema:mysql>");
     };
 
     {
@@ -157,7 +157,7 @@ namespace shcore {
       exec_and_out_equals("session.setDefaultSchema('information_schema');");
 
       // Now uses the formal method
-      exec_and_out_equals("print(session.defaultSchema);", "<Schema:information_schema>");
+      exec_and_out_equals("print(session.defaultSchema);", "<ClassicSchema:information_schema>");
     };
 
     exec_and_out_equals("session.close();");
@@ -175,8 +175,8 @@ namespace shcore {
 
     // Now checks the objects can be accessed directly
     // because has been already set as a session attributes
-    exec_and_out_equals("print(schemas.mysql);", "<Schema:mysql>");
-    exec_and_out_equals("print(schemas.information_schema);", "<Schema:information_schema>");
+    exec_and_out_equals("print(schemas.mysql);", "<ClassicSchema:mysql>");
+    exec_and_out_equals("print(schemas.information_schema);", "<ClassicSchema:information_schema>");
 
     exec_and_out_equals("session.close();");
   }
@@ -189,8 +189,8 @@ namespace shcore {
     exec_and_out_equals("var session = mysql.getClassicSession('" + _mysql_uri + "');");
 
     // Ensures the schemas have not been loaded
-    exec_and_out_equals("print(session.schemas.mysql);", "<Schema:mysql>");
-    exec_and_out_equals("print(session.schemas.information_schema)", "<Schema:information_schema>");
+    exec_and_out_equals("print(session.schemas.mysql);", "<ClassicSchema:mysql>");
+    exec_and_out_equals("print(session.schemas.information_schema)", "<ClassicSchema:information_schema>");
 
     exec_and_out_equals("session.close();");
   }
@@ -204,10 +204,10 @@ namespace shcore {
 
     // Checks schema retrieval
     exec_and_out_equals("var schema = session.getSchema('mysql');");
-    exec_and_out_equals("print(schema);", "<Schema:mysql>");
+    exec_and_out_equals("print(schema);", "<ClassicSchema:mysql>");
 
     exec_and_out_equals("var schema = session.getSchema('information_schema');");
-    exec_and_out_equals("print(schema);", "<Schema:information_schema>");
+    exec_and_out_equals("print(schema);", "<ClassicSchema:information_schema>");
 
     // Checks schema retrieval with invalid schema
     exec_and_out_contains("var schema = session.getSchema('unexisting_schema');", "", "Unknown database 'unexisting_schema'");
@@ -223,9 +223,9 @@ namespace shcore {
     exec_and_out_equals("var session = mysql.getClassicSession('" + _mysql_uri + "');");
 
     // Now direct and indirect access
-    exec_and_out_equals("print(session.mysql);", "<Schema:mysql>");
+    exec_and_out_equals("print(session.mysql);", "<ClassicSchema:mysql>");
 
-    exec_and_out_equals("print(session.information_schema);", "<Schema:information_schema>");
+    exec_and_out_equals("print(session.information_schema);", "<ClassicSchema:information_schema>");
 
     // TODO: add test case with schema that is named as another property
 
@@ -248,7 +248,7 @@ namespace shcore {
     // Happy path
     exec_and_out_equals("var s = session.createSchema('mysql_test_create_schema_1');");
 
-    exec_and_out_equals("print(s);", "<Schema:mysql_test_create_schema_1>");
+    exec_and_out_equals("print(s);", "<ClassicSchema:mysql_test_create_schema_1>");
 
     // Error, existing schema
     exec_and_out_contains("var s2 = session.createSchema('mysql_test_create_schema_1');", "", "MySQLError: Can't create database 'mysql_test_create_schema_1'; database exists (1007)");

@@ -96,7 +96,7 @@ namespace shcore {
 
     exec_and_out_equals("var table_schema = table.getSchema();");
 
-    exec_and_out_equals("print(table_schema)", "<Schema:js_shell_test>");
+    exec_and_out_equals("print(table_schema)", "<ClassicSchema:js_shell_test>");
   }
 
   // Tests table.schema
@@ -106,7 +106,7 @@ namespace shcore {
 
     exec_and_out_equals("var table = session.js_shell_test.table1;");
 
-    exec_and_out_equals("print(table.schema)", "<Schema:js_shell_test>");
+    exec_and_out_equals("print(table.schema)", "<ClassicSchema:js_shell_test>");
   }
 
   // Tests table.drop() and table.existInDatabase()

@@ -66,29 +66,12 @@ namespace mysh
 #ifdef DOXYGEN
 
     String name; //!< Same as getName()
-    ClassicSession session; //!< Same as getSession()
-    Schema schema; //!< Same as getSchema()
+    Object session; //!< Same as getSession()
+    Object schema; //!< Same as getSchema()
 
-    /**
-    * Returns the name of this database object.
-    * \return the name as an String object.
-    */
-    String getName()
-    {}
-
-    /**
-    * Returns the ClassicSession object of this database object.
-    * \return the object for this session of this database object.
-    */
-    ClassicSession getSession()
-    {}
-
-    /**
-    * Returns the schema object of this database object.
-    * \return the object for this schema of this database object.
-    */
-    Schema getSchema()
-    {}
+    String getName();
+    Object getSession();
+    Object getSchema();
 
 #endif
 

@@ -129,42 +129,42 @@ namespace shcore {
     {
       SCOPED_TRACE("Testing parameter validation on update");
       exec_and_out_equals("table.update();");
-      exec_and_out_contains("table.update(5);", "", "Invalid number of arguments in TableUpdate::update, expected 0 but got 1");
+      exec_and_out_contains("table.update(5);", "", "Invalid number of arguments in TableUpdate.update, expected 0 but got 1");
     }
 
     {
       SCOPED_TRACE("Testing parameter validation on set");
-      exec_and_out_contains("table.update().set();", "", "Invalid number of arguments in TableUpdate::set, expected 2 but got 0");
-      exec_and_out_contains("table.update().set(5, 17);", "", "TableUpdate::set: Argument #1 is expected to be a string");
-      exec_and_out_contains("table.update().set('name', session);", "", "TableUpdate::set: Unsupported value received for table update operation on field \"name\", received: <NodeSession:");
+      exec_and_out_contains("table.update().set();", "", "Invalid number of arguments in TableUpdate.set, expected 2 but got 0");
+      exec_and_out_contains("table.update().set(5, 17);", "", "TableUpdate.set: Argument #1 is expected to be a string");
+      exec_and_out_contains("table.update().set('name', session);", "", "TableUpdate.set: Unsupported value received for table update operation on field \"name\", received: <NodeSession:");
       exec_and_out_equals("table.update().set('age', 17);");
     }
 
     {
       SCOPED_TRACE("Testing parameter validation on where");
-      exec_and_out_contains("table.update().set('age', 17).where();", "", "Invalid number of arguments in TableUpdate::where, expected 1 but got 0");
-      exec_and_out_contains("table.update().set('age', 17).where(5);", "", "TableUpdate::where: Argument #1 is expected to be a string");
-      exec_and_out_contains("table.update().set('age', 17).where('name = \"2');", "", "TableUpdate::where: Unterminated quoted string starting at 8");
+      exec_and_out_contains("table.update().set('age', 17).where();", "", "Invalid number of arguments in TableUpdate.where, expected 1 but got 0");
+      exec_and_out_contains("table.update().set('age', 17).where(5);", "", "TableUpdate.where: Argument #1 is expected to be a string");
+      exec_and_out_contains("table.update().set('age', 17).where('name = \"2');", "", "TableUpdate.where: Unterminated quoted string starting at 8");
       exec_and_out_contains("table.update().set('age', 17).where('name = \"2\"');");
     }
 
     {
       SCOPED_TRACE("Testing parameter validation on orderBy");
-      exec_and_out_contains("table.update().set('age', 17).orderBy();", "", "Invalid number of arguments in TableUpdate::orderBy, expected 1 but got 0");
-      exec_and_out_contains("table.update().set('age', 17).orderBy(5);", "", "TableUpdate::orderBy: Argument #1 is expected to be an array");
-      exec_and_out_contains("table.update().set('age', 17).orderBy([]);", "", "TableUpdate::orderBy: Order criteria can not be empty");
-      exec_and_out_contains("table.update().set('age', 17).orderBy(['test', 5]);", "", "TableUpdate::orderBy: Element #2 is expected to be a string");
+      exec_and_out_contains("table.update().set('age', 17).orderBy();", "", "Invalid number of arguments in TableUpdate.orderBy, expected 1 but got 0");
+      exec_and_out_contains("table.update().set('age', 17).orderBy(5);", "", "TableUpdate.orderBy: Argument #1 is expected to be an array");
+      exec_and_out_contains("table.update().set('age', 17).orderBy([]);", "", "TableUpdate.orderBy: Order criteria can not be empty");
+      exec_and_out_contains("table.update().set('age', 17).orderBy(['test', 5]);", "", "TableUpdate.orderBy: Element #2 is expected to be a string");
       exec_and_out_contains("table.update().set('age', 17).orderBy(['test']);", "", "");
     }
 
     {
       SCOPED_TRACE("Testing parameter validation on limit");
-      exec_and_out_contains("table.update().set('age', 17).limit();", "", "Invalid number of arguments in TableUpdate::limit, expected 1 but got 0");
-      exec_and_out_contains("table.update().set('age', 17).limit('');", "", "TableUpdate::limit: Argument #1 is expected to be an unsigned int");
+      exec_and_out_contains("table.update().set('age', 17).limit();", "", "Invalid number of arguments in TableUpdate.limit, expected 1 but got 0");
+      exec_and_out_contains("table.update().set('age', 17).limit('');", "", "TableUpdate.limit: Argument #1 is expected to be an unsigned int");
       exec_and_out_contains("table.update().set('age', 17).limit(5);");
     }
 
-    exec_and_out_contains("table.update().set('age', 17).bind();", "", "TableUpdate::bind: not yet implemented.");
+    exec_and_out_contains("table.update().set('age', 17).bind();", "", "TableUpdate.bind: not yet implemented.");
 
     exec_and_out_equals("session.close();");
   }

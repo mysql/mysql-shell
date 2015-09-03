@@ -60,7 +60,7 @@ namespace shcore {
     std::string uri = mysh::strip_password(_uri);
 
     exec_and_out_equals("var session = mysqlx.getSession('" + _uri + "');");
-    exec_and_out_equals("print(session);", "<Session:" + uri + ">");
+    exec_and_out_equals("print(session);", "<XSession:" + uri + ">");
     exec_and_out_equals("session.close();");
   }
 
@@ -79,7 +79,7 @@ namespace shcore {
       password = _pwd;
 
     exec_and_out_equals("var session = mysqlx.getSession('" + _uri + "', '" + password + "');");
-    exec_and_out_equals("print(session);", "<Session:" + uri + ">");
+    exec_and_out_equals("print(session);", "<XSession:" + uri + ">");
     exec_and_out_equals("session.close();");
   }
 
@@ -108,7 +108,7 @@ namespace shcore {
     uri << user << "@" << host << ":" << port;
 
     exec_and_out_equals("var session = mysqlx.getSession(" + connection_data.str() + ");");
-    exec_and_out_equals("print(session);", "<Session:" + uri.str() + ">");
+    exec_and_out_equals("print(session);", "<XSession:" + uri.str() + ">");
     exec_and_out_equals("session.close();");
   }
 
@@ -136,7 +136,7 @@ namespace shcore {
     uri << user << "@" << host << ":" << port;
 
     exec_and_out_equals("var session = mysqlx.getSession(" + connection_data.str() + ", '" + password + "');");
-    exec_and_out_equals("print(session);", "<Session:" + uri.str() + ">");
+    exec_and_out_equals("print(session);", "<XSession:" + uri.str() + ">");
     exec_and_out_equals("session.close();");
   }
 

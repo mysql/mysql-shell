@@ -66,7 +66,7 @@ SqlExecute SqlExecute::sql(String statement){}
 shcore::Value SqlExecute::sql(const shcore::Argument_list &args)
 {
   // Each method validates the received parameters
-  args.ensure_count(1, "SqlExecute::sql");
+  args.ensure_count(1, "SqlExecute.sql");
 
   try
   {
@@ -75,7 +75,7 @@ shcore::Value SqlExecute::sql(const shcore::Argument_list &args)
     // Updates the exposed functions
     update_functions("sql");
   }
-  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("SqlExecute::sql");
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("SqlExecute.sql");
   //}
 
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
@@ -123,7 +123,7 @@ SqlExecute SqlExecute::bind(List values){}
 #endif
 shcore::Value SqlExecute::bind(const shcore::Argument_list &args)
 {
-  args.ensure_count(1, "SqlExecute::sql");
+  args.ensure_count(1, "SqlExecute.sql");
 
   if (args[0].type == shcore::Array)
   {
@@ -153,7 +153,7 @@ Resultset SqlExecute::execute(ExecuteOptions options){}
 #endif
 shcore::Value SqlExecute::execute(const shcore::Argument_list &args)
 {
-  args.ensure_count(0, "SqlExecute::execute");
+  args.ensure_count(0, "SqlExecute.execute");
 
   boost::shared_ptr<NodeSession> session(boost::static_pointer_cast<NodeSession>(_session.lock()));
 

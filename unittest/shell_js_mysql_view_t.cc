@@ -97,7 +97,7 @@ namespace shcore {
 
     exec_and_out_equals("var view_schema = view.getSchema();");
 
-    exec_and_out_equals("print(view_schema)", "<Schema:js_shell_test>");
+    exec_and_out_equals("print(view_schema)", "<ClassicSchema:js_shell_test>");
   }
 
   // Tests view.schema
@@ -107,7 +107,7 @@ namespace shcore {
 
     exec_and_out_equals("var view = session.js_shell_test.view1;");
 
-    exec_and_out_equals("print(view.schema)", "<Schema:js_shell_test>");
+    exec_and_out_equals("print(view.schema)", "<ClassicSchema:js_shell_test>");
   }
 
   // Tests view.drop() and view.existInDatabase()

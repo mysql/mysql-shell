@@ -78,7 +78,7 @@ CollectionFind CollectionFind::find(String searchCondition){}
 shcore::Value CollectionFind::find(const shcore::Argument_list &args)
 {
   // Each method validates the received parameters
-  args.ensure_count(0, 1, "CollectionFind::find");
+  args.ensure_count(0, 1, "CollectionFind.find");
 
   boost::shared_ptr<Collection> collection(boost::static_pointer_cast<Collection>(_owner.lock()));
 
@@ -95,7 +95,7 @@ shcore::Value CollectionFind::find(const shcore::Argument_list &args)
       // Updates the exposed functions
       update_functions("find");
     }
-    CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionFind::find");
+    CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionFind.find");
   }
 
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
@@ -127,7 +127,7 @@ CollectionFind CollectionFind::fields(List projectedSearchExprStr){}
 #endif
 shcore::Value CollectionFind::fields(const shcore::Argument_list &args)
 {
-  args.ensure_count(1, "CollectionFind::fields");
+  args.ensure_count(1, "CollectionFind.fields");
 
   try
   {
@@ -142,7 +142,7 @@ shcore::Value CollectionFind::fields(const shcore::Argument_list &args)
 
     update_functions("fields");
   }
-  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionFind::fields");
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionFind.fields");
 
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
@@ -172,7 +172,7 @@ CollectionFind CollectionFind::groupBy(List searchExprStr){}
 #endif
 shcore::Value CollectionFind::group_by(const shcore::Argument_list &args)
 {
-  args.ensure_count(1, "CollectionFind::groupBy");
+  args.ensure_count(1, "CollectionFind.groupBy");
 
   try
   {
@@ -187,7 +187,7 @@ shcore::Value CollectionFind::group_by(const shcore::Argument_list &args)
 
     update_functions("groupBy");
   }
-  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionFind::groupBy");
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionFind.groupBy");
 
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
@@ -216,7 +216,7 @@ CollectionFind CollectionFind::having(String searchCondition){}
 #endif
 shcore::Value CollectionFind::having(const shcore::Argument_list &args)
 {
-  args.ensure_count(1, "CollectionFind::having");
+  args.ensure_count(1, "CollectionFind.having");
 
   try
   {
@@ -224,7 +224,7 @@ shcore::Value CollectionFind::having(const shcore::Argument_list &args)
 
     update_functions("having");
   }
-  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionFind::having");
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionFind.having");
 
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
@@ -258,7 +258,7 @@ CollectionFind CollectionFind::sort(List sortExprStr){}
 #endif
 shcore::Value CollectionFind::sort(const shcore::Argument_list &args)
 {
-  args.ensure_count(1, "CollectionFind::sort");
+  args.ensure_count(1, "CollectionFind.sort");
 
   try
   {
@@ -273,7 +273,7 @@ shcore::Value CollectionFind::sort(const shcore::Argument_list &args)
 
     update_functions("sort");
   }
-  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionFind::sort");
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionFind.sort");
 
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
@@ -305,7 +305,7 @@ CollectionFind CollectionFind::limit(Integer numberOfRows){}
 #endif
 shcore::Value CollectionFind::limit(const shcore::Argument_list &args)
 {
-  args.ensure_count(1, "CollectionFind::limit");
+  args.ensure_count(1, "CollectionFind.limit");
 
   try
   {
@@ -313,7 +313,7 @@ shcore::Value CollectionFind::limit(const shcore::Argument_list &args)
 
     update_functions("limit");
   }
-  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionFind::limit");
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionFind.limit");
 
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
@@ -338,7 +338,7 @@ CollectionFind CollectionFind::skip(Integer limitOffset){}
 #endif
 shcore::Value CollectionFind::skip(const shcore::Argument_list &args)
 {
-  args.ensure_count(1, "CollectionFind::skip");
+  args.ensure_count(1, "CollectionFind.skip");
 
   try
   {
@@ -346,14 +346,14 @@ shcore::Value CollectionFind::skip(const shcore::Argument_list &args)
 
     update_functions("skip");
   }
-  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionFind::skip");
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionFind.skip");
 
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
 shcore::Value CollectionFind::bind(const shcore::Argument_list &UNUSED(args))
 {
-  throw shcore::Exception::logic_error("CollectionFind::bind: not yet implemented.");
+  throw shcore::Exception::logic_error("CollectionFind.bind: not yet implemented.");
 
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
@@ -406,7 +406,7 @@ Collection_resultset CollectionFind::execute(ExecuteOptions options){}
 #endif
 shcore::Value CollectionFind::execute(const shcore::Argument_list &args)
 {
-  args.ensure_count(0, "CollectionFind::execute");
+  args.ensure_count(0, "CollectionFind.execute");
 
   return shcore::Value::wrap(new mysqlx::Collection_resultset(boost::shared_ptr< ::mysqlx::Result>(_find_statement->execute())));
 }

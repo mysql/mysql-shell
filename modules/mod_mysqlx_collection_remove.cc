@@ -69,7 +69,7 @@ CollectionRemove CollectionRemove::remove(String searchCondition){}
 shcore::Value CollectionRemove::remove(const shcore::Argument_list &args)
 {
   // Each method validates the received parameters
-  args.ensure_count(0, 1, "CollectionRemove::remove");
+  args.ensure_count(0, 1, "CollectionRemove.remove");
 
   boost::shared_ptr<Collection> collection(boost::static_pointer_cast<Collection>(_owner.lock()));
 
@@ -86,7 +86,7 @@ shcore::Value CollectionRemove::remove(const shcore::Argument_list &args)
       // Updates the exposed functions
       update_functions("remove");
     }
-    CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionRemove::remove");
+    CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionRemove.remove");
   }
 
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
@@ -116,7 +116,7 @@ CollectionRemove CollectionRemove::sort(List sortExprStr){}
 #endif
 shcore::Value CollectionRemove::sort(const shcore::Argument_list &args)
 {
-  args.ensure_count(1, "CollectionRemove::sort");
+  args.ensure_count(1, "CollectionRemove.sort");
 
   try
   {
@@ -131,7 +131,7 @@ shcore::Value CollectionRemove::sort(const shcore::Argument_list &args)
 
     update_functions("sort");
   }
-  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionRemove::sort");
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionRemove.sort");
 
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
@@ -158,7 +158,7 @@ CollectionRemove CollectionRemove::limit(Integer numberOfDocs){}
 #endif
 shcore::Value CollectionRemove::limit(const shcore::Argument_list &args)
 {
-  args.ensure_count(1, "CollectionRemove::limit");
+  args.ensure_count(1, "CollectionRemove.limit");
 
   try
   {
@@ -166,14 +166,14 @@ shcore::Value CollectionRemove::limit(const shcore::Argument_list &args)
 
     update_functions("limit");
   }
-  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionRemove::limit");
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionRemove.limit");
 
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
 shcore::Value CollectionRemove::bind(const shcore::Argument_list &UNUSED(args))
 {
-  throw shcore::Exception::logic_error("CollectionRemove::bind: not yet implemented.");
+  throw shcore::Exception::logic_error("CollectionRemove.bind: not yet implemented.");
 
   return Value(Object_bridge_ref(this));
 }
@@ -216,7 +216,7 @@ Collection_resultset CollectionRemove::execute(ExecuteOptions opt){}
 #endif
 shcore::Value CollectionRemove::execute(const shcore::Argument_list &args)
 {
-  args.ensure_count(0, "CollectionRemove::execute");
+  args.ensure_count(0, "CollectionRemove.execute");
 
   return shcore::Value::wrap(new mysqlx::Collection_resultset(boost::shared_ptr< ::mysqlx::Result>(_remove_statement->execute())));
 }

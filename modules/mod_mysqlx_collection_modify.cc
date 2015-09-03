@@ -85,7 +85,7 @@ CollectionModify CollectionModify::modify(String searchCondition){}
 shcore::Value CollectionModify::modify(const shcore::Argument_list &args)
 {
   // Each method validates the received parameters
-  args.ensure_count(0, 1, "CollectionModify::modify");
+  args.ensure_count(0, 1, "CollectionModify.modify");
 
   boost::shared_ptr<Collection> collection(boost::static_pointer_cast<Collection>(_owner.lock()));
 
@@ -102,7 +102,7 @@ shcore::Value CollectionModify::modify(const shcore::Argument_list &args)
       // Updates the exposed functions
       update_functions("modify");
     }
-    CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionModify::modify");
+    CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionModify.modify");
   }
 
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
@@ -152,7 +152,7 @@ CollectionModify CollectionModify::set(String attribute, Value value){}
 shcore::Value CollectionModify::set(const shcore::Argument_list &args)
 {
   // Each method validates the received parameters
-  args.ensure_count(2, "CollectionModify::set");
+  args.ensure_count(2, "CollectionModify.set");
 
   try
   {
@@ -161,7 +161,7 @@ shcore::Value CollectionModify::set(const shcore::Argument_list &args)
 
     update_functions("operation");
   }
-  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionModify::set");
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionModify.set");
 
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
@@ -246,7 +246,7 @@ CollectionModify CollectionModify::unset(List attributes){}
 shcore::Value CollectionModify::unset(const shcore::Argument_list &args)
 {
   // Each method validates the received parameters
-  args.ensure_at_least(1, "CollectionModify::unset");
+  args.ensure_at_least(1, "CollectionModify.unset");
 
   try
   {
@@ -296,7 +296,7 @@ shcore::Value CollectionModify::unset(const shcore::Argument_list &args)
     if (unset_count)
       update_functions("operation");
   }
-  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionModify::unset");
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionModify.unset");
 
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
@@ -343,7 +343,7 @@ CollectionModify CollectionModify::merge(Document document){}
 shcore::Value CollectionModify::merge(const shcore::Argument_list &args)
 {
   // Each method validates the received parameters
-  args.ensure_count(1, "CollectionModify::merge");
+  args.ensure_count(1, "CollectionModify.merge");
 
   try
   {
@@ -355,7 +355,7 @@ shcore::Value CollectionModify::merge(const shcore::Argument_list &args)
 
     update_functions("operation");
   }
-  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionModify::merge");
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionModify.merge");
 
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
@@ -402,7 +402,7 @@ CollectionModify CollectionModify::arrayInsert(String path, Value value){}
 shcore::Value CollectionModify::array_insert(const shcore::Argument_list &args)
 {
   // Each method validates the received parameters
-  args.ensure_count(2, "CollectionModify::arrayInsert");
+  args.ensure_count(2, "CollectionModify.arrayInsert");
 
   try
   {
@@ -411,7 +411,7 @@ shcore::Value CollectionModify::array_insert(const shcore::Argument_list &args)
     // Updates the exposed functions
     update_functions("operation");
   }
-  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionModify::arrayInsert");
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionModify.arrayInsert");
 
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
@@ -458,7 +458,7 @@ CollectionModify CollectionModify::arrayAppend(String path, Value value){}
 shcore::Value CollectionModify::array_append(const shcore::Argument_list &args)
 {
   // Each method validates the received parameters
-  args.ensure_count(2, "CollectionModify::arrayAppend");
+  args.ensure_count(2, "CollectionModify.arrayAppend");
 
   try
   {
@@ -468,7 +468,7 @@ shcore::Value CollectionModify::array_append(const shcore::Argument_list &args)
 
     update_functions("operation");
   }
-  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionModify::arrayAppend");
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionModify.arrayAppend");
 
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
@@ -514,7 +514,7 @@ CollectionModify CollectionModify::arrayDelete(String path, Value value){}
 shcore::Value CollectionModify::array_delete(const shcore::Argument_list &args)
 {
   // Each method validates the received parameters
-  args.ensure_count(1, "CollectionModify::arrayDelete");
+  args.ensure_count(1, "CollectionModify.arrayDelete");
 
   try
   {
@@ -523,7 +523,7 @@ shcore::Value CollectionModify::array_delete(const shcore::Argument_list &args)
     // Updates the exposed functions
     update_functions("operation");
   }
-  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionModify::arrayDelete");
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionModify.arrayDelete");
 
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
@@ -560,7 +560,7 @@ CollectionModify CollectionModify::sort(List sortExprStr){}
 #endif
 shcore::Value CollectionModify::sort(const shcore::Argument_list &args)
 {
-  args.ensure_count(1, "CollectionModify::sort");
+  args.ensure_count(1, "CollectionModify.sort");
 
   try
   {
@@ -575,7 +575,7 @@ shcore::Value CollectionModify::sort(const shcore::Argument_list &args)
 
     update_functions("sort");
   }
-  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionModify::sort");
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionModify.sort");
 
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
@@ -609,7 +609,7 @@ CollectionModify CollectionModify::limit(Integer numberOfDocs){}
 #endif
 shcore::Value CollectionModify::limit(const shcore::Argument_list &args)
 {
-  args.ensure_count(1, "CollectionModify::limit");
+  args.ensure_count(1, "CollectionModify.limit");
 
   try
   {
@@ -617,14 +617,14 @@ shcore::Value CollectionModify::limit(const shcore::Argument_list &args)
 
     update_functions("limit");
   }
-  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionModify::limit");
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionModify.limit");
 
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
 shcore::Value CollectionModify::bind(const shcore::Argument_list &UNUSED(args))
 {
-  throw shcore::Exception::logic_error("CollectionModify::bind: not yet implemented.");
+  throw shcore::Exception::logic_error("CollectionModify.bind: not yet implemented.");
 
   return Value(Object_bridge_ref(this));
 }
@@ -682,7 +682,7 @@ Collection_resultset CollectionModify::execute(ExecuteOptions opt){}
 #endif
 shcore::Value CollectionModify::execute(const shcore::Argument_list &args)
 {
-  args.ensure_count(0, "CollectionModify::execute");
+  args.ensure_count(0, "CollectionModify.execute");
 
   return shcore::Value::wrap(new mysqlx::Collection_resultset(boost::shared_ptr< ::mysqlx::Result>(_modify_statement->execute())));
 }

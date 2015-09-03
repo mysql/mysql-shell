@@ -201,7 +201,7 @@ shcore::Value Resultset::all(const shcore::Argument_list &args)
 {
   Value::Array_type_ref array(new Value::Array_type());
 
-  std::string function = class_name() + "::all";
+  std::string function = class_name() + ".all";
 
   args.ensure_count(0, function.c_str());
 
@@ -218,7 +218,7 @@ shcore::Value Resultset::all(const shcore::Argument_list &args)
 
 shcore::Value Resultset::next_result(const shcore::Argument_list &args)
 {
-  args.ensure_count(0, "Resultset::nextDataSet");
+  args.ensure_count(0, "Resultset.nextDataSet");
 
   return shcore::Value(_result->nextDataSet());
 }
@@ -240,7 +240,7 @@ shcore::Value Collection_resultset::next(const shcore::Argument_list &args)
 {
   Value ret_val = Value::Null();
 
-  std::string function = class_name() + "::next";
+  std::string function = class_name() + ".next";
 
   args.ensure_count(0, function.c_str());
 

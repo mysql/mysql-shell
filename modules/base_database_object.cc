@@ -81,7 +81,7 @@ std::vector<std::string> DatabaseObject::get_members() const
 
 shcore::Value DatabaseObject::get_member_method(const shcore::Argument_list &args, const std::string& method, const std::string& prop)
 {
-  std::string function = class_name() + "::" + method;
+  std::string function = class_name() + "." + method;
   args.ensure_count(0, function.c_str());
 
   return get_member(prop);
@@ -107,6 +107,34 @@ bool DatabaseObject::has_member(const std::string &prop) const
     prop == "schema";
 }
 
+#ifdef DOXYGEN
+/**
+* Returns the name of this database object.
+* \return the name as an String object.
+*/
+String DatabaseObject::getName(){}
+
+/**
+* Returns the Session object of this database object.
+* \return the Session object used to get to this object.
+*
+* Note that the returned object can be any of:
+* - XSession: if the object was created/retrieved using an XSession instance.
+* - NodeSession: if the object was created/retrieved using an NodeSession instance.
+* - ClassicSession: if the object was created/retrieved using an ClassicSession instance.
+*/
+Object DatabaseObject::getSession(){}
+
+/**
+* Returns the Schema object of this database object.
+* \return the object for this schema of this database object.
+*
+* Note that the returned object can be any of:
+* - Schema: if the object was created/retrieved using a Schema instance.
+* - ClassicSchema: if the object was created/retrieved using an ClassicSchema instance.
+*/
+Object DatabaseObject::getSchema(){}
+#endif
 Value DatabaseObject::get_member(const std::string &prop) const
 {
   Value ret_val;

@@ -37,7 +37,6 @@ namespace mysh
     * Represents a View on an Schema, retrieved with a session created using the X Protocol.
     * \todo Implement and document select()
     * \todo Implement and document select([field, field, ...])
-    * \todo Implement and document drop()
     */
     class View : public DatabaseObject
     {

@@ -176,7 +176,7 @@ shcore::Value TableInsert::insert(const shcore::Argument_list &args)
         }
       }
     }
-    CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableInsert::insert");
+    CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableInsert.insert");
   }
 
   // Updates the exposed functions
@@ -215,7 +215,7 @@ TableInsert TableInsert::values(Value value1, Value value2, ...){}
 shcore::Value TableInsert::values(const shcore::Argument_list &args)
 {
   // Each method validates the received parameters
-  args.ensure_at_least(1, "TableInsert::values");
+  args.ensure_at_least(1, "TableInsert.values");
 
   try
   {
@@ -229,7 +229,7 @@ shcore::Value TableInsert::values(const shcore::Argument_list &args)
     // Updates the exposed functions
     update_functions("values");
   }
-  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableInsert::values");
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableInsert.values");
 
   // Returns the same object
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
@@ -288,7 +288,7 @@ Resultset TableInsert::execute(ExecuteOptions options){}
 #endif
 shcore::Value TableInsert::execute(const shcore::Argument_list &args)
 {
-  args.ensure_count(0, "TableInsert::execute");
+  args.ensure_count(0, "TableInsert.execute");
 
   return shcore::Value::wrap(new mysqlx::Resultset(boost::shared_ptr< ::mysqlx::Result>(_insert_statement->execute())));
 }

@@ -165,7 +165,7 @@ boost::shared_ptr<mysh::ShellBaseSession> mysh::connect_session(const shcore::Ar
   switch (session_type)
   {
     case Application:
-      ret_val.reset(new mysh::mysqlx::Session());
+      ret_val.reset(new mysh::mysqlx::XSession());
       break;
     case Node:
       ret_val.reset(new mysh::mysqlx::NodeSession());
@@ -233,7 +233,7 @@ std::vector<std::string> ShellBaseSession::get_members() const
 
 shcore::Value ShellBaseSession::get_member_method(const shcore::Argument_list &args, const std::string& method, const std::string& prop)
 {
-  std::string function = class_name() + "::" + method;
+  std::string function = class_name() + "." + method;
   args.ensure_count(0, function.c_str());
 
   return get_member(prop);

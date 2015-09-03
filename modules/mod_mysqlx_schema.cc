@@ -229,7 +229,7 @@ Table Schema::getTable(String name){}
 #endif
 shcore::Value Schema::getTable(const shcore::Argument_list &args)
 {
-  args.ensure_count(1, (class_name() + "::getTable").c_str());
+  args.ensure_count(1, (class_name() + ".getTable").c_str());
 
   std::string name = args.string_at(0);
 
@@ -248,7 +248,7 @@ Collection Schema::getCollection(String name){}
 #endif
 shcore::Value Schema::getCollection(const shcore::Argument_list &args)
 {
-  args.ensure_count(1, (class_name() + "::getCollection").c_str());
+  args.ensure_count(1, (class_name() + ".getCollection").c_str());
 
   std::string name = args.string_at(0);
 
@@ -267,7 +267,7 @@ View Schema::getView(String name){}
 #endif
 shcore::Value Schema::getView(const shcore::Argument_list &args)
 {
-  args.ensure_count(1, (class_name() + "::getCollection").c_str());
+  args.ensure_count(1, (class_name() + ".getCollection").c_str());
 
   std::string name = args.string_at(0);
 
@@ -288,7 +288,7 @@ shcore::Value Schema::createCollection(const shcore::Argument_list &args)
 {
   Value ret_val;
 
-  args.ensure_count(1, (class_name() + "::createCollection").c_str());
+  args.ensure_count(1, (class_name() + ".createCollection").c_str());
 
   // Creates the collection on the server
   shcore::Argument_list command_args;

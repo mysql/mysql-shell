@@ -70,7 +70,7 @@ TableDelete TableDelete::delete(){}
 shcore::Value TableDelete::remove(const shcore::Argument_list &args)
 {
   // Each method validates the received parameters
-  args.ensure_count(0, "TableDelete::delete");
+  args.ensure_count(0, "TableDelete.delete");
 
   boost::shared_ptr<Table> table(boost::static_pointer_cast<Table>(_owner.lock()));
 
@@ -83,7 +83,7 @@ shcore::Value TableDelete::remove(const shcore::Argument_list &args)
       // Updates the exposed functions
       update_functions("delete");
     }
-    CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableDelete::delete");
+    CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableDelete.delete");
   }
 
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
@@ -117,7 +117,7 @@ TableDelete TableDelete::where(String searchCondition){}
 shcore::Value TableDelete::where(const shcore::Argument_list &args)
 {
   // Each method validates the received parameters
-  args.ensure_count(1, "TableDelete::where");
+  args.ensure_count(1, "TableDelete.where");
 
   boost::shared_ptr<Table> table(boost::static_pointer_cast<Table>(_owner.lock()));
 
@@ -130,7 +130,7 @@ shcore::Value TableDelete::where(const shcore::Argument_list &args)
       // Updates the exposed functions
       update_functions("where");
     }
-    CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableDelete::where");
+    CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableDelete.where");
   }
 
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
@@ -161,7 +161,7 @@ TableDelete TableDelete::orderBy(List sortExprStr){}
 #endif
 shcore::Value TableDelete::order_by(const shcore::Argument_list &args)
 {
-  args.ensure_count(1, "TableDelete::orderBy");
+  args.ensure_count(1, "TableDelete.orderBy");
 
   try
   {
@@ -176,7 +176,7 @@ shcore::Value TableDelete::order_by(const shcore::Argument_list &args)
 
     update_functions("orderBy");
   }
-  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableDelete::orderBy");
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableDelete.orderBy");
 
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
@@ -203,7 +203,7 @@ TableDelete TableDelete::limit(Integer numberOfRows){}
 #endif
 shcore::Value TableDelete::limit(const shcore::Argument_list &args)
 {
-  args.ensure_count(1, "TableDelete::limit");
+  args.ensure_count(1, "TableDelete.limit");
 
   try
   {
@@ -211,7 +211,7 @@ shcore::Value TableDelete::limit(const shcore::Argument_list &args)
 
     update_functions("limit");
   }
-  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableDelete::limit");
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableDelete.limit");
 
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
@@ -221,7 +221,7 @@ TableDelete TableDelete::bind({ var:val, var : val, ... }){}
 #endif
 shcore::Value TableDelete::bind(const shcore::Argument_list &UNUSED(args))
 {
-  throw shcore::Exception::logic_error("TableDelete::bind: not yet implemented.");
+  throw shcore::Exception::logic_error("TableDelete.bind: not yet implemented.");
 
   return Value(Object_bridge_ref(this));
 }
@@ -267,7 +267,7 @@ Resultset TableDelete::execute(ExecuteOptions options){}
 #endif
 shcore::Value TableDelete::execute(const shcore::Argument_list &args)
 {
-  args.ensure_count(0, "TableDelete::execute");
+  args.ensure_count(0, "TableDelete.execute");
 
   return shcore::Value::wrap(new mysqlx::Collection_resultset(boost::shared_ptr< ::mysqlx::Result>(_delete_statement->execute())));
 }

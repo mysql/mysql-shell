@@ -44,7 +44,6 @@ namespace mysh
     * \todo Implement and document as()
     * \todo Implement and document getIndexes()
     * \todo Implement and document count()
-    * \todo Implement and document drop()
     */
     class Table : public DatabaseObject, public boost::enable_shared_from_this<Table>
     {
