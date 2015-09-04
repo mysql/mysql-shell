@@ -62,7 +62,10 @@ if( WIN32 )
   endif()
 endif()
 
-add_definitions(-DBOOST_ALL_NO_LIB )
+add_definitions(-DBOOST_ALL_NO_LIB)
+IF(APPLE)
+add_definitions(-DBOOST_NO_CXX11_RVALUE_REFERENCES )
+ENDIF()
 
 install(DIRECTORY "${CMAKE_SOURCE_DIR}/mysqlxtest/" DESTINATION "include/" FILES_MATCHING PATTERN "*.h" )
 install(DIRECTORY "${CMAKE_SOURCE_DIR}/mysqlxtest/common/" DESTINATION "include/common/" FILES_MATCHING PATTERN "*.h" )
