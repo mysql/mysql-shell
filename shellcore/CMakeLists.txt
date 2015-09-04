@@ -150,6 +150,7 @@ TARGET_LINK_LIBRARIES(mysqlsh
 
 ELSE()
   ADD_CONVENIENCE_LIBRARY(clientlib ${libmysqlsh_SRC} ${libmysqlshmods_SRC})
+  add_dependencies(clientlib mysqlxtest)
   SET(LIBS mysqlxtest clientlib ${V8_LINK_LIST} ${PYTHON_LIBRARIES} ${SSL_LIBRARIES} ${MYSQL_LIBRARIES} ${BOOST_LIBRARIES} ${PROTOBUF_LIBRARY})
   IF(NOT INSTALL_LIBDIR)
     SET(INSTALL_LIBDIR lib)
