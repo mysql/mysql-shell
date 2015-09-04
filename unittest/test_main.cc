@@ -13,12 +13,13 @@
    along with this program; if not, write to the Free Software
    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA */
 
-#include <gtest/gtest.h>
-#include <fstream>
-#include <iostream>
 #ifdef HAVE_PYTHON
 #include <Python.h>
 #endif
+
+#include <gtest/gtest.h>
+#include <fstream>
+#include <iostream>
 
 int main(int argc, char **argv)
 {

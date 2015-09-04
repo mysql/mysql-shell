@@ -17,10 +17,8 @@
  * 02110-1301  USA
  */
 
-#include <Python.h>
-
-#include "shellcore/shell_python.h"
 #include "shellcore/python_context.h"
+#include "shellcore/shell_python.h"
 #include "shellcore/python_utils.h"
 
 using namespace shcore;
@@ -35,7 +33,6 @@ Shell_python::~Shell_python()
 {
   _py.reset();
 }
-
 
 /*
 * Helper function to ensure the exceptions generated on the mysqlx_connector
@@ -78,8 +75,6 @@ void Shell_python::handle_input(std::string &code, Interactive_input_state &stat
 
   result_processor(result);
 }
-
-
 
 /*
  * Shell prompt string

@@ -16,9 +16,6 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301  USA
  */
-
-#include <Python.h>
-
 #include "shellcore/python_context.h"
 #include "shellcore/python_utils.h"
 #include "shellcore/shell_core.h"
