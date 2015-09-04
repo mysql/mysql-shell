@@ -55,51 +55,53 @@ TableInsert::TableInsert(boost::shared_ptr<Table> owner)
 
 #ifdef DOXYGEN
 /**
-* Creates a new TableInsert object and returns it.
-* After this method invokation the following methods can be invoked: values, bind, execute.
-* \sa values(), bind(), execute()
-* \return a new TableInsert object.
-* \code{.js}
-* // open a connection
-* var mysqlx = require('mysqlx').mysqlx;
-* var mysession = mysqlx.getNodeSession("root:123@localhost:33060");
-* // create some initial data
-* mysession.sql('drop schema if exists js_shell_test;').execute();
-* mysession.sql('create schema js_shell_test;').execute();
-* mysession.sql('use js_shell_test;').execute();
-* mysession.sql('create table table1 (name varchar(50), age integer, gender varchar(20));').execute();
-* // create some initial data, populate table
-* var schema = mysession.getSchema('js_shell_test');
-* var table = schema.getTable('table1');
-* var result = table.insert({name: 'jack', age: 17, gender: 'male'}).execute();
-* var result = table.insert({name: 'adam', age: 15, gender: 'male'}).execute();
-* var result = table.insert({name: 'brian', age: 14, gender: 'male'}).execute();
-* // check results
-* table.select().execute();
-* \endcode
+* Initializes the record insertion handler.
+* \return This TableInsert object.
+*
+* This function is called automatically when Table.insert() is called.
+*
+* After this function invocation, the following functions can be invoked:
+*
+* - values(Value value1, Value value2, ...)
+* - execute(ExecuteOptions options).
+*
+* \sa Usage examples at execute(ExecuteOptions options).
 */
-TableInsert TableInsert::insert()
-{}
+TableInsert TableInsert::insert(){}
 
 /**
-* Creates a new TableInsert object with the field list provided and returns it.
-* After thsi method invokation the following methods can be invoked: values, bind, execute.
-* \sa values(), bind(), execute()
-* \param [field, field, field, ...] a list of strings each one representeting a field name.
-* \return a new TableInsert object.
+* Initializes the record insertion handler with the received column list.
+* \return This TableInsert object.
+*
+* This function is called automatically when Table.insert(List columns) is called.
+*
+* After this function invocation, the following functions can be invoked:
+*
+* - values(Value value1, Value value2, ...)
+* - execute(ExecuteOptions options).
+*
+* \sa Usage examples at execute(ExecuteOptions options).
 */
-TableInsert TableInsert::insert([field, field, field, ...])
-{}
+TableInsert TableInsert::insert(List columns){}
 
 /**
-* Creates a new TableInsert object with the map of field and values provided and returns it.
-* After thsi method invokation the following methods can be invoked: values, bind, execute.
-* \sa values(), bind(), execute()
-* \param { field: value, field : value, field : value, ... } a map of field / values where each key is a field name and each value a field value.
-* \return the same TableInsert object where this method was invoked.
+* Initializes the record insertion handler with the received column list.
+* \param col1 The first column name.
+* \param col2 The second column name.
+* \return This TableInsert object.
+*
+* This function is called automatically when Table.insert(String col1, String col2, ...) is called.
+*
+* A string parameter should be specified for each column to be included on the insertion process.
+*
+* After this function invocation, the following functions can be invoked:
+*
+* - values(Value value1, Value value2, ...)
+* - execute(ExecuteOptions options).
+*
+* \sa Usage examples at execute(ExecuteOptions options).
 */
-TableInsert TableInsert::insert({ field: value, field : value, field : value, ... })
-{}
+TableInsert TableInsert::insert(String col1, String col2, ...){}
 #endif
 shcore::Value TableInsert::insert(const shcore::Argument_list &args)
 {
@@ -174,7 +176,7 @@ shcore::Value TableInsert::insert(const shcore::Argument_list &args)
         }
       }
     }
-    CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableInsert::insert");
+    CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableInsert.insert");
   }
 
   // Updates the exposed functions
@@ -185,20 +187,35 @@ shcore::Value TableInsert::insert(const shcore::Argument_list &args)
 
 #ifdef DOXYGEN
 /**
-* Sets the values for the fields of the row to insert.
-* This method can be invoked right after the invocation of the following methods: insert.
-* After this method invocation the following methods can be invoked: bind, execute.
-* \sa insert(), bind(), execute()
-* \param [val, val, val, ...] the list of values to match with the fields, represents the 'values' clause in an insert statement. Each value can be any of String, Integer, Double or Object.
-* \return the same TableInsert object where this method was invoked.
+* Sets the values for a row to be inserted.
+* \param value1 The value for the first column.
+* \param value2 The value for the second column.
+* \return This TableInsert object.
+*
+* Each column value comes as a parameter on this function call.
+*
+* The number of parameters must match the length of the column list defined on the called insert function.
+* If no column list was defined the number of parameters must match the number of columns defined on the Table where the records will be inserted.
+*
+* The values must be positioned on the list in a way they match the column list defined on the called insert function.
+* If no column list was defined the fields must match the column definition of the Table where the records will be inserted.
+*
+* This function can be invoked multiple times after:
+* - insert()
+* - insert(List columns)
+* - insert(String col1, String col2, ...)
+* - values(Value value1, Value value2, ...)
+*
+* After this function invocation, the following functions can be invoked:
+*
+* - execute(ExecuteOptions options).
 */
-TableInsert TableInsert::values([val, val, val, ...])
-{}
+TableInsert TableInsert::values(Value value1, Value value2, ...){}
 #endif
 shcore::Value TableInsert::values(const shcore::Argument_list &args)
 {
   // Each method validates the received parameters
-  args.ensure_at_least(1, "TableInsert::values");
+  args.ensure_at_least(1, "TableInsert.values");
 
   try
   {
@@ -212,24 +229,14 @@ shcore::Value TableInsert::values(const shcore::Argument_list &args)
     // Updates the exposed functions
     update_functions("values");
   }
-  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableInsert::values");
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableInsert.values");
 
   // Returns the same object
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
 #ifdef DOXYGEN
-/**
-* TODO: rewrite this when this method is actually implemented.
-* Sets the bindings of parameter names and values.
-* This method can be invoked after the following methods: insert with map, values.
-* After this method invocation the followin methods can be invoked: execute.
-* \sa insert(), values(), execute()
-* \param { var:val, var : val, ... } a map with the mappings between paremeter names and parameter values.
-* \return the same TableInsert object where this method was invoked.
-*/
-TableInsert TableInsert::bind({ var:val, var : val, ... })
-{}
+TableInsert TableInsert::bind({ var:val, var : val, ... }){}
 #endif
 shcore::Value TableInsert::bind(const shcore::Argument_list &UNUSED(args))
 {
@@ -247,20 +254,49 @@ shcore::Value TableInsert::bind(const shcore::Argument_list &UNUSED(args))
 
 #ifdef DOXYGEN
 /**
-* Executes the insert statement with the configured options.
-* This method can be invoked as many times as required.
-* This method can be invoked after the following methods has been invoked: insert, values, bind.
-* \sa insert(), values(), bind()
-* TODO: rewrite this when execution options are supported.
-* \param opt options to execute, not currently accepted
-* \return a ResultSet with the results of the operation.
+* Executes the record insertion.
+* \return Resultset A resultset object that can be used to retrieve the results of the insertion operation.
+*
+* This function can be invoked after:
+* - values(Value value1, Value value2, ...)
+*
+* \code{.js}
+* // open a connection
+* var mysqlx = require('mysqlx').mysqlx;
+* var mysession = mysqlx.getNodeSession("myuser@localhost", mypwd);
+*
+* // Creates a table named friends on the test schema
+* mysession.sql('create table test.friends (name varchar(50), age integer, gender varchar(20));').execute();
+*
+* var table = mysession.test.friends;
+*
+* // create some initial data
+* table.insert('name','last_name','age','gender')
+*      .values('jack','black', 17, 'male')
+*      .values('adam', 'sandler', 15, 'male')
+*      .values('brian', 'adams', 14, 'male')
+*      .values('alma', 'lopez', 13, 'female').execute();
+
+* table.insert(['name','last_name','age','gender'])
+*      .values('carol', 'shiffield', 14, 'female')
+*      .values('donna', 'summers', 16, 'female')
+*      .values('angel', 'down', 14, 'male').execute();
+*
+* \endcode
 */
-Resultset TableInsert::execute(ExecuteOptions opt)
-{}
+Resultset TableInsert::execute(ExecuteOptions options){}
 #endif
 shcore::Value TableInsert::execute(const shcore::Argument_list &args)
 {
-  args.ensure_count(0, "TableInsert::execute");
+  mysqlx::Resultset *result = NULL;
 
-  return shcore::Value::wrap(new mysqlx::Resultset(boost::shared_ptr< ::mysqlx::Result>(_insert_statement->execute())));
+  try
+  {
+    args.ensure_count(0, "TableInsert.execute");
+
+    result = new mysqlx::Resultset(boost::shared_ptr< ::mysqlx::Result>(_insert_statement->execute()));
+  }
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableInsert.execute");
+
+  return result ? shcore::Value::wrap(result) : shcore::Value::Null();
 }

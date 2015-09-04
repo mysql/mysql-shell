@@ -51,12 +51,12 @@ namespace mysh
 
       virtual shcore::Value execute(const shcore::Argument_list &args);
 #ifdef DOXYGEN
-      TableDelete remove();
-      TableDelete where(searchCriteria);
-      TableDelete orderBy([expr, expr, ...]);
-      TableDelete limit(lim);
+      TableDelete delete();
+      TableDelete where(String searchCondition);
+      TableDelete orderBy(List sortExprStr);
+      TableDelete limit(Integer numberOfRows);
       TableDelete bind({ var:val, var : val, ... });
-      Resultset execute(ExecuteOptions opt);
+      Resultset execute(ExecuteOptions options);
 #endif
     private:
       std::auto_ptr< ::mysqlx::DeleteStatement> _delete_statement;

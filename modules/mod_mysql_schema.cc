@@ -37,35 +37,35 @@
 using namespace mysh::mysql;
 using namespace shcore;
 
-Schema::Schema(boost::shared_ptr<ClassicSession> session, const std::string &schema)
+ClassicSchema::ClassicSchema(boost::shared_ptr<ClassicSession> session, const std::string &schema)
 : DatabaseObject(boost::dynamic_pointer_cast<ShellBaseSession>(session), boost::shared_ptr<DatabaseObject>(), schema)
 {
   init();
 }
 
-Schema::Schema(boost::shared_ptr<const ClassicSession> session, const std::string &schema) :
+ClassicSchema::ClassicSchema(boost::shared_ptr<const ClassicSession> session, const std::string &schema) :
 DatabaseObject(boost::const_pointer_cast<ClassicSession>(session), boost::shared_ptr<DatabaseObject>(), schema)
 {
   init();
 }
 
-void Schema::init()
+void ClassicSchema::init()
 {
   add_method("getTables", boost::bind(&DatabaseObject::get_member_method, this, _1, "getTables", "tables"), "name", shcore::String, NULL);
   add_method("getViews", boost::bind(&DatabaseObject::get_member_method, this, _1, "getViews", "views"), "name", shcore::String, NULL);
 
-  add_method("getTable", boost::bind(&Schema::getTable, this, _1), "name", shcore::String, NULL);
-  add_method("getView", boost::bind(&Schema::getView, this, _1), "name", shcore::String, NULL);
+  add_method("getTable", boost::bind(&ClassicSchema::getTable, this, _1), "name", shcore::String, NULL);
+  add_method("getView", boost::bind(&ClassicSchema::getView, this, _1), "name", shcore::String, NULL);
 
   _tables = Value::new_map().as_map();
   _views = Value::new_map().as_map();
 }
 
-Schema::~Schema()
+ClassicSchema::~ClassicSchema()
 {
 }
 
-void Schema::cache_table_objects()
+void ClassicSchema::cache_table_objects()
 {
   boost::shared_ptr<ClassicSession> sess(boost::dynamic_pointer_cast<ClassicSession>(_session.lock()));
   if (sess)
@@ -78,16 +78,16 @@ void Schema::cache_table_objects()
       std::string object_type = row->get_value_as_string(1);
 
       if (object_type == "BASE TABLE" || object_type == "LOCAL TEMPORARY")
-        (*_tables)[object_name] = Value::wrap(new Table(shared_from_this(), object_name));
+        (*_tables)[object_name] = Value::wrap(new ClassicTable(shared_from_this(), object_name));
       else if (object_type == "VIEW" || object_type == "SYSTEM VIEW")
-        (*_views)[object_name] = Value::wrap(new View(shared_from_this(), object_name));
+        (*_views)[object_name] = Value::wrap(new ClassicView(shared_from_this(), object_name));
 
       row = result->next();
     }
   }
 }
 
-std::vector<std::string> Schema::get_members() const
+std::vector<std::string> ClassicSchema::get_members() const
 {
   std::vector<std::string> members(DatabaseObject::get_members());
   members.push_back("tables");
@@ -108,7 +108,7 @@ std::vector<std::string> Schema::get_members() const
   return members;
 }
 
-Value Schema::get_member(const std::string &prop) const
+Value ClassicSchema::get_member(const std::string &prop) const
 {
   Value ret_val;
 
@@ -144,16 +144,16 @@ Value Schema::get_member(const std::string &prop) const
 #ifdef DOXYGEN
 /**
 * Returns the table of the given name for this schema.
-* \sa Table
+* \sa ClassicTable
 * \param name the name of the table to look for.
-* \return the Table object matching the name.
+* \return the ClassicTable object matching the name.
 */
-Table Schema::getTable(String name)
+ClassicTable ClassicSchema::getTable(String name)
 {}
 #endif
-shcore::Value Schema::getTable(const shcore::Argument_list &args)
+shcore::Value ClassicSchema::getTable(const shcore::Argument_list &args)
 {
-  args.ensure_count(1, (class_name() + "::getTable").c_str());
+  args.ensure_count(1, (class_name() + ".getTable").c_str());
   std::string name = args.string_at(0);
 
   Value::Map_type::const_iterator iter = _tables->find(name);
@@ -162,22 +162,22 @@ shcore::Value Schema::getTable(const shcore::Argument_list &args)
   else
     return Value();
 
-  //return shcore::Value::wrap(new Table(shared_from_this(), name));
+  //return shcore::Value::wrap(new ClassicTable(shared_from_this(), name));
 }
 
 #ifdef DOXYGEN
 /**
 * Returns the view of the given name for this schema.
-* \sa View
+* \sa ClassicView
 * \param name the name of the view to look for.
-* \return the View object matching the name.
+* \return the ClassicView object matching the name.
 */
-View Schema::getView(String name)
+ClassicView ClassicSchema::getView(String name)
 {}
 #endif
-shcore::Value Schema::getView(const shcore::Argument_list &args)
+shcore::Value ClassicSchema::getView(const shcore::Argument_list &args)
 {
-  args.ensure_count(1, (class_name() + "::getCollection").c_str());
+  args.ensure_count(1, (class_name() + ".getCollection").c_str());
   std::string name = args.string_at(0);
 
   Value::Map_type::const_iterator iter = _views->find(name);
@@ -186,10 +186,10 @@ shcore::Value Schema::getView(const shcore::Argument_list &args)
   else
     return Value();
 
-  //return shcore::Value::wrap(new View(shared_from_this(), name));
+  //return shcore::Value::wrap(new ClassicView(shared_from_this(), name));
 }
 
-shcore::Value Schema::find_in_collection(const std::string& name, boost::shared_ptr<shcore::Value::Map_type>source) const
+shcore::Value ClassicSchema::find_in_collection(const std::string& name, boost::shared_ptr<shcore::Value::Map_type>source) const
 {
   Value::Map_type::const_iterator iter = source->find(name);
   if (iter != source->end())
@@ -198,30 +198,22 @@ shcore::Value Schema::find_in_collection(const std::string& name, boost::shared_
     return Value();
 }
 
-Value Schema::_load_object(const std::string& name, const std::string& type) const
+Value ClassicSchema::_load_object(const std::string& name, const std::string& type) const
 {
   Value ret_val;
-  boost::shared_ptr<ClassicSession> sess(boost::dynamic_pointer_cast<ClassicSession>(_session.lock()));
-  if (sess)
+
+  std::string found_type(type);
+  if (_session.lock()->db_object_exists(found_type, name, _name))
   {
-    Result *result = sess->connection()->executeSql("show full tables in `" + _name + "` like '" + name + "';");
-    Row *row = result->next();
-
-    if (row)
+    if (found_type == "BASE TABLE" || found_type == "LOCAL TEMPORARY")
     {
-      std::string object_name = row->get_value_as_string(0);
-      std::string object_type = row->get_value_as_string(1);
-
-      if (type.empty() || (type == "TABLE" && (object_type == "BASE TABLE" || object_type == "LOCAL TEMPORARY")))
-      {
-        ret_val = Value::wrap(new Table(shared_from_this(), object_name));
-        (*_tables)[object_name] = ret_val;
-      }
-      else if (type.empty() || (type == "VIEW" && (object_type == "VIEW" || object_type == "SYSTEM VIEW")))
-      {
-        ret_val = Value::wrap(new View(shared_from_this(), object_name));
-        (*_views)[object_name] = ret_val;
-      }
+      ret_val = Value::wrap(new ClassicTable(shared_from_this(), name));
+      (*_tables)[name] = ret_val;
+    }
+    else if (found_type == "VIEW" || found_type == "SYSTEM VIEW")
+    {
+      ret_val = Value::wrap(new ClassicView(shared_from_this(), name));
+      (*_views)[name] = ret_val;
     }
   }
 

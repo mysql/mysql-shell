@@ -79,6 +79,7 @@ namespace shcore
   {
   public:
     Shell_language(IShell_core *owner) : _owner(owner) {}
+    virtual ~Shell_language(){}
 
     virtual void set_global(const std::string &name, const Value &value) = 0;
 

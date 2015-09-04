@@ -32,9 +32,15 @@ namespace mysh
     class Table;
 
     /**
-    * Handler for Update operations on Tables.
+    * Handler for record update operations on a Table.
     * \todo Implement and document bind({var:val, var:val, ...})
     * \todo Update execute to support options and document it
+    *
+    * This object provides the necessary functions to allow updating records on a table.
+    *
+    * This object should only be created by calling the update function on the table object on which the records will be updated.
+    *
+    * \sa Table
     */
     class TableUpdate : public Table_crud_definition, public boost::enable_shared_from_this<TableUpdate>
     {
@@ -53,12 +59,11 @@ namespace mysh
       virtual shcore::Value execute(const shcore::Argument_list &args);
 #ifdef DOXYGEN
       TableUpdate update();
-      TableUpdate set({ field : value, field : value, ... });
-      TableUpdate where(searchCriteria);
-      TableUpdate orderBy([expr, expr, ...]);
-      TableUpdate limit(lim);
-      TableUpdate bind({ var:val, var : val, ... });
-      ResultSet execute(ExecuteOptions opt);
+      TableUpdate set(String attribute, Value value);
+      TableUpdate where(String searchCondition);
+      TableUpdate orderBy(List sortExprStr);
+      TableUpdate limit(Integer numberOfRows);
+      ResultSet execute(ExecuteOptions options);
 #endif
     private:
       std::auto_ptr< ::mysqlx::UpdateStatement> _update_statement;

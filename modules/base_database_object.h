@@ -59,33 +59,20 @@ namespace mysh
     virtual bool operator == (const Object_bridge &other) const;
 
     shcore::Value get_member_method(const shcore::Argument_list &args, const std::string& method, const std::string& prop);
+
+    shcore::Value drop(const shcore::Argument_list &args);
+    shcore::Value existInDatabase(const shcore::Argument_list &args);
+
 #ifdef DOXYGEN
 
     String name; //!< Same as getName()
-    ClassicSession session; //!< Same as getSession()
-    Schema schema; //!< Same as getSchema()
+    Object session; //!< Same as getSession()
+    Object schema; //!< Same as getSchema()
 
-    /**
-    * Returns the name of this database object.
-    * \return the name as an String object.
-    */
-    String getName()
-    {}
+    String getName();
+    Object getSession();
+    Object getSchema();
 
-    /**
-    * Returns the ClassicSession object of this database object.
-    * \return the object for this session of this database object.
-    */
-    ClassicSession getSession()
-    {}
-
-    /**
-    * Returns the schema object of this database object.
-    * \return the object for this schema of this database object.
-    */
-    Schema getSchema()
-    {}
-    
 #endif
 
   protected:

@@ -49,7 +49,6 @@ namespace mysh
     /**
     * Represents a Schema as retrived from a session created using the X Protocol.
     * \todo Implement and Document getCollectionAsTable()
-    * \todo Implement and Document drop()
     */
     class SHCORE_PUBLIC Schema : public DatabaseObject, public boost::enable_shared_from_this<Schema>
     {
@@ -113,8 +112,8 @@ namespace mysh
 
       Table getTable(String name);
       View getView(String name);
-      CollectionRef getCollection(String name);
-      CollectionRef createCollection(String name);
+      Collection getCollection(String name);
+      Collection createCollection(String name);
 #endif
     private:
       shcore::Value _load_object(const std::string& name, const std::string& type = "") const;

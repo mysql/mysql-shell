@@ -122,8 +122,7 @@ shcore::Value Resultset::get_member(const std::string &prop) const
 * \sa nextDataSet(), all()
 * \return the next row of data.
 */
-Row next()
-{}
+Row next(){}
 #endif
 shcore::Value Resultset::next(const shcore::Argument_list &UNUSED(args))
 {
@@ -196,14 +195,13 @@ shcore::Value Resultset::next(const shcore::Argument_list &UNUSED(args))
 * \sa next()
 * \return an array of Row objects.
 */
-Row[] Resultset::all()
-{}
+Row[] Resultset::all(){}
 #endif
 shcore::Value Resultset::all(const shcore::Argument_list &args)
 {
   Value::Array_type_ref array(new Value::Array_type());
 
-  std::string function = class_name() + "::all";
+  std::string function = class_name() + ".all";
 
   args.ensure_count(0, function.c_str());
 
@@ -220,7 +218,7 @@ shcore::Value Resultset::all(const shcore::Argument_list &args)
 
 shcore::Value Resultset::next_result(const shcore::Argument_list &args)
 {
-  args.ensure_count(0, "Resultset::nextDataSet");
+  args.ensure_count(0, "Resultset.nextDataSet");
 
   return shcore::Value(_result->nextDataSet());
 }
@@ -236,14 +234,13 @@ Collection_resultset::Collection_resultset(boost::shared_ptr< ::mysqlx::Result> 
 * \sa nextDataSet(), all()
 * \return the next row of data.
 */
-Row Resultset::next()
-{}
+Row Resultset::next(){}
 #endif
 shcore::Value Collection_resultset::next(const shcore::Argument_list &args)
 {
   Value ret_val = Value::Null();
 
-  std::string function = class_name() + "::next";
+  std::string function = class_name() + ".next";
 
   args.ensure_count(0, function.c_str());
 

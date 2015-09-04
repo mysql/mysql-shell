@@ -27,10 +27,6 @@
 
 #include "modules/base_session.h"
 
-#ifdef HAVE_PYTHON
-extern "C" void Python_context_init();
-#endif
-
 using namespace shcore;
 
 Simple_shell_client::Simple_shell_client()
@@ -48,10 +44,6 @@ Simple_shell_client::Simple_shell_client()
 
   bool lang_initialized;
   _shell->switch_mode(mode, lang_initialized);
-
-#ifdef HAVE_PYTHON
-  Python_context_init();
-#endif
 
 #ifdef HAVE_V8
   extern void JScript_context_init();
@@ -116,8 +108,8 @@ void Simple_shell_client::process_result(shcore::Value result)
     if (result.type == shcore::Object)
     {
       boost::shared_ptr<Object_bridge> object = result.as_object();
-      
-      shcore::Value affected_rows = object->has_member("getAffectedRows")? object->call("getAffectedRows", Argument_list()) : shcore::Value(-1);
+
+      shcore::Value affected_rows = object->has_member("getAffectedRows") ? object->call("getAffectedRows", Argument_list()) : shcore::Value(-1);
       shcore::Value fetched_row_count = object->has_member("getFetchedRowCount") ? object->call("getFetchedRowCount", Argument_list()) : shcore::Value(-1);
       shcore::Value warning_count = object->has_member("getWarningCount") ? object->call("getWarningCount", Argument_list()) : shcore::Value(-1);
       shcore::Value execution_time = object->has_member("getExecutionTime") ? object->call("getExecutionTime", Argument_list()) : shcore::Value("");
@@ -144,7 +136,7 @@ void Simple_shell_client::process_result(shcore::Value result)
         {
           _last_result.reset(new Document_result_set(arr_result, -1, -1, ""));
         }
-        else 
+        else
         {
           throw std::runtime_error("Unknow data type returned from query.");
         }

@@ -58,6 +58,15 @@ Shell_core::~Shell_core()
 {
   delete _registry;
   shcore::print = shcore::default_print;
+
+  if (_langs[Mode_JScript])
+    delete _langs[Mode_JScript];
+
+  if (_langs[Mode_Python])
+    delete _langs[Mode_Python];
+
+  if (_langs[Mode_SQL])
+    delete _langs[Mode_SQL];
 }
 
 bool Shell_core::print_help(const std::string& topic)

@@ -77,6 +77,8 @@ namespace mysqlx
     Connection(const Ssl_config &ssl_config);
     ~Connection();
 
+    uint64_t client_id() const { return m_client_id; }
+
     void push_local_notice_handler(Local_notice_handler handler);
     void pop_local_notice_handler();
 
@@ -85,6 +87,7 @@ namespace mysqlx
 
     void close();
     void set_closed();
+    bool is_closed() const { return m_closed; }
 
     void enable_tls();
 
@@ -133,6 +136,8 @@ namespace mysqlx
     void authenticate_plain(const std::string &user, const std::string &pass, const std::string &db);
     void authenticate_mysql41(const std::string &user, const std::string &pass, const std::string &db);
 
+    void send_bytes(const std::string &data);
+
   private:
     void dispatch_notice(Mysqlx::Notice::Frame *frame);
     Message *recv_message_with_header(int &mid, char (&header_buffer)[5], const std::size_t header_offset);
@@ -146,6 +151,7 @@ namespace mysqlx
     boost::asio::io_service m_ios;
     Mysqlx_sync_connection m_sync_connection;
     boost::asio::deadline_timer m_deadline;
+    uint64_t m_client_id;
     bool m_trace_packets;
     bool m_closed;
   };

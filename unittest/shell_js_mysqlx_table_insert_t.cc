@@ -100,7 +100,7 @@ namespace shcore {
     //-------- ---------------------Test 3-------------------------
     // Tests the happy path table.insert({columns:values}).values().bind().execute()
     //-------------------------------------------------------------
-    exec_and_out_equals("var crud = table.insert({id:3, name:'whatever'});");
+    exec_and_out_equals("var crud = table.insert({'id':3, 'name':'whatever'});");
     ensure_available_functions("bind, execute");
 
     // Now executes bind and the only available method will be execute
@@ -117,18 +117,18 @@ namespace shcore {
     exec_and_out_equals("var table = session.js_shell_test.getTable('table1');");
 
     // Tests insert with invalid parameter
-    exec_and_out_contains("table.insert(28).execute();", "", "TableInsert::insert: Argument #1 is expected to be either string, a list of strings or a map with fields and values");
+    exec_and_out_contains("table.insert(28).execute();", "", "TableInsert.insert: Argument #1 is expected to be either string, a list of strings or a map with fields and values");
 
-    exec_and_out_contains("table.insert('name', 28).execute();", "", "TableInsert::insert: Argument #2 is expected to be a string");
+    exec_and_out_contains("table.insert('name', 28).execute();", "", "TableInsert.insert: Argument #2 is expected to be a string");
 
     // Test add attempt with no data
-    exec_and_out_contains("table.insert(['id', 45]).execute();", "", "TableInsert::insert: Element #2 is expected to be a string");
+    exec_and_out_contains("table.insert(['id', 45]).execute();", "", "TableInsert.insert: Element #2 is expected to be a string");
 
     // Test add attempt with column list but invalid values
     exec_and_out_contains("table.insert(['id','name']).values([5]).execute();", "", "Unsupported value received: [5]");
 
     // Test add attempt with column list but unsupported values
-    exec_and_out_contains("table.insert(['id','name']).values(1, session).execute();", "", "Unsupported value received: <Session");
+    exec_and_out_contains("table.insert(['id','name']).values(1, session).execute();", "", "Unsupported value received: <XSession");
 
     // Test add attempt with invalid column name
     exec_and_out_contains("table.insert(['id', 'name', 'gender']).values(15, 'walter', 'male').execute();", "", "Unknown column 'id' in 'field list'");
@@ -168,7 +168,7 @@ namespace shcore {
 
     // Inserting document
     {
-      exec_and_out_equals("var result = table.insert({age:14, name:'jackie', gender: 'female'}).execute();");
+      exec_and_out_equals("var result = table.insert({'age':14, 'name':'jackie', 'gender': 'female'}).execute();");
       exec_and_out_equals("print (result.affectedRows)", "1");
     }
 

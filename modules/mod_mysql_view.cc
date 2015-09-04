@@ -24,16 +24,16 @@ using namespace mysh;
 using namespace mysh::mysql;
 using namespace shcore;
 
-View::View(boost::shared_ptr<Schema> owner, const std::string &name)
+ClassicView::ClassicView(boost::shared_ptr<ClassicSchema> owner, const std::string &name)
 : DatabaseObject(owner->_session.lock(), boost::static_pointer_cast<DatabaseObject>(owner), name)
 {
 }
 
-View::View(boost::shared_ptr<const Schema> owner, const std::string &name) :
-DatabaseObject(owner->_session.lock(), boost::const_pointer_cast<Schema>(owner), name)
+ClassicView::ClassicView(boost::shared_ptr<const ClassicSchema> owner, const std::string &name) :
+DatabaseObject(owner->_session.lock(), boost::const_pointer_cast<ClassicSchema>(owner), name)
 {
 }
 
-View::~View()
+ClassicView::~ClassicView()
 {
 }

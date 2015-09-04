@@ -132,20 +132,31 @@ INCLUDE(protobuf)
 SETUP_PROTOBUF()
 include_directories("${CMAKE_BINARY_DIR}/mysqlxtest")
 
-if(WINDOWS_RUNTIME_MD)
-  add_library(mysqlsh SHARED ${libmysqlsh_SRC} ${libmysqlshmods_SRC})
-else()
-  add_library(mysqlsh ${libmysqlsh_SRC} ${libmysqlshmods_SRC})
-endif()
+IF(WIN32)
+  IF(WINDOWS_RUNTIME_MD)
+    ADD_LIBRARY(mysqlsh SHARED ${libmysqlsh_SRC} ${libmysqlshmods_SRC})
+  ELSE()
+    ADD_LIBRARY(mysqlsh ${libmysqlsh_SRC} ${libmysqlshmods_SRC})
+  ENDIF()
 
-target_link_libraries(mysqlsh mysqlxtest)
-target_link_libraries(mysqlsh
+TARGET_LINK_LIBRARIES(mysqlsh
+            mysqlxtest
             ${V8_LINK_LIST}
             ${PYTHON_LIBRARIES}
             ${SSL_LIBRARIES}
             ${MYSQL_LIBRARIES}
             ${BOOST_LIBRARIES}
             ${PROTOBUF_LIBRARY})
+
+ELSE()
+  ADD_CONVENIENCE_LIBRARY(clientlib ${libmysqlsh_SRC} ${libmysqlshmods_SRC})
+  add_dependencies(clientlib mysqlxtest)
+  SET(LIBS mysqlxtest clientlib ${V8_LINK_LIST} ${PYTHON_LIBRARIES} ${SSL_LIBRARIES} ${MYSQL_LIBRARIES} ${BOOST_LIBRARIES} ${PROTOBUF_LIBRARY})
+  IF(NOT INSTALL_LIBDIR)
+    SET(INSTALL_LIBDIR lib)
+  endif()
+  MERGE_LIBRARIES(mysqlsh STATIC ${LIBS} COMPONENT Development)
+ENDIF()
 
 if( WIN32 )
   include(msvc)
@@ -156,15 +167,17 @@ endif()
 
 install(DIRECTORY "${CMAKE_SOURCE_DIR}/include/shellcore/" DESTINATION "include/shellcore" FILES_MATCHING PATTERN "*.h" )
 install(DIRECTORY "${CMAKE_SOURCE_DIR}/modules/" DESTINATION "include/modules" FILES_MATCHING PATTERN "*.h" )
+
 if(WINDOWS_RUNTIME_MD)
   install(TARGETS mysqlsh DESTINATION bin)
-else()  
-  install(TARGETS mysqlsh DESTINATION lib)
 endif()
 
 add_definitions(-DSHCORE_EXPORT )
 add_definitions(-DNGCOMMON_EXPORTS )
 add_definitions(-DBOOST_ALL_NO_LIB )
+IF(APPLE)
+  add_definitions(-DBOOST_NO_CXX11_RVALUE_REFERENCES)
+ENDIF()
 add_definitions(-Dmyjson_EXPORTS )
 if(WIN32)
   remove_definitions(-DUNICODE)

@@ -17,7 +17,7 @@
  * 02110-1301  USA
  */
 
-// Interactive Table access module
+// Interactive ClassicTable access module
 // (the one exposed as the table members of the db object in the shell)
 
 #ifndef _MOD_MYSQL_TABLE_H_
@@ -31,19 +31,19 @@ namespace mysh
 {
   namespace mysql
   {
-    class Schema;
+    class ClassicSchema;
 
     /**
-    * Represents a Table on an Schema, retrieved with a session created using the MySQL Protocol.
+    * Represents a ClassicTable on an ClassicSchema, retrieved with a session created using the MySQL Protocol.
     */
-    class Table : public DatabaseObject
+    class ClassicTable : public DatabaseObject
     {
     public:
-      Table(boost::shared_ptr<Schema> owner, const std::string &name);
-      Table(boost::shared_ptr<const Schema> owner, const std::string &name);
-      virtual ~Table();
+      ClassicTable(boost::shared_ptr<ClassicSchema> owner, const std::string &name);
+      ClassicTable(boost::shared_ptr<const ClassicSchema> owner, const std::string &name);
+      virtual ~ClassicTable();
 
-      virtual std::string class_name() const { return "Table"; }
+      virtual std::string class_name() const { return "ClassicTable"; }
     };
   }
 }

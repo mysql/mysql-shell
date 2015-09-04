@@ -40,7 +40,7 @@ TableUpdate::TableUpdate(boost::shared_ptr<Table> owner)
 
   // Registers the dynamic function behavior
   register_dynamic_function("update", "");
-  register_dynamic_function("set", "update");
+  register_dynamic_function("set", "update, set");
   register_dynamic_function("where", "set");
   register_dynamic_function("orderBy", "set, where");
   register_dynamic_function("limit", "set, where, orderBy");
@@ -53,43 +53,29 @@ TableUpdate::TableUpdate(boost::shared_ptr<Table> owner)
 
 #ifdef DOXYGEN
 /**
-* Creates a new TableUpdate object and returns it.
-* After this method invocation the following methods can be invoked: set.
-* \sa execute(), set()
-* \return a new TableUpdate object.
-* \code{.js}
-* // open a connection
-* var mysqlx = require('mysqlx').mysqlx;
-* var mysession = mysqlx.getNodeSession("root:123@localhost:33060");
-* // create some initial data
-* mysession.sql('drop schema if exists js_shell_test;').execute();
-* mysession.sql('create schema js_shell_test;').execute();
-* mysession.sql('use js_shell_test;').execute();
-* mysession.sql('create table table1 (name varchar(50), age integer, gender varchar(20));').execute();
-* // create some initial data, populate table
-* var schema = mysession.getSchema('js_shell_test');
-* var table = schema.getTable('table1');
-* var result = table.insert({name: 'jack', age: 17, gender: 'male'}).execute();
-* var result = table.insert({name: 'adam', age: 15, gender: 'male'}).execute();
-* var result = table.insert({name: 'brian', age: 14, gender: 'male'}).execute();
-* // check results
-* table.select().execute();
-* // update a record
-* var crud = table.update();
-* crud.set({ name: 'adam x'}).where("name = 'adam'");
-* crud.execute();
-* table.select().execute();
-* // check results again
-* table.select().execute();
-* \endcode
+* Initializes this record update handler.
+* \return This TableUpdate object.
+*
+* This function is called automatically when Table.update() is called.
+*
+* The actual update of the records will occur only when the execute method is called.
+*
+* After this function invocation, the following functions can be invoked:
+*
+* - set(String attribute, Value value)
+* - where(String searchCriteria)
+* - orderBy(List sortExprStr)
+* - limit(Integer numberOfRows)
+* - execute(ExecuteOptions options).
+*
+* \sa Usage examples at execute(ExecuteOptions options).
 */
-TableUpdate TableUpdate::update()
-{}
+TableUpdate TableUpdate::update(){}
 #endif
 shcore::Value TableUpdate::update(const shcore::Argument_list &args)
 {
   // Each method validates the received parameters
-  args.ensure_count(0, "TableUpdate::update");
+  args.ensure_count(0, "TableUpdate.update");
 
   boost::shared_ptr<Table> table(boost::static_pointer_cast<Table>(_owner.lock()));
 
@@ -102,7 +88,7 @@ shcore::Value TableUpdate::update(const shcore::Argument_list &args)
       // Updates the exposed functions
       update_functions("update");
     }
-    CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableUpdate::update");
+    CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableUpdate.update");
   }
 
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
@@ -110,81 +96,95 @@ shcore::Value TableUpdate::update(const shcore::Argument_list &args)
 
 #ifdef DOXYGEN
 /**
-* Sets the pairs of field name / field value to modify in this update operation.
-* Calling this method is allowed only for the first time.
-* After this method invocation the following methods can be invoked: where, orderBy, limit, bind, execute.
-* 
-* \sa where(), orderBy(), limit(), bind(), execute()
-* \param { field : value, field : value, ... } a set of key value pairs where the key is the field name and the value is the value name. Both are Strings value can be an expression.
-* \return The same TableUpdate object where the method was invoked.
+* Updates the column value on records in a table.
+* \param attribute A string with the column name to be updated.
+* \param value The value to be set on the specified column.
+* \return This TableUpdate object.
+*
+* Adds an opertion into the update handler to update a column value in on the records that were included on the selection filter and limit.
+*
+* The update will be done on the table's records once the execute method is called.
+*
+* This function can be invoked multiple times after:
+* - update()
+* - set(String attribute, Value value)
+*
+* After this function invocation, the following functions can be invoked:
+* - set(String attribute, Value value)
+* - where(String searchCriteria)
+* - orderBy(List sortExprStr)
+* - limit(Integer numberOfRows)
+* - execute(ExecuteOptions options).
+*
+* \sa Usage examples at execute(ExecuteOptions options).
 */
-TableUpdate TableUpdate::set({ field : value, field : value, ... })
-{}
+TableUpdate TableUpdate::set(String attribute, Value value){}
 #endif
 shcore::Value TableUpdate::set(const shcore::Argument_list &args)
 {
   // Each method validates the received parameters
-  args.ensure_count(1, "TableUpdate::set");
+  args.ensure_count(2, "TableUpdate.set");
 
   try
   {
-    shcore::Value::Map_type_ref values = args.map_at(0);
-    shcore::Value::Map_type::iterator index, end = values->end();
+    std::string field = args.string_at(0);
 
-    // Iterates over the values to be updated
-    for (index = values->begin(); index != end; index++)
+    // Only expression objects are allowed as values
+    std::string expr_data;
+    if (args[1].type == shcore::Object)
     {
-      std::string field = index->first;
-      shcore::Value value = index->second;
+      shcore::Object_bridge_ref object = args.object_at(1);
 
-      // Only expression objects are allowed as values
-      std::string expr_data;
-      if (value.type == shcore::Object)
-      {
-        shcore::Object_bridge_ref object = value.as_object();
+      boost::shared_ptr<Expression> expression = boost::dynamic_pointer_cast<Expression>(object);
 
-        boost::shared_ptr<Expression> expression = boost::dynamic_pointer_cast<Expression>(object);
-
-        if (expression)
-          expr_data = expression->get_data();
-        else
-        {
-          std::stringstream str;
-          str << "TableUpdate::set: Unsupported value received for table update operation on field \"" << field << "\", received: " << value.descr();
-          throw shcore::Exception::argument_error(str.str());
-        }
-      }
-
-      // Calls set for each of the values
-      if (!expr_data.empty())
-        _update_statement->set(field, expr_data);
+      if (expression)
+        expr_data = expression->get_data();
       else
-        _update_statement->set(field, map_table_value(value));
-
-      update_functions("set");
+      {
+        std::stringstream str;
+        str << "TableUpdate.set: Unsupported value received for table update operation on field \"" << field << "\", received: " << args[1].descr();
+        throw shcore::Exception::argument_error(str.str());
+      }
     }
+
+    // Calls set for each of the values
+    if (!expr_data.empty())
+      _update_statement->set(field, expr_data);
+    else
+      _update_statement->set(field, map_table_value(args[1]));
+
+    update_functions("set");
   }
-  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableUpdate::set");
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableUpdate.set");
 
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
 #ifdef DOXYGEN
 /**
-* Sets the where expression used to filter out rows (those not meeting the search criteria won't be updated).
-* Calling this method is allowed only for the first time.
-* After this method invocation the following methods can be invoked: orderBy, limit, bind, execute.
-* \sa orderBy(), limit(), bind(), execute()
-* \param searchCriteria an String representing a valid expression to filter out rows.
-* \return The same TableUpdate object where the method was invoked.
+* Sets the search condition to filter the records to be updated on the owner Table.
+* \param searchCondition: An optional expression to filter the records to be updated;
+* if not specified all the records will be updated from the table unless a limit is set.
+* \return This TableUpdate object.
+*
+* This function can be invoked only once after:
+*
+* - set(String attribute, Value value)
+*
+* After this function invocation, the following functions can be invoked:
+*
+* - orderBy(List sortExprStr)
+* - limit(Integer numberOfRows)
+* - execute(ExecuteOptions options).
+*
+* \sa Usage examples at execute(ExecuteOptions options).
 */
-TableUpdate TableUpdate::where(searchCriteria)
-{}
+TableUpdate TableUpdate::where(String searchCondition){}
 #endif
 shcore::Value TableUpdate::where(const shcore::Argument_list &args)
 {
   // Each method validates the received parameters
-  args.ensure_count(1, "TableUpdate::where");
+  args.ensure_count(1, "TableUpdate.where");
 
   try
   {
@@ -193,27 +193,37 @@ shcore::Value TableUpdate::where(const shcore::Argument_list &args)
     // Updates the exposed functions
     update_functions("where");
   }
-  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableUpdate::where");
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableUpdate.where");
 
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
 #ifdef DOXYGEN
 /**
-* Sets the sorting criteria to be used on the Resultset, if used the TableUpdate operation will return the records sorted with the defined criteria.
-* Calling this method is allowed only for the first time and only if the search criteria has been set by calling TableUpdate.where(), after that its usage is forbidden since the internal class state has been updated to handle the rest of the TableUpdate operation.
-* And after this method invocation the following methods can be invoked: limit, bind, execute.
+* Sets the order in which the update should be done.
+* \param sortExprStr: A list of expression strings defining a sort criteria, the update will be done following the order defined by this criteria.
+* \return This TableUpdate object.
 *
-* \sa limit(), bind(), execute()
-* \param [expr, expr, ...] A list containing the sort criteria expressions to be used on the operation.
-* \return the same TableUpdate object where the method was applied.
+* The elements of sortExprStr list are strings defining the column name on which the sorting will be based in the form of "columnIdentifier [ ASC | DESC ]".
+* If no order criteria is specified, ascending will be used by default.
+*
+* This method is usually used in combination with limit to fix the amount of records to be updated.
+*
+* This function can be invoked only once after:
+*
+* - set(String attribute, Value value)
+* - where(String searchCondition)
+*
+* After this function invocation, the following functions can be invoked:
+*
+* - limit(Integer numberOfRows)
+* - execute(ExecuteOptions options).
 */
-TableUpdate TableUpdate::orderBy([expr, expr, ...])
-{}
+TableUpdate TableUpdate::orderBy(List sortExprStr){}
 #endif
 shcore::Value TableUpdate::order_by(const shcore::Argument_list &args)
 {
-  args.ensure_count(1, "TableUpdate::orderBy");
+  args.ensure_count(1, "TableUpdate.orderBy");
 
   try
   {
@@ -228,27 +238,34 @@ shcore::Value TableUpdate::order_by(const shcore::Argument_list &args)
 
     update_functions("orderBy");
   }
-  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableUpdate::orderBy");
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableUpdate.orderBy");
 
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
 #ifdef DOXYGEN
 /**
-* Sets the maximum number of documents to be returned on the update operation, if used the TableUpdate operation will return at most numberOfRows documents.
-* Calling this method is allowed only for the first time and only if the search criteria has been set by calling TableSelect.where(searchCriteria), after that its usage is forbidden since the internal class state has been updated to handle the rest of the TableUpdate operation.
-* After this method invocation the following methods can be invoked: offset, bind, execute.
+* Sets a limit for the records to be updated.
+* \param numberOfRows the number of records to be updated.
+* \return This TableUpdate object.
 *
-* \sa offset(), bind(), execute().
-* \param lim The maximum number of documents to be retrieved.
-* \return the same TableUpdate object where the method was applied.
+* This method is usually used in combination with sort to fix the amount of records to be updated.
+*
+* This function can be invoked only once after:
+*
+* - set(String attribute, Value value)
+* - where(String searchCondition)
+* - orderBy(List sortExprStr)
+*
+* After this function invocation, the following functions can be invoked:
+*
+* - execute(ExecuteOptions options).
 */
-TableUpdate TableUpdate::limit(lim)
-{}
+TableUpdate TableUpdate::limit(Integer numberOfRows){}
 #endif
 shcore::Value TableUpdate::limit(const shcore::Argument_list &args)
 {
-  args.ensure_count(1, "TableUpdate::limit");
+  args.ensure_count(1, "TableUpdate.limit");
 
   try
   {
@@ -256,39 +273,69 @@ shcore::Value TableUpdate::limit(const shcore::Argument_list &args)
 
     update_functions("limit");
   }
-  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableUpdate::limit");
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableUpdate.limit");
 
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
 #ifdef DOXYGEN
-/**
-* Sets the bindings mappings for the TableUpdate.
-* \param { var:val, var : val, ... } a map of key value pairs where each key is the name of a parameter and each value is the value of the parameter.
-* \return the same TableUpdate object where the method was applied.
-*/
 TableUpdate TableUpdate::bind({ var:val, var : val, ... })
 {}
 #endif
 shcore::Value TableUpdate::bind(const shcore::Argument_list &UNUSED(args))
 {
-  throw shcore::Exception::logic_error("TableUpdate::bind: not yet implemented.");
+  throw shcore::Exception::logic_error("TableUpdate.bind: not yet implemented.");
 
   return Value(Object_bridge_ref(this));
 }
 
 #ifdef DOXYGEN
 /**
-* Executes the TableUpdate operation with all the configured options and returns.
-* \param opt the execution options (currently not used).
-* \return a ResultSet object that can be used to retrieve the results.
+* Executes the record update with the configured filter and limit.
+* \return Resultset A resultset object that can be used to retrieve the results of the update operation.
+*
+* This function can be invoked after any other function on this class except update().
+*
+* \code{.js}
+* // open a connection
+* var mysqlx = require('mysqlx').mysqlx;
+* var mysession = mysqlx.getNodeSession("myuser@localhost", mypwd);
+*
+* // Creates a table named friends on the test schema
+* mysession.sql('create table test.friends (name varchar(50), age integer, gender varchar(20));').execute();
+*
+* var table = mysession.test.friends;
+*
+* // create some initial data
+* table.insert('name','last_name','age','gender')
+*      .values('jack','black', 17, 'male')
+*      .values('adam', 'sandler', 15, 'male')
+*      .values('brian', 'adams', 14, 'male')
+*      .values('alma', 'lopez', 13, 'female')
+*      .values('carol', 'shiffield', 14, 'female')
+*      .values('donna', 'summers', 16, 'female')
+*      .values('angel', 'down', 14, 'male').execute();
+*
+* // Updates the age to the youngest
+* var result = table.update().set('age', 14).orderBy(['age']).limit(1).execute();
+*
+* // Updates last name and age to angel
+* var res_angel = table.update().set('last_name','downey).set('age',15).shere('name="angel"').execute();
+* \endcode
 */
-ResultSet TableUpdate::execute(ExecuteOptions opt)
-{}
+Resultset TableUpdate::execute(ExecuteOptions options){}
 #endif
 shcore::Value TableUpdate::execute(const shcore::Argument_list &args)
 {
-  args.ensure_count(0, "TableUpdate::execute");
+  mysqlx::Resultset *result = NULL;
 
-  return shcore::Value::wrap(new mysqlx::Collection_resultset(boost::shared_ptr< ::mysqlx::Result>(_update_statement->execute())));
+  try
+  {
+    args.ensure_count(0, "TableUpdate.execute");
+
+    result = new mysqlx::Collection_resultset(boost::shared_ptr< ::mysqlx::Result>(_update_statement->execute()));
+  }
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableUpdate.execute");
+
+  return result ? shcore::Value::wrap(result) : shcore::Value::Null();
 }

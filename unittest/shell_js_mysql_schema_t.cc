@@ -111,13 +111,13 @@ namespace shcore {
   {
     exec_and_out_equals("var tables = session.js_shell_test.getTables();");
 
-    exec_and_out_equals("print(tables.table1)", "<Table:table1>");
+    exec_and_out_equals("print(tables.table1)", "<ClassicTable:table1>");
   }
 
   // Tests schema.tables
   TEST_F(Shell_js_mysql_schema_tests, mysql_schema_tables)
   {
-    exec_and_out_equals("print(session.js_shell_test.tables.table1)", "<Table:table1>");
+    exec_and_out_equals("print(session.js_shell_test.tables.table1)", "<ClassicTable:table1>");
   }
 
   // Tests schema.getViews()
@@ -125,13 +125,13 @@ namespace shcore {
   {
     exec_and_out_equals("var views = session.js_shell_test.getViews();");
 
-    exec_and_out_equals("print(views.view1)", "<View:view1>");
+    exec_and_out_equals("print(views.view1)", "<ClassicView:view1>");
   }
 
   // Tests schema.views
   TEST_F(Shell_js_mysql_schema_tests, mysql_schema_views)
   {
-    exec_and_out_equals("print(session.js_shell_test.views.view1)", "<View:view1>");
+    exec_and_out_equals("print(session.js_shell_test.views.view1)", "<ClassicView:view1>");
   }
 
   // Tests schema.getTable()
@@ -139,7 +139,7 @@ namespace shcore {
   {
     exec_and_out_equals("var table = session.js_shell_test.getTable('table1');");
 
-    exec_and_out_equals("print(table)", "<Table:table1>");
+    exec_and_out_equals("print(table)", "<ClassicTable:table1>");
   }
 
   // Tests schema.getView()
@@ -147,14 +147,28 @@ namespace shcore {
   {
     exec_and_out_equals("var view = session.js_shell_test.getView('view1');");
 
-    exec_and_out_equals("print(view)", "<View:view1>");
+    exec_and_out_equals("print(view)", "<ClassicView:view1>");
   }
 
   // Tests schema.<object>
   TEST_F(Shell_js_mysql_schema_tests, mysql_schema_object)
   {
-    exec_and_out_equals("print(session.js_shell_test.table1)", "<Table:table1>");
+    exec_and_out_equals("print(session.js_shell_test.table1)", "<ClassicTable:table1>");
 
-    exec_and_out_equals("print(session.js_shell_test.view1)", "<View:view1>");
+    exec_and_out_equals("print(session.js_shell_test.view1)", "<ClassicView:view1>");
+  }
+
+  // Tests schema.drop() and schema.existInDatabase()
+  TEST_F(Shell_js_mysql_schema_tests, mysql_schema_drop_exist_in_database)
+  {
+    exec_and_out_equals("var schema = session.createSchema('my_sample_schema');");
+
+    exec_and_out_equals("print(schema.existInDatabase());", "true");
+
+    exec_and_out_equals("schema.drop();");
+
+    exec_and_out_equals("print(schema.existInDatabase());", "false");
+
+    exec_and_out_equals("session.close();");
   }
 }

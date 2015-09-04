@@ -97,7 +97,7 @@ namespace shcore {
 
     exec_and_out_equals("var view_schema = view.getSchema();");
 
-    exec_and_out_equals("print(view_schema)", "<Schema:js_shell_test>");
+    exec_and_out_equals("print(view_schema)", "<ClassicSchema:js_shell_test>");
   }
 
   // Tests view.schema
@@ -107,6 +107,28 @@ namespace shcore {
 
     exec_and_out_equals("var view = session.js_shell_test.view1;");
 
-    exec_and_out_equals("print(view.schema)", "<Schema:js_shell_test>");
+    exec_and_out_equals("print(view.schema)", "<ClassicSchema:js_shell_test>");
+  }
+
+  // Tests view.drop() and view.existInDatabase()
+  TEST_F(Shell_js_mysql_view_tests, mysql_view_drop_exist_in_database)
+  {
+    exec_and_out_equals("var schema = session.createSchema('my_sample_schema');");
+
+    exec_and_out_equals("session.sql('create table my_sample_schema.my_sample_table (name varchar(50));');");
+
+    exec_and_out_equals("session.sql('create view my_sample_schema.my_sample_view (my_name) as select name from my_sample_schema.my_sample_table;');");
+
+    exec_and_out_equals("var view = schema.my_sample_view;");
+
+    exec_and_out_equals("print(view.existInDatabase());", "true");
+
+    exec_and_out_equals("view.drop();");
+
+    exec_and_out_equals("print(view.existInDatabase());", "false");
+
+    exec_and_out_equals("schema.drop();");
+
+    exec_and_out_equals("session.close();");
   }
 }

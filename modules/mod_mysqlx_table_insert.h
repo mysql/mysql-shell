@@ -50,11 +50,10 @@ namespace mysh
       virtual shcore::Value execute(const shcore::Argument_list &args);
 #ifdef DOXYGEN
       TableInsert insert();
-      TableInsert insert([field, field, field, ...]);
-      TableInsert insert({field : value, field : value, field : value, ...});
-      TableInsert values([val, val, val, ...]);
-      TableInsert bind({ var:val, var : val, ... });
-      Resultset execute(ExecuteOptions opt);
+      TableInsert insert(List columns);
+      TableInsert insert(String col1, String col2, ...);
+      TableInsert values(Value value, Value value, ...);
+      Resultset execute(ExecuteOptions options);
 #endif
     private:
       std::auto_ptr< ::mysqlx::InsertStatement> _insert_statement;

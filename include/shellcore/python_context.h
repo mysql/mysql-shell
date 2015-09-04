@@ -32,9 +32,8 @@
 
 namespace shcore {
 
-extern "C" void TYPES_COMMON_PUBLIC Python_context_init();
 
-class AutoPyObject
+  class AutoPyObject
   {
   private:
     PyObject *object;
@@ -108,65 +107,81 @@ class AutoPyObject
     }
   };
 
-struct Interpreter_delegate;
+  struct Interpreter_delegate;
 
-class TYPES_COMMON_PUBLIC Python_context
-{
-public:
-  Python_context(Interpreter_delegate *deleg) throw (Exception);
-  ~Python_context();
+  class TYPES_COMMON_PUBLIC Python_context
+  {
+  public:
+    Python_context(Interpreter_delegate *deleg) throw (Exception);
+    ~Python_context();
 
-  static Python_context *get();
-  static Python_context *get_and_check();
-  PyObject *get_shell_module();
+    static Python_context *get();
+    static Python_context *get_and_check();
+    PyObject *get_shell_module();
+    PyObject *get_shell_stderr_module();
 
-  Value execute(const std::string &code, boost::system::error_code &ret_error, const std::string& source = "") throw (Exception);
-  Value execute_interactive(const std::string &code) BOOST_NOEXCEPT_OR_NOTHROW;
+    Value execute(const std::string &code, boost::system::error_code &ret_error, const std::string& source = "") throw (Exception);
+    Value execute_interactive(const std::string &code) BOOST_NOEXCEPT_OR_NOTHROW;
 
-  Value pyobj_to_shcore_value(PyObject *value);
-  PyObject *shcore_value_to_pyobj(const Value &value);
+    Value pyobj_to_shcore_value(PyObject *value);
+    PyObject *shcore_value_to_pyobj(const Value &value);
 
-  Value get_global(const std::string &value);
-  void set_global(const std::string &name, const Value &value);
+    Value get_global(const std::string &value);
+    void set_global(const std::string &name, const Value &value);
 
-  static void set_python_error(const std::exception &exc, const std::string &location="");
-  static void set_python_error(PyObject *obj, const std::string &location);
-  bool pystring_to_string(PyObject *strobject, std::string &ret_string, bool convert=false);
+    static void set_python_error(const std::exception &exc, const std::string &location = "");
+    static void set_python_error(PyObject *obj, const std::string &location);
+    bool pystring_to_string(PyObject *strobject, std::string &ret_string, bool convert = false);
 
-  AutoPyObject get_shell_list_class();
-  AutoPyObject get_shell_dict_class();
-  AutoPyObject get_shell_object_class();
-  AutoPyObject get_shell_function_class();
+    AutoPyObject get_shell_list_class();
+    AutoPyObject get_shell_dict_class();
+    AutoPyObject get_shell_object_class();
+    AutoPyObject get_shell_function_class();
 
-  Interpreter_delegate *_delegate;
+    Interpreter_delegate *_delegate;
 
-public:
-  static PyObject *shell_print(PyObject *self, PyObject *args);
-  static PyObject *shell_interactive_eval_hook(PyObject *self, PyObject *args);
+  public:
+    static PyObject *shell_print(PyObject *self, PyObject *args, const std::string& stream);
+    static PyObject *shell_stdout(PyObject *self, PyObject *args);
+    static PyObject *shell_stderr(PyObject *self, PyObject *args);
+    static PyObject *shell_interactive_eval_hook(PyObject *self, PyObject *args);
 
-private:
-  PyObject *_globals;
-  PyThreadState *_main_thread_state;
+    static PyObject *get_session(PyObject *self, PyObject *args, const std::string &module, const std::string &type);
+    static PyObject *mysqlx_get_session(PyObject *self, PyObject *args);
+    static PyObject *mysqlx_get_node_session(PyObject *self, PyObject *args);
+    static PyObject *mysql_get_classic_session(PyObject *self, PyObject *args);
 
-  Python_type_bridger _types;
+  private:
+    bool _local_initialization;
+    PyObject *_globals;
+    PyThreadState *_main_thread_state;
+    PyThreadState *_thread_state;
 
-  PyObject *_shell_module;
+    Python_type_bridger _types;
 
-  void register_shell_module();
-  void init_shell_list_type();
-  void init_shell_dict_type();
-  void init_shell_object_type();
-  void init_shell_function_type();
+    PyObject *_shell_module;
+    PyObject *_shell_stderr_module;
+    PyObject *_mysqlx_module;
+    PyObject *_mysql_module;
 
-  std::list<AutoPyObject> _captured_eval_result;
+    void register_shell_module();
+    void register_shell_stderr_module();
+    void register_mysqlx_module();
+    void register_mysql_module();
 
-protected:
-  AutoPyObject _shell_list_class;
-  AutoPyObject _shell_dict_class;
-  AutoPyObject _shell_object_class;
-  AutoPyObject _shell_function_class;
-};
+    void init_shell_list_type();
+    void init_shell_dict_type();
+    void init_shell_object_type();
+    void init_shell_function_type();
 
+    std::list<AutoPyObject> _captured_eval_result;
+
+  protected:
+    AutoPyObject _shell_list_class;
+    AutoPyObject _shell_dict_class;
+    AutoPyObject _shell_object_class;
+    AutoPyObject _shell_function_class;
+  };
 }
 
 #endif

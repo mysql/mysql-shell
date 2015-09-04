@@ -25,9 +25,9 @@ exports.mysqlx.getSession = function(connection_data, password)
   var session;
 
   if (typeof(password) == 'undefined')
-    session = _F.mysqlx.Session(connection_data);
+    session = _F.mysqlx.XSession(connection_data);
   else
-    session = _F.mysqlx.Session(connection_data, password);
+    session = _F.mysqlx.XSession(connection_data, password);
   
   return session;
 }

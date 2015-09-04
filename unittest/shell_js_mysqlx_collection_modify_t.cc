@@ -174,53 +174,53 @@ namespace shcore {
     {
       SCOPED_TRACE("Testing parameter validation on modify");
       exec_and_out_equals("collection.modify();");
-      exec_and_out_contains("collection.modify(5);", "", "CollectionModify::modify: Argument #1 is expected to be a string");
-      exec_and_out_contains("collection.modify('test = \"2');", "", "CollectionModify::modify: Unterminated quoted string starting at 8");
+      exec_and_out_contains("collection.modify(5);", "", "CollectionModify.modify: Argument #1 is expected to be a string");
+      exec_and_out_contains("collection.modify('test = \"2');", "", "CollectionModify.modify: Unterminated quoted string starting at 8");
       exec_and_out_equals("collection.modify('test = \"2\"');");
     }
 
     {
       SCOPED_TRACE("Testing parameter validation on set");
-      exec_and_out_contains("collection.modify().set();", "", "Invalid number of arguments in CollectionModify::set, expected 2 but got 0");
-      exec_and_out_contains("collection.modify().set(45, 'whatever');", "", "CollectionModify::set: Argument #1 is expected to be a string");
-      exec_and_out_contains("collection.modify().set('', 5);", "", "CollectionModify::set: Invalid document path");
+      exec_and_out_contains("collection.modify().set();", "", "Invalid number of arguments in CollectionModify.set, expected 2 but got 0");
+      exec_and_out_contains("collection.modify().set(45, 'whatever');", "", "CollectionModify.set: Argument #1 is expected to be a string");
+      exec_and_out_contains("collection.modify().set('', 5);", "", "CollectionModify.set: Invalid document path");
       exec_and_out_contains("collection.modify().set('age', expr('13+25'));");
       exec_and_out_equals("collection.modify().set('name', 'john');");
     }
 
     {
       SCOPED_TRACE("Testing parameter validation on unset");
-      exec_and_out_contains("collection.modify().unset();", "", "Invalid number of arguments in CollectionModify::unset, expected at least 1 but got 0");
-      exec_and_out_contains("collection.modify().unset({});", "", "CollectionModify::unset: Argument #1 is expected to be either string or list of strings");
-      exec_and_out_contains("collection.modify().unset({}, '');", "", "CollectionModify::unset: Argument #1 is expected to be a string");
-      exec_and_out_contains("collection.modify().unset(['name', 1]);", "", "CollectionModify::unset: Element #2 is expected to be a string");
-      exec_and_out_contains("collection.modify().unset('');", "", "CollectionModify::unset: Invalid document path");
+      exec_and_out_contains("collection.modify().unset();", "", "Invalid number of arguments in CollectionModify.unset, expected at least 1 but got 0");
+      exec_and_out_contains("collection.modify().unset({});", "", "CollectionModify.unset: Argument #1 is expected to be either string or list of strings");
+      exec_and_out_contains("collection.modify().unset({}, '');", "", "CollectionModify.unset: Argument #1 is expected to be a string");
+      exec_and_out_contains("collection.modify().unset(['name', 1]);", "", "CollectionModify.unset: Element #2 is expected to be a string");
+      exec_and_out_contains("collection.modify().unset('');", "", "CollectionModify.unset: Invalid document path");
       exec_and_out_equals("collection.modify().unset(['name','age']);");
       exec_and_out_equals("collection.modify().unset('name','age');");
     }
 
     {
       SCOPED_TRACE("Testing parameter validation on merge");
-      exec_and_out_contains("collection.modify().merge();", "", "Invalid number of arguments in CollectionModify::merge, expected 1 but got 0");
-      exec_and_out_contains("collection.modify().merge('');", "", "CollectionModify::merge: Argument #1 is expected to be a map");
+      exec_and_out_contains("collection.modify().merge();", "", "Invalid number of arguments in CollectionModify.merge, expected 1 but got 0");
+      exec_and_out_contains("collection.modify().merge('');", "", "CollectionModify.merge: Argument #1 is expected to be a map");
       exec_and_out_contains("collection.modify().merge({'att':'value'});", "", "");
     }
 
     {
       SCOPED_TRACE("Testing parameter validation on arrayInsert");
-      exec_and_out_contains("collection.modify().arrayInsert();", "", "Invalid number of arguments in CollectionModify::arrayInsert, expected 2 but got 0");
-      exec_and_out_contains("collection.modify().arrayInsert(5, 'another');", "", "CollectionModify::arrayInsert: Argument #1 is expected to be a string");
-      exec_and_out_contains("collection.modify().arrayInsert('', 'another');", "", "CollectionModify::arrayInsert: Invalid document path");
-      exec_and_out_contains("collection.modify().arrayInsert('test', 'another');", "", "CollectionModify::arrayInsert: An array document path must be specified");
+      exec_and_out_contains("collection.modify().arrayInsert();", "", "Invalid number of arguments in CollectionModify.arrayInsert, expected 2 but got 0");
+      exec_and_out_contains("collection.modify().arrayInsert(5, 'another');", "", "CollectionModify.arrayInsert: Argument #1 is expected to be a string");
+      exec_and_out_contains("collection.modify().arrayInsert('', 'another');", "", "CollectionModify.arrayInsert: Invalid document path");
+      exec_and_out_contains("collection.modify().arrayInsert('test', 'another');", "", "CollectionModify.arrayInsert: An array document path must be specified");
       exec_and_out_contains("collection.modify().arrayInsert('test[4]', 'another');", "", "");
     }
 
     {
       SCOPED_TRACE("Testing parameter validation on arrayAppend");
-      exec_and_out_contains("collection.modify().arrayAppend();", "", "Invalid number of arguments in CollectionModify::arrayAppend, expected 2 but got 0");
-      exec_and_out_contains("collection.modify().arrayAppend({}, '');", "", "CollectionModify::arrayAppend: Argument #1 is expected to be a string");
-      exec_and_out_contains("collection.modify().arrayAppend('', 45);", "", "CollectionModify::arrayAppend: Invalid document path");
-      exec_and_out_contains("collection.modify().arrayAppend('data', session);", "", "CollectionModify::arrayAppend: Unsupported value received: <Session:");
+      exec_and_out_contains("collection.modify().arrayAppend();", "", "Invalid number of arguments in CollectionModify.arrayAppend, expected 2 but got 0");
+      exec_and_out_contains("collection.modify().arrayAppend({}, '');", "", "CollectionModify.arrayAppend: Argument #1 is expected to be a string");
+      exec_and_out_contains("collection.modify().arrayAppend('', 45);", "", "CollectionModify.arrayAppend: Invalid document path");
+      exec_and_out_contains("collection.modify().arrayAppend('data', session);", "", "CollectionModify.arrayAppend: Unsupported value received: <XSession:");
       exec_and_out_contains("collection.modify().arrayAppend('data', 5);");
       exec_and_out_contains("collection.modify().arrayAppend('data', 'sample');");
       exec_and_out_contains("collection.modify().arrayAppend('data', expr(15+3));");
@@ -228,30 +228,30 @@ namespace shcore {
 
     {
       SCOPED_TRACE("Testing parameter validation on arrayDelete");
-      exec_and_out_contains("collection.modify().arrayDelete();", "", "Invalid number of arguments in CollectionModify::arrayDelete, expected 1 but got");
-      exec_and_out_contains("collection.modify().arrayDelete(5);", "", "CollectionModify::arrayDelete: Argument #1 is expected to be a string");
-      exec_and_out_contains("collection.modify().arrayDelete('');", "", "CollectionModify::arrayDelete: Invalid document path");
-      exec_and_out_contains("collection.modify().arrayDelete('test');", "", "CollectionModify::arrayDelete: An array document path must be specified");
+      exec_and_out_contains("collection.modify().arrayDelete();", "", "Invalid number of arguments in CollectionModify.arrayDelete, expected 1 but got");
+      exec_and_out_contains("collection.modify().arrayDelete(5);", "", "CollectionModify.arrayDelete: Argument #1 is expected to be a string");
+      exec_and_out_contains("collection.modify().arrayDelete('');", "", "CollectionModify.arrayDelete: Invalid document path");
+      exec_and_out_contains("collection.modify().arrayDelete('test');", "", "CollectionModify.arrayDelete: An array document path must be specified");
       exec_and_out_contains("collection.modify().arrayDelete('test[4]');", "", "");
     }
 
     {
       SCOPED_TRACE("Testing parameter validation on sort");
-      exec_and_out_contains("collection.modify().unset('name').sort();", "", "Invalid number of arguments in CollectionModify::sort, expected 1 but got 0");
-      exec_and_out_contains("collection.modify().unset('name').sort(5);", "", "CollectionModify::sort: Argument #1 is expected to be an array");
-      exec_and_out_contains("collection.modify().unset('name').sort([]);", "", "CollectionModify::sort: Sort criteria can not be empty");
-      exec_and_out_contains("collection.modify().unset('name').sort(['name', 5]);", "", "CollectionModify::sort: Element #2 is expected to be a string");
+      exec_and_out_contains("collection.modify().unset('name').sort();", "", "Invalid number of arguments in CollectionModify.sort, expected 1 but got 0");
+      exec_and_out_contains("collection.modify().unset('name').sort(5);", "", "CollectionModify.sort: Argument #1 is expected to be an array");
+      exec_and_out_contains("collection.modify().unset('name').sort([]);", "", "CollectionModify.sort: Sort criteria can not be empty");
+      exec_and_out_contains("collection.modify().unset('name').sort(['name', 5]);", "", "CollectionModify.sort: Element #2 is expected to be a string");
       exec_and_out_contains("collection.modify().unset('name').sort(['name']);", "", "");
     }
 
     {
       SCOPED_TRACE("Testing parameter validation on limit");
-      exec_and_out_contains("collection.modify().unset('name').limit();", "", "Invalid number of arguments in CollectionModify::limit, expected 1 but got 0");
-      exec_and_out_contains("collection.modify().unset('name').limit('');", "", "CollectionModify::limit: Argument #1 is expected to be an unsigned int");
+      exec_and_out_contains("collection.modify().unset('name').limit();", "", "Invalid number of arguments in CollectionModify.limit, expected 1 but got 0");
+      exec_and_out_contains("collection.modify().unset('name').limit('');", "", "CollectionModify.limit: Argument #1 is expected to be an unsigned int");
       exec_and_out_equals("collection.remove().limit(5);");
     }
 
-    exec_and_out_contains("collection.remove().bind();", "", "CollectionRemove::bind: not yet implemented.");
+    exec_and_out_contains("collection.modify().unset('name').bind();", "", "CollectionModify.bind: not yet implemented.");
 
     exec_and_out_equals("session.close();");
   }

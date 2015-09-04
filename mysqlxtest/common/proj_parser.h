@@ -33,7 +33,7 @@
 namespace mysqlx
 {
 
-class Proj_parser
+class Proj_parser : public Expr_parser
 {
 public:
   Proj_parser(const std::string& expr_str, bool document_mode = false, bool allow_alias = true);
@@ -42,25 +42,15 @@ public:
   void parse(Container &result)
   {
     Mysqlx::Crud::Projection *colid = result.Add();
-    column_identifier(*colid);
+    source_expression(*colid);
     
     if (_tokenizer.tokens_available())    
-      throw Parser_error((boost::format("Projection parser: Expected EOF, instead stopped at token position %d") % _tokenizer.get_token_pos()).str());
+      throw Parser_error((boost::format("Projection parser: Expression '%s' has unexpected tokens at positions %d") % _tokenizer.get_input() % 
+        _tokenizer.get_token_pos()).str());
   }
 
   const std::string& id();
-  void column_identifier(Mysqlx::Crud::Projection &column);
-  void docpath_member(Mysqlx::Expr::DocumentPathItem& item);
-  void docpath_array_loc(Mysqlx::Expr::DocumentPathItem& item);
-  void document_path(Mysqlx::Expr::ColumnIdentifier& col);
-
-  std::vector<Token>::const_iterator begin() const { return _tokenizer.begin(); }
-  std::vector<Token>::const_iterator end() const { return _tokenizer.end(); }
-
-private:
-  Tokenizer _tokenizer;
-  bool _document_mode;
-  bool _allow_alias;
+  void source_expression(Mysqlx::Crud::Projection &column);
 };
 
 };

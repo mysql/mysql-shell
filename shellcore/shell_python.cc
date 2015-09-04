@@ -17,10 +17,8 @@
  * 02110-1301  USA
  */
 
-#include <Python.h>
-
-#include "shellcore/shell_python.h"
 #include "shellcore/python_context.h"
+#include "shellcore/shell_python.h"
 #include "shellcore/python_utils.h"
 
 using namespace shcore;
@@ -29,6 +27,11 @@ Shell_python::Shell_python(Shell_core *shcore)
 : Shell_language(shcore)
 {
   _py = boost::shared_ptr<Python_context>(new Python_context(shcore->lang_delegate()));
+}
+
+Shell_python::~Shell_python()
+{
+  _py.reset();
 }
 
 /*
@@ -72,8 +75,6 @@ void Shell_python::handle_input(std::string &code, Interactive_input_state &stat
 
   result_processor(result);
 }
-
-
 
 /*
  * Shell prompt string

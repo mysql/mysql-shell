@@ -74,7 +74,7 @@ bool BaseResultset::operator == (const Object_bridge &other) const
 
 shcore::Value BaseResultset::get_member_method(const shcore::Argument_list &args, const std::string& method, const std::string& prop)
 {
-  std::string function = class_name() + "::" + method;
+  std::string function = class_name() + "." + method;
   args.ensure_count(0, function.c_str());
 
   return get_member(prop);
@@ -82,7 +82,7 @@ shcore::Value BaseResultset::get_member_method(const shcore::Argument_list &args
 
 shcore::Value BaseResultset::print(const shcore::Argument_list &args)
 {
-  std::string function = class_name() + "::print";
+  std::string function = class_name() + ".print";
 
   args.ensure_count(0, 3, function.c_str());
 
@@ -386,7 +386,7 @@ std::string &Row::append_repr(std::string &s_out) const
 
 shcore::Value Row::get_member_method(const shcore::Argument_list &args, const std::string& method, const std::string& prop)
 {
-  std::string function = class_name() + "::" + method;
+  std::string function = class_name() + "." + method;
   args.ensure_count(0, function.c_str());
 
   return get_member(prop);

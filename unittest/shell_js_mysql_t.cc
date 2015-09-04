@@ -60,21 +60,6 @@ namespace shcore {
 
     exec_and_out_equals("var session = mysql.getClassicSession('" + _mysql_uri + "');");
     exec_and_out_equals("print(session);", "<ClassicSession:" + uri + ">");
-
-    // Ensures the right members exist
-    exec_and_out_equals("var members = dir(session);");
-    exec_and_out_equals("print(members.length >= 10)", "true");
-    exec_and_out_equals("print(members[0] == 'close');", "true");
-    exec_and_out_equals("print(members[1] == 'getDefaultSchema');", "true");
-    exec_and_out_equals("print(members[2] == 'getSchema');", "true");
-    exec_and_out_equals("print(members[3] == 'getSchemas');", "true");
-    exec_and_out_equals("print(members[4] == 'getUri');", "true");
-    exec_and_out_equals("print(members[5] == 'setDefaultSchema');", "true");
-    exec_and_out_equals("print(members[6] == 'sql');", "true");
-    exec_and_out_equals("print(members[7] == 'defaultSchema');", "true");
-    exec_and_out_equals("print(members[8] == 'schemas');", "true");
-    exec_and_out_equals("print(members[9] == 'uri');", "true");
-
     exec_and_out_equals("session.close();");
   }
 
@@ -94,21 +79,6 @@ namespace shcore {
 
     exec_and_out_equals("var session = mysql.getClassicSession('" + _mysql_uri + "', '" + password + "');");
     exec_and_out_equals("print(session);", "<ClassicSession:" + uri + ">");
-
-    // Ensures the right members exist
-    exec_and_out_equals("var members = dir(session);");
-    exec_and_out_equals("print(members.length >= 10)", "true");
-    exec_and_out_equals("print(members[0] == 'close');", "true");
-    exec_and_out_equals("print(members[1] == 'getDefaultSchema');", "true");
-    exec_and_out_equals("print(members[2] == 'getSchema');", "true");
-    exec_and_out_equals("print(members[3] == 'getSchemas');", "true");
-    exec_and_out_equals("print(members[4] == 'getUri');", "true");
-    exec_and_out_equals("print(members[5] == 'setDefaultSchema');", "true");
-    exec_and_out_equals("print(members[6] == 'sql');", "true");
-    exec_and_out_equals("print(members[7] == 'defaultSchema');", "true");
-    exec_and_out_equals("print(members[8] == 'schemas');", "true");
-    exec_and_out_equals("print(members[9] == 'uri');", "true");
-
     exec_and_out_equals("session.close();");
   }
 
@@ -138,21 +108,6 @@ namespace shcore {
 
     exec_and_out_equals("var session = mysql.getClassicSession(" + connection_data.str() + ");");
     exec_and_out_equals("print(session);", "<ClassicSession:" + uri.str() + ">");
-
-    // Ensures the right members exist
-    exec_and_out_equals("var members = dir(session);");
-    exec_and_out_equals("print(members.length >= 10)", "true");
-    exec_and_out_equals("print(members[0] == 'close');", "true");
-    exec_and_out_equals("print(members[1] == 'getDefaultSchema');", "true");
-    exec_and_out_equals("print(members[2] == 'getSchema');", "true");
-    exec_and_out_equals("print(members[3] == 'getSchemas');", "true");
-    exec_and_out_equals("print(members[4] == 'getUri');", "true");
-    exec_and_out_equals("print(members[5] == 'setDefaultSchema');", "true");
-    exec_and_out_equals("print(members[6] == 'sql');", "true");
-    exec_and_out_equals("print(members[7] == 'defaultSchema');", "true");
-    exec_and_out_equals("print(members[8] == 'schemas');", "true");
-    exec_and_out_equals("print(members[9] == 'uri');", "true");
-
     exec_and_out_equals("session.close();");
   }
 
@@ -181,21 +136,6 @@ namespace shcore {
 
     exec_and_out_equals("var session = mysql.getClassicSession(" + connection_data.str() + ", '" + password + "');");
     exec_and_out_equals("print(session);", "<ClassicSession:" + uri.str() + ">");
-
-    // Ensures the right members exist
-    exec_and_out_equals("var members = dir(session);");
-    exec_and_out_equals("print(members.length >= 10)", "true");
-    exec_and_out_equals("print(members[0] == 'close');", "true");
-    exec_and_out_equals("print(members[1] == 'getDefaultSchema');", "true");
-    exec_and_out_equals("print(members[2] == 'getSchema');", "true");
-    exec_and_out_equals("print(members[3] == 'getSchemas');", "true");
-    exec_and_out_equals("print(members[4] == 'getUri');", "true");
-    exec_and_out_equals("print(members[5] == 'setDefaultSchema');", "true");
-    exec_and_out_equals("print(members[6] == 'sql');", "true");
-    exec_and_out_equals("print(members[7] == 'defaultSchema');", "true");
-    exec_and_out_equals("print(members[8] == 'schemas');", "true");
-    exec_and_out_equals("print(members[9] == 'uri');", "true");
-
     exec_and_out_equals("session.close();");
   }
 }

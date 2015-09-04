@@ -49,42 +49,28 @@ TableDelete::TableDelete(boost::shared_ptr<Table> owner)
 
 #ifdef DOXYGEN
 /**
-* Creates a TableDelete object and returns it.
-* This method must be invoked before any other method, after its invocation the following methods can be invoked: where, orderBy, limit, bind, execute.
-* \sa where(), orderBy(), limit(), bind(), execute(), TableInsert
-* \return the newly created TableDelete object.
-* \code{.js}
-* // open a connection
-* var mysqlx = require('mysqlx').mysqlx;
-* var mysession = mysqlx.getNodeSession("root:123@localhost:33060");
-* // create some initial data
-* mysession.sql('drop schema if exists js_shell_test;').execute();
-* mysession.sql('create schema js_shell_test;').execute();
-* mysession.sql('use js_shell_test;').execute();
-* mysession.sql('create table table1 (name varchar(50), age integer, gender varchar(20));').execute();
-* // create some initial data, populate table
-* var schema = mysession.getSchema('js_shell_test');
-* var table = schema.getTable('table1');
-* var result = table.insert({name: 'jack', age: 17, gender: 'male'}).execute();
-* var result = table.insert({name: 'adam', age: 15, gender: 'male'}).execute();
-* var result = table.insert({name: 'brian', age: 14, gender: 'male'}).execute();
-* // check results
-* table.select().execute();
-* // delete a record
-* var crud = table.delete();
-* crud.where('age = 15');
-* crud.execute();
-* // check results again
-* table.select().execute();
-* \endcode
+* Initializes this record deletion handler.
+* \return This TableDelete object.
+*
+* This function is called automatically when Table.delete() is called.
+*
+* The actual deletion of the records will occur only when the execute method is called.
+*
+* After this function invocation, the following functions can be invoked:
+*
+* - where(String searchCriteria)
+* - orderBy(List sortExprStr)
+* - limit(Integer numberOfRows)
+* - execute(ExecuteOptions options).
+*
+* \sa Usage examples at execute(ExecuteOptions options).
 */
-TableDelete TableDelete::remove()
-{}
+TableDelete TableDelete::delete(){}
 #endif
 shcore::Value TableDelete::remove(const shcore::Argument_list &args)
 {
   // Each method validates the received parameters
-  args.ensure_count(0, "TableDelete::delete");
+  args.ensure_count(0, "TableDelete.delete");
 
   boost::shared_ptr<Table> table(boost::static_pointer_cast<Table>(_owner.lock()));
 
@@ -97,7 +83,7 @@ shcore::Value TableDelete::remove(const shcore::Argument_list &args)
       // Updates the exposed functions
       update_functions("delete");
     }
-    CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableDelete::delete");
+    CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableDelete.delete");
   }
 
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
@@ -105,21 +91,33 @@ shcore::Value TableDelete::remove(const shcore::Argument_list &args)
 
 #ifdef DOXYGEN
 /**
-* Sets the condition to filter out the rows on which the delete operation will be applied.
-* This method returns the same TableDelete object where it was applied. To reset the criteria pass an empty string.
-* This method can be invoked right after the 'remove' method. The method 'where' itself can be invoked any number of times, each time will replacing the search condition with the new one.
-* After this method invocation the following methods can be invoked: where, orderBy, limit, bind, execute.
-* \sa where(), orderBy(), limit(), bind(), execute()
-* \param searchCriteria an string with any valid expression that evalutes to true/false, or 1/0.
-* \return the same TableDelete object where the method was applied.
+* Sets the search condition to filter the records to be deleted from the owner Table.
+* \param searchCondition: An optional expression to filter the records to be deleted;
+* if not specified all the records will be deleted from the table unless a limit is set.
+* \return This TableDelete object.
+*
+* This function is called automatically when Table.delete(searchCondition) is called.
+*
+* The actual deletion of the records will occur only when the execute method is called.
+*
+* This function can be invoked only once after:
+*
+* - delete()
+*
+* After this function invocation, the following functions can be invoked:
+*
+* - orderBy(List sortExprStr)
+* - limit(Integer numberOfRows)
+* - execute(ExecuteOptions options).
+*
+* \sa Usage examples at execute(ExecuteOptions options).
 */
-TableDelete TableDelete::where(searchCriteria)
-{}
+TableDelete TableDelete::where(String searchCondition){}
 #endif
 shcore::Value TableDelete::where(const shcore::Argument_list &args)
 {
   // Each method validates the received parameters
-  args.ensure_count(1, "TableDelete::where");
+  args.ensure_count(1, "TableDelete.where");
 
   boost::shared_ptr<Table> table(boost::static_pointer_cast<Table>(_owner.lock()));
 
@@ -132,7 +130,7 @@ shcore::Value TableDelete::where(const shcore::Argument_list &args)
       // Updates the exposed functions
       update_functions("where");
     }
-    CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableDelete::where");
+    CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableDelete.where");
   }
 
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
@@ -140,19 +138,30 @@ shcore::Value TableDelete::where(const shcore::Argument_list &args)
 
 #ifdef DOXYGEN
 /**
-* Sets the list of columns to to use as order by when applying the remove operation. Each time the method is invoked it adds its args to the list of columns to order by.
-* After this method invocation the following methods can be invoked: limit, bind, execute.
-* \sa limit(), bind(), execute(), where(), remove()
-* \param [expr, expr, ...] a list of expressions as Strings where each represents a column name of the form "columnIdentifier [ ASC | DESC ]", that is after the column identifier optionally 
-*   can follow the order direction (ascending or descending) being ascending the default if not provided.
-* \return the same TableDelete object where the method was applied.
+* Sets the order in which the deletion should be done.
+* \param sortExprStr: A list of expression strings defining a sort criteria, the deletion will be done following the order defined by this criteria.
+* \return This TableDelete object.
+*
+* The elements of sortExprStr list are strings defining the column name on which the sorting will be based in the form of "columnIdentifier [ ASC | DESC ]".
+* If no order criteria is specified, ascending will be used by default.
+*
+* This method is usually used in combination with limit to fix the amount of records to be deleted.
+*
+* This function can be invoked only once after:
+*
+* - delete()
+* - where(String searchCondition)
+*
+* After this function invocation, the following functions can be invoked:
+*
+* - limit(Integer numberOfRows)
+* - execute(ExecuteOptions options).
 */
-TableDelete TableDelete::orderBy([expr, expr, ...])
-{}
+TableDelete TableDelete::orderBy(List sortExprStr){}
 #endif
 shcore::Value TableDelete::order_by(const shcore::Argument_list &args)
 {
-  args.ensure_count(1, "TableDelete::orderBy");
+  args.ensure_count(1, "TableDelete.orderBy");
 
   try
   {
@@ -167,25 +176,34 @@ shcore::Value TableDelete::order_by(const shcore::Argument_list &args)
 
     update_functions("orderBy");
   }
-  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableDelete::orderBy");
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableDelete.orderBy");
 
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
 #ifdef DOXYGEN
 /**
-* Sets the limit of rows to which to apply the remove operation. Each time the method is invoked it resets the value of limit.
-* After this method has been invoked the following methods can be invoked: bind, execute.
-* \sa remove(), where(), orderBy(), bind(), execute().
-* \param lim a positive integer representing the number of rows to which to apply the delete operation.
-* \return the same TableDelete object where the method was applied.
+* Sets a limit for the records to be deleted.
+* \param numberOfRows the number of records to be deleted.
+* \return This TableDelete object.
+*
+* This method is usually used in combination with sort to fix the amount of records to be deleted.
+*
+* This function can be invoked only once after:
+*
+* - delete()
+* - where(String searchCondition)
+* - orderBy(List sortExprStr)
+*
+* After this function invocation, the following functions can be invoked:
+*
+* - execute(ExecuteOptions options).
 */
-TableDelete TableDelete::limit(lim)
-{}
+TableDelete TableDelete::limit(Integer numberOfRows){}
 #endif
 shcore::Value TableDelete::limit(const shcore::Argument_list &args)
 {
-  args.ensure_count(1, "TableDelete::limit");
+  args.ensure_count(1, "TableDelete.limit");
 
   try
   {
@@ -193,45 +211,71 @@ shcore::Value TableDelete::limit(const shcore::Argument_list &args)
 
     update_functions("limit");
   }
-  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableDelete::limit");
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableDelete.limit");
 
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
 #ifdef DOXYGEN
-/**
-* TODO: Review this when the method is actually implemented.
-* Sets the mappings (parameter names / parameter values) to substitute during the Remove operation execution.
-* After this method invocation, the following methods can be invoked: execute.
-* \sa execute(), remove(), where(), orderBy(), limit()
-* \param { var:val, var : val, ... } a map with a set of key value pairs where each key is a parameter name and parameter value.
-* \return the same TableDelete object where the method was applied.
-*/
-TableDelete TableDelete::bind({ var:val, var : val, ... })
-{}
+TableDelete TableDelete::bind({ var:val, var : val, ... }){}
 #endif
 shcore::Value TableDelete::bind(const shcore::Argument_list &UNUSED(args))
 {
-  throw shcore::Exception::logic_error("TableDelete::bind: not yet implemented.");
+  throw shcore::Exception::logic_error("TableDelete.bind: not yet implemented.");
 
   return Value(Object_bridge_ref(this));
 }
 
 #ifdef DOXYGEN
 /**
-* TODO: review this when managing of execution options is actually implemented.
-* Execute the remove operation with the configured options.
-* This method can be invoked any number of times. Can be invoked right after the following methods: remove, where, orderBy, limit, bind.
-* \sa
-* \param opt the execution options, can be...
-* \return a ResultSet describing the results of the operation (has no data but affected rows, warning count, etc).
+* Executes the record deletion with the configured filter and limit.
+* \return Resultset A resultset object that can be used to retrieve the results of the deletion operation.
+*
+* This function can be invoked after any other function on this class.
+*
+* \code{.js}
+* // open a connection
+* var mysqlx = require('mysqlx').mysqlx;
+* var mysession = mysqlx.getNodeSession("myuser@localhost", mypwd);
+*
+* // Creates a table named friends on the test schema
+* mysession.sql('create table test.friends (name varchar(50), age integer, gender varchar(20));').execute();
+*
+* var table = mysession.test.friends;
+*
+* // create some initial data
+* table.insert('name','last_name','age','gender')
+*      .values('jack','black', 17, 'male')
+*      .values('adam', 'sandler', 15, 'male')
+*      .values('brian', 'adams', 14, 'male')
+*      .values('alma', 'lopez', 13, 'female')
+*      .values('carol', 'shiffield', 14, 'female')
+*      .values('donna', 'summers', 16, 'female')
+*      .values('angel', 'down', 14, 'male').execute();
+*
+* // Remove the youngest
+* var res_youngest = table.delete().orderBy(['age', 'name']).limit(1).execute();
+*
+* // Remove the males
+* var res_males = table.delete().where('gender="male"').execute();
+*
+* // Removes all the records
+* var res_all = table.delete().execute();
+* \endcode
 */
-Resultset TableDelete::execute(ExecuteOptions opt)
-{}
+Resultset TableDelete::execute(ExecuteOptions options){}
 #endif
 shcore::Value TableDelete::execute(const shcore::Argument_list &args)
 {
-  args.ensure_count(0, "TableDelete::execute");
+  mysqlx::Resultset *result = NULL;
 
-  return shcore::Value::wrap(new mysqlx::Collection_resultset(boost::shared_ptr< ::mysqlx::Result>(_delete_statement->execute())));
+  try
+  {
+    args.ensure_count(0, "TableDelete.execute");
+
+    result = new mysqlx::Collection_resultset(boost::shared_ptr< ::mysqlx::Result>(_delete_statement->execute()));
+  }
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableInsert.execute");
+
+  return result ? shcore::Value::wrap(result) : shcore::Value::Null();
 }

@@ -35,8 +35,6 @@
 
 using namespace shcore;
 
-
-
 /** Wraps a GRT method as a Python object
  */
 struct PyShMethodObject
@@ -47,7 +45,6 @@ struct PyShMethodObject
   std::string *method;
 };
 
-
 static PyObject *call_object_method(boost::shared_ptr<Cpp_object_bridge> object, const char *method, PyObject *args)
 {
   Python_context *ctx = Python_context::get_and_check();
@@ -56,9 +53,9 @@ static PyObject *call_object_method(boost::shared_ptr<Cpp_object_bridge> object,
 
   Argument_list arglist;
 
-  for (Py_ssize_t a= 0; a < PyTuple_Size(args); a++)
+  for (Py_ssize_t a = 0; a < PyTuple_Size(args); a++)
   {
-    PyObject *argval= PyTuple_GetItem(args, a);
+    PyObject *argval = PyTuple_GetItem(args, a);
 
     try
     {
@@ -86,7 +83,6 @@ static PyObject *call_object_method(boost::shared_ptr<Cpp_object_bridge> object,
   return NULL;
 }
 
-
 static void method_dealloc(PyShMethodObject *self)
 {
   delete self->object;
@@ -95,12 +91,10 @@ static void method_dealloc(PyShMethodObject *self)
   PyObject_FREE(self);
 }
 
-
 static PyObject* method_call(PyShMethodObject *self, PyObject *args, PyObject *UNUSED(kw))
 {
   return call_object_method(*self->object, self->method->c_str(), args);
 }
-
 
 static PyTypeObject PyShMethodObjectType =
 {
@@ -184,15 +178,14 @@ static PyTypeObject PyShMethodObjectType =
 #endif
 };
 
-
 static PyObject *wrap_method(boost::shared_ptr<Cpp_object_bridge> object, const char *method_name)
 {
   // create a method call object and return it
-  PyShMethodObject *method= PyObject_New(PyShMethodObject, &PyShMethodObjectType);
+  PyShMethodObject *method = PyObject_New(PyShMethodObject, &PyShMethodObjectType);
   if (!method)
     return NULL;
-  method->object= new boost::shared_ptr<Cpp_object_bridge>(object);
-  method->method= new std::string(method_name);
+  method->object = new boost::shared_ptr<Cpp_object_bridge>(object);
+  method->method = new std::string(method_name);
   return (PyObject*)method;
 }
 
@@ -233,7 +226,6 @@ static void object_dealloc(PyShObjObject *self)
   self->ob_type->tp_free(self);
 }
 
-
 static int object_compare(PyShObjObject *self, PyShObjObject *other)
 {
   if (self->object->get() == other->object->get())
@@ -242,13 +234,11 @@ static int object_compare(PyShObjObject *self, PyShObjObject *other)
   return 1;
 }
 
-
 static PyObject *object_printable(PyShObjObject *self)
 {
   std::string s;
   return PyString_FromString((*self->object)->append_repr(s).c_str());
 }
-
 
 static PyObject *object_getattro(PyShObjObject *self, PyObject *attr_name)
 {
@@ -256,7 +246,7 @@ static PyObject *object_getattro(PyShObjObject *self, PyObject *attr_name)
   {
     const char *attrname = PyString_AsString(attr_name);
     PyObject *object;
-    if ((object= PyObject_GenericGetAttr((PyObject*)self, attr_name)))
+    if ((object = PyObject_GenericGetAttr((PyObject*)self, attr_name)))
       return object;
     PyErr_Clear();
 
@@ -275,7 +265,8 @@ static PyObject *object_getattro(PyShObjObject *self, PyObject *attr_name)
       if (!exc.is_attribute())
         throw;
     }
-    if (member)
+
+    if (member.type != shcore::Undefined)
     {
       Python_context *ctx = Python_context::get_and_check();
       if (!ctx) return NULL;
@@ -300,7 +291,6 @@ static PyObject *object_getattro(PyShObjObject *self, PyObject *attr_name)
   }
   return NULL;
 }
-
 
 static int object_setattro(PyShObjObject *self, PyObject *attr_name, PyObject *attr_value)
 {
@@ -341,7 +331,6 @@ static int object_setattro(PyShObjObject *self, PyObject *attr_name, PyObject *a
   return -1;
 }
 
-
 static PyObject *call_object_method(boost::shared_ptr<shcore::Object_bridge> object, Value method, PyObject *args)
 {
   Python_context *ctx = Python_context::get_and_check();
@@ -366,7 +355,7 @@ static PyObject *call_object_method(boost::shared_ptr<shcore::Object_bridge> obj
 
   for (int c = func->signature().size(), i = 0; i < c; i++)
   {
-    PyObject *argval= PyTuple_GetItem(args, i);
+    PyObject *argval = PyTuple_GetItem(args, i);
 
     try
     {
@@ -398,7 +387,6 @@ static PyObject *call_object_method(boost::shared_ptr<shcore::Object_bridge> obj
 
   return NULL;
 }
-
 
 static PyObject *
 object_callmethod(PyShObjObject *self, PyObject *args)
@@ -435,106 +423,101 @@ object_callmethod(PyShObjObject *self, PyObject *args)
   return call_object_method(*self->object, method, PyTuple_GetSlice(args, 1, PyTuple_Size(args)));
 }
 
-
 PyDoc_STRVAR(PyShObjDoc,
 "Object(shcoreclass) -> Shcore Object\n\
 \n\
 Creates a new instance of a Shcore object. shcoreclass specifies the name of\n\
 the shcore class of the object.");
 
-
 PyDoc_STRVAR(call_doc,
 "callmethod(method_name, ...) -> value");
 
-
 static PyMethodDef PyShObjMethods[] = {
-{"__callmethod__",  (PyCFunction)object_callmethod,  METH_VARARGS, call_doc},
-{NULL, NULL, 0, NULL}
+  { "__callmethod__", (PyCFunction)object_callmethod, METH_VARARGS, call_doc },
+  { NULL, NULL, 0, NULL }
 };
-
 
 static PyTypeObject PyShObjObjectType =
 {
-PyObject_HEAD_INIT(&PyType_Type)  // PyObject_VAR_HEAD
-0,
-"shell.Object",  // char *tp_name; /* For printing, in format "<module>.<name>" */
-sizeof(PyShObjObject), 0,  // int tp_basicsize, tp_itemsize; /* For allocation */
+  PyObject_HEAD_INIT(&PyType_Type)  // PyObject_VAR_HEAD
+  0,
+  "shell.Object",  // char *tp_name; /* For printing, in format "<module>.<name>" */
+  sizeof(PyShObjObject), 0,  // int tp_basicsize, tp_itemsize; /* For allocation */
 
-/* Methods to implement standard operations */
+  /* Methods to implement standard operations */
 
-(destructor)object_dealloc,  // destructor tp_dealloc;
-0,  // printfunc tp_print;
-0,  // getattrfunc tp_getattr;
-0,  // setattrfunc tp_setattr;
-(cmpfunc)object_compare,  //  cmpfunc tp_compare;
-0,  // (reprfunc)dict_repr, // reprfunc tp_repr;
+  (destructor)object_dealloc,  // destructor tp_dealloc;
+  0,  // printfunc tp_print;
+  0,  // getattrfunc tp_getattr;
+  0,  // setattrfunc tp_setattr;
+  (cmpfunc)object_compare,  //  cmpfunc tp_compare;
+  0,  // (reprfunc)dict_repr, // reprfunc tp_repr;
 
-/* Method suites for standard classes */
+  /* Method suites for standard classes */
 
-0,  // PyNumberMethods *tp_as_number;
-0,  // PySequenceMethods *tp_as_sequence;
-0,  //  PyMappingMethods *tp_as_mapping;
+  0,  // PyNumberMethods *tp_as_number;
+  0,  // PySequenceMethods *tp_as_sequence;
+  0,  //  PyMappingMethods *tp_as_mapping;
 
-/* More standard operations (here for binary compatibility) */
+  /* More standard operations (here for binary compatibility) */
 
-0, //  hashfunc tp_hash;
-0,  // ternaryfunc tp_call;
-(reprfunc)object_printable,  // reprfunc tp_str;
-(getattrofunc)object_getattro,  // getattrofunc tp_getattro;
-(setattrofunc)object_setattro,  //  setattrofunc tp_setattro;
+  0, //  hashfunc tp_hash;
+  0,  // ternaryfunc tp_call;
+  (reprfunc)object_printable,  // reprfunc tp_str;
+  (getattrofunc)object_getattro,  // getattrofunc tp_getattro;
+  (setattrofunc)object_setattro,  //  setattrofunc tp_setattro;
 
-/* Functions to access object as input/output buffer */
-0,  // PyBufferProcs *tp_as_buffer;
+  /* Functions to access object as input/output buffer */
+  0,  // PyBufferProcs *tp_as_buffer;
 
-/* Flags to define presence of optional/expanded features */
-Py_TPFLAGS_DEFAULT|Py_TPFLAGS_BASETYPE, //  long tp_flags;
+  /* Flags to define presence of optional/expanded features */
+  Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE, //  long tp_flags;
 
-PyShObjDoc,  // char *tp_doc; /* Documentation string */
+  PyShObjDoc,  // char *tp_doc; /* Documentation string */
 
-/* Assigned meaning in release 2.0 */
-/* call function for all accessible objects */
-0,  // traverseproc tp_traverse;
+  /* Assigned meaning in release 2.0 */
+  /* call function for all accessible objects */
+  0,  // traverseproc tp_traverse;
 
-/* delete references to contained objects */
-0,  // inquiry tp_clear;
+  /* delete references to contained objects */
+  0,  // inquiry tp_clear;
 
-/* Assigned meaning in release 2.1 */
-/* rich comparisons */
-0,  // richcmpfunc tp_richcompare;
+  /* Assigned meaning in release 2.1 */
+  /* rich comparisons */
+  0,  // richcmpfunc tp_richcompare;
 
-/* weak reference enabler */
-0,  // long tp_weakdictoffset;
+  /* weak reference enabler */
+  0,  // long tp_weakdictoffset;
 
-/* Added in release 2.2 */
-/* Iterators */
-0,  // getiterfunc tp_iter;
-0,  // iternextfunc tp_iternext;
+  /* Added in release 2.2 */
+  /* Iterators */
+  0,  // getiterfunc tp_iter;
+  0,  // iternextfunc tp_iternext;
 
-/* Attribute descriptor and subclassing stuff */
-PyShObjMethods,  // struct PyMethodDef *tp_methods;
-0,  // struct PyMemberDef *tp_members;
-0,  //  struct PyGetSetDef *tp_getset;
-0,  // struct _typeobject *tp_base;
-0,  // PyObject *tp_dict;
-0,  // descrgetfunc tp_descr_get;
-0,  // descrsetfunc tp_descr_set;
-0,  // long tp_dictoffset;
-(initproc)object_init,  // initproc tp_init;
-PyType_GenericAlloc,  // allocfunc tp_alloc;
-PyType_GenericNew,  // newfunc tp_new;
-0,  // freefunc tp_free; /* Low-level free-memory routine */
-0,  // inquiry tp_is_gc; /* For PyObject_IS_GC */
-0,  // PyObject *tp_bases;
-0,  // PyObject *tp_mro; /* method resolution order */
-0,  // PyObject *tp_cache;
-0,  // PyObject *tp_subclasses;
-0,  // PyObject *tp_weakdict;
-0,  // tp_del
+  /* Attribute descriptor and subclassing stuff */
+  PyShObjMethods,  // struct PyMethodDef *tp_methods;
+  0,  // struct PyMemberDef *tp_members;
+  0,  //  struct PyGetSetDef *tp_getset;
+  0,  // struct _typeobject *tp_base;
+  0,  // PyObject *tp_dict;
+  0,  // descrgetfunc tp_descr_get;
+  0,  // descrsetfunc tp_descr_set;
+  0,  // long tp_dictoffset;
+  (initproc)object_init,  // initproc tp_init;
+  PyType_GenericAlloc,  // allocfunc tp_alloc;
+  PyType_GenericNew,  // newfunc tp_new;
+  0,  // freefunc tp_free; /* Low-level free-memory routine */
+  0,  // inquiry tp_is_gc; /* For PyObject_IS_GC */
+  0,  // PyObject *tp_bases;
+  0,  // PyObject *tp_mro; /* method resolution order */
+  0,  // PyObject *tp_cache;
+  0,  // PyObject *tp_subclasses;
+  0,  // PyObject *tp_weakdict;
+  0,  // tp_del
 #if (PY_MAJOR_VERSION == 2) && (PY_MINOR_VERSION > 5)
-0   // tp_version_tag
+  0   // tp_version_tag
 #endif
 };
-
 
 void Python_context::init_shell_object_type()
 {
@@ -550,7 +533,6 @@ void Python_context::init_shell_object_type()
   _shell_object_class = PyDict_GetItemString(PyModule_GetDict(get_shell_module()), "Object");
 }
 
-
 PyObject *shcore::wrap(boost::shared_ptr<Object_bridge> object)
 {
   PyShObjObject *wrapper = PyObject_New(PyShObjObject, &PyShObjObjectType);
@@ -558,7 +540,6 @@ PyObject *shcore::wrap(boost::shared_ptr<Object_bridge> object)
   wrapper->cache = new PyMemberCache();
   return reinterpret_cast<PyObject*>(wrapper);
 }
-
 
 bool shcore::unwrap(PyObject *value, boost::shared_ptr<Object_bridge> &ret_object)
 {

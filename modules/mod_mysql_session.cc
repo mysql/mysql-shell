@@ -67,15 +67,11 @@ REGISTER_OBJECT(mysql, ClassicSession);
 *
 * or as follows for connections using a socket or named pipe:
 *
-* [user[:pass\@] ::socket[/db]
+* [user[:pass\@]\::socket[/db]
 *
 * \sa ClassicSession
 */
-ClassicSession getClassicSession(String connectionData, String password)
-{
-  ClassicSession a;
-  return a;
-}
+ClassicSession getClassicSession(String connectionData, String password){}
 
 /**
 * This function works the same as the function above, except that the connection data comes enclosed on a dictionary object.
@@ -90,11 +86,7 @@ ClassicSession getClassicSession(String connectionData, String password)
 *
 * \sa ClassicSession
 */
-ClassicSession getClassicSession(Map connectionData, String password)
-{
-  ClassicSession a;
-  return a;
-}
+ClassicSession getClassicSession(Map connectionData, String password){}
 #endif
 
 ClassicSession::ClassicSession()
@@ -117,7 +109,7 @@ Connection *ClassicSession::connection()
 
 Value ClassicSession::connect(const Argument_list &args)
 {
-  args.ensure_count(1, 2, "ClassicSession::connect");
+  args.ensure_count(1, 2, "ClassicSession.connect");
 
   std::string protocol;
   std::string user;
@@ -180,14 +172,13 @@ Value ClassicSession::connect(const Argument_list &args)
 
 #ifdef DOXYGEN
 /**
-* Closes the internal connection to the MySQL Server held on ths session object.
+* Closes the internal connection to the MySQL Server held on this session object.
 */
-Undefined ClassicSession::close()
-{}
+Undefined ClassicSession::close(){}
 #endif
-Value ClassicSession::close(const Argument_list &args)
+Value ClassicSession::close(const shcore::Argument_list &args)
 {
-  args.ensure_count(0, "ClassicSession::close");
+  args.ensure_count(0, "ClassicSession.close");
 
   _conn.reset();
 
@@ -196,16 +187,16 @@ Value ClassicSession::close(const Argument_list &args)
 
 #ifdef DOXYGEN
 /**
-* Executes a query against the database and returns a  Resultset object wrapping the result.
+* Executes a query against the database and returns a  ClassicResultset object wrapping the result.
 * \param query the SQL query to execute against the database.
-* \return The Resultset.
+* \return A ClassicResultset object.
+* \exception An exception is thrown if an error occurs on the SQL execution.
 */
-Resultset ClassicSession::sql(String query)
-{}
+ClassicResultset ClassicSession::sql(String query){}
 #endif
-Value ClassicSession::sql(const Argument_list &args)
+Value ClassicSession::sql(const shcore::Argument_list &args)
 {
-  args.ensure_count(1, "ClassicSession::sql");
+  args.ensure_count(1, "ClassicSession.sql");
   // Will return the result of the SQL execution
   // In case of error will be Undefined
   Value ret_val;
@@ -220,7 +211,47 @@ Value ClassicSession::sql(const Argument_list &args)
     if (statement.empty())
       throw Exception::argument_error("No query specified.");
     else
-      ret_val = Value::wrap(new Resultset(boost::shared_ptr<Result>(_conn->executeSql(statement))));
+      ret_val = Value::wrap(new ClassicResultset(boost::shared_ptr<Result>(_conn->executeSql(statement))));
+  }
+
+  return ret_val;
+}
+
+#ifdef DOXYGEN
+/**
+* Creates a schema on the database and returns the corresponding object.
+* \param name A string value indicating the schema name.
+* \return The created schema object.
+* \exception An exception is thrown if an error occurs creating the Session.
+*/
+ClassicSchema ClassicSession::createSchema(String name){}
+#endif
+Value ClassicSession::createSchema(const shcore::Argument_list &args)
+{
+  args.ensure_count(1, "ClassicSession.createSchema");
+
+  Value ret_val;
+  if (!_conn)
+    throw Exception::logic_error("Not connected.");
+  else
+  {
+    // Options are the statement and optionally options to modify
+    // How the resultset is created.
+    std::string schema = args.string_at(0);
+
+    if (schema.empty())
+      throw Exception::argument_error("The schema name can not be empty.");
+    else
+    {
+      std::string statement = "create schema " + schema;
+      ret_val = Value::wrap(new ClassicResultset(boost::shared_ptr<Result>(_conn->executeSql(statement))));
+
+      boost::shared_ptr<ClassicSchema> object(new ClassicSchema(shared_from_this(), schema));
+
+      // If reached this point it indicates the schema was created successfully
+      ret_val = shcore::Value(boost::static_pointer_cast<Object_bridge>(object));
+      (*_schemas)[schema] = ret_val;
+    }
   }
 
   return ret_val;
@@ -232,8 +263,7 @@ Value ClassicSession::sql(const Argument_list &args)
 * \return A string representation of the connection data in URI format (excluding the password or the database).
 * \sa connect
 */
-String ClassicSession::getUri()
-{}
+String ClassicSession::getUri(){}
 #endif
 std::string ClassicSession::uri() const
 {
@@ -259,6 +289,25 @@ std::vector<std::string> ClassicSession::get_members() const
   return members;
 }
 
+#ifdef DOXYGEN
+/**
+* Retrieves the ClassicSchema configured as default for the session.
+* \return A ClassicSchema object or Null
+*/
+ClassicSchema ClassicSession::getDefaultSchema(){}
+
+/**
+* Retrieves the Schemas available on the session.
+* \return A Map containing the ClassicSchema objects available o the session.
+*/
+Map ClassicSession::getSchemas(){}
+
+/**
+* Retrieves the connection data for this session in string format.
+* \return A string representing the connection data.
+*/
+String ClassicSession::getUri(){}
+#endif
 Value ClassicSession::get_member(const std::string &prop) const
 {
   // Retrieves the member first from the parent
@@ -283,12 +332,15 @@ Value ClassicSession::get_member(const std::string &prop) const
   }
   else
   {
-    // Since the property was not satisfied, we assume it is a schema and
-    // proceed to retrieve it
-    shcore::Argument_list args;
-    args.push_back(Value(prop));
+    if (_schemas->has_key(prop))
+    {
+      boost::shared_ptr<ClassicSchema> schema = (*_schemas)[prop].as_object<ClassicSchema>();
 
-    ret_val = get_schema(args);
+      // This will validate the schema continues valid
+      schema->cache_table_objects();
+
+      ret_val = (*_schemas)[prop];
+    }
   }
 
   return ret_val;
@@ -305,7 +357,7 @@ void ClassicSession::_load_default_schema()
 
     Value res = sql(query);
 
-    boost::shared_ptr<Resultset> rset = res.as_object<Resultset>();
+    boost::shared_ptr<ClassicResultset> rset = res.as_object<ClassicResultset>();
     Value next_row = rset->next(shcore::Argument_list());
 
     if (next_row)
@@ -332,7 +384,7 @@ void ClassicSession::_load_schemas()
     Value res = sql(query);
 
     shcore::Argument_list args;
-    boost::shared_ptr<Resultset> rset = res.as_object<Resultset>();
+    boost::shared_ptr<ClassicResultset> rset = res.as_object<ClassicResultset>();
     Value next_row = rset->next(args);
     boost::shared_ptr<mysh::Row> row;
 
@@ -342,7 +394,7 @@ void ClassicSession::_load_schemas()
       shcore::Value schema = row->get_member("Database");
       if (schema)
       {
-        boost::shared_ptr<Schema> object(new Schema(shared_from_this(), schema.as_string()));
+        boost::shared_ptr<ClassicSchema> object(new ClassicSchema(shared_from_this(), schema.as_string()));
         (*_schemas)[schema.as_string()] = shcore::Value(boost::static_pointer_cast<Object_bridge>(object));
       }
 
@@ -353,15 +405,13 @@ void ClassicSession::_load_schemas()
 
 #ifdef DOXYGEN
 /**
-* Returns the current schema of this session
-* Retrieves a Schema object from the current session through it's name.
-* \param name The name of the Schema object to be retrieved.
-* \return An schema object for the current schema.
+* Retrieves a ClassicSchema object from the current session through it's name.
+* \param name The name of the ClassicSchema object to be retrieved.
+* \return The ClassicSchema object with the given name.
 * \exception An exception is thrown if the given name is not a valid schema on the Session.
-* \sa Schema
+* \sa ClassicSchema
 */
-Schema ClassicSession::getSchema(String name)
-{}
+ClassicSchema ClassicSession::getSchema(String name){}
 #endif
 shcore::Value ClassicSession::get_schema(const shcore::Argument_list &args) const
 {
@@ -372,7 +422,7 @@ shcore::Value ClassicSession::get_schema(const shcore::Argument_list &args) cons
 
   if (_schemas->has_key(name))
   {
-    boost::shared_ptr<Schema> schema = (*_schemas)[name].as_object<Schema>();
+    boost::shared_ptr<ClassicSchema> schema = (*_schemas)[name].as_object<ClassicSchema>();
 
     // This will validate the schema continues valid
     schema->cache_table_objects();
@@ -381,7 +431,7 @@ shcore::Value ClassicSession::get_schema(const shcore::Argument_list &args) cons
   {
     if (_conn)
     {
-      boost::shared_ptr<Schema> schema(new Schema(shared_from_this(), name));
+      boost::shared_ptr<ClassicSchema> schema(new ClassicSchema(shared_from_this(), name));
 
       // Here this call will also validate the schema is valid
       schema->cache_table_objects();
@@ -401,8 +451,7 @@ shcore::Value ClassicSession::get_schema(const shcore::Argument_list &args) cons
 * Sets the default schema for this session's connection.
 * \return The new schema.
 */
-Schema ClassicSession::setDefaultSchema(String schema)
-{}
+ClassicSchema ClassicSession::setDefaultSchema(String schema){}
 #endif
 shcore::Value ClassicSession::set_default_schema(const shcore::Argument_list &args)
 {
@@ -430,10 +479,10 @@ void ClassicSession::_update_default_schema(const std::string& name)
   if (!name.empty())
   {
     if (_schemas->has_key(name))
-      _default_schema = (*_schemas)[name].as_object<Schema>();
+      _default_schema = (*_schemas)[name].as_object<ClassicSchema>();
     else
     {
-      _default_schema.reset(new Schema(shared_from_this(), name));
+      _default_schema.reset(new ClassicSchema(shared_from_this(), name));
       _default_schema->cache_table_objects();
       (*_schemas)[name] = Value(boost::static_pointer_cast<Object_bridge>(_default_schema));
     }
@@ -447,4 +496,70 @@ boost::shared_ptr<shcore::Object_bridge> ClassicSession::create(const shcore::Ar
   session->connect(args);
 
   return session;
+}
+
+void ClassicSession::drop_db_object(const std::string &type, const std::string &name, const std::string& owner)
+{
+  std::string statement;
+
+  if (type == "ClassicSchema")
+    statement = "drop schema `" + name + "`";
+  else if (type == "ClassicView")
+    statement = "drop view `" + owner + "`.`" + name + "`";
+  else
+    statement = "drop table `" + owner + "`.`" + name + "`";
+
+  // We execute the statement, any error will be reported properly
+  _conn->executeSql(statement);
+}
+
+/*
+* This function verifies if the given object exist in the database, works for schemas, tables and views.
+* The check for tables and views is done is done based on the type.
+* If type is not specified and an object with the name is found, the type will be returned.
+*/
+
+bool ClassicSession::db_object_exists(std::string &type, const std::string &name, const std::string& owner)
+{
+  std::string statement;
+  bool ret_val = false;
+
+  if (type == "ClassicSchema")
+  {
+    statement = "show databases like \"" + name + "\"";
+    Result *res = _conn->executeSql(statement);
+    if (res->has_resultset())
+    {
+      Row *row = res->next();
+      if (row)
+        ret_val = true;
+    }
+  }
+  else
+  {
+    statement = "show full tables from `" + owner + "` like \"" + name + "\"";
+    Result *res = _conn->executeSql(statement);
+
+    if (res->has_resultset())
+    {
+      Row *row = res->next();
+
+      if (row)
+      {
+        std::string db_type = row->get_value(1).as_string();
+
+        if (type == "ClassicTable" && (db_type == "BASE TABLE" || db_type == "LOCAL TEMPORARY"))
+          ret_val = true;
+        else if (type == "ClassicView" && (db_type == "VIEW" || db_type == "SYSTEM VIEW"))
+          ret_val = true;
+        else if (type.empty())
+        {
+          ret_val = true;
+          type = db_type;
+        }
+      }
+    }
+  }
+
+  return ret_val;
 }

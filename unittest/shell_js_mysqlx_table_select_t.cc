@@ -144,60 +144,62 @@ namespace shcore {
     {
       SCOPED_TRACE("Testing parameter validation on select");
       exec_and_out_equals("table.select();");
-      exec_and_out_contains("table.select(5);", "", "TableSelect::select: Argument #1 is expected to be an array");
-      exec_and_out_contains("table.select([]);", "", "TableSelect::select: Field selection criteria can not be empty");
-      exec_and_out_contains("table.select(['name as alias', 5]);", "", "TableSelect::select: Element #2 is expected to be a string");
+      exec_and_out_contains("table.select(5);", "", "TableSelect.select: Argument #1 is expected to be an array");
+      exec_and_out_contains("table.select([]);", "", "TableSelect.select: Field selection criteria can not be empty");
+      exec_and_out_contains("table.select(['name as alias', 5]);", "", "TableSelect.select: Element #2 is expected to be a string");
       exec_and_out_contains("table.select(['name']);");
     }
 
     {
       SCOPED_TRACE("Testing parameter validation on fields");
-      exec_and_out_contains("table.select().where();", "", "Invalid number of arguments in TableSelect::where, expected 1 but got 0");
-      exec_and_out_contains("table.select().where(5);", "", "TableSelect::where: Argument #1 is expected to be a string");
+      exec_and_out_contains("table.select().where();", "", "Invalid number of arguments in TableSelect.where, expected 1 but got 0");
+      exec_and_out_contains("table.select().where(5);", "", "TableSelect.where: Argument #1 is expected to be a string");
       exec_and_out_contains("table.select().where('name = \"whatever');", "", "");
       exec_and_out_contains("table.select().where('name = \"whatever\"');", "", "");
     }
 
     {
       SCOPED_TRACE("Testing parameter validation on groupBy");
-      exec_and_out_contains("table.select().groupBy();", "", "Invalid number of arguments in TableSelect::groupBy, expected 1 but got 0");
-      exec_and_out_contains("table.select().groupBy(5);", "", "TableSelect::groupBy: Argument #1 is expected to be an array");
-      exec_and_out_contains("table.select().groupBy([]);", "", "TableSelect::groupBy: Grouping criteria can not be empty");
-      exec_and_out_contains("table.select().groupBy(['name', 5]);", "", "TableSelect::groupBy: Element #2 is expected to be a string");
+      exec_and_out_contains("table.select().groupBy();", "", "Invalid number of arguments in TableSelect.groupBy, expected 1 but got 0");
+      exec_and_out_contains("table.select().groupBy(5);", "", "TableSelect.groupBy: Argument #1 is expected to be an array");
+      exec_and_out_contains("table.select().groupBy([]);", "", "TableSelect.groupBy: Grouping criteria can not be empty");
+      exec_and_out_contains("table.select().groupBy(['name', 5]);", "", "TableSelect.groupBy: Element #2 is expected to be a string");
       exec_and_out_contains("table.select().groupBy(['name']);", "", "");
     }
 
     {
       SCOPED_TRACE("Testing parameter validation on having");
-      exec_and_out_contains("table.select().groupBy(['name']).having();", "", "Invalid number of arguments in TableSelect::having, expected 1 but got 0");
-      exec_and_out_contains("table.select().groupBy(['name']).having(5);", "", "TableSelect::having: Argument #1 is expected to be a string");
+      exec_and_out_contains("table.select().groupBy(['name']).having();", "", "Invalid number of arguments in TableSelect.having, expected 1 but got 0");
+      exec_and_out_contains("table.select().groupBy(['name']).having(5);", "", "TableSelect.having: Argument #1 is expected to be a string");
       exec_and_out_contains("table.select().groupBy(['name']).having('age > 5');", "", "");
     }
 
     {
       SCOPED_TRACE("Testing parameter validation on orderBy");
-      exec_and_out_contains("table.select().orderBy();", "", "Invalid number of arguments in TableSelect::orderBy, expected 1 but got 0");
-      exec_and_out_contains("table.select().orderBy(5);", "", "TableSelect::orderBy: Argument #1 is expected to be an array");
-      exec_and_out_contains("table.select().orderBy([]);", "", "TableSelect::orderBy: Order criteria can not be empty");
-      exec_and_out_contains("table.select().orderBy(['test', 5]);", "", "TableSelect::orderBy: Element #2 is expected to be a string");
+      exec_and_out_contains("table.select().orderBy();", "", "Invalid number of arguments in TableSelect.orderBy, expected 1 but got 0");
+      exec_and_out_contains("table.select().orderBy(5);", "", "TableSelect.orderBy: Argument #1 is expected to be an array");
+      exec_and_out_contains("table.select().orderBy([]);", "", "TableSelect.orderBy: Order criteria can not be empty");
+      exec_and_out_contains("table.select().orderBy(['test', 5]);", "", "TableSelect.orderBy: Element #2 is expected to be a string");
       exec_and_out_contains("table.select().orderBy(['test']);", "", "");
     }
 
     {
       SCOPED_TRACE("Testing parameter validation on limit");
-      exec_and_out_contains("table.select().limit();", "", "Invalid number of arguments in TableSelect::limit, expected 1 but got 0");
-      exec_and_out_contains("table.select().limit('');", "", "TableSelect::limit: Argument #1 is expected to be an unsigned int");
+      exec_and_out_contains("table.select().limit();", "", "Invalid number of arguments in TableSelect.limit, expected 1 but got 0");
+      exec_and_out_contains("table.select().limit('');", "", "TableSelect.limit: Argument #1 is expected to be an unsigned int");
       exec_and_out_equals("table.select().limit(5);");
     }
 
     {
       SCOPED_TRACE("Testing parameter validation on offset");
-      exec_and_out_contains("table.select().limit(1).offset();", "", "Invalid number of arguments in TableSelect::offset, expected 1 but got 0");
-      exec_and_out_contains("table.select().limit(1).offset('');", "", "TableSelect::offset: Argument #1 is expected to be an unsigned int");
+      exec_and_out_contains("table.select().limit(1).offset();", "", "Invalid number of arguments in TableSelect.offset, expected 1 but got 0");
+      exec_and_out_contains("table.select().limit(1).offset('');", "", "TableSelect.offset: Argument #1 is expected to be an unsigned int");
       exec_and_out_equals("table.select().limit(1).offset(5);");
     }
 
-    exec_and_out_contains("table.select().bind();", "", "TableSelect::bind: not yet implemented.");
+    exec_and_out_contains("table.select().bind();", "", "TableSelect.bind: not yet implemented.");
+
+    exec_and_out_equals("session.close();");
   }
 
   TEST_F(Shell_js_mysqlx_table_select_tests, select_execution)
@@ -207,13 +209,13 @@ namespace shcore {
     exec_and_out_equals("var schema = session.getSchema('js_shell_test');");
     exec_and_out_equals("var table = schema.getTable('table1');");
 
-    exec_and_out_equals("var result = table.insert({name: 'jack', age: 17, gender: 'male'}).execute();");
-    exec_and_out_equals("var result = table.insert({name: 'adam', age: 15, gender: 'male'}).execute();");
-    exec_and_out_equals("var result = table.insert({name: 'brian', age: 14, gender: 'male'}).execute();");
-    exec_and_out_equals("var result = table.insert({name: 'alma', age: 13, gender: 'female'}).execute();");
-    exec_and_out_equals("var result = table.insert({name: 'carol', age: 14, gender: 'female'}).execute();");
-    exec_and_out_equals("var result = table.insert({name: 'donna', age: 16, gender: 'female'}).execute();");
-    exec_and_out_equals("var result = table.insert({name: 'angel', age: 14, gender: 'male'}).execute();");
+    exec_and_out_equals("var result = table.insert({'name': 'jack', 'age': 17, 'gender': 'male'}).execute();");
+    exec_and_out_equals("var result = table.insert({'name': 'adam', 'age': 15, 'gender': 'male'}).execute();");
+    exec_and_out_equals("var result = table.insert({'name': 'brian', 'age': 14, 'gender': 'male'}).execute();");
+    exec_and_out_equals("var result = table.insert({'name': 'alma', 'age': 13, 'gender': 'female'}).execute();");
+    exec_and_out_equals("var result = table.insert({'name': 'carol', 'age': 14, 'gender': 'female'}).execute();");
+    exec_and_out_equals("var result = table.insert({'name': 'donna', 'age': 16, 'gender': 'female'}).execute();");
+    exec_and_out_equals("var result = table.insert({'name': 'angel', 'age': 14, 'gender': 'male'}).execute();");
 
     // Testing the select function
     {
@@ -321,5 +323,7 @@ namespace shcore {
       exec_and_out_equals("var records = table.select().limit(4).offset(7).execute().all();");
       exec_and_out_equals("print(records.length);", "0");
     }
+
+    exec_and_out_equals("session.close();");
   }
 }

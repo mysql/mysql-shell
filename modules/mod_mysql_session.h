@@ -40,6 +40,7 @@ namespace shcore
 
 namespace mysh
 {
+  class DatabaseObject;
   /**
   * Encloses the functions and classes available to interact with a MySQL Server using the traditional
   * MySQL Protocol.
@@ -59,7 +60,7 @@ namespace mysh
     ClassicSession getClassicSession(Map connectionData, String password);
 #endif
 
-    class Schema;
+    class ClassicSchema;
     /**
     * Enables interaction with a MySQL Server using the MySQL Protocol.
     *
@@ -70,9 +71,9 @@ namespace mysh
     * In addition to the properties documented above, when a session object is created the schemas available on the target
     * MySQL Server are cached.
     *
-    * A dynamic property is added to the session object in order to access each available Schema as a session member.
+    * A dynamic property is added to the session object in order to access each available ClassicSchema as a session member.
     *
-    * These dynamic properties are named as the Schema's name, so the schemas are accessible as follows:
+    * These dynamic properties are named as the ClassicSchema's name, so the schemas are accessible as follows:
     *
     * \code{.js}
     * // Establishes the connection.
@@ -104,11 +105,15 @@ namespace mysh
       virtual shcore::Value connect(const shcore::Argument_list &args);
       virtual shcore::Value close(const shcore::Argument_list &args);
       virtual shcore::Value sql(const shcore::Argument_list &args);
+      virtual shcore::Value createSchema(const shcore::Argument_list &args);
       virtual bool is_connected() const { return _conn ? true : false; }
 
       virtual std::string uri() const;
       virtual shcore::Value get_schema(const shcore::Argument_list &args) const;
       virtual shcore::Value set_default_schema(const shcore::Argument_list &args);
+
+      virtual void drop_db_object(const std::string &type, const std::string &name, const std::string& owner);
+      virtual bool db_object_exists(std::string &type, const std::string &name, const std::string& owner);
 
       static boost::shared_ptr<shcore::Object_bridge> create(const shcore::Argument_list &args);
 
@@ -117,32 +122,16 @@ namespace mysh
 #ifdef DOXYGEN
       String uri; //!< Same as getUri()
       Map schemas; //!< Same as getSchemas()
-      Schema defaultSchema; //!< Same as getDefaultSchema()
+      ClassicSchema defaultSchema; //!< Same as getDefaultSchema()
 
+      ClassicSchema createSchema(String name);
+      ClassicSchema getSchema(String name);
+      ClassicSchema getDefaultSchema();
+      ClassicSchema setDefaultSchema(String schema);
+      Map getSchemas();
       String getUri();
-      Schema getSchema(String name);
-
-      /**
-      * Retrieves the schema objects that were cached when the session was created.
-      * \return A Map object containing as keys the schema names and as values the schema objects.
-      * \sa Schema
-      */
-      Map getSchemas()
-      {}
-
-      Undefined close();
-      Schema setDefaultSchema(String schema);
-
-      /**
-      * Retrieves if any, the schema configured as default on the current session.
-      * \return the Schema object or Null.
-      * \section (Dynamic Attributes)
-      * this is a sample section
-      */
-      Schema getDefaultSchema()
-      {}
-
       Resultset sql(String query);
+      Undefined close();
 #endif
 
     private:
@@ -152,7 +141,7 @@ namespace mysh
 
       boost::shared_ptr<Connection> _conn;
 
-      boost::shared_ptr<Schema> _default_schema;
+      boost::shared_ptr<ClassicSchema> _default_schema;
       boost::shared_ptr<shcore::Value::Map_type> _schemas;
 
       //boost::shared_ptr<shcore::Proxy_object> _schema_proxy;

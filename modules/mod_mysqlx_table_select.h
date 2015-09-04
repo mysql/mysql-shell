@@ -32,16 +32,15 @@ namespace mysh
     class Table;
 
     /**
-    * Handler for Select operation on Tables.
-    * \todo Document select([field, field, ...])
-    * \todo Document where(searchCriteria)
-    * \todo Document groupBy([expr, expr, ...])
-    * \todo Document having(condition)
-    * \todo Document orderBy([expr, expr, ...])
-    * \todo Document limit(lim)
-    * \todo Document offset(off)
+    * Handler for record selection on a Table.
     * \todo Implement and document bind({var:val, var:val, ...})
     * \todo Update execute to support options and document it
+    *
+    * This object provides the necessary functions to allow selecting record data from a table.
+    *
+    * This object should only be created by calling the select function on the table object from which the record data will be retrieved.
+    *
+    * \sa Table
     */
     class TableSelect : public Table_crud_definition, public boost::enable_shared_from_this<TableSelect>
     {
@@ -60,15 +59,14 @@ namespace mysh
 
       virtual shcore::Value execute(const shcore::Argument_list &args);
 #ifdef DOXYGEN
-      TableSelect select([field, field, ...]);
-      TableSelect where(searchCriteria);
-      TableSelect groupBy([expr, expr, ...]);
+      TableSelect select(List searchExprStr);
+      TableSelect where(String searchCondition);
+      TableSelect groupBy(List searchExprStr);
       TableSelect having(String searchCondition);
-      TableSelect orderBy([expr, expr, ...]);
+      TableSelect orderBy(List sortExprStr);
       TableSelect limit(Integer numberOfRows);
       TableSelect offset(Integer limitOffset);
-      TableSelect bind({ var:val, var : val, ... });
-      Resultset execute(ExecuteOptions opt)
+      Resultset execute(ExecuteOptions options);
 #endif
     private:
       std::auto_ptr< ::mysqlx::SelectStatement> _select_statement;

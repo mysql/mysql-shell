@@ -58,30 +58,49 @@ Table::~Table()
 
 #ifdef DOXYGEN
 /**
-* Creates an insert object with column mappings to be defined.
-* \sa update, delete, select, TableInsert
-* \return a new TableInsert object.
+* Creates a record insertion handler.
+* \return A TableInsert object.
+*
+* This function creates a TableInsert object which is a record insertion handler.
+*
+* The TableInsert class has other functions that allow specifying the way the insertion occurs.
+*
+* The insertion is done when the execute method is called on the handler.
+*
+* \sa TableInsert
 */
-TableInsert Table::insert()
-{}
+TableInsert Table::insert(){}
 
 /**
-* Creates an insert object with a list of column names.
-* \sa update, delete, select, TableInsert
-* \param [field, field, ...] one of several field names passed as an array parameter.
-* \return a new TableInsert object.
+* Creates a record insertion handler using a column list to insert records.
+* \param columns The column list that will determine the order of the values to be inserted on the table.
+* \return A TableInsert object.
+*
+* This function creates a TableInsert object which is a record insertion handler.
+*
+* The TableInsert class has other functions that allow specifying the way the insertion occurs.
+*
+* The insertion is done when the execute method is called on the handler.
+*
+* \sa TableInsert
 */
-TableInsert Table::insert([field, field, ...])
-{}
+TableInsert Table::insert(List columns){}
 
 /**
-* Creates an insert object with a set of mappings (field name, value of field).
-* \sa update, delete, select, TableInsert
-* \param { field : value, field : value, ... } a map with a set of key value pair mappings where the key is a field name and the field value is the value.
-* \return a new TableInsert object.
+* Creates a record insertion handler using a column list to insert records.
+* \param col1 The first column name.
+* \param col2 The second column name.
+* \return A TableInsert object.
+*
+* This function creates a TableInsert object which is a record insertion handler.
+*
+* The TableInsert class has other functions that allow specifying the way the insertion occurs.
+*
+* The insertion is done when the execute method is called on the handler.
+*
+* \sa TableInsert
 */
-TableInsert Table::insert({ field : value, field : value, ... })
-{}
+TableInsert Table::insert(String col1, String col2, ...){}
 #endif
 shcore::Value Table::insert_(const shcore::Argument_list &args)
 {
@@ -92,12 +111,18 @@ shcore::Value Table::insert_(const shcore::Argument_list &args)
 
 #ifdef DOXYGEN
 /**
-* Creates an Update object and returns it.
-* \sa insert, delete, select, TableUpdate
-* \return a new TableUpdate object.
+* Creates a record update handler.
+* \return A TableUpdate object.
+*
+* This function creates a TableUpdate object which is a record update handler.
+*
+* The TableUpdate class has several functions that allow specifying the way the update occurs, if a searchCondition was specified, it will be set on the handler.
+*
+* The update is done when the execute function is called on the handler.
+*
+* \sa TableUpdate
 */
-TableUpdate Table::update()
-{}
+TableUpdate Table::update(){}
 #endif
 shcore::Value Table::update_(const shcore::Argument_list &args)
 {
@@ -108,12 +133,18 @@ shcore::Value Table::update_(const shcore::Argument_list &args)
 
 #ifdef DOXYGEN
 /**
-* Creates a Delete object and returns it.
-* \sa insert, update, select, TableDelete
-* \return a new TableDelete object.
+* Creates a record deletion handler.
+* \return A TableDelete object.
+*
+* This function creates a TableDelete object which is a record deletion handler.
+*
+* The TableDelete class has several functions that allow specifying what should be deleted and how, if a searchCondition was specified, it will be set on the handler.
+*
+* The deletion is done when the execute function is called on the handler.
+*
+* \sa TableDelete
 */
-TableDelete Table::delete()
-{}
+TableDelete Table::delete(){}
 #endif
 shcore::Value Table::delete_(const shcore::Argument_list &args)
 {
@@ -124,22 +155,39 @@ shcore::Value Table::delete_(const shcore::Argument_list &args)
 
 #ifdef DOXYGEN
 /**
-* Creates a Select object and returns it.
-* \sa insert, delete, update, TableSelect
-* \return a new TableSelect object.
+* Creates a full record retrieval handler.
+* \return A TableSelect object.
+*
+* This function creates a TableSelect object which is a record selection handler.
+*
+* This handler will retrieve all the columns for each included record.
+*
+* The TableSelect class has several functions that allow specifying what records should be retrieved from the table, if a searchCondition was specified, it will be set on the handler.
+*
+* The selection will be returned when the execute function is called on the handler.
+*
+* \sa TableSelect
 */
-TableSelect Table::select()
-{}
+TableSelect Table::select(){}
 
 /**
-* Creates a Select object and returns it with the specified projection (list of fields to return).
-* \sa insert, delete, update, TableSelect
-* \param [field, field, ...] one or more Strings each with the name of a field to retrieve in this select statement.
-*   each field can be of the form "identifier [[AS] alias]", that is, after the column name optionally include the AS keyword and then an ALIAS
-* \return a new TableSelect object.
+* Creates a partial record retrieval handler.
+* \param columns A list of strings defining the columns to be retrieved.
+* \return A TableSelect object.
+*
+* This function creates a TableSelect object which is a record selection handler.
+*
+* This handler will retrieve only the columns specified on the columns list for each included record.
+*
+* Each column on the list should be a string identifying the column name, alias is supported.
+*
+* The TableSelect class has several functions that allow specifying what records should be retrieved from the table, if a searchCondition was specified, it will be set on the handler.
+*
+* The selection will be returned when the execute function is called on the handler.
+*
+* \sa TableSelect
 */
-TableSelect Table::select([field, field, ...])
-{}
+TableSelect Table::select(List columns){}
 #endif
 shcore::Value Table::select_(const shcore::Argument_list &args)
 {

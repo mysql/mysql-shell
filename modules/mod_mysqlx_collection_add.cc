@@ -46,7 +46,7 @@ CollectionAdd::CollectionAdd(boost::shared_ptr<Collection> owner)
 #ifdef DOXYGEN
 /**
 * Adds a document into a collection.
-* \param A documents to be added into the collection.
+* \param document The document to be added into the collection.
 * \return This CollectionAdd object.
 *
 * To be added, the document must have a property named '_id' with a universal unique identifier (UUID), if this property is missing, it is set with an auto generated UUID.
@@ -66,12 +66,11 @@ CollectionAdd::CollectionAdd(boost::shared_ptr<Collection> owner)
 * var result = collection.add({ name: 'jhon', last_name: 'doe'}).execute();
 * \endcode
 */
-CollectionAdd CollectionAdd::add(Document document)
-{}
+CollectionAdd CollectionAdd::add(Document document){}
 
 /**
 * Adds a list of documents into a collection.
-* \param A list of documents to be added into the collection.
+* \param documents A list of documents to be added into the collection.
 * \return This CollectionAdd object.
 *
 * To be added, each document must have a property named '_id' with a universal unique identifier (UUID), if this property is missing, it is set with an auto generated UUID.
@@ -91,13 +90,12 @@ CollectionAdd CollectionAdd::add(Document document)
 * var result = collection.add([{ name: 'john', last_name: 'doe'}, { name: 'jane', last_name: 'doe'}]).execute();
 * \endcode
 */
-CollectionAdd CollectionAdd::add(List documents)
-{}
+CollectionAdd CollectionAdd::add(List documents){}
 #endif
 shcore::Value CollectionAdd::add(const shcore::Argument_list &args)
 {
   // Each method validates the received parameters
-  args.ensure_count(1, "CollectionAdd::add");
+  args.ensure_count(1, "CollectionAdd.add");
 
   boost::shared_ptr<DatabaseObject> raw_owner(_owner.lock());
 
@@ -150,7 +148,7 @@ shcore::Value CollectionAdd::add(const shcore::Argument_list &args)
           }
         }
       }
-      CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionAdd::add");
+      CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionAdd.add");
     }
   }
 
@@ -184,16 +182,15 @@ std::string CollectionAdd::get_new_uuid()
 * Executes the document addition for the documents cached on this object.
 * \return A Resultset object.
 *
-* Calling this function when no documents have been added is forbidden.
+* This function can be invoked once after:
 * \sa add(Document document)
 * \sa add(List documents)
 */
-Resultset CollectionAdd::execute()
-{}
+Resultset CollectionAdd::execute(){}
 #endif
 shcore::Value CollectionAdd::execute(const shcore::Argument_list &args)
 {
-  args.ensure_count(0, "CollectionAdd::execute");
+  args.ensure_count(0, "CollectionAdd.execute");
 
   return shcore::Value::wrap(new mysqlx::Collection_resultset(boost::shared_ptr< ::mysqlx::Result>(_add_statement->execute())));
 }

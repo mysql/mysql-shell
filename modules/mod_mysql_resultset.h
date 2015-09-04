@@ -33,12 +33,12 @@ namespace mysh
   namespace mysql
   {
     class Result;
-    class Resultset : public BaseResultset
+    class ClassicResultset : public BaseResultset
     {
     public:
-      Resultset(boost::shared_ptr<Result> result);
+      ClassicResultset(boost::shared_ptr<Result> result);
 
-      virtual std::string class_name() const { return "mysql::Resultset"; }
+      virtual std::string class_name() const { return "ClassicResultset"; }
       virtual shcore::Value get_member(const std::string &prop) const;
 
       virtual shcore::Value next(const shcore::Argument_list &args);

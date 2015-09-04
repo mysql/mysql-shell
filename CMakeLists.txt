@@ -29,7 +29,7 @@ set(CMAKE_MODULE_PATH
 
 SET(MYSH_MAJOR 0)
 SET(MYSH_MINOR 0)
-SET(MYSH_PATCH 2)
+SET(MYSH_PATCH 3)
 SET(MYSH_LEVEL "-alpha") # Empty if GA
 
 SET(MYSH_VERSION "${MYSH_MAJOR}.${MYSH_MINOR}.${MYSH_PATCH}${MYSH_LEVEL}")
@@ -86,7 +86,12 @@ find_package(Curses)
 
 # Check whether boost::system can be compiled into the binary
 include(CheckCXXSourceCompiles)
- SET(CMAKE_REQUIRED_FLAGS "-DBOOST_ALL_NO_LIB")
+ IF(APPLE)
+   SET(CMAKE_REQUIRED_FLAGS "-DBOOST_ALL_NO_LIB -DBOOST_NO_CXX11_RVALUE_REFERENCES")
+ else()
+   SET(CMAKE_REQUIRED_FLAGS "-DBOOST_ALL_NO_LIB")
+ ENDIF()
+
  SET(CMAKE_REQUIRED_INCLUDES ${Boost_INCLUDE_DIRS})
 
  SET(BOOST_SOURCE
@@ -208,7 +213,7 @@ IF (HAVE_V8)
   endif()
 
   if(APPLE)
-    set(V8_LINK_LIST -mmacosx-version-min=10.7 ${V8_LIBS})
+    set(V8_LINK_LIST -stdlib=libc++ -mmacosx-version-min=10.7 ${V8_LIBS})
   elseif(WIN32)
     set(V8_LINK_LIST ${V8_LIBS} winmm)
   else()	# Linux
@@ -218,7 +223,8 @@ IF (HAVE_V8)
   if (APPLE)
     # needed when compiling in osx, for v8
     # has to be after src/libedit
-    add_definitions(-std=gnu++0x -mmacosx-version-min=10.7)
+    add_definitions(-std=c++11 -mmacosx-version-min=10.7)
+    add_definitions(-stdlib=libc++)
   endif()
 ENDIF()
 
@@ -303,6 +309,9 @@ if(WIN32)
 endif()
 
 add_definitions(-DBOOST_ALL_NO_LIB)
+IF(APPLE)
+add_definitions(-DBOOST_NO_CXX11_RVALUE_REFERENCES)
+ENDIF()
 
 ADD_SUBDIRECTORY(doc)
 

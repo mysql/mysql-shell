@@ -77,6 +77,7 @@ static void ATTR_UNUSED translate_exception()
 
 namespace mysh
 {
+  class DatabaseObject;
   /**
   * Encloses the functions and classes available to interact with an X Protocol enabled MySQL Product.
   *
@@ -93,8 +94,8 @@ namespace mysh
   namespace mysqlx
   {
 #ifdef DOXYGEN
-    Session getSession(String connectionData, String password);
-    Session getSession(Map connectionData, String password);
+    XSession getSession(String connectionData, String password);
+    XSession getSession(Map connectionData, String password);
     NodeSession getNodeSession(String connectionData, String password);
     NodeSession getNodeSession(Map connectionData, String password);
 #endif
@@ -102,10 +103,8 @@ namespace mysh
     class Schema;
     /**
     * Base functionality for Session classes through the X Protocol.
-    * \todo Implement and document createSchema()
-    * \todo Implement and document dropSchema()
     *
-    * This class encloses the core functionaliti to be made available on both the Session and NodeSession classes, such functionality includes
+    * This class encloses the core functionaliti to be made available on both the XSession and NodeSession classes, such functionality includes
     *
     * - Accessing available schemas.
     * - Schema management operations.
@@ -151,6 +150,7 @@ namespace mysh
       virtual shcore::Value connect(const shcore::Argument_list &args);
       virtual shcore::Value close(const shcore::Argument_list &args);
       virtual shcore::Value sql(const shcore::Argument_list &args);
+      virtual shcore::Value createSchema(const shcore::Argument_list &args);
       shcore::Value executeAdminCommand(const std::string& command, const shcore::Argument_list &args);
       shcore::Value executeSql(const std::string& query, const shcore::Argument_list &args);
       virtual bool is_connected() const { return _session ? true : false; }
@@ -158,6 +158,10 @@ namespace mysh
 
       virtual shcore::Value get_schema(const shcore::Argument_list &args) const;
       virtual shcore::Value set_default_schema(const shcore::Argument_list &args);
+
+      virtual void drop_db_object(const std::string &type, const std::string &name, const std::string& owner);
+      virtual bool db_object_exists(std::string &type, const std::string &name, const std::string& owner);
+
       shcore::Value set_fetch_warnings(const shcore::Argument_list &args);
 
       boost::shared_ptr< ::mysqlx::Session> session_obj() const { return _session; }
@@ -171,13 +175,14 @@ namespace mysh
       Map schemas; //!< Same as getSchemas()
       Schema defaultSchema; //!< Same as getDefaultSchema()
 
-      Schema getDefaultSchema();
+      Schema createSchema(String name);
       Schema getSchema(String name);
+      Schema getDefaultSchema();
+      Schema setDefaultSchema(String name);
       Map getSchemas();
       String getUri();
       Undefined close();
       Undefined setFetchWarnings(Bool value);
-      Schema setDefaultSchema(String name);
 #endif
     protected:
       ::mysqlx::ArgumentValue get_argument_value(shcore::Value source);
@@ -202,14 +207,16 @@ namespace mysh
     *
     * Note that this class inherits the behavior described on the BaseSession class.
     *
-    * /sa BaseSession
+    * In the future this class will be improved to support interacting not only with MySQL Server but with other products.
+    *
+    * \sa BaseSession
     */
-    class SHCORE_PUBLIC Session : public BaseSession, public boost::enable_shared_from_this<Session>
+    class SHCORE_PUBLIC XSession : public BaseSession, public boost::enable_shared_from_this<XSession>
     {
     public:
-      Session(){};
-      virtual ~Session(){};
-      virtual std::string class_name() const { return "Session"; };
+      XSession(){};
+      virtual ~XSession(){};
+      virtual std::string class_name() const { return "XSession"; };
       static boost::shared_ptr<shcore::Object_bridge> create(const shcore::Argument_list &args);
 
       virtual boost::shared_ptr<BaseSession> _get_shared_this() const;
@@ -220,7 +227,7 @@ namespace mysh
     *
     * Note that this class inherits the behavior described on the BaseSession class.
     *
-    * /sa BaseSession
+    * \sa BaseSession
     */
     class SHCORE_PUBLIC NodeSession : public BaseSession, public boost::enable_shared_from_this<NodeSession>
     {
