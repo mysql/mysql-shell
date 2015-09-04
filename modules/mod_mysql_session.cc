@@ -332,12 +332,15 @@ Value ClassicSession::get_member(const std::string &prop) const
   }
   else
   {
-    // Since the property was not satisfied, we assume it is a schema and
-    // proceed to retrieve it
-    shcore::Argument_list args;
-    args.push_back(Value(prop));
+    if (_schemas->has_key(prop))
+    {
+      boost::shared_ptr<ClassicSchema> schema = (*_schemas)[prop].as_object<ClassicSchema>();
 
-    ret_val = get_schema(args);
+      // This will validate the schema continues valid
+      schema->cache_table_objects();
+
+      ret_val = (*_schemas)[prop];
+    }
   }
 
   return ret_val;

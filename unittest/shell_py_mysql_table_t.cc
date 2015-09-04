@@ -27,7 +27,7 @@
 #include "base_session.h"
 
 namespace shcore {
-  class Shell_js_mysql_table_tests : public Shell_core_test_wrapper
+  class Shell_py_mysql_table_tests : public Shell_core_test_wrapper
   {
   protected:
     // You can define per-test set-up and tear-down logic as usual.
@@ -36,11 +36,11 @@ namespace shcore {
       Shell_core_test_wrapper::SetUp();
 
       bool initilaized(false);
-      _shell_core->switch_mode(Shell_core::Mode_JScript, initilaized);
+      _shell_core->switch_mode(Shell_core::Mode_Python, initilaized);
 
-      exec_and_out_equals("var mysql = require('mysql').mysql;");
+      exec_and_out_equals("import mysql");
 
-      exec_and_out_equals("var session = mysql.getClassicSession('" + _mysql_uri + "');");
+      exec_and_out_equals("session = mysql.getClassicSession('" + _mysql_uri + "')");
 
       exec_and_out_equals("session.sql('drop schema if exists js_shell_test;')");
       exec_and_out_equals("session.sql('create schema js_shell_test;')");
@@ -50,81 +50,81 @@ namespace shcore {
   };
 
   // Tests table.getName()
-  TEST_F(Shell_js_mysql_table_tests, mysql_schema_get_name)
+  TEST_F(Shell_py_mysql_table_tests, mysql_schema_get_name)
   {
-    exec_and_out_equals("var table = session.js_shell_test.table1;");
+    exec_and_out_equals("table = session.js_shell_test.table1");
 
-    exec_and_out_equals("print(table.getName());", "table1");
+    exec_and_out_equals("print(table.getName())", "table1");
   }
 
   // Tests table.name
-  TEST_F(Shell_js_mysql_table_tests, mysql_schema_name)
+  TEST_F(Shell_py_mysql_table_tests, mysql_schema_name)
   {
-    exec_and_out_equals("var table = session.js_shell_test.table1;");
+    exec_and_out_equals("table = session.js_shell_test.table1");
 
-    exec_and_out_equals("print(table.name);", "table1");
+    exec_and_out_equals("print(table.name)", "table1");
   }
 
   // Tests table.getSession()
-  TEST_F(Shell_js_mysql_table_tests, mysql_schema_get_session)
+  TEST_F(Shell_py_mysql_table_tests, mysql_schema_get_session)
   {
     std::string uri = mysh::strip_password(_mysql_uri);
 
-    exec_and_out_equals("var table = session.js_shell_test.table1;");
+    exec_and_out_equals("table = session.js_shell_test.table1");
 
-    exec_and_out_equals("var table_session = table.getSession();");
+    exec_and_out_equals("table_session = table.getSession()");
 
     exec_and_out_equals("print(table_session)", "<ClassicSession:" + uri + ">");
   }
 
   // Tests table.session
-  TEST_F(Shell_js_mysql_table_tests, mysql_schema_session)
+  TEST_F(Shell_py_mysql_table_tests, mysql_schema_session)
   {
     std::string uri = mysh::strip_password(_mysql_uri);
 
-    exec_and_out_equals("var table = session.js_shell_test.table1;");
+    exec_and_out_equals("table = session.js_shell_test.table1");
 
     exec_and_out_equals("print(table.session)", "<ClassicSession:" + uri + ">");
   }
 
   // Tests table.getSchema()
-  TEST_F(Shell_js_mysql_table_tests, mysql_schema_get_schema)
+  TEST_F(Shell_py_mysql_table_tests, mysql_schema_get_schema)
   {
     std::string uri = mysh::strip_password(_mysql_uri);
 
-    exec_and_out_equals("var table = session.js_shell_test.table1;");
+    exec_and_out_equals("table = session.js_shell_test.table1");
 
-    exec_and_out_equals("var table_schema = table.getSchema();");
+    exec_and_out_equals("table_schema = table.getSchema()");
 
     exec_and_out_equals("print(table_schema)", "<ClassicSchema:js_shell_test>");
   }
 
   // Tests table.schema
-  TEST_F(Shell_js_mysql_table_tests, mysql_schema_schema)
+  TEST_F(Shell_py_mysql_table_tests, mysql_schema_schema)
   {
     std::string uri = mysh::strip_password(_mysql_uri);
 
-    exec_and_out_equals("var table = session.js_shell_test.table1;");
+    exec_and_out_equals("table = session.js_shell_test.table1");
 
     exec_and_out_equals("print(table.schema)", "<ClassicSchema:js_shell_test>");
   }
 
   // Tests table.drop() and table.existInDatabase()
-  TEST_F(Shell_js_mysql_table_tests, mysql_table_drop_exist_in_database)
+  TEST_F(Shell_py_mysql_table_tests, mysql_table_drop_exist_in_database)
   {
-    exec_and_out_equals("var schema = session.createSchema('my_sample_schema');");
+    exec_and_out_equals("schema = session.createSchema('my_sample_schema')");
 
-    exec_and_out_equals("session.sql('create table my_sample_schema.my_sample_table (name varchar(50));');");
+    exec_and_out_equals("session.sql('create table my_sample_schema.my_sample_table (name varchar(50));')");
 
-    exec_and_out_equals("var table = schema.my_sample_table;");
+    exec_and_out_equals("table = schema.my_sample_table");
 
-    exec_and_out_equals("print(table.existInDatabase());", "true");
+    exec_and_out_equals("print(table.existInDatabase())", "True");
 
-    exec_and_out_equals("table.drop();");
+    exec_and_out_equals("table.drop()");
 
-    exec_and_out_equals("print(table.existInDatabase());", "false");
+    exec_and_out_equals("print(table.existInDatabase())", "False");
 
-    exec_and_out_equals("schema.drop();");
+    exec_and_out_equals("schema.drop()");
 
     exec_and_out_equals("session.close();");
   }

@@ -176,5 +176,7 @@ namespace shcore {
       exec_and_out_equals("var records = collection.find().execute().all();");
       exec_and_out_equals("print(records.length);", "0");
     }
+
+    exec_and_out_equals("session.close();");
   }
 }

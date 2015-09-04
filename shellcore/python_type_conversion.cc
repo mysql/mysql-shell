@@ -30,11 +30,9 @@ Python_type_bridger::Python_type_bridger(Python_context *context)
 {
 }
 
-
 Python_type_bridger::~Python_type_bridger()
 {
 }
-
 
 void Python_type_bridger::init()
 {
@@ -46,7 +44,6 @@ PyObject *Python_type_bridger::native_object_to_py(Object_bridge_ref object)
 }
 */
 
-
 Value Python_type_bridger::pyobj_to_shcore_value(PyObject *py) const
 {
   // Some conversions yield errors, in that case a temporary result is assigned to retval and check_err is set
@@ -55,6 +52,10 @@ Value Python_type_bridger::pyobj_to_shcore_value(PyObject *py) const
 
   if (py == Py_None)
     return Value::Null();
+  else if (py == Py_False)
+    return Value(false);
+  else if (py == Py_True)
+    return Value(true);
   else if (PyInt_Check(py))
   {
     long value = PyInt_AsLong(py);
@@ -62,10 +63,6 @@ Value Python_type_bridger::pyobj_to_shcore_value(PyObject *py) const
       check_err = true;
     retval = Value((int64_t)value);
   }
-  else if (py == Py_False)
-    return Value(false);
-  else if (py == Py_True)
-    return Value(true);
   else if (PyLong_Check(py))
   {
     long value = PyLong_AsLong(py);
@@ -146,7 +143,7 @@ Value Python_type_bridger::pyobj_to_shcore_value(PyObject *py) const
     {
       PyObject *obj_repr = PyObject_Repr(py);
       const char *s = PyString_AsString(obj_repr);
-      throw std::invalid_argument("Cannot convert Python value to internal value: "+std::string(s));
+      throw std::invalid_argument("Cannot convert Python value to internal value: " + std::string(s));
       Py_DECREF(obj_repr);
     }
   }
@@ -156,66 +153,65 @@ Value Python_type_bridger::pyobj_to_shcore_value(PyObject *py) const
     PyObject *pyerror = PyErr_Occurred();
     if (pyerror)
     {
-     // TODO: PyErr_Clean();
+      // TODO: PyErr_Clean();
       throw Exception::argument_error("Error converting return value");
     }
   }
   return retval;
 }
 
-
 PyObject *Python_type_bridger::shcore_value_to_pyobj(const Value &value)
 {
   PyObject *r;
   switch (value.type)
   {
-  case Undefined:
-    Py_INCREF(Py_None);
-    r = Py_None;
-    break;
-  case Null:
-    Py_INCREF(Py_None);
-    r = Py_None;
-    break;
-  case Bool:
-    r = PyBool_FromLong(value.value.b);
-    break;
-  case String:
-    r = PyString_FromString(value.value.s->c_str());
-    break;
-  case Integer:
-    r = PyInt_FromSsize_t(value.value.i);
-    break;
-  case UInteger:
-    r = PyInt_FromSsize_t(value.value.ui);
-    break;
-  case Float:
-    r = PyFloat_FromDouble(value.value.d);
-    break;
-  case Object:
-    r = wrap(*value.value.o);
-    break;
-  case Array:
-    r = wrap(*value.value.array);
-    break;
-  case Map:
-    r = wrap(*value.value.map);
-    break;
-  case MapRef:
-    /*
-    {
+    case Undefined:
+      Py_INCREF(Py_None);
+      r = Py_None;
+      break;
+    case Null:
+      Py_INCREF(Py_None);
+      r = Py_None;
+      break;
+    case Bool:
+      r = PyBool_FromLong(value.value.b);
+      break;
+    case String:
+      r = PyString_FromString(value.value.s->c_str());
+      break;
+    case Integer:
+      r = PyInt_FromSsize_t(value.value.i);
+      break;
+    case UInteger:
+      r = PyInt_FromSsize_t(value.value.ui);
+      break;
+    case Float:
+      r = PyFloat_FromDouble(value.value.d);
+      break;
+    case Object:
+      r = wrap(*value.value.o);
+      break;
+    case Array:
+      r = wrap(*value.value.array);
+      break;
+    case Map:
+      r = wrap(*value.value.map);
+      break;
+    case MapRef:
+      /*
+      {
       boost::shared_ptr<Value::Map_type> map(value.value.mapref->lock());
       if (map)
       {
-        std::cout << "wrapmapref not implemented\n";
+      std::cout << "wrapmapref not implemented\n";
       }
-    }
-    */
-    r = Py_None;
-    break;
-  case shcore::Function:
-    r = wrap(*value.value.func);
-    break;
+      }
+      */
+      r = Py_None;
+      break;
+    case shcore::Function:
+      r = wrap(*value.value.func);
+      break;
   }
   return r;
 }

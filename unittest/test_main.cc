@@ -16,6 +16,9 @@
 #include <gtest/gtest.h>
 #include <fstream>
 #include <iostream>
+#ifdef HAVE_PYTHON
+#include <Python.h>
+#endif
 
 int main(int argc, char **argv)
 {
@@ -24,6 +27,14 @@ int main(int argc, char **argv)
 
   JScript_context_init();
 #endif
+
+#ifdef HAVE_PYTHON
+#ifdef _WINDOWS
+  Py_NoSiteFlag = 1;
+#endif
+  Py_InitializeEx(0);
+#endif
+
   if (!getenv("MYSQL_URI"))
   {
     std::cerr << "WARNING: The MYSQL_URI MYSQL_PWD and MYSQL_PORT environment variables are not set\n";
@@ -49,5 +60,14 @@ int main(int argc, char **argv)
     return 0;
   }
 
-  return RUN_ALL_TESTS();
+  int ret_val = RUN_ALL_TESTS();
+
+#ifdef HAVE_PYTHON
+#ifdef _WINDOWS
+  Py_NoSiteFlag = 1;
+#endif
+  Py_InitializeEx(0);
+#endif
+
+  return ret_val;
 }

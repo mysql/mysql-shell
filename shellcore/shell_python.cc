@@ -31,6 +31,12 @@ Shell_python::Shell_python(Shell_core *shcore)
   _py = boost::shared_ptr<Python_context>(new Python_context(shcore->lang_delegate()));
 }
 
+Shell_python::~Shell_python()
+{
+  _py.reset();
+}
+
+
 /*
 * Helper function to ensure the exceptions generated on the mysqlx_connector
 * are properly translated to the corresponding shcore::Exception type

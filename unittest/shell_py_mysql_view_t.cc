@@ -27,7 +27,7 @@
 #include "base_session.h"
 
 namespace shcore {
-  class Shell_js_mysql_view_tests : public Shell_core_test_wrapper
+  class Shell_py_mysql_view_tests : public Shell_core_test_wrapper
   {
   protected:
     // You can define per-test set-up and tear-down logic as usual.
@@ -36,11 +36,11 @@ namespace shcore {
       Shell_core_test_wrapper::SetUp();
 
       bool initilaized(false);
-      _shell_core->switch_mode(Shell_core::Mode_JScript, initilaized);
+      _shell_core->switch_mode(Shell_core::Mode_Python, initilaized);
 
-      exec_and_out_equals("var mysql = require('mysql').mysql;");
+      exec_and_out_equals("import mysql");
 
-      exec_and_out_equals("var session = mysql.getClassicSession('" + _mysql_uri + "');");
+      exec_and_out_equals("session = mysql.getClassicSession('" + _mysql_uri + "')");
 
       exec_and_out_equals("session.sql('drop schema if exists js_shell_test;')");
       exec_and_out_equals("session.sql('create schema js_shell_test;')");
@@ -51,83 +51,83 @@ namespace shcore {
   };
 
   // Tests view.getName()
-  TEST_F(Shell_js_mysql_view_tests, mysql_view_get_name)
+  TEST_F(Shell_py_mysql_view_tests, mysql_view_get_name)
   {
-    exec_and_out_equals("var view = session.js_shell_test.view1;");
+    exec_and_out_equals("view = session.js_shell_test.view1");
 
-    exec_and_out_equals("print(view.getName());", "view1");
+    exec_and_out_equals("print(view.getName())", "view1");
   }
 
   // Tests view.name
-  TEST_F(Shell_js_mysql_view_tests, mysql_view_name)
+  TEST_F(Shell_py_mysql_view_tests, mysql_view_name)
   {
-    exec_and_out_equals("var view = session.js_shell_test.view1;");
+    exec_and_out_equals("view = session.js_shell_test.view1");
 
-    exec_and_out_equals("print(view.name);", "view1");
+    exec_and_out_equals("print(view.name)", "view1");
   }
 
   // Tests view.getSession()
-  TEST_F(Shell_js_mysql_view_tests, mysql_view_get_session)
+  TEST_F(Shell_py_mysql_view_tests, mysql_view_get_session)
   {
     std::string uri = mysh::strip_password(_mysql_uri);
 
-    exec_and_out_equals("var view = session.js_shell_test.view1;");
+    exec_and_out_equals("view = session.js_shell_test.view1");
 
-    exec_and_out_equals("var view_session = view.getSession();");
+    exec_and_out_equals("view_session = view.getSession()");
 
     exec_and_out_equals("print(view_session)", "<ClassicSession:" + uri + ">");
   }
 
   // Tests view.session
-  TEST_F(Shell_js_mysql_view_tests, mysql_view_session)
+  TEST_F(Shell_py_mysql_view_tests, mysql_view_session)
   {
     std::string uri = mysh::strip_password(_mysql_uri);
 
-    exec_and_out_equals("var view = session.js_shell_test.view1;");
+    exec_and_out_equals("view = session.js_shell_test.view1");
 
     exec_and_out_equals("print(view.session)", "<ClassicSession:" + uri + ">");
   }
 
   // Tests view.getSchema()
-  TEST_F(Shell_js_mysql_view_tests, mysql_view_get_schema)
+  TEST_F(Shell_py_mysql_view_tests, mysql_view_get_schema)
   {
     std::string uri = mysh::strip_password(_mysql_uri);
 
-    exec_and_out_equals("var view = session.js_shell_test.view1;");
+    exec_and_out_equals("view = session.js_shell_test.view1");
 
-    exec_and_out_equals("var view_schema = view.getSchema();");
+    exec_and_out_equals("view_schema = view.getSchema()");
 
     exec_and_out_equals("print(view_schema)", "<ClassicSchema:js_shell_test>");
   }
 
   // Tests view.schema
-  TEST_F(Shell_js_mysql_view_tests, mysql_view_schema)
+  TEST_F(Shell_py_mysql_view_tests, mysql_view_schema)
   {
     std::string uri = mysh::strip_password(_mysql_uri);
 
-    exec_and_out_equals("var view = session.js_shell_test.view1;");
+    exec_and_out_equals("view = session.js_shell_test.view1");
 
     exec_and_out_equals("print(view.schema)", "<ClassicSchema:js_shell_test>");
   }
 
   // Tests view.drop() and view.existInDatabase()
-  TEST_F(Shell_js_mysql_view_tests, mysql_view_drop_exist_in_database)
+  TEST_F(Shell_py_mysql_view_tests, mysql_view_drop_exist_in_database)
   {
-    exec_and_out_equals("var schema = session.createSchema('my_sample_schema');");
+    exec_and_out_equals("schema = session.createSchema('my_sample_schema')");
 
-    exec_and_out_equals("session.sql('create table my_sample_schema.my_sample_table (name varchar(50));');");
+    exec_and_out_equals("session.sql('create table my_sample_schema.my_sample_table (name varchar(50));')");
 
-    exec_and_out_equals("session.sql('create view my_sample_schema.my_sample_view (my_name) as select name from my_sample_schema.my_sample_table;');");
+    exec_and_out_equals("session.sql('create view my_sample_schema.my_sample_view (my_name) as select name from my_sample_schema.my_sample_table;')");
 
-    exec_and_out_equals("var view = schema.my_sample_view;");
+    exec_and_out_equals("view = schema.my_sample_view");
 
-    exec_and_out_equals("print(view.existInDatabase());", "true");
+    exec_and_out_equals("print(view.existInDatabase())", "True");
 
-    exec_and_out_equals("view.drop();");
+    exec_and_out_equals("view.drop()");
 
-    exec_and_out_equals("print(view.existInDatabase());", "false");
+    exec_and_out_equals("print(view.existInDatabase())", "False");
 
-    exec_and_out_equals("schema.drop();");
+    exec_and_out_equals("schema.drop()");
 
     exec_and_out_equals("session.close();");
   }

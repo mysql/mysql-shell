@@ -412,7 +412,15 @@ shcore::Value TableSelect::bind(const shcore::Argument_list &UNUSED(args))
 #endif
 shcore::Value TableSelect::execute(const shcore::Argument_list &args)
 {
-  args.ensure_count(0, "TableSelect.execute");
+  mysqlx::Resultset *result = NULL;
 
-  return shcore::Value::wrap(new mysqlx::Resultset(boost::shared_ptr< ::mysqlx::Result>(_select_statement->execute())));
+  try
+  {
+    args.ensure_count(0, "TableSelect.execute");
+
+    result = new mysqlx::Resultset(boost::shared_ptr< ::mysqlx::Result>(_select_statement->execute()));
+  }
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableSelect.execute");
+
+  return result ? shcore::Value::wrap(result) : shcore::Value::Null();
 }

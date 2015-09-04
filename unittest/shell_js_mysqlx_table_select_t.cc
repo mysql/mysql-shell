@@ -198,6 +198,8 @@ namespace shcore {
     }
 
     exec_and_out_contains("table.select().bind();", "", "TableSelect.bind: not yet implemented.");
+
+    exec_and_out_equals("session.close();");
   }
 
   TEST_F(Shell_js_mysqlx_table_select_tests, select_execution)
@@ -207,13 +209,13 @@ namespace shcore {
     exec_and_out_equals("var schema = session.getSchema('js_shell_test');");
     exec_and_out_equals("var table = schema.getTable('table1');");
 
-    exec_and_out_equals("var result = table.insert({name: 'jack', age: 17, gender: 'male'}).execute();");
-    exec_and_out_equals("var result = table.insert({name: 'adam', age: 15, gender: 'male'}).execute();");
-    exec_and_out_equals("var result = table.insert({name: 'brian', age: 14, gender: 'male'}).execute();");
-    exec_and_out_equals("var result = table.insert({name: 'alma', age: 13, gender: 'female'}).execute();");
-    exec_and_out_equals("var result = table.insert({name: 'carol', age: 14, gender: 'female'}).execute();");
-    exec_and_out_equals("var result = table.insert({name: 'donna', age: 16, gender: 'female'}).execute();");
-    exec_and_out_equals("var result = table.insert({name: 'angel', age: 14, gender: 'male'}).execute();");
+    exec_and_out_equals("var result = table.insert({'name': 'jack', 'age': 17, 'gender': 'male'}).execute();");
+    exec_and_out_equals("var result = table.insert({'name': 'adam', 'age': 15, 'gender': 'male'}).execute();");
+    exec_and_out_equals("var result = table.insert({'name': 'brian', 'age': 14, 'gender': 'male'}).execute();");
+    exec_and_out_equals("var result = table.insert({'name': 'alma', 'age': 13, 'gender': 'female'}).execute();");
+    exec_and_out_equals("var result = table.insert({'name': 'carol', 'age': 14, 'gender': 'female'}).execute();");
+    exec_and_out_equals("var result = table.insert({'name': 'donna', 'age': 16, 'gender': 'female'}).execute();");
+    exec_and_out_equals("var result = table.insert({'name': 'angel', 'age': 14, 'gender': 'male'}).execute();");
 
     // Testing the select function
     {
@@ -321,5 +323,7 @@ namespace shcore {
       exec_and_out_equals("var records = table.select().limit(4).offset(7).execute().all();");
       exec_and_out_equals("print(records.length);", "0");
     }
+
+    exec_and_out_equals("session.close();");
   }
 }

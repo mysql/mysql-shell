@@ -27,10 +27,6 @@
 #  include "editline/readline.h"
 #endif
 
-#ifdef HAVE_PYTHON
-extern "C" void Python_context_init();
-#endif
-
 #include <boost/bind.hpp>
 #include <boost/format.hpp>
 #include <boost/algorithm/string.hpp>
@@ -1199,10 +1195,6 @@ int main(int argc, char **argv)
   extern void JScript_context_init();
 
   JScript_context_init();
-#endif
-
-#ifdef HAVE_PYTHON
-  Python_context_init();
 #endif
 
   {

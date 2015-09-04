@@ -256,7 +256,7 @@ namespace shcore {
     // TODO: add test case with schema that is named as another property
 
     // Now direct and indirect access
-    exec_and_out_contains("print(session.unexisting_schema);;", "", "Unknown database 'unexisting_schema'");
+    exec_and_out_equals("print(session.unexisting_schema);", "undefined");
 
     exec_and_out_equals("session.close();");
   }

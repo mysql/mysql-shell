@@ -29,6 +29,7 @@ namespace shcore {
   {
   public:
     Shell_python(Shell_core *shcore);
+    virtual ~Shell_python();
 
     virtual void set_global(const std::string &name, const Value &value);
 

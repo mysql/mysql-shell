@@ -61,8 +61,10 @@ bool Dynamic_object::has_member(const std::string &prop) const
 Value Dynamic_object::call(const std::string &name, const shcore::Argument_list &args)
 {
   std::map<std::string, boost::shared_ptr<shcore::Cpp_function> >::const_iterator i;
-  if ((i = _funcs.find(name)) == _funcs.end() || !_enabled_functions.at(name))
+  if ((i = _funcs.find(name)) == _funcs.end())
     throw shcore::Exception::attrib_error("Invalid object function " + name);
+  else if (!_enabled_functions.at(name))
+    throw shcore::Exception::logic_error("Forbidden usage of " + name);
   return i->second->invoke(args);
 }
 

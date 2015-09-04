@@ -91,6 +91,11 @@ protected:
     }
   }
 
+  virtual void TearDown()
+  {
+    _shell_core.reset();
+  }
+
   void process_result(shcore::Value result)
   {
     _returned_value = result;
@@ -108,9 +113,18 @@ protected:
 
   shcore::Value exec_and_out_equals(const std::string& code, const std::string& out = "", const std::string& err = "")
   {
+    std::string expectde_output(out);
+    std::string expected_error(err);
+
+    if (_shell_core->interactive_mode() == shcore::Shell_core::Mode_Python && out.length())
+      expectde_output += "\n";
+
+    if (_shell_core->interactive_mode() == shcore::Shell_core::Mode_Python && err.length())
+      expected_error += "\n";
+
     shcore::Value ret_val = execute(code);
-    EXPECT_EQ(out, output_handler.std_out);
-    EXPECT_EQ(err, output_handler.std_err);
+    EXPECT_EQ(expectde_output, output_handler.std_out);
+    EXPECT_EQ(expected_error, output_handler.std_err);
 
     output_handler.wipe_all();
 
@@ -174,11 +188,15 @@ protected:
   // non listed functions are validated for unavailability
   void ensure_available_functions(const std::string& functions)
   {
+    bool is_js = _shell_core->interactive_mode() == shcore::Shell_core::Mode_JScript;
     std::set<std::string> valid_functions;
     boost::algorithm::split(valid_functions, functions, boost::is_any_of(", "), boost::token_compress_on);
 
     // Retrieves the active functions on the crud operation
-    exec_and_out_equals("var real_functions = dir(crud);");
+    if (is_js)
+      exec_and_out_equals("var real_functions = dir(crud)");
+    else
+      exec_and_out_equals("real_functions = crud.__members__");
 
     // Ensures the number of available functions is the expected
     std::stringstream ss;
@@ -186,7 +204,10 @@ protected:
 
     {
       SCOPED_TRACE("Unexpected number of available functions.");
-      exec_and_out_equals("print(real_functions.length)", ss.str());
+      if (is_js)
+        exec_and_out_equals("print(real_functions.length)", ss.str());
+      else
+        exec_and_out_equals("print(len(real_functions))", ss.str());
     }
 
     std::set<std::string>::iterator index, end = _functions.end();
@@ -197,14 +218,21 @@ protected:
       if (valid_functions.find(*index) != valid_functions.end())
       {
         SCOPED_TRACE("Function " + *index + " should be available and is not.");
-        exec_and_out_equals("print(real_functions.indexOf('" + *index + "') != -1)", "true");
+        if (is_js)
+          exec_and_out_equals("print(real_functions.indexOf('" + *index + "') != -1)", "true");
+        else
+          exec_and_out_equals("index=real_functions.index('" + *index + "')");
       }
 
       // If not, should not be on the crud dir and calling it should be illegal
       else
       {
         SCOPED_TRACE("Function " + *index + " should NOT be available.");
-        exec_and_out_equals("print(real_functions.indexOf('" + *index + "') == -1)", "true");
+        if (is_js)
+          exec_and_out_equals("print(real_functions.indexOf('" + *index + "') == -1)", "true");
+        else
+          exec_and_out_contains("print(real_functions.index('" + *index + "'))", "", "is not in list");
+
         exec_and_out_contains("crud." + *index + "('');", "", "Forbidden usage of " + *index);
       }
     }

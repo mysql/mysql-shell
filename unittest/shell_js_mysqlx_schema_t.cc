@@ -202,5 +202,7 @@ namespace shcore {
     exec_and_out_equals("schema.drop();");
 
     exec_and_out_equals("print(schema.existInDatabase());", "false");
+
+    exec_and_out_equals("session.close();");
   }
 }
