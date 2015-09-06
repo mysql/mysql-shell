@@ -34,6 +34,20 @@
 namespace ngs
 {
 
+template <typename Socket_type, typename Socket_option_type>
+void set_socket_option(Socket_type &socket, const Socket_option_type &option, bool mandatory = false)
+{
+  boost::system::error_code ec;
+
+  socket.set_option(option, ec);
+
+  if (ec)
+  {
+    if (mandatory)
+      throw ec;
+  }
+}
+
 class Options_default : public Options_session
 {
 public:
@@ -217,6 +231,7 @@ void Connection_raw<Socket_type>::on_accept(const boost::system::error_code &ec)
 
   if (!ec)
   {
+    set_socket_option(m_asio_socket, boost::asio::ip::tcp::no_delay(true), false);
     callback.call_status_function(m_on_ready_callback, ec);
   }
 
