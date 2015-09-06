@@ -164,6 +164,8 @@ void Connection_openssl::on_accept_try_handshake(const boost::system::error_code
     return;
   }
 
+  set_socket_option(m_asio_socket.lowest_layer(), boost::asio::ip::tcp::no_delay(true), false);
+
   async_activate_tls(On_asio_status_callback());
 }
 
