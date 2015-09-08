@@ -199,7 +199,6 @@ namespace mysh
       boost::shared_ptr<shcore::Value::Map_type> _schemas;
 
       std::string _uri;
-      bool _show_warnings;
     };
 
     /**

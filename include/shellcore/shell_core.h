@@ -23,6 +23,7 @@
 #include "shellcore/common.h"
 #include "shellcore/types.h"
 #include "shellcore/ishell_core.h"
+#include "shellcore/shell_core_options.h"
 #include <boost/system/error_code.hpp>
 #include <list>
 
@@ -83,7 +84,7 @@ namespace shcore
 
     virtual void set_global(const std::string &name, const Value &value) = 0;
 
-    virtual void handle_input(std::string &code, Interactive_input_state &state, boost::function<void(shcore::Value)> result_processor, bool interactive = true) = 0;
+    virtual void handle_input(std::string &code, Interactive_input_state &state, boost::function<void(shcore::Value)> result_processor) = 0;
     virtual bool handle_shell_command(const std::string &code) { return _shell_command_handler.process(code); }
     virtual std::string get_handled_input() { return _last_handled; }
     virtual std::string prompt() = 0;
@@ -114,18 +115,14 @@ namespace shcore
 
     virtual Object_registry *registry() { return _registry; }
   public:
-    virtual void handle_input(std::string &code, Interactive_input_state &state, boost::function<void(shcore::Value)> result_processor, bool interactive = true);
+    virtual void handle_input(std::string &code, Interactive_input_state &state, boost::function<void(shcore::Value)> result_processor);
     virtual bool handle_shell_command(const std::string &code);
     virtual std::string get_handled_input();
-    virtual int process_stream(std::istream& stream = std::cin, const std::string& source = "(shcore)", bool continue_on_error = false);
+    virtual int process_stream(std::istream& stream = std::cin, const std::string& source = "(shcore)");
 
     virtual std::string prompt();
 
     virtual Interpreter_delegate *lang_delegate() { return _lang_delegate; }
-    virtual void set_output_format(const std::string &format){ _output_format = format; }
-    virtual void set_interactive(bool value) { _interactive = value; }
-    virtual void set_show_warnings(bool value) { _show_warnings = value; }
-    bool is_interactive() { return _interactive; }
   public:
     virtual void print(const std::string &s);
     virtual void print_error(const std::string &s);
@@ -147,9 +144,6 @@ namespace shcore
     Interpreter_delegate *_lang_delegate;
     std::string _input_source;
     Mode _mode;
-    std::string _output_format;
-    bool _interactive;
-    bool _show_warnings;
     int _global_return_code;
   };
 };

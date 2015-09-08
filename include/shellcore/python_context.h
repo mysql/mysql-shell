@@ -30,9 +30,8 @@
 #include <string>
 #include <list>
 
-namespace shcore {
-
-
+namespace shcore
+{
   class AutoPyObject
   {
   private:
@@ -128,6 +127,7 @@ namespace shcore {
 
     Value get_global(const std::string &value);
     void set_global(const std::string &name, const Value &value);
+    void set_global_item(const std::string &global_name, const std::string &item_name, const Value &value);
 
     static void set_python_error(const std::exception &exc, const std::string &location = "");
     static void set_python_error(PyObject *obj, const std::string &location);

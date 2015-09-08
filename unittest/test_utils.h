@@ -106,7 +106,7 @@ protected:
     std::string _code(code);
     shcore::Interactive_input_state state;
 
-    _shell_core->handle_input(_code, state, boost::bind(&Shell_core_test_wrapper::process_result, this, _1), true);
+    _shell_core->handle_input(_code, state, boost::bind(&Shell_core_test_wrapper::process_result, this, _1));
 
     return _returned_value;
   }

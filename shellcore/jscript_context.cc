@@ -200,7 +200,6 @@ struct JScript_context::JScript_context_impl
   v8::Handle<v8::ObjectTemplate> make_shell_object()
   {
     v8::Handle<v8::ObjectTemplate> object = v8::ObjectTemplate::New(isolate);
-    //v8::Local<v8::External> client_data(v8::External::New(isolate, this));
 
     return object;
   }
@@ -543,6 +542,15 @@ struct JScript_context::JScript_context_impl
     }
   }
 
+  void set_global_item(const std::string &global_name, const std::string &item_name, const v8::Handle<v8::Value> &value)
+  {
+    v8::Handle<v8::Value> global = get_global(global_name);
+
+    v8::Handle<v8::Object> object = v8::Handle<v8::Object>::Cast(global);
+
+    object->Set(v8::String::NewFromUtf8(isolate, item_name.c_str()), value);
+  }
+
   void set_global(const std::string &name, const v8::Handle<v8::Value> &value)
   {
     v8::Handle<v8::Context> ctx(v8::Local<v8::Context>::New(isolate, context));
@@ -704,6 +712,22 @@ JScript_context::JScript_context(Object_registry *registry, Interpreter_delegate
   }
 
   set_global("globals", Value(registry->_registry));
+  set_global_item("shell", "options", Value(boost::static_pointer_cast<Object_bridge>(Shell_core_options::get_instance())));
+}
+
+void JScript_context::set_global_item(const std::string& global_name, const std::string& item_name, const Value &value)
+{
+  // makes _isolate the default isolate for this context
+  v8::Isolate::Scope isolate_scope(_impl->isolate);
+  // creates a pool for all the handles that are created in this scope
+  // (except for persistent ones), which will be freed when the scope exits
+  v8::HandleScope handle_scope(_impl->isolate);
+  // catch everything that happens in this scope
+  v8::TryCatch try_catch;
+  // set _context to be the default context for everything in this scope
+  v8::Context::Scope context_scope(v8::Local<v8::Context>::New(_impl->isolate, _impl->context));
+
+  _impl->set_global_item(global_name, item_name, _impl->types.shcore_value_to_v8_value(value));
 }
 
 JScript_context::~JScript_context()

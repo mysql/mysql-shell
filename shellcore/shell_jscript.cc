@@ -28,12 +28,12 @@ Shell_javascript::Shell_javascript(Shell_core *shcore)
   _js = boost::shared_ptr<JScript_context>(new JScript_context(shcore->registry(), shcore->lang_delegate()));
 }
 
-void Shell_javascript::handle_input(std::string &code, Interactive_input_state &state, boost::function<void(shcore::Value)> result_processor, bool interactive)
+void Shell_javascript::handle_input(std::string &code, Interactive_input_state &state, boost::function<void(shcore::Value)> result_processor)
 {
   // Undefined to be returned in case of errors
   Value result;
 
-  if (interactive)
+  if ((*Shell_core_options::get())[SHCORE_INTERACTIVE].as_bool())
     result = _js->execute_interactive(code);
   else
   {

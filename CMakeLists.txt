@@ -275,6 +275,7 @@ endif()
 set(mysh_SRC
     "${PROJECT_SOURCE_DIR}/src/main.cc"
     "${PROJECT_SOURCE_DIR}/src/get_password.cc"
+    "${PROJECT_SOURCE_DIR}/src/shell_cmdline_options.cc"
 )
 
 add_definitions(-DMYSH_VERSION="${MYSH_VERSION}")

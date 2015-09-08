@@ -42,7 +42,7 @@
 #include "shellcore/ishell_core.h"
 #include "shellcore/common.h"
 
-#include "cmdline_options.h"
+#include "shell_cmdline_options.h"
 
 #include "../modules/base_session.h"
 //#include "../modules/mod_schema.h"
@@ -63,16 +63,16 @@ extern char *mysh_get_tty_password(const char *opt_message);
 class Interactive_shell
 {
 public:
-  Interactive_shell(Shell_core::Mode initial_mode, ngcommon::Logger::LOG_LEVEL log_level = ngcommon::Logger::LOG_NONE);
+  Interactive_shell(const Shell_command_line_options &options);
   void command_loop();
   int process_stream(std::istream & stream, const std::string& source);
-  int process_file(const char *filename);
+  int process_file();
 
   void init_environment();
   void init_scripts(Shell_core::Mode mode);
 
   void cmd_process_file(const std::vector<std::string>& params);
-  bool connect(const std::string &uri, bool interactive, mysh::SessionType session_type);
+  bool connect();
 
   void print(const std::string &str);
   void println(const std::string &str);
@@ -91,14 +91,10 @@ public:
   void print_banner();
   void print_cmd_line_helper();
 
-  /* Processing Options */
-  void set_force(bool value) { _batch_continue_on_error = value; }
-  void set_output_format(const std::string& format);
-  void set_interactive(bool value);
-
   void set_log_level(ngcommon::Logger::LOG_LEVEL level) { if (_logger) _logger->set_log_level(level); }
 
 private:
+  Shell_command_line_options _options;
   static char *readline(const char *prompt);
   void process_line(const std::string &line);
   void process_result(shcore::Value result);
@@ -127,20 +123,16 @@ private:
 
   std::string _input_buffer;
   bool _multiline_mode;
-  bool _show_warnings;
-  bool _interactive;
-  bool _batch_continue_on_error;
-  std::string _output_format;
 
   Shell_command_handler _shell_command_handler;
 };
 
-Interactive_shell::Interactive_shell(Shell_core::Mode initial_mode, ngcommon::Logger::LOG_LEVEL log_level) :
-_batch_continue_on_error(false), _show_warnings(false)
+Interactive_shell::Interactive_shell(const Shell_command_line_options &options) :
+_options(options)
 {
   std::string log_path = get_user_config_path();
   log_path += "mysqlx.log";
-  ngcommon::Logger::create_instance(log_path.c_str(), false, log_level);
+  ngcommon::Logger::create_instance(log_path.c_str(), false, _options.log_level);
   _logger = ngcommon::Logger::singleton();
 
 #ifndef WIN32
@@ -149,8 +141,6 @@ _batch_continue_on_error(false), _show_warnings(false)
   //  using_history();
 
   _multiline_mode = false;
-  _interactive = false;
-  _output_format = "normal";
 
   _delegate.user_data = this;
   _delegate.print = &Interactive_shell::deleg_print;
@@ -159,13 +149,17 @@ _batch_continue_on_error(false), _show_warnings(false)
   _delegate.password = &Interactive_shell::deleg_password;
   _delegate.source = &Interactive_shell::deleg_source;
 
+  // Sets the global options
+  Value::Map_type_ref shcore_options = Shell_core_options::get();
+
+  // Updates shell core options that changed upon initialization
+  (*shcore_options)[SHCORE_BATCH_CONTINUE_ON_ERROR] = Value(_options.force);
+  (*shcore_options)[SHCORE_INTERACTIVE] = Value(_options.interactive);
+
+  if (!_options.output_format.empty())
+    (*shcore_options)[SHCORE_OUTPUT_FORMAT] = Value(_options.output_format);
+
   _shell.reset(new Shell_core(&_delegate));
-
-  //_session.reset(new mysh::mysqlx::Session(dynamic_cast<shcore::IShell_core*>(_shell.get())));
-  //_shell->set_global("session", Value(boost::static_pointer_cast<Object_bridge>(_session)));
-
-  //  _db.reset(new mysh::Schema(_shell.get()));
-  //  _shell->set_global("db", Value( boost::static_pointer_cast<Object_bridge, mysh::Schema >(_db) ));
 
   std::string cmd_help =
     "SYNTAX:\n"
@@ -199,37 +193,37 @@ _batch_continue_on_error(false), _show_warnings(false)
   SET_SHELL_COMMAND("\\nowarnings|\\w", "Don't show warnings after every statement..", "", Interactive_shell::cmd_nowarnings);
 
   bool lang_initialized;
-  _shell->switch_mode(initial_mode, lang_initialized);
+  _shell->switch_mode(_options.initial_mode, lang_initialized);
 
   if (lang_initialized)
-    init_scripts(initial_mode);
+    init_scripts(_options.initial_mode);
 }
 
 void Interactive_shell::cmd_process_file(const std::vector<std::string>& params)
 {
-  std::string filename = boost::join(params, " ");
+  _options.run_file = boost::join(params, " ");
 
-  Interactive_shell::process_file(filename.c_str());
+  Interactive_shell::process_file();
 }
 
-bool Interactive_shell::connect(const std::string &uri, bool interactive, mysh::SessionType session_type)
+bool Interactive_shell::connect()
 {
   try
   {
     if (_session && _session->is_connected())
     {
-      if (interactive)
+      if (_options.interactive)
         shcore::print("Closing old connection...\n");
 
       _session->close(shcore::Argument_list());
     }
 
     // strip password from uri
-    if (interactive)
+    if (_options.interactive)
     {
       std::string stype;
 
-      switch (session_type)
+      switch (_options.session_type)
       {
         case mysh::Application:
           stype = "Application";
@@ -242,18 +236,18 @@ bool Interactive_shell::connect(const std::string &uri, bool interactive, mysh::
           break;
       }
 
-      std::string uri_stripped = mysh::strip_password(uri);
+      std::string uri_stripped = mysh::strip_password(_options.uri);
 
       std::string message = "Creating " + stype + " Session to " + uri_stripped + "...";
-      if (_output_format.find("json") == 0)
+      if ((*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string().find("json") == 0)
         print_json_info(message);
       else
         shcore::print(message + "\n");
     }
 
     Argument_list args;
-    args.push_back(Value(uri));
-    connect_session(args, session_type);
+    args.push_back(Value(_options.uri));
+    connect_session(args, _options.session_type);
   }
   catch (std::exception &exc)
   {
@@ -310,7 +304,7 @@ Value Interactive_shell::connect_session(const Argument_list &args, mysh::Sessio
   // Whatever default schema is returned is ok to be set on db
   _shell->set_global("db", default_schema);
 
-  if (_interactive)
+  if (_options.interactive)
   {
     std::string message;
     if (default_schema)
@@ -318,17 +312,13 @@ Value Interactive_shell::connect_session(const Argument_list &args, mysh::Sessio
     else
       message = "No default schema selected.";
 
-    if (_output_format.find("json") == 0)
+    if ((*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string().find("json") == 0)
       print_json_info(message);
     else
       shcore::print(message + "\n");
   }
 
   return Value::Null();
-}
-
-void Interactive_shell::init_environment()
-{
 }
 
 // load scripts for standard locations in order to be able to implement standard routines
@@ -368,7 +358,10 @@ void Interactive_shell::init_scripts(Shell_core::Mode mode)
 #endif
 
     for (std::vector<std::string>::iterator i = scripts_paths.begin(); i != scripts_paths.end(); ++i)
-      process_file((*i).c_str());
+    {
+      _options.run_file = *i;
+      process_file();
+    }
   }
   catch (std::exception &e)
   {
@@ -453,7 +446,7 @@ void Interactive_shell::print_error(const std::string &error)
   log_error("%s", error.c_str());
   std::string message;
 
-  if (_output_format.find("json") == 0)
+  if ((*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string().find("json") == 0)
   {
     Value::Map_type_ref error_map(new Value::Map_type());
 
@@ -461,7 +454,7 @@ void Interactive_shell::print_error(const std::string &error)
 
     (*error_map)["error"] = error_val;
 
-    message = error_obj.json(_output_format == "jsonpretty");
+    message = error_obj.json((*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string() == "json");
   }
   else
   {
@@ -495,7 +488,7 @@ void Interactive_shell::print_error(const std::string &error)
 
 void Interactive_shell::print_json_info(const std::string &info, const std::string& label)
 {
-  shcore::JSON_dumper dumper(_output_format == "jsonpretty");
+  shcore::JSON_dumper dumper((*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string() == "json");
   dumper.start_object();
   dumper.append_string(label);
   dumper.append_string(info);
@@ -543,7 +536,9 @@ void Interactive_shell::cmd_connect(const std::vector<std::string>& args)
 {
   if (args.size() == 1)
   {
-    connect(args[0], true, mysh::Application);
+    _options.uri = args[0];
+    _options.session_type = mysh::Application;
+    connect();
   }
   else
     print_error("\\connect <uri>");
@@ -553,7 +548,9 @@ void Interactive_shell::cmd_connect_node(const std::vector<std::string>& args)
 {
   if (args.size() == 1)
   {
-    connect(args[0], true, mysh::Node);
+    _options.uri = args[0];
+    _options.session_type = mysh::Node;
+    connect();
   }
   else
     print_error("\\connect_node <uri>");
@@ -563,7 +560,9 @@ void Interactive_shell::cmd_connect_classic(const std::vector<std::string>& args
 {
   if (args.size() == 1)
   {
-    connect(args[0], true, mysh::Classic);
+    _options.uri = args[0];
+    _options.session_type = mysh::Classic;
+    connect();
   }
   else
     print_error("\\connect_classic <uri>");
@@ -571,23 +570,19 @@ void Interactive_shell::cmd_connect_classic(const std::vector<std::string>& args
 
 void Interactive_shell::cmd_quit(const std::vector<std::string>& UNUSED(args))
 {
-  _interactive = false;
+  _options.interactive = false;
 }
 
 void Interactive_shell::cmd_warnings(const std::vector<std::string>& UNUSED(args))
 {
-  _show_warnings = true;
-
-  _shell->set_show_warnings(_show_warnings);
+  (*Shell_core_options::get())[SHCORE_SHOW_WARNINGS] = Value::True();
 
   println("Show warnings enabled.");
 }
 
 void Interactive_shell::cmd_nowarnings(const std::vector<std::string>& UNUSED(args))
 {
-  _show_warnings = false;
-
-  _shell->set_show_warnings(_show_warnings);
+  (*Shell_core_options::get())[SHCORE_SHOW_WARNINGS] = Value::False();
 
   println("Show warnings disabled.");
 }
@@ -651,8 +646,8 @@ bool Interactive_shell::deleg_password(void *UNUSED(cdata), const char *prompt, 
 void Interactive_shell::deleg_source(void *cdata, const char *module)
 {
   Interactive_shell *self = (Interactive_shell*)cdata;
-
-  self->process_file(module);
+  self->_options.run_file.assign(module);
+  self->process_file();
 }
 
 bool Interactive_shell::do_shell_command(const std::string &line)
@@ -665,18 +660,6 @@ bool Interactive_shell::do_shell_command(const std::string &line)
     handled = _shell_command_handler.process(line);
 
   return handled;
-}
-
-void Interactive_shell::set_output_format(const std::string& format)
-{
-  _output_format = format;
-  _shell->set_output_format(format);
-}
-
-void Interactive_shell::set_interactive(bool value)
-{
-  _interactive = value;
-  _shell->set_interactive(value);
 }
 
 void Interactive_shell::process_line(const std::string &line)
@@ -752,9 +735,6 @@ void Interactive_shell::process_result(shcore::Value result)
       if (dump_function)
       {
         Argument_list args;
-        args.push_back(Value(_interactive));
-        args.push_back(Value(_output_format));
-        args.push_back(Value(_show_warnings));
         object->call("__paged_output__", args);
       }
     }
@@ -762,9 +742,9 @@ void Interactive_shell::process_result(shcore::Value result)
     // If the function is not found the values still needs to be printed
     if (!dump_function)
     {
-      if (_output_format == "jsonraw" || _output_format == "jsonpretty")
+      if ((*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string().find("json") == 0)
       {
-        shcore::JSON_dumper dumper(_output_format == "jsonpretty");
+        shcore::JSON_dumper dumper((*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string() == "json");
         dumper.start_object();
         dumper.append_value("result", result);
         dumper.end_object();
@@ -777,26 +757,26 @@ void Interactive_shell::process_result(shcore::Value result)
   }
 }
 
-int Interactive_shell::process_file(const char *filename)
+int Interactive_shell::process_file()
 {
   // Default return value will be 1 indicating there were errors
   bool ret_val = 1;
 
-  if (!filename)
+  if (_options.run_file.empty())
     _shell->print_error("Usage: \\. <filename> | \\source <filename>");
   else
     //TODO: do path expansion (in case ~ is used in linux)
   {
-    std::ifstream s(filename);
+    std::ifstream s(_options.run_file);
 
     if (!s.fail())
     {
       // The return value now depends on the stream processing
-      ret_val = _shell->process_stream(s, filename, _batch_continue_on_error);
+      ret_val = _shell->process_stream(s, _options.run_file);
 
       // When force is used, we do not care of the processing
       // errors
-      if (_batch_continue_on_error)
+      if (_options.force)
         ret_val = 0;
 
       s.close();
@@ -804,7 +784,7 @@ int Interactive_shell::process_file(const char *filename)
     else
     {
       // TODO: add a log entry once logging is
-      _shell->print_error((boost::format("Failed to open file '%s', error: %d") % filename % errno).str());
+      _shell->print_error((boost::format("Failed to open file '%s', error: %d") % _options.run_file % errno).str());
     }
   }
 
@@ -815,7 +795,7 @@ int Interactive_shell::process_stream(std::istream & stream, const std::string& 
 {
   // If interactive is set, it means that the shell was started with the option to
   // Emulate interactive mode while processing the stream
-  if (_interactive)
+  if (_options.interactive)
   {
     while (!stream.eof())
     {
@@ -834,12 +814,12 @@ int Interactive_shell::process_stream(std::istream & stream, const std::string& 
     return 0;
   }
   else
-    return _shell->process_stream(stream, source, _batch_continue_on_error);
+    return _shell->process_stream(stream, source);
 }
 
 void Interactive_shell::command_loop()
 {
-  if (_interactive) // check if interactive
+  if (_options.interactive) // check if interactive
   {
     std::string message;
     switch (_shell->interactive_mode())
@@ -863,14 +843,14 @@ void Interactive_shell::command_loop()
 
     if (!message.empty())
     {
-      if (_output_format.find("json") == 0)
+      if ((*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string().find("json") == 0)
         print_json_info(message);
       else
         shcore::print(message + "\n");
     }
   }
 
-  while (_interactive)
+  while (_options.interactive)
   {
     char *cmd = Interactive_shell::readline(prompt().c_str());
     if (!cmd)
@@ -939,248 +919,68 @@ void Interactive_shell::print_cmd_line_helper()
   println("");
 }
 
-class Shell_command_line_options : public Command_line_options
+// Detects whether the shell will be running in interactive mode or not
+// Non interactive mode is used when:
+// - A file is processed using the --file option
+// - A file is processed through the OS redirection mechanism
+//
+// Interactive mode is used when:
+// - A file is processed using the --interactive option
+// - No file is processed
+// - The STDIN is opened by caller process
+//
+// An error occurs when both --file and STDIN redirection are used
+std::string detect_interactive(Shell_command_line_options &options, bool &from_stdin)
 {
-public:
-  Shell_core::Mode initial_mode;
-  std::string run_file;
+  bool is_interactive = true;
+  bool from_file = false;
+  std::string error;
 
-  std::string uri;
-  std::string password;
-  std::string output_format;
-  mysh::SessionType session_type;
-  bool print_cmd_line_helper;
-  bool print_version;
-  bool force;
-  bool interactive;
-  ngcommon::Logger::LOG_LEVEL log_level;
+  from_stdin = false;
 
-  // Takes the URI and the individual connection parameters and overrides
-  // On the URI as specified on the parameters
-  void configure_connection_string(const std::string &connstring,
-                              std::string &user, std::string &password,
-                              std::string &host, int &port,
-                              std::string &database, bool prompt_pwd)
+  int __stdin_fileno;
+  int __stdout_fileno;
+
+#if defined(WIN32)
+  __stdin_fileno = _fileno(stdin);
+  __stdout_fileno = _fileno(stdout);
+#else
+  __stdin_fileno = STDIN_FILENO;
+  __stdout_fileno = STDOUT_FILENO;
+#endif
+  if (!isatty(__stdin_fileno) || !isatty(__stdout_fileno))
   {
-    std::string uri_protocol;
-    std::string uri_user;
-    std::string uri_password;
-    std::string uri_host;
-    int uri_port = 0;
-    std::string uri_sock;
-    std::string uri_database;
-    int pwd_found;
+    // Here we know the input comes from stdin
+    from_stdin = true;
 
-    bool conn_params_defined = false;
+    // Now we find out if it is a redirected file or not
+    struct stat stats;
+    int result = fstat(__stdin_fileno, &stats);
 
-    // First validates the URI if specified
-    if (!connstring.empty())
-    {
-      if (!mysh::parse_mysql_connstring(connstring, uri_protocol, uri_user, uri_password, uri_host, uri_port, uri_sock, uri_database, pwd_found))
-      {
-        std::cerr << "Invalid value specified in --uri parameter.\n";
-        exit_code = 1;
-        return;
-      }
-    }
+    if (result == 0)
+      from_file = (stats.st_mode & S_IFREG) == S_IFREG;
 
-    // URI was either empty or valid, in any case we need to override whatever was configured on the uri_* variables
-    // With what was received on the individual parameters.
-    if (!user.empty() || !password.empty() || !host.empty() || !database.empty() || port)
-    {
-      // This implies URI recreation process should be done to either
-      // - Create an URI if none was specified.
-      // - Update the URI with the parameters overriding it's values.
-      conn_params_defined = true;
-
-      if (!user.empty())
-        uri_user = user;
-
-      if (!password.empty())
-        uri_password = password;
-
-      if (!host.empty())
-        uri_host = host;
-
-      if (!database.empty())
-        uri_database = database;
-
-      if (port)
-        uri_port = port;
-    }
-
-    // If needed we construct the URi from the individual parameters
-    if (conn_params_defined)
-    {
-      // Configures the URI string
-      if (!uri_protocol.empty())
-      {
-        uri.append(uri_protocol);
-        uri.append("://");
-      }
-
-      // Sets the user and password
-      if (!uri_user.empty())
-      {
-        uri.append(uri_user);
-
-        // If password needs to be prompted appends the : but not the password
-        if (prompt_pwd)
-          uri.append(":");
-
-        // If the password will not be prompted and is defined appends both :password
-        else if (!uri_password.empty())
-        {
-          uri.append(":").append(uri_password);
-        }
-
-        uri.append("@");
-      }
-
-      // Sets the host
-      if (!uri_host.empty())
-        uri.append(uri_host);
-
-      // Sets the port
-      if (!uri_host.empty() && port > 0)
-        uri.append((boost::format(":%i") % port).str());
-
-      // Sets the database
-      if (!uri_database.empty())
-      {
-        uri.append("/");
-        uri.append(uri_database);
-      }
-    }
-
-    // Or we take the URI as defined since no overrides were done
+    // Can't process both redirected file and file from parameter.
+    if (from_file && !options.run_file.empty())
+      error = "--file (-f) option is forbidden when redirecting a file to stdin.";
     else
-      uri = connstring;
+      is_interactive = false;
   }
+  else
+    is_interactive = options.run_file.empty();
 
-  Shell_command_line_options(int argc, char **argv)
-  : Command_line_options(argc, argv), log_level(ngcommon::Logger::LOG_ERROR)
-  {
-    std::string connection_string;
-    std::string host;
-    std::string user;
-    std::string protocol;
-    std::string database;
-    int port = 0;
-    char* log_level_value;
-    bool needs_password = false;
+  // The --interactive option forces the shell to work emulating the
+  // interactive mode no matter if:
+  // - Input is being redirected from file
+  // - Input is being redirected from STDIN
+  // - It is not running on a terminal
+  if (options.interactive)
+    is_interactive = true;
 
-    print_cmd_line_helper = false;
-    print_version = false;
+  options.interactive = is_interactive;
 
-    session_type = mysh::Application;
-
-    char default_json[4] = "raw";
-    initial_mode = Shell_core::Mode_JScript;
-    force = false;
-    interactive = false;
-
-    for (int i = 1; i < argc && exit_code == 0; i++)
-    {
-      char *value;
-      if (check_arg_with_value(argv, i, "--file", "-f", value))
-        run_file = value;
-      else if (check_arg_with_value(argv, i, "--uri", NULL, value))
-        connection_string = value;
-      else if (check_arg_with_value(argv, i, "--host", "-h", value))
-        host = value;
-      else if (check_arg_with_value(argv, i, "--dbuser", "-u", value))
-        user = value;
-      else if (check_arg_with_value(argv, i, "--user", NULL, value))
-        user = value;
-      else if (check_arg_with_value(argv, i, "--port", "-P", value))
-        port = atoi(value);
-      else if (check_arg_with_value(argv, i, "--schema", "-D", value))
-        database = value;
-      else if (check_arg_with_value(argv, i, "--database", NULL, value))
-        database = value;
-      else if (check_arg(argv, i, "-p", "-p"))
-        needs_password = true;
-      else if (check_arg_with_value(argv, i, "--dbpassword", NULL, value))
-        password = value;
-      else if (check_arg_with_value(argv, i, "--password", NULL, value))
-        password = value;
-      else if (check_arg_with_value(argv, i, "--session-type", NULL, value))
-      {
-        if (strcmp(value, "classic") == 0)
-          session_type = mysh::Classic;
-        else if (strcmp(value, "node") == 0)
-          session_type = mysh::Node;
-        else if (strcmp(value, "app") == 0)
-          session_type = mysh::Application;
-        else
-        {
-          std::cerr << "Value for --session-type must be either app, node or classic.\n";
-          exit_code = 1;
-          break;
-        }
-      }
-      else if (check_arg(argv, i, "--sql", "--sql"))
-        initial_mode = Shell_core::Mode_SQL;
-      else if (check_arg(argv, i, "--js", "--js"))
-        initial_mode = Shell_core::Mode_JScript;
-      else if (check_arg(argv, i, "--py", "--py"))
-        initial_mode = Shell_core::Mode_Python;
-      else if (check_arg_with_value(argv, i, "--json", NULL, value, default_json))
-      {
-        if (strcmp(value, "raw") != 0 && strcmp(value, "pretty") != 0)
-        {
-          std::cerr << "Value for --json must be either pretty or raw.\n";
-          exit_code = 1;
-          break;
-        }
-
-        output_format = "json";
-        output_format.append(value);
-      }
-      else if (check_arg(argv, i, "--table", "--table"))
-        output_format = "table";
-      else if (check_arg(argv, i, "--help", "--help"))
-      {
-        print_cmd_line_helper = true;
-        exit_code = 0;
-      }
-      else if (check_arg(argv, i, "--version", "--version"))
-      {
-        print_version = true;
-        exit_code = 0;
-      }
-      else if (check_arg(argv, i, "--force", "--force"))
-        force = true;
-      else if (check_arg(argv, i, "--interactive", "-i"))
-        interactive = true;
-      else if (check_arg_with_value(argv, i, "--log-level", NULL, log_level_value))
-      {
-        try
-        {
-          int nlog_level = boost::lexical_cast<int>(log_level_value);
-          if (nlog_level < 1 || nlog_level > 8)
-            throw 1;
-          log_level = static_cast<ngcommon::Logger::LOG_LEVEL>(nlog_level);
-        }
-        catch (...)
-        {
-          std::cerr << "Value for --log-level must be an integer between 1 and 8.\n";
-          exit_code = 1;
-        }
-      }
-      else if (exit_code == 0)
-      {
-        std::cerr << argv[0] << ": unknown option " << argv[i] << "\n";
-        exit_code = 1;
-        break;
-      }
-    }
-
-    // Configures the URI using all hte associated parameters
-    configure_connection_string(connection_string, user, password, host, port, database, needs_password);
-  }
-};
+  return error;
+}
 
 int main(int argc, char **argv)
 {
@@ -1198,99 +998,55 @@ int main(int argc, char **argv)
 #endif
 
   {
-    Interactive_shell shell(options.initial_mode, options.log_level);
+    bool from_stdin = false;
+    std::string error = detect_interactive(options, from_stdin);
 
-    shell.set_force(options.force);
-    shell.set_output_format(options.output_format);
+    Interactive_shell shell(options);
 
-    if (options.print_version)
+    if (!error.empty())
+    {
+      shell.print_error(error);
+      ret_val = 1;
+    }
+    else if (options.print_version)
     {
       std::string version_msg("MySQL X Shell Version ");
       version_msg += MYSH_VERSION;
       shell.print(version_msg);
-      return options.exit_code;
+      ret_val = options.exit_code;
     }
     else if (options.print_cmd_line_helper)
     {
       shell.print_cmd_line_helper();
-      return options.exit_code;
-    }
-
-    bool is_interactive = true;
-    bool from_stdin = false;
-    bool from_file = false;
-
-    int __stdin_fileno;
-    int __stdout_fileno;
-
-#if defined(WIN32)
-    __stdin_fileno = _fileno(stdin);
-    __stdout_fileno = _fileno(stdout);
-#else
-    __stdin_fileno = STDIN_FILENO;
-    __stdout_fileno = STDOUT_FILENO;
-
-#endif
-    if (!isatty(__stdin_fileno) || !isatty(__stdout_fileno))
-    {
-      // Here we know the input comes from stdin
-      from_stdin = true;
-
-      // Now we find out if it is a redirected file or not
-      struct stat stats;
-      int result = fstat(__stdin_fileno, &stats);
-
-      if (result == 0)
-        from_file = (stats.st_mode & S_IFREG) == S_IFREG;
-
-      // Can't process both redirected file and file from parameter.
-      if (from_file && !options.run_file.empty())
-      {
-        shell.print_error("--file (-f) option is forbidden when redirecting a file to stdin.");
-        return 1;
-      }
-      else
-        is_interactive = false;
+      ret_val = options.exit_code;
     }
     else
-      is_interactive = options.run_file.empty();
-
-    // The --interactive option forces the shell to work emulating the
-    // interactive mode no matter if:
-    // - Input is being redirected from file
-    // - Input is being redirected from STDIN
-    // - It is not running on a terminal
-    if (options.interactive)
-      is_interactive = true;
-
-    shell.set_interactive(is_interactive);
-
-    shell.init_environment();
-
-    if (!options.uri.empty())
     {
-      try
+      // Performs the connection
+      if (!options.uri.empty())
       {
-        if (!shell.connect(options.uri, is_interactive, options.session_type))
+        try
+        {
+          if (!shell.connect())
+            return 1;
+        }
+        catch (std::exception &e)
+        {
+          shell.print_error(e.what());
           return 1;
+        }
       }
-      catch (std::exception &e)
-      {
-        shell.print_error(e.what());
-        return 1;
-      }
-    }
 
-    // Three processing modes are available at this point
-    // Interactive, file processing and STDIN processing
-    if (from_stdin)
-      ret_val = shell.process_stream(std::cin, "STDIN");
-    else if (!options.run_file.empty())
-      ret_val = shell.process_file(options.run_file.c_str());
-    else if (is_interactive)
-    {
-      shell.print_banner();
-      shell.command_loop();
+      if (from_stdin)
+        ret_val = shell.process_stream(std::cin, "STDIN");
+      else if (!options.run_file.empty())
+        ret_val = shell.process_file();
+      else if (options.interactive)
+      {
+        shell.print_banner();
+        shell.command_loop();
+        ret_val = 0;
+      }
     }
   }
 

@@ -90,7 +90,6 @@ ClassicSession getClassicSession(Map connectionData, String password){}
 #endif
 
 ClassicSession::ClassicSession()
-: _show_warnings(false)
 {
   //_schema_proxy.reset(new Proxy_object(boost::bind(&ClassicSession::get_db, this, _1)));
 

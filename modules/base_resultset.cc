@@ -86,19 +86,11 @@ shcore::Value BaseResultset::print(const shcore::Argument_list &args)
 
   args.ensure_count(0, 3, function.c_str());
 
-  std::string format;
-  bool interactive = true;
-  bool show_warnings = false;
-  if (args.size() > 0)
-    interactive = args.bool_at(0);
+  std::string format = Shell_core_options::get()->get_string(SHCORE_OUTPUT_FORMAT);
+  bool interactive = Shell_core_options::get()->get_bool(SHCORE_INTERACTIVE);
+  bool show_warnings = Shell_core_options::get()->get_bool(SHCORE_SHOW_WARNINGS);
 
-  if (args.size() > 1)
-    format = args.string_at(1);
-
-  if (args.size() > 2)
-    show_warnings = args.bool_at(2);
-
-  if (format == "jsonraw" || format == "jsonpretty")
+  if (format.find("json") == 0)
     print_json(format, show_warnings);
   else
     print_normal(interactive, format, show_warnings);
@@ -131,7 +123,7 @@ void BaseResultset::print_json(const std::string& format, bool show_warnings)
 
   shcore::Value map(data);
 
-  shcore::print(map.json(format == "jsonpretty") + "\n");
+  shcore::print(map.json(format == "json") + "\n");
 }
 
 void BaseResultset::print_normal(bool interactive, const std::string& format, bool show_warnings)

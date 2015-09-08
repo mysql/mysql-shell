@@ -42,11 +42,11 @@ Shell_python::~Shell_python()
 /*
  * Handle shell input on Python mode
  */
-void Shell_python::handle_input(std::string &code, Interactive_input_state &state, boost::function<void(shcore::Value)> result_processor, bool interactive)
+void Shell_python::handle_input(std::string &code, Interactive_input_state &state, boost::function<void(shcore::Value)> result_processor)
 {
   Value result;
 
-  if (interactive)
+  if ((*Shell_core_options::get())[SHCORE_INTERACTIVE].as_bool())
   {
     WillEnterPython lock;
     result = _py->execute_interactive(code);
