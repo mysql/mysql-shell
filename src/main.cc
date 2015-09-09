@@ -773,7 +773,7 @@ int Interactive_shell::process_file()
   else
     //TODO: do path expansion (in case ~ is used in linux)
   {
-    std::ifstream s(_options.run_file);
+    std::ifstream s(_options.run_file.c_str());
 
     if (!s.fail())
     {

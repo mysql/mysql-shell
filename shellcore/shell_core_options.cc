@@ -22,7 +22,7 @@
 
 using namespace shcore;
 
-boost::shared_ptr<Shell_core_options> Shell_core_options::_instance = NULL;
+boost::shared_ptr<Shell_core_options> Shell_core_options::_instance;
 
 std::string Shell_core_options::class_name() const
 {
