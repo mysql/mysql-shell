@@ -723,36 +723,42 @@ void Interactive_shell::process_line(const std::string &line)
 
 void Interactive_shell::process_result(shcore::Value result)
 {
-  if (result)
+  if ((*Shell_core_options::get())[SHCORE_INTERACTIVE].as_bool())
   {
-    Value dump_function;
-    if (result.type == shcore::Object)
+    if (result)
     {
-      boost::shared_ptr<Object_bridge> object = result.as_object();
-      if (object && object->has_member("__paged_output__"))
-        dump_function = object->get_member("__paged_output__");
-
-      if (dump_function)
+      Value shell_hook;
+      if (result.type == shcore::Object)
       {
-        Argument_list args;
-        object->call("__paged_output__", args);
-      }
-    }
+        boost::shared_ptr<Object_bridge> object = result.as_object();
+        if (object && object->has_member("__shell_hook__"))
+          shell_hook = object->get_member("__shell_hook__");
 
-    // If the function is not found the values still needs to be printed
-    if (!dump_function)
-    {
-      if ((*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string().find("json") == 0)
+        if (shell_hook)
+        {
+          Argument_list args;
+          Value hook_result = object->call("__shell_hook__", args);
+
+          // Recursive call to continue processing shell hooks if any
+          process_result(hook_result);
+        }
+      }
+
+      // If the function is not found the values still needs to be printed
+      if (!shell_hook)
       {
-        shcore::JSON_dumper dumper((*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string() == "json");
-        dumper.start_object();
-        dumper.append_value("result", result);
-        dumper.end_object();
+        if ((*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string().find("json") == 0)
+        {
+          shcore::JSON_dumper dumper((*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string() == "json");
+          dumper.start_object();
+          dumper.append_value("result", result);
+          dumper.end_object();
 
-        print(dumper.str());
+          print(dumper.str());
+        }
+        else
+          print(result.descr(true).c_str());
       }
-      else
-        print(result.descr(true).c_str());
     }
   }
 }
@@ -803,9 +809,11 @@ int Interactive_shell::process_stream(std::istream & stream, const std::string& 
 
       std::getline(stream, line);
 
-      print(prompt());
-
-      println(line);
+      if (_options.full_interactive)
+      {
+        print(prompt());
+        println(line);
+      }
 
       process_line(line);
     }
@@ -889,32 +897,32 @@ void Interactive_shell::print_cmd_line_helper()
   println("owners.");
   println("");
   println("Usage: mysqlx [OPTIONS]");
-  println("  --help                 Display this help and exit.");
-  println("  -f, --file=file        Process file.");
-  println("  --uri                  Connect to Uniform Resource Identifier.");
-  println("                         Format: [user[:pass]]@host[:port][/db]");
-  println("                         or user[:pass]@::socket[/db] .");
-  println("  -h, --host=name        Connect to host.");
-  println("  -P, --port=#           Port number to use for connection.");
-  println("  -u, --dbuser=name      User for the connection to the server.");
-  println("  --user=name            An alias for dbuser.");
-  println("  --dbpassword=name      Password to use when connecting to server");
-  println("  --password=name        An alias for dbpassword.");
-  println("  -p                     Request password prompt to set the password");
-  println("  -D --schema=name       Schema to use.");
-  println("  --database=name        An alias for schema.");
-  println("  --session-type=name    Type of session to be created. Either app, node or classic.");
-  println("  --sql                  Start in SQL mode.");
-  println("  --js                   Start in JavaScript mode.");
-  println("  --py                   Start in Python mode.");
-  println("  --json                 Produce output in JSON format.");
-  println("  --table                Produce output in table format (default for interactive mode).");
-  println("                         This option can be used to force that format when running in batch mode.");
-  println("  -i, --interactive      To use in batch mode, it forces emulation of interactive mode processing.");
-  println("                         Each line on the batch is processed as if it were in interactive mode.");
-  println("  --force                To use in SQL batch mode, forces processing to continue if an error is found.");
-  println("  --log-level=value      The log level. Value is an int in the range [1,8], default (1).");
-  println("  --version              Prints the version of MySQL X Shell.");
+  println("  --help                   Display this help and exit.");
+  println("  -f, --file=file          Process file.");
+  println("  --uri                    Connect to Uniform Resource Identifier.");
+  println("                           Format: [user[:pass]]@host[:port][/db]");
+  println("                           or user[:pass]@::socket[/db] .");
+  println("  -h, --host=name          Connect to host.");
+  println("  -P, --port=#             Port number to use for connection.");
+  println("  -u, --dbuser=name        User for the connection to the server.");
+  println("  --user=name              An alias for dbuser.");
+  println("  --dbpassword=name        Password to use when connecting to server");
+  println("  --password=name          An alias for dbpassword.");
+  println("  -p                       Request password prompt to set the password");
+  println("  -D --schema=name         Schema to use.");
+  println("  --database=name          An alias for schema.");
+  println("  --session-type=name      Type of session to be created. Either app, node or classic.");
+  println("  --sql                    Start in SQL mode.");
+  println("  --js                     Start in JavaScript mode.");
+  println("  --py                     Start in Python mode.");
+  println("  --json                   Produce output in JSON format.");
+  println("  --table                  Produce output in table format (default for interactive mode).");
+  println("                           This option can be used to force that format when running in batch mode.");
+  println("  -i, --interactive[=full] To use in batch mode, it forces emulation of interactive mode processing.");
+  println("                           Each line on the batch is processed as if it were in interactive mode.");
+  println("  --force                  To use in SQL batch mode, forces processing to continue if an error is found.");
+  println("  --log-level=value        The log level. Value is an int in the range [1,8], default (1).");
+  println("  --version                Prints the version of MySQL X Shell.");
 
   println("");
 }

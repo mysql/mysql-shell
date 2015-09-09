@@ -44,10 +44,12 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
   session_type = mysh::Application;
 
   char default_json[7] = "pretty";
+  char default_interactive[1] = "";
 
   initial_mode = IShell_core::Mode_JScript;
   force = false;
   interactive = false;
+  full_interactive = false;
 
   for (int i = 1; i < argc && exit_code == 0; i++)
   {
@@ -125,8 +127,19 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
     }
     else if (check_arg(argv, i, "--force", "--force"))
       force = true;
-    else if (check_arg(argv, i, "--interactive", "-i"))
+    else if (check_arg_with_value(argv, i, "--interactive", "-i", value, default_interactive))
+    {
+      if (strcmp(value, "") != 0 && strcmp(value, "full") != 0)
+      {
+        std::cerr << "Value for --interactive if any, must be full\n";
+        exit_code = 1;
+        break;
+      }
+
       interactive = true;
+      int ret = strcmp(value, "full");
+      full_interactive = (strcmp(value, "full") == 0);
+    }
     else if (check_arg_with_value(argv, i, "--log-level", NULL, log_level_value))
     {
       try
@@ -167,6 +180,7 @@ Command_line_options(0, NULL)
   print_version = other.print_version;
   force = other.force;
   interactive = other.interactive;
+  full_interactive = other.full_interactive;
   log_level = other.log_level;
 }
 

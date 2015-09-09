@@ -54,6 +54,7 @@ CollectionModify::CollectionModify(boost::shared_ptr<Collection> owner)
   register_dynamic_function("limit", "operation, sort");
   register_dynamic_function("bind", "operation, sort, limit");
   register_dynamic_function("execute", "operation, sort, limit, bind");
+  register_dynamic_function("__shell_hook__", "operation, sort, limit, bind");
 
   // Initial function update
   update_functions("");

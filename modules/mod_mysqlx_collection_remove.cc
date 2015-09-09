@@ -40,6 +40,7 @@ CollectionRemove::CollectionRemove(boost::shared_ptr<Collection> owner)
   register_dynamic_function("limit", "remove, sort");
   register_dynamic_function("bind", "remove, sort, limit");
   register_dynamic_function("execute", "remove, sort, limit, bind");
+  register_dynamic_function("__shell_hook__", "remove, sort, limit, bind");
 
   // Initial function update
   update_functions("");

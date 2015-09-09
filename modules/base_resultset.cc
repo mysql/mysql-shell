@@ -40,7 +40,7 @@ BaseResultset::BaseResultset()
   add_method("nextDataSet", boost::bind(&BaseResultset::next_result, this, _1), NULL);
   add_method("next", boost::bind(&BaseResultset::next, this, _1), NULL);
   add_method("all", boost::bind(&BaseResultset::all, this, _1), NULL);
-  add_method("__paged_output__", boost::bind(&BaseResultset::print, this, _1), NULL);
+  add_method("__shell_hook__", boost::bind(&BaseResultset::print, this, _1), NULL);
 
   add_method("getColumnMetadata", boost::bind(&BaseResultset::get_member_method, this, _1, "getColumnMetadata", "columnMetadata"), NULL);
   add_method("getAffectedRows", boost::bind(&BaseResultset::get_member_method, this, _1, "getAffectedRows", "affectedRows"), NULL);

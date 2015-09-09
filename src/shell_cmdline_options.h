@@ -42,6 +42,7 @@ public:
   bool print_version;
   bool force;
   bool interactive;
+  bool full_interactive;
   ngcommon::Logger::LOG_LEVEL log_level;
 
   // Takes the URI and the individual connection parameters and overrides

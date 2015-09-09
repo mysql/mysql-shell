@@ -48,6 +48,7 @@ TableInsert::TableInsert(boost::shared_ptr<Table> owner)
   register_dynamic_function("values", "insert, insertFields, values");
   register_dynamic_function("bind", "insertFieldsAndValues, values");
   register_dynamic_function("execute", "insertFieldsAndValues, values, bind");
+  register_dynamic_function("__shell_hook__", "insertFieldsAndValues, values, bind");
 
   // Initial function update
   update_functions("");

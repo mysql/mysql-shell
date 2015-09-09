@@ -32,12 +32,14 @@ _session(owner), Dynamic_object()
   // Exposes the methods available for chaining
   add_method("sql", boost::bind(&SqlExecute::sql, this, _1), "data");
   add_method("bind", boost::bind(&SqlExecute::bind, this, _1), "data");
+  add_method("__shell_hook__", boost::bind(&SqlExecute::execute, this, _1), "data");
   add_method("execute", boost::bind(&SqlExecute::execute, this, _1), "data");
 
   // Registers the dynamic function behavior
   register_dynamic_function("sql", "");
   register_dynamic_function("bind", "sql, bind");
   register_dynamic_function("execute", "sql, bind");
+  register_dynamic_function("__shell_hook__", "sql, bind");
 
   // Initial function update
   update_functions("");

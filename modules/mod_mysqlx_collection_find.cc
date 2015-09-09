@@ -49,6 +49,7 @@ CollectionFind::CollectionFind(boost::shared_ptr<Collection> owner)
   register_dynamic_function("skip", "limit");
   register_dynamic_function("bind", "find, fields, groupBy, having, sort, skip, limit");
   register_dynamic_function("execute", "find, fields, groupBy, having, sort, skip, limit, bind");
+  register_dynamic_function("__shell_hook__", "find, fields, groupBy, having, sort, skip, limit, bind");
 
   // Initial function update
   update_functions("");

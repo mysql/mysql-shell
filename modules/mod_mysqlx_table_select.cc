@@ -49,6 +49,7 @@ TableSelect::TableSelect(boost::shared_ptr<Table> owner)
   register_dynamic_function("offset", "limit");
   register_dynamic_function("bind", "select, where, groupBy, having, orderBy, offset, limit");
   register_dynamic_function("execute", "select, where, groupBy, having, orderBy, offset, limit, bind");
+  register_dynamic_function("__shell_hook__", "select, where, groupBy, having, orderBy, offset, limit, bind");
 
   // Initial function update
   update_functions("");

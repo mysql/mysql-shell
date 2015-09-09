@@ -46,6 +46,7 @@ TableUpdate::TableUpdate(boost::shared_ptr<Table> owner)
   register_dynamic_function("limit", "set, where, orderBy");
   register_dynamic_function("bind", "set, where, orderBy, limit");
   register_dynamic_function("execute", "set, where, orderBy, limit, bind");
+  register_dynamic_function("__shell_hook__", "set, where, orderBy, limit, bind");
 
   // Initial function update
   update_functions("");

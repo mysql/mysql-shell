@@ -134,7 +134,7 @@ namespace shcore
     void init_js();
     void init_py();
 
-    void process_result(shcore::Value result, bool print_data);
+    void process_result(shcore::Value result);
 
   private:
     Object_registry *_registry;

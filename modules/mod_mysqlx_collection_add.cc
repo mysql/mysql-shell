@@ -38,6 +38,7 @@ CollectionAdd::CollectionAdd(boost::shared_ptr<Collection> owner)
   // Registers the dynamic function behavior
   register_dynamic_function("add", ",add");
   register_dynamic_function("execute", "add");
+  register_dynamic_function("__shell_hook__", "add");
 
   // Initial function update
   update_functions("");
