@@ -26,12 +26,10 @@
 #include "shellcore/ishell_core.h"
 #include "modules/base_session.h"
 
-using namespace shcore;
-
 class Shell_command_line_options : public Command_line_options
 {
 public:
-  IShell_core::Mode initial_mode;
+  shcore::IShell_core::Mode initial_mode;
   std::string run_file;
 
   std::string uri;

@@ -25,6 +25,8 @@
 #include <boost/lexical_cast.hpp>
 #include "modules/base_session.h"
 
+using namespace shcore;
+
 Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
 : Command_line_options(argc, argv), log_level(ngcommon::Logger::LOG_ERROR)
 {
