@@ -38,7 +38,7 @@ CollectionRemove::CollectionRemove(boost::shared_ptr<Collection> owner)
   register_dynamic_function("remove", "");
   register_dynamic_function("sort", "remove");
   register_dynamic_function("limit", "remove, sort");
-  register_dynamic_function("bind", "remove, sort, limit");
+  register_dynamic_function("bind", "remove, sort, limit, bind");
   register_dynamic_function("execute", "remove, sort, limit, bind");
   register_dynamic_function("__shell_hook__", "remove, sort, limit, bind");
 
@@ -53,6 +53,21 @@ CollectionRemove::CollectionRemove(boost::shared_ptr<Collection> owner)
 * if not specified all the documents will be deleted from the collection unless a limit is set.
 * \return This CollectionRemove object.
 *
+* The searchCondition supports using placeholders instead of raw values, example:
+*
+* \code{.js}
+* // Deleting non adult documents
+* collection.delete("age < 21").execute()
+*
+* // Equivalent code using bound values
+* collection.delete("age < :adultAge").bind('adultAge', 21).execute()
+* \endcode
+*
+* On the previous example, adultAge is a placeholder for a value that will be set by calling the bind() function
+* right before calling execute().
+*
+* Note that if placeholders are used, a value must be bounded on each of them or the operation will fail.
+*
 * This function is called automatically when Collection.remove(searchCondition) is called.
 *
 * The actual deletion of the documents will occur only when the execute method is called.
@@ -61,7 +76,8 @@ CollectionRemove::CollectionRemove(boost::shared_ptr<Collection> owner)
 *
 * - sort(List sortExprStr)
 * - limit(Integer numberOfRows)
-* - execute(ExecuteOptions options).
+* - bind(String name, Value value)
+* - execute(ExecuteOptions options)
 *
 * \sa Usage examples at execute(ExecuteOptions options).
 */
@@ -111,7 +127,8 @@ shcore::Value CollectionRemove::remove(const shcore::Argument_list &args)
 * After this function invocation, the following functions can be invoked:
 *
 * - limit(Integer numberOfRows)
-* - execute(ExecuteOptions options).
+* - bind(String name, Value value)
+* - execute(ExecuteOptions options)
 */
 CollectionRemove CollectionRemove::sort(List sortExprStr){}
 #endif
@@ -153,7 +170,8 @@ shcore::Value CollectionRemove::sort(const shcore::Argument_list &args)
 *
 * After this function invocation, the following functions can be invoked:
 *
-* - execute(ExecuteOptions options).
+* - bind(String name, Value value)
+* - execute(ExecuteOptions options)
 */
 CollectionRemove CollectionRemove::limit(Integer numberOfDocs){}
 #endif
@@ -172,11 +190,42 @@ shcore::Value CollectionRemove::limit(const shcore::Argument_list &args)
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
-shcore::Value CollectionRemove::bind(const shcore::Argument_list &UNUSED(args))
+#ifdef DOXYGEN
+/**
+* Binds a value to a specific placeholder used on this CollectionRemove object.
+* \param name: The name of the placeholder to which the value will be bound.
+* \param value: The value to be bound on the placeholder.
+* \return This CollectionRemove object.
+*
+* This function can be invoked multiple times right before calling execute:
+*
+* After this function invocation, the following functions can be invoked:
+*
+* - bind(String name, Value value)
+* - execute(ExecuteOptions options)
+*
+* An error will be raised if the placeholder indicated by name does not exist.
+*
+* This function must be called once for each used placeohlder or an error will be
+* raised when the execute method is called.
+*
+* \sa Usage examples at execute(ExecuteOptions options).
+*/
+CollectionFind CollectionRemove::bind(String name, Value value){}
+#endif
+shcore::Value CollectionRemove::bind(const shcore::Argument_list &args)
 {
-  throw shcore::Exception::logic_error("CollectionRemove.bind: not yet implemented.");
+  args.ensure_count(2, "CollectionRemove.bind");
 
-  return Value(Object_bridge_ref(this));
+  try
+  {
+    _remove_statement->bind(args.string_at(0), map_document_value(args[1]));
+
+    update_functions("bind");
+  }
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionRemove.bind");
+
+  return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
 #ifdef DOXYGEN
@@ -206,8 +255,11 @@ shcore::Value CollectionRemove::bind(const shcore::Argument_list &UNUSED(args))
 * // Remove the youngest
 * var res_youngest = collection.remove().sort(['age', 'name']).limit(1).execute();
 *
-* // Remove the males
-* var res_males = collection.remove('gender="male"').execute();
+* // Remove males above 15 years old
+* var res_males = collection.remove('gender="male" and age > 15').execute();
+*
+* // Remove females above 15 years old
+* var res_males = collection.remove('gender=:heorshe and age > :limit').bind('heorshe', 'female').bind('limit', 15).execute();
 *
 * // Removes all the documents
 * var res_all = collection.remove().execute();
@@ -217,7 +269,15 @@ Collection_resultset CollectionRemove::execute(ExecuteOptions opt){}
 #endif
 shcore::Value CollectionRemove::execute(const shcore::Argument_list &args)
 {
-  args.ensure_count(0, "CollectionRemove.execute");
+  mysqlx::Collection_resultset *result = NULL;
 
-  return shcore::Value::wrap(new mysqlx::Collection_resultset(boost::shared_ptr< ::mysqlx::Result>(_remove_statement->execute())));
+  try
+  {
+    args.ensure_count(0, "CollectionRemove.execute");
+
+    result = new mysqlx::Collection_resultset(boost::shared_ptr< ::mysqlx::Result>(_remove_statement->execute()));
+  }
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionRemove.execute");
+
+  return result ? shcore::Value::wrap(result) : shcore::Value::Null();
 }

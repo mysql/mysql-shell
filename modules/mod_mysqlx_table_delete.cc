@@ -40,7 +40,7 @@ TableDelete::TableDelete(boost::shared_ptr<Table> owner)
   register_dynamic_function("where", "delete");
   register_dynamic_function("orderBy", "delete, where");
   register_dynamic_function("limit", "delete, where, orderBy");
-  register_dynamic_function("bind", "delete, where, orderBy, limit");
+  register_dynamic_function("bind", "delete, where, orderBy, limit, bind");
   register_dynamic_function("execute", "delete, where, orderBy, limit, bind");
   register_dynamic_function("__shell_hook__", "delete, where, orderBy, limit, bind");
 
@@ -62,6 +62,7 @@ TableDelete::TableDelete(boost::shared_ptr<Table> owner)
 * - where(String searchCriteria)
 * - orderBy(List sortExprStr)
 * - limit(Integer numberOfRows)
+* - bind(String name, Value value)
 * - execute(ExecuteOptions options).
 *
 * \sa Usage examples at execute(ExecuteOptions options).
@@ -97,9 +98,20 @@ shcore::Value TableDelete::remove(const shcore::Argument_list &args)
 * if not specified all the records will be deleted from the table unless a limit is set.
 * \return This TableDelete object.
 *
-* This function is called automatically when Table.delete(searchCondition) is called.
+* The searchCondition supports using placeholders instead of raw values, example:
 *
-* The actual deletion of the records will occur only when the execute method is called.
+* \code{.js}
+* // Deleting non adult records
+* table.delete().where("age < 21").execute()
+*
+* // Equivalent code using bound values
+* table.delete().where("age < :adultAge").bind('adultAge', 21).execute()
+* \endcode
+*
+* On the previous example, adultAge is a placeholder for a value that will be set by calling the bind() function
+* right before calling execute().
+*
+* Note that if placeholders are used, a value must be bounded on each of them or the operation will fail.
 *
 * This function can be invoked only once after:
 *
@@ -109,7 +121,8 @@ shcore::Value TableDelete::remove(const shcore::Argument_list &args)
 *
 * - orderBy(List sortExprStr)
 * - limit(Integer numberOfRows)
-* - execute(ExecuteOptions options).
+* - bind(String name, Value value)
+* - execute(ExecuteOptions options)
 *
 * \sa Usage examples at execute(ExecuteOptions options).
 */
@@ -156,7 +169,8 @@ shcore::Value TableDelete::where(const shcore::Argument_list &args)
 * After this function invocation, the following functions can be invoked:
 *
 * - limit(Integer numberOfRows)
-* - execute(ExecuteOptions options).
+* - bind(String name, Value value)
+* - execute(ExecuteOptions options)
 */
 TableDelete TableDelete::orderBy(List sortExprStr){}
 #endif
@@ -198,7 +212,8 @@ shcore::Value TableDelete::order_by(const shcore::Argument_list &args)
 *
 * After this function invocation, the following functions can be invoked:
 *
-* - execute(ExecuteOptions options).
+* - bind(String name, Value value)
+* - execute(ExecuteOptions options)
 */
 TableDelete TableDelete::limit(Integer numberOfRows){}
 #endif
@@ -218,13 +233,41 @@ shcore::Value TableDelete::limit(const shcore::Argument_list &args)
 }
 
 #ifdef DOXYGEN
-TableDelete TableDelete::bind({ var:val, var : val, ... }){}
+/**
+* Binds a value to a specific placeholder used on this TableDelete object.
+* \param name: The name of the placeholder to which the value will be bound.
+* \param value: The value to be bound on the placeholder.
+* \return This TableDelete object.
+*
+* This function can be invoked multiple times right before calling execute:
+*
+* After this function invocation, the following functions can be invoked:
+*
+* - bind(String name, Value value)
+* - execute(ExecuteOptions options)
+*
+* An error will be raised if the placeholder indicated by name does not exist.
+*
+* This function must be called once for each used placeohlder or an error will be
+* raised when the execute method is called.
+*
+* \sa Usage examples at execute(ExecuteOptions options).
+*/
+TableDelete TableDelete::bind(String name, Value value){}
 #endif
-shcore::Value TableDelete::bind(const shcore::Argument_list &UNUSED(args))
+shcore::Value TableDelete::bind(const shcore::Argument_list &args)
 {
-  throw shcore::Exception::logic_error("TableDelete.bind: not yet implemented.");
+  args.ensure_count(2, "TableDelete.bind");
 
-  return Value(Object_bridge_ref(this));
+  try
+  {
+    _delete_statement->bind(args.string_at(0), map_table_value(args[1]));
+
+    update_functions("bind");
+  }
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableDelete.bind");
+
+  return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
 #ifdef DOXYGEN
@@ -257,8 +300,11 @@ shcore::Value TableDelete::bind(const shcore::Argument_list &UNUSED(args))
 * // Remove the youngest
 * var res_youngest = table.delete().orderBy(['age', 'name']).limit(1).execute();
 *
-* // Remove the males
-* var res_males = table.delete().where('gender="male"').execute();
+* // Remove the males above 15 year old
+* var res_males = table.delete().where('gender="male" and age > 15').execute();
+*
+* // Remove the females above 15 year old
+* var res_males = table.delete().where('gender=:heorshe and age > :limit').bind('heorshe', 'female').bind('limit', 15).execute();
 *
 * // Removes all the records
 * var res_all = table.delete().execute();
@@ -276,7 +322,7 @@ shcore::Value TableDelete::execute(const shcore::Argument_list &args)
 
     result = new mysqlx::Collection_resultset(boost::shared_ptr< ::mysqlx::Result>(_delete_statement->execute()));
   }
-  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableInsert.execute");
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableDelete.execute");
 
   return result ? shcore::Value::wrap(result) : shcore::Value::Null();
 }

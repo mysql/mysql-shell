@@ -33,7 +33,6 @@ namespace mysh
 
     /**
     * Handler for record selection on a Table.
-    * \todo Implement and document bind({var:val, var:val, ...})
     * \todo Update execute to support options and document it
     *
     * This object provides the necessary functions to allow selecting record data from a table.
@@ -66,6 +65,7 @@ namespace mysh
       TableSelect orderBy(List sortExprStr);
       TableSelect limit(Integer numberOfRows);
       TableSelect offset(Integer limitOffset);
+      TableSelect bind(String name, Value value);
       Resultset execute(ExecuteOptions options);
 #endif
     private:

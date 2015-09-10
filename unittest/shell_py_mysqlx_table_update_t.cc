@@ -44,7 +44,7 @@ namespace shcore {
       _shell_core->switch_mode(Shell_core::Mode_Python, initilaized);
 
       // Sets the correct functions to be validated
-      set_functions("update, set, where, orderBy, limit, bind, execute");
+      set_functions("update, set, where, orderBy, limit, bind, execute, __shell_hook__");
     }
   };
 
@@ -92,28 +92,35 @@ namespace shcore {
     {
       SCOPED_TRACE("Testing function availability after where.");
       exec_and_out_equals("crud.set('name', 'Jack')");
-      ensure_available_functions("set, where, orderBy, limit, bind, execute");
+      ensure_available_functions("set, where, orderBy, limit, bind, execute, __shell_hook__");
     }
 
     // Now executes where
     {
       SCOPED_TRACE("Testing function availability after where.");
       exec_and_out_equals("crud.where(\"age < 100\")");
-      ensure_available_functions("orderBy, limit, bind, execute");
+      ensure_available_functions("orderBy, limit, bind, execute, __shell_hook__");
     }
 
     // Now executes orderBy
     {
       SCOPED_TRACE("Testing function availability after orderBy.");
       exec_and_out_equals("crud.orderBy(['name'])");
-      ensure_available_functions("limit, bind, execute");
+      ensure_available_functions("limit, bind, execute, __shell_hook__");
     }
 
     // Now executes limit
     {
       SCOPED_TRACE("Testing function availability after limit.");
       exec_and_out_equals("crud.limit(1)");
-      ensure_available_functions("bind, execute");
+      ensure_available_functions("bind, execute, __shell_hook__");
+    }
+
+    // Now executes bind
+    {
+      SCOPED_TRACE("Testing function availability after bind.");
+      exec_and_out_equals("crud = table.update().set('name', 'Jack').where('test = :data').bind('data', 5)");
+      ensure_available_functions("bind, execute, __shell_hook__");
     }
 
     exec_and_out_equals("session.close()");
@@ -164,7 +171,18 @@ namespace shcore {
       exec_and_out_contains("table.update().set('age', 17).limit(5)");
     }
 
-    exec_and_out_contains("table.update().set('age', 17).bind()", "", "TableUpdate.bind: not yet implemented.");
+    {
+      SCOPED_TRACE("Testing parameter validation on bind");
+      exec_and_out_contains("table.update().set('age', 17).where('name = :data and age > :years').bind()", "", "Invalid number of arguments in TableUpdate.bind, expected 2 but got 0");
+      exec_and_out_contains("table.update().set('age', 17).where('name = :data and age > :years').bind(5, 5)", "", "TableUpdate.bind: Argument #1 is expected to be a string");
+      exec_and_out_contains("table.update().set('age', 17).where('name = :data and age > :years').bind('another', 5)", "", "TableUpdate.bind: Unable to bind value for unexisting placeholder: another");
+    }
+
+    {
+      SCOPED_TRACE("Testing parameter validation on execute");
+      exec_and_out_contains("table.update().set('age', 17).where('name = :data and age > :years').execute()", "", "TableUpdate.execute: Missing value bindings for the next placeholders: data, years");
+      exec_and_out_contains("table.update().set('age', 17).where('name = :data and age > :years').bind('years', 5).execute()", "", "TableUpdate.execute: Missing value bindings for the next placeholders: data");
+    }
 
     exec_and_out_equals("session.close()");
   }
@@ -211,7 +229,7 @@ namespace shcore {
       exec_and_out_equals("records = table.select().where('age = 15').execute().all()");
       exec_and_out_equals("print(len(records))", "3");
 
-      exec_and_out_equals("records = table.select().where('age = 14').execute().all()");
+      exec_and_out_equals("records = table.select().where('age = :years').bind('years', 14).execute().all();");
       exec_and_out_equals("print(len(records))", "1");
     }
 

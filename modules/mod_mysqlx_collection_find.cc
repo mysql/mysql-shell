@@ -47,7 +47,7 @@ CollectionFind::CollectionFind(boost::shared_ptr<Collection> owner)
   register_dynamic_function("sort", "find, fields, groupBy, having");
   register_dynamic_function("limit", "find, fields, groupBy, having, sort");
   register_dynamic_function("skip", "limit");
-  register_dynamic_function("bind", "find, fields, groupBy, having, sort, skip, limit");
+  register_dynamic_function("bind", "find, fields, groupBy, having, sort, skip, limit, bind");
   register_dynamic_function("execute", "find, fields, groupBy, having, sort, skip, limit, bind");
   register_dynamic_function("__shell_hook__", "find, fields, groupBy, having, sort, skip, limit, bind");
 
@@ -62,6 +62,21 @@ CollectionFind::CollectionFind(boost::shared_ptr<Collection> owner)
 * if not specified all the documents will be included on the result unless a limit is set.
 * \return This CollectionFind object.
 *
+* The searchCondition supports using placeholders instead of raw values, example:
+*
+* \code{.js}
+* // Retrieving adults from a collection using a condition with raw values
+* collection.find("age > 21").execute()
+*
+* // Equivalent code using bound values
+* collection.find("age > :adultAge").bind('adultAge', 21).execute()
+* \endcode
+*
+* On the previous example, adultAge is a placeholder for a value that will be set by calling the bind() function
+* right before calling execute().
+*
+* Note that if placeholders are used, a value must be bounded on each of them or the operation will fail.
+*
 * This function is called automatically when Collection.find(searchCondition) is called.
 *
 * After this function invocation, the following functions can be invoked:
@@ -70,7 +85,8 @@ CollectionFind::CollectionFind(boost::shared_ptr<Collection> owner)
 * - groupBy(List searchExprStr)
 * - sort(List sortExprStr)
 * - limit(Integer numberOfRows)
-* - execute(ExecuteOptions options).
+* - bind(String name, Value value)
+* - execute(ExecuteOptions options)
 *
 * \sa Usage examples at execute(ExecuteOptions options).
 */
@@ -118,9 +134,10 @@ shcore::Value CollectionFind::find(const shcore::Argument_list &args)
 * After this function invocation, the following functions can be invoked:
 *
 * - groupBy(List searchExprStr)
-* - sort(List sortExprStr);
-* - limit(Integer numberOfRows);
-* - execute(ExecuteOptions options), including usage examples.
+* - sort(List sortExprStr)
+* - limit(Integer numberOfRows)
+* - bind(String name, Value value)
+* - execute(ExecuteOptions options)
 *
 * \sa Usage examples at execute(ExecuteOptions options).
 */
@@ -163,9 +180,10 @@ shcore::Value CollectionFind::fields(const shcore::Argument_list &args)
 * After this function invocation the following functions can be invoked:
 *
 * - having(String searchCondition)
-* - sort(List sortExprStr);
-* - limit(Integer numberOfRows);
-* - execute(ExecuteOptions options).
+* - sort(List sortExprStr)
+* - limit(Integer numberOfRows)
+* - bind(String name, Value value)
+* - execute(ExecuteOptions options)
 *
 * \sa Usage examples at execute(ExecuteOptions options).
 */
@@ -209,7 +227,8 @@ shcore::Value CollectionFind::group_by(const shcore::Argument_list &args)
 *
 * - sort(List sortExprStr)
 * - limit(Integer numberOfRows)
-* - execute(ExecuteOptions options).
+* - bind(String name, Value value)
+* - execute(ExecuteOptions options)
 *
 * \sa Usage examples at execute(ExecuteOptions options).
 */
@@ -251,7 +270,8 @@ shcore::Value CollectionFind::having(const shcore::Argument_list &args)
 * After this function invocation, the following functions can be invoked:
 *
 * - limit(Integer numberOfRows)
-* - execute(ExecuteOptions options).
+* - bind(String name, Value value)
+* - execute(ExecuteOptions options)
 *
 * \sa Usage examples at execute(ExecuteOptions options).
 */
@@ -298,7 +318,8 @@ shcore::Value CollectionFind::sort(const shcore::Argument_list &args)
 * After this function invocation, the following functions can be invoked:
 *
 * - skip(Integer limitOffset)
-* - execute(ExecuteOptions options).
+* - bind(String name, Value value)
+* - execute(ExecuteOptions options)
 *
 * \sa Usage examples at execute(ExecuteOptions options).
 */
@@ -331,7 +352,8 @@ shcore::Value CollectionFind::limit(const shcore::Argument_list &args)
 *
 * After this function invocation, the following functions can be invoked:
 *
-* - execute(ExecuteOptions options).
+* - bind(String name, Value value)
+* - execute(ExecuteOptions options)
 *
 * \sa Usage examples at execute(ExecuteOptions options).
 */
@@ -352,9 +374,40 @@ shcore::Value CollectionFind::skip(const shcore::Argument_list &args)
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
-shcore::Value CollectionFind::bind(const shcore::Argument_list &UNUSED(args))
+#ifdef DOXYGEN
+/**
+* Binds a value to a specific placeholder used on this CollectionFind object.
+* \param name: The name of the placeholder to which the value will be bound.
+* \param value: The value to be bound on the placeholder.
+* \return This CollectionFind object.
+*
+* This function can be invoked multiple times right before calling execute:
+*
+* After this function invocation, the following functions can be invoked:
+*
+* - bind(String name, Value value)
+* - execute(ExecuteOptions options)
+*
+* An error will be raised if the placeholder indicated by name does not exist.
+*
+* This function must be called once for each used placeohlder or an error will be
+* raised when the execute method is called.
+*
+* \sa Usage examples at execute(ExecuteOptions options).
+*/
+CollectionFind CollectionFind::bind(String name, Value value){}
+#endif
+shcore::Value CollectionFind::bind(const shcore::Argument_list &args)
 {
-  throw shcore::Exception::logic_error("CollectionFind.bind: not yet implemented.");
+  args.ensure_count(2, "CollectionFind.bind");
+
+  try
+  {
+    _find_statement->bind(args.string_at(0), map_document_value(args[1]));
+
+    update_functions("bind");
+  }
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionFind.bind");
 
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
@@ -390,6 +443,9 @@ shcore::Value CollectionFind::bind(const shcore::Argument_list &UNUSED(args))
 * // Retrieve the documents for all males
 * var res_males = collection.find('gender="male"').execute();
 *
+* // Previous example but using a bound value
+* var res_males = collection.find('gender=:heorshe').bind('heorshe', 'male').execute();
+*
 * // Retrieve the name and last name only
 * var res_partial = collection.find().fields(['name', 'last_name']).execute();
 *
@@ -407,7 +463,15 @@ Collection_resultset CollectionFind::execute(ExecuteOptions options){}
 #endif
 shcore::Value CollectionFind::execute(const shcore::Argument_list &args)
 {
-  args.ensure_count(0, "CollectionFind.execute");
+  mysqlx::Collection_resultset *result = NULL;
 
-  return shcore::Value::wrap(new mysqlx::Collection_resultset(boost::shared_ptr< ::mysqlx::Result>(_find_statement->execute())));
+  try
+  {
+    args.ensure_count(0, "CollectionFind.execute");
+
+    result = new mysqlx::Collection_resultset(boost::shared_ptr< ::mysqlx::Result>(_find_statement->execute()));
+  }
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionFind.execute");
+
+  return result ? shcore::Value::wrap(result) : shcore::Value::Null();
 }

@@ -30,7 +30,7 @@
 #include "test_utils.h"
 
 namespace shcore {
-  class Shell_js_crud_table_insert_tests : public Crud_test_wrapper
+  class Shell_js_mysqlx_table_insert_tests : public Crud_test_wrapper
   {
   protected:
     // You can define per-test set-up and tear-down logic as usual.
@@ -41,11 +41,11 @@ namespace shcore {
       bool initilaized(false);
       _shell_core->switch_mode(Shell_core::Mode_JScript, initilaized);
 
-      set_functions("insert,values,bind,execute");
+      set_functions("insert,values,execute,__shell_hook__");
     }
   };
 
-  TEST_F(Shell_js_crud_table_insert_tests, initialization)
+  TEST_F(Shell_js_mysqlx_table_insert_tests, initialization)
   {
     exec_and_out_equals("var mysqlx = require('mysqlx').mysqlx;");
 
@@ -57,7 +57,7 @@ namespace shcore {
     exec_and_out_equals("session.sql('create table table1 (name varchar(50), age integer, gender varchar(20));').execute();");
   }
 
-  TEST_F(Shell_js_crud_table_insert_tests, chain_combinations)
+  TEST_F(Shell_js_mysqlx_table_insert_tests, chain_combinations)
   {
     // NOTE: No data validation is done on this test, only tests
     //       different combinations of chained methods.
@@ -66,51 +66,39 @@ namespace shcore {
     exec_and_out_equals("var table = session.js_shell_test.getTable('table1');");
 
     //-------- ---------------------Test 1-------------------------
-    // Tests the happy path table.insert().values().bind().execute()
+    // Tests the happy path table.insert().values().execute()
     //-------------------------------------------------------------
     exec_and_out_equals("var crud = table.insert();");
     ensure_available_functions("values");
 
     exec_and_out_equals("crud.values(1,2,3,4,5)");
-    ensure_available_functions("values,bind,execute");
+    ensure_available_functions("values,execute,__shell_hook__");
 
     exec_and_out_equals("crud.values(6,7,8,9,10)");
-    ensure_available_functions("values,bind,execute");
-
-    // Now executes bind and the only available method will be execute
-    exec_and_out_equals("crud.bind([])");
-    ensure_available_functions("execute");
+    ensure_available_functions("values,execute,__shell_hook__");
 
     //-------- ---------------------Test 2-------------------------
-    // Tests the happy path table.insert([column names]).values().bind().execute()
+    // Tests the happy path table.insert([column names]).values().execute()
     //-------------------------------------------------------------
     exec_and_out_equals("var crud = table.insert(['id', 'name']);");
     ensure_available_functions("values");
 
     exec_and_out_equals("crud.values(1,2,3,4,5)");
-    ensure_available_functions("values,bind,execute");
+    ensure_available_functions("values,execute,__shell_hook__");
 
     exec_and_out_equals("crud.values(6,7,8,9,10)");
-    ensure_available_functions("values,bind,execute");
-
-    // Now executes bind and the only available method will be execute
-    exec_and_out_equals("crud.bind([])");
-    ensure_available_functions("execute");
+    ensure_available_functions("values,execute,__shell_hook__");
 
     //-------- ---------------------Test 3-------------------------
-    // Tests the happy path table.insert({columns:values}).values().bind().execute()
+    // Tests the happy path table.insert({columns:values}).values().execute()
     //-------------------------------------------------------------
     exec_and_out_equals("var crud = table.insert({'id':3, 'name':'whatever'});");
-    ensure_available_functions("bind, execute");
-
-    // Now executes bind and the only available method will be execute
-    exec_and_out_equals("crud.bind([])");
-    ensure_available_functions("execute");
+    ensure_available_functions("execute,__shell_hook__");
 
     exec_and_out_equals("session.close();");
   }
 
-  TEST_F(Shell_js_crud_table_insert_tests, insert_validations)
+  TEST_F(Shell_js_mysqlx_table_insert_tests, insert_validations)
   {
     exec_and_out_equals("var mysqlx = require('mysqlx').mysqlx;");
     exec_and_out_equals("var session = mysqlx.getSession('" + _uri + "');");
@@ -136,7 +124,7 @@ namespace shcore {
     exec_and_out_equals("session.close();");
   }
 
-  TEST_F(Shell_js_crud_table_insert_tests, insert_execution)
+  TEST_F(Shell_js_mysqlx_table_insert_tests, insert_execution)
   {
     exec_and_out_equals("var mysqlx = require('mysqlx').mysqlx;");
     exec_and_out_equals("var session = mysqlx.getSession('" + _uri + "');");

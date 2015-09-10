@@ -44,7 +44,7 @@ namespace shcore {
       _shell_core->switch_mode(Shell_core::Mode_Python, initilaized);
 
       // Sets the correct functions to be validated
-      set_functions("modify, set, unset, merge, arrayInsert, arrayAppend, arrayDelete, sort, limit, bind, execute");
+      set_functions("modify, set, unset, merge, arrayInsert, arrayAppend, arrayDelete, sort, limit, bind, execute, __shell_hook__");
     }
   };
 
@@ -93,7 +93,7 @@ namespace shcore {
 
       // Empty set of values does not trigger a change
       exec_and_out_equals("crud.set('name', 'dummy')");
-      ensure_available_functions("set, unset, merge, arrayInsert, arrayAppend, arrayDelete, sort, limit, bind, execute");
+      ensure_available_functions("set, unset, merge, arrayInsert, arrayAppend, arrayDelete, sort, limit, bind, execute, __shell_hook__");
     }
 
     {
@@ -105,12 +105,12 @@ namespace shcore {
       ensure_available_functions("set, unset, merge, arrayInsert, arrayAppend, arrayDelete");
 
       exec_and_out_equals("crud.unset(['name','last_name'])");
-      ensure_available_functions("set, unset, merge, arrayInsert, arrayAppend, arrayDelete, sort, limit, bind, execute");
+      ensure_available_functions("set, unset, merge, arrayInsert, arrayAppend, arrayDelete, sort, limit, bind, execute, __shell_hook__");
 
       // Tests passing multiple parameters
       exec_and_out_equals("crud = collection.modify()");
       exec_and_out_equals("crud.unset('name','last_name')");
-      ensure_available_functions("set, unset, merge, arrayInsert, arrayAppend, arrayDelete, sort, limit, bind, execute");
+      ensure_available_functions("set, unset, merge, arrayInsert, arrayAppend, arrayDelete, sort, limit, bind, execute, __shell_hook__");
     }
 
     {
@@ -119,7 +119,7 @@ namespace shcore {
       ensure_available_functions("set, unset, merge, arrayInsert, arrayAppend, arrayDelete");
 
       exec_and_out_equals("crud.merge({'att':'value','second':'final'})");
-      ensure_available_functions("set, unset, merge, arrayInsert, arrayAppend, arrayDelete, sort, limit, bind, execute");
+      ensure_available_functions("set, unset, merge, arrayInsert, arrayAppend, arrayDelete, sort, limit, bind, execute, __shell_hook__");
     }
 
     {
@@ -128,7 +128,7 @@ namespace shcore {
       ensure_available_functions("set, unset, merge, arrayInsert, arrayAppend, arrayDelete");
 
       exec_and_out_equals("crud.arrayInsert('hobbies[3]', 'run')");
-      ensure_available_functions("set, unset, merge, arrayInsert, arrayAppend, arrayDelete, sort, limit, bind, execute");
+      ensure_available_functions("set, unset, merge, arrayInsert, arrayAppend, arrayDelete, sort, limit, bind, execute, __shell_hook__");
     }
 
     {
@@ -137,7 +137,7 @@ namespace shcore {
       ensure_available_functions("set, unset, merge, arrayInsert, arrayAppend, arrayDelete");
 
       exec_and_out_equals("crud.arrayAppend('hobbies','skate')");
-      ensure_available_functions("set, unset, merge, arrayInsert, arrayAppend, arrayDelete, sort, limit, bind, execute");
+      ensure_available_functions("set, unset, merge, arrayInsert, arrayAppend, arrayDelete, sort, limit, bind, execute, __shell_hook__");
     }
 
     {
@@ -146,19 +146,25 @@ namespace shcore {
       ensure_available_functions("set, unset, merge, arrayInsert, arrayAppend, arrayDelete");
 
       exec_and_out_equals("crud.arrayDelete('hobbies[5]')");
-      ensure_available_functions("set, unset, merge, arrayInsert, arrayAppend, arrayDelete, sort, limit, bind, execute");
+      ensure_available_functions("set, unset, merge, arrayInsert, arrayAppend, arrayDelete, sort, limit, bind, execute, __shell_hook__");
     }
 
     {
       SCOPED_TRACE("Testing function availability after sort.");
       exec_and_out_equals("crud.sort(['name'])");
-      ensure_available_functions("limit, bind, execute");
+      ensure_available_functions("limit, bind, execute, __shell_hook__");
     }
 
     {
       SCOPED_TRACE("Testing function availability after limit.");
       exec_and_out_equals("crud.limit(2)");
-      ensure_available_functions("bind, execute");
+      ensure_available_functions("bind, execute, __shell_hook__");
+    }
+
+    {
+      SCOPED_TRACE("Testing function availability after bind.");
+      exec_and_out_equals("crud = collection.modify('test = :data').set('hobby', 'swim').bind('data', 5)");
+      ensure_available_functions("bind, execute, __shell_hook__");
     }
 
     exec_and_out_equals("session.close()");
@@ -253,7 +259,18 @@ namespace shcore {
       exec_and_out_equals("collection.remove().limit(5)");
     }
 
-    exec_and_out_contains("collection.modify().unset('name').bind()", "", "CollectionModify.bind: not yet implemented.");
+    {
+      SCOPED_TRACE("Testing parameter validation on bind");
+      exec_and_out_contains("collection.modify('name = :data and age > :years').set('hobby', 'swim').bind()", "", "Invalid number of arguments in CollectionModify.bind, expected 2 but got 0");
+      exec_and_out_contains("collection.modify('name = :data and age > :years').set('hobby', 'swim').bind(5, 5)", "", "CollectionModify.bind: Argument #1 is expected to be a string");
+      exec_and_out_contains("collection.modify('name = :data and age > :years').set('hobby', 'swim').bind('another', 5)", "", "CollectionModify.bind: Unable to bind value for unexisting placeholder: another");
+    }
+
+    {
+      SCOPED_TRACE("Testing parameter validation on execute");
+      exec_and_out_contains("collection.modify('name = :data and age > :years').set('hobby', 'swim').execute()", "", "CollectionModify.execute: Missing value bindings for the next placeholders: data, years");
+      exec_and_out_contains("collection.modify('name = :data and age > :years').set('hobby', 'swim').bind('years', 5).execute()", "", "CollectionModify.execute: Missing value bindings for the next placeholders: data");
+    }
 
     exec_and_out_equals("session.close()");
   }
@@ -343,7 +360,7 @@ namespace shcore {
 
     {
       SCOPED_TRACE("Testing arrayInsert");
-      exec_and_out_equals("result = collection.modify('name = \"brian\"').arrayInsert('girlfriends[1]','samantha').execute()");
+      exec_and_out_equals("result = collection.modify('name = :who').arrayInsert('girlfriends[1]','samantha').bind('who', 'brian').execute()");
       exec_and_out_equals("print(result.affectedRows)", "1");
 
       exec_and_out_equals("result = collection.find('name = \"brian\"').execute()");

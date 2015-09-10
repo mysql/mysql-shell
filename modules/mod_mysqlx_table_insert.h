@@ -33,7 +33,6 @@ namespace mysh
 
     /**
     * Handler for Insert operations on Tables.
-    * \todo Implement and document bind({var:val, var:val, ...})
     * \todo Update execute to support options and document it
     */
     class TableInsert : public Table_crud_definition, public boost::enable_shared_from_this<TableInsert>
@@ -45,7 +44,6 @@ namespace mysh
       static boost::shared_ptr<shcore::Object_bridge> create(const shcore::Argument_list &args);
       shcore::Value insert(const shcore::Argument_list &args);
       shcore::Value values(const shcore::Argument_list &args);
-      shcore::Value bind(const shcore::Argument_list &args);
 
       virtual shcore::Value execute(const shcore::Argument_list &args);
 #ifdef DOXYGEN

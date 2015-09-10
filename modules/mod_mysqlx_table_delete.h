@@ -33,7 +33,6 @@ namespace mysh
 
     /**
     * Handler for Delete operation on Tables.
-    * \todo Implement and document bind({var:val, var:val, ...})
     * \todo Update execute to support options and document it
     */
     class TableDelete : public Table_crud_definition, public boost::enable_shared_from_this<TableDelete>
@@ -55,7 +54,7 @@ namespace mysh
       TableDelete where(String searchCondition);
       TableDelete orderBy(List sortExprStr);
       TableDelete limit(Integer numberOfRows);
-      TableDelete bind({ var:val, var : val, ... });
+      TableDelete bind(String name, Value value);
       Resultset execute(ExecuteOptions options);
 #endif
     private:

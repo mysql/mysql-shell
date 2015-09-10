@@ -69,8 +69,17 @@ namespace mysqlx
   class Statement
   {
   public:
+    Statement(){};
+    Statement(const Statement& other);
     virtual ~Statement();
     virtual Result *execute() = 0;
+
+  protected:
+    std::vector<std::string> m_placeholders;
+    std::vector<Mysqlx::Datatypes::Scalar*> m_bound_values;
+    void insert_bound_values(::google::protobuf::RepeatedPtrField< ::Mysqlx::Datatypes::Scalar >* target);
+    void init_bound_values();
+    void validate_bind_placeholder(const std::string& name);
   };
 
   // -------------------------------------------------------
@@ -315,7 +324,9 @@ namespace mysqlx
   {
   public:
     Table_Statement(boost::shared_ptr<Table> table);
-    //Table_Statement &bind(const std::string &name, const DocumentValue &value);
+    Table_Statement(const Table_Statement& other);
+
+    Table_Statement &bind(const std::string &name, const TableValue &value);
 
     boost::shared_ptr<Table> table() const { return m_table; }
 
@@ -560,6 +571,7 @@ namespace mysqlx
   {
   public:
     Collection_Statement(boost::shared_ptr<Collection> coll);
+    Collection_Statement(const Collection_Statement& other);
     Collection_Statement &bind(const std::string &name, const DocumentValue &value);
 
     boost::shared_ptr<Collection> collection() const { return m_coll; }

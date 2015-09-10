@@ -44,7 +44,7 @@ namespace shcore {
       _shell_core->switch_mode(Shell_core::Mode_Python, initilaized);
 
       // Sets the correct functions to be validated
-      set_functions("remove, sort, limit, bind, execute");
+      set_functions("remove, sort, limit, bind, execute, __shell_hook__");
     }
   };
 
@@ -85,14 +85,21 @@ namespace shcore {
     //       once they are enabled
     {
       SCOPED_TRACE("Testing function availability after remove.");
-      ensure_available_functions("sort, limit, bind, execute");
+      ensure_available_functions("sort, limit, bind, execute, __shell_hook__");
     }
 
     // Now executes limit
     {
       SCOPED_TRACE("Testing function availability after limit.");
       exec_and_out_equals("crud.limit(1)");
-      ensure_available_functions("bind, execute");
+      ensure_available_functions("bind, execute, __shell_hook__");
+    }
+
+    // Now executes bind
+    {
+      SCOPED_TRACE("Testing function availability after bind.");
+      exec_and_out_equals("crud = collection.remove('test = :data').bind('data', 5)");
+      ensure_available_functions("bind, execute, __shell_hook__");
     }
 
     exec_and_out_equals("session.close()");
@@ -130,7 +137,18 @@ namespace shcore {
       exec_and_out_equals("collection.remove().limit(5)");
     }
 
-    exec_and_out_contains("collection.remove().bind()", "", "CollectionRemove.bind: not yet implemented.");
+    {
+      SCOPED_TRACE("Testing parameter validation on bind");
+      exec_and_out_contains("collection.remove('name = :data and age > :years').bind()", "", "Invalid number of arguments in CollectionRemove.bind, expected 2 but got 0");
+      exec_and_out_contains("collection.remove('name = :data and age > :years').bind(5, 5)", "", "CollectionRemove.bind: Argument #1 is expected to be a string");
+      exec_and_out_contains("collection.remove('name = :data and age > :years').bind('another', 5)", "", "CollectionRemove.bind: Unable to bind value for unexisting placeholder: another");
+    }
+
+    {
+      SCOPED_TRACE("Testing parameter validation on execute");
+      exec_and_out_contains("collection.remove('name = :data and age > :years').execute()", "", "CollectionRemove.execute: Missing value bindings for the next placeholders: data, years");
+      exec_and_out_contains("collection.remove('name = :data and age > :years').bind('years', 5).execute()", "", "CollectionRemove.execute: Missing value bindings for the next placeholders: data");
+    }
 
     exec_and_out_equals("session.close()");
   }
@@ -160,8 +178,8 @@ namespace shcore {
     }
 
     {
-      SCOPED_TRACE("Testing remove with limits");
-      exec_and_out_equals("result = collection.remove('gender = \"male\"').limit(2).execute()");
+      SCOPED_TRACE("Testing remove with limits and bound values");
+      exec_and_out_equals("result = collection.remove('gender = :heorshe').limit(2).bind('heorshe', 'male').execute()");
       exec_and_out_equals("print(result.affectedRows)", "2");
 
       exec_and_out_equals("records = collection.find().execute().all()");

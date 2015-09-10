@@ -44,7 +44,7 @@ namespace shcore {
       _shell_core->switch_mode(Shell_core::Mode_JScript, initilaized);
 
       // Sets the correct functions to be validated
-      set_functions("add execute");
+      set_functions("add execute __shell_hook__");
     }
   };
 
@@ -73,7 +73,7 @@ namespace shcore {
     // Creates the collection find object
     exec_and_out_equals("var crud = collection.add([]);");
 
-    ensure_available_functions("add, execute");
+    ensure_available_functions("add, execute, __shell_hook__");
 
     exec_and_out_equals("session.close();");
   }
