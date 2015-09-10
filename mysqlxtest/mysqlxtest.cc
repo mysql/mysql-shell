@@ -113,6 +113,8 @@ std::string unreplace_variables(const std::string &in, bool clear)
 
 
 static void print_result_set(mysqlx::Result &result);
+static void print_result_set(mysqlx::Result &result, const std::vector<std::string> &columns);
+
 static std::string message_to_text(const mysqlx::Message &message);
 
 
@@ -156,7 +158,7 @@ public:
     else
       std::cerr << "ERROR: " << err.what() << " (code "<<err.error()<<")\n";
     m_expect_errno.clear();
-    return true;
+    return !OPT_fatal_errors;
   }
 
   bool check_ok()
@@ -214,18 +216,25 @@ public:
       throw std::runtime_error("a session named "+name+" already exists");
 
     std::cout << "connecting...\n";
-    if (no_ssl)
-        active_connection.reset(new mysqlx::Connection(mysqlx::Ssl_config()));
-    else
-    active_connection.reset(new mysqlx::Connection(ssl_config));
-    active_connection->connect(host, port);
+
+    boost::shared_ptr<mysqlx::Connection> connection;
+    mysqlx::Ssl_config                    connection_ssl_config;
+
+    if (!no_ssl)
+      connection_ssl_config = ssl_config;
+
+    connection.reset(new mysqlx::Connection(connection_ssl_config));
+
+    connection->connect(host, port);
     if (user != "-")
     {
     if (user.empty())
-      active_connection->authenticate(this->user, this->pass, db.empty() ? this->db : db);
+        connection->authenticate(this->user, this->pass, db.empty() ? this->db : db);
     else
-      active_connection->authenticate(user, password, db.empty() ? this->db : db);
+        connection->authenticate(user, password, db.empty() ? this->db : db);
     }
+
+    active_connection = connection;
     active_connection_name = name;
     connections[name] = active_connection;
     std::stringstream s;
@@ -578,7 +587,9 @@ public:
     m_commands["recvtype "]   = &Command::cmd_recvtype;
     m_commands["recverror "]  = &Command::cmd_recverror;
     m_commands["recvresult"]  = &Command::cmd_recvresult;
+    m_commands["recvresult "] = &Command::cmd_recvresult;
     m_commands["recvuntil "]  = &Command::cmd_recvuntil;
+    m_commands["recvuntildisc"] = &Command::cmd_recv_all_until_disc;
     m_commands["enablessl"]   = &Command::cmd_enablessl;
     m_commands["sleep "]      = &Command::cmd_sleep;
     m_commands["login "]      = &Command::cmd_login;
@@ -754,8 +765,16 @@ private:
     std::auto_ptr<mysqlx::Result> result;
     try
     {
+      std::vector<std::string> columns;
+      std::string cmd_args = args;
+
+      boost::algorithm::trim(cmd_args);
+
+      if (cmd_args.size())
+        boost::algorithm::split(columns, cmd_args, boost::is_any_of(" "));
+
       result.reset(context.connection()->recv_result());
-      print_result_set(*result);
+      print_result_set(*result, columns);
       variables_to_unreplace.clear();
       int64_t x = result->affectedRows();
       if (x >= 0)
@@ -999,6 +1018,7 @@ private:
     return Continue;
   }
 
+
   Result cmd_system(Execution_context &context, const std::string &args)
   {
     // XXX - remove command
@@ -1009,6 +1029,32 @@ private:
       return Continue;
 
     return Stop_with_failure;
+  }
+
+
+  Result cmd_recv_all_until_disc(Execution_context &context, const std::string &args)
+  {
+    int msgid;
+    try
+    {
+      while(true)
+      {
+        std::auto_ptr<mysqlx::Message> msg(context.connection()->recv_raw(msgid));
+
+        //TODO:
+        // For now this command will be used in places where random messages
+        // can reach mysqlxtest in different mtr rans
+        // the random behavior of server in such cases should be fixed
+        //if (msg.get())
+        //  std::cout << unreplace_variables(message_to_text(*msg), true) << "\n";
+      }
+    }
+    catch (mysqlx::Error &e)
+    {
+      std::cerr << "Server disconnected\n";
+    }
+
+    return cmd_setsession(context, args);
   }
 
   Result cmd_peerdisc(Execution_context &context, const std::string &args)
@@ -1347,13 +1393,32 @@ static int process_client_message(mysqlx::Connection *connection, int8_t msg_id,
 
 static void print_result_set(mysqlx::Result &result)
 {
+  std::vector<std::string> empty_column_array_print_all;
+
+  print_result_set(result, empty_column_array_print_all);
+}
+
+static void print_result_set(mysqlx::Result &result, const std::vector<std::string> &columns)
+{
   boost::shared_ptr<std::vector<mysqlx::ColumnMetadata> > meta(result.columnMetadata());
+  std::vector<int> column_indexes;
+  int column_index = -1;
+  bool first = true;
 
   for (std::vector<mysqlx::ColumnMetadata>::const_iterator col = meta->begin();
        col != meta->end(); ++col)
   {
-    if (col != meta->begin())
+    ++column_index;
+
+    if (!first)
       std::cout << "\t";
+    else
+      first = false;
+
+    if (!columns.empty() && columns.end() == std::find(columns.begin(), columns.end(), col->name))
+      continue;
+
+    column_indexes.push_back(column_index);
     std::cout << col->name;
   }
   std::cout << "\n";
@@ -1364,12 +1429,14 @@ static void print_result_set(mysqlx::Result &result)
     if (!row.get())
       break;
 
-    for (int i = 0; i < row->numFields(); i++)
+    std::vector<int>::iterator i = column_indexes.begin();
+    for (; i != column_indexes.end() && (*i) < row->numFields(); ++i)
     {
-      if (i != 0)
+      int field = (*i);
+      if (field != 0)
         std::cout << "\t";
 
-      if (row->isNullField(i))
+      if (row->isNullField(field))
       {
         std::cout << "null";
         continue;
@@ -1377,27 +1444,27 @@ static void print_result_set(mysqlx::Result &result)
 
       try
       {
-        const mysqlx::ColumnMetadata &col(meta->at(i));
+        const mysqlx::ColumnMetadata &col(meta->at(field));
 
         switch (col.type)
         {
           case mysqlx::SINT:
-            std::cout << row->sInt64Field(i);
+            std::cout << row->sInt64Field(field);
             break;
           case mysqlx::UINT:
-            std::cout << row->uInt64Field(i);
+            std::cout << row->uInt64Field(field);
             break;
           case mysqlx::DOUBLE:
             if (col.fractional_digits >= 31)
             {
               char buffer[100];
-              my_gcvt(row->doubleField(i), MY_GCVT_ARG_DOUBLE, sizeof(buffer)-1, buffer, NULL);
+              my_gcvt(row->doubleField(field), MY_GCVT_ARG_DOUBLE, sizeof(buffer)-1, buffer, NULL);
               std::cout << buffer;
             }
             else
             {
               char buffer[100];
-              my_fcvt(row->doubleField(i), col.fractional_digits, buffer, NULL);
+              my_fcvt(row->doubleField(field), col.fractional_digits, buffer, NULL);
               std::cout << buffer;
             }
             break;
@@ -1405,39 +1472,39 @@ static void print_result_set(mysqlx::Result &result)
             if (col.fractional_digits >= 31)
             {
               char buffer[100];
-              my_gcvt(row->floatField(i), MY_GCVT_ARG_FLOAT, sizeof(buffer)-1, buffer, NULL);
+              my_gcvt(row->floatField(field), MY_GCVT_ARG_FLOAT, sizeof(buffer)-1, buffer, NULL);
               std::cout << buffer;
             }
             else
             {
               char buffer[100];
-              my_fcvt(row->floatField(i), col.fractional_digits, buffer, NULL);
+              my_fcvt(row->floatField(field), col.fractional_digits, buffer, NULL);
               std::cout << buffer;
             }
             break;
           case mysqlx::BYTES:
             {
-              std::string tmp(row->stringField(i));
+              std::string tmp(row->stringField(field));
               std::cout << unreplace_variables(tmp, false);
             }
             break;
           case mysqlx::TIME:
-            std::cout << row->timeField(i);
+            std::cout << row->timeField(field);
             break;
           case mysqlx::DATETIME:
-            std::cout << row->dateTimeField(i);
+            std::cout << row->dateTimeField(field);
             break;
           case mysqlx::DECIMAL:
-            std::cout << row->decimalField(i);
+            std::cout << row->decimalField(field);
             break;
           case mysqlx::SET:
-            std::cout << row->setFieldStr(i);
+            std::cout << row->setFieldStr(field);
             break;
           case mysqlx::ENUM:
-            std::cout << row->enumField(i);
+            std::cout << row->enumField(field);
             break;
           case mysqlx::BIT:
-            std::cout << row->bitField(i);
+            std::cout << row->bitField(field);
             break;
         }
       }
@@ -1835,6 +1902,7 @@ public:
     std::cout << "--ssl-cipher          SSL cipher to use\n";
     std::cout << "--connect-expired-password Allow expired password\n";
     std::cout << "--quiet               Don't print out messages sent";
+    std::cout << "--fatal-errors=<0|1>  Mysqlxtest is started with ignoring or stopping on fatal error";
     std::cout << "-B, --bindump         Dump binary representation of messages sent, in format suitable for ";
     std::cout << "--help                     Show command line help\n";
     std::cout << "--help-commands            Show help for input commands\n";
@@ -1974,6 +2042,8 @@ public:
         schema = value;
       else if (check_arg_with_value(argv, i, "--port", "-P", value))
         port = atoi(value);
+      else if (check_arg_with_value(argv, i, "--fatal-errors", NULL, value))
+        OPT_fatal_errors = atoi(value);
       else if (check_arg_with_value(argv, i, "--password", "-p", value))
         password = value;
       else if (check_arg(argv, i, "--bindump", "-B"))

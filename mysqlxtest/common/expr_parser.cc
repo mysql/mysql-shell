@@ -980,7 +980,7 @@ Mysqlx::Expr::Expr* Expr_parser::json_doc()
   Mysqlx::Expr::Object* obj = result->mutable_object();
   result->set_type(Mysqlx::Expr::Expr_Type_OBJECT);
   _tokenizer.consume_token(Token::LCURLY);
-  const Token& tok = _tokenizer.peek_token();
+  //const Token& tok = _tokenizer.peek_token();
   if (_tokenizer.cur_token_type_is(Token::LSTRING))
   {
     json_key_value(obj);
