@@ -310,7 +310,7 @@ namespace shcore {
     exec_and_out_equals("print(s);", "<Schema:mysqlx_test_create_schema_1>");
 
     // Error, existing schema
-    exec_and_out_contains("var s2 = session.createSchema('mysqlx_test_create_schema_1');", "", "Server: Can't create database 'mysqlx_test_create_schema_1'; database exists (1007)");
+    exec_and_out_contains("var s2 = session.createSchema('mysqlx_test_create_schema_1');", "", "Server (1007): Can't create database 'mysqlx_test_create_schema_1'; database exists");
 
     // Error, passing non string
     exec_and_out_contains("var s2 = session.createSchema(45);", "", "TypeError: Argument #1 is expected to be a string");

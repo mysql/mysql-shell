@@ -477,69 +477,9 @@ struct JScript_context::JScript_context_impl
     return r;
   }
 
-  std::string format_exception(const shcore::Value &exc)
+  void print_exception(const std::string& text)
   {
-    try
-    {
-      if (exc.type == Map)
-      {
-        std::string type = exc.as_map()->get_string("type", "");
-        std::string message = exc.as_map()->get_string("message", "");
-        int64_t code = exc.as_map()->get_int("code", -1);
-
-        if (!type.empty() && !message.empty())
-        {
-          if (code < 0)
-            return (boost::format("%1%: %2%") % type % message).str();
-          else
-            return (boost::format("%1%: %2% (%3%)") % type % message % code).str();
-        }
-        else
-          return "";
-      }
-    }
-    catch (std::exception &e)
-    {
-      std::cerr << e.what() << ": unexpected format of exception object\n";
-    }
-    return exc.descr(false);
-  }
-
-  void print_exception(v8::TryCatch *exc)
-  {
-    v8::Handle<v8::Message> message = exc->Message();
-
-    std::string exception_text;
-    v8::String::Utf8Value exec_error(exc->Exception());
-    if (*exec_error)
-      exception_text = *exec_error;
-    else
-      exception_text = format_exception(types.v8_value_to_shcore_value(exc->Exception()));
-
-    if (message.IsEmpty())
-        delegate->print_error(delegate->user_data, std::string().append(exception_text).append("\n").c_str());
-    else
-    {
-      v8::String::Utf8Value filename(message->GetScriptOrigin().ResourceName());
-
-      // location
-      std::string text = (boost::format("%s:%i:%i: %s\n") % *filename % message->GetLineNumber() % message->GetStartColumn() % exception_text).str();
-
-      // code
-      v8::String::Utf8Value code(message->GetSourceLine());
-      text.append("in ");
-      text.append(*code ? *code : "").append("\n");
-      // underline
-      text.append(3 + message->GetStartColumn(), ' ');
-      text.append(message->GetEndColumn() - message->GetStartColumn(), '^');
-      text.append("\n");
-
-      v8::String::Utf8Value stack(exc->StackTrace());
-      if (*stack && **stack)
-        text.append(std::string(*stack).append("\n"));
-
-      delegate->print_error(delegate->user_data, text.c_str());
-    }
+    delegate->print_error(delegate->user_data, text.c_str());
   }
 
   void set_global_item(const std::string &global_name, const std::string &item_name, const v8::Handle<v8::Value> &value)
@@ -824,15 +764,9 @@ Value JScript_context::execute(const std::string &code_str, const std::string& s
   {
     if (try_catch.HasCaught())
     {
-      Value e(_impl->types.v8_value_to_shcore_value(try_catch.Exception()));
+      Value e = get_v8_exception_data(&try_catch);
 
-      // _impl->print_exception(&try_catch, false);
-
-      // TODO: wrap the Exception object in JS so that one can throw common exceptions from JS
-      if (e.type == Map)
-        throw Exception(e.as_map());
-      else
-        throw Exception::scripting_error(_impl->format_exception(e));
+      throw Exception::scripting_error(format_exception(e));
     }
     else
       throw shcore::Exception::logic_error("Unexpected error processing script, no exception caught!");
@@ -857,12 +791,12 @@ Value JScript_context::execute_interactive(const std::string &code_str) BOOST_NO
   v8::Handle<v8::Script> script = v8::Script::Compile(code, &origin);
 
   if (script.IsEmpty())
-    _impl->print_exception(&try_catch);
+    _impl->print_exception(format_exception(get_v8_exception_data(&try_catch)));
   else
   {
     v8::Handle<v8::Value> result = script->Run();
     if (result.IsEmpty())
-      _impl->print_exception(&try_catch);
+      _impl->print_exception(format_exception(get_v8_exception_data(&try_catch)));
     else
     {
       try
@@ -878,4 +812,82 @@ Value JScript_context::execute_interactive(const std::string &code_str) BOOST_NO
     }
   }
   return Value();
+}
+
+std::string JScript_context::format_exception(const shcore::Value &exc)
+{
+  std::string error_message;
+
+  if (exc.type == Map)
+  {
+    std::string type = exc.as_map()->get_string("type", "");
+    std::string message = exc.as_map()->get_string("message", "");
+    int64_t code = exc.as_map()->get_int("code", -1);
+    std::string location = exc.as_map()->get_string("location", "");
+
+    if (!message.empty())
+    {
+      if (!type.empty())
+        error_message += type;
+
+      if (code != -1)
+        error_message += (boost::format(" (%1%)") % code).str();
+
+      if (!error_message.empty())
+        error_message += ": ";
+
+      error_message += message;
+
+      if (!location.empty())
+        error_message += " at " + location;
+    }
+  }
+  else
+    error_message = "Unexpected format of exception object.";
+
+  error_message += "\n";
+
+  return error_message;
+}
+
+Value JScript_context::get_v8_exception_data(v8::TryCatch *exc)
+{
+  Value::Map_type_ref data;
+
+  v8::String::Utf8Value exec_error(exc->Exception());
+  if (*exec_error)
+  {
+    // JS errors produced by V8 most likely will fall on this branch
+    data.reset(new Value::Map_type());
+    (*data)["message"] = Value(*exec_error);
+  }
+  else
+  {
+    // Errors produced by C++ code we exposed to the JS engine will fall here
+    data = _impl->types.v8_value_to_shcore_value(exc->Exception()).as_map();
+  }
+
+  v8::Handle<v8::Message> message = exc->Message();
+  if (!message.IsEmpty())
+  {
+    // location
+    v8::String::Utf8Value filename(message->GetScriptOrigin().ResourceName());
+    std::string text = (boost::format("%s:%i:%i\n") % *filename % message->GetLineNumber() % message->GetStartColumn()).str();
+    v8::String::Utf8Value code(message->GetSourceLine());
+    text.append("in ");
+    text.append(*code ? *code : "").append("\n");
+
+    // underline
+    text.append(3 + message->GetStartColumn(), ' ');
+    text.append(message->GetEndColumn() - message->GetStartColumn(), '^');
+    text.append("\n");
+
+    v8::String::Utf8Value stack(exc->StackTrace());
+    if (*stack && **stack)
+      text.append(std::string(*stack).append("\n"));
+
+    (*data)["location"] = Value(text);
+  }
+
+  return Value(data);
 }

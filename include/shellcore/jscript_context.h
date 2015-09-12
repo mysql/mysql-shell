@@ -58,6 +58,9 @@ namespace shcore
     JScript_context_impl *_impl;
 
     Object_registry *_registry;
+
+    Value get_v8_exception_data(v8::TryCatch *exc);
+    std::string format_exception(const shcore::Value &exc);
   };
 };
 

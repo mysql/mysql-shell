@@ -73,7 +73,7 @@ namespace shcore {
   {
     // issue an stmt with syntax error, then check the log.
     execute("print('x';");
-    std::string std_err = "(shell):1:9: SyntaxError: Unexpected token ;\nin print('x';\n            ^\nSyntaxError: Unexpected token ;\n";
+    std::string std_err = "SyntaxError: Unexpected token ; at (shell):1:9\nin print('x';\n            ^\nSyntaxError: Unexpected token ;\n\n";
     EXPECT_TRUE(std_err == this->output_handler.std_err);
     execute("session.sql('select * from sakila.actor1 limit');");
     // The hook was invoked
