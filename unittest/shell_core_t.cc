@@ -62,7 +62,7 @@ namespace shcore {
         _shell_core->set_global("session", Value(boost::static_pointer_cast<Object_bridge>(session)));
       }
 
-      void process(const std::string& path, bool continue_on_error)
+      void process(const std::string& path)
       {
         wipe_all();
 
@@ -72,7 +72,7 @@ namespace shcore {
         if (stream.fail())
           FAIL();
 
-        _ret_val = _shell_core->process_stream(stream, _file_name, continue_on_error);
+        _ret_val = _shell_core->process_stream(stream, _file_name);
       }
     };
 
@@ -81,19 +81,21 @@ namespace shcore {
       connect();
 
       // Successfully processed file
-      process("sql/sql_ok.sql", false);
+      (*Shell_core_options::get())[SHCORE_BATCH_CONTINUE_ON_ERROR] = Value::False();
+      process("sql/sql_ok.sql");
       EXPECT_EQ(0, _ret_val);
       EXPECT_NE(-1, static_cast<int>(output_handler.std_out.find("first_result")));
 
       // Failed without the force option
-      process("sql/sql_err.sql", false);
+      process("sql/sql_err.sql");
       EXPECT_EQ(1, _ret_val);
       EXPECT_NE(-1, static_cast<int>(output_handler.std_out.find("first_result")));
       EXPECT_NE(-1, static_cast<int>(output_handler.std_err.find("Table 'unexisting.whatever' doesn't exist")));
       EXPECT_EQ(-1, static_cast<int>(output_handler.std_out.find("second_result")));
 
       // Failed without the force option
-      process("sql/sql_err.sql", true);
+      (*Shell_core_options::get())[SHCORE_BATCH_CONTINUE_ON_ERROR] = Value::True();
+      process("sql/sql_err.sql");
       EXPECT_EQ(1, _ret_val);
       EXPECT_NE(-1, static_cast<int>(output_handler.std_out.find("first_result")));
       EXPECT_NE(-1, static_cast<int>(output_handler.std_err.find("Table 'unexisting.whatever' doesn't exist")));
@@ -103,10 +105,10 @@ namespace shcore {
       // Error is also directed to the std::cerr directly
       bool initialized = false;
       _shell_core->switch_mode(Shell_core::Mode_JScript, initialized);
-      process("js/js_ok.js", true);
+      process("js/js_ok.js");
       EXPECT_EQ(0, _ret_val);
 
-      process("js/js_err.js", true);
+      process("js/js_err.js");
       EXPECT_NE(-1, static_cast<int>(output_handler.std_err.find("Table 'unexisting.whatever' doesn't exist")));
     }
   }

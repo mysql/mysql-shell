@@ -84,6 +84,8 @@ namespace shcore
     PyEval_SaveThread();
 
     _types.init();
+
+    set_global_item("shell", "options", Value(boost::static_pointer_cast<Object_bridge>(Shell_core_options::get_instance())));
   }
 
   Python_context::~Python_context()
@@ -226,6 +228,20 @@ namespace shcore
   void Python_context::set_global(const std::string &name, const Value &value)
   {
     PyDict_SetItemString(_globals, name.c_str(), _types.shcore_value_to_pyobj(value));
+  }
+
+  void Python_context::set_global_item(const std::string &global_name, const std::string &item_name, const Value &value)
+  {
+    PyObject *py_global;
+
+    py_global = PyDict_GetItemString(_globals, global_name.c_str());
+    if (!py_global)
+    {
+      // TODO: log error
+      PyErr_Print();
+    }
+    else
+      PyModule_AddObject(py_global, item_name.c_str(), _types.shcore_value_to_pyobj(value));
   }
 
   Value Python_context::pyobj_to_shcore_value(PyObject *value)

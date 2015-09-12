@@ -24,6 +24,7 @@
 #include "mysqlx_parser.h"
 
 #include "compilerutils.h"
+#include <boost/algorithm/string.hpp>
 
 using namespace mysqlx;
 
@@ -106,8 +107,59 @@ RemoveStatement Collection::remove(const std::string &searchCondition)
   return tmp;
 }
 
+Statement::Statement(const Statement& other) :
+m_placeholders(other.m_placeholders), m_bound_values(other.m_bound_values)
+{
+}
+
 Statement::~Statement()
 {
+}
+
+void Statement::init_bound_values()
+{
+  // Initializes the bound values array on the first call to bind
+  if (!m_bound_values.size())
+  {
+    for (size_t index = 0; index < m_placeholders.size(); index++)
+      m_bound_values.push_back(NULL);
+  }
+}
+
+void Statement::validate_bind_placeholder(const std::string& name)
+{
+  // Now sets the right value on the position of the indicated placeholder
+  std::vector<std::string>::iterator index = std::find(m_placeholders.begin(), m_placeholders.end(), name);
+  if (index == m_placeholders.end())
+    throw std::logic_error("Unable to bind value for unexisting placeholder: " + name);
+}
+
+void Statement::insert_bound_values(::google::protobuf::RepeatedPtrField< ::Mysqlx::Datatypes::Scalar >* target)
+{
+  // First validates that all the placeholders have a bound value
+  std::string str_undefined;
+  if (m_placeholders.size() && !m_bound_values.size())
+    str_undefined = boost::algorithm::join(m_placeholders, ", ");
+  else
+  {
+    std::vector<std::string> undefined;
+    for (size_t index = 0; index < m_bound_values.size(); index++)
+    {
+      if (!m_bound_values[index])
+        undefined.push_back(m_placeholders[index]);
+    }
+
+    str_undefined = boost::algorithm::join(undefined, ", ");
+  }
+
+  // Throws the error if needed
+  if (!str_undefined.empty())
+    throw std::logic_error("Missing value bindings for the next placeholders: " + str_undefined);
+
+  // No errors, proceeds to set the values if any
+  std::vector<Mysqlx::Datatypes::Scalar*>::const_iterator index, end = m_bound_values.end();
+  for (index = m_bound_values.begin(); index != end; index++)
+    target->AddAllocated(*index);
 }
 
 Collection_Statement::Collection_Statement(boost::shared_ptr<Collection> coll)
@@ -115,8 +167,21 @@ Collection_Statement::Collection_Statement(boost::shared_ptr<Collection> coll)
 {
 }
 
-Collection_Statement &Collection_Statement::bind(const std::string &UNUSED(name), const DocumentValue &UNUSED(value))
+Collection_Statement::Collection_Statement(const Collection_Statement& other)
+: m_coll(other.m_coll), Statement(other)
 {
+}
+
+Collection_Statement &Collection_Statement::bind(const std::string &name, const DocumentValue &value)
+{
+  init_bound_values();
+
+  validate_bind_placeholder(name);
+
+  // Now sets the right value on the position of the indicated placeholder
+  std::vector<std::string>::iterator index = std::find(m_placeholders.begin(), m_placeholders.end(), name);
+  m_bound_values[index - m_placeholders.begin()] = convert_document_value(value);
+
   return *this;
 }
 
@@ -144,6 +209,7 @@ Mysqlx::Datatypes::Scalar* Collection_Statement::convert_document_value(const Do
       my_scalar->set_type(Mysqlx::Datatypes::Scalar::V_OCTETS);
       my_scalar->set_v_opaque(column_value);
       break;
+
     case DocumentValue::TExpression:
       // XXX TODO
       break;
@@ -160,7 +226,7 @@ Find_Base::Find_Base(boost::shared_ptr<Collection> coll)
 }
 
 Find_Base::Find_Base(const Find_Base &other)
-: Collection_Statement(other.m_coll), m_find(other.m_find)
+: Collection_Statement(other), m_find(other.m_find)
 {
 }
 
@@ -172,6 +238,8 @@ Find_Base &Find_Base::operator = (const Find_Base &other)
 
 Result *Find_Base::execute()
 {
+  insert_bound_values(m_find->mutable_args());
+
   if (!m_find->IsInitialized())
     throw std::logic_error("FindStatement is not completely initialized: " + m_find->InitializationErrorString());
 
@@ -243,7 +311,7 @@ FindStatement::FindStatement(boost::shared_ptr<Collection> coll, const std::stri
   m_find->set_data_model(Mysqlx::Crud::DOCUMENT);
 
   if (!searchCondition.empty())
-    m_find->set_allocated_criteria(parser::parse_collection_filter(searchCondition));
+    m_find->set_allocated_criteria(parser::parse_collection_filter(searchCondition, &m_placeholders));
 }
 
 //----------------------------------
@@ -254,7 +322,7 @@ Add_Base::Add_Base(boost::shared_ptr<Collection> coll)
 }
 
 Add_Base::Add_Base(const Add_Base &other)
-: Collection_Statement(other.m_coll), m_insert(other.m_insert)
+: Collection_Statement(other), m_insert(other.m_insert)
 {
 }
 
@@ -314,7 +382,7 @@ Remove_Base::Remove_Base(boost::shared_ptr<Collection> coll)
 }
 
 Remove_Base::Remove_Base(const Remove_Base &other)
-: Collection_Statement(other.m_coll), m_delete(other.m_delete)
+: Collection_Statement(other), m_delete(other.m_delete)
 {
 }
 
@@ -326,6 +394,8 @@ Remove_Base &Remove_Base::operator = (const Remove_Base &other)
 
 Result *Remove_Base::execute()
 {
+  insert_bound_values(m_delete->mutable_args());
+
   if (!m_delete->IsInitialized())
     throw std::logic_error("RemoveStatement is not completely initialized: " + m_delete->InitializationErrorString());
 
@@ -352,7 +422,7 @@ RemoveStatement::RemoveStatement(boost::shared_ptr<Collection> coll, const std::
   m_delete->set_data_model(Mysqlx::Crud::DOCUMENT);
 
   if (!searchCondition.empty())
-    m_delete->set_allocated_criteria(parser::parse_collection_filter(searchCondition));
+    m_delete->set_allocated_criteria(parser::parse_collection_filter(searchCondition, &m_placeholders));
 }
 
 Remove_Limit &RemoveStatement::sort(const std::vector<std::string> &sortFields)
@@ -373,7 +443,7 @@ Modify_Base::Modify_Base(boost::shared_ptr<Collection> coll)
 }
 
 Modify_Base::Modify_Base(const Modify_Base &other)
-: Collection_Statement(other.m_coll), m_update(other.m_update)
+: Collection_Statement(other), m_update(other.m_update)
 {
 }
 
@@ -386,6 +456,8 @@ Modify_Base &Modify_Base::operator = (const Modify_Base &other)
 
 Result *Modify_Base::execute()
 {
+  insert_bound_values(m_update->mutable_args());
+
   if (!m_update->IsInitialized())
     throw std::logic_error("ModifyStatement is not completely initialized: " + m_update->InitializationErrorString());
 
@@ -503,7 +575,7 @@ ModifyStatement::ModifyStatement(boost::shared_ptr<Collection> coll, const std::
   m_update->set_data_model(Mysqlx::Crud::DOCUMENT);
 
   if (!searchCondition.empty())
-    m_update->set_allocated_criteria(parser::parse_collection_filter(searchCondition));
+    m_update->set_allocated_criteria(parser::parse_collection_filter(searchCondition, &m_placeholders));
 }
 
 //--------------------------------------------------------------
@@ -511,6 +583,24 @@ ModifyStatement::ModifyStatement(boost::shared_ptr<Collection> coll, const std::
 Table_Statement::Table_Statement(boost::shared_ptr<Table> table)
 : m_table(table)
 {
+}
+
+Table_Statement::Table_Statement(const Table_Statement& other)
+: m_table(other.m_table), Statement(other)
+{
+}
+
+Table_Statement &Table_Statement::bind(const std::string &name, const TableValue &value)
+{
+  init_bound_values();
+
+  validate_bind_placeholder(name);
+
+  // Now sets the right value on the position of the indicated placeholder
+  std::vector<std::string>::iterator index = std::find(m_placeholders.begin(), m_placeholders.end(), name);
+  m_bound_values[index - m_placeholders.begin()] = convert_table_value(value);
+
+  return *this;
 }
 
 Mysqlx::Datatypes::Scalar* Table_Statement::convert_table_value(const TableValue& value)
@@ -571,7 +661,7 @@ Delete_Base::Delete_Base(boost::shared_ptr<Table> table)
 }
 
 Delete_Base::Delete_Base(const Delete_Base &other)
-: Table_Statement(other.m_table), m_delete(other.m_delete)
+: Table_Statement(other), m_delete(other.m_delete)
 {
 }
 
@@ -583,6 +673,8 @@ Delete_Base &Delete_Base::operator = (const Delete_Base &other)
 
 Result *Delete_Base::execute()
 {
+  insert_bound_values(m_delete->mutable_args());
+
   if (!m_delete->IsInitialized())
     throw std::logic_error("DeleteStatement is not completely initialized: " + m_delete->InitializationErrorString());
 
@@ -622,7 +714,7 @@ DeleteStatement::DeleteStatement(boost::shared_ptr<Table> table)
 Delete_OrderBy &DeleteStatement::where(const std::string& searchCondition)
 {
   if (!searchCondition.empty())
-    m_delete->set_allocated_criteria(parser::parse_table_filter(searchCondition));
+    m_delete->set_allocated_criteria(parser::parse_table_filter(searchCondition, &m_placeholders));
 
   return *this;
 }
@@ -635,7 +727,7 @@ Update_Base::Update_Base(boost::shared_ptr<Table> table)
 }
 
 Update_Base::Update_Base(const Update_Base &other)
-: Table_Statement(other.m_table), m_update(other.m_update)
+: Table_Statement(other), m_update(other.m_update)
 {
 }
 
@@ -647,6 +739,8 @@ Update_Base &Update_Base::operator = (const Update_Base &other)
 
 Result *Update_Base::execute()
 {
+  insert_bound_values(m_update->mutable_args());
+
   if (!m_update->IsInitialized())
     throw std::logic_error("UpdateStatement is not completely initialized: " + m_update->InitializationErrorString());
 
@@ -678,7 +772,7 @@ Update_Limit &Update_OrderBy::orderBy(const std::vector<std::string> &sortFields
 Update_OrderBy &Update_Where::where(const std::string& searchCondition)
 {
   if (!searchCondition.empty())
-    m_update->set_allocated_criteria(parser::parse_table_filter(searchCondition));
+    m_update->set_allocated_criteria(parser::parse_table_filter(searchCondition, &m_placeholders));
 
   return *this;
 }
@@ -726,7 +820,7 @@ Select_Base::Select_Base(boost::shared_ptr<Table> table)
 }
 
 Select_Base::Select_Base(const Select_Base &other)
-: Table_Statement(other.m_table), m_find(other.m_find)
+: Table_Statement(other), m_find(other.m_find)
 {
 }
 
@@ -738,6 +832,8 @@ Select_Base &Select_Base::operator = (const Select_Base &other)
 
 Result *Select_Base::execute()
 {
+  insert_bound_values(m_find->mutable_args());
+
   if (!m_find->IsInitialized())
     throw std::logic_error("SelectStatement is not completely initialized: " + m_find->InitializationErrorString());
 
@@ -810,7 +906,7 @@ SelectStatement::SelectStatement(boost::shared_ptr<Table> table, const std::vect
 Select_GroupBy &SelectStatement::where(const std::string &searchCondition)
 {
   if (!searchCondition.empty())
-    m_find->set_allocated_criteria(parser::parse_table_filter(searchCondition));
+    m_find->set_allocated_criteria(parser::parse_table_filter(searchCondition, &m_placeholders));
 
   return *this;
 }
@@ -823,7 +919,7 @@ Insert_Base::Insert_Base(boost::shared_ptr<Table> table)
 }
 
 Insert_Base::Insert_Base(const Insert_Base &other)
-: Table_Statement(other.m_table), m_insert(other.m_insert)
+: Table_Statement(other), m_insert(other.m_insert)
 {
 }
 

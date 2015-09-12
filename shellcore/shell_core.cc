@@ -89,9 +89,9 @@ bool Shell_core::password(const std::string &s, std::string &ret_pass)
   return _lang_delegate->password(_lang_delegate->user_data, s.c_str(), ret_pass);
 }
 
-void Shell_core::handle_input(std::string &code, Interactive_input_state &state, boost::function<void(shcore::Value)> result_processor, bool interactive)
+void Shell_core::handle_input(std::string &code, Interactive_input_state &state, boost::function<void(shcore::Value)> result_processor)
 {
-  _langs[_mode]->handle_input(code, state, result_processor, interactive);
+  _langs[_mode]->handle_input(code, state, result_processor);
 }
 
 std::string Shell_core::get_handled_input()
@@ -105,7 +105,7 @@ std::string Shell_core::get_handled_input()
 * - 1 in case of any processing error is found.
 * - 0 if no processing errors were found.
 */
-int Shell_core::process_stream(std::istream& stream, const std::string& source, bool continue_on_error)
+int Shell_core::process_stream(std::istream& stream, const std::string& source)
 {
   Interactive_input_state state;
   _global_return_code = 0;
@@ -115,15 +115,18 @@ int Shell_core::process_stream(std::istream& stream, const std::string& source, 
   // In SQL Mode the stdin and file are processed line by line
   if (_mode == Shell_core::Mode_SQL)
   {
+    // Processing batch in SQL mode  must be "interactive" so the results get printed
+    (*Shell_core_options::get())[SHCORE_INTERACTIVE] = Value::True();
+
     while (!stream.eof())
     {
       std::string line;
 
       std::getline(stream, line);
 
-      handle_input(line, state, boost::bind(&Shell_core::process_result, this, _1, true), false);
+      handle_input(line, state, boost::bind(&Shell_core::process_result, this, _1));
 
-      if (_global_return_code && !continue_on_error)
+      if (_global_return_code && !(*Shell_core_options::get())[SHCORE_BATCH_CONTINUE_ON_ERROR].as_bool())
         break;
     }
   }
@@ -141,7 +144,7 @@ int Shell_core::process_stream(std::istream& stream, const std::string& source, 
 
     std::string data(fdata);
 
-    handle_input(data, state, boost::bind(&Shell_core::process_result, this, _1, false), false);
+    handle_input(data, state, boost::bind(&Shell_core::process_result, this, _1));
   }
 
   _input_source.clear();
@@ -149,25 +152,22 @@ int Shell_core::process_stream(std::istream& stream, const std::string& source, 
   return _global_return_code;
 }
 
-void Shell_core::process_result(shcore::Value result, bool print_data)
+void Shell_core::process_result(shcore::Value result)
 {
-  if (print_data)
+  if ((*Shell_core_options::get())[SHCORE_INTERACTIVE].as_bool())
   {
     // Prints results in batch mode
     if (result && result.type == shcore::Object)
     {
       boost::shared_ptr<Object_bridge> object = result.as_object();
       Value dump_function;
-      if (object && object->has_member("__paged_output__"))
-        dump_function = object->get_member("__paged_output__");
+      if (object && object->has_member("__shell_hook__"))
+        dump_function = object->get_member("__shell_hook__");
 
       if (dump_function)
       {
         Argument_list args;
-        args.push_back(Value(_interactive));
-        args.push_back(Value(_output_format));
-        args.push_back(Value(_show_warnings));
-        object->call("__paged_output__", args);
+        object->call("__shell_hook__", args);
       }
     }
   }

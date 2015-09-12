@@ -30,9 +30,9 @@ namespace mysqlx
 {
   namespace parser
   {
-    inline Mysqlx::Expr::Expr* parse_collection_filter(const std::string &source)
+    inline Mysqlx::Expr::Expr* parse_collection_filter(const std::string &source, std::vector<std::string>* placeholders = NULL)
     {
-      Expr_parser parser(source, true);
+      Expr_parser parser(source, true, false, placeholders);
       return parser.expr();
     }
 
@@ -48,9 +48,9 @@ namespace mysqlx
       return parser.column_identifier();
     }
 
-    inline Mysqlx::Expr::Expr* parse_table_filter(const std::string &source)
+    inline Mysqlx::Expr::Expr* parse_table_filter(const std::string &source, std::vector<std::string>* placeholders = NULL)
     {
-      Expr_parser parser(source);
+      Expr_parser parser(source, false, false, placeholders);
       return parser.expr();
     }
 

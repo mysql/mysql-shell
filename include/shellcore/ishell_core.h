@@ -56,15 +56,14 @@ namespace shcore
     virtual Value get_global(const std::string &name) = 0;
 
     virtual Object_registry *registry() = 0;
-    virtual void handle_input(std::string &code, Interactive_input_state &state, boost::function<void(shcore::Value)> result_processor, bool interactive = true) = 0;
+    virtual void handle_input(std::string &code, Interactive_input_state &state, boost::function<void(shcore::Value)> result_processor) = 0;
     virtual bool handle_shell_command(const std::string &code) = 0;
     virtual std::string get_handled_input() = 0;
-    virtual int process_stream(std::istream& stream = std::cin, const std::string& source = "(shcore)", bool continue_on_error = false) = 0;
+    virtual int process_stream(std::istream& stream = std::cin, const std::string& source = "(shcore)") = 0;
 
     virtual std::string prompt() = 0;
 
     virtual Interpreter_delegate *lang_delegate() = 0;
-    virtual void set_output_format(const std::string &format) = 0;
 
     virtual void print(const std::string &s) = 0;
     virtual void print_error(const std::string &s) = 0;

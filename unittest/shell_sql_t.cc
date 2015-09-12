@@ -73,7 +73,7 @@ namespace shcore {
 
       shcore::Value handle_input(std::string& query, Interactive_input_state& state)
       {
-        env.shell_sql->handle_input(query, state, boost::bind(&Shell_sql_test::process_result, this, _1), true);
+        env.shell_sql->handle_input(query, state, boost::bind(&Shell_sql_test::process_result, this, _1));
 
         return _returned_value;
       }

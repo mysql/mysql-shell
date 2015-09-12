@@ -37,7 +37,6 @@
 
 using namespace mysqlx;
 
-
 struct Tokenizer::Maps Tokenizer::map;
 
 Tokenizer::Maps::Maps()
@@ -297,9 +296,9 @@ void Tokenizer::get_tokens()
           if (i == j)
             throw Parser_error((boost::format("Tokenizer: Missing exponential value for floating point at char %d") % i).str());
         }
-_tokens.push_back(Token(Token::LNUM, std::string(_input, start, i - start)));
+        _tokens.push_back(Token(Token::LNUM, std::string(_input, start, i - start)));
       }
-      else 
+      else
       {
         _tokens.push_back(Token(Token::LINTEGER, std::string(_input, start, i - start)));
       }
@@ -586,8 +585,14 @@ bool Tokenizer::Cmp_icase::operator()(const std::string& lhs, const std::string&
   return _stricmp(c_lhs, c_rhs) < 0;
 }
 
-Expr_parser::Expr_parser(const std::string& expr_str, bool document_mode, bool allow_alias) : _tokenizer(expr_str), _document_mode(document_mode), _allow_alias(allow_alias), _placeholder_pos(0)
+Expr_parser::Expr_parser(const std::string& expr_str, bool document_mode, bool allow_alias, std::vector<std::string>* place_holders) : _tokenizer(expr_str), _document_mode(document_mode), _allow_alias(allow_alias)
 {
+  // If provided uses external placeholder information, if not uses the internal
+  if (place_holders)
+    _place_holder_ref = place_holders;
+  else
+    _place_holder_ref = &_place_holders;
+
   _tokenizer.get_tokens();
 }
 
@@ -941,7 +946,7 @@ Mysqlx::Expr::Expr* Expr_parser::atomic_expr()
   else if (type == Token::IDENT || type == Token::DOT)
   {
     _tokenizer.unget_token();
-    if ( type == Token::IDENT && ( _tokenizer.next_token_type(Token::LPAREN) ||
+    if (type == Token::IDENT && (_tokenizer.next_token_type(Token::LPAREN) ||
       (_tokenizer.next_token_type(Token::DOT) && _tokenizer.pos_token_type_is(_tokenizer.get_token_pos() + 2, Token::IDENT) && _tokenizer.pos_token_type_is(_tokenizer.get_token_pos() + 3, Token::LPAREN))))
     {
       return function_call();
@@ -971,12 +976,11 @@ void Expr_parser::json_key_value(Mysqlx::Expr::Object* obj)
 */
 Mysqlx::Expr::Expr* Expr_parser::json_doc()
 {
-
   std::auto_ptr<Mysqlx::Expr::Expr> result(new Mysqlx::Expr::Expr());
   Mysqlx::Expr::Object* obj = result->mutable_object();
   result->set_type(Mysqlx::Expr::Expr_Type_OBJECT);
   _tokenizer.consume_token(Token::LCURLY);
-  const Token& tok = _tokenizer.peek_token();
+  //const Token& tok = _tokenizer.peek_token();
   if (_tokenizer.cur_token_type_is(Token::LSTRING))
   {
     json_key_value(obj);
@@ -1002,31 +1006,29 @@ Mysqlx::Expr::Expr* Expr_parser::placeholder()
   if (_tokenizer.cur_token_type_is(Token::COLON))
   {
     _tokenizer.consume_token(Token::COLON);
-    
+
     if (_tokenizer.cur_token_type_is(Token::LINTEGER))
       placeholder_name = _tokenizer.consume_token(Token::LINTEGER);
     else if (_tokenizer.cur_token_type_is(Token::IDENT))
       placeholder_name = _tokenizer.consume_token(Token::IDENT);
     else
-      placeholder_name = boost::lexical_cast<std::string>(_placeholder_pos);
+      placeholder_name = boost::lexical_cast<std::string>(_place_holder_ref->size());
   }
   else if (_tokenizer.cur_token_type_is(Token::PLACEHOLDER))
   {
     _tokenizer.consume_token(Token::PLACEHOLDER);
-    placeholder_name = boost::lexical_cast<std::string>(_placeholder_pos);
+    placeholder_name = boost::lexical_cast<std::string>(_place_holder_ref->size());
   }
 
-  map_placeholder_to_pos_t::const_iterator pos = _placeholder_name_to_pos.find(placeholder_name);
-  if (pos != _placeholder_name_to_pos.end())
-  {
-    result->set_position(pos->second);
-  }
-  else 
-  {
-    result->set_position(_placeholder_pos);
-    _placeholder_name_to_pos[placeholder_name] = _placeholder_pos;
-    ++_placeholder_pos;
-  }
+  // Adds a new placeholder if needed
+  int position = int(_place_holder_ref->size());
+  std::vector<std::string>::iterator index = std::find(_place_holder_ref->begin(), _place_holder_ref->end(), placeholder_name);
+  if (index == _place_holder_ref->end())
+    _place_holder_ref->push_back(placeholder_name);
+  else
+    position = int(index - _place_holder_ref->begin());
+
+  result->set_position(position);
 
   return result.release();
 }
@@ -1049,7 +1051,7 @@ Mysqlx::Expr::Expr* Expr_parser::cast()
   // params
   // 1st arg, expr
   _tokenizer.consume_token(Token::AS);
-::google::protobuf::RepeatedPtrField< ::Mysqlx::Expr::Expr >* params = func->mutable_param();
+  ::google::protobuf::RepeatedPtrField< ::Mysqlx::Expr::Expr >* params = func->mutable_param();
   params->AddAllocated(e.release());
   // 2nd arg, cast_data_type
   const std::string& type_to_cast = cast_data_type();
@@ -1205,13 +1207,13 @@ std::string Expr_parser::charset_def()
   const Token& token = _tokenizer.consume_any_token();
   if (token.get_type() == Token::CHARACTER)
   {
-    _tokenizer.consume_token(Token::SET);    
+    _tokenizer.consume_token(Token::SET);
   }
   else if (token.get_type() == Token::CHARSET)
   {
     /* nothing */
   }
-  else 
+  else
   {
     throw Parser_error((boost::format("Expected CHARACTER or CHARSET token, but got unknown token type = %d when expecting atomic expression at %d") % _tokenizer.peek_token().get_type() % _tokenizer.get_token_pos()).str());
   }
@@ -1222,7 +1224,7 @@ std::string Expr_parser::charset_def()
     _tokenizer.consume_any_token();
     result = "charset " + token2.get_text();
   }
-  else 
+  else
   {
     throw Parser_error((boost::format("Expected either IDENT, LSTRING or BINARY, but got unknown token type = %d when expecting atomic expression at %d") % token2.get_type() % _tokenizer.get_token_pos()).str());
   }
@@ -1475,12 +1477,12 @@ Mysqlx::Expr::Expr* Expr_parser::my_expr()
  */
 Mysqlx::Expr::Expr* Expr_parser::expr()
 {
- std::auto_ptr<Mysqlx::Expr::Expr> result(or_expr());
- if (_tokenizer.tokens_available())
- {
-   throw Parser_error((boost::format("Expr parser: Expected EOF, instead stopped at position %d") % _tokenizer.get_token_pos()).str());
- }
- return result.release();
+  std::auto_ptr<Mysqlx::Expr::Expr> result(or_expr());
+  if (_tokenizer.tokens_available())
+  {
+    throw Parser_error((boost::format("Expr parser: Expected EOF, instead stopped at position %d") % _tokenizer.get_token_pos()).str());
+  }
+  return result.release();
 }
 
 std::string Expr_unparser::any_to_string(const Mysqlx::Datatypes::Any& a)
@@ -1514,15 +1516,15 @@ std::string Expr_unparser::scalar_to_string(const Mysqlx::Datatypes::Scalar& s)
       return (boost::format("%f") % s.v_double()).str();
     case Mysqlx::Datatypes::Scalar::V_BOOL:
     {
-      if (s.v_bool())
-        return "TRUE";
-      else
-        return "FALSE";
+                                            if (s.v_bool())
+                                              return "TRUE";
+                                            else
+                                              return "FALSE";
     }
     case Mysqlx::Datatypes::Scalar::V_OCTETS:
     {
-      const char* value = s.v_opaque().c_str();
-      return "\"" + Expr_unparser::escape_literal(value) + "\"";
+                                              const char* value = s.v_opaque().c_str();
+                                              return "\"" + Expr_unparser::escape_literal(value) + "\"";
     }
     case Mysqlx::Datatypes::Scalar::V_NULL:
       return "NULL";

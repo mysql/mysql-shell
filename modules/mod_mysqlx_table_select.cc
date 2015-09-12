@@ -47,8 +47,9 @@ TableSelect::TableSelect(boost::shared_ptr<Table> owner)
   register_dynamic_function("orderBy", "select, where, groupBy, having");
   register_dynamic_function("limit", "select, where, groupBy, having, orderBy");
   register_dynamic_function("offset", "limit");
-  register_dynamic_function("bind", "select, where, groupBy, having, orderBy, offset, limit");
+  register_dynamic_function("bind", "select, where, groupBy, having, orderBy, offset, limit, bind");
   register_dynamic_function("execute", "select, where, groupBy, having, orderBy, offset, limit, bind");
+  register_dynamic_function("__shell_hook__", "select, where, groupBy, having, orderBy, offset, limit, bind");
 
   // Initial function update
   update_functions("");
@@ -68,9 +69,10 @@ TableSelect::TableSelect(boost::shared_ptr<Table> owner)
 *
 * - where(String searchCriteria)
 * - groupBy(List searchExprStr)
-* - orderBy(List sortExprStr);
-* - limit(Integer numberOfRows);
-* - execute(ExecuteOptions options), including usage examples.
+* - orderBy(List sortExprStr)
+* - limit(Integer numberOfRows)
+* - bind(String name, Value value)
+* - execute(ExecuteOptions options)
 *
 * \sa Usage examples at execute(ExecuteOptions options).
 */
@@ -115,6 +117,21 @@ shcore::Value TableSelect::select(const shcore::Argument_list &args)
 * if not specified all the records will be retrieved from the table unless a limit is set.
 * \return This TableSelect object.
 *
+* The searchCondition supports using placeholders instead of raw values, example:
+*
+* \code{.js}
+* // Retrieving adults from a table using a condition with raw values
+* table.select().where("age > 21").execute()
+*
+* // Equivalent code using bound values
+* table.select().where("age > :adultAge").bind('adultAge', 21).execute()
+* \endcode
+*
+* On the previous example, adultAge is a placeholder for a value that will be set by calling the bind() function
+* right before calling execute().
+*
+* Note that if placeholders are used, a value must be bounded on each of them or the operation will fail.
+*
 * This function can be invoked only once after:
 *
 * - select(List columns)
@@ -124,7 +141,8 @@ shcore::Value TableSelect::select(const shcore::Argument_list &args)
 * - groupBy(List searchExprStr)
 * - orderBy(List sortExprStr)
 * - limit(Integer numberOfRows)
-* - execute(ExecuteOptions options).
+* - bind(String name, Value value)
+* - execute(ExecuteOptions options)
 *
 * \sa Usage examples at execute(ExecuteOptions options).
 */TableSelect TableSelect::where(String searchCondition){}
@@ -159,9 +177,10 @@ shcore::Value TableSelect::where(const shcore::Argument_list &args)
 * After this function invocation the following functions can be invoked:
 *
 * - having(String searchCondition)
-* - orderBy(List sortExprStr);
-* - limit(Integer numberOfRows);
-* - execute(ExecuteOptions options).
+* - orderBy(List sortExprStr)
+* - limit(Integer numberOfRows)
+* - bind(String name, Value value)
+* - execute(ExecuteOptions options)
 *
 * \sa Usage examples at execute(ExecuteOptions options).
 */TableSelect TableSelect::groupBy(List searchExprStr){}
@@ -204,7 +223,8 @@ shcore::Value TableSelect::group_by(const shcore::Argument_list &args)
 *
 * - orderBy(List sortExprStr)
 * - limit(Integer numberOfRows)
-* - execute(ExecuteOptions options).
+* - bind(String name, Value value)
+* - execute(ExecuteOptions options)
 *
 * \sa Usage examples at execute(ExecuteOptions options).
 */
@@ -247,7 +267,8 @@ shcore::Value TableSelect::having(const shcore::Argument_list &args)
 * After this function invocation, the following functions can be invoked:
 *
 * - limit(Integer numberOfRows)
-* - execute(ExecuteOptions options).
+* - bind(String name, Value value)
+* - execute(ExecuteOptions options)
 *
 * \sa Usage examples at execute(ExecuteOptions options).
 */
@@ -294,7 +315,8 @@ shcore::Value TableSelect::order_by(const shcore::Argument_list &args)
 * After this function invocation, the following functions can be invoked:
 *
 * - offset(Integer limitOffset)
-* - execute(ExecuteOptions options).
+* - bind(String name, Value value)
+* - execute(ExecuteOptions options)
 *
 * \sa Usage examples at execute(ExecuteOptions options).
 */
@@ -327,6 +349,7 @@ shcore::Value TableSelect::limit(const shcore::Argument_list &args)
 *
 * After this function invocation, the following functions can be invoked:
 *
+* - bind(String name, Value value)
 * - execute(ExecuteOptions options)
 *
 * \sa Usage examples at execute(ExecuteOptions options).
@@ -349,12 +372,40 @@ shcore::Value TableSelect::offset(const shcore::Argument_list &args)
 }
 
 #ifdef DOXYGEN
-TableSelect TableSelect::bind({ var:val, var : val, ... })
-{}
+/**
+* Binds a value to a specific placeholder used on this TableSelect object.
+* \param name: The name of the placeholder to which the value will be bound.
+* \param value: The value to be bound on the placeholder.
+* \return This TableSelect object.
+*
+* This function can be invoked multiple times right before calling execute:
+*
+* After this function invocation, the following functions can be invoked:
+*
+* - bind(String name, Value value)
+* - execute(ExecuteOptions options)
+*
+* An error will be raised if the placeholder indicated by name does not exist.
+*
+* This function must be called once for each used placeohlder or an error will be
+* raised when the execute method is called.
+*
+* \sa Usage examples at execute(ExecuteOptions options).
+*/
+TableSelect TableSelect::bind(String name, Value value){}
 #endif
-shcore::Value TableSelect::bind(const shcore::Argument_list &UNUSED(args))
+
+shcore::Value TableSelect::bind(const shcore::Argument_list &args)
 {
-  throw shcore::Exception::logic_error("TableSelect.bind: not yet implemented.");
+  args.ensure_count(2, "TableSelect.bind");
+
+  try
+  {
+    _select_statement->bind(args.string_at(0), map_table_value(args[1]));
+
+    update_functions("bind");
+  }
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableSelect.bind");
 
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
@@ -395,6 +446,9 @@ shcore::Value TableSelect::bind(const shcore::Argument_list &UNUSED(args))
 *
 * // Retrieve the records for all males
 * var res_males = table.select().where('gender="male"').execute();
+*
+* // Previous example using bound value
+* var res_males = table.select().where('gender=:heorshe').bind('heorshe', 'male)'.execute();
 *
 * // Retrieve the name and last name only
 * var res_partial = table.select(['name', 'last_name']).execute();

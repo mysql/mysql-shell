@@ -33,7 +33,6 @@ namespace mysh
 
     /**
     * Handler for document removal from a Collection.
-    * \todo Implement and document bind({var:val, var:val, ...})
     * \todo Update execute to support options and document it
     *
     * This object provides the necessary functions to allow removing documents from a collection.
@@ -59,7 +58,7 @@ namespace mysh
       CollectionRemove remove(String searchCondition);
       CollectionRemove sort(List sortExprStr);
       CollectionRemove limit(Integer numberOfRows);
-      CollectionRemove bind(Map placeHolderValues);
+      CollectionFind bind(String name, Value value);
       Collection_resultset execute(ExecuteOptions opt);
 #endif
     private:

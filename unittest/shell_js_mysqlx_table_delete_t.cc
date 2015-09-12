@@ -44,7 +44,7 @@ namespace shcore {
       _shell_core->switch_mode(Shell_core::Mode_JScript, initilaized);
 
       // Sets the correct functions to be validated
-      set_functions("delete, where, orderBy, limit, bind, execute");
+      set_functions("delete, where, orderBy, limit, bind, execute, __shell_hook__");
     }
   };
 
@@ -85,28 +85,35 @@ namespace shcore {
     //       once they are enabled
     {
       SCOPED_TRACE("Testing function availability after delete.");
-      ensure_available_functions("where, orderBy, limit, bind, execute");
+      ensure_available_functions("where, orderBy, limit, bind, execute, __shell_hook__");
     }
 
     // Now executes where
     {
       SCOPED_TRACE("Testing function availability after where.");
       exec_and_out_equals("crud.where(\"id < 100\")");
-      ensure_available_functions("orderBy, limit, bind, execute");
+      ensure_available_functions("orderBy, limit, bind, execute, __shell_hook__");
     }
 
     // Now executes orderBy
     {
       SCOPED_TRACE("Testing function availability after orderBy.");
       exec_and_out_equals("crud.orderBy(['name'])");
-      ensure_available_functions("limit, bind, execute");
+      ensure_available_functions("limit, bind, execute, __shell_hook__");
     }
 
     // Now executes limit
     {
       SCOPED_TRACE("Testing function availability after limit.");
       exec_and_out_equals("crud.limit(1)");
-      ensure_available_functions("bind, execute");
+      ensure_available_functions("bind, execute, __shell_hook__");
+    }
+
+    // Now executes bind
+    {
+      SCOPED_TRACE("Testing function availability after bind.");
+      exec_and_out_equals("crud = table.delete().where('test = :data').bind('data', 5)");
+      ensure_available_functions("bind, execute, __shell_hook__");
     }
 
     exec_and_out_equals("session.close();");
@@ -150,7 +157,18 @@ namespace shcore {
       exec_and_out_equals("table.delete().limit(5);");
     }
 
-    exec_and_out_contains("table.delete().bind();", "", "TableDelete.bind: not yet implemented.");
+    {
+      SCOPED_TRACE("Testing parameter validation on bind");
+      exec_and_out_contains("table.delete().where('name = :data and age > :years').bind()", "", "Invalid number of arguments in TableDelete.bind, expected 2 but got 0");
+      exec_and_out_contains("table.delete().where('name = :data and age > :years').bind(5, 5)", "", "TableDelete.bind: Argument #1 is expected to be a string");
+      exec_and_out_contains("table.delete().where('name = :data and age > :years').bind('another', 5)", "", "TableDelete.bind: Unable to bind value for unexisting placeholder: another");
+    }
+
+    {
+      SCOPED_TRACE("Testing parameter validation on execute");
+      exec_and_out_contains("table.delete().where('name = :data and age > :years').execute()", "", "TableDelete.execute: Missing value bindings for the next placeholders: data, years");
+      exec_and_out_contains("table.delete().where('name = :data and age > :years').bind('years', 5).execute()", "", "TableDelete.execute: Missing value bindings for the next placeholders: data");
+    }
 
     exec_and_out_equals("session.close();");
   }
@@ -180,8 +198,8 @@ namespace shcore {
     }
 
     {
-      SCOPED_TRACE("Testing delete with limits");
-      exec_and_out_equals("var result = table.delete().where('gender = \"male\"').limit(2).execute();");
+      SCOPED_TRACE("Testing delete with limits and bound value");
+      exec_and_out_equals("var result = table.delete().where('gender = :heorshe').limit(2).bind('heorshe', 'male').execute();");
       exec_and_out_equals("print(result.affectedRows)", "2");
 
       exec_and_out_equals("var records = table.select().execute().all();");

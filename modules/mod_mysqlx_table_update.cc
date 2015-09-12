@@ -44,8 +44,9 @@ TableUpdate::TableUpdate(boost::shared_ptr<Table> owner)
   register_dynamic_function("where", "set");
   register_dynamic_function("orderBy", "set, where");
   register_dynamic_function("limit", "set, where, orderBy");
-  register_dynamic_function("bind", "set, where, orderBy, limit");
+  register_dynamic_function("bind", "set, where, orderBy, limit, bind");
   register_dynamic_function("execute", "set, where, orderBy, limit, bind");
+  register_dynamic_function("__shell_hook__", "set, where, orderBy, limit, bind");
 
   // Initial function update
   update_functions("");
@@ -66,7 +67,8 @@ TableUpdate::TableUpdate(boost::shared_ptr<Table> owner)
 * - where(String searchCriteria)
 * - orderBy(List sortExprStr)
 * - limit(Integer numberOfRows)
-* - execute(ExecuteOptions options).
+* - bind(String name, Value value)
+* - execute(ExecuteOptions options)
 *
 * \sa Usage examples at execute(ExecuteOptions options).
 */
@@ -114,7 +116,8 @@ shcore::Value TableUpdate::update(const shcore::Argument_list &args)
 * - where(String searchCriteria)
 * - orderBy(List sortExprStr)
 * - limit(Integer numberOfRows)
-* - execute(ExecuteOptions options).
+* - bind(String name, Value value)
+* - execute(ExecuteOptions options)
 *
 * \sa Usage examples at execute(ExecuteOptions options).
 */
@@ -167,6 +170,21 @@ shcore::Value TableUpdate::set(const shcore::Argument_list &args)
 * if not specified all the records will be updated from the table unless a limit is set.
 * \return This TableUpdate object.
 *
+* The searchCondition supports using placeholders instead of raw values, example:
+*
+* \code{.js}
+* // Setting adult flag on records
+* table.update().set('adult', 'yes').where("age > 21").execute()
+*
+* // Equivalent code using bound values
+* table.update().set('adult', 'yes').where("age > :adultAge").bind('adultAge', 21).execute()
+* \endcode
+*
+* On the previous example, adultAge is a placeholder for a value that will be set by calling the bind() function
+* right before calling execute().
+*
+* Note that if placeholders are used, a value must be bounded on each of them or the operation will fail.
+*
 * This function can be invoked only once after:
 *
 * - set(String attribute, Value value)
@@ -175,7 +193,8 @@ shcore::Value TableUpdate::set(const shcore::Argument_list &args)
 *
 * - orderBy(List sortExprStr)
 * - limit(Integer numberOfRows)
-* - execute(ExecuteOptions options).
+* - bind(String name, Value value)
+* - execute(ExecuteOptions options)
 *
 * \sa Usage examples at execute(ExecuteOptions options).
 */
@@ -217,7 +236,8 @@ shcore::Value TableUpdate::where(const shcore::Argument_list &args)
 * After this function invocation, the following functions can be invoked:
 *
 * - limit(Integer numberOfRows)
-* - execute(ExecuteOptions options).
+* - bind(String name, Value value)
+* - execute(ExecuteOptions options)
 */
 TableUpdate TableUpdate::orderBy(List sortExprStr){}
 #endif
@@ -259,7 +279,8 @@ shcore::Value TableUpdate::order_by(const shcore::Argument_list &args)
 *
 * After this function invocation, the following functions can be invoked:
 *
-* - execute(ExecuteOptions options).
+* - bind(String name, Value value)
+* - execute(ExecuteOptions options)
 */
 TableUpdate TableUpdate::limit(Integer numberOfRows){}
 #endif
@@ -279,14 +300,41 @@ shcore::Value TableUpdate::limit(const shcore::Argument_list &args)
 }
 
 #ifdef DOXYGEN
-TableUpdate TableUpdate::bind({ var:val, var : val, ... })
-{}
+/**
+* Binds a value to a specific placeholder used on this TableUpdate object.
+* \param name: The name of the placeholder to which the value will be bound.
+* \param value: The value to be bound on the placeholder.
+* \return This TableUpdate object.
+*
+* This function can be invoked multiple times right before calling execute:
+*
+* After this function invocation, the following functions can be invoked:
+*
+* - bind(String name, Value value)
+* - execute(ExecuteOptions options)
+*
+* An error will be raised if the placeholder indicated by name does not exist.
+*
+* This function must be called once for each used placeohlder or an error will be
+* raised when the execute method is called.
+*
+* \sa Usage examples at execute(ExecuteOptions options).
+*/
+TableUpdate TableUpdate::bind(String name, Value value){}
 #endif
-shcore::Value TableUpdate::bind(const shcore::Argument_list &UNUSED(args))
+shcore::Value TableUpdate::bind(const shcore::Argument_list &args)
 {
-  throw shcore::Exception::logic_error("TableUpdate.bind: not yet implemented.");
+  args.ensure_count(2, "TableUpdate.bind");
 
-  return Value(Object_bridge_ref(this));
+  try
+  {
+    _update_statement->bind(args.string_at(0), map_table_value(args[1]));
+
+    update_functions("bind");
+  }
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableUpdate.bind");
+
+  return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
 #ifdef DOXYGEN
@@ -320,7 +368,10 @@ shcore::Value TableUpdate::bind(const shcore::Argument_list &UNUSED(args))
 * var result = table.update().set('age', 14).orderBy(['age']).limit(1).execute();
 *
 * // Updates last name and age to angel
-* var res_angel = table.update().set('last_name','downey).set('age',15).shere('name="angel"').execute();
+* var res_angel = table.update().set('last_name','downey).set('age',15).where('name="angel"').execute();
+*
+* // Previous example using a bound value
+* var res_angel = table.update().set('last_name','downey).set('age',15).where('name=:name').bind('name', 'angel').execute();
 * \endcode
 */
 Resultset TableUpdate::execute(ExecuteOptions options){}

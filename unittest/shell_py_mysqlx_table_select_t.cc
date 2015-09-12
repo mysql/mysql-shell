@@ -44,7 +44,7 @@ namespace shcore {
       _shell_core->switch_mode(Shell_core::Mode_Python, initilaized);
 
       // Sets the correct functions to be validated
-      set_functions("select, where, groupBy, having, orderBy, offset, limit, bind, execute");
+      set_functions("select, where, groupBy, having, orderBy, offset, limit, bind, execute, __shell_hook__");
     }
   };
 
@@ -82,49 +82,56 @@ namespace shcore {
     //       once they are enabled
     {
       SCOPED_TRACE("Testing function availability after select.");
-      ensure_available_functions("where, groupBy, orderBy, limit, bind, execute");
+      ensure_available_functions("where, groupBy, orderBy, limit, bind, execute, __shell_hook__");
     }
 
     // Now executes where
     {
       SCOPED_TRACE("Testing function availability after where.");
       exec_and_out_equals("crud.where('age > 13')");
-      ensure_available_functions("groupBy, orderBy, limit, bind, execute");
+      ensure_available_functions("groupBy, orderBy, limit, bind, execute, __shell_hook__");
     }
 
     // Now executes groupBy
     {
       SCOPED_TRACE("Testing function availability after groupBy.");
       exec_and_out_equals("crud.groupBy(['age'])");
-      ensure_available_functions("having, orderBy, limit, bind, execute");
+      ensure_available_functions("having, orderBy, limit, bind, execute, __shell_hook__");
     }
 
     // Now executes having
     {
       SCOPED_TRACE("Testing function availability after groupBy.");
       exec_and_out_equals("crud.having('age < 13')");
-      ensure_available_functions("orderBy, limit, bind, execute");
+      ensure_available_functions("orderBy, limit, bind, execute, __shell_hook__");
     }
 
     // Now executes having
     {
       SCOPED_TRACE("Testing function availability after groupBy.");
       exec_and_out_equals("crud.orderBy(['name ASC'])");
-      ensure_available_functions("limit, bind, execute");
+      ensure_available_functions("limit, bind, execute, __shell_hook__");
     }
 
     // Now executes limit
     {
       SCOPED_TRACE("Testing function availability after limit.");
       exec_and_out_equals("crud.limit(1)");
-      ensure_available_functions("offset, bind, execute");
+      ensure_available_functions("offset, bind, execute, __shell_hook__");
     }
 
     // Now executes offset
     {
       SCOPED_TRACE("Testing function availability after offset.");
       exec_and_out_equals("crud.offset(1)");
-      ensure_available_functions("bind execute");
+      ensure_available_functions("bind, execute, __shell_hook__");
+    }
+
+    // Now executes bind
+    {
+      SCOPED_TRACE("Testing function availability after bind.");
+      exec_and_out_equals("crud = table.select().where('test = :data').bind('data', 5)");
+      ensure_available_functions("bind, execute, __shell_hook__");
     }
 
     exec_and_out_equals("session.close()");
@@ -197,7 +204,20 @@ namespace shcore {
       exec_and_out_equals("table.select().limit(1).offset(5)");
     }
 
-    exec_and_out_contains("table.select().bind()", "", "TableSelect.bind: not yet implemented.");
+    {
+      SCOPED_TRACE("Testing parameter validation on bind");
+      exec_and_out_contains("table.select().where('name = :data and age > :years').bind()", "", "Invalid number of arguments in TableSelect.bind, expected 2 but got 0");
+      exec_and_out_contains("table.select().where('name = :data and age > :years').bind(5, 5)", "", "TableSelect.bind: Argument #1 is expected to be a string");
+      exec_and_out_contains("table.select().where('name = :data and age > :years').bind('another', 5)", "", "TableSelect.bind: Unable to bind value for unexisting placeholder: another");
+    }
+
+    {
+      SCOPED_TRACE("Testing parameter validation on execute");
+      exec_and_out_contains("table.select().where('name = :data and age > :years').execute()", "", "TableSelect.execute: Missing value bindings for the next placeholders: data, years");
+      exec_and_out_contains("table.select().where('name = :data and age > :years').bind('years', 5).execute()", "", "TableSelect.execute: Missing value bindings for the next placeholders: data");
+    }
+
+    exec_and_out_equals("session.close();");
   }
 
   TEST_F(Shell_py_mysqlx_table_select_tests, select_execution)
@@ -321,5 +341,14 @@ namespace shcore {
       exec_and_out_equals("records = table.select().limit(4).offset(7).execute().all()");
       exec_and_out_equals("print(len(records))", "0");
     }
+
+    {
+      SCOPED_TRACE("Testing bind");
+      exec_and_out_equals("records = table.select().where('age = :years and gender = :heorshe').bind('years', 13).bind('heorshe','female').execute().all();");
+      exec_and_out_equals("print(len(records));", "1");
+      exec_and_out_equals("print(records[0].name);", "alma");
+    }
+
+    exec_and_out_equals("session.close();");
   }
 }

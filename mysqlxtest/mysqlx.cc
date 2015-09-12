@@ -780,6 +780,11 @@ Message *Connection::recv_payload(const int mid, const std::size_t msglen)
       throw Error(CR_MALFORMED_PACKET, err);
     }
   }
+  else
+  {
+    delete[] mbuf;
+    throw_mysqlx_error(error);
+  }
 
   delete[] mbuf;
 

@@ -33,7 +33,6 @@ namespace mysh
 
     /**
     * Handler for document selection on a Collection.
-    * \todo Implement and document bind({var:val, var:val, ...})
     * \todo Update execute to support options and document it
     *
     * This object provides the necessary functions to allow selecting document data from a collection.
@@ -67,7 +66,7 @@ namespace mysh
       CollectionFind sort(List sortExprStr);
       CollectionFind limit(Integer numberOfRows);
       CollectionFind skip(Integer limitOffset);
-      CollectionFind bind(Map placeHolderValues);
+      CollectionFind bind(String name, Value value);
       Collection_resultset execute(ExecuteOptions options);
 #endif
 

@@ -44,7 +44,7 @@ namespace shcore {
       _shell_core->switch_mode(Shell_core::Mode_JScript, initilaized);
 
       // Sets the correct functions to be validated
-      set_functions("find, fields, groupBy, having, sort, limit, skip, , bind, execute");
+      set_functions("find, fields, groupBy, having, sort, limit, skip, , bind, execute, __shell_hook__");
     }
   };
 
@@ -84,45 +84,52 @@ namespace shcore {
     //       once they are enabled
     {
       SCOPED_TRACE("Testing function availability after find.");
-      ensure_available_functions("fields, groupBy, sort, limit, bind, execute");
+      ensure_available_functions("fields, groupBy, sort, limit, bind, execute, __shell_hook__");
     }
 
     {
       exec_and_out_equals("var crud = crud.fields(['name']);");
       SCOPED_TRACE("Testing function availability after fields.");
-      ensure_available_functions("groupBy, sort, limit, bind, execute");
+      ensure_available_functions("groupBy, sort, limit, bind, execute, __shell_hook__");
     }
 
     {
       exec_and_out_equals("var crud = crud.groupBy(['name']);");
       SCOPED_TRACE("Testing function availability after groupBy.");
-      ensure_available_functions("having, sort, limit, bind, execute");
+      ensure_available_functions("having, sort, limit, bind, execute, __shell_hook__");
     }
 
     {
       exec_and_out_equals("var crud = crud.having('age > 10');");
       SCOPED_TRACE("Testing function availability after having.");
-      ensure_available_functions("sort, limit, bind, execute");
+      ensure_available_functions("sort, limit, bind, execute, __shell_hook__");
     }
 
     {
       exec_and_out_equals("var crud = crud.sort(['age']);");
       SCOPED_TRACE("Testing function availability after sort.");
-      ensure_available_functions("limit, bind, execute");
+      ensure_available_functions("limit, bind, execute, __shell_hook__");
     }
 
     // Now executes limit
     {
       SCOPED_TRACE("Testing function availability after limit.");
       exec_and_out_equals("crud.limit(1)");
-      ensure_available_functions("skip, bind, execute");
+      ensure_available_functions("skip, bind, execute, __shell_hook__");
     }
 
     // Now executes skip
     {
       SCOPED_TRACE("Testing function availability after skip.");
       exec_and_out_equals("crud.skip(1)");
-      ensure_available_functions("bind execute");
+      ensure_available_functions("bind, execute, __shell_hook__");
+    }
+
+    // Now executes bind
+    {
+      SCOPED_TRACE("Testing function availability after bind.");
+      exec_and_out_equals("crud = collection.find('test = :data').bind('data', 5)");
+      ensure_available_functions("bind, execute, __shell_hook__");
     }
 
     exec_and_out_equals("session.close();");
@@ -194,7 +201,18 @@ namespace shcore {
       exec_and_out_equals("collection.find().limit(1).skip(5);");
     }
 
-    exec_and_out_contains("collection.find().bind();", "", "CollectionFind.bind: not yet implemented.");
+    {
+      SCOPED_TRACE("Testing parameter validation on bind");
+      exec_and_out_contains("collection.find('name = :data and age > :years').bind()", "", "Invalid number of arguments in CollectionFind.bind, expected 2 but got 0");
+      exec_and_out_contains("collection.find('name = :data and age > :years').bind(5, 5)", "", "CollectionFind.bind: Argument #1 is expected to be a string");
+      exec_and_out_contains("collection.find('name = :data and age > :years').bind('another', 5)", "", "CollectionFind.bind: Unable to bind value for unexisting placeholder: another");
+    }
+
+    {
+      SCOPED_TRACE("Testing parameter validation on execute");
+      exec_and_out_contains("collection.find('name = :data and age > :years').execute()", "", "CollectionFind.execute: Missing value bindings for the next placeholders: data, years");
+      exec_and_out_contains("collection.find('name = :data and age > :years').bind('years', 5).execute()", "", "CollectionFind.execute: Missing value bindings for the next placeholders: data");
+    }
 
     exec_and_out_equals("session.close();");
   }
@@ -317,6 +335,13 @@ namespace shcore {
       SCOPED_TRACE("Testing limit and offset");
       exec_and_out_equals("var records = collection.find().limit(4).skip(7).execute().all();");
       exec_and_out_equals("print(records.length);", "0");
+    }
+
+    {
+      SCOPED_TRACE("Testing bind");
+      exec_and_out_equals("var records = collection.find('age = :years and gender = :heorshe').bind('years', 13).bind('heorshe','female').execute().all();");
+      exec_and_out_equals("print(records.length);", "1");
+      exec_and_out_equals("print(records[0].name);", "alma");
     }
 
     exec_and_out_equals("session.close();");

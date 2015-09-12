@@ -143,10 +143,6 @@ namespace mysh
 
       boost::shared_ptr<ClassicSchema> _default_schema;
       boost::shared_ptr<shcore::Value::Map_type> _schemas;
-
-      //boost::shared_ptr<shcore::Proxy_object> _schema_proxy;
-
-      bool _show_warnings;
     };
   };
 };

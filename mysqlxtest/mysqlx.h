@@ -40,7 +40,7 @@ namespace Mysqlx
   }
 }
 
-namespace google { namespace protobuf { class Message; }}
+namespace google { namespace protobuf { class Message; template <typename Element> class RepeatedPtrField; } }
 
 namespace mysqlx
 {
@@ -72,11 +72,11 @@ namespace mysqlx
   {
     Ssl_config()
     {
-      key      = NULL;
-      ca       = NULL;
-      ca_path  = NULL;
-      cert     = NULL;
-      cipher   = NULL;
+      key = NULL;
+      ca = NULL;
+      ca_path = NULL;
+      cert = NULL;
+      cipher = NULL;
     }
 
     const char *key;
@@ -186,28 +186,28 @@ namespace mysqlx
     {
       if (m_type != TDouble)
         throw std::logic_error("type error");
-        return m_value.d;
+      return m_value.d;
     }
 
     inline operator float() const
     {
       if (m_type != TFloat)
         throw std::logic_error("type error");
-        return m_value.f;
+      return m_value.f;
     }
 
     inline operator bool() const
     {
       if (m_type != TBool)
         throw std::logic_error("type error");
-        return m_value.b;
+      return m_value.b;
     }
 
     inline operator const std::string & () const
     {
       if (m_type != TString && m_type != TOctets)
         throw std::logic_error("type error");
-        return *m_value.s;
+      return *m_value.s;
     }
 
   private:

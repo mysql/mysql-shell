@@ -41,13 +41,12 @@ TableInsert::TableInsert(boost::shared_ptr<Table> owner)
   // The values function should not be enabled if values were already given
   add_method("insert", boost::bind(&TableInsert::insert, this, _1), "data");
   add_method("values", boost::bind(&TableInsert::values, this, _1), "data");
-  add_method("bind", boost::bind(&TableInsert::bind, this, _1), "data");
 
   // Registers the dynamic function behavior
   register_dynamic_function("insert", "");
   register_dynamic_function("values", "insert, insertFields, values");
-  register_dynamic_function("bind", "insertFieldsAndValues, values");
   register_dynamic_function("execute", "insertFieldsAndValues, values, bind");
+  register_dynamic_function("__shell_hook__", "insertFieldsAndValues, values, bind");
 
   // Initial function update
   update_functions("");
@@ -232,23 +231,6 @@ shcore::Value TableInsert::values(const shcore::Argument_list &args)
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableInsert.values");
 
   // Returns the same object
-  return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
-}
-
-#ifdef DOXYGEN
-TableInsert TableInsert::bind({ var:val, var : val, ... }){}
-#endif
-shcore::Value TableInsert::bind(const shcore::Argument_list &UNUSED(args))
-{
-  // TODO: Logic to determine the kind of parameter passed
-  //       Should end up adding one of the next to the data dictionary:
-  //       - ValuesAndSubQueries
-  //       - ParamsValuesAndSubQueries
-  //       - IteratorObject
-
-  // Updates the exposed functions
-  update_functions("bind");
-
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 

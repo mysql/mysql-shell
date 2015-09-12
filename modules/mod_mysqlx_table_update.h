@@ -33,7 +33,6 @@ namespace mysh
 
     /**
     * Handler for record update operations on a Table.
-    * \todo Implement and document bind({var:val, var:val, ...})
     * \todo Update execute to support options and document it
     *
     * This object provides the necessary functions to allow updating records on a table.
@@ -63,6 +62,7 @@ namespace mysh
       TableUpdate where(String searchCondition);
       TableUpdate orderBy(List sortExprStr);
       TableUpdate limit(Integer numberOfRows);
+      TableUpdate bind(String name, Value value);
       ResultSet execute(ExecuteOptions options);
 #endif
     private:

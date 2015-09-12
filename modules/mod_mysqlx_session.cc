@@ -98,7 +98,6 @@ NodeSession getNodeSession(Map connectionData, String password){}
 #endif
 
 BaseSession::BaseSession()
-: _show_warnings(false)
 {
   _schemas.reset(new shcore::Value::Map_type);
 

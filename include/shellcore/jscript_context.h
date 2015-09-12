@@ -26,38 +26,42 @@
 
 #include "shellcore/types.h"
 
-namespace shcore {
-
-struct Interpreter_delegate;
-
-class Object_registry;
-
-class SHCORE_PUBLIC JScript_context
+namespace shcore
 {
-public:
-  JScript_context(Object_registry *registry, Interpreter_delegate *deleg);
-  ~JScript_context();
+  struct Interpreter_delegate;
 
-  Value execute(const std::string &code, const std::string& source = "") throw (Exception);
-  Value execute_interactive(const std::string &code) BOOST_NOEXCEPT_OR_NOTHROW;
+  class Object_registry;
 
-  v8::Isolate *isolate() const;
-  v8::Handle<v8::Context> context() const;
+  class SHCORE_PUBLIC JScript_context
+  {
+  public:
+    JScript_context(Object_registry *registry, Interpreter_delegate *deleg);
+    ~JScript_context();
 
-  Value v8_value_to_shcore_value(const v8::Handle<v8::Value> &value);
-  v8::Handle<v8::Value> shcore_value_to_v8_value(const Value &value);
-  Argument_list convert_args(const v8::FunctionCallbackInfo<v8::Value>& args);
+    Value execute(const std::string &code, const std::string& source = "") throw (Exception);
+    Value execute_interactive(const std::string &code) BOOST_NOEXCEPT_OR_NOTHROW;
 
-  void set_global(const std::string &name, const Value &value);
-  Value get_global(const std::string &name);
+    v8::Isolate *isolate() const;
+    v8::Handle<v8::Context> context() const;
 
-private:
-  struct JScript_context_impl;
-  JScript_context_impl *_impl;
+    Value v8_value_to_shcore_value(const v8::Handle<v8::Value> &value);
+    v8::Handle<v8::Value> shcore_value_to_v8_value(const Value &value);
+    Argument_list convert_args(const v8::FunctionCallbackInfo<v8::Value>& args);
 
-  Object_registry *_registry;
-};
+    void set_global(const std::string &name, const Value &value);
+    Value get_global(const std::string &name);
 
+    void set_global_item(const std::string& global_name, const std::string& item_name, const Value &value);
+
+  private:
+    struct JScript_context_impl;
+    JScript_context_impl *_impl;
+
+    Object_registry *_registry;
+
+    Value get_v8_exception_data(v8::TryCatch *exc);
+    std::string format_exception(const shcore::Value &exc);
+  };
 };
 
 #endif

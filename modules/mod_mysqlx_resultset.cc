@@ -55,9 +55,9 @@ shcore::Value Resultset::get_member(const std::string &prop) const
 
     if (!_result->columnMetadata()) return ret_val = shcore::Value(array);
 
-    int num_fields = _result->columnMetadata()->size();
+    size_t num_fields = _result->columnMetadata()->size();
 
-    for (int i = 0; i < num_fields; i++)
+    for (size_t i = 0; i < num_fields; i++)
     {
       boost::shared_ptr<shcore::Value::Map_type> map(new shcore::Value::Map_type);
 
@@ -134,7 +134,7 @@ shcore::Value Resultset::next(const shcore::Argument_list &UNUSED(args))
     {
       mysh::Row *value_row = new mysh::Row();
 
-      for (size_t index = 0; index < metadata->size(); index++)
+      for (int index = 0; index < int(metadata->size()); index++)
       {
         Value field_value;
 
@@ -176,7 +176,7 @@ shcore::Value Resultset::next(const shcore::Argument_list &UNUSED(args))
               break;
               //TODO: Fix the handling of SET
             case ::mysqlx::SET:
-              //field_value = Value(row->setField(index));
+              //field_value = Value(row->setField(int(index)));
               break;
           }
         }
@@ -260,7 +260,7 @@ shcore::Value Collection_resultset::print(const shcore::Argument_list &args)
   if (args.size() > 2)
     show_warnings = args.bool_at(2);
 
-  print_json("jsonpretty", show_warnings);
+  print_json("json", show_warnings);
 
   return shcore::Value();
 }

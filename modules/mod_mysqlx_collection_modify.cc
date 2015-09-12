@@ -52,8 +52,9 @@ CollectionModify::CollectionModify(boost::shared_ptr<Collection> owner)
   register_dynamic_function("arrayDelete", "modify, operation");
   register_dynamic_function("sort", "operation");
   register_dynamic_function("limit", "operation, sort");
-  register_dynamic_function("bind", "operation, sort, limit");
+  register_dynamic_function("bind", "operation, sort, limit, bind");
   register_dynamic_function("execute", "operation, sort, limit, bind");
+  register_dynamic_function("__shell_hook__", "operation, sort, limit, bind");
 
   // Initial function update
   update_functions("");
@@ -65,6 +66,21 @@ CollectionModify::CollectionModify(boost::shared_ptr<Collection> owner)
 * \param searchCondition: An optional expression to identify the documents to be updated;
 * if not specified all the documents will be updated on the collection unless a limit is set.
 * \return This CollectionModify object.
+*
+* The searchCondition supports using placeholders instead of raw values, example:
+*
+* \code{.js}
+* // Setting adult flag on records
+* collection.modify("age > 21").set('adult', 'yes').execute()
+*
+* // Equivalent code using bound values
+* collection.modify("age > :adultAge").set('adult', 'yes').bind('adultAge', 21).execute()
+* \endcode
+*
+* On the previous example, adultAge is a placeholder for a value that will be set by calling the bind() function
+* right before calling execute().
+*
+* Note that if placeholders are used, a value must be bounded on each of them or the operation will fail.
 *
 * This function is called automatically when Collection.modify(searchCondition) is called.
 *
@@ -143,6 +159,7 @@ shcore::Value CollectionModify::modify(const shcore::Argument_list &args)
 * - arrayDelete(String path)
 * - sort(List sortExprStr)
 * - limit(Integer numberOfRows)
+* - bind(String name, Value value)
 * - execute(ExecuteOptions opt)
 *
 * \sa Usage examples at execute(ExecuteOptions options).
@@ -199,6 +216,7 @@ shcore::Value CollectionModify::set(const shcore::Argument_list &args)
 * - arrayDelete(String path)
 * - sort(List sortExprStr)
 * - limit(Integer numberOfRows)
+* - bind(String name, Value value)
 * - execute(ExecuteOptions opt)
 *
 * \sa Usage examples at execute(ExecuteOptions options).
@@ -237,6 +255,7 @@ CollectionModify CollectionModify::unset(String attribute){}
 * - arrayDelete(String path)
 * - sort(List sortExprStr)
 * - limit(Integer numberOfRows)
+* - bind(String name, Value value)
 * - execute(ExecuteOptions opt)
 *
 * \sa Usage examples at execute(ExecuteOptions options).
@@ -334,6 +353,7 @@ shcore::Value CollectionModify::unset(const shcore::Argument_list &args)
 * - arrayDelete(String path)
 * - sort(List sortExprStr)
 * - limit(Integer numberOfRows)
+* - bind(String name, Value value)
 * - execute(ExecuteOptions opt)
 *
 * \sa Usage examples at execute(ExecuteOptions options).
@@ -393,6 +413,7 @@ shcore::Value CollectionModify::merge(const shcore::Argument_list &args)
 * - arrayDelete(String path)
 * - sort(List sortExprStr)
 * - limit(Integer numberOfRows)
+* - bind(String name, Value value)
 * - execute(ExecuteOptions opt)
 *
 * \sa Usage examples at execute(ExecuteOptions options).
@@ -449,6 +470,7 @@ shcore::Value CollectionModify::array_insert(const shcore::Argument_list &args)
 * - arrayDelete(String path)
 * - sort(List sortExprStr)
 * - limit(Integer numberOfRows)
+* - bind(String name, Value value)
 * - execute(ExecuteOptions opt)
 *
 * \sa Usage examples at execute(ExecuteOptions options).
@@ -505,6 +527,7 @@ shcore::Value CollectionModify::array_append(const shcore::Argument_list &args)
 * - arrayDelete(String path)
 * - sort(List sortExprStr)
 * - limit(Integer numberOfRows)
+* - bind(String name, Value value)
 * - execute(ExecuteOptions opt)
 *
 * \sa Usage examples at execute(ExecuteOptions options).
@@ -552,6 +575,7 @@ shcore::Value CollectionModify::array_delete(const shcore::Argument_list &args)
 * After this function invocation, the following functions can be invoked:
 *
 * - limit(Integer numberOfRows)
+* - bind(String name, Value value)
 * - execute(ExecuteOptions opt)
 *
 * \sa Usage examples at execute(ExecuteOptions options).
@@ -601,6 +625,7 @@ shcore::Value CollectionModify::sort(const shcore::Argument_list &args)
 * After this function invocation, the following functions can be invoked:
 *
 * - limit(Integer numberOfRows)
+* - bind(String name, Value value)
 * - execute(ExecuteOptions opt)
 *
 * \sa Usage examples at execute(ExecuteOptions options).
@@ -622,11 +647,42 @@ shcore::Value CollectionModify::limit(const shcore::Argument_list &args)
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
-shcore::Value CollectionModify::bind(const shcore::Argument_list &UNUSED(args))
+#ifdef DOXYGEN
+/**
+* Binds a value to a specific placeholder used on this CollectionModify object.
+* \param name: The name of the placeholder to which the value will be bound.
+* \param value: The value to be bound on the placeholder.
+* \return This CollectionModify object.
+*
+* This function can be invoked multiple times right before calling execute:
+*
+* After this function invocation, the following functions can be invoked:
+*
+* - bind(String name, Value value)
+* - execute(ExecuteOptions options)
+*
+* An error will be raised if the placeholder indicated by name does not exist.
+*
+* This function must be called once for each used placeohlder or an error will be
+* raised when the execute method is called.
+*
+* \sa Usage examples at execute(ExecuteOptions options).
+*/
+CollectionFind CollectionModify::bind(String name, Value value){}
+#endif
+shcore::Value CollectionModify::bind(const shcore::Argument_list &args)
 {
-  throw shcore::Exception::logic_error("CollectionModify.bind: not yet implemented.");
+  args.ensure_count(2, "CollectionModify.bind");
 
-  return Value(Object_bridge_ref(this));
+  try
+  {
+    _modify_statement->bind(args.string_at(0), map_document_value(args[1]));
+
+    update_functions("bind");
+  }
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionModify.bind");
+
+  return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
 #ifdef DOXYGEN
@@ -666,7 +722,7 @@ shcore::Value CollectionModify::bind(const shcore::Argument_list &UNUSED(args))
 *
 * // Appends hobbies
 * var res_males = collection.modify('gender="male"').arrayAppend('hobbies', 'wrestling').execute();
-* var res_males = collection.modify('gender="female"').arrayAppend('hobbies', 'dolls').execute();
+* var res_males = collection.modify('gender=:heorshe').arrayAppend('hobbies', 'dolls').bind('heorshe', 'female').execute();
 *
 * // Updates hobbies for the youngest
 * var res_toons = collection.modify().arrayAppend('hobbies', 'cartoons').sort(['age']).limit(1).execute();*
@@ -682,7 +738,15 @@ Collection_resultset CollectionModify::execute(ExecuteOptions opt){}
 #endif
 shcore::Value CollectionModify::execute(const shcore::Argument_list &args)
 {
-  args.ensure_count(0, "CollectionModify.execute");
+  mysqlx::Collection_resultset *result = NULL;
 
-  return shcore::Value::wrap(new mysqlx::Collection_resultset(boost::shared_ptr< ::mysqlx::Result>(_modify_statement->execute())));
+  try
+  {
+    args.ensure_count(0, "CollectionModify.execute");
+
+    result = new mysqlx::Collection_resultset(boost::shared_ptr< ::mysqlx::Result>(_modify_statement->execute()));
+  }
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionModify.execute");
+
+  return result ? shcore::Value::wrap(result) : shcore::Value::Null();
 }

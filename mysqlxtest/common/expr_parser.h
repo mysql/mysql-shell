@@ -221,7 +221,7 @@ namespace mysqlx
   class Expr_parser
   {
   public:
-    Expr_parser(const std::string& expr_str, bool document_mode = false, bool allow_alias = false);
+    Expr_parser(const std::string& expr_str, bool document_mode = false, bool allow_alias = false, std::vector<std::string>* place_holders = NULL);
 
     typedef boost::function<Mysqlx::Expr::Expr*(Expr_parser*)> inner_parser_t;
 
@@ -253,9 +253,8 @@ namespace mysqlx
     void json_key_value(Mysqlx::Expr::Object* obj);
     Mysqlx::Expr::Expr* json_doc();
     // placeholder
-    typedef std::map<std::string, int> map_placeholder_to_pos_t;
-    map_placeholder_to_pos_t _placeholder_name_to_pos;
-    int _placeholder_pos;
+    std::vector<std::string> _place_holders;
+    std::vector<std::string>* _place_holder_ref;
     Mysqlx::Expr::Expr* placeholder();
     // cast
     Mysqlx::Expr::Expr* my_expr();
@@ -286,9 +285,8 @@ namespace mysqlx
     static std::string placeholder_to_string(const Mysqlx::Expr::Expr& e);
     static std::string column_to_string(const Mysqlx::Crud::Projection& c);
     static std::string order_to_string(const Mysqlx::Crud::Order& c);
-    static std::string column_list_to_string(google::protobuf::RepeatedPtrField< ::Mysqlx::Crud::Projection > columns);    
+    static std::string column_list_to_string(google::protobuf::RepeatedPtrField< ::Mysqlx::Crud::Projection > columns);
     static std::string order_list_to_string(google::protobuf::RepeatedPtrField< ::Mysqlx::Crud::Order> columns);
-    
 
     static void replace(std::string& target, const std::string& old_val, const std::string& new_val);
   };

@@ -33,6 +33,7 @@ Crud_definition::Crud_definition(boost::shared_ptr<DatabaseObject> owner) : _own
 {
   try
   {
+    add_method("__shell_hook__", boost::bind(&Crud_definition::execute, this, _1), "data");
     add_method("execute", boost::bind(&Crud_definition::execute, this, _1), "data");
   }
   catch (shcore::Exception &e)

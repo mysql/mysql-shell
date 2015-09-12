@@ -34,7 +34,7 @@ Shell_sql::Shell_sql(IShell_core *owner)
   _delimiter = ";";
 }
 
-void Shell_sql::handle_input(std::string &code, Interactive_input_state &state, boost::function<void(shcore::Value)> result_processor, bool UNUSED(interactive))
+void Shell_sql::handle_input(std::string &code, Interactive_input_state &state, boost::function<void(shcore::Value)> result_processor)
 {
   Value ret_val;
   state = Input_ok;

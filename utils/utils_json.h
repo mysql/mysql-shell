@@ -26,16 +26,14 @@
 
 #include "shellcore/common.h"
 
-using namespace rapidjson;
-
 namespace shcore
 {
   // This class is to wrap the Raw and Pretty writers from rapidjson since
   // they
   class SHCORE_PUBLIC Writer_base
   {
-    protected:
-  
+  protected:
+
     class SStream
     {
     public:
@@ -50,9 +48,9 @@ namespace shcore
 
     SStream _data;
 
-    public:
+  public:
     virtual ~Writer_base(){}
-    
+
     virtual void start_array() = 0;
     virtual void end_array() = 0;
     virtual void start_object() = 0;
@@ -91,7 +89,7 @@ namespace shcore
     virtual void append_float(double data) { _writer.Double(data); };
 
   private:
-    Writer<SStream>_writer;
+    rapidjson::Writer<SStream>_writer;
   };
 
   class SHCORE_PUBLIC Pretty_writer :public Writer_base
@@ -115,7 +113,7 @@ namespace shcore
     virtual void append_float(double data) { _writer.Double(data); }
 
   private:
-    PrettyWriter<SStream>_writer;
+    rapidjson::PrettyWriter<SStream>_writer;
   };
 
   struct Value;

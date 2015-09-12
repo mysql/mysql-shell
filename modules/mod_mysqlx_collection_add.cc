@@ -38,6 +38,7 @@ CollectionAdd::CollectionAdd(boost::shared_ptr<Collection> owner)
   // Registers the dynamic function behavior
   register_dynamic_function("add", ",add");
   register_dynamic_function("execute", "add");
+  register_dynamic_function("__shell_hook__", "add");
 
   // Initial function update
   update_functions("");
@@ -190,7 +191,15 @@ Resultset CollectionAdd::execute(){}
 #endif
 shcore::Value CollectionAdd::execute(const shcore::Argument_list &args)
 {
-  args.ensure_count(0, "CollectionAdd.execute");
+  mysqlx::Collection_resultset *result = NULL;
 
-  return shcore::Value::wrap(new mysqlx::Collection_resultset(boost::shared_ptr< ::mysqlx::Result>(_add_statement->execute())));
+  try
+  {
+    args.ensure_count(0, "CollectionAdd.execute");
+
+    result = new mysqlx::Collection_resultset(boost::shared_ptr< ::mysqlx::Result>(_add_statement->execute()));
+  }
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionAdd.execute");
+
+  return result ? shcore::Value::wrap(result) : shcore::Value::Null();
 }

@@ -106,24 +106,24 @@ protected:
     std::string _code(code);
     shcore::Interactive_input_state state;
 
-    _shell_core->handle_input(_code, state, boost::bind(&Shell_core_test_wrapper::process_result, this, _1), true);
+    _shell_core->handle_input(_code, state, boost::bind(&Shell_core_test_wrapper::process_result, this, _1));
 
     return _returned_value;
   }
 
   shcore::Value exec_and_out_equals(const std::string& code, const std::string& out = "", const std::string& err = "")
   {
-    std::string expectde_output(out);
+    std::string expected_output(out);
     std::string expected_error(err);
 
     if (_shell_core->interactive_mode() == shcore::Shell_core::Mode_Python && out.length())
-      expectde_output += "\n";
+      expected_output += "\n";
 
     if (_shell_core->interactive_mode() == shcore::Shell_core::Mode_Python && err.length())
       expected_error += "\n";
 
     shcore::Value ret_val = execute(code);
-    EXPECT_EQ(expectde_output, output_handler.std_out);
+    EXPECT_EQ(expected_output, output_handler.std_out);
     EXPECT_EQ(expected_error, output_handler.std_err);
 
     output_handler.wipe_all();
