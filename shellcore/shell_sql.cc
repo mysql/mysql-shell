@@ -162,10 +162,14 @@ void Shell_sql::handle_input(std::string &code, Interactive_input_state &state, 
         state = Input_continued;
     }
     else
-      throw shcore::Exception::logic_error("Not connected.");
+      // handle_input implementations are not throwing exceptions
+      // They handle the printing internally
+      print_exception(shcore::Exception::logic_error("Not connected."));
   }
   else
-    throw shcore::Exception::logic_error("Not connected.");
+    // handle_input implementations are not throwing exceptions
+    // They handle the printing internally
+    print_exception(shcore::Exception::logic_error("Not connected."));
 
   // TODO: previous to file processing the caller was caching unprocessed code and sending it again on next
   //       call. On file processing an internal handling of this cache was required.
