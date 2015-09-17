@@ -320,12 +320,12 @@ void Connection::close()
   }
 }
 
-Result *Connection::recv_result()
+boost::shared_ptr<Result> Connection::recv_result()
 {
-  return new Result(this, true);
+  return new_result(true);
 }
 
-Result *Connection::execute_sql(const std::string &sql)
+boost::shared_ptr<Result> Connection::execute_sql(const std::string &sql)
 {
   {
     Mysqlx::Sql::StmtExecute exec;
@@ -333,10 +333,11 @@ Result *Connection::execute_sql(const std::string &sql)
     exec.set_stmt(sql);
     send(exec);
   }
-  return new Result(this, true);
+
+  return new_result(true);
 }
 
-Result *Connection::execute_stmt(const std::string &ns, const std::string &sql, const std::vector<ArgumentValue> &args)
+boost::shared_ptr<Result> Connection::execute_stmt(const std::string &ns, const std::string &sql, const std::vector<ArgumentValue> &args)
 {
   {
     Mysqlx::Sql::StmtExecute exec;
@@ -386,35 +387,36 @@ Result *Connection::execute_stmt(const std::string &ns, const std::string &sql, 
     }
     send(exec);
   }
-  return new Result(this, true);
+
+  return new_result(true);
 }
 
-Result *Connection::execute_find(const Mysqlx::Crud::Find &m)
+boost::shared_ptr<Result> Connection::execute_find(const Mysqlx::Crud::Find &m)
 {
   send(m);
 
-  return new Result(this, true);
+  return new_result(true);
 }
 
-Result *Connection::execute_update(const Mysqlx::Crud::Update &m)
+boost::shared_ptr<Result> Connection::execute_update(const Mysqlx::Crud::Update &m)
 {
   send(m);
 
-  return new Result(this, false);
+  return new_result(false);
 }
 
-Result *Connection::execute_insert(const Mysqlx::Crud::Insert &m)
+boost::shared_ptr<Result> Connection::execute_insert(const Mysqlx::Crud::Insert &m)
 {
   send(m);
 
-  return new Result(this, false);
+  return new_result(false);
 }
 
-Result *Connection::execute_delete(const Mysqlx::Crud::Delete &m)
+boost::shared_ptr<Result> Connection::execute_delete(const Mysqlx::Crud::Delete &m)
 {
   send(m);
 
-  return new Result(this, false);
+  return new_result(false);
 }
 
 void Connection::setup_capability(const std::string &name, const bool value)
@@ -843,6 +845,16 @@ void Connection::throw_mysqlx_error(const boost::system::error_code &error)
   }
 }
 
+boost::shared_ptr<Result> Connection::new_result(bool expect_data)
+{
+  if (m_last_result)
+    m_last_result->buffer();
+
+  m_last_result.reset(new Result(this, true));
+
+  return m_last_result;
+}
+
 boost::shared_ptr<Schema> Session::getSchema(const std::string &name)
 {
   std::map<std::string, boost::shared_ptr<Schema> >::const_iterator iter = m_schemas.find(name);
@@ -852,12 +864,12 @@ boost::shared_ptr<Schema> Session::getSchema(const std::string &name)
   return m_schemas[name] = boost::shared_ptr<Schema>(new Schema(shared_from_this(), name));
 }
 
-Result *Session::executeSql(const std::string &sql)
+boost::shared_ptr<Result> Session::executeSql(const std::string &sql)
 {
   return m_connection->execute_sql(sql);
 }
 
-Result *Session::executeStmt(const std::string &ns, const std::string &stmt,
+boost::shared_ptr<Result> Session::executeStmt(const std::string &ns, const std::string &stmt,
                              const std::vector<ArgumentValue> &args)
 {
   return m_connection->execute_stmt(ns, stmt, args);
@@ -875,12 +887,12 @@ Document::Document(const Document &doc)
 
 Result::Result(Connection *owner, bool expect_data)
 : current_message(NULL), m_owner(owner), m_last_insert_id(-1), m_affected_rows(-1),
-  m_state(expect_data ? ReadMetadataI : ReadStmtOkI)
+m_state(expect_data ? ReadMetadataI : ReadStmtOkI), m_buffered(false), m_buffering(false)
 {
 }
 
 Result::Result()
-: current_message(NULL)
+: current_message(NULL), m_buffered(false), m_buffering(false)
 {
 }
 
@@ -895,8 +907,14 @@ Result::~Result()
 
 boost::shared_ptr<std::vector<ColumnMetadata> > Result::columnMetadata()
 {
-  if (m_state == ReadMetadataI)
-    read_metadata();
+  // If cached, works with the cache data
+  if (m_buffered)
+    return m_current_result->columnMetadata();
+  else
+  {
+    if (m_state == ReadMetadataI)
+      read_metadata();
+  }
   return m_columns;
 }
 
@@ -1197,8 +1215,10 @@ void Result::read_metadata()
   }
 }
 
-std::auto_ptr<Row> Result::read_row()
+boost::shared_ptr<Row> Result::read_row()
 {
+  boost::shared_ptr<Row> ret_val;
+
   if (m_state != ReadRows)
     throw std::logic_error("read_row() called at wrong time");
 
@@ -1209,9 +1229,15 @@ std::auto_ptr<Row> Result::read_row()
   int mid = get_message_id();
 
   if (mid == Mysqlx::ServerMessages::RESULTSET_ROW)
-    return std::auto_ptr<Row>(new Row(m_columns, static_cast<Mysqlx::Resultset::Row*>(pop_message())));
+  {
+    ret_val.reset(new Row(m_columns, static_cast<Mysqlx::Resultset::Row*>(pop_message())));
 
-  return std::auto_ptr<Row>();
+    // If caching adds it to the cache instead
+    if (m_buffering)
+      m_current_result->add_row(ret_val);
+  }
+
+  return ret_val;
 }
 
 void Result::read_stmt_ok()
@@ -1233,47 +1259,144 @@ void Result::read_stmt_ok()
 
 bool Result::nextDataSet()
 {
-  // flush left over rows
-  while (m_state == ReadRows)
-    read_row();
-
-  if (m_state == ReadMetadata)
+  if (m_buffered)
   {
-    read_metadata();
-    if (m_state == ReadRows)
-      return true;
+    if (m_result_index < m_result_cache.size())
+      m_current_result = m_result_cache[m_result_index++];
+    else
+      m_current_result.reset();
+
+    return m_current_result ? true : false;
   }
-  if (m_state == ReadStmtOk)
-    read_stmt_ok();
+  else
+  {
+    // flush left over rows
+    while (m_state == ReadRows)
+      read_row();
+
+    if (m_state == ReadMetadata)
+    {
+      read_metadata();
+      if (m_state == ReadRows)
+      {
+        // If caching adds this new resultset to the cache
+        if (m_buffering)
+        {
+          m_current_result.reset(new ResultData(m_columns));
+          m_result_cache.push_back(m_current_result);
+        }
+        return true;
+      }
+    }
+    if (m_state == ReadStmtOk)
+      read_stmt_ok();
+  }
   return false;
 }
 
-Row *Result::next()
+boost::shared_ptr<Row> Result::next()
+{
+  boost::shared_ptr<Row> ret_val;
+
+  if (m_buffered)
+    ret_val = m_current_result->next();
+  else
+  {
+    if (!ready())
+    wait();
+
+    if (m_state == ReadStmtOk)
+      read_stmt_ok();
+
+    if (m_state != ReadDone)
+    {
+      ret_val = read_row();
+
+      if (m_state == ReadStmtOk)
+        read_stmt_ok();
+    }
+  }
+
+  return ret_val;
+}
+
+// Flush will read all the messages from the IO
+// If caching is enabled the data will be cached, if not
+// it will be just discarded
+void Result::flush()
+{
+  // Flushes the leftover data only if it was not previously cached
+  wait();
+  while (nextDataSet());
+}
+
+Result& Result::buffer()
 {
   if (!ready())
     wait();
 
-  if (m_state == ReadStmtOk)
+  // The buffer makes sense ONLY if there's something else
+  // to be buffered
+  if (m_state != ReadDone)
   {
-    read_stmt_ok();
-    return NULL;
+    m_buffering = true;
+
+    // This will enable data caching
+    m_current_result.reset(new ResultData(m_columns));
+    m_result_cache.push_back(m_current_result);
+
+    // This will actually cache the data
+    while (nextDataSet());
+
+    m_buffering = false;
+    m_buffered = true;
+
+    m_result_index = 1;
   }
-  if (m_state == ReadDone)
-    return NULL;
 
-  std::auto_ptr<Row> row(read_row());
-
-  if (m_state == ReadStmtOk)
-    read_stmt_ok();
-
-  return row.release();
+  return *this;
 }
 
-void Result::discardData()
+Result& Result::rewind()
 {
-  // Flushes the leftover data
-  wait();
-  while (nextDataSet());
+  if (m_current_result)
+    m_current_result->rewind();
+
+  return *this;
+}
+
+void Result::rewind_all()
+{
+  if (!m_result_cache.empty())
+  {
+    m_current_result = m_result_cache[0];
+    m_result_index = 1;
+  }
+}
+
+ResultData::ResultData(boost::shared_ptr<std::vector<ColumnMetadata> > columns) :
+m_columns(columns), m_row_index(0)
+{
+}
+
+void ResultData::add_row(boost::shared_ptr<Row> row)
+{
+  m_rows.push_back(row);
+}
+
+boost::shared_ptr<Row> ResultData::next()
+{
+  boost::shared_ptr<Row> ret_val;
+
+  if (m_row_index < m_rows.size())
+    ret_val = m_rows[m_row_index++];
+
+  return ret_val;
+}
+
+void ResultData::rewind()
+{
+  m_row_index = 0;
 }
 
 Row::Row(boost::shared_ptr<std::vector<ColumnMetadata> > columns, Mysqlx::Resultset::Row *data)

@@ -24,6 +24,7 @@
 #define _MOD_XRESULT_H_
 
 #include "base_resultset.h"
+#include <boost/enable_shared_from_this.hpp>
 
 namespace mysqlx
 {
@@ -43,7 +44,7 @@ namespace mysh
     * \todo Implement and Document flush()
     * \todo Implement and Document rewind()
     */
-    class Resultset : public BaseResultset
+    class Resultset : public BaseResultset, public boost::enable_shared_from_this<Resultset>
     {
     public:
       Resultset(boost::shared_ptr< ::mysqlx::Result> result);
@@ -56,6 +57,9 @@ namespace mysh
       virtual shcore::Value next(const shcore::Argument_list &args);
       virtual shcore::Value all(const shcore::Argument_list &args);
       virtual shcore::Value next_result(const shcore::Argument_list &args);
+      virtual shcore::Value buffer(const shcore::Argument_list &args);
+      virtual shcore::Value flush(const shcore::Argument_list &args);
+      virtual shcore::Value rewind(const shcore::Argument_list &args);
 
       int get_cursor_id() { return _cursor_id; }
 #ifdef DOXYGEN
@@ -71,7 +75,7 @@ namespace mysh
       * Returns the metadata for the result set.
       * \return the metadata Map[]
       * The metadata returned its an array of map each one per field the map accepts the following data:
-      * 
+      *
       * Map key     | Meaning                        |
       * ----------: | :----------------------------: |
       * catalog     | the catalog name               |
@@ -103,7 +107,7 @@ namespace mysh
       * \sa getAffectedRows(), getWarnings(), getExcutionTime(), getInfo()
       * \return the integer representing the last insert id
       */
-      Integer getLastInsertId() 
+      Integer getLastInsertId()
       {}
 
       /**
@@ -118,7 +122,7 @@ namespace mysh
       * \sa getLastInsertId(), getWarnings(), getExcutionTime(), getInfo()
       * \return the number of affected rows.
       */
-      Integer getAffectedRows() 
+      Integer getAffectedRows()
       {}
 
       /**
@@ -133,7 +137,7 @@ namespace mysh
       * \sa warnings
       * \return the number of warnings.
       */
-      Integer getWarnings() 
+      Integer getWarnings()
       {}
 
       /**
@@ -147,7 +151,7 @@ namespace mysh
       * \sa executionTime()
       * \return the execution time as an String.
       */
-      String getExecutionTime() 
+      String getExecutionTime()
       {}
 
       /**
@@ -161,7 +165,7 @@ namespace mysh
       * This is the same value then C API mysql_info, see https://dev.mysql.com/doc/refman/5.7/en/mysql-info.html
       * \sa getInfo().
       */
-      String getInfo() 
+      String getInfo()
       {}
 
       /**
@@ -175,7 +179,7 @@ namespace mysh
       * \sa getLastInsertId(), getInfo(), getExecutionTime(), getWarnings(), getAffectedRows().
       * \sa getHasData()
       */
-      Bool getHasData() 
+      Bool getHasData()
       {}
 
       /**
@@ -185,7 +189,7 @@ namespace mysh
       * \sa next(), all()
       * \return true if more data available, otherwise false.
       */
-      Bool nextDataSet() 
+      Bool nextDataSet()
       {}
 
       Row next();

@@ -168,7 +168,7 @@ Collection_Statement::Collection_Statement(boost::shared_ptr<Collection> coll)
 }
 
 Collection_Statement::Collection_Statement(const Collection_Statement& other)
-: m_coll(other.m_coll), Statement(other)
+: Statement(other), m_coll(other.m_coll)
 {
 }
 
@@ -236,7 +236,7 @@ Find_Base &Find_Base::operator = (const Find_Base &other)
   return *this;
 }
 
-Result *Find_Base::execute()
+boost::shared_ptr<Result> Find_Base::execute()
 {
   insert_bound_values(m_find->mutable_args());
 
@@ -245,7 +245,7 @@ Result *Find_Base::execute()
 
   SessionRef session(m_coll->schema()->session());
 
-  Result *result(session->connection()->execute_find(*m_find));
+  boost::shared_ptr<Result> result(session->connection()->execute_find(*m_find));
 
   // wait for results (at least metadata) to arrive
   result->wait();
@@ -332,14 +332,14 @@ Add_Base &Add_Base::operator = (const Add_Base &other)
   return *this;
 }
 
-Result *Add_Base::execute()
+boost::shared_ptr<Result> Add_Base::execute()
 {
   if (!m_insert->IsInitialized())
     throw std::logic_error("AddStatement is not completely initialized: " + m_insert->InitializationErrorString());
 
   SessionRef session(m_coll->schema()->session());
 
-  Result *result(session->connection()->execute_insert(*m_insert));
+  boost::shared_ptr<Result> result(session->connection()->execute_insert(*m_insert));
 
   result->wait();
 
@@ -392,7 +392,7 @@ Remove_Base &Remove_Base::operator = (const Remove_Base &other)
   return *this;
 }
 
-Result *Remove_Base::execute()
+boost::shared_ptr<Result> Remove_Base::execute()
 {
   insert_bound_values(m_delete->mutable_args());
 
@@ -401,7 +401,7 @@ Result *Remove_Base::execute()
 
   SessionRef session(m_coll->schema()->session());
 
-  Result *result(session->connection()->execute_delete(*m_delete));
+  boost::shared_ptr<Result> result(session->connection()->execute_delete(*m_delete));
 
   result->wait();
 
@@ -454,7 +454,7 @@ Modify_Base &Modify_Base::operator = (const Modify_Base &other)
   return *this;
 }
 
-Result *Modify_Base::execute()
+boost::shared_ptr<Result> Modify_Base::execute()
 {
   insert_bound_values(m_update->mutable_args());
 
@@ -463,7 +463,7 @@ Result *Modify_Base::execute()
 
   SessionRef session(m_coll->schema()->session());
 
-  Result *result(session->connection()->execute_update(*m_update));
+  boost::shared_ptr<Result> result(session->connection()->execute_update(*m_update));
 
   result->wait();
 
@@ -586,7 +586,7 @@ Table_Statement::Table_Statement(boost::shared_ptr<Table> table)
 }
 
 Table_Statement::Table_Statement(const Table_Statement& other)
-: m_table(other.m_table), Statement(other)
+: Statement(other), m_table(other.m_table)
 {
 }
 
@@ -671,7 +671,7 @@ Delete_Base &Delete_Base::operator = (const Delete_Base &other)
   return *this;
 }
 
-Result *Delete_Base::execute()
+boost::shared_ptr<Result> Delete_Base::execute()
 {
   insert_bound_values(m_delete->mutable_args());
 
@@ -680,7 +680,7 @@ Result *Delete_Base::execute()
 
   SessionRef session(m_table->schema()->session());
 
-  Result *result(session->connection()->execute_delete(*m_delete));
+  boost::shared_ptr<Result> result(session->connection()->execute_delete(*m_delete));
 
   result->wait();
 
@@ -737,7 +737,7 @@ Update_Base &Update_Base::operator = (const Update_Base &other)
   return *this;
 }
 
-Result *Update_Base::execute()
+boost::shared_ptr<Result> Update_Base::execute()
 {
   insert_bound_values(m_update->mutable_args());
 
@@ -746,7 +746,7 @@ Result *Update_Base::execute()
 
   SessionRef session(m_table->schema()->session());
 
-  Result *result(session->connection()->execute_update(*m_update));
+  boost::shared_ptr<Result> result(session->connection()->execute_update(*m_update));
 
   result->wait();
 
@@ -830,7 +830,7 @@ Select_Base &Select_Base::operator = (const Select_Base &other)
   return *this;
 }
 
-Result *Select_Base::execute()
+boost::shared_ptr<Result> Select_Base::execute()
 {
   insert_bound_values(m_find->mutable_args());
 
@@ -839,7 +839,7 @@ Result *Select_Base::execute()
 
   SessionRef session(m_table->schema()->session());
 
-  Result *result(session->connection()->execute_find(*m_find));
+  boost::shared_ptr<Result> result(session->connection()->execute_find(*m_find));
 
   // wait for results (at least metadata) to arrive
   result->wait();
@@ -929,14 +929,14 @@ Insert_Base &Insert_Base::operator = (const Insert_Base &other)
   return *this;
 }
 
-Result *Insert_Base::execute()
+boost::shared_ptr<Result> Insert_Base::execute()
 {
   if (!m_insert->IsInitialized())
     throw std::logic_error("InsertStatement is not completely initialized: " + m_insert->InitializationErrorString());
 
   SessionRef session(m_table->schema()->session());
 
-  Result *result(session->connection()->execute_insert(*m_insert));
+  boost::shared_ptr<Result> result(session->connection()->execute_insert(*m_insert));
 
   result->wait();
 

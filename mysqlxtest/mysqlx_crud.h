@@ -72,7 +72,7 @@ namespace mysqlx
     Statement(){};
     Statement(const Statement& other);
     virtual ~Statement();
-    virtual Result *execute() = 0;
+    virtual boost::shared_ptr<Result> execute() = 0;
 
   protected:
     std::vector<std::string> m_placeholders;
@@ -345,7 +345,7 @@ namespace mysqlx
     Select_Base(const Select_Base &other);
     Select_Base &operator = (const Select_Base &other);
 
-    virtual Result *execute();
+    virtual boost::shared_ptr<Result> execute();
   protected:
     boost::shared_ptr<Mysqlx::Crud::Find> m_find;
   };
@@ -419,7 +419,7 @@ namespace mysqlx
     Insert_Base(const Insert_Base &other);
     Insert_Base &operator = (const Insert_Base &other);
 
-    virtual Result *execute();
+    virtual boost::shared_ptr<Result> execute();
   protected:
     boost::shared_ptr<Mysqlx::Crud::Insert> m_insert;
   };
@@ -451,7 +451,7 @@ namespace mysqlx
     Delete_Base(const Delete_Base &other);
     Delete_Base &operator = (const Delete_Base &other);
 
-    virtual Result *execute();
+    virtual boost::shared_ptr<Result> execute();
   protected:
     boost::shared_ptr<Mysqlx::Crud::Delete> m_delete;
   };
@@ -493,7 +493,7 @@ namespace mysqlx
     Update_Base(const Update_Base &other);
     Update_Base &operator = (const Update_Base &other);
 
-    virtual Result *execute();
+    virtual boost::shared_ptr<Result> execute();
   protected:
     boost::shared_ptr<Mysqlx::Crud::Update> m_update;
   };
@@ -589,7 +589,7 @@ namespace mysqlx
     Find_Base(const Find_Base &other);
     Find_Base &operator = (const Find_Base &other);
 
-    virtual Result *execute();
+    virtual boost::shared_ptr<Result> execute();
   protected:
     boost::shared_ptr<Mysqlx::Crud::Find> m_find;
   };
@@ -663,7 +663,7 @@ namespace mysqlx
     Add_Base(const Add_Base &other);
     Add_Base &operator = (const Add_Base &other);
 
-    virtual Result *execute();
+    virtual boost::shared_ptr<Result> execute();
   protected:
     boost::shared_ptr<Mysqlx::Crud::Insert> m_insert;
   };
@@ -687,7 +687,7 @@ namespace mysqlx
     Modify_Base(const Modify_Base &other);
     Modify_Base &operator = (const Modify_Base &other);
 
-    virtual Result *execute();
+    virtual boost::shared_ptr<Result> execute();
   protected:
     boost::shared_ptr<Mysqlx::Crud::Update> m_update;
   };
@@ -748,7 +748,7 @@ namespace mysqlx
     Remove_Base(const Remove_Base &other);
     Remove_Base &operator = (const Remove_Base &other);
 
-    virtual Result *execute();
+    virtual boost::shared_ptr<Result> execute();
   protected:
     boost::shared_ptr<Mysqlx::Crud::Delete> m_delete;
   };

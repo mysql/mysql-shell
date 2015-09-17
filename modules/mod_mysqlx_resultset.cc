@@ -20,6 +20,7 @@
 #include "mod_mysqlx_resultset.h"
 #include "mysqlx.h"
 #include "shellcore/common.h"
+#include <boost/bind.hpp>
 
 using namespace mysh;
 using namespace shcore;
@@ -28,6 +29,9 @@ using namespace mysh::mysqlx;
 Resultset::Resultset(boost::shared_ptr< ::mysqlx::Result> result)
 : _result(result)
 {
+  add_method("buffer", boost::bind(&Resultset::buffer, this, _1), NULL);
+  add_method("flush", boost::bind(&Resultset::flush, this, _1), NULL);
+  add_method("rewind", boost::bind(&Resultset::rewind, this, _1), NULL);
 }
 
 Resultset::~Resultset(){}
@@ -129,7 +133,7 @@ shcore::Value Resultset::next(const shcore::Argument_list &UNUSED(args))
   boost::shared_ptr<std::vector< ::mysqlx::ColumnMetadata> > metadata = _result->columnMetadata();
   if (metadata->size() > 0)
   {
-    ::mysqlx::Row *row = _result->next();
+    boost::shared_ptr< ::mysqlx::Row>row = _result->next();
     if (row)
     {
       mysh::Row *value_row = new mysh::Row();
@@ -220,7 +224,36 @@ shcore::Value Resultset::next_result(const shcore::Argument_list &args)
 {
   args.ensure_count(0, "Resultset.nextDataSet");
 
-  return shcore::Value(_result->nextDataSet());
+  _result->nextDataSet();
+
+  return shcore::Value();
+}
+
+shcore::Value Resultset::buffer(const shcore::Argument_list &args)
+{
+  args.ensure_count(0, "Resultset.buffer");
+
+  _result->buffer();
+
+  return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
+}
+
+shcore::Value Resultset::flush(const shcore::Argument_list &args)
+{
+  args.ensure_count(0, "Resultset.flush");
+
+  _result->flush();
+
+  return shcore::Value();
+}
+
+shcore::Value Resultset::rewind(const shcore::Argument_list &args)
+{
+  args.ensure_count(0, "Resultset.rewind");
+
+  _result->rewind();
+
+  return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
 Collection_resultset::Collection_resultset(boost::shared_ptr< ::mysqlx::Result> result)
@@ -246,7 +279,7 @@ shcore::Value Collection_resultset::next(const shcore::Argument_list &args)
 
   if (_result->columnMetadata() && _result->columnMetadata()->size())
   {
-    std::auto_ptr< ::mysqlx::Row> r(_result->next());
+    boost::shared_ptr< ::mysqlx::Row> r(_result->next());
     if (r.get())
       return Value::parse(r->stringField(0));
   }

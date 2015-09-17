@@ -299,9 +299,7 @@ Value BaseSession::executeStmt(const std::string &domain, const std::string& com
 
     try
     {
-      flush_last_result();
-
-      _last_result.reset(_session->executeStmt(domain, command, arguments));
+      _last_result = _session->executeStmt(domain, command, arguments);
 
       // Calls wait so any error is properly triggered at execution time
       _last_result->wait();
@@ -399,12 +397,6 @@ Value BaseSession::get_member(const std::string &prop) const
   return ret_val;
 }
 
-void BaseSession::flush_last_result()
-{
-  if (_last_result)
-    _last_result->discardData();
-}
-
 void BaseSession::_load_default_schema()
 {
   try
@@ -413,18 +405,15 @@ void BaseSession::_load_default_schema()
 
     if (_session)
     {
-      // Cleans out the comm buffer
-      flush_last_result();
-
       // TODO: update this logic properly
-      ::mysqlx::Result* result = _session->executeSql("select schema()");
-      ::mysqlx::Row *row = result->next();
+      boost::shared_ptr< ::mysqlx::Result> result = _session->executeSql("select schema()");
+      boost::shared_ptr< ::mysqlx::Row>row = result->next();
 
       std::string name;
       if (!row->isNullField(0))
         name = row->stringField(0);
 
-      result->discardData();
+      result->flush();
 
       _update_default_schema(name);
     }
@@ -438,11 +427,8 @@ void BaseSession::_load_schemas()
   {
     if (_session)
     {
-      // Cleans out the comm buffer
-      flush_last_result();
-
-      ::mysqlx::Result* result = _session->executeSql("show databases;");
-      ::mysqlx::Row *row = result->next();
+      boost::shared_ptr< ::mysqlx::Result> result = _session->executeSql("show databases;");
+      boost::shared_ptr< ::mysqlx::Row> row = result->next();
 
       while (row)
       {
@@ -459,7 +445,7 @@ void BaseSession::_load_schemas()
         row = result->next();
       }
 
-      result->discardData();
+      result->flush();
     }
   }
   CATCH_AND_TRANSLATE();
@@ -528,13 +514,10 @@ shcore::Value BaseSession::set_default_schema(const shcore::Argument_list &args)
 
   if (_session)
   {
-    // Cleans out the comm buffer
-    flush_last_result();
-
     std::string name = args[0].as_string();
 
-    ::mysqlx::Result* result = _session->executeSql("use " + name + ";");
-    result->discardData();
+    boost::shared_ptr< ::mysqlx::Result> result = _session->executeSql("use " + name + ";");
+    result->flush();
 
     _update_default_schema(name);
   }

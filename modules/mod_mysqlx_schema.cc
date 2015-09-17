@@ -233,7 +233,12 @@ shcore::Value Schema::getTable(const shcore::Argument_list &args)
 
   std::string name = args.string_at(0);
 
-  return find_in_collection(name, _tables);
+  shcore::Value ret_val = find_in_collection(name, _tables);
+
+  if (!ret_val)
+    ret_val = _load_object(name, "TABLE");
+
+  return ret_val;
 }
 
 #ifdef DOXYGEN
@@ -252,7 +257,12 @@ shcore::Value Schema::getCollection(const shcore::Argument_list &args)
 
   std::string name = args.string_at(0);
 
-  return find_in_collection(name, _collections);
+  shcore::Value ret_val = find_in_collection(name, _collections);
+
+  if (!ret_val)
+    ret_val = _load_object(name, "COLLECTION");
+
+  return ret_val;
 }
 
 #ifdef DOXYGEN
@@ -271,7 +281,12 @@ shcore::Value Schema::getView(const shcore::Argument_list &args)
 
   std::string name = args.string_at(0);
 
-  return find_in_collection(name, _views);
+  shcore::Value ret_val = find_in_collection(name, _views);
+
+  if (!ret_val)
+    ret_val = _load_object(name, "VIEW");
+
+  return ret_val;
 }
 
 #ifdef DOXYGEN

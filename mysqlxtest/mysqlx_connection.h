@@ -17,7 +17,6 @@
  * 02110-1301  USA
  */
 
-
 #ifndef _MYSQLX_CONNECTION_H_
 #define _MYSQLX_CONNECTION_H_
 
@@ -67,7 +66,7 @@
 
 namespace mysqlx
 {
-  typedef boost::function<bool (int,std::string)> Local_notice_handler;
+  typedef boost::function<bool(int, std::string)> Local_notice_handler;
 
   struct Ssl_config;
 
@@ -98,7 +97,7 @@ namespace mysqlx
     Message *recv_payload(const int mid, const std::size_t msglen);
     Message *recv_raw_with_deadline(int &mid, const std::size_t deadline_miliseconds);
 
-    Result *recv_result();    
+    boost::shared_ptr<Result> recv_result();
 
     // Overrides for Client Session Messages
     void send(const Mysqlx::Session::AuthenticateStart &m) { send(Mysqlx::ClientMessages::SESS_AUTHENTICATE_START, m); };
@@ -120,15 +119,15 @@ namespace mysqlx
     void send(const Mysqlx::Connection::CapabilitiesSet &m) { send(Mysqlx::ClientMessages::CON_CAPABILITIES_SET, m); };
     void send(const Mysqlx::Connection::Close &m) { send(Mysqlx::ClientMessages::CON_CLOSE, m); };
 
-//    boost::asio::ip::tcp::socket &socket() { return m_socket; }
+    //    boost::asio::ip::tcp::socket &socket() { return m_socket; }
   public:
-    Result *execute_sql(const std::string &sql);
-    Result *execute_stmt(const std::string &ns, const std::string &sql, const std::vector<ArgumentValue> &args);
+    boost::shared_ptr<Result> execute_sql(const std::string &sql);
+    boost::shared_ptr<Result> execute_stmt(const std::string &ns, const std::string &sql, const std::vector<ArgumentValue> &args);
 
-    Result *execute_find(const Mysqlx::Crud::Find &m);
-    Result *execute_update(const Mysqlx::Crud::Update &m);
-    Result *execute_insert(const Mysqlx::Crud::Insert &m);
-    Result *execute_delete(const Mysqlx::Crud::Delete &m);
+    boost::shared_ptr<Result> execute_find(const Mysqlx::Crud::Find &m);
+    boost::shared_ptr<Result> execute_update(const Mysqlx::Crud::Update &m);
+    boost::shared_ptr<Result> execute_insert(const Mysqlx::Crud::Insert &m);
+    boost::shared_ptr<Result> execute_delete(const Mysqlx::Crud::Delete &m);
 
     void setup_capability(const std::string &name, const bool value);
 
@@ -140,8 +139,9 @@ namespace mysqlx
 
   private:
     void dispatch_notice(Mysqlx::Notice::Frame *frame);
-    Message *recv_message_with_header(int &mid, char (&header_buffer)[5], const std::size_t header_offset);
+    Message *recv_message_with_header(int &mid, char(&header_buffer)[5], const std::size_t header_offset);
     void throw_mysqlx_error(const boost::system::error_code &ec);
+    boost::shared_ptr<Result> new_result(bool expect_data);
 
   private:
     typedef boost::asio::ip::tcp tcp;
@@ -154,10 +154,10 @@ namespace mysqlx
     uint64_t m_client_id;
     bool m_trace_packets;
     bool m_closed;
+    boost::shared_ptr<Result> m_last_result;
   };
-  
-  typedef boost::shared_ptr<Connection> ConnectionRef;
 
+  typedef boost::shared_ptr<Connection> ConnectionRef;
 } // namespace mysqlx
 
 #endif // _MYSQLX_CONNECTION_H_

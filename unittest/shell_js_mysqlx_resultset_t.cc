@@ -101,6 +101,123 @@ namespace shcore {
     exec_and_out_equals("session.close();");
   }
 
+  TEST_F(Shell_js_mysqlx_resultset_tests, mysqlx_resultset_buffering)
+  {
+    exec_and_out_equals("var mysqlx = require('mysqlx').mysqlx;");
+
+    exec_and_out_equals("var session = mysqlx.getNodeSession('" + _uri + "');");
+
+    exec_and_out_equals("var schema = session.getSchema('js_shell_test')");
+    exec_and_out_equals("session.sql('drop table if exists js_shell_test.buffer_table;').execute()");
+    exec_and_out_equals("session.sql('create table js_shell_test.buffer_table (name varchar(50), age integer, gender varchar(20));').execute()");
+    exec_and_out_equals("var table = schema.getTable('buffer_table')");
+
+    exec_and_out_equals("result = table.insert({'name': 'jack', 'age': 17, 'gender': 'male'}).execute()");
+    exec_and_out_equals("result = table.insert({'name': 'adam', 'age': 15, 'gender': 'male'}).execute()");
+    exec_and_out_equals("result = table.insert({'name': 'brian', 'age': 14, 'gender': 'male'}).execute()");
+    exec_and_out_equals("result = table.insert({'name': 'alma', 'age': 13, 'gender': 'female'}).execute()");
+    exec_and_out_equals("result = table.insert({'name': 'carol', 'age': 14, 'gender': 'female'}).execute()");
+    exec_and_out_equals("result = table.insert({'name': 'donna', 'age': 16, 'gender': 'female'}).execute()");
+    exec_and_out_equals("result = table.insert({'name': 'angel', 'age': 14, 'gender': 'male'}).execute()");
+
+    exec_and_out_equals("var result1 = session.sql('select name, age from js_shell_test.buffer_table where gender = \"male\" order by name').execute();");
+
+    exec_and_out_equals("var result2 = session.sql('select name, gender from js_shell_test.buffer_table where age < 15 order by name').execute();");
+
+    exec_and_out_equals("var metadata2 = result2.getColumnMetadata()");
+    exec_and_out_equals("var metadata1 = result1.getColumnMetadata()");
+
+    exec_and_out_equals("print(metadata2[0].name)", "name");
+    exec_and_out_equals("print(metadata2[1].name)", "gender");
+
+    exec_and_out_equals("print(metadata1[0].name)", "name");
+    exec_and_out_equals("print(metadata1[1].name)", "age");
+
+    exec_and_out_equals("var record2 = result2.next()");
+    exec_and_out_equals("var record1 = result1.next()");
+
+    exec_and_out_equals("print(record2.name)", "alma");
+    exec_and_out_equals("print(record1.name)", "adam");
+
+    exec_and_out_equals("var record2 = result2.next()");
+    exec_and_out_equals("var record1 = result1.next()");
+
+    exec_and_out_equals("print(record2.name)", "angel");
+    exec_and_out_equals("print(record1.name)", "angel");
+
+    exec_and_out_equals("var record2 = result2.next()");
+    exec_and_out_equals("var record1 = result1.next()");
+
+    exec_and_out_equals("print(record2.name)", "brian");
+    exec_and_out_equals("print(record1.name)", "brian");
+
+    exec_and_out_equals("var record2 = result2.next()");
+    exec_and_out_equals("var record1 = result1.next()");
+
+    exec_and_out_equals("print(record2.name)", "carol");
+    exec_and_out_equals("print(record1.name)", "jack");
+
+    exec_and_out_equals("session.close();");
+  }
+
+  TEST_F(Shell_js_mysqlx_resultset_tests, crud_buffering)
+  {
+    exec_and_out_equals("var mysqlx = require('mysqlx').mysqlx;");
+
+    exec_and_out_equals("var session = mysqlx.getNodeSession('" + _uri + "');");
+
+    exec_and_out_equals("schema = session.getSchema('js_shell_test')");
+    exec_and_out_equals("session.sql('drop table if exists js_shell_test.buffer_table;').execute()");
+    exec_and_out_equals("session.sql('create table js_shell_test.buffer_table (name varchar(50), age integer, gender varchar(20));').execute()");
+    exec_and_out_equals("table = schema.getTable('buffer_table')");
+
+    exec_and_out_equals("result = table.insert({'name': 'jack', 'age': 17, 'gender': 'male'}).execute()");
+    exec_and_out_equals("result = table.insert({'name': 'adam', 'age': 15, 'gender': 'male'}).execute()");
+    exec_and_out_equals("result = table.insert({'name': 'brian', 'age': 14, 'gender': 'male'}).execute()");
+    exec_and_out_equals("result = table.insert({'name': 'alma', 'age': 13, 'gender': 'female'}).execute()");
+    exec_and_out_equals("result = table.insert({'name': 'carol', 'age': 14, 'gender': 'female'}).execute()");
+    exec_and_out_equals("result = table.insert({'name': 'donna', 'age': 16, 'gender': 'female'}).execute()");
+    exec_and_out_equals("result = table.insert({'name': 'angel', 'age': 14, 'gender': 'male'}).execute()");
+
+    exec_and_out_equals("var result1 = table.select(['name', 'age']).where('gender = :gender').orderBy(['name']).bind('gender','male').execute();");
+    exec_and_out_equals("var result2 = table.select(['name', 'gender']).where('age < :age').orderBy(['name']).bind('age',15).execute();");
+
+    exec_and_out_equals("var metadata2 = result2.getColumnMetadata()");
+    exec_and_out_equals("var metadata1 = result1.getColumnMetadata()");
+
+    exec_and_out_equals("print(metadata2[0].name)", "name");
+    exec_and_out_equals("print(metadata2[1].name)", "gender");
+
+    exec_and_out_equals("print(metadata1[0].name)", "name");
+    exec_and_out_equals("print(metadata1[1].name)", "age");
+
+    exec_and_out_equals("var record2 = result2.next()");
+    exec_and_out_equals("var record1 = result1.next()");
+
+    exec_and_out_equals("print(record2.name)", "alma");
+    exec_and_out_equals("print(record1.name)", "adam");
+
+    exec_and_out_equals("var record2 = result2.next()");
+    exec_and_out_equals("var record1 = result1.next()");
+
+    exec_and_out_equals("print(record2.name)", "angel");
+    exec_and_out_equals("print(record1.name)", "angel");
+
+    exec_and_out_equals("var record2 = result2.next()");
+    exec_and_out_equals("var record1 = result1.next()");
+
+    exec_and_out_equals("print(record2.name)", "brian");
+    exec_and_out_equals("print(record1.name)", "brian");
+
+    exec_and_out_equals("var record2 = result2.next()");
+    exec_and_out_equals("var record1 = result1.next()");
+
+    exec_and_out_equals("print(record2.name)", "carol");
+    exec_and_out_equals("print(record1.name)", "jack");
+
+    exec_and_out_equals("session.close();");
+  }
+
   // Tests resultset.lastInsertId and resultset.getLastInsertId()
   TEST_F(Shell_js_mysqlx_resultset_tests, DISABLED_mysqlx_resultset_last_insert_id)
   {

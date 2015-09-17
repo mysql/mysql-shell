@@ -141,7 +141,7 @@ namespace mysh
     {
     public:
       BaseSession();
-      virtual ~BaseSession() { flush_last_result(); }
+      virtual ~BaseSession() {}
 
       virtual std::vector<std::string> get_members() const;
       virtual shcore::Value get_member(const std::string &prop) const;
@@ -167,8 +167,6 @@ namespace mysh
       boost::shared_ptr< ::mysqlx::Session> session_obj() const { return _session; }
 
       static boost::shared_ptr<shcore::Object_bridge> create(const shcore::Argument_list &args);
-
-      void flush_last_result();
 
 #ifdef DOXYGEN
       String uri; //!< Same as getUri()
