@@ -54,6 +54,7 @@
 
 #include "mysqlx_sync_connection.h"
 #include "xerrmsg.h"
+#include "mysqlx_common.h"
 
 #define CR_UNKNOWN_ERROR        2000
 #define CR_CONNECTION_ERROR     2002
@@ -70,7 +71,7 @@ namespace mysqlx
 
   struct Ssl_config;
 
-  class Connection
+  class MYSQLXTEST_PUBLIC Connection
   {
   public:
     Connection(const Ssl_config &ssl_config);

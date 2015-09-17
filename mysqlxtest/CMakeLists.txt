@@ -56,6 +56,7 @@ endif()
 
 
 if( WIN32 )
+  add_definitions(-DMYSQLXTEST_EXPORTS )
   include(msvc)
   if(NOT WINDOWS_RUNTIME_MD)
     CHANGE_MD_2_MT()

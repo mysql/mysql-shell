@@ -29,6 +29,7 @@
 #include <set>
 
 #include "xdatetime.h"
+#include "mysqlx_common.h"
 
 #include <boost/enable_shared_from_this.hpp>
 
@@ -299,7 +300,7 @@ namespace mysqlx
     boost::shared_ptr<std::string> m_data;
   };
 
-  class Row
+  class MYSQLXTEST_PUBLIC Row
   {
   public:
     ~Row();
@@ -333,7 +334,7 @@ namespace mysqlx
     Mysqlx::Resultset::Row *m_data;
   };
 
-  class ResultData
+  class MYSQLXTEST_PUBLIC ResultData
   {
   public:
     ResultData(boost::shared_ptr<std::vector<ColumnMetadata> > columns);
@@ -347,7 +348,7 @@ namespace mysqlx
     size_t m_row_index;
   };
 
-  class Result
+  class MYSQLXTEST_PUBLIC Result
   {
   public:
     ~Result();
