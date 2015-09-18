@@ -192,7 +192,6 @@ ShellBaseSession::ShellBaseSession()
   add_method("getSchema", boost::bind(&ShellBaseSession::get_schema, this, _1), "name", shcore::String, NULL);
   add_method("getSchemas", boost::bind(&ShellBaseSession::get_member_method, this, _1, "getSchemas", "schemas"), NULL);
   add_method("getUri", boost::bind(&ShellBaseSession::get_member_method, this, _1, "getUri", "uri"), NULL);
-  add_method("setDefaultSchema", boost::bind(&ShellBaseSession::set_default_schema, this, _1), "name", shcore::String, NULL);
 }
 
 std::string &ShellBaseSession::append_descr(std::string &s_out, int UNUSED(indent), int UNUSED(quote_strings)) const

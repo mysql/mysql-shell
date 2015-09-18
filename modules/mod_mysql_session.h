@@ -110,7 +110,7 @@ namespace mysh
 
       virtual std::string uri() const;
       virtual shcore::Value get_schema(const shcore::Argument_list &args) const;
-      virtual shcore::Value set_default_schema(const shcore::Argument_list &args);
+      shcore::Value set_current_schema(const shcore::Argument_list &args);
 
       virtual void drop_db_object(const std::string &type, const std::string &name, const std::string& owner);
       virtual bool db_object_exists(std::string &type, const std::string &name, const std::string& owner);
@@ -123,11 +123,13 @@ namespace mysh
       String uri; //!< Same as getUri()
       Map schemas; //!< Same as getSchemas()
       ClassicSchema defaultSchema; //!< Same as getDefaultSchema()
+      ClassicSchema currentSchema; //!< Same as getCurrentSchema()
 
       ClassicSchema createSchema(String name);
       ClassicSchema getSchema(String name);
       ClassicSchema getDefaultSchema();
-      ClassicSchema setDefaultSchema(String schema);
+      ClassicSchema getCurrentSchema();
+      ClassicSchema setCurrentSchema(String name);
       Map getSchemas();
       String getUri();
       Resultset sql(String query);
@@ -135,13 +137,10 @@ namespace mysh
 #endif
 
     private:
-      void _update_default_schema(const std::string& name);
-      void _load_default_schema();
+      std::string _retrieve_current_schema();
       void _load_schemas();
-
       boost::shared_ptr<Connection> _conn;
-
-      boost::shared_ptr<ClassicSchema> _default_schema;
+      std::string _default_schema;
       boost::shared_ptr<shcore::Value::Map_type> _schemas;
     };
   };

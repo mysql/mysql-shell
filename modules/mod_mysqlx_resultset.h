@@ -40,9 +40,6 @@ namespace mysh
     * This class allows access to the result set from the classic MySQL data model to be retrieved from Dev API queries.
     * \todo delete warningCount and getWarningCount()
     * \todo delete fetchedRowCount and getfetchedRowCount()
-    * \todo Implement and Document buffer()
-    * \todo Implement and Document flush()
-    * \todo Implement and Document rewind()
     */
     class Resultset : public BaseResultset, public boost::enable_shared_from_this<Resultset>
     {

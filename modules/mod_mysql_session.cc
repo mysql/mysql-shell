@@ -97,6 +97,8 @@ ClassicSession::ClassicSession()
   add_method("sql", boost::bind(&ClassicSession::sql, this, _1),
     "stmt", shcore::String,
     NULL);
+  add_method("setCurrentSchema", boost::bind(&ClassicSession::set_current_schema, this, _1), "name", shcore::String, NULL);
+  add_method("getCurrentSchema", boost::bind(&ShellBaseSession::get_member_method, this, _1, "getCurrentSchema", "currentSchema"), NULL);
 
   _schemas.reset(new shcore::Value::Map_type);
 }
@@ -164,7 +166,7 @@ Value ClassicSession::connect(const Argument_list &args)
     throw shcore::Exception::argument_error("Unexpected argument on connection data.");
 
   _load_schemas();
-  _load_default_schema();
+  _default_schema = _retrieve_current_schema();
 
   return Value::Null();
 }
@@ -273,6 +275,8 @@ std::vector<std::string> ClassicSession::get_members() const
 {
   std::vector<std::string> members(ShellBaseSession::get_members());
 
+  members.push_back("currentSchema");
+
   // This function is here only to append the schemas as direct members
   // Will use a set to prevent duplicates
   std::set<std::string> set(members.begin(), members.end());
@@ -292,8 +296,18 @@ std::vector<std::string> ClassicSession::get_members() const
 /**
 * Retrieves the ClassicSchema configured as default for the session.
 * \return A ClassicSchema object or Null
+*
+* If the configured schema is not valid anymore Null wil be returned.
 */
 ClassicSchema ClassicSession::getDefaultSchema(){}
+
+/**
+* Retrieves the ClassicSchema that is active as current on the session.
+* \return A ClassicSchema object or Null
+*
+* The current schema is configured either throu setCurrentSchema(String name) or by using the USE statement.
+*/
+ClassicSchema ClassicSession::getCurrentSchema(){}
 
 /**
 * Retrieves the Schemas available on the session.
@@ -324,8 +338,18 @@ Value ClassicSession::get_member(const std::string &prop) const
     ret_val = Value(_conn->uri());
   else if (prop == "defaultSchema")
   {
-    if (_default_schema)
-      ret_val = Value(boost::static_pointer_cast<Object_bridge>(_default_schema));
+    if (!_default_schema.empty())
+      return get_member(_default_schema);
+    else
+      ret_val = Value::Null();
+  }
+  else if (prop == "currentSchema")
+  {
+    ClassicSession *session = const_cast<ClassicSession *>(this);
+    std::string name = session->_retrieve_current_schema();
+
+    if (!name.empty())
+      ret_val = get_member(name);
     else
       ret_val = Value::Null();
   }
@@ -345,9 +369,9 @@ Value ClassicSession::get_member(const std::string &prop) const
   return ret_val;
 }
 
-void ClassicSession::_load_default_schema()
+std::string ClassicSession::_retrieve_current_schema()
 {
-  _default_schema.reset();
+  std::string name;
 
   if (_conn)
   {
@@ -365,12 +389,11 @@ void ClassicSession::_load_default_schema()
       shcore::Value schema = row->get_member("schema()");
 
       if (schema)
-      {
-        std::string name = schema.as_string();
-        _update_default_schema(name);
-      }
+        name = schema.as_string();
     }
   }
+
+  return name;
 }
 
 void ClassicSession::_load_schemas()
@@ -447,14 +470,14 @@ shcore::Value ClassicSession::get_schema(const shcore::Argument_list &args) cons
 
 #ifdef DOXYGEN
 /**
-* Sets the default schema for this session's connection.
+* Sets the selected schema for this session's connection.
 * \return The new schema.
 */
-ClassicSchema ClassicSession::setDefaultSchema(String schema){}
+ClassicSchema ClassicSession::setCurrentSchema(String schema){}
 #endif
-shcore::Value ClassicSession::set_default_schema(const shcore::Argument_list &args)
+shcore::Value ClassicSession::set_current_schema(const shcore::Argument_list &args)
 {
-  args.ensure_count(1, "ClassicSession.setDefaultSchema");
+  args.ensure_count(1, "ClassicSession.setCurrentSchema");
 
   if (_conn)
   {
@@ -464,28 +487,11 @@ shcore::Value ClassicSession::set_default_schema(const shcore::Argument_list &ar
     query.push_back(Value("use " + name + ";"));
 
     Value res = sql(query);
-
-    _update_default_schema(name);
   }
   else
     throw Exception::runtime_error("ClassicSession not connected");
 
-  return get_member("defaultSchema");
-}
-
-void ClassicSession::_update_default_schema(const std::string& name)
-{
-  if (!name.empty())
-  {
-    if (_schemas->has_key(name))
-      _default_schema = (*_schemas)[name].as_object<ClassicSchema>();
-    else
-    {
-      _default_schema.reset(new ClassicSchema(shared_from_this(), name));
-      _default_schema->cache_table_objects();
-      (*_schemas)[name] = Value(boost::static_pointer_cast<Object_bridge>(_default_schema));
-    }
-  }
+  return get_member("currentSchema");
 }
 
 boost::shared_ptr<shcore::Object_bridge> ClassicSession::create(const shcore::Argument_list &args)

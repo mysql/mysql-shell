@@ -48,7 +48,6 @@ namespace mysh
 
     /**
     * Represents a Schema as retrived from a session created using the X Protocol.
-    * \todo Implement and Document getCollectionAsTable()
     */
     class SHCORE_PUBLIC Schema : public DatabaseObject, public boost::enable_shared_from_this<Schema>
     {

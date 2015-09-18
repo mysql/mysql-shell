@@ -51,18 +51,20 @@ namespace shcore {
 
     // Ensures the right members exist
     exec_and_out_equals("var members = dir(session);");
-    exec_and_out_equals("print(members.length >= 11)", "true");
-    exec_and_out_equals("print(members[0] == 'close');", "true");
-    exec_and_out_equals("print(members[1] == 'createSchema');", "true");
-    exec_and_out_equals("print(members[2] == 'getDefaultSchema');", "true");
-    exec_and_out_equals("print(members[3] == 'getSchema');", "true");
-    exec_and_out_equals("print(members[4] == 'getSchemas');", "true");
-    exec_and_out_equals("print(members[5] == 'getUri');", "true");
-    exec_and_out_equals("print(members[6] == 'setDefaultSchema');", "true");
-    exec_and_out_equals("print(members[7] == 'sql');", "true");
-    exec_and_out_equals("print(members[8] == 'defaultSchema');", "true");
-    exec_and_out_equals("print(members[9] == 'schemas');", "true");
-    exec_and_out_equals("print(members[10] == 'uri');", "true");
+    exec_and_out_equals("print(members.length >= 13)", "true");
+    exec_and_out_equals("print(members.indexOf('close') != -1);", "true");
+    exec_and_out_equals("print(members.indexOf('createSchema') != -1);", "true");
+    exec_and_out_equals("print(members.indexOf('getCurrentSchema') != -1);", "true");
+    exec_and_out_equals("print(members.indexOf('getDefaultSchema') != -1);", "true");
+    exec_and_out_equals("print(members.indexOf('getSchema') != -1);", "true");
+    exec_and_out_equals("print(members.indexOf('getSchemas') != -1);", "true");
+    exec_and_out_equals("print(members.indexOf('getUri') != -1);", "true");
+    exec_and_out_equals("print(members.indexOf('setCurrentSchema') != -1);", "true");
+    exec_and_out_equals("print(members.indexOf('sql') != -1);", "true");
+    exec_and_out_equals("print(members.indexOf('defaultSchema') != -1);", "true");
+    exec_and_out_equals("print(members.indexOf('schemas') != -1);", "true");
+    exec_and_out_equals("print(members.indexOf('uri') != -1);", "true");
+    exec_and_out_equals("print(members.indexOf('currentSchema') != -1);", "true");
 
     exec_and_out_equals("session.close();");
   }
@@ -95,8 +97,8 @@ namespace shcore {
     exec_and_out_equals("session.close();");
   }
 
-  // Tests session.getDefaultSchema()
-  TEST_F(Shell_js_mysql_session_tests, mysql_base_session_get_default_schema)
+  // Tests session.getDefaultSchema() and session.getCurrentSchema()
+  TEST_F(Shell_js_mysql_session_tests, mysql_base_session_get_empty_default_schema)
   {
     {
       SCOPED_TRACE("retrieving the default schema for first time");
@@ -105,34 +107,79 @@ namespace shcore {
       exec_and_out_equals("var session = mysql.getClassicSession('" + _mysql_uri + "');");
 
       // Attempts to get the default schema
-      exec_and_out_equals("var schema = session.getDefaultSchema();");
+      exec_and_out_equals("var dschema = session.getDefaultSchema();");
+      exec_and_out_equals("print(dschema);", "null");
 
-      exec_and_out_equals("print(schema);", "null");
+      // Attempts to get the default schema
+      exec_and_out_equals("var cschema = session.getCurrentSchema();");
+      exec_and_out_equals("print(cschema);", "null");
     };
 
     {
-      SCOPED_TRACE("Setting/getting default schema.");
-      exec_and_out_equals("session.setDefaultSchema('mysql');");
+      SCOPED_TRACE("Setting/getting current schema.");
+      exec_and_out_equals("session.setCurrentSchema('mysql');");
+
+      // Default schema does not change
+      exec_and_out_equals("var dschema = session.getDefaultSchema();");
+      exec_and_out_equals("print(dschema);", "null");
 
       // Now uses the formal method
-      exec_and_out_equals("var schema = session.getDefaultSchema();");
-      exec_and_out_equals("print(schema);", "<ClassicSchema:mysql>");
+      exec_and_out_equals("var cschema = session.getCurrentSchema();");
+      exec_and_out_equals("print(cschema);", "<ClassicSchema:mysql>");
     };
 
     {
-      // Sets a different default database
-      exec_and_out_equals("session.setDefaultSchema('information_schema');");
+      // Sets a different current database
+      exec_and_out_equals("session.setCurrentSchema('information_schema');");
+
+      // Default schema does not change
+      exec_and_out_equals("var dschema = session.getDefaultSchema();");
+      exec_and_out_equals("print(dschema);", "null");
 
       // Now uses the formal method
-      exec_and_out_equals("var schema = session.getDefaultSchema();");
-      exec_and_out_equals("print(schema);", "<ClassicSchema:information_schema>");
+      exec_and_out_equals("var cschema = session.getCurrentSchema();");
+      exec_and_out_equals("print(cschema);", "<ClassicSchema:information_schema>");
     };
 
     exec_and_out_equals("session.close();");
   }
 
-  // Tests session.defaultSchema
-  TEST_F(Shell_js_mysql_session_tests, mysql_base_session_default_schema)
+  // Tests session.getDefaultSchema() and session.getCurrentSchema()
+  TEST_F(Shell_js_mysql_session_tests, mysql_base_session_get_default_schema)
+  {
+    {
+      SCOPED_TRACE("retrieving the default schema for first time");
+      exec_and_out_equals("var mysql = require('mysql').mysql;");
+
+      exec_and_out_equals("var session = mysql.getClassicSession('" + _mysql_uri + "/mysql');");
+
+      // Attempts to get the default schema
+      exec_and_out_equals("var dschema = session.getDefaultSchema();");
+      exec_and_out_equals("print(dschema);", "<ClassicSchema:mysql>");
+
+      // Attempts to get the default schema
+      exec_and_out_equals("var cschema = session.getCurrentSchema();");
+      exec_and_out_equals("print(cschema);", "<ClassicSchema:mysql>");
+    };
+
+    {
+      // Sets a different current database
+      exec_and_out_equals("session.setCurrentSchema('information_schema');");
+
+      // Default schema does not change
+      exec_and_out_equals("var dschema = session.getDefaultSchema();");
+      exec_and_out_equals("print(dschema);", "<ClassicSchema:mysql>");
+
+      // Now uses the formal method
+      exec_and_out_equals("var cschema = session.getCurrentSchema();");
+      exec_and_out_equals("print(cschema);", "<ClassicSchema:information_schema>");
+    };
+
+    exec_and_out_equals("session.close();");
+  }
+
+  // Tests session.defaultSchema and session.currentSchema
+  TEST_F(Shell_js_mysql_session_tests, mysql_base_session_empty_default_schema)
   {
     {
       SCOPED_TRACE("retrieving the default schema for first time");
@@ -142,22 +189,51 @@ namespace shcore {
 
       // Attempts to get the default schema
       exec_and_out_equals("print(session.defaultSchema);", "null");
+      exec_and_out_equals("print(session.currentSchema);", "null");
     };
 
     {
       SCOPED_TRACE("Setting/getting default schema.");
-      exec_and_out_equals("session.setDefaultSchema('mysql');");
+      exec_and_out_equals("session.setCurrentSchema('mysql');");
 
       // Now uses the formal method
-      exec_and_out_equals("print(session.defaultSchema);", "<ClassicSchema:mysql>");
+      exec_and_out_equals("print(session.defaultSchema);", "null");
+      exec_and_out_equals("print(session.currentSchema);", "<ClassicSchema:mysql>");
     };
 
     {
       // Sets a different default database
-      exec_and_out_equals("session.setDefaultSchema('information_schema');");
+      exec_and_out_equals("session.setCurrentSchema('information_schema');");
 
       // Now uses the formal method
-      exec_and_out_equals("print(session.defaultSchema);", "<ClassicSchema:information_schema>");
+      exec_and_out_equals("print(session.defaultSchema);", "null");
+      exec_and_out_equals("print(session.currentSchema);", "<ClassicSchema:information_schema>");
+    };
+
+    exec_and_out_equals("session.close();");
+  }
+
+  // Tests session.defaultSchema and session.currentSchema
+  TEST_F(Shell_js_mysql_session_tests, mysql_base_session_default_schema)
+  {
+    {
+      SCOPED_TRACE("retrieving the default schema for first time");
+      exec_and_out_equals("var mysql = require('mysql').mysql;");
+
+      exec_and_out_equals("var session = mysql.getClassicSession('" + _mysql_uri + "/mysql');");
+
+      // Attempts to get the default schema
+      exec_and_out_equals("print(session.defaultSchema);", "<ClassicSchema:mysql>");
+      exec_and_out_equals("print(session.currentSchema);", "<ClassicSchema:mysql>");
+    };
+
+    {
+      // Sets a different default database
+      exec_and_out_equals("session.setCurrentSchema('information_schema');");
+
+      // Now uses the formal method
+      exec_and_out_equals("print(session.defaultSchema);", "<ClassicSchema:mysql>");
+      exec_and_out_equals("print(session.currentSchema);", "<ClassicSchema:information_schema>");
     };
 
     exec_and_out_equals("session.close();");
