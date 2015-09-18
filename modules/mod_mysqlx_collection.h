@@ -41,11 +41,9 @@ namespace mysh
 
     /**
     * Represents a Collection on an Schema, retrieved with session created using the mysqlx module.
-    * \todo Implement and document as()
     * \todo Implement and document createIndex()
     * \todo Implement and document dropIndex()
     * \todo Implement and document getIndexes()
-    * \todo Implement and document newDoc()
     * \todo Implement and document count()
     */
     class Collection : public DatabaseObject, public boost::enable_shared_from_this<Collection>

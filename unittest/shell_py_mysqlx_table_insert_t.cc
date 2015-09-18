@@ -51,9 +51,9 @@ namespace shcore {
 
     exec_and_out_equals("session = mysqlx.getNodeSession('" + _uri + "')");
 
-    exec_and_out_equals("session.sql('drop schema if exists js_shell_test;').execute()");
-    exec_and_out_equals("session.sql('create schema js_shell_test;').execute()");
-    exec_and_out_equals("session.sql('use js_shell_test;').execute()");
+    exec_and_out_equals("session.sql('drop schema if exists py_shell_test;').execute()");
+    exec_and_out_equals("session.sql('create schema py_shell_test;').execute()");
+    exec_and_out_equals("session.sql('use py_shell_test;').execute()");
     exec_and_out_equals("session.sql('create table table1 (name varchar(50), age integer, gender varchar(20));').execute()");
   }
 
@@ -63,7 +63,7 @@ namespace shcore {
     //       different combinations of chained methods.
     exec_and_out_equals("import mysqlx");
     exec_and_out_equals("session = mysqlx.getSession('" + _uri + "')");
-    exec_and_out_equals("table = session.js_shell_test.getTable('table1')");
+    exec_and_out_equals("table = session.py_shell_test.getTable('table1')");
 
     //-------- ---------------------Test 1-------------------------
     // Tests the happy path table.insert().values().execute()
@@ -102,7 +102,7 @@ namespace shcore {
   {
     exec_and_out_equals("import mysqlx");
     exec_and_out_equals("session = mysqlx.getSession('" + _uri + "')");
-    exec_and_out_equals("table = session.js_shell_test.getTable('table1')");
+    exec_and_out_equals("table = session.py_shell_test.getTable('table1')");
 
     // Tests insert with invalid parameter
     exec_and_out_contains("table.insert(28).execute()", "", "TableInsert.insert: Argument #1 is expected to be either string, a list of strings or a map with fields and values");
@@ -128,7 +128,7 @@ namespace shcore {
   {
     exec_and_out_equals("import mysqlx");
     exec_and_out_equals("session = mysqlx.getSession('" + _uri + "')");
-    exec_and_out_equals("table = session.js_shell_test.getTable('table1')");
+    exec_and_out_equals("table = session.py_shell_test.getTable('table1')");
 
     // Insert without columns
     {

@@ -54,10 +54,10 @@ namespace shcore {
 
     exec_and_out_equals("session = mysqlx.getNodeSession('" + _uri + "')");
 
-    exec_and_out_equals("session.sql('drop schema if exists js_shell_test;').execute()");
-    exec_and_out_equals("session.sql('create schema js_shell_test;').execute()");
+    exec_and_out_equals("session.sql('drop schema if exists py_shell_test;').execute()");
+    exec_and_out_equals("session.sql('create schema py_shell_test;').execute()");
 
-    exec_and_out_equals("session.js_shell_test.createCollection('collection1')");
+    exec_and_out_equals("session.py_shell_test.createCollection('collection1')");
 
     exec_and_out_equals("session.close()");
   }
@@ -68,7 +68,7 @@ namespace shcore {
     //       different combinations of chained methods.
     exec_and_out_equals("import mysqlx");
     exec_and_out_equals("session = mysqlx.getSession('" + _uri + "')");
-    exec_and_out_equals("collection = session.js_shell_test.getCollection('collection1')");
+    exec_and_out_equals("collection = session.py_shell_test.getCollection('collection1')");
 
     // Creates the collection find object
     exec_and_out_equals("crud = collection.add([])");
@@ -82,7 +82,7 @@ namespace shcore {
   {
     exec_and_out_equals("import mysqlx");
     exec_and_out_equals("session = mysqlx.getSession('" + _uri + "')");
-    exec_and_out_equals("collection = session.js_shell_test.getCollection('collection1')");
+    exec_and_out_equals("collection = session.py_shell_test.getCollection('collection1')");
 
     // Test add attempt with no data
     exec_and_out_contains("collection.add().execute()", "", "Invalid number of arguments in CollectionAdd.add, expected 1 but got 0");
@@ -100,7 +100,7 @@ namespace shcore {
   {
     exec_and_out_equals("import mysqlx");
     exec_and_out_equals("session = mysqlx.getSession('" + _uri + "')");
-    exec_and_out_equals("collection = session.js_shell_test.getCollection('collection1')");
+    exec_and_out_equals("collection = session.py_shell_test.getCollection('collection1')");
 
     // Test adding a single document
     exec_and_out_equals("result = collection.add({'name': 'my first', 'passed': 'document', 'count': 1}).execute()");

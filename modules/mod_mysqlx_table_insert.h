@@ -33,7 +33,6 @@ namespace mysh
 
     /**
     * Handler for Insert operations on Tables.
-    * \todo Update execute to support options and document it
     */
     class TableInsert : public Table_crud_definition, public boost::enable_shared_from_this<TableInsert>
     {

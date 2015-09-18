@@ -28,7 +28,7 @@
 
 #include "shellcore/proxy_object.h"
 
-#include "mysqlx.h"
+#include "mysqlxtest_utils.h"
 
 #include <boost/bind.hpp>
 #include <boost/lexical_cast.hpp>

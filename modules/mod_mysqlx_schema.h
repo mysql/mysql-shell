@@ -113,6 +113,7 @@ namespace mysh
       Table getTable(String name);
       View getView(String name);
       Collection getCollection(String name);
+      Table getCollectionAsTable(String name);
       Collection createCollection(String name);
 #endif
     private:
@@ -125,6 +126,7 @@ namespace mysh
       shcore::Value find_in_collection(const std::string& name, boost::shared_ptr<shcore::Value::Map_type>source) const;
       shcore::Value getTable(const shcore::Argument_list &args);
       shcore::Value getCollection(const shcore::Argument_list &args);
+      shcore::Value getCollectionAsTable(const shcore::Argument_list &args);
       shcore::Value getView(const shcore::Argument_list &args);
 
       shcore::Value createCollection(const shcore::Argument_list &args);

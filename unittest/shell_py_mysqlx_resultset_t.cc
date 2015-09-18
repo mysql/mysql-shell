@@ -46,13 +46,13 @@ namespace shcore {
 
     exec_and_out_equals("session = mysqlx.getNodeSession('" + _uri + "')");
 
-    exec_and_out_equals("session.sql('drop schema if exists js_shell_test;').execute()");
-    exec_and_out_equals("session.sql('create schema js_shell_test;').execute()");
-    exec_and_out_equals("session.sql('use js_shell_test;').execute()");
+    exec_and_out_equals("session.sql('drop schema if exists py_shell_test;').execute()");
+    exec_and_out_equals("session.sql('create schema py_shell_test;').execute()");
+    exec_and_out_equals("session.sql('use py_shell_test;').execute()");
     exec_and_out_equals("session.sql('create table table1 (id int auto_increment primary key, name varchar(50));').execute()");
 
     // TODO: should be enabled once collection crud is available
-    //exec_and_out_equals("session.js_shell_test.createCollection('collection1')");
+    //exec_and_out_equals("session.py_shell_test.createCollection('collection1')");
 
     exec_and_out_equals("session.sql('insert into table1 (`name`) values(\"one\");').execute()");
     exec_and_out_equals("session.sql('insert into table1 (`name`) values(\"two\");').execute()");
@@ -68,7 +68,7 @@ namespace shcore {
 
     exec_and_out_equals("session = mysqlx.getNodeSession('" + _uri + "')");
 
-    exec_and_out_equals("result = session.sql('use js_shell_test;').execute()");
+    exec_and_out_equals("result = session.sql('use py_shell_test;').execute()");
 
     exec_and_out_equals("print(result.hasData)", "False");
     exec_and_out_equals("print(result.getHasData())", "False");
@@ -88,7 +88,7 @@ namespace shcore {
 
     exec_and_out_equals("session = mysqlx.getNodeSession('" + _uri + "')");
 
-    exec_and_out_equals("result = session.sql('select * from js_shell_test.table1;').execute()");
+    exec_and_out_equals("result = session.sql('select * from py_shell_test.table1;').execute()");
 
     exec_and_out_equals("metadata = result.getColumnMetadata()");
 
@@ -108,7 +108,7 @@ namespace shcore {
 
     exec_and_out_equals("session = mysqlx.getNodeSession('" + _uri + "')");
 
-    exec_and_out_equals("result = session.sql('insert into js_shell_test.table1 (`name`) values(\"four\");').execute()");
+    exec_and_out_equals("result = session.sql('insert into py_shell_test.table1 (`name`) values(\"four\");').execute()");
 
     exec_and_out_equals("print(result.lastInsertId)", "4");
     exec_and_out_equals("print(result.getLastInsertId())", "4");

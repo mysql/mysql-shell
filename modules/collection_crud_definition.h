@@ -27,6 +27,7 @@
 #include "shellcore/common.h"
 #include "crud_definition.h"
 #include "mysqlx_crud.h"
+#include "mysqlxtest_utils.h"
 
 #include <boost/weak_ptr.hpp>
 #include <boost/enable_shared_from_this.hpp>

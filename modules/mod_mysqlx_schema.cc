@@ -65,6 +65,7 @@ void Schema::init()
 
   add_method("getTable", boost::bind(&Schema::getTable, this, _1), "name", shcore::String, NULL);
   add_method("getCollection", boost::bind(&Schema::getCollection, this, _1), "name", shcore::String, NULL);
+  add_method("getCollectionAsTable", boost::bind(&Schema::getCollectionAsTable, this, _1), "name", shcore::String, NULL);
   add_method("getView", boost::bind(&Schema::getView, this, _1), "name", shcore::String, NULL);
 
   add_method("createCollection", boost::bind(&Schema::createCollection, this, _1), "name", shcore::String, NULL);
@@ -267,6 +268,29 @@ shcore::Value Schema::getCollection(const shcore::Argument_list &args)
 
 #ifdef DOXYGEN
 /**
+* Returns a Table object representing a Collection on the database.
+* \param name the name of the collection to be retrieved as a table.
+* \return the Table object representing the collection or undefined.
+*/
+Collection Schema::getCollectionAsTable(String name){}
+#endif
+shcore::Value Schema::getCollectionAsTable(const shcore::Argument_list &args)
+{
+  args.ensure_count(1, "Schema.getCollectionAsTable");
+
+  Value ret_val = getCollection(args);
+
+  if (ret_val)
+  {
+    boost::shared_ptr<Table> table(new Table(shared_from_this(), args.string_at(0)));
+    ret_val = Value(boost::static_pointer_cast<Object_bridge>(table));
+  }
+
+  return ret_val;
+}
+
+#ifdef DOXYGEN
+/**
 * Returns a View object with the associated name in the current schema. If not view with the name, Undefined is returned.
 * This method is run against a local cache of objects, if you want to see lastest changes by other sessions you may need to create a new copy the schema object with session.getSchema().
 * \sa getCollection(), getTable()
@@ -292,10 +316,11 @@ shcore::Value Schema::getView(const shcore::Argument_list &args)
 #ifdef DOXYGEN
 /**
 * Creates in the current schema a new collection with the specified name and retrieves an object representing the new collection created.
-* TODO: What are the valid identifiers for collection names?
-* \sa getCollections(), getCollection()
 * \param name the name of the collection.
 * \return the new created collection.
+*
+* To specify a name for a collection, follow the naming conventions in MySQL.
+* \sa getCollections(), getCollection()
 */
 Collection Schema::createCollection(String name){}
 #endif

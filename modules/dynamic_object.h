@@ -31,44 +31,6 @@
 
 #include <set>
 
-#ifdef __GNUC__
-#define ATTR_UNUSED __attribute__((unused))
-#else
-#define ATTR_UNUSED
-#endif
-
-/*
-* Helper function to ensure the exceptions generated on the mysqlx_connector
-* are properly translated to the corresponding shcore::Exception type
-*/
-static void ATTR_UNUSED translate_crud_exception(const std::string& operation)
-{
-  try
-  {
-    throw;
-  }
-  catch (shcore::Exception &e)
-  {
-    throw shcore::Exception::argument_error(operation + ": " + e.what());
-  }
-  catch (std::runtime_error &e)
-  {
-    throw shcore::Exception::runtime_error(operation + ": " + e.what());
-  }
-  catch (std::logic_error &e)
-  {
-    throw shcore::Exception::logic_error(operation + ": " + e.what());
-  }
-  catch (...)
-  {
-    throw;
-  }
-}
-
-#define CATCH_AND_TRANSLATE_CRUD_EXCEPTION(operation)   \
-  catch (...)                   \
-{ translate_crud_exception(operation); }
-
 namespace mysh
 {
   namespace mysqlx

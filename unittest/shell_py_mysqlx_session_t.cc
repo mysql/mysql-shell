@@ -299,22 +299,22 @@ namespace shcore {
 
     exec_and_out_equals("session = mysqlx.getNodeSession('" + _uri + "')");
 
-    // Cleans environment
-    exec_and_out_equals("session.sql('drop database if exists mysqlx_test_create_schema_1').execute()");
+    // Cleans py_test_create_schema
+    exec_and_out_equals("session.sql('drop database if exists py_test_create_schema').execute()");
 
     // Happy path
-    exec_and_out_equals("s = session.createSchema('mysqlx_test_create_schema_1')");
+    exec_and_out_equals("s = session.createSchema('py_test_create_schema')");
 
-    exec_and_out_equals("print(s)", "<Schema:mysqlx_test_create_schema_1>");
+    exec_and_out_equals("print(s)", "<Schema:py_test_create_schema>");
 
     // Error, existing schema
-    exec_and_out_contains("s2 = session.createSchema('mysqlx_test_create_schema_1')", "", "Can't create database 'mysqlx_test_create_schema_1'; database exists");
+    exec_and_out_contains("s2 = session.createSchema('py_test_create_schema')", "", "Can't create database 'py_test_create_schema'; database exists");
 
     // Error, passing non string
     exec_and_out_contains("s2 = session.createSchema(45)", "", "Argument #1 is expected to be a string");
 
     // Drops the database
-    exec_and_out_equals("session.sql('drop database mysqlx_test_create_schema_1').execute()");
+    exec_and_out_equals("session.sql('drop database py_test_create_schema').execute()");
 
     exec_and_out_equals("session.close()");
   }

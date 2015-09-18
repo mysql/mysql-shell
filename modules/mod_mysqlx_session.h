@@ -32,48 +32,10 @@
 
 #include <boost/enable_shared_from_this.hpp>
 
-#ifdef __GNUC__
-#define ATTR_UNUSED __attribute__((unused))
-#else
-#define ATTR_UNUSED
-#endif
-
 namespace shcore
 {
   class Proxy_object;
 };
-
-/*
-* Helper function to ensure the exceptions generated on the mysqlx_connector
-* are properly translated to the corresponding shcore::Exception type
-*/
-static void ATTR_UNUSED translate_exception()
-{
-  try
-  {
-    throw;
-  }
-  catch (::mysqlx::Error &e)
-  {
-    throw shcore::Exception::error_with_code("Server", e.what(), e.error());
-  }
-  catch (std::runtime_error &e)
-  {
-    throw shcore::Exception::runtime_error(e.what());
-  }
-  catch (std::logic_error &e)
-  {
-    throw shcore::Exception::logic_error(e.what());
-  }
-  catch (...)
-  {
-    throw;
-  }
-}
-
-#define CATCH_AND_TRANSLATE()   \
-  catch (...)                   \
-{ translate_exception(); }
 
 namespace mysh
 {

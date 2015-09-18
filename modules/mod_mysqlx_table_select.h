@@ -33,7 +33,6 @@ namespace mysh
 
     /**
     * Handler for record selection on a Table.
-    * \todo Update execute to support options and document it
     *
     * This object provides the necessary functions to allow selecting record data from a table.
     *

@@ -42,9 +42,9 @@ namespace shcore {
 
       exec_and_out_equals("session = mysql.getClassicSession('" + _mysql_uri + "')");
 
-      exec_and_out_equals("session.sql('drop schema if exists js_shell_test;')");
-      exec_and_out_equals("session.sql('create schema js_shell_test;')");
-      exec_and_out_equals("session.sql('use js_shell_test;')");
+      exec_and_out_equals("session.sql('drop schema if exists py_shell_test;')");
+      exec_and_out_equals("session.sql('create schema py_shell_test;')");
+      exec_and_out_equals("session.sql('use py_shell_test;')");
       exec_and_out_equals("result = session.sql('create table table1 (name varchar(50));')");
       exec_and_out_equals("session.sql('create view view1 (my_name) as select name from table1;')");
     }
@@ -109,7 +109,7 @@ namespace shcore {
   // Tests schema.getTables()
   TEST_F(Shell_py_mysql_schema_tests, mysql_schema_get_tables)
   {
-    exec_and_out_equals("tables = session.js_shell_test.getTables()");
+    exec_and_out_equals("tables = session.py_shell_test.getTables()");
 
     exec_and_out_equals("print(tables.table1)", "<ClassicTable:table1>");
   }
@@ -117,13 +117,13 @@ namespace shcore {
   // Tests schema.tables
   TEST_F(Shell_py_mysql_schema_tests, mysql_schema_tables)
   {
-    exec_and_out_equals("print(session.js_shell_test.tables.table1)", "<ClassicTable:table1>");
+    exec_and_out_equals("print(session.py_shell_test.tables.table1)", "<ClassicTable:table1>");
   }
 
   // Tests schema.getViews()
   TEST_F(Shell_py_mysql_schema_tests, mysql_schema_get_views)
   {
-    exec_and_out_equals("views = session.js_shell_test.getViews()");
+    exec_and_out_equals("views = session.py_shell_test.getViews()");
 
     exec_and_out_equals("print(views.view1)", "<ClassicView:view1>");
   }
@@ -131,13 +131,13 @@ namespace shcore {
   // Tests schema.views
   TEST_F(Shell_py_mysql_schema_tests, mysql_schema_views)
   {
-    exec_and_out_equals("print(session.js_shell_test.views.view1)", "<ClassicView:view1>");
+    exec_and_out_equals("print(session.py_shell_test.views.view1)", "<ClassicView:view1>");
   }
 
   // Tests schema.getTable()
   TEST_F(Shell_py_mysql_schema_tests, mysql_schema_get_table)
   {
-    exec_and_out_equals("table = session.js_shell_test.getTable('table1')");
+    exec_and_out_equals("table = session.py_shell_test.getTable('table1')");
 
     exec_and_out_equals("print(table)", "<ClassicTable:table1>");
   }
@@ -145,7 +145,7 @@ namespace shcore {
   // Tests schema.getView()
   TEST_F(Shell_py_mysql_schema_tests, mysql_schema_get_view)
   {
-    exec_and_out_equals("view = session.js_shell_test.getView('view1')");
+    exec_and_out_equals("view = session.py_shell_test.getView('view1')");
 
     exec_and_out_equals("print(view)", "<ClassicView:view1>");
   }
@@ -153,9 +153,9 @@ namespace shcore {
   // Tests schema.<object>
   TEST_F(Shell_py_mysql_schema_tests, mysql_schema_object)
   {
-    exec_and_out_equals("print(session.js_shell_test.table1)", "<ClassicTable:table1>");
+    exec_and_out_equals("print(session.py_shell_test.table1)", "<ClassicTable:table1>");
 
-    exec_and_out_equals("print(session.js_shell_test.view1)", "<ClassicView:view1>");
+    exec_and_out_equals("print(session.py_shell_test.view1)", "<ClassicView:view1>");
   }
 
   // Tests schema.drop() and schema.existInDatabase()
