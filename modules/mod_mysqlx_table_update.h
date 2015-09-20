@@ -33,7 +33,6 @@ namespace mysh
 
     /**
     * Handler for record update operations on a Table.
-    * \todo Update execute to support options and document it
     *
     * This object provides the necessary functions to allow updating records on a table.
     *

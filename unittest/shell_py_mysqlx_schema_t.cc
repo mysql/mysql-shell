@@ -42,13 +42,13 @@ namespace shcore {
 
       exec_and_out_equals("session = mysqlx.getNodeSession('" + _uri + "')");
 
-      exec_and_out_equals("session.sql('drop schema if exists js_shell_test;').execute()");
-      exec_and_out_equals("session.sql('create schema js_shell_test;').execute()");
-      exec_and_out_equals("session.sql('use js_shell_test;').execute()");
+      exec_and_out_equals("session.sql('drop schema if exists py_shell_test;').execute()");
+      exec_and_out_equals("session.sql('create schema py_shell_test;').execute()");
+      exec_and_out_equals("session.sql('use py_shell_test;').execute()");
       exec_and_out_equals("result = session.sql('create table table1 (name varchar(50));').execute()");
       exec_and_out_equals("session.sql('create view view1 (my_name) as select name from table1;').execute()");
 
-      exec_and_out_equals("session.js_shell_test.createCollection('collection1')");
+      exec_and_out_equals("session.py_shell_test.createCollection('collection1')");
     }
   };
 
@@ -111,7 +111,7 @@ namespace shcore {
   // Tests schema.getTables()
   TEST_F(Shell_py_mysqlx_schema_tests, mysqlx_schema_get_tables)
   {
-    exec_and_out_equals("tables = session.js_shell_test.getTables()");
+    exec_and_out_equals("tables = session.py_shell_test.getTables()");
 
     exec_and_out_equals("print(tables.table1)", "<Table:table1>");
   }
@@ -119,13 +119,13 @@ namespace shcore {
   // Tests schema.tables
   TEST_F(Shell_py_mysqlx_schema_tests, mysqlx_schema_tables)
   {
-    exec_and_out_equals("print(session.js_shell_test.tables.table1)", "<Table:table1>");
+    exec_and_out_equals("print(session.py_shell_test.tables.table1)", "<Table:table1>");
   }
 
   // Tests schema.getViews()
   TEST_F(Shell_py_mysqlx_schema_tests, mysqlx_schema_get_views)
   {
-    exec_and_out_equals("views = session.js_shell_test.getViews()");
+    exec_and_out_equals("views = session.py_shell_test.getViews()");
 
     exec_and_out_equals("print(views.view1)", "<View:view1>");
   }
@@ -133,13 +133,13 @@ namespace shcore {
   // Tests schema.views
   TEST_F(Shell_py_mysqlx_schema_tests, mysqlx_schema_views)
   {
-    exec_and_out_equals("print(session.js_shell_test.views.view1)", "<View:view1>");
+    exec_and_out_equals("print(session.py_shell_test.views.view1)", "<View:view1>");
   }
 
   // Tests schema.getCollections()
   TEST_F(Shell_py_mysqlx_schema_tests, mysqlx_schema_get_collections)
   {
-    exec_and_out_equals("collections = session.js_shell_test.getCollections()");
+    exec_and_out_equals("collections = session.py_shell_test.getCollections()");
 
     exec_and_out_equals("print(collections.collection1)", "<Collection:collection1>");
   }
@@ -147,13 +147,13 @@ namespace shcore {
   // Tests schema.collections
   TEST_F(Shell_py_mysqlx_schema_tests, mysqlx_schema_collections)
   {
-    exec_and_out_equals("print(session.js_shell_test.collections.collection1)", "<Collection:collection1>");
+    exec_and_out_equals("print(session.py_shell_test.collections.collection1)", "<Collection:collection1>");
   }
 
   // Tests schema.getTable()
   TEST_F(Shell_py_mysqlx_schema_tests, mysqlx_schema_get_table)
   {
-    exec_and_out_equals("table = session.js_shell_test.getTable('table1')");
+    exec_and_out_equals("table = session.py_shell_test.getTable('table1')");
 
     exec_and_out_equals("print(table)", "<Table:table1>");
   }
@@ -161,7 +161,7 @@ namespace shcore {
   // Tests schema.getView()
   TEST_F(Shell_py_mysqlx_schema_tests, mysqlx_schema_get_view)
   {
-    exec_and_out_equals("view = session.js_shell_test.getView('view1')");
+    exec_and_out_equals("view = session.py_shell_test.getView('view1')");
 
     exec_and_out_equals("print(view)", "<View:view1>");
   }
@@ -169,25 +169,31 @@ namespace shcore {
   // Tests schema.getCollection()
   TEST_F(Shell_py_mysqlx_schema_tests, mysqlx_schema_get_collection)
   {
-    exec_and_out_equals("collection = session.js_shell_test.getCollection('collection1')");
+    exec_and_out_equals("collection = session.py_shell_test.getCollection('collection1')");
 
     exec_and_out_equals("print(collection)", "<Collection:collection1>");
+  }
+
+  // Tests schema.getCollectionAsTable()
+  TEST_F(Shell_py_mysqlx_schema_tests, mysqlx_schema_get_collection_as_table)
+  {
+    exec_and_out_equals("table = session.py_shell_test.getCollectionAsTable('collection1')");
+
+    exec_and_out_equals("print(table)", "<Table:collection1>");
   }
 
   // Tests schema.<object>
   TEST_F(Shell_py_mysqlx_schema_tests, mysqlx_schema_object)
   {
-    exec_and_out_equals("print(session.js_shell_test.table1)", "<Table:table1>");
-    exec_and_out_equals("print(session.js_shell_test.view1)", "<View:view1>");
-
-    // TODO: Uncomment once the collections can be retrieved
-    //exec_and_out_equals("print(session.js_shell_test.collection1)", "<Collection:collection1>");
+    exec_and_out_equals("print(session.py_shell_test.table1)", "<Table:table1>");
+    exec_and_out_equals("print(session.py_shell_test.view1)", "<View:view1>");
+    exec_and_out_equals("print(session.py_shell_test.collection1)", "<Collection:collection1>");
   }
 
   // Tests schema.createCollection()
   TEST_F(Shell_py_mysqlx_schema_tests, mysqlx_schema_create_collection)
   {
-    exec_and_out_equals("collection = session.js_shell_test.createCollection('test_collection')");
+    exec_and_out_equals("collection = session.py_shell_test.createCollection('test_collection')");
 
     exec_and_out_equals("print(collection)", "<Collection:test_collection>");
   }

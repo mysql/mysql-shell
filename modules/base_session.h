@@ -69,7 +69,6 @@ namespace mysh
     virtual std::string uri() const = 0;
 
     virtual shcore::Value get_schema(const shcore::Argument_list &args) const = 0;
-    virtual shcore::Value set_default_schema(const shcore::Argument_list &args) = 0;
     virtual void drop_db_object(const std::string &type, const std::string &name, const std::string& owner) = 0;
     virtual bool db_object_exists(std::string &type, const std::string &name, const std::string& owner) = 0;
 

@@ -41,7 +41,6 @@ namespace mysh
 
     /**
     * Represents a Table on an Schema, retrieved with a session created using mysqlx module.
-    * \todo Implement and document as()
     * \todo Implement and document getIndexes()
     * \todo Implement and document count()
     */

@@ -174,14 +174,20 @@ namespace shcore {
     exec_and_out_equals("print(collection)", "<Collection:collection1>");
   }
 
+  // Tests schema.getCollectionAsTable()
+  TEST_F(Shell_js_mysqlx_schema_tests, mysqlx_schema_get_collection_as_table)
+  {
+    exec_and_out_equals("var table = session.js_shell_test.getCollectionAsTable('collection1')");
+
+    exec_and_out_equals("print(table)", "<Table:collection1>");
+  }
+
   // Tests schema.<object>
   TEST_F(Shell_js_mysqlx_schema_tests, mysqlx_schema_object)
   {
     exec_and_out_equals("print(session.js_shell_test.table1)", "<Table:table1>");
     exec_and_out_equals("print(session.js_shell_test.view1)", "<View:view1>");
-
-    // TODO: Uncomment once the collections can be retrieved
-    //exec_and_out_equals("print(session.js_shell_test.collection1)", "<Collection:collection1>");
+    exec_and_out_equals("print(session.js_shell_test.collection1)", "<Collection:collection1>");
   }
 
   // Tests schema.createCollection()

@@ -28,7 +28,7 @@
 
 #include "shellcore/proxy_object.h"
 
-#include "mysqlx.h"
+#include "mysqlxtest_utils.h"
 
 #include <boost/bind.hpp>
 #include <boost/lexical_cast.hpp>
@@ -165,7 +165,7 @@ Value BaseSession::connect(const Argument_list &args)
   CATCH_AND_TRANSLATE();
 
   _load_schemas();
-  _load_default_schema();
+  _default_schema = _retrieve_current_schema();
 
   return Value::Null();
 }
@@ -299,9 +299,7 @@ Value BaseSession::executeStmt(const std::string &domain, const std::string& com
 
     try
     {
-      flush_last_result();
-
-      _last_result.reset(_session->executeStmt(domain, command, arguments));
+      _last_result = _session->executeStmt(domain, command, arguments);
 
       // Calls wait so any error is properly triggered at execution time
       _last_result->wait();
@@ -339,6 +337,9 @@ bool BaseSession::has_member(const std::string &prop) const
     return true;
   if (prop == "uri" || prop == "schemas" || prop == "defaultSchema")
     return true;
+  if (_schemas->has_key(prop))
+    return true;
+
   return false;
 }
 
@@ -378,8 +379,8 @@ Value BaseSession::get_member(const std::string &prop) const
     ret_val = Value(_schemas);
   else if (prop == "defaultSchema")
   {
-    if (_default_schema)
-      ret_val = Value(boost::static_pointer_cast<Object_bridge>(_default_schema));
+    if (!_default_schema.empty())
+      ret_val = get_member(_default_schema);
     else
       ret_val = Value::Null();
   }
@@ -399,37 +400,26 @@ Value BaseSession::get_member(const std::string &prop) const
   return ret_val;
 }
 
-void BaseSession::flush_last_result()
+std::string BaseSession::_retrieve_current_schema()
 {
-  if (_last_result)
-    _last_result->discardData();
-}
-
-void BaseSession::_load_default_schema()
-{
+  std::string name;
   try
   {
-    _default_schema.reset();
-
     if (_session)
     {
-      // Cleans out the comm buffer
-      flush_last_result();
-
       // TODO: update this logic properly
-      ::mysqlx::Result* result = _session->executeSql("select schema()");
-      ::mysqlx::Row *row = result->next();
+      boost::shared_ptr< ::mysqlx::Result> result = _session->executeSql("select schema()");
+      boost::shared_ptr< ::mysqlx::Row>row = result->next();
 
-      std::string name;
       if (!row->isNullField(0))
         name = row->stringField(0);
 
-      result->discardData();
-
-      _update_default_schema(name);
+      result->flush();
     }
   }
   CATCH_AND_TRANSLATE();
+
+  return name;
 }
 
 void BaseSession::_load_schemas()
@@ -438,11 +428,8 @@ void BaseSession::_load_schemas()
   {
     if (_session)
     {
-      // Cleans out the comm buffer
-      flush_last_result();
-
-      ::mysqlx::Result* result = _session->executeSql("show databases;");
-      ::mysqlx::Row *row = result->next();
+      boost::shared_ptr< ::mysqlx::Result> result = _session->executeSql("show databases;");
+      boost::shared_ptr< ::mysqlx::Row> row = result->next();
 
       while (row)
       {
@@ -459,7 +446,7 @@ void BaseSession::_load_schemas()
         row = result->next();
       }
 
-      result->discardData();
+      result->flush();
     }
   }
   CATCH_AND_TRANSLATE();
@@ -509,41 +496,6 @@ shcore::Value BaseSession::get_schema(const shcore::Argument_list &args) const
   return (*_schemas)[name];
 }
 
-#ifdef DOXYGEN
-/**
-* Sets the new default schema for this session, and returns the schema object for it.
-* At the database level, this is equivalent at issuing the following SQL query:
-*   use <new-default-schema>;
-*
-* \sa getSchemas(), getSchema()
-* \param name the name of the new schema to switch to.
-* \return the Schema object for the new schema.
-*/
-Schema BaseSession::setDefaultSchema(String name){}
-#endif
-shcore::Value BaseSession::set_default_schema(const shcore::Argument_list &args)
-{
-  std::string function_name = class_name() + ".setDefaultSchema";
-  args.ensure_count(1, function_name.c_str());
-
-  if (_session)
-  {
-    // Cleans out the comm buffer
-    flush_last_result();
-
-    std::string name = args[0].as_string();
-
-    ::mysqlx::Result* result = _session->executeSql("use " + name + ";");
-    result->discardData();
-
-    _update_default_schema(name);
-  }
-  else
-    throw Exception::runtime_error("XSession not connected");
-
-  return get_member("defaultSchema");
-}
-
 shcore::Value BaseSession::set_fetch_warnings(const shcore::Argument_list &args)
 {
   Value ret_val;
@@ -559,21 +511,6 @@ shcore::Value BaseSession::set_fetch_warnings(const shcore::Argument_list &args)
   executeAdminCommand(command, command_args);
 
   return ret_val;
-}
-
-void BaseSession::_update_default_schema(const std::string& name)
-{
-  if (!name.empty())
-  {
-    if (_schemas->has_key(name))
-      _default_schema = (*_schemas)[name].as_object<Schema>();
-    else
-    {
-      _default_schema.reset(new Schema(_get_shared_this(), name));
-      _default_schema->cache_table_objects();
-      (*_schemas)[name] = Value(boost::static_pointer_cast<Object_bridge>(_default_schema));
-    }
-  }
 }
 
 void BaseSession::drop_db_object(const std::string &type, const std::string &name, const std::string& owner)
@@ -665,6 +602,8 @@ boost::shared_ptr<shcore::Object_bridge> XSession::create(const shcore::Argument
 NodeSession::NodeSession() : BaseSession()
 {
   add_method("sql", boost::bind(&NodeSession::sql, this, _1), "sql", shcore::String, NULL);
+  add_method("setCurrentSchema", boost::bind(&NodeSession::set_current_schema, this, _1), "name", shcore::String, NULL);
+  add_method("getCurrentSchema", boost::bind(&ShellBaseSession::get_member_method, this, _1, "getCurrentSchema", "currentSchema"), NULL);
 }
 
 boost::shared_ptr<BaseSession> NodeSession::_get_shared_this() const
@@ -710,4 +649,75 @@ shcore::Value NodeSession::sql(const shcore::Argument_list &args)
   boost::shared_ptr<SqlExecute> sql_execute(new SqlExecute(shared_from_this()));
 
   return sql_execute->sql(args);
+}
+
+#ifdef DOXYGEN
+/**
+* Sets the current schema for this session, and returns the schema object for it.
+* At the database level, this is equivalent at issuing the following SQL query:
+*   use <new-default-schema>;
+*
+* \sa getSchemas(), getSchema()
+* \param name the name of the new schema to switch to.
+* \return the Schema object for the new schema.
+*/
+Schema NodeSession::setCurrentSchema(String name){}
+#endif
+shcore::Value NodeSession::set_current_schema(const shcore::Argument_list &args)
+{
+  std::string function_name = class_name() + ".setCurrentSchema";
+  args.ensure_count(1, function_name.c_str());
+
+  if (_session)
+  {
+    std::string name = args[0].as_string();
+
+    boost::shared_ptr< ::mysqlx::Result> result = _session->executeSql("use " + name + ";");
+    result->flush();
+  }
+  else
+    throw Exception::runtime_error("NodeSession not connected");
+
+  return get_member("currentSchema");
+}
+
+std::vector<std::string> NodeSession::get_members() const
+{
+  std::vector<std::string> members(BaseSession::get_members());
+
+  members.push_back("currentSchema");
+
+  return members;
+}
+
+#ifdef DOXYGEN
+/**
+* Retrieves the Schema set as active on the session.
+* \return A Schema object or Null
+*/
+Schema NodeSession::getCurrentSchema(){}
+#endif
+Value NodeSession::get_member(const std::string &prop) const
+{
+  // Retrieves the member first from the parent
+  Value ret_val;
+
+  // Check the member is on the base classes before attempting to
+  // retrieve it since it may throw invalid member otherwise
+  // If not on the parent classes and not here then we can safely assume
+  // it is a schema and attempt loading it as such
+  if (BaseSession::has_member(prop))
+    ret_val = BaseSession::get_member(prop);
+  else if (prop == "currentSchema")
+  {
+    NodeSession *session = const_cast<NodeSession *>(this);
+    std::string name = session->_retrieve_current_schema();
+
+    if (!name.empty())
+      ret_val = get_member(name);
+    else
+      ret_val = Value::Null();
+  }
+
+  return ret_val;
 }

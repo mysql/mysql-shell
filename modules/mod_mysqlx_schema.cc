@@ -65,6 +65,7 @@ void Schema::init()
 
   add_method("getTable", boost::bind(&Schema::getTable, this, _1), "name", shcore::String, NULL);
   add_method("getCollection", boost::bind(&Schema::getCollection, this, _1), "name", shcore::String, NULL);
+  add_method("getCollectionAsTable", boost::bind(&Schema::getCollectionAsTable, this, _1), "name", shcore::String, NULL);
   add_method("getView", boost::bind(&Schema::getView, this, _1), "name", shcore::String, NULL);
 
   add_method("createCollection", boost::bind(&Schema::createCollection, this, _1), "name", shcore::String, NULL);
@@ -233,7 +234,12 @@ shcore::Value Schema::getTable(const shcore::Argument_list &args)
 
   std::string name = args.string_at(0);
 
-  return find_in_collection(name, _tables);
+  shcore::Value ret_val = find_in_collection(name, _tables);
+
+  if (!ret_val)
+    ret_val = _load_object(name, "TABLE");
+
+  return ret_val;
 }
 
 #ifdef DOXYGEN
@@ -252,7 +258,35 @@ shcore::Value Schema::getCollection(const shcore::Argument_list &args)
 
   std::string name = args.string_at(0);
 
-  return find_in_collection(name, _collections);
+  shcore::Value ret_val = find_in_collection(name, _collections);
+
+  if (!ret_val)
+    ret_val = _load_object(name, "COLLECTION");
+
+  return ret_val;
+}
+
+#ifdef DOXYGEN
+/**
+* Returns a Table object representing a Collection on the database.
+* \param name the name of the collection to be retrieved as a table.
+* \return the Table object representing the collection or undefined.
+*/
+Collection Schema::getCollectionAsTable(String name){}
+#endif
+shcore::Value Schema::getCollectionAsTable(const shcore::Argument_list &args)
+{
+  args.ensure_count(1, "Schema.getCollectionAsTable");
+
+  Value ret_val = getCollection(args);
+
+  if (ret_val)
+  {
+    boost::shared_ptr<Table> table(new Table(shared_from_this(), args.string_at(0)));
+    ret_val = Value(boost::static_pointer_cast<Object_bridge>(table));
+  }
+
+  return ret_val;
 }
 
 #ifdef DOXYGEN
@@ -271,16 +305,22 @@ shcore::Value Schema::getView(const shcore::Argument_list &args)
 
   std::string name = args.string_at(0);
 
-  return find_in_collection(name, _views);
+  shcore::Value ret_val = find_in_collection(name, _views);
+
+  if (!ret_val)
+    ret_val = _load_object(name, "VIEW");
+
+  return ret_val;
 }
 
 #ifdef DOXYGEN
 /**
 * Creates in the current schema a new collection with the specified name and retrieves an object representing the new collection created.
-* TODO: What are the valid identifiers for collection names?
-* \sa getCollections(), getCollection()
 * \param name the name of the collection.
 * \return the new created collection.
+*
+* To specify a name for a collection, follow the naming conventions in MySQL.
+* \sa getCollections(), getCollection()
 */
 Collection Schema::createCollection(String name){}
 #endif

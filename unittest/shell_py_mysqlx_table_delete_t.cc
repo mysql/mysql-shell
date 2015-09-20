@@ -54,9 +54,9 @@ namespace shcore {
 
     exec_and_out_equals("session = mysqlx.getNodeSession('" + _uri + "')");
 
-    exec_and_out_equals("session.sql('drop schema if exists js_shell_test;').execute()");
-    exec_and_out_equals("session.sql('create schema js_shell_test;').execute()");
-    exec_and_out_equals("session.sql('use js_shell_test;').execute()");
+    exec_and_out_equals("session.sql('drop schema if exists py_shell_test;').execute()");
+    exec_and_out_equals("session.sql('create schema py_shell_test;').execute()");
+    exec_and_out_equals("session.sql('use py_shell_test;').execute()");
     exec_and_out_equals("session.sql('create table table1 (name varchar(50), age integer, gender varchar(20));').execute()");
 
     exec_and_out_equals("session.close()");
@@ -71,7 +71,7 @@ namespace shcore {
 
     exec_and_out_equals("session = mysqlx.getSession('" + _uri + "')");
 
-    exec_and_out_equals("table = session.js_shell_test.getTable('table1')");
+    exec_and_out_equals("table = session.py_shell_test.getTable('table1')");
 
     // Creates the table delete object
     exec_and_out_equals("crud = table.delete()");
@@ -123,7 +123,7 @@ namespace shcore {
   {
     exec_and_out_equals("import mysqlx");
     exec_and_out_equals("session = mysqlx.getNodeSession('" + _uri + "')");
-    exec_and_out_equals("schema = session.getSchema('js_shell_test')");
+    exec_and_out_equals("schema = session.getSchema('py_shell_test')");
     exec_and_out_equals("table = schema.getTable('table1')");
 
     // Testing the delete function
@@ -177,7 +177,7 @@ namespace shcore {
   {
     exec_and_out_equals("import mysqlx");
     exec_and_out_equals("session = mysqlx.getNodeSession('" + _uri + "')");
-    exec_and_out_equals("schema = session.getSchema('js_shell_test')");
+    exec_and_out_equals("schema = session.getSchema('py_shell_test')");
     exec_and_out_equals("table = schema.getTable('table1')");
 
     exec_and_out_equals("result = table.insert({'name': 'jack', 'age': 17, 'gender': 'male'}).execute()");

@@ -20,6 +20,7 @@
 #include "mod_mysqlx_resultset.h"
 #include "mysqlx.h"
 #include "shellcore/common.h"
+#include <boost/bind.hpp>
 
 using namespace mysh;
 using namespace shcore;
@@ -28,9 +29,96 @@ using namespace mysh::mysqlx;
 Resultset::Resultset(boost::shared_ptr< ::mysqlx::Result> result)
 : _result(result)
 {
+  add_method("buffer", boost::bind(&Resultset::buffer, this, _1), NULL);
+  add_method("flush", boost::bind(&Resultset::flush, this, _1), NULL);
+  add_method("rewind", boost::bind(&Resultset::rewind, this, _1), NULL);
 }
 
 Resultset::~Resultset(){}
+
+#ifdef DOXYGEN
+/**
+* Returns the metadata for the result set.
+* \return the metadata Map[]
+* The metadata returned its an array of map each one per field the map accepts the following data:
+*
+* Map key     | Meaning                        |
+* ----------: | :----------------------------: |
+* catalog     | the catalog name               |
+* table       | the table name                 |
+* org_table   | original table name            |
+* name        | the column name                |
+* org_name    | the original column name       |
+* collation   | collation (from charset)       |
+* length      | the column length              |
+* type        | the column type                |
+* flags       | flags (to be documented)       |
+* decimal     | decimal precision              |
+* max_length  | max length allowed             |
+* name_length | length of column name          |
+* is_numeric  | bool, true if type is numeric  |
+*/
+Schema Resultset::getColumnMetadata(){};
+
+/**
+* The last insert id auto generated (from an insert operation)
+* \return the integer representing the last insert id
+* For more details, see https://dev.mysql.com/doc/refman/5.7/en/information-functions.html#function_last-insert-id
+* \sa getAffectedRows(), getWarnings(), getExcutionTime(), getInfo()
+*/
+Integer Resultset::getLastInsertId(){};
+
+/**
+* The the number of affected rows for the last operation.
+* \return the number of affected rows.
+* This is the value of the C API mysql_affected_rows(), see https://dev.mysql.com/doc/refman/5.7/en/mysql-affected-rows.html
+* \sa getLastInsertId(), getWarnings(), getExcutionTime(), getInfo()
+*/
+Integer Resultset::getAffectedRows(){};
+
+/**
+* The number of warnings produced by the last statement execution. See getWarnings() for more details.
+* \return the number of warnings.
+* This is the same value than C API mysql_warning_count, see https://dev.mysql.com/doc/refman/5.7/en/mysql-warning-count.html
+* \sa warnings
+*/
+Integer Resultset::getWarnings(){};
+
+/**
+* Gets an string with information on the last statement executed. See for details getInfo().
+* This is the same value then C API mysql_info, see https://dev.mysql.com/doc/refman/5.7/en/mysql-info.html
+* \sa getInfo().
+*/
+String Resultset::getInfo(){};
+
+/**
+* Gets a string representation of the time spent time by the last statement executed.
+* \return the execution time as an String.
+* \sa executionTime()
+*/
+String Resultset::getExecutionTime(){};
+
+/**
+* Returns true if the last statement execution has a result set. As opposite as having only the basic info of affected rows, info, exectution time, warnings, last insert id.
+* \sa getLastInsertId(), getInfo(), getExecutionTime(), getWarnings(), getAffectedRows().
+* \sa getHasData()
+*/
+Bool Resultset::getHasData(){};
+
+/**
+* Returns the next result set.
+* \return true if more data available, otherwise false.
+* Before returning the next result set, this operation takes care of flushing an ongoing result set stream reading.
+* After reading (and discarding) all the packages of the current result set stream, it will attempt to read the metadata of the next result set or the OK msg.
+*/
+Bool Resultset::nextDataSet(){};
+
+Row Resultset::next(){};
+List Resultset::all(){};
+Resultset Resultset::buffer(){};
+Undefined Resultset::flush(){};
+Undefined Resultset::rewind(){};
+#endif
 
 shcore::Value Resultset::get_member(const std::string &prop) const
 {
@@ -118,18 +206,21 @@ shcore::Value Resultset::get_member(const std::string &prop) const
 
 #ifdef DOXYGEN
 /**
-* Reads the next row of data and returns it.
-* \sa nextDataSet(), all()
-* \return the next row of data.
+* Retrieves the next record on the resultset.
+* \return A Row object representing the next record.
 */
-Row next(){}
+Row Resultset::next(){};
 #endif
-shcore::Value Resultset::next(const shcore::Argument_list &UNUSED(args))
+shcore::Value Resultset::next(const shcore::Argument_list &args)
 {
+  std::string function = class_name() + ".next";
+
+  args.ensure_count(0, function.c_str());
+
   boost::shared_ptr<std::vector< ::mysqlx::ColumnMetadata> > metadata = _result->columnMetadata();
   if (metadata->size() > 0)
   {
-    ::mysqlx::Row *row = _result->next();
+    boost::shared_ptr< ::mysqlx::Row>row = _result->next();
     if (row)
     {
       mysh::Row *value_row = new mysh::Row();
@@ -189,13 +280,12 @@ shcore::Value Resultset::next(const shcore::Argument_list &UNUSED(args))
   return shcore::Value();
 }
 
-#ifdef DOXYTGEN
+#ifdef DOXYGEN
 /**
-* Calls successively next() until the whole result set is read and returns all the rows read.
-* \sa next()
-* \return an array of Row objects.
+* Returns a list of Row objects which contains an element for every unread row on the Resultset.
+* \return A List of Row objects.
 */
-Row[] Resultset::all(){}
+List Resultset::all(){};
 #endif
 shcore::Value Resultset::all(const shcore::Argument_list &args)
 {
@@ -216,11 +306,66 @@ shcore::Value Resultset::all(const shcore::Argument_list &args)
   return Value(array);
 }
 
+#ifdef DOXYGEN
+/**
+* Prepares the Resultset to start reading data from the next Result (if many results were returned).
+* \return A boolean value indicating whether there is another result or not.
+*/
+Bool Resultset::nextDataSet(){};
+#endif
 shcore::Value Resultset::next_result(const shcore::Argument_list &args)
 {
   args.ensure_count(0, "Resultset.nextDataSet");
 
   return shcore::Value(_result->nextDataSet());
+}
+
+#ifdef DOXYGEN
+/**
+* Loads all the remaining records and results for this resultset.
+* \return This resultset object.
+*
+* Only the remaining records will be loaded into an internal cache.
+*/
+Resultset Resultset::buffer(){};
+#endif
+shcore::Value Resultset::buffer(const shcore::Argument_list &args)
+{
+  args.ensure_count(0, "Resultset.buffer");
+
+  _result->buffer();
+
+  return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
+}
+
+#ifdef DOXYGEN
+/**
+* Discards all the remaining records and results for this resultset.
+*/
+Undefined Resultset::flush(){};
+#endif
+shcore::Value Resultset::flush(const shcore::Argument_list &args)
+{
+  args.ensure_count(0, "Resultset.flush");
+
+  _result->flush();
+
+  return shcore::Value();
+}
+
+#ifdef DOXYGEN
+/**
+* Moves the internal read index so the next call to next() returns the first cached record of the current Result.
+*/
+Undefined Resultset::rewind(){};
+#endif
+shcore::Value Resultset::rewind(const shcore::Argument_list &args)
+{
+  args.ensure_count(0, "Resultset.rewind");
+
+  _result->rewind();
+
+  return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
 Collection_resultset::Collection_resultset(boost::shared_ptr< ::mysqlx::Result> result)
@@ -230,11 +375,10 @@ Collection_resultset::Collection_resultset(boost::shared_ptr< ::mysqlx::Result> 
 
 #ifdef DOXYGEN
 /**
-* Reads the next row of data and returns it.
-* \sa nextDataSet(), all()
-* \return the next row of data.
+* Retrieves the next record on the resultset.
+* \return A Row object representing the next record.
 */
-Row Resultset::next(){}
+Document Collection_resultset::next(){};
 #endif
 shcore::Value Collection_resultset::next(const shcore::Argument_list &args)
 {
@@ -246,12 +390,20 @@ shcore::Value Collection_resultset::next(const shcore::Argument_list &args)
 
   if (_result->columnMetadata() && _result->columnMetadata()->size())
   {
-    std::auto_ptr< ::mysqlx::Row> r(_result->next());
+    boost::shared_ptr< ::mysqlx::Row> r(_result->next());
     if (r.get())
       return Value::parse(r->stringField(0));
   }
   return shcore::Value();
 }
+
+#ifdef DOXYGEN
+/**
+* Returns a list of Document objects which contains an element for every unread row on the Resultset.
+* \return A List of Document objects.
+*/
+List Collection_resultset::all(){};
+#endif
 
 shcore::Value Collection_resultset::print(const shcore::Argument_list &args)
 {

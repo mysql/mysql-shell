@@ -42,17 +42,17 @@ namespace shcore {
 
       exec_and_out_equals("session = mysqlx.getNodeSession('" + _uri + "')");
 
-      exec_and_out_equals("session.sql('drop schema if exists js_shell_test;').execute()");
-      exec_and_out_equals("session.sql('create schema js_shell_test;').execute()");
+      exec_and_out_equals("session.sql('drop schema if exists py_shell_test;').execute()");
+      exec_and_out_equals("session.sql('create schema py_shell_test;').execute()");
 
-      exec_and_out_equals("session.js_shell_test.createCollection('collection1')");
+      exec_and_out_equals("session.py_shell_test.createCollection('collection1')");
     }
   };
 
   // Tests collection.getName()
   TEST_F(Shell_py_mysqlx_collection_tests, mysqlx_collection_get_name)
   {
-    exec_and_out_equals("collection = session.js_shell_test.getCollection('collection1')");
+    exec_and_out_equals("collection = session.py_shell_test.getCollection('collection1')");
 
     exec_and_out_equals("print(collection.getName())", "collection1");
   }
@@ -60,7 +60,7 @@ namespace shcore {
   // Tests collection.name
   TEST_F(Shell_py_mysqlx_collection_tests, mysqlx_collection_name)
   {
-    exec_and_out_equals("collection = session.js_shell_test.getCollection('collection1')");
+    exec_and_out_equals("collection = session.py_shell_test.getCollection('collection1')");
 
     exec_and_out_equals("print(collection.name)", "collection1");
   }
@@ -70,7 +70,7 @@ namespace shcore {
   {
     std::string uri = mysh::strip_password(_uri);
 
-    exec_and_out_equals("collection = session.js_shell_test.getCollection('collection1')");
+    exec_and_out_equals("collection = session.py_shell_test.getCollection('collection1')");
 
     exec_and_out_equals("collection_session = collection.getSession()");
 
@@ -82,7 +82,7 @@ namespace shcore {
   {
     std::string uri = mysh::strip_password(_uri);
 
-    exec_and_out_equals("collection = session.js_shell_test.getCollection('collection1')");
+    exec_and_out_equals("collection = session.py_shell_test.getCollection('collection1')");
 
     exec_and_out_equals("print(collection.session)", "<NodeSession:" + uri + ">");
   }
@@ -92,11 +92,11 @@ namespace shcore {
   {
     std::string uri = mysh::strip_password(_uri);
 
-    exec_and_out_equals("collection = session.js_shell_test.getCollection('collection1')");
+    exec_and_out_equals("collection = session.py_shell_test.getCollection('collection1')");
 
     exec_and_out_equals("collection_schema = collection.getSchema()");
 
-    exec_and_out_equals("print(collection_schema)", "<Schema:js_shell_test>");
+    exec_and_out_equals("print(collection_schema)", "<Schema:py_shell_test>");
   }
 
   // Tests collection.schema
@@ -104,9 +104,9 @@ namespace shcore {
   {
     std::string uri = mysh::strip_password(_uri);
 
-    exec_and_out_equals("collection = session.js_shell_test.getCollection('collection1')");
+    exec_and_out_equals("collection = session.py_shell_test.getCollection('collection1')");
 
-    exec_and_out_equals("print(collection.schema)", "<Schema:js_shell_test>");
+    exec_and_out_equals("print(collection.schema)", "<Schema:py_shell_test>");
   }
 
   // Tests collection.drop() and collection.existInDatabase()

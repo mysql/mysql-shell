@@ -33,7 +33,6 @@ namespace mysh
 
     /**
     * Handler for document update operations on a Collection.
-    * \todo Update execute to support options and document it
     *
     * This object provides the necessary functions to allow updating documents on a collection.
     *

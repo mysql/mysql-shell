@@ -54,10 +54,10 @@ namespace shcore {
 
     exec_and_out_equals("session = mysqlx.getNodeSession('" + _uri + "')");
 
-    exec_and_out_equals("session.sql('drop schema if exists js_shell_test;').execute()");
-    exec_and_out_equals("session.sql('create schema js_shell_test;').execute()");
+    exec_and_out_equals("session.sql('drop schema if exists py_shell_test;').execute()");
+    exec_and_out_equals("session.sql('create schema py_shell_test;').execute()");
 
-    exec_and_out_equals("session.js_shell_test.createCollection('collection1')");
+    exec_and_out_equals("session.py_shell_test.createCollection('collection1')");
 
     exec_and_out_equals("session.close()");
   }
@@ -71,7 +71,7 @@ namespace shcore {
 
     exec_and_out_equals("session = mysqlx.getSession('" + _uri + "')");
 
-    exec_and_out_equals("collection = session.js_shell_test.getCollection('collection1')");
+    exec_and_out_equals("collection = session.py_shell_test.getCollection('collection1')");
 
     //-------- ----------------------------------------------------
     // Tests the happy path validating only the right functions
@@ -174,7 +174,7 @@ namespace shcore {
   {
     exec_and_out_equals("import mysqlx");
     exec_and_out_equals("session = mysqlx.getSession('" + _uri + "')");
-    exec_and_out_equals("schema = session.getSchema('js_shell_test')");
+    exec_and_out_equals("schema = session.getSchema('py_shell_test')");
     exec_and_out_equals("collection = schema.getCollection('collection1')");
 
     {
@@ -279,7 +279,7 @@ namespace shcore {
   {
     exec_and_out_equals("import mysqlx");
     exec_and_out_equals("session = mysqlx.getNodeSession('" + _uri + "')");
-    exec_and_out_equals("schema = session.getSchema('js_shell_test')");
+    exec_and_out_equals("schema = session.getSchema('py_shell_test')");
     exec_and_out_equals("collection = schema.getCollection('collection1')");
 
     exec_and_out_equals("result = collection.add({'name': 'jack', 'age': 17, 'gender': 'male'}).execute()");

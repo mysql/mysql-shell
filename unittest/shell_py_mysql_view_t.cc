@@ -42,9 +42,9 @@ namespace shcore {
 
       exec_and_out_equals("session = mysql.getClassicSession('" + _mysql_uri + "')");
 
-      exec_and_out_equals("session.sql('drop schema if exists js_shell_test;')");
-      exec_and_out_equals("session.sql('create schema js_shell_test;')");
-      exec_and_out_equals("session.sql('use js_shell_test;')");
+      exec_and_out_equals("session.sql('drop schema if exists py_shell_test;')");
+      exec_and_out_equals("session.sql('create schema py_shell_test;')");
+      exec_and_out_equals("session.sql('use py_shell_test;')");
       exec_and_out_equals("session.sql('create table table1 (name varchar(50));')");
       exec_and_out_equals("session.sql('create view view1 (my_name) as select name from table1;')");
     }
@@ -53,7 +53,7 @@ namespace shcore {
   // Tests view.getName()
   TEST_F(Shell_py_mysql_view_tests, mysql_view_get_name)
   {
-    exec_and_out_equals("view = session.js_shell_test.view1");
+    exec_and_out_equals("view = session.py_shell_test.view1");
 
     exec_and_out_equals("print(view.getName())", "view1");
   }
@@ -61,7 +61,7 @@ namespace shcore {
   // Tests view.name
   TEST_F(Shell_py_mysql_view_tests, mysql_view_name)
   {
-    exec_and_out_equals("view = session.js_shell_test.view1");
+    exec_and_out_equals("view = session.py_shell_test.view1");
 
     exec_and_out_equals("print(view.name)", "view1");
   }
@@ -71,7 +71,7 @@ namespace shcore {
   {
     std::string uri = mysh::strip_password(_mysql_uri);
 
-    exec_and_out_equals("view = session.js_shell_test.view1");
+    exec_and_out_equals("view = session.py_shell_test.view1");
 
     exec_and_out_equals("view_session = view.getSession()");
 
@@ -83,7 +83,7 @@ namespace shcore {
   {
     std::string uri = mysh::strip_password(_mysql_uri);
 
-    exec_and_out_equals("view = session.js_shell_test.view1");
+    exec_and_out_equals("view = session.py_shell_test.view1");
 
     exec_and_out_equals("print(view.session)", "<ClassicSession:" + uri + ">");
   }
@@ -93,11 +93,11 @@ namespace shcore {
   {
     std::string uri = mysh::strip_password(_mysql_uri);
 
-    exec_and_out_equals("view = session.js_shell_test.view1");
+    exec_and_out_equals("view = session.py_shell_test.view1");
 
     exec_and_out_equals("view_schema = view.getSchema()");
 
-    exec_and_out_equals("print(view_schema)", "<ClassicSchema:js_shell_test>");
+    exec_and_out_equals("print(view_schema)", "<ClassicSchema:py_shell_test>");
   }
 
   // Tests view.schema
@@ -105,9 +105,9 @@ namespace shcore {
   {
     std::string uri = mysh::strip_password(_mysql_uri);
 
-    exec_and_out_equals("view = session.js_shell_test.view1");
+    exec_and_out_equals("view = session.py_shell_test.view1");
 
-    exec_and_out_equals("print(view.schema)", "<ClassicSchema:js_shell_test>");
+    exec_and_out_equals("print(view.schema)", "<ClassicSchema:py_shell_test>");
   }
 
   // Tests view.drop() and view.existInDatabase()

@@ -32,48 +32,10 @@
 
 #include <boost/enable_shared_from_this.hpp>
 
-#ifdef __GNUC__
-#define ATTR_UNUSED __attribute__((unused))
-#else
-#define ATTR_UNUSED
-#endif
-
 namespace shcore
 {
   class Proxy_object;
 };
-
-/*
-* Helper function to ensure the exceptions generated on the mysqlx_connector
-* are properly translated to the corresponding shcore::Exception type
-*/
-static void ATTR_UNUSED translate_exception()
-{
-  try
-  {
-    throw;
-  }
-  catch (::mysqlx::Error &e)
-  {
-    throw shcore::Exception::error_with_code("Server", e.what(), e.error());
-  }
-  catch (std::runtime_error &e)
-  {
-    throw shcore::Exception::runtime_error(e.what());
-  }
-  catch (std::logic_error &e)
-  {
-    throw shcore::Exception::logic_error(e.what());
-  }
-  catch (...)
-  {
-    throw;
-  }
-}
-
-#define CATCH_AND_TRANSLATE()   \
-  catch (...)                   \
-{ translate_exception(); }
 
 namespace mysh
 {
@@ -141,7 +103,7 @@ namespace mysh
     {
     public:
       BaseSession();
-      virtual ~BaseSession() { flush_last_result(); }
+      virtual ~BaseSession() {}
 
       virtual std::vector<std::string> get_members() const;
       virtual shcore::Value get_member(const std::string &prop) const;
@@ -157,7 +119,6 @@ namespace mysh
       virtual std::string uri() const { return _uri; };
 
       virtual shcore::Value get_schema(const shcore::Argument_list &args) const;
-      virtual shcore::Value set_default_schema(const shcore::Argument_list &args);
 
       virtual void drop_db_object(const std::string &type, const std::string &name, const std::string& owner);
       virtual bool db_object_exists(std::string &type, const std::string &name, const std::string& owner);
@@ -168,8 +129,6 @@ namespace mysh
 
       static boost::shared_ptr<shcore::Object_bridge> create(const shcore::Argument_list &args);
 
-      void flush_last_result();
-
 #ifdef DOXYGEN
       String uri; //!< Same as getUri()
       Map schemas; //!< Same as getSchemas()
@@ -178,7 +137,6 @@ namespace mysh
       Schema createSchema(String name);
       Schema getSchema(String name);
       Schema getDefaultSchema();
-      Schema setDefaultSchema(String name);
       Map getSchemas();
       String getUri();
       Undefined close();
@@ -189,13 +147,12 @@ namespace mysh
       shcore::Value executeStmt(const std::string &domain, const std::string& command, const shcore::Argument_list &args);
       virtual boost::shared_ptr<BaseSession> _get_shared_this() const = 0;
       boost::shared_ptr< ::mysqlx::Result> _last_result;
-      void _update_default_schema(const std::string& name);
-      virtual void _load_default_schema();
+      std::string _retrieve_current_schema();
       virtual void _load_schemas();
 
       boost::shared_ptr< ::mysqlx::Session> _session;
 
-      boost::shared_ptr<Schema> _default_schema;
+      std::string _default_schema;
       boost::shared_ptr<shcore::Value::Map_type> _schemas;
 
       std::string _uri;
@@ -234,10 +191,18 @@ namespace mysh
       NodeSession();
       virtual ~NodeSession(){};
       virtual std::string class_name() const { return "NodeSession"; };
+      virtual std::vector<std::string> get_members() const;
+
       static boost::shared_ptr<shcore::Object_bridge> create(const shcore::Argument_list &args);
       virtual boost::shared_ptr<BaseSession> _get_shared_this() const;
+      virtual shcore::Value get_member(const std::string &prop) const;
       shcore::Value sql(const shcore::Argument_list &args);
+      shcore::Value set_current_schema(const shcore::Argument_list &args);
 #ifdef DOXYGEN
+      Schema currentSchema; //!< Same as getCurrentSchema()
+
+      Schema getCurrentSchema();
+      Schema setCurrentSchema(String name);
       Resultset sql(String sql);
 #endif
     };

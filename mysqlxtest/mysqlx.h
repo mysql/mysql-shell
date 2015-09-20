@@ -29,6 +29,7 @@
 #include <set>
 
 #include "xdatetime.h"
+#include "mysqlx_common.h"
 
 #include <boost/enable_shared_from_this.hpp>
 
@@ -228,9 +229,9 @@ namespace mysqlx
   public:
     Session(const mysqlx::Ssl_config &ssl_config);
     ~Session();
-    Result *executeSql(const std::string &sql);
+    boost::shared_ptr<Result> executeSql(const std::string &sql);
 
-    Result *executeStmt(const std::string &ns, const std::string &stmt,
+    boost::shared_ptr<Result> executeStmt(const std::string &ns, const std::string &stmt,
                         const std::vector<ArgumentValue> &args);
 
     boost::shared_ptr<Schema> getSchema(const std::string &name);
@@ -299,7 +300,7 @@ namespace mysqlx
     boost::shared_ptr<std::string> m_data;
   };
 
-  class Row
+  class MYSQLXTEST_PUBLIC Row
   {
   public:
     ~Row();
@@ -333,7 +334,21 @@ namespace mysqlx
     Mysqlx::Resultset::Row *m_data;
   };
 
-  class Result
+  class MYSQLXTEST_PUBLIC ResultData
+  {
+  public:
+    ResultData(boost::shared_ptr<std::vector<ColumnMetadata> > columns);
+    boost::shared_ptr<std::vector<ColumnMetadata> > columnMetadata(){ return m_columns; }
+    void add_row(boost::shared_ptr<Row> row);
+    void rewind();
+    boost::shared_ptr<Row> next();
+  private:
+    boost::shared_ptr<std::vector<ColumnMetadata> > m_columns;
+    std::vector<boost::shared_ptr<Row> > m_rows;
+    size_t m_row_index;
+  };
+
+  class MYSQLXTEST_PUBLIC Result
   {
   public:
     ~Result();
@@ -346,9 +361,12 @@ namespace mysqlx
     bool ready();
     void wait();
 
-    Row *next();
+    boost::shared_ptr<Row> next();
     bool nextDataSet();
-    void discardData();
+    void flush();
+    Result& buffer();
+    Result& rewind();
+    void rewind_all();
     void mark_error();
 
     struct Warning
@@ -364,7 +382,7 @@ namespace mysqlx
     Result(Connection *owner, bool expect_data);
 
     void read_metadata();
-    std::auto_ptr<Row> read_row();
+    boost::shared_ptr<Row> read_row();
     void read_stmt_ok();
 
     bool handle_notice(int32_t type, const std::string &data);
@@ -384,6 +402,10 @@ namespace mysqlx
 
     std::vector<Warning> m_warnings;
 
+    std::vector<boost::shared_ptr<ResultData> > m_result_cache;
+    boost::shared_ptr<ResultData> m_current_result;
+    size_t m_result_index;
+
     enum {
       ReadStmtOkI, // initial state
       ReadMetadataI, // initial state
@@ -393,6 +415,9 @@ namespace mysqlx
       ReadDone, // end
       ReadError // end
     } m_state;
+
+    bool m_buffered;
+    bool m_buffering;
   };
 };
 

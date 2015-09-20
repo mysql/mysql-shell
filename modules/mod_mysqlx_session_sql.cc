@@ -22,6 +22,7 @@
 #include "mod_mysqlx_resultset.h"
 #include "shellcore/common.h"
 #include "mysqlx.h"
+#include "mysqlxtest_utils.h"
 
 using namespace mysh::mysqlx;
 using namespace shcore;

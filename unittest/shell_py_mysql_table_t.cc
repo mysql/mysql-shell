@@ -42,9 +42,9 @@ namespace shcore {
 
       exec_and_out_equals("session = mysql.getClassicSession('" + _mysql_uri + "')");
 
-      exec_and_out_equals("session.sql('drop schema if exists js_shell_test;')");
-      exec_and_out_equals("session.sql('create schema js_shell_test;')");
-      exec_and_out_equals("session.sql('use js_shell_test;')");
+      exec_and_out_equals("session.sql('drop schema if exists py_shell_test;')");
+      exec_and_out_equals("session.sql('create schema py_shell_test;')");
+      exec_and_out_equals("session.sql('use py_shell_test;')");
       exec_and_out_equals("session.sql('create table table1 (name varchar(50));')");
     }
   };
@@ -52,7 +52,7 @@ namespace shcore {
   // Tests table.getName()
   TEST_F(Shell_py_mysql_table_tests, mysql_schema_get_name)
   {
-    exec_and_out_equals("table = session.js_shell_test.table1");
+    exec_and_out_equals("table = session.py_shell_test.table1");
 
     exec_and_out_equals("print(table.getName())", "table1");
   }
@@ -60,7 +60,7 @@ namespace shcore {
   // Tests table.name
   TEST_F(Shell_py_mysql_table_tests, mysql_schema_name)
   {
-    exec_and_out_equals("table = session.js_shell_test.table1");
+    exec_and_out_equals("table = session.py_shell_test.table1");
 
     exec_and_out_equals("print(table.name)", "table1");
   }
@@ -70,7 +70,7 @@ namespace shcore {
   {
     std::string uri = mysh::strip_password(_mysql_uri);
 
-    exec_and_out_equals("table = session.js_shell_test.table1");
+    exec_and_out_equals("table = session.py_shell_test.table1");
 
     exec_and_out_equals("table_session = table.getSession()");
 
@@ -82,7 +82,7 @@ namespace shcore {
   {
     std::string uri = mysh::strip_password(_mysql_uri);
 
-    exec_and_out_equals("table = session.js_shell_test.table1");
+    exec_and_out_equals("table = session.py_shell_test.table1");
 
     exec_and_out_equals("print(table.session)", "<ClassicSession:" + uri + ">");
   }
@@ -92,11 +92,11 @@ namespace shcore {
   {
     std::string uri = mysh::strip_password(_mysql_uri);
 
-    exec_and_out_equals("table = session.js_shell_test.table1");
+    exec_and_out_equals("table = session.py_shell_test.table1");
 
     exec_and_out_equals("table_schema = table.getSchema()");
 
-    exec_and_out_equals("print(table_schema)", "<ClassicSchema:js_shell_test>");
+    exec_and_out_equals("print(table_schema)", "<ClassicSchema:py_shell_test>");
   }
 
   // Tests table.schema
@@ -104,9 +104,9 @@ namespace shcore {
   {
     std::string uri = mysh::strip_password(_mysql_uri);
 
-    exec_and_out_equals("table = session.js_shell_test.table1");
+    exec_and_out_equals("table = session.py_shell_test.table1");
 
-    exec_and_out_equals("print(table.schema)", "<ClassicSchema:js_shell_test>");
+    exec_and_out_equals("print(table.schema)", "<ClassicSchema:py_shell_test>");
   }
 
   // Tests table.drop() and table.existInDatabase()

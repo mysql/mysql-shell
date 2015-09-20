@@ -50,18 +50,17 @@ namespace shcore {
 
     // Ensures the right members exist
     exec_and_out_equals("var members = dir(session);");
-    exec_and_out_equals("print(members.length >= 11)", "true");
-    exec_and_out_equals("print(members[0] == 'close');", "true");
-    exec_and_out_equals("print(members[1] == 'createSchema');", "true");
-    exec_and_out_equals("print(members[2] == 'getDefaultSchema');", "true");
-    exec_and_out_equals("print(members[3] == 'getSchema');", "true");
-    exec_and_out_equals("print(members[4] == 'getSchemas');", "true");
-    exec_and_out_equals("print(members[5] == 'getUri');", "true");
-    exec_and_out_equals("print(members[6] == 'setDefaultSchema');", "true");
-    exec_and_out_equals("print(members[7] == 'setFetchWarnings');", "true");
-    exec_and_out_equals("print(members[8] == 'defaultSchema');", "true");
-    exec_and_out_equals("print(members[9] == 'schemas');", "true");
-    exec_and_out_equals("print(members[10] == 'uri');", "true");
+    exec_and_out_equals("print(members.length >= 10)", "true");
+    exec_and_out_equals("print(members.indexOf('close') != -1);", "true");
+    exec_and_out_equals("print(members.indexOf('createSchema') != -1);", "true");
+    exec_and_out_equals("print(members.indexOf('getDefaultSchema') != -1);", "true");
+    exec_and_out_equals("print(members.indexOf('getSchema') != -1);", "true");
+    exec_and_out_equals("print(members.indexOf('getSchemas') != -1);", "true");
+    exec_and_out_equals("print(members.indexOf('getUri') != -1);", "true");
+    exec_and_out_equals("print(members.indexOf('setFetchWarnings') != -1);", "true");
+    exec_and_out_equals("print(members.indexOf('defaultSchema') != -1);", "true");
+    exec_and_out_equals("print(members.indexOf('schemas') != -1);", "true");
+    exec_and_out_equals("print(members.indexOf('uri') != -1);", "true");
 
     exec_and_out_equals("session.close();");
   }
@@ -76,19 +75,21 @@ namespace shcore {
 
     // Ensures the right members exist
     exec_and_out_equals("var members = dir(session);");
-    exec_and_out_equals("print(members.length >= 12)", "true");
-    exec_and_out_equals("print(members[0] == 'close');", "true");
-    exec_and_out_equals("print(members[1] == 'createSchema');", "true");
-    exec_and_out_equals("print(members[2] == 'getDefaultSchema');", "true");
-    exec_and_out_equals("print(members[3] == 'getSchema');", "true");
-    exec_and_out_equals("print(members[4] == 'getSchemas');", "true");
-    exec_and_out_equals("print(members[5] == 'getUri');", "true");
-    exec_and_out_equals("print(members[6] == 'setDefaultSchema');", "true");
-    exec_and_out_equals("print(members[7] == 'setFetchWarnings');", "true");
-    exec_and_out_equals("print(members[8] == 'sql');", "true");
-    exec_and_out_equals("print(members[9] == 'defaultSchema');", "true");
-    exec_and_out_equals("print(members[10] == 'schemas');", "true");
-    exec_and_out_equals("print(members[11] == 'uri');", "true");
+    exec_and_out_equals("print(members.length >= 14)", "true");
+    exec_and_out_equals("print(members.indexOf('close') != -1);", "true");
+    exec_and_out_equals("print(members.indexOf('createSchema') != -1);", "true");
+    exec_and_out_equals("print(members.indexOf('getCurrentSchema') != -1);", "true");
+    exec_and_out_equals("print(members.indexOf('getDefaultSchema') != -1);", "true");
+    exec_and_out_equals("print(members.indexOf('getSchema') != -1);", "true");
+    exec_and_out_equals("print(members.indexOf('getSchemas') != -1);", "true");
+    exec_and_out_equals("print(members.indexOf('getUri') != -1);", "true");
+    exec_and_out_equals("print(members.indexOf('setCurrentSchema') != -1);", "true");
+    exec_and_out_equals("print(members.indexOf('setFetchWarnings') != -1);", "true");
+    exec_and_out_equals("print(members.indexOf('sql') != -1);", "true");
+    exec_and_out_equals("print(members.indexOf('defaultSchema') != -1);", "true");
+    exec_and_out_equals("print(members.indexOf('schemas') != -1);", "true");
+    exec_and_out_equals("print(members.indexOf('uri') != -1);", "true");
+    exec_and_out_equals("print(members.indexOf('currentSchema') != -1);", "true");
 
     exec_and_out_equals("session.close();");
   }
@@ -121,8 +122,8 @@ namespace shcore {
     exec_and_out_equals("session.close();");
   }
 
-  // Tests session.getDefaultSchema()
-  TEST_F(Shell_js_mysqlx_session_tests, mysqlx_base_session_get_default_schema)
+  // Tests session.getCurrentSchema() and session.getDefaultSchema()
+  TEST_F(Shell_js_mysqlx_session_tests, mysqlx_base_session_get_empty_default_schema)
   {
     {
       SCOPED_TRACE("retrieving the default schema for first time");
@@ -131,34 +132,79 @@ namespace shcore {
       exec_and_out_equals("var session = mysqlx.getNodeSession('" + _uri + "');");
 
       // Attempts to get the default schema
-      exec_and_out_equals("var schema = session.getDefaultSchema();");
+      exec_and_out_equals("var dschema = session.getDefaultSchema();");
+      exec_and_out_equals("print(dschema);", "null");
 
-      exec_and_out_equals("print(schema);", "null");
+      // Now gets the current schema
+      exec_and_out_equals("var cschema = session.getCurrentSchema();");
+      exec_and_out_equals("print(cschema);", "null");
     };
 
     {
       SCOPED_TRACE("Setting/getting default schema.");
-      exec_and_out_equals("session.setDefaultSchema('mysql');");
+      exec_and_out_equals("session.setCurrentSchema('mysql');");
+
+      // Default schema does not change
+      exec_and_out_equals("var dschema = session.getDefaultSchema();");
+      exec_and_out_equals("print(dschema);", "null");
 
       // Now uses the formal method
-      exec_and_out_equals("var schema = session.getDefaultSchema();");
-      exec_and_out_equals("print(schema);", "<Schema:mysql>");
+      exec_and_out_equals("var cschema = session.getCurrentSchema();");
+      exec_and_out_equals("print(cschema);", "<Schema:mysql>");
     };
 
     {
       // Sets a different default database
-      exec_and_out_equals("session.setDefaultSchema('information_schema');");
+      exec_and_out_equals("session.setCurrentSchema('information_schema');");
+
+      // Default schema does not change
+      exec_and_out_equals("var dschema = session.getDefaultSchema();");
+      exec_and_out_equals("print(dschema);", "null");
 
       // Now uses the formal method
-      exec_and_out_equals("var schema = session.getDefaultSchema();");
-      exec_and_out_equals("print(schema);", "<Schema:information_schema>");
+      exec_and_out_equals("var cschema = session.getCurrentSchema();");
+      exec_and_out_equals("print(cschema);", "<Schema:information_schema>");
     };
 
     exec_and_out_equals("session.close();");
   }
 
-  // Tests session.defaultSchema
-  TEST_F(Shell_js_mysqlx_session_tests, mysqlx_base_session_default_schema)
+  // Tests session.getCurrentSchema() and session.getDefaultSchema()
+  TEST_F(Shell_js_mysqlx_session_tests, mysqlx_base_session_get_default_schema)
+  {
+    {
+      SCOPED_TRACE("retrieving the default schema for first time");
+      exec_and_out_equals("var mysqlx = require('mysqlx').mysqlx;");
+
+      exec_and_out_equals("var session = mysqlx.getNodeSession('" + _uri + "/mysql');");
+
+      // Attempts to get the default schema
+      exec_and_out_equals("var dschema = session.getDefaultSchema();");
+      exec_and_out_equals("print(dschema);", "<Schema:mysql>");
+
+      // Now gets the current schema
+      exec_and_out_equals("var cschema = session.getCurrentSchema();");
+      exec_and_out_equals("print(cschema);", "<Schema:mysql>");
+    };
+
+    {
+      // Sets a different default database
+      exec_and_out_equals("session.setCurrentSchema('information_schema');");
+
+      // Default schema does not change
+      exec_and_out_equals("var dschema = session.getDefaultSchema();");
+      exec_and_out_equals("print(dschema);", "<Schema:mysql>");
+
+      // Now uses the formal method
+      exec_and_out_equals("var cschema = session.getCurrentSchema();");
+      exec_and_out_equals("print(cschema);", "<Schema:information_schema>");
+    };
+
+    exec_and_out_equals("session.close();");
+  }
+
+  // Tests session.defaultSchema and session.currentSchema
+  TEST_F(Shell_js_mysqlx_session_tests, mysqlx_base_session_empty_default_schema)
   {
     {
       SCOPED_TRACE("retrieving the default schema for first time");
@@ -168,22 +214,51 @@ namespace shcore {
 
       // Attempts to get the default schema
       exec_and_out_equals("print(session.defaultSchema);", "null");
+      exec_and_out_equals("print(session.currentSchema);", "null");
     };
 
     {
       SCOPED_TRACE("Setting/getting default schema.");
-      exec_and_out_equals("session.setDefaultSchema('mysql');");
+      exec_and_out_equals("session.setCurrentSchema('mysql');");
 
       // Now uses the formal method
-      exec_and_out_equals("print(session.defaultSchema);", "<Schema:mysql>");
+      exec_and_out_equals("print(session.defaultSchema);", "null");
+      exec_and_out_equals("print(session.currentSchema);", "<Schema:mysql>");
     };
 
     {
       // Sets a different default database
-      exec_and_out_equals("session.setDefaultSchema('information_schema');");
+      exec_and_out_equals("session.setCurrentSchema('information_schema');");
 
       // Now uses the formal method
-      exec_and_out_equals("print(session.defaultSchema);", "<Schema:information_schema>");
+      exec_and_out_equals("print(session.defaultSchema);", "null");
+      exec_and_out_equals("print(session.currentSchema);", "<Schema:information_schema>");
+    };
+
+    exec_and_out_equals("session.close();");
+  }
+
+  // Tests session.defaultSchema and session.currentSchema
+  TEST_F(Shell_js_mysqlx_session_tests, mysqlx_base_session_default_schema)
+  {
+    {
+      SCOPED_TRACE("retrieving the default schema for first time");
+      exec_and_out_equals("var mysqlx = require('mysqlx').mysqlx;");
+
+      exec_and_out_equals("var session = mysqlx.getNodeSession('" + _uri + "/mysql');");
+
+      // Attempts to get the default schema
+      exec_and_out_equals("print(session.defaultSchema);", "<Schema:mysql>");
+      exec_and_out_equals("print(session.currentSchema);", "<Schema:mysql>");
+    };
+
+    {
+      // Sets a different default database
+      exec_and_out_equals("session.setCurrentSchema('information_schema');");
+
+      // Now uses the formal method
+      exec_and_out_equals("print(session.defaultSchema);", "<Schema:mysql>");
+      exec_and_out_equals("print(session.currentSchema);", "<Schema:information_schema>");
     };
 
     exec_and_out_equals("session.close();");
@@ -302,21 +377,21 @@ namespace shcore {
     exec_and_out_equals("var session = mysqlx.getNodeSession('" + _uri + "');");
 
     // Cleans environment
-    exec_and_out_equals("session.sql('drop database if exists mysqlx_test_create_schema_1').execute();");
+    exec_and_out_equals("session.sql('drop database if exists js_test_create_schema').execute();");
 
     // Happy path
-    exec_and_out_equals("var s = session.createSchema('mysqlx_test_create_schema_1');");
+    exec_and_out_equals("var s = session.createSchema('js_test_create_schema');");
 
-    exec_and_out_equals("print(s);", "<Schema:mysqlx_test_create_schema_1>");
+    exec_and_out_equals("print(s);", "<Schema:js_test_create_schema>");
 
     // Error, existing schema
-    exec_and_out_contains("var s2 = session.createSchema('mysqlx_test_create_schema_1');", "", "Server (1007): Can't create database 'mysqlx_test_create_schema_1'; database exists");
+    exec_and_out_contains("var s2 = session.createSchema('js_test_create_schema');", "", "MySQL Error (1007): Can't create database 'js_test_create_schema'; database exists");
 
     // Error, passing non string
     exec_and_out_contains("var s2 = session.createSchema(45);", "", "TypeError: Argument #1 is expected to be a string");
 
     // Drops the database
-    exec_and_out_equals("session.sql('drop database mysqlx_test_create_schema_1').execute();");
+    exec_and_out_equals("session.sql('drop database js_test_create_schema').execute();");
 
     exec_and_out_equals("session.close();");
   }

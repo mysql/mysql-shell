@@ -53,12 +53,14 @@ namespace shcore {
     exec_and_out_equals("members = dir(session)");
     exec_and_out_equals("index=members.index('close')");
     exec_and_out_equals("index=members.index('createSchema')");
+    exec_and_out_equals("index=members.index('getCurrentSchema')");
     exec_and_out_equals("index=members.index('getDefaultSchema')");
     exec_and_out_equals("index=members.index('getSchema')");
     exec_and_out_equals("index=members.index('getSchemas')");
     exec_and_out_equals("index=members.index('getUri')");
-    exec_and_out_equals("index=members.index('setDefaultSchema')");
+    exec_and_out_equals("index=members.index('setCurrentSchema')");
     exec_and_out_equals("index=members.index('sql')");
+    exec_and_out_equals("index=members.index('currentSchema')");
     exec_and_out_equals("index=members.index('defaultSchema')");
     exec_and_out_equals("index=members.index('schemas')");
     exec_and_out_equals("index=members.index('uri')");
@@ -94,8 +96,8 @@ namespace shcore {
     exec_and_out_equals("session.close()");
   }
 
-  // Tests session.getDefaultSchema()
-  TEST_F(Shell_py_mysql_session_tests, mysql_base_session_get_default_schema)
+  // Tests session.getDefaultSchema() and session.getCurrentSchema
+  TEST_F(Shell_py_mysql_session_tests, mysql_base_session_get_empty_default_schema)
   {
     {
       SCOPED_TRACE("retrieving the default schema for first time");
@@ -104,34 +106,79 @@ namespace shcore {
       exec_and_out_equals("session = mysql.getClassicSession('" + _mysql_uri + "')");
 
       // Attempts to get the default schema
-      exec_and_out_equals("schema = session.getDefaultSchema()");
+      exec_and_out_equals("dschema = session.getDefaultSchema()");
+      exec_and_out_equals("print(dschema)", "None");
 
-      exec_and_out_equals("print(schema)", "None");
+      // Now the current schema
+      exec_and_out_equals("cschema = session.getCurrentSchema()");
+      exec_and_out_equals("print(cschema)", "None");
     };
 
     {
       SCOPED_TRACE("Setting/getting default schema.");
-      exec_and_out_equals("session.setDefaultSchema('mysql')");
+      exec_and_out_equals("session.setCurrentSchema('mysql')");
+
+      // Default schema did not change
+      exec_and_out_equals("dschema = session.getDefaultSchema()");
+      exec_and_out_equals("print(dschema)", "None");
 
       // Now uses the formal method
-      exec_and_out_equals("schema = session.getDefaultSchema()");
-      exec_and_out_equals("print(schema)", "<ClassicSchema:mysql>");
+      exec_and_out_equals("cschema = session.getCurrentSchema()");
+      exec_and_out_equals("print(cschema)", "<ClassicSchema:mysql>");
     };
 
     {
       // Sets a different default database
-      exec_and_out_equals("session.setDefaultSchema('information_schema')");
+      exec_and_out_equals("session.setCurrentSchema('information_schema')");
+
+      // Attempts to get the default schema
+      exec_and_out_equals("dschema = session.getDefaultSchema()");
+      exec_and_out_equals("print(dschema)", "None");
 
       // Now uses the formal method
-      exec_and_out_equals("schema = session.getDefaultSchema()");
-      exec_and_out_equals("print(schema)", "<ClassicSchema:information_schema>");
+      exec_and_out_equals("cschema = session.getCurrentSchema()");
+      exec_and_out_equals("print(cschema)", "<ClassicSchema:information_schema>");
     };
 
     exec_and_out_equals("session.close()");
   }
 
-  // Tests session.defaultSchema
-  TEST_F(Shell_py_mysql_session_tests, mysql_base_session_default_schema)
+  // Tests session.getDefaultSchema() and session.getCurrentSchema
+  TEST_F(Shell_py_mysql_session_tests, mysql_base_session_get_default_schema)
+  {
+    {
+      SCOPED_TRACE("retrieving the default schema for first time");
+      exec_and_out_equals("import mysql");
+
+      exec_and_out_equals("session = mysql.getClassicSession('" + _mysql_uri + "/mysql')");
+
+      // Attempts to get the default schema
+      exec_and_out_equals("dschema = session.getDefaultSchema()");
+      exec_and_out_equals("print(dschema)", "<ClassicSchema:mysql>");
+
+      // Now the current schema
+      exec_and_out_equals("cschema = session.getCurrentSchema()");
+      exec_and_out_equals("print(cschema)", "<ClassicSchema:mysql>");
+    };
+
+    {
+      // Sets a different default database
+      exec_and_out_equals("session.setCurrentSchema('information_schema')");
+
+      // Attempts to get the default schema
+      exec_and_out_equals("dschema = session.getDefaultSchema()");
+      exec_and_out_equals("print(dschema)", "<ClassicSchema:mysql>");
+
+      // Now uses the formal method
+      exec_and_out_equals("cschema = session.getCurrentSchema()");
+      exec_and_out_equals("print(cschema)", "<ClassicSchema:information_schema>");
+    };
+
+    exec_and_out_equals("session.close()");
+  }
+
+  // Tests session.defaultSchema and session.currentSchema
+  TEST_F(Shell_py_mysql_session_tests, mysql_base_session_empty_default_schema)
   {
     {
       SCOPED_TRACE("retrieving the default schema for first time");
@@ -141,22 +188,51 @@ namespace shcore {
 
       // Attempts to get the default schema
       exec_and_out_equals("print(session.defaultSchema)", "None");
+      exec_and_out_equals("print(session.currentSchema)", "None");
     };
 
     {
       SCOPED_TRACE("Setting/getting default schema.");
-      exec_and_out_equals("session.setDefaultSchema('mysql')");
+      exec_and_out_equals("session.setCurrentSchema('mysql')");
 
       // Now uses the formal method
-      exec_and_out_equals("print(session.defaultSchema)", "<ClassicSchema:mysql>");
+      exec_and_out_equals("print(session.defaultSchema)", "None");
+      exec_and_out_equals("print(session.currentSchema)", "<ClassicSchema:mysql>");
     };
 
     {
       // Sets a different default database
-      exec_and_out_equals("session.setDefaultSchema('information_schema')");
+      exec_and_out_equals("session.setCurrentSchema('information_schema')");
 
       // Now uses the formal method
-      exec_and_out_equals("print(session.defaultSchema)", "<ClassicSchema:information_schema>");
+      exec_and_out_equals("print(session.defaultSchema)", "None");
+      exec_and_out_equals("print(session.currentSchema)", "<ClassicSchema:information_schema>");
+    };
+
+    exec_and_out_equals("session.close()");
+  }
+
+  // Tests session.defaultSchema and session.currentSchema
+  TEST_F(Shell_py_mysql_session_tests, mysql_base_session_default_schema)
+  {
+    {
+      SCOPED_TRACE("retrieving the default schema for first time");
+      exec_and_out_equals("import mysql");
+
+      exec_and_out_equals("session = mysql.getClassicSession('" + _mysql_uri + "/mysql')");
+
+      // Attempts to get the default schema
+      exec_and_out_equals("print(session.defaultSchema)", "<ClassicSchema:mysql>");
+      exec_and_out_equals("print(session.currentSchema)", "<ClassicSchema:mysql>");
+    };
+
+    {
+      // Sets a different default database
+      exec_and_out_equals("session.setCurrentSchema('information_schema')");
+
+      // Now uses the formal method
+      exec_and_out_equals("print(session.defaultSchema)", "<ClassicSchema:mysql>");
+      exec_and_out_equals("print(session.currentSchema)", "<ClassicSchema:information_schema>");
     };
 
     exec_and_out_equals("session.close()");
