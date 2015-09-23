@@ -45,13 +45,15 @@ using namespace shcore;
 bool mysh::parse_mysql_connstring(const std::string &connstring,
                             std::string &protocol, std::string &user, std::string &password,
                             std::string &host, int &port, std::string &sock,
-                            std::string &db, int &pwd_found)
+                            std::string &db, int &pwd_found, std::string& ssl_ca, std::string& ssl_cert, std::string& ssl_key)
 {
   // format is [user[:pass]]@host[:port][/db] or user[:pass]@::socket[/db], like what cmdline utilities use
+  // with SSL [user[:pass]]@host[:port][/db]?ssl_ca=path_to_ca&ssl_cert=path_to_cert&ssl_key=path_to_key
   pwd_found = 0;
   std::string remaining = connstring;
 
   std::string::size_type p;
+  std::string::size_type p_query;
   p = remaining.find("://");
   if (p != std::string::npos)
   {
@@ -61,11 +63,16 @@ bool mysh::parse_mysql_connstring(const std::string &connstring,
 
   std::string s = remaining;
   p = remaining.find('/');
+  p_query = remaining.find('?');
   if (p != std::string::npos)
   {
-    db = remaining.substr(p + 1);
+    if (p_query == std::string::npos)
+      db = remaining.substr(p + 1);
+    else
+      db = remaining.substr(p + 1, p_query);
     s = remaining.substr(0, p);
   }
+  
   p = s.rfind('@');
   std::string user_part;
   std::string server_part = (p == std::string::npos) ? s : s.substr(p + 1);
@@ -106,6 +113,38 @@ bool mysh::parse_mysql_connstring(const std::string &connstring,
   }
   else
     host = server_part;
+
+  std::map<std::string, std::string> ssl_data;
+  ssl_data["ssl_ca"] = "";
+  ssl_data["ssl_key"] = "";
+  ssl_data["ssl_cert"] = "";
+  if (p_query != std::string::npos)
+  {
+    // Parsing SSL data
+    std::string::size_type p_next = p_query;
+    do
+    {
+      ++p_next;
+      std::string::size_type p_eq = remaining.find('=', p_next);
+      if (p_eq == std::string::npos)
+        throw Exception::argument_error((boost::format("Expected '=' in connection string uri starting at pos %d.") % p_next).str());
+      const std::string name = remaining.substr(p_next, p_eq - p_next);
+      p_next = remaining.find('&', p_next + 1);
+      const std::string value = remaining.substr(p_eq + 1, p_next - p_eq - 1);
+
+      if (ssl_data.find(name) == ssl_data.end())
+        throw Exception::argument_error((boost::format("Unknown key provided %s in connection string uri (expected any of ssl_ca, ssl_cert, ssl_key)") % name).str());
+
+      ssl_data[name] = value;
+    } while (p_next != std::string::npos);
+  }
+  if (!ssl_data["ssl_ca"].empty())
+    ssl_ca = ssl_data["ssl_ca"];
+  if (!ssl_data["ssl_cert"].empty())
+    ssl_cert = ssl_data["ssl_cert"];
+  if (!ssl_data["ssl_key"].empty())
+    ssl_key = ssl_data["ssl_key"];
+
   return true;
 }
 
@@ -156,6 +195,33 @@ std::string mysh::strip_password(const std::string &connstring)
 
   // no password to strip, return original one
   return connstring;
+}
+
+std::string mysh::strip_ssl_args(const std::string &connstring)
+{
+  std::string result = connstring;
+  std::string::size_type pos;
+  if ((pos = result.find("ssl_ca=")) != std::string::npos)
+  {
+    std::string::size_type pos2 = result.find("&");
+    result = result.replace(pos, (pos2 == std::string::npos) ? std::string::npos : pos2 - pos + 1, "");
+  }
+  if ((pos = result.find("ssl_cert=")) != std::string::npos)
+  {
+    std::string::size_type pos2 = result.find("&");
+    result = result.replace(pos, (pos2 == std::string::npos) ? std::string::npos : pos2 - pos + 1, "");
+  }
+  if ((pos = result.find("ssl_key=")) != std::string::npos)
+  {
+    std::string::size_type pos2 = result.find("&");
+    result = result.replace(pos, (pos2 == std::string::npos) ? std::string::npos : pos2 - pos + 1, "");
+  }
+  if (result.at(result.size() - 1) == '?')
+  {
+    result.resize(result.size() - 1);
+  }
+
+  return result;
 }
 
 boost::shared_ptr<mysh::ShellBaseSession> mysh::connect_session(const shcore::Argument_list &args, SessionType session_type)

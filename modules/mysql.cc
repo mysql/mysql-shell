@@ -227,12 +227,15 @@ Connection::Connection(const std::string &uri_, const char *password)
   int port = 3306;
   std::string sock;
   std::string db;
+  std::string ssl_ca;
+  std::string ssl_cert;
+  std::string ssl_key;
   long flags = CLIENT_MULTI_RESULTS;
   int pwd_found;
 
   _mysql = mysql_init(NULL);
 
-  if (!parse_mysql_connstring(uri_, protocol, user, pass, host, port, sock, db, pwd_found))
+  if (!parse_mysql_connstring(uri_, protocol, user, pass, host, port, sock, db, pwd_found, ssl_ca, ssl_cert, ssl_key))
     throw shcore::Exception::argument_error("Could not parse URI for MySQL connection");
 
   if (password)
@@ -240,6 +243,7 @@ Connection::Connection(const std::string &uri_, const char *password)
 
   _uri = strip_password(uri_);
 
+  setup_ssl(ssl_ca, ssl_cert, ssl_key);
   unsigned int tcp = MYSQL_PROTOCOL_TCP;
   mysql_options(_mysql, MYSQL_OPT_PROTOCOL, &tcp);
   if (!mysql_real_connect(_mysql, host.c_str(), user.c_str(), pass.c_str(), db.empty() ? NULL : db.c_str(), port, sock.empty() ? NULL : sock.c_str(), flags))
@@ -248,7 +252,8 @@ Connection::Connection(const std::string &uri_, const char *password)
   }
 }
 
-Connection::Connection(const std::string &host, int port, const std::string &socket, const std::string &user, const std::string &password, const std::string &schema)
+Connection::Connection(const std::string &host, int port, const std::string &socket, const std::string &user, const std::string &password, const std::string &schema, 
+  const std::string &ssl_ca, const std::string &ssl_cert, const std::string &ssl_key)
 : _mysql(NULL)
 {
   long flags = CLIENT_MULTI_RESULTS;
@@ -259,9 +264,41 @@ Connection::Connection(const std::string &host, int port, const std::string &soc
   str << user << "@" << host << ":" << port;
   _uri = str.str();
 
+  setup_ssl(ssl_ca, ssl_cert, ssl_key);
   unsigned int tcp = MYSQL_PROTOCOL_TCP;
   mysql_options(_mysql, MYSQL_OPT_PROTOCOL, &tcp);
   if (!mysql_real_connect(_mysql, host.c_str(), user.c_str(), password.c_str(), schema.empty() ? NULL : schema.c_str(), port, socket.empty() ? NULL : socket.c_str(), flags))
+  {
+    throw shcore::Exception::error_with_code_and_state("MySQLError", mysql_error(_mysql), mysql_errno(_mysql), mysql_sqlstate(_mysql));
+  }
+}
+
+void Connection::setup_ssl(const std::string &ssl_ca, const std::string &ssl_cert, const std::string &ssl_key)
+{
+  if (ssl_ca.empty() && ssl_cert.empty() && ssl_key.empty())
+    return;
+  
+  std::string my_ssl_ca;
+  std::string my_ssl_ca_path;  
+  std::string ca_path(ssl_ca);
+  std::string::size_type p;
+#ifdef WIN32
+  p = ca_path.rfind("\\");
+#else
+  p = ca_path.rfind("/");
+#endif
+  if (p != std::string::npos)
+  {
+    my_ssl_ca_path = ca_path.substr(0, p);
+    my_ssl_ca = ca_path.substr(p + 1);
+  }
+  else
+  {
+    my_ssl_ca_path = "";
+    my_ssl_ca = ssl_ca;
+  }
+
+  if (!mysql_ssl_set(_mysql, ssl_key.c_str(), ssl_cert.c_str(), my_ssl_ca.c_str(), my_ssl_ca_path.c_str(), NULL))
   {
     throw shcore::Exception::error_with_code_and_state("MySQLError", mysql_error(_mysql), mysql_errno(_mysql), mysql_sqlstate(_mysql));
   }

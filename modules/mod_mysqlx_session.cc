@@ -36,8 +36,18 @@
 #include <boost/pointer_cast.hpp>
 #include <boost/algorithm/string.hpp>
 
+#include <stdlib.h>
+#include <string.h>
+
 #define MAX_COLUMN_LENGTH 1024
 #define MIN_COLUMN_LENGTH 4
+
+#if _MSC_VER
+#define _CRT_SECURE_NO_WARNINGS
+#define mystrdup _strdup
+#else
+#define mystrdup strdup
+#endif
 
 using namespace mysh;
 using namespace shcore;
@@ -60,7 +70,7 @@ REGISTER_OBJECT(mysqlx, Expression);
 *
 * The format of the connection string can be as follows for connections using the TCP protocol:
 *
-* [user[:pass]\@]host[:port][/db]
+* [user[:pass]\@]host[:port][/db][?ssl_ca=...&ssl_cert=...&ssl_key=...]
 *
 * or as follows for connections using a socket or named pipe:
 *
@@ -78,6 +88,9 @@ XSession getSession(String connectionData, String password){}
 *  - schema, the current database for the connection's session.
 *  - dbUser, the user to authenticate against.
 *  - dbPassword, the password of the user user to authenticate against.
+*  - ssl_ca, the path to the X509 certificate authority in PEM format.
+*  - ssl_cert, the path to the X509 certificate in PEM format.
+*  - ssl_key, the path to the X509 key in PEM format.
 * \param password if provided, will override the password in the connection string.
 * \return An XSession instance.
 *
@@ -123,7 +136,29 @@ Value BaseSession::connect(const Argument_list &args)
     {
       std::string uri_ = args.string_at(0);
       _uri = mysh::strip_password(uri_);
-      _session = ::mysqlx::openSession(uri_, pwd_override, ::mysqlx::Ssl_config(), true);
+      ::mysqlx::Ssl_config ssl;
+      memset(&ssl, 0, sizeof(ssl));
+
+      std::string protocol;
+      std::string user;
+      std::string password;
+      std::string host;
+      int port;
+      int pwd_found;
+      std::string sock;
+      std::string schema;
+      std::string ssl_ca;
+      std::string ssl_cert;
+      std::string ssl_key;
+
+      if (!parse_mysql_connstring(uri_, protocol, user, password, host, port, sock, schema, pwd_found, ssl_ca, ssl_cert, ssl_key))
+        throw shcore::Exception::argument_error("Could not parse URI for MySQL connection");;
+
+      ssl.ca = ssl_ca.c_str();
+      ssl.cert = ssl_cert.c_str();
+      ssl.key = ssl_key.c_str();
+      uri_ = mysh::strip_ssl_args(uri_);
+      _session = ::mysqlx::openSession(uri_, pwd_override, ssl, true);
     }
     else if (args[0].type == Map)
     {
@@ -132,6 +167,9 @@ Value BaseSession::connect(const Argument_list &args)
       std::string schema;
       std::string user;
       std::string password;
+      std::string ssl_ca;
+      std::string ssl_cert;
+      std::string ssl_key;
 
       shcore::Value::Map_type_ref options = args[0].as_map();
 
@@ -150,10 +188,24 @@ Value BaseSession::connect(const Argument_list &args)
       if (options->has_key("dbPassword"))
         password = (*options)["dbPassword"].as_string();
 
+      if (options->has_key("ssl_ca"))
+        ssl_ca = (*options)["ssl_ca"].as_string();
+
+      if (options->has_key("ssl_cert"))
+        ssl_cert = (*options)["ssl_cert"].as_string();
+
+      if (options->has_key("ssl_key"))
+        ssl_key = (*options)["ssl_key"].as_string();
+
       if (!pwd_override.empty())
         password = pwd_override;
 
-      _session = ::mysqlx::openSession(host, port, schema, user, password, ::mysqlx::Ssl_config());
+      ::mysqlx::Ssl_config ssl;
+      ssl.ca = ssl_ca.c_str();
+      ssl.cert = ssl_cert.c_str();
+      ssl.key = ssl_key.c_str();
+
+      _session = ::mysqlx::openSession(host, port, schema, user, password, ssl);
 
       std::stringstream str;
       str << user << "@" << host << ":" << port;

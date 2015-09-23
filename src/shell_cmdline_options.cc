@@ -23,6 +23,7 @@
 #include "shell_cmdline_options.h"
 #include <boost/format.hpp>
 #include <boost/lexical_cast.hpp>
+#include <boost/algorithm/string.hpp>
 #include "modules/base_session.h"
 
 using namespace shcore;
@@ -35,7 +36,7 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
   std::string user;
   std::string protocol;
   std::string database;
-  int port = 0;
+  
   char* log_level_value;
   bool needs_password = false;
 
@@ -53,6 +54,8 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
   interactive = false;
   full_interactive = false;
 
+  port = 0;
+  ssl = 0;
   for (int i = 1; i < argc && exit_code == 0; i++)
   {
     char *value;
@@ -78,6 +81,25 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
       password = value;
     else if (check_arg_with_value(argv, i, "--password", NULL, value))
       password = value;
+    else if (check_arg_with_value(argv, i, "--ssl-ca", NULL, value))
+      ssl_ca = value;
+    else if (check_arg_with_value(argv, i, "--ssl-cert", NULL, value))
+      ssl_cert = value;
+    else if (check_arg_with_value(argv, i, "--ssl-key", NULL, value))
+      ssl_key = value;
+    else if (check_arg_with_value(argv, i, "--ssl", NULL, value, "1"))
+    {
+      if (boost::iequals(value, "yes") || boost::iequals(value, "1"))
+        ssl = 1;
+      else if (boost::iequals(value, "no") || boost::iequals(value, "0"))
+        ssl = 0;
+      else
+      {
+        std::cerr << "Value for --ssl must be any of 1|0|yes|no";
+        exit_code = 1;
+        break;
+      }
+    }
     else if (check_arg_with_value(argv, i, "--session-type", NULL, value))
     {
       if (strcmp(value, "classic") == 0)
@@ -166,7 +188,7 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
   }
 
   // Configures the URI using all hte associated parameters
-  configure_connection_string(connection_string, user, password, host, port, database, needs_password);
+  configure_connection_string(connection_string, user, password, host, port, database, needs_password, ssl_ca, ssl_cert, ssl_key);
 }
 
 Shell_command_line_options::Shell_command_line_options(const Shell_command_line_options& other) :
@@ -184,6 +206,11 @@ Command_line_options(0, NULL)
   interactive = other.interactive;
   full_interactive = other.full_interactive;
   log_level = other.log_level;
+  ssl_ca = other.ssl_ca;
+  ssl_cert = other.ssl_cert;
+  ssl_key = other.ssl_key;
+  ssl = other.ssl;
+  port = other.port;
 }
 
 // Takes the URI and the individual connection parameters and overrides
@@ -191,7 +218,8 @@ Command_line_options(0, NULL)
 void Shell_command_line_options::configure_connection_string(const std::string &connstring,
                                    std::string &user, std::string &password,
                                    std::string &host, int &port,
-                                   std::string &database, bool prompt_pwd)
+                                   std::string &database, bool prompt_pwd, std::string &ssl_ca,
+                                   std::string &ssl_cert, std::string &ssl_key)
 {
   std::string uri_protocol;
   std::string uri_user;
@@ -200,6 +228,9 @@ void Shell_command_line_options::configure_connection_string(const std::string &
   int uri_port = 0;
   std::string uri_sock;
   std::string uri_database;
+  std::string uri_ssl_ca;
+  std::string uri_ssl_cert;
+  std::string uri_ssl_key;
   int pwd_found;
 
   bool conn_params_defined = false;
@@ -207,7 +238,8 @@ void Shell_command_line_options::configure_connection_string(const std::string &
   // First validates the URI if specified
   if (!connstring.empty())
   {
-    if (!mysh::parse_mysql_connstring(connstring, uri_protocol, uri_user, uri_password, uri_host, uri_port, uri_sock, uri_database, pwd_found))
+    if (!mysh::parse_mysql_connstring(connstring, uri_protocol, uri_user, uri_password, uri_host, uri_port, uri_sock, uri_database, pwd_found, 
+        uri_ssl_ca, uri_ssl_cert, uri_ssl_key))
     {
       std::cerr << "Invalid value specified in --uri parameter.\n";
       exit_code = 1;
@@ -217,7 +249,7 @@ void Shell_command_line_options::configure_connection_string(const std::string &
 
   // URI was either empty or valid, in any case we need to override whatever was configured on the uri_* variables
   // With what was received on the individual parameters.
-  if (!user.empty() || !password.empty() || !host.empty() || !database.empty() || port)
+  if (!user.empty() || !password.empty() || !host.empty() || !database.empty() || port || !ssl_ca.empty() || !ssl_cert.empty() || !ssl_key.empty())
   {
     // This implies URI recreation process should be done to either
     // - Create an URI if none was specified.
@@ -238,6 +270,15 @@ void Shell_command_line_options::configure_connection_string(const std::string &
 
     if (port)
       uri_port = port;
+
+    if (!ssl_ca.empty())
+      uri_ssl_ca = ssl_ca;
+
+    if (!ssl_cert.empty())
+      uri_ssl_cert = ssl_cert;
+
+    if (!ssl_key.empty())
+      uri_ssl_key = ssl_key;
   }
 
   // If needed we construct the URi from the individual parameters
@@ -282,9 +323,53 @@ void Shell_command_line_options::configure_connection_string(const std::string &
       uri.append("/");
       uri.append(uri_database);
     }
+
+    conn_str_cat_ssl_data(uri, uri_ssl_ca, uri_ssl_cert, uri_ssl_key);
   }
 
   // Or we take the URI as defined since no overrides were done
   else
     uri = connstring;
+}
+
+void Shell_command_line_options::conn_str_cat_ssl_data(std::string& uri, const std::string& ssl_ca, const std::string& ssl_cert, const std::string& ssl_key)
+{
+  if (!uri.empty() && (!ssl_ca.empty() || !ssl_cert.empty() || !ssl_key.empty()))
+  {
+    bool first = false;
+    int cnt = 0;
+    if (!ssl_ca.empty()) ++cnt;
+    if (!ssl_cert.empty()) ++cnt;
+    if (!ssl_key.empty()) ++cnt;
+    
+    if (!ssl_ca.empty() && uri.rfind("ssl_ca=") == std::string::npos)
+    {
+      if (!first)
+      {
+        first = true;
+        uri.append("?");
+      }
+      uri.append("ssl_ca=").append(ssl_ca);
+      if (--cnt) uri.append("&");
+    }
+    if (!ssl_cert.empty() && uri.rfind("ssl_cert=") == std::string::npos)
+    {
+      if (!first)
+      {
+        first = true;
+        uri.append("?");
+      }
+      uri.append("ssl_cert=").append(ssl_cert);
+      if (--cnt) uri.append("&");
+    }
+    if (!ssl_key.empty() && uri.rfind("ssl_key=") == std::string::npos)
+    {
+      if (!first)
+      {
+        first = true;
+        uri.append("?");
+      }
+      uri.append("ssl_key=").append(ssl_key);
+    }
+  }
 }

@@ -194,6 +194,7 @@ int main(int argc, char* argv[])
   MyShell shell;
   // CHANGEME: Set up connection string here as required
   shell.make_connection("root:123@localhost:33060");
+  //shell.make_connection("root:123@localhost:33060?ssl_ca=C:\\MySQL\\xplugin-16293675.mysql-advanced-5.7.9-winx64\\data\\ca.pem&ssl_cert=C:\\MySQL\\xplugin-16293675.mysql-advanced-5.7.9-winx64\\data\\server-cert.pem&ssl_key=C:\\MySQL\\xplugin-16293675.mysql-advanced-5.7.9-winx64\\data\\server-key.pem");
 
   bool empty_result = false;
   // Run shell in SQL mode

@@ -19,6 +19,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -58,16 +59,22 @@ namespace SimpleShellClientSharp
 
   class Program
   {
+    const int READLINE_BUFFER_SIZE = 1024;
 
     static void Main(string[] args)
     {
       MySimpleClientShell shell = new MySimpleClientShell();
       shell.MakeConnection("root:123@localhost:33060");
+      //shell.MakeConnection("root:123@localhost:33060?ssl_ca=C:\\MySQL\\xplugin-16293675.mysql-advanced-5.7.9-winx64\\data\\ca.pem&ssl_cert=C:\\MySQL\\xplugin-16293675.mysql-advanced-5.7.9-winx64\\data\\server-cert.pem&ssl_key=C:\\MySQL\\xplugin-16293675.mysql-advanced-5.7.9-winx64\\data\\server-key.pem");
       shell.SwitchMode(Mode.SQL);
+
+      // By default the stdin buffer is too short to allow long inputs like a connection + SSL args.
+      Console.SetBufferSize(128, 1024);
+
       string query;
       while ((query = ReadLineFromPrompt("sql")) != null)
       {
-        if (query == @"\quit") break;
+        if (query == "\\quit\r\n") break;
         ResultSet rs = shell.Execute(query);
         TableResultSet tbl = rs as TableResultSet;
         if (tbl != null)
@@ -77,7 +84,7 @@ namespace SimpleShellClientSharp
       shell.SwitchMode(Mode.JScript);
       while ((query = ReadLineFromPrompt("js")) != null)
       {
-        if (query == @"\quit") break;
+        if (query == "\\quit\r\n") break;
         ResultSet rs = shell.Execute(query);
         DocumentResultSet doc = rs as DocumentResultSet;
         TableResultSet tbl = rs as TableResultSet;
@@ -90,7 +97,7 @@ namespace SimpleShellClientSharp
       shell.SwitchMode(Mode.Python);
       while ((query = ReadLineFromPrompt("py")) != null)
       {
-        if (query == @"\quit") break;
+        if (query == "\\quit\r\n") break;
         ResultSet rs = shell.Execute(query);
         DocumentResultSet doc = rs as DocumentResultSet;
         if (doc != null)
@@ -100,10 +107,20 @@ namespace SimpleShellClientSharp
       shell.Dispose();
     }
 
+    static public string ReadLine()
+    {
+      Stream inputStream = Console.OpenStandardInput(READLINE_BUFFER_SIZE);
+      byte[] bytes = new byte[READLINE_BUFFER_SIZE];
+      int outputLength = inputStream.Read(bytes, 0, READLINE_BUFFER_SIZE);
+      //Console.WriteLine(outputLength);
+      char[] chars = Encoding.UTF7.GetChars(bytes, 0, outputLength);
+      return new string(chars);
+    }
+
     static public string ReadLineFromPrompt(string prompt)
     {
       Console.Write("{0}> ", prompt);
-      return Console.ReadLine();
+      return ReadLine();
     }
 
     static void PrintTableResulSet(TableResultSet tbl)

@@ -267,12 +267,15 @@ Value Interactive_shell::connect_session(const Argument_list &args, mysh::Sessio
   int port = 3306;
   std::string sock;
   std::string db;
+  std::string ssl_ca(_options.ssl_ca);
+  std::string ssl_cert(_options.ssl_cert);
+  std::string ssl_key(_options.ssl_key);
   int pwd_found;
 
   Argument_list connect_args(args);
 
   // Handles the case where the password needs to be prompted
-  if (!mysh::parse_mysql_connstring(args[0].as_string(), protocol, user, pass, host, port, sock, db, pwd_found))
+  if (!mysh::parse_mysql_connstring(args[0].as_string(), protocol, user, pass, host, port, sock, db, pwd_found, ssl_ca, ssl_cert, ssl_key))
     throw shcore::Exception::argument_error("Could not parse URI for MySQL connection");
   else
   {
@@ -923,6 +926,10 @@ void Interactive_shell::print_cmd_line_helper()
   println("  --force                  To use in SQL batch mode, forces processing to continue if an error is found.");
   println("  --log-level=value        The log level. Value is an int in the range [1,8], default (1).");
   println("  --version                Prints the version of MySQL X Shell.");
+  println("  --ssl-key=name         X509 key in PEM format ");
+  println("  --ssl-cert=name        X509 cert in PEM format ");
+  println("  --ssl-ca=name          CA file in PEM format (check OpenSSL docs)");
+  println("  --ssl                  Enable SSL for connection(automatically enabled with other flags).");
 
   println("");
 }

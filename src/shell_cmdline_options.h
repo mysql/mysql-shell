@@ -32,6 +32,11 @@ public:
   shcore::IShell_core::Mode initial_mode;
   std::string run_file;
 
+  int port;
+  std::string ssl_ca;
+  std::string ssl_cert;
+  std::string ssl_key;
+  int ssl;
   std::string uri;
   std::string password;
   std::string output_format;
@@ -51,7 +56,8 @@ public:
   void configure_connection_string(const std::string &connstring,
                                    std::string &user, std::string &password,
                                    std::string &host, int &port,
-                                   std::string &database, bool prompt_pwd);
-
+                                   std::string &database, bool prompt_pwd, std::string &ssl_ca,
+                                   std::string &ssl_cert, std::string &ssl_key);
+  static void conn_str_cat_ssl_data(std::string& uri, const std::string& ssl_ca, const std::string& ssl_cert, const std::string& ssl_key);
 }; 
 #endif

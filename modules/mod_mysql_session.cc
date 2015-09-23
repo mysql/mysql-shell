@@ -120,6 +120,9 @@ Value ClassicSession::connect(const Argument_list &args)
   std::string sock;
   std::string db;
   std::string uri_stripped;
+  std::string ssl_ca;
+  std::string ssl_cert;
+  std::string ssl_key;
 
   int pwd_found;
   int port = 3306;
@@ -133,7 +136,7 @@ Value ClassicSession::connect(const Argument_list &args)
   {
     std::string uri_ = args.string_at(0);
 
-    if (!parse_mysql_connstring(uri_, protocol, user, pass, host, port, sock, db, pwd_found))
+    if (!parse_mysql_connstring(uri_, protocol, user, pass, host, port, sock, db, pwd_found, ssl_ca, ssl_cert, ssl_key))
       throw shcore::Exception::argument_error("Could not parse URI for MySQL connection");
 
     _conn.reset(new Connection(uri_, pwd_override));
@@ -157,10 +160,19 @@ Value ClassicSession::connect(const Argument_list &args)
     if (options->has_key("dbPassword"))
       pass = (*options)["dbPassword"].as_string();
 
+if (options->has_key("ssl_ca"))
+      ssl_ca = (*options)["ssl_ca"].as_string();
+
+    if (options->has_key("ssl_cert"))
+      ssl_cert = (*options)["ssl_cert"].as_string();
+
+    if (options->has_key("ssl_key"))
+      ssl_key = (*options)["ssl_key"].as_string();
+
     if (pwd_override)
       pass.assign(pwd_override);
 
-    _conn.reset(new Connection(host, port, sock, user, pass, db));
+    _conn.reset(new Connection(host, port, sock, user, pass, db, ssl_ca, ssl_cert, ssl_key));
   }
   else
     throw shcore::Exception::argument_error("Unexpected argument on connection data.");

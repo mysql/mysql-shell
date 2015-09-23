@@ -186,9 +186,12 @@ bool Simple_shell_client::connect(const std::string &uri)
   int port = 3306;
   std::string sock;
   std::string db;
+  std::string ssl_ca;
+  std::string ssl_cert;
+  std::string ssl_key;
   int pwd_found;
 
-  if (!mysh::parse_mysql_connstring(uri, protocol, user, pass, host, port, sock, db, pwd_found))
+  if (!mysh::parse_mysql_connstring(uri, protocol, user, pass, host, port, sock, db, pwd_found, ssl_ca, ssl_cert, ssl_key))
     throw shcore::Exception::argument_error("Could not parse URI for MySQL connection");
   else
   {
@@ -237,7 +240,7 @@ Simple_shell_client::~Simple_shell_client()
   // TODO:
 }
 
-void Simple_shell_client::make_connection(const std::string connstr)
+void Simple_shell_client::make_connection(const std::string& connstr)
 {
   connect(connstr);
 }
