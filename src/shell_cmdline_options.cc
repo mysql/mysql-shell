@@ -48,6 +48,7 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
 
   char default_json[7] = "pretty";
   char default_interactive[1] = "";
+  char default_ssl[2] = "1";
 
   initial_mode = IShell_core::Mode_JScript;
   force = false;
@@ -87,7 +88,7 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
       ssl_cert = value;
     else if (check_arg_with_value(argv, i, "--ssl-key", NULL, value))
       ssl_key = value;
-    else if (check_arg_with_value(argv, i, "--ssl", NULL, value, "1"))
+    else if (check_arg_with_value(argv, i, "--ssl", NULL, value, default_ssl))
     {
       if (boost::iequals(value, "yes") || boost::iequals(value, "1"))
         ssl = 1;

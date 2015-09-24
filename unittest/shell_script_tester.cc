@@ -151,7 +151,8 @@ void Shell_script_tester::validate(const std::string& context, size_t index, boo
 
 void Shell_script_tester::validate_interactive(const std::string& script)
 {
-  std::ifstream pre(SETUP_SCRIPT(script).c_str());
+  std::string setup_script(SETUP_SCRIPT(script));
+  std::ifstream pre(setup_script.c_str());
   if (!pre.fail())
   {
     _shell_core->process_stream(pre);
@@ -175,7 +176,8 @@ void Shell_script_tester::validate_interactive(const std::string& script)
 void Shell_script_tester::execute_script(const std::string& path)
 {
   // If no path is provided then executes the setup script
-  std::ifstream stream(path.empty() ? _setup_script : TEST_SCRIPT(path).c_str());
+  std::string script(path.empty() ? _setup_script : TEST_SCRIPT(path));
+  std::ifstream stream(script.c_str());
 
   if (!stream.fail())
   {
