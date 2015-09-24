@@ -1,0 +1,4 @@
+-1|print(myRes1.next().name)|adam|
+-1|print(myRes2.next().name)|jack|
+-1|print(myRes3.next().name)|John|
+-1|print(myColl.find('name = "clare"').execute().next().age)|37|

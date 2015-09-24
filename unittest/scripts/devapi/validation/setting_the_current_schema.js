@@ -1,0 +1,2 @@
+-1|print(mySession.currentSchema.name)|test|
+-1|mySession.close();||
