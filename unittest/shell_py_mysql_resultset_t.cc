@@ -47,8 +47,8 @@ namespace shcore {
     exec_and_out_equals("session = mysql.getClassicSession('" + _mysql_uri + "')");
 
     exec_and_out_equals("session.sql('drop schema if exists py_shell_test;')");
-    exec_and_out_equals("session.sql('create schema py_shell_test;')");
-    exec_and_out_equals("session.sql('use py_shell_test;')");
+    exec_and_out_equals("session.createSchema('py_shell_test');");
+    exec_and_out_equals("session.setCurrentSchema('py_shell_test');");
     exec_and_out_equals("session.sql('create table table1 (id int auto_increment primary key, name varchar(50));')");
 
     exec_and_out_equals("session.sql('insert into table1 (`name`) values(\"one\");')");

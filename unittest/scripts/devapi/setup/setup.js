@@ -8,14 +8,14 @@ var myTable;
 function ensure_session(){
   if (type(session) == "Undefined")
   {
-    print("Creating session...");
+    print("Creating session...\n");
     var  uri = os.getenv('MYSQL_URI');
     session = mysqlx.getNodeSession(uri);
 
     // Ensures the user on dev-api exists
     try {
-      session.sql("create user mike@localhost identified by 's3cr3t!'").execute();
-      session.sql("grant all on *.* to mike@localhost with grant option").execute();
+      session.sql("create user mike@'%' identified by 's3cr3t!'").execute();
+      session.sql("grant all on *.* to mike@'%' with grant option").execute();
     }
     catch(err)
     {
@@ -23,38 +23,41 @@ function ensure_session(){
     }  
   }
   else
-    print("Session exists...");
+    print("Session exists...\n");
 }
 
 function ensure_test_schema() {
   ensure_session();
-  
-  var s = session.getSchema('test');
-  
+
   try {
-      var schema = session.createSchema('test'); 
-      print("Creating test schema...");
-    }
-  catch(err)
-  {
-    // This means the schema existed already
-    print("Test schema exists...");
-  }  
+      var s = session.getSchema('test');
+      print("Test schema exists...\n");
+  }
+  catch(err){
+    print("Creating test schema...\n");
+    session.createSchema('test');
+  }
 }
 
 function ensure_test_schema_on_db() {
   ensure_test_schema();
-  print("Assigning test schema to db...");
+  print("Assigning test schema to db...\n");
   db = session.getSchema('test');
 }
 
 function ensure_employee_table() {
   ensure_test_schema();
-  
-  var table = session.getSchema('test').getTable('employee');
-  if (type(table) == "Undefined")
-  {
-    print("Creating employee table...");
+
+  try{
+    var table = session.getSchema('test').getTable('employee');
+
+    if(type(table) == "Undefined")
+      throw "Employee table does not exist";
+
+    print("Employee table exists...\n");
+  }
+  catch(err){
+    print("Creating employee table...\n");
     session.sql('create table test.employee (name varchar(50), age integer, gender varchar(20))').execute();
     var table = db.getTable('employee');
     
@@ -71,15 +74,12 @@ function ensure_employee_table() {
     var result = table.insert({'name': 'Sally', 'age': 19, 'gender': 'female'}).execute();
     var result = table.insert({'name': 'Molly', 'age': 25, 'gender': 'female'}).execute();
   }
-  else{
-    print("Employee table exists...");
-  }
 }
 
 function ensure_employee_table_on_mytable() {
   ensure_employee_table();
   
-  print("Assigning employee table to myTable...");
+  print("Assigning employee table to myTable...\n");
   
   myTable = session.getSchema('test').getTable('employee');
 }
@@ -87,18 +87,24 @@ function ensure_employee_table_on_mytable() {
 function ensure_empty_my_table_table() {
   ensure_test_schema();
   
-  print("Creating my_table table...");
+  print("Creating my_table table...\n");
   session.sql('drop table if exists test.my_table').execute();
   session.sql('create table test.my_table (id integer, name varchar(50))').execute();
 }
 
 function ensure_my_collection_collection() {
   ensure_test_schema();
-  
-  var test_coll = session.getSchema('test').getCollection('my_collection');
-  if (type(test_coll) == "Undefined")
-  {
-    print("Creating my_collection collection...");
+
+  try{
+    var test_coll = session.getSchema('test').getCollection('my_collection');
+
+    if(type(test_coll) == "Undefined")
+      throw "my_collection collection does not exist";
+
+    print("my_collection collection exists...\n");
+  }
+  catch(err){
+    print("Creating my_collection collection...\n");
     var test_coll = db.createCollection('my_collection');
 
     var result = test_coll.add({name: 'jack', age: 17, gender: 'male'}).execute();
@@ -114,19 +120,23 @@ function ensure_my_collection_collection() {
     var result = test_coll.add({name: 'Sally', age: 19, gender: 'female'}).execute();
     var result = test_coll.add({name: 'Molly', age: 25, gender: 'female'}).execute();
   }
-  else{
-    print("my_collection collection exists...");
-  }
 }
 
 
 function ensure_not_my_collection_collection() {
   ensure_test_schema();
-  
-  var test_coll = session.getSchema('test').getCollection('my_collection');
-  if (type(test_coll) != "Undefined")
-  {
+
+  try{
+    var test_coll = session.getSchema('test').getCollection('my_collection');
+
+    if(type(test_coll) == "Undefined")
+      throw "my_collection collection does not exist";
+
+    print ("Dropping my_collection...\n");
     test_coll.drop();
+  }
+  catch(err){
+    print("my_collection does not exist...\n");
   }
 }
 

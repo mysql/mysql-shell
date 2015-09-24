@@ -43,8 +43,8 @@ namespace shcore {
       exec_and_out_equals("var session = mysql.getClassicSession('" + _mysql_uri + "');");
 
       exec_and_out_equals("session.sql('drop schema if exists js_shell_test;')");
-      exec_and_out_equals("session.sql('create schema js_shell_test;')");
-      exec_and_out_equals("session.sql('use js_shell_test;')");
+      exec_and_out_equals("session.createSchema('js_shell_test');");
+      exec_and_out_equals("session.setCurrentSchema('js_shell_test');");
       exec_and_out_equals("var result = session.sql('create table table1 (name varchar(50));')");
       exec_and_out_equals("session.sql('create view view1 (my_name) as select name from table1;')");
     }
