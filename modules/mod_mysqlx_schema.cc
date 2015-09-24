@@ -122,6 +122,25 @@ void Schema::cache_table_objects()
   CATCH_AND_TRANSLATE();
 }
 
+void Schema::_remove_object(const std::string& name, const std::string& type)
+{
+  if (type == "View")
+  {
+    if (_views->count(name))
+      _views->erase(name);
+  }
+  else if (type == "Table")
+  {
+    if (_tables->count(name))
+      _tables->erase(name);
+  }
+  else if (type == "Collection")
+  {
+    if (_collections->count(name))
+      _collections->erase(name);
+  }
+}
+
 std::vector<std::string> Schema::get_members() const
 {
   std::vector<std::string> members(DatabaseObject::get_members());

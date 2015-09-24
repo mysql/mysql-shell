@@ -148,7 +148,8 @@ namespace mysh
       virtual boost::shared_ptr<BaseSession> _get_shared_this() const = 0;
       boost::shared_ptr< ::mysqlx::Result> _last_result;
       std::string _retrieve_current_schema();
-      virtual void _load_schemas();
+      void _load_schemas();
+      void _remove_schema(const std::string& name);
 
       boost::shared_ptr< ::mysqlx::Session> _session;
 

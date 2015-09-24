@@ -157,6 +157,7 @@ void Statement::insert_bound_values(::google::protobuf::RepeatedPtrField< ::Mysq
     throw std::logic_error("Missing value bindings for the next placeholders: " + str_undefined);
 
   // No errors, proceeds to set the values if any
+  target->Clear();
   std::vector<Mysqlx::Datatypes::Scalar*>::const_iterator index, end = m_bound_values.end();
   for (index = m_bound_values.begin(); index != end; index++)
     target->AddAllocated(*index);

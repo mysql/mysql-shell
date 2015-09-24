@@ -139,6 +139,7 @@ namespace mysh
     private:
       std::string _retrieve_current_schema();
       void _load_schemas();
+      void _remove_schema(const std::string& name);
       boost::shared_ptr<Connection> _conn;
       std::string _default_schema;
       boost::shared_ptr<shcore::Value::Map_type> _schemas;

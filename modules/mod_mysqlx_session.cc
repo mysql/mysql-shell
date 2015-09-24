@@ -504,6 +504,12 @@ void BaseSession::_load_schemas()
   CATCH_AND_TRANSLATE();
 }
 
+void BaseSession::_remove_schema(const std::string& name)
+{
+  if (_schemas->count(name))
+    _schemas->erase(name);
+}
+
 #ifdef DOXYGEN
 /**
 * Retrieves a Schema object from the current session through it's name.
@@ -578,6 +584,18 @@ void BaseSession::drop_db_object(const std::string &type, const std::string &nam
     command_args.push_back(Value(name));
 
     executeAdminCommand("drop_collection", command_args);
+  }
+
+  if (type == "Schema")
+    _remove_schema(name);
+  else
+  {
+    if (_schemas->count(owner))
+    {
+      boost::shared_ptr<Schema> schema = boost::static_pointer_cast<Schema>((*_schemas)[owner].as_object());
+      if (schema)
+        schema->_remove_object(name, type);
+    }
   }
 }
 

@@ -160,8 +160,8 @@ Value ClassicSession::connect(const Argument_list &args)
     if (options->has_key("dbPassword"))
       pass = (*options)["dbPassword"].as_string();
 
-if (options->has_key("ssl_ca"))
-      ssl_ca = (*options)["ssl_ca"].as_string();
+    if (options->has_key("ssl_ca"))
+          ssl_ca = (*options)["ssl_ca"].as_string();
 
     if (options->has_key("ssl_cert"))
       ssl_cert = (*options)["ssl_cert"].as_string();
@@ -437,6 +437,12 @@ void ClassicSession::_load_schemas()
   }
 }
 
+void ClassicSession::_remove_schema(const std::string& name)
+{
+  if (_schemas->count(name))
+    _schemas->erase(name);
+}
+
 #ifdef DOXYGEN
 /**
 * Retrieves a ClassicSchema object from the current session through it's name.
@@ -528,6 +534,18 @@ void ClassicSession::drop_db_object(const std::string &type, const std::string &
 
   // We execute the statement, any error will be reported properly
   _conn->executeSql(statement);
+
+  if (type == "ClassicSchema")
+    _remove_schema(name);
+  else
+  {
+    if (_schemas->count(owner))
+    {
+      boost::shared_ptr<ClassicSchema> schema = boost::static_pointer_cast<ClassicSchema>((*_schemas)[owner].as_object());
+      if (schema)
+        schema->_remove_object(name, type);
+    }
+  }
 }
 
 /*
