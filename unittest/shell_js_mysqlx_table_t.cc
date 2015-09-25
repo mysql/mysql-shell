@@ -23,11 +23,11 @@
 #include <string>
 
 #include "gtest/gtest.h"
-#include "test_utils.h"
+#include "shell_script_tester.h"
 #include "base_session.h"
 
 namespace shcore {
-  class Shell_js_mysqlx_table_tests : public Shell_core_test_wrapper
+  class Shell_js_mysqlx_table_tests : public Shell_script_tester
   {
   protected:
     // You can define per-test set-up and tear-down logic as usual.
@@ -37,95 +37,12 @@ namespace shcore {
 
       bool initilaized(false);
       _shell_core->switch_mode(Shell_core::Mode_JScript, initilaized);
-
-      exec_and_out_equals("var mysqlx = require('mysqlx').mysqlx;");
-
-      exec_and_out_equals("var session = mysqlx.getNodeSession('" + _uri + "');");
-
-      exec_and_out_equals("session.sql('drop schema if exists js_shell_test;').execute();");
-      exec_and_out_equals("session.createSchema('js_shell_test');");
-      exec_and_out_equals("session.setCurrentSchema('js_shell_test');");
-      exec_and_out_equals("session.sql('create table table1 (name varchar(50));').execute();");
     }
   };
 
-  // Tests table.getName()
-  TEST_F(Shell_js_mysqlx_table_tests, mysqlx_schema_get_name)
+  TEST_F(Shell_js_mysqlx_table_tests, full_test)
   {
-    exec_and_out_equals("var table = session.js_shell_test.table1;");
-
-    exec_and_out_equals("print(table.getName());", "table1");
-  }
-
-  // Tests table.name
-  TEST_F(Shell_js_mysqlx_table_tests, mysqlx_schema_name)
-  {
-    exec_and_out_equals("var table = session.js_shell_test.table1;");
-
-    exec_and_out_equals("print(table.name);", "table1");
-  }
-
-  // Tests table.getSession()
-  TEST_F(Shell_js_mysqlx_table_tests, mysqlx_schema_get_session)
-  {
-    std::string uri = mysh::strip_password(_uri);
-
-    exec_and_out_equals("var table = session.js_shell_test.table1;");
-
-    exec_and_out_equals("var table_session = table.getSession();");
-
-    exec_and_out_equals("print(table_session)", "<NodeSession:" + uri + ">");
-  }
-
-  // Tests table.session
-  TEST_F(Shell_js_mysqlx_table_tests, mysqlx_schema_session)
-  {
-    std::string uri = mysh::strip_password(_uri);
-
-    exec_and_out_equals("var table = session.js_shell_test.table1;");
-
-    exec_and_out_equals("print(table.session)", "<NodeSession:" + uri + ">");
-  }
-
-  // Tests table.getSchema()
-  TEST_F(Shell_js_mysqlx_table_tests, mysqlx_schema_get_schema)
-  {
-    std::string uri = mysh::strip_password(_uri);
-
-    exec_and_out_equals("var table = session.js_shell_test.table1;");
-
-    exec_and_out_equals("var table_schema = table.getSchema();");
-
-    exec_and_out_equals("print(table_schema)", "<Schema:js_shell_test>");
-  }
-
-  // Tests table.schema
-  TEST_F(Shell_js_mysqlx_table_tests, mysqlx_schema_schema)
-  {
-    std::string uri = mysh::strip_password(_uri);
-
-    exec_and_out_equals("var table = session.js_shell_test.table1;");
-
-    exec_and_out_equals("print(table.schema)", "<Schema:js_shell_test>");
-  }
-
-  // Tests table.drop() and table.existInDatabase()
-  TEST_F(Shell_js_mysqlx_table_tests, mysqlx_table_drop_exist_in_database)
-  {
-    exec_and_out_equals("var schema = session.createSchema('my_sample_schema');");
-
-    exec_and_out_equals("session.sql('create table my_sample_schema.my_sample_table (name varchar(50));').execute();");
-
-    exec_and_out_equals("var table = schema.my_sample_table;");
-
-    exec_and_out_equals("print(table.existInDatabase());", "true");
-
-    exec_and_out_equals("table.drop();");
-
-    exec_and_out_equals("print(table.existInDatabase());", "false");
-
-    exec_and_out_equals("schema.drop();");
-
-    exec_and_out_equals("session.close();");
+    set_config_folder("js_devapi");
+    validate_interactive("mysqlx_table.js");
   }
 }
