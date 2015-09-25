@@ -46,7 +46,7 @@ function ensure_test_schema_on_db() {
 }
 
 function ensure_employee_table() {
-  ensure_test_schema();
+  ensure_test_schema_on_db();
 
   try{
     var table = session.getSchema('test').getTable('employee');
@@ -93,7 +93,7 @@ function ensure_empty_my_table_table() {
 }
 
 function ensure_my_collection_collection() {
-  ensure_test_schema();
+  ensure_test_schema_on_db();
 
   try{
     var test_coll = session.getSchema('test').getCollection('my_collection');

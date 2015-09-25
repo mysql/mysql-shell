@@ -1,4 +1,4 @@
--1|print(myDocs.next().name)|Sally|
--1|print(MyOtherDocs.next().name)|Molly|
--1|print(myFind.bind('param1','mike').bind('param2', 39).execute().next())|undefined|
--1|print(myFind.bind('param1','johannes').bind('param2', 28).execute().next())|undefined|
+print(myDocs.next().name)|Sally|
+print(MyOtherDocs.next().name)|Molly|
+print(myFind.bind('param1','mike').bind('param2', 39).execute().next())|undefined|
+print(myFind.bind('param1','johannes').bind('param2', 28).execute().next())|undefined|

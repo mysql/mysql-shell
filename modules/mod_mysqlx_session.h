@@ -199,12 +199,14 @@ namespace mysh
       virtual shcore::Value get_member(const std::string &prop) const;
       shcore::Value sql(const shcore::Argument_list &args);
       shcore::Value set_current_schema(const shcore::Argument_list &args);
+      shcore::Value quote_name(const shcore::Argument_list &args);
 #ifdef DOXYGEN
       Schema currentSchema; //!< Same as getCurrentSchema()
 
       Schema getCurrentSchema();
       Schema setCurrentSchema(String name);
       Resultset sql(String sql);
+      String quoteName(String id);
 #endif
     };
   }

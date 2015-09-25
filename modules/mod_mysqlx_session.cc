@@ -674,6 +674,7 @@ NodeSession::NodeSession() : BaseSession()
   add_method("sql", boost::bind(&NodeSession::sql, this, _1), "sql", shcore::String, NULL);
   add_method("setCurrentSchema", boost::bind(&NodeSession::set_current_schema, this, _1), "name", shcore::String, NULL);
   add_method("getCurrentSchema", boost::bind(&ShellBaseSession::get_member_method, this, _1, "getCurrentSchema", "currentSchema"), NULL);
+  add_method("quoteName", boost::bind(&NodeSession::quote_name, this, _1), "name", shcore::String, NULL);
 }
 
 boost::shared_ptr<BaseSession> NodeSession::_get_shared_this() const
@@ -790,4 +791,33 @@ Value NodeSession::get_member(const std::string &prop) const
   }
 
   return ret_val;
+}
+
+#ifdef DOXYGEN
+/**
+* Escapes the passed identifier.
+* \return A String containing the escaped identifier.
+*/
+String NodeSession::quoteName(String id){}
+#endif
+shcore::Value NodeSession::quote_name(const shcore::Argument_list &args)
+{
+  args.ensure_count(1, "NodeSession.quoteName");
+
+  if (args[0].type != shcore::String)
+    throw shcore::Exception::type_error("Argument #1 is expected to be a string");
+
+  std::string id = args[0].as_string();
+
+  size_t index = 0;
+
+  while ((index = id.find("`", index)) != std::string::npos)
+  {
+    id.replace(index, 1, "``");
+    index += 2;
+  }
+
+  id = "`" + id + "`";
+
+  return shcore::Value(id);
 }

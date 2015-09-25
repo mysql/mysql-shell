@@ -1,5 +1,5 @@
--1|var tstRes = myColl.find().sort(['name']).execute();||
--1|print(tstRes.next().name);|Mike|
--1|print(tstRes.next().name);|Sakila|
--1|print(tstRes.next().name);|Susanne|
--1|myColl.drop();||
+var tstRes = myColl.find().sort(['name']).execute();||
+print(tstRes.next().name);|Mike|
+print(tstRes.next().name);|Sakila|
+print(tstRes.next().name);|Susanne|
+myColl.drop();||

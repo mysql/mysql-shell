@@ -1,4 +1,4 @@
--1|print(db1)|<Schema:test>|
--1|print(db2)|<Schema:test>|
--1|dictSession.close();||
--1|uriSession.close();||
+print(db1)|<Schema:test>|
+print(db2)|<Schema:test>|
+dictSession.close();||
+uriSession.close();||

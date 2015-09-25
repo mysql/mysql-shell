@@ -59,13 +59,15 @@ protected:
   void set_setup_script(const std::string &name);
 
 private:
-  std::vector<std::string> _src_lines;
-  std::map<int, Validation_t*> _validations;
+  // Chunks of code will be stored here
+  std::map<std::string, std::string> _chunks;
+  std::vector<std::string> _chunk_order;
+  std::map<std::string, Validation_t*> _chunk_validations;
 
-  void load_source(const std::string& path);
-  void load_validation(const std::string& path, bool interactive);
-  void validate(const std::string& context, size_t index, bool interactive);
-
-  void execute_script(const std::string& path = "");
+  void execute_script(const std::string& path = "", bool in_chunks = false);
   void process_setup(std::istream & stream);
+  void validate(const std::string& context, const std::string &chunk_id = "__global__");
+
+  void load_source_chunks(std::istream & stream);
+  void load_validations(const std::string& path, bool in_chunks = false);
 };

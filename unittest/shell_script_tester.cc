@@ -45,135 +45,135 @@ void Shell_script_tester::set_setup_script(const std::string &name)
   _setup_script = _shell_scripts_home + "/setup/" + name;
 }
 
-void Shell_script_tester::load_source(const std::string& path)
+void Shell_script_tester::validate(const std::string& context, const std::string &chunk_id)
 {
-  std::ifstream file(path.c_str());
-
-  if (!file.fail())
+  if (_chunk_validations.count(chunk_id))
   {
-    while (!file.eof())
+    Validation_t* validations = _chunk_validations[chunk_id];
+
+    for (size_t valindex = 0; valindex < validations->size(); valindex++)
     {
-      std::string line;
+      // Validation goes against validation code
+      if (!(*validations)[valindex].code.empty())
+      {
+        output_handler.wipe_all();
+        execute((*validations)[valindex].code);
+      }
 
-      std::getline(file, line);
+      // Validates unexpected error
+      if ((*validations)[valindex].expected_error.empty() &&
+         !output_handler.std_err.empty())
+      {
+        SCOPED_TRACE("File: " + context);
+        SCOPED_TRACE("Executing: " + chunk_id);
+        SCOPED_TRACE("Unexpexted Error: " + output_handler.std_err);
+        ADD_FAILURE();
+      }
 
-      _src_lines.push_back(line);
+      // Validates expected output if any
+      if (!(*validations)[valindex].expected_output.empty())
+      {
+        std::string out = (*validations)[valindex].expected_output;
+
+        SCOPED_TRACE("File: " + context);
+        SCOPED_TRACE("Executing: " + chunk_id);
+        SCOPED_TRACE("STDOUT missing: " + out);
+        SCOPED_TRACE("STDOUT actual: " + output_handler.std_out);
+        EXPECT_NE(-1, int(output_handler.std_out.find(out)));
+      }
+
+      // Validates expected error if any
+      if (!(*validations)[valindex].expected_error.empty())
+      {
+        std::string error = (*validations)[valindex].expected_error;
+
+        SCOPED_TRACE("File: " + context);
+        SCOPED_TRACE("Executing: " + chunk_id);
+        SCOPED_TRACE("STDOUT missing: " + error);
+        SCOPED_TRACE("STDOUT actual: " + output_handler.std_err);
+        EXPECT_NE(-1, int(output_handler.std_err.find(error)));
+      }
     }
+    output_handler.wipe_all();
   }
 }
 
-void Shell_script_tester::load_validation(const std::string& path, bool interactive)
+void Shell_script_tester::validate_interactive(const std::string& script)
+{
+  execute_script(script, true);
+}
+
+void Shell_script_tester::load_source_chunks(std::istream & stream)
+{
+  std::string chunk_id = "__global__";
+  std::vector<std::string> current_chunk;
+
+  while (!stream.eof())
+  {
+    std::string line;
+    std::getline(stream, line);
+
+    if (line.find("//@") == 0)
+    {
+      if (!current_chunk.empty())
+      {
+        _chunks[chunk_id] = boost::join(current_chunk, "\n");
+        _chunk_order.push_back(chunk_id);
+      }
+
+      chunk_id = line;
+      current_chunk.clear();
+    }
+    else
+      current_chunk.push_back(line);
+  }
+
+  // Inserts the remaining code chunk
+  if (!current_chunk.empty())
+  {
+    _chunks[chunk_id] = boost::join(current_chunk, "\n");
+    _chunk_order.push_back(chunk_id);
+  }
+}
+
+void Shell_script_tester::load_validations(const std::string& path, bool in_chunks)
 {
   std::ifstream file(path.c_str());
+  std::string chunk_id = "__global__";
+
+  _chunk_validations.clear();
 
   if (!file.fail())
   {
     while (!file.eof())
     {
       std::string line;
-
       std::getline(file, line);
 
       boost::trim(line);
-
       if (!line.empty())
       {
-        std::vector<std::string> tokens;
+        if (line.find("//@") == 0)
+        {
+          if (in_chunks)
+            chunk_id = line;
+        }
+        else
+        {
+          std::vector<std::string> tokens;
+          boost::split(tokens, line, boost::is_any_of("|"), boost::token_compress_off);
 
-        boost::split(tokens, line, boost::is_any_of("|"), boost::token_compress_off);
+          if (!_chunk_validations.count(chunk_id))
+            _chunk_validations[chunk_id] = new Validation_t();
 
-        int lineno = 0;
-        if (interactive)
-          lineno = boost::lexical_cast<int>(tokens[0]);
-
-        tokens.erase(tokens.begin());
-
-        if (!_validations.count(lineno))
-          _validations[lineno] = new Validation_t();
-
-        _validations[lineno]->push_back(Validation(tokens));
+          _chunk_validations[chunk_id]->push_back(Validation(tokens));
+        }
       }
     }
   }
 }
 
-void Shell_script_tester::validate(const std::string& context, size_t index, bool interactive)
-{
-  Validation_t* validations = _validations[index];
-  for (size_t valindex = 0; valindex < validations->size(); valindex++)
-  {
-    // Validation goes against validation code
-    if (!(*validations)[valindex].code.empty())
-    {
-      output_handler.wipe_all();
-      execute((*validations)[valindex].code);
-    }
-
-    // Validates unexpected error
-    if ((*validations)[valindex].expected_error.empty() &&
-       !output_handler.std_err.empty())
-    {
-      if (interactive)
-        SCOPED_TRACE("Executing: " + _src_lines[index]);
-      SCOPED_TRACE("File: " + context);
-      SCOPED_TRACE("Unexpexted Error: " + output_handler.std_err);
-      ADD_FAILURE();
-    }
-
-    // Validates expected output if any
-    if (!(*validations)[valindex].expected_output.empty())
-    {
-      std::string out = (*validations)[valindex].expected_output;
-
-      if (interactive)
-        SCOPED_TRACE("Executing: " + _src_lines[index]);
-      SCOPED_TRACE("File: " + context);
-      SCOPED_TRACE("STDOUT missing: " + out);
-      SCOPED_TRACE("STDOUT actual: " + output_handler.std_out);
-      EXPECT_NE(-1, int(output_handler.std_out.find(out)));
-    }
-
-    // Validates expected error if any
-    if (!(*validations)[valindex].expected_error.empty())
-    {
-      std::string error = (*validations)[valindex].expected_error;
-
-      if (interactive)
-        SCOPED_TRACE("Executing: " + _src_lines[index]);
-      SCOPED_TRACE("File: " + context);
-      SCOPED_TRACE("STDOUT missing: " + error);
-      SCOPED_TRACE("STDOUT actual: " + output_handler.std_err);
-      EXPECT_NE(-1, int(output_handler.std_err.find(error)));
-    }
-  }
-  output_handler.wipe_all();
-}
-
-void Shell_script_tester::validate_interactive(const std::string& script)
-{
-  std::string setup_script(SETUP_SCRIPT(script));
-  std::ifstream pre(setup_script.c_str());
-  if (!pre.fail())
-  {
-    _shell_core->process_stream(pre);
-    output_handler.wipe_all();
-  }
-
-  load_source(TEST_SCRIPT(script).c_str());
-  load_validation(VALIDATION_SCRIPT(script), true);
-
-  for (size_t index = 0; index < _src_lines.size(); index++)
-  {
-    execute(_src_lines[index]);
-
-    if (_validations.count(index))
-      validate(script, index, true);
-    else
-      output_handler.wipe_all();
-  }
-}
-
-void Shell_script_tester::execute_script(const std::string& path)
+void Shell_script_tester::execute_script(const std::string& path, bool in_chunks)
 {
   // If no path is provided then executes the setup script
   std::string script(path.empty() ? _setup_script : TEST_SCRIPT(path));
@@ -184,25 +184,53 @@ void Shell_script_tester::execute_script(const std::string& path)
     // When it is a test script, preprocesses it so the
     // right execution scenario is in place
     if (!path.empty())
+    {
       process_setup(stream);
 
+      // Loads the validations
+      load_validations(VALIDATION_SCRIPT(path), in_chunks);
+    }
+
     // Process the file
-    _shell_core->process_stream(stream);
-
-    // In case it is the setup and there were errors
-    // reports them here
-    if (path.empty())
+    if (in_chunks)
     {
-      if (!output_handler.std_err.empty())
+      load_source_chunks(stream);
+      for (size_t index = 0; index < _chunk_order.size(); index++)
       {
-        SCOPED_TRACE(output_handler.std_err);
+        (*shcore::Shell_core_options::get())[SHCORE_INTERACTIVE] = shcore::Value::False();
+        execute(_chunks[_chunk_order[index]]);
 
-        std::string text("Setup Script: " + path);
-        SCOPED_TRACE(text.c_str());
-        ADD_FAILURE();
+        (*shcore::Shell_core_options::get())[SHCORE_INTERACTIVE] = shcore::Value::True();
+        validate(path, _chunk_order[index]);
       }
+    }
+    else
+    {
+      (*shcore::Shell_core_options::get())[SHCORE_INTERACTIVE] = shcore::Value::False();
 
-      output_handler.wipe_all();
+      // Processes the script
+      _shell_core->process_stream(stream);
+
+      // When path is empty it is processing a setup script
+      // If an error is found it will be printed here
+      if (path.empty())
+      {
+        if (!output_handler.std_err.empty())
+        {
+          SCOPED_TRACE(output_handler.std_err);
+          std::string text("Setup Script: " + _setup_script);
+          SCOPED_TRACE(text.c_str());
+          ADD_FAILURE();
+        }
+
+        output_handler.wipe_all();
+      }
+      else
+      {
+        // If processing a tets script, performs the validations over it
+        (*shcore::Shell_core_options::get())[SHCORE_INTERACTIVE] = shcore::Value::True();
+        validate(script);
+      }
     }
   }
 }
@@ -254,30 +282,5 @@ void Shell_script_tester::process_setup(std::istream & stream)
 
 void Shell_script_tester::validate_batch(const std::string& script)
 {
-  (*shcore::Shell_core_options::get())[SHCORE_INTERACTIVE] = shcore::Value::False();
-
-  execute_script(script);
-
-  if (!output_handler.std_err.empty())
-  {
-    SCOPED_TRACE(output_handler.std_err);
-
-    std::string text("Script File: ");
-    text += script;
-    SCOPED_TRACE(text.c_str());
-    ADD_FAILURE();
-  }
-
-  // Executes the validations
-  if (_validations.count(0))
-  {
-    delete _validations[0];
-    _validations.clear();
-  }
-
-  // The validation process must be don in interactive way
-  (*shcore::Shell_core_options::get())[SHCORE_INTERACTIVE] = shcore::Value::True();
-  load_validation(VALIDATION_SCRIPT(script), false);
-  if (_validations.count(0))
-    validate(script, 0, false);
+  execute_script(script, false);
 }

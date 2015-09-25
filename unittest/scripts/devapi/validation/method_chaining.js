@@ -1,3 +1,3 @@
--1|print(res.next()['name'])|mike|
--1|print(result.next()['name'])|mike|
--1|session.close();||
+print(res.next()['name'])|mike|
+print(result.next()['name'])|mike|
+session.close();||

@@ -1,2 +1,2 @@
--1||Name: Sally|
--1||Age: 19|
+|Name: Sally|
+|Age: 19|
