@@ -21,6 +21,7 @@
 #include "mysqlx.h"
 #include "shellcore/common.h"
 #include <boost/bind.hpp>
+#include "shellcore/shell_core_options.h"
 
 using namespace mysh;
 using namespace shcore;
@@ -394,25 +395,5 @@ shcore::Value Collection_resultset::next(const shcore::Argument_list &args)
     if (r.get())
       return Value::parse(r->stringField(0));
   }
-  return shcore::Value();
-}
-
-#ifdef DOXYGEN
-/**
-* Returns a list of Document objects which contains an element for every unread row on the Resultset.
-* \return A List of Document objects.
-*/
-List Collection_resultset::all(){};
-#endif
-
-shcore::Value Collection_resultset::print(const shcore::Argument_list &args)
-{
-  bool show_warnings = false;
-
-  if (args.size() > 2)
-    show_warnings = args.bool_at(2);
-
-  print_json("json", show_warnings);
-
   return shcore::Value();
 }

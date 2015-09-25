@@ -58,10 +58,7 @@ namespace shcore
     validate_batch("database_connection_example.js");
     validate_batch("connecting_to_a_session.js");
     validate_batch("working_with_a_session_object.js");
-
-    // TODO: Uncomment once the print(resultset) works
-    //validate_batch("using_sql.js");
-
+    validate_batch("using_sql.js");
     validate_batch("setting_the_current_schema.js");
     validate_batch("parameter_binding.js");
     validate_batch("preparing_crud_statements.js");

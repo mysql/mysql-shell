@@ -43,6 +43,7 @@
 #include "shellcore/common.h"
 
 #include "shell_cmdline_options.h"
+#include "shell_resultset_dumper.h"
 
 #include "../modules/base_session.h"
 //#include "../modules/mod_schema.h"
@@ -731,9 +732,10 @@ void Interactive_shell::process_result(shcore::Value result)
     if (result)
     {
       Value shell_hook;
+      boost::shared_ptr<Object_bridge> object;
       if (result.type == shcore::Object)
       {
-        boost::shared_ptr<Object_bridge> object = result.as_object();
+        object = result.as_object();
         if (object && object->has_member("__shell_hook__"))
           shell_hook = object->get_member("__shell_hook__");
 
@@ -750,17 +752,27 @@ void Interactive_shell::process_result(shcore::Value result)
       // If the function is not found the values still needs to be printed
       if (!shell_hook)
       {
-        if ((*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string().find("json") == 0)
+        // Resultset objects get printed
+        if (object && object->class_name().find("Resultset") != -1)
         {
-          shcore::JSON_dumper dumper((*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string() == "json");
-          dumper.start_object();
-          dumper.append_value("result", result);
-          dumper.end_object();
-
-          print(dumper.str());
+          boost::shared_ptr<mysh::BaseResultset> resultset = boost::static_pointer_cast<mysh::BaseResultset> (object);
+          ResultsetDumper dumper(resultset);
+          dumper.dump();
         }
         else
-          print(result.descr(true).c_str());
+        {
+          if ((*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string().find("json") == 0)
+          {
+            shcore::JSON_dumper dumper((*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string() == "json");
+            dumper.start_object();
+            dumper.append_value("result", result);
+            dumper.end_object();
+
+            print(dumper.str());
+          }
+          else
+            print(result.descr(true).c_str());
+        }
       }
     }
   }
