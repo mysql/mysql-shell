@@ -16,6 +16,10 @@
 #include "test_utils.h"
 #include <boost/algorithm/string.hpp>
 #include <boost/bind.hpp>
+#include "shellcore/shell_core_options.h"
+#include "src/shell_resultset_dumper.h"
+
+using namespace shcore;
 
 Shell_test_output_handler::Shell_test_output_handler()
 {
@@ -65,6 +69,8 @@ void Shell_core_test_wrapper::SetUp()
     _mysql_port.assign(port);
     _mysql_uri += ":" + _mysql_port;
   }
+
+  _result_processor = boost::bind(&Shell_core_test_wrapper::process_result, this, _1);
 }
 
 void Shell_core_test_wrapper::TearDown()
@@ -75,6 +81,10 @@ void Shell_core_test_wrapper::TearDown()
 void Shell_core_test_wrapper::process_result(shcore::Value result)
 {
   _returned_value = result;
+
+  // Return value of undefined implies an error processing
+  if (result.type == shcore::Undefined)
+    _shell_core->set_error_processing();
 }
 
 shcore::Value Shell_core_test_wrapper::execute(const std::string& code)
@@ -82,7 +92,7 @@ shcore::Value Shell_core_test_wrapper::execute(const std::string& code)
   std::string _code(code);
   shcore::Interactive_input_state state;
 
-  _shell_core->handle_input(_code, state, boost::bind(&Shell_core_test_wrapper::process_result, this, _1));
+  _shell_core->handle_input(_code, state, _result_processor);
 
   return _returned_value;
 }

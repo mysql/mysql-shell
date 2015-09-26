@@ -213,7 +213,7 @@ namespace shcore {
 
     {
       SCOPED_TRACE("Testing with expression");
-      exec_and_out_equals("var result = table.update().set('age', expr('13+10')).where('age = 13').execute();");
+      exec_and_out_equals("var result = table.update().set('age', mysqlx.expr('13+10')).where('age = 13').execute();");
       exec_and_out_equals("print(result.affectedRows)", "1");
 
       exec_and_out_equals("var records = table.select().where('age = 23').execute().all();");

@@ -211,15 +211,14 @@ namespace shcore {
       exec_and_out_equals("print(len(records))", "1");
     }
 
-    // This must be enabled once the expr() object is exported to python
-    /*    {
-          SCOPED_TRACE("Testing with expression");
-          exec_and_out_equals("result = table.update().set('age', expr('13+10')).where('age = 13').execute()");
-          exec_and_out_equals("print(result.affectedRows)", "1");
+    {
+      SCOPED_TRACE("Testing with expression");
+      exec_and_out_equals("result = table.update().set('age', mysqlx.expr('13+10')).where('age = 13').execute()");
+      exec_and_out_equals("print(result.affectedRows)", "1");
 
-          exec_and_out_equals("records = table.select().where('age = 23').execute().all()");
-          exec_and_out_equals("print(len(records))", "1");
-          }*/
+      exec_and_out_equals("records = table.select().where('age = 23').execute().all()");
+      exec_and_out_equals("print(len(records))", "1");
+    }
 
     {
       SCOPED_TRACE("Testing update with limits");

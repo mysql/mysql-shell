@@ -21,6 +21,8 @@ mySession.sql("DROP PROCEDURE my_add_one_procedure;").execute();
 // Use a SQL query to get the result
 var myResult = mySession.sql("SELECT @my_var").execute();
 
-print(myResult);
+// Gets the row and prints the first column
+var row = myResult.next();
+print(row[0]);
 
 mySession.close();

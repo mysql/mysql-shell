@@ -39,6 +39,7 @@ if(WITH_TESTS)
         "${PROJECT_SOURCE_DIR}/unittest/shell_script_tester.cc"
         "${PROJECT_SOURCE_DIR}/src/boost_code.cc"
         "${PROJECT_SOURCE_DIR}/src/get_password.cc"
+        "${PROJECT_SOURCE_DIR}/src/shell_resultset_dumper.cc"
     )
 
     if (HAVE_PROTOBUF)

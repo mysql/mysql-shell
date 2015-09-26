@@ -189,7 +189,7 @@ namespace shcore {
       exec_and_out_contains("collection.modify().set();", "", "Invalid number of arguments in CollectionModify.set, expected 2 but got 0");
       exec_and_out_contains("collection.modify().set(45, 'whatever');", "", "CollectionModify.set: Argument #1 is expected to be a string");
       exec_and_out_contains("collection.modify().set('', 5);", "", "CollectionModify.set: Invalid document path");
-      exec_and_out_contains("collection.modify().set('age', expr('13+25'));");
+      exec_and_out_contains("collection.modify().set('age', mysqlx.expr('13+25'));");
       exec_and_out_equals("collection.modify().set('name', 'john');");
     }
 
@@ -228,7 +228,7 @@ namespace shcore {
       exec_and_out_contains("collection.modify().arrayAppend('data', session);", "", "CollectionModify.arrayAppend: Unsupported value received: <XSession:");
       exec_and_out_contains("collection.modify().arrayAppend('data', 5);");
       exec_and_out_contains("collection.modify().arrayAppend('data', 'sample');");
-      exec_and_out_contains("collection.modify().arrayAppend('data', expr(15+3));");
+      exec_and_out_contains("collection.modify().arrayAppend('data', mysqlx.expr(15+3));");
     }
 
     {
@@ -289,7 +289,7 @@ namespace shcore {
 
     {
       SCOPED_TRACE("Testing set");
-      exec_and_out_equals("var result = collection.modify('name = \"brian\"').set('alias', 'bri').set('last_name', 'black').set('age', expr('13+1')).execute();");
+      exec_and_out_equals("var result = collection.modify('name = \"brian\"').set('alias', 'bri').set('last_name', 'black').set('age', mysqlx.expr('13+1')).execute();");
       exec_and_out_equals("print(result.affectedRows)", "1");
 
       exec_and_out_equals("var result = collection.find('name = \"brian\"').execute();");

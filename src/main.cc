@@ -103,6 +103,7 @@ private:
   ngcommon::Logger* _logger;
 
   void switch_shell_mode(Shell_core::Mode mode, const std::vector<std::string> &args);
+  boost::function<void(shcore::Value)> _result_processor;
 
 private:
   shcore::Value connect_session(const shcore::Argument_list &args, mysh::SessionType session_type);
@@ -198,6 +199,8 @@ _options(options)
 
   if (lang_initialized)
     init_scripts(_options.initial_mode);
+
+  _result_processor = boost::bind(&Interactive_shell::process_result, this, _1);
 }
 
 void Interactive_shell::cmd_process_file(const std::vector<std::string>& params)
@@ -700,7 +703,7 @@ void Interactive_shell::process_line(const std::string &line)
     {
       try
       {
-        _shell->handle_input(_input_buffer, state, boost::bind(&Interactive_shell::process_result, this, _1));
+        _shell->handle_input(_input_buffer, state, _result_processor);
 
         std::string executed = _shell->get_handled_input();
 
@@ -776,6 +779,10 @@ void Interactive_shell::process_result(shcore::Value result)
       }
     }
   }
+
+  // Return value of undefined implies an error processing
+  if (result.type == shcore::Undefined)
+    _shell->set_error_processing();
 }
 
 int Interactive_shell::process_file()
@@ -793,7 +800,7 @@ int Interactive_shell::process_file()
     if (!s.fail())
     {
       // The return value now depends on the stream processing
-      ret_val = _shell->process_stream(s, _options.run_file);
+      ret_val = _shell->process_stream(s, _options.run_file, _result_processor);
 
       // When force is used, we do not care of the processing
       // errors
@@ -837,7 +844,7 @@ int Interactive_shell::process_stream(std::istream & stream, const std::string& 
     return 0;
   }
   else
-    return _shell->process_stream(stream, source);
+    return _shell->process_stream(stream, source, _result_processor);
 }
 
 void Interactive_shell::command_loop()

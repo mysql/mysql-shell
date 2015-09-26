@@ -105,8 +105,11 @@ std::string Shell_core::get_handled_input()
 * - 1 in case of any processing error is found.
 * - 0 if no processing errors were found.
 */
-int Shell_core::process_stream(std::istream& stream, const std::string& source)
+int Shell_core::process_stream(std::istream& stream, const std::string& source, boost::function<void(shcore::Value)> result_processor)
 {
+  // NOTE: global return code is unused at the moment
+  //       return code should be determined at application level on process_result
+  //       this global return code may be used again once the exit() function is in place
   Interactive_input_state state;
   _global_return_code = 0;
 
@@ -124,7 +127,7 @@ int Shell_core::process_stream(std::istream& stream, const std::string& source)
 
       std::getline(stream, line);
 
-      handle_input(line, state, boost::bind(&Shell_core::process_result, this, _1));
+      handle_input(line, state, result_processor);
 
       if (_global_return_code && !(*Shell_core_options::get())[SHCORE_BATCH_CONTINUE_ON_ERROR].as_bool())
         break;
@@ -144,36 +147,12 @@ int Shell_core::process_stream(std::istream& stream, const std::string& source)
 
     std::string data(fdata);
 
-    handle_input(data, state, boost::bind(&Shell_core::process_result, this, _1));
+    handle_input(data, state, result_processor);
   }
 
   _input_source.clear();
 
   return _global_return_code;
-}
-
-void Shell_core::process_result(shcore::Value result)
-{
-  if ((*Shell_core_options::get())[SHCORE_INTERACTIVE].as_bool())
-  {
-    // Prints results in batch mode
-    if (result && result.type == shcore::Object)
-    {
-      boost::shared_ptr<Object_bridge> object = result.as_object();
-      Value dump_function;
-      if (object && object->has_member("__shell_hook__"))
-        dump_function = object->get_member("__shell_hook__");
-
-      if (dump_function)
-      {
-        Argument_list args;
-        object->call("__shell_hook__", args);
-      }
-    }
-  }
-
-  // Undefined is to be used as error condition
-  _global_return_code = (_global_return_code || result.type == shcore::Undefined);
 }
 
 bool Shell_core::switch_mode(Mode mode, bool &lang_initialized)

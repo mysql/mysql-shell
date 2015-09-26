@@ -65,6 +65,7 @@ protected:
   std::string _mysql_uri;
 
   shcore::Value _returned_value;
+  boost::function<void(shcore::Value)> _result_processor;
 
   shcore::Interpreter_delegate deleg;
 };

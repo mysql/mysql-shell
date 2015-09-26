@@ -46,10 +46,11 @@ namespace shcore {
     wipe_all();
     exec_and_out_equals("var mysqlx = require('mysqlx').mysqlx;");
     exec_and_out_equals("var exports = dir(mysqlx);");
-    exec_and_out_equals("print(exports.length);", "2");
+    exec_and_out_equals("print(exports.length);", "3");
 
     exec_and_out_equals("print(typeof mysqlx.getSession);", "function");
     exec_and_out_equals("print(typeof mysqlx.getNodeSession);", "function");
+    exec_and_out_equals("print(typeof mysqlx.expr);", "function");
   }
 
   TEST_F(Shell_js_mysqlx_tests, mysqlx_open_session_uri)
@@ -225,5 +226,15 @@ namespace shcore {
     exec_and_out_equals("var session = mysqlx.getNodeSession(" + connection_data.str() + ", '" + password + "');");
     exec_and_out_equals("print(session);", "<NodeSession:" + uri.str() + ">");
     exec_and_out_equals("session.close();");
+  }
+
+  TEST_F(Shell_js_mysqlx_tests, mysqlx_expr)
+  {
+    exec_and_out_equals("var mysqlx = require('mysqlx').mysqlx;");
+    exec_and_out_contains("var expr = mysqlx.expr();", "", "Invalid number of arguments in mysqlx.expr, expected 1 but got 0");
+    exec_and_out_contains("var expr = mysqlx.expr(5);", "", "mysqlx.expr: Argument #1 is expected to be a string");
+    exec_and_out_contains("var expr = mysqlx.expr('5+6');");
+
+    exec_and_out_equals("print(expr)", "<Expression>", "");
   }
 }

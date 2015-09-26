@@ -59,6 +59,11 @@ bool Expression::operator == (const Object_bridge &other) const
 
 boost::shared_ptr<shcore::Object_bridge> Expression::create(const shcore::Argument_list &args)
 {
+  args.ensure_count(1, "mysqlx.expr");
+
+  if (args[0].type != shcore::String)
+    throw shcore::Exception::argument_error("mysqlx.expr: Argument #1 is expected to be a string");
+
   boost::shared_ptr<Expression> expression(new Expression(args[0].as_string()));
 
   return expression;

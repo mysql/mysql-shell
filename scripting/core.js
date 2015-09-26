@@ -138,7 +138,3 @@ this.dir = function(object)
   return keys;
 }
 
-this.expr = function(expression)
-{
-  return _F.mysqlx.Expression(expression);
-}
