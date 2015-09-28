@@ -37,6 +37,15 @@ The validation script MUST also define the validations that will be executed aft
 
 The way to define such validations is by grouping them with an identical chunk comment.
 
+//@# Example of running a chunk line by line
+Every line on the chunk will be executed one by one until a new chunk definition is found.
+
+This can be useful when the code in the chunk will produce errors, when an error is produced the lines after the error are not executed.
+
+With this approach, since every line is executed separatedly, even they produce errors, the subsequent lines will be executed.
+
+This can be useful i.e. like to group error validations.
+
 
 Setup Script
 ------------

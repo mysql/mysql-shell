@@ -106,7 +106,7 @@ void Shell_script_tester::validate_interactive(const std::string& script)
 void Shell_script_tester::load_source_chunks(std::istream & stream)
 {
   std::string chunk_id = "__global__";
-  std::vector<std::string> current_chunk;
+  std::vector<std::string> * current_chunk = NULL;
 
   while (!stream.eof())
   {
@@ -115,23 +115,29 @@ void Shell_script_tester::load_source_chunks(std::istream & stream)
 
     if (line.find("//@") == 0)
     {
-      if (!current_chunk.empty())
+      if (current_chunk)
       {
-        _chunks[chunk_id] = boost::join(current_chunk, "\n");
+        _chunks[chunk_id] = current_chunk;
         _chunk_order.push_back(chunk_id);
       }
 
       chunk_id = line;
-      current_chunk.clear();
+      boost::trim(chunk_id);
+      current_chunk = NULL;
     }
     else
-      current_chunk.push_back(line);
+    {
+      if (!current_chunk)
+        current_chunk = new std::vector<std::string>();
+        
+      current_chunk->push_back(line);
+    }
   }
 
   // Inserts the remaining code chunk
-  if (!current_chunk.empty())
+  if (current_chunk)
   {
-    _chunks[chunk_id] = boost::join(current_chunk, "\n");
+    _chunks[chunk_id] = current_chunk;
     _chunk_order.push_back(chunk_id);
   }
 }
@@ -156,7 +162,10 @@ void Shell_script_tester::load_validations(const std::string& path, bool in_chun
         if (line.find("//@") == 0)
         {
           if (in_chunks)
-            chunk_id = line;
+          {
+              chunk_id = line;
+              boost::trim(chunk_id);
+          }
         }
         else
         {
@@ -198,7 +207,15 @@ void Shell_script_tester::execute_script(const std::string& path, bool in_chunks
       for (size_t index = 0; index < _chunk_order.size(); index++)
       {
         (*shcore::Shell_core_options::get())[SHCORE_INTERACTIVE] = shcore::Value::False();
-        execute(_chunks[_chunk_order[index]]);
+
+        // Chunk is configured to be executed line by line
+        if (_chunk_order[index].find("//@#") == 0)
+        {
+          for(size_t chunk_item = 0; chunk_item < _chunks[_chunk_order[index]]->size(); chunk_item++)
+            execute((*_chunks[_chunk_order[index]])[chunk_item]);
+        }
+        else
+          execute(boost::join((*_chunks[_chunk_order[index]]), "\n"));
 
         (*shcore::Shell_core_options::get())[SHCORE_INTERACTIVE] = shcore::Value::True();
         validate(path, _chunk_order[index]);

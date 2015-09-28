@@ -40,10 +40,10 @@ namespace shcore {
     }
   };
 
-  // Tests collection.getName()
   TEST_F(Shell_js_mysqlx_collection_tests, full_test)
   {
     set_config_folder("js_devapi");
+    set_setup_script("setup.js");
     validate_interactive("mysqlx_collection.js");
   }
 }
