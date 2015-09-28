@@ -910,7 +910,9 @@ void Interactive_shell::print_banner()
 
 void Interactive_shell::print_cmd_line_helper()
 {
-  println("MySQLx Shell 0.0.1");
+  std::string help_msg("MySQLx Shell ");
+  help_msg += MYSH_VERSION;
+  println(help_msg);
   println("");
   println("Copyright (c) 2014, 2015, Oracle and/or its affiliates. All rights reserved.");
   println("");
