@@ -43,6 +43,7 @@
 #include "shellcore/common.h"
 
 #include "shell_cmdline_options.h"
+#include "shell_resultset_dumper.h"
 
 #include "../modules/base_session.h"
 //#include "../modules/mod_schema.h"
@@ -102,6 +103,7 @@ private:
   ngcommon::Logger* _logger;
 
   void switch_shell_mode(Shell_core::Mode mode, const std::vector<std::string> &args);
+  boost::function<void(shcore::Value)> _result_processor;
 
 private:
   shcore::Value connect_session(const shcore::Argument_list &args, mysh::SessionType session_type);
@@ -197,6 +199,8 @@ _options(options)
 
   if (lang_initialized)
     init_scripts(_options.initial_mode);
+
+  _result_processor = boost::bind(&Interactive_shell::process_result, this, _1);
 }
 
 void Interactive_shell::cmd_process_file(const std::vector<std::string>& params)
@@ -267,12 +271,15 @@ Value Interactive_shell::connect_session(const Argument_list &args, mysh::Sessio
   int port = 3306;
   std::string sock;
   std::string db;
+  std::string ssl_ca(_options.ssl_ca);
+  std::string ssl_cert(_options.ssl_cert);
+  std::string ssl_key(_options.ssl_key);
   int pwd_found;
 
   Argument_list connect_args(args);
 
   // Handles the case where the password needs to be prompted
-  if (!mysh::parse_mysql_connstring(args[0].as_string(), protocol, user, pass, host, port, sock, db, pwd_found))
+  if (!mysh::parse_mysql_connstring(args[0].as_string(), protocol, user, pass, host, port, sock, db, pwd_found, ssl_ca, ssl_cert, ssl_key))
     throw shcore::Exception::argument_error("Could not parse URI for MySQL connection");
   else
   {
@@ -696,7 +703,7 @@ void Interactive_shell::process_line(const std::string &line)
     {
       try
       {
-        _shell->handle_input(_input_buffer, state, boost::bind(&Interactive_shell::process_result, this, _1));
+        _shell->handle_input(_input_buffer, state, _result_processor);
 
         std::string executed = _shell->get_handled_input();
 
@@ -728,9 +735,10 @@ void Interactive_shell::process_result(shcore::Value result)
     if (result)
     {
       Value shell_hook;
+      boost::shared_ptr<Object_bridge> object;
       if (result.type == shcore::Object)
       {
-        boost::shared_ptr<Object_bridge> object = result.as_object();
+        object = result.as_object();
         if (object && object->has_member("__shell_hook__"))
           shell_hook = object->get_member("__shell_hook__");
 
@@ -747,20 +755,34 @@ void Interactive_shell::process_result(shcore::Value result)
       // If the function is not found the values still needs to be printed
       if (!shell_hook)
       {
-        if ((*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string().find("json") == 0)
+        // Resultset objects get printed
+        if (object && object->class_name().find("Resultset") != -1)
         {
-          shcore::JSON_dumper dumper((*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string() == "json");
-          dumper.start_object();
-          dumper.append_value("result", result);
-          dumper.end_object();
-
-          print(dumper.str());
+          boost::shared_ptr<mysh::BaseResultset> resultset = boost::static_pointer_cast<mysh::BaseResultset> (object);
+          ResultsetDumper dumper(resultset);
+          dumper.dump();
         }
         else
-          print(result.descr(true).c_str());
+        {
+          if ((*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string().find("json") == 0)
+          {
+            shcore::JSON_dumper dumper((*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string() == "json");
+            dumper.start_object();
+            dumper.append_value("result", result);
+            dumper.end_object();
+
+            print(dumper.str());
+          }
+          else
+            print(result.descr(true).c_str());
+        }
       }
     }
   }
+
+  // Return value of undefined implies an error processing
+  if (result.type == shcore::Undefined)
+    _shell->set_error_processing();
 }
 
 int Interactive_shell::process_file()
@@ -778,7 +800,7 @@ int Interactive_shell::process_file()
     if (!s.fail())
     {
       // The return value now depends on the stream processing
-      ret_val = _shell->process_stream(s, _options.run_file);
+      ret_val = _shell->process_stream(s, _options.run_file, _result_processor);
 
       // When force is used, we do not care of the processing
       // errors
@@ -822,7 +844,7 @@ int Interactive_shell::process_stream(std::istream & stream, const std::string& 
     return 0;
   }
   else
-    return _shell->process_stream(stream, source);
+    return _shell->process_stream(stream, source, _result_processor);
 }
 
 void Interactive_shell::command_loop()
@@ -923,6 +945,10 @@ void Interactive_shell::print_cmd_line_helper()
   println("  --force                  To use in SQL batch mode, forces processing to continue if an error is found.");
   println("  --log-level=value        The log level. Value is an int in the range [1,8], default (1).");
   println("  --version                Prints the version of MySQL X Shell.");
+  println("  --ssl-key=name         X509 key in PEM format ");
+  println("  --ssl-cert=name        X509 cert in PEM format ");
+  println("  --ssl-ca=name          CA file in PEM format (check OpenSSL docs)");
+  println("  --ssl                  Enable SSL for connection(automatically enabled with other flags).");
 
   println("");
 }

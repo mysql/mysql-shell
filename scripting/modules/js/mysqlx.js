@@ -44,3 +44,14 @@ exports.mysqlx.getNodeSession = function(connection_data, password)
   return session;
 }
 
+
+exports.mysqlx.expr = function(expression)
+{
+	if (typeof(expression) == 'undefined')
+		expr_obj = _F.mysqlx.Expression();
+	else
+		expr_obj = _F.mysqlx.Expression(expression);
+	
+  return expr_obj
+}
+

@@ -55,8 +55,8 @@ namespace shcore {
     exec_and_out_equals("var session = mysqlx.getNodeSession('" + _uri + "');");
 
     exec_and_out_equals("session.sql('drop schema if exists js_shell_test;').execute();");
-    exec_and_out_equals("session.sql('create schema js_shell_test;').execute();");
-    exec_and_out_equals("session.sql('use js_shell_test;').execute();");
+    exec_and_out_equals("session.createSchema('js_shell_test');");
+    exec_and_out_equals("session.setCurrentSchema('js_shell_test');");
     exec_and_out_equals("session.sql('create table table1 (name varchar(50), age integer, gender varchar(20));').execute();");
 
     exec_and_out_equals("session.close();");
@@ -213,7 +213,7 @@ namespace shcore {
 
     {
       SCOPED_TRACE("Testing with expression");
-      exec_and_out_equals("var result = table.update().set('age', expr('13+10')).where('age = 13').execute();");
+      exec_and_out_equals("var result = table.update().set('age', mysqlx.expr('13+10')).where('age = 13').execute();");
       exec_and_out_equals("print(result.affectedRows)", "1");
 
       exec_and_out_equals("var records = table.select().where('age = 23').execute().all();");

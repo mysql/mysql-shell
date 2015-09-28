@@ -46,10 +46,11 @@ namespace shcore {
     exec_and_out_equals("exports = dir(mysqlx)");
 
     // Python modules come with __doc__, __name__ and __package__
-    exec_and_out_equals("print(len(exports))", "5");
+    exec_and_out_equals("print(len(exports))", "6");
 
     exec_and_out_equals("print(type(mysqlx.getSession))", "<type 'builtin_function_or_method'>");
     exec_and_out_equals("print(type(mysqlx.getNodeSession))", "<type 'builtin_function_or_method'>");
+    exec_and_out_equals("print(type(mysqlx.expr))", "<type 'builtin_function_or_method'>");
   }
 
   TEST_F(Shell_py_mysqlx_tests, mysqlx_open_session_uri)
@@ -70,8 +71,8 @@ namespace shcore {
 
     // Assuming _uri is in the format user:password@host
     int port = 3306, pwd_found;
-    std::string protocol, user, password, host, sock, schema;
-    mysh::parse_mysql_connstring(_uri, protocol, user, password, host, port, sock, schema, pwd_found);
+    std::string protocol, user, password, host, sock, schema, ssl_ca, ssl_cert, ssl_key;
+    mysh::parse_mysql_connstring(_uri, protocol, user, password, host, port, sock, schema, pwd_found, ssl_ca, ssl_cert, ssl_key);
 
     std::string uri = mysh::strip_password(_uri);
 
@@ -89,8 +90,8 @@ namespace shcore {
 
     // Assuming _uri is in the format user:password@host
     int port = 33060, pwd_found;
-    std::string protocol, user, password, host, sock, schema;
-    mysh::parse_mysql_connstring(_uri, protocol, user, password, host, port, sock, schema, pwd_found);
+    std::string protocol, user, password, host, sock, schema, ssl_ca, ssl_cert, ssl_key;
+    mysh::parse_mysql_connstring(_uri, protocol, user, password, host, port, sock, schema, pwd_found, ssl_ca, ssl_cert, ssl_key);
 
     if (!_pwd.empty())
       password = _pwd;
@@ -118,8 +119,8 @@ namespace shcore {
 
     // Assuming _uri is in the format user:password@host
     int port = 33060, pwd_found;
-    std::string protocol, user, password, host, sock, schema;
-    mysh::parse_mysql_connstring(_uri, protocol, user, password, host, port, sock, schema, pwd_found);
+    std::string protocol, user, password, host, sock, schema, ssl_ca, ssl_cert, ssl_key;
+    mysh::parse_mysql_connstring(_uri, protocol, user, password, host, port, sock, schema, pwd_found, ssl_ca, ssl_cert, ssl_key);
 
     if (!_pwd.empty())
       password = _pwd;
@@ -157,8 +158,8 @@ namespace shcore {
 
     // Assuming _uri is in the format user:password@host
     int port = 3306, pwd_found;
-    std::string protocol, user, password, host, sock, schema;
-    mysh::parse_mysql_connstring(_uri, protocol, user, password, host, port, sock, schema, pwd_found);
+    std::string protocol, user, password, host, sock, schema, ssl_ca, ssl_cert, ssl_key;
+    mysh::parse_mysql_connstring(_uri, protocol, user, password, host, port, sock, schema, pwd_found, ssl_ca, ssl_cert, ssl_key);
 
     std::string uri = mysh::strip_password(_uri);
 
@@ -176,8 +177,8 @@ namespace shcore {
 
     // Assuming _uri is in the format user:password@host
     int port = 33060, pwd_found;
-    std::string protocol, user, password, host, sock, schema;
-    mysh::parse_mysql_connstring(_uri, protocol, user, password, host, port, sock, schema, pwd_found);
+    std::string protocol, user, password, host, sock, schema, ssl_ca, ssl_cert, ssl_key;
+    mysh::parse_mysql_connstring(_uri, protocol, user, password, host, port, sock, schema, pwd_found, ssl_ca, ssl_cert, ssl_key);
 
     if (!_pwd.empty())
       password = _pwd;
@@ -205,8 +206,8 @@ namespace shcore {
 
     // Assuming _uri is in the format user:password@host
     int port = 33060, pwd_found;
-    std::string protocol, user, password, host, sock, schema;
-    mysh::parse_mysql_connstring(_uri, protocol, user, password, host, port, sock, schema, pwd_found);
+    std::string protocol, user, password, host, sock, schema, ssl_ca, ssl_cert, ssl_key;
+    mysh::parse_mysql_connstring(_uri, protocol, user, password, host, port, sock, schema, pwd_found, ssl_ca, ssl_cert, ssl_key);
 
     if (!_pwd.empty())
       password = _pwd;
@@ -225,5 +226,15 @@ namespace shcore {
     exec_and_out_equals("session = mysqlx.getNodeSession(" + connection_data.str() + ", '" + password + "')");
     exec_and_out_equals("print(session)", "<NodeSession:" + uri.str() + ">");
     exec_and_out_equals("session.close()");
+  }
+
+  TEST_F(Shell_py_mysqlx_tests, mysqlx_expr)
+  {
+    exec_and_out_equals("import mysqlx");
+    // TODO: Investigate why these errors generate an XXX undetected error (python internals)
+    //exec_and_out_contains("expr = mysqlx.expr()", "", "Invalid number of arguments in mysqlx.expr, expected 1 but got 0");
+    //exec_and_out_contains("expr = mysqlx.expr(5)", "", "mysqlx.expr: Argument #1 is expected to be a string");
+    exec_and_out_contains("expr = mysqlx.expr('5+6')");
+    exec_and_out_equals("print(expr)", "<Expression>", "");
   }
 }

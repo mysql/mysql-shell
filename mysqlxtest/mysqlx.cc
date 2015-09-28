@@ -132,8 +132,8 @@ bool mysqlx::parse_mysql_connstring(const std::string &connstring,
   else
     user = user_part;
 
-  p = server_part.find(':');
-  if (p != std::string::npos)
+  
+  if ((p = server_part.find(':')) != std::string::npos)
   {
     host = server_part.substr(0, p);
     server_part = server_part.substr(p + 1);

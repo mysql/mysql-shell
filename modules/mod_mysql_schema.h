@@ -59,6 +59,7 @@ namespace mysh
       virtual shcore::Value get_member(const std::string &prop) const;
 
       void cache_table_objects();
+      void _remove_object(const std::string& name, const std::string& type);
 
       friend class ClassicTable;
       friend class ClassicView;

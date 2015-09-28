@@ -33,6 +33,7 @@
 #include "shellcore/common.h"
 #include "test_utils.h"
 #include <boost/algorithm/string.hpp>
+#include <boost/bind.hpp>
 
 namespace shcore {
   namespace sql_shell_tests {

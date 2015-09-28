@@ -150,7 +150,7 @@ namespace mysh
     {
     public:
       Connection(const std::string &uri, const char *password = NULL);
-      Connection(const std::string &host, int port, const std::string &socket, const std::string &user, const std::string &password, const std::string &schema);
+      Connection(const std::string &host, int port, const std::string &socket, const std::string &user, const std::string &password, const std::string &schema, const std::string &ssl_ca = "", const std::string &ssl_cert = "", const std::string &ssl_key = "");
       ~Connection();
 
       void close();
@@ -159,6 +159,7 @@ namespace mysh
       std::string uri() { return _uri; }
 
     private:
+      void setup_ssl(const std::string &ssl_ca, const std::string &ssl_cert, const std::string &ssl_key);
       std::string _uri;
       MYSQL *_mysql;
       MySQL_timer _timer;

@@ -29,8 +29,11 @@
 #include "shellcore/shell_core.h"
 #include "shellcore/shell_sql.h"
 #include "../modules/base_session.h"
+#include "../modules/base_resultset.h"
+#include "../src/shell_resultset_dumper.h"
 #include "test_utils.h"
 #include "utils/utils_file.h"
+#include <boost/bind.hpp>
 
 namespace shcore {
   namespace shell_core_tests {
@@ -40,12 +43,16 @@ namespace shcore {
       std::string _file_name;
       int _ret_val;
 
+      boost::function<void(shcore::Value)> _result_processor;
+
       virtual void SetUp()
       {
         Shell_core_test_wrapper::SetUp();
 
         bool initilaized(false);
         _shell_core->switch_mode(Shell_core::Mode_SQL, initilaized);
+
+        _result_processor = boost::bind(&Shell_core_test::process_result, this, _1);
       }
 
       void connect()
@@ -62,6 +69,66 @@ namespace shcore {
         _shell_core->set_global("session", Value(boost::static_pointer_cast<Object_bridge>(session)));
       }
 
+      // NOTE: this method is pretty much the same used on the shell application
+      //       but since testing is done using the shell core class we need to mimic
+      //       here in order to validate the outputs properly
+      void process_result(shcore::Value result)
+      {
+        if ((*Shell_core_options::get())[SHCORE_INTERACTIVE].as_bool())
+        {
+          if (result)
+          {
+            Value shell_hook;
+            boost::shared_ptr<Object_bridge> object;
+            if (result.type == shcore::Object)
+            {
+              object = result.as_object();
+              if (object && object->has_member("__shell_hook__"))
+              shell_hook = object->get_member("__shell_hook__");
+
+              if (shell_hook)
+              {
+                Argument_list args;
+                Value hook_result = object->call("__shell_hook__", args);
+
+                // Recursive call to continue processing shell hooks if any
+                process_result(hook_result);
+              }
+            }
+
+            // If the function is not found the values still needs to be printed
+            if (!shell_hook)
+            {
+              // Resultset objects get printed
+              if (object && object->class_name().find("Resultset") != -1)
+              {
+                boost::shared_ptr<mysh::BaseResultset> resultset = boost::static_pointer_cast<mysh::BaseResultset> (object);
+                ResultsetDumper dumper(resultset);
+                dumper.dump();
+              }
+              else
+              {
+                if ((*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string().find("json") == 0)
+                {
+                  shcore::JSON_dumper dumper((*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string() == "json");
+                  dumper.start_object();
+                  dumper.append_value("result", result);
+                  dumper.end_object();
+
+                  print(dumper.str());
+                }
+                else
+                print(result.descr(true).c_str());
+              }
+            }
+          }
+        }
+
+        // Return value of undefined implies an error processing
+        if (result.type == shcore::Undefined)
+          _shell_core->set_error_processing();
+      }
+
       void process(const std::string& path)
       {
         wipe_all();
@@ -72,7 +139,7 @@ namespace shcore {
         if (stream.fail())
           FAIL();
 
-        _ret_val = _shell_core->process_stream(stream, _file_name);
+        _ret_val = _shell_core->process_stream(stream, _file_name, _result_processor);
       }
     };
 

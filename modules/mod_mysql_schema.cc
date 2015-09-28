@@ -87,6 +87,20 @@ void ClassicSchema::cache_table_objects()
   }
 }
 
+void ClassicSchema::_remove_object(const std::string& name, const std::string& type)
+{
+  if (type == "ClassicView")
+  {
+    if (_views->count(name))
+      _views->erase(name);
+  }
+  else if (type == "ClassicTable")
+  {
+    if (_tables->count(name))
+      _tables->erase(name);
+  }
+}
+
 std::vector<std::string> ClassicSchema::get_members() const
 {
   std::vector<std::string> members(DatabaseObject::get_members());

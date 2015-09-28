@@ -148,7 +148,8 @@ namespace mysh
       virtual boost::shared_ptr<BaseSession> _get_shared_this() const = 0;
       boost::shared_ptr< ::mysqlx::Result> _last_result;
       std::string _retrieve_current_schema();
-      virtual void _load_schemas();
+      void _load_schemas();
+      void _remove_schema(const std::string& name);
 
       boost::shared_ptr< ::mysqlx::Session> _session;
 
@@ -198,12 +199,14 @@ namespace mysh
       virtual shcore::Value get_member(const std::string &prop) const;
       shcore::Value sql(const shcore::Argument_list &args);
       shcore::Value set_current_schema(const shcore::Argument_list &args);
+      shcore::Value quote_name(const shcore::Argument_list &args);
 #ifdef DOXYGEN
       Schema currentSchema; //!< Same as getCurrentSchema()
 
       Schema getCurrentSchema();
       Schema setCurrentSchema(String name);
       Resultset sql(String sql);
+      String quoteName(String id);
 #endif
     };
   }

@@ -454,7 +454,7 @@ namespace shcore
     _shell_stderr_module = module;
   }
 
-  PyObject *Python_context::get_session(PyObject *UNUSED(self), PyObject *args, const std::string &module, const std::string &type)
+  PyObject *Python_context::get_object(PyObject *UNUSED(self), PyObject *args, const std::string &module, const std::string &type)
   {
     Python_context *ctx;
     std::string text;
@@ -476,7 +476,7 @@ namespace shcore
     }
     catch (shcore::Exception &e)
     {
-      PyErr_SetString(PyExc_RuntimeError, e.what());
+      set_python_error(e);
     }
 
     if (py_session)
@@ -493,17 +493,22 @@ namespace shcore
 
   PyObject *Python_context::mysqlx_get_session(PyObject *self, PyObject *args)
   {
-    return get_session(self, args, "mysqlx", "XSession");
+    return get_object(self, args, "mysqlx", "XSession");
   }
 
   PyObject *Python_context::mysqlx_get_node_session(PyObject *self, PyObject *args)
   {
-    return get_session(self, args, "mysqlx", "NodeSession");
+    return get_object(self, args, "mysqlx", "NodeSession");
+  }
+
+  PyObject *Python_context::mysqlx_expr(PyObject *self, PyObject *args)
+  {
+    return get_object(self, args, "mysqlx", "Expression");
   }
 
   PyObject *Python_context::mysql_get_classic_session(PyObject *self, PyObject *args)
   {
-    return get_session(self, args, "mysql", "ClassicSession");
+    return get_object(self, args, "mysql", "ClassicSession");
   }
 
   static PyMethodDef MysqlxModuleMethods[] =
@@ -512,6 +517,8 @@ namespace shcore
     "Creates an XSession object." },
     { "getNodeSession", &Python_context::mysqlx_get_node_session, METH_VARARGS,
     "Creates a NodeSession object." },
+    { "expr", &Python_context::mysqlx_expr, METH_VARARGS,
+    "Creates a Expression object." },
     { NULL, NULL, 0, NULL }        /* Sentinel */
   };
 

@@ -59,7 +59,7 @@ namespace shcore
     virtual void handle_input(std::string &code, Interactive_input_state &state, boost::function<void(shcore::Value)> result_processor) = 0;
     virtual bool handle_shell_command(const std::string &code) = 0;
     virtual std::string get_handled_input() = 0;
-    virtual int process_stream(std::istream& stream = std::cin, const std::string& source = "(shcore)") = 0;
+    virtual int process_stream(std::istream& stream, const std::string& source, boost::function<void(shcore::Value)> result_processor) = 0;
 
     virtual std::string prompt() = 0;
 

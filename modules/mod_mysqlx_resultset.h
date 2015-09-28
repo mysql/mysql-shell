@@ -105,7 +105,6 @@ namespace mysh
 
       virtual std::string class_name() const  { return "CollectionResultset"; }
       virtual shcore::Value next(const shcore::Argument_list &args);
-      virtual shcore::Value print(const shcore::Argument_list &args);
     };
   }
 };

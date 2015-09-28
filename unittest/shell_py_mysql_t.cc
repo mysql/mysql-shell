@@ -67,8 +67,8 @@ namespace shcore {
 
     // Assuming _uri is in the format user:password@host
     int port = 3306, pwd_found;
-    std::string protocol, user, password, host, sock, schema;
-    mysh::parse_mysql_connstring(_mysql_uri, protocol, user, password, host, port, sock, schema, pwd_found);
+    std::string protocol, user, password, host, sock, schema, ssl_ca, ssl_cert, ssl_key;
+    mysh::parse_mysql_connstring(_mysql_uri, protocol, user, password, host, port, sock, schema, pwd_found, ssl_ca, ssl_cert, ssl_key);
 
     std::string uri = mysh::strip_password(_mysql_uri);
 
@@ -86,8 +86,8 @@ namespace shcore {
 
     // Assuming _uri is in the format user:password@host
     int port = 3306, pwd_found;
-    std::string protocol, user, password, host, sock, schema;
-    mysh::parse_mysql_connstring(_mysql_uri, protocol, user, password, host, port, sock, schema, pwd_found);
+    std::string protocol, user, password, host, sock, schema, ssl_ca, ssl_cert, ssl_key;
+    mysh::parse_mysql_connstring(_mysql_uri, protocol, user, password, host, port, sock, schema, pwd_found, ssl_ca, ssl_cert, ssl_key);
 
     if (!_pwd.empty())
       password = _pwd;
@@ -115,8 +115,8 @@ namespace shcore {
 
     // Assuming _uri is in the format user:password@host
     int port = 3306, pwd_found;
-    std::string protocol, user, password, host, sock, schema;
-    mysh::parse_mysql_connstring(_mysql_uri, protocol, user, password, host, port, sock, schema, pwd_found);
+    std::string protocol, user, password, host, sock, schema, ssl_ca, ssl_cert, ssl_key;
+    mysh::parse_mysql_connstring(_mysql_uri, protocol, user, password, host, port, sock, schema, pwd_found, ssl_ca, ssl_cert, ssl_key);
 
     if (!_pwd.empty())
       password = _pwd;

@@ -43,8 +43,8 @@ namespace shcore {
       exec_and_out_equals("session = mysqlx.getNodeSession('" + _uri + "')");
 
       exec_and_out_equals("session.sql('drop schema if exists py_shell_test;').execute()");
-      exec_and_out_equals("session.sql('create schema py_shell_test;').execute()");
-      exec_and_out_equals("session.sql('use py_shell_test;').execute()");
+      exec_and_out_equals("session.createSchema('py_shell_test');");
+      exec_and_out_equals("session.setCurrentSchema('py_shell_test');");
       exec_and_out_equals("result = session.sql('create table table1 (name varchar(50));').execute()");
       exec_and_out_equals("session.sql('create view view1 (my_name) as select name from table1;').execute()");
 

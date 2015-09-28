@@ -45,14 +45,6 @@ namespace mysh
 
     // Helper method to retrieve properties using a method
     shcore::Value get_member_method(const shcore::Argument_list &args, const std::string& method, const std::string& prop);
-
-    // Printing functions
-    virtual shcore::Value print(const shcore::Argument_list &args);
-    void print_json(const std::string& format, bool show_warnings);
-    void print_normal(bool interactive, const std::string& format, bool show_warnings);
-    void print_tabbed(shcore::Value::Array_type_ref records);
-    void print_table(shcore::Value::Array_type_ref records);
-    void print_warnings();
   };
 
   class SHCORE_PUBLIC Row : public shcore::Cpp_object_bridge

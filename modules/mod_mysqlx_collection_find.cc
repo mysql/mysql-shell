@@ -401,6 +401,8 @@ shcore::Value CollectionFind::bind(const shcore::Argument_list &args)
 {
   args.ensure_count(2, "CollectionFind.bind");
 
+
+
   try
   {
     _find_statement->bind(args.string_at(0), map_document_value(args[1]));

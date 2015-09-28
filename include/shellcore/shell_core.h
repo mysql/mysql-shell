@@ -118,11 +118,14 @@ namespace shcore
     virtual void handle_input(std::string &code, Interactive_input_state &state, boost::function<void(shcore::Value)> result_processor);
     virtual bool handle_shell_command(const std::string &code);
     virtual std::string get_handled_input();
-    virtual int process_stream(std::istream& stream = std::cin, const std::string& source = "(shcore)");
+    virtual int process_stream(std::istream& stream, const std::string& source, boost::function<void(shcore::Value)> result_processor);
 
     virtual std::string prompt();
 
     virtual Interpreter_delegate *lang_delegate() { return _lang_delegate; }
+
+    // To be used to stop processing from caller
+    void set_error_processing() { _global_return_code = 1; }
   public:
     virtual void print(const std::string &s);
     virtual void print_error(const std::string &s);
@@ -133,8 +136,6 @@ namespace shcore
     void init_sql();
     void init_js();
     void init_py();
-
-    void process_result(shcore::Value result);
 
   private:
     Object_registry *_registry;

@@ -53,7 +53,7 @@ public:
   Simple_shell_client();
   virtual ~Simple_shell_client();
   // Makes a connection, throws an std::runtime_error in case of error.
-  void make_connection(const std::string connstr);
+  void make_connection(const std::string& connstr);
   void switch_mode(shcore::Shell_core::Mode mode);
   boost::shared_ptr<Result_set> execute(const std::string query);
 protected:

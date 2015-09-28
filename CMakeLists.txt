@@ -29,7 +29,7 @@ set(CMAKE_MODULE_PATH
 
 SET(MYSH_MAJOR 0)
 SET(MYSH_MINOR 0)
-SET(MYSH_PATCH 5)
+SET(MYSH_PATCH 6)
 SET(MYSH_LEVEL "-alpha") # Empty if GA
 
 SET(MYSH_VERSION "${MYSH_MAJOR}.${MYSH_MINOR}.${MYSH_PATCH}${MYSH_LEVEL}")
@@ -275,7 +275,10 @@ endif()
 set(mysh_SRC
     "${PROJECT_SOURCE_DIR}/src/main.cc"
     "${PROJECT_SOURCE_DIR}/src/get_password.cc"
+    "${PROJECT_SOURCE_DIR}/src/shell_cmdline_options.h"
     "${PROJECT_SOURCE_DIR}/src/shell_cmdline_options.cc"
+    "${PROJECT_SOURCE_DIR}/src/shell_resultset_dumper.h"
+    "${PROJECT_SOURCE_DIR}/src/shell_resultset_dumper.cc"
 )
 
 add_definitions(-DMYSH_VERSION="${MYSH_VERSION}")
