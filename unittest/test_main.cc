@@ -40,7 +40,6 @@ int main(int argc, char **argv)
   {
     std::cerr << "WARNING: The MYSQL_URI MYSQL_PWD and MYSQL_PORT environment variables are not set\n";
   }
-  ::testing::GTEST_FLAG(filter) = "Server_registry_test*";
   ::testing::InitGoogleTest(&argc, argv);
 
   const char *generate_option = "--generate_test_groups=";
