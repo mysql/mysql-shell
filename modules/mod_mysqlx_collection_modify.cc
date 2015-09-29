@@ -688,7 +688,7 @@ shcore::Value CollectionModify::bind(const shcore::Argument_list &args)
 #ifdef DOXYGEN
 /**
 * Executes the update operations added to the handler with the configured filter and limit.
-* \return Collection_resultset A Collection resultset object that can be used to retrieve the results of the update operation.
+* \return CollectionResultset A Collection resultset object that can be used to retrieve the results of the update operation.
 *
 * This function can be invoked after any other function on this class except modify().
 *
@@ -734,17 +734,17 @@ shcore::Value CollectionModify::bind(const shcore::Argument_list &args)
 * var res_car = collection.modify().arrayDelete('hobbies[0]').sort(['age']).limit(1).execute();*
 * \endcode
 */
-Collection_resultset CollectionModify::execute(ExecuteOptions opt){}
+CollectionResultset CollectionModify::execute(ExecuteOptions opt){}
 #endif
 shcore::Value CollectionModify::execute(const shcore::Argument_list &args)
 {
-  mysqlx::Collection_resultset *result = NULL;
+  mysqlx::CollectionResultset *result = NULL;
 
   try
   {
     args.ensure_count(0, "CollectionModify.execute");
 
-    result = new mysqlx::Collection_resultset(boost::shared_ptr< ::mysqlx::Result>(_modify_statement->execute()));
+    result = new mysqlx::CollectionResultset(boost::shared_ptr< ::mysqlx::Result>(_modify_statement->execute()));
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionModify.execute");
 

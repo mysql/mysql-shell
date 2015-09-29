@@ -413,7 +413,7 @@ shcore::Value TableSelect::bind(const shcore::Argument_list &args)
 #ifdef DOXYGEN
 /**
 * Executes the Find operation with all the configured options and returns.
-* \return Collection_resultset A Collection resultset object that can be used to retrieve the results of the find operation.
+* \return CollectionResultset A Collection resultset object that can be used to retrieve the results of the find operation.
 *
 * This function can be invoked after any other function on this class.
 *

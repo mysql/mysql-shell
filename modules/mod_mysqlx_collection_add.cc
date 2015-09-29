@@ -191,13 +191,13 @@ Resultset CollectionAdd::execute(){}
 #endif
 shcore::Value CollectionAdd::execute(const shcore::Argument_list &args)
 {
-  mysqlx::Collection_resultset *result = NULL;
+  mysqlx::CollectionResultset *result = NULL;
 
   try
   {
     args.ensure_count(0, "CollectionAdd.execute");
 
-    result = new mysqlx::Collection_resultset(boost::shared_ptr< ::mysqlx::Result>(_add_statement->execute()));
+    result = new mysqlx::CollectionResultset(boost::shared_ptr< ::mysqlx::Result>(_add_statement->execute()));
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionAdd.execute");
 

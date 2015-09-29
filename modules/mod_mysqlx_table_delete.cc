@@ -320,7 +320,7 @@ shcore::Value TableDelete::execute(const shcore::Argument_list &args)
   {
     args.ensure_count(0, "TableDelete.execute");
 
-    result = new mysqlx::Collection_resultset(boost::shared_ptr< ::mysqlx::Result>(_delete_statement->execute()));
+    result = new mysqlx::CollectionResultset(boost::shared_ptr< ::mysqlx::Result>(_delete_statement->execute()));
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableDelete.execute");
 

@@ -65,7 +65,6 @@ namespace mysh
     // Virtual methods from ISession
     virtual shcore::Value connect(const shcore::Argument_list &args) = 0;
     virtual shcore::Value close(const shcore::Argument_list &args) = 0;
-    virtual shcore::Value sql(const shcore::Argument_list &args) = 0;
     virtual shcore::Value createSchema(const shcore::Argument_list &args) = 0;
     virtual bool is_connected() const = 0;
     virtual std::string uri() const = 0;

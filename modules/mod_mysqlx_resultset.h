@@ -94,14 +94,14 @@ namespace mysh
     * Allows browsing through the result information after performing an operation on a Collection.
     * Works similar to the Resultset class except that next() and all() return Documents.
     */
-    class Collection_resultset : public Resultset
+    class CollectionResultset : public Resultset
     {
 #ifdef DOXYGEN
       List all();
       Document next();
 #endif
     public:
-      Collection_resultset(boost::shared_ptr< ::mysqlx::Result> result);
+      CollectionResultset(boost::shared_ptr< ::mysqlx::Result> result);
 
       virtual std::string class_name() const  { return "CollectionResultset"; }
       virtual shcore::Value next(const shcore::Argument_list &args);

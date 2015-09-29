@@ -58,7 +58,7 @@ namespace mysh
       CollectionRemove sort(List sortExprStr);
       CollectionRemove limit(Integer numberOfRows);
       CollectionFind bind(String name, Value value);
-      Collection_resultset execute(ExecuteOptions opt);
+      CollectionResultset execute(ExecuteOptions opt);
 #endif
     private:
       std::auto_ptr< ::mysqlx::RemoveStatement> _remove_statement;

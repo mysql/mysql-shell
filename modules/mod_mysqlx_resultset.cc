@@ -369,7 +369,7 @@ shcore::Value Resultset::rewind(const shcore::Argument_list &args)
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
-Collection_resultset::Collection_resultset(boost::shared_ptr< ::mysqlx::Result> result)
+CollectionResultset::CollectionResultset(boost::shared_ptr< ::mysqlx::Result> result)
 : Resultset(result)
 {
 }
@@ -379,9 +379,9 @@ Collection_resultset::Collection_resultset(boost::shared_ptr< ::mysqlx::Result> 
 * Retrieves the next record on the resultset.
 * \return A Row object representing the next record.
 */
-Document Collection_resultset::next(){};
+Document CollectionResultset::next(){};
 #endif
-shcore::Value Collection_resultset::next(const shcore::Argument_list &args)
+shcore::Value CollectionResultset::next(const shcore::Argument_list &args)
 {
   Value ret_val = Value::Null();
 

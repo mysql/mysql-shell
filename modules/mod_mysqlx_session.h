@@ -144,6 +144,9 @@ namespace mysh
       String getUri();
       Undefined close();
       Undefined setFetchWarnings(Bool value);
+      Resultset startTransaction();
+      Resultset commit();
+      Resultset rollback();
 #endif
     protected:
       ::mysqlx::ArgumentValue get_argument_value(shcore::Value source);

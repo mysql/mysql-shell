@@ -115,21 +115,22 @@ void Shell_sql::handle_input(std::string &code, Interactive_input_state &state, 
 
           try
           {
-            if (session->has_member("sql"))
+            // ClassicSession has executeSql and returns a ClassicResultset object
+            if (session->has_member("executeSql"))
+              ret_val = session->call("executeSql", query);
+
+            // NodeSession uses SqlExecute object in which we need to call
+            // .execute() to get the Resultset object
+            else if (session->has_member("sql"))
             {
               ret_val = session->call("sql", query);
-
-              // This is needed because now SQL execution differs on MySQL and X Protocol
-              // MySQL Already returns a Resultset object
-              // X Protocol returns a SqlExecute object so we check for that and
-              // call execute if beeded.
-              if (ret_val.as_object()->has_member("execute"))
-                ret_val = ret_val.as_object()->call("execute", shcore::Argument_list());
-
-              result_processor(ret_val);
+              ret_val = ret_val.as_object()->call("execute", shcore::Argument_list());
             }
             else
-              throw shcore::Exception::logic_error("The current session can't be used for SQL execution.");
+              throw shcore::Exception::logic_error("The current session type (" + session->class_name() + ") can't be used for SQL execution.");
+
+            // If reached this point, processes the returned result object
+            result_processor(ret_val);
           }
           catch (shcore::Exception &exc)
           {

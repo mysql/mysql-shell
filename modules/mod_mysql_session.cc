@@ -95,7 +95,7 @@ ClassicSession::ClassicSession()
   //_schema_proxy.reset(new Proxy_object(boost::bind(&ClassicSession::get_db, this, _1)));
 
   add_method("close", boost::bind(&ClassicSession::close, this, _1), "data");
-  add_method("sql", boost::bind(&ClassicSession::sql, this, _1),
+  add_method("executeSql", boost::bind(&ClassicSession::executeSql, this, _1),
     "stmt", shcore::String,
     NULL);
   add_method("setCurrentSchema", boost::bind(&ClassicSession::set_current_schema, this, _1), "name", shcore::String, NULL);
@@ -234,9 +234,9 @@ Value ClassicSession::close(const shcore::Argument_list &args)
 * \return A ClassicResultset object.
 * \exception An exception is thrown if an error occurs on the SQL execution.
 */
-ClassicResultset ClassicSession::sql(String query){}
+ClassicResultset ClassicSession::executeSql(String query){}
 #endif
-Value ClassicSession::sql(const shcore::Argument_list &args)
+Value ClassicSession::executeSql(const shcore::Argument_list &args)
 {
   args.ensure_count(1, "ClassicSession.sql");
   // Will return the result of the SQL execution
@@ -419,7 +419,7 @@ std::string ClassicSession::_retrieve_current_schema()
     shcore::Argument_list query;
     query.push_back(Value("select schema()"));
 
-    Value res = sql(query);
+    Value res = executeSql(query);
 
     boost::shared_ptr<ClassicResultset> rset = res.as_object<ClassicResultset>();
     Value next_row = rset->next(shcore::Argument_list());
@@ -444,7 +444,7 @@ void ClassicSession::_load_schemas()
     shcore::Argument_list query;
     query.push_back(Value("show databases;"));
 
-    Value res = sql(query);
+    Value res = executeSql(query);
 
     shcore::Argument_list args;
     boost::shared_ptr<ClassicResultset> rset = res.as_object<ClassicResultset>();
@@ -533,7 +533,7 @@ shcore::Value ClassicSession::set_current_schema(const shcore::Argument_list &ar
     shcore::Argument_list query;
     query.push_back(Value("use " + name + ";"));
 
-    Value res = sql(query);
+    Value res = executeSql(query);
   }
   else
     throw Exception::runtime_error("ClassicSession not connected");
@@ -628,6 +628,20 @@ bool ClassicSession::db_object_exists(std::string &type, const std::string &name
   return ret_val;
 }
 
+#ifdef DOXYGEN
+/**
+* Starts a transaction context on the server.
+* \return A ClassicResultset object.
+* Calling this function will turn off the autocommit mode on the server.
+*
+* All the operations executed after calling this function will take place only when commit() is called.
+*
+* All the operations executed after calling this function, will be discarded is rollback() is called.
+*
+* When commit() or rollback() are called, the server autocommit mode will return back to it's state before calling startTransaction().
+*/
+Resultset ClassicSession::startTransaction(){}
+#endif
 shcore::Value ClassicSession::startTransaction(const shcore::Argument_list &args)
 {
   std::string function_name = class_name() + ".startTransaction";
@@ -636,6 +650,17 @@ shcore::Value ClassicSession::startTransaction(const shcore::Argument_list &args
   return Value::wrap(new ClassicResultset(boost::shared_ptr<Result>(_conn->executeSql("start transaction"))));
 }
 
+#ifdef DOXYGEN
+/**
+* Commits all the operations executed after a call to startTransaction().
+* \return A ClassicResultset object.
+*
+* All the operations executed after calling startTransaction() will take place when this function is called.
+*
+* The server autocommit mode will return back to it's state before calling startTransaction().
+*/
+Resultset ClassicSession::commit(){}
+#endif
 shcore::Value ClassicSession::commit(const shcore::Argument_list &args)
 {
   std::string function_name = class_name() + ".startTransaction";
@@ -644,6 +669,17 @@ shcore::Value ClassicSession::commit(const shcore::Argument_list &args)
   return Value::wrap(new ClassicResultset(boost::shared_ptr<Result>(_conn->executeSql("commit"))));
 }
 
+#ifdef DOXYGEN
+/**
+* Discards all the operations executed after a call to startTransaction().
+* \return A ClassicResultset object.
+*
+* All the operations executed after calling startTransaction() will be discarded when this function is called.
+*
+* The server autocommit mode will return back to it's state before calling startTransaction().
+*/
+Resultset ClassicSession::rollback(){}
+#endif
 shcore::Value ClassicSession::rollback(const shcore::Argument_list &args)
 {
   std::string function_name = class_name() + ".startTransaction";

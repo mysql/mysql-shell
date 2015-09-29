@@ -59,7 +59,7 @@ namespace shcore {
     exec_and_out_equals("index=members.index('getSchemas')");
     exec_and_out_equals("index=members.index('getUri')");
     exec_and_out_equals("index=members.index('setCurrentSchema')");
-    exec_and_out_equals("index=members.index('sql')");
+    exec_and_out_equals("index=members.index('executeSql')");
     exec_and_out_equals("index=members.index('currentSchema')");
     exec_and_out_equals("index=members.index('defaultSchema')");
     exec_and_out_equals("index=members.index('schemas')");
@@ -317,7 +317,7 @@ namespace shcore {
     exec_and_out_equals("session = mysql.getClassicSession('" + _mysql_uri + "')");
 
     // Cleans environment
-    exec_and_out_equals("session.sql('drop database if exists mysql_test_create_schema_1')");
+    exec_and_out_equals("session.executeSql('drop database if exists mysql_test_create_schema_1')");
 
     // Happy path
     exec_and_out_equals("s = session.createSchema('mysql_test_create_schema_1')");
@@ -331,7 +331,7 @@ namespace shcore {
     exec_and_out_contains("s2 = session.createSchema(45)", "", "Argument #1 is expected to be a string");
 
     // Drops the database
-    exec_and_out_equals("session.sql('drop database mysql_test_create_schema_1')");
+    exec_and_out_equals("session.executeSql('drop database mysql_test_create_schema_1')");
 
     exec_and_out_equals("session.close()");
   }
@@ -343,36 +343,36 @@ namespace shcore {
     exec_and_out_equals("session = mysql.getClassicSession('" + _mysql_uri + "')");
 
     // Cleans py_test_create_schema
-    exec_and_out_equals("session.sql('drop database if exists py_tx_schema')");
+    exec_and_out_equals("session.executeSql('drop database if exists py_tx_schema')");
 
     // Happy path
     exec_and_out_equals("s = session.createSchema('py_tx_schema')");
     exec_and_out_equals("session.setCurrentSchema('py_tx_schema')");
 
-    exec_and_out_equals("session.sql('create table sample (name varchar(50));')");
+    exec_and_out_equals("session.executeSql('create table sample (name varchar(50));')");
 
     // Tests the rollback
     exec_and_out_equals("session.startTransaction()");
 
-    exec_and_out_equals("session.sql('insert into sample values (\"first\")')");
-    exec_and_out_equals("session.sql('insert into sample values (\"second\")')");
-    exec_and_out_equals("session.sql('insert into sample values (\"third\")')");
+    exec_and_out_equals("session.executeSql('insert into sample values (\"first\")')");
+    exec_and_out_equals("session.executeSql('insert into sample values (\"second\")')");
+    exec_and_out_equals("session.executeSql('insert into sample values (\"third\")')");
 
     exec_and_out_equals("session.rollback()");
 
-    exec_and_out_equals("result = session.sql('select count(*) from sample')");
+    exec_and_out_equals("result = session.executeSql('select count(*) from sample')");
     exec_and_out_equals("print(result.next())", "[0]", "");
 
     // Test the commit
     exec_and_out_equals("session.startTransaction()");
 
-    exec_and_out_equals("session.sql('insert into sample values (\"first\")')");
-    exec_and_out_equals("session.sql('insert into sample values (\"second\")')");
-    exec_and_out_equals("session.sql('insert into sample values (\"third\")')");
+    exec_and_out_equals("session.executeSql('insert into sample values (\"first\")')");
+    exec_and_out_equals("session.executeSql('insert into sample values (\"second\")')");
+    exec_and_out_equals("session.executeSql('insert into sample values (\"third\")')");
 
     exec_and_out_equals("session.commit()");
 
-    exec_and_out_equals("result = session.sql('select count(*) from sample')");
+    exec_and_out_equals("result = session.executeSql('select count(*) from sample')");
     exec_and_out_equals("print(result.next())", "[3]", "");
 
     // Drops the database

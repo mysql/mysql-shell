@@ -42,11 +42,11 @@ namespace shcore {
 
       exec_and_out_equals("session = mysql.getClassicSession('" + _mysql_uri + "')");
 
-      exec_and_out_equals("session.sql('drop schema if exists py_shell_test;')");
+      exec_and_out_equals("session.executeSql('drop schema if exists py_shell_test;')");
       exec_and_out_equals("session.createSchema('py_shell_test');");
       exec_and_out_equals("session.setCurrentSchema('py_shell_test');");
-      exec_and_out_equals("result = session.sql('create table table1 (name varchar(50));')");
-      exec_and_out_equals("session.sql('create view view1 (my_name) as select name from table1;')");
+      exec_and_out_equals("result = session.executeSql('create table table1 (name varchar(50));')");
+      exec_and_out_equals("session.executeSql('create view view1 (my_name) as select name from table1;')");
     }
   };
 

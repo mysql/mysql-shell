@@ -417,7 +417,7 @@ shcore::Value CollectionFind::bind(const shcore::Argument_list &args)
 #ifdef DOXYGEN
 /**
 * Executes the Find operation with all the configured options and returns.
-* \return Collection_resultset A Collection resultset object that can be used to retrieve the results of the find operation.
+* \return CollectionResultset A Collection resultset object that can be used to retrieve the results of the find operation.
 *
 * This function can be invoked after any other function on this class.
 *
@@ -461,17 +461,17 @@ shcore::Value CollectionFind::bind(const shcore::Argument_list &args)
 * var res = collection.find().sort(['age']).limit(4).skip(1).execute();
 * \endcode
 */
-Collection_resultset CollectionFind::execute(ExecuteOptions options){}
+CollectionResultset CollectionFind::execute(ExecuteOptions options){}
 #endif
 shcore::Value CollectionFind::execute(const shcore::Argument_list &args)
 {
-  mysqlx::Collection_resultset *result = NULL;
+  mysqlx::CollectionResultset *result = NULL;
 
   try
   {
     args.ensure_count(0, "CollectionFind.execute");
 
-    result = new mysqlx::Collection_resultset(boost::shared_ptr< ::mysqlx::Result>(_find_statement->execute()));
+    result = new mysqlx::CollectionResultset(boost::shared_ptr< ::mysqlx::Result>(_find_statement->execute()));
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionFind.execute");
 

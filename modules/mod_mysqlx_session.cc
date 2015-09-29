@@ -319,6 +319,20 @@ Value BaseSession::createSchema(const shcore::Argument_list &args)
   return ret_val;
 }
 
+#ifdef DOXYGEN
+/**
+* Starts a transaction context on the server.
+* \return A Resultset object.
+* Calling this function will turn off the autocommit mode on the server.
+*
+* All the operations executed after calling this function will take place only when commit() is called.
+*
+* All the operations executed after calling this function, will be discarded is rollback() is called.
+*
+* When commit() or rollback() are called, the server autocommit mode will return back to it's state before calling startTransaction().
+*/
+Resultset BaseSession::startTransaction(){}
+#endif
 shcore::Value BaseSession::startTransaction(const shcore::Argument_list &args)
 {
   std::string function_name = class_name() + ".startTransaction";
@@ -327,6 +341,17 @@ shcore::Value BaseSession::startTransaction(const shcore::Argument_list &args)
   return executeStmt("sql", "start transaction", shcore::Argument_list());
 }
 
+#ifdef DOXYGEN
+/**
+* Commits all the operations executed after a call to startTransaction().
+* \return A Resultset object.
+*
+* All the operations executed after calling startTransaction() will take place when this function is called.
+*
+* The server autocommit mode will return back to it's state before calling startTransaction().
+*/
+Resultset BaseSession::commit(){}
+#endif
 shcore::Value BaseSession::commit(const shcore::Argument_list &args)
 {
   std::string function_name = class_name() + ".startTransaction";
@@ -335,6 +360,17 @@ shcore::Value BaseSession::commit(const shcore::Argument_list &args)
   return executeStmt("sql", "commit", shcore::Argument_list());
 }
 
+#ifdef DOXYGEN
+/**
+* Discards all the operations executed after a call to startTransaction().
+* \return A Resultset object.
+*
+* All the operations executed after calling startTransaction() will be discarded when this function is called.
+*
+* The server autocommit mode will return back to it's state before calling startTransaction().
+*/
+Resultset BaseSession::rollback(){}
+#endif
 shcore::Value BaseSession::rollback(const shcore::Argument_list &args)
 {
   std::string function_name = class_name() + ".startTransaction";
