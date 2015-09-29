@@ -25,6 +25,7 @@
 #include "shellcore/shell_core.h"
 #include "shellcore/lang_base.h"
 #include "mod_mysqlx_session_sql.h"
+#include "shellcore/server_registry.h"
 
 #include "shellcore/proxy_object.h"
 
@@ -170,35 +171,60 @@ Value BaseSession::connect(const Argument_list &args)
       std::string ssl_ca;
       std::string ssl_cert;
       std::string ssl_key;
+      std::string data_source_file;
+      std::string app;
 
       shcore::Value::Map_type_ref options = args[0].as_map();
 
-      if (options->has_key("host"))
-        host = (*options)["host"].as_string();
+      if (options->has_key("dataSourceFile"))
+      {
+        data_source_file = (*options)["dataSourceFile"].as_string();
+        app = (*options)["app"].as_string();
 
-      if (options->has_key("port"))
-        port = (*options)["port"].as_int();
+        shcore::Server_registry sr(data_source_file);
+        shcore::Connection_options& conn = sr.get_connection_by_name(app);
 
-      if (options->has_key("schema"))
-        schema = (*options)["schema"].as_string();
+        host = conn.get_server();
+        port = boost::lexical_cast<int>(conn.get_port());
+        user = conn.get_user();
+        password = conn.get_password();
+        schema = "";
+        if (!pwd_override.empty())
+          password = pwd_override;
+        
+        ssl_ca = conn.get_value_if_exists("ssl_ca");
+        ssl_cert = conn.get_value_if_exists("ssl_cert");
+        ssl_key = conn.get_value_if_exists("ssl_key");
+      }
+      else
+      {
+        if (options->has_key("host"))
+          host = (*options)["host"].as_string();
 
-      if (options->has_key("dbUser"))
-        user = (*options)["dbUser"].as_string();
+        if (options->has_key("port"))
+          port = (*options)["port"].as_int();
 
-      if (options->has_key("dbPassword"))
-        password = (*options)["dbPassword"].as_string();
+        if (options->has_key("schema"))
+          schema = (*options)["schema"].as_string();
 
-      if (options->has_key("ssl_ca"))
-        ssl_ca = (*options)["ssl_ca"].as_string();
+        if (options->has_key("dbUser"))
+          user = (*options)["dbUser"].as_string();
 
-      if (options->has_key("ssl_cert"))
-        ssl_cert = (*options)["ssl_cert"].as_string();
+        if (options->has_key("dbPassword"))
+          password = (*options)["dbPassword"].as_string();
 
-      if (options->has_key("ssl_key"))
-        ssl_key = (*options)["ssl_key"].as_string();
+        if (options->has_key("ssl_ca"))
+          ssl_ca = (*options)["ssl_ca"].as_string();
 
-      if (!pwd_override.empty())
-        password = pwd_override;
+        if (options->has_key("ssl_cert"))
+          ssl_cert = (*options)["ssl_cert"].as_string();
+
+        if (options->has_key("ssl_key"))
+          ssl_key = (*options)["ssl_key"].as_string();
+
+        if (!pwd_override.empty())
+          password = pwd_override;
+      }
 
       ::mysqlx::Ssl_config ssl;
       ssl.ca = ssl_ca.c_str();

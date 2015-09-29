@@ -31,6 +31,7 @@
 #include "shellcore/object_factory.h"
 #include "shellcore/shell_core.h"
 #include "shellcore/lang_base.h"
+#include "shellcore/server_registry.h"
 
 #include "shellcore/proxy_object.h"
 
@@ -143,34 +144,59 @@ Value ClassicSession::connect(const Argument_list &args)
   }
   else if (args[0].type == Map)
   {
+    // TODO: Take into account datasource / app args
+    std::string data_source_file;
+    std::string app;
     shcore::Value::Map_type_ref options = args[0].as_map();
 
-    if (options->has_key("host"))
-      host = (*options)["host"].as_string();
+    if (options->has_key("dataSourceFile"))
+    {
+      data_source_file = (*options)["dataSourceFile"].as_string();
+      app = (*options)["app"].as_string();
 
-    if (options->has_key("port"))
-      port = (*options)["port"].as_int();
+      shcore::Server_registry sr(data_source_file);
+      shcore::Connection_options& conn = sr.get_connection_by_name(app);
 
-    if (options->has_key("schema"))
-      db = (*options)["schema"].as_string();
+      host = conn.get_server();
+      port = boost::lexical_cast<int>(conn.get_port());
+      user = conn.get_user();
+      pass = conn.get_password();
+      if (pwd_override)
+        pass = pwd_override;
 
-    if (options->has_key("dbUser"))
-      user = (*options)["dbUser"].as_string();
+      ssl_ca = conn.get_value_if_exists("ssl_ca");
+      ssl_cert = conn.get_value_if_exists("ssl_cert");
+      ssl_key = conn.get_value_if_exists("ssl_key");
+    }
+    else
+    {
+      if (options->has_key("host"))
+        host = (*options)["host"].as_string();
 
-    if (options->has_key("dbPassword"))
-      pass = (*options)["dbPassword"].as_string();
+      if (options->has_key("port"))
+        port = (*options)["port"].as_int();
 
-    if (options->has_key("ssl_ca"))
-          ssl_ca = (*options)["ssl_ca"].as_string();
+      if (options->has_key("schema"))
+        db = (*options)["schema"].as_string();
 
-    if (options->has_key("ssl_cert"))
-      ssl_cert = (*options)["ssl_cert"].as_string();
+      if (options->has_key("dbUser"))
+        user = (*options)["dbUser"].as_string();
 
-    if (options->has_key("ssl_key"))
-      ssl_key = (*options)["ssl_key"].as_string();
+      if (options->has_key("dbPassword"))
+        pass = (*options)["dbPassword"].as_string();
 
-    if (pwd_override)
-      pass.assign(pwd_override);
+      if (options->has_key("ssl_ca"))
+        ssl_ca = (*options)["ssl_ca"].as_string();
+
+      if (options->has_key("ssl_cert"))
+        ssl_cert = (*options)["ssl_cert"].as_string();
+
+      if (options->has_key("ssl_key"))
+        ssl_key = (*options)["ssl_key"].as_string();
+
+      if (pwd_override)
+        pass.assign(pwd_override);
+    }
 
     _conn.reset(new Connection(host, port, sock, user, pass, db, ssl_ca, ssl_cert, ssl_key));
   }
