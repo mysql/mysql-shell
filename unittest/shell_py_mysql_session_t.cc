@@ -310,7 +310,6 @@ namespace shcore {
     exec_and_out_equals("session.close()");
   }
 
-  // Tests session.<schema>
   TEST_F(Shell_py_mysql_session_tests, create_schema)
   {
     exec_and_out_equals("import mysql");
@@ -333,6 +332,51 @@ namespace shcore {
 
     // Drops the database
     exec_and_out_equals("session.sql('drop database mysql_test_create_schema_1')");
+
+    exec_and_out_equals("session.close()");
+  }
+
+  TEST_F(Shell_py_mysql_session_tests, transaction_handling)
+  {
+    exec_and_out_equals("import mysql");
+
+    exec_and_out_equals("session = mysql.getClassicSession('" + _mysql_uri + "')");
+
+    // Cleans py_test_create_schema
+    exec_and_out_equals("session.sql('drop database if exists py_tx_schema')");
+
+    // Happy path
+    exec_and_out_equals("s = session.createSchema('py_tx_schema')");
+    exec_and_out_equals("session.setCurrentSchema('py_tx_schema')");
+
+    exec_and_out_equals("session.sql('create table sample (name varchar(50));')");
+
+    // Tests the rollback
+    exec_and_out_equals("session.startTransaction()");
+
+    exec_and_out_equals("session.sql('insert into sample values (\"first\")')");
+    exec_and_out_equals("session.sql('insert into sample values (\"second\")')");
+    exec_and_out_equals("session.sql('insert into sample values (\"third\")')");
+
+    exec_and_out_equals("session.rollback()");
+
+    exec_and_out_equals("result = session.sql('select count(*) from sample')");
+    exec_and_out_equals("print(result.next())", "[0]", "");
+
+    // Test the commit
+    exec_and_out_equals("session.startTransaction()");
+
+    exec_and_out_equals("session.sql('insert into sample values (\"first\")')");
+    exec_and_out_equals("session.sql('insert into sample values (\"second\")')");
+    exec_and_out_equals("session.sql('insert into sample values (\"third\")')");
+
+    exec_and_out_equals("session.commit()");
+
+    exec_and_out_equals("result = session.sql('select count(*) from sample')");
+    exec_and_out_equals("print(result.next())", "[3]", "");
+
+    // Drops the database
+    exec_and_out_equals("s.drop()");
 
     exec_and_out_equals("session.close()");
   }

@@ -117,6 +117,9 @@ BaseSession::BaseSession()
 
   add_method("close", boost::bind(&BaseSession::close, this, _1), "data");
   add_method("setFetchWarnings", boost::bind(&BaseSession::set_fetch_warnings, this, _1), "data");
+  add_method("startTransaction", boost::bind(&BaseSession::startTransaction, this, _1), "data");
+  add_method("commit", boost::bind(&BaseSession::commit, this, _1), "data");
+  add_method("rollback", boost::bind(&BaseSession::rollback, this, _1), "data");
 }
 
 Value BaseSession::connect(const Argument_list &args)
@@ -191,7 +194,7 @@ Value BaseSession::connect(const Argument_list &args)
         schema = "";
         if (!pwd_override.empty())
           password = pwd_override;
-        
+
         ssl_ca = conn.get_value_if_exists("ssl_ca");
         ssl_cert = conn.get_value_if_exists("ssl_cert");
         ssl_key = conn.get_value_if_exists("ssl_key");
@@ -314,6 +317,30 @@ Value BaseSession::createSchema(const shcore::Argument_list &args)
   CATCH_AND_TRANSLATE();
 
   return ret_val;
+}
+
+shcore::Value BaseSession::startTransaction(const shcore::Argument_list &args)
+{
+  std::string function_name = class_name() + ".startTransaction";
+  args.ensure_count(0, function_name.c_str());
+
+  return executeStmt("sql", "start transaction", shcore::Argument_list());
+}
+
+shcore::Value BaseSession::commit(const shcore::Argument_list &args)
+{
+  std::string function_name = class_name() + ".startTransaction";
+  args.ensure_count(0, function_name.c_str());
+
+  return executeStmt("sql", "commit", shcore::Argument_list());
+}
+
+shcore::Value BaseSession::rollback(const shcore::Argument_list &args)
+{
+  std::string function_name = class_name() + ".startTransaction";
+  args.ensure_count(0, function_name.c_str());
+
+  return executeStmt("sql", "rollback", shcore::Argument_list());
 }
 
 ::mysqlx::ArgumentValue BaseSession::get_argument_value(shcore::Value source)

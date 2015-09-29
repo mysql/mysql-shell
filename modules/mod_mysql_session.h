@@ -106,6 +106,10 @@ namespace mysh
       virtual shcore::Value close(const shcore::Argument_list &args);
       virtual shcore::Value sql(const shcore::Argument_list &args);
       virtual shcore::Value createSchema(const shcore::Argument_list &args);
+      virtual shcore::Value startTransaction(const shcore::Argument_list &args);
+      virtual shcore::Value commit(const shcore::Argument_list &args);
+      virtual shcore::Value rollback(const shcore::Argument_list &args);
+
       virtual bool is_connected() const { return _conn ? true : false; }
 
       virtual std::string uri() const;

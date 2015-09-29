@@ -62,9 +62,31 @@ print(ss);
 
 //@ Session: create schema failure
 var sf = session.createSchema('session_schema');
-ss.drop();
+
+//@ Session: Transaction handling: rollback
+var collection = ss.createCollection('sample');
+session.startTransaction();
+var res1 = collection.add({name:'john', age: 15}).execute();
+var res2 = collection.add({name:'carol', age: 16}).execute();
+var res3 = collection.add({name:'alma', age: 17}).execute();
+session.rollback();
+
+var result = collection.find().execute();
+print('Inserted Documents:', result.all().length);
+
+//@ Session: Transaction handling: commit
+session.startTransaction();
+var res1 = collection.add({name:'john', age: 15}).execute();
+var res2 = collection.add({name:'carol', age: 16}).execute();
+var res3 = collection.add({name:'alma', age: 17}).execute();
+session.commit();
+
+var result = collection.find().execute();
+print('Inserted Documents:', result.all().length);
+
 
 //@ Closes the session
+ss.drop();
 session.close();
 
 //@ NodeSession: validating members
@@ -129,6 +151,28 @@ print(ss)
 
 //@ NodeSession: create schema failure
 var sf = nodeSession.createSchema('node_session_schema');
+
+//@ NodeSession: Transaction handling: rollback
+var collection = ss.createCollection('sample');
+nodeSession.startTransaction();
+var res1 = collection.add({name:'john', age: 15}).execute();
+var res2 = collection.add({name:'carol', age: 16}).execute();
+var res3 = collection.add({name:'alma', age: 17}).execute();
+nodeSession.rollback();
+
+var result = collection.find().execute();
+print('Inserted Documents:', result.all().length);
+
+//@ NodeSession: Transaction handling: commit
+nodeSession.startTransaction();
+var res1 = collection.add({name:'john', age: 15}).execute();
+var res2 = collection.add({name:'carol', age: 16}).execute();
+var res3 = collection.add({name:'alma', age: 17}).execute();
+nodeSession.commit();
+
+var result = collection.find().execute();
+print('Inserted Documents:', result.all().length);
+
 ss.drop();
 
 //@ Current schema validations: nodefault, mysql

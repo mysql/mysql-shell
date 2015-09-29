@@ -100,6 +100,9 @@ ClassicSession::ClassicSession()
     NULL);
   add_method("setCurrentSchema", boost::bind(&ClassicSession::set_current_schema, this, _1), "name", shcore::String, NULL);
   add_method("getCurrentSchema", boost::bind(&ShellBaseSession::get_member_method, this, _1, "getCurrentSchema", "currentSchema"), NULL);
+  add_method("startTransaction", boost::bind(&ClassicSession::startTransaction, this, _1), "data");
+  add_method("commit", boost::bind(&ClassicSession::commit, this, _1), "data");
+  add_method("rollback", boost::bind(&ClassicSession::rollback, this, _1), "data");
 
   _schemas.reset(new shcore::Value::Map_type);
 }
@@ -623,4 +626,28 @@ bool ClassicSession::db_object_exists(std::string &type, const std::string &name
   }
 
   return ret_val;
+}
+
+shcore::Value ClassicSession::startTransaction(const shcore::Argument_list &args)
+{
+  std::string function_name = class_name() + ".startTransaction";
+  args.ensure_count(0, function_name.c_str());
+
+  return Value::wrap(new ClassicResultset(boost::shared_ptr<Result>(_conn->executeSql("start transaction"))));
+}
+
+shcore::Value ClassicSession::commit(const shcore::Argument_list &args)
+{
+  std::string function_name = class_name() + ".startTransaction";
+  args.ensure_count(0, function_name.c_str());
+
+  return Value::wrap(new ClassicResultset(boost::shared_ptr<Result>(_conn->executeSql("commit"))));
+}
+
+shcore::Value ClassicSession::rollback(const shcore::Argument_list &args)
+{
+  std::string function_name = class_name() + ".startTransaction";
+  args.ensure_count(0, function_name.c_str());
+
+  return Value::wrap(new ClassicResultset(boost::shared_ptr<Result>(_conn->executeSql("rollback"))));
 }

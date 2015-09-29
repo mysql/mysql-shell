@@ -337,4 +337,49 @@ namespace shcore {
 
     exec_and_out_equals("session.close();");
   }
+
+  TEST_F(Shell_js_mysql_session_tests, transaction_handling)
+  {
+    exec_and_out_equals("var mysql = require('mysql').mysql;");
+
+    exec_and_out_equals("var session = mysql.getClassicSession('" + _mysql_uri + "')");
+
+    // Cleans py_test_create_schema
+    exec_and_out_equals("session.sql('drop database if exists py_tx_schema');");
+
+    // Happy path
+    exec_and_out_equals("var s = session.createSchema('py_tx_schema');");
+    exec_and_out_equals("session.setCurrentSchema('py_tx_schema');");
+
+    exec_and_out_equals("session.sql('create table sample (name varchar(50))');");
+
+    // Tests the rollback
+    exec_and_out_equals("session.startTransaction();");
+
+    exec_and_out_equals("session.sql('insert into sample values (\"first\")');");
+    exec_and_out_equals("session.sql('insert into sample values (\"second\")');");
+    exec_and_out_equals("session.sql('insert into sample values (\"third\")');");
+
+    exec_and_out_equals("session.rollback();");
+
+    exec_and_out_equals("var result = session.sql('select count(*) from sample');");
+    exec_and_out_equals("print(result.next()[0])", "0", "");
+
+    // Test the commit
+    exec_and_out_equals("session.startTransaction();");
+
+    exec_and_out_equals("session.sql('insert into sample values (\"first\")');");
+    exec_and_out_equals("session.sql('insert into sample values (\"second\")');");
+    exec_and_out_equals("session.sql('insert into sample values (\"third\")');");
+
+    exec_and_out_equals("session.commit();");
+
+    exec_and_out_equals("result = session.sql('select count(*) from sample');");
+    exec_and_out_equals("print(result.next()[0])", "3", "");
+
+    // Drops the database
+    exec_and_out_equals("s.drop();");
+
+    exec_and_out_equals("session.close();");
+  }
 }

@@ -367,7 +367,6 @@ namespace shcore {
     exec_and_out_equals("session.close()");
   }
 
-  // Tests session.<schema>
   TEST_F(Shell_py_mysqlx_session_tests, create_schema)
   {
     exec_and_out_equals("import mysqlx");
@@ -390,6 +389,50 @@ namespace shcore {
 
     // Drops the database
     exec_and_out_equals("session.sql('drop database py_test_create_schema').execute()");
+
+    exec_and_out_equals("session.close()");
+  }
+
+  TEST_F(Shell_py_mysqlx_session_tests, transaction_handling)
+  {
+    exec_and_out_equals("import mysqlx");
+
+    exec_and_out_equals("session = mysqlx.getNodeSession('" + _uri + "')");
+
+    // Cleans py_test_create_schema
+    exec_and_out_equals("session.sql('drop database if exists py_tx_schema').execute()");
+
+    // Happy path
+    exec_and_out_equals("s = session.createSchema('py_tx_schema')");
+
+    exec_and_out_equals("collection = s.createCollection('sample')");
+
+    // Tests the rollback
+    exec_and_out_equals("session.startTransaction()");
+
+    exec_and_out_equals("res1 = collection.add({'name':'john', 'age': 15}).execute()");
+    exec_and_out_equals("res1 = collection.add({'name':'carol', 'age': 16}).execute()");
+    exec_and_out_equals("res1 = collection.add({'name':'alma', 'age': 17}).execute()");
+
+    exec_and_out_equals("session.rollback()");
+
+    exec_and_out_equals("result = collection.find().execute()");
+    exec_and_out_equals("print(len(result.all()))", "0", "");
+
+    // Test the commit
+    exec_and_out_equals("session.startTransaction()");
+
+    exec_and_out_equals("res1 = collection.add({'name':'john', 'age': 15}).execute()");
+    exec_and_out_equals("res1 = collection.add({'name':'carol', 'age': 16}).execute()");
+    exec_and_out_equals("res1 = collection.add({'name':'alma', 'age': 17}).execute()");
+
+    exec_and_out_equals("session.commit()");
+
+    exec_and_out_equals("result = collection.find().execute()");
+    exec_and_out_equals("print(len(result.all()))", "3", "");
+
+    // Drops the database
+    exec_and_out_equals("s.drop()");
 
     exec_and_out_equals("session.close()");
   }
