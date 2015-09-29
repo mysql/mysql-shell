@@ -22,10 +22,17 @@ struct Validation
     code = source.size() >= 1 ? source[0] : "";
     expected_output = source.size() >= 2 ? source[1] : "";
     expected_error = source.size() >= 3 ? source[2] : "";
+
+    if (expected_output.find("~") == 0)
+    {
+      unexpected_output = expected_output.substr(1);
+      expected_output = "";
+    }
   }
 
   std::string code;
   std::string expected_output;
+  std::string unexpected_output;
   std::string expected_error;
 };
 
@@ -70,4 +77,18 @@ private:
 
   void load_source_chunks(std::istream & stream);
   void load_validations(const std::string& path, bool in_chunks = false);
+};
+
+class Shell_js_script_tester : public Shell_script_tester
+{
+protected:
+  // You can define per-test set-up and tear-down logic as usual.
+  virtual void SetUp();
+};
+
+class Shell_py_script_tester : public Shell_script_tester
+{
+protected:
+  // You can define per-test set-up and tear-down logic as usual.
+  virtual void SetUp();
 };
