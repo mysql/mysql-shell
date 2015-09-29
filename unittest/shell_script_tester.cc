@@ -17,6 +17,7 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/lexical_cast.hpp>
 #include "utils/utils_file.h"
+#include "shellcore/ishell_core.h"
 
 Shell_script_tester::Shell_script_tester()
 {
@@ -24,7 +25,9 @@ Shell_script_tester::Shell_script_tester()
 }
 
 void Shell_script_tester::SetUp()
-{}
+{
+  Shell_core_test_wrapper::SetUp();
+}
 
 void Shell_script_tester::TearDown()
 {}
@@ -82,6 +85,18 @@ void Shell_script_tester::validate(const std::string& context, const std::string
         EXPECT_NE(-1, int(output_handler.std_out.find(out)));
       }
 
+      // Validates unexpected output if any
+      if (!(*validations)[valindex].unexpected_output.empty())
+      {
+        std::string out = (*validations)[valindex].unexpected_output;
+
+        SCOPED_TRACE("File: " + context);
+        SCOPED_TRACE("Executing: " + chunk_id);
+        SCOPED_TRACE("STDOUT unexpected: " + out);
+        SCOPED_TRACE("STDOUT actual: " + output_handler.std_out);
+        EXPECT_EQ(-1, int(output_handler.std_out.find(out)));
+      }
+
       // Validates expected error if any
       if (!(*validations)[valindex].expected_error.empty())
       {
@@ -129,7 +144,7 @@ void Shell_script_tester::load_source_chunks(std::istream & stream)
     {
       if (!current_chunk)
         current_chunk = new std::vector<std::string>();
-        
+
       current_chunk->push_back(line);
     }
   }
@@ -163,8 +178,8 @@ void Shell_script_tester::load_validations(const std::string& path, bool in_chun
         {
           if (in_chunks)
           {
-              chunk_id = line;
-              boost::trim(chunk_id);
+            chunk_id = line;
+            boost::trim(chunk_id);
           }
         }
         else
@@ -211,7 +226,7 @@ void Shell_script_tester::execute_script(const std::string& path, bool in_chunks
         // Chunk is configured to be executed line by line
         if (_chunk_order[index].find("//@#") == 0)
         {
-          for(size_t chunk_item = 0; chunk_item < _chunks[_chunk_order[index]]->size(); chunk_item++)
+          for (size_t chunk_item = 0; chunk_item < _chunks[_chunk_order[index]]->size(); chunk_item++)
             execute((*_chunks[_chunk_order[index]])[chunk_item]);
         }
         else
@@ -300,4 +315,20 @@ void Shell_script_tester::process_setup(std::istream & stream)
 void Shell_script_tester::validate_batch(const std::string& script)
 {
   execute_script(script, false);
+}
+
+void Shell_js_script_tester::SetUp()
+{
+  Shell_script_tester::SetUp();
+
+  bool initilaized(false);
+  _shell_core->switch_mode(shcore::IShell_core::Mode_JScript, initilaized);
+}
+
+void Shell_py_script_tester::SetUp()
+{
+  Shell_script_tester::SetUp();
+
+  bool initilaized(false);
+  _shell_core->switch_mode(shcore::IShell_core::Mode_Python, initilaized);
 }

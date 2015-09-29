@@ -26,24 +26,40 @@
 #include "shell_script_tester.h"
 #include "base_session.h"
 
-namespace shcore {
-  class Shell_js_mysqlx_collection_tests : public Shell_script_tester
-  {
-  protected:
-    // You can define per-test set-up and tear-down logic as usual.
-    virtual void SetUp()
-    {
-      Shell_core_test_wrapper::SetUp();
-
-      bool initilaized(false);
-      _shell_core->switch_mode(Shell_core::Mode_JScript, initilaized);
-    }
-  };
-
-  TEST_F(Shell_js_mysqlx_collection_tests, full_test)
+namespace shcore
+{
+  TEST_F(Shell_js_script_tester, mysqlx_collection)
   {
     set_config_folder("js_devapi");
     set_setup_script("setup.js");
     validate_interactive("mysqlx_collection.js");
+  }
+
+  TEST_F(Shell_js_script_tester, mysqlx_collection_add)
+  {
+    set_config_folder("js_devapi");
+    set_setup_script("setup.js");
+    validate_interactive("mysqlx_collection_add.js");
+  }
+
+  TEST_F(Shell_js_script_tester, mysqlx_collection_find)
+  {
+    set_config_folder("js_devapi");
+    set_setup_script("setup.js");
+    validate_interactive("mysqlx_collection_find.js");
+  }
+
+  TEST_F(Shell_js_script_tester, mysqlx_collection_modify)
+  {
+    set_config_folder("js_devapi");
+    set_setup_script("setup.js");
+    validate_interactive("mysqlx_collection_modify.js");
+  }
+
+  TEST_F(Shell_js_script_tester, mysqlx_collection_remove)
+  {
+    set_config_folder("js_devapi");
+    set_setup_script("setup.js");
+    validate_interactive("mysqlx_collection_remove.js");
   }
 }
