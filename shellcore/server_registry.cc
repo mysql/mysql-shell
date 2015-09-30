@@ -389,54 +389,79 @@ void Server_registry::remove_connection_options(Connection_options &options)
 
 Connection_options& Server_registry::get_connection_by_name(const std::string& name)
 {
+  if (_connections_by_name.find(name) == _connections_by_name.end())
+    throw std::runtime_error((boost::format("Connection not found for app name: %s") % name).str());
   return *_connections_by_name[name];
 }
 
 Connection_options& Server_registry::get_connection_options(const std::string &uuid)
 {
-  const std::string my_uuid = uuid;
-  return _connections[my_uuid];
+  connections_map_t::iterator it = _connections.find(uuid);
+  if (it == _connections.end())
+    throw std::runtime_error((boost::format("Connection not found for uuid: %s") % uuid).str());    
+  return it->second;
 }
 
 std::string Server_registry::get_name(const std::string &uuid) const
 {
-  const Connection_options& cs = _connections.at(uuid);
+  connections_map_t::const_iterator it = _connections.find(uuid);
+  if (it == _connections.end())
+    throw std::runtime_error((boost::format("Connection not found for uuid: %s") % uuid).str());
+  const Connection_options& cs = it->second;
   return cs.get_name();
 }
 
 std::string Server_registry::get_server(const std::string &uuid) const
 {
-  const Connection_options& cs = _connections.at(uuid);
+  connections_map_t::const_iterator it = _connections.find(uuid);
+  if (it == _connections.end())
+    throw std::runtime_error((boost::format("Connection not found for uuid: %s") % uuid).str());
+  const Connection_options& cs = it->second;
   return cs.get_server();
 }
 
 std::string Server_registry::get_user(const std::string &uuid) const
 {
-  const Connection_options& cs = _connections.at(uuid);
+  connections_map_t::const_iterator it = _connections.find(uuid);
+  if (it == _connections.end())
+    throw std::runtime_error((boost::format("Connection not found for uuid: %s") % uuid).str());
+  const Connection_options& cs = it->second;
   return cs.get_user();
 }
 
 std::string Server_registry::get_port(const std::string &uuid) const
 {
-  const Connection_options& cs = _connections.at(uuid);
+  connections_map_t::const_iterator it = _connections.find(uuid);
+  if (it == _connections.end())
+    throw std::runtime_error((boost::format("Connection not found for uuid: %s") % uuid).str());
+  const Connection_options& cs = it->second;
   return cs.get_port();
 }
 
 std::string Server_registry::get_password(const std::string &uuid) const
 {
-  const Connection_options& cs = _connections.at(uuid);
+  connections_map_t::const_iterator it = _connections.find(uuid);
+  if (it == _connections.end())
+    throw std::runtime_error((boost::format("Connection not found for uuid: %s") % uuid).str());
+  const Connection_options& cs = it->second;
   return cs.get_password();
 }
 
 std::string Server_registry::get_protocol(const std::string &uuid) const
 {
-  const Connection_options& cs = _connections.at(uuid);
+  connections_map_t::const_iterator it = _connections.find(uuid);
+  if (it == _connections.end())
+    throw std::runtime_error((boost::format("Connection not found for uuid: %s") % uuid).str());
+  const Connection_options& cs = it->second;
   return cs.get_protocol();
 }
 
 std::string Server_registry::get_value(const std::string &uuid, const std::string &name) const
 {
-  const Connection_options& cs = _connections.at(uuid);
+  connections_map_t::const_iterator it = _connections.find(uuid);
+  if (it == _connections.end())
+    throw std::runtime_error((boost::format("Connection not found for uuid: %s") % uuid).str());
+  const Connection_options& cs = it->second;
   return cs.get_value(name);
 }
 
@@ -449,43 +474,64 @@ void Server_registry::set_connection_options(const std::string &uuid, const Conn
 
 void Server_registry::set_name(const std::string &uuid, const std::string &name)
 {
-  Connection_options& cs = _connections[uuid];
+  connections_map_t::iterator it = _connections.find(uuid);
+  if (it == _connections.end())
+    throw std::runtime_error((boost::format("Connection not found for uuid: %s") % uuid).str());
+  Connection_options& cs = it->second;
   cs.set_name(name);
 }
 
 void Server_registry::set_server(const std::string &uuid, const std::string &server)
 {
-  Connection_options& cs = _connections[uuid];
+  connections_map_t::iterator it = _connections.find(uuid);
+  if (it == _connections.end())
+    throw std::runtime_error((boost::format("Connection not found for uuid: %s") % uuid).str());
+  Connection_options& cs = it->second;
   cs.set_server(server);
 }
 
 void Server_registry::set_user(const std::string &uuid, const std::string &user)
 {
-  Connection_options& cs = _connections[uuid];
+  connections_map_t::iterator it = _connections.find(uuid);
+  if (it == _connections.end())
+    throw std::runtime_error((boost::format("Connection not found for uuid: %s") % uuid).str());
+  Connection_options& cs = it->second;
   cs.set_user(user);
 }
 
 void Server_registry::set_port(const std::string &uuid, const std::string &port)
 {
-  Connection_options& cs = _connections[uuid];
+  connections_map_t::iterator it = _connections.find(uuid);
+  if (it == _connections.end())
+    throw std::runtime_error((boost::format("Connection not found for uuid: %s") % uuid).str());
+  Connection_options& cs = it->second;
   cs.set_port(port);
 }
 
 void Server_registry::set_password(const std::string &uuid, const std::string &password)
 {
-  Connection_options& cs = _connections[uuid];
+  connections_map_t::iterator it = _connections.find(uuid);
+  if (it == _connections.end())
+    throw std::runtime_error((boost::format("Connection not found for uuid: %s") % uuid).str());
+  Connection_options& cs = it->second;
   cs.set_password(password);
 }
 
 void Server_registry::set_protocol(const std::string &uuid, const std::string &protocol)
 {
-  Connection_options& cs = _connections[uuid];
+  connections_map_t::iterator it = _connections.find(uuid);
+  if (it == _connections.end())
+    throw std::runtime_error((boost::format("Connection not found for uuid: %s") % uuid).str());
+  Connection_options& cs = it->second;
   cs.set_protocol(protocol);
 }
 
 void Server_registry::set_value(const std::string &uuid, const std::string &name, const std::string &value)
 {
-  Connection_options& cs = _connections[uuid];
+  connections_map_t::iterator it = _connections.find(uuid);
+  if (it == _connections.end())
+    throw std::runtime_error((boost::format("Connection not found for uuid: %s") % uuid).str());
+  Connection_options& cs = it->second;
   cs.set_value(name, value);
 }
 
@@ -632,44 +678,65 @@ std::string Connection_options::get_connection_options() const
 
 std::string Connection_options::get_name() const
 {
-  return at(_keywords_table[(int)App]);
+  const_iterator it = find(_keywords_table[(int)App]);
+  if (it == end())
+    throw std::runtime_error((boost::format("'app' attribute not found in connection.")).str());
+  return it->second;
 }
 
 std::string Connection_options::get_server() const
 {
-  return at(_keywords_table[Server]);
+  const_iterator it = find(_keywords_table[Server]);
+  if (it == end())
+    throw std::runtime_error((boost::format("'server' attribute not found in connection.")).str());
+  return it->second;
 }
 
 std::string Connection_options::get_user() const
 {
+  const_iterator it = find(_keywords_table[User]);
+  if (it == end())
+    throw std::runtime_error((boost::format("'user' attribute not found in connection.")).str());
   return at(_keywords_table[User]);
 }
 
 std::string Connection_options::get_port() const
 {
-  //return boost::lexical_cast<int>(at(_keywords_table[Port]));
+  const_iterator it = find(_keywords_table[Port]);
+  if (it == end())
+    throw std::runtime_error((boost::format("'port' attribute not found in connection.")).str());
   return at(_keywords_table[Port]);
 }
 
 std::string Connection_options::get_password() const
 {
+  const_iterator it = find(_keywords_table[Password]);
+  if (it == end())
+    throw std::runtime_error((boost::format("'port' attribute not found in connection.")).str());
   return at(_keywords_table[Password]);
 }
 
 std::string Connection_options::get_protocol() const
 {
+  const_iterator it = find(_keywords_table[Protocol]);
+  if (it == end())
+    throw std::runtime_error((boost::format("'protocol' attribute not found in connection.")).str());
   return at(_keywords_table[Protocol]);
 }
 
 std::string Connection_options::get_value(const std::string &name) const
 {
-  return at(name);
+  const_iterator it = find(name);
+  if (it == end())
+    throw std::runtime_error((boost::format("'%s' attribute not found in connection.") % name).str());
+  return it->second;
 }
 
 std::string Connection_options::get_value_if_exists(const std::string &name) const
 {
-  if (find(name) != end())
-    return at(name);
+  const_iterator it = find(name);
+  if (it != end())
+    return it->second;
   return "";
 }
 

@@ -130,22 +130,6 @@ namespace server_registry_tests
     delete sr2;
   }
 
-  TEST(Server_registry_test, missing_protocol)
-  {
-    Server_registry* sr = new Server_registry();
-    try 
-    {
-      // this connection string is missing the protocol (the mandatory options are server, user, password, protocol).
-      // (see  "struct Keywords_table" at server_registry.h")
-      EXPECT_ANY_THROW(sr->add_connection_options("8ab125f8-9678-d011-9c41-f816549b70d4", "app=dev connection; server=localhost; port=3305; user=root; password=123; custom1=my custom value;;"));        
-    }
-    catch (std::exception &e)
-    {
-
-    }
-    delete sr;
-  }
-
   TEST(Server_registry_test, other_merge)
   {
     Server_registry* sr = new Server_registry();

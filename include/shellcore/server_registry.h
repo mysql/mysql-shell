@@ -100,6 +100,7 @@ public:
 
 private:
   // Connection strings indexed by uuid
+  typedef std::map<std::string, Connection_options> connections_map_t;
   std::map<std::string, Connection_options> _connections;
   std::map<std::string, Connection_options*> _connections_by_name;
   std::string _filename;
@@ -192,12 +193,13 @@ private:
   public:
     Keywords_table()
     {
+      // For now, all properties are optional (can be provided in a mix of server registry connection string & shell connection string).
       init_keyword("app", App, true);
-      init_keyword("server", Server, false);
-      init_keyword("user", User, false);
+      init_keyword("server", Server, true);
+      init_keyword("user", User, true);
       init_keyword("port", Port, true);
-      init_keyword("password", Password, false);
-      init_keyword("protocol", Protocol, false);
+      init_keyword("password", Password, true);
+      init_keyword("protocol", Protocol, true);
     }
 
     std::string operator[](const int idx)
