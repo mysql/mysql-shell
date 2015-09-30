@@ -22,7 +22,6 @@
 #include "myjson/myjson.h"
 #include "myjson/mutable_myjson.h"
 #include "rapidjson/document.h"
-#include "utils_file.h"
 #include "utils_json.h"
 
 #include <cstring>
@@ -129,19 +128,6 @@ int Server_registry::decrypt_buffer(const char *cipher, int cipher_len, char pla
     return aes_length;
 
   return -1;
-}
-
-Server_registry::Server_registry()
-{
-  get_user_config_path();
-
-  std::string path = shcore::get_user_config_path();
-  path += Server_registry::_file_path;
-  _filename = path;
-
-  _filename_lock = _filename + ".lock";
-
-  init();
 }
 
 Server_registry::Server_registry(const std::string& data_source_file)
@@ -401,67 +387,13 @@ Connection_options& Server_registry::get_connection_options(const std::string &u
   return it->second;
 }
 
-std::string Server_registry::get_name(const std::string &uuid) const
+std::string Server_registry::get_keyword_value(const std::string &uuid, ConnectionKeywords key) const
 {
   connections_map_t::const_iterator it = _connections.find(uuid);
   if (it == _connections.end())
     throw std::runtime_error((boost::format("Connection not found for uuid: %s") % uuid).str());
   const Connection_options& cs = it->second;
-  return cs.get_name();
-}
-
-std::string Server_registry::get_server(const std::string &uuid) const
-{
-  connections_map_t::const_iterator it = _connections.find(uuid);
-  if (it == _connections.end())
-    throw std::runtime_error((boost::format("Connection not found for uuid: %s") % uuid).str());
-  const Connection_options& cs = it->second;
-  return cs.get_server();
-}
-
-std::string Server_registry::get_user(const std::string &uuid) const
-{
-  connections_map_t::const_iterator it = _connections.find(uuid);
-  if (it == _connections.end())
-    throw std::runtime_error((boost::format("Connection not found for uuid: %s") % uuid).str());
-  const Connection_options& cs = it->second;
-  return cs.get_user();
-}
-
-std::string Server_registry::get_port(const std::string &uuid) const
-{
-  connections_map_t::const_iterator it = _connections.find(uuid);
-  if (it == _connections.end())
-    throw std::runtime_error((boost::format("Connection not found for uuid: %s") % uuid).str());
-  const Connection_options& cs = it->second;
-  return cs.get_port();
-}
-
-std::string Server_registry::get_password(const std::string &uuid) const
-{
-  connections_map_t::const_iterator it = _connections.find(uuid);
-  if (it == _connections.end())
-    throw std::runtime_error((boost::format("Connection not found for uuid: %s") % uuid).str());
-  const Connection_options& cs = it->second;
-  return cs.get_password();
-}
-
-std::string Server_registry::get_protocol(const std::string &uuid) const
-{
-  connections_map_t::const_iterator it = _connections.find(uuid);
-  if (it == _connections.end())
-    throw std::runtime_error((boost::format("Connection not found for uuid: %s") % uuid).str());
-  const Connection_options& cs = it->second;
-  return cs.get_protocol();
-}
-
-std::string Server_registry::get_schema(const std::string &uuid) const
-{
-  connections_map_t::const_iterator it = _connections.find(uuid);
-  if (it == _connections.end())
-    throw std::runtime_error((boost::format("Connection not found for uuid: %s") % uuid).str());
-  const Connection_options& cs = it->second;
-  return cs.get_schema();
+  return cs.get_keyword_value(key);
 }
 
 std::string Server_registry::get_value(const std::string &uuid, const std::string &name) const
@@ -480,67 +412,13 @@ void Server_registry::set_connection_options(const std::string &uuid, const Conn
   _connections_by_name[conn_str.get_name()] = &result;
 }
 
-void Server_registry::set_name(const std::string &uuid, const std::string &name)
+void Server_registry::set_keyword_value(const std::string &uuid, ConnectionKeywords key, const std::string& value)
 {
   connections_map_t::iterator it = _connections.find(uuid);
   if (it == _connections.end())
     throw std::runtime_error((boost::format("Connection not found for uuid: %s") % uuid).str());
   Connection_options& cs = it->second;
-  cs.set_name(name);
-}
-
-void Server_registry::set_server(const std::string &uuid, const std::string &server)
-{
-  connections_map_t::iterator it = _connections.find(uuid);
-  if (it == _connections.end())
-    throw std::runtime_error((boost::format("Connection not found for uuid: %s") % uuid).str());
-  Connection_options& cs = it->second;
-  cs.set_server(server);
-}
-
-void Server_registry::set_user(const std::string &uuid, const std::string &user)
-{
-  connections_map_t::iterator it = _connections.find(uuid);
-  if (it == _connections.end())
-    throw std::runtime_error((boost::format("Connection not found for uuid: %s") % uuid).str());
-  Connection_options& cs = it->second;
-  cs.set_user(user);
-}
-
-void Server_registry::set_port(const std::string &uuid, const std::string &port)
-{
-  connections_map_t::iterator it = _connections.find(uuid);
-  if (it == _connections.end())
-    throw std::runtime_error((boost::format("Connection not found for uuid: %s") % uuid).str());
-  Connection_options& cs = it->second;
-  cs.set_port(port);
-}
-
-void Server_registry::set_password(const std::string &uuid, const std::string &password)
-{
-  connections_map_t::iterator it = _connections.find(uuid);
-  if (it == _connections.end())
-    throw std::runtime_error((boost::format("Connection not found for uuid: %s") % uuid).str());
-  Connection_options& cs = it->second;
-  cs.set_password(password);
-}
-
-void Server_registry::set_protocol(const std::string &uuid, const std::string &protocol)
-{
-  connections_map_t::iterator it = _connections.find(uuid);
-  if (it == _connections.end())
-    throw std::runtime_error((boost::format("Connection not found for uuid: %s") % uuid).str());
-  Connection_options& cs = it->second;
-  cs.set_protocol(protocol);
-}
-
-void Server_registry::set_schema(const std::string &uuid, const std::string &schema)
-{
-  connections_map_t::iterator it = _connections.find(uuid);
-  if (it == _connections.end())
-    throw std::runtime_error((boost::format("Connection not found for uuid: %s") % uuid).str());
-  Connection_options& cs = it->second;
-  cs.set_schema(schema);
+  cs.set_keyword_value(key, value);
 }
 
 void Server_registry::set_value(const std::string &uuid, const std::string &name, const std::string &value)
@@ -716,7 +594,7 @@ void Connection_options::set_connection_options(const std::string &conn_str)
   parse();
 }
 
-void Connection_options::set_keyword_value(Keywords key, const std::string& value)
+void Connection_options::set_keyword_value(ConnectionKeywords key, const std::string& value)
 {
   operator[](_keywords_table[key]) = value;
 }
