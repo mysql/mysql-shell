@@ -26,6 +26,8 @@ Shell_test_output_handler::Shell_test_output_handler()
   deleg.user_data = this;
   deleg.print = &Shell_test_output_handler::deleg_print;
   deleg.print_error = &Shell_test_output_handler::deleg_print_error;
+  deleg.prompt = &Shell_test_output_handler::deleg_prompt;
+  deleg.password = &Shell_test_output_handler::deleg_password;
 }
 
 void Shell_test_output_handler::deleg_print(void *user_data, const char *text)
@@ -40,7 +42,25 @@ void Shell_test_output_handler::deleg_print_error(void *user_data, const char *t
   target->std_err.append(text);
 }
 
-bool Shell_test_output_handler::password(void *user_data, const char *UNUSED(prompt), std::string &ret)
+bool Shell_test_output_handler::deleg_prompt(void *user_data, const char *UNUSED(prompt), std::string &ret)
+{
+  Shell_test_output_handler* target = (Shell_test_output_handler*)(user_data);
+  std::string prompt;
+
+  bool ret_val = false;
+  if (!target->prompts.empty())
+  {
+    prompt = target->prompts.front();
+    target->prompts.pop_front();
+
+    ret_val = true;
+  }
+
+  ret = prompt;
+  return ret_val;
+}
+
+bool Shell_test_output_handler::deleg_password(void *user_data, const char *UNUSED(prompt), std::string &ret)
 {
   Shell_test_output_handler* target = (Shell_test_output_handler*)(user_data);
   ret = target->ret_pwd;

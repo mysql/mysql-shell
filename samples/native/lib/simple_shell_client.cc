@@ -36,7 +36,7 @@ Simple_shell_client::Simple_shell_client()
   _delegate.user_data = this;
   _delegate.print = &Simple_shell_client::deleg_print;
   _delegate.print_error = &Simple_shell_client::deleg_print_error;
-  _delegate.input = &Simple_shell_client::deleg_input;
+  _delegate.prompt = &Simple_shell_client::deleg_input;
   _delegate.password = &Simple_shell_client::deleg_password;
   _delegate.source = &Simple_shell_client::deleg_source;
 

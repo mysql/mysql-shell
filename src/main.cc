@@ -111,7 +111,7 @@ private:
 private:
   static void deleg_print(void *self, const char *text);
   static void deleg_print_error(void *self, const char *text);
-  static bool deleg_input(void *self, const char *text, std::string &ret);
+  static bool deleg_prompt(void *self, const char *text, std::string &ret);
   static bool deleg_password(void *self, const char *text, std::string &ret);
   static void deleg_source(void *self, const char *module);
 
@@ -147,7 +147,7 @@ _options(options)
   _delegate.user_data = this;
   _delegate.print = &Interactive_shell::deleg_print;
   _delegate.print_error = &Interactive_shell::deleg_print_error;
-  _delegate.input = &Interactive_shell::deleg_input;
+  _delegate.prompt = &Interactive_shell::deleg_prompt;
   _delegate.password = &Interactive_shell::deleg_password;
   _delegate.source = &Interactive_shell::deleg_source;
 
@@ -628,7 +628,7 @@ char *Interactive_shell::readline(const char *prompt)
   return tmp;
 }
 
-bool Interactive_shell::deleg_input(void *UNUSED(cdata), const char *prompt, std::string &ret)
+bool Interactive_shell::deleg_prompt(void *UNUSED(cdata), const char *prompt, std::string &ret)
 {
   char *tmp = Interactive_shell::readline(prompt);
   if (!tmp)

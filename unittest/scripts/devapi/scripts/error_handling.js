@@ -10,10 +10,7 @@ try {
                 host: 'localhost', port: 33060,
                 dbUser: 'mike', dbPassword: 's3cr3t!' } );
 } catch (err) {
-        echo('The database session could not be opened: ' + err.message);
-
-        // Exit with error code
-        exit(1);
+        print('The database session could not be opened: ' + err.message);
 }
 
 try {
@@ -28,13 +25,11 @@ try {
 
         // Print document
         print(myDoc.first());
-
-        exit(0);
-} catch (err) {
+} 
+catch (err) {
         print('The following error occurred: ' + err.message);
-
-        exit(1);
-} finally {
+} 
+finally {
         // Close the session in any case
         mySession.close();
 }

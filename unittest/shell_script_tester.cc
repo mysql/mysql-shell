@@ -59,6 +59,14 @@ void Shell_script_tester::validate(const std::string& context, const std::string
       // Validation goes against validation code
       if (!(*validations)[valindex].code.empty())
       {
+        // Before cleaning up, prints any error found on the script execution
+        if (valindex == 0 && !output_handler.std_err.empty())
+        {
+          SCOPED_TRACE("File: " + context);
+          SCOPED_TRACE("Unexpexted Error: " + output_handler.std_err);
+          ADD_FAILURE();
+        }
+
         output_handler.wipe_all();
         execute((*validations)[valindex].code);
       }
