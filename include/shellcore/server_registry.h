@@ -41,76 +41,6 @@ namespace shcore {
     X_server
   };
 
-  class Connection_options;
-
-  struct Lock_file;
-
-  class SHCORE_PUBLIC Server_registry
-  {
-  public:
-    // opens the connection registry for a given operating system user
-    // the ctor reads, loads & closes the file.
-    Server_registry();
-    Server_registry(const std::string& data_source_file);
-
-    ~Server_registry();
-
-    //void load_file_rapidjson();
-    void load_file();
-
-    Connection_options& add_connection_options(const std::string &options);
-    Connection_options& add_connection_options(const std::string &uuid, const std::string &options);
-    void remove_connection_options(Connection_options &options);
-
-    // gets a connection by name (app attribute)
-    Connection_options& get_connection_by_name(const std::string& name);
-    Connection_options& get_connection_options(const std::string& uuid);
-    std::string get_name(const std::string &uuid) const;
-    std::string get_server(const std::string &uuid) const;
-    std::string get_user(const std::string &uuid) const;
-    std::string get_port(const std::string &uuid) const;
-    std::string get_password(const std::string &uuid) const;
-    std::string get_protocol(const std::string &uuid) const;
-    std::string get_schema(const std::string &uuid) const;
-    std::string get_value(const std::string &uuid, const std::string &name) const;
-
-    void set_connection_options(const std::string &uuid, const Connection_options &conn_str);
-    void set_name(const std::string &uuid, const std::string &name);
-    void set_server(const std::string &uuid, const std::string &server);
-    void set_user(const std::string &uuid, const std::string &user);
-    void set_port(const std::string &uuid, const std::string &port);
-    void set_password(const std::string &uuid, const std::string &password);
-    void set_protocol(const std::string &uuid, const std::string &protocol);
-    void set_schema(const std::string &uuid, const std::string &protocol);
-    void set_value(const std::string &uuid, const std::string &name, const std::string &value);
-
-    //void merge_rapidjson();
-    void merge();
-
-    static std::string get_new_uuid();
-
-    std::map<std::string, Connection_options>::iterator begin() { return _connections.begin(); }
-    std::map<std::string, Connection_options>::iterator end() { return _connections.end(); }
-
-    std::map<std::string, Connection_options>::const_iterator begin() const { return _connections.begin(); }
-    std::map<std::string, Connection_options>::const_iterator end() const { return _connections.end(); }
-
-  private:
-    // Connection strings indexed by uuid
-    typedef std::map<std::string, Connection_options> connections_map_t;
-    std::map<std::string, Connection_options> _connections;
-    std::map<std::string, Connection_options*> _connections_by_name;
-    std::string _filename;
-    std::string _filename_lock;
-    Lock_file *_lock;
-
-    void init();
-    Connection_options& add_connection_options(const std::string& uuid, const std::string& options, const std::string& name);
-    static int encrypt_buffer(const char *plain, int plain_len, char cipher[], const char *my_key);
-    static int decrypt_buffer(const char *cipher, int cipher_len, char plain[], const char *my_key);
-
-    static std::string _file_path;
-  };
 
   class SHCORE_PUBLIC Connection_options
   {
@@ -222,6 +152,75 @@ namespace shcore {
 
     friend class Server_registry;
     void parse();
+  };
+
+  struct Lock_file;
+
+  class SHCORE_PUBLIC Server_registry
+  {
+  public:
+    // opens the connection registry for a given operating system user
+    // the ctor reads, loads & closes the file.
+    Server_registry();
+    Server_registry(const std::string& data_source_file);
+
+    ~Server_registry();
+
+    //void load_file_rapidjson();
+    void load_file();
+
+    Connection_options& add_connection_options(const std::string &options);
+    Connection_options& add_connection_options(const std::string &uuid, const std::string &options);
+    void remove_connection_options(Connection_options &options);
+
+    // gets a connection by name (app attribute)
+    Connection_options& get_connection_by_name(const std::string& name);
+    Connection_options& get_connection_options(const std::string& uuid);
+    std::string get_name(const std::string &uuid) const;
+    std::string get_server(const std::string &uuid) const;
+    std::string get_user(const std::string &uuid) const;
+    std::string get_port(const std::string &uuid) const;
+    std::string get_password(const std::string &uuid) const;
+    std::string get_protocol(const std::string &uuid) const;
+    std::string get_schema(const std::string &uuid) const;
+    std::string get_value(const std::string &uuid, const std::string &name) const;
+
+    void set_connection_options(const std::string &uuid, const Connection_options &conn_str);
+    void set_name(const std::string &uuid, const std::string &name);
+    void set_server(const std::string &uuid, const std::string &server);
+    void set_user(const std::string &uuid, const std::string &user);
+    void set_port(const std::string &uuid, const std::string &port);
+    void set_password(const std::string &uuid, const std::string &password);
+    void set_protocol(const std::string &uuid, const std::string &protocol);
+    void set_schema(const std::string &uuid, const std::string &protocol);
+    void set_value(const std::string &uuid, const std::string &name, const std::string &value);
+
+    //void merge_rapidjson();
+    void merge();
+
+    static std::string get_new_uuid();
+
+    std::map<std::string, Connection_options>::iterator begin() { return _connections.begin(); }
+    std::map<std::string, Connection_options>::iterator end() { return _connections.end(); }
+
+    std::map<std::string, Connection_options>::const_iterator begin() const { return _connections.begin(); }
+    std::map<std::string, Connection_options>::const_iterator end() const { return _connections.end(); }
+
+  private:
+    // Connection strings indexed by uuid
+    typedef std::map<std::string, Connection_options> connections_map_t;
+    std::map<std::string, Connection_options> _connections;
+    std::map<std::string, Connection_options*> _connections_by_name;
+    std::string _filename;
+    std::string _filename_lock;
+    Lock_file *_lock;
+
+    void init();
+    Connection_options& add_connection_options(const std::string& uuid, const std::string& options, const std::string& name);
+    static int encrypt_buffer(const char *plain, int plain_len, char cipher[], const char *my_key);
+    static int decrypt_buffer(const char *cipher, int cipher_len, char plain[], const char *my_key);
+
+    static std::string _file_path;
   };
 
   class SHCORE_PUBLIC file_locked_error : public std::runtime_error
