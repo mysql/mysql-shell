@@ -13,7 +13,6 @@
  along with this program; if not, write to the Free Software
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA */
 
-
 #include <cstdio>
 #include <cstdlib>
 #include <fstream>
@@ -57,12 +56,16 @@ namespace shcore
       std::stringstream out, out_tokens;
       Expr_parser p(input, document_mode);
       print_tokens(p, out_tokens);
+      if (token_list != out_tokens.str())
+        __debugbreak();
       ASSERT_TRUE(token_list == out_tokens.str());
       std::auto_ptr<Mysqlx::Expr::Expr> e(p.expr());
       std::string s = Expr_unparser::expr_to_string(*(e.get()));
       if (expr != NULL)
         *expr = e.release();
       out << s;
+      if (unparsed != out.str())
+        __debugbreak();
       ASSERT_TRUE(unparsed == out.str());
     }
 
@@ -103,13 +106,13 @@ namespace shcore
       parse_and_assert_expr("(field not in ('a',func('b', 2.0),'c'))",
         "[6, 19, 1, 14, 6, 20, 24, 19, 6, 20, 24, 21, 7, 24, 20, 7, 7]", "NOT ( field IN (\"a\", func(\"b\", 2.000000), \"c\"))");
       parse_and_assert_expr("jess.age between 30 and death",
-                "[19, 22, 19, 10, 76, 2, 19]", "jess.age BETWEEN 30 AND death");
+        "[19, 22, 19, 10, 76, 2, 19]", "jess.age BETWEEN 30 AND death");
       parse_and_assert_expr("a + b * c + d",
         "[19, 36, 19, 38, 19, 36, 19]", "((a + (b * c)) + d)");
       parse_and_assert_expr("x > 10 and Y >= -20",
         "[19, 27, 76, 2, 19, 28, 37, 76]", "((x > 10) && (Y >= -20))");
       parse_and_assert_expr("a$.b", "[19, 77, 22, 19]", "a$.b");
-}
+    }
 
     TEST(Expr_parser_tests, x_test_cast)
     {
@@ -200,7 +203,7 @@ namespace shcore
       parse_and_assert_expr("*", "[38]", "*");
       parse_and_assert_expr("table1.*", "[19, 22, 38]", "table1.*");
       parse_and_assert_expr("schema.table1.*", "[19, 22, 19, 22, 38]", "schema.table1.*");
-}
+    }
 
     TEST(Expr_parser_tests, x_test_4)
     {
@@ -227,6 +230,9 @@ namespace shcore
 
       parse_and_assert_expr(".\"*\"", "[22, 20]", "$.*", true, &expr);
       assert_member_type(expr, Mysqlx::Expr::DocumentPathItem_Type_MEMBER);
+
+      // Some regression bugs
+      parse_and_assert_expr("colId + .1e-3", "[19, 36, 21]", "(colId + 0.000100)", false);
     }
 
     TEST(Expr_parser_tests, x_test_5)
