@@ -453,6 +453,7 @@ void Tokenizer::get_tokens()
             ++i;
           if (i < _input.size() && std::toupper(_input[i]) == 'E')
           {
+            ++i;
             if (i < _input.size() && (((c = _input[i]) == '+') || (c == '-')))
               ++i;
             size_t j = i;
