@@ -140,9 +140,21 @@ int Shell_core::process_stream(std::istream& stream, const std::string& source, 
     stream.seekg(0, stream.beg);
 
     std::string data;
-    data.resize(fsize);
-    stream.read(const_cast<char*>(data.data()), fsize);
+    if (fsize < 0)
+    {
+      while (!stream.eof())
+      {
+        std::string line;
 
+        std::getline(stream, line);
+        data.append(line);
+      }
+    }
+    else
+    {
+      data.resize(fsize);
+      stream.read(const_cast<char*>(data.data()), fsize);
+    }
     handle_input(data, state, result_processor);
   }
 

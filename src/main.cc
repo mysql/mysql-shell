@@ -985,12 +985,13 @@ std::string detect_interactive(Shell_command_line_options &options, bool &from_s
   __stdin_fileno = STDIN_FILENO;
   __stdout_fileno = STDOUT_FILENO;
 #endif
+
   if (!isatty(__stdin_fileno))
   {
     // Here we know the input comes from stdin
     from_stdin = true;
-  }
 
+  }
   if (!isatty(__stdin_fileno) || !isatty(__stdout_fileno))
   {
     // Now we find out if it is a redirected file or not
