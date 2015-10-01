@@ -50,6 +50,9 @@
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
 #endif
+#ifdef WIN32
+#include <windows.h>
+#endif
 #include "utils_file.h"
 
 using namespace shcore;
@@ -219,10 +222,10 @@ struct JScript_context::JScript_context_impl
       v8::FunctionTemplate::New(isolate, &JScript_context_impl::os_get_user_config_path, client_data));
 
     object->Set(v8::String::NewFromUtf8(isolate, "get_mysqlx_home_path"),
-                v8::FunctionTemplate::New(isolate, &JScript_context_impl::os_get_mysqlx_home_path, client_data));
+      v8::FunctionTemplate::New(isolate, &JScript_context_impl::os_get_mysqlx_home_path, client_data));
 
     object->Set(v8::String::NewFromUtf8(isolate, "get_binary_folder"),
-                v8::FunctionTemplate::New(isolate, &JScript_context_impl::os_get_binary_folder, client_data));
+      v8::FunctionTemplate::New(isolate, &JScript_context_impl::os_get_binary_folder, client_data));
 
     object->Set(v8::String::NewFromUtf8(isolate, "file_exists"),
       v8::FunctionTemplate::New(isolate, &JScript_context_impl::os_file_exists, client_data));
@@ -431,7 +434,7 @@ struct JScript_context::JScript_context_impl
 
     // Uses the default value if needed
     if (!default_value.empty() && (!succeeded || r.empty()))
-        r = default_value;
+      r = default_value;
 
     args.GetReturnValue().Set(v8::String::NewFromUtf8(args.GetIsolate(), r.c_str()));
   }
@@ -543,11 +546,12 @@ struct JScript_context::JScript_context_impl
     {
 #ifdef HAVE_SLEEP
       sleep(args[0]->ToNumber()->Value());
+#elif defined(WIN32)
+      Sleep((DWORD)(args[0]->ToNumber()->Value() * 1000));
 #endif
       args.GetReturnValue().Set(v8::Null(args.GetIsolate()));
     }
   }
-
 
   static void os_getenv(const v8::FunctionCallbackInfo<v8::Value>& args)
   {
@@ -683,7 +687,7 @@ void SHCORE_PUBLIC JScript_context_init()
 }
 
 JScript_context::JScript_context(Object_registry *registry, Interpreter_delegate *deleg)
-: _impl(new JScript_context_impl(this, deleg)), _registry(registry)
+  : _impl(new JScript_context_impl(this, deleg)), _registry(registry)
 {
   // initialize type conversion class now that everything is ready
   {
