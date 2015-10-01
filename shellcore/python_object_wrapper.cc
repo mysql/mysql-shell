@@ -236,8 +236,17 @@ static int object_compare(PyShObjObject *self, PyShObjObject *other)
 
 static PyObject *object_printable(PyShObjObject *self)
 {
-  std::string s;
-  return PyString_FromString((*self->object)->append_repr(s).c_str());
+  PyObject *ret_val;
+
+  Value object((*self->object));
+  std::string format = (*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string();
+
+  if (format.find("json") == 0)
+     ret_val = PyString_FromString(object.json(format == "json").c_str());
+  else
+    ret_val = PyString_FromString(object.descr(true).c_str());
+
+  return ret_val;
 }
 
 static PyObject *object_getattro(PyShObjObject *self, PyObject *attr_name)

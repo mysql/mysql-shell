@@ -205,7 +205,7 @@ namespace shcore {
 
     exec_and_out_equals("print(schema.existInDatabase())", "True");
 
-    exec_and_out_equals("print(schema.name)", "'my_sample_schema'");
+    exec_and_out_equals("print(schema.name)", "my_sample_schema");
 
     exec_and_out_equals("schema.drop()");
 

@@ -71,7 +71,7 @@ void ResultsetDumper::dump_json(const std::string& format, bool show_warnings)
 
   shcore::Value map(data);
 
-  shcore::print(map.json(format == "json") + "\n");
+  shcore::print(map.json(format != "json/raw") + "\n");
 }
 
 void ResultsetDumper::dump_normal(bool interactive, const std::string& format, bool show_warnings)
@@ -144,8 +144,8 @@ void ResultsetDumper::dump_tabbed(shcore::Value::Array_type_ref records)
 {
   boost::shared_ptr<shcore::Value::Array_type> metadata = _resultset->get_member("columnMetadata").as_array();
 
-  unsigned int index = 0;
-  unsigned int field_count = metadata->size();
+  size_t index = 0;
+  size_t field_count = metadata->size();
   std::vector<std::string> formats(field_count, "%-");
 
   // Prints the initial separator line and the column headers
@@ -182,25 +182,25 @@ void ResultsetDumper::dump_table(shcore::Value::Array_type_ref records)
     boost::shared_ptr<mysh::Row> row = (*records)[row_index].as_object<mysh::Row>();
     for (size_t field_index = 0; field_index < metadata->size(); field_index++)
     {
-      int field_length = row->get_member(field_index).repr().length();
+      uint64_t field_length = row->get_member(field_index).repr().length();
 
-      if (field_length >(*(*metadata)[field_index].as_map())["max_length"].as_int())
+      if (field_length >(*(*metadata)[field_index].as_map())["max_length"].as_uint())
         (*(*metadata)[field_index].as_map())["max_length"] = Value(field_length);
     }
   }
   //-----------
 
-  unsigned int index = 0;
-  unsigned int field_count = metadata->size();
+  size_t index = 0;
+  size_t field_count = metadata->size();
   std::vector<std::string> formats(field_count, "%-");
 
   // Calculates the max column widths and constructs the separator line.
   std::string separator("+");
   for (index = 0; index < field_count; index++)
   {
-    int max_field_length = 0;
-    max_field_length = std::max<unsigned int>((*(*metadata)[index].as_map())["max_length"].as_int(), (*(*metadata)[index].as_map())["name_length"].as_int());
-    max_field_length = std::max<unsigned int>(max_field_length, MIN_COLUMN_LENGTH);
+    uint64_t max_field_length = 0;
+    max_field_length = std::max<uint64_t>((*(*metadata)[index].as_map())["max_length"].as_uint(), (*(*metadata)[index].as_map())["name_length"].as_uint());
+    max_field_length = std::max<uint64_t>(max_field_length, MIN_COLUMN_LENGTH);
     (*(*metadata)[index].as_map())["max_length"] = Value(max_field_length);
     //_metadata[index].max_length(max_field_length);
 

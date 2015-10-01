@@ -359,7 +359,11 @@ struct JScript_context::JScript_context_impl
 
       try
       {
-        self->delegate->print(self->delegate->user_data, self->types.v8_value_to_shcore_value(args[i]).descr(true).c_str());
+        std::string format = (*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string();
+        if (format.find("json") == 0)
+          self->delegate->print(self->delegate->user_data, self->types.v8_value_to_shcore_value(args[i]).json(format == "json").c_str());
+        else
+          self->delegate->print(self->delegate->user_data, self->types.v8_value_to_shcore_value(args[i]).descr(true).c_str());
       }
       catch (std::exception &e)
       {
