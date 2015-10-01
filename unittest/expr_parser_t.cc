@@ -56,16 +56,12 @@ namespace shcore
       std::stringstream out, out_tokens;
       Expr_parser p(input, document_mode);
       print_tokens(p, out_tokens);
-      if (token_list != out_tokens.str())
-        __debugbreak();
       ASSERT_TRUE(token_list == out_tokens.str());
       std::auto_ptr<Mysqlx::Expr::Expr> e(p.expr());
       std::string s = Expr_unparser::expr_to_string(*(e.get()));
       if (expr != NULL)
         *expr = e.release();
       out << s;
-      if (unparsed != out.str())
-        __debugbreak();
       ASSERT_TRUE(unparsed == out.str());
     }
 
