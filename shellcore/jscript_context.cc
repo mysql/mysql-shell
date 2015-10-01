@@ -28,6 +28,8 @@
 #pragma clang diagnostic pop
 #endif
 
+#include "mysh_config.h"
+
 #include "shellcore/lang_base.h"
 #include "shellcore/shell_core.h"
 #include "shellcore/object_factory.h"
@@ -45,6 +47,9 @@
 #include <boost/bind.hpp>
 #include <boost/system/error_code.hpp>
 #include <cerrno>
+#ifdef HAVE_UNISTD_H
+#include <unistd.h>
+#endif
 #include "utils_file.h"
 
 using namespace shcore;
@@ -224,6 +229,9 @@ struct JScript_context::JScript_context_impl
 
     object->Set(v8::String::NewFromUtf8(isolate, "load_text_file"),
       v8::FunctionTemplate::New(isolate, &JScript_context_impl::os_load_text_file, client_data));
+
+    object->Set(v8::String::NewFromUtf8(isolate, "sleep"),
+      v8::FunctionTemplate::New(isolate, &JScript_context_impl::os_sleep, client_data));
 
     return object;
   }
@@ -524,6 +532,22 @@ struct JScript_context::JScript_context_impl
     v8::Handle<v8::Context> ctx(v8::Local<v8::Context>::New(isolate, context));
     return ctx->Global()->Get(v8::String::NewFromUtf8(isolate, name.c_str()));
   }
+
+  static void os_sleep(const v8::FunctionCallbackInfo<v8::Value>& args)
+  {
+    v8::HandleScope handle_scope(args.GetIsolate());
+
+    if (args.Length() != 1 || !args[0]->IsNumber())
+      args.GetIsolate()->ThrowException(v8::String::NewFromUtf8(args.GetIsolate(), "sleep(<number>) takes 1 numeric argument"));
+    else
+    {
+#ifdef HAVE_SLEEP
+      sleep(args[0]->ToNumber()->Value());
+#endif
+      args.GetReturnValue().Set(v8::Null(args.GetIsolate()));
+    }
+  }
+
 
   static void os_getenv(const v8::FunctionCallbackInfo<v8::Value>& args)
   {

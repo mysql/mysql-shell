@@ -673,7 +673,6 @@ void Interactive_shell::process_line(const std::string &line)
 {
   bool handled_as_command = false;
   Interactive_input_state state = Input_ok;
-
   // check if the line is an escape/shell command
   if (_input_buffer.empty() && !line.empty() && !_multiline_mode)
   {
@@ -844,7 +843,9 @@ int Interactive_shell::process_stream(std::istream & stream, const std::string& 
     return 0;
   }
   else
+  {
     return _shell->process_stream(stream, source, _result_processor);
+  }
 }
 
 void Interactive_shell::command_loop()
@@ -984,11 +985,14 @@ std::string detect_interactive(Shell_command_line_options &options, bool &from_s
   __stdin_fileno = STDIN_FILENO;
   __stdout_fileno = STDOUT_FILENO;
 #endif
-  if (!isatty(__stdin_fileno) || !isatty(__stdout_fileno))
+  if (!isatty(__stdin_fileno))
   {
     // Here we know the input comes from stdin
     from_stdin = true;
+  }
 
+  if (!isatty(__stdin_fileno) || !isatty(__stdout_fileno))
+  {
     // Now we find out if it is a redirected file or not
     struct stat stats;
     int result = fstat(__stdin_fileno, &stats);
@@ -1074,7 +1078,9 @@ int main(int argc, char **argv)
       }
 
       if (from_stdin)
+      {
         ret_val = shell.process_stream(std::cin, "STDIN");
+      }
       else if (!options.run_file.empty())
         ret_val = shell.process_file();
       else if (options.interactive)
