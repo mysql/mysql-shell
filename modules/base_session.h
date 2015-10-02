@@ -75,6 +75,9 @@ namespace mysh
 
     // Helper method to retrieve properties using a method
     shcore::Value get_member_method(const shcore::Argument_list &args, const std::string& method, const std::string& prop);
+
+  protected:
+    std::string get_quoted_name(const std::string& name);
   };
 
   boost::shared_ptr<mysh::ShellBaseSession> SHCORE_PUBLIC connect_session(const shcore::Argument_list &args, SessionType session_type);

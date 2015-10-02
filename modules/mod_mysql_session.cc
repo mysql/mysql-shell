@@ -282,7 +282,7 @@ Value ClassicSession::createSchema(const shcore::Argument_list &args)
       throw Exception::argument_error("The schema name can not be empty.");
     else
     {
-      std::string statement = "create schema " + schema;
+      std::string statement = "create schema " + get_quoted_name(schema);
       ret_val = Value::wrap(new ClassicResultset(boost::shared_ptr<Result>(_conn->executeSql(statement))));
 
       boost::shared_ptr<ClassicSchema> object(new ClassicSchema(shared_from_this(), schema));

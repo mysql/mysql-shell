@@ -48,20 +48,30 @@ schema = session.getSchema('unexisting_schema');
 //@ Session: create schema success
 var ss; 
 
-try{
-	// Ensures the session_schema does not exist
-	ss = session.getSchema('session_schema');
-	ss.drop();
+function ensure_dropped_schema(name){
+	var schema;
+	try{
+		// Ensures the session_schema does not exist
+		schema = session.getSchema(name);
+		schema.drop();
+	}
+	catch(err)
+	{
+	}
 }
-catch(err)
-{
-}
+
+ensure_dropped_schema('session_schema');
 
 ss = session.createSchema('session_schema');
 print(ss);
 
 //@ Session: create schema failure
 var sf = session.createSchema('session_schema');
+
+//@ Session: create quoted schema
+ensure_dropped_schema('quoted schema');
+var qs = session.createSchema('quoted schema');
+print(qs);
 
 //@ Session: Transaction handling: rollback
 var collection = ss.createCollection('sample');
@@ -87,6 +97,7 @@ print('Inserted Documents:', result.all().length);
 
 //@ Closes the session
 ss.drop();
+qs.drop();
 session.close();
 
 //@ NodeSession: validating members

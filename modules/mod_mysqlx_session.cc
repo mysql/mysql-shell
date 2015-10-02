@@ -311,7 +311,7 @@ Value BaseSession::createSchema(const shcore::Argument_list &args)
   try
   {
     std::string schema = args.string_at(0);
-    std::string statement = "create schema " + schema;
+    std::string statement = "create schema " + get_quoted_name(schema);
     ret_val = executeStmt("sql", statement, shcore::Argument_list());
 
     // if reached this point it indicates that there were no errors
@@ -904,15 +904,5 @@ shcore::Value NodeSession::quote_name(const shcore::Argument_list &args)
 
   std::string id = args[0].as_string();
 
-  size_t index = 0;
-
-  while ((index = id.find("`", index)) != std::string::npos)
-  {
-    id.replace(index, 1, "``");
-    index += 2;
-  }
-
-  id = "`" + id + "`";
-
-  return shcore::Value(id);
+  return shcore::Value(get_quoted_name(id));
 }

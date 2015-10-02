@@ -381,6 +381,13 @@ namespace shcore {
 
     exec_and_out_equals("print(s)", "<Schema:py_test_create_schema>");
 
+    // Schema with spaces
+    exec_and_out_equals("s = session.createSchema('base schema');");
+
+    exec_and_out_equals("print(s);", "<Schema:base schema>");
+
+    exec_and_out_equals("s.drop()");
+
     // Error, existing schema
     exec_and_out_contains("s2 = session.createSchema('py_test_create_schema')", "", "Can't create database 'py_test_create_schema'; database exists");
 

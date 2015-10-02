@@ -31,6 +31,9 @@
 //@ Session: create schema failure
 ||MySQL Error (1007): Can't create database 'session_schema'; database exists
 
+//@ Session: create quoted schema
+|<Schema:quoted schema>|
+
 //@ Session: Transaction handling: rollback
 |Inserted Documents: 0|
 

@@ -326,6 +326,13 @@ namespace shcore {
 
     exec_and_out_equals("print(s);", "<ClassicSchema:mysql_test_create_schema_1>");
 
+    // Schema with spaces
+    exec_and_out_equals("var s = session.createSchema('classic schema');");
+
+    exec_and_out_equals("print(s);", "<ClassicSchema:classic schema>");
+
+    exec_and_out_equals("s.drop()");
+
     // Error, existing schema
     exec_and_out_contains("var s2 = session.createSchema('mysql_test_create_schema_1');", "", "MySQLError (1007): Can't create database 'mysql_test_create_schema_1'; database exists");
 
