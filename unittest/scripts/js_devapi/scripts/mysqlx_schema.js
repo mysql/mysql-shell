@@ -65,16 +65,5 @@ print('Valid:', schema.existInDatabase());
 schema.drop();
 print('Invalid:', schema.existInDatabase());
 
-//@ Closes the session
+// Closes the session
 session.close();
-
-
-
-
-
-
-
-
-
-
-

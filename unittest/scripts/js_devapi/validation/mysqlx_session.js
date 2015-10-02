@@ -71,6 +71,10 @@
 //@ NodeSession: accessing unexisting schema
 ||Unknown database 'unexisting_schema'
 
+//@ NodeSession: current schema validations: nodefault
+|null|
+|null|
+
 //@ NodeSession: create schema success
 |<Schema:node_session_schema>|
 
@@ -83,17 +87,13 @@
 //@ NodeSession: Transaction handling: commit
 |Inserted Documents: 3|
 
-//@ NodeSession: current schema validations: nodefault
-|null|
-|null|
-
 //@ NodeSession: current schema validations: nodefault, mysql
 |null|
 |<Schema:mysql>|
 
 //@ NodeSession: current schema validations: nodefault, information_schema
 |null|
-|<Schema:mysql>|
+|<Schema:information_schema>|
 
 //@ NodeSession: current schema validations: default
 |<Schema:mysql>|

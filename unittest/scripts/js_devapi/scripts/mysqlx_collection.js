@@ -40,6 +40,6 @@ print('Valid:', collection.existInDatabase());
 collection.drop();
 print('Invalid:', collection.existInDatabase());
 
-//@ Closes the session
+// Closes the session
 schema.drop();
 session.close();

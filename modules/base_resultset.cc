@@ -76,7 +76,8 @@ shcore::Value BaseResultset::get_member_method(const shcore::Argument_list &args
 
 Row::Row()
 {
-  add_method("getLength", boost::bind(&Row::get_member_method, this, _1, "getLength", "__length__"), NULL);
+  add_method("getField", boost::bind(&Row::get_field, this, _1), "field", shcore::String, NULL);
+  add_method("getLength", boost::bind(&Row::get_member_method, this, _1, "getLength", "length"), NULL);
 }
 
 std::string &Row::append_descr(std::string &s_out, int indent, int UNUSED(quote_strings)) const
@@ -132,7 +133,6 @@ shcore::Value Row::get_member_method(const shcore::Argument_list &args, const st
 std::vector<std::string> Row::get_members() const
 {
   std::vector<std::string> l = shcore::Cpp_object_bridge::get_members();
-  l.push_back("__length__");
 
   for (size_t index = 0; index < value_iterators.size(); index++)
     l.push_back(value_iterators[index]->first);
@@ -146,10 +146,38 @@ bool Row::operator == (const Object_bridge &UNUSED(other)) const
   return false;
 }
 
+bool Row::has_member(const std::string &prop) const
+{
+  if (Cpp_object_bridge::has_member(prop))
+    return true;
+  if (prop == "length")
+    return true;
+  if (values.find(prop) != values.end())
+    return true;
+}
+
+shcore::Value Row::get_field(const shcore::Argument_list &args)
+{
+  shcore::Value ret_val;
+  args.ensure_count(1, "Row.getField");
+
+  if (args[0].type != shcore::String)
+    throw shcore::Exception::argument_error("Row.getField: Argument #1 is expected to be a string");
+
+  std::string field = args[0].as_string();
+
+  if (values.find(field) != values.end())
+    ret_val = values[field];
+  else
+    throw shcore::Exception::argument_error("Row.getField: Field " + field + " does not exist");
+
+  return ret_val;
+}
+
 //! Returns the value of a member
 shcore::Value Row::get_member(const std::string &prop) const
 {
-  if (prop == "__length__")
+  if (prop == "length")
     return shcore::Value((int)values.size());
   else
   {

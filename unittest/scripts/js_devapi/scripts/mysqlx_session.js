@@ -95,7 +95,7 @@ var result = collection.find().execute();
 print('Inserted Documents:', result.all().length);
 
 
-//@ Closes the session
+// Cleanup
 ss.drop();
 qs.drop();
 session.close();
@@ -186,7 +186,7 @@ print('Inserted Documents:', result.all().length);
 
 ss.drop();
 
-//@ Current schema validations: nodefault, mysql
+//@ NodeSession: current schema validations: nodefault, mysql
 nodeSession.setCurrentSchema('mysql');
 dschema = nodeSession.getDefaultSchema();
 cschema = nodeSession.getCurrentSchema();
@@ -239,5 +239,5 @@ print(nodeSession.quoteName('`sample`'));
 print(nodeSession.quoteName('`sample'));
 print(nodeSession.quoteName('sample`'));
 
-//@ Closes the nodeSession
+// Cleanup
 nodeSession.close();

@@ -4,19 +4,11 @@ var mysqlx = require('mysqlx').mysqlx;
 
 var uri = os.getenv('MYSQL_URI');
 
-var session = mysqlx.getNodeSession(uri);
+var mySession = mysqlx.getNodeSession(uri);
 
-var schema;
-try{
-	// Ensures the js_shell_test does not exist
-	schema = session.getSchema('js_shell_test');
-	schema.drop();
-}
-catch(err)
-{
-}
+ensure_schema_does_not_exist(mySession, 'js_shell_test');
 
-schema = session.createSchema('js_shell_test');
+var schema = mySession.createSchema('js_shell_test');
 
 // Creates a test collection and inserts data into it
 var collection = schema.createCollection('collection1');
@@ -81,39 +73,6 @@ crud = collection.remove('name = :data and age > :years').bind();
 crud = collection.remove('name = :data and age > :years').bind(5, 5);
 crud = collection.remove('name = :data and age > :years').bind('another', 5);
 
-//@# CollectionRemove: Error conditions on arrayInsert
-crud = collection.remove().arrayInsert();
-crud = collection.remove().arrayInsert(5, 'another');
-crud = collection.remove().arrayInsert('', 'another');
-crud = collection.remove().arrayInsert('test', 'another');
-
-//@# CollectionRemove: Error conditions on arrayAppend
-crud = collection.remove().arrayAppend();
-crud = collection.remove().arrayAppend({},'');
-crud = collection.remove().arrayAppend('',45);
-crud = collection.remove().arrayAppend('data', session);
-
-//@# CollectionRemove: Error conditions on arrayDelete
-crud = collection.remove().arrayDelete();
-crud = collection.remove().arrayDelete(5);
-crud = collection.remove().arrayDelete('');
-crud = collection.remove().arrayDelete('test');
-
-//@# CollectionRemove: Error conditions on sort
-crud = collection.remove().sort();
-crud = collection.remove().sort(5);
-crud = collection.remove().sort([]);
-crud = collection.remove().sort(['name', 5]);
-
-//@# CollectionRemove: Error conditions on limit
-crud = collection.remove().limit();
-crud = collection.remove().limit('');
-
-//@# CollectionRemove: Error conditions on bind
-crud = collection.remove('name = :data and age > :years').bind();
-crud = collection.remove('name = :data and age > :years').bind(5, 5);
-crud = collection.remove('name = :data and age > :years').bind('another', 5)
-
 //@# CollectionRemove: Error conditions on execute
 crud = collection.remove('name = :data and age > :years').execute();
 crud = collection.remove('name = :data and age > :years').bind('years', 5).execute()
@@ -145,7 +104,6 @@ docs = collection.find().execute().all();
 print('Records Left:', docs.length, '\n');
 
 
-//@ Closes the session
+// Cleanup
 schema.drop();
-session.close();
-
+mySession.close();

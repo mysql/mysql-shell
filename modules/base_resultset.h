@@ -62,6 +62,9 @@ namespace mysh
     virtual std::string &append_repr(std::string &s_out) const;
     virtual void append_json(const shcore::JSON_dumper& dumper) const;
 
+    shcore::Value get_field(const shcore::Argument_list &args);
+
+    virtual bool has_member(const std::string &prop) const;
     //! Returns the list of members that this object has
     virtual std::vector<std::string> get_members() const;
     //! Implements equality operator

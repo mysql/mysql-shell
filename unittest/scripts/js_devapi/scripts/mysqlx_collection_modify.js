@@ -4,19 +4,11 @@ var mysqlx = require('mysqlx').mysqlx;
 
 var uri = os.getenv('MYSQL_URI');
 
-var session = mysqlx.getNodeSession(uri);
+var mySession = mysqlx.getNodeSession(uri);
 
-var schema;
-try{
-	// Ensures the js_shell_test does not exist
-	schema = session.getSchema('js_shell_test');
-	schema.drop();
-}
-catch(err)
-{
-}
+ensure_schema_does_not_exist(mySession, 'js_shell_test');
 
-schema = session.createSchema('js_shell_test');
+var schema = mySession.createSchema('js_shell_test');
 
 // Creates a test collection and inserts data into it
 var collection = schema.createCollection('collection1');
@@ -137,7 +129,7 @@ crud = collection.modify().arrayInsert('test', 'another');
 crud = collection.modify().arrayAppend();
 crud = collection.modify().arrayAppend({},'');
 crud = collection.modify().arrayAppend('',45);
-crud = collection.modify().arrayAppend('data', session);
+crud = collection.modify().arrayAppend('data', mySession);
 
 //@# CollectionModify: Error conditions on arrayDelete
 crud = collection.modify().arrayDelete();
@@ -255,7 +247,6 @@ print(dir(doc));
 doc = result.next();
 print(dir(doc));
 
-//@ Closes the session
+// Cleanup
 schema.drop();
-session.close();
-
+mySession.close();

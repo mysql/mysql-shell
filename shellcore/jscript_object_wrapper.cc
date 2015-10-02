@@ -97,11 +97,11 @@ void JScript_object_wrapper::handler_getter(v8::Local<v8::String> property, cons
   info.GetReturnValue().Set(marray);
   }
   else*/
-  if (strcmp(*prop, "length") == 0 && (*object)->has_member("__length__"))
+  if (strcmp(*prop, "length") == 0 && (*object)->has_member("length"))
   {
     try
     {
-      info.GetReturnValue().Set(self->_context->shcore_value_to_v8_value((*object)->call("__length__", Argument_list())));
+      info.GetReturnValue().Set(self->_context->shcore_value_to_v8_value((*object)->get_member("length")));
       return;
     }
     catch (Exception &exc)

@@ -29,3 +29,12 @@ function validate_crud_functions(crud, expected)
     }
 }
 
+function ensure_schema_does_not_exist(session, name){
+	try{
+		var schema = session.getSchema(name);
+		schema.drop();
+	}
+	catch(err){
+		// Nothing happens, it means the schema did not exist
+	}
+}

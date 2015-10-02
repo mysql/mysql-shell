@@ -39,6 +39,6 @@ print('Valid:', table.existInDatabase());
 table.drop();
 print('Invalid:', table.existInDatabase());
 
-//@ Closes the session
+// Closes the session
 schema.drop();
 session.close();

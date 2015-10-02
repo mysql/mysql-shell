@@ -50,6 +50,10 @@
 |Updated Angel: 1|
 |Updated Carol: 1|
 
+//@# CollectionModify: Error conditions on modify
+||ArgumentError: CollectionModify.modify: Argument #1 is expected to be a string at
+||CollectionModify.modify: Unterminated quoted string starting at 8
+
 //@# CollectionModify: Error conditions on set
 ||Invalid number of arguments in CollectionModify.set, expected 2 but got 0
 ||CollectionModify.set: Argument #1 is expected to be a string

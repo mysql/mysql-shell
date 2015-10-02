@@ -41,6 +41,6 @@ print('Valid:', view.existInDatabase());
 view.drop();
 print('Invalid:', view.existInDatabase());
 
-//@ Closes the session
+// Closes the session
 schema.drop();
 session.close();

@@ -40,9 +40,37 @@ namespace shcore {
     }
   };
 
-  TEST_F(Shell_js_mysqlx_table_tests, full_test)
+  TEST_F(Shell_js_mysqlx_table_tests, mysqlx_table)
   {
     set_config_folder("js_devapi");
     validate_interactive("mysqlx_table.js");
+  }
+
+  TEST_F(Shell_js_mysqlx_table_tests, mysqlx_table_insert)
+  {
+    set_config_folder("js_devapi");
+    set_setup_script("setup.js");
+    validate_interactive("mysqlx_table_insert.js");
+  }
+
+  TEST_F(Shell_js_mysqlx_table_tests, mysqlx_table_delete)
+  {
+    set_config_folder("js_devapi");
+    set_setup_script("setup.js");
+    validate_interactive("mysqlx_table_delete.js");
+  }
+
+  TEST_F(Shell_js_mysqlx_table_tests, mysqlx_table_update)
+  {
+    set_config_folder("js_devapi");
+    set_setup_script("setup.js");
+    validate_interactive("mysqlx_table_update.js");
+  }
+
+  TEST_F(Shell_js_mysqlx_table_tests, mysqlx_table_select)
+  {
+    set_config_folder("js_devapi");
+    set_setup_script("setup.js");
+    validate_interactive("mysqlx_table_select.js");
   }
 }

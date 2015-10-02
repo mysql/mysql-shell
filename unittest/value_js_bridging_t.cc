@@ -104,12 +104,6 @@ public:
 
   Maparray()
   {
-    add_method("__length__", boost::bind(&Maparray::get_length, this, _1), NULL);
-  }
-
-  shcore::Value get_length(const shcore::Argument_list &UNUSED(args))
-  {
-    return shcore::Value((int)values.size());
   }
 
   virtual bool is_indexed() const { return true; }
@@ -144,9 +138,14 @@ public:
   //! Returns the value of a member
   virtual shcore::Value get_member(const std::string &prop) const
   {
-    std::map<std::string, int>::const_iterator it;
-    if ((it = keys.find(prop)) != keys.end())
-      return values[it->second];
+    if (prop == "length")
+      return shcore::Value((int)values.size());
+    else
+    {
+      std::map<std::string, int>::const_iterator it;
+      if ((it = keys.find(prop)) != keys.end())
+        return values[it->second];
+    }
 
     return shcore::Cpp_object_bridge::get_member(prop);
   }

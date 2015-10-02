@@ -443,7 +443,7 @@ PyDoc_STRVAR(call_doc,
 
 Py_ssize_t object_length(PyShObjObject *self)
 {
-  return self->object->get()->get_member("__length__").as_uint();
+  return self->object->get()->get_member("length").as_uint();
 }
 
 PyObject *object_item(PyShObjObject *self, Py_ssize_t index)
