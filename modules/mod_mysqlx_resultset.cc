@@ -22,6 +22,7 @@
 #include "shellcore/common.h"
 #include <boost/bind.hpp>
 #include "shellcore/shell_core_options.h"
+#include "shellcore/obj_date.h"
 
 using namespace mysh;
 using namespace shcore;
@@ -258,8 +259,12 @@ shcore::Value Resultset::next(const shcore::Argument_list &args)
               field_value = Value(row->timeField(index));
               break;
             case ::mysqlx::DATETIME:
-              field_value = Value(row->dateTimeField(index));
+            {
+              ::mysqlx::DateTime date = row->dateTimeField(index);
+              boost::shared_ptr<shcore::Date> shell_date(new shcore::Date(date.year(), date.month(), date.day(), date.hour(), date.minutes(), date.seconds()));
+              field_value = Value(boost::static_pointer_cast<Object_bridge>(shell_date));
               break;
+            }
             case ::mysqlx::ENUM:
               field_value = Value(row->enumField(index));
               break;
