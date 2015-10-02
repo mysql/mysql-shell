@@ -71,6 +71,8 @@ namespace mysh
     virtual shcore::Value get_member(const std::string &prop) const;
     shcore::Value get_member(size_t index) const;
 
+    virtual bool is_indexed() const { return true; }
+
     void add_item(const std::string &key, shcore::Value value);
   };
 };

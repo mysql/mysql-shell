@@ -153,15 +153,9 @@ shcore::Value Row::get_member(const std::string &prop) const
     return shcore::Value((int)values.size());
   else
   {
-    unsigned int index = 0;
-    if (sscanf(prop.c_str(), "%u", &index) == 1)
-      return get_member(index);
-    else
-    {
-      std::map<std::string, shcore::Value>::const_iterator it;
-      if ((it = values.find(prop)) != values.end())
-        return it->second;
-    }
+    std::map<std::string, shcore::Value>::const_iterator it;
+    if ((it = values.find(prop)) != values.end())
+      return it->second;
   }
 
   return shcore::Cpp_object_bridge::get_member(prop);

@@ -318,6 +318,15 @@ namespace shcore {
     //! Sets the value of a member
     virtual void set_member(const std::string &prop, Value value) = 0;
 
+    //! Returns the value of a member
+    virtual bool is_indexed() const = 0;
+
+    //! Returns the value of a member
+    virtual Value get_member(size_t index) const = 0;
+
+    //! Sets the value of a member
+    virtual void set_member(size_t index, Value value) = 0;
+
     //! Calls the named method with the given args
     virtual Value call(const std::string &name, const Argument_list &args) = 0;
   };

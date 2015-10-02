@@ -441,9 +441,81 @@ the shcore class of the object.");
 PyDoc_STRVAR(call_doc,
 "callmethod(method_name, ...) -> value");
 
+Py_ssize_t object_length(PyShObjObject *self)
+{
+  return self->object->get()->get_member("__length__").as_uint();
+}
+
+PyObject *object_item(PyShObjObject *self, Py_ssize_t index)
+{
+  Python_context *ctx;
+
+  if (!(ctx = Python_context::get_and_check()))
+    return NULL;
+
+  Py_ssize_t length = object_length(self);
+
+  if (index < 0 || index >= length)
+  {
+    Python_context::set_python_error(PyExc_IndexError, "object index out of range");
+    return NULL;
+  }
+
+  try
+  {
+    return ctx->shcore_value_to_pyobj(self->object->get()->get_member(index));
+  }
+  catch (std::exception &exc)
+  {
+    Python_context::set_python_error(PyExc_RuntimeError, exc.what());
+    return NULL;
+  }
+}
+
+int object_assign(PyShObjObject *self, Py_ssize_t index, PyObject *value)
+{
+  Python_context *ctx = Python_context::get_and_check();
+  if (!ctx) return -1;
+
+  Py_ssize_t length = object_length(self);
+
+  if (index < 0 || index >= length)
+  {
+    Python_context::set_python_error(PyExc_IndexError, "object index out of range");
+    return -1;
+  }
+
+  try
+  {
+    self->object->get()->set_member(index, ctx->pyobj_to_shcore_value(value));
+
+    return 0;
+  }
+  catch (std::exception &exc)
+  {
+    Python_context::set_python_error(PyExc_RuntimeError, exc.what());
+  }
+
+  return -1;
+}
+
 static PyMethodDef PyShObjMethods[] = {
   { "__callmethod__", (PyCFunction)object_callmethod, METH_VARARGS, call_doc },
   { NULL, NULL, 0, NULL }
+};
+
+static PySequenceMethods PyShObject_as_sequence =
+{
+  (lenfunc)object_length,  // lenfunc sq_length;
+  0,  // binaryfunc sq_concat;
+  0,  // ssizeargfunc sq_repeat;
+  (ssizeargfunc)object_item,  // ssizeargfunc sq_item;
+  0,  // (ssizessizeargfunc)list_slice, // ssizessizeargfunc sq_slice;
+  (ssizeobjargproc)object_assign,  // ssizeobjargproc sq_ass_item;
+  0,  // (ssizessizeobjargproc)list_assign_slice,// ssizessizeobjargproc sq_ass_slice;
+  0,  // objobjproc sq_contains;
+  0,  // binaryfunc sq_inplace_concat;
+  0  // ssizeargfunc sq_inplace_repeat;
 };
 
 static PyTypeObject PyShObjObjectType =
@@ -528,8 +600,91 @@ static PyTypeObject PyShObjObjectType =
 #endif
 };
 
+static PyTypeObject PyShObjIndexedObjectType =
+{
+  PyObject_HEAD_INIT(&PyType_Type)  // PyObject_VAR_HEAD
+  0,
+  "shell.Object",  // char *tp_name; /* For printing, in format "<module>.<name>" */
+  sizeof(PyShObjObject), 0,  // int tp_basicsize, tp_itemsize; /* For allocation */
+
+  /* Methods to implement standard operations */
+
+  (destructor)object_dealloc,  // destructor tp_dealloc;
+  0,  // printfunc tp_print;
+  0,  // getattrfunc tp_getattr;
+  0,  // setattrfunc tp_setattr;
+  (cmpfunc)object_compare,  //  cmpfunc tp_compare;
+  0,  // (reprfunc)dict_repr, // reprfunc tp_repr;
+
+  /* Method suites for standard classes */
+
+  0,  // PyNumberMethods *tp_as_number;
+  &PyShObject_as_sequence,  // PySequenceMethods *tp_as_sequence;
+  0,  //  PyMappingMethods *tp_as_mapping;
+
+  /* More standard operations (here for binary compatibility) */
+
+  0, //  hashfunc tp_hash;
+  0,  // ternaryfunc tp_call;
+  (reprfunc)object_printable,  // reprfunc tp_str;
+  (getattrofunc)object_getattro,  // getattrofunc tp_getattro;
+  (setattrofunc)object_setattro,  //  setattrofunc tp_setattro;
+
+  /* Functions to access object as input/output buffer */
+  0,  // PyBufferProcs *tp_as_buffer;
+
+  /* Flags to define presence of optional/expanded features */
+  Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE, //  long tp_flags;
+
+  PyShObjDoc,  // char *tp_doc; /* Documentation string */
+
+  /* Assigned meaning in release 2.0 */
+  /* call function for all accessible objects */
+  0,  // traverseproc tp_traverse;
+
+  /* delete references to contained objects */
+  0,  // inquiry tp_clear;
+
+  /* Assigned meaning in release 2.1 */
+  /* rich comparisons */
+  0,  // richcmpfunc tp_richcompare;
+
+  /* weak reference enabler */
+  0,  // long tp_weakdictoffset;
+
+  /* Added in release 2.2 */
+  /* Iterators */
+  0,  // getiterfunc tp_iter;
+  0,  // iternextfunc tp_iternext;
+
+  /* Attribute descriptor and subclassing stuff */
+  PyShObjMethods,  // struct PyMethodDef *tp_methods;
+  0,  // struct PyMemberDef *tp_members;
+  0,  //  struct PyGetSetDef *tp_getset;
+  0,  // struct _typeobject *tp_base;
+  0,  // PyObject *tp_dict;
+  0,  // descrgetfunc tp_descr_get;
+  0,  // descrsetfunc tp_descr_set;
+  0,  // long tp_dictoffset;
+  (initproc)object_init,  // initproc tp_init;
+  PyType_GenericAlloc,  // allocfunc tp_alloc;
+  PyType_GenericNew,  // newfunc tp_new;
+  0,  // freefunc tp_free; /* Low-level free-memory routine */
+  0,  // inquiry tp_is_gc; /* For PyObject_IS_GC */
+  0,  // PyObject *tp_bases;
+  0,  // PyObject *tp_mro; /* method resolution order */
+  0,  // PyObject *tp_cache;
+  0,  // PyObject *tp_subclasses;
+  0,  // PyObject *tp_weakdict;
+  0,  // tp_del
+#if (PY_MAJOR_VERSION == 2) && (PY_MINOR_VERSION > 5)
+  0   // tp_version_tag
+#endif
+};
+
 void Python_context::init_shell_object_type()
 {
+  // Initializes the normal object
   PyShObjObjectType.tp_new = PyType_GenericNew;
   if (PyType_Ready(&PyShObjObjectType) < 0)
   {
@@ -540,11 +695,29 @@ void Python_context::init_shell_object_type()
   PyModule_AddObject(get_shell_module(), "Object", reinterpret_cast<PyObject *>(&PyShObjObjectType));
 
   _shell_object_class = PyDict_GetItemString(PyModule_GetDict(get_shell_module()), "Object");
+
+  // Initializes the indexed object
+  PyShObjIndexedObjectType.tp_new = PyType_GenericNew;
+  if (PyType_Ready(&PyShObjIndexedObjectType) < 0)
+  {
+    throw std::runtime_error("Could not initialize Shcore Indexed Object type in python");
+  }
+
+  Py_INCREF(&PyShObjIndexedObjectType);
+  PyModule_AddObject(get_shell_module(), "IndexedObject", reinterpret_cast<PyObject *>(&PyShObjIndexedObjectType));
+
+  _shell_indexed_object_class = PyDict_GetItemString(PyModule_GetDict(get_shell_module()), "IndexedObject");
 }
 
 PyObject *shcore::wrap(boost::shared_ptr<Object_bridge> object)
 {
-  PyShObjObject *wrapper = PyObject_New(PyShObjObject, &PyShObjObjectType);
+  PyShObjObject *wrapper;
+
+  if (object->is_indexed())
+    wrapper = PyObject_New(PyShObjObject, &PyShObjIndexedObjectType);
+  else
+    wrapper = PyObject_New(PyShObjObject, &PyShObjObjectType);
+
   wrapper->object = new Object_bridge_ref(object);
   wrapper->cache = new PyMemberCache();
   return reinterpret_cast<PyObject*>(wrapper);
@@ -555,7 +728,8 @@ bool shcore::unwrap(PyObject *value, boost::shared_ptr<Object_bridge> &ret_objec
   Python_context *ctx = Python_context::get_and_check();
   if (!ctx) return false;
 
-  if (PyObject_IsInstance(value, ctx->get_shell_object_class()))
+  if (PyObject_IsInstance(value, ctx->get_shell_object_class()) ||
+      PyObject_IsInstance(value, ctx->get_shell_indexed_object_class()))
   {
     ret_object = *((PyShObjObject*)value)->object;
     return true;

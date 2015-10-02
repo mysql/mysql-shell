@@ -51,6 +51,7 @@ JScript_type_bridger::JScript_type_bridger(JScript_context *context)
 void JScript_type_bridger::init()
 {
   object_wrapper = new JScript_object_wrapper(owner);
+  indexed_object_wrapper = new JScript_object_wrapper(owner, true);
   map_wrapper = new JScript_map_wrapper(owner);
   array_wrapper = new JScript_array_wrapper(owner);
   function_wrapper = new JScript_function_wrapper(owner);
@@ -59,6 +60,7 @@ void JScript_type_bridger::init()
 JScript_type_bridger::~JScript_type_bridger()
 {
   delete object_wrapper;
+  delete indexed_object_wrapper;
   delete function_wrapper;
   delete map_wrapper;
   delete array_wrapper;
@@ -79,7 +81,7 @@ v8::Handle<v8::Value> JScript_type_bridger::native_object_to_js(Object_bridge_re
     return v8::Date::New(owner->isolate(), date->as_ms());
   }
 
-  return object_wrapper->wrap(object);
+  return object->is_indexed() ? indexed_object_wrapper->wrap(object) : object_wrapper->wrap(object);
 }
 
 Object_bridge_ref JScript_type_bridger::js_object_to_native(v8::Handle<v8::Object> object)

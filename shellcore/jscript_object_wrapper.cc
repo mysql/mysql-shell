@@ -25,28 +25,26 @@
 
 using namespace shcore;
 
-
-
 static int magic_pointer = 0;
 
-JScript_object_wrapper::JScript_object_wrapper(JScript_context *context)
+JScript_object_wrapper::JScript_object_wrapper(JScript_context *context, bool indexed)
 : _context(context)
 {
   v8::Handle<v8::ObjectTemplate> templ = v8::ObjectTemplate::New(_context->isolate());
   _object_template.Reset(_context->isolate(), templ);
 
   templ->SetNamedPropertyHandler(&JScript_object_wrapper::handler_getter, &JScript_object_wrapper::handler_setter, 0, 0, &JScript_object_wrapper::handler_enumerator);
-  templ->SetIndexedPropertyHandler(&JScript_object_wrapper::handler_igetter, &JScript_object_wrapper::handler_isetter, 0, 0, &JScript_object_wrapper::handler_ienumerator);
+
+  if (indexed)
+    templ->SetIndexedPropertyHandler(&JScript_object_wrapper::handler_igetter, &JScript_object_wrapper::handler_isetter, 0, 0, &JScript_object_wrapper::handler_ienumerator);
 
   templ->SetInternalFieldCount(3);
 }
-
 
 JScript_object_wrapper::~JScript_object_wrapper()
 {
   _object_template.Reset();
 }
-
 
 v8::Handle<v8::Object> JScript_object_wrapper::wrap(boost::shared_ptr<Object_bridge> object)
 {
@@ -69,14 +67,12 @@ v8::Handle<v8::Object> JScript_object_wrapper::wrap(boost::shared_ptr<Object_bri
   return obj;
 }
 
-
 void JScript_object_wrapper::wrapper_deleted(const v8::WeakCallbackData<v8::Object, boost::shared_ptr<Object_bridge> >& data)
 {
   // the JS wrapper object was deleted, so we also free the shared-ref to the object
   v8::HandleScope hscope(data.GetIsolate());
   delete data.GetParameter();
 }
-
 
 void JScript_object_wrapper::handler_getter(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
 {
@@ -91,14 +87,14 @@ void JScript_object_wrapper::handler_getter(v8::Local<v8::String> property, cons
   v8::String::Utf8Value prop(property);
   /*if (prop == "__members__")
   {
-    std::vector<std::string> members((*object)->get_members());
-    v8::Handle<v8::Array> marray = v8::Array::New(info.GetIsolate());
-    int i = 0;
-    for (std::vector<std::string>::const_iterator iter = members.begin(); iter != members.end(); ++iter, ++i)
-    {
-      marray->Set(i, v8::String::NewFromUtf8(info.GetIsolate(), iter->c_str()));
-    }
-    info.GetReturnValue().Set(marray);
+  std::vector<std::string> members((*object)->get_members());
+  v8::Handle<v8::Array> marray = v8::Array::New(info.GetIsolate());
+  int i = 0;
+  for (std::vector<std::string>::const_iterator iter = members.begin(); iter != members.end(); ++iter, ++i)
+  {
+  marray->Set(i, v8::String::NewFromUtf8(info.GetIsolate(), iter->c_str()));
+  }
+  info.GetReturnValue().Set(marray);
   }
   else*/
   if (strcmp(*prop, "length") == 0 && (*object)->has_member("__length__"))
@@ -128,7 +124,6 @@ void JScript_object_wrapper::handler_getter(v8::Local<v8::String> property, cons
   }
 }
 
-
 void JScript_object_wrapper::handler_setter(v8::Local<v8::String> property, v8::Local<v8::Value> value, const v8::PropertyCallbackInfo<v8::Value>& info)
 {
   v8::HandleScope hscope(info.GetIsolate());
@@ -151,7 +146,6 @@ void JScript_object_wrapper::handler_setter(v8::Local<v8::String> property, v8::
   }
 }
 
-
 void JScript_object_wrapper::handler_enumerator(const v8::PropertyCallbackInfo<v8::Array>& info)
 {
   v8::HandleScope hscope(info.GetIsolate());
@@ -171,7 +165,6 @@ void JScript_object_wrapper::handler_enumerator(const v8::PropertyCallbackInfo<v
   info.GetReturnValue().Set(marray);
 }
 
-
 void JScript_object_wrapper::handler_igetter(uint32_t i, const v8::PropertyCallbackInfo<v8::Value>& info)
 {
   v8::HandleScope hscope(info.GetIsolate());
@@ -185,7 +178,7 @@ void JScript_object_wrapper::handler_igetter(uint32_t i, const v8::PropertyCallb
   {
     try
     {
-      Value member = (*object)->get_member((boost::format("%u")%i).str());
+      Value member = (*object)->get_member(i);
       info.GetReturnValue().Set(self->_context->shcore_value_to_v8_value(member));
     }
     catch (Exception &exc)
@@ -194,7 +187,6 @@ void JScript_object_wrapper::handler_igetter(uint32_t i, const v8::PropertyCallb
     }
   }
 }
-
 
 void JScript_object_wrapper::handler_isetter(uint32_t i, v8::Local<v8::Value> value, const v8::PropertyCallbackInfo<v8::Value>& info)
 {
@@ -208,7 +200,7 @@ void JScript_object_wrapper::handler_isetter(uint32_t i, v8::Local<v8::Value> va
 
   try
   {
-    (*object)->set_member((boost::format("%u")%i).str(), self->_context->v8_value_to_shcore_value(value));
+    (*object)->set_member(i, self->_context->v8_value_to_shcore_value(value));
     info.GetReturnValue().Set(value);
   }
   catch (Exception &exc)
@@ -216,7 +208,6 @@ void JScript_object_wrapper::handler_isetter(uint32_t i, v8::Local<v8::Value> va
     info.GetIsolate()->ThrowException(self->_context->shcore_value_to_v8_value(Value(exc.error())));
   }
 }
-
 
 void JScript_object_wrapper::handler_ienumerator(const v8::PropertyCallbackInfo<v8::Array>& info)
 {
@@ -238,8 +229,6 @@ void JScript_object_wrapper::handler_ienumerator(const v8::PropertyCallbackInfo<
   }
   info.GetReturnValue().Set(marray);
 }
-
-
 
 bool JScript_object_wrapper::unwrap(v8::Handle<v8::Object> value, boost::shared_ptr<Object_bridge> &ret_object)
 {

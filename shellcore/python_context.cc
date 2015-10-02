@@ -330,6 +330,11 @@ namespace shcore
     return _shell_object_class;
   }
 
+  AutoPyObject Python_context::get_shell_indexed_object_class()
+  {
+    return _shell_indexed_object_class;
+  }
+
   AutoPyObject Python_context::get_shell_function_class()
   {
     return _shell_function_class;

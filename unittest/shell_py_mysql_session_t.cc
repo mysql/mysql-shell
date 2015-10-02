@@ -361,8 +361,8 @@ namespace shcore {
     exec_and_out_equals("session.rollback()");
 
     exec_and_out_equals("result = session.executeSql('select count(*) from sample')");
-    // TODO: Expected output should be fixed once the python index accessor is fixed
-    exec_and_out_contains("print(result.next())", "0", "");
+    exec_and_out_equals("data = result.next()");
+    exec_and_out_equals("print(data[0])", "0", "");
 
     // Test the commit
     exec_and_out_equals("session.startTransaction()");
@@ -374,8 +374,8 @@ namespace shcore {
     exec_and_out_equals("session.commit()");
 
     exec_and_out_equals("result = session.executeSql('select count(*) from sample')");
-    // TODO: Expected output should be fixed once the python index accessor is fixed
-    exec_and_out_contains("print(result.next())", "3", "");
+    exec_and_out_equals("data = result.next()");
+    exec_and_out_equals("print(data[0])", "3", "");
 
     // Drops the database
     exec_and_out_equals("s.drop()");

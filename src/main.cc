@@ -1053,6 +1053,7 @@ int main(int argc, char **argv)
     {
       std::string version_msg("MySQL X Shell Version ");
       version_msg += MYSH_VERSION;
+      version_msg += "\n";
       shell.print(version_msg);
       ret_val = options.exit_code;
     }
