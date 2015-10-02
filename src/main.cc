@@ -490,7 +490,7 @@ void Interactive_shell::print_error(const std::string &error)
       message = error_val.descr();
   }
 
-  std::cerr << message << "\n";
+  std::cerr << message << std::flush;
 }
 
 void Interactive_shell::print_json_info(const std::string &info, const std::string& label)
