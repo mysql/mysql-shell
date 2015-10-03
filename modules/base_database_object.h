@@ -60,7 +60,6 @@ namespace mysh
 
     shcore::Value get_member_method(const shcore::Argument_list &args, const std::string& method, const std::string& prop);
 
-    shcore::Value drop(const shcore::Argument_list &args);
     shcore::Value existInDatabase(const shcore::Argument_list &args);
 
 #ifdef DOXYGEN

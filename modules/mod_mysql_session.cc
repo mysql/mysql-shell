@@ -103,6 +103,9 @@ ClassicSession::ClassicSession()
   add_method("startTransaction", boost::bind(&ClassicSession::startTransaction, this, _1), "data");
   add_method("commit", boost::bind(&ClassicSession::commit, this, _1), "data");
   add_method("rollback", boost::bind(&ClassicSession::rollback, this, _1), "data");
+  add_method("dropSchema", boost::bind(&ClassicSession::dropSchema, this, _1), "data");
+  add_method("dropTable", boost::bind(&ClassicSession::dropSchemaObject, this, _1, "Table"), "data");
+  add_method("dropView", boost::bind(&ClassicSession::dropSchemaObject, this, _1, "View"), "data");
 
   _schemas.reset(new shcore::Value::Map_type);
 }
@@ -547,31 +550,80 @@ boost::shared_ptr<shcore::Object_bridge> ClassicSession::create(const shcore::Ar
   return session;
 }
 
-void ClassicSession::drop_db_object(const std::string &type, const std::string &name, const std::string& owner)
+#ifdef DOXYGEN
+/**
+* Drops the schema with the specified name.
+* \return A ClassicResultset object if succeeded.
+* \exception An error is raised if the schema did not exist.
+*/
+ClassicResultset ClassicSession::dropSchema(String name){}
+#endif
+shcore::Value ClassicSession::dropSchema(const shcore::Argument_list &args)
 {
+  std::string function = class_name() + ".dropSchema";
+
+  args.ensure_count(1, function.c_str());
+
+  if (args[0].type != shcore::String)
+    throw shcore::Exception::argument_error(function + ": Argument #1 is expected to be a string");
+
+  std::string name = args[0].as_string();
+
+  Value ret_val = Value::wrap(new ClassicResultset(boost::shared_ptr<Result>(_conn->executeSql("drop schema " + get_quoted_name(name)))));
+
+  _remove_schema(name);
+
+  return ret_val;
+}
+
+#ifdef DOXYGEN
+/**
+* Drops a table from the specified schema.
+* \return A ClassicResultset object if succeeded.
+* \exception An error is raised if the table did not exist.
+*/
+ClassicResultset ClassicSession::dropTable(String schema, String name){}
+
+/**
+* Drops a view from the specified schema.
+* \return A ClassicResultset object if succeeded.
+* \exception An error is raised if the view did not exist.
+*/
+ClassicResultset ClassicSession::dropView(String schema, String name){}
+#endif
+shcore::Value ClassicSession::dropSchemaObject(const shcore::Argument_list &args, const std::string& type)
+{
+  std::string function = class_name() + ".drop" + type;
+
+  args.ensure_count(2, function.c_str());
+
+  if (args[0].type != shcore::String)
+    throw shcore::Exception::argument_error(function + ": Argument #1 is expected to be a string");
+
+  if (args[1].type != shcore::String)
+    throw shcore::Exception::argument_error(function + ": Argument #2 is expected to be a string");
+
+  std::string schema = args[0].as_string();
+  std::string name = args[1].as_string();
+
   std::string statement;
-
-  if (type == "ClassicSchema")
-    statement = "drop schema `" + name + "`";
-  else if (type == "ClassicView")
-    statement = "drop view `" + owner + "`.`" + name + "`";
+  if (type == "Table")
+    statement = "drop table ";
   else
-    statement = "drop table `" + owner + "`.`" + name + "`";
+    statement = "drop view ";
 
-  // We execute the statement, any error will be reported properly
-  _conn->executeSql(statement);
+  statement += get_quoted_name(schema) + "." + get_quoted_name(name);
 
-  if (type == "ClassicSchema")
-    _remove_schema(name);
-  else
+  Value ret_val = Value::wrap(new ClassicResultset(boost::shared_ptr<Result>(_conn->executeSql(statement))));
+
+  if (_schemas->count(schema))
   {
-    if (_schemas->count(owner))
-    {
-      boost::shared_ptr<ClassicSchema> schema = boost::static_pointer_cast<ClassicSchema>((*_schemas)[owner].as_object());
-      if (schema)
-        schema->_remove_object(name, type);
-    }
+    boost::shared_ptr<ClassicSchema> schema_obj = boost::static_pointer_cast<ClassicSchema>((*_schemas)[schema].as_object());
+    if (schema_obj)
+      schema_obj->_remove_object(name, type);
   }
+
+  return ret_val;
 }
 
 /*

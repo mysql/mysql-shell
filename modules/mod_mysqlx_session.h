@@ -116,6 +116,9 @@ namespace mysh
       virtual shcore::Value startTransaction(const shcore::Argument_list &args);
       virtual shcore::Value commit(const shcore::Argument_list &args);
       virtual shcore::Value rollback(const shcore::Argument_list &args);
+      virtual shcore::Value dropSchema(const shcore::Argument_list &args);
+      virtual shcore::Value dropSchemaObject(const shcore::Argument_list &args, const std::string& type);
+
       shcore::Value executeAdminCommand(const std::string& command, const shcore::Argument_list &args);
       shcore::Value executeSql(const std::string& query, const shcore::Argument_list &args);
       virtual bool is_connected() const { return _session ? true : false; }
@@ -123,7 +126,6 @@ namespace mysh
 
       virtual shcore::Value get_schema(const shcore::Argument_list &args) const;
 
-      virtual void drop_db_object(const std::string &type, const std::string &name, const std::string& owner);
       virtual bool db_object_exists(std::string &type, const std::string &name, const std::string& owner);
 
       shcore::Value set_fetch_warnings(const shcore::Argument_list &args);
@@ -147,6 +149,11 @@ namespace mysh
       Resultset startTransaction();
       Resultset commit();
       Resultset rollback();
+      Resultset dropSchema(String name);
+      Resultset dropTable(String schema, String name);
+      Resultset dropCollection(String schema, String name);
+      Resultset dropView(String schema, String name);
+
 #endif
     protected:
       ::mysqlx::ArgumentValue get_argument_value(shcore::Value source);

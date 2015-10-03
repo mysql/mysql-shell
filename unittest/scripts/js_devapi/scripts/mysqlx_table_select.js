@@ -186,5 +186,5 @@ print('Select Binding Name:', records[0].name, '\n');
 
 
 // Cleanup
-schema.drop();
+mySession.dropSchema('js_shell_test');
 mySession.close();

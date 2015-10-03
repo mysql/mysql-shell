@@ -105,5 +105,5 @@ print('Records Left:', docs.length, '\n');
 
 
 // Cleanup
-schema.drop();
+mySession.dropSchema('js_shell_test');
 mySession.close();

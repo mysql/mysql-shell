@@ -133,7 +133,7 @@ function ensure_not_my_collection_collection() {
       throw "my_collection collection does not exist";
 
     print ("Dropping my_collection...\n");
-    test_coll.drop();
+    session.dropCollection('test', 'my_collection');
   }
   catch(err){
     print("my_collection does not exist...\n");

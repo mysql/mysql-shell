@@ -1,4 +1,4 @@
-// Assumptions: test schema exists on db, my_collection collection exists
+// Assumptions: test schema assigned to db, my_collection collection exists
 
 // using a books unique ISBN as the object ID
 var myColl = db.getCollection('my_collection');

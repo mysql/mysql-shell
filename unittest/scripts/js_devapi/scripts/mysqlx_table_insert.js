@@ -88,5 +88,5 @@ result = table.insert({'age':14, 'name':'jackie', 'gender': 'female'}).execute()
 print("Affected Rows Document:", result.affectedRows, "\n");
 
 // Cleanup
-schema.drop();
+mySession.dropSchema('js_shell_test');
 mySession.close();

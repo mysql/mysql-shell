@@ -138,5 +138,5 @@ records = table.select().where('gender = \"female\"').execute().all();
 print('All Females:', records.length, '\n');
 
 // Cleanup
-schema.drop();
+mySession.dropSchema('js_shell_test');
 mySession.close();

@@ -49,5 +49,5 @@ result = collection.add({name: 'my fourth', passed: 'again', count: 4}).add({nam
 print("Affected Rows Chained:", result.affectedRows, "\n");
 
 // Cleanup
-schema.drop();
+mySession.dropSchema('js_shell_test');
 mySession.close();

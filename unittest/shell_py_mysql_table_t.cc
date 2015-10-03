@@ -109,7 +109,7 @@ namespace shcore {
     exec_and_out_equals("print(table.schema)", "<ClassicSchema:py_shell_test>");
   }
 
-  // Tests table.drop() and table.existInDatabase()
+  // Tests session.dropTable() and table.existInDatabase()
   TEST_F(Shell_py_mysql_table_tests, mysql_table_drop_exist_in_database)
   {
     exec_and_out_equals("schema = session.createSchema('my_sample_schema')");
@@ -120,11 +120,11 @@ namespace shcore {
 
     exec_and_out_equals("print(table.existInDatabase())", "True");
 
-    exec_and_out_equals("table.drop()");
+    exec_and_out_equals("session.dropTable('my_sample_schema', 'my_sample_table')");
 
     exec_and_out_equals("print(table.existInDatabase())", "False");
 
-    exec_and_out_equals("schema.drop()");
+    exec_and_out_equals("session.dropSchema('my_sample_schema')");
 
     exec_and_out_equals("session.close();");
   }

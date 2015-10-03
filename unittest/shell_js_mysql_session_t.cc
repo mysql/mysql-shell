@@ -331,7 +331,7 @@ namespace shcore {
 
     exec_and_out_equals("print(s);", "<ClassicSchema:classic schema>");
 
-    exec_and_out_equals("s.drop()");
+    exec_and_out_equals("session.dropSchema('classic schema')");
 
     // Error, existing schema
     exec_and_out_contains("var s2 = session.createSchema('mysql_test_create_schema_1');", "", "MySQLError (1007): Can't create database 'mysql_test_create_schema_1'; database exists");
@@ -385,7 +385,7 @@ namespace shcore {
     exec_and_out_equals("print(result.next()[0])", "3", "");
 
     // Drops the database
-    exec_and_out_equals("s.drop();");
+    exec_and_out_equals("session.dropSchema('py_tx_schema');");
 
     exec_and_out_equals("session.close();");
   }

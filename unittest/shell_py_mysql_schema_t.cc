@@ -158,14 +158,14 @@ namespace shcore {
     exec_and_out_equals("print(session.py_shell_test.view1)", "<ClassicView:view1>");
   }
 
-  // Tests schema.drop() and schema.existInDatabase()
+  // Tests session.dropSchema() and schema.existInDatabase()
   TEST_F(Shell_py_mysql_schema_tests, mysql_schema_drop_exist_in_database)
   {
     exec_and_out_equals("schema = session.createSchema('my_sample_schema')");
 
     exec_and_out_equals("print(schema.existInDatabase())", "True");
 
-    exec_and_out_equals("schema.drop()");
+    exec_and_out_equals("session.dropSchema('my_sample_schema')");
 
     exec_and_out_equals("print(schema.existInDatabase())", "False");
 

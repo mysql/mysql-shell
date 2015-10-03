@@ -1,2 +1,2 @@
 |Data inserted successfully|
-myColl.drop()||
+session.dropCollection('test','my_collection')||

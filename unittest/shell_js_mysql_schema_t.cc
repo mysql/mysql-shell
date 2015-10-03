@@ -158,14 +158,14 @@ namespace shcore {
     exec_and_out_equals("print(session.js_shell_test.view1)", "<ClassicView:view1>");
   }
 
-  // Tests schema.drop() and schema.existInDatabase()
+  // Tests session.dropSchema() and schema.existInDatabase()
   TEST_F(Shell_js_mysql_schema_tests, mysql_schema_drop_exist_in_database)
   {
     exec_and_out_equals("var schema = session.createSchema('my_sample_schema');");
 
     exec_and_out_equals("print(schema.existInDatabase());", "true");
 
-    exec_and_out_equals("schema.drop();");
+    exec_and_out_equals("session.dropSchema('my_sample_schema');");
 
     exec_and_out_equals("print(schema.existInDatabase());", "false");
 

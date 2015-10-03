@@ -198,7 +198,7 @@ namespace shcore {
     exec_and_out_equals("print(collection)", "<Collection:test_collection>");
   }
 
-  // Tests schema.drop() and schema.existInDatabase()
+  // Tests session.dropSchema() and schema.existInDatabase()
   TEST_F(Shell_py_mysqlx_schema_tests, mysqlx_schema_drop_exist_in_database)
   {
     exec_and_out_equals("schema = session.createSchema('my_sample_schema')");
@@ -207,7 +207,7 @@ namespace shcore {
 
     exec_and_out_equals("print(schema.name)", "my_sample_schema");
 
-    exec_and_out_equals("schema.drop()");
+    exec_and_out_equals("session.dropSchema('my_sample_schema')");
 
     exec_and_out_equals("print(schema.existInDatabase())", "False");
   }

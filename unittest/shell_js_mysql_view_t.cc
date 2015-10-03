@@ -110,7 +110,7 @@ namespace shcore {
     exec_and_out_equals("print(view.schema)", "<ClassicSchema:js_shell_test>");
   }
 
-  // Tests view.drop() and view.existInDatabase()
+  // Tests session.dropView() and view.existInDatabase()
   TEST_F(Shell_js_mysql_view_tests, mysql_view_drop_exist_in_database)
   {
     exec_and_out_equals("var schema = session.createSchema('my_sample_schema');");
@@ -123,11 +123,11 @@ namespace shcore {
 
     exec_and_out_equals("print(view.existInDatabase());", "true");
 
-    exec_and_out_equals("view.drop();");
+    exec_and_out_equals("session.dropView('my_sample_schema','my_sample_view');");
 
     exec_and_out_equals("print(view.existInDatabase());", "false");
 
-    exec_and_out_equals("schema.drop();");
+    exec_and_out_equals("session.dropSchema('my_sample_schema');");
 
     exec_and_out_equals("session.close();");
   }

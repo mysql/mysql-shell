@@ -109,6 +109,8 @@ namespace mysh
       virtual shcore::Value startTransaction(const shcore::Argument_list &args);
       virtual shcore::Value commit(const shcore::Argument_list &args);
       virtual shcore::Value rollback(const shcore::Argument_list &args);
+      virtual shcore::Value dropSchema(const shcore::Argument_list &args);
+      virtual shcore::Value dropSchemaObject(const shcore::Argument_list &args, const std::string& type);
 
       virtual bool is_connected() const { return _conn ? true : false; }
 
@@ -116,7 +118,6 @@ namespace mysh
       virtual shcore::Value get_schema(const shcore::Argument_list &args) const;
       shcore::Value set_current_schema(const shcore::Argument_list &args);
 
-      virtual void drop_db_object(const std::string &type, const std::string &name, const std::string& owner);
       virtual bool db_object_exists(std::string &type, const std::string &name, const std::string& owner);
 
       static boost::shared_ptr<shcore::Object_bridge> create(const shcore::Argument_list &args);
@@ -141,8 +142,11 @@ namespace mysh
       ClassicResultset startTransaction();
       ClassicResultset commit();
       ClassicResultset rollback();
-#endif
+      ClassicResultset dropSchema(String name);
+      ClassicResultset dropTable(String schema, String name);
+      ClassicResultset dropView(String schema, String name);
 
+#endif
     private:
       std::string _retrieve_current_schema();
       void _load_schemas();

@@ -89,12 +89,12 @@ void ClassicSchema::cache_table_objects()
 
 void ClassicSchema::_remove_object(const std::string& name, const std::string& type)
 {
-  if (type == "ClassicView")
+  if (type == "View")
   {
     if (_views->count(name))
       _views->erase(name);
   }
-  else if (type == "ClassicTable")
+  else if (type == "Table")
   {
     if (_tables->count(name))
       _tables->erase(name);

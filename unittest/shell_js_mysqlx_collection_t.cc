@@ -16,15 +16,7 @@
 * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
 * 02110-1301  USA
 */
-
-#include <cstdio>
-#include <cstdlib>
-#include <fstream>
-#include <string>
-
-#include "gtest/gtest.h"
 #include "shell_script_tester.h"
-#include "base_session.h"
 
 namespace shcore
 {

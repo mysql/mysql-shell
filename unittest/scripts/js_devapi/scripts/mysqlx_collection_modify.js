@@ -248,5 +248,5 @@ doc = result.next();
 print(dir(doc));
 
 // Cleanup
-schema.drop();
+mySession.dropSchema('js_shell_test');
 mySession.close();

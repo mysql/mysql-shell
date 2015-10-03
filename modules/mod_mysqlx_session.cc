@@ -120,6 +120,11 @@ BaseSession::BaseSession()
   add_method("startTransaction", boost::bind(&BaseSession::startTransaction, this, _1), "data");
   add_method("commit", boost::bind(&BaseSession::commit, this, _1), "data");
   add_method("rollback", boost::bind(&BaseSession::rollback, this, _1), "data");
+
+  add_method("dropSchema", boost::bind(&BaseSession::dropSchema, this, _1), "data");
+  add_method("dropTable", boost::bind(&BaseSession::dropSchemaObject, this, _1, "Table"), "data");
+  add_method("dropCollection", boost::bind(&BaseSession::dropSchemaObject, this, _1, "Collection"), "data");
+  add_method("dropView", boost::bind(&BaseSession::dropSchemaObject, this, _1, "View"), "data");
 }
 
 Value BaseSession::connect(const Argument_list &args)
@@ -666,32 +671,90 @@ shcore::Value BaseSession::set_fetch_warnings(const shcore::Argument_list &args)
   return ret_val;
 }
 
-void BaseSession::drop_db_object(const std::string &type, const std::string &name, const std::string& owner)
+#ifdef DOXYGEN
+/**
+* Drops the schema with the specified name.
+* \return A Resultset object if succeeded.
+* \exception An error is raised if the schema did not exist.
+*/
+ClassicResultset BaseSession::dropSchema(String name){}
+#endif
+shcore::Value BaseSession::dropSchema(const shcore::Argument_list &args)
 {
-  if (type == "Schema")
-    executeStmt("sql", "drop schema `" + name + "`", shcore::Argument_list());
-  else if (type == "View")
-    executeStmt("sql", "drop view `" + owner + "`.`" + name + "`", shcore::Argument_list());
+  std::string function = class_name() + ".dropSchema";
+
+  args.ensure_count(1, function.c_str());
+
+  if (args[0].type != shcore::String)
+    throw shcore::Exception::argument_error(function + ": Argument #1 is expected to be a string");
+
+  std::string name = args[0].as_string();
+
+  Value ret_val = executeStmt("sql", "drop schema " + get_quoted_name(name), shcore::Argument_list());
+
+  _remove_schema(name);
+
+  return ret_val;
+}
+
+#ifdef DOXYGEN
+/**
+* Drops a table from the specified schema.
+* \return A Resultset object if succeeded.
+* \exception An error is raised if the table did not exist.
+*/
+Resultset BaseSession::dropTable(String schema, String name){}
+
+/**
+* Drops a collection from the specified schema.
+* \return A Resultset object if succeeded.
+* \exception An error is raised if the collection did not exist.
+*/
+ClassicResultset BaseSession::dropCollection(String schema, String name){}
+
+/**
+* Drops a view from the specified schema.
+* \return A Resultset object if succeeded.
+* \exception An error is raised if the view did not exist.
+*/
+ClassicResultset BaseSession::dropView(String schema, String name){}
+
+#endif
+shcore::Value BaseSession::dropSchemaObject(const shcore::Argument_list &args, const std::string& type)
+{
+  std::string function = class_name() + ".drop" + type;
+
+  args.ensure_count(2, function.c_str());
+
+  if (args[0].type != shcore::String)
+    throw shcore::Exception::argument_error(function + ": Argument #1 is expected to be a string");
+
+  if (args[1].type != shcore::String)
+    throw shcore::Exception::argument_error(function + ": Argument #2 is expected to be a string");
+
+  std::string schema = args[0].as_string();
+  std::string name = args[1].as_string();
+
+  shcore::Value ret_val;
+  if (type == "View")
+    ret_val = executeStmt("sql", "drop view " + get_quoted_name(schema) + "." + get_quoted_name(name) + "", shcore::Argument_list());
   else
   {
     shcore::Argument_list command_args;
-    command_args.push_back(Value(owner));
+    command_args.push_back(Value(schema));
     command_args.push_back(Value(name));
 
-    executeAdminCommand("drop_collection", command_args);
+    ret_val = executeAdminCommand("drop_collection", command_args);
   }
 
-  if (type == "Schema")
-    _remove_schema(name);
-  else
+  if (_schemas->count(schema))
   {
-    if (_schemas->count(owner))
-    {
-      boost::shared_ptr<Schema> schema = boost::static_pointer_cast<Schema>((*_schemas)[owner].as_object());
-      if (schema)
-        schema->_remove_object(name, type);
-    }
+    boost::shared_ptr<Schema> schema_obj = boost::static_pointer_cast<Schema>((*_schemas)[schema].as_object());
+    if (schema_obj)
+      schema_obj->_remove_object(name, type);
   }
+
+  return shcore::Value();
 }
 
 /*
