@@ -148,12 +148,16 @@ bool Row::operator == (const Object_bridge &UNUSED(other)) const
 
 bool Row::has_member(const std::string &prop) const
 {
+  bool ret_val = false;
+
   if (Cpp_object_bridge::has_member(prop))
-    return true;
-  if (prop == "length")
-    return true;
-  if (values.find(prop) != values.end())
-    return true;
+    ret_val = true;
+  else if (prop == "length")
+    ret_val = true;
+  else if (values.find(prop) != values.end())
+    ret_val = true;
+
+  return ret_val;
 }
 
 shcore::Value Row::get_field(const shcore::Argument_list &args)

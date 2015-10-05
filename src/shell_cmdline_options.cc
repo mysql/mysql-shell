@@ -162,7 +162,6 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
       }
 
       interactive = true;
-      int ret = strcmp(value, "full");
       full_interactive = (strcmp(value, "full") == 0);
     }
     else if (check_arg_with_value(argv, i, "--log-level", NULL, log_level_value))

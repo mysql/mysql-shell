@@ -100,7 +100,6 @@ boost::shared_ptr<Result_set> Simple_shell_client::process_line(const std::strin
 
 void Simple_shell_client::process_result(shcore::Value result)
 {
-  Interactive_input_state state = Input_ok;
   _last_result = boost::shared_ptr<Result_set>(new Result_set(-1, -1, ""));
 
   if (result)
@@ -116,7 +115,6 @@ void Simple_shell_client::process_result(shcore::Value result)
 
       shcore::Argument_list args;
       // If true returns as data array, if false, returns as document.
-      shcore::IShell_core::Mode mode = _shell->interactive_mode();
       if (!object->has_member("all") || !object->has_member("getColumnMetadata"))
         return;
       shcore::Value result = object->call("all", args);
