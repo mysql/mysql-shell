@@ -118,9 +118,6 @@ int Shell_core::process_stream(std::istream& stream, const std::string& source, 
   // In SQL Mode the stdin and file are processed line by line
   if (_mode == Shell_core::Mode_SQL)
   {
-    // Processing batch in SQL mode  must be "interactive" so the results get printed
-    (*Shell_core_options::get())[SHCORE_INTERACTIVE] = Value::True();
-
     while (!stream.eof())
     {
       std::string line;

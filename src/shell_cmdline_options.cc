@@ -36,7 +36,7 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
   std::string user;
   std::string protocol;
   std::string database;
-  
+
   char* log_level_value;
   bool needs_password = false;
 
@@ -118,10 +118,15 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
     }
     else if (check_arg(argv, i, "--sql", "--sql"))
       initial_mode = IShell_core::Mode_SQL;
-    else if (check_arg(argv, i, "--js", "--js"))
+    else if (check_arg(argv, i, "--js", "--javascript"))
       initial_mode = IShell_core::Mode_JScript;
-    else if (check_arg(argv, i, "--py", "--py"))
+    else if (check_arg(argv, i, "--py", "--python"))
       initial_mode = IShell_core::Mode_Python;
+    else if (check_arg(argv, i, NULL, "--sqlc"))
+    {
+      initial_mode = IShell_core::Mode_SQL;
+      session_type = mysh::Classic;
+    }
     else if (check_arg_with_value(argv, i, "--json", NULL, value, default_json))
     {
       if (strcmp(value, "raw") != 0 && strcmp(value, "pretty") != 0)
@@ -181,9 +186,14 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
     }
     else if (exit_code == 0)
     {
-      std::cerr << argv[0] << ": unknown option " << argv[i] << "\n";
-      exit_code = 1;
-      break;
+      if (argv[i][0] != '-')
+        database = argv[i];
+      else
+      {
+        std::cerr << argv[0] << ": unknown option " << argv[i] << "\n";
+        exit_code = 1;
+        break;
+      }
     }
   }
 

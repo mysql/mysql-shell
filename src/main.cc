@@ -157,7 +157,6 @@ _options(options)
   // Updates shell core options that changed upon initialization
   (*shcore_options)[SHCORE_BATCH_CONTINUE_ON_ERROR] = Value(_options.force);
   (*shcore_options)[SHCORE_INTERACTIVE] = Value(_options.interactive);
-
   if (!_options.output_format.empty())
     (*shcore_options)[SHCORE_OUTPUT_FORMAT] = Value(_options.output_format);
 
@@ -485,6 +484,7 @@ void Interactive_shell::print_error(const std::string &error)
         message.append((*error_map)["message"].as_string());
       else
         message.append("?");
+      message.append("\n");
     }
     else
       message = error_val.descr();
@@ -729,7 +729,8 @@ void Interactive_shell::process_line(const std::string &line)
 
 void Interactive_shell::process_result(shcore::Value result)
 {
-  if ((*Shell_core_options::get())[SHCORE_INTERACTIVE].as_bool())
+  if ((*Shell_core_options::get())[SHCORE_INTERACTIVE].as_bool()
+      || _shell->interactive_mode() == Shell_core::Mode_SQL)
   {
     if (result)
     {
@@ -921,7 +922,7 @@ void Interactive_shell::print_cmd_line_helper()
   println("affiliates. Other names may be trademarks of their respective");
   println("owners.");
   println("");
-  println("Usage: mysqlx [OPTIONS]");
+  println("Usage: mysqlx [OPTIONS] [db_name]");
   println("  --help                   Display this help and exit.");
   println("  -f, --file=file          Process file.");
   println("  --uri                    Connect to Uniform Resource Identifier.");
@@ -940,6 +941,7 @@ void Interactive_shell::print_cmd_line_helper()
   println("  --sql                    Start in SQL mode.");
   println("  --js                     Start in JavaScript mode.");
   println("  --py                     Start in Python mode.");
+  println("  --sc                     Shortcut for --sql --session-type=classic.");
   println("  --json                   Produce output in JSON format.");
   println("  --table                  Produce output in table format (default for interactive mode).");
   println("                           This option can be used to force that format when running in batch mode.");
@@ -964,7 +966,6 @@ void Interactive_shell::print_cmd_line_helper()
 // Interactive mode is used when:
 // - A file is processed using the --interactive option
 // - No file is processed
-// - The STDIN is opened by caller process
 //
 // An error occurs when both --file and STDIN redirection are used
 std::string detect_interactive(Shell_command_line_options &options, bool &from_stdin)
@@ -1003,8 +1004,8 @@ std::string detect_interactive(Shell_command_line_options &options, bool &from_s
     // Can't process both redirected file and file from parameter.
     if (from_file && !options.run_file.empty())
       error = "--file (-f) option is forbidden when redirecting a file to stdin.";
-    else
-      is_interactive = false;
+
+    is_interactive = false;
   }
   else
     is_interactive = options.run_file.empty();
@@ -1018,7 +1019,6 @@ std::string detect_interactive(Shell_command_line_options &options, bool &from_s
     is_interactive = true;
 
   options.interactive = is_interactive;
-
   return error;
 }
 

@@ -36,7 +36,7 @@ protected:
 
   bool check_arg(char **argv, int &argi, const char *arg, const char *larg)
   {
-    if (strcmp(argv[argi], arg) == 0 || strcmp(argv[argi], larg) == 0)
+    if ((arg && strcmp(argv[argi], arg) == 0) || (larg && strcmp(argv[argi], larg) == 0))
       return true;
     return false;
   }
