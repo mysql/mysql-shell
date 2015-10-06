@@ -1,2 +1,2 @@
-session.executeSql('select "first_result" as myresult');
+session.runSql('select "first_result" as myresult');
 

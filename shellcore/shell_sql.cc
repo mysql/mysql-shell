@@ -115,9 +115,9 @@ void Shell_sql::handle_input(std::string &code, Interactive_input_state &state, 
 
           try
           {
-            // ClassicSession has executeSql and returns a ClassicResult object
-            if (session->has_member("executeSql"))
-              ret_val = session->call("executeSql", query);
+            // ClassicSession has runSql and returns a ClassicResult object
+            if (session->has_member("runSql"))
+              ret_val = session->call("runSql", query);
 
             // NodeSession uses SqlExecute object in which we need to call
             // .execute() to get the Resultset object

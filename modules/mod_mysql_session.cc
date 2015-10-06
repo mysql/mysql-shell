@@ -95,7 +95,7 @@ ClassicSession::ClassicSession()
   //_schema_proxy.reset(new Proxy_object(boost::bind(&ClassicSession::get_db, this, _1)));
 
   add_method("close", boost::bind(&ClassicSession::close, this, _1), "data");
-  add_method("executeSql", boost::bind(&ClassicSession::execute_sql, this, _1),
+  add_method("runSql", boost::bind(&ClassicSession::run_sql, this, _1),
     "stmt", shcore::String,
     NULL);
   add_method("setCurrentSchema", boost::bind(&ClassicSession::set_current_schema, this, _1), "name", shcore::String, NULL);
@@ -234,9 +234,9 @@ Value ClassicSession::close(const shcore::Argument_list &args)
 * \return A ClassicResult object.
 * \exception An exception is thrown if an error occurs on the SQL execution.
 */
-ClassicResult ClassicSession::executeSql(String query){}
+ClassicResult ClassicSession::runSql(String query){}
 #endif
-Value ClassicSession::execute_sql(const shcore::Argument_list &args)
+Value ClassicSession::run_sql(const shcore::Argument_list &args)
 {
   args.ensure_count(1, "ClassicSession.sql");
   // Will return the result of the SQL execution
@@ -253,7 +253,7 @@ Value ClassicSession::execute_sql(const shcore::Argument_list &args)
     if (statement.empty())
       throw Exception::argument_error("No query specified.");
     else
-      ret_val = Value::wrap(new ClassicResult(boost::shared_ptr<Result>(_conn->execute_sql(statement))));
+      ret_val = Value::wrap(new ClassicResult(boost::shared_ptr<Result>(_conn->run_sql(statement))));
   }
 
   return ret_val;
@@ -286,7 +286,7 @@ Value ClassicSession::createSchema(const shcore::Argument_list &args)
     else
     {
       std::string statement = "create schema " + get_quoted_name(schema);
-      ret_val = Value::wrap(new ClassicResult(boost::shared_ptr<Result>(_conn->execute_sql(statement))));
+      ret_val = Value::wrap(new ClassicResult(boost::shared_ptr<Result>(_conn->run_sql(statement))));
 
       boost::shared_ptr<ClassicSchema> object(new ClassicSchema(shared_from_this(), schema));
 
@@ -419,7 +419,7 @@ std::string ClassicSession::_retrieve_current_schema()
     shcore::Argument_list query;
     query.push_back(Value("select schema()"));
 
-    Value res = execute_sql(query);
+    Value res = run_sql(query);
 
     boost::shared_ptr<ClassicResult> rset = res.as_object<ClassicResult>();
     Value next_row = rset->fetch_one(shcore::Argument_list());
@@ -444,7 +444,7 @@ void ClassicSession::_load_schemas()
     shcore::Argument_list query;
     query.push_back(Value("show databases;"));
 
-    Value res = execute_sql(query);
+    Value res = run_sql(query);
 
     shcore::Argument_list args;
     boost::shared_ptr<ClassicResult> rset = res.as_object<ClassicResult>();
@@ -533,7 +533,7 @@ shcore::Value ClassicSession::set_current_schema(const shcore::Argument_list &ar
     shcore::Argument_list query;
     query.push_back(Value("use " + name + ";"));
 
-    Value res = execute_sql(query);
+    Value res = run_sql(query);
   }
   else
     throw Exception::runtime_error("ClassicSession not connected");
@@ -569,7 +569,7 @@ shcore::Value ClassicSession::dropSchema(const shcore::Argument_list &args)
 
   std::string name = args[0].as_string();
 
-  Value ret_val = Value::wrap(new ClassicResult(boost::shared_ptr<Result>(_conn->execute_sql("drop schema " + get_quoted_name(name)))));
+  Value ret_val = Value::wrap(new ClassicResult(boost::shared_ptr<Result>(_conn->run_sql("drop schema " + get_quoted_name(name)))));
 
   _remove_schema(name);
 
@@ -614,7 +614,7 @@ shcore::Value ClassicSession::dropSchemaObject(const shcore::Argument_list &args
 
   statement += get_quoted_name(schema) + "." + get_quoted_name(name);
 
-  Value ret_val = Value::wrap(new ClassicResult(boost::shared_ptr<Result>(_conn->execute_sql(statement))));
+  Value ret_val = Value::wrap(new ClassicResult(boost::shared_ptr<Result>(_conn->run_sql(statement))));
 
   if (_schemas->count(schema))
   {
@@ -640,7 +640,7 @@ bool ClassicSession::db_object_exists(std::string &type, const std::string &name
   if (type == "ClassicSchema")
   {
     statement = "show databases like \"" + name + "\"";
-    Result *res = _conn->execute_sql(statement);
+    Result *res = _conn->run_sql(statement);
     if (res->has_resultset())
     {
       Row *row = res->fetch_one();
@@ -651,7 +651,7 @@ bool ClassicSession::db_object_exists(std::string &type, const std::string &name
   else
   {
     statement = "show full tables from `" + owner + "` like \"" + name + "\"";
-    Result *res = _conn->execute_sql(statement);
+    Result *res = _conn->run_sql(statement);
 
     if (res->has_resultset())
     {
@@ -696,7 +696,7 @@ shcore::Value ClassicSession::startTransaction(const shcore::Argument_list &args
   std::string function_name = class_name() + ".startTransaction";
   args.ensure_count(0, function_name.c_str());
 
-  return Value::wrap(new ClassicResult(boost::shared_ptr<Result>(_conn->execute_sql("start transaction"))));
+  return Value::wrap(new ClassicResult(boost::shared_ptr<Result>(_conn->run_sql("start transaction"))));
 }
 
 #ifdef DOXYGEN
@@ -715,7 +715,7 @@ shcore::Value ClassicSession::commit(const shcore::Argument_list &args)
   std::string function_name = class_name() + ".startTransaction";
   args.ensure_count(0, function_name.c_str());
 
-  return Value::wrap(new ClassicResult(boost::shared_ptr<Result>(_conn->execute_sql("commit"))));
+  return Value::wrap(new ClassicResult(boost::shared_ptr<Result>(_conn->run_sql("commit"))));
 }
 
 #ifdef DOXYGEN
@@ -734,5 +734,5 @@ shcore::Value ClassicSession::rollback(const shcore::Argument_list &args)
   std::string function_name = class_name() + ".startTransaction";
   args.ensure_count(0, function_name.c_str());
 
-  return Value::wrap(new ClassicResult(boost::shared_ptr<Result>(_conn->execute_sql("rollback"))));
+  return Value::wrap(new ClassicResult(boost::shared_ptr<Result>(_conn->run_sql("rollback"))));
 }

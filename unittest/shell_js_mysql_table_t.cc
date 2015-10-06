@@ -42,10 +42,10 @@ namespace shcore {
 
       exec_and_out_equals("var session = mysql.getClassicSession('" + _mysql_uri + "');");
 
-      exec_and_out_equals("session.executeSql('drop schema if exists js_shell_test;')");
+      exec_and_out_equals("session.runSql('drop schema if exists js_shell_test;')");
       exec_and_out_equals("session.createSchema('js_shell_test');");
       exec_and_out_equals("session.setCurrentSchema('js_shell_test');");
-      exec_and_out_equals("session.executeSql('create table table1 (name varchar(50));')");
+      exec_and_out_equals("session.runSql('create table table1 (name varchar(50));')");
     }
   };
 
@@ -114,7 +114,7 @@ namespace shcore {
   {
     exec_and_out_equals("var schema = session.createSchema('my_sample_schema');");
 
-    exec_and_out_equals("session.executeSql('create table my_sample_schema.my_sample_table (name varchar(50));');");
+    exec_and_out_equals("session.runSql('create table my_sample_schema.my_sample_table (name varchar(50));');");
 
     exec_and_out_equals("var table = schema.my_sample_table;");
 

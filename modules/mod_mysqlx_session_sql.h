@@ -46,9 +46,9 @@ namespace mysh
       shcore::Value bind(const shcore::Argument_list &args);
       virtual shcore::Value execute(const shcore::Argument_list &args);
 #ifdef DOXYGEN
-      sql(String statement);
-      bind(Value value);
-      bind(List values);
+      SqlExecute sql(String statement);
+      SqlExecute bind(Value value);
+      SqlExecute bind(List values);
       SqlResult execute(ExecuteOptions options);
 #endif
     private:

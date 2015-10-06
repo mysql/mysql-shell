@@ -50,9 +50,11 @@ namespace mysh
 #ifdef DOXYGEN
       Integer warningCount; //!< Same as getwarningCount()
       List warnings; //!< Same as getWarnings()
+      String executionTime; //!< Same as getExecutionTime()
 
       Integer getWarningCount();
       List getWarnings();
+      String getExecutionTime();
 #endif
 
     protected:
