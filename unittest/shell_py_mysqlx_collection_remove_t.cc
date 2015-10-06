@@ -170,27 +170,27 @@ namespace shcore {
     {
       SCOPED_TRACE("Testing remove");
       exec_and_out_equals("result = collection.remove('age = 13').execute()");
-      exec_and_out_equals("print(result.affectedRows)", "1");
+      exec_and_out_equals("print(result.affectedItemCount)", "1");
 
-      exec_and_out_equals("records = collection.find().execute().all()");
+      exec_and_out_equals("records = collection.find().execute().fetchAll()");
       exec_and_out_equals("print(len(records))", "6");
     }
 
     {
       SCOPED_TRACE("Testing remove with limits and bound values");
       exec_and_out_equals("result = collection.remove('gender = :heorshe').limit(2).bind('heorshe', 'male').execute()");
-      exec_and_out_equals("print(result.affectedRows)", "2");
+      exec_and_out_equals("print(result.affectedItemCount)", "2");
 
-      exec_and_out_equals("records = collection.find().execute().all()");
+      exec_and_out_equals("records = collection.find().execute().fetchAll()");
       exec_and_out_equals("print(len(records))", "4");
     }
 
     {
       SCOPED_TRACE("Testing full remove");
       exec_and_out_equals("result = collection.remove().execute()");
-      exec_and_out_equals("print(result.affectedRows)", "4");
+      exec_and_out_equals("print(result.affectedItemCount)", "4");
 
-      exec_and_out_equals("records = collection.find().execute().all()");
+      exec_and_out_equals("records = collection.find().execute().fetchAll()");
       exec_and_out_equals("print(len(records))", "0");
     }
 

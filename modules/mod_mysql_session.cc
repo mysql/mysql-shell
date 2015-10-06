@@ -31,6 +31,7 @@
 #include "shellcore/object_factory.h"
 #include "shellcore/shell_core.h"
 #include "shellcore/lang_base.h"
+#include "shellcore/server_registry.h"
 
 #include "shellcore/proxy_object.h"
 
@@ -94,11 +95,17 @@ ClassicSession::ClassicSession()
   //_schema_proxy.reset(new Proxy_object(boost::bind(&ClassicSession::get_db, this, _1)));
 
   add_method("close", boost::bind(&ClassicSession::close, this, _1), "data");
-  add_method("sql", boost::bind(&ClassicSession::sql, this, _1),
+  add_method("executeSql", boost::bind(&ClassicSession::execute_sql, this, _1),
     "stmt", shcore::String,
     NULL);
   add_method("setCurrentSchema", boost::bind(&ClassicSession::set_current_schema, this, _1), "name", shcore::String, NULL);
   add_method("getCurrentSchema", boost::bind(&ShellBaseSession::get_member_method, this, _1, "getCurrentSchema", "currentSchema"), NULL);
+  add_method("startTransaction", boost::bind(&ClassicSession::startTransaction, this, _1), "data");
+  add_method("commit", boost::bind(&ClassicSession::commit, this, _1), "data");
+  add_method("rollback", boost::bind(&ClassicSession::rollback, this, _1), "data");
+  add_method("dropSchema", boost::bind(&ClassicSession::dropSchema, this, _1), "data");
+  add_method("dropTable", boost::bind(&ClassicSession::dropSchemaObject, this, _1, "Table"), "data");
+  add_method("dropView", boost::bind(&ClassicSession::dropSchemaObject, this, _1, "View"), "data");
 
   _schemas.reset(new shcore::Value::Map_type);
 }
@@ -143,7 +150,29 @@ Value ClassicSession::connect(const Argument_list &args)
   }
   else if (args[0].type == Map)
   {
+    // TODO: Take into account datasource / app args
+    std::string data_source_file;
+    std::string app;
     shcore::Value::Map_type_ref options = args[0].as_map();
+
+    if (options->has_key("dataSourceFile"))
+    {
+      data_source_file = (*options)["dataSourceFile"].as_string();
+      app = (*options)["app"].as_string();
+
+      shcore::Server_registry sr(data_source_file);
+      shcore::Connection_options& conn = sr.get_connection_by_name(app);
+
+      host = conn.get_server();
+      port = boost::lexical_cast<int>(conn.get_port());
+      user = conn.get_user();
+      pass = conn.get_password();
+      db = conn.get_schema();
+
+      ssl_ca = conn.get_value_if_exists("ssl_ca");
+      ssl_cert = conn.get_value_if_exists("ssl_cert");
+      ssl_key = conn.get_value_if_exists("ssl_key");
+    }
 
     if (options->has_key("host"))
       host = (*options)["host"].as_string();
@@ -161,7 +190,7 @@ Value ClassicSession::connect(const Argument_list &args)
       pass = (*options)["dbPassword"].as_string();
 
     if (options->has_key("ssl_ca"))
-          ssl_ca = (*options)["ssl_ca"].as_string();
+      ssl_ca = (*options)["ssl_ca"].as_string();
 
     if (options->has_key("ssl_cert"))
       ssl_cert = (*options)["ssl_cert"].as_string();
@@ -200,14 +229,14 @@ Value ClassicSession::close(const shcore::Argument_list &args)
 
 #ifdef DOXYGEN
 /**
-* Executes a query against the database and returns a  ClassicResultset object wrapping the result.
+* Executes a query against the database and returns a  ClassicResult object wrapping the result.
 * \param query the SQL query to execute against the database.
-* \return A ClassicResultset object.
+* \return A ClassicResult object.
 * \exception An exception is thrown if an error occurs on the SQL execution.
 */
-ClassicResultset ClassicSession::sql(String query){}
+ClassicResult ClassicSession::executeSql(String query){}
 #endif
-Value ClassicSession::sql(const shcore::Argument_list &args)
+Value ClassicSession::execute_sql(const shcore::Argument_list &args)
 {
   args.ensure_count(1, "ClassicSession.sql");
   // Will return the result of the SQL execution
@@ -224,7 +253,7 @@ Value ClassicSession::sql(const shcore::Argument_list &args)
     if (statement.empty())
       throw Exception::argument_error("No query specified.");
     else
-      ret_val = Value::wrap(new ClassicResultset(boost::shared_ptr<Result>(_conn->executeSql(statement))));
+      ret_val = Value::wrap(new ClassicResult(boost::shared_ptr<Result>(_conn->execute_sql(statement))));
   }
 
   return ret_val;
@@ -256,8 +285,8 @@ Value ClassicSession::createSchema(const shcore::Argument_list &args)
       throw Exception::argument_error("The schema name can not be empty.");
     else
     {
-      std::string statement = "create schema " + schema;
-      ret_val = Value::wrap(new ClassicResultset(boost::shared_ptr<Result>(_conn->executeSql(statement))));
+      std::string statement = "create schema " + get_quoted_name(schema);
+      ret_val = Value::wrap(new ClassicResult(boost::shared_ptr<Result>(_conn->execute_sql(statement))));
 
       boost::shared_ptr<ClassicSchema> object(new ClassicSchema(shared_from_this(), schema));
 
@@ -390,10 +419,10 @@ std::string ClassicSession::_retrieve_current_schema()
     shcore::Argument_list query;
     query.push_back(Value("select schema()"));
 
-    Value res = sql(query);
+    Value res = execute_sql(query);
 
-    boost::shared_ptr<ClassicResultset> rset = res.as_object<ClassicResultset>();
-    Value next_row = rset->next(shcore::Argument_list());
+    boost::shared_ptr<ClassicResult> rset = res.as_object<ClassicResult>();
+    Value next_row = rset->fetch_one(shcore::Argument_list());
 
     if (next_row)
     {
@@ -415,11 +444,11 @@ void ClassicSession::_load_schemas()
     shcore::Argument_list query;
     query.push_back(Value("show databases;"));
 
-    Value res = sql(query);
+    Value res = execute_sql(query);
 
     shcore::Argument_list args;
-    boost::shared_ptr<ClassicResultset> rset = res.as_object<ClassicResultset>();
-    Value next_row = rset->next(args);
+    boost::shared_ptr<ClassicResult> rset = res.as_object<ClassicResult>();
+    Value next_row = rset->fetch_one(args);
     boost::shared_ptr<mysh::Row> row;
 
     while (next_row)
@@ -432,7 +461,7 @@ void ClassicSession::_load_schemas()
         (*_schemas)[schema.as_string()] = shcore::Value(boost::static_pointer_cast<Object_bridge>(object));
       }
 
-      next_row = rset->next(args);
+      next_row = rset->fetch_one(args);
     }
   }
 }
@@ -504,7 +533,7 @@ shcore::Value ClassicSession::set_current_schema(const shcore::Argument_list &ar
     shcore::Argument_list query;
     query.push_back(Value("use " + name + ";"));
 
-    Value res = sql(query);
+    Value res = execute_sql(query);
   }
   else
     throw Exception::runtime_error("ClassicSession not connected");
@@ -521,31 +550,80 @@ boost::shared_ptr<shcore::Object_bridge> ClassicSession::create(const shcore::Ar
   return session;
 }
 
-void ClassicSession::drop_db_object(const std::string &type, const std::string &name, const std::string& owner)
+#ifdef DOXYGEN
+/**
+* Drops the schema with the specified name.
+* \return A ClassicResult object if succeeded.
+* \exception An error is raised if the schema did not exist.
+*/
+ClassicResult ClassicSession::dropSchema(String name){}
+#endif
+shcore::Value ClassicSession::dropSchema(const shcore::Argument_list &args)
 {
+  std::string function = class_name() + ".dropSchema";
+
+  args.ensure_count(1, function.c_str());
+
+  if (args[0].type != shcore::String)
+    throw shcore::Exception::argument_error(function + ": Argument #1 is expected to be a string");
+
+  std::string name = args[0].as_string();
+
+  Value ret_val = Value::wrap(new ClassicResult(boost::shared_ptr<Result>(_conn->execute_sql("drop schema " + get_quoted_name(name)))));
+
+  _remove_schema(name);
+
+  return ret_val;
+}
+
+#ifdef DOXYGEN
+/**
+* Drops a table from the specified schema.
+* \return A ClassicResult object if succeeded.
+* \exception An error is raised if the table did not exist.
+*/
+ClassicResult ClassicSession::dropTable(String schema, String name){}
+
+/**
+* Drops a view from the specified schema.
+* \return A ClassicResult object if succeeded.
+* \exception An error is raised if the view did not exist.
+*/
+ClassicResult ClassicSession::dropView(String schema, String name){}
+#endif
+shcore::Value ClassicSession::dropSchemaObject(const shcore::Argument_list &args, const std::string& type)
+{
+  std::string function = class_name() + ".drop" + type;
+
+  args.ensure_count(2, function.c_str());
+
+  if (args[0].type != shcore::String)
+    throw shcore::Exception::argument_error(function + ": Argument #1 is expected to be a string");
+
+  if (args[1].type != shcore::String)
+    throw shcore::Exception::argument_error(function + ": Argument #2 is expected to be a string");
+
+  std::string schema = args[0].as_string();
+  std::string name = args[1].as_string();
+
   std::string statement;
-
-  if (type == "ClassicSchema")
-    statement = "drop schema `" + name + "`";
-  else if (type == "ClassicView")
-    statement = "drop view `" + owner + "`.`" + name + "`";
+  if (type == "Table")
+    statement = "drop table ";
   else
-    statement = "drop table `" + owner + "`.`" + name + "`";
+    statement = "drop view ";
 
-  // We execute the statement, any error will be reported properly
-  _conn->executeSql(statement);
+  statement += get_quoted_name(schema) + "." + get_quoted_name(name);
 
-  if (type == "ClassicSchema")
-    _remove_schema(name);
-  else
+  Value ret_val = Value::wrap(new ClassicResult(boost::shared_ptr<Result>(_conn->execute_sql(statement))));
+
+  if (_schemas->count(schema))
   {
-    if (_schemas->count(owner))
-    {
-      boost::shared_ptr<ClassicSchema> schema = boost::static_pointer_cast<ClassicSchema>((*_schemas)[owner].as_object());
-      if (schema)
-        schema->_remove_object(name, type);
-    }
+    boost::shared_ptr<ClassicSchema> schema_obj = boost::static_pointer_cast<ClassicSchema>((*_schemas)[schema].as_object());
+    if (schema_obj)
+      schema_obj->_remove_object(name, type);
   }
+
+  return ret_val;
 }
 
 /*
@@ -562,10 +640,10 @@ bool ClassicSession::db_object_exists(std::string &type, const std::string &name
   if (type == "ClassicSchema")
   {
     statement = "show databases like \"" + name + "\"";
-    Result *res = _conn->executeSql(statement);
+    Result *res = _conn->execute_sql(statement);
     if (res->has_resultset())
     {
-      Row *row = res->next();
+      Row *row = res->fetch_one();
       if (row)
         ret_val = true;
     }
@@ -573,11 +651,11 @@ bool ClassicSession::db_object_exists(std::string &type, const std::string &name
   else
   {
     statement = "show full tables from `" + owner + "` like \"" + name + "\"";
-    Result *res = _conn->executeSql(statement);
+    Result *res = _conn->execute_sql(statement);
 
     if (res->has_resultset())
     {
-      Row *row = res->next();
+      Row *row = res->fetch_one();
 
       if (row)
       {
@@ -597,4 +675,64 @@ bool ClassicSession::db_object_exists(std::string &type, const std::string &name
   }
 
   return ret_val;
+}
+
+#ifdef DOXYGEN
+/**
+* Starts a transaction context on the server.
+* \return A ClassicResult object.
+* Calling this function will turn off the autocommit mode on the server.
+*
+* All the operations executed after calling this function will take place only when commit() is called.
+*
+* All the operations executed after calling this function, will be discarded is rollback() is called.
+*
+* When commit() or rollback() are called, the server autocommit mode will return back to it's state before calling startTransaction().
+*/
+ClassicResult ClassicSession::startTransaction(){}
+#endif
+shcore::Value ClassicSession::startTransaction(const shcore::Argument_list &args)
+{
+  std::string function_name = class_name() + ".startTransaction";
+  args.ensure_count(0, function_name.c_str());
+
+  return Value::wrap(new ClassicResult(boost::shared_ptr<Result>(_conn->execute_sql("start transaction"))));
+}
+
+#ifdef DOXYGEN
+/**
+* Commits all the operations executed after a call to startTransaction().
+* \return A ClassicResult object.
+*
+* All the operations executed after calling startTransaction() will take place when this function is called.
+*
+* The server autocommit mode will return back to it's state before calling startTransaction().
+*/
+ClassicResult ClassicSession::commit(){}
+#endif
+shcore::Value ClassicSession::commit(const shcore::Argument_list &args)
+{
+  std::string function_name = class_name() + ".startTransaction";
+  args.ensure_count(0, function_name.c_str());
+
+  return Value::wrap(new ClassicResult(boost::shared_ptr<Result>(_conn->execute_sql("commit"))));
+}
+
+#ifdef DOXYGEN
+/**
+* Discards all the operations executed after a call to startTransaction().
+* \return A ClassicResult object.
+*
+* All the operations executed after calling startTransaction() will be discarded when this function is called.
+*
+* The server autocommit mode will return back to it's state before calling startTransaction().
+*/
+ClassicResult ClassicSession::rollback(){}
+#endif
+shcore::Value ClassicSession::rollback(const shcore::Argument_list &args)
+{
+  std::string function_name = class_name() + ".startTransaction";
+  args.ensure_count(0, function_name.c_str());
+
+  return Value::wrap(new ClassicResult(boost::shared_ptr<Result>(_conn->execute_sql("rollback"))));
 }

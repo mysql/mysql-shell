@@ -18,6 +18,6 @@ var myDocs = myColl.find('name like :param').limit(1)
         .bind('param', 'S%').execute();
 
 // Print document
-print(myDocs.next());
+print(myDocs.fetchOne());
 
 mySession.close();

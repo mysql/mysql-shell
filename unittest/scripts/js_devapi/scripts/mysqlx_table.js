@@ -1,24 +1,17 @@
+// Assumptions: ensure_schema_does_not_exist is available
 var mysqlx = require('mysqlx').mysqlx;
 
 var uri = os.getenv('MYSQL_URI');
 
-var session = mysqlx.getNodeSession(uri);
+var mySession = mysqlx.getNodeSession(uri);
 
-var schema;
-try{
-	// Ensures the js_shell_test does not exist
-	schema = session.getSchema('js_shell_test');
-	schema.drop();
-}
-catch(err)
-{
-}
+ensure_schema_does_not_exist(mySession, 'js_shell_test');
 
-schema = session.createSchema('js_shell_test');
-session.setCurrentSchema('js_shell_test');
+var schema = mySession.createSchema('js_shell_test');
+mySession.setCurrentSchema('js_shell_test');
 
-var result = session.sql('create table table1 (name varchar(50))').execute();
-var table = session.js_shell_test.getTable('table1');
+var result = mySession.sql('create table table1 (name varchar(50))').execute();
+var table = mySession.js_shell_test.getTable('table1');
 
 //@ Testing table name retrieving
 print('getName(): ' + table.getName());
@@ -36,9 +29,9 @@ print('schema:', table.schema);
 
 //@ Testing existence
 print('Valid:', table.existInDatabase());
-table.drop();
+mySession.dropTable('js_shell_test', 'table1');
 print('Invalid:', table.existInDatabase());
 
-//@ Closes the session
-schema.drop();
-session.close();
+// Closes the session
+mySession.dropSchema('js_shell_test');
+mySession.close();

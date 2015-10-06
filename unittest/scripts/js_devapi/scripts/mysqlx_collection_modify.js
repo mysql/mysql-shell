@@ -4,19 +4,11 @@ var mysqlx = require('mysqlx').mysqlx;
 
 var uri = os.getenv('MYSQL_URI');
 
-var session = mysqlx.getNodeSession(uri);
+var mySession = mysqlx.getNodeSession(uri);
 
-var schema;
-try{
-	// Ensures the js_shell_test does not exist
-	schema = session.getSchema('js_shell_test');
-	schema.drop();
-}
-catch(err)
-{
-}
+ensure_schema_does_not_exist(mySession, 'js_shell_test');
 
-schema = session.createSchema('js_shell_test');
+var schema = mySession.createSchema('js_shell_test');
 
 // Creates a test collection and inserts data into it
 var collection = schema.createCollection('collection1');
@@ -97,9 +89,9 @@ result = crud.execute();
 validate_crud_functions(crud, ['bind', 'execute', '__shell_hook__']);
 
 //@ Reusing CRUD with binding
-print('Updated Angel:', result.affectedRows, '\n');
+print('Updated Angel:', result.affectedItemCount, '\n');
 result=crud.bind('data', 'carol').execute();
-print('Updated Carol:', result.affectedRows, '\n');
+print('Updated Carol:', result.affectedItemCount, '\n');
 
 
 // ----------------------------------------------
@@ -137,7 +129,7 @@ crud = collection.modify().arrayInsert('test', 'another');
 crud = collection.modify().arrayAppend();
 crud = collection.modify().arrayAppend({},'');
 crud = collection.modify().arrayAppend('',45);
-crud = collection.modify().arrayAppend('data', session);
+crud = collection.modify().arrayAppend('data', mySession);
 
 //@# CollectionModify: Error conditions on arrayDelete
 crud = collection.modify().arrayDelete();
@@ -172,34 +164,34 @@ var doc;
 
 //@# CollectionModify: Set Execution
 result = collection.modify('name = "brian"').set('alias', 'bri').set('last_name', 'black').set('age', mysqlx.expr('13+1')).execute();
-print('Set Affected Rows:', result.affectedRows, '\n');
+print('Set Affected Rows:', result.affectedItemCount, '\n');
 
 result = collection.find('name = "brian"').execute();
-doc = result.next();
+doc = result.fetchOne();
 print(dir(doc));
 
 //@ CollectionModify: Simple Unset Execution
 result = collection.modify('name = "brian"').unset('last_name').execute();
-print('Unset Affected Rows:', result.affectedRows, '\n');
+print('Unset Affected Rows:', result.affectedItemCount, '\n');
 
 result = collection.find('name = "brian"').execute();
-doc = result.next();
+doc = result.fetchOne();
 print(dir(doc));
 
 //@ CollectionModify: List Unset Execution
 result = collection.modify('name = "brian"').unset(['alias', 'age']).execute();
-print('Unset Affected Rows:', result.affectedRows, '\n');
+print('Unset Affected Rows:', result.affectedItemCount, '\n');
 
 result = collection.find('name = "brian"').execute();
-doc = result.next();
+doc = result.fetchOne();
 print(dir(doc));
 
 //@ CollectionModify: Merge Execution
 result = collection.modify('name = "brian"').merge({last_name:'black', age:15, alias:'bri', girlfriends:['martha', 'karen']}).execute();
-print('Merge Affected Rows:', result.affectedRows, '\n');
+print('Merge Affected Rows:', result.affectedItemCount, '\n');
 
 result = collection.find('name = "brian"').execute();
-doc = result.next();
+doc = result.fetchOne();
 print("Brian's last_name:",  doc.last_name, '\n');
 print("Brian's age:",  doc.age, '\n');
 print("Brian's alias:",  doc.alias, '\n');
@@ -208,54 +200,53 @@ print("Brian's second girlfriend:",  doc.girlfriends[1], '\n');
 
 //@ CollectionModify: arrayAppend Execution
 result = collection.modify('name = "brian"').arrayAppend('girlfriends','cloe').execute();
-print('Array Append Affected Rows:', result.affectedRows, '\n');
+print('Array Append Affected Rows:', result.affectedItemCount, '\n');
 
 result = collection.find('name = "brian"').execute();
-doc = result.next();
+doc = result.fetchOne();
 print("Brian's girlfriends:", doc.girlfriends.length);
 print("Brian's last:", doc.girlfriends[2]);
 
 //@ CollectionModify: arrayInsert Execution
 result = collection.modify('name = "brian"').arrayInsert('girlfriends[1]','samantha').execute();
-print('Array Insert Affected Rows:', result.affectedRows, '\n');
+print('Array Insert Affected Rows:', result.affectedItemCount, '\n');
 
 result = collection.find('name = "brian"').execute();
-doc = result.next();
+doc = result.fetchOne();
 print("Brian's girlfriends:", doc.girlfriends.length, '\n');
 print("Brian's second:", doc.girlfriends[1], '\n');
 
 //@ CollectionModify: arrayDelete Execution
 result = collection.modify('name = "brian"').arrayDelete('girlfriends[2]').execute();
-print('Array Delete Affected Rows:', result.affectedRows, '\n');
+print('Array Delete Affected Rows:', result.affectedItemCount, '\n');
 
 result = collection.find('name = "brian"').execute();
-doc = result.next();
+doc = result.fetchOne();
 print("Brian's girlfriends:", doc.girlfriends.length, '\n');
 print("Brian's third:", doc.girlfriends[2], '\n');
 
 //@ CollectionModify: sorting and limit Execution
 result = collection.modify('age = 15').set('sample', 'in_limit').sort(['name']).limit(2).execute();
-print('Affected Rows:', result.affectedRows, '\n');
+print('Affected Rows:', result.affectedItemCount, '\n');
 
 result = collection.find('age = 15').sort(['name']).execute();
 
 //@ CollectionModify: sorting and limit Execution - 1
-doc = result.next();
+doc = result.fetchOne();
 print(dir(doc));
 
 //@ CollectionModify: sorting and limit Execution - 2
-doc = result.next();
+doc = result.fetchOne();
 print(dir(doc));
 
 //@ CollectionModify: sorting and limit Execution - 3
-doc = result.next();
+doc = result.fetchOne();
 print(dir(doc));
 
 //@ CollectionModify: sorting and limit Execution - 4
-doc = result.next();
+doc = result.fetchOne();
 print(dir(doc));
 
-//@ Closes the session
-schema.drop();
-session.close();
-
+// Cleanup
+mySession.dropSchema('js_shell_test');
+mySession.close();

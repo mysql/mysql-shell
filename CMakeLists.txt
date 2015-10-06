@@ -29,7 +29,7 @@ set(CMAKE_MODULE_PATH
 
 SET(MYSH_MAJOR 0)
 SET(MYSH_MINOR 0)
-SET(MYSH_PATCH 6)
+SET(MYSH_PATCH 7)
 SET(MYSH_LEVEL "-alpha") # Empty if GA
 
 SET(MYSH_VERSION "${MYSH_MAJOR}.${MYSH_MINOR}.${MYSH_PATCH}${MYSH_LEVEL}")
@@ -86,11 +86,7 @@ find_package(Curses)
 
 # Check whether boost::system can be compiled into the binary
 include(CheckCXXSourceCompiles)
- IF(APPLE)
-   SET(CMAKE_REQUIRED_FLAGS "-DBOOST_ALL_NO_LIB -DBOOST_NO_CXX11_RVALUE_REFERENCES")
- else()
-   SET(CMAKE_REQUIRED_FLAGS "-DBOOST_ALL_NO_LIB")
- ENDIF()
+SET(CMAKE_REQUIRED_FLAGS "-DBOOST_ALL_NO_LIB")
 
  SET(CMAKE_REQUIRED_INCLUDES ${Boost_INCLUDE_DIRS})
 
@@ -212,19 +208,10 @@ IF (HAVE_V8)
     endforeach()
   endif()
 
-  if(APPLE)
-    set(V8_LINK_LIST -stdlib=libc++ -mmacosx-version-min=10.7 ${V8_LIBS})
-  elseif(WIN32)
+  if(WIN32)
     set(V8_LINK_LIST ${V8_LIBS} winmm)
   else()	# Linux
     set(V8_LINK_LIST ${V8_LIBS})
-  endif()
-
-  if (APPLE)
-    # needed when compiling in osx, for v8
-    # has to be after src/libedit
-    add_definitions(-std=c++11 -mmacosx-version-min=10.7)
-    add_definitions(-stdlib=libc++)
   endif()
 ENDIF()
 
@@ -234,8 +221,7 @@ include_directories(${MYSQL_INCLUDE_DIR}
                     "${CMAKE_SOURCE_DIR}/common"
                     "${CMAKE_SOURCE_DIR}/ext/rapidjson/include"
                    )
-                   
-IF (HAVE_PYTHON)                   
+IF (HAVE_PYTHON)
   include_directories(${PYTHON_INCLUDE_DIRS})
 ENDIF()
 
@@ -313,9 +299,6 @@ if(WIN32)
 endif()
 
 add_definitions(-DBOOST_ALL_NO_LIB)
-IF(APPLE)
-add_definitions(-DBOOST_NO_CXX11_RVALUE_REFERENCES)
-ENDIF()
 
 ADD_SUBDIRECTORY(doc)
 

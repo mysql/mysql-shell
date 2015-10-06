@@ -5,7 +5,7 @@ var myRows = myTable.select(['name', 'age'])
         .execute();
 
 var row;
-while (row = myRows.next()) {
+while (row = myRows.fetchOne()) {
         // Accessing the fields by array
         print('Name: ' + row['name'] + '\n');
 

@@ -68,6 +68,21 @@ void Cpp_object_bridge::set_member(const std::string &prop, Value UNUSED(value))
   throw Exception::attrib_error("Can't set object member " + prop);
 }
 
+bool Cpp_object_bridge::is_indexed() const
+{
+  return false;
+}
+
+Value Cpp_object_bridge::get_member(size_t UNUSED(index)) const
+{
+  throw Exception::attrib_error("Can't access object members using an index");
+}
+
+void Cpp_object_bridge::set_member(size_t UNUSED(index), Value UNUSED(value))
+{
+  throw Exception::attrib_error("Can't set object member using an index");
+}
+
 bool Cpp_object_bridge::has_method(const std::string &name) const
 {
   return (_funcs.find(name) != _funcs.end());

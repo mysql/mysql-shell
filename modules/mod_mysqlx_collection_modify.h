@@ -72,7 +72,7 @@ namespace mysh
       CollectionModify limit(Integer numberOfRows);
       CollectionModify skip(Integer limitOffset);
       CollectionFind bind(String name, Value value);
-      Collection_resultset execute(ExecuteOptions opt);
+      Result execute(ExecuteOptions opt);
 #endif
     private:
       std::auto_ptr< ::mysqlx::ModifyStatement> _modify_statement;

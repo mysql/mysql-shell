@@ -87,12 +87,12 @@ void Schema::cache_table_objects()
         args.push_back(Value(_name));
         args.push_back(Value(""));
 
-        Value myres = sess->executeAdminCommand("list_objects", args);
-        boost::shared_ptr<mysh::mysqlx::Resultset> my_res = myres.as_object<mysh::mysqlx::Resultset>();
+        Value myres = sess->executeAdminCommand("list_objects", true, args);
+        boost::shared_ptr<mysh::mysqlx::SqlResult> my_res = myres.as_object<mysh::mysqlx::SqlResult>();
 
         Value raw_entry;
 
-        while ((raw_entry = my_res->next(shcore::Argument_list())))
+        while ((raw_entry = my_res->fetch_one(shcore::Argument_list())))
         {
           boost::shared_ptr<mysh::Row> row = raw_entry.as_object<mysh::Row>();
           std::string object_name = row->get_member("name").as_string();
@@ -355,7 +355,7 @@ shcore::Value Schema::createCollection(const shcore::Argument_list &args)
   command_args.push_back(args[0]);
 
   boost::shared_ptr<BaseSession> sess(boost::static_pointer_cast<BaseSession>(_session.lock()));
-  sess->executeAdminCommand("create_collection", command_args);
+  sess->executeAdminCommand("create_collection", false, command_args);
 
   // If this is reached it implies all went OK on the previous operation
   std::string name = args.string_at(0);

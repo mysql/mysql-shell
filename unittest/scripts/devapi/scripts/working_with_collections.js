@@ -25,7 +25,7 @@ var docs = myColl.find('name like :param1 AND age < :param2').limit(1)
         .bind('param1','S%').bind('param2',20).execute();
 
 // Print document
-print(docs.next());
+print(docs.fetchOne());
 
 // Drop the collection
-myColl.drop();
+session.dropCollection('test','my_collection');

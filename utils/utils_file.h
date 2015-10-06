@@ -32,5 +32,6 @@ namespace shcore
   void SHCORE_PUBLIC ensure_dir_exists(const std::string& path);
   std::string SHCORE_PUBLIC get_last_error();
   bool SHCORE_PUBLIC load_text_file(const std::string& path, std::string& data);
+  void SHCORE_PUBLIC delete_file(const std::string& filename);
 }
 #endif /* defined(__mysh__utils_file__) */

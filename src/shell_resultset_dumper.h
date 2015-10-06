@@ -25,17 +25,43 @@
 #include "cmdline_options.h"
 #include "modules/base_resultset.h"
 
+namespace mysh
+{
+  namespace mysqlx
+  {
+    class SqlResult;
+    class RowResult;
+    class Result;
+    class DocResult;
+  };
+
+  namespace mysql
+  {
+    class ClassicResult;
+  };
+}
 class ResultsetDumper
 {
 public:
-  ResultsetDumper(boost::shared_ptr<mysh::BaseResultset>target);
+  ResultsetDumper(boost::shared_ptr<mysh::ShellBaseResult>target);
   virtual void dump();
 
 protected:
-  boost::shared_ptr<mysh::BaseResultset>_resultset;
+  boost::shared_ptr<mysh::ShellBaseResult>_resultset;
+  std::string _format;
+  bool _show_warnings;
+  bool _interactive;
 
-  void dump_json(const std::string& format, bool show_warnings);
-  void dump_normal(bool interactive, const std::string& format, bool show_warnings);
+  void dump_json();
+  void dump_normal();
+  void dump_normal(boost::shared_ptr<mysh::mysql::ClassicResult> result);
+  void dump_normal(boost::shared_ptr<mysh::mysqlx::SqlResult> result);
+  void dump_normal(boost::shared_ptr<mysh::mysqlx::RowResult> result);
+  void dump_normal(boost::shared_ptr<mysh::mysqlx::Result> result);
+
+  std::string get_affected_stats(const std::string& member, const std::string &legend);
+  int get_warning_and_execution_time_stats(std::string& output_stats);
+  void dump_records(std::string& output_stats);
   void dump_tabbed(shcore::Value::Array_type_ref records);
   void dump_table(shcore::Value::Array_type_ref records);
   void dump_warnings();

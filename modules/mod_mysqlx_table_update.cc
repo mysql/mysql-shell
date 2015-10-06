@@ -340,7 +340,7 @@ shcore::Value TableUpdate::bind(const shcore::Argument_list &args)
 #ifdef DOXYGEN
 /**
 * Executes the record update with the configured filter and limit.
-* \return Resultset A resultset object that can be used to retrieve the results of the update operation.
+* \return Result A result object that can be used to retrieve the results of the update operation.
 *
 * This function can be invoked after any other function on this class except update().
 *
@@ -374,17 +374,17 @@ shcore::Value TableUpdate::bind(const shcore::Argument_list &args)
 * var res_angel = table.update().set('last_name','downey).set('age',15).where('name=:name').bind('name', 'angel').execute();
 * \endcode
 */
-Resultset TableUpdate::execute(ExecuteOptions options){}
+Result TableUpdate::execute(ExecuteOptions options){}
 #endif
 shcore::Value TableUpdate::execute(const shcore::Argument_list &args)
 {
-  mysqlx::Resultset *result = NULL;
+  mysqlx::Result *result = NULL;
 
   try
   {
     args.ensure_count(0, "TableUpdate.execute");
 
-    result = new mysqlx::Collection_resultset(boost::shared_ptr< ::mysqlx::Result>(_update_statement->execute()));
+    result = new mysqlx::Result(boost::shared_ptr< ::mysqlx::Result>(_update_statement->execute()));
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableUpdate.execute");
 

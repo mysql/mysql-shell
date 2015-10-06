@@ -46,52 +46,50 @@ namespace shcore {
 
     exec_and_out_equals("session = mysql.getClassicSession('" + _mysql_uri + "')");
 
-    exec_and_out_equals("session.sql('drop schema if exists py_shell_test;')");
+    exec_and_out_equals("session.executeSql('drop schema if exists py_shell_test;')");
     exec_and_out_equals("session.createSchema('py_shell_test');");
     exec_and_out_equals("session.setCurrentSchema('py_shell_test');");
-    exec_and_out_equals("session.sql('create table table1 (id int auto_increment primary key, name varchar(50));')");
+    exec_and_out_equals("session.executeSql('create table table1 (id int auto_increment primary key, name varchar(50));')");
 
-    exec_and_out_equals("session.sql('insert into table1 (`name`) values(\"one\");')");
-    exec_and_out_equals("session.sql('insert into table1 (`name`) values(\"two\");')");
-    exec_and_out_equals("session.sql('insert into table1 (`name`) values(\"three\");')");
+    exec_and_out_equals("session.executeSql('insert into table1 (`name`) values(\"one\");')");
+    exec_and_out_equals("session.executeSql('insert into table1 (`name`) values(\"two\");')");
+    exec_and_out_equals("session.executeSql('insert into table1 (`name`) values(\"three\");')");
 
     exec_and_out_equals("session.close()");
   }
 
-  // Tests resultset.hasData and resultset.getHasData()
+  // Tests resultset.hasData
   TEST_F(Shell_py_mysql_resultset_tests, mysql_resultset_has_data)
   {
     exec_and_out_equals("import mysql");
 
     exec_and_out_equals("session = mysql.getClassicSession('" + _mysql_uri + "')");
 
-    exec_and_out_equals("result = session.sql('use py_shell_test;')");
+    exec_and_out_equals("result = session.executeSql('use py_shell_test;')");
 
     exec_and_out_equals("print(result.hasData)", "False");
-    exec_and_out_equals("print(result.getHasData())", "False");
 
-    exec_and_out_equals("result = session.sql('select * from table1;')");
+    exec_and_out_equals("result = session.executeSql('select * from table1;')");
 
     exec_and_out_equals("print(result.hasData)", "True");
-    exec_and_out_equals("print(result.getHasData())", "True");
 
     exec_and_out_equals("session.close()");
   }
 
-  // Tests resultset.columnMetadata and resultset.getColumnMetadata()
+  // Tests resultset.columns and resultset.getColumns()
   TEST_F(Shell_py_mysql_resultset_tests, mysql_resultset_column_metadata)
   {
     exec_and_out_equals("import mysql");
 
     exec_and_out_equals("session = mysql.getClassicSession('" + _mysql_uri + "')");
 
-    exec_and_out_equals("result = session.sql('select * from py_shell_test.table1;')");
+    exec_and_out_equals("result = session.executeSql('select * from py_shell_test.table1;')");
 
-    exec_and_out_equals("metadata = result.getColumnMetadata()");
+    exec_and_out_equals("metadata = result.getColumns()");
 
     exec_and_out_equals("print(metadata[0].name)", "id");
 
-    exec_and_out_equals("metadata = result.columnMetadata");
+    exec_and_out_equals("metadata = result.columns");
 
     exec_and_out_equals("print(metadata[0].name)", "id");
 
@@ -105,7 +103,7 @@ namespace shcore {
 
     exec_and_out_equals("session = mysql.getClassicSession('" + _mysql_uri + "')");
 
-    exec_and_out_equals("result = session.sql('insert into py_shell_test.table1 (`name`) values(\"four\");')");
+    exec_and_out_equals("result = session.executeSql('insert into py_shell_test.table1 (`name`) values(\"four\");')");
 
     exec_and_out_equals("print(result.lastInsertId)", "4");
     exec_and_out_equals("print(result.getLastInsertId())", "4");

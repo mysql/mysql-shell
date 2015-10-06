@@ -59,6 +59,14 @@ void Shell_script_tester::validate(const std::string& context, const std::string
       // Validation goes against validation code
       if (!(*validations)[valindex].code.empty())
       {
+        // Before cleaning up, prints any error found on the script execution
+        if (valindex == 0 && !output_handler.std_err.empty())
+        {
+          SCOPED_TRACE("File: " + context);
+          SCOPED_TRACE("Unexpexted Error: " + output_handler.std_err);
+          ADD_FAILURE();
+        }
+
         output_handler.wipe_all();
         execute((*validations)[valindex].code);
       }
@@ -110,6 +118,18 @@ void Shell_script_tester::validate(const std::string& context, const std::string
       }
     }
     output_handler.wipe_all();
+  }
+  else
+  {
+    // Every defined validation chunk MUST have validations
+    // or should not be defined as a validation chunk
+    if (chunk_id != "__global__")
+    {
+      SCOPED_TRACE("File: " + context);
+      SCOPED_TRACE("Executing: " + chunk_id);
+      SCOPED_TRACE("MISSING VALIDATIONS!!!");
+      ADD_FAILURE();
+    }
   }
 }
 
@@ -299,7 +319,7 @@ void Shell_script_tester::process_setup(std::istream & stream)
       execute(code);
 
       if (_setup_script.empty())
-        throw std::logic_error("An assumptions script must be specified when there are assumptions on the tested scripts.");
+        throw std::logic_error("A setup script must be specified when there are assumptions on the tested scripts.");
       else
         execute_script(); // Executes the active setup script
     }

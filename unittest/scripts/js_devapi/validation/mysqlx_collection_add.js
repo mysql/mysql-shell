@@ -11,7 +11,7 @@
 ||CollectionAdd.add: Argument is expected to be either a document or a list of documents
 ||CollectionAdd.add: Element #1 is expected to be a document
 
-//@ Collection.add single document
+//@ Collection.add execution
 |Affected Rows Single: 1|
 |Affected Rows List: 2|
 |Affected Rows Chained: 2|

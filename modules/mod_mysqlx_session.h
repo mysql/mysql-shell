@@ -113,14 +113,19 @@ namespace mysh
       virtual shcore::Value close(const shcore::Argument_list &args);
       virtual shcore::Value sql(const shcore::Argument_list &args);
       virtual shcore::Value createSchema(const shcore::Argument_list &args);
-      shcore::Value executeAdminCommand(const std::string& command, const shcore::Argument_list &args);
-      shcore::Value executeSql(const std::string& query, const shcore::Argument_list &args);
+      virtual shcore::Value startTransaction(const shcore::Argument_list &args);
+      virtual shcore::Value commit(const shcore::Argument_list &args);
+      virtual shcore::Value rollback(const shcore::Argument_list &args);
+      virtual shcore::Value dropSchema(const shcore::Argument_list &args);
+      virtual shcore::Value dropSchemaObject(const shcore::Argument_list &args, const std::string& type);
+
+      shcore::Value executeAdminCommand(const std::string& command, bool expect_data, const shcore::Argument_list &args);
+      shcore::Value execute_sql(const std::string& query, const shcore::Argument_list &args);
       virtual bool is_connected() const { return _session ? true : false; }
       virtual std::string uri() const { return _uri; };
 
       virtual shcore::Value get_schema(const shcore::Argument_list &args) const;
 
-      virtual void drop_db_object(const std::string &type, const std::string &name, const std::string& owner);
       virtual bool db_object_exists(std::string &type, const std::string &name, const std::string& owner);
 
       shcore::Value set_fetch_warnings(const shcore::Argument_list &args);
@@ -141,10 +146,18 @@ namespace mysh
       String getUri();
       Undefined close();
       Undefined setFetchWarnings(Bool value);
+      Result startTransaction();
+      Result commit();
+      Result rollback();
+      Result dropSchema(String name);
+      Result dropTable(String schema, String name);
+      Result dropCollection(String schema, String name);
+      Result dropView(String schema, String name);
+
 #endif
     protected:
       ::mysqlx::ArgumentValue get_argument_value(shcore::Value source);
-      shcore::Value executeStmt(const std::string &domain, const std::string& command, const shcore::Argument_list &args);
+      shcore::Value executeStmt(const std::string &domain, const std::string& command, bool expect_data, const shcore::Argument_list &args);
       virtual boost::shared_ptr<BaseSession> _get_shared_this() const = 0;
       boost::shared_ptr< ::mysqlx::Result> _last_result;
       std::string _retrieve_current_schema();
@@ -205,7 +218,7 @@ namespace mysh
 
       Schema getCurrentSchema();
       Schema setCurrentSchema(String name);
-      Resultset sql(String sql);
+      SqlResult sql(String sql);
       String quoteName(String id);
 #endif
     };

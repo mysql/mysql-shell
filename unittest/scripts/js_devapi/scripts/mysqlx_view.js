@@ -1,26 +1,19 @@
+// Assumptions: ensure_schema_does_not_exist is available
 var mysqlx = require('mysqlx').mysqlx;
 
 var uri = os.getenv('MYSQL_URI');
 
-var session = mysqlx.getNodeSession(uri);
+var mySession = mysqlx.getNodeSession(uri);
 
-var schema;
-try{
-	// Ensures the js_shell_test does not exist
-	schema = session.getSchema('js_shell_test');
-	schema.drop();
-}
-catch(err)
-{
-}
+ensure_schema_does_not_exist(mySession, 'js_shell_test');
 
-schema = session.createSchema('js_shell_test');
-session.setCurrentSchema('js_shell_test');
+schema = mySession.createSchema('js_shell_test');
+mySession.setCurrentSchema('js_shell_test');
 
 var result;
-result = session.sql('create table table1 (name varchar(50))').execute();
-result = session.sql('create view view1 (my_name) as select name from table1;').execute();
-var view = session.js_shell_test.getView('view1');
+result = mySession.sql('create table table1 (name varchar(50))').execute();
+result = mySession.sql('create view view1 (my_name) as select name from table1;').execute();
+var view = mySession.js_shell_test.getView('view1');
 
 //@ Testing view name retrieving
 print('getName(): ' + view.getName());
@@ -38,9 +31,9 @@ print('schema:', view.schema);
 
 //@ Testing existence
 print('Valid:', view.existInDatabase());
-view.drop();
+mySession.dropView('js_shell_test', 'view1');
 print('Invalid:', view.existInDatabase());
 
-//@ Closes the session
-schema.drop();
-session.close();
+// Closes the session
+mySession.dropSchema('js_shell_test');
+mySession.close();

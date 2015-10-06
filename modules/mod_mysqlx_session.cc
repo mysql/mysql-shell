@@ -25,6 +25,7 @@
 #include "shellcore/shell_core.h"
 #include "shellcore/lang_base.h"
 #include "mod_mysqlx_session_sql.h"
+#include "shellcore/server_registry.h"
 
 #include "shellcore/proxy_object.h"
 
@@ -116,6 +117,14 @@ BaseSession::BaseSession()
 
   add_method("close", boost::bind(&BaseSession::close, this, _1), "data");
   add_method("setFetchWarnings", boost::bind(&BaseSession::set_fetch_warnings, this, _1), "data");
+  add_method("startTransaction", boost::bind(&BaseSession::startTransaction, this, _1), "data");
+  add_method("commit", boost::bind(&BaseSession::commit, this, _1), "data");
+  add_method("rollback", boost::bind(&BaseSession::rollback, this, _1), "data");
+
+  add_method("dropSchema", boost::bind(&BaseSession::dropSchema, this, _1), "data");
+  add_method("dropTable", boost::bind(&BaseSession::dropSchemaObject, this, _1, "Table"), "data");
+  add_method("dropCollection", boost::bind(&BaseSession::dropSchemaObject, this, _1, "Collection"), "data");
+  add_method("dropView", boost::bind(&BaseSession::dropSchemaObject, this, _1, "View"), "data");
 }
 
 Value BaseSession::connect(const Argument_list &args)
@@ -170,9 +179,40 @@ Value BaseSession::connect(const Argument_list &args)
       std::string ssl_ca;
       std::string ssl_cert;
       std::string ssl_key;
+      std::string data_source_file;
+      std::string app;
 
       shcore::Value::Map_type_ref options = args[0].as_map();
 
+      // If a data source file is specified takes the initial connection data from there
+      if (options->has_key("dataSourceFile"))
+      {
+        data_source_file = (*options)["dataSourceFile"].as_string();
+        app = (*options)["app"].as_string();
+
+        shcore::Server_registry sr(data_source_file);
+        shcore::Connection_options& conn = sr.get_connection_by_name(app);
+
+        host = conn.get_server();
+        std::string str_port = conn.get_port();
+        if (!str_port.empty())
+        {
+          int tmp_port = boost::lexical_cast<int>(str_port);
+          if (tmp_port)
+            port = tmp_port;
+        }
+
+        user = conn.get_user();
+        password = conn.get_password();
+        schema = conn.get_schema();
+
+        ssl_ca = conn.get_value_if_exists("ssl_ca");
+        ssl_cert = conn.get_value_if_exists("ssl_cert");
+        ssl_key = conn.get_value_if_exists("ssl_key");
+      }
+
+      // If there are additional parameters, they will override whatever is configured
+      // so far
       if (options->has_key("host"))
         host = (*options)["host"].as_string();
 
@@ -251,7 +291,7 @@ Value BaseSession::sql(const Argument_list &args)
   Value ret_val;
   try
   {
-    ret_val = executeSql(args.string_at(0), shcore::Argument_list());
+    ret_val = execute_sql(args.string_at(0), shcore::Argument_list());
   }
   CATCH_AND_TRANSLATE();
 
@@ -276,8 +316,8 @@ Value BaseSession::createSchema(const shcore::Argument_list &args)
   try
   {
     std::string schema = args.string_at(0);
-    std::string statement = "create schema " + schema;
-    ret_val = executeStmt("sql", statement, shcore::Argument_list());
+    std::string statement = "create schema " + get_quoted_name(schema);
+    ret_val = executeStmt("sql", statement, false, shcore::Argument_list());
 
     // if reached this point it indicates that there were no errors
     boost::shared_ptr<Schema> object(new Schema(_get_shared_this(), schema));
@@ -288,6 +328,66 @@ Value BaseSession::createSchema(const shcore::Argument_list &args)
   CATCH_AND_TRANSLATE();
 
   return ret_val;
+}
+
+#ifdef DOXYGEN
+/**
+* Starts a transaction context on the server.
+* \return A SqlResult object.
+* Calling this function will turn off the autocommit mode on the server.
+*
+* All the operations executed after calling this function will take place only when commit() is called.
+*
+* All the operations executed after calling this function, will be discarded is rollback() is called.
+*
+* When commit() or rollback() are called, the server autocommit mode will return back to it's state before calling startTransaction().
+*/
+Result BaseSession::startTransaction(){}
+#endif
+shcore::Value BaseSession::startTransaction(const shcore::Argument_list &args)
+{
+  std::string function_name = class_name() + ".startTransaction";
+  args.ensure_count(0, function_name.c_str());
+
+  return executeStmt("sql", "start transaction", false, shcore::Argument_list());
+}
+
+#ifdef DOXYGEN
+/**
+* Commits all the operations executed after a call to startTransaction().
+* \return A SqlResult object.
+*
+* All the operations executed after calling startTransaction() will take place when this function is called.
+*
+* The server autocommit mode will return back to it's state before calling startTransaction().
+*/
+Result BaseSession::commit(){}
+#endif
+shcore::Value BaseSession::commit(const shcore::Argument_list &args)
+{
+  std::string function_name = class_name() + ".startTransaction";
+  args.ensure_count(0, function_name.c_str());
+
+  return executeStmt("sql", "commit", false, shcore::Argument_list());
+}
+
+#ifdef DOXYGEN
+/**
+* Discards all the operations executed after a call to startTransaction().
+* \return A SqlResult object.
+*
+* All the operations executed after calling startTransaction() will be discarded when this function is called.
+*
+* The server autocommit mode will return back to it's state before calling startTransaction().
+*/
+Result BaseSession::rollback(){}
+#endif
+shcore::Value BaseSession::rollback(const shcore::Argument_list &args)
+{
+  std::string function_name = class_name() + ".startTransaction";
+  args.ensure_count(0, function_name.c_str());
+
+  return executeStmt("sql", "rollback", false, shcore::Argument_list());
 }
 
 ::mysqlx::ArgumentValue BaseSession::get_argument_value(shcore::Value source)
@@ -322,20 +422,20 @@ Value BaseSession::createSchema(const shcore::Argument_list &args)
   return ret_val;
 }
 
-Value BaseSession::executeSql(const std::string& statement, const Argument_list &args)
+Value BaseSession::execute_sql(const std::string& statement, const Argument_list &args)
 {
-  return executeStmt("sql", statement, args);
+  return executeStmt("sql", statement, true, args);
 }
 
-Value BaseSession::executeAdminCommand(const std::string& command, const Argument_list &args)
+Value BaseSession::executeAdminCommand(const std::string& command, bool expect_data, const Argument_list &args)
 {
   std::string function_name = class_name() + ".executeAdminCommand";
   args.ensure_at_least(1, function_name.c_str());
 
-  return executeStmt("xplugin", command, args);
+  return executeStmt("xplugin", command, expect_data, args);
 }
 
-Value BaseSession::executeStmt(const std::string &domain, const std::string& command, const Argument_list &args)
+Value BaseSession::executeStmt(const std::string &domain, const std::string& command, bool expect_data, const Argument_list &args)
 {
   // Will return the result of the SQL execution
   // In case of error will be Undefined
@@ -356,7 +456,10 @@ Value BaseSession::executeStmt(const std::string &domain, const std::string& com
       // Calls wait so any error is properly triggered at execution time
       _last_result->wait();
 
-      ret_val = shcore::Value::wrap(new Resultset(_last_result));
+      if (expect_data)
+        ret_val = shcore::Value::wrap(new SqlResult(_last_result));
+      else
+        ret_val = shcore::Value::wrap(new Result(_last_result));
     }
     CATCH_AND_TRANSLATE();
   }
@@ -460,7 +563,7 @@ std::string BaseSession::_retrieve_current_schema()
     if (_session)
     {
       // TODO: update this logic properly
-      boost::shared_ptr< ::mysqlx::Result> result = _session->executeSql("select schema()");
+      boost::shared_ptr< ::mysqlx::Result> result = _session->execute_sql("select schema()");
       boost::shared_ptr< ::mysqlx::Row>row = result->next();
 
       if (!row->isNullField(0))
@@ -480,7 +583,7 @@ void BaseSession::_load_schemas()
   {
     if (_session)
     {
-      boost::shared_ptr< ::mysqlx::Result> result = _session->executeSql("show databases;");
+      boost::shared_ptr< ::mysqlx::Result> result = _session->execute_sql("show databases;");
       boost::shared_ptr< ::mysqlx::Row> row = result->next();
 
       while (row)
@@ -556,8 +659,6 @@ shcore::Value BaseSession::get_schema(const shcore::Argument_list &args) const
 
 shcore::Value BaseSession::set_fetch_warnings(const shcore::Argument_list &args)
 {
-  Value ret_val;
-
   args.ensure_count(1, (class_name() + ".setFetchWarnings").c_str());
 
   bool enable = args.bool_at(0);
@@ -566,37 +667,93 @@ shcore::Value BaseSession::set_fetch_warnings(const shcore::Argument_list &args)
   shcore::Argument_list command_args;
   command_args.push_back(Value("warnings"));
 
-  executeAdminCommand(command, command_args);
+  return executeAdminCommand(command, false, command_args);
+}
+
+#ifdef DOXYGEN
+/**
+* Drops the schema with the specified name.
+* \return A SqlResult object if succeeded.
+* \exception An error is raised if the schema did not exist.
+*/
+Result BaseSession::dropSchema(String name){}
+#endif
+shcore::Value BaseSession::dropSchema(const shcore::Argument_list &args)
+{
+  std::string function = class_name() + ".dropSchema";
+
+  args.ensure_count(1, function.c_str());
+
+  if (args[0].type != shcore::String)
+    throw shcore::Exception::argument_error(function + ": Argument #1 is expected to be a string");
+
+  std::string name = args[0].as_string();
+
+  Value ret_val = executeStmt("sql", "drop schema " + get_quoted_name(name), false, shcore::Argument_list());
+
+  _remove_schema(name);
 
   return ret_val;
 }
 
-void BaseSession::drop_db_object(const std::string &type, const std::string &name, const std::string& owner)
+#ifdef DOXYGEN
+/**
+* Drops a table from the specified schema.
+* \return A SqlResult object if succeeded.
+* \exception An error is raised if the table did not exist.
+*/
+Result BaseSession::dropTable(String schema, String name){}
+
+/**
+* Drops a collection from the specified schema.
+* \return A SqlResult object if succeeded.
+* \exception An error is raised if the collection did not exist.
+*/
+Result BaseSession::dropCollection(String schema, String name){}
+
+/**
+* Drops a view from the specified schema.
+* \return A SqlResult object if succeeded.
+* \exception An error is raised if the view did not exist.
+*/
+Result BaseSession::dropView(String schema, String name){}
+
+#endif
+shcore::Value BaseSession::dropSchemaObject(const shcore::Argument_list &args, const std::string& type)
 {
-  if (type == "Schema")
-    executeStmt("sql", "drop schema `" + name + "`", shcore::Argument_list());
-  else if (type == "View")
-    executeStmt("sql", "drop view `" + owner + "`.`" + name + "`", shcore::Argument_list());
+  std::string function = class_name() + ".drop" + type;
+
+  args.ensure_count(2, function.c_str());
+
+  if (args[0].type != shcore::String)
+    throw shcore::Exception::argument_error(function + ": Argument #1 is expected to be a string");
+
+  if (args[1].type != shcore::String)
+    throw shcore::Exception::argument_error(function + ": Argument #2 is expected to be a string");
+
+  std::string schema = args[0].as_string();
+  std::string name = args[1].as_string();
+
+  shcore::Value ret_val;
+  if (type == "View")
+    ret_val = executeStmt("sql", "drop view " + get_quoted_name(schema) + "." + get_quoted_name(name) + "", false, shcore::Argument_list());
   else
   {
     shcore::Argument_list command_args;
-    command_args.push_back(Value(owner));
+    command_args.push_back(Value(schema));
     command_args.push_back(Value(name));
 
-    executeAdminCommand("drop_collection", command_args);
+    ret_val = executeAdminCommand("drop_collection", false, command_args);
   }
 
-  if (type == "Schema")
-    _remove_schema(name);
-  else
+  if (_schemas->count(schema))
   {
-    if (_schemas->count(owner))
-    {
-      boost::shared_ptr<Schema> schema = boost::static_pointer_cast<Schema>((*_schemas)[owner].as_object());
-      if (schema)
-        schema->_remove_object(name, type);
-    }
+    boost::shared_ptr<Schema> schema_obj = boost::static_pointer_cast<Schema>((*_schemas)[schema].as_object());
+    if (schema_obj)
+      schema_obj->_remove_object(name, type);
   }
+
+  return shcore::Value();
 }
 
 /*
@@ -611,10 +768,10 @@ bool BaseSession::db_object_exists(std::string &type, const std::string &name, c
 
   if (type == "Schema")
   {
-    shcore::Value res = executeStmt("sql", "show databases like \"" + name + "\"", shcore::Argument_list());
-    boost::shared_ptr<Resultset> res_obj = res.as_object<Resultset>();
+    shcore::Value res = executeStmt("sql", "show databases like \"" + name + "\"", true, shcore::Argument_list());
+    boost::shared_ptr<SqlResult> res_obj = res.as_object<SqlResult>();
 
-    ret_val = res_obj->all(shcore::Argument_list()).as_array()->size() > 0;
+    ret_val = res_obj->fetch_all(shcore::Argument_list()).as_array()->size() > 0;
   }
   else
   {
@@ -622,10 +779,10 @@ bool BaseSession::db_object_exists(std::string &type, const std::string &name, c
     args.push_back(Value(owner));
     args.push_back(Value(name));
 
-    Value myres = executeAdminCommand("list_objects", args);
-    boost::shared_ptr<mysh::mysqlx::Resultset> my_res = myres.as_object<mysh::mysqlx::Resultset>();
+    Value myres = executeAdminCommand("list_objects", true, args);
+    boost::shared_ptr<mysh::mysqlx::SqlResult> my_res = myres.as_object<mysh::mysqlx::SqlResult>();
 
-    Value raw_entry = my_res->next(shcore::Argument_list());
+    Value raw_entry = my_res->fetch_one(shcore::Argument_list());
 
     if (raw_entry)
     {
@@ -647,7 +804,7 @@ bool BaseSession::db_object_exists(std::string &type, const std::string &name, c
       }
     }
 
-    my_res->all(shcore::Argument_list());
+    my_res->fetch_all(shcore::Argument_list());
   }
 
   return ret_val;
@@ -713,7 +870,7 @@ boost::shared_ptr<shcore::Object_bridge> NodeSession::create(const shcore::Argum
 * \endcode
 * \sa SqlExecute
 */
-Resultset NodeSession::sql(String sql){}
+SqlResult NodeSession::sql(String sql){}
 #endif
 shcore::Value NodeSession::sql(const shcore::Argument_list &args)
 {
@@ -743,7 +900,7 @@ shcore::Value NodeSession::set_current_schema(const shcore::Argument_list &args)
   {
     std::string name = args[0].as_string();
 
-    boost::shared_ptr< ::mysqlx::Result> result = _session->executeSql("use " + name + ";");
+    boost::shared_ptr< ::mysqlx::Result> result = _session->execute_sql("use " + name + ";");
     result->flush();
   }
   else
@@ -809,15 +966,5 @@ shcore::Value NodeSession::quote_name(const shcore::Argument_list &args)
 
   std::string id = args[0].as_string();
 
-  size_t index = 0;
-
-  while ((index = id.find("`", index)) != std::string::npos)
-  {
-    id.replace(index, 1, "``");
-    index += 2;
-  }
-
-  id = "`" + id + "`";
-
-  return shcore::Value(id);
+  return shcore::Value(get_quoted_name(id));
 }

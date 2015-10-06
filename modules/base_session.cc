@@ -308,3 +308,19 @@ bool ShellBaseSession::operator == (const Object_bridge &other) const
 {
   return class_name() == other.class_name() && this == &other;
 }
+
+std::string ShellBaseSession::get_quoted_name(const std::string& name)
+{
+  size_t index = 0;
+  std::string quoted_name(name);
+
+  while ((index = quoted_name.find("`", index)) != std::string::npos)
+  {
+    quoted_name.replace(index, 1, "``");
+    index += 2;
+  }
+
+  quoted_name = "`" + quoted_name + "`";
+
+  return quoted_name;
+}

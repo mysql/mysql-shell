@@ -273,7 +273,7 @@ shcore::Value TableDelete::bind(const shcore::Argument_list &args)
 #ifdef DOXYGEN
 /**
 * Executes the record deletion with the configured filter and limit.
-* \return Resultset A resultset object that can be used to retrieve the results of the deletion operation.
+* \return Result A result object that can be used to retrieve the results of the deletion operation.
 *
 * This function can be invoked after any other function on this class.
 *
@@ -310,17 +310,17 @@ shcore::Value TableDelete::bind(const shcore::Argument_list &args)
 * var res_all = table.delete().execute();
 * \endcode
 */
-Resultset TableDelete::execute(ExecuteOptions options){}
+Result TableDelete::execute(ExecuteOptions options){}
 #endif
 shcore::Value TableDelete::execute(const shcore::Argument_list &args)
 {
-  mysqlx::Resultset *result = NULL;
+  mysqlx::Result *result = NULL;
 
   try
   {
     args.ensure_count(0, "TableDelete.execute");
 
-    result = new mysqlx::Collection_resultset(boost::shared_ptr< ::mysqlx::Result>(_delete_statement->execute()));
+    result = new mysqlx::Result(boost::shared_ptr< ::mysqlx::Result>(_delete_statement->execute()));
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableDelete.execute");
 

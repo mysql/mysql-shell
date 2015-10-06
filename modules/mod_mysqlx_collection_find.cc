@@ -251,7 +251,7 @@ shcore::Value CollectionFind::having(const shcore::Argument_list &args)
 
 #ifdef DOXYGEN
 /**
-* Sets the sorting criteria to be used on the Resultset.
+* Sets the sorting criteria to be used on the DocResult.
 * \param sortExprStr: A list of expression strings defining the sort criteria for the returned documents.
 * \return This CollectionFind object.
 *
@@ -343,7 +343,7 @@ shcore::Value CollectionFind::limit(const shcore::Argument_list &args)
 #ifdef DOXYGEN
 /**
 * Sets number of documents to skip on the resultset when a limit has been defined.
-* \param limitOffset: The number of documents to skip before start including them on the Resultset.
+* \param limitOffset: The number of documents to skip before start including them on the DocResult.
 * \return This CollectionFind object.
 *
 * This function can be invoked only once after:
@@ -401,8 +401,6 @@ shcore::Value CollectionFind::bind(const shcore::Argument_list &args)
 {
   args.ensure_count(2, "CollectionFind.bind");
 
-
-
   try
   {
     _find_statement->bind(args.string_at(0), map_document_value(args[1]));
@@ -417,7 +415,7 @@ shcore::Value CollectionFind::bind(const shcore::Argument_list &args)
 #ifdef DOXYGEN
 /**
 * Executes the Find operation with all the configured options and returns.
-* \return Collection_resultset A Collection resultset object that can be used to retrieve the results of the find operation.
+* \return CollectionResultset A DocResult object that can be used to traverse the collections returned by the find operation.
 *
 * This function can be invoked after any other function on this class.
 *
@@ -461,17 +459,17 @@ shcore::Value CollectionFind::bind(const shcore::Argument_list &args)
 * var res = collection.find().sort(['age']).limit(4).skip(1).execute();
 * \endcode
 */
-Collection_resultset CollectionFind::execute(ExecuteOptions options){}
+DocResult CollectionFind::execute(ExecuteOptions options){}
 #endif
 shcore::Value CollectionFind::execute(const shcore::Argument_list &args)
 {
-  mysqlx::Collection_resultset *result = NULL;
+  mysqlx::DocResult *result = NULL;
 
   try
   {
     args.ensure_count(0, "CollectionFind.execute");
 
-    result = new mysqlx::Collection_resultset(boost::shared_ptr< ::mysqlx::Result>(_find_statement->execute()));
+    result = new mysqlx::DocResult(boost::shared_ptr< ::mysqlx::Result>(_find_statement->execute()));
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionFind.execute");
 

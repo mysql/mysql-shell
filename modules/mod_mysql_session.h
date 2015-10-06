@@ -104,15 +104,20 @@ namespace mysh
       // Virtual methods from ISession
       virtual shcore::Value connect(const shcore::Argument_list &args);
       virtual shcore::Value close(const shcore::Argument_list &args);
-      virtual shcore::Value sql(const shcore::Argument_list &args);
+      virtual shcore::Value execute_sql(const shcore::Argument_list &args);
       virtual shcore::Value createSchema(const shcore::Argument_list &args);
+      virtual shcore::Value startTransaction(const shcore::Argument_list &args);
+      virtual shcore::Value commit(const shcore::Argument_list &args);
+      virtual shcore::Value rollback(const shcore::Argument_list &args);
+      virtual shcore::Value dropSchema(const shcore::Argument_list &args);
+      virtual shcore::Value dropSchemaObject(const shcore::Argument_list &args, const std::string& type);
+
       virtual bool is_connected() const { return _conn ? true : false; }
 
       virtual std::string uri() const;
       virtual shcore::Value get_schema(const shcore::Argument_list &args) const;
       shcore::Value set_current_schema(const shcore::Argument_list &args);
 
-      virtual void drop_db_object(const std::string &type, const std::string &name, const std::string& owner);
       virtual bool db_object_exists(std::string &type, const std::string &name, const std::string& owner);
 
       static boost::shared_ptr<shcore::Object_bridge> create(const shcore::Argument_list &args);
@@ -132,10 +137,16 @@ namespace mysh
       ClassicSchema setCurrentSchema(String name);
       Map getSchemas();
       String getUri();
-      Resultset sql(String query);
+      ClassicResult executeSql(String query);
       Undefined close();
-#endif
+      ClassicResult startTransaction();
+      ClassicResult commit();
+      ClassicResult rollback();
+      ClassicResult dropSchema(String name);
+      ClassicResult dropTable(String schema, String name);
+      ClassicResult dropView(String schema, String name);
 
+#endif
     private:
       std::string _retrieve_current_schema();
       void _load_schemas();

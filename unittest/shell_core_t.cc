@@ -100,9 +100,9 @@ namespace shcore {
             if (!shell_hook)
             {
               // Resultset objects get printed
-              if (object && object->class_name().find("Resultset") != -1)
+              if (object && object->class_name().find("Result") != -1)
               {
-                boost::shared_ptr<mysh::BaseResultset> resultset = boost::static_pointer_cast<mysh::BaseResultset> (object);
+                boost::shared_ptr<mysh::ShellBaseResult> resultset = boost::static_pointer_cast<mysh::ShellBaseResult> (object);
                 ResultsetDumper dumper(resultset);
                 dumper.dump();
               }

@@ -28,6 +28,8 @@
 #pragma clang diagnostic pop
 #endif
 
+#include "mysh_config.h"
+
 #include "shellcore/lang_base.h"
 #include "shellcore/shell_core.h"
 #include "shellcore/object_factory.h"
@@ -45,6 +47,12 @@
 #include <boost/bind.hpp>
 #include <boost/system/error_code.hpp>
 #include <cerrno>
+#ifdef HAVE_UNISTD_H
+#include <unistd.h>
+#endif
+#ifdef WIN32
+#include <windows.h>
+#endif
 #include "utils_file.h"
 
 using namespace shcore;
@@ -90,12 +98,8 @@ struct JScript_context::JScript_context_impl
       v8::FunctionTemplate::New(isolate, &JScript_context_impl::f_print, client_data));
 
     // s = input('Type something:')
-    globals->Set(v8::String::NewFromUtf8(isolate, "input"),
-      v8::FunctionTemplate::New(isolate, &JScript_context_impl::f_input, client_data));
-
-    // s = input('Password:')
-    globals->Set(v8::String::NewFromUtf8(isolate, "password"),
-      v8::FunctionTemplate::New(isolate, &JScript_context_impl::f_password, client_data));
+    globals->Set(v8::String::NewFromUtf8(isolate, "prompt"),
+      v8::FunctionTemplate::New(isolate, &JScript_context_impl::f_prompt, client_data));
 
     globals->Set(v8::String::NewFromUtf8(isolate, "os"), make_os_object());
 
@@ -218,16 +222,19 @@ struct JScript_context::JScript_context_impl
       v8::FunctionTemplate::New(isolate, &JScript_context_impl::os_get_user_config_path, client_data));
 
     object->Set(v8::String::NewFromUtf8(isolate, "get_mysqlx_home_path"),
-                v8::FunctionTemplate::New(isolate, &JScript_context_impl::os_get_mysqlx_home_path, client_data));
+      v8::FunctionTemplate::New(isolate, &JScript_context_impl::os_get_mysqlx_home_path, client_data));
 
     object->Set(v8::String::NewFromUtf8(isolate, "get_binary_folder"),
-                v8::FunctionTemplate::New(isolate, &JScript_context_impl::os_get_binary_folder, client_data));
+      v8::FunctionTemplate::New(isolate, &JScript_context_impl::os_get_binary_folder, client_data));
 
     object->Set(v8::String::NewFromUtf8(isolate, "file_exists"),
       v8::FunctionTemplate::New(isolate, &JScript_context_impl::os_file_exists, client_data));
 
     object->Set(v8::String::NewFromUtf8(isolate, "load_text_file"),
       v8::FunctionTemplate::New(isolate, &JScript_context_impl::os_load_text_file, client_data));
+
+    object->Set(v8::String::NewFromUtf8(isolate, "sleep"),
+      v8::FunctionTemplate::New(isolate, &JScript_context_impl::os_sleep, client_data));
 
     return object;
   }
@@ -363,7 +370,11 @@ struct JScript_context::JScript_context_impl
 
       try
       {
-        self->delegate->print(self->delegate->user_data, self->types.v8_value_to_shcore_value(args[i]).descr(true).c_str());
+        std::string format = (*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string();
+        if (format.find("json") == 0)
+          self->delegate->print(self->delegate->user_data, self->types.v8_value_to_shcore_value(args[i]).json(format == "json").c_str());
+        else
+          self->delegate->print(self->delegate->user_data, self->types.v8_value_to_shcore_value(args[i]).descr(true).c_str());
       }
       catch (std::exception &e)
       {
@@ -373,40 +384,59 @@ struct JScript_context::JScript_context_impl
     }
   }
 
-  static void f_input(const v8::FunctionCallbackInfo<v8::Value>& args)
+  static void f_prompt(const v8::FunctionCallbackInfo<v8::Value>& args)
   {
     v8::HandleScope outer_handle_scope(args.GetIsolate());
     JScript_context_impl *self = static_cast<JScript_context_impl*>(v8::External::Cast(*args.Data())->Value());
 
-    if (args.Length() != 1)
+    shcore::Value::Map_type_ref options_map;
+
+    if (args.Length() < 1 || args.Length() > 2)
     {
       args.GetIsolate()->ThrowException(v8::String::NewFromUtf8(args.GetIsolate(), "Invalid number of parameters"));
       return;
     }
-
-    v8::HandleScope handle_scope(args.GetIsolate());
-    v8::String::Utf8Value str(args[0]);
-    std::string r;
-    if (self->delegate->input(self->delegate->user_data, *str, r))
-      args.GetReturnValue().Set(v8::String::NewFromUtf8(args.GetIsolate(), r.c_str()));
-  }
-
-  static void f_password(const v8::FunctionCallbackInfo<v8::Value>& args)
-  {
-    v8::HandleScope outer_handle_scope(args.GetIsolate());
-    JScript_context_impl *self = static_cast<JScript_context_impl*>(v8::External::Cast(*args.Data())->Value());
-
-    if (args.Length() != 1)
+    else if (args.Length() == 2)
     {
-      args.GetIsolate()->ThrowException(v8::String::NewFromUtf8(args.GetIsolate(), "Invalid number of parameters"));
-      return;
+      shcore::Value options = self->types.v8_value_to_shcore_value(args[1]);
+      if (options.type != shcore::Map)
+      {
+        args.GetIsolate()->ThrowException(v8::String::NewFromUtf8(args.GetIsolate(), "Second parameter must be a dictionary"));
+        return;
+      }
+      else
+        options_map = options.as_map();
     }
 
     v8::HandleScope handle_scope(args.GetIsolate());
     v8::String::Utf8Value str(args[0]);
+
+    // If there are options, reads them to determine how to proceed
+    std::string default_value;
+    bool password = false;
+    bool succeeded = false;
+
+    // Identifies a default value in case en empty string is returned
+    // or hte prompt fails
+    if (options_map->has_key("defaultValue"))
+      default_value = options_map->get_string("defaultValue");
+
+    // Identifies if it is normal prompt or password prompt
+    if (options_map->has_key("type"))
+      password = (options_map->get_string("type") == "password");
+
+    // Performs the actual prompt
     std::string r;
-    if (self->delegate->password(self->delegate->user_data, *str, r))
-      args.GetReturnValue().Set(v8::String::NewFromUtf8(args.GetIsolate(), r.c_str()));
+    if (password)
+      succeeded = self->delegate->password(self->delegate->user_data, *str, r);
+    else
+      succeeded = self->delegate->prompt(self->delegate->user_data, *str, r);
+
+    // Uses the default value if needed
+    if (!default_value.empty() && (!succeeded || r.empty()))
+      r = default_value;
+
+    args.GetReturnValue().Set(v8::String::NewFromUtf8(args.GetIsolate(), r.c_str()));
   }
 
   static void f_source(const v8::FunctionCallbackInfo<v8::Value>& args)
@@ -504,6 +534,23 @@ struct JScript_context::JScript_context_impl
   {
     v8::Handle<v8::Context> ctx(v8::Local<v8::Context>::New(isolate, context));
     return ctx->Global()->Get(v8::String::NewFromUtf8(isolate, name.c_str()));
+  }
+
+  static void os_sleep(const v8::FunctionCallbackInfo<v8::Value>& args)
+  {
+    v8::HandleScope handle_scope(args.GetIsolate());
+
+    if (args.Length() != 1 || !args[0]->IsNumber())
+      args.GetIsolate()->ThrowException(v8::String::NewFromUtf8(args.GetIsolate(), "sleep(<number>) takes 1 numeric argument"));
+    else
+    {
+#ifdef HAVE_SLEEP
+      sleep(args[0]->ToNumber()->Value());
+#elif defined(WIN32)
+      Sleep((DWORD)(args[0]->ToNumber()->Value() * 1000));
+#endif
+      args.GetReturnValue().Set(v8::Null(args.GetIsolate()));
+    }
   }
 
   static void os_getenv(const v8::FunctionCallbackInfo<v8::Value>& args)
@@ -640,7 +687,7 @@ void SHCORE_PUBLIC JScript_context_init()
 }
 
 JScript_context::JScript_context(Object_registry *registry, Interpreter_delegate *deleg)
-: _impl(new JScript_context_impl(this, deleg)), _registry(registry)
+  : _impl(new JScript_context_impl(this, deleg)), _registry(registry)
 {
   // initialize type conversion class now that everything is ready
   {

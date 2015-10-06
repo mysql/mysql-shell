@@ -29,19 +29,11 @@
 
 namespace mysh
 {
-  class BaseResultset : public shcore::Cpp_object_bridge
+  // This is the Shell Common Base Class for all the resultset classes
+  class ShellBaseResult : public shcore::Cpp_object_bridge
   {
   public:
-    BaseResultset();
-
-    // Methods from Cpp_object_bridge will be defined here
-    // Since all the connections will expose the same members
-    virtual std::vector<std::string> get_members() const;
     virtual bool operator == (const Object_bridge &other) const;
-
-    virtual shcore::Value next(const shcore::Argument_list &args) = 0;
-    virtual shcore::Value all(const shcore::Argument_list &args) = 0;
-    virtual shcore::Value next_result(const shcore::Argument_list &args) = 0;
 
     // Helper method to retrieve properties using a method
     shcore::Value get_member_method(const shcore::Argument_list &args, const std::string& method, const std::string& prop);
@@ -62,6 +54,9 @@ namespace mysh
     virtual std::string &append_repr(std::string &s_out) const;
     virtual void append_json(const shcore::JSON_dumper& dumper) const;
 
+    shcore::Value get_field(const shcore::Argument_list &args);
+
+    virtual bool has_member(const std::string &prop) const;
     //! Returns the list of members that this object has
     virtual std::vector<std::string> get_members() const;
     //! Implements equality operator
@@ -70,6 +65,8 @@ namespace mysh
     //! Returns the value of a member
     virtual shcore::Value get_member(const std::string &prop) const;
     shcore::Value get_member(size_t index) const;
+
+    virtual bool is_indexed() const { return true; }
 
     void add_item(const std::string &key, shcore::Value value);
   };

@@ -81,7 +81,7 @@ namespace shcore {
     exec_and_out_equals("session.close()");
   }
 
-  // Tests resultset.columnMetadata and resultset.getColumnMetadata()
+  // Tests resultset.columns and resultset.getColumns()
   TEST_F(Shell_py_mysqlx_resultset_tests, mysqlx_resultset_column_metadata)
   {
     exec_and_out_equals("import mysqlx");
@@ -90,11 +90,11 @@ namespace shcore {
 
     exec_and_out_equals("result = session.sql('select * from py_shell_test.table1;').execute()");
 
-    exec_and_out_equals("metadata = result.getColumnMetadata()");
+    exec_and_out_equals("metadata = result.getColumns()");
 
     exec_and_out_equals("print(metadata[0].name)", "id");
 
-    exec_and_out_equals("metadata = result.columnMetadata");
+    exec_and_out_equals("metadata = result.columns");
 
     exec_and_out_equals("print(metadata[0].name)", "id");
 

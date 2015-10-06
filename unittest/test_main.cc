@@ -39,8 +39,9 @@ int main(int argc, char **argv)
   if (!getenv("MYSQL_URI"))
   {
     std::cerr << "WARNING: The MYSQL_URI MYSQL_PWD and MYSQL_PORT environment variables are not set\n";
+    std::cerr << "Note: MYSQL_URI must not contain the port number\n";
+    exit(1);
   }
-
   ::testing::InitGoogleTest(&argc, argv);
 
   const char *generate_option = "--generate_test_groups=";

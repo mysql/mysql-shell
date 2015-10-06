@@ -234,56 +234,56 @@ namespace shcore {
     // Testing the find function
     {
       SCOPED_TRACE("Testing full find");
-      exec_and_out_equals("records = collection.find().execute().all()");
+      exec_and_out_equals("records = collection.find().execute().fetchAll()");
       exec_and_out_equals("print(len(records))", "7");
     }
 
     {
       SCOPED_TRACE("Testing find with filtering");
-      exec_and_out_equals("records = collection.find('gender = \"male\"').execute().all()");
+      exec_and_out_equals("records = collection.find('gender = \"male\"').execute().fetchAll()");
       exec_and_out_equals("print(len(records))", "4");
 
-      exec_and_out_equals("records = collection.find('gender = \"female\"').execute().all()");
+      exec_and_out_equals("records = collection.find('gender = \"female\"').execute().fetchAll()");
       exec_and_out_equals("print(len(records))", "3");
 
-      exec_and_out_equals("records = collection.find('age = 13').execute().all()");
+      exec_and_out_equals("records = collection.find('age = 13').execute().fetchAll()");
       exec_and_out_equals("print(len(records))", "1");
 
-      exec_and_out_equals("records = collection.find('age = 14').execute().all()");
+      exec_and_out_equals("records = collection.find('age = 14').execute().fetchAll()");
       exec_and_out_equals("print(len(records))", "3");
 
-      exec_and_out_equals("records = collection.find('age < 17').execute().all()");
+      exec_and_out_equals("records = collection.find('age < 17').execute().fetchAll()");
       exec_and_out_equals("print(len(records))", "6");
 
-      exec_and_out_equals("records = collection.find('name like \"a%\"').execute().all()");
+      exec_and_out_equals("records = collection.find('name like \"a%\"').execute().fetchAll()");
       exec_and_out_equals("print(len(records))", "3");
 
-      exec_and_out_equals("records = collection.find('name like \"a%\" and age < 15').execute().all()");
+      exec_and_out_equals("records = collection.find('name like \"a%\" and age < 15').execute().fetchAll()");
       exec_and_out_equals("print(len(records))", "2");
     }
 
     {
       SCOPED_TRACE("Testing find with field selection criteria");
       exec_and_out_equals("result = collection.find().fields(['name','age']).execute()");
-      exec_and_out_equals("record = result.next()");
+      exec_and_out_equals("record = result.fetchOne()");
       exec_and_out_equals("print(len(record.__members__))", "2");
       exec_and_out_equals("print(record.name != '')", "True");
       exec_and_out_equals("print(record.age != '')", "True");
       exec_and_out_contains("print(record.gender != '')", "", "unknown attribute: gender");
-      exec_and_out_equals("result.all()"); // Temporal hack: flushes the rest of the data
+      exec_and_out_equals("result.fetchAll()"); // Temporal hack: flushes the rest of the data
 
       exec_and_out_equals("result = collection.find().fields(['age']).execute()");
-      exec_and_out_equals("record = result.next()");
+      exec_and_out_equals("record = result.fetchOne()");
       exec_and_out_equals("print(len(record.__members__))", "1");
       exec_and_out_equals("print(record.age != '')", "True");
       exec_and_out_contains("print(record.name != '')", "", "unknown attribute: name");
       exec_and_out_contains("print(record.gender != '')", "", "unknown attribute: gender");
-      exec_and_out_equals("result.all()"); // Temporal hack: flushes the rest of the data
+      exec_and_out_equals("result.fetchAll()"); // Temporal hack: flushes the rest of the data
     }
 
     {
       SCOPED_TRACE("Testing sort");
-      exec_and_out_equals("records = collection.find().sort(['name']).execute().all()");
+      exec_and_out_equals("records = collection.find().sort(['name']).execute().fetchAll()");
       exec_and_out_equals("print(records[0].name)", "adam");
       exec_and_out_equals("print(records[1].name)", "alma");
       exec_and_out_equals("print(records[2].name)", "angel");
@@ -292,7 +292,7 @@ namespace shcore {
       exec_and_out_equals("print(records[5].name)", "donna");
       exec_and_out_equals("print(records[6].name)", "jack");
 
-      exec_and_out_equals("records = collection.find().sort(['name desc']).execute().all()");
+      exec_and_out_equals("records = collection.find().sort(['name desc']).execute().fetchAll()");
       exec_and_out_equals("print(records[0].name)", "jack");
       exec_and_out_equals("print(records[1].name)", "donna");
       exec_and_out_equals("print(records[2].name)", "carol");
@@ -304,41 +304,41 @@ namespace shcore {
 
     {
       SCOPED_TRACE("Testing limit and offset");
-      exec_and_out_equals("records = collection.find().limit(4).execute().all()");
+      exec_and_out_equals("records = collection.find().limit(4).execute().fetchAll()");
       exec_and_out_equals("print(len(records))", "4");
 
       SCOPED_TRACE("Testing limit and offset");
-      exec_and_out_equals("records = collection.find().limit(4).skip(1).execute().all()");
+      exec_and_out_equals("records = collection.find().limit(4).skip(1).execute().fetchAll()");
       exec_and_out_equals("print(len(records))", "4");
 
       SCOPED_TRACE("Testing limit and offset");
-      exec_and_out_equals("records = collection.find().limit(4).skip(2).execute().all()");
+      exec_and_out_equals("records = collection.find().limit(4).skip(2).execute().fetchAll()");
       exec_and_out_equals("print(len(records))", "4");
 
       SCOPED_TRACE("Testing limit and offset");
-      exec_and_out_equals("records = collection.find().limit(4).skip(3).execute().all()");
+      exec_and_out_equals("records = collection.find().limit(4).skip(3).execute().fetchAll()");
       exec_and_out_equals("print(len(records))", "4");
 
       SCOPED_TRACE("Testing limit and offset");
-      exec_and_out_equals("records = collection.find().limit(4).skip(4).execute().all()");
+      exec_and_out_equals("records = collection.find().limit(4).skip(4).execute().fetchAll()");
       exec_and_out_equals("print(len(records))", "3");
 
       SCOPED_TRACE("Testing limit and offset");
-      exec_and_out_equals("records = collection.find().limit(4).skip(5).execute().all()");
+      exec_and_out_equals("records = collection.find().limit(4).skip(5).execute().fetchAll()");
       exec_and_out_equals("print(len(records))", "2");
 
       SCOPED_TRACE("Testing limit and offset");
-      exec_and_out_equals("records = collection.find().limit(4).skip(6).execute().all()");
+      exec_and_out_equals("records = collection.find().limit(4).skip(6).execute().fetchAll()");
       exec_and_out_equals("print(len(records))", "1");
 
       SCOPED_TRACE("Testing limit and offset");
-      exec_and_out_equals("records = collection.find().limit(4).skip(7).execute().all()");
+      exec_and_out_equals("records = collection.find().limit(4).skip(7).execute().fetchAll()");
       exec_and_out_equals("print(len(records))", "0");
     }
 
     {
       SCOPED_TRACE("Testing bind");
-      exec_and_out_equals("records = collection.find('age = :years and gender = :heorshe').bind('years', 13).bind('heorshe','female').execute().all();");
+      exec_and_out_equals("records = collection.find('age = :years and gender = :heorshe').bind('years', 13).bind('heorshe','female').execute().fetchAll();");
       exec_and_out_equals("print(len(records));", "1");
       exec_and_out_equals("print(records[0].name);", "alma");
     }

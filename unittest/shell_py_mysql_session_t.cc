@@ -59,7 +59,7 @@ namespace shcore {
     exec_and_out_equals("index=members.index('getSchemas')");
     exec_and_out_equals("index=members.index('getUri')");
     exec_and_out_equals("index=members.index('setCurrentSchema')");
-    exec_and_out_equals("index=members.index('sql')");
+    exec_and_out_equals("index=members.index('executeSql')");
     exec_and_out_equals("index=members.index('currentSchema')");
     exec_and_out_equals("index=members.index('defaultSchema')");
     exec_and_out_equals("index=members.index('schemas')");
@@ -310,7 +310,6 @@ namespace shcore {
     exec_and_out_equals("session.close()");
   }
 
-  // Tests session.<schema>
   TEST_F(Shell_py_mysql_session_tests, create_schema)
   {
     exec_and_out_equals("import mysql");
@@ -318,12 +317,22 @@ namespace shcore {
     exec_and_out_equals("session = mysql.getClassicSession('" + _mysql_uri + "')");
 
     // Cleans environment
-    exec_and_out_equals("session.sql('drop database if exists mysql_test_create_schema_1')");
+    exec_and_out_equals("session.executeSql('drop database if exists mysql_test_create_schema_1')");
 
     // Happy path
     exec_and_out_equals("s = session.createSchema('mysql_test_create_schema_1')");
 
     exec_and_out_equals("print(s)", "<ClassicSchema:mysql_test_create_schema_1>");
+
+    // Cleans environment
+    exec_and_out_equals("session.executeSql('drop database if exists `classic schema`')");
+
+    // Schema with spaces
+    exec_and_out_equals("s = session.createSchema('classic schema');");
+
+    exec_and_out_equals("print(s);", "<ClassicSchema:classic schema>");
+
+    exec_and_out_equals("session.dropSchema('classic schema')");
 
     // Error, existing schema
     exec_and_out_contains("s2 = session.createSchema('mysql_test_create_schema_1')", "", "Can't create database 'mysql_test_create_schema_1'; database exists");
@@ -332,7 +341,54 @@ namespace shcore {
     exec_and_out_contains("s2 = session.createSchema(45)", "", "Argument #1 is expected to be a string");
 
     // Drops the database
-    exec_and_out_equals("session.sql('drop database mysql_test_create_schema_1')");
+    exec_and_out_equals("session.executeSql('drop database mysql_test_create_schema_1')");
+
+    exec_and_out_equals("session.close()");
+  }
+
+  TEST_F(Shell_py_mysql_session_tests, transaction_handling)
+  {
+    exec_and_out_equals("import mysql");
+
+    exec_and_out_equals("session = mysql.getClassicSession('" + _mysql_uri + "')");
+
+    // Cleans py_test_create_schema
+    exec_and_out_equals("session.executeSql('drop database if exists py_tx_schema')");
+
+    // Happy path
+    exec_and_out_equals("s = session.createSchema('py_tx_schema')");
+    exec_and_out_equals("session.setCurrentSchema('py_tx_schema')");
+
+    exec_and_out_equals("session.executeSql('create table sample (name varchar(50));')");
+
+    // Tests the rollback
+    exec_and_out_equals("session.startTransaction()");
+
+    exec_and_out_equals("session.executeSql('insert into sample values (\"first\")')");
+    exec_and_out_equals("session.executeSql('insert into sample values (\"second\")')");
+    exec_and_out_equals("session.executeSql('insert into sample values (\"third\")')");
+
+    exec_and_out_equals("session.rollback()");
+
+    exec_and_out_equals("result = session.executeSql('select count(*) from sample')");
+    exec_and_out_equals("data = result.fetchOne()");
+    exec_and_out_equals("print(data[0])", "0", "");
+
+    // Test the commit
+    exec_and_out_equals("session.startTransaction()");
+
+    exec_and_out_equals("session.executeSql('insert into sample values (\"first\")')");
+    exec_and_out_equals("session.executeSql('insert into sample values (\"second\")')");
+    exec_and_out_equals("session.executeSql('insert into sample values (\"third\")')");
+
+    exec_and_out_equals("session.commit()");
+
+    exec_and_out_equals("result = session.executeSql('select count(*) from sample')");
+    exec_and_out_equals("data = result.fetchOne()");
+    exec_and_out_equals("print(data[0])", "3", "");
+
+    // Drops the database
+    exec_and_out_equals("session.dropSchema('py_tx_schema')");
 
     exec_and_out_equals("session.close()");
   }

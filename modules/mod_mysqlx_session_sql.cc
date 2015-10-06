@@ -145,14 +145,14 @@ shcore::Value SqlExecute::bind(const shcore::Argument_list &args)
 #ifdef DOXYGEN
 /**
 * Executes the sql statement.
-* \return A Resultset object.
+* \return A SqlResult object.
 *
 * This function can be invoked after:
 * - sql(String statement)
 * - bind(Value value)
 * - bind(List values)
 */
-Resultset SqlExecute::execute(ExecuteOptions options){}
+SqlResult SqlExecute::execute(ExecuteOptions options){}
 #endif
 shcore::Value SqlExecute::execute(const shcore::Argument_list &args)
 {
@@ -160,5 +160,5 @@ shcore::Value SqlExecute::execute(const shcore::Argument_list &args)
 
   boost::shared_ptr<NodeSession> session(boost::static_pointer_cast<NodeSession>(_session.lock()));
 
-  return session->executeSql(_sql, _parameters);
+  return session->execute_sql(_sql, _parameters);
 }

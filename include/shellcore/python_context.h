@@ -136,6 +136,7 @@ namespace shcore
     AutoPyObject get_shell_list_class();
     AutoPyObject get_shell_dict_class();
     AutoPyObject get_shell_object_class();
+    AutoPyObject get_shell_indexed_object_class();
     AutoPyObject get_shell_function_class();
 
     Interpreter_delegate *_delegate;
@@ -181,6 +182,7 @@ namespace shcore
     AutoPyObject _shell_list_class;
     AutoPyObject _shell_dict_class;
     AutoPyObject _shell_object_class;
+    AutoPyObject _shell_indexed_object_class;
     AutoPyObject _shell_function_class;
   };
 }

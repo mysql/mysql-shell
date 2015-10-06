@@ -17,224 +17,36 @@
 * 02110-1301  USA
 */
 
-#include <cstdio>
-#include <cstdlib>
-#include <fstream>
-#include <string>
+#include "shell_script_tester.h"
+#include "modules/base_session.h"
 
-#include "gtest/gtest.h"
-#include "test_utils.h"
-#include "base_session.h"
-
-namespace shcore {
-  class Shell_js_mysqlx_tests : public Shell_core_test_wrapper
+namespace shcore
+{
+  TEST_F(Shell_js_script_tester, mysqlx_module)
   {
-  protected:
-    // You can define per-test set-up and tear-down logic as usual.
-    virtual void SetUp()
-    {
-      Shell_core_test_wrapper::SetUp();
-
-      bool initilaized(false);
-      _shell_core->switch_mode(Shell_core::Mode_JScript, initilaized);
-    }
-  };
-
-  TEST_F(Shell_js_mysqlx_tests, mysqlx_exports)
-  {
-    execute("print(shell.js.module_paths);");
-    wipe_all();
-    exec_and_out_equals("var mysqlx = require('mysqlx').mysqlx;");
-    exec_and_out_equals("var exports = dir(mysqlx);");
-    exec_and_out_equals("print(exports.length);", "3");
-
-    exec_and_out_equals("print(typeof mysqlx.getSession);", "function");
-    exec_and_out_equals("print(typeof mysqlx.getNodeSession);", "function");
-    exec_and_out_equals("print(typeof mysqlx.expr);", "function");
-  }
-
-  TEST_F(Shell_js_mysqlx_tests, mysqlx_open_session_uri)
-  {
-    exec_and_out_equals("var mysqlx = require('mysqlx').mysqlx;");
-
-    // Assuming _uri is in the format user:password@host
-    std::string uri = mysh::strip_password(_uri);
-
-    exec_and_out_equals("var session = mysqlx.getSession('" + _uri + "');");
-    exec_and_out_equals("print(session);", "<XSession:" + uri + ">");
-    exec_and_out_equals("session.close();");
-  }
-
-  TEST_F(Shell_js_mysqlx_tests, mysqlx_open_session_uri_password)
-  {
-    exec_and_out_equals("var mysqlx = require('mysqlx').mysqlx;");
-
-    // Assuming _uri is in the format user:password@host
-    int port = 3306, pwd_found;
-    std::string protocol, user, password, host, sock, schema, ssl_ca, ssl_cert, ssl_key;
-    mysh::parse_mysql_connstring(_uri, protocol, user, password, host, port, sock, schema, pwd_found, ssl_ca, ssl_cert, ssl_key);
-
-    std::string uri = mysh::strip_password(_uri);
-
-    if (!_pwd.empty())
-      password = _pwd;
-
-    exec_and_out_equals("var session = mysqlx.getSession('" + _uri + "', '" + password + "');");
-    exec_and_out_equals("print(session);", "<XSession:" + uri + ">");
-    exec_and_out_equals("session.close();");
-  }
-
-  TEST_F(Shell_js_mysqlx_tests, mysqlx_open_session_data)
-  {
-    exec_and_out_equals("var mysqlx = require('mysqlx').mysqlx;");
-
-    // Assuming _uri is in the format user:password@host
     int port = 33060, pwd_found;
     std::string protocol, user, password, host, sock, schema, ssl_ca, ssl_cert, ssl_key;
     mysh::parse_mysql_connstring(_uri, protocol, user, password, host, port, sock, schema, pwd_found, ssl_ca, ssl_cert, ssl_key);
 
-    if (!_pwd.empty())
-      password = _pwd;
+    std::string code = "var __user = '" + user + "';";
+    exec_and_out_equals(code);
+    code = "var __pwd = '" + password + "';";
+    exec_and_out_equals(code);
+    code = "var __host = '" + host + "';";
+    exec_and_out_equals(code);
+    code = "var __port = 33060;";
+    exec_and_out_equals(code);
+    code = "var __schema = 'mysql';";
+    exec_and_out_equals(code);
+    code = "var __schema = 'mysql';";
+    exec_and_out_equals(code);
+    code = "var __uri = '" + user + "@" + host + ":33060';";
+    exec_and_out_equals(code);
+    code = "var __uripwd = '" + user + ":" + password + "@" + host + ":33060';";
+    exec_and_out_equals(code);
 
-    std::stringstream connection_data;
-    connection_data << "{";
-    connection_data << "\"host\": '" << host << "',";
-    connection_data << "\"port\": " << port << ",";
-    connection_data << "\"schema\": '" << schema << "',";
-    connection_data << "\"dbUser\": '" << user << "',";
-    connection_data << "\"dbPassword\": '" << password << "'";
-    connection_data << "}";
-
-    std::stringstream uri;
-    uri << user << "@" << host << ":" << port;
-
-    exec_and_out_equals("var session = mysqlx.getSession(" + connection_data.str() + ");");
-    exec_and_out_equals("print(session);", "<XSession:" + uri.str() + ">");
-    exec_and_out_equals("session.close();");
-  }
-
-  TEST_F(Shell_js_mysqlx_tests, mysqlx_open_session_data_password)
-  {
-    exec_and_out_equals("var mysqlx = require('mysqlx').mysqlx;");
-
-    // Assuming _uri is in the format user:password@host
-    int port = 33060, pwd_found;
-    std::string protocol, user, password, host, sock, schema, ssl_ca, ssl_cert, ssl_key;
-    mysh::parse_mysql_connstring(_uri, protocol, user, password, host, port, sock, schema, pwd_found, ssl_ca, ssl_cert, ssl_key);
-
-    if (!_pwd.empty())
-      password = _pwd;
-
-    std::stringstream connection_data;
-    connection_data << "{";
-    connection_data << "\"host\": '" << host << "',";
-    connection_data << "\"port\": " << port << ",";
-    connection_data << "\"schema\": '" << schema << "',";
-    connection_data << "\"dbUser\": '" << user << "'";
-    connection_data << "}";
-
-    std::stringstream uri;
-    uri << user << "@" << host << ":" << port;
-
-    exec_and_out_equals("var session = mysqlx.getSession(" + connection_data.str() + ", '" + password + "');");
-    exec_and_out_equals("print(session);", "<XSession:" + uri.str() + ">");
-    exec_and_out_equals("session.close();");
-  }
-
-  TEST_F(Shell_js_mysqlx_tests, mysqlx_open_node_session_uri)
-  {
-    exec_and_out_equals("var mysqlx = require('mysqlx').mysqlx;");
-
-    // Assuming _uri is in the format user:password@host
-    std::string uri = mysh::strip_password(_uri);
-    exec_and_out_equals("var session = mysqlx.getNodeSession('" + _uri + "');");
-    exec_and_out_equals("print(session);", "<NodeSession:" + uri + ">");
-    exec_and_out_equals("session.close();");
-  }
-
-  TEST_F(Shell_js_mysqlx_tests, mysqlx_open_node_session_uri_password)
-  {
-    exec_and_out_equals("var mysqlx = require('mysqlx').mysqlx;");
-
-    // Assuming _uri is in the format user:password@host
-    int port = 3306, pwd_found;
-    std::string protocol, user, password, host, sock, schema, ssl_ca, ssl_cert, ssl_key;
-    mysh::parse_mysql_connstring(_uri, protocol, user, password, host, port, sock, schema, pwd_found, ssl_ca, ssl_cert, ssl_key);
-
-    std::string uri = mysh::strip_password(_uri);
-
-    if (!_pwd.empty())
-      password = _pwd;
-
-    exec_and_out_equals("var session = mysqlx.getNodeSession('" + _uri + "', '" + password + "');");
-    exec_and_out_equals("print(session);", "<NodeSession:" + uri + ">");
-    exec_and_out_equals("session.close();");
-  }
-
-  TEST_F(Shell_js_mysqlx_tests, mysqlx_open_node_session_data)
-  {
-    exec_and_out_equals("var mysqlx = require('mysqlx').mysqlx;");
-
-    // Assuming _uri is in the format user:password@host
-    int port = 33060, pwd_found;
-    std::string protocol, user, password, host, sock, schema, ssl_ca, ssl_cert, ssl_key;
-    mysh::parse_mysql_connstring(_uri, protocol, user, password, host, port, sock, schema, pwd_found, ssl_ca, ssl_cert, ssl_key);
-
-    if (!_pwd.empty())
-      password = _pwd;
-
-    std::stringstream connection_data;
-    connection_data << "{";
-    connection_data << "\"host\": '" << host << "',";
-    connection_data << "\"port\": " << port << ",";
-    connection_data << "\"schema\": '" << schema << "',";
-    connection_data << "\"dbUser\": '" << user << "',";
-    connection_data << "\"dbPassword\": '" << password << "'";
-    connection_data << "}";
-
-    std::stringstream uri;
-    uri << user << "@" << host << ":" << port;
-
-    exec_and_out_equals("var session = mysqlx.getNodeSession(" + connection_data.str() + ");");
-    exec_and_out_equals("print(session);", "<NodeSession:" + uri.str() + ">");
-    exec_and_out_equals("session.close();");
-  }
-
-  TEST_F(Shell_js_mysqlx_tests, mysqlx_open_node_session_data_password)
-  {
-    exec_and_out_equals("var mysqlx = require('mysqlx').mysqlx;");
-
-    // Assuming _uri is in the format user:password@host
-    int port = 33060, pwd_found;
-    std::string protocol, user, password, host, sock, schema, ssl_ca, ssl_cert, ssl_key;
-    mysh::parse_mysql_connstring(_uri, protocol, user, password, host, port, sock, schema, pwd_found, ssl_ca, ssl_cert, ssl_key);
-
-    if (!_pwd.empty())
-      password = _pwd;
-
-    std::stringstream connection_data;
-    connection_data << "{";
-    connection_data << "\"host\": '" << host << "',";
-    connection_data << "\"port\": " << port << ",";
-    connection_data << "\"schema\": '" << schema << "',";
-    connection_data << "\"dbUser\": '" << user << "'";
-    connection_data << "}";
-
-    std::stringstream uri;
-    uri << user << "@" << host << ":" << port;
-
-    exec_and_out_equals("var session = mysqlx.getNodeSession(" + connection_data.str() + ", '" + password + "');");
-    exec_and_out_equals("print(session);", "<NodeSession:" + uri.str() + ">");
-    exec_and_out_equals("session.close();");
-  }
-
-  TEST_F(Shell_js_mysqlx_tests, mysqlx_expr)
-  {
-    exec_and_out_equals("var mysqlx = require('mysqlx').mysqlx;");
-    exec_and_out_contains("var expr = mysqlx.expr();", "", "Invalid number of arguments in mysqlx.expr, expected 1 but got 0");
-    exec_and_out_contains("var expr = mysqlx.expr(5);", "", "mysqlx.expr: Argument #1 is expected to be a string");
-    exec_and_out_contains("var expr = mysqlx.expr('5+6');");
-
-    exec_and_out_equals("print(expr)", "<Expression>", "");
+    set_config_folder("js_devapi");
+    set_setup_script("setup.js");
+    validate_interactive("mysqlx_module.js");
   }
 }

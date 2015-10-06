@@ -290,115 +290,115 @@ namespace shcore {
     {
       SCOPED_TRACE("Testing set");
       exec_and_out_equals("result = collection.modify('name = \"brian\"').set('alias', 'bri').set('last_name', 'black').set('age', mysqlx.expr('13+1')).execute()");
-      exec_and_out_equals("print(result.affectedRows)", "1");
+      exec_and_out_equals("print(result.affectedItemCount)", "1");
 
       exec_and_out_equals("result = collection.find('name = \"brian\"').execute()");
-      exec_and_out_equals("doc = result.next()");
+      exec_and_out_equals("doc = result.fetchOne()");
       exec_and_out_equals("print(doc.last_name)", "black");
       exec_and_out_equals("print(doc.age)", "14");
       exec_and_out_equals("print(doc.alias)", "bri");
-      exec_and_out_equals("result.all()");
+      exec_and_out_equals("result.fetchAll()");
     }
 
     {
       SCOPED_TRACE("Testing unset");
       // Unsetting single attribute
       exec_and_out_equals("result = collection.modify('name = \"brian\"').unset('last_name').execute()");
-      exec_and_out_equals("print(result.affectedRows)", "1");
+      exec_and_out_equals("print(result.affectedItemCount)", "1");
 
       exec_and_out_equals("result = collection.find('name = \"brian\"').execute()");
-      exec_and_out_equals("doc = result.next()");
+      exec_and_out_equals("doc = result.fetchOne()");
       exec_and_out_contains("print(doc.last_name)", "", ": last_name");
       exec_and_out_equals("print(doc.age)", "14");
       exec_and_out_equals("print(doc.alias)", "bri");
-      exec_and_out_equals("result.all()");
+      exec_and_out_equals("result.fetchAll()");
 
       // Unsetting attribute list
       exec_and_out_equals("result = collection.modify('name = \"brian\"').unset(['alias', 'age']).execute()");
-      exec_and_out_equals("print(result.affectedRows)", "1");
+      exec_and_out_equals("print(result.affectedItemCount)", "1");
 
       exec_and_out_equals("result = collection.find('name = \"brian\"').execute()");
-      exec_and_out_equals("doc = result.next()");
+      exec_and_out_equals("doc = result.fetchOne()");
       exec_and_out_contains("print(doc.last_name)", "", "unknown attribute: last_name");
       exec_and_out_contains("print(doc.age)", "", "unknown attribute: age");
       exec_and_out_contains("print(doc.alias)", "", "unknown attribute: alias");
-      exec_and_out_equals("result.all()");
+      exec_and_out_equals("result.fetchAll()");
     }
 
     {
       SCOPED_TRACE("Testing merge");
       exec_and_out_equals("result = collection.modify('name = \"brian\"').merge({'last_name':'black', 'age':14, 'alias':'bri', 'girlfriends':['martha', 'karen']}).execute()");
-      exec_and_out_equals("print(result.affectedRows)", "1");
+      exec_and_out_equals("print(result.affectedItemCount)", "1");
 
       exec_and_out_equals("result = collection.find('name = \"brian\"').execute()");
-      exec_and_out_equals("doc = result.next()");
+      exec_and_out_equals("doc = result.fetchOne()");
       exec_and_out_equals("print(doc.last_name)", "black");
       exec_and_out_equals("print(doc.age)", "14");
       exec_and_out_equals("print(doc.alias)", "bri");
       exec_and_out_equals("print(doc.girlfriends[0])", "martha");
       exec_and_out_equals("print(doc.girlfriends[1])", "karen");
-      exec_and_out_equals("result.all()");
+      exec_and_out_equals("result.fetchAll()");
     }
 
     {
       SCOPED_TRACE("Testing arrayAppend");
       exec_and_out_equals("result = collection.modify('name = \"brian\"').arrayAppend('girlfriends','cloe').execute()");
-      exec_and_out_equals("print(result.affectedRows)", "1");
+      exec_and_out_equals("print(result.affectedItemCount)", "1");
 
       exec_and_out_equals("result = collection.find('name = \"brian\"').execute()");
-      exec_and_out_equals("doc = result.next()");
+      exec_and_out_equals("doc = result.fetchOne()");
       exec_and_out_equals("print(doc.girlfriends[0])", "martha");
       exec_and_out_equals("print(doc.girlfriends[1])", "karen");
       exec_and_out_equals("print(doc.girlfriends[2])", "cloe");
-      exec_and_out_equals("result.all()");
+      exec_and_out_equals("result.fetchAll()");
     }
 
     {
       SCOPED_TRACE("Testing arrayInsert");
       exec_and_out_equals("result = collection.modify('name = :who').arrayInsert('girlfriends[1]','samantha').bind('who', 'brian').execute()");
-      exec_and_out_equals("print(result.affectedRows)", "1");
+      exec_and_out_equals("print(result.affectedItemCount)", "1");
 
       exec_and_out_equals("result = collection.find('name = \"brian\"').execute()");
-      exec_and_out_equals("doc = result.next()");
+      exec_and_out_equals("doc = result.fetchOne()");
       exec_and_out_equals("print(doc.girlfriends[0])", "martha");
       exec_and_out_equals("print(doc.girlfriends[1])", "samantha");
       exec_and_out_equals("print(doc.girlfriends[2])", "karen");
       exec_and_out_equals("print(doc.girlfriends[3])", "cloe");
-      exec_and_out_equals("result.all()");
+      exec_and_out_equals("result.fetchAll()");
     }
 
     {
       SCOPED_TRACE("Testing arrayDelete");
       exec_and_out_equals("result = collection.modify('name = \"brian\"').arrayDelete('girlfriends[2]').execute()");
-      exec_and_out_equals("print(result.affectedRows)", "1");
+      exec_and_out_equals("print(result.affectedItemCount)", "1");
 
       exec_and_out_equals("result = collection.find('name = \"brian\"').execute()");
-      exec_and_out_equals("doc = result.next()");
+      exec_and_out_equals("doc = result.fetchOne()");
       exec_and_out_equals("print(doc.girlfriends[0])", "martha");
       exec_and_out_equals("print(doc.girlfriends[1])", "samantha");
       exec_and_out_equals("print(doc.girlfriends[2])", "cloe");
-      exec_and_out_equals("result.all()");
+      exec_and_out_equals("result.fetchAll()");
     }
 
     {
       SCOPED_TRACE("Testing update with sorting and limits");
       exec_and_out_equals("result = collection.modify('age = 14').set('sample', 'in_limit').sort(['name']).limit(2).execute()");
-      exec_and_out_equals("print(result.affectedRows)", "2");
+      exec_and_out_equals("print(result.affectedItemCount)", "2");
 
       exec_and_out_equals("result = collection.find('age = 14').sort(['name']).execute()");
-      exec_and_out_equals("doc = result.next()");
+      exec_and_out_equals("doc = result.fetchOne()");
       exec_and_out_equals("print(doc.name)", "angel");
       exec_and_out_equals("print(doc.sample)", "in_limit");
 
-      exec_and_out_equals("doc = result.next()");
+      exec_and_out_equals("doc = result.fetchOne()");
       exec_and_out_equals("print(doc.name)", "brian");
       exec_and_out_equals("print(doc.sample)", "in_limit");
 
-      exec_and_out_equals("doc = result.next()");
+      exec_and_out_equals("doc = result.fetchOne()");
       exec_and_out_equals("print(doc.name)", "carol");
       exec_and_out_contains("print(doc.sample)", "", "unknown attribute: sample");
 
-      exec_and_out_equals("result.all()");
+      exec_and_out_equals("result.fetchAll()");
     }
 
     exec_and_out_equals("session.close()");

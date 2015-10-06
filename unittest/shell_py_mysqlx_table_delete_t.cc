@@ -191,27 +191,27 @@ namespace shcore {
     {
       SCOPED_TRACE("Testing delete");
       exec_and_out_equals("result = table.delete().where('age = 13').execute()");
-      exec_and_out_equals("print(result.affectedRows)", "1");
+      exec_and_out_equals("print(result.affectedItemCount)", "1");
 
-      exec_and_out_equals("records = table.select().execute().all()");
+      exec_and_out_equals("records = table.select().execute().fetchAll()");
       exec_and_out_equals("print(len(records))", "6");
     }
 
     {
       SCOPED_TRACE("Testing delete with limits and bound value");
       exec_and_out_equals("result = table.delete().where('gender = :heorshe').limit(2).bind('heorshe', 'male').execute();");
-      exec_and_out_equals("print(result.affectedRows)", "2");
+      exec_and_out_equals("print(result.affectedItemCount)", "2");
 
-      exec_and_out_equals("records = table.select().execute().all()");
+      exec_and_out_equals("records = table.select().execute().fetchAll()");
       exec_and_out_equals("print(len(records))", "4");
     }
 
     {
       SCOPED_TRACE("Testing full delete");
       exec_and_out_equals("result = table.delete().execute()");
-      exec_and_out_equals("print(result.affectedRows)", "4");
+      exec_and_out_equals("print(result.affectedItemCount)", "4");
 
-      exec_and_out_equals("records = table.select().execute().all()");
+      exec_and_out_equals("records = table.select().execute().fetchAll()");
       exec_and_out_equals("print(len(records))", "0");
     }
 
@@ -224,25 +224,25 @@ namespace shcore {
       exec_and_out_equals("result = table.insert({'name': 'alma', 'age': 13, 'gender': 'female'}).execute()");
       exec_and_out_equals("result = table.insert({'name': 'carol', 'age': 14, 'gender': 'female'}).execute()");
 
-      exec_and_out_equals("records = table.select().execute().all()");
+      exec_and_out_equals("records = table.select().execute().fetchAll()");
       exec_and_out_equals("print(len(records))", "5");
 
       exec_and_out_equals("result = table.delete().limit(2).execute()");
-      exec_and_out_equals("print(result.affectedRows)", "2");
+      exec_and_out_equals("print(result.affectedItemCount)", "2");
 
-      exec_and_out_equals("records = table.select().execute().all()");
+      exec_and_out_equals("records = table.select().execute().fetchAll()");
       exec_and_out_equals("print(len(records))", "3");
 
       exec_and_out_equals("result = table.delete().limit(2).execute()");
-      exec_and_out_equals("print(result.affectedRows)", "2");
+      exec_and_out_equals("print(result.affectedItemCount)", "2");
 
-      exec_and_out_equals("records = table.select().execute().all()");
+      exec_and_out_equals("records = table.select().execute().fetchAll()");
       exec_and_out_equals("print(len(records))", "1");
 
       exec_and_out_equals("result = table.delete().limit(2).execute()");
-      exec_and_out_equals("print(result.affectedRows)", "1");
+      exec_and_out_equals("print(result.affectedItemCount)", "1");
 
-      exec_and_out_equals("records = table.select().execute().all()");
+      exec_and_out_equals("records = table.select().execute().fetchAll()");
       exec_and_out_equals("print(len(records))", "0");
     }
 

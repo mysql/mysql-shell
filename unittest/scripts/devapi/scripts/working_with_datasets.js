@@ -6,6 +6,6 @@ var res = myColl.find('name like :name').bind('name','S%')
         .execute();
 
 var doc;
-while (doc = res.next()) {
+while (doc = res.fetchOne()) {
         print(doc);
 }

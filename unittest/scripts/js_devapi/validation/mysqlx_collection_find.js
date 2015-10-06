@@ -14,7 +14,7 @@
 |All expected functions are available|
 |No additional functions are available|
 
-//@ CollectionFind: valid operations after having
+//@ CollectionFind: valid operations after sort
 |All expected functions are available|
 |No additional functions are available|
 

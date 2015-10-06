@@ -29,6 +29,8 @@
 #include "shellcore/shell_jscript.h"
 #include "shell_script_tester.h"
 
+#include "shellcore/server_registry.h"
+
 namespace shcore
 {
   class Shell_js_dev_api_sample_tester : public Shell_script_tester
@@ -52,9 +54,28 @@ namespace shcore
 
   TEST_F(Shell_js_dev_api_sample_tester, initialization)
   {
+    Server_registry* sr = new Server_registry("mysqlxconfig.json");
+    Connection_options cs;
+    try
+    {
+      cs = sr->get_connection_by_name("myapp");
+    }
+    catch (std::runtime_error &e)
+    {
+      cs = sr->add_connection_options("app=myapp; server=localhost; user=mike; schema=test;");
+      sr->merge();
+    }
+
     set_config_folder("devapi");
     set_setup_script("setup.js");
 
+    validate_batch("transaction_handling.js");
+    validate_batch("processing_warnings.js");
+    validate_batch("connecting_via_datasource_file.js");
+    validate_batch("setting_the_current_schema_2.js");
+    validate_batch("dynamic_sql.js");
+    output_handler.ret_pwd = "s3cr3t!";
+    validate_batch("connecting_to_a_session_2.js");
     validate_batch("database_connection_example.js");
     validate_batch("connecting_to_a_session.js");
     validate_batch("working_with_a_session_object.js");
@@ -71,7 +92,6 @@ namespace shcore
     validate_batch("working_with_datasets_1.js");
     validate_batch("working_with_datasets_2.js");
     validate_batch("working_with_sql_resultsets.js");
-    // TODO: Uncomment once the exit() function is available
-    //validate_batch("error_handling.js");
+    validate_batch("error_handling.js");
   }
 }

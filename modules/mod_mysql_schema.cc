@@ -70,8 +70,8 @@ void ClassicSchema::cache_table_objects()
   boost::shared_ptr<ClassicSession> sess(boost::dynamic_pointer_cast<ClassicSession>(_session.lock()));
   if (sess)
   {
-    Result *result = sess->connection()->executeSql("show full tables in `" + _name + "`");
-    Row *row = result->next();
+    Result *result = sess->connection()->execute_sql("show full tables in `" + _name + "`");
+    Row *row = result->fetch_one();
     while (row)
     {
       std::string object_name = row->get_value_as_string(0);
@@ -82,19 +82,19 @@ void ClassicSchema::cache_table_objects()
       else if (object_type == "VIEW" || object_type == "SYSTEM VIEW")
         (*_views)[object_name] = Value::wrap(new ClassicView(shared_from_this(), object_name));
 
-      row = result->next();
+      row = result->fetch_one();
     }
   }
 }
 
 void ClassicSchema::_remove_object(const std::string& name, const std::string& type)
 {
-  if (type == "ClassicView")
+  if (type == "View")
   {
     if (_views->count(name))
       _views->erase(name);
   }
-  else if (type == "ClassicTable")
+  else if (type == "Table")
   {
     if (_tables->count(name))
       _tables->erase(name);

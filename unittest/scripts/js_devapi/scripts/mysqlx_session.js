@@ -1,3 +1,4 @@
+// Assumptions: ensure_schema_does_not_exist is available
 var mysqlx = require('mysqlx').mysqlx;
 
 function validateMember(memberList, member){
@@ -12,8 +13,8 @@ function validateMember(memberList, member){
 var  uri = os.getenv('MYSQL_URI');
 
 //@ Session: validating members
-var session = mysqlx.getSession(uri);
-var sessionMembers = dir(session);
+var mySession = mysqlx.getSession(uri);
+var sessionMembers = dir(mySession);
 
 validateMember(sessionMembers, 'close');
 validateMember(sessionMembers, 'createSchema');
@@ -27,45 +28,64 @@ validateMember(sessionMembers, 'schemas');
 validateMember(sessionMembers, 'uri');
 
 //@ Session: accessing Schemas
-var schemas = session.getSchemas();
+var schemas = mySession.getSchemas();
 print(schemas.mysql);
 print(schemas.information_schema);
 
 //@ Session: accessing individual schema
 var schema;
-schema = session.getSchema('mysql');
+schema = mySession.getSchema('mysql');
 print(schema.name);
-schema = session.getSchema('information_schema');
+schema = mySession.getSchema('information_schema');
 print(schema.name);
 
 //@ Session: accessing schema through dynamic attributes
-print(session.mysql.name)
-print(session.information_schema.name)
+print(mySession.mysql.name)
+print(mySession.information_schema.name)
 
 //@ Session: accessing unexisting schema
-schema = session.getSchema('unexisting_schema');
+schema = mySession.getSchema('unexisting_schema');
 
 //@ Session: create schema success
-var ss; 
+ensure_schema_does_not_exist(mySession, 'session_schema');
 
-try{
-	// Ensures the session_schema does not exist
-	ss = session.getSchema('session_schema');
-	ss.drop();
-}
-catch(err)
-{
-}
-
-ss = session.createSchema('session_schema');
+var ss = mySession.createSchema('session_schema');
 print(ss);
 
 //@ Session: create schema failure
-var sf = session.createSchema('session_schema');
-ss.drop();
+var sf = mySession.createSchema('session_schema');
 
-//@ Closes the session
-session.close();
+//@ Session: create quoted schema
+ensure_schema_does_not_exist('quoted schema');
+var qs = mySession.createSchema('quoted schema');
+print(qs);
+
+//@ Session: Transaction handling: rollback
+var collection = ss.createCollection('sample');
+mySession.startTransaction();
+var res1 = collection.add({name:'john', age: 15}).execute();
+var res2 = collection.add({name:'carol', age: 16}).execute();
+var res3 = collection.add({name:'alma', age: 17}).execute();
+mySession.rollback();
+
+var result = collection.find().execute();
+print('Inserted Documents:', result.fetchAll().length);
+
+//@ Session: Transaction handling: commit
+mySession.startTransaction();
+var res1 = collection.add({name:'john', age: 15}).execute();
+var res2 = collection.add({name:'carol', age: 16}).execute();
+var res3 = collection.add({name:'alma', age: 17}).execute();
+mySession.commit();
+
+var result = collection.find().execute();
+print('Inserted Documents:', result.fetchAll().length);
+
+
+// Cleanup
+mySession.dropSchema('session_schema');
+mySession.dropSchema('quoted schema');
+mySession.close();
 
 //@ NodeSession: validating members
 var nodeSession = mysqlx.getNodeSession(uri);
@@ -114,24 +134,38 @@ print(dschema);
 print(cschema);
 
 //@ NodeSession: create schema success
-var ss;
-try{
-	// Ensures the session_schema does not exist
-	ss = nodeSession.getSchema('node_session_schema');
-	ss.drop();
-}
-catch(err)
-{
-}
+ensure_schema_does_not_exist(nodeSession, 'node_session_schema');
 
 ss = nodeSession.createSchema('node_session_schema');
 print(ss)
 
 //@ NodeSession: create schema failure
 var sf = nodeSession.createSchema('node_session_schema');
-ss.drop();
 
-//@ Current schema validations: nodefault, mysql
+//@ NodeSession: Transaction handling: rollback
+var collection = ss.createCollection('sample');
+nodeSession.startTransaction();
+var res1 = collection.add({name:'john', age: 15}).execute();
+var res2 = collection.add({name:'carol', age: 16}).execute();
+var res3 = collection.add({name:'alma', age: 17}).execute();
+nodeSession.rollback();
+
+var result = collection.find().execute();
+print('Inserted Documents:', result.fetchAll().length);
+
+//@ NodeSession: Transaction handling: commit
+nodeSession.startTransaction();
+var res1 = collection.add({name:'john', age: 15}).execute();
+var res2 = collection.add({name:'carol', age: 16}).execute();
+var res3 = collection.add({name:'alma', age: 17}).execute();
+nodeSession.commit();
+
+var result = collection.find().execute();
+print('Inserted Documents:', result.fetchAll().length);
+
+nodeSession.dropSchema('node_session_schema');
+
+//@ NodeSession: current schema validations: nodefault, mysql
 nodeSession.setCurrentSchema('mysql');
 dschema = nodeSession.getDefaultSchema();
 cschema = nodeSession.getCurrentSchema();
@@ -184,5 +218,5 @@ print(nodeSession.quoteName('`sample`'));
 print(nodeSession.quoteName('`sample'));
 print(nodeSession.quoteName('sample`'));
 
-//@ Closes the nodeSession
+// Cleanup
 nodeSession.close();

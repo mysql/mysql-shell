@@ -31,6 +31,14 @@
 //@ Session: create schema failure
 ||MySQL Error (1007): Can't create database 'session_schema'; database exists
 
+//@ Session: create quoted schema
+|<Schema:quoted schema>|
+
+//@ Session: Transaction handling: rollback
+|Inserted Documents: 0|
+
+//@ Session: Transaction handling: commit
+|Inserted Documents: 3|
 
 //@ NodeSession: validating members
 |close: OK|
@@ -63,15 +71,21 @@
 //@ NodeSession: accessing unexisting schema
 ||Unknown database 'unexisting_schema'
 
+//@ NodeSession: current schema validations: nodefault
+|null|
+|null|
+
 //@ NodeSession: create schema success
 |<Schema:node_session_schema>|
 
 //@ NodeSession: create schema failure
 ||MySQL Error (1007): Can't create database 'node_session_schema'; database exists
-		
-//@ NodeSession: current schema validations: nodefault
-|null|
-|null|
+
+//@ NodeSession: Transaction handling: rollback
+|Inserted Documents: 0|
+
+//@ NodeSession: Transaction handling: commit
+|Inserted Documents: 3|
 
 //@ NodeSession: current schema validations: nodefault, mysql
 |null|
@@ -79,7 +93,7 @@
 
 //@ NodeSession: current schema validations: nodefault, information_schema
 |null|
-|<Schema:mysql>|
+|<Schema:information_schema>|
 
 //@ NodeSession: current schema validations: default
 |<Schema:mysql>|

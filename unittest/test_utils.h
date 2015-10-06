@@ -29,7 +29,8 @@ public:
 
   static void deleg_print(void *user_data, const char *text);
   static void deleg_print_error(void *user_data, const char *text);
-  static bool password(void *user_data, const char *UNUSED(prompt), std::string &ret);
+  static bool deleg_prompt(void *user_data, const char *UNUSED(prompt), std::string &ret);
+  static bool deleg_password(void *user_data, const char *UNUSED(prompt), std::string &ret);
 
   void wipe_out() { std_out.clear(); }
   void wipe_err() { std_err.clear(); }
@@ -39,6 +40,8 @@ public:
   std::string std_err;
   std::string std_out;
   std::string ret_pwd;
+
+  std::list<std::string> prompts;
 };
 
 class Shell_core_test_wrapper : public ::testing::Test

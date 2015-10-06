@@ -35,6 +35,7 @@
 #  include <sys/types.h>
 #  include <dirent.h>
 #  include <sys/stat.h>
+#  include <stdio.h>
 
 #ifdef __APPLE__
 #include <mach-o/dyld.h>
@@ -350,5 +351,22 @@ namespace shcore
     }
 
     return ret_val;
+  }
+
+  /*
+   * Deletes a file in a cross platform manner. If file removal file, an exception is thrown.
+   * If file does not exist, fails silently.
+   */
+  void SHCORE_PUBLIC delete_file(const std::string& filename)
+  {
+    if (!shcore::file_exists(filename))
+      return;
+#ifdef WIN32
+    if (!DeleteFile(filename.c_str()))
+      throw std::runtime_error((boost::format("Error when deleting file  %s exists: %s") % filename % shcore::get_last_error()).str());
+#else
+    if(remove(filename.c_str()))
+      throw std::runtime_error((boost::format("Error when deleting file  %s exists: %s") % filename % shcore::get_last_error()).str());
+#endif
   }
 }

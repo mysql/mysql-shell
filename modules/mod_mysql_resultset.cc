@@ -30,15 +30,44 @@ using namespace mysh;
 using namespace shcore;
 using namespace mysh::mysql;
 
-ClassicResultset::ClassicResultset(boost::shared_ptr<Result> result)
+ClassicResult::ClassicResult(boost::shared_ptr<Result> result)
 : _result(result)
 {
+  add_method("fetchOne", boost::bind(&ClassicResult::fetch_one, this, _1), "nothing", shcore::String, NULL);
+  add_method("fetchAll", boost::bind(&ClassicResult::fetch_all, this, _1), "nothing", shcore::String, NULL);
+  add_method("nextDataSet", boost::bind(&ClassicResult::next_data_set, this, _1), "nothing", shcore::String, NULL);
+
+  add_method("getColumns", boost::bind(&ShellBaseResult::get_member_method, this, _1, "getColumns", "columns"), NULL);
+  add_method("getColumnCount", boost::bind(&ShellBaseResult::get_member_method, this, _1, "getColumnCount", "columnCount"), NULL);
+  add_method("getColumnNames", boost::bind(&ShellBaseResult::get_member_method, this, _1, "getColumnNames", "columnNames"), NULL);
+  add_method("getAffectedRowCount", boost::bind(&ShellBaseResult::get_member_method, this, _1, "getAffectedRowCount", "affectedRowCount"), NULL);
+  add_method("getWarningCount", boost::bind(&ShellBaseResult::get_member_method, this, _1, "getWarningCount", "warningCount"), NULL);
+  add_method("getWarnings", boost::bind(&ShellBaseResult::get_member_method, this, _1, "getWarnings", "warnings"), NULL);
+  add_method("getExecutionTime", boost::bind(&ShellBaseResult::get_member_method, this, _1, "getExecutionTime", "executionTime"), NULL);
+  add_method("getLastInsertId", boost::bind(&ShellBaseResult::get_member_method, this, _1, "getLastInsertId", "lastInsertId"), NULL);
+  add_method("getInfo", boost::bind(&ShellBaseResult::get_member_method, this, _1, "getInfo", "info"), NULL);
+  add_method("getHasData", boost::bind(&ShellBaseResult::get_member_method, this, _1, "getHasData", "hasData"), NULL);
 }
 
-shcore::Value ClassicResultset::next(const shcore::Argument_list &args)
+std::vector<std::string> ClassicResult::get_members() const
 {
-  args.ensure_count(0, "ClassicResultset.next");
-  Row *inner_row = _result->next();
+  std::vector<std::string> members(shcore::Cpp_object_bridge::get_members());
+  members.push_back("columns");
+  members.push_back("columnCount");
+  members.push_back("columnNames");
+  members.push_back("affectedRowCount");
+  members.push_back("warningCount");
+  members.push_back("executionTime");
+  members.push_back("lastInsertId");
+  members.push_back("info");
+  members.push_back("hasData");
+  return members;
+}
+
+shcore::Value ClassicResult::fetch_one(const shcore::Argument_list &args)
+{
+  args.ensure_count(0, "ClassicResult.fetchOne");
+  Row *inner_row = _result->fetch_one();
 
   if (inner_row)
   {
@@ -55,36 +84,51 @@ shcore::Value ClassicResultset::next(const shcore::Argument_list &args)
   return shcore::Value::Null();
 }
 
-shcore::Value ClassicResultset::next_result(const shcore::Argument_list &args)
+shcore::Value ClassicResult::next_data_set(const shcore::Argument_list &args)
 {
-  args.ensure_count(0, "ClassicResultset.nextDataSet");
+  args.ensure_count(0, "ClassicResult.nextDataSet");
 
-  return shcore::Value(_result->next_result());
+  return shcore::Value(_result->next_data_set());
 }
 
-shcore::Value ClassicResultset::all(const shcore::Argument_list &args)
+shcore::Value ClassicResult::fetch_all(const shcore::Argument_list &args)
 {
-  args.ensure_count(0, "ClassicResultset.all");
+  args.ensure_count(0, "ClassicResult.fetchAll");
 
   boost::shared_ptr<shcore::Value::Array_type> array(new shcore::Value::Array_type);
 
-  shcore::Value record = next(args);
+  shcore::Value record = fetch_one(args);
 
   while (record)
   {
     array->push_back(record);
-    record = next(args);
+    record = fetch_one(args);
   }
 
   return shcore::Value(array);
 }
 
-shcore::Value ClassicResultset::get_member(const std::string &prop) const
-{
-  if (prop == "fetchedRowCount")
-    return shcore::Value((int64_t)_result->fetched_row_count());
+#ifdef DOXYGEN
+/**
+* Returns true if the last statement execution has a result set.
+*/
+Bool ClassicResult::getHasData(){};
 
-  if (prop == "affectedRows")
+/**
+* Returns the identifier for the last record inserted.
+*
+* Note that this value will only be set if the executed statement inserted a record in the database and an ID was automatically generated.
+*/
+Integer ClassicResult::getLastInsertId(){};
+
+/**
+* Returns the number of rows affected by the executed query.
+*/
+Integer ClassicResult::getAffectedRowCount(){};
+#endif
+shcore::Value ClassicResult::get_member(const std::string &prop) const
+{
+  if (prop == "affectedRowCount")
     return shcore::Value((int64_t)((_result->affected_rows() == ~(my_ulonglong)0) ? 0 : _result->affected_rows()));
 
   if (prop == "warningCount")
@@ -93,8 +137,8 @@ shcore::Value ClassicResultset::get_member(const std::string &prop) const
   if (prop == "warnings")
   {
     Result* inner_warnings = _result->query_warnings();
-    boost::shared_ptr<ClassicResultset> warnings(new ClassicResultset(boost::shared_ptr<Result>(inner_warnings)));
-    return warnings->all(shcore::Argument_list());
+    boost::shared_ptr<ClassicResult> warnings(new ClassicResult(boost::shared_ptr<Result>(inner_warnings)));
+    return warnings->fetch_all(shcore::Argument_list());
   }
 
   if (prop == "info")
@@ -112,7 +156,28 @@ shcore::Value ClassicResultset::get_member(const std::string &prop) const
   if (prop == "hasData")
     return Value(_result->has_resultset());
 
-  if (prop == "columnMetadata")
+  if (prop == "columnCount")
+  {
+    size_t count = _result->get_metadata().size();
+
+    return shcore::Value((uint64_t)count);
+  }
+
+  if (prop == "columnNames")
+  {
+    std::vector<Field> metadata(_result->get_metadata());
+
+    boost::shared_ptr<shcore::Value::Array_type> array(new shcore::Value::Array_type);
+
+    int num_fields = metadata.size();
+
+    for (int i = 0; i < num_fields; i++)
+      array->push_back(shcore::Value(metadata[i].name()));
+
+    return shcore::Value(array);
+  }
+
+  if (prop == "columns")
   {
     std::vector<Field> metadata(_result->get_metadata());
 
@@ -147,5 +212,5 @@ shcore::Value ClassicResultset::get_member(const std::string &prop) const
     return shcore::Value(array);
   }
 
-  return BaseResultset::get_member(prop);
+  return ShellBaseResult::get_member(prop);
 }

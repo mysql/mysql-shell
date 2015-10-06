@@ -78,7 +78,7 @@ Result::~Result()
 {
 }
 
-Row * Result::next()
+Row * Result::fetch_one()
 {
   Row *ret_val = NULL;
 
@@ -106,14 +106,14 @@ Row * Result::next()
   return ret_val;
 }
 
-bool Result::next_result()
+bool Result::next_data_set()
 {
-  return _connection->next_result(this);
+  return _connection->next_data_set(this);
 }
 
 Result *Result::query_warnings()
 {
-  return _connection->executeSql("show warnings");
+  return _connection->execute_sql("show warnings");
 }
 
 void Result::reset(boost::shared_ptr<MYSQL_RES> res, unsigned long duration)
@@ -252,7 +252,7 @@ Connection::Connection(const std::string &uri_, const char *password)
   }
 }
 
-Connection::Connection(const std::string &host, int port, const std::string &socket, const std::string &user, const std::string &password, const std::string &schema, 
+Connection::Connection(const std::string &host, int port, const std::string &socket, const std::string &user, const std::string &password, const std::string &schema,
   const std::string &ssl_ca, const std::string &ssl_cert, const std::string &ssl_key)
 : _mysql(NULL)
 {
@@ -277,9 +277,9 @@ void Connection::setup_ssl(const std::string &ssl_ca, const std::string &ssl_cer
 {
   if (ssl_ca.empty() && ssl_cert.empty() && ssl_key.empty())
     return;
-  
+
   std::string my_ssl_ca;
-  std::string my_ssl_ca_path;  
+  std::string my_ssl_ca_path;
   std::string ca_path(ssl_ca);
   std::string::size_type p;
 #ifdef WIN32
@@ -314,7 +314,7 @@ void Connection::close()
   _mysql = NULL;
 }
 
-Result *Connection::executeSql(const std::string &query)
+Result *Connection::execute_sql(const std::string &query)
 {
   if (_prev_result)
   {
@@ -336,7 +336,7 @@ Result *Connection::executeSql(const std::string &query)
 
   Result* result = new Result(shared_from_this(), mysql_affected_rows(_mysql), mysql_warning_count(_mysql), mysql_info(_mysql));
 
-  next_result(result, true);
+  next_data_set(result, true);
 
   return result;
 }
@@ -348,7 +348,7 @@ static void free_result(T* result)
   result = NULL;
 }
 
-bool Connection::next_result(Result *target, bool first_result)
+bool Connection::next_data_set(Result *target, bool first_result)
 {
   bool ret_val = false;
 

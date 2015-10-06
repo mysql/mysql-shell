@@ -69,9 +69,9 @@ namespace shcore {
   {
     std::string uri = mysh::strip_password(_uri);
 
-    exec_and_out_equals("schema = session.mysql");
+    exec_and_out_equals("mschema = session.mysql");
 
-    exec_and_out_equals("schema_session = schema.getSession()");
+    exec_and_out_equals("schema_session = mschema.getSession()");
 
     exec_and_out_equals("print(schema_session)", "<NodeSession:" + uri + ">");
   }
@@ -81,9 +81,9 @@ namespace shcore {
   {
     std::string uri = mysh::strip_password(_uri);
 
-    exec_and_out_equals("schema = session.mysql");
+    exec_and_out_equals("mschema = session.mysql");
 
-    exec_and_out_equals("print(schema.session)", "<NodeSession:" + uri + ">");
+    exec_and_out_equals("print(mschema.session)", "<NodeSession:" + uri + ">");
   }
 
   // Tests schema.getSchema()
@@ -91,7 +91,7 @@ namespace shcore {
   {
     std::string uri = mysh::strip_password(_uri);
 
-    exec_and_out_equals("schema = session.mysql");
+    exec_and_out_equals("mschema = session.mysql");
 
     exec_and_out_equals("schema_schema = schema.getSchema()");
 
@@ -103,9 +103,9 @@ namespace shcore {
   {
     std::string uri = mysh::strip_password(_uri);
 
-    exec_and_out_equals("schema = session.mysql");
+    exec_and_out_equals("mschema = session.mysql");
 
-    exec_and_out_equals("print(schema.schema)", "None");
+    exec_and_out_equals("print(mschema.schema)", "None");
   }
 
   // Tests schema.getTables()
@@ -198,14 +198,16 @@ namespace shcore {
     exec_and_out_equals("print(collection)", "<Collection:test_collection>");
   }
 
-  // Tests schema.drop() and schema.existInDatabase()
+  // Tests session.dropSchema() and schema.existInDatabase()
   TEST_F(Shell_py_mysqlx_schema_tests, mysqlx_schema_drop_exist_in_database)
   {
     exec_and_out_equals("schema = session.createSchema('my_sample_schema')");
 
     exec_and_out_equals("print(schema.existInDatabase())", "True");
 
-    exec_and_out_equals("schema.drop()");
+    exec_and_out_equals("print(schema.name)", "my_sample_schema");
+
+    exec_and_out_equals("session.dropSchema('my_sample_schema')");
 
     exec_and_out_equals("print(schema.existInDatabase())", "False");
   }

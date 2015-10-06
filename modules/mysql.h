@@ -114,8 +114,8 @@ namespace mysh
       std::vector<Field>& get_metadata(){ return _metadata; };
 
       // Data Retrieving
-      Row *next();
-      bool next_result();
+      Row *fetch_one();
+      bool next_data_set();
       Result *query_warnings();
 
       bool has_resultset() { return _has_resultset; }
@@ -154,8 +154,8 @@ namespace mysh
       ~Connection();
 
       void close();
-      Result *executeSql(const std::string &sql);
-      bool next_result(Result *target, bool first_result = false);
+      Result *execute_sql(const std::string &sql);
+      bool next_data_set(Result *target, bool first_result = false);
       std::string uri() { return _uri; }
 
     private:

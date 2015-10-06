@@ -36,7 +36,7 @@ Simple_shell_client::Simple_shell_client()
   _delegate.user_data = this;
   _delegate.print = &Simple_shell_client::deleg_print;
   _delegate.print_error = &Simple_shell_client::deleg_print_error;
-  _delegate.input = &Simple_shell_client::deleg_input;
+  _delegate.prompt = &Simple_shell_client::deleg_input;
   _delegate.password = &Simple_shell_client::deleg_password;
   _delegate.source = &Simple_shell_client::deleg_source;
 
@@ -100,7 +100,6 @@ boost::shared_ptr<Result_set> Simple_shell_client::process_line(const std::strin
 
 void Simple_shell_client::process_result(shcore::Value result)
 {
-  Interactive_input_state state = Input_ok;
   _last_result = boost::shared_ptr<Result_set>(new Result_set(-1, -1, ""));
 
   if (result)
@@ -109,18 +108,16 @@ void Simple_shell_client::process_result(shcore::Value result)
     {
       boost::shared_ptr<Object_bridge> object = result.as_object();
 
-      shcore::Value affected_rows = object->has_member("getAffectedRows") ? object->call("getAffectedRows", Argument_list()) : shcore::Value(-1);
-      shcore::Value fetched_row_count = object->has_member("getFetchedRowCount") ? object->call("getFetchedRowCount", Argument_list()) : shcore::Value(-1);
+      shcore::Value affected_rows = object->has_member("getAffectedRowCount") ? object->call("getAffectedRowCount", Argument_list()) : shcore::Value(-1);
       shcore::Value warning_count = object->has_member("getWarningCount") ? object->call("getWarningCount", Argument_list()) : shcore::Value(-1);
       shcore::Value execution_time = object->has_member("getExecutionTime") ? object->call("getExecutionTime", Argument_list()) : shcore::Value("");
 
       shcore::Argument_list args;
       // If true returns as data array, if false, returns as document.
-      shcore::IShell_core::Mode mode = _shell->interactive_mode();
-      if (!object->has_member("all") || !object->has_member("getColumnMetadata"))
+      if (!object->has_member("fetchAll") || !object->has_member("getColumns"))
         return;
-      shcore::Value result = object->call("all", args);
-      shcore::Value metadata = object->call("getColumnMetadata", Argument_list());
+      shcore::Value result = object->call("fetchAll", args);
+      shcore::Value metadata = object->call("getColumns", Argument_list());
 
       boost::shared_ptr<shcore::Value::Array_type> arr_result = result.as_array();
 
