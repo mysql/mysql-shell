@@ -36,75 +36,145 @@ namespace mysh
   namespace mysqlx
   {
     /**
-    * Allows browsing through the result information after performing an operation on the database.
-    * This class allows access to the result set from the classic MySQL data model to be retrieved from Dev API queries.
-    * \todo delete warningCount and getWarningCount()
-    * \todo delete fetchedRowCount and getfetchedRowCount()
+    * Base class for the different types of results returned by the server.
     */
-    class Resultset : public BaseResultset, public boost::enable_shared_from_this<Resultset>
+    class BaseResult : public mysh::ShellBaseResult
     {
     public:
-      Resultset(boost::shared_ptr< ::mysqlx::Result> result);
+      BaseResult(boost::shared_ptr< ::mysqlx::Result> result);
+      virtual ~BaseResult() {}
 
-      virtual ~Resultset();
-
-      virtual std::string class_name() const { return "Resultset"; }
+      virtual std::vector<std::string> get_members() const;
       virtual shcore::Value get_member(const std::string &prop) const;
 
-      virtual shcore::Value next(const shcore::Argument_list &args);
-      virtual shcore::Value all(const shcore::Argument_list &args);
-      virtual shcore::Value next_result(const shcore::Argument_list &args);
-      virtual shcore::Value buffer(const shcore::Argument_list &args);
-      virtual shcore::Value flush(const shcore::Argument_list &args);
-      virtual shcore::Value rewind(const shcore::Argument_list &args);
-
-      int get_cursor_id() { return _cursor_id; }
 #ifdef DOXYGEN
-      List columnMetadata; //!< Same as getColumnMetadata()
-      Integer lastInsertId; //!< Same as getLastInsertId()
-      Integer affectedRows; //!< Same as getAffectedRows()
-      Integer warnings; //!< Same as getWarnings()
-      String info; //!< Same as getInfo()
-      String executionTime; //!< Same as getExecutionTime()
-      Bool hasData; //!< Same as getHasData()
+      Integer warningCount; //!< Same as getwarningCount()
+      List warnings; //!< Same as getWarnings()
 
-      List getColumnMetadata();
-      Integer getLastInsertId();
-      Integer getAffectedRows();
-      Integer getWarnings();
-      String getExecutionTime();
-      String getInfo();
-      Bool getHasData();
-      Bool nextDataSet();
-      Row next();
-      List all();
-      Resultset buffer();
-      Undefined flush();
-      Undefined rewind();
-
+      Integer getWarningCount();
+      List getWarnings();
 #endif
+
     protected:
       boost::shared_ptr< ::mysqlx::Result> _result;
-
-    private:
-      int _cursor_id;
     };
 
     /**
-    * Allows browsing through the result information after performing an operation on a Collection.
-    * Works similar to the Resultset class except that next() and all() return Documents.
+    * Allows retrieving information about non query operations performed on the database.
+    *
+    * An instance of this class will be returned on the CRUD operations that change the content of the database:
+    *
+    * - On Table: insert, update and delete
+    * - On Collection: add, modify and remove
+    *
+    * Other functions on the BaseSession class also return an instance of this class:
+    *
+    * - Transaction handling functions
+    * - Drop functions
     */
-    class CollectionResultset : public Resultset
+    class Result : public BaseResult, public boost::enable_shared_from_this<Result>
     {
-#ifdef DOXYGEN
-      List all();
-      Document next();
-#endif
     public:
-      CollectionResultset(boost::shared_ptr< ::mysqlx::Result> result);
+      Result(boost::shared_ptr< ::mysqlx::Result> result);
 
-      virtual std::string class_name() const  { return "CollectionResultset"; }
-      virtual shcore::Value next(const shcore::Argument_list &args);
+      virtual ~Result(){};
+
+      virtual std::string class_name() const { return "Result"; }
+      virtual std::vector<std::string> get_members() const;
+      virtual shcore::Value get_member(const std::string &prop) const;
+
+#ifdef DOXYGEN
+      Integer affectedItemCount; //!< Same as getAffectedItemCount()
+      Integer lastInsertId; //!< Same as getLastInsertId()
+      Integer lastDocumentId; //!< Same as getLastDocumentId()
+
+      Integer getAffectedItemCount();
+      Integer getLastInsertId();
+      String getLastDocumentId();
+#endif
+    };
+
+    /**
+    * Allows traversing the DbDoc objects returned by a Collection.find operation.
+    */
+    class DocResult : public BaseResult, public boost::enable_shared_from_this<DocResult>
+    {
+    public:
+      DocResult(boost::shared_ptr< ::mysqlx::Result> result);
+
+      virtual ~DocResult(){};
+
+      shcore::Value fetch_one(const shcore::Argument_list &args);
+      shcore::Value fetch_all(const shcore::Argument_list &args);
+
+      virtual std::string class_name() const { return "DocResult"; }
+
+#ifdef DOXYGEN
+      Document fetchOne();
+      List fetchAll();
+#endif
+    };
+
+    /**
+    * Allows traversing the Row objects returned by a Table.select operation.
+    */
+    class RowResult : public BaseResult, public boost::enable_shared_from_this<RowResult>
+    {
+    public:
+      RowResult(boost::shared_ptr< ::mysqlx::Result> result);
+
+      virtual ~RowResult(){};
+
+      shcore::Value fetch_one(const shcore::Argument_list &args);
+      shcore::Value fetch_all(const shcore::Argument_list &args);
+
+      virtual std::vector<std::string> get_members() const;
+      virtual shcore::Value get_member(const std::string &prop) const;
+
+      virtual std::string class_name() const { return "RowResult"; }
+
+#ifdef DOXYGEN
+      Row fetchOne();
+      List fetchAll();
+
+      Integer columnCount; //!< Same as getColumnCount()
+      List columnNames; //!< Same as getColumnNames()
+      List columns; //!< Same as getColumns()
+
+      Integer getColumnCount();
+      List getColumnNames();
+      List getColumns();
+
+#endif
+    };
+
+    /**
+    * Allows browsing through the result information after performing an operation on the database
+    * done through NodeSession.sql
+    */
+    class SqlResult : public RowResult, public boost::enable_shared_from_this<SqlResult>
+    {
+    public:
+      SqlResult(boost::shared_ptr< ::mysqlx::Result> result);
+
+      virtual ~SqlResult(){};
+
+      virtual std::string class_name() const { return "SqlResult"; }
+      virtual std::vector<std::string> get_members() const;
+      virtual shcore::Value get_member(const std::string &prop) const;
+
+      virtual shcore::Value next_data_set(const shcore::Argument_list &args);
+
+#ifdef DOXYGEN
+      Integer lastInsertId; //!< Same as getLastInsertId()
+      Integer affectedRowCount; //!< Same as getAffectedRowCount()
+      Bool hasData; //!< Same as getHasData()
+
+      Integer getLastInsertId();
+      Integer getAffectedRowCount();
+      Bool getHasData();
+      Bool nextDataSet();
+#endif
     };
   }
 };

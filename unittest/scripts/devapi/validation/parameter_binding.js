@@ -1,4 +1,4 @@
-print(myRes1.next().name)|adam|
-print(myRes2.next().name)|jack|
-print(myRes3.next().name)|John|
-print(myColl.find('name = "clare"').execute().next().age)|37|
+print(myRes1.fetchOne().name)|adam|
+print(myRes2.fetchOne().name)|jack|
+print(myRes3.fetchOne().name)|John|
+print(myColl.find('name = "clare"').execute().fetchOne().age)|37|

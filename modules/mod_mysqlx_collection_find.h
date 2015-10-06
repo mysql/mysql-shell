@@ -66,7 +66,7 @@ namespace mysh
       CollectionFind limit(Integer numberOfRows);
       CollectionFind skip(Integer limitOffset);
       CollectionFind bind(String name, Value value);
-      CollectionResultset execute(ExecuteOptions options);
+      DocResult execute(ExecuteOptions options);
 #endif
 
     private:

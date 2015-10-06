@@ -65,7 +65,7 @@ namespace mysh
       TableSelect limit(Integer numberOfRows);
       TableSelect offset(Integer limitOffset);
       TableSelect bind(String name, Value value);
-      Resultset execute(ExecuteOptions options);
+      RowResult execute(ExecuteOptions options);
 #endif
     private:
       std::auto_ptr< ::mysqlx::SelectStatement> _select_statement;

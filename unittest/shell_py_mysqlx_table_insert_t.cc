@@ -134,14 +134,14 @@ namespace shcore {
     {
       SCOPED_TRACE("Testing insert without columns.");
       exec_and_out_equals("result = table.insert().values('jack', 17, 'male').execute()");
-      exec_and_out_equals("print (result.affectedRows)", "1");
+      exec_and_out_equals("print (result.affectedItemCount)", "1");
     }
 
     // Insert with columns
     {
       SCOPED_TRACE("Testing insert without columns.");
       exec_and_out_equals("result = table.insert(['age', 'name', 'gender']).values(21, 'john', 'male').execute()");
-      exec_and_out_equals("print (result.affectedRows)", "1");
+      exec_and_out_equals("print (result.affectedItemCount)", "1");
     }
 
     // Inserting multiple records
@@ -151,13 +151,13 @@ namespace shcore {
       exec_and_out_equals("insert.values('clark', 22,'male')");
       exec_and_out_equals("insert.values('mary', 13,'female')");
       exec_and_out_equals("result = insert.execute()");
-      exec_and_out_equals("print (result.affectedRows)", "2");
+      exec_and_out_equals("print (result.affectedItemCount)", "2");
     }
 
     // Inserting document
     {
       exec_and_out_equals("result = table.insert({'age':14, 'name':'jackie', 'gender': 'female'}).execute()");
-      exec_and_out_equals("print (result.affectedRows)", "1");
+      exec_and_out_equals("print (result.affectedItemCount)", "1");
     }
 
     exec_and_out_equals("session.close()");

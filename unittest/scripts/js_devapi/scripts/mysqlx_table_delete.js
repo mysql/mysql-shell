@@ -51,9 +51,9 @@ result = crud.execute();
 validate_crud_functions(crud, ['bind', 'execute', '__shell_hook__']);
 
 //@ Reusing CRUD with binding
-print('Deleted donna:', result.affectedRows, '\n');
+print('Deleted donna:', result.affectedItemCount, '\n');
 result=crud.bind('data', 'alma').execute();
-print('Deleted alma:', result.affectedRows, '\n');
+print('Deleted alma:', result.affectedItemCount, '\n');
 
 
 // ----------------------------------------------
@@ -94,23 +94,23 @@ crud = table.delete().where('name = :data and age > :years').bind('years', 5).ex
 //@ TableDelete: delete under condition
 var records;
 result = table.delete().where('age = 15').execute();
-print('Affected Rows:', result.affectedRows, '\n');
+print('Affected Rows:', result.affectedItemCount, '\n');
 
-records = table.select().execute().all();
+records = table.select().execute().fetchAll();
 print('Records Left:', records.length, '\n');
 
 //@ TableDelete: delete with binding
 result = table.delete().where('gender = :heorshe').limit(2).bind('heorshe', 'male').execute();
-print('Affected Rows:', result.affectedRows, '\n');
+print('Affected Rows:', result.affectedItemCount, '\n');
 
-records = table.select().execute().all();
+records = table.select().execute().fetchAll();
 print('Records Left:', records.length, '\n');
 
 //@ TableDelete: full delete
 result = table.delete().execute();
-print('Affected Rows:', result.affectedRows, '\n');
+print('Affected Rows:', result.affectedItemCount, '\n');
 
-records = table.select().execute().all();
+records = table.select().execute().fetchAll();
 print('Records Left:', records.length, '\n');
 
 //@ TableDelete: with limit 0
@@ -120,28 +120,28 @@ result = table.insert({name: 'alma', age: 13, gender: 'female'}).execute();
 result = table.insert({name: 'carol', age: 14, gender: 'female'}).execute();
 result = table.insert({name: 'donna', age: 16, gender: 'female'}).execute();
 
-records = table.select().execute().all();
+records = table.select().execute().fetchAll();
 print('Records Left:', records.length, '\n');
 
 //@ TableDelete: with limit 1
 result = table.delete().limit(2).execute();
-print('Affected Rows:', result.affectedRows, '\n');
+print('Affected Rows:', result.affectedItemCount, '\n');
 
-records = table.select().execute().all();
+records = table.select().execute().fetchAll();
 print('Records Left:', records.length, '\n');
 
 //@ TableDelete: with limit 2
 result = table.delete().limit(2).execute();
-print('Affected Rows:', result.affectedRows, '\n');
+print('Affected Rows:', result.affectedItemCount, '\n');
 
-records = table.select().execute().all();
+records = table.select().execute().fetchAll();
 print('Records Left:', records.length, '\n');
 
 //@ TableDelete: with limit 3
 result = table.delete().limit(2).execute();
-print('Affected Rows:', result.affectedRows, '\n');
+print('Affected Rows:', result.affectedItemCount, '\n');
 
-records = table.select().execute().all();
+records = table.select().execute().fetchAll();
 print('Records Left:', records.length, '\n');
 
 

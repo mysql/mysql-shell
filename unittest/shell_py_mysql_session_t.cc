@@ -371,7 +371,7 @@ namespace shcore {
     exec_and_out_equals("session.rollback()");
 
     exec_and_out_equals("result = session.executeSql('select count(*) from sample')");
-    exec_and_out_equals("data = result.next()");
+    exec_and_out_equals("data = result.fetchOne()");
     exec_and_out_equals("print(data[0])", "0", "");
 
     // Test the commit
@@ -384,7 +384,7 @@ namespace shcore {
     exec_and_out_equals("session.commit()");
 
     exec_and_out_equals("result = session.executeSql('select count(*) from sample')");
-    exec_and_out_equals("data = result.next()");
+    exec_and_out_equals("data = result.fetchOne()");
     exec_and_out_equals("print(data[0])", "3", "");
 
     // Drops the database

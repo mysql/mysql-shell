@@ -115,7 +115,7 @@ void Shell_sql::handle_input(std::string &code, Interactive_input_state &state, 
 
           try
           {
-            // ClassicSession has executeSql and returns a ClassicResultset object
+            // ClassicSession has executeSql and returns a ClassicResult object
             if (session->has_member("executeSql"))
               ret_val = session->call("executeSql", query);
 

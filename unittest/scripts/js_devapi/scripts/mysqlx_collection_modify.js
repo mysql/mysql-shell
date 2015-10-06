@@ -89,9 +89,9 @@ result = crud.execute();
 validate_crud_functions(crud, ['bind', 'execute', '__shell_hook__']);
 
 //@ Reusing CRUD with binding
-print('Updated Angel:', result.affectedRows, '\n');
+print('Updated Angel:', result.affectedItemCount, '\n');
 result=crud.bind('data', 'carol').execute();
-print('Updated Carol:', result.affectedRows, '\n');
+print('Updated Carol:', result.affectedItemCount, '\n');
 
 
 // ----------------------------------------------
@@ -164,34 +164,34 @@ var doc;
 
 //@# CollectionModify: Set Execution
 result = collection.modify('name = "brian"').set('alias', 'bri').set('last_name', 'black').set('age', mysqlx.expr('13+1')).execute();
-print('Set Affected Rows:', result.affectedRows, '\n');
+print('Set Affected Rows:', result.affectedItemCount, '\n');
 
 result = collection.find('name = "brian"').execute();
-doc = result.next();
+doc = result.fetchOne();
 print(dir(doc));
 
 //@ CollectionModify: Simple Unset Execution
 result = collection.modify('name = "brian"').unset('last_name').execute();
-print('Unset Affected Rows:', result.affectedRows, '\n');
+print('Unset Affected Rows:', result.affectedItemCount, '\n');
 
 result = collection.find('name = "brian"').execute();
-doc = result.next();
+doc = result.fetchOne();
 print(dir(doc));
 
 //@ CollectionModify: List Unset Execution
 result = collection.modify('name = "brian"').unset(['alias', 'age']).execute();
-print('Unset Affected Rows:', result.affectedRows, '\n');
+print('Unset Affected Rows:', result.affectedItemCount, '\n');
 
 result = collection.find('name = "brian"').execute();
-doc = result.next();
+doc = result.fetchOne();
 print(dir(doc));
 
 //@ CollectionModify: Merge Execution
 result = collection.modify('name = "brian"').merge({last_name:'black', age:15, alias:'bri', girlfriends:['martha', 'karen']}).execute();
-print('Merge Affected Rows:', result.affectedRows, '\n');
+print('Merge Affected Rows:', result.affectedItemCount, '\n');
 
 result = collection.find('name = "brian"').execute();
-doc = result.next();
+doc = result.fetchOne();
 print("Brian's last_name:",  doc.last_name, '\n');
 print("Brian's age:",  doc.age, '\n');
 print("Brian's alias:",  doc.alias, '\n');
@@ -200,51 +200,51 @@ print("Brian's second girlfriend:",  doc.girlfriends[1], '\n');
 
 //@ CollectionModify: arrayAppend Execution
 result = collection.modify('name = "brian"').arrayAppend('girlfriends','cloe').execute();
-print('Array Append Affected Rows:', result.affectedRows, '\n');
+print('Array Append Affected Rows:', result.affectedItemCount, '\n');
 
 result = collection.find('name = "brian"').execute();
-doc = result.next();
+doc = result.fetchOne();
 print("Brian's girlfriends:", doc.girlfriends.length);
 print("Brian's last:", doc.girlfriends[2]);
 
 //@ CollectionModify: arrayInsert Execution
 result = collection.modify('name = "brian"').arrayInsert('girlfriends[1]','samantha').execute();
-print('Array Insert Affected Rows:', result.affectedRows, '\n');
+print('Array Insert Affected Rows:', result.affectedItemCount, '\n');
 
 result = collection.find('name = "brian"').execute();
-doc = result.next();
+doc = result.fetchOne();
 print("Brian's girlfriends:", doc.girlfriends.length, '\n');
 print("Brian's second:", doc.girlfriends[1], '\n');
 
 //@ CollectionModify: arrayDelete Execution
 result = collection.modify('name = "brian"').arrayDelete('girlfriends[2]').execute();
-print('Array Delete Affected Rows:', result.affectedRows, '\n');
+print('Array Delete Affected Rows:', result.affectedItemCount, '\n');
 
 result = collection.find('name = "brian"').execute();
-doc = result.next();
+doc = result.fetchOne();
 print("Brian's girlfriends:", doc.girlfriends.length, '\n');
 print("Brian's third:", doc.girlfriends[2], '\n');
 
 //@ CollectionModify: sorting and limit Execution
 result = collection.modify('age = 15').set('sample', 'in_limit').sort(['name']).limit(2).execute();
-print('Affected Rows:', result.affectedRows, '\n');
+print('Affected Rows:', result.affectedItemCount, '\n');
 
 result = collection.find('age = 15').sort(['name']).execute();
 
 //@ CollectionModify: sorting and limit Execution - 1
-doc = result.next();
+doc = result.fetchOne();
 print(dir(doc));
 
 //@ CollectionModify: sorting and limit Execution - 2
-doc = result.next();
+doc = result.fetchOne();
 print(dir(doc));
 
 //@ CollectionModify: sorting and limit Execution - 3
-doc = result.next();
+doc = result.fetchOne();
 print(dir(doc));
 
 //@ CollectionModify: sorting and limit Execution - 4
-doc = result.next();
+doc = result.fetchOne();
 print(dir(doc));
 
 // Cleanup

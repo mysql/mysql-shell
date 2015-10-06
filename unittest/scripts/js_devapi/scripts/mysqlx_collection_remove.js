@@ -45,9 +45,9 @@ result = crud.execute();
 validate_crud_functions(crud, ['bind', 'execute', '__shell_hook__']);
 
 //@ Reusing CRUD with binding
-print('Deleted donna:', result.affectedRows, '\n');
+print('Deleted donna:', result.affectedItemCount, '\n');
 result=crud.bind('data', 'alma').execute();
-print('Deleted alma:', result.affectedRows, '\n');
+print('Deleted alma:', result.affectedItemCount, '\n');
 
 
 // ----------------------------------------------
@@ -84,23 +84,23 @@ crud = collection.remove('name = :data and age > :years').bind('years', 5).execu
 //@ CollectionRemove: remove under condition
 var docs;
 result = collection.remove('age = 15').execute();
-print('Affected Rows:', result.affectedRows, '\n');
+print('Affected Rows:', result.affectedItemCount, '\n');
 
-docs = collection.find().execute().all();
+docs = collection.find().execute().fetchAll();
 print('Records Left:', docs.length, '\n');
 
 //@ CollectionRemove: remove with binding
 result = collection.remove('gender = :heorshe').limit(2).bind('heorshe', 'male').execute();
-print('Affected Rows:', result.affectedRows, '\n');
+print('Affected Rows:', result.affectedItemCount, '\n');
 
-docs = collection.find().execute().all();
+docs = collection.find().execute().fetchAll();
 print('Records Left:', docs.length, '\n');
 
 //@ CollectionRemove: full remove
 result = collection.remove().execute();
-print('Affected Rows:', result.affectedRows, '\n');
+print('Affected Rows:', result.affectedItemCount, '\n');
 
-docs = collection.find().execute().all();
+docs = collection.find().execute().fetchAll();
 print('Records Left:', docs.length, '\n');
 
 

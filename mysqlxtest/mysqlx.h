@@ -229,7 +229,7 @@ namespace mysqlx
   public:
     Session(const mysqlx::Ssl_config &ssl_config);
     ~Session();
-    boost::shared_ptr<Result> executeSql(const std::string &sql);
+    boost::shared_ptr<Result> execute_sql(const std::string &sql);
 
     boost::shared_ptr<Result> executeStmt(const std::string &ns, const std::string &stmt,
                         const std::vector<ArgumentValue> &args);

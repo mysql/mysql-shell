@@ -78,7 +78,7 @@ namespace shcore {
     exec_and_out_equals("session.close();");
   }
 
-  // Tests resultset.columnMetadata and resultset.getColumnMetadata()
+  // Tests resultset.columns and resultset.getColumns()
   TEST_F(Shell_js_mysql_resultset_tests, mysql_resultset_column_metadata)
   {
     exec_and_out_equals("var mysql = require('mysql').mysql;");
@@ -87,11 +87,11 @@ namespace shcore {
 
     exec_and_out_equals("var result = session.executeSql('select * from js_shell_test.table1;');");
 
-    exec_and_out_equals("var metadata = result.getColumnMetadata()");
+    exec_and_out_equals("var metadata = result.getColumns()");
 
     exec_and_out_equals("print(metadata[0].name)", "id");
 
-    exec_and_out_equals("var metadata = result.columnMetadata");
+    exec_and_out_equals("var metadata = result.columns");
 
     exec_and_out_equals("print(metadata[0].name)", "id");
 

@@ -427,7 +427,7 @@ namespace shcore {
     exec_and_out_equals("session.rollback()");
 
     exec_and_out_equals("result = collection.find().execute()");
-    exec_and_out_equals("print(len(result.all()))", "0", "");
+    exec_and_out_equals("print(len(result.fetchAll()))", "0", "");
 
     // Test the commit
     exec_and_out_equals("session.startTransaction()");
@@ -439,7 +439,7 @@ namespace shcore {
     exec_and_out_equals("session.commit()");
 
     exec_and_out_equals("result = collection.find().execute()");
-    exec_and_out_equals("print(len(result.all()))", "3", "");
+    exec_and_out_equals("print(len(result.fetchAll()))", "3", "");
 
     // Drops the database
     exec_and_out_equals("session.dropSchema('py_tx_schema')");

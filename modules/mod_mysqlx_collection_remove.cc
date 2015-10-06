@@ -231,7 +231,7 @@ shcore::Value CollectionRemove::bind(const shcore::Argument_list &args)
 #ifdef DOXYGEN
 /**
 * Executes the document deletion with the configured filter and limit.
-* \return CollectionResultset A Collection resultset object that can be used to retrieve the results of the deletion operation.
+* \return Result A Result object that can be used to retrieve the results of the deletion operation.
 *
 * This function can be invoked after any other function on this class.
 *
@@ -265,17 +265,17 @@ shcore::Value CollectionRemove::bind(const shcore::Argument_list &args)
 * var res_all = collection.remove().execute();
 * \endcode
 */
-CollectionResultset CollectionRemove::execute(ExecuteOptions opt){}
+Result CollectionRemove::execute(ExecuteOptions opt){}
 #endif
 shcore::Value CollectionRemove::execute(const shcore::Argument_list &args)
 {
-  mysqlx::CollectionResultset *result = NULL;
+  mysqlx::Result *result = NULL;
 
   try
   {
     args.ensure_count(0, "CollectionRemove.execute");
 
-    result = new mysqlx::CollectionResultset(boost::shared_ptr< ::mysqlx::Result>(_remove_statement->execute()));
+    result = new mysqlx::Result(boost::shared_ptr< ::mysqlx::Result>(_remove_statement->execute()));
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionRemove.execute");
 

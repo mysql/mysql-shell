@@ -53,7 +53,7 @@ namespace mysh
 #ifdef DOXYGEN
       CollectionAdd add(Document document);
       CollectionAdd add(List documents);
-      Resultset execute();
+      Result execute();
 #endif
 
     private:

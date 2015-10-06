@@ -61,9 +61,9 @@ var result = crud.execute();
 validate_crud_functions(crud, ['bind', 'execute', '__shell_hook__']);
 
 //@ Reusing CRUD with binding
-print(result.next().name + '\n');
+print(result.fetchOne().name + '\n');
 result=crud.bind('data', 'alma').execute();
-print(result.next().name+ '\n');
+print(result.fetchOne().name + '\n');
 
 
 // ----------------------------------------------
@@ -120,65 +120,65 @@ crud = collection.find('name = :data and age > :years').bind('years', 5).execute
 var records;
 
 //@ Collection.Find All
-records = collection.find().execute().all();
+records = collection.find().execute().fetchAll();
 print("All:", records.length, "\n");
 
 //@ Collection.Find Filtering
-records = collection.find('gender = "male"').execute().all();
+records = collection.find('gender = "male"').execute().fetchAll();
 print("Males:", records.length, "\n");
 
-records = collection.find('gender = "female"').execute().all();
+records = collection.find('gender = "female"').execute().fetchAll();
 print("Females:", records.length, "\n");
 
-records = collection.find('age = 13').execute().all();
+records = collection.find('age = 13').execute().fetchAll();
 print("13 Years:", records.length, "\n");
 
-records = collection.find('age = 14').execute().all();
+records = collection.find('age = 14').execute().fetchAll();
 print("14 Years:", records.length, "\n");
 
-records = collection.find('age < 17').execute().all();
+records = collection.find('age < 17').execute().fetchAll();
 print("Under 17:", records.length, "\n");
 
-records = collection.find('name like "a%"').execute().all();
+records = collection.find('name like "a%"').execute().fetchAll();
 print("Names With A:", records.length, "\n");
 
 //@ Collection.Find Field Selection
 var columns;
 result = collection.find().fields(['name','age']).execute();
-record = result.next();
+record = result.fetchOne();
 columns = dir(record)
 print('1-Metadata Length:', columns.length, '\n');
 print('1-Metadata Field:', columns[0], '\n');
 print('1-Metadata Field:', columns[1], '\n');
 
 result = collection.find().fields(['age']).execute();
-record = result.next();
+record = result.fetchOne();
 columns = dir(record)
 print('2-Metadata Length:', columns.length, '\n');
 print('2-Metadata Field:', columns[0], '\n');
 
 //@ Collection.Find Sorting
-records = collection.find().sort(['name']).execute().all();
+records = collection.find().sort(['name']).execute().fetchAll();
 for(index=0; index < 7; index++){
   print('Find Asc', index, ':', records[index].name, '\n');
 }
 
-records = collection.find().sort(['name desc']).execute().all();
+records = collection.find().sort(['name desc']).execute().fetchAll();
 for(index=0; index < 7; index++){
   print('Find Desc', index, ':', records[index].name, '\n');
 }
 
 //@ Collection.Find Limit and Offset
-records = collection.find().limit(4).execute().all();
+records = collection.find().limit(4).execute().fetchAll();
 print('Limit-Skip 0 :', records.length, '\n');
 
 for(index=1; index < 8; index++){
-  records = collection.find().limit(4).skip(index).execute().all();
+  records = collection.find().limit(4).skip(index).execute().fetchAll();
   print('Limit-Skip', index, ':', records.length, '\n');
 }
 
 //@ Collection.Find Parameter Binding
-records = collection.find('age = :years and gender = :heorshe').bind('years', 13).bind('heorshe','female').execute().all();
+records = collection.find('age = :years and gender = :heorshe').bind('years', 13).bind('heorshe', 'female').execute().fetchAll();
 print('Find Binding Length:', records.length, '\n');
 print('Find Binding Name:', records[0].name, '\n');
 

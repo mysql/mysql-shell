@@ -104,7 +104,7 @@ namespace mysh
       // Virtual methods from ISession
       virtual shcore::Value connect(const shcore::Argument_list &args);
       virtual shcore::Value close(const shcore::Argument_list &args);
-      virtual shcore::Value executeSql(const shcore::Argument_list &args);
+      virtual shcore::Value execute_sql(const shcore::Argument_list &args);
       virtual shcore::Value createSchema(const shcore::Argument_list &args);
       virtual shcore::Value startTransaction(const shcore::Argument_list &args);
       virtual shcore::Value commit(const shcore::Argument_list &args);
@@ -137,14 +137,14 @@ namespace mysh
       ClassicSchema setCurrentSchema(String name);
       Map getSchemas();
       String getUri();
-      Resultset executeSql(String query);
+      ClassicResult executeSql(String query);
       Undefined close();
-      ClassicResultset startTransaction();
-      ClassicResultset commit();
-      ClassicResultset rollback();
-      ClassicResultset dropSchema(String name);
-      ClassicResultset dropTable(String schema, String name);
-      ClassicResultset dropView(String schema, String name);
+      ClassicResult startTransaction();
+      ClassicResult commit();
+      ClassicResult rollback();
+      ClassicResult dropSchema(String name);
+      ClassicResult dropTable(String schema, String name);
+      ClassicResult dropView(String schema, String name);
 
 #endif
     private:

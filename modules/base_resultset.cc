@@ -30,43 +30,12 @@
 using namespace mysh;
 using namespace shcore;
 
-BaseResultset::BaseResultset()
-{
-  add_method("nextDataSet", boost::bind(&BaseResultset::next_result, this, _1), NULL);
-  add_method("next", boost::bind(&BaseResultset::next, this, _1), NULL);
-  add_method("all", boost::bind(&BaseResultset::all, this, _1), NULL);
-
-  add_method("getColumnMetadata", boost::bind(&BaseResultset::get_member_method, this, _1, "getColumnMetadata", "columnMetadata"), NULL);
-  add_method("getAffectedRows", boost::bind(&BaseResultset::get_member_method, this, _1, "getAffectedRows", "affectedRows"), NULL);
-  add_method("getFetchedRowCount", boost::bind(&BaseResultset::get_member_method, this, _1, "getFetchedRowCount", "fetchedRowCount"), NULL);
-  add_method("getWarningCount", boost::bind(&BaseResultset::get_member_method, this, _1, "getWarningCount", "warningCount"), NULL);
-  add_method("getWarnings", boost::bind(&BaseResultset::get_member_method, this, _1, "getWarnings", "warnings"), NULL);
-  add_method("getExecutionTime", boost::bind(&BaseResultset::get_member_method, this, _1, "getExecutionTime", "executionTime"), NULL);
-  add_method("getLastInsertId", boost::bind(&BaseResultset::get_member_method, this, _1, "getLastInsertId", "lastInsertId"), NULL);
-  add_method("getInfo", boost::bind(&BaseResultset::get_member_method, this, _1, "getInfo", "info"), NULL);
-  add_method("getHasData", boost::bind(&BaseResultset::get_member_method, this, _1, "getHasData", "hasData"), NULL);
-}
-
-std::vector<std::string> BaseResultset::get_members() const
-{
-  std::vector<std::string> members(shcore::Cpp_object_bridge::get_members());
-  members.push_back("columnMetadata");
-  members.push_back("fetchedRowCount");
-  members.push_back("affectedRows");
-  members.push_back("warningCount");
-  members.push_back("executionTime");
-  members.push_back("lastInsertId");
-  members.push_back("info");
-  members.push_back("hasData");
-  return members;
-}
-
-bool BaseResultset::operator == (const Object_bridge &other) const
+bool ShellBaseResult::operator == (const Object_bridge &other) const
 {
   return this == &other;
 }
 
-shcore::Value BaseResultset::get_member_method(const shcore::Argument_list &args, const std::string& method, const std::string& prop)
+shcore::Value ShellBaseResult::get_member_method(const shcore::Argument_list &args, const std::string& method, const std::string& prop)
 {
   std::string function = class_name() + "." + method;
   args.ensure_count(0, function.c_str());

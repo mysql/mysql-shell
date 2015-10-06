@@ -55,9 +55,9 @@ result = crud.execute();
 validate_crud_functions(crud, ['bind', 'execute', '__shell_hook__']);
 
 //@ Reusing CRUD with binding
-print('Updated Angel:', result.affectedRows, '\n');
+print('Updated Angel:', result.affectedItemCount, '\n');
 result=crud.bind('data', 'carol').execute();
-print('Updated Carol:', result.affectedRows, '\n');
+print('Updated Carol:', result.affectedItemCount, '\n');
 
 
 // ----------------------------------------------
@@ -106,35 +106,35 @@ var record;
 
 //@# TableUpdate: simple test
 result = result = table.update().set('name', 'aline').where('age = 13').execute();
-print('Affected Rows:', result.affectedRows, '\n');
+print('Affected Rows:', result.affectedItemCount, '\n');
 
 result = table.select().where('name = "aline"').execute();
-record = result.next();
+record = result.fetchOne();
 print("Updated Record:", record.name, record.age);
 
 //@ TableUpdate: test using expression
 result = table.update().set('age', mysqlx.expr('13+10')).where('age = 13').execute();
-print('Affected Rows:', result.affectedRows, '\n');
+print('Affected Rows:', result.affectedItemCount, '\n');
 
 result = table.select().where('age = 23').execute();
-record = result.next();
+record = result.fetchOne();
 print("Updated Record:", record.name, record.age);
 
 //@ TableUpdate: test using limits
 result = table.update().set('age', 16).where('age = 15').limit(2).execute();
-print('Affected Rows:', result.affectedRows, '\n');
+print('Affected Rows:', result.affectedItemCount, '\n');
 
-var records = table.select().where('age = 16').execute().all();
+var records = table.select().where('age = 16').execute().fetchAll();
 print('With 16 Years:', records.length, '\n');
 
-var records = table.select().where('age = 15').execute().all();
+var records = table.select().where('age = 15').execute().fetchAll();
 print('With 15 Years:', records.length, '\n');
 
 //@ TableUpdate: test full update
 result = table.update().set('gender', 'female').execute();
-print('Updated Females:', result.affectedRows, '\n');
+print('Updated Females:', result.affectedItemCount, '\n');
 
-records = table.select().where('gender = \"female\"').execute().all();
+records = table.select().where('gender = \"female\"').execute().fetchAll();
 print('All Females:', records.length, '\n');
 
 // Cleanup

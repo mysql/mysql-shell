@@ -1,2 +1,2 @@
-print(res.next()['name'])|mike|
-print(result.next()['name'])|mike|
+print(res.fetchOne()['name'])|mike|
+print(result.fetchOne()['name'])|mike|

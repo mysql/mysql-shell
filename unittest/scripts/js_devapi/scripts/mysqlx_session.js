@@ -69,7 +69,7 @@ var res3 = collection.add({name:'alma', age: 17}).execute();
 mySession.rollback();
 
 var result = collection.find().execute();
-print('Inserted Documents:', result.all().length);
+print('Inserted Documents:', result.fetchAll().length);
 
 //@ Session: Transaction handling: commit
 mySession.startTransaction();
@@ -79,7 +79,7 @@ var res3 = collection.add({name:'alma', age: 17}).execute();
 mySession.commit();
 
 var result = collection.find().execute();
-print('Inserted Documents:', result.all().length);
+print('Inserted Documents:', result.fetchAll().length);
 
 
 // Cleanup
@@ -151,7 +151,7 @@ var res3 = collection.add({name:'alma', age: 17}).execute();
 nodeSession.rollback();
 
 var result = collection.find().execute();
-print('Inserted Documents:', result.all().length);
+print('Inserted Documents:', result.fetchAll().length);
 
 //@ NodeSession: Transaction handling: commit
 nodeSession.startTransaction();
@@ -161,7 +161,7 @@ var res3 = collection.add({name:'alma', age: 17}).execute();
 nodeSession.commit();
 
 var result = collection.find().execute();
-print('Inserted Documents:', result.all().length);
+print('Inserted Documents:', result.fetchAll().length);
 
 nodeSession.dropSchema('node_session_schema');
 

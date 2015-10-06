@@ -132,7 +132,6 @@ bool mysqlx::parse_mysql_connstring(const std::string &connstring,
   else
     user = user_part;
 
-  
   if ((p = server_part.find(':')) != std::string::npos)
   {
     host = server_part.substr(0, p);
@@ -864,7 +863,7 @@ boost::shared_ptr<Schema> Session::getSchema(const std::string &name)
   return m_schemas[name] = boost::shared_ptr<Schema>(new Schema(shared_from_this(), name));
 }
 
-boost::shared_ptr<Result> Session::executeSql(const std::string &sql)
+boost::shared_ptr<Result> Session::execute_sql(const std::string &sql)
 {
   return m_connection->execute_sql(sql);
 }

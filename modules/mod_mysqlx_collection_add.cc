@@ -181,23 +181,23 @@ std::string CollectionAdd::get_new_uuid()
 #ifdef DOXYGEN
 /**
 * Executes the document addition for the documents cached on this object.
-* \return A Resultset object.
+* \return A Result object.
 *
 * This function can be invoked once after:
 * \sa add(Document document)
 * \sa add(List documents)
 */
-Resultset CollectionAdd::execute(){}
+Result CollectionAdd::execute(){}
 #endif
 shcore::Value CollectionAdd::execute(const shcore::Argument_list &args)
 {
-  mysqlx::CollectionResultset *result = NULL;
+  mysqlx::Result *result = NULL;
 
   try
   {
     args.ensure_count(0, "CollectionAdd.execute");
 
-    result = new mysqlx::CollectionResultset(boost::shared_ptr< ::mysqlx::Result>(_add_statement->execute()));
+    result = new mysqlx::Result(boost::shared_ptr< ::mysqlx::Result>(_add_statement->execute()));
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionAdd.execute");
 

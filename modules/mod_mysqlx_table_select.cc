@@ -248,7 +248,7 @@ shcore::Value TableSelect::having(const shcore::Argument_list &args)
 
 #ifdef DOXYGEN
 /**
-* Sets the sorting criteria to be used on the Resultset.
+* Sets the sorting criteria to be used on the RowResult.
 * \param sortExprStr: A list of expression strings defining the sort criteria for the returned records.
 * \return This TableSelect object.
 *
@@ -339,7 +339,7 @@ shcore::Value TableSelect::limit(const shcore::Argument_list &args)
 
 #ifdef DOXYGEN
 /**
-* Sets number of records to skip on the resultset when a limit has been defined.
+* Sets number of records to skip on the RowResult when a limit has been defined.
 * \param limitOffset: The number of records to skip before start including them on the Resultset.
 * \return This TableSelect object.
 *
@@ -413,7 +413,7 @@ shcore::Value TableSelect::bind(const shcore::Argument_list &args)
 #ifdef DOXYGEN
 /**
 * Executes the Find operation with all the configured options and returns.
-* \return CollectionResultset A Collection resultset object that can be used to retrieve the results of the find operation.
+* \return RowResult A Row result object that can be used to traverse the records returned by rge select operation.
 *
 * This function can be invoked after any other function on this class.
 *
@@ -462,17 +462,18 @@ shcore::Value TableSelect::bind(const shcore::Argument_list &args)
 * // Retrieve the four younger friends after the youngest
 * var res = table.select().orderBy(['age']).limit(4).offset(1).execute();
 * \endcode
-*/ResultSet TableSelect::execute(ExecuteOptions options){}
+*/
+RowResult TableSelect::execute(ExecuteOptions options){}
 #endif
 shcore::Value TableSelect::execute(const shcore::Argument_list &args)
 {
-  mysqlx::Resultset *result = NULL;
+  mysqlx::RowResult *result = NULL;
 
   try
   {
     args.ensure_count(0, "TableSelect.execute");
 
-    result = new mysqlx::Resultset(boost::shared_ptr< ::mysqlx::Result>(_select_statement->execute()));
+    result = new mysqlx::RowResult(boost::shared_ptr< ::mysqlx::Result>(_select_statement->execute()));
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableSelect.execute");
 

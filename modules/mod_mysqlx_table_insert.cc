@@ -237,7 +237,7 @@ shcore::Value TableInsert::values(const shcore::Argument_list &args)
 #ifdef DOXYGEN
 /**
 * Executes the record insertion.
-* \return Resultset A resultset object that can be used to retrieve the results of the insertion operation.
+* \return Result A result object that can be used to retrieve the results of the insertion operation.
 *
 * This function can be invoked after:
 * - values(Value value1, Value value2, ...)
@@ -266,17 +266,17 @@ shcore::Value TableInsert::values(const shcore::Argument_list &args)
 *
 * \endcode
 */
-Resultset TableInsert::execute(ExecuteOptions options){}
+Result TableInsert::execute(ExecuteOptions options){}
 #endif
 shcore::Value TableInsert::execute(const shcore::Argument_list &args)
 {
-  mysqlx::Resultset *result = NULL;
+  mysqlx::Result *result = NULL;
 
   try
   {
     args.ensure_count(0, "TableInsert.execute");
 
-    result = new mysqlx::Resultset(boost::shared_ptr< ::mysqlx::Result>(_insert_statement->execute()));
+    result = new mysqlx::Result(boost::shared_ptr< ::mysqlx::Result>(_insert_statement->execute()));
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableInsert.execute");
 

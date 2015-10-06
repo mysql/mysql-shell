@@ -370,7 +370,7 @@ namespace shcore {
     exec_and_out_equals("session.rollback();");
 
     exec_and_out_equals("var result = session.executeSql('select count(*) from sample');");
-    exec_and_out_equals("print(result.next()[0])", "0", "");
+    exec_and_out_equals("print(result.fetchOne()[0])", "0", "");
 
     // Test the commit
     exec_and_out_equals("session.startTransaction();");
@@ -382,7 +382,7 @@ namespace shcore {
     exec_and_out_equals("session.commit();");
 
     exec_and_out_equals("result = session.executeSql('select count(*) from sample');");
-    exec_and_out_equals("print(result.next()[0])", "3", "");
+    exec_and_out_equals("print(result.fetchOne()[0])", "3", "");
 
     // Drops the database
     exec_and_out_equals("session.dropSchema('py_tx_schema');");

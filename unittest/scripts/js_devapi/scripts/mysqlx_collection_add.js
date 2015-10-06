@@ -40,13 +40,13 @@ var records;
 
 //@ Collection.add execution
 result = collection.add({name: 'my first', passed: 'document', count: 1}).execute();
-print("Affected Rows Single:", result.affectedRows, "\n");
+print("Affected Rows Single:", result.affectedItemCount, "\n");
 
 result = collection.add([{name: 'my second', passed: 'again', count: 2}, {name: 'my third', passed: 'once again', count: 3}]).execute();
-print("Affected Rows List:", result.affectedRows, "\n");
+print("Affected Rows List:", result.affectedItemCount, "\n");
 
 result = collection.add({name: 'my fourth', passed: 'again', count: 4}).add({name: 'my fifth', passed: 'once again', count: 5}).execute();
-print("Affected Rows Chained:", result.affectedRows, "\n");
+print("Affected Rows Chained:", result.affectedItemCount, "\n");
 
 // Cleanup
 mySession.dropSchema('js_shell_test');

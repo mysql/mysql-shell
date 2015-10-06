@@ -7,13 +7,13 @@ var myColl = db.getCollection('my_collection');
 var docs = myColl.find('name like :param')
         .limit(1).bind('param', 'S%').execute();
 
-print(docs.next());
+print(docs.fetchOne());
 
 // Get all documents with a field 'name' that starts with an 'S'
 docs = myColl.find('name like :param')
         .bind('param','S%').execute();
 
 var myDoc;
-while (myDoc = docs.next()) {
+while (myDoc = docs.fetchOne()) {
         print(myDoc);
 }

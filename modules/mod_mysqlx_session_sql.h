@@ -49,7 +49,7 @@ namespace mysh
       sql(String statement);
       bind(Value value);
       bind(List values);
-      Resultset execute(ExecuteOptions options);
+      SqlResult execute(ExecuteOptions options);
 #endif
     private:
       boost::weak_ptr<NodeSession> _session;

@@ -238,7 +238,7 @@ namespace shcore {
     // Testing the select function
     {
       SCOPED_TRACE("Testing full select");
-      exec_and_out_equals("records = table.select().execute().all()");
+      exec_and_out_equals("records = table.select().execute().fetchAll()");
       exec_and_out_equals("print(len(records))", "7");
     }
 
@@ -246,50 +246,50 @@ namespace shcore {
     {
       SCOPED_TRACE("Testing select with column filtering");
       exec_and_out_equals("result = table.select(['name', 'age']).execute()");
-      exec_and_out_equals("record = result.next()");
+      exec_and_out_equals("record = result.fetchOne()");
       exec_and_out_equals("print(record.getLength())", "2");
       exec_and_out_equals("print(record.name != '')", "True");
       exec_and_out_equals("print(record.age != '')", "True");
       exec_and_out_contains("print(record.gender != '')", "", "unknown attribute: gender");
-      exec_and_out_equals("result.all()"); // Temporal hack: flushes the rest of the data
+      exec_and_out_equals("result.fetchAll()"); // Temporal hack: flushes the rest of the data
 
       exec_and_out_equals("result = table.select(['name']).execute()");
-      exec_and_out_equals("record = result.next()");
+      exec_and_out_equals("record = result.fetchOne()");
       exec_and_out_equals("print(record.getLength())", "1");
       exec_and_out_equals("print(record.name != '')", "True");
       exec_and_out_contains("print(record.age != '')", "", "unknown attribute: age");
       exec_and_out_contains("print(record.gender != '')", "", "unknown attribute: gender");
-      exec_and_out_equals("result.all()"); // Temporal hack: flushes the rest of the data
+      exec_and_out_equals("result.fetchAll()"); // Temporal hack: flushes the rest of the data
     }
 
     // Testing the select function with some criteria
     {
       SCOPED_TRACE("Testing full select with different filtering criteria");
-      exec_and_out_equals("records = table.select().where('gender = \"male\"').execute().all()");
+      exec_and_out_equals("records = table.select().where('gender = \"male\"').execute().fetchAll()");
       exec_and_out_equals("print(len(records))", "4");
 
-      exec_and_out_equals("records = table.select().where('gender = \"female\"').execute().all()");
+      exec_and_out_equals("records = table.select().where('gender = \"female\"').execute().fetchAll()");
       exec_and_out_equals("print(len(records))", "3");
 
-      exec_and_out_equals("records = table.select().where('age = 13').execute().all()");
+      exec_and_out_equals("records = table.select().where('age = 13').execute().fetchAll()");
       exec_and_out_equals("print(len(records))", "1");
 
-      exec_and_out_equals("records = table.select().where('age = 14').execute().all()");
+      exec_and_out_equals("records = table.select().where('age = 14').execute().fetchAll()");
       exec_and_out_equals("print(len(records))", "3");
 
-      exec_and_out_equals("records = table.select().where('age < 17').execute().all()");
+      exec_and_out_equals("records = table.select().where('age < 17').execute().fetchAll()");
       exec_and_out_equals("print(len(records))", "6");
 
-      exec_and_out_equals("records = table.select().where('name like \"a%\"').execute().all()");
+      exec_and_out_equals("records = table.select().where('name like \"a%\"').execute().fetchAll()");
       exec_and_out_equals("print(len(records))", "3");
 
-      exec_and_out_equals("records = table.select().where('name like \"a%\" and age < 15').execute().all()");
+      exec_and_out_equals("records = table.select().where('name like \"a%\" and age < 15').execute().fetchAll()");
       exec_and_out_equals("print(len(records))", "2");
     }
 
     {
       SCOPED_TRACE("Testing orderBy");
-      exec_and_out_equals("records = table.select().orderBy(['name']).execute().all()");
+      exec_and_out_equals("records = table.select().orderBy(['name']).execute().fetchAll()");
       exec_and_out_equals("print(records[0].name)", "adam");
       exec_and_out_equals("print(records[1].name)", "alma");
       exec_and_out_equals("print(records[2].name)", "angel");
@@ -298,7 +298,7 @@ namespace shcore {
       exec_and_out_equals("print(records[5].name)", "donna");
       exec_and_out_equals("print(records[6].name)", "jack");
 
-      exec_and_out_equals("records = table.select().orderBy(['name desc']).execute().all()");
+      exec_and_out_equals("records = table.select().orderBy(['name desc']).execute().fetchAll()");
       exec_and_out_equals("print(records[0].name)", "jack");
       exec_and_out_equals("print(records[1].name)", "donna");
       exec_and_out_equals("print(records[2].name)", "carol");
@@ -310,41 +310,41 @@ namespace shcore {
 
     {
       SCOPED_TRACE("Testing limit and offset");
-      exec_and_out_equals("records = table.select().limit(4).execute().all()");
+      exec_and_out_equals("records = table.select().limit(4).execute().fetchAll()");
       exec_and_out_equals("print(len(records))", "4");
 
       SCOPED_TRACE("Testing limit and offset");
-      exec_and_out_equals("records = table.select().limit(4).offset(1).execute().all()");
+      exec_and_out_equals("records = table.select().limit(4).offset(1).execute().fetchAll()");
       exec_and_out_equals("print(len(records))", "4");
 
       SCOPED_TRACE("Testing limit and offset");
-      exec_and_out_equals("records = table.select().limit(4).offset(2).execute().all()");
+      exec_and_out_equals("records = table.select().limit(4).offset(2).execute().fetchAll()");
       exec_and_out_equals("print(len(records))", "4");
 
       SCOPED_TRACE("Testing limit and offset");
-      exec_and_out_equals("records = table.select().limit(4).offset(3).execute().all()");
+      exec_and_out_equals("records = table.select().limit(4).offset(3).execute().fetchAll()");
       exec_and_out_equals("print(len(records))", "4");
 
       SCOPED_TRACE("Testing limit and offset");
-      exec_and_out_equals("records = table.select().limit(4).offset(4).execute().all()");
+      exec_and_out_equals("records = table.select().limit(4).offset(4).execute().fetchAll()");
       exec_and_out_equals("print(len(records))", "3");
 
       SCOPED_TRACE("Testing limit and offset");
-      exec_and_out_equals("records = table.select().limit(4).offset(5).execute().all()");
+      exec_and_out_equals("records = table.select().limit(4).offset(5).execute().fetchAll()");
       exec_and_out_equals("print(len(records))", "2");
 
       SCOPED_TRACE("Testing limit and offset");
-      exec_and_out_equals("records = table.select().limit(4).offset(6).execute().all()");
+      exec_and_out_equals("records = table.select().limit(4).offset(6).execute().fetchAll()");
       exec_and_out_equals("print(len(records))", "1");
 
       SCOPED_TRACE("Testing limit and offset");
-      exec_and_out_equals("records = table.select().limit(4).offset(7).execute().all()");
+      exec_and_out_equals("records = table.select().limit(4).offset(7).execute().fetchAll()");
       exec_and_out_equals("print(len(records))", "0");
     }
 
     {
       SCOPED_TRACE("Testing bind");
-      exec_and_out_equals("records = table.select().where('age = :years and gender = :heorshe').bind('years', 13).bind('heorshe','female').execute().all();");
+      exec_and_out_equals("records = table.select().where('age = :years and gender = :heorshe').bind('years', 13).bind('heorshe','female').execute().fetchAll();");
       exec_and_out_equals("print(len(records));", "1");
       exec_and_out_equals("print(records[0].name);", "alma");
     }

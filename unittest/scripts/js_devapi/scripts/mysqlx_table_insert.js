@@ -73,19 +73,19 @@ var records;
 
 //@ Table.insert execution
 result = table.insert().values('jack', 17, 'male').execute();
-print("Affected Rows No Columns:", result.affectedRows, "\n");
+print("Affected Rows No Columns:", result.affectedItemCount, "\n");
 
 result = table.insert(['age', 'name', 'gender']).values(21, 'john', 'male').execute();
-print("Affected Rows Columns:", result.affectedRows, "\n");
+print("Affected Rows Columns:", result.affectedItemCount, "\n");
 
 var insert = table.insert('name', 'age', 'gender')
 insert.values('clark', 22,'male')
 insert.values('mary', 13,'female')
 result = insert.execute()
-print("Affected Rows Multiple Values:", result.affectedRows, "\n");
+print("Affected Rows Multiple Values:", result.affectedItemCount, "\n");
 
 result = table.insert({'age':14, 'name':'jackie', 'gender': 'female'}).execute();
-print("Affected Rows Document:", result.affectedRows, "\n");
+print("Affected Rows Document:", result.affectedItemCount, "\n");
 
 // Cleanup
 mySession.dropSchema('js_shell_test');

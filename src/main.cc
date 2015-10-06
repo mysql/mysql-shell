@@ -755,9 +755,9 @@ void Interactive_shell::process_result(shcore::Value result)
       if (!shell_hook)
       {
         // Resultset objects get printed
-        if (object && object->class_name().find("Resultset") != -1)
+        if (object && object->class_name().find("Result") != -1)
         {
-          boost::shared_ptr<mysh::BaseResultset> resultset = boost::static_pointer_cast<mysh::BaseResultset> (object);
+          boost::shared_ptr<mysh::ShellBaseResult> resultset = boost::static_pointer_cast<mysh::ShellBaseResult> (object);
           ResultsetDumper dumper(resultset);
           dumper.dump();
         }
@@ -990,7 +990,6 @@ std::string detect_interactive(Shell_command_line_options &options, bool &from_s
   {
     // Here we know the input comes from stdin
     from_stdin = true;
-
   }
   if (!isatty(__stdin_fileno) || !isatty(__stdout_fileno))
   {

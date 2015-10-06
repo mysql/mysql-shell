@@ -103,15 +103,15 @@ namespace shcore {
 
     // Test adding a single document
     exec_and_out_equals("result = collection.add({'name': 'my first', 'passed': 'document', 'count': 1}).execute()");
-    exec_and_out_equals("print (result.affectedRows)", "1");
+    exec_and_out_equals("print (result.affectedItemCount)", "1");
 
     // Test adding multiple documents
     exec_and_out_equals("result = collection.add([{'name': 'my second', 'passed': 'again', 'count': 2}, {'name': 'my third', 'passed': 'once again', 'count': 3}]).execute()");
-    exec_and_out_equals("print (result.affectedRows)", "2");
+    exec_and_out_equals("print (result.affectedItemCount)", "2");
 
     // Test adding multiple documents with chained adds
     exec_and_out_equals("result = collection.add({'name': 'my fourth', 'passed': 'again', 'count': 4}).add({'name': 'my fifth', 'passed': 'once again', 'count': 5}).execute()");
-    exec_and_out_equals("print (result.affectedRows)", "2");
+    exec_and_out_equals("print (result.affectedItemCount)", "2");
 
     exec_and_out_equals("session.close()");
   }

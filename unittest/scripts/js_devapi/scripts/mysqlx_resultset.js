@@ -27,16 +27,14 @@ var collection = schema.createCollection('buffer_collection');
 //@ Resultset hasData false
 result = mySession.sql('use js_shell_test;').execute();
 print('hasData:', result.hasData);
-print('getHasData():', result.getHasData());
 
 //@ Resultset hasData true
 result = mySession.sql('select * from buffer_table;').execute();
 print('hasData:', result.hasData);
-print('getHasData():', result.getHasData());
 
 
-//@ Resultset getColumnMetadata()
-var metadata = result.getColumnMetadata();
+//@ Resultset getColumns()
+var metadata = result.getColumns();
 
 print('Field Number:', metadata.length);
 print('First Field:', metadata[0].name);
@@ -44,8 +42,8 @@ print('Second Field:', metadata[1].name);
 print('Third Field:', metadata[2].name);
 
 
-//@ Resultset columnMetadata
-metadata = result.columnMetadata;
+//@ Resultset columns
+metadata = result.columns;
 
 print('Field Number:', metadata.length);
 print('First Field:', metadata[0].name);
@@ -58,8 +56,8 @@ print('Third Field:', metadata[2].name);
 var result1 = mySession.sql('select name, age from js_shell_test.buffer_table where gender = "male" order by name').execute();
 var result2 = mySession.sql('select name, gender from js_shell_test.buffer_table where age < 15 order by name').execute();
 
-var metadata1 = result1.columnMetadata;
-var metadata2 = result2.columnMetadata;
+var metadata1 = result1.columns;
+var metadata2 = result2.columns;
 
 print("Result 1 Field 1:", metadata1[0].name);
 print("Result 1 Field 2:", metadata1[1].name);
@@ -68,26 +66,26 @@ print("Result 2 Field 1:", metadata2[0].name);
 print("Result 2 Field 2:", metadata2[1].name);
 
 
-var record1 = result1.next();
-var record2 = result2.next();
+var record1 = result1.fetchOne();
+var record2 = result2.fetchOne();
 
 print("Result 1 Record 1:", record1.name);
 print("Result 2 Record 1:", record2.name);
 
-record1 = result1.next();
-record2 = result2.next();
+record1 = result1.fetchOne();
+record2 = result2.fetchOne();
 
 print("Result 1 Record 2:", record1.name);
 print("Result 2 Record 2:", record2.name);
 
-record1 = result1.next();
-record2 = result2.next();
+record1 = result1.fetchOne();
+record2 = result2.fetchOne();
 
 print("Result 1 Record 3:", record1.name);
 print("Result 2 Record 3:", record2.name);
 
-record1 = result1.next();
-record2 = result2.next();
+record1 = result1.fetchOne();
+record2 = result2.fetchOne();
 
 print("Result 1 Record 4:", record1.name);
 print("Result 2 Record 4:", record2.name);
@@ -98,8 +96,8 @@ print("Result 2 Record 4:", record2.name);
 result1 = table.select(['name', 'age']).where('gender = :gender').orderBy(['name']).bind('gender','male').execute();
 result2 = table.select(['name', 'gender']).where('age < :age').orderBy(['name']).bind('age',15).execute();
 
-metadata1 = result1.columnMetadata;
-metadata2 = result2.columnMetadata;
+metadata1 = result1.columns;
+metadata2 = result2.columns;
 
 print("Result 1 Field 1:", metadata1[0].name);
 print("Result 1 Field 2:", metadata1[1].name);
@@ -108,26 +106,26 @@ print("Result 2 Field 1:", metadata2[0].name);
 print("Result 2 Field 2:", metadata2[1].name);
 
 
-record1 = result1.next();
-record2 = result2.next();
+record1 = result1.fetchOne();
+record2 = result2.fetchOne();
 
 print("Result 1 Record 1:", record1.name);
 print("Result 2 Record 1:", record2.name);
 
-record1 = result1.next();
-record2 = result2.next();
+record1 = result1.fetchOne();
+record2 = result2.fetchOne();
 
 print("Result 1 Record 2:", record1.name);
 print("Result 2 Record 2:", record2.name);
 
-record1 = result1.next();
-record2 = result2.next();
+record1 = result1.fetchOne();
+record2 = result2.fetchOne();
 
 print("Result 1 Record 3:", record1.name);
 print("Result 2 Record 3:", record2.name);
 
-record1 = result1.next();
-record2 = result2.next();
+record1 = result1.fetchOne();
+record2 = result2.fetchOne();
 
 print("Result 1 Record 4:", record1.name);
 print("Result 2 Record 4:", record2.name);

@@ -58,7 +58,7 @@ namespace shcore {
     exec_and_out_equals("session.close()");
   }
 
-  // Tests resultset.hasData and resultset.getHasData()
+  // Tests resultset.hasData
   TEST_F(Shell_py_mysql_resultset_tests, mysql_resultset_has_data)
   {
     exec_and_out_equals("import mysql");
@@ -68,17 +68,15 @@ namespace shcore {
     exec_and_out_equals("result = session.executeSql('use py_shell_test;')");
 
     exec_and_out_equals("print(result.hasData)", "False");
-    exec_and_out_equals("print(result.getHasData())", "False");
 
     exec_and_out_equals("result = session.executeSql('select * from table1;')");
 
     exec_and_out_equals("print(result.hasData)", "True");
-    exec_and_out_equals("print(result.getHasData())", "True");
 
     exec_and_out_equals("session.close()");
   }
 
-  // Tests resultset.columnMetadata and resultset.getColumnMetadata()
+  // Tests resultset.columns and resultset.getColumns()
   TEST_F(Shell_py_mysql_resultset_tests, mysql_resultset_column_metadata)
   {
     exec_and_out_equals("import mysql");
@@ -87,11 +85,11 @@ namespace shcore {
 
     exec_and_out_equals("result = session.executeSql('select * from py_shell_test.table1;')");
 
-    exec_and_out_equals("metadata = result.getColumnMetadata()");
+    exec_and_out_equals("metadata = result.getColumns()");
 
     exec_and_out_equals("print(metadata[0].name)", "id");
 
-    exec_and_out_equals("metadata = result.columnMetadata");
+    exec_and_out_equals("metadata = result.columns");
 
     exec_and_out_equals("print(metadata[0].name)", "id");
 

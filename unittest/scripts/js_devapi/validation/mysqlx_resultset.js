@@ -1,19 +1,16 @@
 //@ Resultset hasData false
 |hasData: false|
-|getHasData(): false|
 
 //@ Resultset hasData true
 |hasData: true|
-|getHasData(): true|
 
-
-//@ Resultset getColumnMetadata()
+//@ Resultset getColumns()
 |Field Number: 3|
 |First Field: name|
 |Second Field: age|
 |Third Field: gender|
 
-//@ Resultset columnMetadata
+//@ Resultset columns
 |Field Number: 3|
 |First Field: name|
 |Second Field: age|
