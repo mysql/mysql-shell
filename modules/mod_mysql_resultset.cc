@@ -25,6 +25,7 @@
 #include <iomanip>
 #include "mod_mysql_resultset.h"
 #include "mysql.h"
+#include "shellcore/shell_core_options.h"
 
 using namespace mysh;
 using namespace shcore;
@@ -64,7 +65,7 @@ std::vector<std::string> ClassicResult::get_members() const
   return members;
 }
 
-shcore::Value ClassicResult::fetch_one(const shcore::Argument_list &args)
+shcore::Value ClassicResult::fetch_one(const shcore::Argument_list &args) const
 {
   args.ensure_count(0, "ClassicResult.fetchOne");
   Row *inner_row = _result->fetch_one();
@@ -91,7 +92,7 @@ shcore::Value ClassicResult::next_data_set(const shcore::Argument_list &args)
   return shcore::Value(_result->next_data_set());
 }
 
-shcore::Value ClassicResult::fetch_all(const shcore::Argument_list &args)
+shcore::Value ClassicResult::fetch_all(const shcore::Argument_list &args) const
 {
   args.ensure_count(0, "ClassicResult.fetchAll");
 
@@ -236,9 +237,6 @@ shcore::Value ClassicResult::get_member(const std::string &prop) const
     return warnings->fetch_all(shcore::Argument_list());
   }
 
-  if (prop == "info")
-    return shcore::Value(_result->info());
-
   if (prop == "executionTime")
     return shcore::Value(MySQL_timer::format_legacy(_result->execution_time(), true));
 
@@ -308,4 +306,25 @@ shcore::Value ClassicResult::get_member(const std::string &prop) const
   }
 
   return ShellBaseResult::get_member(prop);
+}
+
+void ClassicResult::append_json(shcore::JSON_dumper& dumper) const
+{
+  dumper.start_object();
+
+  dumper.append_value("executionTime", get_member("executionTime"));
+
+  dumper.append_value("info", get_member("info"));
+  dumper.append_value("rows", fetch_all(shcore::Argument_list()));
+
+  if (Shell_core_options::get()->get_bool(SHCORE_SHOW_WARNINGS))
+  {
+    dumper.append_value("warningCount", get_member("warningCount"));
+    dumper.append_value("warnings", get_member("warnings"));
+  }
+
+  dumper.append_value("affectedRowCount", get_member("affectedRowCount"));
+  dumper.append_value("lastInsertId", get_member("lastInsertId"));
+
+  dumper.end_object();
 }

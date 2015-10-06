@@ -75,7 +75,7 @@ std::string &Row::append_descr(std::string &s_out, int indent, int UNUSED(quote_
   return s_out;
 }
 
-void Row::append_json(const shcore::JSON_dumper& dumper) const
+void Row::append_json(shcore::JSON_dumper& dumper) const
 {
   dumper.start_object();
 

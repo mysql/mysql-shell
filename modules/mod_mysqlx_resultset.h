@@ -46,6 +46,7 @@ namespace mysh
 
       virtual std::vector<std::string> get_members() const;
       virtual shcore::Value get_member(const std::string &prop) const;
+      virtual void append_json(shcore::JSON_dumper& dumper) const;
 
 #ifdef DOXYGEN
       Integer warningCount; //!< Same as getwarningCount()
@@ -84,6 +85,7 @@ namespace mysh
       virtual std::string class_name() const { return "Result"; }
       virtual std::vector<std::string> get_members() const;
       virtual shcore::Value get_member(const std::string &prop) const;
+      virtual void append_json(shcore::JSON_dumper& dumper) const;
 
 #ifdef DOXYGEN
       Integer affectedItemCount; //!< Same as getAffectedItemCount()
@@ -106,10 +108,11 @@ namespace mysh
 
       virtual ~DocResult(){};
 
-      shcore::Value fetch_one(const shcore::Argument_list &args);
-      shcore::Value fetch_all(const shcore::Argument_list &args);
+      shcore::Value fetch_one(const shcore::Argument_list &args) const;
+      shcore::Value fetch_all(const shcore::Argument_list &args) const;
 
       virtual std::string class_name() const { return "DocResult"; }
+      virtual void append_json(shcore::JSON_dumper& dumper) const;
 
 #ifdef DOXYGEN
       Document fetchOne();
@@ -127,13 +130,14 @@ namespace mysh
 
       virtual ~RowResult(){};
 
-      shcore::Value fetch_one(const shcore::Argument_list &args);
-      shcore::Value fetch_all(const shcore::Argument_list &args);
+      shcore::Value fetch_one(const shcore::Argument_list &args) const;
+      shcore::Value fetch_all(const shcore::Argument_list &args) const;
 
       virtual std::vector<std::string> get_members() const;
       virtual shcore::Value get_member(const std::string &prop) const;
 
       virtual std::string class_name() const { return "RowResult"; }
+      virtual void append_json(shcore::JSON_dumper& dumper) const;
 
 #ifdef DOXYGEN
       Row fetchOne();
@@ -166,6 +170,7 @@ namespace mysh
       virtual shcore::Value get_member(const std::string &prop) const;
 
       virtual shcore::Value next_data_set(const shcore::Argument_list &args);
+      virtual void append_json(shcore::JSON_dumper& dumper) const;
 
 #ifdef DOXYGEN
       Integer lastInsertId; //!< Same as getLastInsertId()

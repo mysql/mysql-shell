@@ -290,7 +290,7 @@ namespace shcore {
     virtual std::string class_name() const = 0;
 
     //! Appends JSON representation of the object if supported
-    virtual void append_json(const JSON_dumper& dumper) const;
+    virtual void append_json(JSON_dumper& dumper) const;
 
     //! Appends descriptive text to the string, suitable for showing to the user
     virtual std::string &append_descr(std::string &s_out, int indent = -1, int quote_strings = 0) const = 0;

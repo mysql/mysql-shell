@@ -123,13 +123,13 @@ namespace shcore
     JSON_dumper(bool pprint = false);
     virtual ~JSON_dumper();
 
-    void start_array()  const { _writer->start_array(); }
-    void end_array()    const { _writer->end_array(); }
-    void start_object() const { _writer->start_object(); }
-    void end_object()   const { _writer->end_object(); }
+    void start_array()  { _deep_level++;  _writer->start_array(); }
+    void end_array()    { _deep_level--; _writer->end_array(); }
+    void start_object() { _deep_level++; _writer->start_object(); }
+    void end_object()   { _deep_level--; _writer->end_object(); }
 
-    void append_value(const Value &value) const;
-    void append_value(const std::string& key, const Value &value)const;
+    void append_value(const Value &value);
+    void append_value(const std::string& key, const Value &value);
 
     void append_null()const;
     void append_null(const std::string& key)const;
@@ -155,6 +155,8 @@ namespace shcore
     void append_float(double data)const;
     void append_float(const std::string& key, double data)const;
 
+    int deep_level() { return _deep_level; }
+
     std::string str()
     {
       return _writer->str();
@@ -162,6 +164,7 @@ namespace shcore
 
   private:
     bool _pretty;
+    int _deep_level;
 
     Writer_base* _writer;
   };

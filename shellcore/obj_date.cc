@@ -72,7 +72,7 @@ std::string &Date::append_repr(std::string &s_out) const
   return append_descr(s_out, 0, '"');
 }
 
-void Date::append_json(const shcore::JSON_dumper& dumper) const
+void Date::append_json(shcore::JSON_dumper& dumper) const
 {
   dumper.start_object();
 
