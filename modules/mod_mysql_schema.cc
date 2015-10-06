@@ -70,7 +70,7 @@ void ClassicSchema::cache_table_objects()
   boost::shared_ptr<ClassicSession> sess(boost::dynamic_pointer_cast<ClassicSession>(_session.lock()));
   if (sess)
   {
-    Result *result = sess->connection()->execute_sql("show full tables in `" + _name + "`");
+    Result *result = sess->connection()->run_sql("show full tables in `" + _name + "`");
     Row *row = result->fetch_one();
     while (row)
     {

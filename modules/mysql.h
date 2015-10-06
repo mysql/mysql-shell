@@ -154,7 +154,7 @@ namespace mysh
       ~Connection();
 
       void close();
-      Result *execute_sql(const std::string &sql);
+      Result *run_sql(const std::string &sql);
       bool next_data_set(Result *target, bool first_result = false);
       std::string uri() { return _uri; }
 

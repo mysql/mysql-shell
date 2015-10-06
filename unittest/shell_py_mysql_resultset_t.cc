@@ -46,14 +46,14 @@ namespace shcore {
 
     exec_and_out_equals("session = mysql.getClassicSession('" + _mysql_uri + "')");
 
-    exec_and_out_equals("session.executeSql('drop schema if exists py_shell_test;')");
+    exec_and_out_equals("session.runSql('drop schema if exists py_shell_test;')");
     exec_and_out_equals("session.createSchema('py_shell_test');");
     exec_and_out_equals("session.setCurrentSchema('py_shell_test');");
-    exec_and_out_equals("session.executeSql('create table table1 (id int auto_increment primary key, name varchar(50));')");
+    exec_and_out_equals("session.runSql('create table table1 (id int auto_increment primary key, name varchar(50));')");
 
-    exec_and_out_equals("session.executeSql('insert into table1 (`name`) values(\"one\");')");
-    exec_and_out_equals("session.executeSql('insert into table1 (`name`) values(\"two\");')");
-    exec_and_out_equals("session.executeSql('insert into table1 (`name`) values(\"three\");')");
+    exec_and_out_equals("session.runSql('insert into table1 (`name`) values(\"one\");')");
+    exec_and_out_equals("session.runSql('insert into table1 (`name`) values(\"two\");')");
+    exec_and_out_equals("session.runSql('insert into table1 (`name`) values(\"three\");')");
 
     exec_and_out_equals("session.close()");
   }
@@ -65,11 +65,11 @@ namespace shcore {
 
     exec_and_out_equals("session = mysql.getClassicSession('" + _mysql_uri + "')");
 
-    exec_and_out_equals("result = session.executeSql('use py_shell_test;')");
+    exec_and_out_equals("result = session.runSql('use py_shell_test;')");
 
     exec_and_out_equals("print(result.hasData)", "False");
 
-    exec_and_out_equals("result = session.executeSql('select * from table1;')");
+    exec_and_out_equals("result = session.runSql('select * from table1;')");
 
     exec_and_out_equals("print(result.hasData)", "True");
 
@@ -83,7 +83,7 @@ namespace shcore {
 
     exec_and_out_equals("session = mysql.getClassicSession('" + _mysql_uri + "')");
 
-    exec_and_out_equals("result = session.executeSql('select * from py_shell_test.table1;')");
+    exec_and_out_equals("result = session.runSql('select * from py_shell_test.table1;')");
 
     exec_and_out_equals("metadata = result.getColumns()");
 
@@ -103,7 +103,7 @@ namespace shcore {
 
     exec_and_out_equals("session = mysql.getClassicSession('" + _mysql_uri + "')");
 
-    exec_and_out_equals("result = session.executeSql('insert into py_shell_test.table1 (`name`) values(\"four\");')");
+    exec_and_out_equals("result = session.runSql('insert into py_shell_test.table1 (`name`) values(\"four\");')");
 
     exec_and_out_equals("print(result.lastInsertId)", "4");
     exec_and_out_equals("print(result.getLastInsertId())", "4");

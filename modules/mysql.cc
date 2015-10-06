@@ -113,7 +113,7 @@ bool Result::next_data_set()
 
 Result *Result::query_warnings()
 {
-  return _connection->execute_sql("show warnings");
+  return _connection->run_sql("show warnings");
 }
 
 void Result::reset(boost::shared_ptr<MYSQL_RES> res, unsigned long duration)
@@ -314,7 +314,7 @@ void Connection::close()
   _mysql = NULL;
 }
 
-Result *Connection::execute_sql(const std::string &query)
+Result *Connection::run_sql(const std::string &query)
 {
   if (_prev_result)
   {

@@ -33,7 +33,7 @@ using namespace mysh::mysqlx;
 BaseResult::BaseResult(boost::shared_ptr< ::mysqlx::Result> result) :
 _result(result)
 {
-  //add_method("getExecutionTime", boost::bind(&BaseResult::get_member_method, this, _1, "getExecutionTime", "executionTime"), NULL);
+  add_method("getExecutionTime", boost::bind(&BaseResult::get_member_method, this, _1, "getExecutionTime", "executionTime"), NULL);
   add_method("getWarnings", boost::bind(&BaseResult::get_member_method, this, _1, "getWarnings", "warnings"), NULL);
   add_method("getWarningCount", boost::bind(&BaseResult::get_member_method, this, _1, "getWarningCount", "warningCount"), NULL);
 }
@@ -41,7 +41,7 @@ _result(result)
 std::vector<std::string> BaseResult::get_members() const
 {
   std::vector<std::string> members(shcore::Cpp_object_bridge::get_members());
-  // members.push_back("executionTime");
+  members.push_back("executionTime");
   members.push_back("warningCount");
   members.push_back("warnings");
   return members;
@@ -65,6 +65,12 @@ Integer BaseResult::getWarningCount(){};
 * This information includes: Level, Code and Message.
 */
 List BaseResult::getWarnings(){};
+
+/**
+* Retrieves a string value indicating the execution time of the executed operation.
+*/
+String BaseResult::getExecutionTime(){};
+
 #endif
 shcore::Value BaseResult::get_member(const std::string &prop) const
 {
@@ -204,6 +210,10 @@ shcore::Value DocResult::fetch_one(const shcore::Argument_list &args)
 /**
 * Returns a list of DbDoc objects which contains an element for every unread document.
 * \return A List of DbDoc objects.
+*
+* If this function is called right after executing a query, it will return a DbDoc for every document on the resultset.
+*
+* If fetchOne is called before this function, when this function is called it will return a DbDoc for each of the remaining documents on the resultset.
 */
 List DocResult::fetchAll(){};
 #endif

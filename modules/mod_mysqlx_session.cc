@@ -870,7 +870,7 @@ boost::shared_ptr<shcore::Object_bridge> NodeSession::create(const shcore::Argum
 * \endcode
 * \sa SqlExecute
 */
-SqlResult NodeSession::sql(String sql){}
+SqlExecute NodeSession::sql(String sql){}
 #endif
 shcore::Value NodeSession::sql(const shcore::Argument_list &args)
 {

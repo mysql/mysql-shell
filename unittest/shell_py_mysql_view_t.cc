@@ -42,11 +42,11 @@ namespace shcore {
 
       exec_and_out_equals("session = mysql.getClassicSession('" + _mysql_uri + "')");
 
-      exec_and_out_equals("session.executeSql('drop schema if exists py_shell_test;')");
+      exec_and_out_equals("session.runSql('drop schema if exists py_shell_test;')");
       exec_and_out_equals("session.createSchema('py_shell_test');");
       exec_and_out_equals("session.setCurrentSchema('py_shell_test');");
-      exec_and_out_equals("session.executeSql('create table table1 (name varchar(50));')");
-      exec_and_out_equals("session.executeSql('create view view1 (my_name) as select name from table1;')");
+      exec_and_out_equals("session.runSql('create table table1 (name varchar(50));')");
+      exec_and_out_equals("session.runSql('create view view1 (my_name) as select name from table1;')");
     }
   };
 
@@ -115,9 +115,9 @@ namespace shcore {
   {
     exec_and_out_equals("schema = session.createSchema('my_sample_schema')");
 
-    exec_and_out_equals("session.executeSql('create table my_sample_schema.my_sample_table (name varchar(50));')");
+    exec_and_out_equals("session.runSql('create table my_sample_schema.my_sample_table (name varchar(50));')");
 
-    exec_and_out_equals("session.executeSql('create view my_sample_schema.my_sample_view (my_name) as select name from my_sample_schema.my_sample_table;')");
+    exec_and_out_equals("session.runSql('create view my_sample_schema.my_sample_view (my_name) as select name from my_sample_schema.my_sample_table;')");
 
     exec_and_out_equals("view = schema.my_sample_view");
 

@@ -218,7 +218,7 @@ namespace mysh
 
       Schema getCurrentSchema();
       Schema setCurrentSchema(String name);
-      SqlResult sql(String sql);
+      SqlExecute sql(String sql);
       String quoteName(String id);
 #endif
     };
