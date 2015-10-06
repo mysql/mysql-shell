@@ -96,7 +96,7 @@ void ResultsetDumper::dump_normal(boost::shared_ptr<mysh::mysql::ClassicResult> 
   {
     if (result->get_member("hasData").as_bool())
       dump_records(output);
-    else
+    else if (_interactive)
       output = get_affected_stats("affectedRowCount", "row");
 
     // This information output is only printed in interactive mode
@@ -126,7 +126,7 @@ void ResultsetDumper::dump_normal(boost::shared_ptr<mysh::mysqlx::SqlResult> res
   {
     if (result->get_member("hasData").as_bool())
       dump_records(output);
-    else
+    else if (_interactive)
       output = get_affected_stats("affectedRowCount", "row");
 
     // This information output is only printed in interactive mode
@@ -164,11 +164,10 @@ void ResultsetDumper::dump_normal(boost::shared_ptr<mysh::mysqlx::RowResult> res
 
 void ResultsetDumper::dump_normal(boost::shared_ptr<mysh::mysqlx::Result> result)
 {
-  std::string output = get_affected_stats("affectedItemCount", "item");
-
   // This information output is only printed in interactive mode
   if (_interactive)
   {
+    std::string output = get_affected_stats("affectedItemCount", "item");
     int warning_count = get_warning_and_execution_time_stats(output);
 
     shcore::print(output);
