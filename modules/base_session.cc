@@ -72,7 +72,7 @@ bool mysh::parse_mysql_connstring(const std::string &connstring,
       db = remaining.substr(p + 1, p_query);
     s = remaining.substr(0, p);
   }
-  
+
   p = s.rfind('@');
   std::string user_part;
   std::string server_part = (p == std::string::npos) ? s : s.substr(p + 1);
@@ -274,7 +274,7 @@ std::string &ShellBaseSession::append_repr(std::string &s_out) const
   return append_descr(s_out, false);
 }
 
-void ShellBaseSession::append_json(const shcore::JSON_dumper& dumper) const
+void ShellBaseSession::append_json(shcore::JSON_dumper& dumper) const
 {
   dumper.start_object();
 

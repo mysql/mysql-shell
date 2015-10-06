@@ -24,6 +24,8 @@ using namespace shcore;
 
 JSON_dumper::JSON_dumper(bool pprint)
 {
+  _deep_level = 0;
+
   if (pprint)
     _writer = new Pretty_writer();
   else
@@ -36,7 +38,7 @@ JSON_dumper::~JSON_dumper()
     delete (_writer);
 }
 
-void JSON_dumper::append_value(const Value &value) const
+void JSON_dumper::append_value(const Value &value)
 {
   switch (value.type)
   {
@@ -104,7 +106,7 @@ void JSON_dumper::append_value(const Value &value) const
   }
 }
 
-void JSON_dumper::append_value(const std::string& key, const Value &value) const
+void JSON_dumper::append_value(const std::string& key, const Value &value)
 {
   _writer->append_string(key);
   append_value(value);

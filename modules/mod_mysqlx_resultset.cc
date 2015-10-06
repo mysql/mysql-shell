@@ -111,6 +111,25 @@ shcore::Value BaseResult::get_member(const std::string &prop) const
   return ret_val;
 }
 
+void BaseResult::append_json(shcore::JSON_dumper& dumper) const
+{
+  bool create_object = (dumper.deep_level() == 0);
+
+  if (create_object)
+    dumper.start_object();
+
+  dumper.append_value("executionTime", get_member("executionTime"));
+
+  if (Shell_core_options::get()->get_bool(SHCORE_SHOW_WARNINGS))
+  {
+    dumper.append_value("warningCount", get_member("warningCount"));
+    dumper.append_value("warnings", get_member("warnings"));
+  }
+
+  if (create_object)
+    dumper.end_object();
+}
+
 // -----------------------------------------------------------------------
 
 Result::Result(boost::shared_ptr< ::mysqlx::Result> result) :
@@ -176,6 +195,19 @@ shcore::Value Result::get_member(const std::string &prop) const
   return ret_val;
 }
 
+void Result::append_json(shcore::JSON_dumper& dumper) const
+{
+  dumper.start_object();
+
+  BaseResult::append_json(dumper);
+
+  dumper.append_value("affectedItemCount", get_member("affectedItemCount"));
+  dumper.append_value("lastInsertId", get_member("lastInsertId"));
+  dumper.append_value("lastDocumentId", get_member("lastDocumentId"));
+
+  dumper.end_object();
+}
+
 // -----------------------------------------------------------------------
 DocResult::DocResult(boost::shared_ptr< ::mysqlx::Result> result) :
 BaseResult(result)
@@ -191,7 +223,7 @@ BaseResult(result)
 */
 Row DocResult::fetchOne(){};
 #endif
-shcore::Value DocResult::fetch_one(const shcore::Argument_list &args)
+shcore::Value DocResult::fetch_one(const shcore::Argument_list &args) const
 {
   Value ret_val = Value::Null();
 
@@ -217,7 +249,7 @@ shcore::Value DocResult::fetch_one(const shcore::Argument_list &args)
 */
 List DocResult::fetchAll(){};
 #endif
-shcore::Value DocResult::fetch_all(const shcore::Argument_list &args)
+shcore::Value DocResult::fetch_all(const shcore::Argument_list &args) const
 {
   Value::Array_type_ref array(new Value::Array_type());
 
@@ -232,6 +264,17 @@ shcore::Value DocResult::fetch_all(const shcore::Argument_list &args)
   }
 
   return Value(array);
+}
+
+void DocResult::append_json(shcore::JSON_dumper& dumper) const
+{
+  dumper.start_object();
+
+  BaseResult::append_json(dumper);
+
+  dumper.append_value("documents", fetch_all(shcore::Argument_list()));
+
+  dumper.end_object();
 }
 
 // -----------------------------------------------------------------------
@@ -370,7 +413,7 @@ shcore::Value RowResult::get_member(const std::string &prop) const
 */
 Row RowResult::fetchOne(){};
 #endif
-shcore::Value RowResult::fetch_one(const shcore::Argument_list &args)
+shcore::Value RowResult::fetch_one(const shcore::Argument_list &args) const
 {
   std::string function = class_name() + ".next";
 
@@ -450,7 +493,7 @@ shcore::Value RowResult::fetch_one(const shcore::Argument_list &args)
 */
 List RowResult::fetchAll(){};
 #endif
-shcore::Value RowResult::fetch_all(const shcore::Argument_list &args)
+shcore::Value RowResult::fetch_all(const shcore::Argument_list &args) const
 {
   Value::Array_type_ref array(new Value::Array_type());
 
@@ -465,6 +508,21 @@ shcore::Value RowResult::fetch_all(const shcore::Argument_list &args)
   }
 
   return Value(array);
+}
+
+void RowResult::append_json(shcore::JSON_dumper& dumper) const
+{
+  bool create_object = (dumper.deep_level() == 0);
+
+  if (create_object)
+    dumper.start_object();
+
+  BaseResult::append_json(dumper);
+
+  dumper.append_value("rows", fetch_all(shcore::Argument_list()));
+
+  if (create_object)
+    dumper.end_object();
 }
 
 SqlResult::SqlResult(boost::shared_ptr< ::mysqlx::Result> result) :
@@ -527,4 +585,16 @@ shcore::Value SqlResult::next_data_set(const shcore::Argument_list &args)
   args.ensure_count(0, "SqlResult.nextDataSet");
 
   return shcore::Value(_result->nextDataSet());
+}
+
+void SqlResult::append_json(shcore::JSON_dumper& dumper) const
+{
+  dumper.start_object();
+
+  RowResult::append_json(dumper);
+
+  dumper.append_value("lastInsertId", get_member("lastInsertId"));
+  dumper.append_value("affectedRowCount", get_member("affectedRowCount"));
+
+  dumper.end_object();
 }

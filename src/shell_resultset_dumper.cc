@@ -41,7 +41,7 @@ void ResultsetDumper::dump()
 {
   std::string type = _resultset->class_name();
 
-  if (type == "CollectionResultset" || _format.find("json") == 0)
+  if (type == "DocResult" || _format.find("json") == 0)
     dump_json();
   else
     dump_normal();
@@ -49,33 +49,11 @@ void ResultsetDumper::dump()
 
 void ResultsetDumper::dump_json()
 {
-  /*if (show_warnings)
-  {
-  }
   shcore::Value::Map_type_ref data(new shcore::Value::Map_type);
 
-  if (_resultset->get_member("hasData").as_bool())
-  {
-  shcore::Value records = _resultset->all(shcore::Argument_list());
+  shcore::Value resultset(boost::static_pointer_cast<Object_bridge>(_resultset));
 
-  (*data)["row_count"] = _resultset->get_member("fetchedRowCount");
-  (*data)["rows"] = records;
-  }
-  else
-  {
-  (*data)["affected_rows"] = _resultset->get_member("affectedRows");
-  }
-
-  (*data)["duration"] = _resultset->get_member("executionTime");
-  (*data)["warning_count"] = _resultset->get_member("warningCount");
-  (*data)["info"] = _resultset->get_member("info");
-
-  if ((*data)["warning_count"].as_int() && show_warnings)
-  (*data)["warnings"] = _resultset->get_member("warnings");
-
-  shcore::Value map(data);
-
-  shcore::print(map.json(format != "json/raw") + "\n");*/
+  shcore::print(resultset.json(_format != "json/raw") + "\n");
 }
 
 void ResultsetDumper::dump_normal()

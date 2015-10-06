@@ -50,7 +50,7 @@ namespace mysh
 
     virtual std::string &append_descr(std::string &s_out, int indent = -1, int quote_strings = 0) const;
     virtual std::string &append_repr(std::string &s_out) const;
-    virtual void append_json(const shcore::JSON_dumper& dumper) const;
+    virtual void append_json(shcore::JSON_dumper& dumper) const;
 
     virtual bool has_member(const std::string &prop) const;
     virtual std::vector<std::string> get_members() const;

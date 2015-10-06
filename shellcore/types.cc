@@ -1410,7 +1410,7 @@ void Argument_list::ensure_at_least(unsigned int minc, const char *context) cons
     throw Exception::argument_error((boost::format("Invalid number of arguments in %1%, expected at least %2% but got %3%") % context % minc % size()).str());
 }
 
-void Object_bridge::append_json(const JSON_dumper& dumper) const
+void Object_bridge::append_json(JSON_dumper& dumper) const
 {
   dumper.start_object();
   dumper.append_string("class", class_name());

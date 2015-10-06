@@ -46,9 +46,10 @@ namespace mysh
       virtual std::string class_name() const { return "ClassicResult"; }
       virtual std::vector<std::string> get_members() const;
       virtual shcore::Value get_member(const std::string &prop) const;
+      virtual void append_json(shcore::JSON_dumper& dumper) const;
 
-      virtual shcore::Value fetch_one(const shcore::Argument_list &args);
-      virtual shcore::Value fetch_all(const shcore::Argument_list &args);
+      virtual shcore::Value fetch_one(const shcore::Argument_list &args) const;
+      virtual shcore::Value fetch_all(const shcore::Argument_list &args) const;
       virtual shcore::Value next_data_set(const shcore::Argument_list &args);
 
     protected:

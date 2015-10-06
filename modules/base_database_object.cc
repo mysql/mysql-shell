@@ -58,7 +58,7 @@ std::string &DatabaseObject::append_repr(std::string &s_out) const
   return append_descr(s_out, false);
 }
 
-void DatabaseObject::append_json(const shcore::JSON_dumper& dumper) const
+void DatabaseObject::append_json(shcore::JSON_dumper& dumper) const
 {
   dumper.start_object();
 
