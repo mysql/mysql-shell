@@ -46,6 +46,11 @@ namespace shcore {
       exec_and_out_equals("session.createSchema('py_shell_test');");
       exec_and_out_equals("session.py_shell_test.createCollection('collection1')");
     }
+
+    virtual void TearDown()
+    {
+      exec_and_out_equals("session.close();");
+    }
   };
 
   // Tests collection.getName()
@@ -122,7 +127,5 @@ namespace shcore {
     exec_and_out_equals("print(collection.existInDatabase())", "False");
 
     exec_and_out_equals("session.dropSchema('my_sample_schema')");
-
-    exec_and_out_equals("session.close();");
   }
 }

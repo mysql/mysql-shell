@@ -301,6 +301,9 @@ void Connection::close()
 {
   if (!m_closed)
   {
+    if (m_last_result)
+      m_last_result->buffer();
+
     send(Mysqlx::Session::Close());
     m_closed = true;
 
@@ -430,6 +433,9 @@ void Connection::setup_capability(const std::string &name, const bool value)
   scalar->set_type(Mysqlx::Datatypes::Scalar_Type_V_BOOL);
   scalar->set_v_bool(value);
   send(capSet);
+
+  if (m_last_result)
+    m_last_result->buffer();
 
   int mid;
   std::auto_ptr<Message> msg(recv_raw(mid));

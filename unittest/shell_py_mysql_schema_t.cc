@@ -48,6 +48,11 @@ namespace shcore {
       exec_and_out_equals("result = session.runSql('create table table1 (name varchar(50));')");
       exec_and_out_equals("session.runSql('create view view1 (my_name) as select name from table1;')");
     }
+
+    virtual void TearDown()
+    {
+      exec_and_out_equals("session.close();");
+    }
   };
 
   // Tests schema.getName()
@@ -168,7 +173,5 @@ namespace shcore {
     exec_and_out_equals("session.dropSchema('my_sample_schema')");
 
     exec_and_out_equals("print(schema.existInDatabase())", "False");
-
-    exec_and_out_equals("session.close();");
   }
 }

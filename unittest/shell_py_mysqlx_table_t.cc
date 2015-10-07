@@ -47,6 +47,11 @@ namespace shcore {
       exec_and_out_equals("session.setCurrentSchema('py_shell_test');");
       exec_and_out_equals("session.sql('create table table1 (name varchar(50));').execute()");
     }
+
+    virtual void TearDown()
+    {
+      exec_and_out_equals("session.close();");
+    }
   };
 
   // Tests table.getName()

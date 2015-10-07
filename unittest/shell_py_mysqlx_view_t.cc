@@ -48,6 +48,11 @@ namespace shcore {
       exec_and_out_equals("session.sql('create table table1 (name varchar(50));').execute()");
       exec_and_out_equals("session.sql('create view view1 (my_name) as select name from table1;').execute()");
     }
+
+    virtual void TearDown()
+    {
+      exec_and_out_equals("session.close();");
+    }
   };
 
   // Tests view.getName()

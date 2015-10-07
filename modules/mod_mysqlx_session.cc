@@ -36,6 +36,7 @@
 #include <boost/format.hpp>
 #include <boost/pointer_cast.hpp>
 #include <boost/algorithm/string.hpp>
+#include "mysqlx_connection.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -275,7 +276,10 @@ Value BaseSession::close(const shcore::Argument_list &args)
 
   args.ensure_count(0, function_name.c_str());
 
-  _session.reset();
+  // Connection must be explicitly closed, we can't rely on the
+  // automatic destruction because if shared across different objects
+  // it may remain open
+  _session->connection()->close();
 
   return shcore::Value();
 }
