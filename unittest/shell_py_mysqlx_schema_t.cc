@@ -50,6 +50,11 @@ namespace shcore {
 
       exec_and_out_equals("session.py_shell_test.createCollection('collection1')");
     }
+
+    virtual void TearDown()
+    {
+      exec_and_out_equals("session.close();");
+    }
   };
 
   // Tests schema.getName()

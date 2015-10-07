@@ -55,6 +55,8 @@ namespace shcore {
     exec_and_out_equals("session.createSchema('py_shell_test');");
     exec_and_out_equals("session.setCurrentSchema('py_shell_test');");
     exec_and_out_equals("session.sql('create table table1 (name varchar(50), age integer, gender varchar(20));').execute()");
+
+    exec_and_out_equals("session.close()");
   }
 
   TEST_F(Shell_py_mysqlx_table_insert_tests, chain_combinations)

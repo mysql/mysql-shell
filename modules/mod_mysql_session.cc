@@ -222,6 +222,12 @@ Value ClassicSession::close(const shcore::Argument_list &args)
 {
   args.ensure_count(0, "ClassicSession.close");
 
+  // Connection must be explicitly closed, we can't rely on the
+  // automatic destruction because if shared across different objects
+  // it may remain open
+  if (_conn)
+    _conn->close();
+
   _conn.reset();
 
   return shcore::Value();

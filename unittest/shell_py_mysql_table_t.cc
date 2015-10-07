@@ -47,6 +47,11 @@ namespace shcore {
       exec_and_out_equals("session.setCurrentSchema('py_shell_test');");
       exec_and_out_equals("session.runSql('create table table1 (name varchar(50));')");
     }
+
+    virtual void TearDown()
+    {
+      exec_and_out_equals("session.close();");
+    }
   };
 
   // Tests table.getName()
@@ -125,7 +130,5 @@ namespace shcore {
     exec_and_out_equals("print(table.existInDatabase())", "False");
 
     exec_and_out_equals("session.dropSchema('my_sample_schema')");
-
-    exec_and_out_equals("session.close();");
   }
 }
