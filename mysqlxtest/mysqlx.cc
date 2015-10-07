@@ -132,7 +132,8 @@ bool mysqlx::parse_mysql_connstring(const std::string &connstring,
   else
     user = user_part;
 
-  if ((p = server_part.find(':')) != std::string::npos)
+  p = server_part.find(':');
+  if (p != std::string::npos)
   {
     host = server_part.substr(0, p);
     server_part = server_part.substr(p + 1);
@@ -166,12 +167,12 @@ static void throw_server_error(const Mysqlx::Error &error)
 
 Session::Session(const mysqlx::Ssl_config &ssl_config)
 {
-  m_connection = new Connection(ssl_config);
+  m_connection.reset(new Connection(ssl_config));
 }
 
 Session::~Session()
 {
-  delete m_connection;
+  m_connection.reset();
 }
 
 boost::shared_ptr<Session> mysqlx::openSession(const std::string &uri, const std::string &pass, const mysqlx::Ssl_config &ssl_config, const bool cap_expired_password)
@@ -678,12 +679,11 @@ Message *Connection::recv_next(int &mid)
   for (;;)
   {
     Message *msg = recv_raw(mid);
-    if (mid == Mysqlx::ServerMessages::NOTICE)
-    {
-      dispatch_notice(static_cast<Mysqlx::Notice::Frame*>(msg));
-    }
-    else
+    if (mid != Mysqlx::ServerMessages::NOTICE)
       return msg;
+
+    dispatch_notice(static_cast<Mysqlx::Notice::Frame*>(msg));
+    delete msg;
   }
 }
 
@@ -849,7 +849,7 @@ boost::shared_ptr<Result> Connection::new_result(bool expect_data)
   if (m_last_result)
     m_last_result->buffer();
 
-  m_last_result.reset(new Result(this, true));
+  m_last_result.reset(new Result(shared_from_this(), expect_data));
 
   return m_last_result;
 }
@@ -863,7 +863,7 @@ boost::shared_ptr<Schema> Session::getSchema(const std::string &name)
   return m_schemas[name] = boost::shared_ptr<Schema>(new Schema(shared_from_this(), name));
 }
 
-boost::shared_ptr<Result> Session::execute_sql(const std::string &sql)
+boost::shared_ptr<Result> Session::executeSql(const std::string &sql)
 {
   return m_connection->execute_sql(sql);
 }
@@ -884,7 +884,7 @@ Document::Document(const Document &doc)
 {
 }
 
-Result::Result(Connection *owner, bool expect_data)
+Result::Result(boost::shared_ptr<Connection>owner, bool expect_data)
 : current_message(NULL), m_owner(owner), m_last_insert_id(-1), m_affected_rows(-1),
 m_state(expect_data ? ReadMetadataI : ReadStmtOkI), m_buffered(false), m_buffering(false)
 {
@@ -1354,23 +1354,6 @@ Result& Result::buffer()
   }
 
   return *this;
-}
-
-Result& Result::rewind()
-{
-  if (m_current_result)
-    m_current_result->rewind();
-
-  return *this;
-}
-
-void Result::rewind_all()
-{
-  if (!m_result_cache.empty())
-  {
-    m_current_result = m_result_cache[0];
-    m_result_index = 1;
-  }
 }
 
 ResultData::ResultData(boost::shared_ptr<std::vector<ColumnMetadata> > columns) :

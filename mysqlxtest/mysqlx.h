@@ -229,16 +229,16 @@ namespace mysqlx
   public:
     Session(const mysqlx::Ssl_config &ssl_config);
     ~Session();
-    boost::shared_ptr<Result> execute_sql(const std::string &sql);
+    boost::shared_ptr<Result> executeSql(const std::string &sql);
 
     boost::shared_ptr<Result> executeStmt(const std::string &ns, const std::string &stmt,
                         const std::vector<ArgumentValue> &args);
 
     boost::shared_ptr<Schema> getSchema(const std::string &name);
 
-    Connection *connection() { return m_connection; }
+    boost::shared_ptr<Connection> connection() { return m_connection; }
   private:
-    Connection *m_connection;
+    boost::shared_ptr<Connection> m_connection;
     std::map<std::string, boost::shared_ptr<Schema> > m_schemas;
   };
   typedef boost::shared_ptr<Session> SessionRef;
@@ -365,8 +365,6 @@ namespace mysqlx
     bool nextDataSet();
     void flush();
     Result& buffer();
-    Result& rewind();
-    void rewind_all();
     void mark_error();
 
     struct Warning
@@ -379,7 +377,7 @@ namespace mysqlx
   private:
     Result();
     Result(const Result &o);
-    Result(Connection *owner, bool expect_data);
+    Result(boost::shared_ptr<Connection>owner, bool expect_data);
 
     void read_metadata();
     boost::shared_ptr<Row> read_row();
@@ -394,7 +392,7 @@ namespace mysqlx
     int              current_message_id;
 
     friend class Connection;
-    Connection *m_owner;
+    boost::shared_ptr<Connection>m_owner;
     boost::shared_ptr<std::vector<ColumnMetadata> > m_columns;
     int64_t m_last_insert_id;
     int64_t m_affected_rows;

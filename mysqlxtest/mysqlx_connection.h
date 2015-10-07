@@ -40,6 +40,7 @@
 #include "mysqlx_expect.pb.h"
 #include "mysqlx_session.pb.h"
 #include "mysqlx_sql.pb.h"
+#include <boost/enable_shared_from_this.hpp>
 
 #if __GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 6)
 #pragma GCC diagnostic pop
@@ -71,7 +72,7 @@ namespace mysqlx
 
   struct Ssl_config;
 
-  class MYSQLXTEST_PUBLIC Connection
+  class MYSQLXTEST_PUBLIC Connection : public boost::enable_shared_from_this<Connection>
   {
   public:
     Connection(const Ssl_config &ssl_config);
