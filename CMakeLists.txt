@@ -233,6 +233,7 @@ IF(WITH_TESTS)
   include(testing)
   SETUP_TESTING()
   add_subdirectory(unittest)
+  add_subdirectory(shell-tests)
 ENDIF()
 
 ###
