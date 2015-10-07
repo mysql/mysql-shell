@@ -1,8 +1,8 @@
 // Assumptions: ensure_schema_does_not_exist is available
-// Assumes __uripwd is defined as <user>:<pwd>@<host>:<plugin_port>
-var mysqlx = require('mysqlx').mysqlx;
+// Assumes __uripwd is defined as <user>:<pwd>@<host>:<mysql_port>
+var mysql = require('mysql').mysql;
 
-var mySession = mysqlx.getNodeSession(__uripwd);
+var mySession = mysql.getClassicSession(__uripwd);
 
 ensure_schema_does_not_exist(mySession, 'js_shell_test');
 
@@ -10,8 +10,8 @@ schema = mySession.createSchema('js_shell_test');
 mySession.setCurrentSchema('js_shell_test');
 
 var result;
-result = mySession.sql('create table table1 (name varchar(50))').execute();
-result = mySession.sql('create view view1 (my_name) as select name from table1;').execute();
+result = mySession.runSql('create table table1 (name varchar(50))');
+result = mySession.runSql('create view view1 (my_name) as select name from table1;');
 var view = mySession.js_shell_test.getView('view1');
 
 //@ Testing view name retrieving

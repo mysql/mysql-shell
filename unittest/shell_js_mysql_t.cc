@@ -17,125 +17,77 @@
 * 02110-1301  USA
 */
 
-#include <cstdio>
-#include <cstdlib>
-#include <fstream>
-#include <string>
+#include "shell_script_tester.h"
+#include "modules/base_session.h"
+#include <boost/lexical_cast.hpp>
 
-#include "gtest/gtest.h"
-#include "test_utils.h"
-#include "base_session.h"
-
-namespace shcore {
-  class Shell_js_mysql_tests : public Shell_core_test_wrapper
+namespace shcore
+{
+  class Shell_js_mysql_tests : public Shell_js_script_tester
   {
   protected:
     // You can define per-test set-up and tear-down logic as usual.
     virtual void SetUp()
     {
-      Shell_core_test_wrapper::SetUp();
+      Shell_js_script_tester::SetUp();
 
-      bool initilaized(false);
-      _shell_core->switch_mode(Shell_core::Mode_JScript, initilaized);
+      int port = 3306, pwd_found;
+      std::string protocol, user, password, host, sock, schema, ssl_ca, ssl_cert, ssl_key;
+      mysh::parse_mysql_connstring(_uri, protocol, user, password, host, port, sock, schema, pwd_found, ssl_ca, ssl_cert, ssl_key);
+
+      // Setups some variables on the JS context, these will be used on some test cases
+      std::string str_port = boost::lexical_cast<std::string>(_mysql_port);
+      std::string code = "var __user = '" + user + "';";
+      exec_and_out_equals(code);
+      code = "var __pwd = '" + password + "';";
+      exec_and_out_equals(code);
+      code = "var __host = '" + host + "';";
+      exec_and_out_equals(code);
+      code = "var __port = " + str_port + ";";
+      exec_and_out_equals(code);
+      code = "var __schema = 'mysql';";
+      exec_and_out_equals(code);
+      code = "var __schema = 'mysql';";
+      exec_and_out_equals(code);
+      code = "var __uri = '" + user + "@" + host + ":" + str_port + "';";
+      exec_and_out_equals(code);
+      code = "var __uripwd = '" + user + ":" + password + "@" + host + ":" + str_port + "';";
+      exec_and_out_equals(code);
+
+      // All of the test cases share the same config folder
+      // and setup script
+      set_config_folder("js_devapi");
+      set_setup_script("setup.js");
     }
   };
 
-  TEST_F(Shell_js_mysql_tests, mysql_exports)
+  TEST_F(Shell_js_mysql_tests, mysql_module)
   {
-    execute("print(shell.js.module_paths);");
-    wipe_all();
-    exec_and_out_equals("var mysql = require('mysql').mysql;");
-    exec_and_out_equals("var exports = dir(mysql);");
-    exec_and_out_equals("print(exports.length);", "1");
-
-    exec_and_out_equals("print(typeof mysql.getClassicSession);", "function");
+    validate_interactive("mysql_module.js");
   }
 
-  TEST_F(Shell_js_mysql_tests, mysql_open_session_uri)
+  TEST_F(Shell_js_mysql_tests, mysql_session)
   {
-    exec_and_out_equals("var mysql = require('mysql').mysql;");
-
-    // Assuming _uri is in the format user:password@host
-    std::string uri = mysh::strip_password(_mysql_uri);
-
-    exec_and_out_equals("var session = mysql.getClassicSession('" + _mysql_uri + "');");
-    exec_and_out_equals("print(session);", "<ClassicSession:" + uri + ">");
-    exec_and_out_equals("session.close();");
+    validate_interactive("mysql_session.js");
   }
 
-  TEST_F(Shell_js_mysql_tests, mysql_open_session_uri_password)
+  TEST_F(Shell_js_mysql_tests, mysql_schema)
   {
-    exec_and_out_equals("var mysql = require('mysql').mysql;");
-
-    // Assuming _uri is in the format user:password@host
-    int port = 3306, pwd_found;
-    std::string protocol, user, password, host, sock, schema, ssl_ca, ssl_cert, ssl_key;
-    mysh::parse_mysql_connstring(_mysql_uri, protocol, user, password, host, port, sock, schema, pwd_found, ssl_ca, ssl_cert, ssl_key);
-
-    std::string uri = mysh::strip_password(_mysql_uri);
-
-    if (!_pwd.empty())
-      password = _pwd;
-
-    exec_and_out_equals("var session = mysql.getClassicSession('" + _mysql_uri + "', '" + password + "');");
-    exec_and_out_equals("print(session);", "<ClassicSession:" + uri + ">");
-    exec_and_out_equals("session.close();");
+    validate_interactive("mysql_schema.js");
   }
 
-  TEST_F(Shell_js_mysql_tests, mysql_open_session_data)
+  TEST_F(Shell_js_mysql_tests, mysql_table)
   {
-    exec_and_out_equals("var mysql = require('mysql').mysql;");
-
-    // Assuming _uri is in the format user:password@host
-    int port = 3306, pwd_found;
-    std::string protocol, user, password, host, sock, schema, ssl_ca, ssl_cert, ssl_key;
-    mysh::parse_mysql_connstring(_mysql_uri, protocol, user, password, host, port, sock, schema, pwd_found, ssl_ca, ssl_cert, ssl_key);
-
-    if (!_pwd.empty())
-      password = _pwd;
-
-    std::stringstream connection_data;
-    connection_data << "{";
-    connection_data << "\"host\": '" << host << "',";
-    connection_data << "\"port\": " << port << ",";
-    connection_data << "\"schema\": '" << schema << "',";
-    connection_data << "\"dbUser\": '" << user << "',";
-    connection_data << "\"dbPassword\": '" << password << "'";
-    connection_data << "}";
-
-    std::stringstream uri;
-    uri << user << "@" << host << ":" << port;
-
-    exec_and_out_equals("var session = mysql.getClassicSession(" + connection_data.str() + ");");
-    exec_and_out_equals("print(session);", "<ClassicSession:" + uri.str() + ">");
-    exec_and_out_equals("session.close();");
+    validate_interactive("mysql_table.js");
   }
 
-  TEST_F(Shell_js_mysql_tests, mysql_open_session_data_password)
+  TEST_F(Shell_js_mysql_tests, mysql_view)
   {
-    exec_and_out_equals("var mysql = require('mysql').mysql;");
+    validate_interactive("mysql_view.js");
+  }
 
-    // Assuming _uri is in the format user:password@host
-    int port = 3306, pwd_found;
-    std::string protocol, user, password, host, sock, schema, ssl_ca, ssl_cert, ssl_key;
-    mysh::parse_mysql_connstring(_mysql_uri, protocol, user, password, host, port, sock, schema, pwd_found, ssl_ca, ssl_cert, ssl_key);
-
-    if (!_pwd.empty())
-      password = _pwd;
-
-    std::stringstream connection_data;
-    connection_data << "{";
-    connection_data << "\"host\": '" << host << "',";
-    connection_data << "\"port\": " << port << ",";
-    connection_data << "\"schema\": '" << schema << "',";
-    connection_data << "\"dbUser\": '" << user << "'";
-    connection_data << "}";
-
-    std::stringstream uri;
-    uri << user << "@" << host << ":" << port;
-
-    exec_and_out_equals("var session = mysql.getClassicSession(" + connection_data.str() + ", '" + password + "');");
-    exec_and_out_equals("print(session);", "<ClassicSession:" + uri.str() + ">");
-    exec_and_out_equals("session.close();");
+  TEST_F(Shell_js_mysql_tests, mysql_resultset)
+  {
+    validate_interactive("mysql_resultset.js");
   }
 }

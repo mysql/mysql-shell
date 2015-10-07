@@ -2,9 +2,7 @@
 
 var mysqlx = require('mysqlx').mysqlx;
 
-var uri = os.getenv('MYSQL_URI');
-
-var mySession = mysqlx.getNodeSession(uri);
+var mySession = mysqlx.getNodeSession(__uripwd);
 
 ensure_schema_does_not_exist(mySession, 'js_shell_test');
 
