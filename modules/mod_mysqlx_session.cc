@@ -563,7 +563,7 @@ std::string BaseSession::_retrieve_current_schema()
     if (_session)
     {
       // TODO: update this logic properly
-      boost::shared_ptr< ::mysqlx::Result> result = _session->execute_sql("select schema()");
+      boost::shared_ptr< ::mysqlx::Result> result = _session->executeSql("select schema()");
       boost::shared_ptr< ::mysqlx::Row>row = result->next();
 
       if (!row->isNullField(0))
@@ -583,7 +583,7 @@ void BaseSession::_load_schemas()
   {
     if (_session)
     {
-      boost::shared_ptr< ::mysqlx::Result> result = _session->execute_sql("show databases;");
+      boost::shared_ptr< ::mysqlx::Result> result = _session->executeSql("show databases;");
       boost::shared_ptr< ::mysqlx::Row> row = result->next();
 
       while (row)
@@ -900,7 +900,7 @@ shcore::Value NodeSession::set_current_schema(const shcore::Argument_list &args)
   {
     std::string name = args[0].as_string();
 
-    boost::shared_ptr< ::mysqlx::Result> result = _session->execute_sql("use " + name + ";");
+    boost::shared_ptr< ::mysqlx::Result> result = _session->executeSql("use " + name + ";");
     result->flush();
   }
   else

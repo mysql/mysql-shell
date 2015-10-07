@@ -43,6 +43,7 @@
 
 #include <iostream>
 #include <fstream>
+#include <sstream>
 #include <stdexcept>
 #include <algorithm>
 
@@ -74,11 +75,17 @@ bool OPT_quiet = false;
 bool OPT_bindump = false;
 bool OPT_show_warnings = false;
 bool OPT_fatal_errors = false;
+bool OPT_verbose = false;
+bool OPT_color = false;
 
 class Expected_error;
 static Expected_error *OPT_expect_error = 0;
 
-static int current_line_number = 0;
+struct Stack_frame {
+  int line_number;
+  std::string context;
+};
+static std::list<Stack_frame> script_stack;
 
 static std::map<std::string, std::string> variables;
 static std::list<std::string> variables_to_unreplace;
@@ -108,10 +115,47 @@ std::string unreplace_variables(const std::string &in, bool clear)
   return s;
 }
 
+static std::string error()
+{
+  std::string context;
+
+  for (std::list<Stack_frame>::const_reverse_iterator it = script_stack.rbegin(); it != script_stack.rend(); ++it)
+  {
+    char tmp[1024];
+    my_snprintf(tmp, sizeof(tmp), "in %s, line %i:", it->context.c_str(), it->line_number);
+    context.append(tmp);
+  }
+
+  if (OPT_color)
+    return std::string("\e[1;31m").append(context).append("ERROR: ");
+  else
+    return std::string(context).append("ERROR: ");
+}
+
+static std::string eoerr()
+{
+  if (OPT_color)
+    return "\e[0m\n";
+  else
+    return "\n";
+}
+
+static void dumpx(const std::exception &exc)
+{
+  std::cerr << error() << exc.what() << eoerr();
+}
+
+static void dumpx(const mysqlx::Error &exc)
+{
+  std::cerr << error() << exc.what() << " (code " << exc.error() << ")" << eoerr();
+}
+
 static void print_result_set(mysqlx::Result &result);
 static void print_result_set(mysqlx::Result &result, const std::vector<std::string> &columns);
 
 static std::string message_to_text(const mysqlx::Message &message);
+
+//---------------------------------------------------------------------------------------------------------
 
 class Expected_error
 {
@@ -129,10 +173,10 @@ public:
     {
       if (std::find(m_expect_errno.begin(), m_expect_errno.end(), err.error()) == m_expect_errno.end())
       {
-        std::cerr << "ERROR: was expecting error ";
+        std::cerr << error() << "was expecting error ";
         for (std::list<int>::const_iterator i = m_expect_errno.begin(); i != m_expect_errno.end(); ++i)
           std::cout << *i << " ";
-        std::cerr << " but instead got " << err.what() << " (code " << err.error() << ")\n";
+        std::cerr << " but instead got " << err.what() << " (code " << err.error() << ")" << eoerr();
         m_expect_errno.clear();
         if (OPT_fatal_errors)
           return false;
@@ -143,7 +187,7 @@ public:
           std::cout << "Got expected error: " << err.what() << " (code " << err.error() << ")\n";
         else
         {
-          std::cerr << "Got expecting error (one of ";
+          std::cerr << "Got expected error (one of ";
           for (std::list<int>::const_iterator i = m_expect_errno.begin(); i != m_expect_errno.end(); ++i)
             std::cout << *i << " ";
           std::cerr << ")\n";
@@ -151,7 +195,11 @@ public:
       }
     }
     else
-      std::cerr << "ERROR: " << err.what() << " (code " << err.error() << ")\n";
+    {
+      dumpx(err);
+      if (OPT_fatal_errors)
+        return false;
+    }
     m_expect_errno.clear();
     return !OPT_fatal_errors;
   }
@@ -160,10 +208,10 @@ public:
   {
     if (!m_expect_errno.empty())
     {
-      std::cout << "ERROR: was expecting error ";
+      std::cout << error() << "was expecting error ";
       for (std::list<int>::const_iterator i = m_expect_errno.begin(); i != m_expect_errno.end(); ++i)
         std::cout << *i << " ";
-      std::cout << " but succeeded\n";
+      std::cout << " but succeeded" << eoerr();
       m_expect_errno.clear();
       if (OPT_fatal_errors)
         return false;
@@ -174,6 +222,8 @@ public:
 private:
   std::list<int> m_expect_errno;
 };
+
+//---------------------------------------------------------------------------------------------------------
 
 class Connection_manager
 {
@@ -187,6 +237,8 @@ public:
     active_connection.reset(new mysqlx::Connection(ssl_config));
     connections[""] = active_connection;
 
+    if (OPT_verbose)
+      std::cout << "Connecting...\n";
     active_connection->connect(host, port);
   }
 
@@ -200,6 +252,9 @@ public:
     std::stringstream s;
     s << active_connection->client_id();
     variables["%ACTIVE_CLIENT_ID%"] = s.str();
+
+    if (OPT_verbose)
+      std::cout << "Connected client #" << active_connection->client_id() << "\n";
   }
 
   void create(const std::string &name,
@@ -235,6 +290,9 @@ public:
     s << active_connection->client_id();
     variables["%ACTIVE_CLIENT_ID%"] = s.str();
     std::cout << "active session is now '" << name << "'\n";
+
+    if (OPT_verbose)
+      std::cout << "Connected client #" << active_connection->client_id() << "\n";
   }
 
   void abort_active()
@@ -327,6 +385,73 @@ private:
   mysqlx::Ssl_config ssl_config;
 };
 
+static std::string data_to_bindump(const std::string &bindump)
+{
+  std::string res;
+
+  for (size_t i = 0; i < bindump.length(); i++)
+  {
+    if (bindump[i] == '\\' && i >= 5)
+    {
+      res.push_back('\\');
+      res.push_back('\\');
+    }
+    else if (isprint(bindump[i]) && i >= 5 && !isblank(bindump[i]))
+      res.push_back(bindump[i]);
+    else
+    {
+      static const char *hex = "0123456789abcdef";
+      res.append("\\x");
+      res.push_back(hex[(bindump[i] >> 4) & 0xf]);
+      res.push_back(hex[bindump[i] & 0xf]);
+    }
+  }
+
+  return res;
+}
+
+static std::string bindump_to_data(const std::string &bindump)
+{
+  std::string res;
+  for (size_t i = 0; i < bindump.length(); i++)
+  {
+    if (bindump[i] == '\\')
+    {
+      if (bindump[i + 1] == '\\')
+      {
+        res.push_back('\\');
+        ++i;
+      }
+      else if (bindump[i + 1] == 'x')
+      {
+        int value = 0;
+        static const char *hex = "0123456789abcdef";
+        const char *p = strchr(hex, bindump[i + 2]);
+        if (p)
+          value = (p - hex) << 4;
+        else
+        {
+          std::cerr << error() << "Invalid bindump char at " << i + 2 << eoerr();
+          break;
+        }
+        p = strchr(hex, bindump[i + 3]);
+        if (p)
+          value |= p - hex;
+        else
+        {
+          std::cerr << error() << "Invalid bindump char at " << i + 3 << eoerr();
+          break;
+        }
+        i += 3;
+        res.push_back(value);
+      }
+    }
+    else
+      res.push_back(bindump[i]);
+  }
+  return res;
+}
+
 static std::string message_to_text(const mysqlx::Message &message)
 {
   std::string output;
@@ -389,69 +514,8 @@ static std::string message_to_bindump(const mysqlx::Message &message)
 
   res[4] = client_msgs_by_name[client_msgs_by_full_name[message.GetDescriptor()->full_name()]].second;
   res.append(out);
-  out = res;
 
-  res.clear();
-  for (size_t i = 0; i < out.length(); i++)
-  {
-    if (out[i] == '\\' && i >= 5)
-    {
-      res.push_back('\\');
-      res.push_back('\\');
-    }
-    else if (isprint(out[i]) && i >= 5 && !isblank(out[i]))
-      res.push_back(out[i]);
-    else
-    {
-      static const char *hex = "0123456789abcdef";
-      res.append("\\x");
-      res.push_back(hex[(out[i] >> 4) & 0xf]);
-      res.push_back(hex[out[i] & 0xf]);
-    }
-  }
-  return res;
-}
-
-static std::string bindump_to_data(const std::string &bindump)
-{
-  std::string res;
-  for (size_t i = 0; i < bindump.length(); i++)
-  {
-    if (bindump[i] == '\\')
-    {
-      if (bindump[i + 1] == '\\')
-      {
-        res.push_back('\\');
-        ++i;
-      }
-      else if (bindump[i + 1] == 'x')
-      {
-        int value = 0;
-        static const char *hex = "0123456789abcdef";
-        const char *p = strchr(hex, bindump[i + 2]);
-        if (p)
-          value = (p - hex) << 4;
-        else
-        {
-          std::cerr << "ERROR: Invalid bindump char at " << i + 2 << "\n";
-          break;
-        }
-        p = strchr(hex, bindump[i + 3]);
-        if (p)
-          value |= p - hex;
-        else
-        {
-          std::cerr << "ERROR: Invalid bindump char at " << i + 3 << "\n";
-          break;
-        }
-        i += 3;
-        res.push_back(value);
-      }
-    }
-    else
-      res.push_back(bindump[i]);
-  }
-  return res;
+  return data_to_bindump(res);
 }
 
 /*
@@ -477,12 +541,12 @@ class ErrorDumper : public ::google::protobuf::io::ErrorCollector
 public:
   virtual void AddError(int line, int column, const string & message)
   {
-    m_out << "ERROR in message: " << line + 1 << ": " << column << ": " << message << "\n";
+    m_out << "ERROR in message: line " << line + 1 << ": column " << column << ": " << message << "\n";
   }
 
   virtual void AddWarning(int line, int column, const string & message)
   {
-    m_out << "WARNING in message: " << line + 1 << ": " << column << ": " << message << "\n";
+    m_out << "WARNING in message: line " << line + 1 << ": column " << column << ": " << message << "\n";
   }
 
   std::string str() { return m_out.str(); }
@@ -492,14 +556,14 @@ static mysqlx::Message *text_to_client_message(const std::string &name, const st
 {
   if (client_msgs_by_full_name.find(name) == client_msgs_by_full_name.end())
   {
-    std::cerr << current_line_number << ": Invalid message type " << name << "\n";
+    std::cerr << error() << "Invalid message type " << name << eoerr();
     return NULL;
   }
 
   Message_by_name::const_iterator msg = client_msgs_by_name.find(client_msgs_by_full_name[name]);
   if (msg == client_msgs_by_name.end())
   {
-    std::cerr << current_line_number << ": Invalid message type " << name << "\n";
+    std::cerr << error() << "Invalid message type " << name << eoerr();
     return NULL;
   }
 
@@ -511,7 +575,7 @@ static mysqlx::Message *text_to_client_message(const std::string &name, const st
   parser.RecordErrorsTo(&dumper);
   if (!parser.ParseFromString(data, message))
   {
-    std::cerr << "ERROR: " << current_line_number << ": Invalid message in input: " << name << "\n";
+    std::cerr << error() << "Invalid message in input: " << name << eoerr();
     int i = 1;
     for (std::string::size_type p = 0, n = data.find('\n', p + 1);
          p != std::string::npos;
@@ -547,6 +611,8 @@ static bool dump_notices(int type, const std::string &data)
   return false;
 }
 
+//-----------------------------------------------------------------------------------
+
 class Execution_context
 {
 public:
@@ -560,6 +626,89 @@ public:
 
   mysqlx::Connection *connection() { return m_cm->active(); }
 };
+
+//---------------------------------------------------------------------------------------------------------
+
+class Macro
+{
+public:
+  Macro(const std::string &name, const std::list<std::string> &argnames)
+  : m_name(name), m_args(argnames)
+  {
+  }
+
+  std::string name() const { return m_name; }
+
+  void set_body(const std::string &body)
+  {
+    m_body = body;
+  }
+
+  std::string get(const std::list<std::string> &args) const
+  {
+    if (args.size() != m_args.size())
+    {
+      std::cerr << error() << "Invalid number of arguments for macro " + m_name << eoerr();
+      return "";
+    }
+
+    std::string text = m_body;
+    std::list<std::string>::const_iterator n = m_args.begin(), v = args.begin();
+    for (size_t i = 0; i < args.size(); i++)
+    {
+      boost::replace_all(text, *(n++), *(v++));
+    }
+    return text;
+  }
+
+public:
+  static std::list<Macro*> macros;
+
+  static void add(Macro *macro)
+  {
+    macros.push_back(macro);
+  }
+
+  static std::string get(const std::string &cmd, std::string &r_name)
+  {
+    std::list<std::string> args;
+    std::string::size_type p = std::min(cmd.find(' '), cmd.find('\t'));
+    if (p == std::string::npos)
+      r_name = cmd;
+    else
+    {
+      r_name = cmd.substr(0, p);
+      std::string rest = cmd.substr(p + 1);
+      boost::split(args, rest, boost::is_any_of("\t"), boost::token_compress_on);
+    }
+    if (r_name.empty())
+    {
+      std::cerr << error() << "Missing macro name for macro call" << eoerr();
+      return "";
+    }
+
+    for (std::list<Macro*>::const_iterator iter = macros.begin(); iter != macros.end(); ++iter)
+    {
+      if ((*iter)->m_name == r_name)
+      {
+        return (*iter)->get(args);
+      }
+    }
+    std::cerr << error() << "Undefined macro " << r_name << eoerr();
+    return "";
+  }
+
+  static bool call(Execution_context &context, const std::string &cmd);
+
+private:
+  std::string m_name;
+  std::list<std::string> m_args;
+  std::string m_body;
+};
+
+std::list<Macro*> Macro::macros;
+
+//---------------------------------------------------------------------------------------------------------
 
 class Command
 {
@@ -605,6 +754,9 @@ public:
     m_commands["varsub "] = &Command::cmd_varsub;
     m_commands["vargen "] = &Command::cmd_vargen;
     m_commands["binsend "] = &Command::cmd_binsend;
+    m_commands["binsendoffset "] = &Command::cmd_binsendoffset;
+    m_commands["callmacro "] = &Command::cmd_callmacro;
+    m_commands["import "] = &Command::cmd_import;
   }
 
   bool is_command_syntax(const std::string &cmd) const
@@ -626,6 +778,9 @@ public:
       std::cerr << "Unknown command " << command << "\n";
       return Stop_with_failure;
     }
+
+    if (OPT_verbose)
+      std::cout << "Execute " << command << "\n";
 
     return (*this.*(*i).second)(context, command.c_str() + m_cmd_prefix.length() + (*i).first.length());
   }
@@ -707,7 +862,7 @@ private:
       }
       catch (std::exception &e)
       {
-        std::cerr << "ERROR: " << e.what() << "\n";
+        dumpx(e);
         if (OPT_fatal_errors)
           return Stop_with_success;
       }
@@ -725,7 +880,7 @@ private:
       bool failed = false;
       if (msg->GetDescriptor()->full_name() != "Mysqlx.Error" || (uint32_t)atoi(args.c_str()) != static_cast<Mysqlx::Error*>(msg.get())->code())
       {
-        std::cout << "ERROR: Was expecting Error " << args << ", but got:\n";
+        std::cout << error() << "Was expecting Error " << args << ", but got:" << eoerr();
         failed = true;
       }
       else
@@ -740,7 +895,7 @@ private:
       }
       catch (std::exception &e)
       {
-        std::cerr << "ERROR: " << e.what() << "\n";
+        dumpx(e);
         if (OPT_fatal_errors)
           return Stop_with_success;
       }
@@ -812,7 +967,7 @@ private:
         }
         catch (std::exception &e)
         {
-          std::cerr << "ERROR: " << e.what() << "\n";
+          dumpx(e);
           if (OPT_fatal_errors)
             return Stop_with_success;
         }
@@ -834,9 +989,9 @@ private:
     {
       context.connection()->enable_tls();
     }
-    catch (const mysqlx::Error &error)
+    catch (const mysqlx::Error &err)
     {
-      std::cerr << "ERROR: " << error.what() << "\n";
+      dumpx(err);
       return Stop_with_failure;
     }
 
@@ -848,7 +1003,7 @@ private:
     boost::asio::io_service service;
     boost::asio::deadline_timer dt(service);
 
-    dt.expires_from_now(boost::posix_time::milliseconds(atoi(args.c_str())));
+    dt.expires_from_now(boost::posix_time::milliseconds(atof(args.c_str())*1000.0));
 
     dt.wait();
 
@@ -909,7 +1064,7 @@ private:
     catch (mysqlx::Error &err)
     {
       context.connection()->pop_local_notice_handler();
-      std::cerr << "ERROR: " << err.what() << " (code " << err.error() << ")\n";
+      dumpx(err);
       if (OPT_fatal_errors)
         return Stop_with_success;
     }
@@ -992,7 +1147,7 @@ private:
     }
     else
     {
-      std::cout << current_line_number << ": Missing arguments to -->loginerror\n";
+      std::cout << error() << "Missing arguments to -->loginerror" << eoerr();
       return Stop_with_failure;
     }
     try
@@ -1003,7 +1158,7 @@ private:
 
       context.connection()->pop_local_notice_handler();
 
-      std::cout << "ERROR: Login succeeded, but an error was expected\n";
+      std::cout << error() << "Login succeeded, but an error was expected" << eoerr();
       if (OPT_fatal_errors)
         return Stop_with_failure;
     }
@@ -1015,7 +1170,7 @@ private:
         std::cerr << "error (as expected): " << err.what() << " (code " << err.error() << ")\n";
       else
       {
-        std::cerr << "ERROR: was expecting: " << expected << " but got: " << err.what() << " (code " << err.error() << ")\n";
+        std::cerr << error() << "was expecting: " << expected << " but got: " << err.what() << " (code " << err.error() << ")" << eoerr();
         if (OPT_fatal_errors)
           return Stop_with_failure;
       }
@@ -1101,7 +1256,7 @@ private:
     {
       if (CR_SERVER_GONE_ERROR != ec.error())
       {
-        std::cerr << "ERROR: " << ec.what() << "\n";
+        dumpx(ec);
         return Stop_with_failure;
       }
     }
@@ -1363,11 +1518,75 @@ private:
 
   Result cmd_binsend(Execution_context &context, const std::string &args)
   {
-    std::string data = bindump_to_data(args);
+    std::string args_copy = args;
+    replace_variables(args_copy);
+    std::string data = bindump_to_data(args_copy);
+
     std::cout << "Sending " << data.length() << " bytes raw data...\n";
     context.m_cm->active()->send_bytes(data);
     return Continue;
   }
+
+  size_t value_to_offset(const std::string &data, const size_t maximum_value)
+  {
+    if ('%' == *data.rbegin())
+    {
+      size_t percent = atoi(data.c_str());
+
+      return maximum_value * percent / 100;
+    }
+
+    return atoi(data.c_str());
+  }
+
+  Result cmd_binsendoffset(Execution_context &context, const std::string &args)
+  {
+    std::string args_copy = args;
+    replace_variables(args_copy);
+
+    std::vector<std::string> argl;
+    boost::split(argl, args_copy, boost::is_any_of(" "), boost::token_compress_on);
+
+    size_t begin_bin = 0;
+    size_t end_bin = 0;
+    std::string data;
+
+    try
+    {
+      data = bindump_to_data(argl[0]);
+      end_bin = data.length();
+
+      if (argl.size() > 1)
+      {
+        begin_bin = value_to_offset(argl[1], data.length());
+        if (argl.size() > 2)
+        {
+          end_bin = value_to_offset(argl[2], data.length());
+
+          if (argl.size() > 3)
+            throw std::out_of_range("Too many arguments");
+        }
+      }
+    }
+    catch (const std::out_of_range &e)
+    {
+      std::cerr << "Invalid number of arguments for command binsendoffset:" << argl.size() << "\n";
+      return Stop_with_failure;
+    }
+
+    std::cout << "Sending " << end_bin << " bytes raw data...\n";
+    context.m_cm->active()->send_bytes(data.substr(begin_bin, end_bin - begin_bin));
+    return Continue;
+  }
+
+  Result cmd_callmacro(Execution_context &context, const std::string &args)
+  {
+    if (Macro::call(context, args))
+      return Continue;
+    return Stop_with_failure;
+  }
+
+  Result cmd_import(Execution_context &context, const std::string &args);
 };
 
 static int process_client_message(mysqlx::Connection *connection, int8_t msg_id, const mysqlx::Message &msg)
@@ -1568,10 +1787,10 @@ static int run_sql_batch(mysqlx::Connection *conn, const std::string &sql_)
     }
     catch (mysqlx::Error &err)
     {
-      std::cerr << "ERROR executing " << sql.substr(st->first, st->second) << ":\n";
-      std::cerr << "ERROR: " << err.what() << " (code " << err.error() << ")\n";
       variables_to_unreplace.clear();
-      if (OPT_fatal_errors)
+
+      std::cerr << "While executing " << sql.substr(st->first, st->second) << ":\n";
+      if (!OPT_expect_error->check_error(err))
         return 1;
     }
   }
@@ -1593,7 +1812,7 @@ class Block_processor
 public:
   virtual ~Block_processor() {}
 
-  virtual Block_result feed(std::istream &input, const char *linebuf, bool normalize_only) = 0;
+  virtual Block_result feed(std::istream &input, const char *linebuf) = 0;
   virtual bool feed_ended_is_state_ok() { return true; }
 };
 
@@ -1606,16 +1825,12 @@ public:
   : m_cm(cm), m_sql(false)
   {}
 
-  virtual Block_result feed(std::istream &input, const char *linebuf, bool normalize_only)
+  virtual Block_result feed(std::istream &input, const char *linebuf)
   {
     if (m_sql)
     {
-      if (normalize_only)
-        std::cout << linebuf << "\n";
-
       if (strcmp(linebuf, "-->endsql") == 0)
       {
-        if (!normalize_only)
         {
           int r = run_sql_batch(m_cm->active(), m_rawbuffer);
           if (r != 0)
@@ -1640,9 +1855,6 @@ public:
       m_sql = true;
       // feed everything until -->endraw to the mysql client
 
-      if (normalize_only)
-        std::cout << linebuf << "\n";
-
       return Block_result_feed_more;
     }
 
@@ -1653,7 +1865,7 @@ public:
   {
     if (m_sql)
     {
-      std::cerr << current_line_number << ": Unclosed -->sql directive\n";
+      std::cerr << error() << "Unclosed -->sql directive" << eoerr();
       return false;
     }
 
@@ -1666,6 +1878,82 @@ private:
   bool m_sql;
 };
 
+class Macro_block_processor : public Block_processor
+{
+public:
+  Macro_block_processor(Connection_manager *cm)
+  : m_cm(cm), m_macro(0)
+  {}
+
+  ~Macro_block_processor()
+  {
+    delete m_macro;
+  }
+
+  virtual Block_result feed(std::istream &input, const char *linebuf)
+  {
+    if (m_macro)
+    {
+      if (strcmp(linebuf, "-->endmacro") == 0)
+      {
+        m_macro->set_body(m_rawbuffer);
+
+        Macro::add(m_macro);
+        if (OPT_verbose)
+          std::cout << "Macro " << m_macro->name() << " defined\n";
+
+        m_macro = NULL;
+
+        return Block_result_eated_but_not_hungry;
+      }
+      else
+        m_rawbuffer.append(linebuf).append("\n");
+
+      return Block_result_feed_more;
+    }
+
+    // -->command
+    const char *cmd = "-->macro ";
+    if (strncmp(linebuf, cmd, strlen(cmd)) == 0)
+    {
+      std::list<std::string> args;
+      std::string t(linebuf + strlen(cmd));
+      boost::split(args, t, boost::is_any_of(" \t"), boost::token_compress_on);
+
+      if (args.empty())
+      {
+        std::cerr << error() << "Missing macro name argument for -->macro" << eoerr();
+        return Block_result_indigestion;
+      }
+
+      m_rawbuffer.clear();
+      std::string name = args.front();
+      args.pop_front();
+      m_macro = new Macro(name, args);
+
+      return Block_result_feed_more;
+    }
+
+    return Block_result_not_hungry;
+  }
+
+  virtual bool feed_ended_is_state_ok()
+  {
+    if (m_macro)
+    {
+      std::cerr << error() << "Unclosed -->macro directive" << eoerr();
+      return false;
+    }
+
+    return true;
+  }
+
+private:
+  Connection_manager *m_cm;
+  Macro *m_macro;
+  std::string m_rawbuffer;
+};
+
 class Single_command_processor : public Block_processor
 {
 public:
@@ -1674,15 +1962,12 @@ public:
   {
   }
 
-  virtual Block_result feed(std::istream &input, const char *linebuf, bool normalize_only)
+  virtual Block_result feed(std::istream &input, const char *linebuf)
   {
     Execution_context context(input, m_cm);
 
     if (m_command.is_command_syntax(linebuf))
     {
-      if (normalize_only)
-        std::cout << linebuf << "\n";
-      else
       {
         Command::Result r = m_command.process(context, linebuf);
         if (Command::Stop_with_failure == r)
@@ -1696,9 +1981,6 @@ public:
     // # comment
     else if (linebuf[0] == '#' || linebuf[0] == 0)
     {
-      if (normalize_only)
-        std::cout << linebuf << "\n";
-
       return Block_result_eated_but_not_hungry;
     }
 
@@ -1718,14 +2000,12 @@ public:
   {
   }
 
-  virtual Block_result feed(std::istream &input, const char *linebuf, bool normalize_only)
+  virtual Block_result feed(std::istream &input, const char *linebuf)
   {
-    const char *p;
     if (m_full_name.empty())
     {
-      if ((p = strstr(linebuf, " {")))
+      if (!(m_full_name = get_message_name(linebuf)).empty())
       {
-        m_full_name = std::string(linebuf, p - linebuf);
         m_buffer.clear();
         return Block_result_feed_more;
       }
@@ -1744,13 +2024,9 @@ public:
         if (!msg.get())
           return Block_result_indigestion;
 
-        if (normalize_only)
         {
-          std::cout << message_to_text(*msg.get());
-        }
-        else
-        {
-          int r = process_client_message(m_cm->active(), msg_id, *msg.get());
+          int r = process(msg_id, *msg.get());
+
           if (r != 0)
             return Block_result_indigestion;
         }
@@ -1771,7 +2047,7 @@ public:
   {
     if (!m_full_name.empty())
     {
-      std::cerr << current_line_number << ": Incomplete message " << m_full_name << "\n";
+      std::cerr << error() << "Incomplete message " << m_full_name << eoerr();
       return false;
     }
 
@@ -1779,12 +2055,68 @@ public:
   }
 
 private:
+  virtual std::string get_message_name(const char *linebuf)
+  {
+    const char *p;
+    if ((p = strstr(linebuf, " {")))
+    {
+      return std::string(linebuf, p - linebuf);
+    }
+
+    return "";
+  }
+
+  virtual int process(const int8_t msg_id, mysqlx::Message &message)
+  {
+    return process_client_message(m_cm->active(), msg_id, message);
+  }
+
   Connection_manager *m_cm;
   std::string m_buffer;
   std::string m_full_name;
 };
 
-static int process_client_input(std::istream &input, std::vector<Block_processor_ptr> &eaters, bool normalize_only = false)
+class Dump_message_block_processor : public Snd_message_block_processor
+{
+public:
+  Dump_message_block_processor(Connection_manager *cm)
+  : Snd_message_block_processor(cm)
+  {
+  }
+
+private:
+  virtual std::string get_message_name(const char *linebuf)
+  {
+    const char *command_dump = "-->binparse";
+    std::vector<std::string> args;
+
+    boost::split(args, linebuf, boost::is_any_of(" "), boost::token_compress_on);
+
+    if (4 != args.size())
+      return "";
+
+    if (args[0] == command_dump && args[3] == "{")
+    {
+      m_variable_name = args[1];
+      return args[2];
+    }
+
+    return "";
+  }
+
+  virtual int process(const int8_t msg_id, mysqlx::Message &message)
+  {
+    std::string bin_message = message_to_bindump(message);
+
+    variables[m_variable_name] = bin_message;
+
+    return 0;
+  }
+
+  std::string m_variable_name;
+};
+
+static int process_client_input(std::istream &input, std::vector<Block_processor_ptr> &eaters)
 {
   const std::size_t buffer_length = 32 * 1024;
   char              linebuf[buffer_length + 1];
@@ -1805,7 +2137,7 @@ static int process_client_input(std::istream &input, std::vector<Block_processor
     Block_result result = Block_result_not_hungry;
 
     input.getline(linebuf, buffer_length);
-    ++current_line_number;
+    script_stack.front().line_number++;
 
     if (!hungry_block_reader)
     {
@@ -1814,7 +2146,7 @@ static int process_client_input(std::istream &input, std::vector<Block_processor
       while (i != eaters.end() &&
              Block_result_not_hungry == result)
       {
-        result = (*i)->feed(input, linebuf, normalize_only);
+        result = (*i)->feed(input, linebuf);
 
         if (Block_result_indigestion == result)
           return 1;
@@ -1831,7 +2163,7 @@ static int process_client_input(std::istream &input, std::vector<Block_processor
       continue;
     }
 
-    result = hungry_block_reader->feed(input, linebuf, normalize_only);
+    result = hungry_block_reader->feed(input, linebuf);
 
     if (Block_result_indigestion == result)
       return 1;
@@ -1863,8 +2195,7 @@ class My_command_line_options : public Command_line_options
 public:
   enum Run_mode{
     RunTest,
-    RunTestWithoutAuth,
-    Normalize
+    RunTestWithoutAuth
   } run_mode;
 
   std::string run_file;
@@ -1884,7 +2215,6 @@ public:
     std::cout << "Options:\n";
     std::cout << "-f, --file=<file>     Reads input from file\n";
     std::cout << "-n, --no-auth         Skip authentication which is required by -->sql block (run mode)\n";
-    std::cout << "-N, --normalize       Normalize input and print it back instead of executing (run mode)\n";
     std::cout << "-u, --user=<user>a    Connection user\n";
     std::cout << "-p, --password=<pass> Connection password\n";
     std::cout << "-h, --host=<host>     Connection host\n";
@@ -1900,6 +2230,7 @@ public:
     std::cout << "--quiet               Don't print out messages sent";
     std::cout << "--fatal-errors=<0|1>  Mysqlxtest is started with ignoring or stopping on fatal error";
     std::cout << "-B, --bindump         Dump binary representation of messages sent, in format suitable for ";
+    std::cout << "--verbose             Enable extra verbose messages\n";
     std::cout << "--help                     Show command line help\n";
     std::cout << "--help-commands            Show help for input commands\n";
     std::cout << "\nOnly one option that changes run mode is allowed.\n";
@@ -1917,6 +2248,14 @@ public:
     std::cout << "  Begins SQL block. SQL statements that appear will be executed and results printed (allows variables).\n";
     std::cout << "-->endsql\n";
     std::cout << "  End SQL block. End a block of SQL started by -->sql\n";
+    std::cout << "-->macro <macroname> <argname1> ...\n";
+    std::cout << "  Start a block of text to be defined as a macro. Must be terminated with -->endmacro\n";
+    std::cout << "-->endmacro\n";
+    std::cout << "  Ends a macro block\n";
+    std::cout << "-->callmacro <macro>\t<argvalue1>\t...\n";
+    std::cout << "  Executes the macro text, substituting argument values with the provided ones (args separated by tabs).\n";
+    std::cout << "-->import <macrofile>\n";
+    std::cout << "  Loads macros from the specified file\n";
     std::cout << "-->enablessl\n";
     std::cout << "  Enables ssl on current connection\n";
     std::cout << "<protomsg>\n";
@@ -1946,7 +2285,7 @@ public:
     std::cout << "-->peerdisc <MILISECONDS> [TOLERANCE]\n";
     std::cout << "  Expect that xplugin disconnects after given number of milliseconds and tolerance\n";
     std::cout << "-->sleep <SECONDS>\n";
-    std::cout << "  Stops execution of mysqxtest for given number of seconds\n";
+    std::cout << "  Stops execution of mysqxtest for given number of seconds (may be fractional)\n";
     std::cout << "-->login <user>\t<pass>\t<db>\t<mysql41|plain>]\n";
     std::cout << "  Performs authentication steps (use with --no-auth)\n";
     std::cout << "-->loginerror <errno>\t<user>\t<pass>\t<db>\n";
@@ -1972,6 +2311,12 @@ public:
     std::cout << "   Add a variable to the list of variables to replace for the next recv or sql command (value is replaced by the name)\n";
     std::cout << "-->binsend <bindump>[<bindump>...]\n";
     std::cout << "   Sends one or more binary message dumps to the server (generate those with --bindump)\n";
+    std::cout << "-->binsendoffset <srcvar> [offset-begin[percent]> [offset-end[percent]]]\n";
+    std::cout << "   Same as binsend with begin and end offset of data to be send\n";
+    std::cout << "-->binparse MESSAGE.NAME {\n";
+    std::cout << "    MESSAGE.DATA\n";
+    std::cout << "}\n";
+    std::cout << "   Dump given message to variable %MESSAGE_DUMP%\n";
     std::cout << "-->quiet/noquiet\n";
     std::cout << "   Toggle verbose messages\n";
     std::cout << "# comment\n";
@@ -2001,14 +2346,6 @@ public:
       {
         run_file = value;
         has_file = true;
-      }
-      else if (check_arg(argv, i, "--normalize", "-N"))
-      {
-        if (!set_mode(Normalize))
-        {
-          std::cerr << "Only one option that changes run mode is allowed.\n";
-          exit_code = 1;
-        }
       }
       else if (check_arg(argv, i, "--no-auth", "-n"))
       {
@@ -2048,6 +2385,10 @@ public:
         cap_expired_password = true;
       else if (check_arg(argv, i, "--quiet", "-q"))
         OPT_quiet = true;
+      else if (check_arg(argv, i, "--verbose", "-v"))
+        OPT_verbose = true;
+      else if (check_arg(argv, i, "--color", NULL))
+        OPT_color = true;
       else if (check_arg(argv, i, "--help", "--help"))
       {
         print_help();
@@ -2092,11 +2433,25 @@ public:
   }
 };
 
+std::vector<Block_processor_ptr> create_macro_block_processors(Connection_manager *cm)
+{
+  std::vector<Block_processor_ptr> result;
+
+  result.push_back(boost::make_shared<Sql_block_processor>(cm));
+  result.push_back(boost::make_shared<Dump_message_block_processor>(cm));
+  result.push_back(boost::make_shared<Single_command_processor>(cm));
+  result.push_back(boost::make_shared<Snd_message_block_processor>(cm));
+
+  return result;
+}
+
 std::vector<Block_processor_ptr> create_block_processors(Connection_manager *cm)
 {
   std::vector<Block_processor_ptr> result;
 
   result.push_back(boost::make_shared<Sql_block_processor>(cm));
+  result.push_back(boost::make_shared<Macro_block_processor>(cm));
+  result.push_back(boost::make_shared<Dump_message_block_processor>(cm));
   result.push_back(boost::make_shared<Single_command_processor>(cm));
   result.push_back(boost::make_shared<Snd_message_block_processor>(cm));
 
@@ -2119,7 +2474,7 @@ static int process_client_input_on_session(const My_command_line_options &option
   }
   catch (mysqlx::Error &error)
   {
-    std::cerr << "ERROR: " << error.what() << " (code " << error.error() << ")\n";
+    dumpx(error);
     std::cerr << "not ok\n";
     return 1;
   }
@@ -2147,7 +2502,7 @@ static int process_client_input_no_auth(const My_command_line_options &options, 
   }
   catch (mysqlx::Error &error)
   {
-    std::cerr << "ERROR: " << error.what() << " (code " << error.error() << ")\n";
+    dumpx(error);
     std::cerr << "not ok\n";
     return 1;
   }
@@ -2160,11 +2515,45 @@ static int process_client_input_no_auth(const My_command_line_options &options, 
   return r;
 }
 
-static int normalize_client_input(const My_command_line_options &options, std::istream &input)
+bool Macro::call(Execution_context &context, const std::string &cmd)
 {
-  std::vector<Block_processor_ptr> eaters = create_block_processors(NULL);
+  std::string name;
+  std::string macro = get(cmd, name);
+  if (macro.empty())
+    return false;
 
-  return process_client_input(input, eaters, true);
+  Stack_frame frame = { 0, "macro " + name };
+  script_stack.push_front(frame);
+
+  std::stringstream stream(macro);
+  std::vector<Block_processor_ptr> processors(create_macro_block_processors(context.m_cm));
+
+  bool r = process_client_input(stream, processors) == 0;
+
+  script_stack.pop_front();
+
+  return r;
+}
+
+Command::Result Command::cmd_import(Execution_context &context, const std::string &args)
+{
+  std::ifstream fs;
+  fs.open(args.c_str());
+  if (!fs.good())
+  {
+    std::cerr << error() << "Could not open macro file " << args << eoerr();
+    return Stop_with_failure;
+  }
+
+  Stack_frame frame = { 0, args };
+  script_stack.push_front(frame);
+
+  std::vector<Block_processor_ptr> processors;
+  processors.push_back(boost::make_shared<Macro_block_processor>(context.m_cm));
+  bool r = process_client_input(fs, processors) == 0;
+  script_stack.pop_front();
+
+  return r ? Continue : Stop_with_failure;
 }
 
 typedef int(*Program_mode)(const My_command_line_options &, std::istream &input);
@@ -2194,9 +2583,6 @@ static Program_mode get_mode_function(const My_command_line_options &opt)
     case My_command_line_options::RunTestWithoutAuth:
       return process_client_input_no_auth;
 
-    case My_command_line_options::Normalize:
-      return normalize_client_input;
-
     case My_command_line_options::RunTest:
     default:
       return process_client_input_on_session;
@@ -2217,6 +2603,9 @@ int main(int argc, char **argv)
 
   try
   {
+    Stack_frame frame = { 0, "main" };
+    script_stack.push_front(frame);
+
     return mode(options, input);
   }
   catch (std::exception &e)
