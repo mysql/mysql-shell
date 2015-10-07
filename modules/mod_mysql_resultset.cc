@@ -323,6 +323,7 @@ void ClassicResult::append_json(shcore::JSON_dumper& dumper) const
     dumper.append_value("warnings", get_member("warnings"));
   }
 
+  dumper.append_value("hasData", get_member("hasData"));
   dumper.append_value("affectedRowCount", get_member("affectedRowCount"));
   dumper.append_value("lastInsertId", get_member("lastInsertId"));
 

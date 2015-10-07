@@ -593,8 +593,9 @@ void SqlResult::append_json(shcore::JSON_dumper& dumper) const
 
   RowResult::append_json(dumper);
 
-  dumper.append_value("lastInsertId", get_member("lastInsertId"));
+  dumper.append_value("hasData", get_member("hasData"));
   dumper.append_value("affectedRowCount", get_member("affectedRowCount"));
+  dumper.append_value("lastInsertId", get_member("lastInsertId"));
 
   dumper.end_object();
 }
