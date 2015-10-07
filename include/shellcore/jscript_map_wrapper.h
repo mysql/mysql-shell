@@ -39,11 +39,13 @@ public:
   static bool unwrap(v8::Handle<v8::Object> value, boost::shared_ptr<Value::Map_type> &ret_map);
 
 private:
+  struct Collectable;
+
   static void handler_getter(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info);
   static void handler_setter(v8::Local<v8::String> property, v8::Local<v8::Value> value, const v8::PropertyCallbackInfo<v8::Value>& info);
   static void handler_enumerator(const v8::PropertyCallbackInfo<v8::Array>& info);
 
-  static void wrapper_deleted(const v8::WeakCallbackData<v8::Object, boost::shared_ptr<Value::Map_type> >& data);
+  static void wrapper_deleted(const v8::WeakCallbackData<v8::Object, Collectable>& data);
 
 private:
   JScript_context *_context;

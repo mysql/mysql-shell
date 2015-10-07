@@ -44,22 +44,39 @@ JScript_function_wrapper::~JScript_function_wrapper()
 }
 
 
+struct shcore::JScript_function_wrapper::Collectable
+{
+  boost::shared_ptr<Function_base> data;
+  v8::Persistent<v8::Object> handle;
+};
+
+
 v8::Handle<v8::Object> JScript_function_wrapper::wrap(boost::shared_ptr<Function_base> function)
 {
   v8::Handle<v8::Object> obj(v8::Local<v8::ObjectTemplate>::New(_context->isolate(), _object_template)->NewInstance());
 
   obj->SetAlignedPointerInInternalField(0, &magic_pointer);
-  boost::shared_ptr<Function_base> *shared_ptr_data = new boost::shared_ptr<Function_base>(function);
-  obj->SetAlignedPointerInInternalField(1, shared_ptr_data);
+  Collectable *tmp = new Collectable();
+  tmp->data = function;
+  obj->SetAlignedPointerInInternalField(1, tmp);
   obj->SetAlignedPointerInInternalField(2, this);
 
-  {
-    v8::Persistent<v8::Object> data(_context->isolate(), obj);
-    // marks the persistent instance to be garbage collectable, with a callback called on deletion
-    data.SetWeak(shared_ptr_data, wrapper_deleted);
-    data.MarkIndependent();
-  }
+  // marks the persistent instance to be garbage collectable, with a callback called on deletion
+  tmp->handle.Reset(_context->isolate(), v8::Persistent<v8::Object>(_context->isolate(), obj));
+  tmp->handle.SetWeak(tmp, wrapper_deleted);
+  tmp->handle.MarkIndependent();
+
   return obj;
+}
+
+
+void JScript_function_wrapper::wrapper_deleted(const v8::WeakCallbackData<v8::Object, Collectable>& data)
+{
+  // the JS wrapper object was deleted, so we also free the shared-ref to the object
+  v8::HandleScope hscope(data.GetIsolate());
+  data.GetParameter()->data.reset();
+  data.GetParameter()->handle.Reset();
+  delete data.GetParameter();
 }
 
 
@@ -84,14 +101,6 @@ void JScript_function_wrapper::call(const v8::FunctionCallbackInfo<v8::Value>& a
   {
     args.GetIsolate()->ThrowException(v8::String::NewFromUtf8(args.GetIsolate(), exc.what()));
   }
-}
-
-
-void JScript_function_wrapper::wrapper_deleted(const v8::WeakCallbackData<v8::Object, boost::shared_ptr<Function_base> >& data)
-{
-  // the JS wrapper object was deleted, so we also free the shared-ref to the object
-  v8::HandleScope hscope(data.GetIsolate());
-  delete data.GetParameter();
 }
 
 
