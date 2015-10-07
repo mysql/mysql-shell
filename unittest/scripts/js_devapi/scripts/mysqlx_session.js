@@ -1,4 +1,5 @@
 // Assumptions: ensure_schema_does_not_exist is available
+// Assumes __uripwd is defined as <user>:<pwd>@<host>:<plugin_port>
 var mysqlx = require('mysqlx').mysqlx;
 
 function validateMember(memberList, member){
@@ -10,10 +11,8 @@ function validateMember(memberList, member){
 	}
 }
 
-var  uri = os.getenv('MYSQL_URI');
-
 //@ Session: validating members
-var mySession = mysqlx.getSession(uri);
+var mySession = mysqlx.getSession(__uripwd);
 var sessionMembers = dir(mySession);
 
 validateMember(sessionMembers, 'close');
@@ -88,7 +87,7 @@ mySession.dropSchema('quoted schema');
 mySession.close();
 
 //@ NodeSession: validating members
-var nodeSession = mysqlx.getNodeSession(uri);
+var nodeSession = mysqlx.getNodeSession(__uripwd);
 var nodeSessionMembers = dir(nodeSession);
 validateMember(nodeSessionMembers, 'close');
 validateMember(nodeSessionMembers, 'createSchema');
@@ -181,7 +180,7 @@ print(cschema);
 
 //@ NodeSession: current schema validations: default 
 nodeSession.close()
-nodeSession = mysqlx.getNodeSession(uri + '/mysql');
+nodeSession = mysqlx.getNodeSession(__uripwd + '/mysql');
 dschema = nodeSession.getDefaultSchema();
 cschema = nodeSession.getCurrentSchema();
 print(dschema);

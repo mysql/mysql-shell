@@ -89,9 +89,9 @@ namespace shcore
     validate_batch("collection_find.js");
     validate_batch("table_insert.js");
     validate_batch("collection_as_relational_table.js");
-    validate_batch("working_with_datasets_1.js");
+    //validate_batch("working_with_datasets_1.js");
     validate_batch("working_with_datasets_2.js");
-    validate_batch("working_with_sql_resultsets.js");
+    //validate_batch("working_with_sql_resultsets.js");
     validate_batch("error_handling.js");
   }
 }

@@ -248,7 +248,7 @@ Connection::Connection(const std::string &uri_, const char *password)
   mysql_options(_mysql, MYSQL_OPT_PROTOCOL, &tcp);
   if (!mysql_real_connect(_mysql, host.c_str(), user.c_str(), pass.c_str(), db.empty() ? NULL : db.c_str(), port, sock.empty() ? NULL : sock.c_str(), flags))
   {
-    throw shcore::Exception::error_with_code_and_state("MySQLError", mysql_error(_mysql), mysql_errno(_mysql), mysql_sqlstate(_mysql));
+    throw shcore::Exception::error_with_code_and_state("MySQL Error", mysql_error(_mysql), mysql_errno(_mysql), mysql_sqlstate(_mysql));
   }
 }
 
@@ -269,7 +269,7 @@ Connection::Connection(const std::string &host, int port, const std::string &soc
   mysql_options(_mysql, MYSQL_OPT_PROTOCOL, &tcp);
   if (!mysql_real_connect(_mysql, host.c_str(), user.c_str(), password.c_str(), schema.empty() ? NULL : schema.c_str(), port, socket.empty() ? NULL : socket.c_str(), flags))
   {
-    throw shcore::Exception::error_with_code_and_state("MySQLError", mysql_error(_mysql), mysql_errno(_mysql), mysql_sqlstate(_mysql));
+    throw shcore::Exception::error_with_code_and_state("MySQL Error", mysql_error(_mysql), mysql_errno(_mysql), mysql_sqlstate(_mysql));
   }
 }
 
@@ -300,7 +300,7 @@ void Connection::setup_ssl(const std::string &ssl_ca, const std::string &ssl_cer
 
   if (!mysql_ssl_set(_mysql, ssl_key.c_str(), ssl_cert.c_str(), my_ssl_ca.c_str(), my_ssl_ca_path.c_str(), NULL))
   {
-    throw shcore::Exception::error_with_code_and_state("MySQLError", mysql_error(_mysql), mysql_errno(_mysql), mysql_sqlstate(_mysql));
+    throw shcore::Exception::error_with_code_and_state("MySQL Error", mysql_error(_mysql), mysql_errno(_mysql), mysql_sqlstate(_mysql));
   }
 }
 
@@ -331,7 +331,7 @@ Result *Connection::run_sql(const std::string &query)
 
   if (mysql_real_query(_mysql, query.c_str(), query.length()) != 0)
   {
-    throw shcore::Exception::error_with_code_and_state("MySQLError", mysql_error(_mysql), mysql_errno(_mysql), mysql_sqlstate(_mysql));
+    throw shcore::Exception::error_with_code_and_state("MySQL Error", mysql_error(_mysql), mysql_errno(_mysql), mysql_sqlstate(_mysql));
   }
 
   Result* result = new Result(shared_from_this(), mysql_affected_rows(_mysql), mysql_warning_count(_mysql), mysql_info(_mysql));
