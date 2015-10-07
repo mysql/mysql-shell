@@ -42,9 +42,10 @@ public:
   static bool unwrap(v8::Handle<v8::Object> value, boost::shared_ptr<Function_base> &ret_function);
 
 private:
+  struct Collectable;
   static void call(const v8::FunctionCallbackInfo<v8::Value>& args);
 
-  static void wrapper_deleted(const v8::WeakCallbackData<v8::Object, boost::shared_ptr<Function_base> >& data);
+  static void wrapper_deleted(const v8::WeakCallbackData<v8::Object, Collectable>& data);
 
 private:
   JScript_context *_context;

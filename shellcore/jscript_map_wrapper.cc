@@ -51,32 +51,41 @@ JScript_map_wrapper::~JScript_map_wrapper()
 }
 
 
+struct shcore::JScript_map_wrapper::Collectable
+{
+    boost::shared_ptr<Value::Map_type> data;
+    v8::Persistent<v8::Object> handle;
+};
+
+
 v8::Handle<v8::Object> JScript_map_wrapper::wrap(boost::shared_ptr<Value::Map_type> map)
 {
   v8::Handle<v8::ObjectTemplate> templ = v8::Local<v8::ObjectTemplate>::New(_context->isolate(), _map_template);
 
   v8::Handle<v8::Object> obj(templ->NewInstance());
-  v8::Persistent<v8::Object> persistent(_context->isolate(), obj);
 
   obj->SetAlignedPointerInInternalField(0, &magic_pointer);
 
-  boost::shared_ptr<Value::Map_type> *tmp = new boost::shared_ptr<Value::Map_type>(map);
+  Collectable *tmp = new Collectable();
+  tmp->data = map;
   obj->SetAlignedPointerInInternalField(1, tmp);
-
   obj->SetAlignedPointerInInternalField(2, this);
 
   // marks the persistent instance to be garbage collectable, with a callback called on deletion
-  persistent.SetWeak(tmp, wrapper_deleted);
-  persistent.MarkIndependent();
+  tmp->handle.Reset(_context->isolate(), v8::Persistent<v8::Object>(_context->isolate(), obj));
+  tmp->handle.SetWeak(tmp, wrapper_deleted);
+  tmp->handle.MarkIndependent();
 
   return obj;
 }
 
 
-void JScript_map_wrapper::wrapper_deleted(const v8::WeakCallbackData<v8::Object, boost::shared_ptr<Value::Map_type> >& data)
+void JScript_map_wrapper::wrapper_deleted(const v8::WeakCallbackData<v8::Object, Collectable>& data)
 {
   // the JS wrapper object was deleted, so we also free the shared-ref to the object
   v8::HandleScope hscope(data.GetIsolate());
+  data.GetParameter()->data.reset();
+  data.GetParameter()->handle.Reset();
   delete data.GetParameter();
 }
 
@@ -92,6 +101,7 @@ void JScript_map_wrapper::handler_getter(v8::Local<v8::String> property, const v
     throw std::logic_error("bug!");
 
   v8::String::Utf8Value prop(property);
+
   /*if (strcmp(prop, "__members__") == 0)
   {
     v8::Handle<v8::Array> marray = v8::Array::New(info.GetIsolate());
@@ -119,7 +129,6 @@ void JScript_map_wrapper::handler_setter(v8::Local<v8::String> property, v8::Loc
   v8::Handle<v8::Object> obj(info.Holder());
   boost::shared_ptr<Value::Map_type> *map = static_cast<boost::shared_ptr<Value::Map_type>*>(obj->GetAlignedPointerFromInternalField(1));
   JScript_map_wrapper *self = static_cast<JScript_map_wrapper*>(obj->GetAlignedPointerFromInternalField(2));
-
   if (!map)
     throw std::logic_error("bug!");
 
