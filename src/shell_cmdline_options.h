@@ -46,11 +46,11 @@ public:
   bool force;
   bool interactive;
   bool full_interactive;
+  bool passwords_from_stdin;
   ngcommon::Logger::LOG_LEVEL log_level;
 
   // Takes the URI and the individual connection parameters and overrides
   Shell_command_line_options(int argc, char **argv);
-  Shell_command_line_options(const Shell_command_line_options& other);
 
   // On the URI as specified on the parameters
   void configure_connection_string(const std::string &connstring,
@@ -59,5 +59,5 @@ public:
                                    std::string &database, bool prompt_pwd, std::string &ssl_ca,
                                    std::string &ssl_cert, std::string &ssl_key);
   static void conn_str_cat_ssl_data(std::string& uri, const std::string& ssl_ca, const std::string& ssl_cert, const std::string& ssl_key);
-}; 
+};
 #endif

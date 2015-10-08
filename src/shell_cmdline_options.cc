@@ -54,6 +54,7 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
   force = false;
   interactive = false;
   full_interactive = false;
+  passwords_from_stdin = false;
 
   port = 0;
   ssl = 0;
@@ -76,12 +77,20 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
       database = value;
     else if (check_arg_with_value(argv, i, "--database", NULL, value))
       database = value;
-    else if (check_arg(argv, i, "-p", "-p"))
+    else if (check_arg(argv, i, "-p", "--password") || check_arg(argv, i, NULL, "--dbpassword"))
       needs_password = true;
-    else if (check_arg_with_value(argv, i, "--dbpassword", NULL, value))
+    else if (check_arg_with_value(argv, i, "--dbpassword", NULL, value, (char*)""))
+    {
       password = value;
-    else if (check_arg_with_value(argv, i, "--password", NULL, value))
+      if (password.empty())
+        needs_password = true;
+    }
+    else if (check_arg_with_value(argv, i, "--password", "-p", value, (char*)""))
+    {
       password = value;
+      if (password.empty() && !strchr(argv[i], '=')) // --password requests password, --password= means blank password
+        needs_password = true;
+    }
     else if (check_arg_with_value(argv, i, "--ssl-ca", NULL, value))
       ssl_ca = value;
     else if (check_arg_with_value(argv, i, "--ssl-cert", NULL, value))
@@ -169,6 +178,8 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
       interactive = true;
       full_interactive = (strcmp(value, "full") == 0);
     }
+    else if (check_arg(argv, i, NULL, "--passwords-from-stdin"))
+      passwords_from_stdin = true;
     else if (check_arg_with_value(argv, i, "--log-level", NULL, log_level_value))
     {
       try
@@ -201,28 +212,6 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
   configure_connection_string(connection_string, user, password, host, port, database, needs_password, ssl_ca, ssl_cert, ssl_key);
 }
 
-Shell_command_line_options::Shell_command_line_options(const Shell_command_line_options& other) :
-Command_line_options(0, NULL)
-{
-  initial_mode = other.initial_mode;
-  run_file = other.run_file;
-  uri = other.uri;
-  password = other.password;
-  output_format = other.output_format;
-  session_type = other.session_type;
-  print_cmd_line_helper = other.print_cmd_line_helper;
-  print_version = other.print_version;
-  force = other.force;
-  interactive = other.interactive;
-  full_interactive = other.full_interactive;
-  log_level = other.log_level;
-  ssl_ca = other.ssl_ca;
-  ssl_cert = other.ssl_cert;
-  ssl_key = other.ssl_key;
-  ssl = other.ssl;
-  port = other.port;
-}
-
 // Takes the URI and the individual connection parameters and overrides
 // On the URI as specified on the parameters
 void Shell_command_line_options::configure_connection_string(const std::string &connstring,
@@ -241,14 +230,12 @@ void Shell_command_line_options::configure_connection_string(const std::string &
   std::string uri_ssl_ca;
   std::string uri_ssl_cert;
   std::string uri_ssl_key;
-  int pwd_found;
-
-  bool conn_params_defined = false;
+  int pwd_found = 0;
 
   // First validates the URI if specified
   if (!connstring.empty())
   {
-    if (!mysh::parse_mysql_connstring(connstring, uri_protocol, uri_user, uri_password, uri_host, uri_port, uri_sock, uri_database, pwd_found, 
+    if (!mysh::parse_mysql_connstring(connstring, uri_protocol, uri_user, uri_password, uri_host, uri_port, uri_sock, uri_database, pwd_found,
         uri_ssl_ca, uri_ssl_cert, uri_ssl_key))
     {
       std::cerr << "Invalid value specified in --uri parameter.\n";
@@ -259,17 +246,14 @@ void Shell_command_line_options::configure_connection_string(const std::string &
 
   // URI was either empty or valid, in any case we need to override whatever was configured on the uri_* variables
   // With what was received on the individual parameters.
-  if (!user.empty() || !password.empty() || !host.empty() || !database.empty() || port || !ssl_ca.empty() || !ssl_cert.empty() || !ssl_key.empty())
   {
     // This implies URI recreation process should be done to either
     // - Create an URI if none was specified.
     // - Update the URI with the parameters overriding it's values.
-    conn_params_defined = true;
-
     if (!user.empty())
       uri_user = user;
 
-    if (!password.empty())
+    if (!password.empty() || prompt_pwd)
       uri_password = password;
 
     if (!host.empty())
@@ -292,7 +276,6 @@ void Shell_command_line_options::configure_connection_string(const std::string &
   }
 
   // If needed we construct the URi from the individual parameters
-  if (conn_params_defined)
   {
     // Configures the URI string
     if (!uri_protocol.empty())
@@ -306,15 +289,9 @@ void Shell_command_line_options::configure_connection_string(const std::string &
     {
       uri.append(uri_user);
 
-      // If password needs to be prompted appends the : but not the password
-      if (prompt_pwd)
-        uri.append(":");
-
       // If the password will not be prompted and is defined appends both :password
-      else if (!uri_password.empty())
-      {
+      if (!prompt_pwd)
         uri.append(":").append(uri_password);
-      }
 
       uri.append("@");
     }
@@ -336,10 +313,6 @@ void Shell_command_line_options::configure_connection_string(const std::string &
 
     conn_str_cat_ssl_data(uri, uri_ssl_ca, uri_ssl_cert, uri_ssl_key);
   }
-
-  // Or we take the URI as defined since no overrides were done
-  else
-    uri = connstring;
 }
 
 void Shell_command_line_options::conn_str_cat_ssl_data(std::string& uri, const std::string& ssl_ca, const std::string& ssl_cert, const std::string& ssl_key)

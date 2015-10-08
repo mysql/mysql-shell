@@ -61,6 +61,25 @@ using namespace shcore;
 
 extern char *mysh_get_tty_password(const char *opt_message);
 
+static char *mysh_get_stdin_password(const char *prompt)
+{
+  if (prompt)
+  {
+    fputs(prompt, stdout);
+    fflush(stdout);
+  }
+  char buffer[128];
+  if (fgets(buffer, sizeof(buffer), stdin))
+  {
+    char *p = strchr(buffer, '\r');
+    if (p) *p = 0;
+    p = strchr(buffer, '\n');
+    if (p) *p = 0;
+    return strdup(buffer);
+  }
+  return NULL;
+}
+
 class Interactive_shell
 {
 public:
@@ -282,12 +301,11 @@ Value Interactive_shell::connect_session(const Argument_list &args, mysh::Sessio
     throw shcore::Exception::argument_error("Could not parse URI for MySQL connection");
   else
   {
-    // This implies the URI is defined as user:@
-    // So the : indicating there should be a password is there but the actual password is empty
-    // It means we need to prompt fopr the password
-    if (pwd_found && pass.empty())
+    // If URI is defined as user:@host, then we assume there's no password (blank password)
+    // If it's user@host, then the password was not provided, thus should be prompted
+    if (!pwd_found)
     {
-      char *tmp = mysh_get_tty_password("Enter password: ");
+      char *tmp = _options.passwords_from_stdin ? mysh_get_stdin_password("Enter password: ") : mysh_get_tty_password("Enter password: ");
       if (tmp)
       {
         pass.assign(tmp);
@@ -642,9 +660,10 @@ bool Interactive_shell::deleg_prompt(void *UNUSED(cdata), const char *prompt, st
   return true;
 }
 
-bool Interactive_shell::deleg_password(void *UNUSED(cdata), const char *prompt, std::string &ret)
+bool Interactive_shell::deleg_password(void *cdata, const char *prompt, std::string &ret)
 {
-  char *tmp = mysh_get_tty_password(prompt);
+  Interactive_shell *self = (Interactive_shell*)cdata;
+  char *tmp = self->_options.passwords_from_stdin ? mysh_get_stdin_password(prompt) : mysh_get_tty_password(prompt);
   if (!tmp)
     return false;
   ret = tmp;
@@ -965,11 +984,11 @@ void Interactive_shell::print_cmd_line_helper()
   println("  --force                  To use in SQL batch mode, forces processing to continue if an error is found.");
   println("  --log-level=value        The log level. Value is an int in the range [1,8], default (1).");
   println("  --version                Prints the version of MySQL X Shell.");
-  println("  --ssl-key=name         X509 key in PEM format ");
-  println("  --ssl-cert=name        X509 cert in PEM format ");
-  println("  --ssl-ca=name          CA file in PEM format (check OpenSSL docs)");
-  println("  --ssl                  Enable SSL for connection(automatically enabled with other flags).");
-
+  println("  --ssl-key=name           X509 key in PEM format");
+  println("  --ssl-cert=name          X509 cert in PEM format");
+  println("  --ssl-ca=name            CA file in PEM format (check OpenSSL docs)");
+  println("  --ssl                    Enable SSL for connection(automatically enabled with other flags)");
+  println("  --passwords-from-stdin   Read passwords from stdin instead of the tty");
   println("");
 }
 
