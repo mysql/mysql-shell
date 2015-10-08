@@ -171,7 +171,7 @@ function ensure_table_users_exists(){
 function ensure_my_proc_procedure_exists(){
 	ensure_table_users_exists();
 	
-	var procedure = "create procedure my_proc() begin select * from sakila.actor; end"
+	var procedure = "create procedure my_proc() begin select * from test.users; end"
 	session.sql("drop procedure if exists my_proc").execute();
 	session.sql(procedure).execute();
 	
