@@ -187,7 +187,7 @@ shcore::Value Result::get_member(const std::string &prop) const
 
   // TODO: Implement returning the last document id
   else if (prop == "lastDocumentId")
-    ret_val = Value("");
+    ret_val = Value(_last_document_id);
 
   else
     ret_val = BaseResult::get_member(prop);
@@ -528,7 +528,21 @@ void RowResult::append_json(shcore::JSON_dumper& dumper) const
 SqlResult::SqlResult(boost::shared_ptr< ::mysqlx::Result> result) :
 RowResult(result)
 {
-  add_method("getHasData", boost::bind(&ShellBaseResult::get_member_method, this, _1, "getHasData", "hasData"), NULL);
+  add_method("hasData", boost::bind(&SqlResult::has_data, this, _1), "nothing", shcore::String, NULL);
+}
+
+#ifdef DOXYGEN
+/**
+* Returns true if the last statement execution has a result set.
+*
+*/
+Bool SqlResult::hasData(){}
+#endif
+shcore::Value SqlResult::has_data(const shcore::Argument_list &args) const
+{
+  args.ensure_count(0, "SqlResult.hasData");
+
+  return Value(_result->columnMetadata() && (_result->columnMetadata()->size() > 0));
 }
 
 std::vector<std::string> SqlResult::get_members() const
@@ -540,11 +554,6 @@ std::vector<std::string> SqlResult::get_members() const
 }
 
 #ifdef DOXYGEN
-/**
-* Returns true if the last statement execution has a result set.
-*/
-Bool SqlResult::getHasData(){};
-
 /**
 * Returns the identifier for the last record inserted.
 *
@@ -565,8 +574,6 @@ shcore::Value SqlResult::get_member(const std::string &prop) const
     ret_val = Value(_result->lastInsertId());
   else if (prop == "affectedRowCount")
     ret_val = Value(_result->affectedRows());
-  else if (prop == "hasData")
-    ret_val = Value(_result->columnMetadata() && (_result->columnMetadata()->size() > 0));
   else
     ret_val = RowResult::get_member(prop);
 
@@ -593,7 +600,7 @@ void SqlResult::append_json(shcore::JSON_dumper& dumper) const
 
   RowResult::append_json(dumper);
 
-  dumper.append_value("hasData", get_member("hasData"));
+  dumper.append_value("hasData", has_data(shcore::Argument_list()));
   dumper.append_value("affectedRowCount", get_member("affectedRowCount"));
   dumper.append_value("lastInsertId", get_member("lastInsertId"));
 

@@ -94,7 +94,7 @@ void ResultsetDumper::dump_normal(boost::shared_ptr<mysh::mysql::ClassicResult> 
 
   do
   {
-    if (result->get_member("hasData").as_bool())
+    if (result->has_data(shcore::Argument_list()).as_bool())
       dump_records(output);
     else if (_interactive)
       output = get_affected_stats("affectedRowCount", "row");
@@ -124,7 +124,7 @@ void ResultsetDumper::dump_normal(boost::shared_ptr<mysh::mysqlx::SqlResult> res
 
   do
   {
-    if (result->get_member("hasData").as_bool())
+    if (result->has_data(shcore::Argument_list()).as_bool())
       dump_records(output);
     else if (_interactive)
       output = get_affected_stats("affectedRowCount", "row");

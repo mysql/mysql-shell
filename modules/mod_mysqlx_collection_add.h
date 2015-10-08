@@ -59,6 +59,8 @@ namespace mysh
     private:
       std::string get_new_uuid();
 
+      std::string _last_document_id;
+
       std::auto_ptr< ::mysqlx::AddStatement> _add_statement;
     };
   }

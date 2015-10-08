@@ -4,6 +4,8 @@ mysqlx = require('mysqlx').mysqlx;
 var session;
 var db;
 var myTable;
+var myColl;
+var nodeSession;
 
 function ensure_session(){
   if (type(session) == "Undefined")
@@ -37,6 +39,8 @@ function ensure_test_schema() {
     print("Creating test schema...\n");
     session.createSchema('test');
   }
+	
+	session.setCurrentSchema('test');
 }
 
 function ensure_test_schema_on_db() {
@@ -140,9 +144,45 @@ function ensure_not_my_collection_collection() {
   }
 }
 
+function ensure_custom_id_unique(){
+	ensure_my_collection_collection();
+	myColl = db.getCollection('my_collection');
+	
+	myColl.remove('_id = "custom_id"').execute();
+}
+
+function ensure_table_users_exists(){
+	ensure_test_schema();
+	
+	var test_coll = session.getSchema('test').getTable('users');
+
+	if(type(test_coll) == "Undefined")
+	{
+		print('Creating users table...');
+		session.sql('create table users (name varchar(50), age int)').execute();
+		session.sql('insert into users values ("Jack", 17)').execute();
+	}
+	else
+		print('users table exists...');
+	
+	nodeSession = session;
+}
+
+function ensure_my_proc_procedure_exists(){
+	ensure_table_users_exists();
+	
+	var procedure = "create procedure my_proc() begin select * from sakila.actor; end"
+	session.sql("drop procedure if exists my_proc").execute();
+	session.sql(procedure).execute();
+	
+	nodeSession = session;
+}
+
 // Executes the functions associated to every assumption defined on the test case
 for(index in __assumptions__)
 {
+	print ('Assumption:', __assumptions__[index], '\n');
+	
   switch(__assumptions__[index]){
     case "connected session":
       ensure_session();
@@ -167,6 +207,16 @@ for(index in __assumptions__)
       break;
     case "my_collection collection not exists":
       ensure_not_my_collection_collection();
+			break;
+		case "custom_id is unique":
+			ensure_custom_id_unique();
+			break;
+		case "users table exists":
+			ensure_table_users_exists();
+			break;
+		case "my_proc procedure exists":
+			ensure_my_proc_procedure_exists();
+			break;
     default:
       break;
   }

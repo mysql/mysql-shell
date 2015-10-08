@@ -61,7 +61,7 @@ namespace shcore {
     exec_and_out_equals("session.close()");
   }
 
-  // Tests resultset.hasData and resultset.getHasData()
+  // Tests resultset.hasData()
   TEST_F(Shell_py_mysqlx_resultset_tests, mysqlx_resultset_has_data)
   {
     exec_and_out_equals("import mysqlx");
@@ -70,13 +70,7 @@ namespace shcore {
 
     exec_and_out_equals("result = session.sql('use py_shell_test;').execute()");
 
-    exec_and_out_equals("print(result.hasData)", "False");
-    exec_and_out_equals("print(result.getHasData())", "False");
-
-    exec_and_out_equals("result = session.sql('select * from table1;').execute()");
-
-    exec_and_out_equals("print(result.hasData)", "True");
-    exec_and_out_equals("print(result.getHasData())", "True");
+    exec_and_out_equals("print(result.hasData())", "False");
 
     exec_and_out_equals("session.close()");
   }

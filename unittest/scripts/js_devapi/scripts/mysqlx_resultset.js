@@ -24,11 +24,11 @@ var collection = schema.createCollection('buffer_collection');
 
 //@ Resultset hasData false
 result = mySession.sql('use js_shell_test;').execute();
-print('hasData:', result.hasData);
+print('hasData:', result.hasData());
 
 //@ Resultset hasData true
 result = mySession.sql('select * from buffer_table;').execute();
-print('hasData:', result.hasData);
+print('hasData:', result.hasData());
 
 
 //@ Resultset getColumns()

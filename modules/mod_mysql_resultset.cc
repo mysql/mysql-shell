@@ -37,6 +37,7 @@ ClassicResult::ClassicResult(boost::shared_ptr<Result> result)
   add_method("fetchOne", boost::bind(&ClassicResult::fetch_one, this, _1), "nothing", shcore::String, NULL);
   add_method("fetchAll", boost::bind(&ClassicResult::fetch_all, this, _1), "nothing", shcore::String, NULL);
   add_method("nextDataSet", boost::bind(&ClassicResult::next_data_set, this, _1), "nothing", shcore::String, NULL);
+  add_method("hasData", boost::bind(&ClassicResult::has_data, this, _1), "nothing", shcore::String, NULL);
 
   add_method("getColumns", boost::bind(&ShellBaseResult::get_member_method, this, _1, "getColumns", "columns"), NULL);
   add_method("getColumnCount", boost::bind(&ShellBaseResult::get_member_method, this, _1, "getColumnCount", "columnCount"), NULL);
@@ -47,7 +48,6 @@ ClassicResult::ClassicResult(boost::shared_ptr<Result> result)
   add_method("getExecutionTime", boost::bind(&ShellBaseResult::get_member_method, this, _1, "getExecutionTime", "executionTime"), NULL);
   add_method("getLastInsertId", boost::bind(&ShellBaseResult::get_member_method, this, _1, "getLastInsertId", "lastInsertId"), NULL);
   add_method("getInfo", boost::bind(&ShellBaseResult::get_member_method, this, _1, "getInfo", "info"), NULL);
-  add_method("getHasData", boost::bind(&ShellBaseResult::get_member_method, this, _1, "getHasData", "hasData"), NULL);
 }
 
 std::vector<std::string> ClassicResult::get_members() const
@@ -61,8 +61,21 @@ std::vector<std::string> ClassicResult::get_members() const
   members.push_back("executionTime");
   members.push_back("lastInsertId");
   members.push_back("info");
-  members.push_back("hasData");
   return members;
+}
+
+#ifdef DOXYGEN
+
+/**
+* Returns true if the last statement execution has a result set.
+*/
+Bool ClassicResult::hasData(){}
+#endif
+shcore::Value ClassicResult::has_data(const shcore::Argument_list &args) const
+{
+  args.ensure_count(0, "ClassicResult.hasData");
+
+  return Value(_result->has_resultset());
 }
 
 shcore::Value ClassicResult::fetch_one(const shcore::Argument_list &args) const
@@ -176,11 +189,6 @@ List ClassicResult::getColumns(){}
 String ClassicResult::getExecutionTime(){}
 
 /**
-* Returns true if the last statement execution has a result set.
-*/
-Bool ClassicResult::getHasData(){}
-
-/**
 * Retrieves a string providing information about the most recently executed statement.
 * \return a string with the execution information
 *
@@ -245,9 +253,6 @@ shcore::Value ClassicResult::get_member(const std::string &prop) const
 
   if (prop == "info")
     return shcore::Value(_result->info());
-
-  if (prop == "hasData")
-    return Value(_result->has_resultset());
 
   if (prop == "columnCount")
   {
@@ -323,7 +328,7 @@ void ClassicResult::append_json(shcore::JSON_dumper& dumper) const
     dumper.append_value("warnings", get_member("warnings"));
   }
 
-  dumper.append_value("hasData", get_member("hasData"));
+  dumper.append_value("hasData", has_data(shcore::Argument_list()));
   dumper.append_value("affectedRowCount", get_member("affectedRowCount"));
   dumper.append_value("lastInsertId", get_member("lastInsertId"));
 

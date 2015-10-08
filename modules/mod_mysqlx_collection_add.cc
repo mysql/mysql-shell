@@ -135,8 +135,9 @@ shcore::Value CollectionAdd::add(const shcore::Argument_list &args)
               if (!shell_doc->has_key("_id"))
                 (*shell_doc)["_id"] = Value(get_new_uuid());
 
-              //TODO: we are assumming that repr returns a valid JSON document
-              //      we should introduce a routine that vensures that is correct.
+              // Stores the last document id
+              _last_document_id = (*shell_doc)["_id"].as_string();
+
               ::mysqlx::Document inner_doc(element.json());
 
               if (!_add_statement.get())
@@ -198,6 +199,8 @@ shcore::Value CollectionAdd::execute(const shcore::Argument_list &args)
     args.ensure_count(0, "CollectionAdd.execute");
 
     result = new mysqlx::Result(boost::shared_ptr< ::mysqlx::Result>(_add_statement->execute()));
+
+    result->set_last_document_id(_last_document_id);
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionAdd.execute");
 

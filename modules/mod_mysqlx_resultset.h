@@ -87,6 +87,13 @@ namespace mysh
       virtual shcore::Value get_member(const std::string &prop) const;
       virtual void append_json(shcore::JSON_dumper& dumper) const;
 
+      // The document ID is generated on client side, we need this function to
+      // Properly set the value
+      void set_last_document_id(const std::string& id){ _last_document_id = id; }
+
+    private:
+      std::string _last_document_id;
+
 #ifdef DOXYGEN
       Integer affectedItemCount; //!< Same as getAffectedItemCount()
       Integer lastInsertId; //!< Same as getLastInsertId()
@@ -169,17 +176,17 @@ namespace mysh
       virtual std::vector<std::string> get_members() const;
       virtual shcore::Value get_member(const std::string &prop) const;
 
+      shcore::Value has_data(const shcore::Argument_list &args) const;
       virtual shcore::Value next_data_set(const shcore::Argument_list &args);
       virtual void append_json(shcore::JSON_dumper& dumper) const;
 
 #ifdef DOXYGEN
       Integer lastInsertId; //!< Same as getLastInsertId()
       Integer affectedRowCount; //!< Same as getAffectedRowCount()
-      Bool hasData; //!< Same as getHasData()
 
       Integer getLastInsertId();
       Integer getAffectedRowCount();
-      Bool getHasData();
+      Bool hasData();
       Bool nextDataSet();
 #endif
     };
