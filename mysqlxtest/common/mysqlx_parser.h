@@ -45,7 +45,7 @@ namespace mysqlx
     inline Mysqlx::Expr::Expr* parse_column_identifier(const std::string& source)
     {
       Expr_parser parser(source, true);
-      return parser.column_identifier();
+      return parser.document_field();
     }
 
     inline Mysqlx::Expr::Expr* parse_table_filter(const std::string &source, std::vector<std::string>* placeholders = NULL)

@@ -261,6 +261,8 @@ void Tokenizer::unget_token()
 
 void Tokenizer::get_tokens()
 {
+  bool arrow_last = false;
+  bool inside_arrow = false;
   for (size_t i = 0; i < _input.size(); ++i)
   {
     char c = _input[i];
@@ -318,7 +320,15 @@ void Tokenizer::get_tokens()
       }
       else if (c == '-')
       {
-        _tokens.push_back(Token(Token::MINUS, std::string(1, c)));
+        if (!arrow_last && next_char_is(i, '>'))
+        {
+          ++i;
+          _tokens.push_back(Token(Token::ARROW, "->"));
+          arrow_last = true;
+          continue;
+        }
+        else
+          _tokens.push_back(Token(Token::MINUS, std::string(1, c)));
       }
       else if (c == '*')
       {
@@ -469,6 +479,17 @@ void Tokenizer::get_tokens()
         else
         {
           _tokens.push_back(Token(Token::DOT, std::string(1, c)));
+        }
+      }
+      else if (c == '\'' && arrow_last)
+      {
+        _tokens.push_back(Token(Token::QUOTE, "'"));
+        if (!inside_arrow)
+          inside_arrow = true;
+        else
+        {
+          arrow_last = false;
+          inside_arrow = false;
         }
       }
       else if (c == '"' || c == '\'' || c == '`')
@@ -755,64 +776,68 @@ const std::string& Expr_parser::id()
 }
 
 /*
- * if not document_mode:
- *    column_identifier ::= id [ DOT id [ DOT id ] ] [ $ [ IDENT ] document_path ]
- *  else
- *    column_identifier ::= [ DOLLAR ] IDENT document_path
+ * column_field ::= [ IDENT DOT ][ IDENT DOT ] IDENT [ ARROW QUOTE DOLLAR docpath QUOTE ]
  */
-Mysqlx::Expr::Expr* Expr_parser::column_identifier()
+Mysqlx::Expr::Expr* Expr_parser::column_field()
 {
   std::auto_ptr<Mysqlx::Expr::Expr> e = std::auto_ptr<Mysqlx::Expr::Expr>(new Mysqlx::Expr::Expr());
-  if (!_document_mode)
+
+  std::vector<std::string> parts;
+  const std::string& part = id();
+  parts.push_back(part);
+
+  while (_tokenizer.cur_token_type_is(Token::DOT))
   {
-    std::vector<std::string> parts;
-    const std::string& part = id();
-    parts.push_back(part);
-    while (_tokenizer.cur_token_type_is(Token::DOT))
-    {
-      _tokenizer.consume_token(Token::DOT);
-      parts.push_back(id());
-    }
-    if (parts.size() > 3)
-      throw Parser_error((boost::format("Too many parts to identifier at %d") % _tokenizer.get_token_pos()).str());
-    Mysqlx::Expr::ColumnIdentifier* colid = e->mutable_identifier();
-    std::vector<std::string>::reverse_iterator myend = parts.rend();
-    int i = 0;
-    for (std::vector<std::string>::reverse_iterator it = parts.rbegin(); it != myend; ++it, ++i)
-    {
-      std::string& s = *it;
-      if (i == 0)
-        colid->set_name(s.c_str(), s.size());
-      else if (i == 1)
-        colid->set_table_name(s.c_str(), s.size());
-      else if (i == 2)
-        colid->set_schema_name(s.c_str(), s.size());
-    }
-    if (_tokenizer.cur_token_type_is(Token::DOLLAR))
-    {
-      _tokenizer.consume_token(Token::DOLLAR);
-      if (_tokenizer.cur_token_type_is(Token::IDENT))
-      {
-        const std::string& ident = _tokenizer.consume_token(Token::IDENT);
-        colid->mutable_document_path()->Add()->set_value(ident.c_str(), ident.size());
-      }
-      document_path(*colid);
-    }
+    _tokenizer.consume_token(Token::DOT);
+    parts.push_back(id());
   }
-  else
+  if (parts.size() > 3)
+    throw Parser_error((boost::format("Too many parts to identifier at %d") % _tokenizer.get_token_pos()).str());
+  Mysqlx::Expr::ColumnIdentifier* colid = e->mutable_identifier();
+  std::vector<std::string>::reverse_iterator myend = parts.rend();
+  int i = 0;
+  for (std::vector<std::string>::reverse_iterator it = parts.rbegin(); it != myend; ++it, ++i)
   {
-    if (_tokenizer.cur_token_type_is(Token::DOLLAR))
-      _tokenizer.consume_token(Token::DOLLAR);
-    Mysqlx::Expr::ColumnIdentifier* colid = e->mutable_identifier();
-    if (_tokenizer.cur_token_type_is(Token::IDENT))
-    {
-      Mysqlx::Expr::DocumentPathItem* item = colid->mutable_document_path()->Add();
-      item->set_type(Mysqlx::Expr::DocumentPathItem::MEMBER);
-      const std::string& value = _tokenizer.consume_token(Token::IDENT);
-      item->set_value(value.c_str(), value.size());
-    }
+    std::string& s = *it;
+    if (i == 0)
+      colid->set_name(s.c_str(), s.size());
+    else if (i == 1)
+      colid->set_table_name(s.c_str(), s.size());
+    else if (i == 2)
+      colid->set_schema_name(s.c_str(), s.size());
+  }
+  // Arrow & docpath
+  if (_tokenizer.cur_token_type_is(Token::ARROW))
+  {
+    _tokenizer.consume_token(Token::ARROW);
+    _tokenizer.consume_token(Token::QUOTE);
+    _tokenizer.consume_token(Token::DOLLAR);
     document_path(*colid);
+    _tokenizer.consume_token(Token::QUOTE);
   }
+  e->set_type(Mysqlx::Expr::Expr::IDENT);
+  return e.release();
+}
+
+/*
+ * document_field ::= [ DOLLAR ] IDENT document_path
+ */
+Mysqlx::Expr::Expr* Expr_parser::document_field()
+{
+  std::auto_ptr<Mysqlx::Expr::Expr> e = std::auto_ptr<Mysqlx::Expr::Expr>(new Mysqlx::Expr::Expr());
+
+  if (_tokenizer.cur_token_type_is(Token::DOLLAR))
+    _tokenizer.consume_token(Token::DOLLAR);
+  Mysqlx::Expr::ColumnIdentifier* colid = e->mutable_identifier();
+  if (_tokenizer.cur_token_type_is(Token::IDENT))
+  {
+    Mysqlx::Expr::DocumentPathItem* item = colid->mutable_document_path()->Add();
+    item->set_type(Mysqlx::Expr::DocumentPathItem::MEMBER);
+    const std::string& value = _tokenizer.consume_token(Token::IDENT);
+    item->set_value(value.c_str(), value.size());
+  }
+  document_path(*colid);
+  
   e->set_type(Mysqlx::Expr::Expr::IDENT);
   return e.release();
 }
@@ -922,7 +947,10 @@ Mysqlx::Expr::Expr* Expr_parser::atomic_expr()
   else if (type == Token::MUL)
   {
     _tokenizer.unget_token();
-    return column_identifier();
+    if (!_document_mode)
+      return column_field();
+    else
+      return document_field();
   }
   else if (type == Token::CAST)
   {
@@ -954,7 +982,10 @@ Mysqlx::Expr::Expr* Expr_parser::atomic_expr()
     }
     else
     {
-      return column_identifier();
+      if (!_document_mode)
+        return column_field();
+      else
+        return document_field();
     }
   }
   throw Parser_error((boost::format("Unknown token type = %d when expecting atomic expression at %d") % type % _tokenizer.get_token_pos()).str());
