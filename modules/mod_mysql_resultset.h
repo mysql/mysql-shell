@@ -38,7 +38,7 @@ namespace mysh
     * Allows browsing through the result information after performing an operation on the database through the MySQL Protocol.
     * This class allows access to the result set from the classic MySQL data model to be retrieved from Dev API queries.
     */
-    class ClassicResult : public ShellBaseResult
+    class SHCORE_PUBLIC ClassicResult : public ShellBaseResult
     {
     public:
       ClassicResult(boost::shared_ptr<Result> result);
