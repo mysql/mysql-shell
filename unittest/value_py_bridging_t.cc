@@ -188,11 +188,12 @@ namespace shcore
 
       boost::system::error_code error;
       WillEnterPython lock;
+      bool cont;
 
-      Value result = py->execute_interactive("'hello world'");
+      Value result = py->execute_interactive("'hello world'", cont);
       ASSERT_EQ(result.repr(), "\"hello world\"");
 
-      result = py->execute_interactive("1+1");
+      result = py->execute_interactive("1+1", cont);
       ASSERT_EQ(result.as_int(), 2);
 
       result = py->execute("", error);
@@ -223,7 +224,7 @@ namespace shcore
       arr->push_back(Value(arr2));
 
       Value v(arr);
-
+      bool cont;
       WillEnterPython lock;
       // this will also test conversion of a wrapped array
       ASSERT_EQ(py->pyobj_to_shcore_value(py->shcore_value_to_pyobj(v)).repr(), "[123, \"text\", [444]]");
@@ -233,13 +234,13 @@ namespace shcore
       py->set_global("arr", v);
       ASSERT_EQ(py->get_global("arr").repr(), "[123, \"text\", [444]]");
 
-      ASSERT_EQ(py->execute_interactive("arr[0]").repr(), Value(123).repr());
+      ASSERT_EQ(py->execute_interactive("arr[0]", cont).repr(), Value(123).repr());
 
       // TODO:    py->execute("foo = shell.List()", error);
       // TODO:    py->execute("shell.List.insert(0, \"1\")", error);
 
       // this forces conversion of a native Python list into a Value
-      ASSERT_EQ(py->execute_interactive("[1,2,3]").repr(), "[1, 2, 3]");
+      ASSERT_EQ(py->execute_interactive("[1,2,3]", cont).repr(), "[1, 2, 3]");
     }
 
     TEST_F(Python, map_to_py)
@@ -266,17 +267,19 @@ namespace shcore
       py->set_global("mapval", v);
       ASSERT_EQ(py->get_global("mapval").repr(), "{\"k1\": 123, \"k2\": \"text\", \"k3\": {\"submap\": 444}}");
 
+      bool cont;
+
       // test enumerator
       ASSERT_EQ("[\"k1\",\"k2\",\"k3\"]",
-      py->execute_interactive("mapval.keys()").descr(false));
+      py->execute_interactive("mapval.keys()", cont).descr(false));
 
       // test setter
-      py->execute_interactive("mapval[\"k4\"] = 'test'");
+      py->execute_interactive("mapval[\"k4\"] = 'test'", cont);
       ASSERT_EQ((*map).size(), 4);
       ASSERT_EQ((*map)["k4"].descr(false), Value("test").descr(false));
 
       // this forces conversion of a native JS map into a Value
-      shcore::Value result = py->execute_interactive("{\"submap\": 444}");
+      shcore::Value result = py->execute_interactive("{\"submap\": 444}", cont);
       ASSERT_EQ(result, Value(map2));
     }
 

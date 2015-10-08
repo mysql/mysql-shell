@@ -33,8 +33,14 @@ void Shell_javascript::handle_input(std::string &code, Interactive_input_state &
   // Undefined to be returned in case of errors
   Value result;
 
+  state = Input_ok;
   if ((*Shell_core_options::get())[SHCORE_INTERACTIVE].as_bool())
-    result = _js->execute_interactive(code);
+  {
+    bool continued;
+    result = _js->execute_interactive(code, continued);
+    if (continued)
+      state = Input_continued;
+  }
   else
   {
     try
@@ -48,8 +54,6 @@ void Shell_javascript::handle_input(std::string &code, Interactive_input_state &
   }
 
   _last_handled = code;
-
-  state = Input_ok;
 
   result_processor(result);
 }

@@ -89,6 +89,11 @@ bool Shell_core::password(const std::string &s, std::string &ret_pass)
   return _lang_delegate->password(_lang_delegate->user_data, s.c_str(), ret_pass);
 }
 
+std::string Shell_core::preprocess_input_line(const std::string &s)
+{
+  return _langs[_mode]->preprocess_input_line(s);
+}
+
 void Shell_core::handle_input(std::string &code, Interactive_input_state &state, boost::function<void(shcore::Value)> result_processor)
 {
   _langs[_mode]->handle_input(code, state, result_processor);

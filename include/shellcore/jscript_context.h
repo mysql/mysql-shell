@@ -39,7 +39,7 @@ namespace shcore
     ~JScript_context();
 
     Value execute(const std::string &code, const std::string& source = "") throw (Exception);
-    Value execute_interactive(const std::string &code) BOOST_NOEXCEPT_OR_NOTHROW;
+    Value execute_interactive(const std::string &code, bool &r_continued) BOOST_NOEXCEPT_OR_NOTHROW;
 
     v8::Isolate *isolate() const;
     v8::Handle<v8::Context> context() const;

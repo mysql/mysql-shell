@@ -822,7 +822,8 @@ Value JScript_context::execute(const std::string &code_str, const std::string& s
   return ret_val;
 }
 
-Value JScript_context::execute_interactive(const std::string &code_str) BOOST_NOEXCEPT_OR_NOTHROW
+
+Value JScript_context::execute_interactive(const std::string &code_str, bool &r_continued) BOOST_NOEXCEPT_OR_NOTHROW
 {
   // makes _isolate the default isolate for this context
   v8::Isolate::Scope isolate_scope(_impl->isolate);
@@ -837,8 +838,19 @@ Value JScript_context::execute_interactive(const std::string &code_str) BOOST_NO
   v8::Handle<v8::String> code = v8::String::NewFromUtf8(_impl->isolate, code_str.c_str());
   v8::Handle<v8::Script> script = v8::Script::Compile(code, &origin);
 
+  r_continued = false;
+
   if (script.IsEmpty())
-    _impl->print_exception(format_exception(get_v8_exception_data(&try_catch)));
+  {
+    // check if this was an error of type
+    // SyntaxError: Unexpected end of input
+    // which we treat as a multiline mode trigger
+    v8::String::Utf8Value message(try_catch.Exception());
+    if (*message && strcmp(*message, "SyntaxError: Unexpected end of input") == 0)
+      r_continued = true;
+    else
+      _impl->print_exception(format_exception(get_v8_exception_data(&try_catch)));
+  }
   else
   {
     v8::Handle<v8::Value> result = script->Run();
