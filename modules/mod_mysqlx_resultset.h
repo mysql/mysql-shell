@@ -75,7 +75,7 @@ namespace mysh
     * - Transaction handling functions
     * - Drop functions
     */
-    class Result : public BaseResult, public boost::enable_shared_from_this<Result>
+    class Result : public BaseResult, public boost::enable_shared_from_this < Result >
     {
     public:
       Result(boost::shared_ptr< ::mysqlx::Result> result);
@@ -108,7 +108,7 @@ namespace mysh
     /**
     * Allows traversing the DbDoc objects returned by a Collection.find operation.
     */
-    class DocResult : public BaseResult, public boost::enable_shared_from_this<DocResult>
+    class DocResult : public BaseResult, public boost::enable_shared_from_this < DocResult >
     {
     public:
       DocResult(boost::shared_ptr< ::mysqlx::Result> result);
@@ -130,7 +130,7 @@ namespace mysh
     /**
     * Allows traversing the Row objects returned by a Table.select operation.
     */
-    class RowResult : public BaseResult, public boost::enable_shared_from_this<RowResult>
+    class RowResult : public BaseResult, public boost::enable_shared_from_this < RowResult >
     {
     public:
       RowResult(boost::shared_ptr< ::mysqlx::Result> result);
@@ -165,7 +165,7 @@ namespace mysh
     * Allows browsing through the result information after performing an operation on the database
     * done through NodeSession.sql
     */
-    class SqlResult : public RowResult, public boost::enable_shared_from_this<SqlResult>
+    class SHCORE_PUBLIC SqlResult : public RowResult, public boost::enable_shared_from_this < SqlResult >
     {
     public:
       SqlResult(boost::shared_ptr< ::mysqlx::Result> result);
