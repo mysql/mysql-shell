@@ -22,3 +22,14 @@ class PythonModeTests(ShellTestCase):
     @checkstdout
     def test_comment(self):
         mysqlx_with_stdin("#", "--py", "--interactive")
+
+
+    @checkstdout
+    def test_error(self):
+        "MYS-306"
+        mysqlx_with_stdin("invalid()", "--py")
+
+        f = self.tmpfile("broken.py")
+        f.write("invalid()\n")
+        f.close()
+        mysqlx("--py", "--file=$TMPDIR/broken.py")
