@@ -378,7 +378,9 @@ void Interactive_shell::init_scripts(Shell_core::Mode mode)
 std::string Interactive_shell::prompt()
 {
   if (_multiline_mode)
-    return "... ";
+  {
+    return std::string(_shell->prompt().length() - 4, ' ').append("... ");
+  }
   else
     return _shell->prompt();
 }
@@ -693,25 +695,38 @@ void Interactive_shell::process_line(const std::string &line)
     else
     {
       if (_input_buffer.empty())
-        _input_buffer = line;
+        _input_buffer = _shell->preprocess_input_line(line);
       else
-        _input_buffer.append("\n").append(line);
+        _input_buffer.append("\n").append(_shell->preprocess_input_line(line));
     }
 
-    if (!_multiline_mode)
+    if (!_multiline_mode && !_input_buffer.empty())
     {
       try
       {
         _shell->handle_input(_input_buffer, state, _result_processor);
 
-        std::string executed = _shell->get_handled_input();
-
-        if (!executed.empty())
+        if (state == Input_ok)
         {
+          std::string executed = _shell->get_handled_input();
+
+          if (!executed.empty())
+          {
 #ifndef WIN32
-          add_history(executed.c_str());
+            add_history(executed.c_str());
 #endif
-          println("");
+            println("");
+          }
+        }
+        else if (state == Input_continued)
+        {
+          // end of multiline was requested, but it didn't help...
+          // so pretend that the input was consumed, so that the
+          // next statement can start fresh
+          if (!line.empty())
+            _multiline_mode = true;
+          else
+            _input_buffer.clear();
         }
       }
       catch (std::exception &exc)

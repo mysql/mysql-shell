@@ -20,6 +20,7 @@ import subprocess
 import os
 import StringIO
 import sys
+import select
 import inspect
 import difflib
 
@@ -65,12 +66,25 @@ def mysqlx_capture(*argv):
     return p.returncode, out
 
 
-def mysqlx_feedstdin(stdin, *argv):
+def mysqlx_with_stdin(stdin, *argv):
     p = subprocess.Popen([mysqlx_path]+process_args(argv), stdout=subprocess.PIPE, stderr=subprocess.STDOUT, stdin=subprocess.PIPE)
-    out, err = p.communicate(stdin)
+    if type(stdin) is list:
+        out, err = "", ""
+        for line in stdin:
+            p.stdin.write(line+"\n")
+            # check if stdout readable
+            while True:
+                r, w, x = select.select([p.stdout.fileno()], [], [], 0.5)
+                if r:
+                    out += p.stdout.read(1)
+                else:
+                    break
+        outl, errl = p.communicate()
+        out += outl
+    else:
+        out, err = p.communicate(stdin)
     sys.stdout.write(out)
     return p.returncode, out
-
 
 
 def checkstdout(fun):

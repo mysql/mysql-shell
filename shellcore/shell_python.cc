@@ -34,6 +34,18 @@ Shell_python::~Shell_python()
   _py.reset();
 }
 
+
+std::string Shell_python::preprocess_input_line(const std::string &s)
+{
+  const char *p = s.c_str();
+  while (*p && isblank(*p))
+    ++p;
+  if (*p == '#')
+    return std::string();
+  return s;
+}
+
+
 /*
 * Helper function to ensure the exceptions generated on the mysqlx_connector
 * are properly translated to the corresponding shcore::Exception type
@@ -46,10 +58,15 @@ void Shell_python::handle_input(std::string &code, Interactive_input_state &stat
 {
   Value result;
 
+  state = Input_ok;
+
   if ((*Shell_core_options::get())[SHCORE_INTERACTIVE].as_bool())
   {
     WillEnterPython lock;
-    result = _py->execute_interactive(code);
+    bool continued;
+    result = _py->execute_interactive(code, continued);
+    if (continued)
+      state = Input_continued;
   }
   else
   {
@@ -70,8 +87,6 @@ void Shell_python::handle_input(std::string &code, Interactive_input_state &stat
     }
   }
   _last_handled = code;
-
-  state = Input_ok;
 
   result_processor(result);
 }

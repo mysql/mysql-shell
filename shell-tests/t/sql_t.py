@@ -15,11 +15,11 @@ class SqlModeTests(ShellTestCase):
 
     @checkstdout
     def test_script_stdin(self):
-        mysqlx_feedstdin("select 1;", "-uroot", "--sqlc")
+        mysqlx_with_stdin("select 1;", "-uroot", "--sqlc")
 
 
     #@checkstdout
     @unittest.skip("code needs to be fixed")
     def test_script_stdin_no_semicolon(self):
         "This is not working as of 2015-10-7"
-        mysqlx_feedstdin("select 1", "-uroot", "--sqlc")
+        mysqlx_with_stdin("select 1", "-uroot", "--sqlc")

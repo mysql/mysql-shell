@@ -152,11 +152,8 @@ namespace shcore
     // PyRun_SimpleString(code.c_str());
     py_result = PyRun_String(code.c_str(), Py_single_input /* with Py_eval_input print won't work */, _globals, _globals);
 
-    // TODO/WARNING: Py_single_input always returns Py_None
-
     if (!py_result)
     {
-      // TODO: use log_debug() as soon as logging is integrated
       PyErr_Print();
       return Value();
     }
@@ -164,9 +161,11 @@ namespace shcore
     return _types.pyobj_to_shcore_value(py_result);
   }
 
-  Value Python_context::execute_interactive(const std::string &code) BOOST_NOEXCEPT_OR_NOTHROW
+  Value Python_context::execute_interactive(const std::string &code, bool &r_continued) BOOST_NOEXCEPT_OR_NOTHROW
   {
     Value retvalue;
+
+    r_continued = false;
 
     /*
      PyRun_String() works as follows:
@@ -184,6 +183,13 @@ namespace shcore
      OTOH sys.displayhook is called whenever the interpreter is outputting interactive
      evaluation results, with the original object (not string). So we workaround by
      installing a temporary displayhook to capture the evaluation results...
+
+     Continued Lines:
+     ----------------
+
+     Because of how the Python interpreter works, it's not possible to
+     use the same multiline handling as the official interpreter. We emulate it
+     by catching EOF parse errors and accumulate lines until it succeeds.
      */
 
     PyObject *orig_hook = PySys_GetObject((char*)"displayhook");
@@ -193,12 +199,30 @@ namespace shcore
 
     PyObject *py_result = PyRun_String(code.c_str(), Py_single_input, _globals, _globals);
 
+    r_continued = false;
+
     PySys_SetObject((char*)"displayhook", orig_hook);
     Py_DECREF(orig_hook);
     if (!py_result)
     {
-      // TODO: use log_debug() as soon as logging is integrated
-      PyErr_Print();
+      PyObject *exc, *value, *tb;
+      // check whether this is a SyntaxError: unexpected EOF while parsing
+      // that would indicate that the command is not complete and needs more input
+      // til it's completed
+      PyErr_Fetch(&exc, &value, &tb);
+      if (PyErr_GivenExceptionMatches(exc, PyExc_SyntaxError))
+      {
+        const char *msg;
+        PyObject *obj;
+        if (PyArg_ParseTuple(value, "sO", &msg, &obj)
+           && strncmp(msg, "unexpected EOF while parsing", strlen("unexpected EOF while parsing")) == 0)
+          r_continued = true;
+      }
+      PyErr_Restore(exc, value, tb);
+      if (r_continued)
+        PyErr_Clear();
+      else
+        PyErr_Print();
       return Value();
     }
 
