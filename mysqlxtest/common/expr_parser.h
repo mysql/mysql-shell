@@ -136,7 +136,9 @@ namespace mysqlx
       JSON = 78,
       COLON = 79,
       LCURLY = 80,
-      RCURLY = 81
+      RCURLY = 81,
+      ARROW = 82,
+      QUOTE = 83
     };
 
     Token(TokenType type, const std::string& text);
@@ -232,7 +234,8 @@ namespace mysqlx
     void docpath_array_loc(Mysqlx::Expr::DocumentPathItem& item);
     void document_path(Mysqlx::Expr::ColumnIdentifier& colid);
     const std::string& id();
-    Mysqlx::Expr::Expr* column_identifier();
+    Mysqlx::Expr::Expr* column_field();
+    Mysqlx::Expr::Expr* document_field();
     Mysqlx::Expr::Expr* atomic_expr();
     Mysqlx::Expr::Expr* parse_left_assoc_binary_op_expr(std::set<Token::TokenType>& types, inner_parser_t inner_parser);
     Mysqlx::Expr::Expr* mul_div_expr();

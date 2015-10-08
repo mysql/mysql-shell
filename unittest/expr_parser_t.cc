@@ -77,7 +77,7 @@ namespace shcore
         EXPECT_TRUE(type == type_expected);
       }
     }
-
+    
     TEST(Expr_parser_tests, x_test)
     {
       parse_and_assert_expr("1", "[76]", "1");
@@ -107,7 +107,7 @@ namespace shcore
         "[19, 36, 19, 38, 19, 36, 19]", "((a + (b * c)) + d)");
       parse_and_assert_expr("x > 10 and Y >= -20",
         "[19, 27, 76, 2, 19, 28, 37, 76]", "((x > 10) && (Y >= -20))");
-      parse_and_assert_expr("a$.b", "[19, 77, 22, 19]", "a$.b");
+      parse_and_assert_expr("a->'$.b'", "[19, 82, 83, 77, 22, 19, 83]", "a$.b");
     }
 
     TEST(Expr_parser_tests, x_test_cast)
@@ -116,7 +116,7 @@ namespace shcore
         "[59, 6, 6, 19, 36, 76, 7, 56, 73, 75, 7]", "cast((mycol + 1), \"signed integer\")");
       parse_and_assert_expr("cast( concat( \"Hello\", \" World\" ) as char(11) )",
         "[59, 6, 19, 6, 20, 24, 20, 7, 56, 67, 6, 76, 7, 7]", "cast(concat(\"Hello\", \" World\"), \"char(11)\")");
-      parse_and_assert_expr("cast(doc$foo as char(30))", "[59, 6, 19, 77, 19, 56, 67, 6, 76, 7, 7]", "cast(doc$.foo, \"char(30)\")");
+      parse_and_assert_expr("cast(doc->'$.foo' as char(30))", "[59, 6, 19, 82, 83, 77, 22, 19, 83, 56, 67, 6, 76, 7, 7]", "cast(doc$.foo, \"char(30)\")");
       parse_and_assert_expr("cast(1234 as unsigned int)", "[59, 6, 76, 56, 74, 75, 7]", "cast(1234, \"unsigned int\")");
       parse_and_assert_expr("cast(bla as decimal(4,3))", "[59, 6, 19, 56, 72, 6, 76, 24, 76, 7, 7]", "cast(bla, \"decimal(4, 3)\")");
       parse_and_assert_expr("cast( ( now() - interval + 2 day > some_other_time() or cast( ( something_else IS NOT NULL ) as signed integer )) as int )",
@@ -136,7 +136,7 @@ namespace shcore
         "[66, 59, 6, 6, 19, 5, 11, 2, 19, 5, 12, 2, 19, 36, 76, 27, 76, 2, 59, 6, 19, 25, 19, 6, 7, 56, 75, 7, 3, 19, 6, 7, 7, 56, 67, 6, 76, 7, 7]",
         "binary(cast((((((a is TRUE) && (b is NULL)) && ((C + 1) > 40)) && cast((mytime == now()), \"int\")) || hungry()), \"char(1)\"))");
     }
-
+    
     TEST(Expr_parser_tests, x_test_2)
     {
       parse_and_assert_expr("a is true and b is null and C + 1 > 40 and (mytime = now() or hungry())",
@@ -166,7 +166,7 @@ namespace shcore
       parse_and_assert_expr("? > x and func(?, ?, ?)",
         "[53, 27, 19, 2, 19, 6, 53, 24, 53, 24, 53, 7]", "((\"?\" > x) && func(\"?\", \"?\", \"?\"))");
     }
-
+   
     TEST(Expr_parser_tests, x_test_3)
     {
       parse_and_assert_expr("a > now() + interval (2 + x) MiNuTe",
@@ -203,19 +203,21 @@ namespace shcore
 
     TEST(Expr_parser_tests, x_test_4)
     {
-      parse_and_assert_expr("a$.b",
-        "[19, 77, 22, 19]", "a$.b");
-      parse_and_assert_expr("a$.b[0][0].c**.d.\"a weird\\\"key name\"",
-        "[19, 77, 22, 19, 8, 76, 9, 8, 76, 9, 22, 19, 54, 22, 19, 22, 20]", "a$.b[0][0].c**.d.a weird\"key name");
-      parse_and_assert_expr("a$.*",
-        "[19, 77, 22, 38]", "a$.*");
-      parse_and_assert_expr("a$[0].*",
-        "[19, 77, 8, 76, 9, 22, 38]", "a$[0].*");
-      parse_and_assert_expr("a$**[0].*",
-        "[19, 77, 54, 8, 76, 9, 22, 38]", "a$**[0].*");
+      parse_and_assert_expr("a->'$.b'",
+        "[19, 82, 83, 77, 22, 19, 83]", "a$.b");
+      parse_and_assert_expr("a->'$.b[0][0].c**.d.\"a weird\\\"key name\"'",
+        "[19, 82, 83, 77, 22, 19, 8, 76, 9, 8, 76, 9, 22, 19, 54, 22, 19, 22, 20, 83]", "a$.b[0][0].c**.d.a weird\"key name");
+      parse_and_assert_expr("a->'$.*'",
+        "[19, 82, 83, 77, 22, 38, 83]", "a$.*");
+      parse_and_assert_expr("a->'$[0].*'",
+        "[19, 82, 83, 77, 8, 76, 9, 22, 38, 83]", "a$[0].*");
+      parse_and_assert_expr("a->'$**[0].*'",
+        "[19, 82, 83, 77, 54, 8, 76, 9, 22, 38, 83]", "a$**[0].*");
 
-      parse_and_assert_expr("bla$.foo.bar", "[19, 77, 22, 19, 22, 19]", "bla$.foo.bar");
-      parse_and_assert_expr("bla$.\"foo\".bar", "[19, 77, 22, 20, 22, 19]", "bla$.foo.bar");
+      parse_and_assert_expr("bla->'$.foo.bar'", 
+        "[19, 82, 83, 77, 22, 19, 22, 19, 83]", "bla$.foo.bar");
+      parse_and_assert_expr("bla->'$.\"foo\".bar'",
+        "[19, 82, 83, 77, 22, 20, 22, 19, 83]", "bla$.foo.bar");
       parse_and_assert_expr(".foo", "[22, 19]", "$.foo", true);
       parse_and_assert_expr(".\"foo\"", "[22, 20]", "$.foo", true);
       parse_and_assert_expr(".*", "[22, 38]", "$.*", true);
@@ -230,7 +232,7 @@ namespace shcore
       // Some regression bugs
       parse_and_assert_expr("colId + .1e-3", "[19, 36, 21]", "(colId + 0.000100)", false);
     }
-
+    
     TEST(Expr_parser_tests, x_test_5)
     {
       // json
@@ -241,6 +243,16 @@ namespace shcore
         "[19, 25, 79, 76]", "(name == :0)");
       parse_and_assert_expr(":1 > now() + interval (2 + :x) MiNuTe",
         "[79, 76, 27, 19, 6, 7, 36, 16, 6, 76, 36, 79, 19, 7, 46]", "(:0 > (now() + INTERVAL (2 + :1) MiNuTe))");
+    }
+    
+    TEST(Expr_parser_tests, arrow_operator)
+    {
+      parse_and_assert_expr("c->'$.foo.bar'", "[19, 82, 83, 77, 22, 19, 22, 19, 83]", "c$.foo.bar");
+      parse_and_assert_expr("`foo`->'$.bla.bla.bla'", "[19, 82, 83, 77, 22, 19, 22, 19, 22, 19, 83]", "foo$.bla.bla.bla");
+      parse_and_assert_expr("doc->'$.\"a b\"'=42", "[19, 82, 83, 77, 22, 20, 83, 25, 76]", "(doc$.a b == 42)");
+
+      EXPECT_ANY_THROW(parse_and_assert_expr("`ident\\``", "", ""));
+      
     }
   };
 };
