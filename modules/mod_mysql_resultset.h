@@ -48,6 +48,7 @@ namespace mysh
       virtual shcore::Value get_member(const std::string &prop) const;
       virtual void append_json(shcore::JSON_dumper& dumper) const;
 
+      shcore::Value has_data(const shcore::Argument_list &args) const;
       virtual shcore::Value fetch_one(const shcore::Argument_list &args) const;
       virtual shcore::Value fetch_all(const shcore::Argument_list &args) const;
       virtual shcore::Value next_data_set(const shcore::Argument_list &args);
@@ -61,7 +62,6 @@ namespace mysh
       List columnNames; //!< Same as getColumnNames()
       List columns; //!< Same as getColumns()
       String executionTime; //!< Same as getExecutionTime()
-      Bool hasData; //!< Same as getHasData()
       String info; //!< Same as getInfo()
       Integer lastInsertId; //!< Same as getLastInsertId()
       List warnings; //!< Same as getWarnings()
@@ -74,7 +74,7 @@ namespace mysh
       List getColumnNames();
       List getColumns();
       String getExecutionTime();
-      Bool getHasData();
+      Bool hasData();
       String getInfo();
       Integer getLastInsertId();
       Integer getWarningCount();

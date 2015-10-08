@@ -24,11 +24,11 @@ var table = schema.getTable('buffer_table');
 
 //@ Resultset hasData false
 result = mySession.runSql('use js_shell_test');
-print('hasData:', result.hasData);
+print('hasData:', result.hasData());
 
 //@ Resultset hasData true
 result = mySession.runSql('select * from buffer_table');
-print('hasData:', result.hasData);
+print('hasData:', result.hasData());
 
 
 //@ Resultset getColumns()
