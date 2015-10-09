@@ -36,22 +36,24 @@ namespace shcore
       mysh::parse_mysql_connstring(_uri, protocol, user, password, host, port, sock, schema, pwd_found, ssl_ca, ssl_cert, ssl_key);
 
       // Setups some variables on the JS context, these will be used on some test cases
-      std::string str_port = boost::lexical_cast<std::string>(_mysql_port);
+      if (_mysql_port.empty())
+        _mysql_port = "3306";
+
       std::string code = "__user = '" + user + "';";
       exec_and_out_equals(code);
       code = "__pwd = '" + password + "';";
       exec_and_out_equals(code);
       code = "__host = '" + host + "';";
       exec_and_out_equals(code);
-      code = "__port = " + str_port + ";";
+      code = "__port = " + _mysql_port + ";";
       exec_and_out_equals(code);
       code = "__schema = 'mysql';";
       exec_and_out_equals(code);
       code = "__schema = 'mysql';";
       exec_and_out_equals(code);
-      code = "__uri = '" + user + "@" + host + ":" + str_port + "';";
+      code = "__uri = '" + user + "@" + host + ":" + _mysql_port + "';";
       exec_and_out_equals(code);
-      code = "__uripwd = '" + user + ":" + password + "@" + host + ":" + str_port + "';";
+      code = "__uripwd = '" + user + ":" + password + "@" + host + ":" + _mysql_port + "';";
       exec_and_out_equals(code);
 
       // All of the test cases share the same config folder
