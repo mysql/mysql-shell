@@ -148,7 +148,7 @@ void Shell_script_tester::load_source_chunks(std::istream & stream)
     std::string line;
     std::getline(stream, line);
 
-    if (line.find("//@") == 0)
+    if (line.find(get_chunk_token()) == 0)
     {
       if (current_chunk)
       {
@@ -194,7 +194,7 @@ void Shell_script_tester::load_validations(const std::string& path, bool in_chun
       boost::trim(line);
       if (!line.empty())
       {
-        if (line.find("//@") == 0)
+        if (line.find(get_chunk_token()) == 0)
         {
           if (in_chunks)
           {
@@ -241,16 +241,17 @@ void Shell_script_tester::execute_script(const std::string& path, bool in_chunks
       load_source_chunks(stream);
       for (size_t index = 0; index < _chunk_order.size(); index++)
       {
-        (*shcore::Shell_core_options::get())[SHCORE_INTERACTIVE] = shcore::Value::False();
-
         // Chunk is configured to be executed line by line
-        if (_chunk_order[index].find("//@#") == 0)
+        if (_chunk_order[index].find(get_chunk_by_line_token()) == 0)
         {
           for (size_t chunk_item = 0; chunk_item < _chunks[_chunk_order[index]]->size(); chunk_item++)
-            execute((*_chunks[_chunk_order[index]])[chunk_item]);
+            execute((*_chunks[_chunk_order[index]])[chunk_item] + "\n");
         }
         else
-          execute(boost::join((*_chunks[_chunk_order[index]]), "\n"));
+        {
+          (*shcore::Shell_core_options::get())[SHCORE_INTERACTIVE] = shcore::Value::False();
+          execute(boost::join((*_chunks[_chunk_order[index]]), "\n") + "\n");
+        }
 
         (*shcore::Shell_core_options::get())[SHCORE_INTERACTIVE] = shcore::Value::True();
         validate(path, _chunk_order[index]);
@@ -303,7 +304,7 @@ void Shell_script_tester::process_setup(std::istream & stream)
     std::string line;
     std::getline(stream, line);
 
-    if (line.find("// Assumptions:") == 0)
+    if (line.find(get_assumptions_token()) == 0)
     {
       // Removes the assumptions header and parses the rest
       std::vector<std::string> tokens;
@@ -321,7 +322,7 @@ void Shell_script_tester::process_setup(std::istream & stream)
       }
 
       // Creates an assumptions array to be processed on the setup script
-      std::string code = "var __assumptions__ = [" + boost::join(tokens, ",") + "];";
+      std::string code = get_variable_prefix() + "__assumptions__ = [" + boost::join(tokens, ",") + "];";
       execute(code);
 
       if (_setup_script.empty())

@@ -33,22 +33,13 @@
 
 namespace shcore
 {
-  class Shell_js_dev_api_sample_tester : public Shell_script_tester
+  class Shell_js_dev_api_sample_tester : public Shell_js_script_tester
   {
   protected:
     // You can define per-test set-up and tear-down logic as usual.
     virtual void SetUp()
     {
-      Shell_core_test_wrapper::SetUp();
-
-      // This may be needed in case it is decided to load the
-      // scripts from the extraction done on the dev-api docs
-      //char *path = getenv("DEVAPI_EXAMPLES");
-      //if (path)
-      //  _scripts_home.assign(path);
-
-      bool initilaized(false);
-      _shell_core->switch_mode(Shell_core::Mode_JScript, initilaized);
+      Shell_js_script_tester::SetUp();
 
       set_config_folder("devapi");
       set_setup_script("setup.js");

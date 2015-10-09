@@ -23,6 +23,7 @@
 
 #include "shellcore/object_factory.h"
 #include "shellcore/python_type_conversion.h"
+#include <boost/format.hpp>
 
 #ifdef _WINDOWS
 #  include <windows.h>
@@ -282,6 +283,40 @@ namespace shcore
   void Python_context::set_python_error(const std::exception &exc, const std::string &location)
   {
     PyErr_SetString(PyExc_SystemError, (location.empty() ? exc.what() : location + ": " + exc.what()).c_str());
+  }
+
+  void Python_context::set_python_error(const shcore::Exception &exc, const std::string &location)
+  {
+    std::string error_message;
+
+    std::string type = exc.error()->get_string("type", "");
+    std::string message = exc.error()->get_string("message", "");
+    int64_t code = exc.error()->get_int("code", -1);
+    std::string error_location = exc.error()->get_string("location", "");
+
+    if (error_location.empty())
+      error_location = location;
+
+    if (!message.empty())
+    {
+      if (!type.empty())
+        error_message += type;
+
+      if (code != -1)
+        error_message += (boost::format(" (%1%)") % code).str();
+
+      if (!error_message.empty())
+        error_message += ": ";
+
+      error_message += message;
+
+      if (!error_location.empty())
+        error_message += " at " + error_location;
+
+      error_message += "\n";
+    }
+
+    PyErr_SetString(PyExc_SystemError, (error_location.empty() ? error_message : error_location + ": " + error_message).c_str());
   }
 
   void Python_context::set_python_error(PyObject *obj, const std::string &location)
