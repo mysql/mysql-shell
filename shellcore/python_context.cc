@@ -149,8 +149,7 @@ namespace shcore
     PyObject *py_result;
     Value retvalue;
 
-    // PyRun_SimpleString(code.c_str());
-    py_result = PyRun_String(code.c_str(), Py_single_input /* with Py_eval_input print won't work */, _globals, _globals);
+    py_result = PyRun_String(code.c_str(), Py_file_input, _globals, _globals);
 
     if (!py_result)
     {
