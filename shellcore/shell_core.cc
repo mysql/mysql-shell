@@ -149,7 +149,7 @@ int Shell_core::process_stream(std::istream& stream, const std::string& source, 
         std::string line;
 
         std::getline(stream, line);
-        data.append(line);
+        data.append(line).append("\n");
       }
     }
     else
