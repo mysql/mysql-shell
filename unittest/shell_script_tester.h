@@ -65,6 +65,11 @@ protected:
   // The name of the active setup script, should be set after the config folder
   void set_setup_script(const std::string &name);
 
+  virtual std::string get_chunk_token() = 0;
+  virtual std::string get_chunk_by_line_token() = 0;
+  virtual std::string get_assumptions_token() = 0;
+  virtual std::string get_variable_prefix() = 0;
+
 private:
   // Chunks of code will be stored here
   std::map<std::string, std::vector<std::string>* > _chunks;
@@ -84,6 +89,11 @@ class Shell_js_script_tester : public Shell_script_tester
 protected:
   // You can define per-test set-up and tear-down logic as usual.
   virtual void SetUp();
+
+  virtual std::string get_chunk_token() { return "//@"; }
+  virtual std::string get_chunk_by_line_token() { return "//@#"; }
+  virtual std::string get_assumptions_token() { return "// Assumptions:"; }
+  virtual std::string get_variable_prefix() { return "var "; };
 };
 
 class Shell_py_script_tester : public Shell_script_tester
@@ -91,4 +101,9 @@ class Shell_py_script_tester : public Shell_script_tester
 protected:
   // You can define per-test set-up and tear-down logic as usual.
   virtual void SetUp();
+
+  virtual std::string get_chunk_token() { return "#@"; }
+  virtual std::string get_chunk_by_line_token() { return "#@#"; }
+  virtual std::string get_assumptions_token() { return "# Assumptions:"; }
+  virtual std::string get_variable_prefix() { return ""; }
 };
