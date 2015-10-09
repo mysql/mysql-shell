@@ -157,7 +157,9 @@ namespace shcore
       return Value();
     }
 
-    return _types.pyobj_to_shcore_value(py_result);
+    Value tmp(_types.pyobj_to_shcore_value(py_result));
+    Py_XDECREF(py_result);
+    return tmp;
   }
 
   Value Python_context::execute_interactive(const std::string &code, bool &r_continued) BOOST_NOEXCEPT_OR_NOTHROW

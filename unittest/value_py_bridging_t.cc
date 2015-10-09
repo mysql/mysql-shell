@@ -197,7 +197,7 @@ namespace shcore
       ASSERT_EQ(result.as_int(), 2);
 
       result = py->execute("", error);
-      ASSERT_EQ(result, Value());
+      ASSERT_EQ(result, Value::Null());
 
       result = py->execute("1+1+", error);
       ASSERT_EQ(result, Value());
