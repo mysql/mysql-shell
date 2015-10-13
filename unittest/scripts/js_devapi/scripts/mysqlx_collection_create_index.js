@@ -2,7 +2,7 @@
 // Assumes __uripwd is defined as <user>:<pwd>@<host>:<plugin_port>
 var mysqlx = require('mysqlx').mysqlx;
 
-var mySession = mysqlx.getNodeSession('root:toor@localhost');
+var mySession = mysqlx.getNodeSession(__uripwd);
 
 ensure_schema_does_not_exist(mySession, 'js_shell_test');
 var schema = mySession.createSchema('js_shell_test');
