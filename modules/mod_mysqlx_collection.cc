@@ -25,6 +25,8 @@
 #include "mod_mysqlx_collection_find.h"
 #include "mod_mysqlx_collection_remove.h"
 #include "mod_mysqlx_collection_modify.h"
+#include "mod_mysqlx_collection_create_index.h"
+#include "mod_mysqlx_collection_drop_index.h"
 
 using namespace mysh;
 using namespace mysh::mysqlx;
@@ -49,6 +51,8 @@ void Collection::init()
   add_method("modify", boost::bind(&Collection::modify_, this, _1), "searchCriteria", shcore::String, NULL);
   add_method("find", boost::bind(&Collection::find_, this, _1), "searchCriteria", shcore::String, NULL);
   add_method("remove", boost::bind(&Collection::remove_, this, _1), "searchCriteria", shcore::String, NULL);
+  add_method("createIndex", boost::bind(&Collection::create_index_, this, _1), "searchCriteria", shcore::String, NULL);
+  add_method("dropIndex", boost::bind(&Collection::drop_index_, this, _1), "searchCriteria", shcore::String, NULL);
 }
 
 Collection::~Collection()
@@ -164,4 +168,67 @@ shcore::Value Collection::find_(const shcore::Argument_list &args)
   boost::shared_ptr<CollectionFind> collectionFind(new CollectionFind(shared_from_this()));
 
   return collectionFind->find(args);
+}
+
+#ifdef DOXYGEN
+/**
+* Creates a non unique index on a collection.
+* \param name The name of the index to be created.
+* \return A CollectionCreateIndex object.
+*
+* This function creates a CollectionCreateIndex object which is an index creation handler.
+*
+* The CollectionCreateIndex class has a function to define the fields to be included on the index.
+*
+* The index will be created when the execute function is called on the index creation handler.
+*
+* \sa CollectionCreateIndex
+*/
+CollectionCreateIndex Collection::createIndex(String name){}
+
+/**
+* Creates a unique index on a collection.
+* \param name The name of the index to be created.
+* \param type The type of index to be created.
+* \return A CollectionCreateIndex object.
+*
+* This function creates a CollectionCreateIndex object which is an index creation handler.
+*
+* The CollectionCreateIndex class has a function to define the fields to be included on the index.
+*
+* The index will be created when the execute function is called on the index creation handler.
+*
+* The only available index type at the moment is mysqlx.IndexUnique.
+*
+* \sa CollectionCreateIndex
+*/
+CollectionCreateIndex Collection::createIndex(String name, IndexType type){}
+#endif
+
+shcore::Value Collection::create_index_(const shcore::Argument_list &args)
+{
+  boost::shared_ptr<CollectionCreateIndex> createIndex(new CollectionCreateIndex(shared_from_this()));
+
+  return createIndex->create_index(args);
+}
+
+#ifdef DOXYGEN
+/**
+* Drops an index from a collection.
+* \param name The name of the index to be dropped.
+* \return A CollectionDropIndex object.
+*
+* This function creates a CollectionDropIndex object.
+*
+* The index will be dropped when the execute function is called on the index dropping handler.
+*
+* \sa CollectionDropIndex
+*/
+CollectionDropIndex Collection::dropIndex(String name){}
+#endif
+shcore::Value Collection::drop_index_(const shcore::Argument_list &args)
+{
+  boost::shared_ptr<CollectionDropIndex> dropIndex(new CollectionDropIndex(shared_from_this()));
+
+  return dropIndex->drop_index(args);
 }

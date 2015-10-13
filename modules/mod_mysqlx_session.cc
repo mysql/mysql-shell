@@ -21,6 +21,7 @@
 #include "mod_mysqlx_schema.h"
 #include "mod_mysqlx_resultset.h"
 #include "mod_mysqlx_expression.h"
+#include "mod_mysqlx_constant.h"
 #include "shellcore/object_factory.h"
 #include "shellcore/shell_core.h"
 #include "shellcore/lang_base.h"
@@ -58,6 +59,7 @@ using namespace mysh::mysqlx;
 REGISTER_OBJECT(mysqlx, XSession);
 REGISTER_OBJECT(mysqlx, NodeSession);
 REGISTER_OBJECT(mysqlx, Expression);
+REGISTER_OBJECT(mysqlx, Constant);
 
 #include <set>
 
@@ -110,6 +112,47 @@ NodeSession getNodeSession(String connectionData, String password){}
 */
 NodeSession getNodeSession(Map connectionData, String password){}
 
+/**
+* Creates a Varchar data type definition with the given length.
+*/
+DataType Varchar(Integer length){}
+
+/**
+* Creates a Char data type definition with the given length.
+*/
+DataType Char(Integer length){}
+
+/**
+* Creates a Decimal data type definition with the given precision and scale.
+* \param precision Optional integer specifying the precision of the Decimal number.
+* \param scale Optional integer specifying the scale of the Decimal number.
+*
+* Precision: Number of significant digits that are stored for values.
+* Scale: Number of digits that can be stored following the decimal point.
+*
+* If only one parameters is passed it will be taken as the precision, scale will be set to 0.
+*
+* If no parameters are passed the precision will be set to 10 and scale to 0.
+*
+* For more details see: https://dev.mysql.com/doc/refman/5.7/en/fixed-point-types.html
+*/
+DataType Decimal(Integer precision, Integer scale){}
+
+/**
+* Creates a Numeric data type definition with the given precision and scale.
+* \param precision Optional integer specifying the precision of the Decimal number.
+* \param scale Optional integer specifying the scale of the Decimal number.
+*
+* Precision: Number of significant digits that are stored for values.
+* Scale: Number of digits that can be stored following the decimal point.
+*
+* If only one parameters is passed it will be taken as the precision, scale will be set to 0.
+*
+* If no parameters are passed the precision will be set to 10 and scale to 0.
+*
+* For more details see: https://dev.mysql.com/doc/refman/5.7/en/fixed-point-types.html
+*/
+DataType Numeric(Integer precision, Integer scale){}
 #endif
 
 BaseSession::BaseSession()
@@ -400,7 +443,11 @@ shcore::Value BaseSession::rollback(const shcore::Argument_list &args)
   switch (source.type)
   {
     case shcore::Bool:
+      ret_val = ::mysqlx::ArgumentValue(source.as_bool());
+      break;
     case shcore::UInteger:
+      ret_val = ::mysqlx::ArgumentValue(source.as_uint());
+      break;
     case shcore::Integer:
       ret_val = ::mysqlx::ArgumentValue(source.as_int());
       break;

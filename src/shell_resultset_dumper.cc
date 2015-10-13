@@ -296,7 +296,7 @@ std::string ResultsetDumper::get_affected_stats(const std::string& member, const
   std::string output;
 
   // Some queries return -1 since affected rows do not apply to them
-  uint64_t affected_items = _resultset->get_member(member).as_uint();
+  int64_t affected_items = _resultset->get_member(member).as_int();
   if (affected_items == (uint64_t)-1)
     output = "Query OK";
   else

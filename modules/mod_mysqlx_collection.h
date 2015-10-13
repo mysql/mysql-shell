@@ -61,6 +61,9 @@ namespace mysh
       CollectionFind find(String searchCriteria);
       CollectionRemove remove(String searchCondition);
       CollectionModify modify(String searchCondition);
+      CollectionCreateIndex createIndex(String name);
+      CollectionCreateIndex createIndex(String name, IndexType type);
+      CollectionDropIndex dropIndex(String name);
 #endif
 
     private:
@@ -68,6 +71,8 @@ namespace mysh
       shcore::Value find_(const shcore::Argument_list &args);
       shcore::Value modify_(const shcore::Argument_list &args);
       shcore::Value remove_(const shcore::Argument_list &args);
+      shcore::Value create_index_(const shcore::Argument_list &args);
+      shcore::Value drop_index_(const shcore::Argument_list &args);
 
       void init();
       boost::shared_ptr< ::mysqlx::Collection> _collection_impl;

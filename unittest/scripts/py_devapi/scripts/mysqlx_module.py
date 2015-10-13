@@ -21,10 +21,42 @@ for member in all_members:
 
 print 'Exported Items:', len(exports)
 
-print 'getSession:', type(mysqlx.getSession)
-print 'getNodeSession:', type(mysqlx.getNodeSession)
-print 'expr:', type(mysqlx.expr)
-
+print 'getSession:', type(mysqlx.getSession), '\n'
+print 'getNodeSession:', type(mysqlx.getNodeSession), '\n'
+print 'expr:', type(mysqlx.expr), '\n'
+print 'Varchar:', type(mysqlx.Varchar), '\n'
+print 'Char:', type(mysqlx.Char), '\n'
+print 'Decimal:', type(mysqlx.Decimal), '\n'
+print 'Numeric:', type(mysqlx.Numeric), '\n'
+print mysqlx.TinyInt, '\n'
+print mysqlx.SmallInt, '\n'
+print mysqlx.MediumInt, '\n'
+print mysqlx.Int, '\n'
+print mysqlx.Integer, '\n'
+print mysqlx.BigInt, '\n'
+print mysqlx.Real, '\n'
+print mysqlx.Float, '\n'
+print mysqlx.Double, '\n'
+print mysqlx.Numeric, '\n'
+print mysqlx.Date, '\n'
+print mysqlx.Time, '\n'
+print mysqlx.Timestamp, '\n'
+print mysqlx.DateTime, '\n'
+print mysqlx.Year, '\n'
+print mysqlx.Bit, '\n'
+print mysqlx.Blob, '\n'
+print mysqlx.Text, '\n'
+print mysqlx.IndexUnique, '\n'
+print mysqlx.Varchar(), '\n'
+print mysqlx.Varchar(10), '\n'
+print mysqlx.Char(), '\n'
+print mysqlx.Char(10), '\n'
+print mysqlx.Decimal(), '\n'
+print mysqlx.Decimal(10), '\n'
+print mysqlx.Decimal(10, 3), '\n'
+print mysqlx.Numeric(), '\n'
+print mysqlx.Numeric(10), '\n'
+print mysqlx.Numeric(10, 3), '\n'
 
 #@ mysqlx module: getSession through URI
 mySession = mysqlx.getSession(__uripwd)

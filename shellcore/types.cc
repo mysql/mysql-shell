@@ -189,6 +189,37 @@ bool Exception::is_server() const
   return strcmp(type(), "Server") == 0;
 }
 
+std::string Exception::format()
+{
+  std::string error_message;
+
+  std::string type = _error->get_string("type", "");
+  std::string message = _error->get_string("message", "");
+  int64_t code = _error->get_int("code", -1);
+  std::string error_location = _error->get_string("location", "");
+
+  if (!message.empty())
+  {
+    if (!type.empty())
+      error_message += type;
+
+    if (code != -1)
+      error_message += (boost::format(" (%1%)") % code).str();
+
+    if (!error_message.empty())
+      error_message += ": ";
+
+    error_message += message;
+
+    if (!error_location.empty())
+      error_message += " at " + error_location;
+
+    error_message += "\n";
+  }
+
+  return error_message;
+}
+
 // --
 
 std::string shcore::type_name(Value_type type)
