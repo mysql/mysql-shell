@@ -1,8 +1,42 @@
 //@ mysqlx module: exports
-|Exported Items: 3|
+|Exported Items: 25|
 |getSession: function|
 |getNodeSession: function|
 |expr: function|
+|Varchar: function|
+|Char: function|
+|Decimal: function|
+|<DataTypes.TinyInt>|
+|<DataTypes.SmallInt>|
+|<DataTypes.MediumInt>|
+|<DataTypes.Int>|
+|<DataTypes.Integer>|
+|<DataTypes.BigInt>|
+|<DataTypes.Real>|
+|<DataTypes.Float>|
+|<DataTypes.Double>|
+|<DataTypes.Numeric>|
+|<DataTypes.Date>|
+|<DataTypes.Time>|
+|<DataTypes.Timestamp>|
+|<DataTypes.DateTime>|
+|<DataTypes.Year>|
+|<DataTypes.Bit>|
+|<DataTypes.Blob>|
+|<DataTypes.Text>|
+|<IndexTypes.IndexUnique>|
+|<DataTypes.Varchar>|
+|<DataTypes.Varchar(10)>|
+|<DataTypes.Char>|
+|<DataTypes.Char(10)>|
+|<DataTypes.Decimal>|
+|<DataTypes.Decimal(10)>|
+|<DataTypes.Decimal(10,3)>|
+|<DataTypes.Numeric>|
+|<DataTypes.Numeric(10)>|
+|<DataTypes.Numeric(10,3)>|
+
+
 
 
 //@ mysqlx module: getSession through URI

@@ -389,6 +389,8 @@ namespace shcore {
     int64_t code() const BOOST_NOEXCEPT_OR_NOTHROW;
 
     boost::shared_ptr<Value::Map_type> error() const { return _error; }
+
+    std::string format();
   };
 
   bool my_strnicmp(const char *c1, const char *c2, size_t n);

@@ -60,6 +60,30 @@ namespace mysh
     XSession getSession(Map connectionData, String password);
     NodeSession getNodeSession(String connectionData, String password);
     NodeSession getNodeSession(Map connectionData, String password);
+    DataType Varchar(Integer length);
+    DataType Char(Integer length);
+    DataType Decimal(Integer precision, Integer scale);
+    DataType Numeric(Integer precision, Integer scale);
+
+    DataType TinyInt; //!< Data type definition for TinyInt
+    DataType SmallInt; //!< Data type definition for SmallInt
+    DataType MediumInt; //!< Data type definition for MediumInt
+    DataType Int; //!< Data type definition for Int
+    DataType Integer; //!< Data type definition for Integer
+    DataType BigInt; //!< Data type definition for BigInt
+    DataType Real; //!< Data type definition for Real
+    DataType Float; //!< Data type definition for Float
+    DataType Double; //!< Data type definition for Double
+    DataType Numeric; //!< Data type definition for Numeric
+    DataType Date; //!< Data type definition for Date
+    DataType Time; //!< Data type definition for Time
+    DataType Timestamp; //!< Data type definition for Timestamp
+    DataType DateTime; //!< Data type definition for DateTime
+    DataType Year; //!< Data type definition for Year
+    DataType Bit; //!< Data type definition for Bit
+    DataType Blob; //!< Data type definition for Blob
+    DataType Text; //!< Data type definition for Text
+    IndexType.IndexUnique; //!< Index type definition for Unique Index
 #endif
 
     class Schema;

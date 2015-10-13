@@ -123,6 +123,11 @@ namespace shcore
     validate_interactive("mysqlx_collection_remove.py");
   }
 
+  TEST_F(Shell_py_mysqlx_tests, mysqlx_collection_create_index)
+  {
+    validate_interactive("mysqlx_collection_create_index.py");
+  }
+
   TEST_F(Shell_py_mysqlx_tests, mysqlx_view)
   {
     validate_interactive("mysqlx_view.py");

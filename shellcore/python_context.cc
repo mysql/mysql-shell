@@ -20,6 +20,7 @@
 #include "shellcore/python_utils.h"
 #include "shellcore/shell_core.h"
 #include "shellcore/common.h"
+#include "modules/mod_mysqlx_constant.h"
 
 #include "shellcore/object_factory.h"
 #include "shellcore/python_type_conversion.h"
@@ -519,6 +520,50 @@ namespace shcore
     _shell_stderr_module = module;
   }
 
+  PyObject *Python_context::get_constant(PyObject *UNUSED(self), PyObject *args, const std::string &group, const std::string& id)
+  {
+    Python_context *ctx;
+    std::string text;
+
+    if (!(ctx = Python_context::get_and_check()))
+      return NULL;
+
+    shcore::Argument_list shell_args;
+
+    shell_args.push_back(Value(group));
+    shell_args.push_back(Value(id));
+
+    if (args)
+    {
+      int size = (int)PyTuple_Size(args);
+      for (int index = 0; index < size; index++)
+        shell_args.push_back(ctx->pyobj_to_shcore_value(PyTuple_GetItem(args, index)));
+    }
+
+    PyObject *py_session = NULL;
+
+    try
+    {
+      shcore::Value session(Object_factory::call_constructor("mysqlx", "Constant", shell_args));
+      py_session = ctx->shcore_value_to_pyobj(session);
+    }
+    catch (shcore::Exception &e)
+    {
+      set_python_error(e);
+    }
+
+    if (py_session)
+    {
+      Py_INCREF(py_session);
+      return py_session;
+    }
+    else
+    {
+      Py_INCREF(Py_None);
+      return Py_None;
+    }
+  }
+
   PyObject *Python_context::get_object(PyObject *UNUSED(self), PyObject *args, const std::string &module, const std::string &type)
   {
     Python_context *ctx;
@@ -571,6 +616,26 @@ namespace shcore
     return get_object(self, args, "mysqlx", "Expression");
   }
 
+  PyObject *Python_context::mysqlx_varchar(PyObject *self, PyObject *args)
+  {
+    return get_constant(self, args, "DataTypes", "Varchar");
+  }
+
+  PyObject *Python_context::mysqlx_char(PyObject *self, PyObject *args)
+  {
+    return get_constant(self, args, "DataTypes", "Char");
+  }
+
+  PyObject *Python_context::mysqlx_decimal(PyObject *self, PyObject *args)
+  {
+    return get_constant(self, args, "DataTypes", "Decimal");
+  }
+
+  PyObject *Python_context::mysqlx_numeric(PyObject *self, PyObject *args)
+  {
+    return get_constant(self, args, "DataTypes", "Numeric");
+  }
+
   PyObject *Python_context::mysql_get_classic_session(PyObject *self, PyObject *args)
   {
     return get_object(self, args, "mysql", "ClassicSession");
@@ -584,6 +649,14 @@ namespace shcore
     "Creates a NodeSession object." },
     { "expr", &Python_context::mysqlx_expr, METH_VARARGS,
     "Creates a Expression object." },
+    { "Varchar", &Python_context::mysqlx_varchar, METH_VARARGS,
+    "Creates a Varchar data type definition." },
+    { "Char", &Python_context::mysqlx_char, METH_VARARGS,
+    "Creates a Char data type definition." },
+    { "Decimal", &Python_context::mysqlx_decimal, METH_VARARGS,
+    "Creates a Numeric data type definition." },
+    { "Numeric", &Python_context::mysqlx_numeric, METH_VARARGS,
+    "Creates a Numeric data type definition." },
     { NULL, NULL, 0, NULL }        /* Sentinel */
   };
 
@@ -600,6 +673,30 @@ namespace shcore
 
     if (module == NULL)
       throw std::runtime_error("Error initializing mysqlx module in Python support");
+    else
+    {
+      // Data Type Constants
+      PyModule_AddObject(module, "TinyInt", get_constant(NULL, NULL, "DataTypes", "TinyInt"));
+      PyModule_AddObject(module, "SmallInt", get_constant(NULL, NULL, "DataTypes", "SmallInt"));
+      PyModule_AddObject(module, "MediumInt", get_constant(NULL, NULL, "DataTypes", "MediumInt"));
+      PyModule_AddObject(module, "Int", get_constant(NULL, NULL, "DataTypes", "Int"));
+      PyModule_AddObject(module, "Integer", get_constant(NULL, NULL, "DataTypes", "Integer"));
+      PyModule_AddObject(module, "BigInt", get_constant(NULL, NULL, "DataTypes", "BigInt"));
+      PyModule_AddObject(module, "Real", get_constant(NULL, NULL, "DataTypes", "Real"));
+      PyModule_AddObject(module, "Float", get_constant(NULL, NULL, "DataTypes", "Float"));
+      PyModule_AddObject(module, "Double", get_constant(NULL, NULL, "DataTypes", "Double"));
+      PyModule_AddObject(module, "Date", get_constant(NULL, NULL, "DataTypes", "Date"));
+      PyModule_AddObject(module, "Time", get_constant(NULL, NULL, "DataTypes", "Time"));
+      PyModule_AddObject(module, "Timestamp", get_constant(NULL, NULL, "DataTypes", "Timestamp"));
+      PyModule_AddObject(module, "DateTime", get_constant(NULL, NULL, "DataTypes", "DateTime"));
+      PyModule_AddObject(module, "Year", get_constant(NULL, NULL, "DataTypes", "Year"));
+      PyModule_AddObject(module, "Bit", get_constant(NULL, NULL, "DataTypes", "Bit"));
+      PyModule_AddObject(module, "Blob", get_constant(NULL, NULL, "DataTypes", "Blob"));
+      PyModule_AddObject(module, "Text", get_constant(NULL, NULL, "DataTypes", "Text"));
+
+      // Index Type Constants
+      PyModule_AddObject(module, "IndexUnique", get_constant(NULL, NULL, "IndexTypes", "IndexUnique"));
+    }
 
     _mysqlx_module = module;
   }

@@ -748,6 +748,10 @@ void Interactive_shell::process_line(const std::string &line)
             _input_buffer.clear();
         }
       }
+      catch (shcore::Exception &exc)
+      {
+        print_error(exc.format());
+      }
       catch (std::exception &exc)
       {
         print_error(exc.what());

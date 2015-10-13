@@ -55,3 +55,70 @@ exports.mysqlx.expr = function(expression)
   return expr_obj
 }
 
+// Data Type Constants
+exports.mysqlx.TinyInt = _F.mysqlx.Constant('DataTypes', 'TinyInt');
+exports.mysqlx.SmallInt = _F.mysqlx.Constant('DataTypes', 'SmallInt');
+exports.mysqlx.MediumInt = _F.mysqlx.Constant('DataTypes', 'MediumInt');
+exports.mysqlx.Int = _F.mysqlx.Constant('DataTypes', 'Int');
+exports.mysqlx.Integer = _F.mysqlx.Constant('DataTypes', 'Integer');
+exports.mysqlx.BigInt = _F.mysqlx.Constant('DataTypes', 'BigInt');
+exports.mysqlx.Real = _F.mysqlx.Constant('DataTypes', 'Real');
+exports.mysqlx.Float = _F.mysqlx.Constant('DataTypes', 'Float');
+exports.mysqlx.Double = _F.mysqlx.Constant('DataTypes', 'Double');
+exports.mysqlx.Date = _F.mysqlx.Constant('DataTypes', 'Date');
+exports.mysqlx.Time = _F.mysqlx.Constant('DataTypes', 'Time');
+exports.mysqlx.Timestamp = _F.mysqlx.Constant('DataTypes', 'Timestamp');
+exports.mysqlx.DateTime = _F.mysqlx.Constant('DataTypes', 'DateTime');
+exports.mysqlx.Year = _F.mysqlx.Constant('DataTypes', 'Year');
+exports.mysqlx.Bit = _F.mysqlx.Constant('DataTypes', 'Bit');
+exports.mysqlx.Blob = _F.mysqlx.Constant('DataTypes', 'Blob');
+exports.mysqlx.Text = _F.mysqlx.Constant('DataTypes', 'Text');
+
+// Data Type Functions
+exports.mysqlx.Varchar = function(length){
+	var varchar;
+	if (typeof(length) == 'undefined')
+		varchar = _F.mysqlx.Constant('DataTypes', 'Varchar');
+	else
+		varchar = _F.mysqlx.Constant('DataTypes', 'Varchar', length);
+		
+	return varchar;
+}
+
+exports.mysqlx.Char = function(length){
+	var varchar;
+	if (typeof(length) == 'undefined')
+		varchar = _F.mysqlx.Constant('DataTypes', 'Char');
+	else
+		varchar = _F.mysqlx.Constant('DataTypes', 'Char', length);
+		
+	return varchar;
+}
+
+exports.mysqlx.Decimal = function(precision, scale){
+	var decimal;
+	if (typeof(precision) == 'undefined' && typeof(scale) == 'undefined')
+		decimal = _F.mysqlx.Constant('DataTypes', 'Decimal');
+	else if (typeof(scale) == 'undefined')
+		decimal = _F.mysqlx.Constant('DataTypes', 'Decimal', precision);
+	else
+		decimal = _F.mysqlx.Constant('DataTypes', 'Decimal', precision, scale);
+	
+	return decimal;
+}
+
+exports.mysqlx.Numeric = function(precision, scale){
+	var numeric;
+	if (typeof(precision) == 'undefined' && typeof(scale) == 'undefined')
+		numeric = _F.mysqlx.Constant('DataTypes', 'Numeric');
+	else if (typeof(scale) == 'undefined')
+		numeric = _F.mysqlx.Constant('DataTypes', 'Numeric', precision);
+	else
+		numeric = _F.mysqlx.Constant('DataTypes', 'Numeric', precision, scale);
+	
+	return numeric;
+}
+
+
+// Index Type Constants
+exports.mysqlx.IndexUnique = _F.mysqlx.Constant('IndexTypes', 'IndexUnique');
