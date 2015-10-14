@@ -252,11 +252,20 @@ shcore::Value Schema::getTable(const shcore::Argument_list &args)
   args.ensure_count(1, (class_name() + ".getTable").c_str());
 
   std::string name = args.string_at(0);
+  shcore::Value ret_val;
 
-  shcore::Value ret_val = find_in_collection(name, _tables);
+  if (!name.empty())
+  {
+    ret_val = find_in_collection(name, _tables);
 
-  if (!ret_val)
-    ret_val = _load_object(name, "TABLE");
+    if (!ret_val)
+      ret_val = _load_object(name, "TABLE");
+
+    if (!ret_val)
+      throw shcore::Exception::runtime_error("The table " + _name + "." + name + " does not exist");
+  }
+  else
+    throw shcore::Exception::argument_error("An empty name is invalid for a table");
 
   return ret_val;
 }
@@ -276,11 +285,20 @@ shcore::Value Schema::getCollection(const shcore::Argument_list &args)
   args.ensure_count(1, (class_name() + ".getCollection").c_str());
 
   std::string name = args.string_at(0);
+  shcore::Value ret_val;
 
-  shcore::Value ret_val = find_in_collection(name, _collections);
+  if (!name.empty())
+  {
+    ret_val = find_in_collection(name, _collections);
 
-  if (!ret_val)
-    ret_val = _load_object(name, "COLLECTION");
+    if (!ret_val)
+      ret_val = _load_object(name, "COLLECTION");
+
+    if (!ret_val)
+      throw shcore::Exception::runtime_error("The collection " + _name + "." + name + " does not exist");
+  }
+  else
+    throw shcore::Exception::argument_error("An empty name is invalid for a collection");
 
   return ret_val;
 }
@@ -323,11 +341,20 @@ shcore::Value Schema::getView(const shcore::Argument_list &args)
   args.ensure_count(1, (class_name() + ".getCollection").c_str());
 
   std::string name = args.string_at(0);
+  shcore::Value ret_val;
 
-  shcore::Value ret_val = find_in_collection(name, _views);
+  if (!name.empty())
+  {
+    ret_val = find_in_collection(name, _views);
 
-  if (!ret_val)
-    ret_val = _load_object(name, "VIEW");
+    if (!ret_val)
+      ret_val = _load_object(name, "VIEW");
+
+    if (!ret_val)
+      throw shcore::Exception::runtime_error("The view " + _name + "." + name + " does not exist");
+  }
+  else
+    throw shcore::Exception::argument_error("An empty name is invalid for a view");
 
   return ret_val;
 }
