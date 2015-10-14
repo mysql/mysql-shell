@@ -55,9 +55,6 @@ function ensure_employee_table() {
   try{
     var table = session.getSchema('test').getTable('employee');
 
-    if(type(table) == "Undefined")
-      throw "Employee table does not exist";
-
     print("Employee table exists...\n");
   }
   catch(err){
@@ -102,9 +99,6 @@ function ensure_my_collection_collection() {
   try{
     var test_coll = session.getSchema('test').getCollection('my_collection');
 
-    if(type(test_coll) == "Undefined")
-      throw "my_collection collection does not exist";
-
     print("my_collection collection exists...\n");
   }
   catch(err){
@@ -133,9 +127,6 @@ function ensure_not_my_collection_collection() {
   try{
     var test_coll = session.getSchema('test').getCollection('my_collection');
 
-    if(type(test_coll) == "Undefined")
-      throw "my_collection collection does not exist";
-
     print ("Dropping my_collection...\n");
     session.dropCollection('test', 'my_collection');
   }
@@ -153,17 +144,17 @@ function ensure_custom_id_unique(){
 
 function ensure_table_users_exists(){
 	ensure_test_schema();
-	
-	var test_coll = session.getSchema('test').getTable('users');
 
-	if(type(test_coll) == "Undefined")
-	{
+	try{
+		var test_coll = session.getSchema('test').getTable('users');
+
+		print('users table exists...');
+	}
+	catch(err){
 		print('Creating users table...');
 		session.sql('create table users (name varchar(50), age int)').execute();
 		session.sql('insert into users values ("Jack", 17)').execute();
 	}
-	else
-		print('users table exists...');
 	
 	nodeSession = session;
 }
