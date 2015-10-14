@@ -1,3 +1,7 @@
+#@ CollectionAdd: valid operations after add with no documents
+|All expected functions are available|
+|No additional functions are available|
+
 #@ CollectionAdd: valid operations after add
 |All expected functions are available|
 |No additional functions are available|

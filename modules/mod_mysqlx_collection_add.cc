@@ -141,7 +141,12 @@ shcore::Value CollectionAdd::add(const shcore::Argument_list &args)
               ::mysqlx::Document inner_doc(element.json());
 
               if (!_add_statement.get())
+              {
                 _add_statement.reset(new ::mysqlx::AddStatement(collection->_collection_impl->add(inner_doc)));
+
+                // Updates the exposed functions (since a document has been added)
+                update_functions("add");
+              }
               else
                 _add_statement->add(inner_doc);
             }
@@ -153,9 +158,6 @@ shcore::Value CollectionAdd::add(const shcore::Argument_list &args)
       CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionAdd.add");
     }
   }
-
-  // Updates the exposed functions
-  update_functions("add");
 
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
@@ -197,9 +199,6 @@ shcore::Value CollectionAdd::execute(const shcore::Argument_list &args)
   try
   {
     args.ensure_count(0, "CollectionAdd.execute");
-
-    if (!_add_statement.get())
-      throw shcore::Exception::argument_error("Cannot execute Collection::add() with no documents");
 
     result = new mysqlx::Result(boost::shared_ptr< ::mysqlx::Result>(_add_statement->execute()));
 

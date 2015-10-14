@@ -13,8 +13,12 @@ var collection = schema.createCollection('collection1');
 // ---------------------------------------------
 // Collection.add Unit Testing: Dynamic Behavior
 // ---------------------------------------------
+//@ CollectionAdd: valid operations after add with no documents
+var crud = collection.add([]);
+validate_crud_functions(crud, ['add']);
+
 //@ CollectionAdd: valid operations after add
-var crud = collection.add({name:"john", age:17});
+crud = collection.add({name:"john", age:17});
 validate_crud_functions(crud, ['add', 'execute', '__shell_hook__']);
 
 //@ CollectionAdd: valid operations after execute
