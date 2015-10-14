@@ -163,7 +163,6 @@ namespace shcore
     }
 
   private:
-    bool _pretty;
     int _deep_level;
 
     Writer_base* _writer;

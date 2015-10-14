@@ -36,7 +36,7 @@ static const char *SHELLTypeSignature = "SHELLCONTEXT";
 namespace shcore
 {
   Python_context::Python_context(Interpreter_delegate *deleg) throw (Exception)
-    : _types(this), _local_initialization(false)
+    : _local_initialization(false), _types(this)
   {
     if (!Py_IsInitialized())
     {
