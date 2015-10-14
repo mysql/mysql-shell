@@ -198,6 +198,9 @@ shcore::Value CollectionAdd::execute(const shcore::Argument_list &args)
   {
     args.ensure_count(0, "CollectionAdd.execute");
 
+    if (!_add_statement.get())
+      throw shcore::Exception::argument_error("Cannot execute Collection::add() with no documents");
+
     result = new mysqlx::Result(boost::shared_ptr< ::mysqlx::Result>(_add_statement->execute()));
 
     result->set_last_document_id(_last_document_id);

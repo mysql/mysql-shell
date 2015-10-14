@@ -24,17 +24,21 @@ import utils
 
 import os
 
+test_file_pattern = "*_t"
+
 for arg in sys.argv[1:]:
     if arg.startswith("--record="):
         _, _, testname = arg.partition("=")
 
         utils.tests_to_record.append(testname)
+    elif not arg.startswith("-"):
+        test_file_pattern = arg
+
 
 os.putenv("TMPDIR", "/tmp")
 
 
-
-tests = unittest.TestLoader().discover("t", pattern="*_t.py")
+tests = unittest.TestLoader().discover("t", pattern=test_file_pattern+".py")
 
 suite = unittest.TestSuite(tests)
 
