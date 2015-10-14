@@ -32,6 +32,8 @@ for arg in sys.argv[1:]:
 
         utils.tests_to_record.append(testname)
     elif not arg.startswith("-"):
+        if arg.endswith("_t.py"):
+            arg = arg[:5]
         test_file_pattern = arg
 
 
