@@ -9,7 +9,6 @@ ensure_schema_does_not_exist(mySession, 'js_shell_test')
 schema = mySession.createSchema('js_shell_test')
 mySession.setCurrentSchema('js_shell_test')
 
-result
 result = mySession.sql('create table table1 (name varchar(50))').execute()
 result = mySession.sql('create view view1 (my_name) as select name from table1').execute()
 result = mySession.js_shell_test.createCollection('collection1')
@@ -44,6 +43,16 @@ print 'getView():', mySession.js_shell_test.getView('view1')
 print '.<view>:', mySession.js_shell_test.view1
 print 'getCollection():', mySession.js_shell_test.getCollection('collection1')
 print '.<collection>:', mySession.js_shell_test.collection1
+
+#@# Testing specific object retrieval: unexisting objects
+mySession.js_shell_test.getTable('unexisting')
+mySession.js_shell_test.getView('unexisting')
+mySession.js_shell_test.getCollection('unexisting')
+
+#@# Testing specific object retrieval: empty name
+mySession.js_shell_test.getTable('')
+mySession.js_shell_test.getView('')
+mySession.js_shell_test.getCollection('')
 
 #@ Retrieving collection as table
 print 'getCollectionAsTable():', mySession.js_shell_test.getCollectionAsTable('collection1')

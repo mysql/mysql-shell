@@ -45,6 +45,16 @@ print('.<view>:', mySession.js_shell_test.view1);
 print('getCollection():', mySession.js_shell_test.getCollection('collection1'));
 print('.<collection>:', mySession.js_shell_test.collection1);
 
+//@# Testing specific object retrieval: unexisting objects
+mySession.js_shell_test.getTable('unexisting');
+mySession.js_shell_test.getView('unexisting');
+mySession.js_shell_test.getCollection('unexisting');
+
+//@# Testing specific object retrieval: empty name
+mySession.js_shell_test.getTable('');
+mySession.js_shell_test.getView('');
+mySession.js_shell_test.getCollection('');
+
 //@ Retrieving collection as table
 print('getCollectionAsTable():', mySession.js_shell_test.getCollectionAsTable('collection1'));
 

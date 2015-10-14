@@ -28,6 +28,16 @@
 |getCollection(): <Collection:collection1>|
 |.<collection>: <Collection:collection1>|
 
+//@# Testing specific object retrieval: unexisting objects
+||The table js_shell_test.unexisting does not exist 
+||The view js_shell_test.unexisting does not exist 
+||The collection js_shell_test.unexisting does not exist 
+
+//@# Testing specific object retrieval: empty name
+||An empty name is invalid for a table
+||An empty name is invalid for a view
+||An empty name is invalid for a collection
+
 //@ Retrieving collection as table
 |getCollectionAsTable(): <Table:collection1>|
 
