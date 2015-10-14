@@ -804,7 +804,7 @@ shcore::Value BaseSession::dropSchemaObject(const shcore::Argument_list &args, c
       schema_obj->_remove_object(name, type);
   }
 
-  return shcore::Value();
+  return ret_val;
 }
 
 /*
