@@ -150,7 +150,9 @@ Value Constant::get_constant_value(const std::string& group, const std::string& 
     else if (id == "Text"){ ret_val = Value("TEXT"); }
   }
   else if (group == "IndexTypes")
-  if (id == "IndexUnique"){ ret_val = Value::True(); }
+  {
+    if (id == "IndexUnique"){ ret_val = Value::True(); }
+  }
   else
     throw shcore::Exception::logic_error("Invalid group onconstant definition:" + group + "." + id);
 

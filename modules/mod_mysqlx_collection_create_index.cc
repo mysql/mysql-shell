@@ -135,7 +135,7 @@ shcore::Value CollectionCreateIndex::field(const shcore::Argument_list &args)
     std::string path = args.string_at(0);
 
     // This parsing is required to validate the fiven document path
-    Mysqlx::Expr::Expr *docpath = ::mysqlx::parser::parse_column_identifier(path);
+    //Mysqlx::Expr::Expr *docpath = ::mysqlx::parser::parse_column_identifier(path);
 
     //::mysqlx::Expr_unparser unparser;
     //std::string doc_path = unparser.expr_to_string(*docpath);

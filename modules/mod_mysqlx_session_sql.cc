@@ -28,7 +28,7 @@ using namespace mysh::mysqlx;
 using namespace shcore;
 
 SqlExecute::SqlExecute(boost::shared_ptr<NodeSession> owner) :
-_session(owner), Dynamic_object()
+Dynamic_object(), _session(owner)
 {
   // Exposes the methods available for chaining
   add_method("sql", boost::bind(&SqlExecute::sql, this, _1), "data");
