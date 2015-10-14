@@ -719,7 +719,8 @@ void Interactive_shell::process_line(const std::string &line)
         _input_buffer.append("\n").append(_shell->preprocess_input_line(line));
     }
 
-    if (!_multiline_mode && !_input_buffer.empty())
+    // in SQL mode, we don't need an empty line to end multiline
+    if ((!_multiline_mode || _shell->interactive_mode() == Shell_core::Mode_SQL) && !_input_buffer.empty())
     {
       try
       {
@@ -728,6 +729,8 @@ void Interactive_shell::process_line(const std::string &line)
         if (state == Input_ok)
         {
           std::string executed = _shell->get_handled_input();
+
+          _multiline_mode = false;
 
           if (!executed.empty())
           {

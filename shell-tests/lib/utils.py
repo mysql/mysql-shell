@@ -29,8 +29,7 @@ mysqlx_path = "mysqlx"
 
 tests_to_record = []
 
-
-
+debug = os.getenv("MXTR_DEBUG") or False
 
 
 
@@ -52,21 +51,34 @@ def process_args(argl):
     return l
 
 
+class MysqlxError(Exception):
+    def __init__(self, rc):
+        Exception.__init__(self, "mysqlx exited with return code %i" % rc)
+        self.code = rc
+
+
 def mysqlx(*argv):
+    if debug:
+        sys.stderr.write(" ".join([mysqlx_path]+process_args(argv))+"\n")
     p = subprocess.Popen([mysqlx_path]+process_args(argv), stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     out, err = p.communicate()
     sys.stdout.write(out)
-    return p.returncode
+    if p.returncode != 0:
+        raise MysqlxError(p.returncode)
 
 
 def mysqlx_capture(*argv):
     p = subprocess.Popen([mysqlx_path]+process_args(argv), stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     out, err = p.communicate()
     sys.stdout.write(out)
-    return p.returncode, out
+    if p.returncode != 0:
+        raise MysqlxError(p.returncode)
+    return out
 
 
 def mysqlx_with_stdin(stdin, *argv):
+    if debug:
+        sys.stderr.write(" ".join([mysqlx_path]+process_args(argv))+"\n")
     p = subprocess.Popen([mysqlx_path]+process_args(argv), stdout=subprocess.PIPE, stderr=subprocess.STDOUT, stdin=subprocess.PIPE)
     if type(stdin) is list:
         out, err = "", ""
@@ -82,9 +94,13 @@ def mysqlx_with_stdin(stdin, *argv):
         outl, errl = p.communicate()
         out += outl
     else:
-        out, err = p.communicate(stdin)
+        if debug:
+            sys.stderr.write("SEND "+stdin+"\n")
+        out, err = p.communicate(stdin+"\n")
     sys.stdout.write(out)
-    return p.returncode, out
+    if p.returncode != 0:
+        raise MysqlxError(p.returncode)
+    return out
 
 
 def checkstdout(fun):
@@ -153,6 +169,17 @@ class ShellTestCase(unittest.TestCase):
     def setUp(self):
         self.tmpfiles = []
 
+
+    def loaddb(self, name):
+        dbpath = os.path.join(os.path.dirname(os.path.dirname(inspect.getfile(self.__class__))), "data/", name+".sql")
+        self.runSQL("drop schema if exists %s; create schema %s;" % (name, name))
+        mysqlx("-uroot", name, "--sqlc", "--file="+dbpath)
+
+
+    def runSQL(self, cmd):
+        mysqlx_with_stdin(cmd, "-uroot", "--sqlc")
+
+
     def tearDown(self):
         for f in self.tmpfiles:
             os.unlink(f)
@@ -163,3 +190,4 @@ class ShellTestCase(unittest.TestCase):
         f = open(path, "w+")
         self.tmpfiles.append(path)
         return f
+

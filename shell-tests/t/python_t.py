@@ -14,8 +14,7 @@ class PythonModeTests(ShellTestCase):
 
 
     def test_script_stdin(self):
-        rc, out = mysqlx_with_stdin("print 1", "--py")
-        self.assertEqual(rc, 0)
+        out = mysqlx_with_stdin("print 1", "--py")
         self.assertEqual(out.strip(), "1")
 
 
