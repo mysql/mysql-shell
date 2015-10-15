@@ -234,6 +234,7 @@ IF(WITH_TESTS)
   SETUP_TESTING()
   add_subdirectory(unittest)
   add_subdirectory(shell-tests)
+  CONFIGURE_FILE(CTestCustom.cmake   ${CMAKE_BINARY_DIR}/CTestCustom.cmake)
 ENDIF()
 
 ###
