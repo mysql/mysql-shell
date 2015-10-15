@@ -36,6 +36,7 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/format.hpp>
 #include <boost/pointer_cast.hpp>
+#include "utils/utils_general.h"
 
 using namespace mysh;
 using namespace mysh::mysqlx;
@@ -151,8 +152,24 @@ std::vector<std::string> Schema::get_members() const
   for (Value::Map_type::const_iterator iter = _tables->begin();
        iter != _tables->end(); ++iter)
   {
-    members.push_back(iter->first);
+    if (shcore::is_valid_identifier(iter->first))
+      members.push_back(iter->first);
   }
+
+  for (Value::Map_type::const_iterator iter = _collections->begin();
+       iter != _collections->end(); ++iter)
+  {
+    if (shcore::is_valid_identifier(iter->first))
+      members.push_back(iter->first);
+  }
+
+  for (Value::Map_type::const_iterator iter = _views->begin();
+       iter != _views->end(); ++iter)
+  {
+    if (shcore::is_valid_identifier(iter->first))
+      members.push_back(iter->first);
+  }
+
   return members;
 }
 

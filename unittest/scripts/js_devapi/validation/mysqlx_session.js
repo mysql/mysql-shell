@@ -34,6 +34,10 @@
 //@ Session: create quoted schema
 |<Schema:quoted schema>|
 
+//@ Session: validate dynamic members for created schemas
+|session_schema: OK|
+|quoted schema: OK|
+
 //@ Session: Transaction handling: rollback
 |Inserted Documents: 0|
 

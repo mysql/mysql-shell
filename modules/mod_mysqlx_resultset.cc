@@ -40,7 +40,7 @@ _result(result)
 
 std::vector<std::string> BaseResult::get_members() const
 {
-  std::vector<std::string> members(shcore::Cpp_object_bridge::get_members());
+  std::vector<std::string> members(ShellBaseResult::get_members());
   members.push_back("executionTime");
   members.push_back("warningCount");
   members.push_back("warnings");
@@ -142,7 +142,7 @@ BaseResult(result)
 
 std::vector<std::string> Result::get_members() const
 {
-  std::vector<std::string> members(shcore::Cpp_object_bridge::get_members());
+  std::vector<std::string> members(BaseResult::get_members());
   members.push_back("affectedItemCount");
   members.push_back("lastInsertId");
   members.push_back("lastDocumentId");
@@ -291,7 +291,7 @@ BaseResult(result)
 
 std::vector<std::string> RowResult::get_members() const
 {
-  std::vector<std::string> members(shcore::Cpp_object_bridge::get_members());
+  std::vector<std::string> members(BaseResult::get_members());
   members.push_back("columnCount");
   members.push_back("columns");
   members.push_back("columnNames");
@@ -547,7 +547,7 @@ shcore::Value SqlResult::has_data(const shcore::Argument_list &args) const
 
 std::vector<std::string> SqlResult::get_members() const
 {
-  std::vector<std::string> members(shcore::Cpp_object_bridge::get_members());
+  std::vector<std::string> members(RowResult::get_members());
   members.push_back("lastInsertId");
   members.push_back("affectedRowCount");
   return members;

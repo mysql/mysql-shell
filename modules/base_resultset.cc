@@ -23,6 +23,7 @@
 #include "shellcore/shell_core.h"
 #include "shellcore/lang_base.h"
 #include "shellcore/common.h"
+#include "utils/utils_general.h"
 
 #include <boost/bind.hpp>
 #include <boost/pointer_cast.hpp>
@@ -104,7 +105,10 @@ std::vector<std::string> Row::get_members() const
   std::vector<std::string> l = shcore::Cpp_object_bridge::get_members();
 
   for (size_t index = 0; index < value_iterators.size(); index++)
-    l.push_back(value_iterators[index]->first);
+  {
+    if (shcore::is_valid_identifier(value_iterators[index]->first))
+      l.push_back(value_iterators[index]->first);
+  }
 
   return l;
 }

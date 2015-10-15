@@ -33,6 +33,7 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/format.hpp>
 #include <boost/pointer_cast.hpp>
+#include "utils/utils_general.h"
 
 using namespace mysh::mysql;
 using namespace shcore;
@@ -110,13 +111,15 @@ std::vector<std::string> ClassicSchema::get_members() const
   for (Value::Map_type::const_iterator iter = _tables->begin();
        iter != _tables->end(); ++iter)
   {
-    members.push_back(iter->first);
+    if (shcore::is_valid_identifier(iter->first))
+      members.push_back(iter->first);
   }
 
   for (Value::Map_type::const_iterator iter = _views->begin();
        iter != _views->end(); ++iter)
   {
-    members.push_back(iter->first);
+    if (shcore::is_valid_identifier(iter->first))
+      members.push_back(iter->first);
   }
 
   return members;

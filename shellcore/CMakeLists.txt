@@ -56,6 +56,8 @@ file(GLOB libmysqlsh_SRC
     "${CMAKE_SOURCE_DIR}/utils/utils_file.cc"
     "${CMAKE_SOURCE_DIR}/utils/utils_json.h"
     "${CMAKE_SOURCE_DIR}/utils/utils_json.cc"
+    "${CMAKE_SOURCE_DIR}/utils/utils_general.h"
+    "${CMAKE_SOURCE_DIR}/utils/utils_general.cc"
     "*.cc"
     "${CMAKE_SOURCE_DIR}/common/uuid/src/uuid_gen.cc"
     "${CMAKE_SOURCE_DIR}/common/myjson/src/json_parser.cc"

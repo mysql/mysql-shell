@@ -16,7 +16,6 @@
 * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
 * 02110-1301  USA
 */
-
 #include "shell_script_tester.h"
 #include "modules/base_session.h"
 #include <boost/lexical_cast.hpp>

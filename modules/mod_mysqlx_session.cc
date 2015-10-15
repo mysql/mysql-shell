@@ -27,6 +27,7 @@
 #include "shellcore/lang_base.h"
 #include "mod_mysqlx_session_sql.h"
 #include "shellcore/server_registry.h"
+#include "utils/utils_general.h"
 
 #include "shellcore/proxy_object.h"
 
@@ -526,7 +527,10 @@ std::vector<std::string> BaseSession::get_members() const
   // Using a set to prevent duplicates
   std::set<std::string> set(members.begin(), members.end());
   for (Value::Map_type::const_iterator iter = _schemas->begin(); iter != _schemas->end(); ++iter)
-    set.insert(iter->first);
+  {
+    if (shcore::is_valid_identifier(iter->first))
+      set.insert(iter->first);
+  }
 
   for (std::vector<std::string>::iterator index = members.begin(); index != members.end(); ++index)
     set.erase(*index);

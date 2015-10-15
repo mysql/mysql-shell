@@ -38,6 +38,13 @@
 #@ ClassicSession: create schema failure
 ||MySQL Error (1007): Can't create database 'node_session_schema'; database exists
 
+#@ Session: create quoted schema
+|<ClassicSchema:quoted schema>|
+
+#@ Session: validate dynamic members for created schemas
+|node_session_schema: OK|
+|quoted schema: OK|
+
 #@ ClassicSession: Transaction handling: rollback
 |Inserted Documents: 0|
 

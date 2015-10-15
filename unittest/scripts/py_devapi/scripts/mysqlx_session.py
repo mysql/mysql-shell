@@ -1,18 +1,7 @@
 # Assumptions: ensure_schema_does_not_exist is available
 # Assumes __uripwd is defined as <user>:<pwd>@<host>:<plugin_port>
+# validateMemer and validateNotMember are defined on the setup script
 import mysqlx
-
-def validateMember(memberList, member):
-	index = -1
-	try:
-		index = memberList.index(member)
-	except:
-		pass
-
-	if index != -1:
-		print member + ": OK\n"
-	else:
-		print member + ": Missing\n"
 
 #@ Session: validating members
 mySession = mysqlx.getSession(__uripwd)
@@ -67,6 +56,11 @@ sf = mySession.createSchema('session_schema')
 ensure_schema_does_not_exist(mySession, 'quoted schema')
 qs = mySession.createSchema('quoted schema')
 print qs
+
+#@ Session: validate dynamic members for created schemas
+sessionMembers = dir(mySession)
+validateMember(sessionMembers, 'session_schema');
+validateNotMember(sessionMembers, 'quoted schema');
 
 #@ Session: Transaction handling: rollback
 collection = ss.createCollection('sample')

@@ -38,3 +38,21 @@ function ensure_schema_does_not_exist(session, name){
 		// Nothing happens, it means the schema did not exist
 	}
 }
+
+function validateMember(memberList, member){
+	if (memberList.indexOf(member) != -1){
+		print(member + ": OK\n");
+	}
+	else{
+		print(member + ": Missing\n");
+	}
+}
+
+function validateNotMember(memberList, member){
+	if (memberList.indexOf(member) != -1){
+		print(member + ": Unexpected\n");
+	}
+	else{
+		print(member + ": OK\n");
+	}
+}

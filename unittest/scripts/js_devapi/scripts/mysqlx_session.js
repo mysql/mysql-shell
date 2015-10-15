@@ -1,15 +1,7 @@
 // Assumptions: ensure_schema_does_not_exist is available
 // Assumes __uripwd is defined as <user>:<pwd>@<host>:<plugin_port>
+// validateMemer and validateNotMember are defined on the setup script
 var mysqlx = require('mysqlx').mysqlx;
-
-function validateMember(memberList, member){
-	if (memberList.indexOf(member) != -1){
-		print(member + ": OK\n");
-	}
-	else{
-		print(member + ": Missing\n");
-	}
-}
 
 //@ Session: validating members
 var mySession = mysqlx.getSession(__uripwd);
@@ -55,9 +47,14 @@ print(ss);
 var sf = mySession.createSchema('session_schema');
 
 //@ Session: create quoted schema
-ensure_schema_does_not_exist('quoted schema');
+ensure_schema_does_not_exist(mySession, 'quoted schema');
 var qs = mySession.createSchema('quoted schema');
 print(qs);
+
+//@ Session: validate dynamic members for created schemas
+sessionMembers = dir(mySession)
+validateMember(sessionMembers, 'session_schema');
+validateNotMember(sessionMembers, 'quoted schema');
 
 //@ Session: Transaction handling: rollback
 var collection = ss.createCollection('sample');

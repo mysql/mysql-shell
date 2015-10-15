@@ -27,3 +27,27 @@ def ensure_schema_does_not_exist(session, name):
 	except:
 		# Nothing happens, it means the schema did not exist
 		pass
+		
+def validateMember(memberList, member):
+	index = -1
+	try:
+		index = memberList.index(member)
+	except:
+		pass
+
+	if index != -1:
+		print member + ": OK\n"
+	else:
+		print member + ": Missing\n"
+		
+def validateNotMember(memberList, member):
+	index = -1
+	try:
+		index = memberList.index(member)
+	except:
+		pass
+
+	if index != -1:
+		print member + ": Unexpected\n"
+	else:
+		print member + ": OK\n"	

@@ -1,15 +1,7 @@
 // Assumptions: ensure_schema_does_not_exist is available
 // Assumes __uripwd is defined as <user>:<pwd>@<host>:<mysql_port>
+// validateMemer and validateNotMember are defined on the setup script
 var mysql = require('mysql').mysql;
-
-function validateMember(memberList, member){
-	if (memberList.indexOf(member) != -1){
-		print(member + ": OK\n");
-	}
-	else{
-		print(member + ": Missing\n");
-	}
-}
 
 //@ Session: validating members
 var classicSession = mysql.getClassicSession(__uripwd);
@@ -65,6 +57,16 @@ print(ss)
 //@ ClassicSession: create schema failure
 var sf = classicSession.createSchema('node_session_schema');
 
+//@ Session: create quoted schema
+ensure_schema_does_not_exist(classicSession, 'quoted schema');
+var qs = classicSession.createSchema('quoted schema');
+print(qs);
+
+//@ Session: validate dynamic members for created schemas
+sessionMembers = dir(classicSession)
+validateMember(sessionMembers, 'node_session_schema');
+validateNotMember(sessionMembers, 'quoted schema');
+
 //@ ClassicSession: Transaction handling: rollback
 classicSession.setCurrentSchema('node_session_schema');
 
@@ -89,6 +91,7 @@ result = classicSession.runSql('select * from sample');
 print('Inserted Documents:', result.fetchAll().length);
 
 classicSession.dropSchema('node_session_schema');
+classicSession.dropSchema('quoted schema');
 
 //@ ClassicSession: current schema validations: nodefault, mysql
 classicSession.setCurrentSchema('mysql');

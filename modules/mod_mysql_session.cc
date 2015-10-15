@@ -44,6 +44,7 @@
 #include "mysql.h"
 #include "mod_mysql_resultset.h"
 #include "mod_mysql_schema.h"
+#include "utils/utils_general.h"
 
 #define MAX_COLUMN_LENGTH 1024
 #define MIN_COLUMN_LENGTH 4
@@ -328,7 +329,10 @@ std::vector<std::string> ClassicSession::get_members() const
   // Will use a set to prevent duplicates
   std::set<std::string> set(members.begin(), members.end());
   for (Value::Map_type::const_iterator iter = _schemas->begin(); iter != _schemas->end(); ++iter)
-    set.insert(iter->first);
+  {
+    if (shcore::is_valid_identifier(iter->first))
+      set.insert(iter->first);
+  }
 
   for (std::vector<std::string>::iterator index = members.begin(); index != members.end(); ++index)
     set.erase(*index);
