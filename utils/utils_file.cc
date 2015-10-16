@@ -369,4 +369,12 @@ namespace shcore
       throw std::runtime_error((boost::format("Error when deleting file  %s exists: %s") % filename % shcore::get_last_error()).str());
 #endif
   }
+
+  std::string get_default_config_path()
+  {
+    static std::string _file_path = ".mysql_server_registry.cnf";
+    std::string path = shcore::get_user_config_path();
+    path += _file_path;
+    return path;
+  }
 }

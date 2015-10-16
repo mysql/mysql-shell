@@ -18,6 +18,8 @@
 */
 
 #include "shellcore/server_registry.h"
+#include "utils/utils_file.h"
+#include "utils/utils_general.h"
 #include "uuid_gen.h"
 #include "myjson/myjson.h"
 #include "myjson/mutable_myjson.h"
@@ -87,8 +89,6 @@ extern "C" int my_aes_decrypt(const unsigned char *source, uint32 source_length,
 enum my_aes_opmode mode, const unsigned char *iv);
 
 Connection_options::Keywords_table Connection_options::_keywords_table;
-
-std::string Server_registry::_file_path = ".mysql_server_registry.cnf";
 
 void Connection_options::Keywords_table::validate_options_mandatory_included(Connection_options& options)
 {
@@ -228,7 +228,7 @@ std::string errmsj = (boost::format("Cannot open file %s: %s") % _filename % std
 throw std::runtime_error(errmsj);
 }
 }
-*/
+//*/
 
 void Server_registry::load_file()
 {
@@ -357,6 +357,8 @@ Connection_options& Server_registry::add_connection_options(const std::string& u
 
 Connection_options& Server_registry::add_connection_options(const std::string& uuid, const std::string& options, const std::string& name)
 {
+  if (!shcore::is_valid_identifier(name))
+    throw std::runtime_error((boost::format("The app name '%s' is not a valid identifier") % name).str());
   Connection_options cs(options);
   cs._uuid = uuid;
   cs.set_name(name);
@@ -366,17 +368,25 @@ Connection_options& Server_registry::add_connection_options(const std::string& u
   return result;
 }
 
+Connection_options& Server_registry::add_connection_options_by_name(const std::string &name, const std::string &options)
+{
+  const std::string uuid = get_new_uuid();
+  return add_connection_options(uuid, options, name);
+}
+
 void Server_registry::remove_connection_options(Connection_options &options)
 {
+  std::string name = options.get_name();
   _connections.erase(options._uuid);
-  _connections.erase(options.get_name());
+  _connections.erase(name);
 }
 
 Connection_options& Server_registry::get_connection_by_name(const std::string& name)
 {
-  if (_connections_by_name.find(name) == _connections_by_name.end())
+  std::map<std::string, Connection_options*>::iterator it = _connections_by_name.find(name);
+  if (it == _connections_by_name.end())
     throw std::runtime_error((boost::format("Connection not found for app name: %s") % name).str());
-  return *_connections_by_name[name];
+  return *(it->second);
 }
 
 Connection_options& Server_registry::get_connection_options(const std::string &uuid)
@@ -387,7 +397,7 @@ Connection_options& Server_registry::get_connection_options(const std::string &u
   return it->second;
 }
 
-std::string Server_registry::get_keyword_value(const std::string &uuid, ConnectionKeywords key) const
+std::string Server_registry::get_keyword_value(const std::string &uuid, Connection_keywords key) const
 {
   connections_map_t::const_iterator it = _connections.find(uuid);
   if (it == _connections.end())
@@ -412,7 +422,7 @@ void Server_registry::set_connection_options(const std::string &uuid, const Conn
   _connections_by_name[conn_str.get_name()] = &result;
 }
 
-void Server_registry::set_keyword_value(const std::string &uuid, ConnectionKeywords key, const std::string& value)
+void Server_registry::set_keyword_value(const std::string &uuid, Connection_keywords key, const std::string& value)
 {
   connections_map_t::iterator it = _connections.find(uuid);
   if (it == _connections.end())
@@ -427,6 +437,13 @@ void Server_registry::set_value(const std::string &uuid, const std::string &name
   if (it == _connections.end())
     throw std::runtime_error((boost::format("Connection not found for uuid: %s") % uuid).str());
   Connection_options& cs = it->second;
+  if (Connection_options::get_keyword_id(name) == (int)App)
+  {
+    if (!shcore::is_valid_identifier(name))
+      throw std::runtime_error((boost::format("The app name '%s' is not a valid identifier") % name).str());
+    _connections_by_name.erase(cs.get_name());
+    _connections_by_name[name] = &cs;
+  }
   cs.set_value(name, value);
 }
 
@@ -594,7 +611,7 @@ void Connection_options::set_connection_options(const std::string &conn_str)
   parse();
 }
 
-void Connection_options::set_keyword_value(ConnectionKeywords key, const std::string& value)
+void Connection_options::set_keyword_value(Connection_keywords key, const std::string& value)
 {
   operator[](_keywords_table[key]) = value;
 }
@@ -634,7 +651,7 @@ void Connection_options::parse()
 
 #ifdef _WIN32
 Lock_file::Lock_file(const std::string &path) throw (std::invalid_argument, std::runtime_error, file_locked_error)
-: path(path), handle(0)
+  : path(path), handle(0)
 {
   if (path.empty()) throw std::invalid_argument("invalid path");
 
@@ -679,40 +696,40 @@ Lock_file::Status Lock_file::check(const std::string &path)
   {
     switch (GetLastError())
     {
-      case ERROR_SHARING_VIOLATION:
-        // if file cannot be opened for writing, it is locked...
-        // so open it for reading to check the owner process id written in it
-        h = CreateFileA(path.c_str(),
-          GENERIC_READ,
-          FILE_SHARE_WRITE | FILE_SHARE_READ,
-          NULL,
-          OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-        if (h != INVALID_HANDLE_VALUE)
+    case ERROR_SHARING_VIOLATION:
+      // if file cannot be opened for writing, it is locked...
+      // so open it for reading to check the owner process id written in it
+      h = CreateFileA(path.c_str(),
+        GENERIC_READ,
+        FILE_SHARE_WRITE | FILE_SHARE_READ,
+        NULL,
+        OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+      if (h != INVALID_HANDLE_VALUE)
+      {
+        char buffer[32];
+        DWORD bytes_read;
+        if (ReadFile(h, buffer, sizeof(buffer), &bytes_read, NULL))
         {
-          char buffer[32];
-          DWORD bytes_read;
-          if (ReadFile(h, buffer, sizeof(buffer), &bytes_read, NULL))
-          {
-            CloseHandle(h);
-            buffer[bytes_read] = 0;
-            if (atoi(buffer) == GetCurrentProcessId())
-              return LockedSelf;
-            return LockedOther;
-          }
           CloseHandle(h);
+          buffer[bytes_read] = 0;
+          if (atoi(buffer) == GetCurrentProcessId())
+            return LockedSelf;
           return LockedOther;
         }
-        // if the file is locked for read, assume its locked by some unrelated process
-        // since this class never locks it for read
+        CloseHandle(h);
         return LockedOther;
-        //throw std::runtime_error(strfmt("Could not read process id from lock file (%i)", GetLastError());
-        break;
-      case ERROR_FILE_NOT_FOUND:
-        return NotLocked;
-      case ERROR_PATH_NOT_FOUND:
-        throw std::invalid_argument("Invalid path");
-      default:
-        throw std::runtime_error((boost::format("Could not open lock file (%i)") % GetLastError()).str());
+      }
+      // if the file is locked for read, assume its locked by some unrelated process
+      // since this class never locks it for read
+      return LockedOther;
+      //throw std::runtime_error(strfmt("Could not read process id from lock file (%i)", GetLastError());
+      break;
+    case ERROR_FILE_NOT_FOUND:
+      return NotLocked;
+    case ERROR_PATH_NOT_FOUND:
+      throw std::invalid_argument("Invalid path");
+    default:
+      throw std::runtime_error((boost::format("Could not open lock file (%i)") % GetLastError()).str());
     }
   }
   else
@@ -724,7 +741,7 @@ Lock_file::Status Lock_file::check(const std::string &path)
 }
 #else
 Lock_file::Lock_file(const std::string &apath) throw (std::invalid_argument, std::runtime_error, file_locked_error)
-: path(apath)
+  : path(apath)
 {
   if (path.empty()) throw std::invalid_argument("invalid path");
 

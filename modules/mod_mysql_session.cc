@@ -147,6 +147,12 @@ Value ClassicSession::connect(const Argument_list &args)
     if (!parse_mysql_connstring(uri_, protocol, user, pass, host, port, sock, db, pwd_found, ssl_ca, ssl_cert, ssl_key))
       throw shcore::Exception::argument_error("Could not parse URI for MySQL connection");
 
+    if (uri_[0] == '$')
+    {
+      uri_.clear();
+      build_connection_string(uri_, protocol, user, pass, host, port, db, false, "", "", "");
+    }
+
     _conn.reset(new Connection(uri_, pwd_override));
   }
   else if (args[0].type == Map)

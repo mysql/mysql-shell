@@ -23,8 +23,12 @@
 #include "shellcore/shell_core.h"
 #include "shellcore/lang_base.h"
 #include "shellcore/common.h"
+#include "shellcore/server_registry.h"
 
 #include "shellcore/proxy_object.h"
+
+#include "utils/utils_general.h"
+#include "utils/utils_file.h"
 
 #include <boost/bind.hpp>
 #include <boost/lexical_cast.hpp>
@@ -43,14 +47,42 @@ using namespace mysh;
 using namespace shcore;
 
 bool mysh::parse_mysql_connstring(const std::string &connstring,
-                            std::string &protocol, std::string &user, std::string &password,
-                            std::string &host, int &port, std::string &sock,
-                            std::string &db, int &pwd_found, std::string& ssl_ca, std::string& ssl_cert, std::string& ssl_key)
+  std::string &protocol, std::string &user, std::string &password,
+  std::string &host, int &port, std::string &sock,
+  std::string &db, int &pwd_found, std::string& ssl_ca, std::string& ssl_cert, std::string& ssl_key)
 {
   // format is [user[:pass]]@host[:port][/db] or user[:pass]@::socket[/db], like what cmdline utilities use
   // with SSL [user[:pass]]@host[:port][/db]?ssl_ca=path_to_ca&ssl_cert=path_to_cert&ssl_key=path_to_key
+  // with app name format is $app_name
   pwd_found = 0;
   std::string remaining = connstring;
+
+  if (remaining[0] == '$')
+  {
+    shcore::Server_registry sr(shcore::get_default_config_path());
+    std::string appid = remaining.substr(1);
+    if (!shcore::is_valid_identifier(appid))
+      throw std::runtime_error((boost::format("The app name '%s' is not a valid identifier") % appid).str());
+
+    shcore::Connection_options& cs = sr.get_connection_by_name(appid);
+    protocol.assign(cs.get_value_if_exists("protocol"));
+    user.assign(cs.get_value_if_exists("user"));
+    password.assign(cs.get_value_if_exists("password"));
+    host.assign(cs.get_value_if_exists("server"));
+    std::string sport = cs.get_value_if_exists("port");
+    if (!sport.empty())
+    {
+      if (!sscanf(sport.c_str(), "%i", &port))
+        return false;
+      pwd_found = 1;
+    }
+    sock.assign(cs.get_value_if_exists("sock"));
+    db.assign(cs.get_value_if_exists("db"));
+    ssl_ca.assign(cs.get_value_if_exists("ssl_ca"));
+    ssl_cert.assign(cs.get_value_if_exists("ssl_cert"));
+    ssl_key.assign(cs.get_value_if_exists("ssl_key"));
+    return true;
+  }
 
   std::string::size_type p;
   std::string::size_type p_query;
@@ -108,8 +140,8 @@ bool mysh::parse_mysql_connstring(const std::string &connstring,
     if (p != std::string::npos)
       sock = server_part.substr(p + 1);
     else
-    if (!sscanf(server_part.substr(0, p).c_str(), "%i", &port))
-      return false;
+      if (!sscanf(server_part.substr(0, p).c_str(), "%i", &port))
+        return false;
   }
   else
     host = server_part;
@@ -230,20 +262,20 @@ boost::shared_ptr<mysh::ShellBaseSession> mysh::connect_session(const shcore::Ar
 
   switch (session_type)
   {
-    case Application:
-      ret_val.reset(new mysh::mysqlx::XSession());
-      break;
-    case Node:
-      ret_val.reset(new mysh::mysqlx::NodeSession());
-      break;
+  case Application:
+    ret_val.reset(new mysh::mysqlx::XSession());
+    break;
+  case Node:
+    ret_val.reset(new mysh::mysqlx::NodeSession());
+    break;
 #ifdef HAVE_LIBMYSQLCLIENT
-    case Classic:
-      ret_val.reset(new mysql::ClassicSession());
-      break;
+  case Classic:
+    ret_val.reset(new mysql::ClassicSession());
+    break;
 #endif
-    default:
-      throw shcore::Exception::argument_error("Invalid session type specified for MySQL connection.");
-      break;
+  default:
+    throw shcore::Exception::argument_error("Invalid session type specified for MySQL connection.");
+    break;
   }
 
   ret_val->connect(args);

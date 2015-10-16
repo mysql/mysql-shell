@@ -21,6 +21,7 @@
 #include <iostream>
 #include "shellcore/ishell_core.h"
 #include "shell_cmdline_options.h"
+#include "utils/utils_general.h"
 #include <boost/format.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/algorithm/string.hpp>
@@ -29,7 +30,7 @@
 using namespace shcore;
 
 Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
-: Command_line_options(argc, argv), log_level(ngcommon::Logger::LOG_ERROR)
+  : Command_line_options(argc, argv), log_level(ngcommon::Logger::LOG_ERROR)
 {
   std::string connection_string;
   std::string host;
@@ -215,10 +216,10 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
 // Takes the URI and the individual connection parameters and overrides
 // On the URI as specified on the parameters
 void Shell_command_line_options::configure_connection_string(const std::string &connstring,
-                                   std::string &user, std::string &password,
-                                   std::string &host, int &port,
-                                   std::string &database, bool prompt_pwd, std::string &ssl_ca,
-                                   std::string &ssl_cert, std::string &ssl_key)
+  std::string &user, std::string &password,
+  std::string &host, int &port,
+  std::string &database, bool prompt_pwd, std::string &ssl_ca,
+  std::string &ssl_cert, std::string &ssl_key)
 {
   std::string uri_protocol;
   std::string uri_user;
@@ -236,7 +237,7 @@ void Shell_command_line_options::configure_connection_string(const std::string &
   if (!connstring.empty())
   {
     if (!mysh::parse_mysql_connstring(connstring, uri_protocol, uri_user, uri_password, uri_host, uri_port, uri_sock, uri_database, pwd_found,
-        uri_ssl_ca, uri_ssl_cert, uri_ssl_key))
+      uri_ssl_ca, uri_ssl_cert, uri_ssl_key))
     {
       std::cerr << "Invalid value specified in --uri parameter.\n";
       exit_code = 1;
@@ -276,83 +277,5 @@ void Shell_command_line_options::configure_connection_string(const std::string &
   }
 
   // If needed we construct the URi from the individual parameters
-  {
-    // Configures the URI string
-    if (!uri_protocol.empty())
-    {
-      uri.append(uri_protocol);
-      uri.append("://");
-    }
-
-    // Sets the user and password
-    if (!uri_user.empty())
-    {
-      uri.append(uri_user);
-
-      // If the password will not be prompted and is defined appends both :password
-      if (!prompt_pwd)
-        uri.append(":").append(uri_password);
-
-      uri.append("@");
-    }
-
-    // Sets the host
-    if (!uri_host.empty())
-      uri.append(uri_host);
-
-    // Sets the port
-    if (!uri_host.empty() && port > 0)
-      uri.append((boost::format(":%i") % port).str());
-
-    // Sets the database
-    if (!uri_database.empty())
-    {
-      uri.append("/");
-      uri.append(uri_database);
-    }
-
-    conn_str_cat_ssl_data(uri, uri_ssl_ca, uri_ssl_cert, uri_ssl_key);
-  }
-}
-
-void Shell_command_line_options::conn_str_cat_ssl_data(std::string& uri, const std::string& ssl_ca, const std::string& ssl_cert, const std::string& ssl_key)
-{
-  if (!uri.empty() && (!ssl_ca.empty() || !ssl_cert.empty() || !ssl_key.empty()))
-  {
-    bool first = false;
-    int cnt = 0;
-    if (!ssl_ca.empty()) ++cnt;
-    if (!ssl_cert.empty()) ++cnt;
-    if (!ssl_key.empty()) ++cnt;
-    
-    if (!ssl_ca.empty() && uri.rfind("ssl_ca=") == std::string::npos)
-    {
-      if (!first)
-      {
-        first = true;
-        uri.append("?");
-      }
-      uri.append("ssl_ca=").append(ssl_ca);
-      if (--cnt) uri.append("&");
-    }
-    if (!ssl_cert.empty() && uri.rfind("ssl_cert=") == std::string::npos)
-    {
-      if (!first)
-      {
-        first = true;
-        uri.append("?");
-      }
-      uri.append("ssl_cert=").append(ssl_cert);
-      if (--cnt) uri.append("&");
-    }
-    if (!ssl_key.empty() && uri.rfind("ssl_key=") == std::string::npos)
-    {
-      if (!first)
-      {
-        first = true;
-        uri.append("?");
-      }
-      uri.append("ssl_key=").append(ssl_key);
-    }
-  }
+  build_connection_string(uri, uri_protocol, uri_user, uri_password, uri_host, port, uri_database, prompt_pwd, uri_ssl_ca, uri_ssl_cert, uri_ssl_key);
 }

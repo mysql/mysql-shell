@@ -25,7 +25,13 @@
 
 namespace shcore
 {
-  bool is_valid_identifier(const std::string& name);
+  bool SHCORE_PUBLIC is_valid_identifier(const std::string& name);
+  void SHCORE_PUBLIC build_connection_string(std::string &uri,
+    const std::string &uri_protocol, const std::string &uri_user, const std::string &uri_password,
+    const std::string &uri_host, int &port,
+    const std::string &uri_database, bool prompt_pwd, const std::string &uri_ssl_ca,
+    const std::string &uri_ssl_cert, const std::string &uri_ssl_key);
+  void SHCORE_PUBLIC conn_str_cat_ssl_data(std::string& uri, const std::string& ssl_ca, const std::string& ssl_cert, const std::string& ssl_key);
 }
 
 #endif /* defined(__mysh__utils_general__) */

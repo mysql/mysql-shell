@@ -22,6 +22,7 @@
 
 #include "shellcore/types.h"
 #include "utils/utils_file.h"
+#include "utils/utils_general.h"
 
 #ifndef WIN32
 #  include "editline/readline.h"
@@ -41,6 +42,7 @@
 #include "shellcore/shell_core.h"
 #include "shellcore/ishell_core.h"
 #include "shellcore/common.h"
+#include "shellcore/server_registry.h"
 
 #include "shell_cmdline_options.h"
 #include "shell_resultset_dumper.h"
@@ -107,6 +109,9 @@ public:
   void cmd_quit(const std::vector<std::string>& args);
   void cmd_warnings(const std::vector<std::string>& args);
   void cmd_nowarnings(const std::vector<std::string>& args);
+  void cmd_store_connection(const std::vector<std::string>& args);
+  void cmd_delete_connection(const std::vector<std::string>& args);
+  void cmd_list_connections(const std::vector<std::string>& args);
 
   void print_banner();
   void print_cmd_line_helper();
@@ -184,10 +189,13 @@ _options(options)
   std::string cmd_help =
     "SYNTAX:\n"
     "   \\connect%1% <URI>\n\n"
+    "   \\connect%1% $<APP_NAME>\n\n"
     "WHERE:\n"
     "   URI is in the format of: [user[:password]@]hostname[:port]\n"
+    "   APP_NAME is the app name from server registry"
     "EXAMPLE:\n"
-    "   \\connect%1% root@localhost\n";
+    "   \\connect%1% root@localhost\n"
+    "   \\connect%1% $my_app_name";
 
   std::string cmd_help_source =
     "SYNTAX:\n"
@@ -209,8 +217,28 @@ _options(options)
   SET_SHELL_COMMAND("\\connect", "Connect to server using an application mode session.", (boost::format(cmd_help) % "").str(), Interactive_shell::cmd_connect);
   SET_SHELL_COMMAND("\\connect_node", "Connect to server using a node session.", (boost::format(cmd_help) % "_node").str(), Interactive_shell::cmd_connect_node);
   SET_SHELL_COMMAND("\\connect_classic", "Connect to server using the MySQL protocol.", (boost::format(cmd_help) % "_classic").str(), Interactive_shell::cmd_connect_classic);
-  SET_SHELL_COMMAND("\\warnings|\\W", "Show warnings after every statement..", "", Interactive_shell::cmd_warnings);
-  SET_SHELL_COMMAND("\\nowarnings|\\w", "Don't show warnings after every statement..", "", Interactive_shell::cmd_nowarnings);
+  SET_SHELL_COMMAND("\\warnings|\\W", "Show warnings after every statement.", "", Interactive_shell::cmd_warnings);
+  SET_SHELL_COMMAND("\\nowarnings|\\w", "Don't show warnings after every statement.", "", Interactive_shell::cmd_nowarnings);
+
+  const std::string cmd_help_store_connection =
+    "SYNTAX:\n"
+    "   \\addcon <APP_NAME> <URI>\n\n"
+    "   \\addcon <APP_NAME>\n\n"
+    "WHERE:\n"
+    "   APP_NAME is the name of the app to use (the key of a connection string option). Must be a valid identifier\n"
+    "   URI Optional. the connection string following the uri convention. If not provided, will use the uri of the current session.\n\n"
+    "EXAMPLES:\n"
+    "   \\addconn my_app_name root:123@localhost:33060\n";
+  const std::string cmd_help_delete_connection =
+    "SYNTAX:\n"
+    "   \\rmconn <APP_NAME>\n\n"
+    "WHERE:\n"
+    "   APP_NAME is the name of the app to delete (the key of a connection string option).\n\n"
+    "EXAMPLES:\n"
+    "   \\rmconn my_app_name\n";
+  SET_SHELL_COMMAND("\\addconn|\\addc", "Inserts/updates new/existing connection into the connection registry.", cmd_help_store_connection, Interactive_shell::cmd_store_connection);
+  SET_SHELL_COMMAND("\\rmconn|\\rmc", "Removes a connection from the connection registry.", cmd_help_delete_connection, Interactive_shell::cmd_delete_connection);
+  SET_SHELL_COMMAND("\\lsconn|\\lsc", "List the contents of all connections currently in the registry.", "", Interactive_shell::cmd_list_connections);
 
   bool lang_initialized;
   _shell->switch_mode(_options.initial_mode, lang_initialized);
@@ -247,15 +275,15 @@ bool Interactive_shell::connect()
 
       switch (_options.session_type)
       {
-        case mysh::Application:
-          stype = "Application";
-          break;
-        case mysh::Node:
-          stype = "Node";
-          break;
-        case mysh::Classic:
-          stype = "Classic";
-          break;
+      case mysh::Application:
+        stype = "Application";
+        break;
+      case mysh::Node:
+        stype = "Node";
+        break;
+      case mysh::Classic:
+        stype = "Classic";
+        break;
       }
 
       std::string uri_stripped = mysh::strip_password(_options.uri);
@@ -416,29 +444,29 @@ void Interactive_shell::switch_shell_mode(Shell_core::Mode mode, const std::vect
     //XXX reset the history... history should be specific to each shell mode
     switch (mode)
     {
-      case Shell_core::Mode_None:
-        break;
-      case Shell_core::Mode_SQL:
-        if (_shell->switch_mode(mode, lang_initialized))
-          println("Switching to SQL mode... Commands end with ;");
-        break;
-      case Shell_core::Mode_JScript:
+    case Shell_core::Mode_None:
+      break;
+    case Shell_core::Mode_SQL:
+      if (_shell->switch_mode(mode, lang_initialized))
+        println("Switching to SQL mode... Commands end with ;");
+      break;
+    case Shell_core::Mode_JScript:
 #ifdef HAVE_V8
-        if (_shell->switch_mode(mode, lang_initialized))
-          println("Switching to JavaScript mode...");
+      if (_shell->switch_mode(mode, lang_initialized))
+        println("Switching to JavaScript mode...");
 #else
-        println("JavaScript mode is not supported on this platform, command ignored.");
+      println("JavaScript mode is not supported on this platform, command ignored.");
 #endif
-        break;
-      case Shell_core::Mode_Python:
-        // TODO: remove following #if 0 #endif as soon as Python mode is implemented
+      break;
+    case Shell_core::Mode_Python:
+      // TODO: remove following #if 0 #endif as soon as Python mode is implemented
 #ifdef HAVE_PYTHON
-        if (_shell->switch_mode(mode, lang_initialized))
-          println("Switching to Python mode...");
+      if (_shell->switch_mode(mode, lang_initialized))
+        println("Switching to Python mode...");
 #else
-        println("Python mode is not yet supported, command ignored.");
+      println("Python mode is not yet supported, command ignored.");
 #endif
-        break;
+      break;
     }
 
     // load scripts for standard locations
@@ -614,6 +642,101 @@ void Interactive_shell::cmd_nowarnings(const std::vector<std::string>& UNUSED(ar
   println("Show warnings disabled.");
 }
 
+void Interactive_shell::cmd_store_connection(const std::vector<std::string>& args)
+{
+  if (args.size() >= 1 && args.size() <= 2)
+  {
+    const std::string& app = args.at(0);
+    if (!shcore::is_valid_identifier(app))
+      throw std::runtime_error((boost::format("The app name '%s' is not a valid identifier") % app).str());
+
+    std::string uri;
+    if (args.size() == 2)
+      uri = args.at(1);
+    else
+      uri = _session->uri();
+
+    std::string protocol;
+    std::string user;
+    std::string password;
+    std::string host;
+    int port;
+    std::string sock;
+    std::string db;
+    int pwd_found;
+    std::string ssl_ca;
+    std::string ssl_cert;
+    std::string ssl_key;
+    mysh::parse_mysql_connstring(uri, protocol, user, password, host, port, sock, db, pwd_found, ssl_ca, ssl_cert, ssl_key);
+
+    shcore::Server_registry sr(shcore::get_default_config_path());
+    shcore::Connection_options& cs = sr.add_connection_options_by_name(app, "");
+    if (!protocol.empty())
+      cs.set_protocol(protocol);
+    cs.set_user(user);
+    cs.set_password(password);
+    cs.set_server(host);
+    cs.set_port(boost::lexical_cast<std::string>(port));
+    if (!db.empty())
+      cs.set_schema(db);
+    if (!ssl_ca.empty())
+      cs.set_value("ssl_ca", ssl_ca);
+    if (!ssl_cert.empty())
+      cs.set_value("ssl_cert", ssl_cert);
+    if (!ssl_key.empty())
+      cs.set_value("ssl_key", ssl_key);
+    sr.merge();
+  }
+  else
+    print_error("\\addconn <app> [<uri>] ");
+}
+
+void Interactive_shell::cmd_delete_connection(const std::vector<std::string>& args)
+{
+  if (args.size() == 1)
+  {
+    const std::string& app = args.at(0);
+    if (!shcore::is_valid_identifier(app))
+      throw std::runtime_error((boost::format("The app name '%s' is not a valid identifier") % app).str());
+    shcore::Server_registry sr(shcore::get_default_config_path());
+    shcore::Connection_options& cs = sr.get_connection_by_name(app);
+    sr.remove_connection_options(cs);
+    sr.merge();
+  }
+  else
+    print_error("\\rmconn <app>");
+}
+
+void Interactive_shell::cmd_list_connections(const std::vector<std::string>& args)
+{
+  if (args.size() == 0)
+  {
+    std::string json;
+    shcore::Server_registry sr(shcore::get_default_config_path());
+    for (std::map<std::string, Connection_options>::const_iterator it = sr.begin(); it != sr.end(); ++it)
+    {
+      const Connection_options& cs = it->second;
+      // json
+      json = "{ \"app\" : \"" + cs.get_name() + "\", config : {";
+      Connection_options::const_iterator myend2 = cs.end();
+      bool first = true;
+      for (Connection_options::const_iterator it2 = cs.begin(); it2 != myend2; ++it2)
+      {
+        if (first) first = false;
+        else json += ", ";
+        if (it2->first == "password")
+          json += "\"" + it2->first + "\" : \"******\"";
+        else
+          json += "\"" + it2->first + "\" : \"" + it2->second + "\"";
+      }
+      json += "}\n}\n";
+      print(json);
+    }
+  }
+  else
+    print_error("\\lsconn <no_args>");
+}
+
 void Interactive_shell::deleg_print(void *cdata, const char *text)
 {
   Interactive_shell *self = (Interactive_shell*)cdata;
@@ -771,7 +894,7 @@ void Interactive_shell::process_line(const std::string &line)
 void Interactive_shell::process_result(shcore::Value result)
 {
   if ((*Shell_core_options::get())[SHCORE_INTERACTIVE].as_bool()
-      || _shell->interactive_mode() == Shell_core::Mode_SQL)
+    || _shell->interactive_mode() == Shell_core::Mode_SQL)
   {
     if (result)
     {
@@ -897,21 +1020,21 @@ void Interactive_shell::command_loop()
     std::string message;
     switch (_shell->interactive_mode())
     {
-      case Shell_core::Mode_SQL:
+    case Shell_core::Mode_SQL:
 #ifdef HAVE_V8
-        message = "Currently in SQL mode. Use \\js or \\py to switch the shell to a scripting language.";
+      message = "Currently in SQL mode. Use \\js or \\py to switch the shell to a scripting language.";
 #else
-        message = "Currently in SQL mode. Use \\py to switch the shell to python scripting.";
+      message = "Currently in SQL mode. Use \\py to switch the shell to python scripting.";
 #endif
-        break;
-      case Shell_core::Mode_JScript:
-        message = "Currently in JavaScript mode. Use \\sql to switch to SQL mode and execute queries.";
-        break;
-      case Shell_core::Mode_Python:
-        message = "Currently in Python mode. Use \\sql to switch to SQL mode and execute queries.";
-        break;
-      default:
-        break;
+      break;
+    case Shell_core::Mode_JScript:
+      message = "Currently in JavaScript mode. Use \\sql to switch to SQL mode and execute queries.";
+      break;
+    case Shell_core::Mode_Python:
+      message = "Currently in Python mode. Use \\sql to switch to SQL mode and execute queries.";
+      break;
+    default:
+      break;
     }
 
     if (!message.empty())

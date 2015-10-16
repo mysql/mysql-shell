@@ -41,7 +41,7 @@ namespace shcore {
     X_server
   };
 
-  enum ConnectionKeywords
+  enum Connection_keywords
   {
     App = 0,
     Server = 1,
@@ -102,8 +102,8 @@ namespace shcore {
     const_iterator find(const key_type& key) const { return _data.find(key); }
 
   private:
-    std::string get_keyword_value(ConnectionKeywords key) const { return get_value_if_exists(_keywords_table[key]); }
-    void set_keyword_value(ConnectionKeywords key, const std::string& value);
+    std::string get_keyword_value(Connection_keywords key) const { return get_value_if_exists(_keywords_table[key]); }
+    void set_keyword_value(Connection_keywords key, const std::string& value);
 
     map_t _data;
 
@@ -112,14 +112,14 @@ namespace shcore {
     private:
       enum { MAX_KEYWORDS = 7 };
       std::string _keywords[MAX_KEYWORDS];
-      typedef std::map<std::string, ConnectionKeywords> keywords_to_int_map;
+      typedef std::map<std::string, Connection_keywords> keywords_to_int_map;
       keywords_to_int_map _keywords_to_int;
       bool _is_optional[MAX_KEYWORDS];
       inline void init_keyword(std::string name, int idx, bool optional)
       {
         _keywords[idx] = name;
         _is_optional[idx] = optional;
-        _keywords_to_int[name] = (ConnectionKeywords)idx;
+        _keywords_to_int[name] = (Connection_keywords)idx;
       }
 
     public:
@@ -140,6 +140,14 @@ namespace shcore {
         return _keywords[idx];
       }
 
+      int get_keyword_id(const std::string& name)
+      {
+        keywords_to_int_map::const_iterator it = _keywords_to_int.find(name);
+        if (it != _keywords_to_int.end())
+          it->second;
+        return -1;
+      }
+
       void validate_options_mandatory_included(Connection_options& options);
     };
 
@@ -151,6 +159,12 @@ namespace shcore {
 
     friend class Server_registry;
     void parse();
+
+  public:
+    static int get_keyword_id(const std::string& name)
+    {
+      return _keywords_table.get_keyword_id(name);
+    }
   };
 
   struct Lock_file;
@@ -164,11 +178,9 @@ namespace shcore {
 
     ~Server_registry();
 
-    //void load_file_rapidjson();
-    void load_file();
-
     Connection_options& add_connection_options(const std::string &options);
     Connection_options& add_connection_options(const std::string &uuid, const std::string &options);
+    Connection_options& add_connection_options_by_name(const std::string &name, const std::string &options);
     void remove_connection_options(Connection_options &options);
 
     // gets a connection by name (app attribute)
@@ -214,14 +226,14 @@ namespace shcore {
     Lock_file *_lock;
 
     void init();
+    void load_file();
+    //void load_file_rapidjson();
     Connection_options& add_connection_options(const std::string& uuid, const std::string& options, const std::string& name);
     static int encrypt_buffer(const char *plain, int plain_len, char cipher[], const char *my_key);
     static int decrypt_buffer(const char *cipher, int cipher_len, char plain[], const char *my_key);
 
-    std::string get_keyword_value(const std::string &uuid, ConnectionKeywords key) const;
-    void set_keyword_value(const std::string &uuid, ConnectionKeywords key, const std::string& value);
-
-    static std::string _file_path;
+    std::string get_keyword_value(const std::string &uuid, Connection_keywords key) const;
+    void set_keyword_value(const std::string &uuid, Connection_keywords key, const std::string& value);
   };
 
   class SHCORE_PUBLIC file_locked_error : public std::runtime_error
