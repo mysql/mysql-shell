@@ -776,14 +776,21 @@ const std::string& Expr_parser::id()
 }
 
 /*
- * column_field ::= [ IDENT DOT ][ IDENT DOT ] IDENT [ ARROW QUOTE DOLLAR docpath QUOTE ]
+ * column_field ::= [ id DOT ][ id DOT ] id [ ARROW QUOTE DOLLAR docpath QUOTE ]
  */
 Mysqlx::Expr::Expr* Expr_parser::column_field()
 {
   std::auto_ptr<Mysqlx::Expr::Expr> e = std::auto_ptr<Mysqlx::Expr::Expr>(new Mysqlx::Expr::Expr());
-
   std::vector<std::string> parts;
   const std::string& part = id();
+
+  if (part == "*")
+  {
+    e->set_type(Mysqlx::Expr::Expr::OPERATOR);
+    e->mutable_operator_()->set_name("*");
+    return e.release();
+  }
+
   parts.push_back(part);
 
   while (_tokenizer.cur_token_type_is(Token::DOT))
@@ -837,7 +844,7 @@ Mysqlx::Expr::Expr* Expr_parser::document_field()
     item->set_value(value.c_str(), value.size());
   }
   document_path(*colid);
-  
+
   e->set_type(Mysqlx::Expr::Expr::IDENT);
   return e.release();
 }
@@ -847,7 +854,7 @@ Mysqlx::Expr::Expr* Expr_parser::document_field()
  *   PLACEHOLDER | ( AT IDENT ) | ( LPAREN expr RPAREN ) | ( [ PLUS | MINUS ] LNUM ) |
  *   (( PLUS | MINUS | NOT | NEG ) atomic_expr ) | LSTRING | NULL | LNUM | LINTEGER | TRUE | FALSE |
  *   ( INTERVAL expr ( MICROSECOND | SECOND | MINUTE | HOUR | DAY | WEEK | MONTH | QUARTER | YEAR )) |
- *   function_call | column_identifier | cast | binary | placeholder | json_doc
+ *   function_call | column_identifier | cast | binary | placeholder | json_doc | MUL
  */
 Mysqlx::Expr::Expr* Expr_parser::atomic_expr()
 {
@@ -1542,26 +1549,26 @@ std::string Expr_unparser::scalar_to_string(const Mysqlx::Datatypes::Scalar& s)
 {
   switch (s.type())
   {
-    case Mysqlx::Datatypes::Scalar::V_SINT:
-      return (boost::format("%d") % s.v_signed_int()).str();
-    case Mysqlx::Datatypes::Scalar::V_DOUBLE:
-      return (boost::format("%f") % s.v_double()).str();
-    case Mysqlx::Datatypes::Scalar::V_BOOL:
-    {
-                                            if (s.v_bool())
-                                              return "TRUE";
-                                            else
-                                              return "FALSE";
-    }
-    case Mysqlx::Datatypes::Scalar::V_OCTETS:
-    {
-                                              const char* value = s.v_opaque().c_str();
-                                              return "\"" + Expr_unparser::escape_literal(value) + "\"";
-    }
-    case Mysqlx::Datatypes::Scalar::V_NULL:
-      return "NULL";
-    default:
-      throw Parser_error("Unknown type tag at Scalar: " + s.DebugString());
+  case Mysqlx::Datatypes::Scalar::V_SINT:
+    return (boost::format("%d") % s.v_signed_int()).str();
+  case Mysqlx::Datatypes::Scalar::V_DOUBLE:
+    return (boost::format("%f") % s.v_double()).str();
+  case Mysqlx::Datatypes::Scalar::V_BOOL:
+  {
+    if (s.v_bool())
+      return "TRUE";
+    else
+      return "FALSE";
+  }
+  case Mysqlx::Datatypes::Scalar::V_OCTETS:
+  {
+    const char* value = s.v_opaque().c_str();
+    return "\"" + Expr_unparser::escape_literal(value) + "\"";
+  }
+  case Mysqlx::Datatypes::Scalar::V_NULL:
+    return "NULL";
+  default:
+    throw Parser_error("Unknown type tag at Scalar: " + s.DebugString());
   }
 }
 
@@ -1574,21 +1581,21 @@ std::string Expr_unparser::document_path_to_string(const ::google::protobuf::Rep
     const Mysqlx::Expr::DocumentPathItem& dpi = dp.Get(i);
     switch (dpi.type())
     {
-      case Mysqlx::Expr::DocumentPathItem::MEMBER:
-        parts.push_back("." + dpi.value());
-        break;
-      case Mysqlx::Expr::DocumentPathItem::MEMBER_ASTERISK:
-        parts.push_back("." + dpi.value());
-        break;
-      case Mysqlx::Expr::DocumentPathItem::ARRAY_INDEX:
-        parts.push_back((boost::format("[%d]") % dpi.index()).str());
-        break;
-      case Mysqlx::Expr::DocumentPathItem::ARRAY_INDEX_ASTERISK:
-        parts.push_back("[*]");
-        break;
-      case Mysqlx::Expr::DocumentPathItem::DOUBLE_ASTERISK:
-        parts.push_back("**");
-        break;
+    case Mysqlx::Expr::DocumentPathItem::MEMBER:
+      parts.push_back("." + dpi.value());
+      break;
+    case Mysqlx::Expr::DocumentPathItem::MEMBER_ASTERISK:
+      parts.push_back("." + dpi.value());
+      break;
+    case Mysqlx::Expr::DocumentPathItem::ARRAY_INDEX:
+      parts.push_back((boost::format("[%d]") % dpi.index()).str());
+      break;
+    case Mysqlx::Expr::DocumentPathItem::ARRAY_INDEX_ASTERISK:
+      parts.push_back("[*]");
+      break;
+    case Mysqlx::Expr::DocumentPathItem::DOUBLE_ASTERISK:
+      parts.push_back("**");
+      break;
     }
   }
 
@@ -1689,6 +1696,10 @@ std::string Expr_unparser::operator_to_string(const Mysqlx::Expr::Operator& op)
       // something like NOT
       return name_ + " ( " + Expr_unparser::expr_to_string(ps.Get(0)) + ")";
     }
+  }
+  else if (name == "*" && ps.size() == 0)
+  {
+    return "*";
   }
   else
   {

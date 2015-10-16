@@ -53,3 +53,6 @@
 
 |Result 1 Record 4: jack|
 |Result 2 Record 4: carol|
+
+#@ Resultset table
+|7|

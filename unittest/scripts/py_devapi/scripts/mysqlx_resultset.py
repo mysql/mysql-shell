@@ -128,4 +128,7 @@ record2 = result2.fetchOne()
 print "Result 1 Record 4:", record1.name
 print "Result 2 Record 4:", record2.name
 
+#@ Resultset table
+print table.select(["count(*)"]).execute().fetchOne()[0]
+
 mySession.close()
