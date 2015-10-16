@@ -92,7 +92,7 @@ if(WITH_TESTS)
     add_custom_command(TARGET run_unit_tests PRE_BUILD
                           COMMAND ${CMAKE_COMMAND} -E copy_directory
                           ${CMAKE_SOURCE_DIR}/unittest/scripts $<TARGET_FILE_DIR:run_unit_tests>)
-                          
+
     if ( HAVE_PYTHON )
       target_link_libraries(run_unit_tests ${PYTHON_LIBRARIES})
 
@@ -101,7 +101,7 @@ if(WITH_TESTS)
         string(REPLACE ".lib" ".dll" PY_DLL ${PY_DLL})
         get_filename_component(PY_FILE ${PY_DLL} NAME)
         get_filename_component(PY_DLL ${PY_DLL} DIRECTORY)
-  
+
         # Copies the dll to the binary location to enable debugging
         add_custom_command(TARGET run_unit_tests PRE_BUILD
                             COMMAND ${CMAKE_COMMAND} -E copy
@@ -119,10 +119,20 @@ else()
 endif()
 
 
-add_definitions(-DBOOST_ALL_NO_LIB )
+add_definitions(-DBOOST_ALL_NO_LIB)
 
 if(WIN32)
   if(NOT WINDOWS_RUNTIME_MD)
     CHANGE_MD_2_MT()
   endif()
 endif()
+
+
+ADD_EXECUTABLE(shexpr shexpr.cc)
+TARGET_LINK_LIBRARIES(shexpr
+            mysqlsh
+            mysqlxtest
+            gtest
+            ${SSL_LIBRARIES}
+            ${MYSQL_LIBRARIES}
+            ${PROTOBUF_LIBRARY})
