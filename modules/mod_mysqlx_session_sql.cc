@@ -139,7 +139,7 @@ shcore::Value SqlExecute::bind(const shcore::Argument_list &args)
   else
     _parameters.push_back(args[0]);
 
-  return Value(Object_bridge_ref(this));
+  return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
 #ifdef DOXYGEN

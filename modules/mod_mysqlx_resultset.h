@@ -48,6 +48,9 @@ namespace mysh
       virtual shcore::Value get_member(const std::string &prop) const;
       virtual void append_json(shcore::JSON_dumper& dumper) const;
 
+      // The execution time is not available at the moment of creating the resultset
+      void set_execution_time(unsigned long execution_time){_execution_time = execution_time;}
+
 #ifdef DOXYGEN
       Integer warningCount; //!< Same as getwarningCount()
       List warnings; //!< Same as getWarnings()
@@ -60,6 +63,7 @@ namespace mysh
 
     protected:
       boost::shared_ptr< ::mysqlx::Result> _result;
+      unsigned long _execution_time;
     };
 
     /**

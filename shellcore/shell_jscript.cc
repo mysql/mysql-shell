@@ -62,13 +62,13 @@ std::string Shell_javascript::prompt()
 {
   try
   {
-    shcore::Value value = _js->execute("shell.js_prompt ? shell.js_prompt() : null", "shell.js_prompt");
+    shcore::Value value = _js->execute("shell.ps ? shell.ps() : null", "shell.ps");
     if (value && value.type == String)
       return value.as_string();
   }
   catch (std::exception &exc)
   {
-    _owner->print_error(std::string("Exception in JS prompt function: ") + exc.what());
+    _owner->print_error(std::string("Exception in JS ps function: ") + exc.what());
   }
   return "mysql-js> ";
 }

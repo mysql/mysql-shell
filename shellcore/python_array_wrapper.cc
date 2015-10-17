@@ -30,11 +30,10 @@
 
 using namespace shcore;
 
-
 static int list_init(PyShListObject *self, PyObject *args, PyObject *kwds)
 {
   PyObject *valueptr = NULL;
-  static const char *kwlist[] = {"__valueptr__", 0};
+  static const char *kwlist[] = { "__valueptr__", 0 };
 
   if (!PyArg_ParseTupleAndKeywords(args, kwds, "|O", (char**)kwlist, &valueptr))
     return -1;
@@ -68,7 +67,6 @@ static int list_init(PyShListObject *self, PyObject *args, PyObject *kwds)
   return 0;
 }
 
-
 void list_dealloc(PyShListObject *self)
 {
   delete self->array;
@@ -76,12 +74,10 @@ void list_dealloc(PyShListObject *self)
   self->ob_type->tp_free(self);
 }
 
-
 Py_ssize_t list_length(PyShListObject *self)
 {
   return self->array->get()->size();
 }
-
 
 PyObject *list_item(PyShListObject *self, Py_ssize_t index)
 {
@@ -90,7 +86,7 @@ PyObject *list_item(PyShListObject *self, Py_ssize_t index)
   if (!(ctx = Python_context::get_and_check()))
     return NULL;
 
-  if (index < 0 || index >= (int) self->array->get()->size())
+  if (index < 0 || index >= (int)self->array->get()->size())
   {
     Python_context::set_python_error(PyExc_IndexError, "list index out of range");
     return NULL;
@@ -107,13 +103,12 @@ PyObject *list_item(PyShListObject *self, Py_ssize_t index)
   }
 }
 
-
 int list_assign(PyShListObject *self, Py_ssize_t index, PyObject *value)
 {
   Python_context *ctx = Python_context::get_and_check();
   if (!ctx) return -1;
 
-  if (index < 0 || index >= (int) self->array->get()->size())
+  if (index < 0 || index >= (int)self->array->get()->size())
   {
     Python_context::set_python_error(PyExc_IndexError, "list index out of range");
     return -1;
@@ -138,7 +133,6 @@ int list_assign(PyShListObject *self, Py_ssize_t index, PyObject *value)
   return -1;
 }
 
-
 int list_contains(PyShListObject *self, PyObject *value)
 {
   Python_context *ctx = Python_context::get_and_check();
@@ -157,7 +151,6 @@ int list_contains(PyShListObject *self, PyObject *value)
   }
   return 0;
 }
-
 
 PyObject *list_inplace_concat(PyShListObject *self, PyObject *other)
 {
@@ -179,12 +172,10 @@ PyObject *list_inplace_concat(PyShListObject *self, PyObject *other)
   return (PyObject*)self;
 }
 
-
 PyObject *list_printable(PyShListObject *self)
 {
-  return PyString_FromString(Value(self->array->get()).repr().c_str());
+  return PyString_FromString(Value(*self->array).repr().c_str());
 }
-
 
 PyObject *list_append(PyShListObject *self, PyObject *v)
 {
@@ -210,7 +201,6 @@ PyObject *list_append(PyShListObject *self, PyObject *v)
   return NULL;
 }
 
-
 PyObject *list_insert(PyShListObject *self, PyObject *args)
 {
   int i;
@@ -226,7 +216,7 @@ PyObject *list_insert(PyShListObject *self, PyObject *args)
     shcore::Value::Array_type *array;
     array = self->array->get();
 
-    array->insert(array->begin()+i, ctx->pyobj_to_shcore_value(value));
+    array->insert(array->begin() + i, ctx->pyobj_to_shcore_value(value));
     Py_RETURN_NONE;
   }
   catch (std::exception &exc)
@@ -236,7 +226,6 @@ PyObject *list_insert(PyShListObject *self, PyObject *args)
   }
   return NULL;
 }
-
 
 PyObject *list_remove(PyShListObject *self, PyObject *v)
 {
@@ -265,7 +254,6 @@ PyObject *list_remove(PyShListObject *self, PyObject *v)
   return NULL;
 }
 
-
 PyObject *list_remove_all(PyShListObject *self)
 {
   try
@@ -281,11 +269,10 @@ PyObject *list_remove_all(PyShListObject *self)
   return NULL;
 }
 
-
 PyDoc_STRVAR(PyShListDoc,
              "List() -> shcore Array\n\
-             \n\
-             Creates a new instance of a shcore array object.");
+                          \n\
+                                       Creates a new instance of a shcore array object.");
 
 PyDoc_STRVAR(append_doc,
              "L.append(value) -- append object to end");
@@ -298,32 +285,29 @@ PyDoc_STRVAR(remove_all_doc,
 PyDoc_STRVAR(extend_doc,
              "L.extend(list) -- add all elements from the list");
 
-
 static PyMethodDef PyShListMethods[] = {
-//{"__getitem__", (PyCFunction)list_subscript, METH_O|METH_COEXIST, getitem_doc},
-{"append",      (PyCFunction)list_append,  METH_O, append_doc},
-{"extend",      (PyCFunction)list_inplace_concat,  METH_O, extend_doc},
-{"insert",      (PyCFunction)list_insert,  METH_VARARGS, insert_doc},
-{"remove",      (PyCFunction)list_remove,  METH_O, remove_doc},
-{"remove_all",  (PyCFunction)list_remove_all,  METH_NOARGS, remove_all_doc},
-{NULL, NULL, 0, NULL}
+  //{"__getitem__", (PyCFunction)list_subscript, METH_O|METH_COEXIST, getitem_doc},
+  { "append", (PyCFunction)list_append, METH_O, append_doc },
+  { "extend", (PyCFunction)list_inplace_concat, METH_O, extend_doc },
+  { "insert", (PyCFunction)list_insert, METH_VARARGS, insert_doc },
+  { "remove", (PyCFunction)list_remove, METH_O, remove_doc },
+  { "remove_all", (PyCFunction)list_remove_all, METH_NOARGS, remove_all_doc },
+  { NULL, NULL, 0, NULL }
 };
-
 
 static PySequenceMethods PyShListObject_as_sequence =
 {
-(lenfunc)list_length,  // lenfunc sq_length;
-0,  // binaryfunc sq_concat;
-0,  // ssizeargfunc sq_repeat;
-(ssizeargfunc)list_item,  // ssizeargfunc sq_item;
-0,  // (ssizessizeargfunc)list_slice, // ssizessizeargfunc sq_slice;
-(ssizeobjargproc)list_assign,  // ssizeobjargproc sq_ass_item;
-0,  // (ssizessizeobjargproc)list_assign_slice,// ssizessizeobjargproc sq_ass_slice;
-(objobjproc)list_contains,  // objobjproc sq_contains;
-(binaryfunc)list_inplace_concat,  // binaryfunc sq_inplace_concat;
-0  // ssizeargfunc sq_inplace_repeat;
+  (lenfunc)list_length,  // lenfunc sq_length;
+  0,  // binaryfunc sq_concat;
+  0,  // ssizeargfunc sq_repeat;
+  (ssizeargfunc)list_item,  // ssizeargfunc sq_item;
+  0,  // (ssizessizeargfunc)list_slice, // ssizessizeargfunc sq_slice;
+  (ssizeobjargproc)list_assign,  // ssizeobjargproc sq_ass_item;
+  0,  // (ssizessizeobjargproc)list_assign_slice,// ssizessizeobjargproc sq_ass_slice;
+  (objobjproc)list_contains,  // objobjproc sq_contains;
+  (binaryfunc)list_inplace_concat,  // binaryfunc sq_inplace_concat;
+  0  // ssizeargfunc sq_inplace_repeat;
 };
-
 
 static PyTypeObject PyShListObjectType =
 {
@@ -407,7 +391,6 @@ static PyTypeObject PyShListObjectType =
 #endif
 };
 
-
 void Python_context::init_shell_list_type()
 {
   PyShListObjectType.tp_new = PyType_GenericNew;
@@ -422,14 +405,12 @@ void Python_context::init_shell_list_type()
   _shell_list_class = PyDict_GetItemString(PyModule_GetDict(get_shell_module()), "List");
 }
 
-
 PyObject *shcore::wrap(boost::shared_ptr<Value::Array_type> array)
 {
   PyShListObject *wrapper = PyObject_New(PyShListObject, &PyShListObjectType);
   wrapper->array = new Value::Array_type_ref(array);
   return reinterpret_cast<PyObject*>(wrapper);
 }
-
 
 bool shcore::unwrap(PyObject *value, boost::shared_ptr<Value::Array_type> &ret_object)
 {

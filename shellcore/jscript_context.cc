@@ -97,10 +97,6 @@ struct JScript_context::JScript_context_impl
     globals->Set(v8::String::NewFromUtf8(isolate, "print"),
       v8::FunctionTemplate::New(isolate, &JScript_context_impl::f_print, client_data));
 
-    // s = input('Type something:')
-    globals->Set(v8::String::NewFromUtf8(isolate, "prompt"),
-      v8::FunctionTemplate::New(isolate, &JScript_context_impl::f_prompt, client_data));
-
     globals->Set(v8::String::NewFromUtf8(isolate, "os"), make_os_object());
 
     globals->Set(v8::String::NewFromUtf8(isolate, "shell"), make_shell_object());
@@ -204,6 +200,11 @@ struct JScript_context::JScript_context_impl
   v8::Handle<v8::ObjectTemplate> make_shell_object()
   {
     v8::Handle<v8::ObjectTemplate> object = v8::ObjectTemplate::New(isolate);
+    v8::Local<v8::External> client_data(v8::External::New(isolate, this));
+
+    // s = input('Type something:')
+    object->Set(v8::String::NewFromUtf8(isolate, "prompt"),
+                 v8::FunctionTemplate::New(isolate, &JScript_context_impl::f_prompt, client_data));
 
     return object;
   }
@@ -687,7 +688,7 @@ void SHCORE_PUBLIC JScript_context_init()
 }
 
 JScript_context::JScript_context(Object_registry *registry, Interpreter_delegate *deleg)
-  : _impl(new JScript_context_impl(this, deleg)), _registry(registry)
+: _impl(new JScript_context_impl(this, deleg)), _registry(registry)
 {
   // initialize type conversion class now that everything is ready
   {
@@ -821,7 +822,6 @@ Value JScript_context::execute(const std::string &code_str, const std::string& s
 
   return ret_val;
 }
-
 
 Value JScript_context::execute_interactive(const std::string &code_str, bool &r_continued) BOOST_NOEXCEPT_OR_NOTHROW
 {

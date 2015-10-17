@@ -144,6 +144,7 @@ namespace shcore
 
   public:
     static PyObject *shell_print(PyObject *self, PyObject *args, const std::string& stream);
+    static PyObject *shell_prompt(PyObject *self, PyObject *args);
     static PyObject *shell_stdout(PyObject *self, PyObject *args);
     static PyObject *shell_stderr(PyObject *self, PyObject *args);
     static PyObject *shell_interactive_eval_hook(PyObject *self, PyObject *args);

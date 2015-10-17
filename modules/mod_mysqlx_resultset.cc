@@ -23,6 +23,7 @@
 #include <boost/bind.hpp>
 #include "shellcore/shell_core_options.h"
 #include "shellcore/obj_date.h"
+#include "utils/utils_time.h"
 
 using namespace mysh;
 using namespace shcore;
@@ -31,7 +32,7 @@ using namespace mysh::mysqlx;
 // -----------------------------------------------------------------------
 
 BaseResult::BaseResult(boost::shared_ptr< ::mysqlx::Result> result) :
-_result(result)
+_result(result), _execution_time(0)
 {
   add_method("getExecutionTime", boost::bind(&BaseResult::get_member_method, this, _1, "getExecutionTime", "executionTime"), NULL);
   add_method("getWarnings", boost::bind(&BaseResult::get_member_method, this, _1, "getWarnings", "warnings"), NULL);
@@ -76,9 +77,8 @@ shcore::Value BaseResult::get_member(const std::string &prop) const
 {
   Value ret_val;
 
-  // TODO: Implement execution time calculation
   if (prop == "executionTime")
-    ret_val = Value("0");
+    return shcore::Value(MySQL_timer::format_legacy(_execution_time, true));
 
   else if (prop == "warningCount")
     ret_val = Value(uint64_t(_result->getWarnings().size()));

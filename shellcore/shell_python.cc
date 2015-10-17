@@ -34,7 +34,6 @@ Shell_python::~Shell_python()
   _py.reset();
 }
 
-
 std::string Shell_python::preprocess_input_line(const std::string &s)
 {
   const char *p = s.c_str();
@@ -44,7 +43,6 @@ std::string Shell_python::preprocess_input_line(const std::string &s)
     return std::string();
   return s;
 }
-
 
 /*
 * Helper function to ensure the exceptions generated on the mysqlx_connector
@@ -96,6 +94,19 @@ void Shell_python::handle_input(std::string &code, Interactive_input_state &stat
  */
 std::string Shell_python::prompt()
 {
+  boost::system::error_code err;
+  try
+  {
+    bool continued(false);
+    WillEnterPython lock;
+    shcore::Value value = _py->execute_interactive("shell.ps() if 'ps' in dir(shell) else None", continued);
+    if (value && value.type == String)
+      return value.as_string();
+  }
+  catch (std::exception &exc)
+  {
+    _owner->print_error(std::string("Exception in PS ps function: ") + exc.what());
+  }
   return "mysql-py> ";
 }
 

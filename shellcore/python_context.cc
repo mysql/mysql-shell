@@ -218,7 +218,8 @@ namespace shcore
         const char *msg;
         PyObject *obj;
         if (PyArg_ParseTuple(value, "sO", &msg, &obj)
-           && strncmp(msg, "unexpected EOF while parsing", strlen("unexpected EOF while parsing")) == 0)
+           && (strncmp(msg, "unexpected EOF while parsing", strlen("unexpected EOF while parsing")) == 0) ||
+              (strncmp(msg, "EOF while scanning triple-quoted string literal", strlen("EOF while scanning triple-quoted string literal")) == 0))
           r_continued = true;
       }
       PyErr_Restore(exc, value, tb);
@@ -439,6 +440,78 @@ namespace shcore
     return Py_None;
   }
 
+  PyObject *Python_context::shell_prompt(PyObject *UNUSED(self), PyObject *args)
+  {
+    PyObject *ret_val = NULL;
+    Python_context *ctx;
+
+    if (!(ctx = Python_context::get_and_check()))
+      return NULL;
+
+    PyObject *pyPrompt;
+    PyObject *pyOptions;
+    try
+    {
+      if (PyArg_ParseTuple(args, "S|O", &pyPrompt, &pyOptions))
+      {
+        Py_ssize_t count = PyTuple_Size(args);
+        if (count < 1 || count > 2)
+          throw std::exception("Invalid number of parameters");
+        else
+        {
+          // First parameters is a string object
+          std::string prompt = ctx->pyobj_to_shcore_value(pyPrompt).as_string();
+
+          shcore::Value::Map_type_ref options_map;
+          if (count == 2)
+          {
+            Value options = ctx->pyobj_to_shcore_value(pyOptions);
+            if (options.type != shcore::Map)
+              throw std::exception("Second parameter must be a dictionary");
+            else
+              options_map = options.as_map();
+          }
+
+          // If there are options, reads them to determine how to proceed
+          std::string default_value;
+          bool password = false;
+          bool succeeded = false;
+
+          // Identifies a default value in case en empty string is returned
+          // or hte prompt fails
+          if (options_map)
+          {
+            if (options_map->has_key("defaultValue"))
+              default_value = options_map->get_string("defaultValue");
+
+            // Identifies if it is normal prompt or password prompt
+            if (options_map->has_key("type"))
+              password = (options_map->get_string("type") == "password");
+          }
+
+          // Performs the actual prompt
+          std::string r;
+          if (password)
+            succeeded = ctx->_delegate->password(ctx->_delegate->user_data, prompt.c_str(), r);
+          else
+            succeeded = ctx->_delegate->prompt(ctx->_delegate->user_data, prompt.c_str(), r);
+
+          // Uses the default value if needed
+          if (!default_value.empty() && (!succeeded || r.empty()))
+            r = default_value;
+
+          ret_val = ctx->shcore_value_to_pyobj(Value(r));
+        }
+      }
+    }
+    catch (std::exception &e)
+    {
+      Python_context::set_python_error(PyExc_SystemError, e.what());
+    }
+
+    return ret_val;
+  }
+
   PyObject *Python_context::shell_stdout(PyObject *self, PyObject *args)
   {
     return shell_print(self, args, "out");
@@ -475,6 +548,8 @@ namespace shcore
   static PyMethodDef ShellModuleMethods[] = {
     { "write", &Python_context::shell_stdout, METH_VARARGS,
     "Write a string in the SHELL shell." },
+    { "prompt", &Python_context::shell_prompt, METH_VARARGS,
+    "Prompts input to the user." },
     { "interactivehook", &Python_context::shell_interactive_eval_hook, METH_VARARGS,
       "Custom displayhook to capture interactive expr evaluation results." },
       { NULL, NULL, 0, NULL }        /* Sentinel */

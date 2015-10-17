@@ -41,7 +41,7 @@ namespace shcore
     {
       Shell_js_script_tester::SetUp();
 
-      set_config_folder("devapi");
+      set_config_folder("js_dev_api_examples");
       set_setup_script("setup.js");
     }
 

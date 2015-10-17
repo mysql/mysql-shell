@@ -226,7 +226,7 @@ static PyObject *dict_setdefault(PyShDictObject *self, PyObject *arg)
 
 static PyObject *dict_printable(PyShDictObject *self)
 {
-  return PyString_FromString(Value(self->map->get()).repr().c_str());
+  return PyString_FromString(Value(*self->map).repr().c_str());
 }
 
 static int dict_init(PyShDictObject *self, PyObject *args, PyObject *UNUSED(kwds))

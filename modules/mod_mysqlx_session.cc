@@ -28,6 +28,7 @@
 #include "mod_mysqlx_session_sql.h"
 #include "shellcore/server_registry.h"
 #include "utils/utils_general.h"
+#include "utils/utils_time.h"
 
 #include "shellcore/proxy_object.h"
 
@@ -509,10 +510,16 @@ Value BaseSession::executeStmt(const std::string &domain, const std::string& com
 
     try
     {
+      MySQL_timer timer;
+
+      timer.start();
+
       _last_result = _session->executeStmt(domain, command, arguments);
 
       // Calls wait so any error is properly triggered at execution time
       _last_result->wait();
+
+      timer.end();
 
       if (expect_data)
         ret_val = shcore::Value::wrap(new SqlResult(_last_result));
