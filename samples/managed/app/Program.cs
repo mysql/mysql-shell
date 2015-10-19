@@ -17,18 +17,18 @@
  * 02110-1301  USA
  */
 
+using MySqlX.Shell;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
-using System.Runtime.InteropServices;
-using MySqlX.Shell;
 
 namespace SimpleShellClientSharp
 {
-  class MySimpleClientShell : SimpleClientShell
+  internal class MySimpleClientShell : SimpleClientShell
   {
     public override void Print(string text)
     {
@@ -57,11 +57,11 @@ namespace SimpleShellClientSharp
     }
   }
 
-  class Program
+  internal class Program
   {
-    const int READLINE_BUFFER_SIZE = 1024;
+    private const int READLINE_BUFFER_SIZE = 1024;
 
-    static void Main(string[] args)
+    private static void Main(string[] args)
     {
       MySimpleClientShell shell = new MySimpleClientShell();
       shell.MakeConnection("root:123@localhost:33060");
@@ -100,6 +100,9 @@ namespace SimpleShellClientSharp
         if (query == "\\quit\r\n") break;
         ResultSet rs = shell.Execute(query);
         DocumentResultSet doc = rs as DocumentResultSet;
+        TableResultSet tbl = rs as TableResultSet;
+        if (tbl != null)
+          PrintTableResulSet(tbl);
         if (doc != null)
           PrintDocumentResulSet(doc);
       }
@@ -123,18 +126,18 @@ namespace SimpleShellClientSharp
       return ReadLine();
     }
 
-    static void PrintTableResulSet(TableResultSet tbl)
+    private static void PrintTableResulSet(TableResultSet tbl)
     {
       List<object[]> data = tbl.GetData();
       List<ResultSetMetadata> meta = tbl.GetMetadata();
-      foreach(ResultSetMetadata col in meta)
+      foreach (ResultSetMetadata col in meta)
       {
         Console.Write("{0}\t", col.GetName());
       }
       Console.WriteLine();
-      foreach(object[] row in data)
+      foreach (object[] row in data)
       {
-        foreach(object o in row)
+        foreach (object o in row)
         {
           string s = "";
           if (o is string)
@@ -152,17 +155,17 @@ namespace SimpleShellClientSharp
       Console.WriteLine();
     }
 
-    static void PrintDocumentResulSet(DocumentResultSet doc)
+    private static void PrintDocumentResulSet(DocumentResultSet doc)
     {
       List<Dictionary<string, object>> data = doc.GetData();
-      foreach(Dictionary<string, object> row in data)
+      foreach (Dictionary<string, object> row in data)
       {
         StringBuilder sb = new StringBuilder();
         sb.AppendLine("{");
         int i = 0;
-        foreach(KeyValuePair<string,object> kvp in row)
+        foreach (KeyValuePair<string, object> kvp in row)
         {
-          sb.AppendFormat("\t\"{0}\" : \"{1}\"{2}\n", kvp.Key, kvp.Value, (i == row.Count - 1)? "" : ",");
+          sb.AppendFormat("\t\"{0}\" : \"{1}\"{2}\n", kvp.Key, kvp.Value, (i == row.Count - 1) ? "" : ",");
           i++;
         }
         sb.AppendLine("},");

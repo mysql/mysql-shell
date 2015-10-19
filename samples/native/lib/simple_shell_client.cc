@@ -24,6 +24,8 @@
 
 #include "shellcore/shell_core.h"
 #include "shellcore/lang_base.h"
+#include "logger/logger.h"
+#include "utils/utils_file.h"
 
 #include "modules/base_session.h"
 
@@ -32,6 +34,10 @@ using namespace shcore;
 Simple_shell_client::Simple_shell_client()
 {
   Shell_core::Mode mode = Shell_core::Mode_SQL;
+
+  std::string log_path = shcore::get_user_config_path();
+  log_path += "mysqlx_vs.log";
+  ngcommon::Logger::create_instance(log_path.c_str(), false, ngcommon::Logger::LOG_ERROR);
 
   _delegate.user_data = this;
   _delegate.print = &Simple_shell_client::deleg_print;
@@ -145,6 +151,12 @@ void Simple_shell_client::process_result(shcore::Value result)
       boost::shared_ptr<shcore::Value::Array_type> arr_result = result.as_array();
       _last_result.reset(new Document_result_set(arr_result, -1, -1, ""));
     }
+    else if (result.type == shcore::Map)
+    {
+      boost::shared_ptr<std::vector<shcore::Value> > map(new std::vector < shcore::Value >());
+      map->push_back(result);
+      _last_result.reset(new Document_result_set(map, -1, -1, ""));
+    }
   }
 
   //std::string executed = _shell->get_handled_input();
@@ -251,17 +263,17 @@ void Simple_shell_client::switch_mode(shcore::Shell_core::Mode mode)
   {
     switch (mode)
     {
-      case Shell_core::Mode_None:
-        break;
-      case Shell_core::Mode_SQL:
-        _shell->switch_mode(mode, lang_initialized);
-        break;
-      case Shell_core::Mode_JScript:
-        _shell->switch_mode(mode, lang_initialized);
-        break;
-      case Shell_core::Mode_Python:
-        _shell->switch_mode(mode, lang_initialized);
-        break;
+    case Shell_core::Mode_None:
+      break;
+    case Shell_core::Mode_SQL:
+      _shell->switch_mode(mode, lang_initialized);
+      break;
+    case Shell_core::Mode_JScript:
+      _shell->switch_mode(mode, lang_initialized);
+      break;
+    case Shell_core::Mode_Python:
+      _shell->switch_mode(mode, lang_initialized);
+      break;
     }
   }
 }

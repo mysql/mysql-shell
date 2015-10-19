@@ -24,7 +24,6 @@
 #include <boost/shared_ptr.hpp>
 #include "modules/base_resultset.h"
 
-
 void print_tab_value(const shcore::Value& val)
 {
   switch (val.type)
@@ -97,7 +96,7 @@ void print_table_result_set(Table_result_set* tbl)
     {
       // Map
       boost::shared_ptr<shcore::Value::Map_type> map = v_row.as_map();
-      
+
       for (shcore::Value::Map_type::const_iterator it = map->begin(); it != map->end(); ++it)
       {
         const shcore::Value &val = it->second;
@@ -167,12 +166,11 @@ void print_doc_result_set(Document_result_set *doc)
   std::cout << "}" << std::endl;
 }
 
-
 std::string get_query_from_prompt(const std::string prompt)
 {
   std::cout << prompt;
   std::string input;
-  if(std::getline(std::cin, input))
+  if (std::getline(std::cin, input))
     return input;
   else
     return "";
@@ -192,41 +190,48 @@ int main(int argc, char* argv[])
 {
   // ...
   MyShell shell;
+  std::string prompt = "js> ";
   // CHANGEME: Set up connection string here as required
   shell.make_connection("root:123@localhost:33060");
+  // ... or to open an SSL connection
   //shell.make_connection("root:123@localhost:33060?ssl_ca=C:\\MySQL\\xplugin-16293675.mysql-advanced-5.7.9-winx64\\data\\ca.pem&ssl_cert=C:\\MySQL\\xplugin-16293675.mysql-advanced-5.7.9-winx64\\data\\server-cert.pem&ssl_key=C:\\MySQL\\xplugin-16293675.mysql-advanced-5.7.9-winx64\\data\\server-key.pem");
+
+  std::cout << "Change mode entering either \\sql, \\js, \\py" << std::endl;
 
   bool empty_result = false;
   // Run shell in SQL mode
-  shell.switch_mode(shcore::IShell_core::Mode_SQL);
+  shell.switch_mode(shcore::IShell_core::Mode_JScript);
   std::string input;
-  while (!(input = get_query_from_prompt("sql> ")).empty())
+  while (!(input = get_query_from_prompt(prompt)).empty())
   {
+    boost::shared_ptr<Result_set> result;
     if (input == "\\quit") break;
-    boost::shared_ptr<Result_set> result = shell.execute(input);
-    Result_set* res = result.get();
-    Table_result_set* tbl = dynamic_cast<Table_result_set*>(res);
-
-    if (tbl != NULL)
+    else if (input == "\\sql")
     {
-      print_table_result_set(tbl);
+      prompt = "sql> ";
+      shell.switch_mode(shcore::IShell_core::Mode_SQL);
+      continue;
+    }
+    else if (input == "\\js")
+    {
+      prompt = "js> ";
+      shell.switch_mode(shcore::IShell_core::Mode_JScript);
+      continue;
+    }
+    else if (input == "\\py")
+    {
+      prompt = "py>";
+      shell.switch_mode(shcore::IShell_core::Mode_Python);
+      continue;
     }
     else
     {
-      // Empty result...
-      empty_result = true;
+      //result.reset(NULL);
+      result = shell.execute(input);
     }
-  }
-
-  // Run shell in JS mode
-  shell.switch_mode(shcore::IShell_core::Mode_JScript);
-  while (!(input = get_query_from_prompt("js> ")).empty())
-  {
-    if (input == "\\quit") break;
-    boost::shared_ptr<Result_set> result = shell.execute(input);
     Result_set* res = result.get();
-    Document_result_set *doc = dynamic_cast<Document_result_set*>(res);
     Table_result_set* tbl = dynamic_cast<Table_result_set*>(res);
+    Document_result_set* doc = dynamic_cast<Document_result_set*>(res);
 
     if (tbl != NULL)
     {
@@ -242,25 +247,5 @@ int main(int argc, char* argv[])
       empty_result = true;
     }
   }
-
-  shell.switch_mode(shcore::IShell_core::Mode_Python);
-  while (!(input = get_query_from_prompt("py> ")).empty())
-  {
-    if (input == "\\quit") break;
-    boost::shared_ptr<Result_set> result = shell.execute(input);
-    Result_set* res = result.get();
-    Document_result_set *doc = dynamic_cast<Document_result_set*>(res);
-
-    if (doc != NULL)
-    {
-      print_doc_result_set(doc);
-    }
-    else
-    {
-      // Empty result...
-      empty_result = true;
-    }
-  }
-	return 0;
+  return 0;
 }
-
