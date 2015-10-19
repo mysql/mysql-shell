@@ -38,7 +38,7 @@ namespace mysh
     /**
     * Base class for the different types of results returned by the server.
     */
-    class BaseResult : public mysh::ShellBaseResult
+    class SHCORE_PUBLIC BaseResult : public mysh::ShellBaseResult
     {
     public:
       BaseResult(boost::shared_ptr< ::mysqlx::Result> result);
@@ -79,7 +79,7 @@ namespace mysh
     * - Transaction handling functions
     * - Drop functions
     */
-    class Result : public BaseResult, public boost::enable_shared_from_this < Result >
+    class SHCORE_PUBLIC Result : public BaseResult, public boost::enable_shared_from_this < Result >
     {
     public:
       Result(boost::shared_ptr< ::mysqlx::Result> result);
@@ -112,7 +112,7 @@ namespace mysh
     /**
     * Allows traversing the DbDoc objects returned by a Collection.find operation.
     */
-    class DocResult : public BaseResult, public boost::enable_shared_from_this < DocResult >
+    class SHCORE_PUBLIC DocResult : public BaseResult, public boost::enable_shared_from_this < DocResult >
     {
     public:
       DocResult(boost::shared_ptr< ::mysqlx::Result> result);
