@@ -41,7 +41,7 @@ void ResultsetDumper::dump()
 {
   std::string type = _resultset->class_name();
 
-  if (type == "DocResult" || _format.find("json") == 0)
+  if (_format.find("json") == 0)
     dump_json();
   else
     dump_normal();
@@ -77,6 +77,12 @@ void ResultsetDumper::dump_normal()
   else if (class_name == "RowResult")
   {
     boost::shared_ptr<mysh::mysqlx::RowResult> resultset = boost::static_pointer_cast<mysh::mysqlx::RowResult>(_resultset);
+    if (resultset)
+      dump_normal(resultset);
+  }
+  else if (class_name == "DocResult")
+  {
+    boost::shared_ptr<mysh::mysqlx::DocResult> resultset = boost::static_pointer_cast<mysh::mysqlx::DocResult>(_resultset);
     if (resultset)
       dump_normal(resultset);
   }
@@ -148,6 +154,36 @@ void ResultsetDumper::dump_normal(boost::shared_ptr<mysh::mysqlx::RowResult> res
   std::string output;
 
   dump_records(output);
+
+  // This information output is only printed in interactive mode
+  if (_interactive)
+  {
+    int warning_count = get_warning_and_execution_time_stats(output);
+
+    shcore::print(output);
+
+    // Prints the warnings if there were any
+    if (warning_count && _show_warnings)
+      dump_warnings();
+  }
+}
+
+void ResultsetDumper::dump_normal(boost::shared_ptr<mysh::mysqlx::DocResult> result)
+{
+  std::string output;
+
+  shcore::Value documents = result->fetch_all(shcore::Argument_list());
+  shcore::Value::Array_type_ref array_docs = documents.as_array();
+
+  if (array_docs->size())
+  {
+    shcore::print(documents.json(_format != "json/raw") + "\n");
+
+    int row_count = int(array_docs->size());
+    output = (boost::format("%lld %s in set") % row_count % (row_count == 1 ? "document" : "documents")).str();
+  }
+  else
+    output = "Empty set";
 
   // This information output is only printed in interactive mode
   if (_interactive)

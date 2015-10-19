@@ -57,6 +57,7 @@ protected:
   void dump_normal(boost::shared_ptr<mysh::mysql::ClassicResult> result);
   void dump_normal(boost::shared_ptr<mysh::mysqlx::SqlResult> result);
   void dump_normal(boost::shared_ptr<mysh::mysqlx::RowResult> result);
+  void dump_normal(boost::shared_ptr<mysh::mysqlx::DocResult> result);
   void dump_normal(boost::shared_ptr<mysh::mysqlx::Result> result);
 
   std::string get_affected_stats(const std::string& member, const std::string &legend);

@@ -270,9 +270,9 @@ void DocResult::append_json(shcore::JSON_dumper& dumper) const
 {
   dumper.start_object();
 
-  BaseResult::append_json(dumper);
-
   dumper.append_value("documents", fetch_all(shcore::Argument_list()));
+
+  BaseResult::append_json(dumper);
 
   dumper.end_object();
 }
