@@ -34,6 +34,7 @@ validate_crud_functions(crud, ['add', 'execute', '__shell_hook__'])
 crud = collection.add()
 crud = collection.add(45)
 crud = collection.add(['invalid data'])
+crud = collection.add(mysqlx.expr('5+1'))
 
 # ---------------------------------------
 # Collection.Add Unit Testing: Execution
@@ -49,6 +50,12 @@ print "Affected Rows List:", result.affectedItemCount, "\n"
 
 result = collection.add({"name": 'my fourth', "passed": 'again', "count": 4}).add({"name": 'my fifth', "passed": 'once again', "count": 5}).execute()
 print "Affected Rows Chained:", result.affectedItemCount, "\n"
+
+result = collection.add(mysqlx.expr('{"name": "my fifth", "passed": "document", "count": 1}')).execute()
+print "Affected Rows Single Expression:", result.affectedItemCount, "\n"
+
+result = collection.add([{"name": 'my sexth', "passed": 'again', "count": 5}, mysqlx.expr('{"name": "my senevth", "passed": "yep again", "count": 5}')]).execute()
+print "Affected Rows Mixed List:", result.affectedItemCount, "\n"
 
 # Cleanup
 mySession.dropSchema('js_shell_test')

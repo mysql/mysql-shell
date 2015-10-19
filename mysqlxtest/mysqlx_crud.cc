@@ -335,6 +335,9 @@ Add_Base &Add_Base::operator = (const Add_Base &other)
 
 boost::shared_ptr<Result> Add_Base::execute()
 {
+  // TODO: Inserte MUST have mustable_args to enable parameter binding so this will be hidden for now
+  //insert_bound_values(m_insert->mutable_args());
+
   if (!m_insert->IsInitialized())
     throw std::logic_error("AddStatement is not completely initialized: " + m_insert->InitializationErrorString());
 
@@ -358,20 +361,36 @@ AddStatement::AddStatement(boost::shared_ptr<Collection> coll, const Document &d
 
 AddStatement &AddStatement::add(const Document &doc)
 {
-  Mysqlx::Expr::Expr *expr(m_insert->mutable_row()->Add()->mutable_field()->Add());
-  expr->set_type(Mysqlx::Expr::Expr::LITERAL);
+  if (doc.is_expression())
+  {
+    // Caller should have already validated that the expression
+    // generates a valid Object
+    ::mysqlx::Expr_parser parser(doc.str(), true, false, &m_placeholders);
 
-  Mysqlx::Datatypes::Scalar *value = new Mysqlx::Datatypes::Scalar();
-  value->set_type(Mysqlx::Datatypes::Scalar::V_OCTETS);
-  value->set_v_opaque(doc.str());
+    Mysqlx::Expr::Expr *expr_obj = parser.expr();
 
-  expr->set_allocated_literal(value);
+    // If the document contains an ID it means it has to be added into the document
+    if (!doc.id().empty())
+    {
+      ::mysqlx::Expr_parser id_parser("\"" + doc.id() + "\"");
+      Mysqlx::Expr::Object_ObjectField *field = expr_obj->mutable_object()->add_fld();
+      field->set_key("_id");
+      field->set_allocated_value(id_parser.expr());
+    }
 
-  /* TODO: Add support for adding expressions representing documents
-  DocumentValue expression(doc);
-  m_insert->mutable_row()->Add()
-  Expr_parser parser(expression, true);
-  m_insert->mutable_row()->Add()->mutable_field()->AddAllocated(parser.expr());*/
+    m_insert->mutable_row()->Add()->mutable_field()->AddAllocated(expr_obj);
+  }
+  else
+  {
+    Mysqlx::Expr::Expr *expr(m_insert->mutable_row()->Add()->mutable_field()->Add());
+    expr->set_type(Mysqlx::Expr::Expr::LITERAL);
+
+    Mysqlx::Datatypes::Scalar *value = new Mysqlx::Datatypes::Scalar();
+    value->set_type(Mysqlx::Datatypes::Scalar::V_OCTETS);
+    value->set_v_opaque(doc.str());
+
+    expr->set_allocated_literal(value);
+  }
   return *this;
 }
 

@@ -30,6 +30,7 @@
 
 #include "xdatetime.h"
 #include "mysqlx_common.h"
+#include "mysqlx_expr.pb.h"
 
 #include <boost/enable_shared_from_this.hpp>
 
@@ -291,13 +292,19 @@ namespace mysqlx
   class Document
   {
   public:
-    explicit Document(const std::string &doc);
+    explicit Document();
+    explicit Document(const std::string &doc, bool expression = false, const std::string& id = "");
     Document(const Document &doc);
 
-    const std::string &str() const { return *m_data; }
+    std::string &str() const { return *m_data; }
+    std::string id() const { return m_id; }
+    bool is_expression() const { return m_expression; }
+    void reset(const std::string &doc, bool expression = false, const std::string &id = "");
 
   private:
     boost::shared_ptr<std::string> m_data;
+    bool m_expression;
+    std::string m_id;
   };
 
   class MYSQLXTEST_PUBLIC Row

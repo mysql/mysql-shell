@@ -21,6 +21,8 @@
 #include "mod_mysqlx_collection.h"
 #include "mod_mysqlx_resultset.h"
 #include "uuid_gen.h"
+#include "mysqlxtest/common/expr_parser.h"
+#include "mod_mysqlx_expression.h"
 
 #include <iomanip>
 #include <sstream>
@@ -110,7 +112,7 @@ shcore::Value CollectionAdd::add(const shcore::Argument_list &args)
       {
         shcore::Value::Array_type_ref shell_docs;
 
-        if (args[0].type == Map)
+        if (args[0].type == Map || (args[0].type == Object && args[0].as_object()->class_name() == "Expression"))
         {
           // On a single document parameter, creates an array and processes it as a list of
           // documents, only advantage of this is avoid duplicating validation and setup logic
@@ -127,6 +129,7 @@ shcore::Value CollectionAdd::add(const shcore::Argument_list &args)
           size_t index, size = shell_docs->size();
           for (index = 0; index < size; index++)
           {
+            ::mysqlx::Document inner_doc;
             Value element = shell_docs->at(index);
             if (element.type == Map)
             {
@@ -138,20 +141,51 @@ shcore::Value CollectionAdd::add(const shcore::Argument_list &args)
               // Stores the last document id
               _last_document_id = (*shell_doc)["_id"].as_string();
 
-              ::mysqlx::Document inner_doc(element.json());
+              inner_doc.reset(element.json());
+            }
+            else if (element.type == Object && element.as_object()->class_name() == "Expression")
+            {
+              boost::shared_ptr<mysqlx::Expression> expression = boost::static_pointer_cast<mysqlx::Expression>(element.as_object());
+              ::mysqlx::Expr_parser parser(expression->get_data());
+              Mysqlx::Expr::Expr *expr_obj = parser.expr();
 
-              if (!_add_statement.get())
+              // Parsing is done here to identify if a new ID must be generated for the object
+              if (expr_obj->type() == Mysqlx::Expr::Expr_Type::Expr_Type_OBJECT)
               {
-                _add_statement.reset(new ::mysqlx::AddStatement(collection->_collection_impl->add(inner_doc)));
+                bool found = false;
+                int size = expr_obj->object().fld_size();
+                int index = 0;
+                while (index < size && !found)
+                  found = expr_obj->object().fld(index++).key() == "_id";
 
-                // Updates the exposed functions (since a document has been added)
-                update_functions("add");
+                std::string id;
+                if (!found)
+                  id = get_new_uuid();
+                {
+                  ::mysqlx::Expr_parser id_parser("\"" + get_new_uuid() + "\"");
+                  Mysqlx::Expr::Object_ObjectField *field = expr_obj->mutable_object()->add_fld();
+                  field->set_key("_id");
+                  field->set_allocated_value(id_parser.expr());
+                }
+
+                inner_doc.reset(expression->get_data(), true, id);
               }
               else
-                _add_statement->add(inner_doc);
+                throw shcore::Exception::argument_error((boost::format("Element #%1% is expected to be a JSON expression") % (index + 1)).str());
             }
             else
-              throw shcore::Exception::argument_error((boost::format("Element #%1% is expected to be a document") % (index + 1)).str());
+              throw shcore::Exception::argument_error((boost::format("Element #%1% is expected to be a document or a JSON expression") % (index + 1)).str());
+
+            // We have a document so it gets added!
+            if (!_add_statement.get())
+            {
+              _add_statement.reset(new ::mysqlx::AddStatement(collection->_collection_impl->add(inner_doc)));
+
+              // Updates the exposed functions (since a document has been added)
+              update_functions("add");
+            }
+            else
+              _add_statement->add(inner_doc);
           }
         }
       }
