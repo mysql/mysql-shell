@@ -1,4 +1,3 @@
-
 /*
 * Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
 *
@@ -30,7 +29,6 @@
 
 namespace mysqlx
 {
-
   class Orderby_parser : public Expr_parser
   {
   public:
@@ -41,17 +39,20 @@ namespace mysqlx
     {
       Mysqlx::Crud::Order *colid = result.Add();
       column_identifier(*colid);
-      
+
       if (_tokenizer.tokens_available())
-        throw Parser_error((boost::format("Orderby parser: Expected EOF, instead stopped at token position %d") % _tokenizer.get_token_pos()).str());
+      {
+        const mysqlx::Token& tok = _tokenizer.peek_token();
+        throw Parser_error((boost::format("Orderby parser: Expected EOF, instead stopped at token '%s' at position %d") % tok.get_text()
+          % tok.get_pos()).str());
+      }
     }
 
     //const std::string& id();
-    void column_identifier(Mysqlx::Crud::Order &orderby_expr);    
+    void column_identifier(Mysqlx::Crud::Order &orderby_expr);
 
     std::vector<Token>::const_iterator begin() const { return _tokenizer.begin(); }
     std::vector<Token>::const_iterator end() const { return _tokenizer.end(); }
   };
-
 };
 #endif

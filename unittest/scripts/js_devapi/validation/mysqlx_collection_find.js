@@ -41,7 +41,7 @@
 
 //@# CollectionFind: Error conditions on find
 ||CollectionFind.find: Argument #1 is expected to be a string
-||CollectionFind.find: Unterminated quoted string starting at 8
+||CollectionFind.find: Unterminated quoted string starting at position 8
 
 //@# CollectionFind: Error conditions on fields
 ||Invalid number of arguments in CollectionFind.fields, expected 1 but got 0

@@ -1,4 +1,3 @@
-
 /*
 * Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
 *
@@ -32,26 +31,27 @@
 
 namespace mysqlx
 {
-
-class Proj_parser : public Expr_parser
-{
-public:
-  Proj_parser(const std::string& expr_str, bool document_mode = false, bool allow_alias = true);
-
-  template<typename Container>
-  void parse(Container &result)
+  class Proj_parser : public Expr_parser
   {
-    Mysqlx::Crud::Projection *colid = result.Add();
-    source_expression(*colid);
-    
-    if (_tokenizer.tokens_available())    
-      throw Parser_error((boost::format("Projection parser: Expression '%s' has unexpected tokens at positions %d") % _tokenizer.get_input() % 
-        _tokenizer.get_token_pos()).str());
-  }
+  public:
+    Proj_parser(const std::string& expr_str, bool document_mode = false, bool allow_alias = true);
 
-  const std::string& id();
-  void source_expression(Mysqlx::Crud::Projection &column);
-};
+    template<typename Container>
+    void parse(Container &result)
+    {
+      Mysqlx::Crud::Projection *colid = result.Add();
+      source_expression(*colid);
 
+      if (_tokenizer.tokens_available())
+      {
+        const mysqlx::Token& tok = _tokenizer.peek_token();
+        throw Parser_error((boost::format("Projection parser: Expression '%s' has unexpected token '%s' at position %d") % _tokenizer.get_input() % tok.get_text() %
+          tok.get_pos()).str());
+      }
+    }
+
+    const std::string& id();
+    void source_expression(Mysqlx::Crud::Projection &column);
+  };
 };
 #endif

@@ -24,7 +24,7 @@
 
 //@# CollectionRemove: Error conditions on remove
 ||CollectionRemove.remove: Argument #1 is expected to be a string
-||CollectionRemove.remove: Unterminated quoted string starting at 8
+||CollectionRemove.remove: Unterminated quoted string starting at position 8
 
 //@# CollectionRemove: Error conditions sort
 ||Invalid number of arguments in CollectionRemove.sort, expected 1 but got 0

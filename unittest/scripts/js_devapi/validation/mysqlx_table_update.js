@@ -42,7 +42,7 @@
 //@# TableUpdate: Error conditions on where
 ||Invalid number of arguments in TableUpdate.where, expected 1 but got 0
 ||TableUpdate.where: Argument #1 is expected to be a string
-||TableUpdate.where: Unterminated quoted string starting at 8
+||TableUpdate.where: Unterminated quoted string starting at position 8
 
 
 //@# TableUpdate: Error conditions on orderBy

@@ -141,14 +141,15 @@ namespace mysqlx
       QUOTE = 83
     };
 
-    Token(TokenType type, const std::string& text);
+    Token(Token::TokenType type, const std::string& text, int cur_pos);
     // TODO: it is better if this one returns a pointer (std::string*)
     const std::string& get_text() const;
     TokenType get_type() const;
-
+    int get_pos() const { return _pos; }
   private:
     TokenType _type;
     std::string _text;
+    int _pos;
   };
 
   class Expr_builder
@@ -237,6 +238,7 @@ namespace mysqlx
     Mysqlx::Expr::Expr* column_field();
     Mysqlx::Expr::Expr* document_field();
     Mysqlx::Expr::Expr* atomic_expr();
+    Mysqlx::Expr::Expr* array_();
     Mysqlx::Expr::Expr* parse_left_assoc_binary_op_expr(std::set<Token::TokenType>& types, inner_parser_t inner_parser);
     Mysqlx::Expr::Expr* mul_div_expr();
     Mysqlx::Expr::Expr* add_sub_expr();

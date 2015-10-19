@@ -33,7 +33,7 @@
 //@# TableDelete: Error conditions on where
 ||Invalid number of arguments in TableDelete.where, expected 1 but got 0
 ||TableDelete.where: Argument #1 is expected to be a string
-||TableDelete.where: Unterminated quoted string starting at 8
+||TableDelete.where: Unterminated quoted string starting at position 8
 
 //@# TableDelete: Error conditions on orderBy
 ||Invalid number of arguments in TableDelete.orderBy, expected 1 but got 0

@@ -47,7 +47,7 @@
 //@# TableSelect: Error conditions on where
 ||Invalid number of arguments in TableSelect.where, expected 1 but got 0
 ||TableSelect.where: Argument #1 is expected to be a string
-||TableSelect.where: Unterminated quoted string starting at 8
+||TableSelect.where: Unterminated quoted string starting at position 8
 
 //@# TableSelect: Error conditions on groupBy
 ||Invalid number of arguments in TableSelect.groupBy, expected 1 but got 0
