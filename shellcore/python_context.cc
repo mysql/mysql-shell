@@ -25,6 +25,7 @@
 #include "shellcore/object_factory.h"
 #include "shellcore/python_type_conversion.h"
 #include <boost/format.hpp>
+#include <exception>
 
 #ifdef _WINDOWS
 #  include <windows.h>
@@ -456,7 +457,7 @@ namespace shcore
       {
         Py_ssize_t count = PyTuple_Size(args);
         if (count < 1 || count > 2)
-          throw std::exception("Invalid number of parameters");
+          throw std::runtime_error("Invalid number of parameters");
         else
         {
           // First parameters is a string object
@@ -467,7 +468,7 @@ namespace shcore
           {
             Value options = ctx->pyobj_to_shcore_value(pyOptions);
             if (options.type != shcore::Map)
-              throw std::exception("Second parameter must be a dictionary");
+              throw std::runtime_error("Second parameter must be a dictionary");
             else
               options_map = options.as_map();
           }

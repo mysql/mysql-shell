@@ -2,6 +2,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <cstdio>
 
 #include "../mysqlxtest/common/expr_parser.h"
 
