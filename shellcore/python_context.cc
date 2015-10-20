@@ -219,8 +219,8 @@ namespace shcore
         const char *msg;
         PyObject *obj;
         if (PyArg_ParseTuple(value, "sO", &msg, &obj)
-           && (strncmp(msg, "unexpected EOF while parsing", strlen("unexpected EOF while parsing")) == 0) ||
-              (strncmp(msg, "EOF while scanning triple-quoted string literal", strlen("EOF while scanning triple-quoted string literal")) == 0))
+           && (strncmp(msg, "unexpected EOF while parsing", strlen("unexpected EOF while parsing")) == 0 ||
+              strncmp(msg, "EOF while scanning triple-quoted string literal", strlen("EOF while scanning triple-quoted string literal")) == 0))
           r_continued = true;
       }
       PyErr_Restore(exc, value, tb);
