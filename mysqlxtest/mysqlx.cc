@@ -882,8 +882,8 @@ boost::shared_ptr<Result> Session::executeStmt(const std::string &ns, const std:
 }
 
 Document::Document()
-: m_data(NULL), m_expression(false)
 {
+  m_expression = false;
 }
 
 Document::Document(const std::string &doc, bool expression, const std::string& id)

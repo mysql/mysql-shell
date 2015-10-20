@@ -169,7 +169,7 @@ shcore::Value CollectionAdd::add(const shcore::Argument_list &args)
               std::auto_ptr<Mysqlx::Expr::Expr> expr_obj(parser.expr());
 
               // Parsing is done here to identify if a new ID must be generated for the object
-              if (expr_obj->type() == Mysqlx::Expr::Expr_Type::Expr_Type_OBJECT)
+              if (expr_obj->type() == Mysqlx::Expr::Expr_Type_OBJECT)
               {
                 bool found = false;
                 int size = expr_obj->object().fld_size();

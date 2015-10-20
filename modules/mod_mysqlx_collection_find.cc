@@ -193,7 +193,7 @@ shcore::Value CollectionFind::fields(const shcore::Argument_list &args)
       std::auto_ptr<Mysqlx::Expr::Expr> expr_obj(parser.expr());
 
       // Parsing is done just to validate it is a valid JSON expression
-      if (expr_obj->type() == Mysqlx::Expr::Expr_Type::Expr_Type_OBJECT)
+      if (expr_obj->type() == Mysqlx::Expr::Expr_Type_OBJECT)
         _find_statement->fields(expression->get_data());
       else
         throw shcore::Exception::argument_error("Argument #1 is expected to be a JSON expression");
