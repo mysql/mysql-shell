@@ -207,12 +207,8 @@ Mysqlx::Datatypes::Scalar* Collection_Statement::convert_document_value(const Do
       my_scalar->mutable_v_string()->set_value(column_value);
       break;
     case DocumentValue::TDocument:
-      my_scalar->set_type(Mysqlx::Datatypes::Scalar::V_OCTETS);
-      my_scalar->set_v_opaque(column_value);
-      break;
-
     case DocumentValue::TExpression:
-      // XXX TODO
+      throw std::logic_error("Only scalar values supported on this conversion");
       break;
   }
 
@@ -545,7 +541,7 @@ Modify_Operation &Modify_Operation::set_operation(int type, const std::string &p
   // Sets the value if applicable
   if (value)
   {
-    if (value->type() == DocumentValue::TExpression)
+    if (value->type() == DocumentValue::TExpression || value->type() == DocumentValue::TDocument)
     {
       DocumentValue expression(*value);
       Expr_parser parser(expression, true);

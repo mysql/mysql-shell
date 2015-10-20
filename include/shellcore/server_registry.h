@@ -144,7 +144,7 @@ namespace shcore {
       {
         keywords_to_int_map::const_iterator it = _keywords_to_int.find(name);
         if (it != _keywords_to_int.end())
-          it->second;
+          return it->second;
         return -1;
       }
 
