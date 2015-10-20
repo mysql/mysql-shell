@@ -220,6 +220,7 @@ namespace mysqlx
       TString,
       TInteger,
       TFloat,
+      TArray,
       TDocument,
       TExpression
     };
@@ -229,15 +230,15 @@ namespace mysqlx
       m_type = other.m_type;
       m_value = other.m_value;
 
-      if (m_type == TString || m_type == TExpression)
+      if (m_type == TString || m_type == TExpression || m_type == TArray)
         m_value.s = new std::string(*other.m_value.s);
       else if (m_type == TDocument)
         m_value.d = new Document(*other.m_value.d);
     }
 
-    explicit DocumentValue(const std::string &s, bool expression = false)
+    explicit DocumentValue(const std::string &s, Type type = TString)
     {
-      m_type = expression ? TExpression : TString;
+      m_type = type;
       m_value.s = new std::string(s);
     }
 
@@ -269,7 +270,7 @@ namespace mysqlx
     {
       if (m_type == TDocument)
         delete m_value.d;
-      else if (m_type == TString || m_type == TExpression)
+      else if (m_type == TString || m_type == TExpression || m_type == TExpression)
         delete m_value.s;
     }
 
@@ -291,7 +292,7 @@ namespace mysqlx
 
     inline operator const std::string & () const
     {
-      if (m_type != TString && m_type != TExpression && m_type != TDocument)
+      if (m_type != TString && m_type != TExpression && m_type != TDocument && m_type != TArray)
         throw std::logic_error("type error");
 
       if (m_type == TDocument)

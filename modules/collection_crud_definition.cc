@@ -27,51 +27,53 @@ using namespace mysh::mysqlx;
 {
   switch (source.type)
   {
-  case shcore::Undefined:
-    throw shcore::Exception::argument_error("Invalid value");
-  case shcore::Bool:
-  case shcore::UInteger:
-  case shcore::Integer:
-    return ::mysqlx::DocumentValue(source.as_int());
-    break;
-  case shcore::String:
-    return ::mysqlx::DocumentValue(source.as_string());
-    break;
-  case shcore::Float:
-    return ::mysqlx::DocumentValue(source.as_double());
-    break;
-  case shcore::Object:
-  {
-                       shcore::Object_bridge_ref object = source.as_object();
+    case shcore::Undefined:
+      throw shcore::Exception::argument_error("Invalid value");
+    case shcore::Bool:
+    case shcore::UInteger:
+    case shcore::Integer:
+      return ::mysqlx::DocumentValue(source.as_int());
+      break;
+    case shcore::String:
+      return ::mysqlx::DocumentValue(source.as_string());
+      break;
+    case shcore::Float:
+      return ::mysqlx::DocumentValue(source.as_double());
+      break;
+    case shcore::Object:
+    {
+      shcore::Object_bridge_ref object = source.as_object();
 
-                       boost::shared_ptr<Expression> expression = boost::dynamic_pointer_cast<Expression>(object);
+      boost::shared_ptr<Expression> expression = boost::dynamic_pointer_cast<Expression>(object);
 
-                       if (expression)
-                       {
-                         std::string expr_data = expression->get_data();
-                         if (expr_data.empty())
-                           throw shcore::Exception::argument_error("Expressions can not be empty.");
-                         else
-                           return ::mysqlx::DocumentValue(expr_data, true);
-                       }
-                       else
-                       {
-                         std::stringstream str;
-                         str << "Unsupported value received: " << source.descr() << ".";
-                         throw shcore::Exception::argument_error(str.str());
-                       }
-  }
+      if (expression)
+      {
+        std::string expr_data = expression->get_data();
+        if (expr_data.empty())
+          throw shcore::Exception::argument_error("Expressions can not be empty.");
+        else
+          return ::mysqlx::DocumentValue(expr_data, ::mysqlx::DocumentValue::TExpression);
+      }
+      else
+      {
+        std::stringstream str;
+        str << "Unsupported value received: " << source.descr() << ".";
+        throw shcore::Exception::argument_error(str.str());
+      }
+    }
     break;
-  case shcore::Map:
-    return ::mysqlx::DocumentValue(::mysqlx::Document(source.json()));
-    break;
-  case shcore::Null:
-  case shcore::Array:
-  case shcore::MapRef:
-  case shcore::Function:
-    std::stringstream str;
-    str << "Unsupported value received: " << source.descr();
-    throw shcore::Exception::argument_error(str.str());
-    break;
+    case shcore::Array:
+      return ::mysqlx::DocumentValue(source.json(), ::mysqlx::DocumentValue::TArray);
+      break;
+    case shcore::Map:
+      return ::mysqlx::DocumentValue(::mysqlx::Document(source.json()));
+      break;
+    case shcore::Null:
+    case shcore::MapRef:
+    case shcore::Function:
+      std::stringstream str;
+      str << "Unsupported value received: " << source.descr();
+      throw shcore::Exception::argument_error(str.str());
+      break;
   }
 }

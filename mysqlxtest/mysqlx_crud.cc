@@ -29,7 +29,7 @@
 using namespace mysqlx;
 
 Schema::Schema(boost::shared_ptr<Session> conn, const std::string &name_)
-: m_sess(conn), m_name(name_)
+  : m_sess(conn), m_name(name_)
 {
 }
 
@@ -50,7 +50,7 @@ boost::shared_ptr<Collection> Schema::getCollection(const std::string &name_)
 }
 
 Table::Table(boost::shared_ptr<Schema> schema_, const std::string &name_)
-: m_schema(schema_), m_name(name_)
+  : m_schema(schema_), m_name(name_)
 {
 }
 
@@ -79,7 +79,7 @@ SelectStatement Table::select(const std::vector<std::string> &fieldList)
 }
 
 Collection::Collection(boost::shared_ptr<Schema> schema_, const std::string &name_)
-: m_schema(schema_), m_name(name_)
+  : m_schema(schema_), m_name(name_)
 {
 }
 
@@ -164,12 +164,12 @@ void Statement::insert_bound_values(::google::protobuf::RepeatedPtrField< ::Mysq
 }
 
 Collection_Statement::Collection_Statement(boost::shared_ptr<Collection> coll)
-: m_coll(coll)
+  : m_coll(coll)
 {
 }
 
 Collection_Statement::Collection_Statement(const Collection_Statement& other)
-: Statement(other), m_coll(other.m_coll)
+  : Statement(other), m_coll(other.m_coll)
 {
 }
 
@@ -207,6 +207,7 @@ Mysqlx::Datatypes::Scalar* Collection_Statement::convert_document_value(const Do
       my_scalar->mutable_v_string()->set_value(column_value);
       break;
     case DocumentValue::TDocument:
+    case DocumentValue::TArray:
     case DocumentValue::TExpression:
       throw std::logic_error("Only scalar values supported on this conversion");
       break;
@@ -218,12 +219,12 @@ Mysqlx::Datatypes::Scalar* Collection_Statement::convert_document_value(const Do
 // -----
 
 Find_Base::Find_Base(boost::shared_ptr<Collection> coll)
-: Collection_Statement(coll), m_find(new Mysqlx::Crud::Find())
+  : Collection_Statement(coll), m_find(new Mysqlx::Crud::Find())
 {
 }
 
 Find_Base::Find_Base(const Find_Base &other)
-: Collection_Statement(other), m_find(other.m_find)
+  : Collection_Statement(other), m_find(other.m_find)
 {
 }
 
@@ -312,7 +313,7 @@ Find_GroupBy &FindStatement::fields(const std::vector<std::string> &searchFields
 }
 
 FindStatement::FindStatement(boost::shared_ptr<Collection> coll, const std::string &searchCondition)
-: Find_GroupBy(coll)
+  : Find_GroupBy(coll)
 {
   m_find->mutable_collection()->set_schema(coll->schema()->name());
   m_find->mutable_collection()->set_name(coll->name());
@@ -325,12 +326,12 @@ FindStatement::FindStatement(boost::shared_ptr<Collection> coll, const std::stri
 //----------------------------------
 
 Add_Base::Add_Base(boost::shared_ptr<Collection> coll)
-: Collection_Statement(coll), m_insert(new Mysqlx::Crud::Insert())
+  : Collection_Statement(coll), m_insert(new Mysqlx::Crud::Insert())
 {
 }
 
 Add_Base::Add_Base(const Add_Base &other)
-: Collection_Statement(other), m_insert(other.m_insert)
+  : Collection_Statement(other), m_insert(other.m_insert)
 {
 }
 
@@ -358,7 +359,7 @@ boost::shared_ptr<Result> Add_Base::execute()
 }
 
 AddStatement::AddStatement(boost::shared_ptr<Collection> coll, const Document &doc)
-: Add_Base(coll)
+  : Add_Base(coll)
 {
   m_insert->mutable_collection()->set_schema(coll->schema()->name());
   m_insert->mutable_collection()->set_name(coll->name());
@@ -404,12 +405,12 @@ AddStatement &AddStatement::add(const Document &doc)
 //--------------------------------------------------------------
 
 Remove_Base::Remove_Base(boost::shared_ptr<Collection> coll)
-: Collection_Statement(coll), m_delete(new Mysqlx::Crud::Delete())
+  : Collection_Statement(coll), m_delete(new Mysqlx::Crud::Delete())
 {
 }
 
 Remove_Base::Remove_Base(const Remove_Base &other)
-: Collection_Statement(other), m_delete(other.m_delete)
+  : Collection_Statement(other), m_delete(other.m_delete)
 {
 }
 
@@ -442,7 +443,7 @@ Remove_Base &Remove_Limit::limit(uint64_t limit_)
 }
 
 RemoveStatement::RemoveStatement(boost::shared_ptr<Collection> coll, const std::string &searchCondition)
-: Remove_Limit(coll)
+  : Remove_Limit(coll)
 {
   m_delete->mutable_collection()->set_schema(coll->schema()->name());
   m_delete->mutable_collection()->set_name(coll->name());
@@ -465,12 +466,12 @@ Remove_Limit &RemoveStatement::sort(const std::vector<std::string> &sortFields)
 //--------------------------------------------------------------
 
 Modify_Base::Modify_Base(boost::shared_ptr<Collection> coll)
-: Collection_Statement(coll), m_update(new Mysqlx::Crud::Update())
+  : Collection_Statement(coll), m_update(new Mysqlx::Crud::Update())
 {
 }
 
 Modify_Base::Modify_Base(const Modify_Base &other)
-: Collection_Statement(other), m_update(other.m_update)
+  : Collection_Statement(other), m_update(other.m_update)
 {
 }
 
@@ -541,7 +542,9 @@ Modify_Operation &Modify_Operation::set_operation(int type, const std::string &p
   // Sets the value if applicable
   if (value)
   {
-    if (value->type() == DocumentValue::TExpression || value->type() == DocumentValue::TDocument)
+    if (value->type() == DocumentValue::TExpression ||
+        value->type() == DocumentValue::TDocument ||
+        value->type() == DocumentValue::TArray)
     {
       DocumentValue expression(*value);
       Expr_parser parser(expression, true);
@@ -595,7 +598,7 @@ Modify_Operation &Modify_Operation::arrayAppend(const std::string &path, const D
 }
 
 ModifyStatement::ModifyStatement(boost::shared_ptr<Collection> coll, const std::string& searchCondition)
-: Modify_Operation(coll)
+  : Modify_Operation(coll)
 {
   m_update->mutable_collection()->set_schema(coll->schema()->name());
   m_update->mutable_collection()->set_name(coll->name());
@@ -608,12 +611,12 @@ ModifyStatement::ModifyStatement(boost::shared_ptr<Collection> coll, const std::
 //--------------------------------------------------------------
 
 Table_Statement::Table_Statement(boost::shared_ptr<Table> table)
-: m_table(table)
+  : m_table(table)
 {
 }
 
 Table_Statement::Table_Statement(const Table_Statement& other)
-: Statement(other), m_table(other.m_table)
+  : Statement(other), m_table(other.m_table)
 {
 }
 
@@ -683,12 +686,12 @@ Mysqlx::Datatypes::Scalar* Table_Statement::convert_table_value(const TableValue
 //}
 
 Delete_Base::Delete_Base(boost::shared_ptr<Table> table)
-: Table_Statement(table), m_delete(new Mysqlx::Crud::Delete())
+  : Table_Statement(table), m_delete(new Mysqlx::Crud::Delete())
 {
 }
 
 Delete_Base::Delete_Base(const Delete_Base &other)
-: Table_Statement(other), m_delete(other.m_delete)
+  : Table_Statement(other), m_delete(other.m_delete)
 {
 }
 
@@ -731,7 +734,7 @@ Delete_Limit &Delete_OrderBy::orderBy(const std::vector<std::string> &sortFields
 }
 
 DeleteStatement::DeleteStatement(boost::shared_ptr<Table> table)
-: Delete_OrderBy(table)
+  : Delete_OrderBy(table)
 {
   m_delete->mutable_collection()->set_schema(table->schema()->name());
   m_delete->mutable_collection()->set_name(table->name());
@@ -749,12 +752,12 @@ Delete_OrderBy &DeleteStatement::where(const std::string& searchCondition)
 //--------------------------------------------------------------
 
 Update_Base::Update_Base(boost::shared_ptr<Table> table)
-: Table_Statement(table), m_update(new Mysqlx::Crud::Update())
+  : Table_Statement(table), m_update(new Mysqlx::Crud::Update())
 {
 }
 
 Update_Base::Update_Base(const Update_Base &other)
-: Table_Statement(other), m_update(other.m_update)
+  : Table_Statement(other), m_update(other.m_update)
 {
 }
 
@@ -832,7 +835,7 @@ Update_Set &Update_Set::set(const std::string &field, const std::string& express
 }
 
 UpdateStatement::UpdateStatement(boost::shared_ptr<Table> table)
-: Update_Set(table)
+  : Update_Set(table)
 {
   m_update->mutable_collection()->set_schema(table->schema()->name());
   m_update->mutable_collection()->set_name(table->name());
@@ -842,12 +845,12 @@ UpdateStatement::UpdateStatement(boost::shared_ptr<Table> table)
 //--------------------------------------------------------------
 
 Select_Base::Select_Base(boost::shared_ptr<Table> table)
-: Table_Statement(table), m_find(new Mysqlx::Crud::Find())
+  : Table_Statement(table), m_find(new Mysqlx::Crud::Find())
 {
 }
 
 Select_Base::Select_Base(const Select_Base &other)
-: Table_Statement(other), m_find(other.m_find)
+  : Table_Statement(other), m_find(other.m_find)
 {
 }
 
@@ -915,7 +918,7 @@ Select_Having &Select_GroupBy::groupBy(const std::vector<std::string> &searchFie
 }
 
 SelectStatement::SelectStatement(boost::shared_ptr<Table> table, const std::vector<std::string> &fieldList)
-: Select_GroupBy(table)
+  : Select_GroupBy(table)
 {
   m_find->mutable_collection()->set_schema(table->schema()->name());
   m_find->mutable_collection()->set_name(table->name());
@@ -941,12 +944,12 @@ Select_GroupBy &SelectStatement::where(const std::string &searchCondition)
 //--------------------------------------------------------------
 
 Insert_Base::Insert_Base(boost::shared_ptr<Table> table)
-: Table_Statement(table), m_insert(new Mysqlx::Crud::Insert())
+  : Table_Statement(table), m_insert(new Mysqlx::Crud::Insert())
 {
 }
 
 Insert_Base::Insert_Base(const Insert_Base &other)
-: Table_Statement(other), m_insert(other.m_insert)
+  : Table_Statement(other), m_insert(other.m_insert)
 {
 }
 
@@ -971,7 +974,7 @@ boost::shared_ptr<Result> Insert_Base::execute()
 }
 
 Insert_Values::Insert_Values(boost::shared_ptr<Table> table)
-: Insert_Base(table)
+  : Insert_Base(table)
 {
 }
 
@@ -1001,7 +1004,7 @@ Insert_Values &InsertStatement::insert(const std::vector<std::string> &columns)
 }
 
 InsertStatement::InsertStatement(boost::shared_ptr<Table> table)
-: Insert_Values(table)
+  : Insert_Values(table)
 {
   m_insert->mutable_collection()->set_schema(table->schema()->name());
   m_insert->mutable_collection()->set_name(table->name());
