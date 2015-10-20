@@ -275,15 +275,15 @@ bool Interactive_shell::connect()
 
       switch (_options.session_type)
       {
-        case mysh::Application:
-          stype = "Application";
-          break;
-        case mysh::Node:
-          stype = "Node";
-          break;
-        case mysh::Classic:
-          stype = "Classic";
-          break;
+      case mysh::Application:
+        stype = "Application";
+        break;
+      case mysh::Node:
+        stype = "Node";
+        break;
+      case mysh::Classic:
+        stype = "Classic";
+        break;
       }
 
       std::string uri_stripped = mysh::strip_password(_options.uri);
@@ -444,29 +444,29 @@ void Interactive_shell::switch_shell_mode(Shell_core::Mode mode, const std::vect
     //XXX reset the history... history should be specific to each shell mode
     switch (mode)
     {
-      case Shell_core::Mode_None:
-        break;
-      case Shell_core::Mode_SQL:
-        if (_shell->switch_mode(mode, lang_initialized))
-          println("Switching to SQL mode... Commands end with ;");
-        break;
-      case Shell_core::Mode_JScript:
+    case Shell_core::Mode_None:
+      break;
+    case Shell_core::Mode_SQL:
+      if (_shell->switch_mode(mode, lang_initialized))
+        println("Switching to SQL mode... Commands end with ;");
+      break;
+    case Shell_core::Mode_JScript:
 #ifdef HAVE_V8
-        if (_shell->switch_mode(mode, lang_initialized))
-          println("Switching to JavaScript mode...");
+      if (_shell->switch_mode(mode, lang_initialized))
+        println("Switching to JavaScript mode...");
 #else
-        println("JavaScript mode is not supported on this platform, command ignored.");
+      println("JavaScript mode is not supported on this platform, command ignored.");
 #endif
-        break;
-      case Shell_core::Mode_Python:
-        // TODO: remove following #if 0 #endif as soon as Python mode is implemented
+      break;
+    case Shell_core::Mode_Python:
+      // TODO: remove following #if 0 #endif as soon as Python mode is implemented
 #ifdef HAVE_PYTHON
-        if (_shell->switch_mode(mode, lang_initialized))
-          println("Switching to Python mode...");
+      if (_shell->switch_mode(mode, lang_initialized))
+        println("Switching to Python mode...");
 #else
-        println("Python mode is not yet supported, command ignored.");
+      println("Python mode is not yet supported, command ignored.");
 #endif
-        break;
+      break;
     }
 
     // load scripts for standard locations
@@ -669,8 +669,8 @@ void Interactive_shell::cmd_store_connection(const std::vector<std::string>& arg
         std::string protocol;
         std::string user;
         std::string password;
-        std::string host;
-        int port;
+        std::string host = "localhost";
+        int port = 33060;
         std::string sock;
         std::string db;
         int pwd_found;
@@ -683,19 +683,29 @@ void Interactive_shell::cmd_store_connection(const std::vector<std::string>& arg
         shcore::Connection_options& cs = sr.add_connection_options_by_name(app, "");
         if (!protocol.empty())
           cs.set_protocol(protocol);
-        cs.set_user(user);
-        cs.set_password(password);
-        cs.set_server(host);
-        cs.set_port(boost::lexical_cast<std::string>(port));
-        if (!db.empty())
-          cs.set_schema(db);
-        if (!ssl_ca.empty())
-          cs.set_value("ssl_ca", ssl_ca);
-        if (!ssl_cert.empty())
-          cs.set_value("ssl_cert", ssl_cert);
-        if (!ssl_key.empty())
-          cs.set_value("ssl_key", ssl_key);
-        sr.merge();
+        if (user.empty())
+          error = "The user is missing in the connection uri (user:password@server:port).";
+        if (password.empty())
+          error = "The password is missing in the connection uri (user:password@server:port).";
+        if (host.empty())
+          error = "The server is missing in the connection uri (user:password@server:port).";
+
+        if (error.empty())
+        {
+          cs.set_user(user);
+          cs.set_password(password);
+          cs.set_server(host);
+          cs.set_port(boost::lexical_cast<std::string>(port));
+          if (!db.empty())
+            cs.set_schema(db);
+          if (!ssl_ca.empty())
+            cs.set_value("ssl_ca", ssl_ca);
+          if (!ssl_cert.empty())
+            cs.set_value("ssl_cert", ssl_cert);
+          if (!ssl_key.empty())
+            cs.set_value("ssl_key", ssl_key);
+          sr.merge();
+        }
       }
     }
   }
@@ -1059,21 +1069,21 @@ void Interactive_shell::command_loop()
     std::string message;
     switch (_shell->interactive_mode())
     {
-      case Shell_core::Mode_SQL:
+    case Shell_core::Mode_SQL:
 #ifdef HAVE_V8
-        message = "Currently in SQL mode. Use \\js or \\py to switch the shell to a scripting language.";
+      message = "Currently in SQL mode. Use \\js or \\py to switch the shell to a scripting language.";
 #else
-        message = "Currently in SQL mode. Use \\py to switch the shell to python scripting.";
+      message = "Currently in SQL mode. Use \\py to switch the shell to python scripting.";
 #endif
-        break;
-      case Shell_core::Mode_JScript:
-        message = "Currently in JavaScript mode. Use \\sql to switch to SQL mode and execute queries.";
-        break;
-      case Shell_core::Mode_Python:
-        message = "Currently in Python mode. Use \\sql to switch to SQL mode and execute queries.";
-        break;
-      default:
-        break;
+      break;
+    case Shell_core::Mode_JScript:
+      message = "Currently in JavaScript mode. Use \\sql to switch to SQL mode and execute queries.";
+      break;
+    case Shell_core::Mode_Python:
+      message = "Currently in Python mode. Use \\sql to switch to SQL mode and execute queries.";
+      break;
+    default:
+      break;
     }
 
     if (!message.empty())
