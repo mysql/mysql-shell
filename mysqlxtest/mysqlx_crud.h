@@ -651,6 +651,7 @@ namespace mysqlx
     FindStatement(const FindStatement &other) : Find_GroupBy(other) {}
     FindStatement &operator = (const FindStatement &other) { Find_GroupBy::operator=(other); return *this; }
 
+    Find_GroupBy &fields(const std::string& projection);
     Find_GroupBy &fields(const std::vector<std::string> &searchFields);
   };
 

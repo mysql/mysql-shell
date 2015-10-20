@@ -45,9 +45,10 @@
 
 //@# CollectionFind: Error conditions on fields
 ||Invalid number of arguments in CollectionFind.fields, expected 1 but got 0
-||CollectionFind.fields: Argument #1 is expected to be an array
+||CollectionFind.fields: Argument #1 is expected to be an array or JSON expression
 ||CollectionFind.fields: Field selection criteria can not be empty
 ||CollectionFind.fields: Element #2 is expected to be a string
+||CollectionFind.fields: Argument #1 is expected to be a JSON expression
 
 //@# CollectionFind: Error conditions on groupBy
 ||Invalid number of arguments in CollectionFind.groupBy, expected 1 but got 0
@@ -133,3 +134,7 @@
 //@ Collection.Find Parameter Binding
 |Find Binding Length: 1|
 |Find Binding Name: alma|
+
+//@ Collection.Find Field Selection Using Projection Expression
+|FirstName : JACK|
+|InThreeYears : 20|

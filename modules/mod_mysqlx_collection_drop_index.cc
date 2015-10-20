@@ -49,7 +49,7 @@ CollectionDropIndex::CollectionDropIndex(boost::shared_ptr<Collection> owner)
 #ifdef DOXYGEN
 /**
 * Drops a collection index based on its name.
-* \param String The name of the index to be dropped.
+* \param indexName The name of the index to be dropped.
 * \return This CollectionDropIndex object.
 */
 CollectionDropIndex CollectionDropIndex::dropIndex(String indexName){}

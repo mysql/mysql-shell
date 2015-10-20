@@ -22,6 +22,8 @@
 #include "mod_mysqlx_collection.h"
 #include "mod_mysqlx_resultset.h"
 #include "shellcore/common.h"
+#include "mod_mysqlx_expression.h"
+#include "mysqlxtest/common/expr_parser.h"
 
 using namespace mysh::mysqlx;
 using namespace shcore;
@@ -142,6 +144,31 @@ shcore::Value CollectionFind::find(const shcore::Argument_list &args)
 * \sa Usage examples at execute(ExecuteOptions options).
 */
 CollectionFind CollectionFind::fields(List projectedSearchExprStr){}
+
+/**
+* Sets a document field projection.
+* \param projection: An expression representing the layout of the documents to be returned.
+* \return This CollectionFind object.
+*
+* If called, the CollectionFind operation will return the fields specified on the document expression, the value of each field on the document
+* will be calculated executing the indicated operations for each field.
+*
+* Calling this function is allowed only for the first time and only if the search criteria has been set by calling CollectionFind.find(searchCriteria), after that its usage is forbidden since the internal class state has been updated to handle the rest of the Find operation.
+*
+* This function can be invoked only once after:
+* - find(String searchCondition)
+*
+* After this function invocation, the following functions can be invoked:
+*
+* - groupBy(List searchExprStr)
+* - sort(List sortExprStr)
+* - limit(Integer numberOfRows)
+* - bind(String name, Value value)
+* - execute(ExecuteOptions options)
+*
+* \sa Usage examples at execute(ExecuteOptions options).
+*/
+CollectionFind CollectionFind::fields(DocExpression projection);
 #endif
 shcore::Value CollectionFind::fields(const shcore::Argument_list &args)
 {
@@ -149,14 +176,30 @@ shcore::Value CollectionFind::fields(const shcore::Argument_list &args)
 
   try
   {
-    std::vector<std::string> fields;
+    if (args[0].type == Array)
+    {
+      std::vector<std::string> fields;
+      parse_string_list(args, fields);
 
-    parse_string_list(args, fields);
+      if (fields.size() == 0)
+        throw shcore::Exception::argument_error("Field selection criteria can not be empty");
 
-    if (fields.size() == 0)
-      throw shcore::Exception::argument_error("Field selection criteria can not be empty");
+      _find_statement->fields(fields);
+    }
+    else if (args[0].type == Object && args[0].as_object()->class_name() == "Expression")
+    {
+      boost::shared_ptr<mysqlx::Expression> expression = boost::static_pointer_cast<mysqlx::Expression>(args[0].as_object());
+      ::mysqlx::Expr_parser parser(expression->get_data());
+      std::auto_ptr<Mysqlx::Expr::Expr> expr_obj(parser.expr());
 
-    _find_statement->fields(fields);
+      // Parsing is done just to validate it is a valid JSON expression
+      if (expr_obj->type() == Mysqlx::Expr::Expr_Type::Expr_Type_OBJECT)
+        _find_statement->fields(expression->get_data());
+      else
+        throw shcore::Exception::argument_error("Argument #1 is expected to be a JSON expression");
+    }
+    else
+      throw shcore::Exception::argument_error("Argument #1 is expected to be an array or JSON expression");
 
     update_functions("fields");
   }
@@ -457,6 +500,10 @@ shcore::Value CollectionFind::bind(const shcore::Argument_list &args)
 *
 * // Retrieve the four younger friends after the youngest
 * var res = collection.find().sort(['age']).limit(4).skip(1).execute();
+*
+* // Retrieve documents with a specific layout
+* var res = collection.find().fields(mysqlx.expr('{"Name":concat(name, last_name), "AgeNextYear":age+1}')).execute();
+*
 * \endcode
 */
 DocResult CollectionFind::execute(ExecuteOptions options){}

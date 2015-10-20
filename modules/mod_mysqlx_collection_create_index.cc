@@ -52,15 +52,15 @@ CollectionCreateIndex::CollectionCreateIndex(boost::shared_ptr<Collection> owner
 #ifdef DOXYGEN
 /**
 * Sets the name for the creation of a non unique index on the collection.
-* \param String The name of the index to be created.
+* \param indexName The name of the index to be created.
 * \return This CollectionCreateIndex object.
 */
 CollectionCreateIndex CollectionCreateIndex::createIndex(String indexName){}
 
 /**
 * Sets the name for the creation of a unique index on the collection.
-* \param String The name of the index to be created.
-* \param IndexType The type of the index to be created, only supported type for the moment is mysqlx.IndexUnique.
+* \param indexName The name of the index to be created.
+* \param type The type of the index to be created, only supported type for the moment is mysqlx.IndexUnique.
 * \return This CollectionCreateIndex object.
 */
 CollectionCreateIndex CollectionCreateIndex::createIndex(String indexName, IndexType type){}
@@ -113,9 +113,9 @@ shcore::Value CollectionCreateIndex::create_index(const shcore::Argument_list &a
 #ifdef DOXYGEN
 /**
 * Adds column to be part of the collection index being created .
-* \param DocPath The document path to the field to be added into the index.
-* \param FieldType The type of the field to be added into the index.
-* \param Bool a flag that indicates whether the field is required or not.
+* \param documentPath The document path to the field to be added into the index.
+* \param type The type of the field to be added into the index.
+* \param isRequired a flag that indicates whether the field is required or not.
 * \return A Result object.
 *
 * This function can be invoked many times, every time it is called the received information will be added to the index definition.

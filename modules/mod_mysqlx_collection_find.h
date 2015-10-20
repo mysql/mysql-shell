@@ -60,6 +60,7 @@ namespace mysh
 #ifdef DOXYGEN
       CollectionFind find(String searchCondition);
       CollectionFind fields(List projectedSearchExprStr);
+      CollectionFind fields(DocExpression projection);
       CollectionFind groupBy(List searchExprStr);
       CollectionFind having(String searchCondition);
       CollectionFind sort(List sortExprStr);

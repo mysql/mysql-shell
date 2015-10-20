@@ -51,8 +51,7 @@ namespace mysh
       virtual shcore::Value execute(const shcore::Argument_list &args);
 
 #ifdef DOXYGEN
-      CollectionDropIndex dropIndex(Document document);
-      CollectionDropIndex execute(List documents);
+      CollectionDropIndex dropIndex(String indexName);
       Result execute();
 #endif
 

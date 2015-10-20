@@ -52,6 +52,14 @@ CollectionAdd::CollectionAdd(boost::shared_ptr<Collection> owner)
 * \param document The document to be added into the collection.
 * \return This CollectionAdd object.
 *
+* The document parameter could be either a native representation of a document or an expression representing a document.
+*
+* Expressions are generated using the mysqlx.expr(expression) function.
+*
+* To create an expression that reoresents a document, the expression parameter must be a valid JSON string.
+*
+* The values on this JSON string could be literal values but it is possible to also use the functions available at the MySQL server.
+*
 * To be added, the document must have a property named '_id' with a universal unique identifier (UUID), if this property is missing, it is set with an auto generated UUID.
 *
 * This method can be called many times, every time it is called the received document will be cached into an internal list.
@@ -67,6 +75,10 @@ CollectionAdd::CollectionAdd(boost::shared_ptr<Collection> owner)
 * // creates a collection and adds a document into it
 * var collection = mysession.sampledb.createCollection('sample');
 * var result = collection.add({ name: 'jhon', last_name: 'doe'}).execute();
+*
+*
+* // adds a document using an expression
+* result = collection.add(mysqlx.expr('{"name":"jack", "register_date":current_date()}')).execute();
 * \endcode
 */
 CollectionAdd CollectionAdd::add(Document document){}
@@ -76,6 +88,13 @@ CollectionAdd CollectionAdd::add(Document document){}
 * \param documents A list of documents to be added into the collection.
 * \return This CollectionAdd object.
 *
+* Each document on the list could be either a native representation of a document or an expression representing a document.
+*
+* Expressions are generated using the mysqlx.expr(expression) function.
+*
+* To create an expression that reoresents a document, the expression parameter must be a valid JSON string.
+*
+* The values on this JSON string could be literal values but it is possible to also use the functions available at the MySQL server.
 * To be added, each document must have a property named '_id' with a universal unique identifier (UUID), if this property is missing, it is set with an auto generated UUID.
 *
 * This method can be called many times, every time it is called the received documents will be cached into an internal list.
@@ -90,7 +109,7 @@ CollectionAdd CollectionAdd::add(Document document){}
 *
 * // creates a collection and adds documents into it
 * var collection = mysession.sampledb.createCollection('sample');
-* var result = collection.add([{ name: 'john', last_name: 'doe'}, { name: 'jane', last_name: 'doe'}]).execute();
+* var result = collection.add([{ name: 'john', last_name: 'doe'}, mysqlx.expr('{"name":"jane", "last_name":"doe"}')]).execute();
 * \endcode
 */
 CollectionAdd CollectionAdd::add(List documents){}
@@ -147,7 +166,7 @@ shcore::Value CollectionAdd::add(const shcore::Argument_list &args)
             {
               boost::shared_ptr<mysqlx::Expression> expression = boost::static_pointer_cast<mysqlx::Expression>(element.as_object());
               ::mysqlx::Expr_parser parser(expression->get_data());
-              Mysqlx::Expr::Expr *expr_obj = parser.expr();
+              std::auto_ptr<Mysqlx::Expr::Expr> expr_obj(parser.expr());
 
               // Parsing is done here to identify if a new ID must be generated for the object
               if (expr_obj->type() == Mysqlx::Expr::Expr_Type::Expr_Type_OBJECT)
@@ -161,12 +180,6 @@ shcore::Value CollectionAdd::add(const shcore::Argument_list &args)
                 std::string id;
                 if (!found)
                   id = get_new_uuid();
-                {
-                  ::mysqlx::Expr_parser id_parser("\"" + get_new_uuid() + "\"");
-                  Mysqlx::Expr::Object_ObjectField *field = expr_obj->mutable_object()->add_fld();
-                  field->set_key("_id");
-                  field->set_allocated_value(id_parser.expr());
-                }
 
                 inner_doc.reset(expression->get_data(), true, id);
               }

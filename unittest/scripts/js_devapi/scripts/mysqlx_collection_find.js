@@ -77,6 +77,8 @@ crud = collection.find().fields();
 crud = collection.find().fields(5);
 crud = collection.find().fields([]);
 crud = collection.find().fields(['name as alias', 5]);
+crud = collection.find().fields(['name as alias', 5]);
+crud = collection.find().fields(mysqlx.expr('concat(field, "whatever")'));
 
 //@# CollectionFind: Error conditions on groupBy
 crud = collection.find().groupBy();
@@ -180,6 +182,14 @@ records = collection.find('age = :years and gender = :heorshe').bind('years', 13
 print('Find Binding Length:', records.length, '\n');
 print('Find Binding Name:', records[0].name, '\n');
 
+
+//@ Collection.Find Field Selection Using Projection Expression
+var columns;
+result = collection.find('name = "jack"').fields(mysqlx.expr('{"FirstName":ucase(name), "InThreeYears":age + 3}')).execute();
+record = result.fetchOne();
+columns = dir(record)
+print(columns[0], ':', record.FirstName, '\n');
+print(columns[1], ':', record.InThreeYears, '\n');
 
 
 // Cleanup

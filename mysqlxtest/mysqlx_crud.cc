@@ -294,6 +294,17 @@ Find_Having &Find_GroupBy::groupBy(const std::vector<std::string> &searchFields)
   return *this;
 }
 
+Find_GroupBy &FindStatement::fields(const std::string& projection)
+{
+  ::mysqlx::Expr_parser parser(projection, true, false, &m_placeholders);
+
+  Mysqlx::Expr::Expr *expr_obj = parser.expr();
+
+  m_find->mutable_projection()->Add()->set_allocated_source(expr_obj);
+
+  return *this;
+}
+
 Find_GroupBy &FindStatement::fields(const std::vector<std::string> &searchFields)
 {
   std::vector<std::string>::const_iterator index, end = searchFields.end();

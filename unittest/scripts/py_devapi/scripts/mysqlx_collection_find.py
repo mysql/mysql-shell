@@ -77,6 +77,7 @@ crud = collection.find().fields()
 crud = collection.find().fields(5)
 crud = collection.find().fields([])
 crud = collection.find().fields(['name as alias', 5])
+crud = collection.find().fields(mysqlx.expr('concat(field, "whatever")'));
 
 #@# CollectionFind: Error conditions on groupBy
 crud = collection.find().groupBy()
@@ -115,7 +116,6 @@ crud = collection.find('name = :data and age > :years').bind('years', 5).execute
 # ---------------------------------------
 # Collection.Find Unit Testing: Execution
 # ---------------------------------------
-records
 
 #@ Collection.Find All
 records = collection.find().execute().fetchAll()
@@ -187,6 +187,12 @@ print 'Find Binding Length:', len(records), '\n'
 print 'Find Binding Name:', records[0].name, '\n'
 
 
+#@ Collection.Find Field Selection Using Projection Expression
+result = collection.find('name = "jack"').fields(mysqlx.expr('{"FirstName":ucase(name), "InThreeYears":age + 3}')).execute();
+record = result.fetchOne();
+columns = dir(record)
+print "%s: %s\n" % (columns[0], record.FirstName)
+print "%s: %s\n" % (columns[1], record.InThreeYears)
 
 # Cleanup
 mySession.dropSchema('js_shell_test')
