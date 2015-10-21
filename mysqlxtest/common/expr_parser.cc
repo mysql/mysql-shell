@@ -1013,7 +1013,7 @@ Mysqlx::Expr::Expr* Expr_parser::atomic_expr()
 }
 
 /**
- * array ::= LSQBRACKET expr (COMMA expr)* RQKBRACKET
+ * array ::= LSQBRACKET [ expr (COMMA expr)* ] RQKBRACKET
  */
 Mysqlx::Expr::Expr* Expr_parser::array_()
 {
@@ -1024,18 +1024,21 @@ Mysqlx::Expr::Expr* Expr_parser::array_()
 
   _tokenizer.consume_token(Token::LSQBRACKET);
 
-  Mysqlx::Expr::Expr *e = my_expr();
-  Mysqlx::Expr::Expr *item = a->add_value();
-  item->CopyFrom(*e);
-  delete e;
-
-  while (_tokenizer.cur_token_type_is(Token::COMMA))
+  if (!_tokenizer.cur_token_type_is(Token::RSQBRACKET))
   {
-    _tokenizer.consume_token(Token::COMMA);
-    e = my_expr();
-    item = a->add_value();
+    Mysqlx::Expr::Expr *e = my_expr();
+    Mysqlx::Expr::Expr *item = a->add_value();
     item->CopyFrom(*e);
     delete e;
+
+    while (_tokenizer.cur_token_type_is(Token::COMMA))
+    {
+      _tokenizer.consume_token(Token::COMMA);
+      e = my_expr();
+      item = a->add_value();
+      item->CopyFrom(*e);
+      delete e;
+    }
   }
 
   _tokenizer.consume_token(Token::RSQBRACKET);
@@ -1829,6 +1832,10 @@ std::string Expr_unparser::expr_to_string(const Mysqlx::Expr::Expr& e)
   {
     return Expr_unparser::placeholder_to_string(e);
   }
+  else if (e.type() == Mysqlx::Expr::Expr::ARRAY)
+  {
+    return Expr_unparser::array_to_string(e);
+  }
   else
   {
     throw Parser_error((boost::format("Unknown expression type: %d") % e.type()).str());
@@ -1840,6 +1847,24 @@ std::string Expr_unparser::expr_to_string(const Mysqlx::Expr::Expr& e)
 std::string Expr_unparser::placeholder_to_string(const Mysqlx::Expr::Expr& e)
 {
   std::string result = ":" + boost::lexical_cast<std::string>(e.position());
+  return result;
+}
+
+std::string Expr_unparser::array_to_string(const Mysqlx::Expr::Expr& e)
+{
+  std::string result = "[ ";
+
+  const Mysqlx::Expr::Array& a = e.array();
+  bool first = true;
+  for (int i = 0; i < a.value_size(); i++)
+  {
+    if (first) first = false;
+    else result += ", ";
+    result += Expr_unparser::expr_to_string(a.value(i));
+  }
+
+  result += " ]";
+
   return result;
 }
 

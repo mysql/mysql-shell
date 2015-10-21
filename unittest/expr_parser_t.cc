@@ -238,6 +238,7 @@ namespace shcore
       // json
       parse_and_assert_expr("{'mykey' : 1, 'myvalue' : \"hello world\" }",
         "[80, 20, 79, 76, 24, 20, 79, 20, 81]", "{ 'mykey' : 1, 'myvalue' : \"hello world\" }");
+      parse_and_assert_expr("{}", "[80, 81]", "{  }");
       // placeholders
       parse_and_assert_expr("name = :1",
         "[19, 25, 79, 76]", "(name == :0)");
@@ -257,6 +258,8 @@ namespace shcore
     TEST(Expr_parser_tests, x_test_6)
     {
       parse_and_assert_expr("count(*)", "[19, 6, 38, 7]", "count(*)");
+      parse_and_assert_expr("[]", "[8, 9]", "[  ]");
+      parse_and_assert_expr("[\"item1\", \"item2\", \"item3\"]", "[8, 20, 24, 20, 24, 20, 9]", "[ \"item1\", \"item2\", \"item3\" ]");
     }
   };
 };

@@ -290,6 +290,7 @@ namespace mysqlx
     static std::string placeholder_to_string(const Mysqlx::Expr::Expr& e);
     static std::string column_to_string(const Mysqlx::Crud::Projection& c);
     static std::string order_to_string(const Mysqlx::Crud::Order& c);
+    static std::string array_to_string(const Mysqlx::Expr::Expr& e);
     static std::string column_list_to_string(google::protobuf::RepeatedPtrField< ::Mysqlx::Crud::Projection > columns);
     static std::string order_list_to_string(google::protobuf::RepeatedPtrField< ::Mysqlx::Crud::Order> columns);
 
