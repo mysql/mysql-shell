@@ -32,6 +32,14 @@ namespace shcore
     const std::string &uri_database, bool prompt_pwd, const std::string &uri_ssl_ca,
     const std::string &uri_ssl_cert, const std::string &uri_ssl_key);
   void SHCORE_PUBLIC conn_str_cat_ssl_data(std::string& uri, const std::string& ssl_ca, const std::string& ssl_cert, const std::string& ssl_key);
+  bool SHCORE_PUBLIC parse_mysql_connstring(const std::string &connstring,
+                                            std::string &protocol, std::string &user, std::string &password,
+                                            std::string &host, int &port, std::string &sock,
+                                            std::string &db, int &pwd_found, std::string& ssl_ca, std::string& ssl_cert, std::string& ssl_key);
+
+  std::string SHCORE_PUBLIC strip_password(const std::string &connstring);
+
+  std::string SHCORE_PUBLIC strip_ssl_args(const std::string &connstring);
 }
 
 #endif /* defined(__mysh__utils_general__) */

@@ -18,7 +18,7 @@
 */
 
 #include "shell_script_tester.h"
-#include "modules/base_session.h"
+#include "utils/utils_general.h"
 #include <boost/lexical_cast.hpp>
 
 namespace shcore
@@ -33,7 +33,7 @@ namespace shcore
 
       int port = 3306, pwd_found;
       std::string protocol, user, password, host, sock, schema, ssl_ca, ssl_cert, ssl_key;
-      mysh::parse_mysql_connstring(_uri, protocol, user, password, host, port, sock, schema, pwd_found, ssl_ca, ssl_cert, ssl_key);
+      shcore::parse_mysql_connstring(_uri, protocol, user, password, host, port, sock, schema, pwd_found, ssl_ca, ssl_cert, ssl_key);
 
       // Setups some variables on the JS context, these will be used on some test cases
       if (_mysql_port.empty())

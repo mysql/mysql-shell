@@ -24,6 +24,7 @@
 
 #include "shellcore/object_factory.h"
 #include "shellcore/python_type_conversion.h"
+#include "shellcore/shell_registry.h"
 #include <boost/format.hpp>
 #include <exception>
 
@@ -89,6 +90,7 @@ namespace shcore
     _types.init();
 
     set_global_item("shell", "options", Value(boost::static_pointer_cast<Object_bridge>(Shell_core_options::get_instance())));
+    set_global_item("shell", "registry", Shell_registry::get());
   }
 
   Python_context::~Python_context()

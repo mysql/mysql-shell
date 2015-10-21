@@ -39,6 +39,7 @@
 #include "shellcore/jscript_function_wrapper.h"
 #include "shellcore/jscript_map_wrapper.h"
 #include "shellcore/jscript_array_wrapper.h"
+#include "shellcore/shell_registry.h"
 
 #include "shellcore/jscript_type_conversion.h"
 #include "shellcore/jscript_core_definitions.h"
@@ -688,7 +689,7 @@ void SHCORE_PUBLIC JScript_context_init()
 }
 
 JScript_context::JScript_context(Object_registry *registry, Interpreter_delegate *deleg)
-: _impl(new JScript_context_impl(this, deleg)), _registry(registry)
+  : _impl(new JScript_context_impl(this, deleg)), _registry(registry)
 {
   // initialize type conversion class now that everything is ready
   {
@@ -701,6 +702,7 @@ JScript_context::JScript_context(Object_registry *registry, Interpreter_delegate
 
   set_global("globals", Value(registry->_registry));
   set_global_item("shell", "options", Value(boost::static_pointer_cast<Object_bridge>(Shell_core_options::get_instance())));
+  set_global_item("shell", "registry", Shell_registry::get());
 }
 
 void JScript_context::set_global_item(const std::string& global_name, const std::string& item_name, const Value &value)

@@ -26,8 +26,7 @@
 #include "shellcore/lang_base.h"
 #include "logger/logger.h"
 #include "utils/utils_file.h"
-
-#include "modules/base_session.h"
+#include "utils/utils_general.h"
 
 using namespace shcore;
 
@@ -200,7 +199,7 @@ bool Simple_shell_client::connect(const std::string &uri)
   std::string ssl_key;
   int pwd_found;
 
-  if (!mysh::parse_mysql_connstring(uri, protocol, user, pass, host, port, sock, db, pwd_found, ssl_ca, ssl_cert, ssl_key))
+  if (!shcore::parse_mysql_connstring(uri, protocol, user, pass, host, port, sock, db, pwd_found, ssl_ca, ssl_cert, ssl_key))
     throw shcore::Exception::argument_error("Could not parse URI for MySQL connection");
   else
   {
@@ -223,7 +222,7 @@ bool Simple_shell_client::connect(const std::string &uri)
     }
 
     // strip password from uri
-    std::string uri_stripped = mysh::strip_password(uri);
+    std::string uri_stripped = shcore::strip_password(uri);
     shcore::print("Connecting to " + uri_stripped + "...\n");
 
     connect_session(args);
@@ -263,17 +262,17 @@ void Simple_shell_client::switch_mode(shcore::Shell_core::Mode mode)
   {
     switch (mode)
     {
-    case Shell_core::Mode_None:
-      break;
-    case Shell_core::Mode_SQL:
-      _shell->switch_mode(mode, lang_initialized);
-      break;
-    case Shell_core::Mode_JScript:
-      _shell->switch_mode(mode, lang_initialized);
-      break;
-    case Shell_core::Mode_Python:
-      _shell->switch_mode(mode, lang_initialized);
-      break;
+      case Shell_core::Mode_None:
+        break;
+      case Shell_core::Mode_SQL:
+        _shell->switch_mode(mode, lang_initialized);
+        break;
+      case Shell_core::Mode_JScript:
+        _shell->switch_mode(mode, lang_initialized);
+        break;
+      case Shell_core::Mode_Python:
+        _shell->switch_mode(mode, lang_initialized);
+        break;
     }
   }
 }

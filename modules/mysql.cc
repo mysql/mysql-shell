@@ -19,6 +19,7 @@
 
 #include "mysql.h"
 #include "base_session.h"
+#include "utils/utils_general.h"
 
 #include "shellcore/obj_date.h"
 
@@ -35,7 +36,7 @@ using namespace mysh::mysql;
 #define MIN_COLUMN_LENGTH 4
 
 Result::Result(boost::shared_ptr<Connection> owner, my_ulonglong affected_rows_, unsigned int warning_count_, const char *info_)
-: _connection(owner), _affected_rows(affected_rows_), _last_insert_id(0), _warning_count(warning_count_), _fetched_row_count(0), _execution_time(0), _has_resultset(false)
+  : _connection(owner), _affected_rows(affected_rows_), _last_insert_id(0), _warning_count(warning_count_), _fetched_row_count(0), _execution_time(0), _has_resultset(false)
 {
   if (info_)
     _info.assign(info_);
@@ -218,7 +219,7 @@ std::string Row::get_value_as_string(int index)
 //----------------------------------------------
 
 Connection::Connection(const std::string &uri_, const char *password)
-: _mysql(NULL)
+  : _mysql(NULL)
 {
   std::string protocol;
   std::string user;
@@ -235,13 +236,13 @@ Connection::Connection(const std::string &uri_, const char *password)
 
   _mysql = mysql_init(NULL);
 
-  if (!parse_mysql_connstring(uri_, protocol, user, pass, host, port, sock, db, pwd_found, ssl_ca, ssl_cert, ssl_key))
+  if (!shcore::parse_mysql_connstring(uri_, protocol, user, pass, host, port, sock, db, pwd_found, ssl_ca, ssl_cert, ssl_key))
     throw shcore::Exception::argument_error("Could not parse URI for MySQL connection");
 
   if (password)
     pass.assign(password);
 
-  _uri = strip_password(uri_);
+  _uri = shcore::strip_password(uri_);
 
   setup_ssl(ssl_ca, ssl_cert, ssl_key);
   unsigned int tcp = MYSQL_PROTOCOL_TCP;

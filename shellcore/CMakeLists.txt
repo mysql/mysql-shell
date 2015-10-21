@@ -25,7 +25,6 @@ include_directories( "${CMAKE_SOURCE_DIR}/common/myjson/include" )
 include_directories( "${CMAKE_SOURCE_DIR}/common/logger" )
 include_directories( "${CMAKE_SOURCE_DIR}/ext/rapidjson/include" )
 
-
 # Will generate the js_core_definitions file which will contain the 
 # core.js file in a variable.
 if ( HAVE_V8 )

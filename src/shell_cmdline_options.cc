@@ -25,7 +25,6 @@
 #include <boost/format.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/algorithm/string.hpp>
-#include "modules/base_session.h"
 
 using namespace shcore;
 
@@ -236,7 +235,7 @@ void Shell_command_line_options::configure_connection_string(const std::string &
   // First validates the URI if specified
   if (!connstring.empty())
   {
-    if (!mysh::parse_mysql_connstring(connstring, uri_protocol, uri_user, uri_password, uri_host, uri_port, uri_sock, uri_database, pwd_found,
+    if (!shcore::parse_mysql_connstring(connstring, uri_protocol, uri_user, uri_password, uri_host, uri_port, uri_sock, uri_database, pwd_found,
       uri_ssl_ca, uri_ssl_cert, uri_ssl_key))
     {
       std::cerr << "Invalid value specified in --uri parameter.\n";

@@ -30,15 +30,6 @@
 
 namespace mysh
 {
-  bool SHCORE_PUBLIC parse_mysql_connstring(const std::string &connstring,
-                              std::string &protocol, std::string &user, std::string &password,
-                              std::string &host, int &port, std::string &sock,
-                              std::string &db, int &pwd_found, std::string& ssl_ca, std::string& ssl_cert, std::string& ssl_key);
-
-  std::string SHCORE_PUBLIC strip_password(const std::string &connstring);
-
-  std::string SHCORE_PUBLIC strip_ssl_args(const std::string &connstring);
-
   // The session types that can be produced by connect_session
   enum SessionType
   {

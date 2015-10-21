@@ -86,3 +86,41 @@ else:
 	print 'Session using wrong URI\n'
 	
 mySession.close()
+
+#@ Server Registry, session from data dictionary
+shell.registry.store('mysql_data', data);
+
+mySession = mysql.getClassicSession(shell.registry.mysql_data, __pwd);
+
+print "%s\n" % mySession
+
+if mySession.uri == __uri:
+	print 'Session using right URI\n'
+else:
+	print 'Session using wrong URI\n'	
+	
+mySession.close()
+
+#@ Server Registry, session from data dictionary removed
+shell.registry.remove('mysql_data')
+mySession = mysql.getClassicSession(shell.registry.mysql_data, __pwd)
+
+
+#@ Server Registry, session from uri
+shell.registry.store('mysql_uri', __uripwd)
+
+mySession = mysql.getClassicSession(shell.registry.mysql_uri)
+
+print "%s\n" % mySession
+
+if mySession.uri == __uri:
+	print 'Session using right URI\n'
+else:
+	print 'Session using wrong URI\n'
+	
+mySession.close()	
+
+#@ Server Registry, session from uri removed
+shell.registry.remove('mysql_uri')
+mySession = mysql.getClassicSession(shell.registry.mysql_uri)
+

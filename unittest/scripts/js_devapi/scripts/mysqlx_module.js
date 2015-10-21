@@ -176,6 +176,43 @@ else
 mySession.close();		
 
 
+//@ Server Registry, session from data dictionary
+shell.registry.store('mysqlx_data', data);
+
+mySession = mysqlx.getSession(shell.registry.mysqlx_data, __pwd);
+
+print(mySession, '\n');
+
+if (mySession.uri == __uri)
+	print('Session using right URI\n');
+else
+	print('Session using wrong URI\n');	
+
+mySession.close();
+
+//@ Server Registry, session from data dictionary removed
+shell.registry.remove('mysqlx_data');
+mySession = mysqlx.getSession(shell.registry.mysqlx_data, __pwd);
+
+
+//@ Server Registry, session from uri
+shell.registry.store('mysqlx_uri', __uripwd);
+
+mySession = mysqlx.getSession(shell.registry.mysqlx_uri);
+
+print(mySession, '\n');
+
+if (mySession.uri == __uri)
+	print('Session using right URI\n');
+else
+	print('Session using wrong URI\n');	
+
+mySession.close();
+
+//@ Server Registry, session from uri removed
+shell.registry.remove('mysqlx_uri');
+mySession = mysqlx.getSession(shell.registry.mysqlx_uri);
+
 
 //@# mysqlx module: expression errors
 var expr;

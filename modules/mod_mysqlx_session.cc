@@ -190,7 +190,7 @@ Value BaseSession::connect(const Argument_list &args)
     if (args[0].type == String)
     {
       std::string uri_ = args.string_at(0);
-      _uri = mysh::strip_password(uri_);
+      _uri = shcore::strip_password(uri_);
       ::mysqlx::Ssl_config ssl;
       memset(&ssl, 0, sizeof(ssl));
 
@@ -218,7 +218,7 @@ Value BaseSession::connect(const Argument_list &args)
         build_connection_string(uri_, protocol, user, password, host, port, schema, false, "", "", "");
       }
       else
-        uri_ = mysh::strip_ssl_args(uri_);
+        uri_ = shcore::strip_ssl_args(uri_);
       _session = ::mysqlx::openSession(uri_, pwd_override, ssl, true);
     }
     else if (args[0].type == Map)
@@ -450,32 +450,32 @@ shcore::Value BaseSession::rollback(const shcore::Argument_list &args)
   ::mysqlx::ArgumentValue ret_val;
   switch (source.type)
   {
-  case shcore::Bool:
-    ret_val = ::mysqlx::ArgumentValue(source.as_bool());
-    break;
-  case shcore::UInteger:
-    ret_val = ::mysqlx::ArgumentValue(source.as_uint());
-    break;
-  case shcore::Integer:
-    ret_val = ::mysqlx::ArgumentValue(source.as_int());
-    break;
-  case shcore::String:
-    ret_val = ::mysqlx::ArgumentValue(source.as_string());
-    break;
-  case shcore::Float:
-    ret_val = ::mysqlx::ArgumentValue(source.as_double());
-    break;
-  case shcore::Object:
-  case shcore::Null:
-  case shcore::Array:
-  case shcore::Map:
-  case shcore::MapRef:
-  case shcore::Function:
-  case shcore::Undefined:
-    std::stringstream str;
-    str << "Unsupported value received: " << source.descr();
-    throw shcore::Exception::argument_error(str.str());
-    break;
+    case shcore::Bool:
+      ret_val = ::mysqlx::ArgumentValue(source.as_bool());
+      break;
+    case shcore::UInteger:
+      ret_val = ::mysqlx::ArgumentValue(source.as_uint());
+      break;
+    case shcore::Integer:
+      ret_val = ::mysqlx::ArgumentValue(source.as_int());
+      break;
+    case shcore::String:
+      ret_val = ::mysqlx::ArgumentValue(source.as_string());
+      break;
+    case shcore::Float:
+      ret_val = ::mysqlx::ArgumentValue(source.as_double());
+      break;
+    case shcore::Object:
+    case shcore::Null:
+    case shcore::Array:
+    case shcore::Map:
+    case shcore::MapRef:
+    case shcore::Function:
+    case shcore::Undefined:
+      std::stringstream str;
+      str << "Unsupported value received: " << source.descr();
+      throw shcore::Exception::argument_error(str.str());
+      break;
   }
 
   return ret_val;
