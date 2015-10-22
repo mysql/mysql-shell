@@ -98,7 +98,7 @@ endif()
 if ( HAVE_PYTHON )
   include_directories("${PYTHON_INCLUDE_DIR}")
 
-  install(FILES ${PYTHON_LIBRARIES} DESTINATION lib)
+  install(FILES ${PYTHON_LIBRARIES} DESTINATION lib COMPONENT dev)
 else()
   # Removes from the project all the python files
   file(GLOB python_SRC "*python*.cc")
@@ -167,8 +167,8 @@ if( WIN32 )
   endif()
 endif()
 
-install(DIRECTORY "${CMAKE_SOURCE_DIR}/include/shellcore/" DESTINATION "include/shellcore" FILES_MATCHING PATTERN "*.h" )
-install(DIRECTORY "${CMAKE_SOURCE_DIR}/modules/" DESTINATION "include/modules" FILES_MATCHING PATTERN "*.h" )
+install(DIRECTORY "${CMAKE_SOURCE_DIR}/include/shellcore/" DESTINATION "include/shellcore" COMPONENT dev FILES_MATCHING PATTERN "*.h" )
+install(DIRECTORY "${CMAKE_SOURCE_DIR}/modules/" DESTINATION "include/modules" COMPONENT dev FILES_MATCHING PATTERN "*.h" )
 
 if(WINDOWS_RUNTIME_MD)
   install(TARGETS mysqlsh DESTINATION bin)

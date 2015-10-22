@@ -283,8 +283,9 @@ endif()
 # Last, to make -lrt -lpthread last, v8 needs it
 target_link_libraries(mysqlx mysqlsh ${GCOV_LDFLAGS})
 
-install(TARGETS mysqlx DESTINATION bin)
-install(DIRECTORY scripting/modules DESTINATION lib)
+install(TARGETS mysqlx RUNTIME COMPONENT main DESTINATION bin)
+install(DIRECTORY scripting/modules DESTINATION lib COMPONENT main)
+install(DIRECTORY scripting/modules DESTINATION lib COMPONENT dev)
 
 IF(CMAKE_BUILD_TYPE MATCHES Debug)
   # This is to copy the modules into the build directory to make them
@@ -315,10 +316,10 @@ if(WIN32)
 endif()
 
 # Installation instructions
-install(FILES ${V8_LIBS} DESTINATION lib)
-install(DIRECTORY "${CMAKE_SOURCE_DIR}/utils/" DESTINATION "include/utils" FILES_MATCHING PATTERN "*.h" )
-install(DIRECTORY "${CMAKE_SOURCE_DIR}/common/logger" DESTINATION "include/common" FILES_MATCHING PATTERN "*.h" )
-install(DIRECTORY "${CMAKE_SOURCE_DIR}/ext/rapidjson/include/rapidjson" DESTINATION "include" FILES_MATCHING PATTERN "*.h" )
+install(FILES ${V8_LIBS} DESTINATION lib COMPONENT dev)
+install(DIRECTORY "${CMAKE_SOURCE_DIR}/utils/" DESTINATION "include/utils" COMPONENT dev FILES_MATCHING PATTERN "*.h" )
+install(DIRECTORY "${CMAKE_SOURCE_DIR}/common/logger" DESTINATION "include/common" COMPONENT dev FILES_MATCHING PATTERN "*.h" )
+install(DIRECTORY "${CMAKE_SOURCE_DIR}/ext/rapidjson/include/rapidjson" DESTINATION "include" COMPONENT dev FILES_MATCHING PATTERN "*.h" )
 
 if(WINDOWS_RUNTIME_MD)
   # for MD runtime we also need DLL, not just lib, but dll is on parent directory.
@@ -327,7 +328,7 @@ if(WINDOWS_RUNTIME_MD)
   get_filename_component(V8_FILE ${V8_DLL} NAME)
   get_filename_component(V8_DLL ${V8_DLL} DIRECTORY)
   get_filename_component(V8_DLL ${V8_DLL} DIRECTORY)
-  install(FILES "${V8_DLL}/${V8_FILE}" DESTINATION bin)
+  install(FILES "${V8_DLL}/${V8_FILE}" DESTINATION bin COMPONENT main)
 
   if(CMAKE_BUILD_TYPE MATCHES Debug)
     # Copies the dll to the binary location to enable debugging
@@ -344,7 +345,8 @@ if (HAVE_PYTHON)
     string(REPLACE ".lib" ".dll" PY_DLL ${PY_DLL})
     get_filename_component(PY_FILE ${PY_DLL} NAME)
     get_filename_component(PY_DLL ${PY_DLL} DIRECTORY)
-    install(FILES "${PY_DLL}/${PY_FILE}" DESTINATION bin)
+    install(FILES "${PY_DLL}/${PY_FILE}" DESTINATION bin COMPONENT main)
+		install(FILES "${PY_DLL}/${PY_FILE}" DESTINATION lib COMPONENT dev)
   
     if(CMAKE_BUILD_TYPE MATCHES Debug)
       # Copies the dll to the binary location to enable debugging

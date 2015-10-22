@@ -35,8 +35,8 @@ if(NOT EXTRA_NAME_SUFFIX2)
   set(EXTRA_NAME_SUFFIX2 "")
 endif()
 
-set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "MySQLng Shell ${MYSH_BASE_VERSION}, a library and tool for XXXXX")
-set(CPACK_PACKAGE_NAME                "mysql-ngshell${EXTRA_NAME_SUFFIX}")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "MySQL X Shell ${MYSH_BASE_VERSION}, a library and tool for XXXXX")
+set(CPACK_PACKAGE_NAME                "mysqlx-shell${EXTRA_NAME_SUFFIX}")
 set(CPACK_PACKAGE_VENDOR              "Oracle and/or its affiliates")
 #if(EXISTS "${CMAKE_SOURCE_DIR}/COPYING.txt")
 #  set(CPACK_RESOURCE_FILE_LICENSE     "${CMAKE_SOURCE_DIR}/COPYING.txt")
@@ -96,12 +96,15 @@ if(WIN32)
 # TODO: line-ending conversions unix->dos
 
 # install(FILES ChangeLog     DESTINATION . RENAME ChangeLog.txt)
-  install(FILES README        DESTINATION . RENAME README.txt)
+  install(FILES README        DESTINATION . RENAME README.txt COMPONENT main)
+  install(FILES README        DESTINATION . RENAME README.txt COMPONENT dev)
 # install(FILES INSTALL       DESTINATION . RENAME INSTALL.txt)
   if(EXISTS "${CMAKE_SOURCE_DIR}/COPYING.txt")
-    install(FILES COPYING.txt       DESTINATION COPYING.txt)
+    install(FILES COPYING.txt       DESTINATION COPYING.txt COMPONENT main)
+    install(FILES COPYING.txt       DESTINATION COPYING.txt COMPONENT dev)
   else()
-    install(FILES LICENSE.mysql DESTINATION . RENAME LICENSE.mysql.txt)
+    install(FILES LICENSE.mysql DESTINATION . RENAME LICENSE.mysql.txt COMPONENT main)
+    install(FILES LICENSE.mysql DESTINATION . RENAME LICENSE.mysql.txt COMPONENT dev)
   endif()
 
   # Install all .pdb files to enable debugging. Note that what build
@@ -115,6 +118,7 @@ if(WIN32)
     ${PROJECT_BINARY_DIR}/bin/RelWithDebInfo/
     ${PROJECT_BINARY_DIR}/bin/Debug/
     DESTINATION bin
+    COMPONENT dev
     FILES_MATCHING
     PATTERN *.pdb
   )
@@ -122,6 +126,7 @@ if(WIN32)
     ${PROJECT_BINARY_DIR}/lib/RelWithDebInfo/
     ${PROJECT_BINARY_DIR}/lib/Debug/
     DESTINATION lib
+    COMPONENT dev
     FILES_MATCHING
     PATTERN *.pdb
   )
@@ -130,16 +135,21 @@ if(WIN32)
 else()
 
 # install(FILES ChangeLog    DESTINATION .)
-  install(FILES README       DESTINATION share/mysqlx/)
+  install(FILES README       DESTINATION share/mysqlx/ COMPONENT main)
+  install(FILES README       DESTINATION share/mysqlx/ COMPONENT dev)
 # install(FILES INSTALL      DESTINATION .)
   if(EXISTS "${CMAKE_SOURCE_DIR}/COPYING.txt")
-    install(FILES COPYING.txt       DESTINATION share/mysqlx/)
+    install(FILES COPYING.txt       DESTINATION share/mysqlx/ COMPONENT main)
+    install(FILES COPYING.txt       DESTINATION share/mysqlx/ COMPONENT dev)
   else()
-    install(FILES LICENSE.mysql DESTINATION share/mysqlx/)
+    install(FILES LICENSE.mysql DESTINATION share/mysqlx/ COMPONENT main)
+    install(FILES LICENSE.mysql DESTINATION share/mysqlx/ COMPONENT dev)
   endif()
 
 endif()
 
 #install(FILES Licenses_for_Third-Party_Components.txt DESTINATION .)
+set(CPACK_COMPONENTS_ALL main dev)
+set(CPACK_ARCHIVE_COMPONENT_INSTALL ON)
 
 include(CPack)
