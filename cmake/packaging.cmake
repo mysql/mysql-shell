@@ -149,9 +149,13 @@ else()
 endif()
 
 #install(FILES Licenses_for_Third-Party_Components.txt DESTINATION .)
-set(CPACK_COMPONENTS_ALL main dev)
-set(CPACK_ARCHIVE_COMPONENT_INSTALL ON)
-set(CPACK_DEB_COMPONENT_INSTALL ON)
-set(CPACK_RPM_COMPONENT_INSTALL ON)
+
+# Variable defined when the packages are generated (i.e. not in source builds)
+IF(MYSH_PLATFORM)
+  set(CPACK_COMPONENTS_ALL main dev)
+  set(CPACK_ARCHIVE_COMPONENT_INSTALL ON)
+  set(CPACK_DEB_COMPONENT_INSTALL ON)
+  set(CPACK_RPM_COMPONENT_INSTALL ON)
+ENDIF()
 
 include(CPack)
