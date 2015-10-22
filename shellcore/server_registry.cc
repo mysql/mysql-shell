@@ -530,6 +530,15 @@ void Server_registry::merge()
   std::free(json_data);
 }
 
+void Server_registry::set_keyword_value(const std::string &uuid, Connection_keywords key, const std::string& value)
+{
+  connections_map_t::iterator it = _connections.find(uuid);
+  if (it == _connections.end())
+    throw std::runtime_error((boost::format("Connection not found for uuid: %s") % uuid).str());
+  Connection_options& cs = it->second;
+  cs.set_keyword_value(key, value);
+}
+
 Connection_options::Connection_options(std::string options, bool placeholder) : _connection_options(options)
 {
   if (!placeholder)
