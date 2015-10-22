@@ -21,6 +21,7 @@
 #include "mod_mysqlx_collection.h"
 #include "mod_mysqlx_resultset.h"
 #include "shellcore/common.h"
+#include "utils/utils_time.h"
 
 using namespace mysh::mysqlx;
 using namespace shcore;
@@ -274,8 +275,11 @@ shcore::Value CollectionRemove::execute(const shcore::Argument_list &args)
   try
   {
     args.ensure_count(0, "CollectionRemove.execute");
-
+    MySQL_timer timer;
+    timer.start();
     result = new mysqlx::Result(boost::shared_ptr< ::mysqlx::Result>(_remove_statement->execute()));
+    timer.end();
+    result->set_execution_time(timer.raw_duration());
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionRemove.execute");
 

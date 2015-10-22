@@ -22,6 +22,7 @@
 #include "mod_mysqlx_table.h"
 #include "mod_mysqlx_resultset.h"
 #include "shellcore/common.h"
+#include "utils/utils_time.h"
 
 using namespace mysh::mysqlx;
 using namespace shcore;
@@ -473,7 +474,13 @@ shcore::Value TableSelect::execute(const shcore::Argument_list &args)
   {
     args.ensure_count(0, "TableSelect.execute");
 
+    MySQL_timer timer;
+    timer.start();
+
     result = new mysqlx::RowResult(boost::shared_ptr< ::mysqlx::Result>(_select_statement->execute()));
+
+    timer.end();
+    result->set_execution_time(timer.raw_duration());
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableSelect.execute");
 

@@ -71,29 +71,28 @@ exports.mysqlx.Timestamp = _F.mysqlx.Constant('DataTypes', 'Timestamp');
 exports.mysqlx.DateTime = _F.mysqlx.Constant('DataTypes', 'DateTime');
 exports.mysqlx.Year = _F.mysqlx.Constant('DataTypes', 'Year');
 exports.mysqlx.Bit = _F.mysqlx.Constant('DataTypes', 'Bit');
-exports.mysqlx.Blob = _F.mysqlx.Constant('DataTypes', 'Blob');
-exports.mysqlx.Text = _F.mysqlx.Constant('DataTypes', 'Text');
 
 // Data Type Functions
-exports.mysqlx.Varchar = function(length){
-	var varchar;
+exports.mysqlx.Text = function(length){
+	var t;
 	if (typeof(length) == 'undefined')
-		varchar = _F.mysqlx.Constant('DataTypes', 'Varchar');
+		t = _F.mysqlx.Constant('DataTypes', 'Text');
 	else
-		varchar = _F.mysqlx.Constant('DataTypes', 'Varchar', length);
-		
-	return varchar;
+		t = _F.mysqlx.Constant('DataTypes', 'Text', length);
+	return t;
 }
 
-exports.mysqlx.Char = function(length){
-	var varchar;
+
+exports.mysqlx.Blob = function(length){
+	var b;
 	if (typeof(length) == 'undefined')
-		varchar = _F.mysqlx.Constant('DataTypes', 'Char');
+		b = _F.mysqlx.Constant('DataTypes', 'Blob');
 	else
-		varchar = _F.mysqlx.Constant('DataTypes', 'Char', length);
-		
-	return varchar;
+		b = _F.mysqlx.Constant('DataTypes', 'Blob', length);
+	return b;
 }
+
+
 
 exports.mysqlx.Decimal = function(precision, scale){
 	var decimal;

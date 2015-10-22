@@ -132,9 +132,9 @@ Value Constant::get_constant_value(const std::string& group, const std::string& 
     else if (id == "Timestamp"){ ret_val = Value("TIMESTAMP"); }
     else if (id == "DateTime"){ ret_val = Value("DATETIME"); }
     else if (id == "Year"){ ret_val = Value("YEAR"); }
-    else if (id == "Varchar" || id == "Char")
+    else if (id == "Text" || id == "Blob")
     {
-      std::string data = id == "Varchar" ? "VARCHAR" : "CHAR";
+      std::string data = id == "Text" ? "TEXT" : "BLOB";
 
       if (param_count)
       {
@@ -146,8 +146,6 @@ Value Constant::get_constant_value(const std::string& group, const std::string& 
       ret_val = Value(data);
     }
     else if (id == "Bit"){ ret_val = Value("BIT"); }
-    else if (id == "Blob"){ ret_val = Value("BLOB"); }
-    else if (id == "Text"){ ret_val = Value("TEXT"); }
   }
   else if (group == "IndexTypes")
   {

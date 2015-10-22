@@ -20,6 +20,8 @@
 #include "mod_mysqlx_collection_modify.h"
 #include "mod_mysqlx_collection.h"
 #include "mod_mysqlx_resultset.h"
+#include "utils/utils_time.h"
+
 #include "shellcore/common.h"
 #include <sstream>
 #include <boost/format.hpp>
@@ -743,8 +745,11 @@ shcore::Value CollectionModify::execute(const shcore::Argument_list &args)
   try
   {
     args.ensure_count(0, "CollectionModify.execute");
-
+    MySQL_timer timer;
+    timer.start();
     result = new mysqlx::Result(boost::shared_ptr< ::mysqlx::Result>(_modify_statement->execute()));
+    timer.end();
+    result->set_execution_time(timer.raw_duration());
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionModify.execute");
 

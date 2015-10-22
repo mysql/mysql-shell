@@ -24,6 +24,7 @@
 #include "shellcore/common.h"
 #include "mod_mysqlx_expression.h"
 #include "mysqlxtest/common/expr_parser.h"
+#include "utils/utils_time.h"
 
 using namespace mysh::mysqlx;
 using namespace shcore;
@@ -515,8 +516,11 @@ shcore::Value CollectionFind::execute(const shcore::Argument_list &args)
   try
   {
     args.ensure_count(0, "CollectionFind.execute");
-
+    MySQL_timer timer;
+    timer.start();
     result = new mysqlx::DocResult(boost::shared_ptr< ::mysqlx::Result>(_find_statement->execute()));
+    timer.end();
+    result->set_execution_time(timer.raw_duration());
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionFind.execute");
 

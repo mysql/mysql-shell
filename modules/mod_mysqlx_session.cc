@@ -522,9 +522,17 @@ Value BaseSession::executeStmt(const std::string &domain, const std::string& com
       timer.end();
 
       if (expect_data)
-        ret_val = shcore::Value::wrap(new SqlResult(_last_result));
+      {
+        SqlResult *result;
+        ret_val = shcore::Value::wrap(result = new SqlResult(_last_result));
+        result->set_execution_time(timer.raw_duration());
+      }
       else
-        ret_val = shcore::Value::wrap(new Result(_last_result));
+      {
+        Result *result;
+        ret_val = shcore::Value::wrap(result = new Result(_last_result));
+        result->set_execution_time(timer.raw_duration());
+      }
     }
     CATCH_AND_TRANSLATE();
   }

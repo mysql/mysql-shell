@@ -23,6 +23,7 @@
 #include "uuid_gen.h"
 #include "mysqlxtest/common/expr_parser.h"
 #include "mod_mysqlx_expression.h"
+#include "utils/utils_time.h"
 
 #include <iomanip>
 #include <sstream>
@@ -247,7 +248,11 @@ shcore::Value CollectionAdd::execute(const shcore::Argument_list &args)
   {
     args.ensure_count(0, "CollectionAdd.execute");
 
+    MySQL_timer timer;
+    timer.start();
     result = new mysqlx::Result(boost::shared_ptr< ::mysqlx::Result>(_add_statement->execute()));
+    timer.end();
+    result->set_execution_time(timer.raw_duration());
 
     result->set_last_document_id(_last_document_id);
   }
