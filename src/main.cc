@@ -297,7 +297,17 @@ bool Interactive_shell::connect()
     }
 
     Argument_list args;
-    args.push_back(Value(_options.uri));
+    if (_options.uri[0] == '$')
+    {
+      std::string app_name = _options.uri.substr(1);
+      if (Shell_registry::get_instance()->connections()->has_key(app_name))
+        args.push_back((*Shell_registry::get_instance()->connections())[app_name]);
+      else
+        throw shcore::Exception::argument_error((boost::format("The connection %1% was not found on the registry") % app_name).str());
+    }
+    else
+      args.push_back(Value(_options.uri));
+
     connect_session(args, _options.session_type);
   }
   catch (std::exception &exc)
@@ -311,36 +321,51 @@ bool Interactive_shell::connect()
 
 Value Interactive_shell::connect_session(const Argument_list &args, mysh::SessionType session_type)
 {
-  std::string protocol;
-  std::string user;
+  // Used to determine if we require prompting for the password to the user
+  int pwd_found = 0;
   std::string pass;
-  std::string host;
-  int port = 3306;
-  std::string sock;
-  std::string db;
-  std::string ssl_ca(_options.ssl_ca);
-  std::string ssl_cert(_options.ssl_cert);
-  std::string ssl_key(_options.ssl_key);
-  int pwd_found;
 
   Argument_list connect_args(args);
 
-  // Handles the case where the password needs to be prompted
-  if (!shcore::parse_mysql_connstring(args[0].as_string(), protocol, user, pass, host, port, sock, db, pwd_found, ssl_ca, ssl_cert, ssl_key))
-    throw shcore::Exception::argument_error("Could not parse URI for MySQL connection");
+  if (args[0].type == shcore::String)
+  {
+    std::string protocol;
+    std::string user;
+    std::string host;
+    std::string db;
+    int port = 3306;
+    std::string sock;
+    std::string ssl_ca;
+    std::string ssl_cert;
+    std::string ssl_key;
+
+    // Handles the case where the password needs to be prompted
+    if (!shcore::parse_mysql_connstring(args[0].as_string(), protocol, user, pass, host, port, sock, db, pwd_found, ssl_ca, ssl_cert, ssl_key))
+      throw shcore::Exception::argument_error("Could not parse URI for MySQL connection");
+  }
+  else if (args[0].type == shcore::Map)
+  {
+    shcore::Value::Map_type_ref connection_data = args.map_at(0);
+
+    if (connection_data->has_key("dbPassword"))
+      pwd_found = 1;
+  }
   else
   {
-    // If URI is defined as user:@host, then we assume there's no password (blank password)
-    // If it's user@host, then the password was not provided, thus should be prompted
-    if (!pwd_found)
+    // This should never happen
+    throw shcore::Exception::runtime_error("Unexpected connection data format");
+  }
+
+  // If URI is defined as user:@host, then we assume there's no password (blank password)
+  // If it's user@host, then the password was not provided, thus should be prompted
+  if (!pwd_found)
+  {
+    char *tmp = _options.passwords_from_stdin ? mysh_get_stdin_password("Enter password: ") : mysh_get_tty_password("Enter password: ");
+    if (tmp)
     {
-      char *tmp = _options.passwords_from_stdin ? mysh_get_stdin_password("Enter password: ") : mysh_get_tty_password("Enter password: ");
-      if (tmp)
-      {
-        pass.assign(tmp);
-        free(tmp);
-        connect_args.push_back(Value(pass));
-      }
+      pass.assign(tmp);
+      free(tmp);
+      connect_args.push_back(Value(pass));
     }
   }
 
@@ -361,7 +386,7 @@ Value Interactive_shell::connect_session(const Argument_list &args, mysh::Sessio
   {
     std::string message;
     if (default_schema)
-      message = "Default schema `" + db + "` accessible through db.";
+      message = "Default schema `" + default_schema.as_object()->get_member("name").as_string() + "` accessible through db.";
     else
       message = "No default schema selected.";
 
@@ -1018,7 +1043,7 @@ void Interactive_shell::command_loop()
         break;
       default:
         break;
-    }
+  }
 
     if (!message.empty())
     {
@@ -1027,7 +1052,7 @@ void Interactive_shell::command_loop()
       else
         shcore::print(message + "\n");
     }
-  }
+}
 
   while (_options.interactive)
   {

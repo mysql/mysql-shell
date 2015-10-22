@@ -146,34 +146,6 @@ namespace shcore
     // with app name format is $app_name
     pwd_found = 0;
     std::string remaining = connstring;
-
-    if (remaining[0] == '$')
-    {
-      shcore::Server_registry sr(shcore::get_default_config_path());
-      std::string appid = remaining.substr(1);
-      if (!shcore::is_valid_identifier(appid))
-        throw std::runtime_error((boost::format("The app name '%s' is not a valid identifier") % appid).str());
-
-      shcore::Connection_options& cs = sr.get_connection_by_name(appid);
-      protocol.assign(cs.get_value_if_exists("protocol"));
-      user.assign(cs.get_value_if_exists("user"));
-      password.assign(cs.get_value_if_exists("password"));
-      host.assign(cs.get_value_if_exists("server"));
-      std::string sport = cs.get_value_if_exists("port");
-      if (!sport.empty())
-      {
-        if (!sscanf(sport.c_str(), "%i", &port))
-          return false;
-        pwd_found = 1;
-      }
-      sock.assign(cs.get_value_if_exists("sock"));
-      db.assign(cs.get_value_if_exists("db"));
-      ssl_ca.assign(cs.get_value_if_exists("ssl_ca"));
-      ssl_cert.assign(cs.get_value_if_exists("ssl_cert"));
-      ssl_key.assign(cs.get_value_if_exists("ssl_key"));
-      return true;
-    }
-
     std::string::size_type p;
     std::string::size_type p_query;
     p = remaining.find("://");
@@ -268,7 +240,7 @@ namespace shcore
       ssl_key = ssl_data["ssl_key"];
 
     return true;
-  }
+    }
 
   std::string strip_password(const std::string &connstring)
   {
@@ -327,7 +299,7 @@ namespace shcore
     {
       std::string::size_type pos2 = result.find("&");
       result = result.replace(pos, (pos2 == std::string::npos) ? std::string::npos : pos2 - pos + 1, "");
-    }
+  }
     if ((pos = result.find("ssl_cert=")) != std::string::npos)
     {
       std::string::size_type pos2 = result.find("&");
