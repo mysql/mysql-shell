@@ -79,7 +79,7 @@ else
 mySession.close();
 
 //@ Server Registry, session from data dictionary
-shell.registry.store('mysql_data', data);
+shell.registry.add('mysql_data', data);
 
 mySession = mysql.getClassicSession(shell.registry.mysql_data, __pwd);
 
@@ -98,7 +98,7 @@ mySession = mysql.getClassicSession(shell.registry.mysql_data, __pwd);
 
 
 //@ Server Registry, session from uri
-shell.registry.store('mysql_uri', __uripwd);
+shell.registry.add('mysql_uri', __uripwd);
 
 mySession = mysql.getClassicSession(shell.registry.mysql_uri);
 

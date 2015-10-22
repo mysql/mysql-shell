@@ -123,8 +123,9 @@ bool Shell_registry::has_member(const std::string &prop) const
 Shell_registry::Shell_registry() :
 _connections(new shcore::Value::Map_type)
 {
-  add_method("store", boost::bind(&Shell_registry::store, this, _1), "name", shcore::String, NULL);
+  add_method("add", boost::bind(&Shell_registry::add, this, _1), "name", shcore::String, NULL);
   add_method("remove", boost::bind(&Shell_registry::remove, this, _1), "name", shcore::String, NULL);
+  add_method("update", boost::bind(&Shell_registry::update, this, _1), "name", shcore::String, NULL);
 
   shcore::Server_registry sr(shcore::get_default_config_path());
   for (std::map<std::string, Connection_options>::const_iterator it = sr.begin(); it != sr.end(); ++it)
@@ -158,30 +159,65 @@ boost::shared_ptr<Shell_registry> Shell_registry::get_instance()
 
 // Stores a connection based on given URI or connection data map
 // This function will be called from the dev-api interface
-shcore::Value Shell_registry::store(const shcore::Argument_list &args)
+shcore::Value Shell_registry::add(const shcore::Argument_list &args)
 {
-  args.ensure_count(2, "ShellRegistry.store");
+  args.ensure_count(2, 3, "ShellRegistry.add");
+
+  Value ret_val;
+  bool overwrite = false;
+
+  if (args[0].type != shcore::String)
+    throw shcore::Exception::argument_error("ShellRegistry.add: Argument #1 expected to be a string");
+
+  if (args.size() == 3)
+  {
+    if (args[2].type != shcore::Bool)
+      throw shcore::Exception::argument_error("ShellRegistry.add: Argument #3 expected to be boolean");
+    else
+      overwrite = args[2].as_bool();
+  }
+
+  if (args[1].type == shcore::String)
+    ret_val = Value(add_connection(args[0].as_string(), args[1].as_string(), overwrite));
+  else if (args[1].type == shcore::Map)
+    ret_val = store_connection(args[0].as_string(), args[1].as_map(), false, overwrite);
+  else
+    throw shcore::Exception::argument_error("ShellRegistry.add: Argument #2 expected to be either a URI or a connection data map");
+
+  return ret_val;
+}
+
+shcore::Value Shell_registry::update(const shcore::Argument_list &args)
+{
+  args.ensure_count(2, "ShellRegistry.update");
 
   Value ret_val;
 
   if (args[0].type != shcore::String)
-    throw shcore::Exception::argument_error("ShellRegistry.store: Argument #1 must be a string.");
+    throw shcore::Exception::argument_error("ShellRegistry.update: Argument #1 expected to be a string");
 
   if (args[1].type == shcore::String)
-    ret_val = Value(store_connection(args[0].as_string(), args[1].as_string()));
+    ret_val = Value(update_connection(args[0].as_string(), args[1].as_string()));
   else if (args[1].type == shcore::Map)
-    ret_val = store(args[0].as_string(), args[1].as_map());
+    ret_val = store_connection(args[0].as_string(), args[1].as_map(), true, false);
   else
-    throw shcore::Exception::argument_error("ShellRegistry.store: Argument #2 must be either a URI or a connection data map.");
+    throw shcore::Exception::argument_error("ShellRegistry.update: Argument #2 expected to be either a URI or a connection data map");
 
   return ret_val;
 }
 
 // Stores a connection based on a URI
 // This function can be called both from the dev-uri (through the function above) or from shell command
-bool Shell_registry::store_connection(const std::string& name, const std::string& uri)
+bool Shell_registry::add_connection(const std::string& name, const std::string& uri, bool overwrite)
 {
-  return store(name, fill_connection(uri)).as_bool();
+  return store_connection(name, fill_connection(uri), false, overwrite);
+}
+
+// Updates a connection based on a URI
+// This function can be called both from the dev-uri (through the function above) or from shell command
+bool Shell_registry::update_connection(const std::string& name, const std::string& uri)
+{
+  return store_connection(name, fill_connection(uri), true, false);
 }
 
 // Takes a URI and converts it into a connection data map
@@ -269,55 +305,40 @@ Value::Map_type_ref Shell_registry::fill_connection(const Connection_options& op
 // Validates the connection information and if valid:
 // - Stores it in the server registry
 // - Makes it available into the shell.registry
-shcore::Value Shell_registry::store(const std::string& name, const shcore::Value::Map_type_ref& connection)
+shcore::Value Shell_registry::store_connection(const std::string& name, const shcore::Value::Map_type_ref& connection, bool update, bool overwrite)
 {
-  if (!shcore::is_valid_identifier(name))
-    throw shcore::Exception::argument_error((boost::format("The app name '%s' is not a valid identifier") % name).str());
-
-  shcore::Server_registry sr(shcore::get_default_config_path());
-  shcore::Connection_options& cs = sr.add_connection_options_by_name(name, "");
-
-  if (connection->has_key("dbUser"))
-    cs.set_user((*connection)["dbUser"].as_string());
-  else
-    throw shcore::Exception::argument_error("The user is missing in the connection data.");
-
-  if (connection->has_key("host"))
-    cs.set_server((*connection)["host"].as_string());
-  else
-    throw shcore::Exception::argument_error("The server is missing in the connection data.");
-
-  if (connection->has_key("dbPassword"))
-    cs.set_password((*connection)["dbPassword"].as_string());
-
-  if (connection->has_key("port"))
-    cs.set_port(boost::lexical_cast<std::string>((*connection)["port"].as_int()));
-
-  if (connection->has_key("schema"))
-    cs.set_schema((*connection)["schema"].as_string());
-
-  if (connection->has_key("ssl_ca"))
-    cs.set_value("ssl_ca", (*connection)["ssl_ca"].as_string());
-
-  if (connection->has_key("ssl_cert"))
-    cs.set_value("ssl_cert", (*connection)["ssl_cert"].as_string());
-
-  if (connection->has_key("ssl_key"))
-    cs.set_value("ssl_key", (*connection)["ssl_key"].as_string());
-
   Value ret_val = Value::False();
+
   try
   {
+    shcore::Server_registry sr(shcore::get_default_config_path());
+
+    if (update)
+      sr.update_connection_options(name, get_options_string(connection));
+    else
+      sr.add_connection_options(name, get_options_string(connection), overwrite);
+
     sr.merge();
     (*_connections)[name] = Value(connection);
     ret_val = Value::True();
   }
   catch (std::exception& e)
   {
-    throw shcore::Exception::runtime_error((boost::format("ServerRegistry,store: %1%") % e.what()).str());
+    throw shcore::Exception::argument_error((boost::format("ShellRegistry.%1%: %2%") % (update ? "update" : "add") % e.what()).str());
   }
 
   return ret_val;
+}
+
+std::string Shell_registry::get_options_string(const Value::Map_type_ref& connection)
+{
+  std::string options;
+
+  Value::Map_type::const_iterator index, end = connection->end();
+  for (index = connection->begin(); index != end; index++)
+    options += index->first + "=" + index->second.descr(false) + "; ";
+
+  return options;
 }
 
 shcore::Value Shell_registry::remove(const shcore::Argument_list &args)
@@ -328,7 +349,7 @@ shcore::Value Shell_registry::remove(const shcore::Argument_list &args)
   if (args[0].type == String)
     ret_val = Value(remove_connection(args[0].as_string()));
   else
-    throw Exception::runtime_error("ShellRegistry.remove: Argument #1 expected to be a string");
+    throw Exception::argument_error("ShellRegistry.remove: Argument #1 expected to be a string");
 
   return ret_val;
 }
@@ -342,7 +363,7 @@ bool Shell_registry::remove_connection(const std::string& name)
     if (_connections->has_key(name))
     {
       shcore::Server_registry sr(shcore::get_default_config_path());
-      shcore::Connection_options& cs = sr.get_connection_by_name(name);
+      shcore::Connection_options& cs = sr.get_connection_options(name);
       sr.remove_connection_options(cs);
       sr.merge();
 
@@ -350,11 +371,11 @@ bool Shell_registry::remove_connection(const std::string& name)
       ret_val = true;
     }
     else
-      throw Exception::runtime_error((boost::format("The connection %1% does not exist") % name).str());
+      throw Exception::argument_error((boost::format("The app name '%1%' does not exist") % name).str());
   }
   catch (std::exception &e)
   {
-    throw Exception::runtime_error((boost::format("ShellRegistry.remove: %1%") % e.what()).str());
+    throw Exception::argument_error((boost::format("ShellRegistry.remove: %1%") % e.what()).str());
   }
 
   return ret_val;

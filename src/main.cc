@@ -670,40 +670,79 @@ void Interactive_shell::cmd_nowarnings(const std::vector<std::string>& UNUSED(ar
 void Interactive_shell::cmd_store_connection(const std::vector<std::string>& args)
 {
   std::string error;
+  std::string app;
+  std::string uri;
 
-  if (args.size() >= 1 && args.size() <= 2)
+  bool overwrite = false;
+
+  // Reads the parameters
+  switch (args.size())
   {
-    const std::string& app = args.at(0);
+    case 1:
+      if (args[0] == "-f")
+        error = "usage";
+      else
+        app = args[0];
+      break;
+    case 2:
+      if (args[0] == "-f")
+      {
+        overwrite = true;
+        app = args[1];
+      }
+      else
+      {
+        app = args[0];
+        uri = args[1];
+      }
+      break;
+    case 3:
+      if (args[0] != "-f")
+        error = "usage";
+      else
+      {
+        overwrite = true;
+        app = args[1];
+        uri = args[2];
+      }
+
+      break;
+      break;
+    default:
+      error = "usage";
+  }
+
+  // Performs additional validations
+  if (error.empty())
+  {
     if (!shcore::is_valid_identifier(app))
       error = (boost::format("The app name '%s' is not a valid identifier") % app).str();
     else
     {
-      std::string uri;
-      if (args.size() == 2)
-        uri = args.at(1);
-      else
+      if (uri.empty())
       {
         if (_session)
           uri = _session->uri();
         else
           error = "Unable to save session information, no active session available";
       }
-
-      if (!uri.empty())
-      {
-        try
-        {
-          Shell_registry::get_instance()->store_connection(app, uri);
-        }
-        catch (std::exception& err)
-        {
-          error = err.what();
-        }
-      }
     }
   }
-  else
-    error = "\\addconn <app> [<uri>]";
+
+  // Attempsts the store
+  if (error.empty())
+  {
+    try
+    {
+      Shell_registry::get_instance()->add_connection(app, uri, overwrite);
+    }
+    catch (std::exception& err)
+    {
+      error = err.what();
+    }
+  }
+  else if (error == "usage")
+    error = "\\addconn [-f] <app> [<uri>]";
 
   if (!error.empty())
     print_error(error + "\n");
@@ -1043,7 +1082,7 @@ void Interactive_shell::command_loop()
         break;
       default:
         break;
-  }
+    }
 
     if (!message.empty())
     {
@@ -1052,7 +1091,7 @@ void Interactive_shell::command_loop()
       else
         shcore::print(message + "\n");
     }
-}
+  }
 
   while (_options.interactive)
   {

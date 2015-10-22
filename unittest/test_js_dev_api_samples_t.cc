@@ -51,11 +51,11 @@ namespace shcore
       Connection_options cs;
       try
       {
-        cs = sr->get_connection_by_name("myapp");
+        cs = sr->get_connection_options("myapp");
       }
       catch (std::runtime_error &e)
       {
-        cs = sr->add_connection_options("app=myapp; server=localhost; user=mike; schema=test;");
+        cs = sr->add_connection_options("myapp", "server=localhost; user=mike; schema=test;");
         sr->merge();
       }
     }

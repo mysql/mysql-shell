@@ -16,19 +16,19 @@
 
 namespace shcore
 {
-  class Shell_js_tests : public Shell_js_script_tester
+  class Shell_py_tests : public Shell_py_script_tester
   {
     virtual void SetUp()
     {
-      Shell_js_script_tester::SetUp();
+      Shell_py_script_tester::SetUp();
 
-      set_config_folder("js_devapi");
-      //set_setup_script("setup.js");
+      set_config_folder("py_devapi");
+      //set_setup_script("setup.py");
     }
   };
 
-  TEST_F(Shell_js_tests, built_ins)
+  TEST_F(Shell_py_tests, built_ins)
   {
-    validate_interactive("shell_builtin.js");
+    validate_interactive("shell_builtins.py");
   }
 }

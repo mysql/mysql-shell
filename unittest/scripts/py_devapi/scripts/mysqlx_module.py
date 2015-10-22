@@ -185,7 +185,7 @@ mySession.close()
 
 
 #@ Server Registry, session from data dictionary
-shell.registry.store('mysqlx_data', data);
+shell.registry.add('mysqlx_data', data);
 
 mySession = mysqlx.getSession(shell.registry.mysqlx_data, __pwd);
 
@@ -204,7 +204,7 @@ mySession = mysqlx.getSession(shell.registry.mysqlx_data, __pwd)
 
 
 #@ Server Registry, session from uri
-shell.registry.store('mysqlx_uri', __uripwd)
+shell.registry.add('mysqlx_uri', __uripwd)
 
 mySession = mysqlx.getSession(shell.registry.mysqlx_uri)
 

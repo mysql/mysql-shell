@@ -48,15 +48,14 @@ namespace shcore {
     User = 2,
     Port = 3,
     Password = 4,
-    Protocol = 5,
-    Schema = 6
+    Schema = 5
   };
 
   class SHCORE_PUBLIC Connection_options
   {
   public:
     // Parses the connection string and fills a map with the individual key value pairs.
-    Connection_options(const std::string options);
+    Connection_options(const std::string options, bool placeholder);
     Connection_options();
 
     // generates a connection string.
@@ -70,7 +69,6 @@ namespace shcore {
     std::string get_user() const    { return get_keyword_value(User); }
     std::string get_port() const    { return get_keyword_value(Port); }
     std::string get_password() const{ return get_keyword_value(Password); }
-    std::string get_protocol() const{ return get_keyword_value(Protocol); }
     std::string get_schema() const  { return get_keyword_value(Schema); }
 
     void set_connection_options(const std::string &conn_str);
@@ -80,7 +78,6 @@ namespace shcore {
     void set_user(const std::string &user)        { set_keyword_value(User, user); }
     void set_port(const std::string &port)        { set_keyword_value(Port, port); }
     void set_password(const std::string &password){ set_keyword_value(Password, password); }
-    void set_protocol(const std::string &protocol){ set_keyword_value(Protocol, protocol); }
     void set_schema(const std::string &schema)    { set_keyword_value(Schema, schema); }
 
     typedef std::map<std::string, std::string> map_t;
@@ -110,7 +107,7 @@ namespace shcore {
     struct Keywords_table
     {
     private:
-      enum { MAX_KEYWORDS = 7 };
+      enum { MAX_KEYWORDS = 6 };
       std::string _keywords[MAX_KEYWORDS];
       typedef std::map<std::string, Connection_keywords> keywords_to_int_map;
       keywords_to_int_map _keywords_to_int;
@@ -125,13 +122,12 @@ namespace shcore {
     public:
       Keywords_table()
       {
-        // For now, all properties are optional (can be provided in a mix of server registry connection string & shell connection string).
+        // Forcing host and user to be mandatory
         init_keyword("app", App, true);
-        init_keyword("server", Server, true);
-        init_keyword("user", User, true);
+        init_keyword("host", Server, false);
+        init_keyword("dbUser", User, false);
         init_keyword("port", Port, true);
-        init_keyword("password", Password, true);
-        init_keyword("protocol", Protocol, true);
+        init_keyword("dbPassword", Password, true);
         init_keyword("schema", Schema, true);
       }
 
@@ -178,32 +174,11 @@ namespace shcore {
 
     ~Server_registry();
 
-    Connection_options& add_connection_options(const std::string &options);
-    Connection_options& add_connection_options(const std::string &uuid, const std::string &options);
-    Connection_options& add_connection_options_by_name(const std::string &name, const std::string &options);
+    Connection_options& add_connection_options(const std::string &name, const std::string &options, bool overwrite = false);
+    Connection_options& update_connection_options(const std::string &name, const std::string &options);
     void remove_connection_options(Connection_options &options);
 
-    // gets a connection by name (app attribute)
-    Connection_options& get_connection_by_name(const std::string& name);
-    Connection_options& get_connection_options(const std::string& uuid);
-    std::string get_name(const std::string &uuid) const     { return get_keyword_value(uuid, App); }
-    std::string get_server(const std::string &uuid) const   { return get_keyword_value(uuid, Server); }
-    std::string get_user(const std::string &uuid) const     { return get_keyword_value(uuid, User); }
-    std::string get_port(const std::string &uuid) const     { return get_keyword_value(uuid, Port); }
-    std::string get_password(const std::string &uuid) const { return get_keyword_value(uuid, Password); }
-    std::string get_protocol(const std::string &uuid) const { return get_keyword_value(uuid, Protocol); }
-    std::string get_schema(const std::string &uuid) const   { return get_keyword_value(uuid, Schema); }
-    std::string get_value(const std::string &uuid, const std::string &name) const;
-
-    void set_connection_options(const std::string &uuid, const Connection_options &conn_str);
-    void set_name(const std::string &uuid, const std::string &name)         { set_keyword_value(uuid, App, name); }
-    void set_server(const std::string &uuid, const std::string &server)     { set_keyword_value(uuid, Server, server); }
-    void set_user(const std::string &uuid, const std::string &user)         { set_keyword_value(uuid, User, user); }
-    void set_port(const std::string &uuid, const std::string &port)         { set_keyword_value(uuid, Port, port); }
-    void set_password(const std::string &uuid, const std::string &password) { set_keyword_value(uuid, Password, password); }
-    void set_protocol(const std::string &uuid, const std::string &protocol) { set_keyword_value(uuid, Protocol, protocol); }
-    void set_schema(const std::string &uuid, const std::string &schema)     { set_keyword_value(uuid, Schema, schema); }
-    void set_value(const std::string &uuid, const std::string &name, const std::string &value);
+    Connection_options& get_connection_options(const std::string& name);
 
     //void merge_rapidjson();
     void merge();
@@ -228,11 +203,18 @@ namespace shcore {
     void init();
     void load_file();
     //void load_file_rapidjson();
-    Connection_options& add_connection_options(const std::string& uuid, const std::string& options, const std::string& name);
     static int encrypt_buffer(const char *plain, int plain_len, char cipher[], const char *my_key);
     static int decrypt_buffer(const char *cipher, int cipher_len, char plain[], const char *my_key);
 
-    std::string get_keyword_value(const std::string &uuid, Connection_keywords key) const;
+    Connection_options& add_connection_options(const std::string& uuid, const std::string& name, const std::string& options, bool overwrite, bool placeholder);
+    void set_connection_options(const std::string &uuid, const Connection_options &conn_str);
+    void set_name(const std::string &uuid, const std::string &name)         { set_keyword_value(uuid, App, name); }
+    void set_server(const std::string &uuid, const std::string &server)     { set_keyword_value(uuid, Server, server); }
+    void set_user(const std::string &uuid, const std::string &user)         { set_keyword_value(uuid, User, user); }
+    void set_port(const std::string &uuid, const std::string &port)         { set_keyword_value(uuid, Port, port); }
+    void set_password(const std::string &uuid, const std::string &password) { set_keyword_value(uuid, Password, password); }
+    void set_schema(const std::string &uuid, const std::string &schema)     { set_keyword_value(uuid, Schema, schema); }
+    void set_value(const std::string &uuid, const std::string &name, const std::string &value);
     void set_keyword_value(const std::string &uuid, Connection_keywords key, const std::string& value);
   };
 

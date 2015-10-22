@@ -37,7 +37,8 @@ namespace shcore
     static boost::shared_ptr<Shell_registry> get_instance();
 
     // Methods for C++ interface
-    bool store_connection(const std::string& name, const std::string& uri);
+    bool add_connection(const std::string& name, const std::string& uri, bool overwrite = false);
+    bool update_connection(const std::string& name, const std::string& uri);
     bool remove_connection(const std::string& name);
     Value::Map_type_ref connections(){ return _connections; }
   private:
@@ -50,7 +51,8 @@ namespace shcore
     // The only available instance
     static boost::shared_ptr<Shell_registry> _instance;
 
-    Value store(const std::string& name, const Value::Map_type_ref& connection);
+    std::string get_options_string(const Value::Map_type_ref& connection);
+    Value store_connection(const std::string& name, const Value::Map_type_ref& connection, bool update, bool overwrite);
     Value::Map_type_ref fill_connection(const std::string& uri);
     Value::Map_type_ref fill_connection(const Connection_options& options);
 
@@ -62,8 +64,9 @@ namespace shcore
     virtual std::string &append_descr(std::string &s_out, int indent = -1, int quote_strings = 0) const;
     virtual void append_json(shcore::JSON_dumper& dumper) const;
 
-    Value store(const Argument_list &args);
+    Value add(const Argument_list &args);
     Value remove(const Argument_list &args);
+    Value update(const Argument_list &args);
 
     void backup_passwords(Value::Map_type *pwd_backups) const;
     void restore_passwords(Value::Map_type *pwd_backups) const;

@@ -243,7 +243,7 @@ Value BaseSession::connect(const Argument_list &args)
         app = (*options)["app"].as_string();
 
         shcore::Server_registry sr(data_source_file);
-        shcore::Connection_options& conn = sr.get_connection_by_name(app);
+        shcore::Connection_options& conn = sr.get_connection_options(app);
 
         host = conn.get_server();
         std::string str_port = conn.get_port();

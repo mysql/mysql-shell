@@ -194,7 +194,7 @@ doc.Parse(s.c_str());
 for (rapidjson::Value::ConstValueIterator it = doc.Begin(); it != doc.End(); ++it)
 {
 if (!it->IsObject())
-throw std::runtime_error((boost::format("The server registry at %s does not have the right format.") % c_filename).str());
+throw std::runtime_error((boost::format("The server registry at %s does not have the right format") % c_filename).str());
 
 rapidjson::Value::ConstMemberIterator val = it->FindMember("uuid");
 const std::string& cs_uuid = val->value.GetString();
@@ -202,7 +202,7 @@ add_connection_options(cs_uuid, "");
 
 for (rapidjson::Value::ConstMemberIterator it2 = it->MemberBegin(); it2 != it->MemberEnd(); ++it2)
 {
-if (it2->name == "password")
+if (it2->name == "dbPassword")
 {
 char decipher[4096];
 const std::string& password = it2->value.GetString();
@@ -212,7 +212,7 @@ if (decipher_len == -1)
 throw std::runtime_error("Error decrypting data");
 decipher[decipher_len] = '\0';
 const std::string s_decipher(static_cast<const char *>(decipher));
-set_value(cs_uuid, "password", s_decipher);
+set_value(cs_uuid, "dbPassword", s_decipher);
 }
 else
 {
@@ -260,40 +260,45 @@ void Server_registry::load_file()
     myjson::MYJSON myjsDoc;
     myjson::MYJSON myjsDoc2;
 
-    for (myjson::MYJSON::iterator it = myjs->begin(); it != myjs->end(); ++it)
+    if (myjs->data())
     {
-      if (!myjs->get_document(it.key(), myjsDoc2))
-        throw std::runtime_error((boost::format("Missing document for key %s") % it.key()).str());
-      if (!myjsDoc2.get_document("config", myjsDoc))
-        throw std::runtime_error((boost::format("Missing config section in configuration with app %s") % it.key()).str());
-      myjson::MYJSON::iterator myend = myjsDoc.end();
-
-      std::string cs_uuid;
-      myjsDoc.get_text("uuid", cs_uuid);
-      std::string app;
-      myjsDoc2.get_text("app", app);
-
-      add_connection_options(cs_uuid, "", app);
-
-      for (myjson::MYJSON::iterator it2 = myjsDoc.begin(); it2 != myend; ++it2)
+      for (myjson::MYJSON::iterator it = myjs->begin(); it != myjs->end(); ++it)
       {
-        if (std::strcmp(it2.key(), "password") == 0)
+        if (!myjs->get_document(it.key(), myjsDoc2))
+          throw std::runtime_error((boost::format("Missing document for key %s") % it.key()).str());
+        if (!myjsDoc2.get_document("config", myjsDoc))
+          throw std::runtime_error((boost::format("Missing config section in configuration with app %s") % it.key()).str());
+        myjson::MYJSON::iterator myend = myjsDoc.end();
+
+        std::string cs_uuid;
+        myjsDoc.get_text("uuid", cs_uuid);
+        std::string app;
+        myjsDoc2.get_text("app", app);
+
+        // Do not overwrite, if for some reason a connection with a duplicated name is on the file
+        // The error will be reported on load time
+        add_connection_options(cs_uuid, app, "", false, true);
+
+        for (myjson::MYJSON::iterator it2 = myjsDoc.begin(); it2 != myend; ++it2)
         {
-          char decipher[4096];
-          std::string password;
-          myjsDoc.get_text("password", password);
-          int len = password.size();
-          int decipher_len = Server_registry::decrypt_buffer(password.c_str(), len, decipher, cs_uuid.c_str());
-          if (decipher_len == -1)
-            throw std::runtime_error("Error decrypting data");
-          decipher[decipher_len] = '\0';
-          const std::string s_key(it2.key());
-          const std::string s_decipher(static_cast<const char *>(decipher));
-          set_value(cs_uuid, s_key, s_decipher);
-        }
-        else
-        {
-          set_value(cs_uuid, it2.key(), it2.data());
+          if (std::strcmp(it2.key(), "dbPassword") == 0)
+          {
+            char decipher[4096];
+            std::string password;
+            myjsDoc.get_text("dbPassword", password);
+            int len = password.size();
+            int decipher_len = Server_registry::decrypt_buffer(password.c_str(), len, decipher, cs_uuid.c_str());
+            if (decipher_len == -1)
+              throw std::runtime_error("Error decrypting data");
+            decipher[decipher_len] = '\0';
+            const std::string s_key(it2.key());
+            const std::string s_decipher(static_cast<const char *>(decipher));
+            set_value(cs_uuid, s_key, s_decipher);
+          }
+          else
+          {
+            set_value(cs_uuid, it2.key(), it2.data());
+          }
         }
       }
     }
@@ -334,44 +339,43 @@ std::string Server_registry::get_new_uuid()
   return str.str();
 }
 
-Connection_options& Server_registry::add_connection_options(const std::string& options)
-{
-  Connection_options cs(options);
-  cs._uuid = Server_registry::get_new_uuid();
-  std::string uuid = cs._uuid;
-  _connections[uuid] = cs;
-  Connection_options& result = _connections[uuid];
-  _connections_by_name[cs.get_name()] = &result;
-  return result;
-}
-
-Connection_options& Server_registry::add_connection_options(const std::string& uuid, const std::string& options)
-{
-  Connection_options cs(options);
-  cs._uuid = uuid;
-  _connections[uuid] = cs;
-  Connection_options& result = _connections[uuid];
-  _connections_by_name[cs.get_name()] = &result;
-  return result;
-}
-
-Connection_options& Server_registry::add_connection_options(const std::string& uuid, const std::string& options, const std::string& name)
+Connection_options& Server_registry::add_connection_options(const std::string& uuid, const std::string& name, const std::string& options, bool overwrite, bool placeholder)
 {
   if (!shcore::is_valid_identifier(name))
     throw std::runtime_error((boost::format("The app name '%s' is not a valid identifier") % name).str());
-  Connection_options cs(options);
+  else if (!overwrite && _connections_by_name.find(name) != _connections_by_name.end())
+    throw std::runtime_error((boost::format("The app name '%s' already exists") % name).str());
+
+  Connection_options cs(options, placeholder);
   cs._uuid = uuid;
   cs.set_name(name);
+
+  if (_connections_by_name.find(name) != _connections_by_name.end())
+  {
+    std::string old_uuid = _connections_by_name[name]->get_uuid();
+    _connections_by_name.erase(name);
+    _connections.erase(old_uuid);
+  }
+
   _connections[uuid] = cs;
   Connection_options& result = _connections[uuid];
   _connections_by_name[name] = &result;
   return result;
 }
 
-Connection_options& Server_registry::add_connection_options_by_name(const std::string &name, const std::string &options)
+Connection_options& Server_registry::add_connection_options(const std::string &name, const std::string &options, bool overwrite)
 {
-  const std::string uuid = get_new_uuid();
-  return add_connection_options(uuid, options, name);
+  std::string uuid = get_new_uuid();
+  return add_connection_options(uuid, name, options, overwrite, false);
+}
+
+Connection_options& Server_registry::update_connection_options(const std::string &name, const std::string &options)
+{
+  if (_connections_by_name.find(name) == _connections_by_name.end())
+    throw std::runtime_error((boost::format("The app name '%s' does not exist") % name).str());
+
+  std::string uuid = _connections_by_name[name]->get_uuid();
+  return add_connection_options(uuid, name, options, true, false);
 }
 
 void Server_registry::remove_connection_options(Connection_options &options)
@@ -381,7 +385,7 @@ void Server_registry::remove_connection_options(Connection_options &options)
   _connections.erase(name);
 }
 
-Connection_options& Server_registry::get_connection_by_name(const std::string& name)
+Connection_options& Server_registry::get_connection_options(const std::string& name)
 {
   std::map<std::string, Connection_options*>::iterator it = _connections_by_name.find(name);
   if (it == _connections_by_name.end())
@@ -389,58 +393,16 @@ Connection_options& Server_registry::get_connection_by_name(const std::string& n
   return *(it->second);
 }
 
-Connection_options& Server_registry::get_connection_options(const std::string &uuid)
-{
-  connections_map_t::iterator it = _connections.find(uuid);
-  if (it == _connections.end())
-    throw std::runtime_error((boost::format("Connection not found for uuid: %s") % uuid).str());
-  return it->second;
-}
-
-std::string Server_registry::get_keyword_value(const std::string &uuid, Connection_keywords key) const
-{
-  connections_map_t::const_iterator it = _connections.find(uuid);
-  if (it == _connections.end())
-    throw std::runtime_error((boost::format("Connection not found for uuid: %s") % uuid).str());
-  const Connection_options& cs = it->second;
-  return cs.get_keyword_value(key);
-}
-
-std::string Server_registry::get_value(const std::string &uuid, const std::string &name) const
-{
-  connections_map_t::const_iterator it = _connections.find(uuid);
-  if (it == _connections.end())
-    throw std::runtime_error((boost::format("Connection not found for uuid: %s") % uuid).str());
-  const Connection_options& cs = it->second;
-  return cs.get_value(name);
-}
-
-void Server_registry::set_connection_options(const std::string &uuid, const Connection_options &conn_str)
-{
-  _connections[uuid] = conn_str;
-  Connection_options& result = _connections[uuid];
-  _connections_by_name[conn_str.get_name()] = &result;
-}
-
-void Server_registry::set_keyword_value(const std::string &uuid, Connection_keywords key, const std::string& value)
-{
-  connections_map_t::iterator it = _connections.find(uuid);
-  if (it == _connections.end())
-    throw std::runtime_error((boost::format("Connection not found for uuid: %s") % uuid).str());
-  Connection_options& cs = it->second;
-  cs.set_keyword_value(key, value);
-}
-
 void Server_registry::set_value(const std::string &uuid, const std::string &name, const std::string &value)
 {
   connections_map_t::iterator it = _connections.find(uuid);
   if (it == _connections.end())
-    throw std::runtime_error((boost::format("Connection not found for uuid: %s") % uuid).str());
+  throw std::runtime_error((boost::format("Connection not found for uuid: %s") % uuid).str());
   Connection_options& cs = it->second;
   if (Connection_options::get_keyword_id(name) == (int)App)
   {
     if (!shcore::is_valid_identifier(name))
-      throw std::runtime_error((boost::format("The app name '%s' is not a valid identifier") % name).str());
+    throw std::runtime_error((boost::format("The app name '%s' is not a valid identifier") % name).str());
     _connections_by_name.erase(cs.get_name());
     _connections_by_name[name] = &cs;
   }
@@ -467,14 +429,14 @@ if (it2->first == "uuid")
 uuid_checked = true;
 dumper.append_string(it2->first, it2->second);
 }
-else if (it2->first == "password")
+else if (it2->first == "dbPassword")
 {
 // encrypt password
 char cipher[4096];
 std::string uuid = cs.get_uuid();
 int cipher_len = Server_registry::encrypt_buffer(it2->second.c_str(), it2->second.size(), cipher, uuid.c_str());
 if (cipher_len == -1)
-throw std::runtime_error("Error encrypting data.");
+throw std::runtime_error("Error encrypting data");
 cipher[cipher_len] = '\0';
 std::string s_cipher(static_cast<const char *>(cipher), cipher_len);
 dumper.append_string(it2->first, s_cipher);
@@ -526,14 +488,14 @@ void Server_registry::merge()
         uuid_checked = true;
         myjs2->append_value(it2->first.c_str(), it2->second.c_str());
       }
-      else if (it2->first == "password")
+      else if (it2->first == "dbPassword")
       {
         // encrypt password
         char cipher[4096];
         std::string uuid = cs.get_uuid();
         int cipher_len = Server_registry::encrypt_buffer(it2->second.c_str(), it2->second.size(), cipher, uuid.c_str());
         if (cipher_len == -1)
-          throw std::runtime_error("Error encrypting data.");
+          throw std::runtime_error("Error encrypting data");
         cipher[cipher_len] = '\0';
         myjs2->append_value(it2->first.c_str(), static_cast<const char *>(cipher), cipher_len);
       }
@@ -568,9 +530,9 @@ void Server_registry::merge()
   std::free(json_data);
 }
 
-Connection_options::Connection_options(std::string options) : _connection_options(options)
+Connection_options::Connection_options(std::string options, bool placeholder) : _connection_options(options)
 {
-  if (!options.empty())
+  if (!placeholder)
     parse();
 }
 
@@ -592,7 +554,7 @@ std::string Connection_options::get_value(const std::string &name) const
 {
   const_iterator it = find(name);
   if (it == end())
-    throw std::runtime_error((boost::format("'%s' attribute not found in connection.") % name).str());
+    throw std::runtime_error((boost::format("'%s' attribute not found in connection") % name).str());
   return it->second;
 }
 
@@ -696,40 +658,40 @@ Lock_file::Status Lock_file::check(const std::string &path)
   {
     switch (GetLastError())
     {
-    case ERROR_SHARING_VIOLATION:
-      // if file cannot be opened for writing, it is locked...
-      // so open it for reading to check the owner process id written in it
-      h = CreateFileA(path.c_str(),
-        GENERIC_READ,
-        FILE_SHARE_WRITE | FILE_SHARE_READ,
-        NULL,
-        OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-      if (h != INVALID_HANDLE_VALUE)
-      {
-        char buffer[32];
-        DWORD bytes_read;
-        if (ReadFile(h, buffer, sizeof(buffer), &bytes_read, NULL))
+      case ERROR_SHARING_VIOLATION:
+        // if file cannot be opened for writing, it is locked...
+        // so open it for reading to check the owner process id written in it
+        h = CreateFileA(path.c_str(),
+          GENERIC_READ,
+          FILE_SHARE_WRITE | FILE_SHARE_READ,
+          NULL,
+          OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+        if (h != INVALID_HANDLE_VALUE)
         {
+          char buffer[32];
+          DWORD bytes_read;
+          if (ReadFile(h, buffer, sizeof(buffer), &bytes_read, NULL))
+          {
+            CloseHandle(h);
+            buffer[bytes_read] = 0;
+            if (atoi(buffer) == GetCurrentProcessId())
+              return LockedSelf;
+            return LockedOther;
+          }
           CloseHandle(h);
-          buffer[bytes_read] = 0;
-          if (atoi(buffer) == GetCurrentProcessId())
-            return LockedSelf;
           return LockedOther;
         }
-        CloseHandle(h);
+        // if the file is locked for read, assume its locked by some unrelated process
+        // since this class never locks it for read
         return LockedOther;
-      }
-      // if the file is locked for read, assume its locked by some unrelated process
-      // since this class never locks it for read
-      return LockedOther;
-      //throw std::runtime_error(strfmt("Could not read process id from lock file (%i)", GetLastError());
-      break;
-    case ERROR_FILE_NOT_FOUND:
-      return NotLocked;
-    case ERROR_PATH_NOT_FOUND:
-      throw std::invalid_argument("Invalid path");
-    default:
-      throw std::runtime_error((boost::format("Could not open lock file (%i)") % GetLastError()).str());
+        //throw std::runtime_error(strfmt("Could not read process id from lock file (%i)", GetLastError());
+        break;
+      case ERROR_FILE_NOT_FOUND:
+        return NotLocked;
+      case ERROR_PATH_NOT_FOUND:
+        throw std::invalid_argument("Invalid path");
+      default:
+        throw std::runtime_error((boost::format("Could not open lock file (%i)") % GetLastError()).str());
     }
   }
   else
