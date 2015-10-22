@@ -55,7 +55,7 @@ namespace shcore
       }
       catch (std::runtime_error &e)
       {
-        cs = sr->add_connection_options("myapp", "server=localhost; user=mike; schema=test;");
+        cs = sr->add_connection_options("myapp", "host=localhost; dbUser=mike; schema=test;");
         sr->merge();
       }
     }

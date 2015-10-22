@@ -29,6 +29,6 @@ namespace shcore
 
   TEST_F(Shell_js_tests, built_ins)
   {
-    validate_interactive("shell_builtin.js");
+    validate_interactive("shell_builtins.js");
   }
 }
