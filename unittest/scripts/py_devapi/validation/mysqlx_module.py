@@ -1,10 +1,8 @@
 #@ mysqlx module: exports
-|Exported Items: 25|
+|Exported Items: 23|
 |getSession: <type 'builtin_function_or_method'>|
 |getNodeSession: <type 'builtin_function_or_method'>|
 |expr: <type 'builtin_function_or_method'>|
-|Varchar: <type 'builtin_function_or_method'>|
-|Char: <type 'builtin_function_or_method'>|
 |Decimal: <type 'builtin_function_or_method'>|
 |Numeric: <type 'builtin_function_or_method'>|
 |<DataTypes.TinyInt>|
@@ -25,10 +23,6 @@
 |<DataTypes.Blob>|
 |<DataTypes.Text>|
 |<IndexTypes.IndexUnique>|
-|<DataTypes.Varchar>|
-|<DataTypes.Varchar(10)>|
-|<DataTypes.Char>|
-|<DataTypes.Char(10)>|
 |<DataTypes.Decimal>|
 |<DataTypes.Decimal(10)>|
 |<DataTypes.Decimal(10,3)>|

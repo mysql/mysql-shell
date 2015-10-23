@@ -872,15 +872,6 @@ Mysqlx::Expr::Expr* Expr_parser::atomic_expr()
   {
     return Expr_builder::build_literal_expr(Expr_builder::build_string_scalar("?"));
   }
-  else if (type == Token::DOLLAR)
-  {
-    // TODO: make sure this doesn't interfere with un-prefixed JSON paths
-    std::auto_ptr<Mysqlx::Expr::Expr> e = std::auto_ptr<Mysqlx::Expr::Expr>(new Mysqlx::Expr::Expr());
-    e->set_type(Mysqlx::Expr::Expr::VARIABLE);
-    const std::string& id = _tokenizer.consume_token(Token::IDENT);
-    e->set_variable(id.c_str(), id.size());
-    return e.release();
-  }
   else if (type == Token::LPAREN)
   {
     std::auto_ptr<Mysqlx::Expr::Expr> e(my_expr());
@@ -1007,6 +998,11 @@ Mysqlx::Expr::Expr* Expr_parser::atomic_expr()
       else
         return document_field();
     }
+  }
+  else if (type == Token::DOLLAR && _document_mode)
+  {
+    _tokenizer.unget_token();
+    return document_field();
   }
   const Token& tok = _tokenizer.peek_token();
   throw Parser_error((boost::format("Unknown token type = %d when expecting atomic expression at position %d (%s)") % type % tok.get_pos() % tok.get_text()).str());

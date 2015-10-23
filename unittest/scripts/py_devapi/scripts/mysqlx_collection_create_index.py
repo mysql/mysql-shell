@@ -19,7 +19,7 @@ create_index = collection.createIndex('_name')
 validate_crud_functions(create_index, ['field'])
 
 #@ CollectionAdd: valid operations after field
-create_index.field('name', mysqlx.Varchar(50), True)
+create_index.field('name', mysqlx.Text(50), True)
 validate_crud_functions(create_index, ['field', 'execute'])
 
 #@ CollectionAdd: valid operations after execute

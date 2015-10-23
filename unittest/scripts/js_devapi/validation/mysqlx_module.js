@@ -1,10 +1,8 @@
 //@ mysqlx module: exports
-|Exported Items: 25|
+|Exported Items: 23|
 |getSession: function|
 |getNodeSession: function|
 |expr: function|
-|Varchar: function|
-|Char: function|
 |Decimal: function|
 |<DataTypes.TinyInt>|
 |<DataTypes.SmallInt>|
@@ -25,10 +23,6 @@
 |<DataTypes.Blob>|
 |<DataTypes.Text>|
 |<IndexTypes.IndexUnique>|
-|<DataTypes.Varchar>|
-|<DataTypes.Varchar(10)>|
-|<DataTypes.Char>|
-|<DataTypes.Char(10)>|
 |<DataTypes.Decimal>|
 |<DataTypes.Decimal(10)>|
 |<DataTypes.Decimal(10,3)>|

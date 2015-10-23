@@ -126,9 +126,9 @@ namespace shcore
       int code = args.int_at(0);
       switch (code)
       {
-        case 0:
-          // test string_at
-          return Value(args.string_at(1));
+      case 0:
+        // test string_at
+        return Value(args.string_at(1));
       }
       return Value::Null();
     }
@@ -136,9 +136,9 @@ namespace shcore
     TEST(Functions, function_wrappers)
     {
       boost::shared_ptr<Function_base> f(Cpp_function::create("test", do_test,
-                                                              "test_index", Integer,
-                                                              "test_arg", String,
-                                                              NULL));
+        "test_index", Integer,
+        "test_arg", String,
+        NULL));
 
       {
         Argument_list args;
@@ -280,6 +280,11 @@ namespace shcore
       EXPECT_TRUE(nested->has_key("inner"));
       EXPECT_EQ(shcore::String, (*nested)["inner"].type);
       EXPECT_EQ("value", (*nested)["inner"].as_string());
+
+      shcore::Value v2 = shcore::Value::parse("{}");
+      EXPECT_EQ(shcore::Map, v.type);
+      Value::Map_type_ref map2 = v2.as_map();
+      EXPECT_EQ(map2->size(), 0);
     }
 
     TEST(Parsing, Array)
@@ -333,6 +338,11 @@ namespace shcore
 
       EXPECT_EQ(shcore::Undefined, (*array)[9].type);
       EXPECT_EQ(NULL, (*array)[9]);
+
+      shcore::Value v2 = shcore::Value::parse("[]");
+      EXPECT_EQ(shcore::Array, v2.type);
+      Value::Array_type_ref array2 = v2.as_array();
+      EXPECT_EQ(array2->size(), 0);
     }
   }
 }

@@ -145,8 +145,6 @@ namespace shcore
         "[19, 36, 19, 36, 37, 19, 27, 76]", "(((a + b) + -c) > 2)");
       parse_and_assert_expr("now () + b + c > 2",
         "[19, 6, 7, 36, 19, 36, 19, 27, 76]", "(((now() + b) + c) > 2)");
-      parse_and_assert_expr("now () + $b + c > 2",
-        "[19, 6, 7, 36, 77, 19, 36, 19, 27, 76]", "(((now() + $b) + c) > 2)");
       parse_and_assert_expr("now () - interval +2 day > some_other_time() or something_else IS NOT NULL",
         "[19, 6, 7, 37, 16, 36, 76, 48, 27, 19, 6, 7, 3, 19, 5, 1, 12]", "(((now() - INTERVAL 2 day) > some_other_time()) || NOT ( (something_else IS NULL)))");
       parse_and_assert_expr("\"two quotes to one\"\"\"",
@@ -177,8 +175,8 @@ namespace shcore
         "[19, 1, 10, 76, 2, 76]", "NOT ( a BETWEEN 1 AND 2)");
       parse_and_assert_expr("a in (1,2,a.b(3),4,5,x)",
         "[19, 14, 6, 76, 24, 76, 24, 19, 22, 19, 6, 76, 7, 24, 76, 24, 76, 24, 19, 7]", "a IN (1, 2, a.b(3), 4, 5, x)");
-      parse_and_assert_expr("a not in (1,2,3,4,5,$x)",
-        "[19, 1, 14, 6, 76, 24, 76, 24, 76, 24, 76, 24, 76, 24, 77, 19, 7]", "NOT ( a IN (1, 2, 3, 4, 5, $x))");
+      parse_and_assert_expr("a not in (1,2,3,4,5,x)",
+        "[19, 1, 14, 6, 76, 24, 76, 24, 76, 24, 76, 24, 76, 24, 19, 7]", "NOT ( a IN (1, 2, 3, 4, 5, x))");
       parse_and_assert_expr("a like b escape c",
         "[19, 15, 19, 18, 19]", "a LIKE b ESCAPE c");
       parse_and_assert_expr("a not like b escape c",
@@ -260,6 +258,12 @@ namespace shcore
       parse_and_assert_expr("count(*)", "[19, 6, 38, 7]", "count(*)");
       parse_and_assert_expr("[]", "[8, 9]", "[  ]");
       parse_and_assert_expr("[\"item1\", \"item2\", \"item3\"]", "[8, 20, 24, 20, 24, 20, 9]", "[ \"item1\", \"item2\", \"item3\" ]");
+
+      parse_and_assert_expr("$.geography.Region = :geo and $.geography.SurfaceArea = :area", "[77, 22, 19, 22, 19, 25, 79, 19, 2, 77, 22, 19, 22, 19, 25, 79, 19]", "(($.geography.Region == :0) && ($.geography.SurfaceArea == :1))", true);
+      parse_and_assert_expr("geography.Region = :geo and geography.SurfaceArea = :area", "[19, 22, 19, 25, 79, 19, 2, 19, 22, 19, 25, 79, 19]", "(($.geography.Region == :0) && ($.geography.SurfaceArea == :1))", true);
+
+      EXPECT_ANY_THROW(parse_and_assert_expr("$.geography.Region = :geo and $.geography.SurfaceArea = :area", "[77, 22, 19, 22, 19, 25, 79, 19, 2, 77, 22, 19, 22, 19, 25, 79, 19]", "(($.geography.Region == :0) && ($.geography.SurfaceArea == :1))", false));
+      parse_and_assert_expr("geography.Region = :geo and geography.SurfaceArea = :area", "[19, 22, 19, 25, 79, 19, 2, 19, 22, 19, 25, 79, 19]", "((geography.Region == :0) && (geography.SurfaceArea == :1))", false);
     }
   };
 };
