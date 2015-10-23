@@ -43,9 +43,6 @@ int main(int argc, char **argv)
     exit(1);
   }
   ::testing::InitGoogleTest(&argc, argv);
-  //::testing::GTEST_FLAG(filter) = "Shell_js_mysqlx_tests.mysqlx_collection_create_index";
-  ::testing::GTEST_FLAG(filter) = "Shell_py_mysqlx_tests.mysqlx_module";
-  ::testing::FLAGS_gtest_break_on_failure = true;
 
   const char *generate_option = "--generate_test_groups=";
   if (argc > 1 && strncmp(argv[1], generate_option, strlen(generate_option)) == 0)
