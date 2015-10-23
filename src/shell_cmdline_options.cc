@@ -128,7 +128,10 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
       }
     }
     else if (check_arg(argv, i, "--sql", "--sql"))
+    {
       initial_mode = IShell_core::Mode_SQL;
+      session_type = mysh::Node;
+    }
     else if (check_arg(argv, i, "--js", "--javascript"))
       initial_mode = IShell_core::Mode_JScript;
     else if (check_arg(argv, i, "--py", "--python"))

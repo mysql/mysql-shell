@@ -26,7 +26,7 @@
 using namespace shcore;
 
 Python_type_bridger::Python_type_bridger(Python_context *context)
-: _owner(context)
+  : _owner(context)
 {
 }
 
@@ -143,8 +143,17 @@ Value Python_type_bridger::pyobj_to_shcore_value(PyObject *py) const
     {
       PyObject *obj_repr = PyObject_Repr(py);
       const char *s = PyString_AsString(obj_repr);
-      throw std::invalid_argument("Cannot convert Python value to internal value: " + std::string(s));
+      Value ret_val;
+
+      if (s)
+        ret_val = Value(s);
+
       Py_DECREF(obj_repr);
+
+      if (ret_val)
+        return ret_val;
+      else
+        throw std::invalid_argument("Cannot convert Python value to internal value");
     }
   }
 
