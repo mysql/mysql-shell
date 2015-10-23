@@ -21,6 +21,7 @@
 #include "shellcore/shell_core.h"
 #include "shellcore/common.h"
 #include "modules/mod_mysqlx_constant.h"
+#include "utils/utils_file.h"
 
 #include "shellcore/object_factory.h"
 #include "shellcore/python_type_conversion.h"
@@ -44,6 +45,33 @@ namespace shcore
     {
 #ifdef _WINDOWS
       Py_NoSiteFlag = 1;
+
+      char path[1000];
+      char *env_value;
+
+      // If PYTHONHOME is available, honors it
+      env_value = getenv("PYTHONHOME");
+      if (env_value)
+        strcpy(path, env_value);
+      else
+      {
+        // If not will associate what should be the right path in
+        // a standard distribution
+        std::string python_path;
+        python_path = shcore::get_mysqlx_home_path();
+        if (!python_path.empty())
+          python_path.append("\\lib\\Python2.7");
+        else
+        {
+          // Not a standard distribution
+          python_path = shcore::get_binary_folder();
+          python_path.append("\\Python2.7");
+        }
+
+        strcpy(path, python_path.c_str());
+      }
+
+      Py_SetPythonHome(path);
 #endif
       Py_InitializeEx(0);
 

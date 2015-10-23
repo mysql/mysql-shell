@@ -47,6 +47,11 @@ INCLUDE(CheckIncludeFiles)
 INCLUDE(CheckFunctionExists)
 if(HAVE_PYTHON)
   INCLUDE(FindPythonLibs)
+	
+	# On windows stores the path to the python libraries since they will be bundled
+	IF(WIN32)
+		SET(PYTHON_LIBRARY_PATH "$ENV{PB2WORKDIR}\\$ENV{PYTHON_SOURCENAME}\\Lib")
+	ENDIF()
 endif()
 
 INCLUDE(protobuf)
@@ -313,6 +318,19 @@ include(packaging)
 
 if(WIN32)
   remove_definitions(-DUNICODE)
+
+  IF(PYTHON_LIBRARY_PATH)
+    install(DIRECTORY "${PYTHON_LIBRARY_PATH}" DESTINATION "lib/Python2.7" COMPONENT main)
+
+    IF(CMAKE_BUILD_TYPE MATCHES Debug)
+      # This is to copy the modules into the build directory to make them
+      # available for debugging purposes
+      add_custom_command(TARGET mysqlx PRE_BUILD
+                        COMMAND ${CMAKE_COMMAND} -E copy_directory
+                      "${PYTHON_LIBRARY_PATH}" $<TARGET_FILE_DIR:mysqlx>/Python2.7/Lib)
+    ENDIF()
+
+  ENDIF()
 endif()
 
 # Installation instructions
