@@ -66,18 +66,18 @@
 |<NodeSession:|
 |Session using right URI|
 
-//@ Server Registry, session from data dictionary
+//@ Stored Sessions, session from data dictionary
 |<XSession:|
 |Session using right URI|
 
-//@ Server Registry, session from data dictionary removed
+//@ Stored Sessions, session from data dictionary removed
 ||AttributeError: Invalid object member mysqlx_data
 
-//@ Server Registry, session from uri
+//@ Stored Sessions, session from uri
 |<XSession:|
 |Session using right URI|
 
-//@ Server Registry, session from uri removed
+//@ Stored Sessions, session from uri removed
 ||AttributeError: Invalid object member mysqlx_uri
 
 //@# mysqlx module: expression errors

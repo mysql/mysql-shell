@@ -78,29 +78,10 @@ else
 	
 mySession.close();
 
-//@ Server Registry, session from data dictionary
-shell.registry.add('mysql_data', data);
+//@ Stored Sessions, session from data dictionary
+shell.storedSessions.add('mysql_data', data);
 
-mySession = mysql.getClassicSession(shell.registry.mysql_data, __pwd);
-
-print(mySession, '\n');
-
-if (mySession.uri == __uri)
-	print('Session using right URI\n');
-else
-	print('Session using wrong URI\n');	
-
-mySession.close();
-
-//@ Server Registry, session from data dictionary removed
-shell.registry.remove('mysql_data');
-mySession = mysql.getClassicSession(shell.registry.mysql_data, __pwd);
-
-
-//@ Server Registry, session from uri
-shell.registry.add('mysql_uri', __uripwd);
-
-mySession = mysql.getClassicSession(shell.registry.mysql_uri);
+mySession = mysql.getClassicSession(shell.storedSessions.mysql_data, __pwd);
 
 print(mySession, '\n');
 
@@ -111,7 +92,26 @@ else
 
 mySession.close();
 
-//@ Server Registry, session from uri removed
-shell.registry.remove('mysql_uri');
-mySession = mysql.getClassicSession(shell.registry.mysql_uri);
+//@ Stored Sessions, session from data dictionary removed
+shell.storedSessions.remove('mysql_data');
+mySession = mysql.getClassicSession(shell.storedSessions.mysql_data, __pwd);
+
+
+//@ Stored Sessions, session from uri
+shell.storedSessions.add('mysql_uri', __uripwd);
+
+mySession = mysql.getClassicSession(shell.storedSessions.mysql_uri);
+
+print(mySession, '\n');
+
+if (mySession.uri == __uri)
+	print('Session using right URI\n');
+else
+	print('Session using wrong URI\n');	
+
+mySession.close();
+
+//@ Stored Sessions, session from uri removed
+shell.storedSessions.remove('mysql_uri');
+mySession = mysql.getClassicSession(shell.storedSessions.mysql_uri);
 

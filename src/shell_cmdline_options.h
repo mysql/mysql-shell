@@ -38,6 +38,7 @@ public:
   std::string ssl_key;
   int ssl;
   std::string uri;
+  std::string app;
   std::string password;
   std::string output_format;
   mysh::SessionType session_type;

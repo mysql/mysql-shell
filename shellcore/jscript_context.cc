@@ -702,7 +702,7 @@ JScript_context::JScript_context(Object_registry *registry, Interpreter_delegate
 
   set_global("globals", Value(registry->_registry));
   set_global_item("shell", "options", Value(boost::static_pointer_cast<Object_bridge>(Shell_core_options::get_instance())));
-  set_global_item("shell", "registry", Shell_registry::get());
+  set_global_item("shell", "storedSessions", Shell_registry::get());
 }
 
 void JScript_context::set_global_item(const std::string& global_name, const std::string& item_name, const Value &value)

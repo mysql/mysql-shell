@@ -112,6 +112,7 @@ public:
   void cmd_nowarnings(const std::vector<std::string>& args);
   void cmd_store_connection(const std::vector<std::string>& args);
   void cmd_delete_connection(const std::vector<std::string>& args);
+  void cmd_update_connection(const std::vector<std::string>& args);
   void cmd_list_connections(const std::vector<std::string>& args);
 
   void print_banner();
@@ -193,7 +194,7 @@ _options(options)
     "   \\connect%1% $<APP_NAME>\n\n"
     "WHERE:\n"
     "   URI is in the format of: [user[:password]@]hostname[:port]\n"
-    "   APP_NAME is the app name from server registry"
+    "   APP_NAME is the app name that identifies a stored connection"
     "EXAMPLE:\n"
     "   \\connect%1% root@localhost\n"
     "   \\connect%1% $my_app_name";
@@ -237,9 +238,17 @@ _options(options)
     "   APP_NAME is the name of the app to delete (the key of a connection string option).\n\n"
     "EXAMPLES:\n"
     "   \\rmconn my_app_name\n";
+  const std::string cmd_help_update_connection =
+    "SYNTAX:\n"
+    "   \\chconn <APP_NAME> <URI>\n\n"
+    "WHERE:\n"
+    "   APP_NAME is the name of the app to update (the key of a connection string option).\n\n"
+    "EXAMPLES:\n"
+    "   \\chconn my_app_name guest@localhost\n";
   SET_SHELL_COMMAND("\\addconn|\\addc", "Inserts/updates new/existing connection into the connection registry.", cmd_help_store_connection, Interactive_shell::cmd_store_connection);
-  SET_SHELL_COMMAND("\\rmconn|\\rmc", "Removes a connection from the connection registry.", cmd_help_delete_connection, Interactive_shell::cmd_delete_connection);
+  SET_SHELL_COMMAND("\\rmconn", "Removes a connection from the connection registry.", cmd_help_delete_connection, Interactive_shell::cmd_delete_connection);
   SET_SHELL_COMMAND("\\lsconn|\\lsc", "List the contents of all connections currently in the registry.", "", Interactive_shell::cmd_list_connections);
+  SET_SHELL_COMMAND("\\chconn", "Updates a stored connection.", "", Interactive_shell::cmd_list_connections);
 
   bool lang_initialized;
   _shell->switch_mode(_options.initial_mode, lang_initialized);
@@ -287,9 +296,16 @@ bool Interactive_shell::connect()
           break;
       }
 
-      std::string uri_stripped = shcore::strip_password(_options.uri);
+      std::string message;
+      if (_options.app.empty())
+      {
+        std::string uri_stripped = shcore::strip_password(_options.uri);
 
-      std::string message = "Creating " + stype + " Session to " + uri_stripped + "...";
+        message = "Creating " + stype + " Session to " + uri_stripped + "...";
+      }
+      else
+        message = "Creating " + stype + " Session with '" + _options.app + "' stored connection...";
+
       if ((*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string().find("json") == 0)
         print_json_info(message);
       else
@@ -297,13 +313,12 @@ bool Interactive_shell::connect()
     }
 
     Argument_list args;
-    if (_options.uri[0] == '$')
+    if (!_options.app.empty())
     {
-      std::string app_name = _options.uri.substr(1);
-      if (Shell_registry::get_instance()->connections()->has_key(app_name))
-        args.push_back((*Shell_registry::get_instance()->connections())[app_name]);
+      if (Shell_registry::get_instance()->connections()->has_key(_options.app))
+        args.push_back((*Shell_registry::get_instance()->connections())[_options.app]);
       else
-        throw shcore::Exception::argument_error((boost::format("The connection %1% was not found on the registry") % app_name).str());
+        throw shcore::Exception::argument_error((boost::format("The stored connection %1% was not found") % _options.app).str());
     }
     else
       args.push_back(Value(_options.uri));
@@ -770,6 +785,28 @@ void Interactive_shell::cmd_delete_connection(const std::vector<std::string>& ar
     print_error(error + "\n");
 }
 
+void Interactive_shell::cmd_update_connection(const std::vector<std::string>& args)
+{
+  std::string error;
+
+  if (args.size() == 2)
+  {
+    try
+    {
+      Shell_registry::get_instance()->update_connection(args[0], args[1]);
+    }
+    catch (std::exception& err)
+    {
+      error = err.what();
+    }
+  }
+  else
+    error = "\\updconn <app> <URI>";
+
+  if (!error.empty())
+    print_error(error + "\n");
+}
+
 void Interactive_shell::cmd_list_connections(const std::vector<std::string>& args)
 {
   if (args.size() == 0)
@@ -1137,6 +1174,7 @@ void Interactive_shell::print_cmd_line_helper()
   println("  --help                   Display this help and exit.");
   println("  -f, --file=file          Process file.");
   println("  --uri                    Connect to Uniform Resource Identifier.");
+  println("  --app                    Connect to using a Stored Session.");
   println("                           Format: [user[:pass]]@host[:port][/db]");
   println("                           or user[:pass]@::socket[/db] .");
   println("  -h, --host=name          Connect to host.");
@@ -1275,7 +1313,7 @@ int main(int argc, char **argv)
     else
     {
       // Performs the connection
-      if (!options.uri.empty())
+      if (!options.app.empty() || !options.uri.empty())
       {
         try
         {

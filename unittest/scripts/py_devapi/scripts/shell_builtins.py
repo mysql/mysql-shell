@@ -1,57 +1,57 @@
-#@# Shell registry add errors
-shell.registry.add()
-shell.registry.add(56, 'test@uri')
-shell.registry.add('my sample', 5)
-shell.registry.add('my sample', 'test@uri')
-shell.registry.add('my_sample', {})
-shell.registry.add('my_sample', {'host':''})
-shell.registry.add('my_sample', 'user@host', 5)
+#@# Stored sessions add errors
+shell.storedSessions.add()
+shell.storedSessions.add(56, 'test@uri')
+shell.storedSessions.add('my sample', 5)
+shell.storedSessions.add('my sample', 'test@uri')
+shell.storedSessions.add('my_sample', {})
+shell.storedSessions.add('my_sample', {'host':''})
+shell.storedSessions.add('my_sample', 'user@host', 5)
 
 
-#@ Adding entry to the shell registry
-done = shell.registry.add('my_sample', 'root:pwd@samplehost:44000/sakila')
+#@ Adding entry to the Stored sessions
+done = shell.storedSessions.add('my_sample', 'root:pwd@samplehost:44000/sakila')
 print 'Added: %s\n' % done, '\n' 
-print 'Host: %s\n' % shell.registry.my_sample.host
-print 'Port: %s\n' % shell.registry.my_sample.port
-print 'User: %s\n' % shell.registry.my_sample.dbUser
-print 'Password: %s\n' % shell.registry.my_sample.dbPassword
-print 'Schema: %s\n' % shell.registry.my_sample.schema
+print 'Host: %s\n' % shell.storedSessions.my_sample.host
+print 'Port: %s\n' % shell.storedSessions.my_sample.port
+print 'User: %s\n' % shell.storedSessions.my_sample.dbUser
+print 'Password: %s\n' % shell.storedSessions.my_sample.dbPassword
+print 'Schema: %s\n' % shell.storedSessions.my_sample.schema
 
 #@ Attempt to override connection without override
-done = shell.registry.add('my_sample', 'admin@localhost')
+done = shell.storedSessions.add('my_sample', 'admin@localhost')
 
 #@ Attempt to override connection with override=False
-done = shell.registry.add('my_sample', 'admin@localhost', False)
+done = shell.storedSessions.add('my_sample', 'admin@localhost', False)
 
 #@ Attempt to override connection with override=True
 done = False
-done = shell.registry.add('my_sample', 'admin@localhost', True)
+done = shell.storedSessions.add('my_sample', 'admin@localhost', True)
 print 'Added: %s\n' % done
-print 'Host: %s\n' % shell.registry.my_sample.host
-print 'User: %s\n' % shell.registry.my_sample.dbUser
+print 'Host: %s\n' % shell.storedSessions.my_sample.host
+print 'User: %s\n' % shell.storedSessions.my_sample.dbUser
 
-#@# Shell registry update errors
-shell.registry.update()
-shell.registry.update(56, 'test@uri')
-shell.registry.update('my sample', 5)
-shell.registry.update('my sample', 'test@uri')
-shell.registry.update('my_sample', {})
-shell.registry.update('my_sample', {'host':''})
+#@# Stored sessions update errors
+shell.storedSessions.update()
+shell.storedSessions.update(56, 'test@uri')
+shell.storedSessions.update('my sample', 5)
+shell.storedSessions.update('my sample', 'test@uri')
+shell.storedSessions.update('my_sample', {})
+shell.storedSessions.update('my_sample', {'host':''})
 
 
 #@ Updates a connection
 done = False
-done = shell.registry.update('my_sample', 'guest@localhost')
+done = shell.storedSessions.update('my_sample', 'guest@localhost')
 print 'Updated: %s\n' % done
-print 'User: %s\n' % shell.registry.my_sample.dbUser
+print 'User: %s\n' % shell.storedSessions.my_sample.dbUser
 
-#@# Shell registry remove errors
-shell.registry.remove()
-shell.registry.remove(56)
-shell.registry.remove('my sample')
+#@# Stored sessions remove errors
+shell.storedSessions.remove()
+shell.storedSessions.remove(56)
+shell.storedSessions.remove('my sample')
 
 #@ Remove connection
 done = False
-done = shell.registry.remove('my_sample')
+done = shell.storedSessions.remove('my_sample')
 print 'Removed: %s\n' % done
 

@@ -10,7 +10,7 @@
 |This is here because of JS|
 
 
-#@# Shell registry add errors
+#@# Stored sessions add errors
 ||ArgumentError: Invalid number of arguments in ShellRegistry.add, expected 2 to 3 but got 0
 ||ArgumentError: ShellRegistry.add: Argument #1 expected to be a string
 ||ArgumentError: ShellRegistry.add: Argument #2 expected to be either a URI or a connection data map
@@ -20,7 +20,7 @@
 ||ArgumentError: ShellRegistry.add: Argument #3 expected to be boolean
 
 
-#@ Adding entry to the shell registry
+#@ Adding entry to the Stored sessions
 |Added: True|
 |Host: samplehost|
 |Port: 44000|
@@ -40,7 +40,7 @@
 |Host: localhost|
 |User: admin|
 
-#@# Shell registry update errors
+#@# Stored sessions update errors
 ||ArgumentError: Invalid number of arguments in ShellRegistry.update, expected 2 but got 0
 ||ArgumentError: ShellRegistry.update: Argument #1 expected to be a string
 ||ArgumentError: ShellRegistry.update: Argument #2 expected to be either a URI or a connection data map
@@ -52,7 +52,7 @@
 |Updated: True|
 |User: guest|
 
-#@# Shell registry remove errors
+#@# Stored sessions remove errors
 ||ArgumentError: Invalid number of arguments in ShellRegistry.remove, expected 1 but got 0
 ||ArgumentError: ShellRegistry.remove: Argument #1 expected to be a string
 ||ArgumentError: ShellRegistry.remove: The app name 'my sample' does not exist

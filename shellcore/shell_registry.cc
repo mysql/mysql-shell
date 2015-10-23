@@ -32,7 +32,7 @@ boost::shared_ptr<Shell_registry> Shell_registry::_instance;
 
 std::string Shell_registry::class_name() const
 {
-  return "ShellRegistry";
+  return "StoredSessions";
 }
 
 void Shell_registry::backup_passwords(Value::Map_type *pwd_backups) const

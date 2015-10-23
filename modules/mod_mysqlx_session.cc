@@ -65,6 +65,10 @@ REGISTER_OBJECT(mysqlx, Constant);
 
 #include <set>
 
+#ifdef WIN32
+#define strcasecmp _stricmp
+#endif
+
 #ifdef DOXYGEN
 /**
 * Creates a XSession instance using the provided connection data.
@@ -317,7 +321,6 @@ Value BaseSession::connect(const Argument_list &args)
   return Value::Null();
 }
 
-
 bool BaseSession::table_name_compare(const std::string &n1, const std::string &n2)
 {
   if (_case_sensitive_table_names)
@@ -325,7 +328,6 @@ bool BaseSession::table_name_compare(const std::string &n1, const std::string &n
   else
     return strcasecmp(n1.c_str(), n2.c_str()) == 0;
 }
-
 
 #ifdef DOXYGEN
 /**
@@ -666,7 +668,6 @@ std::string BaseSession::_retrieve_current_schema()
   return name;
 }
 
-
 void BaseSession::_retrieve_session_info(std::string &current_schema,
                                         int &case_sensitive_table_names)
 {
@@ -687,7 +688,6 @@ void BaseSession::_retrieve_session_info(std::string &current_schema,
   }
   CATCH_AND_TRANSLATE();
 }
-
 
 void BaseSession::_load_schemas()
 {

@@ -65,6 +65,8 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
       run_file = value;
     else if (check_arg_with_value(argv, i, "--uri", NULL, value))
       connection_string = value;
+    else if (check_arg_with_value(argv, i, "--app", NULL, value))
+      app = value;
     else if (check_arg_with_value(argv, i, "--host", "-h", value))
       host = value;
     else if (check_arg_with_value(argv, i, "--dbuser", "-u", value))

@@ -372,7 +372,7 @@ namespace shcore
 
   std::string get_default_config_path()
   {
-    static std::string _file_path = ".mysql_server_registry.cnf";
+    static std::string _file_path = "stored_sessions.json";
     std::string path = shcore::get_user_config_path();
     path += _file_path;
     return path;
