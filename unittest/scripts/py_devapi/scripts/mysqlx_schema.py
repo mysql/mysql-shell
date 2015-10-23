@@ -62,9 +62,9 @@ collection = schema.createCollection('my_sample_collection')
 print 'createCollection():', collection
 
 #@ Testing existence
-print 'Valid:', schema.existInDatabase()
+print 'Valid:', schema.existsInDatabase()
 mySession.dropSchema('js_shell_test')
-print 'Invalid:', schema.existInDatabase()
+print 'Invalid:', schema.existsInDatabase()
 
 # Closes the session
 mySession.close()

@@ -29,9 +29,9 @@ print 'schema:', view.schema
 
 
 #@ Testing existence
-print 'Valid:', view.existInDatabase()
+print 'Valid:', view.existsInDatabase()
 mySession.dropView('js_shell_test', 'view1')
-print 'Invalid:', view.existInDatabase()
+print 'Invalid:', view.existsInDatabase()
 
 # Closes the session
 mySession.dropSchema('js_shell_test')

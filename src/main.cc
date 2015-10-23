@@ -1187,7 +1187,8 @@ void Interactive_shell::print_cmd_line_helper()
   println("  -D --schema=name         Schema to use.");
   println("  --database=name          An alias for schema.");
   println("  --session-type=name      Type of session to be created. Either app, node or classic.");
-  println("  --sql                    Start in SQL mode.");
+  println("  --sql                    Start in SQL mode using a node session.");
+  println("  --sqlc                   Start in SQL mode using a classic session.");
   println("  --js                     Start in JavaScript mode.");
   println("  --py                     Start in Python mode.");
   println("  --sc                     Shortcut for --sql --session-type=classic.");

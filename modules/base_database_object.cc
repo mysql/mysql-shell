@@ -35,12 +35,12 @@ using namespace mysh;
 using namespace shcore;
 
 DatabaseObject::DatabaseObject(boost::shared_ptr<ShellBaseSession> session, boost::shared_ptr<DatabaseObject> schema, const std::string &name)
-: _session(session), _schema(schema), _name(name)
+  : _session(session), _schema(schema), _name(name)
 {
   add_method("getName", boost::bind(&DatabaseObject::get_member_method, this, _1, "getName", "name"), NULL);
   add_method("getSession", boost::bind(&DatabaseObject::get_member_method, this, _1, "getSession", "session"), NULL);
   add_method("getSchema", boost::bind(&DatabaseObject::get_member_method, this, _1, "getSchema", "schema"), NULL);
-  add_method("existInDatabase", boost::bind(&DatabaseObject::existInDatabase, this, _1), "data");
+  add_method("existsInDatabase", boost::bind(&DatabaseObject::existsInDatabase, this, _1), "data");
 }
 
 DatabaseObject::~DatabaseObject()
@@ -164,9 +164,9 @@ Value DatabaseObject::get_member(const std::string &prop) const
 /**
 * Verifies if this object exists in the database.
 */
-Undefined DatabaseObject::existInDatabase(){}
+Undefined DatabaseObject::existsInDatabase(){}
 #endif
-shcore::Value DatabaseObject::existInDatabase(const shcore::Argument_list &args)
+shcore::Value DatabaseObject::existsInDatabase(const shcore::Argument_list &args)
 {
   std::string cname(class_name());
   return shcore::Value(!_session.lock()->db_object_exists(cname, _name, _schema._empty() ? "" : _schema.lock()->get_member("name").as_string()).empty());

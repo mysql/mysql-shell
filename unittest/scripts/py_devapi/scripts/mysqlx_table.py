@@ -27,9 +27,9 @@ print 'schema:', table.schema
 
 
 #@ Testing existence
-print 'Valid:', table.existInDatabase()
+print 'Valid:', table.existsInDatabase()
 mySession.dropTable('js_shell_test', 'table1')
-print 'Invalid:', table.existInDatabase()
+print 'Invalid:', table.existsInDatabase()
 
 # Closes the session
 mySession.dropSchema('js_shell_test')

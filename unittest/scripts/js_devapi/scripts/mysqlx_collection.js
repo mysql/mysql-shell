@@ -26,9 +26,9 @@ print('getSchema():', collection.getSchema());
 print('schema:', collection.schema);
 
 //@ Testing existence
-print('Valid:', collection.existInDatabase());
+print('Valid:', collection.existsInDatabase());
 mySession.dropCollection('js_shell_test', 'collection1');
-print('Invalid:', collection.existInDatabase());
+print('Invalid:', collection.existsInDatabase());
 
 // Closes the session
 mySession.dropSchema('js_shell_test');

@@ -40,9 +40,9 @@ print 'getView():', mySession.js_shell_test.getView('view1')
 print '.<view>:', mySession.js_shell_test.view1
 
 #@ Testing existence
-print 'Valid:', schema.existInDatabase()
+print 'Valid:', schema.existsInDatabase()
 mySession.dropSchema('js_shell_test')
-print 'Invalid:', schema.existInDatabase()
+print 'Invalid:', schema.existsInDatabase()
 
 # Closes the session
 mySession.close()
