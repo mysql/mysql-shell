@@ -158,6 +158,7 @@ DataType Numeric(Integer precision, Integer scale){}
 #endif
 
 BaseSession::BaseSession()
+  : _case_sensitive_table_names(false)
 {
   _schemas.reset(new shcore::Value::Map_type);
 
@@ -309,10 +310,22 @@ Value BaseSession::connect(const Argument_list &args)
   CATCH_AND_TRANSLATE();
 
   _load_schemas();
-  _default_schema = _retrieve_current_schema();
+  int case_sesitive_table_names = 0;
+  _retrieve_session_info(_default_schema, case_sesitive_table_names);
+  _case_sensitive_table_names = (case_sesitive_table_names == 0);
 
   return Value::Null();
 }
+
+
+bool BaseSession::table_name_compare(const std::string &n1, const std::string &n2)
+{
+  if (_case_sensitive_table_names)
+    return n1 == n2;
+  else
+    return strcasecmp(n1.c_str(), n2.c_str()) == 0;
+}
+
 
 #ifdef DOXYGEN
 /**
@@ -653,6 +666,29 @@ std::string BaseSession::_retrieve_current_schema()
   return name;
 }
 
+
+void BaseSession::_retrieve_session_info(std::string &current_schema,
+                                        int &case_sensitive_table_names)
+{
+  try
+  {
+    if (_session)
+    {
+      // TODO: update this logic properly
+      boost::shared_ptr< ::mysqlx::Result> result = _session->executeSql("select schema(), @@lower_case_table_names");
+      boost::shared_ptr< ::mysqlx::Row>row = result->next();
+
+      if (!row->isNullField(0))
+        current_schema = row->stringField(0);
+      case_sensitive_table_names = (int)row->uInt64Field(1);
+
+      result->flush();
+    }
+  }
+  CATCH_AND_TRANSLATE();
+}
+
+
 void BaseSession::_load_schemas()
 {
   try
@@ -836,11 +872,13 @@ shcore::Value BaseSession::dropSchemaObject(const shcore::Argument_list &args, c
 * This function verifies if the given object exist in the database, works for schemas, tables, views and collections.
 * The check for tables, views and collections is done is done based on the type.
 * If type is not specified and an object with the name is found, the type will be returned.
+*
+* Returns the name of the object as exists in the database.
 */
-bool BaseSession::db_object_exists(std::string &type, const std::string &name, const std::string& owner)
+std::string BaseSession::db_object_exists(std::string &type, const std::string &name, const std::string& owner)
 {
   std::string statement;
-  bool ret_val = false;
+  std::string ret_val;
 
   if (type == "Schema")
   {
@@ -869,14 +907,14 @@ bool BaseSession::db_object_exists(std::string &type, const std::string &name, c
       if (type.empty())
       {
         type = object_type;
-        ret_val = true;
+        ret_val = object_name;
       }
       else
       {
         boost::algorithm::to_upper(type);
 
         if (type == object_type)
-          ret_val = true;
+          ret_val = object_name;
       }
     }
 

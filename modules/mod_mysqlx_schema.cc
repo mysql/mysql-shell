@@ -212,7 +212,7 @@ Value Schema::get_member(const std::string &prop) const
   return ret_val;
 }
 
-shcore::Value Schema::find_in_collection(const std::string& name, boost::shared_ptr<shcore::Value::Map_type>source) const
+shcore::Value Schema::find_in_collection(const std::string& name, boost::shared_ptr<shcore::Value::Map_type> source) const
 {
   Value::Map_type::const_iterator iter = source->find(name);
   if (iter != source->end())
@@ -227,25 +227,26 @@ Value Schema::_load_object(const std::string& name, const std::string& type) con
   try
   {
     std::string found_type(type);
-    if (_session.lock()->db_object_exists(found_type, name, _name))
+    std::string real_name = _session.lock()->db_object_exists(found_type, name, _name);
+    if (!real_name.empty())
     {
       if (found_type == "TABLE")
       {
-        boost::shared_ptr<Table> table(new Table(shared_from_this(), name));
+        boost::shared_ptr<Table> table(new Table(shared_from_this(), real_name));
         ret_val = Value(boost::static_pointer_cast<Object_bridge>(table));
-        (*_tables)[name] = ret_val;
-      }
-      else if (found_type == "VIEW")
-      {
-        boost::shared_ptr<View> view(new View(shared_from_this(), name));
-        ret_val = Value(boost::static_pointer_cast<Object_bridge>(view));
-        (*_views)[name] = ret_val;
+        (*_tables)[real_name] = ret_val;
       }
       else if (found_type == "COLLECTION")
       {
-        boost::shared_ptr<Collection> collection(new Collection(shared_from_this(), name));
+        boost::shared_ptr<Collection> collection(new Collection(shared_from_this(), real_name));
         ret_val = Value(boost::static_pointer_cast<Object_bridge>(collection));
-        (*_collections)[name] = ret_val;
+        (*_collections)[real_name] = ret_val;
+      }
+      else if (found_type == "VIEW")
+      {
+        boost::shared_ptr<View> view(new View(shared_from_this(), real_name));
+        ret_val = Value(boost::static_pointer_cast<Object_bridge>(view));
+        (*_views)[real_name] = ret_val;
       }
     }
   }

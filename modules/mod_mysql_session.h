@@ -118,7 +118,7 @@ namespace mysh
       virtual shcore::Value get_schema(const shcore::Argument_list &args) const;
       shcore::Value set_current_schema(const shcore::Argument_list &args);
 
-      virtual bool db_object_exists(std::string &type, const std::string &name, const std::string& owner);
+      virtual std::string db_object_exists(std::string &type, const std::string &name, const std::string& owner);
 
       static boost::shared_ptr<shcore::Object_bridge> create(const shcore::Argument_list &args);
 

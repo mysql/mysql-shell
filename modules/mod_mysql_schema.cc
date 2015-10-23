@@ -220,17 +220,18 @@ Value ClassicSchema::_load_object(const std::string& name, const std::string& ty
   Value ret_val;
 
   std::string found_type(type);
-  if (_session.lock()->db_object_exists(found_type, name, _name))
+  std::string real_name = _session.lock()->db_object_exists(found_type, name, _name);
+  if (!real_name.empty())
   {
     if (found_type == "BASE TABLE" || found_type == "LOCAL TEMPORARY")
     {
-      ret_val = Value::wrap(new ClassicTable(shared_from_this(), name));
-      (*_tables)[name] = ret_val;
+      ret_val = Value::wrap(new ClassicTable(shared_from_this(), real_name));
+      (*_tables)[real_name] = ret_val;
     }
     else if (found_type == "VIEW" || found_type == "SYSTEM VIEW")
     {
-      ret_val = Value::wrap(new ClassicView(shared_from_this(), name));
-      (*_views)[name] = ret_val;
+      ret_val = Value::wrap(new ClassicView(shared_from_this(), real_name));
+      (*_views)[real_name] = ret_val;
     }
   }
 

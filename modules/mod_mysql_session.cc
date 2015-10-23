@@ -648,10 +648,10 @@ shcore::Value ClassicSession::dropSchemaObject(const shcore::Argument_list &args
 * If type is not specified and an object with the name is found, the type will be returned.
 */
 
-bool ClassicSession::db_object_exists(std::string &type, const std::string &name, const std::string& owner)
+std::string ClassicSession::db_object_exists(std::string &type, const std::string &name, const std::string& owner)
 {
   std::string statement;
-  bool ret_val = false;
+  std::string ret_val;
 
   if (type == "ClassicSchema")
   {
@@ -661,7 +661,7 @@ bool ClassicSession::db_object_exists(std::string &type, const std::string &name
     {
       Row *row = res->fetch_one();
       if (row)
-        ret_val = true;
+        ret_val = row->get_value(0).as_string();
     }
   }
   else
@@ -678,12 +678,12 @@ bool ClassicSession::db_object_exists(std::string &type, const std::string &name
         std::string db_type = row->get_value(1).as_string();
 
         if (type == "ClassicTable" && (db_type == "BASE TABLE" || db_type == "LOCAL TEMPORARY"))
-          ret_val = true;
+          ret_val = row->get_value(0).as_string();
         else if (type == "ClassicView" && (db_type == "VIEW" || db_type == "SYSTEM VIEW"))
-          ret_val = true;
+          ret_val = row->get_value(0).as_string();
         else if (type.empty())
         {
-          ret_val = true;
+          ret_val = row->get_value(0).as_string();
           type = db_type;
         }
       }

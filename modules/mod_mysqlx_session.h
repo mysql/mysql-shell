@@ -150,13 +150,15 @@ namespace mysh
 
       virtual shcore::Value get_schema(const shcore::Argument_list &args) const;
 
-      virtual bool db_object_exists(std::string &type, const std::string &name, const std::string& owner);
+      virtual std::string db_object_exists(std::string &type, const std::string &name, const std::string& owner);
 
       shcore::Value set_fetch_warnings(const shcore::Argument_list &args);
 
       boost::shared_ptr< ::mysqlx::Session> session_obj() const { return _session; }
 
       static boost::shared_ptr<shcore::Object_bridge> create(const shcore::Argument_list &args);
+
+      bool table_name_compare(const std::string &n1, const std::string &n2);
 
 #ifdef DOXYGEN
       String uri; //!< Same as getUri()
@@ -187,6 +189,7 @@ namespace mysh
       std::string _retrieve_current_schema();
       void _load_schemas();
       void _remove_schema(const std::string& name);
+      void _retrieve_session_info(std::string &current_schema, int &case_sensitive_table_names);
 
       boost::shared_ptr< ::mysqlx::Session> _session;
 
@@ -194,6 +197,7 @@ namespace mysh
       boost::shared_ptr<shcore::Value::Map_type> _schemas;
 
       std::string _uri;
+      bool _case_sensitive_table_names;
     };
 
     /**

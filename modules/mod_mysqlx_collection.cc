@@ -42,6 +42,7 @@ Collection::Collection(boost::shared_ptr<Schema> owner, const std::string &name)
 Collection::Collection(boost::shared_ptr<const Schema> owner, const std::string &name) :
 DatabaseObject(owner->_session.lock(), boost::const_pointer_cast<Schema>(owner), name)
 {
+  _collection_impl = owner->_schema_impl->getCollection(name);
   init();
 }
 
