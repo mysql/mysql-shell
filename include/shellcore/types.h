@@ -371,6 +371,17 @@ namespace shcore {
     static Exception value_error(const std::string &message);
     static Exception type_error(const std::string &message);
     static Exception logic_error(const std::string &message);
+
+    static Exception mysql_error_with_code(const std::string &message, int code)
+    {
+      return error_with_code("MySQL Error", message, code);
+    }
+
+    static Exception mysql_error_with_code_and_state(const std::string &message, int code, const char *sqlstate)
+    {
+      return error_with_code_and_state("MySQL Error", message, code, sqlstate);
+    }
+
     static Exception error_with_code(const std::string &type, const std::string &message, int code);
     static Exception error_with_code_and_state(const std::string &type, const std::string &message, int code, const char *sqlstate);
     static Exception parser_error(const std::string &message);
@@ -381,6 +392,7 @@ namespace shcore {
     bool is_value() const;
     bool is_type() const;
     bool is_server() const;
+    bool is_mysql() const;
 
     virtual const char *what() const BOOST_NOEXCEPT_OR_NOTHROW;
 

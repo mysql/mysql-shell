@@ -95,7 +95,7 @@ public:
   void init_scripts(Shell_core::Mode mode);
 
   void cmd_process_file(const std::vector<std::string>& params);
-  bool connect();
+  bool connect(bool primary_session=false);
 
   void print(const std::string &str);
   void println(const std::string &str);
@@ -132,7 +132,7 @@ private:
   boost::function<void(shcore::Value)> _result_processor;
 
 private:
-  shcore::Value connect_session(const shcore::Argument_list &args, mysh::SessionType session_type);
+  shcore::Value connect_session(const shcore::Argument_list &args, mysh::SessionType session_type, bool recreate_schema);
 
 private:
   static void deleg_print(void *self, const char *text);
@@ -266,7 +266,7 @@ void Interactive_shell::cmd_process_file(const std::vector<std::string>& params)
   Interactive_shell::process_file();
 }
 
-bool Interactive_shell::connect()
+bool Interactive_shell::connect(bool primary_session)
 {
   try
   {
@@ -323,24 +323,28 @@ bool Interactive_shell::connect()
     else
       args.push_back(Value(_options.uri));
 
-    connect_session(args, _options.session_type);
+    connect_session(args, _options.session_type, primary_session ? _options.recreate_database : false);
   }
   catch (std::exception &exc)
   {
-    print_error(exc.what());
+    print_error(std::string(exc.what())+"\n");
     return false;
   }
 
   return true;
 }
 
-Value Interactive_shell::connect_session(const Argument_list &args, mysh::SessionType session_type)
+Value Interactive_shell::connect_session(const Argument_list &args, mysh::SessionType session_type, bool recreate_schema)
 {
   // Used to determine if we require prompting for the password to the user
   int pwd_found = 0;
   std::string pass;
+  std::string create_schema_name;
 
-  Argument_list connect_args(args);
+  if (recreate_schema && session_type != mysh::Node && session_type != mysh::Classic)
+    throw shcore::Exception::argument_error("Recreate schema option can only be used in classic or node sessions");
+
+  Argument_list connect_args;
 
   if (args[0].type == shcore::String)
   {
@@ -348,7 +352,7 @@ Value Interactive_shell::connect_session(const Argument_list &args, mysh::Sessio
     std::string user;
     std::string host;
     std::string db;
-    int port = 3306;
+    int port = -1;
     std::string sock;
     std::string ssl_ca;
     std::string ssl_cert;
@@ -357,13 +361,49 @@ Value Interactive_shell::connect_session(const Argument_list &args, mysh::Sessio
     // Handles the case where the password needs to be prompted
     if (!shcore::parse_mysql_connstring(args[0].as_string(), protocol, user, pass, host, port, sock, db, pwd_found, ssl_ca, ssl_cert, ssl_key))
       throw shcore::Exception::argument_error("Could not parse URI for MySQL connection");
+
+    shcore::Value::Map_type_ref map(new shcore::Value::Map_type());
+    if (!user.empty())
+      (*map)["dbUser"] = Value(user);
+    if (pwd_found)
+      (*map)["dbPassword"] = Value(pass);
+    if (!host.empty())
+      (*map)["host"] = Value(host);
+    if (port > 0)
+      (*map)["port"] = Value(port);
+    if (!sock.empty())
+      (*map)["socket"] = Value(sock);
+    if (recreate_schema)
+      create_schema_name = db;
+    else
+    {
+      if (!db.empty())
+        (*map)["schema"] = Value(db);
+    }
+    if (!ssl_ca.empty())
+      (*map)["ssl_ca"] = Value(ssl_ca);
+    if (!ssl_cert.empty())
+      (*map)["ssl_cert"] = Value(ssl_cert);
+    if (!ssl_key.empty())
+      (*map)["ssl_key"] = Value(ssl_key);
+
+    connect_args.push_back(shcore::Value(map));
   }
   else if (args[0].type == shcore::Map)
   {
     shcore::Value::Map_type_ref connection_data = args.map_at(0);
 
+    if (recreate_schema)
+    {
+      if (!connection_data->has_key("schema"))
+        throw shcore::Exception::runtime_error("Recreate schema requested, but no schema specified");
+      create_schema_name = (*connection_data)["schema"].as_string();
+      connection_data->erase("schema");
+    }
+
     if (connection_data->has_key("dbPassword"))
       pwd_found = 1;
+    connect_args.push_back(shcore::Value(connection_data));
   }
   else
   {
@@ -389,10 +429,30 @@ Value Interactive_shell::connect_session(const Argument_list &args, mysh::Sessio
 
   _session.reset(new_session, new_session.get());
 
+  if (!create_schema_name.empty())
+  {
+    Argument_list args;
+    args.push_back(Value(create_schema_name));
+    shcore::print("Recreating schema "+create_schema_name+"...\n");
+    try
+    {
+      _session->dropSchema(args);
+    }
+    catch (shcore::Exception &e)
+    {
+      if (e.is_mysql() && e.code() == 1008)
+        ; // ignore DB doesn't exist error
+      else
+        throw;
+    }
+    _session->createSchema(args);
+    _session->call("setCurrentSchema", args);
+  }
+
   _shell->set_global("session", Value(boost::static_pointer_cast<Object_bridge>(_session)));
 
   // The default schemas is retrieved it will return null if none is set
-  Value default_schema = _session->get_member("defaultSchema");
+  Value default_schema = _session->get_member("currentSchema");
 
   // Whatever default schema is returned is ok to be set on db
   _shell->set_global("db", default_schema);
@@ -409,6 +469,9 @@ Value Interactive_shell::connect_session(const Argument_list &args, mysh::Sessio
       print_json_info(message);
     else
       shcore::print(message + "\n");
+
+    // extra empty line to separate connect msgs from the stdheader nobody reads
+    shcore::print("\n");
   }
 
   return Value::Null();
@@ -1185,7 +1248,8 @@ void Interactive_shell::print_cmd_line_helper()
   println("  --password=name          An alias for dbpassword.");
   println("  -p                       Request password prompt to set the password");
   println("  -D --schema=name         Schema to use.");
-  println("  --database=name          An alias for schema.");
+  println("  --recreate-schema        Drop and recreate the specified schema. Schema will be deleted if it exists!");
+  println("  --database=name          An alias for --schema.");
   println("  --session-type=name      Type of session to be created. Either app, node or classic.");
   println("  --sql                    Start in SQL mode using a node session.");
   println("  --sqlc                   Start in SQL mode using a classic session.");
@@ -1318,8 +1382,13 @@ int main(int argc, char **argv)
       {
         try
         {
-          if (!shell.connect())
+          if (!shell.connect(true))
             return 1;
+        }
+        catch (shcore::Exception &e)
+        {
+          shell.print_error(e.format());
+          return 1;
         }
         catch (std::exception &e)
         {

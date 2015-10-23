@@ -581,7 +581,7 @@ bool BaseSession::has_member(const std::string &prop) const
 {
   if (ShellBaseSession::has_member(prop))
     return true;
-  if (prop == "uri" || prop == "schemas" || prop == "defaultSchema")
+  if (prop == "currentSchema" || prop == "uri" || prop == "schemas" || prop == "defaultSchema")
     return true;
   if (_schemas->has_key(prop))
     return true;
@@ -623,7 +623,7 @@ Value BaseSession::get_member(const std::string &prop) const
     ret_val = Value(_uri);
   else if (prop == "schemas")
     ret_val = Value(_schemas);
-  else if (prop == "defaultSchema")
+  else if (prop == "defaultSchema" || prop == "currentSchema")
   {
     if (!_default_schema.empty())
       ret_val = get_member(_default_schema);
@@ -1034,9 +1034,7 @@ shcore::Value NodeSession::set_current_schema(const shcore::Argument_list &args)
 std::vector<std::string> NodeSession::get_members() const
 {
   std::vector<std::string> members(BaseSession::get_members());
-
   members.push_back("currentSchema");
-
   return members;
 }
 
@@ -1056,9 +1054,7 @@ Value NodeSession::get_member(const std::string &prop) const
   // retrieve it since it may throw invalid member otherwise
   // If not on the parent classes and not here then we can safely assume
   // it is a schema and attempt loading it as such
-  if (BaseSession::has_member(prop))
-    ret_val = BaseSession::get_member(prop);
-  else if (prop == "currentSchema")
+  if (prop == "currentSchema")
   {
     NodeSession *session = const_cast<NodeSession *>(this);
     std::string name = session->_retrieve_current_schema();
@@ -1068,7 +1064,8 @@ Value NodeSession::get_member(const std::string &prop) const
     else
       ret_val = Value::Null();
   }
-
+  else if (BaseSession::has_member(prop))
+    ret_val = BaseSession::get_member(prop);
   return ret_val;
 }
 

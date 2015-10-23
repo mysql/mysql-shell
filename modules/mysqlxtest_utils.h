@@ -49,7 +49,7 @@ static void ATTR_UNUSED translate_crud_exception(const std::string& operation)
   }
   catch (::mysqlx::Error &e)
   {
-    throw shcore::Exception::error_with_code("MySQL Error", e.what(), e.error());
+    throw shcore::Exception::mysql_error_with_code(e.what(), e.error());
   }
   catch (std::runtime_error &e)
   {
@@ -81,7 +81,7 @@ static void ATTR_UNUSED translate_exception()
   }
   catch (::mysqlx::Error &e)
   {
-    throw shcore::Exception::error_with_code("MySQL Error", e.what(), e.error());
+    throw shcore::Exception::mysql_error_with_code(e.what(), e.error());
   }
   catch (std::runtime_error &e)
   {

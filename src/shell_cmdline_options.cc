@@ -51,6 +51,7 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
   char default_ssl[2] = "1";
 
   initial_mode = IShell_core::Mode_JScript;
+  recreate_database = false;
   force = false;
   interactive = false;
   full_interactive = false;
@@ -79,6 +80,8 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
       database = value;
     else if (check_arg_with_value(argv, i, "--database", NULL, value))
       database = value;
+    else if (check_arg(argv, i, "--recreate-schema", NULL))
+      recreate_database = true;
     else if (check_arg(argv, i, "-p", "--password") || check_arg(argv, i, NULL, "--dbpassword"))
       needs_password = true;
     else if (check_arg_with_value(argv, i, "--dbpassword", NULL, value, (char*)""))

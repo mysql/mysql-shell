@@ -189,6 +189,11 @@ bool Exception::is_server() const
   return strcmp(type(), "Server") == 0;
 }
 
+bool Exception::is_mysql() const
+{
+  return strcmp(type(), "MySQL Error") == 0;
+}
+
 std::string Exception::format()
 {
   std::string error_message;
