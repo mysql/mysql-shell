@@ -154,8 +154,8 @@ namespace shcore
     static PyObject *mysqlx_get_session(PyObject *self, PyObject *args);
     static PyObject *mysqlx_get_node_session(PyObject *self, PyObject *args);
     static PyObject *mysqlx_expr(PyObject *self, PyObject *args);
-    static PyObject *mysqlx_varchar(PyObject *self, PyObject *args);
-    static PyObject *mysqlx_char(PyObject *self, PyObject *args);
+    static PyObject *mysqlx_text(PyObject *self, PyObject *args);
+    static PyObject *mysqlx_blob(PyObject *self, PyObject *args);
     static PyObject *mysqlx_decimal(PyObject *self, PyObject *args);
     static PyObject *mysqlx_numeric(PyObject *self, PyObject *args);
     static PyObject *mysql_get_classic_session(PyObject *self, PyObject *args);

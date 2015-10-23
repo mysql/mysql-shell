@@ -169,5 +169,5 @@ Undefined DatabaseObject::existInDatabase(){}
 shcore::Value DatabaseObject::existInDatabase(const shcore::Argument_list &args)
 {
   std::string cname(class_name());
-  return shcore::Value(_session.lock()->db_object_exists(cname, _name, _schema._empty() ? "" : _schema.lock()->get_member("name").as_string()));
+  return shcore::Value(!_session.lock()->db_object_exists(cname, _name, _schema._empty() ? "" : _schema.lock()->get_member("name").as_string()).empty());
 }

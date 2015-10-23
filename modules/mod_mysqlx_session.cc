@@ -883,9 +883,18 @@ std::string BaseSession::db_object_exists(std::string &type, const std::string &
   if (type == "Schema")
   {
     shcore::Value res = executeStmt("sql", "show databases like \"" + name + "\"", true, shcore::Argument_list());
-    boost::shared_ptr<SqlResult> res_obj = res.as_object<SqlResult>();
+    boost::shared_ptr<SqlResult> my_res = res.as_object<SqlResult>();
 
-    ret_val = res_obj->fetch_all(shcore::Argument_list()).as_array()->size() > 0;
+    Value raw_entry = my_res->fetch_one(shcore::Argument_list());
+
+    if (raw_entry)
+    {
+      boost::shared_ptr<mysh::Row> row = raw_entry.as_object<mysh::Row>();
+
+      ret_val = row->get_member(0).as_string();
+    }
+
+    my_res->fetch_all(shcore::Argument_list());
   }
   else
   {
@@ -917,7 +926,6 @@ std::string BaseSession::db_object_exists(std::string &type, const std::string &
           ret_val = object_name;
       }
     }
-
     my_res->fetch_all(shcore::Argument_list());
   }
 

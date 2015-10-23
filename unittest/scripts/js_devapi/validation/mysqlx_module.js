@@ -3,6 +3,8 @@
 |getSession: function|
 |getNodeSession: function|
 |expr: function|
+|Blob: function|
+|Text: function|
 |Decimal: function|
 |<DataTypes.TinyInt>|
 |<DataTypes.SmallInt>|
@@ -13,15 +15,14 @@
 |<DataTypes.Real>|
 |<DataTypes.Float>|
 |<DataTypes.Double>|
-|<DataTypes.Numeric>|
 |<DataTypes.Date>|
 |<DataTypes.Time>|
 |<DataTypes.Timestamp>|
 |<DataTypes.DateTime>|
 |<DataTypes.Year>|
 |<DataTypes.Bit>|
-|<DataTypes.Blob>|
-|<DataTypes.Text>|
+|<DataTypes.Blob(10)>|
+|<DataTypes.Text(10)>|
 |<IndexTypes.IndexUnique>|
 |<DataTypes.Decimal>|
 |<DataTypes.Decimal(10)>|

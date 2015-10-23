@@ -3,6 +3,8 @@
 |getSession: <type 'builtin_function_or_method'>|
 |getNodeSession: <type 'builtin_function_or_method'>|
 |expr: <type 'builtin_function_or_method'>|
+|Blob: <type 'builtin_function_or_method'>|
+|Text: <type 'builtin_function_or_method'>|
 |Decimal: <type 'builtin_function_or_method'>|
 |Numeric: <type 'builtin_function_or_method'>|
 |<DataTypes.TinyInt>|
@@ -20,8 +22,8 @@
 |<DataTypes.DateTime>|
 |<DataTypes.Year>|
 |<DataTypes.Bit>|
-|<DataTypes.Blob>|
-|<DataTypes.Text>|
+|<DataTypes.Blob(10)>|
+|<DataTypes.Text(10)>|
 |<IndexTypes.IndexUnique>|
 |<DataTypes.Decimal>|
 |<DataTypes.Decimal(10)>|

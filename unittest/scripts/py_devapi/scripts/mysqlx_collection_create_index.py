@@ -56,7 +56,7 @@ schema = mySession.createSchema('js_shell_test')
 # Creates a test collection and inserts data into it
 collection = schema.createCollection('collection1')
 
-result = collection.createIndex('_name').field('name', mysqlx.Varchar(50), True).execute()
+result = collection.createIndex('_name').field('name', mysqlx.Text(50), True).execute()
 
 result = collection.add({'name':'John', 'last_name':'Carter', 'age':17}).execute()
 result = collection.add({'name':'John', 'last_name':'Doe', 'age':18}).execute()
@@ -68,18 +68,18 @@ print 'John Records:', len(records)
 result = collection.add({'alias':'Rock', 'last_name':'Doe', 'age':19}).execute()
 
 #@ ERROR: attempt to create an index with the same name
-result = collection.createIndex('_name').field('alias', mysqlx.Varchar(50), True).execute()
+result = collection.createIndex('_name').field('alias', mysqlx.Text(50), True).execute()
 
 #@ ERROR: Attempt to create unique index when records already duplicate the key field
 result = collection.dropIndex('_name').execute()
-result = collection.createIndex('_name', mysqlx.IndexUnique).field('name', mysqlx.Varchar(50), True).execute()
+result = collection.createIndex('_name', mysqlx.IndexUnique).field('name', mysqlx.Text(50), True).execute()
 
 #@ ERROR: Attempt to create unique index when records are missing the key field
-result = collection.createIndex('_alias', mysqlx.IndexUnique).field('alias', mysqlx.Varchar(50), True).execute()
+result = collection.createIndex('_alias', mysqlx.IndexUnique).field('alias', mysqlx.Text(50), True).execute()
 
 #@ Unique index: creation with required field
 result = collection.remove().execute()
-result = collection.createIndex('_name', mysqlx.IndexUnique).field('name', mysqlx.Varchar(50), True).execute()
+result = collection.createIndex('_name', mysqlx.IndexUnique).field('name', mysqlx.Text(50), True).execute()
 result = collection.add({'name':'John', 'last_name':'Carter', 'age':17}).execute()
 result = collection.add({'name':'John', 'last_name':'Doe', 'age':18}).execute()
 

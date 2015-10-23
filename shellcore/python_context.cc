@@ -722,14 +722,14 @@ namespace shcore
     return get_object(self, args, "mysqlx", "Expression");
   }
 
-  PyObject *Python_context::mysqlx_varchar(PyObject *self, PyObject *args)
+  PyObject *Python_context::mysqlx_text(PyObject *self, PyObject *args)
   {
-    return get_constant(self, args, "DataTypes", "Varchar");
+    return get_constant(self, args, "DataTypes", "Text");
   }
 
-  PyObject *Python_context::mysqlx_char(PyObject *self, PyObject *args)
+  PyObject *Python_context::mysqlx_blob(PyObject *self, PyObject *args)
   {
-    return get_constant(self, args, "DataTypes", "Char");
+    return get_constant(self, args, "DataTypes", "Blob");
   }
 
   PyObject *Python_context::mysqlx_decimal(PyObject *self, PyObject *args)
@@ -755,14 +755,14 @@ namespace shcore
     "Creates a NodeSession object." },
     { "expr", &Python_context::mysqlx_expr, METH_VARARGS,
     "Creates a Expression object." },
-    { "Varchar", &Python_context::mysqlx_varchar, METH_VARARGS,
-    "Creates a Varchar data type definition." },
-    { "Char", &Python_context::mysqlx_char, METH_VARARGS,
-    "Creates a Char data type definition." },
     { "Decimal", &Python_context::mysqlx_decimal, METH_VARARGS,
     "Creates a Numeric data type definition." },
     { "Numeric", &Python_context::mysqlx_numeric, METH_VARARGS,
     "Creates a Numeric data type definition." },
+    { "Text", &Python_context::mysqlx_text, METH_VARARGS,
+    "Creates a Text data type definition." },
+    { "Blob", &Python_context::mysqlx_blob, METH_VARARGS,
+    "Creates a Blob data type definition." },
     { NULL, NULL, 0, NULL }        /* Sentinel */
   };
 
@@ -797,8 +797,6 @@ namespace shcore
       PyModule_AddObject(module, "DateTime", get_constant(NULL, NULL, "DataTypes", "DateTime"));
       PyModule_AddObject(module, "Year", get_constant(NULL, NULL, "DataTypes", "Year"));
       PyModule_AddObject(module, "Bit", get_constant(NULL, NULL, "DataTypes", "Bit"));
-      PyModule_AddObject(module, "Blob", get_constant(NULL, NULL, "DataTypes", "Blob"));
-      PyModule_AddObject(module, "Text", get_constant(NULL, NULL, "DataTypes", "Text"));
 
       // Index Type Constants
       PyModule_AddObject(module, "IndexUnique", get_constant(NULL, NULL, "IndexTypes", "IndexUnique"));
