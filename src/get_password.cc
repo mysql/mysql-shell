@@ -80,7 +80,7 @@ char *mysh_get_tty_password(const char *opt_message)
 
     // A second call must be read with control arrows
     // and control keys
-    if (tmp == 0xE0)
+    if (tmp == 0 || tmp == 0xE0)
       tmp = _getch();
 
     if (tmp == '\b' || (int)tmp == 127)
