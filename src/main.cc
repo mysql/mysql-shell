@@ -55,6 +55,24 @@
 #ifdef WIN32
 #  include <io.h>
 #  define isatty _isatty
+
+BOOL windows_ctrl_handler(DWORD fdwCtrlType)
+{
+  switch (fdwCtrlType)
+  {
+    case CTRL_C_EVENT:
+    case CTRL_BREAK_EVENT:
+      // TODO: Add proper Ctrl+C handling if needed
+      return TRUE;
+    case CTRL_CLOSE_EVENT:
+    case CTRL_LOGOFF_EVENT:
+    case CTRL_SHUTDOWN_EVENT:
+      // TODO: Add proper exit handling if needed
+      break;
+  }
+  /* Pass signal to the next control handler function. */
+  return FALSE;
+}
 #endif
 
 using namespace shcore;
@@ -95,7 +113,7 @@ public:
   void init_scripts(Shell_core::Mode mode);
 
   void cmd_process_file(const std::vector<std::string>& params);
-  bool connect(bool primary_session=false);
+  bool connect(bool primary_session = false);
 
   void print(const std::string &str);
   void println(const std::string &str);
@@ -327,7 +345,7 @@ bool Interactive_shell::connect(bool primary_session)
   }
   catch (std::exception &exc)
   {
-    print_error(std::string(exc.what())+"\n");
+    print_error(std::string(exc.what()) + "\n");
     return false;
   }
 
@@ -433,7 +451,7 @@ Value Interactive_shell::connect_session(const Argument_list &args, mysh::Sessio
   {
     Argument_list args;
     args.push_back(Value(create_schema_name));
-    shcore::print("Recreating schema "+create_schema_name+"...\n");
+    shcore::print("Recreating schema " + create_schema_name + "...\n");
     try
     {
       _session->dropSchema(args);
@@ -898,7 +916,7 @@ void Interactive_shell::deleg_print_error(void *cdata, const char *text)
 
 char *Interactive_shell::readline(const char *prompt)
 {
-  char *tmp;
+  char *tmp = NULL;
 #ifndef WIN32
   tmp = ::readline(prompt);
 #else
@@ -913,7 +931,10 @@ char *Interactive_shell::readline(const char *prompt)
   std::string line;
   std::cout << prompt << std::flush;
   std::getline(std::cin, line);
-  tmp = strdup(line.c_str());
+
+  if (!std::cin.fail())
+    tmp = strdup(line.c_str());
+
 #endif
   return tmp;
 }
@@ -1202,6 +1223,7 @@ void Interactive_shell::command_loop()
     process_line(cmd);
     free(cmd);
   }
+
   std::cout << "Bye!\n";
 }
 
@@ -1338,6 +1360,11 @@ std::string detect_interactive(Shell_command_line_options &options, bool &from_s
 
 int main(int argc, char **argv)
 {
+#ifdef WIN32
+  // Sets console handler (Ctrl+C)
+  SetConsoleCtrlHandler((PHANDLER_ROUTINE)windows_ctrl_handler, TRUE);
+#endif
+
   int ret_val = 0;
 
   Shell_command_line_options options(argc, argv);

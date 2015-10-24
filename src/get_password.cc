@@ -69,21 +69,27 @@
 char *mysh_get_tty_password(const char *opt_message)
 {
   char to[80];
-  char *pos=to,*end=to+sizeof(to)-1;
-  int i=0;
+  char *pos = to, *end = to + sizeof(to) - 1;
+  int i = 0;
 
   _cputs(opt_message ? opt_message : "Enter password: ");
   for (;;)
   {
-    char tmp;
-    tmp=_getch();
-    if (tmp == '\b' || (int) tmp == 127)
+    int tmp;
+    tmp = _getch();
+
+    // A second call must be read with control arrows
+    // and control keys
+    if (tmp == 0xE0)
+      tmp = _getch();
+
+    if (tmp == '\b' || (int)tmp == 127)
     {
       if (pos != to)
       {
-	_cputs("\b \b");
-	pos--;
-	continue;
+        _cputs("\b \b");
+        pos--;
+        continue;
       }
     }
     if (tmp == '\n' || tmp == '\r' || tmp == 3)
@@ -95,13 +101,12 @@ char *mysh_get_tty_password(const char *opt_message)
   }
   while (pos != to && isspace(pos[-1]) == ' ')
     pos--;					/* Allow dummy space at end */
-  *pos=0;
+  *pos = 0;
   _cputs("\n");
   return strdup(to);
 }
 
 #else // !_WIN32
-
 
 #ifndef HAVE_GETPASS
 /*
@@ -123,13 +128,13 @@ static void get_password(char *to, int length, int fd, bool echo)
     {
       if (pos != to)
       {
-	if (echo)
-	{
-	  fputs("\b \b",stderr);
-	  fflush(stderr);
-	}
-	pos--;
-	continue;
+        if (echo)
+        {
+          fputs("\b \b",stderr);
+          fflush(stderr);
+        }
+        pos--;
+        continue;
       }
     }
     if (tmp == '\n' || tmp == '\r' || tmp == 3)
@@ -150,7 +155,6 @@ static void get_password(char *to, int length, int fd, bool echo)
 }
 
 #endif /* ! HAVE_GETPASS */
-
 
 char *my_stpnmov(char *dst, const char *src, size_t n)
 {
@@ -179,7 +183,7 @@ char *mysh_get_tty_password(const char *opt_message)
 #ifdef _PASSWORD_LEN
   memset(passbuff, 0, _PASSWORD_LEN);
 #endif
-#else 
+#else
   if (isatty(fileno(stderr)))
   {
     fputs(opt_message ? opt_message : "Enter password: ",stderr);
@@ -221,18 +225,17 @@ char *mysh_get_tty_password(const char *opt_message)
 
 #endif /* !_WIN32 */
 
-
 extern "C" {
-char *yassl_mysql_get_tty_password_ext(const char *opt_message,
-                           strdup_handler_t strdup_function)
-{
-  char *tmp = mysh_get_tty_password(opt_message);
-  if (tmp)
+  char *yassl_mysql_get_tty_password_ext(const char *opt_message,
+                             strdup_handler_t strdup_function)
   {
-    char *tmp2 = strdup_function(tmp, 0);
-    free(tmp);
-    return tmp2;
+    char *tmp = mysh_get_tty_password(opt_message);
+    if (tmp)
+    {
+      char *tmp2 = strdup_function(tmp, 0);
+      free(tmp);
+      return tmp2;
+    }
+    return NULL;
   }
-  return NULL;
-}
 }
