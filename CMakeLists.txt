@@ -47,11 +47,10 @@ INCLUDE(CheckIncludeFiles)
 INCLUDE(CheckFunctionExists)
 if(HAVE_PYTHON)
   INCLUDE(FindPythonLibs)
-	
-	# On windows stores the path to the python libraries since they will be bundled
-	IF(WIN32)
-		SET(PYTHON_LIBRARY_PATH "$ENV{PB2WORKDIR}\\$ENV{PYTHON_SOURCENAME}\\Lib")
-	ENDIF()
+  # On windows stores the path to the python libraries since they will be bundled
+  IF(WIN32)
+    SET(PYTHON_LIBRARY_PATH "$ENV{PB2WORKDIR}\\$ENV{PYTHON_SOURCENAME}\\Lib")
+  ENDIF()
 endif()
 
 INCLUDE(protobuf)

@@ -1,14 +1,14 @@
 # Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
-# 
+#
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; version 2 of the License.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
@@ -35,7 +35,7 @@ if(NOT EXTRA_NAME_SUFFIX2)
   set(EXTRA_NAME_SUFFIX2 "")
 endif()
 
-set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "MySQL X Shell ${MYSH_BASE_VERSION}, a library and tool for XXXXX")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "MySQL X Shell ${MYSH_BASE_VERSION}, a command line shell and scripting environment for MySQL Hybrid")
 set(CPACK_PACKAGE_NAME                "mysqlx-shell${EXTRA_NAME_SUFFIX}")
 set(CPACK_PACKAGE_VENDOR              "Oracle and/or its affiliates")
 #if(EXISTS "${CMAKE_SOURCE_DIR}/COPYING.txt")
@@ -55,6 +55,7 @@ SET(CPACK_PACKAGE_DESCRIPTION_FILE    "${CMAKE_SOURCE_DIR}/README")
 set(CPACK_SOURCE_PACKAGE_FILE_NAME    "${CPACK_PACKAGE_NAME}-${MYSH_VERSION}-src")
 set(CPACK_PACKAGE_INSTALL_DIRECTORY   "${CPACK_PACKAGE_NAME}-${MYSH_VERSION}${EXTRA_NAME_SUFFIX2}${PACKAGE_DRIVER_TYPE_SUFFIX}-${MYSH_PLATFORM}")
 set(CPACK_PACKAGE_FILE_NAME           "${CPACK_PACKAGE_INSTALL_DIRECTORY}")
+SET(CPACK_STRIP_FILES                 "bin/mysqlx")
 
 if(WIN32)
   set(CPACK_GENERATOR                 "ZIP")
