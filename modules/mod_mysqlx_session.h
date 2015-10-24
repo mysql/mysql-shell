@@ -40,52 +40,8 @@ namespace shcore
 namespace mysh
 {
   class DatabaseObject;
-  /**
-  * Encloses the functions and classes available to interact with an X Protocol enabled MySQL Product.
-  *
-  * The objects contained on this module provide a full API to interact with the different MySQL Products implementing the
-  * X Protocol.
-  *
-  * In the case of a MySQL Server the API will enable doing operations on the different database objects such as schema management operations and both table and
-  * collection management and CRUD operations. (CRUD: Create, Read, Update, Delete).
-  *
-  * Intention of the module is to provide a full API for development through scripting languages such as JavaScript and Python, this would be normally achieved through a normal session.
-  *
-  * If specialized SQL work is required, SQL execution is also available through a NodeSession, which is intended to work specifically with MySQL Servers.
-  */
   namespace mysqlx
   {
-#ifdef DOXYGEN
-    XSession getSession(String connectionData, String password);
-    XSession getSession(Map connectionData, String password);
-    NodeSession getNodeSession(String connectionData, String password);
-    NodeSession getNodeSession(Map connectionData, String password);
-    DataType Varchar(Integer length);
-    DataType Char(Integer length);
-    DataType Decimal(Integer precision, Integer scale);
-    DataType Numeric(Integer precision, Integer scale);
-
-    DataType TinyInt; //!< Data type definition for TinyInt
-    DataType SmallInt; //!< Data type definition for SmallInt
-    DataType MediumInt; //!< Data type definition for MediumInt
-    DataType Int; //!< Data type definition for Int
-    DataType Integer; //!< Data type definition for Integer
-    DataType BigInt; //!< Data type definition for BigInt
-    DataType Real; //!< Data type definition for Real
-    DataType Float; //!< Data type definition for Float
-    DataType Double; //!< Data type definition for Double
-    DataType Numeric; //!< Data type definition for Numeric
-    DataType Date; //!< Data type definition for Date
-    DataType Time; //!< Data type definition for Time
-    DataType Timestamp; //!< Data type definition for Timestamp
-    DataType DateTime; //!< Data type definition for DateTime
-    DataType Year; //!< Data type definition for Year
-    DataType Bit; //!< Data type definition for Bit
-    DataType Blob; //!< Data type definition for Blob
-    DataType Text; //!< Data type definition for Text
-    IndexType.IndexUnique; //!< Index type definition for Unique Index
-#endif
-
     class Schema;
     /**
     * Base functionality for Session classes through the X Protocol.
@@ -251,6 +207,6 @@ namespace mysh
 #endif
     };
   }
-}
+    }
 
 #endif

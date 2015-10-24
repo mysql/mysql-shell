@@ -420,12 +420,15 @@ struct JScript_context::JScript_context_impl
 
     // Identifies a default value in case en empty string is returned
     // or hte prompt fails
-    if (options_map->has_key("defaultValue"))
-      default_value = options_map->get_string("defaultValue");
+    if (options_map)
+    {
+      if (options_map->has_key("defaultValue"))
+        default_value = options_map->get_string("defaultValue");
 
-    // Identifies if it is normal prompt or password prompt
-    if (options_map->has_key("type"))
-      password = (options_map->get_string("type") == "password");
+      // Identifies if it is normal prompt or password prompt
+      if (options_map->has_key("type"))
+        password = (options_map->get_string("type") == "password");
+    }
 
     // Performs the actual prompt
     std::string r;
@@ -702,7 +705,7 @@ JScript_context::JScript_context(Object_registry *registry, Interpreter_delegate
 
   set_global("globals", Value(registry->_registry));
   set_global_item("shell", "options", Value(boost::static_pointer_cast<Object_bridge>(Shell_core_options::get_instance())));
-  set_global_item("shell", "storedSessions", Shell_registry::get());
+  set_global_item("shell", "storedSessions", StoredSessions::get());
 }
 
 void JScript_context::set_global_item(const std::string& global_name, const std::string& item_name, const Value &value)

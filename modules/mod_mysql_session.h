@@ -41,25 +41,9 @@ namespace shcore
 namespace mysh
 {
   class DatabaseObject;
-  /**
-  * Encloses the functions and classes available to interact with a MySQL Server using the traditional
-  * MySQL Protocol.
-  *
-  * Use this module to create a session using the traditional MySQL Protocol, for example for MySQL Servers where
-  * the X Protocol is not available.
-  *
-  * Note that the API interface on this module is very limited, even you can load schemas, tables and views as objects
-  * there are no operations available on them.
-  *
-  * The real purpose of this module is to allow SQL Execution on MySQL Servers where the X Protocol is not enabled.
-  */
+
   namespace mysql
   {
-#ifdef DOXYGEN
-    ClassicSession getClassicSession(String connectionData, String password);
-    ClassicSession getClassicSession(Map connectionData, String password);
-#endif
-
     class ClassicSchema;
     /**
     * Enables interaction with a MySQL Server using the MySQL Protocol.

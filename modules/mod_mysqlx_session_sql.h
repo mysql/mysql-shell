@@ -32,7 +32,6 @@ namespace mysh
     class NodeSession;
     /**
     * Handler for execution SQL statements, supports parameter binding.
-    * \todo Update execute to support options and document it
     *
     * This object should only be created by calling the sql function a NodeSession instance.
     * \sa NodeSession

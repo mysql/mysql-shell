@@ -315,8 +315,8 @@ bool Interactive_shell::connect(bool primary_session)
     Argument_list args;
     if (!_options.app.empty())
     {
-      if (Shell_registry::get_instance()->connections()->has_key(_options.app))
-        args.push_back((*Shell_registry::get_instance()->connections())[_options.app]);
+      if (StoredSessions::get_instance()->connections()->has_key(_options.app))
+        args.push_back((*StoredSessions::get_instance()->connections())[_options.app]);
       else
         throw shcore::Exception::argument_error((boost::format("The stored connection %1% was not found") % _options.app).str());
     }
@@ -812,7 +812,7 @@ void Interactive_shell::cmd_store_connection(const std::vector<std::string>& arg
   {
     try
     {
-      Shell_registry::get_instance()->add_connection(app, uri, overwrite);
+      StoredSessions::get_instance()->add_connection(app, uri, overwrite);
     }
     catch (std::exception& err)
     {
@@ -834,7 +834,7 @@ void Interactive_shell::cmd_delete_connection(const std::vector<std::string>& ar
   {
     try
     {
-      Shell_registry::get_instance()->remove_connection(args[0]);
+      StoredSessions::get_instance()->remove_connection(args[0]);
     }
     catch (std::exception& err)
     {
@@ -856,7 +856,7 @@ void Interactive_shell::cmd_update_connection(const std::vector<std::string>& ar
   {
     try
     {
-      Shell_registry::get_instance()->update_connection(args[0], args[1]);
+      StoredSessions::get_instance()->update_connection(args[0], args[1]);
     }
     catch (std::exception& err)
     {
@@ -874,7 +874,7 @@ void Interactive_shell::cmd_list_connections(const std::vector<std::string>& arg
 {
   if (args.size() == 0)
   {
-    Value connections(boost::static_pointer_cast<shcore::Object_bridge>(Shell_registry::get_instance()));
+    Value connections(boost::static_pointer_cast<shcore::Object_bridge>(StoredSessions::get_instance()));
     std::string format = (*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string();
 
     // Prints the connections in pretty JSON format unless json/raw is specified

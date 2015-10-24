@@ -28,14 +28,14 @@
 
 using namespace shcore;
 
-boost::shared_ptr<Shell_registry> Shell_registry::_instance;
+boost::shared_ptr<StoredSessions> StoredSessions::_instance;
 
-std::string Shell_registry::class_name() const
+std::string StoredSessions::class_name() const
 {
   return "StoredSessions";
 }
 
-void Shell_registry::backup_passwords(Value::Map_type *pwd_backups) const
+void StoredSessions::backup_passwords(Value::Map_type *pwd_backups) const
 {
   Value::Map_type::const_iterator index, end = _connections->end();
 
@@ -52,7 +52,7 @@ void Shell_registry::backup_passwords(Value::Map_type *pwd_backups) const
   }
 }
 
-void Shell_registry::restore_passwords(Value::Map_type *pwd_backups) const
+void StoredSessions::restore_passwords(Value::Map_type *pwd_backups) const
 {
   Value::Map_type::const_iterator index, end = pwd_backups->end();
   for (index = pwd_backups->begin(); index != end; index++)
@@ -62,7 +62,7 @@ void Shell_registry::restore_passwords(Value::Map_type *pwd_backups) const
   }
 }
 
-void Shell_registry::append_json(shcore::JSON_dumper& dumper) const
+void StoredSessions::append_json(shcore::JSON_dumper& dumper) const
 {
   Value::Map_type pwd_backups;
 
@@ -73,7 +73,7 @@ void Shell_registry::append_json(shcore::JSON_dumper& dumper) const
   restore_passwords(&pwd_backups);
 }
 
-std::string &Shell_registry::append_descr(std::string &s_out, int indent, int quote_strings) const
+std::string &StoredSessions::append_descr(std::string &s_out, int indent, int quote_strings) const
 {
   Value::Map_type pwd_backups;
 
@@ -86,13 +86,13 @@ std::string &Shell_registry::append_descr(std::string &s_out, int indent, int qu
   return s_out;
 }
 
-bool Shell_registry::operator == (const Object_bridge &other) const
+bool StoredSessions::operator == (const Object_bridge &other) const
 {
   throw Exception::logic_error("There's only one shell object!");
   return false;
 };
 
-std::vector<std::string> Shell_registry::get_members() const
+std::vector<std::string> StoredSessions::get_members() const
 {
   std::vector<std::string> members(Cpp_object_bridge::get_members());
 
@@ -104,7 +104,7 @@ std::vector<std::string> Shell_registry::get_members() const
   return members;
 }
 
-Value Shell_registry::get_member(const std::string &prop) const
+Value StoredSessions::get_member(const std::string &prop) const
 {
   Value ret_val;
   if (_connections->has_key(prop))
@@ -115,17 +115,17 @@ Value Shell_registry::get_member(const std::string &prop) const
   return ret_val;
 }
 
-bool Shell_registry::has_member(const std::string &prop) const
+bool StoredSessions::has_member(const std::string &prop) const
 {
   return _connections->has_key(prop) || Cpp_object_bridge::has_member(prop);
 }
 
-Shell_registry::Shell_registry() :
+StoredSessions::StoredSessions() :
 _connections(new shcore::Value::Map_type)
 {
-  add_method("add", boost::bind(&Shell_registry::add, this, _1), "name", shcore::String, NULL);
-  add_method("remove", boost::bind(&Shell_registry::remove, this, _1), "name", shcore::String, NULL);
-  add_method("update", boost::bind(&Shell_registry::update, this, _1), "name", shcore::String, NULL);
+  add_method("add", boost::bind(&StoredSessions::add, this, _1), "name", shcore::String, NULL);
+  add_method("remove", boost::bind(&StoredSessions::remove, this, _1), "name", shcore::String, NULL);
+  add_method("update", boost::bind(&StoredSessions::update, this, _1), "name", shcore::String, NULL);
 
   shcore::Server_registry sr(shcore::get_default_config_path());
   for (std::map<std::string, Connection_options>::const_iterator it = sr.begin(); it != sr.end(); ++it)
@@ -135,31 +135,31 @@ _connections(new shcore::Value::Map_type)
   }
 }
 
-Shell_registry::~Shell_registry()
+StoredSessions::~StoredSessions()
 {
   if (_instance)
     _instance.reset();
 }
 
-Value Shell_registry::get()
+Value StoredSessions::get()
 {
   if (!_instance)
-    _instance.reset(new Shell_registry());
+    _instance.reset(new StoredSessions());
 
   return Value(boost::static_pointer_cast<Object_bridge>(get_instance()));
 }
 
-boost::shared_ptr<Shell_registry> Shell_registry::get_instance()
+boost::shared_ptr<StoredSessions> StoredSessions::get_instance()
 {
   if (!_instance)
-    _instance.reset(new Shell_registry());
+    _instance.reset(new StoredSessions());
 
   return _instance;
 }
 
 // Stores a connection based on given URI or connection data map
 // This function will be called from the dev-api interface
-shcore::Value Shell_registry::add(const shcore::Argument_list &args)
+shcore::Value StoredSessions::add(const shcore::Argument_list &args)
 {
   args.ensure_count(2, 3, "ShellRegistry.add");
 
@@ -187,7 +187,7 @@ shcore::Value Shell_registry::add(const shcore::Argument_list &args)
   return ret_val;
 }
 
-shcore::Value Shell_registry::update(const shcore::Argument_list &args)
+shcore::Value StoredSessions::update(const shcore::Argument_list &args)
 {
   args.ensure_count(2, "ShellRegistry.update");
 
@@ -208,20 +208,20 @@ shcore::Value Shell_registry::update(const shcore::Argument_list &args)
 
 // Stores a connection based on a URI
 // This function can be called both from the dev-uri (through the function above) or from shell command
-bool Shell_registry::add_connection(const std::string& name, const std::string& uri, bool overwrite)
+bool StoredSessions::add_connection(const std::string& name, const std::string& uri, bool overwrite)
 {
   return store_connection(name, fill_connection(uri), false, overwrite);
 }
 
 // Updates a connection based on a URI
 // This function can be called both from the dev-uri (through the function above) or from shell command
-bool Shell_registry::update_connection(const std::string& name, const std::string& uri)
+bool StoredSessions::update_connection(const std::string& name, const std::string& uri)
 {
   return store_connection(name, fill_connection(uri), true, false);
 }
 
 // Takes a URI and converts it into a connection data map
-Value::Map_type_ref Shell_registry::fill_connection(const std::string& uri)
+Value::Map_type_ref StoredSessions::fill_connection(const std::string& uri)
 {
   std::string protocol;
   std::string user;
@@ -265,7 +265,7 @@ Value::Map_type_ref Shell_registry::fill_connection(const std::string& uri)
   return connection_data;
 }
 
-Value::Map_type_ref Shell_registry::fill_connection(const Connection_options& options)
+Value::Map_type_ref StoredSessions::fill_connection(const Connection_options& options)
 {
   shcore::Value::Map_type_ref connection_data(new shcore::Value::Map_type());
 
@@ -305,7 +305,7 @@ Value::Map_type_ref Shell_registry::fill_connection(const Connection_options& op
 // Validates the connection information and if valid:
 // - Stores it in the server registry
 // - Makes it available into the shell.registry
-shcore::Value Shell_registry::store_connection(const std::string& name, const shcore::Value::Map_type_ref& connection, bool update, bool overwrite)
+shcore::Value StoredSessions::store_connection(const std::string& name, const shcore::Value::Map_type_ref& connection, bool update, bool overwrite)
 {
   Value ret_val = Value::False();
 
@@ -330,7 +330,7 @@ shcore::Value Shell_registry::store_connection(const std::string& name, const sh
   return ret_val;
 }
 
-std::string Shell_registry::get_options_string(const Value::Map_type_ref& connection)
+std::string StoredSessions::get_options_string(const Value::Map_type_ref& connection)
 {
   std::string options;
 
@@ -341,7 +341,7 @@ std::string Shell_registry::get_options_string(const Value::Map_type_ref& connec
   return options;
 }
 
-shcore::Value Shell_registry::remove(const shcore::Argument_list &args)
+shcore::Value StoredSessions::remove(const shcore::Argument_list &args)
 {
   args.ensure_count(1, "ShellRegistry.remove");
   Value ret_val = Value::False();
@@ -354,7 +354,7 @@ shcore::Value Shell_registry::remove(const shcore::Argument_list &args)
   return ret_val;
 }
 
-bool Shell_registry::remove_connection(const std::string& name)
+bool StoredSessions::remove_connection(const std::string& name)
 {
   bool ret_val = false;
 

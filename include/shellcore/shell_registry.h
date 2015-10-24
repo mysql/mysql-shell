@@ -25,16 +25,16 @@
 
 namespace shcore
 {
-  class SHCORE_PUBLIC  Shell_registry :public shcore::Cpp_object_bridge
+  class SHCORE_PUBLIC  StoredSessions :public shcore::Cpp_object_bridge
   {
   public:
-    virtual ~Shell_registry();
+    virtual ~StoredSessions();
 
     // Retrieves the options directly, to be used from C++
     static Value get();
 
     // Exposes the object to JS/PY to allow custom validations on options
-    static boost::shared_ptr<Shell_registry> get_instance();
+    static boost::shared_ptr<StoredSessions> get_instance();
 
     // Methods for C++ interface
     bool add_connection(const std::string& name, const std::string& uri, bool overwrite = false);
@@ -43,13 +43,13 @@ namespace shcore
     Value::Map_type_ref connections(){ return _connections; }
   private:
     // Private constructor since this is a singleton
-    Shell_registry();
+    StoredSessions();
 
     // Options will be stored on a MAP
     Value::Map_type_ref _connections;
 
     // The only available instance
-    static boost::shared_ptr<Shell_registry> _instance;
+    static boost::shared_ptr<StoredSessions> _instance;
 
     std::string get_options_string(const Value::Map_type_ref& connection);
     Value store_connection(const std::string& name, const Value::Map_type_ref& connection, bool update, bool overwrite);

@@ -54,43 +54,6 @@ using namespace shcore;
 
 REGISTER_OBJECT(mysql, ClassicSession);
 
-#ifdef DOXYGEN
-/**
-* Creates a ClassicSession instance using the provided connection data.
-* \param connectionData the connection string used to connect to the database.
-* \param password if provided, will override the password in the connection string.
-* \return An ClassicSession instance.
-*
-* A ClassicSession object uses the traditional MySQL Protocol to allow executing operations on the connected MySQL Server.
-*
-* The format of the connection string can be as follows for connections using the TCP protocol:
-*
-* [user[:pass]\@]host[:port][/db]
-*
-* or as follows for connections using a socket or named pipe:
-*
-* [user[:pass\@]\::socket[/db]
-*
-* \sa ClassicSession
-*/
-ClassicSession getClassicSession(String connectionData, String password){}
-
-/**
-* This function works the same as the function above, except that the connection data comes enclosed on a dictionary object.
-* \param connectionData a map with the connection data as key value pairs, the following keys are recognized:
-*  - host, the host to use for the connection (can be an IP or DNS name)
-*  - port, the TCP port where the server is listening (default value is 3306).
-*  - schema, the current database for the connection's session.
-*  - dbUser, the user to authenticate against.
-*  - dbPassword, the password of the user user to authenticate against.
-* \param password if provided, will override the password in the connection string.
-* \return An ClassicSession instance.
-*
-* \sa ClassicSession
-*/
-ClassicSession getClassicSession(Map connectionData, String password){}
-#endif
-
 ClassicSession::ClassicSession()
 {
   //_schema_proxy.reset(new Proxy_object(boost::bind(&ClassicSession::get_db, this, _1)));
@@ -267,7 +230,7 @@ Value ClassicSession::run_sql(const shcore::Argument_list &args)
       throw Exception::argument_error("No query specified.");
     else
       ret_val = Value::wrap(new ClassicResult(boost::shared_ptr<Result>(_conn->run_sql(statement))));
-  }
+}
 
   return ret_val;
 }
@@ -420,7 +383,7 @@ Value ClassicSession::get_member(const std::string &prop) const
       schema->cache_table_objects();
 
       ret_val = (*_schemas)[prop];
-    }
+}
   }
 
   return ret_val;
