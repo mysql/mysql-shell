@@ -21,7 +21,7 @@
 
 Shell_script_tester::Shell_script_tester()
 {
-  _shell_scripts_home = shcore::get_binary_folder();
+  _shell_scripts_home = MYSQLX_TEST_SCRIPTS_HOME;
 }
 
 void Shell_script_tester::SetUp()

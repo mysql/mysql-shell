@@ -21,6 +21,7 @@ if(WITH_TESTS)
     endif ()
 
     add_definitions(-DGTEST_LANG_CXX11=0 ${GMOCK_CFLAGS})
+    add_definitions(-DMYSQLX_TEST_SCRIPTS_HOME="${CMAKE_SOURCE_DIR}/unittest/scripts")
     include_directories(${CMAKE_SOURCE_DIR}/unittest/include 
                 ${CMAKE_SOURCE_DIR}/mysqlxtest
                 ${CMAKE_SOURCE_DIR}/mysqlxtest/common
@@ -88,10 +89,6 @@ if(WITH_TESTS)
     add_custom_command(TARGET run_unit_tests PRE_BUILD
                           COMMAND ${CMAKE_COMMAND} -E copy_directory
                           ${CMAKE_SOURCE_DIR}/scripting/modules $<TARGET_FILE_DIR:run_unit_tests>/modules)
-
-    add_custom_command(TARGET run_unit_tests PRE_BUILD
-                          COMMAND ${CMAKE_COMMAND} -E copy_directory
-                          ${CMAKE_SOURCE_DIR}/unittest/scripts $<TARGET_FILE_DIR:run_unit_tests>)
 
     if ( HAVE_PYTHON )
       target_link_libraries(run_unit_tests ${PYTHON_LIBRARIES})
