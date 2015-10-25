@@ -288,7 +288,7 @@ void Shell_script_tester::execute_script(const std::string& path, bool in_chunks
   }
   else
   {
-    std::string text("Unable to open test script: " + path);
+    std::string text("Unable to open test script: " + script);
     SCOPED_TRACE(text.c_str());
     ADD_FAILURE();
   }
