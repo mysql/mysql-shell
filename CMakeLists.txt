@@ -59,6 +59,7 @@ if(HAVE_PYTHON)
 
     IF (PYTHON_PATH AND PYTHON_FOLDER)
       SET(PYTHON_LIBRARY_PATH "${PYTHON_PATH}\\${PYTHON_FOLDER}\\Lib")
+      STRING(REPLACE "\\" "\\\\" PYTHON_LIBRARY_PATH ${PYTHON_LIBRARY_PATH})
     ENDIF()
   ENDIF()
 endif()
@@ -354,14 +355,16 @@ if(WINDOWS_RUNTIME_MD)
   set(V8_DLL ${V8_LIBS})
   string(REPLACE ".lib" ".dll" V8_DLL ${V8_DLL})
   get_filename_component(V8_FILE ${V8_DLL} NAME)
-  install(FILES "${V8_DLL}" DESTINATION bin COMPONENT main)
-  install(FILES "${V8_DLL}" DESTINATION lib COMPONENT dev)
+  get_filename_component(V8_DLL ${V8_DLL} DIRECTORY)
+  get_filename_component(V8_DLL ${V8_DLL} DIRECTORY)
+  install(FILES "${V8_DLL}/${V8_FILE}" DESTINATION bin COMPONENT main)
+  install(FILES "${V8_DLL}/${V8_FILE}" DESTINATION lib COMPONENT dev)
 
   if(CMAKE_BUILD_TYPE MATCHES Debug)
     # Copies the dll to the binary location to enable debugging
     add_custom_command(TARGET mysqlx PRE_BUILD
                         COMMAND ${CMAKE_COMMAND} -E copy
-                        "${V8_DLL}" $<TARGET_FILE_DIR:mysqlx>/${V8_FILE})
+                        "${V8_DLL}/${V8_FILE}" $<TARGET_FILE_DIR:mysqlx>/${V8_FILE})
   endif()
 endif()
 
