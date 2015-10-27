@@ -171,7 +171,8 @@ install(DIRECTORY "${CMAKE_SOURCE_DIR}/include/shellcore/" DESTINATION "include/
 install(DIRECTORY "${CMAKE_SOURCE_DIR}/modules/" DESTINATION "include/modules" COMPONENT dev FILES_MATCHING PATTERN "*.h" )
 
 if(WINDOWS_RUNTIME_MD)
-  install(TARGETS mysqlsh DESTINATION bin)
+  install(TARGETS mysqlsh COMPONENT main DESTINATION bin)
+  install(TARGETS mysqlsh COMPONENT dev DESTINATION lib)
 endif()
 
 add_definitions(-DSHCORE_EXPORT )
@@ -180,7 +181,4 @@ add_definitions(-DBOOST_ALL_NO_LIB )
 add_definitions(-Dmyjson_EXPORTS )
 if(WIN32)
   remove_definitions(-DUNICODE)
-  if(NOT WINDOWS_RUNTIME_MD)
-    add_definitions(-DPy_NO_ENABLE_SHARED)
-  endif()  
 endif()

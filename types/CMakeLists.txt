@@ -47,4 +47,5 @@ endif()
 add_definitions(-DBOOST_ALL_NO_LIB)
 add_definitions(-DNGCOMMON_EXPORTS )
 
-install(TARGETS mysqlshtypes DESTINATION lib COMPONENT DEV)
+install(TARGETS mysqlshtypes DESTINATION bin COMPONENT main)
+install(TARGETS mysqlshtypes DESTINATION lib COMPONENT dev)

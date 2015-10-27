@@ -32,6 +32,7 @@ SET(MYSH_MINOR 0)
 SET(MYSH_PATCH 1)
 SET(MYSH_LEVEL "-alpha") # Empty if GA
 
+SET(MYSH_SHORT_VERSION "${MYSH_MAJOR}.${MYSH_MINOR}.${MYSH_PATCH}.0")
 SET(MYSH_VERSION "${MYSH_MAJOR}.${MYSH_MINOR}.${MYSH_PATCH}${MYSH_LEVEL}")
 
 ###
@@ -49,7 +50,16 @@ if(HAVE_PYTHON)
   INCLUDE(FindPythonLibs)
   # On windows stores the path to the python libraries since they will be bundled
   IF(WIN32)
-    SET(PYTHON_LIBRARY_PATH "$ENV{PB2WORKDIR}\\$ENV{PYTHON_SOURCENAME}\\Lib")
+    # PYTHON_PATH and PYTHON_FOLDER are used to properly copy the python libraries where needed
+    # By default they take the value of PB2WORKDIR and PYTHON_SOURCENAME env vars
+    IF (NOT PYTHON_PATH AND NOT PYTHON_FOLDER)
+      SET(PYTHON_PATH "$ENV{PB2WORKDIR}")
+      SET(PYTHON_FOLDER "$ENV{PYTHON_SOURCENAME}")
+    ENDIF()
+
+    IF (PYTHON_PATH AND PYTHON_FOLDER)
+      SET(PYTHON_LIBRARY_PATH "${PYTHON_PATH}\\${PYTHON_FOLDER}\\Lib")
+    ENDIF()
   ENDIF()
 endif()
 
@@ -274,6 +284,11 @@ set(mysh_SRC
 )
 
 add_definitions(-DMYSH_VERSION="${MYSH_VERSION}")
+add_definitions(-DMYSH_SHORT_VERSION="${MYSH_SHORT_VERSION}")
+
+# Shell wrapper for client applications
+add_subdirectory(client)
+
 add_executable(mysqlx ${mysh_SRC} ${BOOST_SOURCE_CODE})
 
 if(WIN32)
@@ -309,10 +324,6 @@ add_definitions(-DBOOST_ALL_NO_LIB)
 
 ADD_SUBDIRECTORY(doc)
 
-IF (WITH_SAMPLES)
-  add_subdirectory(samples/native)
-ENDIF()
-
 include(packaging)
 
 if(WIN32)
@@ -343,15 +354,14 @@ if(WINDOWS_RUNTIME_MD)
   set(V8_DLL ${V8_LIBS})
   string(REPLACE ".lib" ".dll" V8_DLL ${V8_DLL})
   get_filename_component(V8_FILE ${V8_DLL} NAME)
-  get_filename_component(V8_DLL ${V8_DLL} DIRECTORY)
-  get_filename_component(V8_DLL ${V8_DLL} DIRECTORY)
-  install(FILES "${V8_DLL}/${V8_FILE}" DESTINATION bin COMPONENT main)
+  install(FILES "${V8_DLL}" DESTINATION bin COMPONENT main)
+  install(FILES "${V8_DLL}" DESTINATION lib COMPONENT dev)
 
   if(CMAKE_BUILD_TYPE MATCHES Debug)
     # Copies the dll to the binary location to enable debugging
     add_custom_command(TARGET mysqlx PRE_BUILD
                         COMMAND ${CMAKE_COMMAND} -E copy
-                        "${V8_DLL}/${V8_FILE}" $<TARGET_FILE_DIR:mysqlx>/${V8_FILE})
+                        "${V8_DLL}" $<TARGET_FILE_DIR:mysqlx>/${V8_FILE})
   endif()
 endif()
 
