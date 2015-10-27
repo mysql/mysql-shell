@@ -39,6 +39,7 @@ SET(MYSH_VERSION "${MYSH_MAJOR}.${MYSH_MINOR}.${MYSH_PATCH}${MYSH_LEVEL}")
 ### Detect Stuff
 ###
 
+INCLUDE(install_macros)
 INCLUDE(libutils)
 INCLUDE(msvc)
 INCLUDE(ssl)
