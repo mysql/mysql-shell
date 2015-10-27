@@ -36,9 +36,9 @@ endif()
 add_definitions(-DSHELL_CLIENT_NATIVE_EXPORTS)
 add_definitions(-DBOOST_ALL_NO_LIB)
 
-if(WIN32 AND NOT WINDOWS_RUNTIME_MD)
-  add_definitions(-DPy_NO_ENABLE_SHARED)
-endif()
+#if(WIN32 AND NOT WINDOWS_RUNTIME_MD)
+#  add_definitions(-DPy_NO_ENABLE_SHARED)
+#endif()
 
 
 # ----------------------------------------------------------------------
