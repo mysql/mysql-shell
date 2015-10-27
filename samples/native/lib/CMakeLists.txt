@@ -23,7 +23,7 @@ file(GLOB lib_SRC
       "boost_code.cc"
 )
 
-if (WIN32)
+if (WIN32 AND WINDOWS_RUNTIME_MD)
   add_library(shell_client_lib SHARED ${lib_SRC})
 else()
   add_library(shell_client_lib ${lib_SRC})
@@ -31,6 +31,10 @@ endif()
 
 add_definitions(-DSHELL_CLIENT_NATIVE_EXPORTS)
 add_definitions(-DBOOST_ALL_NO_LIB)
+
+if(WIN32 AND NOT WINDOWS_RUNTIME_MD)
+  add_definitions(-DPy_NO_ENABLE_SHARED)
+endif()
 
 # ----------------------------------------------------------------------
 # Set up Boost the simplest way possible
