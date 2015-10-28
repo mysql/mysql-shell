@@ -78,6 +78,8 @@ namespace shcore {
     execute("session.runSql('select * from sakila.actor1 limit');");
     // The hook was invoked
     EXPECT_EQ(1, Shell_application_log_tests::i);
+
+    execute("session.close();");
   }
 
   int Shell_application_log_tests::i;

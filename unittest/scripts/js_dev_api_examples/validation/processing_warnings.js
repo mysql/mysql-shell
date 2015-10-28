@@ -1,2 +1,5 @@
 |Data inserted successfully|
-session.dropCollection('test','my_collection')||
+testSession.dropCollection('test','my_collection')||
+session.close();||
+testSession.close();||
+testSession = null;||

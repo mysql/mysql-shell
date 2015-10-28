@@ -1,1 +1,3 @@
 print(book.fetchOne()._id);|978-1449374020|
+testSession.close();||
+testSession = null;||

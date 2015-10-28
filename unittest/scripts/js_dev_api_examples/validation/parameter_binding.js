@@ -2,3 +2,5 @@ print(myRes1.fetchOne().name)|adam|
 print(myRes2.fetchOne().name)|jack|
 print(myRes3.fetchOne().name)|John|
 print(myColl.find('name = "clare"').execute().fetchOne().age)|37|
+testSession.close();||
+testSession = null;||

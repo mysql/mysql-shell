@@ -1,23 +1,24 @@
 import mysqlx
 
 # Variables assummed to exist on the script must be declared in global scope
-session = None
+testSession = None
 db = None
 myTable = None
 myColl = None
 nodeSession = None
+session = None
 
 def ensure_session():
-  global session
-  if session is None:
+  global testSession
+  if testSession is None:
     print "Creating session...\n"
 
-    session = mysqlx.getNodeSession(__uripwd)
+    testSession = mysqlx.getNodeSession(__uripwd)
 
     # Ensures the user on dev-api exists
     try:
-      session.sql("create user mike@'%' identified by 's3cr3t!'").execute()
-      session.sql("grant all on *.* to mike@'%' with grant option").execute()
+      testSession.sql("create user mike@'%' identified by 's3cr3t!'").execute()
+      testSession.sql("grant all on *.* to mike@'%' with grant option").execute()
     except:
       pass
   else:
@@ -27,30 +28,30 @@ def ensure_test_schema():
   ensure_session()
 
   try:
-      s = session.getSchema('test')
+      s = testSession.getSchema('test')
       print "Test schema exists...\n"
   except:
     print "Creating test schema...\n"
-    session.createSchema('test')
+    testSession.createSchema('test')
 
-  session.setCurrentSchema('test')
+  testSession.setCurrentSchema('test')
 
 def ensure_test_schema_on_db():
   global db
   ensure_test_schema()
   print "Assigning test schema to db...\n"
-  db = session.getSchema('test')
+  db = testSession.getSchema('test')
 
 def ensure_employee_table():
   ensure_test_schema_on_db()
 
   try:
-    table = session.getSchema('test').getTable('employee')
+    table = testSession.getSchema('test').getTable('employee')
 
     print "Employee table exists...\n"
   except:
     print "Creating employee table...\n"
-    session.sql('create table test.employee (name varchar(50), age integer, gender varchar(20))').execute()
+    testSession.sql('create table test.employee (name varchar(50), age integer, gender varchar(20))').execute()
     table = db.getTable('employee')
     
     result = table.insert({'name': 'jack', 'age': 17, 'gender': 'male'}).execute()
@@ -72,20 +73,20 @@ def ensure_employee_table_on_mytable():
   
   print "Assigning employee table to myTable...\n"
   
-  myTable = session.getSchema('test').getTable('employee')
+  myTable = testSession.getSchema('test').getTable('employee')
 
 def ensure_empty_my_table_table():
   ensure_test_schema()
   
   print "Creating my_table table...\n"
-  session.sql('drop table if exists test.my_table').execute()
-  session.sql('create table test.my_table (id integer, name varchar(50))').execute()
+  testSession.sql('drop table if exists test.my_table').execute()
+  testSession.sql('create table test.my_table (id integer, name varchar(50))').execute()
 
 def ensure_my_collection_collection():
   ensure_test_schema_on_db()
 
   try:
-    test_coll = session.getSchema('test').getCollection('my_collection')
+    test_coll = testSession.getSchema('test').getCollection('my_collection')
 
     print "my_collection collection exists...\n"
   except:
@@ -110,10 +111,10 @@ def ensure_not_my_collection_collection():
   ensure_test_schema()
 
   try:
-    test_coll = session.getSchema('test').getCollection('my_collection')
+    test_coll = testSession.getSchema('test').getCollection('my_collection')
 
     print ("Dropping my_collection...\n")
-    session.dropCollection('test', 'my_collection')
+    testSession.dropCollection('test', 'my_collection')
   except:
     print "my_collection does not exist...\n"
 
@@ -129,15 +130,15 @@ def ensure_table_users_exists():
   ensure_test_schema()
 
   try:
-    test_coll = session.getSchema('test').getTable('users')
+    test_coll = testSession.getSchema('test').getTable('users')
 
     print 'users table exists...'
   except:
     print 'Creating users table...'
-    session.sql('create table users (name varchar(50), age int)').execute()
-    session.sql('insert into users values ("Jack", 17)').execute()
+    testSession.sql('create table users (name varchar(50), age int)').execute()
+    testSession.sql('insert into users values ("Jack", 17)').execute()
 
-  nodeSession = session
+  nodeSession = testSession
 
 def ensure_my_proc_procedure_exists():
   global nodeSession
@@ -149,16 +150,16 @@ def ensure_my_proc_procedure_exists():
 	  select * from test.users; 
 	end"""
 	
-  session.sql("drop procedure if exists my_proc").execute()
-  session.sql(procedure).execute()
+  testSession.sql("drop procedure if exists my_proc").execute()
+  testSession.sql(procedure).execute()
 
-  nodeSession = session
+  nodeSession = testSession
 
 # Executes the functions associated to every assumption defined on the test case
 for assumption in __assumptions__:
   print 'Assumption: %s\n' % assumption
 
-  if assumption == "connected session":
+  if assumption == "connected testSession":
     ensure_session()
   elif assumption == "test schema exists":
     ensure_test_schema()
