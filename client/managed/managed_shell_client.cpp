@@ -37,17 +37,17 @@ using namespace System::Reflection;
 [assembly:AssemblyVersion(MYSH_SHORT_VERSION)];
 [assembly:AssemblyInformationalVersion(MYSH_SHORT_VERSION)];
 
-void Managed_shell_client::print(const char *text)
+void ManagedShellClient::print(const char *text)
 {
   _shell->Print(msclr::interop::marshal_as<String^>(text));
 }
 
-void Managed_shell_client::print_error(const char *text)
+void ManagedShellClient::print_error(const char *text)
 {
   _shell->PrintError(msclr::interop::marshal_as<String^>(text));
 }
 
-bool Managed_shell_client::input(const char *text, std::string &ret)
+bool ManagedShellClient::input(const char *text, std::string &ret)
 {
   String^ m_ret = gcnew String("");
   bool result = _shell->Input(msclr::interop::marshal_as<String^>(text), m_ret);
@@ -56,7 +56,7 @@ bool Managed_shell_client::input(const char *text, std::string &ret)
   return result;
 }
 
-bool Managed_shell_client::password(const char *text, std::string &ret)
+bool ManagedShellClient::password(const char *text, std::string &ret)
 {
   String^ m_ret = gcnew String("");
   bool result = _shell->Password(msclr::interop::marshal_as<String^>(text), m_ret);
@@ -65,7 +65,7 @@ bool Managed_shell_client::password(const char *text, std::string &ret)
   return result;
 }
 
-void Managed_shell_client::source(const char* module)
+void ManagedShellClient::source(const char* module)
 {
   _shell->Source(msclr::interop::marshal_as<String^>(module));
 }
@@ -73,7 +73,7 @@ void Managed_shell_client::source(const char* module)
 ShellClient::ShellClient()
 {
   gcroot< ShellClient^> _managed_obj(this);
-  _obj = new Managed_shell_client(_managed_obj);
+  _obj = new ManagedShellClient(_managed_obj);
 }
 
 void ShellClient::MakeConnection(String ^connstr)

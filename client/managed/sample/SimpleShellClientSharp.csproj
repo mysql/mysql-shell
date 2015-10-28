@@ -33,8 +33,8 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="managed_shell_client">
-      <HintPath>..\..\..\..\xshellmd\client\managed\Debug\managed_shell_client.dll</HintPath>
+    <Reference Include="ShellClient">
+      <HintPath>..\..\..\..\xshell32md\mysqlx-shell-1.0.1-alpha-windows-x86-dev\lib\ShellClient.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />

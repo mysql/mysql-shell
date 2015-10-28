@@ -36,11 +36,11 @@ namespace MySqlX
   {
     ref class ShellClient;
 
-    class Managed_shell_client : public Shell_client
+    class ManagedShellClient : public Shell_client
     {
     public:
-      Managed_shell_client(gcroot<ShellClient^> shell /* managed reference to  ShellClient */) : Shell_client(), _shell(shell) { }
-      virtual ~Managed_shell_client() { _shell = nullptr; }
+      ManagedShellClient(gcroot<ShellClient^> shell /* managed reference to  ShellClient */) : Shell_client(), _shell(shell) { }
+      virtual ~ManagedShellClient() { _shell = nullptr; }
 
     protected:
       virtual void print(const char *text);
@@ -83,7 +83,7 @@ namespace MySqlX
       virtual void Source(String^ module);
 
     private:
-      Managed_shell_client* _obj;
+      ManagedShellClient* _obj;
       Object^ wrap_value(const shcore::Value& val);
       List<Dictionary<String^, Object^>^>^ get_managed_doc_result(Document_result_set *doc);
       List<array<Object^>^>^ get_managed_table_result_set(Table_result_set* tbl);
