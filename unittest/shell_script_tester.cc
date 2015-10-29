@@ -21,7 +21,8 @@
 
 Shell_script_tester::Shell_script_tester()
 {
-  _shell_scripts_home = MYSQLX_TEST_SCRIPTS_HOME;
+  _shell_scripts_home = MYSQLX_SOURCE_HOME;
+  _shell_scripts_home += "/unittest/scripts";
 }
 
 void Shell_script_tester::SetUp()
@@ -214,6 +215,8 @@ void Shell_script_tester::load_validations(const std::string& path, bool in_chun
         }
       }
     }
+
+    file.close();
   }
 }
 
@@ -285,6 +288,8 @@ void Shell_script_tester::execute_script(const std::string& path, bool in_chunks
         validate(script);
       }
     }
+
+    stream.close();
   }
   else
   {
@@ -350,6 +355,10 @@ void Shell_js_script_tester::SetUp()
 
   bool initilaized(false);
   _shell_core->switch_mode(shcore::IShell_core::Mode_JScript, initilaized);
+
+  std::string js_modules_path = MYSQLX_SOURCE_HOME;
+  js_modules_path += "/scripting/modules/js";
+  execute("shell.js.module_paths[shell.js.module_paths.length] = '" + js_modules_path + "';");
 }
 
 void Shell_py_script_tester::SetUp()

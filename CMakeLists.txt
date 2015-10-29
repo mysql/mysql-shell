@@ -283,6 +283,8 @@ set(mysh_SRC
     "${PROJECT_SOURCE_DIR}/src/shell_cmdline_options.cc"
     "${PROJECT_SOURCE_DIR}/src/shell_resultset_dumper.h"
     "${PROJECT_SOURCE_DIR}/src/shell_resultset_dumper.cc"
+    "${PROJECT_SOURCE_DIR}/src/interactive_shell.h"
+    "${PROJECT_SOURCE_DIR}/src/interactive_shell.cc"
 )
 
 add_definitions(-DMYSH_VERSION="${MYSH_VERSION}")

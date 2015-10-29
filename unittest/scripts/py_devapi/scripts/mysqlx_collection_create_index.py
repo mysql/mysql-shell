@@ -83,5 +83,8 @@ result = collection.createIndex('_name', mysqlx.IndexUnique).field('name', mysql
 result = collection.add({'name':'John', 'last_name':'Carter', 'age':17}).execute()
 result = collection.add({'name':'John', 'last_name':'Doe', 'age':18}).execute()
 
+#@ Cleanup
+mySession.close()
+
 
 

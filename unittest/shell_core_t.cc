@@ -42,6 +42,7 @@ namespace shcore {
     protected:
       std::string _file_name;
       int _ret_val;
+      boost::shared_ptr<mysh::ShellBaseSession> _session;
 
       boost::function<void(shcore::Value)> _result_processor;
 
@@ -64,9 +65,9 @@ namespace shcore {
         if (!_pwd.empty())
           args.push_back(Value(_pwd));
 
-        boost::shared_ptr<mysh::ShellBaseSession> session(mysh::connect_session(args, mysh::Classic));
+        _session = mysh::connect_session(args, mysh::Classic);
 
-        _shell_core->set_global("session", Value(boost::static_pointer_cast<Object_bridge>(session)));
+        _shell_core->set_global("session", Value(boost::static_pointer_cast<Object_bridge>(_session)));
       }
 
       // NOTE: this method is pretty much the same used on the shell application
@@ -133,13 +134,16 @@ namespace shcore {
       {
         wipe_all();
 
-        _file_name = get_binary_folder() + "/" + path;
+        _file_name = MYSQLX_SOURCE_HOME;
+        _file_name += "/unittest/data/" + path;
 
         std::ifstream stream(_file_name.c_str());
         if (stream.fail())
           FAIL();
 
         _ret_val = _shell_core->process_stream(stream, _file_name, _result_processor);
+
+        stream.close();
       }
     };
 
@@ -177,6 +181,9 @@ namespace shcore {
 
       process("js/js_err.js");
       EXPECT_NE(-1, static_cast<int>(output_handler.std_err.find("Table 'unexisting.whatever' doesn't exist")));
+
+      // Closes the connection
+      _session->call("close", shcore::Argument_list());
     }
   }
 }

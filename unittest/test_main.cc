@@ -20,6 +20,7 @@
 #include <gtest/gtest.h>
 #include <fstream>
 #include <iostream>
+#include <stdlib.h>
 
 int main(int argc, char **argv)
 {
@@ -42,6 +43,12 @@ int main(int argc, char **argv)
     std::cerr << "Note: MYSQL_URI must not contain the port number\n";
     exit(1);
   }
+
+#ifdef WIN32
+  _putenv_s("MYSQLX_USER_CONFIG_PATH", ".");
+#else
+  setenv("MYSQLX_USER_CONFIG_PATH", ".", 1);
+#endif
   ::testing::InitGoogleTest(&argc, argv);
 
   const char *generate_option = "--generate_test_groups=";

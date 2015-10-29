@@ -1,23 +1,24 @@
 mysqlx = require('mysqlx').mysqlx;
 
 // Variables assummed to exist on the script must be declared in global scope
-var session;
+var testSession = null;
 var db;
 var myTable;
 var myColl;
 var nodeSession;
+var session;
 
 function ensure_session(){
-  if (type(session) == "Undefined")
+  if (type(testSession) == "Null")
   {
-    print("Creating session...\n");
+    print("Creating testSession...\n");
     var  uri = os.getenv('MYSQL_URI');
-    session = mysqlx.getNodeSession(uri);
+    testSession = mysqlx.getNodeSession(uri);
 
     // Ensures the user on dev-api exists
     try {
-      session.sql("create user mike@'%' identified by 's3cr3t!'").execute();
-      session.sql("grant all on *.* to mike@'%' with grant option").execute();
+      testSession.sql("create user mike@'%' identified by 's3cr3t!'").execute();
+      testSession.sql("grant all on *.* to mike@'%' with grant option").execute();
     }
     catch(err)
     {
@@ -26,40 +27,42 @@ function ensure_session(){
   }
   else
     print("Session exists...\n");
+
+  session = testSession;
 }
 
 function ensure_test_schema() {
   ensure_session();
 
   try {
-      var s = session.getSchema('test');
+      var s = testSession.getSchema('test');
       print("Test schema exists...\n");
   }
   catch(err){
     print("Creating test schema...\n");
-    session.createSchema('test');
+    testSession.createSchema('test');
   }
 	
-	session.setCurrentSchema('test');
+	testSession.setCurrentSchema('test');
 }
 
 function ensure_test_schema_on_db() {
   ensure_test_schema();
   print("Assigning test schema to db...\n");
-  db = session.getSchema('test');
+  db = testSession.getSchema('test');
 }
 
 function ensure_employee_table() {
   ensure_test_schema_on_db();
 
   try{
-    var table = session.getSchema('test').getTable('employee');
+    var table = testSession.getSchema('test').getTable('employee');
 
     print("Employee table exists...\n");
   }
   catch(err){
     print("Creating employee table...\n");
-    session.sql('create table test.employee (name varchar(50), age integer, gender varchar(20))').execute();
+    testSession.sql('create table test.employee (name varchar(50), age integer, gender varchar(20))').execute();
     var table = db.getTable('employee');
     
     var result = table.insert({'name': 'jack', 'age': 17, 'gender': 'male'}).execute();
@@ -82,22 +85,22 @@ function ensure_employee_table_on_mytable() {
   
   print("Assigning employee table to myTable...\n");
   
-  myTable = session.getSchema('test').getTable('employee');
+  myTable = testSession.getSchema('test').getTable('employee');
 }
 
 function ensure_empty_my_table_table() {
   ensure_test_schema();
   
   print("Creating my_table table...\n");
-  session.sql('drop table if exists test.my_table').execute();
-  session.sql('create table test.my_table (id integer, name varchar(50))').execute();
+  testSession.sql('drop table if exists test.my_table').execute();
+  testSession.sql('create table test.my_table (id integer, name varchar(50))').execute();
 }
 
 function ensure_my_collection_collection() {
   ensure_test_schema_on_db();
 
   try{
-    var test_coll = session.getSchema('test').getCollection('my_collection');
+    var test_coll = testSession.getSchema('test').getCollection('my_collection');
 
     print("my_collection collection exists...\n");
   }
@@ -125,10 +128,10 @@ function ensure_not_my_collection_collection() {
   ensure_test_schema();
 
   try{
-    var test_coll = session.getSchema('test').getCollection('my_collection');
+    var test_coll = testSession.getSchema('test').getCollection('my_collection');
 
     print ("Dropping my_collection...\n");
-    session.dropCollection('test', 'my_collection');
+    testSession.dropCollection('test', 'my_collection');
   }
   catch(err){
     print("my_collection does not exist...\n");
@@ -146,27 +149,27 @@ function ensure_table_users_exists(){
 	ensure_test_schema();
 
 	try{
-		var test_coll = session.getSchema('test').getTable('users');
+		var test_coll = testSession.getSchema('test').getTable('users');
 
 		print('users table exists...');
 	}
 	catch(err){
 		print('Creating users table...');
-		session.sql('create table users (name varchar(50), age int)').execute();
-		session.sql('insert into users values ("Jack", 17)').execute();
+		testSession.sql('create table users (name varchar(50), age int)').execute();
+		testSession.sql('insert into users values ("Jack", 17)').execute();
 	}
 	
-	nodeSession = session;
+	nodeSession = testSession;
 }
 
 function ensure_my_proc_procedure_exists(){
 	ensure_table_users_exists();
 	
 	var procedure = "create procedure my_proc() begin select * from test.users; end"
-	session.sql("drop procedure if exists my_proc").execute();
-	session.sql(procedure).execute();
+	testSession.sql("drop procedure if exists my_proc").execute();
+	testSession.sql(procedure).execute();
 	
-	nodeSession = session;
+	nodeSession = testSession;
 }
 
 // Executes the functions associated to every assumption defined on the test case

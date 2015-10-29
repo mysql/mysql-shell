@@ -1,6 +1,6 @@
 //@# Testing require failures
 var mymodule = require('fail_wont_compile');
-shell.js.module_paths[shell.js.module_paths.length] = os.get_binary_folder() + '/js';
+shell.js.module_paths[shell.js.module_paths.length] = __test_modules_path;
 var mymodule = require('fail_wont_compile');
 var empty_module = require('fail_empty');
 

@@ -143,9 +143,6 @@ StoredSessions::~StoredSessions()
 
 Value StoredSessions::get()
 {
-  if (!_instance)
-    _instance.reset(new StoredSessions());
-
   return Value(boost::static_pointer_cast<Object_bridge>(get_instance()));
 }
 

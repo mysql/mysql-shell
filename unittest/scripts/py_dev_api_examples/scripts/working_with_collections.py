@@ -28,4 +28,4 @@ doc = docs.fetchOne()
 print doc
 
 # Drop the collection
-session.dropCollection('test','my_collection')
+mySession.dropCollection('test','my_collection')

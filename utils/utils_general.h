@@ -40,6 +40,8 @@ namespace shcore
   std::string SHCORE_PUBLIC strip_password(const std::string &connstring);
 
   std::string SHCORE_PUBLIC strip_ssl_args(const std::string &connstring);
+
+  char SHCORE_PUBLIC *mysh_get_stdin_password(const char *prompt);
 }
 
 #endif /* defined(__mysh__utils_general__) */
