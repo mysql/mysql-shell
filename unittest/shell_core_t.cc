@@ -134,7 +134,8 @@ namespace shcore {
       {
         wipe_all();
 
-        _file_name = get_binary_folder() + "/" + path;
+        _file_name = MYSQLX_SOURCE_HOME;
+        _file_name += "/unittest/data/" + path;
 
         std::ifstream stream(_file_name.c_str());
         if (stream.fail())

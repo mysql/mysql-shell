@@ -59,6 +59,10 @@ namespace shcore {
 
       _shell_core->switch_mode(Shell_core::Mode_JScript, initilaized);
 
+      std::string js_modules_path = MYSQLX_SOURCE_HOME;
+      js_modules_path += "/scripting/modules/js";
+      execute("shell.js.module_paths[shell.js.module_paths.length] = '" + js_modules_path + "';");
+
       exec_and_out_equals("var mysql = require('mysql').mysql;");
       exec_and_out_equals("var session = mysql.getClassicSession('" + _mysql_uri + "');");
     }

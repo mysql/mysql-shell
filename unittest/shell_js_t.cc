@@ -29,6 +29,11 @@ namespace shcore
 
   TEST_F(Shell_js_tests, built_ins)
   {
+    std::string test_js_modules_path = MYSQLX_SOURCE_HOME;
+    test_js_modules_path += "/unittest/modules/js";
+    std::string code = "var __test_modules_path = '" + test_js_modules_path + "';";
+    execute(code);
+
     validate_interactive("shell_builtins.js");
   }
 }

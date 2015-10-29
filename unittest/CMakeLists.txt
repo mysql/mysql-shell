@@ -21,7 +21,8 @@ if(WITH_TESTS)
     endif ()
 
     add_definitions(-DGTEST_LANG_CXX11=0 ${GMOCK_CFLAGS})
-    add_definitions(-DMYSQLX_TEST_SCRIPTS_HOME="${CMAKE_SOURCE_DIR}/unittest/scripts")
+    add_definitions(-DMYSQLX_SOURCE_HOME="${CMAKE_SOURCE_DIR}")
+
     include_directories(${CMAKE_SOURCE_DIR}/unittest/include 
                 ${CMAKE_SOURCE_DIR}/mysqlxtest
                 ${CMAKE_SOURCE_DIR}/mysqlxtest/common
@@ -74,21 +75,7 @@ if(WITH_TESTS)
 
     if ( HAVE_V8 )
       target_link_libraries(run_unit_tests ${V8_LINK_LIST})
-
-      add_custom_command(TARGET run_unit_tests PRE_BUILD
-                            COMMAND ${CMAKE_COMMAND} -E copy_directory
-                            ${CMAKE_SOURCE_DIR}/unittest/modules $<TARGET_FILE_DIR:run_unit_tests>)
     endif()
-
-    add_custom_command(TARGET run_unit_tests PRE_BUILD
-                          COMMAND ${CMAKE_COMMAND} -E copy_directory
-                          ${CMAKE_SOURCE_DIR}/unittest/data $<TARGET_FILE_DIR:run_unit_tests>)
-
-    # This is to copy the mysqlx into the build directory to make them
-    # available for running the unit tests
-    add_custom_command(TARGET run_unit_tests PRE_BUILD
-                          COMMAND ${CMAKE_COMMAND} -E copy_directory
-                          ${CMAKE_SOURCE_DIR}/scripting/modules $<TARGET_FILE_DIR:run_unit_tests>/modules)
 
     if ( HAVE_PYTHON )
       target_link_libraries(run_unit_tests ${PYTHON_LIBRARIES})
