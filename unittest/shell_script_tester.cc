@@ -215,6 +215,8 @@ void Shell_script_tester::load_validations(const std::string& path, bool in_chun
         }
       }
     }
+
+    file.close();
   }
 }
 
@@ -286,6 +288,8 @@ void Shell_script_tester::execute_script(const std::string& path, bool in_chunks
         validate(script);
       }
     }
+
+    stream.close();
   }
   else
   {

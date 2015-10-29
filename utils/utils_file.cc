@@ -348,6 +348,8 @@ namespace shcore
 
       data.assign(fdata);
       ret_val = true;
+
+      s.close();
     }
 
     return ret_val;
@@ -365,7 +367,7 @@ namespace shcore
     if (!DeleteFile(filename.c_str()))
       throw std::runtime_error((boost::format("Error when deleting file  %s exists: %s") % filename % shcore::get_last_error()).str());
 #else
-    if(remove(filename.c_str()))
+    if (remove(filename.c_str()))
       throw std::runtime_error((boost::format("Error when deleting file  %s exists: %s") % filename % shcore::get_last_error()).str());
 #endif
   }

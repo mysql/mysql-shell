@@ -142,6 +142,8 @@ namespace shcore {
           FAIL();
 
         _ret_val = _shell_core->process_stream(stream, _file_name, _result_processor);
+
+        stream.close();
       }
     };
 
