@@ -573,7 +573,11 @@ void Interactive_shell::cmd_connect(const std::vector<std::string>& args)
 {
   if (args.size() == 1)
   {
-    _options.uri = args[0];
+    if (args[0].find("$") == 0)
+      _options.app = args[0].substr(1);
+    else
+      _options.uri = args[0];
+
     _options.session_type = mysh::Application;
     connect();
   }
