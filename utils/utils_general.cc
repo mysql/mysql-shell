@@ -240,7 +240,7 @@ namespace shcore
       ssl_key = ssl_data["ssl_key"];
 
     return true;
-    }
+  }
 
   std::string strip_password(const std::string &connstring)
   {
@@ -299,7 +299,7 @@ namespace shcore
     {
       std::string::size_type pos2 = result.find("&");
       result = result.replace(pos, (pos2 == std::string::npos) ? std::string::npos : pos2 - pos + 1, "");
-  }
+    }
     if ((pos = result.find("ssl_cert=")) != std::string::npos)
     {
       std::string::size_type pos2 = result.find("&");
@@ -316,5 +316,24 @@ namespace shcore
     }
 
     return result;
+  }
+
+  char *mysh_get_stdin_password(const char *prompt)
+  {
+    if (prompt)
+    {
+      fputs(prompt, stdout);
+      fflush(stdout);
+    }
+    char buffer[128];
+    if (fgets(buffer, sizeof(buffer), stdin))
+    {
+      char *p = strchr(buffer, '\r');
+      if (p) *p = 0;
+      p = strchr(buffer, '\n');
+      if (p) *p = 0;
+      return strdup(buffer);
+    }
+    return NULL;
   }
 }
