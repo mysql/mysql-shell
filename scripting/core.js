@@ -107,7 +107,7 @@ else
 // Now adds the User Config Path
 path = os.get_user_config_path();
 if (path)
-  this.shell.js.module_paths[this.shell.js.module_paths.length] = path + '/modules/js';
+  this.shell.js.module_paths[this.shell.js.module_paths.length] = path + 'modules/js';
 
 // Finally sees if there are additional configured paths
 path = os.getenv('MYSQLX_JS_MODULE_PATHS');

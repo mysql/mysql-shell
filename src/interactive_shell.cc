@@ -377,15 +377,14 @@ void Interactive_shell::init_scripts(Shell_core::Mode mode)
   try
   {
     std::string path = shcore::get_user_config_path();
-    path += std::string(".shellrc");
+    path += std::string("shellrc");
     user_file = path;
 
     user_file += extension;
     if (file_exists(user_file))
       scripts_paths.push_back(user_file);
 #ifndef WIN32
-    std::string global_file("/usr/share/mysqlx/js/shellrc");
-
+    std::string global_file("/usr/share/mysqlx/shellrc");
     global_file += extension;
 
     if (file_exists(global_file))
