@@ -253,8 +253,14 @@ Value BaseSession::close(const shcore::Argument_list &args)
   // Connection must be explicitly closed, we can't rely on the
   // automatic destruction because if shared across different objects
   // it may remain open
-  _session->connection()->close();
 
+  if (_session)
+  {
+    _session->close();
+
+    _session.reset();
+  }
+  
   return shcore::Value();
 }
 
