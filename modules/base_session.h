@@ -68,6 +68,8 @@ namespace mysh
     // Helper method to retrieve properties using a method
     shcore::Value get_member_method(const shcore::Argument_list &args, const std::string& method, const std::string& prop);
 
+    virtual void set_option(const char *option, int value) {}
+
   protected:
     std::string get_quoted_name(const std::string& name);
   };

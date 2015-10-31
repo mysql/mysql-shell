@@ -116,6 +116,8 @@ namespace mysh
 
       bool table_name_compare(const std::string &n1, const std::string &n2);
 
+      virtual void set_option(const char *option, int value);
+
 #ifdef DOXYGEN
       String uri; //!< Same as getUri()
       Map schemas; //!< Same as getSchemas()

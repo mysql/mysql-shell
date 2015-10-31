@@ -49,6 +49,7 @@ public:
   bool full_interactive;
   bool passwords_from_stdin;
   bool recreate_database;
+  bool trace_protocol;
   ngcommon::Logger::LOG_LEVEL log_level;
 
   // Takes the URI and the individual connection parameters and overrides

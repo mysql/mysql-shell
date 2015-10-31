@@ -776,7 +776,7 @@ Message *Connection::recv_payload(const int mid, const std::size_t msglen)
       google::protobuf::TextFormat::Printer p;
       p.SetInitialIndentLevel(1);
       p.PrintToString(*ret_val, &out);
-      std::cout << "<<<< RECEIVE " << ret_val->GetDescriptor()->full_name() << " {\n" << out << "\n}\n";
+      std::cout << "<<<< RECEIVE " << ret_val->ByteSize() << " " << ret_val->GetDescriptor()->full_name() << " {\n" << out << "\n}\n";
     }
 
     if (!ret_val->IsInitialized())

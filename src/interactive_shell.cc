@@ -95,9 +95,9 @@ _options(options)
   SET_SHELL_COMMAND("\\source|\\.", "Execute a script file. Takes a file name as an argument.", cmd_help_source, Interactive_shell::cmd_process_file);
   SET_SHELL_COMMAND("\\", "Start multiline input. Finish and execute with an empty line.", "", Interactive_shell::cmd_start_multiline);
   SET_SHELL_COMMAND("\\quit|\\q|\\exit", "Quit mysh.", "", Interactive_shell::cmd_quit);
-  SET_SHELL_COMMAND("\\connect", "Connect to server using an application mode session.", (boost::format(cmd_help) % "").str(), Interactive_shell::cmd_connect);
-  SET_SHELL_COMMAND("\\connect_node", "Connect to server using a node session.", (boost::format(cmd_help) % "_node").str(), Interactive_shell::cmd_connect_node);
-  SET_SHELL_COMMAND("\\connect_classic", "Connect to server using the MySQL protocol.", (boost::format(cmd_help) % "_classic").str(), Interactive_shell::cmd_connect_classic);
+  SET_SHELL_COMMAND("\\connect|\\cx", "Connect to server using an application mode session.", (boost::format(cmd_help) % "").str(), Interactive_shell::cmd_connect);
+  SET_SHELL_COMMAND("\\connect_node|\\cn", "Connect to server using a node session.", (boost::format(cmd_help) % "_node").str(), Interactive_shell::cmd_connect_node);
+  SET_SHELL_COMMAND("\\connect_classic|\\cc", "Connect to server using the MySQL protocol.", (boost::format(cmd_help) % "_classic").str(), Interactive_shell::cmd_connect_classic);
   SET_SHELL_COMMAND("\\warnings|\\W", "Show warnings after every statement.", "", Interactive_shell::cmd_warnings);
   SET_SHELL_COMMAND("\\nowarnings|\\w", "Don't show warnings after every statement.", "", Interactive_shell::cmd_nowarnings);
 
@@ -307,6 +307,8 @@ Value Interactive_shell::connect_session(const Argument_list &args, mysh::Sessio
   boost::shared_ptr<mysh::ShellBaseSession> new_session(mysh::connect_session(connect_args, session_type));
 
   _session.reset(new_session, new_session.get());
+
+  _session->set_option("trace_protocol", _options.trace_protocol);
 
   if (!create_schema_name.empty())
   {

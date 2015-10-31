@@ -229,6 +229,16 @@ Value BaseSession::connect(const Argument_list &args)
   return Value::Null();
 }
 
+
+void BaseSession::set_option(const char *option, int value)
+{
+  if (strcmp(option, "trace_protocol") == 0 && _session)
+    _session->connection()->set_trace_protocol(value!=0);
+  else
+    throw shcore::Exception::argument_error(std::string("Unknown option ").append(option));
+}
+
+
 bool BaseSession::table_name_compare(const std::string &n1, const std::string &n2)
 {
   if (_case_sensitive_table_names)

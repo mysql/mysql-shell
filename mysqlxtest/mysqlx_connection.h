@@ -139,6 +139,8 @@ namespace mysqlx
 
     void send_bytes(const std::string &data);
 
+    void set_trace_protocol(bool flag) { m_trace_packets = flag; }
+
   private:
     void dispatch_notice(Mysqlx::Notice::Frame *frame);
     Message *recv_message_with_header(int &mid, char(&header_buffer)[5], const std::size_t header_offset);

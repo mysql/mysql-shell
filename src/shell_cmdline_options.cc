@@ -56,6 +56,7 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
   interactive = false;
   full_interactive = false;
   passwords_from_stdin = false;
+  trace_protocol = false;
 
   port = 0;
   ssl = 0;
@@ -162,6 +163,8 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
     }
     else if (check_arg(argv, i, "--table", "--table"))
       output_format = "table";
+    else if (check_arg(argv, i, "--trace-proto", NULL))
+      trace_protocol = true;
     else if (check_arg(argv, i, "--help", "--help"))
     {
       print_cmd_line_helper = true;
