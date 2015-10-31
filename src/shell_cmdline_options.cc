@@ -50,7 +50,16 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
   char default_interactive[1] = "";
   char default_ssl[2] = "1";
 
-  initial_mode = IShell_core::Mode_JScript;
+  #ifdef HAVE_V8
+    initial_mode = IShell_core::Mode_JScript;
+  #else
+    #ifdef HAVE_PYTHON
+      initial_mode = IShell_core::Mode_Python;
+    #else
+      initial_mode = IShell_core::Mode_SQL;
+    #endif
+  #endif
+    
   recreate_database = false;
   force = false;
   interactive = false;
@@ -137,9 +146,25 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
       session_type = mysh::Node;
     }
     else if (check_arg(argv, i, "--js", "--javascript"))
-      initial_mode = IShell_core::Mode_JScript;
+    {
+      #ifdef HAVE_V8
+	initial_mode = IShell_core::Mode_JScript;
+      #else
+	std::cerr << "JavaScript is not supported.\n";
+	exit_code = 1;
+	break;      
+      #endif
+    }
     else if (check_arg(argv, i, "--py", "--python"))
-      initial_mode = IShell_core::Mode_Python;
+    {
+      #ifdef HAVE_PYTHON
+	initial_mode = IShell_core::Mode_Python;
+      #else
+	std::cerr << "Python is not supported.\n";
+	exit_code = 1;
+	break;      
+      #endif      
+    }
     else if (check_arg(argv, i, NULL, "--sqlc"))
     {
       initial_mode = IShell_core::Mode_SQL;

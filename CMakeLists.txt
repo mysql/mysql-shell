@@ -307,8 +307,11 @@ endif()
 target_link_libraries(mysqlx mysqlsh ${GCOV_LDFLAGS})
 
 install(TARGETS mysqlx RUNTIME COMPONENT main DESTINATION bin)
-install(DIRECTORY scripting/modules DESTINATION lib COMPONENT main)
-install(DIRECTORY scripting/modules DESTINATION lib COMPONENT dev)
+
+if (HAVE_V8)
+  install(DIRECTORY scripting/modules DESTINATION lib COMPONENT main)
+  install(DIRECTORY scripting/modules DESTINATION lib COMPONENT dev)
+endif()
 
 IF(CMAKE_BUILD_TYPE MATCHES Debug)
   # This is to copy the modules into the build directory to make them
@@ -348,12 +351,14 @@ if(WIN32)
 endif()
 
 # Installation instructions
-install(FILES ${V8_LIBS} DESTINATION lib COMPONENT dev)
+if(HAVE_V8)
+  install(FILES ${V8_LIBS} DESTINATION lib COMPONENT dev)
+endif()
 install(DIRECTORY "${CMAKE_SOURCE_DIR}/utils/" DESTINATION "include/utils" COMPONENT dev FILES_MATCHING PATTERN "*.h" )
 install(DIRECTORY "${CMAKE_SOURCE_DIR}/common/logger" DESTINATION "include/common" COMPONENT dev FILES_MATCHING PATTERN "*.h" )
 install(DIRECTORY "${CMAKE_SOURCE_DIR}/ext/rapidjson/include/rapidjson" DESTINATION "include" COMPONENT dev FILES_MATCHING PATTERN "*.h" )
 
-if(WINDOWS_RUNTIME_MD)
+if(WINDOWS_RUNTIME_MD AND HAVE_V8)
   # for MD runtime we also need DLL, not just lib, but dll is on parent directory.
   set(V8_DLL ${V8_LIBS})
   string(REPLACE ".lib" ".dll" V8_DLL ${V8_DLL})
