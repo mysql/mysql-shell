@@ -128,10 +128,10 @@ namespace shcore
         path_separator = "\\";
       }
       else
-        std::cout << "get_binary_folder: GetModuleFileNameA failed with error " << GetLastError() << std::endl;
+        throw std::runtime_error((boost::format("get_binary_folder: GetModuleFileNameA failed with error %1%\n") % GetLastError()).str());
     }
     else
-      std::cout << "get_binary_folder: GetModuleHandleA failed with error " << GetLastError() << std::endl;
+      throw std::runtime_error((boost::format("get_binary_folder: GetModuleHandleA failed with error %1%\n") % GetLastError()).str());
 #else
     path_separator = "/";
 #ifdef __APPLE__
@@ -146,10 +146,10 @@ namespace shcore
       if (realpath(path, real_path))
         exe_path.assign(real_path);
       else
-        std::cout << "get_binary_folder: Readlink failed with error " << errno << std::endl;
+        throw std::runtime_error((boost::format("get_binary_folder: Readlink failed with error %1%\n") % GetLastError()).str());
     }
     else
-      std::cout << "get_binary_folder: _NSGetExecutablePath failed." << std::endl;
+      std:throw std::runtime_error("get_binary_folder: _NSGetExecutablePath failed.\n";
 
 #else
 #ifdef __linux__
@@ -157,7 +157,7 @@ namespace shcore
     if (-1 != readlink("/proc/self/exe", path, PATH_MAX))
       exe_path.assign(path);
     else
-      std::cout << "get_binary_folder: Readlink failed with error " << errno << std::endl;
+      throw std::runtime_error((boost::format("get_binary_folder: Readlink failed with error %1%\n") % errno).str());
 #endif
 #endif
 #endif

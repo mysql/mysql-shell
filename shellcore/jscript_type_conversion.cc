@@ -219,11 +219,11 @@ v8::Handle<v8::Value> JScript_type_bridger::shcore_value_to_v8_value(const Value
       break;
     case MapRef:
     {
-                 boost::shared_ptr<Value::Map_type> map(value.value.mapref->lock());
-                 if (map)
-                 {
-                   std::cout << "wrapmapref not implemented\n";
-                 }
+      boost::shared_ptr<Value::Map_type> map(value.value.mapref->lock());
+      if (map)
+      {
+        throw std::invalid_argument("Cannot convert internal value to JS: wrapmapref not implemented\n");
+      }
     }
       break;
     case shcore::Function:

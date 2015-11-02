@@ -583,7 +583,7 @@ void Interactive_shell::cmd_connect(const std::vector<std::string>& args)
     connect();
   }
   else
-    print_error("\\connect <uri>");
+    print_error("\\connect <uri or $appName>\n");
 }
 
 void Interactive_shell::cmd_connect_node(const std::vector<std::string>& args)
@@ -595,7 +595,7 @@ void Interactive_shell::cmd_connect_node(const std::vector<std::string>& args)
     connect();
   }
   else
-    print_error("\\connect_node <uri>");
+    print_error("\\connect_node <uri or $appName>\n");
 }
 
 void Interactive_shell::cmd_connect_classic(const std::vector<std::string>& args)
@@ -607,7 +607,7 @@ void Interactive_shell::cmd_connect_classic(const std::vector<std::string>& args
     connect();
   }
   else
-    print_error("\\connect_classic <uri>");
+    print_error("\\connect_classic <uri or $appName>\n");
 }
 
 void Interactive_shell::cmd_quit(const std::vector<std::string>& UNUSED(args))
@@ -765,7 +765,7 @@ void Interactive_shell::cmd_list_connections(const std::vector<std::string>& arg
     shcore::print(connections.json(format != "json/raw") + "\n");
   }
   else
-    print_error("\\lsconn");
+    print_error("\\lsconn\n");
 }
 
 void Interactive_shell::deleg_print(void *cdata, const char *text)
