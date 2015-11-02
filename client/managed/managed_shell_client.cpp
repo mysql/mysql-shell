@@ -34,8 +34,8 @@ using namespace System::Reflection;
 
 [assembly:AssemblyDelaySign(false)];
 [assembly:AssemblyKeyName("MySQLXShell")];
-[assembly:AssemblyVersion(MYSH_SHORT_VERSION)];
-[assembly:AssemblyInformationalVersion(MYSH_SHORT_VERSION)];
+[assembly:AssemblyVersion(MYSH_VERSION)];
+[assembly:AssemblyInformationalVersion(MYSH_VERSION)];
 
 void ManagedShellClient::print(const char *text)
 {

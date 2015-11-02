@@ -30,9 +30,8 @@ set(CMAKE_MODULE_PATH
 SET(MYSH_MAJOR 1)
 SET(MYSH_MINOR 0)
 SET(MYSH_PATCH 2)
-SET(MYSH_LEVEL "-alpha") # Empty if GA
+SET(MYSH_LEVEL ".1") # Merge/Sprint Number (QA Tracking): Empty on Release
 
-SET(MYSH_SHORT_VERSION "${MYSH_MAJOR}.${MYSH_MINOR}.${MYSH_PATCH}.0")
 SET(MYSH_VERSION "${MYSH_MAJOR}.${MYSH_MINOR}.${MYSH_PATCH}${MYSH_LEVEL}")
 
 ###
@@ -288,7 +287,6 @@ set(mysh_SRC
 )
 
 add_definitions(-DMYSH_VERSION="${MYSH_VERSION}")
-add_definitions(-DMYSH_SHORT_VERSION="${MYSH_SHORT_VERSION}")
 
 # Shell wrapper for client applications
 add_subdirectory(client)
