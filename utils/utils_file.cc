@@ -146,10 +146,10 @@ namespace shcore
       if (realpath(path, real_path))
         exe_path.assign(real_path);
       else
-        throw std::runtime_error((boost::format("get_binary_folder: Readlink failed with error %1%\n") % GetLastError()).str());
+        throw std::runtime_error((boost::format("get_binary_folder: Readlink failed with error %1%\n") % errno).str());
     }
     else
-      std:throw std::runtime_error("get_binary_folder: _NSGetExecutablePath failed.\n";
+      throw std::runtime_error("get_binary_folder: _NSGetExecutablePath failed.\n");
 
 #else
 #ifdef __linux__
