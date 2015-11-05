@@ -53,9 +53,9 @@ shcore::Value Column::get_member_method(const shcore::Argument_list &args, const
 }
 
 Column::Column(const std::string& catalog, const std::string& schema, const std::string& table, const std::string& org_table, const std::string& name,
-       const std::string& org_name, uint64_t collation, uint64_t length, uint64_t type, uint64_t flags, uint64_t max_length, bool _numeric) :
+       const std::string& org_name, uint64_t collation, uint64_t length, uint64_t type, uint64_t flags, uint64_t max_length, bool numeric) :
        _catalog(catalog), _schema(schema), _table(table), _org_table(org_table), _name(name), _org_name(org_name), _collation(collation),
-       _length(length), _type(type), _flags(flags), _max_length(max_length)
+       _length(length), _type(type), _flags(flags), _max_length(max_length), _numeric(numeric)
 {
   add_method("getCatalog", boost::bind(&Column::get_member_method, this, _1, "getCatalog", "catalog"), NULL);
   add_method("getSchema", boost::bind(&Column::get_member_method, this, _1, "getSchema", "schema"), NULL);

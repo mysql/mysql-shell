@@ -50,16 +50,16 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
   char default_interactive[1] = "";
   char default_ssl[2] = "1";
 
-  #ifdef HAVE_V8
-    initial_mode = IShell_core::Mode_JScript;
-  #else
-    #ifdef HAVE_PYTHON
-      initial_mode = IShell_core::Mode_Python;
-    #else
-      initial_mode = IShell_core::Mode_SQL;
-    #endif
-  #endif
-    
+#ifdef HAVE_V8
+  initial_mode = IShell_core::Mode_JScript;
+#else
+#ifdef HAVE_PYTHON
+  initial_mode = IShell_core::Mode_Python;
+#else
+  initial_mode = IShell_core::Mode_SQL;
+#endif
+#endif
+
   recreate_database = false;
   force = false;
   interactive = false;
@@ -147,23 +147,23 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
     }
     else if (check_arg(argv, i, "--js", "--javascript"))
     {
-      #ifdef HAVE_V8
-	initial_mode = IShell_core::Mode_JScript;
-      #else
-	std::cerr << "JavaScript is not supported.\n";
-	exit_code = 1;
-	break;      
-      #endif
+#ifdef HAVE_V8
+      initial_mode = IShell_core::Mode_JScript;
+#else
+      std::cerr << "JavaScript is not supported.\n";
+      exit_code = 1;
+      break;
+#endif
     }
     else if (check_arg(argv, i, "--py", "--python"))
     {
-      #ifdef HAVE_PYTHON
-	initial_mode = IShell_core::Mode_Python;
-      #else
-	std::cerr << "Python is not supported.\n";
-	exit_code = 1;
-	break;      
-      #endif      
+#ifdef HAVE_PYTHON
+      initial_mode = IShell_core::Mode_Python;
+#else
+      std::cerr << "Python is not supported.\n";
+      exit_code = 1;
+      break;
+#endif
     }
     else if (check_arg(argv, i, NULL, "--sqlc"))
     {
@@ -312,5 +312,5 @@ void Shell_command_line_options::configure_connection_string(const std::string &
   }
 
   // If needed we construct the URi from the individual parameters
-  build_connection_string(uri, uri_protocol, uri_user, uri_password, uri_host, port, uri_database, prompt_pwd, uri_ssl_ca, uri_ssl_cert, uri_ssl_key);
+  build_connection_string(uri, uri_protocol, uri_user, uri_password, uri_host, uri_port, uri_database, prompt_pwd, uri_ssl_ca, uri_ssl_cert, uri_ssl_key);
 }
