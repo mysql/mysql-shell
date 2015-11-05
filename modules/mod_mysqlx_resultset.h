@@ -49,8 +49,11 @@ namespace mysh
       virtual void append_json(shcore::JSON_dumper& dumper) const;
 
       // The execution time is not available at the moment of creating the resultset
-      void set_execution_time(unsigned long execution_time){_execution_time = execution_time;}
+      void set_execution_time(unsigned long execution_time){ _execution_time = execution_time; }
 
+      // C++ Interface
+      std::string get_execution_time() const;
+      uint64_t get_warning_count() const;
 #ifdef DOXYGEN
       Integer warningCount; //!< Same as getwarningCount()
       List warnings; //!< Same as getWarnings()
@@ -95,6 +98,10 @@ namespace mysh
       // Properly set the value
       void set_last_document_id(const std::string& id){ _last_document_id = id; }
 
+      // C++ Interface
+      int64_t get_affected_item_count() const;
+      int64_t get_last_insert_id() const;
+      std::string get_last_document_id() const;
     private:
       std::string _last_document_id;
 
@@ -134,7 +141,7 @@ namespace mysh
     /**
     * Allows traversing the Row objects returned by a Table.select operation.
     */
-    class RowResult : public BaseResult, public boost::enable_shared_from_this < RowResult >
+    class SHCORE_PUBLIC RowResult : public BaseResult, public boost::enable_shared_from_this < RowResult >
     {
     public:
       RowResult(boost::shared_ptr< ::mysqlx::Result> result);
@@ -149,6 +156,14 @@ namespace mysh
 
       virtual std::string class_name() const { return "RowResult"; }
       virtual void append_json(shcore::JSON_dumper& dumper) const;
+
+      // C++ Interface
+      int64_t get_column_count() const;
+      std::vector<std::string> get_column_names() const;
+      shcore::Value::Array_type_ref get_columns() const;
+
+    private:
+      mutable shcore::Value::Array_type_ref _columns;
 
 #ifdef DOXYGEN
       Row fetchOne();
@@ -183,6 +198,14 @@ namespace mysh
       shcore::Value has_data(const shcore::Argument_list &args) const;
       virtual shcore::Value next_data_set(const shcore::Argument_list &args);
       virtual void append_json(shcore::JSON_dumper& dumper) const;
+
+      // C++ Interface
+      int64_t get_affected_row_count() const;
+      int64_t get_last_insert_id() const;
+      bool hasData();
+
+      // TODO: Enable it once the way to have a reference to the unmanaged object is found
+      //bool nextDataSet() const;
 
 #ifdef DOXYGEN
       Integer lastInsertId; //!< Same as getLastInsertId()

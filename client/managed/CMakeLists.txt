@@ -18,6 +18,8 @@
 # ----------------------------------------------------------------------
 
 file(GLOB lib_SRC
+      "managed_mysqlx_result.h"
+      "managed_mysqlx_result.cpp"
       "managed_shell_client.h"
       "managed_shell_client.cpp"
       "${CMAKE_SOURCE_DIR}/src/boost_code.cc"
@@ -30,6 +32,7 @@ add_definitions(-DBOOST_ALL_NO_LIB)
 
 
 include_directories("${CMAKE_SOURCE_DIR}/client")
+include_directories("${CMAKE_SOURCE_DIR}/modules")
 
 add_dependencies(ShellClient shell_client)
 

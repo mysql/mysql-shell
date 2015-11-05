@@ -23,6 +23,7 @@
 
 #include <boost/shared_ptr.hpp>
 #include "modules/base_resultset.h"
+#include "modules/mod_mysqlx_resultset.h"
 
 void print_tab_value(const shcore::Value& val)
 {
@@ -66,104 +67,88 @@ void print_doc_value(const shcore::Value& val)
   }
 }
 
-void print_table_result_set(Table_result_set* tbl)
+void print_base_result(const shcore::Value& value)
 {
-  // a table result set is an array of shcore::Value's each of them in turn is an array (vector) of shcore::Value's (escalars)
-  std::vector<Result_set_metadata> *metadata = tbl->get_metadata().get();
-  std::vector<shcore::Value> *dataset = tbl->get_data().get();
+  boost::shared_ptr<mysh::mysqlx::BaseResult> result = boost::static_pointer_cast<mysh::mysqlx::BaseResult>(value.as_object());
 
-  std::cout << std::endl;
-  for (int i = 0; i < metadata->size(); ++i)
-  {
-    std::cout << (*metadata)[i].get_name() << '\t';
-  }
-  std::cout << std::endl;
+  std::cout << "Execution Time: " << result->get_execution_time() << std::endl;
+  std::cout << "Warning Count: " << result->get_warning_count() << std::endl;
 
-  for (int i = 0; i < dataset->size(); ++i)
+  if (result->get_warning_count())
   {
-    shcore::Value& v_row = (*dataset)[i];
-    if (v_row.type == shcore::Object)
+    shcore::Value::Array_type_ref warnings = result->get_member("warnings").as_array();
+    for (size_t index = 0; index < warnings->size(); index++)
     {
-      // Object
-      boost::shared_ptr<mysh::Row> row = v_row.as_object<mysh::Row>();
-      for (size_t i = 0; i < metadata->size(); i++)
-      {
-        const shcore::Value& val = row->get_member(i);
-        print_tab_value(val);
-      }
+      boost::shared_ptr<mysh::Row> row = boost::static_pointer_cast<mysh::Row>(warnings->at(index).as_object());
+      std::cout << row->get_member("Level").as_string() << "(" << row->get_member("Code").descr(true) << "): " << row->get_member("Message").descr(true) << std::endl;
     }
-    else if (v_row.type == shcore::Map)
-    {
-      // Map
-      boost::shared_ptr<shcore::Value::Map_type> map = v_row.as_map();
+  }
+}
 
-      for (shcore::Value::Map_type::const_iterator it = map->begin(); it != map->end(); ++it)
-      {
-        const shcore::Value &val = it->second;
-        print_tab_value(val);
-      }
+void print_result(const shcore::Value& value)
+{
+  boost::shared_ptr<mysh::mysqlx::Result> result = boost::static_pointer_cast<mysh::mysqlx::Result>(value.as_object());
+
+  std::cout << "Affected Items: " << result->get_affected_item_count() << std::endl;
+  std::cout << "Last Insert Id: " << result->get_last_insert_id() << std::endl;
+  std::cout << "Last Document Id: " << result->get_last_document_id() << std::endl;
+
+  print_base_result(value);
+}
+
+void print_row_result(const shcore::Value& value)
+{
+  boost::shared_ptr<mysh::mysqlx::RowResult> result = boost::static_pointer_cast<mysh::mysqlx::RowResult>(value.as_object());
+
+  // a table result set is an array of shcore::Value's each of them in turn is an array (vector) of shcore::Value's (escalars)
+  std::vector<std::string> columns = result->get_column_names();
+
+  std::cout << std::endl;
+  for (int i = 0; i < columns.size(); ++i)
+    std::cout << columns[i] << '\t';
+  std::cout << std::endl;
+
+  shcore::Argument_list args;
+  shcore::Value raw_record;
+
+  while (raw_record = result->fetch_one(args))
+  {
+    boost::shared_ptr<mysh::Row> record = boost::static_pointer_cast<mysh::Row>(raw_record.as_object());
+
+    for (size_t i = 0; i < columns.size(); i++)
+    {
+      const shcore::Value& val = record->get_member(i);
+      print_tab_value(val);
     }
     std::cout << std::endl;
   }
-  std::cout << std::endl << std::endl;
-  std::cout << "warning count: " << tbl->get_warning_count() << std::endl;
-  std::cout << "affected rows: " << tbl->get_affected_rows() << std::endl;
-  std::cout << "execution time: " << tbl->get_execution_time() << std::endl;
-  std::cout << std::endl << std::endl;
+
+  print_base_result(value);
 }
 
-void print_doc_result_set(Document_result_set *doc)
+void print_sql_result(const shcore::Value& value)
 {
-  boost::shared_ptr<std::vector<shcore::Value> > data = doc->get_data();
-  std::vector<shcore::Value>::const_iterator myend = data->end();
-  // a document is an array of objects of type mysh::Row
-  int i = 0;
-  std::cout << "{";
-  for (std::vector<shcore::Value>::const_iterator it = data->begin(); it != myend; ++it)
+  boost::shared_ptr<mysh::mysqlx::SqlResult> result = boost::static_pointer_cast<mysh::mysqlx::SqlResult>(value.as_object());
+
+  if (result->has_data(shcore::Argument_list()))
+    print_row_result(value);
+
+  std::cout << "Affected Rows: " << result->get_affected_row_count() << std::endl;
+  std::cout << "Last Insert Id: " << result->get_last_insert_id() << std::endl;
+}
+
+void print_doc_result(const shcore::Value& value)
+{
+  boost::shared_ptr<mysh::mysqlx::DocResult> result = boost::static_pointer_cast<mysh::mysqlx::DocResult>(value.as_object());
+
+  shcore::Value document;
+  shcore::Argument_list args;
+  while (document = result->fetch_one(args))
   {
-    if (i++ != 0)
-      std::cout << ",\n";
-    if (it->type == shcore::String)
-    {
-      std::cout << "\"" << it->as_string() << "\"";
-      continue;
-    }
-    if (it->type == shcore::Map)
-    {
-      boost::shared_ptr<shcore::Value::Map_type> map = it->as_map();
-      std::cout << "[" << std::endl;
-      size_t index = 0, size = map->size();
-      for (shcore::Value::Map_type::const_iterator it = map->begin(); it != map->end(); ++it)
-      {
-        std::cout << "\t\"" << it->first << " : ";
-        const shcore::Value& val = it->second;
-        print_doc_value(val);
-        if (index++ >= size)
-          std::cout << std::endl;
-        else
-          std::cout << "," << std::endl;
-      }
-      std::cout << "]";
-    }
-    else
-    {
-      boost::shared_ptr<mysh::Row> row = it->as_object<mysh::Row>();
-      row->values.size();
-      std::cout << "[" << std::endl;
-      for (size_t index = 0; index < row->value_iterators.size(); index++)
-      {
-        std::cout << "\t\"" << row->value_iterators[index]->first << " : ";
-        shcore::Value& val = row->value_iterators[index]->second;
-        print_doc_value(val);
-        if (index >= row->value_iterators.size())
-          std::cout << std::endl;
-        else
-          std::cout << "," << std::endl;
-      }
-      std::cout << "]";
-    }
+    std::cout << document.json(true) << std::endl;
   }
-  std::cout << "}" << std::endl;
+
+  print_base_result(value);
 }
 
 std::string get_query_from_prompt(const std::string prompt)
@@ -204,7 +189,7 @@ int main(int argc, char* argv[])
   std::string input;
   while (!(input = get_query_from_prompt(prompt)).empty())
   {
-    boost::shared_ptr<Result_set> result;
+    shcore::Value result;
     if (input == "\\quit") break;
     else if (input == "\\sql")
     {
@@ -229,23 +214,23 @@ int main(int argc, char* argv[])
       //result.reset(NULL);
       result = shell.execute(input);
     }
-    Result_set* res = result.get();
-    Table_result_set* tbl = dynamic_cast<Table_result_set*>(res);
-    Document_result_set* doc = dynamic_cast<Document_result_set*>(res);
 
-    if (tbl != NULL)
+    if (result.type == shcore::Object)
     {
-      print_table_result_set(tbl);
-    }
-    else if (doc != NULL)
-    {
-      print_doc_result_set(doc);
+      std::string class_name = result.as_object()->class_name();
+      if (class_name == "Result")
+        print_result(result);
+      else if (class_name == "DocResult")
+        print_doc_result(result);
+      else if (class_name == "RowResult")
+        print_row_result(result);
+      else if (class_name == "SqlResult")
+        print_sql_result(result);
+      else
+        std::cout << result.descr(true) << std::endl;
     }
     else
-    {
-      // Empty result...
-      empty_result = true;
-    }
+      std::cout << result.descr(true) << std::endl;
   }
   return 0;
 }

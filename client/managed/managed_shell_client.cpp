@@ -26,6 +26,7 @@
 
 #include "shellcore/ishell_core.h"
 #include "managed_shell_client.h"
+#include "managed_mysqlx_result.h"
 #include "modules/base_resultset.h"
 
 using namespace MySqlX::Shell;
@@ -90,161 +91,30 @@ void ShellClient::SwitchMode(Mode^ mode)
   _obj->switch_mode(n_mode);
 }
 
-Object^ ShellClient::wrap_value(const shcore::Value& val)
+Object^ ShellClient::Execute(String^ query)
 {
-  Object^ o;
-  switch (val.type)
-  {
-    case shcore::Integer:
-      o = gcnew Int32(val.as_int());
-      break;
-    case shcore::String:
-      o = msclr::interop::marshal_as<String^>(val.as_string());
-      break;
-    case shcore::Bool:
-      o = gcnew Boolean(val.as_bool());
-      break;
-    case shcore::Float:
-      o = gcnew Double(val.as_double());
-      break;
-    default:
-      o = msclr::interop::marshal_as<String^>(val.descr());
-  }
-  return o;
-}
-
-List<Dictionary<String^, Object^>^>^ ShellClient::get_managed_doc_result(Document_result_set *doc)
-{
-  List<Dictionary<String^, Object^>^>^ result = gcnew List<Dictionary<String^, Object^>^>();
-  boost::shared_ptr<std::vector<shcore::Value> > data = doc->get_data();
-  std::vector<shcore::Value>::const_iterator myend = data->end();
-  // a document is an array of objects of type mysh::Row
-  int i = 0;
-  for (std::vector<shcore::Value>::const_iterator it = data->begin(); it != myend; ++it, ++i)
-  {
-    Dictionary<String^, Object^>^ dic = gcnew Dictionary<String^, Object^>();
-    if (it->type == shcore::String)
-    {
-      dic->Add((gcnew Int32(i))->ToString(), msclr::interop::marshal_as<String^>(it->as_string()));
-    }
-    else if (it->type == shcore::Map)
-    {
-      boost::shared_ptr<shcore::Value::Map_type> map = it->as_map();
-      size_t index = 0, size = map->size();
-      for (shcore::Value::Map_type::const_iterator it = map->begin(); it != map->end(); ++it)
-      {
-        Object^ o = wrap_value(it->second);
-        dic->Add(msclr::interop::marshal_as<String^>(it->first), o);
-      }
-    }
-    else
-    {
-      boost::shared_ptr<mysh::Row> row = it->as_object<mysh::Row>();
-      for (size_t idx = 0; idx < row->value_iterators.size(); idx++)
-      {
-        shcore::Value& val = row->value_iterators[idx]->second;
-        Object^ o = wrap_value(val);
-        dic->Add(msclr::interop::marshal_as<String^>(row->value_iterators[idx]->first), o);
-      }
-    }
-    result->Add(dic);
-  }
-  return result;
-}
-
-List<array<Object^>^>^ ShellClient::get_managed_table_result_set(Table_result_set* tbl)
-{
-  // a table result set is an array of shcore::Value's each of them in turn is an array (vector) of shcore::Value's (escalars)
-  List<array<Object^>^>^ result = gcnew List<array<Object^>^>();
-  std::vector<Result_set_metadata> *metadata = tbl->get_metadata().get();
-  std::vector<shcore::Value> *dataset = tbl->get_data().get();
-
-  for (int i = 0; i < dataset->size(); ++i)
-  {
-    shcore::Value& v_row = (*dataset)[i];
-    if (v_row.type == shcore::Object)
-    {
-      boost::shared_ptr<mysh::Row> row = v_row.as_object<mysh::Row>();
-      array<Object^>^ arr = gcnew array<Object^>(metadata->size());
-      for (size_t i = 0; i < metadata->size(); i++)
-      {
-        shcore::Value& val = row->value_iterators[i]->second;
-        Object^ o = wrap_value(val);
-        arr->SetValue(o, (int)i);
-      }
-      result->Add(arr);
-    }
-    else if (v_row.type == shcore::Map)
-    {
-      // Map
-      array<Object^>^ arr = gcnew array<Object^>(metadata->size());
-      boost::shared_ptr<shcore::Value::Map_type> map = v_row.as_map();
-      size_t i = 0;
-      for (shcore::Value::Map_type::const_iterator it = map->begin(); it != map->end(); ++it, ++i)
-      {
-        const shcore::Value &val = it->second;
-        Object^ o = wrap_value(val);
-        arr->SetValue(o, (int)i);
-      }
-      result->Add(arr);
-    }
-  }
-  return result;
-}
-
-List<ResultSetMetadata^>^ ShellClient::get_managed_metadata(Table_result_set* tbl)
-{
-  List<ResultSetMetadata^>^ result = gcnew List<ResultSetMetadata^>();
-  std::vector<Result_set_metadata>* m = tbl->get_metadata().get();
-  std::vector<Result_set_metadata>::const_iterator myend = m->end();
-  for (std::vector<Result_set_metadata>::const_iterator it = m->begin(); it != myend; ++it)
-  {
-    ResultSetMetadata^ m_meta = gcnew ResultSetMetadata(
-      msclr::interop::marshal_as<String ^>(it->get_catalog()),
-      msclr::interop::marshal_as<String ^>(it->get_db()),
-      msclr::interop::marshal_as<String ^>(it->get_table()),
-      msclr::interop::marshal_as<String ^>(it->get_orig_table()),
-      msclr::interop::marshal_as<String ^>(it->get_name()),
-      msclr::interop::marshal_as<String ^>(it->get_orig_name()),
-      gcnew Int32(it->get_charset()),
-      gcnew Int32(it->get_length()),
-      gcnew Int32(it->get_type()),
-      gcnew Int32(it->get_flags()),
-      gcnew Int32(it->get_decimal())
-      );
-    result->Add(m_meta);
-  }
-
-  return result;
-}
-
-ResultSet^ ShellClient::Execute(String^ query)
-{
+  Object^ ret_val;
   std::string n_query = msclr::interop::marshal_as<std::string>(query);
-  boost::shared_ptr<Result_set> n_result = _obj->execute(n_query);
+  shcore::Value n_result = _obj->execute(n_query);
 
-  Table_result_set* tbl = dynamic_cast<Table_result_set*>(n_result.get());
-  Document_result_set* doc = dynamic_cast<Document_result_set*>(n_result.get());
-
-  if (tbl != NULL)
+  if (n_result.type == shcore::Object)
   {
-    List<array<Object^>^>^ data = get_managed_table_result_set(tbl);
-    List<ResultSetMetadata^>^ meta = get_managed_metadata(tbl);
-
-    TableResultSet^ table = gcnew TableResultSet(data, meta, gcnew Int64(tbl->get_affected_rows()), gcnew Int32(tbl->get_warning_count()), msclr::interop::marshal_as<String^>(tbl->get_execution_time()));
-    return table;
-  }
-  else if (doc != NULL)
-  {
-    List<Dictionary<String^, Object^>^>^ data = get_managed_doc_result(doc);
-    DocumentResultSet^ doc_rs = gcnew DocumentResultSet(data, gcnew Int64(-1), gcnew Int32(-1), "");
-    return doc_rs;
+    std::string class_name = n_result.as_object()->class_name();
+    if (class_name == "Result")
+      ret_val = gcnew Result(boost::static_pointer_cast<mysh::mysqlx::Result>(n_result.as_object()));
+    else if (class_name == "DocResult")
+      ret_val = gcnew DocResult(boost::static_pointer_cast<mysh::mysqlx::DocResult>(n_result.as_object()));
+    else if (class_name == "RowResult")
+      ret_val = gcnew RowResult(boost::static_pointer_cast<mysh::mysqlx::RowResult>(n_result.as_object()));
+    else if (class_name == "SqlResult")
+      ret_val = gcnew SqlResult(boost::static_pointer_cast<mysh::mysqlx::SqlResult>(n_result.as_object()));
+    else
+      ret_val = msclr::interop::marshal_as<String^>(n_result.descr(true));
   }
   else
-  {
-    ResultSet^ result = gcnew ResultSet(gcnew Int64(-1), gcnew Int32(-1), "");
-    return result;
-  }
+    ret_val = msclr::interop::marshal_as<String^>(n_result.descr(true));
+
+  return ret_val;
 }
 
 ShellClient::!ShellClient()

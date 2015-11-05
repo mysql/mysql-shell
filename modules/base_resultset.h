@@ -39,6 +39,47 @@ namespace mysh
     shcore::Value get_member_method(const shcore::Argument_list &args, const std::string& method, const std::string& prop);
   };
 
+  class SHCORE_PUBLIC Column : public shcore::Cpp_object_bridge
+  {
+  public:
+    Column(const std::string& catalog, const std::string& schema, const std::string& table, const std::string& org_table, const std::string& name,
+           const std::string& org_name, uint64_t collation, uint64_t length, uint64_t type, uint64_t flags, uint64_t max_length, bool _numeric);
+
+    virtual bool operator == (const Object_bridge &other) const;
+    virtual std::string class_name() const { return "Column"; }
+    shcore::Value get_member_method(const shcore::Argument_list &args, const std::string& method, const std::string& prop);
+
+    virtual std::vector<std::string> get_members() const;
+    virtual shcore::Value get_member(const std::string &prop) const;
+
+    std::string get_catalog(){ return _catalog; }
+    std::string get_schema(){ return _schema; }
+    std::string get_table_name(){ return _table; }
+    std::string get_original_table_name(){ return _org_table; }
+    std::string get_name(){ return _name; }
+    std::string get_original_name(){ return _org_name; }
+    uint64_t get_collation(){ return _collation; }
+    uint64_t get_length(){ return _length; }
+    uint64_t get_type(){ return _type; }
+    uint64_t get_flags(){ return _flags; }
+    uint64_t get_max_length(){ return _max_length; }
+    bool is_numeric(){ return _numeric; }
+
+  private:
+    std::string _catalog;
+    std::string _schema;
+    std::string _table;
+    std::string _org_table;
+    std::string _name;
+    std::string _org_name;
+    uint64_t _collation;
+    uint64_t _length;
+    uint64_t _type;
+    uint64_t _flags;
+    uint64_t _max_length;
+    bool _numeric;
+  };
+
   class SHCORE_PUBLIC Row : public shcore::Cpp_object_bridge
   {
   public:
@@ -66,6 +107,7 @@ namespace mysh
     virtual shcore::Value get_member(const std::string &prop) const;
     shcore::Value get_member(size_t index) const;
 
+    size_t get_length() { return values.size(); }
     virtual bool is_indexed() const { return true; }
 
     void add_item(const std::string &key, shcore::Value value);

@@ -71,7 +71,7 @@ namespace MySqlX
 
       void MakeConnection(String ^connstr);
       void SwitchMode(Mode^ mode);
-      ResultSet^ Execute(String^ query);
+      Object^ Execute(String^ query);
 
       !ShellClient();
       ~ShellClient();
@@ -84,93 +84,6 @@ namespace MySqlX
 
     private:
       ManagedShellClient* _obj;
-      Object^ wrap_value(const shcore::Value& val);
-      List<Dictionary<String^, Object^>^>^ get_managed_doc_result(Document_result_set *doc);
-      List<array<Object^>^>^ get_managed_table_result_set(Table_result_set* tbl);
-      List<ResultSetMetadata^>^ get_managed_metadata(Table_result_set* tbl);
-    };
-
-    public ref class ResultSetMetadata
-    {
-    public:
-      ResultSetMetadata(String^ catalog, String^ db, String^ table, String^ orig_table, String^ name, String^ orig_name,
-        Int32^ charset, Int32^ length, Int32^ type, Int32^ flags, Int32^ decimal) : _catalog(catalog), _db(db), _table(table), _orig_table(orig_table), _name(name), _orig_name(orig_name),
-        _charset(charset), _length(length), _type(type), _flags(flags), _decimal(decimal) { }
-
-      !ResultSetMetadata() { }
-      ~ResultSetMetadata() { }
-
-      String^ GetCatalog() { return _catalog; }
-      String^ GetDb() { return _db; }
-      String^ GetTable() { return _table; }
-      String^ GetOrigTable() { return _orig_table; }
-      String^ GetName() { return _name; }
-      String^ GetOrigName() { return _orig_name; }
-      Int32^ GetCharset() { return _charset; }
-      Int32^ GetLength() { return _length; }
-      Int32^ GetType() { return _type; }
-      Int32^ GetFlags() { return _flags; }
-      Int32^ GetDecimal() { return _decimal; }
-    private:
-      String^ _catalog;
-      String^ _db;
-      String^ _table;
-      String^ _orig_table;
-      String^ _name;
-      String^ _orig_name;
-      Int32^ _charset;
-      Int32^ _length;
-      /* This is the enum enum_field_types from mysql_com.h  */
-      Int32^ _type;
-      Int32^ _flags;
-      Int32^ _decimal;
-    };
-
-    public ref class ResultSet
-    {
-    public:
-      ResultSet(Int64^ affected_rows, Int32^ warning_count, String^ execution_time) : _affected_rows(affected_rows), _warning_count(warning_count),
-        _execution_time(execution_time)
-      {}
-      !ResultSet() { }
-      virtual ~ResultSet() { }
-      Int64^ GetAffectedRows() { return _affected_rows; }
-      Int32^ GetWarningCount() { return _warning_count; }
-      String^ GetExecutionTime() { return _execution_time; }
-    protected:
-      Int64^ _affected_rows;
-      Int32^ _warning_count;
-      String^ _execution_time;
-    };
-
-    public ref class TableResultSet : public ResultSet
-    {
-    public:
-      TableResultSet(List<array<Object^>^>^ data, List<ResultSetMetadata^>^ metadata,
-        Int64^ affected_rows, Int32^ warning_count, String^ execution_time) : ResultSet(affected_rows, warning_count, execution_time), _metadata(metadata), _data(data)
-      {
-      }
-      List<ResultSetMetadata^>^ GetMetadata() { return _metadata; }
-      List<array<Object^>^>^ GetData() { return _data; }
-      !TableResultSet() { }
-      virtual ~TableResultSet() { }
-    protected:
-      List<ResultSetMetadata^>^ _metadata;
-      List<array<Object^>^>^ _data;
-    };
-
-    public ref class DocumentResultSet : public ResultSet
-    {
-    public:
-      DocumentResultSet(List<Dictionary<String^, Object^>^>^ data, Int64^ affected_rows, Int32^ warning_count, String^ execution_time) :
-        ResultSet(affected_rows, warning_count, execution_time), _data(data)
-      {
-      }
-      !DocumentResultSet() { }
-      virtual ~DocumentResultSet() { }
-      List<Dictionary<String^, Object^>^>^ GetData() { return _data; }
-    protected:
-      List<Dictionary<String^, Object^>^>^ _data;
     };
   };
 };

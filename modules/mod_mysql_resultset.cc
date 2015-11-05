@@ -32,7 +32,7 @@ using namespace shcore;
 using namespace mysh::mysql;
 
 ClassicResult::ClassicResult(boost::shared_ptr<Result> result)
-: _result(result)
+  : _result(result)
 {
   add_method("fetchOne", boost::bind(&ClassicResult::fetch_one, this, _1), "nothing", shcore::String, NULL);
   add_method("fetchAll", boost::bind(&ClassicResult::fetch_all, this, _1), "nothing", shcore::String, NULL);
@@ -285,26 +285,22 @@ shcore::Value ClassicResult::get_member(const std::string &prop) const
 
     for (int i = 0; i < num_fields; i++)
     {
-      boost::shared_ptr<shcore::Value::Map_type> map(new shcore::Value::Map_type);
+      bool numeric = IS_NUM(metadata[i].type());
+      boost::shared_ptr<mysh::Column> column(new mysh::Column(
+        metadata[i].catalog(),
+        metadata[i].db(),
+        metadata[i].table(),
+        metadata[i].org_table(),
+        metadata[i].name(),
+        metadata[i].org_name(),
+        metadata[i].charset(),
+        metadata[i].length(),
+        metadata[i].type(),
+        metadata[i].flags(),
+        metadata[i].max_length(),
+        numeric));
 
-      (*map)["catalog"] = shcore::Value(metadata[i].catalog());
-      (*map)["db"] = shcore::Value(metadata[i].db());
-      (*map)["table"] = shcore::Value(metadata[i].table());
-      (*map)["org_table"] = shcore::Value(metadata[i].org_table());
-      (*map)["name"] = shcore::Value(metadata[i].name());
-      (*map)["org_name"] = shcore::Value(metadata[i].org_name());
-      (*map)["charset"] = shcore::Value(int(metadata[i].charset()));
-      (*map)["length"] = shcore::Value(int(metadata[i].length()));
-      (*map)["type"] = shcore::Value(int(metadata[i].type()));
-      (*map)["flags"] = shcore::Value(int(metadata[i].flags()));
-      (*map)["decimal"] = shcore::Value(int(metadata[i].decimals()));
-      (*map)["max_length"] = shcore::Value(int(metadata[i].max_length()));
-      (*map)["name_length"] = shcore::Value(int(metadata[i].name_length()));
-
-      // Temporal hack to identify numeric values
-      (*map)["is_numeric"] = shcore::Value(IS_NUM(metadata[i].type()));
-
-      array->push_back(shcore::Value(map));
+      array->push_back(shcore::Value(boost::static_pointer_cast<Object_bridge>(column)));
     }
 
     return shcore::Value(array);
