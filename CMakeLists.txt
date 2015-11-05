@@ -346,6 +346,13 @@ if(WIN32)
     ENDIF()
 
   ENDIF()
+
+  # Copies the mysqlsh dll to the binary location to enable running the UTs
+  if(WINDOWS_RUNTIME_MD)
+    add_custom_command(TARGET mysqlx PRE_BUILD
+                        COMMAND ${CMAKE_COMMAND} -E copy
+                        $<TARGET_FILE:mysqlsh> $<TARGET_FILE_DIR:mysqlx>)
+  endif()
 endif()
 
 # Installation instructions
