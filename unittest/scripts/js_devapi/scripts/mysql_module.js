@@ -21,7 +21,7 @@ mySession = mysql.getClassicSession(__uripwd);
 
 print(mySession, '\n');
 
-if (mySession.uri == __uri)
+if (mySession.uri == __displayuri)
 	print('Session using right URI\n');
 else
 	print('Session using wrong URI\n');
@@ -33,7 +33,7 @@ mySession = mysql.getClassicSession(__uri, __pwd);
 
 print(mySession, '\n');
 
-if (mySession.uri == __uri)
+if (mySession.uri == __displayuri)
 	print('Session using right URI\n');
 else
 	print('Session using wrong URI\n');	
@@ -52,8 +52,10 @@ var data = { host: __host,
 mySession = mysql.getClassicSession(data);
 
 print(mySession, '\n');
+print(mySession.uri, '\n');
+print(__displayuridb, '\n');
 
-if (mySession.uri == __uri)
+if (mySession.uri == __displayuridb)
 	print('Session using right URI\n');
 else
 	print('Session using wrong URI\n');	
@@ -71,7 +73,7 @@ mySession = mysql.getClassicSession(data, __pwd);
 
 print(mySession, '\n');
 
-if (mySession.uri == __uri)
+if (mySession.uri == __displayuridb)
 	print('Session using right URI\n');
 else
 	print('Session using wrong URI\n');	
@@ -85,7 +87,7 @@ mySession = mysql.getClassicSession(shell.storedSessions.mysql_data, __pwd);
 
 print(mySession, '\n');
 
-if (mySession.uri == __uri)
+if (mySession.uri == __displayuridb)
 	print('Session using right URI\n');
 else
 	print('Session using wrong URI\n');	
@@ -104,7 +106,7 @@ mySession = mysql.getClassicSession(shell.storedSessions.mysql_uri);
 
 print(mySession, '\n');
 
-if (mySession.uri == __uri)
+if (mySession.uri == __displayuri)
 	print('Session using right URI\n');
 else
 	print('Session using wrong URI\n');	

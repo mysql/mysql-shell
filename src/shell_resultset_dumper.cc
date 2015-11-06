@@ -226,8 +226,8 @@ void ResultsetDumper::dump_tabbed(shcore::Value::Array_type_ref records)
   // TODO: Consider the charset information on the length calculations
   for (index = 0; index < field_count; index++)
   {
-    std::string data = (*(*metadata)[index].as_map())["name"].as_string();
-    shcore::print(data);
+    boost::shared_ptr<mysh::Column> column = boost::static_pointer_cast<mysh::Column>(metadata->at(index).as_object());
+    shcore::print(column->get_name());
     shcore::print(index < (field_count - 1) ? "\t" : "\n");
   }
 
@@ -248,44 +248,48 @@ void ResultsetDumper::dump_tabbed(shcore::Value::Array_type_ref records)
 void ResultsetDumper::dump_table(shcore::Value::Array_type_ref records)
 {
   boost::shared_ptr<shcore::Value::Array_type> metadata = _resultset->get_member("columns").as_array();
+  std::vector<uint64_t> max_lengths;
+  std::vector<std::string> column_names;
+  std::vector<bool> numerics;
+
+  size_t field_count = metadata->size();
 
   // Updates the metadata max_length field with the maximum length of the field values
   size_t row_index;
   for (row_index = 0; row_index < records->size(); row_index++)
   {
     boost::shared_ptr<mysh::Row> row = (*records)[row_index].as_object<mysh::Row>();
-    for (size_t field_index = 0; field_index < metadata->size(); field_index++)
+    for (size_t field_index = 0; field_index < field_count; field_index++)
     {
+      boost::shared_ptr<mysh::Column> column = boost::static_pointer_cast<mysh::Column>(metadata->at(field_index).as_object());
+
       uint64_t field_length = row->get_member(field_index).repr().length();
 
-      if (field_length >(*(*metadata)[field_index].as_map())["max_length"].as_uint())
-      (*(*metadata)[field_index].as_map())["max_length"] = Value(field_length);
+      max_lengths.push_back(std::max<uint64_t>(field_length, column->get_max_length()));
+      max_lengths[field_index] = std::max<uint64_t>(max_lengths[field_index], column->get_name().length());
+      max_lengths[field_index] = std::max<uint64_t>(max_lengths[field_index], MIN_COLUMN_LENGTH);
+
+      column_names.push_back(column->get_name());
+      numerics.push_back(column->is_numeric());
     }
   }
   //-----------
 
   size_t index = 0;
-  size_t field_count = metadata->size();
   std::vector<std::string> formats(field_count, "%-");
 
   // Calculates the max column widths and constructs the separator line.
   std::string separator("+");
   for (index = 0; index < field_count; index++)
   {
-    uint64_t max_field_length = 0;
-    max_field_length = std::max<uint64_t>((*(*metadata)[index].as_map())["max_length"].as_uint(), (*(*metadata)[index].as_map())["name_length"].as_uint());
-    max_field_length = std::max<uint64_t>(max_field_length, MIN_COLUMN_LENGTH);
-    (*(*metadata)[index].as_map())["max_length"] = Value(max_field_length);
-    //_metadata[index].max_length(max_field_length);
-
     // Creates the format string to print each field
-    formats[index].append(boost::lexical_cast<std::string>(max_field_length));
+    formats[index].append(boost::lexical_cast<std::string>(max_lengths[index]));
     if (index == field_count - 1)
     formats[index].append("s |");
     else
     formats[index].append("s | ");
 
-    std::string field_separator(max_field_length + 2, '-');
+    std::string field_separator(max_lengths[index] + 2, '-');
     field_separator.append("+");
     separator.append(field_separator);
   }
@@ -296,12 +300,12 @@ void ResultsetDumper::dump_table(shcore::Value::Array_type_ref records)
   shcore::print(separator + "| ");
   for (index = 0; index < field_count; index++)
   {
-    std::string data = (boost::format(formats[index]) % (*(*metadata)[index].as_map())["name"].as_string()).str();
+    std::string data = (boost::format(formats[index]) % column_names[index]).str();
     shcore::print(data);
 
     // Once the header is printed, updates the numeric fields formats
     // so they are right aligned
-    if ((*(*metadata)[index].as_map())["is_numeric"].as_bool())
+    if (numerics[index])
     formats[index] = formats[index].replace(1, 1, "");
   }
 
@@ -314,7 +318,7 @@ void ResultsetDumper::dump_table(shcore::Value::Array_type_ref records)
 
     boost::shared_ptr<mysh::Row> row = (*records)[row_index].as_object<mysh::Row>();
 
-    for (size_t field_index = 0; field_index < metadata->size(); field_index++)
+    for (size_t field_index = 0; field_index < field_count; field_index++)
     {
       std::string raw_value = row->get_member(field_index).descr();
       std::string data = (boost::format(formats[field_index]) % (raw_value)).str();

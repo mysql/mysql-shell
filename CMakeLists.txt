@@ -29,10 +29,9 @@ set(CMAKE_MODULE_PATH
 
 SET(MYSH_MAJOR 1)
 SET(MYSH_MINOR 0)
-SET(MYSH_PATCH 1)
-SET(MYSH_LEVEL "-alpha") # Empty if GA
+SET(MYSH_PATCH 2)
+SET(MYSH_LEVEL ".1") # Merge/Sprint Number (QA Tracking): Empty on Release
 
-SET(MYSH_SHORT_VERSION "${MYSH_MAJOR}.${MYSH_MINOR}.${MYSH_PATCH}.0")
 SET(MYSH_VERSION "${MYSH_MAJOR}.${MYSH_MINOR}.${MYSH_PATCH}${MYSH_LEVEL}")
 
 ###
@@ -288,7 +287,6 @@ set(mysh_SRC
 )
 
 add_definitions(-DMYSH_VERSION="${MYSH_VERSION}")
-add_definitions(-DMYSH_SHORT_VERSION="${MYSH_SHORT_VERSION}")
 
 # Shell wrapper for client applications
 add_subdirectory(client)
@@ -307,8 +305,11 @@ endif()
 target_link_libraries(mysqlx mysqlsh ${GCOV_LDFLAGS})
 
 install(TARGETS mysqlx RUNTIME COMPONENT main DESTINATION bin)
-install(DIRECTORY scripting/modules DESTINATION lib COMPONENT main)
-install(DIRECTORY scripting/modules DESTINATION lib COMPONENT dev)
+
+if (HAVE_V8)
+  install(DIRECTORY scripting/modules DESTINATION lib COMPONENT main)
+  install(DIRECTORY scripting/modules DESTINATION lib COMPONENT dev)
+endif()
 
 IF(CMAKE_BUILD_TYPE MATCHES Debug)
   # This is to copy the modules into the build directory to make them
@@ -345,15 +346,24 @@ if(WIN32)
     ENDIF()
 
   ENDIF()
+
+  # Copies the mysqlsh dll to the binary location to enable running the UTs
+  if(WINDOWS_RUNTIME_MD)
+    add_custom_command(TARGET mysqlx PRE_BUILD
+                        COMMAND ${CMAKE_COMMAND} -E copy
+                        $<TARGET_FILE:mysqlsh> $<TARGET_FILE_DIR:mysqlx>)
+  endif()
 endif()
 
 # Installation instructions
-install(FILES ${V8_LIBS} DESTINATION lib COMPONENT dev)
+if(HAVE_V8)
+  install(FILES ${V8_LIBS} DESTINATION lib COMPONENT dev)
+endif()
 install(DIRECTORY "${CMAKE_SOURCE_DIR}/utils/" DESTINATION "include/utils" COMPONENT dev FILES_MATCHING PATTERN "*.h" )
 install(DIRECTORY "${CMAKE_SOURCE_DIR}/common/logger" DESTINATION "include/common" COMPONENT dev FILES_MATCHING PATTERN "*.h" )
 install(DIRECTORY "${CMAKE_SOURCE_DIR}/ext/rapidjson/include/rapidjson" DESTINATION "include" COMPONENT dev FILES_MATCHING PATTERN "*.h" )
 
-if(WINDOWS_RUNTIME_MD)
+if(WINDOWS_RUNTIME_MD AND HAVE_V8)
   # for MD runtime we also need DLL, not just lib, but dll is on parent directory.
   set(V8_DLL ${V8_LIBS})
   string(REPLACE ".lib" ".dll" V8_DLL ${V8_DLL})

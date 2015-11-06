@@ -776,7 +776,7 @@ Message *Connection::recv_payload(const int mid, const std::size_t msglen)
       google::protobuf::TextFormat::Printer p;
       p.SetInitialIndentLevel(1);
       p.PrintToString(*ret_val, &out);
-      std::cout << "<<<< RECEIVE " << ret_val->GetDescriptor()->full_name() << " {\n" << out << "\n}\n";
+      std::cout << "<<<< RECEIVE " << ret_val->ByteSize() << " " << ret_val->GetDescriptor()->full_name() << " {\n" << out << "\n}\n";
     }
 
     if (!ret_val->IsInitialized())
@@ -879,6 +879,16 @@ boost::shared_ptr<Result> Session::executeStmt(const std::string &ns, const std:
   const std::vector<ArgumentValue> &args)
 {
   return m_connection->execute_stmt(ns, stmt, args);
+}
+
+void Session::close()
+{
+  if (m_connection)
+  {
+    m_connection->close();
+
+    m_connection.reset();
+  }
 }
 
 Document::Document()
@@ -1030,20 +1040,25 @@ int Result::get_message_id()
     return current_message_id;
   }
 
-  m_owner->push_local_notice_handler(boost::bind(&Result::handle_notice, this, _1, _2));
+  boost::shared_ptr<Connection>owner = m_owner.lock();
 
-  try
+  if (owner)
   {
-    current_message = m_owner->recv_next(current_message_id);
-  }
-  catch (...)
-  {
-    m_state = ReadError;
-    m_owner->pop_local_notice_handler();
-    throw;
+    owner->push_local_notice_handler(boost::bind(&Result::handle_notice, this, _1, _2));
+
+    try
+    {
+      current_message = owner->recv_next(current_message_id);
+    }
+    catch (...)
+    {
+      m_state = ReadError;
+      owner->pop_local_notice_handler();
+      throw;
+    }
   }
 
-  m_owner->pop_local_notice_handler();
+  owner->pop_local_notice_handler();
 
   // error messages that can be received in any state
   if (current_message_id == Mysqlx::ServerMessages::ERROR)

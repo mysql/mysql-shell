@@ -78,10 +78,10 @@ shcore::Value BaseResult::get_member(const std::string &prop) const
   Value ret_val;
 
   if (prop == "executionTime")
-    return shcore::Value(MySQL_timer::format_legacy(_execution_time, true));
+    return shcore::Value(get_execution_time());
 
   else if (prop == "warningCount")
-    ret_val = Value(uint64_t(_result->getWarnings().size()));
+    ret_val = Value(get_warning_count());
 
   else if (prop == "warnings")
   {
@@ -109,6 +109,16 @@ shcore::Value BaseResult::get_member(const std::string &prop) const
     ret_val = ShellBaseResult::get_member(prop);
 
   return ret_val;
+}
+
+std::string BaseResult::get_execution_time() const
+{
+  return MySQL_timer::format_legacy(_execution_time, true);
+}
+
+uint64_t BaseResult::get_warning_count() const
+{
+  return uint64_t(_result->getWarnings().size());
 }
 
 void BaseResult::append_json(shcore::JSON_dumper& dumper) const
@@ -180,19 +190,34 @@ shcore::Value Result::get_member(const std::string &prop) const
   Value ret_val;
 
   if (prop == "affectedItemCount")
-    ret_val = Value(_result->affectedRows());
+    ret_val = Value(get_affected_item_count());
 
   else if (prop == "lastInsertId")
-    ret_val = Value(_result->lastInsertId());
+    ret_val = Value(get_last_insert_id());
 
   // TODO: Implement returning the last document id
   else if (prop == "lastDocumentId")
-    ret_val = Value(_last_document_id);
+    ret_val = Value(get_last_document_id());
 
   else
     ret_val = BaseResult::get_member(prop);
 
   return ret_val;
+}
+
+int64_t Result::get_affected_item_count() const
+{
+  return _result->affectedRows();
+}
+
+int64_t Result::get_last_insert_id() const
+{
+  return _result->lastInsertId();
+}
+
+std::string Result::get_last_document_id() const
+{
+  return _last_document_id;
 }
 
 void Result::append_json(shcore::JSON_dumper& dumper) const
@@ -339,13 +364,7 @@ shcore::Value RowResult::get_member(const std::string &prop) const
 {
   Value ret_val;
   if (prop == "columnCount")
-  {
-    size_t count = 0;
-    if (_result->columnMetadata())
-      count = _result->columnMetadata()->size();
-
-    ret_val = shcore::Value((uint64_t)count);
-  }
+    ret_val = shcore::Value(get_column_count());
   else if (prop == "columnNames")
   {
     boost::shared_ptr<shcore::Value::Array_type> array(new shcore::Value::Array_type);
@@ -361,49 +380,72 @@ shcore::Value RowResult::get_member(const std::string &prop) const
     ret_val = shcore::Value(array);
   }
   else if (prop == "columns")
-  {
-    boost::shared_ptr<shcore::Value::Array_type> array(new shcore::Value::Array_type);
-
-    if (_result->columnMetadata())
-    {
-      size_t num_fields = _result->columnMetadata()->size();
-
-      for (size_t i = 0; i < num_fields; i++)
-      {
-        boost::shared_ptr<shcore::Value::Map_type> map(new shcore::Value::Map_type);
-
-        (*map)["catalog"] = shcore::Value(_result->columnMetadata()->at(i).catalog);
-        //(*map)["db"] = shcore::Value(_result->columnMetadata()->at(i).db);
-        (*map)["table"] = shcore::Value(_result->columnMetadata()->at(i).table);
-        (*map)["org_table"] = shcore::Value(_result->columnMetadata()->at(i).original_table);
-        (*map)["name"] = shcore::Value(_result->columnMetadata()->at(i).name);
-        (*map)["org_name"] = shcore::Value(_result->columnMetadata()->at(i).original_name);
-        (*map)["collation"] = shcore::Value(_result->columnMetadata()->at(i).collation);
-        (*map)["length"] = shcore::Value(int(_result->columnMetadata()->at(i).length));
-        (*map)["type"] = shcore::Value(int(_result->columnMetadata()->at(i).type)); // TODO: Translate to MySQL Type
-        (*map)["flags"] = shcore::Value(int(_result->columnMetadata()->at(i).flags));
-        (*map)["decimal"] = shcore::Value(int(_result->columnMetadata()->at(i).fractional_digits)); // TODO: decimals??
-        (*map)["max_length"] = shcore::Value(0);
-        (*map)["name_length"] = shcore::Value(int(_result->columnMetadata()->at(i).name.length()));
-
-        // Temporal hack to identify numeric values
-        ::mysqlx::FieldType type = _result->columnMetadata()->at(i).type;
-        (*map)["is_numeric"] = shcore::Value(type == ::mysqlx::SINT ||
-                                             type == ::mysqlx::UINT ||
-                                             type == ::mysqlx::DOUBLE ||
-                                             type == ::mysqlx::FLOAT ||
-                                             type == ::mysqlx::DECIMAL);
-
-        array->push_back(shcore::Value(map));
-      }
-    }
-
-    ret_val = shcore::Value(array);
-  }
+    ret_val = shcore::Value(get_columns());
   else
     ret_val = BaseResult::get_member(prop);
 
   return ret_val;
+}
+
+int64_t RowResult::get_column_count() const
+{
+  size_t count = 0;
+  if (_result->columnMetadata())
+    count = _result->columnMetadata()->size();
+
+  return uint64_t(count);
+}
+
+std::vector<std::string> RowResult::get_column_names() const
+{
+  std::vector<std::string> ret_val;
+
+  if (_result->columnMetadata())
+  {
+    size_t num_fields = _result->columnMetadata()->size();
+
+    for (size_t i = 0; i < num_fields; i++)
+      ret_val.push_back(_result->columnMetadata()->at(i).name);
+  }
+
+  return ret_val;
+}
+
+shcore::Value::Array_type_ref RowResult::get_columns() const
+{
+  if (!_columns)
+  {
+    _columns.reset(new shcore::Value::Array_type);
+
+    size_t num_fields = _result->columnMetadata()->size();
+    for (size_t i = 0; i < num_fields; i++)
+    {
+      ::mysqlx::FieldType type = _result->columnMetadata()->at(i).type;
+      bool numeric = type == ::mysqlx::SINT ||
+        type == ::mysqlx::UINT ||
+        type == ::mysqlx::DOUBLE ||
+        type == ::mysqlx::FLOAT ||
+        type == ::mysqlx::DECIMAL;
+
+      boost::shared_ptr<mysh::Column> column(new mysh::Column(
+        _result->columnMetadata()->at(i).catalog,
+        _result->columnMetadata()->at(i).schema,
+        _result->columnMetadata()->at(i).table,
+        _result->columnMetadata()->at(i).original_table,
+        _result->columnMetadata()->at(i).name,
+        _result->columnMetadata()->at(i).original_name,
+        _result->columnMetadata()->at(i).collation,
+        _result->columnMetadata()->at(i).length,
+        _result->columnMetadata()->at(i).type, // TODO: Translate to MySQL Type
+        _result->columnMetadata()->at(i).flags,
+        0,
+        numeric));
+
+      _columns->push_back(shcore::Value(boost::static_pointer_cast<Object_bridge>(column)));
+    }
+  }
+
+  return _columns;
 }
 
 #ifdef DOXYGEN
@@ -460,10 +502,10 @@ shcore::Value RowResult::fetch_one(const shcore::Argument_list &args) const
               break;
             case ::mysqlx::DATETIME:
             {
-                                     ::mysqlx::DateTime date = row->dateTimeField(index);
-                                     boost::shared_ptr<shcore::Date> shell_date(new shcore::Date(date.year(), date.month(), date.day(), date.hour(), date.minutes(), date.seconds()));
-                                     field_value = Value(boost::static_pointer_cast<Object_bridge>(shell_date));
-                                     break;
+              ::mysqlx::DateTime date = row->dateTimeField(index);
+              boost::shared_ptr<shcore::Date> shell_date(new shcore::Date(date.year(), date.month(), date.day(), date.hour(), date.minutes(), date.seconds()));
+              field_value = Value(boost::static_pointer_cast<Object_bridge>(shell_date));
+              break;
             }
             case ::mysqlx::ENUM:
               field_value = Value(row->enumField(index));
@@ -571,13 +613,23 @@ shcore::Value SqlResult::get_member(const std::string &prop) const
 {
   Value ret_val;
   if (prop == "lastInsertId")
-    ret_val = Value(_result->lastInsertId());
+    ret_val = Value(get_last_insert_id());
   else if (prop == "affectedRowCount")
-    ret_val = Value(_result->affectedRows());
+    ret_val = Value(get_affected_row_count());
   else
     ret_val = RowResult::get_member(prop);
 
   return ret_val;
+}
+
+int64_t SqlResult::get_affected_row_count() const
+{
+  return _result->affectedRows();
+}
+
+int64_t SqlResult::get_last_insert_id() const
+{
+  return _result->lastInsertId();
 }
 
 #ifdef DOXYGEN

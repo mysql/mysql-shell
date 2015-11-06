@@ -238,6 +238,8 @@ namespace mysqlx
     boost::shared_ptr<Schema> getSchema(const std::string &name);
 
     boost::shared_ptr<Connection> connection() { return m_connection; }
+
+    void close();
   private:
     boost::shared_ptr<Connection> m_connection;
     std::map<std::string, boost::shared_ptr<Schema> > m_schemas;
@@ -399,7 +401,7 @@ namespace mysqlx
     int              current_message_id;
 
     friend class Connection;
-    boost::shared_ptr<Connection>m_owner;
+    boost::weak_ptr<Connection>m_owner;
     boost::shared_ptr<std::vector<ColumnMetadata> > m_columns;
     int64_t m_last_insert_id;
     int64_t m_affected_rows;

@@ -31,12 +31,6 @@ using namespace shcore;
 Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
   : Command_line_options(argc, argv), log_level(ngcommon::Logger::LOG_ERROR)
 {
-  std::string connection_string;
-  std::string host;
-  std::string user;
-  std::string protocol;
-  std::string database;
-
   char* log_level_value;
   bool needs_password = false;
 
@@ -50,12 +44,23 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
   char default_interactive[1] = "";
   char default_ssl[2] = "1";
 
+#ifdef HAVE_V8
   initial_mode = IShell_core::Mode_JScript;
+#else
+#ifdef HAVE_PYTHON
+  initial_mode = IShell_core::Mode_Python;
+#else
+  initial_mode = IShell_core::Mode_SQL;
+#endif
+#endif
+
   recreate_database = false;
   force = false;
   interactive = false;
   full_interactive = false;
   passwords_from_stdin = false;
+  prompt_password = false;
+  trace_protocol = false;
 
   port = 0;
   ssl = 0;
@@ -65,7 +70,16 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
     if (check_arg_with_value(argv, i, "--file", "-f", value))
       run_file = value;
     else if (check_arg_with_value(argv, i, "--uri", NULL, value))
-      connection_string = value;
+    {
+      if (shcore::validate_uri(value))
+        uri = value;
+      else
+      {
+        std::cerr << "Invalid value specified in --uri parameter.\n";
+        exit_code = 1;
+        break;
+      }
+    }
     else if (check_arg_with_value(argv, i, "--app", NULL, value))
       app = value;
     else if (check_arg_with_value(argv, i, "--host", "-h", value))
@@ -77,31 +91,40 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
     else if (check_arg_with_value(argv, i, "--port", "-P", value))
       port = atoi(value);
     else if (check_arg_with_value(argv, i, "--schema", "-D", value))
-      database = value;
+      schema = value;
     else if (check_arg_with_value(argv, i, "--database", NULL, value))
-      database = value;
+      schema = value;
     else if (check_arg(argv, i, "--recreate-schema", NULL))
       recreate_database = true;
     else if (check_arg(argv, i, "-p", "--password") || check_arg(argv, i, NULL, "--dbpassword"))
-      needs_password = true;
+      prompt_password = true;
     else if (check_arg_with_value(argv, i, "--dbpassword", NULL, value, (char*)""))
     {
       password = value;
       if (password.empty())
-        needs_password = true;
+        prompt_password = true;
     }
     else if (check_arg_with_value(argv, i, "--password", "-p", value, (char*)""))
     {
       password = value;
       if (password.empty() && !strchr(argv[i], '=')) // --password requests password, --password= means blank password
-        needs_password = true;
+        prompt_password = true;
     }
     else if (check_arg_with_value(argv, i, "--ssl-ca", NULL, value))
+    {
       ssl_ca = value;
+      ssl = 1;
+    }
     else if (check_arg_with_value(argv, i, "--ssl-cert", NULL, value))
+    {
       ssl_cert = value;
+      ssl = 1;
+    }
     else if (check_arg_with_value(argv, i, "--ssl-key", NULL, value))
+    {
       ssl_key = value;
+      ssl = 1;
+    }
     else if (check_arg_with_value(argv, i, "--ssl", NULL, value, default_ssl))
     {
       if (boost::iequals(value, "yes") || boost::iequals(value, "1"))
@@ -130,15 +153,37 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
         break;
       }
     }
+    else if (check_arg(argv, i, "--stx", "--stx"))
+      session_type = mysh::Application;
+    else if (check_arg(argv, i, "--stn", "--stn"))
+      session_type = mysh::Node;
+    else if (check_arg(argv, i, "--stc", "--stc"))
+      session_type = mysh::Classic;
     else if (check_arg(argv, i, "--sql", "--sql"))
     {
       initial_mode = IShell_core::Mode_SQL;
       session_type = mysh::Node;
-    }
+  }
     else if (check_arg(argv, i, "--js", "--javascript"))
+    {
+#ifdef HAVE_V8
       initial_mode = IShell_core::Mode_JScript;
+#else
+      std::cerr << "JavaScript is not supported.\n";
+      exit_code = 1;
+      break;
+#endif
+    }
     else if (check_arg(argv, i, "--py", "--python"))
+    {
+#ifdef HAVE_PYTHON
       initial_mode = IShell_core::Mode_Python;
+#else
+      std::cerr << "Python is not supported.\n";
+      exit_code = 1;
+      break;
+#endif
+    }
     else if (check_arg(argv, i, NULL, "--sqlc"))
     {
       initial_mode = IShell_core::Mode_SQL;
@@ -162,6 +207,8 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
     }
     else if (check_arg(argv, i, "--table", "--table"))
       output_format = "table";
+    else if (check_arg(argv, i, "--trace-proto", NULL))
+      trace_protocol = true;
     else if (check_arg(argv, i, "--help", "--help"))
     {
       print_cmd_line_helper = true;
@@ -206,7 +253,7 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
     else if (exit_code == 0)
     {
       if (argv[i][0] != '-')
-        database = argv[i];
+        schema = argv[i];
       else
       {
         std::cerr << argv[0] << ": unknown option " << argv[i] << "\n";
@@ -214,75 +261,5 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
         break;
       }
     }
-  }
-
-  // Configures the URI using all hte associated parameters
-  configure_connection_string(connection_string, user, password, host, port, database, needs_password, ssl_ca, ssl_cert, ssl_key);
 }
-
-// Takes the URI and the individual connection parameters and overrides
-// On the URI as specified on the parameters
-void Shell_command_line_options::configure_connection_string(const std::string &connstring,
-  std::string &user, std::string &password,
-  std::string &host, int &port,
-  std::string &database, bool prompt_pwd, std::string &ssl_ca,
-  std::string &ssl_cert, std::string &ssl_key)
-{
-  std::string uri_protocol;
-  std::string uri_user;
-  std::string uri_password;
-  std::string uri_host;
-  int uri_port = 0;
-  std::string uri_sock;
-  std::string uri_database;
-  std::string uri_ssl_ca;
-  std::string uri_ssl_cert;
-  std::string uri_ssl_key;
-  int pwd_found = 0;
-
-  // First validates the URI if specified
-  if (!connstring.empty())
-  {
-    if (!shcore::parse_mysql_connstring(connstring, uri_protocol, uri_user, uri_password, uri_host, uri_port, uri_sock, uri_database, pwd_found,
-      uri_ssl_ca, uri_ssl_cert, uri_ssl_key))
-    {
-      std::cerr << "Invalid value specified in --uri parameter.\n";
-      exit_code = 1;
-      return;
-    }
-  }
-
-  // URI was either empty or valid, in any case we need to override whatever was configured on the uri_* variables
-  // With what was received on the individual parameters.
-  {
-    // This implies URI recreation process should be done to either
-    // - Create an URI if none was specified.
-    // - Update the URI with the parameters overriding it's values.
-    if (!user.empty())
-      uri_user = user;
-
-    if (!password.empty() || prompt_pwd)
-      uri_password = password;
-
-    if (!host.empty())
-      uri_host = host;
-
-    if (!database.empty())
-      uri_database = database;
-
-    if (port)
-      uri_port = port;
-
-    if (!ssl_ca.empty())
-      uri_ssl_ca = ssl_ca;
-
-    if (!ssl_cert.empty())
-      uri_ssl_cert = ssl_cert;
-
-    if (!ssl_key.empty())
-      uri_ssl_key = ssl_key;
-  }
-
-  // If needed we construct the URi from the individual parameters
-  build_connection_string(uri, uri_protocol, uri_user, uri_password, uri_host, port, uri_database, prompt_pwd, uri_ssl_ca, uri_ssl_cert, uri_ssl_key);
 }

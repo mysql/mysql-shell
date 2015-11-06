@@ -73,14 +73,38 @@ if(WITH_TESTS)
             ${PROTOBUF_LIBRARY}
     )
 
+    # Copies the mysqlsh dll to the binary location to enable running the UTs
+    if(WINDOWS_RUNTIME_MD)
+      add_custom_command(TARGET run_unit_tests PRE_BUILD
+                          COMMAND ${CMAKE_COMMAND} -E copy
+                          $<TARGET_FILE:mysqlsh> $<TARGET_FILE_DIR:run_unit_tests>)
+    endif()
+    
+
     if ( HAVE_V8 )
       target_link_libraries(run_unit_tests ${V8_LINK_LIST})
+
+      if(WINDOWS_RUNTIME_MD)
+        # for MD runtime we also need DLL, not just lib, but dll is on parent directory.
+        set(V8_DLL ${V8_LIBS})
+        string(REPLACE ".lib" ".dll" V8_DLL ${V8_DLL})
+        get_filename_component(V8_FILE ${V8_DLL} NAME)
+        get_filename_component(V8_DLL ${V8_DLL} DIRECTORY)
+        get_filename_component(V8_DLL ${V8_DLL} DIRECTORY)
+        install(FILES "${V8_DLL}/${V8_FILE}" DESTINATION bin COMPONENT main)
+        install(FILES "${V8_DLL}/${V8_FILE}" DESTINATION lib COMPONENT dev)
+
+        # Copies the dll to the binary location to enable debugging
+        add_custom_command(TARGET run_unit_tests PRE_BUILD
+                            COMMAND ${CMAKE_COMMAND} -E copy
+                            "${V8_DLL}/${V8_FILE}" $<TARGET_FILE_DIR:run_unit_tests>/${V8_FILE})
+      endif()
     endif()
 
     if ( HAVE_PYTHON )
       target_link_libraries(run_unit_tests ${PYTHON_LIBRARIES})
 
-      if(CMAKE_BUILD_TYPE MATCHES Debug)
+      if(CMAKE_BUILD_TYPE MATCHES Debug OR WINDOWS_RUNTIME_MD)
         set(PY_DLL ${PYTHON_LIBRARIES})
         string(REPLACE ".lib" ".dll" PY_DLL ${PY_DLL})
         get_filename_component(PY_FILE ${PY_DLL} NAME)

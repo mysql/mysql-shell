@@ -38,6 +38,8 @@ Shell_client::Shell_client()
   log_path += "mysqlx_vs.log";
   ngcommon::Logger::create_instance(log_path.c_str(), false, ngcommon::Logger::LOG_ERROR);
 
+ (*shcore::Shell_core_options::get())[SHCORE_MULTIPLE_INSTANCES] = shcore::Value::True();
+
   _delegate.user_data = this;
   _delegate.print = &Shell_client::deleg_print;
   _delegate.print_error = &Shell_client::deleg_print_error;
@@ -84,10 +86,10 @@ shcore::Value Shell_client::connect_session(const shcore::Argument_list &args)
   return Value::Null();
 }
 
-boost::shared_ptr<Result_set> Shell_client::process_line(const std::string &line)
+shcore::Value Shell_client::process_line(const std::string &line)
 {
   Interactive_input_state state = Input_ok;
-  boost::shared_ptr<Result_set> empty_result = boost::shared_ptr<Result_set>(new Result_set(-1, -1, ""));
+  //boost::shared_ptr<Result_set> empty_result = boost::shared_ptr<Result_set>(new Result_set(-1, -1, ""));
 
   try
   {
@@ -101,86 +103,13 @@ boost::shared_ptr<Result_set> Shell_client::process_line(const std::string &line
     //print_err(exc.what());
     throw;
   }
+
+  return _last_result;
 }
 
 void Shell_client::process_result(shcore::Value result)
 {
-  _last_result = boost::shared_ptr<Result_set>(new Result_set(-1, -1, ""));
-
-  if (result)
-  {
-    if (result.type == shcore::Object)
-    {
-      boost::shared_ptr<Object_bridge> object = result.as_object();
-
-      shcore::Value affected_rows = object->has_member("getAffectedRowCount") ? object->call("getAffectedRowCount", Argument_list()) : shcore::Value(-1);
-      shcore::Value warning_count = object->has_member("getWarningCount") ? object->call("getWarningCount", Argument_list()) : shcore::Value(-1);
-      shcore::Value execution_time = object->has_member("getExecutionTime") ? object->call("getExecutionTime", Argument_list()) : shcore::Value("");
-
-      shcore::Argument_list args;
-      // If true returns as data array, if false, returns as document.
-      if (!object->has_member("fetchAll") || !object->has_member("getColumns"))
-        return;
-      shcore::Value result = object->call("fetchAll", args);
-      shcore::Value metadata = object->call("getColumns", Argument_list());
-
-      boost::shared_ptr<shcore::Value::Array_type> arr_result = result.as_array();
-
-      if (arr_result->size())
-      {
-        if (arr_result->at(0).type == shcore::Object)
-        {
-          // create tabular result
-          boost::shared_ptr<std::vector<Result_set_metadata> > meta = populate_metadata(metadata);
-          _last_result.reset(new Table_result_set(arr_result, meta, affected_rows.as_int(), warning_count.as_int(), execution_time.as_string()));
-        }
-        else if (arr_result->at(0).type == shcore::Map)
-        {
-          _last_result.reset(new Document_result_set(arr_result, -1, -1, ""));
-        }
-        else
-        {
-          throw std::runtime_error("Unknow data type returned from query.");
-        }
-        return;
-      }
-    }
-    else if (result.type == shcore::Array)
-    {
-      boost::shared_ptr<shcore::Value::Array_type> arr_result = result.as_array();
-      _last_result.reset(new Document_result_set(arr_result, -1, -1, ""));
-    }
-    else if (result.type == shcore::Map)
-    {
-      boost::shared_ptr<std::vector<shcore::Value> > map(new std::vector < shcore::Value >());
-      map->push_back(result);
-      _last_result.reset(new Document_result_set(map, -1, -1, ""));
-    }
-  }
-
-  //std::string executed = _shell->get_handled_input();
-  return;
-}
-
-boost::shared_ptr<std::vector<Result_set_metadata> > Shell_client::populate_metadata(shcore::Value& metadata)
-{
-  boost::shared_ptr<std::vector<Result_set_metadata> > result =
-    boost::shared_ptr<std::vector<Result_set_metadata> >(new std::vector<Result_set_metadata>());
-  boost::shared_ptr<shcore::Value::Array_type> arr_result = metadata.as_array();
-
-  std::vector<shcore::Value>::const_iterator myend = arr_result->end();
-  for (std::vector<shcore::Value>::const_iterator it = arr_result->begin(); it != myend; ++it)
-  {
-    boost::shared_ptr<shcore::Value::Map_type> map = it->as_map();
-
-    Result_set_metadata m = Result_set_metadata(
-      map->get_string("catalog"), map->get_string("db"), map->get_string("table"), map->get_string("orig_table"),
-      map->get_string("name"), map->get_string("orig_name"), map->get_int("charset"), map->get_int("length"),
-      map->get_int("type"), map->get_int("flags"), map->get_int("decimal"));
-    result->push_back(m);
-  }
-
-  return result;
+  _last_result = result;
 }
 
 bool Shell_client::connect(const std::string &uri)
@@ -199,18 +128,15 @@ bool Shell_client::connect(const std::string &uri)
   std::string ssl_key;
   int pwd_found;
 
-  if (!shcore::parse_mysql_connstring(uri, protocol, user, pass, host, port, sock, db, pwd_found, ssl_ca, ssl_cert, ssl_key))
-    throw shcore::Exception::argument_error("Could not parse URI for MySQL connection");
+  shcore::parse_mysql_connstring(uri, protocol, user, pass, host, port, sock, db, pwd_found, ssl_ca, ssl_cert, ssl_key);
+
+  if (!pwd_found)
+  {
+    throw std::runtime_error("Password is missing in the connection string");
+  }
   else
   {
-    if (!pwd_found)
-    {
-      throw std::runtime_error("Password is missing in the connection string");
-    }
-    else
-    {
-      args.push_back(Value(uri));
-    }
+    args.push_back(Value(uri));
   }
 
   try
@@ -245,7 +171,8 @@ bool Shell_client::do_shell_command(const std::string &line)
 
 Shell_client::~Shell_client()
 {
-  // TODO:
+  if (_shell) _shell.reset();
+  if (_session) _session.reset();
 }
 
 void Shell_client::make_connection(const std::string& connstr)
@@ -277,10 +204,9 @@ void Shell_client::switch_mode(shcore::Shell_core::Mode mode)
   }
 }
 
-boost::shared_ptr<Result_set> Shell_client::execute(const std::string query)
+shcore::Value Shell_client::execute(const std::string query)
 {
-  boost::shared_ptr<Result_set> result = process_line(query);
-  return result;
+  return process_line(query);
 }
 
 void Shell_client::deleg_print(void *self, const char *text)

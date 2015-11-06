@@ -102,7 +102,6 @@ namespace mysh
       shcore::Value executeAdminCommand(const std::string& command, bool expect_data, const shcore::Argument_list &args);
       shcore::Value execute_sql(const std::string& query, const shcore::Argument_list &args);
       virtual bool is_connected() const { return _session ? true : false; }
-      virtual std::string uri() const { return _uri; };
 
       virtual shcore::Value get_schema(const shcore::Argument_list &args) const;
 
@@ -115,6 +114,8 @@ namespace mysh
       static boost::shared_ptr<shcore::Object_bridge> create(const shcore::Argument_list &args);
 
       bool table_name_compare(const std::string &n1, const std::string &n2);
+
+      virtual void set_option(const char *option, int value);
 
 #ifdef DOXYGEN
       String uri; //!< Same as getUri()
@@ -147,12 +148,13 @@ namespace mysh
       void _remove_schema(const std::string& name);
       void _retrieve_session_info(std::string &current_schema, int &case_sensitive_table_names);
 
+      virtual int get_default_port() { return 33060; };
+
       boost::shared_ptr< ::mysqlx::Session> _session;
 
       std::string _default_schema;
       boost::shared_ptr<shcore::Value::Map_type> _schemas;
 
-      std::string _uri;
       bool _case_sensitive_table_names;
     };
 
@@ -207,6 +209,6 @@ namespace mysh
 #endif
     };
   }
-    }
+}
 
 #endif

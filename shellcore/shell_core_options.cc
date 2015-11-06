@@ -95,6 +95,7 @@ _options(new shcore::Value::Map_type)
   (*_options)[SHCORE_INTERACTIVE] = Value::True();
   (*_options)[SHCORE_SHOW_WARNINGS] = Value::True();
   (*_options)[SHCORE_BATCH_CONTINUE_ON_ERROR] = Value::False();
+  (*_options)[SHCORE_MULTIPLE_INSTANCES] = Value::False();
 }
 
 Shell_core_options::~Shell_core_options()

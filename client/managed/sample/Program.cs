@@ -17,6 +17,7 @@
  * 02110-1301  USA
  */
 
+using MySqlX;
 using MySqlX.Shell;
 using System;
 using System.Collections.Generic;
@@ -66,48 +67,62 @@ namespace SimpleShellClientSharp
       MySimpleClientShell shell = new MySimpleClientShell();
       shell.MakeConnection("root:123@localhost:33060");
       //shell.MakeConnection("root:123@localhost:33060?ssl_ca=C:\\MySQL\\xplugin-16293675.mysql-advanced-5.7.9-winx64\\data\\ca.pem&ssl_cert=C:\\MySQL\\xplugin-16293675.mysql-advanced-5.7.9-winx64\\data\\server-cert.pem&ssl_key=C:\\MySQL\\xplugin-16293675.mysql-advanced-5.7.9-winx64\\data\\server-key.pem");
-      shell.SwitchMode(Mode.SQL);
 
       // By default the stdin buffer is too short to allow long inputs like a connection + SSL args.
       Console.SetBufferSize(128, 1024);
 
+      List<Mode> modes = new List<Mode>();
+      List<string> prompts = new List<string>();
+
+      modes.Add(Mode.SQL);
+      modes.Add(Mode.JScript);
+      modes.Add(Mode.Python);
+
+      prompts.Add("sql");
+      prompts.Add("js");
+      prompts.Add("py");
+
+      int index = 0;
+
       string query;
-      while ((query = ReadLineFromPrompt("sql")) != null)
+      while (index < 3)
       {
-        if (query == "\\quit\r\n") break;
-        ResultSet rs = shell.Execute(query);
-        TableResultSet tbl = rs as TableResultSet;
-        if (tbl != null)
-          PrintTableResulSet(tbl);
-      }
+        shell.SwitchMode(modes[index]);
+        while ((query = ReadLineFromPrompt(prompts[index])) != null)
+        {
+          if (query == "\\quit\r\n")
+          {
+            index++;
+            break;
+          }
 
-      shell.SwitchMode(Mode.JScript);
-      while ((query = ReadLineFromPrompt("js")) != null)
-      {
-        if (query == "\\quit\r\n") break;
-        ResultSet rs = shell.Execute(query);
-        DocumentResultSet doc = rs as DocumentResultSet;
-        TableResultSet tbl = rs as TableResultSet;
-        if (tbl != null)
-          PrintTableResulSet(tbl);
-        else if (doc != null)
-          PrintDocumentResulSet(doc);
-      }
+          Object rs = shell.Execute(query);
 
-      shell.SwitchMode(Mode.Python);
-      while ((query = ReadLineFromPrompt("py")) != null)
-      {
-        if (query == "\\quit\r\n") break;
-        ResultSet rs = shell.Execute(query);
-        DocumentResultSet doc = rs as DocumentResultSet;
-        TableResultSet tbl = rs as TableResultSet;
-        if (tbl != null)
-          PrintTableResulSet(tbl);
-        if (doc != null)
-          PrintDocumentResulSet(doc);
+          printResult(rs);
+        }
       }
 
       shell.Dispose();
+    }
+
+    static public void printResult(Object result)
+    {
+      Result res = result as Result;
+      DocResult doc = result as DocResult;
+      RowResult row = result as RowResult;
+      SqlResult sql = result as SqlResult;
+      if (res != null)
+        PrintResult(res);
+      else if (doc != null)
+        PrintDocResult(doc);
+      else if (row != null)
+        PrintRowResult(row);
+      else if (sql != null)
+        PrintSqlResult(sql);
+      else if (result == null)
+        Console.Write("null");
+      else
+        Console.Write(result.ToString());
     }
 
     static public string ReadLine()
@@ -115,7 +130,6 @@ namespace SimpleShellClientSharp
       Stream inputStream = Console.OpenStandardInput(READLINE_BUFFER_SIZE);
       byte[] bytes = new byte[READLINE_BUFFER_SIZE];
       int outputLength = inputStream.Read(bytes, 0, READLINE_BUFFER_SIZE);
-      //Console.WriteLine(outputLength);
       char[] chars = Encoding.UTF7.GetChars(bytes, 0, outputLength);
       return new string(chars);
     }
@@ -126,38 +140,60 @@ namespace SimpleShellClientSharp
       return ReadLine();
     }
 
-    private static void PrintTableResulSet(TableResultSet tbl)
+    private static void PrintBaseResult(BaseResult res)
     {
-      List<object[]> data = tbl.GetData();
-      List<ResultSetMetadata> meta = tbl.GetMetadata();
-      foreach (ResultSetMetadata col in meta)
+      Console.Write("Execution Time: {0}\n", res.GetExecutionTime());
+      Console.Write("Warning Count: {0}\n", res.GetWarningCount());
+
+      if (Convert.ToUInt64(res.GetWarningCount()) > 0)
+      {
+        List<Dictionary<String, Object>> warnings = res.GetWarnings();
+
+        foreach (Dictionary<String, Object> warning in warnings)
+          Console.Write("{0} ({1}): (2)\n", warning["Level"], warning["Code"], warning["Message"]);
+      }
+    }
+
+    private static void PrintResult(Result res)
+    {
+      Console.Write("Affected Items: {0}\n", res.GetAffectedItemCount());
+      Console.Write("Last Insert Id: {0}\n", res.GetLastInsertId());
+      Console.Write("Last Document Id: {0}\n", res.GetLastDocumentId());
+
+      PrintBaseResult(res);
+    }
+
+    private static void PrintRowResult(RowResult res)
+    {
+      foreach (Column col in res.GetColumns())
       {
         Console.Write("{0}\t", col.GetName());
       }
       Console.WriteLine();
-      foreach (object[] row in data)
+
+      object[] record = res.FetchOne();
+
+      while (record != null)
       {
-        foreach (object o in row)
+        foreach (object o in record)
         {
           string s = "";
-          if (o is string)
-            s = o as string;
-          else if (o is int)
+          if (o == null)
+            s = "null";
+          else
             s = o.ToString();
-          else if (o is double)
-            s = o.ToString();
-          else if (o is bool)
-            s = o.ToString();
+
           Console.Write("{0}\t", s);
         }
         Console.WriteLine();
+
+        record = res.FetchOne();
       }
-      Console.WriteLine();
     }
 
-    private static void PrintDocumentResulSet(DocumentResultSet doc)
+    private static void PrintDocResult(DocResult doc)
     {
-      List<Dictionary<string, object>> data = doc.GetData();
+      List<Dictionary<string, object>> data = doc.FetchAll();
       foreach (Dictionary<string, object> row in data)
       {
         StringBuilder sb = new StringBuilder();
@@ -171,6 +207,17 @@ namespace SimpleShellClientSharp
         sb.AppendLine("},");
         Console.Write(sb);
       }
+    }
+
+    private static void PrintSqlResult(SqlResult res)
+    {
+      if ((bool)res.HasData())
+        PrintRowResult(res);
+      else
+        PrintBaseResult(res);
+
+      Console.Write("Affected Rows: {0}\n", res.GetAffectedRowCount());
+      Console.Write("Last Insert Id: {0}\n", res.GetLastInsertId());
     }
   }
 }
