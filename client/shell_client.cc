@@ -176,7 +176,6 @@ Shell_client::~Shell_client()
 {
   if (_shell) _shell.reset();
   if (_session) _session.reset();
-  if (_last_result) _last_result.reset();
 }
 
 void Shell_client::make_connection(const std::string& connstr)
