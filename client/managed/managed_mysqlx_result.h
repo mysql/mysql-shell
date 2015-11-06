@@ -142,7 +142,7 @@ namespace MySqlX
     Int64 GetLastInsertId(){ return (Int64)_lastInsertId; }
     Boolean HasData() { return (Boolean)_hasData; }
     // Enable once we find the way to reference the unmanaged class from the managed one
-    Boolean NextDataSet();
+    //Boolean NextDataSet();
 
   private:
     Int64^ _affectedRowCount;

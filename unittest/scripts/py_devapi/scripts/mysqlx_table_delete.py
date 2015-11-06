@@ -90,7 +90,6 @@ crud = table.delete().where('name = :data and age > :years').bind('years', 5).ex
 # ---------------------------------------
 
 #@ TableDelete: delete under condition
-records
 result = table.delete().where('age = 15').execute()
 print 'Affected Rows:', result.affectedItemCount, '\n'
 

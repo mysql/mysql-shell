@@ -30,12 +30,6 @@ int main(int argc, char **argv)
   JScript_context_init();
 #endif
 
-#ifdef HAVE_PYTHON
-#ifdef _WINDOWS
-  Py_NoSiteFlag = 1;
-#endif
-  Py_InitializeEx(0);
-#endif
 
   if (!getenv("MYSQL_URI"))
   {
@@ -71,12 +65,6 @@ int main(int argc, char **argv)
 
   int ret_val = RUN_ALL_TESTS();
 
-#ifdef HAVE_PYTHON
-#ifdef _WINDOWS
-  Py_NoSiteFlag = 1;
-#endif
-  Py_InitializeEx(0);
-#endif
 
   return ret_val;
 }

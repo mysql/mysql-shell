@@ -119,12 +119,23 @@ Object^ ShellClient::Execute(String^ query)
 
 ShellClient::!ShellClient()
 {
+  if (!_disposed)
+  {
+    // the Finalize method is invoked by the garbage collector, the standard pattern is for the Finalize to validate Dispose() has not be invoked and then invoke it.
+    _disposed = true;
+    this->~ShellClient();
+  }
 }
 
+// The C++ CLI destructor becomes the IDisposable.Dispose method when this class is exposed to managed languages (C#).
+// The standard IDisposable implementation is to release here the native resources associated with this class instance (managed resource), that is as soon as possible, 
+// instead of waiting for it to be called by the GC thru the Finalize method.
 ShellClient::~ShellClient()
 {
-  delete _obj;
-  this->!ShellClient();
+  if (_obj != nullptr)
+    delete _obj;
+  _obj = nullptr;
+  _disposed = true;
 }
 
 void ShellClient::Print(String^ text)

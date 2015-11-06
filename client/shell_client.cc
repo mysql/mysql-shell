@@ -38,6 +38,8 @@ Shell_client::Shell_client()
   log_path += "mysqlx_vs.log";
   ngcommon::Logger::create_instance(log_path.c_str(), false, ngcommon::Logger::LOG_ERROR);
 
+ (*shcore::Shell_core_options::get())[SHCORE_MULTIPLE_INSTANCES] = shcore::Value::True();
+
   _delegate.user_data = this;
   _delegate.print = &Shell_client::deleg_print;
   _delegate.print_error = &Shell_client::deleg_print_error;
@@ -172,7 +174,9 @@ bool Shell_client::do_shell_command(const std::string &line)
 
 Shell_client::~Shell_client()
 {
-  // TODO:
+  if (_shell) _shell.reset();
+  if (_session) _session.reset();
+  if (_last_result) _last_result.reset();
 }
 
 void Shell_client::make_connection(const std::string& connstr)

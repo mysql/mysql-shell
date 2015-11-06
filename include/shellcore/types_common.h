@@ -24,7 +24,7 @@
 
 #ifdef _WIN32
 # ifdef _DLL
-#  ifdef mysqlshtypes_EXPORTS
+#  ifdef SHCORE_EXPORT
 #   define TYPES_COMMON_PUBLIC __declspec(dllexport)
 #  else
 #   define TYPES_COMMON_PUBLIC __declspec(dllimport)

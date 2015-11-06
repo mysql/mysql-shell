@@ -38,47 +38,27 @@ static const char *SHELLTypeSignature = "SHELLCONTEXT";
 
 namespace shcore
 {
-  Python_context::Python_context(Interpreter_delegate *deleg) throw (Exception)
-    : _local_initialization(false), _types(this)
+  std::auto_ptr<Python_init_singleton> Python_init_singleton::_instance(NULL);
+  int Python_init_singleton::cnt = 0;
+
+  std::string Python_init_singleton::get_new_scope_name()
   {
-    if (!Py_IsInitialized())
-    {
-#ifdef _WINDOWS
-      Py_NoSiteFlag = 1;
+    return (boost::format("__main__%d") % ++cnt).str();
+  }
 
-      char path[1000];
-      char *env_value;
+  void Python_init_singleton::init_python()
+  {
+    if (_instance.get() == NULL)
+      _instance.reset(new Python_init_singleton());
+  }
 
-      // If PYTHONHOME is available, honors it
-      env_value = getenv("PYTHONHOME");
-      if (env_value)
-        strcpy(path, env_value);
-      else
-      {
-        // If not will associate what should be the right path in
-        // a standard distribution
-        std::string python_path;
-        python_path = shcore::get_mysqlx_home_path();
-        if (!python_path.empty())
-          python_path.append("\\lib\\Python2.7");
-        else
-        {
-          // Not a standard distribution
-          python_path = shcore::get_binary_folder();
-          python_path.append("\\Python2.7");
-        }
-
-        strcpy(path, python_path.c_str());
-      }
-
-      Py_SetPythonHome(path);
-#endif
-      Py_InitializeEx(0);
-
-      _local_initialization = true;
-    }
-
+  Python_context::Python_context(Interpreter_delegate *deleg) throw (Exception)
+    : _types(this)
+  {
+    
     _delegate = deleg;
+
+    Python_init_singleton::init_python();
 
     // register shell module
     register_shell_module();
@@ -89,6 +69,23 @@ namespace shcore
     PyObject *main = PyImport_AddModule("__main__");
     _globals = PyModule_GetDict(main);
 
+    if ((*shcore::Shell_core_options::get())[SHCORE_MULTIPLE_INSTANCES] == shcore::Value::True())
+    {
+      // create a local namespace
+      std::string mod_name(Python_init_singleton::get_new_scope_name());
+      PyObject *local = PyImport_AddModule(mod_name.c_str());
+      _locals = PyModule_GetDict(local);
+      if (!_locals)
+      {
+        throw Exception::runtime_error("Error initializing python context (locals).");
+        PyErr_Print();
+      }
+    }
+    else 
+    {
+      _locals = _globals;
+    }
+
     if (!main || !_globals)
     {
       throw Exception::runtime_error("Error initializing python context.");
@@ -96,7 +93,7 @@ namespace shcore
     }
 
     PyDict_SetItemString(PyModule_GetDict(main),
-    "shell", PyImport_ImportModule("shell"));
+      "shell", PyImport_ImportModule("shell"));
 
     PySys_SetObject((char*)"real_stdout", PySys_GetObject((char*)"stdout"));
     PySys_SetObject((char*)"real_stderr", PySys_GetObject((char*)"stderr"));
@@ -125,11 +122,6 @@ namespace shcore
   {
     PyEval_RestoreThread(_main_thread_state);
     _main_thread_state = NULL;
-    // Restores and finish python if was initialized locally
-    if (_local_initialization)
-    {
-      Py_Finalize();
-    }
   }
 
   /*
@@ -182,7 +174,7 @@ namespace shcore
     PyObject *py_result;
     Value retvalue;
 
-    py_result = PyRun_String(code.c_str(), Py_file_input, _globals, _globals);
+    py_result = PyRun_String(code.c_str(), Py_file_input, _globals, _locals);
 
     if (!py_result)
     {
@@ -231,7 +223,7 @@ namespace shcore
 
     PySys_SetObject((char*)"displayhook", PyDict_GetItemString(PyModule_GetDict(_shell_module), (char*)"interactivehook"));
 
-    PyObject *py_result = PyRun_String(code.c_str(), Py_single_input, _globals, _globals);
+    PyObject *py_result = PyRun_String(code.c_str(), Py_single_input, _globals, _locals);
 
     r_continued = false;
 
@@ -258,6 +250,7 @@ namespace shcore
         PyErr_Clear();
       else
         PyErr_Print();
+
       return Value();
     }
 

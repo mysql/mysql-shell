@@ -83,6 +83,7 @@ namespace MySqlX
       virtual void Source(String^ module);
 
     private:
+      bool _disposed;
       ManagedShellClient* _obj;
     };
   };

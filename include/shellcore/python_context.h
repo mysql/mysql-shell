@@ -24,6 +24,7 @@
 
 #include "shellcore/types_common.h"
 #include "shellcore/shell_python.h"
+#include "utils/utils_file.h"
 
 #include "shellcore/python_type_conversion.h"
 #include "shellcore/lang_base.h"
@@ -106,6 +107,69 @@ namespace shcore
     }
   };
 
+  // The static member _instance needs to be in a class not exported (no TYPES_COMMON_PUBLIC), otherwise MSVC complains with C2491.
+  class Python_init_singleton
+  {
+  public:
+
+    ~Python_init_singleton()
+    {
+      if (_local_initialization)
+        Py_Finalize();
+    }
+
+    static std::string get_new_scope_name();
+
+    static void init_python();
+    
+  private:
+    static int cnt;
+    bool _local_initialization;
+    static std::auto_ptr<Python_init_singleton> _instance;
+    
+    Python_init_singleton(const Python_init_singleton& py) { }
+
+    Python_init_singleton() : _local_initialization(false)
+    {
+      if (!Py_IsInitialized())
+      {
+#ifdef _WINDOWS
+        Py_NoSiteFlag = 1;
+
+        char path[1000];
+        char *env_value;
+
+        // If PYTHONHOME is available, honors it
+        env_value = getenv("PYTHONHOME");
+        if (env_value)
+          strcpy(path, env_value);
+        else
+        {
+          // If not will associate what should be the right path in
+          // a standard distribution
+          std::string python_path;
+          python_path = shcore::get_mysqlx_home_path();
+          if (!python_path.empty())
+            python_path.append("\\lib\\Python2.7");
+          else
+          {
+            // Not a standard distribution
+            python_path = shcore::get_binary_folder();
+            python_path.append("\\Python2.7");
+          }
+
+          strcpy(path, python_path.c_str());
+        }
+
+        Py_SetPythonHome(path);
+#endif
+        Py_InitializeEx(0);
+
+        _local_initialization = true;
+      }
+    }
+  };
+
   struct Interpreter_delegate;
 
   class TYPES_COMMON_PUBLIC Python_context
@@ -161,10 +225,9 @@ namespace shcore
     static PyObject *mysql_get_classic_session(PyObject *self, PyObject *args);
 
   private:
-    bool _local_initialization;
     PyObject *_globals;
+    PyObject *_locals;
     PyThreadState *_main_thread_state;
-    PyThreadState *_thread_state;
 
     Python_type_bridger _types;
 
