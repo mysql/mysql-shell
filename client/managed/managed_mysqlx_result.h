@@ -36,7 +36,7 @@ namespace MySqlX
   public:
     BaseResult(boost::shared_ptr<mysh::mysqlx::BaseResult> result);
 
-    UInt64^ GetWarningCount() { return _warningCount; }
+    UInt64 GetWarningCount() { return (UInt64)_warningCount; }
     List<Dictionary<String^, Object^>^>^ GetWarnings(){ return _warnings; }
     String^ GetExecutionTime(){ return _executionTime; }
 
@@ -48,15 +48,15 @@ namespace MySqlX
   protected:
     // TODO: Improve this so the data is returned interactively
     //       only when requested from the managed app
-    //boost::shared_ptr<mysh::mysqlx::BaseResult> *_inner;
+    //boost::shared_ptr<mysh::mysqlx::BaseResult> _inner;
   };
 
   public ref class Result : public BaseResult
   {
   public:
     Result(boost::shared_ptr<mysh::mysqlx::Result> result);
-    Int64^ GetAffectedItemCount() { return _affectedItemCount; }
-    Int64^ GetLastInsertId() { return _lastInsertId; }
+    Int64 GetAffectedItemCount() { return (Int64)_affectedItemCount; }
+    Int64 GetLastInsertId() { return (Int64)_lastInsertId; }
     String^ GetLastDocumentId() { return _lastDocumentId; }
 
   private:
@@ -138,11 +138,11 @@ namespace MySqlX
   public:
     SqlResult(boost::shared_ptr<mysh::mysqlx::SqlResult> result);
 
-    Int64^ GetAffectedRowCount(){ return _affectedRowCount; }
-    Int64^ GetLastInsertId(){ return _lastInsertId; }
-    Boolean^ HasData() { return _hasData; }
+    Int64 GetAffectedRowCount(){ return (Int64)_affectedRowCount; }
+    Int64 GetLastInsertId(){ return (Int64)_lastInsertId; }
+    Boolean HasData() { return (Boolean)_hasData; }
     // Enable once we find the way to reference the unmanaged class from the managed one
-    //Boolean^ NextDataSet();
+    Boolean NextDataSet();
 
   private:
     Int64^ _affectedRowCount;
