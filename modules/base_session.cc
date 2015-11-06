@@ -73,7 +73,8 @@ boost::shared_ptr<mysh::ShellBaseSession> mysh::connect_session(const shcore::Ar
   return ret_val;
 }
 
-ShellBaseSession::ShellBaseSession()
+ShellBaseSession::ShellBaseSession() :
+_port(0)
 {
   add_method("createSchema", boost::bind(&ShellBaseSession::createSchema, this, _1), "name", shcore::String, NULL);
   add_method("getDefaultSchema", boost::bind(&ShellBaseSession::get_member_method, this, _1, "getDefaultSchema", "defaultSchema"), NULL);
@@ -87,7 +88,7 @@ std::string &ShellBaseSession::append_descr(std::string &s_out, int UNUSED(inden
   if (!is_connected())
     s_out.append("<" + class_name() + ":disconnected>");
   else
-    s_out.append("<" + class_name() + ":" + uri() + ">");
+    s_out.append("<" + class_name() + ":" + _uri + ">");
   return s_out;
 }
 
@@ -104,7 +105,7 @@ void ShellBaseSession::append_json(shcore::JSON_dumper& dumper) const
   dumper.append_bool("connected", is_connected());
 
   if (is_connected())
-    dumper.append_string("uri", uri());
+    dumper.append_string("uri", _uri);
 
   dumper.end_object();
 }
@@ -124,6 +125,127 @@ shcore::Value ShellBaseSession::get_member_method(const shcore::Argument_list &a
   args.ensure_count(0, function.c_str());
 
   return get_member(prop);
+}
+
+void ShellBaseSession::load_connection_data(const shcore::Argument_list &args)
+{
+  // The connection data can come from different sources
+  std::string uri;
+  std::string app;
+  std::string connections_file; // The default connection file or the indicated on the map as dataSourceFile
+  shcore::Value::Map_type_ref options; // Map with the connection data
+
+  //-----------------------------------------------------
+  // STEP 1: Identifies the source of the connection data
+  //-----------------------------------------------------
+  if (args[0].type == String)
+  {
+    std::string temp = args.string_at(0);
+
+    // The connection data to be loaded from the stored sessions
+    if (temp[0] == '$')
+      app = temp;
+
+    // The connection data comes in an URI
+    else
+      uri = temp;
+  }
+
+  // Connection data comes in a dictionary
+  else if (args[0].type == Map)
+  {
+    options = args.map_at(0);
+
+    // Connection data should be loaded from a stored session
+    if (options->has_key("app"))
+      app = (*options)["app"].as_string();
+
+    // Use a custom stored sessions file, rather than the default one
+    if (options->has_key("dataSourceFile"))
+      connections_file = (*options)["dataSourceFile"].as_string();
+  }
+  else
+    throw shcore::Exception::argument_error("Unexpected argument on connection data.");
+
+  //-------------------------------------------------------------------------
+  // STEP 2: Gets the individual connection parameters whatever the source is
+  //-------------------------------------------------------------------------
+  // Handles the case where an URI was received
+  if (!uri.empty())
+  {
+    std::string protocol;
+    int pwd_found;
+    parse_mysql_connstring(uri, protocol, _user, _password, _host, _port, _sock, _schema, pwd_found, _ssl_ca, _ssl_cert, _ssl_key);
+  }
+  else if (!app.empty())
+  {
+    // If no custom connection file is indicated, then uses the default one
+    if (connections_file.empty())
+      connections_file = shcore::get_default_config_path();
+
+    // Loads the connection data from a stored session
+    shcore::Server_registry sr(connections_file);
+    shcore::Connection_options& conn = sr.get_connection_options(app);
+
+    _user = conn.get_user();
+    _host = conn.get_server();
+    std::string str_port = conn.get_port();
+    if (!str_port.empty())
+    {
+      int tmp_port = boost::lexical_cast<int>(str_port);
+      if (tmp_port)
+        _port = tmp_port;
+    }
+    _schema = conn.get_schema();
+    _password = conn.get_password();
+
+    _ssl_ca = conn.get_value_if_exists("ssl_ca");
+    _ssl_cert = conn.get_value_if_exists("ssl_cert");
+    _ssl_key = conn.get_value_if_exists("ssl_key");
+  }
+
+  // If the connection data came in a dictionary, the values in the dictionary override whatever
+  // is already loaded: i.e. if the dictionary indicated a stored session, that info is already
+  // loaded but will be overriden with whatever extra values exist on the dictionary
+  if (options)
+  {
+    if (options->has_key("host"))
+      _host = (*options)["host"].as_string();
+
+    if (options->has_key("port"))
+      _port = (*options)["port"].as_int();
+
+    if (options->has_key("schema"))
+      _schema = (*options)["schema"].as_string();
+
+    if (options->has_key("dbUser"))
+      _user = (*options)["dbUser"].as_string();
+
+    if (options->has_key("dbPassword"))
+      _password = (*options)["dbPassword"].as_string();
+
+    if (options->has_key("ssl_ca"))
+      _ssl_ca = (*options)["ssl_ca"].as_string();
+
+    if (options->has_key("ssl_cert"))
+      _ssl_cert = (*options)["ssl_cert"].as_string();
+
+    if (options->has_key("ssl_key"))
+      _ssl_key = (*options)["ssl_key"].as_string();
+  }
+
+  // If password is received as parameter, then it overwrites
+  // Anything found on any of the indicated sources: URI, options map and stored session
+  if (2 == args.size())
+    _password = args.string_at(1).c_str();
+
+  if (_port == 0)
+    _port = get_default_port();
+
+  if (_schema.empty())
+    _uri = (boost::format("%1%@%2%:%3%") % _user % _host % _port).str();
+  else
+    _uri = (boost::format("%1%@%2%:%3%/%4%") % _user % _host % _port % _schema).str();
 }
 
 bool ShellBaseSession::operator == (const Object_bridge &other) const

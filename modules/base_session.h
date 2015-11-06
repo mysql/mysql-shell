@@ -60,7 +60,7 @@ namespace mysh
     virtual shcore::Value dropSchema(const shcore::Argument_list &args) = 0;
     virtual shcore::Value dropSchemaObject(const shcore::Argument_list &args, const std::string& type) = 0;
     virtual bool is_connected() const = 0;
-    virtual std::string uri() const = 0;
+    std::string uri() { return _uri; };
 
     virtual shcore::Value get_schema(const shcore::Argument_list &args) const = 0;
     virtual std::string db_object_exists(std::string &type, const std::string &name, const std::string& owner) = 0;
@@ -72,6 +72,23 @@ namespace mysh
 
   protected:
     std::string get_quoted_name(const std::string& name);
+    virtual int get_default_port() = 0;
+
+    // These will be stored in the instance, it's possible later
+    // we expose functions to retrieve this data (not now tho)
+    std::string _user;
+    std::string _password;
+    std::string _host;
+    int _port;
+    std::string _sock;
+    std::string _schema;
+    std::string _ssl_ca;
+    std::string _ssl_cert;
+    std::string _ssl_key;
+
+    std::string _uri;
+
+    void load_connection_data(const shcore::Argument_list &args);
   };
 
   boost::shared_ptr<mysh::ShellBaseSession> SHCORE_PUBLIC connect_session(const shcore::Argument_list &args, SessionType session_type);

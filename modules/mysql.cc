@@ -236,8 +236,7 @@ Connection::Connection(const std::string &uri_, const char *password)
 
   _mysql = mysql_init(NULL);
 
-  if (!shcore::parse_mysql_connstring(uri_, protocol, user, pass, host, port, sock, db, pwd_found, ssl_ca, ssl_cert, ssl_key))
-    throw shcore::Exception::argument_error("Could not parse URI for MySQL connection");
+  shcore::parse_mysql_connstring(uri_, protocol, user, pass, host, port, sock, db, pwd_found, ssl_ca, ssl_cert, ssl_key);
 
   if (password)
     pass.assign(password);

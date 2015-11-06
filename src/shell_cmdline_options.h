@@ -32,14 +32,25 @@ public:
   shcore::IShell_core::Mode initial_mode;
   std::string run_file;
 
+  // Individual connection parameters
+  std::string user;
+  std::string password;
+  std::string host;
   int port;
+  std::string schema;
+  std::string sock;
+
+  std::string protocol;
+
+  // SSL connection parameters
   std::string ssl_ca;
   std::string ssl_cert;
   std::string ssl_key;
   int ssl;
+
   std::string uri;
   std::string app;
-  std::string password;
+
   std::string output_format;
   mysh::SessionType session_type;
   bool print_cmd_line_helper;
@@ -48,18 +59,12 @@ public:
   bool interactive;
   bool full_interactive;
   bool passwords_from_stdin;
+  bool prompt_password;
   bool recreate_database;
   bool trace_protocol;
   ngcommon::Logger::LOG_LEVEL log_level;
 
   // Takes the URI and the individual connection parameters and overrides
   Shell_command_line_options(int argc, char **argv);
-
-  // On the URI as specified on the parameters
-  void configure_connection_string(const std::string &connstring,
-    std::string &user, std::string &password,
-    std::string &host, int &port,
-    std::string &database, bool prompt_pwd, std::string &ssl_ca,
-    std::string &ssl_cert, std::string &ssl_key);
 };
 #endif

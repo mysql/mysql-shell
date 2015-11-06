@@ -59,7 +59,7 @@ mySession = mysqlx.getSession(__uripwd)
 
 print mySession, '\n'
 
-if mySession.uri == __uri:
+if mySession.uri == __displayuri:
 	print 'Session using right URI\n'
 else:
 	print 'Session using wrong URI\n'
@@ -71,7 +71,7 @@ mySession = mysqlx.getSession(__uri, __pwd)
 
 print mySession, '\n'
 
-if mySession.uri == __uri:
+if mySession.uri == __displayuri:
 	print 'Session using right URI\n'
 else:
 	print 'Session using wrong URI\n'
@@ -91,7 +91,7 @@ mySession = mysqlx.getSession(data)
 
 print mySession, '\n'
 
-if mySession.uri == __uri:
+if mySession.uri == __displayuridb:
 	print 'Session using right URI\n'
 else:
 	print 'Session using wrong URI\n'
@@ -109,7 +109,7 @@ mySession = mysqlx.getSession(data, __pwd)
 
 print mySession, '\n'
 
-if mySession.uri == __uri:
+if mySession.uri == __displayuridb:
 	print 'Session using right URI\n'
 else:
 	print 'Session using wrong URI\n'
@@ -122,7 +122,7 @@ mySession = mysqlx.getNodeSession(__uripwd)
 
 print mySession, '\n'
 
-if mySession.uri == __uri:
+if mySession.uri == __displayuri:
 	print 'Session using right URI\n'
 else:
 	print 'Session using wrong URI\n'
@@ -134,7 +134,7 @@ mySession = mysqlx.getNodeSession(__uri, __pwd)
 
 print mySession, '\n'
 
-if mySession.uri == __uri:
+if mySession.uri == __displayuri:
 	print 'Session using right URI\n'
 else:
 	print 'Session using wrong URI\n'
@@ -154,7 +154,7 @@ mySession = mysqlx.getNodeSession(data)
 
 print mySession, '\n'
 
-if mySession.uri == __uri:
+if mySession.uri == __displayuridb:
 	print 'Session using right URI\n'
 else:
 	print 'Session using wrong URI\n'
@@ -172,7 +172,7 @@ mySession = mysqlx.getNodeSession(data, __pwd)
 
 print mySession, '\n'
 
-if mySession.uri == __uri:
+if mySession.uri == __displayuridb:
 	print 'Session using right URI\n'
 else:
 	print 'Session using wrong URI\n'
@@ -187,7 +187,7 @@ mySession = mysqlx.getSession(shell.storedSessions.mysqlx_data, __pwd);
 
 print "%s\n" % mySession
 
-if mySession.uri == __uri:
+if mySession.uri == __displayuridb:
 	print 'Session using right URI\n'
 else:
 	print 'Session using wrong URI\n'	
@@ -206,7 +206,7 @@ mySession = mysqlx.getSession(shell.storedSessions.mysqlx_uri)
 
 print "%s\n" % mySession
 
-if mySession.uri == __uri:
+if mySession.uri == __displayuri:
 	print 'Session using right URI\n'
 else:
 	print 'Session using wrong URI\n'

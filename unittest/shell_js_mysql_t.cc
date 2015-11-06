@@ -48,11 +48,13 @@ namespace shcore
       exec_and_out_equals(code);
       code = "var __schema = 'mysql';";
       exec_and_out_equals(code);
-      code = "var __schema = 'mysql';";
-      exec_and_out_equals(code);
       code = "var __uri = '" + user + "@" + host + ":" + _mysql_port + "';";
       exec_and_out_equals(code);
       code = "var __uripwd = '" + user + ":" + password + "@" + host + ":" + _mysql_port + "';";
+      exec_and_out_equals(code);
+      code = "var __displayuri = '" + user + "@" + host + ":" + _mysql_port + "';";
+      exec_and_out_equals(code);
+      code = "var __displayuridb = '" + user + "@" + host + ":" + _mysql_port + "/mysql';";
       exec_and_out_equals(code);
 
       // All of the test cases share the same config folder

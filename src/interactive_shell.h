@@ -66,6 +66,8 @@ public:
 
   void set_log_level(ngcommon::Logger::LOG_LEVEL level) { if (_logger) _logger->set_log_level(level); }
 
+  shcore::Value::Map_type_ref parse_uri(const std::string& uri);
+
 private:
   Shell_command_line_options _options;
   static char *readline(const char *prompt);

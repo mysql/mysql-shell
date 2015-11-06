@@ -98,7 +98,6 @@ namespace mysh
 
       virtual bool is_connected() const { return _conn ? true : false; }
 
-      virtual std::string uri() const;
       virtual shcore::Value get_schema(const shcore::Argument_list &args) const;
       shcore::Value set_current_schema(const shcore::Argument_list &args);
 
@@ -131,6 +130,9 @@ namespace mysh
       ClassicResult dropView(String schema, String name);
 
 #endif
+    protected:
+      virtual int get_default_port() { return 3306; };
+
     private:
       std::string _retrieve_current_schema();
       void _load_schemas();

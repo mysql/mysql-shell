@@ -48,21 +48,15 @@ namespace shcore
     return ret_val;
   }
 
-  void build_connection_string(std::string &uri,
-    const std::string &uri_protocol, const std::string &uri_user, const std::string &uri_password,
-    const std::string &uri_host, int &port,
-    const std::string &uri_database, bool prompt_pwd, const std::string &uri_ssl_ca,
-    const std::string &uri_ssl_cert, const std::string &uri_ssl_key)
+  std::string build_connection_string(const std::string &uri_user, const std::string &uri_password,
+                               const std::string &uri_host, int &port,
+                               const std::string &uri_database, bool prompt_pwd, const std::string &uri_ssl_ca,
+                               const std::string &uri_ssl_cert, const std::string &uri_ssl_key)
   {
+    std::string uri;
+
     // If needed we construct the URi from the individual parameters
     {
-      // Configures the URI string
-      if (!uri_protocol.empty())
-      {
-        uri.append(uri_protocol);
-        uri.append("://");
-      }
-
       // Sets the user and password
       if (!uri_user.empty())
       {
@@ -92,6 +86,8 @@ namespace shcore
 
       conn_str_cat_ssl_data(uri, uri_ssl_ca, uri_ssl_cert, uri_ssl_key);
     }
+
+    return uri;
   }
 
   void conn_str_cat_ssl_data(std::string& uri, const std::string& ssl_ca, const std::string& ssl_cert, const std::string& ssl_key)
@@ -136,7 +132,7 @@ namespace shcore
     }
   }
 
-  bool parse_mysql_connstring(const std::string &connstring,
+  void parse_mysql_connstring(const std::string &connstring,
                               std::string &protocol, std::string &user, std::string &password,
                               std::string &host, int &port, std::string &sock,
                               std::string &db, int &pwd_found, std::string& ssl_ca, std::string& ssl_cert, std::string& ssl_key)
@@ -202,8 +198,11 @@ namespace shcore
       if (p != std::string::npos)
         sock = server_part.substr(p + 1);
       else
-        if (!sscanf(server_part.substr(0, p).c_str(), "%i", &port))
-          return false;
+      {
+        std::string str_port = server_part.substr(0, p);
+        if (!sscanf(str_port.c_str(), "%i", &port))
+          throw Exception::argument_error((boost::format("Invalid value found for port component: %1%") % str_port).str());
+      }
     }
     else
       host = server_part;
@@ -238,8 +237,6 @@ namespace shcore
       ssl_cert = ssl_data["ssl_cert"];
     if (!ssl_data["ssl_key"].empty())
       ssl_key = ssl_data["ssl_key"];
-
-    return true;
   }
 
   std::string strip_password(const std::string &connstring)
@@ -335,5 +332,111 @@ namespace shcore
       return strdup(buffer);
     }
     return NULL;
+  }
+
+  bool SHCORE_PUBLIC validate_uri(const std::string &uri)
+  {
+    std::string uri_protocol;
+    std::string uri_user;
+    std::string uri_password;
+    std::string uri_host;
+    int uri_port = 0;
+    std::string uri_sock;
+    std::string uri_database;
+    std::string uri_ssl_ca;
+    std::string uri_ssl_cert;
+    std::string uri_ssl_key;
+    int pwd_found = 0;
+
+    bool ret_val = false;
+
+    if (!uri.empty())
+    {
+      try
+      {
+        parse_mysql_connstring(uri, uri_protocol, uri_user, uri_password, uri_host, uri_port, uri_sock, uri_database, pwd_found,
+                                         uri_ssl_ca, uri_ssl_cert, uri_ssl_key);
+
+        ret_val = true;
+      }
+      catch (std::exception &e)
+      {
+        //TODO: Log error
+      }
+    }
+
+    return ret_val;
+  }
+
+  // Takes the URI and the individual connection parameters and overrides
+  // On the URI as specified on the parameters
+  std::string configure_connection_string(const std::string &connstring,
+                                          const std::string &user, const std::string &password,
+                                          const std::string &host, int &port,
+                                          const std::string &database, bool prompt_pwd, const std::string &ssl_ca,
+                                          const std::string &ssl_cert, const std::string &ssl_key)
+  {
+    // NOTE: protocol is left in case an URI still uses it, however, it is ignored everywhere
+    std::string uri_protocol;
+    std::string uri_user;
+    std::string uri_password;
+    std::string uri_host;
+    int uri_port = 0;
+    std::string uri_sock;
+    std::string uri_database;
+    std::string uri_ssl_ca;
+    std::string uri_ssl_cert;
+    std::string uri_ssl_key;
+    int pwd_found = 0;
+
+    std::string ret_val;
+
+    // First validates the URI if specified
+    if (!connstring.empty())
+    {
+      try
+      {
+        parse_mysql_connstring(connstring, uri_protocol, uri_user, uri_password, uri_host, uri_port, uri_sock, uri_database, pwd_found,
+                               uri_ssl_ca, uri_ssl_cert, uri_ssl_key);
+
+        // URI was either empty or valid, in any case we need to override whatever was configured on the uri_* variables
+        // With what was received on the individual parameters.
+        // This implies URI recreation process should be done to either
+        // - Create an URI if none was specified.
+        // - Update the URI with the parameters overriding it's values.
+        if (!user.empty())
+          uri_user = user;
+
+        if (!password.empty() || prompt_pwd)
+          uri_password = password;
+
+        if (!host.empty())
+          uri_host = host;
+
+        if (!database.empty())
+          uri_database = database;
+
+        if (port)
+          uri_port = port;
+
+        if (!ssl_ca.empty())
+          uri_ssl_ca = ssl_ca;
+
+        if (!ssl_cert.empty())
+          uri_ssl_cert = ssl_cert;
+
+        if (!ssl_key.empty())
+          uri_ssl_key = ssl_key;
+
+        ret_val = build_connection_string(uri_user, uri_password, uri_host, uri_port, uri_database, prompt_pwd, uri_ssl_ca, uri_ssl_cert, uri_ssl_key);
+      }
+      catch (shcore::Exception &e)
+      {
+        //TODO: Log error
+      }
+    }
+
+    // If needed we construct the URi from the individual parameters
+    return ret_val;
   }
 }

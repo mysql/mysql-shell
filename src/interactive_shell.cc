@@ -145,6 +145,54 @@ void Interactive_shell::cmd_process_file(const std::vector<std::string>& params)
   Interactive_shell::process_file();
 }
 
+shcore::Value::Map_type_ref Interactive_shell::parse_uri(const std::string& uri)
+{
+  std::string user;
+  std::string password;
+  std::string host;
+  int port;
+  std::string sock;
+  std::string schema;
+  std::string ssl_ca;
+  std::string ssl_cert;
+  std::string ssl_key;
+
+  std::string protocol;
+  int pwd_found;
+  parse_mysql_connstring(uri, protocol, user, password, host, port, sock, schema, pwd_found, ssl_ca, ssl_cert, ssl_key);
+
+  Value::Map_type_ref options(new shcore::Value::Map_type);
+
+  if (!user.empty())
+    (*options)["dbUser"] = Value(user);
+
+  if (pwd_found)
+    (*options)["dbpassword"] = Value(password);
+
+  if (!host.empty())
+    (*options)["host"] = Value(host);
+
+  if (port != 0)
+    (*options)["port"] = Value(port);
+
+  if (!schema.empty())
+    (*options)["schema"] = Value(schema);
+
+  if (!sock.empty())
+    (*options)["sock"] = Value(sock);
+
+  if (!ssl_ca.empty())
+    (*options)["ssl_ca"] = Value(ssl_ca);
+
+  if (!ssl_cert.empty())
+    (*options)["ssl_cert"] = Value(ssl_cert);
+
+  if (!ssl_key.empty())
+    (*options)["ssl_key"] = Value(ssl_key);
+
+  return options;
+}
+
 bool Interactive_shell::connect(bool primary_session)
 {
   try
@@ -192,15 +240,62 @@ bool Interactive_shell::connect(bool primary_session)
     }
 
     Argument_list args;
+    Value::Map_type_ref connection_data;
     if (!_options.app.empty())
     {
       if (StoredSessions::get_instance()->connections()->has_key(_options.app))
-        args.push_back((*StoredSessions::get_instance()->connections())[_options.app]);
+        connection_data = (*StoredSessions::get_instance()->connections())[_options.app].as_map();
       else
         throw shcore::Exception::argument_error((boost::format("The stored connection %1% was not found") % _options.app).str());
     }
     else
-      args.push_back(Value(_options.uri));
+      connection_data = parse_uri(_options.uri);
+
+    // If the session is being created from command line
+    // Individual parameters will override whatever was defined on the URI/stored connection
+    if (primary_session)
+    {
+      // Copies into a new object to avoid overriding a stored connection
+      connection_data = Value::parse(Value(connection_data).json(false)).as_map();
+
+      if (!_options.user.empty())
+        (*connection_data)["dbUser"] = Value(_options.user);
+
+      if (!_options.password.empty())
+        (*connection_data)["dbpassword"] = Value(_options.password);
+
+      if (!_options.host.empty())
+        (*connection_data)["host"] = Value(_options.host);
+
+      if (_options.port != 0)
+        (*connection_data)["port"] = Value(_options.port);
+
+      if (!_options.schema.empty())
+        (*connection_data)["schema"] = Value(_options.schema);
+
+      if (!_options.sock.empty())
+        (*connection_data)["sock"] = Value(_options.sock);
+
+      if (_options.ssl)
+      {
+        if (!_options.ssl_ca.empty())
+          (*connection_data)["ssl_ca"] = Value(_options.ssl_ca);
+
+        if (!_options.ssl_cert.empty())
+          (*connection_data)["ssl_cert"] = Value(_options.ssl_cert);
+
+        if (!_options.ssl_key.empty())
+          (*connection_data)["ssl_key"] = Value(_options.ssl_key);
+      }
+      else
+      {
+        connection_data->erase("ssl_ca");
+        connection_data->erase("ssl_cert");
+        connection_data->erase("ssl_key");
+      }
+    }
+
+    args.push_back(Value(connection_data));
 
     connect_session(args, _options.session_type, primary_session ? _options.recreate_database : false);
   }
@@ -215,84 +310,28 @@ bool Interactive_shell::connect(bool primary_session)
 
 Value Interactive_shell::connect_session(const Argument_list &args, mysh::SessionType session_type, bool recreate_schema)
 {
-  // Used to determine if we require prompting for the password to the user
-  int pwd_found = 0;
   std::string pass;
   std::string create_schema_name;
 
   if (recreate_schema && session_type != mysh::Node && session_type != mysh::Classic)
     throw shcore::Exception::argument_error("Recreate schema option can only be used in classic or node sessions");
 
+  shcore::Value::Map_type_ref connection_data = args.map_at(0);
+
+  if (recreate_schema)
+  {
+    if (!connection_data->has_key("schema"))
+      throw shcore::Exception::runtime_error("Recreate schema requested, but no schema specified");
+    create_schema_name = (*connection_data)["schema"].as_string();
+    connection_data->erase("schema");
+  }
+
+  // Creates the argument list for the real connection call
   Argument_list connect_args;
+  connect_args.push_back(shcore::Value(connection_data));
 
-  if (args[0].type == shcore::String)
-  {
-    std::string protocol;
-    std::string user;
-    std::string host;
-    std::string db;
-    int port = -1;
-    std::string sock;
-    std::string ssl_ca;
-    std::string ssl_cert;
-    std::string ssl_key;
-
-    // Handles the case where the password needs to be prompted
-    if (!shcore::parse_mysql_connstring(args[0].as_string(), protocol, user, pass, host, port, sock, db, pwd_found, ssl_ca, ssl_cert, ssl_key))
-      throw shcore::Exception::argument_error("Could not parse URI for MySQL connection");
-
-    shcore::Value::Map_type_ref map(new shcore::Value::Map_type());
-    if (!user.empty())
-      (*map)["dbUser"] = Value(user);
-    if (pwd_found)
-      (*map)["dbPassword"] = Value(pass);
-    if (!host.empty())
-      (*map)["host"] = Value(host);
-    if (port > 0)
-      (*map)["port"] = Value(port);
-    if (!sock.empty())
-      (*map)["socket"] = Value(sock);
-    if (recreate_schema)
-      create_schema_name = db;
-    else
-    {
-      if (!db.empty())
-        (*map)["schema"] = Value(db);
-    }
-    if (!ssl_ca.empty())
-      (*map)["ssl_ca"] = Value(ssl_ca);
-    if (!ssl_cert.empty())
-      (*map)["ssl_cert"] = Value(ssl_cert);
-    if (!ssl_key.empty())
-      (*map)["ssl_key"] = Value(ssl_key);
-
-    connect_args.push_back(shcore::Value(map));
-  }
-  else if (args[0].type == shcore::Map)
-  {
-    shcore::Value::Map_type_ref connection_data = args.map_at(0);
-
-    if (recreate_schema)
-    {
-      if (!connection_data->has_key("schema"))
-        throw shcore::Exception::runtime_error("Recreate schema requested, but no schema specified");
-      create_schema_name = (*connection_data)["schema"].as_string();
-      connection_data->erase("schema");
-    }
-
-    if (connection_data->has_key("dbPassword"))
-      pwd_found = 1;
-    connect_args.push_back(shcore::Value(connection_data));
-  }
-  else
-  {
-    // This should never happen
-    throw shcore::Exception::runtime_error("Unexpected connection data format");
-  }
-
-  // If URI is defined as user:@host, then we assume there's no password (blank password)
-  // If it's user@host, then the password was not provided, thus should be prompted
-  if (!pwd_found)
+  // Prompts for the password if needed
+  if (!connection_data->has_key("dbPassword") || _options.prompt_password)
   {
     char *tmp = _options.passwords_from_stdin ? mysh_get_stdin_password("Enter password: ") : mysh_get_tty_password("Enter password: ");
     if (tmp)
@@ -431,9 +470,21 @@ void Interactive_shell::switch_shell_mode(Shell_core::Mode mode, const std::vect
       case Shell_core::Mode_None:
         break;
       case Shell_core::Mode_SQL:
-        if (_shell->switch_mode(mode, lang_initialized))
-          println("Switching to SQL mode... Commands end with ;");
+      {
+        Value session = _shell->get_global("session");
+        if (session && session.as_object()->class_name() == "XSession")
+        {
+          println("The active session is an X Session.");
+          println("SQL mode is not supported on X Sessions: command ignored.");
+          println("To switch to SQL mode reconnect using a Node Session using \connect_node or --session-type=node from the command line.");
+        }
+        else
+        {
+          if (_shell->switch_mode(mode, lang_initialized))
+            println("Switching to SQL mode... Commands end with ;");
+        }
         break;
+      }
       case Shell_core::Mode_JScript:
 #ifdef HAVE_V8
         if (_shell->switch_mode(mode, lang_initialized))
@@ -581,6 +632,9 @@ void Interactive_shell::cmd_connect(const std::vector<std::string>& args)
 
     _options.session_type = mysh::Application;
     connect();
+
+    if (_shell->interactive_mode() == IShell_core::Mode_SQL)
+      println("WARNING: An X Session has been established: SQL execution is not allowed on X Sessions.");
   }
   else
     print_error("\\connect <uri or $appName>\n");
@@ -1139,11 +1193,13 @@ void Interactive_shell::print_cmd_line_helper()
   println("  --recreate-schema        Drop and recreate the specified schema. Schema will be deleted if it exists!");
   println("  --database=name          An alias for --schema.");
   println("  --session-type=name      Type of session to be created. Either app, node or classic.");
+  println("  --stx                    Alias for --session-type=app.");
+  println("  --stn                    Alias for --session-type=node.");
+  println("  --stc                    Alias for --session-type=classic.");
   println("  --sql                    Start in SQL mode using a node session.");
   println("  --sqlc                   Start in SQL mode using a classic session.");
   println("  --js                     Start in JavaScript mode.");
   println("  --py                     Start in Python mode.");
-  println("  --sc                     Shortcut for --sql --session-type=classic.");
   println("  --json                   Produce output in JSON format.");
   println("  --table                  Produce output in table format (default for interactive mode).");
   println("                           This option can be used to force that format when running in batch mode.");
@@ -1152,10 +1208,12 @@ void Interactive_shell::print_cmd_line_helper()
   println("  --force                  To use in SQL batch mode, forces processing to continue if an error is found.");
   println("  --log-level=value        The log level. Value is an int in the range [1,8], default (1).");
   println("  --version                Prints the version of MySQL X Shell.");
+  println("  --ssl                    Enable SSL for connection(automatically enabled with other flags)");
   println("  --ssl-key=name           X509 key in PEM format");
   println("  --ssl-cert=name          X509 cert in PEM format");
   println("  --ssl-ca=name            CA file in PEM format (check OpenSSL docs)");
-  println("  --ssl                    Enable SSL for connection(automatically enabled with other flags)");
   println("  --passwords-from-stdin   Read passwords from stdin instead of the tty");
+  println("  --show-warnings          Automatically display SQL warnings on SQL mode if available");
+
   println("");
 }

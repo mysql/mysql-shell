@@ -128,18 +128,15 @@ bool Shell_client::connect(const std::string &uri)
   std::string ssl_key;
   int pwd_found;
 
-  if (!shcore::parse_mysql_connstring(uri, protocol, user, pass, host, port, sock, db, pwd_found, ssl_ca, ssl_cert, ssl_key))
-    throw shcore::Exception::argument_error("Could not parse URI for MySQL connection");
+  shcore::parse_mysql_connstring(uri, protocol, user, pass, host, port, sock, db, pwd_found, ssl_ca, ssl_cert, ssl_key);
+
+  if (!pwd_found)
+  {
+    throw std::runtime_error("Password is missing in the connection string");
+  }
   else
   {
-    if (!pwd_found)
-    {
-      throw std::runtime_error("Password is missing in the connection string");
-    }
-    else
-    {
-      args.push_back(Value(uri));
-    }
+    args.push_back(Value(uri));
   }
 
   try

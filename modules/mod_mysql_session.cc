@@ -34,6 +34,7 @@
 #include "shellcore/server_registry.h"
 
 #include "shellcore/proxy_object.h"
+#include "mysqlxtest_utils.h"
 
 #include <boost/bind.hpp>
 #include <boost/lexical_cast.hpp>
@@ -83,101 +84,19 @@ Value ClassicSession::connect(const Argument_list &args)
 {
   args.ensure_count(1, 2, "ClassicSession.connect");
 
-  std::string protocol;
-  std::string user;
-  std::string pass;
-  const char *pwd_override = NULL;
-  std::string host;
-  std::string sock;
-  std::string db;
-  std::string uri_stripped;
-  std::string ssl_ca;
-  std::string ssl_cert;
-  std::string ssl_key;
-
-  int pwd_found;
-  int port = 3306;
-
-  // If password is received as parameter, then it overwrites
-  // Anything found on the URI
-  if (2 == args.size())
-    pwd_override = args.string_at(1).c_str();
-
-  if (args[0].type == String)
+  try
   {
-    std::string uri_ = args.string_at(0);
+    // Retrieves the connection data, whatever the source is
+    load_connection_data(args);
 
-    if (!parse_mysql_connstring(uri_, protocol, user, pass, host, port, sock, db, pwd_found, ssl_ca, ssl_cert, ssl_key))
-      throw shcore::Exception::argument_error("Could not parse URI for MySQL connection");
+    // Performs the connection
+    _conn.reset(new Connection(_host, _port, _sock, _user, _password, _schema, _ssl_ca, _ssl_cert, _ssl_key));
 
-    if (uri_[0] == '$')
-    {
-      uri_.clear();
-      build_connection_string(uri_, protocol, user, pass, host, port, db, false, "", "", "");
-    }
+    _load_schemas();
 
-    _conn.reset(new Connection(uri_, pwd_override));
+    _default_schema = _retrieve_current_schema();
   }
-  else if (args[0].type == Map)
-  {
-    // TODO: Take into account datasource / app args
-    std::string data_source_file;
-    std::string app;
-    shcore::Value::Map_type_ref options = args[0].as_map();
-
-    if (options->has_key("dataSourceFile"))
-    {
-      data_source_file = (*options)["dataSourceFile"].as_string();
-      app = (*options)["app"].as_string();
-
-      shcore::Server_registry sr(data_source_file);
-      shcore::Connection_options& conn = sr.get_connection_options(app);
-
-      host = conn.get_server();
-      port = boost::lexical_cast<int>(conn.get_port());
-      user = conn.get_user();
-      pass = conn.get_password();
-      db = conn.get_schema();
-
-      ssl_ca = conn.get_value_if_exists("ssl_ca");
-      ssl_cert = conn.get_value_if_exists("ssl_cert");
-      ssl_key = conn.get_value_if_exists("ssl_key");
-    }
-
-    if (options->has_key("host"))
-      host = (*options)["host"].as_string();
-
-    if (options->has_key("port"))
-      port = (*options)["port"].as_int();
-
-    if (options->has_key("schema"))
-      db = (*options)["schema"].as_string();
-
-    if (options->has_key("dbUser"))
-      user = (*options)["dbUser"].as_string();
-
-    if (options->has_key("dbPassword"))
-      pass = (*options)["dbPassword"].as_string();
-
-    if (options->has_key("ssl_ca"))
-      ssl_ca = (*options)["ssl_ca"].as_string();
-
-    if (options->has_key("ssl_cert"))
-      ssl_cert = (*options)["ssl_cert"].as_string();
-
-    if (options->has_key("ssl_key"))
-      ssl_key = (*options)["ssl_key"].as_string();
-
-    if (pwd_override)
-      pass.assign(pwd_override);
-
-    _conn.reset(new Connection(host, port, sock, user, pass, db, ssl_ca, ssl_cert, ssl_key));
-  }
-  else
-    throw shcore::Exception::argument_error("Unexpected argument on connection data.");
-
-  _load_schemas();
-  _default_schema = _retrieve_current_schema();
+  CATCH_AND_TRANSLATE();
 
   return Value::Null();
 }
@@ -230,7 +149,7 @@ Value ClassicSession::run_sql(const shcore::Argument_list &args)
       throw Exception::argument_error("No query specified.");
     else
       ret_val = Value::wrap(new ClassicResult(boost::shared_ptr<Result>(_conn->run_sql(statement))));
-}
+  }
 
   return ret_val;
 }
@@ -283,10 +202,6 @@ Value ClassicSession::createSchema(const shcore::Argument_list &args)
 */
 String ClassicSession::getUri(){}
 #endif
-std::string ClassicSession::uri() const
-{
-  return _conn->uri();
-}
 
 std::vector<std::string> ClassicSession::get_members() const
 {
@@ -355,7 +270,7 @@ Value ClassicSession::get_member(const std::string &prop) const
   else if (prop == "schemas")
     ret_val = Value(_schemas);
   else if (prop == "uri")
-    ret_val = Value(_conn->uri());
+    ret_val = Value(_uri);
   else if (prop == "defaultSchema")
   {
     if (!_default_schema.empty())
@@ -383,7 +298,7 @@ Value ClassicSession::get_member(const std::string &prop) const
       schema->cache_table_objects();
 
       ret_val = (*_schemas)[prop];
-}
+    }
   }
 
   return ret_val;

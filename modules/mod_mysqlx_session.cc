@@ -29,6 +29,7 @@
 #include "shellcore/server_registry.h"
 #include "utils/utils_general.h"
 #include "utils/utils_time.h"
+#include "utils/utils_file.h"
 
 #include "shellcore/proxy_object.h"
 
@@ -91,153 +92,39 @@ Value BaseSession::connect(const Argument_list &args)
   std::string function_name = class_name() + ".connect";
   args.ensure_count(1, 2, function_name.c_str());
 
-  std::string pwd_override;
-
-  // If password is received as parameter, then it overwrites
-  // Anything found on the URI
-  if (2 == args.size())
-    pwd_override = args.string_at(1).c_str();
-
   try
   {
-    if (args[0].type == String)
-    {
-      std::string uri_ = args.string_at(0);
-      _uri = shcore::strip_password(uri_);
-      ::mysqlx::Ssl_config ssl;
-      memset(&ssl, 0, sizeof(ssl));
+    // Retrieves the connection data, whatever the source is
+    load_connection_data(args);
 
-      std::string protocol;
-      std::string user;
-      std::string password;
-      std::string host;
-      int port;
-      int pwd_found;
-      std::string sock;
-      std::string schema;
-      std::string ssl_ca;
-      std::string ssl_cert;
-      std::string ssl_key;
+    ::mysqlx::Ssl_config ssl;
+    memset(&ssl, 0, sizeof(ssl));
 
-      if (!parse_mysql_connstring(uri_, protocol, user, password, host, port, sock, schema, pwd_found, ssl_ca, ssl_cert, ssl_key))
-        throw shcore::Exception::argument_error("Could not parse URI for MySQL connection");;
+    ssl.ca = _ssl_ca.c_str();
+    ssl.cert = _ssl_cert.c_str();
+    ssl.key = _ssl_key.c_str();
 
-      ssl.ca = ssl_ca.c_str();
-      ssl.cert = ssl_cert.c_str();
-      ssl.key = ssl_key.c_str();
-      if (_uri[0] == '$')
-      {
-        uri_.clear();
-        build_connection_string(uri_, protocol, user, password, host, port, schema, false, "", "", "");
-      }
-      else
-        uri_ = shcore::strip_ssl_args(uri_);
-      _session = ::mysqlx::openSession(uri_, pwd_override, ssl, true);
-    }
-    else if (args[0].type == Map)
-    {
-      std::string host;
-      int port = 33060;
-      std::string schema;
-      std::string user;
-      std::string password;
-      std::string ssl_ca;
-      std::string ssl_cert;
-      std::string ssl_key;
-      std::string data_source_file;
-      std::string app;
+    _session = ::mysqlx::openSession(_host, _port, _schema, _user, _password, ssl);
 
-      shcore::Value::Map_type_ref options = args[0].as_map();
+    _load_schemas();
 
-      // If a data source file is specified takes the initial connection data from there
-      if (options->has_key("dataSourceFile"))
-      {
-        data_source_file = (*options)["dataSourceFile"].as_string();
-        app = (*options)["app"].as_string();
+    int case_sesitive_table_names = 0;
+    _retrieve_session_info(_default_schema, case_sesitive_table_names);
 
-        shcore::Server_registry sr(data_source_file);
-        shcore::Connection_options& conn = sr.get_connection_options(app);
-
-        host = conn.get_server();
-        std::string str_port = conn.get_port();
-        if (!str_port.empty())
-        {
-          int tmp_port = boost::lexical_cast<int>(str_port);
-          if (tmp_port)
-            port = tmp_port;
-        }
-
-        user = conn.get_user();
-        password = conn.get_password();
-        schema = conn.get_schema();
-
-        ssl_ca = conn.get_value_if_exists("ssl_ca");
-        ssl_cert = conn.get_value_if_exists("ssl_cert");
-        ssl_key = conn.get_value_if_exists("ssl_key");
-      }
-
-      // If there are additional parameters, they will override whatever is configured
-      // so far
-      if (options->has_key("host"))
-        host = (*options)["host"].as_string();
-
-      if (options->has_key("port"))
-        port = (*options)["port"].as_int();
-
-      if (options->has_key("schema"))
-        schema = (*options)["schema"].as_string();
-
-      if (options->has_key("dbUser"))
-        user = (*options)["dbUser"].as_string();
-
-      if (options->has_key("dbPassword"))
-        password = (*options)["dbPassword"].as_string();
-
-      if (options->has_key("ssl_ca"))
-        ssl_ca = (*options)["ssl_ca"].as_string();
-
-      if (options->has_key("ssl_cert"))
-        ssl_cert = (*options)["ssl_cert"].as_string();
-
-      if (options->has_key("ssl_key"))
-        ssl_key = (*options)["ssl_key"].as_string();
-
-      if (!pwd_override.empty())
-        password = pwd_override;
-
-      ::mysqlx::Ssl_config ssl;
-      ssl.ca = ssl_ca.c_str();
-      ssl.cert = ssl_cert.c_str();
-      ssl.key = ssl_key.c_str();
-
-      _session = ::mysqlx::openSession(host, port, schema, user, password, ssl);
-
-      std::stringstream str;
-      str << user << "@" << host << ":" << port;
-      _uri = str.str();
-    }
-    else
-      throw shcore::Exception::argument_error("Unexpected argument on connection data.");
+    _case_sensitive_table_names = (case_sesitive_table_names == 0);
   }
   CATCH_AND_TRANSLATE();
-
-  _load_schemas();
-  int case_sesitive_table_names = 0;
-  _retrieve_session_info(_default_schema, case_sesitive_table_names);
-  _case_sensitive_table_names = (case_sesitive_table_names == 0);
 
   return Value::Null();
 }
 
-
 void BaseSession::set_option(const char *option, int value)
 {
   if (strcmp(option, "trace_protocol") == 0 && _session)
-    _session->connection()->set_trace_protocol(value!=0);
+    _session->connection()->set_trace_protocol(value != 0);
   else
     throw shcore::Exception::argument_error(std::string("Unknown option ").append(option));
 }
-
 
 bool BaseSession::table_name_compare(const std::string &n1, const std::string &n2)
 {
@@ -270,7 +157,7 @@ Value BaseSession::close(const shcore::Argument_list &args)
 
     _session.reset();
   }
-  
+
   return shcore::Value();
 }
 
