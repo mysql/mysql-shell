@@ -150,7 +150,7 @@ shcore::Value::Map_type_ref Interactive_shell::parse_uri(const std::string& uri)
   std::string user;
   std::string password;
   std::string host;
-  int port;
+  int port = 0;
   std::string sock;
   std::string schema;
   std::string ssl_ca;
@@ -167,7 +167,7 @@ shcore::Value::Map_type_ref Interactive_shell::parse_uri(const std::string& uri)
     (*options)["dbUser"] = Value(user);
 
   if (pwd_found)
-    (*options)["dbpassword"] = Value(password);
+    (*options)["dbPassword"] = Value(password);
 
   if (!host.empty())
     (*options)["host"] = Value(host);
@@ -213,13 +213,13 @@ bool Interactive_shell::connect(bool primary_session)
       switch (_options.session_type)
       {
         case mysh::Application:
-          stype = "Application";
+          stype = "an X";
           break;
         case mysh::Node:
-          stype = "Node";
+          stype = "a Node";
           break;
         case mysh::Classic:
-          stype = "Classic";
+          stype = "a Classic";
           break;
       }
 
@@ -476,7 +476,9 @@ void Interactive_shell::switch_shell_mode(Shell_core::Mode mode, const std::vect
         {
           println("The active session is an X Session.");
           println("SQL mode is not supported on X Sessions: command ignored.");
-          println("To switch to SQL mode reconnect using a Node Session using \connect_node or --session-type=node from the command line.");
+          println("To switch to SQL mode reconnect with a Node Session by either:");
+          println("* Using the \\connect_node shell command.");
+          println("* Using --session-type=node when calling the MySQL X Shell on the command line.");
         }
         else
         {
@@ -634,7 +636,7 @@ void Interactive_shell::cmd_connect(const std::vector<std::string>& args)
     connect();
 
     if (_shell->interactive_mode() == IShell_core::Mode_SQL)
-      println("WARNING: An X Session has been established: SQL execution is not allowed on X Sessions.");
+      println("WARNING: An X Session has been established and SQL execution is not allowed.");
   }
   else
     print_error("\\connect <uri or $appName>\n");
