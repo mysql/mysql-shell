@@ -127,7 +127,7 @@ _options(options)
   SET_SHELL_COMMAND("\\addconn|\\addc", "Inserts/updates new/existing connection into the connection registry.", cmd_help_store_connection, Interactive_shell::cmd_store_connection);
   SET_SHELL_COMMAND("\\rmconn", "Removes a connection from the connection registry.", cmd_help_delete_connection, Interactive_shell::cmd_delete_connection);
   SET_SHELL_COMMAND("\\lsconn|\\lsc", "List the contents of all connections currently in the registry.", "", Interactive_shell::cmd_list_connections);
-  SET_SHELL_COMMAND("\\chconn", "Updates a stored connection.", "", Interactive_shell::cmd_list_connections);
+  SET_SHELL_COMMAND("\\chconn", "Updates a stored connection.", "", Interactive_shell::cmd_update_connection);
 
   bool lang_initialized;
   _shell->switch_mode(_options.initial_mode, lang_initialized);
@@ -804,7 +804,7 @@ void Interactive_shell::cmd_update_connection(const std::vector<std::string>& ar
     }
   }
   else
-    error = "\\updconn <app> <URI>";
+    error = "\\chconn <app> <URI>";
 
   if (!error.empty())
     print_error(error + "\n");

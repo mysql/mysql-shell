@@ -144,7 +144,7 @@ void ShellBaseSession::load_connection_data(const shcore::Argument_list &args)
 
     // The connection data to be loaded from the stored sessions
     if (temp[0] == '$')
-      app = temp;
+      app = temp.substr(1);
 
     // The connection data comes in an URI
     else
