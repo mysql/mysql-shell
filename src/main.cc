@@ -87,10 +87,6 @@ std::string detect_interactive(Shell_command_line_options &options, bool &from_s
     if (result == 0)
       from_file = (stats.st_mode & S_IFREG) == S_IFREG;
 
-    // Can't process both redirected file and file from parameter.
-    if (from_file && !options.run_file.empty())
-      error = "--file (-f) option is forbidden when redirecting a file to stdin.";
-
     is_interactive = false;
   }
   else
@@ -174,12 +170,12 @@ int main(int argc, char **argv)
         }
       }
 
-      if (from_stdin)
+      if (!options.run_file.empty())
+        ret_val = shell.process_file();
+      else if (from_stdin)
       {
         ret_val = shell.process_stream(std::cin, "STDIN");
       }
-      else if (!options.run_file.empty())
-        ret_val = shell.process_file();
       else if (options.interactive)
       {
         shell.print_banner();
