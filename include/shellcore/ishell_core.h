@@ -32,7 +32,8 @@ namespace shcore
   enum Interactive_input_state
   {
     Input_ok,
-    Input_continued
+    Input_continued_single,
+    Input_continued_block
   };
 
   class SHCORE_PUBLIC IShell_core

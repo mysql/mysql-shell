@@ -188,7 +188,7 @@ namespace shcore
 
       boost::system::error_code error;
       WillEnterPython lock;
-      bool cont;
+      Interactive_input_state cont = Input_ok;
 
       Value result = py->execute_interactive("'hello world'", cont);
       ASSERT_EQ(result.repr(), "\"hello world\"");
@@ -224,7 +224,7 @@ namespace shcore
       arr->push_back(Value(arr2));
 
       Value v(arr);
-      bool cont;
+      Interactive_input_state cont = Input_ok;
       WillEnterPython lock;
       // this will also test conversion of a wrapped array
       ASSERT_EQ(py->pyobj_to_shcore_value(py->shcore_value_to_pyobj(v)).repr(), "[123, \"text\", [444]]");
@@ -267,7 +267,7 @@ namespace shcore
       py->set_global("mapval", v);
       ASSERT_EQ(py->get_global("mapval").repr(), "{\"k1\": 123, \"k2\": \"text\", \"k3\": {\"submap\": 444}}");
 
-      bool cont;
+      Interactive_input_state cont = Input_ok;
 
       // test enumerator
       ASSERT_EQ("[\"k1\",\"k2\",\"k3\"]",

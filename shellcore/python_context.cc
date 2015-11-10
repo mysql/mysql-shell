@@ -55,7 +55,6 @@ namespace shcore
   Python_context::Python_context(Interpreter_delegate *deleg) throw (Exception)
     : _types(this)
   {
-    
     _delegate = deleg;
 
     Python_init_singleton::init_python();
@@ -81,7 +80,7 @@ namespace shcore
         PyErr_Print();
       }
     }
-    else 
+    else
     {
       _locals = _globals;
     }
@@ -187,11 +186,11 @@ namespace shcore
     return tmp;
   }
 
-  Value Python_context::execute_interactive(const std::string &code, bool &r_continued) BOOST_NOEXCEPT_OR_NOTHROW
+  Value Python_context::execute_interactive(const std::string &code, Interactive_input_state &r_state) BOOST_NOEXCEPT_OR_NOTHROW
   {
     Value retvalue;
 
-    r_continued = false;
+    r_state = shcore::Input_ok;
 
     /*
      PyRun_String() works as follows:
@@ -225,8 +224,6 @@ namespace shcore
 
     PyObject *py_result = PyRun_String(code.c_str(), Py_single_input, _globals, _locals);
 
-    r_continued = false;
-
     PySys_SetObject((char*)"displayhook", orig_hook);
     Py_DECREF(orig_hook);
     if (!py_result)
@@ -240,13 +237,17 @@ namespace shcore
       {
         const char *msg;
         PyObject *obj;
-        if (PyArg_ParseTuple(value, "sO", &msg, &obj)
-           && (strncmp(msg, "unexpected EOF while parsing", strlen("unexpected EOF while parsing")) == 0 ||
-              strncmp(msg, "EOF while scanning triple-quoted string literal", strlen("EOF while scanning triple-quoted string literal")) == 0))
-          r_continued = true;
+        if (PyArg_ParseTuple(value, "sO", &msg, &obj))
+        {
+          if (strncmp(msg, "unexpected character after line continuation character", strlen("unexpected character after line continuation character")) == 0 ||
+              strncmp(msg, "EOF while scanning triple-quoted string literal", strlen("EOF while scanning triple-quoted string literal")) == 0)
+            r_state = Input_continued_single;
+          else if (strncmp(msg, "unexpected EOF while parsing", strlen("unexpected EOF while parsing")) == 0)
+            r_state = Input_continued_block;
+        }
       }
       PyErr_Restore(exc, value, tb);
-      if (r_continued)
+      if (r_state != Input_ok)
         PyErr_Clear();
       else
         PyErr_Print();

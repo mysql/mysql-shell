@@ -98,7 +98,7 @@ private:
   boost::shared_ptr<Shell_core> _shell;
 
   std::string _input_buffer;
-  bool _multiline_mode;
+  Interactive_input_state _input_mode;
 
   Shell_command_handler _shell_command_handler;
 };

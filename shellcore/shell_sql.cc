@@ -29,7 +29,7 @@ using namespace shcore;
 using namespace boost::system;
 
 Shell_sql::Shell_sql(IShell_core *owner)
-: Shell_language(owner)
+  : Shell_language(owner)
 {
   _delimiter = ";";
 }
@@ -160,7 +160,7 @@ void Shell_sql::handle_input(std::string &code, Interactive_input_state &state, 
       if (_parsing_context_stack.empty())
         state = Input_ok;
       else
-        state = Input_continued;
+        state = Input_continued_block;
     }
     else
       // handle_input implementations are not throwing exceptions

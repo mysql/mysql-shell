@@ -29,7 +29,7 @@
 namespace shcore
 {
   struct Interpreter_delegate;
-
+  enum Interactive_input_state;
   class Object_registry;
 
   class SHCORE_PUBLIC JScript_context
@@ -39,7 +39,7 @@ namespace shcore
     ~JScript_context();
 
     Value execute(const std::string &code, const std::string& source = "") throw (Exception);
-    Value execute_interactive(const std::string &code, bool &r_continued) BOOST_NOEXCEPT_OR_NOTHROW;
+    Value execute_interactive(const std::string &code, Interactive_input_state& r_state) BOOST_NOEXCEPT_OR_NOTHROW;
 
     v8::Isolate *isolate() const;
     v8::Handle<v8::Context> context() const;

@@ -24,7 +24,7 @@
 using namespace shcore;
 
 Shell_python::Shell_python(Shell_core *shcore)
-: Shell_language(shcore)
+  : Shell_language(shcore)
 {
   _py = boost::shared_ptr<Python_context>(new Python_context(shcore->lang_delegate()));
 }
@@ -56,15 +56,10 @@ void Shell_python::handle_input(std::string &code, Interactive_input_state &stat
 {
   Value result;
 
-  state = Input_ok;
-
   if ((*Shell_core_options::get())[SHCORE_INTERACTIVE].as_bool())
   {
     WillEnterPython lock;
-    bool continued;
-    result = _py->execute_interactive(code, continued);
-    if (continued)
-      state = Input_continued;
+    result = _py->execute_interactive(code, state);
   }
   else
   {
@@ -86,7 +81,9 @@ void Shell_python::handle_input(std::string &code, Interactive_input_state &stat
   }
   _last_handled = code;
 
-  result_processor(result);
+  // Only processes the result when full statements are executed
+  if (state == Input_ok)
+    result_processor(result);
 }
 
 /*
@@ -97,9 +94,9 @@ std::string Shell_python::prompt()
   boost::system::error_code err;
   try
   {
-    bool continued(false);
+    Interactive_input_state state = Input_ok;
     WillEnterPython lock;
-    shcore::Value value = _py->execute_interactive("shell.ps() if 'ps' in dir(shell) else None", continued);
+    shcore::Value value = _py->execute_interactive("shell.ps() if 'ps' in dir(shell) else None", state);
     if (value && value.type == String)
       return value.as_string();
   }

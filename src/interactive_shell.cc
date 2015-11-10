@@ -47,7 +47,7 @@ _options(options)
 #endif
   //  using_history();
 
-  _multiline_mode = false;
+  _input_mode = Input_ok;
 
   _delegate.user_data = this;
   _delegate.print = &Interactive_shell::deleg_print;
@@ -446,7 +446,7 @@ void Interactive_shell::init_scripts(Shell_core::Mode mode)
 
 std::string Interactive_shell::prompt()
 {
-  if (_multiline_mode)
+  if (_input_mode != Input_ok)
   {
     return std::string(_shell->prompt().length() - 4, ' ').append("... ");
   }
@@ -461,7 +461,7 @@ void Interactive_shell::switch_shell_mode(Shell_core::Mode mode, const std::vect
 
   if (old_mode != mode)
   {
-    _multiline_mode = false;
+    _input_mode = Input_ok;
     _input_buffer.clear();
 
     //XXX reset the history... history should be specific to each shell mode
@@ -620,7 +620,7 @@ void Interactive_shell::cmd_print_shell_help(const std::vector<std::string>& arg
 void Interactive_shell::cmd_start_multiline(const std::vector<std::string>& args)
 {
   if (args.empty())
-    _multiline_mode = true;
+    _input_mode = Input_continued_block;
 }
 
 void Interactive_shell::cmd_connect(const std::vector<std::string>& args)
@@ -912,9 +912,9 @@ bool Interactive_shell::do_shell_command(const std::string &line)
 void Interactive_shell::process_line(const std::string &line)
 {
   bool handled_as_command = false;
-  Interactive_input_state state = Input_ok;
+
   // check if the line is an escape/shell command
-  if (_input_buffer.empty() && !line.empty() && !_multiline_mode)
+  if (_input_buffer.empty() && !line.empty() && _input_mode == Input_ok)
   {
     try
     {
@@ -928,28 +928,27 @@ void Interactive_shell::process_line(const std::string &line)
 
   if (!handled_as_command)
   {
-    if (_multiline_mode && line.empty())
-      _multiline_mode = false;
-    else
-    {
-      if (_input_buffer.empty())
-        _input_buffer = _shell->preprocess_input_line(line);
-      else
-        _input_buffer.append("\n").append(_shell->preprocess_input_line(line));
-    }
+    if (_input_mode == Input_continued_block && line.empty())
+      _input_mode = Input_ok;
+
+    // Appends the line, no matter it is an empty line
+    _input_buffer.append(_shell->preprocess_input_line(line));
+
+    // Appends the new line if anything has been added to the buffer
+    if (!_input_buffer.empty())
+      _input_buffer.append("\n");
 
     // in SQL mode, we don't need an empty line to end multiline
-    if ((!_multiline_mode || _shell->interactive_mode() == Shell_core::Mode_SQL) && !_input_buffer.empty())
+    if ((_input_mode != Input_continued_block || _shell->interactive_mode() == Shell_core::Mode_SQL) && !_input_buffer.empty())
     {
       try
       {
-        _shell->handle_input(_input_buffer, state, _result_processor);
+        _shell->handle_input(_input_buffer, _input_mode, _result_processor);
 
-        if (state == Input_ok)
+        // Here we analyze the input mode as it was let after executing the code
+        if (_input_mode == Input_ok)
         {
           std::string executed = _shell->get_handled_input();
-
-          _multiline_mode = false;
 
           if (!executed.empty())
           {
@@ -959,16 +958,10 @@ void Interactive_shell::process_line(const std::string &line)
             println("");
           }
         }
-        else if (state == Input_continued)
-        {
-          // end of multiline was requested, but it didn't help...
-          // so pretend that the input was consumed, so that the
-          // next statement can start fresh
-          if (!line.empty())
-            _multiline_mode = true;
-          else
-            _input_buffer.clear();
-        }
+        // Continued blocks are only executed when an empty line is received
+        // this case is when a block was executed and a new one was started at the same time
+        else if (_input_mode == Input_continued_block && line.empty())
+          _input_buffer.clear();
       }
       catch (shcore::Exception &exc)
       {
@@ -979,9 +972,10 @@ void Interactive_shell::process_line(const std::string &line)
         print_error(exc.what());
       }
 
+      // TODO: Do we need this cleanup? i.e. in case of exceptions above??
       // Clears the buffer if OK, if continued, buffer will contain
       // the non executed code
-      if (state == Input_ok)
+      if (_input_mode == Input_ok)
         _input_buffer.clear();
     }
   }

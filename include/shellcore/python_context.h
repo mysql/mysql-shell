@@ -184,7 +184,7 @@ namespace shcore
     PyObject *get_shell_stderr_module();
 
     Value execute(const std::string &code, boost::system::error_code &ret_error, const std::string& source = "") throw (Exception);
-    Value execute_interactive(const std::string &code, bool &r_continued) BOOST_NOEXCEPT_OR_NOTHROW;
+    Value execute_interactive(const std::string &code, Interactive_input_state &r_state) BOOST_NOEXCEPT_OR_NOTHROW;
 
     Value pyobj_to_shcore_value(PyObject *value);
     PyObject *shcore_value_to_pyobj(const Value &value);
