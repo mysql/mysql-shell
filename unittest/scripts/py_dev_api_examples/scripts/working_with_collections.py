@@ -9,7 +9,7 @@ import mysqlx
 mySession = mysqlx.getSession( {
                 'host': 'localhost', 'port': 33060,
                 'dbUser': 'mike', 'dbPassword': 's3cr3t!'} )
-                
+
 myDb = mySession.getSchema('test')
 
 # Create a new collection 'my_collection'

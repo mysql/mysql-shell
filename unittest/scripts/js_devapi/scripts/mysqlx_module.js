@@ -55,9 +55,9 @@ if (mySession.uri == __displayuri)
 	print('Session using right URI\n');
 else
 	print('Session using wrong URI\n');
-	
+
 mySession.close();
-	
+
 //@ mysqlx module: getSession through URI and password
 mySession = mysqlx.getSession(__uri, __pwd);
 
@@ -66,7 +66,7 @@ print(mySession, '\n');
 if (mySession.uri == __displayuri)
 	print('Session using right URI\n');
 else
-	print('Session using wrong URI\n');	
+	print('Session using wrong URI\n');
 
 mySession.close();
 
@@ -86,9 +86,9 @@ print(mySession, '\n');
 if (mySession.uri == __displayuridb)
 	print('Session using right URI\n');
 else
-	print('Session using wrong URI\n');	
-	
-mySession.close();		
+	print('Session using wrong URI\n');
+
+mySession.close();
 
 //@ mysqlx module: getSession through data and password
 var data = { host: __host,
@@ -105,8 +105,8 @@ if (mySession.uri == __displayuridb)
 	print('Session using right URI\n');
 else
 	print('Session using wrong URI\n');	
-	
-mySession.close();		
+
+mySession.close();
 
 
 //@ mysqlx module: getNodeSession through URI
@@ -118,9 +118,9 @@ if (mySession.uri == __displayuri)
 	print('Session using right URI\n');
 else
 	print('Session using wrong URI\n');
-	
+
 mySession.close();
-	
+
 //@ mysqlx module: getNodeSession through URI and password
 mySession = mysqlx.getNodeSession(__uri, __pwd);
 
@@ -149,9 +149,9 @@ print(mySession, '\n');
 if (mySession.uri == __displayuridb)
 	print('Session using right URI\n');
 else
-	print('Session using wrong URI\n');	
-	
-mySession.close();		
+	print('Session using wrong URI\n');
+
+mySession.close();
 
 //@ mysqlx module: getNodeSession through data and password
 var data = { host: __host,
@@ -167,9 +167,9 @@ print(mySession, '\n');
 if (mySession.uri == __displayuridb)
 	print('Session using right URI\n');
 else
-	print('Session using wrong URI\n');	
-	
-mySession.close();		
+	print('Session using wrong URI\n');
+
+mySession.close();
 
 
 //@ Stored Sessions, session from data dictionary

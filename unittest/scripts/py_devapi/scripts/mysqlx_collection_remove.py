@@ -27,11 +27,11 @@ crud = collection.remove()
 validate_crud_functions(crud, ['sort', 'limit', 'bind', 'execute', '__shell_hook__'])
 
 #@ CollectionRemove: valid operations after sort
-crud.sort(['name'])
+crud = crud.sort(['name'])
 validate_crud_functions(crud, ['limit', 'bind', 'execute', '__shell_hook__'])
 
 #@ CollectionRemove: valid operations after limit
-crud.limit(1)
+crud = crud.limit(1)
 validate_crud_functions(crud, ['bind', 'execute', '__shell_hook__'])
 
 #@ CollectionRemove: valid operations after bind

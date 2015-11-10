@@ -17,9 +17,8 @@ shell.storedSessions.add(56, 'test@uri');
 shell.storedSessions.add('my sample', 5);
 shell.storedSessions.add('my sample', 'test@uri');
 shell.storedSessions.add('my_sample', {});
-shell.storedSessions.add('my_sample', {host:''});
+shell.storedSessions.add('my_sample', { host: '' });
 shell.storedSessions.add('my_sample', 'user@host', 5);
-
 
 //@ Adding entry to the Stored sessions
 var done = shell.storedSessions.add('my_sample', 'root:pwd@samplehost:44000/sakila');
@@ -49,8 +48,7 @@ shell.storedSessions.update(56, 'test@uri');
 shell.storedSessions.update('my sample', 5);
 shell.storedSessions.update('my sample', 'test@uri');
 shell.storedSessions.update('my_sample', {});
-shell.storedSessions.update('my_sample', {host:''});
-
+shell.storedSessions.update('my_sample', { host: '' });
 
 //@ Updates a connection
 done = false;
@@ -67,4 +65,3 @@ shell.storedSessions.remove('my sample');
 done = false;
 done = shell.storedSessions.remove('my_sample');
 print('Removed:', done, '\n')
-

@@ -34,9 +34,9 @@ if mySession.uri == __displayuri:
 	print 'Session using right URI\n'
 else:
 	print 'Session using wrong URI\n' 
-	
+
 mySession.close()
-	
+
 #@ mysql module: getClassicSession through URI and password
 mySession = mysql.getClassicSession(__uri, __pwd)
 
@@ -66,8 +66,8 @@ if mySession.uri == __displayuridb:
 	print 'Session using right URI\n'
 else:
 	print 'Session using wrong URI\n'
-	
-mySession.close()		
+
+mySession.close()
 
 #@ mysql module: getClassicSession through data and password
 data = { 'host': __host,
@@ -84,7 +84,7 @@ if mySession.uri == __displayuridb:
 	print 'Session using right URI\n'
 else:
 	print 'Session using wrong URI\n'
-	
+
 mySession.close()
 
 #@ Stored Sessions, session from data dictionary
@@ -97,8 +97,8 @@ print "%s\n" % mySession
 if mySession.uri == __displayuridb:
 	print 'Session using right URI\n'
 else:
-	print 'Session using wrong URI\n'	
-	
+	print 'Session using wrong URI\n'
+
 mySession.close()
 
 #@ Stored Sessions, session from data dictionary removed
@@ -117,8 +117,8 @@ if mySession.uri == __displayuri:
 	print 'Session using right URI\n'
 else:
 	print 'Session using wrong URI\n'
-	
-mySession.close()	
+
+mySession.close()
 
 #@ Stored Sessions, session from uri removed
 shell.storedSessions.remove('mysql_uri')

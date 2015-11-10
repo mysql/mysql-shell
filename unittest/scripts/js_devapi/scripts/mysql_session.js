@@ -27,10 +27,9 @@ print(schemas.mysql);
 print(schemas.information_schema);
 
 //@ ClassicSession: accessing individual schema
-var schema;
-schema = classicSession.getSchema('mysql');
+var schema = classicSession.getSchema('mysql');
 print(schema.name);
-schema = classicSession.getSchema('information_schema');
+var schema = classicSession.getSchema('information_schema');
 print(schema.name);
 
 //@ ClassicSession: accessing schema through dynamic attributes
@@ -38,20 +37,18 @@ print(classicSession.mysql.name)
 print(classicSession.information_schema.name)
 
 //@ ClassicSession: accessing unexisting schema
-schema = classicSession.getSchema('unexisting_schema');
+var schema = classicSession.getSchema('unexisting_schema');
 
 //@ ClassicSession: current schema validations: nodefault
-var dschema;
-var cschema;
-dschema = classicSession.getDefaultSchema();
-cschema = classicSession.getCurrentSchema();
+var dschema = classicSession.getDefaultSchema();
+var cschema = classicSession.getCurrentSchema();
 print(dschema);
 print(cschema);
 
 //@ ClassicSession: create schema success
 ensure_schema_does_not_exist(classicSession, 'node_session_schema');
 
-ss = classicSession.createSchema('node_session_schema');
+var ss = classicSession.createSchema('node_session_schema');
 print(ss)
 
 //@ ClassicSession: create schema failure
@@ -63,7 +60,7 @@ var qs = classicSession.createSchema('quoted schema');
 print(qs);
 
 //@ Session: validate dynamic members for created schemas
-sessionMembers = dir(classicSession)
+var sessionMembers = dir(classicSession)
 validateMember(sessionMembers, 'node_session_schema');
 validateNotMember(sessionMembers, 'quoted schema');
 
@@ -77,7 +74,7 @@ var res2 = classicSession.runSql('insert into sample values ("carol")');
 var res3 = classicSession.runSql('insert into sample values ("jack")');
 classicSession.rollback();
 
-result = classicSession.runSql('select * from sample');
+var result = classicSession.runSql('select * from sample');
 print('Inserted Documents:', result.fetchAll().length);
 
 //@ ClassicSession: Transaction handling: commit
@@ -87,7 +84,7 @@ var res2 = classicSession.runSql('insert into sample values ("carol")');
 var res3 = classicSession.runSql('insert into sample values ("jack")');
 classicSession.commit();
 
-result = classicSession.runSql('select * from sample');
+var result = classicSession.runSql('select * from sample');
 print('Inserted Documents:', result.fetchAll().length);
 
 classicSession.dropSchema('node_session_schema');
@@ -95,30 +92,30 @@ classicSession.dropSchema('quoted schema');
 
 //@ ClassicSession: current schema validations: nodefault, mysql
 classicSession.setCurrentSchema('mysql');
-dschema = classicSession.getDefaultSchema();
-cschema = classicSession.getCurrentSchema();
+var dschema = classicSession.getDefaultSchema();
+var cschema = classicSession.getCurrentSchema();
 print(dschema);
 print(cschema);
 
 //@ ClassicSession: current schema validations: nodefault, information_schema
 classicSession.setCurrentSchema('information_schema');
-dschema = classicSession.getDefaultSchema();
-cschema = classicSession.getCurrentSchema();
+var dschema = classicSession.getDefaultSchema();
+var cschema = classicSession.getCurrentSchema();
 print(dschema);
 print(cschema);
 
-//@ ClassicSession: current schema validations: default 
+//@ ClassicSession: current schema validations: default
 classicSession.close()
 classicSession = mysql.getClassicSession(__uripwd + '/mysql');
-dschema = classicSession.getDefaultSchema();
-cschema = classicSession.getCurrentSchema();
+var dschema = classicSession.getDefaultSchema();
+var cschema = classicSession.getCurrentSchema();
 print(dschema);
 print(cschema);
 
 //@ ClassicSession: current schema validations: default, information_schema
 classicSession.setCurrentSchema('information_schema');
-dschema = classicSession.getDefaultSchema();
-cschema = classicSession.getCurrentSchema();
+var dschema = classicSession.getDefaultSchema();
+var cschema = classicSession.getCurrentSchema();
 print(dschema);
 print(cschema);
 

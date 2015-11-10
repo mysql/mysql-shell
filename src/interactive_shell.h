@@ -32,7 +32,7 @@ using namespace shcore;
 class Interactive_shell
 {
 public:
-  Interactive_shell(const Shell_command_line_options &options);
+  Interactive_shell(const Shell_command_line_options &options, Interpreter_delegate *custom_delegate = NULL);
   void command_loop();
   int process_stream(std::istream & stream, const std::string& source);
   int process_file();
@@ -63,15 +63,18 @@ public:
 
   void print_banner();
   void print_cmd_line_helper();
+  IShell_core::Mode interactive_mode() const { return _shell->interactive_mode(); }
 
   void set_log_level(ngcommon::Logger::LOG_LEVEL level) { if (_logger) _logger->set_log_level(level); }
 
   shcore::Value::Map_type_ref parse_uri(const std::string& uri);
 
+  void process_line(const std::string &line);
+
 private:
   Shell_command_line_options _options;
   static char *readline(const char *prompt);
-  void process_line(const std::string &line);
+
   void process_result(shcore::Value result);
   std::string prompt();
   ngcommon::Logger* _logger;

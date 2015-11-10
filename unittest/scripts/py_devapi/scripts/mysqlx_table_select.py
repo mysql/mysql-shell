@@ -29,27 +29,27 @@ crud = table.select()
 validate_crud_functions(crud, ['where', 'groupBy', 'orderBy', 'limit', 'bind', 'execute', '__shell_hook__'])
 
 #@ TableSelect: valid operations after where
-crud.where('age > 13')
+crud = crud.where('age > 13')
 validate_crud_functions(crud, ['groupBy', 'orderBy', 'limit', 'bind', 'execute', '__shell_hook__'])
 
 #@ TableSelect: valid operations after groupBy
-crud.groupBy(['name'])
+crud = crud.groupBy(['name'])
 validate_crud_functions(crud, ['having', 'orderBy', 'limit', 'bind', 'execute', '__shell_hook__'])
 
 #@ TableSelect: valid operations after having
-crud.having('age > 10')
+crud = crud.having('age > 10')
 validate_crud_functions(crud, ['orderBy', 'limit', 'bind', 'execute', '__shell_hook__'])
 
 #@ TableSelect: valid operations after orderBy
-crud.orderBy(['age'])
+crud = crud.orderBy(['age'])
 validate_crud_functions(crud, ['limit', 'bind', 'execute', '__shell_hook__'])
 
 #@ TableSelect: valid operations after limit
-crud.limit(1)
+crud = crud.limit(1)
 validate_crud_functions(crud, ['offset', 'bind', 'execute', '__shell_hook__'])
 
 #@ TableSelect: valid operations after offset
-crud.offset(1)
+crud = crud.offset(1)
 validate_crud_functions(crud, ['bind', 'execute', '__shell_hook__'])
 
 #@ TableSelect: valid operations after bind

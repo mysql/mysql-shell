@@ -34,7 +34,7 @@
 //const int MAX_READLINE_BUF = 65536;
 extern char *mysh_get_tty_password(const char *opt_message);
 
-Interactive_shell::Interactive_shell(const Shell_command_line_options &options) :
+Interactive_shell::Interactive_shell(const Shell_command_line_options &options, Interpreter_delegate *custom_delegate) :
 _options(options)
 {
   std::string log_path = get_user_config_path();
@@ -49,12 +49,24 @@ _options(options)
 
   _input_mode = Input_ok;
 
-  _delegate.user_data = this;
-  _delegate.print = &Interactive_shell::deleg_print;
-  _delegate.print_error = &Interactive_shell::deleg_print_error;
-  _delegate.prompt = &Interactive_shell::deleg_prompt;
-  _delegate.password = &Interactive_shell::deleg_password;
-  _delegate.source = &Interactive_shell::deleg_source;
+  if (custom_delegate)
+  {
+    _delegate.user_data = custom_delegate->user_data;
+    _delegate.print = custom_delegate->print;
+    _delegate.print_error = custom_delegate->print_error;
+    _delegate.prompt = custom_delegate->prompt;
+    _delegate.password = custom_delegate->password;
+    _delegate.source = custom_delegate->source;
+  }
+  else
+  {
+    _delegate.user_data = this;
+    _delegate.print = &Interactive_shell::deleg_print;
+    _delegate.print_error = &Interactive_shell::deleg_print_error;
+    _delegate.prompt = &Interactive_shell::deleg_prompt;
+    _delegate.password = &Interactive_shell::deleg_password;
+    _delegate.source = &Interactive_shell::deleg_source;
+  }
 
   // Sets the global options
   Value::Map_type_ref shcore_options = Shell_core_options::get();
@@ -200,7 +212,7 @@ bool Interactive_shell::connect(bool primary_session)
     if (_session && _session->is_connected())
     {
       if (_options.interactive)
-        shcore::print("Closing old connection...\n");
+        _delegate.print(_delegate.user_data, "Closing old connection...\n");
 
       _session->close(shcore::Argument_list());
     }
@@ -236,7 +248,10 @@ bool Interactive_shell::connect(bool primary_session)
       if ((*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string().find("json") == 0)
         print_json_info(message);
       else
-        shcore::print(message + "\n");
+      {
+        message += "\n";
+        _delegate.print(_delegate.user_data, message.c_str());
+      }
     }
 
     Argument_list args;
@@ -301,7 +316,9 @@ bool Interactive_shell::connect(bool primary_session)
   }
   catch (std::exception &exc)
   {
-    print_error(std::string(exc.what()) + "\n");
+    std::string error(exc.what());
+    error += "\n";
+    _delegate.print_error(_delegate.user_data, error.c_str());
     return false;
   }
 
@@ -353,7 +370,8 @@ Value Interactive_shell::connect_session(const Argument_list &args, mysh::Sessio
   {
     Argument_list args;
     args.push_back(Value(create_schema_name));
-    shcore::print("Recreating schema " + create_schema_name + "...\n");
+    std::string message = "Recreating schema " + create_schema_name + "...\n";
+    _delegate.print(_delegate.user_data, message.c_str());
     try
     {
       _session->dropSchema(args);
@@ -388,10 +406,13 @@ Value Interactive_shell::connect_session(const Argument_list &args, mysh::Sessio
     if ((*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string().find("json") == 0)
       print_json_info(message);
     else
-      shcore::print(message + "\n");
+    {
+      message += "\n";
+      _delegate.print(_delegate.user_data, message.c_str());
+    }
 
     // extra empty line to separate connect msgs from the stdheader nobody reads
-    shcore::print("\n");
+    _delegate.print(_delegate.user_data, "\n");
   }
 
   return Value::Null();
@@ -440,7 +461,9 @@ void Interactive_shell::init_scripts(Shell_core::Mode mode)
   }
   catch (std::exception &e)
   {
-    print_error(e.what());
+    std::string error(e.what());
+    error += "\n";
+    _delegate.print_error(_delegate.user_data, error.c_str());
   }
 }
 
@@ -518,7 +541,9 @@ void Interactive_shell::print(const std::string &str)
 
 void Interactive_shell::println(const std::string &str)
 {
-  std::cout << str << "\n";
+  std::string line(str);
+  line += "\n";
+  _delegate.print(_delegate.user_data, line.c_str());
 }
 
 void Interactive_shell::print_error(const std::string &error)
@@ -585,7 +610,8 @@ void Interactive_shell::print_json_info(const std::string &info, const std::stri
   dumper.append_string(info);
   dumper.end_object();
 
-  shcore::print(dumper.str() + "\n");
+  _delegate.print(_delegate.user_data, dumper.str().c_str());
+  _delegate.print(_delegate.user_data, "\n");
 }
 
 void Interactive_shell::cmd_print_shell_help(const std::vector<std::string>& args)
@@ -639,7 +665,7 @@ void Interactive_shell::cmd_connect(const std::vector<std::string>& args)
       println("WARNING: An X Session has been established and SQL execution is not allowed.");
   }
   else
-    print_error("\\connect <uri or $appName>\n");
+    _delegate.print_error(_delegate.user_data, "\\connect <uri or $appName>\n");
 }
 
 void Interactive_shell::cmd_connect_node(const std::vector<std::string>& args)
@@ -654,7 +680,7 @@ void Interactive_shell::cmd_connect_node(const std::vector<std::string>& args)
     connect();
   }
   else
-    print_error("\\connect_node <uri or $appName>\n");
+    _delegate.print_error(_delegate.user_data, "\\connect_node <uri or $appName>\n");
 }
 
 void Interactive_shell::cmd_connect_classic(const std::vector<std::string>& args)
@@ -669,7 +695,7 @@ void Interactive_shell::cmd_connect_classic(const std::vector<std::string>& args
     connect();
   }
   else
-    print_error("\\connect_classic <uri or $appName>\n");
+    _delegate.print_error(_delegate.user_data, "\\connect_classic <uri or $appName>\n");
 }
 
 void Interactive_shell::cmd_quit(const std::vector<std::string>& UNUSED(args))
@@ -769,7 +795,10 @@ void Interactive_shell::cmd_store_connection(const std::vector<std::string>& arg
     error = "\\addconn [-f] <app> [<uri>]";
 
   if (!error.empty())
-    print_error(error + "\n");
+  {
+    error += "\n";
+    _delegate.print_error(_delegate.user_data, error.c_str());
+  }
 }
 
 void Interactive_shell::cmd_delete_connection(const std::vector<std::string>& args)
@@ -791,7 +820,10 @@ void Interactive_shell::cmd_delete_connection(const std::vector<std::string>& ar
     error = "\\rmconn <app>";
 
   if (!error.empty())
-    print_error(error + "\n");
+  {
+    error += "\n";
+    _delegate.print_error(_delegate.user_data, error.c_str());
+  }
 }
 
 void Interactive_shell::cmd_update_connection(const std::vector<std::string>& args)
@@ -813,7 +845,10 @@ void Interactive_shell::cmd_update_connection(const std::vector<std::string>& ar
     error = "\\chconn <app> <URI>";
 
   if (!error.empty())
-    print_error(error + "\n");
+  {
+    error += "\n";
+    _delegate.print_error(_delegate.user_data, error.c_str());
+  }
 }
 
 void Interactive_shell::cmd_list_connections(const std::vector<std::string>& args)
@@ -824,10 +859,11 @@ void Interactive_shell::cmd_list_connections(const std::vector<std::string>& arg
     std::string format = (*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string();
 
     // Prints the connections in pretty JSON format unless json/raw is specified
-    shcore::print(connections.json(format != "json/raw") + "\n");
+    _delegate.print(_delegate.user_data, connections.json(format != "json/raw").c_str());
+    _delegate.print(_delegate.user_data, "\n");
   }
   else
-    print_error("\\lsconn\n");
+    _delegate.print_error(_delegate.user_data, "\\lsconn\n");
 }
 
 void Interactive_shell::deleg_print(void *cdata, const char *text)
@@ -922,7 +958,9 @@ void Interactive_shell::process_line(const std::string &line)
     }
     catch (std::exception &exc)
     {
-      print_error(exc.what());
+      std::string error(exc.what());
+      error += "\n";
+      _delegate.print_error(_delegate.user_data, error.c_str());
     }
   }
 
@@ -931,12 +969,12 @@ void Interactive_shell::process_line(const std::string &line)
     if (_input_mode == Input_continued_block && line.empty())
       _input_mode = Input_ok;
 
-    // Appends the line, no matter it is an empty line
-    _input_buffer.append(_shell->preprocess_input_line(line));
-
     // Appends the new line if anything has been added to the buffer
     if (!_input_buffer.empty())
       _input_buffer.append("\n");
+
+    // Appends the line, no matter it is an empty line
+    _input_buffer.append(_shell->preprocess_input_line(line));
 
     // in SQL mode, we don't need an empty line to end multiline
     if ((_input_mode != Input_continued_block || _shell->interactive_mode() == Shell_core::Mode_SQL) && !_input_buffer.empty())
@@ -965,11 +1003,13 @@ void Interactive_shell::process_line(const std::string &line)
       }
       catch (shcore::Exception &exc)
       {
-        print_error(exc.format());
+        _delegate.print_error(_delegate.user_data, exc.format().c_str());
       }
       catch (std::exception &exc)
       {
-        print_error(exc.what());
+        std::string error(exc.what());
+        error += "\n";
+        _delegate.print_error(_delegate.user_data, error.c_str());
       }
 
       // TODO: Do we need this cleanup? i.e. in case of exceptions above??
@@ -1028,7 +1068,7 @@ void Interactive_shell::process_result(shcore::Value result)
             print(dumper.str());
           }
           else
-            print(result.descr(true).c_str());
+            _delegate.print(_delegate.user_data, result.descr(true).c_str());
         }
       }
     }
@@ -1045,7 +1085,7 @@ int Interactive_shell::process_file()
   bool ret_val = 1;
 
   if (_options.run_file.empty())
-    _shell->print_error("Usage: \\. <filename> | \\source <filename>");
+    _delegate.print_error(_delegate.user_data, "Usage: \\. <filename> | \\source <filename>\n");
   else
     //TODO: do path expansion (in case ~ is used in linux)
   {
@@ -1066,7 +1106,7 @@ int Interactive_shell::process_file()
     else
     {
       // TODO: add a log entry once logging is
-      _shell->print_error((boost::format("Failed to open file '%s', error: %d") % _options.run_file % errno).str());
+      _delegate.print_error(_delegate.user_data, (boost::format("Failed to open file '%s', error: %d") % _options.run_file % errno).str().c_str());
     }
   }
 
@@ -1132,7 +1172,10 @@ void Interactive_shell::command_loop()
       if ((*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string().find("json") == 0)
         print_json_info(message);
       else
-        shcore::print(message + "\n");
+      {
+        message += "\n";
+        _delegate.print(_delegate.user_data, message.c_str());
+      }
     }
   }
 

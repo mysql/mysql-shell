@@ -18,7 +18,6 @@ var view = mySession.js_shell_test.getView('view1');
 print('getName(): ' + view.getName());
 print('name: ' + view.name);
 
-
 //@ Testing session retrieving
 print('getSession():', view.getSession());
 print('session:', view.session);
@@ -26,7 +25,6 @@ print('session:', view.session);
 //@ Testing view schema retrieving
 print('getSchema():', view.getSchema());
 print('schema:', view.schema);
-
 
 //@ Testing existence
 print('Valid:', view.existsInDatabase());

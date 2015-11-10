@@ -241,22 +241,17 @@ void Shell_script_tester::execute_script(const std::string& path, bool in_chunks
     // Process the file
     if (in_chunks)
     {
+      (*shcore::Shell_core_options::get())[SHCORE_INTERACTIVE] = shcore::Value::True();
       load_source_chunks(stream);
       for (size_t index = 0; index < _chunk_order.size(); index++)
       {
-        // Chunk is configured to be executed line by line
-        if (_chunk_order[index].find(get_chunk_by_line_token()) == 0)
-        {
-          for (size_t chunk_item = 0; chunk_item < _chunks[_chunk_order[index]]->size(); chunk_item++)
-            execute((*_chunks[_chunk_order[index]])[chunk_item] + "\n");
-        }
-        else
-        {
-          (*shcore::Shell_core_options::get())[SHCORE_INTERACTIVE] = shcore::Value::False();
-          execute(boost::join((*_chunks[_chunk_order[index]]), "\n") + "\n");
-        }
+        // Executes the file line by line
+        for (size_t chunk_item = 0; chunk_item < _chunks[_chunk_order[index]]->size(); chunk_item++)
+          execute((*_chunks[_chunk_order[index]])[chunk_item]);
 
-        (*shcore::Shell_core_options::get())[SHCORE_INTERACTIVE] = shcore::Value::True();
+        execute("");
+        execute("");
+
         validate(path, _chunk_order[index]);
       }
     }
@@ -265,7 +260,7 @@ void Shell_script_tester::execute_script(const std::string& path, bool in_chunks
       (*shcore::Shell_core_options::get())[SHCORE_INTERACTIVE] = shcore::Value::False();
 
       // Processes the script
-      _shell_core->process_stream(stream, script, _result_processor);
+      _interactive_shell->process_stream(stream, script);
 
       // When path is empty it is processing a setup script
       // If an error is found it will be printed here
@@ -353,8 +348,7 @@ void Shell_js_script_tester::SetUp()
 {
   Shell_script_tester::SetUp();
 
-  bool initilaized(false);
-  _shell_core->switch_mode(shcore::IShell_core::Mode_JScript, initilaized);
+  _interactive_shell->process_line("\\js");
 
   std::string js_modules_path = MYSQLX_SOURCE_HOME;
   js_modules_path += "/scripting/modules/js";
@@ -365,6 +359,7 @@ void Shell_py_script_tester::SetUp()
 {
   Shell_script_tester::SetUp();
 
-  bool initilaized(false);
-  _shell_core->switch_mode(shcore::IShell_core::Mode_Python, initilaized);
+  _interactive_shell->process_line("\\py");
+
+  output_handler.wipe_all();
 }

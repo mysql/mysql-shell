@@ -18,6 +18,7 @@
 #include "shellcore/shell_core.h"
 #include "shellcore/common.h"
 #include <set>
+#include "src/interactive_shell.h"
 
 class Shell_test_output_handler
 {
@@ -51,13 +52,13 @@ protected:
   virtual void SetUp();
   virtual void TearDown();
 
-  void process_result(shcore::Value result);
+  //void process_result(shcore::Value result);
   shcore::Value execute(const std::string& code);
   shcore::Value exec_and_out_equals(const std::string& code, const std::string& out = "", const std::string& err = "");
   shcore::Value exec_and_out_contains(const std::string& code, const std::string& out = "", const std::string& err = "");
 
   Shell_test_output_handler output_handler;
-  boost::shared_ptr<shcore::Shell_core> _shell_core;
+  boost::shared_ptr<Interactive_shell> _interactive_shell;
   void wipe_out() { output_handler.wipe_out(); }
   void wipe_err() { output_handler.wipe_err(); }
   void wipe_all() { output_handler.wipe_all(); }
@@ -68,7 +69,6 @@ protected:
   std::string _mysql_uri;
 
   shcore::Value _returned_value;
-  boost::function<void(shcore::Value)> _result_processor;
 
   shcore::Interpreter_delegate deleg;
 };

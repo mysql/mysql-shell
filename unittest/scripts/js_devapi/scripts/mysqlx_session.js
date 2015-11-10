@@ -59,9 +59,9 @@ validateNotMember(sessionMembers, 'quoted schema');
 //@ Session: Transaction handling: rollback
 var collection = ss.createCollection('sample');
 mySession.startTransaction();
-var res1 = collection.add({name:'john', age: 15}).execute();
-var res2 = collection.add({name:'carol', age: 16}).execute();
-var res3 = collection.add({name:'alma', age: 17}).execute();
+var res1 = collection.add({ name: 'john', age: 15 }).execute();
+var res2 = collection.add({ name: 'carol', age: 16 }).execute();
+var res3 = collection.add({ name: 'alma', age: 17 }).execute();
 mySession.rollback();
 
 var result = collection.find().execute();
@@ -69,14 +69,13 @@ print('Inserted Documents:', result.fetchAll().length);
 
 //@ Session: Transaction handling: commit
 mySession.startTransaction();
-var res1 = collection.add({name:'john', age: 15}).execute();
-var res2 = collection.add({name:'carol', age: 16}).execute();
-var res3 = collection.add({name:'alma', age: 17}).execute();
+var res1 = collection.add({ name: 'john', age: 15 }).execute();
+var res2 = collection.add({ name: 'carol', age: 16 }).execute();
+var res3 = collection.add({ name: 'alma', age: 17 }).execute();
 mySession.commit();
 
 var result = collection.find().execute();
 print('Inserted Documents:', result.fetchAll().length);
-
 
 // Cleanup
 mySession.dropSchema('session_schema');
@@ -100,7 +99,6 @@ validateMember(nodeSessionMembers, 'defaultSchema');
 validateMember(nodeSessionMembers, 'schemas');
 validateMember(nodeSessionMembers, 'uri');
 validateMember(nodeSessionMembers, 'currentSchema');
-
 
 //@ NodeSession: accessing Schemas
 var schemas = nodeSession.getSchemas();
@@ -141,9 +139,9 @@ var sf = nodeSession.createSchema('node_session_schema');
 //@ NodeSession: Transaction handling: rollback
 var collection = ss.createCollection('sample');
 nodeSession.startTransaction();
-var res1 = collection.add({name:'john', age: 15}).execute();
-var res2 = collection.add({name:'carol', age: 16}).execute();
-var res3 = collection.add({name:'alma', age: 17}).execute();
+var res1 = collection.add({ name: 'john', age: 15 }).execute();
+var res2 = collection.add({ name: 'carol', age: 16 }).execute();
+var res3 = collection.add({ name: 'alma', age: 17 }).execute();
 nodeSession.rollback();
 
 var result = collection.find().execute();
@@ -151,9 +149,9 @@ print('Inserted Documents:', result.fetchAll().length);
 
 //@ NodeSession: Transaction handling: commit
 nodeSession.startTransaction();
-var res1 = collection.add({name:'john', age: 15}).execute();
-var res2 = collection.add({name:'carol', age: 16}).execute();
-var res3 = collection.add({name:'alma', age: 17}).execute();
+var res1 = collection.add({ name: 'john', age: 15 }).execute();
+var res2 = collection.add({ name: 'carol', age: 16 }).execute();
+var res3 = collection.add({ name: 'alma', age: 17 }).execute();
 nodeSession.commit();
 
 var result = collection.find().execute();
@@ -175,7 +173,7 @@ cschema = nodeSession.getCurrentSchema();
 print(dschema);
 print(cschema);
 
-//@ NodeSession: current schema validations: default 
+//@ NodeSession: current schema validations: default
 nodeSession.close()
 nodeSession = mysqlx.getNodeSession(__uripwd + '/mysql');
 dschema = nodeSession.getDefaultSchema();

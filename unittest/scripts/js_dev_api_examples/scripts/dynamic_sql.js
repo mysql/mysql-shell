@@ -1,19 +1,19 @@
 // Assumptions: test schema exists
 
 function createTestTable(session, name) {
-
-	// use escape function to quote names/identifier
-	quoted_name = session.quoteName(name);
-
+  
+  // use escape function to quote names/identifier
+  quoted_name = session.quoteName(name);
+  
   session.sql("DROP TABLE IF EXISTS " + quoted_name).execute();
   
   var create = "CREATE TABLE ";
-	create += quoted_name;
+  create += quoted_name;
   create += " (id INT NOT NULL PRIMARY KEY AUTO_INCREMENT)";
-
+  
   session.sql(create).execute();
-	
-	return session.getCurrentSchema().getTable(name);
+  
+  return session.getCurrentSchema().getTable(name);
 }
 
 var mysqlx = require('mysqlx').mysqlx;

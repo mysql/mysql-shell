@@ -10,6 +10,7 @@ session = None
 
 def ensure_session():
   global testSession
+  global session
   if testSession is None:
     print "Creating session...\n"
 
@@ -23,6 +24,8 @@ def ensure_session():
       pass
   else:
     print "Session exists...\n"
+    
+  session = testSession
 
 def ensure_test_schema():
   ensure_session()
@@ -159,7 +162,7 @@ def ensure_my_proc_procedure_exists():
 for assumption in __assumptions__:
   print 'Assumption: %s\n' % assumption
 
-  if assumption == "connected testSession":
+  if assumption == "connected session":
     ensure_session()
   elif assumption == "test schema exists":
     ensure_test_schema()

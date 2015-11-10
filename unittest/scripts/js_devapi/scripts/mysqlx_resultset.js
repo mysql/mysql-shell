@@ -11,23 +11,23 @@ mySession.setCurrentSchema('js_shell_test');
 mySession.sql('create table js_shell_test.buffer_table (name varchar(50), age integer, gender varchar(20))').execute();
 var table = schema.getTable('buffer_table');
 var result = table.insert({'name': 'jack', 'age': 17, 'gender': 'male'}).execute();
-result = table.insert({'name': 'adam', 'age': 15, 'gender': 'male'}).execute();
-result = table.insert({'name': 'brian', 'age': 14, 'gender': 'male'}).execute();
-result = table.insert({'name': 'alma', 'age': 13, 'gender': 'female'}).execute();
-result = table.insert({'name': 'carol', 'age': 14, 'gender': 'female'}).execute();
-result = table.insert({'name': 'donna', 'age': 16, 'gender': 'female'}).execute();
-result = table.insert({'name': 'angel', 'age': 14, 'gender': 'male'}).execute();
+var result = table.insert({'name': 'adam', 'age': 15, 'gender': 'male'}).execute();
+var result = table.insert({'name': 'brian', 'age': 14, 'gender': 'male'}).execute();
+var result = table.insert({'name': 'alma', 'age': 13, 'gender': 'female'}).execute();
+var result = table.insert({'name': 'carol', 'age': 14, 'gender': 'female'}).execute();
+var result = table.insert({'name': 'donna', 'age': 16, 'gender': 'female'}).execute();
+var result = table.insert({'name': 'angel', 'age': 14, 'gender': 'male'}).execute();
 
 var table = schema.getTable('buffer_table');
 var collection = schema.createCollection('buffer_collection');
 
 
 //@ Resultset hasData false
-result = mySession.sql('use js_shell_test;').execute();
+var result = mySession.sql('use js_shell_test;').execute();
 print('hasData:', result.hasData());
 
 //@ Resultset hasData true
-result = mySession.sql('select * from buffer_table;').execute();
+var result = mySession.sql('select * from buffer_table;').execute();
 print('hasData:', result.hasData());
 
 
@@ -41,7 +41,7 @@ print('Third Field:', metadata[2].name);
 
 
 //@ Resultset columns
-metadata = result.columns;
+var metadata = result.columns;
 
 print('Field Number:', metadata.length);
 print('First Field:', metadata[0].name);
@@ -70,20 +70,20 @@ var record2 = result2.fetchOne();
 print("Result 1 Record 1:", record1.name);
 print("Result 2 Record 1:", record2.name);
 
-record1 = result1.fetchOne();
-record2 = result2.fetchOne();
+var record1 = result1.fetchOne();
+var record2 = result2.fetchOne();
 
 print("Result 1 Record 2:", record1.name);
 print("Result 2 Record 2:", record2.name);
 
-record1 = result1.fetchOne();
-record2 = result2.fetchOne();
+var record1 = result1.fetchOne();
+var record2 = result2.fetchOne();
 
 print("Result 1 Record 3:", record1.name);
 print("Result 2 Record 3:", record2.name);
 
-record1 = result1.fetchOne();
-record2 = result2.fetchOne();
+var record1 = result1.fetchOne();
+var record2 = result2.fetchOne();
 
 print("Result 1 Record 4:", record1.name);
 print("Result 2 Record 4:", record2.name);
@@ -91,11 +91,11 @@ print("Result 2 Record 4:", record2.name);
 
 //@ Resultset buffering on CRUD
 
-result1 = table.select(['name', 'age']).where('gender = :gender').orderBy(['name']).bind('gender','male').execute();
-result2 = table.select(['name', 'gender']).where('age < :age').orderBy(['name']).bind('age',15).execute();
+var result1 = table.select(['name', 'age']).where('gender = :gender').orderBy(['name']).bind('gender','male').execute();
+var result2 = table.select(['name', 'gender']).where('age < :age').orderBy(['name']).bind('age',15).execute();
 
-metadata1 = result1.columns;
-metadata2 = result2.columns;
+var metadata1 = result1.columns;
+var metadata2 = result2.columns;
 
 print("Result 1 Field 1:", metadata1[0].name);
 print("Result 1 Field 2:", metadata1[1].name);
@@ -104,26 +104,26 @@ print("Result 2 Field 1:", metadata2[0].name);
 print("Result 2 Field 2:", metadata2[1].name);
 
 
-record1 = result1.fetchOne();
-record2 = result2.fetchOne();
+var record1 = result1.fetchOne();
+var record2 = result2.fetchOne();
 
 print("Result 1 Record 1:", record1.name);
 print("Result 2 Record 1:", record2.name);
 
-record1 = result1.fetchOne();
-record2 = result2.fetchOne();
+var record1 = result1.fetchOne();
+var record2 = result2.fetchOne();
 
 print("Result 1 Record 2:", record1.name);
 print("Result 2 Record 2:", record2.name);
 
-record1 = result1.fetchOne();
-record2 = result2.fetchOne();
+var record1 = result1.fetchOne();
+var record2 = result2.fetchOne();
 
 print("Result 1 Record 3:", record1.name);
 print("Result 2 Record 3:", record2.name);
 
-record1 = result1.fetchOne();
-record2 = result2.fetchOne();
+var record1 = result1.fetchOne();
+var record2 = result2.fetchOne();
 
 print("Result 1 Record 4:", record1.name);
 print("Result 2 Record 4:", record2.name);

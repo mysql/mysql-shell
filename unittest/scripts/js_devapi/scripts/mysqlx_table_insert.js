@@ -42,13 +42,12 @@ crud.values('alma', 23, 'female');
 validate_crud_functions(crud, ['values', 'execute', '__shell_hook__']);
 
 //@ TableInsert: valid operations after insert with fields and values
-crud = table.insert({name:'john', age:25, gender:'male'});
+crud = table.insert({ name: 'john', age: 25, gender: 'male' });
 validate_crud_functions(crud, ['execute', '__shell_hook__']);
 
 //@ TableInsert: valid operations after execute
 result = crud.execute();
 validate_crud_functions(crud, ['execute', '__shell_hook__']);
-
 
 // -------------------------------------------
 // Table.insert Unit Testing: Error Conditions
@@ -63,7 +62,6 @@ crud = table.insert(['name', 'age', 'gender']).values([5]);
 crud = table.insert(['name', 'age', 'gender']).values('carol', mySession);
 crud = table.insert(['name', 'id', 'gender']).values('carol', 20, 'female').execute();
 
-
 // ---------------------------------------
 // Table.Find Unit Testing: Execution
 // ---------------------------------------
@@ -77,12 +75,12 @@ result = table.insert(['age', 'name', 'gender']).values(21, 'john', 'male').exec
 print("Affected Rows Columns:", result.affectedItemCount, "\n");
 
 var insert = table.insert('name', 'age', 'gender')
-insert.values('clark', 22,'male')
-insert.values('mary', 13,'female')
+insert.values('clark', 22, 'male')
+insert.values('mary', 13, 'female')
 result = insert.execute()
 print("Affected Rows Multiple Values:", result.affectedItemCount, "\n");
 
-result = table.insert({'age':14, 'name':'jackie', 'gender': 'female'}).execute();
+result = table.insert({ 'age': 14, 'name': 'jackie', 'gender': 'female' }).execute();
 print("Affected Rows Document:", result.affectedItemCount, "\n");
 
 // Cleanup

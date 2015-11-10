@@ -29,15 +29,15 @@ crud = table.delete()
 validate_crud_functions(crud, ['where', 'orderBy', 'limit', 'bind', 'execute', '__shell_hook__'])
 
 #@ TableDelete: valid operations after where
-crud.where("id < 100")
+crud = crud.where("id < 100")
 validate_crud_functions(crud, ['orderBy', 'limit', 'bind', 'execute', '__shell_hook__'])
 
 #@ TableDelete: valid operations after orderBy
-crud.orderBy(['name'])
+crud = crud.orderBy(['name'])
 validate_crud_functions(crud, ['limit', 'bind', 'execute', '__shell_hook__'])
 
 #@ TableDelete: valid operations after limit
-crud.limit(1)
+crud = crud.limit(1)
 validate_crud_functions(crud, ['bind', 'execute', '__shell_hook__'])
 
 #@ TableDelete: valid operations after bind

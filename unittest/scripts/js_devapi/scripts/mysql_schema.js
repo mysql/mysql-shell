@@ -18,7 +18,7 @@ print('getName(): ' + schema.getName());
 print('name: ' + schema.name);
 
 //@ Testing schema.getSession
-print('getSession():',schema.getSession());
+print('getSession():', schema.getSession());
 
 //@ Testing schema.session
 print('session:', schema.session);

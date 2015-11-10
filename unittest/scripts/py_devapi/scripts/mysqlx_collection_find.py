@@ -27,27 +27,27 @@ crud = collection.find()
 validate_crud_functions(crud, ['fields', 'groupBy', 'sort', 'limit', 'bind', 'execute', '__shell_hook__'])
 
 #@ CollectionFind: valid operations after fields
-crud.fields(['name'])
+crud = crud.fields(['name'])
 validate_crud_functions(crud, ['groupBy', 'sort', 'limit', 'bind', 'execute', '__shell_hook__'])
 
 #@ CollectionFind: valid operations after groupBy
-crud.groupBy(['name'])
+crud = crud.groupBy(['name'])
 validate_crud_functions(crud, ['having', 'sort', 'limit', 'bind', 'execute', '__shell_hook__'])
 
 #@ CollectionFind: valid operations after having
-crud.having('age > 10')
+crud = crud.having('age > 10')
 validate_crud_functions(crud, ['sort', 'limit', 'bind', 'execute', '__shell_hook__'])
 
 #@ CollectionFind: valid operations after sort
-crud.sort(['age'])
+crud = crud.sort(['age'])
 validate_crud_functions(crud, ['limit', 'bind', 'execute', '__shell_hook__'])
 
 #@ CollectionFind: valid operations after limit
-crud.limit(1)
+crud = crud.limit(1)
 validate_crud_functions(crud, ['skip', 'bind', 'execute', '__shell_hook__'])
 
 #@ CollectionFind: valid operations after skip
-crud.skip(1)
+crud = crud.skip(1)
 validate_crud_functions(crud, ['bind', 'execute', '__shell_hook__'])
 
 #@ CollectionFind: valid operations after bind

@@ -15,14 +15,14 @@ try {
 
 try {
         var myDb = mySession.getSchema('test');
-
+        
         // Use the collection 'my_collection'
         var myColl = myDb.getCollection('my_collection');
-
+        
         // Find a document
         var myDoc = myColl.find('name like :param').limit(1)
                 .bind('param','S%').execute();
-
+        
         // Print document
         print(myDoc.first());
 } 

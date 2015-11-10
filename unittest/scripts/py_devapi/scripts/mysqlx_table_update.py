@@ -29,19 +29,19 @@ crud = table.update()
 validate_crud_functions(crud, ['set'])
 
 #@ TableUpdate: valid operations after set
-crud.set('name', 'Jack')
+crud = crud.set('name', 'Jack')
 validate_crud_functions(crud, ['set', 'where', 'orderBy', 'limit', 'bind', 'execute', '__shell_hook__'])
 
 #@ TableUpdate: valid operations after where
-crud.where("age < 100")
+crud = crud.where("age < 100")
 validate_crud_functions(crud, ['orderBy', 'limit', 'bind', 'execute', '__shell_hook__'])
 
 #@ TableUpdate: valid operations after orderBy
-crud.orderBy(['name'])
+crud = crud.orderBy(['name'])
 validate_crud_functions(crud, ['limit', 'bind', 'execute', '__shell_hook__'])
 
 #@ TableUpdate: valid operations after limit
-crud.limit(2)
+crud = crud.limit(2)
 validate_crud_functions(crud, ['bind', 'execute', '__shell_hook__'])
 
 #@ TableUpdate: valid operations after bind

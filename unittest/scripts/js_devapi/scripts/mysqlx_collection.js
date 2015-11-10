@@ -11,11 +11,9 @@ schema = mySession.createSchema('js_shell_test');
 // Creates a test collection and inserts data into it
 var collection = schema.createCollection('collection1');
 
-
 //@ Testing collection name retrieving
 print('getName(): ' + collection.getName());
 print('name: ' + collection.name);
-
 
 //@ Testing session retrieving
 print('getSession():', collection.getSession());

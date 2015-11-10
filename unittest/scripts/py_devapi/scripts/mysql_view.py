@@ -9,7 +9,6 @@ ensure_schema_does_not_exist(mySession, 'js_shell_test')
 schema = mySession.createSchema('js_shell_test')
 mySession.setCurrentSchema('js_shell_test')
 
-result
 result = mySession.runSql('create table table1 (name varchar(50))')
 result = mySession.runSql('create view view1 (my_name) as select name from table1')
 view = mySession.js_shell_test.getView('view1')

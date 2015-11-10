@@ -240,6 +240,7 @@ IF (HAVE_PYTHON)
   include_directories(${PYTHON_INCLUDE_DIRS})
 ENDIF()
 
+add_definitions(-DMYSH_VERSION="${MYSH_VERSION}")
 
 IF(WITH_TESTS)
   ###
@@ -261,7 +262,6 @@ if(WIN32)
     add_definitions(-DUSING_V8_SHARED)
   endif()
 endif()
-
 
 if(WINDOWS_RUNTIME_MD)
   #add_subdirectory(types)
@@ -285,8 +285,6 @@ set(mysh_SRC
     "${PROJECT_SOURCE_DIR}/src/interactive_shell.h"
     "${PROJECT_SOURCE_DIR}/src/interactive_shell.cc"
 )
-
-add_definitions(-DMYSH_VERSION="${MYSH_VERSION}")
 
 # Shell wrapper for client applications
 add_subdirectory(client)

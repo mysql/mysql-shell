@@ -25,7 +25,7 @@ result = collection.add({"name": 'angel', "age": 14, "gender": 'male'}).execute(
 #@ CollectionModify: valid operations after modify and set
 crud = collection.modify()
 validate_crud_functions(crud, ['set', 'unset', 'merge', 'arrayInsert', 'arrayAppend', 'arrayDelete'])
-crud.set('name', 'dummy')
+crud = crud.set('name', 'dummy')
 validate_crud_functions(crud, ['set', 'unset', 'merge', 'arrayInsert', 'arrayAppend', 'arrayDelete', 'sort', 'limit', 'bind', 'execute', '__shell_hook__'])
 
 #@ CollectionModify: valid operations after modify and unset empty
@@ -37,45 +37,45 @@ validate_crud_functions(crud, ['set', 'unset', 'merge', 'arrayInsert', 'arrayApp
 #@ CollectionModify: valid operations after modify and unset list
 crud = collection.modify()
 validate_crud_functions(crud, ['set', 'unset', 'merge', 'arrayInsert', 'arrayAppend', 'arrayDelete'])
-crud.unset(['name', 'type'])
+crud = crud.unset(['name', 'type'])
 validate_crud_functions(crud, ['set', 'unset', 'merge', 'arrayInsert', 'arrayAppend', 'arrayDelete', 'sort', 'limit', 'bind', 'execute', '__shell_hook__'])
 
 #@ CollectionModify: valid operations after modify and unset multiple params
 crud = collection.modify()
 validate_crud_functions(crud, ['set', 'unset', 'merge', 'arrayInsert', 'arrayAppend', 'arrayDelete'])
-crud.unset('name', 'type')
+crud = crud.unset('name', 'type')
 validate_crud_functions(crud, ['set', 'unset', 'merge', 'arrayInsert', 'arrayAppend', 'arrayDelete', 'sort', 'limit', 'bind', 'execute', '__shell_hook__'])
 
 #@ CollectionModify: valid operations after modify and merge
 crud = collection.modify()
 validate_crud_functions(crud, ['set', 'unset', 'merge', 'arrayInsert', 'arrayAppend', 'arrayDelete'])
-crud.merge({'att':'value','second':'final'})
+crud = crud.merge({'att':'value','second':'final'})
 validate_crud_functions(crud, ['set', 'unset', 'merge', 'arrayInsert', 'arrayAppend', 'arrayDelete', 'sort', 'limit', 'bind', 'execute', '__shell_hook__'])
 
 #@ CollectionModify: valid operations after modify and arrayInsert
 crud = collection.modify()
 validate_crud_functions(crud, ['set', 'unset', 'merge', 'arrayInsert', 'arrayAppend', 'arrayDelete'])
-crud.arrayInsert('hobbies[3]', 'run')
+crud = crud.arrayInsert('hobbies[3]', 'run')
 validate_crud_functions(crud, ['set', 'unset', 'merge', 'arrayInsert', 'arrayAppend', 'arrayDelete', 'sort', 'limit', 'bind', 'execute', '__shell_hook__'])
 
 #@ CollectionModify: valid operations after modify and arrayAppend
 crud = collection.modify()
 validate_crud_functions(crud, ['set', 'unset', 'merge', 'arrayInsert', 'arrayAppend', 'arrayDelete'])
-crud.arrayAppend('hobbies','skate')
+crud = crud.arrayAppend('hobbies','skate')
 validate_crud_functions(crud, ['set', 'unset', 'merge', 'arrayInsert', 'arrayAppend', 'arrayDelete', 'sort', 'limit', 'bind', 'execute', '__shell_hook__'])
 
 #@ CollectionModify: valid operations after modify and arrayDelete
 crud = collection.modify()
 validate_crud_functions(crud, ['set', 'unset', 'merge', 'arrayInsert', 'arrayAppend', 'arrayDelete'])
-crud.arrayDelete('hobbies[5]')
+crud = crud.arrayDelete('hobbies[5]')
 validate_crud_functions(crud, ['set', 'unset', 'merge', 'arrayInsert', 'arrayAppend', 'arrayDelete', 'sort', 'limit', 'bind', 'execute', '__shell_hook__'])
 
 #@ CollectionModify: valid operations after sort
-crud.sort(['name'])
+crud = crud.sort(['name'])
 validate_crud_functions(crud, ['limit', 'bind', 'execute', '__shell_hook__'])
 
 #@ CollectionModify: valid operations after limit
-crud.limit(2)
+crud = crud.limit(2)
 validate_crud_functions(crud, ['bind', 'execute', '__shell_hook__'])
 
 #@ CollectionModify: valid operations after bind

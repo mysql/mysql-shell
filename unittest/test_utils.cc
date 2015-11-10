@@ -18,6 +18,7 @@
 #include <boost/bind.hpp>
 #include "shellcore/shell_core_options.h"
 #include "src/shell_resultset_dumper.h"
+#include "src/interactive_shell.h"
 
 using namespace shcore;
 
@@ -69,7 +70,10 @@ bool Shell_test_output_handler::deleg_password(void *user_data, const char *UNUS
 
 void Shell_core_test_wrapper::SetUp()
 {
-  _shell_core.reset(new shcore::Shell_core(&output_handler.deleg));
+  //_shell_core.reset(new shcore::Shell_core(&output_handler.deleg));
+  char **argv = NULL;
+  Shell_command_line_options options(0, argv);
+  _interactive_shell.reset(new Interactive_shell(options, &output_handler.deleg));
 
   const char *uri = getenv("MYSQL_URI");
   if (uri)
@@ -89,22 +93,11 @@ void Shell_core_test_wrapper::SetUp()
     _mysql_port.assign(port);
     _mysql_uri += ":" + _mysql_port;
   }
-
-  _result_processor = boost::bind(&Shell_core_test_wrapper::process_result, this, _1);
 }
 
 void Shell_core_test_wrapper::TearDown()
 {
-  _shell_core.reset();
-}
-
-void Shell_core_test_wrapper::process_result(shcore::Value result)
-{
-  _returned_value = result;
-
-  // Return value of undefined implies an error processing
-  if (result.type == shcore::Undefined)
-    _shell_core->set_error_processing();
+  _interactive_shell.reset();
 }
 
 shcore::Value Shell_core_test_wrapper::execute(const std::string& code)
@@ -112,7 +105,7 @@ shcore::Value Shell_core_test_wrapper::execute(const std::string& code)
   std::string _code(code);
   shcore::Interactive_input_state state;
 
-  _shell_core->handle_input(_code, state, _result_processor);
+  _interactive_shell->process_line(_code);
 
   return _returned_value;
 }
@@ -122,13 +115,17 @@ shcore::Value Shell_core_test_wrapper::exec_and_out_equals(const std::string& co
   std::string expected_output(out);
   std::string expected_error(err);
 
-  if (_shell_core->interactive_mode() == shcore::Shell_core::Mode_Python && out.length())
+  if (_interactive_shell->interactive_mode() == shcore::Shell_core::Mode_Python && out.length())
     expected_output += "\n";
 
-  if (_shell_core->interactive_mode() == shcore::Shell_core::Mode_Python && err.length())
+  if (_interactive_shell->interactive_mode() == shcore::Shell_core::Mode_Python && err.length())
     expected_error += "\n";
 
   shcore::Value ret_val = execute(code);
+
+  boost::trim(output_handler.std_out);
+  boost::trim(output_handler.std_err);
+
   EXPECT_EQ(expected_output, output_handler.std_out);
   EXPECT_EQ(expected_error, output_handler.std_err);
 
@@ -169,7 +166,7 @@ void Crud_test_wrapper::set_functions(const std::string &functions)
 // non listed functions are validated for unavailability
 void Crud_test_wrapper::ensure_available_functions(const std::string& functions)
 {
-  bool is_js = _shell_core->interactive_mode() == shcore::Shell_core::Mode_JScript;
+  bool is_js = _interactive_shell->interactive_mode() == shcore::Shell_core::Mode_JScript;
   std::set<std::string> valid_functions;
   boost::algorithm::split(valid_functions, functions, boost::is_any_of(", "), boost::token_compress_on);
 

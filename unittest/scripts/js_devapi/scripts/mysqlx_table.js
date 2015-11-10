@@ -16,7 +16,6 @@ var table = mySession.js_shell_test.getTable('table1');
 print('getName(): ' + table.getName());
 print('name: ' + table.name);
 
-
 //@ Testing session retrieving
 print('getSession():', table.getSession());
 print('session:', table.session);
@@ -24,7 +23,6 @@ print('session:', table.session);
 //@ Testing table schema retrieving
 print('getSchema():', table.getSchema());
 print('schema:', table.schema);
-
 
 //@ Testing existence
 print('Valid:', table.existsInDatabase());
