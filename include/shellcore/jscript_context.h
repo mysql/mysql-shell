@@ -25,11 +25,11 @@
 #include "shellcore/include_v8.h"
 
 #include "shellcore/types.h"
+#include "shellcore/ishell_core.h"
 
 namespace shcore
 {
   struct Interpreter_delegate;
-  enum Interactive_input_state;
   class Object_registry;
 
   class SHCORE_PUBLIC JScript_context
