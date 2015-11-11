@@ -53,6 +53,10 @@ if(WITH_TESTS)
     else()
       list(REMOVE_ITEM mysqlsh_tests_SRC "${PROJECT_SOURCE_DIR}/unittest/mod_mysqlx_t.cc")
     endif()
+    
+    if (NOT WIN32)
+      include_directories( "${PROJECT_SOURCE_DIR}/src/libedit" )
+    endif()
 
     if ( NOT HAVE_V8 )
       list(REMOVE_ITEM mysqlsh_tests_SRC "${PROJECT_SOURCE_DIR}/unittest/value_js_bridging_t.cc")
