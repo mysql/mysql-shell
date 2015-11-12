@@ -74,7 +74,7 @@ namespace shcore {
       }
     };
 
-    TEST_F(Shell_core_test, test_process_stream)
+    TEST_F(Shell_core_test, DISABLED_test_process_stream)
     {
       connect();
 
