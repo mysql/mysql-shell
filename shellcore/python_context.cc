@@ -239,8 +239,14 @@ namespace shcore
         PyObject *obj;
         if (PyArg_ParseTuple(value, "sO", &msg, &obj))
         {
-          if (strncmp(msg, "unexpected character after line continuation character", strlen("unexpected character after line continuation character")) == 0 ||
-              strncmp(msg, "EOF while scanning triple-quoted string literal", strlen("EOF while scanning triple-quoted string literal")) == 0)
+          
+          if (strncmp(msg, "unexpected character after line continuation character", strlen("unexpected character after line continuation character")) == 0)
+          {
+            // NOTE: These two characters will come if explicit line continuation is specified
+            if (code[code.length()-2] == '\\' && code[code.length()-1] == '\n')
+              r_state = Input_continued_single;
+          }
+          else if (strncmp(msg, "EOF while scanning triple-quoted string literal", strlen("EOF while scanning triple-quoted string literal")) == 0)
             r_state = Input_continued_single;
           else if (strncmp(msg, "unexpected EOF while parsing", strlen("unexpected EOF while parsing")) == 0)
             r_state = Input_continued_block;
@@ -254,6 +260,11 @@ namespace shcore
 
       return Value();
     }
+    
+    // If no error was found butthe line has the implicit line continuation
+    // we need to indicate so
+    else if (code[code.length()-2] == '\\' && code[code.length()-1] == '\n')
+      r_state = Input_continued_single;
 
     if (!_captured_eval_result.empty())
     {

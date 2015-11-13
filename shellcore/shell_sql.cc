@@ -51,22 +51,25 @@ void Shell_sql::handle_input(std::string &code, Interactive_input_state &state, 
       std::vector<std::pair<size_t, size_t> > ranges;
       size_t statement_count;
 
+      // NOTE: We need to find a nice way to decide whether parsing or not multiline blocks
+      // is enabled or not, for now will let this commented out and do parsing all the time
+      //-----------------------------------------------------------------------------------
       // If no cached code and new code is a multiline statement
       // allows multiline code to bypass the splitter
       // This way no delimiter change is needed for i.e.
       // stored procedures and functions
-      if (_sql_cache.empty() && code.find("\n") != std::string::npos)
-      {
-        ranges.push_back(std::make_pair<size_t, size_t>(0, code.length()));
-        statement_count = 1;
-      }
-      else
-      {
+      //if (_sql_cache.empty() && code.find("\n") != std::string::npos)
+      //{
+      //  ranges.push_back(std::make_pair<size_t, size_t>(0, code.length()));
+      //  statement_count = 1;
+      //}
+      //else
+      //{
         // Parses the input string to identify individual statements in it.
         // Will return a range for every statement that ends with the delimiter, if there
         // is additional code after the last delimiter, a range for it will be included too.
-        statement_count = shcore::mysql::splitter::determineStatementRanges(code.c_str(), code.length(), _delimiter, ranges, "\n", _parsing_context_stack);
-      }
+      statement_count = shcore::mysql::splitter::determineStatementRanges(code.c_str(), code.length(), _delimiter, ranges, "\n", _parsing_context_stack);
+      //}
 
       // statement_count is > 0 if the splitter determined a statement was completed
       // ranges: contains the char ranges having statements.
@@ -122,10 +125,7 @@ void Shell_sql::handle_input(std::string &code, Interactive_input_state &state, 
             // NodeSession uses SqlExecute object in which we need to call
             // .execute() to get the Resultset object
             else if (session->has_member("sql"))
-            {
-              ret_val = session->call("sql", query);
-              ret_val = ret_val.as_object()->call("execute", shcore::Argument_list());
-            }
+              ret_val = session->call("sql", query).as_object()->call("execute", shcore::Argument_list());
             else
               throw shcore::Exception::logic_error("The current session type (" + session->class_name() + ") can't be used for SQL execution.");
 
@@ -160,7 +160,7 @@ void Shell_sql::handle_input(std::string &code, Interactive_input_state &state, 
       if (_parsing_context_stack.empty())
         state = Input_ok;
       else
-        state = Input_continued_block;
+        state = Input_continued_single;
     }
     else
       // handle_input implementations are not throwing exceptions

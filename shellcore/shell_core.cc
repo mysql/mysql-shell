@@ -252,6 +252,7 @@ bool Shell_core::handle_shell_command(const std::string &line)
 //------------------ COMMAND HANDLER FUNCTIONS ------------------//
 bool Shell_command_handler::process(const std::string& command_line)
 {
+  bool ret_val = false;
   std::vector<std::string> tokens;
   boost::algorithm::split(tokens, command_line, boost::is_any_of(" "), boost::token_compress_on);
 
@@ -260,10 +261,10 @@ bool Shell_command_handler::process(const std::string& command_line)
   {
     tokens.erase(tokens.begin());
 
-    item->second->function(tokens);
+    ret_val = item->second->function(tokens);
   }
 
-  return item != _command_dict.end();
+  return ret_val;
 }
 
 void Shell_command_handler::add_command(const std::string& triggers, const std::string& description, const std::string& help, Shell_command_function function)

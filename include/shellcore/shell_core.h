@@ -51,7 +51,9 @@ namespace shcore
   class Object_registry;
   class Shell_core;
 
-  typedef boost::function<void(const std::vector<std::string>&) > Shell_command_function;
+  // A command function should return true if handling was OK
+  // Returning false tells the caller to continue processing it
+  typedef boost::function<bool(const std::vector<std::string>&) > Shell_command_function;
 
   struct Shell_command
   {

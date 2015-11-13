@@ -105,7 +105,7 @@ _options(options)
   SET_CUSTOM_SHELL_COMMAND("\\js", "Sets shell on JavaScript processing mode.", "", boost::bind(&Interactive_shell::switch_shell_mode, this, Shell_core::Mode_JScript, _1));
   SET_CUSTOM_SHELL_COMMAND("\\py", "Sets shell on Python processing mode.", "", boost::bind(&Interactive_shell::switch_shell_mode, this, Shell_core::Mode_Python, _1));
   SET_SHELL_COMMAND("\\source|\\.", "Execute a script file. Takes a file name as an argument.", cmd_help_source, Interactive_shell::cmd_process_file);
-  SET_SHELL_COMMAND("\\", "Start multiline input. Finish and execute with an empty line.", "", Interactive_shell::cmd_start_multiline);
+  SET_SHELL_COMMAND("\\", "Start multiline input when in SQL mode. Finish and execute with an empty line.", "", Interactive_shell::cmd_start_multiline);
   SET_SHELL_COMMAND("\\quit|\\q|\\exit", "Quit mysh.", "", Interactive_shell::cmd_quit);
   SET_SHELL_COMMAND("\\connect|\\cx", "Connect to server using an application mode session.", (boost::format(cmd_help) % "").str(), Interactive_shell::cmd_connect);
   SET_SHELL_COMMAND("\\connect_node|\\cn", "Connect to server using a node session.", (boost::format(cmd_help) % "_node").str(), Interactive_shell::cmd_connect_node);
@@ -150,11 +150,13 @@ _options(options)
   _result_processor = boost::bind(&Interactive_shell::process_result, this, _1);
 }
 
-void Interactive_shell::cmd_process_file(const std::vector<std::string>& params)
+bool Interactive_shell::cmd_process_file(const std::vector<std::string>& params)
 {
   _options.run_file = boost::join(params, " ");
 
   Interactive_shell::process_file();
+  
+  return true;
 }
 
 shcore::Value::Map_type_ref Interactive_shell::parse_uri(const std::string& uri)
@@ -477,7 +479,7 @@ std::string Interactive_shell::prompt()
     return _shell->prompt();
 }
 
-void Interactive_shell::switch_shell_mode(Shell_core::Mode mode, const std::vector<std::string> &UNUSED(args))
+bool Interactive_shell::switch_shell_mode(Shell_core::Mode mode, const std::vector<std::string> &UNUSED(args))
 {
   Shell_core::Mode old_mode = _shell->interactive_mode();
   bool lang_initialized = false;
@@ -532,6 +534,8 @@ void Interactive_shell::switch_shell_mode(Shell_core::Mode mode, const std::vect
     if (lang_initialized)
       init_scripts(mode);
   }
+  
+  return true;
 }
 
 void Interactive_shell::print(const std::string &str)
@@ -614,7 +618,7 @@ void Interactive_shell::print_json_info(const std::string &info, const std::stri
   _delegate.print(_delegate.user_data, "\n");
 }
 
-void Interactive_shell::cmd_print_shell_help(const std::vector<std::string>& args)
+bool Interactive_shell::cmd_print_shell_help(const std::vector<std::string>& args)
 {
   bool printed = false;
 
@@ -641,15 +645,24 @@ void Interactive_shell::cmd_print_shell_help(const std::vector<std::string>& arg
 
     std::cout << std::endl << "For help on a specific command use the command as \\? <command>" << std::endl;
   }
+  
+  return true;
 }
 
-void Interactive_shell::cmd_start_multiline(const std::vector<std::string>& args)
+bool Interactive_shell::cmd_start_multiline(const std::vector<std::string>& args)
 {
-  if (args.empty())
+  // This command is only available for SQL Mode
+  if (args.empty() && _shell->interactive_mode() == Shell_core::Mode_SQL)
+  {
     _input_mode = Input_continued_block;
+    
+    return true;
+  }
+  
+  return false;
 }
 
-void Interactive_shell::cmd_connect(const std::vector<std::string>& args)
+bool Interactive_shell::cmd_connect(const std::vector<std::string>& args)
 {
   if (args.size() == 1)
   {
@@ -666,9 +679,11 @@ void Interactive_shell::cmd_connect(const std::vector<std::string>& args)
   }
   else
     _delegate.print_error(_delegate.user_data, "\\connect <uri or $appName>\n");
+  
+  return true;
 }
 
-void Interactive_shell::cmd_connect_node(const std::vector<std::string>& args)
+bool Interactive_shell::cmd_connect_node(const std::vector<std::string>& args)
 {
   if (args.size() == 1)
   {
@@ -681,9 +696,11 @@ void Interactive_shell::cmd_connect_node(const std::vector<std::string>& args)
   }
   else
     _delegate.print_error(_delegate.user_data, "\\connect_node <uri or $appName>\n");
+  
+  return true;
 }
 
-void Interactive_shell::cmd_connect_classic(const std::vector<std::string>& args)
+bool Interactive_shell::cmd_connect_classic(const std::vector<std::string>& args)
 {
   if (args.size() == 1)
   {
@@ -696,28 +713,36 @@ void Interactive_shell::cmd_connect_classic(const std::vector<std::string>& args
   }
   else
     _delegate.print_error(_delegate.user_data, "\\connect_classic <uri or $appName>\n");
+  
+  return true;
 }
 
-void Interactive_shell::cmd_quit(const std::vector<std::string>& UNUSED(args))
+bool Interactive_shell::cmd_quit(const std::vector<std::string>& UNUSED(args))
 {
   _options.interactive = false;
+  
+  return true;
 }
 
-void Interactive_shell::cmd_warnings(const std::vector<std::string>& UNUSED(args))
+bool Interactive_shell::cmd_warnings(const std::vector<std::string>& UNUSED(args))
 {
   (*Shell_core_options::get())[SHCORE_SHOW_WARNINGS] = Value::True();
 
   println("Show warnings enabled.");
+  
+  return true;
 }
 
-void Interactive_shell::cmd_nowarnings(const std::vector<std::string>& UNUSED(args))
+bool Interactive_shell::cmd_nowarnings(const std::vector<std::string>& UNUSED(args))
 {
   (*Shell_core_options::get())[SHCORE_SHOW_WARNINGS] = Value::False();
 
   println("Show warnings disabled.");
+  
+  return true;
 }
 
-void Interactive_shell::cmd_store_connection(const std::vector<std::string>& args)
+bool Interactive_shell::cmd_store_connection(const std::vector<std::string>& args)
 {
   std::string error;
   std::string app;
@@ -799,9 +824,11 @@ void Interactive_shell::cmd_store_connection(const std::vector<std::string>& arg
     error += "\n";
     _delegate.print_error(_delegate.user_data, error.c_str());
   }
+  
+  return true;
 }
 
-void Interactive_shell::cmd_delete_connection(const std::vector<std::string>& args)
+bool Interactive_shell::cmd_delete_connection(const std::vector<std::string>& args)
 {
   std::string error;
 
@@ -824,9 +851,11 @@ void Interactive_shell::cmd_delete_connection(const std::vector<std::string>& ar
     error += "\n";
     _delegate.print_error(_delegate.user_data, error.c_str());
   }
+  
+  return true;
 }
 
-void Interactive_shell::cmd_update_connection(const std::vector<std::string>& args)
+bool Interactive_shell::cmd_update_connection(const std::vector<std::string>& args)
 {
   std::string error;
 
@@ -849,9 +878,11 @@ void Interactive_shell::cmd_update_connection(const std::vector<std::string>& ar
     error += "\n";
     _delegate.print_error(_delegate.user_data, error.c_str());
   }
+  
+  return true;
 }
 
-void Interactive_shell::cmd_list_connections(const std::vector<std::string>& args)
+bool Interactive_shell::cmd_list_connections(const std::vector<std::string>& args)
 {
   if (args.size() == 0)
   {
@@ -864,6 +895,8 @@ void Interactive_shell::cmd_list_connections(const std::vector<std::string>& arg
   }
   else
     _delegate.print_error(_delegate.user_data, "\\lsconn\n");
+  
+  return true;
 }
 
 void Interactive_shell::deleg_print(void *cdata, const char *text)
@@ -969,15 +1002,14 @@ void Interactive_shell::process_line(const std::string &line)
     if (_input_mode == Input_continued_block && line.empty())
       _input_mode = Input_ok;
 
+    // Appends the line, no matter it is an empty line
+    _input_buffer.append(_shell->preprocess_input_line(line));
+
     // Appends the new line if anything has been added to the buffer
     if (!_input_buffer.empty())
       _input_buffer.append("\n");
 
-    // Appends the line, no matter it is an empty line
-    _input_buffer.append(_shell->preprocess_input_line(line));
-
-    // in SQL mode, we don't need an empty line to end multiline
-    if ((_input_mode != Input_continued_block || _shell->interactive_mode() == Shell_core::Mode_SQL) && !_input_buffer.empty())
+    if (_input_mode != Input_continued_block && !_input_buffer.empty())
     {
       try
       {

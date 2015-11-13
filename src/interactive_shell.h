@@ -40,7 +40,7 @@ public:
   void init_environment();
   void init_scripts(Shell_core::Mode mode);
 
-  void cmd_process_file(const std::vector<std::string>& params);
+  bool cmd_process_file(const std::vector<std::string>& params);
   bool connect(bool primary_session = false);
 
   void print(const std::string &str);
@@ -48,18 +48,18 @@ public:
   void print_error(const std::string &error);
   void print_json_info(const std::string &info, const std::string& label = "info");
 
-  void cmd_print_shell_help(const std::vector<std::string>& args);
-  void cmd_start_multiline(const std::vector<std::string>& args);
-  void cmd_connect(const std::vector<std::string>& args);
-  void cmd_connect_node(const std::vector<std::string>& args);
-  void cmd_connect_classic(const std::vector<std::string>& args);
-  void cmd_quit(const std::vector<std::string>& args);
-  void cmd_warnings(const std::vector<std::string>& args);
-  void cmd_nowarnings(const std::vector<std::string>& args);
-  void cmd_store_connection(const std::vector<std::string>& args);
-  void cmd_delete_connection(const std::vector<std::string>& args);
-  void cmd_update_connection(const std::vector<std::string>& args);
-  void cmd_list_connections(const std::vector<std::string>& args);
+  bool cmd_print_shell_help(const std::vector<std::string>& args);
+  bool cmd_start_multiline(const std::vector<std::string>& args);
+  bool cmd_connect(const std::vector<std::string>& args);
+  bool cmd_connect_node(const std::vector<std::string>& args);
+  bool cmd_connect_classic(const std::vector<std::string>& args);
+  bool cmd_quit(const std::vector<std::string>& args);
+  bool cmd_warnings(const std::vector<std::string>& args);
+  bool cmd_nowarnings(const std::vector<std::string>& args);
+  bool cmd_store_connection(const std::vector<std::string>& args);
+  bool cmd_delete_connection(const std::vector<std::string>& args);
+  bool cmd_update_connection(const std::vector<std::string>& args);
+  bool cmd_list_connections(const std::vector<std::string>& args);
 
   void print_banner();
   void print_cmd_line_helper();
@@ -79,7 +79,7 @@ private:
   std::string prompt();
   ngcommon::Logger* _logger;
 
-  void switch_shell_mode(Shell_core::Mode mode, const std::vector<std::string> &args);
+  bool switch_shell_mode(Shell_core::Mode mode, const std::vector<std::string> &args);
   boost::function<void(shcore::Value)> _result_processor;
 
 private:

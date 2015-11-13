@@ -57,22 +57,28 @@ namespace shcore {
       std::vector<std::string> _params;
       Environment env;
 
-      void cmd_one(const std::vector<std::string>& params)
+      bool cmd_one(const std::vector<std::string>& params)
       {
         _function = "cmd_one";
         _params.assign(params.begin(), params.end());
+        
+        return true;
       }
 
-      void cmd_two(const std::vector<std::string>& params)
+      bool cmd_two(const std::vector<std::string>& params)
       {
         _function = "cmd_two";
         _params.assign(params.begin(), params.end());
+        
+        return true;
       }
 
-      void cmd_other(const std::string& name, const std::vector<std::string>& params)
+      bool cmd_other(const std::string& name, const std::vector<std::string>& params)
       {
         _function = name;
         _params.assign(params.begin(), params.end());
+        
+        return true;
       }
     };
 
