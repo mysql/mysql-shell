@@ -141,19 +141,19 @@ IF(WIN32)
     ADD_LIBRARY(mysqlsh ${libmysqlsh_SRC} ${libmysqlshmods_SRC})
   ENDIF()
 
-TARGET_LINK_LIBRARIES(mysqlsh
+  TARGET_LINK_LIBRARIES(mysqlsh
             mysqlxtest
             ${V8_LINK_LIST}
-            ${PYTHON_LIBRARIES}
-            ${SSL_LIBRARIES}
+            ${PYTHON_LIBRARIES}            
             ${MYSQL_LIBRARIES}
             ${BOOST_LIBRARIES}
-            ${PROTOBUF_LIBRARY})
+            ${PROTOBUF_LIBRARY}
+            ${SSL_LIBRARIES})
 
 ELSE()
   ADD_CONVENIENCE_LIBRARY(clientlib ${libmysqlsh_SRC} ${libmysqlshmods_SRC})
   add_dependencies(clientlib mysqlxtest)
-  SET(LIBS mysqlxtest clientlib ${V8_LINK_LIST} ${PYTHON_LIBRARIES} ${SSL_LIBRARIES} ${MYSQL_LIBRARIES} ${BOOST_LIBRARIES} ${PROTOBUF_LIBRARY})
+  SET(LIBS mysqlxtest clientlib ${V8_LINK_LIST} ${PYTHON_LIBRARIES} ${MYSQL_LIBRARIES} ${BOOST_LIBRARIES} ${PROTOBUF_LIBRARY} ${SSL_LIBRARIES} ${SSL_LIBRARIES_DL})
   IF(NOT INSTALL_LIBDIR)
     SET(INSTALL_LIBDIR lib)
   endif()

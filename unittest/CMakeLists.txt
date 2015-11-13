@@ -74,9 +74,10 @@ if(WITH_TESTS)
             mysqlsh
             mysqlxtest
             gtest
-            ${SSL_LIBRARIES}
             ${MYSQL_LIBRARIES}
             ${PROTOBUF_LIBRARY}
+            ${SSL_LIBRARIES}
+            ${SSL_LIBRARIES_DL}
     )
 
     # Copies the mysqlsh dll to the binary location to enable running the UTs

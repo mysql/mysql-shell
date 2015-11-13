@@ -50,8 +50,8 @@ target_link_libraries(shell_client_app
     shell_client
     shell_client
     mysqlsh
-    ${SSL_LIBRARIES} ${MYSQL_LIBRARIES}
-    ${PYTHON_LIBS} ${PROTOBUF_LIBRARY}
+    ${MYSQL_LIBRARIES}
+    ${PYTHON_LIBS} ${PROTOBUF_LIBRARY} ${SSL_LIBRARIES} ${SSL_LIBRARIES_DL}
 )
 
 add_dependencies(shell_client_app shell_client)
