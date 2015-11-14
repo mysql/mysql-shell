@@ -634,33 +634,33 @@ shcore::Value ClassicSession::rollback(const shcore::Argument_list &args)
 shcore::Value ClassicSession::get_status(const shcore::Argument_list &args)
 {
   shcore::Value::Map_type_ref status(new shcore::Value::Map_type);
-  
+
   Result *result;
   Row *row;
-  
+
   result = _conn->run_sql("select DATABASE(), USER() limit 1");
   row = result->fetch_one();
-  
+
   (*status)["SESSION_TYPE"] = shcore::Value("Classic");
   (*status)["DEFAULT_SCHEMA"] = shcore::Value(_default_schema);
-  
+
   std::string current_schema = row->get_value(0).descr(true);
   if (current_schema == "null")
     current_schema = "";
-  
+
   (*status)["CURRENT_SCHEMA"] = shcore::Value(current_schema);
   (*status)["CURRENT_USER"] = row->get_value(1);
-  (*status)["CONNECTION_ID"] = shcore::Value(_conn->get_thread_id());
+  (*status)["CONNECTION_ID"] = shcore::Value(uint64_t(_conn->get_thread_id()));
   (*status)["SSL_CIPHER"] = shcore::Value(_conn->get_ssl_cipher());
   //(*status)["SKIP_UPDATES"] = shcore::Value(???);
   //(*status)["DELIMITER"] = shcore::Value(???);
 
   (*status)["SERVER_INFO"] = shcore::Value(_conn->get_server_info());
 
-  (*status)["PROTOCOL_VERSION"] = shcore::Value(_conn->get_protocol_info());
+  (*status)["PROTOCOL_VERSION"] = shcore::Value(uint64_t(_conn->get_protocol_info()));
   (*status)["CONNECTION"] = shcore::Value(_conn->get_connection_info());
   //(*status)["INSERT_ID"] = shcore::Value(???);
-  
+
   result = _conn->run_sql("select @@character_set_client, @@character_set_connection, @@character_set_server, @@character_set_database, @@version_comment limit 1");
   row = result->fetch_one();
   (*status)["CLIENT_CHARSET"] = row->get_value(0);
@@ -668,19 +668,19 @@ shcore::Value ClassicSession::get_status(const shcore::Argument_list &args)
   (*status)["SERVER_CHARSET"] = row->get_value(2);
   (*status)["SCHEMA_CHARSET"] = row->get_value(3);
   (*status)["SERVER_VERSION"] = row->get_value(4);
-  
+
   (*status)["SERVER_STATS"] = shcore::Value(_conn->get_stats());
-  
+
   // TODO: Review retrieval from charset_info, mysql connection
-  
+
   // TODO: Embedded library stuff
   //(*status)["TCP_PORT"] = row->get_value(1);
   //(*status)["UNIX_SOCKET"] = row->get_value(2);
   //(*status)["PROTOCOL_COMPRESSED"] = row->get_value(3);
-  
-  // STATUS 
-  
+
+  // STATUS
+
   // SAFE UPDATES
-  
+
   return shcore::Value(status);
 }
