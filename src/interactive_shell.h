@@ -60,6 +60,7 @@ public:
   bool cmd_delete_connection(const std::vector<std::string>& args);
   bool cmd_update_connection(const std::vector<std::string>& args);
   bool cmd_list_connections(const std::vector<std::string>& args);
+  bool cmd_status(const std::vector<std::string>& args);
 
   void print_banner();
   void print_cmd_line_helper();

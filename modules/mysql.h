@@ -157,7 +157,15 @@ namespace mysh
       Result *run_sql(const std::string &sql);
       bool next_data_set(Result *target, bool first_result = false);
       std::string uri() { return _uri; }
-
+      
+      // Utility functions to retriev session status
+      unsigned long get_thread_id() {_prev_result.reset(); return mysql_thread_id(_mysql);}
+      unsigned long get_protocol_info() {_prev_result.reset(); return mysql_get_proto_info(_mysql);}
+      const char* get_connection_info() {_prev_result.reset(); return mysql_get_host_info(_mysql);}
+      const char* get_server_info() {_prev_result.reset(); return mysql_get_server_info(_mysql);}
+      const char* get_stats() {_prev_result.reset(); return mysql_stat(_mysql);}
+      const char* get_ssl_cipher() {_prev_result.reset(); return mysql_get_ssl_cipher(_mysql);}
+      
     private:
       void setup_ssl(const std::string &ssl_ca, const std::string &ssl_cert, const std::string &ssl_key);
       std::string _uri;

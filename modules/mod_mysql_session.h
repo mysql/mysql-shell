@@ -97,6 +97,7 @@ namespace mysh
       virtual shcore::Value dropSchemaObject(const shcore::Argument_list &args, const std::string& type);
 
       virtual bool is_connected() const { return _conn ? true : false; }
+      virtual shcore::Value get_status(const shcore::Argument_list &args);
 
       virtual shcore::Value get_schema(const shcore::Argument_list &args) const;
       shcore::Value set_current_schema(const shcore::Argument_list &args);

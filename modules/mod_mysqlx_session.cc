@@ -743,6 +743,63 @@ std::string BaseSession::db_object_exists(std::string &type, const std::string &
   return ret_val;
 }
 
+shcore::Value BaseSession::get_status(const shcore::Argument_list &args)
+{
+  shcore::Value::Map_type_ref status(new shcore::Value::Map_type);
+  
+  if (class_name() == "XSession")
+    (*status)["SESSION_TYPE"] = shcore::Value("X");
+  else
+    (*status)["SESSION_TYPE"] = shcore::Value("Node");
+
+  (*status)["DEFAULT_SCHEMA"] = shcore::Value(_default_schema);
+  
+  boost::shared_ptr< ::mysqlx::Result> result;
+  boost::shared_ptr< ::mysqlx::Row>row;
+  result = _session->executeSql("select DATABASE(), USER() limit 1");
+  row = result->next();
+  
+  std::string current_schema = row->isNullField(0) ? "" : row->stringField(0);
+  if (current_schema == "null")
+    current_schema = "";
+  
+  (*status)["CURRENT_SCHEMA"] = shcore::Value(current_schema);
+  (*status)["CURRENT_USER"] = shcore::Value(row->isNullField(1) ? "" : row->stringField(1));
+  (*status)["CONNECTION_ID"] = shcore::Value(_session->connection()->client_id());
+  //(*status)["SSL_CIPHER"] = shcore::Value(_conn->get_ssl_cipher());
+  //(*status)["SKIP_UPDATES"] = shcore::Value(???);
+  //(*status)["DELIMITER"] = shcore::Value(???);
+
+  //(*status)["SERVER_INFO"] = shcore::Value(_conn->get_server_info());
+
+  //(*status)["PROTOCOL_VERSION"] = shcore::Value(_conn->get_protocol_info());
+  //(*status)["CONNECTION"] = shcore::Value(_conn->get_connection_info());
+  //(*status)["INSERT_ID"] = shcore::Value(???);
+  
+  result = _session->executeSql("select @@character_set_client, @@character_set_connection, @@character_set_server, @@character_set_database, @@version_comment limit 1");
+  row = result->next();
+  (*status)["CLIENT_CHARSET"] = shcore::Value(row->isNullField(0) ? "" : row->stringField(0));
+  (*status)["CONNECTION_CHARSET"] = shcore::Value(row->isNullField(1) ? "" : row->stringField(1));
+  (*status)["SERVER_CHARSET"] = shcore::Value(row->isNullField(2) ? "" : row->stringField(2));
+  (*status)["SCHEMA_CHARSET"] = shcore::Value(row->isNullField(3) ? "" : row->stringField(3));
+  (*status)["SERVER_VERSION"] = shcore::Value(row->isNullField(4) ? "" : row->stringField(4));
+  
+  //(*status)["SERVER_STATS"] = shcore::Value(_conn->get_stats());
+  
+  // TODO: Review retrieval from charset_info, mysql connection
+  
+  // TODO: Embedded library stuff
+  //(*status)["TCP_PORT"] = row->get_value(1);
+  //(*status)["UNIX_SOCKET"] = row->get_value(2);
+  //(*status)["PROTOCOL_COMPRESSED"] = row->get_value(3);
+  
+  // STATUS 
+  
+  // SAFE UPDATES
+  
+  return shcore::Value(status);
+}
+
 boost::shared_ptr<BaseSession> XSession::_get_shared_this() const
 {
   boost::shared_ptr<const XSession> shared = shared_from_this();

@@ -102,6 +102,7 @@ namespace mysh
       shcore::Value executeAdminCommand(const std::string& command, bool expect_data, const shcore::Argument_list &args);
       shcore::Value execute_sql(const std::string& query, const shcore::Argument_list &args);
       virtual bool is_connected() const { return _session ? true : false; }
+      virtual shcore::Value get_status(const shcore::Argument_list &args);
 
       virtual shcore::Value get_schema(const shcore::Argument_list &args) const;
 

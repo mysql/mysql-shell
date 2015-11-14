@@ -55,9 +55,16 @@ unsigned long MySQL_timer::end()
  Write as many as 52+1 bytes to buff, in the form of a legible duration of time.
 
  len("4294967296 days, 23 hours, 59 minutes, 60.00 seconds")  ->  52
+ 
+ 
+ Originally being measured at the client, the raw time was given in CLOCKS so real time was calculated
+ dividing raw_time/CLOCKS_PER_SEC.
+ 
+ Later we needed to parse time data coming from the server in seconds, hence the in_seconds parameter is
+ used for such cases where raw time is already time in seconds.
  */
 
-std::string MySQL_timer::format_legacy(unsigned long raw_time, bool part_seconds)
+std::string MySQL_timer::format_legacy(unsigned long raw_time, bool part_seconds, bool in_seconds)
 {
   std::string str_duration;
 
@@ -66,7 +73,7 @@ std::string MySQL_timer::format_legacy(unsigned long raw_time, bool part_seconds
   int minutes = 0;
   float seconds = 0.0;
 
-  MySQL_timer::parse_duration(raw_time, days, hours, minutes, seconds);
+  MySQL_timer::parse_duration(raw_time, days, hours, minutes, seconds, in_seconds);
 
   if (days)
     str_duration.append((boost::format("%d %s") % days % (days == 1 ? "day" : "days")).str());
@@ -85,10 +92,19 @@ std::string MySQL_timer::format_legacy(unsigned long raw_time, bool part_seconds
   return str_duration;
 }
 
-void MySQL_timer::parse_duration(unsigned long raw_time, int &days, int &hours, int &minutes, float &seconds)
+void MySQL_timer::parse_duration(unsigned long raw_time, int &days, int &hours, int &minutes, float &seconds, bool in_seconds)
 {
-  unsigned long closk_per_second = CLOCKS_PER_SEC;
-  double duration = (double)(raw_time) / closk_per_second;
+  
+  double duration;
+  
+  if (in_seconds)
+    duration = raw_time;
+  else
+  {
+    unsigned long closk_per_second = CLOCKS_PER_SEC;
+    duration = (double)(raw_time) / closk_per_second;
+  }
+  
   std::string str_duration;
 
   double minute_seconds = 60.0;
