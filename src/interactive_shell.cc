@@ -158,7 +158,7 @@ bool Interactive_shell::cmd_process_file(const std::vector<std::string>& params)
   _options.run_file = boost::join(params, " ");
 
   Interactive_shell::process_file();
-  
+
   return true;
 }
 
@@ -537,7 +537,7 @@ bool Interactive_shell::switch_shell_mode(Shell_core::Mode mode, const std::vect
     if (lang_initialized)
       init_scripts(mode);
   }
-  
+
   return true;
 }
 
@@ -648,7 +648,7 @@ bool Interactive_shell::cmd_print_shell_help(const std::vector<std::string>& arg
 
     std::cout << std::endl << "For help on a specific command use the command as \\? <command>" << std::endl;
   }
-  
+
   return true;
 }
 
@@ -658,10 +658,10 @@ bool Interactive_shell::cmd_start_multiline(const std::vector<std::string>& args
   if (args.empty() && _shell->interactive_mode() == Shell_core::Mode_SQL)
   {
     _input_mode = Input_continued_block;
-    
+
     return true;
   }
-  
+
   return false;
 }
 
@@ -672,7 +672,10 @@ bool Interactive_shell::cmd_connect(const std::vector<std::string>& args)
     if (args[0].find("$") == 0)
       _options.app = args[0].substr(1);
     else
+    {
+      _options.app = "";
       _options.uri = args[0];
+    }
 
     _options.session_type = mysh::Application;
     connect();
@@ -682,7 +685,7 @@ bool Interactive_shell::cmd_connect(const std::vector<std::string>& args)
   }
   else
     _delegate.print_error(_delegate.user_data, "\\connect <uri or $appName>\n");
-  
+
   return true;
 }
 
@@ -693,13 +696,16 @@ bool Interactive_shell::cmd_connect_node(const std::vector<std::string>& args)
     if (args[0].find("$") == 0)
       _options.app = args[0].substr(1);
     else
+    {
+      _options.app = "";
       _options.uri = args[0];
+    }
     _options.session_type = mysh::Node;
     connect();
   }
   else
     _delegate.print_error(_delegate.user_data, "\\connect_node <uri or $appName>\n");
-  
+
   return true;
 }
 
@@ -710,20 +716,24 @@ bool Interactive_shell::cmd_connect_classic(const std::vector<std::string>& args
     if (args[0].find("$") == 0)
       _options.app = args[0].substr(1);
     else
+    {
+      _options.app = "";
       _options.uri = args[0];
+    }
+
     _options.session_type = mysh::Classic;
     connect();
   }
   else
     _delegate.print_error(_delegate.user_data, "\\connect_classic <uri or $appName>\n");
-  
+
   return true;
 }
 
 bool Interactive_shell::cmd_quit(const std::vector<std::string>& UNUSED(args))
 {
   _options.interactive = false;
-  
+
   return true;
 }
 
@@ -732,7 +742,7 @@ bool Interactive_shell::cmd_warnings(const std::vector<std::string>& UNUSED(args
   (*Shell_core_options::get())[SHCORE_SHOW_WARNINGS] = Value::True();
 
   println("Show warnings enabled.");
-  
+
   return true;
 }
 
@@ -741,7 +751,7 @@ bool Interactive_shell::cmd_nowarnings(const std::vector<std::string>& UNUSED(ar
   (*Shell_core_options::get())[SHCORE_SHOW_WARNINGS] = Value::False();
 
   println("Show warnings disabled.");
-  
+
   return true;
 }
 
@@ -827,7 +837,7 @@ bool Interactive_shell::cmd_store_connection(const std::vector<std::string>& arg
     error += "\n";
     _delegate.print_error(_delegate.user_data, error.c_str());
   }
-  
+
   return true;
 }
 
@@ -854,7 +864,7 @@ bool Interactive_shell::cmd_delete_connection(const std::vector<std::string>& ar
     error += "\n";
     _delegate.print_error(_delegate.user_data, error.c_str());
   }
-  
+
   return true;
 }
 
@@ -881,7 +891,7 @@ bool Interactive_shell::cmd_update_connection(const std::vector<std::string>& ar
     error += "\n";
     _delegate.print_error(_delegate.user_data, error.c_str());
   }
-  
+
   return true;
 }
 
@@ -898,7 +908,7 @@ bool Interactive_shell::cmd_list_connections(const std::vector<std::string>& arg
   }
   else
     _delegate.print_error(_delegate.user_data, "\\lsconn\n");
-  
+
   return true;
 }
 
@@ -908,20 +918,20 @@ bool Interactive_shell::cmd_status(const std::vector<std::string>& UNUSED(args))
   {
     shcore::Value raw_status = _session->get_status(shcore::Argument_list());
     std::string format = (*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string();
-    
+
     if (format.find("json") == 0)
       println(raw_status.json(format == "json"));
     else
     {
       shcore::Value::Map_type_ref status = raw_status.as_map();
-      
+
       std::string version_msg("MySQL X Shell Version ");
       version_msg += MYSH_VERSION;
       version_msg += "\n";
       println(version_msg);
-      
+
       std::string format = "%-30s%s";
-      
+
       if (status->has_key("SESSION_TYPE"))
         println((boost::format(format) % "Session type: " % (*status)["SESSION_TYPE"].descr(true)).str());
 
@@ -929,42 +939,42 @@ bool Interactive_shell::cmd_status(const std::vector<std::string>& UNUSED(args))
         println((boost::format(format) % "Connection Id: " % (*status)["CONNECTION_ID"].descr(true)).str());
 
       if (status->has_key("DEFAULT_SCHEMA"))
-        println((boost::format(format) %"Default schema: " % (*status)["DEFAULT_SCHEMA"].descr(true)).str());
+        println((boost::format(format) % "Default schema: " % (*status)["DEFAULT_SCHEMA"].descr(true)).str());
 
       if (status->has_key("CURRENT_SCHEMA"))
-        println((boost::format(format) %"Current schema: " % (*status)["CURRENT_SCHEMA"].descr(true)).str());
+        println((boost::format(format) % "Current schema: " % (*status)["CURRENT_SCHEMA"].descr(true)).str());
 
       if (status->has_key("CURRENT_USER"))
-        println((boost::format(format) %"Current user: " % (*status)["CURRENT_USER"].descr(true)).str());
+        println((boost::format(format) % "Current user: " % (*status)["CURRENT_USER"].descr(true)).str());
 
       if (status->has_key("SSL_CIPHER"))
-        println((boost::format(format) %"SSL: Cipher in use: " % (*status)["SSL_CIPHER"].descr(true)).str());
+        println((boost::format(format) % "SSL: Cipher in use: " % (*status)["SSL_CIPHER"].descr(true)).str());
       else
-        println((boost::format(format) %"SSL:" % "Not in use.").str());
+        println((boost::format(format) % "SSL:" % "Not in use.").str());
 
       if (status->has_key("SERVER_VERSION"))
-        println((boost::format(format) %"Server version: " % (*status)["SERVER_VERSION"].descr(true)).str());
+        println((boost::format(format) % "Server version: " % (*status)["SERVER_VERSION"].descr(true)).str());
 
       if (status->has_key("SERVER_INFO"))
-        println((boost::format(format) %"Server info: " % (*status)["SERVER_INFO"].descr(true)).str());
+        println((boost::format(format) % "Server info: " % (*status)["SERVER_INFO"].descr(true)).str());
 
       if (status->has_key("PROTOCOL_VERSION"))
-        println((boost::format(format) %"Protocol version: " % (*status)["PROTOCOL_VERSION"].descr(true)).str());
+        println((boost::format(format) % "Protocol version: " % (*status)["PROTOCOL_VERSION"].descr(true)).str());
 
       if (status->has_key("CONNECTION"))
-        println((boost::format(format) %"Connection: " % (*status)["CONNECTION"].descr(true)).str());
+        println((boost::format(format) % "Connection: " % (*status)["CONNECTION"].descr(true)).str());
 
       if (status->has_key("SERVER_CHARSET"))
-        println((boost::format(format) %"Server characterset: " % (*status)["SERVER_CHARSET"].descr(true)).str());
+        println((boost::format(format) % "Server characterset: " % (*status)["SERVER_CHARSET"].descr(true)).str());
 
       if (status->has_key("SCHEMA_CHARSET"))
-        println((boost::format(format) %"Schema characterset: " % (*status)["SCHEMA_CHARSET"].descr(true)).str());
+        println((boost::format(format) % "Schema characterset: " % (*status)["SCHEMA_CHARSET"].descr(true)).str());
 
       if (status->has_key("CLIENT_CHARSET"))
-        println((boost::format(format) %"Client characterset: " % (*status)["CLIENT_CHARSET"].descr(true)).str());
+        println((boost::format(format) % "Client characterset: " % (*status)["CLIENT_CHARSET"].descr(true)).str());
 
       if (status->has_key("CONNECTION_CHARSET"))
-        println((boost::format(format) %"Conn. characterset: " % (*status)["CONNECTION_CHARSET"].descr(true)).str());
+        println((boost::format(format) % "Conn. characterset: " % (*status)["CONNECTION_CHARSET"].descr(true)).str());
 
       if (status->has_key("SERVER_STATS"))
       {
@@ -972,11 +982,11 @@ bool Interactive_shell::cmd_status(const std::vector<std::string>& UNUSED(args))
         size_t start = stats.find(" ");
         start++;
         size_t end = stats.find(" ", start);
-        
-        std::string time = stats.substr(start , end - start);
+
+        std::string time = stats.substr(start, end - start);
         unsigned long ltime = boost::lexical_cast<unsigned long>(time);
         std::string str_time = MySQL_timer::format_legacy(ltime, false, true);
-        
+
         println((boost::format(format) % "Up time: " % str_time).str());
         println("");
         println(stats.substr(end + 2));
@@ -985,12 +995,9 @@ bool Interactive_shell::cmd_status(const std::vector<std::string>& UNUSED(args))
   }
   else
     _delegate.print_error(_delegate.user_data, "Not Connected\n");
-  
+
   return true;
 }
- 
- 
- 
 
 void Interactive_shell::deleg_print(void *cdata, const char *text)
 {
@@ -1120,12 +1127,12 @@ void Interactive_shell::process_line(const std::string &line)
 #endif
             println("");
           }
-        }
+      }
         // Continued blocks are only executed when an empty line is received
         // this case is when a block was executed and a new one was started at the same time
         else if (_input_mode == Input_continued_block && line.empty())
           _input_buffer.clear();
-      }
+    }
       catch (shcore::Exception &exc)
       {
         _delegate.print_error(_delegate.user_data, exc.format().c_str());
@@ -1142,8 +1149,8 @@ void Interactive_shell::process_line(const std::string &line)
       // the non executed code
       if (_input_mode == Input_ok)
         _input_buffer.clear();
-    }
   }
+}
 }
 
 void Interactive_shell::process_result(shcore::Value result)
