@@ -44,7 +44,7 @@ using namespace shcore;
 using namespace boost::system;
 
 JScript_type_bridger::JScript_type_bridger(JScript_context *context)
-: owner(context)
+  : owner(context), object_wrapper(NULL), indexed_object_wrapper(NULL), function_wrapper(NULL), map_wrapper(NULL), array_wrapper(NULL)
 {
 }
 
@@ -57,13 +57,42 @@ void JScript_type_bridger::init()
   function_wrapper = new JScript_function_wrapper(owner);
 }
 
+void JScript_type_bridger::dispose()
+{
+  if (object_wrapper)
+  {
+    delete object_wrapper;
+    object_wrapper = NULL;
+  }
+
+  if (indexed_object_wrapper)
+  {
+    delete indexed_object_wrapper;
+    indexed_object_wrapper = NULL;
+  }
+
+  if (function_wrapper)
+  {
+    delete function_wrapper;
+    function_wrapper = NULL;
+  }
+
+  if (map_wrapper)
+  {
+    delete map_wrapper;
+    map_wrapper = NULL;
+  }
+
+  if (array_wrapper)
+  {
+    delete array_wrapper;
+    array_wrapper = NULL;
+  }
+}
+
 JScript_type_bridger::~JScript_type_bridger()
 {
-  delete object_wrapper;
-  delete indexed_object_wrapper;
-  delete function_wrapper;
-  delete map_wrapper;
-  delete array_wrapper;
+  dispose();
 }
 
 double JScript_type_bridger::call_num_method(v8::Handle<v8::Object> object, const char *method)
@@ -225,7 +254,7 @@ v8::Handle<v8::Value> JScript_type_bridger::shcore_value_to_v8_value(const Value
         throw std::invalid_argument("Cannot convert internal value to JS: wrapmapref not implemented\n");
       }
     }
-      break;
+    break;
     case shcore::Function:
       r = function_wrapper->wrap(*value.value.func);
       break;
