@@ -48,6 +48,7 @@ namespace shcore
     void create_connection()
     {
       Server_registry* sr = new Server_registry("mysqlxconfig.json");
+      sr->load();
       Connection_options cs;
       try
       {

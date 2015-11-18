@@ -29,6 +29,7 @@
 
 #include "utils/utils_general.h"
 #include "utils/utils_file.h"
+#include "mysqlxtest_utils.h"
 
 #include <boost/bind.hpp>
 #include <boost/lexical_cast.hpp>
@@ -185,6 +186,9 @@ void ShellBaseSession::load_connection_data(const shcore::Argument_list &args)
 
     // Loads the connection data from a stored session
     shcore::Server_registry sr(connections_file);
+    try { sr.load(); }
+    CATCH_AND_TRANSLATE();
+
     shcore::Connection_options& conn = sr.get_connection_options(app);
 
     _user = conn.get_user();

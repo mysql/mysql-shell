@@ -22,6 +22,7 @@
 #include "shellcore/types.h"
 #include "utils/utils_general.h"
 #include "utils/utils_file.h"
+#include "modules/mysqlxtest_utils.h"
 #include <boost/format.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/bind.hpp>
@@ -128,6 +129,9 @@ _connections(new shcore::Value::Map_type)
   add_method("update", boost::bind(&StoredSessions::update, this, _1), "name", shcore::String, NULL);
 
   shcore::Server_registry sr(shcore::get_default_config_path());
+  try { sr.load(); }
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("ShellRegistry.load");
+
   for (std::map<std::string, Connection_options>::const_iterator it = sr.begin(); it != sr.end(); ++it)
   {
     const Connection_options& cs = it->second;
@@ -309,6 +313,7 @@ shcore::Value StoredSessions::store_connection(const std::string& name, const sh
   try
   {
     shcore::Server_registry sr(shcore::get_default_config_path());
+    sr.load();
 
     if (update)
       sr.update_connection_options(name, get_options_string(connection));
@@ -319,10 +324,7 @@ shcore::Value StoredSessions::store_connection(const std::string& name, const sh
     (*_connections)[name] = Value(connection);
     ret_val = Value::True();
   }
-  catch (std::exception& e)
-  {
-    throw shcore::Exception::argument_error((boost::format("ShellRegistry.%1%: %2%") % (update ? "update" : "add") % e.what()).str());
-  }
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION((boost::format("ShellRegistry.%1%") % (update ? "update" : "add")).str());
 
   return ret_val;
 }
@@ -360,6 +362,7 @@ bool StoredSessions::remove_connection(const std::string& name)
     if (_connections->has_key(name))
     {
       shcore::Server_registry sr(shcore::get_default_config_path());
+      sr.load();
       shcore::Connection_options& cs = sr.get_connection_options(name);
       sr.remove_connection_options(cs);
       sr.merge();
@@ -370,10 +373,7 @@ bool StoredSessions::remove_connection(const std::string& name)
     else
       throw Exception::argument_error((boost::format("The app name '%1%' does not exist") % name).str());
   }
-  catch (std::exception &e)
-  {
-    throw Exception::argument_error((boost::format("ShellRegistry.remove: %1%") % e.what()).str());
-  }
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("ShellRegistry.remove");
 
   return ret_val;
 }
