@@ -34,12 +34,13 @@
 #include <boost/format.hpp>
 #include <boost/pointer_cast.hpp>
 #include "utils/utils_general.h"
+#include "utils/utils_sqlstring.h"
 
 using namespace mysh::mysql;
 using namespace shcore;
 
 ClassicSchema::ClassicSchema(boost::shared_ptr<ClassicSession> session, const std::string &schema)
-: DatabaseObject(boost::dynamic_pointer_cast<ShellBaseSession>(session), boost::shared_ptr<DatabaseObject>(), schema)
+  : DatabaseObject(boost::dynamic_pointer_cast<ShellBaseSession>(session), boost::shared_ptr<DatabaseObject>(), schema)
 {
   init();
 }
@@ -71,7 +72,7 @@ void ClassicSchema::cache_table_objects()
   boost::shared_ptr<ClassicSession> sess(boost::dynamic_pointer_cast<ClassicSession>(_session.lock()));
   if (sess)
   {
-    Result *result = sess->connection()->run_sql("show full tables in `" + _name + "`");
+    Result *result = sess->connection()->run_sql(sqlstring("show full tables in !", 0) << _name);
     Row *row = result->fetch_one();
     while (row)
     {

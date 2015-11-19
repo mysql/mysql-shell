@@ -46,6 +46,7 @@
 #include "mod_mysql_resultset.h"
 #include "mod_mysql_schema.h"
 #include "utils/utils_general.h"
+#include "utils/utils_sqlstring.h"
 
 #define MAX_COLUMN_LENGTH 1024
 #define MIN_COLUMN_LENGTH 4
@@ -180,7 +181,7 @@ Value ClassicSession::createSchema(const shcore::Argument_list &args)
       throw Exception::argument_error("The schema name can not be empty.");
     else
     {
-      std::string statement = "create schema " + get_quoted_name(schema);
+      std::string statement = sqlstring("create schema !", 0) << schema;
       ret_val = Value::wrap(new ClassicResult(boost::shared_ptr<Result>(_conn->run_sql(statement))));
 
       boost::shared_ptr<ClassicSchema> object(new ClassicSchema(shared_from_this(), schema));
@@ -425,7 +426,7 @@ shcore::Value ClassicSession::set_current_schema(const shcore::Argument_list &ar
     std::string name = args[0].as_string();
 
     shcore::Argument_list query;
-    query.push_back(Value("use " + name + ";"));
+    query.push_back(Value(sqlstring("use !", 0) << name));
 
     Value res = run_sql(query);
   }
@@ -463,7 +464,7 @@ shcore::Value ClassicSession::dropSchema(const shcore::Argument_list &args)
 
   std::string name = args[0].as_string();
 
-  Value ret_val = Value::wrap(new ClassicResult(boost::shared_ptr<Result>(_conn->run_sql("drop schema " + get_quoted_name(name)))));
+  Value ret_val = Value::wrap(new ClassicResult(boost::shared_ptr<Result>(_conn->run_sql(sqlstring("drop schema !", 0) << name))));
 
   _remove_schema(name);
 
@@ -502,11 +503,11 @@ shcore::Value ClassicSession::dropSchemaObject(const shcore::Argument_list &args
 
   std::string statement;
   if (type == "Table")
-    statement = "drop table ";
+    statement = "drop table !.!";
   else
-    statement = "drop view ";
+    statement = "drop view !.!";
 
-  statement += get_quoted_name(schema) + "." + get_quoted_name(name);
+  statement = sqlstring(statement.c_str(), 0) << schema << name;
 
   Value ret_val = Value::wrap(new ClassicResult(boost::shared_ptr<Result>(_conn->run_sql(statement))));
 
@@ -533,7 +534,7 @@ std::string ClassicSession::db_object_exists(std::string &type, const std::strin
 
   if (type == "ClassicSchema")
   {
-    statement = "show databases like \"" + name + "\"";
+    statement = sqlstring("show databases like ?", 0) << name;
     Result *res = _conn->run_sql(statement);
     if (res->has_resultset())
     {
@@ -544,7 +545,7 @@ std::string ClassicSession::db_object_exists(std::string &type, const std::strin
   }
   else
   {
-    statement = "show full tables from `" + owner + "` like \"" + name + "\"";
+    statement = sqlstring("show full tables from ! like ?", 0) << owner << name;
     Result *res = _conn->run_sql(statement);
 
     if (res->has_resultset())
