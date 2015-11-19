@@ -157,25 +157,25 @@ void Server_registry::load()
   Lock_file _lock(_filename_lock);
 
   const char *c_filename = _filename.c_str();
-  std::ifstream iff(c_filename, std::ios::in | std::ios::binary);
+  boost::shared_ptr<std::ifstream> iff(new std::ifstream(c_filename, std::ios::in | std::ios::binary));
   int nerrno = errno;
-  if (!iff && nerrno == ENOENT)
+  if (iff->fail() && nerrno == ENOENT)
   {
     std::ofstream of(c_filename);
     of.close();
-    iff = std::ifstream(c_filename, std::ios::in | std::ios::binary);
+    iff.reset(new std::ifstream(c_filename, std::ios::in | std::ios::binary));
   }
-
-  if (iff)
+  
+  if (!iff->fail())
   {
     std::string s;
-    iff.seekg(0, iff.end);
-    int pos = iff.tellg();
+    iff->seekg(0, iff->end);
+    int pos = iff->tellg();
     if (pos != -1)
       s.resize(static_cast<std::string::size_type>(pos));
-    iff.seekg(0, std::ios::beg);
-    iff.read(&(s[0]), s.size());
-    iff.close();
+    iff->seekg(0, std::ios::beg);
+    iff->read(&(s[0]), s.size());
+    iff->close();
 
     if (s.empty()) return;
 
@@ -376,7 +376,9 @@ void Server_registry::merge()
   // Add versioning to the file
   rapidjson::Value my_obj_version(rapidjson::kObjectType);
   std::string version = boost::lexical_cast<std::string>(Server_registry::_version);
-  my_obj_version.AddMember(rapidjson::Value("version"), rapidjson::Value(version.c_str(), version.size()), allocator);
+  rapidjson::GenericStringRef<char> version_label("version");
+  rapidjson::Value version_value(version.c_str(), version.size());
+  my_obj_version.AddMember(version_label, version_value, allocator);
   doc.PushBack(my_obj_version, allocator);
   // Add the connections
   std::map<std::string, Connection_options>::iterator myend = _connections.end();
@@ -391,10 +393,13 @@ void Server_registry::merge()
     for (Connection_options::iterator it2 = cs.begin(); it2 != myend2; ++it2)
     {
       if (it2->first == "app") continue;
+
+      rapidjson::GenericStringRef<char> name_label(it2->first.c_str(), it2->first.size());
+      rapidjson::Value item_value(it2->second.c_str(), it2->second.size(), allocator);
       if (it2->first == "uuid")
       {
         uuid_checked = true;
-        my_obj.AddMember(rapidjson::Value(it2->first.c_str(), it2->first.size()), rapidjson::Value(it2->second.c_str(), it2->second.size(), allocator), allocator);
+        my_obj.AddMember(name_label, item_value, allocator);
       }
       else if (it2->first == "dbPassword")
       {
@@ -405,18 +410,26 @@ void Server_registry::merge()
         if (cipher_len == -1)
           throw std::runtime_error("Error encrypting data");
         cipher[cipher_len] = '\0';
-        my_obj.AddMember(rapidjson::Value(it2->first.c_str(), it2->first.size()), rapidjson::Value(static_cast<const char *>(cipher), cipher_len, allocator), allocator);
+        rapidjson::Value cipher_value(static_cast<const char *>(cipher), cipher_len, allocator);
+        my_obj.AddMember(name_label, cipher_value, allocator);
       }
       else
-        my_obj.AddMember(rapidjson::Value(it2->first.c_str(), it2->first.size()), rapidjson::Value(it2->second.c_str(), it2->second.size(), allocator), allocator);
+      {
+        my_obj.AddMember(name_label, item_value, allocator);
+      }
     }
     if (!uuid_checked)
     {
       std::string uuid = cs.get_uuid();
-      my_obj.AddMember("uuid", rapidjson::Value(uuid.c_str(), uuid.size(), allocator), allocator);
+      rapidjson::GenericStringRef<char> uuid_label("uuid", 4);
+      rapidjson::Value uuid_data(uuid.c_str(), uuid.size(), allocator);
+      my_obj.AddMember(uuid_label, uuid_data, allocator);
     }
-    my_obj2.AddMember("app", rapidjson::Value(app_name.c_str(), app_name.size(), allocator), allocator);
-    my_obj2.AddMember("config", my_obj, allocator);
+    rapidjson::GenericStringRef<char> app_label("app", 3);
+    rapidjson::Value app_data(app_name.c_str(), app_name.size(), allocator);
+    my_obj2.AddMember(app_label, app_data, allocator);
+    rapidjson::GenericStringRef<char> config_label("config", 6);
+    my_obj2.AddMember(config_label, my_obj, allocator);
     doc.PushBack(my_obj2, allocator);
   }
   rapidjson::StringBuffer strbuf;

@@ -109,7 +109,7 @@ namespace shcore {
 
       delete sr2;
     }
-
+    
     TEST(Server_registry_test, other_merge)
     {
       Server_registry* sr = new Server_registry("sample.json");
