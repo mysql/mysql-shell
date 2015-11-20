@@ -183,8 +183,8 @@ void Server_registry::load()
     doc.Parse(s.c_str());
     if (doc.GetParseError() != rapidjson::kParseErrorNone)
     {
-      log_error((boost::format("Server Registry: Error when parsing the file '%s', error: %s at %d") % c_filename % rapidjson::GetParseError_En(doc.GetParseError()) % 
-        doc.GetErrorOffset()).str().c_str());
+      log_error("Server Registry: Error when parsing the file '%s', error: %s at %lu", c_filename, rapidjson::GetParseError_En(doc.GetParseError()), 
+        doc.GetErrorOffset());
       return;
     }
 
@@ -207,15 +207,14 @@ void Server_registry::load()
         }
         catch (const boost::bad_lexical_cast& e)
         {
-          log_error((boost::format("Server Registry: Version is not parsable as an int for file '%s'") % c_filename).str().c_str());
+          log_error("Server Registry: Version is not parsable as an int for file '%s'", c_filename);
           return;
         }
       }
     }
     if (!version_ok)
     {
-      log_error((boost::format("Server Registry: Version does not exist for file '%s' (maybe file is for an old XShell version?) or doesn't match the expected version '%d'") 
-        % c_filename % Server_registry::_version).str().c_str());
+      log_error("Server Registry: Version does not exist for file '%s' (maybe file is for an old XShell version?) or doesn't match the expected version '%d'", c_filename, Server_registry::_version);
       return;
     }
 
@@ -223,7 +222,7 @@ void Server_registry::load()
     {
       if (!it->IsObject())
       {
-        log_error((boost::format("Server Registry: The entry number '%d' at file '%s' does not have the right format") % i % c_filename).str().c_str());
+        log_error("Server Registry: The entry number '%d' at file '%s' does not have the right format", i, c_filename);
         continue;
       }
 
@@ -244,7 +243,7 @@ void Server_registry::load()
           int decipher_len = Server_registry::decrypt_buffer(password.c_str(), len, decipher, cs_uuid.c_str());
           if (decipher_len == -1)
           {
-            log_error((boost::format("Server Registry: Error decrypting password at entry with app name '%s' at file '%s'") % app % c_filename).str().c_str());
+            log_error("Server Registry: Error decrypting password at entry with app name '%s' at file '%s'", app.c_str(), c_filename);
             continue;
           }
           decipher[decipher_len] = '\0';
@@ -261,8 +260,7 @@ void Server_registry::load()
   else
   {
     nerrno = errno;
-    std::string errmsg = (boost::format("Cannot open file %s: %s") % _filename % std::strerror(nerrno)).str();
-    log_error(errmsg.c_str());
+    log_error("Cannot open file %s: %s", _filename.c_str(), std::strerror(nerrno));
   }
 }
 
