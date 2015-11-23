@@ -151,7 +151,7 @@ int main(int argc, char **argv)
     else
     {
       // Performs the connection
-      if (!options.app.empty() || !options.uri.empty())
+      if (options.has_connection_data())
       {
         try
         {

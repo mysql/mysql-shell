@@ -163,7 +163,7 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
     {
       initial_mode = IShell_core::Mode_SQL;
       session_type = mysh::Node;
-  }
+    }
     else if (check_arg(argv, i, "--js", "--javascript"))
     {
 #ifdef HAVE_V8
@@ -261,5 +261,10 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
         break;
       }
     }
+  }
 }
+
+bool Shell_command_line_options::has_connection_data()
+{
+  return !app.empty() || !uri.empty() || !user.empty() || !host.empty() || !schema.empty() || port != 0;
 }

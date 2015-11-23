@@ -66,5 +66,7 @@ public:
 
   // Takes the URI and the individual connection parameters and overrides
   Shell_command_line_options(int argc, char **argv);
+
+  bool has_connection_data();
 };
 #endif
