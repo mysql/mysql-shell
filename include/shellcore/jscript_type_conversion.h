@@ -32,6 +32,7 @@ namespace shcore {
     ~JScript_type_bridger();
 
     void init();
+    void dispose();
 
     Value v8_value_to_shcore_value(const v8::Handle<v8::Value> &value);
     v8::Handle<v8::Value> shcore_value_to_v8_value(const Value &value);

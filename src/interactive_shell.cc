@@ -147,10 +147,10 @@ _options(options)
   bool lang_initialized;
   _shell->switch_mode(_options.initial_mode, lang_initialized);
 
+  _result_processor = boost::bind(&Interactive_shell::process_result, this, _1);
+
   if (lang_initialized)
     init_scripts(_options.initial_mode);
-
-  _result_processor = boost::bind(&Interactive_shell::process_result, this, _1);
 }
 
 bool Interactive_shell::cmd_process_file(const std::vector<std::string>& params)
@@ -162,52 +162,36 @@ bool Interactive_shell::cmd_process_file(const std::vector<std::string>& params)
   return true;
 }
 
-shcore::Value::Map_type_ref Interactive_shell::parse_uri(const std::string& uri)
+void Interactive_shell::print_connection_message(mysh::SessionType type, const std::string& uri, const std::string& sessionid)
 {
-  std::string user;
-  std::string password;
-  std::string host;
-  int port = 0;
-  std::string sock;
-  std::string schema;
-  std::string ssl_ca;
-  std::string ssl_cert;
-  std::string ssl_key;
+  std::string stype;
 
-  std::string protocol;
-  int pwd_found;
-  parse_mysql_connstring(uri, protocol, user, password, host, port, sock, schema, pwd_found, ssl_ca, ssl_cert, ssl_key);
+  switch (type)
+  {
+    case mysh::Application:
+      stype = "an X";
+      break;
+    case mysh::Node:
+      stype = "a Node";
+      break;
+    case mysh::Classic:
+      stype = "a Classic";
+      break;
+  }
 
-  Value::Map_type_ref options(new shcore::Value::Map_type);
+  std::string message;
+  if (!sessionid.empty())
+    message = "Using '" + sessionid + "' stored connection\n";
 
-  if (!user.empty())
-    (*options)["dbUser"] = Value(user);
+  message += "Creating " + stype + " Session to " + uri;
 
-  if (pwd_found)
-    (*options)["dbPassword"] = Value(password);
-
-  if (!host.empty())
-    (*options)["host"] = Value(host);
-
-  if (port != 0)
-    (*options)["port"] = Value(port);
-
-  if (!schema.empty())
-    (*options)["schema"] = Value(schema);
-
-  if (!sock.empty())
-    (*options)["sock"] = Value(sock);
-
-  if (!ssl_ca.empty())
-    (*options)["ssl_ca"] = Value(ssl_ca);
-
-  if (!ssl_cert.empty())
-    (*options)["ssl_cert"] = Value(ssl_cert);
-
-  if (!ssl_key.empty())
-    (*options)["ssl_key"] = Value(ssl_key);
-
-  return options;
+  if ((*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string().find("json") == 0)
+    print_json_info(message);
+  else
+  {
+    message += "\n";
+    _delegate.print(_delegate.user_data, message.c_str());
+  }
 }
 
 bool Interactive_shell::connect(bool primary_session)
@@ -222,43 +206,6 @@ bool Interactive_shell::connect(bool primary_session)
       _session->close(shcore::Argument_list());
     }
 
-    // strip password from uri
-    if (_options.interactive)
-    {
-      std::string stype;
-
-      switch (_options.session_type)
-      {
-        case mysh::Application:
-          stype = "an X";
-          break;
-        case mysh::Node:
-          stype = "a Node";
-          break;
-        case mysh::Classic:
-          stype = "a Classic";
-          break;
-      }
-
-      std::string message;
-      if (_options.app.empty())
-      {
-        std::string uri_stripped = shcore::strip_password(_options.uri);
-
-        message = "Creating " + stype + " Session to " + uri_stripped + "...";
-      }
-      else
-        message = "Creating " + stype + " Session with '" + _options.app + "' stored connection...";
-
-      if ((*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string().find("json") == 0)
-        print_json_info(message);
-      else
-      {
-        message += "\n";
-        _delegate.print(_delegate.user_data, message.c_str());
-      }
-    }
-
     Argument_list args;
     Value::Map_type_ref connection_data;
     if (!_options.app.empty())
@@ -268,52 +215,28 @@ bool Interactive_shell::connect(bool primary_session)
       else
         throw shcore::Exception::argument_error((boost::format("The stored connection %1% was not found") % _options.app).str());
     }
+    else if (!_options.uri.empty())
+      connection_data = get_connection_data(_options.uri);
     else
-      connection_data = parse_uri(_options.uri);
+      connection_data.reset(new shcore::Value::Map_type);
 
     // If the session is being created from command line
     // Individual parameters will override whatever was defined on the URI/stored connection
     if (primary_session)
     {
-      // Copies into a new object to avoid overriding a stored connection
-      connection_data = Value::parse(Value(connection_data).json(false)).as_map();
-
-      if (!_options.user.empty())
-        (*connection_data)["dbUser"] = Value(_options.user);
-
-      if (!_options.password.empty())
-        (*connection_data)["dbpassword"] = Value(_options.password);
-
-      if (!_options.host.empty())
-        (*connection_data)["host"] = Value(_options.host);
-
-      if (_options.port != 0)
-        (*connection_data)["port"] = Value(_options.port);
-
-      if (!_options.schema.empty())
-        (*connection_data)["schema"] = Value(_options.schema);
-
-      if (!_options.sock.empty())
-        (*connection_data)["sock"] = Value(_options.sock);
-
-      if (_options.ssl)
-      {
-        if (!_options.ssl_ca.empty())
-          (*connection_data)["ssl_ca"] = Value(_options.ssl_ca);
-
-        if (!_options.ssl_cert.empty())
-          (*connection_data)["ssl_cert"] = Value(_options.ssl_cert);
-
-        if (!_options.ssl_key.empty())
-          (*connection_data)["ssl_key"] = Value(_options.ssl_key);
-      }
-      else
-      {
-        connection_data->erase("ssl_ca");
-        connection_data->erase("ssl_cert");
-        connection_data->erase("ssl_key");
-      }
+      shcore::update_connection_data(connection_data,
+                                     _options.user, _options.password,
+                                     _options.host, _options.port,
+                                     _options.sock, _options.schema,
+                                     _options.ssl != 0,
+                                     _options.ssl_ca, _options.ssl_cert, _options.ssl_key);
     }
+
+    // Sets any missing parameter to default values
+    shcore::set_default_connection_data(connection_data);
+
+    if (_options.interactive)
+      print_connection_message(_options.session_type, shcore::build_connection_string(connection_data, false), _options.app);
 
     args.push_back(Value(connection_data));
 
@@ -438,8 +361,6 @@ void Interactive_shell::init_scripts(Shell_core::Mode mode)
   std::vector<std::string> scripts_paths;
 
   std::string user_file = "";
-
-  get_user_config_path();
 
   try
   {
@@ -1127,12 +1048,12 @@ void Interactive_shell::process_line(const std::string &line)
 #endif
             println("");
           }
-      }
+        }
         // Continued blocks are only executed when an empty line is received
         // this case is when a block was executed and a new one was started at the same time
         else if (_input_mode == Input_continued_block && line.empty())
           _input_buffer.clear();
-    }
+      }
       catch (shcore::Exception &exc)
       {
         _delegate.print_error(_delegate.user_data, exc.format().c_str());
@@ -1149,8 +1070,8 @@ void Interactive_shell::process_line(const std::string &line)
       // the non executed code
       if (_input_mode == Input_ok)
         _input_buffer.clear();
+    }
   }
-}
 }
 
 void Interactive_shell::process_result(shcore::Value result)
@@ -1255,7 +1176,9 @@ int Interactive_shell::process_stream(std::istream & stream, const std::string& 
     {
       std::string line;
 
+      std::cout << "Reading line...\n";
       std::getline(stream, line);
+      std::cout << "Read line...\n";
 
       if (_options.full_interactive)
       {

@@ -21,10 +21,12 @@
 #include "utils/utils_file.h"
 #include "utils/utils_general.h"
 #include "uuid_gen.h"
-#include "myjson/myjson.h"
-#include "myjson/mutable_myjson.h"
 #include "rapidjson/document.h"
+#include "rapidjson/writer.h"
+#include "rapidjson/error/en.h"
+#include "logger/logger.h"
 #include "utils_json.h"
+#include "shellcore/types.h"
 
 #include <cstring>
 #include <cstdlib>
@@ -98,9 +100,11 @@ void Connection_options::Keywords_table::validate_options_mandatory_included(Con
     if (_is_optional[i]) continue;
     Connection_options::iterator it = options.find(_keywords[i]);
     if (it == myend)
-      throw std::runtime_error((boost::format("The connection option %s is mandatory") % _keywords[i]).str());
+      throw shcore::Exception::argument_error((boost::format("The connection option %s is mandatory") % _keywords[i]).str());
   }
 }
+
+const int Server_registry::_version(1);
 
 int Server_registry::encrypt_buffer(const char *plain, int plain_len, char cipher[], const char *my_key)
 {
@@ -146,103 +150,23 @@ void Server_registry::init()
   boost::variate_generator<boost::mt19937 &, boost::uniform_int<> > vargen(gen, dist);
   gen.seed(now);
   init_uuid(vargen());
-
-  _lock = new Lock_file(_filename_lock);
-  try
-  {
-    //load_file_rapidjson();
-    load_file();
-    delete _lock;
-  }
-  catch (...)
-  {
-    if (_lock) delete _lock;
-    throw;
-  }
 }
 
-/*
-void Server_registry::load_file_rapidjson()
+void Server_registry::load()
 {
-const char *c_filename = _filename.c_str();
-std::ifstream *iff = new std::ifstream(c_filename, std::ios::in | std::ios::binary);
-int nerrno = errno;
-if (!iff && nerrno == ENOENT)
-{
-std::ofstream of(c_filename);
-of.close();
-delete iff;
-iff = new std::ifstream(c_filename, std::ios::in | std::ios::binary);
-}
-if (iff)
-{
-std::string s;
-iff->seekg(0, iff->end);
-int pos = iff->tellg();
-if (pos != -1)
-s.resize(static_cast<std::string::size_type>(pos));
-iff->seekg(0, std::ios::beg);
-iff->read(&(s[0]), s.size());
-iff->close();
-delete iff;
+  Lock_file _lock(_filename_lock);
 
-if (s.empty()) return;
-
-rapidjson::Document doc;
-doc.Parse(s.c_str());
-
-for (rapidjson::Value::ConstValueIterator it = doc.Begin(); it != doc.End(); ++it)
-{
-if (!it->IsObject())
-throw std::runtime_error((boost::format("The server registry at %s does not have the right format") % c_filename).str());
-
-rapidjson::Value::ConstMemberIterator val = it->FindMember("uuid");
-const std::string& cs_uuid = val->value.GetString();
-add_connection_options(cs_uuid, "");
-
-for (rapidjson::Value::ConstMemberIterator it2 = it->MemberBegin(); it2 != it->MemberEnd(); ++it2)
-{
-if (it2->name == "dbPassword")
-{
-char decipher[4096];
-const std::string& password = it2->value.GetString();
-int len = password.size();
-int decipher_len = Server_registry::decrypt_buffer(password.c_str(), len, decipher, cs_uuid.c_str());
-if (decipher_len == -1)
-throw std::runtime_error("Error decrypting data");
-decipher[decipher_len] = '\0';
-const std::string s_decipher(static_cast<const char *>(decipher));
-set_value(cs_uuid, "dbPassword", s_decipher);
-}
-else
-{
-set_value(cs_uuid, it2->name.GetString(), it2->value.GetString());
-}
-}
-}
-}
-else
-{
-nerrno = errno;
-std::string errmsj = (boost::format("Cannot open file %s: %s") % _filename % std::strerror(nerrno)).str();
-throw std::runtime_error(errmsj);
-}
-}
-//*/
-
-void Server_registry::load_file()
-{
   const char *c_filename = _filename.c_str();
-  std::ifstream *iff = new std::ifstream(c_filename, std::ios::in | std::ios::binary);
+  boost::shared_ptr<std::ifstream> iff(new std::ifstream(c_filename, std::ios::in | std::ios::binary));
   int nerrno = errno;
-  if (!iff && nerrno == ENOENT)
+  if (iff->fail() && nerrno == ENOENT)
   {
     std::ofstream of(c_filename);
     of.close();
-    delete iff;
-    iff = new std::ifstream(c_filename, std::ios::in | std::ios::binary);
+    iff.reset(new std::ifstream(c_filename, std::ios::in | std::ios::binary));
   }
-  if (iff)
+  
+  if (!iff->fail())
   {
     std::string s;
     iff->seekg(0, iff->end);
@@ -252,53 +176,83 @@ void Server_registry::load_file()
     iff->seekg(0, std::ios::beg);
     iff->read(&(s[0]), s.size());
     iff->close();
-    delete iff;
 
     if (s.empty()) return;
 
-    myjson::MYJSON *myjs = new myjson::MYJSON(s);
-    myjson::MYJSON myjsDoc;
-    myjson::MYJSON myjsDoc2;
-
-    if (myjs->data())
+    rapidjson::Document doc;
+    doc.Parse(s.c_str());
+    if (doc.GetParseError() != rapidjson::kParseErrorNone)
     {
-      for (myjson::MYJSON::iterator it = myjs->begin(); it != myjs->end(); ++it)
+      log_error("Server Registry: Error when parsing the file '%s', error: %s at %lu", c_filename, rapidjson::GetParseError_En(doc.GetParseError()), 
+        doc.GetErrorOffset());
+      return;
+    }
+
+    int i = 1;
+    rapidjson::Value::ConstValueIterator it = doc.Begin();
+    bool version_ok = false;
+    // try to read the version
+    if (it->IsObject())
+    {
+      rapidjson::Value::ConstMemberIterator it_ver = it->FindMember("version");
+      if (it_ver != it->MemberEnd())
       {
-        if (!myjs->get_document(it.key(), myjsDoc2))
-          throw std::runtime_error((boost::format("Missing document for key %s") % it.key()).str());
-        if (!myjsDoc2.get_document("config", myjsDoc))
-          throw std::runtime_error((boost::format("Missing config section in configuration with app %s") % it.key()).str());
-        myjson::MYJSON::iterator myend = myjsDoc.end();
-
-        std::string cs_uuid;
-        myjsDoc.get_text("uuid", cs_uuid);
-        std::string app;
-        myjsDoc2.get_text("app", app);
-
-        // Do not overwrite, if for some reason a connection with a duplicated name is on the file
-        // The error will be reported on load time
-        add_connection_options(cs_uuid, app, "", false, true);
-
-        for (myjson::MYJSON::iterator it2 = myjsDoc.begin(); it2 != myend; ++it2)
+        try 
         {
-          if (std::strcmp(it2.key(), "dbPassword") == 0)
+          if (Server_registry::_version == boost::lexical_cast<int>(it_ver->value.GetString()))
           {
-            char decipher[4096];
-            std::string password;
-            myjsDoc.get_text("dbPassword", password);
-            int len = password.size();
-            int decipher_len = Server_registry::decrypt_buffer(password.c_str(), len, decipher, cs_uuid.c_str());
-            if (decipher_len == -1)
-              throw std::runtime_error("Error decrypting data");
-            decipher[decipher_len] = '\0';
-            const std::string s_key(it2.key());
-            const std::string s_decipher(static_cast<const char *>(decipher));
-            set_value(cs_uuid, s_key, s_decipher);
+            version_ok = true;
+            it++;
           }
-          else
+        }
+        catch (const boost::bad_lexical_cast& e)
+        {
+          log_error("Server Registry: Version is not parsable as an int for file '%s'", c_filename);
+          return;
+        }
+      }
+    }
+    if (!version_ok)
+    {
+      log_error("Server Registry: Version does not exist for file '%s' (maybe file is for an old XShell version?) or doesn't match the expected version '%d'", c_filename, Server_registry::_version);
+      return;
+    }
+
+    for (; it != doc.End(); ++it, ++i)
+    {
+      if (!it->IsObject())
+      {
+        log_error("Server Registry: The entry number '%d' at file '%s' does not have the right format", i, c_filename);
+        continue;
+      }
+
+      const std::string& app = it->FindMember("app")->value.GetString();
+      const rapidjson::Value& config = it->FindMember("config")->value;
+
+      rapidjson::Value::ConstMemberIterator val = config.FindMember("uuid");
+      const std::string& cs_uuid = val->value.GetString();
+      add_connection_options(cs_uuid, app, "", false, true);
+
+      for (rapidjson::Value::ConstMemberIterator it2 = config.MemberBegin(); it2 != config.MemberEnd(); ++it2)
+      {
+        if (it2->name == "dbPassword")
+        {
+          char decipher[4096];
+          const std::string password(it2->value.GetString(), it2->value.GetStringLength());
+          int len = password.size();
+          int decipher_len = Server_registry::decrypt_buffer(password.c_str(), len, decipher, cs_uuid.c_str());
+          if (decipher_len == -1)
           {
-            set_value(cs_uuid, it2.key(), it2.data());
+            log_error("Server Registry: Error decrypting password at entry with app name '%s' at file '%s'", app.c_str(), c_filename);
+            continue;
           }
+          decipher[decipher_len] = '\0';
+          const std::string s_decipher(static_cast<const char *>(decipher));
+          set_value(cs_uuid, "dbPassword", s_decipher);
+        }
+        else
+        {
+          set_value(cs_uuid, it2->name.GetString(), it2->value.GetString());
         }
       }
     }
@@ -306,8 +260,7 @@ void Server_registry::load_file()
   else
   {
     nerrno = errno;
-    std::string errmsj = (boost::format("Cannot open file %s: %s") % _filename % std::strerror(nerrno)).str();
-    throw std::runtime_error(errmsj);
+    log_error("Cannot open file %s: %s", _filename.c_str(), std::strerror(nerrno));
   }
 }
 
@@ -342,9 +295,9 @@ std::string Server_registry::get_new_uuid()
 Connection_options& Server_registry::add_connection_options(const std::string& uuid, const std::string& name, const std::string& options, bool overwrite, bool placeholder)
 {
   if (!shcore::is_valid_identifier(name))
-    throw std::runtime_error((boost::format("The app name '%s' is not a valid identifier") % name).str());
+    throw shcore::Exception::argument_error((boost::format("The app name '%s' is not a valid identifier") % name).str());
   else if (!overwrite && _connections_by_name.find(name) != _connections_by_name.end())
-    throw std::runtime_error((boost::format("The app name '%s' already exists") % name).str());
+    throw shcore::Exception::argument_error((boost::format("The app name '%s' already exists") % name).str());
 
   Connection_options cs(options, placeholder);
   cs._uuid = uuid;
@@ -372,7 +325,7 @@ Connection_options& Server_registry::add_connection_options(const std::string &n
 Connection_options& Server_registry::update_connection_options(const std::string &name, const std::string &options)
 {
   if (_connections_by_name.find(name) == _connections_by_name.end())
-    throw std::runtime_error((boost::format("The app name '%s' does not exist") % name).str());
+    throw shcore::Exception::argument_error((boost::format("The app name '%s' does not exist") % name).str());
 
   std::string uuid = _connections_by_name[name]->get_uuid();
   return add_connection_options(uuid, name, options, true, false);
@@ -402,91 +355,49 @@ void Server_registry::set_value(const std::string &uuid, const std::string &name
   if (Connection_options::get_keyword_id(name) == (int)App)
   {
     if (!shcore::is_valid_identifier(name))
-    throw std::runtime_error((boost::format("The app name '%s' is not a valid identifier") % name).str());
-    _connections_by_name.erase(cs.get_name());
-    _connections_by_name[name] = &cs;
+      throw std::runtime_error((boost::format("The app name '%s' is not a valid identifier") % name).str());
+    std::string cur_name = cs.get_name();
+    if (cur_name != value)
+    {
+      _connections_by_name.erase(cs.get_name());
+      _connections_by_name[name] = &cs;
+    }
   }
   cs.set_value(name, value);
 }
 
-/*
-void Server_registry::merge_rapidjson()
-{
-shcore::JSON_dumper dumper(true);
-
-dumper.start_array();
-std::map<std::string, Connection_options>::iterator myend = _connections.end();
-for (std::map<std::string, Connection_options>::iterator it = _connections.begin(); it != myend; ++it)
-{
-dumper.start_object();
-bool uuid_checked = false;
-Connection_options& cs = it->second;
-Connection_options::iterator myend2 = cs.end();
-for (Connection_options::iterator it2 = cs.begin(); it2 != myend2; ++it2)
-{
-if (it2->first == "uuid")
-{
-uuid_checked = true;
-dumper.append_string(it2->first, it2->second);
-}
-else if (it2->first == "dbPassword")
-{
-// encrypt password
-char cipher[4096];
-std::string uuid = cs.get_uuid();
-int cipher_len = Server_registry::encrypt_buffer(it2->second.c_str(), it2->second.size(), cipher, uuid.c_str());
-if (cipher_len == -1)
-throw std::runtime_error("Error encrypting data");
-cipher[cipher_len] = '\0';
-std::string s_cipher(static_cast<const char *>(cipher), cipher_len);
-dumper.append_string(it2->first, s_cipher);
-}
-else
-{
-dumper.append_string(it2->first, it2->second);
-}
-}
-if (!uuid_checked)
-{
-std::string uuid = cs.get_uuid();
-dumper.append_string("uuid", uuid);
-}
-
-dumper.end_object();
-}
-dumper.end_array();
-
-std::string fulljson = dumper.str();
-Lock_file lock2(_filename_lock);
-std::ofstream of(_filename.c_str(), std::ios::trunc | std::ios::binary);
-of.write(fulljson.c_str(), fulljson.size());
-of.flush();
-}
-*/
-
 void Server_registry::merge()
 {
-  myjson::Mutable_MYJSON myfile;
-  myjson::Mutable_MYJSON *myjs;
-
+  rapidjson::Document doc;
+  doc.SetArray();
+  rapidjson::Document::AllocatorType& allocator = doc.GetAllocator();
+  // Add versioning to the file
+  rapidjson::Value my_obj_version(rapidjson::kObjectType);
+  std::string version = boost::lexical_cast<std::string>(Server_registry::_version);
+  rapidjson::GenericStringRef<char> version_label("version");
+  rapidjson::Value version_value(version.c_str(), version.size());
+  my_obj_version.AddMember(version_label, version_value, allocator);
+  doc.PushBack(my_obj_version, allocator);
+  // Add the connections
   std::map<std::string, Connection_options>::iterator myend = _connections.end();
   for (std::map<std::string, Connection_options>::iterator it = _connections.begin(); it != myend; ++it)
   {
-    Connection_options& cs = it->second;
     bool uuid_checked = false;
-
-    myjs = new myjson::Mutable_MYJSON();
-    myjs->append_value("app", cs.get_name().c_str());
-    myjson::Mutable_MYJSON *myjs2 = new myjson::Mutable_MYJSON();
-
+    rapidjson::Value my_obj(rapidjson::kObjectType);
+    rapidjson::Value my_obj2(rapidjson::kObjectType);
+    Connection_options& cs = it->second;
+    const std::string app_name = cs.get_name();
     Connection_options::iterator myend2 = cs.end();
     for (Connection_options::iterator it2 = cs.begin(); it2 != myend2; ++it2)
     {
       if (it2->first == "app") continue;
+
+      rapidjson::GenericStringRef<char> name_label(it2->first.c_str(), it2->first.size());
+      rapidjson::Value item_value(it2->second.c_str(), it2->second.size(), allocator);
       if (it2->first == "uuid")
       {
         uuid_checked = true;
-        myjs2->append_value(it2->first.c_str(), it2->second.c_str());
+        my_obj.AddMember(name_label, item_value, allocator);
       }
       else if (it2->first == "dbPassword")
       {
@@ -497,37 +408,38 @@ void Server_registry::merge()
         if (cipher_len == -1)
           throw std::runtime_error("Error encrypting data");
         cipher[cipher_len] = '\0';
-        myjs2->append_value(it2->first.c_str(), static_cast<const char *>(cipher), cipher_len);
+        rapidjson::Value cipher_value(static_cast<const char *>(cipher), cipher_len, allocator);
+        my_obj.AddMember(name_label, cipher_value, allocator);
       }
       else
       {
-        myjs2->append_value(it2->first.c_str(), it2->second.c_str(), it2->second.size());
+        my_obj.AddMember(name_label, item_value, allocator);
       }
     }
     if (!uuid_checked)
     {
       std::string uuid = cs.get_uuid();
-      myjs2->append_value("uuid", uuid.c_str(), uuid.size());
+      rapidjson::GenericStringRef<char> uuid_label("uuid", 4);
+      rapidjson::Value uuid_data(uuid.c_str(), uuid.size(), allocator);
+      my_obj.AddMember(uuid_label, uuid_data, allocator);
     }
-    myjs2->done();
-    myjs->append_document("config", *myjs2);
-
-    myjs->done();
-    myfile.append_document(it->first.c_str(), *myjs);
-    delete myjs2;
-    delete myjs;
+    rapidjson::GenericStringRef<char> app_label("app", 3);
+    rapidjson::Value app_data(app_name.c_str(), app_name.size(), allocator);
+    my_obj2.AddMember(app_label, app_data, allocator);
+    rapidjson::GenericStringRef<char> config_label("config", 6);
+    my_obj2.AddMember(config_label, my_obj, allocator);
+    doc.PushBack(my_obj2, allocator);
   }
+  rapidjson::StringBuffer strbuf;
+  rapidjson::Writer<rapidjson::StringBuffer> writer(strbuf);
+  doc.Accept(writer);
 
-  myfile.done();
-  std::string fulljson = myfile.as_json(true);
-  char *json_data = (char *)std::malloc(sizeof(char)* (fulljson.size() + 1));
-  std::memcpy(json_data, fulljson.c_str(), fulljson.size());
-
+  // dump into file the JSON contents
+  const char *fulljson = strbuf.GetString();
   Lock_file lock2(_filename_lock);
   std::ofstream of(_filename.c_str(), std::ios::trunc | std::ios::binary);
-  of.write(json_data, fulljson.size());
+  of.write(fulljson, strbuf.GetSize());
   of.flush();
-  std::free(json_data);
 }
 
 void Server_registry::set_keyword_value(const std::string &uuid, Connection_keywords key, const std::string& value)

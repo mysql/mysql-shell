@@ -30,7 +30,7 @@
 #include "utils/utils_general.h"
 #include "utils/utils_time.h"
 #include "utils/utils_file.h"
-
+#include "utils/utils_sqlstring.h"
 #include "shellcore/proxy_object.h"
 
 #include "mysqlxtest_utils.h"
@@ -197,7 +197,7 @@ Value BaseSession::createSchema(const shcore::Argument_list &args)
   try
   {
     std::string schema = args.string_at(0);
-    std::string statement = "create schema " + get_quoted_name(schema);
+    std::string statement = sqlstring("create schema !", 0) << schema;
     ret_val = executeStmt("sql", statement, false, shcore::Argument_list());
 
     // if reached this point it indicates that there were no errors
@@ -612,7 +612,7 @@ shcore::Value BaseSession::dropSchema(const shcore::Argument_list &args)
 
   std::string name = args[0].as_string();
 
-  Value ret_val = executeStmt("sql", "drop schema " + get_quoted_name(name), false, shcore::Argument_list());
+  Value ret_val = executeStmt("sql", sqlstring("drop schema !", 0) << name, false, shcore::Argument_list());
 
   _remove_schema(name);
 
@@ -659,7 +659,7 @@ shcore::Value BaseSession::dropSchemaObject(const shcore::Argument_list &args, c
 
   shcore::Value ret_val;
   if (type == "View")
-    ret_val = executeStmt("sql", "drop view " + get_quoted_name(schema) + "." + get_quoted_name(name) + "", false, shcore::Argument_list());
+    ret_val = executeStmt("sql", sqlstring("drop view !.!", 0) << schema << name + "", false, shcore::Argument_list());
   else
   {
     shcore::Argument_list command_args;
@@ -693,7 +693,7 @@ std::string BaseSession::db_object_exists(std::string &type, const std::string &
 
   if (type == "Schema")
   {
-    shcore::Value res = executeStmt("sql", "show databases like \"" + name + "\"", true, shcore::Argument_list());
+    shcore::Value res = executeStmt("sql", sqlstring("show databases like ?", 0) << name, true, shcore::Argument_list());
     boost::shared_ptr<SqlResult> my_res = res.as_object<SqlResult>();
 
     Value raw_entry = my_res->fetch_one(shcore::Argument_list());
@@ -746,23 +746,23 @@ std::string BaseSession::db_object_exists(std::string &type, const std::string &
 shcore::Value BaseSession::get_status(const shcore::Argument_list &args)
 {
   shcore::Value::Map_type_ref status(new shcore::Value::Map_type);
-  
+
   if (class_name() == "XSession")
     (*status)["SESSION_TYPE"] = shcore::Value("X");
   else
     (*status)["SESSION_TYPE"] = shcore::Value("Node");
 
   (*status)["DEFAULT_SCHEMA"] = shcore::Value(_default_schema);
-  
+
   boost::shared_ptr< ::mysqlx::Result> result;
   boost::shared_ptr< ::mysqlx::Row>row;
   result = _session->executeSql("select DATABASE(), USER() limit 1");
   row = result->next();
-  
+
   std::string current_schema = row->isNullField(0) ? "" : row->stringField(0);
   if (current_schema == "null")
     current_schema = "";
-  
+
   (*status)["CURRENT_SCHEMA"] = shcore::Value(current_schema);
   (*status)["CURRENT_USER"] = shcore::Value(row->isNullField(1) ? "" : row->stringField(1));
   (*status)["CONNECTION_ID"] = shcore::Value(_session->connection()->client_id());
@@ -775,7 +775,7 @@ shcore::Value BaseSession::get_status(const shcore::Argument_list &args)
   //(*status)["PROTOCOL_VERSION"] = shcore::Value(_conn->get_protocol_info());
   //(*status)["CONNECTION"] = shcore::Value(_conn->get_connection_info());
   //(*status)["INSERT_ID"] = shcore::Value(???);
-  
+
   result = _session->executeSql("select @@character_set_client, @@character_set_connection, @@character_set_server, @@character_set_database, @@version_comment limit 1");
   row = result->next();
   (*status)["CLIENT_CHARSET"] = shcore::Value(row->isNullField(0) ? "" : row->stringField(0));
@@ -783,20 +783,20 @@ shcore::Value BaseSession::get_status(const shcore::Argument_list &args)
   (*status)["SERVER_CHARSET"] = shcore::Value(row->isNullField(2) ? "" : row->stringField(2));
   (*status)["SCHEMA_CHARSET"] = shcore::Value(row->isNullField(3) ? "" : row->stringField(3));
   (*status)["SERVER_VERSION"] = shcore::Value(row->isNullField(4) ? "" : row->stringField(4));
-  
+
   //(*status)["SERVER_STATS"] = shcore::Value(_conn->get_stats());
-  
+
   // TODO: Review retrieval from charset_info, mysql connection
-  
+
   // TODO: Embedded library stuff
   //(*status)["TCP_PORT"] = row->get_value(1);
   //(*status)["UNIX_SOCKET"] = row->get_value(2);
   //(*status)["PROTOCOL_COMPRESSED"] = row->get_value(3);
-  
-  // STATUS 
-  
+
+  // STATUS
+
   // SAFE UPDATES
-  
+
   return shcore::Value(status);
 }
 
@@ -890,7 +890,7 @@ shcore::Value NodeSession::set_current_schema(const shcore::Argument_list &args)
   {
     std::string name = args[0].as_string();
 
-    boost::shared_ptr< ::mysqlx::Result> result = _session->executeSql("use " + name + ";");
+    boost::shared_ptr< ::mysqlx::Result> result = _session->executeSql(sqlstring("use !", 0) << name);
     result->flush();
   }
   else

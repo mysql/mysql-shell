@@ -63,12 +63,11 @@ public:
   bool cmd_status(const std::vector<std::string>& args);
 
   void print_banner();
+  void print_connection_message(mysh::SessionType type, const std::string& uri, const std::string& sessionid);
   void print_cmd_line_helper();
   IShell_core::Mode interactive_mode() const { return _shell->interactive_mode(); }
 
   void set_log_level(ngcommon::Logger::LOG_LEVEL level) { if (_logger) _logger->set_log_level(level); }
-
-  shcore::Value::Map_type_ref parse_uri(const std::string& uri);
 
   void process_line(const std::string &line);
 

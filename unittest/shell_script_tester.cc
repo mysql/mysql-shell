@@ -27,11 +27,13 @@ Shell_script_tester::Shell_script_tester()
 
 void Shell_script_tester::SetUp()
 {
-  Shell_core_test_wrapper::SetUp();
+  Crud_test_wrapper::SetUp();
 }
 
 void Shell_script_tester::TearDown()
-{}
+{
+  Crud_test_wrapper::TearDown();
+}
 
 void Shell_script_tester::set_config_folder(const std::string &name)
 {

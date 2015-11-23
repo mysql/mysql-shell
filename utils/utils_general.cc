@@ -20,8 +20,13 @@
 #include "utils_general.h"
 #include "utils_file.h"
 #include "shellcore/server_registry.h"
-#include "shellcore/types.h"
 #include <locale>
+#ifdef WIN32
+#include <windows.h>
+#include <Lmcons.h>
+#else
+#include <unistd.h>
+#endif
 
 #include <boost/format.hpp>
 
@@ -48,43 +53,41 @@ namespace shcore
     return ret_val;
   }
 
-  std::string build_connection_string(const std::string &uri_user, const std::string &uri_password,
-                               const std::string &uri_host, int &port,
-                               const std::string &uri_database, bool prompt_pwd, const std::string &uri_ssl_ca,
-                               const std::string &uri_ssl_cert, const std::string &uri_ssl_key)
+  std::string build_connection_string(Value::Map_type_ref data, bool with_password)
   {
     std::string uri;
 
     // If needed we construct the URi from the individual parameters
     {
-      // Sets the user and password
-      if (!uri_user.empty())
-      {
-        uri.append(uri_user);
+      if (data->has_key("dbUser"))
+      uri.append((*data)["dbUser"].as_string());
 
-        // If the password will not be prompted and is defined appends both :password
-        if (!prompt_pwd)
-          uri.append(":").append(uri_password);
+      // If the password will not be prompted and is defined appends both :password
+      if (with_password && data->has_key("dbPassword"))
+        uri.append(":").append((*data)["dbPassword"].as_string());
 
-        uri.append("@");
-      }
+      uri.append("@");
 
       // Sets the host
-      if (!uri_host.empty())
-        uri.append(uri_host);
+      if (data->has_key("host"))
+        uri.append((*data)["host"].as_string());
 
       // Sets the port
-      if (!uri_host.empty() && port > 0)
-        uri.append((boost::format(":%i") % port).str());
-
-      // Sets the database
-      if (!uri_database.empty())
+      if (data->has_key("port"))
       {
-        uri.append("/");
-        uri.append(uri_database);
+        uri.append(":");
+        uri.append((*data)["port"].descr(true));
       }
 
-      conn_str_cat_ssl_data(uri, uri_ssl_ca, uri_ssl_cert, uri_ssl_key);
+      // Sets the database
+      if (data->has_key("schema"))
+      {
+        uri.append("/");
+        uri.append((*data)["schema"].as_string());
+      }
+
+      if (data->has_key("ssl_ca") && data->has_key("ssl_cert") && data->has_key("ssl_key"))
+        conn_str_cat_ssl_data(uri, (*data)["ssl_ca"].as_string(), (*data)["ssl_cert"].as_string(), (*data)["ssl_key"].as_string());
     }
 
     return uri;
@@ -368,13 +371,8 @@ namespace shcore
     return ret_val;
   }
 
-  // Takes the URI and the individual connection parameters and overrides
-  // On the URI as specified on the parameters
-  std::string configure_connection_string(const std::string &connstring,
-                                          const std::string &user, const std::string &password,
-                                          const std::string &host, int &port,
-                                          const std::string &database, bool prompt_pwd, const std::string &ssl_ca,
-                                          const std::string &ssl_cert, const std::string &ssl_key)
+  // Builds a connection data dictionary using the URI
+  Value::Map_type_ref get_connection_data(const std::string &uri)
   {
     // NOTE: protocol is left in case an URI still uses it, however, it is ignored everywhere
     std::string uri_protocol;
@@ -389,54 +387,135 @@ namespace shcore
     std::string uri_ssl_key;
     int pwd_found = 0;
 
-    std::string ret_val;
+    // Creates the connection dictionary
+    Value::Map_type_ref ret_val(new shcore::Value::Map_type);
 
-    // First validates the URI if specified
-    if (!connstring.empty())
+    // Parses the URI if provided
+    if (!uri.empty())
     {
       try
       {
-        parse_mysql_connstring(connstring, uri_protocol, uri_user, uri_password, uri_host, uri_port, uri_sock, uri_database, pwd_found,
+        parse_mysql_connstring(uri, uri_protocol, uri_user, uri_password, uri_host, uri_port, uri_sock, uri_database, pwd_found,
                                uri_ssl_ca, uri_ssl_cert, uri_ssl_key);
 
-        // URI was either empty or valid, in any case we need to override whatever was configured on the uri_* variables
-        // With what was received on the individual parameters.
-        // This implies URI recreation process should be done to either
-        // - Create an URI if none was specified.
-        // - Update the URI with the parameters overriding it's values.
-        if (!user.empty())
-          uri_user = user;
+        if (!uri_user.empty())
+          (*ret_val)["dbUser"] = Value(uri_user);
 
-        if (!password.empty() || prompt_pwd)
-          uri_password = password;
+        if (!uri_host.empty())
+          (*ret_val)["host"] = Value(uri_host);
 
-        if (!host.empty())
-          uri_host = host;
+        if (uri_port != 0)
+          (*ret_val)["port"] = Value(uri_port);
 
-        if (!database.empty())
-          uri_database = database;
+        if (!uri_password.empty())
+          (*ret_val)["dbPassword"] = Value(uri_password);
 
-        if (port)
-          uri_port = port;
+        if (!uri_database.empty())
+          (*ret_val)["schema"] = Value(uri_database);
 
-        if (!ssl_ca.empty())
-          uri_ssl_ca = ssl_ca;
+        if (!uri_sock.empty())
+          (*ret_val)["sock"] = Value(uri_sock);
 
-        if (!ssl_cert.empty())
-          uri_ssl_cert = ssl_cert;
+        if (!uri_ssl_ca.empty())
+          (*ret_val)["ssl_ca"] = Value(uri_ssl_ca);
 
-        if (!ssl_key.empty())
-          uri_ssl_key = ssl_key;
+        if (!uri_ssl_cert.empty())
+          (*ret_val)["ssl_cert"] = Value(uri_ssl_cert);
 
-        ret_val = build_connection_string(uri_user, uri_password, uri_host, uri_port, uri_database, prompt_pwd, uri_ssl_ca, uri_ssl_cert, uri_ssl_key);
+        if (!uri_ssl_key.empty())
+          (*ret_val)["ssl_key"] = Value(uri_ssl_key);
       }
-      catch (shcore::Exception &e)
+      catch (...)
       {
-        //TODO: Log error
+        // If there's an error simply ignores the parsing
       }
     }
 
     // If needed we construct the URi from the individual parameters
     return ret_val;
   }
+
+  // Overrides connection data parameters with specific values, also adds parameters with default values if missing
+  void update_connection_data(Value::Map_type_ref data,
+                              const std::string &user, const std::string &password,
+                              const std::string &host, int &port, const std::string& sock,
+                              const std::string &database,
+                              bool ssl, const std::string &ssl_ca,
+                              const std::string &ssl_cert, const std::string &ssl_key)
+  {
+    if (!user.empty())
+      (*data)["dbUser"] = Value(user);
+
+    if (!host.empty())
+      (*data)["host"] = Value(host);
+
+    if (port != 0)
+      (*data)["port"] = Value(port);
+
+    if (!password.empty())
+      (*data)["dbPassword"] = Value(password);
+
+    if (!database.empty())
+      (*data)["schema"] = Value(database);
+
+    if (!sock.empty())
+      (*data)["sock"] = Value(sock);
+
+    if (ssl)
+    {
+      if (!ssl_ca.empty())
+        (*data)["ssl_ca"] = Value(ssl_ca);
+
+      if (!ssl_cert.empty())
+        (*data)["ssl_cert"] = Value(ssl_cert);
+
+      if (!ssl_key.empty())
+        (*data)["ssl_key"] = Value(ssl_key);
+    }
+    else
+    {
+      data->erase("ssl_ca");
+      data->erase("ssl_cert");
+      data->erase("ssl_key");
+    }
+  }
+
+  void set_default_connection_data(Value::Map_type_ref data)
+  {
+    // Default values
+    if (!data->has_key("dbUser"))
+    {
+      std::string username = get_system_user();
+
+      if (!username.empty())
+        (*data)["dbUser"] = Value(get_system_user());
+    }
+
+    if (!data->has_key("host"))
+      (*data)["host"] = Value("localhost");
+
+    if (!data->has_key("port"))
+      (*data)["port"] = Value(33060);
+  }
+
+  std::string get_system_user()
+  {
+    std::string ret_val;
+
+#ifdef WIN32
+    char username[UNLEN + 1];
+    DWORD username_len = UNLEN + 1;
+    if (GetUserName(username, &username_len))
+    {
+      ret_val.assign(username);
+    }
+#else
+    char username[30];
+    if (!getlogin_r(username, sizeof(username)))
+      ret_val.assign(username);
+#endif
+
+    return ret_val;
+  }
+  
 }

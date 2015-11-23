@@ -180,8 +180,8 @@ namespace shcore {
 
     Connection_options& get_connection_options(const std::string& name);
 
-    //void merge_rapidjson();
     void merge();
+    void load();
 
     static std::string get_new_uuid();
 
@@ -198,11 +198,8 @@ namespace shcore {
     std::map<std::string, Connection_options*> _connections_by_name;
     std::string _filename;
     std::string _filename_lock;
-    Lock_file *_lock;
 
     void init();
-    void load_file();
-    //void load_file_rapidjson();
     static int encrypt_buffer(const char *plain, int plain_len, char cipher[], const char *my_key);
     static int decrypt_buffer(const char *cipher, int cipher_len, char plain[], const char *my_key);
 
@@ -216,6 +213,8 @@ namespace shcore {
     void set_schema(const std::string &uuid, const std::string &schema)     { set_keyword_value(uuid, Schema, schema); }
     void set_value(const std::string &uuid, const std::string &name, const std::string &value);
     void set_keyword_value(const std::string &uuid, Connection_keywords key, const std::string& value);
+
+    static const int _version;
   };
 
   class SHCORE_PUBLIC file_locked_error : public std::runtime_error

@@ -21,7 +21,6 @@ include_directories( "${CMAKE_SOURCE_DIR}/mysqlxtest")
 include_directories("${CMAKE_SOURCE_DIR}/mysqlxtest/common")
 include_directories("${CMAKE_SOURCE_DIR}/include" "${CMAKE_SOURCE_DIR}/utils" "${Boost_INCLUDE_DIRS}")
 include_directories( "${CMAKE_SOURCE_DIR}/common/uuid/include" )
-include_directories( "${CMAKE_SOURCE_DIR}/common/myjson/include" )
 include_directories( "${CMAKE_SOURCE_DIR}/common/logger" )
 include_directories( "${CMAKE_SOURCE_DIR}/ext/rapidjson/include" )
 
@@ -57,14 +56,14 @@ file(GLOB libmysqlsh_SRC
     "${CMAKE_SOURCE_DIR}/utils/utils_json.cc"
     "${CMAKE_SOURCE_DIR}/utils/utils_general.h"
     "${CMAKE_SOURCE_DIR}/utils/utils_general.cc"
+    "${CMAKE_SOURCE_DIR}/utils/utils_sqlstring.h"
+    "${CMAKE_SOURCE_DIR}/utils/utils_sqlstring.cc"
     "*.cc"
     "${CMAKE_SOURCE_DIR}/common/uuid/src/uuid_gen.cc"
-    "${CMAKE_SOURCE_DIR}/common/myjson/src/json_parser.cc"
-    "${CMAKE_SOURCE_DIR}/common/myjson/src/mutable_myjson.cc"
-    "${CMAKE_SOURCE_DIR}/common/myjson/src/myjson.cc"
     "${CMAKE_BINARY_DIR}/shellcore/jscript_core_definitions.h"
     "${BOOST_SOURCE_CODE}"
 )
+
 
 #if(NOT WINDOWS_RUNTIME_MD)
   list(APPEND libmysqlsh_SRC "${CMAKE_SOURCE_DIR}/types/ishell_core.cc")

@@ -77,7 +77,7 @@ struct JScript_context::JScript_context_impl
     v8::Isolate::Scope isolate_scope(isolate);
     v8::HandleScope handle_scope(isolate);
 
-    v8::Handle<v8::ObjectTemplate> globals = v8::ObjectTemplate::New(isolate);
+    v8::Local<v8::ObjectTemplate> globals = v8::ObjectTemplate::New(isolate);
     v8::Local<v8::External> client_data(v8::External::New(isolate, this));
 
     // register symbols to be exported to JS in global namespace
@@ -118,7 +118,8 @@ struct JScript_context::JScript_context_impl
     globals->Set(v8::String::NewFromUtf8(isolate, "__build_module"),
       v8::FunctionTemplate::New(isolate, &JScript_context_impl::f_build_module, client_data));
 
-    context.Reset(isolate, v8::Context::New(isolate, NULL, globals));
+    v8::Local<v8::Context> lcontext = v8::Context::New(isolate, NULL, globals);
+    context.Reset(isolate, lcontext);
 
     // Loads the core module
     load_core_module();
@@ -158,6 +159,12 @@ struct JScript_context::JScript_context_impl
   {
     for (std::map<std::string, v8::Persistent<v8::Object>* >::iterator i = factory_packages.begin(); i != factory_packages.end(); ++i)
       delete i->second;
+
+    types.dispose();
+
+    // Releases the context
+    context.Reset();
+    isolate->Dispose();
   }
 
   // Factory interface implementation
