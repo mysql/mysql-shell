@@ -128,4 +128,5 @@ if (WITH_SAMPLES)
 	add_subdirectory(sample)
 endif()
 
+install(FILES "shell_client.h" COMPONENT dev DESTINATION include)
 install(TARGETS shell_client COMPONENT dev DESTINATION lib)
