@@ -17,6 +17,7 @@
  * 02110-1301  USA
  */
 
+#include "utils/utils_sqlstring.h"
 #include "mod_mysqlx_session.h"
 #include "mod_mysqlx_schema.h"
 #include "mod_mysqlx_resultset.h"
@@ -30,7 +31,6 @@
 #include "utils/utils_general.h"
 #include "utils/utils_time.h"
 #include "utils/utils_file.h"
-#include "utils/utils_sqlstring.h"
 #include "shellcore/proxy_object.h"
 
 #include "mysqlxtest_utils.h"

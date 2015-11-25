@@ -178,7 +178,6 @@ add_definitions(-DSHCORE_EXPORT )
 add_definitions(-DNGCOMMON_EXPORTS )
 add_definitions(-DBOOST_ALL_NO_LIB )
 add_definitions(-Dmyjson_EXPORTS )
-add_definitions(-D__STDC_FORMAT_MACROS) # Request definition of STD format macros
 if(WIN32)
   remove_definitions(-DUNICODE)
 endif()

@@ -17,6 +17,7 @@
  * 02110-1301  USA
  */
 
+#include "utils/utils_sqlstring.h"
 #include "mod_mysql_schema.h"
 #include "mod_mysql_table.h"
 #include "mod_mysql_view.h"
@@ -34,7 +35,6 @@
 #include <boost/format.hpp>
 #include <boost/pointer_cast.hpp>
 #include "utils/utils_general.h"
-#include "utils/utils_sqlstring.h"
 
 using namespace mysh::mysql;
 using namespace shcore;
