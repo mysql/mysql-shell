@@ -16,6 +16,7 @@
 #include "shell_script_tester.h"
 #include "shellcore/server_registry.h"
 #include "utils/utils_general.h"
+#include <Python.h>
 
 namespace shcore
 {
@@ -174,10 +175,13 @@ namespace shcore
     validate_interactive("working_with_results_2.py");
   }
 
+// This specific example does not work for python 2.6 so we disable it for it (OEL6)
+#if PY_MAJOR_VERSION > 2 || (PY_MAJOR_VERSION == 2 && PY_MINOR_VERSION > 6)
   TEST_F(Shell_py_dev_api_sample_tester, error_handling)
   {
     validate_interactive("error_handling.py");
   }
+#endif
 
   TEST_F(Shell_py_dev_api_sample_tester, working_with_sql_results)
   {
