@@ -22,6 +22,7 @@
 #pragma clang diagnostic ignored "-Wunused-private-field"
 #endif
 
+#include "utils/utils_sqlstring.h"
 #include "mod_mysql_session.h"
 
 #ifdef __clang__
@@ -46,7 +47,6 @@
 #include "mod_mysql_resultset.h"
 #include "mod_mysql_schema.h"
 #include "utils/utils_general.h"
-#include "utils/utils_sqlstring.h"
 
 #define MAX_COLUMN_LENGTH 1024
 #define MIN_COLUMN_LENGTH 4

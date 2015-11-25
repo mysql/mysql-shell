@@ -20,12 +20,16 @@
 #ifndef _UTILS_SQLSTRING_H_
 #define _UTILS_SQLSTRING_H_
 
+#ifndef __STDC_FORMAT_MACROS
+#define __STDC_FORMAT_MACROS 1
+#endif
+#include <inttypes.h>
+
 #include "shellcore/common.h"
 
 #include <boost/utility/enable_if.hpp>
 #include <boost/type_traits/is_signed.hpp>
 #include <stdexcept>
-#include <inttypes.h>
 
 namespace shcore
 {
