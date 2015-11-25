@@ -16,7 +16,6 @@
 #include "shell_script_tester.h"
 #include "shellcore/server_registry.h"
 #include "utils/utils_general.h"
-#include <Python.h>
 
 namespace shcore
 {
