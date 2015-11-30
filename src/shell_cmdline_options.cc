@@ -110,7 +110,7 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
       {
         // --password=
         if (arg_format == 3)
-          password = "";
+          password = const_cast<char *>("");
 
         // --password
         else
