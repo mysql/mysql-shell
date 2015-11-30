@@ -31,7 +31,6 @@ using namespace shcore;
 Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
   : Command_line_options(argc, argv), log_level(ngcommon::Logger::LOG_ERROR)
 {
-  char* log_level_value;
   bool needs_password = false;
 
   output_format = "";
@@ -39,10 +38,6 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
   print_version = false;
 
   session_type = mysh::Application;
-
-  char default_json[7] = "pretty";
-  char default_interactive[1] = "";
-  char default_ssl[2] = "1";
 
 #ifdef HAVE_V8
   initial_mode = IShell_core::Mode_JScript;
@@ -59,11 +54,13 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
   interactive = false;
   full_interactive = false;
   passwords_from_stdin = false;
+  password = NULL;
   prompt_password = false;
   trace_protocol = false;
 
   port = 0;
   ssl = 0;
+  int arg_format = 0;
   for (int i = 1; i < argc && exit_code == 0; i++)
   {
     char *value;
@@ -96,19 +93,32 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
       schema = value;
     else if (check_arg(argv, i, "--recreate-schema", NULL))
       recreate_database = true;
-    else if (check_arg(argv, i, "-p", "--password") || check_arg(argv, i, NULL, "--dbpassword"))
-      prompt_password = true;
-    else if (check_arg_with_value(argv, i, "--dbpassword", NULL, value, (char*)""))
+    //    else if (check_arg(argv, i, "-p", "--password") || check_arg(argv, i, NULL, "--dbpassword"))
+    //      prompt_password = true;
+    else if ((arg_format = check_arg_with_value(argv, i, "--dbpassword", NULL, value, true)) ||
+             (arg_format = check_arg_with_value(argv, i, "--password", "-p", value, true)))
     {
-      password = value;
-      if (password.empty())
-        prompt_password = true;
-    }
-    else if (check_arg_with_value(argv, i, "--password", "-p", value, (char*)""))
-    {
-      password = value;
-      if (password.empty() && !strchr(argv[i], '=')) // --password requests password, --password= means blank password
-        prompt_password = true;
+      // Note that in any connection attempt, password prompt will be done if the password is missing.
+      // The behavior of the password cmd line argument is as follows:
+
+      // ARGUMENT         EFFECT
+      // --password       forces password prompt no matter it was already provided
+      // --password=      sets password to empty (password is available but empty so it will not be prompted)
+      // --password=<pwd> sets the password to <pwd>
+
+      if (!value)
+      {
+        // --password=
+        if (arg_format == 3)
+          password = "";
+
+        // --password
+        else
+          prompt_password = true;
+      }
+      // --password=value orr --password value
+      else
+        password = value;
     }
     else if (check_arg_with_value(argv, i, "--ssl-ca", NULL, value))
     {
@@ -125,17 +135,22 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
       ssl_key = value;
       ssl = 1;
     }
-    else if (check_arg_with_value(argv, i, "--ssl", NULL, value, default_ssl))
+    else if (check_arg_with_value(argv, i, "--ssl", NULL, value, true))
     {
-      if (boost::iequals(value, "yes") || boost::iequals(value, "1"))
+      if (!value)
         ssl = 1;
-      else if (boost::iequals(value, "no") || boost::iequals(value, "0"))
-        ssl = 0;
       else
       {
-        std::cerr << "Value for --ssl must be any of 1|0|yes|no";
-        exit_code = 1;
-        break;
+        if (boost::iequals(value, "yes") || boost::iequals(value, "1"))
+          ssl = 1;
+        else if (boost::iequals(value, "no") || boost::iequals(value, "0"))
+          ssl = 0;
+        else
+        {
+          std::cerr << "Value for --ssl must be any of 1|0|yes|no";
+          exit_code = 1;
+          break;
+        }
       }
     }
     else if (check_arg_with_value(argv, i, "--session-type", NULL, value))
@@ -189,21 +204,18 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
       initial_mode = IShell_core::Mode_SQL;
       session_type = mysh::Classic;
     }
-    else if (check_arg_with_value(argv, i, "--json", NULL, value, default_json))
+    else if (check_arg_with_value(argv, i, "--json", NULL, value, true))
     {
-      if (strcmp(value, "raw") != 0 && strcmp(value, "pretty") != 0)
+      if (!value || strcmp(value, "pretty") == 0)
+        output_format = "json";
+      else if (strcmp(value, "raw") == 0)
+        output_format = "json/raw";
+      else
       {
         std::cerr << "Value for --json must be either pretty or raw.\n";
         exit_code = 1;
         break;
       }
-
-      std::string json(value);
-
-      if (json == "pretty")
-        output_format = "json";
-      else
-        output_format = "json/raw";
     }
     else if (check_arg(argv, i, "--table", "--table"))
       output_format = "table";
@@ -221,25 +233,32 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
     }
     else if (check_arg(argv, i, "--force", "--force"))
       force = true;
-    else if (check_arg_with_value(argv, i, "--interactive", "-i", value, default_interactive))
+    else if (check_arg_with_value(argv, i, "--interactive", "-i", value, true))
     {
-      if (strcmp(value, "") != 0 && strcmp(value, "full") != 0)
+      if (!value)
+      {
+        interactive = true;
+        full_interactive = false;
+      }
+      else if (strcmp(value, "full") == 0)
+      {
+        interactive = true;
+        full_interactive = true;
+      }
+      else
       {
         std::cerr << "Value for --interactive if any, must be full\n";
         exit_code = 1;
         break;
       }
-
-      interactive = true;
-      full_interactive = (strcmp(value, "full") == 0);
     }
     else if (check_arg(argv, i, NULL, "--passwords-from-stdin"))
       passwords_from_stdin = true;
-    else if (check_arg_with_value(argv, i, "--log-level", NULL, log_level_value))
+    else if (check_arg_with_value(argv, i, "--log-level", NULL, value))
     {
       try
       {
-        int nlog_level = boost::lexical_cast<int>(log_level_value);
+        int nlog_level = boost::lexical_cast<int>(value);
         if (nlog_level < 1 || nlog_level > 8)
           throw 1;
         log_level = static_cast<ngcommon::Logger::LOG_LEVEL>(nlog_level);
@@ -266,5 +285,16 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
 
 bool Shell_command_line_options::has_connection_data()
 {
-  return !app.empty() || !uri.empty() || !user.empty() || !host.empty() || !schema.empty() || port != 0;
+  return !app.empty() ||
+         !uri.empty() ||
+         !user.empty() ||
+         !host.empty() ||
+         !schema.empty() ||
+         port != 0 ||
+         password != NULL ||
+         prompt_password ||
+         ssl == 1 ||
+         !ssl_ca.empty() ||
+         !ssl_cert.empty() ||
+         !ssl_key.empty();
 }

@@ -208,6 +208,7 @@ bool Interactive_shell::connect(bool primary_session)
 
     Argument_list args;
     Value::Map_type_ref connection_data;
+    bool secure_password = true;
     if (!_options.app.empty())
     {
       if (StoredSessions::get_instance()->connections()->has_key(_options.app))
@@ -216,7 +217,11 @@ bool Interactive_shell::connect(bool primary_session)
         throw shcore::Exception::argument_error((boost::format("The stored connection %1% was not found") % _options.app).str());
     }
     else if (!_options.uri.empty())
+    {
       connection_data = get_connection_data(_options.uri);
+      if (connection_data->has_key("dbPassword"))
+        secure_password = false;
+    }
     else
       connection_data.reset(new shcore::Value::Map_type);
 
@@ -224,12 +229,18 @@ bool Interactive_shell::connect(bool primary_session)
     // Individual parameters will override whatever was defined on the URI/stored connection
     if (primary_session)
     {
+      if (_options.password)
+        secure_password = false;
+
       shcore::update_connection_data(connection_data,
                                      _options.user, _options.password,
                                      _options.host, _options.port,
                                      _options.sock, _options.schema,
                                      _options.ssl != 0,
                                      _options.ssl_ca, _options.ssl_cert, _options.ssl_key);
+
+      if (!secure_password)
+        _delegate.print(_delegate.user_data, "mysqlx: [Warning] Using a password on the command line interface can be insecure.\n");
     }
 
     // Sets any missing parameter to default values
@@ -452,15 +463,15 @@ bool Interactive_shell::switch_shell_mode(Shell_core::Mode mode, const std::vect
         println("Python mode is not supported, command ignored.");
 #endif
         break;
-    }
+      }
 
     // load scripts for standard locations
     if (lang_initialized)
       init_scripts(mode);
-  }
+    }
 
   return true;
-}
+  }
 
 void Interactive_shell::print(const std::string &str)
 {
@@ -1048,12 +1059,12 @@ void Interactive_shell::process_line(const std::string &line)
 #endif
             println("");
           }
-        }
+      }
         // Continued blocks are only executed when an empty line is received
         // this case is when a block was executed and a new one was started at the same time
         else if (_input_mode == Input_continued_block && line.empty())
           _input_buffer.clear();
-      }
+    }
       catch (shcore::Exception &exc)
       {
         _delegate.print_error(_delegate.user_data, exc.format().c_str());
@@ -1070,8 +1081,8 @@ void Interactive_shell::process_line(const std::string &line)
       // the non executed code
       if (_input_mode == Input_ok)
         _input_buffer.clear();
-    }
   }
+}
 }
 
 void Interactive_shell::process_result(shcore::Value result)

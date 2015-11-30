@@ -437,7 +437,7 @@ namespace shcore
 
   // Overrides connection data parameters with specific values, also adds parameters with default values if missing
   void update_connection_data(Value::Map_type_ref data,
-                              const std::string &user, const std::string &password,
+                              const std::string &user, char *password,
                               const std::string &host, int &port, const std::string& sock,
                               const std::string &database,
                               bool ssl, const std::string &ssl_ca,
@@ -452,7 +452,7 @@ namespace shcore
     if (port != 0)
       (*data)["port"] = Value(port);
 
-    if (!password.empty())
+    if (password)
       (*data)["dbPassword"] = Value(password);
 
     if (!database.empty())
