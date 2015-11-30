@@ -41,46 +41,63 @@ protected:
     return false;
   }
 
-  bool check_arg_with_value(char **argv, int &argi, const char *arg, const char *larg, char *&value, char* def = NULL)
+  // Will verify if the argument is the one specified by arg or larg and return its associated value
+  // The function has different behaviors:
+  //
+  // Options come in three flavors
+  // 1) --option [value] or -o [value]
+  // 2) --option or -o
+  // 3) --option=[value]
+  //
+  // They behavie differently:
+  // --option <value> can take the default argumemt (def) if def has data and value is missing, error if missing and def is not defined
+  // --option=[value] will get NULL value if value is missing and can accept_null(i.e. --option=)
+  //
+  // ReturnValue: Returns the # of format found based on the list above, or 0 if no valid value was found
+  int check_arg_with_value(char **argv, int &argi, const char *arg, const char *larg, char *&value, bool accept_null = false)
   {
-    // --option value or -o value
+    int ret_val = 0;
+
+    value = NULL;
+
+    // --option [value] or -o [value]
     if (strcmp(argv[argi], arg) == 0 || (larg && strcmp(argv[argi], larg) == 0))
     {
-      // value must be in next arg and can't start with - which indicates next option
-      if (argv[argi + 1] != NULL && strncmp(argv[argi + 1], "-", 1)!=0)
+      ret_val = 1;
+
+      // value can be in next arg and can't start with - which indicates next option
+      if (argv[argi + 1] != NULL && strncmp(argv[argi + 1], "-", 1) != 0)
       {
         ++argi;
         value = argv[argi];
       }
-      else
-      {
-        if (def)
-          value = def;
-        else
-        {
-          std::cerr << argv[0] << ": option " << argv[argi] << " requires an argument\n";
-          exit_code = 1;
-          return false;
-        }
-      }
-      return true;
     }
-    // -ovalue
+    // -o<value>
     else if (larg && strncmp(argv[argi], larg, strlen(larg)) == 0 && strlen(argv[argi]) > strlen(larg))
     {
+      ret_val = 2;
       value = argv[argi] + strlen(larg);
-      return true;
     }
-    // --option=value
+
+    // --option=[value]
     else if (strncmp(argv[argi], arg, strlen(arg)) == 0 && argv[argi][strlen(arg)] == '=')
     {
-      // value must be after =
-      value = argv[argi] + strlen(arg)+1;
-      return true;
+      ret_val = 3;
+
+      // Value was specified
+      if (strlen(argv[argi]) > (strlen(arg) + 1))
+        value = argv[argi] + strlen(arg) + 1;
     }
-    return false;
+
+    if (ret_val && !value && !accept_null)
+    {
+      std::cerr << argv[0] << ": option " << argv[argi] << " requires an argument\n";
+      exit_code = 1;
+      ret_val = 0;
+    }
+
+    return ret_val;
   }
 };
-
 
 #endif
