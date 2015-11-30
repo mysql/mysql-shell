@@ -28,7 +28,7 @@ namespace shcore
 {
 #define IS_CONNECTION_DATA true
 #define IS_NULLABLE true
-#define __STRING(x) boost::lexical_cast<std::string>(x)
+#define AS__STRING(x) boost::lexical_cast<std::string>(x)
   class Shell_cmdline_options_t : public ::testing::Test
   {
   public:
@@ -59,33 +59,33 @@ namespace shcore
       else if (option == "ssl-key")
         return options->ssl_key;
       else if (option == "ssl")
-        return __STRING(options->ssl);
+        return AS__STRING(options->ssl);
       else if (option == "uri")
         return options->uri;
       else if (option == "output_format")
         return options->output_format;
       else if (option == "session_type")
-        return __STRING(options->session_type);
+        return AS__STRING(options->session_type);
       else if (option == "force")
-        return __STRING(options->force);
+        return AS__STRING(options->force);
       else if (option == "interactive")
-        return __STRING(options->interactive);
+        return AS__STRING(options->interactive);
       else if (option == "full_interactive")
-        return __STRING(options->full_interactive);
+        return AS__STRING(options->full_interactive);
       else if (option == "passwords_from_stdin")
-        return __STRING(options->passwords_from_stdin);
+        return AS__STRING(options->passwords_from_stdin);
       else if (option == "prompt_password")
-        return __STRING(options->prompt_password);
+        return AS__STRING(options->prompt_password);
       else if (option == "recreate_database")
-        return __STRING(options->recreate_database);
+        return AS__STRING(options->recreate_database);
       else if (option == "trace_protocol")
-        return __STRING(options->trace_protocol);
+        return AS__STRING(options->trace_protocol);
       else if (option == "log_level")
-        return __STRING(options->log_level);
+        return AS__STRING(options->log_level);
       else if (option == "initial-mode")
-        return __STRING(options->initial_mode);
+        return AS__STRING(options->initial_mode);
       else if (option == "session-type")
-        return __STRING(options->session_type);
+        return AS__STRING(options->session_type);
 
       return "";
     }
@@ -108,7 +108,7 @@ namespace shcore
       std::string arg;
       arg.append("--").append(option).append("=").append(value);
       SCOPED_TRACE("TESTING: " + arg);
-      char *argv[] = { "ut", const_cast<char *>(arg.c_str()), NULL };
+      char *argv[] = { const_cast<char *>("ut"), const_cast<char *>(arg.c_str()), NULL };
       Shell_command_line_options options(2, argv);
       EXPECT_EQ(0, options.exit_code);
       EXPECT_EQ(connection_data, options.has_connection_data());
@@ -134,7 +134,7 @@ namespace shcore
       std::string arg;
       arg.append("--").append(option);
       SCOPED_TRACE("TESTING: " + arg + " " + value);
-      char *argv[] = { "ut", const_cast<char *>(arg.c_str()), const_cast<char *>(value.c_str()), NULL };
+      char *argv[] = { const_cast<char *>("ut"), const_cast<char *>(arg.c_str()), const_cast<char *>(value.c_str()), NULL };
       Shell_command_line_options options(3, argv);
       EXPECT_EQ(0, options.exit_code);
       EXPECT_EQ(connection_data, options.has_connection_data());
@@ -160,7 +160,7 @@ namespace shcore
       std::string arg;
       arg.append("-").append(soption).append(value);
       SCOPED_TRACE("TESTING: " + arg);
-      char *argv[] = { "ut", const_cast<char *>(arg.c_str()), NULL };
+      char *argv[] = { const_cast<char *>("ut"), const_cast<char *>(arg.c_str()), NULL };
       Shell_command_line_options options(2, argv);
       EXPECT_EQ(0, options.exit_code);
       EXPECT_EQ(connection_data, options.has_connection_data());
@@ -186,7 +186,7 @@ namespace shcore
       std::string arg;
       arg.append("-").append(soption);
       SCOPED_TRACE("TESTING: " + arg + " " + value);
-      char *argv[] = { "ut", const_cast<char *>(arg.c_str()), const_cast<char *>(value.c_str()), NULL };
+      char *argv[] = { const_cast<char *>("ut"), const_cast<char *>(arg.c_str()), const_cast<char *>(value.c_str()), NULL };
       Shell_command_line_options options(3, argv);
       EXPECT_EQ(0, options.exit_code);
       EXPECT_EQ(connection_data, options.has_connection_data());
@@ -201,7 +201,7 @@ namespace shcore
       std::cerr.rdbuf(backup);
     }
 
-    void test_option_space_no_value(const std::string &option, bool valid, const std::string& default, const std::string target_option = "", const std::string& target_value = "")
+    void test_option_space_no_value(const std::string &option, bool valid, const std::string& defval, const std::string target_option = "", const std::string& target_value = "")
     {
       // Redirect cout.
       std::streambuf* backup = std::cout.rdbuf();
@@ -212,14 +212,14 @@ namespace shcore
       std::string arg;
       arg.append("--").append(option);
       SCOPED_TRACE("TESTING: " + arg);
-      char *argv[] = { "ut", const_cast<char *>(arg.c_str()), NULL };
+      char *argv[] = { const_cast<char *>("ut"), const_cast<char *>(arg.c_str()), NULL };
       Shell_command_line_options options(2, argv);
 
       if (valid)
       {
         EXPECT_EQ(0, options.exit_code);
 
-        std::string tgt_val = target_value.empty() ? default: target_value;
+        std::string tgt_val = target_value.empty() ? defval: target_value;
         std::string tgt_option = target_option.empty() ? option : target_option;
         EXPECT_STREQ(tgt_val.c_str(), get_string(&options, tgt_option).c_str());
 
@@ -248,7 +248,7 @@ namespace shcore
       std::string arg;
       arg.append("--").append(option).append("=");
       SCOPED_TRACE("TESTING: " + arg);
-      char *argv[] = { "ut", const_cast<char *>(arg.c_str()), NULL };
+      char *argv[] = { const_cast<char *>("ut"), const_cast<char *>(arg.c_str()), NULL };
       Shell_command_line_options options(2, argv);
 
       if (valid)
@@ -268,7 +268,7 @@ namespace shcore
       std::cerr.rdbuf(backup);
     }
 
-    void test_option_with_value(const std::string &option, const std::string &soption, const std::string &value, const std::string &default, bool is_connection_data, bool nullable, const std::string& target_option = "", const std::string& target_value = "")
+    void test_option_with_value(const std::string &option, const std::string &soption, const std::string &value, const std::string &defval, bool is_connection_data, bool nullable, const std::string& target_option = "", const std::string& target_value = "")
     {
       // --option=<value>
       test_option_equal_value(option, value, is_connection_data, target_option, target_value);
@@ -277,7 +277,7 @@ namespace shcore
       test_option_space_value(option, value, is_connection_data, target_option, target_value);
 
       // --option
-      test_option_space_no_value(option, !default.empty() || nullable, default, target_option);
+      test_option_space_no_value(option, !defval.empty() || nullable, defval, target_option);
 
       if (!soption.empty())
       {
@@ -289,7 +289,7 @@ namespace shcore
       }
 
       // --option=
-      test_option_equal_no_value(option, !default.empty() || nullable);
+      test_option_equal_no_value(option, !defval.empty() || nullable);
     }
 
     void test_option_with_no_value(const std::string &option, const std::string &target_option, const std::string &target_value)
@@ -302,7 +302,7 @@ namespace shcore
       // Tests --option or -o
 
       SCOPED_TRACE("TESTING: " + option);
-      char *argv[] = { "ut", const_cast<char *>(option.c_str()), NULL };
+      char *argv[] = { const_cast<char *>("ut"), const_cast<char *>(option.c_str()), NULL };
       Shell_command_line_options options(2, argv);
 
       EXPECT_EQ(0, options.exit_code);
@@ -389,25 +389,25 @@ namespace shcore
     test_option_with_value("ssl", "", "yes", "1", IS_CONNECTION_DATA, !IS_NULLABLE, "", "1");
     //test_option_with_value("ssl", "", "no", "1", !IS_CONNECTION_DATA, !IS_NULLABLE, "", "0");
 
-    test_option_with_value("session-type", "", "classic", "", !IS_CONNECTION_DATA, !IS_NULLABLE, "", __STRING(mysh::Classic));
-    test_option_with_value("session-type", "", "node", "", !IS_CONNECTION_DATA, !IS_NULLABLE, "", __STRING(mysh::Node));
-    test_option_with_value("session-type", "", "app", "", !IS_CONNECTION_DATA, !IS_NULLABLE, "", __STRING(mysh::Application));
+    test_option_with_value("session-type", "", "classic", "", !IS_CONNECTION_DATA, !IS_NULLABLE, "", AS__STRING(mysh::Classic));
+    test_option_with_value("session-type", "", "node", "", !IS_CONNECTION_DATA, !IS_NULLABLE, "", AS__STRING(mysh::Node));
+    test_option_with_value("session-type", "", "app", "", !IS_CONNECTION_DATA, !IS_NULLABLE, "", AS__STRING(mysh::Application));
 
-    test_option_with_no_value("--stx", "session-type", __STRING(mysh::Application));
-    test_option_with_no_value("--stc", "session-type", __STRING(mysh::Classic));
-    test_option_with_no_value("--stn", "session-type", __STRING(mysh::Node));
+    test_option_with_no_value("--stx", "session-type", AS__STRING(mysh::Application));
+    test_option_with_no_value("--stc", "session-type", AS__STRING(mysh::Classic));
+    test_option_with_no_value("--stn", "session-type", AS__STRING(mysh::Node));
 
-    test_option_with_no_value("--sql", "session-type", __STRING(mysh::Node));
-    test_option_with_no_value("--sql", "initial-mode", __STRING(IShell_core::Mode_SQL));
+    test_option_with_no_value("--sql", "session-type", AS__STRING(mysh::Node));
+    test_option_with_no_value("--sql", "initial-mode", AS__STRING(IShell_core::Mode_SQL));
 
-    test_option_with_no_value("--sqlc", "session-type", __STRING(mysh::Classic));
-    test_option_with_no_value("--sqlc", "initial-mode", __STRING(IShell_core::Mode_SQL));
+    test_option_with_no_value("--sqlc", "session-type", AS__STRING(mysh::Classic));
+    test_option_with_no_value("--sqlc", "initial-mode", AS__STRING(IShell_core::Mode_SQL));
 
-    test_option_with_no_value("--javascript", "initial-mode", __STRING(IShell_core::Mode_JScript));
-    test_option_with_no_value("--js", "initial-mode", __STRING(IShell_core::Mode_JScript));
+    test_option_with_no_value("--javascript", "initial-mode", AS__STRING(IShell_core::Mode_JScript));
+    test_option_with_no_value("--js", "initial-mode", AS__STRING(IShell_core::Mode_JScript));
 
-    test_option_with_no_value("--python", "initial-mode", __STRING(IShell_core::Mode_Python));
-    test_option_with_no_value("--py", "initial-mode", __STRING(IShell_core::Mode_Python));
+    test_option_with_no_value("--python", "initial-mode", AS__STRING(IShell_core::Mode_Python));
+    test_option_with_no_value("--py", "initial-mode", AS__STRING(IShell_core::Mode_Python));
 
     test_option_with_no_value("--recreate-schema", "recreate_database", "1");
 
