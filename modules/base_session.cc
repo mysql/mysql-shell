@@ -133,6 +133,7 @@ void ShellBaseSession::load_connection_data(const shcore::Argument_list &args)
   // The connection data can come from different sources
   std::string uri;
   std::string app;
+  std::string auth_method;
   std::string connections_file; // The default connection file or the indicated on the map as dataSourceFile
   shcore::Value::Map_type_ref options; // Map with the connection data
 
@@ -236,6 +237,9 @@ void ShellBaseSession::load_connection_data(const shcore::Argument_list &args)
 
     if (options->has_key("ssl_key"))
       _ssl_key = (*options)["ssl_key"].as_string();
+
+    if (options->has_key("authMethod"))
+      _auth_method = (*options)["authMethod"].as_string();
   }
 
   // If password is received as parameter, then it overwrites

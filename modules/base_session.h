@@ -86,6 +86,7 @@ namespace mysh
     std::string _ssl_ca;
     std::string _ssl_cert;
     std::string _ssl_key;
+    std::string _auth_method;
 
     std::string _uri;
 

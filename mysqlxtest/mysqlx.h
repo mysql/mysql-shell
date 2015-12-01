@@ -249,7 +249,8 @@ namespace mysqlx
   SessionRef openSession(const std::string &uri, const std::string &pass, const mysqlx::Ssl_config &ssl_config, const bool cap_expired_password);
   SessionRef openSession(const std::string &host, int port, const std::string &schema,
                          const std::string &user, const std::string &pass,
-                         const mysqlx::Ssl_config &ssl_config);
+                         const mysqlx::Ssl_config &ssl_config,
+                         const std::string &auth_method="");
 
   enum FieldType
   {
