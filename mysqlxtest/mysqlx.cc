@@ -186,11 +186,22 @@ boost::shared_ptr<Session> mysqlx::openSession(const std::string &uri, const std
 
 boost::shared_ptr<Session> mysqlx::openSession(const std::string &host, int port, const std::string &schema,
   const std::string &user, const std::string &pass,
-  const mysqlx::Ssl_config &ssl_config)
+  const mysqlx::Ssl_config &ssl_config,
+  const std::string &auth_method)
 {
   boost::shared_ptr<Session> session(new Session(ssl_config));
   session->connection()->connect(host, port);
-  session->connection()->authenticate(user, pass, schema);
+  if (auth_method.empty())
+    session->connection()->authenticate(user, pass, schema);
+  else
+  {
+    if (auth_method == "PLAIN")
+      session->connection()->authenticate_plain(user, pass, schema);
+    else if (auth_method == "MYSQL41")
+      session->connection()->authenticate_mysql41(user, pass, schema);
+    else
+      throw Error(CR_INVALID_AUTH_METHOD, "Invalid authentication method "+auth_method);
+  }
   return session;
 }
 

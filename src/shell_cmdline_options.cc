@@ -120,6 +120,8 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
       else
         password = value;
     }
+    else if (check_arg_with_value(argv, i, "--auth-method", NULL, value))
+      auth_method = value;
     else if (check_arg_with_value(argv, i, "--ssl-ca", NULL, value))
     {
       ssl_ca = value;

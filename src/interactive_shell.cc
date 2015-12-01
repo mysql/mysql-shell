@@ -237,7 +237,10 @@ bool Interactive_shell::connect(bool primary_session)
                                      _options.host, _options.port,
                                      _options.sock, _options.schema,
                                      _options.ssl != 0,
-                                     _options.ssl_ca, _options.ssl_cert, _options.ssl_key);
+                                     _options.ssl_ca, _options.ssl_cert, _options.ssl_key,
+                                     _options.auth_method);
+      if (_options.auth_method == "PLAIN")
+        _delegate.print(_delegate.user_data, "mysqlx: [Warning] PLAIN authentication method is NOT secure!\n");
 
       if (!secure_password)
         _delegate.print(_delegate.user_data, "mysqlx: [Warning] Using a password on the command line interface can be insecure.\n");
@@ -1324,6 +1327,7 @@ void Interactive_shell::print_cmd_line_helper()
   println("  --ssl-cert=name          X509 cert in PEM format");
   println("  --ssl-ca=name            CA file in PEM format (check OpenSSL docs)");
   println("  --passwords-from-stdin   Read passwords from stdin instead of the tty");
+  println("  --auth-method=method     Authentication method to use");
   println("  --show-warnings          Automatically display SQL warnings on SQL mode if available");
 
   println("");

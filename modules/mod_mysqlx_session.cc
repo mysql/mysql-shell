@@ -104,7 +104,7 @@ Value BaseSession::connect(const Argument_list &args)
     ssl.cert = _ssl_cert.c_str();
     ssl.key = _ssl_key.c_str();
 
-    _session = ::mysqlx::openSession(_host, _port, _schema, _user, _password, ssl);
+    _session = ::mysqlx::openSession(_host, _port, _schema, _user, _password, ssl, _auth_method);
 
     _load_schemas();
 

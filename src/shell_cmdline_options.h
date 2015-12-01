@@ -34,11 +34,12 @@ public:
 
   // Individual connection parameters
   std::string user;
-  char *password;
+  const char *password;
   std::string host;
   int port;
   std::string schema;
   std::string sock;
+  std::string auth_method;
 
   std::string protocol;
 
