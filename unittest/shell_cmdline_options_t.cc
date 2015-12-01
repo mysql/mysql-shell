@@ -90,13 +90,6 @@ namespace shcore
       return "";
     }
 
-    char* get_args(...)
-    {
-      va_list ap;
-
-      va_start(ap, 0);
-    }
-
     void test_option_equal_value(const std::string &option, const std::string & value, bool connection_data, const std::string& target_option = "", const std::string& target_value = "")
     {
       // Redirect cout.
