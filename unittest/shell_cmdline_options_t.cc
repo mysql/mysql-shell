@@ -47,7 +47,7 @@ namespace shcore
       else if (option == "password")
         return options->password ? std::string(options->password) : "";
       else if (option == "port")
-        return __STRING(options->port);
+        return AS__STRING(options->port);
       else if (option == "schema")
         return options->schema;
       else if (option == "sock")
@@ -219,7 +219,7 @@ namespace shcore
       {
         EXPECT_EQ(0, options.exit_code);
 
-        std::string tgt_val = target_value.empty() ? defval: target_value;
+        std::string tgt_val = target_value.empty() ? defval : target_value;
         std::string tgt_option = target_option.empty() ? option : target_option;
         EXPECT_STREQ(tgt_val.c_str(), get_string(&options, tgt_option).c_str());
 
