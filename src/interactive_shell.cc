@@ -256,6 +256,11 @@ bool Interactive_shell::connect(bool primary_session)
 
     connect_session(args, _options.session_type, primary_session ? _options.recreate_database : false);
   }
+  catch (Exception &exc)
+  {
+    _delegate.print_error(_delegate.user_data, exc.format().c_str());
+    return false;
+  }
   catch (std::exception &exc)
   {
     std::string error(exc.what());
