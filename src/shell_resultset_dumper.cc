@@ -29,8 +29,8 @@ using namespace shcore;
 #define MAX_COLUMN_LENGTH 1024
 #define MIN_COLUMN_LENGTH 4
 
-ResultsetDumper::ResultsetDumper(boost::shared_ptr<mysh::ShellBaseResult> target) :
-_resultset(target)
+ResultsetDumper::ResultsetDumper(boost::shared_ptr<mysh::ShellBaseResult> target, bool buffer_data) :
+_resultset(target), _buffer_data(buffer_data)
 {
   _format = Shell_core_options::get()->get_string(SHCORE_OUTPUT_FORMAT);
   _interactive = Shell_core_options::get()->get_bool(SHCORE_INTERACTIVE);
@@ -41,10 +41,25 @@ void ResultsetDumper::dump()
 {
   std::string type = _resultset->class_name();
 
+  // Buffers the data remaining on the record
+  size_t rset, record;
+  bool buffered = false;;
+  if (_buffer_data)
+  {
+    _resultset->buffer();
+
+    // Stores the current data set/record position on the result
+    buffered = _resultset->tell(rset, record);
+  }
+
   if (_format.find("json") == 0)
     dump_json();
   else
     dump_normal();
+
+  // Restores the data set/record positions on the result
+  if (buffered)
+    _resultset->seek(rset, record);
 }
 
 void ResultsetDumper::dump_json()

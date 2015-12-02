@@ -37,6 +37,12 @@ namespace mysh
 
     // Helper method to retrieve properties using a method
     shcore::Value get_member_method(const shcore::Argument_list &args, const std::string& method, const std::string& prop);
+
+    // Doing nothing by default to avoid impacting the classic result
+    virtual void buffer(){};
+    virtual bool rewind(){ return false; }
+    virtual bool tell(size_t &dataset, size_t &record){ return false; }
+    virtual bool seek(size_t dataset, size_t record){ return false; }
   };
 
   class SHCORE_PUBLIC Column : public shcore::Cpp_object_bridge
