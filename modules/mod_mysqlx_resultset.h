@@ -54,6 +54,11 @@ namespace mysh
       // C++ Interface
       std::string get_execution_time() const;
       uint64_t get_warning_count() const;
+      virtual void buffer();
+      virtual bool rewind();
+      virtual bool tell(size_t &dataset, size_t &record);
+      virtual bool seek(size_t dataset, size_t record);
+
 #ifdef DOXYGEN
       Integer warningCount; //!< Same as getwarningCount()
       List warnings; //!< Same as getWarnings()

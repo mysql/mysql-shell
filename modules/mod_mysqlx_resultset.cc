@@ -121,6 +121,26 @@ uint64_t BaseResult::get_warning_count() const
   return uint64_t(_result->getWarnings().size());
 }
 
+void BaseResult::buffer()
+{
+  _result->buffer();
+}
+
+bool BaseResult::rewind()
+{
+  return _result->rewind();
+}
+
+bool BaseResult::tell(size_t &dataset, size_t &record)
+{
+  return _result->tell(dataset, record);
+}
+
+bool BaseResult::seek(size_t dataset, size_t record)
+{
+  return _result->seek(dataset, record);
+}
+
 void BaseResult::append_json(shcore::JSON_dumper& dumper) const
 {
   bool create_object = (dumper.deep_level() == 0);
@@ -584,7 +604,7 @@ shcore::Value SqlResult::has_data(const shcore::Argument_list &args) const
 {
   args.ensure_count(0, "SqlResult.hasData");
 
-  return Value(_result->columnMetadata() && (_result->columnMetadata()->size() > 0));
+  return Value(_result->has_data());
 }
 
 std::vector<std::string> SqlResult::get_members() const

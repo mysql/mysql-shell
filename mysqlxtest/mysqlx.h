@@ -250,7 +250,7 @@ namespace mysqlx
   SessionRef openSession(const std::string &host, int port, const std::string &schema,
                          const std::string &user, const std::string &pass,
                          const mysqlx::Ssl_config &ssl_config,
-                         const std::string &auth_method="");
+                         const std::string &auth_method = "");
 
   enum FieldType
   {
@@ -351,6 +351,8 @@ namespace mysqlx
     boost::shared_ptr<std::vector<ColumnMetadata> > columnMetadata(){ return m_columns; }
     void add_row(boost::shared_ptr<Row> row);
     void rewind();
+    void tell(size_t &record);
+    void seek(size_t record);
     boost::shared_ptr<Row> next();
   private:
     boost::shared_ptr<std::vector<ColumnMetadata> > m_columns;
@@ -374,7 +376,16 @@ namespace mysqlx
     boost::shared_ptr<Row> next();
     bool nextDataSet();
     void flush();
+
     Result& buffer();
+
+    // Return true if the operation was successfully executed
+    bool rewind();
+    bool tell(size_t &dataset, size_t&record);
+    bool seek(size_t dataset, size_t record);
+
+    bool has_data();
+
     void mark_error();
 
     struct Warning

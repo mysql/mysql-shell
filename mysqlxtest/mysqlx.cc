@@ -200,7 +200,7 @@ boost::shared_ptr<Session> mysqlx::openSession(const std::string &host, int port
     else if (auth_method == "MYSQL41")
       session->connection()->authenticate_mysql41(user, pass, schema);
     else
-      throw Error(CR_INVALID_AUTH_METHOD, "Invalid authentication method "+auth_method);
+      throw Error(CR_INVALID_AUTH_METHOD, "Invalid authentication method " + auth_method);
   }
   return session;
 }
@@ -926,7 +926,7 @@ void Document::reset(const std::string &doc, bool expression, const std::string 
 
 Result::Result(boost::shared_ptr<Connection>owner, bool expect_data)
   : current_message(NULL), m_owner(owner), m_last_insert_id(-1), m_affected_rows(-1),
-  m_state(expect_data ? ReadMetadataI : ReadStmtOkI), m_buffered(false), m_buffering(false)
+  m_state(expect_data ? ReadMetadataI : ReadStmtOkI), m_result_index(0), m_buffered(false), m_buffering(false)
 {
 }
 
@@ -1301,6 +1301,68 @@ void Result::read_stmt_ok()
   std::auto_ptr<mysqlx::Message> msg(pop_message());
 }
 
+bool Result::rewind()
+{
+  bool ret_val = false;
+  if (m_buffered)
+  {
+    for (m_result_index = 0; m_result_index < m_result_cache.size(); m_result_index++)
+      m_result_cache[m_result_index]->rewind();
+
+    m_result_index = 0;
+    nextDataSet();
+
+    ret_val = true;
+  }
+
+  return ret_val;
+}
+
+bool Result::tell(size_t &dataset, size_t&record)
+{
+  bool ret_val = false;
+
+  if (m_buffered && m_current_result)
+  {
+    dataset = m_result_index;
+    m_current_result->tell(record);
+    ret_val = true;
+  }
+
+  return ret_val;
+}
+
+bool Result::seek(size_t dataset, size_t record)
+{
+  bool ret_val = false;
+
+  if (m_buffered)
+  {
+    rewind();
+
+    while (dataset < m_result_index)
+      nextDataSet();
+
+    m_current_result->seek(record);
+
+    ret_val = true;
+  }
+
+  return ret_val;
+}
+
+bool Result::has_data()
+{
+  bool ret_val = false;
+
+  if (m_buffered)
+    ret_val = m_current_result->columnMetadata() && m_current_result->columnMetadata()->size() > 0;
+  else
+    ret_val = m_columns && m_columns->size() > 0;
+
+  return ret_val;
+}
+
 bool Result::nextDataSet()
 {
   if (m_buffered)
@@ -1424,6 +1486,19 @@ boost::shared_ptr<Row> ResultData::next()
 void ResultData::rewind()
 {
   m_row_index = 0;
+}
+
+void ResultData::tell(size_t &record)
+{
+  record = m_row_index;
+}
+
+void ResultData::seek(size_t record)
+{
+  m_row_index = m_rows.size();
+
+  if (record < m_row_index)
+    m_row_index = record;
 }
 
 Row::Row(boost::shared_ptr<std::vector<ColumnMetadata> > columns, Mysqlx::Resultset::Row *data)

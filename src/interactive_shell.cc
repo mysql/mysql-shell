@@ -471,15 +471,15 @@ bool Interactive_shell::switch_shell_mode(Shell_core::Mode mode, const std::vect
         println("Python mode is not supported, command ignored.");
 #endif
         break;
-      }
+    }
 
     // load scripts for standard locations
     if (lang_initialized)
       init_scripts(mode);
-    }
+  }
 
   return true;
-  }
+}
 
 void Interactive_shell::print(const std::string &str)
 {
@@ -1067,12 +1067,12 @@ void Interactive_shell::process_line(const std::string &line)
 #endif
             println("");
           }
-      }
+        }
         // Continued blocks are only executed when an empty line is received
         // this case is when a block was executed and a new one was started at the same time
         else if (_input_mode == Input_continued_block && line.empty())
           _input_buffer.clear();
-    }
+      }
       catch (shcore::Exception &exc)
       {
         _delegate.print_error(_delegate.user_data, exc.format().c_str());
@@ -1089,8 +1089,8 @@ void Interactive_shell::process_line(const std::string &line)
       // the non executed code
       if (_input_mode == Input_ok)
         _input_buffer.clear();
+    }
   }
-}
 }
 
 void Interactive_shell::process_result(shcore::Value result)
@@ -1125,7 +1125,9 @@ void Interactive_shell::process_result(shcore::Value result)
         if (object && object->class_name().find("Result") != -1)
         {
           boost::shared_ptr<mysh::ShellBaseResult> resultset = boost::static_pointer_cast<mysh::ShellBaseResult> (object);
-          ResultsetDumper dumper(resultset);
+
+          // Result buffering will be done ONLY if on any of the scripting interfaces
+          ResultsetDumper dumper(resultset, _shell->interactive_mode() != IShell_core::Mode_SQL);
           dumper.dump();
         }
         else
