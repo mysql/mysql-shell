@@ -484,7 +484,7 @@ namespace shcore
       (*data)["authMethod"] = Value(auth_method);
   }
 
-  void set_default_connection_data(Value::Map_type_ref data)
+  void set_default_connection_data(Value::Map_type_ref data, int defaultPort)
   {
     // Default values
     if (!data->has_key("dbUser"))
@@ -499,7 +499,7 @@ namespace shcore
       (*data)["host"] = Value("localhost");
 
     if (!data->has_key("port"))
-      (*data)["port"] = Value(33060);
+      (*data)["port"] = Value(defaultPort);
   }
 
   std::string get_system_user()
@@ -521,5 +521,4 @@ namespace shcore
 
     return ret_val;
   }
-  
 }

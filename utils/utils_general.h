@@ -43,7 +43,7 @@ namespace shcore
                                             const std::string &ssl_cert, const std::string &ssl_key,
                                             const std::string &auth_method);
 
-  void SHCORE_PUBLIC set_default_connection_data(Value::Map_type_ref data);
+  void SHCORE_PUBLIC set_default_connection_data(Value::Map_type_ref data, int defaultPort);
 
   std::string SHCORE_PUBLIC get_system_user();
 
