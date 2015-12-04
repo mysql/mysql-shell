@@ -247,7 +247,7 @@ bool Interactive_shell::connect(bool primary_session)
     }
 
     // Sets any missing parameter to default values
-    shcore::set_default_connection_data(connection_data);
+    shcore::set_default_connection_data(connection_data, _options.session_type == mysh::Classic ? 3306 : 33060);
 
     if (_options.interactive)
       print_connection_message(_options.session_type, shcore::build_connection_string(connection_data, false), _options.app);
