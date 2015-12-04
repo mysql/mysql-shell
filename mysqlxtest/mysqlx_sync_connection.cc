@@ -51,20 +51,9 @@ public:
   : m_num_of_bytes(0U),
     m_error(boost::system::errc::make_error_code(boost::system::errc::io_error)),
     m_service(service)
-  {
-  }
+  {}
 
   virtual ~Callback_executor() {}
-
-  On_asio_status_callback get_status_callback()
-  {
-    return boost::bind(&Callback_executor::callback, this, boost::asio::placeholders::error, 0);
-  }
-
-  On_asio_data_callback get_data_callback()
-  {
-    return boost::bind(&Callback_executor::callback, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred);
-  }
 
   error_code wait()
   {
@@ -86,7 +75,51 @@ public:
     return m_num_of_bytes;
   }
 
+  void connect(ngs::Connection_ptr async_connection, const Endpoint &endpoint)
+  {
+    preproces(async_connection);
+    async_connection->async_connect(endpoint, get_status_callback(), On_asio_status_callback());
+  }
+
+  void accept(ngs::Connection_ptr async_connection, boost::asio::ip::tcp::acceptor &acceptor)
+  {
+    preproces(async_connection);
+    async_connection->async_accept(acceptor, get_status_callback(), On_asio_status_callback());
+  }
+
+  void write(ngs::Connection_ptr async_connection, const Const_buffer_sequence &data)
+  {
+    preproces(async_connection);
+    async_connection->async_write(data, get_data_callback());
+  }
+
+  void read(ngs::Connection_ptr async_connection, const Mutable_buffer_sequence &data)
+  {
+    preproces(async_connection);
+    async_connection->async_read(data, get_data_callback());
+  }
+
+  void activate_tls(ngs::Connection_ptr async_connection)
+  {
+    preproces(async_connection);
+    async_connection->async_activate_tls(get_status_callback());
+  }
+
 protected:
+  virtual void preproces(ngs::Connection_ptr async_connection) {}
+
+  On_asio_status_callback get_status_callback()
+  {
+    return boost::bind(&Callback_executor::callback, this, boost::asio::placeholders::error, 0);
+  }
+
+
+  On_asio_data_callback get_data_callback()
+  {
+    return boost::bind(&Callback_executor::callback, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred);
+  }
+
+
   virtual void callback(const error_code &ec, std::size_t num_of_bytes)
   {
     m_error = ec;
@@ -95,7 +128,6 @@ protected:
 
   std::size_t m_num_of_bytes;
   error_code  m_error;
-
   boost::asio::io_service &m_service;
 };
 
@@ -103,65 +135,61 @@ protected:
 class Callback_executor_with_timeout : public Callback_executor
 {
 public:
-  Callback_executor_with_timeout(boost::asio::io_service &io_service, ngs::Connection_ptr &sync_connection, const std::size_t timeout_in_miliseconds, void *data_ptr, const std::size_t expected_data_size)
-  : Callback_executor(io_service), m_async_connection(sync_connection), m_deadline(io_service), m_is_expired(false), m_expected_data_size(expected_data_size), m_data_ptr(data_ptr)
-  {
-    Mutable_buffer_sequence result;
+  Callback_executor_with_timeout(boost::asio::io_service &io_service,
+                                 const std::size_t timeout_in_miliseconds)
+  : Callback_executor(io_service), m_deadline(io_service),
+    m_timeout(timeout_in_miliseconds),
+    m_is_expired(false)
+  {}
 
-    result.push_back(boost::asio::buffer(m_data_ptr, m_expected_data_size));
-
-    m_deadline.expires_from_now(boost::posix_time::milliseconds(timeout_in_miliseconds));
-    m_deadline.async_wait(boost::bind(&Callback_executor_with_timeout::deadline_timeout, this, _1));
-    m_async_connection->async_read(result, this->get_data_callback());
-  }
-
-  bool is_timeout()
-  {
-    return m_is_expired;
-  }
+  bool is_expired() const { return m_is_expired; }
 
 private:
-  void deadline_timeout(const error_code &ec)
+  virtual void preproces(ngs::Connection_ptr async_connection)
   {
-    if (!ec)
-    {
-      m_is_expired = true;
-      m_async_connection->close();
-    }
+    m_is_expired = false;
+    m_deadline.expires_from_now(boost::posix_time::milliseconds(m_timeout));
+    m_deadline.async_wait(boost::bind(&Callback_executor_with_timeout::timeout_callback, this, _1, async_connection));
   }
+
+
+  void timeout_callback(const error_code &ec, ngs::Connection_ptr async_connection)
+  {
+    if (ec == boost::asio::error::operation_aborted)
+      return;
+    async_connection->close();
+    m_is_expired = true;
+  }
+
 
   void callback(const error_code &ec, std::size_t num_of_bytes)
   {
     Callback_executor::callback(ec, num_of_bytes);
-
-    const bool is_io_finished = m_num_of_bytes == m_expected_data_size;
-
-    if (ec || is_io_finished)
-    {
-      m_deadline.cancel();
-      return;
-    }
-
-    Mutable_buffer_sequence result;
-
-    result.push_back(boost::asio::buffer(m_data_ptr, m_expected_data_size));
-
-    m_async_connection->async_read(result, this->get_data_callback());
+    m_deadline.cancel();
   }
 
-  ngs::Connection_ptr         &m_async_connection;
-  boost::asio::deadline_timer  m_deadline;
-  bool                         m_is_expired;
-  const std::size_t            m_expected_data_size;
-  void*                        m_data_ptr;
+
+  boost::asio::deadline_timer m_deadline;
+  const std::size_t m_timeout;
+  bool m_is_expired;
 };
+
+Callback_executor *get_callback_executor(boost::asio::io_service &service, const std::size_t timeout)
+{
+  return timeout ?
+      new Callback_executor_with_timeout(service, timeout) :
+      new Callback_executor(service);
+}
+
+typedef Memory_new<Callback_executor>::Unique_ptr Callback_executor_ptr;
 
 } // namespace details
 
 
-Mysqlx_sync_connection::Mysqlx_sync_connection(boost::asio::io_service &service, const char *ssl_key, const char *ssl_ca,
-    const char *ssl_ca_path, const char *ssl_cert, const char *ssl_cipher)
-: m_service(service)
+Mysqlx_sync_connection::Mysqlx_sync_connection(boost::asio::io_service &service, const char *ssl_key,
+                                               const char *ssl_ca, const char *ssl_ca_path,
+                                               const char *ssl_cert, const char *ssl_cipher, const std::size_t timeout)
+: m_service(service), m_timeout(timeout)
 {
   m_async_factory    = get_async_connection_factory(ssl_key, ssl_ca, ssl_ca_path, ssl_cert, ssl_cipher);
 
@@ -208,60 +236,52 @@ ngs::Connection_factory_ptr Mysqlx_sync_connection::get_async_connection_factory
 
 error_code Mysqlx_sync_connection::connect(const Endpoint &ep)
 {
-  details::Callback_executor     executor(m_service);
-
-  m_async_connection->async_connect(ep, executor.get_status_callback(), On_asio_status_callback());
-
-  return executor.wait();
+  details::Callback_executor_ptr executor(details::get_callback_executor(m_service, m_timeout));
+  executor->connect(m_async_connection, ep);
+  return executor->wait();
 }
 
 
 error_code Mysqlx_sync_connection::accept(const Endpoint &ep)
 {
   boost::asio::ip::tcp::acceptor acceptor(m_service, ep);
-  details::Callback_executor     executor(m_service);
-
-  m_async_connection->async_accept(acceptor, executor.get_status_callback(), On_asio_status_callback());
-
-  return executor.wait();
+  details::Callback_executor_ptr executor(details::get_callback_executor(m_service, m_timeout));
+  executor->accept(m_async_connection, acceptor);
+  return executor->wait();
 }
 
 
 error_code Mysqlx_sync_connection::activate_tls()
 {
-  details::Callback_executor executor(m_service);
-
-  m_async_connection->async_activate_tls(executor.get_status_callback());
-
-  return executor.wait();
+  details::Callback_executor_ptr executor(details::get_callback_executor(m_service, m_timeout));
+  executor->activate_tls(m_async_connection);
+  return executor->wait();
 }
 
 
 error_code Mysqlx_sync_connection::shutdown(boost::asio::socket_base::shutdown_type how_to_shutdown)
 {
   error_code result;
-
   m_async_connection->shutdown(how_to_shutdown, result);
-
   return result;
 }
 
 
 error_code Mysqlx_sync_connection::write(const void *data, const std::size_t data_length)
 {
-  details::Callback_executor executor(m_service);
-  Const_buffer_sequence      buffers;
+  details::Callback_executor_ptr executor(details::get_callback_executor(m_service, m_timeout));
+  Const_buffer_sequence buffers;
 
   for (;;)
   {
-    buffers.push_back(boost::asio::buffer((char*)data + executor.get_number_of_bytes(),
-                                    data_length - executor.get_number_of_bytes()));
+    buffers.push_back(boost::asio::buffer((char*)data + executor->get_number_of_bytes(),
+                                    data_length - executor->get_number_of_bytes()));
 
-    m_async_connection->async_write(buffers, executor.get_data_callback());
-    error_code err = executor.wait();
+    executor->write(m_async_connection, buffers);
+    error_code err = executor->wait();
     if (err)
       return err;
-    if (executor.get_number_of_bytes() < data_length)
+    if (executor->get_number_of_bytes() < data_length)
     {
       buffers.clear();
     }
@@ -272,19 +292,16 @@ error_code Mysqlx_sync_connection::write(const void *data, const std::size_t dat
 
 error_code Mysqlx_sync_connection::read(void *data, const std::size_t data_length)
 {
-  details::Callback_executor executor(m_service);
-  error_code                 error;
+  error_code error;
+  details::Callback_executor_ptr executor(details::get_callback_executor(m_service, m_timeout));
 
-  while(!error && data_length != executor.get_number_of_bytes())
+  while(!error && data_length != executor->get_number_of_bytes())
   {
     Mutable_buffer_sequence buffers;
-    std::size_t in_buffer = executor.get_number_of_bytes();
-
+    std::size_t in_buffer = executor->get_number_of_bytes();
     buffers.push_back(boost::asio::buffer((char*)data + in_buffer,  data_length - in_buffer));
-
-    m_async_connection->async_read(buffers, executor.get_data_callback());
-
-    error = executor.wait();
+    executor->read(m_async_connection, buffers);
+    error = executor->wait();
   }
 
   return error;
@@ -293,13 +310,19 @@ error_code Mysqlx_sync_connection::read(void *data, const std::size_t data_lengt
 
 error_code Mysqlx_sync_connection::read_with_timeout(void *data, std::size_t &data_length, const std::size_t deadline_miliseconds)
 {
-  details::Callback_executor_with_timeout executor(m_service, m_async_connection, deadline_miliseconds, data, data_length);
+  error_code error;
+  details::Callback_executor_with_timeout executor(m_service, deadline_miliseconds);
 
-  error_code error = executor.wait();
-
-  if (executor.is_timeout())
+  while(!error && data_length != executor.get_number_of_bytes())
+  {
+    Mutable_buffer_sequence buffers;
+    std::size_t in_buffer = executor.get_number_of_bytes();
+    buffers.push_back(boost::asio::buffer((char*)data + in_buffer,  data_length - in_buffer));
+    executor.read(m_async_connection, buffers);
+    error = executor.wait();
+  }
+  if (executor.is_expired())
     data_length = 0;
-
   return error;
 }
 
@@ -317,11 +340,7 @@ bool Mysqlx_sync_connection::supports_ssl()
 
 bool Mysqlx_sync_connection::is_set(const char *string)
 {
-  if (string)
-    return strlen(string) > 0;
-
-  return false;
+  return string ? strlen(string) > 0 : false;
 }
-
 
 } // namespace mysqlx

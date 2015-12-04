@@ -208,6 +208,7 @@ bool Interactive_shell::connect(bool primary_session)
 
     Argument_list args;
     Value::Map_type_ref connection_data;
+    bool secure_password = true;
     if (!_options.app.empty())
     {
       if (StoredSessions::get_instance()->connections()->has_key(_options.app))
@@ -216,7 +217,11 @@ bool Interactive_shell::connect(bool primary_session)
         throw shcore::Exception::argument_error((boost::format("The stored connection %1% was not found") % _options.app).str());
     }
     else if (!_options.uri.empty())
+    {
       connection_data = get_connection_data(_options.uri);
+      if (connection_data->has_key("dbPassword"))
+        secure_password = false;
+    }
     else
       connection_data.reset(new shcore::Value::Map_type);
 
@@ -224,16 +229,25 @@ bool Interactive_shell::connect(bool primary_session)
     // Individual parameters will override whatever was defined on the URI/stored connection
     if (primary_session)
     {
+      if (_options.password)
+        secure_password = false;
+
       shcore::update_connection_data(connection_data,
                                      _options.user, _options.password,
                                      _options.host, _options.port,
                                      _options.sock, _options.schema,
                                      _options.ssl != 0,
-                                     _options.ssl_ca, _options.ssl_cert, _options.ssl_key);
+                                     _options.ssl_ca, _options.ssl_cert, _options.ssl_key,
+                                     _options.auth_method);
+      if (_options.auth_method == "PLAIN")
+        _delegate.print(_delegate.user_data, "mysqlx: [Warning] PLAIN authentication method is NOT secure!\n");
+
+      if (!secure_password)
+        _delegate.print(_delegate.user_data, "mysqlx: [Warning] Using a password on the command line interface can be insecure.\n");
     }
 
     // Sets any missing parameter to default values
-    shcore::set_default_connection_data(connection_data);
+    shcore::set_default_connection_data(connection_data, _options.session_type == mysh::Classic ? 3306 : 33060);
 
     if (_options.interactive)
       print_connection_message(_options.session_type, shcore::build_connection_string(connection_data, false), _options.app);
@@ -241,6 +255,11 @@ bool Interactive_shell::connect(bool primary_session)
     args.push_back(Value(connection_data));
 
     connect_session(args, _options.session_type, primary_session ? _options.recreate_database : false);
+  }
+  catch (Exception &exc)
+  {
+    _delegate.print_error(_delegate.user_data, exc.format().c_str());
+    return false;
   }
   catch (std::exception &exc)
   {
@@ -1106,7 +1125,9 @@ void Interactive_shell::process_result(shcore::Value result)
         if (object && object->class_name().find("Result") != -1)
         {
           boost::shared_ptr<mysh::ShellBaseResult> resultset = boost::static_pointer_cast<mysh::ShellBaseResult> (object);
-          ResultsetDumper dumper(resultset);
+
+          // Result buffering will be done ONLY if on any of the scripting interfaces
+          ResultsetDumper dumper(resultset, _shell->interactive_mode() != IShell_core::Mode_SQL);
           dumper.dump();
         }
         else
@@ -1313,6 +1334,7 @@ void Interactive_shell::print_cmd_line_helper()
   println("  --ssl-cert=name          X509 cert in PEM format");
   println("  --ssl-ca=name            CA file in PEM format (check OpenSSL docs)");
   println("  --passwords-from-stdin   Read passwords from stdin instead of the tty");
+  println("  --auth-method=method     Authentication method to use");
   println("  --show-warnings          Automatically display SQL warnings on SQL mode if available");
 
   println("");

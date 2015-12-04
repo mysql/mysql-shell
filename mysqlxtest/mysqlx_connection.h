@@ -65,17 +65,34 @@
 #define CR_COMMANDS_OUT_OF_SYNC 2014
 #define CR_SSL_CONNECTION_ERROR 2026
 #define CR_MALFORMED_PACKET     2027
+#define CR_INVALID_AUTH_METHOD  2028
 
 namespace mysqlx
 {
   typedef boost::function<bool(int, std::string)> Local_notice_handler;
 
-  struct Ssl_config;
+  struct Ssl_config
+  {
+    Ssl_config()
+    {
+      key      = NULL;
+      ca       = NULL;
+      ca_path  = NULL;
+      cert     = NULL;
+      cipher   = NULL;
+    }
+
+    const char *key;
+    const char *ca;
+    const char *ca_path;
+    const char *cert;
+    const char *cipher;
+  };
 
   class MYSQLXTEST_PUBLIC Connection : public boost::enable_shared_from_this<Connection>
   {
   public:
-    Connection(const Ssl_config &ssl_config);
+    Connection(const Ssl_config &ssl_config, const std::size_t timeout, const bool dont_wait_for_disconnect = true);
     ~Connection();
 
     uint64_t client_id() const { return m_client_id; }
@@ -142,6 +159,7 @@ namespace mysqlx
     void set_trace_protocol(bool flag) { m_trace_packets = flag; }
 
   private:
+    void perform_close();
     void dispatch_notice(Mysqlx::Notice::Frame *frame);
     Message *recv_message_with_header(int &mid, char(&header_buffer)[5], const std::size_t header_offset);
     void throw_mysqlx_error(const boost::system::error_code &ec);
@@ -158,6 +176,7 @@ namespace mysqlx
     uint64_t m_client_id;
     bool m_trace_packets;
     bool m_closed;
+    const bool m_dont_wait_for_disconnect;
     boost::shared_ptr<Result> m_last_result;
   };
 

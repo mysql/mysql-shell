@@ -17,6 +17,7 @@
  * 02110-1301  USA
  */
 
+#include "utils/utils_sqlstring.h"
 #include "mod_mysqlx_session.h"
 #include "mod_mysqlx_schema.h"
 #include "mod_mysqlx_resultset.h"
@@ -30,7 +31,6 @@
 #include "utils/utils_general.h"
 #include "utils/utils_time.h"
 #include "utils/utils_file.h"
-#include "utils/utils_sqlstring.h"
 #include "shellcore/proxy_object.h"
 
 #include "mysqlxtest_utils.h"
@@ -104,7 +104,8 @@ Value BaseSession::connect(const Argument_list &args)
     ssl.cert = _ssl_cert.c_str();
     ssl.key = _ssl_key.c_str();
 
-    _session = ::mysqlx::openSession(_host, _port, _schema, _user, _password, ssl);
+    // TODO: Define a proper timeout for the session creation
+    _session = ::mysqlx::openSession(_host, _port, _schema, _user, _password, ssl, 10000, _auth_method);
 
     _load_schemas();
 

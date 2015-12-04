@@ -30,7 +30,6 @@
 
 #include "xdatetime.h"
 #include "mysqlx_common.h"
-#include "mysqlx_expr.pb.h"
 
 #include <boost/enable_shared_from_this.hpp>
 
@@ -69,24 +68,7 @@ namespace mysqlx
 
   class Schema;
   class Connection;
-
-  struct Ssl_config
-  {
-    Ssl_config()
-    {
-      key = NULL;
-      ca = NULL;
-      ca_path = NULL;
-      cert = NULL;
-      cipher = NULL;
-    }
-
-    const char *key;
-    const char *ca;
-    const char *ca_path;
-    const char *cert;
-    const char *cipher;
-  };
+  struct Ssl_config;
 
   class ArgumentValue
   {
@@ -228,7 +210,7 @@ namespace mysqlx
   class Session : public boost::enable_shared_from_this<Session>
   {
   public:
-    Session(const mysqlx::Ssl_config &ssl_config);
+    Session(const mysqlx::Ssl_config &ssl_config, const std::size_t timeout);
     ~Session();
     boost::shared_ptr<Result> executeSql(const std::string &sql);
 
@@ -246,10 +228,12 @@ namespace mysqlx
   };
   typedef boost::shared_ptr<Session> SessionRef;
 
-  SessionRef openSession(const std::string &uri, const std::string &pass, const mysqlx::Ssl_config &ssl_config, const bool cap_expired_password);
+  SessionRef openSession(const std::string &uri, const std::string &pass, const mysqlx::Ssl_config &ssl_config,
+                         const bool cap_expired_password, const std::size_t timeout);
   SessionRef openSession(const std::string &host, int port, const std::string &schema,
                          const std::string &user, const std::string &pass,
-                         const mysqlx::Ssl_config &ssl_config);
+                         const mysqlx::Ssl_config &ssl_config, const std::size_t timeout,
+                         const std::string &auth_method = "");
 
   enum FieldType
   {
@@ -269,7 +253,7 @@ namespace mysqlx
     DECIMAL
   };
 
-  struct ColumnMetadata
+  struct MYSQLXTEST_PUBLIC ColumnMetadata
   {
     FieldType type;
     std::string name;
@@ -350,6 +334,8 @@ namespace mysqlx
     boost::shared_ptr<std::vector<ColumnMetadata> > columnMetadata(){ return m_columns; }
     void add_row(boost::shared_ptr<Row> row);
     void rewind();
+    void tell(size_t &record);
+    void seek(size_t record);
     boost::shared_ptr<Row> next();
   private:
     boost::shared_ptr<std::vector<ColumnMetadata> > m_columns;
@@ -373,7 +359,16 @@ namespace mysqlx
     boost::shared_ptr<Row> next();
     bool nextDataSet();
     void flush();
+
     Result& buffer();
+
+    // Return true if the operation was successfully executed
+    bool rewind();
+    bool tell(size_t &dataset, size_t&record);
+    bool seek(size_t dataset, size_t record);
+
+    bool has_data();
+
     void mark_error();
 
     struct Warning

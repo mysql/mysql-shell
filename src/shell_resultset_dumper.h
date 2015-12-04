@@ -43,7 +43,7 @@ namespace mysh
 class ResultsetDumper
 {
 public:
-  ResultsetDumper(boost::shared_ptr<mysh::ShellBaseResult>target);
+  ResultsetDumper(boost::shared_ptr<mysh::ShellBaseResult>target, bool buffer_data);
   virtual void dump();
 
 protected:
@@ -51,6 +51,7 @@ protected:
   std::string _format;
   bool _show_warnings;
   bool _interactive;
+  bool _buffer_data;
 
   void dump_json();
   void dump_normal();

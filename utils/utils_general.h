@@ -36,13 +36,14 @@ namespace shcore
 
   Value::Map_type_ref SHCORE_PUBLIC get_connection_data(const std::string &uri);
   void SHCORE_PUBLIC update_connection_data(Value::Map_type_ref data,
-                                            const std::string &user, const std::string &password,
+                                            const std::string &user, const char *password,
                                             const std::string &host, int &port, const std::string& sock,
                                             const std::string &database,
                                             bool ssl, const std::string &ssl_ca,
-                                            const std::string &ssl_cert, const std::string &ssl_key);
+                                            const std::string &ssl_cert, const std::string &ssl_key,
+                                            const std::string &auth_method);
 
-  void SHCORE_PUBLIC set_default_connection_data(Value::Map_type_ref data);
+  void SHCORE_PUBLIC set_default_connection_data(Value::Map_type_ref data, int defaultPort);
 
   std::string SHCORE_PUBLIC get_system_user();
 

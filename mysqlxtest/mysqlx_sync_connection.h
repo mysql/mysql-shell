@@ -34,35 +34,38 @@
 namespace mysqlx
 {
 
+class Mysqlx_sync_connection
+{
+public:
+  Mysqlx_sync_connection(boost::asio::io_service &service, const char *ssl_key = NULL, 
+                         const char *ssl_ca = NULL, const char *ssl_ca_path = NULL, 
+                         const char *ssl_cert = NULL, const char *ssl_cipher = NULL, 
+                         const std::size_t timeout = 0l);
 
-  class Mysqlx_sync_connection
-  {
-  public:
-    Mysqlx_sync_connection(boost::asio::io_service &service, const char *ssl_key = NULL, const char *ssl_ca = NULL,
-        const char *ssl_ca_path = NULL, const char *ssl_cert = NULL, const char *ssl_cipher = NULL);
+  boost::system::error_code connect(const ngs::Endpoint &);
+  boost::system::error_code accept(const ngs::Endpoint &);
+  boost::system::error_code activate_tls();
+  boost::system::error_code shutdown(boost::asio::socket_base::shutdown_type how_to_shutdown);
 
-    boost::system::error_code connect(const ngs::Endpoint &);
-    boost::system::error_code accept(const ngs::Endpoint &);
-    boost::system::error_code activate_tls();
-    boost::system::error_code shutdown(boost::asio::socket_base::shutdown_type how_to_shutdown);
+  boost::system::error_code write(const void *data, const std::size_t data_length);
+  boost::system::error_code read(void *data, const std::size_t data_length);
+  boost::system::error_code read_with_timeout(void *data, std::size_t &data_length, const std::size_t deadline_miliseconds);
 
-    boost::system::error_code write(const void *data, const std::size_t data_length);
-    boost::system::error_code read(void *data, const std::size_t data_length);
-    boost::system::error_code read_with_timeout(void *data, std::size_t &data_length, const std::size_t deadline_miliseconds);
+  void close();
 
-    void close();
+  bool supports_ssl();
 
-    bool supports_ssl();
+private:
 
-  private:
-    static bool is_set(const char *string);
-    ngs::Connection_factory_ptr get_async_connection_factory(const char *ssl_key,  const char *ssl_ca, const char *ssl_ca_path,
-                                                             const char *ssl_cert, const char *ssl_cipher);
+  static bool is_set(const char *string);
+  ngs::Connection_factory_ptr get_async_connection_factory(const char *ssl_key,  const char *ssl_ca, const char *ssl_ca_path,
+                                                           const char *ssl_cert, const char *ssl_cipher);
 
-    boost::asio::io_service    &m_service;
-    ngs::Connection_factory_ptr m_async_factory;
-    ngs::Connection_ptr         m_async_connection;
-  };
+  boost::asio::io_service    &m_service;
+  ngs::Connection_factory_ptr m_async_factory;
+  ngs::Connection_ptr         m_async_connection;
+  const std::size_t           m_timeout;
+};
 
 
 } // namespace mysqlx

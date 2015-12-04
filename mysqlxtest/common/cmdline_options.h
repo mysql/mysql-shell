@@ -60,7 +60,7 @@ protected:
   bool check_arg_with_value(char **argv, int &argi, const char *arg, const char *larg, char *&value)
   {
     // --option value or -o value
-    if (strcmp(argv[argi], arg) == 0 || (larg && strcmp(argv[argi], larg) == 0))
+    if ((arg && strcmp(argv[argi], arg) == 0) || (larg && strcmp(argv[argi], larg) == 0))
     {
       // value must be in next arg
       if (argv[argi+1] != NULL)
@@ -91,7 +91,7 @@ protected:
       return true;
     }
     // --option=value
-    else if (strncmp(argv[argi], arg, strlen(arg)) == 0 && argv[argi][strlen(arg)] == '=')
+    else if (arg && strncmp(argv[argi], arg, strlen(arg)) == 0 && argv[argi][strlen(arg)] == '=')
     {
       // value must be after =
       value = argv[argi] + strlen(arg)+1;

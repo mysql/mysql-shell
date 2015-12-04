@@ -437,11 +437,12 @@ namespace shcore
 
   // Overrides connection data parameters with specific values, also adds parameters with default values if missing
   void update_connection_data(Value::Map_type_ref data,
-                              const std::string &user, const std::string &password,
+                              const std::string &user, const char *password,
                               const std::string &host, int &port, const std::string& sock,
                               const std::string &database,
                               bool ssl, const std::string &ssl_ca,
-                              const std::string &ssl_cert, const std::string &ssl_key)
+                              const std::string &ssl_cert, const std::string &ssl_key,
+                              const std::string &auth_method)
   {
     if (!user.empty())
       (*data)["dbUser"] = Value(user);
@@ -452,7 +453,7 @@ namespace shcore
     if (port != 0)
       (*data)["port"] = Value(port);
 
-    if (!password.empty())
+    if (password)
       (*data)["dbPassword"] = Value(password);
 
     if (!database.empty())
@@ -478,9 +479,12 @@ namespace shcore
       data->erase("ssl_cert");
       data->erase("ssl_key");
     }
+
+    if (!auth_method.empty())
+      (*data)["authMethod"] = Value(auth_method);
   }
 
-  void set_default_connection_data(Value::Map_type_ref data)
+  void set_default_connection_data(Value::Map_type_ref data, int defaultPort)
   {
     // Default values
     if (!data->has_key("dbUser"))
@@ -495,7 +499,7 @@ namespace shcore
       (*data)["host"] = Value("localhost");
 
     if (!data->has_key("port"))
-      (*data)["port"] = Value(33060);
+      (*data)["port"] = Value(defaultPort);
   }
 
   std::string get_system_user()
@@ -517,5 +521,4 @@ namespace shcore
 
     return ret_val;
   }
-  
 }

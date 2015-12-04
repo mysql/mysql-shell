@@ -29,17 +29,16 @@
 
 #include <google/protobuf/text_format.h>
 #include <google/protobuf/message.h>
-#include <boost/bind.hpp>
 #include "mysqlx.h"
 #include "mysqlx_connection.h"
 #include "mysqlx_crud.h"
 #include "mysqlx_row.h"
-#include "shellcore/server_registry.h"
 
 #include "my_config.h"
 
 #ifdef MYSQLXTEST_STANDALONE
 #include "mysqlx/auth_mysql41.h"
+#include <boost/bind.hpp>
 #else
 #include "ngs/protocol_authentication.h"
 namespace mysqlx {
@@ -166,9 +165,9 @@ static void throw_server_error(const Mysqlx::Error &error)
   throw Error(error.code(), error.msg());
 }
 
-Session::Session(const mysqlx::Ssl_config &ssl_config)
+Session::Session(const mysqlx::Ssl_config &ssl_config, const std::size_t timeout)
 {
-  m_connection.reset(new Connection(ssl_config));
+  m_connection.reset(new Connection(ssl_config, timeout));
 }
 
 Session::~Session()
@@ -176,28 +175,41 @@ Session::~Session()
   m_connection.reset();
 }
 
-boost::shared_ptr<Session> mysqlx::openSession(const std::string &uri, const std::string &pass, const mysqlx::Ssl_config &ssl_config, const bool cap_expired_password)
+boost::shared_ptr<Session> mysqlx::openSession(const std::string &uri, const std::string &pass, const mysqlx::Ssl_config &ssl_config,
+                                               const bool cap_expired_password, const std::size_t timeout)
 {
-  boost::shared_ptr<Session> session(new Session(ssl_config));
+  boost::shared_ptr<Session> session(new Session(ssl_config, timeout));
   session->connection()->connect(uri, pass, cap_expired_password);
-
   return session;
 }
 
 boost::shared_ptr<Session> mysqlx::openSession(const std::string &host, int port, const std::string &schema,
   const std::string &user, const std::string &pass,
-  const mysqlx::Ssl_config &ssl_config)
+  const mysqlx::Ssl_config &ssl_config, const std::size_t timeout,
+  const std::string &auth_method)
 {
-  boost::shared_ptr<Session> session(new Session(ssl_config));
+  boost::shared_ptr<Session> session(new Session(ssl_config, timeout));
   session->connection()->connect(host, port);
-  session->connection()->authenticate(user, pass, schema);
+  if (auth_method.empty())
+    session->connection()->authenticate(user, pass, schema);
+  else
+  {
+    if (auth_method == "PLAIN")
+      session->connection()->authenticate_plain(user, pass, schema);
+    else if (auth_method == "MYSQL41")
+      session->connection()->authenticate_mysql41(user, pass, schema);
+    else
+      throw Error(CR_INVALID_AUTH_METHOD, "Invalid authentication method " + auth_method);
+  }
   return session;
 }
 
-Connection::Connection(const Ssl_config &ssl_config)
-  : m_sync_connection(m_ios, ssl_config.key, ssl_config.ca, ssl_config.ca_path, ssl_config.cert, ssl_config.cipher), m_deadline(m_ios),
-  m_client_id(0),
-  m_trace_packets(false), m_closed(true)
+Connection::Connection(const Ssl_config &ssl_config, const std::size_t timeout, const bool dont_wait_for_disconnect)
+  : m_sync_connection(m_ios, ssl_config.key, ssl_config.ca, ssl_config.ca_path,
+                    ssl_config.cert, ssl_config.cipher, timeout),
+  m_deadline(m_ios), m_client_id(0),
+  m_trace_packets(false), m_closed(true),
+  m_dont_wait_for_disconnect(dont_wait_for_disconnect)
 {
   if (getenv("MYSQLX_TRACE_CONNECTION"))
     m_trace_packets = true;
@@ -314,7 +326,8 @@ void Connection::close()
       std::auto_ptr<Message> message(recv_raw(mid));
       if (mid != Mysqlx::ServerMessages::OK)
         throw Error(CR_COMMANDS_OUT_OF_SYNC, "Unexpected message received in response to Session.Close");
-      m_sync_connection.close();
+
+      perform_close();
     }
     catch (...)
     {
@@ -322,6 +335,23 @@ void Connection::close()
       throw;
     }
   }
+}
+
+void Connection::perform_close()
+{
+  if (m_dont_wait_for_disconnect)
+  {
+    m_sync_connection.close();
+    return;
+  }
+
+  int mid;
+  std::auto_ptr<Message> message(recv_raw(mid));
+  std::stringstream s;
+
+  s << "Unexpected message received with id:" << mid << " while waiting for disconnection";
+
+  throw Error(CR_COMMANDS_OUT_OF_SYNC, s.str());
 }
 
 boost::shared_ptr<Result> Connection::recv_result()
@@ -479,11 +509,26 @@ void Connection::authenticate_mysql41(const std::string &user, const std::string
         if (!auth_continue.has_auth_data())
           throw Error(CR_MALFORMED_PACKET, "Missing authentication data");
 
-        Mysqlx::Session::AuthenticateContinue auth_continue_responce;
+        std::string password_hash;
 
-        auth_continue_responce.set_auth_data(build_mysql41_authentication_response(auth_continue.auth_data(), user, pass, db));
+        Mysqlx::Session::AuthenticateContinue auth_continue_response;
 
-        send(Mysqlx::ClientMessages::SESS_AUTHENTICATE_CONTINUE, auth_continue_responce);
+#ifdef MYSQLXTEST_STANDALONE
+        auth_continue_response.set_auth_data(build_mysql41_authentication_response(auth_continue.auth_data(), user, pass, db));
+#else
+        if (pass.length())
+        {
+          password_hash = ngs::Password_hasher::scramble(auth_continue.auth_data().c_str(), pass.c_str());
+          password_hash = ngs::Password_hasher::get_password_from_salt(password_hash);
+        }
+
+        data.append(db).push_back('\0'); // authz
+        data.append(user).push_back('\0'); // authc
+        data.append(password_hash); // pass
+        auth_continue_response.set_auth_data(data);
+#endif
+
+        send(Mysqlx::ClientMessages::SESS_AUTHENTICATE_CONTINUE, auth_continue_response);
       }
       break;
 
@@ -569,19 +614,7 @@ void Connection::authenticate_plain(const std::string &user, const std::string &
 void Connection::send_bytes(const std::string &data)
 {
   boost::system::error_code error = m_sync_connection.write(data.data(), data.size());
-  if (error)
-  {
-    switch (error.value())
-    {
-      case boost::asio::error::connection_reset:
-      case boost::asio::error::connection_aborted:
-      case boost::asio::error::broken_pipe:
-        throw Error(CR_SERVER_GONE_ERROR, "MySQL server has gone away");
-
-      default:
-        throw Error(CR_UNKNOWN_ERROR, error.message());
-    }
-  }
+  throw_mysqlx_error(error);
 }
 
 void Connection::send(int mid, const Message &msg)
@@ -614,19 +647,7 @@ void Connection::send(int mid, const Message &msg)
       error = m_sync_connection.write(mbuf.data(), mbuf.length());
   }
 
-  if (error)
-  {
-    switch (error.value())
-    {
-      case boost::asio::error::connection_reset:
-      case boost::asio::error::connection_aborted:
-      case boost::asio::error::broken_pipe:
-        throw Error(CR_SERVER_GONE_ERROR, "MySQL server has gone away");
-
-      default:
-        throw Error(CR_UNKNOWN_ERROR, error.message());
-    }
-  }
+  throw_mysqlx_error(error);
 }
 
 void Connection::push_local_notice_handler(Local_notice_handler handler)
@@ -843,8 +864,10 @@ void Connection::throw_mysqlx_error(const boost::system::error_code &error)
     case boost::asio::error::eof:
     case boost::asio::error::connection_reset:
     case boost::asio::error::connection_aborted:
-    case boost::asio::error::broken_pipe:
       throw Error(CR_SERVER_GONE_ERROR, "MySQL server has gone away");
+
+    case boost::asio::error::broken_pipe:
+      throw Error(ER_X_BAD_PIPE, "MySQL server has gone away");
 
     default:
       throw Error(CR_UNKNOWN_ERROR, error.message());
@@ -915,7 +938,7 @@ void Document::reset(const std::string &doc, bool expression, const std::string 
 
 Result::Result(boost::shared_ptr<Connection>owner, bool expect_data)
   : current_message(NULL), m_owner(owner), m_last_insert_id(-1), m_affected_rows(-1),
-  m_state(expect_data ? ReadMetadataI : ReadStmtOkI), m_buffered(false), m_buffering(false)
+  m_state(expect_data ? ReadMetadataI : ReadStmtOkI), m_result_index(0), m_buffered(false), m_buffering(false)
 {
 }
 
@@ -1056,9 +1079,9 @@ int Result::get_message_id()
       owner->pop_local_notice_handler();
       throw;
     }
-  }
 
   owner->pop_local_notice_handler();
+  }
 
   // error messages that can be received in any state
   if (current_message_id == Mysqlx::ServerMessages::ERROR)
@@ -1290,6 +1313,68 @@ void Result::read_stmt_ok()
   std::auto_ptr<mysqlx::Message> msg(pop_message());
 }
 
+bool Result::rewind()
+{
+  bool ret_val = false;
+  if (m_buffered)
+  {
+    for (m_result_index = 0; m_result_index < m_result_cache.size(); m_result_index++)
+      m_result_cache[m_result_index]->rewind();
+
+    m_result_index = 0;
+    nextDataSet();
+
+    ret_val = true;
+  }
+
+  return ret_val;
+}
+
+bool Result::tell(size_t &dataset, size_t&record)
+{
+  bool ret_val = false;
+
+  if (m_buffered && m_current_result)
+  {
+    dataset = m_result_index;
+    m_current_result->tell(record);
+    ret_val = true;
+  }
+
+  return ret_val;
+}
+
+bool Result::seek(size_t dataset, size_t record)
+{
+  bool ret_val = false;
+
+  if (m_buffered)
+  {
+    rewind();
+
+    while (dataset < m_result_index)
+      nextDataSet();
+
+    m_current_result->seek(record);
+
+    ret_val = true;
+  }
+
+  return ret_val;
+}
+
+bool Result::has_data()
+{
+  bool ret_val = false;
+
+  if (m_buffered)
+    ret_val = m_current_result->columnMetadata() && m_current_result->columnMetadata()->size() > 0;
+  else
+    ret_val = m_columns && m_columns->size() > 0;
+
+  return ret_val;
+}
+
 bool Result::nextDataSet()
 {
   if (m_buffered)
@@ -1379,7 +1464,8 @@ Result& Result::buffer()
     m_result_cache.push_back(m_current_result);
 
     // This will actually cache the data
-    while (nextDataSet());
+    while (nextDataSet())
+      ;
 
     m_buffering = false;
     m_buffered = true;
@@ -1413,6 +1499,19 @@ boost::shared_ptr<Row> ResultData::next()
 void ResultData::rewind()
 {
   m_row_index = 0;
+}
+
+void ResultData::tell(size_t &record)
+{
+  record = m_row_index;
+}
+
+void ResultData::seek(size_t record)
+{
+  m_row_index = m_rows.size();
+
+  if (record < m_row_index)
+    m_row_index = record;
 }
 
 Row::Row(boost::shared_ptr<std::vector<ColumnMetadata> > columns, Mysqlx::Resultset::Row *data)
