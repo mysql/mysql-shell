@@ -92,15 +92,29 @@ static std::list<Stack_frame> script_stack;
 static std::map<std::string, std::string> variables;
 static std::list<std::string> variables_to_unreplace;
 
+void replace_all(std::string &input, const std::string &to_find, const std::string &change_to)
+{
+  size_t position = input.find(to_find);
+
+  while (std::string::npos != position)
+  {
+    input.replace(position, to_find.size(), change_to);
+    position = input.find(to_find, position + change_to.size());
+  }
+}
+
 void replace_variables(std::string &s)
 {
   for (std::map<std::string, std::string>::const_iterator sub = variables.begin();
        sub != variables.end(); ++sub)
   {
     std::string tmp(sub->second);
-    boost::replace_all(tmp, "\"", "\\\"");
-    boost::replace_all(tmp, "\n", "\\n");
-    boost::replace_all(s, sub->first, tmp);
+
+    // change from boost::replace_all to own fast forward implementation
+    // which is 2 times faster than boost (tested in debug mode)
+    replace_all(tmp, "\"", "\\\"");
+    replace_all(tmp, "\n", "\\n");
+    replace_all(s, sub->first, tmp);
   }
 }
 
@@ -110,7 +124,7 @@ std::string unreplace_variables(const std::string &in, bool clear)
   for (std::list<std::string>::const_iterator sub = variables_to_unreplace.begin();
        sub != variables_to_unreplace.end(); ++sub)
   {
-    boost::replace_all(s, variables[*sub], *sub);
+    replace_all(s, variables[*sub], *sub);
   }
   if (clear)
     variables_to_unreplace.clear();
@@ -279,11 +293,14 @@ public:
     active_connection->connect(host, port);
   }
 
-  void connect_default(const bool send_cap_password_expired = false)
+  void connect_default(const bool send_cap_password_expired = false, bool use_plain_auth = false)
   {
     if (send_cap_password_expired)
       active_connection->setup_capability("client.pwd_expire_ok", true);
 
+    if (use_plain_auth)
+      active_connection->authenticate_plain(user, pass, db);
+    else
     active_connection->authenticate(user, pass, db);
 
     std::stringstream s;
@@ -721,7 +738,7 @@ public:
     std::list<std::string>::const_iterator n = m_args.begin(), v = args.begin();
     for (size_t i = 0; i < args.size(); i++)
     {
-      boost::replace_all(text, *(n++), *(v++));
+      replace_all(text, *(n++), *(v++));
     }
     return text;
   }
@@ -1116,8 +1133,11 @@ private:
     Mysqlx::Sql::StmtExecute stmt;
 
     const bool is_sql = context.m_command_name.find("sql") != std::string::npos;
+    std::string command = args;
 
-    stmt.set_stmt(args);
+    replace_variables(command);
+
+    stmt.set_stmt(command);
     stmt.set_namespace_(is_sql ? "sql" : "xplugin");
 
     context.connection()->send(stmt);
@@ -2432,6 +2452,7 @@ public:
   bool        has_file;
   bool        cap_expired_password;
   bool        dont_wait_for_server_disconnect;
+  bool        use_plain_auth;
 
   int port;
   int timeout;
@@ -2447,6 +2468,7 @@ public:
     std::cout << "Options:\n";
     std::cout << "-f, --file=<file>     Reads input from file\n";
     std::cout << "-n, --no-auth         Skip authentication which is required by -->sql block (run mode)\n";
+    std::cout << "--plain-auth          Use PLAIN text authentication mechanism\n";
     std::cout << "-u, --user=<user>a    Connection user\n";
     std::cout << "-p, --password=<pass> Connection password\n";
     std::cout << "-h, --host=<host>     Connection host\n";
@@ -2574,7 +2596,7 @@ public:
 
   My_command_line_options(int argc, char **argv)
   : Command_line_options(argc, argv), run_mode(RunTest), has_file(false),
-    cap_expired_password(false), dont_wait_for_server_disconnect(false), port(0), timeout(0l)
+    cap_expired_password(false), dont_wait_for_server_disconnect(false), use_plain_auth(false), port(0), timeout(0l)
   {
     std::string user;
 
@@ -2595,6 +2617,10 @@ public:
           std::cerr << "Only one option that changes run mode is allowed.\n";
           exit_code = 1;
         }
+      }
+      else if (check_arg(argv, i, "--plain-auth", NULL))
+      {
+        use_plain_auth = true;
       }
       else if (check_arg_with_value(argv, i, "--password", "-p", value))
         password = value;
@@ -2730,7 +2756,7 @@ static int process_client_input_on_session(const My_command_line_options &option
   {
     std::vector<Block_processor_ptr> eaters;
 
-    cm.connect_default(options.cap_expired_password);
+    cm.connect_default(options.cap_expired_password, options.use_plain_auth);
     eaters = create_block_processors(&cm);
     r = process_client_input(input, eaters);
     cm.close_active(true);
