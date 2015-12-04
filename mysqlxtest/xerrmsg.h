@@ -66,5 +66,10 @@
 #define ER_X_INVALID_NAMESPACE    5162
 
 #define ER_X_BAD_NOTICE           5163
+#define ER_X_CANNOT_DISABLE_NOTICE   5164
+
+#define ER_X_BAD_CONFIGURATION    5165
+
+#define ER_X_BAD_PIPE             5166
 
 #endif // _MYSQLX_ERRORS_H_

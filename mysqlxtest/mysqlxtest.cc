@@ -27,6 +27,7 @@
 #include <google/protobuf/io/tokenizer.h>
 
 #include <boost/algorithm/string.hpp>
+#include <boost/algorithm/hex.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/bind.hpp>
 #include <string.h>
@@ -43,6 +44,7 @@
 
 #include <iostream>
 #include <fstream>
+#include <iterator>
 #include <sstream>
 #include <stdexcept>
 #include <algorithm>
@@ -63,7 +65,7 @@ static Message_by_full_name server_msgs_by_full_name;
 static Message_by_full_name client_msgs_by_full_name;
 
 typedef std::map<std::string, std::pair<mysqlx::Message* (*)(), int8_t> > Message_by_name;
-
+typedef boost::function<void (std::string)> Value_callback;
 static Message_by_name server_msgs_by_name;
 static Message_by_name client_msgs_by_name;
 
@@ -151,7 +153,7 @@ static void dumpx(const mysqlx::Error &exc)
 }
 
 static void print_result_set(mysqlx::Result &result);
-static void print_result_set(mysqlx::Result &result, const std::vector<std::string> &columns);
+static void print_result_set(mysqlx::Result &result, const std::vector<std::string> &columns, Value_callback value_callback = Value_callback());
 
 static std::string message_to_text(const mysqlx::Message &message);
 
@@ -171,11 +173,24 @@ public:
   {
     if (!m_expect_errno.empty())
     {
-      if (std::find(m_expect_errno.begin(), m_expect_errno.end(), err.error()) == m_expect_errno.end())
+      const int  ignore_no_error_code = 0;
+      const bool not_on_list     = std::find(m_expect_errno.begin(), m_expect_errno.end(), err.error()) == m_expect_errno.end();
+      const bool ignore_no_error = std::find(m_expect_errno.begin(), m_expect_errno.end(), ignore_no_error_code) != m_expect_errno.end();
+
+      if (!not_on_list && ignore_no_error)
+      {
+        std::cout << error() << "was expecting optionally error ";
+
+        print_errors();
+
+        std::cout << " but succeeded" << eoerr();
+      }
+      else if (not_on_list)
       {
         std::cerr << error() << "was expecting error ";
-        for (std::list<int>::const_iterator i = m_expect_errno.begin(); i != m_expect_errno.end(); ++i)
-          std::cout << *i << " ";
+
+        print_errors();
+
         std::cerr << " but instead got " << err.what() << " (code " << err.error() << ")" << eoerr();
         m_expect_errno.clear();
         if (OPT_fatal_errors)
@@ -188,8 +203,8 @@ public:
         else
         {
           std::cerr << "Got expected error (one of ";
-          for (std::list<int>::const_iterator i = m_expect_errno.begin(); i != m_expect_errno.end(); ++i)
-            std::cout << *i << " ";
+          print_errors();
+
           std::cerr << ")\n";
         }
       }
@@ -206,20 +221,42 @@ public:
 
   bool check_ok()
   {
+    const int ignore_no_error = 0;
+
     if (!m_expect_errno.empty())
     {
+      if (m_expect_errno.end() == std::find(m_expect_errno.begin(), m_expect_errno.end(), ignore_no_error))
+      {
       std::cout << error() << "was expecting error ";
-      for (std::list<int>::const_iterator i = m_expect_errno.begin(); i != m_expect_errno.end(); ++i)
-        std::cout << *i << " ";
+
+        print_errors();
+
       std::cout << " but succeeded" << eoerr();
       m_expect_errno.clear();
       if (OPT_fatal_errors)
         return false;
     }
+      else
+      {
+        // If successful & its allowed then
+        std::cout << error() << "was expecting optionally error ";
+
+        print_errors();
+
+        std::cout << " but succeeded" << eoerr();
+      }
+    }
     m_expect_errno.clear();
     return true;
   }
 private:
+  void print_errors()
+  {
+    std::copy(m_expect_errno.begin(),
+              m_expect_errno.end(),
+              std::ostream_iterator<int>(std::cout, " "));
+  }
+
   std::list<int> m_expect_errno;
 };
 
@@ -228,13 +265,13 @@ private:
 class Connection_manager
 {
 public:
-  Connection_manager(const std::string &uri, const mysqlx::Ssl_config &ssl_config_)
-  : ssl_config(ssl_config_)
+  Connection_manager(const std::string &uri, const mysqlx::Ssl_config &ssl_config_, const std::size_t timeout_, const bool _dont_wait_for_disconnect)
+  : ssl_config(ssl_config_), timeout(timeout_), dont_wait_for_disconnect(_dont_wait_for_disconnect)
   {
     int pwdfound;
     mysqlx::parse_mysql_connstring(uri, proto, user, pass, host, port, sock, db, pwdfound);
 
-    active_connection.reset(new mysqlx::Connection(ssl_config));
+    active_connection.reset(new mysqlx::Connection(ssl_config, timeout, dont_wait_for_disconnect));
     connections[""] = active_connection;
 
     if (OPT_verbose)
@@ -272,7 +309,7 @@ public:
     if (!no_ssl)
       connection_ssl_config = ssl_config;
 
-    connection.reset(new mysqlx::Connection(connection_ssl_config));
+    connection.reset(new mysqlx::Connection(connection_ssl_config, timeout, dont_wait_for_disconnect));
 
     connection->connect(host, port);
     if (user != "-")
@@ -311,6 +348,11 @@ public:
       throw std::runtime_error("no active session");
   }
 
+  bool is_default_active()
+  {
+    return active_connection_name.empty();
+  }
+
   void close_active(bool shutdown = false)
   {
     if (active_connection)
@@ -333,11 +375,26 @@ public:
           if (Mysqlx::ServerMessages::OK != msgid || static_cast<Mysqlx::Ok*>(msg.get())->msg() != "bye!")
             throw mysqlx::Error(CR_COMMANDS_OUT_OF_SYNC,
                                 "Disconnect was expecting Mysqlx.Ok(bye!), but got the one above (one or more calls to -->recv are probably missing)");
+
+          if (!dont_wait_for_disconnect)
+          {
+            try
+            {
+              std::auto_ptr<mysqlx::Message> msg(active_connection->recv_raw(msgid));
+
+              std::cout << message_to_text(*msg);
+
+              throw mysqlx::Error(CR_COMMANDS_OUT_OF_SYNC,
+                  "Was expecting closure but got the one above message");
+            }
+            catch (...)
+            {}
+          }
+        }
           connections.erase(active_connection_name);
           if (!shutdown)
             set_active("");
         }
-      }
       catch (...)
       {
         connections.erase(active_connection_name);
@@ -383,6 +440,8 @@ private:
   std::string proto, user, pass, host, sock, db;
   int port;
   mysqlx::Ssl_config ssl_config;
+  const std::size_t timeout;
+  const bool dont_wait_for_disconnect;
 };
 
 static std::string data_to_bindump(const std::string &bindump)
@@ -391,19 +450,21 @@ static std::string data_to_bindump(const std::string &bindump)
 
   for (size_t i = 0; i < bindump.length(); i++)
   {
-    if (bindump[i] == '\\' && i >= 5)
+    unsigned char ch = bindump[i];
+
+    if (i >= 5 && ch == '\\')
     {
       res.push_back('\\');
       res.push_back('\\');
     }
-    else if (isprint(bindump[i]) && i >= 5 && !isblank(bindump[i]))
-      res.push_back(bindump[i]);
+    else if (i >= 5 && isprint(ch) && !isblank(ch))
+      res.push_back(ch);
     else
     {
       static const char *hex = "0123456789abcdef";
       res.append("\\x");
-      res.push_back(hex[(bindump[i] >> 4) & 0xf]);
-      res.push_back(hex[bindump[i] & 0xf]);
+      res.push_back(hex[(ch >> 4) & 0xf]);
+      res.push_back(hex[ch & 0xf]);
     }
   }
 
@@ -512,6 +573,11 @@ static std::string message_to_bindump(const mysqlx::Message &message)
   res.resize(5);
   *(uint32_t*)res.data() = out.size() + 1;
 
+#ifdef WORDS_BIGENDIAN
+  std::swap(res[0], res[3]);
+  std::swap(res[1], res[2]);
+#endif
+
   res[4] = client_msgs_by_name[client_msgs_by_full_name[message.GetDescriptor()->full_name()]].second;
   res.append(out);
 
@@ -618,9 +684,9 @@ class Execution_context
 public:
   Execution_context(std::istream &stream, Connection_manager *cm)
   :m_stream(stream), m_cm(cm)
-  {
-  }
+  { }
 
+  std::string         m_command_name;
   std::istream       &m_stream;
   Connection_manager *m_cm;
 
@@ -634,8 +700,7 @@ class Macro
 public:
   Macro(const std::string &name, const std::list<std::string> &argnames)
   : m_name(name), m_args(argnames)
-  {
-  }
+  { }
 
   std::string name() const { return m_name; }
 
@@ -648,7 +713,7 @@ public:
   {
     if (args.size() != m_args.size())
     {
-      std::cerr << error() << "Invalid number of arguments for macro " + m_name << eoerr();
+      std::cerr << error() << "Invalid number of arguments for macro "+m_name << ", expected:" << m_args.size() << " actual:" << args.size() << eoerr();
       return "";
     }
 
@@ -724,11 +789,14 @@ public:
     m_commands["recverror "] = &Command::cmd_recverror;
     m_commands["recvresult"] = &Command::cmd_recvresult;
     m_commands["recvresult "] = &Command::cmd_recvresult;
+    m_commands["recvtovar "]  = &Command::cmd_recvtovar;
     m_commands["recvuntil "] = &Command::cmd_recvuntil;
     m_commands["recvuntildisc"] = &Command::cmd_recv_all_until_disc;
     m_commands["enablessl"] = &Command::cmd_enablessl;
     m_commands["sleep "] = &Command::cmd_sleep;
     m_commands["login "] = &Command::cmd_login;
+    m_commands["stmtadmin "]  = &Command::cmd_stmt;
+    m_commands["stmtsql "]    = &Command::cmd_stmt;
     m_commands["loginerror "] = &Command::cmd_loginerror;
     m_commands["repeat "] = &Command::cmd_repeat;
     m_commands["endrepeat"] = &Command::cmd_endrepeat;
@@ -747,6 +815,8 @@ public:
     m_commands["setsession"] = &Command::cmd_setsession; // for setsession with no args
     m_commands["closesession"] = &Command::cmd_closesession;
     m_commands["expecterror "] = &Command::cmd_expecterror;
+    m_commands["measure"]      = &Command::cmd_measure;
+    m_commands["endmeasure "]  = &Command::cmd_endmeasure;
     m_commands["quiet"] = &Command::cmd_quiet;
     m_commands["noquiet"] = &Command::cmd_noquiet;
     m_commands["varfile "] = &Command::cmd_varfile;
@@ -754,6 +824,7 @@ public:
     m_commands["varsub "] = &Command::cmd_varsub;
     m_commands["vargen "] = &Command::cmd_vargen;
     m_commands["binsend "] = &Command::cmd_binsend;
+    m_commands["hexsend "]     = &Command::cmd_hexsend;
     m_commands["binsendoffset "] = &Command::cmd_binsendoffset;
     m_commands["callmacro "] = &Command::cmd_callmacro;
     m_commands["import "] = &Command::cmd_import;
@@ -781,6 +852,8 @@ public:
 
     if (OPT_verbose)
       std::cout << "Execute " << command << "\n";
+
+    context.m_command_name = (*i).first;
 
     return (*this.*(*i).second)(context, command.c_str() + m_cmd_prefix.length() + (*i).first.length());
   }
@@ -904,7 +977,34 @@ private:
     return Continue;
   }
 
+  static void set_variable(bool &was_set, std::string name, std::string value)
+  {
+    was_set = true;
+
+    variables[name] = value;
+  }
+
+  Result cmd_recvtovar(Execution_context &context, const std::string &args)
+  {
+    bool was_set = false;
+
+    cmd_recvresult(context, "", boost::bind(&Command::set_variable, boost::ref(was_set), args, _1));
+
+    if (!was_set)
+    {
+      std::cerr << "No data received from query\n";
+      return Stop_with_failure;
+    }
+
+    return Continue;
+  }
+
   Result cmd_recvresult(Execution_context &context, const std::string &args)
+  {
+    return cmd_recvresult(context, args, Value_callback());
+  }
+
+  Result cmd_recvresult(Execution_context &context, const std::string &args, Value_callback value_callback)
   {
     boost::shared_ptr<mysqlx::Result> result;
     try
@@ -918,7 +1018,7 @@ private:
         boost::algorithm::split(columns, cmd_args, boost::is_any_of(" "));
 
       result = context.connection()->recv_result();
-      print_result_set(*result, columns);
+      print_result_set(*result, columns, value_callback);
       variables_to_unreplace.clear();
       int64_t x = result->affectedRows();
       if (x >= 0)
@@ -956,13 +1056,32 @@ private:
   Result cmd_recvuntil(Execution_context &context, const std::string &args)
   {
     int msgid;
-    for (;;)
+
+    std::vector<std::string> argl;
+
+    boost::split(argl, args, boost::is_any_of(" "), boost::token_compress_on);
+
+
+    bool show = true, stop = false;
+
+    if (argl.size() > 1)
+      show = atoi(argl[1].c_str()) > 0;
+
+    while (!stop)
     {
       std::auto_ptr<mysqlx::Message> msg(context.connection()->recv_raw(msgid));
       if (msg.get())
       {
+        if (msg->GetDescriptor()->full_name() == argl[0] ||
+            msgid == Mysqlx::ServerMessages::ERROR)
+        {
+          show = true;
+          stop = true;
+        }
+
         try
         {
+          if (show)
           std::cout << message_to_text(*msg) << "\n";
         }
         catch (std::exception &e)
@@ -971,12 +1090,6 @@ private:
           if (OPT_fatal_errors)
             return Stop_with_success;
         }
-        if (msg->GetDescriptor()->full_name() == args)
-        {
-          break;
-        }
-        else if (msgid == Mysqlx::ServerMessages::ERROR)
-          break;
       }
     }
     variables_to_unreplace.clear();
@@ -994,6 +1107,20 @@ private:
       dumpx(err);
       return Stop_with_failure;
     }
+
+    return Continue;
+  }
+
+  Result cmd_stmt(Execution_context &context, const std::string &args)
+  {
+    Mysqlx::Sql::StmtExecute stmt;
+
+    const bool is_sql = context.m_command_name.find("sql") != std::string::npos;
+
+    stmt.set_stmt(args);
+    stmt.set_namespace_(is_sql ? "sql" : "xplugin");
+
+    context.connection()->send(stmt);
 
     return Continue;
   }
@@ -1248,8 +1375,9 @@ private:
       }
       else
       {
-        throw std::runtime_error("Timeout occur while waiting for disconnection.");
+        std::cerr << "ERROR: Timeout occur while waiting for disconnection.\n";
       }
+
       return Stop_with_failure;
     }
     catch (const mysqlx::Error &ec)
@@ -1269,7 +1397,13 @@ private:
       return Stop_with_failure;
     }
 
+    if (context.m_cm->is_default_active())
     return Stop_with_success;
+
+    context.m_cm->active()->set_closed();
+    context.m_cm->close_active(false);
+
+    return Continue;
   }
 
   Result cmd_recv(Execution_context &context, const std::string &args)
@@ -1432,6 +1566,49 @@ private:
     return Continue;
   }
 
+
+  static boost::posix_time::ptime m_start_measure;
+
+  Result cmd_measure(Execution_context &context, const std::string &args)
+  {
+    m_start_measure = boost::posix_time::microsec_clock::local_time();
+    return Continue;
+  }
+
+  Result cmd_endmeasure(Execution_context &context, const std::string &args)
+  {
+    if (m_start_measure.is_not_a_date_time())
+    {
+      std::cerr << "Time measurement, wasn't initialized\n";
+      return Stop_with_failure;
+    }
+
+    std::vector<std::string> argl;
+    boost::split(argl, args, boost::is_any_of(" "), boost::token_compress_on);
+    if (argl.size() != 2 && argl.size() != 1)
+    {
+      std::cerr << "Invalid number of arguments for command endmeasure\n";
+      return Stop_with_failure;
+    }
+
+    const int64_t expected_msec = atoi(argl[0].c_str());
+    const int64_t msec = (boost::posix_time::microsec_clock::local_time() - m_start_measure).total_milliseconds();
+
+    int64_t tolerance = expected_msec * 10 / 100;
+
+    if (2 == argl.size())
+      tolerance = atoi(argl[1].c_str());
+
+    if (abs(expected_msec - msec) > tolerance)
+    {
+      std::cerr << "Timeout should occurrr after " << expected_msec << "ms, but it was " << msec <<"ms.  \n";
+      return Stop_with_failure;
+    }
+
+    m_start_measure = boost::posix_time::not_a_date_time;
+    return Continue;
+  }
+
   Result cmd_quiet(Execution_context &context, const std::string &args)
   {
     OPT_quiet = true;
@@ -1527,6 +1704,39 @@ private:
     return Continue;
   }
 
+  Result cmd_hexsend(Execution_context &context, const std::string &args)
+  {
+    std::string args_copy = args;
+    replace_variables(args_copy);
+
+    if (0 == args_copy.length())
+    {
+      std::cerr << "Data should not be present\n";
+      return Stop_with_failure;
+    }
+
+    if (0 != args_copy.length() % 2)
+    {
+      std::cerr << "Size of data should be a multiplication of two, current length:" << args_copy.length()<<"\n";
+      return Stop_with_failure;
+    }
+
+    std::string data;
+    try
+    {
+      boost::algorithm::unhex(args_copy.begin(), args_copy.end(), std::back_inserter(data));
+    }
+    catch(const std::exception &e)
+    {
+      std::cerr << "Hex string is invalid\n";
+      return Stop_with_failure;
+    }
+
+    std::cout << "Sending " << data.length() << " bytes raw data...\n";
+    context.m_cm->active()->send_bytes(data);
+    return Continue;
+  }
+
   size_t value_to_offset(const std::string &data, const size_t maximum_value)
   {
     if ('%' == *data.rbegin())
@@ -1589,6 +1799,8 @@ private:
   Result cmd_import(Execution_context &context, const std::string &args);
 };
 
+boost::posix_time::ptime Command::m_start_measure = boost::posix_time::not_a_date_time;
+
 static int process_client_message(mysqlx::Connection *connection, int8_t msg_id, const mysqlx::Message &msg)
 {
   if (!OPT_quiet)
@@ -1620,7 +1832,96 @@ static void print_result_set(mysqlx::Result &result)
   print_result_set(result, empty_column_array_print_all);
 }
 
-static void print_result_set(mysqlx::Result &result, const std::vector<std::string> &columns)
+template<typename T>
+std::string get_object_value(const T &value)
+{
+  std::stringstream result;
+  result << value;
+
+  return result.str();
+  }
+
+std::string get_field_value(boost::shared_ptr<mysqlx::Row> &row, const int field, boost::shared_ptr<std::vector<mysqlx::ColumnMetadata> > &meta)
+  {
+      if (row->isNullField(field))
+      {
+    return "null";
+      }
+
+      try
+      {
+        const mysqlx::ColumnMetadata &col(meta->at(field));
+
+        switch (col.type)
+        {
+          case mysqlx::SINT:
+      return get_object_value(row->sInt64Field(field));
+
+          case mysqlx::UINT:
+      return get_object_value(row->uInt64Field(field));
+
+          case mysqlx::DOUBLE:
+            if (col.fractional_digits >= 31)
+            {
+              char buffer[100];
+              my_gcvt(row->doubleField(field), MY_GCVT_ARG_DOUBLE, sizeof(buffer)-1, buffer, NULL);
+        return buffer;
+            }
+            else
+            {
+              char buffer[100];
+              my_fcvt(row->doubleField(field), col.fractional_digits, buffer, NULL);
+        return buffer;
+            }
+
+          case mysqlx::FLOAT:
+            if (col.fractional_digits >= 31)
+            {
+              char buffer[100];
+              my_gcvt(row->floatField(field), MY_GCVT_ARG_FLOAT, sizeof(buffer)-1, buffer, NULL);
+        return buffer;
+            }
+            else
+            {
+              char buffer[100];
+              my_fcvt(row->floatField(field), col.fractional_digits, buffer, NULL);
+        return buffer;
+            }
+
+          case mysqlx::BYTES:
+          {
+                              std::string tmp(row->stringField(field));
+      return unreplace_variables(tmp, false);
+          }
+
+          case mysqlx::TIME:
+      return get_object_value(row->timeField(field));
+
+          case mysqlx::DATETIME:
+      return get_object_value(row->dateTimeField(field));
+
+          case mysqlx::DECIMAL:
+      return row->decimalField(field);
+
+          case mysqlx::SET:
+      return row->setFieldStr(field);
+
+          case mysqlx::ENUM:
+      return row->enumField(field);
+
+          case mysqlx::BIT:
+      return get_object_value(row->bitField(field));
+        }
+      }
+      catch (std::exception &e)
+      {
+        std::cout << "ERROR: " << e.what() << "\n";
+      }
+
+  return "";
+}
+
+static void print_result_set(mysqlx::Result &result, const std::vector<std::string> &columns, Value_callback value_callback)
 {
   boost::shared_ptr<std::vector<mysqlx::ColumnMetadata> > meta(result.columnMetadata());
   std::vector<int> column_indexes;
@@ -1628,7 +1929,7 @@ static void print_result_set(mysqlx::Result &result, const std::vector<std::stri
   bool first = true;
 
   for (std::vector<mysqlx::ColumnMetadata>::const_iterator col = meta->begin();
-       col != meta->end(); ++col)
+      col != meta->end(); ++col)
   {
     ++column_index;
 
@@ -1658,82 +1959,14 @@ static void print_result_set(mysqlx::Result &result, const std::vector<std::stri
       if (field != 0)
         std::cout << "\t";
 
-      if (row->isNullField(field))
-      {
-        std::cout << "null";
-        continue;
-      }
+      std::string result = get_field_value(row, field, meta);
 
-      try
+      if (value_callback)
       {
-        const mysqlx::ColumnMetadata &col(meta->at(field));
-
-        switch (col.type)
-        {
-          case mysqlx::SINT:
-            std::cout << row->sInt64Field(field);
-            break;
-          case mysqlx::UINT:
-            std::cout << row->uInt64Field(field);
-            break;
-          case mysqlx::DOUBLE:
-            if (col.fractional_digits >= 31)
-            {
-              char buffer[100];
-              my_gcvt(row->doubleField(field), MY_GCVT_ARG_DOUBLE, sizeof(buffer)-1, buffer, NULL);
-              std::cout << buffer;
-            }
-            else
-            {
-              char buffer[100];
-              my_fcvt(row->doubleField(field), col.fractional_digits, buffer, NULL);
-              std::cout << buffer;
-            }
-            break;
-          case mysqlx::FLOAT:
-            if (col.fractional_digits >= 31)
-            {
-              char buffer[100];
-              my_gcvt(row->floatField(field), MY_GCVT_ARG_FLOAT, sizeof(buffer)-1, buffer, NULL);
-              std::cout << buffer;
-            }
-            else
-            {
-              char buffer[100];
-              my_fcvt(row->floatField(field), col.fractional_digits, buffer, NULL);
-              std::cout << buffer;
-            }
-            break;
-          case mysqlx::BYTES:
-          {
-                              std::string tmp(row->stringField(field));
-                              std::cout << unreplace_variables(tmp, false);
-          }
-            break;
-          case mysqlx::TIME:
-            std::cout << row->timeField(field);
-            break;
-          case mysqlx::DATETIME:
-            std::cout << row->dateTimeField(field);
-            break;
-          case mysqlx::DECIMAL:
-            std::cout << row->decimalField(field);
-            break;
-          case mysqlx::SET:
-            std::cout << row->setFieldStr(field);
-            break;
-          case mysqlx::ENUM:
-            std::cout << row->enumField(field);
-            break;
-          case mysqlx::BIT:
-            std::cout << row->bitField(field);
-            break;
-        }
+        value_callback(result);
+        value_callback = NULL;
       }
-      catch (std::exception &e)
-      {
-        std::cout << "ERROR: " << e.what() << "\n";
-      }
+      std::cout << result;
     }
     std::cout << "\n";
   }
@@ -1959,8 +2192,7 @@ class Single_command_processor : public Block_processor
 public:
   Single_command_processor(Connection_manager *cm)
   : m_cm(cm)
-  {
-  }
+  { }
 
   virtual Block_result feed(std::istream &input, const char *linebuf)
   {
@@ -1997,8 +2229,7 @@ class Snd_message_block_processor : public Block_processor
 public:
   Snd_message_block_processor(Connection_manager *cm)
   : m_cm(cm)
-  {
-  }
+  { }
 
   virtual Block_result feed(std::istream &input, const char *linebuf)
   {
@@ -2081,8 +2312,7 @@ class Dump_message_block_processor : public Snd_message_block_processor
 public:
   Dump_message_block_processor(Connection_manager *cm)
   : Snd_message_block_processor(cm)
-  {
-  }
+  { }
 
 private:
   virtual std::string get_message_name(const char *linebuf)
@@ -2118,7 +2348,7 @@ private:
 
 static int process_client_input(std::istream &input, std::vector<Block_processor_ptr> &eaters)
 {
-  const std::size_t buffer_length = 32 * 1024;
+  const std::size_t buffer_length = 64*1024 + 1024;
   char              linebuf[buffer_length + 1];
 
   linebuf[buffer_length] = 0;
@@ -2201,8 +2431,10 @@ public:
   std::string run_file;
   bool        has_file;
   bool        cap_expired_password;
+  bool        dont_wait_for_server_disconnect;
 
   int port;
+  int timeout;
   std::string host;
   std::string uri;
   std::string password;
@@ -2219,6 +2451,8 @@ public:
     std::cout << "-p, --password=<pass> Connection password\n";
     std::cout << "-h, --host=<host>     Connection host\n";
     std::cout << "-P, --port=<port>     Connection port\n";
+    std::cout << "-t, --timeout=<ms>    Connection timeout\n";
+    std::cout << "--close-no-sync       Do not wait for connection to be closed by server(disconnect first)\n";
     std::cout << "--schema=<schema>     Default schema to connect to\n";
     std::cout << "--uri=<uri>           Connection URI\n";
     std::cout << "--ssl-key             X509 key in PEM format\n";
@@ -2264,6 +2498,8 @@ public:
     std::cout << "  Read and print one message from the server\n";
     std::cout << "-->recvresult\n";
     std::cout << "  Read and print one resultset from the server\n";
+    std::cout << "-->recvtovar <varname>\n";
+    std::cout << "  Read and print one resultset from the server and sets the variable from first row\n";
     std::cout << "-->recverror <errno>\n";
     std::cout << "  Read a message and ensure that it's an error of the expected type\n";
     std::cout << "-->recvtype <msgtype>\n";
@@ -2274,6 +2510,10 @@ public:
     std::cout << "  Begin block of instructions that should be repeated N times\n";
     std::cout << "-->endrepeat\n";
     std::cout << "  End block of instructions that should be repeated - next iteration\n";
+    std::cout << "-->stmtsql <CMD>\n";
+    std::cout << "  Send StmtExecute with sql command\n";
+    std::cout << "-->stmtadmin <CMD>\n";
+    std::cout << "  Send StmtExecute with admin command\n";
     std::cout << "-->system <CMD>\n";
     std::cout << "  Execute application or script (dev only)\n";
     std::cout << "-->exit\n";
@@ -2333,7 +2573,8 @@ public:
   }
 
   My_command_line_options(int argc, char **argv)
-  : Command_line_options(argc, argv), run_mode(RunTest), has_file(false), cap_expired_password(false), port(0)
+  : Command_line_options(argc, argv), run_mode(RunTest), has_file(false),
+    cap_expired_password(false), dont_wait_for_server_disconnect(false), port(0), timeout(0l)
   {
     std::string user;
 
@@ -2375,10 +2616,16 @@ public:
         schema = value;
       else if (check_arg_with_value(argv, i, "--port", "-P", value))
         port = atoi(value);
+      else if (check_arg_with_value(argv, i, "--timeout", "-t", value))
+        timeout = atoi(value);
       else if (check_arg_with_value(argv, i, "--fatal-errors", NULL, value))
         OPT_fatal_errors = atoi(value);
       else if (check_arg_with_value(argv, i, "--password", "-p", value))
         password = value;
+      else if (check_arg_with_value(argv, i, NULL, "-v", value))
+        set_variable_option(value);
+      else if (check_arg(argv, i, "--close-no-sync", NULL))
+        dont_wait_for_server_disconnect = true;
       else if (check_arg(argv, i, "--bindump", "-B"))
         OPT_bindump = true;
       else if (check_arg(argv, i, "--connect-expired-password", NULL))
@@ -2431,6 +2678,22 @@ public:
         uri.append("/").append(schema);
     }
   }
+
+  void set_variable_option(const std::string &set_expression)
+  {
+    std::vector<std::string> args;
+
+    boost::algorithm::split(args, set_expression, boost::is_any_of("="));
+
+    if (2 != args.size())
+    {
+      std::cerr << "Wrong format expected NAME=VALUE\n";
+      exit_code = 1;
+      return;
+    }
+
+    variables[args[0]] = args[1];
+  }
 };
 
 std::vector<Block_processor_ptr> create_macro_block_processors(Connection_manager *cm)
@@ -2460,7 +2723,7 @@ std::vector<Block_processor_ptr> create_block_processors(Connection_manager *cm)
 
 static int process_client_input_on_session(const My_command_line_options &options, std::istream &input)
 {
-  Connection_manager cm(options.uri, options.ssl);
+  Connection_manager cm(options.uri, options.ssl, options.timeout, options.dont_wait_for_server_disconnect);
   int r = 1;
 
   try
@@ -2489,7 +2752,7 @@ static int process_client_input_on_session(const My_command_line_options &option
 
 static int process_client_input_no_auth(const My_command_line_options &options, std::istream &input)
 {
-  Connection_manager cm(options.uri, options.ssl);
+  Connection_manager cm(options.uri, options.ssl, options.timeout, options.dont_wait_for_server_disconnect);
   int r = 1;
 
   try

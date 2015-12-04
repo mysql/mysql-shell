@@ -104,7 +104,8 @@ Value BaseSession::connect(const Argument_list &args)
     ssl.cert = _ssl_cert.c_str();
     ssl.key = _ssl_key.c_str();
 
-    _session = ::mysqlx::openSession(_host, _port, _schema, _user, _password, ssl, _auth_method);
+    // TODO: Define a proper timeout for the session creation
+    _session = ::mysqlx::openSession(_host, _port, _schema, _user, _password, ssl, 10000, _auth_method);
 
     _load_schemas();
 
