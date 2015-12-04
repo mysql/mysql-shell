@@ -1079,9 +1079,9 @@ int Result::get_message_id()
       owner->pop_local_notice_handler();
       throw;
     }
-  }
 
   owner->pop_local_notice_handler();
+  }
 
   // error messages that can be received in any state
   if (current_message_id == Mysqlx::ServerMessages::ERROR)
