@@ -1,6 +1,7 @@
 Traceback (most recent call last):
   File "<string>", line 1, in <module>
 NameError: name 'invalid' is not defined
+
 Traceback (most recent call last):
   File "<string>", line 1, in <module>
 NameError: name 'invalid' is not defined

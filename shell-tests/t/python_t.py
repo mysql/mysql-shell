@@ -14,7 +14,7 @@ class PythonModeTests(ShellTestCase):
 
 
     def test_script_stdin(self):
-        out = mysqlx_with_stdin("print 1", "--py")
+        out = mysqlx_with_stdin("print 1", "--py", "--interactive")
         self.assertEqual(out.strip(), "1")
 
 
@@ -26,7 +26,7 @@ class PythonModeTests(ShellTestCase):
     @checkstdout
     def test_error(self):
         "MYS-306"
-        mysqlx_with_stdin("invalid()", "--py")
+        mysqlx_with_stdin("invalid()", "--py", "--interactive")
 
         f = self.tmpfile("broken.py")
         f.write("invalid()\n")
