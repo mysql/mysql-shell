@@ -322,7 +322,7 @@ Value Interactive_shell::connect_session(const Argument_list &args, mysh::Sessio
     _delegate.print(_delegate.user_data, message.c_str());
     try
     {
-      _session->dropSchema(schema_arg);
+      _session->drop_schema(schema_arg);
     }
     catch (shcore::Exception &e)
     {
@@ -331,7 +331,7 @@ Value Interactive_shell::connect_session(const Argument_list &args, mysh::Sessio
       else
         throw;
     }
-    _session->createSchema(schema_arg);
+    _session->create_schema(schema_arg);
   }
 
   // Sets the current schema

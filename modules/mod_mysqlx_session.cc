@@ -81,10 +81,10 @@ BaseSession::BaseSession()
   add_method("commit", boost::bind(&BaseSession::commit, this, _1), "data");
   add_method("rollback", boost::bind(&BaseSession::rollback, this, _1), "data");
 
-  add_method("dropSchema", boost::bind(&BaseSession::dropSchema, this, _1), "data");
-  add_method("dropTable", boost::bind(&BaseSession::dropSchemaObject, this, _1, "Table"), "data");
-  add_method("dropCollection", boost::bind(&BaseSession::dropSchemaObject, this, _1, "Collection"), "data");
-  add_method("dropView", boost::bind(&BaseSession::dropSchemaObject, this, _1, "View"), "data");
+  add_method("dropSchema", boost::bind(&BaseSession::drop_schema, this, _1), "data");
+  add_method("dropTable", boost::bind(&BaseSession::drop_schema_object, this, _1, "Table"), "data");
+  add_method("dropCollection", boost::bind(&BaseSession::drop_schema_object, this, _1, "Collection"), "data");
+  add_method("dropView", boost::bind(&BaseSession::drop_schema_object, this, _1, "View"), "data");
 }
 
 Value BaseSession::connect(const Argument_list &args)
@@ -189,7 +189,7 @@ Value BaseSession::sql(const Argument_list &args)
 */
 Schema BaseSession::createSchema(String name){}
 #endif
-Value BaseSession::createSchema(const shcore::Argument_list &args)
+Value BaseSession::create_schema(const shcore::Argument_list &args)
 {
   std::string function_name = class_name() + ".createSchema";
   args.ensure_count(1, function_name.c_str());
@@ -602,7 +602,7 @@ shcore::Value BaseSession::set_fetch_warnings(const shcore::Argument_list &args)
 */
 Result BaseSession::dropSchema(String name){}
 #endif
-shcore::Value BaseSession::dropSchema(const shcore::Argument_list &args)
+shcore::Value BaseSession::drop_schema(const shcore::Argument_list &args)
 {
   std::string function = class_name() + ".dropSchema";
 
@@ -643,7 +643,7 @@ Result BaseSession::dropCollection(String schema, String name){}
 Result BaseSession::dropView(String schema, String name){}
 
 #endif
-shcore::Value BaseSession::dropSchemaObject(const shcore::Argument_list &args, const std::string& type)
+shcore::Value BaseSession::drop_schema_object(const shcore::Argument_list &args, const std::string& type)
 {
   std::string function = class_name() + ".drop" + type;
 
