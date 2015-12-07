@@ -100,7 +100,7 @@ namespace mysh
       virtual shcore::Value get_status(const shcore::Argument_list &args);
 
       virtual shcore::Value get_schema(const shcore::Argument_list &args) const;
-      shcore::Value set_current_schema(const shcore::Argument_list &args);
+      virtual shcore::Value set_current_schema(const shcore::Argument_list &args);
 
       virtual std::string db_object_exists(std::string &type, const std::string &name, const std::string& owner);
 

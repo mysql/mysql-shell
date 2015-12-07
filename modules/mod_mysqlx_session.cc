@@ -801,6 +801,24 @@ shcore::Value BaseSession::get_status(const shcore::Argument_list &args)
   return shcore::Value(status);
 }
 
+shcore::Value BaseSession::set_current_schema(const shcore::Argument_list &args)
+{
+  std::string function_name = class_name() + ".setCurrentSchema";
+  args.ensure_count(1, function_name.c_str());
+
+  if (_session)
+  {
+    std::string name = args[0].as_string();
+
+    boost::shared_ptr< ::mysqlx::Result> result = _session->executeSql(sqlstring("use !", 0) << name);
+    result->flush();
+  }
+  else
+    throw Exception::runtime_error(class_name() + " not connected");
+
+  return get_member("currentSchema");
+}
+
 boost::shared_ptr<BaseSession> XSession::_get_shared_this() const
 {
   boost::shared_ptr<const XSession> shared = shared_from_this();
@@ -820,7 +838,7 @@ boost::shared_ptr<shcore::Object_bridge> XSession::create(const shcore::Argument
 NodeSession::NodeSession() : BaseSession()
 {
   add_method("sql", boost::bind(&NodeSession::sql, this, _1), "sql", shcore::String, NULL);
-  add_method("setCurrentSchema", boost::bind(&NodeSession::set_current_schema, this, _1), "name", shcore::String, NULL);
+  add_method("setCurrentSchema", boost::bind(&BaseSession::set_current_schema, this, _1), "name", shcore::String, NULL);
   add_method("getCurrentSchema", boost::bind(&ShellBaseSession::get_member_method, this, _1, "getCurrentSchema", "currentSchema"), NULL);
   add_method("quoteName", boost::bind(&NodeSession::quote_name, this, _1), "name", shcore::String, NULL);
 }
@@ -882,23 +900,6 @@ shcore::Value NodeSession::sql(const shcore::Argument_list &args)
 */
 Schema NodeSession::setCurrentSchema(String name){}
 #endif
-shcore::Value NodeSession::set_current_schema(const shcore::Argument_list &args)
-{
-  std::string function_name = class_name() + ".setCurrentSchema";
-  args.ensure_count(1, function_name.c_str());
-
-  if (_session)
-  {
-    std::string name = args[0].as_string();
-
-    boost::shared_ptr< ::mysqlx::Result> result = _session->executeSql(sqlstring("use !", 0) << name);
-    result->flush();
-  }
-  else
-    throw Exception::runtime_error("NodeSession not connected");
-
-  return get_member("currentSchema");
-}
 
 std::vector<std::string> NodeSession::get_members() const
 {
