@@ -69,9 +69,9 @@ ClassicSession::ClassicSession()
   add_method("startTransaction", boost::bind(&ClassicSession::startTransaction, this, _1), "data");
   add_method("commit", boost::bind(&ClassicSession::commit, this, _1), "data");
   add_method("rollback", boost::bind(&ClassicSession::rollback, this, _1), "data");
-  add_method("dropSchema", boost::bind(&ClassicSession::dropSchema, this, _1), "data");
-  add_method("dropTable", boost::bind(&ClassicSession::dropSchemaObject, this, _1, "Table"), "data");
-  add_method("dropView", boost::bind(&ClassicSession::dropSchemaObject, this, _1, "View"), "data");
+  add_method("dropSchema", boost::bind(&ClassicSession::drop_schema, this, _1), "data");
+  add_method("dropTable", boost::bind(&ClassicSession::drop_schema_object, this, _1, "Table"), "data");
+  add_method("dropView", boost::bind(&ClassicSession::drop_schema_object, this, _1, "View"), "data");
 
   _schemas.reset(new shcore::Value::Map_type);
 }
@@ -164,7 +164,7 @@ Value ClassicSession::run_sql(const shcore::Argument_list &args)
 */
 ClassicSchema ClassicSession::createSchema(String name){}
 #endif
-Value ClassicSession::createSchema(const shcore::Argument_list &args)
+Value ClassicSession::create_schema(const shcore::Argument_list &args)
 {
   args.ensure_count(1, "ClassicSession.createSchema");
 
@@ -453,7 +453,7 @@ boost::shared_ptr<shcore::Object_bridge> ClassicSession::create(const shcore::Ar
 */
 ClassicResult ClassicSession::dropSchema(String name){}
 #endif
-shcore::Value ClassicSession::dropSchema(const shcore::Argument_list &args)
+shcore::Value ClassicSession::drop_schema(const shcore::Argument_list &args)
 {
   std::string function = class_name() + ".dropSchema";
 
@@ -486,7 +486,7 @@ ClassicResult ClassicSession::dropTable(String schema, String name){}
 */
 ClassicResult ClassicSession::dropView(String schema, String name){}
 #endif
-shcore::Value ClassicSession::dropSchemaObject(const shcore::Argument_list &args, const std::string& type)
+shcore::Value ClassicSession::drop_schema_object(const shcore::Argument_list &args, const std::string& type)
 {
   std::string function = class_name() + ".drop" + type;
 
