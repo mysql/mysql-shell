@@ -275,20 +275,23 @@ bool Interactive_shell::connect(bool primary_session)
 Value Interactive_shell::connect_session(const Argument_list &args, mysh::SessionType session_type, bool recreate_schema)
 {
   std::string pass;
-  std::string create_schema_name;
+  std::string schema_name;
 
   if (recreate_schema && session_type != mysh::Node && session_type != mysh::Classic)
     throw shcore::Exception::argument_error("Recreate schema option can only be used in classic or node sessions");
 
   shcore::Value::Map_type_ref connection_data = args.map_at(0);
 
-  if (recreate_schema)
+  // Retrieves the schema on which the session will work on
+  Argument_list schema_arg;
+  if (connection_data->has_key("schema"))
   {
-    if (!connection_data->has_key("schema"))
-      throw shcore::Exception::runtime_error("Recreate schema requested, but no schema specified");
-    create_schema_name = (*connection_data)["schema"].as_string();
-    connection_data->erase("schema");
+    schema_name = (*connection_data)["schema"].as_string();
+    schema_arg.push_back(Value(schema_name));
   }
+
+  if (recreate_schema && schema_name.empty())
+      throw shcore::Exception::runtime_error("Recreate schema requested, but no schema specified");
 
   // Creates the argument list for the real connection call
   Argument_list connect_args;
@@ -313,15 +316,13 @@ Value Interactive_shell::connect_session(const Argument_list &args, mysh::Sessio
 
   _session->set_option("trace_protocol", _options.trace_protocol);
 
-  if (!create_schema_name.empty())
+  if (recreate_schema)
   {
-    Argument_list args;
-    args.push_back(Value(create_schema_name));
-    std::string message = "Recreating schema " + create_schema_name + "...\n";
+    std::string message = "Recreating schema " + schema_name + "...\n";
     _delegate.print(_delegate.user_data, message.c_str());
     try
     {
-      _session->dropSchema(args);
+      _session->dropSchema(schema_arg);
     }
     catch (shcore::Exception &e)
     {
@@ -330,9 +331,12 @@ Value Interactive_shell::connect_session(const Argument_list &args, mysh::Sessio
       else
         throw;
     }
-    _session->createSchema(args);
-    _session->call("setCurrentSchema", args);
+    _session->createSchema(schema_arg);
   }
+
+  // Sets the current schema
+  if (!schema_name.empty())
+    _session->set_current_schema(schema_arg);
 
   _shell->set_global("session", Value(boost::static_pointer_cast<Object_bridge>(_session)));
 
