@@ -92,12 +92,12 @@ namespace mysh
       virtual shcore::Value connect(const shcore::Argument_list &args);
       virtual shcore::Value close(const shcore::Argument_list &args);
       virtual shcore::Value sql(const shcore::Argument_list &args);
-      virtual shcore::Value createSchema(const shcore::Argument_list &args);
+      virtual shcore::Value create_schema(const shcore::Argument_list &args);
       virtual shcore::Value startTransaction(const shcore::Argument_list &args);
       virtual shcore::Value commit(const shcore::Argument_list &args);
       virtual shcore::Value rollback(const shcore::Argument_list &args);
-      virtual shcore::Value dropSchema(const shcore::Argument_list &args);
-      virtual shcore::Value dropSchemaObject(const shcore::Argument_list &args, const std::string& type);
+      virtual shcore::Value drop_schema(const shcore::Argument_list &args);
+      virtual shcore::Value drop_schema_object(const shcore::Argument_list &args, const std::string& type);
       virtual shcore::Value set_current_schema(const shcore::Argument_list &args);
 
       shcore::Value executeAdminCommand(const std::string& command, bool expect_data, const shcore::Argument_list &args);
