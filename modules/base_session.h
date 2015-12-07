@@ -56,9 +56,9 @@ namespace mysh
     // Virtual methods from ISession
     virtual shcore::Value connect(const shcore::Argument_list &args) = 0;
     virtual shcore::Value close(const shcore::Argument_list &args) = 0;
-    virtual shcore::Value create_schema(const shcore::Argument_list &args) = 0;
-    virtual shcore::Value drop_schema(const shcore::Argument_list &args) = 0;
-    virtual shcore::Value drop_schema_object(const shcore::Argument_list &args, const std::string& type) = 0;
+    virtual shcore::Value createSchema(const shcore::Argument_list &args) = 0;
+    virtual shcore::Value dropSchema(const shcore::Argument_list &args) = 0;
+    virtual shcore::Value dropSchemaObject(const shcore::Argument_list &args, const std::string& type) = 0;
     virtual shcore::Value set_current_schema(const shcore::Argument_list &args) = 0;
     virtual bool is_connected() const = 0;
     virtual shcore::Value get_status(const shcore::Argument_list &args) = 0;
