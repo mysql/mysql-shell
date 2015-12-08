@@ -1197,9 +1197,7 @@ int Interactive_shell::process_stream(std::istream & stream, const std::string& 
     {
       std::string line;
 
-      std::cout << "Reading line...\n";
       std::getline(stream, line);
-      std::cout << "Read line...\n";
 
       if (_options.full_interactive)
       {
