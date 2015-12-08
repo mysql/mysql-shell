@@ -30,7 +30,7 @@ set(CMAKE_MODULE_PATH
 SET(MYSH_MAJOR 1)
 SET(MYSH_MINOR 0)
 SET(MYSH_PATCH 2)
-SET(MYSH_LEVEL ".4") # Merge/Sprint Number (QA Tracking): Empty on Release
+SET(MYSH_LEVEL ".5") # Merge/Sprint Number (QA Tracking): Empty on Release
 
 SET(MYSH_VERSION "${MYSH_MAJOR}.${MYSH_MINOR}.${MYSH_PATCH}${MYSH_LEVEL}")
 
