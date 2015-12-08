@@ -170,11 +170,11 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
         break;
       }
     }
-    else if (check_arg(argv, i, "--stx", "--stx"))
+    else if (check_arg(argv, i, "--x", "--x"))
       session_type = mysh::Application;
-    else if (check_arg(argv, i, "--stn", "--stn"))
+    else if (check_arg(argv, i, "--node", "--node"))
       session_type = mysh::Node;
-    else if (check_arg(argv, i, "--stc", "--stc"))
+    else if (check_arg(argv, i, "--classic", "--classic"))
       session_type = mysh::Classic;
     else if (check_arg(argv, i, "--sql", "--sql"))
     {

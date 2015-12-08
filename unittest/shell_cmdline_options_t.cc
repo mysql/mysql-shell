@@ -386,9 +386,9 @@ namespace shcore
     test_option_with_value("session-type", "", "node", "", !IS_CONNECTION_DATA, !IS_NULLABLE, "", AS__STRING(mysh::Node));
     test_option_with_value("session-type", "", "app", "", !IS_CONNECTION_DATA, !IS_NULLABLE, "", AS__STRING(mysh::Application));
 
-    test_option_with_no_value("--stx", "session-type", AS__STRING(mysh::Application));
-    test_option_with_no_value("--stc", "session-type", AS__STRING(mysh::Classic));
-    test_option_with_no_value("--stn", "session-type", AS__STRING(mysh::Node));
+    test_option_with_no_value("--x", "session-type", AS__STRING(mysh::Application));
+    test_option_with_no_value("--classic", "session-type", AS__STRING(mysh::Classic));
+    test_option_with_no_value("--node", "session-type", AS__STRING(mysh::Node));
 
     test_option_with_no_value("--sql", "session-type", AS__STRING(mysh::Node));
     test_option_with_no_value("--sql", "initial-mode", AS__STRING(IShell_core::Mode_SQL));
