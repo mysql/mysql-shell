@@ -879,6 +879,9 @@ bool Interactive_shell::cmd_status(const std::vector<std::string>& UNUSED(args))
       if (status->has_key("SESSION_TYPE"))
         println((boost::format(format) % "Session type: " % (*status)["SESSION_TYPE"].descr(true)).str());
 
+      if (status->has_key("NODE_TYPE"))
+        println((boost::format(format) % "Server type: " % (*status)["NODE_TYPE"].descr(true)).str());
+
       if (status->has_key("CONNECTION_ID"))
         println((boost::format(format) % "Connection Id: " % (*status)["CONNECTION_ID"].descr(true)).str());
 
@@ -1070,13 +1073,13 @@ void Interactive_shell::process_line(const std::string &line)
             add_history(executed.c_str());
 #endif
             println("");
-          }
         }
+      }
         // Continued blocks are only executed when an empty line is received
         // this case is when a block was executed and a new one was started at the same time
         else if (_input_mode == Input_continued_block && line.empty())
           _input_buffer.clear();
-      }
+    }
       catch (shcore::Exception &exc)
       {
         _delegate.print_error(_delegate.user_data, exc.format().c_str());
@@ -1093,8 +1096,8 @@ void Interactive_shell::process_line(const std::string &line)
       // the non executed code
       if (_input_mode == Input_ok)
         _input_buffer.clear();
-    }
   }
+}
 }
 
 void Interactive_shell::process_result(shcore::Value result)

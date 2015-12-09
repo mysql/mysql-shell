@@ -246,7 +246,7 @@ shcore::Value ClassicResult::get_member(const std::string &prop) const
   }
 
   if (prop == "executionTime")
-    return shcore::Value(MySQL_timer::format_legacy(_result->execution_time(), true));
+    return shcore::Value(MySQL_timer::format_legacy(_result->execution_time(), 2));
 
   if (prop == "lastInsertId")
     return shcore::Value((int)_result->last_insert_id());

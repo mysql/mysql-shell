@@ -389,7 +389,8 @@ public:
           int msgid;
           std::auto_ptr<mysqlx::Message> msg(active_connection->recv_raw(msgid));
           std::cout << message_to_text(*msg);
-          if (Mysqlx::ServerMessages::OK != msgid || static_cast<Mysqlx::Ok*>(msg.get())->msg() != "bye!")
+          std::string text = static_cast<Mysqlx::Ok*>(msg.get())->msg();
+          if (Mysqlx::ServerMessages::OK != msgid || (text != "bye!" && text != "tchau!"))
             throw mysqlx::Error(CR_COMMANDS_OUT_OF_SYNC,
                                 "Disconnect was expecting Mysqlx.Ok(bye!), but got the one above (one or more calls to -->recv are probably missing)");
 

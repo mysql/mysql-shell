@@ -113,7 +113,7 @@ shcore::Value BaseResult::get_member(const std::string &prop) const
 
 std::string BaseResult::get_execution_time() const
 {
-  return MySQL_timer::format_legacy(_execution_time, true);
+  return MySQL_timer::format_legacy(_execution_time, 2);
 }
 
 uint64_t BaseResult::get_warning_count() const

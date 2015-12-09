@@ -55,16 +55,16 @@ unsigned long MySQL_timer::end()
  Write as many as 52+1 bytes to buff, in the form of a legible duration of time.
 
  len("4294967296 days, 23 hours, 59 minutes, 60.00 seconds")  ->  52
- 
- 
+
+
  Originally being measured at the client, the raw time was given in CLOCKS so real time was calculated
  dividing raw_time/CLOCKS_PER_SEC.
- 
+
  Later we needed to parse time data coming from the server in seconds, hence the in_seconds parameter is
  used for such cases where raw time is already time in seconds.
  */
 
-std::string MySQL_timer::format_legacy(unsigned long raw_time, bool part_seconds, bool in_seconds)
+std::string MySQL_timer::format_legacy(unsigned long raw_time, int part_seconds, bool in_seconds)
 {
   std::string str_duration;
 

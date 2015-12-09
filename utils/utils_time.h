@@ -31,7 +31,7 @@ public:
   unsigned long start();
   unsigned long end();
   unsigned long raw_duration() { return _end - _start; }
-  static std::string format_legacy(unsigned long raw_time, bool part_seconds, bool in_seconds = false);
+  static std::string format_legacy(unsigned long raw_time, int part_seconds, bool in_seconds = false);
   static void parse_duration(unsigned long raw_time, int &days, int &hours, int &minutes, float &seconds, bool in_seconds = false);
 
 private:
