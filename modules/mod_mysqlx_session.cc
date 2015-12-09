@@ -105,7 +105,7 @@ Value BaseSession::connect(const Argument_list &args)
     ssl.key = _ssl_key.c_str();
 
     // TODO: Define a proper timeout for the session creation
-    _session = ::mysqlx::openSession(_host, _port, _schema, _user, _password, ssl, 10000, _auth_method);
+    _session = ::mysqlx::openSession(_host, _port, _schema, _user, _password, ssl, 10000, _auth_method, true);
 
     _load_schemas();
 
@@ -753,6 +753,22 @@ shcore::Value BaseSession::get_status(const shcore::Argument_list &args)
   else
     (*status)["SESSION_TYPE"] = shcore::Value("Node");
 
+  {
+    const Mysqlx::Connection::Capabilities &caps(_session->connection()->capabilities());
+    for (int c = caps.capabilities_size(), i = 0; i < c; i++)
+    {
+      if (caps.capabilities(i).name() == "node_type")
+      {
+        const Mysqlx::Connection::Capability &cap(caps.capabilities(i));
+        if (cap.value().type() == Mysqlx::Datatypes::Any::SCALAR &&
+            cap.value().scalar().type() == Mysqlx::Datatypes::Scalar::V_STRING)
+          (*status)["NODE_TYPE"] = shcore::Value(cap.value().scalar().v_string().value());
+        else if (cap.value().type() == Mysqlx::Datatypes::Any::SCALAR &&
+            cap.value().scalar().type() == Mysqlx::Datatypes::Scalar::V_OCTETS)
+          (*status)["NODE_TYPE"] = shcore::Value(cap.value().scalar().v_opaque());
+      }
+    }
+  }
   (*status)["DEFAULT_SCHEMA"] = shcore::Value(_default_schema);
 
   boost::shared_ptr< ::mysqlx::Result> result;

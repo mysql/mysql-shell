@@ -96,6 +96,7 @@ namespace mysqlx
     ~Connection();
 
     uint64_t client_id() const { return m_client_id; }
+    const Mysqlx::Connection::Capabilities &capabilities() const { return m_capabilities; }
 
     void push_local_notice_handler(Local_notice_handler handler);
     void pop_local_notice_handler();
@@ -148,6 +149,7 @@ namespace mysqlx
     boost::shared_ptr<Result> execute_insert(const Mysqlx::Crud::Insert &m);
     boost::shared_ptr<Result> execute_delete(const Mysqlx::Crud::Delete &m);
 
+    void fetch_capabilities();
     void setup_capability(const std::string &name, const bool value);
 
     void authenticate(const std::string &user, const std::string &pass, const std::string &schema);
@@ -169,6 +171,7 @@ namespace mysqlx
     typedef boost::asio::ip::tcp tcp;
 
     std::list<Local_notice_handler> m_local_notice_handlers;
+    Mysqlx::Connection::Capabilities m_capabilities;
 
     boost::asio::io_service m_ios;
     Mysqlx_sync_connection m_sync_connection;

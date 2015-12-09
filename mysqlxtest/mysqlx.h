@@ -90,7 +90,7 @@ namespace mysqlx
       m_type = other.m_type;
       m_value = other.m_value;
       if (m_type == TString || m_type == TOctets)
-          m_value.s = new std::string(*other.m_value.s);
+        m_value.s = new std::string(*other.m_value.s);
     }
 
     ArgumentValue &operator = (const ArgumentValue &other)
@@ -207,7 +207,7 @@ namespace mysqlx
     } m_value;
   };
 
-  class Session : public boost::enable_shared_from_this<Session>
+  class Session : public boost::enable_shared_from_this < Session >
   {
   public:
     Session(const mysqlx::Ssl_config &ssl_config, const std::size_t timeout);
@@ -215,7 +215,7 @@ namespace mysqlx
     boost::shared_ptr<Result> executeSql(const std::string &sql);
 
     boost::shared_ptr<Result> executeStmt(const std::string &ns, const std::string &stmt,
-                        const std::vector<ArgumentValue> &args);
+                                          const std::vector<ArgumentValue> &args);
 
     boost::shared_ptr<Schema> getSchema(const std::string &name);
 
@@ -229,11 +229,11 @@ namespace mysqlx
   typedef boost::shared_ptr<Session> SessionRef;
 
   SessionRef openSession(const std::string &uri, const std::string &pass, const mysqlx::Ssl_config &ssl_config,
-                         const bool cap_expired_password, const std::size_t timeout);
+                         const bool cap_expired_password, const std::size_t timeout, const bool get_caps = false);
   SessionRef openSession(const std::string &host, int port, const std::string &schema,
                          const std::string &user, const std::string &pass,
                          const mysqlx::Ssl_config &ssl_config, const std::size_t timeout,
-                         const std::string &auth_method = "");
+                         const std::string &auth_method = "", const bool get_caps = false);
 
   enum FieldType
   {
