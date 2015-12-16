@@ -93,18 +93,18 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
       schema = value;
     else if (check_arg(argv, i, "--recreate-schema", NULL))
       recreate_database = true;
-    //    else if (check_arg(argv, i, "-p", "--password") || check_arg(argv, i, NULL, "--dbpassword"))
-    //      prompt_password = true;
     else if ((arg_format = check_arg_with_value(argv, i, "--dbpassword", NULL, value, true)) ||
              (arg_format = check_arg_with_value(argv, i, "--password", "-p", value, true)))
     {
       // Note that in any connection attempt, password prompt will be done if the password is missing.
       // The behavior of the password cmd line argument is as follows:
 
-      // ARGUMENT         EFFECT
-      // --password       forces password prompt no matter it was already provided
-      // --password=      sets password to empty (password is available but empty so it will not be prompted)
-      // --password=<pwd> sets the password to <pwd>
+      // ARGUMENT           EFFECT
+      // --password         forces password prompt no matter it was already provided
+      // --password value   forces password prompt no matter it was already provided (value is not taken as password)
+      // --password=        sets password to empty (password is available but empty so it will not be prompted)
+      // -p<value> sets the password to <value>
+      // --password=<value> sets the password to <value>
 
       if (!value)
       {
@@ -116,9 +116,16 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
         else
           prompt_password = true;
       }
-      // --password=value orr --password value
-      else
+      // --password=value || --pvalue
+      else if (arg_format != 1)
         password = value;
+
+      // --password value (value is ignored)
+      else
+      {
+        prompt_password = true;
+        i--;
+      }
     }
     else if (check_arg_with_value(argv, i, "--auth-method", NULL, value))
       auth_method = value;
