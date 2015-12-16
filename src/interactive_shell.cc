@@ -87,7 +87,7 @@ _options(options)
     "   \\connect%1% $<APP_NAME>\n\n"
     "WHERE:\n"
     "   URI is in the format of: [user[:password]@]hostname[:port]\n"
-    "   APP_NAME is the app name that identifies a stored connection"
+    "   APP_NAME is the app name that identifies a stored connection\n\n"
     "EXAMPLE:\n"
     "   \\connect%1% root@localhost\n"
     "   \\connect%1% $my_app_name";
