@@ -90,7 +90,7 @@ namespace shcore
       return "";
     }
 
-    void test_option_equal_value(const std::string &option, const std::string & value, bool connection_data, const std::string& target_option = "", const std::string& target_value = "")
+    void test_option_equal_value(const std::string &option, const std::string & value, bool connection_data, const std::string& target_option = "", const char *target_value = NULL)
     {
       // Redirect cout.
       std::streambuf* backup = std::cout.rdbuf();
@@ -106,7 +106,12 @@ namespace shcore
       EXPECT_EQ(0, options.exit_code);
       EXPECT_EQ(connection_data, options.has_connection_data());
 
-      std::string tgt_val = target_value.empty() ? value : target_value;
+      std::string tgt_val;
+      if (target_value)
+        tgt_val.assign(target_value);
+      else
+        tgt_val = value;
+
       std::string tgt_option = target_option.empty() ? option : target_option;
       EXPECT_STREQ(tgt_val.c_str(), get_string(&options, tgt_option).c_str());
 
@@ -116,7 +121,7 @@ namespace shcore
       std::cerr.rdbuf(backup);
     }
 
-    void test_option_space_value(const std::string &option, const std::string & value, bool connection_data, const std::string &target_option = "", const std::string& target_value = "")
+    void test_option_space_value(const std::string &option, const std::string & value, bool connection_data, const std::string &target_option = "", const char *target_value = NULL)
     {
       // Redirect cout.
       std::streambuf* backup = std::cout.rdbuf();
@@ -132,7 +137,12 @@ namespace shcore
       EXPECT_EQ(0, options.exit_code);
       EXPECT_EQ(connection_data, options.has_connection_data());
 
-      std::string tgt_val = target_value.empty() ? value : target_value;
+      std::string tgt_val;
+      if (target_value)
+        tgt_val.assign(target_value);
+      else
+        tgt_val = value;
+
       std::string tgt_option = target_option.empty() ? option : target_option;
       EXPECT_STREQ(tgt_val.c_str(), get_string(&options, tgt_option).c_str());
 
@@ -142,7 +152,7 @@ namespace shcore
       std::cerr.rdbuf(backup);
     }
 
-    void test_short_option_value(const std::string &option, const std::string &soption, const std::string &value, bool connection_data, const std::string& target_option = "", const std::string& target_value = "")
+    void test_short_option_value(const std::string &option, const std::string &soption, const std::string &value, bool connection_data, const std::string& target_option = "", const char *target_value = NULL)
     {
       // Redirect cout.
       std::streambuf* backup = std::cout.rdbuf();
@@ -158,7 +168,12 @@ namespace shcore
       EXPECT_EQ(0, options.exit_code);
       EXPECT_EQ(connection_data, options.has_connection_data());
 
-      std::string tgt_val = target_value.empty() ? value : target_value;
+      std::string tgt_val;
+      if (target_value)
+        tgt_val.assign(target_value);
+      else
+        tgt_val = value;
+
       std::string tgt_option = target_option.empty() ? option : target_option;
       EXPECT_STREQ(tgt_val.c_str(), get_string(&options, tgt_option).c_str());
 
@@ -168,7 +183,7 @@ namespace shcore
       std::cerr.rdbuf(backup);
     }
 
-    void test_short_option_space_value(const std::string &option, const std::string& soption, const std::string &value, bool connection_data, const std::string& target_option = "", const std::string& target_value = "")
+    void test_short_option_space_value(const std::string &option, const std::string& soption, const std::string &value, bool connection_data, const std::string& target_option = "", const char* target_value = NULL)
     {
       // Redirect cout.
       std::streambuf* backup = std::cout.rdbuf();
@@ -184,7 +199,12 @@ namespace shcore
       EXPECT_EQ(0, options.exit_code);
       EXPECT_EQ(connection_data, options.has_connection_data());
 
-      std::string tgt_val = target_value.empty() ? value : target_value;
+      std::string tgt_val;
+      if (target_value)
+        tgt_val.assign(target_value);
+      else
+        tgt_val = value;
+
       std::string tgt_option = target_option.empty() ? option : target_option;
       EXPECT_STREQ(tgt_val.c_str(), get_string(&options, tgt_option).c_str());
 
@@ -194,7 +214,7 @@ namespace shcore
       std::cerr.rdbuf(backup);
     }
 
-    void test_option_space_no_value(const std::string &option, bool valid, const std::string& defval, const std::string target_option = "", const std::string& target_value = "")
+    void test_option_space_no_value(const std::string &option, bool valid, const std::string& defval, const std::string target_option = "", const char *target_value = NULL)
     {
       // Redirect cout.
       std::streambuf* backup = std::cout.rdbuf();
@@ -212,7 +232,12 @@ namespace shcore
       {
         EXPECT_EQ(0, options.exit_code);
 
-        std::string tgt_val = target_value.empty() ? defval : target_value;
+        std::string tgt_val;
+        if (target_value)
+          tgt_val.assign(target_value);
+        else
+          tgt_val = defval;
+
         std::string tgt_option = target_option.empty() ? option : target_option;
         EXPECT_STREQ(tgt_val.c_str(), get_string(&options, tgt_option).c_str());
 
@@ -261,7 +286,7 @@ namespace shcore
       std::cerr.rdbuf(backup);
     }
 
-    void test_option_with_value(const std::string &option, const std::string &soption, const std::string &value, const std::string &defval, bool is_connection_data, bool nullable, const std::string& target_option = "", const std::string& target_value = "")
+    void test_option_with_value(const std::string &option, const std::string &soption, const std::string &value, const std::string &defval, bool is_connection_data, bool nullable, const std::string& target_option = "", const char *target_value = NULL)
     {
       // --option=<value>
       test_option_equal_value(option, value, is_connection_data, target_option, target_value);
@@ -362,15 +387,15 @@ namespace shcore
     test_option_with_value("database", "", "sakila", "", IS_CONNECTION_DATA, !IS_NULLABLE, "schema");
     test_option_with_value("user", "u", "root", "", IS_CONNECTION_DATA, !IS_NULLABLE);
     test_option_with_value("dbuser", "u", "root", "", IS_CONNECTION_DATA, !IS_NULLABLE, "user");
-    test_option_with_value("password", "p", "mypwd", "", IS_CONNECTION_DATA, IS_NULLABLE);
-    test_option_with_value("dbpassword", "p", "mypwd", "", IS_CONNECTION_DATA, IS_NULLABLE, "password");
 
     test_option_with_no_value("-p", "prompt_password", "1");
 
     test_option_equal_value("dbpassword", "mypwd", IS_CONNECTION_DATA, "password");
-    test_option_space_value("dbpassword", "mypwd", IS_CONNECTION_DATA, "password");
+    test_option_space_value("dbpassword", "mypwd", IS_CONNECTION_DATA, "password", "");
+    test_option_space_value("dbpassword", "mypwd", IS_CONNECTION_DATA, "prompt_password", "1");
     test_short_option_value("dbpassword", "p", "mypwd", IS_CONNECTION_DATA, "password");
-    test_short_option_space_value("dbpassword", "p", "mypwd", IS_CONNECTION_DATA, "password");
+    test_short_option_space_value("dbpassword", "p", "mypwd", IS_CONNECTION_DATA, "password", "");
+    test_short_option_space_value("dbpassword", "p", "mypwd", IS_CONNECTION_DATA, "prompt_password", "1");
     test_option_equal_no_value("dbpassword", true);
     test_option_with_no_value("--dbpassword", "prompt_password", "1");
 
@@ -382,9 +407,9 @@ namespace shcore
     test_option_with_value("ssl", "", "yes", "1", IS_CONNECTION_DATA, !IS_NULLABLE, "", "1");
     //test_option_with_value("ssl", "", "no", "1", !IS_CONNECTION_DATA, !IS_NULLABLE, "", "0");
 
-    test_option_with_value("session-type", "", "classic", "", !IS_CONNECTION_DATA, !IS_NULLABLE, "", AS__STRING(mysh::Classic));
-    test_option_with_value("session-type", "", "node", "", !IS_CONNECTION_DATA, !IS_NULLABLE, "", AS__STRING(mysh::Node));
-    test_option_with_value("session-type", "", "app", "", !IS_CONNECTION_DATA, !IS_NULLABLE, "", AS__STRING(mysh::Application));
+    test_option_with_value("session-type", "", "classic", "", !IS_CONNECTION_DATA, !IS_NULLABLE, "", AS__STRING(mysh::Classic).c_str());
+    test_option_with_value("session-type", "", "node", "", !IS_CONNECTION_DATA, !IS_NULLABLE, "", AS__STRING(mysh::Node).c_str());
+    test_option_with_value("session-type", "", "app", "", !IS_CONNECTION_DATA, !IS_NULLABLE, "", AS__STRING(mysh::Application).c_str());
 
     test_option_with_no_value("--x", "session-type", AS__STRING(mysh::Application));
     test_option_with_no_value("--classic", "session-type", AS__STRING(mysh::Classic));
