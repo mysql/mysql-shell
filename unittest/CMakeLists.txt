@@ -150,4 +150,5 @@ TARGET_LINK_LIBRARIES(shexpr
             gtest
             ${SSL_LIBRARIES}
             ${MYSQL_LIBRARIES}
-            ${PROTOBUF_LIBRARY})
+            ${PROTOBUF_LIBRARY}
+            ${GCOV_LDFLAGS})
