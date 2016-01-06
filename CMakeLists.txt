@@ -400,10 +400,10 @@ if (HAVE_PYTHON)
       # Copies the dll to the binary location to enable debugging
       add_custom_command(TARGET mysqlx PRE_BUILD
                           COMMAND ${CMAKE_COMMAND} -E copy
-                          "${WITH_SSL}\bin\libeay32.dll" $<TARGET_FILE_DIR:mysqlx>/libeay32.dll)
+                          "${WITH_SSL}\\bin\\libeay32.dll" $<TARGET_FILE_DIR:mysqlx>/libeay32.dll)
       add_custom_command(TARGET mysqlx PRE_BUILD
                           COMMAND ${CMAKE_COMMAND} -E copy
-                          "${WITH_SSL}\bin\ssleay32.dll" $<TARGET_FILE_DIR:mysqlx>/ssleay32.dll)
+                          "${WITH_SSL}\\bin\\ssleay32.dll" $<TARGET_FILE_DIR:mysqlx>/ssleay32.dll)
     endif()
   endif()
 endif()
