@@ -133,7 +133,7 @@ if(WITH_TESTS)
         add_custom_command(TARGET mysqlx PRE_BUILD
                             COMMAND ${CMAKE_COMMAND} -E copy
                             "${WITH_SSL}\bin\ssleay32.dll" $<TARGET_FILE_DIR:run_unit_tests>/ssleay32.dll)
-      endif    
+      endif() 
     else()
       target_link_libraries(run_unit_tests pthread edit ${GCOV_LDFLAGS})
     endif()
