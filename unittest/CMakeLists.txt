@@ -124,7 +124,17 @@ if(WITH_TESTS)
       endif()
     endif()
 
-    if (NOT WIN32)
+    if (WIN32)
+      if (WITH_SSL AND NOT WITH_SSL MATCHES bundled)
+        # Copies the dll to the binary location to enable debugging
+        add_custom_command(TARGET mysqlx PRE_BUILD
+                            COMMAND ${CMAKE_COMMAND} -E copy
+                            "${WITH_SSL}\bin\libeay32.dll" $<TARGET_FILE_DIR:run_unit_tests>/libeay32.dll)
+        add_custom_command(TARGET mysqlx PRE_BUILD
+                            COMMAND ${CMAKE_COMMAND} -E copy
+                            "${WITH_SSL}\bin\ssleay32.dll" $<TARGET_FILE_DIR:run_unit_tests>/ssleay32.dll)
+      endif    
+    else
       target_link_libraries(run_unit_tests pthread edit ${GCOV_LDFLAGS})
     endif()
 
