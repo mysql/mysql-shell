@@ -134,7 +134,7 @@ if(WITH_TESTS)
                             COMMAND ${CMAKE_COMMAND} -E copy
                             "${WITH_SSL}\bin\ssleay32.dll" $<TARGET_FILE_DIR:run_unit_tests>/ssleay32.dll)
       endif    
-    else
+    else()
       target_link_libraries(run_unit_tests pthread edit ${GCOV_LDFLAGS})
     endif()
 
