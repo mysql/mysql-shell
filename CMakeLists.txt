@@ -185,7 +185,7 @@ set(MY_C_WARNING_FLAGS
 
 # Common warning flags for GCC and Clang
 set(MY_CXX_WARNING_FLAGS
-    "${MY_WARNING_FLAGS} -Werror -Wno-unused-parameter")
+    "${MY_WARNING_FLAGS} -Werror -Wno-unused-parameter -Wno-error=shadow -Wno-error=unused-variable -Wno-error=unused-parameter -Wno-error=ignored-qualifiers -Wno-error=overloaded-virtual -Wno-unused-parameter")
     
 if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
  set(MY_CXX_WARNING_FLAGS 
