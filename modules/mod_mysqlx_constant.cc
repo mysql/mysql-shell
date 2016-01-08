@@ -75,14 +75,11 @@ Value Constant::get_constant_value(const std::string& group, const std::string& 
 
   // By default all is OK if there are NO params
   // Only varchar, char and decimal will allow params
-  bool valid_params = true;
+  
   size_t param_count = 0;
 
   if (params)
-  {
     param_count = params->size();
-    valid_params = (param_count == 0);
-  }
 
   if (group == "DataTypes")
   {

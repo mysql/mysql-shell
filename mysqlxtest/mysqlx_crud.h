@@ -217,6 +217,7 @@ namespace mysqlx
   public:
     enum Type
     {
+      TNull,
       TString,
       TInteger,
       TFloat,
@@ -225,6 +226,11 @@ namespace mysqlx
       TExpression
     };
 
+    DocumentValue()
+    {
+      m_type = TNull;
+    }
+    
     DocumentValue(const DocumentValue &other)
     {
       m_type = other.m_type;

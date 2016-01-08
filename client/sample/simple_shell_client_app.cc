@@ -104,7 +104,7 @@ void print_row_result(const shcore::Value& value)
   std::vector<std::string> columns = result->get_column_names();
 
   std::cout << std::endl;
-  for (int i = 0; i < columns.size(); ++i)
+  for (size_t i = 0; i < columns.size(); ++i)
     std::cout << columns[i] << '\t';
   std::cout << std::endl;
 
@@ -183,7 +183,6 @@ int main(int argc, char* argv[])
 
   std::cout << "Change mode entering either \\sql, \\js, \\py" << std::endl;
 
-  bool empty_result = false;
   // Run shell in SQL mode
   shell.switch_mode(shcore::IShell_core::Mode_JScript);
   std::string input;
