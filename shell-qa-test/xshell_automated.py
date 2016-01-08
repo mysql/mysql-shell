@@ -466,6 +466,18 @@ class LocalConnection_SQLMode(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+  def test_2_0_03_03(self):
+      '''[2.0.03]:2 Connect local Server on SQL mode: APPLICATION SESSION W/O PORT'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full','--sql']
+      x_cmds = [("\\connect {0}:{1}@{2}:{3};\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,LOCALHOST.xprotocol_port),
+                 "Creating Application Session"),
+                ("\\js\n", "mysql-js"),
+                ("print(session);\n", "XSession:"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
 # tc_2_0_03_2("[2.0.03]:2 Connect local Server on SQL mode: APPLICATION SESSION W/O PORT")
 # tc_2_0_03_3("[2.0.03]:3 Connect local Server on SQL mode: APPLICATION SESSION WITH PORT")
 # tc_2_0_03_4("[2.0.03]:4 Connect local Server on SQL mode: NODE SESSION W/O PORT")
