@@ -50,8 +50,6 @@ namespace shcore {
       Shell_core_test_wrapper::SetUp();
       Shell_application_log_tests::i = 0;
 
-      bool initilaized(false);
-
       std::string log_path = shcore::get_user_config_path();
       log_path += "mysqlx.log";
       ngcommon::Logger::create_instance(log_path.c_str(), false, ngcommon::Logger::LOG_ERROR);
@@ -59,7 +57,6 @@ namespace shcore {
       _logger->attach_log_hook(my_hook);
 
       _interactive_shell->process_line("\\js");
-      //_shell_core->switch_mode(Shell_core::Mode_JScript, initilaized);
 
       std::string js_modules_path = MYSQLX_SOURCE_HOME;
       js_modules_path += "/scripting/modules/js";

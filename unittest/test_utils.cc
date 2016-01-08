@@ -103,7 +103,6 @@ void Shell_core_test_wrapper::TearDown()
 shcore::Value Shell_core_test_wrapper::execute(const std::string& code)
 {
   std::string _code(code);
-  shcore::Interactive_input_state state;
 
   _interactive_shell->process_line(_code);
 

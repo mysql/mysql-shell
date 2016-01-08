@@ -1129,7 +1129,7 @@ void Interactive_shell::process_result(shcore::Value result)
       if (!shell_hook)
       {
         // Resultset objects get printed
-        if (object && object->class_name().find("Result") != -1)
+        if (object && object->class_name().find("Result") != std::string::npos)
         {
           boost::shared_ptr<mysh::ShellBaseResult> resultset = boost::static_pointer_cast<mysh::ShellBaseResult> (object);
 

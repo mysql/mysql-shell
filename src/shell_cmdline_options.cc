@@ -31,8 +31,6 @@ using namespace shcore;
 Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
   : Command_line_options(argc, argv), log_level(ngcommon::Logger::LOG_ERROR)
 {
-  bool needs_password = false;
-
   output_format = "";
   print_cmd_line_helper = false;
   print_version = false;

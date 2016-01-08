@@ -209,6 +209,7 @@ Mysqlx::Datatypes::Scalar* Collection_Statement::convert_document_value(const Do
     case DocumentValue::TDocument:
     case DocumentValue::TArray:
     case DocumentValue::TExpression:
+    case DocumentValue::TNull:
       throw std::logic_error("Only scalar values supported on this conversion");
       break;
   }

@@ -183,15 +183,21 @@ set(MY_WARNING_FLAGS "-Wall -Wextra -Wformat-security -Wvla")
 set(MY_C_WARNING_FLAGS
     "${MY_WARNING_FLAGS} -Wwrite-strings -Wdeclaration-after-statement")
 
-set(MY_CXX_WARNING_FLAGS "${MY_CXX_WARNING_FLAGS} -Werror")
+# Common warning flags for GCC and Clang
+set(MY_CXX_WARNING_FLAGS
+    "${MY_WARNING_FLAGS} -Werror -Wno-unused-parameter")
+    
+if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+ set(MY_CXX_WARNING_FLAGS 
+    "${MY_CXX_WARNING_FLAGS} -Wno-null-conversion -Wno-unused-private-field")
+endif()
 
+if (CMAKE_COMPILER_IS_GNUCXX OR CMAKE_C_COMPILER_ID MATCHES "Clang")
+ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${MY_C_WARNING_FLAGS}")
+endif()
 
-
-
-if(NOT WIN32)
-  # make some overzealous warnings into non errors
-  set(MY_CXX_WARNING_FLAGS "${MY_CXX_WARNING_FLAGS} -Wno-error=unused-value,unused-variable")
-  #  add_subdirectory(src/libedit)
+if (CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${MY_CXX_WARNING_FLAGS}")
 endif()
 
 
