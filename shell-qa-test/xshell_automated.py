@@ -286,7 +286,6 @@ class LocalConnection(unittest.TestCase):
           results="FAIL"
       self.assertEqual(results, 'PASS')
 
-
   def test_2_0_01_13(self):
       '''[2.0.01]:13 Connect local Server w/Command Line Args'''
       results = ''
@@ -467,33 +466,217 @@ class LocalConnection_SQLMode(unittest.TestCase):
       self.assertEqual(results, 'PASS')
 
   def test_2_0_03_03(self):
-      '''[2.0.03]:2 Connect local Server on SQL mode: APPLICATION SESSION W/O PORT'''
+      '''[2.0.03]:3 Connect local Server on SQL mode: APPLICATION SESSION WITH PORT'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full','--sql']
       x_cmds = [("\\connect {0}:{1}@{2}:{3};\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,LOCALHOST.xprotocol_port),
-                 "Creating Application Session"),
+                 "Creating an X Session"),
                 ("\\js\n", "mysql-js"),
                 ("print(session);\n", "XSession:"),
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
-# tc_2_0_03_2("[2.0.03]:2 Connect local Server on SQL mode: APPLICATION SESSION W/O PORT")
-# tc_2_0_03_3("[2.0.03]:3 Connect local Server on SQL mode: APPLICATION SESSION WITH PORT")
-# tc_2_0_03_4("[2.0.03]:4 Connect local Server on SQL mode: NODE SESSION W/O PORT")
-# tc_2_0_03_5("[2.0.03]:5 Connect local Server on SQL mode: NODE SESSION WITH PORT")
-# tc_2_0_03_6("[2.0.03]:6 Connect local Server on SQL mode: CLASSIC SESSION")
-# tc_2_0_04_2("[2.0.03]:2 Connect remote Server on SQL mode: APPLICATION SESSION W/O PORT")
-# tc_2_0_04_3("[2.0.03]:3 Connect remote Server on SQL mode: APPLICATION SESSION WITH PORT")
-# tc_2_0_04_4("[2.0.03]:4 Connect remote Server on SQL mode: NODE SESSION W/O PORT")
-# tc_2_0_04_5("[2.0.03]:5 Connect remote Server on SQL mode: NODE SESSION WITH PORT")
-# tc_2_0_04_6("[2.0.03]:6 Connect remote Server on SQL mode: CLASSIC SESSION")
-# tc_2_0_05_2("[2.0.05]:2 Connect local Server on JS mode: NODE SESSION")
-# tc_2_0_05_3("[2.0.05]:3 Connect local Server on JS mode: NODE SESSION")
-# tc_2_0_05_4("[2.0.05]:4 Connect local Server on JS mode: CLASSIC SESSION")
-# tc_2_0_06_2("[2.0.06]:2 Connect remote Server on JS mode: NODE SESSION")
-# tc_2_0_06_3("[2.0.06]:3 Connect remote Server on JS mode: NODE SESSION")
-# tc_2_0_06_4("[2.0.06]:4 Connect remote Server on JS mode: CLASSIC SESSION")
+  def test_2_0_03_04(self):
+      '''[2.0.03]:4 Connect local Server on SQL mode: NODE SESSION W/O PORT'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+      x_cmds = [("\\connect_node {0}:{1}@{2}\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host),
+                 "Creating a Node Session"),
+                ("print(session);\n", "NodeSession:"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_2_0_03_05(self):
+      '''[2.0.03]:5 Connect local Server on SQL mode: NODE SESSION WITH PORT'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+      x_cmds = [("\\connect_node {0}:{1}@{2}:{3};\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
+                                                                    LOCALHOST.xprotocol_port),"Creating a Node Session"),
+                ("print(session);\n", "NodeSession:"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def tc_2_0_03_06(self):
+      '''[2.0.03]:6 Connect local Server on SQL mode: CLASSIC SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+      x_cmds = [("\\connect_classic {0}:{1}@{2}:{3}\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
+                                                              LOCALHOST.port),"Creating Classic Session"),
+                ("print(session);\n", "ClassicSession:"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+class RemoteConnection_SQLMode(unittest.TestCase):
+
+  def test_2_0_04_02(self):
+      '''[2.0.04]:2 Connect remote Server on SQL mode: APPLICATION SESSION W/O PORT'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full','--sql']
+      x_cmds = [("\\connect {0}:{1}@{2}\n".format(REMOTEHOST.user, REMOTEHOST.password, REMOTEHOST.host),"Creating an X Session"),
+                ("\\js\n", "mysql-js>"),
+                ("print(session);\n", "XSession:"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_2_0_04_03(self):
+      '''[2.0.04]:3 Connect remote Server on SQL mode: APPLICATION SESSION WITH PORT'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full','--sql']
+      x_cmds = [("\\connect {0}:{1}@{2}:{3};\n".format(REMOTEHOST.user, REMOTEHOST.password, REMOTEHOST.host,REMOTEHOST.xprotocol_port),
+                 "Creating an X Session"),
+                ("\\js\n", "mysql-js"),
+                ("print(session);\n", "XSession:"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_2_0_04_04(self):
+      '''[2.0.04]:4 Connect remote Server on SQL mode: NODE SESSION W/O PORT'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+      x_cmds = [("\\connect_node {0}:{1}@{2}\n".format(REMOTEHOST.user, REMOTEHOST.password, REMOTEHOST.host),
+                 "Creating a Node Session"),
+                ("print(session);\n", "NodeSession:"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_2_0_04_05(self):
+      '''[2.0.04]:5 Connect remote Server on SQL mode: NODE SESSION WITH PORT'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+      x_cmds = [("\\connect_node {0}:{1}@{2}:{3};\n".format(REMOTEHOST.user, REMOTEHOST.password, REMOTEHOST.host,
+                                                                    REMOTEHOST.xprotocol_port),"Creating a Node Session"),
+                ("print(session);\n", "NodeSession:"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def tc_2_0_04_06(self):
+      '''[2.0.04]:6 Connect remote Server on SQL mode: CLASSIC SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+      x_cmds = [("\\connect_classic {0}:{1}@{2}:{3}\n".format(REMOTEHOST.user, REMOTEHOST.password, REMOTEHOST.host,
+                                                              REMOTEHOST.port),"Creating Classic Session"),
+                ("print(session);\n", "ClassicSession:"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+class LocalConnection_JSMode(unittest.TestCase):
+
+  def test_2_0_05_02(self):
+      '''[2.0.05]:2 Connect local Server on JS mode: NODE SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+      x_cmds = [("var mysqlx=require(\'mysqlx\').mysqlx;\n","mysql-js>"),
+                ("var session=mysqlx.getNodeSession(\'{0}:{1}@{2}\');\n".format(LOCALHOST.user, LOCALHOST.password,
+                                                                                LOCALHOST.host), "mysql-js>"),
+                ("var schemaList = session.getSchemas();\n", "mysql-js>"),
+                ("print(schemaList);\n", "sakila"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_2_0_05_03(self):
+      '''[2.0.05]:3 Connect local Server on JS mode: NODE SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+      x_cmds = [("var mysqlx=require(\'mysqlx\').mysqlx;\n","mysql-js>"),
+                ("var session=mysqlx.getNodeSession({host: '" + LOCALHOST.host + "', dbUser: '"
+                 + LOCALHOST.user +  "', dbPassword: '" + LOCALHOST.password + "'});\n", "mysql-js>"),
+                ("var schemaList = session.getSchemas();\n", "mysql-js>"),
+                ("print(schemaList);\n", "sakila"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_2_0_05_04(self):
+      '''[2.0.05]:4 Connect local Server on JS mode: CLASSIC SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+      x_cmds = [("var mysql=require(\'mysql\').mysql;\n","mysql-js>"),
+                ("var session=mysql.getClassicSession(\'{0}:{1}@{2}:{3}\');\n".format(LOCALHOST.user, LOCALHOST.password,
+                                                                            LOCALHOST.host, LOCALHOST.port), "mysql-js>"),
+                ("var schemaList = session.getSchemas();\n", "mysql-js>"),
+                ("print(schemaList);\n", "sakila")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+class RemoteConnection_JSMode(unittest.TestCase):
+
+  def test_2_0_06_02(self):
+      '''[2.0.06]:2 Connect remote Server on JS mode: NODE SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+      x_cmds = [("var mysqlx=require(\'mysqlx\').mysqlx;\n","mysql-js>"),
+                 ("var session=mysqlx.getNodeSession(\'{0}:{1}@{2}\');\n".format(REMOTEHOST.user, REMOTEHOST.password,
+                                                                                REMOTEHOST.host), "mysql-js>"),
+                ("var schemaList = session.getSchemas();\n", "mysql-js>"),
+                ("print(schemaList);\n", "sakila"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_2_0_06_03(self):
+      '''[2.0.06]:3 Connect remote Server on JS mode: NODE SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+      x_cmds = [("var mysqlx=require(\'mysqlx\').mysqlx;\n","mysql-js>"),
+                ("var session=mysqlx.getNodeSession({host: '" + REMOTEHOST.host + "', dbUser: '"
+                 + REMOTEHOST.user +  "', dbPassword: '" + REMOTEHOST.password + "'});\n", "mysql-js>"),
+                ("var schemaList = session.getSchemas();\n", "mysql-js>"),
+                ("print(schemaList);\n", "sakila"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_2_0_06_04(self):
+      '''[2.0.06]:4 Connect remote Server on JS mode: CLASSIC SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+      x_cmds = [("var mysql=require(\'mysql\').mysql;\n","mysql-js>"),
+                ("var session=mysql.getClassicSession(\'{0}:{1}@{2}:{3}\');\n".format(REMOTEHOST.user, REMOTEHOST.password,
+                                                                            REMOTEHOST.host, REMOTEHOST.port), "mysql-js>"),
+                ("var schemaList = session.getSchemas();\n", "mysql-js>"),
+                ("print(schemaList);\n", "sakila")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+class LocalConnection_PYMode(unittest.TestCase):
+
+  def test_2_0_07_02(self):
+      '''[2.0.07]:2 Connect local Server on PY mode: NODE SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full','--py']
+      x_cmds = [("import mysqlx\n","mysql-py>"),
+                ("session=mysqlx.getNodeSession(\'{0}:{1}@{2}\')\n".format(LOCALHOST.user, LOCALHOST.password,
+                                                                                LOCALHOST.host), "mysql-py>"),
+                ("schemaList = session.getSchemas()\n", "mysql-py>"),
+                ("schemaList\n", "sakila"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_2_0_07_03(self):
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full','--py']
+      x_cmds = [("import mysqlx\n","mysql-py>"),
+                ("session=mysqlx.getNodeSession({\'host\': \'" + LOCALHOST.host + "\', \'dbUser\': \'"
+                 + LOCALHOST.user +  "\', \'dbPassword\': \'" + LOCALHOST.password + "\'})\n", "mysql-py>"),
+                ("schemaList = session.getSchemas()\n", "mysql-py>"),
+                ("schemaList\n", "sakila"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
 # tc_2_0_07_2("[2.0.07]:2 Connect local Server on PY mode: NODE SESSION")
 # tc_2_0_07_3("[2.0.07]:3 Connect local Server on PY mode: NODE SESSION")
 # tc_2_0_07_4("[2.0.07]:4 Connect local Server on PY mode: CLASSIC SESSION")
