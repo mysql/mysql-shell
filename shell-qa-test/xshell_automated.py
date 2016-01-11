@@ -666,6 +666,7 @@ class LocalConnection_PYMode(unittest.TestCase):
       self.assertEqual(results, 'PASS')
 
   def test_2_0_07_03(self):
+      '''[2.0.07]:3 Connect local Server on PY mode: NODE SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full','--py']
       x_cmds = [("import mysqlx\n","mysql-py>"),
@@ -677,12 +678,524 @@ class LocalConnection_PYMode(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
-# tc_2_0_07_2("[2.0.07]:2 Connect local Server on PY mode: NODE SESSION")
-# tc_2_0_07_3("[2.0.07]:3 Connect local Server on PY mode: NODE SESSION")
-# tc_2_0_07_4("[2.0.07]:4 Connect local Server on PY mode: CLASSIC SESSION")
-# tc_2_0_08_2("[2.0.08]:2 Connect remote Server on PY mode: NODE SESSION")
-# tc_2_0_08_3("[2.0.08]:3 Connect remote Server on PY mode: NODE SESSION")
-# tc_2_0_08_4("[2.0.08]:4 Connect remote Server on PY mode: CLASSIC SESSION")
+  def test_2_0_07_04(self):
+      '''[2.0.07]:4 Connect local Server on PY mode: CLASSIC SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full','--py']
+      x_cmds = [("import mysql\n","mysql-py>"),
+                ("session=mysql.getClassicSession(\'{0}:{1}@{2}:{3}\')\n".format(LOCALHOST.user, LOCALHOST.password,
+                                                                            LOCALHOST.host, LOCALHOST.port), "mysql-py>"),
+                ("schemaList = session.getSchemas()\n", "mysql-py>"),
+                ("schemaList\n", "sakila")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+class RemoteConnection_PYMode(unittest.TestCase):
+
+  def test_2_0_08_02(self):
+      '''[2.0.08]:2 Connect remote Server on PY mode: NODE SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full','--py']
+      x_cmds = [("import mysqlx\n","mysql-py>"),
+                ("session=mysqlx.getNodeSession(\'{0}:{1}@{2}\')\n".format(REMOTEHOST.user, REMOTEHOST.password,
+                                                                                REMOTEHOST.host), "mysql-py>"),
+                ("schemaList = session.getSchemas()\n", "mysql-py>"),
+                ("schemaList\n", "sakila"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_2_0_08_03(self):
+      '''[2.0.08]:3 Connect remote Server on PY mode: NODE SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full','--py']
+      x_cmds = [("import mysqlx\n","mysql-py>"),
+                ("session=mysqlx.getNodeSession({\'host\': \'" + REMOTEHOST.host + "\', \'dbUser\': \'"
+                 + REMOTEHOST.user +  "\', \'dbPassword\': \'" + REMOTEHOST.password + "\'})\n", "mysql-py>"),
+                ("schemaList = session.getSchemas()\n", "mysql-py>"),
+                ("schemaList\n", "sakila"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+
+  def test_2_0_08_04(self):
+      '''[2.0.08]:4 Connect remote Server on PY mode: CLASSIC SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full','--py']
+      x_cmds = [("import mysql\n","mysql-py>"),
+                ("session=mysql.getClassicSession(\'{0}:{1}@{2}:{3}\')\n".format(REMOTEHOST.user, REMOTEHOST.password,
+                                                                            REMOTEHOST.host, REMOTEHOST.port), "mysql-py>"),
+                ("schemaList = session.getSchemas()\n", "mysql-py>"),
+                ("schemaList\n", "sakila")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+class LocalConnection_InitExecMode(unittest.TestCase):
+
+  def test_2_0_09_01(self):
+      '''[2.0.09]:1 Connect local Server w/Init Exec mode: --[sql/js/py]: CLASSIC SESSION --sql'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.port, '--session-type=classic', '--sqlc']
+      x_cmds = [(";\n", 'mysql-sql>')
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_2_0_09_02(self):
+      '''[2.0.09]:2 Connect local Server w/Init Exec mode: --[sql/js/py]: CLASSIC SESSION --js'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.port, '--session-type=classic', '--js']
+      x_cmds = [(";\n", 'mysql-js>')
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_2_0_09_03(self):
+      '''[2.0.09]:3 Connect local Server w/Init Exec mode: --[sql/js/py]: CLASSIC SESSION --py'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.port, '--session-type=classic', '--py']
+      x_cmds = [("\n", 'mysql-py>')
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_2_0_09_04(self):
+      '''4 Connect local Server w/Init Exec mode: --[sql/js/py]: CLASSIC SESSION --uri --sql'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--uri',
+                            'mysqlx://{0}:{1}@{2}:{3}'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
+                                                              LOCALHOST.port), '--session-type=classic', '--sqlc']
+      x_cmds = [(";\n", 'mysql-sql>')
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_2_0_09_05(self):
+      '''[2.0.09]:5 Connect local Server w/Init Exec mode: --[sql/js/py]: CLASSIC SESSION --uri --js'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--uri',
+                            'mysqlx://{0}:{1}@{2}:{3}'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
+                                                              LOCALHOST.port), '--session-type=classic', '--js']
+      x_cmds = [(";\n", 'mysql-js>')
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_2_0_09_06(self):
+      '''[2.0.09]:6 Connect local Server w/Init Exec mode: --[sql/js/py]: CLASSIC SESSION --uri --py'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--uri',
+                            'mysqlx://{0}:{1}@{2}:{3}'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
+                                                              LOCALHOST.port), '--session-type=classic', '--py']
+      x_cmds = [("\n", 'mysql-py>')
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_2_0_09_07(self):
+      '''[2.0.09]:7 Connect local Server w/Init Exec mode: --[sql/js/py]: CLASSIC NODE --sql'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=node', '--sql']
+      x_cmds = [(";\n", 'mysql-sql>')
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_2_0_09_08(self):
+      '''[2.0.09]:8 Connect local Server w/Init Exec mode: --[sql/js/py]: CLASSIC NODE --js'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=node', '--js']
+      x_cmds = [(";\n", 'mysql-js>')
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_2_0_09_09(self):
+      '''[2.0.09]:9 Connect local Server w/Init Exec mode: --[sql/js/py]: CLASSIC NODE --py'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=node', '--py']
+      x_cmds = [("\n", 'mysql-py>')
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_2_0_09_10(self):
+      '''[2.0.09]:10 Connect local Server w/Init Exec mode: --[sql/js/py]: CLASSIC NODE --uri --sql'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--uri',
+                            'mysqlx://{0}:{1}@{2}:{3}'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
+                                                              LOCALHOST.xprotocol_port), '--session-type=node', '--sql']
+      x_cmds = [(";\n", 'mysql-sql>')
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_2_0_09_11(self):
+      '''[2.0.09]:11 Connect local Server w/Init Exec mode: --[sql/js/py]: CLASSIC NODE --uri --js'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--uri',
+                            'mysqlx://{0}:{1}@{2}:{3}'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
+                                                              LOCALHOST.xprotocol_port), '--session-type=node', '--js']
+      x_cmds = [(";\n", 'mysql-js>')
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_2_0_09_12(self):
+      '''[2.0.09]:12 Connect local Server w/Init Exec mode: --[sql/js/py]: CLASSIC NODE --uri --py'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--uri',
+                            'mysqlx://{0}:{1}@{2}:{3}'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
+                                                              LOCALHOST.xprotocol_port), '--session-type=node', '--py']
+      x_cmds = [("\n", 'mysql-py>')
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_2_0_09_13(self):
+      '''[2.0.09]:13 Connect local Server w/Init Exec mode: --[sql/js/py]: CLASSIC APPLICATION --sql'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=app', '--sql']
+      x_cmds = [(";\n", 'mysql-sql>')
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_2_0_09_14(self):
+      '''[2.0.09]:14 Connect local Server w/Init Exec mode: --[sql/js/py]: CLASSIC APPLICATION --js'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=app', '--js']
+      x_cmds = [(";\n", 'mysql-js>')
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+
+  def test_2_0_09_15(self):
+      '''[2.0.09]:15 Connect local Server w/Init Exec mode: --[sql/js/py]: CLASSIC APPLICATION --py'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=app', '--py']
+      x_cmds = [("\n", 'mysql-py>')
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_2_0_09_16(self):
+      '''[2.0.09]:16 Connect local Server w/Init Exec mode: --[sql/js/py]: CLASSIC APPLICATION --uri --sql'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--uri',
+                            'mysqlx://{0}:{1}@{2}:{3}'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
+                                                              LOCALHOST.xprotocol_port), '--session-type=app', '--sql']
+      x_cmds = [(";\n", 'mysql-sql>')
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_2_0_09_17(self):
+      '''[2.0.09]:17 Connect local Server w/Init Exec mode: --[sql/js/py]: CLASSIC APPLICATION --uri --js'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--uri',
+                            'mysqlx://{0}:{1}@{2}:{3}'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
+                                                              LOCALHOST.xprotocol_port), '--session-type=app', '--js']
+      x_cmds = [(";\n", 'mysql-js>')
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_2_0_09_18(self):
+      '''[2.0.09]:18 Connect local Server w/Init Exec mode: --[sql/js/py]: CLASSIC APPLICATION --uri --py'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--uri',
+                            'mysqlx://{0}:{1}@{2}:{3}'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
+                                                              LOCALHOST.xprotocol_port), '--session-type=app', '--py']
+      x_cmds = [("\n", 'mysql-py>')
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+class RemoteConnection_InitExecMode(unittest.TestCase):
+
+  def test_2_0_10_01(self):
+      '''[2.0.10]:1 Connect remote Server w/Init Exec mode: --[sql/js/py]: CLASSIC SESSION --sql'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + REMOTEHOST.user, '--password=' + REMOTEHOST.password,
+                      '-h' + REMOTEHOST.host,'-P' + REMOTEHOST.port, '--session-type=classic', '--sqlc']
+      x_cmds = [(";\n", 'mysql-sql>')
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_2_0_10_02(self):
+      '''[2.0.10]:2 Connect remote Server w/Init Exec mode: --[sql/js/py]: CLASSIC SESSION --js'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + REMOTEHOST.user, '--password=' + REMOTEHOST.password,
+                      '-h' + REMOTEHOST.host,'-P' + REMOTEHOST.port, '--session-type=classic', '--js']
+      x_cmds = [(";\n", 'mysql-js>')
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_2_0_10_03(self):
+      '''[2.0.10]:3 Connect remote Server w/Init Exec mode: --[sql/js/py]: CLASSIC SESSION --py'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + REMOTEHOST.user, '--password=' + REMOTEHOST.password,
+                      '-h' + REMOTEHOST.host,'-P' + REMOTEHOST.port, '--session-type=classic', '--py']
+      x_cmds = [("\n", 'mysql-py>')
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_2_0_10_04(self):
+      '''[2.0.10]:4 Connect remote Server w/Init Exec mode: --[sql/js/py]: CLASSIC SESSION --uri --sql'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--uri',
+                            'mysqlx://{0}:{1}@{2}:{3}'.format(REMOTEHOST.user, REMOTEHOST.password, REMOTEHOST.host,
+                                                              REMOTEHOST.port), '--session-type=classic', '--sqlc']
+      x_cmds = [(";\n", 'mysql-sql>')
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_2_0_10_05(self):
+      '''[2.0.10]:5 Connect remote Server w/Init Exec mode: --[sql/js/py]: CLASSIC SESSION --uri --js'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--uri',
+                            'mysqlx://{0}:{1}@{2}:{3}'.format(REMOTEHOST.user, REMOTEHOST.password, REMOTEHOST.host,
+                                                              REMOTEHOST.port), '--session-type=classic', '--js']
+      x_cmds = [(";\n", 'mysql-js>')
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_2_0_10_06(self):
+      '''[2.0.10]:6 Connect remote Server w/Init Exec mode: --[sql/js/py]: CLASSIC SESSION --uri --py'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--uri',
+                            'mysqlx://{0}:{1}@{2}:{3}'.format(REMOTEHOST.user, REMOTEHOST.password, REMOTEHOST.host,
+                                                              REMOTEHOST.port), '--session-type=classic', '--py']
+      x_cmds = [("\n", 'mysql-py>')
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_2_0_10_07(self):
+      '''[2.0.10]:7 Connect remote Server w/Init Exec mode: --[sql/js/py]: CLASSIC NODE --sql'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + REMOTEHOST.user, '--password=' + REMOTEHOST.password,
+                      '-h' + REMOTEHOST.host,'-P' + REMOTEHOST.xprotocol_port, '--session-type=node', '--sql']
+      x_cmds = [(";\n", 'mysql-sql>')
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_2_0_10_08(self):
+      '''[2.0.10]:8 Connect remote Server w/Init Exec mode: --[sql/js/py]: CLASSIC NODE --js'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + REMOTEHOST.user, '--password=' + REMOTEHOST.password,
+                      '-h' + REMOTEHOST.host,'-P' + REMOTEHOST.xprotocol_port, '--session-type=node', '--js']
+      x_cmds = [(";\n", 'mysql-js>')
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_2_0_10_09(self):
+      '''[2.0.10]:9 Connect remote Server w/Init Exec mode: --[sql/js/py]: CLASSIC NODE --py'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + REMOTEHOST.user, '--password=' + REMOTEHOST.password,
+                      '-h' + REMOTEHOST.host,'-P' + REMOTEHOST.xprotocol_port, '--session-type=node', '--py']
+      x_cmds = [("\n", 'mysql-py>')
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_2_0_10_10(self):
+      '''[2.0.10]:10 Connect remote Server w/Init Exec mode: --[sql/js/py]: CLASSIC NODE --uri --sql'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--uri',
+                            'mysqlx://{0}:{1}@{2}:{3}'.format(REMOTEHOST.user, REMOTEHOST.password, REMOTEHOST.host,
+                                                              REMOTEHOST.xprotocol_port), '--session-type=node', '--sql']
+      x_cmds = [(";\n", 'mysql-sql>')
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_2_0_10_11(self):
+      '''[2.0.10]:11 Connect remote Server w/Init Exec mode: --[sql/js/py]: CLASSIC NODE --uri --js'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--uri',
+                            'mysqlx://{0}:{1}@{2}:{3}'.format(REMOTEHOST.user, REMOTEHOST.password, REMOTEHOST.host,
+                                                              REMOTEHOST.xprotocol_port), '--session-type=node', '--js']
+      x_cmds = [(";\n", 'mysql-js>')
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_2_0_10_12(self):
+      '''[2.0.10]:12 Connect remote Server w/Init Exec mode: --[sql/js/py]: CLASSIC NODE --uri --py'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--uri',
+                            'mysqlx://{0}:{1}@{2}:{3}'.format(REMOTEHOST.user, REMOTEHOST.password, REMOTEHOST.host,
+                                                              REMOTEHOST.xprotocol_port), '--session-type=node', '--py']
+      x_cmds = [("\n", 'mysql-py>')
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_2_0_10_13(self):
+      '''[2.0.10]:13 Connect remote Server w/Init Exec mode: --[sql/js/py]: CLASSIC APPLICATION --sql'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + REMOTEHOST.user, '--password=' + REMOTEHOST.password,
+                      '-h' + REMOTEHOST.host,'-P' + REMOTEHOST.xprotocol_port, '--session-type=app', '--sql']
+      x_cmds = [(";\n", 'mysql-sql>')
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_2_0_10_14(self):
+      '''[2.0.10]:14 Connect remote Server w/Init Exec mode: --[sql/js/py]: CLASSIC APPLICATION --js'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + REMOTEHOST.user, '--password=' + REMOTEHOST.password,
+                      '-h' + REMOTEHOST.host,'-P' + REMOTEHOST.xprotocol_port, '--session-type=app', '--js']
+      x_cmds = [(";\n", 'mysql-js>')
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_2_0_10_15(self):
+      '''[2.0.10]:15 Connect remote Server w/Init Exec mode: --[sql/js/py]: CLASSIC APPLICATION --py'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + REMOTEHOST.user, '--password=' + REMOTEHOST.password,
+                      '-h' + REMOTEHOST.host,'-P' + REMOTEHOST.xprotocol_port, '--session-type=app', '--py']
+      x_cmds = [("\n", 'mysql-py>')
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_2_0_10_16(self):
+      '''[2.0.10]:16 Connect remote Server w/Init Exec mode: --[sql/js/py]: CLASSIC APPLICATION --uri --sql'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--uri',
+                            'mysqlx://{0}:{1}@{2}:{3}'.format(REMOTEHOST.user, REMOTEHOST.password, REMOTEHOST.host,
+                                                              REMOTEHOST.xprotocol_port), '--session-type=app', '--sql']
+      x_cmds = [(";\n", 'mysql-sql>')
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_2_0_10_17(self):
+      '''[2.0.10]:17 Connect remote Server w/Init Exec mode: --[sql/js/py]: CLASSIC APPLICATION --uri --js'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--uri',
+                            'mysqlx://{0}:{1}@{2}:{3}'.format(REMOTEHOST.user, REMOTEHOST.password, REMOTEHOST.host,
+                                                              REMOTEHOST.xprotocol_port), '--session-type=app', '--js']
+      x_cmds = [(";\n", 'mysql-js>')
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_2_0_10_18(self):
+      '''[2.0.10]:18 Connect remote Server w/Init Exec mode: --[sql/js/py]: CLASSIC APPLICATION --uri --py'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--uri',
+                            'mysqlx://{0}:{1}@{2}:{3}'.format(REMOTEHOST.user, REMOTEHOST.password, REMOTEHOST.host,
+                                                              REMOTEHOST.xprotocol_port), '--session-type=app', '--py']
+      x_cmds = [("\n", 'mysql-py>')
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+class LocalConnection_FailOver(unittest.TestCase):
+
+  def test_2_0_11_01(self):
+      '''[2.0.11]:1 Connect local Server w/Command Line Args FAILOVER: Wrong Password'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=g' + LOCALHOST.password,
+                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=app', '--sql']
+      x_cmds = [(";\n", "Invalid user or password")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      if results.find("Invalid user or password", 0, len(results))>0:
+        results="PASS"
+      self.assertEqual(results, 'PASS')
+
+  def test_2_0_11_02(self):
+      '''[2.0.11]:2 Connect local Server w/Command Line Args FAILOVER: unknown option'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-vu' + LOCALHOST.user, '--password=', '-h' + LOCALHOST.host,
+                      '-P' + LOCALHOST.xprotocol_port, '--session-type=app', '--sql']
+      x_cmds = [(";\n", "unknown option")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      if results.find("unknown option -vu", 0, len(results))>0:
+        results="PASS"
+      self.assertEqual(results, 'PASS')
+
+  def test_2_0_11_03(self):
+      '''[2.0.11]:3 Connect local Server w/Command Line Args FAILOVER: --uri wrong password'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--uri',
+                      'mysqlx://{0}:{1}@{2}:{3}'.format(LOCALHOST.user, "wrongpass", LOCALHOST.host,
+                                                        LOCALHOST.xprotocol_port), '--session-type=app', '--sql']
+      x_cmds = [(";\n", "Invalid user or password")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      if results.find("Invalid user or password", 0, len(results))>0:
+        results="PASS"
+      self.assertEqual(results, 'PASS')
+
+class RemoteConnection_FailOver(unittest.TestCase):
+
+  def test_2_0_12_01(self):
+      '''[2.0.11]:1 Connect remote Server w/Command Line Args FAILOVER: Wrong Password'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + REMOTEHOST.user, '--password=g' + REMOTEHOST.password,
+                      '-h' + REMOTEHOST.host,'-P' + REMOTEHOST.xprotocol_port, '--session-type=app', '--sql']
+      x_cmds = [(";\n", "Invalid user or password")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      if results.find("Invalid user or password", 0, len(results))>0:
+        results="PASS"
+      self.assertEqual(results, 'PASS')
+
+  def test_2_0_12_02(self):
+      '''[2.0.11]:2 Connect remote Server w/Command Line Args FAILOVER: unknown option'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-vu' + REMOTEHOST.user, '--password=', '-h' + REMOTEHOST.host,
+                      '-P' + REMOTEHOST.xprotocol_port, '--session-type=app', '--sql']
+      x_cmds = [(";\n", "unknown option")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      if results.find("unknown option -vu", 0, len(results))>0:
+        results="PASS"
+      self.assertEqual(results, 'PASS')
+
+
+  def test_2_0_12_03(self):
+      '''[2.0.11]:3 Connect remote Server w/Command Line Args FAILOVER: --uri wrong password'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--uri',
+                      'mysqlx://{0}:{1}@{2}:{3}'.format(REMOTEHOST.user, "wrongpass", REMOTEHOST.host,
+                                                        REMOTEHOST.xprotocol_port), '--session-type=app', '--sql']
+      x_cmds = [(";\n", "Invalid user or password"),
+
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      if results.find("Invalid user or password", 0, len(results))>0:
+        results="PASS"
+      self.assertEqual(results, 'PASS')
+
 
 if __name__ == '__main__':
      unittest.main(verbosity=2)
