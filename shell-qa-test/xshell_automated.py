@@ -4,8 +4,8 @@ import sys
 import os
 import threading
 import functools
-import configparser
 import unittest
+import json
 
 def timeout(timeout):
     def deco(func):
@@ -118,7 +118,7 @@ def exec_xshell_commands(init_cmdLine, commandList):
     else:
         return "PASS"
 
-###############   Retrieve variables fron config.ini file    ##########################
+###############   Retrieve variables from configuration file    ##########################
 class LOCALHOST:
     user =""
     password = ""
@@ -131,23 +131,23 @@ class REMOTEHOST:
     host = ""
     xprotocol_port = ""
     port = ""
-config = configparser.ConfigParser()
-config.read("config.ini")
 
-LOCALHOST.user = config.get("local", "user")
-LOCALHOST.password = config.get("local", "password")
-LOCALHOST.host = config.get("local", "host")
-LOCALHOST.xprotocol_port = config.get("local", "xprotocol_port")
-LOCALHOST.port = config.get("local", "port")
+config=json.load(open('config.json'))
 
-REMOTEHOST.user = config.get("remote", "user")
-REMOTEHOST.password = config.get("remote", "password")
-REMOTEHOST.host = config.get("remote", "host")
-REMOTEHOST.xprotocol_port = config.get("remote", "xprotocol_port")
-REMOTEHOST.port = config.get("remote", "port")
+LOCALHOST.user = config["local"]["user"]
+LOCALHOST.password = config["local"]["password"]
+LOCALHOST.host = config["local"]["host"]
+LOCALHOST.xprotocol_port = config["local"]["xprotocol_port"]
+LOCALHOST.port = config["local"]["port"]
 
-MYSQL_SHELL = config.get("general","xshell_path")
-Exec_files_location = config.get("general","aux_files_path")
+REMOTEHOST.user = config["remote"]["user"]
+REMOTEHOST.password = config["remote"]["password"]
+REMOTEHOST.host = config["remote"]["host"]
+REMOTEHOST.xprotocol_port = config["remote"]["xprotocol_port"]
+REMOTEHOST.port = config["remote"]["port"]
+
+MYSQL_SHELL = config["general"]["xshell_path"]
+Exec_files_location = config["general"]["aux_files_path"]
 ###########################################################################################
 
 class LocalConnection(unittest.TestCase):
