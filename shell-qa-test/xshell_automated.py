@@ -1196,6 +1196,321 @@ class RemoteConnection_FailOver(unittest.TestCase):
         results="PASS"
       self.assertEqual(results, 'PASS')
 
+class LocalConnection_FailOverConnect(unittest.TestCase):
+
+  def test_2_0_13_02(self):
+      '''[2.0.13]:2 Connect local Server inside mysqlshell FAILOVER: \connect  wrong password'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+      x_cmds = [(";\n", "mysql-js>"),
+                ("\\connect {0}:{1}@{2}\n".format(LOCALHOST.user, "wronpassw", LOCALHOST.host), "mysql-js>"),
+                ("print(session)\n", "ReferenceError: session is not defined"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_2_0_13_03(self):
+      '''[2.0.13]:3 Connect local Server inside mysqlshell FAILOVER: \connect_node  wrong password'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+      x_cmds = [(";\n", "mysql-js>"),
+                ("\\connect_node {0}:{1}@{2}\n".format(LOCALHOST.user, "wrongpassw", LOCALHOST.host), "mysql-js>"),
+                ("print(session)\n", "ReferenceError: session is not defined"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_2_0_13_04(self):
+      '''[2.0.13]:4 Connect local Server inside mysqlshell FAILOVER: \connect_classic  wrong password'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+      x_cmds = [(";\n", "mysql-js>"),
+                ("\\connect_classic {0}:{1}@{2}:{3}\n".format(LOCALHOST.user, "wrongpass", LOCALHOST.host, LOCALHOST.port), "mysql-js>"),
+                ("print(session)\n", "ReferenceError: session is not defined"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+class RemoteConnection_FailOverConnect(unittest.TestCase):
+
+  def test_2_0_14_02(self):
+      '''[2.0.14]:2 Connect remote Server inside mysqlshell FAILOVER: \connect  wrong password'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+      x_cmds = [(";\n", "mysql-js>"),
+                ("\\connect {0}:{1}@{2}\n".format(REMOTEHOST.user, "wronpassw", REMOTEHOST.host), "mysql-js>"),
+                ("print(session)\n", "ReferenceError: session is not defined"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_2_0_14_03(self):
+      '''[2.0.14]:3 Connect remote Server inside mysqlshell FAILOVER: \connect_node  wrong password'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+      x_cmds = [(";\n", "mysql-js>"),
+                ("\\connect_node {0}:{1}@{2}\n".format(REMOTEHOST.user, "wrongpassw", REMOTEHOST.host), "mysql-js>"),
+                ("print(session)\n", "ReferenceError: session is not defined"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_2_0_14_04(self):
+      '''[2.0.14]:4 Connect remote Server inside mysqlshell FAILOVER: \connect_classic  wrong password'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+      x_cmds = [(";\n", "mysql-js>"),
+                ("\\connect_classic {0}:{1}@{2}:{3}\n".format(REMOTEHOST.user, "wrongpass", REMOTEHOST.host, REMOTEHOST.port), "mysql-js>"),
+                ("print(session)\n", "ReferenceError: session is not defined"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+class LocalConnection_FailOverExec(unittest.TestCase):
+
+  def test_2_0_15_01(self):
+      '''[2.0.15]:1 Connect local Server w/Init Exec mode: --[sql/js/py] FAILOVER: wrong Exec mode --sqxx'''
+      results = ''
+      p = subprocess.Popen([MYSQL_SHELL, '--interactive=full', '--uri', 'mysqlx://{0}:{1}@{2}:{3}'.format(LOCALHOST.user, "wrongpass", LOCALHOST.host, LOCALHOST.xprotocol_port),
+                          '--session-type=app', '--sqx'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+      stdin,stdout = p.communicate()
+      found = stdout.find(bytes("unknown option","ascii"), 0, len(stdout))
+      if found == -1:
+          results= "FAIL \n\r" + stdout.decode("ascii")
+      else:
+          results= "PASS"
+      self.assertEqual(results, 'PASS')
+
+class RemoteConnection_FailOverExec(unittest.TestCase):
+
+  def test_2_0_16_01(self):
+      '''[2.0.16]:1 Connect remote Server w/Init Exec mode: --[sql/js/py] FAILOVER: wrong Exec mode --sqxx'''
+      results = ''
+      p = subprocess.Popen([MYSQL_SHELL, '--interactive=full', '--uri', 'mysqlx://{0}:{1}@{2}:{3}'.format(REMOTEHOST.user, "wrongpass", REMOTEHOST.host, REMOTEHOST.xprotocol_port),
+                          '--session-type=app', '--sqx'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+      stdin,stdout = p.communicate()
+      found = stdout.find(bytes("unknown option","ascii"), 0, len(stdout))
+      if found == -1 :
+          results= "FAIL \n\r" + stdout.decode("ascii")
+      else:
+          results= "PASS"
+      self.assertEqual(results, 'PASS')
+
+class GlobalCommands_help(unittest.TestCase):
+
+  def test_3_1_01_01(self):
+      '''[3.1.001]:1 Check that command  [ \help, \h, \? ] works: \help'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+      x_cmds = [("\\help\n", "Global Commands")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_3_1_01_02(self):
+      '''[3.1.001]:2 Check that command  [ \help, \h, \? ] works: \h'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+      x_cmds = [("\\h\n", "Global Commands")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_3_1_01_03(self):
+      '''[3.1.001]:3 Check that command  [ \help, \h, \? ] works: \?'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+      x_cmds = [("\\?\n", "Global Commands")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+class GlobalCoomands_help_param(unittest.TestCase):
+
+  def test_3_1_02_01(self):
+      '''[3.1.002]:1 Check that help command with parameter  works: \help connect'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+      x_cmds = [("\\help connect\n", "Connect to server")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_3_1_02_02(self):
+      '''[3.1.002]:2 Check that help command with parameter  works: \h connect'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+      x_cmds = [("\\h connect\n", "Connect to server")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_3_1_02_03(self):
+      '''[3.1.002]:3 Check that help command with parameter  works: \? connect'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+      x_cmds = [("\\? connect\n", "Connect to server")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+
+class GlobalCoomands_help_FAILOVER(unittest.TestCase):
+
+  def test_3_1_03_01(self):
+      '''[3.1.003]:1 Check that help command with wrong parameter works: \help connect'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+      x_cmds = [("\\help conect\n", "Global Commands")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_3_1_03_02(self):
+      '''[3.1.003]:2 Check that help command with wrong parameter works: \h connect'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+      x_cmds = [("\\h conect\n", "Global Commands")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_3_1_03_03(self):
+      '''[3.1.003]:3 Check that help command with wrong parameter works: \? conect'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+      x_cmds = [("\\? conect\n", "Global Commands")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+class GlobalCoomands_quit(unittest.TestCase):
+
+  @unittest.skip("not catching the Bye! message")
+  def test_3_1_04_01(self):
+      '''[3.1.004]:1 Check that command [ \quit, \q, \exit ] works: \quit'''
+      results = ''
+      p = subprocess.Popen([MYSQL_SHELL, '--interactive=full'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+      p.stdin.write(bytes('\\quit', 'ascii'))
+      p.stdin.flush()
+      p.stdin.write(bytes('', 'ascii'))
+      p.stdin.flush()
+      stdin,stdout = p.communicate()
+      found = stdout.find(bytes("Bye!","ascii"), 0, len(stdout))
+      if found == -1:
+          results= "FAIL \n\r" + stdout.decode("ascii")
+      else:
+          results= "PASS"
+      self.assertEqual(results, 'PASS')
+
+  @unittest.skip("not catching the Bye! message")
+  def test_3_1_04_02(self):
+      '''[3.1.004]:2 Check that command [ \quit, \q, \exit ] works: \q '''
+      results = ''
+      p = subprocess.Popen([MYSQL_SHELL, '--interactive=full'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+      p.stdin.write(bytes('\\q', 'ascii'))
+      p.stdin.flush()
+      p.stdin.write(bytes('', 'ascii'))
+      p.stdin.flush()
+      stdin,stdout = p.communicate()
+      found = stdout.find(bytes("Bye!","ascii"), 0, len(stdout))
+      if found == -1:
+          results= "FAIL \n\r" + stdout.decode("ascii")
+      else:
+          results= "PASS"
+      self.assertEqual(results, 'PASS')
+
+  @unittest.skip("not catching the Bye! message")
+  def test_3_1_04_03(self):
+      '''[3.1.004]:3 Check that command [ \quit, \q, \exit ] works: \exit'''
+      results = ''
+      p = subprocess.Popen([MYSQL_SHELL, '--interactive=full'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+      p.stdin.write(bytes('\\exit', 'ascii'))
+      p.stdin.flush()
+      p.stdin.write(bytes('', 'ascii'))
+      p.stdin.flush()
+      stdin,stdout = p.communicate()
+      found = stdout.find(bytes("Bye!","ascii"), 0, len(stdout))
+      if found == -1:
+          results= "FAIL \n\r" + stdout.decode("ascii")
+      else:
+          results= "PASS"
+      self.assertEqual(results, 'PASS')
+
+class GlobalCoomands_ModeSQL(unittest.TestCase):
+  def test_3_1_05_01(self):
+      '''[3.1.005]:1 Check that MODE SQL command [ \sql ] works: \sql '''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+      x_cmds = [("\\sql\n", "mysql-sql>")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+class GlobalCoomands_ModeJS(unittest.TestCase):
+  def test_3_1_06_01(self):
+      '''[3.1.006]:1 Check that MODE JavaScript command [ \js ] works: \js'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+      x_cmds = [("\\js\n", "mysql-js>")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+class GlobalCoomands_ModePY(unittest.TestCase):
+  def test_3_1_07_01(self):
+      '''[3.1.007] Check that MODE Python command [ \py ] works: \py'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+      x_cmds = [("\\py\n", "mysql-py>")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+class GlobalCoomands_Status_appSession(unittest.TestCase):
+  def test_3_1_09_01(self):
+      '''[3.1.009]:1 Check that STATUS command [ \status, \s ] works: app session \status'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--uri',
+                      'mysqlx://{0}:{1}@{2}:{3}'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), '--session-type=app', '--js']
+      x_cmds = [("\\status\n", "Current user:                 root@localhost")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+class GlobalCommands_Status_classicSession(unittest.TestCase):
+  def test_3_1_09_02(self):
+      '''[3.1.009]:2 Check that STATUS command [ \status, \s ] works: classic session \status'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--uri',
+                      'mysqlx://{0}:{1}@{2}:{3}'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,LOCALHOST.port), '--session-type=classic', '--js']
+      x_cmds = [("\\status\n", "Current user:                 root@localhost")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+class GlobalCommands_Status_nodeSession(unittest.TestCase):
+  def test_3_1_09_03(self):
+      '''[3.1.009]:3 Check that STATUS command [ \status, \s ] works: node session \status'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--uri',
+                      'mysqlx://{0}:{1}@{2}:{3}'.format(REMOTEHOST.user, REMOTEHOST.password, REMOTEHOST.host,REMOTEHOST.xprotocol_port), '--session-type=node', '--sql']
+      x_cmds = [("\\status\n", "Current user:                 root@localhost")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+# tc_3_1_05_1("")
+# tc_3_1_06_1(" ")
+# tc_3_1_07_1(" ")
+# tc_3_1_09_1(" ")
+# tc_3_1_09_2(" ")
+# tc_3_1_09_3(" ")
+# tc_3_1_10_1("[3.1.010]:1 Check that EXECUTE SCRIPT FILE command [ \source, \. ] works: node session \source select_actor_10.sql ")
+# tc_3_1_10_2("[3.1.010]:2 Check that EXECUTE SCRIPT FILE command [ \source, \. ] works: node session \. select_actor_10.sql ")
+# tc_3_1_11_1("[3.1.011]:1 Check that MULTI LINE MODE command [ \ ] works ")
+# tc_3_2_04_1("[3.2.004] Check SQL command SHOW WARNINGS [ \W ] works ")
+# tc_3_2_05_1("[3.2.005] Check SQL command NO SHOW WARNINGS [ \w ] works ")
 
 if __name__ == '__main__':
      unittest.main(verbosity=2)
