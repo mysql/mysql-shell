@@ -6,6 +6,7 @@ import threading
 import functools
 import unittest
 import json
+import xmlrunner
 
 def timeout(timeout):
     def deco(func):
@@ -1513,4 +1514,4 @@ class GlobalCommands_Status_nodeSession(unittest.TestCase):
 # tc_3_2_05_1("[3.2.005] Check SQL command NO SHOW WARNINGS [ \w ] works ")
 
 if __name__ == '__main__':
-     unittest.main(verbosity=2)
+    unittest.main( testRunner=xmlrunner.XMLTestRunner(output='test-reports'))
