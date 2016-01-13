@@ -1326,7 +1326,7 @@ class GlobalCommands_help(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
-class GlobalCoomands_help_param(unittest.TestCase):
+class GlobalCommands_help_param(unittest.TestCase):
 
   def test_3_1_02_01(self):
       '''[3.1.002]:1 Check that help command with parameter  works: \help connect'''
@@ -1356,7 +1356,7 @@ class GlobalCoomands_help_param(unittest.TestCase):
       self.assertEqual(results, 'PASS')
 
 
-class GlobalCoomands_help_FAILOVER(unittest.TestCase):
+class GlobalCommands_help_FAILOVER(unittest.TestCase):
 
   def test_3_1_03_01(self):
       '''[3.1.003]:1 Check that help command with wrong parameter works: \help connect'''
@@ -1385,7 +1385,7 @@ class GlobalCoomands_help_FAILOVER(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
-class GlobalCoomands_quit(unittest.TestCase):
+class GlobalCommands_quit(unittest.TestCase):
 
   @unittest.skip("not catching the Bye! message")
   def test_3_1_04_01(self):
@@ -1438,7 +1438,7 @@ class GlobalCoomands_quit(unittest.TestCase):
           results= "PASS"
       self.assertEqual(results, 'PASS')
 
-class GlobalCoomands_ModeSQL(unittest.TestCase):
+class GlobalCommands_ModeSQL(unittest.TestCase):
   def test_3_1_05_01(self):
       '''[3.1.005]:1 Check that MODE SQL command [ \sql ] works: \sql '''
       results = ''
@@ -1448,7 +1448,7 @@ class GlobalCoomands_ModeSQL(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
-class GlobalCoomands_ModeJS(unittest.TestCase):
+class GlobalCommands_ModeJS(unittest.TestCase):
   def test_3_1_06_01(self):
       '''[3.1.006]:1 Check that MODE JavaScript command [ \js ] works: \js'''
       results = ''
@@ -1458,7 +1458,7 @@ class GlobalCoomands_ModeJS(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
-class GlobalCoomands_ModePY(unittest.TestCase):
+class GlobalCommands_ModePY(unittest.TestCase):
   def test_3_1_07_01(self):
       '''[3.1.007] Check that MODE Python command [ \py ] works: \py'''
       results = ''
@@ -1468,7 +1468,7 @@ class GlobalCoomands_ModePY(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
-class GlobalCoomands_Status_appSession(unittest.TestCase):
+class GlobalCommands_Status_appSession(unittest.TestCase):
   def test_3_1_09_01(self):
       '''[3.1.009]:1 Check that STATUS command [ \status, \s ] works: app session \status'''
       results = ''
