@@ -45,7 +45,7 @@ def read_line(proc, fd, end_string):
                 break
             elif new_byte:
                 # data += new_byte
-                data += str(new_byte, encoding='utf-8')
+                data += str(new_byte) ##, encoding='utf-8')
                 if data.endswith(end_string):
                     break;
             elif proc.poll() is not None:
@@ -92,8 +92,8 @@ def exec_xshell_commands(init_cmdLine, commandList):
         expectbefore = "mysql-js>"
     p = subprocess.Popen(init_cmdLine, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
     for command, lookup in commandList:
-        # p.stdin.write(bytes(command + "\n", 'ascii'))
-        p.stdin.write(bytes(command , 'ascii'))
+        # p.stdin.write(bytearray(command + "\n", 'ascii'))
+        p.stdin.write(bytearray(command , 'ascii'))
         p.stdin.flush()
         # stdin,stdout = p.communicate()
         found = read_til_getShell(p, p.stdout, expectbefore)
@@ -105,13 +105,13 @@ def exec_xshell_commands(init_cmdLine, commandList):
             break
         expectbefore = lookup
         commandbefore =command
-    # p.stdin.write(bytes(commandbefore, 'ascii'))
-    p.stdin.write(bytes('', 'ascii'))
+    # p.stdin.write(bytearray(commandbefore, 'ascii'))
+    p.stdin.write(bytearray('', 'ascii'))
     p.stdin.flush()
     stdin,stdout = p.communicate()
-    found = stdout.find(bytes(expectbefore,"ascii"), 0, len(stdout))
+    found = stdout.find(bytearray(expectbefore,"ascii"), 0, len(stdout))
     if found == -1 :
-            found = stdin.find(bytes(expectbefore,"ascii"), 0, len(stdin))
+            found = stdin.find(bytearray(expectbefore,"ascii"), 0, len(stdin))
             if found == -1 :
                 return "FAIL:  " + stdout.decode("ascii")
             else :
@@ -169,10 +169,10 @@ class LocalConnection(unittest.TestCase):
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '-p','--passwords-from-stdin',
                       '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=app']
       p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
-      p.stdin.write(bytes(LOCALHOST.password+"\n", 'ascii'))
+      p.stdin.write(bytearray(LOCALHOST.password+"\n", 'ascii'))
       p.stdin.flush()
       stdin,stdout = p.communicate()
-      if stdin.find(bytes("mysql-js>","ascii"), 0, len(stdin)) > 0:
+      if stdin.find(bytearray("mysql-js>","ascii"), 0, len(stdin)) > 0:
           results="PASS"
       else:
           results="FAIL"
@@ -184,10 +184,10 @@ class LocalConnection(unittest.TestCase):
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '-p','--passwords-from-stdin',
                       '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port]
       p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
-      p.stdin.write(bytes(LOCALHOST.password+"\n", 'ascii'))
+      p.stdin.write(bytearray(LOCALHOST.password+"\n", 'ascii'))
       p.stdin.flush()
       stdin,stdout = p.communicate()
-      if stdin.find(bytes("mysql-js>","ascii"), 0, len(stdin)) > 0:
+      if stdin.find(bytearray("mysql-js>","ascii"), 0, len(stdin)) > 0:
           results="PASS"
       else:
           results="FAIL"
@@ -231,10 +231,10 @@ class LocalConnection(unittest.TestCase):
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '-p', '-h' + LOCALHOST.host, '--session-type=node',
                       '--passwords-from-stdin']
       p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
-      p.stdin.write(bytes(LOCALHOST.password+"\n", 'ascii'))
+      p.stdin.write(bytearray(LOCALHOST.password+"\n", 'ascii'))
       p.stdin.flush()
       stdin,stdout = p.communicate()
-      if stdin.find(bytes("mysql-js>","ascii"), 0, len(stdin)) > 0:
+      if stdin.find(bytearray("mysql-js>","ascii"), 0, len(stdin)) > 0:
           results="PASS"
       else:
           results="FAIL"
@@ -278,10 +278,10 @@ class LocalConnection(unittest.TestCase):
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '-p', '-P'+LOCALHOST.port,'-h' + LOCALHOST.host, '--session-type=classic',
                       '--passwords-from-stdin']
       p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
-      p.stdin.write(bytes(LOCALHOST.password+"\n", 'ascii'))
+      p.stdin.write(bytearray(LOCALHOST.password+"\n", 'ascii'))
       p.stdin.flush()
       stdin,stdout = p.communicate()
-      if stdin.find(bytes("mysql-js>","ascii"), 0, len(stdin)) > 0:
+      if stdin.find(bytearray("mysql-js>","ascii"), 0, len(stdin)) > 0:
           results="PASS"
       else:
           results="FAIL"
@@ -314,10 +314,10 @@ class RemoteConnection(unittest.TestCase):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + REMOTEHOST.user,'-p', '-h' + REMOTEHOST.host, '--passwords-from-stdin']
       p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
-      p.stdin.write(bytes(REMOTEHOST.password+"\n", 'ascii'))
+      p.stdin.write(bytearray(REMOTEHOST.password+"\n", 'ascii'))
       p.stdin.flush()
       stdin,stdout = p.communicate()
-      if stdin.find(bytes("mysql-js>","ascii"), 0, len(stdin)) > 0:
+      if stdin.find(bytearray("mysql-js>","ascii"), 0, len(stdin)) > 0:
           results="PASS"
       else:
           results="FAIL"
@@ -328,10 +328,10 @@ class RemoteConnection(unittest.TestCase):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + REMOTEHOST.user,'-p', '-h' + REMOTEHOST.host, '--passwords-from-stdin']
       p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
-      p.stdin.write(bytes(REMOTEHOST.password+"\n", 'ascii'))
+      p.stdin.write(bytearray(REMOTEHOST.password+"\n", 'ascii'))
       p.stdin.flush()
       stdin,stdout = p.communicate()
-      if stdin.find(bytes("mysql-js>","ascii"), 0, len(stdin)) > 0:
+      if stdin.find(bytearray("mysql-js>","ascii"), 0, len(stdin)) > 0:
           results="PASS"
       else:
           results="FAIL"
@@ -375,10 +375,10 @@ class RemoteConnection(unittest.TestCase):
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + REMOTEHOST.user,'-p', '-h' + REMOTEHOST.host,
                       '--session-type=node', '--passwords-from-stdin']
       p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
-      p.stdin.write(bytes(REMOTEHOST.password+"\n", 'ascii'))
+      p.stdin.write(bytearray(REMOTEHOST.password+"\n", 'ascii'))
       p.stdin.flush()
       stdin,stdout = p.communicate()
-      if stdin.find(bytes("mysql-js>","ascii"), 0, len(stdin)) > 0:
+      if stdin.find(bytearray("mysql-js>","ascii"), 0, len(stdin)) > 0:
           results="PASS"
       else:
           results="FAIL"
@@ -422,10 +422,10 @@ class RemoteConnection(unittest.TestCase):
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + REMOTEHOST.user,'-p', '-h' + REMOTEHOST.host,
                       '--session-type=classic', '-P' + REMOTEHOST.port,'--passwords-from-stdin']
       p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
-      p.stdin.write(bytes(REMOTEHOST.password+"\n", 'ascii'))
+      p.stdin.write(bytearray(REMOTEHOST.password+"\n", 'ascii'))
       p.stdin.flush()
       stdin,stdout = p.communicate()
-      if stdin.find(bytes("mysql-js>","ascii"), 0, len(stdin)) > 0:
+      if stdin.find(bytearray("mysql-js>","ascii"), 0, len(stdin)) > 0:
           results="PASS"
       else:
           results="FAIL"
@@ -1275,7 +1275,7 @@ class LocalConnection_FailOverExec(unittest.TestCase):
       p = subprocess.Popen([MYSQL_SHELL, '--interactive=full', '--uri', 'mysqlx://{0}:{1}@{2}:{3}'.format(LOCALHOST.user, "wrongpass", LOCALHOST.host, LOCALHOST.xprotocol_port),
                           '--session-type=app', '--sqx'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
       stdin,stdout = p.communicate()
-      found = stdout.find(bytes("unknown option","ascii"), 0, len(stdout))
+      found = stdout.find(bytearray("unknown option","ascii"), 0, len(stdout))
       if found == -1:
           results= "FAIL \n\r" + stdout.decode("ascii")
       else:
@@ -1290,7 +1290,7 @@ class RemoteConnection_FailOverExec(unittest.TestCase):
       p = subprocess.Popen([MYSQL_SHELL, '--interactive=full', '--uri', 'mysqlx://{0}:{1}@{2}:{3}'.format(REMOTEHOST.user, "wrongpass", REMOTEHOST.host, REMOTEHOST.xprotocol_port),
                           '--session-type=app', '--sqx'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
       stdin,stdout = p.communicate()
-      found = stdout.find(bytes("unknown option","ascii"), 0, len(stdout))
+      found = stdout.find(bytearray("unknown option","ascii"), 0, len(stdout))
       if found == -1 :
           results= "FAIL \n\r" + stdout.decode("ascii")
       else:
@@ -1392,12 +1392,12 @@ class GlobalCommands_quit(unittest.TestCase):
       '''[3.1.004]:1 Check that command [ \quit, \q, \exit ] works: \quit'''
       results = ''
       p = subprocess.Popen([MYSQL_SHELL, '--interactive=full'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
-      p.stdin.write(bytes('\\quit', 'ascii'))
+      p.stdin.write(bytearray('\\quit', 'ascii'))
       p.stdin.flush()
-      p.stdin.write(bytes('', 'ascii'))
+      p.stdin.write(bytearray('', 'ascii'))
       p.stdin.flush()
       stdin,stdout = p.communicate()
-      found = stdout.find(bytes("Bye!","ascii"), 0, len(stdout))
+      found = stdout.find(bytearray("Bye!","ascii"), 0, len(stdout))
       if found == -1:
           results= "FAIL \n\r" + stdout.decode("ascii")
       else:
@@ -1409,12 +1409,12 @@ class GlobalCommands_quit(unittest.TestCase):
       '''[3.1.004]:2 Check that command [ \quit, \q, \exit ] works: \q '''
       results = ''
       p = subprocess.Popen([MYSQL_SHELL, '--interactive=full'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
-      p.stdin.write(bytes('\\q', 'ascii'))
+      p.stdin.write(bytearray('\\q', 'ascii'))
       p.stdin.flush()
-      p.stdin.write(bytes('', 'ascii'))
+      p.stdin.write(bytearray('', 'ascii'))
       p.stdin.flush()
       stdin,stdout = p.communicate()
-      found = stdout.find(bytes("Bye!","ascii"), 0, len(stdout))
+      found = stdout.find(bytearray("Bye!","ascii"), 0, len(stdout))
       if found == -1:
           results= "FAIL \n\r" + stdout.decode("ascii")
       else:
@@ -1426,12 +1426,12 @@ class GlobalCommands_quit(unittest.TestCase):
       '''[3.1.004]:3 Check that command [ \quit, \q, \exit ] works: \exit'''
       results = ''
       p = subprocess.Popen([MYSQL_SHELL, '--interactive=full'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
-      p.stdin.write(bytes('\\exit', 'ascii'))
+      p.stdin.write(bytearray('\\exit', 'ascii'))
       p.stdin.flush()
-      p.stdin.write(bytes('', 'ascii'))
+      p.stdin.write(bytearray('', 'ascii'))
       p.stdin.flush()
       stdin,stdout = p.communicate()
-      found = stdout.find(bytes("Bye!","ascii"), 0, len(stdout))
+      found = stdout.find(bytearray("Bye!","ascii"), 0, len(stdout))
       if found == -1:
           results= "FAIL \n\r" + stdout.decode("ascii")
       else:
