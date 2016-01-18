@@ -298,7 +298,6 @@ class LocalConnection(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
-class RemoteConnection(unittest.TestCase):
   def test_2_0_02_01(self):
       '''[2.0.02]:1 Connect remote Server w/Command Line Args'''
       results = ''
@@ -453,8 +452,6 @@ class RemoteConnection(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
-class LocalConnection_SQLMode(unittest.TestCase):
-
   def test_2_0_03_02(self):
       '''[2.0.03]:2 Connect local Server on SQL mode: APPLICATION SESSION W/O PORT'''
       results = ''
@@ -510,8 +507,6 @@ class LocalConnection_SQLMode(unittest.TestCase):
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
-
-class RemoteConnection_SQLMode(unittest.TestCase):
 
   def test_2_0_04_02(self):
       '''[2.0.04]:2 Connect remote Server on SQL mode: APPLICATION SESSION W/O PORT'''
@@ -569,8 +564,6 @@ class RemoteConnection_SQLMode(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
-class LocalConnection_JSMode(unittest.TestCase):
-
   def test_2_0_05_02(self):
       '''[2.0.05]:2 Connect local Server on JS mode: NODE SESSION'''
       results = ''
@@ -609,8 +602,6 @@ class LocalConnection_JSMode(unittest.TestCase):
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
-
-class RemoteConnection_JSMode(unittest.TestCase):
 
   def test_2_0_06_02(self):
       '''[2.0.06]:2 Connect remote Server on JS mode: NODE SESSION'''
@@ -651,8 +642,6 @@ class RemoteConnection_JSMode(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
-class LocalConnection_PYMode(unittest.TestCase):
-
   def test_2_0_07_02(self):
       '''[2.0.07]:2 Connect local Server on PY mode: NODE SESSION'''
       results = ''
@@ -691,8 +680,6 @@ class LocalConnection_PYMode(unittest.TestCase):
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
-
-class RemoteConnection_PYMode(unittest.TestCase):
 
   def test_2_0_08_02(self):
       '''[2.0.08]:2 Connect remote Server on PY mode: NODE SESSION'''
@@ -733,8 +720,6 @@ class RemoteConnection_PYMode(unittest.TestCase):
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
-
-class LocalConnection_InitExecMode(unittest.TestCase):
 
   def test_2_0_09_01(self):
       '''[2.0.09]:1 Connect local Server w/Init Exec mode: --[sql/js/py]: CLASSIC SESSION --sql'''
@@ -926,8 +911,6 @@ class LocalConnection_InitExecMode(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
-class RemoteConnection_InitExecMode(unittest.TestCase):
-
   def test_2_0_10_01(self):
       '''[2.0.10]:1 Connect remote Server w/Init Exec mode: --[sql/js/py]: CLASSIC SESSION --sql'''
       results = ''
@@ -1117,8 +1100,6 @@ class RemoteConnection_InitExecMode(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
-class LocalConnection_FailOver(unittest.TestCase):
-
   def test_2_0_11_01(self):
       '''[2.0.11]:1 Connect local Server w/Command Line Args FAILOVER: Wrong Password'''
       results = ''
@@ -1155,8 +1136,6 @@ class LocalConnection_FailOver(unittest.TestCase):
       if results.find("Invalid user or password", 0, len(results))>0:
         results="PASS"
       self.assertEqual(results, 'PASS')
-
-class RemoteConnection_FailOver(unittest.TestCase):
 
   def test_2_0_12_01(self):
       '''[2.0.11]:1 Connect remote Server w/Command Line Args FAILOVER: Wrong Password'''
@@ -1197,8 +1176,6 @@ class RemoteConnection_FailOver(unittest.TestCase):
         results="PASS"
       self.assertEqual(results, 'PASS')
 
-class LocalConnection_FailOverConnect(unittest.TestCase):
-
   def test_2_0_13_02(self):
       '''[2.0.13]:2 Connect local Server inside mysqlshell FAILOVER: \connect  wrong password'''
       results = ''
@@ -1231,8 +1208,6 @@ class LocalConnection_FailOverConnect(unittest.TestCase):
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
-
-class RemoteConnection_FailOverConnect(unittest.TestCase):
 
   def test_2_0_14_02(self):
       '''[2.0.14]:2 Connect remote Server inside mysqlshell FAILOVER: \connect  wrong password'''
@@ -1267,8 +1242,6 @@ class RemoteConnection_FailOverConnect(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
-class LocalConnection_FailOverExec(unittest.TestCase):
-
   def test_2_0_15_01(self):
       '''[2.0.15]:1 Connect local Server w/Init Exec mode: --[sql/js/py] FAILOVER: wrong Exec mode --sqxx'''
       results = ''
@@ -1282,8 +1255,6 @@ class LocalConnection_FailOverExec(unittest.TestCase):
           results= "PASS"
       self.assertEqual(results, 'PASS')
 
-class RemoteConnection_FailOverExec(unittest.TestCase):
-
   def test_2_0_16_01(self):
       '''[2.0.16]:1 Connect remote Server w/Init Exec mode: --[sql/js/py] FAILOVER: wrong Exec mode --sqxx'''
       results = ''
@@ -1296,8 +1267,6 @@ class RemoteConnection_FailOverExec(unittest.TestCase):
       else:
           results= "PASS"
       self.assertEqual(results, 'PASS')
-
-class GlobalCommands_help(unittest.TestCase):
 
   def test_3_1_01_01(self):
       '''[3.1.001]:1 Check that command  [ \help, \h, \? ] works: \help'''
@@ -1325,8 +1294,6 @@ class GlobalCommands_help(unittest.TestCase):
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
-
-class GlobalCommands_help_param(unittest.TestCase):
 
   def test_3_1_02_01(self):
       '''[3.1.002]:1 Check that help command with parameter  works: \help connect'''
@@ -1356,8 +1323,6 @@ class GlobalCommands_help_param(unittest.TestCase):
       self.assertEqual(results, 'PASS')
 
 
-class GlobalCommands_help_FAILOVER(unittest.TestCase):
-
   def test_3_1_03_01(self):
       '''[3.1.003]:1 Check that help command with wrong parameter works: \help connect'''
       results = ''
@@ -1384,8 +1349,6 @@ class GlobalCommands_help_FAILOVER(unittest.TestCase):
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
-
-class GlobalCommands_quit(unittest.TestCase):
 
   @unittest.skip("not catching the Bye! message")
   def test_3_1_04_01(self):
@@ -1438,7 +1401,6 @@ class GlobalCommands_quit(unittest.TestCase):
           results= "PASS"
       self.assertEqual(results, 'PASS')
 
-class GlobalCommands_ModeSQL(unittest.TestCase):
   def test_3_1_05_01(self):
       '''[3.1.005]:1 Check that MODE SQL command [ \sql ] works: \sql '''
       results = ''
@@ -1448,7 +1410,6 @@ class GlobalCommands_ModeSQL(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
-class GlobalCommands_ModeJS(unittest.TestCase):
   def test_3_1_06_01(self):
       '''[3.1.006]:1 Check that MODE JavaScript command [ \js ] works: \js'''
       results = ''
@@ -1458,7 +1419,6 @@ class GlobalCommands_ModeJS(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
-class GlobalCommands_ModePY(unittest.TestCase):
   def test_3_1_07_01(self):
       '''[3.1.007] Check that MODE Python command [ \py ] works: \py'''
       results = ''
@@ -1468,7 +1428,6 @@ class GlobalCommands_ModePY(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
-class GlobalCommands_Status_appSession(unittest.TestCase):
   def test_3_1_09_01(self):
       '''[3.1.009]:1 Check that STATUS command [ \status, \s ] works: app session \status'''
       results = ''
@@ -1479,7 +1438,6 @@ class GlobalCommands_Status_appSession(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
-class GlobalCommands_Status_classicSession(unittest.TestCase):
   def test_3_1_09_02(self):
       '''[3.1.009]:2 Check that STATUS command [ \status, \s ] works: classic session \status'''
       results = ''
@@ -1490,7 +1448,6 @@ class GlobalCommands_Status_classicSession(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
-class GlobalCommands_Status_nodeSession(unittest.TestCase):
   def test_3_1_09_03(self):
       '''[3.1.009]:3 Check that STATUS command [ \status, \s ] works: node session \status'''
       results = ''
@@ -1514,4 +1471,4 @@ class GlobalCommands_Status_nodeSession(unittest.TestCase):
 # tc_3_2_05_1("[3.2.005] Check SQL command NO SHOW WARNINGS [ \w ] works ")
 
 if __name__ == '__main__':
-    unittest.main( testRunner=xmlrunner.XMLTestRunner(output='test-reports'))
+ unittest.main( testRunner=xmlrunner.XMLTestRunner(file("xshell_qa_test.xml","w")))
