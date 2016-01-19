@@ -76,7 +76,7 @@ def read_til_getShell(proc, fd, text):
             break
     return "".join(data)
 
-@timeout(10)
+@timeout(15)
 def exec_xshell_commands(init_cmdLine, commandList):
     RESULTS = "PASS"
     commandbefore = ""
@@ -135,20 +135,20 @@ class REMOTEHOST:
 
 config=json.load(open('config.json'))
 
-LOCALHOST.user = config["local"]["user"]
-LOCALHOST.password = config["local"]["password"]
-LOCALHOST.host = config["local"]["host"]
-LOCALHOST.xprotocol_port = config["local"]["xprotocol_port"]
-LOCALHOST.port = config["local"]["port"]
+LOCALHOST.user = str(config["local"]["user"])
+LOCALHOST.password = str(config["local"]["password"])
+LOCALHOST.host = str(config["local"]["host"])
+LOCALHOST.xprotocol_port = str(config["local"]["xprotocol_port"])
+LOCALHOST.port = str(config["local"]["port"])
 
-REMOTEHOST.user = config["remote"]["user"]
-REMOTEHOST.password = config["remote"]["password"]
-REMOTEHOST.host = config["remote"]["host"]
-REMOTEHOST.xprotocol_port = config["remote"]["xprotocol_port"]
-REMOTEHOST.port = config["remote"]["port"]
+REMOTEHOST.user = str(config["remote"]["user"])
+REMOTEHOST.password = str(config["remote"]["password"])
+REMOTEHOST.host = str(config["remote"]["host"])
+REMOTEHOST.xprotocol_port = str(config["remote"]["xprotocol_port"])
+REMOTEHOST.port = str(config["remote"]["port"])
 
-MYSQL_SHELL = config["general"]["xshell_path"]
-Exec_files_location = config["general"]["aux_files_path"]
+MYSQL_SHELL = str(config["general"]["xshell_path"])
+Exec_files_location = str(config["general"]["aux_files_path"])
 ###########################################################################################
 
 class LocalConnection(unittest.TestCase):
@@ -1458,12 +1458,7 @@ class LocalConnection(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
-# tc_3_1_05_1("")
-# tc_3_1_06_1(" ")
-# tc_3_1_07_1(" ")
-# tc_3_1_09_1(" ")
-# tc_3_1_09_2(" ")
-# tc_3_1_09_3(" ")
+
 # tc_3_1_10_1("[3.1.010]:1 Check that EXECUTE SCRIPT FILE command [ \source, \. ] works: node session \source select_actor_10.sql ")
 # tc_3_1_10_2("[3.1.010]:2 Check that EXECUTE SCRIPT FILE command [ \source, \. ] works: node session \. select_actor_10.sql ")
 # tc_3_1_11_1("[3.1.011]:1 Check that MULTI LINE MODE command [ \ ] works ")
