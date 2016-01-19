@@ -132,7 +132,7 @@ class REMOTEHOST:
     host = ""
     xprotocol_port = ""
     port = ""
-
+# added str function
 config=json.load(open('config.json'))
 
 LOCALHOST.user = str(config["local"]["user"])
