@@ -132,7 +132,7 @@ class REMOTEHOST:
     host = ""
     xprotocol_port = ""
     port = ""
-# added str function
+
 config=json.load(open('config.json'))
 
 LOCALHOST.user = str(config["local"]["user"])
@@ -1458,12 +1458,375 @@ class LocalConnection(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+  def test_3_1_10_1(self):
+      '''[3.1.010]:1 Check that EXECUTE SCRIPT FILE command [ \source, \. ] works: node session \source select_actor_10.sql'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+      x_cmds = [("\\connect_node {0}:{1}@{2}\n".format(LOCALHOST.user, LOCALHOST.password,LOCALHOST.host), "mysql-js>"),
+                ("\\sql\n","mysql-sql>"),
+                ("\\source {0}select_actor_10.sql\n".format(Exec_files_location),"rows in set"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
 
-# tc_3_1_10_1("[3.1.010]:1 Check that EXECUTE SCRIPT FILE command [ \source, \. ] works: node session \source select_actor_10.sql ")
-# tc_3_1_10_2("[3.1.010]:2 Check that EXECUTE SCRIPT FILE command [ \source, \. ] works: node session \. select_actor_10.sql ")
-# tc_3_1_11_1("[3.1.011]:1 Check that MULTI LINE MODE command [ \ ] works ")
-# tc_3_2_04_1("[3.2.004] Check SQL command SHOW WARNINGS [ \W ] works ")
-# tc_3_2_05_1("[3.2.005] Check SQL command NO SHOW WARNINGS [ \w ] works ")
+  def test_3_1_10_2(self):
+      '''[3.1.010]:2 Check that EXECUTE SCRIPT FILE command [ \source, \. ] works: node session \. select_actor_10.sql'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+      x_cmds = [('\\connect_node {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
+                ("\\sql\n","mysql-sql>"),
+                ("\\. {0}select_actor_10.sql\n".format(Exec_files_location),"rows in set"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  @unittest.skip("not leaving the multiline mode with empty line")
+  def test_3_1_11_1(self):
+      '''[3.1.011]:1 Check that MULTI LINE MODE command [ \ ] works'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+      x_cmds = [('\\connect_node {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
+                ("\\sql\n","mysql-sql>"),
+                ("use sakila;\n","mysql-sql>"),
+                ("DROP PROCEDURE IF EXISTS get_actors;\n","mysql-sql>"),
+                ("delimiter #\n","mysql-sql>"),
+                ("create procedure get_actors()\n",""),
+                ("begin\n",""),
+                ("select first_name from sakila.actor;\n",""),
+                ("end\n",""),
+                ("\n","mysql-sql>"),
+                ("delimiter :\n","mysql-sql>"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_3_2_04_1(self):
+      '''[3.2.004] Check SQL command SHOW WARNINGS [ \W ] works'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+      x_cmds = [("\W\n", "Show warnings enabled"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_3_2_05_1(self):
+      '''[3.2.005] Check SQL command NO SHOW WARNINGS [ \w ] works'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+      x_cmds = [("\w\n", "Show warnings disabled"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_4_0_01_01(self):
+      '''[4.0.001]:1 Batch Exec - Loading code from file:  --file= createtable.js'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full' , '--file=' + Exec_files_location + 'CreateTable.js' ]
+      x_cmds = [('\n', "mysql-js>")
+               ]
+      results = exec_xshell_commands(init_command, x_cmds)
+
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+      x_cmds = [('\\connect_node {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
+                ("\\sql\n","mysql-sql>"),
+                ("use sakila;\n","mysql-sql>"),
+                ("show tables like \'testdb\';\n","1 row in set")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  @unittest.skip("not reading the  < batch  pipe when using  inside script")
+  def test_4_0_02_01(self):
+      '''[4.0.002]:1 Batch Exec - Redirecting code to standard input: < createtable.js'''
+      results = ""
+      init_command = [MYSQL_SHELL, '--interactive=full' , '< '  + Exec_files_location + 'CreateTable2.js' ]
+      x_cmds = [('\n', "mysql-js>")
+               ]
+      results = exec_xshell_commands(init_command, x_cmds)
+
+      # check that table was created successfully
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+      x_cmds = [('\\connect_node {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
+                ("\\sql\n","mysql-sql>"),
+                ("use sakila;\n","mysql-sql>"),
+                ("show tables like \'testdb2\';\n","1 row in set")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_4_1_01_01(self):
+      '''[4.1.001]:1 SQL Create a table: NODE SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                      '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--session-type=node']
+      x_cmds = [('\\sql\n', "mysql-sql>"),
+                ("use sakila;\n","mysql-sql>"),
+                ("DROP TABLE IF EXISTS example_automation;\n","mysql-sql>"),
+                ("CREATE TABLE example_automation ( id INT, data VARCHAR(100) );\n","mysql-sql>"),
+                ("show tables like \'example_automation\';\n","1 row in set")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_4_1_02_01(self):
+      '''[4.1.002] SQL Create a table using STDIN batch process: NODE SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--sql', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                      '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--session-type=node','--sql','--schema=sakila',
+                      '--file='+ Exec_files_location +'CreateTable_SQL.sql']
+      x_cmds = [('\n', "mysql-js>")
+               ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+      x_cmds = [('\\connect_node {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
+                ("\\sql\n","mysql-sql>"),
+                ("use sakila;\n","mysql-sql>"),
+                ("show tables like \'example_SQLTABLE\';\n","1 row in set"),
+                ("drop table if exists \'example_SQLTABLE\';\n","1 row in set")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_4_2_16_1(self):
+      '''[4.2.016]:1 PY Read executing the stored procedure: NODE SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7','--py']
+      x_cmds = [("import mysqlx\n", "mysql-py>"),
+                ("session=mysqlx.getNodeSession(\'{0}:{1}@{2}\')\n".format(LOCALHOST.user, LOCALHOST.password,
+                                                                                 LOCALHOST.host ), "mysql-py>"),
+                ("session.sql(\'use sakila;\').execute()\n","Query OK"),
+                ("session.sql(\"drop procedure if exists get_actors;\").execute()\n","Query OK"),
+                ("session.sql(\"CREATE PROCEDURE get_actors() BEGIN  "
+                 "select first_name from actor where actor_id < 5 ; END;\").execute()\n","Query OK"),
+                ("session.sql(\'call get_actors();\').execute()\n","rows in set")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_4_2_16_2(self):
+      '''[4.2.016]:2 PY Read executing the stored procedure: CLASSIC SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7','--py']
+      x_cmds = [("import mysql\n", "mysql-py>"),
+                ("session=mysql.getClassicSession(\'{0}:{1}@{2}:{3}\')\n".format(LOCALHOST.user, LOCALHOST.password,
+                                                                                LOCALHOST.host,LOCALHOST.port ), "mysql-py>"),
+                ("session.runSql(\'use sakila;\')\n","Query OK"),
+                ("session.runSql(\'drop procedure if exists get_actors;\')\n","Query OK"),
+                ("session.runSql(\'CREATE PROCEDURE get_actors() BEGIN  "
+                 "select first_name from actor where actor_id < 5 ; END;\')\n","Query OK"),
+                ("session.runSql(\'call get_actors();\')\n","rows in set")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  @unittest.skip("muyltiline not catched on script")
+  def test_4_3_1_1(self):
+      '''[4.3.001]:1 SQL Update table using multiline mode:CLASSIC SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7', '-u' + LOCALHOST.user,
+                      '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.port,
+                      '--session-type=classic','--sqlc']
+      x_cmds = [("\\\n","..."),
+                ("use sakila;\n","..."),
+                ("Update actor set last_name =\'Test Last Name\', last_update = now() where actor_id = 2;\n","..."),
+                ("\n","rows in set"),
+                ("select last_name from actor where actor_id = 2;\n","Test Last Name")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  @unittest.skip("not reading the  < batch  pipe when using  inside script")
+  def test_4_3_2_1(self):
+      '''[4.3.002]:1 SQL Update table using STDIN batch code: CLASSIC SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--sql', '-u' + LOCALHOST.user,
+                      '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.port,
+                      '--schema=sakila','--session-type=classic','< UpdateTable_SQL.sql ']
+      x_cmds = [(";", "mysql-sql>")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  @unittest.skip("not reading the  < batch  pipe when using  inside script")
+  def test_4_3_2_2(self):
+      '''[4.3.002]:2 SQL Update table using STDIN batch code: NODE SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--sql', '-u' + LOCALHOST.user,
+                      '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port,
+                      '--schema=sakila','--session-type=node','<UpdateTable_SQL.sql ']
+      x_cmds = [(";", "mysql-sql>")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  @unittest.skip("muyltiline not catched on script")
+  def test_4_3_3_1(self):
+      '''[4.3.003]:1 SQL Update database using multiline mode: CLASSIC SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7', '-u' + LOCALHOST.user,
+                      '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.port,
+                      '--session-type=classic','--sqlc']
+      x_cmds = [("create schema if not exists AUTOMATION;\n","mysql-sql>"),
+                ("\\\n","..."),
+                ("ALTER SCHEMA \'AUTOMATION\' DEFAULT COLLATE utf8_general_ci ;\n","..."),
+                ("\n","mysql-sql>"),
+                ("SELECT DEFAULT_COLLATION_NAME FROM information_schema.SCHEMATA WHERE SCHEMA_NAME = \'AUTOMATION' LIMIT 1;\n","utf8_general")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  @unittest.skip("not reading the  < batch  pipe when using  inside script")
+  def test_4_3_4_1(self):
+      '''[4.3.004]:1 SQL Update database using STDIN batch code: CLASSIC SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--sqlc', '-u' + LOCALHOST.user,
+                      '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.port,
+                      '--schema=sakila','--session-type=classic','< SchemaDatabaseUpdate_SQL.sql']
+      x_cmds = [(";", "mysql-sql>")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+# ----------------------------------------------------------------------
+# ----------------------------------------------------------------------
+# tc_4_3_4_2("[4.3.004]:2 SQL Update database using STDIN batch code")
+# tc_4_3_5_1("[4.3.005]:1 SQL Update Alter view using multiline mode")
+# tc_4_3_6_1("[4.3.006]:1 SQL Update Alter view using STDIN batch code: CLASSIC SESSION")
+# tc_4_3_6_2("[4.3.006]:2 SQL Update Alter view using STDIN batch code: NODE SESSION")
+# tc_4_3_7_1("[4.3.007]:1 SQL Update Alter stored procedure using multiline mode")
+# tc_4_3_8_1("[4.3.008]:1 SQL Update Alter stored procedure using STDIN batch code: CLASSIC SESSION")
+# tc_4_3_8_2("[4.3.008]:2 SQL Update Alter stored procedure using STDIN batch code: NODE SESSION")
+# tc_4_3_9_1("[4.3.009]:1 JS Update table using session object: CLASSIC SESSION")
+# tc_4_3_9_2("[4.3.009]:2 JS Update table using session object: NODE SESSION")
+# tc_4_3_10_1("[4.3.010]:1 JS Update table using multiline mode: CLASSIC SESSION")
+# tc_4_3_10_2("[4.3.010]:2 JS Update table using multiline mode: NODE SESSION")
+# tc_4_3_11_1("[4.3.011]:1 JS Update table using STDIN batch code: CLASSIC SESSION")
+# tc_4_3_11_2("[4.3.011]:2 JS Update table using STDIN batch code: NODE SESSION")
+# tc_4_3_12_1("[4.3.012]:1 JS Update database using session object: CLASSIC SESSION")
+# tc_4_3_12_2("[4.3.012]:2 JS Update database using session object: NODE SESSION")
+# tc_4_3_13_1("[4.3.013]:1 JS Update database using multiline mode: CLASSIC SESSION")
+# tc_4_3_13_2("[4.3.013]:2 JS Update database using multiline mode: NODE SESSION")
+# tc_4_3_14_1("[4.3.014]:1 JS Update database using STDIN batch code: CLASSIC SESSION")
+# tc_4_3_14_2("[4.3.014]:2 JS Update database using STDIN batch code: NODE SESSION")
+# tc_4_3_15_1("[4.3.015]:1 JS Update alter view using session object: CLASSIC SESSION")
+# tc_4_3_15_2("[4.3.015]:2 JS Update alter view using session object: NODE SESSION")
+# tc_4_3_16_1("[4.3.016]:1 JS Update alter view using multiline mode: CLASSIC SESSION")
+# tc_4_3_16_2("[4.3.016]:2 JS Update alter view using multiline mode: NODE SESSION")
+# tc_4_3_17_1("[4.3.017]:1 JS Update alter view using STDIN batch code: CLASSIC SESSION")
+# tc_4_3_17_2("[4.3.017]:2 JS Update alter view using STDIN batch code: NODE SESSION")
+# tc_4_3_18_1("[4.3.018]:1 JS Update alter stored procedure using session object: CLASSIC SESSION")
+# tc_4_3_18_2("[4.3.018]:2 JS Update alter stored procedure using session object: NODE SESSION")
+# tc_4_3_19_1("[4.3.019]:1 JS Update alter stored procedure using multiline mode: CLASSIC SESSION")
+# tc_4_3_19_2("[4.3.019]:2 JS Update alter stored procedure using multiline mode: NODE SESSION")
+# tc_4_3_20_1("[4.3.020]:1 JS Update alter stored procedure using STDIN batch code: CLASSIC SESSION")
+# tc_4_3_20_2("[4.3.020]:2 JS Update alter stored procedure using STDIN batch code: NODE SESSION")
+# tc_4_3_21_1("[4.3.021]:1 PY Update table using session object: CLASSIC SESSION")
+# tc_4_3_21_2("[4.3.021]:2 PY Update table using session object: NODE SESSION")
+# tc_4_3_22_1("[4.3.022]:1 PY Update table using multiline mode: CLASSIC SESSION")
+# tc_4_3_22_2("[4.3.022]:2 PY Update table using multiline mode: NODE SESSION")
+# tc_4_3_23_1("[4.3.023]:1 PY Update table using STDIN batch code: CLASSIC SESSION")
+# tc_4_3_23_2("[4.3.023]:2 PY Update table using STDIN batch code: NODE SESSION")
+# tc_4_3_24_1("[4.3.024]:1 PY Update database using session object: CLASSIC SESSION")
+# tc_4_3_24_2("[4.3.024]:2 PY Update database using session object: NODE SESSION")
+# tc_4_3_25_1("[4.3.025]:1 PY Update database using multiline mode: CLASSIC SESSION")
+# tc_4_3_25_2("[4.3.025]:2 PY Update database using multiline mode: NODE SESSION")
+# tc_4_3_26_1("[4.3.026]:1 PY Update database using STDIN batch code: CLASSIC SESSION")
+# tc_4_3_26_2("[4.3.026]:2 PY Update database using STDIN batch code: NODE SESSION")
+# tc_4_3_27_1("[4.3.027]:1 PY Update alter view using session object: CLASSIC SESSION")
+# tc_4_3_27_2("[4.3.027]:2 PY Update alter view using session object: NODE SESSION")
+# tc_4_3_28_1("[4.3.028]:1 PY Update alter view using multiline mode: CLASSIC SESSION")
+# tc_4_3_28_2("[4.3.028]:2 PY Update alter view using multiline mode: NODE SESSION")
+# tc_4_3_29_1("[4.3.029]:1 PY Update alter view using STDIN batch code: CLASSIC SESSION")
+# tc_4_3_29_2("[4.3.029]:2 PY Update alter view using STDIN batch code: NODE SESSION")
+# tc_4_3_30_1("[4.3.030]:1 PY Update alter stored procedure using session object: CLASSIC SESSION")
+# tc_4_3_30_2("[4.3.030]:2 PY Update alter stored procedure using session object: NODE SESSION")
+# tc_4_3_31_1("[4.3.031]:1 PY Update alter stored procedure using multiline mode: CLASSIC SESSION")
+# tc_4_3_31_2("[4.3.031]:2 PY Update alter stored procedure using multiline mode: NODE SESSION")
+# tc_4_3_32_1("[4.3.032]:1 PY Update alter stored procedure using STDIN batch code: CLASSIC SESSION")
+# tc_4_3_32_2("[4.3.032]:2 PY Update alter stored procedure using STDIN batch code: NODE SESSION")
+# tc_4_4_1_1("[4.4.001]:1 SQL Delete table using multiline mode: CLASSIC SESSION")
+# tc_4_4_1_2("[4.4.001]:2 SQL Delete table using multiline mode: NODE SESSION")
+# tc_4_4_2_1("[4.4.002]:1 SQL Delete table using STDIN batch code: CLASSIC SESSION")
+# tc_4_4_2_2("[4.4.002]:2 SQL Delete table using STDIN batch code: NODE SESSION")
+# tc_4_4_3_1("[4.4.003]:1 SQL Delete database using multiline mode: CLASSIC SESSION")
+# tc_4_4_3_2("[4.4.003]:2 SQL Delete database using multiline mode: NODE SESSION")
+# tc_4_4_4_1("[4.4.004]:1 SQL Delete database using STDIN batch code: CLASSIC SESSION")
+# tc_4_4_4_2("[4.4.004]:2 SQL Delete database using STDIN batch code: NODE SESSION")
+# tc_4_4_5_1("[4.4.005]:1 SQL Delete view using multiline mode: CLASSIC SESSION")
+# tc_4_4_5_2("[4.4.005]:2 SQL Delete view using multiline mode: NODE SESSION")
+# tc_4_4_6_1("[4.4.006]:1 SQL Delete view using STDIN batch code: CLASSIC SESSION")
+# tc_4_4_6_2("[4.4.006]:2 SQL Delete view using STDIN batch code: NODE SESSION")
+# tc_4_4_7_1("[4.4.007]:1 SQL Delete stored procedure using multiline mode: CLASSIC SESSION")
+# tc_4_4_7_2("[4.4.007]:2 SQL Delete stored procedure using multiline mode: NODE SESSION")
+# tc_4_4_8_1("[4.4.008]:1 SQL Delete stored procedure using STDIN batch code: CLASSIC SESSION")
+# tc_4_4_8_2("[4.4.008]:2 SQL Delete stored procedure using STDIN batch code: NODE SESSION")
+# tc_4_4_9_1("[4.4.009]:1 JS Delete table using session object: CLASSIC SESSION")
+# tc_4_4_9_2("[4.4.009]:2 JS Delete table using session object: NODE SESSION")
+# tc_4_4_10_1("[4.4.010]:1 JS Delete table using multiline mode: CLASSIC SESSION")
+# tc_4_4_10_2("[4.4.010]:2 JS Delete table using multiline modet: NODE SESSION")
+# tc_4_4_11_1("[4.4.011]:1 JS Delete table using STDIN batch code: CLASSIC SESSION")
+# tc_4_4_11_2("[4.4.011]:2 JS Delete table using STDIN batch code: NODE SESSION")
+# tc_4_4_12_1("[4.4.012]:1 JS Delete database using session object: CLASSIC SESSION")
+# tc_4_4_12_2("[4.4.012]:2 JS Delete database using session object: NODE SESSION")
+# tc_4_4_13_1("[4.4.013]:1 JS Delete database using multiline mode: CLASSIC SESSION")
+# tc_4_4_13_2("[4.4.013]:2 JS Delete database using multiline mode: NODE SESSION")
+# tc_4_4_14_1("[4.4.014]:1 JS Delete database using STDIN batch code: CLASSIC SESSION")
+# tc_4_4_14_2("[4.4.014]:2 JS Delete database using STDIN batch code: NODE SESSION")
+# tc_4_4_15_1("[4.4.015]:1 JS Delete view using session object: CLASSIC SESSION")
+# tc_4_4_15_2("[4.4.015]:2 JS Delete view using session object: NODE SESSION")
+# tc_4_4_16_1("[4.3.016]:1 JS Update alter view using multiline mode: CLASSIC SESSION")
+# tc_4_4_16_2("[4.3.016]:2 JS Update alter view using multiline mode: NODE SESSION")
+# tc_4_4_17_1("[4.4.017]:1 JS Delete view using STDIN batch code: CLASSIC SESSION")
+# tc_4_4_17_2("[4.4.017]:2 JS Delete view using STDIN batch code: NODE SESSION")
+# tc_4_4_18_1("[4.4.018]:1 JS Delete stored procedure using session object: CLASSIC SESSION")
+# tc_4_4_18_2("[4.4.018]:2 JS Delete stored procedure using session object: NODE SESSION")
+# tc_4_4_19_1("[4.4.019]:1 JS Delete stored procedure using multiline mode: CLASSIC SESSION")
+# tc_4_4_19_2("[4.4.019]:2 JS Delete stored procedure using multiline mode: NODE SESSION")
+# tc_4_4_20_1("[4.4.020]:1 JS Delete stored procedure using STDIN batch code: CLASSIC SESSION")
+# tc_4_4_20_2("[4.4.020]:2 JS Delete stored procedure using STDIN batch code: NODE SESSION")
+# tc_4_4_21_1("[4.4.021]:1 PY Delete table using session object: CLASSIC SESSION")
+# tc_4_4_21_2("[4.4.021]:2 PY Delete table using session object: NODE SESSION")
+# tc_4_4_22_1("[4.4.022]:1 PY Delete table using multiline mode: CLASSIC SESSION")
+# tc_4_4_22_2("[4.4.022]:2 PY Delete table using multiline mode: NODE SESSION")
+# tc_4_4_23_1("[4.4.023]:1 PY Delete table using STDIN batch code: CLASSIC SESSION")
+# tc_4_4_23_2("[4.4.023]:2 PY Delete table using STDIN batch code: NODE SESSION")
+# tc_4_4_24_1("[4.4.024]:1 PY Delete database using session object: CLASSIC SESSION")
+# tc_4_4_24_2("[4.4.024]:2 PY Delete database using session object: NODE SESSION")
+# tc_4_4_25_1("[4.4.025]:1 PY Delete database using multiline mode: CLASSIC SESSION")
+# tc_4_4_25_2("[4.4.025]:2 PY Delete database using multiline mode: NODE SESSION")
+# tc_4_4_26_1("[4.4.026]:1 PY Delete database using STDIN batch code: CLASSIC SESSION")
+# tc_4_4_26_2("[4.4.026]:2 PY Delete database using STDIN batch code: NODE SESSION")
+# tc_4_4_27_1("[4.4.027]:1 PY Delete view using session object: CLASSIC SESSION")
+# tc_4_4_27_2("[4.4.027]:2 PY Delete view using session object: NODE SESSION")
+# tc_4_4_28_1("[4.4.028]:1 PY Delete view using multiline mode: CLASSIC SESSION")
+# tc_4_4_28_2("[4.4.028]:2 PY Delete view using multiline mode: NODE SESSION")
+# tc_4_4_29_1("[4.4.029]:1 PY Delete view using STDIN batch code: CLASSIC SESSION")
+# tc_4_4_29_2("[4.4.029]:2 PY Delete view using STDIN batch code: NODE SESSION")
+# tc_4_4_30_1("[4.4.030]:1 PY Delete stored procedure using session object: CLASSIC SESSION")
+# tc_4_4_30_2("[4.4.030]:2 PY Delete stored procedure using session object: NODE SESSION")
+# tc_4_4_31_1("[4.4.031]:1 PY Delete stored procedure using multiline mode: CLASSIC SESSION")
+# tc_4_4_31_2("[4.4.031]:2 PY Delete stored procedure using multiline mode: NODE SESSION")
+# tc_4_4_32_1("[4.4.032]:1 PY Delete stored procedure using STDIN batch code: CLASSIC SESSION")
+# tc_4_4_32_2("[4.4.032]:2 PY Delete stored procedure using STDIN batch code: NODE SESSION")
+# tc_4_5_01_1("[4.5.001]:1 JS Transaction with Rollback: CLASSIC SESSION")
+# tc_4_5_01_2("[4.5.001]:2 JS Transaction with Rollback: NODE SESSION")
+# tc_4_5_02_1("[4.5.002]:1 PY Transaction with Rollback: CLASSIC SESSION")
+# tc_4_5_02_2("[4.5.002]:2 PY Transaction with Rollback: NODE SESSION")
+# tc_4_5_03_1("[4.5.003]:1 JS Transaction with Commit: CLASSIC SESSION")
+# tc_4_5_03_2("[4.5.003]:2 JS Transaction with Commit: NODE SESSION")
+# tc_4_5_04_1("[4.5.004]:1 PY Transaction with Commit: CLASSIC SESSION")
+# tc_4_5_04_2("[4.5.004]:2 PY Transaction with Commit: NODE SESSION")
+# tc_4_6_01_1("[4.6.001]:1 Create a collection with node session: NODE SESSION")
+# tc_4_6_02_1("[4.6.002] JS PY Ensure collection exists in a database with node session: NODE SESSION")
+# tc_4_6_03_1("[4.6.003] JS PY Add Documents to a collection with node session: NODE SESSION")
+# tc_4_6_04_1("[4.6.004] JS PY Find documents from Database using node session: NODE SESSION")
+# tc_4_6_05_1("[4.6.005] JS Modify document with Set and Unset with node session: NODE SESSION")
+# tc_4_6_06_1("[4.6.006] JS Modify document with Merge and Array with node session: NODE SESSION")
+# tc_4_6_07_1("[4.6.007] PY Modify document with Set and Unset with node session: NODE SESSION")
+# tc_4_6_08_1("[4.6.008] PY Modify document with Merge and Array with node session: NODE SESSION")
 
 if __name__ == '__main__':
  unittest.main( testRunner=xmlrunner.XMLTestRunner(file("xshell_qa_test.xml","w")))
