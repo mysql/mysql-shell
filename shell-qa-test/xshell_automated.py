@@ -77,7 +77,7 @@ def read_til_getShell(proc, fd, text):
             break
     return "".join(data)
 
-@timeout(15)
+@timeout(10)
 def exec_xshell_commands(init_cmdLine, commandList):
     RESULTS = "PASS"
     commandbefore = ""
@@ -152,7 +152,7 @@ MYSQL_SHELL = str(config["general"]["xshell_path"])
 Exec_files_location = str(config["general"]["aux_files_path"])
 ###########################################################################################
 
-class LocalConnection(unittest.TestCase):
+class XShell_TestCases(unittest.TestCase):
 
   def test_2_0_01_01(self):
       '''[2.0.01]:1 Connect local Server w/Command Line Args'''
@@ -1526,7 +1526,9 @@ class LocalConnection(unittest.TestCase):
       x_cmds = [('\n', "mysql-js>")
                ]
       results = exec_xshell_commands(init_command, x_cmds)
-
+      results2=str(results)
+      if results2.find(bytearray("FAIL","ascii"),0,len(results2))> -1:
+        self.assertEqual(results2, 'PASS')
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
       x_cmds = [('\\connect_node {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
@@ -1537,15 +1539,17 @@ class LocalConnection(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
-  @unittest.skip("not reading the  < batch  pipe when using  inside script")
+  #@unittest.skip("not reading the  < batch  pipe when using  inside script")
   def test_4_0_02_01(self):
       '''[4.0.002]:1 Batch Exec - Redirecting code to standard input: < createtable.js'''
-      results = ""
-      init_command = [MYSQL_SHELL, '--interactive=full' , '< '  + Exec_files_location + 'CreateTable2.js' ]
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full' , '< '  + Exec_files_location + 'CreateTable2.js']
       x_cmds = [('\n', "mysql-js>")
                ]
       results = exec_xshell_commands(init_command, x_cmds)
-
+      results2=str(results)
+      if results2.find(bytearray("FAIL","ascii"),0,len(results2))> -1:
+        self.assertEqual(results2, 'PASS')
       # check that table was created successfully
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
@@ -1580,6 +1584,9 @@ class LocalConnection(unittest.TestCase):
       x_cmds = [('\n', "mysql-js>")
                ]
       results = exec_xshell_commands(init_command, x_cmds)
+      results2=str(results)
+      if results2.find(bytearray("FAIL","ascii"),0,len(results2))> -1:
+        self.assertEqual(results2, 'PASS')
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
       x_cmds = [('\\connect_node {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
@@ -1623,7 +1630,7 @@ class LocalConnection(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
-  @unittest.skip("muyltiline not catched on script")
+  #@unittest.skip("muyltiline not catched on script")
   def test_4_3_1_1(self):
       '''[4.3.001]:1 SQL Update table using multiline mode:CLASSIC SESSION'''
       results = ''
@@ -1631,39 +1638,39 @@ class LocalConnection(unittest.TestCase):
                       '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.port,
                       '--session-type=classic','--sqlc']
       x_cmds = [("\\\n","..."),
-                ("use sakila;\n","       ..."),
-                ("Update actor set last_name =\'Test Last Name\', last_update = now() where actor_id = 2;\n","       ..."),
+                ("use sakila;\n","..."),
+                ("Update actor set last_name =\'Test Last Name\', last_update = now() where actor_id = 2;\n","..."),
                 ("\n","rows in set"),
                 ("select last_name from actor where actor_id = 2;\n","Test Last Name")
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
-  @unittest.skip("not reading the  < batch  pipe when using  inside script")
+  #@unittest.skip("not reading the  < batch  pipe when using  inside script")
   def test_4_3_2_1(self):
       '''[4.3.002]:1 SQL Update table using STDIN batch code: CLASSIC SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--sql', '-u' + LOCALHOST.user,
                       '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.port,
-                      '--schema=sakila','--session-type=classic','< UpdateTable_SQL.sql ']
+                      '--schema=sakila','--session-type=classic','< '  + Exec_files_location + 'UpdateTable_SQL.sql ']
       x_cmds = [(";", "mysql-sql>")
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
-  @unittest.skip("not reading the  < batch  pipe when using  inside script")
+  #@unittest.skip("not reading the  < batch  pipe when using  inside script")
   def test_4_3_2_2(self):
       '''[4.3.002]:2 SQL Update table using STDIN batch code: NODE SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--sql', '-u' + LOCALHOST.user,
                       '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port,
-                      '--schema=sakila','--session-type=node','<UpdateTable_SQL.sql ']
+                      '--schema=sakila','--session-type=node','< '  + Exec_files_location + 'UpdateTable_SQL.sql ']
       x_cmds = [(";", "mysql-sql>")
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
-  @unittest.skip("muyltiline not catched on script")
+  #@unittest.skip("muyltiline not catched on script")
   def test_4_3_3_1(self):
       '''[4.3.003]:1 SQL Update database using multiline mode: CLASSIC SESSION'''
       results = ''
@@ -1679,25 +1686,25 @@ class LocalConnection(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
-  @unittest.skip("not reading the  < batch  pipe when using  inside script")
+  #@unittest.skip("not reading the  < batch  pipe when using  inside script")
   def test_4_3_4_1(self):
       '''[4.3.004]:1 SQL Update database using STDIN batch code: CLASSIC SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--sqlc', '-u' + LOCALHOST.user,
                       '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.port,
-                      '--schema=sakila','--session-type=classic','< SchemaDatabaseUpdate_SQL.sql']
+                      '--schema=sakila','--session-type=classic','< '  + Exec_files_location + 'SchemaDatabaseUpdate_SQL.sql']
       x_cmds = [(";", "mysql-sql>")
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
-  @unittest.skip("not reading the  < batch  pipe when using  inside script")
+  #@unittest.skip("not reading the  < batch  pipe when using  inside script")
   def test_4_3_4_2(self):
       '''[4.3.004]:2 SQL Update database using STDIN batch code'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--sql', '-u' + LOCALHOST.user,
                       '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port,
-                      '--schema=sakila','--session-type=node','< SchemaDatabaseUpdate_SQL.sql']
+                      '--schema=sakila','--session-type=node','< '  + Exec_files_location + 'SchemaDatabaseUpdate_SQL.sql']
       x_cmds = [(";", "mysql-sql>")
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
@@ -1720,31 +1727,32 @@ class LocalConnection(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
-  @unittest.skip("not reading the  < batch  pipe when using  inside script")
+  #@unittest.skip("not reading the  < batch  pipe when using  inside script")
   def test_4_3_6_1(self):
       '''[4.3.006]:1 SQL Update Alter view using STDIN batch code: CLASSIC SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--sql', '-u' + LOCALHOST.user,
                       '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.port,
-                      '--schema=sakila','--session-type=classic','< AlterView_SQL.sql']
+                      '--schema=sakila','--session-type=classic','< '  + Exec_files_location + 'AlterView_SQL.sql']
       x_cmds = [(";", "mysql-sql>")
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
-  @unittest.skip("not reading the  < batch  pipe when using  inside script")
+  #@unittest.skip("not reading the  < batch  pipe when using  inside script")
   def test_4_3_6_2(self):
       '''[4.3.006]:2 SQL Update Alter view using STDIN batch code: NODE SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--sql', '-u' + LOCALHOST.user,
                       '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.port,
-                      '--schema=sakila','--session-type=node','< AlterView_SQL.sql']
+                      '--schema=sakila','--session-type=node','< '  + Exec_files_location + 'AlterView_SQL.sql']
       x_cmds = [(";", "mysql-sql>")
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
   def test_4_3_7_1(self):
+      '''[4.3.007]:1 SQL Update Alter stored procedure using multiline mode'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7', '-u' + LOCALHOST.user,
                       '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.port,
@@ -1764,55 +1772,763 @@ class LocalConnection(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+  #@unittest.skip("not reading the  < batch  pipe when using  inside script")
+  def test_4_3_8_1(self):
+      '''[4.3.008]:1 SQL Update Alter stored procedure using STDIN batch code: CLASSIC SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--sqlc', '-u' + LOCALHOST.user,
+                      '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.port,
+                      '--schema=sakila','--session-type=classic','< '  + Exec_files_location + 'AlterStoreProcedure_SQL.sql']
+      x_cmds = [(";\n", "mysql-sql>")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_4_3_8_2(self):
+      '''[4.3.008]:2 SQL Update Alter stored procedure using STDIN batch code: NODE SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--sql', '-u' + LOCALHOST.user,
+                      '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.port,
+                      '--schema=sakila','--session-type=node','< '  + Exec_files_location + 'AlterStoreProcedure_SQL.sql']
+      x_cmds = [(";\n", "mysql-sql>")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_4_3_9_1(self):
+      '''[4.3.009]:1 JS Update table using session object: CLASSIC SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+      x_cmds = [("var mysql=require(\'mysql\').mysql;\n","mysql-js>"),
+                ("var session=mysql.getClassicSession(\'{0}:{1}@{2}:{3}\');\n".format(LOCALHOST.user, LOCALHOST.password,
+                                                                                LOCALHOST.host, LOCALHOST.port),"mysql-js>"),
+                ("session.runSql(\"use sakila;\");\n","Query OK"),
+                ("session.runSql(\"drop table if exists sakila.friends;\");\n","Query OK"),
+                ("session.runSql(\'create table sakila.friends (name varchar(50), last_name varchar(50), "
+                 "age integer, gender varchar(20));\');\n","Query OK"),
+                ("session.runSql(\"INSERT INTO sakila.friends (name,last_name,age,gender) VALUES (\'jack\',"
+                 "\'black\', 17, \'male\');\");\n","mysql-js>"),
+                ("session.runSql(\"INSERT INTO sakila.friends (name,last_name,age,gender) VALUES (\'ruben\',"
+                 "\'morquecho\', 40, \'male\');\");\n","mysql-js>"),
+                ("session.runSql(\"UPDATE friends SET name=\'ruben dario\' where name =  '\ruben\';\");\n","mysql-js>"),
+                ("session.runSql(\"SELECT * from friends where name LIKE '\%ruben%\';\");\n","ruben dario")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_4_3_9_2(self):
+      '''[4.3.009]:2 JS Update table using session object: NODE SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+      x_cmds = [("var mysqlx=require(\'mysqlx\').mysqlx;\n","mysql-js>"),
+                ("var session=mysqlx.getNodeSession(\'{0}:{1}@{2}\');\n".format(LOCALHOST.user, LOCALHOST.password,
+                                                                                LOCALHOST.host),"mysql-js>"),
+                ("session.sql(\"use sakila;\").execute();\n","Query OK"),
+                ("session.sql(\"drop table if exists sakila.friends;\").execute();\n","Query OK"),
+                ("session.sql(\'create table sakila.friends (name varchar(50), last_name varchar(50), "
+                 "age integer, gender varchar(20));\').execute();\n","Query OK"),
+                ("var table = session.sakila.friends;\n","mysql-js>"),
+                ("table.insert(\'name\',\'last_name\',\'age\',\'gender\').values(\'jack\',\'black\', 17, \'male\');\n","Query OK"),
+                ("table.insert(\'name\',\'last_name\',\'age\',\'gender\').values(\'ruben\',\'morquecho\', 40, \'male\');\n","Query OK"),
+                ("var res_ruben = table.update().set(\'name\',\'ruben dario\').set(\'age\',42).where(\'name=\"ruben\"\').execute();\n","mysql-js>"),
+                ("print(table.select());\n","mysql-js>")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_4_3_10_1(self):
+      '''[4.3.010]:1 JS Update table using multiline mode: CLASSIC SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+      x_cmds = [("var mysql=require(\'mysql\').mysql;\n","mysql-js>"),
+                ("var session=mysql.getClassicSession(\'{0}:{1}@{2}:{3}\');\n".format(LOCALHOST.user, LOCALHOST.password,
+                                                                                      LOCALHOST.host, LOCALHOST.port), "mysql-js>"),
+                ("session.runSql(\"use sakila;\");\n","Query OK"),
+                ("session.runSql(\"drop table if exists sakila.friends;\");\n","Query OK"),
+                ("session.runSql(\'create table sakila.friends (name varchar(50), last_name varchar(50), "
+                 "age integer, gender varchar(20));\');\n","Query OK"),
+                ("session.runSql(\"INSERT INTO sakila.friends (name,last_name,age,gender) VALUES (\'jack\',"
+                 "\'black\', 17, \'male\');\");\n","mysql-js>"),
+                ("session.runSql(\"INSERT INTO sakila.friends (name,last_name,age,gender) VALUES (\'ruben\',"
+                 "\'morquecho\', 40, \'male\');\");\n","mysql-js>"),
+                ("\\\n","..."),
+                ("session.runSql(\"UPDATE friends SET name=\'ruben dario\' where name =  \'ruben\';\");\n","..."),
+                ("session.runSql(\"UPDATE friends SET name=\'jackie chan\' where name =  \'jack\';\");\n","..."),
+                ("\n","mysql-js>"),
+                ("session.runSql(\"SELECT * from friends where name LIKE '\%ruben%\';\");\n","ruben dario"),
+                ("session.runSql(\"SELECT * from friends where name LIKE '\%jackie chan%\';\");\n","jackie chan")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_4_3_10_2(self):
+      '''[4.3.010]:2 JS Update table using multiline mode: NODE SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+      x_cmds = [("var mysqlx=require(\'mysqlx\').mysqlx;\n","mysql-js>"),
+                ("var session=mysqlx.getNodeSession(\'{0}:{1}@{2}\');\n".format(LOCALHOST.user, LOCALHOST.password,
+                                                                                LOCALHOST.host),"mysql-js>"),
+                ("session.sql(\"use sakila;\").execute();\n","Query OK"),
+                ("session.sql(\"drop table if exists sakila.friends;\").execute();\n","Query OK"),
+                ("session.sql(\'create table sakila.friends (name varchar(50), last_name varchar(50), "
+                 "age integer, gender varchar(20));\').execute();\n","Query OK"),
+                ("var table = session.sakila.friends;\n","mysql-js>"),
+                ("table.insert(\'name\',\'last_name\',\'age\',\'gender\').values(\'jack\',\'black\', 17, \'male\');\n","Query OK"),
+                ("table.insert(\'name\',\'last_name\',\'age\',\'gender\').values(\'ruben\',\'morquecho\', 40, \'male\');\n","Query OK"),
+                ("\\\n","..."),
+                ("var res_ruben = table.update().set(\'name\',\'ruben dario\').set(\'age\',42).where(\'name=\"ruben\"\').execute();\n","..."),
+                ("var res_jack = table.update().set(\'name\',\'jackie chan\').set(\'age\',18).where(\'name=\"jack\"\').execute();\n","..."),
+                ("\n","..."),
+                ("print(table.select());\n","ruben dario"),
+                ("print(table.select());\n","ruben dario")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_4_3_11_1(self):
+      '''[4.3.011]:1 JS Update table using STDIN batch code: CLASSIC SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--js', '-u' + LOCALHOST.user,
+                      '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.port,
+                      '--schema=sakila','--session-type=classic','< '  + Exec_files_location + 'UpdateTable_ClassicMode.js']
+      x_cmds = [(";\n", "mysql-js>")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_4_3_11_2(self):
+      '''[4.3.011]:2 JS Update table using STDIN batch code: NODE SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--js', '-u' + LOCALHOST.user,
+                      '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.port,
+                      '--schema=sakila','--session-type=node','< '  + Exec_files_location + 'UpdateTable_NodeMode.js']
+      x_cmds = [(";\n", "mysql-js>")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_4_3_12_1(self):
+      '''[4.3.012]:1 JS Update database using session object: CLASSIC SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+      x_cmds = [("var mysql=require(\'mysql\').mysql;\n","mysql-js>"),
+                ("var session=mysql.getClassicSession(\'{0}:{1}@{2}:{3}\');\n".format(LOCALHOST.user, LOCALHOST.password,
+                                                                                      LOCALHOST.host, LOCALHOST.port), "mysql-js>"),
+                ("session.runSql(\"drop database if exists automation_test;\");\n","Query OK"),
+                ("session.runSql(\'create database automation_test;\');\n","Query OK"),
+                ("session.runSql(\'ALTER SCHEMA automation_test  DEFAULT COLLATE utf8_general_ci;\');\n","Query OK"),
+                ("session.runSql(\"SELECT DEFAULT_COLLATION_NAME FROM information_schema.SCHEMATA WHERE SCHEMA_NAME = "
+                 "\'automation_test\' ;\");\n","utf8_general_ci")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_4_3_12_2(self):
+      '''[4.3.012]:2 JS Update database using session object: NODE SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+      x_cmds = [("var mysqlx=require(\'mysqlx\').mysqlx;\n","mysql-js>"),
+                ("var session=mysqlx.getNodeSession(\'{0}:{1}@{2}\');\n".format(LOCALHOST.user, LOCALHOST.password,
+                                                                                LOCALHOST.host),"mysql-js>"),
+                ("session.sql(\"drop database if exists automation_test;\").execute();\n","Query OK"),
+                ("session.sql(\'create database automation_test;\').execute();\n","Query OK"),
+                ("session.sql(\'ALTER SCHEMA automation_test  DEFAULT COLLATE utf8_general_ci;\').execute();\n","Query OK"),
+                ("session.sql(\"SELECT DEFAULT_COLLATION_NAME FROM information_schema.SCHEMATA WHERE SCHEMA_NAME = "
+                 "\'automation_test\' ;\").execute();\n","utf8_general_ci")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_4_3_13_1(self):
+      '''[4.3.013]:1 JS Update database using multiline mode: CLASSIC SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+      x_cmds = [("var mysql=require(\'mysql\').mysql;\n","mysql-js>"),
+                ("var session=mysql.getClassicSession(\'{0}:{1}@{2}:{3}\');\n".format(LOCALHOST.user, LOCALHOST.password,
+                                                                                      LOCALHOST.host, LOCALHOST.port), "mysql-js>"),
+                ("session.runSql(\"drop database if exists automation_test;\");\n","Query OK"),
+                ("\\\n","..."),
+                ("session.runSql(\'create database automation_test;\');\n","..."),
+                ("session.runSql(\'ALTER SCHEMA automation_test  DEFAULT COLLATE utf8_general_ci;\');\n","..."),
+                ("\n","mysql-js>"),
+                ("session.runSql(\"SELECT DEFAULT_COLLATION_NAME FROM information_schema.SCHEMATA WHERE SCHEMA_NAME = "
+                 "\'automation_test\' ;\");\n","utf8_general_ci")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_4_3_13_2(self):
+      '''[4.3.013]:2 JS Update database using multiline mode: NODE SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+      x_cmds = [("var mysqlx=require(\'mysqlx\').mysqlx;\n","mysql-js>"),
+                ("var session=mysqlx.getNodeSession(\'{0}:{1}@{2}\');\n".format(LOCALHOST.user, LOCALHOST.password,
+                                                                                LOCALHOST.host),"mysql-js>"),
+                ("session.sql(\"drop database if exists automation_test;\").execute();\n","Query OK"),
+                ("\\\n","..."),
+                ("session.sql(\'create database automation_test;\').execute();\n","..."),
+                ("session.sql(\'ALTER SCHEMA automation_test  DEFAULT COLLATE utf8_general_ci;\').execute();\n","..."),
+                ("\n","mysql-js>"),
+                ("session.sql(\"SELECT DEFAULT_COLLATION_NAME FROM information_schema.SCHEMATA WHERE SCHEMA_NAME = "
+                 "\'automation_test\' ;\").execute();\n","utf8_general_ci")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+
+  def test_4_3_14_1(self):
+      '''[4.3.014]:1 JS Update database using STDIN batch code: CLASSIC SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--js', '-u' + LOCALHOST.user,
+                      '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.port,
+                      '--schema=sakila','--session-type=classic','< '  + Exec_files_location + 'UpdateSchema_ClassicMode.js']
+      x_cmds = [(";", "mysql-js>")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_4_3_14_2(self):
+      '''[4.3.014]:2 JS Update database using STDIN batch code: NODE SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--js', '-u' + LOCALHOST.user,
+                      '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.port,
+                      '--schema=sakila','--session-type=node','< '  + Exec_files_location + 'UpdateSchema_NodeMode.js']
+      x_cmds = [(";", "mysql-js>")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+
+  def test_4_3_15_1(self):
+      '''[4.3.015]:1 JS Update alter view using session object: CLASSIC SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+      x_cmds = [("var mysql=require(\'mysql\').mysql;\n","mysql-js>"),
+                ("var session=mysql.getClassicSession(\'{0}:{1}@{2}:{3}\');\n".format(LOCALHOST.user, LOCALHOST.password,
+                                                                                      LOCALHOST.host, LOCALHOST.port), "mysql-js>"),
+                ("session.runSql(\'use sakila;\');\n","Query OK"),
+                ("session.runSql(\'drop view if exists js_view;\');\n","Query OK"),
+                ("session.runSql(\"create view js_view as select first_name from actor where first_name like \'%a%\';\");\n","Query OK"),
+                ("session.runSql(\"alter view js_view as select * from actor where first_name like \'%a%\';\");\n","Query OK"),
+                ("session.runSql(\"SELECT * from js_view;\");\n","actor_id")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_4_3_15_2(self):
+      '''[4.3.015]:2 JS Update alter view using session object: NODE SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+      x_cmds = [("var mysqlx=require(\'mysqlx\').mysqlx;\n","mysql-js>"),
+                ("var session=mysqlx.getNodeSession(\'{0}:{1}@{2}\');\n".format(LOCALHOST.user, LOCALHOST.password,
+                                                                                LOCALHOST.host),"mysql-js>"),
+                ("session.sql(\'use sakila;\').execute();\n","Query OK"),
+                ("session.sql(\'drop view if exists js_view;\').execute();\n","Query OK"),
+                ("session.sql(\"create view js_view as select first_name from actor where first_name like \'%a%\';\").execute();\n","Query OK"),
+                ("session.sql(\"alter view js_view as select * from actor where first_name like \'%a%\';\").execute();\n","Query OK"),
+                ("session.sql(\"SELECT * from js_view;\").execute();\n","actor_id")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_4_3_16_1(self):
+      '''[4.3.016]:1 JS Update alter view using multiline mode: CLASSIC SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+      x_cmds = [("var mysql=require(\'mysql\').mysql;\n","mysql-js>"),
+                ("var session=mysql.getClassicSession(\'{0}:{1}@{2}:{3}\');\n".format(LOCALHOST.user, LOCALHOST.password,
+                                                                                      LOCALHOST.host, LOCALHOST.port), "mysql-js>"),
+                ("session.runSql(\'use sakila;\');\n","Query OK"),
+                ("session.runSql(\'drop view if exists js_view;\');\n","Query OK"),
+                ("\\\n","..."),
+                ("session.runSql(\"create view js_view as select first_name from actor where first_name like \'%a%\';\");\n","..."),
+                ("session.runSql(\"alter view js_view as select * from actor where first_name like \'%a%\';\");\n","..."),
+                ("\n","mysql-js>"),
+                ("session.runSql(\"SELECT * from js_view;\");\n","actor_id")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_4_3_16_2(self):
+      '''[4.3.016]:2 JS Update alter view using multiline mode: NODE SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+      x_cmds = [("var mysqlx=require(\'mysqlx\').mysqlx;\n","mysql-js>"),
+                ("var session=mysqlx.getNodeSession(\'{0}:{1}@{2}\');\n".format(LOCALHOST.user, LOCALHOST.password,
+                                                                                LOCALHOST.host),"mysql-js>"),
+                ("session.sql(\'use sakila;\').execute();\n","Query OK"),
+                ("session.sql(\'drop view if exists js_view;\').execute();\n","Query OK"),
+                ("\\\n","..."),
+                ("session.sql(\"create view js_view as select first_name from actor where first_name like \'%a%\';\").execute();\n","..."),
+                ("session.sql(\"alter view js_view as select * from actor where first_name like \'%a%\';\").execute();\n","..."),
+                ("\n","mysql-js>"),
+                ("session.sql(\"SELECT * from js_view;\").execute();\n","actor_id")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+
+  def test_4_3_17_1(self):
+      '''[4.3.017]:1 JS Update alter view using STDIN batch code: CLASSIC SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--js', '-u' + LOCALHOST.user,
+                      '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.port,
+                      '--schema=sakila','--session-type=classic','< '  + Exec_files_location + 'UpdateView_ClassicMode.js']
+      x_cmds = [(";", "mysql-js>")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_4_3_17_2(self):
+      '''[4.3.017]:2 JS Update alter view using STDIN batch code: NODE SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--js', '-u' + LOCALHOST.user,
+                      '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.port,
+                      '--schema=sakila','--session-type=node','< '  + Exec_files_location + 'UpdateView_NodeMode.js']
+      x_cmds = [(";", "mysql-js>")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_4_3_18_1(self):
+      '''[4.3.018]:1 JS Update alter stored procedure using session object: CLASSIC SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+      x_cmds = [("var mysql=require(\'mysql\').mysql;\n","mysql-js>"),
+                ("var session=mysql.getClassicSession(\'{0}:{1}@{2}:{3}\');\n".format(LOCALHOST.user, LOCALHOST.password,
+                                                                                      LOCALHOST.host, LOCALHOST.port), "mysql-js>"),
+                ("session.runSql(\'use sakila;\');\n","Query OK"),
+                ("session.runSql(\'DROP PROCEDURE IF EXISTS my_automated_procedure;\');\n","Query OK"),
+                ("session.runSql(\"delimiter \\\\\");\n","mysql-js>"),
+                ("session.runSql(\"create procedure my_automated_procedure (INOUT incr_param INT)\n "
+                 "BEGIN \n    SET incr_param = incr_param + 1 ;\nEND\\\\\");\n","mysql-js>"),
+                ("delimiter ;\n","mysql-js>"),
+                ("session.runSql(\"select name from mysql.proc;\");\n","my_automated_procedure")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_4_3_18_2(self):
+      '''[4.3.018]:2 JS Update alter stored procedure using session object: NODE SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+      x_cmds = [("var mysqlx=require(\'mysqlx\').mysqlx;\n","mysql-js>"),
+                ("var session=mysqlx.getNodeSession(\'{0}:{1}@{2}\');\n".format(LOCALHOST.user, LOCALHOST.password,
+                                                                                LOCALHOST.host),"mysql-js>"),
+                ("session.sql(\'use sakila;\').execute();\n","Query OK"),
+                ("session.sql(\'DROP PROCEDURE IF EXISTS my_automated_procedure;\').execute();\n","Query OK"),
+                ("session.sql(\"delimiter \\\\\").execute();\n","mysql-js>"),
+                ("session.sql(\"create procedure my_automated_procedure (INOUT incr_param INT)\n "
+                 "BEGIN \n    SET incr_param = incr_param + 1 ;\nEND\\\\\").execute();\n","mysql-js>"),
+                ("delimiter ;\n","mysql-js>"),
+                ("session.sql(\"select name from mysql.proc;\").execute();\n","my_automated_procedure")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+
+  def test_4_3_19_1(self):
+      '''[4.3.019]:1 JS Update alter stored procedure using multiline mode: CLASSIC SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+      x_cmds = [("var mysql=require(\'mysql\').mysql;\n","mysql-js>"),
+                ("var session=mysql.getClassicSession(\'{0}:{1}@{2}:{3}\');\n".format(LOCALHOST.user, LOCALHOST.password,
+                                                                                      LOCALHOST.host, LOCALHOST.port), "mysql-js>"),
+                ("session.runSql(\'use sakila;\');\n","Query OK"),
+                ("session.runSql(\'DROP PROCEDURE IF EXISTS my_automated_procedure;\');\n","Query OK"),
+                ("\\\n","..."),
+                ("session.runSql(\"delimiter \\\\\");\n","..."),
+                ("session.runSql(\"create procedure my_automated_procedure (INOUT incr_param INT)\n "
+                 "BEGIN \n    SET incr_param = incr_param + 1 ;\nEND\\\\\");\n","..."),
+                ("delimiter ;\n","..."),
+                ("\n","mysql-js>"),
+                ("session.runSql(\"select name from mysql.proc;\");\n","my_automated_procedure")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_4_3_19_2(self):
+      '''[4.3.019]:2 JS Update alter stored procedure using multiline mode: NODE SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+      x_cmds = [("var mysqlx=require(\'mysqlx\').mysqlx;\n","mysql-js>"),
+                ("var session=mysqlx.getNodeSession(\'{0}:{1}@{2}\');\n".format(LOCALHOST.user, LOCALHOST.password,
+                                                                                LOCALHOST.host),"mysql-js>"),
+                ("session.sql(\'use sakila;\').execute();\n","Query OK"),
+                ("session.sql(\'DROP PROCEDURE IF EXISTS my_automated_procedure;\').execute();\n","Query OK"),
+                ("\\\n","..."),
+                ("session.sql(\"delimiter \\\\\").execute();\n","..."),
+                ("session.sql(\"create procedure my_automated_procedure (INOUT incr_param INT)\n "
+                 "BEGIN \n    SET incr_param = incr_param + 1 ;\nEND\\\\\").execute();\n","..."),
+                ("delimiter ;\n","..."),
+                ("\n","mysql-js>"),
+                ("session.sql(\"select name from mysql.proc;\").execute();\n","my_automated_procedure")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_4_3_20_1(self):
+      '''[4.3.020]:1 JS Update alter stored procedure using STDIN batch code: CLASSIC SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--js', '-u' + LOCALHOST.user,
+                      '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.port,
+                      '--schema=sakila','--session-type=classic','< '  + Exec_files_location + 'UpdateProcedure_ClassicMode.js']
+      x_cmds = [(";", "mysql-js>")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+
+  def test_4_3_20_2(self):
+      '''[4.3.020]:2 JS Update alter stored procedure using STDIN batch code: NODE SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--js', '-u' + LOCALHOST.user,
+                      '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.port,
+                      '--schema=sakila','--session-type=node','< '  + Exec_files_location + 'UpdateProcedure_NodeMode.js']
+      x_cmds = [(";", "mysql-js>")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+
+  def test_4_3_21_1(self):
+      '''[4.3.021]:1 PY Update table using session object: CLASSIC SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full','--py']
+      x_cmds = [("import mysql\n","mysql-py>"),
+                ("session=mysql.getClassicSession(\'{0}:{1}@{2}:{3}\')\n".format(LOCALHOST.user, LOCALHOST.password,
+                                                                                LOCALHOST.host, LOCALHOST.port),"mysql-py>"),
+                ("session.runSql(\'use sakila;\')\n","Query OK"),
+                ("session.runSql(\'drop table if exists sakila.friends;\')\n","Query OK"),
+                ("session.runSql(\'create table sakila.friends (name varchar(50), last_name varchar(50), "
+                 "age integer, gender varchar(20))\')\n","Query OK"),
+                ("session.runSql(\"INSERT INTO sakila.friends (name,last_name,age,gender) VALUES (\'jack\',"
+                 "\'black\', 17, \'male\');\")\n","mysql-py>"),
+                ("session.runSql(\"INSERT INTO sakila.friends (name,last_name,age,gender) VALUES (\'ruben\',"
+                 "\'morquecho\', 40, \'male\');\")\n","mysql-py>"),
+                ("session.runSql(\"UPDATE friends SET name=\'ruben dario\' where name =  '\ruben\';\")\n","mysql-py>"),
+                ("session.runSql(\"SELECT * from friends where name LIKE '\%ruben%\';\")\n","ruben dario")
+                ]
+
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_4_3_21_2(self):
+      '''[4.3.021]:2 PY Update table using session object: NODE SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full','--py']
+      x_cmds = [("import mysqlx\n","mysql-py>"),
+                ("session=mysqlx.getNodeSession(\'{0}:{1}@{2}\')\n".format(LOCALHOST.user, LOCALHOST.password,
+                                                                                LOCALHOST.host),"mysql-py>"),
+                ("session.sql(\"use sakila;\").execute()\n","Query OK"),
+                ("session.sql(\"drop table if exists sakila.friends;\").execute()\n","Query OK"),
+                ("session.sql(\'create table sakila.friends (name varchar(50), last_name varchar(50), "
+                 "age integer, gender varchar(20));\').execute()\n","Query OK"),
+                ("table = session.sakila.friends\n","mysql-py>"),
+                ("table.insert(\'name\',\'last_name\',\'age\',\'gender\').values(\'jack\',\'black\', 17, \'male\')\n","Query OK"),
+                ("table.insert(\'name\',\'last_name\',\'age\',\'gender\').values(\'ruben\',\'morquecho\', 40, \'male\')\n","Query OK"),
+                ("res_ruben = table.update().set(\'name\',\'ruben dario\').set(\'age\',42).where(\'name=\"ruben\"\').execute()\n","mysql-py>"),
+                ("table.select()\n","mysql-py>")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+
+  def test_4_3_22_1(self):
+      '''[4.3.022]:1 PY Update table using multiline mode: CLASSIC SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full','--py']
+      x_cmds = [("import mysql\n","mysql-py>"),
+                ("session=mysql.getClassicSession(\'{0}:{1}@{2}:{3}\')\n".format(LOCALHOST.user, LOCALHOST.password,
+                                                                                      LOCALHOST.host, LOCALHOST.port), "mysql-py>"),
+                ("session.runSql(\"use sakila;\")\n","Query OK"),
+                ("session.runSql(\"drop table if exists sakila.friends;\")\n","Query OK"),
+                ("session.runSql(\'create table sakila.friends (name varchar(50), last_name varchar(50), "
+                 "age integer, gender varchar(20));\')\n","Query OK"),
+                ("session.runSql(\"INSERT INTO sakila.friends (name,last_name,age,gender) VALUES (\'jack\',"
+                 "\'black\', 17, \'male\');\")\n","mysql-py>"),
+                ("session.runSql(\"INSERT INTO sakila.friends (name,last_name,age,gender) VALUES (\'ruben\',"
+                 "\'morquecho\', 40, \'male\');\")\n","mysql-py>"),
+                ("\\\n","..."),
+                ("session.runSql(\"UPDATE friends SET name=\'ruben dario\' where name =  \'ruben\';\")\n","..."),
+                ("session.runSql(\"UPDATE friends SET name=\'jackie chan\' where name =  \'jack\';\")\n","..."),
+                ("\n","mysql-py>"),
+                ("session.runSql(\"SELECT * from friends where name LIKE \'%ruben%\';\")\n","ruben dario"),
+                ("session.runSql(\"SELECT * from friends where name LIKE \'%jackie chan%\';\")\n","jackie chan")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_4_3_22_2(self):
+      '''[4.3.022]:2 PY Update table using multiline mode: NODE SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full','--py']
+      x_cmds = [("import mysqlx\n","mysql-py>"),
+                ("session=mysqlx.getNodeSession(\'{0}:{1}@{2}\')\n".format(LOCALHOST.user, LOCALHOST.password,
+                                                                                LOCALHOST.host),"mysql-py>"),
+                ("session.sql(\"use sakila;\").execute()\n","Query OK"),
+                ("session.sql(\"drop table if exists sakila.friends;\").execute()\n","Query OK"),
+                ("session.sql(\'create table sakila.friends (name varchar(50), last_name varchar(50), "
+                 "age integer, gender varchar(20));\').execute()\n","Query OK"),
+                ("table = session.sakila.friends\n","mysql-py>"),
+                ("table.insert(\'name\',\'last_name\',\'age\',\'gender\').values(\'jack\',\'black\', 17, \'male\')\n","Query OK"),
+                ("table.insert(\'name\',\'last_name\',\'age\',\'gender\').values(\'ruben\',\'morquecho\', 40, \'male\')\n","Query OK"),
+                ("\\\n","..."),
+                ("res_ruben = table.update().set(\'name\',\'ruben dario\').set(\'age\',42).where(\'name=\"ruben\"\').execute()\n","..."),
+                ("res_jack = table.update().set(\'name\',\'jackie chan\').set(\'age\',18).where(\'name=\"jack\"\').execute()\n","..."),
+                ("\n","..."),
+                ("table.select()\n","ruben dario"),
+                ("table.select()\n","jackie chan")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_4_3_23_1(self):
+      '''[4.3.023]:1 PY Update table using STDIN batch code: CLASSIC SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--py', '-u' + LOCALHOST.user,
+                      '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.port,
+                      '--schema=sakila','--session-type=classic','< '  + Exec_files_location + 'UpdateTable_ClassicMode.py']
+      x_cmds = [("\n", "mysql-py>")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_4_3_23_2(self):
+      '''[4.3.023]:2 PY Update table using STDIN batch code: NODE SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--py', '-u' + LOCALHOST.user,
+                      '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.port,
+                      '--schema=sakila','--session-type=node','< '  + Exec_files_location + 'UpdateTable_NodeMode.py']
+      x_cmds = [("\n", "mysql-py>")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+
+  def test_4_3_24_1(self):
+      '''[4.3.024]:1 PY Update database using session object: CLASSIC SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full','--py']
+      x_cmds = [("import mysql\n","mysql-py>"),
+                ("session=mysql.getClassicSession(\'{0}:{1}@{2}:{3}\')\n".format(LOCALHOST.user, LOCALHOST.password,
+                                                                                      LOCALHOST.host, LOCALHOST.port), "mysql-py>"),
+                ("session.runSql(\"drop database if exists automation_test;\")\n","Query OK"),
+                ("session.runSql(\'create database automation_test;\')\n","Query OK"),
+                ("session.runSql(\'ALTER SCHEMA automation_test  DEFAULT COLLATE utf8_general_ci;\')\n","Query OK"),
+                ("session.runSql(\"SELECT DEFAULT_COLLATION_NAME FROM information_schema.SCHEMATA WHERE SCHEMA_NAME = "
+                 "\'automation_test\' ;\")\n","utf8_general_ci")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_4_3_24_2(self):
+      '''[4.3.024]:2 PY Update database using session object: NODE SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full','--py']
+      x_cmds = [("import mysqlx\n","mysql-py>"),
+                ("session=mysqlx.getNodeSession(\'{0}:{1}@{2}\')\n".format(LOCALHOST.user, LOCALHOST.password,
+                                                                                LOCALHOST.host),"mysql-py>"),
+                ("session.sql(\"drop database if exists automation_test;\").execute()\n","Query OK"),
+                ("session.sql(\'create database automation_test;\').execute()\n","Query OK"),
+                ("session.sql(\'ALTER SCHEMA automation_test  DEFAULT COLLATE utf8_general_ci;\').execute()\n","Query OK"),
+                ("session.sql(\"SELECT DEFAULT_COLLATION_NAME FROM information_schema.SCHEMATA WHERE SCHEMA_NAME = "
+                 "\'automation_test\' ;\").execute()\n","utf8_general_ci")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_4_3_25_1(self):
+      '''[4.3.025]:1 PY Update database using multiline mode: CLASSIC SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full','--py']
+      x_cmds = [("import mysql\n","mysql-py>"),
+                ("session=mysql.getClassicSession(\'{0}:{1}@{2}:{3}\')\n".format(LOCALHOST.user, LOCALHOST.password,
+                                                                                      LOCALHOST.host, LOCALHOST.port), "mysql-py>"),
+                ("session.runSql(\"drop database if exists automation_test;\")\n","Query OK"),
+                ("\\\n","..."),
+                ("session.runSql(\'create database automation_test;\')\n","..."),
+                ("session.runSql(\'ALTER SCHEMA automation_test  DEFAULT COLLATE utf8_general_ci;\')\n","..."),
+                ("\n","mysql-py>"),
+                ("session.runSql(\"SELECT DEFAULT_COLLATION_NAME FROM information_schema.SCHEMATA WHERE SCHEMA_NAME = "
+                 "\'automation_test\' ;\")\n","utf8_general_ci")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_4_3_25_2(self):
+      '''[4.3.025]:2 PY Update database using multiline mode: NODE SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full','--py']
+      x_cmds = [("import mysqlx\n","mysql-py>"),
+                ("session=mysqlx.getNodeSession(\'{0}:{1}@{2}\')\n".format(LOCALHOST.user, LOCALHOST.password,
+                                                                                LOCALHOST.host),"mysql-py>"),
+                ("session.sql(\"drop database if exists automation_test;\").execute()\n","Query OK"),
+                ("\\\n","..."),
+                ("session.sql(\'create database automation_test;\').execute()\n","..."),
+                ("session.sql(\'ALTER SCHEMA automation_test  DEFAULT COLLATE utf8_general_ci;\').execute()\n","..."),
+                ("\n","mysql-py>"),
+                ("session.sql(\"SELECT DEFAULT_COLLATION_NAME FROM information_schema.SCHEMATA WHERE SCHEMA_NAME = "
+                 "\'automation_test\' ;\").execute()\n","utf8_general_ci")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+
+  def test_4_3_26_1(self):
+      '''[4.3.026]:1 PY Update database using STDIN batch code: CLASSIC SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--py', '-u' + LOCALHOST.user,
+                      '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.port,
+                      '--schema=sakila','--session-type=classic','< '  + Exec_files_location + 'UpdateSchema_ClassicMode.py']
+      x_cmds = [("\n", "mysql-py>")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_4_3_26_2(self):
+      '''[4.3.026]:2 PY Update database using STDIN batch code: NODE SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--py', '-u' + LOCALHOST.user,
+                      '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.port,
+                      '--schema=sakila','--session-type=node','< '  + Exec_files_location + 'UpdateSchema_NodeMode.py']
+      x_cmds = [("\n", "mysql-py>")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_4_3_27_1(self):
+      '''[4.3.027]:1 PY Update alter view using session object: CLASSIC SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full','--py']
+      x_cmds = [("import mysql\n","mysql-py>"),
+                ("session=mysql.getClassicSession(\'{0}:{1}@{2}:{3}\')\n".format(LOCALHOST.user, LOCALHOST.password,
+                                                                                      LOCALHOST.host, LOCALHOST.port), "mysql-py>"),
+                ("session.runSql(\'use sakila;\')\n","Query OK"),
+                ("session.runSql(\'drop view if exists js_view;\')\n","Query OK"),
+                ("session.runSql(\"create view js_view as select first_name from actor where first_name like \'%a%\';\")\n","Query OK"),
+                ("session.runSql(\"alter view js_view as select * from actor where first_name like \'%a%\';\")\n","Query OK"),
+                ("session.runSql(\"SELECT * from js_view;\")\n","actor_id")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_4_3_27_2(self):
+      '''[4.3.027]:2 PY Update alter view using session object: NODE SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full','--py']
+      x_cmds = [("import mysqlx\n","mysql-py>"),
+                ("session=mysqlx.getNodeSession(\'{0}:{1}@{2}\')\n".format(LOCALHOST.user, LOCALHOST.password,
+                                                                                LOCALHOST.host),"mysql-py>"),
+                ("session.sql(\'use sakila;\').execute()\n","Query OK"),
+                ("session.sql(\'drop view if exists js_view;\').execute()\n","Query OK"),
+                ("session.sql(\"create view js_view as select first_name from actor where first_name like \'%a%\';\").execute()\n","Query OK"),
+                ("session.sql(\"alter view js_view as select * from actor where first_name like \'%a%\';\").execute()\n","Query OK"),
+                ("session.sql(\"SELECT * from js_view;\").execute()\n","actor_id")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+
+  def test_4_3_28_1(self):
+      '''[4.3.028]:1 PY Update alter view using multiline mode: CLASSIC SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full','--py']
+      x_cmds = [("import mysql\n","mysql-py>"),
+                ("session=mysql.getClassicSession(\'{0}:{1}@{2}:{3}\')\n".format(LOCALHOST.user, LOCALHOST.password,
+                                                                                      LOCALHOST.host, LOCALHOST.port), "mysql-py>"),
+                ("session.runSql(\'use sakila;\')\n","Query OK"),
+                ("session.runSql(\'drop view if exists js_view;\')\n","Query OK"),
+                ("\\\n","..."),
+                ("session.runSql(\"create view js_view as select first_name from actor where first_name like \'%a%\';\")\n","..."),
+                ("session.runSql(\"alter view js_view as select * from actor where first_name like \'%a%\';\")\n","..."),
+                ("\n","mysql-py>"),
+                ("session.runSql(\"SELECT * from js_view;\")\n","actor_id")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_4_3_28_2(self):
+      '''[4.3.028]:2 PY Update alter view using multiline mode: NODE SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full','--py']
+      x_cmds = [("import mysqlx\n","mysql-py>"),
+                ("session=mysqlx.getNodeSession(\'{0}:{1}@{2}\')\n".format(LOCALHOST.user, LOCALHOST.password,
+                                                                                LOCALHOST.host),"mysql-py>"),
+                ("session.sql(\'use sakila;\').execute()\n","Query OK"),
+                ("session.sql(\'drop view if exists js_view;\').execute()\n","Query OK"),
+                ("\\\n","..."),
+                ("session.sql(\"create view js_view as select first_name from actor where first_name like \'%a%\';\").execute()\n","..."),
+                ("session.sql(\"alter view js_view as select * from actor where first_name like \'%a%\';\").execute()\n","..."),
+                ("\n","mysql-py>"),
+                ("session.sql(\"SELECT * from js_view;\").execute()\n","actor_id")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_4_3_29_1(self):
+      '''[4.3.029]:1 PY Update alter view using STDIN batch code: CLASSIC SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--py', '-u' + LOCALHOST.user,
+                      '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.port,
+                      '--schema=sakila','--session-type=classic','< '  + Exec_files_location + 'UpdateView_ClassicMode.py']
+      x_cmds = [("\n", "mysql-py>")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_4_3_29_2(self):
+      '''[4.3.029]:2 PY Update alter view using STDIN batch code: NODE SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--py', '-u' + LOCALHOST.user,
+                      '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.port,
+                      '--schema=sakila','--session-type=node','< '  + Exec_files_location + 'UpdateView_NodeMode.py']
+      x_cmds = [("\n", "mysql-py>")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+
+  def test_4_3_30_1(self):
+      '''[4.3.030]:1 PY Update alter stored procedure using session object: CLASSIC SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full','--py']
+      x_cmds = [("import mysql\n","mysql-py>"),
+                ("session=mysql.getClassicSession(\'{0}:{1}@{2}:{3}\')\n".format(LOCALHOST.user, LOCALHOST.password,
+                                                                                      LOCALHOST.host, LOCALHOST.port), "mysql-py>"),
+                ("session.runSql(\'use sakila;\')\n","Query OK"),
+                ("session.runSql(\'DROP PROCEDURE IF EXISTS my_automated_procedure;\')\n","Query OK"),
+                ("session.runSql(\"delimiter \\\\\")\n","mysql-py>"),
+                ("session.runSql(\"create procedure my_automated_procedure (INOUT incr_param INT)\n "
+                 "BEGIN \n    SET incr_param = incr_param + 1 ;\nEND\\\\\")\n","mysql-py>"),
+                ("delimiter ;\n","mysql-py>"),
+                ("session.runSql(\"select name from mysql.proc;\")\n","my_automated_procedure")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_4_3_30_2(self):
+      '''[4.3.030]:2 PY Update alter stored procedure using session object: NODE SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full','--py']
+      x_cmds = [("import mysqlx\n","mysql-py>"),
+                ("session=mysqlx.getNodeSession(\'{0}:{1}@{2}\')\n".format(LOCALHOST.user, LOCALHOST.password,
+                                                                                LOCALHOST.host),"mysql-py>"),
+                ("session.sql(\'use sakila;\').execute()\n","Query OK"),
+                ("session.sql(\'DROP PROCEDURE IF EXISTS my_automated_procedure;\').execute()\n","Query OK"),
+                ("session.sql(\"delimiter \\\\\").execute()\n","mysql-py>"),
+                ("session.sql(\"create procedure my_automated_procedure (INOUT incr_param INT)\n "
+                 "BEGIN \n    SET incr_param = incr_param + 1 ;\nEND\\\\\").execute()\n","mysql-py>"),
+                ("delimiter ;\n","mysql-py>"),
+                ("session.sql(\"select name from mysql.proc;\").execute()\n","my_automated_procedure")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+
  # ----------------------------------------------------------------------
 # ----------------------------------------------------------------------
-# tc_4_3_7_1("[4.3.007]:1 SQL Update Alter stored procedure using multiline mode")
-# tc_4_3_8_1("[4.3.008]:1 SQL Update Alter stored procedure using STDIN batch code: CLASSIC SESSION")
-# tc_4_3_8_2("[4.3.008]:2 SQL Update Alter stored procedure using STDIN batch code: NODE SESSION")
-# tc_4_3_9_1("[4.3.009]:1 JS Update table using session object: CLASSIC SESSION")
-# tc_4_3_9_2("[4.3.009]:2 JS Update table using session object: NODE SESSION")
-# tc_4_3_10_1("[4.3.010]:1 JS Update table using multiline mode: CLASSIC SESSION")
-# tc_4_3_10_2("[4.3.010]:2 JS Update table using multiline mode: NODE SESSION")
-# tc_4_3_11_1("[4.3.011]:1 JS Update table using STDIN batch code: CLASSIC SESSION")
-# tc_4_3_11_2("[4.3.011]:2 JS Update table using STDIN batch code: NODE SESSION")
-# tc_4_3_12_1("[4.3.012]:1 JS Update database using session object: CLASSIC SESSION")
-# tc_4_3_12_2("[4.3.012]:2 JS Update database using session object: NODE SESSION")
-# tc_4_3_13_1("[4.3.013]:1 JS Update database using multiline mode: CLASSIC SESSION")
-# tc_4_3_13_2("[4.3.013]:2 JS Update database using multiline mode: NODE SESSION")
-# tc_4_3_14_1("[4.3.014]:1 JS Update database using STDIN batch code: CLASSIC SESSION")
-# tc_4_3_14_2("[4.3.014]:2 JS Update database using STDIN batch code: NODE SESSION")
-# tc_4_3_15_1("[4.3.015]:1 JS Update alter view using session object: CLASSIC SESSION")
-# tc_4_3_15_2("[4.3.015]:2 JS Update alter view using session object: NODE SESSION")
-# tc_4_3_16_1("[4.3.016]:1 JS Update alter view using multiline mode: CLASSIC SESSION")
-# tc_4_3_16_2("[4.3.016]:2 JS Update alter view using multiline mode: NODE SESSION")
-# tc_4_3_17_1("[4.3.017]:1 JS Update alter view using STDIN batch code: CLASSIC SESSION")
-# tc_4_3_17_2("[4.3.017]:2 JS Update alter view using STDIN batch code: NODE SESSION")
-# tc_4_3_18_1("[4.3.018]:1 JS Update alter stored procedure using session object: CLASSIC SESSION")
-# tc_4_3_18_2("[4.3.018]:2 JS Update alter stored procedure using session object: NODE SESSION")
-# tc_4_3_19_1("[4.3.019]:1 JS Update alter stored procedure using multiline mode: CLASSIC SESSION")
-# tc_4_3_19_2("[4.3.019]:2 JS Update alter stored procedure using multiline mode: NODE SESSION")
-# tc_4_3_20_1("[4.3.020]:1 JS Update alter stored procedure using STDIN batch code: CLASSIC SESSION")
-# tc_4_3_20_2("[4.3.020]:2 JS Update alter stored procedure using STDIN batch code: NODE SESSION")
-# tc_4_3_21_1("[4.3.021]:1 PY Update table using session object: CLASSIC SESSION")
-# tc_4_3_21_2("[4.3.021]:2 PY Update table using session object: NODE SESSION")
-# tc_4_3_22_1("[4.3.022]:1 PY Update table using multiline mode: CLASSIC SESSION")
-# tc_4_3_22_2("[4.3.022]:2 PY Update table using multiline mode: NODE SESSION")
-# tc_4_3_23_1("[4.3.023]:1 PY Update table using STDIN batch code: CLASSIC SESSION")
-# tc_4_3_23_2("[4.3.023]:2 PY Update table using STDIN batch code: NODE SESSION")
-# tc_4_3_24_1("[4.3.024]:1 PY Update database using session object: CLASSIC SESSION")
-# tc_4_3_24_2("[4.3.024]:2 PY Update database using session object: NODE SESSION")
-# tc_4_3_25_1("[4.3.025]:1 PY Update database using multiline mode: CLASSIC SESSION")
-# tc_4_3_25_2("[4.3.025]:2 PY Update database using multiline mode: NODE SESSION")
-# tc_4_3_26_1("[4.3.026]:1 PY Update database using STDIN batch code: CLASSIC SESSION")
-# tc_4_3_26_2("[4.3.026]:2 PY Update database using STDIN batch code: NODE SESSION")
-# tc_4_3_27_1("[4.3.027]:1 PY Update alter view using session object: CLASSIC SESSION")
-# tc_4_3_27_2("[4.3.027]:2 PY Update alter view using session object: NODE SESSION")
-# tc_4_3_28_1("[4.3.028]:1 PY Update alter view using multiline mode: CLASSIC SESSION")
-# tc_4_3_28_2("[4.3.028]:2 PY Update alter view using multiline mode: NODE SESSION")
-# tc_4_3_29_1("[4.3.029]:1 PY Update alter view using STDIN batch code: CLASSIC SESSION")
-# tc_4_3_29_2("[4.3.029]:2 PY Update alter view using STDIN batch code: NODE SESSION")
-# tc_4_3_30_1("[4.3.030]:1 PY Update alter stored procedure using session object: CLASSIC SESSION")
-# tc_4_3_30_2("[4.3.030]:2 PY Update alter stored procedure using session object: NODE SESSION")
+
 # tc_4_3_31_1("[4.3.031]:1 PY Update alter stored procedure using multiline mode: CLASSIC SESSION")
 # tc_4_3_31_2("[4.3.031]:2 PY Update alter stored procedure using multiline mode: NODE SESSION")
 # tc_4_3_32_1("[4.3.032]:1 PY Update alter stored procedure using STDIN batch code: CLASSIC SESSION")
