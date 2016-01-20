@@ -62,7 +62,8 @@ def read_til_getShell(proc, fd, text):
     data = []
     line = ""
     t = time.time()
-    while line != text  and proc.poll() == None:
+    # while line != text  and proc.poll() == None:
+    while line.find(text,0,len(line))< 0  and proc.poll() == None:
         try:
             line = read_line(proc, fd, text)
 
@@ -1630,8 +1631,8 @@ class LocalConnection(unittest.TestCase):
                       '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.port,
                       '--session-type=classic','--sqlc']
       x_cmds = [("\\\n","..."),
-                ("use sakila;\n","..."),
-                ("Update actor set last_name =\'Test Last Name\', last_update = now() where actor_id = 2;\n","..."),
+                ("use sakila;\n","       ..."),
+                ("Update actor set last_name =\'Test Last Name\', last_update = now() where actor_id = 2;\n","       ..."),
                 ("\n","rows in set"),
                 ("select last_name from actor where actor_id = 2;\n","Test Last Name")
                 ]
@@ -1690,12 +1691,81 @@ class LocalConnection(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+  @unittest.skip("not reading the  < batch  pipe when using  inside script")
+  def test_4_3_4_2(self):
+      '''[4.3.004]:2 SQL Update database using STDIN batch code'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--sql', '-u' + LOCALHOST.user,
+                      '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port,
+                      '--schema=sakila','--session-type=node','< SchemaDatabaseUpdate_SQL.sql']
+      x_cmds = [(";", "mysql-sql>")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_4_3_5_1(self):
+      '''[4.3.005]:1 SQL Update Alter view using multiline mode'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7', '-u' + LOCALHOST.user,
+                      '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.port,
+                      '--session-type=classic','--sqlc']
+      x_cmds = [("use sakila;\n","mysql-sql>"),
+                ("DROP VIEW IF EXISTS sql_viewtest;\n","mysql-sql>"),
+                ("create view sql_viewtest as select * from actor where first_name like \'%as%\';\n","mysql-sql>"),
+                ("\\\n","       ..."),
+                ("alter view sql_viewtest as select count(*) as ActorQuantity from actor;\n","       ..."),
+                ("\n","mysql-sql>"),
+                ("select * from sql_viewtest;\n","row in set")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  @unittest.skip("not reading the  < batch  pipe when using  inside script")
+  def test_4_3_6_1(self):
+      '''[4.3.006]:1 SQL Update Alter view using STDIN batch code: CLASSIC SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--sql', '-u' + LOCALHOST.user,
+                      '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.port,
+                      '--schema=sakila','--session-type=classic','< AlterView_SQL.sql']
+      x_cmds = [(";", "mysql-sql>")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  @unittest.skip("not reading the  < batch  pipe when using  inside script")
+  def test_4_3_6_2(self):
+      '''[4.3.006]:2 SQL Update Alter view using STDIN batch code: NODE SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--sql', '-u' + LOCALHOST.user,
+                      '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.port,
+                      '--schema=sakila','--session-type=node','< AlterView_SQL.sql']
+      x_cmds = [(";", "mysql-sql>")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_4_3_7_1(self):
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7', '-u' + LOCALHOST.user,
+                      '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.port,
+                      '--session-type=classic','--sqlc']
+      x_cmds = [("use sakila;\n","mysql-sql>"),
+                ("DROP procedure IF EXISTS sql_sptest;\n","mysql-sql>"),
+                ("\\\n","..."),
+                ("DELIMITER $$\n","       ..."),
+                ("create procedure sql_sptest\n","       ..."),
+                ("BEGIN\n","       ..."),
+                ("SELECT count(*) FROM country;\n","       ..."),
+                ("END$$\n","       ..."),
+                ("\n","mysql-sql>"),
+                ("DELIMITER ;\n","mysql-sql>"),
+                ("call  sql_sptest;\n","rows in set")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+ # ----------------------------------------------------------------------
 # ----------------------------------------------------------------------
-# ----------------------------------------------------------------------
-# tc_4_3_4_2("[4.3.004]:2 SQL Update database using STDIN batch code")
-# tc_4_3_5_1("[4.3.005]:1 SQL Update Alter view using multiline mode")
-# tc_4_3_6_1("[4.3.006]:1 SQL Update Alter view using STDIN batch code: CLASSIC SESSION")
-# tc_4_3_6_2("[4.3.006]:2 SQL Update Alter view using STDIN batch code: NODE SESSION")
 # tc_4_3_7_1("[4.3.007]:1 SQL Update Alter stored procedure using multiline mode")
 # tc_4_3_8_1("[4.3.008]:1 SQL Update Alter stored procedure using STDIN batch code: CLASSIC SESSION")
 # tc_4_3_8_2("[4.3.008]:2 SQL Update Alter stored procedure using STDIN batch code: NODE SESSION")
