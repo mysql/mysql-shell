@@ -1,0 +1,2 @@
+session.runSql("UPDATE actor SET first_name = 'Updated By Py Classic STDIN' where actor_id < 40 order by actor_id DESC limit 2 ;");
+session.runSql("SELECT * FROM sakila.actor where actor_id < 40 order by actor_id desc limit 2 ;");

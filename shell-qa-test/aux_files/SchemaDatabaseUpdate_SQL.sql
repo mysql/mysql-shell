@@ -1,0 +1,1 @@
+ALTER SCHEMA `sakila`  DEFAULT COLLATE utf8_general_ci;

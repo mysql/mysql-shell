@@ -1,0 +1,2 @@
+session.sql("UPDATE actor SET first_name = 'Updated By JS Classic STDIN' where actor_id < 150 order by actor_id DESC limit 2 ;");
+session.sql("SELECT * FROM sakila.actor where actor_id < 150 order by actor_id desc limit 2 ;");

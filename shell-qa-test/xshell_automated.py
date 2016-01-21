@@ -102,7 +102,7 @@ def exec_xshell_commands(init_cmdLine, commandList):
             stdin,stdout = p.communicate()
             # return "FAIL \n\r"+stdin.decode("ascii") +stdout.decode("ascii")
             RESULTS="FAILED"
-            return "FAIL: " +stdout.decode("ascii")
+            return "FAIL: " + stdin.decode("ascii") + stdout.decode("ascii")
             break
         expectbefore = lookup
         commandbefore =command
@@ -114,7 +114,7 @@ def exec_xshell_commands(init_cmdLine, commandList):
     if found == -1 :
             found = stdin.find(bytearray(expectbefore,"ascii"), 0, len(stdin))
             if found == -1 :
-                return "FAIL:  " + stdout.decode("ascii")
+                return "FAIL:  " + stdin.decode("ascii") + stdout.decode("ascii")
             else :
                 return "PASS"
     else:
@@ -2526,27 +2526,283 @@ class XShell_TestCases(unittest.TestCase):
       self.assertEqual(results, 'PASS')
 
 
- # ----------------------------------------------------------------------
+  def test_4_3_31_1(self):
+      '''[4.3.031]:1 PY Update alter stored procedure using multiline mode: CLASSIC SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full','--py']
+      x_cmds = [("import mysql\n","mysql-py>"),
+                ("session=mysql.getClassicSession(\'{0}:{1}@{2}:{3}\')\n".format(LOCALHOST.user, LOCALHOST.password,
+                                                                                      LOCALHOST.host, LOCALHOST.port), "mysql-py>"),
+                ("session.runSql(\'use sakila;\')\n","Query OK"),
+                ("session.runSql(\'DROP PROCEDURE IF EXISTS my_automated_procedure;\')\n","Query OK"),
+                ("\\\n","..."),
+                ("session.runSql(\"delimiter \\\\\")\n","..."),
+                ("session.runSql(\"create procedure my_automated_procedure (INOUT incr_param INT)\n "
+                 "BEGIN \n    SET incr_param = incr_param + 1 ;\nEND\\\\\")\n","..."),
+                ("delimiter ;\n","..."),
+                ("\n","mysql-py>"),
+                ("session.runSql(\"select name from mysql.proc;\")\n","my_automated_procedure")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_4_3_31_2(self):
+      '''[4.3.031]:2 PY Update alter stored procedure using multiline mode: NODE SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full','--py']
+      x_cmds = [("import mysqlx\n","mysql-py>"),
+                ("session=mysqlx.getNodeSession(\'{0}:{1}@{2}\')\n".format(LOCALHOST.user, LOCALHOST.password,
+                                                                                LOCALHOST.host),"mysql-py>"),
+                ("session.sql(\'use sakila;\').execute()\n","Query OK"),
+                ("session.sql(\'DROP PROCEDURE IF EXISTS my_automated_procedure;\').execute()\n","Query OK"),
+                ("\\\n","..."),
+                ("session.sql(\'delimiter \\\\\').execute()\n","..."),
+                ("session.sql(\"create procedure my_automated_procedure (INOUT incr_param INT)\n "
+                 "BEGIN \n    SET incr_param = incr_param + 1 ;\nEND\\\\\").execute()\n","..."),
+                ("delimiter ;\n","..."),
+                ("\n","mysql-py>"),
+                ("session.sql(\"select name from mysql.proc;\").execute()\n","my_automated_procedure")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_4_3_32_1(self):
+      '''[4.3.032]:1 PY Update alter stored procedure using STDIN batch code: CLASSIC SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--py', '-u' + LOCALHOST.user,
+                      '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.port,
+                      '--schema=sakila','--session-type=classic','< '  + Exec_files_location + 'UpdateProcedure_ClassicMode.py']
+      x_cmds = [("\n", "mysql-py>")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_4_3_32_2(self):
+      '''[4.3.032]:2 PY Update alter stored procedure using STDIN batch code: NODE SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--py', '-u' + LOCALHOST.user,
+                      '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port,
+                      '--schema=sakila','--session-type=node','< '  + Exec_files_location + 'UpdateProcedure_NodeMode.py']
+      x_cmds = [("\n", "mysql-py>")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_4_4_1_1(self):
+      '''[4.4.001]:1 SQL Delete table using multiline mode: CLASSIC SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7', '-u' + LOCALHOST.user,
+                      '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.port,
+                      '--session-type=classic','--sql']
+      x_cmds = [("use sakila;\n","mysql-sql>"),
+                ("DROP TABLE IF EXISTS example_automation;\n","mysql-sql>"),
+                  ("CREATE TABLE example_automation ( id INT, data VARCHAR(100) );\n","mysql-sql>"),
+                ("show tables;\n","example_automation"),
+                ("\\\n","..."),
+                ("DROP TABLE IF EXISTS example_automation;\n\n","..."),
+                ("\n","mysql-sql>"),
+                ("select table_name from information_schema.tables where table_name = \"example_automation\";\n","doesn't exist"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_4_4_1_2(self):
+      '''[4.4.001]:2 SQL Delete table using multiline mode: NODE SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7', '-u' + LOCALHOST.user,
+                      '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port,
+                      '--session-type=node','--sql']
+      x_cmds = [("use sakila;\n","mysql-sql>"),
+                ("DROP TABLE IF EXISTS example_automation;\n","mysql-sql>"),
+                ("CREATE TABLE example_automation ( id INT, data VARCHAR(100) );\n","mysql-sql>"),
+                ("show tables;\n","example_automation"),
+                ("\\\n","..."),
+                ("DROP TABLE IF EXISTS example_automation;\n\n","..."),
+                ("\n","mysql-sql>"),
+                ("select table_name from information_schema.tables where table_name = \"example_automation\";\n","doesn't exist"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_4_4_2_1(self):
+      '''[4.4.002]:1 SQL Delete table using STDIN batch code: CLASSIC SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--sql', '-u' + LOCALHOST.user,
+                      '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.port,
+                      '--schema=sakila','--session-type=classic','< '  + Exec_files_location + 'DeleteTable_SQL.sql']
+      x_cmds = [(";", "mysql-sql>")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_4_4_2_2(self):
+      '''[4.4.002]:2 SQL Delete table using STDIN batch code: NODE SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--sql', '-u' + LOCALHOST.user,
+                      '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port,
+                      '--schema=sakila','--session-type=node','< '  + Exec_files_location + 'DeleteTable_SQL.sql']
+      x_cmds = [(";", "mysql-sql>")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+
+  def test_4_4_3_1(self):
+      '''[4.4.003]:1 SQL Delete database using multiline mode: CLASSIC SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7', '-u' + LOCALHOST.user, '--password=' +
+                      LOCALHOST.password, '-h' + LOCALHOST.host, '-P' + LOCALHOST.port, '--session-type=classic','--sqlc']
+      x_cmds = [("use sakila;\n", "mysql-sql>"),
+                ("DROP DATABASE IF EXISTS dbtest;\n","mysql-sql>"),
+                ("CREATE DATABASE dbtest;\n","mysql-sql>"),
+                ("show databases;\n","dbtest"),
+                ("\\\n","..."),
+                ("DROP DATABASE IF EXISTS dbtest;\n","..."),
+                ("\n","mysql-sql>"),
+                ("show databases;\n","doesn't exist")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_4_4_3_2(self):
+      '''[4.4.003]:2 SQL Delete database using multiline mode: NODE SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7', '-u' + LOCALHOST.user, '--password=' +
+                      LOCALHOST.password, '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--session-type=node','--sql']
+      x_cmds = [("use sakila;\n", "mysql-sql>"),
+                ("DROP DATABASE IF EXISTS dbtest;\n","mysql-sql>"),
+                ("CREATE DATABASE dbtest;\n","mysql-sql>"),
+                ("show databases;\n","dbtest"),
+                ("\\\n","..."),
+                ("DROP DATABASE IF EXISTS dbtest;\n","..."),
+                ("\n","mysql-sql>"),
+                ("show databases;\n","doesn't exist")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_4_4_4_1(self):
+      '''[4.4.004]:1 SQL Delete database using STDIN batch code: CLASSIC SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--sqlc', '-u' + LOCALHOST.user,
+                      '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.port,
+                      '--schema=sakila','--session-type=classic','< '  + Exec_files_location + 'DeleteSchema_SQL.sql']
+      x_cmds = [(";\n", "mysql-sql>")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_4_4_4_2(self):
+      '''[4.4.004]:2 SQL Delete database using STDIN batch code: NODE SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--sql', '-u' + LOCALHOST.user,
+                      '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port,
+                      '--schema=sakila','--session-type=node','< '  + Exec_files_location + 'DeleteSchema_SQL.sql']
+      x_cmds = [(";\n", "mysql-sql>")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_4_4_5_1(self):
+      '''[4.4.005]:1 SQL Delete view using multiline mode: CLASSIC SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7', '-u' + LOCALHOST.user, '--password=' +
+                      LOCALHOST.password, '-h' + LOCALHOST.host, '-P' + LOCALHOST.port, '--session-type=classic','--sqlc']
+      x_cmds = [("use sakila;\n", "mysql-sql>"),
+                ("DROP VIEW IF EXISTS sql_viewtest;\n","mysql-sql>"),
+                ("create view sql_viewtest as select * from actor where first_name like \'%as%\';\n","mysql-sql>"),
+                ("SELECT TABLE_NAME FROM INFORMATION_SCHEMA.VIEWS;\n","sql_viewtest"),
+                ("\\\n","..."),
+                ("DROP VIEW IF EXISTS sql_viewtest;\n","..."),
+                ("\n","mysql-sql>"),
+                ("SELECT TABLE_NAME FROM INFORMATION_SCHEMA.VIEWS;\n","doesn't exist")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+##
+  def test_4_4_5_2(self):
+      '''[4.4.005]:2 SQL Delete view using multiline mode: NODE SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7', '-u' + LOCALHOST.user, '--password=' +
+                      LOCALHOST.password, '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--session-type=node','--sql']
+      x_cmds = [("use sakila;\n", "mysql-sql>"),
+                ("DROP VIEW IF EXISTS sql_viewtest;\n","mysql-sql>"),
+                ("create view sql_viewtest as select * from actor where first_name like \'%as%\';\n","mysql-sql>"),
+                ("SELECT TABLE_NAME FROM INFORMATION_SCHEMA.VIEWS WHERE TABLE_NAME LIKE \'%viewtest%\';\n","sql_viewtest"),
+                ("\\\n","..."),
+                ("DROP VIEW IF EXISTS sql_viewtest;\n","..."),
+                ("\n","mysql-sql>"),
+                ("SELECT TABLE_NAME FROM INFORMATION_SCHEMA.VIEWS WHERE TABLE_NAME LIKE \'%viewtest%\';\n","Empty set")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_4_4_6_1(self):
+      '''[4.4.006]:1 SQL Delete view using STDIN batch code: CLASSIC SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--sql', '-u' + LOCALHOST.user,
+                      '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.port,
+                      '--schema=sakila','--session-type=classic','< '  + Exec_files_location + 'DeleteView_SQL.sql']
+      x_cmds = [(";", "mysql-sql>")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_4_4_6_2(self):
+      '''[4.4.006]:2 SQL Delete view using STDIN batch code: NODE SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--sql', '-u' + LOCALHOST.user,
+                      '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port,
+                      '--schema=sakila','--session-type=node','< '  + Exec_files_location + 'DeleteView_SQL.sql']
+      x_cmds = [(";", "mysql-sql>")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_4_4_7_1(self):
+      '''[4.4.007]:1 SQL Delete stored procedure using multiline mode: CLASSIC SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7', '-u' + LOCALHOST.user, '--password=' +
+                      LOCALHOST.password, '-h' + LOCALHOST.host, '-P' + LOCALHOST.port, '--session-type=classic','--sqlc']
+      x_cmds = [("use sakila;\n", "mysql-sql>"),
+                ("DROP PROCEDURE IF EXISTS my_automated_procedure;\n","mysql-sql>"),
+                ("delimiter \\\\ \n","mysql-sql>"),
+                ("create procedure my_automated_procedure (INOUT incr_param INT)\n "
+                 "BEGIN \n    SET incr_param = incr_param + 1 ;\nEND\\\\\n","mysql-sql>"),
+                ("delimiter ;\n","mysql-sql>"),
+                ("select name from mysql.proc where name like \'%automated_procedure%\';\n","my_automated_procedure"),
+                ("\\\n","..."),
+                ("DROP PROCEDURE IF EXISTS my_automated_procedure;\n","..."),
+                ("\n","mysql-sql>"),
+                ("select name from mysql.proc where name like \'%automated_procedure%\';\n","Empty set")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_4_4_7_2(self):
+      '''[4.4.007]:2 SQL Delete stored procedure using multiline mode: NODE SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7', '-u' + LOCALHOST.user, '--password=' +
+                      LOCALHOST.password, '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--session-type=node','--sql']
+      x_cmds = [("use sakila;\n", "mysql-sql>"),
+                ("DROP PROCEDURE IF EXISTS my_automated_procedure;\n","mysql-sql>"),
+                ("delimiter \\\\ \n","mysql-sql>"),
+                ("create procedure my_automated_procedure (INOUT incr_param INT)\n "
+                 "BEGIN \n    SET incr_param = incr_param + 1 ;\nEND\\\\\n","mysql-sql>"),
+                ("delimiter ;\n","mysql-sql>"),
+                ("select name from mysql.proc where name like \'%automated_procedure%\';\n","my_automated_procedure"),
+                ("\\\n","..."),
+                ("DROP PROCEDURE IF EXISTS my_automated_procedure;\n","..."),
+                ("\n","mysql-sql>"),
+                ("select name from mysql.proc where name like \'%automated_procedure%\';\n","Empty set")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+
+  # ----------------------------------------------------------------------
 # ----------------------------------------------------------------------
 
-# tc_4_3_31_1("[4.3.031]:1 PY Update alter stored procedure using multiline mode: CLASSIC SESSION")
-# tc_4_3_31_2("[4.3.031]:2 PY Update alter stored procedure using multiline mode: NODE SESSION")
-# tc_4_3_32_1("[4.3.032]:1 PY Update alter stored procedure using STDIN batch code: CLASSIC SESSION")
-# tc_4_3_32_2("[4.3.032]:2 PY Update alter stored procedure using STDIN batch code: NODE SESSION")
-# tc_4_4_1_1("[4.4.001]:1 SQL Delete table using multiline mode: CLASSIC SESSION")
-# tc_4_4_1_2("[4.4.001]:2 SQL Delete table using multiline mode: NODE SESSION")
-# tc_4_4_2_1("[4.4.002]:1 SQL Delete table using STDIN batch code: CLASSIC SESSION")
-# tc_4_4_2_2("[4.4.002]:2 SQL Delete table using STDIN batch code: NODE SESSION")
-# tc_4_4_3_1("[4.4.003]:1 SQL Delete database using multiline mode: CLASSIC SESSION")
-# tc_4_4_3_2("[4.4.003]:2 SQL Delete database using multiline mode: NODE SESSION")
-# tc_4_4_4_1("[4.4.004]:1 SQL Delete database using STDIN batch code: CLASSIC SESSION")
-# tc_4_4_4_2("[4.4.004]:2 SQL Delete database using STDIN batch code: NODE SESSION")
-# tc_4_4_5_1("[4.4.005]:1 SQL Delete view using multiline mode: CLASSIC SESSION")
-# tc_4_4_5_2("[4.4.005]:2 SQL Delete view using multiline mode: NODE SESSION")
-# tc_4_4_6_1("[4.4.006]:1 SQL Delete view using STDIN batch code: CLASSIC SESSION")
-# tc_4_4_6_2("[4.4.006]:2 SQL Delete view using STDIN batch code: NODE SESSION")
-# tc_4_4_7_1("[4.4.007]:1 SQL Delete stored procedure using multiline mode: CLASSIC SESSION")
-# tc_4_4_7_2("[4.4.007]:2 SQL Delete stored procedure using multiline mode: NODE SESSION")
 # tc_4_4_8_1("[4.4.008]:1 SQL Delete stored procedure using STDIN batch code: CLASSIC SESSION")
 # tc_4_4_8_2("[4.4.008]:2 SQL Delete stored procedure using STDIN batch code: NODE SESSION")
 # tc_4_4_9_1("[4.4.009]:1 JS Delete table using session object: CLASSIC SESSION")
