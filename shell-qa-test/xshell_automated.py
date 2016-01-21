@@ -134,7 +134,9 @@ class REMOTEHOST:
     xprotocol_port = ""
     port = ""
 
-config=json.load(open('config.json'))
+config_path = os.environ['CONFIG_PATH']  
+# config=json.load(open('config_local.json'))
+config=json.load(open(config_path))
 
 LOCALHOST.user = str(config["local"]["user"])
 LOCALHOST.password = str(config["local"]["password"])
