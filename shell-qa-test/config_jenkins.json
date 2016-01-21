@@ -1,0 +1,22 @@
+{
+"general": {
+        "xshell_path" : "/var/lib/jenkins-ng/workspace/XShell/label/linux/mybuild/mysqlx",
+        "aux_files_path" : "/var/lib/jenkins-ng/workspace/XShell/label/linux/shell-qa-test/aux_files"
+    },
+"local":{
+        "user" : "root",
+        "password" : "xshellpwd",
+        "host" : "localhost",
+        "xprotocol_port" : 33060,
+        "port" : 3307
+    },
+"remote": {
+        "user" : "root",
+        "password" : "xshellpwd",
+        "host" : "localhost",
+        "xprotocol_port" : 33060,
+        "port" : 3307
+    }
+
+	
+}
