@@ -134,9 +134,9 @@ class REMOTEHOST:
     xprotocol_port = ""
     port = ""
 
-# config_path = os.environ['CONFIG_PATH']
-config=json.load(open('config_local.json'))
-# config=json.load(open(config_path))
+config_path = os.getenv['CONFIG_PATH']  
+# config=json.load(open('config_local.json'))
+config=json.load(open(config_path))
 
 LOCALHOST.user = str(config["local"]["user"])
 LOCALHOST.password = str(config["local"]["password"])
@@ -150,8 +150,8 @@ REMOTEHOST.host = str(config["remote"]["host"])
 REMOTEHOST.xprotocol_port = str(config["remote"]["xprotocol_port"])
 REMOTEHOST.port = str(config["remote"]["port"])
 
-MYSQL_SHELL = os.environ['MYSQLX_PATH']
-Exec_files_location = os.environ['AUX_FILES_PATH']
+MYSQL_SHELL = os.getenv['MYSQLX_PATH']
+Exec_files_location = os.getenv['AUX_FILES_PATH']
 # MYSQL_SHELL = str(config["general"]["xshell_path"])
 # Exec_files_location = str(config["general"]["aux_files_path"])
 ###########################################################################################
