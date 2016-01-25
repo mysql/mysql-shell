@@ -87,7 +87,7 @@ def read_til_getShell(proc, fd, text):
     return "".join(data)
 
 
-#@timeout(5)
+@timeout(5)
 def exec_xshell_commands(init_cmdLine, commandList):
     RESULTS = "PASS"
     commandbefore = ""
@@ -153,10 +153,12 @@ class REMOTEHOST:
 
 # **** JENKINS EXEXCUTION ****
 # **** To enable jenkins to execute properly please comment the LOCAL EXECUTION lines and uncomment these ones	
-config_path = os.environ['CONFIG_PATH']  
+config_path = os.environ['CONFIG_PATH']
 config=json.load(open(config_path))
 MYSQL_SHELL = os.environ['MYSQLX_PATH']
 Exec_files_location = os.environ['AUX_FILES_PATH']
+
+#########################################################################
 
 LOCALHOST.user = str(config["local"]["user"])
 LOCALHOST.password = str(config["local"]["password"])
