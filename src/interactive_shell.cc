@@ -1073,13 +1073,13 @@ void Interactive_shell::process_line(const std::string &line)
             add_history(executed.c_str());
 #endif
             println("");
+          }
         }
-      }
         // Continued blocks are only executed when an empty line is received
         // this case is when a block was executed and a new one was started at the same time
         else if (_input_mode == Input_continued_block && line.empty())
           _input_buffer.clear();
-    }
+      }
       catch (shcore::Exception &exc)
       {
         _delegate.print_error(_delegate.user_data, exc.format().c_str());
@@ -1096,8 +1096,8 @@ void Interactive_shell::process_line(const std::string &line)
       // the non executed code
       if (_input_mode == Input_ok)
         _input_buffer.clear();
+    }
   }
-}
 }
 
 void Interactive_shell::process_result(shcore::Value result)
@@ -1275,11 +1275,11 @@ void Interactive_shell::command_loop()
 
 void Interactive_shell::print_banner()
 {
-  std::string welcome_msg("Welcome to MySQLx Shell ");
+  std::string welcome_msg("Welcome to MySQL X Shell ");
   welcome_msg += MYSH_VERSION;
   println(welcome_msg);
   println("");
-  println("Copyright (c) 2014, 2015, Oracle and/or its affiliates. All rights reserved.");
+  println("Copyright (c) 2014, 2016 Oracle and/or its affiliates. All rights reserved.");
   println("");
   println("Oracle is a registered trademark of Oracle Corporation and/or its");
   println("affiliates. Other names may be trademarks of their respective");
@@ -1291,7 +1291,7 @@ void Interactive_shell::print_banner()
 
 void Interactive_shell::print_cmd_line_helper()
 {
-  std::string help_msg("MySQLx Shell ");
+  std::string help_msg("MySQL X Shell ");
   help_msg += MYSH_VERSION;
   println(help_msg);
   println("");

@@ -150,8 +150,11 @@ REMOTEHOST.host = str(config["remote"]["host"])
 REMOTEHOST.xprotocol_port = str(config["remote"]["xprotocol_port"])
 REMOTEHOST.port = str(config["remote"]["port"])
 
-MYSQL_SHELL = str(config["general"]["xshell_path"])
-Exec_files_location = str(config["general"]["aux_files_path"])
+MYSQL_SHELL = os.environ['MYSQLX_PATH']
+Exec_files_location = os.environ['AUX_FILES_PATH']
+
+# MYSQL_SHELL = str(config["general"]["xshell_path"])
+# Exec_files_location = str(config["general"]["aux_files_path"])
 ###########################################################################################
 
 class XShell_TestCases(unittest.TestCase):
