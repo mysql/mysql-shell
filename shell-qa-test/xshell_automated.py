@@ -144,9 +144,19 @@ class REMOTEHOST:
     xprotocol_port = ""
     port = ""
 
-config_path = os.environ['CONFIG_PATH']  
+# **** LOCAL EXECUTION ****
+# **** To run locally please uncomment these lines and comment the ones from JENKINS EXECUTION section	
+
 # config=json.load(open('config_local.json'))
+# MYSQL_SHELL = str(config["general"]["xshell_path"])
+# Exec_files_location = str(config["general"]["aux_files_path"])
+
+# **** JENKINS EXEXCUTION ****
+# **** To enable jenkins to execute properly please comment the LOCAL EXECUTION lines and uncomment these ones	
+config_path = os.environ['CONFIG_PATH']  
 config=json.load(open(config_path))
+MYSQL_SHELL = os.environ['MYSQLX_PATH']
+Exec_files_location = os.environ['AUX_FILES_PATH']
 
 LOCALHOST.user = str(config["local"]["user"])
 LOCALHOST.password = str(config["local"]["password"])
@@ -160,8 +170,7 @@ REMOTEHOST.host = str(config["remote"]["host"])
 REMOTEHOST.xprotocol_port = str(config["remote"]["xprotocol_port"])
 REMOTEHOST.port = str(config["remote"]["port"])
 
-MYSQL_SHELL = str(config["general"]["xshell_path"])
-Exec_files_location = str(config["general"]["aux_files_path"])
+
 
 class globalvar:
     last_found=""
