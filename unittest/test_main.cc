@@ -30,7 +30,6 @@ int main(int argc, char **argv)
   JScript_context_init();
 #endif
 
-
   if (!getenv("MYSQL_URI"))
   {
     std::cerr << "WARNING: The MYSQL_URI MYSQL_PWD and MYSQL_PORT environment variables are not set\n";
@@ -64,7 +63,6 @@ int main(int argc, char **argv)
   }
 
   int ret_val = RUN_ALL_TESTS();
-
 
   return ret_val;
 }

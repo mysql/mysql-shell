@@ -86,6 +86,8 @@ namespace shcore
         return AS__STRING(options->initial_mode);
       else if (option == "session-type")
         return AS__STRING(options->session_type);
+      else if (option == "execute_statement")
+        return options->execute_statement;
 
       return "";
     }
@@ -376,6 +378,7 @@ namespace shcore
     EXPECT_FALSE(options.trace_protocol);
     EXPECT_TRUE(options.uri.empty());
     EXPECT_TRUE(options.user.empty());
+    EXPECT_TRUE(options.execute_statement.empty());
   }
 
   TEST_F(Shell_cmdline_options_t, app)
@@ -410,6 +413,8 @@ namespace shcore
     test_option_with_value("session-type", "", "classic", "", !IS_CONNECTION_DATA, !IS_NULLABLE, "", AS__STRING(mysh::Classic).c_str());
     test_option_with_value("session-type", "", "node", "", !IS_CONNECTION_DATA, !IS_NULLABLE, "", AS__STRING(mysh::Node).c_str());
     test_option_with_value("session-type", "", "app", "", !IS_CONNECTION_DATA, !IS_NULLABLE, "", AS__STRING(mysh::Application).c_str());
+
+    test_option_with_value("execute", "e", "show databases;", "", !IS_CONNECTION_DATA, !IS_NULLABLE, "execute_statement");
 
     test_option_with_no_value("--x", "session-type", AS__STRING(mysh::Application));
     test_option_with_no_value("--classic", "session-type", AS__STRING(mysh::Classic));
