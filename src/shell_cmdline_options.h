@@ -63,6 +63,7 @@ public:
   bool prompt_password;
   bool recreate_database;
   bool trace_protocol;
+  std::string execute_statement;
   ngcommon::Logger::LOG_LEVEL log_level;
 
   // Takes the URI and the individual connection parameters and overrides

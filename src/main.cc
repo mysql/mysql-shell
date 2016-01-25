@@ -19,6 +19,7 @@
 
 #include "interactive_shell.h"
 #include <sys/stat.h>
+#include <sstream>
 
 #ifdef WIN32
 #  include <io.h>
@@ -80,7 +81,7 @@ std::string detect_interactive(Shell_command_line_options &options, bool &from_s
   if (!isatty(__stdin_fileno) || !isatty(__stdout_fileno))
     is_interactive = false;
   else
-    is_interactive = options.run_file.empty();
+    is_interactive = options.run_file.empty() && options.execute_statement.empty();
 
   // The --interactive option forces the shell to work emulating the
   // interactive mode no matter if:
@@ -160,7 +161,12 @@ int main(int argc, char **argv)
         }
       }
 
-      if (!options.run_file.empty())
+      if (!options.execute_statement.empty())
+      {
+        std::stringstream stream(options.execute_statement);
+        ret_val = shell.process_stream(stream, "STDIN");
+      }
+      else if (!options.run_file.empty())
         ret_val = shell.process_file();
       else if (from_stdin)
       {
