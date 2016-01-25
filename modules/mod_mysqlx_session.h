@@ -17,7 +17,7 @@
  * 02110-1301  USA
  */
 
-// Interactive session access module for MySQLx sessions
+// Interactive session access module for MySQL X sessions
 // Exposed as "session" in the shell
 
 #ifndef _MOD_XSESSION_H_
