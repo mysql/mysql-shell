@@ -1304,6 +1304,7 @@ void Interactive_shell::print_cmd_line_helper()
   println("Usage: mysqlx [OPTIONS] [db_name]");
   println("  --help                   Display this help and exit.");
   println("  -f, --file=file          Process file.");
+  println("  -e, --execute=<cmd>      Execute command and quit.");
   println("  --uri                    Connect to Uniform Resource Identifier.");
   println("  --app                    Connect to using a Stored Session.");
   println("                           Format: [user[:pass]]@host[:port][/db]");
