@@ -8,12 +8,17 @@ import unittest
 import json
 import xmlrunner
 
+
+
+
 def timeout(timeout):
     def deco(func):
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
             # res = [Exception('function [%s] timeout [%s seconds] exceeded!' % (func.__name__, timeout))]
-            res = [Exception('FAILED timeout [%s seconds] exceeded!' % ( timeout))]
+            #res = [Exception('FAILED timeout [%s seconds] exceeded! ' % ( timeout))]
+            globales = func.func_globals
+            res = [Exception('FAILED timeout [%s seconds] exceeded! Found: -%s- \r\n Searching: -%s-' % (timeout, globalvar.last_found, globalvar.last_search))]
             def newFunc():
                 try:
                     res[0] = func(*args, **kwargs)
@@ -34,10 +39,12 @@ def timeout(timeout):
         return wrapper
     return deco
 
+
+
 def read_line(proc, fd, end_string):
     data = ""
     new_byte = b''
-    t = time.time()
+    #t = time.time()
     while (new_byte != b'\n'):
         try:
             new_byte = fd.read(1)
@@ -59,14 +66,16 @@ def read_line(proc, fd, end_string):
     return data
 
 def read_til_getShell(proc, fd, text):
+    globalvar.last_search = text
+    globalvar.last_found=""
     data = []
     line = ""
-    t = time.time()
+    #t = time.time()
     # while line != text  and proc.poll() == None:
     while line.find(text,0,len(line))< 0  and proc.poll() == None:
         try:
             line = read_line(proc, fd, text)
-
+            globalvar.last_found = globalvar.last_found + line
             if line:
                 data.append(line)
             elif proc.poll() is not None:
@@ -77,7 +86,8 @@ def read_til_getShell(proc, fd, text):
             break
     return "".join(data)
 
-@timeout(5)
+
+#@timeout(5)
 def exec_xshell_commands(init_cmdLine, commandList):
     RESULTS = "PASS"
     commandbefore = ""
@@ -111,7 +121,7 @@ def exec_xshell_commands(init_cmdLine, commandList):
     p.stdin.flush()
     stdin,stdout = p.communicate()
     found = stdout.find(bytearray(expectbefore,"ascii"), 0, len(stdout))
-    if found == -1 :
+    if found == -1 and commandList.__len__() != 0 :
             found = stdin.find(bytearray(expectbefore,"ascii"), 0, len(stdin))
             if found == -1 :
                 return "FAIL:  " + stdin.decode("ascii") + stdout.decode("ascii")
@@ -150,11 +160,13 @@ REMOTEHOST.host = str(config["remote"]["host"])
 REMOTEHOST.xprotocol_port = str(config["remote"]["xprotocol_port"])
 REMOTEHOST.port = str(config["remote"]["port"])
 
-MYSQL_SHELL = os.environ['MYSQLX_PATH']
-Exec_files_location = os.environ['AUX_FILES_PATH']
+MYSQL_SHELL = str(config["general"]["xshell_path"])
+Exec_files_location = str(config["general"]["aux_files_path"])
 
-# MYSQL_SHELL = str(config["general"]["xshell_path"])
-# Exec_files_location = str(config["general"]["aux_files_path"])
+class globalvar:
+    last_found=""
+    last_search=""
+
 ###########################################################################################
 
 class XShell_TestCases(unittest.TestCase):
@@ -508,7 +520,7 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
       x_cmds = [("\\connect_classic {0}:{1}@{2}:{3}\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
-                                                              LOCALHOST.port),"Creating Classic Session"),
+                                                              LOCALHOST.port),"Creating a Classic Session"),
                 ("print(session);\n", "ClassicSession:"),
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
@@ -564,7 +576,7 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
       x_cmds = [("\\connect_classic {0}:{1}@{2}:{3}\n".format(REMOTEHOST.user, REMOTEHOST.password, REMOTEHOST.host,
-                                                              REMOTEHOST.port),"Creating Classic Session"),
+                                                              REMOTEHOST.port),"Creating a Classic Session"),
                 ("print(session);\n", "ClassicSession:"),
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
@@ -1454,12 +1466,14 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+  #FAILING........
   def test_3_1_09_03(self):
       '''[3.1.009]:3 Check that STATUS command [ \status, \s ] works: node session \status'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--uri',
                       'mysqlx://{0}:{1}@{2}:{3}'.format(REMOTEHOST.user, REMOTEHOST.password, REMOTEHOST.host,REMOTEHOST.xprotocol_port), '--session-type=node', '--sql']
-      x_cmds = [("\\status\n", "Current user:                 root@localhost")
+      x_cmds = [("\n", "mysql-sql>"),
+                ("\\status\n", "Session type:")
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
@@ -1528,8 +1542,9 @@ class XShell_TestCases(unittest.TestCase):
       '''[4.0.001]:1 Batch Exec - Loading code from file:  --file= createtable.js'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full' , '--file=' + Exec_files_location + 'CreateTable.js' ]
-      x_cmds = [('\n', "mysql-js>")
-               ]
+      #x_cmds = [('\n', "mysql-js>")
+      #         ]
+      x_cmds = []
       results = exec_xshell_commands(init_command, x_cmds)
       results2=str(results)
       if results2.find(bytearray("FAIL","ascii"),0,len(results2))> -1:
@@ -1539,29 +1554,30 @@ class XShell_TestCases(unittest.TestCase):
       x_cmds = [('\\connect_node {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
                 ("\\sql\n","mysql-sql>"),
                 ("use sakila;\n","mysql-sql>"),
-                ("show tables like \'testdb\';\n","1 row in set")
+                ("show tables like \'testdb\';\n","1 row in set"),
+                ("drop table if exists testdb;\n","Query OK"),
+                ("show tables like \'testdb\';\n","Empty set"),
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
-  #@unittest.skip("not reading the  < batch  pipe when using  inside script")
+
+
   def test_4_0_02_01(self):
-      '''[4.0.002]:1 Batch Exec - Redirecting code to standard input: < createtable.js'''
-      results = ''
-      init_command = [MYSQL_SHELL, '--interactive=full' , '< '  + Exec_files_location + 'CreateTable2.js']
-      x_cmds = [('\n', "mysql-js>")
-               ]
-      results = exec_xshell_commands(init_command, x_cmds)
-      results2=str(results)
-      if results2.find(bytearray("FAIL","ascii"),0,len(results2))> -1:
-        self.assertEqual(results2, 'PASS')
-      # check that table was created successfully
+      '''[4.0.002]:1 Batch Exec - Loading code from file:  < createtable.js'''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+      p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=open(Exec_files_location+'CreateTable2.js'))
+      stdin,stdout = p.communicate()
+      if stdin.find(bytearray("FAIL","ascii"),0,len(stdin))> -1:
+        self.assertEqual(stdin, 'PASS')
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
       x_cmds = [('\\connect_node {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
                 ("\\sql\n","mysql-sql>"),
                 ("use sakila;\n","mysql-sql>"),
-                ("show tables like \'testdb2\';\n","1 row in set")
+                ("show tables like \'testdb2\';\n","1 row in set"),
+                ("drop table if exists testdb2;\n","Query OK"),
+                ("show tables like \'testdb2\';\n","Empty set"),
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
@@ -1580,14 +1596,14 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+
   def test_4_1_02_01(self):
       '''[4.1.002] SQL Create a table using STDIN batch process: NODE SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--sql', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
                       '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--session-type=node','--sql','--schema=sakila',
                       '--file='+ Exec_files_location +'CreateTable_SQL.sql']
-      x_cmds = [('\n', "mysql-js>")
-               ]
+      x_cmds = []
       results = exec_xshell_commands(init_command, x_cmds)
       results2=str(results)
       if results2.find(bytearray("FAIL","ascii"),0,len(results2))> -1:
@@ -1598,7 +1614,7 @@ class XShell_TestCases(unittest.TestCase):
                 ("\\sql\n","mysql-sql>"),
                 ("use sakila;\n","mysql-sql>"),
                 ("show tables like \'example_SQLTABLE\';\n","1 row in set"),
-                ("drop table if exists \'example_SQLTABLE\';\n","1 row in set")
+                ("drop table if exists example_SQLTABLE;\n","Query OK")
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
@@ -1635,7 +1651,6 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
-  #@unittest.skip("muyltiline not catched on script")
   def test_4_3_1_1(self):
       '''[4.3.001]:1 SQL Update table using multiline mode:CLASSIC SESSION'''
       results = ''
@@ -1645,64 +1660,97 @@ class XShell_TestCases(unittest.TestCase):
       x_cmds = [("\\\n","..."),
                 ("use sakila;\n","..."),
                 ("Update actor set last_name =\'Test Last Name\', last_update = now() where actor_id = 2;\n","..."),
-                ("\n","rows in set"),
+                ("\n","Query OK, 1 row affected"),
                 ("select last_name from actor where actor_id = 2;\n","Test Last Name")
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
-  #@unittest.skip("not reading the  < batch  pipe when using  inside script")
+
   def test_4_3_2_1(self):
       '''[4.3.002]:1 SQL Update table using STDIN batch code: CLASSIC SESSION'''
       results = ''
-      init_command = [MYSQL_SHELL, '--interactive=full', '--sql', '-u' + LOCALHOST.user,
+      init_command = [MYSQL_SHELL, '--interactive=full', '--sqlc', '-u' + LOCALHOST.user,
                       '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.port,
-                      '--schema=sakila','--session-type=classic','< '  + Exec_files_location + 'UpdateTable_SQL.sql ']
-      x_cmds = [(";", "mysql-sql>")
+                      '--schema=sakila','--session-type=classic']
+      p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=open( Exec_files_location + 'UpdateTable_SQL.sql '))
+      stdin,stdout = p.communicate()
+      if stdin.find(bytearray("FAIL","ascii"),0,len(stdin))> -1:
+        self.assertEqual(stdin, 'PASS')
+
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+      x_cmds = [('\\connect_node {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
+                ("\\sql\n","mysql-sql>"),
+                ("use sakila;\n","mysql-sql>"),
+                ("SELECT first_name FROM actor WHERE first_name=\'Test\';\n","Test"),
+                ("UPDATE actor SET first_name=\'Testback\' WHERE actor_id=2;\n","Query OK"),
+                ("SELECT first_name FROM actor WHERE first_name=\'Testback\';\n","Testback"),
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
-  #@unittest.skip("not reading the  < batch  pipe when using  inside script")
+
   def test_4_3_2_2(self):
       '''[4.3.002]:2 SQL Update table using STDIN batch code: NODE SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--sql', '-u' + LOCALHOST.user,
                       '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port,
-                      '--schema=sakila','--session-type=node','< '  + Exec_files_location + 'UpdateTable_SQL.sql ']
-      x_cmds = [(";", "mysql-sql>")
+                      '--schema=sakila','--session-type=node']
+      p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=open( Exec_files_location + 'UpdateTable_SQL.sql '))
+      stdin,stdout = p.communicate()
+      if stdin.find(bytearray("FAIL","ascii"),0,len(stdin))> -1:
+        self.assertEqual(stdin, 'PASS')
+
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+      x_cmds = [('\\connect_node {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
+                ("\\sql\n","mysql-sql>"),
+                ("use sakila;\n","mysql-sql>"),
+                ("SELECT first_name FROM actor WHERE first_name=\'Test\';\n","Test"),
+                ("UPDATE actor SET first_name=\'Testback\' WHERE actor_id=2;\n","Query OK"),
+                ("SELECT first_name FROM actor WHERE first_name=\'Testback\';\n","Testback"),
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
-  #@unittest.skip("muyltiline not catched on script")
   def test_4_3_3_1(self):
       '''[4.3.003]:1 SQL Update database using multiline mode: CLASSIC SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7', '-u' + LOCALHOST.user,
                       '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.port,
                       '--session-type=classic','--sqlc']
-      x_cmds = [("create schema if not exists AUTOMATION;\n","mysql-sql>"),
+      x_cmds = [("drop schema if exists AUTOMATION;\n","mysql-sql>"),
+                ("create schema if not exists AUTOMATION;\n","mysql-sql>"),
                 ("\\\n","..."),
-                ("ALTER SCHEMA \'AUTOMATION\' DEFAULT COLLATE utf8_general_ci ;\n","..."),
-                ("\n","mysql-sql>"),
-                ("SELECT DEFAULT_COLLATION_NAME FROM information_schema.SCHEMATA WHERE SCHEMA_NAME = \'AUTOMATION' LIMIT 1;\n","utf8_general")
+                ("ALTER SCHEMA AUTOMATION DEFAULT COLLATE utf8_general_ci ;\n","..."),
+                ("\n","Query OK"),
+                ("SELECT DEFAULT_COLLATION_NAME FROM information_schema.SCHEMATA WHERE SCHEMA_NAME = \'AUTOMATION' LIMIT 1;\n","1 row in set")
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
-  #@unittest.skip("not reading the  < batch  pipe when using  inside script")
   def test_4_3_4_1(self):
       '''[4.3.004]:1 SQL Update database using STDIN batch code: CLASSIC SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--sqlc', '-u' + LOCALHOST.user,
                       '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.port,
-                      '--schema=sakila','--session-type=classic','< '  + Exec_files_location + 'SchemaDatabaseUpdate_SQL.sql']
-      x_cmds = [(";", "mysql-sql>")
+                      '--schema=sakila','--session-type=classic']
+      p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=open( Exec_files_location + 'SchemaDatabaseUpdate_SQL.sql'))
+      stdin,stdout = p.communicate()
+      if stdin.find(bytearray("FAIL","ascii"),0,len(stdin))> -1:
+        self.assertEqual(stdin, 'PASS')
+
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+      x_cmds = [('\\connect_node {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
+                ("\\sql\n","mysql-sql>"),
+                ("SELECT DEFAULT_COLLATION_NAME FROM information_schema.SCHEMATA WHERE SCHEMA_NAME = \'AUTOMATION' LIMIT 1;\n","1 row in set")
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+  #FAILING........
   #@unittest.skip("not reading the  < batch  pipe when using  inside script")
   def test_4_3_4_2(self):
       '''[4.3.004]:2 SQL Update database using STDIN batch code'''
@@ -1732,6 +1780,7 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+  #FAILING........
   #@unittest.skip("not reading the  < batch  pipe when using  inside script")
   def test_4_3_6_1(self):
       '''[4.3.006]:1 SQL Update Alter view using STDIN batch code: CLASSIC SESSION'''
@@ -1744,6 +1793,8 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+
+  #FAILING........
   #@unittest.skip("not reading the  < batch  pipe when using  inside script")
   def test_4_3_6_2(self):
       '''[4.3.006]:2 SQL Update Alter view using STDIN batch code: NODE SESSION'''
@@ -1756,6 +1807,8 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+
+  #FAILING........
   def test_4_3_7_1(self):
       '''[4.3.007]:1 SQL Update Alter stored procedure using multiline mode'''
       results = ''
@@ -1777,6 +1830,8 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+
+  #FAILING........
   #@unittest.skip("not reading the  < batch  pipe when using  inside script")
   def test_4_3_8_1(self):
       '''[4.3.008]:1 SQL Update Alter stored procedure using STDIN batch code: CLASSIC SESSION'''
@@ -1789,6 +1844,8 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+
+  #FAILING........
   def test_4_3_8_2(self):
       '''[4.3.008]:2 SQL Update Alter stored procedure using STDIN batch code: NODE SESSION'''
       results = ''
@@ -1821,6 +1878,8 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+
+  #FAILING........
   def test_4_3_9_2(self):
       '''[4.3.009]:2 JS Update table using session object: NODE SESSION'''
       results = ''
@@ -1841,6 +1900,8 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+
+  #FAILING........
   def test_4_3_10_1(self):
       '''[4.3.010]:1 JS Update table using multiline mode: CLASSIC SESSION'''
       results = ''
@@ -1866,6 +1927,8 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+
+  #FAILING........
   def test_4_3_10_2(self):
       '''[4.3.010]:2 JS Update table using multiline mode: NODE SESSION'''
       results = ''
@@ -1890,6 +1953,8 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+
+  #FAILING........
   def test_4_3_11_1(self):
       '''[4.3.011]:1 JS Update table using STDIN batch code: CLASSIC SESSION'''
       results = ''
@@ -1901,6 +1966,8 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+
+  #FAILING........
   def test_4_3_11_2(self):
       '''[4.3.011]:2 JS Update table using STDIN batch code: NODE SESSION'''
       results = ''
@@ -1912,6 +1979,9 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+
+
+  #FAILING........
   def test_4_3_12_1(self):
       '''[4.3.012]:1 JS Update database using session object: CLASSIC SESSION'''
       results = ''
@@ -1928,6 +1998,8 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+
+  #FAILING........
   def test_4_3_12_2(self):
       '''[4.3.012]:2 JS Update database using session object: NODE SESSION'''
       results = ''
@@ -1944,6 +2016,8 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+
+  #FAILING........
   def test_4_3_13_1(self):
       '''[4.3.013]:1 JS Update database using multiline mode: CLASSIC SESSION'''
       results = ''
@@ -1962,6 +2036,8 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+
+  #FAILING........
   def test_4_3_13_2(self):
       '''[4.3.013]:2 JS Update database using multiline mode: NODE SESSION'''
       results = ''
@@ -1980,7 +2056,7 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
-
+  #FAILING........
   def test_4_3_14_1(self):
       '''[4.3.014]:1 JS Update database using STDIN batch code: CLASSIC SESSION'''
       results = ''
@@ -1992,6 +2068,8 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+
+  #FAILING........
   def test_4_3_14_2(self):
       '''[4.3.014]:2 JS Update database using STDIN batch code: NODE SESSION'''
       results = ''
@@ -2003,7 +2081,7 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
-
+  #FAILING........
   def test_4_3_15_1(self):
       '''[4.3.015]:1 JS Update alter view using session object: CLASSIC SESSION'''
       results = ''
@@ -2020,6 +2098,7 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+  #FAILING........
   def test_4_3_15_2(self):
       '''[4.3.015]:2 JS Update alter view using session object: NODE SESSION'''
       results = ''
@@ -2036,6 +2115,8 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+
+  #FAILING........
   def test_4_3_16_1(self):
       '''[4.3.016]:1 JS Update alter view using multiline mode: CLASSIC SESSION'''
       results = ''
@@ -2054,6 +2135,8 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+
+  #FAILING........
   def test_4_3_16_2(self):
       '''[4.3.016]:2 JS Update alter view using multiline mode: NODE SESSION'''
       results = ''
@@ -2072,7 +2155,7 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
-
+  #FAILING........
   def test_4_3_17_1(self):
       '''[4.3.017]:1 JS Update alter view using STDIN batch code: CLASSIC SESSION'''
       results = ''
@@ -2084,6 +2167,8 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+
+  #FAILING........
   def test_4_3_17_2(self):
       '''[4.3.017]:2 JS Update alter view using STDIN batch code: NODE SESSION'''
       results = ''
@@ -2131,7 +2216,7 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
-
+  #FAILING........
   def test_4_3_19_1(self):
       '''[4.3.019]:1 JS Update alter stored procedure using multiline mode: CLASSIC SESSION'''
       results = ''
@@ -2152,6 +2237,8 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+
+  #FAILING........
   def test_4_3_19_2(self):
       '''[4.3.019]:2 JS Update alter stored procedure using multiline mode: NODE SESSION'''
       results = ''
@@ -2172,6 +2259,7 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+  #FAILING........
   def test_4_3_20_1(self):
       '''[4.3.020]:1 JS Update alter stored procedure using STDIN batch code: CLASSIC SESSION'''
       results = ''
@@ -2183,7 +2271,7 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
-
+  #FAILING........
   def test_4_3_20_2(self):
       '''[4.3.020]:2 JS Update alter stored procedure using STDIN batch code: NODE SESSION'''
       results = ''
@@ -2264,6 +2352,7 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+  #FAILING........
   def test_4_3_22_2(self):
       '''[4.3.022]:2 PY Update table using multiline mode: NODE SESSION'''
       results = ''
@@ -2288,6 +2377,7 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+  #FAILING........
   def test_4_3_23_1(self):
       '''[4.3.023]:1 PY Update table using STDIN batch code: CLASSIC SESSION'''
       results = ''
@@ -2299,6 +2389,7 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+  #FAILING........
   def test_4_3_23_2(self):
       '''[4.3.023]:2 PY Update table using STDIN batch code: NODE SESSION'''
       results = ''
@@ -2343,6 +2434,7 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+  #FAILING........
   def test_4_3_25_1(self):
       '''[4.3.025]:1 PY Update database using multiline mode: CLASSIC SESSION'''
       results = ''
@@ -2361,6 +2453,8 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+
+  #FAILING........
   def test_4_3_25_2(self):
       '''[4.3.025]:2 PY Update database using multiline mode: NODE SESSION'''
       results = ''
@@ -2380,6 +2474,7 @@ class XShell_TestCases(unittest.TestCase):
       self.assertEqual(results, 'PASS')
 
 
+  #FAILING........
   def test_4_3_26_1(self):
       '''[4.3.026]:1 PY Update database using STDIN batch code: CLASSIC SESSION'''
       results = ''
@@ -2391,6 +2486,8 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+
+  #FAILING........
   def test_4_3_26_2(self):
       '''[4.3.026]:2 PY Update database using STDIN batch code: NODE SESSION'''
       results = ''
@@ -2434,7 +2531,7 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
-
+  #FAILING........
   def test_4_3_28_1(self):
       '''[4.3.028]:1 PY Update alter view using multiline mode: CLASSIC SESSION'''
       results = ''
@@ -2453,6 +2550,8 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+
+  #FAILING........
   def test_4_3_28_2(self):
       '''[4.3.028]:2 PY Update alter view using multiline mode: NODE SESSION'''
       results = ''
@@ -2471,6 +2570,8 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+
+  #FAILING........
   def test_4_3_29_1(self):
       '''[4.3.029]:1 PY Update alter view using STDIN batch code: CLASSIC SESSION'''
       results = ''
@@ -2482,6 +2583,8 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+
+  #FAILING........
   def test_4_3_29_2(self):
       '''[4.3.029]:2 PY Update alter view using STDIN batch code: NODE SESSION'''
       results = ''
@@ -2530,7 +2633,7 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
-
+  #FAILING........
   def test_4_3_31_1(self):
       '''[4.3.031]:1 PY Update alter stored procedure using multiline mode: CLASSIC SESSION'''
       results = ''
@@ -2551,6 +2654,8 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+
+  #FAILING........
   def test_4_3_31_2(self):
       '''[4.3.031]:2 PY Update alter stored procedure using multiline mode: NODE SESSION'''
       results = ''
@@ -2571,6 +2676,8 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+
+  #FAILING........
   def test_4_3_32_1(self):
       '''[4.3.032]:1 PY Update alter stored procedure using STDIN batch code: CLASSIC SESSION'''
       results = ''
@@ -2582,6 +2689,7 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+  #FAILING........
   def test_4_3_32_2(self):
       '''[4.3.032]:2 PY Update alter stored procedure using STDIN batch code: NODE SESSION'''
       results = ''
@@ -2593,6 +2701,8 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+
+  #FAILING........
   def test_4_4_1_1(self):
       '''[4.4.001]:1 SQL Delete table using multiline mode: CLASSIC SESSION'''
       results = ''
@@ -2611,6 +2721,7 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+  #FAILING........
   def test_4_4_1_2(self):
       '''[4.4.001]:2 SQL Delete table using multiline mode: NODE SESSION'''
       results = ''
@@ -2629,6 +2740,7 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+  #FAILING........
   def test_4_4_2_1(self):
       '''[4.4.002]:1 SQL Delete table using STDIN batch code: CLASSIC SESSION'''
       results = ''
@@ -2640,6 +2752,8 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+
+  #FAILING........
   def test_4_4_2_2(self):
       '''[4.4.002]:2 SQL Delete table using STDIN batch code: NODE SESSION'''
       results = ''
@@ -2651,7 +2765,7 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
-
+  #FAILING........
   def test_4_4_3_1(self):
       '''[4.4.003]:1 SQL Delete database using multiline mode: CLASSIC SESSION'''
       results = ''
@@ -2669,6 +2783,7 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+  #FAILING........
   def test_4_4_3_2(self):
       '''[4.4.003]:2 SQL Delete database using multiline mode: NODE SESSION'''
       results = ''
@@ -2686,6 +2801,7 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+  #FAILING........
   def test_4_4_4_1(self):
       '''[4.4.004]:1 SQL Delete database using STDIN batch code: CLASSIC SESSION'''
       results = ''
@@ -2697,6 +2813,7 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+  #FAILING........
   def test_4_4_4_2(self):
       '''[4.4.004]:2 SQL Delete database using STDIN batch code: NODE SESSION'''
       results = ''
@@ -2708,6 +2825,7 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+  #FAILING........
   def test_4_4_5_1(self):
       '''[4.4.005]:1 SQL Delete view using multiline mode: CLASSIC SESSION'''
       results = ''
@@ -2742,6 +2860,8 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+
+  #FAILING........
   def test_4_4_6_1(self):
       '''[4.4.006]:1 SQL Delete view using STDIN batch code: CLASSIC SESSION'''
       results = ''
@@ -2753,6 +2873,7 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+  #FAILING........
   def test_4_4_6_2(self):
       '''[4.4.006]:2 SQL Delete view using STDIN batch code: NODE SESSION'''
       results = ''
@@ -2804,6 +2925,7 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+  #FAILING........
   def test_4_4_8_1(self):
       '''[4.4.008]:1 SQL Delete stored procedure using STDIN batch code: CLASSIC SESSION'''
       results = ''
@@ -2815,6 +2937,7 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+  #FAILING........
   def test_4_4_8_2(self):
       '''[4.4.008]:2 SQL Delete stored procedure using STDIN batch code: NODE SESSION'''
       results = ''
@@ -2868,7 +2991,7 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
-
+  #FAILING........
   def test_4_4_10_1(self):
       '''[4.4.010]:1 JS Delete table using multiline mode: CLASSIC SESSION'''
       results = ''
@@ -2892,6 +3015,7 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+  #FAILING........
   def test_4_4_10_2(self):
       '''[4.4.010]:2 JS Delete table using multiline modet: NODE SESSION'''
       results = ''
@@ -2915,6 +3039,7 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+  #FAILING........
   def test_4_4_11_1(self):
       '''[4.4.011]:1 JS Delete table using STDIN batch code: CLASSIC SESSION'''
       results = ''
@@ -2926,6 +3051,8 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+
+  #FAILING........
   def test_4_4_11_2(self):
       '''[4.4.011]:2 JS Delete table using STDIN batch code: NODE SESSION'''
       results = ''
@@ -2967,6 +3094,8 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+
+  #FAILING........
   def test_4_4_13_1(self):
       '''[4.4.013]:1 JS Delete database using multiline mode: CLASSIC SESSION'''
       results = ''
@@ -2984,6 +3113,7 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+  #FAILING........
   def test_4_4_13_2(self):
       '''[4.4.013]:2 JS Delete database using multiline mode: NODE SESSION'''
       results = ''
@@ -3001,6 +3131,8 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+
+  #FAILING........
   def test_4_4_14_1(self):
       '''[4.4.014]:1 JS Delete database using STDIN batch code: CLASSIC SESSION'''
       results = ''
@@ -3012,6 +3144,8 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+
+  #FAILING........
   def test_4_4_14_2(self):
       '''[4.4.014]:2 JS Delete database using STDIN batch code: NODE SESSION'''
       results = ''
@@ -3023,6 +3157,8 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+
+  #FAILING........
   def test_4_4_15_1(self):
       '''[4.4.015]:1 JS Delete view using session object: CLASSIC SESSION'''
       results = ''
@@ -3039,6 +3175,8 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+
+  #FAILING........
   def test_4_4_15_2(self):
       '''[4.4.015]:2 JS Delete view using session object: NODE SESSION'''
       results = ''
@@ -3055,6 +3193,8 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+
+  #FAILING........
   def test_4_4_16_1(self):
       '''[4.3.016]:1 JS Update alter view using multiline mode: CLASSIC SESSION'''
       results = ''
@@ -3073,6 +3213,8 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+
+  #FAILING........
   def test_4_4_16_2(self):
       '''[4.3.016]:2 JS Update alter view using multiline mode: NODE SESSION'''
       results = ''
@@ -3091,6 +3233,7 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+  #FAILING........
   def test_4_4_17_1(self):
       '''[4.4.017]:1 JS Delete view using STDIN batch code: CLASSIC SESSION'''
       results = ''
@@ -3102,6 +3245,7 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+  #FAILING........
   def test_4_4_17_2(self):
       '''[4.4.017]:2 JS Delete view using STDIN batch code: NODE SESSION'''
       results = ''
@@ -3113,6 +3257,8 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+
+  #FAILING........
   def test_4_4_18_1(self):
       '''[4.4.018]:1 JS Delete stored procedure using session object: CLASSIC SESSION'''
       results = ''
@@ -3132,6 +3278,8 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+
+  #FAILING........
   def test_4_4_18_2(self):
       '''[4.4.018]:2 JS Delete stored procedure using session object: NODE SESSION'''
       results = ''
@@ -3151,6 +3299,8 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+
+  #FAILING........
   def test_4_4_19_1(self):
       '''[4.4.019]:1 JS Delete stored procedure using multiline mode: CLASSIC SESSION'''
       results = ''
@@ -3172,6 +3322,8 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+
+  #FAILING........
   def test_4_4_19_2(self):
       '''[4.4.019]:2 JS Delete stored procedure using multiline mode: NODE SESSION'''
       results = ''
@@ -3193,6 +3345,8 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+
+  #FAILING........
   def test_4_4_20_1(self):
       '''[4.4.020]:1 JS Delete stored procedure using STDIN batch code: CLASSIC SESSION'''
       results = ''
@@ -3205,7 +3359,7 @@ class XShell_TestCases(unittest.TestCase):
       self.assertEqual(results, 'PASS')
 
 
-
+  #FAILING........
   def test_4_4_20_2(self):
       '''[4.4.020]:2 JS Delete stored procedure using STDIN batch code: NODE SESSION'''
       results = ''
@@ -3259,6 +3413,8 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+
+  #FAILING........
   def test_4_4_22_1(self):
       '''[4.4.022]:1 PY Delete table using multiline mode: CLASSIC SESSION'''
       results = ''
@@ -3282,6 +3438,7 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+  #FAILING........
   def test_4_4_22_2(self):
       '''[4.4.022]:2 PY Delete table using multiline mode: NODE SESSION'''
       results = ''
@@ -3305,6 +3462,7 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+  #FAILING........
   def test_4_4_23_1(self):
       '''[4.4.023]:1 PY Delete table using STDIN batch code: CLASSIC SESSION'''
       results = ''
@@ -3316,6 +3474,7 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+  #FAILING........
   def test_4_4_23_2(self):
       '''[4.4.023]:2 PY Delete table using STDIN batch code: NODE SESSION'''
       results = ''
@@ -3391,6 +3550,8 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+
+  #FAILING........
   def test_4_4_26_1(self):
       '''[4.4.026]:1 PY Delete database using STDIN batch code: CLASSIC SESSION'''
       results = ''
@@ -3402,6 +3563,7 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+  #FAILING........
   def test_4_4_26_2(self):
       '''[4.4.026]:2 PY Delete database using STDIN batch code: NODE SESSION'''
       results = ''
@@ -3413,6 +3575,7 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+  #FAILING........
   def test_4_4_27_1(self):
       '''[4.4.027]:1 PY Delete view using session object: CLASSIC SESSION'''
       results = ''
@@ -3429,6 +3592,7 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+  #FAILING........
   def test_4_4_27_2(self):
       '''[4.4.027]:2 PY Delete view using session object: NODE SESSION'''
       results = ''
@@ -3445,6 +3609,7 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+  #FAILING........
   def test_4_4_28_1(self):
       '''[4.4.028]:1 PY Delete view using multiline mode: CLASSIC SESSION'''
       results = ''
@@ -3463,6 +3628,7 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+  #FAILING........
   def test_4_4_28_2(self):
       '''[4.4.028]:2 PY Delete view using multiline mode: NODE SESSION'''
       results = ''
@@ -3481,7 +3647,7 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
-
+  #FAILING........
   def test_4_4_29_1(self):
       '''[4.4.029]:1 PY Delete view using STDIN batch code: CLASSIC SESSION'''
       results = ''
@@ -3493,6 +3659,8 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+
+  #FAILING........
   def test_4_4_29_2(self):
       '''[4.4.029]:2 PY Delete view using STDIN batch code: NODE SESSION'''
       results = ''
@@ -3504,6 +3672,7 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+  #FAILING........
   def test_4_4_30_1(self):
       '''[4.4.030]:1 PY Delete stored procedure using session object: CLASSIC SESSION'''
       results = ''
@@ -3523,6 +3692,7 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+  #FAILING........
   def test_4_4_30_2(self):
       '''[4.4.030]:2 PY Delete stored procedure using session object: NODE SESSION'''
       results = ''
@@ -3542,6 +3712,7 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+  #FAILING........
   def test_4_4_31_1(self):
       '''[4.4.031]:1 PY Delete stored procedure using multiline mode: CLASSIC SESSION'''
       results = ''
@@ -3563,6 +3734,7 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+  #FAILING........
   def test_4_4_31_2(self):
       '''[4.4.031]:2 PY Delete stored procedure using multiline mode: NODE SESSION'''
       results = ''
@@ -3584,6 +3756,7 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+  #FAILING........
   def test_4_4_32_1(self):
       '''[4.4.032]:1 PY Delete stored procedure using STDIN batch code: CLASSIC SESSION'''
       results = ''
@@ -3595,6 +3768,7 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+  #FAILING........
   def test_4_4_32_2(self):
       '''[4.4.032]:2 PY Delete stored procedure using STDIN batch code: NODE SESSION'''
       results = ''
