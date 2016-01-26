@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2016 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -17,23 +17,25 @@
  * 02110-1301  USA
  */
 
-#ifndef _NGS_ASIO_CONNECTION_RAW_FACTORY_H_
-#define _NGS_ASIO_CONNECTION_RAW_FACTORY_H_
 
-#include "myasio/connection_factory.h"
+#ifndef _NGS_LOG_H_
+#define _NGS_LOG_H_
 
+#ifndef NGS_DISABLE_LOGGING
 
-namespace ngs
-{
+# ifdef WITH_LOGGER
+#  include <logger/logger.h>
+# else
+#  include "xpl_log.h"
+# endif
 
-  class Connection_raw_factory: public Connection_factory
-  {
-  public:
-    virtual IConnection_unique_ptr create_connection(boost::asio::io_service &io_service);
+#else
 
-    virtual IOptions_context_ptr create_ssl_context_options();
-  };
+#define log_debug(...) do {} while(0)
+#define log_info(...) do {} while(0)
+#define log_warning(...) do {} while(0)
+#define log_error(...) do {} while(0)
 
-} // namespace ngs
+#endif
 
-#endif // _NGS_ASIO_CONNECTION_RAW_FACTORY_H_
+#endif

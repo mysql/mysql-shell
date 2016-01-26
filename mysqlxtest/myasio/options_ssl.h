@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2016 Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -26,7 +26,7 @@
 namespace ngs
 {
 
-  class Options_session_ssl : public Options_session
+  class Options_session_ssl : public IOptions_session
   {
   public:
     Options_session_ssl(SSL *ssl)
@@ -45,12 +45,17 @@ namespace ngs
     long ssl_verify_mode();
 
     long ssl_sessions_reused();
+    long ssl_get_verify_result_and_cert();
+
+    std::string ssl_get_peer_certificate_issuer();
+
+    std::string ssl_get_peer_certificate_subject();
 
   private:
     SSL     *m_ssl;
   };
 
-  class Options_context_ssl : public Options_context
+  class Options_context_ssl : public IOptions_context
   {
   public:
     Options_context_ssl(SSL_CTX *ctx)

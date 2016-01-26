@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2016 Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -28,10 +28,10 @@
 namespace ngs
 {
 
-  class Options_session
+  class IOptions_session
   {
   public:
-    virtual ~Options_session() {};
+    virtual ~IOptions_session() {};
 
     virtual bool supports_tls() = 0;
     virtual bool active_tls() = 0;
@@ -44,12 +44,16 @@ namespace ngs
     virtual long ssl_verify_depth() = 0;
     virtual long ssl_verify_mode() = 0;
     virtual long ssl_sessions_reused() = 0;
+
+    virtual long ssl_get_verify_result_and_cert() = 0;
+    virtual std::string ssl_get_peer_certificate_issuer() = 0;
+    virtual std::string ssl_get_peer_certificate_subject() = 0;
   };
 
-  class Options_context
+  class IOptions_context
   {
   public:
-    virtual ~Options_context() {};
+    virtual ~IOptions_context() {};
 
     virtual long ssl_ctx_verify_depth() = 0;
     virtual long ssl_ctx_verify_mode() = 0;
@@ -71,8 +75,8 @@ namespace ngs
     virtual long ssl_used_session_cache_entries() = 0;
   };
 
-  typedef boost::shared_ptr<Options_session> Options_session_ptr;
-  typedef boost::shared_ptr<Options_context> Options_context_ptr;
+  typedef boost::shared_ptr<IOptions_session> IOptions_session_ptr;
+  typedef boost::shared_ptr<IOptions_context> IOptions_context_ptr;
 
 } // namespace ngs
 

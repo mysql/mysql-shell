@@ -16,24 +16,23 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301  USA
  */
+ 
+#include "myasio/connection_factory_raw.h"
 
-#ifndef _NGS_ASIO_CONNECTION_RAW_FACTORY_H_
-#define _NGS_ASIO_CONNECTION_RAW_FACTORY_H_
-
-#include "myasio/connection_factory.h"
-
+#include "myasio/connection_raw.h"
 
 namespace ngs
 {
 
-  class Connection_raw_factory: public Connection_factory
+  IConnection_unique_ptr Connection_raw_factory::create_connection(boost::asio::io_service &io_service)
   {
-  public:
-    virtual IConnection_unique_ptr create_connection(boost::asio::io_service &io_service);
+    return IConnection_unique_ptr(new Connection_raw<boost::asio::ip::tcp::socket>(io_service));
+  }
 
-    virtual IOptions_context_ptr create_ssl_context_options();
-  };
+  IOptions_context_ptr Connection_raw_factory::create_ssl_context_options()
+  {
+    return IOptions_context_ptr();
+  }
 
 } // namespace ngs
 
-#endif // _NGS_ASIO_CONNECTION_RAW_FACTORY_H_
