@@ -28,12 +28,10 @@
 namespace mysqld
 {
 
-
-void set_context(SSL_CTX* ssl_context, const bool is_client, const std::string &ssl_key,
-                 const std::string &ssl_cert,    const std::string &ssl_ca,
-                 const std::string &ssl_ca_path, const std::string &ssl_cipher,
-                 const std::string &ssl_crl,     const std::string &ssl_crl_path);
-
+  void set_context(SSL_CTX* ssl_context, const bool is_client, const std::string &ssl_key,
+                   const std::string &ssl_cert,    const std::string &ssl_ca,
+                   const std::string &ssl_ca_path, const std::string &ssl_cipher,
+                   const std::string &ssl_crl,     const std::string &ssl_crl_path);
 
 }  // namespace mysqld
 

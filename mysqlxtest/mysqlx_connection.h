@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2016 Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -54,7 +54,6 @@
 #include <list>
 
 #include "mysqlx_sync_connection.h"
-#include "xerrmsg.h"
 #include "mysqlx_common.h"
 
 #define CR_UNKNOWN_ERROR        2000

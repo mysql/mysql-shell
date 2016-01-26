@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2016 Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -21,8 +21,6 @@
 // For the module that implements interactive DB functionality see mod_db
 
 
-#include "mysqlx_sync_connection.h"
-
 #include <boost/bind.hpp>
 #include <boost/make_shared.hpp>
 
@@ -30,6 +28,7 @@
 #include "myasio/connection_factory_openssl.h"
 #include "myasio/connection_factory_yassl.h"
 #include "myasio/connection_factory_raw.h"
+#include "mysqlx_sync_connection.h"
 
 namespace mysqlx
 {
@@ -75,38 +74,38 @@ public:
     return m_num_of_bytes;
   }
 
-  void connect(ngs::Connection_ptr async_connection, const Endpoint &endpoint)
+  void connect(ngs::IConnection_ptr async_connection, const Endpoint &endpoint)
   {
     preproces(async_connection);
     async_connection->async_connect(endpoint, get_status_callback(), On_asio_status_callback());
   }
 
-  void accept(ngs::Connection_ptr async_connection, boost::asio::ip::tcp::acceptor &acceptor)
+  void accept(ngs::IConnection_ptr async_connection, boost::asio::ip::tcp::acceptor &acceptor)
   {
     preproces(async_connection);
     async_connection->async_accept(acceptor, get_status_callback(), On_asio_status_callback());
   }
 
-  void write(ngs::Connection_ptr async_connection, const Const_buffer_sequence &data)
+  void write(ngs::IConnection_ptr async_connection, const Const_buffer_sequence &data)
   {
     preproces(async_connection);
     async_connection->async_write(data, get_data_callback());
   }
 
-  void read(ngs::Connection_ptr async_connection, const Mutable_buffer_sequence &data)
+  void read(ngs::IConnection_ptr async_connection, const Mutable_buffer_sequence &data)
   {
     preproces(async_connection);
     async_connection->async_read(data, get_data_callback());
   }
 
-  void activate_tls(ngs::Connection_ptr async_connection)
+  void activate_tls(ngs::IConnection_ptr async_connection)
   {
     preproces(async_connection);
     async_connection->async_activate_tls(get_status_callback());
   }
 
 protected:
-  virtual void preproces(ngs::Connection_ptr async_connection) {}
+  virtual void preproces(ngs::IConnection_ptr async_connection) {}
 
   On_asio_status_callback get_status_callback()
   {
@@ -145,7 +144,7 @@ public:
   bool is_expired() const { return m_is_expired; }
 
 private:
-  virtual void preproces(ngs::Connection_ptr async_connection)
+  virtual void preproces(ngs::IConnection_ptr async_connection)
   {
     m_is_expired = false;
     m_deadline.expires_from_now(boost::posix_time::milliseconds(m_timeout));
@@ -153,7 +152,7 @@ private:
   }
 
 
-  void timeout_callback(const error_code &ec, ngs::Connection_ptr async_connection)
+  void timeout_callback(const error_code &ec, ngs::IConnection_ptr async_connection)
   {
     if (ec == boost::asio::error::operation_aborted)
       return;
@@ -193,7 +192,7 @@ Mysqlx_sync_connection::Mysqlx_sync_connection(boost::asio::io_service &service,
 {
   m_async_factory    = get_async_connection_factory(ssl_key, ssl_ca, ssl_ca_path, ssl_cert, ssl_cipher);
 
-  ngs::Connection_unique_ptr async_connection = m_async_factory->create_connection(m_service);
+  ngs::IConnection_unique_ptr async_connection = m_async_factory->create_connection(m_service);
 
   m_async_connection.reset(async_connection.release());
 }

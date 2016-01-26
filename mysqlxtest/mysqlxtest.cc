@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2016 Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -42,6 +42,7 @@
 #include "m_string.h" // needed by writer.h, but has to be included after expr_parser.h
 #include <rapidjson/writer.h>
 
+#include <ios>
 #include <iostream>
 #include <fstream>
 #include <iterator>
@@ -745,9 +746,9 @@ public:
   }
 
 public:
-  static std::list<Macro*> macros;
+  static std::list<boost::shared_ptr<Macro> > macros;
 
-  static void add(Macro *macro)
+  static void add(boost::shared_ptr<Macro> macro)
   {
     macros.push_back(macro);
   }
@@ -770,7 +771,7 @@ public:
       return "";
     }
 
-    for (std::list<Macro*>::const_iterator iter = macros.begin(); iter != macros.end(); ++iter)
+    for (std::list<boost::shared_ptr<Macro> >::const_iterator iter = macros.begin(); iter != macros.end(); ++iter)
     {
       if ((*iter)->m_name == r_name)
       {
@@ -789,7 +790,7 @@ private:
   std::string m_body;
 };
 
-std::list<Macro*> Macro::macros;
+std::list<boost::shared_ptr<Macro> > Macro::macros;
 
 //---------------------------------------------------------------------------------------------------------
 
@@ -839,6 +840,7 @@ public:
     m_commands["noquiet"] = &Command::cmd_noquiet;
     m_commands["varfile "] = &Command::cmd_varfile;
     m_commands["varlet "] = &Command::cmd_varlet;
+    m_commands["varinc "]      = &Command::cmd_varinc;
     m_commands["varsub "] = &Command::cmd_varsub;
     m_commands["vargen "] = &Command::cmd_vargen;
     m_commands["binsend "] = &Command::cmd_binsend;
@@ -1361,7 +1363,13 @@ private:
       std::cerr << "Server disconnected\n";
     }
 
-    return cmd_setsession(context, args);
+    if (context.m_cm->is_default_active())
+      return Stop_with_success;
+
+    context.m_cm->active()->set_closed();
+    context.m_cm->close_active(false);
+
+    return Continue;
   }
 
   Result cmd_peerdisc(Execution_context &context, const std::string &args)
@@ -1622,7 +1630,7 @@ private:
 
     if (abs(expected_msec - msec) > tolerance)
     {
-      std::cerr << "Timeout should occurrr after " << expected_msec << "ms, but it was " << msec <<"ms.  \n";
+      std::cerr << "Timeout should occur after " << expected_msec << "ms, but it was " << msec <<"ms.  \n";
       return Stop_with_failure;
     }
 
@@ -1668,6 +1676,33 @@ private:
       replace_variables(value);
       variables[args.substr(0, p)] = value;
     }
+    return Continue;
+  }
+
+  Result cmd_varinc(Execution_context &context, const std::string &args)
+  {
+    std::vector<std::string> argl;
+    boost::split(argl, args, boost::is_any_of(" "), boost::token_compress_on);
+    if (argl.size() != 2)
+    {
+      std::cerr << "Invalid number of arguments for command varinc\n";
+      return Stop_with_failure;
+    }
+
+    if (variables.find(argl[0]) == variables.end())
+    {
+      std::cerr << "Invalid variable " << argl[0] << "\n";
+      return Stop_with_failure;
+    }
+
+    std::string val = variables[argl[0]];
+    char* c;
+    long int_val = strtol(val.c_str(), &c, 10);
+    long int_n = strtol(argl[1].c_str(), &c, 10);
+    int_val += int_n;
+    val = boost::lexical_cast<std::string>(int_val);
+    variables[argl[0]] = val;
+
     return Continue;
   }
 
@@ -2136,12 +2171,11 @@ class Macro_block_processor : public Block_processor
 {
 public:
   Macro_block_processor(Connection_manager *cm)
-  : m_cm(cm), m_macro(0)
+  : m_cm(cm)
   {}
 
   ~Macro_block_processor()
   {
-    delete m_macro;
   }
 
   virtual Block_result feed(std::istream &input, const char *linebuf)
@@ -2156,7 +2190,7 @@ public:
         if (OPT_verbose)
           std::cout << "Macro " << m_macro->name() << " defined\n";
 
-        m_macro = NULL;
+        m_macro.reset();
 
         return Block_result_eated_but_not_hungry;
       }
@@ -2183,7 +2217,7 @@ public:
       m_rawbuffer.clear();
       std::string name = args.front();
       args.pop_front();
-      m_macro = new Macro(name, args);
+      m_macro.reset(new Macro(name, args));
 
       return Block_result_feed_more;
     }
@@ -2204,7 +2238,7 @@ public:
 
 private:
   Connection_manager *m_cm;
-  Macro *m_macro;
+  boost::shared_ptr<Macro> m_macro;
   std::string m_rawbuffer;
 };
 
@@ -2462,6 +2496,7 @@ public:
   std::string password;
   std::string schema;
   mysqlx::Ssl_config ssl;
+  bool        daemon;
 
   void print_help()
   {
@@ -2484,10 +2519,11 @@ public:
     std::cout << "--ssl-cert            X509 cert in PEM format\n";
     std::cout << "--ssl-cipher          SSL cipher to use\n";
     std::cout << "--connect-expired-password Allow expired password\n";
-    std::cout << "--quiet               Don't print out messages sent";
-    std::cout << "--fatal-errors=<0|1>  Mysqlxtest is started with ignoring or stopping on fatal error";
-    std::cout << "-B, --bindump         Dump binary representation of messages sent, in format suitable for ";
+    std::cout << "--quiet               Don't print out messages sent\n";
+    std::cout << "--fatal-errors=<0|1>  Mysqlxtest is started with ignoring or stopping on fatal error\n";
+    std::cout << "-B, --bindump         Dump binary representation of messages sent, in format suitable for\n";
     std::cout << "--verbose             Enable extra verbose messages\n";
+    std::cout << "--daemon              Work as a daemon (unix only)\n";
     std::cout << "--help                     Show command line help\n";
     std::cout << "--help-commands            Show help for input commands\n";
     std::cout << "\nOnly one option that changes run mode is allowed.\n";
@@ -2570,6 +2606,8 @@ public:
     std::cout << "   Assigns the contents of the file to the named variable\n";
     std::cout << "-->varlet <varname> <value>\n";
     std::cout << "   Assign the value (can be another variable) to the variable\n";
+    std::cout << "-->varinc <varname> <n>\n";
+    std::cout << "   Increment the value of varname by n (assuming both convert to integral)\n";
     std::cout << "-->varsub <varname>\n";
     std::cout << "   Add a variable to the list of variables to replace for the next recv or sql command (value is replaced by the name)\n";
     std::cout << "-->binsend <bindump>[<bindump>...]\n";
@@ -2597,7 +2635,8 @@ public:
 
   My_command_line_options(int argc, char **argv)
   : Command_line_options(argc, argv), run_mode(RunTest), has_file(false),
-    cap_expired_password(false), dont_wait_for_server_disconnect(false), use_plain_auth(false), port(0), timeout(0l)
+    cap_expired_password(false), dont_wait_for_server_disconnect(false),
+    use_plain_auth(false), port(0), timeout(0l), daemon(false)
   {
     std::string user;
 
@@ -2661,6 +2700,8 @@ public:
         OPT_quiet = true;
       else if (check_arg(argv, i, "--verbose", "-v"))
         OPT_verbose = true;
+      else if (check_arg(argv, i, "--daemon", NULL))
+        daemon = true;
       else if (check_arg(argv, i, "--color", NULL))
         OPT_color = true;
       else if (check_arg(argv, i, "--help", "--help"))
@@ -2866,6 +2907,32 @@ static std::istream &get_input(My_command_line_options &opt, std::ifstream &file
   return std::cin;
 }
 
+
+inline void unable_daemonize()
+{
+  std::cerr << "ERROR: Unable to put process in background\n";
+  exit(2);
+}
+
+
+void daemonize()
+{
+#ifdef WIN32
+  unable_daemonize();
+#else
+  if (getppid() == 1) // already a daemon
+    exit(0);
+  pid_t pid = fork();
+  if (pid < 0)
+    unable_daemonize();
+  if (pid > 0)
+    exit(0);
+  if (setsid() < 0)
+    unable_daemonize();
+#endif
+}
+
+
 static Program_mode get_mode_function(const My_command_line_options &opt)
 {
   switch (opt.run_mode)
@@ -2882,14 +2949,18 @@ static Program_mode get_mode_function(const My_command_line_options &opt)
 int main(int argc, char **argv)
 {
   OPT_expect_error = new Expected_error();
-  std::ifstream fs;
   My_command_line_options options(argc, argv);
-
-  std::istream &input = get_input(options, fs);
-  Program_mode  mode = get_mode_function(options);
 
   if (options.exit_code != 0)
     return options.exit_code;
+
+  if (options.daemon)
+    daemonize();
+
+  std::cout << std::unitbuf;
+  std::ifstream fs;
+  std::istream &input = get_input(options, fs);
+  Program_mode  mode = get_mode_function(options);
 
   try
   {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2016 Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -31,8 +31,8 @@ class Connection_factory
 public:
   virtual ~Connection_factory() {}
 
-  virtual Connection_unique_ptr create_connection(boost::asio::io_service &io_service) = 0;
-  virtual Options_context_ptr   create_ssl_context_options() = 0;
+  virtual IConnection_unique_ptr create_connection(boost::asio::io_service &io_service) = 0;
+  virtual IOptions_context_ptr   create_ssl_context_options() = 0;
 };
 
 typedef boost::shared_ptr<Connection_factory> Connection_factory_ptr;

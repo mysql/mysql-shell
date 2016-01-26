@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2016 Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -198,7 +198,7 @@ void Row_decoder::read_required_uint64(
 
 DateTime Row_decoder::datetime_from_buffer(const std::string& buffer)
 {
-  google::protobuf::uint64 year, month, day, hour = 0, minutes = 0, seconds = 0, useconds = 0;
+  google::protobuf::uint64 year, month, day, hour = 0, minutes = 0, seconds = 0, useconds = 0, tmp = 0;
   std::string& _buf = const_cast<std::string&>(buffer);
   google::protobuf::uint8* field_buff = reinterpret_cast<google::protobuf::uint8*>(&_buf[0]);
 
@@ -208,13 +208,18 @@ DateTime Row_decoder::datetime_from_buffer(const std::string& buffer)
   read_required_uint64(input_buffer, month);
   read_required_uint64(input_buffer, day);
 
-  bool has_more = input_buffer.ReadVarint64(&hour);
+  bool has_more = input_buffer.ReadVarint64(&tmp);
   if (!has_more) goto RETURN;
-  has_more = input_buffer.ReadVarint64(&minutes);
+  hour = tmp;
+  has_more = input_buffer.ReadVarint64(&tmp);
   if (!has_more) goto RETURN;
-  has_more = input_buffer.ReadVarint64(&seconds);
+  minutes = tmp;
+  has_more = input_buffer.ReadVarint64(&tmp);
   if (!has_more) goto RETURN;
-  input_buffer.ReadVarint64(&useconds);
+  seconds = tmp;
+  has_more = input_buffer.ReadVarint64(&tmp);
+  if (!has_more) goto RETURN;
+  useconds = tmp;
 
 RETURN:
   return DateTime(
@@ -230,7 +235,7 @@ RETURN:
 
 Time Row_decoder::time_from_buffer(const std::string& buffer)
 {
-  google::protobuf::uint64 hour = 0, minutes = 0, seconds = 0, useconds = 0;
+  google::protobuf::uint64 hour = 0, minutes = 0, seconds = 0, useconds = 0, tmp = 0;
   std::string& _buf = const_cast<std::string&>(buffer);
   google::protobuf::uint8* field_buff = reinterpret_cast<google::protobuf::uint8*>(&_buf[0]);
 
@@ -238,14 +243,18 @@ Time Row_decoder::time_from_buffer(const std::string& buffer)
 
   google::protobuf::uint8 sign;
   input_buffer.ReadRaw(&sign, 1);
-
-  bool has_more = input_buffer.ReadVarint64(&hour);
+  bool has_more = input_buffer.ReadVarint64(&tmp);
   if (!has_more) goto RETURN;
-  has_more = input_buffer.ReadVarint64(&minutes);
+  hour = tmp;
+  has_more = input_buffer.ReadVarint64(&tmp);
   if (!has_more) goto RETURN;
-  has_more = input_buffer.ReadVarint64(&seconds);
+  minutes = tmp;
+  has_more = input_buffer.ReadVarint64(&tmp);
   if (!has_more) goto RETURN;
-  input_buffer.ReadVarint64(&useconds);
+  seconds = tmp;
+  has_more = input_buffer.ReadVarint64(&tmp);
+  if (!has_more) goto RETURN;
+  useconds = tmp;
 
 RETURN:
   return Time((sign != 0x00),

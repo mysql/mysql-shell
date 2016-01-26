@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2016 Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -33,6 +33,7 @@
 #include "mysqlx_connection.h"
 #include "mysqlx_crud.h"
 #include "mysqlx_row.h"
+#include "xpl_error.h"
 
 #include "my_config.h"
 
@@ -430,7 +431,7 @@ boost::shared_ptr<Result> Connection::execute_stmt(const std::string &ns, const 
           break;
         case ArgumentValue::TOctets:
           any->mutable_scalar()->set_type(Mysqlx::Datatypes::Scalar::V_OCTETS);
-          any->mutable_scalar()->set_v_opaque(*iter);
+          any->mutable_scalar()->mutable_v_octets()->set_value(*iter);
           break;
       }
     }
@@ -876,6 +877,11 @@ void Connection::throw_mysqlx_error(const boost::system::error_code &error)
 
   switch (error.value())
   {
+    // OSX return this undocumented error in case of kernel race-conndition
+    // lets ignore it and next call to any io function should return correct 
+    // error
+    case boost::system::errc::wrong_protocol_type:
+	return;
     case boost::asio::error::eof:
     case boost::asio::error::connection_reset:
     case boost::asio::error::connection_aborted:

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2016 Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -22,20 +22,22 @@
 #define _NGS_ASIO_CONNECTION_RAW_H_
 
 
-#include "myasio/connection.h"
 #include "myasio/callback.h"
 
 #include <boost/bind.hpp>
 #include <boost/make_shared.hpp>
 #include <boost/static_assert.hpp>
 #include <boost/type_traits/remove_reference.hpp>
+#include "myasio/connection.h"
 
+#define LOG_DOMAIN "ngs.protocol"
+#include "ngs/log.h"
 
 namespace ngs
 {
 
 template <typename Socket_type, typename Socket_option_type>
-void set_socket_option(Socket_type &socket, const Socket_option_type &option, bool mandatory = false)
+void set_socket_option(Socket_type &socket, const Socket_option_type &option, bool mandatory = true)
 {
   boost::system::error_code ec;
 
@@ -43,12 +45,13 @@ void set_socket_option(Socket_type &socket, const Socket_option_type &option, bo
 
   if (ec)
   {
+    log_warning("Setting socket option failed with message: %s", ec.message().c_str());
     if (mandatory)
       throw ec;
   }
 }
 
-class Options_default : public Options_session
+class Options_default : public IOptions_session
 {
 public:
   bool supports_tls() { return false; };
@@ -65,10 +68,13 @@ public:
   std::string ssl_server_not_after() { return ""; }
   std::string ssl_server_not_before() { return ""; }
   long ssl_sessions_reused() { return 0; }
+  long ssl_get_verify_result_and_cert() { return 0; }
+  std::string ssl_get_peer_certificate_issuer()  { return ""; }
+  std::string ssl_get_peer_certificate_subject() { return ""; }
 };
 
 template <typename Socket_type>
-class Connection_raw : public Connection
+class Connection_raw : public IConnection
 {
 public:
   template<typename Initialize_type>
@@ -76,7 +82,7 @@ public:
 
   virtual Endpoint    get_remote_endpoint() const;
   virtual int         get_socket_id();
-  virtual Options_session_ptr options();
+  virtual IOptions_session_ptr options();
 
   virtual void async_connect(const Endpoint &endpoint, const On_asio_status_callback &on_connect_callback, const On_asio_status_callback &on_ready_callback);
   virtual void async_accept(boost::asio::ip::tcp::acceptor &, const On_asio_status_callback &on_accept_callback,
@@ -85,19 +91,21 @@ public:
   virtual void async_read(const Mutable_buffer_sequence &data, const On_asio_data_callback &on_read_callback);
   virtual void async_activate_tls(const On_asio_status_callback on_status);
 
-  virtual Connection_unique_ptr get_lowest_layer();
+  virtual IConnection_ptr get_lowest_layer();
 
   virtual void post(const boost::function<void ()> &calee);
   virtual bool thread_in_connection_strand();
 
   virtual void shutdown(boost::asio::socket_base::shutdown_type how_to_shutdown, boost::system::error_code &ec);
+  virtual void cancel();
   virtual void close();
 
 private:
   boost::asio::io_service &get_service(boost::asio::io_service &service) { return service; };
   boost::asio::io_service &get_service(boost::asio::ip::tcp::socket &service) { return service.get_io_service(); };
 
-  void on_accept(const boost::system::error_code &ec);
+  void on_accept(boost::asio::io_service &service, const boost::system::error_code &ec);
+  void on_connect(const boost::system::error_code &ec);
 
   Socket_type          m_asio_socket;
   boost::asio::strand  m_asio_strand;
@@ -131,18 +139,19 @@ Endpoint Connection_raw<Socket_type>::get_remote_endpoint() const
 
 
 template <typename Socket_type>
-Options_session_ptr Connection_raw<Socket_type>::options()
+IOptions_session_ptr Connection_raw<Socket_type>::options()
 {
-  return boost::make_shared<Options_default>();
+  static IOptions_session_ptr result(boost::make_shared<Options_default>());
+  return result;
 }
 
 
 template <typename Socket_type>
-Connection_unique_ptr Connection_raw<Socket_type>::get_lowest_layer()
+IConnection_ptr Connection_raw<Socket_type>::get_lowest_layer()
 {
   typedef typename boost::remove_reference<Socket_type>::type &Socket_ref_type;
 
-  return Connection_unique_ptr(new Connection_raw<Socket_ref_type>(m_asio_socket));
+  return IConnection_ptr(new Connection_raw<Socket_ref_type>(m_asio_socket));
 }
 
 
@@ -153,7 +162,7 @@ void Connection_raw<Socket_type>::async_connect(const Endpoint &endpoint,
 {
   m_on_accept_callback = on_connect_callback;
   m_on_ready_callback = on_ready_callback;
-  m_asio_socket.async_connect(endpoint, m_asio_strand.wrap(boost::bind(&Connection_raw<Socket_type>::on_accept, this, boost::asio::placeholders::error)));
+  m_asio_socket.async_connect(endpoint, m_asio_strand.wrap(boost::bind(&Connection_raw<Socket_type>::on_connect, this, boost::asio::placeholders::error)));
 }
 
 
@@ -164,7 +173,7 @@ void Connection_raw<Socket_type>::async_accept(boost::asio::ip::tcp::acceptor &a
 {
   m_on_accept_callback = on_accept_callback;
   m_on_ready_callback = on_ready_callback;
-  acceptor.async_accept(m_asio_socket, m_asio_strand.wrap(boost::bind(&Connection_raw<Socket_type>::on_accept, this, boost::asio::placeholders::error)));
+  acceptor.async_accept(m_asio_socket, boost::bind(&Connection_raw<Socket_type>::on_accept, this, boost::ref(acceptor.get_io_service()), boost::asio::placeholders::error));
 }
 
 
@@ -221,9 +230,36 @@ void Connection_raw<Socket_type>::close()
   }
 }
 
+template <typename Socket_type>
+void Connection_raw<Socket_type>::cancel()
+{
+  m_asio_socket.cancel();
+}
 
 template <typename Socket_type>
-void Connection_raw<Socket_type>::on_accept(const boost::system::error_code &ec)
+void call_io_service_post(Socket_type &service, const boost::function<void()> &callback)
+{
+  service.post(callback);
+}
+
+template <typename Socket_type>
+void Connection_raw<Socket_type>::on_accept(boost::asio::io_service &service, const boost::system::error_code &ec)
+{
+  Callback_post callback(boost::bind(&call_io_service_post<boost::asio::io_service>, boost::ref(service), _1));
+
+  callback.call_status_function(m_on_accept_callback, ec);
+
+  if (!ec)
+  {
+    set_socket_option(m_asio_socket, boost::asio::ip::tcp::no_delay(true), false);
+    callback.call_status_function(m_on_ready_callback, ec);
+  }
+
+  m_on_ready_callback.clear();
+}
+
+template <typename Socket_type>
+void Connection_raw<Socket_type>::on_connect(const boost::system::error_code &ec)
 {
   Callback_post callback(boost::bind(&Connection_raw<Socket_type>::post, this, _1));
 
@@ -237,7 +273,6 @@ void Connection_raw<Socket_type>::on_accept(const boost::system::error_code &ec)
 
   m_on_ready_callback.clear();
 }
-
 
 }  // namespace ngs
 

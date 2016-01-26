@@ -24,7 +24,7 @@ using namespace yaSSL;
 #endif // defined(HAVE_YASSL)
 
 #include "myasio/options_ssl.h"
-#include "myasio/memory.h"
+#include "ngs/memory.h"
 
 using namespace ngs;
 
@@ -106,6 +106,46 @@ long Options_session_ssl::ssl_verify_mode()
 long Options_session_ssl::ssl_sessions_reused()
 {
   return SSL_session_reused(m_ssl);
+}
+
+long Options_session_ssl::ssl_get_verify_result_and_cert()
+{
+  long result = 0;
+
+  if (X509_V_OK != (result = SSL_get_verify_result(m_ssl)))
+    return result;
+
+  X509 *cert = NULL;
+  if (!(cert= SSL_get_peer_certificate(m_ssl)))
+    return -1;
+
+  X509_free(cert);
+
+  return X509_V_OK;
+}
+
+std::string Options_session_ssl::ssl_get_peer_certificate_issuer()
+{
+  X509 *cert = NULL;
+  if (!(cert= SSL_get_peer_certificate(m_ssl)))
+    return "";
+
+  std::string result = X509_NAME_oneline(X509_get_issuer_name(cert), 0, 0);;
+  X509_free(cert);
+
+  return result;
+}
+
+std::string Options_session_ssl::ssl_get_peer_certificate_subject()
+{
+  X509 *cert = NULL;
+  if (!(cert= SSL_get_peer_certificate(m_ssl)))
+    return "";
+
+  std::string result = X509_NAME_oneline(X509_get_subject_name(cert), 0, 0);;
+  X509_free(cert);
+
+  return result;
 }
 
 

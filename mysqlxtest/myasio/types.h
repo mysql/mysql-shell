@@ -44,47 +44,6 @@ struct const_buffer_with_callback
   std::size_t           write_user_data_size;
 };
 
-#define BUFFER_PAGE_SIZE 4096
-
-// A 4KB aligned buffer to be used for reading data from sockets.
-// Multiple buffers can be combined into a single boost::buffer, which is
-// all filled at once by the boost async read method
-struct Buffer_page
-{
-  char *data;
-  uint32_t capacity;
-  uint32_t length;
-
-  Buffer_page()
-  {
-    capacity = BUFFER_PAGE_SIZE;
-    data = new char[capacity];
-    length = 0;
-  }
-
-  Buffer_page(uint32_t pcapacity)
-  {
-    //assert(psize > 8) 8 is absolute min size
-    capacity = pcapacity;
-    data = new char[capacity];
-    length = 0;
-  }
-
-  ~Buffer_page()
-  {
-    delete []data;
-  }
-
-  uint32_t get_free_bytes()
-  {
-    return capacity - length;
-  }
-
-  uint8_t* get_free_ptr()
-  {
-    return (uint8_t*)data + length;
-  }
-};
 
 } // namespace ngs
 

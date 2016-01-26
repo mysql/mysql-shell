@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2016 Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -159,7 +159,7 @@ Mysqlx::Datatypes::Scalar* Expr_builder::build_string_scalar(const std::string& 
 {
   Mysqlx::Datatypes::Scalar *sc = new Mysqlx::Datatypes::Scalar;
   sc->set_type(Mysqlx::Datatypes::Scalar::V_OCTETS);
-  sc->set_v_opaque(s.c_str(), s.size());
+  sc->mutable_v_octets()->set_value(s);
   return sc;
 }
 
@@ -1142,7 +1142,7 @@ Mysqlx::Expr::Expr* Expr_parser::cast()
   type_expr->set_type(Mysqlx::Expr::Expr::LITERAL);
   Mysqlx::Datatypes::Scalar* sc(type_expr->mutable_literal());
   sc->set_type(Mysqlx::Datatypes::Scalar_Type_V_OCTETS);
-  sc->set_v_opaque(type_to_cast);
+  sc->mutable_v_octets()->set_value(type_to_cast);
   params->AddAllocated(type_expr.release());
   _tokenizer.consume_token(Token::RPAREN);
 
@@ -1627,7 +1627,7 @@ std::string Expr_unparser::scalar_to_string(const Mysqlx::Datatypes::Scalar& s)
   }
   case Mysqlx::Datatypes::Scalar::V_OCTETS:
   {
-    const char* value = s.v_opaque().c_str();
+      const char* value = s.v_octets().value().c_str();
     return "\"" + Expr_unparser::escape_literal(value) + "\"";
   }
   case Mysqlx::Datatypes::Scalar::V_NULL:

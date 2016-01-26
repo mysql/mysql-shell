@@ -1,4 +1,4 @@
-/* Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2015, 2016 Oracle and/or its affiliates. All rights reserved.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published by
@@ -26,15 +26,17 @@ namespace ngs
   typedef long (*Socket_recv)(void *, void *, std::size_t );
   typedef long (*Socket_send)(void *, const void *, std::size_t );
 
-  class Options_session;
+  class IOptions_session;
 
   // Separate caller from ssl functions, macros, consts etc.
   // Unit test from Connection_yassl can be run without real ssl
   // in both ssl configuration system & bundle
-  class Wrapper_ssl
+  class IWrapper_ssl
   {
   public:
-    virtual ~Wrapper_ssl() {}
+    virtual ~IWrapper_ssl() {}
+
+    virtual void ssl_initialize() = 0;
 
     virtual boost::system::error_code get_boost_error() = 0;
     virtual void ssl_set_error_none() = 0;
@@ -44,7 +46,7 @@ namespace ngs
 
     virtual void ssl_set_socket_error(int error) = 0;
 
-    virtual boost::shared_ptr<Options_session> get_ssl_options() = 0;
+    virtual boost::shared_ptr<IOptions_session> get_ssl_options() = 0;
 
     virtual bool ssl_handshake() = 0;
     virtual int ssl_read(void* buffer, int sz) = 0;

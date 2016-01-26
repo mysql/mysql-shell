@@ -765,7 +765,7 @@ shcore::Value BaseSession::get_status(const shcore::Argument_list &args)
           (*status)["NODE_TYPE"] = shcore::Value(cap.value().scalar().v_string().value());
         else if (cap.value().type() == Mysqlx::Datatypes::Any::SCALAR &&
             cap.value().scalar().type() == Mysqlx::Datatypes::Scalar::V_OCTETS)
-          (*status)["NODE_TYPE"] = shcore::Value(cap.value().scalar().v_opaque());
+          (*status)["NODE_TYPE"] = shcore::Value(cap.value().scalar().v_octets().value());
       }
     }
   }

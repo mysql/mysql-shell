@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2016 Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -30,7 +30,7 @@
 namespace ngs
 {
 
-class Connection_openssl : public Connection
+class Connection_openssl : public IConnection
 {
 public:
   Connection_openssl(boost::asio::io_service &socket, boost::asio::ssl::context &context, const bool is_client = false);
@@ -38,7 +38,7 @@ public:
 
   virtual Endpoint    get_remote_endpoint() const;
   virtual int         get_socket_id();
-  virtual Options_session_ptr options();
+  virtual IOptions_session_ptr options();
 
   virtual void async_connect(const Endpoint &endpoint, const On_asio_status_callback &on_connect_callback, const On_asio_status_callback &on_ready_callback);
   virtual void async_accept(boost::asio::ip::tcp::acceptor &, const On_asio_status_callback &on_accept_callback, const On_asio_status_callback &on_read_callback);
@@ -46,12 +46,13 @@ public:
   virtual void async_read(const Mutable_buffer_sequence &data, const On_asio_data_callback &on_read_callback);
   virtual void async_activate_tls(const On_asio_status_callback on_status);
 
-  virtual Connection_unique_ptr get_lowest_layer();
+  virtual IConnection_ptr get_lowest_layer();
 
   virtual void post(const boost::function<void ()> &calee);
   virtual bool thread_in_connection_strand();
 
   virtual void shutdown(boost::asio::socket_base::shutdown_type how_to_shutdown, boost::system::error_code &ec);
+  virtual void cancel();
   virtual void close();
 
 private:
@@ -61,7 +62,8 @@ private:
   typedef boost::asio::ssl::stream_base::handshake_type handshake_type;
   typedef boost::asio::strand strand;
 
-  void on_accept_try_handshake(const boost::system::error_code &ec);
+  void on_connect_try_handshake(const boost::system::error_code &ec);
+  void on_accept_try_handshake(boost::asio::io_service &acceptor, const boost::system::error_code &ec);
   void on_handshake(const boost::system::error_code &ec);
 
   handshake_type m_handshake_type;

@@ -222,6 +222,18 @@ void set_context(SSL_CTX* ssl_context, const bool is_client, const std::string &
     throw std::runtime_error(sslGetErrString("SSL_CTX_set_tmp_dh failed"));
   }
   DH_free(dh);
+
+  int ssl_verify_mode = SSL_VERIFY_NONE;
+
+  if (!is_client)
+    ssl_verify_mode = SSL_VERIFY_PEER | SSL_VERIFY_CLIENT_ONCE;
+  else
+  {
+    if (0 != ssl_ca.length() || 0 != ssl_ca_path.length())
+      ssl_verify_mode= SSL_VERIFY_PEER;
+  }
+
+  SSL_CTX_set_verify(ssl_context, ssl_verify_mode, NULL);
 }
 
 } // namespace ngs
