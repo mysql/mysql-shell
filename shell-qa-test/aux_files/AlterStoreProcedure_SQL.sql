@@ -1,8 +1,14 @@
 Use sakila;
-DROP procedure IF EXISTS Test;
+
+DROP procedure IF EXISTS sql_sptest ;
+
 DELIMITER $$
-Create procedure Test()
+
+create procedure sql_sptest (OUT param1 INT)
 BEGIN
-SELECT count(*) FROM country;
+
+SELECT count(*) INTO param1 FROM country;
+
 END$$
+
 DELIMITER ;
