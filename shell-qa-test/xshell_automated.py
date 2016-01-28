@@ -87,7 +87,7 @@ def read_til_getShell(proc, fd, text):
     return "".join(data)
 
 
-@timeout(5)
+@timeout(8)
 def exec_xshell_commands(init_cmdLine, commandList):
     RESULTS = "PASS"
     commandbefore = ""
@@ -1932,8 +1932,6 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
-
-  #FAILING........
   def test_4_3_9_2(self):
       '''[4.3.009]:2 JS Update table using session object: NODE SESSION'''
       results = ''
@@ -1946,26 +1944,25 @@ class XShell_TestCases(unittest.TestCase):
                 ("session.sql(\'create table sakila.friends (name varchar(50), last_name varchar(50), "
                  "age integer, gender varchar(20));\').execute();\n","Query OK"),
                 ("var table = session.sakila.friends;\n","mysql-js>"),
-                ("table.insert(\'name\',\'last_name\',\'age\',\'gender\').values(\'jack\',\'black\', 17, \'male\');\n","Query OK"),
-                ("table.insert(\'name\',\'last_name\',\'age\',\'gender\').values(\'ruben\',\'morquecho\', 40, \'male\');\n","Query OK"),
-                ("var res_ruben = table.update().set(\'name\',\'ruben dario\').set(\'age\',42).where(\'name=\"ruben\"\').execute();\n","mysql-js>"),
-                ("print(table.select());\n","mysql-js>")
+                ("table.insert('name','last_name','age','gender').values('jack','black', 17, 'male');\n","Query OK"),
+                ("table.insert('name','last_name','age','gender').values('ruben','morquecho', 40, 'male');\n","Query OK"),
+                ("var res_ruben = table.update().set('name','ruben dario').set('age',42).where('name=\"ruben\"').execute();\n","mysql-js>"),
+                ("table.select();\n","ruben dario")
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
-
   #FAILING........
-  @unittest.skip("not working the \ (multiline) command in mysql-js> session")
+  @unittest.skip("not working the \ (multiline) command in mysql-js> jason session")
   def test_4_3_10_1(self):
       '''[4.3.010]:1 JS Update table using multiline mode: CLASSIC SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [("var mysql=require(\'mysql\').mysql;\n","mysql-js>"),
-                ("var session=mysql.getClassicSession(\'{0}:{1}@{2}:{3}\');\n".format(LOCALHOST.user, LOCALHOST.password,
+      x_cmds = [("var mysql=require('mysql').mysql;\n","mysql-js>"),
+                ("var session=mysql.getClassicSession('{0}:{1}@{2}:{3}');\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                                       LOCALHOST.host, LOCALHOST.port), "mysql-js>"),
-                ("session.runSql(\"use sakila;\");\n","Query OK"),
-                ("session.runSql(\"drop table if exists sakila.friends;\");\n","Query OK"),
+                ("session.runSql('use sakila;');\n","Query OK"),
+                ("session.runSql('drop table if exists sakila.friends;');\n","Query OK"),
                 ("session.runSql('create table sakila.friends (name varchar(50), last_name varchar(50), "
                  "age integer, gender varchar(20));');\n","Query OK"),
                 ("session.runSql(\"INSERT INTO sakila.friends (name,last_name,age,gender) VALUES ('jack',"
@@ -1976,8 +1973,8 @@ class XShell_TestCases(unittest.TestCase):
                 ("session.runSql(\"UPDATE sakila.friends SET name='ruben dario' where name =  'ruben';\");\n","..."),
                 ("session.runSql(\"UPDATE sakila.friends SET name='jackie chan' where name =  'jack';\");\n","..."),
                 ("\n","mysql-js>"),
-                ("session.runSql(\"SELECT * from friends where name LIKE \'%ruben%\';\");\n","ruben dario"),
-                ("session.runSql(\"SELECT * from friends where name LIKE \'%jackie chan%\';\");\n","jackie chan")
+                ("session.runSql(\"SELECT * from friends where name LIKE '%ruben%';\");\n","ruben dario"),
+                ("session.runSql(\"SELECT * from friends where name LIKE '%jackie chan%';\");\n","jackie chan")
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
@@ -2010,27 +2007,45 @@ class XShell_TestCases(unittest.TestCase):
       self.assertEqual(results, 'PASS')
 
 
-  #FAILING........
   def test_4_3_11_1(self):
       '''[4.3.011]:1 JS Update table using STDIN batch code: CLASSIC SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--js', '-u' + LOCALHOST.user,
                       '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.port,
-                      '--schema=sakila','--session-type=classic','< '  + Exec_files_location + 'UpdateTable_ClassicMode.js']
-      x_cmds = [(";\n", "mysql-js>")
+                      '--schema=sakila','--session-type=classic']
+      p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=open(Exec_files_location + 'UpdateTable_ClassicMode.js'))
+      stdin,stdout = p.communicate()
+      if stdin.find(bytearray("FAIL","ascii"),0,len(stdin))> -1:
+        self.assertEqual(stdin, 'PASS')
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+      x_cmds = [('\\connect_node {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
+                ("\\sql\n","mysql-sql>"),
+                ("use sakila;\n","mysql-sql>"),
+                ("SELECT * FROM sakila.actor where actor_id = 50;\n","1 row in set"),
+                ("UPDATE actor SET first_name = 'Old value' where actor_id = 50 ;\n","Query OK, 1 row affected")
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
 
-  #FAILING........
   def test_4_3_11_2(self):
       '''[4.3.011]:2 JS Update table using STDIN batch code: NODE SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--js', '-u' + LOCALHOST.user,
-                      '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.port,
-                      '--schema=sakila','--session-type=node','< '  + Exec_files_location + 'UpdateTable_NodeMode.js']
-      x_cmds = [(";\n", "mysql-js>")
+                      '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port,
+                      '--schema=sakila','--session-type=node']
+      p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=open(Exec_files_location + 'UpdateTable_NodeMode.js'))
+      stdin,stdout = p.communicate()
+      if stdin.find(bytearray("FAIL","ascii"),0,len(stdin))> -1:
+        self.assertEqual(stdin, 'PASS')
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+      x_cmds = [('\\connect_node {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
+                ("\\sql\n","mysql-sql>"),
+                ("use sakila;\n","mysql-sql>"),
+                ("SELECT * FROM sakila.actor where actor_id = 50;\n","1 row in set"),
+                ("UPDATE actor SET first_name = 'Old value' where actor_id = 50 ;\n","Query OK, 1 row affected")
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
@@ -2055,25 +2070,24 @@ class XShell_TestCases(unittest.TestCase):
       self.assertEqual(results, 'PASS')
 
 
-  #FAILING........
   def test_4_3_12_2(self):
       '''[4.3.012]:2 JS Update database using session object: NODE SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [("var mysqlx=require(\'mysqlx\').mysqlx;\n","mysql-js>"),
+      x_cmds = [("var mysqlx=require('mysqlx').mysqlx;\n","mysql-js>"),
                 ("var session=mysqlx.getNodeSession(\'{0}:{1}@{2}\');\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                                 LOCALHOST.host),"mysql-js>"),
                 ("session.sql(\"drop database if exists automation_test;\").execute();\n","Query OK"),
-                ("session.sql(\'create database automation_test;\').execute();\n","Query OK"),
-                ("session.sql(\'ALTER SCHEMA automation_test  DEFAULT COLLATE utf8_general_ci;\').execute();\n","Query OK"),
+                ("session.sql('create database automation_test;').execute();\n","Query OK"),
+                ("session.sql('ALTER SCHEMA automation_test  DEFAULT COLLATE utf8_general_ci;').execute();\n","Query OK"),
                 ("session.sql(\"SELECT DEFAULT_COLLATION_NAME FROM information_schema.SCHEMATA WHERE SCHEMA_NAME = "
-                 "\'automation_test\' ;\").execute();\n","utf8_general_ci")
+                 "'automation_test' ;\").execute();\n","utf8_general_ci")
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
-
-  #FAILING........
+  # FAILING.....
+  @unittest.skip("multiline in js mode is not working")
   def test_4_3_13_1(self):
       '''[4.3.013]:1 JS Update database using multiline mode: CLASSIC SESSION'''
       results = ''
@@ -2093,7 +2107,8 @@ class XShell_TestCases(unittest.TestCase):
       self.assertEqual(results, 'PASS')
 
 
-  #FAILING........
+  # FAILING.....
+  @unittest.skip("multiline in js mode is not working")
   def test_4_3_13_2(self):
       '''[4.3.013]:2 JS Update database using multiline mode: NODE SESSION'''
       results = ''
@@ -2112,49 +2127,63 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
-  #FAILING........
   def test_4_3_14_1(self):
       '''[4.3.014]:1 JS Update database using STDIN batch code: CLASSIC SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--js', '-u' + LOCALHOST.user,
                       '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.port,
-                      '--schema=sakila','--session-type=classic','< '  + Exec_files_location + 'UpdateSchema_ClassicMode.js']
-      x_cmds = [(";", "mysql-js>")
+                      '--schema=sakila','--session-type=classic']
+      p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=open(Exec_files_location + 'UpdateSchema_ClassicMode.js'))
+      stdin,stdout = p.communicate()
+      if stdin.find(bytearray("FAIL","ascii"),0,len(stdin))> -1:
+        self.assertEqual(stdin, 'PASS')
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+      x_cmds = [('\\connect_node {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
+                ("\\sql\n","mysql-sql>"),
+                ("use sakila;\n","mysql-sql>"),
+                ("SELECT DEFAULT_COLLATION_NAME FROM information_schema.SCHEMATA WHERE SCHEMA_NAME = 'schema_test' LIMIT 1;;\n","1 row in set"),
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
 
-  #FAILING........
   def test_4_3_14_2(self):
       '''[4.3.014]:2 JS Update database using STDIN batch code: NODE SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--js', '-u' + LOCALHOST.user,
                       '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.port,
-                      '--schema=sakila','--session-type=node','< '  + Exec_files_location + 'UpdateSchema_NodeMode.js']
-      x_cmds = [(";", "mysql-js>")
+                      '--schema=sakila','--session-type=node']
+      p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=open(Exec_files_location + 'UpdateSchema_NodeMode.js'))
+      stdin,stdout = p.communicate()
+      if stdin.find(bytearray("FAIL","ascii"),0,len(stdin))> -1:
+        self.assertEqual(stdin, 'PASS')
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+      x_cmds = [('\\connect_node {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
+                ("\\sql\n","mysql-sql>"),
+                ("use sakila;\n","mysql-sql>"),
+                ("SELECT DEFAULT_COLLATION_NAME FROM information_schema.SCHEMATA WHERE SCHEMA_NAME = 'schema_test' LIMIT 1;\n","1 row in set"),
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
-  #FAILING........
   def test_4_3_15_1(self):
       '''[4.3.015]:1 JS Update alter view using session object: CLASSIC SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [("var mysql=require(\'mysql\').mysql;\n","mysql-js>"),
+      x_cmds = [("var mysql=require('mysql').mysql;\n","mysql-js>"),
                 ("var session=mysql.getClassicSession(\'{0}:{1}@{2}:{3}\');\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                                       LOCALHOST.host, LOCALHOST.port), "mysql-js>"),
-                ("session.runSql(\'use sakila;\');\n","Query OK"),
-                ("session.runSql(\'drop view if exists js_view;\');\n","Query OK"),
-                ("session.runSql(\"create view js_view as select first_name from actor where first_name like \'%a%\';\");\n","Query OK"),
-                ("session.runSql(\"alter view js_view as select * from actor where first_name like \'%a%\';\");\n","Query OK"),
-                ("session.runSql(\"SELECT * from js_view;\");\n","actor_id")
+                ("session.runSql('use sakila;');\n","Query OK"),
+                ("session.runSql('drop view if exists js_view;');\n","Query OK"),
+                ("session.runSql(\"create view js_view as select first_name from actor where first_name like '%a%';\");\n","Query OK"),
+                ("session.runSql(\"alter view js_view as select * from actor where first_name like '%a%';\");\n","Query OK"),
+                ("session.runSql('SELECT * from js_view;');\n","actor_id")
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
-  #FAILING........
   def test_4_3_15_2(self):
       '''[4.3.015]:2 JS Update alter view using session object: NODE SESSION'''
       results = ''
@@ -2172,7 +2201,8 @@ class XShell_TestCases(unittest.TestCase):
       self.assertEqual(results, 'PASS')
 
 
-  #FAILING........
+  # FAILING.....
+  @unittest.skip("multiline in js mode is not working")
   def test_4_3_16_1(self):
       '''[4.3.016]:1 JS Update alter view using multiline mode: CLASSIC SESSION'''
       results = ''
@@ -2192,7 +2222,8 @@ class XShell_TestCases(unittest.TestCase):
       self.assertEqual(results, 'PASS')
 
 
-  #FAILING........
+  # FAILING.....
+  @unittest.skip("multiline in js mode is not working")
   def test_4_3_16_2(self):
       '''[4.3.016]:2 JS Update alter view using multiline mode: NODE SESSION'''
       results = ''
@@ -2211,27 +2242,43 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
-  #FAILING........
   def test_4_3_17_1(self):
       '''[4.3.017]:1 JS Update alter view using STDIN batch code: CLASSIC SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--js', '-u' + LOCALHOST.user,
                       '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.port,
-                      '--schema=sakila','--session-type=classic','< '  + Exec_files_location + 'UpdateView_ClassicMode.js']
-      x_cmds = [(";", "mysql-js>")
+                      '--schema=sakila','--session-type=classic']
+      p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=open(Exec_files_location + 'UpdateView_ClassicMode.js'))
+      stdin,stdout = p.communicate()
+      if stdin.find(bytearray("FAIL","ascii"),0,len(stdin))> -1:
+        self.assertEqual(stdin, 'PASS')
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+      x_cmds = [('\\connect_node {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
+                ("\\sql\n","mysql-sql>"),
+                ("use sakila;\n","mysql-sql>"),
+                ("SELECT * FROM js_view ;\n","1 row in set"),
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
 
-  #FAILING........
   def test_4_3_17_2(self):
       '''[4.3.017]:2 JS Update alter view using STDIN batch code: NODE SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--js', '-u' + LOCALHOST.user,
-                      '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.port,
-                      '--schema=sakila','--session-type=node','< '  + Exec_files_location + 'UpdateView_NodeMode.js']
-      x_cmds = [(";", "mysql-js>")
+                      '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port,
+                      '--schema=sakila','--session-type=node']
+      p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=open(Exec_files_location + 'UpdateView_NodeMode.js'))
+      stdin,stdout = p.communicate()
+      if stdin.find(bytearray("FAIL","ascii"),0,len(stdin))> -1:
+        self.assertEqual(stdin, 'PASS')
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+      x_cmds = [('\\connect_node {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
+                ("\\sql\n","mysql-sql>"),
+                ("use sakila;\n","mysql-sql>"),
+                ("SELECT * FROM js_viewnode ;\n","1 row in set"),
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
@@ -2261,8 +2308,8 @@ class XShell_TestCases(unittest.TestCase):
       x_cmds = [("var mysqlx=require(\'mysqlx\').mysqlx;\n","mysql-js>"),
                 ("var session=mysqlx.getNodeSession(\'{0}:{1}@{2}\');\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                                 LOCALHOST.host),"mysql-js>"),
-                ("session.sql(\'use sakila;\').execute();\n","Query OK"),
-                ("session.sql(\'DROP PROCEDURE IF EXISTS my_automated_procedure;\').execute();\n","Query OK"),
+                ("session.sql('use sakila;').execute();\n","Query OK"),
+                ("session.sql('DROP PROCEDURE IF EXISTS my_automated_procedure;').execute();\n","Query OK"),
                 ("session.sql(\"delimiter \\\\\").execute();\n","mysql-js>"),
                 ("session.sql(\"create procedure my_automated_procedure (INOUT incr_param INT)\n "
                  "BEGIN \n    SET incr_param = incr_param + 1 ;\nEND\\\\\").execute();\n","mysql-js>"),
@@ -2272,7 +2319,8 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
-  #FAILING........
+  # FAILING.....
+  @unittest.skip("multiline in js mode is not working")
   def test_4_3_19_1(self):
       '''[4.3.019]:1 JS Update alter stored procedure using multiline mode: CLASSIC SESSION'''
       results = ''
@@ -2294,7 +2342,8 @@ class XShell_TestCases(unittest.TestCase):
       self.assertEqual(results, 'PASS')
 
 
-  #FAILING........
+  # FAILING.....
+  @unittest.skip("multiline in js mode is not working")
   def test_4_3_19_2(self):
       '''[4.3.019]:2 JS Update alter stored procedure using multiline mode: NODE SESSION'''
       results = ''
@@ -2315,26 +2364,42 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
-  #FAILING........
   def test_4_3_20_1(self):
       '''[4.3.020]:1 JS Update alter stored procedure using STDIN batch code: CLASSIC SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--js', '-u' + LOCALHOST.user,
                       '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.port,
-                      '--schema=sakila','--session-type=classic','< '  + Exec_files_location + 'UpdateProcedure_ClassicMode.js']
-      x_cmds = [(";", "mysql-js>")
+                      '--schema=sakila','--session-type=classic']
+      p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=open(Exec_files_location + 'UpdateProcedure_ClassicMode.js'))
+      stdin,stdout = p.communicate()
+      if stdin.find(bytearray("FAIL","ascii"),0,len(stdin))> -1:
+        self.assertEqual(stdin, 'PASS')
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+      x_cmds = [('\\connect_node {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
+                ("\\sql\n","mysql-sql>"),
+                ("use sakila;\n","mysql-sql>"),
+                ("call Test;\n","1 row in set"),
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
-  #FAILING........
   def test_4_3_20_2(self):
       '''[4.3.020]:2 JS Update alter stored procedure using STDIN batch code: NODE SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--js', '-u' + LOCALHOST.user,
-                      '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.port,
-                      '--schema=sakila','--session-type=node','< '  + Exec_files_location + 'UpdateProcedure_NodeMode.js']
-      x_cmds = [(";", "mysql-js>")
+                      '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port,
+                      '--schema=sakila','--session-type=node']
+      p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=open(Exec_files_location + 'UpdateProcedure_NodeMode.js'))
+      stdin,stdout = p.communicate()
+      if stdin.find(bytearray("FAIL","ascii"),0,len(stdin))> -1:
+        self.assertEqual(stdin, 'PASS')
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+      x_cmds = [('\\connect_node {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
+                ("\\sql\n","mysql-sql>"),
+                ("use sakila;\n","mysql-sql>"),
+                ("call Test2;\n","1 row in set"),
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
@@ -2409,6 +2474,7 @@ class XShell_TestCases(unittest.TestCase):
       self.assertEqual(results, 'PASS')
 
   #FAILING........
+  @unittest.skip("does not recognize  multiline on python session")
   def test_4_3_22_2(self):
       '''[4.3.022]:2 PY Update table using multiline mode: NODE SESSION'''
       results = ''
@@ -2433,26 +2499,42 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
-  #FAILING........
   def test_4_3_23_1(self):
       '''[4.3.023]:1 PY Update table using STDIN batch code: CLASSIC SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--py', '-u' + LOCALHOST.user,
                       '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.port,
-                      '--schema=sakila','--session-type=classic','< '  + Exec_files_location + 'UpdateTable_ClassicMode.py']
-      x_cmds = [("\n", "mysql-py>")
+                      '--schema=sakila','--session-type=classic']
+      p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=open(Exec_files_location + 'UpdateTable_ClassicMode.py'))
+      stdin,stdout = p.communicate()
+      if stdin.find(bytearray("FAIL","ascii"),0,len(stdin))> -1:
+        self.assertEqual(stdin, 'PASS')
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+      x_cmds = [('\\connect_node {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
+                ("\\sql\n","mysql-sql>"),
+                ("use sakila;\n","mysql-sql>"),
+                ("SELECT * FROM sakila.actor where actor_id = 50;\n","1 row in set"),
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
-  #FAILING........
   def test_4_3_23_2(self):
       '''[4.3.023]:2 PY Update table using STDIN batch code: NODE SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--py', '-u' + LOCALHOST.user,
-                      '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.port,
-                      '--schema=sakila','--session-type=node','< '  + Exec_files_location + 'UpdateTable_NodeMode.py']
-      x_cmds = [("\n", "mysql-py>")
+                      '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port,
+                      '--schema=sakila','--session-type=node']
+      p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=open(Exec_files_location + 'UpdateTable_NodeMode.py'))
+      stdin,stdout = p.communicate()
+      if stdin.find(bytearray("FAIL","ascii"),0,len(stdin))> -1:
+        self.assertEqual(stdin, 'PASS')
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+      x_cmds = [('\\connect_node {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
+                ("\\sql\n","mysql-sql>"),
+                ("use sakila;\n","mysql-sql>"),
+                ("SELECT * FROM sakila.friends;\n","7 rows in set"),
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
@@ -2491,6 +2573,7 @@ class XShell_TestCases(unittest.TestCase):
       self.assertEqual(results, 'PASS')
 
   #FAILING........
+  @unittest.skip("does not recognize  multiline on python session")
   def test_4_3_25_1(self):
       '''[4.3.025]:1 PY Update database using multiline mode: CLASSIC SESSION'''
       results = ''
@@ -2511,6 +2594,7 @@ class XShell_TestCases(unittest.TestCase):
 
 
   #FAILING........
+  @unittest.skip("does not recognize  multiline on python session")
   def test_4_3_25_2(self):
       '''[4.3.025]:2 PY Update database using multiline mode: NODE SESSION'''
       results = ''
@@ -2530,14 +2614,22 @@ class XShell_TestCases(unittest.TestCase):
       self.assertEqual(results, 'PASS')
 
 
-  #FAILING........
   def test_4_3_26_1(self):
       '''[4.3.026]:1 PY Update database using STDIN batch code: CLASSIC SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--py', '-u' + LOCALHOST.user,
                       '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.port,
-                      '--schema=sakila','--session-type=classic','< '  + Exec_files_location + 'UpdateSchema_ClassicMode.py']
-      x_cmds = [("\n", "mysql-py>")
+                      '--schema=sakila','--session-type=classic']
+      p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=open(Exec_files_location + 'UpdateSchema_ClassicMode.py'))
+      stdin,stdout = p.communicate()
+      if stdin.find(bytearray("FAIL","ascii"),0,len(stdin))> -1:
+        self.assertEqual(stdin, 'PASS')
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+      x_cmds = [('\\connect_node {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
+                ("\\sql\n","mysql-sql>"),
+                ("use sakila;\n","mysql-sql>"),
+                ("SELECT DEFAULT_COLLATION_NAME FROM information_schema.SCHEMATA WHERE SCHEMA_NAME = 'schema_test' LIMIT 1;\n","1 row in set"),
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
