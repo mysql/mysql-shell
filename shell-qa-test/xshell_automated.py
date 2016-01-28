@@ -3245,7 +3245,7 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
-  #FAILING........
+  #FAILING..........
   def test_4_4_10_1(self):
       '''[4.4.010]:1 JS Delete table using multiline mode: CLASSIC SESSION'''
       results = ''
