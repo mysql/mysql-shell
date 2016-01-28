@@ -1,2 +1,6 @@
-session.runSql("UPDATE actor SET first_name = 'Updated By Py Classic STDIN' where actor_id < 40 order by actor_id DESC limit 2 ;");
-session.runSql("SELECT * FROM sakila.actor where actor_id < 40 order by actor_id desc limit 2 ;");
+import mysql
+session=mysql.getClassicSession('root:guidev!@localhost:3578')
+session.runSql('use sakila;')
+session.runSql("UPDATE actor SET first_name = 'Updated By JS Classic STDIN' where actor_id = 50 ;");
+session.runSql("SELECT * FROM sakila.actor where actor_id = 50;")
+session.runSql("UPDATE actor SET first_name = 'Old value' where actor_id = 50 ;")
