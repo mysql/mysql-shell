@@ -22,13 +22,9 @@
 #include "myasio/wrapper_ssl.h"
 #include "ngs/memory.h"
 
-using namespace yaSSL;
-
 namespace ngs
 {
   class IOptions_session;
-
-  using namespace ::yaSSL;
 
   class Wrapper_yassl_error : public boost::system::error_category
   {
@@ -40,7 +36,7 @@ namespace ngs
   class Wrapper_yassl : public IWrapper_ssl
   {
   public:
-    Wrapper_yassl(boost::shared_ptr<SSL_CTX> context);
+    Wrapper_yassl(boost::shared_ptr<yaSSL::SSL_CTX> context);
 
     virtual void ssl_initialize();
 
@@ -58,7 +54,7 @@ namespace ngs
 
     virtual int ssl_read(void* buffer, int sz);
 
-    virtual int ssl_write(const void* buffer, int sz );
+    virtual int ssl_write(const void* buffer, int sz);
 
     virtual void ssl_set_fd(int file_descriptor);
 
@@ -75,12 +71,11 @@ namespace ngs
     virtual boost::system::error_code get_boost_error();
 
   private:
-    boost::shared_ptr<SSL_CTX>        ssl_ctxt;
-    Custom_allocator<SSL>::Unique_ptr ssl;
+    boost::shared_ptr<yaSSL::SSL_CTX>        ssl_ctxt;
+    Custom_allocator<yaSSL::SSL>::Unique_ptr ssl;
 
     int ssl_get_error();
   };
-
 } // namespace ngs
 
 #endif // _NGS_ASIO_WRAPPER_YASSL_H_
