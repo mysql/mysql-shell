@@ -44,6 +44,13 @@ namespace shcore
 
     int64_t as_ms() const;
 
+    int get_year() const { return _year; }
+    int get_month() const { return _month; }
+    int get_day() const { return _day; }
+    int get_hour() const { return _hour; }
+    int get_min() const { return _min; }
+    float get_sec() const { return _sec; }
+
   public:
     static Object_bridge_ref create(const shcore::Argument_list &args);
     static Object_bridge_ref unrepr(const std::string &s);
