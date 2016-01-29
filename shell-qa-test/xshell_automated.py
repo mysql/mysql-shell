@@ -157,7 +157,7 @@ config_path = os.environ['CONFIG_PATH']
 config=json.load(open(config_path))
 MYSQL_SHELL = os.environ['MYSQLX_PATH']
 Exec_files_location = os.environ['AUX_FILES_PATH']
-XSHELL_TEST_ROOT = os.environ['XSHELL_QA_TEST_ROOT']
+XSHELL_QA_TEST_ROOT = os.environ['XSHELL_QA_TEST_ROOT']
 
 #########################################################################
 
