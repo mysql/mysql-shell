@@ -31,11 +31,10 @@ using namespace shcore;
 Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
   : Command_line_options(argc, argv), log_level(ngcommon::Logger::LOG_ERROR)
 {
-  bool needs_password = false;
-
   output_format = "";
   print_cmd_line_helper = false;
   print_version = false;
+  execute_statement = "";
 
   session_type = mysh::Application;
 
@@ -93,6 +92,8 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
       schema = value;
     else if (check_arg(argv, i, "--recreate-schema", NULL))
       recreate_database = true;
+    else if (check_arg_with_value(argv, i, "--execute", "-e", value))
+      execute_statement = value;
     else if ((arg_format = check_arg_with_value(argv, i, "--dbpassword", NULL, value, true)) ||
              (arg_format = check_arg_with_value(argv, i, "--password", "-p", value, true)))
     {
@@ -197,7 +198,7 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
       exit_code = 1;
       break;
 #endif
-    }
+  }
     else if (check_arg(argv, i, "--py", "--python"))
     {
 #ifdef HAVE_PYTHON
@@ -207,7 +208,7 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
       exit_code = 1;
       break;
 #endif
-    }
+}
     else if (check_arg(argv, i, NULL, "--sqlc"))
     {
       initial_mode = IShell_core::Mode_SQL;

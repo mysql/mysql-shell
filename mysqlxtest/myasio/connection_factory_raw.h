@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2016 Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -21,15 +21,7 @@
 #define _NGS_ASIO_CONNECTION_RAW_FACTORY_H_
 
 #include "myasio/connection_factory.h"
-#include "myasio/connection_raw.h"
 
-
-namespace yaSSL
-{
-
-class SSL_CTX;
-
-}  // namespace yaSSL
 
 namespace ngs
 {
@@ -37,15 +29,9 @@ namespace ngs
   class Connection_raw_factory: public Connection_factory
   {
   public:
-    virtual Connection_unique_ptr create_connection(boost::asio::io_service &io_service)
-    {
-      return Connection_unique_ptr(new Connection_raw<boost::asio::ip::tcp::socket>(io_service));
-    }
+    virtual IConnection_unique_ptr create_connection(boost::asio::io_service &io_service);
 
-    virtual Options_context_ptr create_ssl_context_options()
-    {
-      return Options_context_ptr();
-    }
+    virtual IOptions_context_ptr create_ssl_context_options();
   };
 
 } // namespace ngs

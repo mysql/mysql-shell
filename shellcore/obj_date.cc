@@ -130,7 +130,7 @@ Object_bridge_ref Date::unrepr(const std::string &s)
 int64_t Date::as_ms() const
 {
   struct tm t;
-
+  // caution, this obviously doesnt work for dates before 1970 yr
   t.tm_year = _year - 1900;
   t.tm_mon = _month;
   t.tm_mday = _day;
@@ -150,8 +150,7 @@ Object_bridge_ref Date::from_ms(int64_t ms_since_epoch)
 
   struct tm t;
 #if WIN32
-  // TODO: a proper implementation of localtime_r
-  memcpy(&t, localtime(&seconds_since_epoch), sizeof(struct tm));
+  localtime_s(&t, &seconds_since_epoch);
 #else
   localtime_r(&seconds_since_epoch, &t);
 #endif

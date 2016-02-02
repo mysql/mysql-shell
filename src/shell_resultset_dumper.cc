@@ -355,7 +355,8 @@ std::string ResultsetDumper::get_affected_stats(const std::string& member, const
 
   // Some queries return -1 since affected rows do not apply to them
   int64_t affected_items = _resultset->get_member(member).as_int();
-  if (affected_items == (uint64_t)-1)
+  //if (affected_items == (uint64_t)-1)
+  if (affected_items == -1)
     output = "Query OK";
   else
     // In case of Query OK, prints the actual number of affected rows.

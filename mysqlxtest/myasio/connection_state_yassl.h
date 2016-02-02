@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2016 Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -22,6 +22,7 @@
 #define _NGS_ASIO_CONNECTION_STATES_YASSL_H_
 
 
+#include "ngs/memory.h"
 #include "myasio/types.h"
 #include "myasio/callback.h"
 #include "myasio/wrapper_ssl.h"
@@ -44,7 +45,7 @@ class State_yassl
 public:
   enum Result {Result_done, Result_continue};
 
-  State_yassl(Wrapper_ssl &ssl, const State state);
+  State_yassl(IWrapper_ssl &ssl, const State state);
   virtual ~State_yassl() {}
 
   virtual Result handle_sdu(boost::optional<State> &next_state,
@@ -63,14 +64,14 @@ public:
 protected:
   Callback_ptr  m_callback;
   const State   m_state;
-  Wrapper_ssl  &m_ssl;
+  IWrapper_ssl  &m_ssl;
 };
 
 
 class State_handshake_server_yassl : public State_yassl
 {
 public:
-  State_handshake_server_yassl(Wrapper_ssl &ssl);
+  State_handshake_server_yassl(IWrapper_ssl &ssl);
 
   virtual Result handle_sdu(boost::optional<State> &next_state,
                             const_buffer_with_callback& next_buffer_callback,
@@ -84,7 +85,7 @@ public:
 class State_handshake_client_yassl : public State_handshake_server_yassl
 {
 public:
-  State_handshake_client_yassl(Wrapper_ssl &ssl);
+  State_handshake_client_yassl(IWrapper_ssl &ssl);
 
   virtual bool can_process_empty_pdu() { return true; }
 };
@@ -93,7 +94,7 @@ public:
 class State_running_yassl : public State_yassl
 {
 public:
-  State_running_yassl(Wrapper_ssl &ssl);
+  State_running_yassl(IWrapper_ssl &ssl);
 
   virtual Result handle_sdu(boost::optional<State> &next_state,
                             const_buffer_with_callback& next_buffer_callback,
@@ -110,7 +111,7 @@ public:
 class State_stop_yassl : public State_yassl
 {
 public:
-  State_stop_yassl(Wrapper_ssl &ssl);
+  State_stop_yassl(IWrapper_ssl &ssl);
 
   virtual Result handle_sdu(boost::optional<State> &next_state,
                             const_buffer_with_callback& next_buffer_callback,

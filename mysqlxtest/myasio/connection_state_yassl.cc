@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2016 Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -21,17 +21,16 @@
 #include "myasio/connection_state_yassl.h"
 #include "myasio/callback.h"
 
-#ifdef MYSQLXTEST_STANDALONE
-#include "logger/logger.h"
-#else
+
+#define LOG_DOMAIN "ngs.protocol"
 #include "ngs/log.h"
-#endif
+
 
 namespace ngs
 {
 
 
-State_yassl::State_yassl(Wrapper_ssl &ssl, const State state)
+State_yassl::State_yassl(IWrapper_ssl &ssl, const State state)
 : m_state(state),
   m_ssl(ssl)
 {
@@ -39,7 +38,7 @@ State_yassl::State_yassl(Wrapper_ssl &ssl, const State state)
 }
 
 
-State_handshake_server_yassl::State_handshake_server_yassl(Wrapper_ssl &ssl)
+State_handshake_server_yassl::State_handshake_server_yassl(IWrapper_ssl &ssl)
 : State_yassl(ssl, State_handshake)
 {
 
@@ -78,13 +77,13 @@ State_yassl::Result State_handshake_server_yassl::handle_pdu(boost::optional<Sta
 }
 
 
-State_handshake_client_yassl::State_handshake_client_yassl(Wrapper_ssl &ssl)
+State_handshake_client_yassl::State_handshake_client_yassl(IWrapper_ssl &ssl)
 : State_handshake_server_yassl(ssl)
 {
 }
 
 
-State_running_yassl::State_running_yassl(Wrapper_ssl &ssl)
+State_running_yassl::State_running_yassl(IWrapper_ssl &ssl)
 : State_yassl(ssl, State_running)
 {
 
@@ -182,7 +181,7 @@ State_yassl::Result State_running_yassl::handle_pdu(boost::optional<State> &next
 }
 
 
-State_stop_yassl::State_stop_yassl(Wrapper_ssl &ssl)
+State_stop_yassl::State_stop_yassl(IWrapper_ssl &ssl)
 : State_yassl(ssl, State_stop)
 {
 

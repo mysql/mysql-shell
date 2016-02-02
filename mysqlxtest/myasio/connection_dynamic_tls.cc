@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2016 Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -26,10 +26,10 @@
 namespace ngs
 {
 
-class Connection_dynamic_tls::Options_dynamic : public Options_session
+class Connection_dynamic_tls::Options_dynamic : public IOptions_session
 {
 public:
-  Options_dynamic(const Options_session_ptr options)
+  Options_dynamic(const IOptions_session_ptr options)
   : m_options(options)
   {}
 
@@ -46,16 +46,21 @@ public:
 
   long ssl_sessions_reused() { return m_options->ssl_sessions_reused(); }
 
+  long ssl_get_verify_result_and_cert() { return m_options->ssl_get_verify_result_and_cert(); };
+
+  std::string ssl_get_peer_certificate_issuer() { return m_options->ssl_get_peer_certificate_issuer(); };
+
+  std::string ssl_get_peer_certificate_subject() { return m_options->ssl_get_peer_certificate_subject(); };
+
 private:
-  Options_session_ptr m_options;
+  IOptions_session_ptr m_options;
 };
 
 
-Connection_dynamic_tls::Connection_dynamic_tls(Connection_unique_ptr connection)
-: m_connection(boost::move(connection)),
+Connection_dynamic_tls::Connection_dynamic_tls(IConnection_unique_ptr connection)
+: m_connection(connection.release()),
   m_operational_mode(m_connection->get_lowest_layer())
 {
-  //assert(m_connection->is_option_set(Option_support_tls));
 }
 
 Connection_dynamic_tls::~Connection_dynamic_tls()
@@ -72,12 +77,12 @@ int Connection_dynamic_tls::get_socket_id()
   return m_operational_mode->get_socket_id();
 }
 
-Options_session_ptr Connection_dynamic_tls::options()
+IOptions_session_ptr Connection_dynamic_tls::options()
 {
   return boost::make_shared<Options_dynamic>(m_operational_mode->options());
 }
 
-Connection_unique_ptr Connection_dynamic_tls::get_lowest_layer()
+IConnection_ptr Connection_dynamic_tls::get_lowest_layer()
 {
   return m_connection->get_lowest_layer();
 }
@@ -108,7 +113,7 @@ void Connection_dynamic_tls::async_read(const Mutable_buffer_sequence &data, con
 
 void Connection_dynamic_tls::async_activate_tls(const On_asio_status_callback on_status)
 {
-  m_operational_mode = Connection_unique_ptr(m_connection.get(), boost::none);
+  m_operational_mode = m_connection;
 
   m_operational_mode->async_activate_tls(on_status);
 }
@@ -131,6 +136,11 @@ bool Connection_dynamic_tls::thread_in_connection_strand()
 void Connection_dynamic_tls::close()
 {
   m_connection->close();
+}
+
+void Connection_dynamic_tls::cancel()
+{
+  m_operational_mode->cancel();
 }
 
 }  // namespace ngs

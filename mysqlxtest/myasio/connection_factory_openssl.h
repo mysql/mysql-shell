@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2016 Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -23,6 +23,7 @@
 
 
 #include <boost/scoped_ptr.hpp>
+
 #include "myasio/connection_factory.h"
 
 
@@ -53,8 +54,8 @@ public:
                              const bool is_client = false);
   ~Connection_openssl_factory();
 
-  virtual Connection_unique_ptr create_connection(boost::asio::io_service &io_service);
-  virtual Options_context_ptr   create_ssl_context_options();
+  virtual IConnection_unique_ptr create_connection(boost::asio::io_service &io_service);
+  virtual IOptions_context_ptr   create_ssl_context_options();
 
 private:
   boost::asio::ssl::context *m_context;

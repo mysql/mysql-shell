@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2016 Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -55,14 +55,14 @@ int Connection_openssl::get_socket_id()
   return m_asio_socket.lowest_layer().native_handle();
 }
 
-Options_session_ptr Connection_openssl::options()
+IOptions_session_ptr Connection_openssl::options()
 {
   return boost::make_shared<Options_session_ssl>(m_asio_socket.native_handle());
 }
 
-Connection_unique_ptr Connection_openssl::get_lowest_layer()
+IConnection_ptr Connection_openssl::get_lowest_layer()
 {
-  return Connection_unique_ptr(new Connection_raw<boost::asio::ip::tcp::socket&>(m_asio_socket.next_layer()));
+  return IConnection_ptr(new Connection_raw<boost::asio::ip::tcp::socket&>(m_asio_socket.next_layer()));
 }
 
 void Connection_openssl::async_connect(const Endpoint &endpoint,
@@ -73,7 +73,7 @@ void Connection_openssl::async_connect(const Endpoint &endpoint,
   m_ready_callback  = on_ready_callback;
 
   m_asio_socket.lowest_layer().async_connect(endpoint,
-                                             m_asio_strand.wrap(boost::bind(&Connection_openssl::on_accept_try_handshake, this, boost::asio::placeholders::error)));
+                                             m_asio_strand.wrap(boost::bind(&Connection_openssl::on_connect_try_handshake, this, boost::asio::placeholders::error)));
 }
 
 void Connection_openssl::async_accept(boost::asio::ip::tcp::acceptor & acceptor,
@@ -83,7 +83,7 @@ void Connection_openssl::async_accept(boost::asio::ip::tcp::acceptor & acceptor,
   m_accept_callback = on_accept_callback;
   m_ready_callback  = on_ready_callback;
 
-  acceptor.async_accept(m_asio_socket.lowest_layer(), m_asio_strand.wrap(boost::bind(&Connection_openssl::on_accept_try_handshake, this, boost::asio::placeholders::error)));
+  acceptor.async_accept(m_asio_socket.lowest_layer(), boost::bind(&Connection_openssl::on_accept_try_handshake, this, boost::ref(acceptor.get_io_service()),boost::asio::placeholders::error));
 }
 
 void Connection_openssl::async_write(const Const_buffer_sequence &data, const On_asio_data_callback &on_write_callback)
@@ -145,6 +145,11 @@ bool Connection_openssl::thread_in_connection_strand()
   return m_asio_strand.running_in_this_thread();
 }
 
+void Connection_openssl::cancel()
+{
+  m_asio_socket.lowest_layer().cancel();
+}
+
 void Connection_openssl::close()
 {
   if (m_asio_socket.lowest_layer().is_open())
@@ -155,9 +160,28 @@ void Connection_openssl::close()
   }
 }
 
-void Connection_openssl::on_accept_try_handshake(const boost::system::error_code &ec)
+
+
+void Connection_openssl::on_accept_try_handshake(boost::asio::io_service &acceptor, const boost::system::error_code &ec)
 {
-  Callback_direct().call_status_function(m_accept_callback, ec);
+  Callback_post callback(boost::bind(&call_io_service_post<boost::asio::io_service>, boost::ref(acceptor), _1));
+
+  callback.call_status_function(m_accept_callback, ec);
+
+  if (ec)
+  {
+    return;
+  }
+
+  set_socket_option(m_asio_socket.lowest_layer(), boost::asio::ip::tcp::no_delay(true), false);
+
+  async_activate_tls(On_asio_status_callback());
+}
+
+void Connection_openssl::on_connect_try_handshake(const boost::system::error_code &ec)
+{
+  Callback_post callback(boost::bind(&Connection_openssl::post, this, _1));
+  callback.call_status_function(m_accept_callback, ec);
 
   if (ec)
   {
@@ -171,11 +195,12 @@ void Connection_openssl::on_accept_try_handshake(const boost::system::error_code
 
 void Connection_openssl::on_handshake(const boost::system::error_code &error)
 {
+  Callback_post callback(boost::bind(&Connection_openssl::post, this, _1));
   m_state = error ? State_stop :
                     State_running;
 
 
-  Callback_direct().call_status_function(m_ready_callback, error);
+  callback.call_status_function(m_ready_callback, error);
 }
 
 #endif // !defined(HAVE_YASSL)

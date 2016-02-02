@@ -19,6 +19,7 @@
 
 #include "interactive_shell.h"
 #include <sys/stat.h>
+#include <sstream>
 
 #ifdef WIN32
 #  include <io.h>
@@ -57,7 +58,6 @@ BOOL windows_ctrl_handler(DWORD fdwCtrlType)
 std::string detect_interactive(Shell_command_line_options &options, bool &from_stdin)
 {
   bool is_interactive = true;
-  bool from_file = false;
   std::string error;
 
   from_stdin = false;
@@ -79,18 +79,9 @@ std::string detect_interactive(Shell_command_line_options &options, bool &from_s
     from_stdin = true;
   }
   if (!isatty(__stdin_fileno) || !isatty(__stdout_fileno))
-  {
-    // Now we find out if it is a redirected file or not
-    struct stat stats;
-    int result = fstat(__stdin_fileno, &stats);
-
-    if (result == 0)
-      from_file = (stats.st_mode & S_IFREG) == S_IFREG;
-
     is_interactive = false;
-  }
   else
-    is_interactive = options.run_file.empty();
+    is_interactive = options.run_file.empty() && options.execute_statement.empty();
 
   // The --interactive option forces the shell to work emulating the
   // interactive mode no matter if:
@@ -170,7 +161,12 @@ int main(int argc, char **argv)
         }
       }
 
-      if (!options.run_file.empty())
+      if (!options.execute_statement.empty())
+      {
+        std::stringstream stream(options.execute_statement);
+        ret_val = shell.process_stream(stream, "STDIN");
+      }
+      else if (!options.run_file.empty())
         ret_val = shell.process_file();
       else if (from_stdin)
       {

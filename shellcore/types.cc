@@ -1310,7 +1310,7 @@ int64_t Value::as_int() const
 
   if (type == Integer)
     ret_val = value.i;
-  else if (type == UInteger && value.ui <= std::numeric_limits<int64_t>::max())
+  else if (type == UInteger && value.ui <= uint64_t(std::numeric_limits<int64_t>::max()))
     ret_val = (int64_t)value.ui;
   else
     throw Exception::type_error("Invalid typecast");

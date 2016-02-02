@@ -1,0 +1,1 @@
+session.runSql("DROP PROCEDURE new_procedure;")

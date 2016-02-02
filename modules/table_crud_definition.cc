@@ -77,4 +77,6 @@ using namespace mysh::mysqlx;
       throw shcore::Exception::argument_error(str.str());
       break;
   }
+  
+  return ::mysqlx::TableValue();
 }

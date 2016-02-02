@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2016 Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -63,15 +63,14 @@ Connection_openssl_factory::~Connection_openssl_factory()
   delete m_context;
 }
 
-Connection_unique_ptr Connection_openssl_factory::create_connection(boost::asio::io_service &io_service)
+IConnection_unique_ptr Connection_openssl_factory::create_connection(boost::asio::io_service &io_service)
 {
-  Connection_unique_ptr connection(new Connection_openssl(io_service, boost::ref(*m_context), m_is_client));
-
-  return Connection_unique_ptr(new Connection_dynamic_tls(boost::move(connection)));
+  return IConnection_unique_ptr(new Connection_dynamic_tls(IConnection_unique_ptr(
+                                    new Connection_openssl(io_service, boost::ref(*m_context), m_is_client))));
 }
 
 
-Options_context_ptr Connection_openssl_factory::create_ssl_context_options()
+IOptions_context_ptr Connection_openssl_factory::create_ssl_context_options()
 {
   return boost::make_shared<Options_context_ssl>(m_context->native_handle());
 }

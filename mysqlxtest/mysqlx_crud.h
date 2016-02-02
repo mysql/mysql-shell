@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2016 Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -217,6 +217,7 @@ namespace mysqlx
   public:
     enum Type
     {
+      TNull,
       TString,
       TInteger,
       TFloat,
@@ -225,6 +226,11 @@ namespace mysqlx
       TExpression
     };
 
+    DocumentValue()
+    {
+      m_type = TNull;
+    }
+    
     DocumentValue(const DocumentValue &other)
     {
       m_type = other.m_type;

@@ -17,16 +17,17 @@
  * 02110-1301  USA
  */
 
+
 #include <boost/bind.hpp>
+
 
 #include "myasio/types.h"
 #include "myasio/callback.h"
 
-#ifdef MYSQLXTEST_STANDALONE
-#include "logger/logger.h"
-#else
+
+#define LOG_DOMAIN "ngs.protocol"
 #include "ngs/log.h"
-#endif
+
 
 namespace ngs
 {

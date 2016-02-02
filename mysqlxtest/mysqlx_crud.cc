@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2016 Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -209,6 +209,7 @@ Mysqlx::Datatypes::Scalar* Collection_Statement::convert_document_value(const Do
     case DocumentValue::TDocument:
     case DocumentValue::TArray:
     case DocumentValue::TExpression:
+    case DocumentValue::TNull:
       throw std::logic_error("Only scalar values supported on this conversion");
       break;
   }
@@ -390,13 +391,12 @@ AddStatement &AddStatement::add(const Document &doc)
   }
   else
   {
-    Mysqlx::Expr::Expr *expr(m_insert->mutable_row()->Add()->mutable_field()->Add());
-    expr->set_type(Mysqlx::Expr::Expr::LITERAL);
-
     Mysqlx::Datatypes::Scalar *value = new Mysqlx::Datatypes::Scalar();
     value->set_type(Mysqlx::Datatypes::Scalar::V_OCTETS);
-    value->set_v_opaque(doc.str());
+    value->mutable_v_octets()->set_value(doc.str());
 
+    Mysqlx::Expr::Expr *expr(m_insert->mutable_row()->Add()->mutable_field()->Add());
+    expr->set_type(Mysqlx::Expr::Expr::LITERAL);
     expr->set_allocated_literal(value);
   }
   return *this;
@@ -666,7 +666,7 @@ Mysqlx::Datatypes::Scalar* Table_Statement::convert_table_value(const TableValue
       break;
     case TableValue::TOctets:
       my_scalar->set_type(Mysqlx::Datatypes::Scalar::V_OCTETS);
-      my_scalar->set_v_opaque(column_value);
+      my_scalar->mutable_v_octets()->set_value(column_value);
       break;
     case TableValue::TString:
       my_scalar->set_type(Mysqlx::Datatypes::Scalar::V_STRING);

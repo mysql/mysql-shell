@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2016 Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -21,31 +21,31 @@
 #ifndef _NGS_ASIO_CONNECTION_YASSL_H_
 #define _NGS_ASIO_CONNECTION_YASSL_H_
 
-#include "myasio/connection.h"
-#include "myasio/connection_state_yassl.h"
-#include "myasio/wrapper_ssl.h"
-
 #include <list>
 #include <boost/scoped_ptr.hpp>
+
+#include "myasio/connection_state_yassl.h"
+#include "myasio/wrapper_ssl.h"
+#include "myasio/connection.h"
 
 
 namespace ngs
 {
 
 
-struct Buffer_page;
-typedef Memory_new<Wrapper_ssl>::Unique_ptr Wrapper_ssl_ptr;
+class Page;
+typedef Memory_new<IWrapper_ssl>::Unique_ptr Wrapper_ssl_ptr;
 
 
-class Connection_yassl : public Connection
+class Connection_yassl : public IConnection
 {
 public:
-  Connection_yassl(Connection_unique_ptr connection_raw, Wrapper_ssl_ptr ssl, Vector_states_yassl &handlers);
+  Connection_yassl(IConnection_unique_ptr connection_raw, Wrapper_ssl_ptr ssl, Vector_states_yassl &handlers);
   virtual ~Connection_yassl();
 
   virtual Endpoint    get_remote_endpoint() const;
   virtual int         get_socket_id();
-  virtual Options_session_ptr options();
+  virtual IOptions_session_ptr options();
 
   virtual void post(const boost::function<void ()> &calee);
   virtual bool thread_in_connection_strand();
@@ -57,9 +57,10 @@ public:
   virtual void async_read(const Mutable_buffer_sequence &data, const On_asio_data_callback &on_read_callback);
   virtual void async_activate_tls(const On_asio_status_callback on_status);
 
-  virtual Connection_unique_ptr get_lowest_layer();
+  virtual IConnection_ptr get_lowest_layer();
 
   virtual void shutdown(boost::asio::socket_base::shutdown_type how_to_shutdown, boost::system::error_code &ec);
+  virtual void cancel();
   virtual void close();
 
 private:
@@ -83,13 +84,15 @@ private:
   Mutable_buffer_sequence create_asio_read_buffer(void* buf_ptr, const std::size_t buf_size);
   Const_buffer_sequence   create_asio_write_buffer(const void* buf_ptr, const std::size_t buf_size);
 
+  void ssl_initialize();
+
   typedef std::list<const_buffer_with_callback> Const_buffer_list;
 
-  Connection_unique_ptr    m_connection;
+  IConnection_unique_ptr    m_connection;
   Wrapper_ssl_ptr         m_ssl;
   Callback_ptr            m_callback;
 
-  Buffer_page            *m_ssl_pdu_input_buffer;
+  Page            *m_ssl_pdu_input_buffer;
   Const_buffer_list       m_ssl_sdu_output_buffer;
   Mutable_buffer_sequence m_ssl_sdu_input_buffer;
 
