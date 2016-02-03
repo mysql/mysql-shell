@@ -150,13 +150,16 @@ class REMOTEHOST:
 # config=json.load(open('config_local.json'))
 # MYSQL_SHELL = str(config["general"]["xshell_path"])
 # Exec_files_location = str(config["general"]["aux_files_path"])
+# XMLReportFilePath = "xshell_qa_test.xml"
 
-# **** JENKINS EXEXCUTION ****
+# **** JENKINS EXECUTION ****
 # **** To enable jenkins to execute properly please comment the LOCAL EXECUTION lines and uncomment these ones	
 config_path = os.environ['CONFIG_PATH']
 config=json.load(open(config_path))
 MYSQL_SHELL = os.environ['MYSQLX_PATH']
 Exec_files_location = os.environ['AUX_FILES_PATH']
+XSHELL_QA_TEST_ROOT = os.environ['XSHELL_QA_TEST_ROOT']
+XMLReportFilePath = XSHELL_QA_TEST_ROOT+"/xshell_qa_test.xml"
 
 #########################################################################
 
@@ -4481,7 +4484,7 @@ class XShell_TestCases(unittest.TestCase):
 
   # ----------------------------------------------------------------------
 
+print XMLReportFilePath
 
 if __name__ == '__main__':
- unittest.main( testRunner=xmlrunner.XMLTestRunner(file(XSHELL_QA_TEST_ROOT+"/xshell_qa_test.xml","w")))
- # unittest.main( testRunner=xmlrunner.XMLTestRunner(file("xshell_qa_test.xml","w")))
+ unittest.main( testRunner=xmlrunner.XMLTestRunner(file(XMLReportFilePath,"w")))
