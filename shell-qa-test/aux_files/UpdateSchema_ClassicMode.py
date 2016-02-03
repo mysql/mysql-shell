@@ -1,5 +1,3 @@
-import mysql
-session=mysql.getClassicSession('root:guidev!@localhost:3578')
 session.runSql("drop database if exists schema_test;")
 session.runSql("CREATE SCHEMA schema_test;")
 session.runSql("ALTER SCHEMA schema_test  DEFAULT COLLATE utf8_general_ci;")
