@@ -1,5 +1,3 @@
-import mysqlx
-session=mysqlx.getNodeSession('root:guidev!@localhost:33060')
 schema = session.getSchema('sakila')
 session.sql('drop table if exists sakila.friends;').execute()
 session.sql('create table sakila.friends (name varchar(50), last_name varchar(50), age integer, gender varchar(20));').execute()

@@ -1,5 +1,3 @@
-import mysqlx
-session=mysqlx.getNodeSession('root:guidev!@localhost:33060')
 session.sql("drop database if exists schema_test;").execute()
 
 session.sql("CREATE SCHEMA schema_test;").execute()
