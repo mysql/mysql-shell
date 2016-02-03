@@ -4482,6 +4482,55 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+  def test_CHLOG_1_0_2_5_1A(self):
+      '''[CHLOG 1.0.2.5_1_1] Session type shortcut [--classic] :  --sql/--js/--py '''
+      sessMode = ['-sql', '-js', '-py']
+      for w in sessMode:
+          results = ''
+          init_command = [MYSQL_SHELL, '--interactive=full', "-"+w, '-u' + LOCALHOST.user,
+                          '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.port,
+                          '--schema=sakila','--classic']
+          p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+          stdin,stdout = p.communicate()
+          if stdout.find(bytearray("ERROR","ascii"),0,len(stdin))> -1:
+            self.assertEqual(stdin, 'PASS')
+          if stdin.find(bytearray("Creating a Classic Session to","ascii"),0,len(stdin))> -1 and stdin.find(bytearray("mysql"+w+">","ascii"),0,len(stdin))> -1 :
+            results = 'PASS'
+          self.assertEqual(results, 'PASS')
+
+  def test_CHLOG_1_0_2_5_1B(self):
+      '''[CHLOG 1.0.2.5_1_2] Session type shortcut [--node] :  --sql/--js/--py '''
+      sessMode = ['-sql', '-js', '-py']
+      for w in sessMode:
+          results = ''
+          init_command = [MYSQL_SHELL, '--interactive=full', "-"+w, '-u' + LOCALHOST.user,
+                          '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port,
+                          '--schema=sakila','--node']
+          p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+          stdin,stdout = p.communicate()
+          if stdout.find(bytearray("ERROR","ascii"),0,len(stdin))> -1:
+            self.assertEqual(stdin, 'PASS')
+          if stdin.find(bytearray("Creating a Node Session to","ascii"),0,len(stdin))> -1 and stdin.find(bytearray("mysql"+w+">","ascii"),0,len(stdin))> -1 :
+            results = 'PASS'
+          self.assertEqual(results, 'PASS')
+
+  def test_CHLOG_1_0_2_5_1C(self):
+      '''[CHLOG 1.0.2.5_1_3] Session type shortcut [--x] :  --sql/--js/--py '''
+      sessMode = ['-sql', '-js', '-py']
+      for w in sessMode:
+          results = ''
+          init_command = [MYSQL_SHELL, '--interactive=full', "-"+w, '-u' + LOCALHOST.user,
+                          '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port,
+                          '--schema=sakila','--x']
+          p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+          stdin,stdout = p.communicate()
+          if stdout.find(bytearray("ERROR","ascii"),0,len(stdin))> -1:
+            self.assertEqual(stdin, 'PASS')
+          if stdin.find(bytearray("Creating an X Session to","ascii"),0,len(stdin))> -1 and stdin.find(bytearray("mysql"+w+">","ascii"),0,len(stdin))> -1 :
+            results = 'PASS'
+          self.assertEqual(results, 'PASS')
+
+
   # ----------------------------------------------------------------------
 
 print XMLReportFilePath
