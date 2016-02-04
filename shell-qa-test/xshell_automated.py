@@ -4530,6 +4530,41 @@ class XShell_TestCases(unittest.TestCase):
             results = 'PASS'
           self.assertEqual(results, 'PASS')
 
+  def test_CHLOG_1_0_2_5_2A(self):
+      '''[CHLOG 1.0.2.5_2] Different password command line args'''
+      sessMode = ['-p', '--password=', '--dbpassword=']
+      for w in sessMode:
+          results = ''
+          init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, w +  LOCALHOST.password ,
+                          '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=app']
+          p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+          #p.stdin.write(bytearray(LOCALHOST.password+"\n", 'ascii'))
+          p.stdin.flush()
+          stdin,stdout = p.communicate()
+          if stdin.find(bytearray("mysql-js>","ascii"), 0, len(stdin)) > 0:
+              results="PASS"
+          else:
+              results="FAIL"
+          self.assertEqual(results, 'PASS')
+
+  def test_CHLOG_1_0_2_5_2B(self):
+      '''[CHLOG 1.0.2.5_2] Different password command line args'''
+      sessMode = ['-p', '--password', '--dbpassword']
+      for w in sessMode:
+          results = ''
+          init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, w,'--passwords-from-stdin',
+                          '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=app']
+          p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+          p.stdin.write(bytearray(LOCALHOST.password+"\n", 'ascii'))
+          p.stdin.flush()
+          stdin,stdout = p.communicate()
+          if stdin.find(bytearray("mysql-js>","ascii"), 0, len(stdin)) > 0:
+              results="PASS"
+          else:
+              results="FAIL"
+          self.assertEqual(results, 'PASS')
+
+
 
   # ----------------------------------------------------------------------
 
