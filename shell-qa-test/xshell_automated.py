@@ -18,7 +18,7 @@ def timeout(timeout):
             # res = [Exception('function [%s] timeout [%s seconds] exceeded!' % (func.__name__, timeout))]
             #res = [Exception('FAILED timeout [%s seconds] exceeded! ' % ( timeout))]
             globales = func.func_globals
-            res = [Exception('FAILED timeout [%s seconds] exceeded! Found: -%s- \r\n Searching: -%s-' % (timeout, globalvar.last_found, globalvar.last_search))]
+            res = [Exception('FAILED timeout [%s seconds] exceeded! ' % (timeout))]
             def newFunc():
                 try:
                     res[0] = func(*args, **kwargs)
@@ -87,7 +87,7 @@ def read_til_getShell(proc, fd, text):
     return "".join(data)
 
 
-timeout(5)
+@timeout(5)
 def exec_xshell_commands(init_cmdLine, commandList):
     RESULTS = "PASS"
     commandbefore = ""
@@ -153,7 +153,7 @@ class REMOTEHOST:
 # XMLReportFilePath = "xshell_qa_test.xml"
 
 # **** JENKINS EXECUTION ****
-# **** To enable jenkins to execute properly please comment the LOCAL EXECUTION lines and uncomment these ones	
+# **** To enable jenkins to execute properly please comment the LOCAL EXECUTION lines and uncomment these ones
 config_path = os.environ['CONFIG_PATH']
 config=json.load(open(config_path))
 MYSQL_SHELL = os.environ['MYSQLX_PATH']
@@ -2173,6 +2173,7 @@ class XShell_TestCases(unittest.TestCase):
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
+
   #failed
   def test_4_3_15_1(self):
       '''[4.3.015]:1 JS Update alter view using session object: CLASSIC SESSION'''
@@ -4354,13 +4355,13 @@ class XShell_TestCases(unittest.TestCase):
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
                        '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=node','--schema=sakila', '--js']
 
-      x_cmds = [("session.dropCollection(\"sakila\",\"test_collection_js\");\n", "mysql-js>"),
-                  ("session.getSchema(\'sakila\').createCollection(\"test_collection_js\");\n", "mysql-js>"),
-                ("session.getSchema(\'sakila\').getCollection(\"test_collection_js\").existsInDatabase();\n","true"),
-                ("var myColl = session.getSchema(\'sakila\').getCollection(\"test_collection_js\");\n","mysql-js>"),
-                ("myColl.add({ name: \'Test1\', lastname:\'lastname1\'});\n","Query OK"),
-                ("myColl.add({ name: \'Test2\', lastname:\'lastname2\'});\n","Query OK"),
-                ("session.getSchema(\'sakila\').getCollectionAsTable(\'test_collection_js\').select();\n","2 rows"),
+      x_cmds = [("session.dropCollection('sakila','test_collection_js');\n", "mysql-js>"),
+                  ("session.getSchema('sakila').createCollection('test_collection_js');\n", "mysql-js>"),
+                ("session.getSchema('sakila').getCollection('test_collection_js').existsInDatabase();\n","true"),
+                ("var myColl = session.getSchema('sakila').getCollection('test_collection_js');\n","mysql-js>"),
+                ("myColl.add({ name: 'Test1', lastname:'lastname1'});\n","Query OK"),
+                ("myColl.add({ name: 'Test2', lastname:'lastname2'});\n","Query OK"),
+                ("session.getSchema('sakila').getCollectionAsTable('test_collection_js').select();\n","2 rows"),
                 ("\\py\n","mysql-py>"),
                 ("session.dropCollection(\"sakila\",\"test_collection_py\")\n", "mysql-py>"),
                 ("session.getSchema(\'sakila\').createCollection(\"test_collection_py\")\n", "mysql-py>"),
@@ -4482,6 +4483,7 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+
   def test_CHLOG_1_0_2_5_1A(self):
       '''[CHLOG 1.0.2.5_1_1] Session type shortcut [--classic] :  --sql/--js/--py '''
       sessMode = ['-sql', '-js', '-py']
@@ -4492,11 +4494,12 @@ class XShell_TestCases(unittest.TestCase):
                           '--schema=sakila','--classic']
           p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
           stdin,stdout = p.communicate()
-          if stdout.find(bytearray("ERROR","ascii"),0,len(stdin))> -1:
-            self.assertEqual(stdin, 'PASS')
+          if stdout.find(bytearray("ERROR","ascii"),0,len(stdin))> -1 or stdout != '':
+            results="FAIL"
+            break
           if stdin.find(bytearray("Creating a Classic Session to","ascii"),0,len(stdin))> -1 and stdin.find(bytearray("mysql"+w+">","ascii"),0,len(stdin))> -1 :
             results = 'PASS'
-          self.assertEqual(results, 'PASS')
+      self.assertEqual(results, 'PASS')
 
   def test_CHLOG_1_0_2_5_1B(self):
       '''[CHLOG 1.0.2.5_1_2] Session type shortcut [--node] :  --sql/--js/--py '''
@@ -4508,11 +4511,12 @@ class XShell_TestCases(unittest.TestCase):
                           '--schema=sakila','--node']
           p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
           stdin,stdout = p.communicate()
-          if stdout.find(bytearray("ERROR","ascii"),0,len(stdin))> -1:
-            self.assertEqual(stdin, 'PASS')
+          if stdout.find(bytearray("ERROR","ascii"),0,len(stdin))> -1 or stdout != '':
+            results="FAIL"
+            break
           if stdin.find(bytearray("Creating a Node Session to","ascii"),0,len(stdin))> -1 and stdin.find(bytearray("mysql"+w+">","ascii"),0,len(stdin))> -1 :
             results = 'PASS'
-          self.assertEqual(results, 'PASS')
+      self.assertEqual(results, 'PASS')
 
   def test_CHLOG_1_0_2_5_1C(self):
       '''[CHLOG 1.0.2.5_1_3] Session type shortcut [--x] :  --sql/--js/--py '''
@@ -4524,11 +4528,13 @@ class XShell_TestCases(unittest.TestCase):
                           '--schema=sakila','--x']
           p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
           stdin,stdout = p.communicate()
-          if stdout.find(bytearray("ERROR","ascii"),0,len(stdin))> -1:
-            self.assertEqual(stdin, 'PASS')
+          if stdout.find(bytearray("ERROR","ascii"),0,len(stdin))> -1 or stdout != '':
+            results="FAIL"
+            break
           if stdin.find(bytearray("Creating an X Session to","ascii"),0,len(stdin))> -1 and stdin.find(bytearray("mysql"+w+">","ascii"),0,len(stdin))> -1 :
             results = 'PASS'
-          self.assertEqual(results, 'PASS')
+      self.assertEqual(results, 'PASS')
+
 
   def test_CHLOG_1_0_2_5_2A(self):
       '''[CHLOG 1.0.2.5_2] Different password command line args'''
@@ -4545,7 +4551,8 @@ class XShell_TestCases(unittest.TestCase):
               results="PASS"
           else:
               results="FAIL"
-          self.assertEqual(results, 'PASS')
+              break
+      self.assertEqual(results, 'PASS')
 
   def test_CHLOG_1_0_2_5_2B(self):
       '''[CHLOG 1.0.2.5_2] Different password command line args'''
@@ -4562,13 +4569,24 @@ class XShell_TestCases(unittest.TestCase):
               results="PASS"
           else:
               results="FAIL"
-          self.assertEqual(results, 'PASS')
+              break
+      self.assertEqual(results, 'PASS')
+
+  def test_MYS_341(self):
+      '''[3.1.009]:1 Check that STATUS command [ \status, \s ] works: app session \status'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--uri',
+                      'mysqlx://{0}:{1}@{2}:{3}'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), '--session-type=app', '--js']
+      x_cmds = [("\\status\n", "Current user:                 "+LOCALHOST.user+"@"+LOCALHOST.host),
+                ("\\s\n", "Current user:                 "+LOCALHOST.user+"@"+LOCALHOST.host),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
 
 
 
   # ----------------------------------------------------------------------
 
-print XMLReportFilePath
 
 if __name__ == '__main__':
- unittest.main( testRunner=xmlrunner.XMLTestRunner(file(XMLReportFilePath,"w")))
+  unittest.main( testRunner=xmlrunner.XMLTestRunner(file(XMLReportFilePath,"w")))
