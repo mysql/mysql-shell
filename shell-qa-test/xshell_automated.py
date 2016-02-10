@@ -4583,6 +4583,84 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+  def test_MYS_353(self):
+      '''[CHLOG 1.0.2.5_2] Different password command line args'''
+      sessMode = ['-p', '--password=', '--dbpassword=']
+      for w in sessMode:
+          results = ''
+          init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, w+LOCALHOST.password,
+                          '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=app']
+          p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+          p.stdin.write(bytearray(LOCALHOST.password+"\n", 'ascii'))
+          p.stdin.flush()
+          stdin,stdout = p.communicate()
+          if stdin.find(bytearray("Using a password on the command line interface can be insecure","ascii"), 0, len(stdin)) > 0:
+              results="PASS"
+          else:
+              results="FAIL"
+              break
+      self.assertEqual(results, 'PASS')
+
+  def test_MYS_291(self):
+      '''SSL Support '''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--js']
+      x_cmds = [("var mysqlx=require('mysqlx').mysqlx;\n", "mysql-js>"),
+                ("var session=mysqlx.getNodeSession({host: '"+LOCALHOST.host+"', dbUser: '"+LOCALHOST.user+"', port: '"+LOCALHOST.xprotocol_port+
+                 "', dbPassword: '"+LOCALHOST.password+"', ssl_ca: '"+ Exec_files_location +
+                 "ca.pem', ssl_cert: '"+ Exec_files_location+"client-cert.pem', ssl_key: '"+Exec_files_location+"client-key.pem'});\n","mysql-js>" ),
+                ("session;\n", "NodeSession:"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_CHLOG_0_0_2_ALPHA_11(self):
+      '''[CHLOG 1.0.2.5_2] Different password command line args'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--version' ]
+      p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+      p.stdin.flush()
+      stdin,stdout = p.communicate()
+      if stdin.find(bytearray("MySQL X Shell Version","ascii"), 0, len(stdin)) >= 0:
+          results="PASS"
+      else:
+          results="FAIL"
+      self.assertEqual(results, 'PASS')
+
+  def test_CHLOG_1_0_2_6_1(self):
+      '''[CHLOG 1.0.2.5_2] Different password command line args'''
+      results = ''
+      #init_command = [MYSQL_SHELL, '--interactive=full', '--version' ]
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=node', '--js', '--schema=sakila',
+                      '--execute=print(dir(session))']
+      p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+      p.stdin.flush()
+      stdin,stdout = p.communicate()
+      if stdin.find(bytearray("\"close\",","ascii"), 0, len(stdin)) >= 0:
+          results="PASS"
+      else:
+          results="FAIL"
+      self.assertEqual(results, 'PASS')
+
+  def test_MYS_348(self):
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+           '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=node', '--sql']
+      x_cmds = [("use sakila;\n", "mysql-sql>"),
+                ("drop table if exists funwithdates;\n", "Query OK"),
+                ("CREATE TABLE funwithdates ( col_a date DEFAULT NULL) ENGINE=InnoDB DEFAULT CHARSET=latin1;\n","mysql-sql>" ),
+                ( "INSERT INTO funwithdates (col_a) VALUES ('1000-02-01 0:00:00');\n", "mysql-sql>"),
+                ( "select * from funwithdates;\n", "mysql-sql>"),
+                ( "\\js\n", "mysql-js>"),
+                ( "row = session.sakila.funwithdates.select().execute().fetchOne();\n", "mysql-js>"),
+                ( "type(row.col_a);\n","Date"),
+                #( "row.col_a;\n","mysql-js>"),
+                #( "row.col_a.getYear();\n","1000"),
+                ( "row.col_a.getFullYear();\n","1000"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
 
 
   # ----------------------------------------------------------------------
