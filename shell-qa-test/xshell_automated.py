@@ -144,22 +144,20 @@ class REMOTEHOST:
     xprotocol_port = ""
     port = ""
 
-# **** LOCAL EXECUTION ****
-# **** To run locally please uncomment these lines and comment the ones from JENKINS EXECUTION section	
-
-# config=json.load(open('config_local.json'))
-# MYSQL_SHELL = str(config["general"]["xshell_path"])
-# Exec_files_location = str(config["general"]["aux_files_path"])
-# XMLReportFilePath = "xshell_qa_test.xml"
-
-# **** JENKINS EXECUTION ****
-# **** To enable jenkins to execute properly please comment the LOCAL EXECUTION lines and uncomment these ones
-config_path = os.environ['CONFIG_PATH']
-config=json.load(open(config_path))
-MYSQL_SHELL = os.environ['MYSQLX_PATH']
-Exec_files_location = os.environ['AUX_FILES_PATH']
-XSHELL_QA_TEST_ROOT = os.environ['XSHELL_QA_TEST_ROOT']
-XMLReportFilePath = XSHELL_QA_TEST_ROOT+"/xshell_qa_test.xml"
+if os.environ.get('USERNAME')=='guidev':
+    # **** LOCAL EXECUTION ****
+    config=json.load(open('config_local.json'))
+    MYSQL_SHELL = str(config["general"]["xshell_path"])
+    Exec_files_location = str(config["general"]["aux_files_path"])
+    XMLReportFilePath = "xshell_qa_test.xml"
+else:
+    # **** JENKINS EXECUTION ****
+    config_path = os.environ['CONFIG_PATH']
+    config=json.load(open(config_path))
+    MYSQL_SHELL = os.environ['MYSQLX_PATH']
+    Exec_files_location = os.environ['AUX_FILES_PATH']
+    XSHELL_QA_TEST_ROOT = os.environ['XSHELL_QA_TEST_ROOT']
+    XMLReportFilePath = XSHELL_QA_TEST_ROOT+"/xshell_qa_test.xml"
 
 #########################################################################
 
@@ -4660,6 +4658,39 @@ class XShell_TestCases(unittest.TestCase):
                 ( "row.col_a.getFullYear();\n","1000"),
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+
+  def test_MYS_378(self):
+      '''show the default user if its not provided as argument : Creating a Node Session to XXXXXX@localhost:33060'''
+      results = ''
+      user = os.environ.get('USERNAME')
+      init_command = [MYSQL_SHELL, '--interactive=full', '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port,'--schema=sakila','--sql',
+                      '--passwords-from-stdin']
+      p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+      p.stdin.write(bytearray(LOCALHOST.password+"\n", 'ascii'))
+      p.stdin.flush()
+      stdin,stdout = p.communicate()
+      if stdin.find(bytearray("Creating a Node Session to "+user+"@","ascii"), 0, len(stdin)) >= 0:
+          results="PASS"
+      else:
+          results="FAIL"
+      self.assertEqual(results, 'PASS')
+
+
+  def test_MYS_379(self):
+      '''show the default user if its not provided as argument : Creating a Node Session to XXXXXX@localhost:33060'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port,'--schema=sakila','--sql',
+                      '--dbuser='+LOCALHOST.user,'--passwords-from-stdin']
+      p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+      p.stdin.write(bytearray(LOCALHOST.password+"\n", 'ascii'))
+      p.stdin.flush()
+      stdin,stdout = p.communicate()
+      if stdin.find(bytearray("Creating a Node Session to ","ascii"), 0, len(stdin)) >= 0:
+          results="PASS"
+      else:
+          results="FAIL"
       self.assertEqual(results, 'PASS')
 
 
