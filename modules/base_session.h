@@ -62,6 +62,7 @@ namespace mysh
     virtual shcore::Value set_current_schema(const shcore::Argument_list &args) = 0;
     virtual bool is_connected() const = 0;
     virtual shcore::Value get_status(const shcore::Argument_list &args) = 0;
+    virtual shcore::Value get_capability(const std::string &name) { return shcore::Value(); }
     std::string uri() { return _uri; };
 
     virtual shcore::Value get_schema(const shcore::Argument_list &args) const = 0;

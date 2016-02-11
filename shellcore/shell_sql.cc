@@ -188,7 +188,24 @@ std::string Shell_sql::prompt()
   if (!_parsing_context_stack.empty())
     return (boost::format("%9s> ") % _parsing_context_stack.top().c_str()).str();
   else
-    return "mysql-sql> ";
+  {
+    std::string node_type = "mysql";
+    Value session_wrapper = _owner->get_global("session");
+    if (session_wrapper)
+    {
+      boost::shared_ptr<mysh::ShellBaseSession> session = session_wrapper.as_object<mysh::ShellBaseSession>();
+
+      if (session)
+      {
+        shcore::Value st = session->get_capability("node_type");
+
+        if (st)
+          node_type = st.as_string();
+      }
+    }
+    
+    return node_type + "-sql> ";
+  }
 }
 
 bool Shell_sql::print_help(const std::string& topic)

@@ -19,6 +19,7 @@
 
 #include "shellcore/shell_jscript.h"
 #include "shellcore/jscript_context.h"
+#include "../modules/base_session.h"
 
 using namespace shcore;
 
@@ -64,7 +65,23 @@ std::string Shell_javascript::prompt()
   {
     _owner->print_error(std::string("Exception in JS ps function: ") + exc.what());
   }
-  return "mysql-js> ";
+
+  std::string node_type = "mysql";
+  Value session_wrapper = _js->get_global("session");
+  if (session_wrapper)
+  {
+    boost::shared_ptr<mysh::ShellBaseSession> session = session_wrapper.as_object<mysh::ShellBaseSession>();
+
+    if (session)
+    {
+      shcore::Value st = session->get_capability("node_type");
+
+      if (st)
+        node_type = st.as_string();
+    }
+  }
+
+  return node_type + "-js> ";
 }
 
 void Shell_javascript::set_global(const std::string &name, const Value &value)
