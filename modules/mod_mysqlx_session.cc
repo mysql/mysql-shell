@@ -744,6 +744,31 @@ std::string BaseSession::db_object_exists(std::string &type, const std::string &
   return ret_val;
 }
 
+shcore::Value BaseSession::get_capability(const std::string& name)
+{
+  shcore::Value ret_val;
+
+  if (_session)
+  {
+    const Mysqlx::Connection::Capabilities &caps(_session->connection()->capabilities());
+    for (int c = caps.capabilities_size(), i = 0; i < c; i++)
+    {
+      if (caps.capabilities(i).name() == name)
+      {
+        const Mysqlx::Connection::Capability &cap(caps.capabilities(i));
+        if (cap.value().type() == Mysqlx::Datatypes::Any::SCALAR &&
+            cap.value().scalar().type() == Mysqlx::Datatypes::Scalar::V_STRING)
+          ret_val = shcore::Value(cap.value().scalar().v_string().value());
+        else if (cap.value().type() == Mysqlx::Datatypes::Any::SCALAR &&
+                 cap.value().scalar().type() == Mysqlx::Datatypes::Scalar::V_OCTETS)
+          ret_val = shcore::Value(cap.value().scalar().v_octets().value());
+      }
+    }
+  }
+
+  return ret_val;
+}
+
 shcore::Value BaseSession::get_status(const shcore::Argument_list &args)
 {
   shcore::Value::Map_type_ref status(new shcore::Value::Map_type);
@@ -753,22 +778,10 @@ shcore::Value BaseSession::get_status(const shcore::Argument_list &args)
   else
     (*status)["SESSION_TYPE"] = shcore::Value("Node");
 
-  {
-    const Mysqlx::Connection::Capabilities &caps(_session->connection()->capabilities());
-    for (int c = caps.capabilities_size(), i = 0; i < c; i++)
-    {
-      if (caps.capabilities(i).name() == "node_type")
-      {
-        const Mysqlx::Connection::Capability &cap(caps.capabilities(i));
-        if (cap.value().type() == Mysqlx::Datatypes::Any::SCALAR &&
-            cap.value().scalar().type() == Mysqlx::Datatypes::Scalar::V_STRING)
-          (*status)["NODE_TYPE"] = shcore::Value(cap.value().scalar().v_string().value());
-        else if (cap.value().type() == Mysqlx::Datatypes::Any::SCALAR &&
-            cap.value().scalar().type() == Mysqlx::Datatypes::Scalar::V_OCTETS)
-          (*status)["NODE_TYPE"] = shcore::Value(cap.value().scalar().v_octets().value());
-      }
-    }
-  }
+  shcore::Value node_type = get_capability("node_type");
+  if (node_type)
+    (*status)["NODE_TYPE"] = node_type;
+
   (*status)["DEFAULT_SCHEMA"] = shcore::Value(_default_schema);
 
   boost::shared_ptr< ::mysqlx::Result> result;

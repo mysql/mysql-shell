@@ -632,6 +632,8 @@ shcore::Value ClassicSession::rollback(const shcore::Argument_list &args)
   return Value::wrap(new ClassicResult(boost::shared_ptr<Result>(_conn->run_sql("rollback"))));
 }
 
+
+
 shcore::Value ClassicSession::get_status(const shcore::Argument_list &args)
 {
   shcore::Value::Map_type_ref status(new shcore::Value::Map_type);

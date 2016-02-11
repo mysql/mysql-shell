@@ -20,6 +20,7 @@
 #include "shellcore/python_context.h"
 #include "shellcore/shell_python.h"
 #include "shellcore/python_utils.h"
+#include "../modules/base_session.h"
 
 using namespace shcore;
 
@@ -104,7 +105,23 @@ std::string Shell_python::prompt()
   {
     _owner->print_error(std::string("Exception in PS ps function: ") + exc.what());
   }
-  return "mysql-py> ";
+
+  std::string node_type = "mysql";
+  Value session_wrapper = _py->get_global("session");
+  if (session_wrapper)
+  {
+    boost::shared_ptr<mysh::ShellBaseSession> session = session_wrapper.as_object<mysh::ShellBaseSession>();
+
+    if (session)
+    {
+      shcore::Value st = session->get_capability("node_type");
+
+      if (st)
+        node_type = st.as_string();
+    }
+  }
+
+  return node_type + "-py> ";
 }
 
 /*
