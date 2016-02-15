@@ -2893,22 +2893,20 @@ class XShell_TestCases(unittest.TestCase):
       self.assertEqual(results, 'PASS')
 
 
-  #FAILING........
-  @unittest.skip("does not recognize  ... multiline on python session")
   def test_4_4_1_1(self):
       '''[4.4.001]:1 SQL Delete table using multiline mode: CLASSIC SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7', '-u' + LOCALHOST.user,
                       '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.port,
-                      '--session-type=classic','--sql']
-      x_cmds = [("use sakila;\n","mysql-sql>"),
-                ("DROP TABLE IF EXISTS example_automation;\n","mysql-sql>"),
-                  ("CREATE TABLE example_automation ( id INT, data VARCHAR(100) );\n","mysql-sql>"),
-                ("show tables;\n","example_automation"),
-                ("\\\n","..."),
-                ("DROP TABLE IF EXISTS example_automation;\n\n","..."),
-                ("\n","mysql-sql>"),
-                ("select table_name from information_schema.tables where table_name = \"example_automation\";\n","doesn't exist"),
+                      '--session-type=classic','--sqlc']
+      x_cmds = [("use sakila;\n","Query OK"),
+                ("DROP TABLE IF EXISTS example_automation;\n","Query OK"),
+                ("CREATE TABLE example_automation \n","..."),
+                ("( id INT, data VARCHAR(100) );\n","Query OK"),
+                ("select table_name from information_schema.tables where table_name = 'example_automation';\n","1 row"),
+                ("DROP TABLE IF EXISTS \n","..."),
+                ("example_automation;\n\n","mysql-sql>"),
+                ("select table_name from information_schema.tables where table_name = \"example_automation\";\n","Empty set"),
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
@@ -3510,20 +3508,22 @@ class XShell_TestCases(unittest.TestCase):
       self.assertEqual(results, 'PASS')
 
 
-  #FAILING........
-  @unittest.skip("does not recognize  ... multiline on js session")
+
   def test_4_4_16_2(self):
       '''[4.3.016]:2 JS Update alter view using multiline mode: NODE SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [("var mysqlx=require(\'mysqlx\').mysqlx;\n","mysql-js>"),
-                ("var session=mysqlx.getNodeSession(\'{0}:{1}@{2}\');\n".format(LOCALHOST.user, LOCALHOST.password,
+      x_cmds = [("var mysqlx=require('mysqlx').mysqlx;\n","mysql-js>"),
+                ("var session=mysqlx.getNodeSession('{0}:{1}@{2}');\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                                 LOCALHOST.host),"mysql-js>"),
-                ("session.sql(\'use sakila;\').execute();\n","Query OK"),
-                ("session.sql(\'drop view if exists js_view;\').execute();\n","Query OK"),
-                ("session.sql(\"create view js_view as select first_name from actor where first_name like \'%a%\';\").execute();\n","Query OK"),
-                ("\\\n","..."),
-                ("session.dropView(\'sakila\',\'js_view\');\n","..."),
+                ("session.sql('use sakila;').execute();\n","Query OK"),
+                ("session.sql('drop view if exists js_view;').execute();\n","Query OK"),
+                ("session.\n","..."),
+                ("sql(\"create view js_view as select first_name from actor where first_name like '%a%';\").execute();\n","..."),
+                ("\n","Query OK"),
+                ("session.sql(\"SELECT table_name FROM information_schema.views WHERE information_schema.views.table_name LIKE 'js_view';\").execute();\n", '1 row'),
+                ("session.\n","..."),
+                ("dropView(\'sakila\',\'js_view\');\n","..."),
                 ("\n","mysql-js>"),
                 ("session.sql(\"SELECT table_name FROM information_schema.views WHERE information_schema.views.table_name LIKE 'js_view';\").execute();\n", 'Empty set')
                 ]
@@ -3744,53 +3744,56 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
-
-  #FAILING........
-  @unittest.skip("multiline mode is not recongnized on py session")
   def test_4_4_22_1(self):
       '''[4.4.022]:1 PY Delete table using multiline mode: CLASSIC SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full','--py']
       x_cmds = [("import mysql\n","mysql-py>"),
-                ("session=mysql.getClassicSession(\'{0}:{1}@{2}:{3}\')\n".format(LOCALHOST.user, LOCALHOST.password,
-                                                                                LOCALHOST.host, LOCALHOST.port),"mysql-js>"),
-                ("session.runSql(\"use sakila;\")\n","Query OK"),
-                ("session.runSql(\"drop table if exists sakila.friends;\")\n","Query OK"),
-                ("session.runSql(\"create table sakila.friends (name varchar(50), last_name varchar(50), age integer, gender varchar(20));\")\n","Query OK"),
-                ("session.runSql(\"show tables like \'friends\';\")\n","1 row in set"),
-                ("session.runSql(\"INSERT INTO sakila.friends (name, last_name,age,gender) VALUES(\'ruben\',\'morquecho\', "
-                 "40,\'male\');\")\n","Query OK"),
-                ("session.runSql(\"UPDATE sakila.friends SET name=\'ruben dario\' where name =  \'ruben\';\")\n","Query OK"),
-                ("session.runSql(\"SELECT * from friends where name LIKE \'%ruben%\'\");\n","1 row in set"),
-                ("\\\n","..."),
-                ("session.runSql(\"drop table if exists sakila.friends;\")\n","..."),
+                ("session=mysql.getClassicSession('{0}:{1}@{2}:{3}')\n".format(LOCALHOST.user, LOCALHOST.password,
+                                                                                LOCALHOST.host, LOCALHOST.port),"mysql-py>"),
+                ("session.runSql('use sakila;')\n","Query OK"),
+                ("session.runSql('drop table if exists sakila.friends;')\n","Query OK"),
+                ("session.\\\n","..."),
+                ("runSql('create table sakila.friends (name varchar(50), last_name varchar(50), age integer, gender varchar(20));')\n","..."),
+                ("\n","Query OK"),
+                ("session.runSql(\"show tables like 'friends';\")\n","1 row in set"),
+                ("session.runSql(\"INSERT INTO sakila.friends (name, last_name,age,gender) VALUES('ruben','morquecho', "
+                 "40,'male');\")\n","Query OK"),
+                ("session.runSql(\"UPDATE sakila.friends SET name='ruben dario' where name =  'ruben';\")\n","Query OK"),
+                ("session.\\\n","..."),
+                ("runSql(\"SELECT * from friends where name LIKE '%ruben dario%'\");\n","..."),
+                ("\n","1 row in set"),
+                ("session.\\\n","..."),
+                ("runSql('drop table if exists sakila.friends;')\n","..."),
                 ("\n","mysql-py>"),
-                ("session.runSql(\"show tables like \'friends\';\")\n","Empty set")
+                ("session.runSql(\"show tables like 'friends';\")\n","Empty set")
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
-  #FAILING........
-  @unittest.skip("multiline mode is not recongnized on py session")
   def test_4_4_22_2(self):
       '''[4.4.022]:2 PY Delete table using multiline mode: NODE SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full','--py']
       x_cmds = [("import mysqlx\n","mysql-py>"),
-                ("session=mysqlx.getNodeSession(\'{0}:{1}@{2}\')\n".format(LOCALHOST.user, LOCALHOST.password,
-                                                                                LOCALHOST.host),"mysql-js>"),
-                ("session.sql(\"use sakila;\").execute()\n","Query OK"),
-                ("session.sql(\"drop table if exists sakila.friends;\").execute()\n","Query OK"),
-                ("session.sql(\"create table sakila.friends (name varchar(50), last_name varchar(50), age integer, gender varchar(20));\").execute();\n","Query OK"),
-                ("session.sql(\"show tables like \'friends\';\").execute()\n","1 row in set"),
-                ("session.sql(\"INSERT INTO sakila.friends (name, last_name,age,gender) VALUES(\'ruben\',\'morquecho\', "
-                 "40,\'male\');\").execute()\n","Query OK"),
-                ("session.sql(\"UPDATE sakila.friends SET name=\'ruben dario\' where name =  \'ruben\';\").execute()\n","Query OK"),
-                ("session.sql(\"SELECT * from friends where name LIKE \'%ruben%\';\").execute()\n","1 row in set"),
-                ("\\\n","..."),
-                ("session.sql(\"drop table if exists sakila.friends;\").execute()\n","..."),
+                ("session=mysqlx.getNodeSession('{0}:{1}@{2}')\n".format(LOCALHOST.user, LOCALHOST.password,
+                                                                                LOCALHOST.host),"mysql-py>"),
+                ("session.sql('use sakila;').execute()\n","Query OK"),
+                ("session.sql('drop table if exists sakila.friends;').execute()\n","Query OK"),
+                ("session.\\\n","..."),
+                ("sql('create table sakila.friends (name varchar(50), last_name varchar(50), age integer, gender varchar(20));').execute();\\\n","..."),
                 ("\n","mysql-py>"),
-                ("session.sql(\"show tables like \'friends\';\").execute()\n","Empty set"),
+                ("session.sql(\"show tables like 'friends';\").execute()\n","1 row in set"),
+                ("session.sql(\"INSERT INTO sakila.friends (name, last_name,age,gender) VALUES('ruben','morquecho', "
+                 "40,'male');\").execute()\n","Query OK"),
+                ("session.sql(\"UPDATE sakila.friends SET name='ruben dario' where name =  'ruben';\").execute()\n","Query OK"),
+                ("session.\\\n","..."),
+                ("sql(\"SELECT * from friends where name LIKE '%ruben%';\").execute()\n","..."),
+                ("\n","1 row in set"),
+                ("session.\\\n","..."),
+                ("sql('drop table if exists sakila.friends;').execute()\n","..."),
+                ("\n","mysql-py>"),
+                ("session.sql(\"show tables like 'friends';\").execute()\n","Empty set"),
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
@@ -3952,10 +3955,10 @@ class XShell_TestCases(unittest.TestCase):
                 ("session=mysql.getClassicSession(\'{0}:{1}@{2}:{3}\')\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                                       LOCALHOST.host, LOCALHOST.port), "mysql-py>"),
                 ("session.runSql('use sakila;')\n","Query OK"),
-                ("session.runSql('drop view if exists js_view;')\n","Query OK"),
-                ("session.runSql(\"create view js_view as select first_name from actor where first_name like '%a%';\")\n","Query OK"),
-                ("session.dropView('sakila','js_view')\n","Query OK"),
-                ("session.runSql(\"show schemas like 'js_view';\")\n","Empty set"),
+                ("session.runSql('drop view if exists py_view;')\n","Query OK"),
+                ("session.runSql(\"create view py_view as select first_name from actor where first_name like '%a%';\")\n","Query OK"),
+                ("session.dropView('sakila','py_view')\n","Query OK"),
+                ("session.runSql(\"SELECT table_name FROM information_schema.views WHERE information_schema.views.table_name LIKE 'py_view';\")\n","Empty set"),
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
@@ -3967,51 +3970,55 @@ class XShell_TestCases(unittest.TestCase):
       x_cmds = [("import mysqlx\n","mysql-py>"),
                 ("session=mysqlx.getNodeSession(\'{0}:{1}@{2}\')\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                                 LOCALHOST.host),"mysql-py>"),
-                ("session.sql(\'use sakila;\').execute()\n","Query OK"),
-                ("session.sql(\'drop view if exists js_view;\').execute()\n","Query OK"),
-                ("session.sql(\"create view js_view as select first_name from actor where first_name like \'%a%\';\").execute()\n","Query OK"),
-                ("session.dropView(\'sakila\',\'js_view\')\n","Query OK"),
-                ("session.sql(\"show schemas like 'js_view';\").execute()\n","Empty set"),
+                ("session.sql('use sakila;').execute()\n","Query OK"),
+                ("session.sql('drop view if exists py_view;').execute()\n","Query OK"),
+                ("session.sql(\"create view py_view as select first_name from actor where first_name like '%a%';\").execute()\n","Query OK"),
+                ("session.sql(\"SELECT table_name FROM information_schema.views WHERE information_schema.views.table_name LIKE 'py_view';\").execute()\n","1 row"),
+                ("session.dropView('sakila','py_view')\n","Query OK"),
+                ("session.sql(\"SELECT table_name FROM information_schema.views WHERE information_schema.views.table_name LIKE 'py_view';\").execute()\n","Empty set"),
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
-  #FAILING........
-  @unittest.skip("multiline mode is not recongnized on py session")
+
   def test_4_4_28_1(self):
       '''[4.4.028]:1 PY Delete view using multiline mode: CLASSIC SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full','--py']
       x_cmds = [("import mysql\n","mysql-py>"),
-                ("session=mysql.getClassicSession(\'{0}:{1}@{2}:{3}\')\n".format(LOCALHOST.user, LOCALHOST.password,
+                ("session=mysql.getClassicSession('{0}:{1}@{2}:{3}')\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                                       LOCALHOST.host, LOCALHOST.port), "mysql-py>"),
-                ("session.runSql(\'use sakila;\')\n","Query OK"),
-                ("session.runSql(\'drop view if exists js_view;\')\n","Query OK"),
-                ("session.runSql(\"create view js_view as select first_name from actor where first_name like \'%a%\';\")\n","Query OK"),
-                ("\\\n","..."),
-                ("session.dropView(\'sakila\',\'js_view\')\n","..."),
+                ("session.runSql('use sakila;')\n","Query OK"),
+                ("session.runSql('drop view if exists py_view;')\n","Query OK"),
+                ("session.\\\n","..."),
+                ("runSql(\"create view py_view as select first_name from actor where first_name like '%a%';\")\n","..."),
+                ("\n","Query OK"),
+                ("session.\\\n","..."),
+                ("dropView('sakila','py_view')\n","..."),
                 ("\n","mysql-py>"),
-                ("session.getSchema(\'sakila\').getView(\'js_view\').existInDatabase()\n","false")
+                ("session.runSql(\"SELECT table_name FROM information_schema.views WHERE information_schema.views.table_name LIKE 'py_view';\")\n","Empty set"),
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
-  #FAILING........
-  @unittest.skip("multiline mode is not recongnized on py session")
+
   def test_4_4_28_2(self):
       '''[4.4.028]:2 PY Delete view using multiline mode: NODE SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full','--py']
       x_cmds = [("import mysqlx\n","mysql-py>"),
-                ("session=mysqlx.getNodeSession(\'{0}:{1}@{2}\')\n".format(LOCALHOST.user, LOCALHOST.password,
+                ("session=mysqlx.getNodeSession('{0}:{1}@{2}')\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                                 LOCALHOST.host),"mysql-py>"),
-                ("session.sql(\'use sakila;\').execute()\n","Query OK"),
-                ("session.sql(\'drop view if exists py_view;\').execute()\n","Query OK"),
-                ("session.sql(\"create view py_view as select first_name from actor where first_name like \'%a%\';\").execute()\n","Query OK"),
-                ("\\\n","..."),
-                ("session.dropView(\'sakila\',\'py_view\').execute()\n","..."),
+                ("session.sql('use sakila;').execute()\n","Query OK"),
+                ("session.sql('drop view if exists py_view;').execute()\n","Query OK"),
+                ("session.\\\n","..."),
+                ("sql(\"create view py_view as select first_name from actor where first_name like '%a%';\").execute()\n","..."),
+                ("\n","Query OK"),
+                ("session.sql(\"SELECT table_name FROM information_schema.views WHERE information_schema.views.table_name LIKE 'py_view';\")\n","1 row in set"),
+                ("session.\\\n","..."),
+                ("dropView('sakila','py_view').execute()\n","..."),
                 ("\n","mysql-py>"),
-                ("session.getSchema(\'sakila\').getView(\'py_view\').existInDatabase().execute()\n","false")
+                ("session.sql(\"SELECT table_name FROM information_schema.views WHERE information_schema.views.table_name LIKE 'py_view';\")\n","Empty set"),
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
@@ -4237,7 +4244,7 @@ class XShell_TestCases(unittest.TestCase):
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
-  #FAILED
+
   def test_4_5_02_2(self):
       '''[4.5.002]:2 PY Transaction with Rollback: NODE SESSION'''
       results = ''
