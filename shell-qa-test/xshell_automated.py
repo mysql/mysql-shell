@@ -3202,7 +3202,7 @@ class XShell_TestCases(unittest.TestCase):
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
-  #FAILED
+
   def test_4_4_9_1(self):
       '''[4.4.009]:1 JS Delete table using session object: CLASSIC SESSION'''
       results = ''
@@ -3245,52 +3245,55 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
-  #FAILING........
-  @unittest.skip("does not recognize  ... multiline on python session")
   def test_4_4_10_1(self):
       '''[4.4.010]:1 JS Delete table using multiline mode: CLASSIC SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [("var mysql=require(\'mysql\').mysql;\n","mysql-js>"),
+      x_cmds = [("var mysql=require('mysql').mysql;\n","mysql-js>"),
                 ("var session=mysql.getClassicSession(\'{0}:{1}@{2}:{3}\');\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                                 LOCALHOST.host, LOCALHOST.port),"mysql-js>"),
-                ("session.runSql(\"use sakila;\");\n","Query OK"),
-                ("session.runSql(\"drop table if exists sakila.friends;\");\n","Query OK"),
-                ("session.runSql(\"create table sakila.friends (name varchar(50), last_name varchar(50), age integer, gender varchar(20));\");\n","Query OK"),
-                ("session.runSql(\"show tables like \'friends\';\");\n","1 row in set"),
-                ("session.runSql(\"INSERT INTO sakila.friends (name, last_name,age,gender) VALUES(\'ruben\',\'morquecho\', "
-                 "40,\'male\');\");\n","Query OK"),
-                ("session.runSql(\"UPDATE sakila.friends SET name=\'ruben dario\' where name =  \'ruben\';\");\n","Query OK"),
-                ("session.runSql(\"SELECT * from friends where name LIKE \'%ruben%\';\");\n","1 row in set"),
-                ("\\","..."),
-                ("session.runSql(\"drop table if exists sakila.friends;\");\n","..."),
+                ("session.runSql('use sakila;');\n","Query OK"),
+                ("session.runSql('drop table if exists sakila.friends;');\n","Query OK"),
+                ("session.runSql('create table sakila.friends (name varchar(50), last_name varchar(50), age integer, gender varchar(20));');\n","Query OK"),
+                ("session.runSql(\"show tables like 'friends';\");\n","1 row in set"),
+                ("session.runSql(\"INSERT INTO sakila.friends (name, last_name,age,gender) VALUES('ruben','morquecho', "
+                 "40,'male');\");\n","Query OK"),
+                ("session.\n","..."),
+                ("runSql(\"UPDATE sakila.friends SET name='ruben dario' where name =  'ruben';\");\n","..."),
+                ("\n","mysql-js>"),
+                ("session.runSql(\"SELECT * from friends where name LIKE '%ruben%';\");\n","1 row in set"),
+                ("session.\n","..."),
+                ("runSql(\"drop table if exists sakila.friends;\");\n","..."),
                 ("\n","mysql-js>"),
                 ("session.runSql(\"show tables like \'friends\';\");\n","Empty set")
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
-  #FAILING........
-  @unittest.skip("does not recognize  ... multiline on python session")
+
   def test_4_4_10_2(self):
       '''[4.4.010]:2 JS Delete table using multiline modet: NODE SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [("var mysqlx=require(\'mysqlx\').mysqlx;\n","mysql-js>"),
-                ("var session=mysqlx.getNodeSession(\'{0}:{1}@{2}\');\n".format(LOCALHOST.user, LOCALHOST.password,
+      x_cmds = [("var mysqlx=require('mysqlx').mysqlx;\n","mysql-js>"),
+                ("var session=mysqlx.getNodeSession('{0}:{1}@{2}');\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                                 LOCALHOST.host),"mysql-js>"),
-                ("session.sql(\"use sakila;\").execute();\n","Query OK"),
-                ("session.sql(\"drop table if exists sakila.friends;\").execute();\n","Query OK"),
-                ("session.sql(\"create table sakila.friends (name varchar(50), last_name varchar(50), age integer, gender varchar(20));\").execute();\n","Query OK"),
-                ("session.sql(\"show tables like \'friends\';\").execute();\n","1 row in set"),
-                ("session.sql(\"INSERT INTO sakila.friends (name, last_name,age,gender) VALUES(\'ruben\',\'morquecho\', "
-                 "40,\'male\');\").execute();\n","Query OK"),
-                ("session.sql(\"UPDATE sakila.friends SET name=\'ruben dario\' where name =  \'ruben\';\").execute();\n","Query OK"),
-                ("session.sql(\"SELECT * from friends where name LIKE \'%ruben%\';\").execute();\n","1 row in set"),
-                ("\\","..."),
-                ("session.sql(\"drop table if exists sakila.friends;\").execute();\n","..."),
+                ("session.sql('use sakila;').execute();\n","Query OK"),
+                ("session.sql('drop table if exists sakila.friends;').execute();\n","Query OK"),
+                ("session.\n","..."),
+                ("sql('create table sakila.friends (name varchar(50), last_name varchar(50), age integer, gender varchar(20));').execute();\n","..."),
                 ("\n","mysql-js>"),
-                ("session.sql(\"show tables like \'friends\';\").execute();\n","Empty set"),
+                ("session.sql(\"show tables like 'friends';\").execute();\n","1 row in set"),
+                ("session.sql(\"INSERT INTO sakila.friends (name, last_name,age,gender) VALUES('ruben','morquecho', "
+                 "40,'male');\").execute();\n","Query OK"),
+                ("session.sql(\"UPDATE sakila.friends SET name='ruben dario' where name =  'ruben';\").execute();\n","Query OK"),
+                ("session.\n","..."),
+                ("sql(\"SELECT * from friends where name LIKE '%ruben dario%';\").execute();\n","1 row in set"),
+                ("\n","mysql-js>"),
+                ("session.\n","..."),
+                ("sql('drop table if exists sakila.friends;').execute();\n","..."),
+                ("\n","mysql-js>"),
+                ("session.sql(\"show tables like 'friends';\").execute();\n","Empty set"),
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
@@ -3335,7 +3338,7 @@ class XShell_TestCases(unittest.TestCase):
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
-  #failed
+
   def test_4_4_12_1(self):
       '''[4.4.012]:1 JS Delete database using session object: CLASSIC SESSION'''
       results = ''
@@ -3367,40 +3370,43 @@ class XShell_TestCases(unittest.TestCase):
       self.assertEqual(results, 'PASS')
 
 
-  #FAILING........
-  @unittest.skip("does not recognize  ... multiline on python session")
   def test_4_4_13_1(self):
       '''[4.4.013]:1 JS Delete database using multiline mode: CLASSIC SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [("var mysql=require(\'mysql\').mysql;\n","mysql-js>"),
-                ("var session=mysql.getClassicSession(\'{0}:{1}@{2}:{3}\');\n".format(LOCALHOST.user, LOCALHOST.password,
+      x_cmds = [("var mysql=require('mysql').mysql;\n","mysql-js>"),
+                ("var session=mysql.getClassicSession('{0}:{1}@{2}:{3}');\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                                       LOCALHOST.host, LOCALHOST.port), "mysql-js>"),
-                ("session.runSql(\"drop database if exists automation_test;\");\n","Query OK"),
-                ("session.runSql(\'create database automation_test;\');\n","Query OK"),
-                ("\\","..."),
-                ("session.dropSchema(\'automation_test\');\n","..."),
+                ("session.runSql('drop database if exists automation_test;');\n","Query OK"),
+                ("session.\n","..."),
+                ("runSql('create database automation_test;');\n","..."),
+                ("\n","Query OK"),
+                ("session.\n","..."),
+                ("dropSchema('automation_test');\n","..."),
                 ("\n","mysql-js>"),
-                ("session.runSql(\"show schemas like \'automation_test\';\");\n","Empty set"),
+                ("session.runSql(\"show schemas like 'automation_test';\");\n","Empty set"),
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
-  #FAILING........
-  @unittest.skip("does not recognize  ... multiline on python session")
+
   def test_4_4_13_2(self):
       '''[4.4.013]:2 JS Delete database using multiline mode: NODE SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [("var mysqlx=require(\'mysqlx\').mysqlx;\n","mysql-js>"),
-                ("var session=mysqlx.getNodeSession(\'{0}:{1}@{2}\');\n".format(LOCALHOST.user, LOCALHOST.password,
+      x_cmds = [("var mysqlx=require('mysqlx').mysqlx;\n","mysql-js>"),
+                ("var session=mysqlx.getNodeSession('{0}:{1}@{2}');\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                                 LOCALHOST.host),"mysql-js>"),
-                ("session.sql(\"drop database if exists automation_test;\").execute();\n","Query OK"),
-                ("session.sql(\'create database automation_test;\').execute();\n","Query OK"),
-                ("\\","..."),
-                ("session.dropSchema(\'automation_test\');\n","..."),
+                ("session.\n","..."),
+                ("sql('drop database if exists automation_test;').execute();\n","..."),
                 ("\n","mysql-js>"),
-                ("session.sql(\"show schemas like \'automation_test\';\").execute();\n","Empty set"),
+                ("session.\n","..."),
+                ("sql('create database automation_test;').execute();\n","..."),
+                ("\n","Query OK"),
+                ("session.\n","..."),
+                ("dropSchema('automation_test');\n","..."),
+                ("\n","mysql-js>"),
+                ("session.sql(\"show schemas like 'automation_test';\").execute();\n","Empty set"),
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
@@ -3482,22 +3488,23 @@ class XShell_TestCases(unittest.TestCase):
       self.assertEqual(results, 'PASS')
 
 
-  #FAILING........
-  @unittest.skip("does not recognize  ... multiline on js session")
   def test_4_4_16_1(self):
       '''[4.3.016]:1 JS Update alter view using multiline mode: CLASSIC SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [("var mysql=require(\'mysql\').mysql;\n","mysql-js>"),
-                ("var session=mysql.getClassicSession(\'{0}:{1}@{2}:{3}\');\n".format(LOCALHOST.user, LOCALHOST.password,
+      x_cmds = [("var mysql=require('mysql').mysql;\n","mysql-js>"),
+                ("var session=mysql.getClassicSession('{0}:{1}@{2}:{3}');\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                                       LOCALHOST.host, LOCALHOST.port), "mysql-js>"),
-                ("session.runSql(\'use sakila;\');\n","Query OK"),
-                ("session.runSql(\'drop view if exists js_view;\');\n","Query OK"),
-                ("session.runSql(\"create view js_view as select first_name from actor where first_name like \'%a%\';\");\n","Query OK"),
-                ("\\\n","..."),
-                ("session.dropView(\'sakila\',\'js_view\');\n","..."),
+                ("session.runSql('use sakila;');\n","Query OK"),
+                ("session.runSql('drop view if exists js_view;');\n","Query OK"),
+                ("session.\n","..."),
+                ("runSql(\"create view js_view as select first_name from actor where first_name like '%a%';\");\n","..."),
+                ("\n","Query OK"),
+                ("session.runSql(\"SELECT table_name FROM information_schema.views WHERE information_schema.views.table_name LIKE 'js_view';\");\n", '1 row'),
+                ("session.\n","..."),
+                ("dropView('sakila','js_view');\n","..."),
                 ("\n","mysql-js>"),
-                ("session.sql(\"SELECT table_name FROM information_schema.views WHERE information_schema.views.table_name LIKE 'js_view';\").execute();\n", 'Empty set')
+                ("session.runSql(\"SELECT table_name FROM information_schema.views WHERE information_schema.views.table_name LIKE 'js_view';\");\n", 'Empty set')
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
@@ -3523,7 +3530,7 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
-  #FAILING........
+
   def test_4_4_17_1(self):
       '''[4.4.017]:1 JS Delete view using STDIN batch code: CLASSIC SESSION'''
       results = ''
