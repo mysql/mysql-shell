@@ -1385,7 +1385,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[3.1.004]:1 Check that command [ \quit, \q, \exit ] works: \quit'''
       results = ''
       p = subprocess.Popen([MYSQL_SHELL, '--interactive=full'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
-      p.stdin.write(bytearray('\\quit', 'ascii'))
+      p.stdin.write(bytearray('\\quit\n', 'ascii'))
       p.stdin.flush()
       p.stdin.write(bytearray('', 'ascii'))
       p.stdin.flush()
@@ -1402,7 +1402,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[3.1.004]:2 Check that command [ \quit, \q, \exit ] works: \q '''
       results = ''
       p = subprocess.Popen([MYSQL_SHELL, '--interactive=full'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
-      p.stdin.write(bytearray('\\q', 'ascii'))
+      p.stdin.write(bytearray('\\q\n', 'ascii'))
       p.stdin.flush()
       p.stdin.write(bytearray('', 'ascii'))
       p.stdin.flush()
@@ -1419,7 +1419,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[3.1.004]:3 Check that command [ \quit, \q, \exit ] works: \exit'''
       results = ''
       p = subprocess.Popen([MYSQL_SHELL, '--interactive=full'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
-      p.stdin.write(bytearray('\\exit', 'ascii'))
+      p.stdin.write(bytearray('\\exit\n', 'ascii'))
       p.stdin.flush()
       p.stdin.write(bytearray('', 'ascii'))
       p.stdin.flush()
@@ -1517,7 +1517,7 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
-  @unittest.skip("not leaving the multiline mode with empty line")
+  @unittest.skip("not working delimiter with multiline")
   def test_3_1_11_1(self):
       '''[3.1.011]:1 Check that MULTI LINE MODE command [ \ ] works'''
       results = ''
@@ -1530,9 +1530,9 @@ class XShell_TestCases(unittest.TestCase):
                 ("create procedure get_actors()\n",""),
                 ("begin\n",""),
                 ("select first_name from sakila.actor;\n",""),
-                ("end\n",""),
-                ("\n","mysql-sql>"),
-                ("delimiter :\n","mysql-sql>"),
+                ("end#\n","mysql-sql>"),
+                #("\n","mysql-sql>"),
+                ("delimiter ;\n","mysql-sql>"),
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
@@ -1637,7 +1637,6 @@ class XShell_TestCases(unittest.TestCase):
       self.assertEqual(results, 'PASS')
 
 
-  #failed
   def test_4_2_16_1(self):
       '''[4.2.016]:1 PY Read executing the stored procedure: NODE SESSION'''
       results = ''
@@ -1658,13 +1657,13 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7','--py']
       x_cmds = [("import mysql\n", "mysql-py>"),
-                ("session=mysql.getClassicSession(\'{0}:{1}@{2}:{3}\')\n".format(LOCALHOST.user, LOCALHOST.password,
+                ("session=mysql.getClassicSession('{0}:{1}@{2}:{3}')\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                                 LOCALHOST.host,LOCALHOST.port ), "mysql-py>"),
-                ("session.runSql(\'use sakila;\')\n","Query OK"),
-                ("session.runSql(\'drop procedure if exists get_actors;\')\n","Query OK"),
-                ("session.runSql(\'CREATE PROCEDURE get_actors() BEGIN  "
-                 "select first_name from actor where actor_id < 5 ; END;\')\n","Query OK"),
-                ("session.runSql(\'call get_actors();\')\n","rows in set")
+                ("session.runSql('use sakila;')\n","Query OK"),
+                ("session.runSql('drop procedure if exists get_actors;')\n","Query OK"),
+                ("session.runSql('CREATE PROCEDURE get_actors() BEGIN  "
+                 "select first_name from actor where actor_id < 5 ; END;')\n","Query OK"),
+                ("session.runSql('call get_actors();')\n","rows in set")
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
@@ -1677,7 +1676,7 @@ class XShell_TestCases(unittest.TestCase):
                       '--session-type=classic','--sqlc']
       x_cmds = [("\\\n","..."),
                 ("use sakila;\n","..."),
-                ("Update actor set last_name =\'Test Last Name\', last_update = now() where actor_id = 2;\n","..."),
+                ("Update actor set last_name ='Test Last Name', last_update = now() where actor_id = 2;\n","..."),
                 ("\n","Query OK, 1 row affected"),
                 ("select last_name from actor where actor_id = 2;\n","Test Last Name")
                 ]
@@ -1701,9 +1700,9 @@ class XShell_TestCases(unittest.TestCase):
       x_cmds = [('\\connect_node {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
                 ("\\sql\n","mysql-sql>"),
                 ("use sakila;\n","mysql-sql>"),
-                ("SELECT first_name FROM actor WHERE first_name=\'Test\';\n","Test"),
-                ("UPDATE actor SET first_name=\'Testback\' WHERE actor_id=2;\n","Query OK"),
-                ("SELECT first_name FROM actor WHERE first_name=\'Testback\';\n","Testback"),
+                ("SELECT first_name FROM actor WHERE first_name='Test';\n","Test"),
+                ("UPDATE actor SET first_name='Testback' WHERE actor_id=2;\n","Query OK"),
+                ("SELECT first_name FROM actor WHERE first_name='Testback';\n","Testback"),
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
@@ -1725,8 +1724,8 @@ class XShell_TestCases(unittest.TestCase):
       x_cmds = [('\\connect_node {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
                 ("\\sql\n","mysql-sql>"),
                 ("use sakila;\n","mysql-sql>"),
-                ("SELECT first_name FROM actor WHERE first_name=\'Test\';\n","Test"),
-                ("UPDATE actor SET first_name=\'Testback\' WHERE actor_id=2;\n","Query OK"),
+                ("SELECT first_name FROM actor WHERE first_name='Test';\n","Test"),
+                ("UPDATE actor SET first_name='Testback' WHERE actor_id=2;\n","Query OK"),
                 ("SELECT first_name FROM actor WHERE first_name=\'Testback\';\n","Testback"),
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
@@ -1958,8 +1957,6 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
-  #FAILING........
-  @unittest.skip("not working the  multiline command in mysql-js> jason session")
   def test_4_3_10_1(self):
       '''[4.3.010]:1 JS Update table using multiline mode: CLASSIC SESSION'''
       results = ''
@@ -1971,23 +1968,20 @@ class XShell_TestCases(unittest.TestCase):
                 ("session.runSql('drop table if exists sakila.friends;');\n","Query OK"),
                 ("session.runSql('create table sakila.friends (name varchar(50), last_name varchar(50), "
                  "age integer, gender varchar(20));');\n","Query OK"),
-                ("session.runSql(\"INSERT INTO sakila.friends (name,last_name,age,gender) VALUES ('jack',"
-                 "'black', 17, 'male');\");\n","Query OK, 1 row affected"),
-                ("session.runSql(\"INSERT INTO sakila.friends (name,last_name,age,gender) VALUES ('ruben',"
-                 "'morquecho', 40, 'male');\");\n","Query OK, 1 row affected"),
-                ("\\\n","..."),
-                ("session.runSql(\"UPDATE sakila.friends SET name='ruben dario' where name =  'ruben';\");\n","..."),
-                ("session.runSql(\"UPDATE sakila.friends SET name='jackie chan' where name =  'jack';\");\n","..."),
-                ("\n","mysql-js>"),
-                ("session.runSql(\"SELECT * from friends where name LIKE '%ruben%';\");\n","ruben dario"),
-                ("session.runSql(\"SELECT * from friends where name LIKE '%jackie chan%';\");\n","jackie chan")
+                ("var table = session.sakila.friends;\n","mysql-js>"),
+                ("session.\n","..."),
+                ("runSql(\"INSERT INTO sakila.friends (name,last_name,age,gender) VALUES ('jack','black', 17, 'male');\");\n","..."),
+                ("\n","Query OK, 1 row affected"),
+                ("session.\n","..."),
+                ("runSql(\"INSERT INTO sakila.friends (name,last_name,age,gender) VALUES ('ruben','morquecho', 40, 'male');\");\n","..."),
+                ("\n","Query OK, 1 row affected"),
+                ("session.runSql('select name from sakila.friends;');\n","ruben"),
+                ("session.runSql('select name from sakila.friends;');\n","jack"),
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
 
-  #FAILING........
-  @unittest.skip("not working the  multiline command in mysql-js> session")
   def test_4_3_10_2(self):
       '''[4.3.010]:2 JS Update table using multiline mode: NODE SESSION'''
       results = ''
@@ -1995,19 +1989,22 @@ class XShell_TestCases(unittest.TestCase):
       x_cmds = [("var mysqlx=require(\'mysqlx\').mysqlx;\n","mysql-js>"),
                 ("var session=mysqlx.getNodeSession(\'{0}:{1}@{2}\');\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                                 LOCALHOST.host),"mysql-js>"),
-                ("session.sql(\"use sakila;\").execute();\n","Query OK"),
-                ("session.sql(\"drop table if exists sakila.friends;\").execute();\n","Query OK"),
-                ("session.sql(\'create table sakila.friends (name varchar(50), last_name varchar(50), "
-                 "age integer, gender varchar(20));\').execute();\n","Query OK"),
+                ("session.sql('use sakila;').execute();\n","Query OK"),
+                ("session.sql('drop table if exists sakila.friends;').execute();\n","Query OK"),
+                ("session.sql('create table sakila.friends (name varchar(50), last_name varchar(50), "
+                 "age integer, gender varchar(20));').execute();\n","Query OK"),
                 ("var table = session.sakila.friends;\n","mysql-js>"),
-                ("table.insert(\'name\',\'last_name\',\'age\',\'gender\').values(\'jack\',\'black\', 17, \'male\');\n","Query OK"),
-                ("table.insert(\'name\',\'last_name\',\'age\',\'gender\').values(\'ruben\',\'morquecho\', 40, \'male\');\n","Query OK"),
-                ("\\\n","..."),
-                ("var res_ruben = table.update().set(\'name\',\'ruben dario\').set(\'age\',42).where(\'name=\"ruben\"\').execute();\n","..."),
-                ("var res_jack = table.update().set(\'name\',\'jackie chan\').set(\'age\',18).where(\'name=\"jack\"\').execute();\n","..."),
-                ("\n","..."),
-                ("print(table.select());\n","ruben dario"),
-                ("print(table.select());\n","ruben dario")
+                ("table.insert('name','last_name','age','gender').\n","..."),
+                ("values('jack','black', 17, 'male');\n","..."),
+                ("\n","Query OK, 1 item affected"),
+                ("table.insert('name','last_name','age','gender').values('ruben','morquecho', 40, 'male');\n","Query OK"),
+                ("var res_ruben = table.update().set('name','ruben dario').\n","..."),
+                ("set('age',42).where('name=\"ruben\"').execute();\n","..."),
+                ("var res_jack = table.update().set('name','jackie chan').set('age',18).\n","..."),
+                ("where('name=\"jack\"').execute();\n","..."),
+                ("\n","mysql-js>"),
+                ("table.select();\n","ruben dario"),
+                ("table.select();\n","jackie chan")
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
@@ -2057,7 +2054,6 @@ class XShell_TestCases(unittest.TestCase):
       self.assertEqual(results, 'PASS')
 
 
-  #failed
   def test_4_3_12_1(self):
       '''[4.3.012]:1 JS Update database using session object: CLASSIC SESSION'''
       results = ''
@@ -2073,7 +2069,6 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
-  #failed
   def test_4_3_12_2(self):
       '''[4.3.012]:2 JS Update database using session object: NODE SESSION'''
       results = ''
@@ -2081,7 +2076,7 @@ class XShell_TestCases(unittest.TestCase):
       x_cmds = [("var mysqlx=require('mysqlx').mysqlx;\n","mysql-js>"),
                 ("var session=mysqlx.getNodeSession(\'{0}:{1}@{2}\');\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                                 LOCALHOST.host),"mysql-js>"),
-                ("session.sql(\"drop database if exists automation_test;\").execute();\n","Query OK"),
+                ("session.sql(\'drop database if exists automation_test;\').execute();\n","Query OK"),
                 ("session.sql('create database automation_test;').execute();\n","Query OK"),
                 ("session.sql('ALTER SCHEMA automation_test  DEFAULT COLLATE utf8_general_ci;').execute();\n","Query OK"),
                 ("session.sql(\"SELECT DEFAULT_COLLATION_NAME FROM information_schema.SCHEMATA WHERE SCHEMA_NAME = "
@@ -2090,43 +2085,43 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
-  # FAILING.....
-  @unittest.skip("multiline in js mode is not working")
   def test_4_3_13_1(self):
       '''[4.3.013]:1 JS Update database using multiline mode: CLASSIC SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [("var mysql=require(\'mysql\').mysql;\n","mysql-js>"),
-                ("var session=mysql.getClassicSession(\'{0}:{1}@{2}:{3}\');\n".format(LOCALHOST.user, LOCALHOST.password,
+      x_cmds = [("var mysql=require('mysql').mysql;\n","mysql-js>"),
+                ("var session=mysql.getClassicSession('{0}:{1}@{2}:{3}');\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                                       LOCALHOST.host, LOCALHOST.port), "mysql-js>"),
-                ("session.runSql(\"drop database if exists automation_test;\");\n","Query OK"),
-                ("\\\n","..."),
-                ("session.runSql(\'create database automation_test;\');\n","..."),
-                ("session.runSql(\'ALTER SCHEMA automation_test  DEFAULT COLLATE utf8_general_ci;\');\n","..."),
+                ("session.runSql('drop database if exists automation_test;');\n","Query OK"),
+                ("session.\n","..."),
+                ("runSql('create database automation_test;');\n","..."),
+                ("\n","Query OK"),
+                ("session.\n","..."),
+                ("runSql('ALTER SCHEMA automation_test  DEFAULT COLLATE utf8_general_ci;');\n","..."),
                 ("\n","mysql-js>"),
                 ("session.runSql(\"SELECT DEFAULT_COLLATION_NAME FROM information_schema.SCHEMATA WHERE SCHEMA_NAME = "
-                 "\'automation_test\' ;\");\n","utf8_general_ci")
+                 "'automation_test' ;\");\n","utf8_general_ci")
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
 
-  # FAILING.....
-  @unittest.skip("multiline in js mode is not working")
   def test_4_3_13_2(self):
       '''[4.3.013]:2 JS Update database using multiline mode: NODE SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [("var mysqlx=require(\'mysqlx\').mysqlx;\n","mysql-js>"),
-                ("var session=mysqlx.getNodeSession(\'{0}:{1}@{2}\');\n".format(LOCALHOST.user, LOCALHOST.password,
+      x_cmds = [("var mysqlx=require('mysqlx').mysqlx;\n","mysql-js>"),
+                ("var session=mysqlx.getNodeSession('{0}:{1}@{2}');\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                                 LOCALHOST.host),"mysql-js>"),
-                ("session.sql(\"drop database if exists automation_test;\").execute();\n","Query OK"),
-                ("\\\n","..."),
-                ("session.sql(\'create database automation_test;\').execute();\n","..."),
-                ("session.sql(\'ALTER SCHEMA automation_test  DEFAULT COLLATE utf8_general_ci;\').execute();\n","..."),
+                ("session.sql('drop database if exists automation_test;').execute();\n","Query OK"),
+                ("session.\n","..."),
+                ("sql('create database automation_test;').execute();\n","..."),
+                ("\n","Query OK"),
+                ("session.\n","..."),
+                ("sql('ALTER SCHEMA automation_test  DEFAULT COLLATE utf8_general_ci;').execute();\n","..."),
                 ("\n","mysql-js>"),
                 ("session.sql(\"SELECT DEFAULT_COLLATION_NAME FROM information_schema.SCHEMATA WHERE SCHEMA_NAME = "
-                 "\'automation_test\' ;\").execute();\n","utf8_general_ci")
+                 "'automation_test' ;\").execute();\n","utf8_general_ci")
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
@@ -2172,7 +2167,6 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
-  #failed
   def test_4_3_15_1(self):
       '''[4.3.015]:1 JS Update alter view using session object: CLASSIC SESSION'''
       results = ''
@@ -2188,61 +2182,60 @@ class XShell_TestCases(unittest.TestCase):
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
-  #failed
+
   def test_4_3_15_2(self):
       '''[4.3.015]:2 JS Update alter view using session object: NODE SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [("var mysqlx=require(\'mysqlx\').mysqlx;\n","mysql-js>"),
+      x_cmds = [("var mysqlx=require('mysqlx').mysqlx;\n","mysql-js>"),
                 ("var session=mysqlx.getNodeSession(\'{0}:{1}@{2}\');\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                                 LOCALHOST.host),"mysql-js>"),
-                ("session.sql(\'use sakila;\').execute();\n","Query OK"),
-                ("session.sql(\'drop view if exists js_view;\').execute();\n","Query OK"),
-                ("session.sql(\"create view js_view as select first_name from actor where first_name like \'%a%\';\").execute();\n","Query OK"),
-                ("session.sql(\"alter view js_view as select * from actor where first_name like \'%a%\';\").execute();\n","Query OK"),
-                ("session.sql(\"SELECT * from js_view;\").execute();\n","actor_id")
+                ("session.sql('use sakila;').execute();\n","Query OK"),
+                ("session.sql('drop view if exists js_view;').execute();\n","Query OK"),
+                ("session.sql(\"create view js_view as select first_name from actor where first_name like '%a%';\").execute();\n","Query OK"),
+                ("session.sql(\"alter view js_view as select * from actor where first_name like '%a%';\").execute();\n","Query OK"),
+                ("session.sql('SELECT * from js_view;').execute();\n","actor_id")
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
 
-  # FAILING.....
-  @unittest.skip("multiline in js mode is not working")
   def test_4_3_16_1(self):
       '''[4.3.016]:1 JS Update alter view using multiline mode: CLASSIC SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [("var mysql=require(\'mysql\').mysql;\n","mysql-js>"),
-                ("var session=mysql.getClassicSession(\'{0}:{1}@{2}:{3}\');\n".format(LOCALHOST.user, LOCALHOST.password,
+      x_cmds = [("var mysql=require('mysql').mysql;\n","mysql-js>"),
+                ("var session=mysql.getClassicSession('{0}:{1}@{2}:{3}');\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                                       LOCALHOST.host, LOCALHOST.port), "mysql-js>"),
-                ("session.runSql(\'use sakila;\');\n","Query OK"),
-                ("session.runSql(\'drop view if exists js_view;\');\n","Query OK"),
-                ("\\\n","..."),
-                ("session.runSql(\"create view js_view as select first_name from actor where first_name like \'%a%\';\");\n","..."),
-                ("session.runSql(\"alter view js_view as select * from actor where first_name like \'%a%\';\");\n","..."),
-                ("\n","mysql-js>"),
-                ("session.runSql(\"SELECT * from js_view;\");\n","actor_id")
+                ("session.runSql('use sakila;');\n","Query OK"),
+                ("session.runSql('drop view if exists js_view;');\n","Query OK"),
+                ("session.\n","..."),
+                ("runSql(\"create view js_view as select first_name from actor where first_name like '%a%';\");\n","..."),
+                ("\n","Query OK"),
+                ("session.\n","..."),
+                ("runSql(\"alter view js_view as select * from actor where first_name like '%a%';\");\n","..."),
+                ("\n","Query OK"),
+                ("session.runSql('SELECT * from js_view;');\n","actor_id")
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
 
-  # FAILING.....
-  @unittest.skip("multiline in js mode is not working")
   def test_4_3_16_2(self):
       '''[4.3.016]:2 JS Update alter view using multiline mode: NODE SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [("var mysqlx=require(\'mysqlx\').mysqlx;\n","mysql-js>"),
-                ("var session=mysqlx.getNodeSession(\'{0}:{1}@{2}\');\n".format(LOCALHOST.user, LOCALHOST.password,
+      x_cmds = [("var mysqlx=require('mysqlx').mysqlx;\n","mysql-js>"),
+                ("var session=mysqlx.getNodeSession('{0}:{1}@{2}');\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                                 LOCALHOST.host),"mysql-js>"),
-                ("session.sql(\'use sakila;\').execute();\n","Query OK"),
-                ("session.sql(\'drop view if exists js_view;\').execute();\n","Query OK"),
-                ("\\\n","..."),
-                ("session.sql(\"create view js_view as select first_name from actor where first_name like \'%a%\';\").execute();\n","..."),
-                ("session.sql(\"alter view js_view as select * from actor where first_name like \'%a%\';\").execute();\n","..."),
+                ("session.sql('use sakila;').execute();\n","Query OK"),
+                ("session.sql('drop view if exists js_view;').execute();\n","Query OK"),
+                ("session.\n","..."),
+                ("sql(\"create view js_view as select first_name from actor where first_name like '%a%';\").execute();\n","..."),
+                ("session.\n","..."),
+                ("sql(\"alter view js_view as select * from actor where first_name like '%a%';\").execute();\n","..."),
                 ("\n","mysql-js>"),
-                ("session.sql(\"SELECT * from js_view;\").execute();\n","actor_id")
+                ("session.sql(\'SELECT * from js_view;\').execute();\n","actor_id")
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
@@ -2292,16 +2285,16 @@ class XShell_TestCases(unittest.TestCase):
       '''[4.3.018]:1 JS Update alter stored procedure using session object: CLASSIC SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [("var mysql=require(\'mysql\').mysql;\n","mysql-js>"),
-                ("var session=mysql.getClassicSession(\'{0}:{1}@{2}:{3}\');\n".format(LOCALHOST.user, LOCALHOST.password,
+      x_cmds = [("var mysql=require('mysql').mysql;\n","mysql-js>"),
+                ("var session=mysql.getClassicSession('{0}:{1}@{2}:{3}');\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                                       LOCALHOST.host, LOCALHOST.port), "mysql-js>"),
-                ("session.runSql(\'use sakila;\');\n","Query OK"),
-                ("session.runSql(\'DROP PROCEDURE IF EXISTS my_automated_procedure;\');\n","Query OK"),
-                ("session.runSql(\"delimiter \\\\\");\n","mysql-js>"),
+                ("session.runSql('use sakila;');\n","Query OK"),
+                ("session.runSql('DROP PROCEDURE IF EXISTS my_automated_procedure;');\n","Query OK"),
+                ("session.runSql('delimiter \\\\');\n","mysql-js>"),
                 ("session.runSql(\"create procedure my_automated_procedure (INOUT incr_param INT)\n "
                  "BEGIN \n    SET incr_param = incr_param + 1 ;\nEND\\\\\");\n","mysql-js>"),
                 ("delimiter ;\n","mysql-js>"),
-                ("session.runSql(\"select name from mysql.proc;\");\n","my_automated_procedure")
+                ("session.runSql(\"select name from mysql.proc  where name like '%my_automated_procedure%';\");\n","1 row")
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
@@ -2310,22 +2303,22 @@ class XShell_TestCases(unittest.TestCase):
       '''[4.3.018]:2 JS Update alter stored procedure using session object: NODE SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [("var mysqlx=require(\'mysqlx\').mysqlx;\n","mysql-js>"),
+      x_cmds = [("var mysqlx=require('mysqlx').mysqlx;\n","mysql-js>"),
                 ("var session=mysqlx.getNodeSession(\'{0}:{1}@{2}\');\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                                 LOCALHOST.host),"mysql-js>"),
                 ("session.sql('use sakila;').execute();\n","Query OK"),
                 ("session.sql('DROP PROCEDURE IF EXISTS my_automated_procedure;').execute();\n","Query OK"),
-                ("session.sql(\"delimiter \\\\\").execute();\n","mysql-js>"),
+                ("session.sql('delimiter \\\\').execute();\n","mysql-js>"),
                 ("session.sql(\"create procedure my_automated_procedure (INOUT incr_param INT)\n "
                  "BEGIN \n    SET incr_param = incr_param + 1 ;\nEND\\\\\").execute();\n","mysql-js>"),
                 ("delimiter ;\n","mysql-js>"),
-                ("session.sql(\"select name from mysql.proc;\").execute();\n","my_automated_procedure")
+                ("session.sql(\"select name from mysql.proc  where name like '%my_automated_procedure%';\").execute();\n","1 row ")
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
   # FAILING.....
-  @unittest.skip("multiline in js mode is not working")
+  #@unittest.skip("multiline in js mode is not working")
   def test_4_3_19_1(self):
       '''[4.3.019]:1 JS Update alter stored procedure using multiline mode: CLASSIC SESSION'''
       results = ''
@@ -2335,36 +2328,34 @@ class XShell_TestCases(unittest.TestCase):
                                                                                       LOCALHOST.host, LOCALHOST.port), "mysql-js>"),
                 ("session.runSql(\'use sakila;\');\n","Query OK"),
                 ("session.runSql(\'DROP PROCEDURE IF EXISTS my_automated_procedure;\');\n","Query OK"),
-                ("\\\n","..."),
-                ("session.runSql(\"delimiter \\\\\");\n","..."),
-                ("session.runSql(\"create procedure my_automated_procedure (INOUT incr_param INT)\n "
-                 "BEGIN \n    SET incr_param = incr_param + 1 ;\nEND\\\\\");\n","..."),
-                ("delimiter ;\n","..."),
+                ("session.runSql('delimiter \\\\');\n","mysql-js>"),
+                ("session.\n ","..."),
+                ("runSql(\"create procedure my_automated_procedure (INOUT incr_param INT) BEGIN \n    SET incr_param = incr_param + 1 ;\nEND\\\\\");\n","..."),
                 ("\n","mysql-js>"),
-                ("session.runSql(\"select name from mysql.proc;\");\n","my_automated_procedure")
+                ("session.runSql('delimiter ;');\n","mysql-js>"),
+                ("session.runSql(\"select name from mysql.proc where name like '%my_automated_procedure%';\");\n","1 row ")
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
 
   # FAILING.....
-  @unittest.skip("multiline in js mode is not working")
+  #@unittest.skip("multiline in js mode is not working")
   def test_4_3_19_2(self):
       '''[4.3.019]:2 JS Update alter stored procedure using multiline mode: NODE SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [("var mysqlx=require(\'mysqlx\').mysqlx;\n","mysql-js>"),
-                ("var session=mysqlx.getNodeSession(\'{0}:{1}@{2}\');\n".format(LOCALHOST.user, LOCALHOST.password,
+      x_cmds = [("var mysqlx=require('mysqlx').mysqlx;\n","mysql-js>"),
+                ("var session=mysqlx.getNodeSession('{0}:{1}@{2}');\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                                 LOCALHOST.host),"mysql-js>"),
-                ("session.sql(\'use sakila;\').execute();\n","Query OK"),
-                ("session.sql(\'DROP PROCEDURE IF EXISTS my_automated_procedure;\').execute();\n","Query OK"),
-                ("\\\n","..."),
-                ("session.sql(\"delimiter \\\\\").execute();\n","..."),
+                ("session.sql('use sakila;').execute();\n","Query OK"),
+                ("session.sql('DROP PROCEDURE IF EXISTS my_automated_procedure;').execute();\n","Query OK"),
+                ("session.sql('delimiter \\\\').execute();\n","..."),
                 ("session.sql(\"create procedure my_automated_procedure (INOUT incr_param INT)\n "
                  "BEGIN \n    SET incr_param = incr_param + 1 ;\nEND\\\\\").execute();\n","..."),
-                ("delimiter ;\n","..."),
                 ("\n","mysql-js>"),
-                ("session.sql(\"select name from mysql.proc;\").execute();\n","my_automated_procedure")
+                ("session.sql('delimiter ;').execute();\n","mysql-js>"),
+                ("session.sql(\"select name from mysql.proc where name like '%my_automated_procedure%';\").execute();\n","1 row")
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
@@ -2478,26 +2469,29 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
-  #FAILING........
-  @unittest.skip("does not recognize  multiline on python session")
+
   def test_4_3_22_2(self):
       '''[4.3.022]:2 PY Update table using multiline mode: NODE SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full','--py']
       x_cmds = [("import mysqlx\n","mysql-py>"),
-                ("session=mysqlx.getNodeSession(\'{0}:{1}@{2}\')\n".format(LOCALHOST.user, LOCALHOST.password,
+                ("session=mysqlx.getNodeSession('{0}:{1}@{2}')\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                                 LOCALHOST.host),"mysql-py>"),
-                ("session.sql(\"use sakila;\").execute()\n","Query OK"),
-                ("session.sql(\"drop table if exists sakila.friends;\").execute()\n","Query OK"),
-                ("session.sql(\'create table sakila.friends (name varchar(50), last_name varchar(50), "
-                 "age integer, gender varchar(20));\').execute()\n","Query OK"),
+                ("session.sql('use sakila;').execute()\n","Query OK"),
+                ("session.sql('drop table if exists sakila.friends;').execute()\n","Query OK"),
+                ("session.sql('create table sakila.friends (name varchar(50), last_name varchar(50), "
+                 "age integer, gender varchar(20));').execute()\n","Query OK"),
                 ("table = session.sakila.friends\n","mysql-py>"),
-                ("table.insert(\'name\',\'last_name\',\'age\',\'gender\').values(\'jack\',\'black\', 17, \'male\')\n","Query OK"),
-                ("table.insert(\'name\',\'last_name\',\'age\',\'gender\').values(\'ruben\',\'morquecho\', 40, \'male\')\n","Query OK"),
-                ("\\\n","..."),
-                ("res_ruben = table.update().set(\'name\',\'ruben dario\').set(\'age\',42).where(\'name=\"ruben\"\').execute()\n","..."),
-                ("res_jack = table.update().set(\'name\',\'jackie chan\').set(\'age\',18).where(\'name=\"jack\"\').execute()\n","..."),
-                ("\n","..."),
+                ("table.insert('name','last_name','age','gender').\\\n","..."),
+                ("values('jack','black', 17, 'male')\n","..."),
+                ("\n","Query OK, 1 item affected"),
+                ("table.insert('name','last_name','age','gender').values('ruben','morquecho', 40, 'male')\n","Query OK"),
+                ("res_ruben = table.update().set('name','ruben dario').\\\n","..."),
+                ("set('age',42).where('name=\"ruben\"').execute()\n","..."),
+                ("\n","mysql-py>"),
+                ("res_jack = table.update().set('name','jackie chan').set('age',18).\\\n","..."),
+                ("where('name=\"jack\"').execute()\n","..."),
+                ("\n","mysql-py>"),
                 ("table.select()\n","ruben dario"),
                 ("table.select()\n","jackie chan")
                 ]
@@ -4691,6 +4685,24 @@ class XShell_TestCases(unittest.TestCase):
           results="PASS"
       else:
           results="FAIL"
+      self.assertEqual(results, 'PASS')
+
+  def test_MYS_320(self):
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+      x_cmds = [('\\connect_node {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
+                ("\\sql\n","mysql-sql>"),
+                ("use sakila;\n","mysql-sql>"),
+                ("DROP PROCEDURE IF EXISTS get_actors;\n","mysql-sql>"),
+                ("delimiter #\n","mysql-sql>"),
+                ("create procedure get_actors()\n",""),
+                ("begin\n",""),
+                ("select first_name from sakila.actor;\n",""),
+                ("end#\n","mysql-sql>"),
+                #("\n","mysql-sql>"),
+                ("delimiter ;\n","mysql-sql>"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
 
