@@ -4489,6 +4489,109 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+  def test_4_7_01_1(self):
+      '''[4.7.001]   Retrieve with Table Output Format with classic session: CLASSIC SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                       '-h' + LOCALHOST.host,'-P' + LOCALHOST.port, '--session-type=classic','--schema=sakila', '--sqlc','--table']
+
+      x_cmds = [("select actor_id from actor limit 5;\n","| actor_id |"),
+                ]
+
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_4_7_03_1(self):
+      '''[4.7.003] Retrieve with JSON raw Format with classic session: CLASSIC SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                       '-h' + LOCALHOST.host,'-P' + LOCALHOST.port, '--session-type=classic','--schema=sakila', '--sqlc', '--json=raw']
+
+      x_cmds = [("select actor_id from actor limit 5;\n","\"rows\":[{\"actor_id\":58}"),
+                ]
+
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_4_7_03_2(self):
+      '''[4.7.003] Retrieve with JSON raw Format with classic session: CLASSIC SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                       '-h' + LOCALHOST.host,'-P' + LOCALHOST.port, '--session-type=classic','--schema=sakila', '--sqlc', '--json=pretty']
+
+      x_cmds = [("select actor_id from actor limit 5;\n","\"rows\": [\r\n"),
+                ]
+
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_4_7_04_1(self):
+      '''[4.7.001]   Retrieve with Table Output Format with classic session: CLASSIC SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                       '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=node','--schema=sakila', '--sql','--table']
+
+      x_cmds = [("select actor_id from actor limit 5;\n","| actor_id |"),
+                ]
+
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_4_7_06_1(self):
+      '''[4.7.003] Retrieve with JSON raw Format with classic session: CLASSIC SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                       '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=node','--schema=sakila', '--sql', '--json=raw']
+
+      x_cmds = [("select actor_id from actor limit 5;\n","\"rows\":[{\"actor_id\":58}"),
+                ]
+
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_4_7_06_2(self):
+      '''[4.7.003] Retrieve with JSON raw Format with classic session: CLASSIC SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                       '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=node','--schema=sakila', '--sql', '--json=pretty']
+
+      x_cmds = [("select actor_id from actor limit 5;\n","\"rows\": [\r\n"),
+                ]
+
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+
+  def test_4_7_07_1(self):
+      '''[4.7.003] Retrieve with JSON raw Format with classic session: CLASSIC SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+
+      x_cmds = [("var mysqlx=require('mysqlx').mysqlx;\n","mysql-js>"),
+                ("var mySession = mysqlx.getSession('"+LOCALHOST.user+"@"+LOCALHOST.host+"', '"+LOCALHOST.password+"');\n","mysql-js>"),
+                ("var result = mySession.world_x.countryinfo.find().execute();\n","mysql-js>"),
+                ("var record = result.fetchOne();\n","mysql-js>"),
+                ("print(record);\n","\"government\": {\r\n"),
+                ]
+
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_4_7_07_2(self):
+      '''[4.7.003] Retrieve with JSON raw Format with classic session: CLASSIC SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+
+      x_cmds = [("var mysqlx=require('mysqlx').mysqlx;\n","mysql-js>"),
+                ("var mySession = mysqlx.getSession('"+LOCALHOST.user+"@"+LOCALHOST.host+"', '"+LOCALHOST.password+"');\n","mysql-js>"),
+                ("var result = mySession.world_x.countryinfo.find().execute();\n","mysql-js>"),
+                ("var record = result.fetchAll();\n","mysql-js>"),
+                ("print(record);\n","IndepYear\":"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+
 
   def test_CHLOG_1_0_2_5_1A(self):
       '''[CHLOG 1.0.2.5_1_1] Session type shortcut [--classic] :  --sql/--js/--py '''
@@ -4613,8 +4716,8 @@ class XShell_TestCases(unittest.TestCase):
       init_command = [MYSQL_SHELL, '--interactive=full', '--js']
       x_cmds = [("var mysqlx=require('mysqlx').mysqlx;\n", "mysql-js>"),
                 ("var session=mysqlx.getNodeSession({host: '"+LOCALHOST.host+"', dbUser: '"+LOCALHOST.user+"', port: '"+LOCALHOST.xprotocol_port+
-                 "', dbPassword: '"+LOCALHOST.password+"', ssl_ca: '"+ Exec_files_location +
-                 "ca.pem', ssl_cert: '"+ Exec_files_location+"client-cert.pem', ssl_key: '"+Exec_files_location+"client-key.pem'});\n","mysql-js>" ),
+                 "', dbPassword: '"+LOCALHOST.password+"', ssl-ca: '"+ Exec_files_location + "ca.pem', ssl-cert: '"+
+                 Exec_files_location+"client-cert.pem', ssl-key: '"+Exec_files_location+"client-key.pem'});\n","mysql-js>" ),
                 ("session;\n", "NodeSession:"),
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
