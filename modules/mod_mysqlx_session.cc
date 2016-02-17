@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2015, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2016, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -857,11 +857,7 @@ boost::shared_ptr<BaseSession> XSession::_get_shared_this() const
 
 boost::shared_ptr<shcore::Object_bridge> XSession::create(const shcore::Argument_list &args)
 {
-  boost::shared_ptr<XSession> session(new XSession());
-
-  session->connect(args);
-
-  return boost::static_pointer_cast<Object_bridge>(session);
+  return connect_session(args, mysh::Application);
 }
 
 NodeSession::NodeSession() : BaseSession()
@@ -881,11 +877,7 @@ boost::shared_ptr<BaseSession> NodeSession::_get_shared_this() const
 
 boost::shared_ptr<shcore::Object_bridge> NodeSession::create(const shcore::Argument_list &args)
 {
-  boost::shared_ptr<NodeSession> session(new NodeSession());
-
-  session->connect(args);
-
-  return boost::static_pointer_cast<Object_bridge>(session);
+  return connect_session(args, mysh::Node);
 }
 
 #ifdef DOXYGEN

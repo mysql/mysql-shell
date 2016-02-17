@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2016, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -239,11 +239,10 @@ namespace shcore
         PyObject *obj;
         if (PyArg_ParseTuple(value, "sO", &msg, &obj))
         {
-          
           if (strncmp(msg, "unexpected character after line continuation character", strlen("unexpected character after line continuation character")) == 0)
           {
             // NOTE: These two characters will come if explicit line continuation is specified
-            if (code[code.length()-2] == '\\' && code[code.length()-1] == '\n')
+            if (code[code.length() - 2] == '\\' && code[code.length() - 1] == '\n')
               r_state = Input_continued_single;
           }
           else if (strncmp(msg, "EOF while scanning triple-quoted string literal", strlen("EOF while scanning triple-quoted string literal")) == 0)
@@ -260,10 +259,10 @@ namespace shcore
 
       return Value();
     }
-    
+
     // If no error was found butthe line has the implicit line continuation
     // we need to indicate so
-    else if (code[code.length()-2] == '\\' && code[code.length()-1] == '\n')
+    else if (code[code.length() - 2] == '\\' && code[code.length() - 1] == '\n')
       r_state = Input_continued_single;
 
     if (!_captured_eval_result.empty())
@@ -280,11 +279,6 @@ namespace shcore
     PyObject *py_result;
 
     py_result = PyDict_GetItemString(_globals, value.c_str());
-    if (!py_result)
-    {
-      // TODO: log error
-      PyErr_Print();
-    }
 
     return _types.pyobj_to_shcore_value(py_result);
   }
@@ -300,10 +294,7 @@ namespace shcore
 
     py_global = PyDict_GetItemString(_globals, global_name.c_str());
     if (!py_global)
-    {
-      // TODO: log error
-      PyErr_Print();
-    }
+      throw shcore::Exception::logic_error("Python_context: Error setting global item on " + global_name + ".");
     else
       PyModule_AddObject(py_global, item_name.c_str(), _types.shcore_value_to_pyobj(value));
   }
@@ -819,4 +810,4 @@ namespace shcore
 
     _mysql_module = module;
   }
-}
+  }

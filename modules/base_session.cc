@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2016 Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -24,6 +24,7 @@
 #include "shellcore/lang_base.h"
 #include "shellcore/common.h"
 #include "shellcore/server_registry.h"
+#include "shellcore/shell_notifications.h"
 
 #include "shellcore/proxy_object.h"
 
@@ -70,6 +71,8 @@ boost::shared_ptr<mysh::ShellBaseSession> mysh::connect_session(const shcore::Ar
   }
 
   ret_val->connect(args);
+
+  ShellNotifications::get()->notify("SN_SESSION_CONNECTED", ret_val);
 
   return ret_val;
 }

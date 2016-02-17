@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2015, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2016, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -438,11 +438,7 @@ shcore::Value ClassicSession::set_current_schema(const shcore::Argument_list &ar
 
 boost::shared_ptr<shcore::Object_bridge> ClassicSession::create(const shcore::Argument_list &args)
 {
-  boost::shared_ptr<ClassicSession> session(new ClassicSession());
-
-  session->connect(args);
-
-  return session;
+  return connect_session(args, mysh::Classic);
 }
 
 #ifdef DOXYGEN
@@ -631,8 +627,6 @@ shcore::Value ClassicSession::rollback(const shcore::Argument_list &args)
 
   return Value::wrap(new ClassicResult(boost::shared_ptr<Result>(_conn->run_sql("rollback"))));
 }
-
-
 
 shcore::Value ClassicSession::get_status(const shcore::Argument_list &args)
 {

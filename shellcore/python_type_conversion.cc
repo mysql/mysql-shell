@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2016, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -50,7 +50,7 @@ Value Python_type_bridger::pyobj_to_shcore_value(PyObject *py) const
   bool check_err = false;
   Value retval;
 
-  if (py == Py_None)
+  if (!py || py == Py_None)
     return Value::Null();
   else if (py == Py_False)
     return Value(false);
