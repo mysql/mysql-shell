@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2016 Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -111,7 +111,7 @@ void print_row_result(const shcore::Value& value)
   shcore::Argument_list args;
   shcore::Value raw_record;
 
-  while (raw_record = result->fetch_one(args))
+  while ((raw_record = result->fetch_one(args)))
   {
     boost::shared_ptr<mysh::Row> record = boost::static_pointer_cast<mysh::Row>(raw_record.as_object());
 
@@ -143,7 +143,7 @@ void print_doc_result(const shcore::Value& value)
 
   shcore::Value document;
   shcore::Argument_list args;
-  while (document = result->fetch_one(args))
+  while ((document = result->fetch_one(args)))
   {
     std::cout << document.json(true) << std::endl;
   }

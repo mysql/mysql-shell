@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2014, 2015, Oracle and/or its affiliates. All rights reserved.
+* Copyright (c) 2014, 2016, Oracle and/or its affiliates. All rights reserved.
 *
 * This program is free software; you can redistribute it and/or
 * modify it under the terms of the GNU General Public License as
@@ -407,7 +407,7 @@ namespace shcore
         if (uri_port != 0)
           (*ret_val)["port"] = Value(uri_port);
 
-        if (!uri_password.empty())
+        if (pwd_found)
           (*ret_val)["dbPassword"] = Value(uri_password);
 
         if (!uri_database.empty())

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2015, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2016, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -25,7 +25,7 @@
 
 #include "shellcore/types.h"
 #include "shellcore/types_cpp.h"
-#include "utils_time.h"
+#include "utils/utils_time.h"
 #include <boost/enable_shared_from_this.hpp>
 
 #if WIN32
@@ -157,15 +157,15 @@ namespace mysh
       Result *run_sql(const std::string &sql);
       bool next_data_set(Result *target, bool first_result = false);
       std::string uri() { return _uri; }
-      
+
       // Utility functions to retriev session status
-      unsigned long get_thread_id() {_prev_result.reset(); return mysql_thread_id(_mysql);}
-      unsigned long get_protocol_info() {_prev_result.reset(); return mysql_get_proto_info(_mysql);}
-      const char* get_connection_info() {_prev_result.reset(); return mysql_get_host_info(_mysql);}
-      const char* get_server_info() {_prev_result.reset(); return mysql_get_server_info(_mysql);}
-      const char* get_stats() {_prev_result.reset(); return mysql_stat(_mysql);}
-      const char* get_ssl_cipher() {_prev_result.reset(); return mysql_get_ssl_cipher(_mysql);}
-      
+      unsigned long get_thread_id() { _prev_result.reset(); return mysql_thread_id(_mysql); }
+      unsigned long get_protocol_info() { _prev_result.reset(); return mysql_get_proto_info(_mysql); }
+      const char* get_connection_info() { _prev_result.reset(); return mysql_get_host_info(_mysql); }
+      const char* get_server_info() { _prev_result.reset(); return mysql_get_server_info(_mysql); }
+      const char* get_stats() { _prev_result.reset(); return mysql_stat(_mysql); }
+      const char* get_ssl_cipher() { _prev_result.reset(); return mysql_get_ssl_cipher(_mysql); }
+
     private:
       void setup_ssl(const std::string &ssl_ca, const std::string &ssl_cert, const std::string &ssl_key);
       std::string _uri;
