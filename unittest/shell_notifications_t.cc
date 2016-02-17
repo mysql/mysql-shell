@@ -72,7 +72,11 @@ namespace shcore
 
       virtual void handle_notification(const std::string &name, shcore::Object_bridge_ref sender, shcore::Value::Map_type_ref data)
       {
-        _notifications.push({ name, sender, data });
+        Notification n;
+        n.name = name;
+        n.sender = sender;
+        n.data = data;
+        _notifications.push(n);
       }
     };
 
