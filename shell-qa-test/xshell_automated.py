@@ -2571,8 +2571,7 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
-  #FAILING........
-  @unittest.skip("does not recognize  multiline on python session")
+
   def test_4_3_25_1(self):
       '''[4.3.025]:1 PY Update database using multiline mode: CLASSIC SESSION'''
       results = ''
@@ -2580,20 +2579,23 @@ class XShell_TestCases(unittest.TestCase):
       x_cmds = [("import mysql\n","mysql-py>"),
                 ("session=mysql.getClassicSession(\'{0}:{1}@{2}:{3}\')\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                                       LOCALHOST.host, LOCALHOST.port), "mysql-py>"),
-                ("session.runSql(\"drop database if exists automation_test;\")\n","Query OK"),
-                ("\\\n","..."),
-                ("session.runSql(\'create database automation_test;\')\n","..."),
-                ("session.runSql(\'ALTER SCHEMA automation_test  DEFAULT COLLATE utf8_general_ci;\')\n","..."),
+                ("session.\\\n","..."),
+                ("runSql('drop database if exists automation_test;')\n","..."),
+                ("\n","Query OK"),
+                ("session.\\\n","..."),
+                ("runSql('create database automation_test;')\n","..."),
+                ("\n","Query OK"),
+                ("session.\\\n","..."),
+                ("runSql('ALTER SCHEMA automation_test  DEFAULT COLLATE utf8_general_ci;')\n","..."),
                 ("\n","mysql-py>"),
                 ("session.runSql(\"SELECT DEFAULT_COLLATION_NAME FROM information_schema.SCHEMATA WHERE SCHEMA_NAME = "
-                 "\'automation_test\' ;\")\n","utf8_general_ci")
+                 "'automation_test' ;\")\n","utf8_general_ci")
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
 
-  #FAILING........
-  @unittest.skip("does not recognize  multiline on python session")
+
   def test_4_3_25_2(self):
       '''[4.3.025]:2 PY Update database using multiline mode: NODE SESSION'''
       results = ''
@@ -2601,13 +2603,15 @@ class XShell_TestCases(unittest.TestCase):
       x_cmds = [("import mysqlx\n","mysql-py>"),
                 ("session=mysqlx.getNodeSession(\'{0}:{1}@{2}\')\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                                 LOCALHOST.host),"mysql-py>"),
-                ("session.sql(\"drop database if exists automation_test;\").execute()\n","Query OK"),
-                ("\\\n","..."),
-                ("session.sql(\'create database automation_test;\').execute()\n","..."),
-                ("session.sql(\'ALTER SCHEMA automation_test  DEFAULT COLLATE utf8_general_ci;\').execute()\n","..."),
+                ("session.sql('drop database if exists automation_test;').execute()\n","Query OK"),
+                ("session.\\\n","..."),
+                ("sql('create database automation_test;').execute()\n","..."),
+                ("\n","Query OK"),
+                ("session.\\\n","..."),
+                ("sql(\'ALTER SCHEMA automation_test  DEFAULT COLLATE utf8_general_ci;\').execute()\n","..."),
                 ("\n","mysql-py>"),
                 ("session.sql(\"SELECT DEFAULT_COLLATION_NAME FROM information_schema.SCHEMATA WHERE SCHEMA_NAME = "
-                 "\'automation_test\' ;\").execute()\n","utf8_general_ci")
+                 "'automation_test';\").execute()\n","utf8_general_ci")
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
@@ -2686,8 +2690,6 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
-  #FAILING........
-  @unittest.skip("does not recognize  ... multiline on python session")
   def test_4_3_28_1(self):
       '''[4.3.028]:1 PY Update alter view using multiline mode: CLASSIC SESSION'''
       results = ''
@@ -2697,32 +2699,35 @@ class XShell_TestCases(unittest.TestCase):
                                                                                       LOCALHOST.host, LOCALHOST.port), "mysql-py>"),
                 ("session.runSql('use sakila;')\n","Query OK"),
                 ("session.runSql('drop view if exists js_view;')\n","Query OK"),
-                ("session.runSql(\"create view js_view as select first_name from actor where first_name like '%a%';\")\n","Query OK"),
-                ("session.runSql(\"alter view js_view as select * from actor where first_name like '%a%';\")\n","Query OK"),
-                ("session.runSql('SELECT * from \\\n","..."),
-                ("js_view;')\n","..."),
-                ("\n","mysql-py>")
+                ("session.\\\n","..."),
+                ("runSql(\"create view js_view as select first_name from actor where first_name like '%a%';\")\n","..."),
+                ("\n","Query OK"),
+                ("session.\\\n","..."),
+                ("runSql(\"alter view js_view as select * from actor where first_name like '%a%';\")\n","..."),
+                ("\n","Query OK"),
+                ("session.runSql('SELECT * from js_view');\n","rows"),
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
 
-  #FAILING........
-  @unittest.skip("does not recognize  ... multiline on python session")
+
   def test_4_3_28_2(self):
       '''[4.3.028]:2 PY Update alter view using multiline mode: NODE SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full','--py']
       x_cmds = [("import mysqlx\n","mysql-py>"),
-                ("session=mysqlx.getNodeSession(\'{0}:{1}@{2}\')\n".format(LOCALHOST.user, LOCALHOST.password,
+                ("session=mysqlx.getNodeSession('{0}:{1}@{2}')\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                                 LOCALHOST.host),"mysql-py>"),
-                ("session.sql(\'use sakila;\').execute()\n","Query OK"),
-                ("session.sql(\'drop view if exists js_view;\').execute()\n","Query OK"),
-                ("\\\n","..."),
-                ("session.sql(\"create view js_view as select first_name from actor where first_name like \'%a%\';\").execute()\n","..."),
-                ("session.sql(\"alter view js_view as select * from actor where first_name like \'%a%\';\").execute()\n","..."),
+                ("session.sql('use sakila;').execute()\n","Query OK"),
+                ("session.sql('drop view if exists js_view;').execute()\n","Query OK"),
+                ("session.\\\n","..."),
+                ("sql(\"create view js_view as select first_name from actor where first_name like '%a%';\").execute()\n","..."),
+                ("\n","Query OK"),
+                ("session.\\\n","..."),
+                ("sql(\"alter view js_view as select * from actor where first_name like '%a%';\").execute()\n","..."),
                 ("\n","mysql-py>"),
-                ("session.sql(\"SELECT * from js_view;\").execute()\n","actor_id")
+                ("session.sql('SELECT * from js_view;').execute()\n","rows")
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
@@ -2807,7 +2812,7 @@ class XShell_TestCases(unittest.TestCase):
       self.assertEqual(results, 'PASS')
 
   #FAILING........
-  @unittest.skip("does not recognize  ... multiline on python session")
+  @unittest.skip("issues MYS320 , delimiter in js is not recongnized")
   def test_4_3_31_1(self):
       '''[4.3.031]:1 PY Update alter stored procedure using multiline mode: CLASSIC SESSION'''
       results = ''
@@ -2830,7 +2835,7 @@ class XShell_TestCases(unittest.TestCase):
 
 
   #FAILING........
-  @unittest.skip("does not recognize  ... multiline on python session")
+  @unittest.skip("issues MYS320 , delimiter in js is not recongnized")
   def test_4_3_31_2(self):
       '''[4.3.031]:2 PY Update alter stored procedure using multiline mode: NODE SESSION'''
       results = ''
@@ -2911,22 +2916,21 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
-  #FAILING........
-  @unittest.skip("does not recognize  ... multiline on python session")
+
   def test_4_4_1_2(self):
       '''[4.4.001]:2 SQL Delete table using multiline mode: NODE SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7', '-u' + LOCALHOST.user,
                       '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port,
                       '--session-type=node','--sql']
-      x_cmds = [("use sakila;\n","mysql-sql>"),
-                ("DROP TABLE IF EXISTS example_automation;\n","mysql-sql>"),
-                ("CREATE TABLE example_automation ( id INT, data VARCHAR(100) );\n","mysql-sql>"),
-                ("show tables;\n","example_automation"),
-                ("\\\n","..."),
-                ("DROP TABLE IF EXISTS example_automation;\n\n","..."),
-                ("\n","mysql-sql>"),
-                ("select table_name from information_schema.tables where table_name = \"example_automation\";\n","doesn't exist"),
+      x_cmds = [("use sakila;\n","Query OK"),
+                ("DROP TABLE IF EXISTS example_automation;\n","Query OK"),
+                ("CREATE TABLE example_automation \n","..."),
+                ("( id INT, data VARCHAR(100) );\n","Query OK"),
+                ("show tables like 'example_automation';\n","1 row in set"),
+                ("DROP TABLE IF EXISTS \n","..."),
+                ("example_automation;\n","Query OK"),
+                ("select table_name from information_schema.tables where table_name = 'example_automation';\n","Empty set"),
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
