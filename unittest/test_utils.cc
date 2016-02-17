@@ -19,6 +19,7 @@
 #include "shellcore/shell_core_options.h"
 #include "src/shell_resultset_dumper.h"
 #include "src/interactive_shell.h"
+#include "utils/utils_general.h"
 
 using namespace shcore;
 
@@ -78,14 +79,21 @@ void Shell_core_test_wrapper::SetUp()
   const char *uri = getenv("MYSQL_URI");
   if (uri)
   {
-    _uri.assign(uri);
-    _mysql_uri = "mysql://";
-    _mysql_uri.append(uri);
-  }
+    // Creates connection data and recreates URI, this will fix URI if no password is defined
+    // So the UT don't prompt for password ever
+    shcore::Value::Map_type_ref data = shcore::get_connection_data(uri);
 
-  const char *pwd = getenv("MYSQL_PWD");
-  if (pwd)
-    _pwd.assign(pwd);
+    const char *pwd = getenv("MYSQL_PWD");
+    if (pwd)
+    {
+      _pwd.assign(pwd);
+      (*data)["dbPassword"] = shcore::Value(_pwd);
+    }
+
+    _uri = shcore::build_connection_string(data, true);
+
+    _mysql_uri = _uri;
+  }
 
   const char *port = getenv("MYSQL_PORT");
   if (port)
