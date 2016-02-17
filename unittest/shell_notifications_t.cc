@@ -63,13 +63,6 @@ namespace shcore
         _interactive_shell->process_line("shell.js.module_paths[shell.js.module_paths.length] = '" + js_modules_path + "'; ");
       }
 
-      void connect()
-      {
-        std::cout << _mysql_uri;
-
-        _interactive_shell->process_line("\\connect_classic " + _mysql_uri);
-      }
-
       virtual void handle_notification(const std::string &name, shcore::Object_bridge_ref sender, shcore::Value::Map_type_ref data)
       {
         Notification n;
@@ -80,7 +73,7 @@ namespace shcore
       }
     };
 
-    TEST_F(Shell_notifications_test, test_SN_SESSION_CONNECTED_global_commands)
+    TEST_F(Shell_notifications_test, test_sn_session_connected_global_commands)
     {
       Notification n;
 
@@ -125,7 +118,7 @@ namespace shcore
       ASSERT_EQ(0, _notifications.size());
     }
 
-    TEST_F(Shell_notifications_test, test_SN_SESSION_CONNECTED_javascript)
+    TEST_F(Shell_notifications_test, test_sn_session_connected_javascript)
     {
       Notification n;
 
@@ -172,7 +165,7 @@ namespace shcore
       ASSERT_EQ(0, _notifications.size());
     }
 
-    TEST_F(Shell_notifications_test, test_SN_SESSION_CONNECTED_python)
+    TEST_F(Shell_notifications_test, test_sn_session_connected_python)
     {
       Notification n;
 

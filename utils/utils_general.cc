@@ -62,9 +62,13 @@ namespace shcore
       if (data->has_key("dbUser"))
       uri.append((*data)["dbUser"].as_string());
 
-      // If the password will not be prompted and is defined appends both :password
-      if (with_password && data->has_key("dbPassword"))
-        uri.append(":").append((*data)["dbPassword"].as_string());
+      // Appends password definition, either if it is empty or not
+      if (with_password)
+      {
+        uri.append(":");
+        if (data->has_key("dbPassword"))
+          uri.append((*data)["dbPassword"].as_string());
+      }
 
       uri.append("@");
 
