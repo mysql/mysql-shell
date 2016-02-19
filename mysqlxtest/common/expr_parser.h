@@ -98,6 +98,48 @@ namespace mysqlx
     std::vector<Token>::const_iterator end() const { return _tokenizer.end(); }
 
   protected:
+
+    struct operator_list
+    {
+      std::set<Token::TokenType> mul_div_expr_types;
+      std::set<Token::TokenType> add_sub_expr_types;
+      std::set<Token::TokenType> shift_expr_types;
+      std::set<Token::TokenType> bit_expr_types;
+      std::set<Token::TokenType> comp_expr_types;
+      std::set<Token::TokenType> and_expr_types;
+      std::set<Token::TokenType> or_expr_types;
+
+      operator_list()
+      {
+        mul_div_expr_types.insert(Token::MUL);
+        mul_div_expr_types.insert(Token::DIV);
+        mul_div_expr_types.insert(Token::MOD);
+
+        add_sub_expr_types.insert(Token::PLUS);
+        add_sub_expr_types.insert(Token::MINUS);
+
+        shift_expr_types.insert(Token::LSHIFT);
+        shift_expr_types.insert(Token::RSHIFT);
+
+        bit_expr_types.insert(Token::BITAND);
+        bit_expr_types.insert(Token::BITOR);
+        bit_expr_types.insert(Token::BITXOR);
+
+        comp_expr_types.insert(Token::GE);
+        comp_expr_types.insert(Token::GT);
+        comp_expr_types.insert(Token::LE);
+        comp_expr_types.insert(Token::LT);
+        comp_expr_types.insert(Token::EQ);
+        comp_expr_types.insert(Token::NE);
+
+        and_expr_types.insert(Token::AND);
+
+        or_expr_types.insert(Token::OR);
+      }
+    };
+
+    static operator_list _ops;
+
     // json
     void json_key_value(Mysqlx::Expr::Object* obj);
     Mysqlx::Expr::Expr* json_doc();

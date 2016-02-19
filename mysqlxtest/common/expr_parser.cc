@@ -18,6 +18,7 @@
  */
 
 #include "expr_parser.h"
+#include "tokenizer.h"
 
 #include <stdexcept>
 #include <memory>
@@ -38,6 +39,7 @@
 using namespace mysqlx;
 
 
+struct Expr_parser::operator_list Expr_parser::_ops;
 Mysqlx::Datatypes::Scalar* Expr_builder::build_null_scalar()
 {
   Mysqlx::Datatypes::Scalar *sc = new Mysqlx::Datatypes::Scalar;
@@ -858,11 +860,7 @@ Mysqlx::Expr::Expr* Expr_parser::parse_left_assoc_binary_op_expr(std::set<Token:
  */
 Mysqlx::Expr::Expr* Expr_parser::mul_div_expr()
 {
-  std::set<Token::TokenType> types;
-  types.insert(Token::MUL);
-  types.insert(Token::DIV);
-  types.insert(Token::MOD);
-  return parse_left_assoc_binary_op_expr(types, &Expr_parser::atomic_expr);
+  return parse_left_assoc_binary_op_expr(_ops.mul_div_expr_types, &Expr_parser::atomic_expr);
 }
 
 /*
@@ -870,10 +868,7 @@ Mysqlx::Expr::Expr* Expr_parser::mul_div_expr()
  */
 Mysqlx::Expr::Expr* Expr_parser::add_sub_expr()
 {
-  std::set<Token::TokenType> types;
-  types.insert(Token::PLUS);
-  types.insert(Token::MINUS);
-  return parse_left_assoc_binary_op_expr(types, &Expr_parser::mul_div_expr);
+  return parse_left_assoc_binary_op_expr(_ops.add_sub_expr_types, &Expr_parser::mul_div_expr);
 }
 
 /*
@@ -881,10 +876,7 @@ Mysqlx::Expr::Expr* Expr_parser::add_sub_expr()
  */
 Mysqlx::Expr::Expr* Expr_parser::shift_expr()
 {
-  std::set<Token::TokenType> types;
-  types.insert(Token::LSHIFT);
-  types.insert(Token::RSHIFT);
-  return parse_left_assoc_binary_op_expr(types, &Expr_parser::add_sub_expr);
+  return parse_left_assoc_binary_op_expr(_ops.shift_expr_types, &Expr_parser::add_sub_expr);
 }
 
 /*
@@ -892,11 +884,7 @@ Mysqlx::Expr::Expr* Expr_parser::shift_expr()
  */
 Mysqlx::Expr::Expr* Expr_parser::bit_expr()
 {
-  std::set<Token::TokenType> types;
-  types.insert(Token::BITAND);
-  types.insert(Token::BITOR);
-  types.insert(Token::BITXOR);
-  return parse_left_assoc_binary_op_expr(types, &Expr_parser::shift_expr);
+  return parse_left_assoc_binary_op_expr(_ops.bit_expr_types, &Expr_parser::shift_expr);
 }
 
 /*
@@ -904,14 +892,7 @@ Mysqlx::Expr::Expr* Expr_parser::bit_expr()
  */
 Mysqlx::Expr::Expr* Expr_parser::comp_expr()
 {
-  std::set<Token::TokenType> types;
-  types.insert(Token::GE);
-  types.insert(Token::GT);
-  types.insert(Token::LE);
-  types.insert(Token::LT);
-  types.insert(Token::EQ);
-  types.insert(Token::NE);
-  return parse_left_assoc_binary_op_expr(types, &Expr_parser::bit_expr);
+  return parse_left_assoc_binary_op_expr(_ops.comp_expr_types, &Expr_parser::bit_expr);
 }
 
 /*
@@ -1044,9 +1025,7 @@ Mysqlx::Expr::Expr* Expr_parser::ilri_expr()
  */
 Mysqlx::Expr::Expr* Expr_parser::and_expr()
 {
-  std::set<Token::TokenType> types;
-  types.insert(Token::AND);
-  return parse_left_assoc_binary_op_expr(types, &Expr_parser::ilri_expr);
+  return parse_left_assoc_binary_op_expr(_ops.and_expr_types, &Expr_parser::ilri_expr);
 }
 
 /*
@@ -1054,9 +1033,7 @@ Mysqlx::Expr::Expr* Expr_parser::and_expr()
  */
 Mysqlx::Expr::Expr* Expr_parser::or_expr()
 {
-  std::set<Token::TokenType> types;
-  types.insert(Token::OR);
-  return parse_left_assoc_binary_op_expr(types, &Expr_parser::and_expr);
+  return parse_left_assoc_binary_op_expr(_ops.or_expr_types, &Expr_parser::and_expr);
 }
 
 /*

@@ -139,9 +139,9 @@ namespace mysqlx
     };
 
     Token(Token::TokenType type, const std::string& text, int cur_pos);
-    // TODO: it is better if this one returns a pointer (std::string*)
-    const std::string& get_text() const;
-    TokenType get_type() const;
+
+    const std::string& get_text() const { return _text; }
+    TokenType get_type() const { return _type; }
     int get_pos() const { return _pos; }
   private:
     TokenType _type;
@@ -165,7 +165,7 @@ namespace mysqlx
     const Token& peek_token();
     void unget_token();
     void inc_pos_token();
-    int get_token_pos();
+    int get_token_pos() { return _pos; }
     const Token& consume_any_token();
     void assert_tok_position();
     bool tokens_available();
@@ -192,7 +192,6 @@ namespace mysqlx
 
     struct Maps
     {
-    public:
       typedef std::map<std::string, Token::TokenType, Cmp_icase> reserved_words_t;
       reserved_words_t reserved_words;
       std::set<Token::TokenType> interval_units;
