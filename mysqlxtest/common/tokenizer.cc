@@ -26,6 +26,11 @@
 #include <cstring>
 #include <cstdlib>
 
+#ifndef WIN32
+#  include <strings.h>
+#  define _stricmp strcasecmp
+#endif
+
 // Avoid warnings from protobuf and rapidjson
 #if defined __GNUC__
 #pragma GCC diagnostic push
@@ -155,16 +160,6 @@ Tokenizer::Maps::Maps()
 
 Token::Token(Token::TokenType type, const std::string& text, int cur_pos) : _type(type), _text(text), _pos(cur_pos)
 {
-}
-
-const std::string& Token::get_text() const
-{
-  return _text;
-}
-
-Token::TokenType Token::get_type() const
-{
-  return _type;
 }
 
 struct Tokenizer::Maps map;
@@ -391,6 +386,11 @@ void Tokenizer::get_tokens()
           ++i;
           _tokens.push_back(Token(Token::LE, std::string("<="), i));
         }
+        else if (next_char_is(i, '>'))
+        {
+          ++i;
+          _tokens.push_back(Token(Token::NE, std::string("!="), i));
+        }
         else
         {
           _tokens.push_back(Token(Token::LT, std::string("<"), i));
@@ -524,11 +524,6 @@ void Tokenizer::get_tokens()
 void Tokenizer::inc_pos_token()
 {
   ++_pos;
-}
-
-int Tokenizer::get_token_pos()
-{
-  return _pos;
 }
 
 const Token& Tokenizer::consume_any_token()
