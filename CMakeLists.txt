@@ -50,6 +50,7 @@ INCLUDE(libutils)
 INCLUDE(msvc)
 INCLUDE(ssl)
 INCLUDE(readline)
+INCLUDE(compiler)
 
 INCLUDE(CheckIncludeFiles)
 INCLUDE(CheckFunctionExists)

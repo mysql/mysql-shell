@@ -29,7 +29,7 @@ namespace ngs
   class Wrapper_yassl_error : public boost::system::error_category
   {
   public:
-    const char* name() const;
+    const char* name() const BOOST_SYSTEM_NOEXCEPT;
     std::string message(int value) const;
   };
 
