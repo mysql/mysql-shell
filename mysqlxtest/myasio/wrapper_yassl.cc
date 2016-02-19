@@ -29,7 +29,7 @@ namespace ngs
 {
 
 
-  const char* Wrapper_yassl_error::name() const
+  const char* Wrapper_yassl_error::name() const BOOST_SYSTEM_NOEXCEPT
   {
     return "asio.yassl";
   }
