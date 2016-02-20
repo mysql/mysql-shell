@@ -388,7 +388,7 @@ public:
           active_connection->send(Mysqlx::Session::Close());
           active_connection->set_closed();
           int msgid;
-          std::auto_ptr<mysqlx::Message> msg(active_connection->recv_raw(msgid));
+          std::unique_ptr<mysqlx::Message> msg(active_connection->recv_raw(msgid));
           std::cout << message_to_text(*msg);
           std::string text = static_cast<Mysqlx::Ok*>(msg.get())->msg();
           if (Mysqlx::ServerMessages::OK != msgid || (text != "bye!" && text != "tchau!"))
@@ -399,7 +399,7 @@ public:
           {
             try
             {
-              std::auto_ptr<mysqlx::Message> msg(active_connection->recv_raw(msgid));
+              std::unique_ptr<mysqlx::Message> msg(active_connection->recv_raw(msgid));
 
               std::cout << message_to_text(*msg);
 
@@ -941,7 +941,7 @@ private:
   Result cmd_recvtype(Execution_context &context, const std::string &args)
   {
     int msgid;
-    std::auto_ptr<mysqlx::Message> msg(context.connection()->recv_raw(msgid));
+    std::unique_ptr<mysqlx::Message> msg(context.connection()->recv_raw(msgid));
     if (msg.get())
     {
       if (msg->GetDescriptor()->full_name() != args)
@@ -967,7 +967,7 @@ private:
   Result cmd_recverror(Execution_context &context, const std::string &args)
   {
     int msgid;
-    std::auto_ptr<mysqlx::Message> msg(context.connection()->recv_raw(msgid));
+    std::unique_ptr<mysqlx::Message> msg(context.connection()->recv_raw(msgid));
     if (msg.get())
     {
       bool failed = false;
@@ -1089,7 +1089,7 @@ private:
 
     while (!stop)
     {
-      std::auto_ptr<mysqlx::Message> msg(context.connection()->recv_raw(msgid));
+      std::unique_ptr<mysqlx::Message> msg(context.connection()->recv_raw(msgid));
       if (msg.get())
       {
         if (msg->GetDescriptor()->full_name() == argl[0] ||
@@ -1348,7 +1348,7 @@ private:
     {
       while (true)
       {
-        std::auto_ptr<mysqlx::Message> msg(context.connection()->recv_raw(msgid));
+        std::unique_ptr<mysqlx::Message> msg(context.connection()->recv_raw(msgid));
 
         //TODO:
         // For now this command will be used in places where random messages
@@ -1395,7 +1395,7 @@ private:
     {
       int msgid;
 
-      std::auto_ptr<mysqlx::Message> msg(context.connection()->recv_raw_with_deadline(msgid, 2 * expected_delta_time));
+      std::unique_ptr<mysqlx::Message> msg(context.connection()->recv_raw_with_deadline(msgid, 2 * expected_delta_time));
 
       if (msg.get())
       {
@@ -1440,7 +1440,7 @@ private:
     int msgid;
     try
     {
-      std::auto_ptr<mysqlx::Message> msg(context.connection()->recv_raw(msgid));
+      std::unique_ptr<mysqlx::Message> msg(context.connection()->recv_raw(msgid));
 
       if (msg.get())
           std::cout << unreplace_variables(message_to_text(*msg), true) << "\n";
@@ -2304,7 +2304,7 @@ public:
         std::string processed_buffer = m_buffer;
         replace_variables(processed_buffer);
 
-        std::auto_ptr<mysqlx::Message> msg(text_to_client_message(m_full_name, processed_buffer, msg_id));
+        std::unique_ptr<mysqlx::Message> msg(text_to_client_message(m_full_name, processed_buffer, msg_id));
 
         m_full_name.clear();
         if (!msg.get())

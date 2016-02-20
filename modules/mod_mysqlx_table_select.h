@@ -68,7 +68,7 @@ namespace mysh
       RowResult execute(ExecuteOptions options);
 #endif
     private:
-      std::auto_ptr< ::mysqlx::SelectStatement> _select_statement;
+      std::unique_ptr< ::mysqlx::SelectStatement> _select_statement;
     };
   };
 };

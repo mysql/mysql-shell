@@ -191,7 +191,7 @@ shcore::Value CollectionFind::fields(const shcore::Argument_list &args)
     {
       boost::shared_ptr<mysqlx::Expression> expression = boost::static_pointer_cast<mysqlx::Expression>(args[0].as_object());
       ::mysqlx::Expr_parser parser(expression->get_data());
-      std::auto_ptr<Mysqlx::Expr::Expr> expr_obj(parser.expr());
+      std::unique_ptr<Mysqlx::Expr::Expr> expr_obj(parser.expr());
 
       // Parsing is done just to validate it is a valid JSON expression
       if (expr_obj->type() == Mysqlx::Expr::Expr_Type_OBJECT)

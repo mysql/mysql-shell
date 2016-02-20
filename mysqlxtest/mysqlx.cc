@@ -302,7 +302,7 @@ void Connection::fetch_capabilities()
 {
   send(Mysqlx::Connection::CapabilitiesGet());
   int mid;
-  std::auto_ptr<Message> message(recv_raw(mid));
+  std::unique_ptr<Message> message(recv_raw(mid));
   if (mid != Mysqlx::ServerMessages::CONN_CAPABILITIES)
     throw Error(CR_COMMANDS_OUT_OF_SYNC, "Unexpected response received from server");
   m_capabilities = *static_cast<Mysqlx::Connection::Capabilities*>(message.get());
@@ -339,7 +339,7 @@ void Connection::close()
     int mid;
     try
     {
-      std::auto_ptr<Message> message(recv_raw(mid));
+      std::unique_ptr<Message> message(recv_raw(mid));
       if (mid != Mysqlx::ServerMessages::OK)
         throw Error(CR_COMMANDS_OUT_OF_SYNC, "Unexpected message received in response to Session.Close");
 
@@ -362,7 +362,7 @@ void Connection::perform_close()
   }
 
   int mid;
-  std::auto_ptr<Message> message(recv_raw(mid));
+  std::unique_ptr<Message> message(recv_raw(mid));
   std::stringstream s;
 
   s << "Unexpected message received with id:" << mid << " while waiting for disconnection";
@@ -485,7 +485,7 @@ void Connection::setup_capability(const std::string &name, const bool value)
     m_last_result->buffer();
 
   int mid;
-  std::auto_ptr<Message> msg(recv_raw(mid));
+  std::unique_ptr<Message> msg(recv_raw(mid));
 
   if (Mysqlx::ServerMessages::ERROR == mid)
     throw_server_error(*(Mysqlx::Error*)msg.get());
@@ -513,7 +513,7 @@ void Connection::authenticate_mysql41(const std::string &user, const std::string
 
   {
     int mid;
-    std::auto_ptr<Message> message(recv_raw(mid));
+    std::unique_ptr<Message> message(recv_raw(mid));
     switch (mid)
     {
       case Mysqlx::ServerMessages::SESS_AUTHENTICATE_CONTINUE:
@@ -565,7 +565,7 @@ void Connection::authenticate_mysql41(const std::string &user, const std::string
   while (!done)
   {
     int mid;
-    std::auto_ptr<Message> message(recv_raw(mid));
+    std::unique_ptr<Message> message(recv_raw(mid));
     switch (mid)
     {
       case Mysqlx::ServerMessages::SESS_AUTHENTICATE_OK:
@@ -606,7 +606,7 @@ void Connection::authenticate_plain(const std::string &user, const std::string &
   while (!done)
   {
     int mid;
-    std::auto_ptr<Message> message(recv_raw(mid));
+    std::unique_ptr<Message> message(recv_raw(mid));
     switch (mid)
     {
       case Mysqlx::ServerMessages::SESS_AUTHENTICATE_OK:
@@ -1285,7 +1285,7 @@ void Result::read_metadata()
     if (msgid == Mysqlx::ServerMessages::RESULTSET_COLUMN_META_DATA)
     {
       msgid = -1;
-      std::auto_ptr<Mysqlx::Resultset::ColumnMetaData> column_data(static_cast<Mysqlx::Resultset::ColumnMetaData*>(pop_message()));
+      std::unique_ptr<Mysqlx::Resultset::ColumnMetaData> column_data(static_cast<Mysqlx::Resultset::ColumnMetaData*>(pop_message()));
 
       m_columns->push_back(unwrap_column_metadata(*column_data));
     }
@@ -1331,7 +1331,7 @@ void Result::read_stmt_ok()
   if (Mysqlx::ServerMessages::SQL_STMT_EXECUTE_OK != get_message_id())
     throw std::runtime_error("Unexpected message id");
 
-  std::auto_ptr<mysqlx::Message> msg(pop_message());
+  std::unique_ptr<mysqlx::Message> msg(pop_message());
 }
 
 bool Result::rewind()

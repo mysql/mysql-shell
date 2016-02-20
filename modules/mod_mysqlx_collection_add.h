@@ -61,7 +61,7 @@ namespace mysh
 
       std::string _last_document_id;
 
-      std::auto_ptr< ::mysqlx::AddStatement> _add_statement;
+      std::unique_ptr< ::mysqlx::AddStatement> _add_statement;
     };
   }
 }

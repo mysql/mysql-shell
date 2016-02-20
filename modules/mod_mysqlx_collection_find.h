@@ -71,7 +71,7 @@ namespace mysh
 #endif
 
     private:
-      std::auto_ptr< ::mysqlx::FindStatement> _find_statement;
+      std::unique_ptr< ::mysqlx::FindStatement> _find_statement;
     };
   };
 };

@@ -125,7 +125,7 @@ namespace shcore
   private:
     static int cnt;
     bool _local_initialization;
-    static std::auto_ptr<Python_init_singleton> _instance;
+    static std::unique_ptr<Python_init_singleton> _instance;
     
     Python_init_singleton(const Python_init_singleton& py) { }
 
