@@ -75,7 +75,7 @@ namespace mysh
       Result execute(ExecuteOptions opt);
 #endif
     private:
-      std::auto_ptr< ::mysqlx::ModifyStatement> _modify_statement;
+      std::unique_ptr< ::mysqlx::ModifyStatement> _modify_statement;
     };
   };
 };

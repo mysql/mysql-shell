@@ -167,7 +167,7 @@ shcore::Value CollectionAdd::add(const shcore::Argument_list &args)
             {
               boost::shared_ptr<mysqlx::Expression> expression = boost::static_pointer_cast<mysqlx::Expression>(element.as_object());
               ::mysqlx::Expr_parser parser(expression->get_data());
-              std::auto_ptr<Mysqlx::Expr::Expr> expr_obj(parser.expr());
+              std::unique_ptr<Mysqlx::Expr::Expr> expr_obj(parser.expr());
 
               // Parsing is done here to identify if a new ID must be generated for the object
               if (expr_obj->type() == Mysqlx::Expr::Expr_Type_OBJECT)

@@ -57,7 +57,7 @@ namespace mysh
       Result execute(ExecuteOptions options);
 #endif
     private:
-      std::auto_ptr< ::mysqlx::DeleteStatement> _delete_statement;
+      std::unique_ptr< ::mysqlx::DeleteStatement> _delete_statement;
     };
   };
 };

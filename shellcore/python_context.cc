@@ -38,7 +38,7 @@ static const char *SHELLTypeSignature = "SHELLCONTEXT";
 
 namespace shcore
 {
-  std::auto_ptr<Python_init_singleton> Python_init_singleton::_instance(NULL);
+  std::unique_ptr<Python_init_singleton> Python_init_singleton::_instance((Python_init_singleton *)NULL);
   int Python_init_singleton::cnt = 0;
 
   std::string Python_init_singleton::get_new_scope_name()

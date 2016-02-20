@@ -53,7 +53,7 @@ namespace mysh
       Result execute(ExecuteOptions options);
 #endif
     private:
-      std::auto_ptr< ::mysqlx::InsertStatement> _insert_statement;
+      std::unique_ptr< ::mysqlx::InsertStatement> _insert_statement;
     };
   };
 };

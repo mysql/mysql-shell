@@ -57,7 +57,7 @@ namespace shcore
       Expr_parser p(input, document_mode);
       print_tokens(p, out_tokens);
       ASSERT_TRUE(token_list == out_tokens.str());
-      std::auto_ptr<Mysqlx::Expr::Expr> e(p.expr());
+      std::unique_ptr<Mysqlx::Expr::Expr> e(p.expr());
       std::string s = Expr_unparser::expr_to_string(*(e.get()));
       if (expr != NULL)
         *expr = e.release();
