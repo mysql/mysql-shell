@@ -154,7 +154,7 @@ shcore::Value CollectionCreateIndex::field(const shcore::Argument_list &args)
     // Validates the data type
     args.bool_at(2);
 
-    _create_index_args.push_back(Value("." + path));
+    _create_index_args.push_back(Value("$." + path));
     _create_index_args.push_back(data);
     _create_index_args.push_back(args[2]);
   }

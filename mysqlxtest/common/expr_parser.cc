@@ -58,10 +58,6 @@ Mysqlx::Datatypes::Scalar* Expr_builder::build_double_scalar(double d)
 Mysqlx::Datatypes::Scalar* Expr_builder::build_int_scalar(google::protobuf::int64 i)
 {
   Mysqlx::Datatypes::Scalar *sc = new Mysqlx::Datatypes::Scalar;
-  sc->set_type(Mysqlx::Datatypes::Scalar::V_SINT);
-  sc->set_v_signed_int(i);
-  /*
-  Commented for now, as there is an issue in xplugin with this.
   if (i < 0)
   {
     sc->set_type(Mysqlx::Datatypes::Scalar::V_SINT);
@@ -71,7 +67,7 @@ Mysqlx::Datatypes::Scalar* Expr_builder::build_int_scalar(google::protobuf::int6
   {
     sc->set_type(Mysqlx::Datatypes::Scalar::V_UINT);
     sc->set_v_unsigned_int((google::protobuf::uint64)i);
-  }*/
+  }
   return sc;
 }
 
