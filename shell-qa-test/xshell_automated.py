@@ -8,9 +8,6 @@ import unittest
 import json
 import xmlrunner
 
-
-
-
 def timeout(timeout):
     def deco(func):
         @functools.wraps(func)
@@ -3670,7 +3667,7 @@ class XShell_TestCases(unittest.TestCase):
 
 
   #FAILING........
-  @unittest.skip("issues MYS320 , delimiter in js is not recongnized")
+  #@unittest.skip("issues MYS320 , delimiter in js is not recongnized")
   def test_4_4_20_1(self):
       '''[4.4.020]:1 JS Delete stored procedure using STDIN batch code: CLASSIC SESSION'''
       results = ''
@@ -3686,8 +3683,7 @@ class XShell_TestCases(unittest.TestCase):
       x_cmds = [('\\connect_node {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
                 ("\\sql\n","mysql-sql>"),
                 ("use sakila;\n","mysql-sql>"),
-                ("SELECT table_name FROM information_schema.views WHERE information_schema.views.table_name LIKE 'js_view';\n","Empty set"),
-
+                ("select name from mysql.proc where name like 'my_procedure';\n","Empty set")
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
@@ -3700,7 +3696,22 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--js', '-u' + LOCALHOST.user,
                       '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port,
-                      '--schema=sakila','--session-type=node','< '  + Exec_files_location + 'DeleteProcedure_NodeMode.js']
+                      '--schema=sakila','--session-type=node']
+      p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=open(Exec_files_location + 'DeleteProcedure_NodeMode.js'))
+      stdin,stdout = p.communicate()
+      if stdout.find(bytearray("ERROR","ascii"),0,len(stdin))> -1:
+        self.assertEqual(stdin, 'PASS')
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+      x_cmds = [('\\connect_node {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
+                ("\\sql\n","mysql-sql>"),
+                ("use sakila;\n","mysql-sql>"),
+                ("select name from mysql.proc where name like 'my_procedure';\n","Empty set")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+
       x_cmds = [(";", "mysql-js>")
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
@@ -4069,6 +4080,51 @@ class XShell_TestCases(unittest.TestCase):
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
+
+  def test_4_4_29_3(self):
+      '''[4.4.029]:2 PY Delete view using STDIN batch code: NODE SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--py', '-u' + LOCALHOST.user,
+                      '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port,
+                      '--schema=sakila','--session-type=node','--file='+Exec_files_location + 'DeleteView_NodeMode.py']
+      p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+      stdin,stdout = p.communicate()
+      if stdout.find(bytearray("ERROR","ascii"),0,len(stdin))> -1:
+        self.assertEqual(stdin, 'PASS')
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+      x_cmds = [('\\connect_node {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
+                ("\\sql\n","mysql-sql>"),
+                ("use sakila;\n","mysql-sql>"),
+                ("SELECT table_name FROM information_schema.views WHERE information_schema.views.table_name LIKE 'py_view';\n","Empty set"),
+
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  # def test_big_data(self):
+  #     '''[4.4.029]:2 PY Delete view using STDIN batch code: NODE SESSION'''
+  #     results = ''
+  #     init_command = [MYSQL_SHELL, '--interactive=full', '--py', '-u' + LOCALHOST.user,
+  #                     '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.port,
+  #                     '--schema=sakila','--session-type=classic','--file='+Exec_files_location + 'BigCreate_Classic.py']
+  #     p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+  #     stdin,stdout = p.communicate()
+  #     if stdout.find(bytearray("ERROR","ascii"),0,len(stdin))> -1:
+  #       self.assertEqual(stdin, 'PASS')
+  #     results = ''
+  #     init_command = [MYSQL_SHELL, '--interactive=full']
+  #     x_cmds = [('\\connect_node {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
+  #               ("\\sql\n","mysql-sql>"),
+  #               ("use world_x;\n","mysql-sql>"),
+  #               #("CREATE TABLE big_data_classic_py ( id INT NOT NULL AUTO_INCREMENT, stringCol VARCHAR(45) NOT NULL, datetimeCol DATETIME NOT NULL, blobCol BLOB NOT NULL, geometryCol GEOMETRY NOT NULL, PRIMARY KEY (id));"),
+  #               ("show tables;\n","mysql-sql>"),
+  #               ("select count(*) from world_x.big_data_classic_py;;\n","rows in set"),
+  #
+  #               ]
+  #     results = exec_xshell_commands(init_command, x_cmds)
+  #     self.assertEqual(results, 'PASS')
+
 
   #FAILING........
   @unittest.skip("issues MYS320 , delimiter in py is not recongnized")
@@ -4595,6 +4651,108 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+
+  #FAILING........
+  @unittest.skip("eho not being succeed in code script")
+  def test_4_9_01_01(self):
+      '''[3.1.009]:3 Check that STATUS command [ \status, \s ] works: node session \status'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--session-type=classic','--schema=sakila',
+                      '--sqlc','--uri', '{0}:{1}@{2}:{3}'.format(REMOTEHOST.user, REMOTEHOST.password, REMOTEHOST.host,REMOTEHOST.port) ]
+      cmd_echo = subprocess.Popen(['echo','select * from sakila.actor limit 3;'], stdout=subprocess.PIPE, shell=True)
+      #p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin =os.system('echo select * from sakila.actor limit 3;'))
+      p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin =cmd_echo.stdout )
+      #p.stdin.flush()
+      cmd_echo.stdout.close()
+      stdin,stdout = p.communicate()
+      if stdout.find(bytearray("ERROR","ascii"),0,len(stdin))> -1:
+        self.assertEqual(stdin, 'PASS')
+      if stdin.find(bytearray("Creating a Node Session to","ascii"),0,len(stdin))> -1 and stdin.find(bytearray("mysql-sql>","ascii"),0,len(stdin))> -1:
+        results = 'PASS'
+      self.assertEqual(results, 'PASS')
+
+
+  def test_4_9_02_1(self):
+      '''[4.9.002] Create a Stored Session'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+
+      x_cmds = [("\\rmconn classic_session\n","mysql-js>"),
+                ("shell.storedSessions.add('classic_session', '"+LOCALHOST.user+":"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+":sakila');\n","mysql-js>"),
+                (" shell.storedSessions;\n","\"classic_session\": {\r\n        \"dbPassword\": \"**********\", \r\n        \"dbUser\": \"root\", \r\n        \"host\": \"localhost\"\r\n    }"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+
+  #FAILING........
+  @unittest.skip("store session does not store port: ISSUE MYS-403")
+  def test_4_9_02_2(self):
+      '''[4.9.002] Create a Stored Session: store port'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+
+      x_cmds = [("\\rmconn classic_session\n","mysql-js>"),
+                ("shell.storedSessions.add('classic_session', '"+LOCALHOST.user+":"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+":sakila');\n","mysql-js>"),
+                ("shell.storedSessions;\n","\"classic_session\": {\r\n        \"dbPassword\": \"**********\", \r\n        \"dbUser\": \"root\", \r\n        \"host\": \"localhost\"\r\n    }"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  #FAILING........
+  @unittest.skip("store session does not store schema: ISSUE MYS-403")
+  def test_4_9_02_3(self):
+      '''[4.9.002] Create a Stored Session: schema store'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+
+      x_cmds = [("\\rmconn classic_session\n","mysql-js>"),
+                ("shell.storedSessions.add('classic_session', '"+LOCALHOST.user+":"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+":sakila');\n","mysql-js>"),
+                ("shell.storedSessions;\n","\"classic_session\": {\r\n        \"dbPassword\": \"**********\", \r\n        \"dbUser\": \"root\", \r\n        \"host\": \"localhost\"\r\n    }"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+
+  def test_4_9_02_4(self):
+      '''[4.9.002] Create a Stored Session: schema store'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+
+      x_cmds = [("\\rmconn classic_session\n","mysql-js>"),
+                ("shell.storedSessions.add('classic_session', '"+LOCALHOST.user+":"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+":sakila');\n","mysql-js>"),
+                ("\\connect $classic_session\n","Creating an X Session to root@localhost:33060"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+
+  def test_4_9_02_4(self):
+      '''[4.9.002] Create a Stored Session: '''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+
+      x_cmds = [("\\rmconn classic_session\n","mysql-js>"),
+                ("\\addconn classic_session '"+LOCALHOST.user+":"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+":sakila');\n","mysql-js>"),
+                ("shell.storedSessions\n","\"classic_session\": {\r\n        \"dbPassword\":"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+
+  #FAILING........
+  @unittest.skip("connecting to store session without $, shows the password: ISSUE MYS-402")
+  def test_MYS_402(self):
+      '''[4.9.002] Create a Stored Session: schema store'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+
+      x_cmds = [("\\rmconn classic_session\n","mysql-js>"),
+                ("shell.storedSessions.add('classic_session', '"+LOCALHOST.user+":"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+":sakila');\n","mysql-js>"),
+                ("\\connect classic_session\n","Creating an X Session to root@localhost:33060"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
 
 
   def test_CHLOG_1_0_2_5_1A(self):
