@@ -4654,7 +4654,7 @@ class XShell_TestCases(unittest.TestCase):
 
   #FAILING........
   @unittest.skip("eho not being succeed in code script")
-  def test_4_9_01_01(self):
+  def test_4_10_01_01(self):
       '''[3.1.009]:3 Check that STATUS command [ \status, \s ] works: node session \status'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--session-type=classic','--schema=sakila',
@@ -4672,7 +4672,7 @@ class XShell_TestCases(unittest.TestCase):
       self.assertEqual(results, 'PASS')
 
 
-  def test_4_9_02_1(self):
+  def test_4_9_01_1(self):
       '''[4.9.002] Create a Stored Session'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
@@ -4687,7 +4687,7 @@ class XShell_TestCases(unittest.TestCase):
 
   #FAILING........
   @unittest.skip("store session does not store port: ISSUE MYS-403")
-  def test_4_9_02_2(self):
+  def test_4_9_01_2(self):
       '''[4.9.002] Create a Stored Session: store port'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
@@ -4701,7 +4701,7 @@ class XShell_TestCases(unittest.TestCase):
 
   #FAILING........
   @unittest.skip("store session does not store schema: ISSUE MYS-403")
-  def test_4_9_02_3(self):
+  def test_4_9_01_3(self):
       '''[4.9.002] Create a Stored Session: schema store'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
@@ -4714,7 +4714,7 @@ class XShell_TestCases(unittest.TestCase):
       self.assertEqual(results, 'PASS')
 
 
-  def test_4_9_02_4(self):
+  def test_4_9_01_4(self):
       '''[4.9.002] Create a Stored Session: schema store'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
@@ -4727,14 +4727,112 @@ class XShell_TestCases(unittest.TestCase):
       self.assertEqual(results, 'PASS')
 
 
-  def test_4_9_02_4(self):
+  def test_4_9_01_5(self):
       '''[4.9.002] Create a Stored Session: '''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
 
       x_cmds = [("\\rmconn classic_session\n","mysql-js>"),
-                ("\\addconn classic_session '"+LOCALHOST.user+":"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+":sakila');\n","mysql-js>"),
-                ("shell.storedSessions\n","\"classic_session\": {\r\n        \"dbPassword\":"),
+                ("\\addconn classic_session "+LOCALHOST.user+":"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+":sakila\n","mysql-js>"),
+                ("shell.storedSessions;\n","\"classic_session\": {\r\n"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+
+  def test_4_9_02_1(self):
+      '''[4.9.002] Update a Stored Session: '''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+
+      x_cmds = [("\\rmconn classic_session\n","mysql-js>"),
+                ("\\addconn classic_session "+LOCALHOST.user+":"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+":sakila\n","mysql-js>"),
+                ("shell.storedSessions;\n","\"classic_session\": {\r\n"),
+                ("\\chconn classic_session dummy:"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+":sakila\n","mysql-js>"),
+                ("shell.storedSessions;\n","\"dbUser\": \"dummy\", \r\n"),
+
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_4_9_02_2(self):
+      '''[4.9.002] Update a Stored Session: '''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+
+      x_cmds = [("\\rmconn classic_session\n","mysql-js>"),
+                ("\\addconn classic_session "+LOCALHOST.user+":"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+":sakila\n","mysql-js>"),
+                ("shell.storedSessions;\n","\"classic_session\": {\r\n"),
+                ("shell.storedSessions.update(\"classic_session\", \"dummy:"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+":sakila\")\n","mysql-js>"),
+                ("shell.storedSessions;\n","\"dbUser\": \"dummy\", \r\n"),
+
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+
+  def test_4_9_03_1(self):
+      '''[4.9.002] remove a Stored Session: '''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+
+      x_cmds = [("\\rmconn classic_session\n","mysql-js>"),
+                ("\\addconn classic_session "+LOCALHOST.user+":"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+":sakila\n","mysql-js>"),
+                ("shell.storedSessions;\n","\"classic_session\": {\r\n"),
+                ("\\rmconn classic_session\n","mysql-js>"),
+                ("shell.storedSessions.update(\"classic_session\", \"dummy:"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+":sakila\")\n","does not exist"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+
+  def test_4_9_03_2(self):
+      '''[4.9.002] remove a Stored Session: '''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+
+      x_cmds = [("\\rmconn classic_session\n","mysql-js>"),
+                ("\\addconn classic_session "+LOCALHOST.user+":"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+":sakila\n","mysql-js>"),
+                ("shell.storedSessions;\n","\"classic_session\": {\r\n"),
+                ("shell.storedSessions.remove(\"classic_session\");","true"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+
+  def test_4_9_04_1(self):
+      '''[4.9.002] remove a Stored Session: '''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+
+      x_cmds = [("\\rmconn classic_session\n","mysql-js>"),
+                ("\\addconn classic_session "+LOCALHOST.user+":"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+":sakila\n","mysql-js>"),
+                ("shell.storedSessions;\n","\"classic_session\": {\r\n"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+
+  def test_4_9_04_2(self):
+      '''[4.9.002] remove a Stored Session: '''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+
+      x_cmds = [("\\rmconn classic_session\n","mysql-js>"),
+                ("\\addconn classic_session "+LOCALHOST.user+":"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+":sakila\n","mysql-js>"),
+                ("\\lsc\n","\"classic_session\": {\r\n"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_4_9_04_3(self):
+      '''[4.9.002] remove a Stored Session: '''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+
+      x_cmds = [("\\rmconn classic_session\n","mysql-js>"),
+                ("\\addconn classic_session "+LOCALHOST.user+":"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+":sakila\n","mysql-js>"),
+                ("\\lsconn\n","\"classic_session\": {\r\n"),
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
