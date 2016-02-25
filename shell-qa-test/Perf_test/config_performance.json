@@ -1,0 +1,19 @@
+{
+"general": {
+        "xshell_path" : "D:\\mysqlx-shell-1.0.2.6\\bin\\mysqlx.exe",
+		"mysql_path" : "D:\\mysql-advanced-5.7.12-winx64\\bin\\mysql.exe",
+        "aux_files_path" : "D:\\XShell_Performance\\"
+    },
+"mysql_host":{
+        "user" : "root",
+        "password" : "guidev!",
+        "host" : "localhost",
+        "port" : 5712
+    },
+"mysqlx_host": {
+        "user" : "root",
+        "password" : "guidev!",
+        "host" : "localhost",
+        "xprotocol_port" : 33060
+    }
+}
