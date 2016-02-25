@@ -1,6 +1,7 @@
 import subprocess
 import time
 import sys
+import datetime
 import os
 import threading
 import functools
@@ -4837,6 +4838,409 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+
+  # Javascript based with Big Data
+  # Be aware to update the BigCreate_Classic, BigCreate_Node and BigCreate_Coll_Node files,
+  # in order to create the required number of rows, based on the "jsRowsNum_Test" value
+  # JS Create Non collections
+  def test_4_10_00_01(self):
+     '''JS Exec Batch with huge data in Classic mode, Create and Insert:  --file= BigCreate_Classic.js'''
+     init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                     '-h' + LOCALHOST.host, '-P' + LOCALHOST.port, '--session-type=classic', '--file=' + Exec_files_location + 'BigCreate_Classic.js']
+     p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE )
+     stdin,stdout = p.communicate()
+     if stdout.find(bytearray("Error","ascii"),0,len(stdin))> -1:
+       self.assertEqual(stdin, 'PASS', str(stdout))
+
+  def test_4_10_00_02(self):
+     '''JS Exec Batch with huge data in Node mode, Create and Insert:  --file= BigCreate_Node.js'''
+     init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                     '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--session-type=node', '--file=' + Exec_files_location + 'BigCreate_Node.js']
+     p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE )
+     stdin,stdout = p.communicate()
+     if stdout.find(bytearray("Error","ascii"),0,len(stdin))> -1:
+       self.assertEqual(stdin, 'PASS', str(stdout))
+
+  # JS Create Collections
+  def test_4_10_00_03(self):
+     '''JS Exec Batch with huge data in Node mode, Create and Add:  --file= BigCreate_Coll_Node.js'''
+     init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                     '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--session-type=node', '--file=' + Exec_files_location + 'BigCreate_Coll_Node.js']
+     p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE )
+     stdin,stdout = p.communicate()
+     if stdout.find(bytearray("Error","ascii"),0,len(stdin))> -1:
+       self.assertEqual(stdin, 'PASS', str(stdout))
+
+  # JS Read Non collections
+  def test_4_10_00_04(self):
+     '''JS Exec a select with huge limit in Classic mode, Read'''
+     jsRowsNum_Test = 1000
+     results = ''
+     init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                   '-h' + LOCALHOST.host, '-P' + LOCALHOST.port, '--session-type=classic', '--js']
+     x_cmds = [("session.runSql(\"use world_x;\");\n","Query OK"),
+               ("session.runSql(\"SELECT * FROM world_x.big_data_classic_js where geometryCol is not null limit " + str(jsRowsNum_Test) + ";\")\n", str(jsRowsNum_Test) + " rows in set")
+              ]
+     results = exec_xshell_commands(init_command, x_cmds)
+     self.assertEqual(results, 'PASS')
+
+  def test_4_10_00_05(self):
+     '''JS Exec a select with huge limit in Node mode, Read'''
+     jsRowsNum_Test = 1000
+     results = ''
+     init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                   '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--session-type=node', '--js']
+     x_cmds = [("var Table = session.getSchema(\'world_x\').getTable(\'big_data_node_js\')\n", ""),
+               ("Table.select().where(\"stringCol like :likeFilter\").limit(" + str(jsRowsNum_Test) + ").bind(\"likeFilter\",\'Node\%\').execute()\n", str(jsRowsNum_Test) + " rows in set")
+              ]
+     results = exec_xshell_commands(init_command, x_cmds)
+     self.assertEqual(results, 'PASS')
+
+  # JS Read Collections
+  def test_4_10_00_06(self):
+     '''JS Exec a select with huge limit in Node mode for collection, Read'''
+     jsRowsNum_Test = 1000
+     results = ''
+     init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                   '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--session-type=node', '--js']
+     x_cmds = [("var myColl = session.getSchema(\'world_x\').getCollection(\"big_coll_node_js\");\n", ""),
+               ("myColl.find(\"Name = \'Mexico\'\").fields([\'_id\', \'Name\','geography.Region\',\'geography.Continent\']).limit(" + str(jsRowsNum_Test) + ")\n", str(jsRowsNum_Test) + " documents in set")
+              ]
+     results = exec_xshell_commands(init_command, x_cmds)
+     self.assertEqual(results, 'PASS')
+
+  # JS Update Non collections
+  def test_4_10_00_07(self):
+     '''JS Exec an update clause to a huge number of rows in Classic mode, Update'''
+     jsRowsNum_Test = 1000
+     results = ''
+     init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                   '-h' + LOCALHOST.host, '-P' + LOCALHOST.port, '--session-type=classic', '--js']
+     x_cmds = [("session.runSql(\"use world_x;\");\n", "Query OK"),
+               ("session.runSql(\"update big_data_classic_js set datetimeCol = now() where stringCol like \'Classic\%\' and blobCol is not null limit " + str(jsRowsNum_Test) + " ;\");\n", "Query OK, " + str(jsRowsNum_Test) + " rows affected")
+              ]
+     results = exec_xshell_commands(init_command, x_cmds)
+     self.assertEqual(results, 'PASS')
+
+  def test_4_10_00_08(self):
+     '''JS Exec an update clause to huge number of rows in Node mode, Update'''
+     jsRowsNum_Test = 1000
+     results = ''
+     CurrentTime = datetime.datetime.now()
+     init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                   '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--session-type=node', '--js']
+     x_cmds = [("var Table = session.getSchema('world_x').getTable('big_data_node_js')\n", ""),
+               ("Table.update().set(\'datetimeCol\',\'" + str(CurrentTime) + "\').where(\"stringCol like :likeFilter\").limit(" + str(jsRowsNum_Test) + ").bind(\"likeFilter\",\'Node\%\').execute()\n", "Query OK, " + str(jsRowsNum_Test) + " items affected")
+              ]
+     results = exec_xshell_commands(init_command, x_cmds)
+     self.assertEqual(results, 'PASS')
+
+  # JS Update Collections
+  def test_4_10_00_09(self):
+      '''JS Exec an update clause to huge number of document rows in Node mode, using Set '''
+      jsRowsNum_Test = 1000
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                     '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=node', '--js']
+      x_cmds = [("session.sql(\"use world_x;\");\n", "Query OK"),
+                ("var myColl = session.getSchema(\'world_x\').getCollection(\"big_coll_node_js\");\n", ""),
+                ("myColl.modify(\"Name = :country\").set(\'Soccer_World_Championships\',\'0\').limit(" + str(jsRowsNum_Test) + ").bind(\'country\',\'Mexico\').execute();\n","Query OK, " + str(jsRowsNum_Test) + " items affected")
+               ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_4_10_00_10(self):
+      '''JS Exec an update clause to huge number of document rows in Node mode, using Unset '''
+      jsRowsNum_Test = 1000
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                     '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=node', '--js']
+      x_cmds = [("session.sql(\"use world_x;\");\n", "Query OK"),
+                ("var myColl = session.getSchema(\'world_x\').getCollection(\"big_coll_node_js\");\n", ""),
+                ("myColl.modify(\"Name = :country\").unset(\'Soccer_World_Championships\').limit(" + str(jsRowsNum_Test) + ").bind(\'country\',\'Mexico\').execute();\n","Query OK, " + str(jsRowsNum_Test) + " items affected")
+               ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_4_10_00_11(self):
+      '''JS Exec an update clause to huge number of document rows in Node mode, using Merge '''
+      jsRowsNum_Test = 1000
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                     '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=node', '--js']
+
+      x_cmds = [("session.sql(\"use world_x;\");\n", "Query OK"),
+                ("var myColl = session.getSchema(\'world_x\').getCollection(\"big_coll_node_js\");\n", ""),
+                ("myColl.modify().merge({Language: \'Spanish\', Extra_Info:[\'Extra info TBD\']}).limit(" + str(jsRowsNum_Test) + ").execute();\n", "Query OK, " + str(jsRowsNum_Test) + " items affected"),
+               ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_4_10_00_12(self):
+      '''JS Exec an update clause to huge number of document rows in Node mode, using Array '''
+      jsRowsNum_Test = 1000
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                     '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=node', '--js']
+
+      x_cmds = [("session.sql(\"use world_x;\");\n", "Query OK"),
+                ("var myColl = session.getSchema(\'world_x\').getCollection(\"big_coll_node_js\");\n", ""),
+                ("myColl.modify().arrayAppend(\'Language\', \'Spanish_mexico\').arrayAppend(\'Extra_Info\', \'Extra info TBD 2\').limit(" + str(jsRowsNum_Test) + ").execute();\n", "Query OK, " + str(jsRowsNum_Test) + " items affected"),
+               ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  # JS Delete from Non collections
+  def test_4_10_00_13(self):
+      '''JS Exec a delete clause to huge number of rows in Classic mode, Delete '''
+      jsRowsNum_Test = 1000
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                     '-h' + LOCALHOST.host,'-P' + LOCALHOST.port, '--session-type=classic', '--js']
+      x_cmds = [("session.runSql(\"use world_x;\");\n", "Query OK"),
+                ("session.runSql(\"DELETE FROM big_data_classic_js where stringCol like \'Classic\%\' limit " + str(jsRowsNum_Test) + ";\");\n", "Query OK, " + str(jsRowsNum_Test) + " rows affected"),
+                ("session.runSql(\"DROP TABLE big_data_classic_js;\");\n", "Query OK, 0 rows affected"),
+               ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_4_10_00_14(self):
+     '''JS Exec a delete clause to huge number of rows in Node mode, Delete'''
+     jsRowsNum_Test = 1000
+     init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                     '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--session-type=node', '--js']
+     x_cmds = [("var Table = session.getSchema(\'world_x\').getTable(\'big_data_node_js\')\n", ""),
+               ("Table.delete().where(\'stringCol like :likeFilter\').limit(" + str(jsRowsNum_Test) + ").bind(\'likeFilter\', \'Node\%\').execute();\n", "Query OK, " + str(jsRowsNum_Test) + " items affected"),
+               ("session.dropTable(\'world_x\', \'big_data_node_js\');\n", "Query OK"),
+              ]
+     results = exec_xshell_commands(init_command, x_cmds)
+     self.assertEqual(results, 'PASS')
+
+  # JS Delete from Collections
+  def test_4_10_00_15(self):
+      '''JS Exec a delete clause to huge number of document rows in Node mode, Delete'''
+      jsRowsNum_Test = 1000
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                     '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=node', '--js']
+      x_cmds = [("var myColl = session.getSchema(\'world_x\').getCollection(\"big_coll_node_js\");\n", ""),
+                ("myColl.remove(\'Name=:country\').limit(" + str(jsRowsNum_Test) + ").bind(\'country\',\'Mexico\').execute();\n", "Query OK, " + str(jsRowsNum_Test) + " items affected"),
+                ("session.dropCollection(\'world_x\', \'big_coll_node_js\');\n", "Query OK"),
+               ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  # Python based with Big Data
+  # Be aware to update the BigCreate_Classic, BigCreate_Node and BigCreate_Coll_Node files,
+  # in order to create the required number of rows, based on the "pyRowsNum_Test" value
+  # Py Create Non collections
+  @unittest.skip("To avoid execution 4_10_01_01, because of issue https://jira.oraclecorp.com/jira/browse/MYS-398")
+  def test_4_10_01_01(self):
+     '''PY Exec Batch with huge data in Classic mode, Create and Insert:  --file= BigCreate_Classic.py'''
+     init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                     '-h' + LOCALHOST.host, '-P' + LOCALHOST.port, '--session-type=classic', '--py', '--file=' + Exec_files_location + 'BigCreate_Classic.py']
+     p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE )
+     stdin,stdout = p.communicate()
+     if stdout.find(bytearray("Error","ascii"),0,len(stdin))> -1:
+       self.assertEqual(stdin, 'PASS', str(stdout))
+
+  @unittest.skip("To avoid execution 4_10_01_02, because of issue https://jira.oraclecorp.com/jira/browse/MYS-398")
+  def test_4_10_01_02(self):
+     '''PY Exec Batch with huge data in Node mode, Create and Insert:  --file= BigCreate_Node.py'''
+     init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                     '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--session-type=node', '--py', '--file=' + Exec_files_location + 'BigCreate_Node.py']
+     p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE )
+     stdin,stdout = p.communicate()
+     if stdout.find(bytearray("Error","ascii"),0,len(stdin))> -1:
+       self.assertEqual(stdin, 'PASS', str(stdout))
+
+  # Py Create Collections
+  @unittest.skip("To avoid execution 4_10_01_03, because of issue https://jira.oraclecorp.com/jira/browse/MYS-398")
+  def test_4_10_01_03(self):
+     '''PY Exec Batch with huge data in Node mode, Create and Add:  --file= BigCreate_Coll_Node.py'''
+     init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                     '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--session-type=node', '--py', '--file=' + Exec_files_location + 'BigCreate_Coll_Node.py']
+     p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE )
+     stdin,stdout = p.communicate()
+     if stdout.find(bytearray("Error","ascii"),0,len(stdin))> -1:
+       self.assertEqual(stdin, 'PASS', str(stdout))
+
+  # Py Read Non collections
+  @unittest.skip("To avoid execution 4_10_01_04, because of issue https://jira.oraclecorp.com/jira/browse/MYS-398")
+  def test_4_10_01_04(self):
+     '''PY Exec a select with huge limit in Classic mode, Read'''
+     pyRowsNum_Test = 1000
+     results = ''
+     init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                   '-h' + LOCALHOST.host, '-P' + LOCALHOST.port, '--session-type=classic', '--py']
+     x_cmds = [("session.runSql(\"use world_x;\");\n","Query OK"),
+               ("session.runSql(\"SELECT * FROM world_x.big_data_classic_py where geometryCol is not null limit " + str(pyRowsNum_Test) + ";\")\n", str(pyRowsNum_Test) + " rows in set")
+              ]
+     results = exec_xshell_commands(init_command, x_cmds)
+     self.assertEqual(results, 'PASS')
+
+  @unittest.skip("To avoid execution 4_10_01_05, because of issue https://jira.oraclecorp.com/jira/browse/MYS-398")
+  def test_4_10_01_05(self):
+     '''PY Exec a select with huge limit in Node mode, Read'''
+     pyRowsNum_Test = 1000
+     results = ''
+     init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                   '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--session-type=node', '--py']
+     x_cmds = [("Table = session.getSchema(\"world_x\").getTable(\"big_data_node_py\")\n", ""),
+               ("Table.select().where(\"stringCol like :likeFilter\").limit(" + str(pyRowsNum_Test) + ").bind(\"likeFilter\",\"Node%\").execute()\n", str(pyRowsNum_Test) +" rows in set")
+              ]
+     results = exec_xshell_commands(init_command, x_cmds)
+     self.assertEqual(results, 'PASS')
+
+  # Py Read Collections
+  @unittest.skip("To avoid execution 4_10_01_06, because of issue https://jira.oraclecorp.com/jira/browse/MYS-398")
+  def test_4_10_01_06(self):
+     '''PY Exec a select with huge limit in Node mode for collection, Read'''
+     pyRowsNum_Test = 1000
+     results = ''
+     init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                   '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--session-type=node', '--py']
+     x_cmds = [("myColl = session.getSchema(\"world_x\").getCollection(\"big_coll_node_py\");\n", ""),
+               ("myColl.find(\"Name = \'Mexico\'\").fields([\"_id\", \"Name\",\"geography.Region\",\"geography.Continent\"]).limit(" + str(pyRowsNum_Test) + ")\n", str(pyRowsNum_Test) + " documents in set")
+              ]
+     results = exec_xshell_commands(init_command, x_cmds)
+     self.assertEqual(results, 'PASS')
+
+  # Py Update Non collections
+  @unittest.skip("To avoid execution 4_10_01_07, because of issue https://jira.oraclecorp.com/jira/browse/MYS-398")
+  def test_4_10_01_07(self):
+     '''PY Exec an update clause to a huge number of rows in Classic mode, Update'''
+     pyRowsNum_Test = 1000
+     results = ''
+     init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                   '-h' + LOCALHOST.host, '-P' + LOCALHOST.port, '--session-type=classic', '--py']
+     x_cmds = [("session.runSql(\"use world_x;\");\n", "Query OK"),
+               ("session.runSql(\"update big_data_classic_py set datetimeCol = now() where stringCol like \'Classic%\' and blobCol is not null limit " + str(pyRowsNum_Test) + ";\");\n", "Query OK, " + str(pyRowsNum_Test) + " rows affected")
+              ]
+     results = exec_xshell_commands(init_command, x_cmds)
+     self.assertEqual(results, 'PASS')
+
+  @unittest.skip("To avoid execution 4_10_01_08, because of issue https://jira.oraclecorp.com/jira/browse/MYS-398")
+  def test_4_10_01_08(self):
+     '''PY Exec an update clause to huge number of rows in Node mode, Update'''
+     pyRowsNum_Test = 1000
+     results = ''
+     CurrentTime = datetime.datetime.now()
+     init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                   '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--session-type=node', '--py']
+     x_cmds = [("Table = session.getSchema('world_x').getTable('big_data_node_py')\n", ""),
+               ("Table.update().set(\'datetimeCol\',\'" + str(CurrentTime) + "\').where(\"stringCol like :likeFilter\").limit(" + str(pyRowsNum_Test) + ").bind(\"likeFilter\",\'Node%\').execute()\n", "Query OK, " + str(pyRowsNum_Test) + " items affected")
+              ]
+     results = exec_xshell_commands(init_command, x_cmds)
+     self.assertEqual(results, 'PASS')
+
+  # Py Update Collections
+  @unittest.skip("To avoid execution 4_10_01_09, because of issue https://jira.oraclecorp.com/jira/browse/MYS-398")
+  def test_4_10_01_09(self):
+      '''PY Exec an update clause to huge number of document rows in Node mode, using Set '''
+      pyRowsNum_Test = 1000
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                     '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=node', '--js']
+      x_cmds = [("session.sql(\"use world_x;\");\n", "Query OK"),
+                ("myColl = session.getSchema(\'world_x\').getCollection(\"big_coll_node_py\");\n", ""),
+                ("myColl.modify(\"Name = :country\").set(\'Soccer_World_Championships\',\'0\').limit(" + str(pyRowsNum_Test) + ").bind(\'country\',\'Mexico\').execute();\n","Query OK, " + str(pyRowsNum_Test) + " items affected")
+               ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  @unittest.skip("To avoid execution 4_10_01_10, because of issue https://jira.oraclecorp.com/jira/browse/MYS-398")
+  def test_4_10_01_10(self):
+      '''PY Exec an update clause to huge number of document rows in Node mode, using Unset '''
+      pyRowsNum_Test = 1000
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                     '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=node', '--py']
+      x_cmds = [("session.sql(\"use world_x;\");\n", "Query OK"),
+                ("myColl = session.getSchema(\'world_x\').getCollection(\"big_coll_node_py\");\n", ""),
+                ("myColl.modify(\"Name = :country\").unset(\'Soccer_World_Championships\').limit(" + str(pyRowsNum_Test) + ").bind(\'country\',\'Mexico\').execute();\n","Query OK, " + str(pyRowsNum_Test) + " items affected")
+               ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  @unittest.skip("To avoid execution 4_10_01_11, because of issue https://jira.oraclecorp.com/jira/browse/MYS-398")
+  def test_4_10_01_11(self):
+      '''PY Exec an update clause to huge number of document rows in Node mode, using Merge '''
+      pyRowsNum_Test = 1000
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                     '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=node', '--py']
+
+      x_cmds = [("session.sql(\"use world_x;\")\n", "Query OK"),
+                ("myColl = session.getSchema(\'world_x\').getCollection(\"big_coll_node_py\")\n", ""),
+                ("myColl.modify().merge({\'Language\': \"Spanish\", \'Extra_Info\':[\"Extra info TBD\"]}).limit(" + str(pyRowsNum_Test) + ").execute()\n", "Query OK, " + str(pyRowsNum_Test) + " items affected"),
+               ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  @unittest.skip("To avoid execution 4_10_01_12, because of issue https://jira.oraclecorp.com/jira/browse/MYS-398")
+  def test_4_10_01_12(self):
+      '''PY Exec an update clause to huge number of document rows in Node mode, using Array '''
+      pyRowsNum_Test = 1000
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                     '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=node', '--py']
+
+      x_cmds = [("session.sql(\"use world_x;\")\n", "Query OK"),
+                ("myColl = session.getSchema(\'world_x\').getCollection(\"big_coll_node_py\")\n", ""),
+                ("myColl.modify().arrayAppend(\"Language\", \"Spanish_mexico\").arrayAppend(\"Extra_Info\", \"Extra info TBD 2\").limit(" + str(pyRowsNum_Test) + ").execute()\n", "Query OK, "  + str(pyRowsNum_Test) + " items affected"),
+               ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  # Py Delete from Non collections
+  @unittest.skip("To avoid execution 4_10_01_13, because of issue https://jira.oraclecorp.com/jira/browse/MYS-398")
+  def test_4_10_01_13(self):
+      '''PY Exec a delete clause to huge number of rows in Classic mode, Delete '''
+      pyRowsNum_Test = 1000
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                     '-h' + LOCALHOST.host,'-P' + LOCALHOST.port, '--session-type=classic', '--py']
+      x_cmds = [("session.runSql(\"use world_x;\")\n", "Query OK"),
+                ("session.runSql(\"DELETE FROM big_data_classic_py where stringCol like \'Classic%\' limit " + str(pyRowsNum_Test) + ";\")\n", "Query OK, " + str(pyRowsNum_Test) + " rows affected"),
+                ("session.runSql(\"DROP TABLE big_data_classic_py;\")\n", "Query OK, 0 rows affected"),
+               ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  @unittest.skip("To avoid execution 4_10_01_14, because of issue https://jira.oraclecorp.com/jira/browse/MYS-398")
+  def test_4_10_01_14(self):
+     '''PY Exec a delete clause to huge number of rows in Node mode, Delete'''
+     pyRowsNum_Test = 1000
+     init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                     '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--session-type=node', '--py']
+     x_cmds = [("Table = session.getSchema(\'world_x\').getTable(\'big_data_node_py\')\n", ""),
+               ("Table.delete().where(\"stringCol like :likeFilter\").limit(" + str(pyRowsNum_Test) + ").bind(\"likeFilter\", \"Node%\").execute()\n", "Query OK, " + str(pyRowsNum_Test) + " items affected"),
+               ("session.dropTable(\'world_x\', \'big_data_node_py\')\n", "Query OK"),
+              ]
+     results = exec_xshell_commands(init_command, x_cmds)
+     self.assertEqual(results, 'PASS')
+
+  # Py Delete from Collections
+  @unittest.skip("To avoid execution 4_10_01_15, because of issue https://jira.oraclecorp.com/jira/browse/MYS-398")
+  def test_4_10_01_15(self):
+      '''PY Exec a delete clause to huge number of document rows in Node mode, Delete'''
+      pyRowsNum_Test = 1000
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                     '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=node', '--py']
+      x_cmds = [("myColl = session.getSchema(\"world_x\").getCollection(\"big_coll_node_py\")\n", ""),
+                ("myColl.remove(\"Name=:country\").limit(" + str(pyRowsNum_Test) + ").bind(\"country\",\"Mexico\").execute()\n", "Query OK, " + str(pyRowsNum_Test) + " items affected"),
+                ("session.dropCollection(\"world_x\", \"big_coll_node_py\")\n", "Query OK"),
+               ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  # SQL based with Big Data
+  # Be aware to update the BigCreate_SQL, BigCreate_SQL_Coll files,
+  # in order to create the required number of rows, based on the "sqlRowsNum_Test" value
+
+  # WIP
 
   #FAILING........
   @unittest.skip("connecting to store session without $, shows the password: ISSUE MYS-402")
