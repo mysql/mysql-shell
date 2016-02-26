@@ -21,7 +21,8 @@ IF(CMAKE_VERSION VERSION_EQUAL "3.0.0" OR
    CMAKE_VERSION VERSION_GREATER "3.0.0")
   CMAKE_POLICY(SET CMP0026 OLD)
   CMAKE_POLICY(SET CMP0045 OLD)
-  CMAKE_POLICY(SET CMP0042 OLD)
+  CMAKE_POLICY(SET CMP0042 OLD)
+
 ENDIF()
 
 set(CMAKE_MODULE_PATH
@@ -294,20 +295,20 @@ set(mysh_SRC
 # Shell wrapper for client applications
 add_subdirectory(client)
 
-add_executable(mysqlx ${mysh_SRC} ${BOOST_SOURCE_CODE})
+add_executable(mysqlsh ${mysh_SRC} ${BOOST_SOURCE_CODE})
 
 if(WIN32)
   if(NOT WINDOWS_RUNTIME_MD)
-    add_dependencies(mysqlx boost_code.obj)
+    add_dependencies(mysqlsh boost_code.obj)
   endif()
 else()
-  target_link_libraries(mysqlx edit)
+  target_link_libraries(mysqlsh edit)
 endif()
 
 # Last, to make -lrt -lpthread last, v8 needs it
-target_link_libraries(mysqlx mysqlsh ${GCOV_LDFLAGS})
+target_link_libraries(mysqlsh mysqlshcore ${GCOV_LDFLAGS})
 
-install(TARGETS mysqlx RUNTIME COMPONENT main DESTINATION bin)
+install(TARGETS mysqlsh RUNTIME COMPONENT main DESTINATION bin)
 
 if (HAVE_V8)
   install(DIRECTORY scripting/modules DESTINATION lib COMPONENT main)
@@ -317,9 +318,9 @@ endif()
 IF(CMAKE_BUILD_TYPE MATCHES Debug)
   # This is to copy the modules into the build directory to make them
   # available for debugging purposes
-  add_custom_command(TARGET mysqlx PRE_BUILD
+  add_custom_command(TARGET mysqlsh PRE_BUILD
                         COMMAND ${CMAKE_COMMAND} -E copy_directory
-                        ${CMAKE_SOURCE_DIR}/scripting/modules $<TARGET_FILE_DIR:mysqlx>/modules)
+                        ${CMAKE_SOURCE_DIR}/scripting/modules $<TARGET_FILE_DIR:mysqlsh>/modules)
 ENDIF()
 
 if(WIN32)
@@ -343,18 +344,18 @@ if(WIN32)
     IF(CMAKE_BUILD_TYPE MATCHES Debug)
       # This is to copy the modules into the build directory to make them
       # available for debugging purposes
-      add_custom_command(TARGET mysqlx PRE_BUILD
+      add_custom_command(TARGET mysqlsh PRE_BUILD
                         COMMAND ${CMAKE_COMMAND} -E copy_directory
-                      "${PYTHON_LIBRARY_PATH}" $<TARGET_FILE_DIR:mysqlx>/Python2.7/Lib)
+                      "${PYTHON_LIBRARY_PATH}" $<TARGET_FILE_DIR:mysqlsh>/Python2.7/Lib)
     ENDIF()
 
   ENDIF()
 
-  # Copies the mysqlsh dll to the binary location to enable running the UTs
+  # Copies the mysqlshcore dll to the binary location to enable running the UTs
   if(WINDOWS_RUNTIME_MD)
-    add_custom_command(TARGET mysqlx PRE_BUILD
+    add_custom_command(TARGET mysqlsh PRE_BUILD
                         COMMAND ${CMAKE_COMMAND} -E copy
-                        $<TARGET_FILE:mysqlsh> $<TARGET_FILE_DIR:mysqlx>)
+                        $<TARGET_FILE:mysqlshcore> $<TARGET_FILE_DIR:mysqlsh>)
   endif()
 endif()
 
@@ -378,9 +379,9 @@ if(WINDOWS_RUNTIME_MD AND HAVE_V8)
 
   if(CMAKE_BUILD_TYPE MATCHES Debug)
     # Copies the dll to the binary location to enable debugging
-    add_custom_command(TARGET mysqlx PRE_BUILD
+    add_custom_command(TARGET mysqlsh PRE_BUILD
                         COMMAND ${CMAKE_COMMAND} -E copy
-                        "${V8_DLL}/${V8_FILE}" $<TARGET_FILE_DIR:mysqlx>/${V8_FILE})
+                        "${V8_DLL}/${V8_FILE}" $<TARGET_FILE_DIR:mysqlsh>/${V8_FILE})
   endif()
 endif()
 
@@ -396,9 +397,9 @@ if (HAVE_PYTHON)
   
     if(CMAKE_BUILD_TYPE MATCHES Debug)
       # Copies the dll to the binary location to enable debugging
-      add_custom_command(TARGET mysqlx PRE_BUILD
+      add_custom_command(TARGET mysqlsh PRE_BUILD
                           COMMAND ${CMAKE_COMMAND} -E copy
-                          "${PY_DLL}/${PY_FILE}" $<TARGET_FILE_DIR:mysqlx>/${PY_FILE})
+                          "${PY_DLL}/${PY_FILE}" $<TARGET_FILE_DIR:mysqlsh>/${PY_FILE})
     endif()
   endif()
 endif()

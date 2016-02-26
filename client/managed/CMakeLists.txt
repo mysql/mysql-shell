@@ -51,12 +51,12 @@ ENDIF()
 # it is needed to clean the transitive linking list on the libraries that will be linked to the managed wrapper
 # to avoid creating unnecessary dependencies that would cause the wrapper to NOT work
 SET_TARGET_PROPERTIES(shell_client PROPERTIES LINK_INTERFACE_LIBRARIES "") 
-SET_TARGET_PROPERTIES(mysqlsh PROPERTIES LINK_INTERFACE_LIBRARIES "") 
-target_link_libraries(ShellClient PRIVATE shell_client mysqlsh)
+SET_TARGET_PROPERTIES(mysqlshcore PROPERTIES LINK_INTERFACE_LIBRARIES "") 
+target_link_libraries(ShellClient PRIVATE shell_client mysqlshcore)
 
 
 # Registers the Strong Name on the development machine
 # this is needed for the success compilation of the managed wrapper
-execute_process(COMMAND sn.exe -i "${CMAKE_SOURCE_DIR}/client/managed/mysqlx.snk" MySQLXShell)
+execute_process(COMMAND sn.exe -i "${CMAKE_SOURCE_DIR}/client/managed/mysqlsh.snk" MySQLShell)
 
 install(TARGETS ShellClient COMPONENT dev DESTINATION lib)

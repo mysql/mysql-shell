@@ -116,7 +116,7 @@ else()
 endif()
 
 # Last, to make -lrt -lpthread last, v8 needs it
-target_link_libraries(shell_client mysqlsh ${GCOV_LDFLAGS})
+target_link_libraries(shell_client mysqlshcore ${GCOV_LDFLAGS})
 
 
 # Builds the managed library only if required

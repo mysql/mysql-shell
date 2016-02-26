@@ -49,7 +49,7 @@ include_directories("${PROJECT_SOURCE_DIR}/lib")
 target_link_libraries(shell_client_app
     shell_client
     shell_client
-    mysqlsh
+    mysqlshcore
     ${MYSQL_LIBRARIES}
     ${PYTHON_LIBS} ${PROTOBUF_LIBRARY} ${SSL_LIBRARIES} ${SSL_LIBRARIES_DL}
 )

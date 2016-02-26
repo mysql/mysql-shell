@@ -44,7 +44,7 @@ if ( HAVE_V8 )
                  "${CMAKE_BINARY_DIR}/shellcore/jscript_core_definitions.h")
 endif()
 
-file(GLOB libmysqlsh_SRC
+file(GLOB libmysqlshcore_SRC
     "${CMAKE_SOURCE_DIR}/include/shellcore/*.h"
     "${CMAKE_SOURCE_DIR}/utils/utils_mysql_parsing.h"
     "${CMAKE_SOURCE_DIR}/utils/utils_mysql_parsing.cc"
@@ -66,18 +66,18 @@ file(GLOB libmysqlsh_SRC
 
 
 #if(NOT WINDOWS_RUNTIME_MD)
-  list(APPEND libmysqlsh_SRC "${CMAKE_SOURCE_DIR}/types/ishell_core.cc")
-  list(APPEND libmysqlsh_SRC "${CMAKE_SOURCE_DIR}/common/logger/logger.cc")
+  list(APPEND libmysqlshcore_SRC "${CMAKE_SOURCE_DIR}/types/ishell_core.cc")
+  list(APPEND libmysqlshcore_SRC "${CMAKE_SOURCE_DIR}/common/logger/logger.cc")
 #else()
-#  list(REMOVE_ITEM libmysqlsh_SRC "${CMAKE_SOURCE_DIR}/shellcore/types.cc")
-#  list(REMOVE_ITEM libmysqlsh_SRC "${CMAKE_SOURCE_DIR}/shellcore/types_cpp.cc")
-#  list(REMOVE_ITEM libmysqlsh_SRC "${CMAKE_SOURCE_DIR}/shellcore/object_factory.cc")
-# list(REMOVE_ITEM libmysqlsh_SRC "${CMAKE_SOURCE_DIR}/shellcore/proxy_object.cc")
-##  list(REMOVE_ITEM libmysqlsh_SRC "${CMAKE_SOURCE_DIR}/shellcore/shell_core.cc")
-#  list(REMOVE_ITEM libmysqlsh_SRC "${CMAKE_SOURCE_DIR}/shellcore/common.cc")
-#  list(REMOVE_ITEM libmysqlsh_SRC "${CMAKE_SOURCE_DIR}/shellcore/obj_date.cc")
-#  list(REMOVE_ITEM libmysqlsh_SRC "${CMAKE_SOURCE_DIR}/utils/utils_json.h")
-#  list(REMOVE_ITEM libmysqlsh_SRC "${CMAKE_SOURCE_DIR}/utils/utils_json.cc")
+#  list(REMOVE_ITEM libmysqlshcore_SRC "${CMAKE_SOURCE_DIR}/shellcore/types.cc")
+#  list(REMOVE_ITEM libmysqlshcore_SRC "${CMAKE_SOURCE_DIR}/shellcore/types_cpp.cc")
+#  list(REMOVE_ITEM libmysqlshcore_SRC "${CMAKE_SOURCE_DIR}/shellcore/object_factory.cc")
+# list(REMOVE_ITEM libmysqlshcore_SRC "${CMAKE_SOURCE_DIR}/shellcore/proxy_object.cc")
+##  list(REMOVE_ITEM libmysqlshcore_SRC "${CMAKE_SOURCE_DIR}/shellcore/shell_core.cc")
+#  list(REMOVE_ITEM libmysqlshcore_SRC "${CMAKE_SOURCE_DIR}/shellcore/common.cc")
+#  list(REMOVE_ITEM libmysqlshcore_SRC "${CMAKE_SOURCE_DIR}/shellcore/obj_date.cc")
+#  list(REMOVE_ITEM libmysqlshcore_SRC "${CMAKE_SOURCE_DIR}/utils/utils_json.h")
+#  list(REMOVE_ITEM libmysqlshcore_SRC "${CMAKE_SOURCE_DIR}/utils/utils_json.cc")
 #endif()
 
 
@@ -89,7 +89,7 @@ else()
   file(GLOB js_SRC "*jscript*.cc")
 
   foreach(jsfile ${js_SRC})
-    list(REMOVE_ITEM libmysqlsh_SRC "${jsfile}")
+    list(REMOVE_ITEM libmysqlshcore_SRC "${jsfile}")
   endforeach()
 endif()
 
@@ -103,7 +103,7 @@ else()
   file(GLOB python_SRC "*python*.cc")
 
   foreach(pyfile ${python_SRC})
-    list(REMOVE_ITEM libmysqlsh_SRC "${pyfile}")
+    list(REMOVE_ITEM libmysqlshcore_SRC "${pyfile}")
   endforeach()
 endif()
 
@@ -135,12 +135,12 @@ include_directories("${CMAKE_BINARY_DIR}/mysqlxtest")
 
 IF(WIN32)
   IF(WINDOWS_RUNTIME_MD)
-    ADD_LIBRARY(mysqlsh SHARED ${libmysqlsh_SRC} ${libmysqlshmods_SRC})
+    ADD_LIBRARY(mysqlshcore SHARED ${libmysqlshcore_SRC} ${libmysqlshmods_SRC})
   ELSE()
-    ADD_LIBRARY(mysqlsh ${libmysqlsh_SRC} ${libmysqlshmods_SRC})
+    ADD_LIBRARY(mysqlshcore ${libmysqlshcore_SRC} ${libmysqlshmods_SRC})
   ENDIF()
 
-  TARGET_LINK_LIBRARIES(mysqlsh
+  TARGET_LINK_LIBRARIES(mysqlshcore
             mysqlxtest
             ${V8_LINK_LIST}
             ${PYTHON_LIBRARIES}            
@@ -150,13 +150,13 @@ IF(WIN32)
             ${SSL_LIBRARIES})
 
 ELSE()
-  ADD_CONVENIENCE_LIBRARY(clientlib ${libmysqlsh_SRC} ${libmysqlshmods_SRC})
+  ADD_CONVENIENCE_LIBRARY(clientlib ${libmysqlshcore_SRC} ${libmysqlshmods_SRC})
   add_dependencies(clientlib mysqlxtest)
   SET(LIBS mysqlxtest clientlib ${V8_LINK_LIST} ${PYTHON_LIBRARIES} ${MYSQL_LIBRARIES} ${BOOST_LIBRARIES} ${PROTOBUF_LIBRARY} ${SSL_LIBRARIES} ${SSL_LIBRARIES_DL})
   IF(NOT INSTALL_LIBDIR)
     SET(INSTALL_LIBDIR lib)
   endif()
-  MERGE_LIBRARIES(mysqlsh STATIC ${LIBS} COMPONENT Development)
+  MERGE_LIBRARIES(mysqlshcore STATIC ${LIBS} COMPONENT Development)
 ENDIF()
 
 if( WIN32 )
@@ -170,8 +170,8 @@ install(DIRECTORY "${CMAKE_SOURCE_DIR}/include/shellcore/" DESTINATION "include/
 install(DIRECTORY "${CMAKE_SOURCE_DIR}/modules/" DESTINATION "include/modules" COMPONENT dev FILES_MATCHING PATTERN "*.h" )
 
 if(WINDOWS_RUNTIME_MD)
-  install(TARGETS mysqlsh COMPONENT main DESTINATION bin)
-  install(TARGETS mysqlsh COMPONENT dev DESTINATION lib)
+  install(TARGETS mysqlshcore COMPONENT main DESTINATION bin)
+  install(TARGETS mysqlshcore COMPONENT dev DESTINATION lib)
 endif()
 
 add_definitions(-DSHCORE_EXPORT )

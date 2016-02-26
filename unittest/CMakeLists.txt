@@ -68,10 +68,10 @@ if(WITH_TESTS)
     endif()
 
     add_executable(run_unit_tests ${mysqlsh_tests_SRC})
-    add_dependencies(run_unit_tests mysqlsh)
+    add_dependencies(run_unit_tests mysqlshcore)
     add_dependencies(run_unit_tests mysqlxtest)
     target_link_libraries(run_unit_tests
-            mysqlsh
+            mysqlshcore
             mysqlxtest
             gtest
             ${MYSQL_LIBRARIES}
@@ -80,11 +80,11 @@ if(WITH_TESTS)
             ${SSL_LIBRARIES_DL}
     )
 
-    # Copies the mysqlsh dll to the binary location to enable running the UTs
+    # Copies the mysqlshcore dll to the binary location to enable running the UTs
     if(WINDOWS_RUNTIME_MD)
       add_custom_command(TARGET run_unit_tests PRE_BUILD
                           COMMAND ${CMAKE_COMMAND} -E copy
-                          $<TARGET_FILE:mysqlsh> $<TARGET_FILE_DIR:run_unit_tests>)
+                          $<TARGET_FILE:mysqlshcore> $<TARGET_FILE_DIR:run_unit_tests>)
     endif()
     
 
@@ -145,7 +145,7 @@ endif()
 
 ADD_EXECUTABLE(shexpr shexpr.cc)
 TARGET_LINK_LIBRARIES(shexpr
-            mysqlsh
+            mysqlshcore
             mysqlxtest
             gtest
             ${SSL_LIBRARIES}
