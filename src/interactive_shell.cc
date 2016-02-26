@@ -450,7 +450,7 @@ bool Interactive_shell::switch_shell_mode(Shell_core::Mode mode, const std::vect
           println("SQL mode is not supported on X Sessions: command ignored.");
           println("To switch to SQL mode reconnect with a Node Session by either:");
           println("* Using the \\connect_node shell command.");
-          println("* Using --session-type=node when calling the MySQL X Shell on the command line.");
+          println("* Using --session-type=node when calling the MySQL Shell on the command line.");
         }
         else
         {
@@ -869,7 +869,7 @@ bool Interactive_shell::cmd_status(const std::vector<std::string>& UNUSED(args))
     {
       shcore::Value::Map_type_ref status = raw_status.as_map();
 
-      std::string version_msg("MySQL X Shell Version ");
+      std::string version_msg("MySQL Shell Version ");
       version_msg += MYSH_VERSION;
       version_msg += "\n";
       println(version_msg);
@@ -1275,7 +1275,7 @@ void Interactive_shell::command_loop()
 
 void Interactive_shell::print_banner()
 {
-  std::string welcome_msg("Welcome to MySQL X Shell ");
+  std::string welcome_msg("Welcome to MySQL Shell ");
   welcome_msg += MYSH_VERSION;
   println(welcome_msg);
   println("");
@@ -1291,7 +1291,7 @@ void Interactive_shell::print_banner()
 
 void Interactive_shell::print_cmd_line_helper()
 {
-  std::string help_msg("MySQL X Shell ");
+  std::string help_msg("MySQL Shell ");
   help_msg += MYSH_VERSION;
   println(help_msg);
   println("");
@@ -1334,7 +1334,7 @@ void Interactive_shell::print_cmd_line_helper()
   println("                           Each line on the batch is processed as if it were in interactive mode.");
   println("  --force                  To use in SQL batch mode, forces processing to continue if an error is found.");
   println("  --log-level=value        The log level. Value is an int in the range [1,8], default (1).");
-  println("  --version                Prints the version of MySQL X Shell.");
+  println("  --version                Prints the version of MySQL Shell.");
   println("  --ssl                    Enable SSL for connection(automatically enabled with other flags)");
   println("  --ssl-key=name           X509 key in PEM format");
   println("  --ssl-cert=name          X509 cert in PEM format");

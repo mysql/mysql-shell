@@ -128,7 +128,7 @@ int main(int argc, char **argv)
     }
     else if (options.print_version)
     {
-      std::string version_msg("MySQL X Shell Version ");
+      std::string version_msg("MySQL Shell Version ");
       version_msg += MYSH_VERSION;
       version_msg += "\n";
       shell.print(version_msg);

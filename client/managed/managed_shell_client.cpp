@@ -34,7 +34,7 @@ using namespace System::Runtime::InteropServices;
 using namespace System::Reflection;
 
 [assembly:AssemblyDelaySign(false)];
-[assembly:AssemblyKeyName("MySQLXShell")];
+[assembly:AssemblyKeyName("MySQLShell")];
 [assembly:AssemblyVersion(MYSH_VERSION)];
 [assembly:AssemblyInformationalVersion(MYSH_VERSION)];
 
@@ -128,7 +128,7 @@ ShellClient::!ShellClient()
 }
 
 // The C++ CLI destructor becomes the IDisposable.Dispose method when this class is exposed to managed languages (C#).
-// The standard IDisposable implementation is to release here the native resources associated with this class instance (managed resource), that is as soon as possible, 
+// The standard IDisposable implementation is to release here the native resources associated with this class instance (managed resource), that is as soon as possible,
 // instead of waiting for it to be called by the GC thru the Finalize method.
 ShellClient::~ShellClient()
 {

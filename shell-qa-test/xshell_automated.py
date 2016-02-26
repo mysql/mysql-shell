@@ -5394,7 +5394,7 @@ class XShell_TestCases(unittest.TestCase):
       p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
       p.stdin.flush()
       stdin,stdout = p.communicate()
-      if stdin.find(bytearray("MySQL X Shell Version","ascii"), 0, len(stdin)) >= 0:
+      if stdin.find(bytearray("MySQL Shell Version","ascii"), 0, len(stdin)) >= 0:
           results="PASS"
       else:
           results="FAIL"

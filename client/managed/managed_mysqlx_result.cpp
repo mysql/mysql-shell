@@ -30,7 +30,7 @@ using namespace System::Runtime::InteropServices;
 using namespace System::Reflection;
 
 [assembly:AssemblyDelaySign(false)];
-[assembly:AssemblyKeyName("MySQLXShell")];
+[assembly:AssemblyKeyName("MySQLShell")];
 [assembly:AssemblyVersion(MYSH_VERSION)];
 [assembly:AssemblyInformationalVersion(MYSH_VERSION)];
 
