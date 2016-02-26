@@ -1175,7 +1175,7 @@ int Interactive_shell::process_file()
     if (!s.fail())
     {
       // The return value now depends on the stream processing
-      ret_val = _shell->process_stream(s, _options.run_file, _result_processor);
+      ret_val = process_stream(s, _options.run_file);
 
       // When force is used, we do not care of the processing
       // errors
