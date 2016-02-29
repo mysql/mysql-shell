@@ -5240,7 +5240,97 @@ class XShell_TestCases(unittest.TestCase):
   # Be aware to update the BigCreate_SQL, BigCreate_SQL_Coll files,
   # in order to create the required number of rows, based on the "sqlRowsNum_Test" value
 
-  # WIP
+  #SQL Non Collections Create
+  def test_4_10_02_01(self):
+     '''SQL Exec Batch with huge data in Classic mode, Create and Insert:  --file= BigCreate_SQL.py'''
+     init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                     '-h' + LOCALHOST.host, '-P' + LOCALHOST.port, '--session-type=classic', '--sqlc', '--file=' + Exec_files_location + 'BigCreate_SQL.sql']
+     p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+     stdin,stdout = p.communicate()
+     if stdout.find(bytearray("Error","ascii"),0,len(stdin))> -1:
+       self.assertEqual(stdin, 'PASS', str(stdout))
+
+  #SQL Create Collections
+  def test_4_10_02_02(self):
+     '''SQL Exec Batch with huge data in Classic mode for collection, Create and Insert:  --file= BigCreate_Coll_SQL.sql'''
+     init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                     '-h' + LOCALHOST.host, '-P' + LOCALHOST.port, '--session-type=classic', '--sqlc', '--file=' + Exec_files_location + 'BigCreate_Coll_SQL.sql']
+     p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+     stdin,stdout = p.communicate()
+     if stdout.find(bytearray("Error","ascii"),0,len(stdin))> -1:
+       self.assertEqual(stdin, 'PASS', str(stdout))
+
+  #SQL Read Non Collections
+  def test_4_10_02_03(self):
+     '''SQL Exec a select with huge limit in Classic mode, Read'''
+     sqlRowsNum_Test = 1000
+     results = ''
+     init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                   '-h' + LOCALHOST.host, '-P' + LOCALHOST.port, '--session-type=classic', '--sqlc']
+     x_cmds = [("SELECT * FROM world_x.bigdata_sql where stringCol like \'SQL%\' limit " + str(sqlRowsNum_Test) + ";\n", str(sqlRowsNum_Test) + " rows in set")]
+     results = exec_xshell_commands(init_command, x_cmds)
+     self.assertEqual(results, 'PASS')
+
+  #SQL Read Collections
+  def test_4_10_02_04(self):
+     '''SQL Exec a select with huge limit in Classic mode for collection, Read'''
+     sqlRowsNum_Test = 1000
+     results = ''
+     init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                   '-h' + LOCALHOST.host, '-P' + LOCALHOST.port, '--session-type=classic', '--sqlc']
+     x_cmds = [("SELECT * FROM world_x.bigdata_coll_sql where _id < " + str(sqlRowsNum_Test+1) + ";\n", str(sqlRowsNum_Test) + " rows in set")]
+     results = exec_xshell_commands(init_command, x_cmds)
+     self.assertEqual(results, 'PASS')
+
+  #SQL Update Non Collections
+  def test_4_10_02_05(self):
+     '''SQL Exec an update to the complete table in Classic mode for non collection, Read'''
+     sqlRowsNum_Test = 1000
+     results = ''
+     init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                   '-h' + LOCALHOST.host, '-P' + LOCALHOST.port, '--session-type=classic', '--sqlc']
+     x_cmds = [("update world_x.bigdata_sql set datetimeCol = now() where stringCol like 'SQL%';\n", "Rows matched: " + str(sqlRowsNum_Test) + "  Changed: " + str(sqlRowsNum_Test) + "  Warnings: 0")]
+     results = exec_xshell_commands(init_command, x_cmds)
+     self.assertEqual(results, 'PASS')
+
+  #SQL Update Collections
+  def test_4_10_02_06(self):
+     '''SQL Exec an update to the complete table in Classic mode for collection, Read'''
+     sqlRowsNum_Test = 1000
+     results = ''
+     init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                   '-h' + LOCALHOST.host, '-P' + LOCALHOST.port, '--session-type=classic', '--sqlc']
+     x_cmds = [("update world_x.bigdata_coll_sql set doc = \'{\"GNP\" : 414972,\"IndepYear\" : 1810,\"Name\" : \"Mexico\",\"_id\" : \"9001\"}\';\n", "Rows matched: " + str(sqlRowsNum_Test) + "  Changed: " + str(sqlRowsNum_Test) + "  Warnings: 0")]
+     results = exec_xshell_commands(init_command, x_cmds)
+     self.assertEqual(results, 'PASS')
+
+  #SQL Delete Non Collections
+  def test_4_10_02_07(self):
+     '''SQL Exec a delete to the complete table in Classic mode for non collection, Read'''
+     sqlRowsNum_Test = 1000
+     results = ''
+     init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                   '-h' + LOCALHOST.host, '-P' + LOCALHOST.port, '--session-type=classic', '--sqlc']
+     x_cmds = [("DELETE FROM world_x.bigdata_sql where blobCol is not null;\n", str(sqlRowsNum_Test) + " rows affected"),
+               ("DROP PROCEDURE world_x.InsertInfoSQL;\n", "0 rows affected"),
+               ("DROP TABLE world_x.bigdata_sql;\n", "0 rows affected")
+               ]
+     results = exec_xshell_commands(init_command, x_cmds)
+     self.assertEqual(results, 'PASS')
+
+  #SQL Delete Collections
+  def test_4_10_02_08(self):
+     '''SQL Exec a delete to the complete table in Classic mode for collection, Read'''
+     sqlRowsNum_Test = 1000
+     results = ''
+     init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                   '-h' + LOCALHOST.host, '-P' + LOCALHOST.port, '--session-type=classic', '--sqlc']
+     x_cmds = [("DELETE FROM world_x.bigdata_coll_sql where _id > 0;\n", str(sqlRowsNum_Test) + " rows affected"),
+               ("DROP PROCEDURE world_x.InsertInfoSQLColl;\n", "0 rows affected"),
+               ("DROP TABLE world_x.bigdata_coll_sql;\n", "0 rows affected")
+               ]
+     results = exec_xshell_commands(init_command, x_cmds)
+     self.assertEqual(results, 'PASS')
 
   #FAILING........
   @unittest.skip("connecting to store session without $, shows the password: ISSUE MYS-402")
@@ -5394,7 +5484,7 @@ class XShell_TestCases(unittest.TestCase):
       p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
       p.stdin.flush()
       stdin,stdout = p.communicate()
-      if stdin.find(bytearray("MySQL Shell Version","ascii"), 0, len(stdin)) >= 0:
+      if stdin.find(bytearray("MySQL X Shell Version","ascii"), 0, len(stdin)) >= 0:
           results="PASS"
       else:
           results="FAIL"
