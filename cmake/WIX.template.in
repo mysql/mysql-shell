@@ -50,6 +50,6 @@
         <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOXTEXT" Value="Launch MySQL Shell" />
         <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOX" Value="1" />
         <Property Id="WixShellExecTarget" Value="[#mysqlsh.exe]" />
-        <CustomAction Id="LaunchApplication" Directory="CM_DP_main.bin" ExeCommand="[SystemFolder]cmd.exe /C mysqlsh.exe" Return="asyncNoWait"/>
+        <CustomAction Id="LaunchApplication" Directory="DIR_ID_1" ExeCommand="[SystemFolder]cmd.exe /C mysqlsh.exe" Return="asyncNoWait"/>
     </Product>
 </Wix>
