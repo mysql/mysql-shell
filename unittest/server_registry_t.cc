@@ -71,7 +71,6 @@ namespace shcore {
       Connection_options cs_bis = sr2->get_connection_options(cs.get_name());
       EXPECT_STREQ(cs_bis.get_server().c_str(), "localhost");
       EXPECT_STREQ(cs_bis.get_name().c_str(), "dev_connection");
-      EXPECT_STREQ(cs_bis.get_password().c_str(), "123");
       EXPECT_STREQ(cs_bis.get_user().c_str(), "root");
       EXPECT_STREQ(cs_bis.get_port().c_str(), "3305");
       EXPECT_STREQ(cs_bis.get_value("custom1").c_str(), "my custom value");
@@ -81,7 +80,6 @@ namespace shcore {
       EXPECT_STREQ(cs2_bis.get_server().c_str(), "192.168.56.20");
       EXPECT_STREQ(cs2_bis.get_port().c_str(), "3306");
       EXPECT_STREQ(cs2_bis.get_user().c_str(), "admin");
-      EXPECT_STREQ(cs2_bis.get_password().c_str(), "456");
       EXPECT_STREQ(cs2_bis.get_name().c_str(), "app1");
 
       // Iterator of connections
@@ -92,7 +90,6 @@ namespace shcore {
         {
           EXPECT_STREQ(csi.get_server().c_str(), "localhost");
           EXPECT_STREQ(csi.get_name().c_str(), "dev_connection");
-          EXPECT_STREQ(csi.get_password().c_str(), "123");
           EXPECT_STREQ(csi.get_user().c_str(), "root");
           EXPECT_STREQ(csi.get_port().c_str(), "3305");
           EXPECT_STREQ(csi.get_value("custom1").c_str(), "my custom value");
@@ -102,7 +99,6 @@ namespace shcore {
           EXPECT_STREQ(csi.get_server().c_str(), "192.168.56.20");
           EXPECT_STREQ(csi.get_port().c_str(), "3306");
           EXPECT_STREQ(csi.get_user().c_str(), "admin");
-          EXPECT_STREQ(csi.get_password().c_str(), "456");
           EXPECT_STREQ(csi.get_name().c_str(), "app1");
         }
       }
@@ -127,7 +123,6 @@ namespace shcore {
       EXPECT_STREQ(cs2_bis.get_server().c_str(), "192.168.56.20");
       EXPECT_STREQ(cs2_bis.get_port().c_str(), "3306");
       EXPECT_STREQ(cs2_bis.get_user().c_str(), "admin");
-      EXPECT_STREQ(cs2_bis.get_password().c_str(), "456");
       EXPECT_STREQ(cs2_bis.get_name().c_str(), "app2");
 
       delete sr2;

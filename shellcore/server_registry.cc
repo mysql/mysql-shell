@@ -65,31 +65,6 @@
 
 using namespace shcore;
 
-// Extracted from header "my_aes.h"
-
-/** Supported AES cipher/block mode combos */
-enum my_aes_opmode
-{
-  my_aes_128_ecb,
-  my_aes_192_ecb,
-  my_aes_256_ecb,
-  my_aes_128_cbc,
-  my_aes_192_cbc,
-  my_aes_256_cbc
-};
-
-extern "C" int my_aes_get_size(uint32 source_length, enum my_aes_opmode mode);
-
-extern "C" int my_aes_encrypt(const unsigned char *source, uint32 source_length,
-  unsigned char *dest,
-  const unsigned char *key, uint32 key_length,
-enum my_aes_opmode mode, const unsigned char *iv);
-
-extern "C" int my_aes_decrypt(const unsigned char *source, uint32 source_length,
-  unsigned char *dest,
-  const unsigned char *key, uint32 key_length,
-enum my_aes_opmode mode, const unsigned char *iv);
-
 Connection_options::Keywords_table Connection_options::_keywords_table;
 
 void Connection_options::Keywords_table::validate_options_mandatory_included(Connection_options& options)
@@ -104,35 +79,7 @@ void Connection_options::Keywords_table::validate_options_mandatory_included(Con
   }
 }
 
-const int Server_registry::_version(1);
-
-int Server_registry::encrypt_buffer(const char *plain, int plain_len, char cipher[], const char *my_key)
-{
-  int aes_len;
-
-  aes_len = my_aes_get_size(plain_len, my_aes_128_ecb);
-  if (my_aes_encrypt((const unsigned char *)plain, plain_len,
-    (unsigned char *)cipher,
-    (const unsigned char *)my_key, 36,
-    my_aes_128_ecb, NULL) == aes_len)
-    return (aes_len);
-
-  return -1;
-}
-
-int Server_registry::decrypt_buffer(const char *cipher, int cipher_len, char plain[], const char *my_key)
-{
-  int aes_length;
-
-  if ((aes_length = my_aes_decrypt((const unsigned char *)cipher, cipher_len,
-    (unsigned char *)plain,
-    (const unsigned char *)my_key,
-    36,
-    my_aes_128_ecb, NULL)) > 0)
-    return aes_length;
-
-  return -1;
-}
+const int Server_registry::_version(2);
 
 Server_registry::Server_registry(const std::string& data_source_file)
 {
@@ -237,18 +184,8 @@ void Server_registry::load()
       {
         if (it2->name == "dbPassword")
         {
-          char decipher[4096];
-          const std::string password(it2->value.GetString(), it2->value.GetStringLength());
-          int len = password.size();
-          int decipher_len = Server_registry::decrypt_buffer(password.c_str(), len, decipher, cs_uuid.c_str());
-          if (decipher_len == -1)
-          {
-            log_error("Server Registry: Error decrypting password at entry with app name '%s' at file '%s'", app.c_str(), c_filename);
-            continue;
-          }
-          decipher[decipher_len] = '\0';
-          const std::string s_decipher(static_cast<const char *>(decipher));
-          set_value(cs_uuid, "dbPassword", s_decipher);
+          // skip it
+          ;
         }
         else
         {
@@ -401,15 +338,8 @@ void Server_registry::merge()
       }
       else if (it2->first == "dbPassword")
       {
-        // encrypt password
-        char cipher[4096];
-        std::string uuid = cs.get_uuid();
-        int cipher_len = Server_registry::encrypt_buffer(it2->second.c_str(), it2->second.size(), cipher, uuid.c_str());
-        if (cipher_len == -1)
-          throw std::runtime_error("Error encrypting data");
-        cipher[cipher_len] = '\0';
-        rapidjson::Value cipher_value(static_cast<const char *>(cipher), cipher_len, allocator);
-        my_obj.AddMember(name_label, cipher_value, allocator);
+        // skip it
+        ;
       }
       else
       {

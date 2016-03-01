@@ -200,8 +200,6 @@ namespace shcore {
     std::string _filename_lock;
 
     void init();
-    static int encrypt_buffer(const char *plain, int plain_len, char cipher[], const char *my_key);
-    static int decrypt_buffer(const char *cipher, int cipher_len, char plain[], const char *my_key);
 
     Connection_options& add_connection_options(const std::string& uuid, const std::string& name, const std::string& options, bool overwrite, bool placeholder);
     void set_connection_options(const std::string &uuid, const Connection_options &conn_str);
