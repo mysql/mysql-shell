@@ -11,11 +11,11 @@
         "port" : 3307
     },
 "remote": {
-        "user" : "root",
+        "user" : "root_1",
         "password" : "xshellpwd",
-        "host" : "localhost",
+        "host" : "10.172.166.248",
         "xprotocol_port" : 33060,
-        "port" : 3307
+        "port" : 3357
     }
 
 	
