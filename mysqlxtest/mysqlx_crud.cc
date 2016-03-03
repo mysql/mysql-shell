@@ -26,6 +26,10 @@
 #include "compilerutils.h"
 #include <boost/algorithm/string.hpp>
 
+#define CONTENT_TYPE_GEOMETRY 0x0001
+#define CONTENT_TYPE_JSON 0x0002
+#define CONTENT_TYPE_XML 0x0002
+
 using namespace mysqlx;
 
 Schema::Schema(boost::shared_ptr<Session> conn, const std::string &name_)
@@ -208,6 +212,10 @@ Mysqlx::Datatypes::Scalar* Collection_Statement::convert_document_value(const Do
       break;
     case DocumentValue::TDocument:
     case DocumentValue::TArray:
+      my_scalar->set_type(Mysqlx::Datatypes::Scalar::V_OCTETS);
+      my_scalar->mutable_v_octets()->set_content_type(CONTENT_TYPE_JSON);
+      my_scalar->mutable_v_octets()->set_value(column_value);
+      break;
     case DocumentValue::TExpression:
     case DocumentValue::TNull:
       throw std::logic_error("Only scalar values supported on this conversion");
@@ -277,7 +285,7 @@ Find_Limit &Find_Sort::sort(const std::vector<std::string> &sortFields)
 Find_Sort &Find_Having::having(const std::string &searchCondition)
 {
   if (!searchCondition.empty())
-    m_find->set_allocated_grouping_criteria(parser::parse_collection_filter(searchCondition));
+    m_find->set_allocated_grouping_criteria(parser::parse_collection_filter(searchCondition, &m_placeholders));
 
   return *this;
 }
@@ -547,7 +555,7 @@ Modify_Operation &Modify_Operation::set_operation(int type, const std::string &p
         value->type() == DocumentValue::TArray)
     {
       DocumentValue expression(*value);
-      Expr_parser parser(expression, true);
+      Expr_parser parser(expression, true, false, &m_placeholders);
       operation->set_allocated_value(parser.expr());
     }
     else
@@ -828,7 +836,7 @@ Update_Set &Update_Set::set(const std::string &field, const std::string& express
 
   operation->set_operation(Mysqlx::Crud::UpdateOperation::SET);
 
-  Expr_parser parser(expression);
+  Expr_parser parser(expression, false, false, &m_placeholders);
   operation->set_allocated_value(parser.expr());
 
   return *this;
@@ -902,7 +910,7 @@ Select_Limit &Select_OrderBy::orderBy(const std::vector<std::string> &sortFields
 Select_OrderBy &Select_Having::having(const std::string &searchCondition)
 {
   if (!searchCondition.empty())
-    m_find->set_allocated_grouping_criteria(parser::parse_table_filter(searchCondition));
+    m_find->set_allocated_grouping_criteria(parser::parse_table_filter(searchCondition, &m_placeholders));
 
   return *this;
 }

@@ -115,7 +115,7 @@ record = result.fetchOne();
 print("Updated Record:", record.name, record.age);
 
 //@ TableUpdate: test using limits
-var result = table.update().set('age', 16).where('age = 15').limit(2).execute();
+var result = table.update().set('age', mysqlx.expr(':new_year')).where('age = :old_year').limit(2).bind('new_year', 16).bind('old_year', 15).execute();
 print('Affected Rows:', result.affectedItemCount, '\n');
 
 var records = table.select().where('age = 16').execute().fetchAll();

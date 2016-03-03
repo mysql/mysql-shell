@@ -164,6 +164,17 @@ var result = collection.find('name = "brian"').execute();
 var doc = result.fetchOne();
 print(dir(doc));
 
+//@# CollectionModify: Set Execution Binding Array
+var result = collection.modify('name = "brian"').set('hobbies', mysqlx.expr(':list')).bind('list', ['soccer','dance','read']).execute();
+print('Set Affected Rows:', result.affectedItemCount, '\n');
+
+var result = collection.find('name = "brian"').execute();
+var doc = result.fetchOne();
+print(dir(doc));
+print(doc.hobbies[0]);
+print(doc.hobbies[1]);
+print(doc.hobbies[2]);
+
 //@ CollectionModify: Simple Unset Execution
 var result = collection.modify('name = "brian"').unset('last_name').execute();
 print('Unset Affected Rows:', result.affectedItemCount, '\n');

@@ -114,6 +114,17 @@
 |last_name|
 |age|
 
+//@# CollectionModify: Set Execution Binding Array
+|Set Affected Rows: 1|
+|name|
+|alias|
+|last_name|
+|age|
+|hobbies|
+|soccer|
+|dance|
+|read|
+
 //@ CollectionModify: Simple Unset Execution
 |Unset Affected Rows: 1|
 |name|

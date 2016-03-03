@@ -168,6 +168,17 @@ result = collection.find('name = "brian"').execute()
 doc = result.fetchOne()
 print dir(doc)
 
+#@# CollectionModify: Set Execution Binding Array
+result = collection.modify('name = "brian"').set('hobbies', mysqlx.expr(':list')).bind('list', ['soccer', 'dance', 'reading']).execute()
+print 'Set Affected Rows:', result.affectedItemCount, '\n'
+
+result = collection.find('name = "brian"').execute()
+doc = result.fetchOne()
+print dir(doc)
+print doc.hobbies[0]
+print doc.hobbies[1]
+print doc.hobbies[2]
+
 #@ CollectionModify: Simple Unset Execution
 result = collection.modify('name = "brian"').unset('last_name').execute()
 print 'Unset Affected Rows:', result.affectedItemCount, '\n'
