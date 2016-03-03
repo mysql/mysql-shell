@@ -296,7 +296,7 @@ void Server_registry::set_value(const std::string &uuid, const std::string &name
   if (idkey != -1)
     cs.set_value(name, value);
   else
-    log_warning("The key '%s' was not stored because is not valid", name);
+    log_warning("The key '%s' was not stored because is not valid", name.c_str());
 }
 
 void Server_registry::merge()
