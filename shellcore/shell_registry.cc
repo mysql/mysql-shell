@@ -276,10 +276,6 @@ Value::Map_type_ref StoredSessions::fill_connection(const Connection_options& op
 
   (*connection_data)["dbUser"] = Value(options.get_user());
 
-  value = options.get_password();
-  if (!value.empty())
-    (*connection_data)["dbPassword"] = Value(value);
-
   value = options.get_port();
   if (!value.empty())
     (*connection_data)["port"] = Value(boost::lexical_cast<int>(value));

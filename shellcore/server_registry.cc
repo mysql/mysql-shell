@@ -182,15 +182,7 @@ void Server_registry::load()
 
       for (rapidjson::Value::ConstMemberIterator it2 = config.MemberBegin(); it2 != config.MemberEnd(); ++it2)
       {
-        if (it2->name == "dbPassword")
-        {
-          // skip it
-          ;
-        }
-        else
-        {
-          set_value(cs_uuid, it2->name.GetString(), it2->value.GetString());
-        }
+        set_value(cs_uuid, it2->name.GetString(), it2->value.GetString());
       }
     }
   }
@@ -289,7 +281,8 @@ void Server_registry::set_value(const std::string &uuid, const std::string &name
   if (it == _connections.end())
   throw std::runtime_error((boost::format("Connection not found for uuid: %s") % uuid).str());
   Connection_options& cs = it->second;
-  if (Connection_options::get_keyword_id(name) == (int)App)
+  int idkey = Connection_options::get_keyword_id(name); 
+  if (idkey == (int)App)
   {
     if (!shcore::is_valid_identifier(name))
       throw std::runtime_error((boost::format("The app name '%s' is not a valid identifier") % name).str());
@@ -300,7 +293,10 @@ void Server_registry::set_value(const std::string &uuid, const std::string &name
       _connections_by_name[name] = &cs;
     }
   }
-  cs.set_value(name, value);
+  if (idkey != -1)
+    cs.set_value(name, value);
+  else
+    log_warning("The key '%s' was not stored because is not valid", name);
 }
 
 void Server_registry::merge()
@@ -335,11 +331,6 @@ void Server_registry::merge()
       {
         uuid_checked = true;
         my_obj.AddMember(name_label, item_value, allocator);
-      }
-      else if (it2->first == "dbPassword")
-      {
-        // skip it
-        ;
       }
       else
       {

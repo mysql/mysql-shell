@@ -205,7 +205,6 @@ void ShellBaseSession::load_connection_data(const shcore::Argument_list &args)
         _port = tmp_port;
     }
     _schema = conn.get_schema();
-    _password = conn.get_password();
 
     _ssl_ca = conn.get_value_if_exists("ssl_ca");
     _ssl_cert = conn.get_value_if_exists("ssl_cert");

@@ -47,8 +47,10 @@ namespace shcore {
     Server = 1,
     User = 2,
     Port = 3,
-    Password = 4,
-    Schema = 5
+    Schema = 4,
+    Sslca = 5,
+    Sslcert = 6,
+    Sslkey = 7
   };
 
   class SHCORE_PUBLIC Connection_options
@@ -68,7 +70,6 @@ namespace shcore {
     std::string get_server() const  { return get_keyword_value(Server); }
     std::string get_user() const    { return get_keyword_value(User); }
     std::string get_port() const    { return get_keyword_value(Port); }
-    std::string get_password() const{ return get_keyword_value(Password); }
     std::string get_schema() const  { return get_keyword_value(Schema); }
 
     void set_connection_options(const std::string &conn_str);
@@ -77,7 +78,6 @@ namespace shcore {
     void set_server(const std::string &server)    { set_keyword_value(Server, server); }
     void set_user(const std::string &user)        { set_keyword_value(User, user); }
     void set_port(const std::string &port)        { set_keyword_value(Port, port); }
-    void set_password(const std::string &password){ set_keyword_value(Password, password); }
     void set_schema(const std::string &schema)    { set_keyword_value(Schema, schema); }
 
     typedef std::map<std::string, std::string> map_t;
@@ -107,7 +107,7 @@ namespace shcore {
     struct Keywords_table
     {
     private:
-      enum { MAX_KEYWORDS = 6 };
+      enum { MAX_KEYWORDS = 8 };
       std::string _keywords[MAX_KEYWORDS];
       typedef std::map<std::string, Connection_keywords> keywords_to_int_map;
       keywords_to_int_map _keywords_to_int;
@@ -127,8 +127,10 @@ namespace shcore {
         init_keyword("host", Server, false);
         init_keyword("dbUser", User, false);
         init_keyword("port", Port, true);
-        init_keyword("dbPassword", Password, true);
         init_keyword("schema", Schema, true);
+        init_keyword("ssl_ca", Sslca, true);
+        init_keyword("ssl_cert", Sslcert, true);
+        init_keyword("ssl_key", Sslkey, true);
       }
 
       std::string operator[](const int idx)
@@ -207,7 +209,6 @@ namespace shcore {
     void set_server(const std::string &uuid, const std::string &server)     { set_keyword_value(uuid, Server, server); }
     void set_user(const std::string &uuid, const std::string &user)         { set_keyword_value(uuid, User, user); }
     void set_port(const std::string &uuid, const std::string &port)         { set_keyword_value(uuid, Port, port); }
-    void set_password(const std::string &uuid, const std::string &password) { set_keyword_value(uuid, Password, password); }
     void set_schema(const std::string &uuid, const std::string &schema)     { set_keyword_value(uuid, Schema, schema); }
     void set_value(const std::string &uuid, const std::string &name, const std::string &value);
     void set_keyword_value(const std::string &uuid, Connection_keywords key, const std::string& value);
