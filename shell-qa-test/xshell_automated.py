@@ -5034,7 +5034,7 @@ class XShell_TestCases(unittest.TestCase):
   # Be aware to update the BigCreate_Classic, BigCreate_Node and BigCreate_Coll_Node files,
   # in order to create the required number of rows, based on the "pyRowsNum_Test" value
   # Py Create Non collections
-  @unittest.skip("To avoid execution 4_10_01_01, because of issue https://jira.oraclecorp.com/jira/browse/MYS-398")
+  # @unittest.skip("To avoid execution 4_10_01_01, because of issue https://jira.oraclecorp.com/jira/browse/MYS-398")
   def test_4_10_01_01(self):
      '''PY Exec Batch with huge data in Classic mode, Create and Insert:  --file= BigCreate_Classic.py'''
      init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
@@ -5044,7 +5044,6 @@ class XShell_TestCases(unittest.TestCase):
      if stdout.find(bytearray("Error","ascii"),0,len(stdin))> -1:
        self.assertEqual(stdin, 'PASS', str(stdout))
 
-  @unittest.skip("To avoid execution 4_10_01_02, because of issue https://jira.oraclecorp.com/jira/browse/MYS-398")
   def test_4_10_01_02(self):
      '''PY Exec Batch with huge data in Node mode, Create and Insert:  --file= BigCreate_Node.py'''
      init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
@@ -5055,7 +5054,6 @@ class XShell_TestCases(unittest.TestCase):
        self.assertEqual(stdin, 'PASS', str(stdout))
 
   # Py Create Collections
-  @unittest.skip("To avoid execution 4_10_01_03, because of issue https://jira.oraclecorp.com/jira/browse/MYS-398")
   def test_4_10_01_03(self):
      '''PY Exec Batch with huge data in Node mode, Create and Add:  --file= BigCreate_Coll_Node.py'''
      init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
@@ -5066,7 +5064,6 @@ class XShell_TestCases(unittest.TestCase):
        self.assertEqual(stdin, 'PASS', str(stdout))
 
   # Py Read Non collections
-  @unittest.skip("To avoid execution 4_10_01_04, because of issue https://jira.oraclecorp.com/jira/browse/MYS-398")
   def test_4_10_01_04(self):
      '''PY Exec a select with huge limit in Classic mode, Read'''
      pyRowsNum_Test = 1000
@@ -5079,7 +5076,6 @@ class XShell_TestCases(unittest.TestCase):
      results = exec_xshell_commands(init_command, x_cmds)
      self.assertEqual(results, 'PASS')
 
-  @unittest.skip("To avoid execution 4_10_01_05, because of issue https://jira.oraclecorp.com/jira/browse/MYS-398")
   def test_4_10_01_05(self):
      '''PY Exec a select with huge limit in Node mode, Read'''
      pyRowsNum_Test = 1000
@@ -5093,7 +5089,6 @@ class XShell_TestCases(unittest.TestCase):
      self.assertEqual(results, 'PASS')
 
   # Py Read Collections
-  @unittest.skip("To avoid execution 4_10_01_06, because of issue https://jira.oraclecorp.com/jira/browse/MYS-398")
   def test_4_10_01_06(self):
      '''PY Exec a select with huge limit in Node mode for collection, Read'''
      pyRowsNum_Test = 1000
@@ -5107,7 +5102,6 @@ class XShell_TestCases(unittest.TestCase):
      self.assertEqual(results, 'PASS')
 
   # Py Update Non collections
-  @unittest.skip("To avoid execution 4_10_01_07, because of issue https://jira.oraclecorp.com/jira/browse/MYS-398")
   def test_4_10_01_07(self):
      '''PY Exec an update clause to a huge number of rows in Classic mode, Update'''
      pyRowsNum_Test = 1000
@@ -5120,7 +5114,6 @@ class XShell_TestCases(unittest.TestCase):
      results = exec_xshell_commands(init_command, x_cmds)
      self.assertEqual(results, 'PASS')
 
-  @unittest.skip("To avoid execution 4_10_01_08, because of issue https://jira.oraclecorp.com/jira/browse/MYS-398")
   def test_4_10_01_08(self):
      '''PY Exec an update clause to huge number of rows in Node mode, Update'''
      pyRowsNum_Test = 1000
@@ -5135,7 +5128,6 @@ class XShell_TestCases(unittest.TestCase):
      self.assertEqual(results, 'PASS')
 
   # Py Update Collections
-  @unittest.skip("To avoid execution 4_10_01_09, because of issue https://jira.oraclecorp.com/jira/browse/MYS-398")
   def test_4_10_01_09(self):
       '''PY Exec an update clause to huge number of document rows in Node mode, using Set '''
       pyRowsNum_Test = 1000
@@ -5149,7 +5141,6 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
-  @unittest.skip("To avoid execution 4_10_01_10, because of issue https://jira.oraclecorp.com/jira/browse/MYS-398")
   def test_4_10_01_10(self):
       '''PY Exec an update clause to huge number of document rows in Node mode, using Unset '''
       pyRowsNum_Test = 1000
@@ -5163,7 +5154,6 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
-  @unittest.skip("To avoid execution 4_10_01_11, because of issue https://jira.oraclecorp.com/jira/browse/MYS-398")
   def test_4_10_01_11(self):
       '''PY Exec an update clause to huge number of document rows in Node mode, using Merge '''
       pyRowsNum_Test = 1000
@@ -5178,7 +5168,6 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
-  @unittest.skip("To avoid execution 4_10_01_12, because of issue https://jira.oraclecorp.com/jira/browse/MYS-398")
   def test_4_10_01_12(self):
       '''PY Exec an update clause to huge number of document rows in Node mode, using Array '''
       pyRowsNum_Test = 1000
@@ -5194,7 +5183,6 @@ class XShell_TestCases(unittest.TestCase):
       self.assertEqual(results, 'PASS')
 
   # Py Delete from Non collections
-  @unittest.skip("To avoid execution 4_10_01_13, because of issue https://jira.oraclecorp.com/jira/browse/MYS-398")
   def test_4_10_01_13(self):
       '''PY Exec a delete clause to huge number of rows in Classic mode, Delete '''
       pyRowsNum_Test = 1000
@@ -5208,7 +5196,6 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
-  @unittest.skip("To avoid execution 4_10_01_14, because of issue https://jira.oraclecorp.com/jira/browse/MYS-398")
   def test_4_10_01_14(self):
      '''PY Exec a delete clause to huge number of rows in Node mode, Delete'''
      pyRowsNum_Test = 1000
@@ -5222,7 +5209,6 @@ class XShell_TestCases(unittest.TestCase):
      self.assertEqual(results, 'PASS')
 
   # Py Delete from Collections
-  @unittest.skip("To avoid execution 4_10_01_15, because of issue https://jira.oraclecorp.com/jira/browse/MYS-398")
   def test_4_10_01_15(self):
       '''PY Exec a delete clause to huge number of document rows in Node mode, Delete'''
       pyRowsNum_Test = 1000
