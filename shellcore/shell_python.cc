@@ -92,6 +92,8 @@ void Shell_python::handle_input(std::string &code, Interactive_input_state &stat
  */
 std::string Shell_python::prompt()
 {
+  std::string ret_val = "mysql-py>";
+
   boost::system::error_code err;
   try
   {
@@ -99,29 +101,31 @@ std::string Shell_python::prompt()
     WillEnterPython lock;
     shcore::Value value = _py->execute_interactive("shell.ps() if 'ps' in dir(shell) else None", state);
     if (value && value.type == String)
-      return value.as_string();
+      ret_val = value.as_string();
+    else
+    {
+      Value session_wrapper = _py->get_global("session");
+
+      if (session_wrapper)
+      {
+        boost::shared_ptr<mysh::ShellBaseSession> session = session_wrapper.as_object<mysh::ShellBaseSession>();
+
+        if (session)
+        {
+          shcore::Value st = session->get_capability("node_type");
+
+          if (st)
+            ret_val = st.as_string() + "-py>";
+        }
+      }
+    }
   }
   catch (std::exception &exc)
   {
     _owner->print_error(std::string("Exception in PS ps function: ") + exc.what());
   }
 
-  std::string node_type = "mysql";
-  Value session_wrapper = _py->get_global("session");
-  if (session_wrapper)
-  {
-    boost::shared_ptr<mysh::ShellBaseSession> session = session_wrapper.as_object<mysh::ShellBaseSession>();
-
-    if (session)
-    {
-      shcore::Value st = session->get_capability("node_type");
-
-      if (st)
-        node_type = st.as_string();
-    }
-  }
-
-  return node_type + "-py> ";
+  return ret_val;
 }
 
 /*
