@@ -196,13 +196,13 @@ mySession.close()
 
 #@ Stored Sessions, session from data dictionary removed
 shell.storedSessions.remove('mysqlx_data')
-mySession = mysqlx.getSession(shell.storedSessions.mysqlx_data, __pwd)
+mySession = mysqlx.getSession(shell.storedSessions.mysqlx_data)
 
 
 #@ Stored Sessions, session from uri
 shell.storedSessions.add('mysqlx_uri', __uripwd)
 
-mySession = mysqlx.getSession(shell.storedSessions.mysqlx_uri)
+mySession = mysqlx.getSession(shell.storedSessions.mysqlx_uri, __pwd)
 
 print "%s\n" % mySession
 

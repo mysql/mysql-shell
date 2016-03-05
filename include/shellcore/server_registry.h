@@ -50,7 +50,8 @@ namespace shcore {
     Schema = 4,
     Sslca = 5,
     Sslcert = 6,
-    Sslkey = 7
+    Sslkey = 7,
+    Socket = 8
   };
 
   class SHCORE_PUBLIC Connection_options
@@ -107,7 +108,7 @@ namespace shcore {
     struct Keywords_table
     {
     private:
-      enum { MAX_KEYWORDS = 8 };
+      enum { MAX_KEYWORDS = 9 };
       std::string _keywords[MAX_KEYWORDS];
       typedef std::map<std::string, Connection_keywords> keywords_to_int_map;
       keywords_to_int_map _keywords_to_int;
@@ -131,6 +132,7 @@ namespace shcore {
         init_keyword("ssl_ca", Sslca, true);
         init_keyword("ssl_cert", Sslcert, true);
         init_keyword("ssl_key", Sslkey, true);
+        init_keyword("socket", Socket, true);
       }
 
       std::string operator[](const int idx)

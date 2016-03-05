@@ -194,7 +194,7 @@ mySession = mysqlx.getSession(shell.storedSessions.mysqlx_data, __pwd);
 //@ Stored Sessions, session from uri
 shell.storedSessions.add('mysqlx_uri', __uripwd);
 
-mySession = mysqlx.getSession(shell.storedSessions.mysqlx_uri);
+mySession = mysqlx.getSession(shell.storedSessions.mysqlx_uri, __pwd);
 
 print(mySession, '\n');
 

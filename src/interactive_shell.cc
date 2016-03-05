@@ -1311,6 +1311,7 @@ void Interactive_shell::print_cmd_line_helper()
   println("                           or user[:pass]@::socket[/db] .");
   println("  -h, --host=name          Connect to host.");
   println("  -P, --port=#             Port number to use for connection.");
+  println("  -S, --socket=sock        Socket name to use in UNIX, pipe name to use in Windows (only classic sessions).");
   println("  -u, --dbuser=name        User for the connection to the server.");
   println("  --user=name              An alias for dbuser.");
   println("  --dbpassword=name        Password to use when connecting to server");

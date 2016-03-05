@@ -144,7 +144,8 @@ namespace shcore
                               std::string &host, int &port, std::string &sock,
                               std::string &db, int &pwd_found, std::string& ssl_ca, std::string& ssl_cert, std::string& ssl_key)
   {
-    // format is [user[:pass]]@host[:port][/db] or user[:pass]@::socket[/db], like what cmdline utilities use
+    // 
+    // format is [dbuser[:dbpassword]@]host[:(port|socket)][/db] like what cmdline utilities use
     // with SSL [user[:pass]]@host[:port][/db]?ssl_ca=path_to_ca&ssl_cert=path_to_cert&ssl_key=path_to_key
     // with app name format is $app_name
     pwd_found = 0;
@@ -201,14 +202,28 @@ namespace shcore
     {
       host = server_part.substr(0, p);
       server_part = server_part.substr(p + 1);
-      p = server_part.find(':');
-      if (p != std::string::npos)
-        sock = server_part.substr(p + 1);
-      else
+      bool is_port = true;
+      for (int i = 0; i < server_part.size(); i++)
       {
-        std::string str_port = server_part.substr(0, p);
-        if (!sscanf(str_port.c_str(), "%i", &port))
-          throw Exception::argument_error((boost::format("Invalid value found for port component: %1%") % str_port).str());
+        char c = server_part[i];
+        if (c < '0' || c > '9')
+        {
+          is_port = false;
+          break;
+        }
+      }
+      if (is_port)
+      {
+        if (!sscanf(server_part.c_str(), "%i", &port))
+          throw Exception::argument_error((boost::format("Invalid value found for port component: %1%") % server_part).str());
+      }
+      else 
+      {
+        // A socket name in unix / pipe name in windows is similar to a filename path, can have non alphanumeric but no ':'
+        // we validate against them to check a common pitfall.
+        if (server_part.find(':') != std::string::npos)
+          throw Exception::argument_error((boost::format("the socket portion '%s' cannot have ':'") % server_part).str());
+        sock = server_part;
       }
     }
     else

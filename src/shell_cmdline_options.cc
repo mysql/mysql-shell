@@ -57,6 +57,7 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
   prompt_password = false;
   trace_protocol = false;
 
+  sock = "";
   port = 0;
   ssl = 0;
   int arg_format = 0;
@@ -86,6 +87,8 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
       user = value;
     else if (check_arg_with_value(argv, i, "--port", "-P", value))
       port = atoi(value);
+    else if (check_arg_with_value(argv, i, "--socket", "-S", value))
+      sock = value;
     else if (check_arg_with_value(argv, i, "--schema", "-D", value))
       schema = value;
     else if (check_arg_with_value(argv, i, "--database", NULL, value))

@@ -222,6 +222,9 @@ void ShellBaseSession::load_connection_data(const shcore::Argument_list &args)
     if (options->has_key("port"))
       _port = (*options)["port"].as_int();
 
+    if (options->has_key("socket"))
+      _sock = (*options)["socket"].as_string();
+
     if (options->has_key("schema"))
       _schema = (*options)["schema"].as_string();
 
@@ -249,13 +252,15 @@ void ShellBaseSession::load_connection_data(const shcore::Argument_list &args)
   if (2 == args.size())
     _password = args.string_at(1).c_str();
 
-  if (_port == 0)
+  if (_port == 0 && _sock.empty())
     _port = get_default_port();
 
+  std::string sock_port = (_port == 0) ? _sock : boost::lexical_cast<std::string>(_port);
+
   if (_schema.empty())
-    _uri = (boost::format("%1%@%2%:%3%") % _user % _host % _port).str();
+    _uri = (boost::format("%1%@%2%:%3%") % _user % _host % sock_port).str();
   else
-    _uri = (boost::format("%1%@%2%:%3%/%4%") % _user % _host % _port % _schema).str();
+    _uri = (boost::format("%1%@%2%:%3%/%4%") % _user % _host % sock_port % _schema).str();
 }
 
 bool ShellBaseSession::operator == (const Object_bridge &other) const

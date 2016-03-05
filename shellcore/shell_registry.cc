@@ -254,6 +254,9 @@ Value::Map_type_ref StoredSessions::fill_connection(const std::string& uri)
   if (!db.empty())
     (*connection_data)["schema"] = Value(db);
 
+  if (!sock.empty())
+    (*connection_data)["socket"] = Value(sock);
+
   if (!ssl_ca.empty())
     (*connection_data)["ssl_ca"] = Value(ssl_ca);
 

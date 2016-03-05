@@ -442,7 +442,8 @@ void Connection_options::parse()
     boost::trim(value);
 
     if (p_eq != std::string::npos)
-      operator[](key) = value;
+      if (Connection_options::get_keyword_id(key) != -1)
+        operator[](key) = value;
 
     p_start = p_i + 1;
 
