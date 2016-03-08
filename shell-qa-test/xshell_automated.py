@@ -85,7 +85,7 @@ def read_til_getShell(proc, fd, text):
     return "".join(data)
 
 
-@timeout(5)
+@timeout(15)
 def exec_xshell_commands(init_cmdLine, commandList):
     RESULTS = "PASS"
     commandbefore = ""
@@ -4838,6 +4838,150 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+  def test_examples_1_1(self):
+      '''[2.0.07]:3 Connect local Server on PY mode: APP SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full','--py']
+      x_cmds = [("import mysqlx\n","mysql-py>"),
+                ("session=mysqlx.getSession({'host': '" + LOCALHOST.host + "', 'dbUser': '"
+                 + LOCALHOST.user + "', 'port': " + LOCALHOST.xprotocol_port + ", 'dbPassword': '" + LOCALHOST.password + "'}).getSchema('sakila')\n", "mysql-py>"),
+                ("myTable = session.getTable('actor')\n", "mysql-py>"),
+                ("myTable.delete().where(\"first_name like 'testFN%'\").execute()\n", "Query OK"),
+                ("myTable.insert({ 'first_name': 'testFN', 'last_name':'testLN','last_update': '2006-02-15 04:34:33' }).execute()\n", "mysql-py>"),
+                ("myTable.insert({ 'first_name': 'testFN', 'last_name':'testLN','last_update': '2006-02-15 04:34:33' }).execute()\n", "mysql-py>"),
+                ("myTable.select().where('first_name =: name').bind('name','testFN').execute()\n", "2 rows in set"),
+                ("myTable.delete().where(\"first_name like 'testFN%'\").execute()\n", "Query OK"),
+                ("myTable.select().where('first_name =: name').bind('name','testFN').execute()\n", "Empty set"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_examples_1_2(self):
+      '''[2.0.07]:3 Connect local Server on PY mode: NODE SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full','--py']
+      x_cmds = [("import mysqlx\n","mysql-py>"),
+                ("session=mysqlx.getNodeSession({'host': '" + LOCALHOST.host + "', 'dbUser': '"
+                 + LOCALHOST.user + "', 'port': " + LOCALHOST.xprotocol_port + ", 'dbPassword': '" + LOCALHOST.password + "'}).getSchema('sakila')\n", "mysql-py>"),
+                ("myTable = session.getTable('actor')\n", "mysql-py>"),
+                ("myTable.delete().where(\"first_name like 'testFN%'\").execute()\n", "Query OK"),
+                ("myTable.insert({ 'first_name': 'testFN', 'last_name':'testLN','last_update': '2006-02-15 04:34:33' }).execute()\n", "mysql-py>"),
+                ("myTable.insert({ 'first_name': 'testFN', 'last_name':'testLN','last_update': '2006-02-15 04:34:33' }).execute()\n", "mysql-py>"),
+                ("myTable.select().where('first_name =: name').bind('name','testFN').execute()\n", "2 rows in set"),
+                ("myTable.delete().where(\"first_name like 'testFN%'\").execute()\n", "Query OK"),
+                ("myTable.select().where('first_name =: name').bind('name','testFN').execute()\n", "Empty set"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_examples_1_3(self):
+      '''[2.0.07]:3 Connect local Server on PY mode: APP SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full','--py']
+      x_cmds = [("import mysqlx\n","mysql-py>"),
+                ("session=mysqlx.getSession({'host': '" + LOCALHOST.host + "', 'dbUser': '"
+                 + LOCALHOST.user + "', 'port': " + LOCALHOST.xprotocol_port + ", 'dbPassword': '" + LOCALHOST.password + "'}).getSchema('sakila')\n", "mysql-py>"),
+                ("myTable = session.getTable('actor')\n", "mysql-py>"),
+                ("myTable.delete().where(\"first_name like 'testFN%'\").execute()\n", "Query OK"),
+                ("myTable.insert({ 'first_name': 'testFN', 'last_name':'testLN','last_update': '2006-02-15 04:34:33' }).execute()\n", "mysql-py>"),
+                ("myTable.insert({ 'first_name': 'testFN', 'last_name':'testLN','last_update': '2006-02-15 04:34:33' }).execute()\n", "mysql-py>"),
+                ("myTable.select().where('first_name like : name').bind('name','testFN').execute()\n", "2 rows in set"),
+                ("myTable.delete().where(\"first_name like 'testFN%'\").execute()\n", "Query OK"),
+                ("myTable.select().where('first_name =: name').bind('name','testFN').execute()\n", "Empty set"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_examples_1_4(self):
+      '''[2.0.07]:3 Connect local Server on PY mode: NODE SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full','--py']
+      x_cmds = [("import mysqlx\n","mysql-py>"),
+                ("session=mysqlx.getNodeSession({'host': '" + LOCALHOST.host + "', 'dbUser': '"
+                 + LOCALHOST.user + "', 'port': " + LOCALHOST.xprotocol_port + ", 'dbPassword': '" + LOCALHOST.password + "'}).getSchema('sakila')\n", "mysql-py>"),
+                ("myTable = session.getTable('actor')\n", "mysql-py>"),
+                ("myTable.delete().where(\"first_name like 'testFN%'\").execute()\n", "Query OK"),
+                ("myTable.insert({ 'first_name': 'testFN', 'last_name':'testLN','last_update': '2006-02-15 04:34:33' }).execute()\n", "mysql-py>"),
+                ("myTable.insert({ 'first_name': 'testFN', 'last_name':'testLN','last_update': '2006-02-15 04:34:33' }).execute()\n", "mysql-py>"),
+                ("myTable.select().where('first_name like : name').bind('name','testFN').execute()\n", "2 rows in set"),
+                ("myTable.delete().where(\"first_name like 'testFN%'\").execute()\n", "Query OK"),
+                ("myTable.select().where('first_name =: name').bind('name','testFN').execute()\n", "Empty set"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+
+  def test_examples_1_5(self):
+      '''[2.0.07]:3 Connect local Server on JS mode: APP SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full','--js']
+      x_cmds = [("var mysqlx=require('mysqlx').mysqlx;\n","mysql-js>"),
+                ("var session=mysqlx.getSession({'host': '" + LOCALHOST.host + "', 'dbUser': '"
+                 + LOCALHOST.user + "', 'port': " + LOCALHOST.xprotocol_port + ", 'dbPassword': '" + LOCALHOST.password + "'}).getSchema('sakila');\n", "mysql-js>"),
+                ("var myTable = session.getTable('actor');\n", "mysql-js>"),
+                ("myTable.delete().where(\"first_name like 'testFN%'\").execute();\n", "Query OK"),
+                ("myTable.insert({ 'first_name': 'testFN', 'last_name':'testLN','last_update': '2006-02-15 04:34:33' }).execute();\n", "mysql-js>"),
+                ("myTable.insert({ 'first_name': 'testFN', 'last_name':'testLN','last_update': '2006-02-15 04:34:33' }).execute();\n", "mysql-js>"),
+                ("myTable.select().where('first_name =: name').bind('name','testFN').execute();\n", "2 rows in set"),
+                ("myTable.delete().where(\"first_name like 'testFN%'\").execute();\n", "Query OK"),
+                ("myTable.select().where('first_name =: name').bind('name','testFN').execute();\n", "Empty set"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_examples_1_6(self):
+      '''[2.0.07]:3 Connect local Server on JS mode: NODE SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full','--js']
+      x_cmds = [("var mysqlx=require('mysqlx').mysqlx;\n","mysql-js>"),
+                ("var session=mysqlx.getNodeSession({'host': '" + LOCALHOST.host + "', 'dbUser': '"
+                 + LOCALHOST.user + "', 'port': " + LOCALHOST.xprotocol_port + ", 'dbPassword': '" + LOCALHOST.password + "'}).getSchema('sakila');\n", "mysql-js>"),
+                ("var myTable = session.getTable('actor');\n", "mysql-js>"),
+                ("myTable.delete().where(\"first_name like 'testFN%'\").execute();\n", "Query OK"),
+                ("myTable.insert({ 'first_name': 'testFN', 'last_name':'testLN','last_update': '2006-02-15 04:34:33' }).execute();\n", "mysql-js>"),
+                ("myTable.insert({ 'first_name': 'testFN', 'last_name':'testLN','last_update': '2006-02-15 04:34:33' }).execute();\n", "mysql-js>"),
+                ("myTable.select().where('first_name =: name').bind('name','testFN').execute();\n", "2 rows in set"),
+                ("myTable.delete().where(\"first_name like 'testFN%'\").execute();\n", "Query OK"),
+                ("myTable.select().where('first_name =: name').bind('name','testFN').execute();\n", "Empty set"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_examples_1_7(self):
+      '''[2.0.07]:3 Connect local Server on JS mode: APP SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full','--js']
+      x_cmds = [("var mysqlx=require('mysqlx').mysqlx;\n","mysql-js>"),
+                ("var session=mysqlx.getSession({'host': '" + LOCALHOST.host + "', 'dbUser': '"
+                 + LOCALHOST.user + "', 'port': " + LOCALHOST.xprotocol_port + ", 'dbPassword': '" + LOCALHOST.password + "'}).getSchema('sakila');\n", "mysql-js>"),
+                ("var myTable = session.getTable('actor');\n", "mysql-js>"),
+                ("myTable.delete().where(\"first_name like 'testFN%'\").execute();\n", "Query OK"),
+                ("myTable.insert({ 'first_name': 'testFN', 'last_name':'testLN','last_update': '2006-02-15 04:34:33' }).execute();\n", "mysql-js>"),
+                ("myTable.insert({ 'first_name': 'testFN', 'last_name':'testLN','last_update': '2006-02-15 04:34:33' }).execute();\n", "mysql-js>"),
+                ("myTable.select().where('first_name  like : name').bind('name','testFN').execute();\n", "2 rows in set"),
+                ("myTable.delete().where(\"first_name like 'testFN%'\").execute();\n", "Query OK"),
+                ("myTable.select().where('first_name =: name').bind('name','testFN').execute();\n", "Empty set"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_examples_1_8(self):
+      '''[2.0.07]:3 Connect local Server on JS mode: NODE SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full','--js']
+      x_cmds = [("var mysqlx=require('mysqlx').mysqlx;\n","mysql-js>"),
+                ("var session=mysqlx.getNodeSession({'host': '" + LOCALHOST.host + "', 'dbUser': '"
+                 + LOCALHOST.user + "', 'port': " + LOCALHOST.xprotocol_port + ", 'dbPassword': '" + LOCALHOST.password + "'}).getSchema('sakila');\n", "mysql-js>"),
+                ("var myTable = session.getTable('actor');\n", "mysql-js>"),
+                ("myTable.delete().where(\"first_name like 'testFN%'\").execute();\n", "Query OK"),
+                ("myTable.insert({ 'first_name': 'testFN', 'last_name':'testLN','last_update': '2006-02-15 04:34:33' }).execute();\n", "mysql-js>"),
+                ("myTable.insert({ 'first_name': 'testFN', 'last_name':'testLN','last_update': '2006-02-15 04:34:33' }).execute();\n", "mysql-js>"),
+                ("myTable.select().where('first_name like : name').bind('name','testFN').execute();\n", "2 rows in set"),
+                ("myTable.delete().where(\"first_name like 'testFN%'\").execute();\n", "Query OK"),
+                ("myTable.select().where('first_name =: name').bind('name','testFN').execute();\n", "Empty set"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
 
   # Javascript based with Big Data
   # Be aware to update the BigCreate_Classic, BigCreate_Node and BigCreate_Coll_Node files,
