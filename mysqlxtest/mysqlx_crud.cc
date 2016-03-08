@@ -993,11 +993,20 @@ Insert_Values &Insert_Values::values(const std::vector<TableValue> &row_data)
 
   for (index = row_data.begin(); index != end; index++)
   {
-    Mysqlx::Expr::Expr* expr = new Mysqlx::Expr::Expr();
-    expr->set_type(Mysqlx::Expr::Expr::LITERAL);
-    Mysqlx::Datatypes::Scalar* scalar = convert_table_value(*index);
-    expr->set_allocated_literal(scalar);
-    row->mutable_field()->AddAllocated(expr);
+    if (index->type() == TableValue::TExpression)
+    {
+      TableValue expression(*index);
+      Expr_parser parser(expression, false, false, &m_placeholders);
+      row->mutable_field()->AddAllocated(parser.expr());
+    }
+    else
+    {
+      Mysqlx::Expr::Expr* expr = new Mysqlx::Expr::Expr();
+      expr->set_type(Mysqlx::Expr::Expr::LITERAL);
+      Mysqlx::Datatypes::Scalar* scalar = convert_table_value(*index);
+      expr->set_allocated_literal(scalar);
+      row->mutable_field()->AddAllocated(expr);
+    }
   }
 
   return *this;

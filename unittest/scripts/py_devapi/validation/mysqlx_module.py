@@ -1,36 +1,11 @@
 #@ mysqlx module: exports
-|Exported Items: 23|
+|Exported Items: 5|
 |getSession: <type 'builtin_function_or_method'>|
 |getNodeSession: <type 'builtin_function_or_method'>|
 |expr: <type 'builtin_function_or_method'>|
-|Blob: <type 'builtin_function_or_method'>|
-|Text: <type 'builtin_function_or_method'>|
-|Decimal: <type 'builtin_function_or_method'>|
-|Numeric: <type 'builtin_function_or_method'>|
-|<DataTypes.TinyInt>|
-|<DataTypes.SmallInt>|
-|<DataTypes.MediumInt>|
-|<DataTypes.Int>|
-|<DataTypes.Integer>|
-|<DataTypes.BigInt>|
-|<DataTypes.Real>|
-|<DataTypes.Float>|
-|<DataTypes.Double>|
-|<DataTypes.Date>|
-|<DataTypes.Time>|
-|<DataTypes.Timestamp>|
-|<DataTypes.DateTime>|
-|<DataTypes.Year>|
-|<DataTypes.Bit>|
-|<DataTypes.Blob(10)>|
-|<DataTypes.Text(10)>|
-|<IndexTypes.IndexUnique>|
-|<DataTypes.Decimal>|
-|<DataTypes.Decimal(10)>|
-|<DataTypes.Decimal(10,3)>|
-|<DataTypes.Numeric>|
-|<DataTypes.Numeric(10)>|
-|<DataTypes.Numeric(10,3)>|
+|Type: <mysqlx.Type>|
+|IndexType: <mysqlx.IndexType>|
+
 
 #@ mysqlx module: getSession through URI
 |<XSession:|

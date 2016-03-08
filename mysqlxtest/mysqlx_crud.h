@@ -104,7 +104,7 @@ namespace mysqlx
     {
       m_type = other.m_type;
       m_value = other.m_value;
-      if (m_type == TString || m_type == TOctets)
+      if (m_type == TString || m_type == TOctets || m_type == TExpression)
         m_value.s = new std::string(*other.m_value.s);
     }
 
@@ -230,7 +230,7 @@ namespace mysqlx
     {
       m_type = TNull;
     }
-    
+
     DocumentValue(const DocumentValue &other)
     {
       m_type = other.m_type;
@@ -276,7 +276,7 @@ namespace mysqlx
     {
       if (m_type == TDocument)
         delete m_value.d;
-      else if (m_type == TString || m_type == TExpression || m_type == TExpression)
+      else if (m_type == TString || m_type == TExpression || m_type == TArray)
         delete m_value.s;
     }
 

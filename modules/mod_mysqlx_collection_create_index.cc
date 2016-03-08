@@ -21,7 +21,7 @@
 #include "mod_mysqlx_collection.h"
 #include "mod_mysqlx_resultset.h"
 #include "mod_mysqlx_session.h"
-#include "mod_mysqlx_constant.h"
+#include "base_constants.h"
 #include "uuid_gen.h"
 #include "mysqlx_parser.h"
 
@@ -33,7 +33,7 @@ using namespace mysh::mysqlx;
 using namespace shcore;
 
 CollectionCreateIndex::CollectionCreateIndex(boost::shared_ptr<Collection> owner)
-:_owner(owner)
+  :_owner(owner)
 {
   // Exposes the methods available for chaining
   add_method("createIndex", boost::bind(&CollectionCreateIndex::create_index, this, _1), "data");
@@ -82,12 +82,12 @@ shcore::Value CollectionCreateIndex::create_index(const shcore::Argument_list &a
       if (args[1].type == shcore::Object)
       {
         boost::shared_ptr <Constant> constant = boost::dynamic_pointer_cast<Constant>(args.object_at(1));
-        if (constant && constant->group() == "IndexTypes")
+        if (constant && constant->group() == "IndexType")
             unique = constant->data();
       }
 
       if (!unique)
-        throw shcore::Exception::argument_error("Argument #2 is expected to be mysqlx.IndexUnique");
+        throw shcore::Exception::argument_error("Argument #2 is expected to be mysqlx.IndexType.Unique");
     }
     else
       unique = Value::False();
@@ -133,29 +133,13 @@ shcore::Value CollectionCreateIndex::field(const shcore::Argument_list &args)
   {
     // Data Type Validation
     std::string path = args.string_at(0);
-
-    // This parsing is required to validate the fiven document path
-    //Mysqlx::Expr::Expr *docpath = ::mysqlx::parser::parse_column_identifier(path);
-
-    //::mysqlx::Expr_unparser unparser;
-    //std::string doc_path = unparser.expr_to_string(*docpath);
-
-    Value data;
-    if (args[1].type == shcore::Object)
-    {
-      boost::shared_ptr <Constant> constant = boost::dynamic_pointer_cast<Constant>(args.object_at(1));
-      if (constant && constant->group() == "DataTypes")
-        data = constant->data();
-    }
-
-    if (!data)
-      throw shcore::Exception::argument_error("Argument #2 is expected to be a Data Type constant");
+    std::string type = args.string_at(1);
 
     // Validates the data type
     args.bool_at(2);
 
     _create_index_args.push_back(Value("$." + path));
-    _create_index_args.push_back(data);
+    _create_index_args.push_back(args[1]);
     _create_index_args.push_back(args[2]);
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionCreateIndex.field");

@@ -139,4 +139,14 @@ namespace shcore
   {
     validate_interactive("mysqlx_resultset.py");
   }
+
+  TEST_F(Shell_py_mysqlx_tests, mysqlx_constants)
+  {
+    validate_interactive("mysqlx_constants.py");
+  }
+
+  TEST_F(Shell_py_mysqlx_tests, mysqlx_column_metadata)
+  {
+    validate_interactive("mysqlx_column_metadata.py");
+  }
 }

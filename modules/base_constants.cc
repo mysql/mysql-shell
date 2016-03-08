@@ -17,13 +17,14 @@
  * 02110-1301  USA
  */
 
+#include "base_constants.h"
+#include "shellcore/object_factory.h"
+
 #ifdef __clang__
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wunused-private-field"
 #endif
 
-#include "mod_mysqlx_constant.h"
-#include "shellcore/object_factory.h"
 #include <boost/algorithm/string.hpp>
 
 #ifdef __clang__
@@ -31,14 +32,14 @@
 #endif
 
 using namespace shcore;
-using namespace mysh::mysqlx;
+using namespace mysh;
 
-std::map<std::string, boost::shared_ptr<Constant> > Constant::_constants;
+std::map<std::string, Constant::Module_constants> Constant::_constants;
 
-Constant::Constant(const std::string &group, const std::string &id, const std::vector<shcore::Value> *params) :
-_group(group), _id(id)
+Constant::Constant(const std::string& module, const std::string& group, const std::string& id, const shcore::Argument_list &args) :
+_module(module), _group(group), _id(id)
 {
-  _data = get_constant_value(_group, _id, params);
+  _data = get_constant_value(_module, _group, _id, args);
 }
 
 std::vector<std::string> Constant::get_members() const
@@ -66,140 +67,123 @@ bool Constant::operator == (const Object_bridge &other) const
   return class_name() == other.class_name() && this == &other;
 }
 
+Value Constant::get_constant(const std::string &module, const std::string& group, const std::string& id, const shcore::Argument_list &args)
+{
+  Value ret_val;
+
+  if (_constants.find(module) != _constants.end())
+  {
+    if (_constants.at(module).find(group) != _constants.at(module).end())
+    {
+      if (_constants.at(module).at(group).find(id) != _constants.at(module).at(group).end())
+        ret_val = shcore::Value(boost::static_pointer_cast<shcore::Object_bridge>(_constants.at(module).at(group).at(id)));
+    }
+  }
+
+  if (!ret_val)
+  {
+    boost::shared_ptr<Constant> constant(new Constant(module, group, id, args));
+
+    if (_constants.find(module) == _constants.end())
+      _constants.insert({ module, {} });
+
+    if (_constants.at(module).find(group) == _constants.at(module).end())
+      _constants.at(module).insert({ group, {} });
+
+    if (_constants.at(module).at(group).find(id) == _constants.at(module).at(group).end())
+      _constants.at(module).at(group).insert({ id, boost::shared_ptr<Constant>(constant) });
+
+    ret_val = shcore::Value(boost::static_pointer_cast<shcore::Object_bridge>(constant));
+  }
+
+  return ret_val;
+}
+
 // Retrieves the internal constant value based on a Group and ID
 // An exception is produced if invalid group.id data is provided
 // But this should not happen as it is used internally only
-Value Constant::get_constant_value(const std::string& group, const std::string& id, const std::vector<shcore::Value> *params)
+Value Constant::get_constant_value(const std::string &module, const std::string& group, const std::string& id, const shcore::Argument_list &args)
 {
   Value ret_val;
 
   // By default all is OK if there are NO params
   // Only varchar, char and decimal will allow params
-  
+
   size_t param_count = 0;
 
-  if (params)
-    param_count = params->size();
+  param_count = args.size();
 
-  if (group == "DataTypes")
+  if (module == "mysqlx")
   {
-    if (id == "TinyInt"){ ret_val = Value("TINYINT"); }
-    else if (id == "SmallInt"){ ret_val = Value("SMALLINT"); }
-    else if (id == "MediumInt"){ ret_val = Value("MEDIUMINT"); }
-    else if (id == "Int"){ ret_val = Value("INT"); }
-    else if (id == "Integer"){ ret_val = Value("INTEGER"); }
-    else if (id == "BigInt"){ ret_val = Value("BIGINT"); }
-    else if (id == "Real"){ ret_val = Value("REAL"); }
-    else if (id == "Float"){ ret_val = Value("FLOAT"); }
-    else if (id == "Double"){ ret_val = Value("DOUBLE"); }
-    else if (id == "Decimal" || id == "Numeric")
+    if (group == "Type")
     {
-      std::string data = id == "Decimal" ? "DECIMAL" : "NUMERIC";
+      if (id == "Bit"){ ret_val = Value("BIT"); }
+      else if (id == "TinyInt"){ ret_val = Value("TINYINT"); }
+      else if (id == "SmallInt"){ ret_val = Value("SMALLINT"); }
+      else if (id == "MediumInt"){ ret_val = Value("MEDIUMINT"); }
+      else if (id == "Int"){ ret_val = Value("INT"); }
+      else if (id == "BigInt"){ ret_val = Value("BIGINT"); }
+      else if (id == "Float"){ ret_val = Value("FLOAT"); }
+      else if (id == "Decimal"){ ret_val = Value("DECIMAL"); }
+      else if (id == "Double"){ ret_val = Value("DOUBLE"); }
+      // Commenting this, could be useful when we change all the constats to function calls
+      // On MySQL 8 S II
+      //       else if (id == "Decimal" || id == "Numeric")
+      //       {
+      // 	std::string data = id == "Decimal" ? "DECIMAL" : "NUMERIC";
+      //
+      // 	bool error = false;
+      // 	if (param_count)
+      // 	{
+      // 	  if (param_count <= 2)
+      // 	  {
+      // 	    if (args.at(0).type == shcore::Integer)
+      // 	      data += "(" + args.at(0).descr(false);
+      // 	    else
+      // 	      error = true;
+      //
+      // 	    if (param_count == 2)
+      // 	    {
+      // 	      if (args.at(1).type == shcore::Integer)
+      // 		data += "," + args.at(1).descr(false);
+      // 	      else
+      // 		error = true;
+      // 	    }
+      // 	  }
+      // 	  else
+      // 	    error = true;
+      //
+      // 	  if (error)
+      // 	    throw shcore::Exception::argument_error("Type.Decimal allows up to two numeric parameters precision and scale");
+      //
+      // 	  data += ")";
+      // 	}
+      // 	ret_val = Value(data);
+      //       }
 
-      bool error = false;
-      if (param_count)
-      {
-        if (param_count <= 2)
-        {
-          if (params->at(0).type == shcore::Integer)
-            data += "(" + params->at(0).descr(false);
-          else
-            error = true;
-
-          if (param_count == 2)
-          {
-            if (params->at(1).type == shcore::Integer)
-              data += "," + params->at(1).descr(false);
-            else
-              error = true;
-          }
-        }
-        else
-          error = true;
-
-        if (error)
-          throw shcore::Exception::argument_error("DataTypes.Decimal allows up to two numeric parameters precision and scale");
-
-        data += ")";
-      }
-      ret_val = Value(data);
+      // These are new
+      else if (id == "Json"){ ret_val = Value("JSON"); }
+      else if (id == "String"){ ret_val = Value("STRING"); }
+      else if (id == "Bytes"){ ret_val = Value("BYTES"); }
+      else if (id == "Time"){ ret_val = Value("TIME"); }
+      else if (id == "Date"){ ret_val = Value("DATE"); }
+      else if (id == "DateTime"){ ret_val = Value("DATETIME"); }
+      else if (id == "Timestamp"){ ret_val = Value("TIMESTAMP"); }
+      else if (id == "Set"){ ret_val = Value("SET"); }
+      else if (id == "Enum"){ ret_val = Value("ENUM"); }
+      else if (id == "Geometry"){ ret_val = Value("GEOMETRY"); }
     }
-    else if (id == "Date"){ ret_val = Value("DATE"); }
-    else if (id == "Time"){ ret_val = Value("TIME"); }
-    else if (id == "Timestamp"){ ret_val = Value("TIMESTAMP"); }
-    else if (id == "DateTime"){ ret_val = Value("DATETIME"); }
-    else if (id == "Year"){ ret_val = Value("YEAR"); }
-    else if (id == "Text" || id == "Blob")
+    else if (group == "IndexType")
     {
-      std::string data = id == "Text" ? "TEXT" : "BLOB";
-
-      if (param_count)
-      {
-        if (param_count == 1 && params->at(0).type == shcore::Integer)
-          data += "(" + params->at(0).descr(false) + ")";
-        else
-          throw shcore::Exception::argument_error("DataTypes." + id + " only allows a numeric parameter for length");
-      }
-      ret_val = Value(data);
+      if (id == "Unique"){ ret_val = Value::True(); }
     }
-    else if (id == "Bit"){ ret_val = Value("BIT"); }
-  }
-  else if (group == "IndexTypes")
-  {
-    if (id == "IndexUnique"){ ret_val = Value::True(); }
+    else
+      throw shcore::Exception::logic_error("Invalid group on constant definition:" + group + "." + id);
   }
   else
-    throw shcore::Exception::logic_error("Invalid group onconstant definition:" + group + "." + id);
-
-  if (!ret_val)
-    throw shcore::Exception::logic_error("Invalid id on constant definition:" + group + "." + id);
+    throw shcore::Exception::logic_error("Invalid module on constant definition:" + group + "." + id);
 
   return ret_val;
-}
-
-boost::shared_ptr<shcore::Object_bridge> Constant::create(const shcore::Argument_list &args)
-{
-  args.ensure_count(2, 4, "mysqlx.Constant");
-
-  boost::shared_ptr<shcore::Object_bridge> ret_val;
-
-  std::string group;
-  std::string param_id;
-
-  try
-  {
-    group = args.string_at(0);
-
-    std::vector<shcore::Value> params;
-    for (size_t index = 2; index < args.size(); index++)
-    {
-      param_id += "_" + args[index].descr(false);
-      params.push_back(args[index]);
-    }
-
-    ret_val = create(args.string_at(0), args.string_at(1), param_id, &params);
-  }
-  catch (shcore::Exception &e)
-  {
-    std::string error = e.what();
-    throw shcore::Exception::argument_error("mysqlx.Constant: " + error);
-  }
-
-  return ret_val;
-}
-
-boost::shared_ptr<shcore::Object_bridge> Constant::create(const std::string& group, const std::string &id, const std::string &param_id, const std::vector<shcore::Value> *params)
-{
-  std::string key = group + "." + id + param_id;
-
-  if (_constants.find(key) == _constants.end())
-  {
-    boost::shared_ptr<Constant> constant(new Constant(group, id, params));
-
-    _constants[key] = constant;
-  }
-
-  return _constants[key];
 }
 
 std::string &Constant::append_descr(std::string &s_out, int UNUSED(indent), int UNUSED(quote_strings)) const

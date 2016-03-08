@@ -22,7 +22,7 @@
 #include "mod_mysqlx_schema.h"
 #include "mod_mysqlx_resultset.h"
 #include "mod_mysqlx_expression.h"
-#include "mod_mysqlx_constant.h"
+#include "mod_mysqlx_constants.h"
 #include "shellcore/object_factory.h"
 #include "shellcore/shell_core.h"
 #include "shellcore/lang_base.h"
@@ -62,7 +62,8 @@ using namespace mysh::mysqlx;
 REGISTER_OBJECT(mysqlx, XSession);
 REGISTER_OBJECT(mysqlx, NodeSession);
 REGISTER_OBJECT(mysqlx, Expression);
-REGISTER_OBJECT(mysqlx, Constant);
+REGISTER_OBJECT(mysqlx, Type);
+REGISTER_OBJECT(mysqlx, IndexType);
 
 #include <set>
 

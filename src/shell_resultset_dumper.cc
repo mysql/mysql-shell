@@ -242,7 +242,7 @@ void ResultsetDumper::dump_tabbed(shcore::Value::Array_type_ref records)
   for (index = 0; index < field_count; index++)
   {
     boost::shared_ptr<mysh::Column> column = boost::static_pointer_cast<mysh::Column>(metadata->at(index).as_object());
-    shcore::print(column->get_name());
+    shcore::print(column->get_column_label());
     shcore::print(index < (field_count - 1) ? "\t" : "\n");
   }
 
@@ -274,12 +274,11 @@ void ResultsetDumper::dump_table(shcore::Value::Array_type_ref records)
   {
     boost::shared_ptr<mysh::Column> column = boost::static_pointer_cast<mysh::Column>(metadata->at(field_index).as_object());
 
-    column_names.push_back(column->get_name());
+    column_names.push_back(column->get_column_label());
     numerics.push_back(column->is_numeric());
 
     max_lengths.push_back(0);
-    max_lengths[field_index] = std::max<uint64_t>(max_lengths[field_index], column->get_name().length());
-    max_lengths[field_index] = std::max<uint64_t>(max_lengths[field_index], column->get_max_length());
+    max_lengths[field_index] = std::max<uint64_t>(max_lengths[field_index], column->get_column_label().length());
   }
 
   // Now updates the length with the real column data lengths

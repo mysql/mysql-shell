@@ -81,35 +81,43 @@ namespace MySqlX
   public ref class Column
   {
   public:
-    Column(String^ catalog, String^ db, String^ table, String^ orig_table, String^ name, String^ orig_name,
-           UInt64^ collation, UInt64^ length, UInt64^ type, UInt64^ flags) : _catalog(catalog), _db(db), _table(table), _orig_table(orig_table), _name(name), _orig_name(orig_name),
-           _collation(collation), _length(length), _type(type), _flags(flags){ }
+    Column(String^ db, String^ table, String^ orig_table, String^ name, String^ orig_name,
+           UInt64^ length, String^ type, UInt64^ fractional, Boolean^ is_signed, String^ collation, String^ charset, Boolean^ padded) :
+           _db(db), _table(table), _orig_table(orig_table), _name(name), _orig_name(orig_name),
+           _length(length), _type(type), _fractional_digits(fractional), _signed(is_signed), _collation(collation),
+           _charset(charset), _padded(padded){ }
 
     !Column() { }
     ~Column() { }
 
-    String^ GetCatalog() { return _catalog; }
-    String^ GetDb() { return _db; }
-    String^ GetTable() { return _table; }
-    String^ GetOrigTable() { return _orig_table; }
-    String^ GetName() { return _name; }
-    String^ GetOrigName() { return _orig_name; }
-    UInt64^ GetCollation() { return _collation; }
+    String^ GetSchemaName() { return _db; }
+    String^ GetTableLabel() { return _table; }
+    String^ GetTableName() { return _orig_table; }
+    String^ GetColumnLabel() { return _name; }
+    String^ GetColumnName() { return _orig_name; }
     UInt64^ GetLength() { return _length; }
-    UInt64^ GetType() { return _type; }
-    UInt64^ GetFlags() { return _flags; }
+    String^ GetType() { return _type; }
+    UInt64^ GetFractionalDigits() { return _fractional_digits; }
+    Boolean^ IsNumberSigned() { return _signed; }
+    String ^ GetCollationName() { return _collation; }
+    String ^ GetCharsetName() { return _charset; }
+    Boolean^ IsPadded() { return _padded; }
   private:
-    String^ _catalog;
     String^ _db;
     String^ _table;
     String^ _orig_table;
     String^ _name;
     String^ _orig_name;
-    UInt64^ _collation;
     UInt64^ _length;
-    /* This is the enum enum_field_types from mysql_com.h  */
-    UInt64^ _type;
-    UInt64^ _flags;
+    /* This is a string in the form of <Group.Constant>  */
+    /* Available values include Type.XXX as defined in: */
+    /* http://home.no.oracle.com/~jkneschk/devapi/internal/specifications/MY-130-spec.html */
+    String^ _type;
+    UInt64^ _fractional_digits;
+    Boolean^ _signed;
+    String^ _collation;
+    String^ _charset;
+    Boolean^ _padded;
   };
 
   public ref class RowResult : public BaseResult

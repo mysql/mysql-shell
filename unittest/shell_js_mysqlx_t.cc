@@ -139,4 +139,9 @@ namespace shcore
   {
     validate_interactive("mysqlx_resultset.js");
   }
+
+  TEST_F(Shell_js_mysqlx_tests, mysqlx_column_metadata)
+  {
+    validate_interactive("mysqlx_column_metadata.js");
+  }
 }

@@ -18,7 +18,7 @@ var create_index = collection.createIndex('_name');
 validate_crud_functions(create_index, ['field']);
 
 //@ CollectionAdd: valid operations after field
-create_index.field('name', mysqlx.Text(50), true);
+create_index.field('name', "TEXT(50)", true);
 validate_crud_functions(create_index, ['field', 'execute']);
 
 //@ CollectionAdd: valid operations after execute
@@ -32,15 +32,15 @@ validate_crud_functions(create_index, []);
 create_index = collection.createIndex();
 create_index = collection.createIndex(5);
 create_index = collection.createIndex('_sample', 5);
-create_index = collection.createIndex('_sample', mysqlx.Integer(60))
-create_index = collection.createIndex('_sample', mysqlx.IndexUnique)
+create_index = collection.createIndex('_sample', mysqlx.Type.String)
+create_index = collection.createIndex('_sample', mysqlx.IndexType.Unique)
 
 //@# Error conditions on field
 create_index.field();
 create_index.field(6, 6, 6);
 create_index.field('other', 6, 6);
-create_index.field('other', mysqlx.Integer, 6);
-create_index.field('other', mysqlx.Integer, true);
+create_index.field('other', "INTEGER", 6);
+create_index.field('other', "INTEGER", true);
 mySession.dropCollection('js_shell_test', 'collection1');
 
 // -----------------------------------
@@ -53,7 +53,7 @@ schema = mySession.createSchema('js_shell_test');
 // Creates a test collection and inserts data into it
 collection = schema.createCollection('collection1');
 
-var result = collection.createIndex('_name').field('name', mysqlx.Text(50), true).execute();
+var result = collection.createIndex('_name').field('name', "TEXT(50)", true).execute();
 
 var result = collection.add({ name: 'John', last_name: 'Carter', age: 17 }).execute();
 var result = collection.add({ name: 'John', last_name: 'Doe', age: 18 }).execute();
@@ -65,18 +65,18 @@ print('John Records:', records.length);
 var result = collection.add({ alias: 'Rock', last_name: 'Doe', age: 19 }).execute();
 
 //@ ERROR: attempt to create an index with the same name
-var result = collection.createIndex('_name').field('alias', mysqlx.Text(50), true).execute();
+var result = collection.createIndex('_name').field('alias', "TEXT(50)", true).execute();
 
 //@ ERROR: Attempt to create unique index when records already duplicate the key field
 var result = collection.dropIndex('_name').execute();
-var result = collection.createIndex('_name', mysqlx.IndexUnique).field('name', mysqlx.Text(50), true).execute();
+var result = collection.createIndex('_name', mysqlx.IndexType.Unique).field('name', "TEXT(50)", true).execute();
 
 //@ ERROR: Attempt to create unique index when records are missing the key field
-var result = collection.createIndex('_alias', mysqlx.IndexUnique).field('alias', mysqlx.Text(50), true).execute();
+var result = collection.createIndex('_alias', mysqlx.IndexType.Unique).field('alias', "TEXT(50)", true).execute();
 
 //@ Unique index: creation with required field
 var result = collection.remove().execute();
-var result = collection.createIndex('_name', mysqlx.IndexUnique).field('name', mysqlx.Text(50), true).execute();
+var result = collection.createIndex('_name', mysqlx.IndexType.Unique).field('name', "TEXT(50)", true).execute();
 var result = collection.add({ name: 'John', last_name: 'Carter', age: 17 }).execute();
 var result = collection.add({ name: 'John', last_name: 'Doe', age: 18 }).execute();
 

@@ -45,11 +45,25 @@ namespace mysh
     virtual bool seek(size_t dataset, size_t record){ return false; }
   };
 
+  class SHCORE_PUBLIC Charset
+  {
+  private:
+    typedef struct
+    {
+      uint32_t id;
+      std::string name;
+      std::string collation;
+    } Charset_entry;
+
+  public:
+    static const Charset_entry item[];
+  };
+
   class SHCORE_PUBLIC Column : public shcore::Cpp_object_bridge
   {
   public:
-    Column(const std::string& catalog, const std::string& schema, const std::string& table, const std::string& org_table, const std::string& name,
-           const std::string& org_name, uint64_t collation, uint64_t length, uint64_t type, uint64_t flags, uint64_t max_length, bool _numeric);
+    Column(const std::string& schema, const std::string& org_table, const std::string& table, const std::string& org_name, const std::string& name,
+           shcore::Value type, uint64_t length, bool numeric, uint64_t fractional, bool is_signed, const std::string &collation, const std::string &charset, bool padded);
 
     virtual bool operator == (const Object_bridge &other) const;
     virtual std::string class_name() const { return "Column"; }
@@ -58,31 +72,37 @@ namespace mysh
     virtual std::vector<std::string> get_members() const;
     virtual shcore::Value get_member(const std::string &prop) const;
 
-    std::string get_catalog(){ return _catalog; }
-    std::string get_schema(){ return _schema; }
-    std::string get_table_name(){ return _table; }
-    std::string get_original_table_name(){ return _org_table; }
-    std::string get_name(){ return _name; }
-    std::string get_original_name(){ return _org_name; }
-    uint64_t get_collation(){ return _collation; }
-    uint64_t get_length(){ return _length; }
-    uint64_t get_type(){ return _type; }
-    uint64_t get_flags(){ return _flags; }
-    uint64_t get_max_length(){ return _max_length; }
+    // Shell Specific for internal use
     bool is_numeric(){ return _numeric; }
 
+    std::string get_schema_name(){ return _schema; }
+    std::string get_table_name(){ return _table_name; }
+    std::string get_table_label(){ return _table_label; }
+    std::string get_column_name(){ return _column_name; }
+    std::string get_column_label(){ return _column_label; }
+
+    shcore::Value get_type(){ return _type; }
+    uint64_t get_length(){ return _length; }
+
+    uint64_t get_fractional_digits(){ return _fractional; }
+    bool is_number_signed() { return _signed; }
+    std::string get_collation_name() { return _collation; }
+    std::string get_character_set_name() { return _charset; }
+    bool is_padded() { return _padded; }
+
   private:
-    std::string _catalog;
     std::string _schema;
-    std::string _table;
-    std::string _org_table;
-    std::string _name;
-    std::string _org_name;
-    uint64_t _collation;
+    std::string _table_name;
+    std::string _table_label;
+    std::string _column_name;
+    std::string _column_label;
+    std::string _collation;
+    std::string _charset;
     uint64_t _length;
-    uint64_t _type;
-    uint64_t _flags;
-    uint64_t _max_length;
+    shcore::Value _type;
+    uint64_t _fractional;
+    bool _signed;
+    bool _padded;
     bool _numeric;
   };
 

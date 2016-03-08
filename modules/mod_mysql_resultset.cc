@@ -287,18 +287,20 @@ shcore::Value ClassicResult::get_member(const std::string &prop) const
     {
       bool numeric = IS_NUM(metadata[i].type());
       boost::shared_ptr<mysh::Column> column(new mysh::Column(
-        metadata[i].catalog(),
         metadata[i].db(),
-        metadata[i].table(),
         metadata[i].org_table(),
-        metadata[i].name(),
+        metadata[i].table(),
         metadata[i].org_name(),
-        metadata[i].charset(),
+        metadata[i].name(),
+	shcore::Value(), //type
         metadata[i].length(),
-        metadata[i].type(),
-        metadata[i].flags(),
-        metadata[i].max_length(),
-        numeric));
+	numeric,
+	metadata[i].decimals(),
+	false, // signed
+	Charset::item[metadata[i].charset()].collation,
+	Charset::item[metadata[i].charset()].name,
+        false //padded
+      ));
 
       array->push_back(shcore::Value(boost::static_pointer_cast<Object_bridge>(column)));
     }

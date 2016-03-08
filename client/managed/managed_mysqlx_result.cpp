@@ -171,18 +171,20 @@ BaseResult(result)
   {
     boost::shared_ptr<mysh::Column> column = boost::static_pointer_cast<mysh::Column>(columns->at(index).as_object());
 
-    _columnNames->Add(msclr::interop::marshal_as<String^>(column->get_name()));
+    _columnNames->Add(msclr::interop::marshal_as<String^>(column->get_column_label()));
 
-    _columns->Add(gcnew Column(msclr::interop::marshal_as<String^>(column->get_catalog()),
-                               msclr::interop::marshal_as<String^>(column->get_schema()),
+    _columns->Add(gcnew Column(msclr::interop::marshal_as<String^>(column->get_schema_name()),
+                               msclr::interop::marshal_as<String^>(column->get_table_label()),
                                msclr::interop::marshal_as<String^>(column->get_table_name()),
-                               msclr::interop::marshal_as<String^>(column->get_original_table_name()),
-                               msclr::interop::marshal_as<String^>(column->get_name()),
-                               msclr::interop::marshal_as<String^>(column->get_original_name()),
-                               gcnew UInt64(column->get_collation()),
+                               msclr::interop::marshal_as<String^>(column->get_column_label()),
+                               msclr::interop::marshal_as<String^>(column->get_column_name()),
                                gcnew UInt64(column->get_length()),
-                               gcnew UInt64(column->get_type()),
-                               gcnew UInt64(column->get_flags())));
+                               msclr::interop::marshal_as<String^>(column->get_type().descr()),
+                               gcnew UInt64(column->get_fractional_digits()),
+                               gcnew Boolean(column->is_number_signed()),
+                               msclr::interop::marshal_as<String^>(column->get_collation_name()),
+                               msclr::interop::marshal_as<String^>(column->get_character_set_name()),
+                               gcnew Boolean(column->is_padded())));
   }
 
   _records = gcnew List<array<Object^>^>();

@@ -37,7 +37,7 @@ using namespace shcore;
 * - Message information that is not provided through the different functions
 */
 TableInsert::TableInsert(boost::shared_ptr<Table> owner)
-:Table_crud_definition(boost::static_pointer_cast<DatabaseObject>(owner))
+  :Table_crud_definition(boost::static_pointer_cast<DatabaseObject>(owner))
 {
   // The values function should not be enabled if values were already given
   add_method("insert", boost::bind(&TableInsert::insert, this, _1), "data");
@@ -222,7 +222,10 @@ shcore::Value TableInsert::values(const shcore::Argument_list &args)
     std::vector < ::mysqlx::TableValue > values;
 
     for (size_t index = 0; index < args.size(); index++)
-      values.push_back(map_table_value(args[index]));
+    {
+      ::mysqlx::TableValue value = map_table_value(args[index]);
+      values.push_back(value);
+    }
 
     _insert_statement->values(values);
 

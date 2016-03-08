@@ -35,17 +35,17 @@ print 'hasData():', result.hasData()
 metadata = result.getColumns()
 
 print 'Field Number:', len(metadata)
-print 'First Field:', metadata[0].name
-print 'Second Field:', metadata[1].name
-print 'Third Field:', metadata[2].name
+print 'First Field:', metadata[0].columnName
+print 'Second Field:', metadata[1].columnName
+print 'Third Field:', metadata[2].columnName
 
 
 #@ Resultset columns
 metadata = result.columns
 
 print 'Field Number:', len(metadata)
-print 'First Field:', metadata[0].name
-print 'Second Field:', metadata[1].name
-print 'Third Field:', metadata[2].name
+print 'First Field:', metadata[0].columnName
+print 'Second Field:', metadata[1].columnName
+print 'Third Field:', metadata[2].columnName
 
 mySession.close()

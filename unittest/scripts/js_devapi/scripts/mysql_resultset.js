@@ -33,16 +33,16 @@ print('hasData:', result.hasData());
 var metadata = result.getColumns();
 
 print('Field Number:', metadata.length);
-print('First Field:', metadata[0].name);
-print('Second Field:', metadata[1].name);
-print('Third Field:', metadata[2].name);
+print('First Field:', metadata[0].columnName);
+print('Second Field:', metadata[1].columnName);
+print('Third Field:', metadata[2].columnName);
 
 //@ Resultset columns
 var metadata = result.columns;
 
 print('Field Number:', metadata.length);
-print('First Field:', metadata[0].name);
-print('Second Field:', metadata[1].name);
-print('Third Field:', metadata[2].name);
+print('First Field:', metadata[0].columnName);
+print('Second Field:', metadata[1].columnName);
+print('Third Field:', metadata[2].columnName);
 
 mySession.close()

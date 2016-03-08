@@ -51,6 +51,7 @@
 #define MAX_COLUMN_LENGTH 1024
 #define MIN_COLUMN_LENGTH 4
 
+using namespace mysh;
 using namespace mysh::mysql;
 using namespace shcore;
 

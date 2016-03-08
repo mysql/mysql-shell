@@ -35,18 +35,18 @@ print 'hasData():', result.hasData()
 metadata = result.getColumns()
 
 print 'Field Number:', len(metadata)
-print 'First Field:', metadata[0].name
-print 'Second Field:', metadata[1].name
-print 'Third Field:', metadata[2].name
+print 'First Field:', metadata[0].columnName
+print 'Second Field:', metadata[1].columnName
+print 'Third Field:', metadata[2].columnName
 
 
 #@ Resultset columns
 metadata = result.columns
 
 print 'Field Number:', len(metadata)
-print 'First Field:', metadata[0].name
-print 'Second Field:', metadata[1].name
-print 'Third Field:', metadata[2].name
+print 'First Field:', metadata[0].columnName
+print 'Second Field:', metadata[1].columnName
+print 'Third Field:', metadata[2].columnName
 
 
 #@ Resultset buffering on SQL
@@ -57,11 +57,11 @@ result2 = mySession.sql('select name, gender from js_shell_test.buffer_table whe
 metadata1 = result1.columns
 metadata2 = result2.columns
 
-print "Result 1 Field 1:", metadata1[0].name
-print "Result 1 Field 2:", metadata1[1].name
+print "Result 1 Field 1:", metadata1[0].columnName
+print "Result 1 Field 2:", metadata1[1].columnName
 
-print "Result 2 Field 1:", metadata2[0].name
-print "Result 2 Field 2:", metadata2[1].name
+print "Result 2 Field 1:", metadata2[0].columnName
+print "Result 2 Field 2:", metadata2[1].columnName
 
 
 record1 = result1.fetchOne()
@@ -97,11 +97,11 @@ result2 = table.select(['name', 'gender']).where('age < :age').orderBy(['name'])
 metadata1 = result1.columns
 metadata2 = result2.columns
 
-print "Result 1 Field 1:", metadata1[0].name
-print "Result 1 Field 2:", metadata1[1].name
+print "Result 1 Field 1:", metadata1[0].columnName
+print "Result 1 Field 2:", metadata1[1].columnName
 
-print "Result 2 Field 1:", metadata2[0].name
-print "Result 2 Field 2:", metadata2[1].name
+print "Result 2 Field 1:", metadata2[0].columnName
+print "Result 2 Field 2:", metadata2[1].columnName
 
 
 record1 = result1.fetchOne()

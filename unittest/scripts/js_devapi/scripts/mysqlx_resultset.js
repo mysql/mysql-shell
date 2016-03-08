@@ -35,18 +35,18 @@ print('hasData:', result.hasData());
 var metadata = result.getColumns();
 
 print('Field Number:', metadata.length);
-print('First Field:', metadata[0].name);
-print('Second Field:', metadata[1].name);
-print('Third Field:', metadata[2].name);
+print('First Field:', metadata[0].columnName);
+print('Second Field:', metadata[1].columnName);
+print('Third Field:', metadata[2].columnName);
 
 
 //@ Resultset columns
 var metadata = result.columns;
 
 print('Field Number:', metadata.length);
-print('First Field:', metadata[0].name);
-print('Second Field:', metadata[1].name);
-print('Third Field:', metadata[2].name);
+print('First Field:', metadata[0].columnName);
+print('Second Field:', metadata[1].columnName);
+print('Third Field:', metadata[2].columnName);
 
 
 //@ Resultset buffering on SQL
@@ -57,11 +57,11 @@ var result2 = mySession.sql('select name, gender from js_shell_test.buffer_table
 var metadata1 = result1.columns;
 var metadata2 = result2.columns;
 
-print("Result 1 Field 1:", metadata1[0].name);
-print("Result 1 Field 2:", metadata1[1].name);
+print("Result 1 Field 1:", metadata1[0].columnName);
+print("Result 1 Field 2:", metadata1[1].columnName);
 
-print("Result 2 Field 1:", metadata2[0].name);
-print("Result 2 Field 2:", metadata2[1].name);
+print("Result 2 Field 1:", metadata2[0].columnName);
+print("Result 2 Field 2:", metadata2[1].columnName);
 
 
 var record1 = result1.fetchOne();
@@ -97,11 +97,11 @@ var result2 = table.select(['name', 'gender']).where('age < :age').orderBy(['nam
 var metadata1 = result1.columns;
 var metadata2 = result2.columns;
 
-print("Result 1 Field 1:", metadata1[0].name);
-print("Result 1 Field 2:", metadata1[1].name);
+print("Result 1 Field 1:", metadata1[0].columnName);
+print("Result 1 Field 2:", metadata1[1].columnName);
 
-print("Result 2 Field 1:", metadata2[0].name);
-print("Result 2 Field 2:", metadata2[1].name);
+print("Result 2 Field 1:", metadata2[0].columnName);
+print("Result 2 Field 2:", metadata2[1].columnName);
 
 
 var record1 = result1.fetchOne();

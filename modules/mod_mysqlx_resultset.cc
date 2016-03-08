@@ -18,6 +18,7 @@
  */
 
 #include "mod_mysqlx_resultset.h"
+#include "base_constants.h"
 #include "mysqlx.h"
 #include "shellcore/common.h"
 #include <boost/bind.hpp>
@@ -25,7 +26,6 @@
 #include "shellcore/obj_date.h"
 #include "utils/utils_time.h"
 
-using namespace mysh;
 using namespace shcore;
 using namespace mysh::mysqlx;
 
@@ -441,25 +441,116 @@ shcore::Value::Array_type_ref RowResult::get_columns() const
     for (size_t i = 0; i < num_fields; i++)
     {
       ::mysqlx::FieldType type = _result->columnMetadata()->at(i).type;
-      bool numeric = type == ::mysqlx::SINT ||
+      bool is_numeric = type == ::mysqlx::SINT ||
         type == ::mysqlx::UINT ||
         type == ::mysqlx::DOUBLE ||
         type == ::mysqlx::FLOAT ||
         type == ::mysqlx::DECIMAL;
 
+      std::string type_name;
+      bool is_signed = false;
+      bool is_padded = true;
+      switch (_result->columnMetadata()->at(i).type)
+      {
+        case ::mysqlx::SINT:
+          is_signed = true;
+        case ::mysqlx::UINT:
+          switch (_result->columnMetadata()->at(i).length)
+          {
+            case 3:
+            case 4:
+              type_name = "TinyInt";
+              break;
+            case 5:
+            case 6:
+              type_name = "SmallInt";
+              break;
+            case 8:
+            case 9:
+              type_name = "MediumInt";
+              break;
+            case 10:
+            case 11:
+              type_name = "Int";
+              break;
+            case 20:
+              type_name = "BigInt";
+              break;
+          }
+          break;
+        case ::mysqlx::BIT:
+          type_name = "Bit";
+          break;
+        case ::mysqlx::DOUBLE:
+          type_name = "Double";
+          is_signed = !(_result->columnMetadata()->at(i).flags & 0x001);
+          break;
+        case ::mysqlx::FLOAT:
+          type_name = "Float";
+          is_signed = !(_result->columnMetadata()->at(i).flags & 0x001);
+          break;
+        case ::mysqlx::DECIMAL:
+          type_name = "Decimal";
+          is_signed = !(_result->columnMetadata()->at(i).flags & 0x001);
+          break;
+        case ::mysqlx::BYTES:
+          is_padded = is_signed = _result->columnMetadata()->at(i).flags & 0x001;
+
+          switch (_result->columnMetadata()->at(i).content_type & 0x0003)
+          {
+            case 1:
+              type_name = "Geometry";
+              break;
+            case 2:
+              type_name = "Json";
+              break;
+            case 3:
+              type_name = "Xml";
+              break;
+            default:
+              if (Charset::item[_result->columnMetadata()->at(i).collation].collation == "Binary")
+                type_name = "Bytes";
+              else
+                type_name = "String";
+              break;
+          }
+          break;
+        case ::mysqlx::TIME:
+          type_name = "Time";
+          break;
+        case ::mysqlx::DATETIME:
+          if (_result->columnMetadata()->at(i).flags & 0x001)
+            type_name = "Timestamp";
+          else if (_result->columnMetadata()->at(i).length == 10)
+            type_name = "Date";
+          else
+            type_name = "DateTime";
+          break;
+        case ::mysqlx::SET:
+          type_name = "Set";
+          break;
+        case ::mysqlx::ENUM:
+          type_name = "Enum";
+          break;
+      }
+
+      shcore::Value data_type = mysh::Constant::get_constant("mysqlx", "Type", type_name, shcore::Argument_list());
+
       boost::shared_ptr<mysh::Column> column(new mysh::Column(
-        _result->columnMetadata()->at(i).catalog,
+        //_result->columnMetadata()->at(i).catalog,
         _result->columnMetadata()->at(i).schema,
-        _result->columnMetadata()->at(i).table,
         _result->columnMetadata()->at(i).original_table,
-        _result->columnMetadata()->at(i).name,
+        _result->columnMetadata()->at(i).table,
         _result->columnMetadata()->at(i).original_name,
-        _result->columnMetadata()->at(i).collation,
+        _result->columnMetadata()->at(i).name,
+        data_type,
         _result->columnMetadata()->at(i).length,
-        _result->columnMetadata()->at(i).type, // TODO: Translate to MySQL Type
-        _result->columnMetadata()->at(i).flags,
-        0,
-        numeric));
+  is_numeric,
+        _result->columnMetadata()->at(i).fractional_digits,
+        is_signed,
+  Charset::item[_result->columnMetadata()->at(i).collation].collation,
+  Charset::item[_result->columnMetadata()->at(i).collation].name,
+        is_padded));
 
       _columns->push_back(shcore::Value(boost::static_pointer_cast<Object_bridge>(column)));
     }
