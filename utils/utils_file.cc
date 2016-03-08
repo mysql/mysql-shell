@@ -50,7 +50,7 @@ using namespace shcore;
 namespace shcore
 {
   /*
-   * Returns the config path ($HOME\mysqlx in Unix or %AppData%\mysql\mysql in Windows).
+   * Returns the config path ($HOME\mysqlsh in Unix or %AppData%\mysql\mysqlsh in Windows).
    */
   std::string get_user_config_path()
   {
@@ -80,7 +80,7 @@ namespace shcore
     }
 
     to_append.push_back("MySQL");
-    to_append.push_back("mysqlx");
+    to_append.push_back("mysqlsh");
 #else
     path_separator = "/";
     if (path.empty())
@@ -91,7 +91,7 @@ namespace shcore
         path.assign(cpath);
     }
 
-    to_append.push_back(".mysqlx");
+    to_append.push_back(".mysqlsh");
 #endif
 
     // Up to know the path must exist since it was retrieved from OS standard means
@@ -141,7 +141,7 @@ namespace shcore
     if (!_NSGetExecutablePath(path, &buffsize))
     {
       // _NSGetExecutablePath may return tricky constructs on paths
-      // like symbolic links or things like i.e /path/to/./mysqlx
+      // like symbolic links or things like i.e /path/to/./mysqlsh
       // we need to normalize that
       if (realpath(path, real_path))
         exe_path.assign(real_path);
@@ -182,7 +182,7 @@ namespace shcore
   * In a standard setup the binary will be at <MYSQLX_HOME>/bin
   *
   * If that is the case MYSQLX_HOME is determined by trimming out
-  * /bin/mysqlx from the full executable name.
+  * /bin/mysqlsh from the full executable name.
   *
   * An empty value would indicate MYSQLX_HOME is unknown.
   */

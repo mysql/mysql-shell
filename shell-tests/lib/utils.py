@@ -25,7 +25,7 @@ import inspect
 import difflib
 
 # find mysqlx
-mysqlx_path = "mysqlx"
+mysqlx_path = "mysqlsh"
 
 tests_to_record = []
 
@@ -34,9 +34,9 @@ debug = os.getenv("MXTR_DEBUG") or False
 
 
 if os.getenv("MYSQLX_SHELL_BINDIR"):
-    mysqlx_path=os.path.join(os.getenv("MYSQLX_SHELL_BINDIR"), "mysqlx")
+    mysqlx_path=os.path.join(os.getenv("MYSQLX_SHELL_BINDIR"), "mysqlsh")
 else:
-    mysqlx_path="../mysqlx"
+    mysqlx_path="../mysqlsh"
 
 if not os.path.exists(mysqlx_path):
     print "mysqlx executable not found, please run it as shell-test/mxtr from the build directory"

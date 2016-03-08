@@ -51,7 +51,7 @@ namespace shcore {
       Shell_application_log_tests::i = 0;
 
       std::string log_path = shcore::get_user_config_path();
-      log_path += "mysqlx.log";
+      log_path += "mysqlsh.log";
       ngcommon::Logger::create_instance(log_path.c_str(), false, ngcommon::Logger::LOG_ERROR);
       _logger = ngcommon::Logger::singleton();
       _logger->attach_log_hook(my_hook);

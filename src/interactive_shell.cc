@@ -40,7 +40,7 @@ Interactive_shell::Interactive_shell(const Shell_command_line_options &options, 
 _options(options)
 {
   std::string log_path = get_user_config_path();
-  log_path += "mysqlx.log";
+  log_path += "mysqlsh.log";
   ngcommon::Logger::create_instance(log_path.c_str(), false, _options.log_level);
   _logger = ngcommon::Logger::singleton();
 
@@ -395,7 +395,7 @@ void Interactive_shell::init_scripts(Shell_core::Mode mode)
     if (file_exists(user_file))
       scripts_paths.push_back(user_file);
 #ifndef WIN32
-    std::string global_file("/usr/share/mysqlx/shellrc");
+    std::string global_file("/usr/share/mysqlsh/shellrc");
     global_file += extension;
 
     if (file_exists(global_file))
@@ -1301,7 +1301,7 @@ void Interactive_shell::print_cmd_line_helper()
   println("affiliates. Other names may be trademarks of their respective");
   println("owners.");
   println("");
-  println("Usage: mysqlx [OPTIONS] [db_name]");
+  println("Usage: mysqlsh [OPTIONS] [db_name]");
   println("  --help                   Display this help and exit.");
   println("  -f, --file=file          Process file.");
   println("  -e, --execute=<cmd>      Execute command and quit.");
