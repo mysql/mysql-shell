@@ -84,16 +84,25 @@ Value Constant::get_constant(const std::string &module, const std::string& group
   {
     boost::shared_ptr<Constant> constant(new Constant(module, group, id, args));
 
-    if (_constants.find(module) == _constants.end())
-      _constants.insert({ module, {} });
+    if (constant->data())
+    {
+      if (_constants.find(module) == _constants.end())
+      {
+        Module_constants new_module;
+        _constants.insert({ module, new_module });
+      }
 
-    if (_constants.at(module).find(group) == _constants.at(module).end())
-      _constants.at(module).insert({ group, {} });
+      if (_constants.at(module).find(group) == _constants.at(module).end())
+      {
+        Group_constants new_group;
+        _constants.at(module).insert({ group, new_group });
+      }
 
-    if (_constants.at(module).at(group).find(id) == _constants.at(module).at(group).end())
-      _constants.at(module).at(group).insert({ id, boost::shared_ptr<Constant>(constant) });
+      if (_constants.at(module).at(group).find(id) == _constants.at(module).at(group).end())
+        _constants.at(module).at(group).insert({ id, constant });
 
-    ret_val = shcore::Value(boost::static_pointer_cast<shcore::Object_bridge>(constant));
+      ret_val = shcore::Value(boost::static_pointer_cast<shcore::Object_bridge>(constant));
+    }
   }
 
   return ret_val;
