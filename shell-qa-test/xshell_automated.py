@@ -5600,6 +5600,169 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+  def test_MYS_193_00(self):
+      """ Verify the bug https://jira.oraclecorp.com/jira/browse/MYS-193 with classic session"""
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.port, '--session-type=classic', '--js']
+      x_cmds = [(";\n", 'mysql-js>'),
+                ("session\n", "<ClassicSession:" + LOCALHOST.user + "@" + LOCALHOST.host + ":" + LOCALHOST.port + ">")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_MYS_193_01(self):
+      """ Verify the bug https://jira.oraclecorp.com/jira/browse/MYS-193 with node session"""
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=node', '--js']
+      x_cmds = [(";\n", 'mysql-js>'),
+                ("session\n", "<NodeSession:" + LOCALHOST.user + "@" + LOCALHOST.host + ":" + LOCALHOST.xprotocol_port + ">")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_MYS_193_02(self):
+      """ Verify the bug https://jira.oraclecorp.com/jira/browse/MYS-193 with app session"""
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=app', '--js']
+      x_cmds = [(";\n", 'mysql-js>'),
+                ("session\n", "<XSession:" + LOCALHOST.user + "@" + LOCALHOST.host + ":" + LOCALHOST.xprotocol_port + ">")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_MYS_200_00(self):
+      """ Verify the bug https://jira.oraclecorp.com/jira/browse/MYS-200 with classic session"""
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.port, '--session-type=classic', '--py']
+      x_cmds = [(";\n", 'mysql-py>'),
+                ("session.runSql(\"CREATE TABLE world_x.TextMYS200classic (  sTiny TINYTEXT NULL,  sText TEXT NULL,  sMediumText MEDIUMTEXT NULL, sLongText LONGTEXT NULL);\")\n", "Query OK"),
+                ("session.runSql(\"INSERT INTO world_x.TextMYS200classic VALUES(\'IamTiny\',\'IamAText\',\'IAmMediumText\',\'IAmLongText\');\")\n", "Query OK"),
+                ("session.runSql(\'SELECT * FROM world_x.TextMYS200classic;\')\n", "1 row in set"),
+                ("session.runSql(\"SELECT DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE table_name = \'TextMYS200classic\' and DATA_TYPE = \'longtext\';\")\n", "1 row in set"),
+                ("session.runSql(\"drop table world_x.TextMYS200classic;\")\n", "Query OK")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_MYS_200_01(self):
+      """ Verify the bug https://jira.oraclecorp.com/jira/browse/MYS-200 with node session"""
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=node', '--py']
+      x_cmds = [(";\n", 'mysql-py>'),
+                ("session.sql(\"CREATE TABLE world_x.TextMYS200node (  sTiny TINYTEXT NULL,  sText TEXT NULL,  sMediumText MEDIUMTEXT NULL, sLongText LONGTEXT NULL);\")\n", "Query OK"),
+                ("Table = session.getSchema(\'world_x\').getTable(\'TextMYS200node\')\n", ""),
+                ("Table.insert().values(\'IamTiny\',\'IamAText\',\'IAmMediumText\',\'IAmLongText\')\n", "Query OK"),
+                ("Table.select()\n", "1 row in set"),
+                ("session.sql(\"SELECT DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE table_name = \'TextMYS200node\' and DATA_TYPE = \'longtext\';\")\n", "1 row in set"),
+                ("session.sql(\"drop table world_x.TextMYS200node;\")\n", "Query OK")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_MYS_224_00(self):
+      """ Verify the bug https://jira.oraclecorp.com/jira/browse/MYS-224 with node session and json=raw"""
+      results = ''
+      error = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=node', '--py', '--json=raw']
+      x_cmds = [("\n", 'mysql-py>'),
+                ("session\n", '{\"result\":{\"class\":\"NodeSession\",\"connected\":true,\"uri\":\"' + LOCALHOST.user + '@' + LOCALHOST.host + ':' + LOCALHOST.xprotocol_port + '\"}}'),
+                ("\\sql\n", "mysql-sql>"),
+                ("use world_x;\n", "{\"executionTime\":\"0.00 sec\",\"warningCount\":0,\"warnings\":[],\"rows\":[],\"hasData\":false,\"affectedRowCount\":0,\"lastInsertId\":-1}"),
+                ("create table test_classic (variable varchar(10));\n", "\"warningCount\":0,\"warnings\":[],\"rows\":[],\"hasData\":false,\"affectedRowCount\":0,\"lastInsertId\":-1}"),
+                ("select * from test_classic;\n","\"warningCount\":0,\"warnings\":[],\"rows\":[],\"hasData\":true,\"affectedRowCount\":0,\"lastInsertId\":-1}"),
+                ("drop table world_x.test_classic;\n", "\"warningCount\":0,\"warnings\":[],\"rows\":[],\"hasData\":false,\"affectedRowCount\":0,\"lastInsertId\":-1}")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_MYS_224_01(self):
+      """ Verify the bug https://jira.oraclecorp.com/jira/browse/MYS-224 with node session and json=pretty"""
+      results = ''
+      error = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=node', '--py', '--json=pretty']
+      x_cmds = [("\n", 'mysql-py>'),
+                ("session\n", '\"uri\": \"' + LOCALHOST.user + '@' + LOCALHOST.host + ':' + LOCALHOST.xprotocol_port + '\"'),
+                ("\\sql\n", "mysql-sql>"),
+                ("use world_x;\n", "\"rows\": []"),
+                ("create table test_pretty (variable varchar(10));\n", "\"rows\": []"),
+                ("select * from test_pretty;\n", "\"rows\": []"),
+                ("drop table world_x.test_pretty;\n", "\"rows\": []")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_MYS_225_00(self):
+      """ Verify the bug https://jira.oraclecorp.com/jira/browse/MYS-225 with classic session"""
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.port, '--session-type=classic', '--py']
+      x_cmds = [(";\n", 'mysql-py>'),
+                ("session.runSql(\'CREATE TABLE world_x.TestMYS225classic (Value INT NOT NULL, ValueDecimal FLOAT NOT NULL);\')\n", "Query OK"),
+                ("session.runSql(\'INSERT INTO world_x.TestMYS225classic VALUES (1,1.1),(2,2.1),(3,3.1),(4,4.1),(5,5.1),(6,6.1),(7,7.1),(8,8.1),(9,9.1),(10,10.1);\')\n", "Query OK, 10 rows affected"),
+                ("session.runSql(\'SELECT sum(value),sum(valuedecimal) FROM world_x.TestMYS225classic;\')\n", "1 row in set"),
+                ("session.runSql(\'SELECT avg(value),avg(valuedecimal) FROM world_x.TestMYS225classic;\')\n", "1 row in set"),
+                ("session.runSql(\'DROP TABLE world_x.TestMYS225classic;\')\n", "Query OK")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_MYS_225_01(self):
+      """ Verify the bug https://jira.oraclecorp.com/jira/browse/MYS-225 with node session"""
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=node', '--py']
+      x_cmds = [(";\n", 'mysql-py>'),
+                ("session.sql(\'CREATE TABLE world_x.TestMYS225node (Value INT NOT NULL, valuedecimal FLOAT NOT NULL);\')\n", "Query OK"),
+                ("Table = session.getSchema(\'world_x\').getTable(\'TestMYS225node\')\n", ""),
+                ("Table.insert().values(1,1.1).values(2,2.2).values(3,3.3).values(4,4.4).values(5,5.5).values(6,6.6).values(7,7.7).values(8,8.8).values(9,9.9).values(10,10.10)\n", "Query OK, 10 items affected"),
+                ("Table.select([\'sum(value)\',\'sum(valuedecimal)\'])\n", "1 row in set"),
+                ("Table.select([\'avg(value)\',\'avg(valuedecimal)\'])\n", "1 row in set"),
+                ("session.sql(\'DROP TABLE world_x.TestMYS225node;\')\n", "Query OK")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_MYS_230_00(self):
+      """ Verify the bug https://jira.oraclecorp.com/jira/browse/MYS-230 with batch < mode"""
+      results = ''
+      expectedValue = 'I am executed in batch mode, first line'
+      init_command_str = MYSQL_SHELL + ' < ' + Exec_files_location + 'Hello.js &'
+      p = subprocess.Popen(init_command_str, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE, shell=True)
+      stdin,stdout = p.communicate()
+      if str(stdin) == expectedValue:
+          results = 'PASS'
+      else:
+          results = 'FAIL'
+      self.assertEqual(results, 'PASS', str(stdout))
+      try:
+        p.kill()
+      except ValueError as e:
+        print 'Error: Process created for test_MYS_230_00 test was not able to close:', e
+
+  def test_MYS_230_01(self):
+      """ Verify the bug https://jira.oraclecorp.com/jira/browse/MYS-230 with batch --js < mode"""
+      results = ''
+      expectedValue = 'I am executed in batch mode, first line'
+      init_command_str = MYSQL_SHELL + ' --js < ' + Exec_files_location + 'Hello.js &'
+      p = subprocess.Popen(init_command_str, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE, shell=True)
+      stdin,stdout = p.communicate()
+      if str(stdin) == expectedValue:
+          results = 'PASS'
+      else:
+          results = 'FAIL'
+      self.assertEqual(results, 'PASS', str(stdout))
+      try:
+        p.kill()
+      except ValueError as e:
+        print 'Error: Process created for test_MYS_230_01 test was not able to close:', e
+
   def test_MYS_291(self):
       '''SSL Support '''
       results = ''
