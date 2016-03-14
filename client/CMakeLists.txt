@@ -1,4 +1,4 @@
-# Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2015, 2016, Oracle and/or its affiliates. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -125,8 +125,8 @@ if(WIN32 AND WINDOWS_RUNTIME_MD)
 endif()
 
 if (WITH_SAMPLES)
-	add_subdirectory(sample)
+  add_subdirectory(sample)
+  install(FILES "shell_client.h" COMPONENT dev DESTINATION include)
+  install(TARGETS shell_client COMPONENT dev DESTINATION lib)
 endif()
 
-install(FILES "shell_client.h" COMPONENT dev DESTINATION include)
-install(TARGETS shell_client COMPONENT dev DESTINATION lib)

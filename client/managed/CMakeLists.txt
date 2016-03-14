@@ -1,4 +1,4 @@
-# Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2015, 2016, Oracle and/or its affiliates. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -59,4 +59,6 @@ target_link_libraries(ShellClient PRIVATE shell_client mysqlshcore)
 # this is needed for the success compilation of the managed wrapper
 execute_process(COMMAND sn.exe -i "${CMAKE_SOURCE_DIR}/client/managed/mysqlsh.snk" MySQLShell)
 
-install(TARGETS ShellClient COMPONENT dev DESTINATION lib)
+if (WITH_SAMPLES)
+  install(TARGETS ShellClient COMPONENT dev DESTINATION lib)
+endif()
