@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2015 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2016, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -21,7 +21,7 @@
 #define _SHCORE_COMMON_H_
 
 #include "shellcore/types_common.h"
-#include "common/logger/logger.h"
+#include "logger/logger.h"
 
 #ifdef _WIN32
 # ifdef _DLL

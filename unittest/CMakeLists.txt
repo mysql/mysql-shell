@@ -1,4 +1,4 @@
-# Copyright (c) 2014, 2015, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2014, 2016, Oracle and/or its affiliates. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -53,7 +53,7 @@ if(WITH_TESTS)
     else()
       list(REMOVE_ITEM mysqlsh_tests_SRC "${PROJECT_SOURCE_DIR}/unittest/mod_mysqlx_t.cc")
     endif()
-    
+
     if (NOT WIN32)
       include_directories( "${PROJECT_SOURCE_DIR}/src/libedit" )
     endif()
@@ -86,7 +86,7 @@ if(WITH_TESTS)
                           COMMAND ${CMAKE_COMMAND} -E copy
                           $<TARGET_FILE:mysqlshcore> $<TARGET_FILE_DIR:run_unit_tests>)
     endif()
-    
+
 
     if ( HAVE_V8 )
       target_link_libraries(run_unit_tests ${V8_LINK_LIST})
@@ -109,18 +109,20 @@ if(WITH_TESTS)
     endif()
 
     if ( HAVE_PYTHON )
-      target_link_libraries(run_unit_tests ${PYTHON_LIBRARIES})
+      target_link_libraries(run_unit_tests "${PYTHON_LIBRARIES}")
 
-      if(CMAKE_BUILD_TYPE MATCHES Debug OR WINDOWS_RUNTIME_MD)
-        set(PY_DLL ${PYTHON_LIBRARIES})
-        string(REPLACE ".lib" ".dll" PY_DLL ${PY_DLL})
-        get_filename_component(PY_FILE ${PY_DLL} NAME)
-        get_filename_component(PY_DLL ${PY_DLL} DIRECTORY)
+      if (WIN32)
+        if(CMAKE_BUILD_TYPE MATCHES Debug OR WINDOWS_RUNTIME_MD)
+          set(PY_DLL ${PYTHON_LIBRARIES})
+          string(REPLACE ".lib" ".dll" PY_DLL ${PY_DLL})
+          get_filename_component(PY_FILE ${PY_DLL} NAME)
+          get_filename_component(PY_DLL ${PY_DLL} DIRECTORY)
 
-        # Copies the dll to the binary location to enable debugging
-        add_custom_command(TARGET run_unit_tests PRE_BUILD
-                            COMMAND ${CMAKE_COMMAND} -E copy
-                            "${PY_DLL}/${PY_FILE}" $<TARGET_FILE_DIR:run_unit_tests>/${PY_FILE})
+          # Copies the dll to the binary location to enable debugging
+          add_custom_command(TARGET run_unit_tests PRE_BUILD
+                              COMMAND ${CMAKE_COMMAND} -E copy
+                              "${PY_DLL}/${PY_FILE}" $<TARGET_FILE_DIR:run_unit_tests>/${PY_FILE})
+        endif()
       endif()
     endif()
 

@@ -1,4 +1,4 @@
-# Copyright (c) 2014, 2015, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2014, 2016, Oracle and/or its affiliates. All rights reserved.
 # 
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -38,7 +38,7 @@ if ( HAVE_V8 )
   # Updates format to be a C++ multiline definition
   string(REPLACE "\\" "\\\\" JS_CORE_MODULE_PREPARED "${JS_CORE_MODULE_STRIPPED}")
   string(REPLACE "\n" "\\n\"\n\"" JS_CORE_MODULE_UPDATED "${JS_CORE_MODULE_PREPARED}")
-  
+
   # Creates the target file containing the code ready for processing
   configure_file("${CMAKE_SOURCE_DIR}/include/shellcore/jscript_core_definitions.h.in" 
                  "${CMAKE_BINARY_DIR}/shellcore/jscript_core_definitions.h")
@@ -97,7 +97,9 @@ endif()
 if ( HAVE_PYTHON )
   include_directories("${PYTHON_INCLUDE_DIR}")
 
-  install(FILES ${PYTHON_LIBRARIES} DESTINATION lib COMPONENT dev)
+  if (WIN32)
+    install(FILES ${PYTHON_LIBRARIES} DESTINATION lib COMPONENT dev)
+  endif()
 else()
   # Removes from the project all the python files
   file(GLOB python_SRC "*python*.cc")
@@ -133,31 +135,26 @@ INCLUDE(protobuf)
 SETUP_PROTOBUF()
 include_directories("${CMAKE_BINARY_DIR}/mysqlxtest")
 
-IF(WIN32)
-  IF(WINDOWS_RUNTIME_MD)
-    ADD_LIBRARY(mysqlshcore SHARED ${libmysqlshcore_SRC} ${libmysqlshmods_SRC})
-  ELSE()
-    ADD_LIBRARY(mysqlshcore ${libmysqlshcore_SRC} ${libmysqlshmods_SRC})
-  ENDIF()
+IF(WIN32 AND WINDOWS_RUNTIME_MD)
+  # Static libs don't work for C++ CLI programs somehow...
+  ADD_LIBRARY(mysqlshcore SHARED ${libmysqlshcore_SRC} ${libmysqlshmods_SRC})
 
   TARGET_LINK_LIBRARIES(mysqlshcore
             mysqlxtest
             ${V8_LINK_LIST}
-            ${PYTHON_LIBRARIES}            
+            ${PYTHON_LIBRARIES}
             ${MYSQL_LIBRARIES}
             ${BOOST_LIBRARIES}
             ${PROTOBUF_LIBRARY}
             ${SSL_LIBRARIES})
-
+  SET(MYSQLSHCORE_LIBS mysqlshcore CACHE INTERNAL "mysqlshcore library list")
 ELSE()
-  ADD_CONVENIENCE_LIBRARY(clientlib ${libmysqlshcore_SRC} ${libmysqlshmods_SRC})
-  add_dependencies(clientlib mysqlxtest)
-  SET(LIBS mysqlxtest clientlib ${V8_LINK_LIST} ${PYTHON_LIBRARIES} ${MYSQL_LIBRARIES} ${BOOST_LIBRARIES} ${PROTOBUF_LIBRARY} ${SSL_LIBRARIES} ${SSL_LIBRARIES_DL})
-  IF(NOT INSTALL_LIBDIR)
-    SET(INSTALL_LIBDIR lib)
-  endif()
-  MERGE_LIBRARIES(mysqlshcore STATIC ${LIBS} COMPONENT Development)
+  ADD_LIBRARY(mysqlshcore STATIC ${libmysqlshcore_SRC} ${libmysqlshmods_SRC})
+
+  add_dependencies(mysqlshcore mysqlxtest)
+  SET(MYSQLSHCORE_LIBS mysqlshcore mysqlxtest ${V8_LINK_LIST} ${PYTHON_LIBRARIES} ${MYSQL_LIBRARIES} ${BOOST_LIBRARIES} ${PROTOBUF_LIBRARY} ${SSL_LIBRARIES} ${SSL_LIBRARIES_DL} CACHE INTERNAL "mysqlshcore library list")
 ENDIF()
+
 
 if( WIN32 )
   include(msvc)
@@ -166,12 +163,16 @@ if( WIN32 )
   endif()
 endif()
 
-install(DIRECTORY "${CMAKE_SOURCE_DIR}/include/shellcore/" DESTINATION "include/shellcore" COMPONENT dev FILES_MATCHING PATTERN "*.h" )
-install(DIRECTORY "${CMAKE_SOURCE_DIR}/modules/" DESTINATION "include/modules" COMPONENT dev FILES_MATCHING PATTERN "*.h" )
+if (WITH_DEV)
+    install(DIRECTORY "${CMAKE_SOURCE_DIR}/include/shellcore/" DESTINATION "${INSTALL_INCLUDEDIR}/shellcore" COMPONENT dev FILES_MATCHING PATTERN "*.h" )
+    install(DIRECTORY "${CMAKE_SOURCE_DIR}/modules/" DESTINATION "${INSTALL_INCLUDEDIR}/modules" COMPONENT dev FILES_MATCHING PATTERN "*.h" )
+endif()
 
 if(WINDOWS_RUNTIME_MD)
   install(TARGETS mysqlshcore COMPONENT main DESTINATION bin)
-  install(TARGETS mysqlshcore COMPONENT dev DESTINATION lib)
+endif()
+if (WITH_DEV)
+    install(TARGETS mysqlshcore COMPONENT dev DESTINATION lib)
 endif()
 
 add_definitions(-DSHCORE_EXPORT )

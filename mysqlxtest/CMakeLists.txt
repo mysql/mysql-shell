@@ -1,4 +1,4 @@
-# Copyright (c) 2014, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2014, 2016, Oracle and/or its affiliates. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -14,11 +14,11 @@
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
 
 
-include_directories("${Boost_INCLUDE_DIRS}" 
+include_directories("${Boost_INCLUDE_DIRS}"
     ${SSL_INCLUDE_DIRS}
     ${CMAKE_SOURCE_DIR}/common/yassl/taocrypt/mySTL
-    ${CMAKE_CURRENT_SOURCE_DIR}/common 
-    ${CMAKE_SOURCE_DIR}/mysqlxtest/myasio 
+    ${CMAKE_CURRENT_SOURCE_DIR}/common
+    ${CMAKE_SOURCE_DIR}/mysqlxtest/myasio
     ${CMAKE_CURRENT_SOURCE_DIR})
 
 add_definitions(${SSL_DEFINES} -DUSE_SYS_STL -DWITH_LOGGER)
@@ -69,6 +69,7 @@ endif()
 
 add_definitions(-DBOOST_ALL_NO_LIB)
 
-install(DIRECTORY "${CMAKE_SOURCE_DIR}/mysqlxtest/" DESTINATION "include/" COMPONENT dev FILES_MATCHING PATTERN "*.h" )
-install(DIRECTORY "${CMAKE_SOURCE_DIR}/mysqlxtest/common/" DESTINATION "include/common/" COMPONENT dev FILES_MATCHING PATTERN "*.h" )
-install(DIRECTORY "${CMAKE_BINARY_DIR}/mysqlxtest/" DESTINATION "include/" COMPONENT dev FILES_MATCHING PATTERN "*.h" )
+if (WITH_DEV)
+    install(DIRECTORY "${CMAKE_SOURCE_DIR}/mysqlxtest/" DESTINATION "${INSTALL_INCLUDEDIR}/mysqlxtest/" COMPONENT dev FILES_MATCHING PATTERN "*.h" )
+    install(DIRECTORY "${CMAKE_SOURCE_DIR}/mysqlxtest/common/" DESTINATION "${INSTALL_INCLUDEDIR}/mysqlxtest/common/" COMPONENT dev FILES_MATCHING PATTERN "*.h" )
+endif()

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2016, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -91,7 +91,7 @@ this.shell.js.module_paths = [];
 // Searches for MYSQLX_HOME
 var path = os.get_mysqlx_home_path();
 if (path)
-  this.shell.js.module_paths[this.shell.js.module_paths.length] = path + '/lib/modules/js';
+  this.shell.js.module_paths[this.shell.js.module_paths.length] = path + '/share/mysqlsh/modules/js';
 
 // If MYSQLX_HOME not found, sets the current directory as a valid module path
 else

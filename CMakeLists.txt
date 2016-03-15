@@ -1,4 +1,4 @@
-# Copyright (c) 2014, 2015, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2014, 2016, Oracle and/or its affiliates. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -142,6 +142,13 @@ if (CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   SET_SOURCE_FILES_PROPERTIES(${PROJECT_SOURCE_DIR}/src/boost_code.cc PROPERTIES COMPILE_FLAGS -O0)
 endif ()
 
+##
+## Installation location
+##
+SET(INSTALL_BINDIR "bin")
+SET(INSTALL_LIBDIR "lib/mysqlsh")
+SET(INSTALL_INCLUDEDIR "include/mysqlsh")
+SET(INSTALL_SHAREDIR "share/mysqlsh")
 
 ##
 ## Configure style system detection (generation of config.h)
@@ -263,14 +270,9 @@ ENDIF()
 ### Build Projects
 ###
 
-if(WIN32)
-  if(WINDOWS_RUNTIME_MD)
-    add_definitions(-DUSING_V8_SHARED)
-  endif()
-endif()
-
 if(WINDOWS_RUNTIME_MD)
   #add_subdirectory(types)
+  add_definitions(-DUSING_V8_SHARED)
   remove_definitions(-Dmysqlshtypes_EXPORTS)
 endif()
 add_subdirectory(mysqlxtest)
@@ -292,8 +294,10 @@ set(mysh_SRC
     "${PROJECT_SOURCE_DIR}/src/interactive_shell.cc"
 )
 
-# Shell wrapper for client applications
-add_subdirectory(client)
+IF(WINDOWS_RUNTIME_MD)
+  # Shell wrapper for managed windows applications
+  add_subdirectory(client)
+ENDIF()
 
 add_executable(mysqlsh ${mysh_SRC} ${BOOST_SOURCE_CODE})
 
@@ -306,13 +310,13 @@ else()
 endif()
 
 # Last, to make -lrt -lpthread last, v8 needs it
-target_link_libraries(mysqlsh mysqlshcore ${GCOV_LDFLAGS})
+target_link_libraries(mysqlsh ${MYSQLSHCORE_LIBS} ${GCOV_LDFLAGS})
 
-install(TARGETS mysqlsh RUNTIME COMPONENT main DESTINATION bin)
+install(TARGETS mysqlsh RUNTIME COMPONENT main DESTINATION ${INSTALL_BINDIR})
 
 if (HAVE_V8)
-  install(DIRECTORY scripting/modules DESTINATION lib COMPONENT main)
-  install(DIRECTORY scripting/modules DESTINATION lib COMPONENT dev)
+  install(DIRECTORY scripting/modules DESTINATION ${INSTALL_SHAREDIR} COMPONENT main)
+  install(DIRECTORY scripting/modules DESTINATION ${INSTALL_SHAREDIR} COMPONENT dev)
 endif()
 
 IF(CMAKE_BUILD_TYPE MATCHES Debug)
@@ -360,12 +364,13 @@ if(WIN32)
 endif()
 
 # Installation instructions
-if(HAVE_V8)
-  install(FILES ${V8_LIBS} DESTINATION lib COMPONENT dev)
+if(HAVE_V8 AND WIN32)
+   install(FILES ${V8_LIBS} DESTINATION lib COMPONENT dev)
 endif()
-install(DIRECTORY "${CMAKE_SOURCE_DIR}/utils/" DESTINATION "include/utils" COMPONENT dev FILES_MATCHING PATTERN "*.h" )
-install(DIRECTORY "${CMAKE_SOURCE_DIR}/common/logger" DESTINATION "include/common" COMPONENT dev FILES_MATCHING PATTERN "*.h" )
-install(DIRECTORY "${CMAKE_SOURCE_DIR}/ext/rapidjson/include/rapidjson" DESTINATION "include" COMPONENT dev FILES_MATCHING PATTERN "*.h" )
+if(WITH_DEV)
+    install(DIRECTORY "${CMAKE_SOURCE_DIR}/utils/" DESTINATION "${INSTALL_INCLUDEDIR}/utils" COMPONENT dev FILES_MATCHING PATTERN "*.h" )
+    install(FILES "${CMAKE_SOURCE_DIR}/common/logger/logger.h" DESTINATION "${INSTALL_INCLUDEDIR}/logger" COMPONENT dev)
+endif()
 
 if(WINDOWS_RUNTIME_MD AND HAVE_V8)
   # for MD runtime we also need DLL, not just lib, but dll is on parent directory.
@@ -393,8 +398,8 @@ if (HAVE_PYTHON)
     get_filename_component(PY_FILE ${PY_DLL} NAME)
     get_filename_component(PY_DLL ${PY_DLL} DIRECTORY)
     install(FILES "${PY_DLL}/${PY_FILE}" DESTINATION bin COMPONENT main)
-		install(FILES "${PY_DLL}/${PY_FILE}" DESTINATION lib COMPONENT dev)
-  
+    install(FILES "${PY_DLL}/${PY_FILE}" DESTINATION lib COMPONENT dev)
+
     if(CMAKE_BUILD_TYPE MATCHES Debug)
       # Copies the dll to the binary location to enable debugging
       add_custom_command(TARGET mysqlsh PRE_BUILD
@@ -404,3 +409,31 @@ if (HAVE_PYTHON)
   endif()
 endif()
 
+
+# Generate mysqlsh_config script
+
+SET(prefix "${CMAKE_INSTALL_PREFIX}")
+SET(sysconfdir ${prefix})
+SET(bindir ${prefix}/${INSTALL_BINDIR})
+SET(datadir ${prefix}/${INSTALL_SHAREDIR})
+SET(pkgdatadir ${prefix}/${INSTALL_SHAREDIR})
+SET(libsubdir  ${INSTALL_LIBDIR})
+SET(pkgincludedir ${prefix}/${INSTALL_INCLUDEDIR})
+SET(pkglibdir ${prefix}/${INSTALL_LIBDIR})
+
+FOREACH(LIB ${MYSQLSHCORE_LIBS})
+  SET(MYSQLSHCORE_LIBLIST "${MYSQLSHCORE_LIBLIST} -l${LIB}")
+ENDFOREACH()
+
+#unused IF (WITH_DEV AND NOT WIN32)
+IF(WITH_DEV AND FALSE)
+    CONFIGURE_FILE(${CMAKE_CURRENT_SOURCE_DIR}/mysqlsh_config.sh
+        ${CMAKE_CURRENT_BINARY_DIR}/mysqlsh_config ESCAPE_QUOTES @ONLY)
+    EXECUTE_PROCESS(COMMAND chmod +x ${CMAKE_CURRENT_BINARY_DIR}/mysqlsh_config)
+
+   INSTALL_SCRIPT(
+      ${CMAKE_CURRENT_BINARY_DIR}/mysqlsh_config
+      DESTINATION ${INSTALL_BINDIR}
+      COMPONENT dev
+    )
+ENDIF()
