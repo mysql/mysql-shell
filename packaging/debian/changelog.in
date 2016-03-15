@@ -1,0 +1,5 @@
+mysql-shell@PRODUCT_SUFFIX@ (@VERSION@@ID_RELEASE@) @CODENAME@; urgency=low
+
+  * Updating the packaging source for mysql-shell.
+
+ -- Kent Boortz <kent.boortz@oracle.com>  Tue, 15 Mar 2016 10:41:51 +0100
