@@ -5817,6 +5817,31 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+  def test_MYS_323(self):
+      '''[4.9.002] Create a Stored Session: schema store'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+
+      x_cmds = [("\\connect\n","\\connect <uri or $appName>") ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_MYS_339(self):
+      '''[4.9.002] Update a Stored Session: '''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+
+      x_cmds = [("\\rmconn classic_session\n","mysql-js>"),
+                ("\\addconn classic_session "+LOCALHOST.user+":"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+"\sakila\n","mysql-js>"),
+                ("shell.storedSessions;\n","\"classic_session\": {\r\n"),
+                ("\\chconn classic_session dummy:"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+"\sakila\n","mysql-js>"),
+                ("shell.storedSessions;\n","\"dbUser\": \"dummy\", \r\n"),
+
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+
   def test_MYS_341(self):
       '''[3.1.009]:1 Check that STATUS command [ \status, \s ] works: app session \status'''
       results = ''
@@ -5865,6 +5890,36 @@ class XShell_TestCases(unittest.TestCase):
           else:
               results="FAIL"
               break
+      self.assertEqual(results, 'PASS')
+
+  def test_MYS_373_1(self):
+      '''[4.1.002] SQL Create a table using STDIN batch process: NODE SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--js', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                      '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--session-type=node','--schema=sakila']
+      x_cmds = [("print(session);\n","NodeSession:root@localhost:33060/sakila")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_MYS_373_2(self):
+      '''[4.1.002] SQL Create a table using STDIN batch process: NODE SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--js', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                      '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--session-type=app','--schema=sakila']
+      x_cmds = [("print(session);\n","XSession:root@localhost:33060/sakila")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_MYS_373_3(self):
+      '''[4.1.002] SQL Create a table using STDIN batch process: NODE SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--sqlc', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                      '-h' + LOCALHOST.host, '-P' + LOCALHOST.port, '--session-type=classic','--schema=sakila']
+      x_cmds = [("\\s\n","Session type:                 Classic")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
 
@@ -5933,6 +5988,17 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+  def test_MYS_403(self):
+      '''[4.9.002] Create a Stored Session: schema store'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+
+      x_cmds = [("\\rmconn classic_session\n","mysql-js>"),
+                ("shell.storedSessions.add('classic_session', '"+LOCALHOST.user+":"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+"\sakila');\n","mysql-js>"),
+                ("\\connect $classic_session\n","Creating an X Session to root@localhost:33060"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
 
 
   # ----------------------------------------------------------------------
