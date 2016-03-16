@@ -17,6 +17,7 @@ print('Exported Items:', exports.length);
 print('getSession:', typeof mysqlx.getSession, '\n');
 print('getNodeSession:', typeof mysqlx.getNodeSession, '\n');
 print('expr:', typeof mysqlx.expr, '\n');
+print('dateValue:', typeof mysqlx.dateValue, '\n');
 print('Type:', mysqlx.Type, '\n');
 print('IndexType:', mysqlx.IndexType, '\n');
 

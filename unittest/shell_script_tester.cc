@@ -23,6 +23,7 @@ Shell_script_tester::Shell_script_tester()
 {
   _shell_scripts_home = MYSQLX_SOURCE_HOME;
   _shell_scripts_home += "/unittest/scripts";
+  _new_format = false;
 }
 
 void Shell_script_tester::SetUp()
@@ -220,12 +221,21 @@ void Shell_script_tester::load_validations(const std::string& path, bool in_chun
 
     file.close();
   }
+  else
+  {
+    if (_new_format)
+    {
+      std::string text("Unable to locate validation script: " + path);
+      SCOPED_TRACE(text.c_str());
+      ADD_FAILURE();
+    }
+  }
 }
 
-void Shell_script_tester::execute_script(const std::string& path, bool in_chunks)
+void Shell_script_tester::execute_script(const std::string& path, bool in_chunks, bool is_pre_script)
 {
   // If no path is provided then executes the setup script
-  std::string script(path.empty() ? _setup_script : TEST_SCRIPT(path));
+  std::string script(path.empty() ? _setup_script : is_pre_script ? PRE_SCRIPT(path) : _new_format ? NEW_TEST_SCRIPT(path) : TEST_SCRIPT(path));
   std::ifstream stream(script.c_str());
 
   if (!stream.fail())
@@ -234,10 +244,24 @@ void Shell_script_tester::execute_script(const std::string& path, bool in_chunks
     // right execution scenario is in place
     if (!path.empty())
     {
+      if (!is_pre_script)
+      {
+        // Processes independent preprocessing file
+        std::string pre_script = PRE_SCRIPT(path);
+        std::ifstream pre_stream(pre_script.c_str());
+        if (!pre_stream.fail())
+        {
+          pre_stream.close();
+          execute_script(path, false, true);
+        }
+      }
+
+      // Preprocesses the test file itself
       process_setup(stream);
 
       // Loads the validations
-      load_validations(VALIDATION_SCRIPT(path), in_chunks);
+      if (!is_pre_script)
+        load_validations(_new_format ? VAL_SCRIPT(path) : VALIDATION_SCRIPT(path), in_chunks);
     }
 
     // Process the file

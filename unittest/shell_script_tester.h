@@ -38,6 +38,10 @@ struct Validation
 
 typedef std::vector<Validation> Validation_t;
 
+#define NEW_TEST_SCRIPT(x) _shell_scripts_home+"/"+x+"."+_extension
+#define PRE_SCRIPT(x) _shell_scripts_home+"/"+x+".pre"
+#define VAL_SCRIPT(x) _shell_scripts_home+"/"+x+".val"
+
 #define TEST_SCRIPT(x) _scripts_home+"/"+x
 #define SETUP_SCRIPT(x) _shell_scripts_home+"/setup/"+x
 #define VALIDATION_SCRIPT(x) _shell_scripts_home+"/validation/"+x
@@ -70,13 +74,16 @@ protected:
   virtual std::string get_assumptions_token() = 0;
   virtual std::string get_variable_prefix() = 0;
 
+  std::string _extension;
+  bool _new_format;
+
 private:
   // Chunks of code will be stored here
   std::map<std::string, std::vector<std::string>* > _chunks;
   std::vector<std::string> _chunk_order;
   std::map<std::string, Validation_t*> _chunk_validations;
 
-  void execute_script(const std::string& path = "", bool in_chunks = false);
+  void execute_script(const std::string& path = "", bool in_chunks = false, bool is_pre_script = false);
   void process_setup(std::istream & stream);
   void validate(const std::string& context, const std::string &chunk_id = "__global__");
 

@@ -1,3 +1,0 @@
-|List of row available for fetching.|
-testSession.close()||
-testSession = None||

@@ -44,15 +44,25 @@ using namespace mysh::mysqlx;
     {
       shcore::Object_bridge_ref object = source.as_object();
 
-      boost::shared_ptr<Expression> expression = boost::dynamic_pointer_cast<Expression>(object);
+      std::string object_class = object->class_name();
 
-      if (expression)
+      if (object_class == "Expression")
       {
-        std::string expr_data = expression->get_data();
-        if (expr_data.empty())
-          throw shcore::Exception::argument_error("Expressions can not be empty.");
-        else
-          return ::mysqlx::DocumentValue(expr_data, ::mysqlx::DocumentValue::TExpression);
+        boost::shared_ptr<Expression> expression = boost::dynamic_pointer_cast<Expression>(object);
+
+        if (expression)
+        {
+          std::string expr_data = expression->get_data();
+          if (expr_data.empty())
+            throw shcore::Exception::argument_error("Expressions can not be empty.");
+          else
+            return ::mysqlx::DocumentValue(expr_data, ::mysqlx::DocumentValue::TExpression);
+        }
+      }
+      if (object_class == "Date")
+      {
+        std::string data = source.descr();
+        return ::mysqlx::DocumentValue(data);
       }
       else
       {
@@ -76,6 +86,6 @@ using namespace mysh::mysqlx;
       throw shcore::Exception::argument_error(str.str());
       break;
   }
-  
+
   return ::mysqlx::DocumentValue();
 }

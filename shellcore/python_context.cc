@@ -249,6 +249,13 @@ namespace shcore
             r_state = Input_continued_single;
           else if (strncmp(msg, "unexpected EOF while parsing", strlen("unexpected EOF while parsing")) == 0)
             r_state = Input_continued_block;
+          else if (strncmp(msg, "invalid syntax", strlen("invalid syntax")) == 0)
+          {
+            // If this is the case statement not only continues but next
+            // lines will be appended and form a single line statement
+            if (!code.empty() && code[code.length() - 2] == '.')
+              r_state = Input_continued_single_join;
+          }
         }
       }
       PyErr_Restore(exc, value, tb);
@@ -679,6 +686,11 @@ namespace shcore
     return get_object(self, args, "mysqlx", "Expression");
   }
 
+  PyObject *Python_context::mysqlx_date_value(PyObject *self, PyObject *args)
+  {
+    return get_object(self, args, "mysqlx", "Date");
+  }
+
   PyObject *Python_context::mysql_get_classic_session(PyObject *self, PyObject *args)
   {
     return get_object(self, args, "mysql", "ClassicSession");
@@ -692,6 +704,8 @@ namespace shcore
     "Creates a NodeSession object." },
     { "expr", &Python_context::mysqlx_expr, METH_VARARGS,
     "Creates a Expression object." },
+    { "dateValue", &Python_context::mysqlx_date_value, METH_VARARGS,
+    "Creates a Date object." },
     { NULL, NULL, 0, NULL }        /* Sentinel */
   };
 

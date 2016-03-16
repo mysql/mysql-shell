@@ -19,6 +19,7 @@
 
 #include "table_crud_definition.h"
 #include "mod_mysqlx_expression.h"
+#include "shellcore/obj_date.h"
 #include <sstream>
 
 using namespace mysh::mysqlx;
@@ -49,15 +50,25 @@ using namespace mysh::mysqlx;
     {
       shcore::Object_bridge_ref object = source.as_object();
 
-      boost::shared_ptr<Expression> expression = boost::dynamic_pointer_cast<Expression>(object);
+      std::string object_class = object->class_name();
 
-      if (expression)
+      if (object_class == "Expression")
       {
-        std::string expr_data = expression->get_data();
-        if (expr_data.empty())
-          throw shcore::Exception::argument_error("Expressions can not be empty.");
-        else
-          return ::mysqlx::TableValue(expr_data, ::mysqlx::TableValue::TExpression);
+        boost::shared_ptr<Expression> expression = boost::dynamic_pointer_cast<Expression>(object);
+
+        if (expression)
+        {
+          std::string expr_data = expression->get_data();
+          if (expr_data.empty())
+            throw shcore::Exception::argument_error("Expressions can not be empty.");
+          else
+            return ::mysqlx::TableValue(expr_data, ::mysqlx::TableValue::TExpression);
+        }
+      }
+      if (object_class == "Date")
+      {
+        std::string data = source.descr();
+        return ::mysqlx::TableValue(data);
       }
       else
       {

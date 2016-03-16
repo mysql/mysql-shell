@@ -24,6 +24,7 @@ print 'Exported Items:', len(exports)
 print 'getSession:', type(mysqlx.getSession), '\n'
 print 'getNodeSession:', type(mysqlx.getNodeSession), '\n'
 print 'expr:', type(mysqlx.expr), '\n'
+print 'dateValue:', type(mysqlx.dateValue), '\n'
 print 'Type:', mysqlx.Type, '\n'
 print 'IndexType:', mysqlx.IndexType, '\n'
 

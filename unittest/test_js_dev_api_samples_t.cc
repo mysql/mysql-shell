@@ -43,6 +43,9 @@ namespace shcore
 
       set_config_folder("js_dev_api_examples");
       set_setup_script("setup.js");
+
+      _extension = "js";
+      _new_format = true;
     }
 
     void create_connection()
@@ -61,143 +64,173 @@ namespace shcore
       }
     }
   };
-
-  TEST_F(Shell_js_dev_api_sample_tester, transaction_handling)
+  //==================>>> building_expressions
+  TEST_F(Shell_js_dev_api_sample_tester, Expression_Strings)
   {
-    validate_interactive("transaction_handling.js");
+    validate_interactive("building_expressions/Expression_Strings");
   }
 
-  TEST_F(Shell_js_dev_api_sample_tester, processing_warnings)
+  //==================>>> concepts
+  TEST_F(Shell_js_dev_api_sample_tester, Database_Connection_Example)
   {
-    validate_interactive("processing_warnings.js");
+    validate_interactive("concepts/Database_Connection_Example");
   }
 
-  TEST_F(Shell_js_dev_api_sample_tester, connecting_via_datasource_file)
+  TEST_F(Shell_js_dev_api_sample_tester, Dynamic_SQL)
   {
     create_connection();
-    validate_interactive("connecting_via_datasource_file.js");
+    validate_interactive("concepts/Dynamic_SQL");
   }
 
-  TEST_F(Shell_js_dev_api_sample_tester, setting_the_current_schema_2)
+  TEST_F(Shell_js_dev_api_sample_tester, Setting_the_Current_Schema)
   {
-    create_connection();
-    validate_interactive("setting_the_current_schema_2.js");
+    validate_interactive("concepts/Setting_the_Current_Schema");
   }
 
-  TEST_F(Shell_js_dev_api_sample_tester, dynamic_sql)
+  TEST_F(Shell_js_dev_api_sample_tester, Using_SQL_with_NodeSession)
   {
-    create_connection();
-    validate_interactive("dynamic_sql.js");
+    validate_interactive("concepts/Using_SQL_with_NodeSession");
   }
 
-  TEST_F(Shell_js_dev_api_sample_tester, connecting_to_a_session_2)
+  TEST_F(Shell_js_dev_api_sample_tester, Working_with_a_Session_Object)
   {
-    output_handler.ret_pwd = "s3cr3t!";
-    validate_interactive("connecting_to_a_session_2.js");
+    validate_interactive("concepts/Working_with_a_Session_Object");
   }
 
-  TEST_F(Shell_js_dev_api_sample_tester, database_connection_example)
+  //==================>>> crud_operations
+  TEST_F(Shell_js_dev_api_sample_tester, Interactive_Shell_Commands)
   {
-    validate_interactive("database_connection_example.js");
+    validate_interactive("crud_operations/Interactive_Shell_Commands");
   }
 
-  TEST_F(Shell_js_dev_api_sample_tester, connecting_to_a_session)
+  TEST_F(Shell_js_dev_api_sample_tester, Method_Chaining)
   {
-    validate_interactive("connecting_to_a_session.js");
+    validate_interactive("crud_operations/Method_Chaining");
   }
 
-  TEST_F(Shell_js_dev_api_sample_tester, working_with_a_session_object)
+  TEST_F(Shell_js_dev_api_sample_tester, Parameter_Binding)
   {
-    validate_interactive("working_with_a_session_object.js");
+    validate_interactive("crud_operations/Parameter_Binding");
   }
 
-  TEST_F(Shell_js_dev_api_sample_tester, using_sql)
+  TEST_F(Shell_js_dev_api_sample_tester, Preparing_CRUD_Statements)
   {
-    validate_interactive("using_sql.js");
+    validate_interactive("crud_operations/Preparing_CRUD_Statements");
   }
 
-  TEST_F(Shell_js_dev_api_sample_tester, setting_the_current_schema)
+  //==================>>> results
+  TEST_F(Shell_js_dev_api_sample_tester, Fetching_All_Data_Items_at_Once)
   {
-    validate_interactive("setting_the_current_schema.js");
+    validate_interactive("results/Fetching_All_Data_Items_at_Once");
   }
 
-  TEST_F(Shell_js_dev_api_sample_tester, parameter_binding)
+  TEST_F(Shell_js_dev_api_sample_tester, Working_with_Data_Sets)
   {
-    validate_interactive("parameter_binding.js");
+    validate_interactive("results/Working_with_Data_Sets");
   }
 
-  TEST_F(Shell_js_dev_api_sample_tester, preparing_crud_statements)
+  TEST_F(Shell_js_dev_api_sample_tester, Working_with_Data_Sets_1)
   {
-    validate_interactive("preparing_crud_statements.js");
+    validate_interactive("results/Working_with_Data_Sets_1");
   }
 
-  TEST_F(Shell_js_dev_api_sample_tester, working_with_collections)
+  TEST_F(Shell_js_dev_api_sample_tester, Working_with_Results)
   {
-    validate_interactive("working_with_collections.js");
+    validate_interactive("results/Working_with_Results");
   }
 
-  TEST_F(Shell_js_dev_api_sample_tester, collection_add)
+  TEST_F(Shell_js_dev_api_sample_tester, Working_with_Results_1)
   {
-    validate_interactive("collection_add.js");
+    validate_interactive("results/Working_with_Results_1");
   }
 
-  TEST_F(Shell_js_dev_api_sample_tester, document_identity_1)
+  TEST_F(Shell_js_dev_api_sample_tester, Working_with_SQL_Result_Sets)
   {
-    validate_interactive("document_identity_1.js");
+    validate_interactive("results/Working_with_SQL_Result_Sets");
   }
 
-  TEST_F(Shell_js_dev_api_sample_tester, document_identity_2_3)
+  TEST_F(Shell_js_dev_api_sample_tester, Working_with_SQL_Result_Sets_1)
   {
-    validate_interactive("document_identity_2_3.js");
+    validate_interactive("results/Working_with_SQL_Result_Sets_1");
   }
 
-  TEST_F(Shell_js_dev_api_sample_tester, collection_find)
+  TEST_F(Shell_js_dev_api_sample_tester, Working_with_SQL_Result_Sets_2)
   {
-    validate_interactive("collection_find.js");
+    validate_interactive("results/Working_with_SQL_Result_Sets_2");
   }
 
-  TEST_F(Shell_js_dev_api_sample_tester, table_insert)
+  TEST_F(Shell_js_dev_api_sample_tester, Working_with_SQL_Result_Sets_3)
   {
-    validate_interactive("table_insert.js");
+    validate_interactive("results/Working_with_SQL_Result_Sets_3");
   }
 
-  TEST_F(Shell_js_dev_api_sample_tester, working_with_datasets)
+  //==================>>> statement_execution
+  TEST_F(Shell_js_dev_api_sample_tester, Error_Handling)
   {
-    validate_interactive("working_with_datasets.js");
+    validate_interactive("statement_execution/Error_Handling");
   }
 
-  TEST_F(Shell_js_dev_api_sample_tester, working_with_datasets_2)
+  //==================>>> working_with_collections
+  TEST_F(Shell_js_dev_api_sample_tester, Basic_CRUD_Operations_on_Collections)
   {
-    validate_interactive("working_with_datasets_2.js");
+    validate_interactive("working_with_collections/Basic_CRUD_Operations_on_Collections");
   }
 
-  TEST_F(Shell_js_dev_api_sample_tester, working_with_results)
+  TEST_F(Shell_js_dev_api_sample_tester, Collection_add)
   {
-    validate_interactive("working_with_results.js");
+    validate_interactive("working_with_collections/Collection_add");
   }
 
-  TEST_F(Shell_js_dev_api_sample_tester, working_with_results_2)
+  TEST_F(Shell_js_dev_api_sample_tester, Collection_find)
   {
-    validate_interactive("working_with_results_2.js");
+    validate_interactive("working_with_collections/Collection_find");
   }
 
-  TEST_F(Shell_js_dev_api_sample_tester, error_handling)
+  TEST_F(Shell_js_dev_api_sample_tester, Creating_a_Collection)
   {
-    validate_interactive("error_handling.js");
+    validate_interactive("working_with_collections/Creating_a_Collection");
   }
 
-  TEST_F(Shell_js_dev_api_sample_tester, working_with_sql_results)
+  TEST_F(Shell_js_dev_api_sample_tester, Document_Identity)
   {
-    validate_interactive("working_with_sql_results.js");
+    validate_interactive("working_with_collections/Document_Identity");
   }
 
-  TEST_F(Shell_js_dev_api_sample_tester, working_with_sql_results_2)
+  TEST_F(Shell_js_dev_api_sample_tester, Document_Identity_1)
   {
-    validate_interactive("working_with_sql_results_2.js");
+    validate_interactive("working_with_collections/Document_Identity_1");
   }
 
-  TEST_F(Shell_js_dev_api_sample_tester, method_chaining)
+  TEST_F(Shell_js_dev_api_sample_tester, Document_Identity_2)
   {
-    validate_interactive("method_chaining.js");
+    validate_interactive("working_with_collections/Document_Identity_2");
+  }
+
+  TEST_F(Shell_js_dev_api_sample_tester, Working_with_Existing_Collections)
+  {
+    validate_interactive("working_with_collections/Working_with_Existing_Collections");
+  }
+
+  //==================>>> working_with_collections
+  TEST_F(Shell_js_dev_api_sample_tester, Document_Object___Class_Diagram)
+  {
+    validate_interactive("working_with_documents/Document_Object___Class_Diagram");
+  }
+
+  //==================>>> working_with_relational_tables
+  TEST_F(Shell_js_dev_api_sample_tester, Table_insert)
+  {
+    validate_interactive("working_with_relational_tables/Table_insert");
+  }
+
+  TEST_F(Shell_js_dev_api_sample_tester, Working_with_Relational_Tables)
+  {
+    validate_interactive("working_with_relational_tables/Working_with_Relational_Tables");
+  }
+
+  //==================>>> working_with_tables_documents
+  TEST_F(Shell_js_dev_api_sample_tester, Collections_as_Relational_Tables)
+  {
+    validate_interactive("working_with_tables_documents/Collections_as_Relational_Tables");
   }
 }

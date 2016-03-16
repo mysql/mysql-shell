@@ -85,6 +85,14 @@ def ensure_empty_my_table_table():
   testSession.sql('drop table if exists test.my_table').execute()
   testSession.sql('create table test.my_table (id integer, name varchar(50))').execute()
 
+def ensure_my_table_table():
+  ensure_test_schema()
+  
+  print "Creating my_table table...\n"
+  testSession.sql('drop table if exists test.my_table').execute()
+  testSession.sql('create table test.my_table (_id integer NOT NULL AUTO_INCREMENT PRIMARY KEY, name varchar(50), birthday DATE, age INTEGER)').execute()
+  
+  
 def ensure_my_collection_collection():
   ensure_test_schema_on_db()
 
@@ -109,17 +117,38 @@ def ensure_my_collection_collection():
     result = test_coll.add({'name': 'Sally', 'age': 19, 'gender': 'female'}).execute()
     result = test_coll.add({'name': 'Molly', 'age': 25, 'gender': 'female'}).execute()
 
+def ensure_customers_collection():
+  ensure_test_schema_on_db()
 
-def ensure_not_my_collection_collection():
+  try:
+    test_coll = testSession.getSchema('test').getCollection('customers')
+
+    print "customers collection exists...\n"
+  except:
+    print "Creating customers collection...\n"
+    test_coll = db.createCollection('customers')
+
+def ensure_my_coll_collection():
+  ensure_test_schema_on_db()
+
+  try:
+    test_coll = testSession.getSchema('test').getCollection('my_coll')
+
+    print "my_coll collection exists...\n"
+  except:
+    print "Creating my_coll collection...\n"
+    test_coll = db.createCollection('my_coll')
+
+def ensure_not_collection(name):
   ensure_test_schema()
 
   try:
-    test_coll = testSession.getSchema('test').getCollection('my_collection')
+    test_coll = testSession.getSchema('test').getCollection(name)
 
-    print ("Dropping my_collection...\n")
-    testSession.dropCollection('test', 'my_collection')
+    print "Dropping %s...\n" % name
+    testSession.dropCollection('test', name)
   except:
-    print "my_collection does not exist...\n"
+    print "%s does not exist...\n" % name
 
 def ensure_custom_id_unique():
   global myColl
@@ -139,7 +168,14 @@ def ensure_table_users_exists():
   except:
     print 'Creating users table...'
     testSession.sql('create table users (name varchar(50), age int)').execute()
-    testSession.sql('insert into users values ("Jack", 17)').execute()
+    
+  testSession.sql('delete from test.users').execute()
+  testSession.sql('insert into test.users values ("Jack", 17)').execute()
+  testSession.sql('insert into test.users values ("John", 40)').execute()
+  testSession.sql('insert into test.users values ("Alfred", 39)').execute()
+  testSession.sql('insert into test.users values ("Mike", 40)').execute()
+  testSession.sql('insert into test.users values ("Armand", 50)').execute()
+  testSession.sql('insert into test.users values ("Rafa", 38)').execute()
 
   nodeSession = testSession
 
@@ -169,15 +205,24 @@ for assumption in __assumptions__:
   elif assumption == "test schema assigned to db":
     ensure_test_schema_on_db()
   elif assumption == "my_collection collection exists":
+    ensure_not_collection("my_collection");
     ensure_my_collection_collection()
+  elif assumption == "customers collection exists":
+    ensure_not_collection("customers")
+    ensure_customers_collection()
   elif assumption == "employee table exists":
     ensure_employee_table()
   elif assumption == "employee table exist on myTable":
     ensure_employee_table_on_mytable()
   elif assumption == "empty my_table table exists":
     ensure_empty_my_table_table()
+  elif assumption == "my_table table exists":
+    ensure_my_table_table();
   elif assumption == "my_collection collection not exists":
-    ensure_not_my_collection_collection()
+    ensure_not_collection("my_collection")
+  elif assumption == "my_coll collection is empty":
+    ensure_not_collection("my_coll")
+    ensure_my_coll_collection()
   elif assumption == "custom_id is unique":
     ensure_custom_id_unique()
   elif assumption == "users table exists":

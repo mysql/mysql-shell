@@ -96,6 +96,14 @@ function ensure_empty_my_table_table() {
   testSession.sql('create table test.my_table (id integer, name varchar(50))').execute();
 }
 
+function ensure_my_table_table() {
+  ensure_test_schema();
+  
+  print("Creating my_table table...\n");
+  testSession.sql('drop table if exists test.my_table').execute();
+  testSession.sql('create table test.my_table (_id integer NOT NULL AUTO_INCREMENT PRIMARY KEY, name varchar(50), birthday DATE, age INTEGER)').execute();
+}
+
 function ensure_my_collection_collection() {
   ensure_test_schema_on_db();
 
@@ -123,20 +131,49 @@ function ensure_my_collection_collection() {
   }
 }
 
+function ensure_customers_collection() {
+  ensure_test_schema_on_db();
 
-function ensure_not_my_collection_collection() {
+  try{
+    var test_coll = testSession.getSchema('test').getCollection('customers');
+
+    print("customers collection exists...\n");
+  }
+  catch(err){
+    print("Creating customers collection...\n");
+    var test_coll = db.createCollection('customers');
+  }
+}
+
+function ensure_my_coll_collection() {
+  ensure_test_schema_on_db();
+
+  try{
+    var test_coll = testSession.getSchema('test').getCollection('my_coll');
+
+    print("my_coll collection exists...\n");
+  }
+  catch(err){
+    print("Creating my_coll collection...\n");
+    var test_coll = db.createCollection('my_coll');
+  }
+}
+
+
+function ensure_not_collection(name) {
   ensure_test_schema();
 
   try{
-    var test_coll = testSession.getSchema('test').getCollection('my_collection');
+    var test_coll = testSession.getSchema('test').getCollection(name);
 
-    print ("Dropping my_collection...\n");
-    testSession.dropCollection('test', 'my_collection');
+    print ("Dropping " + name + "...\n");
+    testSession.dropCollection('test', name);
   }
   catch(err){
-    print("my_collection does not exist...\n");
+    print(name + " does not exist...\n");
   }
 }
+
 
 function ensure_custom_id_unique(){
 	ensure_my_collection_collection();
@@ -156,9 +193,16 @@ function ensure_table_users_exists(){
 	catch(err){
 		print('Creating users table...');
 		testSession.sql('create table users (name varchar(50), age int)').execute();
-		testSession.sql('insert into users values ("Jack", 17)').execute();
-	}
-	
+  }
+  
+  testSession.sql('delete from test.users').execute();
+  testSession.sql('insert into test.users values ("Jack", 17)').execute();
+  testSession.sql('insert into test.users values ("John", 40)').execute();
+  testSession.sql('insert into test.users values ("Alfred", 39)').execute();
+  testSession.sql('insert into test.users values ("Mike", 40)').execute();
+  testSession.sql('insert into test.users values ("Armand", 50)').execute();
+  testSession.sql('insert into test.users values ("Rafa", 38)').execute();
+
 	nodeSession = testSession;
 }
 
@@ -188,7 +232,12 @@ for(index in __assumptions__)
       ensure_test_schema_on_db();
       break;
     case "my_collection collection exists":
+      ensure_not_collection("my_collection");
       ensure_my_collection_collection();
+      break;
+    case "customers collection exists":
+      ensure_not_collection("customers");
+      ensure_customers_collection();
       break;
     case "employee table exists":
       ensure_employee_table();
@@ -199,8 +248,15 @@ for(index in __assumptions__)
     case "empty my_table table exists":
       ensure_empty_my_table_table();
       break;
+    case "my_table table exists":
+      ensure_my_table_table();
+      break;
     case "my_collection collection not exists":
-      ensure_not_my_collection_collection();
+      ensure_not_collection("my_collection");
+			break;
+    case "my_coll collection is empty":
+      ensure_not_collection("my_coll");
+      ensure_my_coll_collection();
 			break;
 		case "custom_id is unique":
 			ensure_custom_id_unique();

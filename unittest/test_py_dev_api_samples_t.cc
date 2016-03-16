@@ -36,6 +36,9 @@ namespace shcore
 
       set_config_folder("py_dev_api_examples");
       set_setup_script("setup.py");
+
+      _extension = "py";
+      _new_format = true;
     }
 
     void create_connection()
@@ -55,145 +58,205 @@ namespace shcore
     }
   };
 
-  TEST_F(Shell_py_dev_api_sample_tester, transaction_handling)
+  //==================>>> building_expressions
+  TEST_F(Shell_py_dev_api_sample_tester, Expression_Strings)
   {
-    validate_interactive("transaction_handling.py");
+    validate_interactive("building_expressions/Expression_Strings");
   }
 
-  TEST_F(Shell_py_dev_api_sample_tester, processing_warnings)
+  //==================>>> concepts
+  TEST_F(Shell_py_dev_api_sample_tester, Connecting_to_a_Single_MySQL_Server)
   {
-    validate_interactive("processing_warnings.py");
+    validate_interactive("concepts/Connecting_to_a_Single_MySQL_Server");
   }
 
-  TEST_F(Shell_py_dev_api_sample_tester, connecting_via_datasource_file)
+  TEST_F(Shell_py_dev_api_sample_tester, Connecting_to_a_Single_MySQL_Server_1)
   {
-    create_connection();
-    validate_interactive("connecting_via_datasource_file.py");
-  }
-
-  TEST_F(Shell_py_dev_api_sample_tester, setting_the_current_schema_2)
-  {
-    create_connection();
-    validate_interactive("setting_the_current_schema_2.py");
-  }
-
-  TEST_F(Shell_py_dev_api_sample_tester, dynamic_sql)
-  {
-    create_connection();
-    validate_interactive("dynamic_sql.py");
-  }
-
-  TEST_F(Shell_py_dev_api_sample_tester, connecting_to_a_session_2)
-  {
+    output_handler.prompts.push_back("mike");
     output_handler.ret_pwd = "s3cr3t!";
-    validate_interactive("connecting_to_a_session_2.py");
+
+    validate_interactive("concepts/Connecting_to_a_Single_MySQL_Server_1");
   }
 
-  TEST_F(Shell_py_dev_api_sample_tester, database_connection_example)
+  TEST_F(Shell_py_dev_api_sample_tester, Database_Connection_Example)
   {
-    validate_interactive("database_connection_example.py");
+    validate_interactive("concepts/Database_Connection_Example");
   }
 
-  TEST_F(Shell_py_dev_api_sample_tester, connecting_to_a_session)
+  TEST_F(Shell_py_dev_api_sample_tester, Dynamic_SQL)
   {
-    validate_interactive("connecting_to_a_session.py");
+    validate_interactive("concepts/Dynamic_SQL");
   }
 
-  TEST_F(Shell_py_dev_api_sample_tester, working_with_a_session_object)
+  TEST_F(Shell_py_dev_api_sample_tester, Setting_the_Current_Schema)
   {
-    validate_interactive("working_with_a_session_object.py");
+    validate_interactive("concepts/Setting_the_Current_Schema");
   }
 
-  TEST_F(Shell_py_dev_api_sample_tester, using_sql)
+  TEST_F(Shell_py_dev_api_sample_tester, Using_SQL_with_NodeSession)
   {
-    validate_interactive("using_sql.py");
+    validate_interactive("concepts/Using_SQL_with_NodeSession");
   }
 
-  TEST_F(Shell_py_dev_api_sample_tester, setting_the_current_schema)
+  TEST_F(Shell_py_dev_api_sample_tester, Working_with_a_Session_Object)
   {
-    validate_interactive("setting_the_current_schema.py");
+    validate_interactive("concepts/Working_with_a_Session_Object");
   }
 
-  TEST_F(Shell_py_dev_api_sample_tester, parameter_binding)
+  //==================>>> crud_operations
+  TEST_F(Shell_py_dev_api_sample_tester, Interactive_Shell_Commands)
   {
-    validate_interactive("parameter_binding.py");
+    validate_interactive("crud_operations/Interactive_Shell_Commands");
   }
 
-  TEST_F(Shell_py_dev_api_sample_tester, preparing_crud_statements)
+  TEST_F(Shell_py_dev_api_sample_tester, Method_Chaining)
   {
-    validate_interactive("preparing_crud_statements.py");
+    validate_interactive("crud_operations/Method_Chaining");
   }
 
-  TEST_F(Shell_py_dev_api_sample_tester, working_with_collections)
+  TEST_F(Shell_py_dev_api_sample_tester, Parameter_Binding)
   {
-    validate_interactive("working_with_collections.py");
+    validate_interactive("crud_operations/Parameter_Binding");
   }
 
-  TEST_F(Shell_py_dev_api_sample_tester, collection_add)
+  TEST_F(Shell_py_dev_api_sample_tester, Preparing_CRUD_Statements)
   {
-    validate_interactive("collection_add.py");
+    validate_interactive("crud_operations/Preparing_CRUD_Statements");
   }
 
-  TEST_F(Shell_py_dev_api_sample_tester, document_identity_1)
+  //==================>>> results
+  TEST_F(Shell_py_dev_api_sample_tester, Fetching_All_Data_Items_at_Once)
   {
-    validate_interactive("document_identity_1.py");
+    validate_interactive("results/Fetching_All_Data_Items_at_Once");
   }
 
-  TEST_F(Shell_py_dev_api_sample_tester, document_identity_2_3)
+  TEST_F(Shell_py_dev_api_sample_tester, Working_with_Data_Sets)
   {
-    validate_interactive("document_identity_2_3.py");
+    validate_interactive("results/Working_with_Data_Sets");
   }
 
-  TEST_F(Shell_py_dev_api_sample_tester, collection_find)
+  TEST_F(Shell_py_dev_api_sample_tester, Working_with_Data_Sets_1)
   {
-    validate_interactive("collection_find.py");
+    validate_interactive("results/Working_with_Data_Sets_1");
   }
 
-  TEST_F(Shell_py_dev_api_sample_tester, table_insert)
+  TEST_F(Shell_py_dev_api_sample_tester, Working_with_Results)
   {
-    validate_interactive("table_insert.py");
+    validate_interactive("results/Working_with_Results");
   }
 
-  TEST_F(Shell_py_dev_api_sample_tester, working_with_datasets)
+  TEST_F(Shell_py_dev_api_sample_tester, Working_with_Results_1)
   {
-    validate_interactive("working_with_datasets.py");
+    validate_interactive("results/Working_with_Results_1");
   }
 
-  TEST_F(Shell_py_dev_api_sample_tester, working_with_datasets_2)
+  TEST_F(Shell_py_dev_api_sample_tester, Working_with_SQL_Result_Sets)
   {
-    validate_interactive("working_with_datasets_2.py");
+    validate_interactive("results/Working_with_SQL_Result_Sets");
   }
 
-  TEST_F(Shell_py_dev_api_sample_tester, working_with_results)
+  TEST_F(Shell_py_dev_api_sample_tester, Working_with_SQL_Result_Sets_1)
   {
-    validate_interactive("working_with_results.py");
+    validate_interactive("results/Working_with_SQL_Result_Sets_1");
   }
 
-  TEST_F(Shell_py_dev_api_sample_tester, working_with_results_2)
+  TEST_F(Shell_py_dev_api_sample_tester, Working_with_SQL_Result_Sets_2)
   {
-    validate_interactive("working_with_results_2.py");
+    validate_interactive("results/Working_with_SQL_Result_Sets_2");
   }
 
-// This specific example does not work for python 2.6 so we disable it for it (OEL6)
+  TEST_F(Shell_py_dev_api_sample_tester, Working_with_SQL_Result_Sets_3)
+  {
+    validate_interactive("results/Working_with_SQL_Result_Sets_3");
+  }
+
+  //==================>>> statement_execution
+  // This specific example does not work for python 2.6 so we disable it for it (OEL6)
 #if PY_MAJOR_VERSION > 2 || (PY_MAJOR_VERSION == 2 && PY_MINOR_VERSION > 6)
-  TEST_F(Shell_py_dev_api_sample_tester, error_handling)
+
+  TEST_F(Shell_py_dev_api_sample_tester, Error_Handling)
   {
-    validate_interactive("error_handling.py");
+    validate_interactive("statement_execution/Error_Handling");
   }
 #endif
 
-  TEST_F(Shell_py_dev_api_sample_tester, working_with_sql_results)
+  /*
+  TEST_F(Shell_py_dev_api_sample_tester, Processing_Warnings)
   {
-    validate_interactive("working_with_sql_results.py");
+  validate_interactive("statement_execution/Processing_Warnings");
   }
 
-  TEST_F(Shell_py_dev_api_sample_tester, working_with_sql_results_2)
+  TEST_F(Shell_py_dev_api_sample_tester, Processing_Warnings_1)
   {
-    validate_interactive("working_with_sql_results_2.py");
+  validate_interactive("statement_execution/Processing_Warnings_1");
+  }
+  */
+  TEST_F(Shell_py_dev_api_sample_tester, Transaction_Handling)
+  {
+    validate_interactive("statement_execution/Transaction_Handling");
   }
 
-  TEST_F(Shell_py_dev_api_sample_tester, method_chaining)
+  //==================>>> working_with_collections
+  TEST_F(Shell_py_dev_api_sample_tester, Basic_CRUD_Operations_on_Collections)
   {
-    validate_interactive("method_chaining.py");
+    validate_interactive("working_with_collections/Basic_CRUD_Operations_on_Collections");
   }
-}
+
+  TEST_F(Shell_py_dev_api_sample_tester, Collection_add)
+  {
+    validate_interactive("working_with_collections/Collection_add");
+  }
+
+  TEST_F(Shell_py_dev_api_sample_tester, Collection_find)
+  {
+    validate_interactive("working_with_collections/Collection_find");
+  }
+
+  TEST_F(Shell_py_dev_api_sample_tester, Creating_a_Collection)
+  {
+    validate_interactive("working_with_collections/Creating_a_Collection");
+  }
+
+  TEST_F(Shell_py_dev_api_sample_tester, Document_Identity)
+  {
+    validate_interactive("working_with_collections/Document_Identity");
+  }
+
+  TEST_F(Shell_py_dev_api_sample_tester, Document_Identity_1)
+  {
+    validate_interactive("working_with_collections/Document_Identity_1");
+  }
+
+  TEST_F(Shell_py_dev_api_sample_tester, Document_Identity_2)
+  {
+    validate_interactive("working_with_collections/Document_Identity_2");
+  }
+
+  TEST_F(Shell_py_dev_api_sample_tester, Working_with_Existing_Collections)
+  {
+    validate_interactive("working_with_collections/Working_with_Existing_Collections");
+  }
+
+  //==================>>> working_with_documents
+  TEST_F(Shell_py_dev_api_sample_tester, Document_Object___Class_Diagram)
+  {
+    validate_interactive("working_with_documents/Document_Object___Class_Diagram");
+  }
+
+  //==================>>> working_with_relational_tables
+  TEST_F(Shell_py_dev_api_sample_tester, Table_insert)
+  {
+    validate_interactive("working_with_relational_tables/Table_insert");
+  }
+
+  TEST_F(Shell_py_dev_api_sample_tester, Working_with_Relational_Tables)
+  {
+    validate_interactive("working_with_relational_tables/Working_with_Relational_Tables");
+  }
+
+  //==================>>> working_with_tables_documents
+  TEST_F(Shell_py_dev_api_sample_tester, Collections_as_Relational_Tables)
+  {
+    validate_interactive("working_with_tables_documents/Collections_as_Relational_Tables");
+  }
+  }

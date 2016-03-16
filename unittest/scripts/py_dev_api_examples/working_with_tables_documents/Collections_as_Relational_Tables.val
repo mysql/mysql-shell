@@ -1,0 +1,1 @@
+db.customers.find('name="mike"').execute().fetchOne().name|mike|
