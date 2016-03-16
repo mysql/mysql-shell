@@ -147,7 +147,7 @@ endif()
 
 ADD_EXECUTABLE(shexpr shexpr.cc)
 TARGET_LINK_LIBRARIES(shexpr
-            mysqlshcore
+            ${MYSQLSHCORE_LIBS}
             mysqlxtest
             gtest
             ${SSL_LIBRARIES}
