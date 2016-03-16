@@ -1,11 +1,42 @@
-MySQL Shell 1.0 (part of MySQL Server)
- 
-This is a release of MySQL Shell (part of MySQL Server), Oracle's dual-license unified
-interface to operate the different MySQL products through scripting languages such as 
-JavaScript or Python. For the avoidance of doubt, this particular copy of the software
-is released under the version 2 of the GNU General Public License.
+MySQL Shell 1.0
+===============
+(part of MySQL Server)
+
+This is a release of MySQL Shell (part of MySQL Server), Oracle's dual-license
+unified interface to operate the different MySQL products through scripting
+languages such as JavaScript or Python.
+
+MySQL Shell is a command line, scriptable shell for MySQL. It can be used to
+connect to and interact with MySQL Servers that support the new X Protocol for
+Document Databases. With the built-in support for JavaScript and Python, you can
+use the X DevAPI to create schema-less JSON document collections and perform
+CRUD operations on them with little to no knowledge of SQL.
+
+MySQL Shell is also partially compatible with the classic mysql command line
+client and supports many of the same command line options. As with the mysql
+cli, it can also be used to connect to and send SQL commands to most older
+versions of the MySQL server, through the classic MySQL network protocol.
+
+You can read more information about how to use the MySQL Shell and the MySQL
+Document Database support at
+http://dev.mysql.com/doc/refman/5.7/en/mysqlx-shell-userguide.xml
+
+For the full documentation on the MySQL Server, the MySQL Shell and related
+topics, see: http://dev.mysql.com/doc/refman/5.7/en/
+
+If you want to write applications that use the X DevAPI, use X DevAPI
+enabled Connectors for your language of choice. You can also find documentation
+about Connectors in the MySQL documentation site.
+
+
+LICENSE
+-------
+
+For the avoidance of doubt, this particular copy of the software is released
+under the version 2 of the GNU General Public License.
 
 The MySQL Shell is brought to you by the MySQL team at Oracle.
+
 
 Copyright (c) 2016, Oracle and/or its affiliates. All rights reserved.
 
@@ -14,47 +45,26 @@ License information can be found in the COPYING file.
 This software is OSI Certified Open Source Software.
 OSI Certified is a certification mark of the Open Source Initiative.
 
-This distribution may include materials developed by third
-parties. For license and attribution notices for these
-materials, please refer to the documentation that accompanies
-this distribution (see the "Licenses for Third-Party Components"
-appendix) or view the online documentation at 
-<http://dev.mysql.com/doc/>
-A copy of the license/notices is also reproduced below.
+This distribution may include materials developed by third parties. For license
+and attribution notices for these materials, please refer to the documentation
+that accompanies this distribution (see the "Licenses for Third-Party
+Components" appendix) or view the online documentation at
+http://dev.mysql.com/doc/ A copy of the license/notices is also reproduced
+below.
 
 GPLv2 Disclaimer
+
 For the avoidance of doubt, except that if any license choice
-other than GPL or LGPL is available it will apply instead, 
-Oracle elects to use only the General Public License version 2 
-(GPLv2) at this time for any software where a choice of GPL 
-license versions is made available with the language indicating 
-that GPLv2 or any later version may be used, or where a choice 
+other than GPL or LGPL is available it will apply instead,
+Oracle elects to use only the General Public License version 2
+(GPLv2) at this time for any software where a choice of GPL
+license versions is made available with the language indicating
+that GPLv2 or any later version may be used, or where a choice
 of which version of the GPL is applied is otherwise unspecified.
 
-CONTENTS
 
-* Documentation Location
-* Third-Party Component Notices
-
-DOCUMENTATION LOCATION
- 
-The documentation formerly contained in this file has moved 
-into the 'doc' directory, where it is available in HTML, PDF 
-and plaintext forms.
-
-You may also find the latest copy of the documentation on 
-the MySQL website at http://dev.mysql.com/doc
-
-Some Reference Manual sections of special interest:
-- Using MySQL as a Document Database: contais the MySQL Shell User Guide
-  as well as quick start guides for Python and JavaScript.
-
- 
-***************************************************************
-
-Third-Party Component Notices
-
-****************************************************************
+THIRD-PARTY COMPONENT NOTICES
+-----------------------------
 
 %%The following software may be included in this product:
 
@@ -128,7 +138,7 @@ are:
 These libraries have their own licenses; we recommend you read them,
 as their terms may differ from the terms below.
 
-Further license information can be found in LICENSE files located in 
+Further license information can be found in LICENSE files located in
 sub-directories.
 
 Copyright 2014, the V8 project authors. All rights reserved.
@@ -253,7 +263,7 @@ prepare derivative works, distribute, and otherwise use Python
 alone or in any derivative version, provided, however, that PSF's
 License Agreement and PSF's notice of copyright, i.e., "Copyright (c)
 2001, 2002, 2003, 2004, 2005, 2006 Python Software Foundation; All Rights
-Reserved" are retained in Python alone or in any derivative version 
+Reserved" are retained in Python alone or in any derivative version
 prepared by Licensee.
 
 3. In the event Licensee prepares a derivative work that is based on
@@ -533,10 +543,10 @@ THE SOFTWARE.
 
  Copyright (c) 1997 The NetBSD Foundation, Inc.
  All rights reserved.
- 
+
  This code is derived from software contributed to The NetBSD Foundation
  by Jaromir Dolecek.
- 
+
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions
  are met:
@@ -545,7 +555,7 @@ THE SOFTWARE.
  2. Redistributions in binary form must reproduce the above copyright
     notice, this list of conditions and the following disclaimer in the
     documentation and/or other materials provided with the distribution.
- 
+
  THIS SOFTWARE IS PROVIDED BY THE NETBSD FOUNDATION, INC. AND CONTRIBUTORS
  ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
  TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
