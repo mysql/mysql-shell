@@ -152,6 +152,8 @@ void Shell_script_tester::load_source_chunks(std::istream & stream)
     std::string line;
     std::getline(stream, line);
 
+    boost::trim_right_if(line, boost::is_any_of("\r\n"));
+
     if (line.find(get_chunk_token()) == 0)
     {
       if (current_chunk)
@@ -362,6 +364,7 @@ void Shell_script_tester::process_setup(std::istream & stream)
 
   // Once the assumptions are processed, rewinds the read position
   // To the beggining of the script
+  stream.clear(); // To clean up the eof flag in case it was set
   stream.seekg(0, stream.beg);
 }
 
