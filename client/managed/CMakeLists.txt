@@ -59,6 +59,6 @@ target_link_libraries(ShellClient PRIVATE shell_client mysqlshcore)
 # this is needed for the success compilation of the managed wrapper
 execute_process(COMMAND sn.exe -i "${CMAKE_SOURCE_DIR}/client/managed/mysqlsh.snk" MySQLShell)
 
-if (WITH_SAMPLES)
+if (WITH_SAMPLES AND WITH_DEV)
   install(TARGETS ShellClient COMPONENT dev DESTINATION lib)
 endif()

@@ -359,10 +359,11 @@ if(WIN32)
 endif()
 
 # Installation instructions
-if(HAVE_V8 AND WIN32)
-   install(FILES ${V8_LIBS} DESTINATION lib COMPONENT dev)
-endif()
 if(WITH_DEV)
+    if(HAVE_V8 AND WIN32)
+       install(FILES ${V8_LIBS} DESTINATION lib COMPONENT dev)
+    endif()
+
     install(DIRECTORY "${CMAKE_SOURCE_DIR}/utils/" DESTINATION "${INSTALL_INCLUDEDIR}/utils" COMPONENT dev FILES_MATCHING PATTERN "*.h" )
     install(FILES "${CMAKE_SOURCE_DIR}/common/logger/logger.h" DESTINATION "${INSTALL_INCLUDEDIR}/logger" COMPONENT dev)
 endif()
@@ -393,7 +394,10 @@ if (HAVE_PYTHON)
     get_filename_component(PY_FILE ${PY_DLL} NAME)
     get_filename_component(PY_DLL ${PY_DLL} DIRECTORY)
     install(FILES "${PY_DLL}/${PY_FILE}" DESTINATION bin COMPONENT main)
-    install(FILES "${PY_DLL}/${PY_FILE}" DESTINATION lib COMPONENT dev)
+
+    IF (WITH_DEV)
+      install(FILES "${PY_DLL}/${PY_FILE}" DESTINATION lib COMPONENT dev)
+    ENDIF()
 
     if(CMAKE_BUILD_TYPE MATCHES Debug)
       # Copies the dll to the binary location to enable debugging

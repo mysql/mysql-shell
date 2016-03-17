@@ -97,7 +97,7 @@ endif()
 if ( HAVE_PYTHON )
   include_directories("${PYTHON_INCLUDE_DIR}")
 
-  if (WIN32)
+  if (WITH_DEV AND WIN32)
     install(FILES ${PYTHON_LIBRARIES} DESTINATION lib COMPONENT dev)
   endif()
 else()

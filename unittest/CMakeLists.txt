@@ -99,7 +99,10 @@ if(WITH_TESTS)
         get_filename_component(V8_DLL ${V8_DLL} DIRECTORY)
         get_filename_component(V8_DLL ${V8_DLL} DIRECTORY)
         install(FILES "${V8_DLL}/${V8_FILE}" DESTINATION bin COMPONENT main)
-        install(FILES "${V8_DLL}/${V8_FILE}" DESTINATION lib COMPONENT dev)
+
+        if (WITH_DEV)
+          install(FILES "${V8_DLL}/${V8_FILE}" DESTINATION lib COMPONENT dev)
+        endif()
 
         # Copies the dll to the binary location to enable debugging
         add_custom_command(TARGET run_unit_tests PRE_BUILD

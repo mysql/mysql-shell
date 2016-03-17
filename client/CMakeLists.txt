@@ -126,7 +126,10 @@ endif()
 
 if (WITH_SAMPLES)
   add_subdirectory(sample)
-  install(FILES "shell_client.h" COMPONENT dev DESTINATION include)
-  install(TARGETS shell_client COMPONENT dev DESTINATION lib)
+
+  IF (WITH_DEV)
+    install(FILES "shell_client.h" COMPONENT dev DESTINATION include)
+    install(TARGETS shell_client COMPONENT dev DESTINATION lib)
+  ENDIF()
 endif()
 
