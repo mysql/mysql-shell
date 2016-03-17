@@ -83,7 +83,8 @@ namespace mysh
     {
     public:
       BaseSession();
-      virtual ~BaseSession() {}
+      BaseSession(const BaseSession& s);
+      virtual ~BaseSession() { try { shcore::Argument_list a; close(a); } catch (...) {} }
 
       virtual std::vector<std::string> get_members() const;
       virtual shcore::Value get_member(const std::string &prop) const;
@@ -119,6 +120,8 @@ namespace mysh
       bool table_name_compare(const std::string &n1, const std::string &n2);
 
       virtual void set_option(const char *option, int value);
+
+      virtual uint64_t get_connection_id() const;
 
 #ifdef DOXYGEN
       String uri; //!< Same as getUri()
@@ -159,6 +162,7 @@ namespace mysh
       boost::shared_ptr<shcore::Value::Map_type> _schemas;
 
       bool _case_sensitive_table_names;
+      void init();
     };
 
     /**
@@ -174,6 +178,7 @@ namespace mysh
     {
     public:
       XSession(){};
+      XSession(const XSession& s) : BaseSession(s) {}
       virtual ~XSession(){};
       virtual std::string class_name() const { return "XSession"; };
       static boost::shared_ptr<shcore::Object_bridge> create(const shcore::Argument_list &args);
@@ -192,6 +197,7 @@ namespace mysh
     {
     public:
       NodeSession();
+      NodeSession(const NodeSession& s);
       virtual ~NodeSession(){};
       virtual std::string class_name() const { return "NodeSession"; };
       virtual std::vector<std::string> get_members() const;
@@ -209,6 +215,8 @@ namespace mysh
       SqlExecute sql(String sql);
       String quoteName(String id);
 #endif
+    protected:
+      void init();
     };
   }
 }

@@ -151,6 +151,7 @@ namespace mysh
     public:
       Connection(const std::string &uri, const char *password = NULL);
       Connection(const std::string &host, int port, const std::string &socket, const std::string &user, const std::string &password, const std::string &schema, const std::string &ssl_ca = "", const std::string &ssl_cert = "", const std::string &ssl_key = "");
+      Connection(const Connection& conn) : Connection(conn._uri, NULL) { }
       ~Connection();
 
       void close();

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2015, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2016, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -42,6 +42,7 @@ namespace shcore
 
     virtual bool print_help(const std::string& topic);
     void print_exception(const shcore::Exception &e);
+    virtual void abort();
 
   private:
     std::string _sql_cache;

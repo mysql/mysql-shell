@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2016, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -81,7 +81,8 @@ namespace shcore
   class SHCORE_PUBLIC Shell_language
   {
   public:
-    Shell_language(IShell_core *owner) : _owner(owner) {}
+    Shell_language(IShell_core *owner) : _owner(owner), _killed(false) {}
+
     virtual ~Shell_language(){}
 
     virtual void set_global(const std::string &name, const Value &value) = 0;
@@ -92,7 +93,9 @@ namespace shcore
     virtual std::string get_handled_input() { return _last_handled; }
     virtual std::string prompt() = 0;
     virtual bool print_help(const std::string&) { return false; }
+    virtual void abort() = 0;
   protected:
+    bool _killed;
     IShell_core *_owner;
     std::string _last_handled;
     Shell_command_handler _shell_command_handler;
@@ -128,6 +131,9 @@ namespace shcore
 
     virtual Interpreter_delegate *lang_delegate() { return _lang_delegate; }
 
+    bool is_running_query() { return _running_query; }
+    virtual void abort();
+
     // To be used to stop processing from caller
     void set_error_processing() { _global_return_code = 1; }
   public:
@@ -150,6 +156,7 @@ namespace shcore
     std::string _input_source;
     Mode _mode;
     int _global_return_code;
+    bool _running_query;
   };
 };
 

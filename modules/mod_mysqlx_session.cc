@@ -74,6 +74,16 @@ REGISTER_OBJECT(mysqlx, IndexType);
 BaseSession::BaseSession()
   : _case_sensitive_table_names(false)
 {
+  init();
+}
+
+BaseSession::BaseSession(const BaseSession& s) : ShellBaseSession(s), _case_sensitive_table_names(false)
+{
+  init();
+}
+
+void BaseSession::init()
+{
   _schemas.reset(new shcore::Value::Map_type);
 
   add_method("close", boost::bind(&BaseSession::close, this, _1), "data");
@@ -126,6 +136,11 @@ void BaseSession::set_option(const char *option, int value)
     _session->connection()->set_trace_protocol(value != 0);
   else
     throw shcore::Exception::argument_error(std::string("Unknown option ").append(option));
+}
+
+uint64_t BaseSession::get_connection_id() const 
+{ 
+  return _session->connection()->client_id(); 
 }
 
 bool BaseSession::table_name_compare(const std::string &n1, const std::string &n2)
@@ -862,6 +877,16 @@ boost::shared_ptr<shcore::Object_bridge> XSession::create(const shcore::Argument
 }
 
 NodeSession::NodeSession() : BaseSession()
+{
+  init();
+}
+
+NodeSession::NodeSession(const NodeSession& s) : BaseSession(s)
+{
+  init();
+}
+
+void NodeSession::init()
 {
   add_method("sql", boost::bind(&NodeSession::sql, this, _1), "sql", shcore::String, NULL);
   add_method("setCurrentSchema", boost::bind(&BaseSession::set_current_schema, this, _1), "name", shcore::String, NULL);

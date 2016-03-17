@@ -1096,6 +1096,23 @@ void Interactive_shell::process_line(const std::string &line)
   }
 }
 
+void Interactive_shell::abort()
+{ 
+  if (!_shell) return;
+  
+  if (_shell->is_running_query())
+  {
+    try 
+    {
+      _shell->abort();
+    }
+    catch (std::runtime_error& e)
+    {
+      log_exception("Error when killing connection ", e);
+    }
+  }
+}
+
 void Interactive_shell::process_result(shcore::Value result)
 {
   if ((*Shell_core_options::get())[SHCORE_INTERACTIVE].as_bool()

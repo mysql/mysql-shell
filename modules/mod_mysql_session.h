@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2016, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -78,7 +78,8 @@ namespace mysh
     {
     public:
       ClassicSession();
-      virtual ~ClassicSession() {};
+      ClassicSession(const ClassicSession& session);
+      virtual ~ClassicSession() { try { shcore::Argument_list a; close(a); } catch (...) {} };
 
       // Virtual methods from object bridge
       virtual std::string class_name() const { return "ClassicSession"; };
@@ -108,6 +109,8 @@ namespace mysh
 
       Connection *connection();
 
+      virtual uint64_t get_connection_id() const { return (uint64_t)_conn->get_thread_id(); }
+
 #ifdef DOXYGEN
       String uri; //!< Same as getUri()
       Map schemas; //!< Same as getSchemas()
@@ -135,6 +138,7 @@ namespace mysh
       virtual int get_default_port() { return 3306; };
 
     private:
+      void init();
       std::string _retrieve_current_schema();
       void _load_schemas();
       void _remove_schema(const std::string& name);

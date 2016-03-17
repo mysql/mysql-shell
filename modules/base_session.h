@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2016, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -42,6 +42,7 @@ namespace mysh
   {
   public:
     ShellBaseSession();
+    ShellBaseSession(const ShellBaseSession& s);
     virtual ~ShellBaseSession() {};
 
     // Virtual methods from object bridge
@@ -72,6 +73,7 @@ namespace mysh
     shcore::Value get_member_method(const shcore::Argument_list &args, const std::string& method, const std::string& prop);
 
     virtual void set_option(const char *option, int value) {}
+    virtual uint64_t get_connection_id() const { return 0; }
 
   protected:
     std::string get_quoted_name(const std::string& name);
@@ -93,6 +95,8 @@ namespace mysh
     std::string _uri;
 
     void load_connection_data(const shcore::Argument_list &args);
+  private:
+    void init();
   };
 
   boost::shared_ptr<mysh::ShellBaseSession> SHCORE_PUBLIC connect_session(const shcore::Argument_list &args, SessionType session_type);

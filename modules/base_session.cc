@@ -80,6 +80,18 @@ boost::shared_ptr<mysh::ShellBaseSession> mysh::connect_session(const shcore::Ar
 ShellBaseSession::ShellBaseSession() :
 _port(0)
 {
+  init();
+}
+
+ShellBaseSession::ShellBaseSession(const ShellBaseSession& s) :
+_host(s._host), _port(s._port), _sock(s._sock), _user(s._user), _password(s._password), _schema(s._schema),
+_ssl_ca(s._ssl_ca), _ssl_cert(s._ssl_cert), _ssl_key(s._ssl_key)
+{
+  init();
+}
+
+void ShellBaseSession::init()
+{
   add_method("createSchema", boost::bind(&ShellBaseSession::create_schema, this, _1), "name", shcore::String, NULL);
   add_method("getDefaultSchema", boost::bind(&ShellBaseSession::get_member_method, this, _1, "getDefaultSchema", "defaultSchema"), NULL);
   add_method("getSchema", boost::bind(&ShellBaseSession::get_schema, this, _1), "name", shcore::String, NULL);

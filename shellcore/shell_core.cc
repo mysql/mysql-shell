@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2016, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -38,7 +38,7 @@
 using namespace shcore;
 
 Shell_core::Shell_core(Interpreter_delegate *shdelegate)
-: IShell_core(), _lang_delegate(shdelegate)
+: IShell_core(), _lang_delegate(shdelegate), _running_query(false)
 {
   // Use a random seed for UUIDs
   std::time_t now = std::time(NULL);
@@ -96,7 +96,21 @@ std::string Shell_core::preprocess_input_line(const std::string &s)
 
 void Shell_core::handle_input(std::string &code, Interactive_input_state &state, boost::function<void(shcore::Value)> result_processor)
 {
-  _langs[_mode]->handle_input(code, state, result_processor);
+  try 
+  {
+    _running_query = true;
+    _langs[_mode]->handle_input(code, state, result_processor);
+  }
+  catch (...)
+  {
+    _running_query = false;
+    throw;
+  }
+}
+
+void Shell_core::abort()
+{
+  _langs[_mode]->abort();
 }
 
 std::string Shell_core::get_handled_input()

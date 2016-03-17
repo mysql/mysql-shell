@@ -59,6 +59,17 @@ REGISTER_OBJECT(mysql, ClassicSession);
 
 ClassicSession::ClassicSession()
 {
+  init();
+}
+
+ClassicSession::ClassicSession(const ClassicSession& session) : 
+_conn(session._conn), ShellBaseSession(session) 
+{ 
+  init();
+}
+
+void ClassicSession::init()
+{
   //_schema_proxy.reset(new Proxy_object(boost::bind(&ClassicSession::get_db, this, _1)));
 
   add_method("close", boost::bind(&ClassicSession::close, this, _1), "data");

@@ -21,6 +21,9 @@
 #include <sys/stat.h>
 #include <sstream>
 
+
+Interactive_shell* shell_ptr = NULL;
+
 #ifdef WIN32
 #  include <io.h>
 #  include <windows.h>
@@ -32,7 +35,12 @@ BOOL windows_ctrl_handler(DWORD fdwCtrlType)
   {
     case CTRL_C_EVENT:
     case CTRL_BREAK_EVENT:
-      // TODO: Add proper Ctrl+C handling if needed
+      if (shell_ptr != NULL)
+      {
+        shell_ptr->abort();
+        shell_ptr->println("^C");
+        shell_ptr->print(shell_ptr->prompt());
+      }
       return TRUE;
     case CTRL_CLOSE_EVENT:
     case CTRL_LOGOFF_EVENT:
@@ -43,6 +51,32 @@ BOOL windows_ctrl_handler(DWORD fdwCtrlType)
   /* Pass signal to the next control handler function. */
   return FALSE;
 }
+
+#else
+
+#  include <signal.h>
+
+/**
+SIGINT signal handler.
+
+@description
+This function handles SIGINT (Ctrl - C). It sends a 'KILL [QUERY]' command
+to the server if a query is currently executing. On Windows, 'Ctrl - Break'
+is treated alike.
+
+@param [IN]               Signal number
+*/
+
+void handle_ctrlc_signal(int sig)
+{
+  if (shell_ptr != NULL)
+  {
+    shell_ptr->abort();
+    shell_ptr->println("^C");
+    shell_ptr->print(shell_ptr->prompt());
+  }
+}
+
 #endif
 
 
@@ -160,6 +194,8 @@ int main(int argc, char **argv)
 #ifdef WIN32
   // Sets console handler (Ctrl+C)
   SetConsoleCtrlHandler((PHANDLER_ROUTINE)windows_ctrl_handler, TRUE);
+#else
+  signal(SIGINT, handle_ctrlc_signal);          // Catch SIGINT to clean up
 #endif
 
   int ret_val = 0;
@@ -220,6 +256,8 @@ int main(int argc, char **argv)
           return 1;
         }
       }
+
+      shell_ptr = &shell;
 
       if (!options.execute_statement.empty())
       {

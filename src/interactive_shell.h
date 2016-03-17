@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2015 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2016 Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -70,13 +70,14 @@ public:
   void set_log_level(ngcommon::Logger::LOG_LEVEL level) { if (_logger) _logger->set_log_level(level); }
 
   void process_line(const std::string &line);
+  void abort();
+  std::string prompt();
 
 private:
   Shell_command_line_options _options;
   static char *readline(const char *prompt);
 
   void process_result(shcore::Value result);
-  std::string prompt();
   ngcommon::Logger* _logger;
 
   bool switch_shell_mode(Shell_core::Mode mode, const std::vector<std::string> &args);

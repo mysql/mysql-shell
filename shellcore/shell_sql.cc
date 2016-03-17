@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2015, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2016, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -19,6 +19,7 @@
 
 #include "shellcore/shell_sql.h"
 #include "../modules/base_session.h"
+#include "../modules/mod_mysql_session.h"
 #include "../utils/utils_mysql_parsing.h"
 #include <boost/bind.hpp>
 #include <boost/format.hpp>
@@ -130,7 +131,9 @@ void Shell_sql::handle_input(std::string &code, Interactive_input_state &state, 
               throw shcore::Exception::logic_error("The current session type (" + session->class_name() + ") can't be used for SQL execution.");
 
             // If reached this point, processes the returned result object
-            result_processor(ret_val);
+            if (!_killed)
+              result_processor(ret_val);
+            _killed = false;
           }
           catch (shcore::Exception &exc)
           {
@@ -224,4 +227,29 @@ void Shell_sql::print_exception(const shcore::Exception &e)
   // Sends a description of the exception data to the error handler wich will define the final format.
   shcore::Value exception(e.error());
   _owner->print_error(exception.descr());
+}
+
+void Shell_sql::abort()
+{
+  Value session_wrapper = _owner->get_global("session");
+  boost::shared_ptr<mysh::ShellBaseSession> session = session_wrapper.as_object<mysh::ShellBaseSession>();
+  // duplicate the connection
+  boost::shared_ptr<mysh::mysql::ClassicSession> kill_session = boost::shared_ptr<mysh::mysql::ClassicSession>(
+    new mysh::mysql::ClassicSession(*dynamic_cast<mysh::mysql::ClassicSession*>(session.get())));
+  uint64_t connection_id = session->get_connection_id();
+  if (connection_id != 0)
+  {
+    shcore::Argument_list a;
+    a.push_back(shcore::Value(""));
+    kill_session->connect(a);
+    if (!kill_session)
+    {
+      throw std::runtime_error(boost::format().str());
+    }
+    std::string cmd = (boost::format("kill query %u") % connection_id).str();
+    a.clear();
+    a.push_back(shcore::Value(cmd));
+    kill_session->run_sql(a);
+    _killed = true;
+  }
 }
