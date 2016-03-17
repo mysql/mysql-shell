@@ -227,7 +227,15 @@ int main(int argc, char **argv)
         ret_val = shell.process_stream(stream, "(command line)");
       }
       else if (!options.execute_dba_statement.empty())
-        ret_val = execute_dba_command(shell, options.execute_dba_statement);
+      {
+        if (options.initial_mode != IShell_core::Mode_JScript)
+        {
+          shell.print_error("The --dba option cannot be used with --python or --sql options\n");
+          ret_val = 1;
+        }
+        else
+          ret_val = execute_dba_command(shell, options.execute_dba_statement);
+      }
       else if (!options.run_file.empty())
         ret_val = shell.process_file();
       else if (from_stdin)
