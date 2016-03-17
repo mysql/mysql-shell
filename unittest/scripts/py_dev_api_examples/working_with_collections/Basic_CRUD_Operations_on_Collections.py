@@ -19,11 +19,11 @@ myColl.add({'name': 'Susanne', 'age': 24}).execute()
 myColl.add({'name': 'Mike', 'age': 39}).execute()
 
 # Find a document
-docs = myColl.find('name like :param1 AND age < :param2').
-          limit(1).
-          bind('param1','S%').
-          bind('param2',20).
-          execute()
+docs = myColl.find('name like :param1 AND age < :param2') \
+          .limit(1) \
+          .bind('param1','S%') \
+          .bind('param2',20) \
+          .execute()
 
 # Print document
 doc = docs.fetchOne()

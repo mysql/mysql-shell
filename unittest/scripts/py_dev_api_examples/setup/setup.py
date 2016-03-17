@@ -70,6 +70,24 @@ def ensure_employee_table():
     result = table.insert({'name': 'Sally', 'age': 19, 'gender': 'female'}).execute()
     result = table.insert({'name': 'Molly', 'age': 25, 'gender': 'female'}).execute()
 
+def ensure_relatives_collection():
+  ensure_test_schema_on_db()
+
+  try:
+    test_coll = testSession.getSchema('test').getCollection('relatives')
+
+    print "Relatives collection exists...\n"
+  except:
+    print "Creating relatives collection...\n"
+    test_coll = db.createCollection('relatives')
+    
+    result = test_coll.add({'name': 'jack', 'age': 17, 'alias': 'jack'}).execute()
+    result = test_coll.add({'name': 'adam', 'age': 15, 'alias': 'jr'}).execute()
+    result = test_coll.add({'name': 'brian', 'age': 14, 'alias': 'brian'}).execute()
+    result = test_coll.add({'name': 'charles', 'age': 13, 'alias': 'jr'}).execute()
+    result = test_coll.add({'name': 'clare', 'age': 14, 'alias': 'cla'}).execute()
+    result = test_coll.add({'name': 'donna', 'age': 16, 'alias': 'donna'}).execute()
+    
 def ensure_employee_table_on_mytable():
   global myTable
   ensure_employee_table()
@@ -186,7 +204,9 @@ def ensure_my_proc_procedure_exists():
   procedure = """
 	create procedure my_proc() 
 	begin 
-	  select * from test.users; 
+	  select * from test.users where age > 40;
+    select * from test.users where age < 40;
+    delete from test.users where age = 40;
 	end"""
 	
   testSession.sql("drop procedure if exists my_proc").execute()
@@ -229,3 +249,6 @@ for assumption in __assumptions__:
     ensure_table_users_exists()
   elif assumption == "my_proc procedure exists":
     ensure_my_proc_procedure_exists()
+  elif assumption == "relatives collection exists":
+    ensure_not_collection("relatives")
+    ensure_relatives_collection()

@@ -80,6 +80,27 @@ function ensure_employee_table() {
   }
 }
 
+function ensure_relatives_collection() {
+  ensure_test_schema_on_db();
+
+  try{
+    var test_coll = testSession.getSchema('test').getCollection('relatives');
+
+    print("Relatives collection exists...\n");
+  }
+  catch(err){
+    print("Creating relatives collection...\n");
+    var test_coll = db.createCollection('relatives');
+    
+    var result = test_coll.add({name: 'jack', age: 17, alias: 'jack'}).execute();
+    var result = test_coll.add({name: 'adam', age: 15, alias: 'jr'}).execute();
+    var result = test_coll.add({name: 'brian', age: 14, alias: 'brian'}).execute();
+    var result = test_coll.add({name: 'charles', age: 13, alias: 'jr'}).execute();
+    var result = test_coll.add({name: 'clare', age: 14, alias: 'cla'}).execute();
+    var result = test_coll.add({name: 'donna', age: 16, alias: 'donna'}).execute();
+  }
+}
+
 function ensure_employee_table_on_mytable() {
   ensure_employee_table();
   
@@ -209,7 +230,13 @@ function ensure_table_users_exists(){
 function ensure_my_proc_procedure_exists(){
 	ensure_table_users_exists();
 	
-	var procedure = "create procedure my_proc() begin select * from test.users; end"
+	var procedure = "create procedure my_proc() " + 
+                  "begin " + 
+                  "select * from test.users where age > 40; " + 
+                  "select * from test.users where age < 40; " + 
+                  "delete from test.users where age = 40; " + 
+                  "end";
+                  
 	testSession.sql("drop procedure if exists my_proc").execute();
 	testSession.sql(procedure).execute();
 	
@@ -267,6 +294,10 @@ for(index in __assumptions__)
 		case "my_proc procedure exists":
 			ensure_my_proc_procedure_exists();
 			break;
+    case "relatives collection exists":
+      ensure_not_collection("relatives");
+      ensure_relatives_collection();
+      break;
     default:
       break;
   }

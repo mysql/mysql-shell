@@ -13,16 +13,14 @@ db = mysqlx.getSession( {
 myTable = db.getTable('my_table')
 
 # Insert SQL Table data
-myTable.insert({
-  'name': 'Sakila',
-  'birthday': mysqlx.dateValue(2000, 5, 27),
-  'age': 16 }).execute()
+myTable.insert(['name','birthday','age']) \
+  .values('Sakila', mysqlx.dateValue(2000, 5, 27), 16).execute()
 
 # Find a row in the SQL Table
-myResult = myTable.select(['_id', 'name', 'birthday']).
-  where('name like :name AND age < :age').
-  bind('name', 'S%').
-  bind('age', 20).execute()
+myResult = myTable.select(['_id', 'name', 'birthday']) \
+  .where('name like :name AND age < :age') \
+  .bind('name', 'S%') \
+  .bind('age', 20).execute()
 
 # Print result
 print myResult.fetchAll()

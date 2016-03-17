@@ -34,7 +34,6 @@ namespace shcore
     Input_ok,
     Input_continued_single,
     Input_continued_block,
-    Input_continued_single_join
   };
 
   class SHCORE_PUBLIC IShell_core

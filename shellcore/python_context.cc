@@ -249,13 +249,6 @@ namespace shcore
             r_state = Input_continued_single;
           else if (strncmp(msg, "unexpected EOF while parsing", strlen("unexpected EOF while parsing")) == 0)
             r_state = Input_continued_block;
-          else if (strncmp(msg, "invalid syntax", strlen("invalid syntax")) == 0)
-          {
-            // If this is the case statement not only continues but next
-            // lines will be appended and form a single line statement
-            if (!code.empty() && code[code.length() - 2] == '.')
-              r_state = Input_continued_single_join;
-          }
         }
       }
       PyErr_Restore(exc, value, tb);

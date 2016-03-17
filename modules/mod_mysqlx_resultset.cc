@@ -682,6 +682,7 @@ SqlResult::SqlResult(boost::shared_ptr< ::mysqlx::Result> result) :
 RowResult(result)
 {
   add_method("hasData", boost::bind(&SqlResult::has_data, this, _1), "nothing", shcore::String, NULL);
+  add_method("nextDataSet", boost::bind(&SqlResult::next_data_set, this, _1), "nothing", shcore::String, NULL);
   add_method("getAffectedRowCount", boost::bind(&BaseResult::get_member_method, this, _1, "getAffectedRowCount", "affectedRowCount"), NULL);
   add_method("getLastInsertId", boost::bind(&BaseResult::get_member_method, this, _1, "getLastInsertId", "lastInsertId"), NULL);
 }

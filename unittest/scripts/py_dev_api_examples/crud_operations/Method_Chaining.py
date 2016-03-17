@@ -3,10 +3,10 @@
 # Recommended way for executing queries
 employees = db.getTable('employee')
 
-res = employees.select(['name', 'age']).
-        where('name like :param').
-        orderBy(['name']).
-        bind('param', 'm%').execute()
+res = employees.select(['name', 'age']) \
+        .where('name like :param') \
+        .orderBy(['name']) \
+        .bind('param', 'm%').execute()
 
 # Traditional SQL execution by passing an SQL string
 # This is only available when using a NodeSession

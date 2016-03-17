@@ -1,0 +1,3 @@
+# Assumptions: test schema assigned to db, relatives collection exists
+
+import mysqlx

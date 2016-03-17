@@ -1050,14 +1050,7 @@ void Interactive_shell::process_line(const std::string &line)
       _input_mode = Input_ok;
 
     // Appends the line, no matter it is an empty line
-    if (_input_mode == Input_continued_single_join)
-    {
-      std::string trimmed(line);
-      boost::trim_left(trimmed);
-      _input_buffer.append(_shell->preprocess_input_line(trimmed));
-    }
-    else
-      _input_buffer.append(_shell->preprocess_input_line(line));
+    _input_buffer.append(_shell->preprocess_input_line(line));
 
     // Appends the new line if anything has been added to the buffer
     if (!_input_buffer.empty())
@@ -1099,8 +1092,6 @@ void Interactive_shell::process_line(const std::string &line)
       // the non executed code
       if (_input_mode == Input_ok)
         _input_buffer.clear();
-      else if (_input_mode == Input_continued_single_join)
-        boost::trim_right(_input_buffer);
     }
   }
 }
@@ -1251,7 +1242,7 @@ void Interactive_shell::command_loop()
         break;
       default:
         break;
-  }
+    }
 
     if (!message.empty())
     {
@@ -1263,7 +1254,7 @@ void Interactive_shell::command_loop()
         _delegate.print(_delegate.user_data, message.c_str());
       }
     }
-}
+  }
 
   while (_options.interactive)
   {

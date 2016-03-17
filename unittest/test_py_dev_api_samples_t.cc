@@ -119,6 +119,11 @@ namespace shcore
     validate_interactive("crud_operations/Parameter_Binding");
   }
 
+  TEST_F(Shell_py_dev_api_sample_tester, Parameter_Binding_1)
+  {
+    validate_interactive("crud_operations/Parameter_Binding_1");
+  }
+
   TEST_F(Shell_py_dev_api_sample_tester, Preparing_CRUD_Statements)
   {
     validate_interactive("crud_operations/Preparing_CRUD_Statements");
@@ -259,4 +264,4 @@ namespace shcore
   {
     validate_interactive("working_with_tables_documents/Collections_as_Relational_Tables");
   }
-  }
+}

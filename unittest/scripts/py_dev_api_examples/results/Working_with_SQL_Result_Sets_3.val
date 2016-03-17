@@ -1,1 +1,8 @@
-print (res.hasData())|True|
+|name: Armand|
+|age: 50|
+|name: Alfred|
+|age: 39|
+|name: Rafa|
+|age: 38|
+|name: Jack|
+|age: 17|
