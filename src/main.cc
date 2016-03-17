@@ -45,6 +45,66 @@ BOOL windows_ctrl_handler(DWORD fdwCtrlType)
 }
 #endif
 
+
+static int enable_x_protocol(Interactive_shell &shell)
+{
+  static const char *script = "function enableXProtocol()\n"\
+"{\n"\
+"  try\n"\
+"  {\n"\
+"    var mysqlx_port = session.runSql('select @@mysqlx_port').fetchOne();\n"\
+"    print('enableXProtocol: X Protocol plugin is already enabled and listening for connections on port '+mysqlx_port[0]+'\\n');\n"\
+"    return 0;\n"\
+"  }\n"\
+"  catch (error)\n"\
+"  {\n"\
+"    if (error[\"code\"] != 1193) // unknown system variable\n"\
+"    {\n"\
+"      print('enableXProtocol: Error checking for X Protocol plugin: '+error[\"message\"]+'\\n');\n"\
+"      return 1;\n"\
+"    }\n"\
+"  }\n"\
+"\n"\
+"  print('enableXProtocol: Installing plugin mysqlx...\\n');\n"\
+"  var os = session.runSql('select @@version_compile_os').fetchOne();\n"\
+"  try {\n"\
+"    if (os[0] == \"Win32\" || os[0] == \"Win64\")\n"\
+"    {\n"\
+"      var r = session.runSql(\"install plugin mysqlx soname 'mysqlx.dll';\");\n"\
+"    }\n"\
+"    else\n"\
+"    {\n"\
+"      var r = session.runSql(\"install plugin mysqlx soname 'mysqlx.so';\")\n"\
+"    }\n"\
+"    print(\"enableXProtocol: done\\n\");\n"\
+"  } catch (error) {\n"\
+"    print('enableXProtocol: Error installing the X Plugin: '+error['message']+'\\n');\n"
+"  }\n"\
+"}\n"\
+"enableXProtocol(); print('');\n";
+  std::stringstream stream(script);
+  return shell.process_stream(stream, "(command line)");
+}
+
+
+// Execute a Administrative DB command passed from the command line via the --dba option
+// Currently, only the enableXProtocol command is supported.
+int execute_dba_command(Interactive_shell &shell, const std::string &command)
+{
+  if (command != "enableXProtocol")
+  {
+    shell.print_error("Unsupported dba command "+command);
+    return 1;
+  }
+
+  // this is a temporary solution, ideally there will be a dba object/module
+  // that implements all commands are the requested command will be invoked as dba.command()
+  // with param handling and others, from both interactive shell and cmdline
+
+  return enable_x_protocol(shell);
+}
+
+
 // Detects whether the shell will be running in interactive mode or not
 // Non interactive mode is used when:
 // - A file is processed using the --file option
@@ -164,8 +224,10 @@ int main(int argc, char **argv)
       if (!options.execute_statement.empty())
       {
         std::stringstream stream(options.execute_statement);
-        ret_val = shell.process_stream(stream, "STDIN");
+        ret_val = shell.process_stream(stream, "(command line)");
       }
+      else if (!options.execute_dba_statement.empty())
+        ret_val = execute_dba_command(shell, options.execute_dba_statement);
       else if (!options.run_file.empty())
         ret_val = shell.process_file();
       else if (from_stdin)

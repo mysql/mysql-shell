@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2015 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2016, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -1284,7 +1284,7 @@ void Interactive_shell::print_banner()
   welcome_msg += MYSH_VERSION;
   println(welcome_msg);
   println("");
-  println("Copyright (c) 2014, 2016 Oracle and/or its affiliates. All rights reserved.");
+  println("Copyright (c) 2016, Oracle and/or its affiliates. All rights reserved.");
   println("");
   println("Oracle is a registered trademark of Oracle Corporation and/or its");
   println("affiliates. Other names may be trademarks of their respective");
@@ -1300,7 +1300,7 @@ void Interactive_shell::print_cmd_line_helper()
   help_msg += MYSH_VERSION;
   println(help_msg);
   println("");
-  println("Copyright (c) 2014, 2015, Oracle and/or its affiliates. All rights reserved.");
+  println("Copyright (c) 2016, Oracle and/or its affiliates. All rights reserved.");
   println("");
   println("Oracle is a registered trademark of Oracle Corporation and/or its");
   println("affiliates. Other names may be trademarks of their respective");
@@ -1348,6 +1348,7 @@ void Interactive_shell::print_cmd_line_helper()
   println("  --passwords-from-stdin   Read passwords from stdin instead of the tty");
   println("  --auth-method=method     Authentication method to use");
   println("  --show-warnings          Automatically display SQL warnings on SQL mode if available");
+  println("  --dba enableXProtocol    Enable the X Protocol in the server connected to. Must be used with --classic");
 
   println("");
 }

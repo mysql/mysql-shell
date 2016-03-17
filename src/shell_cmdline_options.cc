@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2015 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2016, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -97,6 +97,8 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
       recreate_database = true;
     else if (check_arg_with_value(argv, i, "--execute", "-e", value))
       execute_statement = value;
+    else if (check_arg_with_value(argv, i, "--dba", NULL, value))
+      execute_dba_statement = value;
     else if ((arg_format = check_arg_with_value(argv, i, "--dbpassword", NULL, value, true)) ||
              (arg_format = check_arg_with_value(argv, i, "--password", "-p", value, true)))
     {
