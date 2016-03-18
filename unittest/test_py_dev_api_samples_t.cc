@@ -85,6 +85,7 @@ namespace shcore
 
   TEST_F(Shell_py_dev_api_sample_tester, Dynamic_SQL)
   {
+    create_connection();
     validate_interactive("concepts/Dynamic_SQL");
   }
 
