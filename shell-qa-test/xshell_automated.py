@@ -5763,6 +5763,67 @@ class XShell_TestCases(unittest.TestCase):
       except ValueError as e:
         print 'Error: Process created for test_MYS_230_01 test was not able to close:', e
 
+  def test_MYS_286_00(self):
+      """ Verify the bug https://jira.oraclecorp.com/jira/browse/MYS-286 with classic session"""
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.port, '--session-type=classic', '--sqlc']
+      x_cmds = [(";\n", 'mysql-sql>'),
+                ("create table world_x.MYS286 (date datetime);\n", "Query OK"),
+                ("insert into world_x.MYS286 values (now());\n", "Query OK, 1 row affected"),
+                ("select * from world_x.MYS286;\n", "1 row in set"),
+                ("DROP TABLE world_x.MYS286;\n", "Query OK")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_MYS_286_01(self):
+      """ Verify the bug https://jira.oraclecorp.com/jira/browse/MYS-286 with classic session"""
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=node', '--js']
+      x_cmds = [(";\n", 'mysql-js>'),
+                ("session.sql(\'create table world_x.MYS286 (date datetime);\')\n", "Query OK"),
+                ("Table = session.getSchema(\'world_x\').getTable(\'MYS286\')\n", "<Table:mys286>"),
+                ("Table.insert().values('2016-03-14 12:36:37')\n", "Query OK, 1 item affected"),
+                ("Table.select()\n", "2016-04-14 12:36:37"),
+                ("session.sql(\'DROP TABLE world_x.MYS286;\')\n", "Query OK")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_MYS_290_00(self):
+     '''Verify the bug https://jira.oraclecorp.com/jira/browse/MYS-290 with --file'''
+     results = ''
+     init_command = [MYSQL_SHELL, '--file=' + Exec_files_location + 'JavaScript_Error.js']
+     p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE )
+     stdin,stdout = p.communicate()
+     if stdout.startswith('ReferenceError'):
+         results = 'PASS'
+     else:
+         results = 'FAIL'
+     self.assertEqual(results, 'PASS', str(stdout))
+     try:
+        p.kill()
+     except ValueError as e:
+        print 'Error: Process created for test_MYS_290_00 test was not able to close:', e
+
+  def test_MYS_290_01(self):
+     '''Verify the bug https://jira.oraclecorp.com/jira/browse/MYS-290 with --interactive=full --file '''
+     results = ''
+     init_command = [MYSQL_SHELL, '--interactive=full', '--file=' + Exec_files_location + 'JavaScript_Error.js']
+     p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE )
+     stdin,stdout = p.communicate()
+     if stdout.startswith('ReferenceError'):
+         results = 'PASS'
+     else:
+         results = 'FAIL'
+     self.assertEqual(results, 'PASS', str(stdout))
+     try:
+        p.kill()
+     except ValueError as e:
+        print 'Error: Process created for test_MYS_290_01 test was not able to close:', e
+
   def test_MYS_291(self):
       '''SSL Support '''
       results = ''
@@ -5799,6 +5860,82 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+  def test_MYS_296_00(self):
+      """ Verify the bug https://jira.oraclecorp.com/jira/browse/MYS-296 --file preference over < . Hello.js executed, HelloAgain.js not executed """
+      results = ''
+      expectedValue = 'I am executed in batch mode, Hello'
+      init_command_str = MYSQL_SHELL + ' --file=' + Exec_files_location + 'Hello.js' + ' < ' + Exec_files_location + 'HelloAgain.js'
+      p = subprocess.Popen(init_command_str, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE, shell=True)
+      stdin,stdout = p.communicate()
+      if str(stdin) == expectedValue:
+          results = 'PASS'
+      else:
+          results = 'FAIL'
+      self.assertEqual(results, 'PASS', str(stdout))
+      try:
+        p.kill()
+      except ValueError as e:
+        print 'Error: Process created for test_MYS_296_00 test was not able to close:', e
+
+  def test_MYS_296_01(self):
+      """ Verify the bug https://jira.oraclecorp.com/jira/browse/MYS-296 --file preference over < . Hello.js executed, HelloAgain.js not executed """
+      results = ''
+      expectedValue = 'I am executed in batch mode, Hello'
+      init_command_str = MYSQL_SHELL + ' < ' + Exec_files_location + 'HelloAgain.js' + ' --file=' + Exec_files_location + 'Hello.js'
+      p = subprocess.Popen(init_command_str, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE, shell=True)
+      stdin,stdout = p.communicate()
+      if str(stdin) == expectedValue:
+          results = 'PASS'
+      else:
+          results = 'FAIL'
+      self.assertEqual(results, 'PASS', str(stdout))
+      try:
+        p.kill()
+      except ValueError as e:
+        print 'Error: Process created for test_MYS_296_01 test was not able to close:', e
+
+  def test_MYS_303_00(self):
+      """ Verify the bug https://jira.oraclecorp.com/jira/browse/MYS-303 with --help """
+      results = 'FAIL'
+      expectedValue = '  --help                   Display this help and exit.'
+      init_command_str = MYSQL_SHELL + ' --help'
+      p = subprocess.Popen(init_command_str, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE, shell=True)
+      stdin, stdout = p.communicate()
+      stdin_splitted = stdin.splitlines()
+      for line in stdin_splitted:
+          if str(line) == expectedValue:
+            results = 'PASS'
+            break
+      self.assertEqual(results, 'PASS', str(stdout))
+      try:
+        p.kill()
+      except ValueError as e:
+        print 'Error: Process created for test_MYS_303_00 test was not able to close:', e
+
+  def test_MYS_309_00(self):
+      """ Verify the bug https://jira.oraclecorp.com/jira/browse/MYS-309 with classic session and - as part of schema name"""
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.port, '--session-type=classic', '--py']
+      x_cmds = [(";\n", 'mysql-py>'),
+                ("session.createSchema(\'my-Classic\')\n", "<ClassicSchema:my-Classic>"),
+                ("session.dropSchema(\'my-Classic\')\n", "Query OK")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_MYS_309_01(self):
+      """ Verify the bug https://jira.oraclecorp.com/jira/browse/MYS-309 with node session and - as part of schema name"""
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=node', '--py']
+      x_cmds = [(";\n", 'mysql-py>'),
+                ("session.createSchema(\'my-Node\')\n", "<Schema:my-Node>"),
+                ("session.dropSchema(\'my-Node\')\n", "Query OK")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
   def test_MYS_320(self):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
@@ -5817,12 +5954,24 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
-  def test_MYS_323(self):
-      '''[4.9.002] Create a Stored Session: schema store'''
-      results = ''
-      init_command = [MYSQL_SHELL, '--interactive=full']
-
-      x_cmds = [("\\connect\n","\\connect <uri or $appName>") ]
+  def test_MYS_323_00(self):
+      """ Verify the bug https://jira.oraclecorp.com/jira/browse/MYS-303 with --help """
+      results = 'FAIL'
+      init_command = MYSQL_SHELL + ' --interactive=full' + ' --py'
+      x_cmds = [(";\n", 'mysql-py>'),
+                ("\\connect\n", "mysql-py>"),
+                #("\\connect\n", "\\connect <uri or $appName>"),
+                ("\\connect_classic\n", "mysql-py>"),
+                #("\\connect_classic\n", "\\connect_classic <uri or $appName>"),
+                ("\\connect_node\n", "mysql-py>"),
+                #("\\connect_node\n", "\\connect_node <uri or $appName>"),
+                ("\\addconn\n", "mysql-py>"),
+                #("\\addconn\n", "\\addconn [-f] <app> [<uri>]"),
+                ("\\rmconn\n", "mysql-py>"),
+                #("\\rmconn\n", "\\rmconn <app>"),
+                ("\\chconn\n", "mysql-py>")
+                #("\\chconn\n", "\\chconn <app> <URI>")
+                ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
@@ -5861,13 +6010,41 @@ class XShell_TestCases(unittest.TestCase):
       self.assertEqual(results, 'PASS')
 
 
-  def test_MYS_341(self):
+  def test_MYS_341_00(self):
       '''[3.1.009]:1 Check that STATUS command [ \status, \s ] works: app session \status'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--uri',
                       'mysqlx://{0}:{1}@{2}:{3}'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), '--session-type=app', '--js']
       x_cmds = [("\\status\n", "Current user:                 "+LOCALHOST.user+"@"+LOCALHOST.host),
                 ("\\s\n", "Current user:                 "+LOCALHOST.user+"@"+LOCALHOST.host),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_MYS_341_01(self):
+      """ Verify the bug https://jira.oraclecorp.com/jira/browse/MYS-341 with classic session and py custom prompt"""
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.port, '--session-type=classic', '--py']
+      x_cmds = [(";\n", 'mysql-py>'),
+                ("def custom_prompt(): return \'--mypy--prompt-->\'\n", ""),
+                ("shell.ps = custom_prompt\n", "--mypy--prompt-->"),
+                ("\\js\n", "mysql-js>"),
+                ("\\py\n", "--mypy--prompt-->")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_MYS_341_02(self):
+      """ Verify the bug https://jira.oraclecorp.com/jira/browse/MYS-341 with node session and js custom prompt"""
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                      '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--session-type=node', '--js']
+      x_cmds = [(";\n", 'mysql-js>'),
+                ("function custom_prompt(){ return session.uri + \'>>\'; }\n", ""),
+                ("shell.ps = custom_prompt\n", LOCALHOST.user + "@" + LOCALHOST.host + ":" + LOCALHOST.xprotocol_port + ">>"),
+                ("\\py\n", "mysql-py>"),
+                ("\\js\n", LOCALHOST.user + "@" + LOCALHOST.host + ":" + LOCALHOST.xprotocol_port + ">>")
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
@@ -5921,6 +6098,22 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+  def test_MYS_366_00(self):
+      """ Verify the bug https://jira.oraclecorp.com/jira/browse/MYS-366 with node session """
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                      '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--session-type=node', '--py']
+      x_cmds = [(";\n", 'mysql-py>'),
+                ("coll = session.getSchema(\'world_x\').createCollection(\'MyBindColl\')\n", ""),
+                ("coll.add({\'name\': [\'jhon\', \'Test\'], \'pages\': [\'Default\'], \'hobbies\': [\'default\'], \'lastname\': [\'TestLastName\']})\n", "Query OK, 1 item affected"),
+                # Since parameter for where is [\"jhon\", \"WrongValue\"] and there is no name field with this array, nothing is updated
+                ("coll.modify(\'name = :nameclause\').arrayAppend(\'name\',\'UpdateName\').bind(\'nameclause\',[\"jhon\", \"WrongValue\"])\n", "Query OK, 0 items affected"),
+                # Since parameter for where is [\"jhon\", \"Test\"] and there is a name field with this array, Append is applied having then [\"jhon\", \"Test\", \"UpdateName\"]
+                ("coll.modify(\'name = :nameclause\').arrayAppend(\'name\',\'UpdateName\').bind(\'nameclause\',[\"jhon\", \"Test\"])\n", "Query OK, 1 item affected "),
+                ("session.dropCollection('MyBindColl')\n", "")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
 
   def test_MYS_373_1(self):
       '''[4.1.002] SQL Create a table using STDIN batch process: NODE SESSION'''

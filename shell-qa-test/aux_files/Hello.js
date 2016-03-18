@@ -1,1 +1,1 @@
-print("I am executed in batch mode, first line")
+print("I am executed in batch mode, Hello")
