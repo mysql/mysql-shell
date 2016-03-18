@@ -186,9 +186,14 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
                       '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=app', '--sql']
-      x_cmds = [(";\n", 'mysql-sql>')
-                ]
-      results = exec_xshell_commands(init_command, x_cmds)
+      p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+      p.stdin.write(bytearray(";\n", 'ascii'))
+      p.stdin.flush()
+      stdin,stdout = p.communicate()
+      if stdin.find(bytearray("mysql-sql>","ascii"), 0, len(stdin)) > 0:
+          results="PASS"
+      else:
+          results="FAIL"
       self.assertEqual(results, 'PASS')
 
   def test_2_0_01_02(self):
