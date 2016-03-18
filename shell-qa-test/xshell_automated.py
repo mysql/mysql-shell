@@ -5826,6 +5826,25 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+  def test_MYS_335(self):
+      '''[CHLOG 1.0.2.5_2] Different password command line args'''
+      results = ''
+      #init_command = [MYSQL_SHELL, '--interactive=full', '--version' ]
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.port, '--session-type=classic', '--sqlc']
+      p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+      p.stdin.flush()
+      #stdin,stdout = p.communicate()
+      p.stdin.write(bytearray("use sakas;\n" , 'ascii'))
+      p.stdin.flush()
+      stdout,stderr = p.communicate()
+      if stderr.find(bytearray("ERROR:","ascii"), 0, len(stderr)) >= 0:
+          results="PASS"
+      else:
+          results="FAIL"
+      self.assertEqual(results, 'PASS')
+
+
   def test_MYS_339(self):
       '''[4.9.002] Update a Stored Session: '''
       results = ''
@@ -5891,6 +5910,17 @@ class XShell_TestCases(unittest.TestCase):
               results="FAIL"
               break
       self.assertEqual(results, 'PASS')
+
+  def test_MYS_354(self):
+      '''[4.1.002] SQL Create a table using STDIN batch process: NODE SESSION'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--sqlc', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                      '-h' + LOCALHOST.host, '-P' + LOCALHOST.port, '--session-type=classic','--schema=sakila']
+      x_cmds = [("SELECT * FROM INFORMATION_SCHEMA.PROCESSLIST WHERE USER ='root';\n","| root |")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
 
   def test_MYS_373_1(self):
       '''[4.1.002] SQL Create a table using STDIN batch process: NODE SESSION'''
