@@ -27,6 +27,15 @@ def ensure_session():
     
   session = testSession
 
+def ensure_not_a_schema(schema):
+  ensure_session()
+
+  try:
+      s = testSession.dropSchema(schema)
+      print "%s schema has been deleted...\n" % schema
+  except:
+    print "%s schema does not exist...\n" % schema
+  
 def ensure_test_schema():
   ensure_session()
 
@@ -252,3 +261,5 @@ for assumption in __assumptions__:
   elif assumption == "relatives collection exists":
     ensure_not_collection("relatives")
     ensure_relatives_collection()
+  elif assumption == "schema unexisting does not exists":
+    ensure_not_a_schema('unexisting')

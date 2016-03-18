@@ -185,17 +185,16 @@ namespace shcore
   }
 #endif
 
-  /*
   TEST_F(Shell_py_dev_api_sample_tester, Processing_Warnings)
   {
-  validate_interactive("statement_execution/Processing_Warnings");
+    validate_interactive("statement_execution/Processing_Warnings");
   }
 
   TEST_F(Shell_py_dev_api_sample_tester, Processing_Warnings_1)
   {
-  validate_interactive("statement_execution/Processing_Warnings_1");
+    validate_interactive("statement_execution/Processing_Warnings_1");
   }
-  */
+
   TEST_F(Shell_py_dev_api_sample_tester, Transaction_Handling)
   {
     validate_interactive("statement_execution/Transaction_Handling");

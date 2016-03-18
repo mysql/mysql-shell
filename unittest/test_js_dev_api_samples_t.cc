@@ -175,6 +175,11 @@ namespace shcore
     validate_interactive("statement_execution/Error_Handling");
   }
 
+  TEST_F(Shell_js_dev_api_sample_tester, Processing_Warnings_1)
+  {
+    validate_interactive("statement_execution/Processing_Warnings_1");
+  }
+
   //==================>>> working_with_collections
   TEST_F(Shell_js_dev_api_sample_tester, Basic_CRUD_Operations_on_Collections)
   {

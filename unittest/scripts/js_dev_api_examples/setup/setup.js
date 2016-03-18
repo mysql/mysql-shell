@@ -31,6 +31,19 @@ function ensure_session(){
   session = testSession;
 }
 
+function ensure_not_a_schema(schema){
+  ensure_session()
+
+  try{
+      var s = testSession.dropSchema(schema);
+      print (schema + " schema has been deleted...\n");
+  }
+  catch(err)
+  {
+    print (schema + " schema does not exist...\n");
+  }
+}
+
 function ensure_test_schema() {
   ensure_session();
 
@@ -297,6 +310,9 @@ for(index in __assumptions__)
     case "relatives collection exists":
       ensure_not_collection("relatives");
       ensure_relatives_collection();
+      break;
+    case "schema unexisting does not exists":
+      ensure_not_a_schema('unexisting')
       break;
     default:
       break;

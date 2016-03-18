@@ -1,1 +1,2 @@
-db.customers.find('name="mike"').execute().fetchOne().name|mike|
+|Name : "mike"|
+|Last Name : "connor"|
