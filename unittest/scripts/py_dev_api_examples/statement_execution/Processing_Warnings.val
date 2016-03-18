@@ -1,0 +1,5 @@
+|Data inserted successfully.|
+testSession.close()||
+testSession = None||
+mySession.close()||
+mySession = None||

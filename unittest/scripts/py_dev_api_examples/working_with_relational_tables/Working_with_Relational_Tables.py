@@ -1,16 +1,16 @@
 
 # Working with Relational Tables
-
 import mysqlx
 
 # Connect to server using a connection URL
-db = mysqlx.getSession( {
+mySession = mysqlx.getSession( {
   'host': 'localhost', 'port': 33060,
-  'dbUser': 'mike', 'dbPassword': 's3cr3t!'}
-  ).getSchema('test')
+  'dbUser': 'mike', 'dbPassword': 's3cr3t!'} )
+
+myDb = mySession.getSchema('test')
 
 # Accessing an existing table
-myTable = db.getTable('my_table')
+myTable = myDb.getTable('my_table')
 
 # Insert SQL Table data
 myTable.insert(['name','birthday','age']) \

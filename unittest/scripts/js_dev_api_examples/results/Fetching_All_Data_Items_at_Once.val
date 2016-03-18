@@ -1,1 +1,3 @@
 |Sally is 19 years old.|
+testSession.close();||
+testSession=null;||

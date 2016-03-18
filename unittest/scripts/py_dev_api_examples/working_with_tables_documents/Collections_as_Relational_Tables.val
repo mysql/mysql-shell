@@ -1,2 +1,4 @@
 |Name : "mike"|
 |Last Name : "connor"|
+testSession.close()||
+testSession=None||

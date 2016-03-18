@@ -1,1 +1,3 @@
 print(myColl)|<Collection:my_collection>|
+testSession.close()||
+testSession=None||

@@ -1,1 +1,4 @@
 |Sakila|
+testSession.close()||
+testSession=None||
+mySession.close()||

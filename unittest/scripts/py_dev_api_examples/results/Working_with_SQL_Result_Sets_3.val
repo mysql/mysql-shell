@@ -6,3 +6,5 @@
 |age: 38|
 |name: Jack|
 |age: 17|
+testSession.close()||
+testSession=None||

@@ -1,1 +1,4 @@
 |Data inserted successfully.|
+session.close()||
+testSession.close()||
+testSession=None||

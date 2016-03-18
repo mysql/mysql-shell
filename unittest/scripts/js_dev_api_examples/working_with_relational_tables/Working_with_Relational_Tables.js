@@ -3,13 +3,14 @@
 var mysqlx = require('mysqlx').mysqlx;
 
 // Connect to server using a connection URL
-var db = mysqlx.getSession( {
+var mySession = mysqlx.getSession( {
   host: 'localhost', port: 33060,
   dbUser: 'mike', dbPassword: 's3cr3t!'} )
-  .getSchema('test');
+  
+var myDb = mySession.getSchema('test');
 
 // Accessing an existing table
-var myTable = db.getTable('my_table');
+var myTable = myDb.getTable('my_table');
 
 // Insert SQL Table data
 myTable.insert(['name', 'birthday', 'age']).

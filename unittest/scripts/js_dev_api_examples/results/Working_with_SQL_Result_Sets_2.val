@@ -3,3 +3,5 @@
 |age: 40|
 |name: Mike|
 |age: 40|
+testSession.close();||
+testSession=null;||

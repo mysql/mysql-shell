@@ -1,0 +1,6 @@
+|No warnings were returned.|
+|Type [Note] (Code 1008): Can't drop database 'unexisting'; database doesn't exist|
+testSession.close()||
+testSession = None||
+mySession.close()||
+mySession = None||
