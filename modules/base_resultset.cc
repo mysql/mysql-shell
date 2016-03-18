@@ -281,7 +281,7 @@ shcore::Value Column::get_member_method(const shcore::Argument_list &args, const
 Column::Column(const std::string& schema, const std::string& table_name, const std::string& table_label, const std::string& column_name, const std::string& column_label,
        shcore::Value type, uint64_t length, bool numeric, uint64_t fractional, bool is_signed, const std::string &collation, const std::string &charset, bool padded) :
         _schema(schema), _table_name(table_name), _table_label(table_label), _column_name(column_name), _column_label(column_label), _collation(collation), _charset(charset),
-       _length(length), _type(type), _fractional(fractional),_signed(is_signed), _padded(padded), _numeric(numeric)
+       _length(length), _type(type), _fractional(fractional), _signed(is_signed), _padded(padded), _numeric(numeric)
 {
   add_method("getSchemaName", boost::bind(&Column::get_member_method, this, _1, "getSchemaName", "schemaName"), NULL);
   add_method("getTableName", boost::bind(&Column::get_member_method, this, _1, "getTableName", "tableName"), NULL);
@@ -321,6 +321,80 @@ std::vector<std::string> Column::get_members() const
 
   return members;
 }
+
+#ifdef DOXYGEN
+/**
+* Retrieves the name of the Schema where the column is defined.
+* \return a string value representing the owner schema.
+*/
+String Column::getSchemaName(){};
+
+/**
+* Retrieves table name where the column is defined.
+* \return a string value representing the table name.
+*/
+String Column::getTableName(){};
+
+/**
+* Retrieves table alias where the column is defined.
+* \return a string value representing the table alias or the table name if no alias is defined.
+*/
+String Column::getTableLabel(){};
+
+/**
+* Retrieves column name.
+* \return a string value representing the column name.
+*/
+String Column::getColumnName(){};
+
+/**
+* Retrieves column alias.
+* \return a string value representing the column alias or the column name if no alias is defined.
+*/
+String Column::getColumnLabel(){};
+
+/**
+* Retrieves column Type.
+* \return a constant value for the supported column types.
+*/
+Type Column::getType(){};
+
+/**
+* Retrieves column length.
+* \return the column length.
+*/
+Integer Column::getLength(){};
+
+/**
+* Retrieves the fractional digits if applicable
+* \return the number of fractional digits, this only applies to specific data types.
+*/
+Integer Column::getFractionalDigits(){};
+
+/**
+* Indicates if a numeric column is signed.
+* \return a boolean indicating whether a numeric column is signed or not.
+*/
+Boolean Column::isNumberSigned(){};
+
+/**
+* Retrieves the collation name
+* \return a String representing the collation name, aplicable only to specific data types.
+*/
+String Column::getCollationName(){};
+
+/**
+* Retrieves the character set name
+* \return a String representing the character set name, aplicable only to specific data types.
+*/
+String getCharacterSetName(){};
+
+/**
+* Indicates if padding is used for the column
+* \return a boolean indicating if padding is used on the column.
+*/
+Boolean Column::isPadded(){};
+#endif
 
 shcore::Value Column::get_member(const std::string &prop) const
 {

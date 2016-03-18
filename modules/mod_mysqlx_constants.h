@@ -29,34 +29,60 @@
 
 namespace mysh
 {
-    namespace mysqlx
+  namespace mysqlx
+  {
+    /**
+    * Constants to represent data types con Column objects
+    *
+    * Supported Data Types
+    *
+    *  - Bit
+    *  - TinyInt
+    *  - SmallInt
+    *  - MediumInt
+    *  - Int
+    *  - BigInt
+    *  - Float
+    *  - Decimal
+    *  - Double
+    *  - Json
+    *  - String
+    *  - Bytes
+    *  - Time
+    *  - Date
+    *  - DateTime
+    *  - Timestamp
+    *  - Set
+    *  - Enum
+    *  - Geometry
+    */
+    class SHCORE_PUBLIC Type : public shcore::Cpp_object_bridge
     {
-        class SHCORE_PUBLIC Type : public shcore::Cpp_object_bridge
-        {
-          public:
-            // Virtual methods from object bridge
-            virtual std::string class_name() const { return "mysqlx.Type"; };
-            virtual bool operator == (const Object_bridge &other) const { return this == &other; };
-      
-            virtual shcore::Value get_member(const std::string &prop) const;
-            std::vector<std::string> get_members() const;
-      
-            static boost::shared_ptr<shcore::Object_bridge> create(const shcore::Argument_list &args);
-          };
-    
-        class SHCORE_PUBLIC IndexType : public shcore::Cpp_object_bridge
-        {
-          public:
-            // Virtual methods from object bridge
-            virtual std::string class_name() const { return "mysqlx.IndexType"; };
-            virtual bool operator == (const Object_bridge &other) const { return this == &other; }
-      
-            virtual shcore::Value get_member(const std::string &prop) const;
-            std::vector<std::string> get_members() const;
-      
-            static boost::shared_ptr<shcore::Object_bridge> create(const shcore::Argument_list &args);
-          };
-      };
+    public:
+      // Virtual methods from object bridge
+      virtual std::string class_name() const { return "mysqlx.Type"; };
+      virtual bool operator == (const Object_bridge &other) const { return this == &other; };
+
+      virtual shcore::Value get_member(const std::string &prop) const;
+
+      std::vector<std::string> get_members() const;
+
+      static boost::shared_ptr<shcore::Object_bridge> create(const shcore::Argument_list &args);
+    };
+
+    class SHCORE_PUBLIC IndexType : public shcore::Cpp_object_bridge
+    {
+    public:
+      // Virtual methods from object bridge
+      virtual std::string class_name() const { return "mysqlx.IndexType"; };
+      virtual bool operator == (const Object_bridge &other) const { return this == &other; }
+
+      virtual shcore::Value get_member(const std::string &prop) const;
+      std::vector<std::string> get_members() const;
+
+      static boost::shared_ptr<shcore::Object_bridge> create(const shcore::Argument_list &args);
+    };
   };
+};
 
 #endif

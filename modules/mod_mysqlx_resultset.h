@@ -107,8 +107,6 @@ namespace mysh
       int64_t get_affected_item_count() const;
       int64_t get_last_insert_id() const;
       std::string get_last_document_id() const;
-    private:
-      std::string _last_document_id;
 
 #ifdef DOXYGEN
       Integer affectedItemCount; //!< Same as getAffectedItemCount()
@@ -119,6 +117,8 @@ namespace mysh
       Integer getLastInsertId();
       String getLastDocumentId();
 #endif
+    private:
+      std::string _last_document_id;
     };
 
     /**
@@ -167,9 +167,6 @@ namespace mysh
       std::vector<std::string> get_column_names() const;
       shcore::Value::Array_type_ref get_columns() const;
 
-    private:
-      mutable shcore::Value::Array_type_ref _columns;
-
 #ifdef DOXYGEN
       Row fetchOne();
       List fetchAll();
@@ -181,8 +178,10 @@ namespace mysh
       Integer getColumnCount();
       List getColumnNames();
       List getColumns();
-
 #endif
+
+    private:
+      mutable shcore::Value::Array_type_ref _columns;
     };
 
     /**

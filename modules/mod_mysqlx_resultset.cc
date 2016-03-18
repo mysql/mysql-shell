@@ -358,25 +358,7 @@ List RowResult::getColumnNames(){};
 
 /**
 * Gets the column metadata for the columns on the active result.
-* \return a list of column metadata objects containing information about the columns included on the active result.
-*
-* The metadata for each column contains the next information:
-*
-* Map key     | Meaning                        |
-* ----------: | :----------------------------: |
-* catalog     | the catalog name               |
-* table       | the table name                 |
-* org_table   | original table name            |
-* name        | the column name                |
-* org_name    | the original column name       |
-* collation   | collation (from charset)       |
-* length      | the column length              |
-* type        | the column type                |
-* flags       | flags (to be documented)       |
-* decimal     | decimal precision              |
-* max_length  | max length allowed             |
-* name_length | length of column name          |
-* is_numeric  | bool, true if type is numeric  |
+* \return a list of Column objects containing information about the columns included on the active result.
 */
 List RowResult::getColumns(){};
 #endif
@@ -631,10 +613,10 @@ shcore::Value RowResult::fetch_one(const shcore::Argument_list &args) const
           }
         }
         value_row->add_item(metadata->at(index).name, field_value);
-      }
+  }
 
       return shcore::Value::wrap(value_row);
-    }
+}
   }
   return shcore::Value();
 }

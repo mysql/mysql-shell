@@ -21,7 +21,6 @@
 #include <sys/stat.h>
 #include <sstream>
 
-
 Interactive_shell* shell_ptr = NULL;
 
 #ifdef WIN32
@@ -79,7 +78,6 @@ void handle_ctrlc_signal(int sig)
 
 #endif
 
-
 static int enable_x_protocol(Interactive_shell &shell)
 {
   static const char *script = "function enableXProtocol()\n"\
@@ -120,14 +118,13 @@ static int enable_x_protocol(Interactive_shell &shell)
   return shell.process_stream(stream, "(command line)");
 }
 
-
 // Execute a Administrative DB command passed from the command line via the --dba option
 // Currently, only the enableXProtocol command is supported.
 int execute_dba_command(Interactive_shell &shell, const std::string &command)
 {
   if (command != "enableXProtocol")
   {
-    shell.print_error("Unsupported dba command "+command);
+    shell.print_error("Unsupported dba command " + command);
     return 1;
   }
 
@@ -137,7 +134,6 @@ int execute_dba_command(Interactive_shell &shell, const std::string &command)
 
   return enable_x_protocol(shell);
 }
-
 
 // Detects whether the shell will be running in interactive mode or not
 // Non interactive mode is used when:
@@ -226,7 +222,7 @@ int main(int argc, char **argv)
     {
       std::string version_msg("MySQL Shell Version ");
       version_msg += MYSH_VERSION;
-      version_msg += "\n";
+      version_msg += " Development Preview\n";
       shell.print(version_msg);
       ret_val = options.exit_code;
     }

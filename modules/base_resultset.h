@@ -59,6 +59,9 @@ namespace mysh
     static const Charset_entry item[];
   };
 
+  /**
+  * Represents the a Column definition on a result.
+  */
   class SHCORE_PUBLIC Column : public shcore::Cpp_object_bridge
   {
   public:
@@ -89,6 +92,34 @@ namespace mysh
     std::string get_collation_name() { return _collation; }
     std::string get_character_set_name() { return _charset; }
     bool is_padded() { return _padded; }
+
+#ifdef DOXYGEN
+    schemaName; //!< Same as getSchemaName()
+    tableName; //!< Same as getTableName()
+    tableLabel; //!< Same as getTableLabel()
+    columnName; //!< Same as getColumnLabel()
+    columnLabel; //!< Same as getLastInsertId()
+    type; //!< Same as getType()
+    length; //!< Same as getLength()
+    fractionalDigits; //!< Same as getFractionalDigits()
+    numberSigned; //!< Same as isNumberSigned()
+    collationName; //!< Same as getCollationName()
+    characterSetName; //!< Same as getCharacterSetName()
+    padded; //!< Same as isPadded()
+
+    String getSchemaName();
+    String getTableName();
+    String getTableLabel();
+    String getColumnName();
+    String getColumnLabel();
+    Type getType();
+    Integer getLength();
+    Integer getFractionalDigits();
+    Boolean isNumberSigned();
+    String getCollationName();
+    String getCharacterSetName();
+    Boolean isPadded();
+#endif
 
   private:
     std::string _schema;

@@ -871,7 +871,7 @@ bool Interactive_shell::cmd_status(const std::vector<std::string>& UNUSED(args))
 
       std::string version_msg("MySQL Shell Version ");
       version_msg += MYSH_VERSION;
-      version_msg += "\n";
+      version_msg += " Development Preview\n";
       println(version_msg);
 
       std::string format = "%-30s%s";
@@ -1097,12 +1097,12 @@ void Interactive_shell::process_line(const std::string &line)
 }
 
 void Interactive_shell::abort()
-{ 
+{
   if (!_shell) return;
-  
+
   if (_shell->is_running_query())
   {
-    try 
+    try
     {
       _shell->abort();
     }
@@ -1290,6 +1290,7 @@ void Interactive_shell::print_banner()
 {
   std::string welcome_msg("Welcome to MySQL Shell ");
   welcome_msg += MYSH_VERSION;
+  welcome_msg += " Development Preview";
   println(welcome_msg);
   println("");
   println("Copyright (c) 2016, Oracle and/or its affiliates. All rights reserved.");
@@ -1306,6 +1307,7 @@ void Interactive_shell::print_cmd_line_helper()
 {
   std::string help_msg("MySQL Shell ");
   help_msg += MYSH_VERSION;
+  help_msg += " Development Preview";
   println(help_msg);
   println("");
   println("Copyright (c) 2016, Oracle and/or its affiliates. All rights reserved.");
