@@ -158,7 +158,6 @@ crud = collection.modify('name = :data and age > :years').set('hobby', 'swim').b
 # ---------------------------------------
 # Collection.Modify Unit Testing: Execution
 # ---------------------------------------
-doc
 
 #@# CollectionModify: Set Execution
 result = collection.modify('name = "brian"').set('alias', 'bri').set('last_name', 'black').set('age', mysqlx.expr('13+1')).execute()

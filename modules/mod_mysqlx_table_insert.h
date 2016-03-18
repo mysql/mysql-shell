@@ -50,7 +50,7 @@ namespace mysh
       TableInsert insert(List columns);
       TableInsert insert(String col1, String col2, ...);
       TableInsert values(Value value, Value value, ...);
-      Result execute(ExecuteOptions options);
+      Result execute();
 #endif
     private:
       std::unique_ptr< ::mysqlx::InsertStatement> _insert_statement;

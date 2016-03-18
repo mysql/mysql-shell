@@ -62,7 +62,7 @@ namespace mysh
       TableUpdate orderBy(List sortExprStr);
       TableUpdate limit(Integer numberOfRows);
       TableUpdate bind(String name, Value value);
-      Result execute(ExecuteOptions options);
+      Result execute();
 #endif
     private:
       std::unique_ptr< ::mysqlx::UpdateStatement> _update_statement;

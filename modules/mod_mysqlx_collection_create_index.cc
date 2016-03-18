@@ -62,6 +62,9 @@ CollectionCreateIndex CollectionCreateIndex::createIndex(String indexName){}
 * \param indexName The name of the index to be created.
 * \param type The type of the index to be created, only supported type for the moment is mysqlx.IndexUnique.
 * \return This CollectionCreateIndex object.
+*
+* #### Method Chaining
+*
 */
 CollectionCreateIndex CollectionCreateIndex::createIndex(String indexName, IndexType type){}
 #endif
@@ -114,14 +117,17 @@ shcore::Value CollectionCreateIndex::create_index(const shcore::Argument_list &a
 /**
 * Adds column to be part of the collection index being created .
 * \param documentPath The document path to the field to be added into the index.
-* \param type The type of the field to be added into the index.
+* \param type A string defining a valid MySQL data type.
 * \param isRequired a flag that indicates whether the field is required or not.
 * \return A Result object.
 *
+* #### Method Chaining
+*
 * This function can be invoked many times, every time it is called the received information will be added to the index definition.
 *
-* For the type parameter, the Data Type definitions on the mysqlx module should be used, or in the case of Varchar, Char and Decimal
-* data types, use the Varchar, Char and Decimal functions defined on the mysqlx module.
+* After this function invocation, the following functions can be invoked:
+*
+* - execute()
 */
 CollectionCreateIndex CollectionCreateIndex::field(DocPath documentPath, IndexColumnType type, Bool isRequired){}
 #endif
@@ -154,9 +160,11 @@ shcore::Value CollectionCreateIndex::field(const shcore::Argument_list &args)
 * Executes the document addition for the documents cached on this object.
 * \return A Result object.
 *
+* #### Method Chaining
+*
 * This function can be invoked once after:
-* \sa add(Document document)
-* \sa add(List documents)
+* - add(Document document)
+* - add(List documents)
 */
 Result CollectionCreateIndex::execute(){}
 #endif

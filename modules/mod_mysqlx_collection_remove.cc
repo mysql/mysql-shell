@@ -27,7 +27,7 @@ using namespace mysh::mysqlx;
 using namespace shcore;
 
 CollectionRemove::CollectionRemove(boost::shared_ptr<Collection> owner)
-:Collection_crud_definition(boost::static_pointer_cast<DatabaseObject>(owner))
+  :Collection_crud_definition(boost::static_pointer_cast<DatabaseObject>(owner))
 {
   // Exposes the methods available for chaining
   add_method("remove", boost::bind(&CollectionRemove::remove, this, _1), "data");
@@ -54,33 +54,22 @@ CollectionRemove::CollectionRemove(boost::shared_ptr<Collection> owner)
 * if not specified all the documents will be deleted from the collection unless a limit is set.
 * \return This CollectionRemove object.
 *
-* The searchCondition supports using placeholders instead of raw values, example:
-*
-* \code{.js}
-* // Deleting non adult documents
-* collection.delete("age < 21").execute()
-*
-* // Equivalent code using bound values
-* collection.delete("age < :adultAge").bind('adultAge', 21).execute()
-* \endcode
-*
-* On the previous example, adultAge is a placeholder for a value that will be set by calling the bind() function
-* right before calling execute().
-*
-* Note that if placeholders are used, a value must be bounded on each of them or the operation will fail.
+* The searchCondition supports \a [Parameter Binding](param_binding.html).
 *
 * This function is called automatically when Collection.remove(searchCondition) is called.
 *
 * The actual deletion of the documents will occur only when the execute method is called.
+*
+* #### Method Chaining
 *
 * After this function invocation, the following functions can be invoked:
 *
 * - sort(List sortExprStr)
 * - limit(Integer numberOfRows)
 * - bind(String name, Value value)
-* - execute(ExecuteOptions options)
+* - execute()
 *
-* \sa Usage examples at execute(ExecuteOptions options).
+* \sa Usage examples at execute().
 */
 CollectionRemove CollectionRemove::remove(String searchCondition){}
 #endif
@@ -121,6 +110,8 @@ shcore::Value CollectionRemove::remove(const shcore::Argument_list &args)
 *
 * This method is usually used in combination with limit to fix the amount of documents to be deleted.
 *
+* #### Method Chaining
+*
 * This function can be invoked only once after:
 *
 * - remove(String searchCondition)
@@ -129,7 +120,7 @@ shcore::Value CollectionRemove::remove(const shcore::Argument_list &args)
 *
 * - limit(Integer numberOfRows)
 * - bind(String name, Value value)
-* - execute(ExecuteOptions options)
+* - execute()
 */
 CollectionRemove CollectionRemove::sort(List sortExprStr){}
 #endif
@@ -164,6 +155,8 @@ shcore::Value CollectionRemove::sort(const shcore::Argument_list &args)
 *
 * This method is usually used in combination with sort to fix the amount of documents to be deleted.
 *
+* #### Method Chaining
+*
 * This function can be invoked only once after:
 *
 * - remove(String searchCondition)
@@ -172,7 +165,9 @@ shcore::Value CollectionRemove::sort(const shcore::Argument_list &args)
 * After this function invocation, the following functions can be invoked:
 *
 * - bind(String name, Value value)
-* - execute(ExecuteOptions options)
+* - execute()
+*
+* \sa Usage examples at execute().
 */
 CollectionRemove CollectionRemove::limit(Integer numberOfDocs){}
 #endif
@@ -198,19 +193,21 @@ shcore::Value CollectionRemove::limit(const shcore::Argument_list &args)
 * \param value: The value to be bound on the placeholder.
 * \return This CollectionRemove object.
 *
-* This function can be invoked multiple times right before calling execute:
-*
-* After this function invocation, the following functions can be invoked:
-*
-* - bind(String name, Value value)
-* - execute(ExecuteOptions options)
-*
 * An error will be raised if the placeholder indicated by name does not exist.
 *
 * This function must be called once for each used placeohlder or an error will be
 * raised when the execute method is called.
 *
-* \sa Usage examples at execute(ExecuteOptions options).
+* #### Method Chaining
+*
+* This function can be invoked multiple times right before calling execute:
+*
+* After this function invocation, the following functions can be invoked:
+*
+* - bind(String name, Value value)
+* - execute()
+*
+* \sa Usage examples at execute().
 */
 CollectionFind CollectionRemove::bind(String name, Value value){}
 #endif
@@ -234,37 +231,25 @@ shcore::Value CollectionRemove::bind(const shcore::Argument_list &args)
 * Executes the document deletion with the configured filter and limit.
 * \return Result A Result object that can be used to retrieve the results of the deletion operation.
 *
+* #### Method Chaining
+*
 * This function can be invoked after any other function on this class.
 *
-* \code{.js}
-* // open a connection
-* var mysqlx = require('mysqlx').mysqlx;
-* var mysession = mysqlx.getSession("myuser@localhost", mypwd);
+* #### JavaScript Examples
 *
-* // Assuming a collection named friends exists on the test schema
-* var collection = mysession.test.friends;
+* \dontinclude "js_devapi/scripts/mysqlx_collection_remove.js"
+* \skip //@ CollectionRemove: remove under condition
+* \until print('Records Left:', docs.length, '\n');
+* \until print('Records Left:', docs.length, '\n');
+* \until print('Records Left:', docs.length, '\n');
 *
-* // create some initial data
-* collection.add([{name: 'jack', last_name = 'black', age: 17, gender: 'male'},
-*                 {name: 'adam', last_name = 'sandler', age: 15, gender: 'male'},
-*                 {name: 'brian', last_name = 'adams', age: 14, gender: 'male'},
-*                 {name: 'alma', last_name = 'lopez', age: 13, gender: 'female'},
-*                 {name: 'carol', last_name = 'shiffield', age: 14, gender: 'female'},
-*                 {name: 'donna', last_name = 'summers', age: 16, gender: 'female'},
-*                 {name: 'angel', last_name = 'down', age: 14, gender: 'male'}]).execute();
+* #### Python Examples
 *
-* // Remove the youngest
-* var res_youngest = collection.remove().sort(['age', 'name']).limit(1).execute();
-*
-* // Remove males above 15 years old
-* var res_males = collection.remove('gender="male" and age > 15').execute();
-*
-* // Remove females above 15 years old
-* var res_males = collection.remove('gender=:heorshe and age > :limit').bind('heorshe', 'female').bind('limit', 15).execute();
-*
-* // Removes all the documents
-* var res_all = collection.remove().execute();
-* \endcode
+* \dontinclude "py_devapi/scripts/mysqlx_collection_remove.py"
+* \skip #@ CollectionRemove: remove under condition
+* \until print 'Records Left:', len(docs), '\n'
+* \until print 'Records Left:', len(docs), '\n'
+* \until print 'Records Left:', len(docs), '\n'
 */
 Result CollectionRemove::execute(ExecuteOptions opt){}
 #endif

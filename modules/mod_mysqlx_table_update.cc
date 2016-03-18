@@ -29,7 +29,7 @@ using namespace mysh::mysqlx;
 using namespace shcore;
 
 TableUpdate::TableUpdate(boost::shared_ptr<Table> owner)
-:Table_crud_definition(boost::static_pointer_cast<DatabaseObject>(owner))
+  :Table_crud_definition(boost::static_pointer_cast<DatabaseObject>(owner))
 {
   // Exposes the methods available for chaining
   add_method("update", boost::bind(&TableUpdate::update, this, _1), "data");
@@ -62,6 +62,8 @@ TableUpdate::TableUpdate(boost::shared_ptr<Table> owner)
 *
 * The actual update of the records will occur only when the execute method is called.
 *
+* #### Method Chaining
+*
 * After this function invocation, the following functions can be invoked:
 *
 * - set(String attribute, Value value)
@@ -69,9 +71,9 @@ TableUpdate::TableUpdate(boost::shared_ptr<Table> owner)
 * - orderBy(List sortExprStr)
 * - limit(Integer numberOfRows)
 * - bind(String name, Value value)
-* - execute(ExecuteOptions options)
+* - execute()
 *
-* \sa Usage examples at execute(ExecuteOptions options).
+* \sa Usage examples at execute().
 */
 TableUpdate TableUpdate::update(){}
 #endif
@@ -108,6 +110,21 @@ shcore::Value TableUpdate::update(const shcore::Argument_list &args)
 *
 * The update will be done on the table's records once the execute method is called.
 *
+* #### Using Expressions for Values
+*
+* Tipically, the received values are inserted into the table in a literal way.
+*
+* An additional option is to pass an explicit expression which is evaluated on the server, the resulting value is inserted on the table.
+*
+* To define an expression use:
+* \code{.py}
+* mysqlx.expr(expression)
+* \endcode
+*
+* The expression also can be used for \a [Parameter Binding](param_binding.html).
+*
+* #### Method Chaining
+*
 * This function can be invoked multiple times after:
 * - update()
 * - set(String attribute, Value value)
@@ -118,9 +135,9 @@ shcore::Value TableUpdate::update(const shcore::Argument_list &args)
 * - orderBy(List sortExprStr)
 * - limit(Integer numberOfRows)
 * - bind(String name, Value value)
-* - execute(ExecuteOptions options)
+* - execute()
 *
-* \sa Usage examples at execute(ExecuteOptions options).
+* \sa Usage examples at execute().
 */
 TableUpdate TableUpdate::set(String attribute, Value value){}
 #endif
@@ -171,20 +188,9 @@ shcore::Value TableUpdate::set(const shcore::Argument_list &args)
 * if not specified all the records will be updated from the table unless a limit is set.
 * \return This TableUpdate object.
 *
-* The searchCondition supports using placeholders instead of raw values, example:
+* The searchCondition supports \a [Parameter Binding](param_binding.html).
 *
-* \code{.js}
-* // Setting adult flag on records
-* table.update().set('adult', 'yes').where("age > 21").execute()
-*
-* // Equivalent code using bound values
-* table.update().set('adult', 'yes').where("age > :adultAge").bind('adultAge', 21).execute()
-* \endcode
-*
-* On the previous example, adultAge is a placeholder for a value that will be set by calling the bind() function
-* right before calling execute().
-*
-* Note that if placeholders are used, a value must be bounded on each of them or the operation will fail.
+* #### Method Chaining
 *
 * This function can be invoked only once after:
 *
@@ -195,9 +201,9 @@ shcore::Value TableUpdate::set(const shcore::Argument_list &args)
 * - orderBy(List sortExprStr)
 * - limit(Integer numberOfRows)
 * - bind(String name, Value value)
-* - execute(ExecuteOptions options)
+* - execute()
 *
-* \sa Usage examples at execute(ExecuteOptions options).
+* \sa Usage examples at execute().
 */
 TableUpdate TableUpdate::where(String searchCondition){}
 #endif
@@ -229,6 +235,8 @@ shcore::Value TableUpdate::where(const shcore::Argument_list &args)
 *
 * This method is usually used in combination with limit to fix the amount of records to be updated.
 *
+* #### Method Chaining
+*
 * This function can be invoked only once after:
 *
 * - set(String attribute, Value value)
@@ -238,7 +246,7 @@ shcore::Value TableUpdate::where(const shcore::Argument_list &args)
 *
 * - limit(Integer numberOfRows)
 * - bind(String name, Value value)
-* - execute(ExecuteOptions options)
+* - execute()
 */
 TableUpdate TableUpdate::orderBy(List sortExprStr){}
 #endif
@@ -272,6 +280,8 @@ shcore::Value TableUpdate::order_by(const shcore::Argument_list &args)
 *
 * This method is usually used in combination with sort to fix the amount of records to be updated.
 *
+* #### Method Chaining
+*
 * This function can be invoked only once after:
 *
 * - set(String attribute, Value value)
@@ -281,7 +291,9 @@ shcore::Value TableUpdate::order_by(const shcore::Argument_list &args)
 * After this function invocation, the following functions can be invoked:
 *
 * - bind(String name, Value value)
-* - execute(ExecuteOptions options)
+* - execute()
+*
+* \sa Usage examples at execute().
 */
 TableUpdate TableUpdate::limit(Integer numberOfRows){}
 #endif
@@ -307,19 +319,21 @@ shcore::Value TableUpdate::limit(const shcore::Argument_list &args)
 * \param value: The value to be bound on the placeholder.
 * \return This TableUpdate object.
 *
+* #### Method Chaining
+*
 * This function can be invoked multiple times right before calling execute:
 *
 * After this function invocation, the following functions can be invoked:
 *
 * - bind(String name, Value value)
-* - execute(ExecuteOptions options)
+* - execute()
 *
 * An error will be raised if the placeholder indicated by name does not exist.
 *
 * This function must be called once for each used placeohlder or an error will be
 * raised when the execute method is called.
 *
-* \sa Usage examples at execute(ExecuteOptions options).
+* \sa Usage examples at execute().
 */
 TableUpdate TableUpdate::bind(String name, Value value){}
 #endif
@@ -343,39 +357,23 @@ shcore::Value TableUpdate::bind(const shcore::Argument_list &args)
 * Executes the record update with the configured filter and limit.
 * \return Result A result object that can be used to retrieve the results of the update operation.
 *
+* #### Method Chaining
+*
 * This function can be invoked after any other function on this class except update().
 *
-* \code{.js}
-* // open a connection
-* var mysqlx = require('mysqlx').mysqlx;
-* var mysession = mysqlx.getNodeSession("myuser@localhost", mypwd);
+* #### JavaScript Examples
 *
-* // Creates a table named friends on the test schema
-* mysession.sql('create table test.friends (name varchar(50), age integer, gender varchar(20));').execute();
+* \dontinclude "js_devapi/scripts/mysqlx_table_update.js"
+* \skip //@# TableUpdate: simple test
+* \until print('All Females:', records.length, '\n');
 *
-* var table = mysession.test.friends;
+* #### Python Examples
 *
-* // create some initial data
-* table.insert('name','last_name','age','gender')
-*      .values('jack','black', 17, 'male')
-*      .values('adam', 'sandler', 15, 'male')
-*      .values('brian', 'adams', 14, 'male')
-*      .values('alma', 'lopez', 13, 'female')
-*      .values('carol', 'shiffield', 14, 'female')
-*      .values('donna', 'summers', 16, 'female')
-*      .values('angel', 'down', 14, 'male').execute();
-*
-* // Updates the age to the youngest
-* var result = table.update().set('age', 14).orderBy(['age']).limit(1).execute();
-*
-* // Updates last name and age to angel
-* var res_angel = table.update().set('last_name','downey).set('age',15).where('name="angel"').execute();
-*
-* // Previous example using a bound value
-* var res_angel = table.update().set('last_name','downey).set('age',15).where('name=:name').bind('name', 'angel').execute();
-* \endcode
+* \dontinclude "py_devapi/scripts/mysqlx_table_update.py"
+* \skip #@# TableUpdate: simple test
+* \until print 'All Females:', len(records), '\n'
 */
-Result TableUpdate::execute(ExecuteOptions options){}
+Result TableUpdate::execute(){}
 #endif
 shcore::Value TableUpdate::execute(const shcore::Argument_list &args)
 {

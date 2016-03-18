@@ -39,7 +39,6 @@ crud = collection.add(mysqlx.expr('5+1'))
 # ---------------------------------------
 # Collection.Add Unit Testing: Execution
 # ---------------------------------------
-records
 
 #@ Collection.add execution
 result = collection.add({"name": 'my first', "passed": 'document', "count": 1}).execute()

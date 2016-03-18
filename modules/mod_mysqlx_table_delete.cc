@@ -27,7 +27,7 @@ using namespace mysh::mysqlx;
 using namespace shcore;
 
 TableDelete::TableDelete(boost::shared_ptr<Table> owner)
-:Table_crud_definition(boost::static_pointer_cast<DatabaseObject>(owner))
+  :Table_crud_definition(boost::static_pointer_cast<DatabaseObject>(owner))
 {
   // Exposes the methods available for chaining
   add_method("delete", boost::bind(&TableDelete::remove, this, _1), "data");
@@ -58,15 +58,17 @@ TableDelete::TableDelete(boost::shared_ptr<Table> owner)
 *
 * The actual deletion of the records will occur only when the execute method is called.
 *
+* #### Method Chaining
+*
 * After this function invocation, the following functions can be invoked:
 *
 * - where(String searchCriteria)
 * - orderBy(List sortExprStr)
 * - limit(Integer numberOfRows)
 * - bind(String name, Value value)
-* - execute(ExecuteOptions options).
+* - execute().
 *
-* \sa Usage examples at execute(ExecuteOptions options).
+* \sa Usage examples at execute().
 */
 TableDelete TableDelete::delete(){}
 #endif
@@ -99,20 +101,9 @@ shcore::Value TableDelete::remove(const shcore::Argument_list &args)
 * if not specified all the records will be deleted from the table unless a limit is set.
 * \return This TableDelete object.
 *
-* The searchCondition supports using placeholders instead of raw values, example:
+* The searchCondition supports \a [Parameter Binding](param_binding.html).
 *
-* \code{.js}
-* // Deleting non adult records
-* table.delete().where("age < 21").execute()
-*
-* // Equivalent code using bound values
-* table.delete().where("age < :adultAge").bind('adultAge', 21).execute()
-* \endcode
-*
-* On the previous example, adultAge is a placeholder for a value that will be set by calling the bind() function
-* right before calling execute().
-*
-* Note that if placeholders are used, a value must be bounded on each of them or the operation will fail.
+* #### Method Chaining
 *
 * This function can be invoked only once after:
 *
@@ -123,9 +114,9 @@ shcore::Value TableDelete::remove(const shcore::Argument_list &args)
 * - orderBy(List sortExprStr)
 * - limit(Integer numberOfRows)
 * - bind(String name, Value value)
-* - execute(ExecuteOptions options)
+* - execute()
 *
-* \sa Usage examples at execute(ExecuteOptions options).
+* \sa Usage examples at execute().
 */
 TableDelete TableDelete::where(String searchCondition){}
 #endif
@@ -162,6 +153,8 @@ shcore::Value TableDelete::where(const shcore::Argument_list &args)
 *
 * This method is usually used in combination with limit to fix the amount of records to be deleted.
 *
+* #### Method Chaining
+*
 * This function can be invoked only once after:
 *
 * - delete()
@@ -171,7 +164,8 @@ shcore::Value TableDelete::where(const shcore::Argument_list &args)
 *
 * - limit(Integer numberOfRows)
 * - bind(String name, Value value)
-* - execute(ExecuteOptions options)
+* - execute()
+*
 */
 TableDelete TableDelete::orderBy(List sortExprStr){}
 #endif
@@ -205,6 +199,8 @@ shcore::Value TableDelete::order_by(const shcore::Argument_list &args)
 *
 * This method is usually used in combination with sort to fix the amount of records to be deleted.
 *
+* #### Method Chaining
+*
 * This function can be invoked only once after:
 *
 * - delete()
@@ -214,7 +210,9 @@ shcore::Value TableDelete::order_by(const shcore::Argument_list &args)
 * After this function invocation, the following functions can be invoked:
 *
 * - bind(String name, Value value)
-* - execute(ExecuteOptions options)
+* - execute()
+*
+* \sa Usage examples at execute().
 */
 TableDelete TableDelete::limit(Integer numberOfRows){}
 #endif
@@ -240,19 +238,21 @@ shcore::Value TableDelete::limit(const shcore::Argument_list &args)
 * \param value: The value to be bound on the placeholder.
 * \return This TableDelete object.
 *
+* #### Method Chaining
+*
 * This function can be invoked multiple times right before calling execute:
 *
 * After this function invocation, the following functions can be invoked:
 *
 * - bind(String name, Value value)
-* - execute(ExecuteOptions options)
+* - execute()
 *
 * An error will be raised if the placeholder indicated by name does not exist.
 *
 * This function must be called once for each used placeohlder or an error will be
 * raised when the execute method is called.
 *
-* \sa Usage examples at execute(ExecuteOptions options).
+* \sa Usage examples at execute().
 */
 TableDelete TableDelete::bind(String name, Value value){}
 #endif
@@ -276,42 +276,25 @@ shcore::Value TableDelete::bind(const shcore::Argument_list &args)
 * Executes the record deletion with the configured filter and limit.
 * \return Result A result object that can be used to retrieve the results of the deletion operation.
 *
+* #### Method Chaining
+*
 * This function can be invoked after any other function on this class.
 *
-* \code{.js}
-* // open a connection
-* var mysqlx = require('mysqlx').mysqlx;
-* var mysession = mysqlx.getNodeSession("myuser@localhost", mypwd);
+* #### JavaScript Examples
 *
-* // Creates a table named friends on the test schema
-* mysession.sql('create table test.friends (name varchar(50), age integer, gender varchar(20));').execute();
+* \dontinclude "js_devapi/scripts/mysqlx_table_delete.js"
+* \skip //@ TableDelete: delete under condition
+* \until //@ TableDelete: with limit 3
+* \until print('Records Left:', records.length, '\n');
 *
-* var table = mysession.test.friends;
+* #### Python Examples
 *
-* // create some initial data
-* table.insert('name','last_name','age','gender')
-*      .values('jack','black', 17, 'male')
-*      .values('adam', 'sandler', 15, 'male')
-*      .values('brian', 'adams', 14, 'male')
-*      .values('alma', 'lopez', 13, 'female')
-*      .values('carol', 'shiffield', 14, 'female')
-*      .values('donna', 'summers', 16, 'female')
-*      .values('angel', 'down', 14, 'male').execute();
-*
-* // Remove the youngest
-* var res_youngest = table.delete().orderBy(['age', 'name']).limit(1).execute();
-*
-* // Remove the males above 15 year old
-* var res_males = table.delete().where('gender="male" and age > 15').execute();
-*
-* // Remove the females above 15 year old
-* var res_males = table.delete().where('gender=:heorshe and age > :limit').bind('heorshe', 'female').bind('limit', 15).execute();
-*
-* // Removes all the records
-* var res_all = table.delete().execute();
-* \endcode
+* \dontinclude "py_devapi/scripts/mysqlx_table_delete.py"
+* \skip #@ TableDelete: delete under condition
+* \until #@ TableDelete: with limit 3
+* \until print 'Records Left:', len(records), '\n'
 */
-Result TableDelete::execute(ExecuteOptions options){}
+Result TableDelete::execute(){}
 #endif
 shcore::Value TableDelete::execute(const shcore::Argument_list &args)
 {

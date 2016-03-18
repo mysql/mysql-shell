@@ -54,7 +54,7 @@ namespace mysh
       TableDelete orderBy(List sortExprStr);
       TableDelete limit(Integer numberOfRows);
       TableDelete bind(String name, Value value);
-      Result execute(ExecuteOptions options);
+      Result execute();
 #endif
     private:
       std::unique_ptr< ::mysqlx::DeleteStatement> _delete_statement;

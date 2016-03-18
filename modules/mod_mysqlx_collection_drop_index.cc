@@ -31,7 +31,7 @@ using namespace mysh::mysqlx;
 using namespace shcore;
 
 CollectionDropIndex::CollectionDropIndex(boost::shared_ptr<Collection> owner)
-:_owner(owner)
+  :_owner(owner)
 {
   // Exposes the methods available for chaining
   add_method("dropIndex", boost::bind(&CollectionDropIndex::drop_index, this, _1), "data");
@@ -51,6 +51,10 @@ CollectionDropIndex::CollectionDropIndex(boost::shared_ptr<Collection> owner)
 * Drops a collection index based on its name.
 * \param indexName The name of the index to be dropped.
 * \return This CollectionDropIndex object.
+*
+* #### Method Chaining
+*
+* This function can be invoked only once but the operation will be performed when the execute() function is invoked.
 */
 CollectionDropIndex CollectionDropIndex::dropIndex(String indexName){}
 #endif

@@ -100,8 +100,6 @@ crud = table.update().set('age', 17).where('name = :data and age > :years').bind
 # ---------------------------------------
 # Table.Modify Unit Testing: Execution
 # ---------------------------------------
-record
-
 #@# TableUpdate: simple test
 result = result = table.update().set('name', 'aline').where('age = 13').execute()
 print 'Affected Rows:', result.affectedItemCount, '\n'

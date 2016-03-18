@@ -60,12 +60,14 @@ TableInsert::TableInsert(boost::shared_ptr<Table> owner)
 *
 * This function is called automatically when Table.insert() is called.
 *
+* #### Method Chaining
+*
 * After this function invocation, the following functions can be invoked:
 *
 * - values(Value value1, Value value2, ...)
-* - execute(ExecuteOptions options).
+* - execute().
 *
-* \sa Usage examples at execute(ExecuteOptions options).
+* \sa Usage examples at execute().
 */
 TableInsert TableInsert::insert(){}
 
@@ -75,12 +77,14 @@ TableInsert TableInsert::insert(){}
 *
 * This function is called automatically when Table.insert(List columns) is called.
 *
+* #### Method Chaining
+*
 * After this function invocation, the following functions can be invoked:
 *
 * - values(Value value1, Value value2, ...)
-* - execute(ExecuteOptions options).
+* - execute().
 *
-* \sa Usage examples at execute(ExecuteOptions options).
+* \sa Usage examples at execute().
 */
 TableInsert TableInsert::insert(List columns){}
 
@@ -94,12 +98,14 @@ TableInsert TableInsert::insert(List columns){}
 *
 * A string parameter should be specified for each column to be included on the insertion process.
 *
+* #### Method Chaining
+*
 * After this function invocation, the following functions can be invoked:
 *
 * - values(Value value1, Value value2, ...)
-* - execute(ExecuteOptions options).
+* - execute().
 *
-* \sa Usage examples at execute(ExecuteOptions options).
+* \sa Usage examples at execute().
 */
 TableInsert TableInsert::insert(String col1, String col2, ...){}
 #endif
@@ -200,6 +206,19 @@ shcore::Value TableInsert::insert(const shcore::Argument_list &args)
 * The values must be positioned on the list in a way they match the column list defined on the called insert function.
 * If no column list was defined the fields must match the column definition of the Table where the records will be inserted.
 *
+* #### Using Expressions for Values
+*
+* Tipically, the received values are inserted into the table in a literal way.
+*
+* An additional option is to pass an explicit expression which is evaluated on the server, the resulting value is inserted on the table.
+*
+* To define an expression use:
+* \code{.py}
+* mysqlx.expr(expression)
+* \endcode
+*
+* #### Method Chaining
+*
 * This function can be invoked multiple times after:
 * - insert()
 * - insert(List columns)
@@ -208,7 +227,9 @@ shcore::Value TableInsert::insert(const shcore::Argument_list &args)
 *
 * After this function invocation, the following functions can be invoked:
 *
-* - execute(ExecuteOptions options).
+* - execute().
+*
+* \sa Usage examples at execute().
 */
 TableInsert TableInsert::values(Value value1, Value value2, ...){}
 #endif
@@ -243,34 +264,24 @@ shcore::Value TableInsert::values(const shcore::Argument_list &args)
 * Executes the record insertion.
 * \return Result A result object that can be used to retrieve the results of the insertion operation.
 *
+* #### Method Chaining
+*
 * This function can be invoked after:
 * - values(Value value1, Value value2, ...)
 *
-* \code{.js}
-* // open a connection
-* var mysqlx = require('mysqlx').mysqlx;
-* var mysession = mysqlx.getNodeSession("myuser@localhost", mypwd);
+* #### JavaScript Examples
 *
-* // Creates a table named friends on the test schema
-* mysession.sql('create table test.friends (name varchar(50), age integer, gender varchar(20));').execute();
+* \dontinclude "js_devapi/scripts/mysqlx_table_insert.js"
+* \skip //@ Table.insert execution
+* \until print("Affected Rows Document:", result.affectedItemCount, "\n");
 *
-* var table = mysession.test.friends;
+* #### Python Examples
 *
-* // create some initial data
-* table.insert('name','last_name','age','gender')
-*      .values('jack','black', 17, 'male')
-*      .values('adam', 'sandler', 15, 'male')
-*      .values('brian', 'adams', 14, 'male')
-*      .values('alma', 'lopez', 13, 'female').execute();
-
-* table.insert(['name','last_name','age','gender'])
-*      .values('carol', 'shiffield', 14, 'female')
-*      .values('donna', 'summers', 16, 'female')
-*      .values('angel', 'down', 14, 'male').execute();
-*
-* \endcode
+* \dontinclude "py_devapi/scripts/mysqlx_table_insert.py"
+* \skip #@ Table.insert execution
+* \until print "Affected Rows Document:", result.affectedItemCount, "\n"
 */
-Result TableInsert::execute(ExecuteOptions options){}
+Result TableInsert::execute(){}
 #endif
 shcore::Value TableInsert::execute(const shcore::Argument_list &args)
 {

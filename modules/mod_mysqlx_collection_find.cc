@@ -30,7 +30,7 @@ using namespace mysh::mysqlx;
 using namespace shcore;
 
 CollectionFind::CollectionFind(boost::shared_ptr<Collection> owner)
-: Collection_crud_definition(boost::static_pointer_cast<DatabaseObject>(owner))
+  : Collection_crud_definition(boost::static_pointer_cast<DatabaseObject>(owner))
 {
   // Exposes the methods available for chaining
   add_method("find", boost::bind(&CollectionFind::find, this, _1), "data");
@@ -65,22 +65,11 @@ CollectionFind::CollectionFind(boost::shared_ptr<Collection> owner)
 * if not specified all the documents will be included on the result unless a limit is set.
 * \return This CollectionFind object.
 *
-* The searchCondition supports using placeholders instead of raw values, example:
-*
-* \code{.js}
-* // Retrieving adults from a collection using a condition with raw values
-* collection.find("age > 21").execute()
-*
-* // Equivalent code using bound values
-* collection.find("age > :adultAge").bind('adultAge', 21).execute()
-* \endcode
-*
-* On the previous example, adultAge is a placeholder for a value that will be set by calling the bind() function
-* right before calling execute().
-*
-* Note that if placeholders are used, a value must be bounded on each of them or the operation will fail.
+* The searchCondition supports \a [Parameter Binding](param_binding.html).
 *
 * This function is called automatically when Collection.find(searchCondition) is called.
+*
+* #### Method Chaining
 *
 * After this function invocation, the following functions can be invoked:
 *
@@ -89,9 +78,9 @@ CollectionFind::CollectionFind(boost::shared_ptr<Collection> owner)
 * - sort(List sortExprStr)
 * - limit(Integer numberOfRows)
 * - bind(String name, Value value)
-* - execute(ExecuteOptions options)
+* - execute()
 *
-* \sa Usage examples at execute(ExecuteOptions options).
+* \sa Usage examples at execute().
 */
 CollectionFind CollectionFind::find(String searchCondition){}
 #endif
@@ -131,6 +120,8 @@ shcore::Value CollectionFind::find(const shcore::Argument_list &args)
 *
 * Calling this function is allowed only for the first time and only if the search criteria has been set by calling CollectionFind.find(searchCriteria), after that its usage is forbidden since the internal class state has been updated to handle the rest of the Find operation.
 *
+* #### Method Chaining
+*
 * This function can be invoked only once after:
 * - find(String searchCondition)
 *
@@ -140,9 +131,9 @@ shcore::Value CollectionFind::find(const shcore::Argument_list &args)
 * - sort(List sortExprStr)
 * - limit(Integer numberOfRows)
 * - bind(String name, Value value)
-* - execute(ExecuteOptions options)
+* - execute()
 *
-* \sa Usage examples at execute(ExecuteOptions options).
+* \sa Usage examples at execute().
 */
 CollectionFind CollectionFind::fields(List projectedSearchExprStr){}
 
@@ -156,6 +147,8 @@ CollectionFind CollectionFind::fields(List projectedSearchExprStr){}
 *
 * Calling this function is allowed only for the first time and only if the search criteria has been set by calling CollectionFind.find(searchCriteria), after that its usage is forbidden since the internal class state has been updated to handle the rest of the Find operation.
 *
+* #### Method Chaining
+*
 * This function can be invoked only once after:
 * - find(String searchCondition)
 *
@@ -165,9 +158,9 @@ CollectionFind CollectionFind::fields(List projectedSearchExprStr){}
 * - sort(List sortExprStr)
 * - limit(Integer numberOfRows)
 * - bind(String name, Value value)
-* - execute(ExecuteOptions options)
+* - execute()
 *
-* \sa Usage examples at execute(ExecuteOptions options).
+* \sa Usage examples at execute().
 */
 CollectionFind CollectionFind::fields(DocExpression projection);
 #endif
@@ -217,6 +210,8 @@ shcore::Value CollectionFind::fields(const shcore::Argument_list &args)
 *
 * If used, the CollectionFind operation will group the records using the stablished criteria.
 *
+* #### Method Chaining
+*
 * This function can be only once invoked after:
 * - find(String searchCondition)
 * - fields(List projectedSearchExprStr)
@@ -227,9 +222,9 @@ shcore::Value CollectionFind::fields(const shcore::Argument_list &args)
 * - sort(List sortExprStr)
 * - limit(Integer numberOfRows)
 * - bind(String name, Value value)
-* - execute(ExecuteOptions options)
+* - execute()
 *
-* \sa Usage examples at execute(ExecuteOptions options).
+* \sa Usage examples at execute().
 */
 CollectionFind CollectionFind::groupBy(List searchExprStr){}
 #endif
@@ -263,6 +258,10 @@ shcore::Value CollectionFind::group_by(const shcore::Argument_list &args)
 *
 * If used the CollectionFind operation will only consider the records matching the stablished criteria.
 *
+* The searchCondition supports \a [Parameter Binding](param_binding.html).
+*
+* #### Method Chaining
+*
 * This function can be invoked only once after:
 *
 * - groupBy(List searchExprStr)
@@ -272,9 +271,9 @@ shcore::Value CollectionFind::group_by(const shcore::Argument_list &args)
 * - sort(List sortExprStr)
 * - limit(Integer numberOfRows)
 * - bind(String name, Value value)
-* - execute(ExecuteOptions options)
+* - execute()
 *
-* \sa Usage examples at execute(ExecuteOptions options).
+* \sa Usage examples at execute().
 */
 CollectionFind CollectionFind::having(String searchCondition){}
 #endif
@@ -304,6 +303,8 @@ shcore::Value CollectionFind::having(const shcore::Argument_list &args)
 * The elements of sortExprStr list are strings defining the column name on which the sorting will be based in the form of "attribute [ ASC | DESC ]".
 * If no order criteria is specified, ascending will be used by default.
 *
+* #### Method Chaining
+*
 * This function can be invoked only once after:
 *
 * - find(String searchCondition)
@@ -315,9 +316,9 @@ shcore::Value CollectionFind::having(const shcore::Argument_list &args)
 *
 * - limit(Integer numberOfRows)
 * - bind(String name, Value value)
-* - execute(ExecuteOptions options)
+* - execute()
 *
-* \sa Usage examples at execute(ExecuteOptions options).
+* \sa Usage examples at execute().
 */
 CollectionFind CollectionFind::sort(List sortExprStr){}
 #endif
@@ -351,6 +352,8 @@ shcore::Value CollectionFind::sort(const shcore::Argument_list &args)
 *
 * If used, the CollectionFind operation will return at most numberOfRows documents.
 *
+* #### Method Chaining
+*
 * This function can be invoked only once after:
 *
 * - find(String searchCondition)
@@ -363,9 +366,9 @@ shcore::Value CollectionFind::sort(const shcore::Argument_list &args)
 *
 * - skip(Integer limitOffset)
 * - bind(String name, Value value)
-* - execute(ExecuteOptions options)
+* - execute()
 *
-* \sa Usage examples at execute(ExecuteOptions options).
+* \sa Usage examples at execute().
 */
 CollectionFind CollectionFind::limit(Integer numberOfRows){}
 #endif
@@ -390,6 +393,8 @@ shcore::Value CollectionFind::limit(const shcore::Argument_list &args)
 * \param limitOffset: The number of documents to skip before start including them on the DocResult.
 * \return This CollectionFind object.
 *
+* #### Method Chaining
+*
 * This function can be invoked only once after:
 *
 * - limit(Integer numberOfRows)
@@ -397,9 +402,9 @@ shcore::Value CollectionFind::limit(const shcore::Argument_list &args)
 * After this function invocation, the following functions can be invoked:
 *
 * - bind(String name, Value value)
-* - execute(ExecuteOptions options)
+* - execute()
 *
-* \sa Usage examples at execute(ExecuteOptions options).
+* \sa Usage examples at execute().
 */
 CollectionFind CollectionFind::skip(Integer limitOffset){}
 #endif
@@ -425,19 +430,21 @@ shcore::Value CollectionFind::skip(const shcore::Argument_list &args)
 * \param value: The value to be bound on the placeholder.
 * \return This CollectionFind object.
 *
+* #### Method Chaining
+*
 * This function can be invoked multiple times right before calling execute:
 *
 * After this function invocation, the following functions can be invoked:
 *
 * - bind(String name, Value value)
-* - execute(ExecuteOptions options)
+* - execute()
 *
 * An error will be raised if the placeholder indicated by name does not exist.
 *
 * This function must be called once for each used placeohlder or an error will be
 * raised when the execute method is called.
 *
-* \sa Usage examples at execute(ExecuteOptions options).
+* \sa Usage examples at execute().
 */
 CollectionFind CollectionFind::bind(String name, Value value){}
 #endif
@@ -461,53 +468,23 @@ shcore::Value CollectionFind::bind(const shcore::Argument_list &args)
 * Executes the Find operation with all the configured options and returns.
 * \return CollectionResultset A DocResult object that can be used to traverse the collections returned by the find operation.
 *
+* #### Method Chaining
+*
 * This function can be invoked after any other function on this class.
 *
-* Examples:
-* \code{.js}
-* // open a connection
-* var mysqlx = require('mysqlx').mysqlx;
-* var mysession = mysqlx.getSession("myuser@localhost", mypwd);
+* #### JavaScript Examples
 *
-* // Assuming a collection named friends exists on the test schema
-* var collection = mysession.test.friends;
+* \dontinclude "js_devapi/scripts/mysqlx_collection_find.js"
+* \skip //@ Collection.Find All
+* \until print(columns[1], ':', record.InThreeYears, '\n');
 *
-* // create some initial data
-* collection.add([{name: 'jack', last_name = 'black', age: 17, gender: 'male'},
-*                 {name: 'adam', last_name = 'sandler', age: 15, gender: 'male'},
-*                 {name: 'brian', last_name = 'adams', age: 14, gender: 'male'},
-*                 {name: 'alma', last_name = 'lopez', age: 13, gender: 'female'},
-*                 {name: 'carol', last_name = 'shiffield', age: 14, gender: 'female'},
-*                 {name: 'donna', last_name = 'summers', age: 16, gender: 'female'},
-*                 {name: 'angel', last_name = 'down', age: 14, gender: 'male'}]).execute();
+* #### Python Examples
 *
-* // Retrieve all the documents from the collection
-* var res_all = collection.find().execute();
-*
-* // Retrieve the documents for all males
-* var res_males = collection.find('gender="male"').execute();
-*
-* // Previous example but using a bound value
-* var res_males = collection.find('gender=:heorshe').bind('heorshe', 'male').execute();
-*
-* // Retrieve the name and last name only
-* var res_partial = collection.find().fields(['name', 'last_name']).execute();
-*
-* // Retrieve the documents sorted by age in descending order
-* var res_sorted = collection.find().fields(['name', 'last_name', 'age']).sort(['age desc']).execute();
-*
-* // Retrieve the four younger friends
-* var res_youngest = collection.find().sort(['age']).limit(4).execute();
-*
-* // Retrieve the four younger friends after the youngest
-* var res = collection.find().sort(['age']).limit(4).skip(1).execute();
-*
-* // Retrieve documents with a specific layout
-* var res = collection.find().fields(mysqlx.expr('{"Name":concat(name, last_name), "AgeNextYear":age+1}')).execute();
-*
-* \endcode
+* \dontinclude "py_devapi/scripts/mysqlx_collection_find.py"
+* \skip #@ Collection.Find All
+* \until print "%s: %s\n" % (columns[1], record.InThreeYears)
 */
-DocResult CollectionFind::execute(ExecuteOptions options){}
+DocResult CollectionFind::execute(){}
 #endif
 shcore::Value CollectionFind::execute(const shcore::Argument_list &args)
 {

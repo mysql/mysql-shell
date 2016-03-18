@@ -53,7 +53,15 @@ namespace mysh
     * - Enabling/disabling warning generation.
     * - Retrieval of connection information.
     *
-    * \b Dynamic \b Properties
+    * #### JavaScript Examples
+    *
+    * \include "js_dev_api_examples/concepts/Working_with_a_Session_Object.js"
+    *
+    * #### Python Examples
+    *
+    * \include "py_dev_api_examples/concepts/Working_with_a_Session_Object.py"
+    *
+    * #### Dynamic Properties
     *
     * In addition to the properties documented above, when a session object is created the schemas available on the target
     * MySQL Server are cached.
@@ -61,18 +69,6 @@ namespace mysh
     * A dynamic property is added to the session object in order to access each available Schema as a session member.
     *
     * These dynamic properties are named as the Schema's name, so the schemas are accessible as follows:
-    *
-    * \code{.js}
-    * // Establishes the connection.
-    * var mysqlx = require('mysqlx').mysqlx;
-    * var session = mysqlx.getSession("myuser@localhost", pwd);
-    *
-    * // Getting a schema through the getSchema function
-    * var schema = session.getSchema("sakila");
-    *
-    * // Getting a schema through a session property
-    * var schema = session.sakila;
-    * \endcode
     *
     * \sa mysqlx.getSession(String connectionData, String password)
     * \sa mysqlx.getSession(Map connectionData, String password)

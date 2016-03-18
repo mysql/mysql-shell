@@ -30,7 +30,7 @@ using namespace mysh::mysqlx;
 using namespace shcore;
 
 CollectionModify::CollectionModify(boost::shared_ptr<Collection> owner)
-:Collection_crud_definition(boost::static_pointer_cast<DatabaseObject>(owner))
+  :Collection_crud_definition(boost::static_pointer_cast<DatabaseObject>(owner))
 {
   // Exposes the methods available for chaining
   add_method("modify", boost::bind(&CollectionModify::modify, this, _1), "data");
@@ -69,20 +69,20 @@ CollectionModify::CollectionModify(boost::shared_ptr<Collection> owner)
 * if not specified all the documents will be updated on the collection unless a limit is set.
 * \return This CollectionModify object.
 *
-* The searchCondition supports using placeholders instead of raw values, example:
+* #### Using Expressions for Values
 *
-* \code{.js}
-* // Setting adult flag on records
-* collection.modify("age > 21").set('adult', 'yes').execute()
+* Tipically, the received values are set into the document in a literal way.
 *
-* // Equivalent code using bound values
-* collection.modify("age > :adultAge").set('adult', 'yes').bind('adultAge', 21).execute()
+* An additional option is to pass an explicit expression which is evaluated on the server, the resulting value is set on the document.
+*
+* To define an expression use:
+* \code{.py}
+* mysqlx.expr(expression)
 * \endcode
 *
-* On the previous example, adultAge is a placeholder for a value that will be set by calling the bind() function
-* right before calling execute().
+* The expression also can be used for \a [Parameter Binding](param_binding.html).
 *
-* Note that if placeholders are used, a value must be bounded on each of them or the operation will fail.
+* #### Method Chaining
 *
 * This function is called automatically when Collection.modify(searchCondition) is called.
 *
@@ -95,7 +95,7 @@ CollectionModify::CollectionModify(boost::shared_ptr<Collection> owner)
 * - arrayInsert(String path, Value value)
 * - arrayDelete(String path)
 *
-* \sa Usage examples at execute(ExecuteOptions options).
+* \sa Usage examples at execute().
 * \sa Collection
 */
 CollectionModify CollectionModify::modify(String searchCondition){}
@@ -137,7 +137,22 @@ shcore::Value CollectionModify::modify(const shcore::Argument_list &args)
 * - If the attribute is not present on the document, it will be added with the given value.
 * - If the attribute already exists on the document, it will be updated with the given value.
 *
+* #### Using Expressions for Values
+*
+* Tipically, the received values are set into the document in a literal way.
+*
+* An additional option is to pass an explicit expression which is evaluated on the server, the resulting value is set on the document.
+*
+* To define an expression use:
+* \code{.py}
+* mysqlx.expr(expression)
+* \endcode
+*
+* The expression also can be used for \a [Parameter Binding](param_binding.html).
+*
 * The attribute addition will be done on the collection's documents once the execute method is called.
+*
+* #### Method Chaining
 *
 * This function can be invoked multiple times after:
 *
@@ -164,7 +179,7 @@ shcore::Value CollectionModify::modify(const shcore::Argument_list &args)
 * - bind(String name, Value value)
 * - execute(ExecuteOptions opt)
 *
-* \sa Usage examples at execute(ExecuteOptions options).
+* \sa Usage examples at execute().
 */
 CollectionModify CollectionModify::set(String attribute, Value value){}
 #endif
@@ -196,6 +211,8 @@ shcore::Value CollectionModify::set(const shcore::Argument_list &args)
 *
 * The attribute removal will be done on the collection's documents once the execute method is called.
 *
+* #### Method Chaining
+*
 * This function can be invoked multiple times after:
 *
 * - modify(String searchCondition)
@@ -221,7 +238,7 @@ shcore::Value CollectionModify::set(const shcore::Argument_list &args)
 * - bind(String name, Value value)
 * - execute(ExecuteOptions opt)
 *
-* \sa Usage examples at execute(ExecuteOptions options).
+* \sa Usage examples at execute().
 */
 CollectionModify CollectionModify::unset(String attribute){}
 
@@ -235,6 +252,8 @@ CollectionModify CollectionModify::unset(String attribute){}
 *
 * The attribute removal will be done on the collection's documents once the execute method is called.
 *
+* #### Method Chaining
+*
 * This function can be invoked multiple times after:
 *
 * - modify(String searchCondition)
@@ -260,7 +279,7 @@ CollectionModify CollectionModify::unset(String attribute){}
 * - bind(String name, Value value)
 * - execute(ExecuteOptions opt)
 *
-* \sa Usage examples at execute(ExecuteOptions options).
+* \sa Usage examples at execute().
 */
 CollectionModify CollectionModify::unset(List attributes){}
 #endif
@@ -333,6 +352,8 @@ shcore::Value CollectionModify::unset(const shcore::Argument_list &args)
 *
 * The attribute addition will be done on the collection's documents once the execute method is called.
 *
+* #### Method Chaining
+*
 * This function can be invoked multiple times after:
 *
 * - modify(String searchCondition)
@@ -358,7 +379,7 @@ shcore::Value CollectionModify::unset(const shcore::Argument_list &args)
 * - bind(String name, Value value)
 * - execute(ExecuteOptions opt)
 *
-* \sa Usage examples at execute(ExecuteOptions options).
+* \sa Usage examples at execute().
 */
 CollectionModify CollectionModify::merge(Document document){}
 #endif
@@ -393,6 +414,8 @@ shcore::Value CollectionModify::merge(const shcore::Argument_list &args)
 *
 * The insertion of the value will be done on the collection's documents once the execute method is called.
 *
+* #### Method Chaining
+*
 * This function can be invoked multiple times after:
 *
 * - modify(String searchCondition)
@@ -418,7 +441,7 @@ shcore::Value CollectionModify::merge(const shcore::Argument_list &args)
 * - bind(String name, Value value)
 * - execute(ExecuteOptions opt)
 *
-* \sa Usage examples at execute(ExecuteOptions options).
+* \sa Usage examples at execute().
 */
 CollectionModify CollectionModify::arrayInsert(String path, Value value){}
 #endif
@@ -448,6 +471,8 @@ shcore::Value CollectionModify::array_insert(const shcore::Argument_list &args)
 *
 * Adds an opertion into the modify handler to append a value into an array attribute on the documents that were included on the selection filter and limit.
 *
+* #### Method Chaining
+*
 * This function can be invoked multiple times after:
 *
 * - modify(String searchCondition)
@@ -475,7 +500,7 @@ shcore::Value CollectionModify::array_insert(const shcore::Argument_list &args)
 * - bind(String name, Value value)
 * - execute(ExecuteOptions opt)
 *
-* \sa Usage examples at execute(ExecuteOptions options).
+* \sa Usage examples at execute().
 */
 CollectionModify CollectionModify::arrayAppend(String path, Value value){}
 #endif
@@ -507,6 +532,8 @@ shcore::Value CollectionModify::array_append(const shcore::Argument_list &args)
 *
 * The attribute deletion will be done on the collection's documents once the execute method is called.
 *
+* #### Method Chaining
+*
 * This function can be invoked multiple times after:
 *
 * - modify(String searchCondition)
@@ -532,7 +559,7 @@ shcore::Value CollectionModify::array_append(const shcore::Argument_list &args)
 * - bind(String name, Value value)
 * - execute(ExecuteOptions opt)
 *
-* \sa Usage examples at execute(ExecuteOptions options).
+* \sa Usage examples at execute().
 */
 CollectionModify CollectionModify::arrayDelete(String path, Value value){}
 #endif
@@ -564,6 +591,8 @@ shcore::Value CollectionModify::array_delete(const shcore::Argument_list &args)
 *
 * This method is usually used in combination with limit to fix the amount of documents to be updated.
 *
+* #### Method Chaining
+*
 * This function can be invoked only once after:
 *
 * - set(String attribute, Value value)
@@ -580,7 +609,7 @@ shcore::Value CollectionModify::array_delete(const shcore::Argument_list &args)
 * - bind(String name, Value value)
 * - execute(ExecuteOptions opt)
 *
-* \sa Usage examples at execute(ExecuteOptions options).
+* \sa Usage examples at execute().
 */
 CollectionModify CollectionModify::sort(List sortExprStr){}
 #endif
@@ -614,6 +643,8 @@ shcore::Value CollectionModify::sort(const shcore::Argument_list &args)
 *
 * This method is usually used in combination with sort to fix the amount of documents to be updated.
 *
+* #### Method Chaining
+*
 * This function can be invoked only once after:
 *
 * - set(String attribute, Value value)
@@ -630,7 +661,7 @@ shcore::Value CollectionModify::sort(const shcore::Argument_list &args)
 * - bind(String name, Value value)
 * - execute(ExecuteOptions opt)
 *
-* \sa Usage examples at execute(ExecuteOptions options).
+* \sa Usage examples at execute().
 */
 CollectionModify CollectionModify::limit(Integer numberOfDocs){}
 #endif
@@ -656,19 +687,21 @@ shcore::Value CollectionModify::limit(const shcore::Argument_list &args)
 * \param value: The value to be bound on the placeholder.
 * \return This CollectionModify object.
 *
+* #### Method Chaining
+*
 * This function can be invoked multiple times right before calling execute:
 *
 * After this function invocation, the following functions can be invoked:
 *
 * - bind(String name, Value value)
-* - execute(ExecuteOptions options)
+* - execute()
 *
 * An error will be raised if the placeholder indicated by name does not exist.
 *
 * This function must be called once for each used placeohlder or an error will be
 * raised when the execute method is called.
 *
-* \sa Usage examples at execute(ExecuteOptions options).
+* \sa Usage examples at execute().
 */
 CollectionFind CollectionModify::bind(String name, Value value){}
 #endif
@@ -692,49 +725,25 @@ shcore::Value CollectionModify::bind(const shcore::Argument_list &args)
 * Executes the update operations added to the handler with the configured filter and limit.
 * \return CollectionResultset A Result object that can be used to retrieve the results of the update operation.
 *
+* #### Method Chaining
+*
 * This function can be invoked after any other function on this class except modify().
 *
 * The update operation will be executed in the order they were added.
 *
-* \code{.js}
-* // open a connection
-* var mysqlx = require('mysqlx').mysqlx;
-* var mysession = mysqlx.getSession("myuser@localhost", mypwd);
+* #### JavaScript Examples
 *
-* // Assuming a collection named friends exists on the test schema
-* var collection = mysession.test.friends;
+* \dontinclude "js_devapi/scripts/mysqlx_collection_modify.js"
+* \skip //@# CollectionModify: Set Execution
+* \until //@ CollectionModify: sorting and limit Execution - 4
+* \until print(dir(doc));
 *
-* // create some initial data
-* collection.add([{name: 'jack', last_name = 'black', age: 17, gender: 'male'},
-*                 {name: 'adam', last_name = 'sandler', age: 15, gender: 'male'},
-*                 {name: 'brian', last_name = 'adams', age: 14, gender: 'male'},
-*                 {name: 'alma', last_name = 'lopez', age: 13, gender: 'female'},
-*                 {name: 'carol', last_name = 'shiffield', age: 14, gender: 'female'},
-*                 {name: 'donna', last_name = 'summers', age: 16, gender: 'female'},
-*                 {name: 'angel', last_name = 'down', age: 14, gender: 'male'}]).execute();
+* #### Python Examples
 *
-* // Adds a likes and unlikes attributes into the documents in friends
-* var res_set = collection.modify().set('likes', 0).set('unlikes', 0).execute();
-*
-* // Merges additional attributes from a document into the collection documents
-* var res_merge = collection.modify().merge({hobbies:[], pages:[], active:True}).execute();
-*
-* // Renames unlikes to dislikes
-* var res_unset = collection.modify().set('dislikes', '$.unlikes').unset('unlikes').execute();
-*
-* // Appends hobbies
-* var res_males = collection.modify('gender="male"').arrayAppend('hobbies', 'wrestling').execute();
-* var res_males = collection.modify('gender=:heorshe').arrayAppend('hobbies', 'dolls').bind('heorshe', 'female').execute();
-*
-* // Updates hobbies for the youngest
-* var res_toons = collection.modify().arrayAppend('hobbies', 'cartoons').sort(['age']).limit(1).execute();*
-*
-* // The youngest prefers the bike over the cartoons
-* var res_bike = collection.modify().arrayInsert('hobbies[1]', 'bike').sort(['age']).limit(1).execute();*
-*
-* // The youngest doesn't have interest in cars at all
-* var res_car = collection.modify().arrayDelete('hobbies[0]').sort(['age']).limit(1).execute();*
-* \endcode
+* \dontinclude "py_devapi/scripts/mysqlx_collection_modify.py"
+* \skip #@# CollectionModify: Set Execution
+* \until #@ CollectionModify: sorting and limit Execution - 4
+* \until print dir(doc)
 */
 Result CollectionModify::execute(ExecuteOptions opt){}
 #endif

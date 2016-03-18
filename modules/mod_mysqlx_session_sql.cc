@@ -62,7 +62,7 @@ Dynamic_object(), _session(owner)
 * After this function invocation, the following functions can be invoked:
 * - bind(Value value)
 * - bind(List values)
-* - execute(ExecuteOptions options).
+* - execute().
 */
 SqlExecute SqlExecute::sql(String statement){}
 #endif
@@ -101,7 +101,7 @@ shcore::Value SqlExecute::sql(const shcore::Argument_list &args)
 * After this function invocation, the following functions can be invoked:
 * - bind(Value value)
 * - bind(List values)
-* - execute(ExecuteOptions options).
+* - execute().
 */
 SqlExecute SqlExecute::bind(Value value){}
 
@@ -120,7 +120,7 @@ SqlExecute SqlExecute::bind(Value value){}
 * After this function invocation, the following functions can be invoked:
 * - bind(Value value)
 * - bind(List values)
-* - execute(ExecuteOptions options).
+* - execute().
 */
 SqlExecute SqlExecute::bind(List values){}
 #endif
@@ -152,7 +152,7 @@ shcore::Value SqlExecute::bind(const shcore::Argument_list &args)
 * - bind(Value value)
 * - bind(List values)
 */
-SqlResult SqlExecute::execute(ExecuteOptions options){}
+SqlResult SqlExecute::execute(){}
 #endif
 shcore::Value SqlExecute::execute(const shcore::Argument_list &args)
 {

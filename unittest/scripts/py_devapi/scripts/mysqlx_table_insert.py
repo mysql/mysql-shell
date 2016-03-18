@@ -67,7 +67,6 @@ crud = table.insert(['name', 'id', 'gender']).values('carol', 20, 'female').exec
 # ---------------------------------------
 # Table.Find Unit Testing: Execution
 # ---------------------------------------
-records
 
 #@ Table.insert execution
 result = table.insert().values('jack', 17, 'male').execute()

@@ -28,7 +28,7 @@ using namespace mysh::mysqlx;
 using namespace shcore;
 
 TableSelect::TableSelect(boost::shared_ptr<Table> owner)
-: Table_crud_definition(boost::static_pointer_cast<DatabaseObject>(owner))
+  : Table_crud_definition(boost::static_pointer_cast<DatabaseObject>(owner))
 {
   // Exposes the methods available for chaining
   add_method("select", boost::bind(&TableSelect::select, this, _1), "data");
@@ -66,6 +66,8 @@ TableSelect::TableSelect(boost::shared_ptr<Table> owner)
 *
 * Calling this function is allowed only for the first time and it is done automatically when Table.select() is called.
 *
+* #### Method Chaining
+*
 * After this function invocation, the following functions can be invoked:
 *
 * - where(String searchCriteria)
@@ -73,9 +75,9 @@ TableSelect::TableSelect(boost::shared_ptr<Table> owner)
 * - orderBy(List sortExprStr)
 * - limit(Integer numberOfRows)
 * - bind(String name, Value value)
-* - execute(ExecuteOptions options)
+* - execute()
 *
-* \sa Usage examples at execute(ExecuteOptions options).
+* \sa Usage examples at execute().
 */
 TableSelect TableSelect::select(List searchExprStr){}
 #endif
@@ -118,20 +120,9 @@ shcore::Value TableSelect::select(const shcore::Argument_list &args)
 * if not specified all the records will be retrieved from the table unless a limit is set.
 * \return This TableSelect object.
 *
-* The searchCondition supports using placeholders instead of raw values, example:
+* The searchCondition supports \a [Parameter Binding](param_binding.html).
 *
-* \code{.js}
-* // Retrieving adults from a table using a condition with raw values
-* table.select().where("age > 21").execute()
-*
-* // Equivalent code using bound values
-* table.select().where("age > :adultAge").bind('adultAge', 21).execute()
-* \endcode
-*
-* On the previous example, adultAge is a placeholder for a value that will be set by calling the bind() function
-* right before calling execute().
-*
-* Note that if placeholders are used, a value must be bounded on each of them or the operation will fail.
+* #### Method Chaining
 *
 * This function can be invoked only once after:
 *
@@ -143,9 +134,9 @@ shcore::Value TableSelect::select(const shcore::Argument_list &args)
 * - orderBy(List sortExprStr)
 * - limit(Integer numberOfRows)
 * - bind(String name, Value value)
-* - execute(ExecuteOptions options)
+* - execute()
 *
-* \sa Usage examples at execute(ExecuteOptions options).
+* \sa Usage examples at execute().
 */TableSelect TableSelect::where(String searchCondition){}
 #endif
 shcore::Value TableSelect::where(const shcore::Argument_list &args)
@@ -171,6 +162,8 @@ shcore::Value TableSelect::where(const shcore::Argument_list &args)
 *
 * If used, the TableSelect handler will group the records using the stablished criteria.
 *
+* #### Method Chaining
+*
 * This function can be invoked only once after:
 * - select(List projectedSearchExprStr)
 * - where(String searchCondition)
@@ -181,10 +174,11 @@ shcore::Value TableSelect::where(const shcore::Argument_list &args)
 * - orderBy(List sortExprStr)
 * - limit(Integer numberOfRows)
 * - bind(String name, Value value)
-* - execute(ExecuteOptions options)
+* - execute()
 *
-* \sa Usage examples at execute(ExecuteOptions options).
-*/TableSelect TableSelect::groupBy(List searchExprStr){}
+* \sa Usage examples at execute().
+*/
+TableSelect TableSelect::groupBy(List searchExprStr){}
 #endif
 shcore::Value TableSelect::group_by(const shcore::Argument_list &args)
 {
@@ -216,6 +210,10 @@ shcore::Value TableSelect::group_by(const shcore::Argument_list &args)
 *
 * If used the TableSelect operation will only consider the records matching the stablished criteria.
 *
+* The searchCondition supports \a [Parameter Binding](param_binding.html).
+*
+* #### Method Chaining
+*
 * This function can be invoked only once after:
 *
 * - groupBy(List searchExprStr)
@@ -225,11 +223,10 @@ shcore::Value TableSelect::group_by(const shcore::Argument_list &args)
 * - orderBy(List sortExprStr)
 * - limit(Integer numberOfRows)
 * - bind(String name, Value value)
-* - execute(ExecuteOptions options)
+* - execute()
 *
-* \sa Usage examples at execute(ExecuteOptions options).
+* \sa Usage examples at execute().
 */
-
 TableSelect TableSelect::having(String searchCondition){}
 #endif
 shcore::Value TableSelect::having(const shcore::Argument_list &args)
@@ -258,6 +255,8 @@ shcore::Value TableSelect::having(const shcore::Argument_list &args)
 * The elements of sortExprStr list are strings defining the column name on which the sorting will be based in the form of "columnIdentifier [ ASC | DESC ]".
 * If no order criteria is specified, ascending will be used by default.
 *
+* #### Method Chaining
+*
 * This function can be invoked only once after:
 *
 * - select(List projectedSearchExprStr)
@@ -269,9 +268,9 @@ shcore::Value TableSelect::having(const shcore::Argument_list &args)
 *
 * - limit(Integer numberOfRows)
 * - bind(String name, Value value)
-* - execute(ExecuteOptions options)
+* - execute()
 *
-* \sa Usage examples at execute(ExecuteOptions options).
+* \sa Usage examples at execute().
 */
 TableSelect TableSelect::orderBy(List sortExprStr){}
 #endif
@@ -305,6 +304,8 @@ shcore::Value TableSelect::order_by(const shcore::Argument_list &args)
 *
 * If used, the TableSelect operation will return at most numberOfRows records.
 *
+* #### Method Chaining
+*
 * This function can be invoked only once after:
 *
 * - select(List projectedSearchExprStr)
@@ -317,9 +318,9 @@ shcore::Value TableSelect::order_by(const shcore::Argument_list &args)
 *
 * - offset(Integer limitOffset)
 * - bind(String name, Value value)
-* - execute(ExecuteOptions options)
+* - execute()
 *
-* \sa Usage examples at execute(ExecuteOptions options).
+* \sa Usage examples at execute().
 */
 TableSelect TableSelect::limit(Integer numberOfRows){}
 #endif
@@ -344,6 +345,8 @@ shcore::Value TableSelect::limit(const shcore::Argument_list &args)
 * \param limitOffset: The number of records to skip before start including them on the Resultset.
 * \return This TableSelect object.
 *
+* #### Method Chaining
+*
 * This function can be invoked only once after:
 *
 * - limit(Integer numberOfRows)
@@ -351,9 +354,9 @@ shcore::Value TableSelect::limit(const shcore::Argument_list &args)
 * After this function invocation, the following functions can be invoked:
 *
 * - bind(String name, Value value)
-* - execute(ExecuteOptions options)
+* - execute()
 *
-* \sa Usage examples at execute(ExecuteOptions options).
+* \sa Usage examples at execute().
 */
 TableSelect TableSelect::offset(Integer limitOffset){}
 #endif
@@ -379,19 +382,21 @@ shcore::Value TableSelect::offset(const shcore::Argument_list &args)
 * \param value: The value to be bound on the placeholder.
 * \return This TableSelect object.
 *
+* #### Method Chaining
+*
 * This function can be invoked multiple times right before calling execute:
 *
 * After this function invocation, the following functions can be invoked:
 *
 * - bind(String name, Value value)
-* - execute(ExecuteOptions options)
+* - execute()
 *
 * An error will be raised if the placeholder indicated by name does not exist.
 *
 * This function must be called once for each used placeohlder or an error will be
 * raised when the execute method is called.
 *
-* \sa Usage examples at execute(ExecuteOptions options).
+* \sa Usage examples at execute().
 */
 TableSelect TableSelect::bind(String name, Value value){}
 #endif
@@ -416,55 +421,23 @@ shcore::Value TableSelect::bind(const shcore::Argument_list &args)
 * Executes the Find operation with all the configured options and returns.
 * \return RowResult A Row result object that can be used to traverse the records returned by rge select operation.
 *
+* #### Method Chaining
+*
 * This function can be invoked after any other function on this class.
 *
-* Examples:
-* \code{.js}
-* // open a connection
-* var mysqlx = require('mysqlx').mysqlx;
-* var mysession = mysqlx.getSession("myuser@localhost", mypwd);
+* #### JavaScript Examples
 *
-* // Creates a table named friends on the test schema
-* mysession.sql('create table test.friends (name varchar(50), age integer, gender varchar(20));').execute();
+* \dontinclude "js_devapi/scripts/mysqlx_table_select.js"
+* \skip //@ Table.Select All
+* \until print('Select Binding Name:', records[0].name, '\n');
 *
-* var table = mysession.test.friends;
+* #### Python Examples
 *
-* // create some initial data
-* table.insert('name','last_name','age','gender')
-*      .values('jack','black', 17, 'male')
-* .    .values('adam', 'sandler', 15, 'male')
-* .    .values('brian', 'adams', 14, 'male')
-* .    .values('alma', 'lopez', 13, 'female').execute();
-
-* table.insert(['name','last_name','age','gender'])
-* .    .values('carol', 'shiffield', 14, 'female')
-* .    .values('donna', 'summers', 16, 'female')
-* .    .values('angel', 'down', 14, 'male').execute();
-
-*
-* // Retrieve all the records from the table
-* var res_all = table.find().execute();
-*
-* // Retrieve the records for all males
-* var res_males = table.select().where('gender="male"').execute();
-*
-* // Previous example using bound value
-* var res_males = table.select().where('gender=:heorshe').bind('heorshe', 'male)'.execute();
-*
-* // Retrieve the name and last name only
-* var res_partial = table.select(['name', 'last_name']).execute();
-*
-* // Retrieve the records sorted by age in descending order
-* var res_sorted = table.select(['name', 'last_name', 'age']).orderBy(['age desc']).execute();
-*
-* // Retrieve the four younger friends
-* var res_youngest = table.select().orderBy(['age']).limit(4).execute();
-*
-* // Retrieve the four younger friends after the youngest
-* var res = table.select().orderBy(['age']).limit(4).offset(1).execute();
-* \endcode
+* \dontinclude "py_devapi/scripts/mysqlx_table_select.py"
+* \skip #@ Table.Select All
+* \until print 'Select Binding Name:', records[0].name, '\n'
 */
-RowResult TableSelect::execute(ExecuteOptions options){}
+RowResult TableSelect::execute(){}
 #endif
 shcore::Value TableSelect::execute(const shcore::Argument_list &args)
 {

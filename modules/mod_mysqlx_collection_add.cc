@@ -33,7 +33,7 @@ using namespace mysh::mysqlx;
 using namespace shcore;
 
 CollectionAdd::CollectionAdd(boost::shared_ptr<Collection> owner)
-:Collection_crud_definition(boost::static_pointer_cast<DatabaseObject>(owner))
+  :Collection_crud_definition(boost::static_pointer_cast<DatabaseObject>(owner))
 {
   // Exposes the methods available for chaining
   add_method("add", boost::bind(&CollectionAdd::add, this, _1), "data");
@@ -53,34 +53,28 @@ CollectionAdd::CollectionAdd(boost::shared_ptr<Collection> owner)
 * \param document The document to be added into the collection.
 * \return This CollectionAdd object.
 *
+* To be added, the document must have a property named '_id' with a universal unique identifier (UUID), if this property is missing, it is set with an auto generated UUID.
+*
+* #### Using Expressions for Documents
+*
 * The document parameter could be either a native representation of a document or an expression representing a document.
 *
-* Expressions are generated using the mysqlx.expr(expression) function.
+* To define an expression use:
+* \code{.py}
+* mysqlx.expr(expression)
+* \endcode
 *
-* To create an expression that reoresents a document, the expression parameter must be a valid JSON string.
+* To create an expression that represents a document, the expression parameter must be a valid JSON string.
 *
 * The values on this JSON string could be literal values but it is possible to also use the functions available at the MySQL server.
 *
-* To be added, the document must have a property named '_id' with a universal unique identifier (UUID), if this property is missing, it is set with an auto generated UUID.
+* #### Method Chaining
 *
 * This method can be called many times, every time it is called the received document will be cached into an internal list.
 *
 * The actual addition into the collection will occur only when the execute method is called.
 *
-* Example:
-* \code{.js}
-* // open a connection
-* var mysqlx = require('mysqlx').mysqlx;
-* var mysession = mysqlx.getSession("myuser@localhost", mypwd);
-*
-* // creates a collection and adds a document into it
-* var collection = mysession.sampledb.createCollection('sample');
-* var result = collection.add({ name: 'jhon', last_name: 'doe'}).execute();
-*
-*
-* // adds a document using an expression
-* result = collection.add(mysqlx.expr('{"name":"jack", "register_date":current_date()}')).execute();
-* \endcode
+* \sa Usage examples at execute().
 */
 CollectionAdd CollectionAdd::add(Document document){}
 
@@ -89,29 +83,28 @@ CollectionAdd CollectionAdd::add(Document document){}
 * \param documents A list of documents to be added into the collection.
 * \return This CollectionAdd object.
 *
+* To be added, each document must have a property named '_id' with a universal unique identifier (UUID), if this property is missing, it is set with an auto generated UUID.
+*
+* #### Using Expressions for Documents
+*
 * Each document on the list could be either a native representation of a document or an expression representing a document.
 *
-* Expressions are generated using the mysqlx.expr(expression) function.
+* To define an expression use:
+* \code{.py}
+* mysqlx.expr(expression)
+* \endcode
 *
-* To create an expression that reoresents a document, the expression parameter must be a valid JSON string.
+* To create an expression that represents a document, the expression parameter must be a valid JSON string.
 *
 * The values on this JSON string could be literal values but it is possible to also use the functions available at the MySQL server.
-* To be added, each document must have a property named '_id' with a universal unique identifier (UUID), if this property is missing, it is set with an auto generated UUID.
+*
+* #### Method Chaining
 *
 * This method can be called many times, every time it is called the received documents will be cached into an internal list.
 *
 * The actual addition into the collection will occur only when the execute method is called.
 *
-* Example:
-* \code{.js}
-* // open a connection
-* var mysqlx = require('mysqlx').mysqlx;
-* var mysession = mysqlx.getSession("myuser@localhost", mypwd);
-*
-* // creates a collection and adds documents into it
-* var collection = mysession.sampledb.createCollection('sample');
-* var result = collection.add([{ name: 'john', last_name: 'doe'}, mysqlx.expr('{"name":"jane", "last_name":"doe"}')]).execute();
-* \endcode
+* \sa Usage examples at execute().
 */
 CollectionAdd CollectionAdd::add(List documents){}
 #endif
@@ -234,9 +227,24 @@ std::string CollectionAdd::get_new_uuid()
 * Executes the document addition for the documents cached on this object.
 * \return A Result object.
 *
+* #### Method Chaining
+*
 * This function can be invoked once after:
-* \sa add(Document document)
-* \sa add(List documents)
+*
+* - add(Document document)
+* - add(List documents)
+*
+* #### JavaScript Examples
+*
+* \dontinclude "js_devapi/scripts/mysqlx_collection_add.js"
+* \skip //@ Collection.add execution
+* \until print("Affected Rows Mixed List:", result.affectedItemCount, "\n")
+*
+* #### Python Examples
+*
+* \dontinclude "py_devapi/scripts/mysqlx_collection_add.py"
+* \skip #@ Collection.add execution
+* \until print "Affected Rows Mixed List:", result.affectedItemCount, "\n"
 */
 Result CollectionAdd::execute(){}
 #endif
