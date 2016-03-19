@@ -1,4 +1,3 @@
-
 # Collection.find() function with hardcoded values
 myColl = db.getCollection('my_collection')
 

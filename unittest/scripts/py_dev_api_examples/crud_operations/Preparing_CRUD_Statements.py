@@ -1,4 +1,3 @@
-
 myColl = db.getCollection('my_collection')
 
 # Only prepare a Collection.remove() operation, but do not run it yet

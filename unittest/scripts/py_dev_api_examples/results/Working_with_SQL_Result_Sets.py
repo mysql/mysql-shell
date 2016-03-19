@@ -1,4 +1,3 @@
-
 res = nodeSession.sql('SELECT name, age FROM users').execute()
 
 row = res.fetchOne()

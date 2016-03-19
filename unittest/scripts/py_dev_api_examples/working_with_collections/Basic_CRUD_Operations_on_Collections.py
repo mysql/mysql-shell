@@ -1,4 +1,3 @@
-
 # Connecting to MySQL Server and working with a Collection
 
 import mysqlx

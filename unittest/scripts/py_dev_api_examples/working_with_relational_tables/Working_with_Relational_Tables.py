@@ -1,4 +1,3 @@
-
 # Working with Relational Tables
 import mysqlx
 

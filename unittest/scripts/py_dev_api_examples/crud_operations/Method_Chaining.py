@@ -1,4 +1,3 @@
-
 # New method chaining used for executing a SQL SELECT statement
 # Recommended way for executing queries
 employees = db.getTable('employee')

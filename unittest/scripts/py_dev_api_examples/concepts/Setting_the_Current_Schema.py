@@ -1,4 +1,3 @@
-
 import mysqlx
 
 # Direct connect with no client side default schema defined

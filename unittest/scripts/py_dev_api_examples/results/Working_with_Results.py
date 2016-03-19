@@ -1,4 +1,3 @@
-
 # Gets the collection
 myColl = db.getCollection('my_collection')
 

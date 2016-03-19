@@ -1,4 +1,3 @@
-
 # Accessing an existing table
 myTable = db.getTable('my_table')
 

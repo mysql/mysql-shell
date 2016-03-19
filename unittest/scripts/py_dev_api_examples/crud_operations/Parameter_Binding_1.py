@@ -1,4 +1,3 @@
-
 # one bind() per parameter
 myColl = db.getCollection('relatives')
 juniors = myColl.find('alias = "jr"').execute().fetchAll()

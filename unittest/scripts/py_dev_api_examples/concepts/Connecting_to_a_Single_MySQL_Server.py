@@ -1,4 +1,3 @@
-
 # Passing the parameters in the { param: value } format
 dictSession = mysqlx.getSession( {
         'host': 'localhost', 'port': 33060,

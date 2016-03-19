@@ -1,4 +1,3 @@
-
 # Create a new collection
 myColl = db.createCollection('my_collection')
 

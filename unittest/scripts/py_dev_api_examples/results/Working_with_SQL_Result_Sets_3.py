@@ -1,4 +1,3 @@
-
 def print_result(res):
   if res.hasData():
     # SELECT

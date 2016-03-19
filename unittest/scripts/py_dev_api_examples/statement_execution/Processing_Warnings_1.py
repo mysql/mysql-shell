@@ -1,4 +1,3 @@
-
 import mysqlx
 
 def process_warnings(result):

@@ -1,4 +1,3 @@
-
 def createTestTable(session, name):
     
     # use escape function to quote names/identifier

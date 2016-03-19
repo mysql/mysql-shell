@@ -1,4 +1,3 @@
-
 # Connecting to MySQL and working with a Session
 import mysqlx
 

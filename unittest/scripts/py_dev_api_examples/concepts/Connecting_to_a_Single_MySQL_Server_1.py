@@ -1,4 +1,3 @@
-
 # Passing the parameters in the { param: value } format
 # Query the user for the account information
 print "Please enter the database user information."

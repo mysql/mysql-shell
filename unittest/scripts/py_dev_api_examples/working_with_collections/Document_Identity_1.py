@@ -1,4 +1,3 @@
-
 # using a book's unique ISBN as the object ID
 myColl.add( {
 '_id': "978-1449374020",

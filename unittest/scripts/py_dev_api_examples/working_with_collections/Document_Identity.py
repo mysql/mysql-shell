@@ -1,4 +1,3 @@
-
 # If the _id is provided, it will be honored
 result = myColl.add( { '_id': 'custom_id', 'a' : 1 } ).execute()
 print "User Provided Id: %s" % result.getLastDocumentId()

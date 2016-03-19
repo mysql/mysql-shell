@@ -1,4 +1,3 @@
-
 import mysqlx
 
 # Connect to server using a NodeSession
