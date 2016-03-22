@@ -80,7 +80,7 @@ namespace mysh
     public:
       BaseSession();
       BaseSession(const BaseSession& s);
-      virtual ~BaseSession() { try { shcore::Argument_list a; close(a); } catch (...) {} }
+      virtual ~BaseSession() { reset_session(); }
 
       virtual std::vector<std::string> get_members() const;
       virtual shcore::Value get_member(const std::string &prop) const;
@@ -159,6 +159,8 @@ namespace mysh
 
       bool _case_sensitive_table_names;
       void init();
+    private:
+      void reset_session();
     };
 
     /**

@@ -41,6 +41,7 @@
 #include <boost/pointer_cast.hpp>
 #include <boost/algorithm/string.hpp>
 #include "mysqlx_connection.h"
+#include "logger/logger.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -167,15 +168,29 @@ Value BaseSession::close(const shcore::Argument_list &args)
   // Connection must be explicitly closed, we can't rely on the
   // automatic destruction because if shared across different objects
   // it may remain open
-
-  if (_session)
-  {
-    _session->close();
-
-    _session.reset();
-  }
+  reset_session();
 
   return shcore::Value();
+}
+
+void BaseSession::reset_session()
+{
+  try
+  {
+    log_warning("Closing session: %s", _uri.c_str());
+
+    if (_session)
+    {
+      _session->close();
+
+      _session.reset();
+    }
+  }
+  catch (std::exception &e)
+  {
+    log_warning("Error occurred closing session: %s", e.what());
+  }
+
 }
 
 Value BaseSession::sql(const Argument_list &args)
