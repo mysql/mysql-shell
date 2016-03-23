@@ -111,5 +111,8 @@ rm -f %{buildroot}%{_datadir}/mysqlsh/{@LICENSE_FILE@,README}
 %endif
 
 %changelog
+* Wed Mar 23 2016 Alfredo Kojima <alfredo.kengi.kojima@oracle.com> - 1.0.3-1
+- updated for 1.0.3, bug fixes
+
 * Mon Mar 14 2016 Kent Boortz <kent.boortz@oracle.com> - 1.0.2.8-1
 - initial package

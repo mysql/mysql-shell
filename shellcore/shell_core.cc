@@ -151,12 +151,8 @@ int Shell_core::process_stream(std::istream& stream, const std::string& source, 
   }
   else
   {
-    stream.seekg(0, stream.end);
-    std::streamsize fsize = stream.tellg();
-    stream.seekg(0, stream.beg);
-
     std::string data;
-    if (fsize < 0)
+    if (&std::cin == &stream)
     {
       while (!stream.eof())
       {
@@ -168,6 +164,9 @@ int Shell_core::process_stream(std::istream& stream, const std::string& source, 
     }
     else
     {
+      stream.seekg(0, stream.end);
+      std::streamsize fsize = stream.tellg();
+      stream.seekg(0, stream.beg);
       data.resize(fsize);
       stream.read(const_cast<char*>(data.data()), fsize);
     }
