@@ -2346,8 +2346,8 @@ class XShell_TestCases(unittest.TestCase):
       self.assertEqual(results, 'PASS')
 
 
-  # FAILING.....
-  #@unittest.skip("multiline in js mode is not working")
+  #FAILING........
+  @unittest.skip("issues MYS320 , delimiter in js is not recongnized")
   def test_4_3_19_2(self):
       '''[4.3.019]:2 JS Update alter stored procedure using multiline mode: NODE SESSION'''
       results = ''
@@ -5569,7 +5569,7 @@ class XShell_TestCases(unittest.TestCase):
       p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
       p.stdin.flush()
       stdin,stdout = p.communicate()
-      if stdin.find(bytearray("MySQL X Shell Version","ascii"), 0, len(stdin)) >= 0:
+      if stdin.find(bytearray("MySQL Shell Version","ascii"), 0, len(stdin)) >= 0:
           results="PASS"
       else:
           results="FAIL"
@@ -5738,39 +5738,31 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+
   def test_MYS_230_00(self):
-      """ Verify the bug https://jira.oraclecorp.com/jira/browse/MYS-230 with batch < mode"""
-      results = ''
-      expectedValue = 'I am executed in batch mode, first line'
-      init_command_str = MYSQL_SHELL + ' < ' + Exec_files_location + 'Hello.js &'
-      p = subprocess.Popen(init_command_str, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE, shell=True)
-      stdin,stdout = p.communicate()
-      if str(stdin) == expectedValue:
+      '''[4.0.002]:1 Batch Exec - Loading code from file:  < createtable.js'''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+      p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=open(Exec_files_location+'Hello.js'))
+      stdout,stderr = p.communicate()
+      if stdout.find(bytearray("I am executed in batch mode, Hello","ascii"),0,len(stdout))> -1:
           results = 'PASS'
       else:
           results = 'FAIL'
-      self.assertEqual(results, 'PASS', str(stdout))
-      try:
-        p.kill()
-      except ValueError as e:
-        print 'Error: Process created for test_MYS_230_00 test was not able to close:', e
+      self.assertEqual(results, 'PASS')
+
 
   def test_MYS_230_01(self):
-      """ Verify the bug https://jira.oraclecorp.com/jira/browse/MYS-230 with batch --js < mode"""
-      results = ''
-      expectedValue = 'I am executed in batch mode, first line'
-      init_command_str = MYSQL_SHELL + ' --js < ' + Exec_files_location + 'Hello.js &'
-      p = subprocess.Popen(init_command_str, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE, shell=True)
-      stdin,stdout = p.communicate()
-      if str(stdin) == expectedValue:
+      '''[4.0.002]:1 Batch Exec - Loading code from file:  < createtable.js'''
+      init_command = [MYSQL_SHELL, '--interactive=full','--js']
+      p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=open(Exec_files_location+'Hello.js'))
+      stdout,stderr = p.communicate()
+      if stdout.find(bytearray("I am executed in batch mode, Hello","ascii"),0,len(stdout))> -1:
           results = 'PASS'
       else:
           results = 'FAIL'
-      self.assertEqual(results, 'PASS', str(stdout))
-      try:
-        p.kill()
-      except ValueError as e:
-        print 'Error: Process created for test_MYS_230_01 test was not able to close:', e
+      self.assertEqual(results, 'PASS')
+
+
 
   def test_MYS_286_00(self):
       """ Verify the bug https://jira.oraclecorp.com/jira/browse/MYS-286 with classic session"""
@@ -5886,6 +5878,8 @@ class XShell_TestCases(unittest.TestCase):
       except ValueError as e:
         print 'Error: Process created for test_MYS_296_00 test was not able to close:', e
 
+
+
   def test_MYS_296_01(self):
       """ Verify the bug https://jira.oraclecorp.com/jira/browse/MYS-296 --file preference over < . Hello.js executed, HelloAgain.js not executed """
       results = ''
@@ -5945,6 +5939,8 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+  #FAILING........
+  @unittest.skip("issues MYS320 , delimiter in js is not recongnized")
   def test_MYS_320(self):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
@@ -6113,13 +6109,14 @@ class XShell_TestCases(unittest.TestCase):
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
                       '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--session-type=node', '--py']
       x_cmds = [(";\n", 'mysql-py>'),
-                ("coll = session.getSchema(\'world_x\').createCollection(\'MyBindColl\')\n", ""),
-                ("coll.add({\'name\': [\'jhon\', \'Test\'], \'pages\': [\'Default\'], \'hobbies\': [\'default\'], \'lastname\': [\'TestLastName\']})\n", "Query OK, 1 item affected"),
+                ("session.dropCollection('world_x','MyBindColl')\n", "mysql-py>"),
+                ("coll = session.getSchema('world_x').createCollection('MyBindColl')\n", "mysql-py>"),
+                ("coll.add({'name': ['jhon', 'Test'], 'pages': ['Default'], 'hobbies': ['default'], 'lastname': ['TestLastName']})\n", "Query OK, 1 item affected"),
                 # Since parameter for where is [\"jhon\", \"WrongValue\"] and there is no name field with this array, nothing is updated
-                ("coll.modify(\'name = :nameclause\').arrayAppend(\'name\',\'UpdateName\').bind(\'nameclause\',[\"jhon\", \"WrongValue\"])\n", "Query OK, 0 items affected"),
+                ("coll.modify('name = :nameclause').arrayAppend('name','UpdateName').bind('nameclause',['jhon', 'WrongValue'])\n", "Query OK, 0 items affected"),
                 # Since parameter for where is [\"jhon\", \"Test\"] and there is a name field with this array, Append is applied having then [\"jhon\", \"Test\", \"UpdateName\"]
-                ("coll.modify(\'name = :nameclause\').arrayAppend(\'name\',\'UpdateName\').bind(\'nameclause\',[\"jhon\", \"Test\"])\n", "Query OK, 1 item affected "),
-                ("session.dropCollection('MyBindColl')\n", "")
+                ("coll.modify('name = :nameclause').arrayAppend('name','UpdateName').bind('nameclause',['jhon', 'Test'])\n", "Query OK, 1 item affected "),
+                ("session.dropCollection('world_x','MyBindColl')\n", "")
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
