@@ -5002,8 +5002,11 @@ class XShell_TestCases(unittest.TestCase):
                      '-h' + LOCALHOST.host, '-P' + LOCALHOST.port, '--session-type=classic', '--file=' + Exec_files_location + 'BigCreate_Classic.js']
      p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE )
      stdin,stdout = p.communicate()
-     if stdout.find(bytearray("Error","ascii"),0,len(stdin))> -1:
-       self.assertEqual(stdin, 'PASS', str(stdout))
+     if stdin.find(bytearray("ERROR","ascii"),0,len(stdin))> -1 or stdout != '':
+         results="FAIL"
+     else:
+         results = "PASS"
+     self.assertEqual(results, 'PASS')
 
   def test_4_10_00_02(self):
      '''JS Exec Batch with huge data in Node mode, Create and Insert:  --file= BigCreate_Node.js'''
@@ -5011,8 +5014,11 @@ class XShell_TestCases(unittest.TestCase):
                      '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--session-type=node', '--file=' + Exec_files_location + 'BigCreate_Node.js']
      p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE )
      stdin,stdout = p.communicate()
-     if stdout.find(bytearray("Error","ascii"),0,len(stdin))> -1:
-       self.assertEqual(stdin, 'PASS', str(stdout))
+     if stdin.find(bytearray("ERROR","ascii"),0,len(stdin))> -1 or stdout != '':
+         results="FAIL"
+     else:
+         results = "PASS"
+     self.assertEqual(results, 'PASS')
 
   # JS Create Collections
   def test_4_10_00_03(self):
