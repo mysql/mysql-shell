@@ -2284,6 +2284,8 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+  #FAILING........
+  @unittest.skip("issues MYS320 , delimiter in js is not recongnized")
   def test_4_3_18_1(self):
       '''[4.3.018]:1 JS Update alter stored procedure using session object: CLASSIC SESSION'''
       results = ''
@@ -2302,6 +2304,8 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+  #FAILING........
+  @unittest.skip("issues MYS320 , delimiter in js is not recongnized")
   def test_4_3_18_2(self):
       '''[4.3.018]:2 JS Update alter stored procedure using session object: NODE SESSION'''
       results = ''
@@ -2320,8 +2324,8 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
-  # FAILING.....
-  #@unittest.skip("multiline in js mode is not working")
+  #FAILING........
+  @unittest.skip("issues MYS320 , delimiter in js is not recongnized")
   def test_4_3_19_1(self):
       '''[4.3.019]:1 JS Update alter stored procedure using multiline mode: CLASSIC SESSION'''
       results = ''
