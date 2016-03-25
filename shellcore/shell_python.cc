@@ -104,8 +104,7 @@ std::string Shell_python::prompt()
       ret_val = value.as_string();
     else
     {
-      Value session_wrapper = _py->get_global("session");
-
+      Value session_wrapper = _owner->active_session();
       if (session_wrapper)
       {
         boost::shared_ptr<mysh::ShellBaseSession> session = session_wrapper.as_object<mysh::ShellBaseSession>();

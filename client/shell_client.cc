@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2016, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -69,7 +69,7 @@ shcore::Value Shell_client::connect_session(const shcore::Argument_list &args)
   boost::shared_ptr<mysh::ShellBaseSession> new_session(mysh::connect_session(args, mysh::Node));
   _session.reset(new_session, new_session.get());
 
-  _shell->set_global("session", Value(boost::static_pointer_cast<Object_bridge>(_session)));
+  _shell->set_active_session(Value(boost::static_pointer_cast<Object_bridge>(_session)));
 
   Value default_schema = _session->get_member("defaultSchema");
   if (default_schema)

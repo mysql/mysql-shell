@@ -46,6 +46,7 @@
 #    define UNUSED(x)
 #  else
 #    define UNUSED(x) x
+#  endif
 #endif
 
 #include <boost/function.hpp>

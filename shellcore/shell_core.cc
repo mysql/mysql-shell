@@ -96,7 +96,7 @@ std::string Shell_core::preprocess_input_line(const std::string &s)
 
 void Shell_core::handle_input(std::string &code, Interactive_input_state &state, boost::function<void(shcore::Value)> result_processor)
 {
-  try 
+  try
   {
     _running_query = true;
     _langs[_mode]->handle_input(code, state, result_processor);
@@ -250,6 +250,12 @@ void Shell_core::set_global(const std::string &name, const Value &value)
 Value Shell_core::get_global(const std::string &name)
 {
   return (_globals.count(name) > 0) ? _globals[name] : Value();
+}
+
+void Shell_core::set_active_session(const Value &session)
+{
+  _active_session = session;
+  set_global("session", session);
 }
 
 std::string Shell_core::prompt()

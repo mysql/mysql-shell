@@ -69,7 +69,7 @@ std::string Shell_javascript::prompt()
   }
 
   std::string node_type = "mysql";
-  Value session_wrapper = _js->get_global("session");
+  Value session_wrapper = _owner->active_session();
   if (session_wrapper)
   {
     boost::shared_ptr<mysh::ShellBaseSession> session = session_wrapper.as_object<mysh::ShellBaseSession>();
@@ -96,7 +96,7 @@ void Shell_javascript::abort()
   /*
   // TODO: this way to gather the session is wrong in JS, because there sessions are typically created with getNodeSession
 
-  Value session_wrapper = _owner->get_global("session");
+  Value session_wrapper = _owner->active_session();
   boost::shared_ptr<mysh::ShellBaseSession> session = session_wrapper.as_object<mysh::ShellBaseSession>();
   // duplicate the connection
   boost::shared_ptr<mysh::mysqlx::BaseSession> kill_session = NULL;

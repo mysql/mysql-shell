@@ -39,7 +39,7 @@ void Shell_sql::handle_input(std::string &code, Interactive_input_state &state, 
 {
   Value ret_val;
   state = Input_ok;
-  Value session_wrapper = _owner->get_global("session");
+  Value session_wrapper = _owner->active_session();
 
   _last_handled.clear();
 
@@ -193,7 +193,7 @@ std::string Shell_sql::prompt()
   else
   {
     std::string node_type = "mysql";
-    Value session_wrapper = _owner->get_global("session");
+    Value session_wrapper = _owner->active_session();
     if (session_wrapper)
     {
       boost::shared_ptr<mysh::ShellBaseSession> session = session_wrapper.as_object<mysh::ShellBaseSession>();
@@ -206,7 +206,7 @@ std::string Shell_sql::prompt()
           node_type = st.as_string();
       }
     }
-    
+
     return node_type + "-sql> ";
   }
 }
@@ -231,7 +231,7 @@ void Shell_sql::print_exception(const shcore::Exception &e)
 
 void Shell_sql::abort()
 {
-  Value session_wrapper = _owner->get_global("session");
+  Value session_wrapper = _owner->active_session();
   boost::shared_ptr<mysh::ShellBaseSession> session = session_wrapper.as_object<mysh::ShellBaseSession>();
   // duplicate the connection
   boost::shared_ptr<mysh::mysql::ClassicSession> kill_session = boost::shared_ptr<mysh::mysql::ClassicSession>(

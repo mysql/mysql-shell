@@ -1,4 +1,4 @@
-/* Copyright (c) 2014, 2015, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2014, 2016, Oracle and/or its affiliates. All rights reserved.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published by
@@ -110,6 +110,15 @@ namespace shcore {
 
       // Closes the connection
       _interactive_shell->process_line("session.close()");
+    }
+
+    TEST_F(Shell_core_test, regression_prompt_on_override_session)
+    {
+      connect();
+
+      EXPECT_EQ("mysql-sql> ", _interactive_shell->prompt());
+      _interactive_shell->shell_context()->set_global("session",Value(boost::static_pointer_cast<Object_bridge>(Shell_core_options::get_instance())));
+      EXPECT_EQ("mysql-sql> ", _interactive_shell->prompt());
     }
   }
 }

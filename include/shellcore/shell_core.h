@@ -119,6 +119,9 @@ namespace shcore
     virtual void set_global(const std::string &name, const Value &value);
     virtual Value get_global(const std::string &name);
 
+    void set_active_session(const Value &session);
+    Value active_session() const { return _active_session; }
+
     virtual Object_registry *registry() { return _registry; }
   public:
     virtual std::string preprocess_input_line(const std::string &s);
@@ -151,6 +154,7 @@ namespace shcore
     Object_registry *_registry;
     std::map<std::string, Value> _globals;
     std::map<Mode, Shell_language*> _langs;
+    Value _active_session;
 
     Interpreter_delegate *_lang_delegate;
     std::string _input_source;

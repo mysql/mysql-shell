@@ -73,6 +73,8 @@ public:
   void abort();
   std::string prompt();
 
+  boost::shared_ptr<Shell_core> shell_context() const { return _shell; }
+
 private:
   Shell_command_line_options _options;
   static char *readline(const char *prompt);

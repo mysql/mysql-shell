@@ -1,4 +1,4 @@
-/* Copyright (c) 2014, 2015, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2014, 2016, Oracle and/or its affiliates. All rights reserved.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published by
@@ -99,7 +99,7 @@ namespace shcore {
           args.push_back(Value(pwd));
 
         boost::shared_ptr<mysh::ShellBaseSession> session(mysh::connect_session(args, mysh::Classic));
-        env.shell_core->set_global("session", Value(boost::static_pointer_cast<Object_bridge>(session)));
+        env.shell_core->set_active_session(Value(boost::static_pointer_cast<Object_bridge>(session)));
       }
     };
 

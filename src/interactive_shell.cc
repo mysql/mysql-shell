@@ -338,7 +338,7 @@ Value Interactive_shell::connect_session(const Argument_list &args, mysh::Sessio
   if (!schema_name.empty())
     _session->set_current_schema(schema_arg);
 
-  _shell->set_global("session", Value(boost::static_pointer_cast<Object_bridge>(_session)));
+  _shell->set_active_session(Value(boost::static_pointer_cast<Object_bridge>(_session)));
 
   // The default schemas is retrieved it will return null if none is set
   Value default_schema = _session->get_member("currentSchema");
@@ -443,7 +443,7 @@ bool Interactive_shell::switch_shell_mode(Shell_core::Mode mode, const std::vect
         break;
       case Shell_core::Mode_SQL:
       {
-        Value session = _shell->get_global("session");
+        Value session = _shell->active_session();
         if (session && session.as_object()->class_name() == "XSession")
         {
           println("The active session is an X Session.");
