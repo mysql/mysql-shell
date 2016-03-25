@@ -289,6 +289,13 @@ set(mysh_SRC
     "${PROJECT_SOURCE_DIR}/src/interactive_shell.cc"
 )
 
+if(WIN32)
+  set(mysh_SRC
+      "${mysh_SRC}"
+      "${PROJECT_SOURCE_DIR}/res/resource.rc"
+      )
+endif()
+
 IF(WINDOWS_RUNTIME_MD)
   # Shell wrapper for managed windows applications
   add_subdirectory(client)
