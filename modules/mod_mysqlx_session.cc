@@ -125,10 +125,28 @@ Value BaseSession::connect(const Argument_list &args)
     _retrieve_session_info(_default_schema, case_sesitive_table_names);
 
     _case_sensitive_table_names = (case_sesitive_table_names == 0);
+
+    set_connection_id();
   }
   CATCH_AND_TRANSLATE();
 
   return Value::Null();
+}
+
+void BaseSession::set_connection_id()
+{
+  if (_session)
+  {
+    // the client id from xprotocol is not the same as the connection id so it is gathered here.
+    boost::shared_ptr< ::mysqlx::Result> result = _session->executeSql("select connection_id();");
+    boost::shared_ptr< ::mysqlx::Row> row = result->next();
+    if (row)
+    {
+      if (!row->isNullField(0))
+        _connection_id = row->uInt64Field(0);
+    }
+    result->flush();
+  }
 }
 
 void BaseSession::set_option(const char *option, int value)
@@ -141,7 +159,7 @@ void BaseSession::set_option(const char *option, int value)
 
 uint64_t BaseSession::get_connection_id() const 
 { 
-  return _session->connection()->client_id(); 
+  return _connection_id;
 }
 
 bool BaseSession::table_name_compare(const std::string &n1, const std::string &n2)

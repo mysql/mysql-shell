@@ -20,6 +20,7 @@
 #include "shellcore/shell_sql.h"
 #include "../modules/base_session.h"
 #include "../modules/mod_mysql_session.h"
+#include "../modules/mod_mysqlx_session.h"
 #include "../utils/utils_mysql_parsing.h"
 #include <boost/bind.hpp>
 #include <boost/format.hpp>
@@ -234,22 +235,50 @@ void Shell_sql::abort()
   Value session_wrapper = _owner->active_session();
   boost::shared_ptr<mysh::ShellBaseSession> session = session_wrapper.as_object<mysh::ShellBaseSession>();
   // duplicate the connection
-  boost::shared_ptr<mysh::mysql::ClassicSession> kill_session = boost::shared_ptr<mysh::mysql::ClassicSession>(
-    new mysh::mysql::ClassicSession(*dynamic_cast<mysh::mysql::ClassicSession*>(session.get())));
+  boost::shared_ptr<mysh::mysql::ClassicSession> kill_session;
+  boost::shared_ptr<mysh::mysqlx::NodeSession> kill_session2;
+  mysh::mysql::ClassicSession* classic = NULL;
+  mysh::mysqlx::NodeSession* node = NULL;
+  classic = dynamic_cast<mysh::mysql::ClassicSession*>(session.get());
+  node = dynamic_cast<mysh::mysqlx::NodeSession*>(session.get());
+  if (classic)
+  {
+    kill_session.reset(new mysh::mysql::ClassicSession(*dynamic_cast<mysh::mysql::ClassicSession*>(classic)));
+  }
+  else 
+  {
+    kill_session2.reset(new mysh::mysqlx::NodeSession(*dynamic_cast<mysh::mysqlx::NodeSession*>(node)));
+  }
   uint64_t connection_id = session->get_connection_id();
   if (connection_id != 0)
   {
     shcore::Argument_list a;
     a.push_back(shcore::Value(""));
-    kill_session->connect(a);
-    if (!kill_session)
+    if (classic)
     {
-      throw std::runtime_error(boost::format().str());
+      kill_session->connect(a);
+      if (!kill_session)
+      {
+        throw std::runtime_error(boost::format("Error duplicating classic connection").str());
+      }
+      std::string cmd = (boost::format("kill query %u") % connection_id).str();
+      a.clear();
+      a.push_back(shcore::Value(cmd));
+      kill_session->run_sql(a);
     }
-    std::string cmd = (boost::format("kill query %u") % connection_id).str();
-    a.clear();
-    a.push_back(shcore::Value(cmd));
-    kill_session->run_sql(a);
+    else if (node)
+    {
+      kill_session2->connect(a);
+      if (!kill_session2)
+      {
+        throw std::runtime_error(boost::format("Error duplicating xplugin connection").str());
+      }
+
+      std::string cmd = (boost::format("kill query %u") % connection_id).str();
+      a.clear();
+      shcore::Value v = kill_session2->execute_sql(cmd, a);
+
+    }
     _killed = true;
   }
 }

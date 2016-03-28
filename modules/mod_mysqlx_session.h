@@ -159,6 +159,8 @@ namespace mysh
 
       bool _case_sensitive_table_names;
       void init();
+      uint64_t _connection_id;
+      void set_connection_id();
     private:
       void reset_session();
     };
