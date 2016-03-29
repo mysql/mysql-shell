@@ -5986,6 +5986,52 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+  def test_MYS_325_1(self):
+      '''[2.0.01]:1 Connect local Server w/Command Line Args'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=app', '--py','--js' ,  '--sql']
+      p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+      p.stdin.write(bytearray(";\n", 'ascii'))
+      p.stdin.flush()
+      stdin,stdout = p.communicate()
+      if stdin.find(bytearray("mysql-sql>","ascii"), 0, len(stdin)) > 0:
+          results="PASS"
+      else:
+          results="FAIL"
+      self.assertEqual(results, 'PASS')
+
+  def test_MYS_325_2(self):
+      '''[2.0.01]:1 Connect local Server w/Command Line Args'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=app',  '--sql','--js', '--py']
+      p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+      p.stdin.write(bytearray("\n", 'ascii'))
+      p.stdin.flush()
+      stdin,stdout = p.communicate()
+      if stdin.find(bytearray("mysql-py>","ascii"), 0, len(stdin)) > 0:
+          results="PASS"
+      else:
+          results="FAIL"
+      self.assertEqual(results, 'PASS')
+
+  def test_MYS_325_3(self):
+      '''[2.0.01]:1 Connect local Server w/Command Line Args'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=app', '--py' ,  '--sql','--js']
+      p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+      p.stdin.write(bytearray(";\n", 'ascii'))
+      p.stdin.flush()
+      stdin,stdout = p.communicate()
+      if stdin.find(bytearray("mysql-js>","ascii"), 0, len(stdin)) > 0:
+          results="PASS"
+      else:
+          results="FAIL"
+      self.assertEqual(results, 'PASS')
+
+
   def test_MYS_335(self):
       '''[CHLOG 1.0.2.5_2] Different password command line args'''
       results = ''
