@@ -70,7 +70,8 @@ def read_til_getShell(proc, fd, text):
     line = ""
     #t = time.time()
     # while line != text  and proc.poll() == None:
-    while line.find(text,0,len(line))< 0  and proc.poll() == None:
+    while line.find(text,0,len(line))< 0  and proc.poll() == None and  globalvar.last_found.find(text,0,len(globalvar.last_found))< 0:
+    #while line.find(text,0,len(line))< 0  and proc.poll() == None:
         try:
             line = read_line(proc, fd, text)
             globalvar.last_found = globalvar.last_found + line
@@ -4674,43 +4675,43 @@ class XShell_TestCases(unittest.TestCase):
   #     self.assertEqual(results, 'PASS')
 
 
+
   def test_4_9_01_1(self):
       '''[4.9.002] Create a Stored Session'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
 
       x_cmds = [("\\rmconn classic_session\n","mysql-js>"),
-                ("shell.storedSessions.add('classic_session', '"+LOCALHOST.user+":"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+"\sakila');\n","mysql-js>"),
-                (" shell.storedSessions;\n","\"classic_session\": {\r\n        \"dbPassword\": \"**********\", \r\n        \"dbUser\": \"root\", \r\n        \"host\": \"localhost\"\r\n    }"),
+                ("shell.storedSessions.add('classic_session', '"+LOCALHOST.user+":"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+"');\n","mysql-js>"),
+                ("shell.storedSessions;\n","    \"classic_session\": {\r\n        \"dbPassword\": \"**********\", \r\n        \"dbUser\": \""+LOCALHOST.user+"\", \r\n        \"host\": \""+LOCALHOST.host+"\", \r\n        \"port\": "+LOCALHOST.port+"\r\n    }"),
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
 
-  #FAILING........
-  @unittest.skip("store session does not store port: ISSUE MYS-403")
+
   def test_4_9_01_2(self):
       '''[4.9.002] Create a Stored Session: store port'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
 
-      x_cmds = [("\\rmconn classic_session\n","mysql-js>"),
-                ("shell.storedSessions.add('classic_session', '"+LOCALHOST.user+":"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+"\sakila');\n","mysql-js>"),
-                ("shell.storedSessions;\n","\"classic_session\": {\r\n        \"dbPassword\": \"**********\", \r\n        \"dbUser\": \"root\", \r\n        \"host\": \"localhost\"\r\n    }"),
+      x_cmds = [("\\rmconn node_session\n","mysql-js>"),
+                ("shell.storedSessions.add('node_session', '"+LOCALHOST.user+":"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.xprotocol_port+"/sakila');\n","mysql-js>"),
+                ("shell.storedSessions;\n","    \"node_session\": {\r\n        \"dbPassword\": \"**********\", \r\n        \"dbUser\": \""+LOCALHOST.user+"\", \r\n        \"host\": \""+LOCALHOST.host+"\", \r\n        \"port\": "+LOCALHOST.xprotocol_port+", \r\n        \"schema\": \"sakila\"\r\n    }"),
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
-  #FAILING........
-  @unittest.skip("store session does not store schema: ISSUE MYS-403")
+
   def test_4_9_01_3(self):
       '''[4.9.002] Create a Stored Session: schema store'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
 
       x_cmds = [("\\rmconn classic_session\n","mysql-js>"),
-                ("shell.storedSessions.add('classic_session', '"+LOCALHOST.user+":"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+"\sakila');\n","mysql-js>"),
-                ("shell.storedSessions;\n","\"classic_session\": {\r\n        \"dbPassword\": \"**********\", \r\n        \"dbUser\": \"root\", \r\n        \"host\": \"localhost\"\r\n    }"),
+                ("shell.storedSessions.add('classic_session', '"+LOCALHOST.user+":"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+"/sakila');\n","mysql-js>"),
+                ("shell.storedSessions;\n","    \"classic_session\": {\r\n        \"dbPassword\": \"**********\", \r\n        \"dbUser\": \""+LOCALHOST.user+"\", \r\n        \"host\": \""+LOCALHOST.host+"\", \r\n        \"port\": "+LOCALHOST.port+", \r\n        \"schema\": \"sakila\"\r\n    }"),
+                ("\\connect_classic $classic_session\n","Creating a Classic Session to "+LOCALHOST.user+"@"+LOCALHOST.host+":"+LOCALHOST.port+"/sakila"),
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
@@ -4721,9 +4722,9 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
 
-      x_cmds = [("\\rmconn classic_session\n","mysql-js>"),
-                ("shell.storedSessions.add('classic_session', '"+LOCALHOST.user+":"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+"\sakila');\n","mysql-js>"),
-                ("\\connect $classic_session\n","Creating an X Session to root@localhost:33060"),
+      x_cmds = [("\\rmconn app_session\n","mysql-js>"),
+                ("shell.storedSessions.add('app_session', '"+LOCALHOST.user+":"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.xprotocol_port+"/sakila');\n","mysql-js>"),
+                ("\\connect $app_session\n","Creating an X Session to "+LOCALHOST.user+"@"+LOCALHOST.host+":"+LOCALHOST.xprotocol_port+"/sakila"),
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
@@ -4735,11 +4736,12 @@ class XShell_TestCases(unittest.TestCase):
       init_command = [MYSQL_SHELL, '--interactive=full']
 
       x_cmds = [("\\rmconn classic_session\n","mysql-js>"),
-                ("\\addconn classic_session "+LOCALHOST.user+":"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+"\sakila\n","mysql-js>"),
-                ("shell.storedSessions;\n","\"classic_session\": {\r\n"),
+                ("\\addconn classic_session "+LOCALHOST.user+":"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+"/sakila\n","mysql-js>"),
+                ("shell.storedSessions;\n","    \"classic_session\": {\r\n        \"dbPassword\": \"**********\", \r\n        \"dbUser\": \""+LOCALHOST.user+"\", \r\n        \"host\": \""+LOCALHOST.host+"\", \r\n        \"port\": "+LOCALHOST.port+", \r\n        \"schema\": \"sakila\"\r\n    }"),
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
+
 
 
   def test_4_9_02_1(self):
