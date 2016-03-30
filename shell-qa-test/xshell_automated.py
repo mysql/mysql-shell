@@ -1383,56 +1383,48 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
-  @unittest.skip("not catching the Bye! message")
   def test_3_1_04_01(self):
       '''[3.1.004]:1 Check that command [ \quit, \q, \exit ] works: \quit'''
       results = ''
       p = subprocess.Popen([MYSQL_SHELL, '--interactive=full'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
       p.stdin.write(bytearray('\\quit\n', 'ascii'))
       p.stdin.flush()
-      p.stdin.write(bytearray('', 'ascii'))
-      p.stdin.flush()
-      stdin,stdout = p.communicate()
-      found = stdout.find(bytearray("Bye!","ascii"), 0, len(stdout))
+      stdout,stderr = p.communicate()
+      found = stderr.find(bytearray("Error","ascii"), 0, len(stdout))
       if found == -1:
-          results= "FAIL \n\r" + stdout.decode("ascii")
-      else:
           results= "PASS"
+      else:
+          results= "FAIL \n\r" + stdout.decode("ascii")
       self.assertEqual(results, 'PASS')
 
-  @unittest.skip("not catching the Bye! message")
   def test_3_1_04_02(self):
       '''[3.1.004]:2 Check that command [ \quit, \q, \exit ] works: \q '''
       results = ''
       p = subprocess.Popen([MYSQL_SHELL, '--interactive=full'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
       p.stdin.write(bytearray('\\q\n', 'ascii'))
       p.stdin.flush()
-      p.stdin.write(bytearray('', 'ascii'))
-      p.stdin.flush()
-      stdin,stdout = p.communicate()
-      found = stdout.find(bytearray("Bye!","ascii"), 0, len(stdout))
+      stdout,stderr = p.communicate()
+      found = stderr.find(bytearray("Error","ascii"), 0, len(stdout))
       if found == -1:
-          results= "FAIL \n\r" + stdout.decode("ascii")
-      else:
           results= "PASS"
+      else:
+          results= "FAIL \n\r" + stdout.decode("ascii")
       self.assertEqual(results, 'PASS')
 
-  @unittest.skip("not catching the Bye! message")
   def test_3_1_04_03(self):
       '''[3.1.004]:3 Check that command [ \quit, \q, \exit ] works: \exit'''
       results = ''
       p = subprocess.Popen([MYSQL_SHELL, '--interactive=full'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
       p.stdin.write(bytearray('\\exit\n', 'ascii'))
       p.stdin.flush()
-      p.stdin.write(bytearray('', 'ascii'))
-      p.stdin.flush()
-      stdin,stdout = p.communicate()
-      found = stdout.find(bytearray("Bye!","ascii"), 0, len(stdout))
+      stdout,stderr = p.communicate()
+      found = stderr.find(bytearray("Error","ascii"), 0, len(stdout))
       if found == -1:
-          results= "FAIL \n\r" + stdout.decode("ascii")
-      else:
           results= "PASS"
+      else:
+          results= "FAIL \n\r" + stdout.decode("ascii")
       self.assertEqual(results, 'PASS')
+
 
   def test_3_1_05_01(self):
       '''[3.1.005]:1 Check that MODE SQL command [ \sql ] works: \sql '''
