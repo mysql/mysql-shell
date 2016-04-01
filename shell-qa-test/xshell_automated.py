@@ -144,7 +144,7 @@ class REMOTEHOST:
     xprotocol_port = ""
     port = ""
 
-if os.environ.get('USERNAME')=='guidev':
+if os.path.split(os.path.expanduser('~'))[-1] =='guidev':
     # **** LOCAL EXECUTION ****
     config=json.load(open('config_local.json'))
     MYSQL_SHELL = str(config["general"]["xshell_path"])
@@ -1687,7 +1687,7 @@ class XShell_TestCases(unittest.TestCase):
       init_command = [MYSQL_SHELL, '--interactive=full', '--sqlc', '-u' + LOCALHOST.user,
                       '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.port,
                       '--schema=sakila','--session-type=classic']
-      p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=open( Exec_files_location + 'UpdateTable_SQL.sql '))
+      p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=open( Exec_files_location + 'UpdateTable_SQL.sql'))
       stdin,stdout = p.communicate()
       if stdout.find(bytearray("ERROR","ascii"),0,len(stdin))> -1:
         self.assertEqual(stdin, 'PASS')
@@ -1711,7 +1711,7 @@ class XShell_TestCases(unittest.TestCase):
       init_command = [MYSQL_SHELL, '--interactive=full', '--sql', '-u' + LOCALHOST.user,
                       '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port,
                       '--schema=sakila','--session-type=node']
-      p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=open( Exec_files_location + 'UpdateTable_SQL.sql '))
+      p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=open( Exec_files_location + 'UpdateTable_SQL.sql'))
       stdin,stdout = p.communicate()
       if stdout.find(bytearray("ERROR","ascii"),0,len(stdin))> -1:
         self.assertEqual(stdin, 'PASS')
@@ -5784,11 +5784,11 @@ class XShell_TestCases(unittest.TestCase):
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
                       '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=node', '--js']
       x_cmds = [(";\n", 'mysql-js>'),
-                ("session.sql(\'create table world_x.MYS286 (date datetime);\')\n", "Query OK"),
-                ("Table = session.getSchema(\'world_x\').getTable(\'MYS286\')\n", "<Table:mys286>"),
+                ("session.sql(\'create table world_x.mys286 (date datetime);\')\n", "Query OK"),
+                ("Table = session.getSchema(\'world_x\').getTable(\'mys286\')\n", "<Table:mys286>"),
                 ("Table.insert().values('2016-03-14 12:36:37')\n", "Query OK, 1 item affected"),
                 ("Table.select()\n", "2016-04-14 12:36:37"),
-                ("session.sql(\'DROP TABLE world_x.MYS286;\')\n", "Query OK")
+                ("session.sql(\'DROP TABLE world_x.mys286;\')\n", "Query OK")
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
@@ -5804,10 +5804,6 @@ class XShell_TestCases(unittest.TestCase):
      else:
          results = 'FAIL'
      self.assertEqual(results, 'PASS', str(stdout))
-     try:
-        p.kill()
-     except ValueError as e:
-        print 'Error: Process created for test_MYS_290_00 test was not able to close:', e
 
   def test_MYS_290_01(self):
      '''Verify the bug https://jira.oraclecorp.com/jira/browse/MYS-290 with --interactive=full --file '''
@@ -5820,10 +5816,6 @@ class XShell_TestCases(unittest.TestCase):
      else:
          results = 'FAIL'
      self.assertEqual(results, 'PASS', str(stdout))
-     try:
-        p.kill()
-     except ValueError as e:
-        print 'Error: Process created for test_MYS_290_01 test was not able to close:', e
 
   def test_MYS_291(self):
       '''SSL Support '''
@@ -5873,12 +5865,6 @@ class XShell_TestCases(unittest.TestCase):
       else:
           results = 'FAIL'
       self.assertEqual(results, 'PASS', str(stdout))
-      try:
-        p.kill()
-      except ValueError as e:
-        print 'Error: Process created for test_MYS_296_00 test was not able to close:', e
-
-
 
   def test_MYS_296_01(self):
       """ Verify the bug https://jira.oraclecorp.com/jira/browse/MYS-296 --file preference over < . Hello.js executed, HelloAgain.js not executed """
@@ -5892,10 +5878,6 @@ class XShell_TestCases(unittest.TestCase):
       else:
           results = 'FAIL'
       self.assertEqual(results, 'PASS', str(stdout))
-      try:
-        p.kill()
-      except ValueError as e:
-        print 'Error: Process created for test_MYS_296_01 test was not able to close:', e
 
   def test_MYS_303_00(self):
       """ Verify the bug https://jira.oraclecorp.com/jira/browse/MYS-303 with --help """
@@ -5910,10 +5892,6 @@ class XShell_TestCases(unittest.TestCase):
             results = 'PASS'
             break
       self.assertEqual(results, 'PASS', str(stdout))
-      try:
-        p.kill()
-      except ValueError as e:
-        print 'Error: Process created for test_MYS_303_00 test was not able to close:', e
 
   def test_MYS_309_00(self):
       """ Verify the bug https://jira.oraclecorp.com/jira/browse/MYS-309 with classic session and - as part of schema name"""
@@ -5960,11 +5938,10 @@ class XShell_TestCases(unittest.TestCase):
       self.assertEqual(results, 'PASS')
 
   def test_MYS_323_00(self):
-      """ Verify the bug https://jira.oraclecorp.com/jira/browse/MYS-303 with --help """
+      """ Verify the bug https://jira.oraclecorp.com/jira/browse/MYS-323"""
       results = 'FAIL'
-      init_command = MYSQL_SHELL + ' --interactive=full' + ' --py'
-      x_cmds = [(";\n", 'mysql-py>'),
-                ("\\connect\n", "mysql-py>"),
+      init_command = [MYSQL_SHELL, '--interactive=full', '--py']
+      x_cmds = [("\\connect\n", "mysql-py>"),
                 #("\\connect\n", "\\connect <uri or $appName>"),
                 ("\\connect_classic\n", "mysql-py>"),
                 #("\\connect_classic\n", "\\connect_classic <uri or $appName>"),
@@ -6201,14 +6178,14 @@ class XShell_TestCases(unittest.TestCase):
   def test_MYS_378(self):
       '''show the default user if its not provided as argument : Creating a Node Session to XXXXXX@localhost:33060'''
       results = ''
-      user = os.environ.get('USERNAME')
+      user = os.path.split(os.path.expanduser('~'))[-1]
       init_command = [MYSQL_SHELL, '--interactive=full', '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port,'--schema=sakila','--sql',
                       '--passwords-from-stdin']
       p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
       p.stdin.write(bytearray(LOCALHOST.password+"\n", 'ascii'))
       p.stdin.flush()
       stdin,stdout = p.communicate()
-      if stdin.find(bytearray("Creating a Node Session to "+user+"@","ascii"), 0, len(stdin)) >= 0:
+      if stdin.find(bytearray("Creating a Node Session to " + user + "@", "ascii"), 0, len(stdin)) >= 0:
           results="PASS"
       else:
           results="FAIL"
