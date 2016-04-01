@@ -2,6 +2,7 @@ import subprocess
 import time
 import sys
 import datetime
+import platform
 import os
 import threading
 import functools
@@ -4582,7 +4583,7 @@ class XShell_TestCases(unittest.TestCase):
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
                        '-h' + LOCALHOST.host,'-P' + LOCALHOST.port, '--session-type=classic','--schema=sakila', '--sqlc', '--json=pretty']
 
-      x_cmds = [("select actor_id from actor limit 5;\n","\"rows\": [\r\n"),
+      x_cmds = [("select actor_id from actor limit 5;\n","\"rows\": [" + os.linesep + ""),
                 ]
 
       results = exec_xshell_commands(init_command, x_cmds)
@@ -4618,7 +4619,7 @@ class XShell_TestCases(unittest.TestCase):
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
                        '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=node','--schema=sakila', '--sql', '--json=pretty']
 
-      x_cmds = [("select actor_id from actor limit 5;\n","\"rows\": [\r\n"),
+      x_cmds = [("select actor_id from actor limit 5;\n","\"rows\": [" + os.linesep + ""),
                 ]
 
       results = exec_xshell_commands(init_command, x_cmds)
@@ -4634,7 +4635,7 @@ class XShell_TestCases(unittest.TestCase):
                 ("var mySession = mysqlx.getSession('"+LOCALHOST.user+"@"+LOCALHOST.host+"', '"+LOCALHOST.password+"');\n","mysql-js>"),
                 ("var result = mySession.world_x.countryinfo.find().execute();\n","mysql-js>"),
                 ("var record = result.fetchOne();\n","mysql-js>"),
-                ("print(record);\n","\"government\": {\r\n"),
+                ("print(record);\n","\"government\": {" + os.linesep + ""),
                 ]
 
       results = exec_xshell_commands(init_command, x_cmds)
@@ -4683,7 +4684,7 @@ class XShell_TestCases(unittest.TestCase):
 
       x_cmds = [("\\rmconn classic_session\n","mysql-js>"),
                 ("shell.storedSessions.add('classic_session', '"+LOCALHOST.user+":"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+"');\n","mysql-js>"),
-                ("shell.storedSessions;\n","    \"classic_session\": {\r\n        \"dbPassword\": \"**********\", \r\n        \"dbUser\": \""+LOCALHOST.user+"\", \r\n        \"host\": \""+LOCALHOST.host+"\", \r\n        \"port\": "+LOCALHOST.port+"\r\n    }"),
+                ("shell.storedSessions;\n","    \"classic_session\": {" + os.linesep + "        \"dbPassword\": \"**********\", " + os.linesep + "        \"dbUser\": \""+LOCALHOST.user+"\", " + os.linesep + "        \"host\": \""+LOCALHOST.host+"\", " + os.linesep + "        \"port\": "+LOCALHOST.port+"" + os.linesep + "    }"),
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
@@ -4697,7 +4698,7 @@ class XShell_TestCases(unittest.TestCase):
 
       x_cmds = [("\\rmconn node_session\n","mysql-js>"),
                 ("shell.storedSessions.add('node_session', '"+LOCALHOST.user+":"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.xprotocol_port+"/sakila');\n","mysql-js>"),
-                ("shell.storedSessions;\n","    \"node_session\": {\r\n        \"dbPassword\": \"**********\", \r\n        \"dbUser\": \""+LOCALHOST.user+"\", \r\n        \"host\": \""+LOCALHOST.host+"\", \r\n        \"port\": "+LOCALHOST.xprotocol_port+", \r\n        \"schema\": \"sakila\"\r\n    }"),
+                ("shell.storedSessions;\n","    \"node_session\": {" + os.linesep + "        \"dbPassword\": \"**********\", " + os.linesep + "        \"dbUser\": \""+LOCALHOST.user+"\", " + os.linesep + "        \"host\": \""+LOCALHOST.host+"\", " + os.linesep + "        \"port\": "+LOCALHOST.xprotocol_port+", " + os.linesep + "        \"schema\": \"sakila\"" + os.linesep + "    }"),
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
@@ -4710,7 +4711,7 @@ class XShell_TestCases(unittest.TestCase):
 
       x_cmds = [("\\rmconn classic_session\n","mysql-js>"),
                 ("shell.storedSessions.add('classic_session', '"+LOCALHOST.user+":"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+"/sakila');\n","mysql-js>"),
-                ("shell.storedSessions;\n","    \"classic_session\": {\r\n        \"dbPassword\": \"**********\", \r\n        \"dbUser\": \""+LOCALHOST.user+"\", \r\n        \"host\": \""+LOCALHOST.host+"\", \r\n        \"port\": "+LOCALHOST.port+", \r\n        \"schema\": \"sakila\"\r\n    }"),
+                ("shell.storedSessions;\n","    \"classic_session\": {" + os.linesep + "        \"dbPassword\": \"**********\", " + os.linesep + "        \"dbUser\": \""+LOCALHOST.user+"\", " + os.linesep + "        \"host\": \""+LOCALHOST.host+"\", " + os.linesep + "        \"port\": "+LOCALHOST.port+", " + os.linesep + "        \"schema\": \"sakila\"" + os.linesep + "    }"),
                 ("\\connect_classic $classic_session\n","Creating a Classic Session to "+LOCALHOST.user+"@"+LOCALHOST.host+":"+LOCALHOST.port+"/sakila"),
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
@@ -4737,11 +4738,10 @@ class XShell_TestCases(unittest.TestCase):
 
       x_cmds = [("\\rmconn classic_session\n","mysql-js>"),
                 ("\\addconn classic_session "+LOCALHOST.user+":"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+"/sakila\n","mysql-js>"),
-                ("shell.storedSessions;\n","    \"classic_session\": {\r\n        \"dbPassword\": \"**********\", \r\n        \"dbUser\": \""+LOCALHOST.user+"\", \r\n        \"host\": \""+LOCALHOST.host+"\", \r\n        \"port\": "+LOCALHOST.port+", \r\n        \"schema\": \"sakila\"\r\n    }"),
+                ("shell.storedSessions;\n","    \"classic_session\": {" + os.linesep + "        \"dbPassword\": \"**********\", " + os.linesep + "        \"dbUser\": \""+LOCALHOST.user+"\", " + os.linesep + "        \"host\": \""+LOCALHOST.host+"\", " + os.linesep + "        \"port\": "+LOCALHOST.port+", " + os.linesep + "        \"schema\": \"sakila\"" + os.linesep + "    }"),
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
-
 
 
   def test_4_9_02_1(self):
@@ -4751,9 +4751,9 @@ class XShell_TestCases(unittest.TestCase):
 
       x_cmds = [("\\rmconn classic_session\n","mysql-js>"),
                 ("\\addconn classic_session "+LOCALHOST.user+":"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+"\sakila\n","mysql-js>"),
-                ("shell.storedSessions;\n","\"classic_session\": {\r\n"),
+                ("shell.storedSessions;\n","\"classic_session\": {" + os.linesep + ""),
                 ("\\chconn classic_session dummy:"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+"\sakila\n","mysql-js>"),
-                ("shell.storedSessions;\n","\"dbUser\": \"dummy\", \r\n"),
+                ("shell.storedSessions;\n","\"dbUser\": \"dummy\", " + os.linesep + ""),
 
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
@@ -4766,9 +4766,9 @@ class XShell_TestCases(unittest.TestCase):
 
       x_cmds = [("\\rmconn classic_session\n","mysql-js>"),
                 ("\\addconn classic_session "+LOCALHOST.user+":"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+"\sakila\n","mysql-js>"),
-                ("shell.storedSessions;\n","\"classic_session\": {\r\n"),
+                ("shell.storedSessions;\n","\"classic_session\": {" + os.linesep + ""),
                 ("shell.storedSessions.update(\"classic_session\", \"dummy:"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+"\sakila\")\n","mysql-js>"),
-                ("shell.storedSessions;\n","\"dbUser\": \"dummy\", \r\n"),
+                ("shell.storedSessions;\n","\"dbUser\": \"dummy\", " + os.linesep + ""),
 
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
@@ -4782,7 +4782,7 @@ class XShell_TestCases(unittest.TestCase):
 
       x_cmds = [("\\rmconn classic_session\n","mysql-js>"),
                 ("\\addconn classic_session "+LOCALHOST.user+":"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+"\sakila\n","mysql-js>"),
-                ("shell.storedSessions;\n","\"classic_session\": {\r\n"),
+                ("shell.storedSessions;\n","\"classic_session\": {" + os.linesep + ""),
                 ("\\rmconn classic_session\n","mysql-js>"),
                 ("shell.storedSessions.update(\"classic_session\", \"dummy:"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+"\sakila\")\n","does not exist"),
                 ]
@@ -4797,7 +4797,7 @@ class XShell_TestCases(unittest.TestCase):
 
       x_cmds = [("\\rmconn classic_session\n","mysql-js>"),
                 ("\\addconn classic_session "+LOCALHOST.user+":"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+"\sakila\n","mysql-js>"),
-                ("shell.storedSessions;\n","\"classic_session\": {\r\n"),
+                ("shell.storedSessions;\n","\"classic_session\": {" + os.linesep + ""),
                 ("shell.storedSessions.remove(\"classic_session\");","true"),
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
@@ -4811,7 +4811,7 @@ class XShell_TestCases(unittest.TestCase):
 
       x_cmds = [("\\rmconn classic_session\n","mysql-js>"),
                 ("\\addconn classic_session "+LOCALHOST.user+":"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+"\sakila\n","mysql-js>"),
-                ("shell.storedSessions;\n","\"classic_session\": {\r\n"),
+                ("shell.storedSessions;\n","\"classic_session\": {" + os.linesep + ""),
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
@@ -4824,7 +4824,7 @@ class XShell_TestCases(unittest.TestCase):
 
       x_cmds = [("\\rmconn classic_session\n","mysql-js>"),
                 ("\\addconn classic_session "+LOCALHOST.user+":"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+"\sakila\n","mysql-js>"),
-                ("\\lsc\n","\"classic_session\": {\r\n"),
+                ("\\lsc\n","\"classic_session\": {" + os.linesep + ""),
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
@@ -4836,7 +4836,7 @@ class XShell_TestCases(unittest.TestCase):
 
       x_cmds = [("\\rmconn classic_session\n","mysql-js>"),
                 ("\\addconn classic_session "+LOCALHOST.user+":"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+"\sakila\n","mysql-js>"),
-                ("\\lsconn\n","\"classic_session\": {\r\n"),
+                ("\\lsconn\n","\"classic_session\": {" + os.linesep + ""),
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
@@ -6052,9 +6052,9 @@ class XShell_TestCases(unittest.TestCase):
 
       x_cmds = [("\\rmconn classic_session\n","mysql-js>"),
                 ("\\addconn classic_session "+LOCALHOST.user+":"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+"\sakila\n","mysql-js>"),
-                ("shell.storedSessions;\n","\"classic_session\": {\r\n"),
+                ("shell.storedSessions;\n","\"classic_session\": {" + os.linesep + ""),
                 ("\\chconn classic_session dummy:"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+"\sakila\n","mysql-js>"),
-                ("shell.storedSessions;\n","\"dbUser\": \"dummy\", \r\n"),
+                ("shell.storedSessions;\n","\"dbUser\": \"dummy\", " + os.linesep + ""),
 
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
