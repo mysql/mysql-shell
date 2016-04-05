@@ -3,15 +3,8 @@
   are stored in the metadata_schema database.
 */
 
-DROP DATABASE metadata_schema; -- Drop if schema already exists
 CREATE DATABASE metadata_schema;
 USE metadata_schema;
-
-SET FOREIGN_KEY_CHECKS = 0; -- Avoid foreign key dependencies while dropping tables
-DROP TABLES IF EXISTS
-  farm, groups, servers, protocol_defaults, protocols,
-  shard_tables, shard_sets, shards;
-SET FOREIGN_KEY_CHECKS = 1; -- Enable foreign key checks while creating the tables
 
 /*
   This table contain information about the metadata and is used to identify
@@ -221,7 +214,7 @@ CREATE TABLE shards(
     Lower bound for the shard, or NULL if there is no lower bound. The value
     have to be converted to the correct type to be used.
   */
-  `lower_bound` VARBINARY(256) NOT NULL,
+  `lower_bound` VARBINARY(256),
   /* An optional brief description of the group. */
   `description` VARCHAR(120),
   PRIMARY KEY (shard_set_id, shard_id),
