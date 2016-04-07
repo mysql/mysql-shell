@@ -183,6 +183,50 @@ class globalvar:
 
 class XShell_TestCases(unittest.TestCase):
 
+  @classmethod
+  def setUpClass(cls):
+  #def test_0_1(self):
+      # create world_x and world_x-data
+      init_command = [MYSQL_SHELL, '--interactive=full',  '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                      '-h' + LOCALHOST.host, '-P' + LOCALHOST.port,'--sqlc','--classic', '--recreate-schema','world_x']
+      p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=open(Exec_files_location+'world_x.sql'))
+      stdin,stdout = p.communicate()
+      if stdout.find(bytearray("ERROR","ascii"),0,len(stdout))> -1:
+        cls.assertFalse("FAILED initializing schema world_x")
+        #cls.assertEqual(stdin, 'PASS')
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+      x_cmds = [('\\connect_node {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
+                ("\\sql\n","mysql-sql>"),
+                ("use world_x;\n","mysql-sql>"),
+                ("show tables ;\n","countryinfo"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      if results !="PASS":
+        cls.assertFalse("FAILED initializing schema world_x")
+
+      # create sakila and sakila-data
+      init_command = [MYSQL_SHELL, '--interactive=full',  '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                      '-h' + LOCALHOST.host, '-P' + LOCALHOST.port,'--sqlc','--classic','--file=' +Exec_files_location+'sakila-data-5712.sql']
+      p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+      stdin,stdout = p.communicate()
+      #if stdout.find(bytearray("ERROR","ascii"),0,len(stdout))> -1:
+      #  self.assertEqual(stdin, 'PASS')
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+      x_cmds = [('\\connect_node {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
+                ("\\sql\n","mysql-sql>"),
+                ("use sakila;\n","mysql-sql>"),
+                ("select count(*) from actor;\n","200"),
+                ("select count(*) from city;\n","600"),
+                ("select count(*) from rental;\n","16044"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      if results !="PASS":
+        cls.assertFalse("FAILED initializing schema sakila ")
+
+
+
   def test_2_0_01_01(self):
       '''[2.0.01]:1 Connect local Server w/Command Line Args'''
       results = ''
