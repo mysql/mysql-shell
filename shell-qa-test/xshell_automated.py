@@ -5901,7 +5901,9 @@ class XShell_TestCases(unittest.TestCase):
       """ Verify the bug https://jira.oraclecorp.com/jira/browse/MYS-296 --file preference over < . Hello.js executed, HelloAgain.js not executed """
       results = ''
       expectedValue = 'I am executed in batch mode, Hello'
-      init_command_str = MYSQL_SHELL + ' --file=' + Exec_files_location + 'Hello.js' + ' < ' + Exec_files_location + 'HelloAgain.js'
+      target_vm =r'"%s"' % MYSQL_SHELL
+      init_command_str = target_vm + ' --file=' + Exec_files_location + 'Hello.js' + ' < ' + Exec_files_location + 'HelloAgain.js'
+      #init_command_str = MYSQL_SHELL + ' --file=' + Exec_files_location + 'Hello.js' + ' < ' + Exec_files_location + 'HelloAgain.js'
       p = subprocess.Popen(init_command_str, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE, shell=True)
       stdin,stdout = p.communicate()
       if str(stdin) == expectedValue:
@@ -5914,7 +5916,8 @@ class XShell_TestCases(unittest.TestCase):
       """ Verify the bug https://jira.oraclecorp.com/jira/browse/MYS-296 --file preference over < . Hello.js executed, HelloAgain.js not executed """
       results = ''
       expectedValue = 'I am executed in batch mode, Hello'
-      init_command_str = MYSQL_SHELL + ' < ' + Exec_files_location + 'HelloAgain.js' + ' --file=' + Exec_files_location + 'Hello.js'
+      target_vm =r'"%s"' % MYSQL_SHELL
+      init_command_str = target_vm + ' < ' + Exec_files_location + 'HelloAgain.js' + ' --file=' + Exec_files_location + 'Hello.js'
       p = subprocess.Popen(init_command_str, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE, shell=True)
       stdin,stdout = p.communicate()
       if str(stdin) == expectedValue:
