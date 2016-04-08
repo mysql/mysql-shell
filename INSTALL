@@ -1,0 +1,88 @@
+Build Instructions for MySQL Shell
+
+
+Dependencies
+============
+
+Mandatory
+- cmake
+- boost 1.59+
+- libmysqlclient 5.7+
+- protobuf 2.6.1
+
+Optional
+- gtest 1.7
+- v8 3.28.71.19
+- python 2.6+
+
+
+Building From Source
+====================
+The following instructions build MySQL Shell with a minimal set of features, additional features can be included by properly configuring the related dependencies.
+
+1) Download the source code for the MySQL Shell, place it on a local folder.
+3) Using a terminal, cd into the source folder.
+4) Linux/OSX
+     - Assuming that BOOST and MySQL are installed on the system:
+
+       bash> mkdir bld
+       bash> cd bld
+       bash> cmake .. -DWITH_PROTOBUF=<path_to_protobuf>
+       bash> make
+
+   OSX Using XCode
+     - Assuming that BOOST and MySQL are installed on the system:
+
+       bash> cmake .. -G "Xcode" <path_to_mysql_shell_source>
+       bash> make
+
+   Windows:
+     - cmd> cmake .. -G "Visual Studio 12 Win64" -DBOOST_ROOT=<path_to_boost> -DWITH_SSL=bundled -DCMAKE_BUILD_TYPE=Release -DWITH_PROTOBUF=<path_to_protobuf> -DWITH_STATIC_LINKING=1
+     - Open the generated solution mysh.sln and build it using Visual Studio.
+
+   This will build the shell with support for the SQL Mode only.
+
+ Enabling JavaScript Support
+ ---------------------------
+ JavaScript is enabled by satisfying the dependency with V8.
+ T build V8 follow the build V8 standard build instructions.
+ To support JavaScript on the MySQL Shell add the next flags to the CMake call:
+
+ -DV8_INCLUDE_DIR=<path_to_v8>/include
+ -DV8_LIB_DIR=<path_to_folder_containing_the_built_libraries>
+
+ Enabling Python Support
+ -----------------------
+ Python is enabled by satisfying the dependency with Python.
+ To support Python on the MySQL Shell add the next flags to the CMake call:
+
+ -DHAVE_PYTHON=1
+
+ Additional for windows only:
+  -DPYTHON_LIBRARY=<path_to_python_library>
+  -DPYTHON_INCLUDE_DIR=<python_src>\include;<python_src>\PC
+
+
+ Using a Custom BOOST
+ --------------------
+ You can specify the BOOST to be used (i.e. not the installed one) by adding the next parameter to the cmake call.
+ -DBOOST_ROOT=<path_to_boost>
+  At least version 1.56 should be used, recommended version is 1.59.
+  Only header files are used so there's no need to build boost.
+  Use the parameter to specify the path to the uncompressed boost root folder.
+
+
+ Using a Custom MySQL
+ --------------------
+ Specify the MySQL to be used (i.e. not the installed one) by adding the next parameter to the cmake call.
+ -DMYSQL_DIR=<path_to_mysql-folder>
+  Version 5.7 and above is recommended.
+  If MySQL is installed CMake may be able to find it even the parameter is not specified.
+  Use the parameter to specify the path to an uncompressed MySQL package.
+
+
+ Adding Unit Test Support
+ ------------------------
+ GTest is required to enable Unit Testing. Make them available by adding the next parameters to the cmake call.
+ -DWITH_TESTS=1
+ -DWITH_GTEST=<path_to_gtest>

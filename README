@@ -21,7 +21,7 @@ SQL commands to pre-5.7.12 versions of the MySQL server using the standard MySQL
 network protocol.
 
 For more information about how to use the MySQL Shell and the MySQL Document
-Database support see http://dev.mysql.com/doc/refman/5.7/en/document-database.html
+Store support see http://dev.mysql.com/doc/refman/5.7/en/document-store.html
 
 For full documentation on the MySQL Server, the MySQL Shell and related
 topics, see: http://dev.mysql.com/doc/refman/5.7/en/
