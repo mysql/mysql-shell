@@ -184,7 +184,7 @@ class globalvar:
 class XShell_TestCases(unittest.TestCase):
 
   @classmethod
-  def setUpClass(cls):
+  def setUpClass(self):
   #def test_0_1(self):
       # create world_x and world_x-data
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
@@ -192,7 +192,7 @@ class XShell_TestCases(unittest.TestCase):
       p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
       stdin,stdout = p.communicate()
       if stdout.find(bytearray("ERROR","ascii"),0,len(stdout))> -1:
-        cls.assertFalse("FAILED initializing schema world_x")
+        raise ValueError("FAILED initializing schema world_x")
         #cls.assertEqual(stdin, 'PASS')
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
@@ -203,7 +203,7 @@ class XShell_TestCases(unittest.TestCase):
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       if results !="PASS":
-        cls.assertFalse("FAILED initializing schema world_x")
+        raise ValueError("FAILED initializing schema world_x")
 
       # create sakila and sakila-data
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
@@ -227,7 +227,7 @@ class XShell_TestCases(unittest.TestCase):
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       if results !="PASS":
-        cls.assertFalse("FAILED initializing schema sakila ")
+        raise ValueError("FAILED initializing schema sakila")
 
   def test_2_0_01_01(self):
       '''[2.0.01]:1 Connect local Server w/Command Line Args'''
