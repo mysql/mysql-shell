@@ -184,12 +184,12 @@ class globalvar:
 class XShell_TestCases(unittest.TestCase):
 
   @classmethod
-  def setUpClass(cls):
+    def setUpClass(cls):
   #def test_0_1(self):
       # create world_x and world_x-data
-      init_command = [MYSQL_SHELL, '--interactive=full',  '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                      '-h' + LOCALHOST.host, '-P' + LOCALHOST.port,'--sqlc','--classic', '--recreate-schema','world_x']
-      p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=open(Exec_files_location+'world_x.sql'))
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                  '-h' + LOCALHOST.host, '-P' + LOCALHOST.port, '--sqlc', '--classic', '--file=' + Exec_files_location + 'world_x.sql']
+      p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
       stdin,stdout = p.communicate()
       if stdout.find(bytearray("ERROR","ascii"),0,len(stdout))> -1:
         cls.assertFalse("FAILED initializing schema world_x")
@@ -206,6 +206,10 @@ class XShell_TestCases(unittest.TestCase):
         cls.assertFalse("FAILED initializing schema world_x")
 
       # create sakila and sakila-data
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                        '-h' + LOCALHOST.host, '-P' + LOCALHOST.port, '--sqlc', '--classic','--file=' + Exec_files_location + 'sakila-schema.sql']
+      p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+      stdin, stdout = p.communicate()
       init_command = [MYSQL_SHELL, '--interactive=full',  '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
                       '-h' + LOCALHOST.host, '-P' + LOCALHOST.port,'--sqlc','--classic','--file=' +Exec_files_location+'sakila-data-5712.sql']
       p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
