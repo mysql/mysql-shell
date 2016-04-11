@@ -199,7 +199,7 @@ class XShell_TestCases(unittest.TestCase):
       x_cmds = [('\\connect_node {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
                 ("\\sql\n","mysql-sql>"),
                 ("use world_x;\n","mysql-sql>"),
-                ("show tables ;\n","countryinfo"),
+                ("show tables ;\n","4 rows in set"),
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       if results !="PASS":
@@ -5040,7 +5040,7 @@ class XShell_TestCases(unittest.TestCase):
                      '-h' + LOCALHOST.host, '-P' + LOCALHOST.port, '--session-type=classic', '--file=' + Exec_files_location + 'BigCreate_Classic.js']
      p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE )
      stdin,stdout = p.communicate()
-     if stdin.find(bytearray("ERROR","ascii"),0,len(stdin))> -1 or stdout != '':
+     if stdin.find(bytearray("ERROR","ascii"),0,len(stdin))> -1:
          results="FAIL"
      else:
          results = "PASS"
@@ -5052,7 +5052,7 @@ class XShell_TestCases(unittest.TestCase):
                      '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--session-type=node', '--file=' + Exec_files_location + 'BigCreate_Node.js']
      p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE )
      stdin,stdout = p.communicate()
-     if stdin.find(bytearray("ERROR","ascii"),0,len(stdin))> -1 or stdout != '':
+     if stdin.find(bytearray("ERROR","ascii"),0,len(stdin))> -1:
          results="FAIL"
      else:
          results = "PASS"
@@ -5065,8 +5065,11 @@ class XShell_TestCases(unittest.TestCase):
                      '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--session-type=node', '--file=' + Exec_files_location + 'BigCreate_Coll_Node.js']
      p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE )
      stdin,stdout = p.communicate()
-     if stdout.find(bytearray("Error","ascii"),0,len(stdin))> -1:
-       self.assertEqual(stdin, 'PASS', str(stdout))
+     if stdin.find(bytearray("ERROR", "ascii"), 0, len(stdin)) > -1:
+         results = "FAIL"
+     else:
+         results = "PASS"
+     self.assertEqual(results, 'PASS')
 
   # JS Read Non collections
   def test_4_10_00_04(self):
