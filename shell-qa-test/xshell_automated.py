@@ -229,6 +229,24 @@ class XShell_TestCases(unittest.TestCase):
       if results !="PASS":
         raise ValueError("FAILED initializing schema sakila")
 
+      # create sakila_x
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                        '-h' + LOCALHOST.host, '-P' + LOCALHOST.port, '--sqlc', '--classic','--file=' + Exec_files_location + 'sakila_x.sql']
+      p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+      stdin, stdout = p.communicate()
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+      x_cmds = [('\\connect_node {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
+                ("\\sql\n","mysql-sql>"),
+                ("use sakila_x;\n","mysql-sql>"),
+                ("select count(*) from movies;\n","1 row in set"),
+                ("select count(*) from users;\n","1 row in set"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      if results !="PASS":
+        raise ValueError("FAILED initializing schema sakila_x")
+
+
   def test_2_0_01_01(self):
       '''[2.0.01]:1 Connect local Server w/Command Line Args'''
       results = ''
@@ -5519,6 +5537,20 @@ class XShell_TestCases(unittest.TestCase):
                ]
      results = exec_xshell_commands(init_command, x_cmds)
      self.assertEqual(results, 'PASS')
+
+  def test_4_11_01(self):
+      """ CreateIndex function """
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+      x_cmds = [(";\n", 'mysql-js>'),
+                ("var mysqlx = require('mysqlx').mysqlx;\n", "mysql-js>"),
+                ("var session = mysqlx.getSession('"+ LOCALHOST.user +":"+ LOCALHOST.password +"@"+ LOCALHOST.host +":"+ LOCALHOST.xprotocol_port +"');\n", "mysql-js>"),
+                ("var schema = session.getSchema('sakila_x');\n", "mysql-js>"),
+                ("var coll = session.sakila_x.getCollection('movies');\n", "mysql-js>"),
+                ("coll.createIndex('rating_index').field('rating', 'text(5)', true).execute();\n", "Query OK"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
 
 
   def test_CHLOG_1_0_2_5_1A(self):
