@@ -5552,6 +5552,20 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+  def test_4_11_02(self):
+      """ dropIndex fucntion """
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+      x_cmds = [(";\n", 'mysql-js>'),
+                ("var mysqlx = require('mysqlx').mysqlx;\n", "mysql-js>"),
+                ("var session = mysqlx.getSession('"+ LOCALHOST.user +":"+ LOCALHOST.password +"@"+ LOCALHOST.host +":"+ LOCALHOST.xprotocol_port +"');\n", "mysql-js>"),
+                ("var schema = session.getSchema('sakila_x');\n", "mysql-js>"),
+                ("var coll = session.sakila_x.getCollection('movies');\n", "mysql-js>"),
+                ("coll.dropIndex('rating_index').execute();\n", "Query OK"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
 
   def test_CHLOG_1_0_2_5_1A(self):
       '''[CHLOG 1.0.2.5_1_1] Session type shortcut [--classic] :  --sql/--js/--py '''
