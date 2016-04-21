@@ -78,6 +78,14 @@ namespace mysh
     boost::weak_ptr<ShellBaseSession> _session;
     boost::weak_ptr<DatabaseObject> _schema;
     std::string _name;
+
+    // Handling of database object caches
+  public:
+    typedef boost::shared_ptr<shcore::Value::Map_type> Cache;
+    static void update_cache(const std::vector<std::string>& names, const std::function<shcore::Value(const std::string &name)>& generator, Cache target_cache);
+    static void update_cache(const std::string& name, const std::function<shcore::Value(const std::string &name)>& generator, bool exists, Cache target_cache);
+    static shcore::Value::Array_type_ref get_object_list(Cache target_cache);
+    static shcore::Value find_in_cache(const std::string& name, Cache target_cache);
   };
 };
 

@@ -62,9 +62,9 @@ ClassicSession::ClassicSession()
   init();
 }
 
-ClassicSession::ClassicSession(const ClassicSession& session) : 
-_conn(session._conn), ShellBaseSession(session) 
-{ 
+ClassicSession::ClassicSession(const ClassicSession& session) :
+_conn(session._conn), ShellBaseSession(session)
+{
   init();
 }
 
@@ -86,6 +86,10 @@ void ClassicSession::init()
   add_method("dropView", boost::bind(&ClassicSession::drop_schema_object, this, _1, "View"), "data");
 
   _schemas.reset(new shcore::Value::Map_type);
+
+  // Prepares the cache handling
+  auto generator = [this](const std::string& name){return shcore::Value::wrap<ClassicSchema>(new ClassicSchema(shared_from_this(), name)); };
+  update_schema_cache = [generator, this](const std::string &name, bool exists){DatabaseObject::update_cache(name, generator, exists, _schemas); };
 }
 
 Connection *ClassicSession::connection()
@@ -104,8 +108,6 @@ Value ClassicSession::connect(const Argument_list &args)
 
     // Performs the connection
     _conn.reset(new Connection(_host, _port, _sock, _user, _password, _schema, _ssl_ca, _ssl_cert, _ssl_key));
-
-    _load_schemas();
 
     _default_schema = _retrieve_current_schema();
   }
@@ -144,7 +146,7 @@ Value ClassicSession::close(const shcore::Argument_list &args)
 */
 ClassicResult ClassicSession::runSql(String query){}
 #endif
-Value ClassicSession::run_sql(const shcore::Argument_list &args)
+Value ClassicSession::run_sql(const shcore::Argument_list &args) const
 {
   args.ensure_count(1, "ClassicSession.sql");
   // Will return the result of the SQL execution
@@ -207,35 +209,11 @@ Value ClassicSession::create_schema(const shcore::Argument_list &args)
   return ret_val;
 }
 
-#ifdef DOXYGEN
-/**
-* Returns the connection string passed to connect() method.
-* \return A string representation of the connection data in URI format (excluding the password or the database).
-* \sa connect
-*/
-String ClassicSession::getUri(){}
-#endif
-
 std::vector<std::string> ClassicSession::get_members() const
 {
   std::vector<std::string> members(ShellBaseSession::get_members());
 
   members.push_back("currentSchema");
-
-  // This function is here only to append the schemas as direct members
-  // Will use a set to prevent duplicates
-  std::set<std::string> set(members.begin(), members.end());
-  for (Value::Map_type::const_iterator iter = _schemas->begin(); iter != _schemas->end(); ++iter)
-  {
-    if (shcore::is_valid_identifier(iter->first))
-      set.insert(iter->first);
-  }
-
-  for (std::vector<std::string>::iterator index = members.begin(); index != members.end(); ++index)
-    set.erase(*index);
-
-  for (std::set<std::string>::iterator index = set.begin(); index != set.end(); ++index)
-    members.push_back(*index);
 
   return members;
 }
@@ -258,14 +236,8 @@ ClassicSchema ClassicSession::getDefaultSchema(){}
 ClassicSchema ClassicSession::getCurrentSchema(){}
 
 /**
-* Retrieves the Schemas available on the session.
-* \return A Map containing the ClassicSchema objects available o the session.
-*/
-Map ClassicSession::getSchemas(){}
-
-/**
-* Retrieves the connection data for this session in string format.
-* \return A string representing the connection data.
+* Returns the connection string passed to connect() method.
+* \return A string representation of the connection data in URI format (excluding the password or the database).
 */
 String ClassicSession::getUri(){}
 #endif
@@ -280,14 +252,16 @@ Value ClassicSession::get_member(const std::string &prop) const
   // it is a schema and attempt loading it as such
   if (ShellBaseSession::has_member(prop))
     ret_val = ShellBaseSession::get_member(prop);
-  else if (prop == "schemas")
-    ret_val = Value(_schemas);
   else if (prop == "uri")
     ret_val = Value(_uri);
   else if (prop == "defaultSchema")
   {
     if (!_default_schema.empty())
-      return get_member(_default_schema);
+    {
+      shcore::Argument_list args;
+      args.push_back(shcore::Value(_default_schema));
+      return get_schema(args);
+    }
     else
       ret_val = Value::Null();
   }
@@ -297,21 +271,13 @@ Value ClassicSession::get_member(const std::string &prop) const
     std::string name = session->_retrieve_current_schema();
 
     if (!name.empty())
-      ret_val = get_member(name);
+    {
+      shcore::Argument_list args;
+      args.push_back(shcore::Value(name));
+      ret_val = get_schema(args);
+    }
     else
       ret_val = Value::Null();
-  }
-  else
-  {
-    if (_schemas->has_key(prop))
-    {
-      boost::shared_ptr<ClassicSchema> schema = (*_schemas)[prop].as_object<ClassicSchema>();
-
-      // This will validate the schema continues valid
-      schema->cache_table_objects();
-
-      ret_val = (*_schemas)[prop];
-    }
   }
 
   return ret_val;
@@ -344,35 +310,6 @@ std::string ClassicSession::_retrieve_current_schema()
   return name;
 }
 
-void ClassicSession::_load_schemas()
-{
-  if (_conn)
-  {
-    shcore::Argument_list query;
-    query.push_back(Value("show databases;"));
-
-    Value res = run_sql(query);
-
-    shcore::Argument_list args;
-    boost::shared_ptr<ClassicResult> rset = res.as_object<ClassicResult>();
-    Value next_row = rset->fetch_one(args);
-    boost::shared_ptr<mysh::Row> row;
-
-    while (next_row)
-    {
-      row = next_row.as_object<mysh::Row>();
-      shcore::Value schema = row->get_member("Database");
-      if (schema)
-      {
-        boost::shared_ptr<ClassicSchema> object(new ClassicSchema(shared_from_this(), schema.as_string()));
-        (*_schemas)[schema.as_string()] = shcore::Value(boost::static_pointer_cast<Object_bridge>(object));
-      }
-
-      next_row = rset->fetch_one(args);
-    }
-  }
-}
-
 void ClassicSession::_remove_schema(const std::string& name)
 {
   if (_schemas->count(name))
@@ -393,33 +330,71 @@ shcore::Value ClassicSession::get_schema(const shcore::Argument_list &args) cons
 {
   std::string function_name = class_name() + ".getSchema";
   args.ensure_count(1, function_name.c_str());
+  shcore::Value ret_val;
 
-  std::string name = args[0].as_string();
+  std::string type = "ClassicSchema";
+  std::string search_name = args.string_at(0);
+  std::string name = db_object_exists(type, search_name, "");
 
-  if (_schemas->has_key(name))
+  auto generator = [this](const std::string& name){return shcore::Value::wrap<ClassicSchema>(new ClassicSchema(shared_from_this(), name)); };
+
+  if (!name.empty())
   {
-    boost::shared_ptr<ClassicSchema> schema = (*_schemas)[name].as_object<ClassicSchema>();
+    update_schema_cache(name, true);
 
-    // This will validate the schema continues valid
-    schema->cache_table_objects();
+    ret_val = (*_schemas)[name];
+
+    ret_val.as_object<ClassicSchema>()->update_cache();
   }
   else
   {
-    if (_conn)
-    {
-      boost::shared_ptr<ClassicSchema> schema(new ClassicSchema(shared_from_this(), name));
+    update_schema_cache(search_name, false);
 
-      // Here this call will also validate the schema is valid
-      schema->cache_table_objects();
-
-      (*_schemas)[name] = Value(boost::static_pointer_cast<Object_bridge>(schema));
-    }
-    else
-      throw Exception::runtime_error("ClassicSession not connected");
+    throw Exception::runtime_error("Unknown database '" + search_name + "'");
   }
 
-  // If this point is reached, the schema will be there!
-  return (*_schemas)[name];
+  return ret_val;
+}
+
+#ifdef DOXYGEN
+/**
+* Retrieves the Schemas available on the session.
+* \return A List containing the ClassicSchema objects available o the session.
+*/
+List ClassicSession::getSchemas(){}
+#endif
+shcore::Value ClassicSession::get_schemas(const shcore::Argument_list &args) const
+{
+  shcore::Value::Array_type_ref schemas(new shcore::Value::Array_type);
+
+  if (_conn)
+  {
+    shcore::Argument_list query;
+    query.push_back(Value("show databases;"));
+
+    Value res = run_sql(query);
+
+    shcore::Argument_list args;
+    boost::shared_ptr<ClassicResult> rset = res.as_object<ClassicResult>();
+    Value next_row = rset->fetch_one(args);
+    boost::shared_ptr<mysh::Row> row;
+
+    while (next_row)
+    {
+      row = next_row.as_object<mysh::Row>();
+      shcore::Value schema = row->get_member("Database");
+      if (schema)
+      {
+        update_schema_cache(schema.as_string(), true);
+
+        schemas->push_back((*_schemas)[schema.as_string()]);
+      }
+
+      next_row = rset->fetch_one(args);
+    }
+  }
+
+  return shcore::Value(schemas);
 }
 
 #ifdef DOXYGEN
@@ -535,7 +510,7 @@ shcore::Value ClassicSession::drop_schema_object(const shcore::Argument_list &ar
 * If type is not specified and an object with the name is found, the type will be returned.
 */
 
-std::string ClassicSession::db_object_exists(std::string &type, const std::string &name, const std::string& owner)
+std::string ClassicSession::db_object_exists(std::string &type, const std::string &name, const std::string& owner) const
 {
   std::string statement;
   std::string ret_val;

@@ -95,7 +95,7 @@ void ShellBaseSession::init()
   add_method("createSchema", boost::bind(&ShellBaseSession::create_schema, this, _1), "name", shcore::String, NULL);
   add_method("getDefaultSchema", boost::bind(&ShellBaseSession::get_member_method, this, _1, "getDefaultSchema", "defaultSchema"), NULL);
   add_method("getSchema", boost::bind(&ShellBaseSession::get_schema, this, _1), "name", shcore::String, NULL);
-  add_method("getSchemas", boost::bind(&ShellBaseSession::get_member_method, this, _1, "getSchemas", "schemas"), NULL);
+  add_method("getSchemas", boost::bind(&ShellBaseSession::get_schemas, this, _1), NULL);
   add_method("getUri", boost::bind(&ShellBaseSession::get_member_method, this, _1, "getUri", "uri"), NULL);
 }
 
@@ -130,7 +130,6 @@ std::vector<std::string> ShellBaseSession::get_members() const
 {
   std::vector<std::string> members(Cpp_object_bridge::get_members());
   members.push_back("defaultSchema");
-  members.push_back("schemas");
   members.push_back("uri");
   return members;
 }

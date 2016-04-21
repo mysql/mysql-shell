@@ -48,6 +48,33 @@ namespace mysh
 
     /**
     * Represents a Schema as retrived from a session created using the X Protocol.
+    *
+    * \b Dynamic \b Properties
+    *
+    * In addition to the properties documented above, when a schema object is retrieved from the session,
+    * its Tables, Views and Collections are loaded from the database and a cache is filled with the corresponding objects.
+    *
+    * This cache is used to allow the user accessing the Tables, Views and Collections as Schema properties. These Dynamic Properties are named
+    * as the object name, so, if a Schema has a table named *customers* this table can be accessed in two forms:
+    *
+    * \code{.js}
+    * // Using the standard getTable() function.
+    * var table = mySchema.getTable('customers');
+    *
+    * // Using the corresponding dynamic property
+    * var table = mySchema.customers;
+    * \endcode
+    *
+    * Note that dynamic properties for Schema objects (Tables, Views and Collections) are available only if the next conditions are met:
+    *
+    * - The object name is a valid identifier.
+    * - The object name is different from any member of the Schema class.
+    * - The object is in the cache.
+    *
+    * The object cache is updated every time getTables(), getViews() or getCollections() are called.
+    *
+    * To retrieve an object that is not available through a Dynamic Property use getTable(name), getView(name) or getCollection(name)
+
     */
     class SHCORE_PUBLIC Schema : public DatabaseObject, public boost::enable_shared_from_this<Schema>
     {
@@ -62,53 +89,16 @@ namespace mysh
 
       virtual shcore::Value get_member(const std::string &prop) const;
 
-      void cache_table_objects();
+      void update_cache();
       void _remove_object(const std::string& name, const std::string& type);
 
       friend class Table;
       friend class Collection;
       friend class View;
 #ifdef DOXYGEN
-      /**
-      * Returns a list of tables as a map, for each entry being the key, an string, the table name and the data the Table object.
-      * \sa getTables(), getViews(), getCollections()
-      */
-      Map tables;
-
-      /**
-      * Returns a list of tables as a map, for each entry being the key, an string, the table name and the data the Table object.
-      * \sa tables
-      * \return the map with the tables.
-      */
-      Map getTables()
-      {}
-
-      /**
-      * Returns a list of views as a map, for each entry being the key, an string, the view name and the data the View object.
-      * \sa getTables(), getViews(), getCollections()
-      */
-      Map views;
-
-      /**
-      * Returns a list of views as a map, for each entry being the key, an string, the view name and the data the View object.
-      * \sa getTables(), getViews(), getCollections()
-      * \return the map with the views.
-      */
-      Map getViews()
-      {}
-
-      /**
-      * Returns a list of collections as a map, for each entry being the key, an string, the collection name and the data the CollectionRef object.
-      * \sa getTables(), getViews(), getCollections()
-      */
-      Map collections;
-
-      /**
-      * Returns a list of collections as a map, for each entry being the key, an string, the collection name and the data the CollectionRef object.
-      * \sa getTables(), getViews(), getCollections()
-      * \return the map of collections.
-      */
-      Map getCollections();
+      List getTables();
+      List getViews();
+      List getCollections();
 
       Table getTable(String name);
       View getView(String name);
@@ -116,22 +106,28 @@ namespace mysh
       Table getCollectionAsTable(String name);
       Collection createCollection(String name);
 #endif
+    public:
+      shcore::Value get_tables(const shcore::Argument_list &args);
+      shcore::Value get_collections(const shcore::Argument_list &args);
+      shcore::Value get_views(const shcore::Argument_list &args);
+      shcore::Value get_table(const shcore::Argument_list &args);
+      shcore::Value get_collection(const shcore::Argument_list &args);
+      shcore::Value get_view(const shcore::Argument_list &args);
+      shcore::Value get_collection_as_table(const shcore::Argument_list &args);
+      shcore::Value create_collection(const shcore::Argument_list &args);
+
     private:
-      shcore::Value _load_object(const std::string& name, const std::string& type = "") const;
       boost::shared_ptr< ::mysqlx::Schema> _schema_impl;
+
+      void init();
+
+      // Object cache
       boost::shared_ptr<shcore::Value::Map_type> _tables;
       boost::shared_ptr<shcore::Value::Map_type> _collections;
       boost::shared_ptr<shcore::Value::Map_type> _views;
 
-      shcore::Value find_in_collection(const std::string& name, boost::shared_ptr<shcore::Value::Map_type>source) const;
-      shcore::Value getTable(const shcore::Argument_list &args);
-      shcore::Value getCollection(const shcore::Argument_list &args);
-      shcore::Value getCollectionAsTable(const shcore::Argument_list &args);
-      shcore::Value getView(const shcore::Argument_list &args);
-
-      shcore::Value createCollection(const shcore::Argument_list &args);
-
-      void init();
+      std::function<void(const std::string&, bool exists)> update_table_cache, update_view_cache, update_collection_cache;
+      std::function<void(const std::vector<std::string>&)> update_full_table_cache, update_full_view_cache, update_full_collection_cache;
     };
   }
 }

@@ -30,6 +30,7 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/format.hpp>
 #include <boost/pointer_cast.hpp>
+#include <set>
 
 using namespace mysh;
 using namespace shcore;
@@ -170,4 +171,57 @@ shcore::Value DatabaseObject::existsInDatabase(const shcore::Argument_list &args
 {
   std::string cname(class_name());
   return shcore::Value(!_session.lock()->db_object_exists(cname, _name, _schema._empty() ? "" : _schema.lock()->get_member("name").as_string()).empty());
+}
+
+void DatabaseObject::update_cache(const std::vector<std::string>& names, const std::function<shcore::Value(const std::string &name)>& generator, Cache target_cache)
+{
+  std::set<std::string> existing;
+
+  // Backups the existing items in the collection
+  shcore::Value::Map_type::iterator index, end = target_cache->end();
+
+  for (auto index = target_cache->begin(); index != end; index++)
+    existing.insert(index->first);
+
+  // Ensures the existing items are on the cache
+  for (auto name : names)
+  {
+    if (existing.find(name) == existing.end())
+      (*target_cache)[name] = generator(name);
+
+    else
+      existing.erase(name);
+  }
+
+  // Removes no longer existing items
+  for (auto name : existing)
+    target_cache->erase(name);
+}
+
+void DatabaseObject::update_cache(const std::string& name, const std::function<shcore::Value(const std::string &name)>& generator, bool exists, Cache target_cache)
+{
+  if (exists && target_cache->find(name) == target_cache->end())
+    (*target_cache)[name] = generator(name);
+
+  if (!exists && target_cache->find(name) != target_cache->end())
+    target_cache->erase(name);
+}
+
+shcore::Value::Array_type_ref DatabaseObject::get_object_list(Cache target_cache)
+{
+  shcore::Value::Array_type_ref list(new shcore::Value::Array_type);
+
+  for (auto entry : *target_cache)
+    list->push_back(entry.second);
+
+  return list;
+}
+
+shcore::Value DatabaseObject::find_in_cache(const std::string& name, Cache target_cache)
+{
+  Value::Map_type::const_iterator iter = target_cache->find(name);
+  if (iter != target_cache->end())
+    return Value(boost::shared_ptr<Object_bridge>(iter->second.as_object()));
+  else
+    return Value();
 }

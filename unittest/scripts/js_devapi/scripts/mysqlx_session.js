@@ -15,13 +15,16 @@ validateMember(sessionMembers, 'getSchemas');
 validateMember(sessionMembers, 'getUri');
 validateMember(sessionMembers, 'setFetchWarnings');
 validateMember(sessionMembers, 'defaultSchema');
-validateMember(sessionMembers, 'schemas');
 validateMember(sessionMembers, 'uri');
+
+//@ Session: validate dynamic members for system schemas
+validateNotMember(sessionMembers, 'mysql');
+validateNotMember(sessionMembers, 'information_schema');
 
 //@ Session: accessing Schemas
 var schemas = mySession.getSchemas();
-print(schemas.mysql);
-print(schemas.information_schema);
+print(getSchemaFromList(schemas, 'mysql'));
+print(getSchemaFromList(schemas, 'information_schema'));
 
 //@ Session: accessing individual schema
 var schema;
@@ -29,10 +32,6 @@ schema = mySession.getSchema('mysql');
 print(schema.name);
 schema = mySession.getSchema('information_schema');
 print(schema.name);
-
-//@ Session: accessing schema through dynamic attributes
-print(mySession.mysql.name)
-print(mySession.information_schema.name)
 
 //@ Session: accessing unexisting schema
 schema = mySession.getSchema('unexisting_schema');
@@ -53,7 +52,7 @@ print(qs);
 
 //@ Session: validate dynamic members for created schemas
 sessionMembers = dir(mySession)
-validateMember(sessionMembers, 'session_schema');
+validateNotMember(sessionMembers, 'session_schema');
 validateNotMember(sessionMembers, 'quoted schema');
 
 //@ Session: Transaction handling: rollback
@@ -96,14 +95,13 @@ validateMember(nodeSessionMembers, 'setCurrentSchema');
 validateMember(nodeSessionMembers, 'setFetchWarnings');
 validateMember(nodeSessionMembers, 'sql');
 validateMember(nodeSessionMembers, 'defaultSchema');
-validateMember(nodeSessionMembers, 'schemas');
 validateMember(nodeSessionMembers, 'uri');
 validateMember(nodeSessionMembers, 'currentSchema');
 
 //@ NodeSession: accessing Schemas
 var schemas = nodeSession.getSchemas();
-print(schemas.mysql);
-print(schemas.information_schema);
+print(getSchemaFromList(schemas, 'mysql'));
+print(getSchemaFromList(schemas, 'information_schema'));
 
 //@ NodeSession: accessing individual schema
 var schema;
@@ -111,10 +109,6 @@ schema = nodeSession.getSchema('mysql');
 print(schema.name);
 schema = nodeSession.getSchema('information_schema');
 print(schema.name);
-
-//@ NodeSession: accessing schema through dynamic attributes
-print(nodeSession.mysql.name)
-print(nodeSession.information_schema.name)
 
 //@ NodeSession: accessing unexisting schema
 schema = nodeSession.getSchema('unexisting_schema');

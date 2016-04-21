@@ -8,20 +8,18 @@
 |getUri: OK|
 |setCurrentSchema: OK|
 |defaultSchema: OK|
-|schemas: OK|
 |uri: OK|
 |currentSchema: OK|
-		
+
+//@ ClassicSession: validate dynamic members for system schemas
+|mysql: OK|
+|information_schema: OK|
 
 //@ ClassicSession: accessing Schemas
 |<ClassicSchema:mysql>|
 |<ClassicSchema:information_schema>|
 
 //@ ClassicSession: accessing individual schema
-|mysql|
-|information_schema|
-
-//@ ClassicSession: accessing schema through dynamic attributes
 |mysql|
 |information_schema|
 

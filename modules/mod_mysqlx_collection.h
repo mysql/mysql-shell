@@ -61,7 +61,6 @@ namespace mysh
       CollectionCreateIndex createIndex(String name, IndexType type);
       CollectionDropIndex dropIndex(String name);
 #endif
-
     private:
       shcore::Value add_(const shcore::Argument_list &args);
       shcore::Value find_(const shcore::Argument_list &args);

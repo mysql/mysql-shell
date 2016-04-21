@@ -176,6 +176,9 @@ namespace shcore {
 
     static Value wrap(Object_bridge *o) { return Value(boost::shared_ptr<Object_bridge>(o)); }
 
+    template<class T>
+    static Value wrap(T *o) { return Value(boost::static_pointer_cast<Object_bridge>(boost::shared_ptr<T>(o))); }
+
     static Value new_array() { return Value(boost::shared_ptr<Array_type>(new Array_type())); }
     static Value new_map() { return Value(boost::shared_ptr<Map_type>(new Map_type())); }
 

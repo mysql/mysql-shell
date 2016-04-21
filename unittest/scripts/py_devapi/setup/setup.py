@@ -51,3 +51,10 @@ def validateNotMember(memberList, member):
 		print member + ": Unexpected\n"
 	else:
 		print member + ": OK\n"	
+
+def getSchemaFromList(schemas, name):
+  for schema in schemas:
+    if schema.name == name:
+      return schema
+  
+  return None

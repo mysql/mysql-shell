@@ -10,7 +10,7 @@ schema = mySession.createSchema('js_shell_test')
 mySession.setCurrentSchema('js_shell_test')
 
 result = mySession.runSql('create table table1 (name varchar(50))')
-table = mySession.js_shell_test.getTable('table1')
+table = mySession.getSchema('js_shell_test').getTable('table1')
 
 #@ Testing table name retrieving
 print 'getName(): ' + table.getName()

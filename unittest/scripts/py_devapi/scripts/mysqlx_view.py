@@ -9,10 +9,9 @@ ensure_schema_does_not_exist(mySession, 'js_shell_test')
 schema = mySession.createSchema('js_shell_test')
 mySession.setCurrentSchema('js_shell_test')
 
-result
 result = mySession.sql('create table table1 (name varchar(50))').execute()
 result = mySession.sql('create view view1 (my_name) as select name from table1').execute()
-view = mySession.js_shell_test.getView('view1')
+view = mySession.getSchema('js_shell_test').getView('view1')
 
 #@ Testing view name retrieving
 print 'getName(): ' + view.getName()

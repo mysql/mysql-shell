@@ -7,18 +7,17 @@
 |getUri: OK|
 |setFetchWarnings: OK|
 |defaultSchema: OK|
-|schemas: OK|
 |uri: OK|
+
+//@ Session: validate dynamic members for system schemas
+|mysql: OK|
+|information_schema: OK|
 		
 //@ Session: accessing Schemas
 |<Schema:mysql>|
 |<Schema:information_schema>|
 
 //@ Session: accessing individual schema
-|mysql|
-|information_schema|
-
-//@ Session: accessing schema through dynamic attributes
 |mysql|
 |information_schema|
 
@@ -56,7 +55,6 @@
 |setFetchWarnings: OK|
 |sql: OK|
 |defaultSchema: OK|
-|schemas: OK|
 |uri: OK|
 |currentSchema: OK|		
 
@@ -65,10 +63,6 @@
 |<Schema:information_schema>|
 
 //@ NodeSession: accessing individual schema
-|mysql|
-|information_schema|
-
-//@ NodeSession: accessing schema through dynamic attributes
 |mysql|
 |information_schema|
 

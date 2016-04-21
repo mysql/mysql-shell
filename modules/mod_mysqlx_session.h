@@ -46,7 +46,7 @@ namespace mysh
     /**
     * Base functionality for Session classes through the X Protocol.
     *
-    * This class encloses the core functionaliti to be made available on both the XSession and NodeSession classes, such functionality includes
+    * This class encloses the core functionality to be made available on both the XSession and NodeSession classes, such functionality includes
     *
     * - Accessing available schemas.
     * - Schema management operations.
@@ -61,15 +61,6 @@ namespace mysh
     *
     * \include "py_dev_api_examples/concepts/Working_with_a_Session_Object.py"
     *
-    * #### Dynamic Properties
-    *
-    * In addition to the properties documented above, when a session object is created the schemas available on the target
-    * MySQL Server are cached.
-    *
-    * A dynamic property is added to the session object in order to access each available Schema as a session member.
-    *
-    * These dynamic properties are named as the Schema's name, so the schemas are accessible as follows:
-    *
     * \sa mysqlx.getSession(String connectionData, String password)
     * \sa mysqlx.getSession(Map connectionData, String password)
     * \sa mysqlx.getNodeSession(String connectionData, String password)
@@ -82,7 +73,6 @@ namespace mysh
       BaseSession(const BaseSession& s);
       virtual ~BaseSession() { reset_session(); }
 
-      virtual std::vector<std::string> get_members() const;
       virtual shcore::Value get_member(const std::string &prop) const;
       virtual bool has_member(const std::string &prop) const;
 
@@ -97,7 +87,7 @@ namespace mysh
       virtual shcore::Value drop_schema_object(const shcore::Argument_list &args, const std::string& type);
       virtual shcore::Value set_current_schema(const shcore::Argument_list &args);
 
-      shcore::Value executeAdminCommand(const std::string& command, bool expect_data, const shcore::Argument_list &args);
+      shcore::Value executeAdminCommand(const std::string& command, bool expect_data, const shcore::Argument_list &args) const;
       shcore::Value execute_sql(const std::string& query, const shcore::Argument_list &args);
       virtual bool is_connected() const { return _session ? true : false; }
       virtual shcore::Value get_status(const shcore::Argument_list &args);
@@ -105,7 +95,9 @@ namespace mysh
 
       virtual shcore::Value get_schema(const shcore::Argument_list &args) const;
 
-      virtual std::string db_object_exists(std::string &type, const std::string &name, const std::string& owner);
+      virtual shcore::Value get_schemas(const shcore::Argument_list &args) const;
+
+      virtual std::string db_object_exists(std::string &type, const std::string &name, const std::string& owner) const;
 
       shcore::Value set_fetch_warnings(const shcore::Argument_list &args);
 
@@ -121,13 +113,12 @@ namespace mysh
 
 #ifdef DOXYGEN
       String uri; //!< Same as getUri()
-      Map schemas; //!< Same as getSchemas()
       Schema defaultSchema; //!< Same as getDefaultSchema()
 
       Schema createSchema(String name);
       Schema getSchema(String name);
       Schema getDefaultSchema();
-      Map getSchemas();
+      List getSchemas();
       String getUri();
       Undefined close();
       Undefined setFetchWarnings(Bool value);
@@ -141,21 +132,16 @@ namespace mysh
 
 #endif
     protected:
-      ::mysqlx::ArgumentValue get_argument_value(shcore::Value source);
-      shcore::Value executeStmt(const std::string &domain, const std::string& command, bool expect_data, const shcore::Argument_list &args);
+      ::mysqlx::ArgumentValue get_argument_value(shcore::Value source) const;
+      shcore::Value executeStmt(const std::string &domain, const std::string& command, bool expect_data, const shcore::Argument_list &args) const;
       virtual boost::shared_ptr<BaseSession> _get_shared_this() const = 0;
-      boost::shared_ptr< ::mysqlx::Result> _last_result;
+      mutable boost::shared_ptr< ::mysqlx::Result> _last_result;
       std::string _retrieve_current_schema();
-      void _load_schemas();
-      void _remove_schema(const std::string& name);
       void _retrieve_session_info(std::string &current_schema, int &case_sensitive_table_names);
 
       virtual int get_default_port() { return 33060; };
 
       boost::shared_ptr< ::mysqlx::Session> _session;
-
-      std::string _default_schema;
-      boost::shared_ptr<shcore::Value::Map_type> _schemas;
 
       bool _case_sensitive_table_names;
       void init();

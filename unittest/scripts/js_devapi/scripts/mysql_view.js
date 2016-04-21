@@ -12,7 +12,7 @@ mySession.setCurrentSchema('js_shell_test');
 var result;
 result = mySession.runSql('create table table1 (name varchar(50))');
 result = mySession.runSql('create view view1 (my_name) as select name from table1;');
-var view = mySession.js_shell_test.getView('view1');
+var view = mySession.getSchema('js_shell_test').getView('view1');
 
 //@ Testing view name retrieving
 print('getName(): ' + view.getName());

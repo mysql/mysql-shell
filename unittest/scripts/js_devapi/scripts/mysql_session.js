@@ -17,24 +17,25 @@ validateMember(sessionMembers, 'getUri');
 validateMember(sessionMembers, 'setCurrentSchema');
 validateMember(sessionMembers, 'runSql');
 validateMember(sessionMembers, 'defaultSchema');
-validateMember(sessionMembers, 'schemas');
 validateMember(sessionMembers, 'uri');
 validateMember(sessionMembers, 'currentSchema');
 
+//@ ClassicSession: validate dynamic members for system schemas
+var sessionMembers = dir(classicSession)
+validateNotMember(sessionMembers, 'mysql');
+validateNotMember(sessionMembers, 'information_schema');
+
+
 //@ ClassicSession: accessing Schemas
 var schemas = classicSession.getSchemas();
-print(schemas.mysql);
-print(schemas.information_schema);
+print(getSchemaFromList(schemas, 'mysql'));
+print(getSchemaFromList(schemas, 'information_schema'));
 
 //@ ClassicSession: accessing individual schema
 var schema = classicSession.getSchema('mysql');
 print(schema.name);
 var schema = classicSession.getSchema('information_schema');
 print(schema.name);
-
-//@ ClassicSession: accessing schema through dynamic attributes
-print(classicSession.mysql.name)
-print(classicSession.information_schema.name)
 
 //@ ClassicSession: accessing unexisting schema
 var schema = classicSession.getSchema('unexisting_schema');
@@ -61,7 +62,7 @@ print(qs);
 
 //@ Session: validate dynamic members for created schemas
 var sessionMembers = dir(classicSession)
-validateMember(sessionMembers, 'node_session_schema');
+validateNotMember(sessionMembers, 'node_session_schema');
 validateNotMember(sessionMembers, 'quoted schema');
 
 //@ ClassicSession: Transaction handling: rollback

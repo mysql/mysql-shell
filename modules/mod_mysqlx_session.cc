@@ -97,6 +97,10 @@ void BaseSession::init()
   add_method("dropTable", boost::bind(&BaseSession::drop_schema_object, this, _1, "Table"), "data");
   add_method("dropCollection", boost::bind(&BaseSession::drop_schema_object, this, _1, "Collection"), "data");
   add_method("dropView", boost::bind(&BaseSession::drop_schema_object, this, _1, "View"), "data");
+
+  // Prepares the cache handling
+  auto generator = [this](const std::string& name){return shcore::Value::wrap<Schema>(new Schema(_get_shared_this(), name)); };
+  update_schema_cache = [generator, this](const std::string &name, bool exists){DatabaseObject::update_cache(name, generator, true, _schemas); };
 }
 
 Value BaseSession::connect(const Argument_list &args)
@@ -118,8 +122,6 @@ Value BaseSession::connect(const Argument_list &args)
 
     // TODO: Define a proper timeout for the session creation
     _session = ::mysqlx::openSession(_host, _port, _schema, _user, _password, ssl, 10000, _auth_method, true);
-
-    _load_schemas();
 
     int case_sesitive_table_names = 0;
     _retrieve_session_info(_default_schema, case_sesitive_table_names);
@@ -157,8 +159,8 @@ void BaseSession::set_option(const char *option, int value)
     throw shcore::Exception::argument_error(std::string("Unknown option ").append(option));
 }
 
-uint64_t BaseSession::get_connection_id() const 
-{ 
+uint64_t BaseSession::get_connection_id() const
+{
   return _connection_id;
 }
 
@@ -208,7 +210,6 @@ void BaseSession::reset_session()
   {
     log_warning("Error occurred closing session: %s", e.what());
   }
-
 }
 
 Value BaseSession::sql(const Argument_list &args)
@@ -253,8 +254,6 @@ Value BaseSession::create_schema(const shcore::Argument_list &args)
     // if reached this point it indicates that there were no errors
     boost::shared_ptr<Schema> object(new Schema(_get_shared_this(), schema));
     ret_val = shcore::Value(boost::static_pointer_cast<Object_bridge>(object));
-
-    (*_schemas)[schema] = ret_val;
   }
   CATCH_AND_TRANSLATE();
 
@@ -321,7 +320,7 @@ shcore::Value BaseSession::rollback(const shcore::Argument_list &args)
   return executeStmt("sql", "rollback", false, shcore::Argument_list());
 }
 
-::mysqlx::ArgumentValue BaseSession::get_argument_value(shcore::Value source)
+::mysqlx::ArgumentValue BaseSession::get_argument_value(shcore::Value source) const
 {
   ::mysqlx::ArgumentValue ret_val;
   switch (source.type)
@@ -362,7 +361,7 @@ Value BaseSession::execute_sql(const std::string& statement, const Argument_list
   return executeStmt("sql", statement, true, args);
 }
 
-Value BaseSession::executeAdminCommand(const std::string& command, bool expect_data, const Argument_list &args)
+Value BaseSession::executeAdminCommand(const std::string& command, bool expect_data, const Argument_list &args) const
 {
   std::string function_name = class_name() + ".executeAdminCommand";
   args.ensure_at_least(1, function_name.c_str());
@@ -370,7 +369,7 @@ Value BaseSession::executeAdminCommand(const std::string& command, bool expect_d
   return executeStmt("xplugin", command, expect_data, args);
 }
 
-Value BaseSession::executeStmt(const std::string &domain, const std::string& command, bool expect_data, const Argument_list &args)
+Value BaseSession::executeStmt(const std::string &domain, const std::string& command, bool expect_data, const Argument_list &args) const
 {
   // Will return the result of the SQL execution
   // In case of error will be Undefined
@@ -416,35 +415,11 @@ Value BaseSession::executeStmt(const std::string &domain, const std::string& com
   return ret_val;
 }
 
-std::vector<std::string> BaseSession::get_members() const
-{
-  std::vector<std::string> members(ShellBaseSession::get_members());
-
-  // This function is here only to append the schemas as direct members
-  // Using a set to prevent duplicates
-  std::set<std::string> set(members.begin(), members.end());
-  for (Value::Map_type::const_iterator iter = _schemas->begin(); iter != _schemas->end(); ++iter)
-  {
-    if (shcore::is_valid_identifier(iter->first))
-      set.insert(iter->first);
-  }
-
-  for (std::vector<std::string>::iterator index = members.begin(); index != members.end(); ++index)
-    set.erase(*index);
-
-  for (std::set<std::string>::iterator index = set.begin(); index != set.end(); ++index)
-    members.push_back(*index);
-
-  return members;
-}
-
 bool BaseSession::has_member(const std::string &prop) const
 {
   if (ShellBaseSession::has_member(prop))
     return true;
-  if (prop == "currentSchema" || prop == "uri" || prop == "schemas" || prop == "defaultSchema")
-    return true;
-  if (_schemas->has_key(prop))
+  if (prop == "currentSchema" || prop == "uri" || prop == "defaultSchema")
     return true;
 
   return false;
@@ -456,12 +431,6 @@ bool BaseSession::has_member(const std::string &prop) const
 * \return A Schema object or Null
 */
 Schema BaseSession::getDefaultSchema(){}
-
-/**
-* Retrieves the Schemas available on the session.
-* \return A Map containing the Schema objects available o the session.
-*/
-Map BaseSession::getSchemas(){}
 
 /**
 * Retrieves the connection data for this session in string format.
@@ -482,26 +451,16 @@ Value BaseSession::get_member(const std::string &prop) const
     ret_val = ShellBaseSession::get_member(prop);
   else if (prop == "uri")
     ret_val = Value(_uri);
-  else if (prop == "schemas")
-    ret_val = Value(_schemas);
   else if (prop == "defaultSchema" || prop == "currentSchema")
   {
     if (!_default_schema.empty())
-      ret_val = get_member(_default_schema);
+    {
+      shcore::Argument_list args;
+      args.push_back(shcore::Value(_default_schema));
+      ret_val = get_schema(args);
+    }
     else
       ret_val = Value::Null();
-  }
-  else
-  {
-    if (_schemas->has_key(prop))
-    {
-      boost::shared_ptr<Schema> schema = (*_schemas)[prop].as_object<Schema>();
-
-      // This will validate the schema continues valid
-      schema->cache_table_objects();
-
-      ret_val = (*_schemas)[prop];
-    }
   }
 
   return ret_val;
@@ -550,42 +509,6 @@ void BaseSession::_retrieve_session_info(std::string &current_schema,
   CATCH_AND_TRANSLATE();
 }
 
-void BaseSession::_load_schemas()
-{
-  try
-  {
-    if (_session)
-    {
-      boost::shared_ptr< ::mysqlx::Result> result = _session->executeSql("show databases;");
-      boost::shared_ptr< ::mysqlx::Row> row = result->next();
-
-      while (row)
-      {
-        std::string schema;
-        if (!row->isNullField(0))
-          schema = row->stringField(0);
-
-        if (!schema.empty())
-        {
-          boost::shared_ptr<Schema> object(new Schema(_get_shared_this(), schema));
-          (*_schemas)[schema] = shcore::Value(boost::static_pointer_cast<Object_bridge>(object));
-        }
-
-        row = result->next();
-      }
-
-      result->flush();
-    }
-  }
-  CATCH_AND_TRANSLATE();
-}
-
-void BaseSession::_remove_schema(const std::string& name)
-{
-  if (_schemas->count(name))
-    _schemas->erase(name);
-}
-
 #ifdef DOXYGEN
 /**
 * Retrieves a Schema object from the current session through it's name.
@@ -596,38 +519,77 @@ void BaseSession::_remove_schema(const std::string& name)
 */
 Schema BaseSession::getSchema(String name){}
 #endif
-
 shcore::Value BaseSession::get_schema(const shcore::Argument_list &args) const
 {
   std::string function_name = class_name() + ".getSchema";
   args.ensure_count(1, function_name.c_str());
+  shcore::Value ret_val;
 
-  std::string name = args[0].as_string();
+  std::string type = "Schema";
+  std::string search_name = args.string_at(0);
+  std::string name = db_object_exists(type, search_name, "");
 
-  if (_schemas->has_key(name))
+  if (!name.empty())
   {
-    boost::shared_ptr<Schema> schema = (*_schemas)[name].as_object<Schema>();
+    update_schema_cache(name, true);
 
-    // This will validate the schema continues valid
-    schema->cache_table_objects();
+    ret_val = (*_schemas)[name];
+
+    ret_val.as_object<Schema>()->update_cache();
   }
   else
   {
-    if (_session)
-    {
-      boost::shared_ptr<Schema> schema(new Schema(_get_shared_this(), name));
+    update_schema_cache(search_name, false);
 
-      // Here this call will also validate the schema is valid
-      schema->cache_table_objects();
-
-      (*_schemas)[name] = Value(boost::static_pointer_cast<Object_bridge>(schema));
-    }
-    else
-      throw Exception::runtime_error("XSession not connected");
+    throw Exception::runtime_error("Unknown database '" + search_name + "'");
   }
 
-  // If this point is reached, the schema will be there!
-  return (*_schemas)[name];
+  return ret_val;
+}
+
+#ifdef DOXYGEN
+/**
+* Retrieves the Schemas available on the session.
+* \return A List containing the Schema objects available o the session.
+*/
+List BaseSession::getSchemas(){}
+#endif
+shcore::Value BaseSession::get_schemas(const shcore::Argument_list &args) const
+{
+  std::string function_name = class_name() + ".getSchemas";
+  args.ensure_count(0, function_name.c_str());
+
+  shcore::Value::Array_type_ref schemas(new shcore::Value::Array_type);
+
+  try
+  {
+    if (_session)
+    {
+      boost::shared_ptr< ::mysqlx::Result> result = _session->executeSql("show databases;");
+      boost::shared_ptr< ::mysqlx::Row> row = result->next();
+
+      while (row)
+      {
+        std::string schema_name;
+        if (!row->isNullField(0))
+          schema_name = row->stringField(0);
+
+        if (!schema_name.empty())
+        {
+          update_schema_cache(schema_name, true);
+
+          schemas->push_back((*_schemas)[schema_name]);
+        }
+
+        row = result->next();
+      }
+
+      result->flush();
+    }
+  }
+  CATCH_AND_TRANSLATE();
+
+  return shcore::Value(schemas);
 }
 
 shcore::Value BaseSession::set_fetch_warnings(const shcore::Argument_list &args)
@@ -663,8 +625,6 @@ shcore::Value BaseSession::drop_schema(const shcore::Argument_list &args)
   std::string name = args[0].as_string();
 
   Value ret_val = executeStmt("sql", sqlstring("drop schema !", 0) << name, false, shcore::Argument_list());
-
-  _remove_schema(name);
 
   return ret_val;
 }
@@ -719,13 +679,6 @@ shcore::Value BaseSession::drop_schema_object(const shcore::Argument_list &args,
     ret_val = executeAdminCommand("drop_collection", false, command_args);
   }
 
-  if (_schemas->count(schema))
-  {
-    boost::shared_ptr<Schema> schema_obj = boost::static_pointer_cast<Schema>((*_schemas)[schema].as_object());
-    if (schema_obj)
-      schema_obj->_remove_object(name, type);
-  }
-
   return ret_val;
 }
 
@@ -736,7 +689,7 @@ shcore::Value BaseSession::drop_schema_object(const shcore::Argument_list &args,
 *
 * Returns the name of the object as exists in the database.
 */
-std::string BaseSession::db_object_exists(std::string &type, const std::string &name, const std::string& owner)
+std::string BaseSession::db_object_exists(std::string &type, const std::string &name, const std::string& owner) const
 {
   std::string statement;
   std::string ret_val;
@@ -1010,7 +963,11 @@ Value NodeSession::get_member(const std::string &prop) const
     std::string name = session->_retrieve_current_schema();
 
     if (!name.empty())
-      ret_val = get_member(name);
+    {
+      shcore::Argument_list args;
+      args.push_back(shcore::Value(name));
+      ret_val = get_schema(args);
+    }
     else
       ret_val = Value::Null();
   }

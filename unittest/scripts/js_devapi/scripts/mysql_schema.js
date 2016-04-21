@@ -28,16 +28,15 @@ print('getSchema():', schema.getSchema());
 print('schema:', schema.schema);
 
 //@ Testing tables, views and collection retrieval
-print('getTables():', mySession.js_shell_test.getTables().table1);
-print('tables:', mySession.js_shell_test.tables.table1);
-print('getViews():', mySession.js_shell_test.getViews().view1);
-print('views:', mySession.js_shell_test.views.view1);
+var mySchema = mySession.getSchema('js_shell_test');
+print('getTables():', mySchema.getTables()[0]);
+print('getViews():', mySchema.getViews()[0]);
 
 //@ Testing specific object retrieval
-print('getTable():', mySession.js_shell_test.getTable('table1'));
-print('.<table>:', mySession.js_shell_test.table1);
-print('getView():', mySession.js_shell_test.getView('view1'));
-print('.<view>:', mySession.js_shell_test.view1);
+print('getTable():', mySchema.getTable('table1'));
+print('.<table>:', mySchema.table1);
+print('getView():', mySchema.getView('view1'));
+print('.<view>:', mySchema.view1);
 
 //@ Testing existence
 print('Valid:', schema.existsInDatabase());

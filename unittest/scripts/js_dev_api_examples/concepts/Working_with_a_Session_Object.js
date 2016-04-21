@@ -11,8 +11,8 @@ var schemaList = mySession.getSchemas();
 print('Available schemas in this session:\n');
 
 // Loop over all available schemas and print their name
-for (schema in schemaList) {
-  print(schema + '\n');
+for (index in schemaList) {
+  print(schemaList[index].name + '\n');
 }
 
 mySession.close();

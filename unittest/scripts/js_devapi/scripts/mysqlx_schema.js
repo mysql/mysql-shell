@@ -12,7 +12,7 @@ mySession.setCurrentSchema('js_shell_test');
 var result;
 result = mySession.sql('create table table1 (name varchar(50));').execute();
 result = mySession.sql('create view view1 (my_name) as select name from table1;').execute();
-result = mySession.js_shell_test.createCollection('collection1');
+result = mySession.getSchema('js_shell_test').createCollection('collection1');
 
 
 //@ Testing schema name retrieving
@@ -30,33 +30,31 @@ print('getSchema():', schema.getSchema());
 print('schema:', schema.schema);
 
 //@ Testing tables, views and collection retrieval
-print('getTables():', mySession.js_shell_test.getTables().table1);
-print('tables:', mySession.js_shell_test.tables.table1);
-print('getViews():', mySession.js_shell_test.getViews().view1);
-print('views:', mySession.js_shell_test.views.view1);
-print('getCollections():', mySession.js_shell_test.getCollections().collection1);
-print('collections:', mySession.js_shell_test.collections.collection1);
+var mySchema = mySession.getSchema('js_shell_test');
+print('getTables():', mySchema.getTables()[0]);
+print('getViews():', mySchema.getViews()[0]);
+print('getCollections():', mySchema.getCollections()[0]);
 
 //@ Testing specific object retrieval
-print('getTable():', mySession.js_shell_test.getTable('table1'));
-print('.<table>:', mySession.js_shell_test.table1);
-print('getView():', mySession.js_shell_test.getView('view1'));
-print('.<view>:', mySession.js_shell_test.view1);
-print('getCollection():', mySession.js_shell_test.getCollection('collection1'));
-print('.<collection>:', mySession.js_shell_test.collection1);
+print('getTable():', mySchema.getTable('table1'));
+print('.<table>:', mySchema.table1);
+print('getView():', mySchema.getView('view1'));
+print('.<view>:', mySchema.view1);
+print('getCollection():', mySchema.getCollection('collection1'));
+print('.<collection>:', mySchema.collection1);
 
 //@# Testing specific object retrieval: unexisting objects
-mySession.js_shell_test.getTable('unexisting');
-mySession.js_shell_test.getView('unexisting');
-mySession.js_shell_test.getCollection('unexisting');
+mySchema.getTable('unexisting');
+mySchema.getView('unexisting');
+mySchema.getCollection('unexisting');
 
 //@# Testing specific object retrieval: empty name
-mySession.js_shell_test.getTable('');
-mySession.js_shell_test.getView('');
-mySession.js_shell_test.getCollection('');
+mySchema.getTable('');
+mySchema.getView('');
+mySchema.getCollection('');
 
 //@ Retrieving collection as table
-print('getCollectionAsTable():', mySession.js_shell_test.getCollectionAsTable('collection1'));
+print('getCollectionAsTable():', mySchema.getCollectionAsTable('collection1'));
 
 //@ Collection creation
 var collection = schema.createCollection('my_sample_collection');

@@ -14,9 +14,7 @@
 
 //@ Testing tables, views and collection retrieval
 |getTables(): <ClassicTable:table1>|
-|tables: <ClassicTable:table1>|
 |getViews(): <ClassicView:view1>|
-|views: <ClassicView:view1>|
 
 //@ Testing specific object retrieval
 |getTable(): <ClassicTable:table1>|

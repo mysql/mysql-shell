@@ -1321,9 +1321,9 @@ void Interactive_shell::print_cmd_line_helper()
   println("  -f, --file=file          Process file.");
   println("  -e, --execute=<cmd>      Execute command and quit.");
   println("  --uri                    Connect to Uniform Resource Identifier.");
-  println("  --app                    Connect to using a Stored Session.");
   println("                           Format: [user[:pass]]@host[:port][/db]");
   println("                           or user[:pass]@::socket[/db] .");
+  println("  --app                    Connect to using a Stored Session.");
   println("  -h, --host=name          Connect to host.");
   println("  -P, --port=#             Port number to use for connection.");
   println("  -S, --socket=sock        Socket name to use in UNIX, pipe name to use in Windows (only classic sessions).");

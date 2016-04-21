@@ -10,7 +10,7 @@ schemaList = mySession.getSchemas()
 print 'Available schemas in this session:\n'
 
 # Loop over all available schemas and print their name
-for schema in schemaList.keys():
-        print '%s\n' % schema
+for schema in schemaList:
+        print '%s\n' % schema.name
 
 mySession.close()

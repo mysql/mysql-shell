@@ -14,11 +14,8 @@
 
 #@ Testing tables, views and collection retrieval
 |getTables(): <Table:table1>|
-|tables: <Table:table1>|
 |getViews(): <View:view1>|
-|views: <View:view1>|
 |getCollections(): <Collection:collection1>|
-|collections: <Collection:collection1>|
 
 #@ Testing specific object retrieval
 |getTable(): <Table:table1>|

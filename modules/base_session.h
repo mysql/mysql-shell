@@ -67,7 +67,8 @@ namespace mysh
     std::string uri() { return _uri; };
 
     virtual shcore::Value get_schema(const shcore::Argument_list &args) const = 0;
-    virtual std::string db_object_exists(std::string &type, const std::string &name, const std::string& owner) = 0;
+    virtual shcore::Value get_schemas(const shcore::Argument_list &args) const = 0;
+    virtual std::string db_object_exists(std::string &type, const std::string &name, const std::string& owner) const = 0;
 
     // Helper method to retrieve properties using a method
     shcore::Value get_member_method(const shcore::Argument_list &args, const std::string& method, const std::string& prop);
@@ -93,6 +94,10 @@ namespace mysh
     std::string _auth_method;
 
     std::string _uri;
+
+    std::string _default_schema;
+    mutable boost::shared_ptr<shcore::Value::Map_type> _schemas;
+    std::function<void(const std::string&, bool exists)> update_schema_cache;
 
     void load_connection_data(const shcore::Argument_list &args);
   private:

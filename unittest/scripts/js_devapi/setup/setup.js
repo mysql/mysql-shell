@@ -56,3 +56,12 @@ function validateNotMember(memberList, member){
 		print(member + ": OK\n");
 	}
 }
+
+function getSchemaFromList(schemas, name){
+  for(index in schemas){
+    if(schemas[index].name == name)
+      return schemas[index];
+  }
+  
+  return null;
+}
