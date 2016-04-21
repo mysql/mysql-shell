@@ -26,6 +26,7 @@
 #include <cctype>
 #include <cstring>
 #include <cstdlib>
+#include <algorithm>
 
 #ifndef WIN32
 #include <strings.h>
@@ -101,7 +102,10 @@ Mysqlx::Expr::Expr* Expr_builder::build_unary_op(const std::string& name, Mysqlx
   e->set_type(Mysqlx::Expr::Expr::OPERATOR);
   Mysqlx::Expr::Operator *op = e->mutable_operator_();
   op->mutable_param()->AddAllocated(param);
-  op->set_name(name.c_str(), name.size());
+  std::string name_normalized;
+  name_normalized.assign(name);
+  std::transform(name_normalized.begin(), name_normalized.end(), name_normalized.begin(), ::tolower);
+  op->set_name(name_normalized.c_str(), name_normalized.size());
   return e;
 }
 
@@ -430,11 +434,7 @@ Mysqlx::Expr::Expr* Expr_parser::atomic_expr()
     op->mutable_param()->AddAllocated(operand.get());
     operand.release();
     // validate the interval units
-    if (_tokenizer.tokens_available() && _tokenizer.is_interval_units_type())
-    {
-      ;
-    }
-    else
+    if (!_tokenizer.tokens_available() || !_tokenizer.is_interval_units_type())
     {
       const Token& tok = _tokenizer.peek_token();
       throw Parser_error((boost::format("Expected interval units at %d (%s)") % tok.get_pos() % tok.get_text()).str());
@@ -517,18 +517,17 @@ Mysqlx::Expr::Expr* Expr_parser::array_()
 
   if (!_tokenizer.cur_token_type_is(Token::RSQBRACKET))
   {
-    Mysqlx::Expr::Expr *e = my_expr();
+    std::unique_ptr<Mysqlx::Expr::Expr> e(my_expr());
     Mysqlx::Expr::Expr *item = a->add_value();
-    item->CopyFrom(*e);
-    delete e;
+    item->CopyFrom(*e.get());
+    e.reset();
 
     while (_tokenizer.cur_token_type_is(Token::COMMA))
     {
       _tokenizer.consume_token(Token::COMMA);
-      e = my_expr();
+      e.reset(my_expr());
       item = a->add_value();
       item->CopyFrom(*e);
-      delete e;
     }
   }
 
@@ -558,7 +557,6 @@ Mysqlx::Expr::Expr* Expr_parser::json_doc()
   Mysqlx::Expr::Object* obj = result->mutable_object();
   result->set_type(Mysqlx::Expr::Expr_Type_OBJECT);
   _tokenizer.consume_token(Token::LCURLY);
-  //const Token& tok = _tokenizer.peek_token();
   if (_tokenizer.cur_token_type_is(Token::LSTRING))
   {
     json_key_value(obj);
@@ -913,10 +911,9 @@ Mysqlx::Expr::Expr* Expr_parser::ilri_expr()
   {
     ::google::protobuf::RepeatedPtrField< ::Mysqlx::Expr::Expr >* params = e->mutable_operator_()->mutable_param();
     const Token& op_name_tok = _tokenizer.peek_token();
-    const std::string& op_name = op_name_tok.get_text();
+    std::string op_name(op_name_tok.get_text());
     bool has_op_name = true;
-    //boost::to_upper(op_name);
-
+    std::transform(op_name.begin(), op_name.end(), op_name.begin(), ::tolower);
     if (_tokenizer.cur_token_type_is(Token::IS))
     {
       _tokenizer.consume_token(Token::IS);
@@ -1004,7 +1001,7 @@ Mysqlx::Expr::Expr* Expr_parser::ilri_expr()
       if (is_not)
       {
         // wrap if `NOT'-prefixed
-        Mysqlx::Expr::Expr* expr_ = Expr_builder::build_unary_op("NOT", e.get());
+        Mysqlx::Expr::Expr* expr_ = Expr_builder::build_unary_op("not", e.get());
         e.release();
         lhs.release();
         lhs.reset(expr_);
@@ -1217,20 +1214,23 @@ std::string Expr_unparser::operator_to_string(const Mysqlx::Expr::Operator& op)
   }
   else if (ps.size() == 2)
   {
-    std::string result = "(" + Expr_unparser::expr_to_string(ps.Get(0)) + " " + op.name() + " " + Expr_unparser::expr_to_string(ps.Get(1)) + ")";
+    std::string op_name(op.name());
+    std::transform(op_name.begin(), op_name.end(), op_name.begin(), ::toupper);
+    std::string result = "(" + Expr_unparser::expr_to_string(ps.Get(0)) + " " + op_name + " " + Expr_unparser::expr_to_string(ps.Get(1)) + ")";
     return result;
   }
   else if (ps.size() == 1)
   {
-    const std::string name_ = op.name();
-    if (name_.size() == 1)
+    std::string op_name(op.name());
+    std::transform(op_name.begin(), op_name.end(), op_name.begin(), ::toupper);
+    if (op_name.size() == 1)
     {
-      return name_ + Expr_unparser::expr_to_string(ps.Get(0));
+      return op_name + Expr_unparser::expr_to_string(ps.Get(0));
     }
     else
     {
       // something like NOT
-      return name_ + " ( " + Expr_unparser::expr_to_string(ps.Get(0)) + ")";
+      return op_name + " ( " + Expr_unparser::expr_to_string(ps.Get(0)) + ")";
     }
   }
   else if (name == "*" && ps.size() == 0)

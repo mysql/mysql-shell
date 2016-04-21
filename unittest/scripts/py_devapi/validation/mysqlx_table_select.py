@@ -93,7 +93,9 @@
 |13 Years: 1|
 |14 Years: 3|
 |Under 17: 6|
-|Names With A: 3
+|Names With A: 3|
+|Names With A: 3|
+|Not 14 Years: 4|
 
 #@ Table.Select Field Selection
 |1-Metadata Length: 4|

@@ -1,4 +1,4 @@
-/* Copyright (c) 2014, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2014, 2016 Oracle and/or its affiliates. All rights reserved.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published by
@@ -199,6 +199,25 @@ namespace shcore
       EXPECT_STREQ("false", myrepr.c_str());
 
       v = shcore::Value::parse(data2);
+      mydescr = v.descr(true);
+      myrepr = v.repr();
+
+      EXPECT_EQ(shcore::Bool, v.type);
+      EXPECT_STREQ("true", mydescr.c_str());
+      EXPECT_STREQ("true", myrepr.c_str());
+
+      const std::string data3 = "FALSE";
+      const std::string data4 = "TRUE";
+
+      v = shcore::Value::parse(data3);
+      mydescr = v.descr(true);
+      myrepr = v.repr();
+
+      EXPECT_EQ(shcore::Bool, v.type);
+      EXPECT_STREQ("false", mydescr.c_str());
+      EXPECT_STREQ("false", myrepr.c_str());
+
+      v = shcore::Value::parse(data4);
       mydescr = v.descr(true);
       myrepr = v.repr();
 

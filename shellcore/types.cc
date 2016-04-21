@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2016 Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -879,15 +879,15 @@ Value Value::parse(char **pc)
       {
         return Value();
       }
-      else if (n == 4 && ::strncmp(pi, "true", 4) == 0)
+      else if (n == 4 && ::my_strnicmp(pi, "true", 4))
       {
         return Value(true);
       }
-      else if (n == 4 && ::strncmp(pi, "null", 4) == 0)
+      else if (n == 4 && ::my_strnicmp(pi, "null", 4))
       {
         return Value::Null();
       }
-      else if (n == 5 && ::strncmp(pi, "false", 5) == 0)
+      else if (n == 5 && ::my_strnicmp(pi, "false", 5))
       {
         return Value(false);
       }

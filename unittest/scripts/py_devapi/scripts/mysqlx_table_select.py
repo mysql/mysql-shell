@@ -142,6 +142,12 @@ print "Under 17:", len(records), "\n"
 records = table.select().where('name like "a%"').execute().fetchAll()
 print "Names With A:", len(records), "\n"
 
+records = table.select().where('name LIKE "a%"').execute().fetchAll()
+print "Names With A:", len(records), "\n"
+
+records = table.select().where('NOT (age = 14)').execute().fetchAll()
+print "Not 14 Years:", len(records), "\n"
+
 #@ Table.Select Field Selection
 result = table.select(['name','age']).execute()
 record = result.fetchOne()

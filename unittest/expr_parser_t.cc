@@ -1,4 +1,4 @@
-/* Copyright (c) 2014, 2015, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2014, 2016, Oracle and/or its affiliates. All rights reserved.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published by
@@ -124,7 +124,7 @@ namespace shcore
         "cast((((now() - INTERVAL 2 day) > some_other_time()) || cast(NOT ( (something_else IS NULL)), \"signed integer\")), \"int\")");
       parse_and_assert_expr("cast( ( a is true and b is null and C + 1 > 40 and cast(mytime = now() as int ) or hungry()) as char(1) )",
         "[59, 6, 6, 19, 5, 11, 2, 19, 5, 12, 2, 19, 36, 76, 27, 76, 2, 59, 6, 19, 25, 19, 6, 7, 56, 75, 7, 3, 19, 6, 7, 7, 56, 67, 6, 76, 7, 7]",
-        "cast((((((a is TRUE) && (b is NULL)) && ((C + 1) > 40)) && cast((mytime == now()), \"int\")) || hungry()), \"char(1)\")");
+        "cast((((((a IS TRUE) && (b IS NULL)) && ((C + 1) > 40)) && cast((mytime == now()), \"int\")) || hungry()), \"char(1)\")");
       parse_and_assert_expr("cast( '1/5/6' as datetime(6))", "[59, 6, 20, 56, 70, 6, 76, 7, 7]", "cast(\"1/5/6\", \"datetime(6)\")");
       parse_and_assert_expr("cast( '1:5' as time(5))", "[59, 6, 20, 56, 71, 6, 76, 7, 7]", "cast(\"1:5\", \"time(5)\")");
       parse_and_assert_expr("cast( concat( \"Hello\", \" World\" ) as char(20) binary charset utf8)",
@@ -134,13 +134,13 @@ namespace shcore
       parse_and_assert_expr("binary mycol +  1", "[66, 19, 36, 76]", "binary((mycol + 1))");
       parse_and_assert_expr("binary cast( ( a is true and b is null and C + 1 > 40 and cast(mytime = now() as int ) or hungry()) as char(1) )",
         "[66, 59, 6, 6, 19, 5, 11, 2, 19, 5, 12, 2, 19, 36, 76, 27, 76, 2, 59, 6, 19, 25, 19, 6, 7, 56, 75, 7, 3, 19, 6, 7, 7, 56, 67, 6, 76, 7, 7]",
-        "binary(cast((((((a is TRUE) && (b is NULL)) && ((C + 1) > 40)) && cast((mytime == now()), \"int\")) || hungry()), \"char(1)\"))");
+        "binary(cast((((((a IS TRUE) && (b IS NULL)) && ((C + 1) > 40)) && cast((mytime == now()), \"int\")) || hungry()), \"char(1)\"))");
     }
 
     TEST(Expr_parser_tests, x_test_2)
     {
       parse_and_assert_expr("a is true and b is null and C + 1 > 40 and (mytime = now() or hungry())",
-        "[19, 5, 11, 2, 19, 5, 12, 2, 19, 36, 76, 27, 76, 2, 6, 19, 25, 19, 6, 7, 3, 19, 6, 7, 7]", "((((a is TRUE) && (b is NULL)) && ((C + 1) > 40)) && ((mytime == now()) || hungry()))");
+        "[19, 5, 11, 2, 19, 5, 12, 2, 19, 36, 76, 27, 76, 2, 6, 19, 25, 19, 6, 7, 3, 19, 6, 7, 7]", "((((a IS TRUE) && (b IS NULL)) && ((C + 1) > 40)) && ((mytime == now()) || hungry()))");
       parse_and_assert_expr("a + b + -c > 2",
         "[19, 36, 19, 36, 37, 19, 27, 76]", "(((a + b) + -c) > 2)");
       parse_and_assert_expr("now () + b + c > 2",

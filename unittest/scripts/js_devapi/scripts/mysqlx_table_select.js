@@ -138,6 +138,12 @@ print("Under 17:", records.length, "\n");
 var records = table.select().where('name like "a%"').execute().fetchAll();
 print("Names With A:", records.length, "\n");
 
+var records = table.select().where('name LIKE "a%"').execute().fetchAll();
+print("Names With A:", records.length, "\n");
+
+var records = table.select().where('NOT (age = 14)').execute().fetchAll();
+print("Not 14 Years:", records.length, "\n");
+                                                                 
 //@ Table.Select Field Selection
 var result = table.select(['name', 'age']).execute();
 var record = result.fetchOne();
