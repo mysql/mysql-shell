@@ -5566,6 +5566,22 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+  def test_4_11_3(self):
+      ''' using  getLastDocumentId() function'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                       '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=node','--schema=sakila', '--js']
+
+      x_cmds = [("session.dropCollection('sakila','my_collection');\n", "mysql-js>"),
+                ("session.getSchema('sakila').createCollection('my_collection');\n", "mysql-js>"),
+                ("var myColl = session.getSchema('sakila').getCollection('my_collection');\n","mysql-js>"),
+                ("myColl.add( { _id: '12345', a : 1 } );\n","Query OK"),
+                ("var result = myColl.add( { _id: '54321', a : 2 } ).execute();\n","mysql-js>"),
+                ("result.getLastDocumentId();\n","54321"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
 
   def test_CHLOG_1_0_2_5_1A(self):
       '''[CHLOG 1.0.2.5_1_1] Session type shortcut [--classic] :  --sql/--js/--py '''
