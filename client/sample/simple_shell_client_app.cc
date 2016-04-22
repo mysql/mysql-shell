@@ -90,7 +90,7 @@ void print_result(const shcore::Value& value)
   boost::shared_ptr<mysh::mysqlx::Result> result = boost::static_pointer_cast<mysh::mysqlx::Result>(value.as_object());
 
   std::cout << "Affected Items: " << result->get_affected_item_count() << std::endl;
-  std::cout << "Last Insert Id: " << result->get_last_insert_id() << std::endl;
+  std::cout << "Last Insert Id: " << result->get_auto_increment_value() << std::endl;
   std::cout << "Last Document Id: " << result->get_last_document_id() << std::endl;
 
   print_base_result(value);
@@ -134,7 +134,7 @@ void print_sql_result(const shcore::Value& value)
     print_row_result(value);
 
   std::cout << "Affected Rows: " << result->get_affected_row_count() << std::endl;
-  std::cout << "Last Insert Id: " << result->get_last_insert_id() << std::endl;
+  std::cout << "Last Insert Id: " << result->get_auto_increment_value() << std::endl;
 }
 
 void print_doc_result(const shcore::Value& value)

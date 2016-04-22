@@ -122,7 +122,7 @@ Result::Result(boost::shared_ptr<mysh::mysqlx::Result> result) :
 BaseResult(result)
 {
   _affectedItemCount = gcnew Int64(result->get_affected_item_count());
-  _lastInsertId = gcnew Int64(result->get_last_insert_id());
+  _lastInsertId = gcnew Int64(result->get_auto_increment_value());
   _lastDocumentId = msclr::interop::marshal_as<String^>(result->get_last_document_id());
 }
 
@@ -230,7 +230,7 @@ SqlResult::SqlResult(boost::shared_ptr<mysh::mysqlx::SqlResult> result) :
 RowResult(result)
 {
   _affectedRowCount = gcnew Int64(result->get_affected_row_count());
-  _lastInsertId = gcnew Int64(result->get_last_insert_id());
+  _lastInsertId = gcnew Int64(result->get_auto_increment_value());
   _hasData = gcnew Boolean(result->has_data(shcore::Argument_list()));
 }
 
