@@ -8,7 +8,34 @@ ensure_schema_does_not_exist(mySession, 'js_shell_test')
 
 schema = mySession.createSchema('js_shell_test')
 mySession.setCurrentSchema('js_shell_test')
-mySession.sql('create table js_shell_test.buffer_table (name varchar(50), age integer, gender varchar(20))').execute()
+result = mySession.sql('create table js_shell_test.buffer_table (name varchar(50), age integer, gender varchar(20))').execute()
+
+#@ SqlResult member validation
+sqlMembers = dir(result)
+print "SqlResult Members:", sqlMembers
+validateMember(sqlMembers, 'executionTime')
+validateMember(sqlMembers, 'warningCount')
+validateMember(sqlMembers, 'warnings')
+validateMember(sqlMembers, 'getExecutionTime')
+validateMember(sqlMembers, 'getWarningCount')
+validateMember(sqlMembers, 'getWarnings')
+validateMember(sqlMembers, 'columnCount')
+validateMember(sqlMembers, 'columnNames')
+validateMember(sqlMembers, 'columns')
+validateMember(sqlMembers, 'getColumnCount')
+validateMember(sqlMembers, 'getColumnNames')
+validateMember(sqlMembers, 'getColumns')
+validateMember(sqlMembers, 'fetchOne')
+validateMember(sqlMembers, 'fetchAll')
+validateMember(sqlMembers, 'hasData')
+validateMember(sqlMembers, 'nextDataSet')
+validateMember(sqlMembers, 'affectedRowCount')
+validateMember(sqlMembers, 'autoIncrementValue')
+validateMember(sqlMembers, 'getAffectedRowCount')
+validateMember(sqlMembers, 'getAutoIncrementValue')
+
+
+#@ Result member validation
 table = schema.getTable('buffer_table')
 result = table.insert({'name': 'jack', 'age': 17, 'gender': 'male'}).execute()
 result = table.insert({'name': 'adam', 'age': 15, 'gender': 'male'}).execute()
@@ -21,6 +48,52 @@ result = table.insert({'name': 'angel', 'age': 14, 'gender': 'male'}).execute()
 table = schema.getTable('buffer_table')
 collection = schema.createCollection('buffer_collection')
 
+resultMembers = dir(result)
+print "Result Members:", resultMembers
+validateMember(resultMembers, 'executionTime')
+validateMember(resultMembers, 'warningCount')
+validateMember(resultMembers, 'warnings')
+validateMember(resultMembers, 'getExecutionTime')
+validateMember(resultMembers, 'getWarningCount')
+validateMember(resultMembers, 'getWarnings')
+validateMember(resultMembers, 'affectedItemCount')
+validateMember(resultMembers, 'autoIncrementValue')
+validateMember(resultMembers, 'lastDocumentId')
+validateMember(resultMembers, 'getAffectedItemCount')
+validateMember(resultMembers, 'getAutoIncrementValue')
+validateMember(resultMembers, 'getLastDocumentId')
+
+#@ RowResult member validation
+result = table.select().execute()
+rowResultMembers = dir(result)
+print "RowResult Members:", rowResultMembers
+validateMember(rowResultMembers, 'executionTime')
+validateMember(rowResultMembers, 'warningCount')
+validateMember(rowResultMembers, 'warnings')
+validateMember(rowResultMembers, 'getExecutionTime')
+validateMember(rowResultMembers, 'getWarningCount')
+validateMember(rowResultMembers, 'getWarnings')
+validateMember(rowResultMembers, 'columnCount')
+validateMember(rowResultMembers, 'columnNames')
+validateMember(rowResultMembers, 'columns')
+validateMember(rowResultMembers, 'getColumnCount')
+validateMember(rowResultMembers, 'getColumnNames')
+validateMember(rowResultMembers, 'getColumns')
+validateMember(rowResultMembers, 'fetchOne')
+validateMember(rowResultMembers, 'fetchAll')
+
+#@ DocResult member validation
+result = collection.find().execute()
+docResultMembers = dir(result)
+print "DocRowResult Members:", docResultMembers
+validateMember(docResultMembers, 'executionTime')
+validateMember(docResultMembers, 'warningCount')
+validateMember(docResultMembers, 'warnings')
+validateMember(docResultMembers, 'getExecutionTime')
+validateMember(docResultMembers, 'getWarningCount')
+validateMember(docResultMembers, 'getWarnings')
+validateMember(docResultMembers, 'fetchOne')
+validateMember(docResultMembers, 'fetchAll')
 
 #@ Resultset hasData() False
 result = mySession.sql('use js_shell_test').execute()

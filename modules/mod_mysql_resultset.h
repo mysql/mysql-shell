@@ -63,7 +63,7 @@ namespace mysh
       List columns; //!< Same as getColumns()
       String executionTime; //!< Same as getExecutionTime()
       String info; //!< Same as getInfo()
-      Integer lastInsertId; //!< Same as getLastInsertId()
+      Integer autoIncrementValue; //!< Same as getAutoIncrementValue()
       List warnings; //!< Same as getWarnings()
       Integer warningCount; //!< Same as getWarningCount()
 
@@ -76,7 +76,7 @@ namespace mysh
       String getExecutionTime();
       Bool hasData();
       String getInfo();
-      Integer getLastInsertId();
+      Integer getAutoIncrementValue();
       Integer getWarningCount();
       List getWarnings();
       Bool nextDataSet();

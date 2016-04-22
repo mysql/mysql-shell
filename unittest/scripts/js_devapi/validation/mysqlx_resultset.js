@@ -1,3 +1,59 @@
+//@ SqlResult member validation
+|executionTime: OK|
+|warningCount: OK|
+|warnings: OK|
+|getExecutionTime: OK|
+|getWarningCount: OK|
+|getWarnings: OK|
+|columnCount: OK|
+|columnNames: OK|
+|columns: OK|
+|getColumnCount: OK|
+|getColumnNames: OK|
+|getColumns: OK|
+|fetchOne: OK|
+|fetchAll: OK|
+|hasData: OK|
+|nextDataSet: OK|
+|affectedRowCount: OK|
+|autoIncrementValue: OK|
+|getAffectedRowCount: OK|
+|getAutoIncrementValue: OK|
+
+//@ Result member validation
+|affectedItemCount: OK|
+|autoIncrementValue: OK|
+|lastDocumentId: OK|
+|getAffectedItemCount: OK|
+|getAutoIncrementValue: OK|
+|getLastDocumentId: OK|
+
+//@ RowResult member validation
+|executionTime: OK|
+|warningCount: OK|
+|warnings: OK|
+|getExecutionTime: OK|
+|getWarningCount: OK|
+|getWarnings: OK|
+|columnCount: OK|
+|columnNames: OK|
+|columns: OK|
+|getColumnCount: OK|
+|getColumnNames: OK|
+|getColumns: OK|
+|fetchOne: OK|
+|fetchAll: OK|
+
+//@ DocResult member validation
+|executionTime: OK|
+|warningCount: OK|
+|warnings: OK|
+|getExecutionTime: OK|
+|getWarningCount: OK|
+|getWarnings: OK|
+|fetchOne: OK|
+|fetchAll: OK|
+
 //@ Resultset hasData false
 |hasData: false|
 

@@ -46,7 +46,7 @@ ClassicResult::ClassicResult(boost::shared_ptr<Result> result)
   add_method("getWarningCount", boost::bind(&ShellBaseResult::get_member_method, this, _1, "getWarningCount", "warningCount"), NULL);
   add_method("getWarnings", boost::bind(&ShellBaseResult::get_member_method, this, _1, "getWarnings", "warnings"), NULL);
   add_method("getExecutionTime", boost::bind(&ShellBaseResult::get_member_method, this, _1, "getExecutionTime", "executionTime"), NULL);
-  add_method("getLastInsertId", boost::bind(&ShellBaseResult::get_member_method, this, _1, "getLastInsertId", "lastInsertId"), NULL);
+  add_method("getAutoIncrementValue", boost::bind(&ShellBaseResult::get_member_method, this, _1, "getAutoIncrementValue", "autoIncrementValue"), NULL);
   add_method("getInfo", boost::bind(&ShellBaseResult::get_member_method, this, _1, "getInfo", "info"), NULL);
 }
 
@@ -57,9 +57,10 @@ std::vector<std::string> ClassicResult::get_members() const
   members.push_back("columnCount");
   members.push_back("columnNames");
   members.push_back("affectedRowCount");
+  members.push_back("warnings");
   members.push_back("warningCount");
   members.push_back("executionTime");
-  members.push_back("lastInsertId");
+  members.push_back("autoIncrementValue");
   members.push_back("info");
   return members;
 }
@@ -161,25 +162,6 @@ List ClassicResult::getColumnNames(){}
 /**
 * Gets the column metadata for the columns on the active result.
 * \return a list of column metadata objects containing information about the columns included on the active result.
-*
-* The metadata for each column contains the next information:
-*
-* Map key     | Meaning                        |
-* ----------: | :----------------------------: |
-* catalog     | the catalog name               |
-* db          | the database name              |
-* table       | the table name                 |
-* org_table   | original table name            |
-* name        | the column name                |
-* org_name    | the original column name       |
-* charset     | the column charset             |
-* length      | the column length              |
-* type        | the column type                |
-* flags       | flags (to be documented)       |
-* decimal     | decimal precision              |
-* max_length  | max length allowed             |
-* name_length | length of column name          |
-* is_numeric  | bool, true if type is numeric  |
 */
 List ClassicResult::getColumns(){}
 
@@ -202,7 +184,7 @@ String ClassicResult::getInfo(){}
 *
 * For more details, see https://dev.mysql.com/doc/refman/5.7/en/information-functions.html#function_last-insert-id
 */
-Integer ClassicResult::getLastInsertId(){}
+Integer ClassicResult::getAutoIncrementValue(){}
 
 /**
 * The number of warnings produced by the last statement execution.
@@ -248,7 +230,7 @@ shcore::Value ClassicResult::get_member(const std::string &prop) const
   if (prop == "executionTime")
     return shcore::Value(MySQL_timer::format_legacy(_result->execution_time(), 2));
 
-  if (prop == "lastInsertId")
+  if (prop == "autoIncrementValue")
     return shcore::Value((int)_result->last_insert_id());
 
   if (prop == "info")
@@ -292,13 +274,13 @@ shcore::Value ClassicResult::get_member(const std::string &prop) const
         metadata[i].table(),
         metadata[i].org_name(),
         metadata[i].name(),
-	shcore::Value(), //type
+  shcore::Value(), //type
         metadata[i].length(),
-	numeric,
-	metadata[i].decimals(),
-	false, // signed
-	Charset::item[metadata[i].charset()].collation,
-	Charset::item[metadata[i].charset()].name,
+  numeric,
+  metadata[i].decimals(),
+  false, // signed
+  Charset::item[metadata[i].charset()].collation,
+  Charset::item[metadata[i].charset()].name,
         false //padded
       ));
 
@@ -328,7 +310,7 @@ void ClassicResult::append_json(shcore::JSON_dumper& dumper) const
 
   dumper.append_value("hasData", has_data(shcore::Argument_list()));
   dumper.append_value("affectedRowCount", get_member("affectedRowCount"));
-  dumper.append_value("lastInsertId", get_member("lastInsertId"));
+  dumper.append_value("autoIncrementValue", get_member("autoIncrementValue"));
 
   dumper.end_object();
 }

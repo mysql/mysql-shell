@@ -166,7 +166,7 @@ Result::Result(boost::shared_ptr< ::mysqlx::Result> result) :
 BaseResult(result)
 {
   add_method("getAffectedItemCount", boost::bind(&BaseResult::get_member_method, this, _1, "getAffectedItemCount", "affectedItemCount"), NULL);
-  add_method("getLastInsertId", boost::bind(&BaseResult::get_member_method, this, _1, "getLastInsertId", "lastInsertId"), NULL);
+  add_method("getAutoIncrementValue", boost::bind(&BaseResult::get_member_method, this, _1, "getAutoIncrementValue", "autoIncrementValue"), NULL);
   add_method("getLastDocumentId", boost::bind(&BaseResult::get_member_method, this, _1, "getLastDocumentId", "lastDocumentId"), NULL);
 }
 
@@ -174,7 +174,7 @@ std::vector<std::string> Result::get_members() const
 {
   std::vector<std::string> members(BaseResult::get_members());
   members.push_back("affectedItemCount");
-  members.push_back("lastInsertId");
+  members.push_back("autoIncrementValue");
   members.push_back("lastDocumentId");
   return members;
 }
@@ -194,7 +194,7 @@ Integer Result::getAffectedItemCount(){};
 *
 * Note that this value will be available only when the result is for a Table.insert operation.
 */
-Integer Result::getLastInsertId(){};
+Integer Result::getAutoIncrementValue(){};
 
 /**
 * The id of the last document inserted into a collection.
@@ -212,8 +212,8 @@ shcore::Value Result::get_member(const std::string &prop) const
   if (prop == "affectedItemCount")
     ret_val = Value(get_affected_item_count());
 
-  else if (prop == "lastInsertId")
-    ret_val = Value(get_last_insert_id());
+  else if (prop == "autoIncrementValue")
+    ret_val = Value(get_auto_increment_value());
 
   // TODO: Implement returning the last document id
   else if (prop == "lastDocumentId")
@@ -230,7 +230,7 @@ int64_t Result::get_affected_item_count() const
   return _result->affectedRows();
 }
 
-int64_t Result::get_last_insert_id() const
+int64_t Result::get_auto_increment_value() const
 {
   return _result->lastInsertId();
 }
@@ -247,7 +247,7 @@ void Result::append_json(shcore::JSON_dumper& dumper) const
   BaseResult::append_json(dumper);
 
   dumper.append_value("affectedItemCount", get_member("affectedItemCount"));
-  dumper.append_value("lastInsertId", get_member("lastInsertId"));
+  dumper.append_value("autoIncrementValue", get_member("autoIncrementValue"));
   dumper.append_value("lastDocumentId", get_member("lastDocumentId"));
 
   dumper.end_object();
@@ -613,10 +613,10 @@ shcore::Value RowResult::fetch_one(const shcore::Argument_list &args) const
           }
         }
         value_row->add_item(metadata->at(index).name, field_value);
-  }
+      }
 
       return shcore::Value::wrap(value_row);
-}
+    }
   }
   return shcore::Value();
 }
@@ -666,7 +666,7 @@ RowResult(result)
   add_method("hasData", boost::bind(&SqlResult::has_data, this, _1), "nothing", shcore::String, NULL);
   add_method("nextDataSet", boost::bind(&SqlResult::next_data_set, this, _1), "nothing", shcore::String, NULL);
   add_method("getAffectedRowCount", boost::bind(&BaseResult::get_member_method, this, _1, "getAffectedRowCount", "affectedRowCount"), NULL);
-  add_method("getLastInsertId", boost::bind(&BaseResult::get_member_method, this, _1, "getLastInsertId", "lastInsertId"), NULL);
+  add_method("getAutoIncrementValue", boost::bind(&BaseResult::get_member_method, this, _1, "getAutoIncrementValue", "autoIncrementValue"), NULL);
 }
 
 #ifdef DOXYGEN
@@ -686,7 +686,7 @@ shcore::Value SqlResult::has_data(const shcore::Argument_list &args) const
 std::vector<std::string> SqlResult::get_members() const
 {
   std::vector<std::string> members(RowResult::get_members());
-  members.push_back("lastInsertId");
+  members.push_back("autoIncrementValue");
   members.push_back("affectedRowCount");
   return members;
 }
@@ -697,7 +697,7 @@ std::vector<std::string> SqlResult::get_members() const
 *
 * Note that this value will only be set if the executed statement inserted a record in the database and an ID was automatically generated.
 */
-Integer SqlResult::getLastInsertId(){};
+Integer SqlResult::getAutoIncrementValue(){};
 
 /**
 * Returns the number of rows affected by the executed query.
@@ -708,8 +708,8 @@ Integer SqlResult::getAffectedRowCount(){};
 shcore::Value SqlResult::get_member(const std::string &prop) const
 {
   Value ret_val;
-  if (prop == "lastInsertId")
-    ret_val = Value(get_last_insert_id());
+  if (prop == "autoIncrementValue")
+    ret_val = Value(get_auto_increment_value());
   else if (prop == "affectedRowCount")
     ret_val = Value(get_affected_row_count());
   else
@@ -723,7 +723,7 @@ int64_t SqlResult::get_affected_row_count() const
   return _result->affectedRows();
 }
 
-int64_t SqlResult::get_last_insert_id() const
+int64_t SqlResult::get_auto_increment_value() const
 {
   return _result->lastInsertId();
 }
@@ -750,7 +750,7 @@ void SqlResult::append_json(shcore::JSON_dumper& dumper) const
 
   dumper.append_value("hasData", has_data(shcore::Argument_list()));
   dumper.append_value("affectedRowCount", get_member("affectedRowCount"));
-  dumper.append_value("lastInsertId", get_member("lastInsertId"));
+  dumper.append_value("autoIncrementValue", get_member("autoIncrementValue"));
 
   dumper.end_object();
 }

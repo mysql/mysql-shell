@@ -112,7 +112,7 @@ void ClassicSchema::update_cache()
     if (others.size())
     {
       for (size_t index = 0; index < others.size(); index++)
-        log_error(others[index].c_str());
+        log_error("%s", others[index].c_str());
     }
   }
 }

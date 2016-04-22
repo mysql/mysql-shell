@@ -1,3 +1,27 @@
+#@ Result member validation
+|executionTime: OK|
+|warningCount: OK|
+|warnings: OK|
+|getExecutionTime: OK|
+|getWarningCount: OK|
+|getWarnings: OK|
+|columnCount: OK|
+|columnNames: OK|
+|columns: OK|
+|info: OK|
+|getColumnCount: OK|
+|getColumnNames: OK|
+|getColumns: OK|
+|getInfo: OK|
+|fetchOne: OK|
+|fetchAll: OK|
+|hasData: OK|
+|nextDataSet: OK|
+|affectedRowCount: OK|
+|autoIncrementValue: OK|
+|getAffectedRowCount: OK|
+|getAutoIncrementValue: OK|
+
 #@ Resultset hasData() False
 |hasData(): False|
 

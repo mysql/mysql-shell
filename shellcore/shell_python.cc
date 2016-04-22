@@ -92,7 +92,7 @@ void Shell_python::handle_input(std::string &code, Interactive_input_state &stat
  */
 std::string Shell_python::prompt()
 {
-  std::string ret_val = "mysql-py>";
+  std::string ret_val = "mysql-py> ";
 
   boost::system::error_code err;
   try
@@ -114,7 +114,7 @@ std::string Shell_python::prompt()
           shcore::Value st = session->get_capability("node_type");
 
           if (st)
-            ret_val = st.as_string() + "-py>";
+            ret_val = st.as_string() + "-py> ";
         }
       }
     }

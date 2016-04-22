@@ -105,16 +105,16 @@ namespace mysh
 
       // C++ Interface
       int64_t get_affected_item_count() const;
-      int64_t get_last_insert_id() const;
+      int64_t get_auto_increment_value() const;
       std::string get_last_document_id() const;
 
 #ifdef DOXYGEN
       Integer affectedItemCount; //!< Same as getAffectedItemCount()
-      Integer lastInsertId; //!< Same as getLastInsertId()
+      Integer autoIncrementValue; //!< Same as getAutoIncrementValue()
       Integer lastDocumentId; //!< Same as getLastDocumentId()
 
       Integer getAffectedItemCount();
-      Integer getLastInsertId();
+      Integer getAutoIncrementValue();
       String getLastDocumentId();
 #endif
     private:
@@ -205,17 +205,17 @@ namespace mysh
 
       // C++ Interface
       int64_t get_affected_row_count() const;
-      int64_t get_last_insert_id() const;
+      int64_t get_auto_increment_value() const;
       bool hasData();
 
       // TODO: Enable it once the way to have a reference to the unmanaged object is found
       //bool nextDataSet() const;
 
 #ifdef DOXYGEN
-      Integer lastInsertId; //!< Same as getLastInsertId()
+      Integer autoIncrementValue; //!< Same as getAutoIncrementValue()
       Integer affectedRowCount; //!< Same as getAffectedRowCount()
 
-      Integer getLastInsertId();
+      Integer getAutoIncrementValue();
       Integer getAffectedRowCount();
       Bool hasData();
       Bool nextDataSet();

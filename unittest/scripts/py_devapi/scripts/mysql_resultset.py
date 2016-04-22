@@ -6,9 +6,36 @@ mySession = mysql.getClassicSession(__uripwd)
 
 ensure_schema_does_not_exist(mySession, 'js_shell_test')
 
+#@ Result member validation
 schema = mySession.createSchema('js_shell_test')
 mySession.setCurrentSchema('js_shell_test')
-mySession.runSql('create table js_shell_test.buffer_table (name varchar(50), age integer, gender varchar(20))')
+result = mySession.runSql('create table js_shell_test.buffer_table (name varchar(50), age integer, gender varchar(20))')
+
+members = dir(result)
+print "SqlResult Members:", members
+validateMember(members, 'executionTime')
+validateMember(members, 'warningCount')
+validateMember(members, 'warnings')
+validateMember(members, 'getExecutionTime')
+validateMember(members, 'getWarningCount')
+validateMember(members, 'getWarnings')
+validateMember(members, 'columnCount')
+validateMember(members, 'columnNames')
+validateMember(members, 'columns')
+validateMember(members, 'info')
+validateMember(members, 'getColumnCount')
+validateMember(members, 'getColumnNames')
+validateMember(members, 'getColumns')
+validateMember(members, 'getInfo')
+validateMember(members, 'fetchOne')
+validateMember(members, 'fetchAll')
+validateMember(members, 'hasData')
+validateMember(members, 'nextDataSet')
+validateMember(members, 'affectedRowCount')
+validateMember(members, 'autoIncrementValue')
+validateMember(members, 'getAffectedRowCount')
+validateMember(members, 'getAutoIncrementValue')
+
 table = schema.getTable('buffer_table')
 
 result = mySession.runSql('insert into buffer_table values("jack", 17, "male")')
