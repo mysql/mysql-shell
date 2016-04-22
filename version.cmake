@@ -16,7 +16,7 @@
 SET(MYSH_MAJOR 1)
 SET(MYSH_MINOR 0)
 SET(MYSH_PATCH 3)
-SET(MYSH_LEVEL "") # Merge/Sprint Number (QA Tracking): Empty on Release
+SET(MYSH_LEVEL "1") # Merge/Sprint Number (QA Tracking): Empty on Release
 
 SET(MYSH_BASE_VERSION "${MYSH_MAJOR}.${MYSH_MINOR}")
 SET(MYSH_VERSION      "${MYSH_MAJOR}.${MYSH_MINOR}.${MYSH_PATCH}${MYSH_LEVEL}")
