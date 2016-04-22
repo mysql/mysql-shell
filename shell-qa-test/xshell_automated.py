@@ -5981,7 +5981,9 @@ class XShell_TestCases(unittest.TestCase):
       """ Verify the bug https://jira.oraclecorp.com/jira/browse/MYS-303 with --help """
       results = 'FAIL'
       expectedValue = '  --help                   Display this help and exit.'
-      init_command_str = MYSQL_SHELL + ' --help'
+      target_vm =r'"%s"' % MYSQL_SHELL
+      init_command_str = target_vm + ' --help'
+      #init_command_str = MYSQL_SHELL + ' --help'
       p = subprocess.Popen(init_command_str, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE, shell=True)
       stdin, stdout = p.communicate()
       stdin_splitted = stdin.splitlines()
