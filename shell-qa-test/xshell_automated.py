@@ -6383,6 +6383,21 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+  def test_MYS_441(self):
+      ''' db.tables and db.views should be removed'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                       '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=node','--schema=sakila', '--js']
+
+      x_cmds = [("\\warnings\n", "mysql-js>"),
+                ("db.tables();\n", "\r\n\r\n"),
+                ("db.views();\n", "\r\n\r\n"),
+                ("db.getTables();\n","actor"),
+                ("db.getViews()","actor_info"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
 
   # ----------------------------------------------------------------------
 
