@@ -310,7 +310,7 @@ Value Interactive_shell::connect_session(const Argument_list &args, mysh::Sessio
   }
 
   // Performs the connection
-  boost::shared_ptr<mysh::ShellBaseSession> new_session(mysh::connect_session(connect_args, session_type));
+  boost::shared_ptr<mysh::ShellDevelopmentSession> new_session(mysh::connect_session(connect_args, session_type));
 
   _session.reset(new_session, new_session.get());
 

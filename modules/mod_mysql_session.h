@@ -65,7 +65,7 @@ namespace mysh
     * \sa mysql.getClassicSession(String connectionData, String password)
     * \sa mysql.getClassicSession(Map connectionData, String password)
     */
-    class SHCORE_PUBLIC ClassicSession : public ShellBaseSession, public boost::enable_shared_from_this<ClassicSession>
+    class SHCORE_PUBLIC ClassicSession : public ShellDevelopmentSession, public boost::enable_shared_from_this<ClassicSession>
     {
     public:
       ClassicSession();
