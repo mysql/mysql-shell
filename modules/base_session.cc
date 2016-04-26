@@ -48,9 +48,9 @@
 using namespace mysh;
 using namespace shcore;
 
-boost::shared_ptr<mysh::ShellBaseSession> mysh::connect_session(const shcore::Argument_list &args, SessionType session_type)
+boost::shared_ptr<mysh::ShellDevelopmentSession> mysh::connect_session(const shcore::Argument_list &args, SessionType session_type)
 {
-  boost::shared_ptr<ShellBaseSession> ret_val;
+  boost::shared_ptr<ShellDevelopmentSession> ret_val;
 
   switch (session_type)
   {
@@ -92,10 +92,6 @@ _ssl_ca(s._ssl_ca), _ssl_cert(s._ssl_cert), _ssl_key(s._ssl_key)
 
 void ShellBaseSession::init()
 {
-  add_method("createSchema", boost::bind(&ShellBaseSession::create_schema, this, _1), "name", shcore::String, NULL);
-  add_method("getDefaultSchema", boost::bind(&ShellBaseSession::get_member_method, this, _1, "getDefaultSchema", "defaultSchema"), NULL);
-  add_method("getSchema", boost::bind(&ShellBaseSession::get_schema, this, _1), "name", shcore::String, NULL);
-  add_method("getSchemas", boost::bind(&ShellBaseSession::get_schemas, this, _1), NULL);
   add_method("getUri", boost::bind(&ShellBaseSession::get_member_method, this, _1, "getUri", "uri"), NULL);
 }
 
@@ -293,4 +289,24 @@ std::string ShellBaseSession::get_quoted_name(const std::string& name)
   quoted_name = "`" + quoted_name + "`";
 
   return quoted_name;
+}
+
+ShellDevelopmentSession::ShellDevelopmentSession() :
+ShellBaseSession()
+{
+  init();
+}
+
+ShellDevelopmentSession::ShellDevelopmentSession(const ShellDevelopmentSession& s) :
+ShellBaseSession(s)
+{
+  init();
+}
+
+void ShellDevelopmentSession::init()
+{
+  add_method("createSchema", boost::bind(&ShellDevelopmentSession::create_schema, this, _1), "name", shcore::String, NULL);
+  add_method("getDefaultSchema", boost::bind(&ShellDevelopmentSession::get_member_method, this, _1, "getDefaultSchema", "defaultSchema"), NULL);
+  add_method("getSchema", boost::bind(&ShellDevelopmentSession::get_schema, this, _1), "name", shcore::String, NULL);
+  add_method("getSchemas", boost::bind(&ShellDevelopmentSession::get_schemas, this, _1), NULL);
 }

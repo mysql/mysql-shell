@@ -127,6 +127,8 @@ file(GLOB libmysqlshmods_SRC
       "../modules/mysql.cc"
       "../modules/mysql.h"
       "../modules/mysqlxtest_utils.h"
+      "../modules/adminapi/mod_mysqlx_*.cc"
+      "../modules/adminapi/mod_mysqlx_*.h"
       "${CMAKE_SOURCE_DIR}/common/uuid/src/uuid_gen.cc"
 )
 

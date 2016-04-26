@@ -78,7 +78,17 @@ BaseSession::BaseSession()
   init();
 }
 
-BaseSession::BaseSession(const BaseSession& s) : ShellBaseSession(s), _case_sensitive_table_names(false)
+bool BaseSession::is_connected() const
+{
+  return _session.is_connected();
+}
+
+boost::shared_ptr< ::mysqlx::Session> BaseSession::session_obj() const
+{
+  return _session.get();
+}
+
+BaseSession::BaseSession(const BaseSession& s) : ShellDevelopmentSession(s), _case_sensitive_table_names(false)
 {
   init();
 }
@@ -113,15 +123,7 @@ Value BaseSession::connect(const Argument_list &args)
     // Retrieves the connection data, whatever the source is
     load_connection_data(args);
 
-    ::mysqlx::Ssl_config ssl;
-    memset(&ssl, 0, sizeof(ssl));
-
-    ssl.ca = _ssl_ca.c_str();
-    ssl.cert = _ssl_cert.c_str();
-    ssl.key = _ssl_key.c_str();
-
-    // TODO: Define a proper timeout for the session creation
-    _session = ::mysqlx::openSession(_host, _port, _schema, _user, _password, ssl, 10000, _auth_method, true);
+    _session.open(_host, _port, _schema, _user, _password, _ssl_ca, _ssl_cert, _ssl_key, 10000, _auth_method, true);
 
     int case_sesitive_table_names = 0;
     _retrieve_session_info(_default_schema, case_sesitive_table_names);
@@ -137,10 +139,10 @@ Value BaseSession::connect(const Argument_list &args)
 
 void BaseSession::set_connection_id()
 {
-  if (_session)
+  if (_session.is_connected())
   {
     // the client id from xprotocol is not the same as the connection id so it is gathered here.
-    boost::shared_ptr< ::mysqlx::Result> result = _session->executeSql("select connection_id();");
+    boost::shared_ptr< ::mysqlx::Result> result = _session.execute_sql("select connection_id();");
     boost::shared_ptr< ::mysqlx::Row> row = result->next();
     if (row)
     {
@@ -153,8 +155,8 @@ void BaseSession::set_connection_id()
 
 void BaseSession::set_option(const char *option, int value)
 {
-  if (strcmp(option, "trace_protocol") == 0 && _session)
-    _session->connection()->set_trace_protocol(value != 0);
+  if (strcmp(option, "trace_protocol") == 0 && _session.is_connected())
+    _session.enable_protocol_trace(value != 0);
   else
     throw shcore::Exception::argument_error(std::string("Unknown option ").append(option));
 }
@@ -199,12 +201,7 @@ void BaseSession::reset_session()
   {
     log_warning("Closing session: %s", _uri.c_str());
 
-    if (_session)
-    {
-      _session->close();
-
-      _session.reset();
-    }
+    _session.reset();
   }
   catch (std::exception &e)
   {
@@ -320,42 +317,6 @@ shcore::Value BaseSession::rollback(const shcore::Argument_list &args)
   return executeStmt("sql", "rollback", false, shcore::Argument_list());
 }
 
-::mysqlx::ArgumentValue BaseSession::get_argument_value(shcore::Value source) const
-{
-  ::mysqlx::ArgumentValue ret_val;
-  switch (source.type)
-  {
-    case shcore::Bool:
-      ret_val = ::mysqlx::ArgumentValue(source.as_bool());
-      break;
-    case shcore::UInteger:
-      ret_val = ::mysqlx::ArgumentValue(source.as_uint());
-      break;
-    case shcore::Integer:
-      ret_val = ::mysqlx::ArgumentValue(source.as_int());
-      break;
-    case shcore::String:
-      ret_val = ::mysqlx::ArgumentValue(source.as_string());
-      break;
-    case shcore::Float:
-      ret_val = ::mysqlx::ArgumentValue(source.as_double());
-      break;
-    case shcore::Object:
-    case shcore::Null:
-    case shcore::Array:
-    case shcore::Map:
-    case shcore::MapRef:
-    case shcore::Function:
-    case shcore::Undefined:
-      std::stringstream str;
-      str << "Unsupported value received: " << source.descr();
-      throw shcore::Exception::argument_error(str.str());
-      break;
-  }
-
-  return ret_val;
-}
-
 Value BaseSession::execute_sql(const std::string& statement, const Argument_list &args)
 {
   return executeStmt("sql", statement, true, args);
@@ -371,45 +332,26 @@ Value BaseSession::executeAdminCommand(const std::string& command, bool expect_d
 
 Value BaseSession::executeStmt(const std::string &domain, const std::string& command, bool expect_data, const Argument_list &args) const
 {
-  // Will return the result of the SQL execution
-  // In case of error will be Undefined
+  MySQL_timer timer;
   Value ret_val;
-  if (!_session)
-    throw Exception::logic_error("Not connected.");
+
+  timer.start();
+
+  boost::shared_ptr< ::mysqlx::Result> exec_result = _session.execute_statement(domain, command, args);
+
+  timer.end();
+
+  if (expect_data)
+  {
+    SqlResult *result;
+    ret_val = shcore::Value::wrap(result = new SqlResult(exec_result));
+    result->set_execution_time(timer.raw_duration());
+  }
   else
   {
-    // Converts the arguments from shcore to mysqlxtest format
-    std::vector< ::mysqlx::ArgumentValue> arguments;
-    for (size_t index = 0; index < args.size(); index++)
-      arguments.push_back(get_argument_value(args[index]));
-
-    try
-    {
-      MySQL_timer timer;
-
-      timer.start();
-
-      _last_result = _session->executeStmt(domain, command, arguments);
-
-      // Calls wait so any error is properly triggered at execution time
-      _last_result->wait();
-
-      timer.end();
-
-      if (expect_data)
-      {
-        SqlResult *result;
-        ret_val = shcore::Value::wrap(result = new SqlResult(_last_result));
-        result->set_execution_time(timer.raw_duration());
-      }
-      else
-      {
-        Result *result;
-        ret_val = shcore::Value::wrap(result = new Result(_last_result));
-        result->set_execution_time(timer.raw_duration());
-      }
-    }
-    CATCH_AND_TRANSLATE();
+    Result *result;
+    ret_val = shcore::Value::wrap(result = new Result(exec_result));
+    result->set_execution_time(timer.raw_duration());
   }
 
   return ret_val;
@@ -417,7 +359,7 @@ Value BaseSession::executeStmt(const std::string &domain, const std::string& com
 
 bool BaseSession::has_member(const std::string &prop) const
 {
-  if (ShellBaseSession::has_member(prop))
+  if (ShellDevelopmentSession::has_member(prop))
     return true;
   if (prop == "currentSchema" || prop == "uri" || prop == "defaultSchema")
     return true;
@@ -471,10 +413,10 @@ std::string BaseSession::_retrieve_current_schema()
   std::string name;
   try
   {
-    if (_session)
+    if (_session.is_connected())
     {
       // TODO: update this logic properly
-      boost::shared_ptr< ::mysqlx::Result> result = _session->executeSql("select schema()");
+      boost::shared_ptr< ::mysqlx::Result> result = _session.execute_sql("select schema()");
       boost::shared_ptr< ::mysqlx::Row>row = result->next();
 
       if (!row->isNullField(0))
@@ -493,10 +435,10 @@ void BaseSession::_retrieve_session_info(std::string &current_schema,
 {
   try
   {
-    if (_session)
+    if (_session.is_connected())
     {
       // TODO: update this logic properly
-      boost::shared_ptr< ::mysqlx::Result> result = _session->executeSql("select schema(), @@lower_case_table_names");
+      boost::shared_ptr< ::mysqlx::Result> result = _session.execute_sql("select schema(), @@lower_case_table_names");
       boost::shared_ptr< ::mysqlx::Row>row = result->next();
 
       if (!row->isNullField(0))
@@ -563,9 +505,9 @@ shcore::Value BaseSession::get_schemas(const shcore::Argument_list &args) const
 
   try
   {
-    if (_session)
+    if (_session.is_connected())
     {
-      boost::shared_ptr< ::mysqlx::Result> result = _session->executeSql("show databases;");
+      boost::shared_ptr< ::mysqlx::Result> result = _session.execute_sql("show databases;");
       boost::shared_ptr< ::mysqlx::Row> row = result->next();
 
       while (row)
@@ -748,27 +690,7 @@ std::string BaseSession::db_object_exists(std::string &type, const std::string &
 
 shcore::Value BaseSession::get_capability(const std::string& name)
 {
-  shcore::Value ret_val;
-
-  if (_session)
-  {
-    const Mysqlx::Connection::Capabilities &caps(_session->connection()->capabilities());
-    for (int c = caps.capabilities_size(), i = 0; i < c; i++)
-    {
-      if (caps.capabilities(i).name() == name)
-      {
-        const Mysqlx::Connection::Capability &cap(caps.capabilities(i));
-        if (cap.value().type() == Mysqlx::Datatypes::Any::SCALAR &&
-            cap.value().scalar().type() == Mysqlx::Datatypes::Scalar::V_STRING)
-          ret_val = shcore::Value(cap.value().scalar().v_string().value());
-        else if (cap.value().type() == Mysqlx::Datatypes::Any::SCALAR &&
-                 cap.value().scalar().type() == Mysqlx::Datatypes::Scalar::V_OCTETS)
-          ret_val = shcore::Value(cap.value().scalar().v_octets().value());
-      }
-    }
-  }
-
-  return ret_val;
+  return _session.get_capability(name);
 }
 
 shcore::Value BaseSession::get_status(const shcore::Argument_list &args)
@@ -788,7 +710,7 @@ shcore::Value BaseSession::get_status(const shcore::Argument_list &args)
 
   boost::shared_ptr< ::mysqlx::Result> result;
   boost::shared_ptr< ::mysqlx::Row>row;
-  result = _session->executeSql("select DATABASE(), USER() limit 1");
+  result = _session.execute_sql("select DATABASE(), USER() limit 1");
   row = result->next();
 
   std::string current_schema = row->isNullField(0) ? "" : row->stringField(0);
@@ -797,7 +719,7 @@ shcore::Value BaseSession::get_status(const shcore::Argument_list &args)
 
   (*status)["CURRENT_SCHEMA"] = shcore::Value(current_schema);
   (*status)["CURRENT_USER"] = shcore::Value(row->isNullField(1) ? "" : row->stringField(1));
-  (*status)["CONNECTION_ID"] = shcore::Value(_session->connection()->client_id());
+  (*status)["CONNECTION_ID"] = shcore::Value(_session.get_client_id());
   //(*status)["SSL_CIPHER"] = shcore::Value(_conn->get_ssl_cipher());
   //(*status)["SKIP_UPDATES"] = shcore::Value(???);
   //(*status)["DELIMITER"] = shcore::Value(???);
@@ -808,7 +730,7 @@ shcore::Value BaseSession::get_status(const shcore::Argument_list &args)
   //(*status)["CONNECTION"] = shcore::Value(_conn->get_connection_info());
   //(*status)["INSERT_ID"] = shcore::Value(???);
 
-  result = _session->executeSql("select @@character_set_client, @@character_set_connection, @@character_set_server, @@character_set_database, @@version_comment limit 1");
+  result = _session.execute_sql("select @@character_set_client, @@character_set_connection, @@character_set_server, @@character_set_database, @@version_comment limit 1");
   row = result->next();
   (*status)["CLIENT_CHARSET"] = shcore::Value(row->isNullField(0) ? "" : row->stringField(0));
   (*status)["CONNECTION_CHARSET"] = shcore::Value(row->isNullField(1) ? "" : row->stringField(1));
@@ -837,11 +759,11 @@ shcore::Value BaseSession::set_current_schema(const shcore::Argument_list &args)
   std::string function_name = class_name() + ".setCurrentSchema";
   args.ensure_count(1, function_name.c_str());
 
-  if (_session)
+  if (_session.is_connected())
   {
     std::string name = args[0].as_string();
 
-    boost::shared_ptr< ::mysqlx::Result> result = _session->executeSql(sqlstring("use !", 0) << name);
+    boost::shared_ptr< ::mysqlx::Result> result = _session.execute_sql(sqlstring("use !", 0) << name);
     result->flush();
   }
   else

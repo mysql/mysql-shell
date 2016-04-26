@@ -63,7 +63,7 @@ ClassicSession::ClassicSession()
 }
 
 ClassicSession::ClassicSession(const ClassicSession& session) :
-_conn(session._conn), ShellBaseSession(session)
+_conn(session._conn), ShellDevelopmentSession(session)
 {
   init();
 }
@@ -77,7 +77,7 @@ void ClassicSession::init()
     "stmt", shcore::String,
     NULL);
   add_method("setCurrentSchema", boost::bind(&ClassicSession::set_current_schema, this, _1), "name", shcore::String, NULL);
-  add_method("getCurrentSchema", boost::bind(&ShellBaseSession::get_member_method, this, _1, "getCurrentSchema", "currentSchema"), NULL);
+  add_method("getCurrentSchema", boost::bind(&ShellDevelopmentSession::get_member_method, this, _1, "getCurrentSchema", "currentSchema"), NULL);
   add_method("startTransaction", boost::bind(&ClassicSession::startTransaction, this, _1), "data");
   add_method("commit", boost::bind(&ClassicSession::commit, this, _1), "data");
   add_method("rollback", boost::bind(&ClassicSession::rollback, this, _1), "data");
@@ -211,7 +211,7 @@ Value ClassicSession::create_schema(const shcore::Argument_list &args)
 
 std::vector<std::string> ClassicSession::get_members() const
 {
-  std::vector<std::string> members(ShellBaseSession::get_members());
+  std::vector<std::string> members(ShellDevelopmentSession::get_members());
 
   members.push_back("currentSchema");
 
@@ -250,8 +250,8 @@ Value ClassicSession::get_member(const std::string &prop) const
   // retrieve it since it may throw invalid member otherwise
   // If not on the parent classes and not here then we can safely assume
   // it is a schema and attempt loading it as such
-  if (ShellBaseSession::has_member(prop))
-    ret_val = ShellBaseSession::get_member(prop);
+  if (ShellDevelopmentSession::has_member(prop))
+    ret_val = ShellDevelopmentSession::get_member(prop);
   else if (prop == "uri")
     ret_val = Value(_uri);
   else if (prop == "defaultSchema")
