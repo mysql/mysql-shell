@@ -28,6 +28,7 @@
 #include "shellcore/types_cpp.h"
 #include "shellcore/ishell_core.h"
 #include "base_session.h"
+#include "mod_mysqlx_session_handle.h"
 #include "mysqlxtest/mysqlx.h"
 
 #include <boost/enable_shared_from_this.hpp>
@@ -66,7 +67,7 @@ namespace mysh
     * \sa mysqlx.getNodeSession(String connectionData, String password)
     * \sa mysqlx.getNodeSession(Map connectionData, String password)
     */
-    class SHCORE_PUBLIC BaseSession : public ShellBaseSession
+    class SHCORE_PUBLIC BaseSession : public ShellDevelopmentSession
     {
     public:
       BaseSession();
@@ -89,7 +90,7 @@ namespace mysh
 
       shcore::Value executeAdminCommand(const std::string& command, bool expect_data, const shcore::Argument_list &args) const;
       shcore::Value execute_sql(const std::string& query, const shcore::Argument_list &args);
-      virtual bool is_connected() const { return _session ? true : false; }
+      virtual bool is_connected() const;
       virtual shcore::Value get_status(const shcore::Argument_list &args);
       virtual shcore::Value get_capability(const std::string& name);
 
@@ -101,7 +102,7 @@ namespace mysh
 
       shcore::Value set_fetch_warnings(const shcore::Argument_list &args);
 
-      boost::shared_ptr< ::mysqlx::Session> session_obj() const { return _session; }
+      boost::shared_ptr< ::mysqlx::Session> session_obj() const;
 
       static boost::shared_ptr<shcore::Object_bridge> create(const shcore::Argument_list &args);
 
@@ -132,16 +133,14 @@ namespace mysh
 
 #endif
     protected:
-      ::mysqlx::ArgumentValue get_argument_value(shcore::Value source) const;
       shcore::Value executeStmt(const std::string &domain, const std::string& command, bool expect_data, const shcore::Argument_list &args) const;
       virtual boost::shared_ptr<BaseSession> _get_shared_this() const = 0;
-      mutable boost::shared_ptr< ::mysqlx::Result> _last_result;
       std::string _retrieve_current_schema();
       void _retrieve_session_info(std::string &current_schema, int &case_sensitive_table_names);
 
       virtual int get_default_port() { return 33060; };
 
-      boost::shared_ptr< ::mysqlx::Session> _session;
+      SessionHandle _session;
 
       bool _case_sensitive_table_names;
       void init();

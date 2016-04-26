@@ -57,17 +57,11 @@ namespace mysh
     // Virtual methods from ISession
     virtual shcore::Value connect(const shcore::Argument_list &args) = 0;
     virtual shcore::Value close(const shcore::Argument_list &args) = 0;
-    virtual shcore::Value create_schema(const shcore::Argument_list &args) = 0;
-    virtual shcore::Value drop_schema(const shcore::Argument_list &args) = 0;
-    virtual shcore::Value drop_schema_object(const shcore::Argument_list &args, const std::string& type) = 0;
-    virtual shcore::Value set_current_schema(const shcore::Argument_list &args) = 0;
     virtual bool is_connected() const = 0;
     virtual shcore::Value get_status(const shcore::Argument_list &args) = 0;
     virtual shcore::Value get_capability(const std::string &name) { return shcore::Value(); }
     std::string uri() { return _uri; };
 
-    virtual shcore::Value get_schema(const shcore::Argument_list &args) const = 0;
-    virtual shcore::Value get_schemas(const shcore::Argument_list &args) const = 0;
     virtual std::string db_object_exists(std::string &type, const std::string &name, const std::string& owner) const = 0;
 
     // Helper method to retrieve properties using a method
@@ -92,19 +86,50 @@ namespace mysh
     std::string _ssl_cert;
     std::string _ssl_key;
     std::string _auth_method;
-
     std::string _uri;
-
-    std::string _default_schema;
-    mutable boost::shared_ptr<shcore::Value::Map_type> _schemas;
-    std::function<void(const std::string&, bool exists)> update_schema_cache;
 
     void load_connection_data(const shcore::Argument_list &args);
   private:
     void init();
   };
 
-  boost::shared_ptr<mysh::ShellBaseSession> SHCORE_PUBLIC connect_session(const shcore::Argument_list &args, SessionType session_type);
+  // Abstraction layer with core elements for development sessions
+  // This is the parent class for development sessions implemented in both protocols
+  class SHCORE_PUBLIC ShellDevelopmentSession : public ShellBaseSession
+  {
+  public:
+    ShellDevelopmentSession();
+    ShellDevelopmentSession(const ShellDevelopmentSession& s);
+    virtual ~ShellDevelopmentSession() {};
+
+    virtual shcore::Value create_schema(const shcore::Argument_list &args) = 0;
+    virtual shcore::Value drop_schema(const shcore::Argument_list &args) = 0;
+    virtual shcore::Value drop_schema_object(const shcore::Argument_list &args, const std::string& type) = 0;
+    virtual shcore::Value set_current_schema(const shcore::Argument_list &args) = 0;
+
+    virtual shcore::Value get_schema(const shcore::Argument_list &args) const = 0;
+    virtual shcore::Value get_schemas(const shcore::Argument_list &args) const = 0;
+
+  protected:
+    std::string _default_schema;
+    mutable boost::shared_ptr<shcore::Value::Map_type> _schemas;
+    std::function<void(const std::string&, bool exists)> update_schema_cache;
+
+  private:
+    void init();
+  };
+
+  // Abstraction layer with core elements for admin sessions
+  // This is the parent class for admin sessions implemented in both protocols
+  class SHCORE_PUBLIC ShellAdminSession : public ShellBaseSession
+  {
+    // NOTE: At the moment this class is just to keep abstraction consistent
+  protected:
+    std::string _default_cluster;
+    mutable boost::shared_ptr<shcore::Value::Map_type> _clusters;
+  };
+
+  boost::shared_ptr<mysh::ShellDevelopmentSession> SHCORE_PUBLIC connect_session(const shcore::Argument_list &args, SessionType session_type);
 };
 
 #endif
