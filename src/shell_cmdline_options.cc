@@ -271,18 +271,16 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
       passwords_from_stdin = true;
     else if (check_arg_with_value(argv, i, "--log-level", NULL, value))
     {
-      try
+      ngcommon::Logger::LOG_LEVEL nlog_level;
+      nlog_level = ngcommon::Logger::get_log_level(value);
+      if (nlog_level == ngcommon::Logger::LOG_NONE && !ngcommon::Logger::is_level_none(value))
       {
-        int nlog_level = boost::lexical_cast<int>(value);
-        if (nlog_level < 1 || nlog_level > 8)
-          throw 1;
-        log_level = static_cast<ngcommon::Logger::LOG_LEVEL>(nlog_level);
-      }
-      catch (...)
-      {
-        std::cerr << "Value for --log-level must be an integer between 1 and 8.\n";
+        std::cerr << ngcommon::Logger::get_level_range_info() << std::endl;
         exit_code = 1;
+        break;
       }
+      else
+        log_level = nlog_level;
     }
     else if (exit_code == 0)
     {
