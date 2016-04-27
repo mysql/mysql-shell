@@ -199,14 +199,6 @@ bool Interactive_shell::connect(bool primary_session)
 {
   try
   {
-    if (_session && _session->is_connected())
-    {
-      if (_options.interactive)
-        _delegate.print(_delegate.user_data, "Closing old connection...\n");
-
-      _session->close(shcore::Argument_list());
-    }
-
     Argument_list args;
     Value::Map_type_ref connection_data;
     bool secure_password = true;
@@ -311,11 +303,10 @@ Value Interactive_shell::connect_session(const Argument_list &args, mysh::Sessio
   }
 
   // Performs the connection
-  boost::shared_ptr<mysh::ShellDevelopmentSession> new_session(mysh::connect_session(connect_args, session_type));
+  boost::shared_ptr<mysh::ShellDevelopmentSession> old_session(_shell->get_dev_session()),
+                                                   new_session(_shell->connect_dev_session(connect_args, session_type));
 
-  _session.reset(new_session, new_session.get());
-
-  _session->set_option("trace_protocol", _options.trace_protocol);
+  new_session->set_option("trace_protocol", _options.trace_protocol);
 
   if (recreate_schema)
   {
@@ -323,7 +314,7 @@ Value Interactive_shell::connect_session(const Argument_list &args, mysh::Sessio
     _delegate.print(_delegate.user_data, message.c_str());
     try
     {
-      _session->drop_schema(schema_arg);
+      new_session->drop_schema(schema_arg);
     }
     catch (shcore::Exception &e)
     {
@@ -332,24 +323,23 @@ Value Interactive_shell::connect_session(const Argument_list &args, mysh::Sessio
       else
         throw;
     }
-    _session->create_schema(schema_arg);
+    new_session->create_schema(schema_arg);
+
+    _shell->set_current_schema(connection_data->get_string("schema"));
   }
-
-  // Sets the current schema
-  if (!schema_name.empty())
-    _session->set_current_schema(schema_arg);
-
-  _shell->set_active_session(Value(boost::static_pointer_cast<Object_bridge>(_session)));
-
-  // The default schemas is retrieved it will return null if none is set
-  Value default_schema = _session->get_member("currentSchema");
-
-  // Whatever default schema is returned is ok to be set on db
-  _shell->set_global("db", default_schema);
 
   if (_options.interactive)
   {
+    if (old_session && old_session.unique() && old_session->is_connected())
+    {
+      if (_options.interactive)
+        _delegate.print(_delegate.user_data, "Closing old connection...\n");
+
+      old_session->close(shcore::Argument_list());
+    }
+
     std::string message;
+    shcore::Value default_schema = _shell->get_global("db");
     if (default_schema)
       message = "Default schema `" + default_schema.as_object()->get_member("name").as_string() + "` accessible through db.";
     else
@@ -754,8 +744,8 @@ bool Interactive_shell::cmd_store_connection(const std::vector<std::string>& arg
     {
       if (uri.empty())
       {
-        if (_session)
-          uri = _session->uri();
+        if (_shell->get_dev_session())
+          uri = _shell->get_dev_session()->uri();
         else
           error = "Unable to save session information, no active session available";
       }
@@ -859,9 +849,9 @@ bool Interactive_shell::cmd_list_connections(const std::vector<std::string>& arg
 
 bool Interactive_shell::cmd_status(const std::vector<std::string>& UNUSED(args))
 {
-  if (_session && _session->is_connected())
+  if (_shell->get_dev_session() && _shell->get_dev_session()->is_connected())
   {
-    shcore::Value raw_status = _session->get_status(shcore::Argument_list());
+    shcore::Value raw_status = _shell->get_dev_session()->get_status(shcore::Argument_list());
     std::string format = (*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string();
 
     if (format.find("json") == 0)

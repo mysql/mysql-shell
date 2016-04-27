@@ -103,6 +103,12 @@ namespace shcore
 
   struct Interpreter_delegate;
 
+#ifdef DOXYGEN_CPP
+  /**
+  * Class that encloses the shell functionality.
+  */
+#endif
+
   class SHCORE_PUBLIC Shell_core : public shcore::IShell_core
   {
   public:
@@ -121,6 +127,12 @@ namespace shcore
 
     void set_active_session(const Value &session);
     Value active_session() const { return _active_session; }
+
+    virtual boost::shared_ptr<mysh::ShellDevelopmentSession> connect_dev_session(const Argument_list &args, mysh::SessionType session_type);
+    virtual boost::shared_ptr<mysh::ShellDevelopmentSession> set_dev_session(boost::shared_ptr<mysh::ShellDevelopmentSession> session);
+    virtual boost::shared_ptr<mysh::ShellDevelopmentSession> get_dev_session();
+
+    virtual void set_current_schema(const std::string& name);
 
     virtual Object_registry *registry() { return _registry; }
   public:
@@ -155,6 +167,8 @@ namespace shcore
     std::map<std::string, Value> _globals;
     std::map<Mode, Shell_language*> _langs;
     Value _active_session;
+
+    boost::shared_ptr<mysh::ShellDevelopmentSession> _global_dev_session;
 
     Interpreter_delegate *_lang_delegate;
     std::string _input_source;

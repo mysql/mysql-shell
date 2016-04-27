@@ -22,6 +22,7 @@
 #include "shellcore/shell_jscript.h"
 #include "shellcore/shell_python.h"
 #include "shellcore/object_registry.h"
+#include "modules/base_session.h"
 #include <boost/algorithm/string.hpp>
 #include <boost/format.hpp>
 #include <boost/bind.hpp>
@@ -38,7 +39,7 @@
 using namespace shcore;
 
 Shell_core::Shell_core(Interpreter_delegate *shdelegate)
-: IShell_core(), _lang_delegate(shdelegate), _running_query(false)
+  : IShell_core(), _lang_delegate(shdelegate), _running_query(false)
 {
   // Use a random seed for UUIDs
   std::time_t now = std::time(NULL);
@@ -266,6 +267,89 @@ std::string Shell_core::prompt()
 bool Shell_core::handle_shell_command(const std::string &line)
 {
   return _langs[_mode]->handle_shell_command(line);
+}
+
+/**
+* Creates a Development session of the given type using the received connection parameters.
+* \param args The connection parameters to be used creating the session.
+*
+* The args list should be filled with a Connectio Data Dictionary and optionally a Password
+*
+* The Connection Data Dictionary which supports the next elements:
+*
+*  - host, the host to use for the connection (can be an IP or DNS name)
+*  - port, the TCP port where the server is listening (default value is 33060).
+*  - schema, the current database for the connection's session.
+*  - dbUser, the user to authenticate against.
+*  - dbPassword, the password of the user user to authenticate against.
+*  - ssl_ca, the path to the X509 certificate authority in PEM format.
+*  - ssl_cert, the path to the X509 certificate in PEM format.
+*  - ssl_key, the path to the X509 key in PEM format.
+*
+* If a Password is added to the args list, it will override any password coming on the Connection Data Dictionary.
+*
+* Since this function creates a Development Session, it can be any of:
+*
+* - XSession
+* - NodeSession
+* - ClassicSession
+*
+* Once the session is established, it will be made available on a global *session* variable.
+*
+* If the Connection Data contained the *schema* attribute, the schema will be made available to the scripting interfaces on the global *db* variable.
+*/
+boost::shared_ptr<mysh::ShellDevelopmentSession> Shell_core::connect_dev_session(const Argument_list &args, mysh::SessionType session_type)
+{
+  return set_dev_session(mysh::connect_session(args, session_type));
+}
+
+/**
+* Configures the received session as the global development session.
+* \param session: The session to be set as global.
+*
+* If there's a selected schema on the received session, it will be made available to the scripting interfaces on the global *db* variable
+*/
+boost::shared_ptr<mysh::ShellDevelopmentSession> Shell_core::set_dev_session(boost::shared_ptr<mysh::ShellDevelopmentSession> session)
+{
+  _global_dev_session.reset(session, session.get());
+
+  set_global("session", shcore::Value(boost::static_pointer_cast<Object_bridge>(_global_dev_session)));
+
+  set_global("db", _global_dev_session->get_member("currentSchema"));
+
+  return _global_dev_session;
+}
+
+/**
+* Returns the global development session.
+*/
+boost::shared_ptr<mysh::ShellDevelopmentSession> Shell_core::get_dev_session()
+{
+  return _global_dev_session;
+}
+
+/**
+* Sets the received schema as the selected one on the global development session.
+* \param name: The name of the schema to be selected.
+*
+* If the global development session is active, the received schema will be selected as the active one.
+*
+* The new active schema will be made available to the scripting interfaces on the global *db* variable.
+*/
+void Shell_core::set_current_schema(const std::string& name)
+{
+  if (name.empty())
+    set_global("db", shcore::Value());
+  else
+  {
+    if (_global_dev_session && _global_dev_session->is_connected())
+    {
+      shcore::Argument_list args;
+      args.push_back(shcore::Value(name));
+
+      set_global("db", _global_dev_session->set_current_schema(args));
+    }
+  }
 }
 
 //------------------ COMMAND HANDLER FUNCTIONS ------------------//
