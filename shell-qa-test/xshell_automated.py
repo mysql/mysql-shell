@@ -6427,6 +6427,20 @@ class XShell_TestCases(unittest.TestCase):
       self.assertEqual(results, 'PASS')
 
 
+  def test_MYS_388(self):
+      """ AFTER CREATING SCHEMA IN PY SESSION, GETSCHEMAS DOESN'T REFRESH\SHOW SUCH SCHEMA"""
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.port, '--session-type=classic', '--py']
+      x_cmds = [(";\n", 'mysql-py>'),
+                ("session.runSql('DROP DATABASE IF EXISTS schema_test;')\n", ""),
+                ("session.runSql('CREATE SCHEMA schema_test;')\n", "Query OK"),
+                ("session.getSchemas()\n", "schema_test"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+
   # ----------------------------------------------------------------------
 
 
