@@ -24,7 +24,7 @@
 #include <string>
 #include <iomanip>
 #include "mod_mysql_resultset.h"
-#include "mysql.h"
+#include "mysql_connection.h"
 #include "shellcore/shell_core_options.h"
 
 using namespace mysh;
