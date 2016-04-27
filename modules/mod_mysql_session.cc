@@ -43,7 +43,7 @@
 #include <boost/pointer_cast.hpp>
 #include <set>
 
-#include "mysql.h"
+#include "mysql_connection.h"
 #include "mod_mysql_resultset.h"
 #include "mod_mysql_schema.h"
 #include "utils/utils_general.h"

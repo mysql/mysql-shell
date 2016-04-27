@@ -27,7 +27,7 @@
 #include "shellcore/types.h"
 #include "shellcore/types_cpp.h"
 #include "shellcore/ishell_core.h"
-#include "mysql.h"
+#include "mysql_connection.h"
 #include "base_session.h"
 
 #include <boost/enable_shared_from_this.hpp>

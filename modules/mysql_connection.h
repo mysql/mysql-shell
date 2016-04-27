@@ -20,8 +20,8 @@
 // MySQL DB access module, for use by plugins and others
 // For the module that implements interactive DB functionality see mod_db
 
-#ifndef _MOD_MYSQL_H_
-#define _MOD_MYSQL_H_
+#ifndef _MOD_MYSQL_CONNECTION_H_
+#define _MOD_MYSQL_CONNECTION_H_
 
 #include "shellcore/types.h"
 #include "shellcore/types_cpp.h"

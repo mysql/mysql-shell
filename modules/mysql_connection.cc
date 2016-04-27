@@ -17,7 +17,7 @@
  * 02110-1301  USA
  */
 
-#include "mysql.h"
+#include "mysql_connection.h"
 #include "base_session.h"
 #include "utils/utils_general.h"
 
