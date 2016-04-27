@@ -6383,6 +6383,34 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+  def test_MYS_438(self):
+      ''' TRUE OR FALSE NOT RECOGNIZED AS AVAILABLE BOOL CONSTANTS'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                       '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=node','--schema=sakila', '--sql']
+
+      x_cmds = [("drop table if exists sakila.character;\n", "Query OK"),
+                ("CREATE TABLE `character` (\n", "..."),
+                ("  `character_id` smallint(5) unsigned NOT NULL AUTO_INCREMENT,\n", "..."),
+                ("  `name` varchar(30) NOT NULL,\n", "..."),
+                ("  `age` smallint(4) unsigned NOT NULL,\n", "..."),
+                ("  `gender` enum('male', 'female') DEFAULT 'male' NOT NULL,\n", "..."),
+                ("  `from` varchar(30) DEFAULT '' NOT NULL,\n", "..."),
+                ("  `universe` varchar(30) NOT NULL,\n", "..."),
+                ("  `base` bool DEFAULT false NOT NULL,\n", "..."),
+                ("  PRIMARY KEY (`character_id`),\n", "..."),
+                ("  KEY `idx_name` (`name`),\n", "..."),
+                ("  KEY `idx_base` (`base`)\n", "..."),
+                (") ENGINE=InnoDB DEFAULT CHARSET=utf8;\n", "Query OK, 0 rows affected"),
+                ("\\js\n", "mysql-js>"),
+                ("var table = db.getTable('character');\n", "mysql-js>"),
+                ("table.insert().values(28, 'Garrus Vakarian', 30, 'male', '', 'Mass Effect', 0).values(29, 'Liara TSoni', 109, 'female', '', 'Mass Effect', 1).execute();\n", "Query OK, 2 items affected"),
+                ("table.insert().values(30, 'Garrus Vakarian', 30, 'male', '', 'Mass Effect', false).values(31, 'Liara TSoni', 109, 'female', '', 'Mass Effect', true).execute();\n", "Query OK, 2 items affected"),
+                ("table.select();\n", "4 rows in set"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
 
   # ----------------------------------------------------------------------
 
