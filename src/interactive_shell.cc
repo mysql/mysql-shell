@@ -25,6 +25,7 @@
 #include "modules/base_resultset.h"
 #include "shell_resultset_dumper.h"
 #include "utils/utils_time.h"
+#include "logger/logger.h"
 
 #include <boost/bind.hpp>
 #include <boost/format.hpp>
@@ -1349,7 +1350,7 @@ void Interactive_shell::print_cmd_line_helper()
   println("  -i, --interactive[=full] To use in batch mode, it forces emulation of interactive mode processing.");
   println("                           Each line on the batch is processed as if it were in interactive mode.");
   println("  --force                  To use in SQL batch mode, forces processing to continue if an error is found.");
-  println("  --log-level=value        The log level. Value is an int in the range [1,8], default (1).");
+  println("  --log-level=value        The log level." + ngcommon::Logger::get_level_range_info() );
   println("  --version                Prints the version of MySQL Shell.");
   println("  --ssl                    Enable SSL for connection(automatically enabled with other flags)");
   println("  --ssl-key=name           X509 key in PEM format");
