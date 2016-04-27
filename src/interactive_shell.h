@@ -99,8 +99,6 @@ private:
 private:
   Interpreter_delegate _delegate;
 
-  boost::shared_ptr<mysh::ShellDevelopmentSession> _session;
-  //boost::shared_ptr<mysh::mysqlx::Schema> _db;
   boost::shared_ptr<Shell_core> _shell;
 
   std::string _input_buffer;

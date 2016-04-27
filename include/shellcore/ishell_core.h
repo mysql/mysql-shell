@@ -24,8 +24,15 @@
 #include "shellcore/types_common.h"
 #include "shellcore/types.h"
 #include "shellcore/lang_base.h"
+#include <boost/shared_ptr.hpp>
 
 #include <iostream>
+
+namespace mysh
+{
+  enum SessionType;
+  class ShellDevelopmentSession;
+};
 
 namespace shcore
 {
@@ -62,6 +69,14 @@ namespace shcore
     virtual bool handle_shell_command(const std::string &code) = 0;
     virtual std::string get_handled_input() = 0;
     virtual int process_stream(std::istream& stream, const std::string& source, boost::function<void(shcore::Value)> result_processor) = 0;
+
+    // Development Session Handling
+    virtual boost::shared_ptr<mysh::ShellDevelopmentSession> connect_dev_session(const Argument_list &args, mysh::SessionType session_type) = 0;
+    virtual boost::shared_ptr<mysh::ShellDevelopmentSession> set_dev_session(boost::shared_ptr<mysh::ShellDevelopmentSession> session) = 0;
+    virtual boost::shared_ptr<mysh::ShellDevelopmentSession> get_dev_session() = 0;
+
+    // Global Schema
+    virtual void set_current_schema(const std::string& name) = 0;
 
     virtual std::string prompt() = 0;
 

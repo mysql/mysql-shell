@@ -38,7 +38,7 @@ Shell_client::Shell_client()
   log_path += "mysqlx_vs.log";
   ngcommon::Logger::create_instance(log_path.c_str(), false, ngcommon::Logger::LOG_ERROR);
 
- (*shcore::Shell_core_options::get())[SHCORE_MULTIPLE_INSTANCES] = shcore::Value::True();
+  (*shcore::Shell_core_options::get())[SHCORE_MULTIPLE_INSTANCES] = shcore::Value::True();
 
   _delegate.user_data = this;
   _delegate.print = &Shell_client::deleg_print;
@@ -66,17 +66,16 @@ Shell_client::Shell_client()
 
 shcore::Value Shell_client::connect_session(const shcore::Argument_list &args)
 {
-  boost::shared_ptr<mysh::ShellBaseSession> new_session(mysh::connect_session(args, mysh::Node));
-  _session.reset(new_session, new_session.get());
+  boost::shared_ptr<mysh::ShellDevelopmentSession> old_session(_shell->get_dev_session()),
+                                                   new_session(mysh::connect_session(args, mysh::Node));
 
-  _shell->set_active_session(Value(boost::static_pointer_cast<Object_bridge>(_session)));
-
-  Value default_schema = _session->get_member("defaultSchema");
-  if (default_schema)
+  if (old_session && old_session.unique() && old_session->is_connected())
   {
-    _shell->set_global("db", default_schema);
+    shcore::print("Closing old connection...\n");
+    old_session->close(shcore::Argument_list());
   }
-  else
+
+  if (!_shell->get_global("db"))
   {
     // XXX assign a dummy placeholder to db
     if (_shell->interactive_mode() != Shell_core::Mode_SQL)
@@ -141,12 +140,6 @@ bool Shell_client::connect(const std::string &uri)
 
   try
   {
-    if (_session && _session->is_connected())
-    {
-      shcore::print("Closing old connection...\n");
-      _session->close(shcore::Argument_list());
-    }
-
     // strip password from uri
     std::string uri_stripped = shcore::strip_password(uri);
     shcore::print("Connecting to " + uri_stripped + "...\n");
@@ -172,7 +165,6 @@ bool Shell_client::do_shell_command(const std::string &line)
 Shell_client::~Shell_client()
 {
   if (_shell) _shell.reset();
-  if (_session) _session.reset();
 }
 
 void Shell_client::make_connection(const std::string& connstr)
