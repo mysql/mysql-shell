@@ -62,6 +62,8 @@ namespace mysh
 
     shcore::Value existsInDatabase(const shcore::Argument_list &args);
 
+    virtual std::string get_object_type() { return class_name(); }
+
 #ifdef DOXYGEN
 
     String name; //!< Same as getName()
@@ -79,12 +81,14 @@ namespace mysh
     boost::weak_ptr<DatabaseObject> _schema;
     std::string _name;
 
+  private:
+    void init();
     // Handling of database object caches
   public:
     typedef boost::shared_ptr<shcore::Value::Map_type> Cache;
     static void update_cache(const std::vector<std::string>& names, const std::function<shcore::Value(const std::string &name)>& generator, Cache target_cache);
     static void update_cache(const std::string& name, const std::function<shcore::Value(const std::string &name)>& generator, bool exists, Cache target_cache);
-    static shcore::Value::Array_type_ref get_object_list(Cache target_cache);
+    static void get_object_list(Cache target_cache, shcore::Value::Array_type_ref list);
     static shcore::Value find_in_cache(const std::string& name, Cache target_cache);
   };
 };

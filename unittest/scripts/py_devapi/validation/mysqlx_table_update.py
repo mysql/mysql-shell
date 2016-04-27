@@ -78,6 +78,6 @@
 |With 16 Years: 3|
 |With 15 Years: 1|
 
-#@ TableUpdate: test full update
+#@ TableUpdate: test full update with view object
 |Updated Females: 4|
 |All Females: 7|

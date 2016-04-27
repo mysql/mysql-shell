@@ -11,7 +11,8 @@ mySession.setCurrentSchema('js_shell_test');
 
 // Creates a test table with initial data
 var result = mySession.sql('create table table1 (name varchar(50), age integer, gender varchar(20));').execute();
-table = schema.getTable('table1');
+var result = mySession.sql('create view view1 (my_name, my_age, my_gender) as select name, age, gender from table1;').execute();
+var table = schema.getTable('table1');
 
 var result = table.insert({ name: 'jack', age: 17, gender: 'male' }).execute();
 var result = table.insert({ name: 'adam', age: 15, gender: 'male' }).execute();
@@ -124,10 +125,12 @@ print('With 16 Years:', records.length, '\n');
 var records = table.select().where('age = 15').execute().fetchAll();
 print('With 15 Years:', records.length, '\n');
 
-//@ TableUpdate: test full update
-var result = table.update().set('gender', 'female').execute();
+//@ TableUpdate: test full update with view object
+var view = schema.getTable('view1');
+var result = view.update().set('my_gender', 'female').execute();
 print('Updated Females:', result.affectedItemCount, '\n');
 
+// Result gets reflected on the target table
 var records = table.select().where('gender = \"female\"').execute().fetchAll();
 print('All Females:', records.length, '\n');
 

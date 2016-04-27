@@ -11,6 +11,7 @@ mySession.setCurrentSchema('js_shell_test');
 
 // Creates a test table with initial data
 var result = mySession.sql('create table table1 (name varchar(50), age integer, gender varchar(20));').execute();
+var result = mySession.sql('create view view1 (my_name, my_age, my_gender) as select name, age, gender from table1;').execute();
 table = schema.getTable('table1');
 
 var result = table.insert({ name: 'jack', age: 17, gender: 'male' }).execute();
@@ -102,10 +103,12 @@ print('Affected Rows:', result.affectedItemCount, '\n');
 var records = table.select().execute().fetchAll();
 print('Records Left:', records.length, '\n');
 
-//@ TableDelete: full delete
-var result = table.delete().execute();
+//@ TableDelete: full delete with a view object
+var view = schema.getTable('view1');
+var result = view.delete().execute();
 print('Affected Rows:', result.affectedItemCount, '\n');
 
+// Deletion is of course reflected on the target table
 var records = table.select().execute().fetchAll();
 print('Records Left:', records.length, '\n');
 

@@ -11,6 +11,7 @@ mySession.setCurrentSchema('js_shell_test')
 
 # Creates a test table with initial data
 result = mySession.sql('create table table1 (name varchar(50), age integer, gender varchar(20))').execute()
+result = mySession.sql('create view view1 (my_name, my_age, my_gender) as select name, age, gender from table1;').execute()
 table = schema.getTable('table1')
 
 result = table.insert({"name": 'jack', "age": 17, "gender": 'male'}).execute()
@@ -198,10 +199,11 @@ for index in xrange(7):
 	records = table.select().limit(4).offset(index + 1).execute().fetchAll()
 	print 'Limit-Offset', index + 1, ':', len(records), '\n'
 
-#@ Table.Select Parameter Binding
-records = table.select().where('age = :years and gender = :heorshe').bind('years', 13).bind('heorshe', 'female').execute().fetchAll()
+#@ Table.Select Parameter Binding through a View
+view = schema.getTable('view1');
+records = view.select().where('my_age = :years and my_gender = :heorshe').bind('years', 13).bind('heorshe', 'female').execute().fetchAll()
 print 'Select Binding Length:', len(records), '\n'
-print 'Select Binding Name:', records[0].name, '\n'
+print 'Select Binding Name:', records[0].my_name, '\n'
 
 
 # Cleanup

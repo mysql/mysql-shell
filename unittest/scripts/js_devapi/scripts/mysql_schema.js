@@ -6,12 +6,33 @@ var mySession = mysql.getClassicSession(__uripwd);
 
 ensure_schema_does_not_exist(mySession, 'js_shell_test');
 
-var schema = mySession.createSchema('js_shell_test');
+mySession.createSchema('js_shell_test');
 mySession.setCurrentSchema('js_shell_test');
 
 var result;
 result = mySession.runSql('create table table1 (name varchar(50));');
 result = mySession.runSql('create view view1 (my_name) as select name from table1;');
+
+var schema = mySession.getSchema('js_shell_test');
+
+//@ Schema: validating members
+var members = dir(schema);
+
+print("Member Count:", members.length);
+
+validateMember(members, 'name');
+validateMember(members, 'schema');
+validateMember(members, 'session');
+validateMember(members, 'existsInDatabase');
+validateMember(members, 'getName');
+validateMember(members, 'getSchema');
+validateMember(members, 'getSession');
+validateMember(members, 'getTable');
+validateMember(members, 'getTables');
+
+//Dynamic Properties
+validateMember(members, 'table1');
+validateMember(members, 'view1');
 
 //@ Testing schema name retrieving
 print('getName(): ' + schema.getName());
@@ -30,12 +51,11 @@ print('schema:', schema.schema);
 //@ Testing tables, views and collection retrieval
 var mySchema = mySession.getSchema('js_shell_test');
 print('getTables():', mySchema.getTables()[0]);
-print('getViews():', mySchema.getViews()[0]);
 
 //@ Testing specific object retrieval
-print('getTable():', mySchema.getTable('table1'));
+print('Retrieving a table:', mySchema.getTable('table1'));
 print('.<table>:', mySchema.table1);
-print('getView():', mySchema.getView('view1'));
+print('Retrieving a view:', mySchema.getTable('view1'));
 print('.<view>:', mySchema.view1);
 
 //@ Testing existence

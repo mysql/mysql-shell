@@ -14,3 +14,5 @@
 |Valid: true|
 |Invalid: false|
 
+//@ Testing view check
+|Is View: true|

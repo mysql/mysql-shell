@@ -63,7 +63,7 @@
 |Records Left: 2|
 
 
-#@ TableDelete: full delete
+#@ TableDelete: full delete with a view object
 |Affected Rows: 2|
 |Records Left: 0|
 

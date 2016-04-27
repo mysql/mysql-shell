@@ -312,7 +312,7 @@ std::string ClassicSession::_retrieve_current_schema()
 
 void ClassicSession::_remove_schema(const std::string& name)
 {
-  if (_schemas->count(name))
+  if (_schemas->find(name) != _schemas->end())
     _schemas->erase(name);
 }
 
@@ -332,7 +332,7 @@ shcore::Value ClassicSession::get_schema(const shcore::Argument_list &args) cons
   args.ensure_count(1, function_name.c_str());
   shcore::Value ret_val;
 
-  std::string type = "ClassicSchema";
+  std::string type = "Schema";
   std::string search_name = args.string_at(0);
   std::string name = db_object_exists(type, search_name, "");
 
@@ -515,7 +515,7 @@ std::string ClassicSession::db_object_exists(std::string &type, const std::strin
   std::string statement;
   std::string ret_val;
 
-  if (type == "ClassicSchema")
+  if (type == "Schema")
   {
     statement = sqlstring("show databases like ?", 0) << name;
     Result *res = _conn->run_sql(statement);
@@ -539,9 +539,9 @@ std::string ClassicSession::db_object_exists(std::string &type, const std::strin
       {
         std::string db_type = row->get_value(1).as_string();
 
-        if (type == "ClassicTable" && (db_type == "BASE TABLE" || db_type == "LOCAL TEMPORARY"))
+        if (type == "Table" && (db_type == "BASE TABLE" || db_type == "LOCAL TEMPORARY"))
           ret_val = row->get_value(0).as_string();
-        else if (type == "ClassicView" && (db_type == "VIEW" || db_type == "SYSTEM VIEW"))
+        else if (type == "View" && (db_type == "VIEW" || db_type == "SYSTEM VIEW"))
           ret_val = row->get_value(0).as_string();
         else if (type.empty())
         {

@@ -1,3 +1,19 @@
+//@ Schema: validating members
+|Member Count: 11|
+
+|name: OK|
+|schema: OK|
+|session: OK|
+|existsInDatabase: OK|
+|getName: OK|
+|getSchema: OK|
+|getSession: OK|
+|getTable: OK|
+|getTables: OK|
+
+|table1: OK|
+|view1: OK|
+
 //@ Testing schema name retrieving
 |getName(): js_shell_test|
 |name: js_shell_test|
@@ -13,14 +29,13 @@
 |schema: null|
 
 //@ Testing tables, views and collection retrieval
-|getTables(): <ClassicTable:table1>|
-|getViews(): <ClassicView:view1>|
+|getTables(): <ClassicTable:|
 
 //@ Testing specific object retrieval
-|getTable(): <ClassicTable:table1>|
+|Retrieving a table: <ClassicTable:table1>|
 |.<table>: <ClassicTable:table1>|
-|getView(): <ClassicView:view1>|
-|.<view>: <ClassicView:view1>|
+|Retrieving a view: <ClassicTable:view1>|
+|.<view>: <ClassicTable:view1>|
 
 //@ Testing existence
 |Valid: true|

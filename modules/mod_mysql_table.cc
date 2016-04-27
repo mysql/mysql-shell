@@ -19,21 +19,43 @@
 
 #include "mod_mysql_schema.h"
 #include "mod_mysql_table.h"
+#include <boost/bind.hpp>
 
 using namespace mysh;
 using namespace mysh::mysql;
 using namespace shcore;
 
-ClassicTable::ClassicTable(boost::shared_ptr<ClassicSchema> owner, const std::string &name)
-: DatabaseObject(owner->_session.lock(), boost::static_pointer_cast<DatabaseObject>(owner), name)
+ClassicTable::ClassicTable(boost::shared_ptr<ClassicSchema> owner, const std::string &name, bool is_view)
+  : DatabaseObject(owner->_session.lock(), boost::static_pointer_cast<DatabaseObject>(owner), name), _is_view(is_view)
 {
+  init();
 }
 
-ClassicTable::ClassicTable(boost::shared_ptr<const ClassicSchema> owner, const std::string &name)
-: DatabaseObject(owner->_session.lock(), boost::const_pointer_cast<ClassicSchema>(owner), name)
+ClassicTable::ClassicTable(boost::shared_ptr<const ClassicSchema> owner, const std::string &name, bool is_view)
+  : DatabaseObject(owner->_session.lock(), boost::const_pointer_cast<ClassicSchema>(owner), name), _is_view(is_view)
 {
+  init();
 }
 
 ClassicTable::~ClassicTable()
 {
+}
+
+void ClassicTable::init()
+{
+  add_method("isView", boost::bind(&ClassicTable::is_view, this, _1), NULL);
+}
+
+#ifdef DOXYGEN
+/**
+* Indicates whether this ClassicTable object represents a View on the database.
+* \return True if the Table represents a View on the database, False if represents a Table.
+*/
+Bool Table::isView(){}
+#endif
+shcore::Value ClassicTable::is_view(const shcore::Argument_list &args)
+{
+  args.ensure_count(0, "ClassicTable.isView");
+
+  return Value(_is_view);
 }

@@ -132,6 +132,6 @@
 |Limit-Offset 7 : 0|
 
 
-//@ Table.Select Parameter Binding
+//@ Table.Select Parameter Binding through a View
 |Select Binding Length: 1|
 |Select Binding Name: alma|

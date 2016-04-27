@@ -6,13 +6,40 @@ var mySession = mysqlx.getNodeSession(__uripwd);
 
 ensure_schema_does_not_exist(mySession, 'js_shell_test');
 
-var schema = mySession.createSchema('js_shell_test');
+mySession.createSchema('js_shell_test');
 mySession.setCurrentSchema('js_shell_test');
 
 var result;
 result = mySession.sql('create table table1 (name varchar(50));').execute();
 result = mySession.sql('create view view1 (my_name) as select name from table1;').execute();
 result = mySession.getSchema('js_shell_test').createCollection('collection1');
+
+
+var schema = mySession.getSchema('js_shell_test');
+
+//@ Schema: validating members
+var members = dir(schema);
+
+print("Member Count:", members.length);
+
+validateMember(members, 'name');
+validateMember(members, 'schema');
+validateMember(members, 'session');
+validateMember(members, 'existsInDatabase');
+validateMember(members, 'getName');
+validateMember(members, 'getSchema');
+validateMember(members, 'getSession');
+validateMember(members, 'getTable');
+validateMember(members, 'getTables');
+validateMember(members, 'getCollection');
+validateMember(members, 'getCollections');
+validateMember(members, 'createCollection');
+validateMember(members, 'getCollectionAsTable');
+
+//Dynamic Properties
+validateMember(members, 'table1');
+validateMember(members, 'view1');
+validateMember(members, 'collection1');
 
 
 //@ Testing schema name retrieving
@@ -32,25 +59,22 @@ print('schema:', schema.schema);
 //@ Testing tables, views and collection retrieval
 var mySchema = mySession.getSchema('js_shell_test');
 print('getTables():', mySchema.getTables()[0]);
-print('getViews():', mySchema.getViews()[0]);
 print('getCollections():', mySchema.getCollections()[0]);
 
 //@ Testing specific object retrieval
-print('getTable():', mySchema.getTable('table1'));
+print('Retrieving a table:', mySchema.getTable('table1'));
 print('.<table>:', mySchema.table1);
-print('getView():', mySchema.getView('view1'));
+print('Retrieving a view:', mySchema.getTable('view1'));
 print('.<view>:', mySchema.view1);
 print('getCollection():', mySchema.getCollection('collection1'));
 print('.<collection>:', mySchema.collection1);
 
 //@# Testing specific object retrieval: unexisting objects
 mySchema.getTable('unexisting');
-mySchema.getView('unexisting');
 mySchema.getCollection('unexisting');
 
 //@# Testing specific object retrieval: empty name
 mySchema.getTable('');
-mySchema.getView('');
 mySchema.getCollection('');
 
 //@ Retrieving collection as table

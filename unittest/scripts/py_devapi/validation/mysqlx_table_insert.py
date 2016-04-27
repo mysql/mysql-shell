@@ -44,3 +44,6 @@
 |Affected Rows Columns: 1|
 |Affected Rows Multiple Values: 2|
 |Affected Rows Document: 1|
+
+#@ Table.insert execution on a View
+|Affected Rows Through View: 1|

@@ -31,6 +31,9 @@ print 'Valid:', table.existsInDatabase()
 mySession.dropTable('js_shell_test', 'table1')
 print 'Invalid:', table.existsInDatabase()
 
+#@ Testing view check
+print 'Is View:', table.isView()
+
 # Closes the session
 mySession.dropSchema('js_shell_test')
 mySession.close()

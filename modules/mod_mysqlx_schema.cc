@@ -29,7 +29,6 @@
 #include "mod_mysqlx_session.h"
 #include "mod_mysqlx_table.h"
 #include "mod_mysqlx_collection.h"
-#include "mod_mysqlx_view.h"
 #include "mod_mysqlx_resultset.h"
 
 #include <boost/bind.hpp>
@@ -63,12 +62,10 @@ void Schema::init()
 {
   add_method("getTables", boost::bind(&Schema::get_tables, this, _1), NULL);
   add_method("getCollections", boost::bind(&Schema::get_collections, this, _1), NULL);
-  add_method("getViews", boost::bind(&Schema::get_views, this, _1), NULL);
 
   add_method("getTable", boost::bind(&Schema::get_table, this, _1), "name", shcore::String, NULL);
   add_method("getCollection", boost::bind(&Schema::get_collection, this, _1), "name", shcore::String, NULL);
   add_method("getCollectionAsTable", boost::bind(&Schema::get_collection_as_table, this, _1), "name", shcore::String, NULL);
-  add_method("getView", boost::bind(&Schema::get_view, this, _1), "name", shcore::String, NULL);
 
   add_method("createCollection", boost::bind(&Schema::create_collection, this, _1), "name", shcore::String, NULL);
 
@@ -77,8 +74,8 @@ void Schema::init()
   _collections = Value::new_map().as_map();
 
   // Setups the cache handlers
-  auto table_generator = [this](const std::string& name){return shcore::Value::wrap<Table>(new Table(shared_from_this(), name)); };
-  auto view_generator = [this](const std::string& name){return shcore::Value::wrap<View>(new View(shared_from_this(), name)); };
+  auto table_generator = [this](const std::string& name){return shcore::Value::wrap<Table>(new Table(shared_from_this(), name, false)); };
+  auto view_generator = [this](const std::string& name){return shcore::Value::wrap<Table>(new Table(shared_from_this(), name, true)); };
   auto collection_generator = [this](const std::string& name){return shcore::Value::wrap<Collection>(new Collection(shared_from_this(), name)); };
 
   update_table_cache = [table_generator, this](const std::string &name, bool exists){DatabaseObject::update_cache(name, table_generator, exists, _tables); };
@@ -242,7 +239,12 @@ shcore::Value Schema::get_tables(const shcore::Argument_list &args)
 
   update_cache();
 
-  return shcore::Value(DatabaseObject::get_object_list(_tables));
+  shcore::Value::Array_type_ref list(new shcore::Value::Array_type);
+
+  get_object_list(_tables, list);
+  get_object_list(_views, list);
+
+  return shcore::Value(list);
 }
 
 #ifdef DOXYGEN
@@ -265,30 +267,11 @@ shcore::Value Schema::get_collections(const shcore::Argument_list &args)
 
   update_cache();
 
-  return shcore::Value(DatabaseObject::get_object_list(_collections));
-}
+  shcore::Value::Array_type_ref list(new shcore::Value::Array_type);
 
-#ifdef DOXYGEN
-/**
-* Returns a list of Views for this Schema.
-* \sa View
-* \return A List containing the View objects available for the Schema.
-*
-* Pulls from the database the available Tables, Views and Collections.
-*
-* Does a full refresh of the Tables, Views and Collections cache.
-*
-* Returns a List of available View objects.
-*/
-List Schema::getViews(){}
-#endif
-shcore::Value Schema::get_views(const shcore::Argument_list &args)
-{
-  args.ensure_count(0, (class_name() + ".getViews").c_str());
+  get_object_list(_collections, list);
 
-  update_cache();
-
-  return shcore::Value(DatabaseObject::get_object_list(_views));
+  return shcore::Value(list);
 }
 
 #ifdef DOXYGEN
@@ -316,15 +299,30 @@ shcore::Value Schema::get_table(const shcore::Argument_list &args)
     std::string found_type;
     std::string real_name = _session.lock()->db_object_exists(found_type, name, _name);
     bool exists = false;
-    if (!real_name.empty() && found_type == "TABLE")
-      exists = true;
 
-    // Updates the cache
-    update_table_cache(real_name, exists);
+    if (!real_name.empty())
+    {
+      if (found_type == "TABLE")
+      {
+        exists = true;
 
-    if (exists)
-      ret_val = (*_tables)[real_name];
-    else
+        // Updates the cache
+        update_table_cache(real_name, exists);
+
+        ret_val = (*_tables)[real_name];
+      }
+      else if (found_type == "VIEW")
+      {
+        exists = true;
+
+        // Updates the cache
+        update_view_cache(real_name, exists);
+
+        ret_val = (*_views)[real_name];
+      }
+    }
+
+    if (!exists)
       throw shcore::Exception::runtime_error("The table " + _name + "." + name + " does not exist");
   }
   else
@@ -373,7 +371,7 @@ shcore::Value Schema::get_collection(const shcore::Argument_list &args)
     throw shcore::Exception::argument_error("An empty name is invalid for a collection");
 
   return ret_val;
-}
+  }
 
 #ifdef DOXYGEN
 /**
@@ -394,48 +392,6 @@ shcore::Value Schema::get_collection_as_table(const shcore::Argument_list &args)
     boost::shared_ptr<Table> table(new Table(shared_from_this(), args.string_at(0)));
     ret_val = Value(boost::static_pointer_cast<Object_bridge>(table));
   }
-
-  return ret_val;
-}
-
-#ifdef DOXYGEN
-/**
-* Returns the View of the given name for this schema.
-* \sa View
-* \param name the name of the View to look for.
-* \return the View object matching the name.
-*
-* Verifies if the requested View exist on the database, if exists, returns the corresponding View object.
-*
-* Updates the Views cache.
-*/
-View Schema::getView(String name){}
-#endif
-shcore::Value Schema::get_view(const shcore::Argument_list &args)
-{
-  args.ensure_count(1, (class_name() + ".getCollection").c_str());
-
-  std::string name = args.string_at(0);
-  shcore::Value ret_val;
-
-  if (!name.empty())
-  {
-    std::string found_type;
-    std::string real_name = _session.lock()->db_object_exists(found_type, name, _name);
-    bool exists = false;
-    if (!real_name.empty() && found_type == "VIEW")
-      exists = true;
-
-    // Updates the cache
-    update_view_cache(real_name, exists);
-
-    if (exists)
-      ret_val = (*_views)[real_name];
-    else
-      throw shcore::Exception::runtime_error("The view " + _name + "." + name + " does not exist");
-  }
-  else
-    throw shcore::Exception::argument_error("An empty name is invalid for a view");
 
   return ret_val;
 }
