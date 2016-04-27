@@ -52,9 +52,9 @@ namespace mysh
     * \b Dynamic \b Properties
     *
     * In addition to the properties documented above, when a schema object is retrieved from the session,
-    * its Tables, Views and Collections are loaded from the database and a cache is filled with the corresponding objects.
+    * its Tables and Collections are loaded from the database and a cache is filled with the corresponding objects.
     *
-    * This cache is used to allow the user accessing the Tables, Views and Collections as Schema properties. These Dynamic Properties are named
+    * This cache is used to allow the user accessing the Tables and Collections as Schema properties. These Dynamic Properties are named
     * as the object name, so, if a Schema has a table named *customers* this table can be accessed in two forms:
     *
     * \code{.js}
@@ -65,16 +65,23 @@ namespace mysh
     * var table = mySchema.customers;
     * \endcode
     *
-    * Note that dynamic properties for Schema objects (Tables, Views and Collections) are available only if the next conditions are met:
+    * Note that dynamic properties for Schema objects (Tables and Collections) are available only if the next conditions are met:
     *
     * - The object name is a valid identifier.
     * - The object name is different from any member of the Schema class.
     * - The object is in the cache.
     *
-    * The object cache is updated every time getTables(), getViews() or getCollections() are called.
+    * The object cache is updated every time getTables() or getCollections() are called.
     *
-    * To retrieve an object that is not available through a Dynamic Property use getTable(name), getView(name) or getCollection(name)
-
+    * To retrieve an object that is not available through a Dynamic Property use getTable(name) or getCollection(name)
+    *
+    * \b View \b Support
+    *
+    * MySQL Views are stored queries that when executed produce a result set.
+    *
+    * MySQL supports the concept of Updatable Views: in specific conditions are met, Views can be used not only to retrieve data from them but also to update, add and delete records.
+    *
+    * For the purpose of this API, Views behave similar to a Table, and so they are threated as Tables.
     */
     class SHCORE_PUBLIC Schema : public DatabaseObject, public boost::enable_shared_from_this<Schema>
     {
@@ -94,14 +101,11 @@ namespace mysh
 
       friend class Table;
       friend class Collection;
-      friend class View;
 #ifdef DOXYGEN
       List getTables();
-      List getViews();
       List getCollections();
 
       Table getTable(String name);
-      View getView(String name);
       Collection getCollection(String name);
       Table getCollectionAsTable(String name);
       Collection createCollection(String name);
@@ -109,10 +113,8 @@ namespace mysh
     public:
       shcore::Value get_tables(const shcore::Argument_list &args);
       shcore::Value get_collections(const shcore::Argument_list &args);
-      shcore::Value get_views(const shcore::Argument_list &args);
       shcore::Value get_table(const shcore::Argument_list &args);
       shcore::Value get_collection(const shcore::Argument_list &args);
-      shcore::Value get_view(const shcore::Argument_list &args);
       shcore::Value get_collection_as_table(const shcore::Argument_list &args);
       shcore::Value create_collection(const shcore::Argument_list &args);
 

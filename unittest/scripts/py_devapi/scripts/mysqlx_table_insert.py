@@ -11,6 +11,7 @@ mySession.setCurrentSchema('js_shell_test')
 
 # Creates a test table
 result = mySession.sql('create table table1 (name varchar(50), age integer, gender varchar(20))').execute()
+result = mySession.sql('create view view1 (my_name, my_age, my_gender) as select name, age, gender from table1;').execute()
 
 table = schema.getTable('table1')
 
@@ -83,6 +84,12 @@ print "Affected Rows Multiple Values:", result.affectedItemCount, "\n"
 
 result = table.insert({'age':14, 'name':'jackie', 'gender': 'female'}).execute()
 print "Affected Rows Document:", result.affectedItemCount, "\n"
+
+#@ Table.insert execution on a View
+view = schema.getTable('view1')
+result = view.insert({ 'my_age': 15, 'my_name': 'jhonny', 'my_gender': 'male' }).execute()
+print "Affected Rows Through View:", result.affectedItemCount, "\n"
+
 
 # Cleanup
 mySession.dropSchema('js_shell_test')

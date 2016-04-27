@@ -12,7 +12,7 @@ mySession.setCurrentSchema('js_shell_test');
 var result;
 result = mySession.sql('create table table1 (name varchar(50))').execute();
 result = mySession.sql('create view view1 (my_name) as select name from table1;').execute();
-var view = mySession.getSchema('js_shell_test').getView('view1');
+var view = mySession.getSchema('js_shell_test').getTable('view1');
 
 //@ Testing view name retrieving
 print('getName(): ' + view.getName());
@@ -30,6 +30,9 @@ print('schema:', view.schema);
 print('Valid:', view.existsInDatabase());
 mySession.dropView('js_shell_test', 'view1');
 print('Invalid:', view.existsInDatabase());
+
+//@ Testing view check
+print('Is View:', view.isView());
 
 // Closes the session
 mySession.dropSchema('js_shell_test');

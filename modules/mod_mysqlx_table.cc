@@ -30,15 +30,15 @@ using namespace mysh;
 using namespace mysh::mysqlx;
 using namespace shcore;
 
-Table::Table(boost::shared_ptr<Schema> owner, const std::string &name)
-: DatabaseObject(owner->_session.lock(), boost::static_pointer_cast<DatabaseObject>(owner), name)
+Table::Table(boost::shared_ptr<Schema> owner, const std::string &name, bool is_view)
+  : DatabaseObject(owner->_session.lock(), boost::static_pointer_cast<DatabaseObject>(owner), name), _is_view(is_view)
 {
   _table_impl = owner->_schema_impl->getTable(name);
   init();
 }
 
-Table::Table(boost::shared_ptr<const Schema> owner, const std::string &name) :
-DatabaseObject(owner->_session.lock(), boost::const_pointer_cast<Schema>(owner), name)
+Table::Table(boost::shared_ptr<const Schema> owner, const std::string &name, bool is_view) :
+DatabaseObject(owner->_session.lock(), boost::const_pointer_cast<Schema>(owner), name), _is_view(is_view)
 {
   _table_impl = owner->_schema_impl->getTable(name);
   init();
@@ -46,10 +46,11 @@ DatabaseObject(owner->_session.lock(), boost::const_pointer_cast<Schema>(owner),
 
 void Table::init()
 {
-  add_method("insert", boost::bind(&Table::insert_, this, _1), "searchCriteria", shcore::String, NULL);
-  add_method("update", boost::bind(&Table::update_, this, _1), "searchCriteria", shcore::String, NULL);
-  add_method("select", boost::bind(&Table::select_, this, _1), "searchCriteria", shcore::String, NULL);
-  add_method("delete", boost::bind(&Table::delete_, this, _1), "searchCriteria", shcore::String, NULL);
+  add_method("insert", boost::bind(&Table::insert_, this, _1), NULL);
+  add_method("update", boost::bind(&Table::update_, this, _1), NULL);
+  add_method("select", boost::bind(&Table::select_, this, _1), "searchCriteria", shcore::Array, NULL);
+  add_method("delete", boost::bind(&Table::delete_, this, _1), "tableFields", shcore::Array, NULL);
+  add_method("isView", boost::bind(&Table::is_view, this, _1), NULL);
 }
 
 Table::~Table()
@@ -194,4 +195,18 @@ shcore::Value Table::select_(const shcore::Argument_list &args)
   boost::shared_ptr<TableSelect> tableSelect(new TableSelect(shared_from_this()));
 
   return tableSelect->select(args);
+}
+
+#ifdef DOXYGEN
+/**
+* Indicates whether this Table object represents a View on the database.
+* \return True if the Table represents a View on the database, False if represents a Table.
+*/
+Bool Table::isView(){}
+#endif
+shcore::Value Table::is_view(const shcore::Argument_list &args)
+{
+  args.ensure_count(0, "Table.isView");
+
+  return Value(_is_view);
 }

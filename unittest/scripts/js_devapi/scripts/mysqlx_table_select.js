@@ -11,7 +11,8 @@ mySession.setCurrentSchema('js_shell_test');
 
 // Creates a test table with initial data
 var result = mySession.sql('create table table1 (name varchar(50), age integer, gender varchar(20));').execute();
-table = schema.getTable('table1');
+var result = mySession.sql('create view view1 (my_name, my_age, my_gender) as select name, age, gender from table1;').execute();
+var table = schema.getTable('table1');
 
 var result = table.insert({ name: 'jack', age: 17, gender: 'male' }).execute();
 var result = table.insert({ name: 'adam', age: 15, gender: 'male' }).execute();
@@ -178,10 +179,11 @@ for (index = 1; index < 8; index++) {
   print('Limit-Offset', index, ':', records.length, '\n');
 }
 
-//@ Table.Select Parameter Binding
-var records = table.select().where('age = :years and gender = :heorshe').bind('years', 13).bind('heorshe', 'female').execute().fetchAll();
+//@ Table.Select Parameter Binding through a View
+var view = schema.getTable('view1');
+var records = view.select().where('my_age = :years and my_gender = :heorshe').bind('years', 13).bind('heorshe', 'female').execute().fetchAll();
 print('Select Binding Length:', records.length, '\n');
-print('Select Binding Name:', records[0].name, '\n');
+print('Select Binding Name:', records[0].my_name, '\n');
 
 // Cleanup
 mySession.dropSchema('js_shell_test');

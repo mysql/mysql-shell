@@ -249,8 +249,9 @@ Value BaseSession::create_schema(const shcore::Argument_list &args)
     ret_val = executeStmt("sql", statement, false, shcore::Argument_list());
 
     // if reached this point it indicates that there were no errors
-    boost::shared_ptr<Schema> object(new Schema(_get_shared_this(), schema));
-    ret_val = shcore::Value(boost::static_pointer_cast<Object_bridge>(object));
+    update_schema_cache(schema, true);
+
+    ret_val = (*_schemas)[schema];
   }
   CATCH_AND_TRANSLATE();
 
@@ -568,6 +569,9 @@ shcore::Value BaseSession::drop_schema(const shcore::Argument_list &args)
 
   Value ret_val = executeStmt("sql", sqlstring("drop schema !", 0) << name, false, shcore::Argument_list());
 
+  if (_schemas->find(name) != _schemas->end())
+    _schemas->erase(name);
+
   return ret_val;
 }
 
@@ -619,6 +623,13 @@ shcore::Value BaseSession::drop_schema_object(const shcore::Argument_list &args,
     command_args.push_back(Value(name));
 
     ret_val = executeAdminCommand("drop_collection", false, command_args);
+  }
+
+  if (_schemas->count(schema))
+  {
+    boost::shared_ptr<Schema> schema_obj = boost::static_pointer_cast<Schema>((*_schemas)[schema].as_object());
+    if (schema_obj)
+      schema_obj->_remove_object(name, type);
   }
 
   return ret_val;

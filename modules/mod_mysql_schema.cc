@@ -20,7 +20,6 @@
 #include "utils/utils_sqlstring.h"
 #include "mod_mysql_schema.h"
 #include "mod_mysql_table.h"
-#include "mod_mysql_view.h"
 #include "mod_mysql_session.h"
 #include "mod_mysql_resultset.h"
 
@@ -55,17 +54,14 @@ DatabaseObject(boost::const_pointer_cast<ClassicSession>(session), boost::shared
 void ClassicSchema::init()
 {
   add_method("getTables", boost::bind(&ClassicSchema::get_tables, this, _1), NULL);
-  add_method("getViews", boost::bind(&ClassicSchema::get_views, this, _1), NULL);
-
   add_method("getTable", boost::bind(&ClassicSchema::get_table, this, _1), "name", shcore::String, NULL);
-  add_method("getView", boost::bind(&ClassicSchema::get_view, this, _1), "name", shcore::String, NULL);
 
   _tables = Value::new_map().as_map();
   _views = Value::new_map().as_map();
 
   // Setups the cache handlers
-  auto table_generator = [this](const std::string& name){return shcore::Value::wrap<ClassicTable>(new ClassicTable(shared_from_this(), name)); };
-  auto view_generator = [this](const std::string& name){return shcore::Value::wrap<ClassicView>(new ClassicView(shared_from_this(), name)); };
+  auto table_generator = [this](const std::string& name){return shcore::Value::wrap<ClassicTable>(new ClassicTable(shared_from_this(), name, false)); };
+  auto view_generator = [this](const std::string& name){return shcore::Value::wrap<ClassicTable>(new ClassicTable(shared_from_this(), name, true)); };
 
   update_table_cache = [table_generator, this](const std::string &name, bool exists){DatabaseObject::update_cache(name, table_generator, exists, _tables); };
   update_view_cache = [view_generator, this](const std::string &name, bool exists){DatabaseObject::update_cache(name, view_generator, exists, _views); };
@@ -203,15 +199,29 @@ shcore::Value ClassicSchema::get_table(const shcore::Argument_list &args)
     std::string found_type;
     std::string real_name = _session.lock()->db_object_exists(found_type, name, _name);
     bool exists = false;
-    if (!real_name.empty() && (found_type == "BASE TABLE" || found_type == "LOCAL TEMPORARY"))
-      exists = true;
+    if (!real_name.empty())
+    {
+      if (found_type == "BASE TABLE" || found_type == "LOCAL TEMPORARY")
+      {
+        exists = true;
 
-    // Updates the cache
-    update_table_cache(real_name, exists);
+        // Updates the cache
+        update_table_cache(real_name, exists);
 
-    if (exists)
-      ret_val = (*_tables)[real_name];
-    else
+        ret_val = (*_tables)[real_name];
+      }
+      else if (found_type == "VIEW" || found_type == "SYSTEM VIEW")
+      {
+        exists = true;
+
+        // Updates the cache
+        update_view_cache(real_name, exists);
+
+        ret_val = (*_views)[real_name];
+      }
+    }
+
+    if (!exists)
       throw shcore::Exception::runtime_error("The table " + _name + "." + name + " does not exist");
   }
   else
@@ -240,69 +250,10 @@ shcore::Value ClassicSchema::get_tables(const shcore::Argument_list &args)
 
   update_cache();
 
-  return shcore::Value(get_object_list(_tables));
-}
+  shcore::Value::Array_type_ref list(new shcore::Value::Array_type);
 
-#ifdef DOXYGEN
-/**
-* Returns the view of the given name for this schema.
-* \sa ClassicView
-* \param name the name of the view to look for.
-* \return the ClassicView object matching the name.
-*
-* Verifies if the requested View exist on the database, if exists, returns the corresponding ClassicView object.
-*
-* Updates the Views cache.
-*/
-ClassicView ClassicSchema::getView(String name){}
-#endif
-shcore::Value ClassicSchema::get_view(const shcore::Argument_list &args)
-{
-  args.ensure_count(1, (class_name() + ".getView").c_str());
-  std::string name = args.string_at(0);
-  shcore::Value ret_val;
+  get_object_list(_tables, list);
+  get_object_list(_views, list);
 
-  if (!name.empty())
-  {
-    std::string found_type;
-    std::string real_name = _session.lock()->db_object_exists(found_type, name, _name);
-    bool exists = false;
-    if (!real_name.empty() && (found_type == "VIEW" || found_type == "SYSTEM VIEW"))
-      exists = true;
-
-    // Updates the cache
-    update_view_cache(real_name, exists);
-
-    if (exists)
-      ret_val = (*_views)[real_name];
-    else
-      throw shcore::Exception::runtime_error("The view " + _name + "." + name + " does not exist");
-  }
-  else
-    throw shcore::Exception::argument_error("An empty name is invalid for a view");
-
-  return ret_val;
-}
-
-#ifdef DOXYGEN
-/**
-* Returns a list of Views for this Schema.
-* \sa ClassicTable
-* \return A List containing the View objects available for the Schema.
-*
-* Pulls from the database the available Tables and Views.
-*
-* Does a full refresh of the Tables and Views cache.
-*
-* Returns a List of available View objects.
-*/
-List ClassicSchema::getViews(){}
-#endif
-shcore::Value ClassicSchema::get_views(const shcore::Argument_list &args)
-{
-  args.ensure_count(0, (class_name() + ".getViews").c_str());
-
-  update_cache();
-
-  return shcore::Value(get_object_list(_views));
+  return shcore::Value(list);
 }

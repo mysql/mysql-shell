@@ -11,6 +11,7 @@ mySession.setCurrentSchema('js_shell_test')
 
 # Creates a test table with initial data
 result = mySession.sql('create table table1 (name varchar(50), age integer, gender varchar(20))').execute()
+result = mySession.sql('create view view1 (my_name, my_age, my_gender) as select name, age, gender from table1;').execute()
 table = schema.getTable('table1')
 
 result = table.insert({"name": 'jack', "age": 17, "gender": 'male'}).execute()
@@ -126,10 +127,12 @@ print 'With 16 Years:', len(records), '\n'
 records = table.select().where('age = 15').execute().fetchAll()
 print 'With 15 Years:', len(records), '\n'
 
-#@ TableUpdate: test full update
-result = table.update().set('gender', 'female').execute()
+#@ TableUpdate: test full update with view object
+view = schema.getTable('view1')
+result = view.update().set('my_gender', 'female').execute()
 print 'Updated Females:', result.affectedItemCount, '\n'
 
+# Result gets reflected on the target table
 records = table.select().where('gender = \"female\"').execute().fetchAll()
 print 'All Females:', len(records), '\n'
 

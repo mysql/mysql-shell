@@ -49,9 +49,9 @@ namespace mysh
     * \b Dynamic \b Properties
     *
     * In addition to the properties documented above, when a schema object is retrieved from the session,
-    * its Tables and Views are loaded from the database and a cache is filled with the corresponding objects.
+    * its Tables are loaded from the database and a cache is filled with the corresponding objects.
     *
-    * This cache is used to allow the user accessing the Tables and Views as Schema properties. These Dynamic Properties are named
+    * This cache is used to allow the user accessing the Tables as Schema properties. These Dynamic Properties are named
     * as the object name, so, if a Schema has a table named *customers* this table can be accessed in two forms:
     *
     * \code{.js}
@@ -62,15 +62,23 @@ namespace mysh
     * var table = mySchema.customers;
     * \endcode
     *
-    * Note that dynamic properties for Schema objects (Tables, Views) are available only if the next conditions are met:
+    * Note that dynamic properties for Tables are available only if the next conditions are met:
     *
     * - The object name is a valid identifier.
     * - The object name is different from any member of the ClassicSchema class.
     * - The object is in the cache.
     *
-    * The object cache is updated every time getTables() or getViews() are called.
+    * The object cache is updated every time getTables() is called.
     *
-    * To retrieve an object that is not available through a Dynamic Property use getTable(name) or getView(name).
+    * To retrieve an object that is not available through a Dynamic Property use getTable(name).
+    *
+    * \b View \b Support
+    *
+    * MySQL Views are stored queries that when executed produce a result set.
+    *
+    * MySQL supports the concept of Updatable Views: in specific conditions are met, Views can be used not only to retrieve data from them but also to update, add and delete records.
+    *
+    * For the purpose of this API, Views behave similar to a Table, and so they are threated as Tables.
     */
     class SHCORE_PUBLIC ClassicSchema : public DatabaseObject, public boost::enable_shared_from_this<ClassicSchema>
     {
@@ -87,20 +95,17 @@ namespace mysh
       void update_cache();
       void _remove_object(const std::string& name, const std::string& type);
 
+      virtual std::string get_object_type() { return "Schema"; }
+
       friend class ClassicTable;
-      friend class ClassicView;
 
 #ifdef DOXYGEN
       ClassicTable getTable(String name);
       List getTables();
-      ClassicView getView(String name);
-      List getViews();
 #endif
     public:
       shcore::Value get_table(const shcore::Argument_list &args);
       shcore::Value get_tables(const shcore::Argument_list &args);
-      shcore::Value get_view(const shcore::Argument_list &args);
-      shcore::Value get_views(const shcore::Argument_list &args);
 
     private:
       void init();

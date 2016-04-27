@@ -38,14 +38,19 @@ using namespace shcore;
 DatabaseObject::DatabaseObject(boost::shared_ptr<ShellBaseSession> session, boost::shared_ptr<DatabaseObject> schema, const std::string &name)
   : _session(session), _schema(schema), _name(name)
 {
-  add_method("getName", boost::bind(&DatabaseObject::get_member_method, this, _1, "getName", "name"), NULL);
-  add_method("getSession", boost::bind(&DatabaseObject::get_member_method, this, _1, "getSession", "session"), NULL);
-  add_method("getSchema", boost::bind(&DatabaseObject::get_member_method, this, _1, "getSchema", "schema"), NULL);
-  add_method("existsInDatabase", boost::bind(&DatabaseObject::existsInDatabase, this, _1), "data");
+  init();
 }
 
 DatabaseObject::~DatabaseObject()
 {
+}
+
+void DatabaseObject::init()
+{
+  add_method("getName", boost::bind(&DatabaseObject::get_member_method, this, _1, "getName", "name"), NULL);
+  add_method("getSession", boost::bind(&DatabaseObject::get_member_method, this, _1, "getSession", "session"), NULL);
+  add_method("getSchema", boost::bind(&DatabaseObject::get_member_method, this, _1, "getSchema", "schema"), NULL);
+  add_method("existsInDatabase", boost::bind(&DatabaseObject::existsInDatabase, this, _1), "data");
 }
 
 std::string &DatabaseObject::append_descr(std::string &s_out, int UNUSED(indent), int UNUSED(quote_strings)) const
@@ -169,8 +174,8 @@ Undefined DatabaseObject::existsInDatabase(){}
 #endif
 shcore::Value DatabaseObject::existsInDatabase(const shcore::Argument_list &args)
 {
-  std::string cname(class_name());
-  return shcore::Value(!_session.lock()->db_object_exists(cname, _name, _schema._empty() ? "" : _schema.lock()->get_member("name").as_string()).empty());
+  std::string type(get_object_type());
+  return shcore::Value(!_session.lock()->db_object_exists(type, _name, _schema._empty() ? "" : _schema.lock()->get_member("name").as_string()).empty());
 }
 
 void DatabaseObject::update_cache(const std::vector<std::string>& names, const std::function<shcore::Value(const std::string &name)>& generator, Cache target_cache)
@@ -207,14 +212,10 @@ void DatabaseObject::update_cache(const std::string& name, const std::function<s
     target_cache->erase(name);
 }
 
-shcore::Value::Array_type_ref DatabaseObject::get_object_list(Cache target_cache)
+void DatabaseObject::get_object_list(Cache target_cache, shcore::Value::Array_type_ref list)
 {
-  shcore::Value::Array_type_ref list(new shcore::Value::Array_type);
-
   for (auto entry : *target_cache)
     list->push_back(entry.second);
-
-  return list;
 }
 
 shcore::Value DatabaseObject::find_in_cache(const std::string& name, Cache target_cache)
