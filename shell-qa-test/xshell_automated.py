@@ -6378,7 +6378,7 @@ class XShell_TestCases(unittest.TestCase):
                 ("db.tables();\n", "\r\n\r\n"),
                 ("db.views();\n", "\r\n\r\n"),
                 ("db.getTables();\n","actor"),
-                ("db.getViews()","actor_info"),
+                ("db.getViews();\n","actor_info"),
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
