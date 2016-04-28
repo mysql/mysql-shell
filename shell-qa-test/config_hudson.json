@@ -8,14 +8,14 @@
         "password" : "msandbox",
         "host" : "localhost",
         "xprotocol_port" : 33060,
-        "port" : 5712
+        "port" : 5713
     },
 "remote": {
         "user" : "root",
         "password" : "msandbox",
         "host" : "localhost",
         "xprotocol_port" : 33060,
-        "port" : 5712
+        "port" : 5713
     }
 
 	
