@@ -30,14 +30,6 @@
 
 namespace mysh
 {
-  // The session types that can be produced by connect_session
-  enum SessionType: short
-  {
-    Application,
-    Node,
-    Classic
-  };
-
   class SHCORE_PUBLIC ShellBaseSession : public shcore::Cpp_object_bridge
   {
   public:

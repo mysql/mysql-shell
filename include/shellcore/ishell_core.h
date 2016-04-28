@@ -30,7 +30,13 @@
 
 namespace mysh
 {
-  enum SessionType : short;
+  // The session types that can be produced by connect_session
+  enum SessionType
+  {
+    Application,
+    Node,
+    Classic
+  };
   class ShellDevelopmentSession;
 };
 
