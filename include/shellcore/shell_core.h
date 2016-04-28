@@ -81,7 +81,7 @@ namespace shcore
   class SHCORE_PUBLIC Shell_language
   {
   public:
-    Shell_language(IShell_core *owner) : _owner(owner), _killed(false) {}
+    Shell_language(IShell_core *owner) : _killed(false), _owner(owner) {}
 
     virtual ~Shell_language(){}
 

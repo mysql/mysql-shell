@@ -31,7 +31,7 @@
 namespace mysh
 {
   // The session types that can be produced by connect_session
-  enum SessionType
+  enum SessionType: short
   {
     Application,
     Node,

@@ -63,7 +63,7 @@ ClassicSession::ClassicSession()
 }
 
 ClassicSession::ClassicSession(const ClassicSession& session) :
-_conn(session._conn), ShellDevelopmentSession(session)
+  ShellDevelopmentSession(session), _conn(session._conn)
 {
   init();
 }
@@ -335,8 +335,6 @@ shcore::Value ClassicSession::get_schema(const shcore::Argument_list &args) cons
   std::string type = "Schema";
   std::string search_name = args.string_at(0);
   std::string name = db_object_exists(type, search_name, "");
-
-  auto generator = [this](const std::string& name){return shcore::Value::wrap<ClassicSchema>(new ClassicSchema(shared_from_this(), name)); };
 
   if (!name.empty())
   {

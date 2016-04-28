@@ -30,7 +30,7 @@
 
 namespace mysh
 {
-  enum SessionType;
+  enum SessionType : short;
   class ShellDevelopmentSession;
 };
 
