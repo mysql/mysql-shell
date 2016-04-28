@@ -328,6 +328,8 @@ Value Interactive_shell::connect_session(const Argument_list &args, mysh::Sessio
     _shell->set_current_schema(connection_data->get_string("schema"));
   }
 
+  _shell->set_active_session(Value(boost::static_pointer_cast<Object_bridge>(new_session)));
+
   if (_options.interactive)
   {
     if (old_session && old_session.unique() && old_session->is_connected())
