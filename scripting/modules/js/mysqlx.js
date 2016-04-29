@@ -44,6 +44,17 @@ exports.mysqlx.getNodeSession = function(connection_data, password)
   return session;
 }
 
+exports.mysqlx.getAdminSession = function(connection_data, password)
+{
+  var session;
+  
+  if (typeof(password) == 'undefined')
+    session = _F.mysqlx.AdminSession(connection_data);
+  else
+    session = _F.mysqlx.AdminSession(connection_data, password);
+  
+  return session;
+}
 
 exports.mysqlx.expr = function(expression)
 {

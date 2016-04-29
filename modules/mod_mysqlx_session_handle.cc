@@ -17,10 +17,12 @@
  * 02110-1301  USA
  */
 
+#include "utils/utils_sqlstring.h"
 #include "mod_mysqlx_session_handle.h"
 #include "mysqlxtest_utils.h"
 #include "mysqlx_connection.h"
 #include "utils/utils_general.h"
+#include <boost/algorithm/string.hpp>
 
 using namespace mysh;
 using namespace shcore;
@@ -94,6 +96,72 @@ boost::shared_ptr< ::mysqlx::Result> SessionHandle::execute_statement(const std:
     }
     CATCH_AND_TRANSLATE();
   }
+
+  return ret_val;
+}
+
+/*
+ * This function verifies if the given object exist in the database, works for schemas, tables, views and collections.
+ * The check for tables, views and collections is done is done based on the type.
+ * If type is not specified and an object with the name is found, the type will be returned.
+ *
+ * Returns the name of the object as exists in the database.
+ */
+std::string SessionHandle::db_object_exists(std::string &type, const std::string &name, const std::string& owner) const
+{
+  std::string statement;
+  std::string ret_val;
+
+  boost::shared_ptr< ::mysqlx::Result> res;
+  boost::shared_ptr< ::mysqlx::Row> raw_entry;
+  if (type == "Schema")
+  {
+    res = execute_statement("sql", sqlstring("show databases like ?", 0) << name, Argument_list());
+    raw_entry = res->next();
+
+    if (raw_entry)
+      ret_val = raw_entry->stringField(0);
+  }
+  else
+  {
+    shcore::Argument_list args;
+    args.push_back(Value(owner));
+    args.push_back(Value(name));
+
+    res = execute_statement("xplugin", "list_objects", args);
+    raw_entry = res->next();
+
+    if (raw_entry)
+    {
+      std::string object_name;
+      std::string object_type;
+
+      boost::shared_ptr<std::vector< ::mysqlx::ColumnMetadata> > metadata = res->columnMetadata();
+      for (size_t index = 0; index < metadata->size(); ++index)
+      {
+        if (metadata->at(index).name == "name")
+          object_name = raw_entry->stringField((int)index);
+
+        if (metadata->at(index).name == "type")
+          object_type = raw_entry->stringField((int)index);
+      }
+
+      if (type.empty())
+      {
+        type = object_type;
+        ret_val = object_name;
+      }
+      else
+      {
+        boost::algorithm::to_upper(type);
+
+        if (type == object_type)
+          ret_val = object_name;
+      }
+    }
+  }
+
+  res->flush();
 
   return ret_val;
 }

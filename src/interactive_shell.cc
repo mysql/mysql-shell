@@ -194,6 +194,9 @@ void Interactive_shell::print_connection_message(mysh::SessionType type, const s
     case mysh::Classic:
       stype = "a Classic";
       break;
+    case mysh::Admin:
+      stype = "an Admin";
+      break;
   }
 
   std::string message;
@@ -314,27 +317,29 @@ Value Interactive_shell::connect_session(const Argument_list &args, mysh::Sessio
   }
 
   // Performs the connection
-  boost::shared_ptr<mysh::ShellDevelopmentSession> old_session(_shell->get_dev_session()),
-                                                   new_session(_shell->connect_dev_session(connect_args, session_type));
-
-  new_session->set_option("trace_protocol", _options.trace_protocol);
-
-  if (recreate_schema)
+  if (session_type != mysh::Admin)
   {
-    std::string message = "Recreating schema " + schema_name + "...\n";
-    _delegate.print(_delegate.user_data, message.c_str());
-    try
+    boost::shared_ptr<mysh::ShellDevelopmentSession> old_session(_shell->get_dev_session()),
+                                                     new_session(_shell->connect_dev_session(connect_args, session_type));
+
+    new_session->set_option("trace_protocol", _options.trace_protocol);
+
+    if (recreate_schema)
     {
-      new_session->drop_schema(schema_arg);
-    }
-    catch (shcore::Exception &e)
-    {
-      if (e.is_mysql() && e.code() == 1008)
-        ; // ignore DB doesn't exist error
-      else
-        throw;
-    }
-    new_session->create_schema(schema_arg);
+      std::string message = "Recreating schema " + schema_name + "...\n";
+      _delegate.print(_delegate.user_data, message.c_str());
+      try
+      {
+        new_session->drop_schema(schema_arg);
+      }
+      catch (shcore::Exception &e)
+      {
+        if (e.is_mysql() && e.code() == 1008)
+          ; // ignore DB doesn't exist error
+        else
+          throw;
+      }
+      new_session->create_schema(schema_arg);
 
     if (new_session->class_name().compare("XSession"))
       new_session->call("setCurrentSchema", schema_arg);
@@ -342,15 +347,15 @@ Value Interactive_shell::connect_session(const Argument_list &args, mysh::Sessio
 
   _shell->set_dev_session(new_session);
 
-  if (_options.interactive)
-  {
-    if (old_session && old_session.unique() && old_session->is_connected())
+    if (_options.interactive)
     {
-      if (_options.interactive)
-        _delegate.print(_delegate.user_data, "Closing old connection...\n");
+      if (old_session && old_session.unique() && old_session->is_connected())
+      {
+        if (_options.interactive)
+          _delegate.print(_delegate.user_data, "Closing old connection...\n");
 
-      old_session->close(shcore::Argument_list());
-    }
+        old_session->close(shcore::Argument_list());
+      }
 
     std::string message;
     shcore::Value default_schema;
@@ -364,16 +369,21 @@ Value Interactive_shell::connect_session(const Argument_list &args, mysh::Sessio
     else
       message = "No default schema selected.";
 
-    if ((*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string().find("json") == 0)
-      print_json_info(message);
-    else
-    {
-      message += "\n";
-      _delegate.print(_delegate.user_data, message.c_str());
-    }
+      if ((*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string().find("json") == 0)
+        print_json_info(message);
+      else
+      {
+        message += "\n";
+        _delegate.print(_delegate.user_data, message.c_str());
+      }
 
-    // extra empty line to separate connect msgs from the stdheader nobody reads
-    _delegate.print(_delegate.user_data, "\n");
+      // extra empty line to separate connect msgs from the stdheader nobody reads
+      _delegate.print(_delegate.user_data, "\n");
+    }
+  }
+  else
+  {
+    _shell->connect_admin_session(connect_args);
   }
 
   return Value::Null();
@@ -467,10 +477,11 @@ bool Interactive_shell::switch_shell_mode(Shell_core::Mode mode, const std::vect
       case Shell_core::Mode_SQL:
       {
         Value session = _shell->active_session();
-        if (session && session.as_object()->class_name() == "XSession")
+        if (session && (session.as_object()->class_name() == "XSession" ||
+                        session.as_object()->class_name() == "AdminSession"))
         {
-          println("The active session is an X Session.");
-          println("SQL mode is not supported on X Sessions: command ignored.");
+          println("The active session is an " + session.as_object()->class_name());
+          println("SQL mode is not supported on this session type: command ignored.");
           println("To switch to SQL mode reconnect with a Node Session by either:");
           println("* Using the \\connect -n shell command.");
           println("* Using --session-type=node when calling the MySQL Shell on the command line.");
@@ -678,6 +689,26 @@ bool Interactive_shell::cmd_connect(const std::vector<std::string>& args)
 
   if (error)
     _delegate.print_error(_delegate.user_data, "\\connect [-<type>] <uri or $name>\n");
+
+  return true;
+}
+
+bool Interactive_shell::cmd_connect_admin(const std::vector<std::string>& args)
+{
+  if (args.size() == 1)
+  {
+    if (args[0].find("$") == 0)
+      _options.app = args[0].substr(1);
+    else
+    {
+      _options.app = "";
+      _options.uri = args[0];
+    }
+    _options.session_type = mysh::Admin;
+    connect();
+  }
+  else
+    _delegate.print_error(_delegate.user_data, "\\connect_admin <uri or $appName>\n");
 
   return true;
 }
@@ -1400,6 +1431,7 @@ void Interactive_shell::print_cmd_line_helper()
   println("  --x                      Uses connection data to create an X Session.");
   println("  --node                   Uses connection data to create a Node Session.");
   println("  --classic                Uses connection data to create a Classic Session.");
+  println("  --admin                  Uses connection data to create an Admin Session.");
   println("  --sql                    Start in SQL mode using a node session.");
   println("  --sqlc                   Start in SQL mode using a classic session.");
   println("  --js                     Start in JavaScript mode.");

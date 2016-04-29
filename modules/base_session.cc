@@ -41,6 +41,7 @@
 #include "mod_mysql_session.h"
 #endif
 #include "mod_mysqlx_session.h"
+#include "adminapi/mod_mysqlx_admin_session.h"
 
 #define MAX_COLUMN_LENGTH 1024
 #define MIN_COLUMN_LENGTH 4
@@ -69,6 +70,17 @@ boost::shared_ptr<mysh::ShellDevelopmentSession> mysh::connect_session(const shc
       throw shcore::Exception::argument_error("Invalid session type specified for MySQL connection.");
       break;
   }
+
+  ret_val->connect(args);
+
+  ShellNotifications::get()->notify("SN_SESSION_CONNECTED", ret_val);
+
+  return ret_val;
+}
+
+boost::shared_ptr<mysh::ShellAdminSession> mysh::connect_admin_session(const shcore::Argument_list &args)
+{
+  boost::shared_ptr<ShellAdminSession> ret_val(new mysh::mysqlx::AdminSession());
 
   ret_val->connect(args);
 
@@ -371,4 +383,11 @@ void ShellDevelopmentSession::init()
   add_method("getDefaultSchema", boost::bind(&ShellDevelopmentSession::get_member_method, this, _1, "getDefaultSchema", "defaultSchema"), NULL);
   add_method("getSchema", boost::bind(&ShellDevelopmentSession::get_schema, this, _1), "name", shcore::String, NULL);
   add_method("getSchemas", boost::bind(&ShellDevelopmentSession::get_schemas, this, _1), NULL);
+}
+
+std::vector<std::string> ShellDevelopmentSession::get_members() const
+{
+  std::vector<std::string> members(ShellBaseSession::get_members());
+  members.push_back("defaultSchema");
+  return members;
 }

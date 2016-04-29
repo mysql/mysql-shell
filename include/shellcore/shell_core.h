@@ -133,6 +133,10 @@ namespace shcore
     virtual boost::shared_ptr<mysh::ShellDevelopmentSession> get_dev_session();
 
     virtual shcore::Value set_current_schema(const std::string& name);
+    // Admin Session Handling
+    virtual boost::shared_ptr<mysh::ShellAdminSession> connect_admin_session(const Argument_list &args);
+    virtual boost::shared_ptr<mysh::ShellAdminSession> set_admin_session(boost::shared_ptr<mysh::ShellAdminSession> session);
+    virtual boost::shared_ptr<mysh::ShellAdminSession> get_admin_session();
 
     virtual Object_registry *registry() { return _registry; }
   public:
@@ -169,6 +173,7 @@ namespace shcore
     Value _active_session;
 
     boost::shared_ptr<mysh::ShellDevelopmentSession> _global_dev_session;
+    boost::shared_ptr<mysh::ShellAdminSession> _global_admin_session;
 
     Interpreter_delegate *_lang_delegate;
     std::string _input_source;

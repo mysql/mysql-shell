@@ -35,12 +35,10 @@ namespace mysh
   namespace mysqlx
   {
     /**
-    * Base functionality for Session classes through the X Protocol.
-    *
     * This class represents a connection to a Metadata Store and enables
     *
-    * - Accessing available Clusters.
-    * - Cluster management operations.
+    * - Accessing available Farms.
+    * - Farm management operations.
     */
     class SHCORE_PUBLIC AdminSession : public ShellAdminSession
     {
@@ -49,8 +47,11 @@ namespace mysh
       AdminSession(const AdminSession& s);
       virtual ~AdminSession() { reset_session(); }
 
+      virtual std::string class_name() const { return "AdminSession"; };
+
       virtual shcore::Value get_member(const std::string &prop) const;
       virtual bool has_member(const std::string &prop) const;
+      virtual std::vector<std::string> get_members() const;
 
       virtual shcore::Value connect(const shcore::Argument_list &args);
       virtual shcore::Value close(const shcore::Argument_list &args);
@@ -59,29 +60,28 @@ namespace mysh
       virtual shcore::Value get_status(const shcore::Argument_list &args);
       virtual shcore::Value get_capability(const std::string& name);
 
-      shcore::Value create_cluster(const shcore::Argument_list &args);
-      shcore::Value get_cluster(const shcore::Argument_list &args) const;
-      shcore::Value get_clusters(const shcore::Argument_list &args) const;
+      shcore::Value create_farm(const shcore::Argument_list &args);
+      shcore::Value get_farm(const shcore::Argument_list &args) const;
 
       virtual void set_option(const char *option, int value);
 
       virtual uint64_t get_connection_id() const;
+      virtual std::string db_object_exists(std::string &type, const std::string &name, const std::string& owner) const;
 
-      boost::shared_ptr<shcore::Object_bridge> create(const shcore::Argument_list &args);
+      static boost::shared_ptr<shcore::Object_bridge> create(const shcore::Argument_list &args);
+      virtual int get_default_port() { return 33060; };
 
 #ifdef DOXYGEN
       String uri; //!< Same as getUri()
-      Schema defaultCluster; //!< Same as getDefaultSchema()
+      Farm defaultFarm; //!< Same as getDefaultSchema()
 
-      Cluster createCluster(String name);
-      Cluster getCluster(String name);
-      Cluster getDefaultCluster();
-      List getClusters();
+      Farm createFarm(String name);
+      Farm getFarm(String name);
+      Farm getDefaultFarm();
       String getUri();
       Undefined close();
 #endif
     protected:
-      virtual int get_default_port() { return 33060; };
 
       SessionHandle _session;
 

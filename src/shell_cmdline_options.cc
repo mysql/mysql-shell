@@ -37,6 +37,7 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
   execute_statement = "";
 
   session_type = mysh::Application;
+  default_session_type = true;
 
 #ifdef HAVE_V8
   initial_mode = IShell_core::Mode_JScript;
@@ -57,6 +58,7 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
   prompt_password = false;
   trace_protocol = false;
   wizards = true;
+  admin_mode = false;
 
   sock = "";
   port = 0;
@@ -170,15 +172,17 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
       }
     }
     else if (check_arg(argv, i, "--x", "--x"))
-      session_type = mysh::Application;
+      override_session_type(mysh::Application, "--x");
     else if (check_arg(argv, i, "--node", "--node"))
-      session_type = mysh::Node;
+      override_session_type(mysh::Node, "--node");
     else if (check_arg(argv, i, "--classic", "--classic"))
-      session_type = mysh::Classic;
+      override_session_type(mysh::Classic, "--x");
+    else if (check_arg(argv, i, "--admin", "--admin"))
+      override_session_type(mysh::Admin, "--admin");
     else if (check_arg(argv, i, "--sql", "--sql"))
     {
       initial_mode = IShell_core::Mode_SQL;
-      session_type = mysh::Node;
+      override_session_type(mysh::Node, "--sql");
     }
     else if (check_arg(argv, i, "--js", "--javascript"))
     {
@@ -203,7 +207,7 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
     else if (check_arg(argv, i, NULL, "--sqlc"))
     {
       initial_mode = IShell_core::Mode_SQL;
-      session_type = mysh::Classic;
+      override_session_type(mysh::Classic, "--sqlc");
     }
     else if (check_arg_with_value(argv, i, "--json", NULL, value, true))
     {
@@ -282,6 +286,56 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
       }
     }
   }
+}
+
+void Shell_command_line_options::override_session_type(mysh::SessionType new_type, const std::string& option, char* value)
+{
+  auto get_session_type = [](mysh::SessionType type)
+  {
+    std::string label;
+    switch (type)
+    {
+      case mysh::Application:
+        label = "X";
+        break;
+      case mysh::Node:
+        label= "Node";
+        break;
+      case mysh::Classic:
+        label= "Classic";
+        break;
+      case mysh::Admin:
+        label= "Admin";
+        break;
+    }
+
+    return label;
+  };
+
+  if (new_type != session_type)
+  {
+    if (!default_session_type)
+    {
+      std::string msg = "Overriding Session Type from ";
+      msg.append(get_session_type(session_type));
+      msg.append(" to ");
+      msg.append(get_session_type(new_type));
+      msg.append(" from option ");
+      msg.append(option);
+
+      if (value)
+      {
+        msg.append("=");
+        msg.append(value);
+      }
+
+      std::cout << msg.c_str() << std::endl;
+    }
+
+    session_type = new_type;
+  }
+
+  default_session_type = false;
 }
 
 bool Shell_command_line_options::has_connection_data()

@@ -313,9 +313,9 @@ bool Shell_core::handle_shell_command(const std::string &line)
 * Creates a Development session of the given type using the received connection parameters.
 * \param args The connection parameters to be used creating the session.
 *
-* The args list should be filled with a Connectio Data Dictionary and optionally a Password
+* The args list should be filled with a Connection Data Dictionary and optionally a Password
 *
-* The Connection Data Dictionary which supports the next elements:
+* The Connection Data Dictionary supports the next elements:
 *
 *  - host, the host to use for the connection (can be an IP or DNS name)
 *  - port, the TCP port where the server is listening (default value is 33060).
@@ -390,6 +390,57 @@ boost::shared_ptr<mysh::ShellDevelopmentSession> Shell_core::set_dev_session(boo
 boost::shared_ptr<mysh::ShellDevelopmentSession> Shell_core::get_dev_session()
 {
   return _global_dev_session;
+}
+
+/**
+ * Creates an Admin session using the received connection parameters.
+ * \param args The connection parameters to be used creating the session.
+ *
+ * The args list should be filled with a Connection Data Dictionary and optionally a Password
+ *
+ * The Connection Data Dictionary supports the next elements:
+ *
+ *  - host, the host to use for the connection (can be an IP or DNS name)
+ *  - port, the TCP port where the server is listening (default value is 33060).
+ *  - schema, the current database for the connection's session.
+ *  - dbUser, the user to authenticate against.
+ *  - dbPassword, the password of the user user to authenticate against.
+ *  - ssl_ca, the path to the X509 certificate authority in PEM format.
+ *  - ssl_cert, the path to the X509 certificate in PEM format.
+ *  - ssl_key, the path to the X509 key in PEM format.
+ *
+ * If a Password is added to the args list, it will override any password coming on the Connection Data Dictionary.
+ *
+ * Once the session is established, it will be made available on a global *admin* variable.
+ */
+boost::shared_ptr<mysh::ShellAdminSession> Shell_core::connect_admin_session(const Argument_list &args)
+{
+  return set_admin_session(mysh::connect_admin_session(args));
+}
+
+/**
+ * Configures the received session as the global admin session.
+ * \param session: The session to be set as global.
+ *
+ * If there's unique farm on the received session, it will be made available to the scripting interfaces on the global *farm* variable
+ */
+boost::shared_ptr<mysh::ShellAdminSession> Shell_core::set_admin_session(boost::shared_ptr<mysh::ShellAdminSession> session)
+{
+  _global_admin_session.reset(session, session.get());
+
+  set_global("admin", shcore::Value(boost::static_pointer_cast<Object_bridge>(_global_admin_session)));
+
+  //set_global("farm", _global_admin_session->get_member("defaultFarm"));
+
+  return _global_admin_session;
+}
+
+/**
+ * Returns the global development session.
+ */
+boost::shared_ptr<mysh::ShellAdminSession> Shell_core::get_admin_session()
+{
+  return _global_admin_session;
 }
 
 /**

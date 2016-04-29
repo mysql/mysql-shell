@@ -1,5 +1,5 @@
 #@ mysqlx module: exports
-|Exported Items: 6|
+|Exported Items: 7|
 |getSession: <type 'builtin_function_or_method'>|
 |getNodeSession: <type 'builtin_function_or_method'>|
 |expr: <type 'builtin_function_or_method'>|

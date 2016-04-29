@@ -51,6 +51,8 @@ namespace mysh
       void reset();
       boost::shared_ptr< ::mysqlx::Result> execute_statement(const std::string &domain, const std::string& command, const shcore::Argument_list &args) const;
 
+      std::string db_object_exists(std::string &type, const std::string &name, const std::string& owner) const;      
+
       shcore::Value get_capability(const std::string& name);
       uint64_t get_client_id();
 

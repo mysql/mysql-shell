@@ -1,5 +1,5 @@
 //@ mysqlx module: exports
-|Exported Items: 6|
+|Exported Items: 7|
 |getSession: function|
 |getNodeSession: function|
 |expr: function|

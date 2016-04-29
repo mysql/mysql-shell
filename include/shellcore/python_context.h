@@ -217,6 +217,8 @@ namespace shcore
     static PyObject *get_object(PyObject *self, PyObject *args, const std::string &module, const std::string &type, PyObject *keywords = NULL);
     static PyObject *mysqlx_get_session(PyObject *self, PyObject *args, PyObject *keywords);
     static PyObject *mysqlx_get_node_session(PyObject *self, PyObject *args, PyObject *keywords);
+    static PyObject *mysqlx_get_admin_session(PyObject *self, PyObject *args);
+
     static PyObject *mysqlx_expr(PyObject *self, PyObject *args);
     static PyObject *mysqlx_date_value(PyObject *self, PyObject *args);
     static PyObject *mysql_get_classic_session(PyObject *self, PyObject *args, PyObject *keywords);

@@ -149,4 +149,9 @@ namespace shcore
   {
     validate_interactive("mysqlx_column_metadata.py");
   }
+
+  TEST_F(Shell_py_mysqlx_tests, mysqlx_admin_session)
+  {
+    validate_interactive("mysqlx_admin_session.py");
+  }
 }

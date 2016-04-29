@@ -607,59 +607,7 @@ shcore::Value BaseSession::drop_schema_object(const shcore::Argument_list &args,
 */
 std::string BaseSession::db_object_exists(std::string &type, const std::string &name, const std::string& owner) const
 {
-  std::string statement;
-  std::string ret_val;
-
-  if (type == "Schema")
-  {
-    shcore::Value res = executeStmt("sql", sqlstring("show databases like ?", 0) << name, true, shcore::Argument_list());
-    boost::shared_ptr<SqlResult> my_res = res.as_object<SqlResult>();
-
-    Value raw_entry = my_res->fetch_one(shcore::Argument_list());
-
-    if (raw_entry)
-    {
-      boost::shared_ptr<mysh::Row> row = raw_entry.as_object<mysh::Row>();
-
-      ret_val = row->get_member(0).as_string();
-    }
-
-    my_res->fetch_all(shcore::Argument_list());
-  }
-  else
-  {
-    shcore::Argument_list args;
-    args.push_back(Value(owner));
-    args.push_back(Value(name));
-
-    Value myres = executeAdminCommand("list_objects", true, args);
-    boost::shared_ptr<mysh::mysqlx::SqlResult> my_res = myres.as_object<mysh::mysqlx::SqlResult>();
-
-    Value raw_entry = my_res->fetch_one(shcore::Argument_list());
-
-    if (raw_entry)
-    {
-      boost::shared_ptr<mysh::Row> row = raw_entry.as_object<mysh::Row>();
-      std::string object_name = row->get_member("name").as_string();
-      std::string object_type = row->get_member("type").as_string();
-
-      if (type.empty())
-      {
-        type = object_type;
-        ret_val = object_name;
-      }
-      else
-      {
-        boost::algorithm::to_upper(type);
-
-        if (type == object_type)
-          ret_val = object_name;
-      }
-    }
-    my_res->fetch_all(shcore::Argument_list());
-  }
-
-  return ret_val;
+  return _session.db_object_exists(type, name, owner);
 }
 
 shcore::Value BaseSession::get_capability(const std::string& name)

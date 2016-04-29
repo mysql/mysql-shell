@@ -19,6 +19,7 @@
 
 #include "utils/utils_sqlstring.h"
 #include "mod_mysqlx_admin_session.h"
+#include "shellcore/object_factory.h"
 #include "../mysqlxtest_utils.h"
 
 #include "logger/logger.h"
@@ -28,6 +29,8 @@
 using namespace mysh;
 using namespace shcore;
 using namespace mysh::mysqlx;
+
+REGISTER_OBJECT(mysqlx, AdminSession);
 
 AdminSession::AdminSession()
 {
@@ -46,8 +49,16 @@ AdminSession::AdminSession(const AdminSession& s) : ShellAdminSession(s)
 
 void AdminSession::init()
 {
-  _clusters.reset(new shcore::Value::Map_type);
+  // In case we are going to keep a cache of Farms
+  // If not, _farms can be removed
+  _farms.reset(new shcore::Value::Map_type);
 
+  // Note this one is a function that has a property equivalent: getDefaultFarm/defaultFarm
+  add_method("getDefaultFarm", boost::bind(&AdminSession::get_member_method, this, _1, "getDefaultFarm", "defaultFarm"), NULL);
+
+  // Pure functions
+  add_method("createFarm", boost::bind(&AdminSession::create_farm, this, _1), "farmName", shcore::String, NULL);
+  add_method("getFarm", boost::bind(&AdminSession::get_farm, this, _1), "farmName", shcore::String, NULL);
   add_method("close", boost::bind(&AdminSession::close, this, _1), "data");
 }
 
@@ -81,12 +92,25 @@ uint64_t AdminSession::get_connection_id() const
   return _connection_id;
 }
 
+/*
+ * This function verifies if the given object exist in the database, works for schemas, tables, views and collections.
+ * The check for tables, views and collections is done is done based on the type.
+ * If type is not specified and an object with the name is found, the type will be returned.
+ *
+ * Returns the name of the object as exists in the database.
+ */
+std::string AdminSession::db_object_exists(std::string &type, const std::string &name, const std::string& owner) const
+{
+  return _session.db_object_exists(type, name, owner);
+}
+
+
 #ifdef DOXYGEN
 /**
 * \brief Closes the session.
 * After closing the session it is still possible to make read only operation to gather metadata info, like getTable(name) or getSchemas().
 */
-Undefined BaseSession::close(){}
+Undefined AdminSession::close(){}
 #endif
 Value AdminSession::close(const shcore::Argument_list &args)
 {
@@ -120,18 +144,26 @@ bool AdminSession::has_member(const std::string &prop) const
 {
   if (ShellAdminSession::has_member(prop))
     return true;
-  if (prop == "defaultCluster" || prop == "uri")
+  if (prop == "defaultFarm" || prop == "uri")
     return true;
 
   return false;
 }
 
+std::vector<std::string> AdminSession::get_members() const
+{
+  std::vector<std::string> members(ShellAdminSession::get_members());
+  members.push_back("defaultFarm");
+  return members;
+}
+
+
 #ifdef DOXYGEN
 /**
-* Retrieves the Cluster configured as default on this Metadata instance.
-* \return A Cluster object or Null
+* Retrieves the Farm configured as default on this Metadata instance.
+* \return A Farm object or Null
 */
-Cluster AdminSession::getDefaultCluster(){}
+Farm AdminSession::getDefaultFarm(){}
 
 /**
 * Retrieves the connection data for this session in string format.
@@ -152,13 +184,14 @@ Value AdminSession::get_member(const std::string &prop) const
     ret_val = ShellAdminSession::get_member(prop);
   else if (prop == "uri")
     ret_val = Value(_uri);
-  else if (prop == "defaultCluster")
+  else if (prop == "defaultFarm")
   {
-    if (!_default_cluster.empty())
+    // TODO: If there is a default farm and we have the name, retrieve it with the next call
+    if (/*!_default_farm.empty()*/0)
     {
-      shcore::Argument_list args;
-      args.push_back(shcore::Value(_default_cluster));
-      ret_val = get_cluster(args);
+      //shcore::Argument_list args;
+      //args.push_back(shcore::Value(_default_farm));
+      //ret_val = get_farm(args);
     }
     else
       ret_val = Value::Null();
@@ -169,45 +202,48 @@ Value AdminSession::get_member(const std::string &prop) const
 
 #ifdef DOXYGEN
 /**
-* Retrieves a Cluster object from the current session through it's name.
-* \param name The name of the Schema object to be retrieved.
-* \return The Cluster object with the given name.
-* \exception An exception is thrown if the given name is not a valid schema on the AdminSession.
+* Retrieves a Farm object from the current session through it's name.
+* \param name The name of the Farm object to be retrieved.
+* \return The Farm object with the given name.
 * \sa Schema
 */
-Schema BaseSession::getCluster(String name){}
+Schema BaseSession::getFarm(String name){}
 #endif
-shcore::Value AdminSession::get_cluster(const shcore::Argument_list &args) const
+shcore::Value AdminSession::get_farm(const shcore::Argument_list &args) const
 {
-  std::string function_name = class_name() + ".getCluster";
-  args.ensure_count(1, function_name.c_str());
-  shcore::Value ret_val;
+  args.ensure_count(1, "AdminSession.getFarm");
 
-  return ret_val;
+  // TODO: just do it!
+
+  return shcore::Value();
 }
 
 #ifdef DOXYGEN
 /**
-* Retrieves the Schemas available on the session.
-* \return A List containing the Schema objects available o the session.
-*/
-List BaseSession::getClusters(){}
+ * Creates a Farm object.
+ * \param name The name of the Farm object to be retrieved.
+ * \return The created Farm object.
+ * \sa Schema
+ */
+Schema BaseSession::getFarm(String name){}
 #endif
-shcore::Value AdminSession::get_clusters(const shcore::Argument_list &args) const
+shcore::Value AdminSession::create_farm(const shcore::Argument_list &args)
 {
-  std::string function_name = class_name() + ".getClusters";
-  args.ensure_count(0, function_name.c_str());
+  args.ensure_count(1, "AdminSession.createFarm");
 
-  shcore::Value::Array_type_ref clusters(new shcore::Value::Array_type);
+  // TODO: just do it!
 
-  return shcore::Value(clusters);
+  return shcore::Value();
 }
+
 
 shcore::Value AdminSession::get_capability(const std::string& name)
 {
   return _session.get_capability(name);
 }
 
+
+// TODO: Careful wit this one, this means the status printed on the shell with the \s command
 shcore::Value AdminSession::get_status(const shcore::Argument_list &args)
 {
   shcore::Value::Map_type_ref status(new shcore::Value::Map_type);
@@ -218,12 +254,13 @@ shcore::Value AdminSession::get_status(const shcore::Argument_list &args)
   if (node_type)
     (*status)["NODE_TYPE"] = node_type;
 
-  (*status)["DEFAULT_CLUSTER"] = shcore::Value(_default_cluster);
+  // TODO: Uncomment or Delete
+  // (*status)["DEFAULT_FARM"] = shcore::Value(_default_farm);
 
   return shcore::Value(status);
 }
 
 boost::shared_ptr<shcore::Object_bridge> AdminSession::create(const shcore::Argument_list &args)
 {
-  return connect_session(args, mysh::Application);
+  return connect_admin_session(args);
 }
