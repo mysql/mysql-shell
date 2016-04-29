@@ -686,9 +686,9 @@ namespace shcore
     return get_object(self, args, "mysqlx", "Date");
   }
 
-  PyObject *Python_context::mysql_get_classic_session(PyObject *self, PyObject *args)
+  PyObject *Python_context::mysql_get_classic_session(PyObject *self, PyObject *args, PyObject *keywords)
   {
-    return get_object(self, args, "mysql", "ClassicSession");
+    return get_object(self, args, "mysql", "ClassicSession", keywords);
   }
 
   static PyMethodDef MysqlxModuleMethods[] =
@@ -706,7 +706,7 @@ namespace shcore
 
   static PyMethodDef MysqlModuleMethods[] =
   {
-    { "getClassicSession", &Python_context::mysql_get_classic_session, METH_VARARGS | METH_KEYWORDS,
+    { "getClassicSession",(PyCFunction)Python_context::mysql_get_classic_session, METH_VARARGS | METH_KEYWORDS,
     "Creates an ClassicSession object." },
     { NULL, NULL, 0, NULL }        /* Sentinel */
   };
