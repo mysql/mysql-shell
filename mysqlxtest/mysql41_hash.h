@@ -17,18 +17,16 @@
  * 02110-1301  USA
  */
 
-#ifndef _COMPILERUTILS_H_
-#define _COMPILERUTILS_H_
 
-#ifdef UNUSED
-#  elif defined(__GNUC__)
-#    define UNUSED(x) UNUSED_ ## x __attribute__((unused))
-#  elif defined(__LCLINT__)
-#    define UNUSED(x) /*@unused@*/ x
-#  elif defined(__cplusplus)
-#    define UNUSED(x)
-#  else
-#    define UNUSED(x) x
-#endif
+#ifndef MYSQL41_HASH_INCLUDED
+#define MYSQL41_HASH_INCLUDED
 
-#endif  // _COMPILERUTILS_H_
+
+#define MYSQL41_HASH_SIZE 20 /* Hash size in bytes */
+
+void compute_mysql41_hash(uint8 *digest, const char *buf, size_t len);
+void compute_mysql41_hash_multi(uint8 *digest, const char *buf1, int len1,
+                             const char *buf2, int len2);
+
+
+#endif /* MYSQL41_HASH_INCLUDED */

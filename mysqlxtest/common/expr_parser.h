@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2016, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -40,9 +40,7 @@
 #endif
 
 #include "tokenizer.h"
-#include "mysqlx_datatypes.pb.h"
-#include "mysqlx_expr.pb.h"
-#include "mysqlx_crud.pb.h"
+#include "ngs_common/protocol_protobuf.h"
 
 #if __GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 6)
 #pragma GCC diagnostic pop

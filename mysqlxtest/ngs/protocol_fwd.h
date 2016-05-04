@@ -17,18 +17,53 @@
  * 02110-1301  USA
  */
 
-#ifndef _COMPILERUTILS_H_
-#define _COMPILERUTILS_H_
+#ifndef _PROTOCOL_FWD_H_
+#define _PROTOCOL_FWD_H_
 
-#ifdef UNUSED
-#  elif defined(__GNUC__)
-#    define UNUSED(x) UNUSED_ ## x __attribute__((unused))
-#  elif defined(__LCLINT__)
-#    define UNUSED(x) /*@unused@*/ x
-#  elif defined(__cplusplus)
-#    define UNUSED(x)
-#  else
-#    define UNUSED(x) x
+namespace google
+{
+  namespace protobuf
+  {
+#ifdef USE_MYSQLX_FULL_PROTO
+    class Message;
+#else
+    class MessageLite;
 #endif
+  }
+}
 
-#endif  // _COMPILERUTILS_H_
+namespace Mysqlx
+{
+  namespace Resultset
+  {
+    class Row;
+  }
+
+  namespace Datatypes
+  {
+    class Any;
+    class Scalar;
+  }
+
+  namespace Crud
+  {
+    class Projection;
+    class Column;
+    class Limit;
+    class Order;
+    class Insert;
+    class Insert_TypedRow;
+    class UpdateOperation;
+    class Update;
+    class Collection;
+    class Find;
+    class Delete;
+  }
+
+  namespace Expr
+  {
+    class Expr;
+  }
+}
+
+#endif // _PROTOCOL_FWD_H_

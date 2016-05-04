@@ -27,8 +27,8 @@
 #pragma warning (disable : 4018 4996)
 #endif
 
-#include <google/protobuf/text_format.h>
-#include <google/protobuf/message.h>
+#include "ngs_common/protocol_protobuf.h"
+#include <boost/scoped_ptr.hpp>
 #include "mysqlx.h"
 #include "mysqlx_connection.h"
 #include "mysqlx_crud.h"
@@ -37,11 +37,12 @@
 
 #include "my_config.h"
 
+#include <boost/bind.hpp>
+
 #ifdef MYSQLXTEST_STANDALONE
 #include "mysqlx/auth_mysql41.h"
-#include <boost/bind.hpp>
 #else
-#include "ngs/protocol_authentication.h"
+#include "password_hasher.h"
 namespace mysqlx {
   std::string build_mysql41_authentication_response(const std::string &salt_data,
     const std::string &user,
@@ -50,7 +51,7 @@ namespace mysqlx {
   {
     std::string password_hash;
     if (password.length())
-      password_hash = ngs::Password_hasher::get_password_from_salt(ngs::Password_hasher::scramble(salt_data.c_str(), password.c_str()));
+      password_hash = Password_hasher::get_password_from_salt(Password_hasher::scramble(salt_data.c_str(), password.c_str()));
     std::string data;
     data.append(schema).push_back('\0'); // authz
     data.append(user).push_back('\0'); // authc
@@ -67,13 +68,22 @@ namespace mysqlx {
 #endif
 
 #include <iostream>
-
+#ifdef WIN32
+#pragma warning(push, 0)
+#endif
 #include <boost/asio.hpp>
+#ifdef WIN32
+#pragma warning(pop)
+#endif
+#ifndef WIN32
+#include <netdb.h>
+#include <sys/socket.h>
+#endif
 #include <string>
 #include <iostream>
 #include <limits>
 #include "compilerutils.h"
-#include "xdecimal.h"
+#include "ngs_common/xdecimal.h"
 
 #ifdef WIN32
 #  define snprintf _snprintf
@@ -153,7 +163,7 @@ bool mysqlx::parse_mysql_connstring(const std::string &connstring,
 using namespace mysqlx;
 
 Error::Error(int err, const std::string &message)
-: std::runtime_error(message), _message(message), _error(err)
+  : std::runtime_error(message), _message(message), _error(err)
 {
 }
 
@@ -211,7 +221,7 @@ boost::shared_ptr<Session> mysqlx::openSession(const std::string &host, int port
 }
 
 Connection::Connection(const Ssl_config &ssl_config, const std::size_t timeout, const bool dont_wait_for_disconnect)
-: m_sync_connection(m_ios, ssl_config.key, ssl_config.ca, ssl_config.ca_path,
+  : m_sync_connection(m_ios, ssl_config.key, ssl_config.ca, ssl_config.ca_path,
                     ssl_config.cert, ssl_config.cipher, timeout),
   m_deadline(m_ios), m_client_id(0),
   m_trace_packets(false), m_closed(true),
@@ -244,7 +254,7 @@ void Connection::connect(const std::string &uri, const std::string &pass, const 
     throw Error(CR_WRONG_HOST_INFO, "Unable to parse connection string");
 
   if (protocol != "mysqlx" && !protocol.empty())
-    throw Error(CR_WRONG_HOST_INFO, "Unsupported protocol "+protocol);
+    throw Error(CR_WRONG_HOST_INFO, "Unsupported protocol " + protocol);
 
   if (!pass.empty())
     password = pass;
@@ -280,7 +290,7 @@ void Connection::connect(const std::string &host, int port)
   }
 
   if (error)
-    throw Error(CR_CONNECTION_ERROR, error.message()+" connecting to "+host+":"+ports);
+    throw Error(CR_CONNECTION_ERROR, error.message() + " connecting to " + host + ":" + ports);
 
   m_closed = false;
 }
@@ -302,7 +312,7 @@ void Connection::fetch_capabilities()
 {
   send(Mysqlx::Connection::CapabilitiesGet());
   int mid;
-  std::unique_ptr<Message> message(recv_raw(mid));
+  boost::scoped_ptr<Message> message(recv_raw(mid));
   if (mid != Mysqlx::ServerMessages::CONN_CAPABILITIES)
     throw Error(CR_COMMANDS_OUT_OF_SYNC, "Unexpected response received from server");
   m_capabilities = *static_cast<Mysqlx::Connection::Capabilities*>(message.get());
@@ -314,6 +324,11 @@ void Connection::enable_tls()
 
   if (ec)
   {
+    // If ssl activation failed then
+    // server and client are in different states
+    // lets force disconnect
+    set_closed();
+
     if (boost::system::errc::not_supported == ec.value())
       throw Error(CR_SSL_CONNECTION_ERROR, "SSL not configured");
 
@@ -339,7 +354,7 @@ void Connection::close()
     int mid;
     try
     {
-      std::unique_ptr<Message> message(recv_raw(mid));
+      boost::scoped_ptr<Message> message(recv_raw(mid));
       if (mid != Mysqlx::ServerMessages::OK)
         throw Error(CR_COMMANDS_OUT_OF_SYNC, "Unexpected message received in response to Session.Close");
 
@@ -362,7 +377,7 @@ void Connection::perform_close()
   }
 
   int mid;
-  std::unique_ptr<Message> message(recv_raw(mid));
+  boost::scoped_ptr<Message> message(recv_raw(mid));
   std::stringstream s;
 
   s << "Unexpected message received with id:" << mid << " while waiting for disconnection";
@@ -485,7 +500,7 @@ void Connection::setup_capability(const std::string &name, const bool value)
     m_last_result->buffer();
 
   int mid;
-  std::unique_ptr<Message> msg(recv_raw(mid));
+  boost::scoped_ptr<Message> msg(recv_raw(mid));
 
   if (Mysqlx::ServerMessages::ERROR == mid)
     throw_server_error(*(Mysqlx::Error*)msg.get());
@@ -513,7 +528,7 @@ void Connection::authenticate_mysql41(const std::string &user, const std::string
 
   {
     int mid;
-    std::unique_ptr<Message> message(recv_raw(mid));
+    boost::scoped_ptr<Message> message(recv_raw(mid));
     switch (mid)
     {
       case Mysqlx::ServerMessages::SESS_AUTHENTICATE_CONTINUE:
@@ -534,8 +549,8 @@ void Connection::authenticate_mysql41(const std::string &user, const std::string
 #else
         if (pass.length())
         {
-          password_hash = ngs::Password_hasher::scramble(auth_continue.auth_data().c_str(), pass.c_str());
-          password_hash = ngs::Password_hasher::get_password_from_salt(password_hash);
+          password_hash = Password_hasher::scramble(auth_continue.auth_data().c_str(), pass.c_str());
+          password_hash = Password_hasher::get_password_from_salt(password_hash);
         }
 
         data.append(db).push_back('\0'); // authz
@@ -565,7 +580,7 @@ void Connection::authenticate_mysql41(const std::string &user, const std::string
   while (!done)
   {
     int mid;
-    std::unique_ptr<Message> message(recv_raw(mid));
+    boost::scoped_ptr<Message> message(recv_raw(mid));
     switch (mid)
     {
       case Mysqlx::ServerMessages::SESS_AUTHENTICATE_OK:
@@ -606,7 +621,7 @@ void Connection::authenticate_plain(const std::string &user, const std::string &
   while (!done)
   {
     int mid;
-    std::unique_ptr<Message> message(recv_raw(mid));
+    boost::scoped_ptr<Message> message(recv_raw(mid));
     switch (mid)
     {
       case Mysqlx::ServerMessages::SESS_AUTHENTICATE_OK:
@@ -650,7 +665,7 @@ void Connection::send(int mid, const Message &msg)
     google::protobuf::TextFormat::Printer p;
     p.SetInitialIndentLevel(1);
     p.PrintToString(msg, &out);
-    std::cout << ">>>> SEND " << msg.ByteSize()+1 << " " << msg.GetDescriptor()->full_name() << " {\n" << out << "}\n";
+    std::cout << ">>>> SEND " << msg.ByteSize() + 1 << " " << msg.GetDescriptor()->full_name() << " {\n" << out << "}\n";
   }
 
   error = m_sync_connection.write(buf, 5);
@@ -843,7 +858,7 @@ Message *Connection::recv_raw(int &mid)
   return recv_message_with_header(mid, buf, 0);
 }
 
-Message *Connection::recv_message_with_header(int &mid, char (&header_buffer)[5], const std::size_t header_offset)
+Message *Connection::recv_message_with_header(int &mid, char(&header_buffer)[5], const std::size_t header_offset)
 {
   Message* ret_val = NULL;
   boost::system::error_code error;
@@ -857,10 +872,10 @@ Message *Connection::recv_message_with_header(int &mid, char (&header_buffer)[5]
 
   if (!error)
   {
-  uint32_t msglen = *(uint32_t*)header_buffer - 1;
-  mid = header_buffer[4];
+    uint32_t msglen = *(uint32_t*)header_buffer - 1;
+    mid = header_buffer[4];
 
-  ret_val = recv_payload(mid, msglen);
+    ret_val = recv_payload(mid, msglen);
   }
   else
   {
@@ -878,10 +893,10 @@ void Connection::throw_mysqlx_error(const boost::system::error_code &error)
   switch (error.value())
   {
     // OSX return this undocumented error in case of kernel race-conndition
-    // lets ignore it and next call to any io function should return correct 
+    // lets ignore it and next call to any io function should return correct
     // error
     case boost::system::errc::wrong_protocol_type:
-	return;
+      return;
     case boost::asio::error::eof:
     case boost::asio::error::connection_reset:
     case boost::asio::error::connection_aborted:
@@ -903,6 +918,13 @@ boost::shared_ptr<Result> Connection::new_result(bool expect_data)
   m_last_result.reset(new Result(shared_from_this(), expect_data));
 
   return m_last_result;
+}
+
+boost::shared_ptr<Result> Connection::new_empty_result()
+{
+  boost::shared_ptr<Result> empty_result(new Result(shared_from_this(), false, false));
+
+  return empty_result;
 }
 
 boost::shared_ptr<Schema> Session::getSchema(const std::string &name)
@@ -957,14 +979,14 @@ void Document::reset(const std::string &doc, bool expression, const std::string 
   m_id = id;
 }
 
-Result::Result(boost::shared_ptr<Connection>owner, bool expect_data)
-: current_message(NULL), m_owner(owner), m_last_insert_id(-1), m_affected_rows(-1),
-  m_result_index(0), m_state(expect_data ? ReadMetadataI : ReadStmtOkI), m_buffered(false), m_buffering(false)
+Result::Result(boost::shared_ptr<Connection>owner, bool expect_data, bool expect_ok)
+  : current_message(NULL), m_owner(owner), m_last_insert_id(-1), m_affected_rows(-1),
+  m_result_index(0), m_state(expect_data ? ReadMetadataI : expect_ok ? ReadStmtOkI : ReadDone), m_buffered(false), m_buffering(false), m_has_doc_ids(false)
 {
 }
 
 Result::Result()
-: current_message(NULL), m_buffered(false), m_buffering(false)
+  : current_message(NULL), m_state(ReadDone), m_buffered(false), m_buffering(false)
 {
 }
 
@@ -984,8 +1006,8 @@ boost::shared_ptr<std::vector<ColumnMetadata> > Result::columnMetadata()
     return m_current_result->columnMetadata();
   else
   {
-  if (m_state == ReadMetadataI)
-    read_metadata();
+    if (m_state == ReadMetadataI)
+      read_metadata();
   }
   return m_columns;
 }
@@ -1092,12 +1114,12 @@ int Result::get_message_id()
 
     try
     {
-        current_message = owner->recv_next(current_message_id);
+      current_message = owner->recv_next(current_message_id);
     }
     catch (...)
     {
       m_state = ReadError;
-        owner->pop_local_notice_handler();
+      owner->pop_local_notice_handler();
       throw;
     }
 
@@ -1134,7 +1156,7 @@ int Result::get_message_id()
       // or EORows, which signals end of metadata AND empty resultset
       switch (current_message_id)
       {
-      case Mysqlx::ServerMessages::RESULTSET_COLUMN_META_DATA:
+        case Mysqlx::ServerMessages::RESULTSET_COLUMN_META_DATA:
           m_state = ReadMetadata;
           return current_message_id;
 
@@ -1200,6 +1222,32 @@ mysqlx::Message* Result::pop_message()
   current_message = NULL;
 
   return result;
+}
+
+std::string Result::lastDocumentId()
+{
+  // Last document id is only available on collection add operations
+  // and only if a single document is added (MY-139 Spec, Req 4, 6)
+  if (!m_has_doc_ids || m_last_document_ids.size() != 1)
+    throw std::logic_error("document id is not available.");
+
+  return m_last_document_ids.at(0);
+}
+
+const std::vector<std::string>& Result::lastDocumentIds()
+{
+  // Last document ids are available on any collection add operation (MY-139 Spec, Req 1-5)
+  if (!m_has_doc_ids)
+    throw std::logic_error("document ids are not available.");
+
+  return m_last_document_ids;
+}
+
+void Result::setLastDocumentIDs(const std::vector<std::string>& document_ids)
+{
+  m_has_doc_ids = true;
+  m_last_document_ids.reserve(document_ids.size());
+  std::copy(document_ids.begin(), document_ids.end(), std::back_inserter(m_last_document_ids));
 }
 
 static ColumnMetadata unwrap_column_metadata(const Mysqlx::Resultset::ColumnMetaData &column_data)
@@ -1285,7 +1333,7 @@ void Result::read_metadata()
     if (msgid == Mysqlx::ServerMessages::RESULTSET_COLUMN_META_DATA)
     {
       msgid = -1;
-      std::unique_ptr<Mysqlx::Resultset::ColumnMetaData> column_data(static_cast<Mysqlx::Resultset::ColumnMetaData*>(pop_message()));
+      boost::scoped_ptr<Mysqlx::Resultset::ColumnMetaData> column_data(static_cast<Mysqlx::Resultset::ColumnMetaData*>(pop_message()));
 
       m_columns->push_back(unwrap_column_metadata(*column_data));
     }
@@ -1331,7 +1379,7 @@ void Result::read_stmt_ok()
   if (Mysqlx::ServerMessages::SQL_STMT_EXECUTE_OK != get_message_id())
     throw std::runtime_error("Unexpected message id");
 
-  std::unique_ptr<mysqlx::Message> msg(pop_message());
+  boost::scoped_ptr<mysqlx::Message> msg(pop_message());
 }
 
 bool Result::rewind()
@@ -1409,14 +1457,14 @@ bool Result::nextDataSet()
   }
   else
   {
-  // flush left over rows
-  while (m_state == ReadRows)
-    read_row();
+    // flush left over rows
+    while (m_state == ReadRows)
+      read_row();
 
-  if (m_state == ReadMetadata)
-  {
-    read_metadata();
-    if (m_state == ReadRows)
+    if (m_state == ReadMetadata)
+    {
+      read_metadata();
+      if (m_state == ReadRows)
       {
         // If caching adds this new resultset to the cache
         if (m_buffering)
@@ -1424,11 +1472,11 @@ bool Result::nextDataSet()
           m_current_result.reset(new ResultData(m_columns));
           m_result_cache.push_back(m_current_result);
         }
-      return true;
-  }
+        return true;
+      }
     }
-  if (m_state == ReadStmtOk)
-    read_stmt_ok();
+    if (m_state == ReadStmtOk)
+      read_stmt_ok();
   }
   return false;
 }
@@ -1440,19 +1488,19 @@ boost::shared_ptr<Row> Result::next()
   if (m_buffered)
     ret_val = m_current_result->next();
   else
-{
-  if (!ready())
-    wait();
+  {
+    if (!ready())
+      wait();
 
-  if (m_state == ReadStmtOk)
-    read_stmt_ok();
+    if (m_state == ReadStmtOk)
+      read_stmt_ok();
 
     if (m_state != ReadDone)
     {
       ret_val = read_row();
 
-  if (m_state == ReadStmtOk)
-    read_stmt_ok();
+      if (m_state == ReadStmtOk)
+        read_stmt_ok();
     }
   }
 
@@ -1536,7 +1584,7 @@ void ResultData::seek(size_t record)
 }
 
 Row::Row(boost::shared_ptr<std::vector<ColumnMetadata> > columns, Mysqlx::Resultset::Row *data)
-: m_columns(columns), m_data(data)
+  : m_columns(columns), m_data(data)
 {
 }
 

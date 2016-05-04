@@ -1,4 +1,4 @@
-/* Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2015, 2016, Oracle and/or its affiliates. All rights reserved.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published by
@@ -38,8 +38,8 @@ namespace mysqlx
 
     Decimal(const std::string &s)
     {
-      int scale = 0;
-      std::size_t  dot_pos = s.find('.');
+      std::size_t scale = 0;
+      std::size_t dot_pos = s.find('.');
       bool dot_skipped = false;
       if (dot_pos != std::string::npos)
       {
