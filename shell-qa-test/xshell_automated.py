@@ -6242,6 +6242,69 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+  def test_MYS_361_1(self):
+      ''' DB.TABLENAME.SELECT() DOESN'T WORK IF TABLENAME IS "TABLES" OR "COLLECTIONS"'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                       '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=node','--schema=sakila', '--sql']
+
+      x_cmds = [("drop table if exists sakila.tables;\n", "Query OK"),
+                ("CREATE TABLE `tables` (\n", "..."),
+                ("  `character_id` smallint(5) unsigned NOT NULL AUTO_INCREMENT,\n", "..."),
+                ("  `name` varchar(30) NOT NULL,\n", "..."),
+                ("  `age` smallint(4) unsigned NOT NULL,\n", "..."),
+                ("  `gender` enum('male', 'female') DEFAULT 'male' NOT NULL,\n", "..."),
+                ("  `from` varchar(30) DEFAULT '' NOT NULL,\n", "..."),
+                ("  `universe` varchar(30) NOT NULL,\n", "..."),
+                ("  `base` bool DEFAULT false NOT NULL,\n", "..."),
+                ("  PRIMARY KEY (`character_id`),\n", "..."),
+                ("  KEY `idx_name` (`name`),\n", "..."),
+                ("  KEY `idx_base` (`base`)\n", "..."),
+                (") ENGINE=InnoDB DEFAULT CHARSET=utf8;\n", "Query OK, 0 rows affected"),
+                ("\\js\n", "mysql-js>"),
+                ("var table = db.getTable('tables');\n", "mysql-js>"),
+                ("db.getTables();\n", "tables"),
+                ("table.insert().values(28, 'Garrus Vakarian', 30, 'male', '', 'Mass Effect', 0).values(29, 'Liara TSoni', 109, 'female', '', 'Mass Effect', 0).execute();\n", "Query OK, 2 items affected"),
+                ("table.select();\n", "2 rows in set"),
+                ("table.delete().where('NOT base').execute();\n", "2 items affected"),
+                ("table.select();\n", "Empty set"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+
+  def test_MYS_361_2(self):
+      ''' DB.TABLENAME.SELECT() DOESN'T WORK IF TABLENAME IS "TABLES" OR "COLLECTIONS"'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                       '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=node','--schema=sakila', '--sql']
+
+      x_cmds = [("drop table if exists sakila.tables;\n", "Query OK"),
+                ("CREATE TABLE `collections` (\n", "..."),
+                ("  `character_id` smallint(5) unsigned NOT NULL AUTO_INCREMENT,\n", "..."),
+                ("  `name` varchar(30) NOT NULL,\n", "..."),
+                ("  `age` smallint(4) unsigned NOT NULL,\n", "..."),
+                ("  `gender` enum('male', 'female') DEFAULT 'male' NOT NULL,\n", "..."),
+                ("  `from` varchar(30) DEFAULT '' NOT NULL,\n", "..."),
+                ("  `universe` varchar(30) NOT NULL,\n", "..."),
+                ("  `base` bool DEFAULT false NOT NULL,\n", "..."),
+                ("  PRIMARY KEY (`character_id`),\n", "..."),
+                ("  KEY `idx_name` (`name`),\n", "..."),
+                ("  KEY `idx_base` (`base`)\n", "..."),
+                (") ENGINE=InnoDB DEFAULT CHARSET=utf8;\n", "Query OK, 0 rows affected"),
+                ("\\js\n", "mysql-js>"),
+                ("var table = db.getTable('collections');\n", "mysql-js>"),
+                ("db.getTables();\n", "collections"),
+                ("table.insert().values(28, 'Garrus Vakarian', 30, 'male', '', 'Mass Effect', 0).values(29, 'Liara TSoni', 109, 'female', '', 'Mass Effect', 0).execute();\n", "Query OK, 2 items affected"),
+                ("table.select();\n", "2 rows in set"),
+                ("table.delete().where('NOT base').execute();\n", "2 items affected"),
+                ("table.select();\n", "Empty set"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+
+
   def test_MYS_366_00(self):
       """ Verify the bug https://jira.oraclecorp.com/jira/browse/MYS-366 with node session """
       results = ''
