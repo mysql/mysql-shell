@@ -6205,7 +6205,7 @@ class XShell_TestCases(unittest.TestCase):
                 ( "INSERT INTO funwithdates (col_a) VALUES ('1000-02-01 0:00:00');\n", "mysql-sql>"),
                 ( "select * from funwithdates;\n", "mysql-sql>"),
                 ( "\\js\n", "mysql-js>"),
-                ( "row = session.sakila.funwithdates.select().execute().fetchOne();\n", "mysql-js>"),
+                ( "row = session.getSchema('sakila').funwithdates.select().execute().fetchOne();\n", "mysql-js>"),
                 ( "type(row.col_a);\n","Date"),
                 #( "row.col_a;\n","mysql-js>"),
                 #( "row.col_a.getYear();\n","1000"),
