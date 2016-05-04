@@ -37,6 +37,8 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/algorithm/string/case_conv.hpp>
 
+#include <ngs/memory.h>
+
 using namespace mysqlx;
 
 
@@ -129,7 +131,7 @@ void Expr_parser::paren_expr_list(::google::protobuf::RepeatedPtrField< ::Mysqlx
   _tokenizer.consume_token(Token::LPAREN);
   if (!_tokenizer.cur_token_type_is(Token::RPAREN))
   {
-    std::unique_ptr<Mysqlx::Expr::Expr> ptr(my_expr());
+    Memory_new<Mysqlx::Expr::Expr>::Unique_ptr ptr(my_expr());
     expr_list->AddAllocated(ptr.get());
     ptr.release();
     while (_tokenizer.cur_token_type_is(Token::COMMA))
@@ -149,7 +151,7 @@ void Expr_parser::paren_expr_list(::google::protobuf::RepeatedPtrField< ::Mysqlx
 Mysqlx::Expr::Identifier* Expr_parser::identifier()
 {
   _tokenizer.assert_cur_token(Token::IDENT);
-  std::unique_ptr<Mysqlx::Expr::Identifier> id(new Mysqlx::Expr::Identifier());
+  Memory_new<Mysqlx::Expr::Identifier>::Unique_ptr id(new Mysqlx::Expr::Identifier());
   if (_tokenizer.next_token_type(Token::DOT))
   {
     const std::string& schema_name = _tokenizer.consume_token(Token::IDENT);
@@ -166,12 +168,13 @@ Mysqlx::Expr::Identifier* Expr_parser::identifier()
  */
 Mysqlx::Expr::Expr* Expr_parser::function_call()
 {
-  std::unique_ptr<Mysqlx::Expr::Expr> e = std::unique_ptr<Mysqlx::Expr::Expr>(new Mysqlx::Expr::Expr());
+  Memory_new<Mysqlx::Expr::Expr>::Unique_ptr e(new Mysqlx::Expr::Expr());
   e->set_type(Mysqlx::Expr::Expr::FUNC_CALL);
   Mysqlx::Expr::FunctionCall* func = e->mutable_function_call();
-  std::unique_ptr<Mysqlx::Expr::Identifier> id(identifier());
+  Memory_new<Mysqlx::Expr::Identifier>::Unique_ptr id(identifier());
   func->set_allocated_name(id.get());
   id.release();
+
   paren_expr_list(func->mutable_param());
   return e.release();
 }
@@ -261,7 +264,7 @@ void Expr_parser::document_path(Mysqlx::Expr::ColumnIdentifier& colid)
       break;
     }
   }
-  size_t size = colid.document_path_size();
+  int size = colid.document_path_size();
   if (size > 0 && (colid.document_path(size - 1).type() == Mysqlx::Expr::DocumentPathItem::DOUBLE_ASTERISK))
   {
     const Token& tok = _tokenizer.peek_token();
@@ -285,7 +288,8 @@ const std::string& Expr_parser::id()
  */
 Mysqlx::Expr::Expr* Expr_parser::column_field()
 {
-  std::unique_ptr<Mysqlx::Expr::Expr> e(new Mysqlx::Expr::Expr());  std::vector<std::string> parts;
+  Memory_new<Mysqlx::Expr::Expr>::Unique_ptr e(new Mysqlx::Expr::Expr());
+  std::vector<std::string> parts;
   const std::string& part = id();
 
   if (part == "*")
@@ -338,7 +342,7 @@ Mysqlx::Expr::Expr* Expr_parser::column_field()
  */
 Mysqlx::Expr::Expr* Expr_parser::document_field()
 {
-  std::unique_ptr<Mysqlx::Expr::Expr> e(new Mysqlx::Expr::Expr());
+  Memory_new<Mysqlx::Expr::Expr>::Unique_ptr e(new Mysqlx::Expr::Expr());
 
   if (_tokenizer.cur_token_type_is(Token::DOLLAR))
     _tokenizer.consume_token(Token::DOLLAR);
@@ -374,7 +378,7 @@ Mysqlx::Expr::Expr* Expr_parser::atomic_expr()
   }
   else if (type == Token::LPAREN)
   {
-    std::unique_ptr<Mysqlx::Expr::Expr> e(my_expr());
+    Memory_new<Mysqlx::Expr::Expr>::Unique_ptr e(my_expr());
     _tokenizer.consume_token(Token::RPAREN);
     return e.release();
   }
@@ -394,8 +398,8 @@ Mysqlx::Expr::Expr* Expr_parser::atomic_expr()
   }
   else if (type == Token::PLUS || type == Token::MINUS || type == Token::NOT || type == Token::NEG)
   {
-    std::unique_ptr<Mysqlx::Expr::Expr> tmp(atomic_expr());
-    std::unique_ptr<Mysqlx::Expr::Expr> result(Expr_builder::build_unary_op(t.get_text(), tmp.get()));
+    Memory_new<Mysqlx::Expr::Expr>::Unique_ptr tmp(atomic_expr());
+    Memory_new<Mysqlx::Expr::Expr>::Unique_ptr result(Expr_builder::build_unary_op(t.get_text(), tmp.get()));
     tmp.release();
     return result.release();
   }
@@ -425,9 +429,10 @@ Mysqlx::Expr::Expr* Expr_parser::atomic_expr()
   }
   else if (type == Token::INTERVAL)
   {
-    std::unique_ptr<Mysqlx::Expr::Expr> e(new Mysqlx::Expr::Expr());
-    std::unique_ptr<Mysqlx::Expr::Expr> operand(my_expr());
+    Memory_new<Mysqlx::Expr::Expr>::Unique_ptr e(new Mysqlx::Expr::Expr());
+    Memory_new<Mysqlx::Expr::Expr>::Unique_ptr operand(NULL);
     e->set_type(Mysqlx::Expr::Expr::OPERATOR);
+    operand.reset(my_expr());
 
     Mysqlx::Expr::Operator* op = e->mutable_operator_();
     op->set_name("interval");
@@ -440,7 +445,7 @@ Mysqlx::Expr::Expr* Expr_parser::atomic_expr()
       throw Parser_error((boost::format("Expected interval units at %d (%s)") % tok.get_pos() % tok.get_text()).str());
     }
     const Token& val = _tokenizer.consume_any_token();
-    std::unique_ptr<Mysqlx::Expr::Expr> param = std::unique_ptr<Mysqlx::Expr::Expr>(Expr_builder::build_literal_expr(Expr_builder::build_string_scalar(val.get_text())));
+    Memory_new<Mysqlx::Expr::Expr>::Unique_ptr param(Expr_builder::build_literal_expr(Expr_builder::build_string_scalar(val.get_text())));
     e->mutable_operator_()->mutable_param()->AddAllocated(param.get());
     param.release();
     return e.release();
@@ -508,7 +513,7 @@ Mysqlx::Expr::Expr* Expr_parser::atomic_expr()
  */
 Mysqlx::Expr::Expr* Expr_parser::array_()
 {
-  std::unique_ptr<Mysqlx::Expr::Expr> result(new Mysqlx::Expr::Expr());
+  Memory_new<Mysqlx::Expr::Expr>::Unique_ptr result(new Mysqlx::Expr::Expr());
 
   result->set_type(Mysqlx::Expr::Expr_Type_ARRAY);
   Mysqlx::Expr::Array* a = result->mutable_array();
@@ -517,9 +522,9 @@ Mysqlx::Expr::Expr* Expr_parser::array_()
 
   if (!_tokenizer.cur_token_type_is(Token::RSQBRACKET))
   {
-    std::unique_ptr<Mysqlx::Expr::Expr> e(my_expr());
+    Memory_new<Mysqlx::Expr::Expr>::Unique_ptr e(my_expr());
     Mysqlx::Expr::Expr *item = a->add_value();
-    item->CopyFrom(*e.get());
+    item->CopyFrom(*e);
     e.reset();
 
     while (_tokenizer.cur_token_type_is(Token::COMMA))
@@ -553,7 +558,7 @@ void Expr_parser::json_key_value(Mysqlx::Expr::Object* obj)
 */
 Mysqlx::Expr::Expr* Expr_parser::json_doc()
 {
-  std::unique_ptr<Mysqlx::Expr::Expr> result(new Mysqlx::Expr::Expr());
+  Memory_new<Mysqlx::Expr::Expr>::Unique_ptr result(new Mysqlx::Expr::Expr());
   Mysqlx::Expr::Object* obj = result->mutable_object();
   result->set_type(Mysqlx::Expr::Expr_Type_OBJECT);
   _tokenizer.consume_token(Token::LCURLY);
@@ -575,7 +580,7 @@ Mysqlx::Expr::Expr* Expr_parser::json_doc()
  */
 Mysqlx::Expr::Expr* Expr_parser::placeholder()
 {
-  std::unique_ptr<Mysqlx::Expr::Expr> result(new Mysqlx::Expr::Expr());
+  Memory_new<Mysqlx::Expr::Expr>::Unique_ptr result(new Mysqlx::Expr::Expr());
   result->set_type(Mysqlx::Expr::Expr_Type_PLACEHOLDER);
 
   std::string placeholder_name;
@@ -616,12 +621,12 @@ Mysqlx::Expr::Expr* Expr_parser::cast()
 {
   _tokenizer.consume_token(Token::CAST);
   _tokenizer.consume_token(Token::LPAREN);
-  std::unique_ptr<Mysqlx::Expr::Expr> e(my_expr());
-  std::unique_ptr<Mysqlx::Expr::Expr> result(new Mysqlx::Expr::Expr());
+  Memory_new<Mysqlx::Expr::Expr>::Unique_ptr e(my_expr());
+  Memory_new<Mysqlx::Expr::Expr>::Unique_ptr result(new Mysqlx::Expr::Expr());
   // function
   result->set_type(Mysqlx::Expr::Expr::FUNC_CALL);
   Mysqlx::Expr::FunctionCall* func = result->mutable_function_call();
-  std::unique_ptr<Mysqlx::Expr::Identifier> id = std::unique_ptr<Mysqlx::Expr::Identifier>(new Mysqlx::Expr::Identifier());
+  Memory_new<Mysqlx::Expr::Identifier>::Unique_ptr id(new Mysqlx::Expr::Identifier());
   id->set_name(std::string("cast"));
   func->set_allocated_name(id.release());
   // params
@@ -631,7 +636,7 @@ Mysqlx::Expr::Expr* Expr_parser::cast()
   params->AddAllocated(e.release());
   // 2nd arg, cast_data_type
   const std::string& type_to_cast = cast_data_type();
-  std::unique_ptr<Mysqlx::Expr::Expr> type_expr(new Mysqlx::Expr::Expr());
+  Memory_new<Mysqlx::Expr::Expr>::Unique_ptr type_expr(new Mysqlx::Expr::Expr());
   type_expr->set_type(Mysqlx::Expr::Expr::LITERAL);
   Mysqlx::Datatypes::Scalar* sc(type_expr->mutable_literal());
   sc->set_type(Mysqlx::Datatypes::Scalar_Type_V_OCTETS);
@@ -816,10 +821,11 @@ Mysqlx::Expr::Expr *Expr_parser::binary()
 {
   // binary
   _tokenizer.consume_token(Token::BINARY);
-  std::unique_ptr<Mysqlx::Expr::Expr> e(new Mysqlx::Expr::Expr());
+
+  Memory_new<Mysqlx::Expr::Expr>::Unique_ptr e(new Mysqlx::Expr::Expr());
   e->set_type(Mysqlx::Expr::Expr::FUNC_CALL);
   Mysqlx::Expr::FunctionCall* func = e->mutable_function_call();
-  std::unique_ptr<Mysqlx::Expr::Identifier> id(new Mysqlx::Expr::Identifier());
+  Memory_new<Mysqlx::Expr::Identifier>::Unique_ptr id(new Mysqlx::Expr::Identifier());
   id->set_name(std::string("binary"));
   func->set_allocated_name(id.release());
   ::google::protobuf::RepeatedPtrField< ::Mysqlx::Expr::Expr >* params = func->mutable_param();
@@ -832,10 +838,10 @@ Mysqlx::Expr::Expr *Expr_parser::binary()
 Mysqlx::Expr::Expr* Expr_parser::parse_left_assoc_binary_op_expr(std::set<Token::TokenType>& types, inner_parser_t inner_parser)
 {
   // Given a `set' of types and an Expr-returning inner parser function, parse a left associate binary operator expression
-  std::unique_ptr<Mysqlx::Expr::Expr> lhs =  std::unique_ptr<Mysqlx::Expr::Expr>(inner_parser(this));
+  Memory_new<Mysqlx::Expr::Expr>::Unique_ptr lhs(inner_parser(this));
   while (_tokenizer.tokens_available() && _tokenizer.is_type_within_set(types))
   {
-    std::unique_ptr<Mysqlx::Expr::Expr> e(new Mysqlx::Expr::Expr());
+    Memory_new<Mysqlx::Expr::Expr>::Unique_ptr e(new Mysqlx::Expr::Expr());
     e->set_type(Mysqlx::Expr::Expr::OPERATOR);
     const Token &t = _tokenizer.consume_any_token();
     const std::string& op_val = t.get_text();
@@ -844,7 +850,8 @@ Mysqlx::Expr::Expr* Expr_parser::parse_left_assoc_binary_op_expr(std::set<Token:
     op->set_name(op_normalized.c_str(), op_normalized.size());
     op->mutable_param()->AddAllocated(lhs.get());
     lhs.release();
-    std::unique_ptr<Mysqlx::Expr::Expr> tmp(inner_parser(this));
+
+    Memory_new<Mysqlx::Expr::Expr>::Unique_ptr tmp(inner_parser(this));
     op->mutable_param()->AddAllocated(tmp.get());
     tmp.release();
     lhs.release();
@@ -899,8 +906,8 @@ Mysqlx::Expr::Expr* Expr_parser::comp_expr()
  */
 Mysqlx::Expr::Expr* Expr_parser::ilri_expr()
 {
-  std::unique_ptr<Mysqlx::Expr::Expr> e(new Mysqlx::Expr::Expr());
-  std::unique_ptr<Mysqlx::Expr::Expr> lhs(comp_expr());
+  Memory_new<Mysqlx::Expr::Expr>::Unique_ptr e(new Mysqlx::Expr::Expr());
+  Memory_new<Mysqlx::Expr::Expr>::Unique_ptr lhs(comp_expr());
   bool is_not = false;
   if (_tokenizer.cur_token_type_is(Token::NOT))
   {
@@ -923,7 +930,7 @@ Mysqlx::Expr::Expr* Expr_parser::ilri_expr()
         is_not = true;
         _tokenizer.consume_token(Token::NOT);
       }
-      std::unique_ptr<Mysqlx::Expr::Expr> tmp(comp_expr());
+      Memory_new<Mysqlx::Expr::Expr>::Unique_ptr tmp(comp_expr());
       params->AddAllocated(lhs.get());
       params->AddAllocated(tmp.get());
       tmp.release();
@@ -935,13 +942,13 @@ Mysqlx::Expr::Expr* Expr_parser::ilri_expr()
       if (_tokenizer.cur_token_type_is(Token::LSQBRACKET))
       {
         _tokenizer.consume_token(Token::LSQBRACKET);
-        std::unique_ptr<Mysqlx::Expr::Expr> ptr(my_expr());
+        Memory_new<Mysqlx::Expr::Expr>::Unique_ptr ptr(my_expr());
         params->AddAllocated(ptr.get());
         ptr.release();
         while (_tokenizer.cur_token_type_is(Token::COMMA))
         {
           _tokenizer.inc_pos_token();
-          ptr = std::unique_ptr<Mysqlx::Expr::Expr>(my_expr());
+          ptr.reset(my_expr());
           params->AddAllocated(ptr.get());
           ptr.release();
         }
@@ -955,14 +962,14 @@ Mysqlx::Expr::Expr* Expr_parser::ilri_expr()
     else if (_tokenizer.cur_token_type_is(Token::LIKE))
     {
       _tokenizer.consume_token(Token::LIKE);
-      std::unique_ptr<Mysqlx::Expr::Expr> tmp(comp_expr());
+      Memory_new<Mysqlx::Expr::Expr>::Unique_ptr tmp(comp_expr());
       params->AddAllocated(lhs.get());
       params->AddAllocated(tmp.get());
       tmp.release();
       if (_tokenizer.cur_token_type_is(Token::ESCAPE))
       {
         _tokenizer.consume_token(Token::ESCAPE);
-        tmp = std::unique_ptr<Mysqlx::Expr::Expr>(comp_expr());
+        tmp.reset(comp_expr());
         params->AddAllocated(tmp.get());
         tmp.release();
       }
@@ -971,7 +978,7 @@ Mysqlx::Expr::Expr* Expr_parser::ilri_expr()
     {
       _tokenizer.consume_token(Token::BETWEEN);
       params->AddAllocated(lhs.get());
-      std::unique_ptr<Mysqlx::Expr::Expr> tmp(comp_expr());
+      Memory_new<Mysqlx::Expr::Expr>::Unique_ptr tmp(comp_expr());
       params->AddAllocated(tmp.get());
       tmp.release();
       _tokenizer.consume_token(Token::AND);
@@ -982,7 +989,7 @@ Mysqlx::Expr::Expr* Expr_parser::ilri_expr()
     else if (_tokenizer.cur_token_type_is(Token::REGEXP))
     {
       _tokenizer.consume_token(Token::REGEXP);
-      std::unique_ptr<Mysqlx::Expr::Expr> tmp(comp_expr());
+      Memory_new<Mysqlx::Expr::Expr>::Unique_ptr tmp(comp_expr());
       params->AddAllocated(lhs.get());
       params->AddAllocated(tmp.get());
       tmp.release();
@@ -1046,7 +1053,7 @@ Mysqlx::Expr::Expr* Expr_parser::my_expr()
  */
 Mysqlx::Expr::Expr* Expr_parser::expr()
 {
-  std::unique_ptr<Mysqlx::Expr::Expr> result(or_expr());
+ Memory_new<Mysqlx::Expr::Expr>::Unique_ptr result(or_expr());
   if (_tokenizer.tokens_available())
   {
     const Token& tok = _tokenizer.peek_token();

@@ -16,6 +16,7 @@
 
 include_directories("${Boost_INCLUDE_DIRS}"
     ${SSL_INCLUDE_DIRS}
+    ${CMAKE_SOURCE_DIR}/common/mysqlx
     ${CMAKE_SOURCE_DIR}/common/yassl/taocrypt/mySTL
     ${CMAKE_CURRENT_SOURCE_DIR}/common
     ${CMAKE_SOURCE_DIR}/mysqlxtest/myasio

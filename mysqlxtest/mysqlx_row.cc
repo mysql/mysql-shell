@@ -18,12 +18,9 @@
  */
 
 #include "mysqlx_row.h"
-#include "xdatetime.h"
-#include "xdecimal.h"
-
-#include <google/protobuf/io/coded_stream.h>
-#include <google/protobuf/wire_format_lite.h>
-#include <google/protobuf/wire_format_lite_inl.h>
+#include "ngs_common/xdatetime.h"
+#include "ngs_common/xdecimal.h"
+#include "ngs_common/protocol_protobuf.h"
 
 #include <iostream>
 #include <string>
@@ -37,7 +34,7 @@ int64_t Row_decoder::s64_from_buffer(const std::string& buffer)
   std::string& _buf = const_cast<std::string&>(buffer);
   google::protobuf::uint8* field_buff = reinterpret_cast<google::protobuf::uint8*>(&_buf[0]);
 
-  google::protobuf::io::CodedInputStream input_buffer(field_buff, buffer.length());
+  google::protobuf::io::CodedInputStream input_buffer(field_buff, static_cast<int>(buffer.length()));
 
   google::protobuf::uint64 value;
   bool ret = input_buffer.ReadVarint64(&value);
@@ -54,7 +51,7 @@ uint64_t Row_decoder::u64_from_buffer(const std::string& buffer)
   std::string& _buf = const_cast<std::string&>(buffer);
   google::protobuf::uint8* field_buff = reinterpret_cast<google::protobuf::uint8*>(&_buf[0]);
 
-  google::protobuf::io::CodedInputStream input_buffer(field_buff, buffer.length());
+  google::protobuf::io::CodedInputStream input_buffer(field_buff, static_cast<int>(buffer.length()));
 
   google::protobuf::uint64 value;
   bool ret = input_buffer.ReadVarint64(&value);
@@ -79,7 +76,7 @@ void Row_decoder::set_from_buffer(const std::string& buffer, std::set<std::strin
 
   std::string& _buf = const_cast<std::string&>(buffer);
   google::protobuf::uint8* field_buff = reinterpret_cast<google::protobuf::uint8*>(&_buf[0]);
-  google::protobuf::io::CodedInputStream input_buffer(field_buff, buffer.length());
+  google::protobuf::io::CodedInputStream input_buffer(field_buff, static_cast<int>(buffer.length()));
 
   google::protobuf::uint64 len;
   std::string elem;
@@ -113,7 +110,7 @@ std::string Row_decoder::set_from_buffer_as_str(const std::string& buffer)
 
   std::string& _buf = const_cast<std::string&>(buffer);
   google::protobuf::uint8* field_buff = reinterpret_cast<google::protobuf::uint8*>(&_buf[0]);
-  google::protobuf::io::CodedInputStream input_buffer(field_buff, buffer.length());
+  google::protobuf::io::CodedInputStream input_buffer(field_buff, static_cast<int>(buffer.length()));
 
   google::protobuf::uint64 len;
   std::string elem;
@@ -151,7 +148,7 @@ float Row_decoder::float_from_buffer(const std::string& buffer)
   std::string& _buf = const_cast<std::string&>(buffer);
   google::protobuf::uint8* field_buff = reinterpret_cast<google::protobuf::uint8*>(&_buf[0]);
 
-  google::protobuf::io::CodedInputStream input_buffer(field_buff, buffer.length());
+  google::protobuf::io::CodedInputStream input_buffer(field_buff, static_cast<int>(buffer.length()));
 
   google::protobuf::uint32 value;
   bool ret = input_buffer.ReadLittleEndian32(&value);
@@ -169,7 +166,7 @@ double Row_decoder::double_from_buffer(const std::string& buffer)
   std::string& _buf = const_cast<std::string&>(buffer);
   google::protobuf::uint8* field_buff = reinterpret_cast<google::protobuf::uint8*>(&_buf[0]);
 
-  google::protobuf::io::CodedInputStream input_buffer(field_buff, buffer.length());
+  google::protobuf::io::CodedInputStream input_buffer(field_buff, static_cast<int>(buffer.length()));
 
   google::protobuf::uint64 value;
   bool ret = input_buffer.ReadLittleEndian64(&value);
@@ -202,7 +199,7 @@ DateTime Row_decoder::datetime_from_buffer(const std::string& buffer)
   std::string& _buf = const_cast<std::string&>(buffer);
   google::protobuf::uint8* field_buff = reinterpret_cast<google::protobuf::uint8*>(&_buf[0]);
 
-  google::protobuf::io::CodedInputStream input_buffer(field_buff, buffer.length());
+  google::protobuf::io::CodedInputStream input_buffer(field_buff, static_cast<int>(buffer.length()));
 
   read_required_uint64(input_buffer, year);
   read_required_uint64(input_buffer, month);
@@ -239,7 +236,7 @@ Time Row_decoder::time_from_buffer(const std::string& buffer)
   std::string& _buf = const_cast<std::string&>(buffer);
   google::protobuf::uint8* field_buff = reinterpret_cast<google::protobuf::uint8*>(&_buf[0]);
 
-  google::protobuf::io::CodedInputStream input_buffer(field_buff, buffer.length());
+  google::protobuf::io::CodedInputStream input_buffer(field_buff, static_cast<int>(buffer.length()));
 
   google::protobuf::uint8 sign;
   input_buffer.ReadRaw(&sign, 1);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2016, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -36,22 +36,29 @@ void Memory_delete(Type* ptr)
   delete ptr;
 }
 
+
+template <typename Type, typename DeleterType = boost::function<void (Type* value_ptr)> >
+struct Custom_allocator
+{
+  typedef boost::interprocess::unique_ptr<Type, DeleterType > Unique_ptr;
+};
+
 template<typename Type>
-struct Memory_new
+struct Custom_allocator_with_check
 {
   typedef void (*functor_type)(Type *ptr);
 
-  Memory_new()
+  Custom_allocator_with_check()
   {
     function = Memory_delete<Type>;
   }
 
-  Memory_new(const boost::none_t &)
+  Custom_allocator_with_check(const boost::none_t &)
   {
     function = NULL;
   }
 
-  Memory_new(functor_type user_function)
+  Custom_allocator_with_check(functor_type user_function)
   {
     function = user_function;
   }
@@ -66,13 +73,21 @@ struct Memory_new
 
   functor_type function;
 
-  typedef boost::interprocess::unique_ptr<Type, Memory_new<Type> > Unique_ptr;
+  typedef boost::interprocess::unique_ptr<Type, Custom_allocator_with_check<Type> > Unique_ptr;
 };
 
-template <typename Type, typename DeleterType = boost::function<void (Type* Value_ptr)> >
-struct Custom_allocator
+template<typename Type>
+struct Memory_new
 {
-  typedef boost::interprocess::unique_ptr<Type, DeleterType > Unique_ptr;
+  struct Unary_delete
+  {
+    void operator() (Type *ptr)
+    {
+      delete ptr;
+    }
+  };
+
+  typedef boost::interprocess::unique_ptr<Type, Unary_delete > Unique_ptr;
 };
 
 #endif // _NGS_MEMORY_H_

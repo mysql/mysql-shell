@@ -17,18 +17,27 @@
  * 02110-1301  USA
  */
 
-#ifndef _COMPILERUTILS_H_
-#define _COMPILERUTILS_H_
 
-#ifdef UNUSED
-#  elif defined(__GNUC__)
-#    define UNUSED(x) UNUSED_ ## x __attribute__((unused))
-#  elif defined(__LCLINT__)
-#    define UNUSED(x) /*@unused@*/ x
-#  elif defined(__cplusplus)
-#    define UNUSED(x)
-#  else
-#    define UNUSED(x) x
-#endif
+#ifndef _NGS_TYPES_H_
+#define _NGS_TYPES_H_
 
-#endif  // _COMPILERUTILS_H_
+
+#include <string>
+#include <boost/date_time/posix_time/posix_time.hpp>
+
+
+namespace ngs
+{
+
+typedef boost::posix_time::microsec_clock  microsec_clock;
+typedef boost::posix_time::ptime           ptime;
+typedef boost::posix_time::time_duration   time_duration;
+typedef boost::posix_time::milliseconds    milliseconds;
+typedef boost::posix_time::seconds         seconds;
+
+const boost::date_time::special_values not_a_date_time = not_a_date_time;
+
+} // namespcae ngs
+
+
+#endif // _NGS_TYPES_H_

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2016 Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -17,18 +17,31 @@
  * 02110-1301  USA
  */
 
-#ifndef _COMPILERUTILS_H_
-#define _COMPILERUTILS_H_
+#ifndef _NGS_PROTOCOL_MONITOR_H_
+#define _NGS_PROTOCOL_MONITOR_H_
 
-#ifdef UNUSED
-#  elif defined(__GNUC__)
-#    define UNUSED(x) UNUSED_ ## x __attribute__((unused))
-#  elif defined(__LCLINT__)
-#    define UNUSED(x) /*@unused@*/ x
-#  elif defined(__cplusplus)
-#    define UNUSED(x)
-#  else
-#    define UNUSED(x) x
-#endif
 
-#endif  // _COMPILERUTILS_H_
+namespace ngs
+{
+
+
+class IProtocol_monitor
+{
+public:
+  virtual ~IProtocol_monitor() {}
+
+  virtual void on_notice_warning_send() = 0;
+  virtual void on_notice_other_send() = 0;
+  virtual void on_error_send() = 0;
+  virtual void on_fatal_error_send() = 0;
+  virtual void on_init_error_send() = 0;
+  virtual void on_row_send() = 0;
+  virtual void on_send(long bytes_transferred) = 0;
+  virtual void on_receive(long bytes_transferred) = 0;
+};
+
+
+} // namespace ngs
+
+
+#endif // _NGS_PROTOCOL_MONITOR_H_

@@ -74,11 +74,11 @@ namespace mysqlx
   {
     Ssl_config()
     {
-      key      = NULL;
-      ca       = NULL;
-      ca_path  = NULL;
-      cert     = NULL;
-      cipher   = NULL;
+      key = NULL;
+      ca = NULL;
+      ca_path = NULL;
+      cert = NULL;
+      cipher = NULL;
     }
 
     const char *key;
@@ -159,6 +159,7 @@ namespace mysqlx
 
     void set_trace_protocol(bool flag) { m_trace_packets = flag; }
 
+    boost::shared_ptr<Result> new_empty_result();
   private:
     void perform_close();
     void dispatch_notice(Mysqlx::Notice::Frame *frame);
