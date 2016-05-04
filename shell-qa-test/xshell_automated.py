@@ -6242,6 +6242,22 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+  def test_MYS_360(self):
+      ''' DB.TABLES DOESN'T UPDATE CACHE WHEN CALLED TWICE'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                       '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=node','--schema=sakila']
+
+      x_cmds = [("\sql\n", "mysql-sql>"),
+                ("drop table if exists sakila.tables;\n", "mysql-sql>"),
+                ("create table tables ( id int );\n", "Query OK"),
+                ("\js\n", "mysql-js>"),
+                ("db.getTables();\n", "tables"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+
   def test_MYS_361_1(self):
       ''' DB.TABLENAME.SELECT() DOESN'T WORK IF TABLENAME IS "TABLES" OR "COLLECTIONS"'''
       results = ''
