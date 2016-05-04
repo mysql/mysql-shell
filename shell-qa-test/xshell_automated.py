@@ -2009,7 +2009,7 @@ class XShell_TestCases(unittest.TestCase):
                 ("session.sql(\"drop table if exists sakila.friends;\").execute();\n","Query OK"),
                 ("session.sql(\'create table sakila.friends (name varchar(50), last_name varchar(50), "
                  "age integer, gender varchar(20));\').execute();\n","Query OK"),
-                ("var table = session.sakila.friends;\n","mysql-js>"),
+                ("var table = session.getSchema('sakila').friends;\n","mysql-js>"),
                 ("table.insert('name','last_name','age','gender').values('jack','black', 17, 'male');\n","Query OK"),
                 ("table.insert('name','last_name','age','gender').values('ruben','morquecho', 40, 'male');\n","Query OK"),
                 ("var res_ruben = table.update().set('name','ruben dario').set('age',42).where('name=\"ruben\"').execute();\n","mysql-js>"),
@@ -2054,7 +2054,7 @@ class XShell_TestCases(unittest.TestCase):
                 ("session.sql('drop table if exists sakila.friends;').execute();\n","Query OK"),
                 ("session.sql('create table sakila.friends (name varchar(50), last_name varchar(50), "
                  "age integer, gender varchar(20));').execute();\n","Query OK"),
-                ("var table = session.sakila.friends;\n","mysql-js>"),
+                ("var table = session.getSchema('sakila').friends;\n","mysql-js>"),
                 ("table.insert('name','last_name','age','gender').\n","..."),
                 ("values('jack','black', 17, 'male');\n","..."),
                 ("\n","Query OK, 1 item affected"),
@@ -2499,7 +2499,7 @@ class XShell_TestCases(unittest.TestCase):
                 ("session.sql(\"drop table if exists sakila.friends;\").execute()\n","Query OK"),
                 ("session.sql(\'create table sakila.friends (name varchar(50), last_name varchar(50), "
                  "age integer, gender varchar(20));\').execute()\n","Query OK"),
-                ("table = session.sakila.friends\n","mysql-py>"),
+                ("table = session.getSchema('sakila').friends\n","mysql-py>"),
                 ("table.insert(\'name\',\'last_name\',\'age\',\'gender\').values(\'jack\',\'black\', 17, \'male\')\n","Query OK"),
                 ("table.insert(\'name\',\'last_name\',\'age\',\'gender\').values(\'ruben\',\'morquecho\', 40, \'male\')\n","Query OK"),
                 ("res_ruben = table.update().set(\'name\',\'ruben dario\').set(\'age\',42).where(\'name=\"ruben\"\').execute()\n","mysql-py>"),
@@ -2546,7 +2546,7 @@ class XShell_TestCases(unittest.TestCase):
                 ("session.sql('drop table if exists sakila.friends;').execute()\n","Query OK"),
                 ("session.sql('create table sakila.friends (name varchar(50), last_name varchar(50), "
                  "age integer, gender varchar(20));').execute()\n","Query OK"),
-                ("table = session.sakila.friends\n","mysql-py>"),
+                ("table = session.getSchema('sakila').friends\n","mysql-py>"),
                 ("table.insert('name','last_name','age','gender').\\\n","..."),
                 ("values('jack','black', 17, 'male')\n","..."),
                 ("\n","Query OK, 1 item affected"),
@@ -4697,7 +4697,7 @@ class XShell_TestCases(unittest.TestCase):
 
       x_cmds = [("var mysqlx=require('mysqlx').mysqlx;\n","mysql-js>"),
                 ("var mySession = mysqlx.getSession('"+LOCALHOST.user+"@"+LOCALHOST.host+"', '"+LOCALHOST.password+"');\n","mysql-js>"),
-                ("var result = mySession.world_x.countryinfo.find().execute();\n","mysql-js>"),
+                ("var result = mySession.getSchema('world_x').countryinfo.find().execute();\n","mysql-js>"),
                 ("var record = result.fetchOne();\n","mysql-js>"),
                 ("print(record);\n","\"government\": {" + os.linesep + ""),
                 ]
@@ -4712,7 +4712,7 @@ class XShell_TestCases(unittest.TestCase):
 
       x_cmds = [("var mysqlx=require('mysqlx').mysqlx;\n","mysql-js>"),
                 ("var mySession = mysqlx.getSession('"+LOCALHOST.user+"@"+LOCALHOST.host+"', '"+LOCALHOST.password+"');\n","mysql-js>"),
-                ("var result = mySession.world_x.countryinfo.find().execute();\n","mysql-js>"),
+                ("var result = mySession.getSchema('world_x').countryinfo.find().execute();\n","mysql-js>"),
                 ("var record = result.fetchAll();\n","mysql-js>"),
                 ("print(record);\n","IndepYear\":"),
                 ]
