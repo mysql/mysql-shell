@@ -5793,10 +5793,10 @@ class XShell_TestCases(unittest.TestCase):
       x_cmds = [("\n", 'mysql-py>'),
                 ("session\n", '{\"result\":{\"class\":\"NodeSession\",\"connected\":true,\"uri\":\"' + LOCALHOST.user + '@' + LOCALHOST.host + ':' + LOCALHOST.xprotocol_port + '\"}}'),
                 ("\\sql\n", "mysql-sql>"),
-                ("use world_x;\n", "{\"executionTime\":\"0.00 sec\",\"warningCount\":0,\"warnings\":[],\"rows\":[],\"hasData\":false,\"affectedRowCount\":0,\"lastInsertId\":-1}"),
-                ("create table test_classic (variable varchar(10));\n", "\"warningCount\":0,\"warnings\":[],\"rows\":[],\"hasData\":false,\"affectedRowCount\":0,\"lastInsertId\":-1}"),
-                ("select * from test_classic;\n","\"warningCount\":0,\"warnings\":[],\"rows\":[],\"hasData\":true,\"affectedRowCount\":0,\"lastInsertId\":-1}"),
-                ("drop table world_x.test_classic;\n", "\"warningCount\":0,\"warnings\":[],\"rows\":[],\"hasData\":false,\"affectedRowCount\":0,\"lastInsertId\":-1}")
+                ("use world_x;\n", "{\"executionTime\":\"0.00 sec\",\"warningCount\":0,\"warnings\":[],\"rows\":[],\"hasData\":false,\"affectedRowCount\":0,\"autoIncrementValue\":-1}"),
+                ("create table test_classic (variable varchar(10));\n", "\"warningCount\":0,\"warnings\":[],\"rows\":[],\"hasData\":false,\"affectedRowCount\":0,\"autoIncrementValue\":-1}"),
+                ("select * from test_classic;\n","\"warningCount\":0,\"warnings\":[],\"rows\":[],\"hasData\":true,\"affectedRowCount\":0,\"autoIncrementValue\":-1}"),
+                ("drop table world_x.test_classic;\n", "\"warningCount\":0,\"warnings\":[],\"rows\":[],\"hasData\":false,\"affectedRowCount\":0,\"autoIncrementValue\":-1}")
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
