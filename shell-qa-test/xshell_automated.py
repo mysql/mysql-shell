@@ -6587,6 +6587,31 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+  def test_MYS_444(self):
+      """ "DB.COLLECTIONS" SHOWS COLLECTION AFTER DROPPING VIA MYSQL CLIENT"""
+      results = ''
+      error = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=node', '--sql']
+      x_cmds = [("drop database if exists collections;\n", 'Query OK'),
+                ("create database collections;\n", "Query OK"),
+                ("\\py\n", "mysql-py>"),
+                ("db=session.getSchema('collections')\n", "mysql-py>"),
+                ("db.createCollection('flags')\n", "<Collection:flags>"),
+                ("\\sql\n", "mysql-sql>"),
+                ("use collections;\n", "Query OK"),
+                ("show tables;\n", "flags"),
+                ("\\py\n", "mysql-py>"),
+                ("db.getCollections()\n", "<Collection:flags>"),
+                ("\\sql\n", "mysql-sql>"),
+                ("use collections;\n", "Query OK"),
+                ("drop table flags;\n", "Query OK"),
+                ("\\py\n", "mysql-py>"),
+                ("db.getCollections()\n", "["+os.linesep+"]"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
 
   # ----------------------------------------------------------------------
 
