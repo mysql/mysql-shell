@@ -6454,8 +6454,8 @@ class XShell_TestCases(unittest.TestCase):
                        '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=node','--schema=sakila', '--js']
 
       x_cmds = [("\\warnings\n", "mysql-js>"),
-                ("db.tables();\n", "\r\n\r\n"),
-                ("db.views();\n", "\r\n\r\n"),
+                ("db.tables();\n", "" + os.linesep + os.linesep + ""),
+                ("db.views();\n",  "" + os.linesep + os.linesep + ""),
                 ("db.getTables();\n","actor"),
                 ("db.getViews();\n","actor_info"),
                 ]
