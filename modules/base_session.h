@@ -45,6 +45,8 @@ namespace mysh
     virtual bool operator == (const Object_bridge &other) const;
 
     virtual std::vector<std::string> get_members() const;
+    virtual shcore::Value get_member(const std::string &prop) const;
+    virtual bool has_member(const std::string &prop) const;
 
     // Virtual methods from ISession
     virtual shcore::Value connect(const shcore::Argument_list &args) = 0;
@@ -93,6 +95,10 @@ namespace mysh
     ShellDevelopmentSession();
     ShellDevelopmentSession(const ShellDevelopmentSession& s);
     virtual ~ShellDevelopmentSession() {};
+
+    virtual std::vector<std::string> get_members() const;
+    virtual shcore::Value get_member(const std::string &prop) const;
+    virtual bool has_member(const std::string &prop) const;
 
     virtual shcore::Value create_schema(const shcore::Argument_list &args) = 0;
     virtual shcore::Value drop_schema(const shcore::Argument_list &args) = 0;

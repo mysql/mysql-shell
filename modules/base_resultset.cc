@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2016, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -270,6 +270,12 @@ shcore::Value ShellBaseResult::get_member_method(const shcore::Argument_list &ar
   return get_member(prop);
 }
 
+bool ShellBaseResult::has_member(const std::string &prop) const
+{
+  std::vector<std::string> members = get_members();
+  return std::find(members.begin(), members.end(), prop) != members.end();
+}
+
 shcore::Value Column::get_member_method(const shcore::Argument_list &args, const std::string& method, const std::string& prop)
 {
   std::string function = class_name() + "." + method;
@@ -427,6 +433,23 @@ shcore::Value Column::get_member(const std::string &prop) const
     ret_val = shcore::Cpp_object_bridge::get_member(prop);
 
   return ret_val;
+}
+
+bool Column::has_member(const std::string &prop) const
+{
+  return Cpp_object_bridge::has_member(prop) ||
+    prop == "schemaName" ||
+    prop == "tableName" ||
+    prop == "tableLabel" ||
+    prop == "columnName" ||
+    prop == "columnLabel" ||
+    prop == "type" ||
+    prop == "length" ||
+    prop == "fractionalDigits" ||
+    prop == "numberSigned" ||
+    prop == "collationName" ||
+    prop == "characterSetName" ||
+    prop == "padded";
 }
 
 Row::Row()

@@ -21,8 +21,15 @@
 |getAutoIncrementValue: OK|
 
 //@ Result member validation
+|executionTime: OK|
+|warningCount: OK|
+|warnings: OK|
+|getExecutionTime: OK|
+|getWarningCount: OK|
+|getWarnings: OK|
 |affectedItemCount: OK|
 |autoIncrementValue: OK|
+|lastDocumentId: OK|
 |lastDocumentId: OK|
 |getAffectedItemCount: OK|
 |getAutoIncrementValue: OK|

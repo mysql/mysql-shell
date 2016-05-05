@@ -63,7 +63,7 @@ ClassicSession::ClassicSession()
 }
 
 ClassicSession::ClassicSession(const ClassicSession& session) :
-  ShellDevelopmentSession(session), _conn(session._conn)
+ShellDevelopmentSession(session), _conn(session._conn)
 {
   init();
 }
@@ -252,19 +252,6 @@ Value ClassicSession::get_member(const std::string &prop) const
   // it is a schema and attempt loading it as such
   if (ShellDevelopmentSession::has_member(prop))
     ret_val = ShellDevelopmentSession::get_member(prop);
-  else if (prop == "uri")
-    ret_val = Value(_uri);
-  else if (prop == "defaultSchema")
-  {
-    if (!_default_schema.empty())
-    {
-      shcore::Argument_list args;
-      args.push_back(shcore::Value(_default_schema));
-      return get_schema(args);
-    }
-    else
-      ret_val = Value::Null();
-  }
   else if (prop == "currentSchema")
   {
     ClassicSession *session = const_cast<ClassicSession *>(this);
@@ -281,6 +268,12 @@ Value ClassicSession::get_member(const std::string &prop) const
   }
 
   return ret_val;
+}
+
+bool ClassicSession::has_member(const std::string &prop) const
+{
+  return ShellDevelopmentSession::has_member(prop) ||
+    prop == "currentSchema";
 }
 
 std::string ClassicSession::_retrieve_current_schema()

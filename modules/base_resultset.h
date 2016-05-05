@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2016, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -37,6 +37,7 @@ namespace mysh
 
     // Helper method to retrieve properties using a method
     shcore::Value get_member_method(const shcore::Argument_list &args, const std::string& method, const std::string& prop);
+    virtual bool has_member(const std::string &prop) const;
 
     // Doing nothing by default to avoid impacting the classic result
     virtual void buffer(){};
@@ -74,6 +75,7 @@ namespace mysh
 
     virtual std::vector<std::string> get_members() const;
     virtual shcore::Value get_member(const std::string &prop) const;
+    virtual bool has_member(const std::string &prop) const;
 
     // Shell Specific for internal use
     bool is_numeric(){ return _numeric; }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2016, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -139,61 +139,49 @@ shcore::Value CollectionAdd::add(const shcore::Argument_list &args)
 
         if (shell_docs)
         {
+          if (!_add_statement.get())
+            _add_statement.reset(new ::mysqlx::AddStatement(collection->_collection_impl));
+
           size_t index, size = shell_docs->size();
           for (index = 0; index < size; index++)
           {
-            ::mysqlx::Document inner_doc;
             Value element = shell_docs->at(index);
+
+            ::mysqlx::Document inner_doc;
+            Value::Map_type_ref shell_doc;
+
+            // Validation of the incoming parameter
             if (element.type == Map)
-            {
-              Value::Map_type_ref shell_doc = element.as_map();
-
-              if (!shell_doc->has_key("_id"))
-                (*shell_doc)["_id"] = Value(get_new_uuid());
-
-              // Stores the last document id
-              _last_document_id = (*shell_doc)["_id"].as_string();
-
-              inner_doc.reset(element.json());
-            }
+               shell_doc = element.as_map();
             else if (element.type == Object && element.as_object()->class_name() == "Expression")
             {
               boost::shared_ptr<mysqlx::Expression> expression = boost::static_pointer_cast<mysqlx::Expression>(element.as_object());
-              ::mysqlx::Expr_parser parser(expression->get_data());
-              std::unique_ptr<Mysqlx::Expr::Expr> expr_obj(parser.expr());
-
-              // Parsing is done here to identify if a new ID must be generated for the object
-              if (expr_obj->type() == Mysqlx::Expr::Expr_Type_OBJECT)
-              {
-                bool found = false;
-                int size = expr_obj->object().fld_size();
-                int index = 0;
-                while (index < size && !found)
-                  found = expr_obj->object().fld(index++).key() == "_id";
-
-                std::string id;
-                if (!found)
-                  id = get_new_uuid();
-
-                inner_doc.reset(expression->get_data(), true, id);
-              }
+              shcore::Value document = shcore::Value::parse(expression->get_data());
+              if (document.type == Map)
+                shell_doc = document.as_map();
               else
                 throw shcore::Exception::argument_error((boost::format("Element #%1% is expected to be a JSON expression") % (index + 1)).str());
             }
             else
               throw shcore::Exception::argument_error((boost::format("Element #%1% is expected to be a document or a JSON expression") % (index + 1)).str());
 
-            // We have a document so it gets added!
-            if (!_add_statement.get())
+            // Verification of the _id existence
+            if (shell_doc)
             {
-              _add_statement.reset(new ::mysqlx::AddStatement(collection->_collection_impl->add(inner_doc)));
+              if (!shell_doc->has_key("_id"))
+                (*shell_doc)["_id"] = Value(get_new_uuid());
 
-              // Updates the exposed functions (since a document has been added)
-              update_functions("add");
+              // No matter how the document was received, gets passed as expression to the
+              // backend
+              inner_doc.reset(shcore::Value(shell_doc).json(), true, (*shell_doc)["_id"].as_string());
             }
-            else
-              _add_statement->add(inner_doc);
+
+            // We have a document so it gets added!
+            _add_statement->add(inner_doc);
           }
+
+          // Updates the exposed functions (since a document has been added)
+          update_functions("add");
         }
       }
       CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionAdd.add");
@@ -261,8 +249,6 @@ shcore::Value CollectionAdd::execute(const shcore::Argument_list &args)
     result = new mysqlx::Result(boost::shared_ptr< ::mysqlx::Result>(_add_statement->execute()));
     timer.end();
     result->set_execution_time(timer.raw_duration());
-
-    result->set_last_document_id(_last_document_id);
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionAdd.execute");
 

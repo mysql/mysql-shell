@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2016, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -265,6 +265,7 @@ static PyObject *object_getattro(PyShObjObject *self, PyObject *attr_name)
       return wrap_method(cobj, attrname);
 
     shcore::Value member;
+    bool error_handled = false;
     try
     {
       member = (*self->object)->get_member(attrname);
@@ -272,7 +273,10 @@ static PyObject *object_getattro(PyShObjObject *self, PyObject *attr_name)
     catch (Exception &exc)
     {
       if (!exc.is_attribute())
-        throw;
+      {
+        Python_context::set_python_error(exc, "");
+        error_handled = true;
+      }
     }
 
     if (member.type != shcore::Undefined)
@@ -292,7 +296,7 @@ static PyObject *object_getattro(PyShObjObject *self, PyObject *attr_name)
         PyList_SET_ITEM(list, i++, PyString_FromString(iter->c_str()));
       return list;
     }
-    else
+    else if (!error_handled)
     {
       std::string err = std::string("unknown attribute: ") + attrname;
       Python_context::set_python_error(PyExc_IndexError, err.c_str());

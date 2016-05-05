@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2015, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2016, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -93,8 +93,8 @@ namespace mysh
       virtual std::string class_name() const { return "Schema"; };
 
       virtual std::vector<std::string> get_members() const;
-
       virtual shcore::Value get_member(const std::string &prop) const;
+      virtual bool has_member(const std::string &prop) const;
 
       void update_cache();
       void _remove_object(const std::string& name, const std::string& type);

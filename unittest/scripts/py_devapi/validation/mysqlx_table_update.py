@@ -64,7 +64,6 @@
 ||TableUpdate.execute: Missing value bindings for the next placeholders: data, years
 ||TableUpdate.execute: Missing value bindings for the next placeholders: data
 
-
 #@# TableUpdate: simple test
 |Affected Rows: 1|
 |Updated Record: aline 13|
@@ -75,6 +74,10 @@
 
 #@ TableUpdate: test using limits
 |Affected Rows: 2|
+|lastDocumentId: LogicError: Result.getLastDocumentId(): document id is not available.|
+|getLastDocumentId(): LogicError: Result.getLastDocumentId(): document id is not available.|
+|lastDocumentIds: LogicError: Result.getLastDocumentIds(): document ids are not available.|
+|getLastDocumentIds(): LogicError: Result.getLastDocumentIds(): document ids are not available.|
 |With 16 Years: 3|
 |With 15 Years: 1|
 

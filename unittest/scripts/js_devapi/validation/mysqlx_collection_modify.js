@@ -109,6 +109,11 @@
 
 //@# CollectionModify: Set Execution
 |Set Affected Rows: 1|
+|lastDocumentId: Result.getLastDocumentId(): document id is not available.|
+|getLastDocumentId(): Result.getLastDocumentId(): document id is not available.|
+|lastDocumentIds: Result.getLastDocumentIds(): document ids are not available.|
+|getLastDocumentIds(): Result.getLastDocumentIds(): document ids are not available.|
+
 |name|
 |alias|
 |last_name|

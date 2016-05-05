@@ -47,6 +47,10 @@
 
 #@ CollectionRemove: remove under condition
 |Affected Rows: 1|
+|lastDocumentId: LogicError: Result.getLastDocumentId(): document id is not available.|
+|getLastDocumentId(): LogicError: Result.getLastDocumentId(): document id is not available.|
+|lastDocumentIds: LogicError: Result.getLastDocumentIds(): document ids are not available.|
+|getLastDocumentIds(): LogicError: Result.getLastDocumentIds(): document ids are not available.|
 |Records Left: 4|
 
 #@ CollectionRemove: remove with binding

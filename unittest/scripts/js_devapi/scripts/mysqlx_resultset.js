@@ -58,9 +58,11 @@ validateMember(resultMembers, 'getWarnings');
 validateMember(resultMembers, 'affectedItemCount');
 validateMember(resultMembers, 'autoIncrementValue');
 validateMember(resultMembers, 'lastDocumentId');
+validateMember(resultMembers, 'lastDocumentIds');
 validateMember(resultMembers, 'getAffectedItemCount');
 validateMember(resultMembers, 'getAutoIncrementValue');
 validateMember(resultMembers, 'getLastDocumentId');
+validateMember(resultMembers, 'getLastDocumentIds');
 
 //@ RowResult member validation
 var result = table.select().execute();
