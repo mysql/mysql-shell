@@ -74,9 +74,6 @@ namespace mysh
       BaseSession(const BaseSession& s);
       virtual ~BaseSession() { reset_session(); }
 
-      virtual shcore::Value get_member(const std::string &prop) const;
-      virtual bool has_member(const std::string &prop) const;
-
       virtual shcore::Value connect(const shcore::Argument_list &args);
       virtual shcore::Value close(const shcore::Argument_list &args);
       virtual shcore::Value sql(const shcore::Argument_list &args);
@@ -185,11 +182,13 @@ namespace mysh
       NodeSession(const NodeSession& s);
       virtual ~NodeSession(){};
       virtual std::string class_name() const { return "NodeSession"; };
+
       virtual std::vector<std::string> get_members() const;
+      virtual shcore::Value get_member(const std::string &prop) const;
+      virtual bool has_member(const std::string &prop) const;
 
       static boost::shared_ptr<shcore::Object_bridge> create(const shcore::Argument_list &args);
       virtual boost::shared_ptr<BaseSession> _get_shared_this() const;
-      virtual shcore::Value get_member(const std::string &prop) const;
       shcore::Value sql(const shcore::Argument_list &args);
       shcore::Value quote_name(const shcore::Argument_list &args);
 #ifdef DOXYGEN
@@ -203,7 +202,7 @@ namespace mysh
     protected:
       void init();
     };
+    }
   }
-}
 
 #endif

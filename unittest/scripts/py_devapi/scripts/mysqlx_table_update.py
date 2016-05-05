@@ -121,6 +121,27 @@ print "Updated Record:", record.name, record.age
 result = table.update().set('age', mysqlx.expr(':new_year')).where('age = :old_year').limit(2).bind('new_year', 16).bind('old_year', 15).execute()
 print 'Affected Rows:', result.affectedItemCount, '\n'
 
+try:
+  print "lastDocumentId:", result.lastDocumentId
+except Exception, err:
+  print "lastDocumentId:", err.message, "\n"
+
+try:
+  print "getLastDocumentId():", result.getLastDocumentId()
+except Exception, err:
+  print "getLastDocumentId():", err.message, "\n"
+
+try:
+  print "lastDocumentIds:", result.lastDocumentIds
+except Exception, err:
+  print "lastDocumentIds:", err.message, "\n"
+
+try:
+  print "getLastDocumentIds():", result.getLastDocumentIds()
+except Exception, err:
+  print "getLastDocumentIds():", err.message, "\n"
+
+
 records = table.select().where('age = 16').execute().fetchAll()
 print 'With 16 Years:', len(records), '\n'
 

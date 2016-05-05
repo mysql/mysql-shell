@@ -44,6 +44,10 @@
 |Affected Rows Columns: 1|
 |Affected Rows Multiple Values: 2|
 |Affected Rows Document: 1|
+|lastDocumentId: LogicError: Result.getLastDocumentId(): document id is not available.|
+|getLastDocumentId(): LogicError: Result.getLastDocumentId(): document id is not available.|
+|lastDocumentIds: LogicError: Result.getLastDocumentIds(): document ids are not available.|
+|getLastDocumentIds(): LogicError: Result.getLastDocumentIds(): document ids are not available.|
 
 #@ Table.insert execution on a View
 |Affected Rows Through View: 1|

@@ -358,16 +358,6 @@ Value BaseSession::executeStmt(const std::string &domain, const std::string& com
   return ret_val;
 }
 
-bool BaseSession::has_member(const std::string &prop) const
-{
-  if (ShellDevelopmentSession::has_member(prop))
-    return true;
-  if (prop == "currentSchema" || prop == "uri" || prop == "defaultSchema")
-    return true;
-
-  return false;
-}
-
 #ifdef DOXYGEN
 /**
 * Retrieves the Schema configured as default for the session.
@@ -381,33 +371,6 @@ Schema BaseSession::getDefaultSchema(){}
 */
 String BaseSession::getUri(){}
 #endif
-Value BaseSession::get_member(const std::string &prop) const
-{
-  // Retrieves the member first from the parent
-  Value ret_val;
-
-  // Check the member is on the base classes before attempting to
-  // retrieve it since it may throw invalid member otherwise
-  // If not on the parent classes and not here then we can safely assume
-  // it is a schema and attempt loading it as such
-  if (ShellBaseSession::has_member(prop))
-    ret_val = ShellBaseSession::get_member(prop);
-  else if (prop == "uri")
-    ret_val = Value(_uri);
-  else if (prop == "defaultSchema" || prop == "currentSchema")
-  {
-    if (!_default_schema.empty())
-    {
-      shcore::Argument_list args;
-      args.push_back(shcore::Value(_default_schema));
-      ret_val = get_schema(args);
-    }
-    else
-      ret_val = Value::Null();
-  }
-
-  return ret_val;
-}
 
 std::string BaseSession::_retrieve_current_schema()
 {
@@ -874,6 +837,12 @@ std::vector<std::string> NodeSession::get_members() const
   return members;
 }
 
+bool NodeSession::has_member(const std::string &prop) const
+{
+  return BaseSession::has_member(prop) ||
+    prop == "currentSchema";
+}
+
 #ifdef DOXYGEN
 /**
 * Retrieves the Schema set as active on the session.
@@ -883,14 +852,12 @@ Schema NodeSession::getCurrentSchema(){}
 #endif
 Value NodeSession::get_member(const std::string &prop) const
 {
-  // Retrieves the member first from the parent
   Value ret_val;
 
-  // Check the member is on the base classes before attempting to
-  // retrieve it since it may throw invalid member otherwise
-  // If not on the parent classes and not here then we can safely assume
-  // it is a schema and attempt loading it as such
-  if (prop == "currentSchema")
+  // Retrieves the member first from the parent
+  if (BaseSession::has_member(prop))
+    ret_val = BaseSession::get_member(prop);
+  else if (prop == "currentSchema")
   {
     NodeSession *session = const_cast<NodeSession *>(this);
     std::string name = session->_retrieve_current_schema();
@@ -904,8 +871,7 @@ Value NodeSession::get_member(const std::string &prop) const
     else
       ret_val = Value::Null();
   }
-  else if (BaseSession::has_member(prop))
-    ret_val = BaseSession::get_member(prop);
+
   return ret_val;
 }
 

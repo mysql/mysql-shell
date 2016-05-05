@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2015, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2016, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -28,12 +28,12 @@ using namespace shcore;
 static int magic_pointer = 0;
 
 JScript_object_wrapper::JScript_object_wrapper(JScript_context *context, bool indexed)
-: _context(context)
+  : _context(context)
 {
   v8::Handle<v8::ObjectTemplate> templ = v8::ObjectTemplate::New(_context->isolate());
   _object_template.Reset(_context->isolate(), templ);
 
-  templ->SetNamedPropertyHandler(&JScript_object_wrapper::handler_getter, &JScript_object_wrapper::handler_setter, 0, 0, &JScript_object_wrapper::handler_enumerator);
+  templ->SetNamedPropertyHandler(&JScript_object_wrapper::handler_getter, &JScript_object_wrapper::handler_setter, &JScript_object_wrapper::handler_query, 0, &JScript_object_wrapper::handler_enumerator);
 
   if (indexed)
     templ->SetIndexedPropertyHandler(&JScript_object_wrapper::handler_igetter, &JScript_object_wrapper::handler_isetter, 0, 0, &JScript_object_wrapper::handler_ienumerator);
@@ -51,7 +51,6 @@ struct shcore::JScript_object_wrapper::Collectable
   boost::shared_ptr<Object_bridge> data;
   v8::Persistent<v8::Object> handle;
 };
-
 
 v8::Handle<v8::Object> JScript_object_wrapper::wrap(boost::shared_ptr<Object_bridge> object)
 {
@@ -153,6 +152,25 @@ void JScript_object_wrapper::handler_setter(v8::Local<v8::String> property, v8::
   catch (Exception &exc)
   {
     info.GetIsolate()->ThrowException(self->_context->shcore_value_to_v8_value(Value(exc.error())));
+  }
+}
+
+void JScript_object_wrapper::handler_query(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Integer>& info)
+{
+  v8::HandleScope hscope(info.GetIsolate());
+  v8::Handle<v8::Object> obj(info.Holder());
+  boost::shared_ptr<Object_bridge> *object = static_cast<boost::shared_ptr<Object_bridge>*>(obj->GetAlignedPointerFromInternalField(1));
+  JScript_object_wrapper *self = static_cast<JScript_object_wrapper*>(obj->GetAlignedPointerFromInternalField(2));
+
+  if (!object)
+    throw std::logic_error("bug!");
+
+  v8::String::Utf8Value prop(property);
+
+  if ((*object)->has_member(*prop))
+  {
+    //v8::Integer::New(info.GetIsolate(), 1);
+    info.GetReturnValue().Set(v8::None);
   }
 }
 

@@ -138,6 +138,17 @@ SETUP_PROTOBUF()
 include_directories("${CMAKE_BINARY_DIR}/mysqlxtest")
 
 IF(WIN32 AND WINDOWS_RUNTIME_MD)
+  SET(MYSH_FILE_TYPE "VFT_DLL")
+  SET(MYSH_PRODUCT_NAME "MySQL Shell Core Library")
+  SET(MYSH_ORIGINAL_FILE_NAME "mysqlshcore.dll")
+  SET(MYSH_FILE_DESCRIPTION "MySQL Shell Core Library")
+  CONFIGURE_FILE(${PROJECT_SOURCE_DIR}/res/resource.rc.in   ${CMAKE_BINARY_DIR}/mysqlshcore.rc @ONLY)
+
+  SET(libmysqlshcore_SRC
+      "${libmysqlshcore_SRC}"
+      "${CMAKE_BINARY_DIR}/mysqlshcore.rc"
+      )
+
   # Static libs don't work for C++ CLI programs somehow...
   ADD_LIBRARY(mysqlshcore SHARED ${libmysqlshcore_SRC} ${libmysqlshmods_SRC})
 

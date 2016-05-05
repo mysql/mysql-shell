@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2015, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2016, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -146,6 +146,13 @@ std::vector<std::string> ClassicSchema::get_members() const
   }
 
   return members;
+}
+
+bool ClassicSchema::has_member(const std::string &prop) const
+{
+  return DatabaseObject::has_member(prop) ||
+    (shcore::is_valid_identifier(prop) &&
+    (_tables->has_key(prop) || _views->has_key(prop)));
 }
 
 Value ClassicSchema::get_member(const std::string &prop) const

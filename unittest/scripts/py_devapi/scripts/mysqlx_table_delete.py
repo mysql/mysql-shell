@@ -141,6 +141,27 @@ print 'Records Left:', len(records), '\n'
 result = table.delete().limit(2).execute()
 print 'Affected Rows:', result.affectedItemCount, '\n'
 
+try:
+  print "lastDocumentId:", result.lastDocumentId
+except Exception, err:
+  print "lastDocumentId:", err.message, "\n"
+
+try:
+  print "getLastDocumentId():", result.getLastDocumentId()
+except Exception, err:
+  print "getLastDocumentId():", err.message, "\n"
+
+try:
+  print "lastDocumentIds:", result.lastDocumentIds
+except Exception, err:
+  print "lastDocumentIds:", err.message, "\n"
+
+try:
+  print "getLastDocumentIds():", result.getLastDocumentIds()
+except Exception, err:
+  print "getLastDocumentIds():", err.message, "\n"
+
+
 records = table.select().execute().fetchAll()
 print 'Records Left:', len(records), '\n'
 

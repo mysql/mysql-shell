@@ -125,9 +125,26 @@ void ShellBaseSession::append_json(shcore::JSON_dumper& dumper) const
 std::vector<std::string> ShellBaseSession::get_members() const
 {
   std::vector<std::string> members(Cpp_object_bridge::get_members());
-  members.push_back("defaultSchema");
   members.push_back("uri");
   return members;
+}
+
+shcore::Value ShellBaseSession::get_member(const std::string &prop) const
+{
+  shcore::Value ret_val;
+
+  if (Cpp_object_bridge::has_member(prop))
+    ret_val = Cpp_object_bridge::get_member(prop);
+  else if (prop == "uri")
+    ret_val = shcore::Value(_uri);
+
+  return ret_val;
+}
+
+bool ShellBaseSession::has_member(const std::string &prop) const
+{
+  return Cpp_object_bridge::has_member(prop) ||
+    prop == "uri";
 }
 
 shcore::Value ShellBaseSession::get_member_method(const shcore::Argument_list &args, const std::string& method, const std::string& prop)
@@ -301,6 +318,40 @@ ShellDevelopmentSession::ShellDevelopmentSession(const ShellDevelopmentSession& 
 ShellBaseSession(s)
 {
   init();
+}
+
+std::vector<std::string> ShellDevelopmentSession::get_members() const
+{
+  std::vector<std::string> members(ShellBaseSession::get_members());
+  members.push_back("defaultSchema");
+  return members;
+}
+
+shcore::Value ShellDevelopmentSession::get_member(const std::string &prop) const
+{
+  shcore::Value ret_val;
+
+  if (ShellBaseSession::has_member(prop))
+    ret_val = ShellBaseSession::get_member(prop);
+  else if (prop == "defaultSchema")
+  {
+    if (!_default_schema.empty())
+    {
+      shcore::Argument_list args;
+      args.push_back(shcore::Value(_default_schema));
+      ret_val = get_schema(args);
+    }
+    else
+      ret_val = Value::Null();
+  }
+
+  return ret_val;
+}
+
+bool ShellDevelopmentSession::has_member(const std::string &prop) const
+{
+  return ShellBaseSession::has_member(prop) ||
+    prop == "defaultSchema";
 }
 
 void ShellDevelopmentSession::init()

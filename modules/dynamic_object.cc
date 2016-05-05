@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2016, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -54,8 +54,10 @@ Value Dynamic_object::get_member(const std::string &prop) const
 
 bool Dynamic_object::has_member(const std::string &prop) const
 {
-  std::map<std::string, boost::shared_ptr<shcore::Cpp_function> >::const_iterator i;
-  return ((i = _funcs.find(prop)) != _funcs.end() && _enabled_functions.at(prop));
+  // The function must exist and be enabled
+  return Cpp_object_bridge::has_member(prop) &&
+    _enabled_functions.find(prop) != _enabled_functions.end() &&
+    _enabled_functions.at(prop);
 }
 
 Value Dynamic_object::call(const std::string &name, const shcore::Argument_list &args)

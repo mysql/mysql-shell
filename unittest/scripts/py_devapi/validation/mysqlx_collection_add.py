@@ -17,7 +17,46 @@
 
 #@ Collection.add execution
 |Affected Rows Single: 1|
-|Affected Rows List: 2|
+|lastDocumentId Single:|
+|getLastDocumentId Single:|
+|#lastDocumentIds Single: 1|
+|#getLastDocumentIds Single: 1|
+
+|Affected Rows Single Known ID: 1|
+|lastDocumentId Single Known ID: sample_document|
+|getLastDocumentId Single Known ID: sample_document|
+|#lastDocumentIds Single Known ID: 1|
+|#getLastDocumentIds Single Known ID: 1|
+|#lastDocumentIds Single Known ID: sample_document|
+|#getLastDocumentIds Single Known ID: sample_document|
+
+
+|Affected Rows Multi: 2|
+|lastDocumentId Multi: LogicError: Result.getLastDocumentId(): document id is not available.|
+|getLastDocumentId Multi: LogicError: Result.getLastDocumentId(): document id is not available.|
+|#lastDocumentIds Multi: 2|
+|#getLastDocumentIds Multi: 2|
+
+
+|Affected Rows Multi Known IDs: 2|
+|lastDocumentId Multi Known IDs: LogicError: Result.getLastDocumentId(): document id is not available.|
+|getLastDocumentId Multi Known IDs: LogicError: Result.getLastDocumentId(): document id is not available.|
+
+|#lastDocumentIds Multi Known IDs: 2|
+|#getLastDocumentIds Multi Known IDs: 2|
+|First lastDocumentIds Multi Known IDs: known_00|
+|First getLastDocumentIds Multi Known IDs: known_00|
+|Second lastDocumentIds Multi Known IDs: known_01|
+|Second getLastDocumentIds Multi Known IDs: known_01|
+
+|Affected Rows Empty List: -1|
+|lastDocumentId Empty List: LogicError: Result.getLastDocumentId(): document id is not available.|
+|getLastDocumentId Empty List: LogicError: Result.getLastDocumentId(): document id is not available.|
+
+|#lastDocumentIds Empty List: 0|
+|#getLastDocumentIds Empty List: 0|
+
 |Affected Rows Chained: 2|
 |Affected Rows Single Expression: 1|
 |Affected Rows Mixed List: 2|
+

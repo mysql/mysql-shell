@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2015 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2016 Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -63,6 +63,20 @@ std::vector<std::string> ClassicResult::get_members() const
   members.push_back("autoIncrementValue");
   members.push_back("info");
   return members;
+}
+
+bool ClassicResult::has_member(const std::string &prop) const
+{
+  return ShellBaseResult::has_member(prop) ||
+    prop == "columns" ||
+    prop == "columnCount" ||
+    prop == "columnNames" ||
+    prop == "affectedRowCount" ||
+    prop == "warnings" ||
+    prop == "warningCount" ||
+    prop == "executionTime" ||
+    prop == "autoIncrementValue" ||
+    prop == "info";
 }
 
 #ifdef DOXYGEN
