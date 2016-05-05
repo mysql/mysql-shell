@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2016, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -46,6 +46,7 @@ namespace mysh
       virtual std::string class_name() const { return "ClassicResult"; }
       virtual std::vector<std::string> get_members() const;
       virtual shcore::Value get_member(const std::string &prop) const;
+      virtual bool has_member(const std::string &prop) const;
       virtual void append_json(shcore::JSON_dumper& dumper) const;
 
       shcore::Value has_data(const shcore::Argument_list &args) const;

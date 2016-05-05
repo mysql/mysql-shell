@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2016 Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -46,6 +46,7 @@ namespace mysh
 
       virtual std::vector<std::string> get_members() const;
       virtual shcore::Value get_member(const std::string &prop) const;
+      virtual bool has_member(const std::string &prop) const;
       virtual void append_json(shcore::JSON_dumper& dumper) const;
 
       // The execution time is not available at the moment of creating the resultset
@@ -97,16 +98,14 @@ namespace mysh
       virtual std::string class_name() const { return "Result"; }
       virtual std::vector<std::string> get_members() const;
       virtual shcore::Value get_member(const std::string &prop) const;
+      virtual bool has_member(const std::string &prop) const;
       virtual void append_json(shcore::JSON_dumper& dumper) const;
-
-      // The document ID is generated on client side, we need this function to
-      // Properly set the value
-      void set_last_document_id(const std::string& id){ _last_document_id = id; }
 
       // C++ Interface
       int64_t get_affected_item_count() const;
       int64_t get_auto_increment_value() const;
       std::string get_last_document_id() const;
+      const std::vector<std::string> get_last_document_ids() const;
 
 #ifdef DOXYGEN
       Integer affectedItemCount; //!< Same as getAffectedItemCount()
@@ -117,8 +116,6 @@ namespace mysh
       Integer getAutoIncrementValue();
       String getLastDocumentId();
 #endif
-    private:
-      std::string _last_document_id;
     };
 
     /**
@@ -158,6 +155,7 @@ namespace mysh
 
       virtual std::vector<std::string> get_members() const;
       virtual shcore::Value get_member(const std::string &prop) const;
+      virtual bool has_member(const std::string &prop) const;
 
       virtual std::string class_name() const { return "RowResult"; }
       virtual void append_json(shcore::JSON_dumper& dumper) const;
@@ -198,6 +196,7 @@ namespace mysh
       virtual std::string class_name() const { return "SqlResult"; }
       virtual std::vector<std::string> get_members() const;
       virtual shcore::Value get_member(const std::string &prop) const;
+      virtual bool has_member(const std::string &prop) const;
 
       shcore::Value has_data(const shcore::Argument_list &args) const;
       virtual shcore::Value next_data_set(const shcore::Argument_list &args);

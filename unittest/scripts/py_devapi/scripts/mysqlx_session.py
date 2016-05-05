@@ -13,6 +13,7 @@ for member in all_members:
   if not member.startswith('__'):
     sessionMembers.append(member)
 
+print sessionMembers
 
 validateMember(sessionMembers, 'close')
 validateMember(sessionMembers, 'createSchema')

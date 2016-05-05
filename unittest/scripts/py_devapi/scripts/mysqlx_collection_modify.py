@@ -210,6 +210,26 @@ print "Brian's second girlfriend:",  doc.girlfriends[1], '\n'
 result = collection.modify('name = "brian"').arrayAppend('girlfriends','cloe').execute()
 print 'Array Append Affected Rows:', result.affectedItemCount, '\n'
 
+try:
+  print "lastDocumentId:", result.lastDocumentId
+except Exception, err:
+  print "lastDocumentId:", err.message, "\n"
+
+try:
+  print "getLastDocumentId():", result.getLastDocumentId()
+except Exception, err:
+  print "getLastDocumentId():", err.message, "\n"
+
+try:
+  print "lastDocumentIds:", result.lastDocumentIds
+except Exception, err:
+  print "lastDocumentIds:", err.message, "\n"
+
+try:
+  print "getLastDocumentIds():", result.getLastDocumentIds()
+except Exception, err:
+  print "getLastDocumentIds():", err.message, "\n"
+
 result = collection.find('name = "brian"').execute()
 doc = result.fetchOne()
 print "Brian's girlfriends:", len(doc.girlfriends)

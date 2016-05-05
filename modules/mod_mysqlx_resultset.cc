@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2015 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2016 Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -25,6 +25,7 @@
 #include "shellcore/shell_core_options.h"
 #include "shellcore/obj_date.h"
 #include "utils/utils_time.h"
+#include "mysqlxtest_utils.h"
 
 using namespace shcore;
 using namespace mysh::mysqlx;
@@ -46,6 +47,14 @@ std::vector<std::string> BaseResult::get_members() const
   members.push_back("warningCount");
   members.push_back("warnings");
   return members;
+}
+
+bool BaseResult::has_member(const std::string &prop) const
+{
+  return ShellBaseResult::has_member(prop) ||
+    prop == "executionTime" ||
+    prop == "warningCount" ||
+    prop == "warnings";
 }
 
 #ifdef DOXYGEN
@@ -168,6 +177,7 @@ BaseResult(result)
   add_method("getAffectedItemCount", boost::bind(&BaseResult::get_member_method, this, _1, "getAffectedItemCount", "affectedItemCount"), NULL);
   add_method("getAutoIncrementValue", boost::bind(&BaseResult::get_member_method, this, _1, "getAutoIncrementValue", "autoIncrementValue"), NULL);
   add_method("getLastDocumentId", boost::bind(&BaseResult::get_member_method, this, _1, "getLastDocumentId", "lastDocumentId"), NULL);
+  add_method("getLastDocumentIds", boost::bind(&BaseResult::get_member_method, this, _1, "getLastDocumentId", "lastDocumentIds"), NULL);
 }
 
 std::vector<std::string> Result::get_members() const
@@ -176,7 +186,17 @@ std::vector<std::string> Result::get_members() const
   members.push_back("affectedItemCount");
   members.push_back("autoIncrementValue");
   members.push_back("lastDocumentId");
+  members.push_back("lastDocumentIds");
   return members;
+}
+
+bool Result::has_member(const std::string &prop) const
+{
+  return BaseResult::has_member(prop) ||
+    prop == "affectedItemCount" ||
+    prop == "autoIncrementValue" ||
+    prop == "lastDocumentId" ||
+  prop == "lastDocumentIds";
 }
 
 #ifdef DOXYGEN
@@ -215,10 +235,19 @@ shcore::Value Result::get_member(const std::string &prop) const
   else if (prop == "autoIncrementValue")
     ret_val = Value(get_auto_increment_value());
 
-  // TODO: Implement returning the last document id
   else if (prop == "lastDocumentId")
     ret_val = Value(get_last_document_id());
 
+  else if (prop == "lastDocumentIds")
+  {
+    shcore::Value::Array_type_ref ret_val(new shcore::Value::Array_type);
+    std::vector<std::string> doc_ids = get_last_document_ids();
+
+    for (auto doc_id : doc_ids)
+      ret_val->push_back(shcore::Value(doc_id));
+
+    return shcore::Value(ret_val);
+  }
   else
     ret_val = BaseResult::get_member(prop);
 
@@ -237,7 +266,25 @@ int64_t Result::get_auto_increment_value() const
 
 std::string Result::get_last_document_id() const
 {
-  return _last_document_id;
+  std::string ret_val;
+  try
+  {
+    ret_val = _result->lastDocumentId();
+  }
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION("Result.getLastDocumentId()");
+
+  return ret_val;
+}
+
+const std::vector<std::string> Result::get_last_document_ids() const
+{
+  std::vector<std::string> ret_val;
+  try
+  {
+    ret_val = _result->lastDocumentIds();
+  }
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION("Result.getLastDocumentIds()");
+  return ret_val;
 }
 
 void Result::append_json(shcore::JSON_dumper& dumper) const
@@ -341,6 +388,14 @@ std::vector<std::string> RowResult::get_members() const
   members.push_back("columns");
   members.push_back("columnNames");
   return members;
+}
+
+bool RowResult::has_member(const std::string &prop) const
+{
+  return BaseResult::has_member(prop) ||
+    prop == "columnCount" ||
+    prop == "columns" ||
+    prop == "columnNames";
 }
 
 #ifdef DOXYGEN
@@ -518,12 +573,22 @@ shcore::Value::Array_type_ref RowResult::get_columns() const
 
       shcore::Value data_type = mysh::Constant::get_constant("mysqlx", "Type", type_name, shcore::Argument_list());
 
+      // the plugin may not send these if they are equal to table/name respectively
+      // We need to reconstruct them
+      std::string orig_table = _result->columnMetadata()->at(i).original_table;
+      std::string orig_name = _result->columnMetadata()->at(i).original_name;
+
+      if (orig_table.empty())
+        orig_table = _result->columnMetadata()->at(i).table;
+
+      if (orig_name.empty())
+        orig_name = _result->columnMetadata()->at(i).name;
+
       boost::shared_ptr<mysh::Column> column(new mysh::Column(
-        //_result->columnMetadata()->at(i).catalog,
         _result->columnMetadata()->at(i).schema,
-        _result->columnMetadata()->at(i).original_table,
+        orig_table,
         _result->columnMetadata()->at(i).table,
-        _result->columnMetadata()->at(i).original_name,
+        orig_name,
         _result->columnMetadata()->at(i).name,
         data_type,
         _result->columnMetadata()->at(i).length,
@@ -689,6 +754,13 @@ std::vector<std::string> SqlResult::get_members() const
   members.push_back("autoIncrementValue");
   members.push_back("affectedRowCount");
   return members;
+}
+
+bool SqlResult::has_member(const std::string &prop) const
+{
+  return RowResult::has_member(prop) ||
+    prop == "autoIncrementValue" ||
+    prop == "affectedRowCount";
 }
 
 #ifdef DOXYGEN

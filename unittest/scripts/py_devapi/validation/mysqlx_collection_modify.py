@@ -149,6 +149,11 @@
 |Brian's second girlfriend: karen|
 
 #@ CollectionModify: arrayAppend Execution
+|lastDocumentId: LogicError: Result.getLastDocumentId(): document id is not available.|
+|getLastDocumentId(): LogicError: Result.getLastDocumentId(): document id is not available.|
+|lastDocumentIds: LogicError: Result.getLastDocumentIds(): document ids are not available.|
+|getLastDocumentIds(): LogicError: Result.getLastDocumentIds(): document ids are not available.|
+
 |Array Append Affected Rows: 1|
 |Brian's girlfriends: 3|
 |Brian's last: cloe|

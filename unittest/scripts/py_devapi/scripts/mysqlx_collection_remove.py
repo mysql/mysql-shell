@@ -83,6 +83,27 @@ crud = collection.remove('name = :data and age > :years').bind('years', 5).execu
 result = collection.remove('age = 15').execute()
 print 'Affected Rows:', result.affectedItemCount, '\n'
 
+try:
+  print "lastDocumentId:", result.lastDocumentId
+except Exception, err:
+  print "lastDocumentId:", err.message, "\n"
+
+try:
+  print "getLastDocumentId():", result.getLastDocumentId()
+except Exception, err:
+  print "getLastDocumentId():", err.message, "\n"
+
+try:
+  print "lastDocumentIds:", result.lastDocumentIds
+except Exception, err:
+  print "lastDocumentIds:", err.message, "\n"
+
+try:
+  print "getLastDocumentIds():", result.getLastDocumentIds()
+except Exception, err:
+  print "getLastDocumentIds():", err.message, "\n"
+
+
 docs = collection.find().execute().fetchAll()
 print 'Records Left:', len(docs), '\n'
 
