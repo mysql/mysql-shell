@@ -1,0 +1,104 @@
+// Copyright (c) 2009, 2010, Oracle and/or its affiliates. All rights reserved.
+// 
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; version 2 of the License.
+// 
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
+
+#include <windows.h>
+#include "@PROJECT_SOURCE_DIR@/res/resource.h"
+
+#define APSTUDIO_READONLY_SYMBOLS
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 2 resource.
+//
+
+/////////////////////////////////////////////////////////////////////////////
+#undef APSTUDIO_READONLY_SYMBOLS
+
+/////////////////////////////////////////////////////////////////////////////
+// English (United States) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
+LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
+
+#ifdef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// TEXTINCLUDE
+//
+
+1 TEXTINCLUDE
+BEGIN
+    "resource.h\0"
+END
+
+2 TEXTINCLUDE
+BEGIN
+    "#include ""winres.h""\r\n"
+    "\0"
+END
+
+3 TEXTINCLUDE
+BEGIN
+    "\r\n"
+    "\0"
+END
+
+#endif    // APSTUDIO_INVOKED
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Icon
+//
+
+// Icon with lowest ID value placed first to ensure application icon
+// remains consistent on all systems.
+IDR_MAINFRAME               ICON                    "@PROJECT_SOURCE_DIR@/res/MySQL_Shell.ico"
+#endif    // English (United States) resources
+/////////////////////////////////////////////////////////////////////////////
+
+#ifndef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 3 resource.
+//
+
+/////////////////////////////////////////////////////////////////////////////
+#endif    // not APSTUDIO_INVOKED
+
+
+VS_VERSION_INFO VERSIONINFO
+FILEVERSION     @MYSH_MAJOR@,@MYSH_MINOR@,@MYSH_PATCH@,@MYSH_SPRINT@
+PRODUCTVERSION  @MYSH_MAJOR@,@MYSH_MINOR@,@MYSH_PATCH@,@MYSH_SPRINT@
+FILEFLAGSMASK   VS_FFI_FILEFLAGSMASK
+FILEFLAGS       0
+FILEOS          VOS__WINDOWS32
+FILETYPE        @MYSH_FILE_TYPE@
+FILESUBTYPE     VFT2_UNKNOWN
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904E4"
+        BEGIN
+            VALUE "ProductName",   "@MYSH_PRODUCT_NAME@\0"
+            VALUE "ProductVersion",   "@MYSH_MAJOR@.@MYSH_MINOR@.@MYSH_PATCH@.@MYSH_SPRINT@\0"
+            VALUE "FileVersion",      "@MYSH_MAJOR@.@MYSH_MINOR@.@MYSH_PATCH@.@MYSH_SPRINT@\0"
+            VALUE "OriginalFilename",   "@MYSH_ORIGINAL_FILE_NAME@\0"
+            VALUE "FileDescription	",   "@MYSH_FILE_DESCRIPTION@\0"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x409, 1252
+    END
+END

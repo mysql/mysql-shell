@@ -290,9 +290,14 @@ set(mysh_SRC
 )
 
 if(WIN32)
+  SET(MYSH_FILE_TYPE "VFT_APP")
+  SET(MYSH_PRODUCT_NAME "MySQL Shell")
+  SET(MYSH_ORIGINAL_FILE_NAME "mysqlsh.exe")
+  SET(MYSH_FILE_DESCRIPTION "MySQL Shell")
+  CONFIGURE_FILE(${PROJECT_SOURCE_DIR}/res/resource.rc.in   ${CMAKE_BINARY_DIR}/mysqlsh.rc @ONLY)
   set(mysh_SRC
       "${mysh_SRC}"
-      "${PROJECT_SOURCE_DIR}/res/resource.rc"
+      "${CMAKE_BINARY_DIR}/mysqlsh.rc"
       )
 endif()
 
