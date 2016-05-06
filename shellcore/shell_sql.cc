@@ -67,9 +67,9 @@ void Shell_sql::handle_input(std::string &code, Interactive_input_state &state, 
       //}
       //else
       //{
-        // Parses the input string to identify individual statements in it.
-        // Will return a range for every statement that ends with the delimiter, if there
-        // is additional code after the last delimiter, a range for it will be included too.
+      // Parses the input string to identify individual statements in it.
+      // Will return a range for every statement that ends with the delimiter, if there
+      // is additional code after the last delimiter, a range for it will be included too.
       statement_count = shcore::mysql::splitter::determineStatementRanges(code.c_str(), code.length(), _delimiter, ranges, "\n", _parsing_context_stack);
       //}
 
@@ -227,7 +227,7 @@ void Shell_sql::print_exception(const shcore::Exception &e)
 {
   // Sends a description of the exception data to the error handler wich will define the final format.
   shcore::Value exception(e.error());
-  _owner->print_error(exception.descr());
+  _owner->print_error(exception.json());
 }
 
 void Shell_sql::abort()
@@ -245,7 +245,7 @@ void Shell_sql::abort()
   {
     kill_session.reset(new mysh::mysql::ClassicSession(*dynamic_cast<mysh::mysql::ClassicSession*>(classic)));
   }
-  else 
+  else
   {
     kill_session2.reset(new mysh::mysqlx::NodeSession(*dynamic_cast<mysh::mysqlx::NodeSession*>(node)));
   }
@@ -277,7 +277,6 @@ void Shell_sql::abort()
       std::string cmd = (boost::format("kill query %u") % connection_id).str();
       a.clear();
       shcore::Value v = kill_session2->execute_sql(cmd, a);
-
     }
     _killed = true;
   }

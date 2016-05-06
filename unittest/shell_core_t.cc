@@ -74,7 +74,7 @@ namespace shcore {
       }
     };
 
-    TEST_F(Shell_core_test, DISABLED_test_process_stream)
+    TEST_F(Shell_core_test, test_process_stream)
     {
       connect();
 
@@ -117,8 +117,18 @@ namespace shcore {
       connect();
 
       EXPECT_EQ("mysql-sql> ", _interactive_shell->prompt());
-      _interactive_shell->shell_context()->set_global("session",Value(boost::static_pointer_cast<Object_bridge>(Shell_core_options::get_instance())));
+      _interactive_shell->shell_context()->set_global("session", Value(boost::static_pointer_cast<Object_bridge>(Shell_core_options::get_instance())));
       EXPECT_EQ("mysql-sql> ", _interactive_shell->prompt());
+    }
+
+    TEST_F(Shell_core_test, process_sql_no_delim_from_stream)
+    {
+      connect();
+
+      std::stringstream stream("show databases");
+      _ret_val = _interactive_shell->process_stream(stream, "STDIN");
+      EXPECT_EQ(0, _ret_val);
+      MY_EXPECT_STDOUT_CONTAINS("| Database");
     }
   }
 }
