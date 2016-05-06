@@ -4696,7 +4696,8 @@ class XShell_TestCases(unittest.TestCase):
       init_command = [MYSQL_SHELL, '--interactive=full']
 
       x_cmds = [("var mysqlx=require('mysqlx').mysqlx;\n","mysql-js>"),
-                ("var mySession = mysqlx.getSession('"+LOCALHOST.user+"@"+LOCALHOST.host+"', '"+LOCALHOST.password+"');\n","mysql-js>"),
+                ("var mySession = mysqlx.getSession('"+LOCALHOST.user+":"+LOCALHOST.password+"@"+LOCALHOST.host+"');\n","mysql-js>"),
+                ("mySession;\n","<XSession:"+LOCALHOST.user+"@"+LOCALHOST.host+""),
                 ("var result = mySession.getSchema('world_x').countryinfo.find().execute();\n","mysql-js>"),
                 ("var record = result.fetchOne();\n","mysql-js>"),
                 ("print(record);\n","\"government\": {" + os.linesep + ""),
@@ -4711,7 +4712,7 @@ class XShell_TestCases(unittest.TestCase):
       init_command = [MYSQL_SHELL, '--interactive=full']
 
       x_cmds = [("var mysqlx=require('mysqlx').mysqlx;\n","mysql-js>"),
-                ("var mySession = mysqlx.getSession('"+LOCALHOST.user+"@"+LOCALHOST.host+"', '"+LOCALHOST.password+"');\n","mysql-js>"),
+                ("var mySession = mysqlx.getSession('"+LOCALHOST.user+":"+LOCALHOST.password+"@"+LOCALHOST.host+"');\n","mysql-js>"),
                 ("var result = mySession.getSchema('world_x').countryinfo.find().execute();\n","mysql-js>"),
                 ("var record = result.fetchAll();\n","mysql-js>"),
                 ("print(record);\n","IndepYear\":"),
