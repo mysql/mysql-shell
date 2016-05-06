@@ -149,6 +149,12 @@ int Shell_core::process_stream(std::istream& stream, const std::string& source, 
       if (_global_return_code && !(*Shell_core_options::get())[SHCORE_BATCH_CONTINUE_ON_ERROR].as_bool())
         break;
     }
+
+    if (state != Interactive_input_state::Input_ok)
+    {
+      std::string delimiter = ";";
+      handle_input(delimiter, state, result_processor);
+    }
   }
   else
   {
