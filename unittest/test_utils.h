@@ -42,8 +42,16 @@ public:
   std::string std_out;
   std::string ret_pwd;
 
+  void validate_stdout_content(const std::string& content, bool expected);
+  void validate_stderr_content(const std::string& content, bool expected);
+
   std::list<std::string> prompts;
 };
+
+#define MY_EXPECT_STDOUT_CONTAINS(x) output_handler.validate_stdout_content(x,true)
+#define MY_EXPECT_STDERR_CONTAINS(x) output_handler.validate_stderr_content(x,true)
+#define MY_EXPECT_STDOUT_NOT_CONTAINS(x) output_handler.validate_stdout_content(x,false)
+#define MY_EXPECT_STDERR_NOT_CONTAINS(x) output_handler.validate_stderr_content(x,false)
 
 class Shell_core_test_wrapper : public ::testing::Test
 {

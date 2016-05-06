@@ -275,10 +275,10 @@ void Shell_script_tester::execute_script(const std::string& path, bool in_chunks
       {
         // Executes the file line by line
         for (size_t chunk_item = 0; chunk_item < _chunks[_chunk_order[index]]->size(); chunk_item++)
-	{
-	  std::string line((*_chunks[_chunk_order[index]])[chunk_item]);
+        {
+          std::string line((*_chunks[_chunk_order[index]])[chunk_item]);
           execute(line);
-	}
+        }
 
         execute("");
         execute("");

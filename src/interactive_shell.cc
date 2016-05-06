@@ -212,7 +212,7 @@ bool Interactive_shell::connect(bool primary_session)
     else if (!_options.uri.empty())
     {
       connection_data = get_connection_data(_options.uri);
-      if (connection_data->has_key("dbPassword"))
+      if (connection_data->has_key("dbPassword") && !connection_data->get_string("dbPassword").empty())
         secure_password = false;
     }
     else
@@ -293,13 +293,8 @@ Value Interactive_shell::connect_session(const Argument_list &args, mysh::Sessio
   // Prompts for the password if needed
   if (!connection_data->has_key("dbPassword") || _options.prompt_password)
   {
-    char *tmp = _options.passwords_from_stdin ? mysh_get_stdin_password("Enter password: ") : mysh_get_tty_password("Enter password: ");
-    if (tmp)
-    {
-      pass.assign(tmp);
-      free(tmp);
+    if (_delegate.password(_delegate.user_data, "Enter password:", pass))
       connect_args.push_back(Value(pass));
-    }
   }
 
   // Performs the connection
@@ -1342,7 +1337,7 @@ void Interactive_shell::print_cmd_line_helper()
   println("  -i, --interactive[=full] To use in batch mode, it forces emulation of interactive mode processing.");
   println("                           Each line on the batch is processed as if it were in interactive mode.");
   println("  --force                  To use in SQL batch mode, forces processing to continue if an error is found.");
-  println("  --log-level=value        The log level." + ngcommon::Logger::get_level_range_info() );
+  println("  --log-level=value        The log level." + ngcommon::Logger::get_level_range_info());
   println("  --version                Prints the version of MySQL Shell.");
   println("  --ssl                    Enable SSL for connection(automatically enabled with other flags)");
   println("  --ssl-key=name           X509 key in PEM format");
