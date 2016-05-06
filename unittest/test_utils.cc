@@ -69,6 +69,34 @@ bool Shell_test_output_handler::deleg_password(void *user_data, const char *UNUS
   return true;
 }
 
+void Shell_test_output_handler::validate_stdout_content(const std::string& content, bool expected)
+{
+  bool found = std_out.find(content) != std::string::npos;
+
+  if (found != expected)
+  {
+    std::string error = expected ? "Missing" : "Unexpected";
+    error += " Output: " + content;
+    SCOPED_TRACE("STDOUT Actual: " + std_out);
+    SCOPED_TRACE(error);
+    ADD_FAILURE();
+  }
+}
+
+void Shell_test_output_handler::validate_stderr_content(const std::string& content, bool expected)
+{
+  bool found = std_err.find(content) != std::string::npos;
+
+  if (found != expected)
+  {
+    std::string error = expected ? "Missing" : "Unexpected";
+    error += " Output: " + content;
+    SCOPED_TRACE("STDOUT Actual: " + std_out);
+    SCOPED_TRACE(error);
+    ADD_FAILURE();
+  }
+}
+
 void Shell_core_test_wrapper::SetUp()
 {
   //_shell_core.reset(new shcore::Shell_core(&output_handler.deleg));
