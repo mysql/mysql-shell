@@ -384,10 +384,3 @@ void ShellDevelopmentSession::init()
   add_method("getSchema", boost::bind(&ShellDevelopmentSession::get_schema, this, _1), "name", shcore::String, NULL);
   add_method("getSchemas", boost::bind(&ShellDevelopmentSession::get_schemas, this, _1), NULL);
 }
-
-std::vector<std::string> ShellDevelopmentSession::get_members() const
-{
-  std::vector<std::string> members(ShellBaseSession::get_members());
-  members.push_back("defaultSchema");
-  return members;
-}

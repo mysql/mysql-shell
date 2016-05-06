@@ -714,9 +714,9 @@ namespace shcore
     return get_object(self, args, "mysqlx", "NodeSession", keywords);
   }
 
-  PyObject *Python_context::mysqlx_get_admin_session(PyObject *self, PyObject *args)
+  PyObject *Python_context::mysqlx_get_admin_session(PyObject *self, PyObject *args, PyObject *keywords)
   {
-    return get_object(self, args, "mysqlx", "AdminSession");
+    return get_object(self, args, "mysqlx", "AdminSession", keywords);
   }
 
   PyObject *Python_context::mysqlx_expr(PyObject *self, PyObject *args)
@@ -740,7 +740,7 @@ namespace shcore
     "Creates an XSession object." },
     { "getNodeSession", (PyCFunction)Python_context::mysqlx_get_node_session, METH_VARARGS | METH_KEYWORDS,
     "Creates a NodeSession object." },
-    { "getAdminSession", &Python_context::mysqlx_get_admin_session, METH_VARARGS,
+    { "getAdminSession", (PyCFunction)Python_context::mysqlx_get_admin_session, METH_VARARGS | METH_KEYWORDS,
       "Creates an AdminSession object." },
     { "expr", &Python_context::mysqlx_expr, METH_VARARGS,
     "Creates a Expression object." },
