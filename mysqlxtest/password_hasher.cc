@@ -19,6 +19,7 @@
 
 
 #ifdef HAVE_YASSL
+#include "my_global.h"
 #include <sha.hpp>
 #include <openssl/ssl.h>
 #else
@@ -29,7 +30,6 @@
 #include <stdexcept>
 #include <cstring>
 
-#include "my_global.h"
 #include "password_hasher.h"
 #include "mysql41_hash.h"
 

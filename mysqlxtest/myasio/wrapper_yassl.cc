@@ -14,6 +14,10 @@
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA */
 
 #if defined(HAVE_YASSL)
+#ifdef MYSQLXTEST_STANDALONE
+#include "mysh_config.h"
+#endif
+
 #include "myasio/wrapper_yassl.h"
 #include "yassl_types.hpp"
 #include "yassl_int.hpp"
