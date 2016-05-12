@@ -321,7 +321,10 @@ boost::shared_ptr<mysh::ShellDevelopmentSession> Shell_core::set_dev_session(boo
 
   set_global("session", shcore::Value(boost::static_pointer_cast<Object_bridge>(_global_dev_session)));
 
-  set_global("db", _global_dev_session->get_member("currentSchema"));
+  if (!_global_dev_session->class_name().compare("XSession"))
+    set_global("db", _global_dev_session->get_member("defaultSchema"));
+  else
+    set_global("db", _global_dev_session->get_member("currentSchema"));
 
   return _global_dev_session;
 }
@@ -342,20 +345,30 @@ boost::shared_ptr<mysh::ShellDevelopmentSession> Shell_core::get_dev_session()
 *
 * The new active schema will be made available to the scripting interfaces on the global *db* variable.
 */
-void Shell_core::set_current_schema(const std::string& name)
+shcore::Value Shell_core::set_current_schema(const std::string& name)
 {
-  if (name.empty())
-    set_global("db", shcore::Value());
-  else
+  shcore::Value ret_val;
+
+  if (!name.empty())
   {
-    if (_global_dev_session && _global_dev_session->is_connected())
+    if (_global_dev_session)
     {
       shcore::Argument_list args;
       args.push_back(shcore::Value(name));
 
-      set_global("db", _global_dev_session->set_current_schema(args));
+      if (!_global_dev_session->class_name().compare("XSession"))
+        ret_val = _global_dev_session->get_schema(args);
+      else
+        ret_val = _global_dev_session->call("setCurrentSchema", args);
     }
+    else
+      throw Exception::logic_error("Not connected.");
   }
+
+  // Sets the global db variable
+  set_global("db", ret_val);
+
+  return ret_val;
 }
 
 //------------------ COMMAND HANDLER FUNCTIONS ------------------//

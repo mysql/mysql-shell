@@ -101,8 +101,9 @@ void Shell_core_test_wrapper::SetUp()
 {
   //_shell_core.reset(new shcore::Shell_core(&output_handler.deleg));
   char **argv = NULL;
-  Shell_command_line_options options(0, argv);
-  _interactive_shell.reset(new Interactive_shell(options, &output_handler.deleg));
+  _options.reset(new Shell_command_line_options(0, argv));
+
+  _interactive_shell.reset(new Interactive_shell(*_options.get(), &output_handler.deleg));
 
   const char *uri = getenv("MYSQL_URI");
   if (uri)
@@ -119,6 +120,7 @@ void Shell_core_test_wrapper::SetUp()
     }
 
     _uri = shcore::build_connection_string(data, true);
+    _uri_nopasswd = shcore::strip_password(_uri);
 
     _mysql_uri = _uri;
   }
@@ -129,6 +131,8 @@ void Shell_core_test_wrapper::SetUp()
     _mysql_port.assign(port);
     _mysql_uri += ":" + _mysql_port;
   }
+
+  _mysql_uri_nopasswd = shcore::strip_password(_mysql_uri);
 }
 
 void Shell_core_test_wrapper::TearDown()

@@ -103,7 +103,6 @@ namespace mysh
     virtual shcore::Value create_schema(const shcore::Argument_list &args) = 0;
     virtual shcore::Value drop_schema(const shcore::Argument_list &args) = 0;
     virtual shcore::Value drop_schema_object(const shcore::Argument_list &args, const std::string& type) = 0;
-    virtual shcore::Value set_current_schema(const shcore::Argument_list &args) = 0;
 
     virtual shcore::Value get_schema(const shcore::Argument_list &args) const = 0;
     virtual shcore::Value get_schemas(const shcore::Argument_list &args) const = 0;

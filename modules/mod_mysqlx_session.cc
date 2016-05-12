@@ -728,24 +728,6 @@ shcore::Value BaseSession::get_status(const shcore::Argument_list &args)
   return shcore::Value(status);
 }
 
-shcore::Value BaseSession::set_current_schema(const shcore::Argument_list &args)
-{
-  std::string function_name = class_name() + ".setCurrentSchema";
-  args.ensure_count(1, function_name.c_str());
-
-  if (_session.is_connected())
-  {
-    std::string name = args[0].as_string();
-
-    boost::shared_ptr< ::mysqlx::Result> result = _session.execute_sql(sqlstring("use !", 0) << name);
-    result->flush();
-  }
-  else
-    throw Exception::runtime_error(class_name() + " not connected");
-
-  return get_member("currentSchema");
-}
-
 boost::shared_ptr<BaseSession> XSession::_get_shared_this() const
 {
   boost::shared_ptr<const XSession> shared = shared_from_this();
@@ -771,7 +753,7 @@ NodeSession::NodeSession(const NodeSession& s) : BaseSession(s)
 void NodeSession::init()
 {
   add_method("sql", boost::bind(&NodeSession::sql, this, _1), "sql", shcore::String, NULL);
-  add_method("setCurrentSchema", boost::bind(&BaseSession::set_current_schema, this, _1), "name", shcore::String, NULL);
+  add_method("setCurrentSchema", boost::bind(&NodeSession::set_current_schema, this, _1), "name", shcore::String, NULL);
   add_method("getCurrentSchema", boost::bind(&ShellBaseSession::get_member_method, this, _1, "getCurrentSchema", "currentSchema"), NULL);
   add_method("quoteName", boost::bind(&NodeSession::quote_name, this, _1), "name", shcore::String, NULL);
 }
@@ -816,19 +798,6 @@ shcore::Value NodeSession::sql(const shcore::Argument_list &args)
 
   return sql_execute->sql(args);
 }
-
-#ifdef DOXYGEN
-/**
-* Sets the current schema for this session, and returns the schema object for it.
-* At the database level, this is equivalent at issuing the following SQL query:
-*   use <new-default-schema>;
-*
-* \sa getSchemas(), getSchema()
-* \param name the name of the new schema to switch to.
-* \return the Schema object for the new schema.
-*/
-Schema NodeSession::setCurrentSchema(String name){}
-#endif
 
 std::vector<std::string> NodeSession::get_members() const
 {
@@ -892,4 +861,35 @@ shcore::Value NodeSession::quote_name(const shcore::Argument_list &args)
   std::string id = args[0].as_string();
 
   return shcore::Value(get_quoted_name(id));
+}
+
+#ifdef DOXYGEN
+/**
+* Sets the current schema for this session, and returns the schema object for it.
+* At the database level, this is equivalent at issuing the following SQL query:
+*   use <new-default-schema>;
+*
+* \sa getSchemas(), getSchema()
+* \param name the name of the new schema to switch to.
+* \return the Schema object for the new schema.
+*/
+Schema NodeSession::setCurrentSchema(String name){}
+#endif
+
+shcore::Value NodeSession::set_current_schema(const shcore::Argument_list &args)
+{
+  std::string function_name = class_name() + ".setCurrentSchema";
+  args.ensure_count(1, function_name.c_str());
+
+  if (_session.is_connected())
+  {
+    std::string name = args[0].as_string();
+
+    boost::shared_ptr< ::mysqlx::Result> result = _session.execute_sql(sqlstring("use !", 0) << name);
+    result->flush();
+  }
+  else
+    throw Exception::runtime_error(class_name() + " not connected");
+
+  return get_member("currentSchema");
 }

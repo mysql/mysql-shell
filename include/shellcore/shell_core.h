@@ -132,7 +132,7 @@ namespace shcore
     virtual boost::shared_ptr<mysh::ShellDevelopmentSession> set_dev_session(boost::shared_ptr<mysh::ShellDevelopmentSession> session);
     virtual boost::shared_ptr<mysh::ShellDevelopmentSession> get_dev_session();
 
-    virtual void set_current_schema(const std::string& name);
+    virtual shcore::Value set_current_schema(const std::string& name);
 
     virtual Object_registry *registry() { return _registry; }
   public:

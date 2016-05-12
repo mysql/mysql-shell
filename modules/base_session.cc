@@ -344,6 +344,8 @@ shcore::Value ShellDevelopmentSession::get_member(const std::string &prop) const
     else
       ret_val = Value::Null();
   }
+  else
+    throw Exception::attrib_error("Invalid object member " + prop);
 
   return ret_val;
 }

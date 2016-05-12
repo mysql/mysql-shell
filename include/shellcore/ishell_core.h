@@ -82,7 +82,7 @@ namespace shcore
     virtual boost::shared_ptr<mysh::ShellDevelopmentSession> get_dev_session() = 0;
 
     // Global Schema
-    virtual void set_current_schema(const std::string& name) = 0;
+    virtual shcore::Value set_current_schema(const std::string& name) = 0;
 
     virtual std::string prompt() = 0;
 

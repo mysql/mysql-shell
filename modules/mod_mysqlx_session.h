@@ -83,7 +83,6 @@ namespace mysh
       virtual shcore::Value rollback(const shcore::Argument_list &args);
       virtual shcore::Value drop_schema(const shcore::Argument_list &args);
       virtual shcore::Value drop_schema_object(const shcore::Argument_list &args, const std::string& type);
-      virtual shcore::Value set_current_schema(const shcore::Argument_list &args);
 
       shcore::Value executeAdminCommand(const std::string& command, bool expect_data, const shcore::Argument_list &args) const;
       shcore::Value execute_sql(const std::string& query, const shcore::Argument_list &args);
@@ -191,6 +190,8 @@ namespace mysh
       virtual boost::shared_ptr<BaseSession> _get_shared_this() const;
       shcore::Value sql(const shcore::Argument_list &args);
       shcore::Value quote_name(const shcore::Argument_list &args);
+
+      shcore::Value set_current_schema(const shcore::Argument_list &args);
 #ifdef DOXYGEN
       Schema currentSchema; //!< Same as getCurrentSchema()
 
@@ -202,7 +203,7 @@ namespace mysh
     protected:
       void init();
     };
-    }
   }
+}
 
 #endif

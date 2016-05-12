@@ -116,6 +116,7 @@ _options(options)
   SET_SHELL_COMMAND("\\warnings|\\W", "Show warnings after every statement.", "", Interactive_shell::cmd_warnings);
   SET_SHELL_COMMAND("\\nowarnings|\\w", "Don't show warnings after every statement.", "", Interactive_shell::cmd_nowarnings);
   SET_SHELL_COMMAND("\\status|\\s", "Prints information about the current global connection.", "", Interactive_shell::cmd_status);
+  SET_SHELL_COMMAND("\\use|\\u", "Sets the current database on the global session, updates the db variable.", "", Interactive_shell::cmd_use);
 
   const std::string cmd_help_store_connection =
     "SYNTAX:\n"
@@ -929,7 +930,40 @@ bool Interactive_shell::cmd_status(const std::vector<std::string>& UNUSED(args))
     }
   }
   else
-    _delegate.print_error(_delegate.user_data, "Not Connected\n");
+    _delegate.print_error(_delegate.user_data, "Not Connected.\n");
+
+  return true;
+}
+
+bool Interactive_shell::cmd_use(const std::vector<std::string>& args)
+{
+  if (_shell->get_dev_session() && _shell->get_dev_session()->is_connected())
+  {
+    if (args.size() == 1)
+    {
+      try
+      {
+        shcore::Value schema = _shell->set_current_schema(args[0]);
+        std::string message = "Schema `" + schema.as_object()->get_member("name").as_string() + "` accessible through db.";
+
+        if ((*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string().find("json") == 0)
+          print_json_info(message);
+        else
+        {
+          message += "\n";
+          _delegate.print(_delegate.user_data, message.c_str());
+        }
+      }
+      catch (shcore::Exception &e)
+      {
+        _delegate.print_error(_delegate.user_data, e.format().c_str());
+      }
+    }
+    else
+      _delegate.print_error(_delegate.user_data, "\\use <schema_name>\n");
+  }
+  else
+    _delegate.print_error(_delegate.user_data, "Not Connected.\n");
 
   return true;
 }

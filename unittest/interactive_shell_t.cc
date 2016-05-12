@@ -39,32 +39,20 @@ namespace shcore {
   namespace shell_core_tests {
     class Interactive_shell_test : public Shell_core_test_wrapper
     {
-    protected:
-      std::string _file_name;
-      int _ret_val;
-
-      boost::shared_ptr<Shell_command_line_options> _options;
-
+    public:
       virtual void SetUp()
       {
         Shell_core_test_wrapper::SetUp();
-
-        char **argv = NULL;
-        Shell_command_line_options options(0, argv);
-        _options.reset(new Shell_command_line_options(0, argv));
+        _options->interactive = true;
       }
 
       void init()
       {
         _interactive_shell.reset(new Interactive_shell(*_options.get(), &output_handler.deleg));
       }
-
-      void connect()
-      {
-        std::cout << _mysql_uri;
-
-        _interactive_shell->process_line("\\connect_classic " + _mysql_uri);
-      }
+    protected:
+      std::string _file_name;
+      int _ret_val;
     };
 
     TEST_F(Interactive_shell_test, warning_insecure_password)
@@ -102,6 +90,151 @@ namespace shcore {
 
       _interactive_shell->connect(true);
       MY_EXPECT_STDOUT_CONTAINS("mysqlx: [Warning] Using a password on the command line interface can be insecure.");
+      output_handler.wipe_all();
+    }
+
+    TEST_F(Interactive_shell_test, test_connect_command)
+    {
+      init();
+      _interactive_shell->process_line("\\connect " + _uri);
+      MY_EXPECT_STDOUT_CONTAINS("No default schema selected.");
+      output_handler.wipe_all();
+
+      _interactive_shell->process_line("session");
+      MY_EXPECT_STDOUT_CONTAINS("<XSession:" + _uri_nopasswd);
+      output_handler.wipe_all();
+
+      _interactive_shell->process_line("db");
+      EXPECT_STREQ("\n", output_handler.std_out.c_str());
+
+      _interactive_shell->process_line("\\connect " + _uri + "/mysql");
+      MY_EXPECT_STDOUT_CONTAINS("Default schema `mysql` accessible through db.");
+      output_handler.wipe_all();
+
+      _interactive_shell->process_line("session");
+      MY_EXPECT_STDOUT_CONTAINS("<XSession:" + _uri_nopasswd);
+      output_handler.wipe_all();
+
+      _interactive_shell->process_line("db");
+      MY_EXPECT_STDOUT_CONTAINS("<Schema:mysql>");
+      output_handler.wipe_all();
+    }
+
+    TEST_F(Interactive_shell_test, test_connect_node_command)
+    {
+      init();
+      _interactive_shell->process_line("\\connect_node " + _uri);
+      MY_EXPECT_STDOUT_CONTAINS("No default schema selected.");
+      output_handler.wipe_all();
+
+      _interactive_shell->process_line("session");
+      MY_EXPECT_STDOUT_CONTAINS("<NodeSession:" + _uri_nopasswd);
+      output_handler.wipe_all();
+
+      _interactive_shell->process_line("db");
+      EXPECT_STREQ("\n", output_handler.std_out.c_str());
+
+      _interactive_shell->process_line("\\connect_node " + _uri + "/mysql");
+      MY_EXPECT_STDOUT_CONTAINS("Default schema `mysql` accessible through db.");
+      output_handler.wipe_all();
+
+      _interactive_shell->process_line("session");
+      MY_EXPECT_STDOUT_CONTAINS("<NodeSession:" + _uri_nopasswd);
+      output_handler.wipe_all();
+
+      _interactive_shell->process_line("db");
+      MY_EXPECT_STDOUT_CONTAINS("<Schema:mysql>");
+      output_handler.wipe_all();
+    }
+
+    TEST_F(Interactive_shell_test, test_connect_classic_command)
+    {
+      init();
+      _interactive_shell->process_line("\\connect_classic " + _mysql_uri);
+      MY_EXPECT_STDOUT_CONTAINS("No default schema selected.");
+      output_handler.wipe_all();
+
+      _interactive_shell->process_line("session");
+      MY_EXPECT_STDOUT_CONTAINS("<ClassicSession:" + _mysql_uri_nopasswd);
+      output_handler.wipe_all();
+
+      _interactive_shell->process_line("db");
+      EXPECT_STREQ("\n", output_handler.std_out.c_str());
+
+      _interactive_shell->process_line("\\connect_classic " + _mysql_uri + "/mysql");
+      MY_EXPECT_STDOUT_CONTAINS("Default schema `mysql` accessible through db.");
+      output_handler.wipe_all();
+
+      _interactive_shell->process_line("session");
+      MY_EXPECT_STDOUT_CONTAINS("<ClassicSession:" + _mysql_uri_nopasswd);
+      output_handler.wipe_all();
+
+      _interactive_shell->process_line("db");
+      MY_EXPECT_STDOUT_CONTAINS("<ClassicSchema:mysql>");
+      output_handler.wipe_all();
+    }
+
+    TEST_F(Interactive_shell_test, test_use_command)
+    {
+      init();
+      _interactive_shell->process_line("\\use mysql");
+      MY_EXPECT_STDERR_CONTAINS("Not Connected.");
+      output_handler.wipe_all();
+
+      _interactive_shell->process_line("\\connect " + _uri);
+      MY_EXPECT_STDOUT_CONTAINS("No default schema selected.");
+      output_handler.wipe_all();
+
+      _interactive_shell->process_line("db");
+      EXPECT_STREQ("\n", output_handler.std_out.c_str());
+      output_handler.wipe_all();
+
+      _interactive_shell->process_line("\\use mysql");
+      MY_EXPECT_STDOUT_CONTAINS("Schema `mysql` accessible through db.");
+      output_handler.wipe_all();
+
+      _interactive_shell->process_line("db");
+      EXPECT_STREQ("<Schema:mysql>\n", output_handler.std_out.c_str());
+      output_handler.wipe_all();
+
+      _interactive_shell->process_line("\\use unexisting");
+      MY_EXPECT_STDERR_CONTAINS("RuntimeError: Unknown database 'unexisting'");
+      output_handler.wipe_all();
+
+      _interactive_shell->process_line("db");
+      EXPECT_STREQ("<Schema:mysql>\n", output_handler.std_out.c_str());
+      output_handler.wipe_all();
+
+      _interactive_shell->process_line("\\connect_node " + _uri);
+      MY_EXPECT_STDOUT_CONTAINS("No default schema selected.");
+      output_handler.wipe_all();
+
+      _interactive_shell->process_line("db");
+      EXPECT_STREQ("\n", output_handler.std_out.c_str());
+      output_handler.wipe_all();
+
+      _interactive_shell->process_line("\\use mysql");
+      MY_EXPECT_STDOUT_CONTAINS("Schema `mysql` accessible through db.");
+      output_handler.wipe_all();
+
+      _interactive_shell->process_line("db");
+      EXPECT_STREQ("<Schema:mysql>\n", output_handler.std_out.c_str());
+      output_handler.wipe_all();
+
+      _interactive_shell->process_line("\\connect_classic " + _mysql_uri);
+      MY_EXPECT_STDOUT_CONTAINS("No default schema selected.");
+      output_handler.wipe_all();
+
+      _interactive_shell->process_line("db");
+      EXPECT_STREQ("\n", output_handler.std_out.c_str());
+      output_handler.wipe_all();
+
+      _interactive_shell->process_line("\\use mysql");
+      MY_EXPECT_STDOUT_CONTAINS("Schema `mysql` accessible through db.");
+      output_handler.wipe_all();
+
+      _interactive_shell->process_line("db");
+      EXPECT_STREQ("<ClassicSchema:mysql>\n", output_handler.std_out.c_str());
       output_handler.wipe_all();
     }
   }

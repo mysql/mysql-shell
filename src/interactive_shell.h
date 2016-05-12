@@ -61,6 +61,7 @@ public:
   bool cmd_update_connection(const std::vector<std::string>& args);
   bool cmd_list_connections(const std::vector<std::string>& args);
   bool cmd_status(const std::vector<std::string>& args);
+  bool cmd_use(const std::vector<std::string>& args);
 
   void print_banner();
   void print_connection_message(mysh::SessionType type, const std::string& uri, const std::string& sessionid);
