@@ -955,7 +955,14 @@ Value JScript_context::get_v8_exception_data(v8::TryCatch *exc)
 
     v8::String::Utf8Value stack(exc->StackTrace());
     if (*stack && **stack)
-      text.append(std::string(*stack).append("\n"));
+    {
+      std::string str_stack(*stack);
+
+      auto new_lines = std::count(str_stack.begin(), str_stack.end(), '\n');
+
+      if (new_lines > 1)
+        text.append(std::string(*stack).append("\n"));
+    }
 
     (*data)["location"] = Value(text);
   }
