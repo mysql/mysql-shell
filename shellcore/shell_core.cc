@@ -381,7 +381,8 @@ bool Shell_command_handler::process(const std::string& command_line)
   Command_registry::iterator item = _command_dict.find(tokens[0]);
   if (item != _command_dict.end())
   {
-    tokens.erase(tokens.begin());
+    // Sends the original line on the first element
+    tokens[0] = command_line;
 
     ret_val = item->second->function(tokens);
   }

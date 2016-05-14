@@ -196,7 +196,7 @@ class XShell_TestCases(unittest.TestCase):
         #cls.assertEqual(stdin, 'PASS')
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [('\\connect_node {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
+      x_cmds = [('\\connect -n {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
                 ("\\sql\n","mysql-sql>"),
                 ("use world_x;\n","mysql-sql>"),
                 ("show tables ;\n","4 rows in set"),
@@ -218,7 +218,7 @@ class XShell_TestCases(unittest.TestCase):
       #  self.assertEqual(stdin, 'PASS')
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [('\\connect_node {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
+      x_cmds = [('\\connect -n {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
                 ("\\sql\n","mysql-sql>"),
                 ("use sakila;\n","mysql-sql>"),
                 ("select count(*) from actor;\n","200"),
@@ -236,7 +236,7 @@ class XShell_TestCases(unittest.TestCase):
       stdin, stdout = p.communicate()
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [('\\connect_node {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
+      x_cmds = [('\\connect -n {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
                 ("\\sql\n","mysql-sql>"),
                 ("use sakila_x;\n","mysql-sql>"),
                 ("select count(*) from movies;\n","1 row in set"),
@@ -578,7 +578,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[2.0.03]:4 Connect local Server on SQL mode: NODE SESSION W/O PORT'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [("\\connect_node {0}:{1}@{2}\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host),
+      x_cmds = [("\\connect -n {0}:{1}@{2}\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host),
                  "Creating a Node Session"),
                 ("print(session);\n", "NodeSession:"),
                 ]
@@ -589,7 +589,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[2.0.03]:5 Connect local Server on SQL mode: NODE SESSION WITH PORT'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [("\\connect_node {0}:{1}@{2}:{3};\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
+      x_cmds = [("\\connect -n {0}:{1}@{2}:{3};\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
                                                                     LOCALHOST.xprotocol_port),"Creating a Node Session"),
                 ("print(session);\n", "NodeSession:"),
                 ]
@@ -600,7 +600,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[2.0.03]:6 Connect local Server on SQL mode: CLASSIC SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [("\\connect_classic {0}:{1}@{2}:{3}\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
+      x_cmds = [("\\connect -c {0}:{1}@{2}:{3}\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
                                                               LOCALHOST.port),"Creating a Classic Session"),
                 ("print(session);\n", "ClassicSession:"),
                 ]
@@ -634,7 +634,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[2.0.04]:4 Connect remote Server on SQL mode: NODE SESSION W/O PORT'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [("\\connect_node {0}:{1}@{2}\n".format(REMOTEHOST.user, REMOTEHOST.password, REMOTEHOST.host),
+      x_cmds = [("\\connect -n {0}:{1}@{2}\n".format(REMOTEHOST.user, REMOTEHOST.password, REMOTEHOST.host),
                  "Creating a Node Session"),
                 ("print(session);\n", "NodeSession:"),
                 ]
@@ -645,7 +645,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[2.0.04]:5 Connect remote Server on SQL mode: NODE SESSION WITH PORT'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [("\\connect_node {0}:{1}@{2}:{3};\n".format(REMOTEHOST.user, REMOTEHOST.password, REMOTEHOST.host,
+      x_cmds = [("\\connect -n {0}:{1}@{2}:{3};\n".format(REMOTEHOST.user, REMOTEHOST.password, REMOTEHOST.host,
                                                                     REMOTEHOST.xprotocol_port),"Creating a Node Session"),
                 ("print(session);\n", "NodeSession:"),
                 ]
@@ -656,7 +656,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[2.0.04]:6 Connect remote Server on SQL mode: CLASSIC SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [("\\connect_classic {0}:{1}@{2}:{3}\n".format(REMOTEHOST.user, REMOTEHOST.password, REMOTEHOST.host,
+      x_cmds = [("\\connect -c {0}:{1}@{2}:{3}\n".format(REMOTEHOST.user, REMOTEHOST.password, REMOTEHOST.host,
                                                               REMOTEHOST.port),"Creating a Classic Session"),
                 ("print(session);\n", "ClassicSession:"),
                 ]
@@ -1287,22 +1287,22 @@ class XShell_TestCases(unittest.TestCase):
       self.assertEqual(results, 'PASS')
 
   def test_2_0_13_03(self):
-      '''[2.0.13]:3 Connect local Server inside mysqlshell FAILOVER: \connect_node  wrong password'''
+      '''[2.0.13]:3 Connect local Server inside mysqlshell FAILOVER: \connect -n  wrong password'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
       x_cmds = [(";\n", "mysql-js>"),
-                ("\\connect_node {0}:{1}@{2}\n".format(LOCALHOST.user, "wrongpassw", LOCALHOST.host), "mysql-js>"),
+                ("\\connect -n {0}:{1}@{2}\n".format(LOCALHOST.user, "wrongpassw", LOCALHOST.host), "mysql-js>"),
                 ("print(session)\n", "ReferenceError: session is not defined"),
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
   def test_2_0_13_04(self):
-      '''[2.0.13]:4 Connect local Server inside mysqlshell FAILOVER: \connect_classic  wrong password'''
+      '''[2.0.13]:4 Connect local Server inside mysqlshell FAILOVER: \connect -c  wrong password'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
       x_cmds = [(";\n", "mysql-js>"),
-                ("\\connect_classic {0}:{1}@{2}:{3}\n".format(LOCALHOST.user, "wrongpass", LOCALHOST.host, LOCALHOST.port), "mysql-js>"),
+                ("\\connect -c {0}:{1}@{2}:{3}\n".format(LOCALHOST.user, "wrongpass", LOCALHOST.host, LOCALHOST.port), "mysql-js>"),
                 ("print(session)\n", "ReferenceError: session is not defined"),
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
@@ -1320,22 +1320,22 @@ class XShell_TestCases(unittest.TestCase):
       self.assertEqual(results, 'PASS')
 
   def test_2_0_14_03(self):
-      '''[2.0.14]:3 Connect remote Server inside mysqlshell FAILOVER: \connect_node  wrong password'''
+      '''[2.0.14]:3 Connect remote Server inside mysqlshell FAILOVER: \connect -n  wrong password'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
       x_cmds = [(";\n", "mysql-js>"),
-                ("\\connect_node {0}:{1}@{2}\n".format(REMOTEHOST.user, "wrongpassw", REMOTEHOST.host), "mysql-js>"),
+                ("\\connect -n {0}:{1}@{2}\n".format(REMOTEHOST.user, "wrongpassw", REMOTEHOST.host), "mysql-js>"),
                 ("print(session)\n", "ReferenceError: session is not defined"),
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
   def test_2_0_14_04(self):
-      '''[2.0.14]:4 Connect remote Server inside mysqlshell FAILOVER: \connect_classic  wrong password'''
+      '''[2.0.14]:4 Connect remote Server inside mysqlshell FAILOVER: \connect -c  wrong password'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
       x_cmds = [(";\n", "mysql-js>"),
-                ("\\connect_classic {0}:{1}@{2}:{3}\n".format(REMOTEHOST.user, "wrongpass", REMOTEHOST.host, REMOTEHOST.port), "mysql-js>"),
+                ("\\connect -c {0}:{1}@{2}:{3}\n".format(REMOTEHOST.user, "wrongpass", REMOTEHOST.host, REMOTEHOST.port), "mysql-js>"),
                 ("print(session)\n", "ReferenceError: session is not defined"),
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
@@ -1560,7 +1560,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[3.1.010]:1 Check that EXECUTE SCRIPT FILE command [ \source, \. ] works: node session \source select_actor_10.sql'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [("\\connect_node {0}:{1}@{2}\n".format(LOCALHOST.user, LOCALHOST.password,LOCALHOST.host), "mysql-js>"),
+      x_cmds = [("\\connect -n {0}:{1}@{2}\n".format(LOCALHOST.user, LOCALHOST.password,LOCALHOST.host), "mysql-js>"),
                 ("\\sql\n","mysql-sql>"),
                 ("\\source {0}select_actor_10.sql\n".format(Exec_files_location),"rows in set"),
                 ]
@@ -1571,7 +1571,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[3.1.010]:2 Check that EXECUTE SCRIPT FILE command [ \source, \. ] works: node session \. select_actor_10.sql'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [('\\connect_node {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
+      x_cmds = [('\\connect -n {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
                 ("\\sql\n","mysql-sql>"),
                 ("\\. {0}select_actor_10.sql\n".format(Exec_files_location),"rows in set"),
                 ]
@@ -1583,7 +1583,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[3.1.011]:1 Check that MULTI LINE MODE command [ \ ] works'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [('\\connect_node {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
+      x_cmds = [('\\connect -n {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
                 ("\\sql\n","mysql-sql>"),
                 ("use sakila;\n","mysql-sql>"),
                 ("DROP PROCEDURE IF EXISTS get_actors;\n","mysql-sql>"),
@@ -1628,7 +1628,7 @@ class XShell_TestCases(unittest.TestCase):
         self.assertEqual(results2, 'PASS')
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [('\\connect_node {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
+      x_cmds = [('\\connect -n {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
                 ("\\sql\n","mysql-sql>"),
                 ("use sakila;\n","mysql-sql>"),
                 ("show tables like \'testdb\';\n","1 row in set"),
@@ -1650,7 +1650,7 @@ class XShell_TestCases(unittest.TestCase):
         self.assertEqual(stdin, 'PASS')
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [('\\connect_node {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
+      x_cmds = [('\\connect -n {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
                 ("\\sql\n","mysql-sql>"),
                 ("use sakila;\n","mysql-sql>"),
                 ("show tables like 'testdb';\n","1 row in set"),
@@ -1688,7 +1688,7 @@ class XShell_TestCases(unittest.TestCase):
         self.assertEqual(stdin, 'PASS')
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [('\\connect_node {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
+      x_cmds = [('\\connect -n {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
                 ("\\sql\n","mysql-sql>"),
                 ("use sakila;\n","mysql-sql>"),
                 ("show tables like \'example_SQLTABLE\';\n","1 row in set"),
@@ -1758,7 +1758,7 @@ class XShell_TestCases(unittest.TestCase):
 
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [('\\connect_node {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
+      x_cmds = [('\\connect -n {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
                 ("\\sql\n","mysql-sql>"),
                 ("use sakila;\n","mysql-sql>"),
                 ("SELECT first_name FROM actor WHERE first_name='Test';\n","Test"),
@@ -1782,7 +1782,7 @@ class XShell_TestCases(unittest.TestCase):
 
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [('\\connect_node {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
+      x_cmds = [('\\connect -n {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
                 ("\\sql\n","mysql-sql>"),
                 ("use sakila;\n","mysql-sql>"),
                 ("SELECT first_name FROM actor WHERE first_name='Test';\n","Test"),
@@ -1821,7 +1821,7 @@ class XShell_TestCases(unittest.TestCase):
 
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [('\\connect_node {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
+      x_cmds = [('\\connect -n {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
                 ("\\sql\n","mysql-sql>"),
                 ("SELECT DEFAULT_COLLATION_NAME FROM information_schema.SCHEMATA WHERE SCHEMA_NAME = \'AUTOMATION' LIMIT 1;\n","1 row in set")
                 ]
@@ -1839,7 +1839,7 @@ class XShell_TestCases(unittest.TestCase):
         self.assertEqual(stdin, 'PASS')
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [('\\connect_node {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
+      x_cmds = [('\\connect -n {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
                 ("\\sql\n","mysql-sql>"),
                 ("SELECT DEFAULT_COLLATION_NAME FROM information_schema.SCHEMATA WHERE SCHEMA_NAME = \'AUTOMATION' LIMIT 1;\n","1 row in set")
                 ]
@@ -1878,7 +1878,7 @@ class XShell_TestCases(unittest.TestCase):
         self.assertEqual(stdin, 'PASS')
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [('\\connect_node {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
+      x_cmds = [('\\connect -n {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
                 ("\\sql\n","mysql-sql>"),
                 ("use sakila;\n","mysql-sql>"),
                 ("select * from sql_viewtest;\n","row in set"),
@@ -1901,7 +1901,7 @@ class XShell_TestCases(unittest.TestCase):
         self.assertEqual(stdin, 'PASS')
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [('\\connect_node {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
+      x_cmds = [('\\connect -n {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
                 ("\\sql\n","mysql-sql>"),
                 ("use sakila;\n","mysql-sql>"),
                 ("select * from sql_viewtest;\n","row in set"),
@@ -1946,7 +1946,7 @@ class XShell_TestCases(unittest.TestCase):
         self.assertEqual(stdin, 'PASS')
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [('\\connect_node {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
+      x_cmds = [('\\connect -n {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
                 ("\\sql\n","mysql-sql>"),
                 ("use sakila;\n","mysql-sql>"),
                 ("call  sql_sptest(@a);\n","Query OK"),
@@ -1967,7 +1967,7 @@ class XShell_TestCases(unittest.TestCase):
         self.assertEqual(stdin, 'PASS')
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [('\\connect_node {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
+      x_cmds = [('\\connect -n {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
                 ("\\sql\n","mysql-sql>"),
                 ("use sakila;\n","mysql-sql>"),
                 ("call  sql_sptest(@a);\n","Query OK"),
@@ -2083,7 +2083,7 @@ class XShell_TestCases(unittest.TestCase):
         self.assertEqual(stdin, 'PASS')
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [('\\connect_node {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
+      x_cmds = [('\\connect -n {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
                 ("\\sql\n","mysql-sql>"),
                 ("use sakila;\n","mysql-sql>"),
                 ("SELECT * FROM sakila.actor where actor_id = 50;\n","1 row in set"),
@@ -2105,7 +2105,7 @@ class XShell_TestCases(unittest.TestCase):
         self.assertEqual(stdin, 'PASS')
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [('\\connect_node {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
+      x_cmds = [('\\connect -n {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
                 ("\\sql\n","mysql-sql>"),
                 ("use sakila;\n","mysql-sql>"),
                 ("SELECT * FROM sakila.actor where actor_id = 50;\n","1 row in set"),
@@ -2199,7 +2199,7 @@ class XShell_TestCases(unittest.TestCase):
         self.assertEqual(stdin, 'PASS')
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [('\\connect_node {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
+      x_cmds = [('\\connect -n {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
                 ("\\sql\n","mysql-sql>"),
                 ("use sakila;\n","mysql-sql>"),
                 ("SELECT DEFAULT_COLLATION_NAME FROM information_schema.SCHEMATA WHERE SCHEMA_NAME = 'schema_test' LIMIT 1;;\n","1 row in set"),
@@ -2220,7 +2220,7 @@ class XShell_TestCases(unittest.TestCase):
         self.assertEqual(stdin, 'PASS')
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [('\\connect_node {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
+      x_cmds = [('\\connect -n {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
                 ("\\sql\n","mysql-sql>"),
                 ("use sakila;\n","mysql-sql>"),
                 ("SELECT DEFAULT_COLLATION_NAME FROM information_schema.SCHEMATA WHERE SCHEMA_NAME = 'schema_test' LIMIT 1;\n","1 row in set"),
@@ -2313,7 +2313,7 @@ class XShell_TestCases(unittest.TestCase):
         self.assertEqual(stdin, 'PASS')
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [('\\connect_node {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
+      x_cmds = [('\\connect -n {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
                 ("\\sql\n","mysql-sql>"),
                 ("use sakila;\n","mysql-sql>"),
                 ("SELECT * FROM js_view ;\n","1 row in set"),
@@ -2334,7 +2334,7 @@ class XShell_TestCases(unittest.TestCase):
         self.assertEqual(stdin, 'PASS')
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [('\\connect_node {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
+      x_cmds = [('\\connect -n {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
                 ("\\sql\n","mysql-sql>"),
                 ("use sakila;\n","mysql-sql>"),
                 ("SELECT * FROM js_viewnode ;\n","1 row in set"),
@@ -2437,7 +2437,7 @@ class XShell_TestCases(unittest.TestCase):
         self.assertEqual(stdin, 'PASS')
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [('\\connect_node {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
+      x_cmds = [('\\connect -n {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
                 ("\\sql\n","mysql-sql>"),
                 ("use sakila;\n","mysql-sql>"),
                 ("call Test;\n","1 row in set"),
@@ -2457,7 +2457,7 @@ class XShell_TestCases(unittest.TestCase):
         self.assertEqual(stdin, 'PASS')
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [('\\connect_node {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
+      x_cmds = [('\\connect -n {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
                 ("\\sql\n","mysql-sql>"),
                 ("use sakila;\n","mysql-sql>"),
                 ("call Test2;\n","1 row in set"),
@@ -2575,7 +2575,7 @@ class XShell_TestCases(unittest.TestCase):
         self.assertEqual(stdin, 'PASS')
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [('\\connect_node {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
+      x_cmds = [('\\connect -n {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
                 ("\\sql\n","mysql-sql>"),
                 ("use sakila;\n","mysql-sql>"),
                 ("SELECT * FROM sakila.actor where actor_id = 50;\n","1 row in set"),
@@ -2595,7 +2595,7 @@ class XShell_TestCases(unittest.TestCase):
         self.assertEqual(stdin, 'PASS')
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [('\\connect_node {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
+      x_cmds = [('\\connect -n {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
                 ("\\sql\n","mysql-sql>"),
                 ("use sakila;\n","mysql-sql>"),
                 ("SELECT * FROM sakila.friends;\n","7 rows in set"),
@@ -2694,7 +2694,7 @@ class XShell_TestCases(unittest.TestCase):
         self.assertEqual(stdin, 'PASS')
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [('\\connect_node {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
+      x_cmds = [('\\connect -n {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
                 ("\\sql\n","mysql-sql>"),
                 ("use sakila;\n","mysql-sql>"),
                 ("SELECT DEFAULT_COLLATION_NAME FROM information_schema.SCHEMATA WHERE SCHEMA_NAME = 'schema_test' LIMIT 1;\n","1 row in set"),
@@ -2715,7 +2715,7 @@ class XShell_TestCases(unittest.TestCase):
         self.assertEqual(stdin, 'PASS')
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [('\\connect_node {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
+      x_cmds = [('\\connect -n {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
                 ("\\sql\n","mysql-sql>"),
                 ("use sakila;\n","mysql-sql>"),
                 ("SELECT DEFAULT_COLLATION_NAME FROM information_schema.SCHEMATA WHERE SCHEMA_NAME = 'schema_test' LIMIT 1;\n","1 row in set"),
@@ -2810,7 +2810,7 @@ class XShell_TestCases(unittest.TestCase):
         self.assertEqual(stdin, 'PASS')
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [('\\connect_node {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
+      x_cmds = [('\\connect -n {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
                 ("\\sql\n","mysql-sql>"),
                 ("use sakila;\n","mysql-sql>"),
                 ("SELECT * FROM py_view ;\n","1 row in set"),
@@ -2831,7 +2831,7 @@ class XShell_TestCases(unittest.TestCase):
         self.assertEqual(stdin, 'PASS')
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [('\\connect_node {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
+      x_cmds = [('\\connect -n {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
                 ("\\sql\n","mysql-sql>"),
                 ("use sakila;\n","mysql-sql>"),
                 ("SELECT * FROM py_view ;\n","1 row in set"),
@@ -2934,7 +2934,7 @@ class XShell_TestCases(unittest.TestCase):
         self.assertEqual(stdin, 'PASS')
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [('\\connect_node {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
+      x_cmds = [('\\connect -n {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
                 ("\\sql\n","mysql-sql>"),
                 ("use sakila;\n","mysql-sql>"),
                 ("call Test;\n","1 row in set"),
@@ -2954,7 +2954,7 @@ class XShell_TestCases(unittest.TestCase):
         self.assertEqual(stdin, 'PASS')
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [('\\connect_node {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
+      x_cmds = [('\\connect -n {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
                 ("\\sql\n","mysql-sql>"),
                 ("use sakila;\n","mysql-sql>"),
                 ("call Test;\n","1 row in set"),
@@ -3012,7 +3012,7 @@ class XShell_TestCases(unittest.TestCase):
         self.assertEqual(stdin, 'PASS')
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [('\\connect_node {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
+      x_cmds = [('\\connect -n {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
                 ("\\sql\n","mysql-sql>"),
                 ("use sakila;\n","mysql-sql>"),
                 ("SELECT * from information_schema.tables WHERE table_schema ='example_SQLTABLE';\n","Empty set"),
@@ -3033,7 +3033,7 @@ class XShell_TestCases(unittest.TestCase):
         self.assertEqual(stdin, 'PASS')
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [('\\connect_node {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
+      x_cmds = [('\\connect -n {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
                 ("\\sql\n","mysql-sql>"),
                 ("use sakila;\n","mysql-sql>"),
                 ("SELECT * from information_schema.tables WHERE table_schema ='example_SQLTABLE';\n","Empty set"),
@@ -3087,7 +3087,7 @@ class XShell_TestCases(unittest.TestCase):
         self.assertEqual(stdin, 'PASS')
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [('\\connect_node {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
+      x_cmds = [('\\connect -n {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
                 ("\\sql\n","mysql-sql>"),
                 ("use sakila;\n","mysql-sql>"),
                 ("show databases like 'dbtest';\n","Empty set")
@@ -3107,7 +3107,7 @@ class XShell_TestCases(unittest.TestCase):
         self.assertEqual(stdin, 'PASS')
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [('\\connect_node {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
+      x_cmds = [('\\connect -n {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
                 ("\\sql\n","mysql-sql>"),
                 ("use sakila;\n","mysql-sql>"),
                 ("show databases like 'dbtest';\n","Empty set")
@@ -3162,7 +3162,7 @@ class XShell_TestCases(unittest.TestCase):
         self.assertEqual(stdin, 'PASS')
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [('\\connect_node {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
+      x_cmds = [('\\connect -n {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
                 ("\\sql\n","mysql-sql>"),
                 ("use sakila;\n","mysql-sql>"),
                 ("SELECT * from information_schema.views WHERE TABLE_NAME ='sql_viewtest';\n","Empty set"),
@@ -3182,7 +3182,7 @@ class XShell_TestCases(unittest.TestCase):
         self.assertEqual(stdin, 'PASS')
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [('\\connect_node {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
+      x_cmds = [('\\connect -n {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
                 ("\\sql\n","mysql-sql>"),
                 ("use sakila;\n","mysql-sql>"),
                 ("SELECT * from information_schema.views WHERE TABLE_NAME ='sql_viewtest';\n","Empty set"),
@@ -3242,7 +3242,7 @@ class XShell_TestCases(unittest.TestCase):
         self.assertEqual(stdin, 'PASS')
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [('\\connect_node {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
+      x_cmds = [('\\connect -n {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
                 ("\\sql\n","mysql-sql>"),
                 ("use sakila;\n","mysql-sql>"),
                 ("call test_procedure;\n","1 row in set"),
@@ -3262,7 +3262,7 @@ class XShell_TestCases(unittest.TestCase):
         self.assertEqual(stdin, 'PASS')
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [('\\connect_node {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
+      x_cmds = [('\\connect -n {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
                 ("\\sql\n","mysql-sql>"),
                 ("use sakila;\n","mysql-sql>"),
                 ("call test_procedure;\n","1 row in set"),
@@ -3377,7 +3377,7 @@ class XShell_TestCases(unittest.TestCase):
         self.assertEqual(stdin, 'PASS')
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [('\\connect_node {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
+      x_cmds = [('\\connect -n {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
                 ("\\sql\n","mysql-sql>"),
                 ("use sakila;\n","mysql-sql>"),
                 ("select * from sakila.friends where name = 'ruben';\n","Empty set"),
@@ -3398,7 +3398,7 @@ class XShell_TestCases(unittest.TestCase):
         self.assertEqual(stdin, 'PASS')
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [('\\connect_node {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
+      x_cmds = [('\\connect -n {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
                 ("\\sql\n","mysql-sql>"),
                 ("use sakila;\n","mysql-sql>"),
                 ("select * from sakila.friends where name = 'ruben';\n","Empty set"),
@@ -3491,7 +3491,7 @@ class XShell_TestCases(unittest.TestCase):
         self.assertEqual(stdin, 'PASS')
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [('\\connect_node {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
+      x_cmds = [('\\connect -n {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
                 ("\\sql\n","mysql-sql>"),
                 ("use sakila;\n","mysql-sql>"),
                 ("show schemas like 'schema_test';\n","Empty set"),
@@ -3512,7 +3512,7 @@ class XShell_TestCases(unittest.TestCase):
         self.assertEqual(stdin, 'PASS')
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [('\\connect_node {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
+      x_cmds = [('\\connect -n {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
                 ("\\sql\n","mysql-sql>"),
                 ("use sakila;\n","mysql-sql>"),
                 ("show schemas like 'schema_test';\n","Empty set"),
@@ -3612,7 +3612,7 @@ class XShell_TestCases(unittest.TestCase):
         self.assertEqual(stdin, 'PASS')
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [('\\connect_node {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
+      x_cmds = [('\\connect -n {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
                 ("\\sql\n","mysql-sql>"),
                 ("use sakila;\n","mysql-sql>"),
                 ("SELECT table_name FROM information_schema.views WHERE information_schema.views.table_name LIKE 'js_view';\n","Empty set"),
@@ -3633,7 +3633,7 @@ class XShell_TestCases(unittest.TestCase):
         self.assertEqual(stdin, 'PASS')
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [('\\connect_node {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
+      x_cmds = [('\\connect -n {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
                 ("\\sql\n","mysql-sql>"),
                 ("use sakila;\n","mysql-sql>"),
                 ("SELECT table_name FROM information_schema.views WHERE information_schema.views.table_name LIKE 'js_view';\n","Empty set"),
@@ -3748,7 +3748,7 @@ class XShell_TestCases(unittest.TestCase):
         self.assertEqual(stdin, 'PASS')
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [('\\connect_node {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
+      x_cmds = [('\\connect -n {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
                 ("\\sql\n","mysql-sql>"),
                 ("use sakila;\n","mysql-sql>"),
                 ("select name from mysql.proc where name like 'my_procedure';\n","Empty set")
@@ -3771,7 +3771,7 @@ class XShell_TestCases(unittest.TestCase):
         self.assertEqual(stdin, 'PASS')
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [('\\connect_node {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
+      x_cmds = [('\\connect -n {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
                 ("\\sql\n","mysql-sql>"),
                 ("use sakila;\n","mysql-sql>"),
                 ("select name from mysql.proc where name like 'my_procedure';\n","Empty set")
@@ -3893,7 +3893,7 @@ class XShell_TestCases(unittest.TestCase):
         self.assertEqual(stdin, 'PASS')
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [('\\connect_node {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
+      x_cmds = [('\\connect -n {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
                 ("\\sql\n","mysql-sql>"),
                 ("use sakila;\n","mysql-sql>"),
                 ("select * from sakila.friends where name = 'ruben';\n","Empty set"),
@@ -3913,7 +3913,7 @@ class XShell_TestCases(unittest.TestCase):
         self.assertEqual(stdin, 'PASS')
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [('\\connect_node {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
+      x_cmds = [('\\connect -n {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
                 ("\\sql\n","mysql-sql>"),
                 ("use sakila;\n","mysql-sql>"),
                 ("select * from sakila.friends where name = 'ruben';\n","Empty set"),
@@ -4000,7 +4000,7 @@ class XShell_TestCases(unittest.TestCase):
         self.assertEqual(stdin, 'PASS')
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [('\\connect_node {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
+      x_cmds = [('\\connect -n {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
                 ("\\sql\n","mysql-sql>"),
                 ("use sakila;\n","mysql-sql>"),
                 ("show schemas like 'schema_test';\n","Empty set"),
@@ -4022,7 +4022,7 @@ class XShell_TestCases(unittest.TestCase):
         self.assertEqual(stdin, 'PASS')
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [('\\connect_node {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
+      x_cmds = [('\\connect -n {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
                 ("\\sql\n","mysql-sql>"),
                 ("use sakila;\n","mysql-sql>"),
                 ("show schemas like 'schema_test';\n","Empty set"),
@@ -4118,7 +4118,7 @@ class XShell_TestCases(unittest.TestCase):
         self.assertEqual(stdin, 'PASS')
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [('\\connect_node {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
+      x_cmds = [('\\connect -n {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
                 ("\\sql\n","mysql-sql>"),
                 ("use sakila;\n","mysql-sql>"),
                 ("SELECT table_name FROM information_schema.views WHERE information_schema.views.table_name LIKE 'py_view';\n","Empty set"),
@@ -4140,7 +4140,7 @@ class XShell_TestCases(unittest.TestCase):
         self.assertEqual(stdin, 'PASS')
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [('\\connect_node {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
+      x_cmds = [('\\connect -n {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
                 ("\\sql\n","mysql-sql>"),
                 ("use sakila;\n","mysql-sql>"),
                 ("SELECT table_name FROM information_schema.views WHERE information_schema.views.table_name LIKE 'py_view';\n","Empty set"),
@@ -4161,7 +4161,7 @@ class XShell_TestCases(unittest.TestCase):
         self.assertEqual(stdin, 'PASS')
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [('\\connect_node {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
+      x_cmds = [('\\connect -n {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
                 ("\\sql\n","mysql-sql>"),
                 ("use sakila;\n","mysql-sql>"),
                 ("SELECT table_name FROM information_schema.views WHERE information_schema.views.table_name LIKE 'py_view';\n","Empty set"),
@@ -4182,7 +4182,7 @@ class XShell_TestCases(unittest.TestCase):
   #       self.assertEqual(stdin, 'PASS')
   #     results = ''
   #     init_command = [MYSQL_SHELL, '--interactive=full']
-  #     x_cmds = [('\\connect_node {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
+  #     x_cmds = [('\\connect -n {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
   #               ("\\sql\n","mysql-sql>"),
   #               ("use world_x;\n","mysql-sql>"),
   #               #("CREATE TABLE big_data_classic_py ( id INT NOT NULL AUTO_INCREMENT, stringCol VARCHAR(45) NOT NULL, datetimeCol DATETIME NOT NULL, blobCol BLOB NOT NULL, geometryCol GEOMETRY NOT NULL, PRIMARY KEY (id));"),
@@ -4295,7 +4295,7 @@ class XShell_TestCases(unittest.TestCase):
         self.assertEqual(stdin, 'PASS')
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [('\\connect_node {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
+      x_cmds = [('\\connect -n {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
                 ("\\sql\n","mysql-sql>"),
                 ("use sakila;\n","mysql-sql>"),
                 ("SELECT table_name FROM information_schema.views WHERE information_schema.views.table_name LIKE 'my_procedure';\n","Empty set"),
@@ -4318,7 +4318,7 @@ class XShell_TestCases(unittest.TestCase):
         self.assertEqual(stdin, 'PASS')
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [('\\connect_node {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
+      x_cmds = [('\\connect -n {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
                 ("\\sql\n","mysql-sql>"),
                 ("use sakila;\n","mysql-sql>"),
                 ("SELECT table_name FROM information_schema.views WHERE information_schema.views.table_name LIKE 'my_procedure';\n","Empty set"),
@@ -4777,7 +4777,7 @@ class XShell_TestCases(unittest.TestCase):
       x_cmds = [("\\rmconn classic_session\n","mysql-js>"),
                 ("shell.storedSessions.add('classic_session', '"+LOCALHOST.user+":"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+"/sakila');\n","mysql-js>"),
                 ("shell.storedSessions;\n","    \"classic_session\": {" + os.linesep + "        \"dbPassword\": \"**********\", " + os.linesep + "        \"dbUser\": \""+LOCALHOST.user+"\", " + os.linesep + "        \"host\": \""+LOCALHOST.host+"\", " + os.linesep + "        \"port\": "+LOCALHOST.port+", " + os.linesep + "        \"schema\": \"sakila\"" + os.linesep + "    }"),
-                ("\\connect_classic $classic_session\n","Creating a Classic Session to "+LOCALHOST.user+"@"+LOCALHOST.host+":"+LOCALHOST.port+"/sakila"),
+                ("\\connect -c $classic_session\n","Creating a Classic Session to "+LOCALHOST.user+"@"+LOCALHOST.host+":"+LOCALHOST.port+"/sakila"),
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
@@ -5958,7 +5958,7 @@ class XShell_TestCases(unittest.TestCase):
         self.assertEqual(stdin, 'PASS')
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [('\\connect_node {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
+      x_cmds = [('\\connect -n {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
                 ("\\sql\n","mysql-sql>"),
                 ("use sakila;\n","mysql-sql>"),
                 ("show tables like \'example_SQLTABLE\';\n","1 row in set"),
@@ -6041,7 +6041,7 @@ class XShell_TestCases(unittest.TestCase):
   def test_MYS_320(self):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [('\\connect_node {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
+      x_cmds = [('\\connect -n {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
                 ("\\sql\n","mysql-sql>"),
                 ("use sakila;\n","mysql-sql>"),
                 ("DROP PROCEDURE IF EXISTS get_actors;\n","mysql-sql>"),
@@ -6061,17 +6061,17 @@ class XShell_TestCases(unittest.TestCase):
       results = 'FAIL'
       init_command = [MYSQL_SHELL, '--interactive=full', '--py']
       x_cmds = [("\\connect\n", "mysql-py>"),
-                #("\\connect\n", "\\connect <uri or $appName>"),
-                ("\\connect_classic\n", "mysql-py>"),
-                #("\\connect_classic\n", "\\connect_classic <uri or $appName>"),
-                ("\\connect_node\n", "mysql-py>"),
-                #("\\connect_node\n", "\\connect_node <uri or $appName>"),
+                #("\\connect\n", "\\connect <uri or $name>"),
+                ("\\connect -c\n", "mysql-py>"),
+                #("\\connect -c\n", "\\connect -c <uri or $name>"),
+                ("\\connect -n\n", "mysql-py>"),
+                #("\\connect -n\n", "\\connect -n <uri or $name>"),
                 ("\\addconn\n", "mysql-py>"),
-                #("\\addconn\n", "\\addconn [-f] <app> [<uri>]"),
+                #("\\addconn\n", "\\addconn [-f] <name> [<uri>]"),
                 ("\\rmconn\n", "mysql-py>"),
-                #("\\rmconn\n", "\\rmconn <app>"),
+                #("\\rmconn\n", "\\rmconn <name>"),
                 ("\\chconn\n", "mysql-py>")
-                #("\\chconn\n", "\\chconn <app> <URI>")
+                #("\\chconn\n", "\\chconn <name> <URI>")
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')

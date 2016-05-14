@@ -112,7 +112,7 @@ void Server_registry::load()
     of.close();
     iff.reset(new std::ifstream(c_filename, std::ios::in | std::ios::binary));
   }
-  
+
   if (!iff->fail())
   {
     std::string s;
@@ -130,7 +130,7 @@ void Server_registry::load()
     doc.Parse(s.c_str());
     if (doc.GetParseError() != rapidjson::kParseErrorNone)
     {
-      log_error("Server Registry: Error when parsing the file '%s', error: %s at %lu", c_filename, rapidjson::GetParseError_En(doc.GetParseError()), 
+      log_error("Server Registry: Error when parsing the file '%s', error: %s at %lu", c_filename, rapidjson::GetParseError_En(doc.GetParseError()),
         doc.GetErrorOffset());
       return;
     }
@@ -144,7 +144,7 @@ void Server_registry::load()
       rapidjson::Value::ConstMemberIterator it_ver = it->FindMember("version");
       if (it_ver != it->MemberEnd())
       {
-        try 
+        try
         {
           if (Server_registry::_version == boost::lexical_cast<int>(it_ver->value.GetString()))
           {
@@ -224,9 +224,9 @@ std::string Server_registry::get_new_uuid()
 Connection_options& Server_registry::add_connection_options(const std::string& uuid, const std::string& name, const std::string& options, bool overwrite, bool placeholder)
 {
   if (!shcore::is_valid_identifier(name))
-    throw shcore::Exception::argument_error((boost::format("The app name '%s' is not a valid identifier") % name).str());
+    throw shcore::Exception::argument_error((boost::format("The name '%s' is not a valid identifier") % name).str());
   else if (!overwrite && _connections_by_name.find(name) != _connections_by_name.end())
-    throw shcore::Exception::argument_error((boost::format("The app name '%s' already exists") % name).str());
+    throw shcore::Exception::argument_error((boost::format("The name '%s' already exists") % name).str());
 
   Connection_options cs(options, placeholder);
   cs._uuid = uuid;
@@ -254,7 +254,7 @@ Connection_options& Server_registry::add_connection_options(const std::string &n
 Connection_options& Server_registry::update_connection_options(const std::string &name, const std::string &options)
 {
   if (_connections_by_name.find(name) == _connections_by_name.end())
-    throw shcore::Exception::argument_error((boost::format("The app name '%s' does not exist") % name).str());
+    throw shcore::Exception::argument_error((boost::format("The name '%s' does not exist") % name).str());
 
   std::string uuid = _connections_by_name[name]->get_uuid();
   return add_connection_options(uuid, name, options, true, false);
@@ -271,7 +271,7 @@ Connection_options& Server_registry::get_connection_options(const std::string& n
 {
   std::map<std::string, Connection_options*>::iterator it = _connections_by_name.find(name);
   if (it == _connections_by_name.end())
-    throw std::runtime_error((boost::format("Connection not found for app name: %s") % name).str());
+    throw std::runtime_error((boost::format("Connection not found for name: %s") % name).str());
   return *(it->second);
 }
 
@@ -281,11 +281,11 @@ void Server_registry::set_value(const std::string &uuid, const std::string &name
   if (it == _connections.end())
   throw std::runtime_error((boost::format("Connection not found for uuid: %s") % uuid).str());
   Connection_options& cs = it->second;
-  int idkey = Connection_options::get_keyword_id(name); 
+  int idkey = Connection_options::get_keyword_id(name);
   if (idkey == (int)App)
   {
     if (!shcore::is_valid_identifier(name))
-      throw std::runtime_error((boost::format("The app name '%s' is not a valid identifier") % name).str());
+      throw std::runtime_error((boost::format("The name '%s' is not a valid identifier") % name).str());
     std::string cur_name = cs.get_name();
     if (cur_name != value)
     {

@@ -51,8 +51,6 @@ public:
   bool cmd_print_shell_help(const std::vector<std::string>& args);
   bool cmd_start_multiline(const std::vector<std::string>& args);
   bool cmd_connect(const std::vector<std::string>& args);
-  bool cmd_connect_node(const std::vector<std::string>& args);
-  bool cmd_connect_classic(const std::vector<std::string>& args);
   bool cmd_quit(const std::vector<std::string>& args);
   bool cmd_warnings(const std::vector<std::string>& args);
   bool cmd_nowarnings(const std::vector<std::string>& args);

@@ -77,7 +77,7 @@ namespace shcore {
   TEST_F(Shell_application_log_tests, test)
   {
     // issue an stmt with syntax error, then check the log.
-    error = "SyntaxError: Unexpected token ; at :1:9\nin print('x';\n            ^\nSyntaxError: Unexpected token ;\n\n";
+    error = "SyntaxError: Unexpected token ; at :1:9\nin print('x';";
     execute("print('x';");
 
     error = "You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '' at line 1";

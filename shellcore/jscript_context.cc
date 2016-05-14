@@ -96,7 +96,10 @@ struct JScript_context::JScript_context_impl
 
     // print('hello')
     globals->Set(v8::String::NewFromUtf8(isolate, "print"),
-      v8::FunctionTemplate::New(isolate, &JScript_context_impl::f_print, client_data));
+      v8::FunctionTemplate::New(isolate, [](const v8::FunctionCallbackInfo<v8::Value>& args){f_print(args, false); }, client_data));
+
+    globals->Set(v8::String::NewFromUtf8(isolate, "println"),
+      v8::FunctionTemplate::New(isolate, [](const v8::FunctionCallbackInfo<v8::Value>& args){f_print(args, true); }, client_data));
 
     globals->Set(v8::String::NewFromUtf8(isolate, "os"), make_os_object());
 
@@ -366,7 +369,7 @@ struct JScript_context::JScript_context_impl
     }
   }
 
-  static void f_print(const v8::FunctionCallbackInfo<v8::Value>& args)
+  static void f_print(const v8::FunctionCallbackInfo<v8::Value>& args, bool new_line)
   {
     v8::HandleScope outer_handle_scope(args.GetIsolate());
     JScript_context_impl *self = static_cast<JScript_context_impl*>(v8::External::Cast(*args.Data())->Value());
@@ -380,10 +383,16 @@ struct JScript_context::JScript_context_impl
       try
       {
         std::string format = (*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string();
+        std::string text;
         if (format.find("json") == 0)
-          self->delegate->print(self->delegate->user_data, self->types.v8_value_to_shcore_value(args[i]).json(format == "json").c_str());
+          text = self->types.v8_value_to_shcore_value(args[i]).json(format == "json");
         else
-          self->delegate->print(self->delegate->user_data, self->types.v8_value_to_shcore_value(args[i]).descr(true).c_str());
+          text = self->types.v8_value_to_shcore_value(args[i]).descr(true);
+
+        if (new_line)
+          text.append("\n");
+
+        self->delegate->print(self->delegate->user_data, text.c_str());
       }
       catch (std::exception &e)
       {
@@ -563,7 +572,7 @@ struct JScript_context::JScript_context_impl
 #endif
       args.GetReturnValue().Set(v8::Null(args.GetIsolate()));
     }
-  }
+}
 
   static void os_getenv(const v8::FunctionCallbackInfo<v8::Value>& args)
   {

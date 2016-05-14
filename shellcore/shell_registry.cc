@@ -370,7 +370,7 @@ bool StoredSessions::remove_connection(const std::string& name)
       ret_val = true;
     }
     else
-      throw Exception::argument_error((boost::format("The app name '%1%' does not exist") % name).str());
+      throw Exception::argument_error((boost::format("The name '%1%' does not exist") % name).str());
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION("ShellRegistry.remove");
 

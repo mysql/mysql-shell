@@ -149,7 +149,7 @@ namespace shcore {
       }
       catch (shcore::Exception &err)
       {
-        EXPECT_STREQ(err.what(), "The app name 'first_application' already exists");
+        EXPECT_STREQ(err.what(), "The name 'first_application' already exists");
       }
 
       Connection_options cs3 = sr->get_connection_options("first_application");

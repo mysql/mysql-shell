@@ -14,7 +14,7 @@
 ||ArgumentError: Invalid number of arguments in ShellRegistry.add, expected 2 to 3 but got 0
 ||ArgumentError: ShellRegistry.add: Argument #1 expected to be a string
 ||ArgumentError: ShellRegistry.add: Argument #2 expected to be either a URI or a connection data map
-||ArgumentError: ShellRegistry.add: The app name 'my sample' is not a valid identifier
+||ArgumentError: ShellRegistry.add: The name 'my sample' is not a valid identifier
 ||ArgumentError: ShellRegistry.add: The connection option host is mandatory
 ||ArgumentError: ShellRegistry.add: The connection option dbUser is mandatory
 ||ArgumentError: ShellRegistry.add: Argument #3 expected to be boolean
@@ -30,10 +30,10 @@
 
 
 //@ Attempt to override connection without override
-||ArgumentError: ShellRegistry.add: The app name 'my_sample' already exists
+||ArgumentError: ShellRegistry.add: The name 'my_sample' already exists
 
 //@ Attempt to override connection with override=false
-||ArgumentError: ShellRegistry.add: The app name 'my_sample' already exists
+||ArgumentError: ShellRegistry.add: The name 'my_sample' already exists
 
 //@ Attempt to override connection with override=true
 |Added: true|
@@ -44,7 +44,7 @@
 ||ArgumentError: Invalid number of arguments in ShellRegistry.update, expected 2 but got 0
 ||ArgumentError: ShellRegistry.update: Argument #1 expected to be a string
 ||ArgumentError: ShellRegistry.update: Argument #2 expected to be either a URI or a connection data map
-||ArgumentError: ShellRegistry.update: The app name 'my sample' does not exist
+||ArgumentError: ShellRegistry.update: The name 'my sample' does not exist
 ||ArgumentError: ShellRegistry.update: The connection option host is mandatory
 ||ArgumentError: ShellRegistry.update: The connection option dbUser is mandatory
 
@@ -55,7 +55,7 @@
 //@# Stored sessions remove errors
 ||ArgumentError: Invalid number of arguments in ShellRegistry.remove, expected 1 but got 0
 ||ArgumentError: ShellRegistry.remove: Argument #1 expected to be a string
-||ArgumentError: ShellRegistry.remove: The app name 'my sample' does not exist
+||ArgumentError: ShellRegistry.remove: The name 'my sample' does not exist
 
 //@ Remove connection
 |Removed: true|

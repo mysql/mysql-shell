@@ -90,8 +90,8 @@ void Shell_test_output_handler::validate_stderr_content(const std::string& conte
   if (found != expected)
   {
     std::string error = expected ? "Missing" : "Unexpected";
-    error += " Output: " + content;
-    SCOPED_TRACE("STDOUT Actual: " + std_out);
+    error += " Error: " + content;
+    SCOPED_TRACE("STDERR Actual: " + std_out);
     SCOPED_TRACE(error);
     ADD_FAILURE();
   }

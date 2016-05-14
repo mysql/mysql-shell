@@ -61,7 +61,7 @@ namespace shcore {
       {
         _function = "cmd_one";
         _params.assign(params.begin(), params.end());
-        
+
         return true;
       }
 
@@ -69,7 +69,7 @@ namespace shcore {
       {
         _function = "cmd_two";
         _params.assign(params.begin(), params.end());
-        
+
         return true;
       }
 
@@ -77,7 +77,7 @@ namespace shcore {
       {
         _function = name;
         _params.assign(params.begin(), params.end());
-        
+
         return true;
       }
     };
@@ -88,45 +88,53 @@ namespace shcore {
 
       EXPECT_TRUE(_shell_command_handler.process("cmdone"));
       EXPECT_EQ("cmd_one", _function);
-      EXPECT_TRUE(_params.empty());
+      ASSERT_EQ(1, static_cast<int>(static_cast<int>(_params.size())));
+      EXPECT_EQ("cmdone", _params[0]);
 
       EXPECT_TRUE(_shell_command_handler.process("cmdone parameter"));
       EXPECT_EQ("cmd_one", _function);
-      ASSERT_EQ(1, static_cast<int>(static_cast<int>(_params.size())));
-      EXPECT_EQ("parameter", _params[0]);
+      ASSERT_EQ(2, static_cast<int>(static_cast<int>(_params.size())));
+      EXPECT_EQ("cmdone parameter", _params[0]);
+      EXPECT_EQ("parameter", _params[1]);
 
       EXPECT_TRUE(_shell_command_handler.process("cmd2"));
       EXPECT_EQ("cmd_two", _function);
-      EXPECT_TRUE(_params.empty());
+      ASSERT_EQ(1, static_cast<int>(static_cast<int>(_params.size())));
+      EXPECT_EQ("cmd2", _params[0]);
 
       EXPECT_TRUE(_shell_command_handler.process("\\2 two parameters"));
       EXPECT_EQ("cmd_two", _function);
-      ASSERT_EQ(2, static_cast<int>(static_cast<int>(_params.size())));
-      EXPECT_EQ("two", _params[0]);
-      EXPECT_EQ("parameters", _params[1]);
+      ASSERT_EQ(3, static_cast<int>(static_cast<int>(_params.size())));
+      EXPECT_EQ("\\2 two parameters", _params[0]);
+      EXPECT_EQ("two", _params[1]);
+      EXPECT_EQ("parameters", _params[2]);
 
       EXPECT_TRUE(_shell_command_handler.process("three"));
       EXPECT_EQ("cmd_three", _function);
-      EXPECT_TRUE(_params.empty());
+      ASSERT_EQ(1, static_cast<int>(static_cast<int>(_params.size())));
+      EXPECT_EQ("three", _params[0]);
 
       EXPECT_TRUE(_shell_command_handler.process("three three different parameters"));
       EXPECT_EQ("cmd_three", _function);
-      ASSERT_EQ(3, static_cast<int>(_params.size()));
-      EXPECT_EQ("three", _params[0]);
-      EXPECT_EQ("different", _params[1]);
-      EXPECT_EQ("parameters", _params[2]);
+      ASSERT_EQ(4, static_cast<int>(_params.size()));
+      EXPECT_EQ("three three different parameters", _params[0]);
+      EXPECT_EQ("three", _params[1]);
+      EXPECT_EQ("different", _params[2]);
+      EXPECT_EQ("parameters", _params[3]);
 
       EXPECT_TRUE(_shell_command_handler.process("four"));
       EXPECT_EQ("cmd_four", _function);
-      EXPECT_TRUE(_params.empty());
+      ASSERT_EQ(1, static_cast<int>(_params.size()));
+      EXPECT_EQ("four", _params[0]);
 
       EXPECT_TRUE(_shell_command_handler.process("\\4 now four different parameters"));
       EXPECT_EQ("cmd_four", _function);
-      ASSERT_EQ(4, static_cast<int>(_params.size()));
-      EXPECT_EQ("now", _params[0]);
-      EXPECT_EQ("four", _params[1]);
-      EXPECT_EQ("different", _params[2]);
-      EXPECT_EQ("parameters", _params[3]);
+      ASSERT_EQ(5, static_cast<int>(_params.size()));
+      EXPECT_EQ("\\4 now four different parameters", _params[0]);
+      EXPECT_EQ("now", _params[1]);
+      EXPECT_EQ("four", _params[2]);
+      EXPECT_EQ("different", _params[3]);
+      EXPECT_EQ("parameters", _params[4]);
     }
 
     TEST_F(Command_handler_tests, printing_commands)

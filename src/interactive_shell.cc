@@ -82,16 +82,21 @@ _options(options)
 
   _shell.reset(new Shell_core(&_delegate));
 
-  std::string cmd_help =
+  std::string cmd_help_connect =
     "SYNTAX:\n"
-    "   \\connect%1% <URI>\n\n"
-    "   \\connect%1% $<APP_NAME>\n\n"
+    "   \\connect [-<TYPE>] <URI>\n\n"
+    "   \\connect [-<TYPE >] $<SESSION_CFG_NAME>\n\n"
     "WHERE:\n"
+    "   TYPE is an optional parameter to specify the session type. Accepts the next values:\n"
+    "        x: to establish an X session\n"
+    "        n: to establish an Node session\n"
+    "        c: to establish a Classic session\n"
+    "        If the session type is not specified, an X session will be established.\n"
     "   URI is in the format of: [user[:password]@]hostname[:port]\n"
-    "   APP_NAME is the app name that identifies a stored connection\n\n"
-    "EXAMPLE:\n"
-    "   \\connect%1% root@localhost\n"
-    "   \\connect%1% $my_app_name";
+    "   SESSION_CFG_NAME is the name of a stored session configuration\n\n"
+    "EXAMPLES:\n"
+    "   \\connect root@localhost\n"
+    "   \\connect -n $my_cfg_name";
 
   std::string cmd_help_source =
     "SYNTAX:\n"
@@ -103,48 +108,57 @@ _options(options)
     "NOTE: Can execute files from the supported types: SQL, Javascript, or Python.\n"
     "Processing is done using the active language set for processing mode.\n";
 
+  std::string cmd_help_use =
+    "SYNTAX:\n"
+    "   \\use <schema>\n"
+    "   \\u <schema>\n\n"
+    "EXAMPLES:\n"
+    "   \\use mysql"
+    "   \\u 'my schema'"
+    "NOTE: This command works with the global session.\n"
+    "If it is either a Node or Classic session, the current schema will be updated (affects SQL mode).\n"
+    "The global db variable will be updated to hold the requested schema.\n";
+
   SET_SHELL_COMMAND("\\help|\\?|\\h", "Print this help.", "", Interactive_shell::cmd_print_shell_help);
   SET_CUSTOM_SHELL_COMMAND("\\sql", "Sets shell on SQL processing mode.", "", boost::bind(&Interactive_shell::switch_shell_mode, this, Shell_core::Mode_SQL, _1));
   SET_CUSTOM_SHELL_COMMAND("\\js", "Sets shell on JavaScript processing mode.", "", boost::bind(&Interactive_shell::switch_shell_mode, this, Shell_core::Mode_JScript, _1));
   SET_CUSTOM_SHELL_COMMAND("\\py", "Sets shell on Python processing mode.", "", boost::bind(&Interactive_shell::switch_shell_mode, this, Shell_core::Mode_Python, _1));
   SET_SHELL_COMMAND("\\source|\\.", "Execute a script file. Takes a file name as an argument.", cmd_help_source, Interactive_shell::cmd_process_file);
-  SET_SHELL_COMMAND("\\", "Start multiline input when in SQL mode. Finish and execute with an empty line.", "", Interactive_shell::cmd_start_multiline);
+  SET_SHELL_COMMAND("\\", "Start multiline input when in SQL mode.", "", Interactive_shell::cmd_start_multiline);
   SET_SHELL_COMMAND("\\quit|\\q|\\exit", "Quit mysh.", "", Interactive_shell::cmd_quit);
-  SET_SHELL_COMMAND("\\connect|\\cx", "Connect to server using an application mode session.", (boost::format(cmd_help) % "").str(), Interactive_shell::cmd_connect);
-  SET_SHELL_COMMAND("\\connect_node|\\cn", "Connect to server using a node session.", (boost::format(cmd_help) % "_node").str(), Interactive_shell::cmd_connect_node);
-  SET_SHELL_COMMAND("\\connect_classic|\\cc", "Connect to server using the MySQL protocol.", (boost::format(cmd_help) % "_classic").str(), Interactive_shell::cmd_connect_classic);
+  SET_SHELL_COMMAND("\\connect|\\c", "Connect to server using an application mode session.", cmd_help_connect, Interactive_shell::cmd_connect);
   SET_SHELL_COMMAND("\\warnings|\\W", "Show warnings after every statement.", "", Interactive_shell::cmd_warnings);
   SET_SHELL_COMMAND("\\nowarnings|\\w", "Don't show warnings after every statement.", "", Interactive_shell::cmd_nowarnings);
   SET_SHELL_COMMAND("\\status|\\s", "Prints information about the current global connection.", "", Interactive_shell::cmd_status);
-  SET_SHELL_COMMAND("\\use|\\u", "Sets the current database on the global session, updates the db variable.", "", Interactive_shell::cmd_use);
+  SET_SHELL_COMMAND("\\use|\\u", "Sets the current schema on the global session.", cmd_help_use, Interactive_shell::cmd_use);
 
   const std::string cmd_help_store_connection =
     "SYNTAX:\n"
-    "   \\addcon <APP_NAME> <URI>\n\n"
-    "   \\addcon <APP_NAME>\n\n"
+    "   \\addcon <SESSION_CONFIG_NAME> <URI>\n\n"
+    "   \\addcon <SESSION_CONFIG_NAME>\n\n"
     "WHERE:\n"
-    "   APP_NAME is the name of the app to use (the key of a connection string option). Must be a valid identifier\n"
-    "   URI Optional. the connection string following the uri convention. If not provided, will use the uri of the current session.\n\n"
+    "   SESSION_CONFIG_NAME is the name to be assigned to the session configuration. Must be a valid identifier\n"
+    "   URI Optional. the connection string following the URI convention. If not provided, will use the URI of the current session.\n\n"
     "EXAMPLES:\n"
-    "   \\addconn my_app_name root:123@localhost:33060\n";
+    "   \\addconn my_config_name root:123@localhost:33060\n";
   const std::string cmd_help_delete_connection =
     "SYNTAX:\n"
-    "   \\rmconn <APP_NAME>\n\n"
+    "   \\rmconn <SESSION_CONFIG_NAME>\n\n"
     "WHERE:\n"
-    "   APP_NAME is the name of the app to delete (the key of a connection string option).\n\n"
+    "   SESSION_CONFIG_NAME is the name of session configuration to be deleted.\n\n"
     "EXAMPLES:\n"
-    "   \\rmconn my_app_name\n";
+    "   \\rmconn my_config_name\n";
   const std::string cmd_help_update_connection =
     "SYNTAX:\n"
-    "   \\chconn <APP_NAME> <URI>\n\n"
+    "   \\chconn <SESSION_CONFIG_NAME> <URI>\n\n"
     "WHERE:\n"
-    "   APP_NAME is the name of the app to update (the key of a connection string option).\n\n"
+    "   SESSION_CONFIG_NAME is the name of the session configuration to be updated.\n\n"
     "EXAMPLES:\n"
-    "   \\chconn my_app_name guest@localhost\n";
-  SET_SHELL_COMMAND("\\addconn|\\addc", "Inserts/updates new/existing connection into the connection registry.", cmd_help_store_connection, Interactive_shell::cmd_store_connection);
-  SET_SHELL_COMMAND("\\rmconn", "Removes a connection from the connection registry.", cmd_help_delete_connection, Interactive_shell::cmd_delete_connection);
-  SET_SHELL_COMMAND("\\lsconn|\\lsc", "List the contents of all connections currently in the registry.", "", Interactive_shell::cmd_list_connections);
-  SET_SHELL_COMMAND("\\chconn", "Updates a stored connection.", "", Interactive_shell::cmd_update_connection);
+    "   \\chconn my_config_name guest@localhost\n";
+  SET_SHELL_COMMAND("\\addconn|\\addc", "Inserts/updates new/existing session configuration.", cmd_help_store_connection, Interactive_shell::cmd_store_connection);
+  SET_SHELL_COMMAND("\\rmconn", "Removes a stored session configuration.", cmd_help_delete_connection, Interactive_shell::cmd_delete_connection);
+  SET_SHELL_COMMAND("\\lsconn|\\lsc", "List the stored session configurations.", "", Interactive_shell::cmd_list_connections);
+  SET_SHELL_COMMAND("\\chconn", "Updates a stored session configuration.", cmd_help_update_connection, Interactive_shell::cmd_update_connection);
 
   bool lang_initialized;
   _shell->switch_mode(_options.initial_mode, lang_initialized);
@@ -157,7 +171,12 @@ _options(options)
 
 bool Interactive_shell::cmd_process_file(const std::vector<std::string>& params)
 {
-  _options.run_file = boost::join(params, " ");
+  std::string file;
+
+  if (params[0].find("\\source"))
+    _options.run_file = params[0].substr(8);
+  else
+    _options.run_file = params[0].substr(3);
 
   Interactive_shell::process_file();
 
@@ -438,7 +457,7 @@ bool Interactive_shell::switch_shell_mode(Shell_core::Mode mode, const std::vect
           println("The active session is an X Session.");
           println("SQL mode is not supported on X Sessions: command ignored.");
           println("To switch to SQL mode reconnect with a Node Session by either:");
-          println("* Using the \\connect_node shell command.");
+          println("* Using the \\connect -n shell command.");
           println("* Using --session-type=node when calling the MySQL Shell on the command line.");
         }
         else
@@ -493,7 +512,7 @@ void Interactive_shell::print_error(const std::string &error)
   {
     error_val = Value::parse(error);
   }
-  catch (shcore::Exception &e)
+  catch (shcore::Exception &UNUSED(e))
   {
     error_val = Value(error);
   }
@@ -560,12 +579,12 @@ bool Interactive_shell::cmd_print_shell_help(const std::vector<std::string>& arg
 
   // If help came with parameter attempts to print the
   // specific help on the active shell first and global commands
-  if (!args.empty())
+  if (args.size() > 1)
   {
-    printed = _shell->print_help(args[0]);
+    printed = _shell->print_help(args[1]);
 
     if (!printed)
-      printed = _shell_command_handler.print_command_help(args[0]);
+      printed = _shell_command_handler.print_command_help(args[1]);
   }
 
   // If not specific help found, prints the generic help
@@ -573,13 +592,14 @@ bool Interactive_shell::cmd_print_shell_help(const std::vector<std::string>& arg
   {
     _shell_command_handler.print_commands("===== Global Commands =====");
 
-    std::cout << std::endl;
-    std::cout << std::endl;
+    println("");
+    println("");
 
     // Prints the active shell specific help
     _shell->print_help("");
 
-    std::cout << std::endl << "For help on a specific command use the command as \\? <command>" << std::endl;
+    println("");
+    println("For help on a specific command use the command as \\? <command>");
   }
 
   return true;
@@ -588,7 +608,7 @@ bool Interactive_shell::cmd_print_shell_help(const std::vector<std::string>& arg
 bool Interactive_shell::cmd_start_multiline(const std::vector<std::string>& args)
 {
   // This command is only available for SQL Mode
-  if (args.empty() && _shell->interactive_mode() == Shell_core::Mode_SQL)
+  if (args.size() == 1 && _shell->interactive_mode() == Shell_core::Mode_SQL)
   {
     _input_mode = Input_continued_block;
 
@@ -600,65 +620,49 @@ bool Interactive_shell::cmd_start_multiline(const std::vector<std::string>& args
 
 bool Interactive_shell::cmd_connect(const std::vector<std::string>& args)
 {
-  if (args.size() == 1)
+  bool error = false;
+  _options.session_type = mysh::Application;
+
+  // Holds the argument index for the target to which the session will be established
+  size_t target_index = 1;
+
+  if (args.size() > 1 && args.size() < 4)
   {
-    if (args[0].find("$") == 0)
-      _options.app = args[0].substr(1);
-    else
+    if (args.size() == 3)
     {
-      _options.app = "";
-      _options.uri = args[0];
+      target_index++;
+
+      std::string type = args[1];
+
+      if (!type.compare("-x") || !type.compare("-X"))
+        _options.session_type = mysh::Application;
+      else if (!type.compare("-n") || !type.compare("-N"))
+        _options.session_type = mysh::Node;
+      else if (!type.compare("-c") || !type.compare("-C"))
+        _options.session_type = mysh::Classic;
+      else
+        error = true;
     }
 
-    _options.session_type = mysh::Application;
-    connect();
-
-    if (_shell->interactive_mode() == IShell_core::Mode_SQL)
-      println("WARNING: An X Session has been established and SQL execution is not allowed.");
-  }
-  else
-    _delegate.print_error(_delegate.user_data, "\\connect <uri or $appName>\n");
-
-  return true;
-}
-
-bool Interactive_shell::cmd_connect_node(const std::vector<std::string>& args)
-{
-  if (args.size() == 1)
-  {
-    if (args[0].find("$") == 0)
-      _options.app = args[0].substr(1);
-    else
+    if (!error)
     {
-      _options.app = "";
-      _options.uri = args[0];
+      if (args[target_index].find("$") == 0)
+        _options.app = args[target_index].substr(1);
+      else
+      {
+        _options.app = "";
+        _options.uri = args[target_index];
+      }
+
+      connect();
+
+      if (_shell->interactive_mode() == IShell_core::Mode_SQL && _options.session_type == mysh::Application)
+        println("WARNING: An X Session has been established and SQL execution is not allowed.");
     }
-    _options.session_type = mysh::Node;
-    connect();
   }
-  else
-    _delegate.print_error(_delegate.user_data, "\\connect_node <uri or $appName>\n");
 
-  return true;
-}
-
-bool Interactive_shell::cmd_connect_classic(const std::vector<std::string>& args)
-{
-  if (args.size() == 1)
-  {
-    if (args[0].find("$") == 0)
-      _options.app = args[0].substr(1);
-    else
-    {
-      _options.app = "";
-      _options.uri = args[0];
-    }
-
-    _options.session_type = mysh::Classic;
-    connect();
-  }
-  else
-    _delegate.print_error(_delegate.user_data, "\\connect_classic <uri or $appName>\n");
+  if (error)
+    _delegate.print_error(_delegate.user_data, "\\connect [-<type>] <uri or $name>\n");
 
   return true;
 }
@@ -691,7 +695,7 @@ bool Interactive_shell::cmd_nowarnings(const std::vector<std::string>& UNUSED(ar
 bool Interactive_shell::cmd_store_connection(const std::vector<std::string>& args)
 {
   std::string error;
-  std::string app;
+  std::string name;
   std::string uri;
 
   bool overwrite = false;
@@ -699,32 +703,32 @@ bool Interactive_shell::cmd_store_connection(const std::vector<std::string>& arg
   // Reads the parameters
   switch (args.size())
   {
-    case 1:
-      if (args[0] == "-f")
+    case 2:
+      if (args[1] == "-f")
         error = "usage";
       else
-        app = args[0];
-      break;
-    case 2:
-      if (args[0] == "-f")
-      {
-        overwrite = true;
-        app = args[1];
-      }
-      else
-      {
-        app = args[0];
-        uri = args[1];
-      }
+        name = args[1];
       break;
     case 3:
-      if (args[0] != "-f")
+      if (args[1] == "-f")
+      {
+        overwrite = true;
+        name = args[2];
+      }
+      else
+      {
+        name = args[1];
+        uri = args[2];
+      }
+      break;
+    case 4:
+      if (args[1] != "-f")
         error = "usage";
       else
       {
         overwrite = true;
-        app = args[1];
-        uri = args[2];
+        name = args[2];
+        uri = args[3];
       }
 
       break;
@@ -736,8 +740,8 @@ bool Interactive_shell::cmd_store_connection(const std::vector<std::string>& arg
   // Performs additional validations
   if (error.empty())
   {
-    if (!shcore::is_valid_identifier(app))
-      error = (boost::format("The app name '%s' is not a valid identifier") % app).str();
+    if (!shcore::is_valid_identifier(name))
+      error = (boost::format("The session configuration name '%s' is not a valid identifier") % name).str();
     else
     {
       if (uri.empty())
@@ -755,7 +759,11 @@ bool Interactive_shell::cmd_store_connection(const std::vector<std::string>& arg
   {
     try
     {
-      StoredSessions::get_instance()->add_connection(app, uri, overwrite);
+      StoredSessions::get_instance()->add_connection(name, uri, overwrite);
+
+      std::string uri = shcore::build_connection_string((*StoredSessions::get_instance()->connections())[name].as_map(), false);
+
+      _delegate.print(_delegate.user_data, (boost::format("Successfully stored %s as %s.\n") % uri % name).str().c_str());
     }
     catch (std::exception& err)
     {
@@ -763,7 +771,7 @@ bool Interactive_shell::cmd_store_connection(const std::vector<std::string>& arg
     }
   }
   else if (error == "usage")
-    error = "\\addconn [-f] <app> [<uri>]";
+    error = "\\addconn [-f] <session_cfg_name> [<uri>]";
 
   if (!error.empty())
   {
@@ -778,11 +786,13 @@ bool Interactive_shell::cmd_delete_connection(const std::vector<std::string>& ar
 {
   std::string error;
 
-  if (args.size() == 1)
+  if (args.size() == 2)
   {
     try
     {
-      StoredSessions::get_instance()->remove_connection(args[0]);
+      StoredSessions::get_instance()->remove_connection(args[1]);
+
+      _delegate.print(_delegate.user_data, (boost::format("Successfully deleted session configuration named %s.\n") % args[1]).str().c_str());
     }
     catch (std::exception& err)
     {
@@ -790,7 +800,7 @@ bool Interactive_shell::cmd_delete_connection(const std::vector<std::string>& ar
     }
   }
   else
-    error = "\\rmconn <app>";
+    error = "\\rmconn <session_cfg_name>";
 
   if (!error.empty())
   {
@@ -805,11 +815,15 @@ bool Interactive_shell::cmd_update_connection(const std::vector<std::string>& ar
 {
   std::string error;
 
-  if (args.size() == 2)
+  if (args.size() == 3)
   {
     try
     {
-      StoredSessions::get_instance()->update_connection(args[0], args[1]);
+      StoredSessions::get_instance()->update_connection(args[1], args[2]);
+
+      std::string uri = shcore::build_connection_string((*StoredSessions::get_instance()->connections())[args[1]].as_map(), false);
+
+      _delegate.print(_delegate.user_data, (boost::format("Successfully updated %s to %s.\n") % args[1] % uri).str().c_str());
     }
     catch (std::exception& err)
     {
@@ -817,7 +831,7 @@ bool Interactive_shell::cmd_update_connection(const std::vector<std::string>& ar
     }
   }
   else
-    error = "\\chconn <app> <URI>";
+    error = "\\chconn <session_cfg_name> <URI>";
 
   if (!error.empty())
   {
@@ -830,13 +844,22 @@ bool Interactive_shell::cmd_update_connection(const std::vector<std::string>& ar
 
 bool Interactive_shell::cmd_list_connections(const std::vector<std::string>& args)
 {
-  if (args.size() == 0)
+  if (args.size() == 1)
   {
-    Value connections(boost::static_pointer_cast<shcore::Object_bridge>(StoredSessions::get_instance()));
     std::string format = (*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string();
 
-    // Prints the connections in pretty JSON format unless json/raw is specified
-    _delegate.print(_delegate.user_data, connections.json(format != "json/raw").c_str());
+    Value::Map_type_ref connections = StoredSessions::get_instance()->connections();
+    if (format.find("json") != std::string::npos)
+      _delegate.print(_delegate.user_data, shcore::Value(connections).json(format != "json/raw").c_str());
+    else
+    {
+      for (auto connection : (*connections.get()))
+      {
+        std::string uri = shcore::build_connection_string(connection.second.as_map(), false);
+        _delegate.print(_delegate.user_data, (boost::format("%1% : %2%") % connection.first % uri).str().c_str());
+      }
+    }
+
     _delegate.print(_delegate.user_data, "\n");
   }
   else
@@ -937,13 +960,37 @@ bool Interactive_shell::cmd_status(const std::vector<std::string>& UNUSED(args))
 
 bool Interactive_shell::cmd_use(const std::vector<std::string>& args)
 {
+  std::string error;
   if (_shell->get_dev_session() && _shell->get_dev_session()->is_connected())
   {
-    if (args.size() == 1)
+    std::string real_param;
+
+    // If quoted, takes as param what's inside of the quotes
+    auto start = args[0].find_first_of("\"'`");
+    if (start != std::string::npos)
+    {
+      std::string quote = args[0].substr(start, 1);
+
+      if (args[0].size() >= start)
+      {
+        auto end = args[0].find(quote, start + 1);
+
+        if (end != std::string::npos)
+          real_param = args[0].substr(start + 1, end - start - 1);
+        else
+          error = "Mistmatched quote on command parameter: " + args[0].substr(start) + "\n";
+      }
+    }
+    else if (args.size() == 2)
+      real_param = args[1];
+    else
+      error = "\\use <schema_name>\n";
+
+    if (error.empty())
     {
       try
       {
-        shcore::Value schema = _shell->set_current_schema(args[0]);
+        shcore::Value schema = _shell->set_current_schema(real_param);
         std::string message = "Schema `" + schema.as_object()->get_member("name").as_string() + "` accessible through db.";
 
         if ((*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string().find("json") == 0)
@@ -956,14 +1003,15 @@ bool Interactive_shell::cmd_use(const std::vector<std::string>& args)
       }
       catch (shcore::Exception &e)
       {
-        _delegate.print_error(_delegate.user_data, e.format().c_str());
+        error = e.format();
       }
     }
-    else
-      _delegate.print_error(_delegate.user_data, "\\use <schema_name>\n");
   }
   else
-    _delegate.print_error(_delegate.user_data, "Not Connected.\n");
+    error = "Not Connected.\n";
+
+  if (!error.empty())
+    _delegate.print_error(_delegate.user_data, error.c_str());
 
   return true;
 }
@@ -1198,7 +1246,7 @@ void Interactive_shell::process_result(shcore::Value result)
 int Interactive_shell::process_file()
 {
   // Default return value will be 1 indicating there were errors
-  bool ret_val = 1;
+  int ret_val = 1;
 
   if (_options.run_file.empty())
     _delegate.print_error(_delegate.user_data, "Usage: \\. <filename> | \\source <filename>\n");

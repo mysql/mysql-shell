@@ -65,7 +65,7 @@ namespace shcore
 
       virtual void handle_notification(const std::string &name, shcore::Object_bridge_ref sender, shcore::Value::Map_type_ref data)
       {
-        _notifications.push({name, sender, data});
+        _notifications.push({ name, sender, data });
       }
     };
 
@@ -83,7 +83,7 @@ namespace shcore
       ASSERT_EQ("SN_SESSION_CONNECTED", n.name);
       ASSERT_EQ("XSession", n.sender->class_name());
 
-      _interactive_shell->process_line("\\connect_classic " + _mysql_uri);
+      _interactive_shell->process_line("\\connect -c " + _mysql_uri);
 
       ASSERT_EQ(1, _notifications.size());
       n = _notifications.front();
@@ -91,7 +91,7 @@ namespace shcore
       ASSERT_EQ("SN_SESSION_CONNECTED", n.name);
       ASSERT_EQ("ClassicSession", n.sender->class_name());
 
-      _interactive_shell->process_line("\\connect_node " + _uri);
+      _interactive_shell->process_line("\\connect -n " + _uri);
 
       ASSERT_EQ(1, _notifications.size());
       n = _notifications.front();
@@ -105,11 +105,11 @@ namespace shcore
 
       ASSERT_EQ(0, _notifications.size());
 
-      _interactive_shell->process_line("\\connect_classic " + _mysql_uri);
+      _interactive_shell->process_line("\\connect -c " + _mysql_uri);
 
       ASSERT_EQ(0, _notifications.size());
 
-      _interactive_shell->process_line("\\connect_node " + _uri);
+      _interactive_shell->process_line("\\connect -n " + _uri);
 
       ASSERT_EQ(0, _notifications.size());
     }
