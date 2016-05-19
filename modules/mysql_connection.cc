@@ -175,6 +175,7 @@ shcore::Value Row::get_value(int index)
       case MYSQL_TYPE_LONG_BLOB:
       case MYSQL_TYPE_BLOB:
       case MYSQL_TYPE_GEOMETRY:
+      case MYSQL_TYPE_JSON:
 
         return shcore::Value(std::string(_row[index], _lengths[index]));
 
