@@ -410,10 +410,6 @@ namespace shcore
     test_option_with_value("ssl", "", "yes", "1", IS_CONNECTION_DATA, !IS_NULLABLE, "", "1");
     //test_option_with_value("ssl", "", "no", "1", !IS_CONNECTION_DATA, !IS_NULLABLE, "", "0");
 
-    test_option_with_value("session-type", "", "classic", "", !IS_CONNECTION_DATA, !IS_NULLABLE, "", AS__STRING(mysh::Classic).c_str());
-    test_option_with_value("session-type", "", "node", "", !IS_CONNECTION_DATA, !IS_NULLABLE, "", AS__STRING(mysh::Node).c_str());
-    test_option_with_value("session-type", "", "app", "", !IS_CONNECTION_DATA, !IS_NULLABLE, "", AS__STRING(mysh::Application).c_str());
-
     test_option_with_value("execute", "e", "show databases;", "", !IS_CONNECTION_DATA, !IS_NULLABLE, "execute_statement");
 
     test_option_with_no_value("--x", "session-type", AS__STRING(mysh::Application));

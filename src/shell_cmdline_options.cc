@@ -168,21 +168,6 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
         }
       }
     }
-    else if (check_arg_with_value(argv, i, "--session-type", NULL, value))
-    {
-      if (strcmp(value, "classic") == 0)
-        session_type = mysh::Classic;
-      else if (strcmp(value, "node") == 0)
-        session_type = mysh::Node;
-      else if (strcmp(value, "app") == 0)
-        session_type = mysh::Application;
-      else
-      {
-        std::cerr << "Value for --session-type must be either app, node or classic.\n";
-        exit_code = 1;
-        break;
-      }
-    }
     else if (check_arg(argv, i, "--x", "--x"))
       session_type = mysh::Application;
     else if (check_arg(argv, i, "--node", "--node"))
@@ -203,7 +188,7 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
       exit_code = 1;
       break;
 #endif
-  }
+    }
     else if (check_arg(argv, i, "--py", "--python"))
     {
 #ifdef HAVE_PYTHON
@@ -213,7 +198,7 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
       exit_code = 1;
       break;
 #endif
-}
+    }
     else if (check_arg(argv, i, NULL, "--sqlc"))
     {
       initial_mode = IShell_core::Mode_SQL;
@@ -230,8 +215,8 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
         std::cerr << "Value for --json must be either pretty or raw.\n";
         exit_code = 1;
         break;
-      }
     }
+  }
     else if (check_arg(argv, i, "--table", "--table"))
       output_format = "table";
     else if (check_arg(argv, i, "--trace-proto", NULL))
@@ -293,7 +278,7 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
         break;
       }
     }
-  }
+}
 }
 
 bool Shell_command_line_options::has_connection_data()
