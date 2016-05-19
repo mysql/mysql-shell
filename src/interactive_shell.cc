@@ -512,7 +512,7 @@ void Interactive_shell::print_error(const std::string &error)
   {
     error_val = Value::parse(error);
   }
-  catch (shcore::Exception &UNUSED(e))
+  catch (shcore::Exception &e)
   {
     error_val = Value(error);
   }

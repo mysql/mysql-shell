@@ -160,7 +160,6 @@ void JScript_object_wrapper::handler_query(v8::Local<v8::String> property, const
   v8::HandleScope hscope(info.GetIsolate());
   v8::Handle<v8::Object> obj(info.Holder());
   boost::shared_ptr<Object_bridge> *object = static_cast<boost::shared_ptr<Object_bridge>*>(obj->GetAlignedPointerFromInternalField(1));
-  JScript_object_wrapper *self = static_cast<JScript_object_wrapper*>(obj->GetAlignedPointerFromInternalField(2));
 
   if (!object)
     throw std::logic_error("bug!");
