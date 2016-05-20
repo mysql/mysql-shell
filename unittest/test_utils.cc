@@ -44,27 +44,30 @@ void Shell_test_output_handler::deleg_print_error(void *user_data, const char *t
   target->std_err.append(text);
 }
 
-bool Shell_test_output_handler::deleg_prompt(void *user_data, const char *UNUSED(prompt), std::string &ret)
+bool Shell_test_output_handler::deleg_prompt(void *user_data, const char *prompt, std::string &ret)
 {
   Shell_test_output_handler* target = (Shell_test_output_handler*)(user_data);
-  std::string prompt;
+  std::string answer;
+
+  target->std_out.append(prompt);
 
   bool ret_val = false;
   if (!target->prompts.empty())
   {
-    prompt = target->prompts.front();
+    answer = target->prompts.front();
     target->prompts.pop_front();
 
     ret_val = true;
   }
 
-  ret = prompt;
+  ret = answer;
   return ret_val;
 }
 
-bool Shell_test_output_handler::deleg_password(void *user_data, const char *UNUSED(prompt), std::string &ret)
+bool Shell_test_output_handler::deleg_password(void *user_data, const char *prompt, std::string &ret)
 {
   Shell_test_output_handler* target = (Shell_test_output_handler*)(user_data);
+  target->std_out.append(prompt);
   ret = target->ret_pwd;
   return true;
 }
@@ -91,7 +94,7 @@ void Shell_test_output_handler::validate_stderr_content(const std::string& conte
   {
     std::string error = expected ? "Missing" : "Unexpected";
     error += " Error: " + content;
-    SCOPED_TRACE("STDERR Actual: " + std_out);
+    SCOPED_TRACE("STDERR Actual: " + std_err);
     SCOPED_TRACE(error);
     ADD_FAILURE();
   }
@@ -99,11 +102,14 @@ void Shell_test_output_handler::validate_stderr_content(const std::string& conte
 
 void Shell_core_test_wrapper::SetUp()
 {
-  //_shell_core.reset(new shcore::Shell_core(&output_handler.deleg));
-  char **argv = NULL;
-  _options.reset(new Shell_command_line_options(0, argv));
+  // Initializes the options member
+  reset_options();
 
-  _interactive_shell.reset(new Interactive_shell(*_options.get(), &output_handler.deleg));
+  // Allows derived classes configuring specific options
+  set_options();
+
+  // Initializes the interactive shell
+  reset_shell();
 
   const char *uri = getenv("MYSQL_URI");
   if (uri)

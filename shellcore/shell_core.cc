@@ -23,6 +23,8 @@
 #include "shellcore/shell_python.h"
 #include "shellcore/object_registry.h"
 #include "modules/base_session.h"
+#include "interactive_global_schema.h"
+#include "interactive_global_session.h"
 #include <boost/algorithm/string.hpp>
 #include <boost/format.hpp>
 #include <boost/bind.hpp>
@@ -51,6 +53,15 @@ Shell_core::Shell_core(Interpreter_delegate *shdelegate)
 
   _mode = Mode_None;
   _registry = new Object_registry();
+
+  // When using wizards, the global variables are set to the Interactive Wrappers
+  // from the beggining, they will allow interactive resolution when the variables
+  // are used by the first time
+  if ((*Shell_core_options::get())[SHCORE_USE_WIZARDS].as_bool())
+  {
+    set_global("db", shcore::Value::wrap<Global_schema>(new Global_schema(*this)));
+    set_global("session", shcore::Value::wrap<Global_session>(new Global_session(*this)));
+  }
 
   shcore::print = boost::bind(&shcore::Shell_core::print, this, _1);
 }
@@ -247,6 +258,23 @@ void Shell_core::init_py()
 
 void Shell_core::set_global(const std::string &name, const Value &value)
 {
+  // Exception to ensure consistency, if wizard usage is ON then the global variables
+  // Can't be replaced, they were set already and integrators (WB/VS) should use
+  // set_dev_session or set_current_schema to set the variables
+  if ((!name.compare("db") || !name.compare("session")) &&
+  _globals.count(name) != 0 &&
+  (*Shell_core_options::get())[SHCORE_USE_WIZARDS].as_bool())
+  {
+    std::string error = "Can't override the global variables when using wizards is ON. ";
+
+    if (!name.compare("db"))
+     error.append("Use set_dev_session instead.");
+    else
+       error.append("Use set_current_schema instead.");
+
+    throw std::logic_error(error);
+  }
+
   _globals[name] = value;
 
   for (std::map<Mode, Shell_language*>::const_iterator iter = _langs.begin();
@@ -319,12 +347,33 @@ boost::shared_ptr<mysh::ShellDevelopmentSession> Shell_core::set_dev_session(boo
 {
   _global_dev_session.reset(session, session.get());
 
-  set_global("session", shcore::Value(boost::static_pointer_cast<Object_bridge>(_global_dev_session)));
-
+  // X Session can't have a currentSchema so we set on db the default schema
+  shcore::Value currentSchema;
   if (!_global_dev_session->class_name().compare("XSession"))
-    set_global("db", _global_dev_session->get_member("defaultSchema"));
+    currentSchema = _global_dev_session->get_member("defaultSchema");
+
+  // Non X Sessions can have currentSchema so we set on db that one
   else
-    set_global("db", _global_dev_session->get_member("currentSchema"));
+    currentSchema = _global_dev_session->get_member("currentSchema");
+
+  // When using the interactive wrappers instead of setting the global variables
+  // The target Objects on the wrappers are set
+  if ((*Shell_core_options::get())[SHCORE_USE_WIZARDS].as_bool())
+  {
+    get_global("session").as_object<Interactive_object_wrapper>()->set_target(boost::static_pointer_cast<Cpp_object_bridge>(_global_dev_session));
+
+    if (currentSchema)
+      get_global("db").as_object<Interactive_object_wrapper>()->set_target(currentSchema.as_object<Cpp_object_bridge>());
+    else
+      get_global("db").as_object<Interactive_object_wrapper>()->set_target(boost::shared_ptr<Cpp_object_bridge>());
+  }
+
+  // Use the db/session objects directly if the wizards are OFF
+  else
+  {
+    set_global("session", shcore::Value(boost::static_pointer_cast<Object_bridge>(_global_dev_session)));
+    set_global("db", currentSchema);
+  }
 
   return _global_dev_session;
 }
@@ -347,28 +396,35 @@ boost::shared_ptr<mysh::ShellDevelopmentSession> Shell_core::get_dev_session()
 */
 shcore::Value Shell_core::set_current_schema(const std::string& name)
 {
-  shcore::Value ret_val;
+  shcore::Value new_schema;
 
   if (!name.empty())
   {
-    if (_global_dev_session)
+    if (_global_dev_session && _global_dev_session->is_connected())
     {
       shcore::Argument_list args;
       args.push_back(shcore::Value(name));
 
       if (!_global_dev_session->class_name().compare("XSession"))
-        ret_val = _global_dev_session->get_schema(args);
+        new_schema = _global_dev_session->get_schema(args);
       else
-        ret_val = _global_dev_session->call("setCurrentSchema", args);
+        new_schema = _global_dev_session->call("setCurrentSchema", args);
     }
-    else
-      throw Exception::logic_error("Not connected.");
   }
 
-  // Sets the global db variable
-  set_global("db", ret_val);
+  // Updates the Target Object of the global schema if the wizard interaction is
+  // turned ON
+  if ((*Shell_core_options::get())[SHCORE_USE_WIZARDS].as_bool())
+  {
+    if (new_schema)
+      get_global("db").as_object<Interactive_object_wrapper>()->set_target(new_schema.as_object<Cpp_object_bridge>());
+    else
+      get_global("db").as_object<Interactive_object_wrapper>()->set_target(boost::shared_ptr<Cpp_object_bridge>());
+  }
+  else
+    set_global("db", new_schema);
 
-  return ret_val;
+  return new_schema;
 }
 
 //------------------ COMMAND HANDLER FUNCTIONS ------------------//

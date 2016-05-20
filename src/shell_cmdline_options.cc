@@ -56,6 +56,7 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
   password = NULL;
   prompt_password = false;
   trace_protocol = false;
+  wizards = true;
 
   sock = "";
   port = 0;
@@ -215,8 +216,8 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
         std::cerr << "Value for --json must be either pretty or raw.\n";
         exit_code = 1;
         break;
+      }
     }
-  }
     else if (check_arg(argv, i, "--table", "--table"))
       output_format = "table";
     else if (check_arg(argv, i, "--trace-proto", NULL))
@@ -233,6 +234,8 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
     }
     else if (check_arg(argv, i, "--force", "--force"))
       force = true;
+    else if (check_arg(argv, i, "--no-wizard", "--nw"))
+      wizards = false;
     else if (check_arg_with_value(argv, i, "--interactive", "-i", value, true))
     {
       if (!value)
@@ -278,7 +281,7 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
         break;
       }
     }
-}
+  }
 }
 
 bool Shell_command_line_options::has_connection_data()

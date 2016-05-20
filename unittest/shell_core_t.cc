@@ -117,7 +117,9 @@ namespace shcore {
       connect();
 
       EXPECT_EQ("mysql-sql> ", _interactive_shell->prompt());
+      (*Shell_core_options::get())[SHCORE_USE_WIZARDS] = shcore::Value::False();
       _interactive_shell->shell_context()->set_global("session", Value(boost::static_pointer_cast<Object_bridge>(Shell_core_options::get_instance())));
+      (*Shell_core_options::get())[SHCORE_USE_WIZARDS] = shcore::Value::True();
       EXPECT_EQ("mysql-sql> ", _interactive_shell->prompt());
     }
 

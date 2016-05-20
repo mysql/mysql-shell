@@ -60,10 +60,25 @@ protected:
   virtual void SetUp();
   virtual void TearDown();
 
-  //void process_result(shcore::Value result);
+  // void process_result(shcore::Value result);
   shcore::Value execute(const std::string& code);
   shcore::Value exec_and_out_equals(const std::string& code, const std::string& out = "", const std::string& err = "");
   shcore::Value exec_and_out_contains(const std::string& code, const std::string& out = "", const std::string& err = "");
+
+  // This can be use to reinitialize the interactive shell with different options
+  // First set the options on _options
+  void reset_options()
+  {
+    char **argv = NULL;
+    _options.reset(new Shell_command_line_options(0, argv));
+  }
+
+  virtual void set_options()  {};
+
+  void reset_shell()
+  {
+    _interactive_shell.reset(new Interactive_shell(*_options.get(), &output_handler.deleg));
+  }
 
   Shell_test_output_handler output_handler;
   boost::shared_ptr<Interactive_shell> _interactive_shell;

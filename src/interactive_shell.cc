@@ -77,6 +77,7 @@ _options(options)
   // Updates shell core options that changed upon initialization
   (*shcore_options)[SHCORE_BATCH_CONTINUE_ON_ERROR] = Value(_options.force);
   (*shcore_options)[SHCORE_INTERACTIVE] = Value(_options.interactive);
+  (*shcore_options)[SHCORE_USE_WIZARDS] = Value(_options.wizards);
   if (!_options.output_format.empty())
     (*shcore_options)[SHCORE_OUTPUT_FORMAT] = Value(_options.output_format);
 
@@ -340,10 +341,11 @@ Value Interactive_shell::connect_session(const Argument_list &args, mysh::Sessio
     }
     new_session->create_schema(schema_arg);
 
-    _shell->set_current_schema(connection_data->get_string("schema"));
+    if (new_session->class_name().compare("XSession"))
+      new_session->call("setCurrentSchema", schema_arg);
   }
 
-  _shell->set_active_session(Value(boost::static_pointer_cast<Object_bridge>(new_session)));
+  _shell->set_dev_session(new_session);
 
   if (_options.interactive)
   {
@@ -356,7 +358,12 @@ Value Interactive_shell::connect_session(const Argument_list &args, mysh::Sessio
     }
 
     std::string message;
-    shcore::Value default_schema = _shell->get_global("db");
+    shcore::Value default_schema;
+    if (!new_session->class_name().compare("XSession"))
+       default_schema = new_session->get_member("defaultSchema");
+    else
+       default_schema = new_session->get_member("currentSchema");
+
     if (default_schema)
       message = "Default schema `" + default_schema.as_object()->get_member("name").as_string() + "` accessible through db.";
     else
@@ -466,7 +473,7 @@ bool Interactive_shell::switch_shell_mode(Shell_core::Mode mode, const std::vect
             println("Switching to SQL mode... Commands end with ;");
         }
         break;
-      }
+        }
       case Shell_core::Mode_JScript:
 #ifdef HAVE_V8
         if (_shell->switch_mode(mode, lang_initialized))
@@ -483,15 +490,15 @@ bool Interactive_shell::switch_shell_mode(Shell_core::Mode mode, const std::vect
         println("Python mode is not supported, command ignored.");
 #endif
         break;
-    }
+      }
 
     // load scripts for standard locations
     if (lang_initialized)
       init_scripts(mode);
-  }
+    }
 
   return true;
-}
+  }
 
 void Interactive_shell::print(const std::string &str)
 {
@@ -1341,7 +1348,7 @@ void Interactive_shell::command_loop()
         _delegate.print(_delegate.user_data, message.c_str());
       }
     }
-  }
+}
 
   while (_options.interactive)
   {

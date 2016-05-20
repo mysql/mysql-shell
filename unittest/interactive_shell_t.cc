@@ -13,53 +13,25 @@
  along with this program; if not, write to the Free Software
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA */
 
-#include <cstdio>
-#include <cstdlib>
-#include <fstream>
-#include <string>
-#include <boost/shared_ptr.hpp>
-#include <boost/pointer_cast.hpp>
-
-#include "gtest/gtest.h"
-#include "shellcore/types.h"
-#include "shellcore/lang_base.h"
-#include "shellcore/types_cpp.h"
-#include "shellcore/common.h"
-
-#include "shellcore/shell_core.h"
-#include "shellcore/shell_sql.h"
-#include "../modules/base_session.h"
-#include "../modules/base_resultset.h"
-#include "../src/shell_resultset_dumper.h"
 #include "test_utils.h"
-#include "utils/utils_file.h"
-#include <boost/bind.hpp>
 
 namespace shcore {
   namespace shell_core_tests {
     class Interactive_shell_test : public Shell_core_test_wrapper
     {
     public:
-      virtual void SetUp()
+      virtual void set_options()
       {
-        Shell_core_test_wrapper::SetUp();
         _options->interactive = true;
-      }
-
-      void init()
-      {
-        _interactive_shell.reset(new Interactive_shell(*_options.get(), &output_handler.deleg));
-      }
-    protected:
-      std::string _file_name;
-      int _ret_val;
+        _options->wizards = false;
+      };
     };
 
     TEST_F(Interactive_shell_test, warning_insecure_password)
     {
       // Test secure call passing uri with no password (will be prompted)
       _options->uri = "root@localhost";
-      init();
+      reset_shell();
       output_handler.ret_pwd = "whatever";
 
       _interactive_shell->connect(true);
@@ -67,18 +39,17 @@ namespace shcore {
       output_handler.wipe_all();
 
       // Test non secure call passing uri and password with cmd line params
-      _options->uri = "root@localhost";
       _options->password = "whatever";
-      init();
+      reset_shell();
 
       _interactive_shell->connect(true);
       MY_EXPECT_STDOUT_CONTAINS("mysqlx: [Warning] Using a password on the command line interface can be insecure.");
       output_handler.wipe_all();
-      _options->password = NULL; // Options cleanup
 
       // Test secure call passing uri with empty password
+      reset_options();
       _options->uri = "root:@localhost";
-      init();
+      reset_shell();
 
       _interactive_shell->connect(true);
       MY_EXPECT_STDOUT_NOT_CONTAINS("mysqlx: [Warning] Using a password on the command line interface can be insecure.");
@@ -86,7 +57,7 @@ namespace shcore {
 
       // Test non secure call passing uri with password
       _options->uri = "root:whatever@localhost";
-      init();
+      reset_shell();
 
       _interactive_shell->connect(true);
       MY_EXPECT_STDOUT_CONTAINS("mysqlx: [Warning] Using a password on the command line interface can be insecure.");
@@ -95,7 +66,6 @@ namespace shcore {
 
     TEST_F(Interactive_shell_test, shell_command_connect)
     {
-      init();
       _interactive_shell->process_line("\\connect " + _uri);
       MY_EXPECT_STDOUT_CONTAINS("No default schema selected.");
       output_handler.wipe_all();
@@ -122,7 +92,6 @@ namespace shcore {
 
     TEST_F(Interactive_shell_test, shell_command_connect_node)
     {
-      init();
       _interactive_shell->process_line("\\connect -n " + _uri);
       MY_EXPECT_STDOUT_CONTAINS("No default schema selected.");
       output_handler.wipe_all();
@@ -149,7 +118,6 @@ namespace shcore {
 
     TEST_F(Interactive_shell_test, shell_command_connect_classic)
     {
-      init();
       _interactive_shell->process_line("\\connect -c " + _mysql_uri);
       MY_EXPECT_STDOUT_CONTAINS("No default schema selected.");
       output_handler.wipe_all();
@@ -176,7 +144,6 @@ namespace shcore {
 
     TEST_F(Interactive_shell_test, shell_command_use)
     {
-      init();
       _interactive_shell->process_line("\\use mysql");
       MY_EXPECT_STDERR_CONTAINS("Not Connected.");
       output_handler.wipe_all();
@@ -240,7 +207,8 @@ namespace shcore {
 
     TEST_F(Interactive_shell_test, shell_command_warnings)
     {
-      init();
+      _options->interactive = true;
+      reset_shell();
       _interactive_shell->process_line("\\warnings");
       MY_EXPECT_STDOUT_CONTAINS("Show warnings enabled.");
       output_handler.wipe_all();
@@ -252,7 +220,8 @@ namespace shcore {
 
     TEST_F(Interactive_shell_test, shell_command_no_warnings)
     {
-      init();
+      _options->interactive = true;
+      reset_shell();
       _interactive_shell->process_line("\\nowarnings");
       MY_EXPECT_STDOUT_CONTAINS("Show warnings disabled.");
       output_handler.wipe_all();
@@ -431,6 +400,72 @@ namespace shcore {
 
       _interactive_shell->process_line("\\help \\chconn");
       MY_EXPECT_STDOUT_CONTAINS("SESSION_CONFIG_NAME is the name of the session configuration to be updated.");
+      output_handler.wipe_all();
+    }
+
+    TEST_F(Interactive_shell_test, js_db_usage_with_no_wizards)
+    {
+      _interactive_shell->process_line("db");
+      MY_EXPECT_STDERR_CONTAINS("ReferenceError: db is not defined");
+      output_handler.wipe_all();
+
+      _interactive_shell->process_line("db.getName()");
+      MY_EXPECT_STDERR_CONTAINS("ReferenceError: db is not defined");
+      output_handler.wipe_all();
+
+      _interactive_shell->process_line("db.name");
+      MY_EXPECT_STDERR_CONTAINS("ReferenceError: db is not defined");
+      output_handler.wipe_all();
+
+      _options->uri = _uri + "/mysql";
+      _options->interactive = true;
+      reset_shell();
+      _interactive_shell->connect(true);
+      output_handler.wipe_all();
+
+      _interactive_shell->process_line("db");
+      MY_EXPECT_STDOUT_CONTAINS("<Schema:mysql>");
+      output_handler.wipe_all();
+
+      _interactive_shell->process_line("db.getName()");
+      MY_EXPECT_STDOUT_CONTAINS("mysql");
+      output_handler.wipe_all();
+
+      _interactive_shell->process_line("db.name");
+      MY_EXPECT_STDOUT_CONTAINS("mysql");
+      output_handler.wipe_all();
+    }
+
+    TEST_F(Interactive_shell_test, js_session_usage_with_no_wizards)
+    {
+      _interactive_shell->process_line("session");
+      MY_EXPECT_STDOUT_NOT_CONTAINS("ReferenceError: session is not defined");
+      output_handler.wipe_all();
+
+      _interactive_shell->process_line("session.getUri()");
+      MY_EXPECT_STDOUT_NOT_CONTAINS("ReferenceError: session is not defined");
+      output_handler.wipe_all();
+
+      _interactive_shell->process_line("session.uri");
+      MY_EXPECT_STDOUT_NOT_CONTAINS("ReferenceError: session is not defined");
+      output_handler.wipe_all();
+
+      _options->uri = _uri + "/mysql";
+      _options->interactive = true;
+      reset_shell();
+      _interactive_shell->connect(true);
+      output_handler.wipe_all();
+
+      _interactive_shell->process_line("session");
+      MY_EXPECT_STDOUT_CONTAINS("<XSession:" + _uri_nopasswd);
+      output_handler.wipe_all();
+
+      _interactive_shell->process_line("session.getUri()");
+      MY_EXPECT_STDOUT_CONTAINS(_uri_nopasswd);
+      output_handler.wipe_all();
+
+      _interactive_shell->process_line("session.uri");
+      MY_EXPECT_STDOUT_CONTAINS(_uri_nopasswd);
       output_handler.wipe_all();
     }
   }

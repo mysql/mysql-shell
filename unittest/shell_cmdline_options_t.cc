@@ -86,6 +86,8 @@ namespace shcore
         return AS__STRING(options->initial_mode);
       else if (option == "session-type")
         return AS__STRING(options->session_type);
+      else if (option == "wizards")
+        return AS__STRING(options->wizards);
       else if (option == "execute_statement")
         return options->execute_statement;
 
@@ -379,6 +381,7 @@ namespace shcore
     EXPECT_TRUE(options.uri.empty());
     EXPECT_TRUE(options.user.empty());
     EXPECT_TRUE(options.execute_statement.empty());
+    EXPECT_TRUE(options.wizards);
   }
 
   TEST_F(Shell_cmdline_options_t, app)
@@ -438,6 +441,8 @@ namespace shcore
     test_option_with_no_value("--force", "force", "1");
     test_option_with_no_value("--interactive", "interactive", "1");
     test_option_with_no_value("-i", "interactive", "1");
+    test_option_with_no_value("--no-wizard", "wizards", "0");
+    test_option_with_no_value("--nw", "wizards", "0");
 
     test_option_with_value("interactive", "", "full", "1", !IS_CONNECTION_DATA, IS_NULLABLE, "interactive", "1");
     //test_option_with_value("interactive", "", "full", "1", !IS_CONNECTION_DATA, IS_NULLABLE, "full_interactive", "1");

@@ -26,6 +26,7 @@
 #define SHCORE_INTERACTIVE "interactive"
 #define SHCORE_SHOW_WARNINGS "showWarnings"
 #define SHCORE_BATCH_CONTINUE_ON_ERROR "batchContinueOnError"
+#define SHCORE_USE_WIZARDS "useWizards"
 // This option controls the management of globals/locals namespace when running python scripts
 // ie. if several runs of Python scripts inside shell must be considered part of the same instance.
 #define SHCORE_MULTIPLE_INSTANCES "multipleInstances"

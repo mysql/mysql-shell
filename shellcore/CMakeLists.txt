@@ -59,6 +59,7 @@ file(GLOB libmysqlshcore_SRC
     "${CMAKE_SOURCE_DIR}/utils/utils_sqlstring.h"
     "${CMAKE_SOURCE_DIR}/utils/utils_sqlstring.cc"
     "*.cc"
+    "*.h"
     "${CMAKE_SOURCE_DIR}/common/uuid/src/uuid_gen.cc"
     "${CMAKE_BINARY_DIR}/shellcore/jscript_core_definitions.h"
     "${BOOST_SOURCE_CODE}"

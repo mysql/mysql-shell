@@ -66,6 +66,7 @@ public:
   std::string execute_statement;
   std::string execute_dba_statement;
   ngcommon::Logger::LOG_LEVEL log_level;
+  bool wizards;
 
   // Takes the URI and the individual connection parameters and overrides
   Shell_command_line_options(int argc, char **argv);
