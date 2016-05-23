@@ -16,7 +16,7 @@
 SET(MYSH_MAJOR 1)
 SET(MYSH_MINOR 0)
 SET(MYSH_PATCH 3)
-SET(MYSH_SPRINT 2)# Merge/Sprint Number (QA Tracking): 0 on Release
+SET(MYSH_SPRINT 3)# Merge/Sprint Number (QA Tracking): 0 on Release
 IF("${MYSH_SPRINT}" STREQUAL "")
   SET(MYSH_LEVEL "")
 ELSE()

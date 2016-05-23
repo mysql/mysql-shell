@@ -37,11 +37,11 @@ namespace shcore
       output_handler.wipe_all();
 
       _interactive_shell->process_line("db.getName()");
-      MY_EXPECT_STDERR_CONTAINS("The db variable is not set, a global session must be established first");
+      MY_EXPECT_STDERR_CONTAINS("The db variable is not set, establish a global session first.");
       output_handler.wipe_all();
 
       _interactive_shell->process_line("db.name");
-      MY_EXPECT_STDERR_CONTAINS("The db variable is not set, a global session must be established first");
+      MY_EXPECT_STDERR_CONTAINS("The db variable is not set, establish a global session first.");
       output_handler.wipe_all();
     }
 
