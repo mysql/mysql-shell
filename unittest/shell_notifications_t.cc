@@ -103,7 +103,7 @@ namespace shcore
       ASSERT_EQ("SN_SESSION_CONNECTED", n.name);
       ASSERT_EQ("NodeSession", n.sender->class_name());
 
-      _interactive_shell->process_line("\\connect_admin " + _uri);
+      _interactive_shell->process_line("\\connect -a " + _uri);
 
       ASSERT_EQ(1, _notifications.size());
       n = _notifications.front();
@@ -133,7 +133,7 @@ namespace shcore
 
       _interactive_shell->process_line("session.close()");
 
-      _interactive_shell->process_line("\\connect_admin " + _uri);
+      _interactive_shell->process_line("\\connect -a " + _uri);
 
       ASSERT_EQ(0, _notifications.size());
 

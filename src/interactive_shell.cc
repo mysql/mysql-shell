@@ -341,11 +341,11 @@ Value Interactive_shell::connect_session(const Argument_list &args, mysh::Sessio
       }
       new_session->create_schema(schema_arg);
 
-    if (new_session->class_name().compare("XSession"))
-      new_session->call("setCurrentSchema", schema_arg);
-  }
+      if (new_session->class_name().compare("XSession"))
+        new_session->call("setCurrentSchema", schema_arg);
+    }
 
-  _shell->set_dev_session(new_session);
+    _shell->set_dev_session(new_session);
 
     if (_options.interactive)
     {
@@ -357,17 +357,17 @@ Value Interactive_shell::connect_session(const Argument_list &args, mysh::Sessio
         old_session->close(shcore::Argument_list());
       }
 
-    std::string message;
-    shcore::Value default_schema;
-    if (!new_session->class_name().compare("XSession"))
-       default_schema = new_session->get_member("defaultSchema");
-    else
-       default_schema = new_session->get_member("currentSchema");
+      std::string message;
+      shcore::Value default_schema;
+      if (!new_session->class_name().compare("XSession"))
+         default_schema = new_session->get_member("defaultSchema");
+      else
+         default_schema = new_session->get_member("currentSchema");
 
-    if (default_schema)
-      message = "Default schema `" + default_schema.as_object()->get_member("name").as_string() + "` accessible through db.";
-    else
-      message = "No default schema selected.";
+      if (default_schema)
+        message = "Default schema `" + default_schema.as_object()->get_member("name").as_string() + "` accessible through db.";
+      else
+        message = "No default schema selected.";
 
       if ((*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string().find("json") == 0)
         print_json_info(message);
@@ -509,15 +509,15 @@ bool Interactive_shell::switch_shell_mode(Shell_core::Mode mode, const std::vect
         println("Python mode is not supported, command ignored.");
 #endif
         break;
-        }
+    }
 
     // load scripts for standard locations
     if (lang_initialized)
       init_scripts(mode);
-      }
+  }
 
   return true;
-    }
+}
 
 void Interactive_shell::print(const std::string &str)
 {
@@ -666,6 +666,8 @@ bool Interactive_shell::cmd_connect(const std::vector<std::string>& args)
         _options.session_type = mysh::Node;
       else if (!type.compare("-c") || !type.compare("-C"))
         _options.session_type = mysh::Classic;
+      else if (!type.compare("-a") || !type.compare("-A"))
+        _options.session_type = mysh::Admin;
       else
         error = true;
     }
@@ -689,26 +691,6 @@ bool Interactive_shell::cmd_connect(const std::vector<std::string>& args)
 
   if (error)
     _delegate.print_error(_delegate.user_data, "\\connect [-<type>] <uri or $name>\n");
-
-  return true;
-}
-
-bool Interactive_shell::cmd_connect_admin(const std::vector<std::string>& args)
-{
-  if (args.size() == 1)
-  {
-    if (args[0].find("$") == 0)
-      _options.app = args[0].substr(1);
-    else
-    {
-      _options.app = "";
-      _options.uri = args[0];
-    }
-    _options.session_type = mysh::Admin;
-    connect();
-  }
-  else
-    _delegate.print_error(_delegate.user_data, "\\connect_admin <uri or $appName>\n");
 
   return true;
 }
@@ -1177,9 +1159,9 @@ void Interactive_shell::process_line(const std::string &line)
       // the non executed code
       if (_input_mode == Input_ok)
         _input_buffer.clear();
+    }
   }
 }
-  }
 
 void Interactive_shell::abort()
 {
@@ -1298,7 +1280,7 @@ int Interactive_shell::process_stream(std::istream & stream, const std::string& 
   // Emulate interactive mode while processing the stream
   if (_options.interactive)
   {
-    bool comment_first_js_line = _shell->interactive_mode()== IShell_core::Mode_JScript;
+    bool comment_first_js_line = _shell->interactive_mode() == IShell_core::Mode_JScript;
     while (!stream.eof())
     {
       std::string line;
@@ -1307,7 +1289,7 @@ int Interactive_shell::process_stream(std::istream & stream, const std::string& 
 
       // When processing JavaScript files, validates the very first line to start with #!
       // If that's the case, it is replaced by a comment indicator //
-      if (comment_first_js_line && line.size() > 1 && line[0]=='#' && line[1]=='!')
+      if (comment_first_js_line && line.size() > 1 && line[0] == '#' && line[1] == '!')
         line.replace(0, 2, "//");
 
       comment_first_js_line = false;
