@@ -50,7 +50,7 @@ using namespace shcore;
 namespace shcore
 {
   /*
-   * Returns the config path ($HOME\mysqlsh in Unix or %AppData%\mysql\mysqlsh in Windows).
+   * Returns the config path (~/.mysqlsh in Unix or %AppData%\MySQL\mysqlsh in Windows).
    */
   std::string get_user_config_path()
   {
@@ -58,40 +58,74 @@ namespace shcore
     std::string path;
     std::vector < std::string> to_append;
 
-    const char* usr_config_path = getenv("MYSQLX_USER_CONFIG_PATH");
-
-    if (usr_config_path)
-      path.assign(usr_config_path);
-
 #ifdef WIN32
     path_separator = "\\";
-    if (path.empty())
-    {
-      char szPath[MAX_PATH];
-      HRESULT hr;
+    char szPath[MAX_PATH];
+    HRESULT hr;
 
-      if (SUCCEEDED(hr = SHGetFolderPathA(NULL, CSIDL_APPDATA, NULL, 0, szPath)))
-        path.assign(szPath);
-      else
-      {
-        _com_error err(hr);
-        throw std::runtime_error((boost::format("Error when gathering the APPDATA folder path: %s") % err.ErrorMessage()).str());
-      }
+    if (SUCCEEDED(hr = SHGetFolderPathA(NULL, CSIDL_APPDATA, NULL, 0, szPath)))
+      path.assign(szPath);
+    else
+    {
+      _com_error err(hr);
+      throw std::runtime_error((boost::format("Error when gathering the APPDATA folder path: %s") % err.ErrorMessage()).str());
     }
 
     to_append.push_back("MySQL");
     to_append.push_back("mysqlsh");
 #else
     path_separator = "/";
-    if (path.empty())
-    {
-      char* cpath = std::getenv("HOME");
+    char* cpath = std::getenv("HOME");
 
-      if (cpath != NULL)
-        path.assign(cpath);
-    }
+    if (cpath != NULL)
+      path.assign(cpath);
 
     to_append.push_back(".mysqlsh");
+#endif
+
+    // Up to know the path must exist since it was retrieved from OS standard means
+    // we need to guarantee the rest of the path exists
+    if (!path.empty())
+    {
+      for (size_t index = 0; index < to_append.size(); index++)
+      {
+        path += path_separator + to_append[index];
+        ensure_dir_exists(path);
+      }
+
+      path += path_separator;
+    }
+
+    return path;
+  }
+
+  /*
+  * Returns the config path (/etc/mysql/mysqlsh in Unix or %ProgramData%\MySQL\mysqlsh in Windows).
+  */
+  std::string get_global_config_path()
+  {
+    std::string path_separator;
+    std::string path;
+    std::vector < std::string> to_append;
+
+#ifdef WIN32
+    path_separator = "\\";
+    char szPath[MAX_PATH];
+    HRESULT hr;
+
+    if (SUCCEEDED(hr = SHGetFolderPathA(NULL, CSIDL_COMMON_APPDATA, NULL, 0, szPath)))
+      path.assign(szPath);
+    else
+    {
+      _com_error err(hr);
+      throw std::runtime_error((boost::format("Error when gathering the PROGRAMDATA folder path: %s") % err.ErrorMessage()).str());
+    }
+
+    to_append.push_back("MySQL");
+    to_append.push_back("mysqlsh");
+#else
+    path_separator = "/";
+    path = "/etc/mysql/mysqlsh"
 #endif
 
     // Up to know the path must exist since it was retrieved from OS standard means
@@ -177,7 +211,7 @@ namespace shcore
 
   /*
   * Returns what should be considered the HOME folder for the shell.
-  * If MYSQLX_HOME is defined, returns its value.
+  * If MYSQLSH_HOME is defined, returns its value.
   * If not, it will try to identify the value based on the binary full path:
   * In a standard setup the binary will be at <MYSQLX_HOME>/bin
   *
@@ -191,7 +225,7 @@ namespace shcore
     std::string ret_val;
     std::string binary_folder;
     std::string path_separator;
-    const char* env_home = getenv("MYSQLX_HOME");
+    const char* env_home = getenv("MYSQLSH_HOME");
 
     if (env_home)
       ret_val.assign(env_home);

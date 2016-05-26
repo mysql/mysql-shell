@@ -14,6 +14,7 @@
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA */
 
 #include "test_utils.h"
+#include "utils/utils_file.h"
 
 namespace shcore {
   namespace shell_core_tests {
@@ -435,6 +436,169 @@ namespace shcore {
       _interactive_shell->process_line("session.uri");
       MY_EXPECT_STDOUT_CONTAINS(_uri_nopasswd);
       output_handler.wipe_all();
+    }
+
+    TEST_F(Interactive_shell_test, python_startup_scripts)
+    {
+      std::string user_path = shcore::get_user_config_path();
+      user_path += "mysqlshrc.py";
+
+      // User Config path is executed last
+      std::string user_backup;
+      bool user_existed = shcore::load_text_file(user_path, user_backup);
+
+      std::ofstream out;
+      out.open(user_path, std::ios_base::trunc);
+      if (!out.fail())
+      {
+        out << "def my_prompt():" << std::endl;
+        out << "   return '---> '" << std::endl << std::endl;
+        out << "shell.custom_prompt = my_prompt" << std::endl;
+        out << "the_variable = 'Local Value'" << std::endl;
+        out.close();
+      }
+
+      std::string bin_path = shcore::get_binary_folder();
+      bin_path += "/mysqlshrc.py";
+
+      // Binary Config path is executed first
+      std::string bin_backup;
+      bool bin_existed = shcore::load_text_file(bin_path, user_backup);
+
+      out.open(bin_path, std::ios_base::app);
+      if (!out.fail())
+      {
+        out << "import mysqlx" << std::endl;
+        out << "the_variable = 'Global Value'" << std::endl;
+        out.close();
+      }
+
+      _options->full_interactive = true;
+      _options->initial_mode = shcore::IShell_core::Mode_Python;
+      reset_shell();
+      output_handler.wipe_all();
+
+      _interactive_shell->process_line("mysqlx");
+      MY_EXPECT_STDOUT_CONTAINS("<module 'mysqlx' (built-in)>");
+      output_handler.wipe_all();
+
+      EXPECT_EQ("---> ", _interactive_shell->prompt());
+      output_handler.wipe_all();
+
+      _interactive_shell->process_line("the_variable");
+      MY_EXPECT_STDOUT_CONTAINS("Local Value");
+      output_handler.wipe_all();
+
+      std::remove(user_path.c_str());
+      std::remove(bin_path.c_str());
+
+      // If there startup files on the paths used on this test, they are restored
+      if (user_existed)
+      {
+        out.open(user_path, std::ios_base::trunc);
+        if (!out.fail())
+        {
+          out.write(user_backup.c_str(), user_backup.size());
+          out.close();
+        }
+      }
+
+      if (bin_existed)
+      {
+        out.open(bin_path, std::ios_base::trunc);
+        if (!out.fail())
+        {
+          out.write(bin_backup.c_str(), bin_backup.size());
+          out.close();
+        }
+      }
+    }
+
+    TEST_F(Interactive_shell_test, js_startup_scripts)
+    {
+      // Default module paths will not contain the mysqlx module since they are calculated
+      // Based on the binary location.
+      // Here we use the env variable to setup additional paths for JS modules so
+      // It can be found as expected
+      std::string js_modules_path = MYSQLX_SOURCE_HOME;
+      js_modules_path += "/scripting/modules/js";
+#ifdef WIN32
+      _putenv_s("MYSQLSH_JS_MODULE_PATHS", js_modules_path.c_str());
+#else
+      setenv("MYSQLSH_JS_MODULE_PATHS", js_modules_path.c_str(), 1);
+#endif
+
+      std::string user_path = shcore::get_user_config_path();
+      user_path += "mysqlshrc.js";
+
+      // User Config path is executed last
+      std::string user_backup;
+      bool user_existed = shcore::load_text_file(user_path, user_backup);
+
+      std::ofstream out;
+      out.open(user_path, std::ios_base::trunc);
+      if (!out.fail())
+      {
+        out << "shell.custom_prompt = function() {" << std::endl;
+        out << "   return '---> ';" << std::endl;
+        out << "}" << std::endl << std::endl;
+        out << "var the_variable = 'Local Value';" << std::endl;
+        out.close();
+      }
+
+      std::string bin_path = shcore::get_binary_folder();
+      bin_path += "/mysqlshrc.js";
+
+      // Binary Config path is executed first
+      std::string bin_backup;
+      bool bin_existed = shcore::load_text_file(bin_path, user_backup);
+
+      out.open(bin_path, std::ios_base::app);
+      if (!out.fail())
+      {
+        out << "var mysqlx = require('mysqlx').mysqlx;" << std::endl;
+        out << "var the_variable = 'Global Value';" << std::endl;
+        out.close();
+      }
+
+      _options->full_interactive = true;
+      reset_shell();
+      output_handler.wipe_all();
+
+      _interactive_shell->process_line("mysqlx");
+      MY_EXPECT_STDOUT_CONTAINS("getSession");
+      output_handler.wipe_all();
+
+      EXPECT_EQ("---> ", _interactive_shell->prompt());
+      output_handler.wipe_all();
+
+      _interactive_shell->process_line("the_variable");
+      MY_EXPECT_STDOUT_CONTAINS("Local Value");
+      output_handler.wipe_all();
+
+      std::remove(user_path.c_str());
+      std::remove(bin_path.c_str());
+
+      // If there startup files on the paths used on this test, they are restored
+      if (user_existed)
+      {
+        out.open(user_path, std::ios_base::trunc);
+        if (!out.fail())
+        {
+          out.write(user_backup.c_str(), user_backup.size());
+          out.close();
+        }
+      }
+
+      if (bin_existed)
+      {
+        out.open(bin_path, std::ios_base::trunc);
+        if (!out.fail())
+        {
+          out.write(bin_backup.c_str(), bin_backup.size());
+          out.close();
+        }
+      }
     }
   }
 }

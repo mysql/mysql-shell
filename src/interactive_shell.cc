@@ -395,20 +395,33 @@ void Interactive_shell::init_scripts(Shell_core::Mode mode)
 
   try
   {
-    std::string path = shcore::get_user_config_path();
-    path += std::string("shellrc");
-    user_file = path;
+    // Checks existence of gobal startup script
+    std::string path = shcore::get_global_config_path();
+    path.append("shellrc");
+    path.append(extension);
+    if (file_exists(path))
+      scripts_paths.push_back(path);
 
-    user_file += extension;
-    if (file_exists(user_file))
-      scripts_paths.push_back(user_file);
-#ifndef WIN32
-    std::string global_file("/usr/share/mysqlsh/shellrc");
-    global_file += extension;
+    // Checks existence of startup script at MYSQLSH_HOME
+    // Or the binary location if not a standard installation
+    path = shcore::get_mysqlx_home_path();
+    if (!path.empty())
+      path.append("/share/mysqlsh/mysqlshrc");
+    else
+    {
+      path = shcore::get_binary_folder();
+      path.append("/mysqlshrc");
+    }
+    path.append(extension);
+    if (file_exists(path))
+      scripts_paths.push_back(path);
 
-    if (file_exists(global_file))
-      scripts_paths.push_back(global_file);
-#endif
+    // Checks existence of user startup script
+    path = shcore::get_user_config_path();
+    path.append("mysqlshrc");
+    path.append(extension);
+    if (file_exists(path))
+      scripts_paths.push_back(path);
 
     for (std::vector<std::string>::iterator i = scripts_paths.begin(); i != scripts_paths.end(); ++i)
     {
@@ -483,15 +496,15 @@ bool Interactive_shell::switch_shell_mode(Shell_core::Mode mode, const std::vect
         println("Python mode is not supported, command ignored.");
 #endif
         break;
-    }
+        }
 
     // load scripts for standard locations
     if (lang_initialized)
       init_scripts(mode);
-  }
+      }
 
   return true;
-}
+    }
 
 void Interactive_shell::print(const std::string &str)
 {
@@ -1131,9 +1144,9 @@ void Interactive_shell::process_line(const std::string &line)
       // the non executed code
       if (_input_mode == Input_ok)
         _input_buffer.clear();
-    }
   }
 }
+  }
 
 void Interactive_shell::abort()
 {

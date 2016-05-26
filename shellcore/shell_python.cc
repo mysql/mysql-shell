@@ -99,7 +99,7 @@ std::string Shell_python::prompt()
   {
     Interactive_input_state state = Input_ok;
     WillEnterPython lock;
-    shcore::Value value = _py->execute_interactive("shell.ps() if 'ps' in dir(shell) else None", state);
+    shcore::Value value = _py->execute_interactive("shell.custom_prompt() if 'custom_prompt' in dir(shell) else None", state);
     if (value && value.type == String)
       ret_val = value.as_string();
     else

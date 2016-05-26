@@ -26,7 +26,7 @@
 using namespace shcore;
 
 Shell_javascript::Shell_javascript(Shell_core *shcore)
-: Shell_language(shcore)
+  : Shell_language(shcore)
 {
   _js = boost::shared_ptr<JScript_context>(new JScript_context(shcore->registry(), shcore->lang_delegate()));
 }
@@ -59,7 +59,7 @@ std::string Shell_javascript::prompt()
 {
   try
   {
-    shcore::Value value = _js->execute("shell.ps ? shell.ps() : null", "shell.ps");
+    shcore::Value value = _js->execute("shell.custom_prompt ? shell.custom_prompt() : null", "shell.custom_prompt");
     if (value && value.type == String)
       return value.as_string();
   }
@@ -105,27 +105,27 @@ void Shell_javascript::abort()
 
   if (node_session != NULL)
   {
-    kill_session.reset(new mysh::mysqlx::NodeSession(*node_session));
+  kill_session.reset(new mysh::mysqlx::NodeSession(*node_session));
   }
   else if (x_session != NULL)
   {
-    kill_session.reset(new mysh::mysqlx::XSession(*x_session));
+  kill_session.reset(new mysh::mysqlx::XSession(*x_session));
   }
   else
-    throw std::runtime_error("Unexpected session type");
+  throw std::runtime_error("Unexpected session type");
 
   uint64_t connection_id = session->get_connection_id();
   if (connection_id != 0)
   {
-    shcore::Argument_list a;
-    a.push_back(shcore::Value(""));
-    kill_session->connect(a);
-    if (!kill_session)
-    {
-      throw std::runtime_error(boost::format().str());
-    }
-    std::string cmd = (boost::format("kill query %u") % connection_id).str();
-    a.clear();
-    kill_session->execute_sql(cmd, a);
+  shcore::Argument_list a;
+  a.push_back(shcore::Value(""));
+  kill_session->connect(a);
+  if (!kill_session)
+  {
+  throw std::runtime_error(boost::format().str());
+  }
+  std::string cmd = (boost::format("kill query %u") % connection_id).str();
+  a.clear();
+  kill_session->execute_sql(cmd, a);
   }*/
 }
