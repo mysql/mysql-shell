@@ -56,7 +56,6 @@ public:
   bool cmd_nowarnings(const std::vector<std::string>& args);
   bool cmd_store_connection(const std::vector<std::string>& args);
   bool cmd_delete_connection(const std::vector<std::string>& args);
-  bool cmd_update_connection(const std::vector<std::string>& args);
   bool cmd_list_connections(const std::vector<std::string>& args);
   bool cmd_status(const std::vector<std::string>& args);
   bool cmd_use(const std::vector<std::string>& args);

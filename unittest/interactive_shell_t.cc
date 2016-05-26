@@ -239,78 +239,51 @@ namespace shcore {
       output_handler.wipe_all();
 
       // Command errors
-      _interactive_shell->process_line("\\addc 1");
+      _interactive_shell->process_line("\\savec 1");
       MY_EXPECT_STDERR_CONTAINS("The session configuration name '1' is not a valid identifier");
       output_handler.wipe_all();
 
-      _interactive_shell->process_line("\\addc test_example");
+      _interactive_shell->process_line("\\savec test_example");
       MY_EXPECT_STDERR_CONTAINS("Unable to save session information, no active session available");
       output_handler.wipe_all();
 
-      _interactive_shell->process_line("\\addc");
-      MY_EXPECT_STDERR_CONTAINS("\\addconn [-f] <session_cfg_name> [<uri>]");
+      _interactive_shell->process_line("\\savec");
+      MY_EXPECT_STDERR_CONTAINS("\\saveconn [-f] <session_cfg_name> [<uri>]");
       output_handler.wipe_all();
 
-      _interactive_shell->process_line("\\addc -f");
-      MY_EXPECT_STDERR_CONTAINS("\\addconn [-f] <session_cfg_name> [<uri>]");
+      _interactive_shell->process_line("\\savec -f");
+      MY_EXPECT_STDERR_CONTAINS("\\saveconn [-f] <session_cfg_name> [<uri>]");
       output_handler.wipe_all();
 
-      _interactive_shell->process_line("\\addc wrong params root@localhost");
-      MY_EXPECT_STDERR_CONTAINS("\\addconn [-f] <session_cfg_name> [<uri>]");
+      _interactive_shell->process_line("\\savec wrong params root@localhost");
+      MY_EXPECT_STDERR_CONTAINS("\\saveconn [-f] <session_cfg_name> [<uri>]");
       output_handler.wipe_all();
 
       // Passing URI
-      _interactive_shell->process_line("\\addc test_01 sample:pwd@sometarget:45/schema");
+      _interactive_shell->process_line("\\savec test_01 sample:pwd@sometarget:45/schema");
       MY_EXPECT_STDOUT_CONTAINS("Successfully stored sample@sometarget:45/schema as test_01.");
       output_handler.wipe_all();
 
-      _interactive_shell->process_line("\\addc test_01 sample2:pwd@sometarget:46");
+      _interactive_shell->process_line("\\savec test_01 sample2:pwd@sometarget:46");
       MY_EXPECT_STDERR_CONTAINS("ShellRegistry.add: The name 'test_01' already exists");
       output_handler.wipe_all();
 
-      _interactive_shell->process_line("\\addc -f test_01 sample2:pwd@sometarget:46");
+      _interactive_shell->process_line("\\savec -f test_01 sample2:pwd@sometarget:46");
       MY_EXPECT_STDOUT_CONTAINS("Successfully stored sample2@sometarget:46 as test_01.");
       output_handler.wipe_all();
 
       // Working with the current session
       _interactive_shell->process_line("\\connect " + _uri);
-      _interactive_shell->process_line("\\addc test_02");
+      _interactive_shell->process_line("\\savec test_02");
       MY_EXPECT_STDOUT_CONTAINS("Successfully stored " + _uri_nopasswd + ":33060 as test_02.");
       output_handler.wipe_all();
 
-      _interactive_shell->process_line("\\addc test_02");
+      _interactive_shell->process_line("\\savec test_02");
       MY_EXPECT_STDERR_CONTAINS("ShellRegistry.add: The name 'test_02' already exists");
       output_handler.wipe_all();
 
-      _interactive_shell->process_line("\\addc -f test_02");
+      _interactive_shell->process_line("\\savec -f test_02");
       MY_EXPECT_STDOUT_CONTAINS("Successfully stored " + _uri_nopasswd + ":33060 as test_02.");
-      output_handler.wipe_all();
-    }
-
-    TEST_F(Interactive_shell_test, shell_command_update_connection)
-    {
-      // Cleanup for the test
-      _interactive_shell->process_line("\\rmconn test_01");
-      output_handler.wipe_all();
-
-      // Command errors
-      _interactive_shell->process_line("\\chconn");
-      MY_EXPECT_STDERR_CONTAINS("\\chconn <session_cfg_name> <URI>");
-      output_handler.wipe_all();
-
-      _interactive_shell->process_line("\\chconn test_01");
-      MY_EXPECT_STDERR_CONTAINS("\\chconn <session_cfg_name> <URI>");
-      output_handler.wipe_all();
-
-      _interactive_shell->process_line("\\chconn test_01 sample@whatever");
-      MY_EXPECT_STDERR_CONTAINS("ShellRegistry.update: The name 'test_01' does not exist");
-      output_handler.wipe_all();
-
-      // Passing URI
-      _interactive_shell->process_line("\\addc test_01 sample:pwd@sometarget:45/schema");
-      output_handler.wipe_all();
-      _interactive_shell->process_line("\\chconn test_01 sample2:pwd@sometarget:46");
-      MY_EXPECT_STDOUT_CONTAINS("Successfully updated test_01 to sample2@sometarget:46.");
       output_handler.wipe_all();
     }
 
@@ -319,7 +292,7 @@ namespace shcore {
       // Cleanup for the test
       _interactive_shell->process_line("\\rmconn test_01");
       _interactive_shell->process_line("\\rmconn test_02");
-      _interactive_shell->process_line("\\addconn test_01 sample@host:port");
+      _interactive_shell->process_line("\\saveconn test_01 sample@host:port");
       output_handler.wipe_all();
 
       // Command errors
@@ -342,7 +315,7 @@ namespace shcore {
       // Cleanup for the test
       _interactive_shell->process_line("\\rmconn test_01");
       _interactive_shell->process_line("\\rmconn test_02");
-      _interactive_shell->process_line("\\addconn test_01 sample:pwd@host:4520");
+      _interactive_shell->process_line("\\saveconn test_01 sample:pwd@host:4520");
       output_handler.wipe_all();
 
       // Command errors
@@ -361,21 +334,20 @@ namespace shcore {
       _interactive_shell->process_line("\\?");
       MY_EXPECT_STDOUT_CONTAINS("===== Global Commands =====");
       MY_EXPECT_STDOUT_CONTAINS("\\help       (\\?,\\h)    Print this help.");
-      MY_EXPECT_STDOUT_CONTAINS("\\sql                   Sets shell on SQL processing mode.");
-      MY_EXPECT_STDOUT_CONTAINS("\\js                    Sets shell on JavaScript processing mode.");
-      MY_EXPECT_STDOUT_CONTAINS("\\py                    Sets shell on Python processing mode.");
+      MY_EXPECT_STDOUT_CONTAINS("\\sql                   Switch to SQL processing mode.");
+      MY_EXPECT_STDOUT_CONTAINS("\\js                    Switch to JavaScript processing mode.");
+      MY_EXPECT_STDOUT_CONTAINS("\\py                    Switch to Python processing mode.");
       MY_EXPECT_STDOUT_CONTAINS("\\source     (\\.)       Execute a script file. Takes a file name as an argument.");
-      MY_EXPECT_STDOUT_CONTAINS("\\                      Start multiline input when in SQL mode.");
-      MY_EXPECT_STDOUT_CONTAINS("\\quit       (\\q,\\exit) Quit mysh.");
-      MY_EXPECT_STDOUT_CONTAINS("\\connect    (\\c)       Connect to server using an application mode session.");
+      MY_EXPECT_STDOUT_CONTAINS("\\                      Start multi-line input when in SQL mode.");
+      MY_EXPECT_STDOUT_CONTAINS("\\quit       (\\q,\\exit) Quit MySQL Shell.");
+      MY_EXPECT_STDOUT_CONTAINS("\\connect    (\\c)       Connect to a server.");
       MY_EXPECT_STDOUT_CONTAINS("\\warnings   (\\W)       Show warnings after every statement.");
       MY_EXPECT_STDOUT_CONTAINS("\\nowarnings (\\w)       Don't show warnings after every statement.");
-      MY_EXPECT_STDOUT_CONTAINS("\\status     (\\s)       Prints information about the current global connection.");
-      MY_EXPECT_STDOUT_CONTAINS("\\use        (\\u)       Sets the current schema on the global session.");
-      MY_EXPECT_STDOUT_CONTAINS("\\addconn    (\\addc)    Inserts/updates new/existing session configuration.");
-      MY_EXPECT_STDOUT_CONTAINS("\\rmconn                Removes a stored session configuration.");
-      MY_EXPECT_STDOUT_CONTAINS("\\lsconn     (\\lsc)     List the stored session configurations.");
-      MY_EXPECT_STDOUT_CONTAINS("\\chconn                Updates a stored session configuration.");
+      MY_EXPECT_STDOUT_CONTAINS("\\status     (\\s)       Print information about the current global connection.");
+      MY_EXPECT_STDOUT_CONTAINS("\\use        (\\u)       Set the current schema for the global session.");
+      MY_EXPECT_STDOUT_CONTAINS("\\saveconn   (\\savec)   Store a session configuration.");
+      MY_EXPECT_STDOUT_CONTAINS("\\rmconn     (\\rmc)     Remove the stored session configuration.");
+      MY_EXPECT_STDOUT_CONTAINS("\\lsconn     (\\lsc)     List stored session configurations.");
       MY_EXPECT_STDOUT_CONTAINS("For help on a specific command use the command as \\? <command>");
 
       _interactive_shell->process_line("\\help \\source");
@@ -390,16 +362,12 @@ namespace shcore {
       MY_EXPECT_STDOUT_CONTAINS("The global db variable will be updated to hold the requested schema.");
       output_handler.wipe_all();
 
-      _interactive_shell->process_line("\\help \\addconn");
+      _interactive_shell->process_line("\\help \\saveconn");
       MY_EXPECT_STDOUT_CONTAINS("SESSION_CONFIG_NAME is the name to be assigned to the session configuration.");
       output_handler.wipe_all();
 
       _interactive_shell->process_line("\\help \\rmconn");
       MY_EXPECT_STDOUT_CONTAINS("SESSION_CONFIG_NAME is the name of session configuration to be deleted.");
-      output_handler.wipe_all();
-
-      _interactive_shell->process_line("\\help \\chconn");
-      MY_EXPECT_STDOUT_CONTAINS("SESSION_CONFIG_NAME is the name of the session configuration to be updated.");
       output_handler.wipe_all();
     }
 

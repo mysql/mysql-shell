@@ -121,27 +121,28 @@ _options(options)
     "The global db variable will be updated to hold the requested schema.\n";
 
   SET_SHELL_COMMAND("\\help|\\?|\\h", "Print this help.", "", Interactive_shell::cmd_print_shell_help);
-  SET_CUSTOM_SHELL_COMMAND("\\sql", "Sets shell on SQL processing mode.", "", boost::bind(&Interactive_shell::switch_shell_mode, this, Shell_core::Mode_SQL, _1));
-  SET_CUSTOM_SHELL_COMMAND("\\js", "Sets shell on JavaScript processing mode.", "", boost::bind(&Interactive_shell::switch_shell_mode, this, Shell_core::Mode_JScript, _1));
-  SET_CUSTOM_SHELL_COMMAND("\\py", "Sets shell on Python processing mode.", "", boost::bind(&Interactive_shell::switch_shell_mode, this, Shell_core::Mode_Python, _1));
+  SET_CUSTOM_SHELL_COMMAND("\\sql", "Switch to SQL processing mode.", "", boost::bind(&Interactive_shell::switch_shell_mode, this, Shell_core::Mode_SQL, _1));
+  SET_CUSTOM_SHELL_COMMAND("\\js", "Switch to JavaScript processing mode.", "", boost::bind(&Interactive_shell::switch_shell_mode, this, Shell_core::Mode_JScript, _1));
+  SET_CUSTOM_SHELL_COMMAND("\\py", "Switch to Python processing mode.", "", boost::bind(&Interactive_shell::switch_shell_mode, this, Shell_core::Mode_Python, _1));
   SET_SHELL_COMMAND("\\source|\\.", "Execute a script file. Takes a file name as an argument.", cmd_help_source, Interactive_shell::cmd_process_file);
-  SET_SHELL_COMMAND("\\", "Start multiline input when in SQL mode.", "", Interactive_shell::cmd_start_multiline);
-  SET_SHELL_COMMAND("\\quit|\\q|\\exit", "Quit mysh.", "", Interactive_shell::cmd_quit);
-  SET_SHELL_COMMAND("\\connect|\\c", "Connect to server using an application mode session.", cmd_help_connect, Interactive_shell::cmd_connect);
+  SET_SHELL_COMMAND("\\", "Start multi-line input when in SQL mode.", "", Interactive_shell::cmd_start_multiline);
+  SET_SHELL_COMMAND("\\quit|\\q|\\exit", "Quit MySQL Shell.", "", Interactive_shell::cmd_quit);
+  SET_SHELL_COMMAND("\\connect|\\c", "Connect to a server.", cmd_help_connect, Interactive_shell::cmd_connect);
   SET_SHELL_COMMAND("\\warnings|\\W", "Show warnings after every statement.", "", Interactive_shell::cmd_warnings);
   SET_SHELL_COMMAND("\\nowarnings|\\w", "Don't show warnings after every statement.", "", Interactive_shell::cmd_nowarnings);
-  SET_SHELL_COMMAND("\\status|\\s", "Prints information about the current global connection.", "", Interactive_shell::cmd_status);
-  SET_SHELL_COMMAND("\\use|\\u", "Sets the current schema on the global session.", cmd_help_use, Interactive_shell::cmd_use);
+  SET_SHELL_COMMAND("\\status|\\s", "Print information about the current global connection.", "", Interactive_shell::cmd_status);
+  SET_SHELL_COMMAND("\\use|\\u", "Set the current schema for the global session.", cmd_help_use, Interactive_shell::cmd_use);
 
   const std::string cmd_help_store_connection =
     "SYNTAX:\n"
-    "   \\addcon <SESSION_CONFIG_NAME> <URI>\n\n"
-    "   \\addcon <SESSION_CONFIG_NAME>\n\n"
+    "   \\savecon [-f] <SESSION_CONFIG_NAME> <URI>\n\n"
+    "   \\savecon <SESSION_CONFIG_NAME>\n\n"
     "WHERE:\n"
     "   SESSION_CONFIG_NAME is the name to be assigned to the session configuration. Must be a valid identifier\n"
+    "   -f is an optional flag, when specified the store operation will override the configuration associated to SESSION_CONFIG_NAME\n"
     "   URI Optional. the connection string following the URI convention. If not provided, will use the URI of the current session.\n\n"
     "EXAMPLES:\n"
-    "   \\addconn my_config_name root:123@localhost:33060\n";
+    "   \\saveconn my_config_name root:123@localhost:33060\n";
   const std::string cmd_help_delete_connection =
     "SYNTAX:\n"
     "   \\rmconn <SESSION_CONFIG_NAME>\n\n"
@@ -149,17 +150,9 @@ _options(options)
     "   SESSION_CONFIG_NAME is the name of session configuration to be deleted.\n\n"
     "EXAMPLES:\n"
     "   \\rmconn my_config_name\n";
-  const std::string cmd_help_update_connection =
-    "SYNTAX:\n"
-    "   \\chconn <SESSION_CONFIG_NAME> <URI>\n\n"
-    "WHERE:\n"
-    "   SESSION_CONFIG_NAME is the name of the session configuration to be updated.\n\n"
-    "EXAMPLES:\n"
-    "   \\chconn my_config_name guest@localhost\n";
-  SET_SHELL_COMMAND("\\addconn|\\addc", "Inserts/updates new/existing session configuration.", cmd_help_store_connection, Interactive_shell::cmd_store_connection);
-  SET_SHELL_COMMAND("\\rmconn", "Removes a stored session configuration.", cmd_help_delete_connection, Interactive_shell::cmd_delete_connection);
-  SET_SHELL_COMMAND("\\lsconn|\\lsc", "List the stored session configurations.", "", Interactive_shell::cmd_list_connections);
-  SET_SHELL_COMMAND("\\chconn", "Updates a stored session configuration.", cmd_help_update_connection, Interactive_shell::cmd_update_connection);
+  SET_SHELL_COMMAND("\\saveconn|\\savec", "Store a session configuration.", cmd_help_store_connection, Interactive_shell::cmd_store_connection);
+  SET_SHELL_COMMAND("\\rmconn|\\rmc", "Remove the stored session configuration.", cmd_help_delete_connection, Interactive_shell::cmd_delete_connection);
+  SET_SHELL_COMMAND("\\lsconn|\\lsc", "List stored session configurations.", "", Interactive_shell::cmd_list_connections);
 
   bool lang_initialized;
   _shell->switch_mode(_options.initial_mode, lang_initialized);
@@ -473,7 +466,7 @@ bool Interactive_shell::switch_shell_mode(Shell_core::Mode mode, const std::vect
             println("Switching to SQL mode... Commands end with ;");
         }
         break;
-        }
+      }
       case Shell_core::Mode_JScript:
 #ifdef HAVE_V8
         if (_shell->switch_mode(mode, lang_initialized))
@@ -490,15 +483,15 @@ bool Interactive_shell::switch_shell_mode(Shell_core::Mode mode, const std::vect
         println("Python mode is not supported, command ignored.");
 #endif
         break;
-      }
+    }
 
     // load scripts for standard locations
     if (lang_initialized)
       init_scripts(mode);
-    }
+  }
 
   return true;
-  }
+}
 
 void Interactive_shell::print(const std::string &str)
 {
@@ -778,7 +771,7 @@ bool Interactive_shell::cmd_store_connection(const std::vector<std::string>& arg
     }
   }
   else if (error == "usage")
-    error = "\\addconn [-f] <session_cfg_name> [<uri>]";
+    error = "\\saveconn [-f] <session_cfg_name> [<uri>]";
 
   if (!error.empty())
   {
@@ -808,37 +801,6 @@ bool Interactive_shell::cmd_delete_connection(const std::vector<std::string>& ar
   }
   else
     error = "\\rmconn <session_cfg_name>";
-
-  if (!error.empty())
-  {
-    error += "\n";
-    _delegate.print_error(_delegate.user_data, error.c_str());
-  }
-
-  return true;
-}
-
-bool Interactive_shell::cmd_update_connection(const std::vector<std::string>& args)
-{
-  std::string error;
-
-  if (args.size() == 3)
-  {
-    try
-    {
-      StoredSessions::get_instance()->update_connection(args[1], args[2]);
-
-      std::string uri = shcore::build_connection_string((*StoredSessions::get_instance()->connections())[args[1]].as_map(), false);
-
-      _delegate.print(_delegate.user_data, (boost::format("Successfully updated %s to %s.\n") % args[1] % uri).str().c_str());
-    }
-    catch (std::exception& err)
-    {
-      error = err.what();
-    }
-  }
-  else
-    error = "\\chconn <session_cfg_name> <URI>";
 
   if (!error.empty())
   {
@@ -1348,7 +1310,7 @@ void Interactive_shell::command_loop()
         _delegate.print(_delegate.user_data, message.c_str());
       }
     }
-}
+  }
 
   while (_options.interactive)
   {
