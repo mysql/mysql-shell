@@ -134,10 +134,15 @@ namespace mysh
       virtual std::string class_name() const { return "DocResult"; }
       virtual void append_json(shcore::JSON_dumper& dumper) const;
 
+      shcore::Value get_metadata() const;
+
 #ifdef DOXYGEN
       Document fetchOne();
       List fetchAll();
 #endif
+
+    private:
+      mutable shcore::Value _metadata;
     };
 
     /**

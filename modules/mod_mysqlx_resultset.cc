@@ -358,6 +358,44 @@ shcore::Value DocResult::fetch_all(const shcore::Argument_list &args) const
   return Value(array);
 }
 
+shcore::Value DocResult::get_metadata() const
+{
+  if (!_metadata)
+  {
+    shcore::Value data_type = mysh::Constant::get_constant("mysqlx", "Type", "Json", shcore::Argument_list());
+
+    // the plugin may not send these if they are equal to table/name respectively
+    // We need to reconstruct them
+    std::string orig_table = _result->columnMetadata()->at(0).original_table;
+    std::string orig_name = _result->columnMetadata()->at(0).original_name;
+
+    if (orig_table.empty())
+      orig_table = _result->columnMetadata()->at(0).table;
+
+    if (orig_name.empty())
+      orig_name = _result->columnMetadata()->at(0).name;
+
+    boost::shared_ptr<mysh::Column> metadata(new mysh::Column(
+      _result->columnMetadata()->at(0).schema,
+      orig_table,
+      _result->columnMetadata()->at(0).table,
+      orig_name,
+      _result->columnMetadata()->at(0).name,
+      data_type,
+      _result->columnMetadata()->at(0).length,
+      false, // IS NUMERIC
+      _result->columnMetadata()->at(0).fractional_digits,
+      false, // IS SIGNED
+      Charset::item[_result->columnMetadata()->at(0).collation].collation,
+      Charset::item[_result->columnMetadata()->at(0).collation].name,
+      true)); // IS PADDED
+
+    _metadata = shcore::Value(boost::static_pointer_cast<Object_bridge>(metadata));
+  }
+
+  return _metadata;
+}
+
 void DocResult::append_json(shcore::JSON_dumper& dumper) const
 {
   dumper.start_object();
