@@ -67,6 +67,8 @@ namespace shcore
       _interactive_shell->process_line("session.getUri()");
       MY_EXPECT_STDOUT_CONTAINS(_uri_nopasswd);
       output_handler.wipe_all();
+
+      _interactive_shell->process_line("session.close()");
     }
 
     TEST_F(Interactive_global_session_js_test, resolve_property_access_to_x)
@@ -91,6 +93,8 @@ namespace shcore
       _interactive_shell->process_line("session");
       MY_EXPECT_STDOUT_CONTAINS("<XSession:" + _uri_nopasswd);
       output_handler.wipe_all();
+
+      _interactive_shell->process_line("session.close()");
     }
 
     TEST_F(Interactive_global_session_js_test, resolve_method_call_to_x)
@@ -115,6 +119,8 @@ namespace shcore
       _interactive_shell->process_line("session");
       MY_EXPECT_STDOUT_CONTAINS("<XSession:" + _uri_nopasswd);
       output_handler.wipe_all();
+
+      _interactive_shell->process_line("session.close()");
     }
 
     TEST_F(Interactive_global_session_js_test, resolve_property_access_to_node)
@@ -139,6 +145,8 @@ namespace shcore
       _interactive_shell->process_line("session");
       MY_EXPECT_STDOUT_CONTAINS("<NodeSession:" + _uri_nopasswd);
       output_handler.wipe_all();
+
+      _interactive_shell->process_line("session.close()");
     }
 
     TEST_F(Interactive_global_session_js_test, resolve_method_call_to_node)
@@ -163,6 +171,8 @@ namespace shcore
       _interactive_shell->process_line("session");
       MY_EXPECT_STDOUT_CONTAINS("<NodeSession:" + _uri_nopasswd);
       output_handler.wipe_all();
+
+      _interactive_shell->process_line("session.close()");
     }
 
     TEST_F(Interactive_global_session_js_test, resolve_property_access_to_classic)
@@ -187,6 +197,8 @@ namespace shcore
       _interactive_shell->process_line("session");
       MY_EXPECT_STDOUT_CONTAINS("<ClassicSession:" + _mysql_uri_nopasswd);
       output_handler.wipe_all();
+
+      _interactive_shell->process_line("session.close()");
     }
 
     TEST_F(Interactive_global_session_js_test, resolve_method_call_to_classic)
@@ -211,6 +223,8 @@ namespace shcore
       _interactive_shell->process_line("session");
       MY_EXPECT_STDOUT_CONTAINS("<ClassicSession:" + _mysql_uri_nopasswd);
       output_handler.wipe_all();
+
+      _interactive_shell->process_line("session.close()");
     }
 
     TEST_F(Interactive_global_session_js_test, get_unexisting_schema)
@@ -235,6 +249,8 @@ namespace shcore
       _interactive_shell->process_line("myschema");
       MY_EXPECT_STDOUT_CONTAINS("<Schema:mysample>");
       output_handler.wipe_all();
+
+      _interactive_shell->process_line("session.close()");
     }
   }
 }

@@ -78,6 +78,8 @@ namespace shcore {
       _interactive_shell->process_line("db");
       EXPECT_STREQ("\n", output_handler.std_out.c_str());
 
+      _interactive_shell->process_line("session.close()");
+
       _interactive_shell->process_line("\\connect " + _uri + "/mysql");
       MY_EXPECT_STDOUT_CONTAINS("Default schema `mysql` accessible through db.");
       output_handler.wipe_all();
@@ -89,6 +91,8 @@ namespace shcore {
       _interactive_shell->process_line("db");
       MY_EXPECT_STDOUT_CONTAINS("<Schema:mysql>");
       output_handler.wipe_all();
+
+      _interactive_shell->process_line("session.close()");
     }
 
     TEST_F(Interactive_shell_test, shell_command_connect_node)
@@ -104,6 +108,8 @@ namespace shcore {
       _interactive_shell->process_line("db");
       EXPECT_STREQ("\n", output_handler.std_out.c_str());
 
+      _interactive_shell->process_line("session.close()");
+
       _interactive_shell->process_line("\\connect -n " + _uri + "/mysql");
       MY_EXPECT_STDOUT_CONTAINS("Default schema `mysql` accessible through db.");
       output_handler.wipe_all();
@@ -115,6 +121,8 @@ namespace shcore {
       _interactive_shell->process_line("db");
       MY_EXPECT_STDOUT_CONTAINS("<Schema:mysql>");
       output_handler.wipe_all();
+
+      _interactive_shell->process_line("session.close()");
     }
 
     TEST_F(Interactive_shell_test, shell_command_connect_classic)
@@ -130,6 +138,8 @@ namespace shcore {
       _interactive_shell->process_line("db");
       EXPECT_STREQ("\n", output_handler.std_out.c_str());
 
+      _interactive_shell->process_line("session.close()");
+
       _interactive_shell->process_line("\\connect -c " + _mysql_uri + "/mysql");
       MY_EXPECT_STDOUT_CONTAINS("Default schema `mysql` accessible through db.");
       output_handler.wipe_all();
@@ -141,6 +151,8 @@ namespace shcore {
       _interactive_shell->process_line("db");
       MY_EXPECT_STDOUT_CONTAINS("<ClassicSchema:mysql>");
       output_handler.wipe_all();
+
+      _interactive_shell->process_line("session.close()");
     }
 
     TEST_F(Interactive_shell_test, shell_command_use)
@@ -173,6 +185,8 @@ namespace shcore {
       EXPECT_STREQ("<Schema:mysql>\n", output_handler.std_out.c_str());
       output_handler.wipe_all();
 
+      _interactive_shell->process_line("session.close()");
+
       _interactive_shell->process_line("\\connect -n " + _uri);
       MY_EXPECT_STDOUT_CONTAINS("No default schema selected.");
       output_handler.wipe_all();
@@ -189,6 +203,8 @@ namespace shcore {
       EXPECT_STREQ("<Schema:mysql>\n", output_handler.std_out.c_str());
       output_handler.wipe_all();
 
+      _interactive_shell->process_line("session.close()");
+
       _interactive_shell->process_line("\\connect -c " + _mysql_uri);
       MY_EXPECT_STDOUT_CONTAINS("No default schema selected.");
       output_handler.wipe_all();
@@ -204,6 +220,8 @@ namespace shcore {
       _interactive_shell->process_line("db");
       EXPECT_STREQ("<ClassicSchema:mysql>\n", output_handler.std_out.c_str());
       output_handler.wipe_all();
+
+      _interactive_shell->process_line("session.close()");
     }
 
     TEST_F(Interactive_shell_test, shell_command_warnings)
@@ -278,6 +296,8 @@ namespace shcore {
       _interactive_shell->process_line("\\savec test_02");
       MY_EXPECT_STDOUT_CONTAINS("Successfully stored " + _uri_nopasswd + ":33060 as test_02.");
       output_handler.wipe_all();
+
+      _interactive_shell->process_line("session.close()");
 
       _interactive_shell->process_line("\\savec test_02");
       MY_EXPECT_STDERR_CONTAINS("ShellRegistry.add: The name 'test_02' already exists");
@@ -403,6 +423,8 @@ namespace shcore {
       _interactive_shell->process_line("db.name");
       MY_EXPECT_STDOUT_CONTAINS("mysql");
       output_handler.wipe_all();
+
+      _interactive_shell->process_line("session.close()");
     }
 
     TEST_F(Interactive_shell_test, js_session_usage_with_no_wizards)
@@ -436,6 +458,8 @@ namespace shcore {
       _interactive_shell->process_line("session.uri");
       MY_EXPECT_STDOUT_CONTAINS(_uri_nopasswd);
       output_handler.wipe_all();
+
+      _interactive_shell->process_line("session.close()");
     }
 
     TEST_F(Interactive_shell_test, python_startup_scripts)

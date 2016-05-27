@@ -67,6 +67,12 @@ namespace shcore {
         connect();
       }
 
+      virtual void TearDown()
+      {
+        shcore::Argument_list args;
+        env.shell_core->get_dev_session()->close(args);
+      }
+
       void process_result(shcore::Value result)
       {
         _returned_value = result;

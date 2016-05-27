@@ -61,6 +61,8 @@ namespace shcore
       _interactive_shell->process_line("db.name");
       MY_EXPECT_STDOUT_CONTAINS("mysql");
       output_handler.wipe_all();
+
+      _interactive_shell->process_line("session.close()");
     }
 
     TEST_F(Interactive_global_schema_js_test, resolve_property_to_empty_schema)
@@ -78,6 +80,8 @@ namespace shcore
 
       MY_EXPECT_STDERR_CONTAINS("Invalid schema specified");
       output_handler.wipe_all();
+
+      _interactive_shell->process_line("session.close()");
     }
 
     TEST_F(Interactive_global_schema_js_test, resolve_property_to_unexisting_schema)
@@ -95,6 +99,8 @@ namespace shcore
 
       MY_EXPECT_STDERR_CONTAINS("Unknown database 'unexisting'");
       output_handler.wipe_all();
+
+      _interactive_shell->process_line("session.close()");
     }
 
     TEST_F(Interactive_global_schema_js_test, resolve_property_to_valid_schema)
@@ -113,6 +119,8 @@ namespace shcore
 
       MY_EXPECT_STDOUT_CONTAINS("Schema: mysql");
       output_handler.wipe_all();
+
+      _interactive_shell->process_line("session.close()");
     }
 
     TEST_F(Interactive_global_schema_js_test, resolve_method_to_empty_schema)
@@ -130,6 +138,8 @@ namespace shcore
 
       MY_EXPECT_STDERR_CONTAINS("Invalid schema specified");
       output_handler.wipe_all();
+
+      _interactive_shell->process_line("session.close()");
     }
 
     TEST_F(Interactive_global_schema_js_test, resolve_method_to_unexisting_schema)
@@ -147,6 +157,8 @@ namespace shcore
 
       MY_EXPECT_STDERR_CONTAINS("Unknown database 'unexisting'");
       output_handler.wipe_all();
+
+      _interactive_shell->process_line("session.close()");
     }
 
     TEST_F(Interactive_global_schema_js_test, resolve_method_to_valid_schema)
@@ -165,6 +177,8 @@ namespace shcore
 
       MY_EXPECT_STDOUT_CONTAINS("Schema: mysql");
       output_handler.wipe_all();
+
+      _interactive_shell->process_line("session.close()");
     }
   }
 }
