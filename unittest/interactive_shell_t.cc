@@ -523,9 +523,9 @@ namespace shcore {
       std::string js_modules_path = MYSQLX_SOURCE_HOME;
       js_modules_path += "/scripting/modules/js";
 #ifdef WIN32
-      _putenv_s("MYSQLSH_JS_MODULE_PATHS", js_modules_path.c_str());
+      _putenv_s("MYSQLSH_JS_MODULE_PATH", js_modules_path.c_str());
 #else
-      setenv("MYSQLSH_JS_MODULE_PATHS", js_modules_path.c_str(), 1);
+      setenv("MYSQLSH_JS_MODULE_PATH", js_modules_path.c_str(), 1);
 #endif
 
       std::string user_path = shcore::get_user_config_path();

@@ -58,7 +58,7 @@ void Global_session::resolve() const
 
         if (!error)
         {
-          if (prompt("Please specify the MySQL server URI (or $slias): ", answer))
+          if (prompt("Please specify the MySQL server URI (or $alias): ", answer))
           {
             Value::Map_type_ref connection_data;
             if (answer.find("$") == 0)

@@ -104,7 +104,7 @@ else
 }
 
 // Finally sees if there are additional configured paths
-path = os.getenv('MYSQLSH_JS_MODULE_PATHS');
+path = os.getenv('MYSQLSH_JS_MODULE_PATH');
 if (path)
 {
   var paths = path.split(';');

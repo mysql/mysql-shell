@@ -125,7 +125,7 @@ namespace shcore
     to_append.push_back("mysqlsh");
 #else
     path_separator = "/";
-    path = "/etc/mysql/mysqlsh"
+    path = "/etc/mysql/mysqlsh";
 #endif
 
     // Up to know the path must exist since it was retrieved from OS standard means
