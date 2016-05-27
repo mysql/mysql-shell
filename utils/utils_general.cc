@@ -142,7 +142,8 @@ namespace shcore
   void parse_mysql_connstring(const std::string &connstring,
                               std::string &protocol, std::string &user, std::string &password,
                               std::string &host, int &port, std::string &sock,
-                              std::string &db, int &pwd_found, std::string& ssl_ca, std::string& ssl_cert, std::string& ssl_key)
+                              std::string &db, int &pwd_found, std::string& ssl_ca, std::string& ssl_cert, std::string& ssl_key,
+                              bool set_defaults)
   {
     // 
     // format is [dbuser[:dbpassword]@]host[:(port|socket)][/db] like what cmdline utilities use
@@ -181,8 +182,11 @@ namespace shcore
 #ifdef _WIN32
       //XXX find out current username here
 #else
-      const char *tmp = getenv("USER");
-      user_part = tmp ? tmp : "";
+      if (set_defaults)
+      {
+        const char *tmp = getenv("USER");
+        user_part = tmp ? tmp : "";
+      }
 #endif
     }
     else
@@ -391,7 +395,7 @@ namespace shcore
   }
 
   // Builds a connection data dictionary using the URI
-  Value::Map_type_ref get_connection_data(const std::string &uri)
+  Value::Map_type_ref get_connection_data(const std::string &uri, bool set_defaults)
   {
     // NOTE: protocol is left in case an URI still uses it, however, it is ignored everywhere
     std::string uri_protocol;
@@ -415,7 +419,7 @@ namespace shcore
       try
       {
         parse_mysql_connstring(uri, uri_protocol, uri_user, uri_password, uri_host, uri_port, uri_sock, uri_database, pwd_found,
-                               uri_ssl_ca, uri_ssl_cert, uri_ssl_key);
+                               uri_ssl_ca, uri_ssl_cert, uri_ssl_key, set_defaults);
 
         if (!uri_user.empty())
           (*ret_val)["dbUser"] = Value(uri_user);

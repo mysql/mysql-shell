@@ -32,9 +32,10 @@ namespace shcore
   void SHCORE_PUBLIC parse_mysql_connstring(const std::string &connstring,
                                             std::string &protocol, std::string &user, std::string &password,
                                             std::string &host, int &port, std::string &sock,
-                                            std::string &db, int &pwd_found, std::string& ssl_ca, std::string& ssl_cert, std::string& ssl_key);
+                                            std::string &db, int &pwd_found, std::string& ssl_ca, std::string& ssl_cert, std::string& ssl_key,
+                                            bool set_defaults = true);
 
-  Value::Map_type_ref SHCORE_PUBLIC get_connection_data(const std::string &uri);
+  Value::Map_type_ref SHCORE_PUBLIC get_connection_data(const std::string &uri, bool set_defaults = true);
   void SHCORE_PUBLIC update_connection_data(Value::Map_type_ref data,
                                             const std::string &user, const char *password,
                                             const std::string &host, int &port, const std::string& sock,

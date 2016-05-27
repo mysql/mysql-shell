@@ -33,10 +33,10 @@ namespace shcore
     Global_session(Shell_core& shell_core) : Interactive_object_wrapper("session", shell_core){ init(); }
 
     void init();
-
     virtual void resolve() const;
 
-    virtual shcore::Value get_schema(const shcore::Argument_list &args);
+    shcore::Value get_schema(const shcore::Argument_list &args);
+    shcore::Value is_open(const shcore::Argument_list &args);
   };
 }
 

@@ -40,6 +40,7 @@
 #include "shellcore/jscript_map_wrapper.h"
 #include "shellcore/jscript_array_wrapper.h"
 #include "shellcore/shell_registry.h"
+#include "utils/utils_general.h"
 
 #include "shellcore/jscript_type_conversion.h"
 #include "shellcore/jscript_core_definitions.h"
@@ -216,6 +217,9 @@ struct JScript_context::JScript_context_impl
     // s = input('Type something:')
     object->Set(v8::String::NewFromUtf8(isolate, "prompt"),
                  v8::FunctionTemplate::New(isolate, &JScript_context_impl::f_prompt, client_data));
+
+    object->Set(v8::String::NewFromUtf8(isolate, "parseUri"),
+                v8::FunctionTemplate::New(isolate, &JScript_context_impl::f_parse_uri, client_data));
 
     return object;
   }
@@ -459,6 +463,37 @@ struct JScript_context::JScript_context_impl
 
     args.GetReturnValue().Set(v8::String::NewFromUtf8(args.GetIsolate(), r.c_str()));
   }
+
+  static void f_parse_uri(const v8::FunctionCallbackInfo<v8::Value>& args)
+  {
+    v8::HandleScope outer_handle_scope(args.GetIsolate());
+    JScript_context_impl *self = static_cast<JScript_context_impl*>(v8::External::Cast(*args.Data())->Value());
+
+    shcore::Value::Map_type_ref options_map;
+
+    if (args.Length() != 1)
+    {
+      args.GetIsolate()->ThrowException(v8::String::NewFromUtf8(args.GetIsolate(), "Invalid number of parameters"));
+      return;
+    }
+
+    shcore::Value uri = self->types.v8_value_to_shcore_value(args[0]);
+    if (uri.type != shcore::String)
+    {
+      args.GetIsolate()->ThrowException(v8::String::NewFromUtf8(args.GetIsolate(), "String parameter expected"));
+      return;
+    }
+
+    v8::HandleScope handle_scope(args.GetIsolate());
+    v8::String::Utf8Value str(args[0]);
+
+    // If there are options, reads them to determine how to proceed
+
+    v8::Handle<v8::Value> ret_val = self->types.shcore_value_to_v8_value(shcore::Value(shcore::get_connection_data(*str, false)));
+
+    args.GetReturnValue().Set(ret_val);
+  }
+
 
   static void f_source(const v8::FunctionCallbackInfo<v8::Value>& args)
   {

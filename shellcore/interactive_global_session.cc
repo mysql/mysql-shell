@@ -27,6 +27,8 @@ using namespace shcore;
 void Global_session::init()
 {
   add_method("getSchema", boost::bind(&Global_session::get_schema, this, _1), "name", shcore::String, NULL);
+  add_method("isOpen", boost::bind(&Global_session::is_open, this, _1), NULL);
+  _wrapper_functions.push_back("isOpen");
 }
 
 void Global_session::resolve() const
@@ -118,4 +120,9 @@ shcore::Value Global_session::get_schema(const shcore::Argument_list &args)
   }
 
   return ret_val;
+}
+
+shcore::Value Global_session::is_open(const shcore::Argument_list &args)
+{
+  return _target ? _target->call("isOpen", args) : shcore::Value::False();
 }

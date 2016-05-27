@@ -22,6 +22,7 @@
 #include "shellcore/common.h"
 #include "modules/base_constants.h"
 #include "utils/utils_file.h"
+#include "utils/utils_general.h"
 
 #include "shellcore/object_factory.h"
 #include "shellcore/python_type_conversion.h"
@@ -539,6 +540,41 @@ namespace shcore
     return ret_val;
   }
 
+  PyObject *Python_context::shell_parse_uri(PyObject *UNUSED(self), PyObject *args)
+  {
+    PyObject *ret_val = NULL;
+    Python_context *ctx;
+
+    if (!(ctx = Python_context::get_and_check()))
+      return NULL;
+
+    PyObject *pyUri;
+    try
+    {
+      Py_ssize_t count = PyTuple_Size(args);
+      if (count != 1)
+        throw std::runtime_error("Invalid number of parameters");
+
+      shcore::Value connection_data;
+      if (PyArg_ParseTuple(args, "S", &pyUri))
+        connection_data = ctx->pyobj_to_shcore_value(pyUri);
+      else
+        throw std::runtime_error("Expected a string parameter");
+
+
+      // Parses the connection data
+      connection_data = shcore::Value(shcore::get_connection_data(connection_data.as_string(), false));
+
+      ret_val = ctx->shcore_value_to_pyobj(connection_data);
+    }
+    catch (std::exception &e)
+    {
+      Python_context::set_python_error(PyExc_SystemError, e.what());
+    }
+    
+    return ret_val;
+  }
+
   PyObject *Python_context::shell_stdout(PyObject *self, PyObject *args)
   {
     return shell_print(self, args, "out");
@@ -577,6 +613,8 @@ namespace shcore
     "Write a string in the SHELL shell." },
     { "prompt", &Python_context::shell_prompt, METH_VARARGS,
     "Prompts input to the user." },
+    { "parseUri", &Python_context::shell_parse_uri, METH_VARARGS,
+      "Creates a dictionary with the URI components." },
     { "interactivehook", &Python_context::shell_interactive_eval_hook, METH_VARARGS,
       "Custom displayhook to capture interactive expr evaluation results." },
       { NULL, NULL, 0, NULL }        /* Sentinel */

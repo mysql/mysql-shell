@@ -85,6 +85,9 @@ namespace mysh
     void load_connection_data(const shcore::Argument_list &args);
   private:
     void init();
+
+    shcore::Value is_open(const shcore::Argument_list &args);
+
   };
 
   // Abstraction layer with core elements for development sessions

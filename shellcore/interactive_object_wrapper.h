@@ -108,6 +108,9 @@ namespace shcore
     Shell_core& _shell_core;
     Interpreter_delegate *_delegate;
 
+    // This array would contain function names that work even when _target is not set
+    std::vector<std::string> _wrapper_functions;
+
     // Helper functions to enable implementing interaction
     void print(const std::string& text) const;
     void print_error(const std::string& error) const;

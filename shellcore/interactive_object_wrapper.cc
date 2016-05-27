@@ -26,26 +26,31 @@ shcore::Value Interactive_object_wrapper::get_member(const std::string &prop) co
 {
   shcore::Value ret_val;
 
-  // If the target object is not set, the resolve function enables resolving the proper target object
-  // Child classes shouls implement the interactivenes required to resolve the target object
-  if (!_target)
-    resolve();
-
-  // Member resolution only makes sense if the target is set and it also
-  // has the member
-  if (_target && _target->has_member(prop))
-  {
-    // Interactive functions are defined on the wrapper so
-    // we verify if the member is an interactive function
-    if (Cpp_object_bridge::has_member(prop))
-      ret_val = Cpp_object_bridge::get_member(prop);
-
-    // If not an interactive function then it will be resolved as interactive property
-    else
-      ret_val = interactive_get_member(prop);
-  }
+  if (std::find(_wrapper_functions.begin(), _wrapper_functions.end(), prop) != _wrapper_functions.end())
+    ret_val = Cpp_object_bridge::get_member(prop);
   else
-    throw Exception::attrib_error("Invalid object member " + prop);
+  {
+    // If the target object is not set, the resolve function enables resolving the proper target object
+    // Child classes shouls implement the interactivenes required to resolve the target object
+    if (!_target)
+      resolve();
+
+    // Member resolution only makes sense if the target is set and it also
+    // has the member
+    if (_target && _target->has_member(prop))
+    {
+      // Interactive functions are defined on the wrapper so
+      // we verify if the member is an interactive function
+      if (Cpp_object_bridge::has_member(prop))
+        ret_val = Cpp_object_bridge::get_member(prop);
+
+      // If not an interactive function then it will be resolved as interactive property
+      else
+        ret_val = interactive_get_member(prop);
+    }
+    else
+      throw Exception::attrib_error("Invalid object member " + prop);
+  }
 
   return ret_val;
 }
@@ -54,23 +59,28 @@ Value Interactive_object_wrapper::call(const std::string &name, const Argument_l
 {
   shcore::Value ret_val;
 
-  // If the target object is not set, the resolve function enables resolving the proper target object
-  // Child classes shouls implement the interactivenes required to resolve the target object
-  if (!_target)
-    resolve();
-
-  // Method execution only makes sense if the target object is set and it
-  // also has the method
-  if (_target && _target->has_member(name))
+  if (std::find(_wrapper_functions.begin(), _wrapper_functions.end(), name) != _wrapper_functions.end())
+    ret_val = Cpp_object_bridge::call(name, args);
+  else
   {
-    // Interactive functions are defined on the wrapper so
-    // we verify if the member is an interactive function
-    if (Cpp_object_bridge::has_member(name))
-      ret_val = Cpp_object_bridge::call(name, args);
+    // If the target object is not set, the resolve function enables resolving the proper target object
+    // Child classes shouls implement the interactivenes required to resolve the target object
+    if (!_target)
+      resolve();
 
-    // If not an interactive method then it will be called directly on the target object
-    else
-      ret_val = _target->call(name, args);
+    // Method execution only makes sense if the target object is set and it
+    // also has the method
+    if (_target && _target->has_member(name))
+    {
+      // Interactive functions are defined on the wrapper so
+      // we verify if the member is an interactive function
+      if (Cpp_object_bridge::has_member(name))
+        ret_val = Cpp_object_bridge::call(name, args);
+
+      // If not an interactive method then it will be called directly on the target object
+      else
+        ret_val = _target->call(name, args);
+    }
   }
 
   return ret_val;

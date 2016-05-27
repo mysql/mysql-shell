@@ -93,6 +93,7 @@ _ssl_ca(s._ssl_ca), _ssl_cert(s._ssl_cert), _ssl_key(s._ssl_key)
 void ShellBaseSession::init()
 {
   add_method("getUri", boost::bind(&ShellBaseSession::get_member_method, this, _1, "getUri", "uri"), NULL);
+  add_method("isOpen", boost::bind(&ShellBaseSession::is_open, this, _1), NULL);
 }
 
 std::string &ShellBaseSession::append_descr(std::string &s_out, int UNUSED(indent), int UNUSED(quote_strings)) const
@@ -306,6 +307,14 @@ std::string ShellBaseSession::get_quoted_name(const std::string& name)
   quoted_name = "`" + quoted_name + "`";
 
   return quoted_name;
+}
+
+shcore::Value ShellBaseSession::is_open(const shcore::Argument_list &args)
+{
+  std::string function = class_name() + ".isOpen";
+  args.ensure_count(0, function.c_str());
+  
+  return shcore::Value(is_connected());
 }
 
 ShellDevelopmentSession::ShellDevelopmentSession() :

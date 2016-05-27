@@ -212,6 +212,7 @@ namespace shcore
     static PyObject *shell_stdout(PyObject *self, PyObject *args);
     static PyObject *shell_stderr(PyObject *self, PyObject *args);
     static PyObject *shell_interactive_eval_hook(PyObject *self, PyObject *args);
+    static PyObject *shell_parse_uri(PyObject *self, PyObject *args);
 
     static PyObject *get_object(PyObject *self, PyObject *args, const std::string &module, const std::string &type, PyObject *keywords = NULL);
     static PyObject *mysqlx_get_session(PyObject *self, PyObject *args, PyObject *keywords);
