@@ -188,6 +188,12 @@ int Shell_core::process_stream(std::istream& stream, const std::string& source, 
       data.resize(fsize);
       stream.read(const_cast<char*>(data.data()), fsize);
     }
+
+    // When processing JavaScript files, validates the very first line to start with #!
+    // If that's the case, it is replaced by a comment indicator //
+    if (_mode == IShell_core::Mode_JScript && data.size() > 1 && data[0]=='#' && data[1]=='!')
+      data.replace(0, 2, "//");
+
     handle_input(data, state, result_processor);
   }
 

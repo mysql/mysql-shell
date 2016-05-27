@@ -167,10 +167,12 @@ bool Interactive_shell::cmd_process_file(const std::vector<std::string>& params)
 {
   std::string file;
 
-  if (params[0].find("\\source"))
+  if (params[0].find("\\source") != std::string::npos)
     _options.run_file = params[0].substr(8);
   else
     _options.run_file = params[0].substr(3);
+
+  boost::trim(_options.run_file);
 
   Interactive_shell::process_file();
 
@@ -1252,7 +1254,7 @@ int Interactive_shell::process_file()
     else
     {
       // TODO: add a log entry once logging is
-      _delegate.print_error(_delegate.user_data, (boost::format("Failed to open file '%s', error: %d") % _options.run_file % errno).str().c_str());
+      _delegate.print_error(_delegate.user_data, (boost::format("Failed to open file '%s', error: %d\n") % _options.run_file % errno).str().c_str());
     }
   }
 
@@ -1265,11 +1267,19 @@ int Interactive_shell::process_stream(std::istream & stream, const std::string& 
   // Emulate interactive mode while processing the stream
   if (_options.interactive)
   {
+    bool comment_first_js_line = _shell->interactive_mode()== IShell_core::Mode_JScript;
     while (!stream.eof())
     {
       std::string line;
 
       std::getline(stream, line);
+
+      // When processing JavaScript files, validates the very first line to start with #!
+      // If that's the case, it is replaced by a comment indicator //
+      if (comment_first_js_line && line.size() > 1 && line[0]=='#' && line[1]=='!')
+        line.replace(0, 2, "//");
+
+      comment_first_js_line = false;
 
       if (_options.full_interactive)
       {
