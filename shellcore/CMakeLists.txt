@@ -19,10 +19,12 @@ include_directories( ${MYSQL_INCLUDE_DIRS} )
 include_directories( ${CMAKE_BINARY_DIR} )
 include_directories( "${CMAKE_SOURCE_DIR}/mysqlxtest")
 include_directories("${CMAKE_SOURCE_DIR}/mysqlxtest/common")
-include_directories("${CMAKE_SOURCE_DIR}/include" "${CMAKE_SOURCE_DIR}/utils" "${Boost_INCLUDE_DIRS}")
+include_directories("${CMAKE_SOURCE_DIR}/include" "${CMAKE_SOURCE_DIR}/utils")
 include_directories( "${CMAKE_SOURCE_DIR}/common/uuid/include" )
 include_directories( "${CMAKE_SOURCE_DIR}/common/logger" )
 include_directories( "${CMAKE_SOURCE_DIR}/ext/rapidjson/include" )
+include_directories(SYSTEM ${Boost_INCLUDE_DIRS})
+
 
 # Will generate the js_core_definitions file which will contain the 
 # core.js file in a variable.

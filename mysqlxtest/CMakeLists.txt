@@ -14,14 +14,15 @@
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
 
 
-include_directories("${Boost_INCLUDE_DIRS}"
-    ${SSL_INCLUDE_DIRS}
+include_directories(${SSL_INCLUDE_DIRS}
     ${CMAKE_SOURCE_DIR}/common/mysqlx
     ${CMAKE_SOURCE_DIR}/common/yassl/taocrypt/mySTL
     ${CMAKE_CURRENT_SOURCE_DIR}/common
     ${CMAKE_SOURCE_DIR}/mysqlxtest/myasio
     ${CMAKE_CURRENT_SOURCE_DIR})
 
+include_directories(SYSTEM ${Boost_INCLUDE_DIRS})
+    
 add_definitions(${SSL_DEFINES} -DUSE_SYS_STL -DWITH_LOGGER)
 
 file(GLOB libmysqlxtest_SRC

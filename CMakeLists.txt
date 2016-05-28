@@ -239,11 +239,13 @@ IF (HAVE_V8)
 ENDIF()
 
 include_directories(${MYSQL_INCLUDE_DIR}
-                    "${Boost_INCLUDE_DIRS}"
                     "${CMAKE_SOURCE_DIR}"
                     "${CMAKE_SOURCE_DIR}/common"
                     "${CMAKE_SOURCE_DIR}/ext/rapidjson/include"
                    )
+
+include_directories(SYSTEM ${Boost_INCLUDE_DIRS})
+                   
 IF (HAVE_PYTHON)
   include_directories(${PYTHON_INCLUDE_DIRS})
 ENDIF()

@@ -35,11 +35,12 @@ add_executable(shell_client_app ${app_SRC})
 if (WITH_SAMPLES)
   include_directories("${CMAKE_SOURCE_DIR}/include"
                       "${MYSQL_INCLUDE_DIR}"
-                      "${Boost_INCLUDE_DIRS}"
                       "${CMAKE_SOURCE_DIR}/utils"
                       "${CMAKE_SOURCE_DIR}"
                       "${CMAKE_SOURCE_DIR}/client"
                      )
+  include_directories(SYSTEM ${Boost_INCLUDE_DIRS})
+                     
 else()
   include_directories("${DEPLOY_DIR}/include")
 endif()
