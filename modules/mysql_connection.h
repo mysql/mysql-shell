@@ -168,7 +168,7 @@ namespace mysh
       const char* get_ssl_cipher() { _prev_result.reset(); return mysql_get_ssl_cipher(_mysql); }
 
     private:
-      void setup_ssl(const std::string &ssl_ca, const std::string &ssl_cert, const std::string &ssl_key);
+      bool setup_ssl(const std::string &ssl_ca, const std::string &ssl_cert, const std::string &ssl_key);
       std::string _uri;
       MYSQL *_mysql;
       MySQL_timer _timer;

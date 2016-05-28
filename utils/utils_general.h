@@ -56,6 +56,8 @@ namespace shcore
   std::string SHCORE_PUBLIC strip_ssl_args(const std::string &connstring);
 
   char SHCORE_PUBLIC *mysh_get_stdin_password(const char *prompt);
+
+  void SHCORE_PUBLIC normalize_sslca_args(std::string &ssl_ca, std::string &ssl_ca_path);
 }
 
 #endif /* defined(__mysh__utils_general__) */

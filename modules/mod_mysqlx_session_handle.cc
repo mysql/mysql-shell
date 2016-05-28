@@ -20,6 +20,7 @@
 #include "mod_mysqlx_session_handle.h"
 #include "mysqlxtest_utils.h"
 #include "mysqlx_connection.h"
+#include "utils/utils_general.h"
 
 using namespace mysh;
 using namespace shcore;
@@ -34,9 +35,14 @@ void SessionHandle::open(const std::string &host, int port, const std::string &s
   ::mysqlx::Ssl_config ssl;
   memset(&ssl, 0, sizeof(ssl));
 
-  ssl.ca = ssl_ca.c_str();
+  std::string my_ssl_ca(ssl_ca);
+  std::string my_ssl_ca_path;
+  shcore::normalize_sslca_args(my_ssl_ca, my_ssl_ca_path);
+
+  ssl.ca = my_ssl_ca.c_str();
   ssl.cert = ssl_cert.c_str();
   ssl.key = ssl_key.c_str();
+  ssl.ca_path = my_ssl_ca_path.c_str();
 
   // TODO: Define a proper timeout for the session creation
   _session = ::mysqlx::openSession(host, port, schema, user, pass, ssl, 10000, auth_method, true);

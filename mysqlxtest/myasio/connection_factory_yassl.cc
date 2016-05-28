@@ -42,7 +42,7 @@ namespace ngs
                                                      const bool is_client)
   : m_is_client(is_client)
   {
-    SSL_METHOD *method = m_is_client ? TLSv1_1_client_method() : TLSv1_1_server_method();
+    SSL_METHOD *method = m_is_client ? TLSv1_client_method() /*TLSv1_1_client_method()*/ : TLSv1_1_server_method();
 
     ssl_ctxt = boost::shared_ptr<SSL_CTX>(SSL_CTX_new(method), SSL_CTX_free);
 

@@ -31,6 +31,7 @@ using namespace mysh::mysql;
 
 #include "shellcore/object_factory.h"
 #include "shellcore/common.h"
+#include <stdlib.h>
 
 #define MAX_COLUMN_LENGTH 1024
 #define MIN_COLUMN_LENGTH 4
@@ -264,8 +265,18 @@ Connection::Connection(const std::string &host, int port, const std::string &soc
   std::stringstream str;
   str << user << "@" << host << ":" << port;
   _uri = str.str();
+  
+  if (!setup_ssl(ssl_ca, ssl_cert, ssl_key))
+  {
+    unsigned int ssl_mode = SSL_MODE_DISABLED;
+    mysql_options(_mysql, MYSQL_OPT_SSL_MODE, &ssl_mode);
+  }
+  else
+  {
+    unsigned int ssl_mode = SSL_MODE_REQUIRED;
+    mysql_options(_mysql, MYSQL_OPT_SSL_MODE, &ssl_mode);
+  }
 
-  setup_ssl(ssl_ca, ssl_cert, ssl_key);
   unsigned int tcp = MYSQL_PROTOCOL_TCP;
   mysql_options(_mysql, MYSQL_OPT_PROTOCOL, &tcp);
   if (!mysql_real_connect(_mysql, host.c_str(), user.c_str(), password.c_str(), schema.empty() ? NULL : schema.c_str(), port, socket.empty() ? NULL : socket.c_str(), flags))
@@ -274,35 +285,18 @@ Connection::Connection(const std::string &host, int port, const std::string &soc
   }
 }
 
-void Connection::setup_ssl(const std::string &ssl_ca, const std::string &ssl_cert, const std::string &ssl_key)
+bool Connection::setup_ssl(const std::string &ssl_ca, const std::string &ssl_cert, const std::string &ssl_key)
 {
   if (ssl_ca.empty() && ssl_cert.empty() && ssl_key.empty())
-    return;
+    return false;
+  
+  std::string my_ssl_ca_path;  
+  std::string my_ssl_ca(ssl_ca);
 
-  std::string my_ssl_ca;
-  std::string my_ssl_ca_path;
-  std::string ca_path(ssl_ca);
-  std::string::size_type p;
-#ifdef WIN32
-  p = ca_path.rfind("\\");
-#else
-  p = ca_path.rfind("/");
-#endif
-  if (p != std::string::npos)
-  {
-    my_ssl_ca_path = ca_path.substr(0, p);
-    my_ssl_ca = ca_path.substr(p + 1);
-  }
-  else
-  {
-    my_ssl_ca_path = "";
-    my_ssl_ca = ssl_ca;
-  }
+  shcore::normalize_sslca_args(my_ssl_ca, my_ssl_ca_path);
 
-  if (!mysql_ssl_set(_mysql, ssl_key.c_str(), ssl_cert.c_str(), my_ssl_ca.c_str(), my_ssl_ca_path.c_str(), NULL))
-  {
-    throw shcore::Exception::mysql_error_with_code_and_state(mysql_error(_mysql), mysql_errno(_mysql), mysql_sqlstate(_mysql));
-  }
+  mysql_ssl_set(_mysql, ssl_key.c_str(), ssl_cert.c_str(), my_ssl_ca.c_str(), my_ssl_ca_path.c_str(), NULL);
+  return true;
 }
 
 void Connection::close()

@@ -18,8 +18,8 @@
  */
 
 
-#ifdef HAVE_YASSL
 #include "my_global.h"
+#ifdef HAVE_YASSL
 #include <sha.hpp>
 #include <openssl/ssl.h>
 #else

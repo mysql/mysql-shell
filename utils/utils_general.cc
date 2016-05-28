@@ -174,7 +174,11 @@ namespace shcore
 
     p = s.rfind('@');
     std::string user_part;
-    std::string server_part = (p == std::string::npos) ? s : s.substr(p + 1);
+    std::string server_part;
+    if (p_query == std::string::npos)
+      server_part = (p == std::string::npos) ? s : s.substr(p + 1);
+    else
+      server_part = (p == std::string::npos) ? s.substr(0, p_query) : s.substr(p + 1, p_query - p - 1);
 
     if (p == std::string::npos)
     {
@@ -543,5 +547,29 @@ namespace shcore
 #endif
 
     return ret_val;
+  }
+
+  /* MySql SSL APIs require to have the ca & ca path in separete args, this function takes care of that normalization */
+  void normalize_sslca_args(std::string &ssl_ca, std::string &ssl_ca_path)
+  {
+    if (!ssl_ca_path.empty()) return;
+    std::string ca_path(ssl_ca);
+    std::string::size_type p;
+#ifdef WIN32
+    p = ca_path.rfind("\\");
+#else
+    p = ca_path.rfind("/");
+#endif
+    if (p != std::string::npos)
+    {
+      // The function int SSL_CTX_load_verify_locations(SSL_CTX* ctx, const char* file, const char* path)
+      // requires the ssl_ca to also keep the path
+      ssl_ca_path = ca_path.substr(0, p);
+    }
+    else
+    {
+      ssl_ca_path = "";
+      ssl_ca = ca_path.c_str();
+    }
   }
 }
