@@ -27,4 +27,4 @@ except Exception, err:
         session.rollback()
         
         # Printing the error message
-        print 'Data could not be inserted: %s' % err.message
+        print 'Data could not be inserted: %s' % str(err)

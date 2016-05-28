@@ -213,22 +213,22 @@ print 'Array Append Affected Rows:', result.affectedItemCount, '\n'
 try:
   print "lastDocumentId:", result.lastDocumentId
 except Exception, err:
-  print "lastDocumentId:", err.message, "\n"
+  print "lastDocumentId:", str(err), "\n"
 
 try:
   print "getLastDocumentId():", result.getLastDocumentId()
 except Exception, err:
-  print "getLastDocumentId():", err.message, "\n"
+  print "getLastDocumentId():", str(err), "\n"
 
 try:
   print "lastDocumentIds:", result.lastDocumentIds
 except Exception, err:
-  print "lastDocumentIds:", err.message, "\n"
+  print "lastDocumentIds:", str(err), "\n"
 
 try:
   print "getLastDocumentIds():", result.getLastDocumentIds()
 except Exception, err:
-  print "getLastDocumentIds():", err.message, "\n"
+  print "getLastDocumentIds():", str(err), "\n"
 
 result = collection.find('name = "brian"').execute()
 doc = result.fetchOne()

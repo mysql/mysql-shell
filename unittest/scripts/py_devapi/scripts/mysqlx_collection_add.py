@@ -62,12 +62,12 @@ print "Affected Rows Multi:", result.affectedItemCount, "\n"
 try:
   print "lastDocumentId Multi:", result.lastDocumentId
 except Exception, err:
-  print "lastDocumentId Multi:", err.message, "\n"
+  print "lastDocumentId Multi:", str(err), "\n"
 
 try:
   print "getLastDocumentId Multi:", result.getLastDocumentId()
 except Exception, err:
-  print "getLastDocumentId Multi:", err.message, "\n"
+  print "getLastDocumentId Multi:", str(err), "\n"
 
 print "#lastDocumentIds Multi:", len(result.lastDocumentIds)
 print "#getLastDocumentIds Multi:", len(result.getLastDocumentIds())
@@ -77,12 +77,12 @@ print "Affected Rows Multi Known IDs:", result.affectedItemCount, "\n"
 try:
   print "lastDocumentId Multi Known IDs:", result.lastDocumentId
 except Exception, err:
-  print "lastDocumentId Multi Known IDs:", err.message, "\n"
+  print "lastDocumentId Multi Known IDs:", str(err), "\n"
 
 try:
   print "getLastDocumentId Multi Known IDs:", result.getLastDocumentId()
 except Exception, err:
-  print "getLastDocumentId Multi Known IDs:", err.message, "\n"
+  print "getLastDocumentId Multi Known IDs:", str(err), "\n"
 
 print "#lastDocumentIds Multi Known IDs:", len(result.lastDocumentIds)
 print "#getLastDocumentIds Multi Known IDs:", len(result.getLastDocumentIds())
@@ -96,12 +96,12 @@ print "Affected Rows Empty List:", result.affectedItemCount, "\n"
 try:
   print "lastDocumentId Empty List:", result.lastDocumentId
 except Exception, err:
-  print "lastDocumentId Empty List:", err.message, "\n"
+  print "lastDocumentId Empty List:", str(err), "\n"
 
 try:
   print "getLastDocumentId Empty List:", result.getLastDocumentId()
 except Exception, err:
-  print "getLastDocumentId Empty List:", err.message, "\n"
+  print "getLastDocumentId Empty List:", str(err), "\n"
 
 print "#lastDocumentIds Empty List:", len(result.lastDocumentIds)
 print "#getLastDocumentIds Empty List:", len(result.getLastDocumentIds())

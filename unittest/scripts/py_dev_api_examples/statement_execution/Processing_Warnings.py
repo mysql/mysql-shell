@@ -37,4 +37,4 @@ except Exception, err:
         print 'Type [%s] (Code %s): %s\n' % (warning.Level, warning.Code, warning.Message)
     
     # Printing the error message
-    print 'Data could not be inserted: %s' % err.message
+    print 'Data could not be inserted: %s' % str(err)

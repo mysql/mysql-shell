@@ -9,7 +9,7 @@ try:
                 'dbUser': 'mike', 'dbPassword': 's3cr3t!' } )
 
 except Exception, err:
-        print 'The database session could not be opened: %s' % err.message
+        print 'The database session could not be opened: %s' % str(err)
 
 try:
         myDb = mySession.getSchema('test')
@@ -23,7 +23,7 @@ try:
         # Print document
         print myDoc.first()
 except Exception, err:
-        print 'The following error occurred: %s' % err.message
+        print 'The following error occurred: %s' % str(err)
 finally:
         # Close the session in any case
         mySession.close()
