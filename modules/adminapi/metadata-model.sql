@@ -19,17 +19,17 @@
 
 /*
   All the tables that contain information about the topology of MySQL servers
-  are stored in the metadata_schema database.
+  are stored in the farm_metadata_schema database.
 */
 
-CREATE DATABASE metadata_schema;
-USE metadata_schema;
+CREATE DATABASE farm_metadata_schema;
+USE farm_metadata_schema;
 
 /*
   This table contain information about the metadata and is used to identify
-  basic information about the farm/cluster.
+  basic information about the farm.
 */
-CREATE TABLE farm (
+CREATE TABLE farms (
   /* unique ID used to distinguish the farm from other farms */
   `farm_uuid` VARCHAR(40) NOT NULL,
   /* unique, user specified name for the farm */
@@ -52,9 +52,30 @@ CREATE TABLE farm (
 ) CHARSET = utf8;
 
 /*
-  The high-availability replicasets (or groups) are the containers of the
-  application data. Each group is composed of a number of MySQL servers in an
-  HA configuration.
+  This table contains all the user accounts that are used while working with
+  a farm.
+*/
+CREATE TABLE accounts (
+  /* Associates the user account with a farm definition. */
+  `farm_uuid` VARCHAR(40) NOT NULL,
+  /* The user name associated with the account */
+  `user` VARCHAR(64) NOT NULL,
+  /* The encrypted password to be used for the account */
+  `password` TEXT NOT NULL,
+  /*
+     Random data to defend against dictionary attacks and against pre-computed
+     rainbow table attacks.
+  */
+  salt VARCHAR(32),
+  /* The role for which the usr account is created in the farm */
+  role VARCHAR(64),
+  PRIMARY KEY(farm_uuid, role),
+  FOREIGN KEY (farm_uuid) REFERENCES farms(farm_uuid) ON DELETE RESTRICT
+) CHARSET = utf8;
+
+/*
+  The high-availability Replica Sets are the containers of the application data.
+  Each group is composed of a number of MySQL servers in an HA configuration.
 */
 CREATE TABLE replicasets (
   /*
@@ -72,12 +93,12 @@ CREATE TABLE replicasets (
     A replicaset can be assigned a name and this can be used to refer to it.
     The name of the replicaset can change over time and can even be NULL.
   */
-  `replicaset_name` VARCHAR(40),
+  `replicaset_name` VARCHAR(40) UNIQUE NOT NULL,
   /* Associates the replicaset with a farm definition. */
   `farm_uuid` VARCHAR(40) NOT NULL,
   /*
     State of the rs. Either active, in which case traffic can be directed at
-    the replicaset, or inactive, in which case no traffic should be directed to the
+    the replicaset, or inactive, in which case no traffic should be directed to
     it.
   */
   `active` BIT(1) NOT NULL,
@@ -86,45 +107,67 @@ CREATE TABLE replicasets (
   /* An optional brief description of the replicaset. */
   `description` TEXT,
   PRIMARY KEY (replicaset_uuid),
-  FOREIGN KEY (farm_uuid) REFERENCES farm(farm_uuid) ON DELETE RESTRICT
+  FOREIGN KEY (farm_uuid) REFERENCES farms(farm_uuid) ON DELETE RESTRICT
 ) CHARSET = utf8;
 
-ALTER TABLE farm ADD FOREIGN KEY (default_replicaset) REFERENCES replicasets(replicaset_uuid) ON DELETE RESTRICT;
+ALTER TABLE farms ADD FOREIGN KEY (default_replicaset) REFERENCES replicasets(replicaset_uuid) ON DELETE RESTRICT;
 
 /*
-  This table contain a list of all server that are tracked by the farm,
-  regardless of whether they are part of a replicaset or not. The reason for tracking
-  all servers is that some servers may be temporarily moved out of groups for
-  different purposes but should still be tracked and possible to locate as part
-  of administrative procedures.
+  This table contains a list of all the hosts in the farm.
 */
-CREATE TABLE servers (
-  /* The UUID of the server and is a unique identifer of the server. */
-  `server_uuid` VARCHAR(40),
+CREATE TABLE hosts (
+  /*
+    The UUID of the host instance. The host UUID is used internally for
+    farm management.
+  */
+  `host_uuid` VARCHAR(40) NOT NULL,
+  /*
+    unique name of the host
+  */
+  `host_name` VARCHAR(40) UNIQUE NOT NULL,
+  /* A string representing the location. */
+  `location` VARCHAR(256) NOT NULL,
+  /*
+    A JSON blob with the addresses available for the server instance. The
+    protocols and addresses are further described in the Protocol section below.
+  */
+  `addresses` JSON NOT NULL,
+  PRIMARY KEY(host_uuid)
+) CHARSET = utf8;
+
+/*
+  This table contain a list of all server instances that are tracked by the
+  farm.
+*/
+CREATE TABLE instances (
+  /*
+    The UUID of the server instance and is a unique identifer of the server
+    instance.
+  */
+  `instance_uuid` VARCHAR(40) NOT NULL,
+  /*
+    The UUID of the host in which the server is running.
+  */
+  `host_uuid` VARCHAR(40) NOT NULL,
   /*
     Replicaset UUID that the server belongs to. Can be NULL if it does not
     belong to any.
   */
   `replicaset_uuid` VARCHAR(40),
-  /* The role of the server in the setup e.g. scale-out, master etc. */
+  /* unique, user specified name for the server */
+  `instance_name` VARCHAR(40) UNIQUE NOT NULL,
+  /* The role of the server instance in the setup e.g. scale-out, master etc. */
   `role` VARCHAR(30) NOT NULL,
   /*
-    The mode of the server: if it accept read queries, write queries, neither,
-    or both.
+    The mode of the server instance : if it accept read queries, write queries,
+    neither, or both.
   */
   `mode` VARCHAR(30) NOT NULL,
   /*
-    The weight of the server for load balancing purposes. The relative
+    The weight of the server instance for load balancing purposes. The relative
     proportion of traffic it should receive.
   */
   `weight` FLOAT,
-  /* A string representing the location. */
-  `location` VARCHAR(256) NOT NULL,
-  /*
-    A JSON blob with the addresses available for the server. The protocols and
-    addresses are further described in the Protocol section below.
-  */
-  `addresses` JSON NOT NULL,
   /*
     Contain attributes assigned to the server and is a JSON data type with
     key-value pair. The attributes can be used to tag the servers with custom
@@ -132,98 +175,17 @@ CREATE TABLE servers (
   */
   `attributes` JSON,
   /*
-    Server version token in effect for the server. The version token changes
-    whenever there is a change of the role of the server and is used to force
-    cache invalidation when topology changes.
+    Server version token in effect for the server instance. The version token
+    changes whenever there is a change of the role of the server instance and
+    is used to force cache invalidation when topology changes.
   */
   `version_token` INTEGER UNSIGNED,
   /* An optional brief description of the group. */
   `description` TEXT,
-  PRIMARY KEY (server_uuid),
+  PRIMARY KEY (instance_uuid),
+  FOREIGN KEY (host_uuid) REFERENCES hosts(host_uuid) ON DELETE RESTRICT,
   FOREIGN KEY (replicaset_uuid) REFERENCES replicasets(replicaset_uuid) ON DELETE SET NULL
 ) CHARSET = utf8;
-
-/*
-  The table shard_sets identifies the set of application tables that are
-  sharded using a specific sharding key.
-*/
-CREATE TABLE shard_sets (
-  /* This column is a unique integer denoting the sharding set. */
-  `shard_set_id` INT,
-  /* Associates the group with a farm definition */
-  `farm_uuid` VARCHAR(40),
-
-  /*
-    Type of the shard_set. If global, all replicasets have a copy of the table,
-    but there is a single shard defined for it, which point to the master
-    where global data is replicated from.
-  */
-  `type` ENUM ('local', 'sharded', 'global'),
-  /*
-    The sharding type is stored as a string to be possible to use when sharding
-    on a string, integer, or arbitrary column.
-  */
-  `sharding_data_type` VARCHAR(40) NOT NULL,
-
-  `master_schema_name` VARCHAR(64),
-  `master_table_name` VARCHAR(64),
-  PRIMARY KEY (shard_set_id),
-  FOREIGN KEY (farm_uuid) REFERENCES farm(farm_uuid) ON DELETE RESTRICT
-) CHARSET = utf8;
-
-/*
-  The table shard_tables identifies tables that are sharded and whether there
-  should be mechanisms in place (e.g. triggers) to check whether data is being
-  inserted into the right shard.
-*/
-CREATE TABLE shard_tables (
-  /* This column is a unique integer denoting the sharding set. */
-  `shard_set_id` INT NOT NULL,
-  /* The schema in which the table being sharded is present */
-  `schema_name` VARCHAR(64) NOT NULL,
-  /* The table being sharded */
-  `table_name` VARCHAR(64),
-  /*
-    Name of the column that contains the sharding key. If the column is a field
-    in a JSON blob, a generated column need to be constructed.
-  */
-  `field_ref` VARCHAR(256) NOT NULL,
-  PRIMARY KEY (`schema_name`, `table_name`),
-  FOREIGN KEY (shard_set_id) REFERENCES shard_sets(shard_set_id) ON DELETE RESTRICT
-) CHARSET = utf8;
-
-/*
-  The shards table table identifies the data stored in each shard and the
-  high-availability group of the shards. Note that with this definition of the
-  shards table, it is possible to co-locate different shards in the same
-  high-availability group.
-*/
-CREATE TABLE shards (
-  /*
-    This is the identifier for the shard and uniquely identify the partition of
-    the data within the shard set.
-  */
-  `shard_id` INT,
-  /* The shard set the shard belong to. */
-  `shard_set_id` INT,
-  /*
-    The replicaset the shard belongs to. In the first iteration we only have one
-    shard per replicaset, but this scheme allow several shards per replicaset.
-  */
-  `replicaset_uuid` VARCHAR(40) NOT NULL,
-  /*
-    Lower bound for the shard, or NULL if there is no lower bound. The value
-    have to be converted to the correct type to be used.
-  */
-  `lower_bound` VARBINARY(256),
-  /* An optional brief description of the group. */
-  `description` VARCHAR(120),
-  PRIMARY KEY (shard_set_id, shard_id),
-  FOREIGN KEY (shard_set_id) REFERENCES shard_sets(shard_set_id),
-  FOREIGN KEY (replicaset_uuid) REFERENCES replicasets(replicaset_uuid) ON DELETE RESTRICT
-) CHARSET = utf8;
-
-
 
 /*
   This table provide the default port to use for a protocol given by a symbol.
