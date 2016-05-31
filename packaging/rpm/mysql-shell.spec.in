@@ -105,12 +105,16 @@ rm -f %{buildroot}%{_datadir}/mysqlsh/{@LICENSE_FILE@,README}
 %doc @LICENSE_FILE@
 %doc README
 %{_bindir}/mysqlsh
+%attr(644, root, root) %{_mandir}/man1/mysqlsh.1*
 %if 0%{?static}
 %{_prefix}/share/mysqlsh/modules/js/mysql.js
 %{_prefix}/share/mysqlsh/modules/js/mysqlx.js
 %endif
 
 %changelog
+* Tue May 31 2016 Balasubramanian Kandasamy <balasubramanian.kandasamy@oracle.com> - 1.0.4-1
+- Added mysqlsh man page
+
 * Wed Mar 23 2016 Alfredo Kojima <alfredo.kengi.kojima@oracle.com> - 1.0.3-1
 - updated for 1.0.3, bug fixes
 
