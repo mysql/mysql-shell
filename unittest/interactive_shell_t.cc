@@ -294,7 +294,7 @@ namespace shcore {
       // Working with the current session
       _interactive_shell->process_line("\\connect " + _uri);
       _interactive_shell->process_line("\\savec test_02");
-      MY_EXPECT_STDOUT_CONTAINS("Successfully stored " + _uri_nopasswd + ":33060 as test_02.");
+      MY_EXPECT_STDOUT_CONTAINS("Successfully stored " + _uri_nopasswd);
       output_handler.wipe_all();
 
       _interactive_shell->process_line("session.close()");
@@ -304,7 +304,7 @@ namespace shcore {
       output_handler.wipe_all();
 
       _interactive_shell->process_line("\\savec -f test_02");
-      MY_EXPECT_STDOUT_CONTAINS("Successfully stored " + _uri_nopasswd + ":33060 as test_02.");
+      MY_EXPECT_STDOUT_CONTAINS("Successfully stored " + _uri_nopasswd);
       output_handler.wipe_all();
     }
 
