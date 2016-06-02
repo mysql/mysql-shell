@@ -3,3 +3,4 @@ usr/share/mysqlsh/modules/js/mysql.js
 usr/share/mysqlsh/modules/js/mysqlx.js
 usr/share/mysqlsh/@LIC_FILE@ usr/share/doc/mysqlsh
 usr/share/mysqlsh/README     usr/share/doc/mysqlsh
+usr/share/man/man1/mysqlsh.1

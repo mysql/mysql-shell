@@ -28,6 +28,7 @@ override_dh_auto_configure:
 	cmake -G 'Unix Makefiles' \
 	    -DCMAKE_INSTALL_PREFIX=/usr \
 	    -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+		-DINSTALL_MANDIR=share/man \
 	    @EXTRA_CMAKE_OPTS@ \
 	    .
 	DEB_BUILD_HARDENING=1 make VERBOSE=1
