@@ -251,7 +251,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[2.0.01]:1 Connect local Server w/Command Line Args'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=app', '--sql']
+                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--x', '--sql']
       p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
       p.stdin.write(bytearray(";\n", 'ascii'))
       p.stdin.flush()
@@ -266,7 +266,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[2.0.01]:2 Connect local Server w/Command Line Args'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '-p','--passwords-from-stdin',
-                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=app']
+                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--x']
       p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
       p.stdin.write(bytearray(LOCALHOST.password+"\n", 'ascii'))
       p.stdin.flush()
@@ -297,7 +297,7 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--uri',
                       'mysqlx://{0}:{1}@{2}:{3}'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
-                                                        LOCALHOST.xprotocol_port), '--session-type=app', '--sql']
+                                                        LOCALHOST.xprotocol_port), '--x', '--sql']
       x_cmds = [(";\n", 'mysql-sql>')
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
@@ -308,7 +308,7 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--uri',
                       'mysqlx://{0}:{1}@{2}'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host),
-                      '--session-type=app', '--sql']
+                      '--x', '--sql']
       x_cmds = [(";\n", 'mysql-sql>')
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
@@ -318,7 +318,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[2.0.01]:6 Connect local Server w/Command Line Args'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-           '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=node', '--sql']
+           '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--node', '--sql']
       x_cmds = [(";\n", 'mysql-sql>')
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
@@ -327,7 +327,7 @@ class XShell_TestCases(unittest.TestCase):
   def test_2_0_01_07(self):
       '''[2.0.01]:7 Connect local Server w/Command Line Args'''
       results = ''
-      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '-p', '-h' + LOCALHOST.host, '--session-type=node',
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '-p', '-h' + LOCALHOST.host, '--node',
                       '--passwords-from-stdin']
       p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
       p.stdin.write(bytearray(LOCALHOST.password+"\n", 'ascii'))
@@ -344,7 +344,7 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--uri',
                       'mysqlx://{0}:{1}@{2}:{3}'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
-                                                        LOCALHOST.xprotocol_port), '--session-type=node', '--sql']
+                                                        LOCALHOST.xprotocol_port), '--node', '--sql']
       x_cmds = [(";\n", 'mysql-sql>')
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
@@ -355,7 +355,7 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--uri',
                       'mysqlx://{0}:{1}@{2}'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host),
-                      '--session-type=node', '--sql']
+                      '--node', '--sql']
       x_cmds = [(";\n", 'mysql-sql>')
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
@@ -365,7 +365,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[2.0.01]:10 Connect local Server w/Command Line Args'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.port, '--session-type=classic', '--sqlc']
+                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.port, '--classic', '--sqlc']
       x_cmds = [(";\n", 'mysql-sql>')
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
@@ -374,7 +374,7 @@ class XShell_TestCases(unittest.TestCase):
   def test_2_0_01_11(self):
       '''[2.0.01]:11 Connect local Server w/Command Line Args'''
       results = ''
-      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '-p', '-P'+LOCALHOST.port,'-h' + LOCALHOST.host, '--session-type=classic',
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '-p', '-P'+LOCALHOST.port,'-h' + LOCALHOST.host, '--classic',
                       '--passwords-from-stdin']
       p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
       p.stdin.write(bytearray(LOCALHOST.password+"\n", 'ascii'))
@@ -391,7 +391,7 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--uri',
                       'mysqlx://{0}:{1}@{2}:{3}'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
-                                                        LOCALHOST.port),'--session-type=classic', '--js']
+                                                        LOCALHOST.port),'--classic', '--js']
       x_cmds = [(";\n", 'mysql-js>')
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
@@ -401,7 +401,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[2.0.02]:1 Connect remote Server w/Command Line Args'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + REMOTEHOST.user, '--password=' + REMOTEHOST.password,
-                      '-h' + REMOTEHOST.host,'-P' + REMOTEHOST.xprotocol_port, '--session-type=app', '--sql']
+                      '-h' + REMOTEHOST.host,'-P' + REMOTEHOST.xprotocol_port, '--x', '--sql']
       x_cmds = [(";\n", 'mysql-sql>')
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
@@ -440,7 +440,7 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--uri',
                       'mysqlx://{0}:{1}@{2}:{3}'.format(REMOTEHOST.user, REMOTEHOST.password, REMOTEHOST.host,
-                                                        REMOTEHOST.xprotocol_port), '--session-type=app', '--sql']
+                                                        REMOTEHOST.xprotocol_port), '--x', '--sql']
       x_cmds = [(";\n", 'mysql-sql>')
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
@@ -451,7 +451,7 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--uri',
                       'mysqlx://{0}:{1}@{2}'.format(REMOTEHOST.user, REMOTEHOST.password, REMOTEHOST.host),
-                      '--session-type=app', '--sql']
+                      '--x', '--sql']
       x_cmds = [(";\n", 'mysql-sql>')
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
@@ -461,7 +461,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[2.0.02]:6 Connect remote Server w/Command Line Args'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + REMOTEHOST.user, '--password=' + REMOTEHOST.password,
-                      '-h' + REMOTEHOST.host, '-P' + REMOTEHOST.xprotocol_port, '--session-type=node', '--sql']
+                      '-h' + REMOTEHOST.host, '-P' + REMOTEHOST.xprotocol_port, '--node', '--sql']
       x_cmds = [(";\n", 'mysql-sql>')
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
@@ -471,7 +471,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[2.0.02]:7 Connect remote Server w/Command Line Args'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + REMOTEHOST.user,'-p', '-h' + REMOTEHOST.host,
-                      '--session-type=node', '--passwords-from-stdin']
+                      '--node', '--passwords-from-stdin']
       p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
       p.stdin.write(bytearray(REMOTEHOST.password+"\n", 'ascii'))
       p.stdin.flush()
@@ -487,7 +487,7 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--uri',
                       'mysqlx://{0}:{1}@{2}:{3}'.format(REMOTEHOST.user, REMOTEHOST.password, REMOTEHOST.host,
-                                                        REMOTEHOST.xprotocol_port), '--session-type=node', '--sql']
+                                                        REMOTEHOST.xprotocol_port), '--node', '--sql']
       x_cmds = [(";\n", 'mysql-sql>')
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
@@ -498,7 +498,7 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--uri',
                       'mysqlx://{0}:{1}@{2}'.format(REMOTEHOST.user, REMOTEHOST.password, REMOTEHOST.host),
-                      '--session-type=node', '--sql']
+                      '--node', '--sql']
       x_cmds = [(";\n", 'mysql-sql>')
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
@@ -508,7 +508,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[2.0.02]:10 Connect remote Server w/Command Line Args'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + REMOTEHOST.user, '--password=' + REMOTEHOST.password,
-                      '-h' + REMOTEHOST.host,'-P' + REMOTEHOST.port, '--session-type=classic', '--sqlc']
+                      '-h' + REMOTEHOST.host,'-P' + REMOTEHOST.port, '--classic', '--sqlc']
       x_cmds = [(";\n", 'mysql-sql>')
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
@@ -518,7 +518,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[2.0.02]:11 Connect remote Server w/Command Line Args'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + REMOTEHOST.user,'-p', '-h' + REMOTEHOST.host,
-                      '--session-type=classic', '-P' + REMOTEHOST.port,'--passwords-from-stdin']
+                      '--classic', '-P' + REMOTEHOST.port,'--passwords-from-stdin']
       p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
       p.stdin.write(bytearray(REMOTEHOST.password+"\n", 'ascii'))
       p.stdin.flush()
@@ -534,7 +534,7 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--uri',
                       'mysqlx://{0}:{1}@{2}:{3}'.format(REMOTEHOST.user, REMOTEHOST.password, REMOTEHOST.host,
-                                                        REMOTEHOST.port), '--session-type=classic', '--sqlc']
+                                                        REMOTEHOST.port), '--classic', '--sqlc']
       x_cmds = [(";\n", 'mysql-sql>')
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
@@ -545,7 +545,7 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--uri',
                             'mysqlx://{0}:{1}@{2}:{3}'.format(REMOTEHOST.user, REMOTEHOST.password, REMOTEHOST.host,
-                                                              REMOTEHOST.port), '--session-type=classic', '--js']
+                                                              REMOTEHOST.port), '--classic', '--js']
       x_cmds = [(";\n", 'mysql-js>')
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
@@ -824,7 +824,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[2.0.09]:1 Connect local Server w/Init Exec mode: --[sql/js/py]: CLASSIC SESSION --sql'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.port, '--session-type=classic', '--sqlc']
+                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.port, '--classic', '--sqlc']
       x_cmds = [(";\n", 'mysql-sql>')
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
@@ -834,7 +834,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[2.0.09]:2 Connect local Server w/Init Exec mode: --[sql/js/py]: CLASSIC SESSION --js'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.port, '--session-type=classic', '--js']
+                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.port, '--classic', '--js']
       x_cmds = [(";\n", 'mysql-js>')
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
@@ -844,7 +844,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[2.0.09]:3 Connect local Server w/Init Exec mode: --[sql/js/py]: CLASSIC SESSION --py'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.port, '--session-type=classic', '--py']
+                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.port, '--classic', '--py']
       x_cmds = [("\n", 'mysql-py>')
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
@@ -855,7 +855,7 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--uri',
                             'mysqlx://{0}:{1}@{2}:{3}'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
-                                                              LOCALHOST.port), '--session-type=classic', '--sqlc']
+                                                              LOCALHOST.port), '--classic', '--sqlc']
       x_cmds = [(";\n", 'mysql-sql>')
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
@@ -866,7 +866,7 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--uri',
                             'mysqlx://{0}:{1}@{2}:{3}'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
-                                                              LOCALHOST.port), '--session-type=classic', '--js']
+                                                              LOCALHOST.port), '--classic', '--js']
       x_cmds = [(";\n", 'mysql-js>')
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
@@ -877,7 +877,7 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--uri',
                             'mysqlx://{0}:{1}@{2}:{3}'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
-                                                              LOCALHOST.port), '--session-type=classic', '--py']
+                                                              LOCALHOST.port), '--classic', '--py']
       x_cmds = [("\n", 'mysql-py>')
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
@@ -887,7 +887,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[2.0.09]:7 Connect local Server w/Init Exec mode: --[sql/js/py]: CLASSIC NODE --sql'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=node', '--sql']
+                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--node', '--sql']
       x_cmds = [(";\n", 'mysql-sql>')
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
@@ -897,7 +897,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[2.0.09]:8 Connect local Server w/Init Exec mode: --[sql/js/py]: CLASSIC NODE --js'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=node', '--js']
+                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--node', '--js']
       x_cmds = [(";\n", 'mysql-js>')
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
@@ -907,7 +907,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[2.0.09]:9 Connect local Server w/Init Exec mode: --[sql/js/py]: CLASSIC NODE --py'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=node', '--py']
+                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--node', '--py']
       x_cmds = [("\n", 'mysql-py>')
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
@@ -918,7 +918,7 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--uri',
                             'mysqlx://{0}:{1}@{2}:{3}'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
-                                                              LOCALHOST.xprotocol_port), '--session-type=node', '--sql']
+                                                              LOCALHOST.xprotocol_port), '--node', '--sql']
       x_cmds = [(";\n", 'mysql-sql>')
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
@@ -929,7 +929,7 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--uri',
                             'mysqlx://{0}:{1}@{2}:{3}'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
-                                                              LOCALHOST.xprotocol_port), '--session-type=node', '--js']
+                                                              LOCALHOST.xprotocol_port), '--node', '--js']
       x_cmds = [(";\n", 'mysql-js>')
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
@@ -940,7 +940,7 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--uri',
                             'mysqlx://{0}:{1}@{2}:{3}'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
-                                                              LOCALHOST.xprotocol_port), '--session-type=node', '--py']
+                                                              LOCALHOST.xprotocol_port), '--node', '--py']
       x_cmds = [("\n", 'mysql-py>')
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
@@ -950,7 +950,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[2.0.09]:13 Connect local Server w/Init Exec mode: --[sql/js/py]: CLASSIC APPLICATION --sql'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=app', '--sql']
+                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--x', '--sql']
       x_cmds = [(";\n", 'mysql-sql>')
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
@@ -960,7 +960,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[2.0.09]:14 Connect local Server w/Init Exec mode: --[sql/js/py]: CLASSIC APPLICATION --js'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=app', '--js']
+                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--x', '--js']
       x_cmds = [(";\n", 'mysql-js>')
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
@@ -971,7 +971,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[2.0.09]:15 Connect local Server w/Init Exec mode: --[sql/js/py]: CLASSIC APPLICATION --py'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=app', '--py']
+                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--x', '--py']
       x_cmds = [("\n", 'mysql-py>')
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
@@ -982,7 +982,7 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--uri',
                             'mysqlx://{0}:{1}@{2}:{3}'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
-                                                              LOCALHOST.xprotocol_port), '--session-type=app', '--sql']
+                                                              LOCALHOST.xprotocol_port), '--x', '--sql']
       x_cmds = [(";\n", 'mysql-sql>')
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
@@ -993,7 +993,7 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--uri',
                             'mysqlx://{0}:{1}@{2}:{3}'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
-                                                              LOCALHOST.xprotocol_port), '--session-type=app', '--js']
+                                                              LOCALHOST.xprotocol_port), '--x', '--js']
       x_cmds = [(";\n", 'mysql-js>')
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
@@ -1004,7 +1004,7 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--uri',
                             'mysqlx://{0}:{1}@{2}:{3}'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
-                                                              LOCALHOST.xprotocol_port), '--session-type=app', '--py']
+                                                              LOCALHOST.xprotocol_port), '--x', '--py']
       x_cmds = [("\n", 'mysql-py>')
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
@@ -1014,7 +1014,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[2.0.10]:1 Connect remote Server w/Init Exec mode: --[sql/js/py]: CLASSIC SESSION --sql'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + REMOTEHOST.user, '--password=' + REMOTEHOST.password,
-                      '-h' + REMOTEHOST.host,'-P' + REMOTEHOST.port, '--session-type=classic', '--sqlc']
+                      '-h' + REMOTEHOST.host,'-P' + REMOTEHOST.port, '--classic', '--sqlc']
       x_cmds = [(";\n", 'mysql-sql>')
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
@@ -1024,7 +1024,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[2.0.10]:2 Connect remote Server w/Init Exec mode: --[sql/js/py]: CLASSIC SESSION --js'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + REMOTEHOST.user, '--password=' + REMOTEHOST.password,
-                      '-h' + REMOTEHOST.host,'-P' + REMOTEHOST.port, '--session-type=classic', '--js']
+                      '-h' + REMOTEHOST.host,'-P' + REMOTEHOST.port, '--classic', '--js']
       x_cmds = [(";\n", 'mysql-js>')
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
@@ -1034,7 +1034,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[2.0.10]:3 Connect remote Server w/Init Exec mode: --[sql/js/py]: CLASSIC SESSION --py'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + REMOTEHOST.user, '--password=' + REMOTEHOST.password,
-                      '-h' + REMOTEHOST.host,'-P' + REMOTEHOST.port, '--session-type=classic', '--py']
+                      '-h' + REMOTEHOST.host,'-P' + REMOTEHOST.port, '--classic', '--py']
       x_cmds = [("\n", 'mysql-py>')
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
@@ -1045,7 +1045,7 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--uri',
                             'mysqlx://{0}:{1}@{2}:{3}'.format(REMOTEHOST.user, REMOTEHOST.password, REMOTEHOST.host,
-                                                              REMOTEHOST.port), '--session-type=classic', '--sqlc']
+                                                              REMOTEHOST.port), '--classic', '--sqlc']
       x_cmds = [(";\n", 'mysql-sql>')
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
@@ -1056,7 +1056,7 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--uri',
                             'mysqlx://{0}:{1}@{2}:{3}'.format(REMOTEHOST.user, REMOTEHOST.password, REMOTEHOST.host,
-                                                              REMOTEHOST.port), '--session-type=classic', '--js']
+                                                              REMOTEHOST.port), '--classic', '--js']
       x_cmds = [(";\n", 'mysql-js>')
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
@@ -1067,7 +1067,7 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--uri',
                             'mysqlx://{0}:{1}@{2}:{3}'.format(REMOTEHOST.user, REMOTEHOST.password, REMOTEHOST.host,
-                                                              REMOTEHOST.port), '--session-type=classic', '--py']
+                                                              REMOTEHOST.port), '--classic', '--py']
       x_cmds = [("\n", 'mysql-py>')
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
@@ -1077,7 +1077,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[2.0.10]:7 Connect remote Server w/Init Exec mode: --[sql/js/py]: CLASSIC NODE --sql'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + REMOTEHOST.user, '--password=' + REMOTEHOST.password,
-                      '-h' + REMOTEHOST.host,'-P' + REMOTEHOST.xprotocol_port, '--session-type=node', '--sql']
+                      '-h' + REMOTEHOST.host,'-P' + REMOTEHOST.xprotocol_port, '--node', '--sql']
       x_cmds = [(";\n", 'mysql-sql>')
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
@@ -1087,7 +1087,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[2.0.10]:8 Connect remote Server w/Init Exec mode: --[sql/js/py]: CLASSIC NODE --js'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + REMOTEHOST.user, '--password=' + REMOTEHOST.password,
-                      '-h' + REMOTEHOST.host,'-P' + REMOTEHOST.xprotocol_port, '--session-type=node', '--js']
+                      '-h' + REMOTEHOST.host,'-P' + REMOTEHOST.xprotocol_port, '--node', '--js']
       x_cmds = [(";\n", 'mysql-js>')
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
@@ -1097,7 +1097,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[2.0.10]:9 Connect remote Server w/Init Exec mode: --[sql/js/py]: CLASSIC NODE --py'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + REMOTEHOST.user, '--password=' + REMOTEHOST.password,
-                      '-h' + REMOTEHOST.host,'-P' + REMOTEHOST.xprotocol_port, '--session-type=node', '--py']
+                      '-h' + REMOTEHOST.host,'-P' + REMOTEHOST.xprotocol_port, '--node', '--py']
       x_cmds = [("\n", 'mysql-py>')
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
@@ -1108,7 +1108,7 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--uri',
                             'mysqlx://{0}:{1}@{2}:{3}'.format(REMOTEHOST.user, REMOTEHOST.password, REMOTEHOST.host,
-                                                              REMOTEHOST.xprotocol_port), '--session-type=node', '--sql']
+                                                              REMOTEHOST.xprotocol_port), '--node', '--sql']
       x_cmds = [(";\n", 'mysql-sql>')
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
@@ -1119,7 +1119,7 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--uri',
                             'mysqlx://{0}:{1}@{2}:{3}'.format(REMOTEHOST.user, REMOTEHOST.password, REMOTEHOST.host,
-                                                              REMOTEHOST.xprotocol_port), '--session-type=node', '--js']
+                                                              REMOTEHOST.xprotocol_port), '--node', '--js']
       x_cmds = [(";\n", 'mysql-js>')
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
@@ -1130,7 +1130,7 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--uri',
                             'mysqlx://{0}:{1}@{2}:{3}'.format(REMOTEHOST.user, REMOTEHOST.password, REMOTEHOST.host,
-                                                              REMOTEHOST.xprotocol_port), '--session-type=node', '--py']
+                                                              REMOTEHOST.xprotocol_port), '--node', '--py']
       x_cmds = [("\n", 'mysql-py>')
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
@@ -1140,7 +1140,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[2.0.10]:13 Connect remote Server w/Init Exec mode: --[sql/js/py]: CLASSIC APPLICATION --sql'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + REMOTEHOST.user, '--password=' + REMOTEHOST.password,
-                      '-h' + REMOTEHOST.host,'-P' + REMOTEHOST.xprotocol_port, '--session-type=app', '--sql']
+                      '-h' + REMOTEHOST.host,'-P' + REMOTEHOST.xprotocol_port, '--x', '--sql']
       x_cmds = [(";\n", 'mysql-sql>')
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
@@ -1150,7 +1150,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[2.0.10]:14 Connect remote Server w/Init Exec mode: --[sql/js/py]: CLASSIC APPLICATION --js'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + REMOTEHOST.user, '--password=' + REMOTEHOST.password,
-                      '-h' + REMOTEHOST.host,'-P' + REMOTEHOST.xprotocol_port, '--session-type=app', '--js']
+                      '-h' + REMOTEHOST.host,'-P' + REMOTEHOST.xprotocol_port, '--x', '--js']
       x_cmds = [(";\n", 'mysql-js>')
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
@@ -1160,7 +1160,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[2.0.10]:15 Connect remote Server w/Init Exec mode: --[sql/js/py]: CLASSIC APPLICATION --py'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + REMOTEHOST.user, '--password=' + REMOTEHOST.password,
-                      '-h' + REMOTEHOST.host,'-P' + REMOTEHOST.xprotocol_port, '--session-type=app', '--py']
+                      '-h' + REMOTEHOST.host,'-P' + REMOTEHOST.xprotocol_port, '--x', '--py']
       x_cmds = [("\n", 'mysql-py>')
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
@@ -1171,7 +1171,7 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--uri',
                             'mysqlx://{0}:{1}@{2}:{3}'.format(REMOTEHOST.user, REMOTEHOST.password, REMOTEHOST.host,
-                                                              REMOTEHOST.xprotocol_port), '--session-type=app', '--sql']
+                                                              REMOTEHOST.xprotocol_port), '--x', '--sql']
       x_cmds = [(";\n", 'mysql-sql>')
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
@@ -1182,7 +1182,7 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--uri',
                             'mysqlx://{0}:{1}@{2}:{3}'.format(REMOTEHOST.user, REMOTEHOST.password, REMOTEHOST.host,
-                                                              REMOTEHOST.xprotocol_port), '--session-type=app', '--js']
+                                                              REMOTEHOST.xprotocol_port), '--x', '--js']
       x_cmds = [(";\n", 'mysql-js>')
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
@@ -1193,7 +1193,7 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--uri',
                             'mysqlx://{0}:{1}@{2}:{3}'.format(REMOTEHOST.user, REMOTEHOST.password, REMOTEHOST.host,
-                                                              REMOTEHOST.xprotocol_port), '--session-type=app', '--py']
+                                                              REMOTEHOST.xprotocol_port), '--x', '--py']
       x_cmds = [("\n", 'mysql-py>')
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
@@ -1203,7 +1203,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[2.0.11]:1 Connect local Server w/Command Line Args FAILOVER: Wrong Password'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=g' + LOCALHOST.password,
-                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=app', '--sql']
+                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--x', '--sql']
       x_cmds = [(";\n", "Invalid user or password")
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
@@ -1215,7 +1215,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[2.0.11]:2 Connect local Server w/Command Line Args FAILOVER: unknown option'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-vu' + LOCALHOST.user, '--password=', '-h' + LOCALHOST.host,
-                      '-P' + LOCALHOST.xprotocol_port, '--session-type=app', '--sql']
+                      '-P' + LOCALHOST.xprotocol_port, '--x', '--sql']
       x_cmds = [(";\n", "unknown option")
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
@@ -1228,7 +1228,7 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--uri',
                       'mysqlx://{0}:{1}@{2}:{3}'.format(LOCALHOST.user, "wrongpass", LOCALHOST.host,
-                                                        LOCALHOST.xprotocol_port), '--session-type=app', '--sql']
+                                                        LOCALHOST.xprotocol_port), '--x', '--sql']
       x_cmds = [(";\n", "Invalid user or password")
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
@@ -1240,7 +1240,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[2.0.11]:1 Connect remote Server w/Command Line Args FAILOVER: Wrong Password'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + REMOTEHOST.user, '--password=g' + REMOTEHOST.password,
-                      '-h' + REMOTEHOST.host,'-P' + REMOTEHOST.xprotocol_port, '--session-type=app', '--sql']
+                      '-h' + REMOTEHOST.host,'-P' + REMOTEHOST.xprotocol_port, '--x', '--sql']
       x_cmds = [(";\n", "Invalid user or password")
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
@@ -1252,7 +1252,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[2.0.11]:2 Connect remote Server w/Command Line Args FAILOVER: unknown option'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-vu' + REMOTEHOST.user, '--password=', '-h' + REMOTEHOST.host,
-                      '-P' + REMOTEHOST.xprotocol_port, '--session-type=app', '--sql']
+                      '-P' + REMOTEHOST.xprotocol_port, '--x', '--sql']
       x_cmds = [(";\n", "unknown option")
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
@@ -1266,7 +1266,7 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--uri',
                       'mysqlx://{0}:{1}@{2}:{3}'.format(REMOTEHOST.user, "wrongpass", REMOTEHOST.host,
-                                                        REMOTEHOST.xprotocol_port), '--session-type=app', '--sql']
+                                                        REMOTEHOST.xprotocol_port), '--x', '--sql']
       x_cmds = [(";\n", "Invalid user or password"),
 
                 ]
@@ -1345,7 +1345,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[2.0.15]:1 Connect local Server w/Init Exec mode: --[sql/js/py] FAILOVER: wrong Exec mode --sqxx'''
       results = ''
       p = subprocess.Popen([MYSQL_SHELL, '--interactive=full', '--uri', 'mysqlx://{0}:{1}@{2}:{3}'.format(LOCALHOST.user, "wrongpass", LOCALHOST.host, LOCALHOST.xprotocol_port),
-                          '--session-type=app', '--sqx'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+                          '--x', '--sqx'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
       stdin,stdout = p.communicate()
       found = stdout.find(bytearray("unknown option","ascii"), 0, len(stdout))
       if found == -1:
@@ -1358,7 +1358,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[2.0.16]:1 Connect remote Server w/Init Exec mode: --[sql/js/py] FAILOVER: wrong Exec mode --sqxx'''
       results = ''
       p = subprocess.Popen([MYSQL_SHELL, '--interactive=full', '--uri', 'mysqlx://{0}:{1}@{2}:{3}'.format(REMOTEHOST.user, "wrongpass", REMOTEHOST.host, REMOTEHOST.xprotocol_port),
-                          '--session-type=app', '--sqx'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+                          '--x', '--sqx'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
       stdin,stdout = p.communicate()
       found = stdout.find(bytearray("unknown option","ascii"), 0, len(stdout))
       if found == -1 :
@@ -1523,7 +1523,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[3.1.009]:1 Check that STATUS command [ \status, \s ] works: app session \status'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--uri',
-                      'mysqlx://{0}:{1}@{2}:{3}'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), '--session-type=app', '--js']
+                      'mysqlx://{0}:{1}@{2}:{3}'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), '--x', '--js']
       x_cmds = [("\\status\n", "Current user:                 root@localhost")
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
@@ -1533,7 +1533,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[3.1.009]:2 Check that STATUS command [ \status, \s ] works: classic session \status'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--uri',
-                      'mysqlx://{0}:{1}@{2}:{3}'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,LOCALHOST.port), '--session-type=classic', '--js']
+                      'mysqlx://{0}:{1}@{2}:{3}'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,LOCALHOST.port), '--classic', '--js']
       x_cmds = [("\\status\n", "Current user:                 root@localhost")
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
@@ -1544,7 +1544,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[3.1.009]:3 Check that STATUS command [ \status, \s ] works: node session \status'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--uri',
-                      'mysqlx://{0}:{1}@{2}:{3}'.format(REMOTEHOST.user, REMOTEHOST.password, REMOTEHOST.host,REMOTEHOST.xprotocol_port), '--session-type=node', '--sql']
+                      'mysqlx://{0}:{1}@{2}:{3}'.format(REMOTEHOST.user, REMOTEHOST.password, REMOTEHOST.host,REMOTEHOST.xprotocol_port), '--node', '--sql']
       p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin =subprocess.PIPE )
       stdin,stdout = p.communicate()
       if stdout.find(bytearray("ERROR","ascii"),0,len(stdin))> -1:
@@ -1620,7 +1620,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[4.0.001]:1 Batch Exec - Loading code from file:  --file= createtable.js'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                      '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--session-type=node', '--file=' + Exec_files_location + 'CreateTable.js']
+                      '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--node', '--file=' + Exec_files_location + 'CreateTable.js']
       x_cmds = []
       results = exec_xshell_commands(init_command, x_cmds)
       results2=str(results)
@@ -1643,7 +1643,7 @@ class XShell_TestCases(unittest.TestCase):
   def test_4_0_02_01(self):
       '''[4.0.002]:1 Batch Exec - Loading code from file:  < createtable.js'''
       init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                      '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--session-type=node']
+                      '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--node']
       p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=open(Exec_files_location+'CreateTable.js'))
       stdin,stdout = p.communicate()
       if stdout.find(bytearray("ERROR","ascii"),0,len(stdin))> -1:
@@ -1664,7 +1664,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[4.1.001]:1 SQL Create a table: NODE SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                      '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--session-type=node']
+                      '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--node']
       x_cmds = [('\\sql\n', "mysql-sql>"),
                 ("use sakila;\n","mysql-sql>"),
                 ("DROP TABLE IF EXISTS example_automation;\n","mysql-sql>"),
@@ -1679,7 +1679,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[4.1.002] SQL Create a table using STDIN batch process: NODE SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--sql', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                      '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--session-type=node','--sql','--schema=sakila',
+                      '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--node','--sql','--schema=sakila',
                       '--file='+ Exec_files_location +'CreateTable_SQL.sql']
 
       p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE )
@@ -1734,7 +1734,7 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7', '-u' + LOCALHOST.user,
                       '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.port,
-                      '--session-type=classic','--sqlc']
+                      '--classic','--sqlc']
       x_cmds = [("\\\n","..."),
                 ("use sakila;\n","..."),
                 ("Update actor set last_name ='Test Last Name', last_update = now() where actor_id = 2;\n","..."),
@@ -1750,7 +1750,7 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--sqlc', '-u' + LOCALHOST.user,
                       '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.port,
-                      '--schema=sakila','--session-type=classic']
+                      '--schema=sakila','--classic']
       p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=open( Exec_files_location + 'UpdateTable_SQL.sql'))
       stdin,stdout = p.communicate()
       if stdout.find(bytearray("ERROR","ascii"),0,len(stdin))> -1:
@@ -1774,7 +1774,7 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--sql', '-u' + LOCALHOST.user,
                       '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port,
-                      '--schema=sakila','--session-type=node']
+                      '--schema=sakila','--node']
       p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=open( Exec_files_location + 'UpdateTable_SQL.sql'))
       stdin,stdout = p.communicate()
       if stdout.find(bytearray("ERROR","ascii"),0,len(stdin))> -1:
@@ -1797,7 +1797,7 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7', '-u' + LOCALHOST.user,
                       '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.port,
-                      '--session-type=classic','--sqlc']
+                      '--classic','--sqlc']
       x_cmds = [("drop schema if exists AUTOMATION;\n","mysql-sql>"),
                 ("create schema if not exists AUTOMATION;\n","mysql-sql>"),
                 ("\\\n","..."),
@@ -1813,7 +1813,7 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--sqlc', '-u' + LOCALHOST.user,
                       '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.port,
-                      '--schema=sakila','--session-type=classic']
+                      '--schema=sakila','--classic']
       p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=open( Exec_files_location + 'SchemaDatabaseUpdate_SQL.sql'))
       stdin,stdout = p.communicate()
       if stdout.find(bytearray("ERROR","ascii"),0,len(stdin))> -1:
@@ -1832,7 +1832,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[4.3.004]:2 SQL Update database using STDIN batch code'''
       init_command = [MYSQL_SHELL, '--interactive=full', '--sql', '-u' + LOCALHOST.user,
                       '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port,
-                      '--schema=sakila','--session-type=node']
+                      '--schema=sakila','--node']
       p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=open(Exec_files_location + 'SchemaDatabaseUpdate_SQL.sql'))
       stdin,stdout = p.communicate()
       if stdout.find(bytearray("ERROR","ascii"),0,len(stdin))> -1:
@@ -1852,7 +1852,7 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7', '-u' + LOCALHOST.user,
                       '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.port,
-                      '--session-type=classic','--sqlc']
+                      '--classic','--sqlc']
       x_cmds = [("use sakila;\n","mysql-sql>"),
                 ("DROP VIEW IF EXISTS sql_viewtest;\n","mysql-sql>"),
                 ("create view sql_viewtest as select * from actor where first_name like \'%as%\';\n","mysql-sql>"),
@@ -1871,7 +1871,7 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--sqlc', '-u' + LOCALHOST.user,
                       '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.port,
-                      '--schema=sakila','--session-type=classic']
+                      '--schema=sakila','--classic']
       p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=open(Exec_files_location + 'AlterView_SQL.sql'))
       stdin,stdout = p.communicate()
       if stdout.find(bytearray("ERROR","ascii"),0,len(stdin))> -1:
@@ -1894,7 +1894,7 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--sql', '-u' + LOCALHOST.user,
                       '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port,
-                      '--schema=sakila','--session-type=node']
+                      '--schema=sakila','--node']
       p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=open(Exec_files_location + 'AlterView_SQL.sql'))
       stdin,stdout = p.communicate()
       if stdout.find(bytearray("ERROR","ascii"),0,len(stdin))> -1:
@@ -1916,7 +1916,7 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7', '-u' + LOCALHOST.user,
                       '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.port,
-                      '--session-type=classic','--sqlc']
+                      '--classic','--sqlc']
       x_cmds = [("use sakila;\n","mysql-sql>"),
                 ("DROP procedure IF EXISTS sql_sptest;\n","mysql-sql>"),
                 ("DELIMITER $$\n","mysql-sql>"),
@@ -1939,7 +1939,7 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--sqlc', '-u' + LOCALHOST.user,
                       '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.port,
-                      '--schema=sakila','--session-type=classic']
+                      '--schema=sakila','--classic']
       p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=open(Exec_files_location + 'AlterStoreProcedure_SQL.sql'))
       stdin,stdout = p.communicate()
       if stdout.find(bytearray("ERROR","ascii"),0,len(stdin))> -1:
@@ -1960,7 +1960,7 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--sql', '-u' + LOCALHOST.user,
                       '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.port,
-                      '--schema=sakila','--session-type=node']
+                      '--schema=sakila','--node']
       p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=open(Exec_files_location + 'AlterStoreProcedure_SQL.sql'))
       stdin,stdout = p.communicate()
       if stdout.find(bytearray("ERROR","ascii"),0,len(stdin))> -1:
@@ -2076,7 +2076,7 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--js', '-u' + LOCALHOST.user,
                       '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.port,
-                      '--schema=sakila','--session-type=classic']
+                      '--schema=sakila','--classic']
       p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=open(Exec_files_location + 'UpdateTable_ClassicMode.js'))
       stdin,stdout = p.communicate()
       if stdout.find(bytearray("ERROR","ascii"),0,len(stdin))> -1:
@@ -2098,7 +2098,7 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--js', '-u' + LOCALHOST.user,
                       '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port,
-                      '--schema=sakila','--session-type=node']
+                      '--schema=sakila','--node']
       p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=open(Exec_files_location + 'UpdateTable_NodeMode.js'))
       stdin,stdout = p.communicate()
       if stdout.find(bytearray("ERROR","ascii"),0,len(stdin))> -1:
@@ -2192,7 +2192,7 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--js', '-u' + LOCALHOST.user,
                       '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.port,
-                      '--schema=sakila','--session-type=classic']
+                      '--schema=sakila','--classic']
       p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=open(Exec_files_location + 'UpdateSchema_ClassicMode.js'))
       stdin,stdout = p.communicate()
       if stdout.find(bytearray("ERROR","ascii"),0,len(stdin))> -1:
@@ -2213,7 +2213,7 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--js', '-u' + LOCALHOST.user,
                       '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.port,
-                      '--schema=sakila','--session-type=node']
+                      '--schema=sakila','--node']
       p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=open(Exec_files_location + 'UpdateSchema_NodeMode.js'))
       stdin,stdout = p.communicate()
       if stdout.find(bytearray("ERROR","ascii"),0,len(stdin))> -1:
@@ -2306,7 +2306,7 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--js', '-u' + LOCALHOST.user,
                       '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.port,
-                      '--schema=sakila','--session-type=classic']
+                      '--schema=sakila','--classic']
       p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=open(Exec_files_location + 'UpdateView_ClassicMode.js'))
       stdin,stdout = p.communicate()
       if stdout.find(bytearray("ERROR","ascii"),0,len(stdin))> -1:
@@ -2327,7 +2327,7 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--js', '-u' + LOCALHOST.user,
                       '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port,
-                      '--schema=sakila','--session-type=node']
+                      '--schema=sakila','--node']
       p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=open(Exec_files_location + 'UpdateView_NodeMode.js'))
       stdin,stdout = p.communicate()
       if stdout.find(bytearray("ERROR","ascii"),0,len(stdin))> -1:
@@ -2430,7 +2430,7 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--js', '-u' + LOCALHOST.user,
                       '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.port,
-                      '--schema=sakila','--session-type=classic']
+                      '--schema=sakila','--classic']
       p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=open(Exec_files_location + 'UpdateProcedure_ClassicMode.js'))
       stdin,stdout = p.communicate()
       if stdout.find(bytearray("ERROR","ascii"),0,len(stdin))> -1:
@@ -2450,7 +2450,7 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--js', '-u' + LOCALHOST.user,
                       '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port,
-                      '--schema=sakila','--session-type=node']
+                      '--schema=sakila','--node']
       p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=open(Exec_files_location + 'UpdateProcedure_NodeMode.js'))
       stdin,stdout = p.communicate()
       if stdout.find(bytearray("ERROR","ascii"),0,len(stdin))> -1:
@@ -2568,7 +2568,7 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--py', '-u' + LOCALHOST.user,
                       '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.port,
-                      '--schema=sakila','--session-type=classic']
+                      '--schema=sakila','--classic']
       p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=open(Exec_files_location + 'UpdateTable_ClassicMode.py'))
       stdin,stdout = p.communicate()
       if stdout.find(bytearray("ERROR","ascii"),0,len(stdin))> -1:
@@ -2588,7 +2588,7 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--py', '-u' + LOCALHOST.user,
                       '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port,
-                      '--schema=sakila','--session-type=node']
+                      '--schema=sakila','--node']
       p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=open(Exec_files_location + 'UpdateTable_NodeMode.py'))
       stdin,stdout = p.communicate()
       if stdout.find(bytearray("ERROR","ascii"),0,len(stdin))> -1:
@@ -2687,7 +2687,7 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--py', '-u' + LOCALHOST.user,
                       '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.port,
-                      '--schema=sakila','--session-type=classic']
+                      '--schema=sakila','--classic']
       p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=open(Exec_files_location + 'UpdateSchema_ClassicMode.py'))
       stdin,stdout = p.communicate()
       if stdout.find(bytearray("ERROR","ascii"),0,len(stdin))> -1:
@@ -2708,7 +2708,7 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--py', '-u' + LOCALHOST.user,
                       '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port,
-                      '--schema=sakila','--session-type=node']
+                      '--schema=sakila','--node']
       p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=open(Exec_files_location + 'UpdateSchema_NodeMode.py'))
       stdin,stdout = p.communicate()
       if stdout.find(bytearray("ERROR","ascii"),0,len(stdin))> -1:
@@ -2803,7 +2803,7 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--py', '-u' + LOCALHOST.user,
                       '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.port,
-                      '--schema=sakila','--session-type=classic']
+                      '--schema=sakila','--classic']
       p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=open(Exec_files_location + 'UpdateView_ClassicMode.py'))
       stdin,stdout = p.communicate()
       if stdout.find(bytearray("ERROR","ascii"),0,len(stdin))> -1:
@@ -2824,7 +2824,7 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--py', '-u' + LOCALHOST.user,
                       '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port,
-                      '--schema=sakila','--session-type=node']
+                      '--schema=sakila','--node']
       p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=open(Exec_files_location + 'UpdateView_NodeMode.py'))
       stdin,stdout = p.communicate()
       if stdout.find(bytearray("ERROR","ascii"),0,len(stdin))> -1:
@@ -2927,7 +2927,7 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--py', '-u' + LOCALHOST.user,
                       '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.port,
-                      '--schema=sakila','--session-type=classic']
+                      '--schema=sakila','--classic']
       p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=open(Exec_files_location + 'UpdateProcedure_ClassicMode.py'))
       stdin,stdout = p.communicate()
       if stdout.find(bytearray("ERROR","ascii"),0,len(stdin))> -1:
@@ -2947,7 +2947,7 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--py', '-u' + LOCALHOST.user,
                       '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port,
-                      '--schema=sakila','--session-type=node']
+                      '--schema=sakila','--node']
       p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=open(Exec_files_location + 'UpdateProcedure_NodeMode.py'))
       stdin,stdout = p.communicate()
       if stdout.find(bytearray("ERROR","ascii"),0,len(stdin))> -1:
@@ -2968,7 +2968,7 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7', '-u' + LOCALHOST.user,
                       '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.port,
-                      '--session-type=classic','--sqlc']
+                      '--classic','--sqlc']
       x_cmds = [("use sakila;\n","Query OK"),
                 ("DROP TABLE IF EXISTS example_automation;\n","Query OK"),
                 ("CREATE TABLE example_automation \n","..."),
@@ -2987,7 +2987,7 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7', '-u' + LOCALHOST.user,
                       '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port,
-                      '--session-type=node','--sql']
+                      '--node','--sql']
       x_cmds = [("use sakila;\n","Query OK"),
                 ("DROP TABLE IF EXISTS example_automation;\n","Query OK"),
                 ("CREATE TABLE example_automation \n","..."),
@@ -3005,7 +3005,7 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--sqlc', '-u' + LOCALHOST.user,
                       '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.port,
-                      '--schema=sakila','--session-type=classic']
+                      '--schema=sakila','--classic']
       p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=open(Exec_files_location + 'DeleteTable_SQL.sql'))
       stdin,stdout = p.communicate()
       if stdout.find(bytearray("ERROR","ascii"),0,len(stdin))> -1:
@@ -3026,7 +3026,7 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--sql', '-u' + LOCALHOST.user,
                       '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port,
-                      '--schema=sakila','--session-type=node']
+                      '--schema=sakila','--node']
       p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=open(Exec_files_location + 'DeleteTable_SQL.sql'))
       stdin,stdout = p.communicate()
       if stdout.find(bytearray("ERROR","ascii"),0,len(stdin))> -1:
@@ -3045,7 +3045,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[4.4.003]:1 SQL Delete database using multiline mode: CLASSIC SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7', '-u' + LOCALHOST.user, '--password=' +
-                      LOCALHOST.password, '-h' + LOCALHOST.host, '-P' + LOCALHOST.port, '--session-type=classic','--sqlc']
+                      LOCALHOST.password, '-h' + LOCALHOST.host, '-P' + LOCALHOST.port, '--classic','--sqlc']
       x_cmds = [("use sakila;\n", "mysql-sql>"),
                 ("DROP DATABASE IF EXISTS dbtest;\n","mysql-sql>"),
                 ("CREATE DATABASE dbtest;\n","mysql-sql>"),
@@ -3062,7 +3062,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[4.4.003]:2 SQL Delete database using multiline mode: NODE SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7', '-u' + LOCALHOST.user, '--password=' +
-                      LOCALHOST.password, '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--session-type=node','--sql']
+                      LOCALHOST.password, '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--node','--sql']
       x_cmds = [("use sakila;\n", "mysql-sql>"),
                 ("DROP DATABASE IF EXISTS dbtest;\n","mysql-sql>"),
                 ("CREATE DATABASE dbtest;\n","mysql-sql>"),
@@ -3080,7 +3080,7 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--sqlc', '-u' + LOCALHOST.user,
                       '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.port,
-                      '--schema=sakila','--session-type=classic']
+                      '--schema=sakila','--classic']
       p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=open(Exec_files_location + 'DeleteSchema_SQL.sql'))
       stdin,stdout = p.communicate()
       if stdout.find(bytearray("ERROR","ascii"),0,len(stdin))> -1:
@@ -3100,7 +3100,7 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--sql', '-u' + LOCALHOST.user,
                       '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port,
-                      '--schema=sakila','--session-type=node']
+                      '--schema=sakila','--node']
       p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=open(Exec_files_location + 'DeleteSchema_SQL.sql'))
       stdin,stdout = p.communicate()
       if stdout.find(bytearray("ERROR","ascii"),0,len(stdin))> -1:
@@ -3119,7 +3119,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[4.4.005]:1 SQL Delete view using multiline mode: CLASSIC SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7', '-u' + LOCALHOST.user, '--password=' +
-                      LOCALHOST.password, '-h' + LOCALHOST.host, '-P' + LOCALHOST.port, '--session-type=classic','--sqlc']
+                      LOCALHOST.password, '-h' + LOCALHOST.host, '-P' + LOCALHOST.port, '--classic','--sqlc']
       x_cmds = [("use sakila;\n", "mysql-sql>"),
                 ("DROP VIEW IF EXISTS sql_viewtest;\n","mysql-sql>"),
                 ("create view sql_viewtest as select * from actor where first_name like \'%as%\';\n","mysql-sql>"),
@@ -3136,7 +3136,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[4.4.005]:2 SQL Delete view using multiline mode: NODE SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7', '-u' + LOCALHOST.user, '--password=' +
-                      LOCALHOST.password, '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--session-type=node','--sql']
+                      LOCALHOST.password, '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--node','--sql']
       x_cmds = [("use sakila;\n", "mysql-sql>"),
                 ("DROP VIEW IF EXISTS sql_viewtest;\n","mysql-sql>"),
                 ("create view sql_viewtest as select * from actor where first_name like \'%as%\';\n","mysql-sql>"),
@@ -3155,7 +3155,7 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--sql', '-u' + LOCALHOST.user,
                       '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.port,
-                      '--schema=sakila','--session-type=classic']
+                      '--schema=sakila','--classic']
       p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=open(Exec_files_location + 'DeleteView_SQL.sql'))
       stdin,stdout = p.communicate()
       if stdout.find(bytearray("ERROR","ascii"),0,len(stdin))> -1:
@@ -3175,7 +3175,7 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--sql', '-u' + LOCALHOST.user,
                       '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port,
-                      '--schema=sakila','--session-type=node']
+                      '--schema=sakila','--node']
       p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=open(Exec_files_location + 'DeleteView_SQL.sql'))
       stdin,stdout = p.communicate()
       if stdout.find(bytearray("ERROR","ascii"),0,len(stdin))> -1:
@@ -3194,7 +3194,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[4.4.007]:1 SQL Delete stored procedure using multiline mode: CLASSIC SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7', '-u' + LOCALHOST.user, '--password=' +
-                      LOCALHOST.password, '-h' + LOCALHOST.host, '-P' + LOCALHOST.port, '--session-type=classic','--sqlc']
+                      LOCALHOST.password, '-h' + LOCALHOST.host, '-P' + LOCALHOST.port, '--classic','--sqlc']
       x_cmds = [("use sakila;\n", "mysql-sql>"),
                 ("DROP PROCEDURE IF EXISTS my_automated_procedure;\n","mysql-sql>"),
                 ("delimiter \\\\ \n","mysql-sql>"),
@@ -3214,7 +3214,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[4.4.007]:2 SQL Delete stored procedure using multiline mode: NODE SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7', '-u' + LOCALHOST.user, '--password=' +
-                      LOCALHOST.password, '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--session-type=node','--sql']
+                      LOCALHOST.password, '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--node','--sql']
       x_cmds = [("use sakila;\n", "mysql-sql>"),
                 ("DROP PROCEDURE IF EXISTS my_automated_procedure;\n","mysql-sql>"),
                 ("delimiter \\\\ \n","mysql-sql>"),
@@ -3235,7 +3235,7 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--sqlc', '-u' + LOCALHOST.user,
                       '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.port,
-                      '--schema=sakila','--session-type=classic']
+                      '--schema=sakila','--classic']
       p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=open(Exec_files_location + 'DeleteProcedure_SQL.sql'))
       stdin,stdout = p.communicate()
       if stdout.find(bytearray("ERROR","ascii"),0,len(stdin))> -1:
@@ -3255,7 +3255,7 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--sql', '-u' + LOCALHOST.user,
                       '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port,
-                      '--schema=sakila','--session-type=node']
+                      '--schema=sakila','--node']
       p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=open(Exec_files_location + 'DeleteProcedure_SQL.sql'))
       stdin,stdout = p.communicate()
       if stdout.find(bytearray("ERROR","ascii"),0,len(stdin))> -1:
@@ -3370,7 +3370,7 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--js', '-u' + LOCALHOST.user,
                       '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.port,
-                      '--schema=sakila','--session-type=classic']
+                      '--schema=sakila','--classic']
       p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=open(Exec_files_location + 'DeleteTable_ClassicMode.js'))
       stdin,stdout = p.communicate()
       if stdout.find(bytearray("ERROR","ascii"),0,len(stdin))> -1:
@@ -3391,7 +3391,7 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--js', '-u' + LOCALHOST.user,
                       '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port,
-                      '--schema=sakila','--session-type=node']
+                      '--schema=sakila','--node']
       p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=open(Exec_files_location + 'DeleteTable_NodeMode.js'))
       stdin,stdout = p.communicate()
       if stdout.find(bytearray("ERROR","ascii"),0,len(stdin))> -1:
@@ -3484,7 +3484,7 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--js', '-u' + LOCALHOST.user,
                       '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.port,
-                      '--schema=sakila','--session-type=classic']
+                      '--schema=sakila','--classic']
       p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=open(Exec_files_location + 'DeleteSchema_ClassicMode.js'))
       stdin,stdout = p.communicate()
       if stdout.find(bytearray("ERROR","ascii"),0,len(stdin))> -1:
@@ -3505,7 +3505,7 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--js', '-u' + LOCALHOST.user,
                       '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port,
-                      '--schema=sakila','--session-type=node']
+                      '--schema=sakila','--node']
       p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=open(Exec_files_location + 'DeleteSchema_NodeMode.js'))
       stdin,stdout = p.communicate()
       if stdout.find(bytearray("ERROR","ascii"),0,len(stdin))> -1:
@@ -3605,7 +3605,7 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--js', '-u' + LOCALHOST.user,
                       '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.port,
-                      '--schema=sakila','--session-type=classic']
+                      '--schema=sakila','--classic']
       p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=open(Exec_files_location + 'DeleteView_ClassicMode.js'))
       stdin,stdout = p.communicate()
       if stdout.find(bytearray("ERROR","ascii"),0,len(stdin))> -1:
@@ -3626,7 +3626,7 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--js', '-u' + LOCALHOST.user,
                       '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port,
-                      '--schema=sakila','--session-type=node']
+                      '--schema=sakila','--node']
       p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=open(Exec_files_location + 'DeleteView_NodeMode.js'))
       stdin,stdout = p.communicate()
       if stdout.find(bytearray("ERROR","ascii"),0,len(stdin))> -1:
@@ -3741,7 +3741,7 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--js', '-u' + LOCALHOST.user,
                       '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.port,
-                      '--schema=sakila','--session-type=classic']
+                      '--schema=sakila','--classic']
       p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=open(Exec_files_location + 'DeleteProcedure_ClassicMode.js'))
       stdin,stdout = p.communicate()
       if stdout.find(bytearray("ERROR","ascii"),0,len(stdin))> -1:
@@ -3764,7 +3764,7 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--js', '-u' + LOCALHOST.user,
                       '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port,
-                      '--schema=sakila','--session-type=node']
+                      '--schema=sakila','--node']
       p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=open(Exec_files_location + 'DeleteProcedure_NodeMode.js'))
       stdin,stdout = p.communicate()
       if stdout.find(bytearray("ERROR","ascii"),0,len(stdin))> -1:
@@ -3886,7 +3886,7 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--py', '-u' + LOCALHOST.user,
                         '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.port,
-                      '--schema=sakila','--session-type=classic']
+                      '--schema=sakila','--classic']
       p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=open(Exec_files_location + 'DeleteTable_ClassicMode.py'))
       stdin,stdout = p.communicate()
       if stdout.find(bytearray("ERROR","ascii"),0,len(stdin))> -1:
@@ -3906,7 +3906,7 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--js', '-u' + LOCALHOST.user,
                       '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port,
-                      '--schema=sakila','--session-type=node']
+                      '--schema=sakila','--node']
       p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=open(Exec_files_location + 'DeleteTable_NodeMode.py'))
       stdin,stdout = p.communicate()
       if stdout.find(bytearray("ERROR","ascii"),0,len(stdin))> -1:
@@ -3993,7 +3993,7 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--py', '-u' + LOCALHOST.user,
                       '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.port,
-                      '--schema=sakila','--session-type=classic']
+                      '--schema=sakila','--classic']
       p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=open(Exec_files_location + 'DeleteSchema_ClassicMode.py'))
       stdin,stdout = p.communicate()
       if stdout.find(bytearray("ERROR","ascii"),0,len(stdin))> -1:
@@ -4015,7 +4015,7 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--py', '-u' + LOCALHOST.user,
                       '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port,
-                      '--schema=sakila','--session-type=node']
+                      '--schema=sakila','--node']
       p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=open(Exec_files_location + 'DeleteSchema_NodeMode.py'))
       stdin,stdout = p.communicate()
       if stdout.find(bytearray("ERROR","ascii"),0,len(stdin))> -1:
@@ -4111,7 +4111,7 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--py', '-u' + LOCALHOST.user,
                       '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.port,
-                      '--schema=sakila','--session-type=classic']
+                      '--schema=sakila','--classic']
       p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=open(Exec_files_location + 'DeleteView_ClassicMode.py'))
       stdin,stdout = p.communicate()
       if stdout.find(bytearray("ERROR","ascii"),0,len(stdin))> -1:
@@ -4133,7 +4133,7 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--py', '-u' + LOCALHOST.user,
                       '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port,
-                      '--schema=sakila','--session-type=node']
+                      '--schema=sakila','--node']
       p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=open(Exec_files_location + 'DeleteView_NodeMode.py'))
       stdin,stdout = p.communicate()
       if stdout.find(bytearray("ERROR","ascii"),0,len(stdin))> -1:
@@ -4154,7 +4154,7 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--py', '-u' + LOCALHOST.user,
                       '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port,
-                      '--schema=sakila','--session-type=node','--file='+Exec_files_location + 'DeleteView_NodeMode.py']
+                      '--schema=sakila','--node','--file='+Exec_files_location + 'DeleteView_NodeMode.py']
       p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
       stdin,stdout = p.communicate()
       if stdout.find(bytearray("ERROR","ascii"),0,len(stdin))> -1:
@@ -4175,7 +4175,7 @@ class XShell_TestCases(unittest.TestCase):
   #     results = ''
   #     init_command = [MYSQL_SHELL, '--interactive=full', '--py', '-u' + LOCALHOST.user,
   #                     '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.port,
-  #                     '--schema=sakila','--session-type=classic','--file='+Exec_files_location + 'BigCreate_Classic.py']
+  #                     '--schema=sakila','--classic','--file='+Exec_files_location + 'BigCreate_Classic.py']
   #     p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
   #     stdin,stdout = p.communicate()
   #     if stdout.find(bytearray("ERROR","ascii"),0,len(stdin))> -1:
@@ -4288,7 +4288,7 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--py', '-u' + LOCALHOST.user,
                       '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.port,
-                      '--schema=sakila','--session-type=classic']
+                      '--schema=sakila','--classic']
       p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=open(Exec_files_location + 'DeleteProcedure_ClassicMode.py'))
       stdin,stdout = p.communicate()
       if stdout.find(bytearray("ERROR","ascii"),0,len(stdin))> -1:
@@ -4332,7 +4332,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[4.5.001]:1 JS Transaction with Rollback: CLASSIC SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.port, '--session-type=classic','--schema=sakila', '--js']
+                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.port, '--classic','--schema=sakila', '--js']
       x_cmds = [("session.startTransaction();\n", "Query OK"),
                 ("session.runSql(\'select * from sakila.actor where actor_ID = 2;\');\n","1 row"),
                 ("session.runSql(\"update sakila.actor set first_name = \'Updated45011\' where actor_ID = 2;\");\n","Query OK"),
@@ -4347,7 +4347,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[4.5.001]:2 JS Transaction with Rollback: NODE SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                       '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=node','--schema=sakila', '--js']
+                       '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--node','--schema=sakila', '--js']
       x_cmds = [("session.startTransaction();\n", "Query OK"),
                 ("session.sql(\'select * from sakila.actor where actor_ID = 2;\').execute();\n","1 row"),
                 ("session.sql(\"update sakila.actor set first_name = \'Updated45012\' where actor_ID = 2;\").execute();\n","Query OK"),
@@ -4362,7 +4362,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[4.5.002]:1 PY Transaction with Rollback: CLASSIC SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.port, '--session-type=classic','--schema=sakila', '--py']
+                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.port, '--classic','--schema=sakila', '--py']
       x_cmds = [("session.startTransaction()\n", "Query OK"),
                 ("session.runSql(\'select * from sakila.actor where actor_ID = 2;\')\n","1 row"),
                 ("session.runSql(\"update sakila.actor set first_name = \'Updated\' where actor_ID = 2;\")\n","Query OK"),
@@ -4377,7 +4377,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[4.5.002]:2 PY Transaction with Rollback: NODE SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                       '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=node','--schema=sakila', '--py']
+                       '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--node','--schema=sakila', '--py']
       x_cmds = [("session.startTransaction()\n", "Query OK"),
                 ("session.sql(\'select * from sakila.actor where actor_ID = 2;\').execute()\n","1 row"),
                 ("session.sql(\"update sakila.actor set first_name = \'Updated\' where actor_ID = 2;\").execute()\n","Query OK"),
@@ -4393,7 +4393,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[4.5.003]:1 JS Transaction with Commit: CLASSIC SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.port, '--session-type=classic','--schema=sakila', '--js']
+                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.port, '--classic','--schema=sakila', '--js']
       x_cmds = [("session.startTransaction();\n", "Query OK"),
                 ("session.runSql(\'select * from sakila.actor where actor_ID = 2;\');\n","1 row"),
                 ("session.runSql(\"update sakila.actor set first_name = \'Updated45031\' where actor_ID = 2;\");\n","Query OK"),
@@ -4408,7 +4408,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[4.5.003]:2 JS Transaction with Commit: NODE SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                       '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=node','--schema=sakila', '--js']
+                       '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--node','--schema=sakila', '--js']
       x_cmds = [("session.startTransaction();\n", "Query OK"),
                 ("session.sql(\'select * from sakila.actor where actor_ID = 2;\').execute();\n","1 row"),
                 ("session.sql(\"update sakila.actor set first_name = \'Updated45032\' where actor_ID = 2;\").execute();\n","Query OK"),
@@ -4423,7 +4423,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[4.5.004]:1 PY Transaction with Commit: CLASSIC SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.port, '--session-type=classic','--schema=sakila', '--py']
+                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.port, '--classic','--schema=sakila', '--py']
       x_cmds = [("session.startTransaction()\n", "Query OK"),
                 ("session.runSql(\'select * from sakila.actor where actor_ID = 2;\')\n","1 row"),
                 ("session.runSql(\"update sakila.actor set first_name = \'Updated45041\' where actor_ID = 2;\")\n","Query OK"),
@@ -4438,7 +4438,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[4.5.004]:2 PY Transaction with Commit: NODE SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                       '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=node','--schema=sakila', '--py']
+                       '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--node','--schema=sakila', '--py']
       x_cmds = [("session.startTransaction()\n", "Query OK"),
                 ("session.sql(\'select * from sakila.actor where actor_ID = 2;\').execute()\n","1 row"),
                 ("session.sql(\"update sakila.actor set first_name = \'Updated45042\' where actor_ID = 2;\").execute()\n","Query OK"),
@@ -4453,7 +4453,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[4.6.001]:1 Create a collection with node session: NODE SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                       '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=node','--schema=sakila', '--js']
+                       '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--node','--schema=sakila', '--js']
 
       x_cmds = [("session.dropCollection(\"sakila\",\"test_collection_js\");\n", "mysql-js>"),
                 ("session.getSchema(\'sakila\').createCollection(\"test_collection_js\");\n", "mysql-js>"),
@@ -4470,7 +4470,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[4.6.002]:1 JS PY Ensure collection exists in a database with node session: NODE SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                       '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=node','--schema=sakila', '--js']
+                       '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--node','--schema=sakila', '--js']
 
       x_cmds = [("session.dropCollection(\"sakila\",\"test_collection_js\");\n", "mysql-js>"),
                 ("session.getSchema(\'sakila\').createCollection(\"test_collection_js\");\n", "mysql-js>"),
@@ -4487,7 +4487,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[4.6.003]:1 JS PY Add Documents to a collection with node session: NODE SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                       '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=node','--schema=sakila', '--js']
+                       '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--node','--schema=sakila', '--js']
 
       x_cmds = [("session.dropCollection('sakila','test_collection_js');\n", "mysql-js>"),
                   ("session.getSchema('sakila').createCollection('test_collection_js');\n", "mysql-js>"),
@@ -4512,7 +4512,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[4.6.004] JS PY Find documents from Database using node session: NODE SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                       '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=node','--schema=sakila', '--js']
+                       '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--node','--schema=sakila', '--js']
 
       x_cmds = [("session.getSchema(\'world_x\').getCollection(\"countryinfo\").existsInDatabase();\n","true"),
                 ("var myColl = session.getSchema(\'world_x\').getCollection(\"countryinfo\");\n","mysql-js>"),
@@ -4530,7 +4530,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[4.6.005] JS Modify document with Set and Unset with node session: NODE SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                       '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=node','--schema=sakila', '--js']
+                       '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--node','--schema=sakila', '--js']
 
       x_cmds = [("session.getSchema(\'world_x\').getCollection(\"countryinfo\").existsInDatabase();\n","true"),
                 ("var myColl = session.getSchema(\'world_x\').getCollection(\"countryinfo\");\n","mysql-js>"),
@@ -4548,7 +4548,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[4.6.006] JS Modify document with Merge and Array with node session: NODE SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                       '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=node','--schema=sakila', '--js']
+                       '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--node','--schema=sakila', '--js']
 
       x_cmds = [("session.dropCollection(\"sakila\",\"test_merge_js\");\n", "mysql-js>"),
                 ("session.getSchema(\'sakila\').createCollection(\"test_merge_js\");\n", "mysql-js>"),
@@ -4575,7 +4575,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[4.6.007] PY Modify document with Set and Unset with node session: NODE SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                       '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=node','--schema=sakila', '--js']
+                       '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--node','--schema=sakila', '--js']
 
       x_cmds = [("session.getSchema(\'world_x\').getCollection(\"countryinfo\").existsInDatabase();\n","true"),
                 # ("var myColl = session.getSchema(\'world_x\').getCollection(\"countryinfo\");\n","mysql-js>"),
@@ -4593,7 +4593,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[4.6.008] PY Modify document with Merge and Array with node session: NODE SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                       '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=node','--schema=sakila', '--js']
+                       '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--node','--schema=sakila', '--js']
 
       x_cmds = [# ("session.dropCollection(\"sakila\",\"test_merge_js\");\n", "mysql-js>"),
       #           ("session.getSchema(\'sakila\').createCollection(\"test_merge_js\");\n", "mysql-js>"),
@@ -4621,7 +4621,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[4.7.001]   Retrieve with Table Output Format with classic session: CLASSIC SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                       '-h' + LOCALHOST.host,'-P' + LOCALHOST.port, '--session-type=classic','--schema=sakila', '--sqlc','--table']
+                       '-h' + LOCALHOST.host,'-P' + LOCALHOST.port, '--classic','--schema=sakila', '--sqlc','--table']
 
       x_cmds = [("select actor_id from actor limit 5;\n","| actor_id |"),
                 ]
@@ -4633,7 +4633,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[4.7.003] Retrieve with JSON raw Format with classic session: CLASSIC SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                       '-h' + LOCALHOST.host,'-P' + LOCALHOST.port, '--session-type=classic','--schema=sakila', '--sqlc', '--json=raw']
+                       '-h' + LOCALHOST.host,'-P' + LOCALHOST.port, '--classic','--schema=sakila', '--sqlc', '--json=raw']
 
       x_cmds = [("select actor_id from actor limit 5;\n","\"rows\":[{\"actor_id\":58}"),
                 ]
@@ -4645,7 +4645,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[4.7.003] Retrieve with JSON raw Format with classic session: CLASSIC SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                       '-h' + LOCALHOST.host,'-P' + LOCALHOST.port, '--session-type=classic','--schema=sakila', '--sqlc', '--json=pretty']
+                       '-h' + LOCALHOST.host,'-P' + LOCALHOST.port, '--classic','--schema=sakila', '--sqlc', '--json=pretty']
 
       x_cmds = [("select actor_id from actor limit 5;\n","\"rows\": [" + os.linesep + ""),
                 ]
@@ -4657,7 +4657,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[4.7.001]   Retrieve with Table Output Format with classic session: CLASSIC SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                       '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=node','--schema=sakila', '--sql','--table']
+                       '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--node','--schema=sakila', '--sql','--table']
 
       x_cmds = [("select actor_id from actor limit 5;\n","| actor_id |"),
                 ]
@@ -4669,7 +4669,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[4.7.003] Retrieve with JSON raw Format with classic session: CLASSIC SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                       '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=node','--schema=sakila', '--sql', '--json=raw']
+                       '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--node','--schema=sakila', '--sql', '--json=raw']
 
       x_cmds = [("select actor_id from actor limit 5;\n","\"rows\":[{\"actor_id\":58}"),
                 ]
@@ -4681,7 +4681,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[4.7.003] Retrieve with JSON raw Format with classic session: CLASSIC SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                       '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=node','--schema=sakila', '--sql', '--json=pretty']
+                       '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--node','--schema=sakila', '--sql', '--json=pretty']
 
       x_cmds = [("select actor_id from actor limit 5;\n","\"rows\": [" + os.linesep + ""),
                 ]
@@ -4726,7 +4726,7 @@ class XShell_TestCases(unittest.TestCase):
   # def test_4_10_01_01(self):
   #     '''[3.1.009]:3 Check that STATUS command [ \status, \s ] works: node session \status'''
   #     results = ''
-  #     init_command = [MYSQL_SHELL, '--interactive=full', '--session-type=classic','--schema=sakila',
+  #     init_command = [MYSQL_SHELL, '--interactive=full', '--classic','--schema=sakila',
   #                     '--sqlc','--uri', '{0}:{1}@{2}:{3}'.format(REMOTEHOST.user, REMOTEHOST.password, REMOTEHOST.host,REMOTEHOST.port) ]
   #     cmd_echo = subprocess.Popen(['echo','select * from sakila.actor limit 3;'], stdout=subprocess.PIPE, shell=True)
   #     #p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin =os.system('echo select * from sakila.actor limit 3;'))
@@ -5058,7 +5058,7 @@ class XShell_TestCases(unittest.TestCase):
   def test_4_10_00_01(self):
      '''JS Exec Batch with huge data in Classic mode, Create and Insert:  --file= BigCreate_Classic.js'''
      init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                     '-h' + LOCALHOST.host, '-P' + LOCALHOST.port, '--session-type=classic', '--file=' + Exec_files_location + 'BigCreate_Classic.js']
+                     '-h' + LOCALHOST.host, '-P' + LOCALHOST.port, '--classic', '--file=' + Exec_files_location + 'BigCreate_Classic.js']
      p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE )
      stdin,stdout = p.communicate()
      if stdin.find(bytearray("ERROR","ascii"),0,len(stdin))> -1:
@@ -5070,7 +5070,7 @@ class XShell_TestCases(unittest.TestCase):
   def test_4_10_00_02(self):
      '''JS Exec Batch with huge data in Node mode, Create and Insert:  --file= BigCreate_Node.js'''
      init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                     '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--session-type=node', '--file=' + Exec_files_location + 'BigCreate_Node.js']
+                     '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--node', '--file=' + Exec_files_location + 'BigCreate_Node.js']
      p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE )
      stdin,stdout = p.communicate()
      if stdin.find(bytearray("ERROR","ascii"),0,len(stdin))> -1:
@@ -5083,7 +5083,7 @@ class XShell_TestCases(unittest.TestCase):
   def test_4_10_00_03(self):
      '''JS Exec Batch with huge data in Node mode, Create and Add:  --file= BigCreate_Coll_Node.js'''
      init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                     '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--session-type=node', '--file=' + Exec_files_location + 'BigCreate_Coll_Node.js']
+                     '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--node', '--file=' + Exec_files_location + 'BigCreate_Coll_Node.js']
      p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE )
      stdin,stdout = p.communicate()
      if stdin.find(bytearray("ERROR", "ascii"), 0, len(stdin)) > -1:
@@ -5098,7 +5098,7 @@ class XShell_TestCases(unittest.TestCase):
      jsRowsNum_Test = 1000
      results = ''
      init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                   '-h' + LOCALHOST.host, '-P' + LOCALHOST.port, '--session-type=classic', '--js']
+                   '-h' + LOCALHOST.host, '-P' + LOCALHOST.port, '--classic', '--js']
      x_cmds = [("session.runSql(\"use world_x;\");\n","Query OK"),
                ("session.runSql(\"SELECT * FROM world_x.big_data_classic_js where geometryCol is not null limit " + str(jsRowsNum_Test) + ";\")\n", str(jsRowsNum_Test) + " rows in set")
               ]
@@ -5110,7 +5110,7 @@ class XShell_TestCases(unittest.TestCase):
      jsRowsNum_Test = 1000
      results = ''
      init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                   '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--session-type=node', '--js']
+                   '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--node', '--js']
      x_cmds = [("var Table = session.getSchema(\'world_x\').getTable(\'big_data_node_js\')\n", ""),
                ("Table.select().where(\"stringCol like :likeFilter\").limit(" + str(jsRowsNum_Test) + ").bind(\"likeFilter\",\'Node\%\').execute()\n", str(jsRowsNum_Test) + " rows in set")
               ]
@@ -5123,7 +5123,7 @@ class XShell_TestCases(unittest.TestCase):
      jsRowsNum_Test = 1000
      results = ''
      init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                   '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--session-type=node', '--js']
+                   '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--node', '--js']
      x_cmds = [("var myColl = session.getSchema(\'world_x\').getCollection(\"big_coll_node_js\");\n", ""),
                ("myColl.find(\"Name = \'Mexico\'\").fields([\'_id\', \'Name\','geography.Region\',\'geography.Continent\']).limit(" + str(jsRowsNum_Test) + ")\n", str(jsRowsNum_Test) + " documents in set")
               ]
@@ -5136,7 +5136,7 @@ class XShell_TestCases(unittest.TestCase):
      jsRowsNum_Test = 1000
      results = ''
      init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                   '-h' + LOCALHOST.host, '-P' + LOCALHOST.port, '--session-type=classic', '--js']
+                   '-h' + LOCALHOST.host, '-P' + LOCALHOST.port, '--classic', '--js']
      x_cmds = [("session.runSql(\"use world_x;\");\n", "Query OK"),
                ("session.runSql(\"update big_data_classic_js set datetimeCol = now() where stringCol like \'Classic\%\' and blobCol is not null limit " + str(jsRowsNum_Test) + " ;\");\n", "Query OK, " + str(jsRowsNum_Test) + " rows affected")
               ]
@@ -5149,7 +5149,7 @@ class XShell_TestCases(unittest.TestCase):
      results = ''
      CurrentTime = datetime.datetime.now()
      init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                   '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--session-type=node', '--js']
+                   '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--node', '--js']
      x_cmds = [("var Table = session.getSchema('world_x').getTable('big_data_node_js')\n", ""),
                ("Table.update().set(\'datetimeCol\',\'" + str(CurrentTime) + "\').where(\"stringCol like :likeFilter\").limit(" + str(jsRowsNum_Test) + ").bind(\"likeFilter\",\'Node\%\').execute()\n", "Query OK, " + str(jsRowsNum_Test) + " items affected")
               ]
@@ -5162,7 +5162,7 @@ class XShell_TestCases(unittest.TestCase):
       jsRowsNum_Test = 1000
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                     '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=node', '--js']
+                     '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--node', '--js']
       x_cmds = [("session.sql(\"use world_x;\");\n", "Query OK"),
                 ("var myColl = session.getSchema(\'world_x\').getCollection(\"big_coll_node_js\");\n", ""),
                 ("myColl.modify(\"Name = :country\").set(\'Soccer_World_Championships\',\'0\').limit(" + str(jsRowsNum_Test) + ").bind(\'country\',\'Mexico\').execute();\n","Query OK, " + str(jsRowsNum_Test) + " items affected")
@@ -5175,7 +5175,7 @@ class XShell_TestCases(unittest.TestCase):
       jsRowsNum_Test = 1000
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                     '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=node', '--js']
+                     '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--node', '--js']
       x_cmds = [("session.sql(\"use world_x;\");\n", "Query OK"),
                 ("var myColl = session.getSchema(\'world_x\').getCollection(\"big_coll_node_js\");\n", ""),
                 ("myColl.modify(\"Name = :country\").unset(\'Soccer_World_Championships\').limit(" + str(jsRowsNum_Test) + ").bind(\'country\',\'Mexico\').execute();\n","Query OK, " + str(jsRowsNum_Test) + " items affected")
@@ -5188,7 +5188,7 @@ class XShell_TestCases(unittest.TestCase):
       jsRowsNum_Test = 1000
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                     '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=node', '--js']
+                     '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--node', '--js']
 
       x_cmds = [("session.sql(\"use world_x;\");\n", "Query OK"),
                 ("var myColl = session.getSchema(\'world_x\').getCollection(\"big_coll_node_js\");\n", ""),
@@ -5202,7 +5202,7 @@ class XShell_TestCases(unittest.TestCase):
       jsRowsNum_Test = 1000
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                     '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=node', '--js']
+                     '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--node', '--js']
 
       x_cmds = [("session.sql(\"use world_x;\");\n", "Query OK"),
                 ("var myColl = session.getSchema(\'world_x\').getCollection(\"big_coll_node_js\");\n", ""),
@@ -5217,7 +5217,7 @@ class XShell_TestCases(unittest.TestCase):
       jsRowsNum_Test = 1000
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                     '-h' + LOCALHOST.host,'-P' + LOCALHOST.port, '--session-type=classic', '--js']
+                     '-h' + LOCALHOST.host,'-P' + LOCALHOST.port, '--classic', '--js']
       x_cmds = [("session.runSql(\"use world_x;\");\n", "Query OK"),
                 ("session.runSql(\"DELETE FROM big_data_classic_js where stringCol like \'Classic\%\' limit " + str(jsRowsNum_Test) + ";\");\n", "Query OK, " + str(jsRowsNum_Test) + " rows affected"),
                 ("session.runSql(\"DROP TABLE big_data_classic_js;\");\n", "Query OK, 0 rows affected"),
@@ -5229,7 +5229,7 @@ class XShell_TestCases(unittest.TestCase):
      '''JS Exec a delete clause to huge number of rows in Node mode, Delete'''
      jsRowsNum_Test = 1000
      init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                     '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--session-type=node', '--js']
+                     '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--node', '--js']
      x_cmds = [("var Table = session.getSchema(\'world_x\').getTable(\'big_data_node_js\')\n", ""),
                ("Table.delete().where(\'stringCol like :likeFilter\').limit(" + str(jsRowsNum_Test) + ").bind(\'likeFilter\', \'Node\%\').execute();\n", "Query OK, " + str(jsRowsNum_Test) + " items affected"),
                ("session.dropTable(\'world_x\', \'big_data_node_js\');\n", "Query OK"),
@@ -5243,7 +5243,7 @@ class XShell_TestCases(unittest.TestCase):
       jsRowsNum_Test = 1000
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                     '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=node', '--js']
+                     '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--node', '--js']
       x_cmds = [("var myColl = session.getSchema(\'world_x\').getCollection(\"big_coll_node_js\");\n", ""),
                 ("myColl.remove(\'Name=:country\').limit(" + str(jsRowsNum_Test) + ").bind(\'country\',\'Mexico\').execute();\n", "Query OK, " + str(jsRowsNum_Test) + " items affected"),
                 ("session.dropCollection(\'world_x\', \'big_coll_node_js\');\n", "Query OK"),
@@ -5259,7 +5259,7 @@ class XShell_TestCases(unittest.TestCase):
   def test_4_10_01_01(self):
      '''PY Exec Batch with huge data in Classic mode, Create and Insert:  --file= BigCreate_Classic.py'''
      init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                     '-h' + LOCALHOST.host, '-P' + LOCALHOST.port, '--session-type=classic', '--py', '--file=' + Exec_files_location + 'BigCreate_Classic.py']
+                     '-h' + LOCALHOST.host, '-P' + LOCALHOST.port, '--classic', '--py', '--file=' + Exec_files_location + 'BigCreate_Classic.py']
      p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE )
      stdin,stdout = p.communicate()
      if stdout.find(bytearray("Error","ascii"),0,len(stdin))> -1:
@@ -5268,7 +5268,7 @@ class XShell_TestCases(unittest.TestCase):
   def test_4_10_01_02(self):
      '''PY Exec Batch with huge data in Node mode, Create and Insert:  --file= BigCreate_Node.py'''
      init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                     '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--session-type=node', '--py', '--file=' + Exec_files_location + 'BigCreate_Node.py']
+                     '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--node', '--py', '--file=' + Exec_files_location + 'BigCreate_Node.py']
      p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE )
      stdin,stdout = p.communicate()
      if stdout.find(bytearray("Error","ascii"),0,len(stdin))> -1:
@@ -5278,7 +5278,7 @@ class XShell_TestCases(unittest.TestCase):
   def test_4_10_01_03(self):
      '''PY Exec Batch with huge data in Node mode, Create and Add:  --file= BigCreate_Coll_Node.py'''
      init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                     '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--session-type=node', '--py', '--file=' + Exec_files_location + 'BigCreate_Coll_Node.py']
+                     '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--node', '--py', '--file=' + Exec_files_location + 'BigCreate_Coll_Node.py']
      p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE )
      stdin,stdout = p.communicate()
      if stdout.find(bytearray("Error","ascii"),0,len(stdin))> -1:
@@ -5290,7 +5290,7 @@ class XShell_TestCases(unittest.TestCase):
      pyRowsNum_Test = 1000
      results = ''
      init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                   '-h' + LOCALHOST.host, '-P' + LOCALHOST.port, '--session-type=classic', '--py']
+                   '-h' + LOCALHOST.host, '-P' + LOCALHOST.port, '--classic', '--py']
      x_cmds = [("session.runSql(\"use world_x;\");\n","Query OK"),
                ("session.runSql(\"SELECT * FROM world_x.big_data_classic_py where geometryCol is not null limit " + str(pyRowsNum_Test) + ";\")\n", str(pyRowsNum_Test) + " rows in set")
               ]
@@ -5302,7 +5302,7 @@ class XShell_TestCases(unittest.TestCase):
      pyRowsNum_Test = 1000
      results = ''
      init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                   '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--session-type=node', '--py']
+                   '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--node', '--py']
      x_cmds = [("Table = session.getSchema(\"world_x\").getTable(\"big_data_node_py\")\n", ""),
                ("Table.select().where(\"stringCol like :likeFilter\").limit(" + str(pyRowsNum_Test) + ").bind(\"likeFilter\",\"Node%\").execute()\n", str(pyRowsNum_Test) +" rows in set")
               ]
@@ -5315,7 +5315,7 @@ class XShell_TestCases(unittest.TestCase):
      pyRowsNum_Test = 1000
      results = ''
      init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                   '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--session-type=node', '--py']
+                   '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--node', '--py']
      x_cmds = [("myColl = session.getSchema(\"world_x\").getCollection(\"big_coll_node_py\");\n", ""),
                ("myColl.find(\"Name = \'Mexico\'\").fields([\"_id\", \"Name\",\"geography.Region\",\"geography.Continent\"]).limit(" + str(pyRowsNum_Test) + ")\n", str(pyRowsNum_Test) + " documents in set")
               ]
@@ -5328,7 +5328,7 @@ class XShell_TestCases(unittest.TestCase):
      pyRowsNum_Test = 1000
      results = ''
      init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                   '-h' + LOCALHOST.host, '-P' + LOCALHOST.port, '--session-type=classic', '--py']
+                   '-h' + LOCALHOST.host, '-P' + LOCALHOST.port, '--classic', '--py']
      x_cmds = [("session.runSql(\"use world_x;\");\n", "Query OK"),
                ("session.runSql(\"update big_data_classic_py set datetimeCol = now() where stringCol like \'Classic%\' and blobCol is not null limit " + str(pyRowsNum_Test) + ";\");\n", "Query OK, " + str(pyRowsNum_Test) + " rows affected")
               ]
@@ -5341,7 +5341,7 @@ class XShell_TestCases(unittest.TestCase):
      results = ''
      CurrentTime = datetime.datetime.now()
      init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                   '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--session-type=node', '--py']
+                   '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--node', '--py']
      x_cmds = [("Table = session.getSchema('world_x').getTable('big_data_node_py')\n", ""),
                ("Table.update().set(\'datetimeCol\',\'" + str(CurrentTime) + "\').where(\"stringCol like :likeFilter\").limit(" + str(pyRowsNum_Test) + ").bind(\"likeFilter\",\'Node%\').execute()\n", "Query OK, " + str(pyRowsNum_Test) + " items affected")
               ]
@@ -5354,7 +5354,7 @@ class XShell_TestCases(unittest.TestCase):
       pyRowsNum_Test = 1000
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                     '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=node', '--js']
+                     '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--node', '--js']
       x_cmds = [("session.sql(\"use world_x;\");\n", "Query OK"),
                 ("myColl = session.getSchema(\'world_x\').getCollection(\"big_coll_node_py\");\n", ""),
                 ("myColl.modify(\"Name = :country\").set(\'Soccer_World_Championships\',\'0\').limit(" + str(pyRowsNum_Test) + ").bind(\'country\',\'Mexico\').execute();\n","Query OK, " + str(pyRowsNum_Test) + " items affected")
@@ -5367,7 +5367,7 @@ class XShell_TestCases(unittest.TestCase):
       pyRowsNum_Test = 1000
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                     '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=node', '--py']
+                     '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--node', '--py']
       x_cmds = [("session.sql(\"use world_x;\");\n", "Query OK"),
                 ("myColl = session.getSchema(\'world_x\').getCollection(\"big_coll_node_py\");\n", ""),
                 ("myColl.modify(\"Name = :country\").unset(\'Soccer_World_Championships\').limit(" + str(pyRowsNum_Test) + ").bind(\'country\',\'Mexico\').execute();\n","Query OK, " + str(pyRowsNum_Test) + " items affected")
@@ -5380,7 +5380,7 @@ class XShell_TestCases(unittest.TestCase):
       pyRowsNum_Test = 1000
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                     '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=node', '--py']
+                     '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--node', '--py']
 
       x_cmds = [("session.sql(\"use world_x;\")\n", "Query OK"),
                 ("myColl = session.getSchema(\'world_x\').getCollection(\"big_coll_node_py\")\n", ""),
@@ -5394,7 +5394,7 @@ class XShell_TestCases(unittest.TestCase):
       pyRowsNum_Test = 1000
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                     '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=node', '--py']
+                     '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--node', '--py']
 
       x_cmds = [("session.sql(\"use world_x;\")\n", "Query OK"),
                 ("myColl = session.getSchema(\'world_x\').getCollection(\"big_coll_node_py\")\n", ""),
@@ -5409,7 +5409,7 @@ class XShell_TestCases(unittest.TestCase):
       pyRowsNum_Test = 1000
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                     '-h' + LOCALHOST.host,'-P' + LOCALHOST.port, '--session-type=classic', '--py']
+                     '-h' + LOCALHOST.host,'-P' + LOCALHOST.port, '--classic', '--py']
       x_cmds = [("session.runSql(\"use world_x;\")\n", "Query OK"),
                 ("session.runSql(\"DELETE FROM big_data_classic_py where stringCol like \'Classic%\' limit " + str(pyRowsNum_Test) + ";\")\n", "Query OK, " + str(pyRowsNum_Test) + " rows affected"),
                 ("session.runSql(\"DROP TABLE big_data_classic_py;\")\n", "Query OK, 0 rows affected"),
@@ -5421,7 +5421,7 @@ class XShell_TestCases(unittest.TestCase):
      '''PY Exec a delete clause to huge number of rows in Node mode, Delete'''
      pyRowsNum_Test = 1000
      init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                     '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--session-type=node', '--py']
+                     '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--node', '--py']
      x_cmds = [("Table = session.getSchema(\'world_x\').getTable(\'big_data_node_py\')\n", ""),
                ("Table.delete().where(\"stringCol like :likeFilter\").limit(" + str(pyRowsNum_Test) + ").bind(\"likeFilter\", \"Node%\").execute()\n", "Query OK, " + str(pyRowsNum_Test) + " items affected"),
                ("session.dropTable(\'world_x\', \'big_data_node_py\')\n", "Query OK"),
@@ -5435,7 +5435,7 @@ class XShell_TestCases(unittest.TestCase):
       pyRowsNum_Test = 1000
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                     '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=node', '--py']
+                     '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--node', '--py']
       x_cmds = [("myColl = session.getSchema(\"world_x\").getCollection(\"big_coll_node_py\")\n", ""),
                 ("myColl.remove(\"Name=:country\").limit(" + str(pyRowsNum_Test) + ").bind(\"country\",\"Mexico\").execute()\n", "Query OK, " + str(pyRowsNum_Test) + " items affected"),
                 ("session.dropCollection(\"world_x\", \"big_coll_node_py\")\n", "Query OK"),
@@ -5451,7 +5451,7 @@ class XShell_TestCases(unittest.TestCase):
   def test_4_10_02_01(self):
      '''SQL Exec Batch with huge data in Classic mode, Create and Insert:  --file= BigCreate_SQL.py'''
      init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                     '-h' + LOCALHOST.host, '-P' + LOCALHOST.port, '--session-type=classic', '--sqlc', '--file=' + Exec_files_location + 'BigCreate_SQL.sql']
+                     '-h' + LOCALHOST.host, '-P' + LOCALHOST.port, '--classic', '--sqlc', '--file=' + Exec_files_location + 'BigCreate_SQL.sql']
      p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
      stdin,stdout = p.communicate()
      if stdout.find(bytearray("Error","ascii"),0,len(stdin))> -1:
@@ -5461,7 +5461,7 @@ class XShell_TestCases(unittest.TestCase):
   def test_4_10_02_02(self):
      '''SQL Exec Batch with huge data in Classic mode for collection, Create and Insert:  --file= BigCreate_Coll_SQL.sql'''
      init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                     '-h' + LOCALHOST.host, '-P' + LOCALHOST.port, '--session-type=classic', '--sqlc', '--file=' + Exec_files_location + 'BigCreate_Coll_SQL.sql']
+                     '-h' + LOCALHOST.host, '-P' + LOCALHOST.port, '--classic', '--sqlc', '--file=' + Exec_files_location + 'BigCreate_Coll_SQL.sql']
      p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
      stdin,stdout = p.communicate()
      if stdout.find(bytearray("Error","ascii"),0,len(stdin))> -1:
@@ -5473,7 +5473,7 @@ class XShell_TestCases(unittest.TestCase):
      sqlRowsNum_Test = 1000
      results = ''
      init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                   '-h' + LOCALHOST.host, '-P' + LOCALHOST.port, '--session-type=classic', '--sqlc']
+                   '-h' + LOCALHOST.host, '-P' + LOCALHOST.port, '--classic', '--sqlc']
      x_cmds = [("SELECT * FROM world_x.bigdata_sql where stringCol like \'SQL%\' limit " + str(sqlRowsNum_Test) + ";\n", str(sqlRowsNum_Test) + " rows in set")]
      results = exec_xshell_commands(init_command, x_cmds)
      self.assertEqual(results, 'PASS')
@@ -5484,7 +5484,7 @@ class XShell_TestCases(unittest.TestCase):
      sqlRowsNum_Test = 1000
      results = ''
      init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                   '-h' + LOCALHOST.host, '-P' + LOCALHOST.port, '--session-type=classic', '--sqlc']
+                   '-h' + LOCALHOST.host, '-P' + LOCALHOST.port, '--classic', '--sqlc']
      x_cmds = [("SELECT * FROM world_x.bigdata_coll_sql where _id < " + str(sqlRowsNum_Test+1) + ";\n", str(sqlRowsNum_Test) + " rows in set")]
      results = exec_xshell_commands(init_command, x_cmds)
      self.assertEqual(results, 'PASS')
@@ -5495,7 +5495,7 @@ class XShell_TestCases(unittest.TestCase):
      sqlRowsNum_Test = 1000
      results = ''
      init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                   '-h' + LOCALHOST.host, '-P' + LOCALHOST.port, '--session-type=classic', '--sqlc']
+                   '-h' + LOCALHOST.host, '-P' + LOCALHOST.port, '--classic', '--sqlc']
      x_cmds = [("update world_x.bigdata_sql set datetimeCol = now() where stringCol like 'SQL%';\n", "Rows matched: " + str(sqlRowsNum_Test) + "  Changed: " + str(sqlRowsNum_Test) + "  Warnings: 0")]
      results = exec_xshell_commands(init_command, x_cmds)
      self.assertEqual(results, 'PASS')
@@ -5506,7 +5506,7 @@ class XShell_TestCases(unittest.TestCase):
      sqlRowsNum_Test = 1000
      results = ''
      init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                   '-h' + LOCALHOST.host, '-P' + LOCALHOST.port, '--session-type=classic', '--sqlc']
+                   '-h' + LOCALHOST.host, '-P' + LOCALHOST.port, '--classic', '--sqlc']
      x_cmds = [("update world_x.bigdata_coll_sql set doc = \'{\"GNP\" : 414972,\"IndepYear\" : 1810,\"Name\" : \"Mexico\",\"_id\" : \"9001\"}\';\n", "Rows matched: " + str(sqlRowsNum_Test) + "  Changed: " + str(sqlRowsNum_Test) + "  Warnings: 0")]
      results = exec_xshell_commands(init_command, x_cmds)
      self.assertEqual(results, 'PASS')
@@ -5517,7 +5517,7 @@ class XShell_TestCases(unittest.TestCase):
      sqlRowsNum_Test = 1000
      results = ''
      init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                   '-h' + LOCALHOST.host, '-P' + LOCALHOST.port, '--session-type=classic', '--sqlc']
+                   '-h' + LOCALHOST.host, '-P' + LOCALHOST.port, '--classic', '--sqlc']
      x_cmds = [("DELETE FROM world_x.bigdata_sql where blobCol is not null;\n", str(sqlRowsNum_Test) + " rows affected"),
                ("DROP PROCEDURE world_x.InsertInfoSQL;\n", "0 rows affected"),
                ("DROP TABLE world_x.bigdata_sql;\n", "0 rows affected")
@@ -5531,7 +5531,7 @@ class XShell_TestCases(unittest.TestCase):
      sqlRowsNum_Test = 1000
      results = ''
      init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                   '-h' + LOCALHOST.host, '-P' + LOCALHOST.port, '--session-type=classic', '--sqlc']
+                   '-h' + LOCALHOST.host, '-P' + LOCALHOST.port, '--classic', '--sqlc']
      x_cmds = [("DELETE FROM world_x.bigdata_coll_sql where _id > 0;\n", str(sqlRowsNum_Test) + " rows affected"),
                ("DROP PROCEDURE world_x.InsertInfoSQLColl;\n", "0 rows affected"),
                ("DROP TABLE world_x.bigdata_coll_sql;\n", "0 rows affected")
@@ -5571,7 +5571,7 @@ class XShell_TestCases(unittest.TestCase):
       ''' using  getLastDocumentId() function'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                       '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=node','--schema=sakila', '--js']
+                       '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--node','--schema=sakila', '--js']
 
       x_cmds = [("session.dropCollection('sakila','my_collection');\n", "mysql-js>"),
                 ("session.getSchema('sakila').createCollection('my_collection');\n", "mysql-js>"),
@@ -5642,7 +5642,7 @@ class XShell_TestCases(unittest.TestCase):
       for w in sessMode:
           results = ''
           init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, w +  LOCALHOST.password ,
-                          '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=app']
+                          '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--x']
           p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
           #p.stdin.write(bytearray(LOCALHOST.password+"\n", 'ascii'))
           p.stdin.flush()
@@ -5660,7 +5660,7 @@ class XShell_TestCases(unittest.TestCase):
       for w in sessMode:
           results = ''
           init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, w,'--passwords-from-stdin',
-                          '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=app']
+                          '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--x']
           p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
           p.stdin.write(bytearray(LOCALHOST.password+"\n", 'ascii'))
           p.stdin.flush()
@@ -5692,7 +5692,7 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       #init_command = [MYSQL_SHELL, '--interactive=full', '--version' ]
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=node', '--js', '--schema=sakila',
+                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--node', '--js', '--schema=sakila',
                       '--execute=print(dir(session))']
       p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
       p.stdin.flush()
@@ -5715,7 +5715,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[3.1.009]:1 Check that STATUS command [ \status, \s ] works: app session \status'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--uri',
-                      'mysqlx://{0}:{1}@{2}:{3}'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), '--session-type=app', '--js']
+                      'mysqlx://{0}:{1}@{2}:{3}'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), '--x', '--js']
       x_cmds = [("\\s\n", "Current user:                 root@localhost")
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
@@ -5725,7 +5725,7 @@ class XShell_TestCases(unittest.TestCase):
       """ Verify the bug https://jira.oraclecorp.com/jira/browse/MYS-193 with classic session"""
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.port, '--session-type=classic', '--js']
+                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.port, '--classic', '--js']
       x_cmds = [(";\n", 'mysql-js>'),
                 ("session\n", "<ClassicSession:" + LOCALHOST.user + "@" + LOCALHOST.host + ":" + LOCALHOST.port + ">")
                 ]
@@ -5736,7 +5736,7 @@ class XShell_TestCases(unittest.TestCase):
       """ Verify the bug https://jira.oraclecorp.com/jira/browse/MYS-193 with node session"""
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=node', '--js']
+                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--node', '--js']
       x_cmds = [(";\n", 'mysql-js>'),
                 ("session\n", "<NodeSession:" + LOCALHOST.user + "@" + LOCALHOST.host + ":" + LOCALHOST.xprotocol_port + ">")
                 ]
@@ -5747,7 +5747,7 @@ class XShell_TestCases(unittest.TestCase):
       """ Verify the bug https://jira.oraclecorp.com/jira/browse/MYS-193 with app session"""
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=app', '--js']
+                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--x', '--js']
       x_cmds = [(";\n", 'mysql-js>'),
                 ("session\n", "<XSession:" + LOCALHOST.user + "@" + LOCALHOST.host + ":" + LOCALHOST.xprotocol_port + ">")
                 ]
@@ -5758,7 +5758,7 @@ class XShell_TestCases(unittest.TestCase):
       """ Verify the bug https://jira.oraclecorp.com/jira/browse/MYS-200 with classic session"""
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.port, '--session-type=classic', '--py']
+                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.port, '--classic', '--py']
       x_cmds = [(";\n", 'mysql-py>'),
                 ("session.runSql(\"CREATE TABLE world_x.TextMYS200classic (  sTiny TINYTEXT NULL,  sText TEXT NULL,  sMediumText MEDIUMTEXT NULL, sLongText LONGTEXT NULL);\")\n", "Query OK"),
                 ("session.runSql(\"INSERT INTO world_x.TextMYS200classic VALUES(\'IamTiny\',\'IamAText\',\'IAmMediumText\',\'IAmLongText\');\")\n", "Query OK"),
@@ -5773,7 +5773,7 @@ class XShell_TestCases(unittest.TestCase):
       """ Verify the bug https://jira.oraclecorp.com/jira/browse/MYS-200 with node session"""
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=node', '--py']
+                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--node', '--py']
       x_cmds = [(";\n", 'mysql-py>'),
                 ("session.sql(\"CREATE TABLE world_x.TextMYS200node (  sTiny TINYTEXT NULL,  sText TEXT NULL,  sMediumText MEDIUMTEXT NULL, sLongText LONGTEXT NULL);\")\n", "Query OK"),
                 ("Table = session.getSchema(\'world_x\').getTable(\'TextMYS200node\')\n", ""),
@@ -5790,7 +5790,7 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       error = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=node', '--py', '--json=raw']
+                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--node', '--py', '--json=raw']
       x_cmds = [("\n", 'mysql-py>'),
                 ("session\n", '{\"result\":{\"class\":\"NodeSession\",\"connected\":true,\"uri\":\"' + LOCALHOST.user + '@' + LOCALHOST.host + ':' + LOCALHOST.xprotocol_port + '\"}}'),
                 ("\\sql\n", "mysql-sql>"),
@@ -5807,7 +5807,7 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       error = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=node', '--py', '--json=pretty']
+                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--node', '--py', '--json=pretty']
       x_cmds = [("\n", 'mysql-py>'),
                 ("session\n", '\"uri\": \"' + LOCALHOST.user + '@' + LOCALHOST.host + ':' + LOCALHOST.xprotocol_port + '\"'),
                 ("\\sql\n", "mysql-sql>"),
@@ -5823,7 +5823,7 @@ class XShell_TestCases(unittest.TestCase):
       """ Verify the bug https://jira.oraclecorp.com/jira/browse/MYS-225 with classic session"""
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.port, '--session-type=classic', '--py']
+                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.port, '--classic', '--py']
       x_cmds = [(";\n", 'mysql-py>'),
                 ("session.runSql(\'CREATE TABLE world_x.TestMYS225classic (Value INT NOT NULL, ValueDecimal FLOAT NOT NULL);\')\n", "Query OK"),
                 ("session.runSql(\'INSERT INTO world_x.TestMYS225classic VALUES (1,1.1),(2,2.1),(3,3.1),(4,4.1),(5,5.1),(6,6.1),(7,7.1),(8,8.1),(9,9.1),(10,10.1);\')\n", "Query OK, 10 rows affected"),
@@ -5838,7 +5838,7 @@ class XShell_TestCases(unittest.TestCase):
       """ Verify the bug https://jira.oraclecorp.com/jira/browse/MYS-225 with node session"""
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=node', '--py']
+                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--node', '--py']
       x_cmds = [(";\n", 'mysql-py>'),
                 ("session.sql(\'CREATE TABLE world_x.TestMYS225node (Value INT NOT NULL, valuedecimal FLOAT NOT NULL);\')\n", "Query OK"),
                 ("Table = session.getSchema(\'world_x\').getTable(\'TestMYS225node\')\n", ""),
@@ -5880,7 +5880,7 @@ class XShell_TestCases(unittest.TestCase):
       """ Verify the bug https://jira.oraclecorp.com/jira/browse/MYS-286 with classic session"""
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.port, '--session-type=classic', '--sqlc']
+                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.port, '--classic', '--sqlc']
       x_cmds = [(";\n", 'mysql-sql>'),
                 ("create table world_x.MYS286 (date datetime);\n", "Query OK"),
                 ("insert into world_x.MYS286 values (now());\n", "Query OK, 1 row affected"),
@@ -5894,7 +5894,7 @@ class XShell_TestCases(unittest.TestCase):
       """ Verify the bug https://jira.oraclecorp.com/jira/browse/MYS-286 with classic session"""
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=node', '--js']
+                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--node', '--js']
       x_cmds = [(";\n", 'mysql-js>'),
                 ("session.sql(\'create table world_x.mys286 (date datetime);\')\n", "Query OK"),
                 ("Table = session.getSchema(\'world_x\').getTable(\'mys286\')\n", "<Table:mys286>"),
@@ -5949,7 +5949,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[4.1.002] SQL Create a table using STDIN batch process: NODE SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--sql', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                      '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--session-type=node','--sql','--schema=sakila',
+                      '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--node','--sql','--schema=sakila',
                       '--file='+ Exec_files_location +'CreateTable_SQL.sql']
 
       p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE )
@@ -6016,7 +6016,7 @@ class XShell_TestCases(unittest.TestCase):
       """ Verify the bug https://jira.oraclecorp.com/jira/browse/MYS-309 with classic session and - as part of schema name"""
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.port, '--session-type=classic', '--py']
+                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.port, '--classic', '--py']
       x_cmds = [(";\n", 'mysql-py>'),
                 ("session.createSchema(\'my-Classic\')\n", "<ClassicSchema:my-Classic>"),
                 ("session.dropSchema(\'my-Classic\')\n", "Query OK")
@@ -6028,7 +6028,7 @@ class XShell_TestCases(unittest.TestCase):
       """ Verify the bug https://jira.oraclecorp.com/jira/browse/MYS-309 with node session and - as part of schema name"""
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=node', '--py']
+                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--node', '--py']
       x_cmds = [(";\n", 'mysql-py>'),
                 ("session.createSchema(\'my-Node\')\n", "<Schema:my-Node>"),
                 ("session.dropSchema(\'my-Node\')\n", "Query OK")
@@ -6080,7 +6080,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[2.0.01]:1 Connect local Server w/Command Line Args'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=app', '--py','--js' ,  '--sql']
+                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--x', '--py','--js' ,  '--sql']
       p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
       p.stdin.write(bytearray(";\n", 'ascii'))
       p.stdin.flush()
@@ -6095,7 +6095,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[2.0.01]:1 Connect local Server w/Command Line Args'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=app',  '--sql','--js', '--py']
+                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--x',  '--sql','--js', '--py']
       p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
       p.stdin.write(bytearray("\n", 'ascii'))
       p.stdin.flush()
@@ -6110,7 +6110,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[2.0.01]:1 Connect local Server w/Command Line Args'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=app', '--py' ,  '--sql','--js']
+                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--x', '--py' ,  '--sql','--js']
       p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
       p.stdin.write(bytearray(";\n", 'ascii'))
       p.stdin.flush()
@@ -6127,7 +6127,7 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       #init_command = [MYSQL_SHELL, '--interactive=full', '--version' ]
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.port, '--session-type=classic', '--sqlc']
+                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.port, '--classic', '--sqlc']
       p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
       p.stdin.flush()
       #stdin,stdout = p.communicate()
@@ -6161,7 +6161,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[3.1.009]:1 Check that STATUS command [ \status, \s ] works: app session \status'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--uri',
-                      'mysqlx://{0}:{1}@{2}:{3}'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), '--session-type=app', '--js']
+                      'mysqlx://{0}:{1}@{2}:{3}'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), '--x', '--js']
       x_cmds = [("\\status\n", "Current user:                 "+LOCALHOST.user+"@"+LOCALHOST.host),
                 ("\\s\n", "Current user:                 "+LOCALHOST.user+"@"+LOCALHOST.host),
                 ]
@@ -6172,7 +6172,7 @@ class XShell_TestCases(unittest.TestCase):
       """ Verify the bug https://jira.oraclecorp.com/jira/browse/MYS-341 with classic session and py custom prompt"""
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.port, '--session-type=classic', '--py']
+                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.port, '--classic', '--py']
       x_cmds = [(";\n", 'mysql-py>'),
                 ("def custom_prompt(): return \'--mypy--prompt-->\'\n", ""),
                 ("shell.ps = custom_prompt\n", "--mypy--prompt-->"),
@@ -6186,7 +6186,7 @@ class XShell_TestCases(unittest.TestCase):
       """ Verify the bug https://jira.oraclecorp.com/jira/browse/MYS-341 with node session and js custom prompt"""
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                      '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--session-type=node', '--js']
+                      '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--node', '--js']
       x_cmds = [(";\n", 'mysql-js>'),
                 ("function custom_prompt(){ return session.uri + \'>>\'; }\n", ""),
                 ("shell.ps = custom_prompt\n", LOCALHOST.user + "@" + LOCALHOST.host + ":" + LOCALHOST.xprotocol_port + ">>"),
@@ -6201,7 +6201,7 @@ class XShell_TestCases(unittest.TestCase):
   def test_MYS_348(self):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-           '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=node', '--sql']
+           '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--node', '--sql']
       x_cmds = [("use sakila;\n", "mysql-sql>"),
                 ("drop table if exists funwithdates;\n", "Query OK"),
                 ("CREATE TABLE funwithdates ( col_a date DEFAULT NULL) ENGINE=InnoDB DEFAULT CHARSET=latin1;\n","mysql-sql>" ),
@@ -6223,7 +6223,7 @@ class XShell_TestCases(unittest.TestCase):
       for w in sessMode:
           results = ''
           init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, w+LOCALHOST.password,
-                          '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=app']
+                          '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--x']
           p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
           p.stdin.write(bytearray(LOCALHOST.password+"\n", 'ascii'))
           p.stdin.flush()
@@ -6239,7 +6239,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[4.1.002] SQL Create a table using STDIN batch process: NODE SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--sqlc', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                      '-h' + LOCALHOST.host, '-P' + LOCALHOST.port, '--session-type=classic','--schema=sakila']
+                      '-h' + LOCALHOST.host, '-P' + LOCALHOST.port, '--classic','--schema=sakila']
       x_cmds = [("SELECT * FROM INFORMATION_SCHEMA.PROCESSLIST WHERE USER ='root';\n","| root |")
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
@@ -6249,7 +6249,7 @@ class XShell_TestCases(unittest.TestCase):
       ''' DB.TABLES DOESN'T UPDATE CACHE WHEN CALLED TWICE'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                       '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=node','--schema=sakila']
+                       '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--node','--schema=sakila']
 
       x_cmds = [("\sql\n", "mysql-sql>"),
                 ("drop table if exists sakila.tables;\n", "mysql-sql>"),
@@ -6265,7 +6265,7 @@ class XShell_TestCases(unittest.TestCase):
       ''' DB.TABLENAME.SELECT() DOESN'T WORK IF TABLENAME IS "TABLES" OR "COLLECTIONS"'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                       '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=node','--schema=sakila', '--sql']
+                       '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--node','--schema=sakila', '--sql']
 
       x_cmds = [("drop table if exists sakila.tables;\n", "Query OK"),
                 ("CREATE TABLE `tables` (\n", "..."),
@@ -6296,7 +6296,7 @@ class XShell_TestCases(unittest.TestCase):
       ''' DB.TABLENAME.SELECT() DOESN'T WORK IF TABLENAME IS "TABLES" OR "COLLECTIONS"'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                       '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=node','--schema=sakila', '--sql']
+                       '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--node','--schema=sakila', '--sql']
 
       x_cmds = [("drop table if exists sakila.tables;\n", "Query OK"),
                 ("CREATE TABLE `collections` (\n", "..."),
@@ -6328,7 +6328,7 @@ class XShell_TestCases(unittest.TestCase):
       """ Verify the bug https://jira.oraclecorp.com/jira/browse/MYS-366 with node session """
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                      '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--session-type=node', '--py']
+                      '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--node', '--py']
       x_cmds = [(";\n", 'mysql-py>'),
                 ("session.dropCollection('world_x','MyBindColl')\n", "mysql-py>"),
                 ("coll = session.getSchema('world_x').createCollection('MyBindColl')\n", "mysql-py>"),
@@ -6346,7 +6346,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[4.1.002] SQL Create a table using STDIN batch process: NODE SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--js', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                      '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--session-type=node','--schema=sakila']
+                      '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--node','--schema=sakila']
       x_cmds = [("print(session);\n","NodeSession:root@localhost:33060/sakila")
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
@@ -6356,7 +6356,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[4.1.002] SQL Create a table using STDIN batch process: NODE SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--js', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                      '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--session-type=app','--schema=sakila']
+                      '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--x','--schema=sakila']
       x_cmds = [("print(session);\n","XSession:root@localhost:33060/sakila")
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
@@ -6366,7 +6366,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[4.1.002] SQL Create a table using STDIN batch process: NODE SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--sqlc', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                      '-h' + LOCALHOST.host, '-P' + LOCALHOST.port, '--session-type=classic','--schema=sakila']
+                      '-h' + LOCALHOST.host, '-P' + LOCALHOST.port, '--classic','--schema=sakila']
       x_cmds = [("\\s\n","Session type:                 Classic")
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
@@ -6413,7 +6413,7 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       #init_command = [MYSQL_SHELL, '--interactive=full', '--version' ]
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=node', '--js', '--schema=sakila',
+                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--node', '--js', '--schema=sakila',
                       '-e print(dir(session))']
       p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
       p.stdin.flush()
@@ -6430,7 +6430,7 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       error = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=node', '--py', '--json=raw']
+                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--node', '--py', '--json=raw']
       x_cmds = [("\n", 'mysql-py>'),
                 ("session\n", '{\"result\":{\"class\":\"NodeSession\",\"connected\":true,\"uri\":\"' + LOCALHOST.user + '@' + LOCALHOST.host + ':' + LOCALHOST.xprotocol_port + '\"}}'),
                 ("\\sql\n", "mysql-sql>"),
@@ -6473,7 +6473,7 @@ class XShell_TestCases(unittest.TestCase):
       ''' db.tables and db.views should be removed'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                       '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=node','--schema=sakila', '--js']
+                       '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--node','--schema=sakila', '--js']
 
       x_cmds = [("\\warnings\n", "mysql-js>"),
                 ("db.tables();\n", "" + os.linesep + os.linesep + ""),
@@ -6489,7 +6489,7 @@ class XShell_TestCases(unittest.TestCase):
       ''' NOT AND LIKE OPERATORS ARE NOT ACCEPTED IN UPPERCASE'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                       '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=node','--schema=sakila', '--sql']
+                       '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--node','--schema=sakila', '--sql']
 
       x_cmds = [("drop table if exists sakila.character;\n", "Query OK"),
                 ("CREATE TABLE `character` (\n", "..."),
@@ -6518,7 +6518,7 @@ class XShell_TestCases(unittest.TestCase):
       ''' NOT AND LIKE OPERATORS ARE NOT ACCEPTED IN UPPERCASE'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                       '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=node','--schema=sakila', '--sql']
+                       '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--node','--schema=sakila', '--sql']
 
       x_cmds = [("drop table if exists sakila.character;\n", "Query OK"),
                 ("CREATE TABLE `character` (\n", "..."),
@@ -6550,7 +6550,7 @@ class XShell_TestCases(unittest.TestCase):
       ''' TRUE OR FALSE NOT RECOGNIZED AS AVAILABLE BOOL CONSTANTS'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                       '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=node','--schema=sakila', '--sql']
+                       '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--node','--schema=sakila', '--sql']
 
       x_cmds = [("drop table if exists sakila.character;\n", "Query OK"),
                 ("CREATE TABLE `character` (\n", "..."),
@@ -6579,7 +6579,7 @@ class XShell_TestCases(unittest.TestCase):
       """ AFTER CREATING SCHEMA IN PY SESSION, GETSCHEMAS DOESN'T REFRESH\SHOW SUCH SCHEMA"""
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.port, '--session-type=classic', '--py']
+                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.port, '--classic', '--py']
       x_cmds = [(";\n", 'mysql-py>'),
                 ("session.runSql('DROP DATABASE IF EXISTS schema_test;')\n", ""),
                 ("session.runSql('CREATE SCHEMA schema_test;')\n", "Query OK"),
@@ -6593,7 +6593,7 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       error = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
-                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--session-type=node', '--sql']
+                      '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--node', '--sql']
       x_cmds = [("drop database if exists collections;\n", 'Query OK'),
                 ("create database collections;\n", "Query OK"),
                 ("\\py\n", "mysql-py>"),
