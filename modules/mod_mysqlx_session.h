@@ -182,9 +182,7 @@ namespace mysh
       virtual ~NodeSession(){};
       virtual std::string class_name() const { return "NodeSession"; };
 
-      virtual std::vector<std::string> get_members() const;
       virtual shcore::Value get_member(const std::string &prop) const;
-      virtual bool has_member(const std::string &prop) const;
 
       static boost::shared_ptr<shcore::Object_bridge> create(const shcore::Argument_list &args);
       virtual boost::shared_ptr<BaseSession> _get_shared_this() const;

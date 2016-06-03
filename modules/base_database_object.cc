@@ -47,9 +47,10 @@ DatabaseObject::~DatabaseObject()
 
 void DatabaseObject::init()
 {
-  add_method("getName", boost::bind(&DatabaseObject::get_member_method, this, _1, "getName", "name"), NULL);
-  add_method("getSession", boost::bind(&DatabaseObject::get_member_method, this, _1, "getSession", "session"), NULL);
-  add_method("getSchema", boost::bind(&DatabaseObject::get_member_method, this, _1, "getSchema", "schema"), NULL);
+  add_property("name", "getName");
+  add_property("session", "getSession");
+  add_property("schema", "getSchema");
+
   add_method("existsInDatabase", boost::bind(&DatabaseObject::existsInDatabase, this, _1), "data");
 }
 
@@ -74,24 +75,6 @@ void DatabaseObject::append_json(shcore::JSON_dumper& dumper) const
   dumper.end_object();
 }
 
-std::vector<std::string> DatabaseObject::get_members() const
-{
-  std::vector<std::string> members(Cpp_object_bridge::get_members());
-  members.push_back("name");
-  members.push_back("session");
-  members.push_back("schema");
-
-  return members;
-}
-
-shcore::Value DatabaseObject::get_member_method(const shcore::Argument_list &args, const std::string& method, const std::string& prop)
-{
-  std::string function = class_name() + "." + method;
-  args.ensure_count(0, function.c_str());
-
-  return get_member(prop);
-}
-
 bool DatabaseObject::operator == (const Object_bridge &other) const
 {
   if (class_name() == other.class_name())
@@ -102,14 +85,6 @@ bool DatabaseObject::operator == (const Object_bridge &other) const
            class_name() == other.class_name();
   }
   return false;
-}
-
-bool DatabaseObject::has_member(const std::string &prop) const
-{
-  return Cpp_object_bridge::has_member(prop) ||
-    prop == "name" ||
-    prop == "session" ||
-    prop == "schema";
 }
 
 #ifdef DOXYGEN

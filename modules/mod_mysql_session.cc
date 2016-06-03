@@ -72,12 +72,13 @@ void ClassicSession::init()
 {
   //_schema_proxy.reset(new Proxy_object(boost::bind(&ClassicSession::get_db, this, _1)));
 
+  add_property("currentSchema", "getCurrentSchema");
+
   add_method("close", boost::bind(&ClassicSession::close, this, _1), "data");
   add_method("runSql", boost::bind(&ClassicSession::run_sql, this, _1),
     "stmt", shcore::String,
     NULL);
   add_method("setCurrentSchema", boost::bind(&ClassicSession::set_current_schema, this, _1), "name", shcore::String, NULL);
-  add_method("getCurrentSchema", boost::bind(&ShellDevelopmentSession::get_member_method, this, _1, "getCurrentSchema", "currentSchema"), NULL);
   add_method("startTransaction", boost::bind(&ClassicSession::startTransaction, this, _1), "data");
   add_method("commit", boost::bind(&ClassicSession::commit, this, _1), "data");
   add_method("rollback", boost::bind(&ClassicSession::rollback, this, _1), "data");
@@ -209,15 +210,6 @@ Value ClassicSession::create_schema(const shcore::Argument_list &args)
   return ret_val;
 }
 
-std::vector<std::string> ClassicSession::get_members() const
-{
-  std::vector<std::string> members(ShellDevelopmentSession::get_members());
-
-  members.push_back("currentSchema");
-
-  return members;
-}
-
 #ifdef DOXYGEN
 /**
 * Retrieves the ClassicSchema configured as default for the session.
@@ -246,13 +238,7 @@ Value ClassicSession::get_member(const std::string &prop) const
   // Retrieves the member first from the parent
   Value ret_val;
 
-  // Check the member is on the base classes before attempting to
-  // retrieve it since it may throw invalid member otherwise
-  // If not on the parent classes and not here then we can safely assume
-  // it is a schema and attempt loading it as such
-  if (ShellDevelopmentSession::has_member(prop))
-    ret_val = ShellDevelopmentSession::get_member(prop);
-  else if (prop == "currentSchema")
+  if (prop == "currentSchema")
   {
     ClassicSession *session = const_cast<ClassicSession *>(this);
     std::string name = session->_retrieve_current_schema();
@@ -266,14 +252,10 @@ Value ClassicSession::get_member(const std::string &prop) const
     else
       ret_val = Value::Null();
   }
+  else
+    ret_val = ShellDevelopmentSession::get_member(prop);
 
   return ret_val;
-}
-
-bool ClassicSession::has_member(const std::string &prop) const
-{
-  return ShellDevelopmentSession::has_member(prop) ||
-    prop == "currentSchema";
 }
 
 std::string ClassicSession::_retrieve_current_schema()

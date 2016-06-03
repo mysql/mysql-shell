@@ -498,15 +498,15 @@ bool Interactive_shell::switch_shell_mode(Shell_core::Mode mode, const std::vect
         println("Python mode is not supported, command ignored.");
 #endif
         break;
-        }
+    }
 
     // load scripts for standard locations
     if (lang_initialized)
       init_scripts(mode);
-      }
+  }
 
   return true;
-    }
+}
 
 void Interactive_shell::print(const std::string &str)
 {
@@ -1146,9 +1146,9 @@ void Interactive_shell::process_line(const std::string &line)
       // the non executed code
       if (_input_mode == Input_ok)
         _input_buffer.clear();
+    }
   }
 }
-  }
 
 void Interactive_shell::abort()
 {
@@ -1213,7 +1213,7 @@ void Interactive_shell::process_result(shcore::Value result)
             dumper.append_value("result", result);
             dumper.end_object();
 
-            print(dumper.str());
+            _delegate.print(_delegate.user_data, dumper.str().c_str());
           }
           else
             _delegate.print(_delegate.user_data, result.descr(true).c_str());
@@ -1267,7 +1267,7 @@ int Interactive_shell::process_stream(std::istream & stream, const std::string& 
   // Emulate interactive mode while processing the stream
   if (_options.interactive)
   {
-    bool comment_first_js_line = _shell->interactive_mode()== IShell_core::Mode_JScript;
+    bool comment_first_js_line = _shell->interactive_mode() == IShell_core::Mode_JScript;
     while (!stream.eof())
     {
       std::string line;
@@ -1276,14 +1276,14 @@ int Interactive_shell::process_stream(std::istream & stream, const std::string& 
 
       // When processing JavaScript files, validates the very first line to start with #!
       // If that's the case, it is replaced by a comment indicator //
-      if (comment_first_js_line && line.size() > 1 && line[0]=='#' && line[1]=='!')
+      if (comment_first_js_line && line.size() > 1 && line[0] == '#' && line[1] == '!')
         line.replace(0, 2, "//");
 
       comment_first_js_line = false;
 
       if (_options.full_interactive)
       {
-        print(prompt());
+        _delegate.print(_delegate.user_data, prompt().c_str());
         println(line);
       }
 

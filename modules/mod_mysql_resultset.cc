@@ -34,49 +34,20 @@ using namespace mysh::mysql;
 ClassicResult::ClassicResult(boost::shared_ptr<Result> result)
   : _result(result)
 {
+  add_property("columns", "getColumns");
+  add_property("columnCount", "getColumnCount");
+  add_property("columnNames", "getColumnNames");
+  add_property("affectedRowCount", "getAffectedRowCount");
+  add_property("warningCount", "getWarningCount");
+  add_property("warnings", "getWarnings");
+  add_property("executionTime", "getExecutionTime");
+  add_property("autoIncrementValue", "getAutoIncrementValue");
+  add_property("info", "getInfo");
+
   add_method("fetchOne", boost::bind(&ClassicResult::fetch_one, this, _1), "nothing", shcore::String, NULL);
   add_method("fetchAll", boost::bind(&ClassicResult::fetch_all, this, _1), "nothing", shcore::String, NULL);
   add_method("nextDataSet", boost::bind(&ClassicResult::next_data_set, this, _1), "nothing", shcore::String, NULL);
   add_method("hasData", boost::bind(&ClassicResult::has_data, this, _1), "nothing", shcore::String, NULL);
-
-  add_method("getColumns", boost::bind(&ShellBaseResult::get_member_method, this, _1, "getColumns", "columns"), NULL);
-  add_method("getColumnCount", boost::bind(&ShellBaseResult::get_member_method, this, _1, "getColumnCount", "columnCount"), NULL);
-  add_method("getColumnNames", boost::bind(&ShellBaseResult::get_member_method, this, _1, "getColumnNames", "columnNames"), NULL);
-  add_method("getAffectedRowCount", boost::bind(&ShellBaseResult::get_member_method, this, _1, "getAffectedRowCount", "affectedRowCount"), NULL);
-  add_method("getWarningCount", boost::bind(&ShellBaseResult::get_member_method, this, _1, "getWarningCount", "warningCount"), NULL);
-  add_method("getWarnings", boost::bind(&ShellBaseResult::get_member_method, this, _1, "getWarnings", "warnings"), NULL);
-  add_method("getExecutionTime", boost::bind(&ShellBaseResult::get_member_method, this, _1, "getExecutionTime", "executionTime"), NULL);
-  add_method("getAutoIncrementValue", boost::bind(&ShellBaseResult::get_member_method, this, _1, "getAutoIncrementValue", "autoIncrementValue"), NULL);
-  add_method("getInfo", boost::bind(&ShellBaseResult::get_member_method, this, _1, "getInfo", "info"), NULL);
-}
-
-std::vector<std::string> ClassicResult::get_members() const
-{
-  std::vector<std::string> members(shcore::Cpp_object_bridge::get_members());
-  members.push_back("columns");
-  members.push_back("columnCount");
-  members.push_back("columnNames");
-  members.push_back("affectedRowCount");
-  members.push_back("warnings");
-  members.push_back("warningCount");
-  members.push_back("executionTime");
-  members.push_back("autoIncrementValue");
-  members.push_back("info");
-  return members;
-}
-
-bool ClassicResult::has_member(const std::string &prop) const
-{
-  return ShellBaseResult::has_member(prop) ||
-    prop == "columns" ||
-    prop == "columnCount" ||
-    prop == "columnNames" ||
-    prop == "affectedRowCount" ||
-    prop == "warnings" ||
-    prop == "warningCount" ||
-    prop == "executionTime" ||
-    prop == "autoIncrementValue" ||
-    prop == "info";
 }
 
 #ifdef DOXYGEN

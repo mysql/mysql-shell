@@ -157,26 +157,16 @@ bool ClassicSchema::has_member(const std::string &prop) const
 
 Value ClassicSchema::get_member(const std::string &prop) const
 {
-  Value ret_val;
+  // Searches the property in tables
+  Value ret_val = find_in_cache(prop, _tables);
 
-  // Check the member is on the base classes before attempting to
-  // retrieve it since it may throw invalid member otherwise
-  // If not on the parent classes and not here then we can safely assume
-  // it is must be either a table, collection or view and attempt loading it as such
-  if (DatabaseObject::has_member(prop))
+  // Search the property in views
+  if (!ret_val)
+    ret_val = find_in_cache(prop, _views);
+
+  // Search the rest of the properties
+  if (!ret_val)
     ret_val = DatabaseObject::get_member(prop);
-  else
-  {
-    // At this point the property should be one of table
-    // collection or view
-    ret_val = find_in_cache(prop, _tables);
-
-    if (!ret_val)
-      ret_val = find_in_cache(prop, _views);
-
-    if (!ret_val)
-      throw Exception::attrib_error("Invalid object member " + prop);
-  }
 
   return ret_val;
 }

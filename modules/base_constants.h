@@ -43,7 +43,6 @@ namespace mysh
     virtual std::string &append_descr(std::string &s_out, int indent, int quote_strings) const;
 
     virtual shcore::Value get_member(const std::string &prop) const;
-    std::vector<std::string> get_members() const;
 
     std::string group() { return _group; }
     std::string id() { return _id; }

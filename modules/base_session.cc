@@ -92,7 +92,7 @@ _ssl_ca(s._ssl_ca), _ssl_cert(s._ssl_cert), _ssl_key(s._ssl_key)
 
 void ShellBaseSession::init()
 {
-  add_method("getUri", boost::bind(&ShellBaseSession::get_member_method, this, _1, "getUri", "uri"), NULL);
+  add_property("uri", "getUri");
   add_method("isOpen", boost::bind(&ShellBaseSession::is_open, this, _1), NULL);
 }
 
@@ -123,37 +123,16 @@ void ShellBaseSession::append_json(shcore::JSON_dumper& dumper) const
   dumper.end_object();
 }
 
-std::vector<std::string> ShellBaseSession::get_members() const
-{
-  std::vector<std::string> members(Cpp_object_bridge::get_members());
-  members.push_back("uri");
-  return members;
-}
-
 shcore::Value ShellBaseSession::get_member(const std::string &prop) const
 {
   shcore::Value ret_val;
 
-  if (Cpp_object_bridge::has_member(prop))
-    ret_val = Cpp_object_bridge::get_member(prop);
-  else if (prop == "uri")
+  if (prop == "uri")
     ret_val = shcore::Value(_uri);
+  else
+    ret_val = Cpp_object_bridge::get_member(prop);
 
   return ret_val;
-}
-
-bool ShellBaseSession::has_member(const std::string &prop) const
-{
-  return Cpp_object_bridge::has_member(prop) ||
-    prop == "uri";
-}
-
-shcore::Value ShellBaseSession::get_member_method(const shcore::Argument_list &args, const std::string& method, const std::string& prop)
-{
-  std::string function = class_name() + "." + method;
-  args.ensure_count(0, function.c_str());
-
-  return get_member(prop);
 }
 
 void ShellBaseSession::load_connection_data(const shcore::Argument_list &args)
@@ -313,7 +292,7 @@ shcore::Value ShellBaseSession::is_open(const shcore::Argument_list &args)
 {
   std::string function = class_name() + ".isOpen";
   args.ensure_count(0, function.c_str());
-  
+
   return shcore::Value(is_connected());
 }
 
@@ -329,20 +308,11 @@ ShellBaseSession(s)
   init();
 }
 
-std::vector<std::string> ShellDevelopmentSession::get_members() const
-{
-  std::vector<std::string> members(ShellBaseSession::get_members());
-  members.push_back("defaultSchema");
-  return members;
-}
-
 shcore::Value ShellDevelopmentSession::get_member(const std::string &prop) const
 {
   shcore::Value ret_val;
 
-  if (ShellBaseSession::has_member(prop))
-    ret_val = ShellBaseSession::get_member(prop);
-  else if (prop == "defaultSchema")
+  if (prop == "defaultSchema")
   {
     if (!_default_schema.empty())
     {
@@ -354,21 +324,16 @@ shcore::Value ShellDevelopmentSession::get_member(const std::string &prop) const
       ret_val = Value::Null();
   }
   else
-    throw Exception::attrib_error("Invalid object member " + prop);
+    ret_val = ShellBaseSession::get_member(prop);
 
   return ret_val;
 }
 
-bool ShellDevelopmentSession::has_member(const std::string &prop) const
-{
-  return ShellBaseSession::has_member(prop) ||
-    prop == "defaultSchema";
-}
-
 void ShellDevelopmentSession::init()
 {
+  add_property("defaultSchema", "getDefaultSchema");
+
   add_method("createSchema", boost::bind(&ShellDevelopmentSession::create_schema, this, _1), "name", shcore::String, NULL);
-  add_method("getDefaultSchema", boost::bind(&ShellDevelopmentSession::get_member_method, this, _1, "getDefaultSchema", "defaultSchema"), NULL);
   add_method("getSchema", boost::bind(&ShellDevelopmentSession::get_schema, this, _1), "name", shcore::String, NULL);
   add_method("getSchemas", boost::bind(&ShellDevelopmentSession::get_schemas, this, _1), NULL);
 }

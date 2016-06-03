@@ -44,9 +44,7 @@ namespace mysh
       BaseResult(boost::shared_ptr< ::mysqlx::Result> result);
       virtual ~BaseResult() {}
 
-      virtual std::vector<std::string> get_members() const;
       virtual shcore::Value get_member(const std::string &prop) const;
-      virtual bool has_member(const std::string &prop) const;
       virtual void append_json(shcore::JSON_dumper& dumper) const;
 
       // The execution time is not available at the moment of creating the resultset
@@ -96,9 +94,7 @@ namespace mysh
       virtual ~Result(){};
 
       virtual std::string class_name() const { return "Result"; }
-      virtual std::vector<std::string> get_members() const;
       virtual shcore::Value get_member(const std::string &prop) const;
-      virtual bool has_member(const std::string &prop) const;
       virtual void append_json(shcore::JSON_dumper& dumper) const;
 
       // C++ Interface
@@ -158,9 +154,7 @@ namespace mysh
       shcore::Value fetch_one(const shcore::Argument_list &args) const;
       shcore::Value fetch_all(const shcore::Argument_list &args) const;
 
-      virtual std::vector<std::string> get_members() const;
       virtual shcore::Value get_member(const std::string &prop) const;
-      virtual bool has_member(const std::string &prop) const;
 
       virtual std::string class_name() const { return "RowResult"; }
       virtual void append_json(shcore::JSON_dumper& dumper) const;
@@ -199,9 +193,7 @@ namespace mysh
       virtual ~SqlResult(){};
 
       virtual std::string class_name() const { return "SqlResult"; }
-      virtual std::vector<std::string> get_members() const;
       virtual shcore::Value get_member(const std::string &prop) const;
-      virtual bool has_member(const std::string &prop) const;
 
       shcore::Value has_data(const shcore::Argument_list &args) const;
       virtual shcore::Value next_data_set(const shcore::Argument_list &args);

@@ -86,11 +86,6 @@ void Date::append_json(shcore::JSON_dumper& dumper) const
   dumper.end_object();
 }
 
-std::vector<std::string> Date::get_members() const
-{
-  return Cpp_object_bridge::get_members();
-}
-
 Value Date::get_member(const std::string &prop) const
 {
   return Cpp_object_bridge::get_member(prop);

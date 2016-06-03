@@ -163,7 +163,7 @@ for member in all_members:
 # In python, members are returned in alphabetic order
 # We print the requested members here (getLength and getField are members too)
 print '1-Metadata Length:', len(columns), '\n'
-print '1-Metadata Field:', columns[3], '\n'
+print '1-Metadata Field:', columns[4], '\n'
 print '1-Metadata Field:', columns[0], '\n'
 
 result = table.select(['age']).execute()

@@ -35,7 +35,6 @@ namespace shcore
     virtual std::string &append_repr(std::string &s_out) const;
     virtual void append_json(shcore::JSON_dumper& dumper) const;
 
-    virtual std::vector<std::string> get_members() const;
     virtual Value get_member(const std::string &prop) const;
     virtual void set_member(const std::string &prop, Value value);
 

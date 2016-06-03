@@ -35,10 +35,6 @@ namespace mysh
   public:
     virtual bool operator == (const Object_bridge &other) const;
 
-    // Helper method to retrieve properties using a method
-    shcore::Value get_member_method(const shcore::Argument_list &args, const std::string& method, const std::string& prop);
-    virtual bool has_member(const std::string &prop) const;
-
     // Doing nothing by default to avoid impacting the classic result
     virtual void buffer(){};
     virtual bool rewind(){ return false; }
@@ -71,11 +67,8 @@ namespace mysh
 
     virtual bool operator == (const Object_bridge &other) const;
     virtual std::string class_name() const { return "Column"; }
-    shcore::Value get_member_method(const shcore::Argument_list &args, const std::string& method, const std::string& prop);
 
-    virtual std::vector<std::string> get_members() const;
     virtual shcore::Value get_member(const std::string &prop) const;
-    virtual bool has_member(const std::string &prop) const;
 
     // Shell Specific for internal use
     bool is_numeric(){ return _numeric; }
@@ -144,7 +137,6 @@ namespace mysh
   public:
     Row();
     virtual std::string class_name() const { return "Row"; }
-    shcore::Value get_member_method(const shcore::Argument_list &args, const std::string& method, const std::string& prop);
 
   public:
     std::map<std::string, shcore::Value> values;

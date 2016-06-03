@@ -52,8 +52,6 @@ namespace shcore {
 
       void connect()
       {
-        std::cout << _mysql_uri;
-
         _interactive_shell->process_line("\\connect -c " + _mysql_uri);
       }
 

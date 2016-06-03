@@ -44,9 +44,7 @@ namespace mysh
       ClassicResult(boost::shared_ptr<Result> result);
 
       virtual std::string class_name() const { return "ClassicResult"; }
-      virtual std::vector<std::string> get_members() const;
       virtual shcore::Value get_member(const std::string &prop) const;
-      virtual bool has_member(const std::string &prop) const;
       virtual void append_json(shcore::JSON_dumper& dumper) const;
 
       shcore::Value has_data(const shcore::Argument_list &args) const;
