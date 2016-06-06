@@ -76,8 +76,6 @@ namespace mysh
       virtual std::string class_name() const { return "ClassicSession"; };
 
       virtual shcore::Value get_member(const std::string &prop) const;
-      std::vector<std::string> get_members() const;
-      virtual bool has_member(const std::string &prop) const;
 
       // Virtual methods from ISession
       virtual shcore::Value connect(const shcore::Argument_list &args);

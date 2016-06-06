@@ -37,7 +37,7 @@ Connection_openssl_factory::Connection_openssl_factory(const std::string &ssl_ke
                                                        const std::string &ssl_crl,     const std::string &ssl_crl_path,
                                                        const bool is_client)
 : m_context(new boost::asio::ssl::context(is_client ?
-                                          boost::asio::ssl::context::tlsv11_client :
+                                          boost::asio::ssl::context::tlsv1_client /*boost::asio::ssl::context::tlsv11_client */ :
                                           boost::asio::ssl::context::tlsv11_server)),
   m_is_client(is_client)
 {

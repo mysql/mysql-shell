@@ -48,6 +48,37 @@ namespace shcore
       _new_format = true;
     }
 
+    virtual void pre_process_line(const std::string &path, std::string & line)
+    {
+      // Unit tests work using default ports, if that is not the case
+      // We need to update them before being executed
+      if (!_port.empty() && _port != "33060")
+      {
+        // Some examples contain a hardcoded port
+        // we need to change that port by the right one
+        size_t pos = line.find("33060");
+        if (pos != std::string::npos)
+        {
+          std::string new_line = line.substr(0, pos);
+          new_line += _port;
+          new_line += line.substr(pos + 5);
+          line = new_line;
+        }
+
+        // Other examples use an URI assumin the defaut port
+        // If that's not the case, we need to add it to the URI
+        pos = line.find("'mike:s3cr3t!@localhost'");
+        if (pos != std::string::npos)
+        {
+          std::string new_line = line.substr(0, pos);
+          new_line += "'mike:s3cr3t!@localhost:";
+          new_line += _port;
+          new_line += "');";
+          line = new_line;
+        }
+      }
+    }
+
     void create_connection()
     {
       Server_registry* sr = new Server_registry("mysqlxconfig.json");
@@ -59,8 +90,29 @@ namespace shcore
       }
       catch (std::runtime_error &e)
       {
-        cs = sr->add_connection_options("myapp", "host=localhost; dbUser=mike; schema=test;");
+        std::string connection_options = "host=localhost; dbUser=mike; schema=test;";
+
+        if (!_port.empty())
+          connection_options += " port=" + _port + ";";
+
+        cs = sr->add_connection_options("myapp", connection_options);
         sr->merge();
+      }
+    }
+
+    void delete_connection()
+    {
+      Server_registry* sr = new Server_registry("mysqlxconfig.json");
+      sr->load();
+      Connection_options cs;
+      try
+      {
+        cs = sr->get_connection_options("myapp");
+        sr->remove_connection_options(cs);
+        sr->merge();
+      }
+      catch (std::runtime_error &e)
+      {
       }
     }
   };
@@ -80,6 +132,7 @@ namespace shcore
   {
     create_connection();
     validate_interactive("concepts/Dynamic_SQL");
+    delete_connection();
   }
 
   TEST_F(Shell_js_dev_api_sample_tester, Setting_the_Current_Schema)

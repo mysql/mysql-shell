@@ -1226,7 +1226,7 @@ void Interactive_shell::process_result(shcore::Value result)
             dumper.append_value("result", result);
             dumper.end_object();
 
-            print(dumper.str());
+            _delegate.print(_delegate.user_data, dumper.str().c_str());
           }
           else
             _delegate.print(_delegate.user_data, result.descr(true).c_str());
@@ -1296,7 +1296,7 @@ int Interactive_shell::process_stream(std::istream & stream, const std::string& 
 
       if (_options.full_interactive)
       {
-        print(prompt());
+        _delegate.print(_delegate.user_data, prompt().c_str());
         println(line);
       }
 

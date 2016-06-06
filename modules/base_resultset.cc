@@ -262,70 +262,28 @@ bool ShellBaseResult::operator == (const Object_bridge &other) const
   return this == &other;
 }
 
-shcore::Value ShellBaseResult::get_member_method(const shcore::Argument_list &args, const std::string& method, const std::string& prop)
-{
-  std::string function = class_name() + "." + method;
-  args.ensure_count(0, function.c_str());
-
-  return get_member(prop);
-}
-
-bool ShellBaseResult::has_member(const std::string &prop) const
-{
-  std::vector<std::string> members = get_members();
-  return std::find(members.begin(), members.end(), prop) != members.end();
-}
-
-shcore::Value Column::get_member_method(const shcore::Argument_list &args, const std::string& method, const std::string& prop)
-{
-  std::string function = class_name() + "." + method;
-  args.ensure_count(0, function.c_str());
-
-  return get_member(prop);
-}
-
 Column::Column(const std::string& schema, const std::string& table_name, const std::string& table_label, const std::string& column_name, const std::string& column_label,
        shcore::Value type, uint64_t length, bool numeric, uint64_t fractional, bool is_signed, const std::string &collation, const std::string &charset, bool padded) :
         _schema(schema), _table_name(table_name), _table_label(table_label), _column_name(column_name), _column_label(column_label), _collation(collation), _charset(charset),
        _length(length), _type(type), _fractional(fractional), _signed(is_signed), _padded(padded), _numeric(numeric)
 {
-  add_method("getSchemaName", boost::bind(&Column::get_member_method, this, _1, "getSchemaName", "schemaName"), NULL);
-  add_method("getTableName", boost::bind(&Column::get_member_method, this, _1, "getTableName", "tableName"), NULL);
-  add_method("getTableLabel", boost::bind(&Column::get_member_method, this, _1, "getTableLabel", "tableLabel"), NULL);
-  add_method("getColumnName", boost::bind(&Column::get_member_method, this, _1, "getColumnName", "columnName"), NULL);
-  add_method("getColumnLabel", boost::bind(&Column::get_member_method, this, _1, "getColumnLabel", "columnLabel"), NULL);
-  add_method("getType", boost::bind(&Column::get_member_method, this, _1, "getType", "type"), NULL);
-  add_method("getLength", boost::bind(&Column::get_member_method, this, _1, "getLength", "length"), NULL);
-  add_method("getFractionalDigits", boost::bind(&Column::get_member_method, this, _1, "getFractionalDigits", "fractionalDigits"), NULL);
-  add_method("isNumberSigned", boost::bind(&Column::get_member_method, this, _1, "isNumberSigned", "numberSigned"), NULL);
-  add_method("getCollationName", boost::bind(&Column::get_member_method, this, _1, "getCollationName", "collationName"), NULL);
-  add_method("getCharacterSetName", boost::bind(&Column::get_member_method, this, _1, "getCharacterSetName", "characterSetName"), NULL);
-  add_method("isPadded", boost::bind(&Column::get_member_method, this, _1, "isPadded", "padded"), NULL);
+  add_property("schemaName", "getSchemaName");
+  add_property("tableName", "getTableName");
+  add_property("tableLabel", "getTableLabel");
+  add_property("columnName", "getColumnName");
+  add_property("columnLabel", "getColumnLabel");
+  add_property("type", "getType");
+  add_property("length", "getLength");
+  add_property("fractionalDigits", "getFractionalDigits");
+  add_property("numberSigned", "isNumberSigned");
+  add_property("collationName", "getCollationName");
+  add_property("characterSetName", "getCharacterSetName");
+  add_property("padded", "isPadded");
 }
 
 bool Column::operator == (const Object_bridge &other) const
 {
   return this == &other;
-}
-
-std::vector<std::string> Column::get_members() const
-{
-  std::vector<std::string> members = Cpp_object_bridge::get_members();
-
-  members.push_back("schemaName");
-  members.push_back("tableName");
-  members.push_back("tableLabel");
-  members.push_back("columnName");
-  members.push_back("columnLabel");
-  members.push_back("type");
-  members.push_back("length");
-  members.push_back("fractionalDigits");
-  members.push_back("numberSigned");
-  members.push_back("collationName");
-  members.push_back("characterSetName");
-  members.push_back("padded");
-
-  return members;
 }
 
 #ifdef DOXYGEN
@@ -435,25 +393,9 @@ shcore::Value Column::get_member(const std::string &prop) const
   return ret_val;
 }
 
-bool Column::has_member(const std::string &prop) const
-{
-  return Cpp_object_bridge::has_member(prop) ||
-    prop == "schemaName" ||
-    prop == "tableName" ||
-    prop == "tableLabel" ||
-    prop == "columnName" ||
-    prop == "columnLabel" ||
-    prop == "type" ||
-    prop == "length" ||
-    prop == "fractionalDigits" ||
-    prop == "numberSigned" ||
-    prop == "collationName" ||
-    prop == "characterSetName" ||
-    prop == "padded";
-}
-
 Row::Row()
 {
+  add_property("length", "getLength");
   add_method("getField", boost::bind(&Row::get_field, this, _1), "field", shcore::String, NULL);
   add_method("getLength", boost::bind(&Row::get_member_method, this, _1, "getLength", "length"), NULL);
 }
@@ -499,14 +441,6 @@ std::string &Row::append_repr(std::string &s_out) const
   return append_descr(s_out);
 }
 
-shcore::Value Row::get_member_method(const shcore::Argument_list &args, const std::string& method, const std::string& prop)
-{
-  std::string function = class_name() + "." + method;
-  args.ensure_count(0, function.c_str());
-
-  return get_member(prop);
-}
-
 //! Returns the list of members that this object has
 std::vector<std::string> Row::get_members() const
 {
@@ -532,8 +466,6 @@ bool Row::has_member(const std::string &prop) const
   bool ret_val = false;
 
   if (Cpp_object_bridge::has_member(prop))
-    ret_val = true;
-  else if (prop == "length")
     ret_val = true;
   else if (values.find(prop) != values.end())
     ret_val = true;

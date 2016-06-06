@@ -11,7 +11,7 @@ def print_result(res):
         print "%s: %s \n" % (column.getColumnName(), record[index])
         index = index + 1
         
-      # Gets the next record
+      # Get the next record
       record = res.fetchOne()
       
   else:

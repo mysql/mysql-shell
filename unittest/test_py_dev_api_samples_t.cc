@@ -31,7 +31,10 @@ namespace shcore
       std::string protocol, user, password, host, sock, schema, ssl_ca, ssl_cert, ssl_key;
       shcore::parse_mysql_connstring(_uri, protocol, user, password, host, port, sock, schema, pwd_found, ssl_ca, ssl_cert, ssl_key);
 
-      std::string code = "__uripwd = '" + user + ":" + password + "@" + host + ":33060';";
+      if (_port.empty())
+        _port = "33060";
+
+      std::string code = "__uripwd = '" + user + ":" + password + "@" + host + ":" + _port + "';";
       exec_and_out_equals(code);
 
       set_config_folder("py_dev_api_examples");
@@ -39,6 +42,37 @@ namespace shcore
 
       _extension = "py";
       _new_format = true;
+    }
+
+    virtual void pre_process_line(const std::string &path, std::string & line)
+    {
+      // Unit tests work using default ports, if that is not the case
+      // We need to update them before being executed
+      if (!_port.empty() && _port != "33060")
+      {
+        // Some examples contain a hardcoded port
+        // we need to change that port by the right one
+        size_t pos = line.find("33060");
+        if (pos != std::string::npos)
+        {
+          std::string new_line = line.substr(0, pos);
+          new_line += _port;
+          new_line += line.substr(pos + 5);
+          line = new_line;
+        }
+
+        // Other examples use an URI assumin the defaut port
+        // If that's not the case, we need to add it to the URI
+        pos = line.find("'mike:s3cr3t!@localhost'");
+        if (pos != std::string::npos)
+        {
+          std::string new_line = line.substr(0, pos);
+          new_line += "'mike:s3cr3t!@localhost:";
+          new_line += _port;
+          new_line += "');";
+          line = new_line;
+        }
+      }
     }
 
     void create_connection()
@@ -52,7 +86,12 @@ namespace shcore
       }
       catch (std::runtime_error &e)
       {
-        cs = sr->add_connection_options("myapp", "host=localhost; dbUser=mike; schema=test;");
+        std::string connection_options = "host=localhost; dbUser=mike; schema=test;";
+
+        if (!_port.empty())
+          connection_options += " port=" + _port + ";";
+
+        cs = sr->add_connection_options("myapp", connection_options);
         sr->merge();
       }
     }
@@ -154,7 +193,7 @@ namespace shcore
   TEST_F(Shell_py_dev_api_sample_tester, Working_with_Results_1)
   {
     validate_interactive("results/Working_with_Results_1");
-  }
+}
 
   TEST_F(Shell_py_dev_api_sample_tester, Working_with_SQL_Result_Sets)
   {

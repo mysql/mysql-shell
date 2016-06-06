@@ -19,6 +19,7 @@
 
 #include "shellcore/types_cpp.h"
 #include "shellcore/common.h"
+#include <boost/bind.hpp>
 #include <cstdarg>
 
 using namespace shcore;
@@ -41,12 +42,21 @@ std::string &Cpp_object_bridge::append_repr(std::string &s_out) const
 
 std::vector<std::string> Cpp_object_bridge::get_members() const
 {
-  std::vector<std::string> _members;
+  std::vector<std::string> _members(_properties);
+
   for (std::map<std::string, boost::shared_ptr<Cpp_function> >::const_iterator i = _funcs.begin(); i != _funcs.end(); ++i)
   {
     _members.push_back(i->first);
   }
   return _members;
+}
+
+shcore::Value Cpp_object_bridge::get_member_method(const shcore::Argument_list &args, const std::string& method, const std::string& prop)
+{
+  std::string function = class_name() + "." + method;
+  args.ensure_count(0, function.c_str());
+
+  return get_member(prop);
 }
 
 Value Cpp_object_bridge::get_member(const std::string &prop) const
@@ -59,8 +69,10 @@ Value Cpp_object_bridge::get_member(const std::string &prop) const
 
 bool Cpp_object_bridge::has_member(const std::string &prop) const
 {
-  std::map<std::string, boost::shared_ptr<Cpp_function> >::const_iterator i;
-  return ((i = _funcs.find(prop)) != _funcs.end());
+  auto method_index = _funcs.find(prop);
+  auto prop_index = std::find(_properties.begin(), _properties.end(), prop);
+
+  return (method_index != _funcs.end() || prop_index != _properties.end());
 }
 
 void Cpp_object_bridge::set_member(const std::string &prop, Value UNUSED(value))
@@ -88,7 +100,7 @@ bool Cpp_object_bridge::has_method(const std::string &name) const
   return (_funcs.find(name) != _funcs.end());
 }
 
-void Cpp_object_bridge::add_method(const char *name, Cpp_function::Function func,
+void Cpp_object_bridge::add_method(const std::string &name, Cpp_function::Function func,
                                    const char *arg1_name, Value_type arg1_type, ...)
 {
   std::vector<std::pair<std::string, Value_type> > signature;
@@ -116,6 +128,14 @@ void Cpp_object_bridge::add_method(const char *name, Cpp_function::Function func
   _funcs[name] = boost::shared_ptr<Cpp_function>(new Cpp_function(name, func, NULL));
 }
 
+void Cpp_object_bridge::add_property(const std::string &name, const std::string &getter)
+{
+  _properties.push_back(name);
+
+  if (!getter.empty())
+      add_method(getter, boost::bind(&Cpp_object_bridge::get_member_method, this, _1, getter, name), NULL);
+}
+
 Value Cpp_object_bridge::call(const std::string &name, const Argument_list &args)
 {
   std::map<std::string, boost::shared_ptr<Cpp_function> >::const_iterator i;
@@ -127,12 +147,12 @@ Value Cpp_object_bridge::call(const std::string &name, const Argument_list &args
 //-------
 
 Cpp_function::Cpp_function(const std::string &name_, const Function &func, const std::vector<std::pair<std::string, Value_type> > &signature_)
-: _name(name_), _func(func), _signature(signature_)
+  : _name(name_), _func(func), _signature(signature_)
 {
 }
 
 Cpp_function::Cpp_function(const std::string &name_, const Function &func, const char *arg1_name, Value_type arg1_type, ...)
-: _name(name_), _func(func)
+  : _name(name_), _func(func)
 {
   va_list l;
   if (arg1_name && arg1_type != Undefined)

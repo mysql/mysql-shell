@@ -32,13 +32,6 @@
 using namespace shcore;
 using namespace mysh::mysqlx;
 
-std::vector<std::string> Expression::get_members() const
-{
-  std::vector<std::string> members;
-  members.push_back("data");
-  return members;
-}
-
 Value Expression::get_member(const std::string &prop) const
 {
   // Retrieves the member first from the parent

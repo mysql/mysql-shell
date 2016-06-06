@@ -17,7 +17,7 @@ mySession.sql("SET @my_var = ?;").bind(10).execute();
 mySession.sql("CALL my_add_one_procedure(@my_var);").execute();
 mySession.sql("DROP PROCEDURE my_add_one_procedure;").execute();
 
-// Use a SQL query to get the result
+// Use an SQL query to get the result
 var myResult = mySession.sql("SELECT @my_var").execute();
 
 // Gets the row and prints the first column

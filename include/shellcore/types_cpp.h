@@ -78,15 +78,22 @@ namespace shcore
     virtual bool has_method(const std::string &name) const;
 
     virtual Value call(const std::string &name, const Argument_list &args);
+    
+    // Helper method to retrieve properties using a method
+    shcore::Value get_member_method(const shcore::Argument_list &args, const std::string& method, const std::string& prop);
+    
 
     virtual std::string &append_descr(std::string &s_out, int indent = -1, int quote_strings = 0) const;
     virtual std::string &append_repr(std::string &s_out) const;
 
   protected:
-    virtual void add_method(const char *name, Cpp_function::Function func,
+    virtual void add_method(const std::string &name, Cpp_function::Function func,
                     const char *arg1_name, Value_type arg1_type = Undefined, ...);
 
+    virtual void add_property(const std::string &name, const std::string &getter = "");
+
     std::map<std::string, boost::shared_ptr<Cpp_function> > _funcs;
+    std::vector<std::string> _properties;
   };
 };
 

@@ -700,9 +700,10 @@ NodeSession::NodeSession(const NodeSession& s) : BaseSession(s)
 
 void NodeSession::init()
 {
+  add_property("currentSchema", "getCurrentSchema");
+
   add_method("sql", boost::bind(&NodeSession::sql, this, _1), "sql", shcore::String, NULL);
   add_method("setCurrentSchema", boost::bind(&NodeSession::set_current_schema, this, _1), "name", shcore::String, NULL);
-  add_method("getCurrentSchema", boost::bind(&ShellBaseSession::get_member_method, this, _1, "getCurrentSchema", "currentSchema"), NULL);
   add_method("quoteName", boost::bind(&NodeSession::quote_name, this, _1), "name", shcore::String, NULL);
 }
 
@@ -747,19 +748,6 @@ shcore::Value NodeSession::sql(const shcore::Argument_list &args)
   return sql_execute->sql(args);
 }
 
-std::vector<std::string> NodeSession::get_members() const
-{
-  std::vector<std::string> members(BaseSession::get_members());
-  members.push_back("currentSchema");
-  return members;
-}
-
-bool NodeSession::has_member(const std::string &prop) const
-{
-  return BaseSession::has_member(prop) ||
-    prop == "currentSchema";
-}
-
 #ifdef DOXYGEN
 /**
 * Retrieves the Schema set as active on the session.
@@ -771,10 +759,7 @@ Value NodeSession::get_member(const std::string &prop) const
 {
   Value ret_val;
 
-  // Retrieves the member first from the parent
-  if (BaseSession::has_member(prop))
-    ret_val = BaseSession::get_member(prop);
-  else if (prop == "currentSchema")
+  if (prop == "currentSchema")
   {
     NodeSession *session = const_cast<NodeSession *>(this);
     std::string name = session->_retrieve_current_schema();
@@ -788,6 +773,8 @@ Value NodeSession::get_member(const std::string &prop) const
     else
       ret_val = Value::Null();
   }
+  else
+    ret_val = BaseSession::get_member(prop);
 
   return ret_val;
 }

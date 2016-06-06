@@ -52,13 +52,9 @@ namespace mysh
     virtual std::string &append_repr(std::string &s_out) const;
     virtual void append_json(shcore::JSON_dumper& dumper) const;
 
-    virtual bool has_member(const std::string &prop) const;
-    virtual std::vector<std::string> get_members() const;
     virtual shcore::Value get_member(const std::string &prop) const;
 
     virtual bool operator == (const Object_bridge &other) const;
-
-    shcore::Value get_member_method(const shcore::Argument_list &args, const std::string& method, const std::string& prop);
 
     shcore::Value existsInDatabase(const shcore::Argument_list &args);
 

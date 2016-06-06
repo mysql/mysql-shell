@@ -86,6 +86,7 @@ private:
   void execute_script(const std::string& path = "", bool in_chunks = false, bool is_pre_script = false);
   void process_setup(std::istream & stream);
   void validate(const std::string& context, const std::string &chunk_id = "__global__");
+  virtual void pre_process_line(const std::string &path, std::string & line) {};
 
   void load_source_chunks(std::istream & stream);
   void load_validations(const std::string& path, bool in_chunks = false);

@@ -40,13 +40,8 @@ Constant::Constant(const std::string& module, const std::string& group, const st
 _module(module), _group(group), _id(id)
 {
   _data = get_constant_value(_module, _group, _id, args);
-}
-
-std::vector<std::string> Constant::get_members() const
-{
-  std::vector<std::string> members;
-  members.push_back("data");
-  return members;
+  
+  add_property("data");
 }
 
 Value Constant::get_member(const std::string &prop) const

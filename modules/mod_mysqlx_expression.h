@@ -35,7 +35,7 @@ namespace mysh
     class SHCORE_PUBLIC Expression : public shcore::Cpp_object_bridge
     {
     public:
-      Expression(const std::string &expression) { _data = expression; }
+      Expression(const std::string &expression) { add_property("data"); _data = expression; }
       virtual ~Expression() {};
 
       // Virtual methods from object bridge
@@ -43,7 +43,6 @@ namespace mysh
       virtual bool operator == (const Object_bridge &other) const;
 
       virtual shcore::Value get_member(const std::string &prop) const;
-      std::vector<std::string> get_members() const;
 
       static boost::shared_ptr<shcore::Object_bridge> create(const shcore::Argument_list &args);
 

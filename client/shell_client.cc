@@ -74,6 +74,7 @@ shcore::Value Shell_client::connect_session(const shcore::Argument_list &args)
     shcore::print("Closing old connection...\n");
     old_session->close(shcore::Argument_list());
   }
+  _shell->set_dev_session(new_session);
 
   if (!_shell->get_global("db"))
   {

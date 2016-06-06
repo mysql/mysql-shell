@@ -34,23 +34,26 @@ namespace shcore
       std::string protocol, user, password, host, sock, schema, ssl_ca, ssl_cert, ssl_key;
       shcore::parse_mysql_connstring(_uri, protocol, user, password, host, port, sock, schema, pwd_found, ssl_ca, ssl_cert, ssl_key);
 
+      if (_port.empty())
+        _port = "33060";
+
       std::string code = "__user = '" + user + "';";
       exec_and_out_equals(code);
       code = "__pwd = '" + password + "';";
       exec_and_out_equals(code);
       code = "__host = '" + host + "';";
       exec_and_out_equals(code);
-      code = "__port = 33060;";
+      code = "__port = " + _port + ";";
       exec_and_out_equals(code);
       code = "__schema = 'mysql';";
       exec_and_out_equals(code);
-      code = "__uri = '" + user + "@" + host + ":33060';";
+      code = "__uri = '" + user + "@" + host + ":" + _port + "';";
       exec_and_out_equals(code);
-      code = "__uripwd = '" + user + ":" + password + "@" + host + ":33060';";
+      code = "__uripwd = '" + user + ":" + password + "@" + host + ":" + _port + "';";
       exec_and_out_equals(code);
-      code = "__displayuri = '" + user + "@" + host + ":33060';";
+      code = "__displayuri = '" + user + "@" + host + ":" + _port + "';";
       exec_and_out_equals(code);
-      code = "__displayuridb = '" + user + "@" + host + ":33060/mysql';";
+      code = "__displayuridb = '" + user + "@" + host + ":" + _port + "/mysql';";
       exec_and_out_equals(code);
 
       // All of the test cases share the same config folder

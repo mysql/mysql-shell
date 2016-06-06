@@ -35,26 +35,9 @@ using namespace mysh::mysqlx;
 BaseResult::BaseResult(boost::shared_ptr< ::mysqlx::Result> result) :
 _result(result), _execution_time(0)
 {
-  add_method("getExecutionTime", boost::bind(&BaseResult::get_member_method, this, _1, "getExecutionTime", "executionTime"), NULL);
-  add_method("getWarnings", boost::bind(&BaseResult::get_member_method, this, _1, "getWarnings", "warnings"), NULL);
-  add_method("getWarningCount", boost::bind(&BaseResult::get_member_method, this, _1, "getWarningCount", "warningCount"), NULL);
-}
-
-std::vector<std::string> BaseResult::get_members() const
-{
-  std::vector<std::string> members(ShellBaseResult::get_members());
-  members.push_back("executionTime");
-  members.push_back("warningCount");
-  members.push_back("warnings");
-  return members;
-}
-
-bool BaseResult::has_member(const std::string &prop) const
-{
-  return ShellBaseResult::has_member(prop) ||
-    prop == "executionTime" ||
-    prop == "warningCount" ||
-    prop == "warnings";
+  add_property("executionTime", "getExecutionTime");
+  add_property("warningCount", "getWarningCount");
+  add_property("warnings", "getWarnings");
 }
 
 #ifdef DOXYGEN
@@ -174,29 +157,10 @@ void BaseResult::append_json(shcore::JSON_dumper& dumper) const
 Result::Result(boost::shared_ptr< ::mysqlx::Result> result) :
 BaseResult(result)
 {
-  add_method("getAffectedItemCount", boost::bind(&BaseResult::get_member_method, this, _1, "getAffectedItemCount", "affectedItemCount"), NULL);
-  add_method("getAutoIncrementValue", boost::bind(&BaseResult::get_member_method, this, _1, "getAutoIncrementValue", "autoIncrementValue"), NULL);
-  add_method("getLastDocumentId", boost::bind(&BaseResult::get_member_method, this, _1, "getLastDocumentId", "lastDocumentId"), NULL);
-  add_method("getLastDocumentIds", boost::bind(&BaseResult::get_member_method, this, _1, "getLastDocumentId", "lastDocumentIds"), NULL);
-}
-
-std::vector<std::string> Result::get_members() const
-{
-  std::vector<std::string> members(BaseResult::get_members());
-  members.push_back("affectedItemCount");
-  members.push_back("autoIncrementValue");
-  members.push_back("lastDocumentId");
-  members.push_back("lastDocumentIds");
-  return members;
-}
-
-bool Result::has_member(const std::string &prop) const
-{
-  return BaseResult::has_member(prop) ||
-    prop == "affectedItemCount" ||
-    prop == "autoIncrementValue" ||
-    prop == "lastDocumentId" ||
-  prop == "lastDocumentIds";
+  add_property("affectedItemCount", "getAffectedItemCount");
+  add_property("autoIncrementValue", "getAutoIncrementValue");
+  add_property("lastDocumentId", "getLastDocumentId");
+  add_property("lastDocumentIds", "getLastDocumentIds");
 }
 
 #ifdef DOXYGEN
@@ -411,29 +375,12 @@ void DocResult::append_json(shcore::JSON_dumper& dumper) const
 RowResult::RowResult(boost::shared_ptr< ::mysqlx::Result> result) :
 BaseResult(result)
 {
+  add_property("columnCount", "getColumnCount");
+  add_property("columns", "getColumns");
+  add_property("columnNames", "getColumnNames");
+
   add_method("fetchOne", boost::bind(&RowResult::fetch_one, this, _1), "nothing", shcore::String, NULL);
   add_method("fetchAll", boost::bind(&RowResult::fetch_all, this, _1), "nothing", shcore::String, NULL);
-
-  add_method("getColumnCount", boost::bind(&BaseResult::get_member_method, this, _1, "getColumnCount", "columnCount"), NULL);
-  add_method("getColumns", boost::bind(&BaseResult::get_member_method, this, _1, "getColumns", "columns"), NULL);
-  add_method("getColumnNames", boost::bind(&BaseResult::get_member_method, this, _1, "getColumnNames", "columnNames"), NULL);
-}
-
-std::vector<std::string> RowResult::get_members() const
-{
-  std::vector<std::string> members(BaseResult::get_members());
-  members.push_back("columnCount");
-  members.push_back("columns");
-  members.push_back("columnNames");
-  return members;
-}
-
-bool RowResult::has_member(const std::string &prop) const
-{
-  return BaseResult::has_member(prop) ||
-    prop == "columnCount" ||
-    prop == "columns" ||
-    prop == "columnNames";
 }
 
 #ifdef DOXYGEN
@@ -768,8 +715,8 @@ RowResult(result)
 {
   add_method("hasData", boost::bind(&SqlResult::has_data, this, _1), "nothing", shcore::String, NULL);
   add_method("nextDataSet", boost::bind(&SqlResult::next_data_set, this, _1), "nothing", shcore::String, NULL);
-  add_method("getAffectedRowCount", boost::bind(&BaseResult::get_member_method, this, _1, "getAffectedRowCount", "affectedRowCount"), NULL);
-  add_method("getAutoIncrementValue", boost::bind(&BaseResult::get_member_method, this, _1, "getAutoIncrementValue", "autoIncrementValue"), NULL);
+  add_property("autoIncrementValue", "getAutoIncrementValue");
+  add_property("affectedRowCount", "getAffectedRowCount");
 }
 
 #ifdef DOXYGEN
@@ -784,21 +731,6 @@ shcore::Value SqlResult::has_data(const shcore::Argument_list &args) const
   args.ensure_count(0, "SqlResult.hasData");
 
   return Value(_result->has_data());
-}
-
-std::vector<std::string> SqlResult::get_members() const
-{
-  std::vector<std::string> members(RowResult::get_members());
-  members.push_back("autoIncrementValue");
-  members.push_back("affectedRowCount");
-  return members;
-}
-
-bool SqlResult::has_member(const std::string &prop) const
-{
-  return RowResult::has_member(prop) ||
-    prop == "autoIncrementValue" ||
-    prop == "affectedRowCount";
 }
 
 #ifdef DOXYGEN

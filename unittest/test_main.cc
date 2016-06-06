@@ -34,6 +34,8 @@ int main(int argc, char **argv)
   {
     std::cerr << "WARNING: The MYSQL_URI MYSQL_PWD and MYSQL_PORT environment variables are not set\n";
     std::cerr << "Note: MYSQL_URI must not contain the port number\n";
+    std::cerr << "Note: Use MYSQL_PORT to define the MySQL protocol port (if != 3306)\n";
+    std::cerr << "Note: Use MYSQLX_PORT to define the XProtocol port (if != 33060)\n";
     exit(1);
   }
 

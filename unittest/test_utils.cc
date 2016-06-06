@@ -126,19 +126,26 @@ void Shell_core_test_wrapper::SetUp()
     }
 
     _uri = shcore::build_connection_string(data, true);
+    _mysql_uri = _uri;
+
+    const char *xport = getenv("MYSQLX_PORT");
+    if (xport)
+    {
+      _port.assign(xport);
+      (*data)["port"] = shcore::Value(_pwd);
+      _uri += ":" + _port;
+    }
     _uri_nopasswd = shcore::strip_password(_uri);
 
-    _mysql_uri = _uri;
-  }
+    const char *port = getenv("MYSQL_PORT");
+    if (port)
+    {
+      _mysql_port.assign(port);
+      _mysql_uri += ":" + _mysql_port;
+    }
 
-  const char *port = getenv("MYSQL_PORT");
-  if (port)
-  {
-    _mysql_port.assign(port);
-    _mysql_uri += ":" + _mysql_port;
+    _mysql_uri_nopasswd = shcore::strip_password(_mysql_uri);
   }
-
-  _mysql_uri_nopasswd = shcore::strip_password(_mysql_uri);
 }
 
 void Shell_core_test_wrapper::TearDown()
