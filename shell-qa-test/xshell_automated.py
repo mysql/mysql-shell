@@ -1281,7 +1281,7 @@ class XShell_TestCases(unittest.TestCase):
       init_command = [MYSQL_SHELL, '--interactive=full']
       x_cmds = [(";\n", "mysql-js>"),
                 ("\\connect {0}:{1}@{2}\n".format(LOCALHOST.user, "wronpassw", LOCALHOST.host), "mysql-js>"),
-                ("print(session)\n", "ReferenceError: session is not defined"),
+                ("print(session)\n", "Undefined"),
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
@@ -1292,7 +1292,7 @@ class XShell_TestCases(unittest.TestCase):
       init_command = [MYSQL_SHELL, '--interactive=full']
       x_cmds = [(";\n", "mysql-js>"),
                 ("\\connect -n {0}:{1}@{2}\n".format(LOCALHOST.user, "wrongpassw", LOCALHOST.host), "mysql-js>"),
-                ("print(session)\n", "ReferenceError: session is not defined"),
+                ("print(session)\n", "Undefined"),
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
@@ -1303,7 +1303,7 @@ class XShell_TestCases(unittest.TestCase):
       init_command = [MYSQL_SHELL, '--interactive=full']
       x_cmds = [(";\n", "mysql-js>"),
                 ("\\connect -c {0}:{1}@{2}:{3}\n".format(LOCALHOST.user, "wrongpass", LOCALHOST.host, LOCALHOST.port), "mysql-js>"),
-                ("print(session)\n", "ReferenceError: session is not defined"),
+                ("print(session)\n", "Undefined"),
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
@@ -1314,7 +1314,7 @@ class XShell_TestCases(unittest.TestCase):
       init_command = [MYSQL_SHELL, '--interactive=full']
       x_cmds = [(";\n", "mysql-js>"),
                 ("\\connect {0}:{1}@{2}\n".format(REMOTEHOST.user, "wronpassw", REMOTEHOST.host), "mysql-js>"),
-                ("print(session)\n", "ReferenceError: session is not defined"),
+                ("print(session)\n", "Undefined"),
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
@@ -1325,7 +1325,7 @@ class XShell_TestCases(unittest.TestCase):
       init_command = [MYSQL_SHELL, '--interactive=full']
       x_cmds = [(";\n", "mysql-js>"),
                 ("\\connect -n {0}:{1}@{2}\n".format(REMOTEHOST.user, "wrongpassw", REMOTEHOST.host), "mysql-js>"),
-                ("print(session)\n", "ReferenceError: session is not defined"),
+                ("print(session)\n", "Undefined"),
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
@@ -1336,7 +1336,7 @@ class XShell_TestCases(unittest.TestCase):
       init_command = [MYSQL_SHELL, '--interactive=full']
       x_cmds = [(";\n", "mysql-js>"),
                 ("\\connect -c {0}:{1}@{2}:{3}\n".format(REMOTEHOST.user, "wrongpass", REMOTEHOST.host, REMOTEHOST.port), "mysql-js>"),
-                ("print(session)\n", "ReferenceError: session is not defined"),
+                ("print(session)\n", "Undefined"),
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
@@ -6138,6 +6138,74 @@ class XShell_TestCases(unittest.TestCase):
           results="PASS"
       else:
           results="FAIL"
+      self.assertEqual(results, 'PASS')
+
+  def test_MYS_338_01(self):
+      '''[2.0.14]:4 Connect remote Server inside mysqlshell FAILOVER: \connect -c  wrong password'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+      x_cmds = [(";\n", "mysql-js>"),
+                ("\\connect -c {0}:{1}@{2}:{3}\n".format(REMOTEHOST.user, "wrongpass", REMOTEHOST.host, REMOTEHOST.port), "mysql-js>"),
+                ("print(session)\n", "Undefined"),
+                ("session\n", "Undefined"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_MYS_338_02(self):
+      '''[2.0.14]:4 Connect remote Server inside mysqlshell FAILOVER: \connect -c  wrong password'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+      x_cmds = [(";\n", "mysql-js>"),
+                ("\\connect -c {0}:{1}@{2}:{3}\n".format(REMOTEHOST.user, "wrongpass", REMOTEHOST.host, REMOTEHOST.port), "mysql-js>"),
+                ("print(db)\n", "Undefined"),
+                ("db\n", "Undefined"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_MYS_338_03(self):
+      '''[2.0.14]:4 Connect remote Server inside mysqlshell FAILOVER: \connect -c  wrong password'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+      x_cmds = [(";\n", "mysql-js>"),
+                ("\\connect -c {0}:{1}@{2}:{3}\n".format(REMOTEHOST.user, "wrongpass", REMOTEHOST.host, REMOTEHOST.port), "mysql-js>"),
+                ("db.name\n", "The db variable is not set, establish a global session first."),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_MYS_338_04(self):
+      '''[2.0.14]:4 Connect remote Server inside mysqlshell FAILOVER: \connect -c  wrong password'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+      x_cmds = [(";\n", "mysql-js>"),
+                ("session.uri\n", "establish a session?"),
+                ("y\n", "Please specify the session type:"),
+                ("1\n", "MySQL server URI (or $alias)"),
+                ("{0}:{1}@{2}:{3}\n".format(REMOTEHOST.user, REMOTEHOST.password, REMOTEHOST.host, REMOTEHOST.xprotocol_port), "mysql-js>"),
+                ("session.uri\n", "{0}@{1}:{2}".format(REMOTEHOST.user,  REMOTEHOST.host, REMOTEHOST.xprotocol_port)),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+
+  def test_MYS_338_05(self):
+      '''[2.0.14]:4 Connect remote Server inside mysqlshell FAILOVER: \connect -c  wrong password'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+      x_cmds = [(";\n", "mysql-js>"),
+                ("session.uri\n", "establish a session?"),
+                ("y\n", "Please specify the session type:"),
+                ("1\n", "MySQL server URI (or $alias)"),
+                ("{0}:{1}@{2}:{3}\n".format(REMOTEHOST.user, REMOTEHOST.password, REMOTEHOST.host, REMOTEHOST.xprotocol_port), "mysql-js>"),
+                ("session.uri\n", "{0}@{1}:{2}".format(REMOTEHOST.user,  REMOTEHOST.host, REMOTEHOST.xprotocol_port)),
+                ("db.name\n", "want to set the active schema?"),
+                ("y\n", "Please specify the schema:"),
+                ("sakila\n", "mysql-js>"),
+                ("db.name\n", "sakila"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
 
