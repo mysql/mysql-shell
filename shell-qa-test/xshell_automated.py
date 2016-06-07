@@ -119,6 +119,7 @@ def exec_xshell_commands(init_cmdLine, commandList):
     # p.stdin.write(bytearray(commandbefore, 'ascii'))
     p.stdin.write(bytearray('', 'ascii'))
     p.stdin.flush()
+    #p.stdout.reset()
     stdin,stdout = p.communicate()
     found = stdout.find(bytearray(expectbefore,"ascii"), 0, len(stdout))
     if found == -1 and commandList.__len__() != 0 :
