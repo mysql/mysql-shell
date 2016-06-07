@@ -641,7 +641,7 @@ shcore::Value RowResult::fetch_one(const shcore::Argument_list &args) const
               field_value = Value(row->decimalField(index));
               break;
             case ::mysqlx::TIME:
-              field_value = Value(row->timeField(index));
+              field_value = Value(row->timeField(index).to_string());
               break;
             case ::mysqlx::DATETIME:
             {
