@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -25,10 +25,13 @@
 #include "logger/logger.h"
 
 #include <boost/bind.hpp>
+#include <boost/pointer_cast.hpp>
+
+#include "mod_mysqlx_farm.h"
 
 using namespace mysh;
-using namespace shcore;
 using namespace mysh::mysqlx;
+using namespace shcore;
 
 REGISTER_OBJECT(mysqlx, AdminSession);
 
@@ -58,8 +61,10 @@ void AdminSession::init()
 
   // Pure functions
   add_method("createFarm", boost::bind(&AdminSession::create_farm, this, _1), "farmName", shcore::String, NULL);
+  add_method("dropFarm", boost::bind(&AdminSession::drop_farm, this, _1), "farmName", shcore::String, NULL);
   add_method("getFarm", boost::bind(&AdminSession::get_farm, this, _1), "farmName", shcore::String, NULL);
   add_method("close", boost::bind(&AdminSession::close, this, _1), "data");
+
 }
 
 Value AdminSession::connect(const Argument_list &args)
@@ -205,9 +210,9 @@ Value AdminSession::get_member(const std::string &prop) const
 * Retrieves a Farm object from the current session through it's name.
 * \param name The name of the Farm object to be retrieved.
 * \return The Farm object with the given name.
-* \sa Schema
+* \sa Farm
 */
-Schema BaseSession::getFarm(String name){}
+Farm AdminSession::getFarm(String name){}
 #endif
 shcore::Value AdminSession::get_farm(const shcore::Argument_list &args) const
 {
@@ -223,19 +228,57 @@ shcore::Value AdminSession::get_farm(const shcore::Argument_list &args) const
  * Creates a Farm object.
  * \param name The name of the Farm object to be retrieved.
  * \return The created Farm object.
- * \sa Schema
+ * \sa Farm
  */
-Schema BaseSession::getFarm(String name){}
+Farm AdminSession::createFarm(String name){}
 #endif
 shcore::Value AdminSession::create_farm(const shcore::Argument_list &args)
 {
+  Value ret_val;
   args.ensure_count(1, "AdminSession.createFarm");
 
-  // TODO: just do it!
+  if (!_session.is_connected())
+    throw Exception::logic_error("Not connected.");
+  else
+  {
+    std::string name = args.string_at(0);
+
+    if (name.empty())
+      throw Exception::argument_error("The Farm name cannot be empty.");
+    else
+    {
+      boost::shared_ptr<Farm> farm (new Farm(name));
+
+      // If reaches this point it indicates the Farm was created successfully
+      ret_val = Value(boost::static_pointer_cast<Object_bridge>(farm));
+      (*_farms)[name] = ret_val;
+
+      // Now we need to create the Farm on the Metadata Schema: TODO!
+      //std::string query = "CREATE ...";
+      //_session.execute_sql(query);
+    }
+  }
+
+  return ret_val;
+}
+
+#ifdef DOXYGEN
+/**
+ * Drops a Farm object.
+ * \param name The name of the Farm object to be dropped.
+ * \return nothing.
+ * \sa Farm
+ */
+None minSession::dropFarm(String name){}
+#endif
+shcore::Value AdminSession::drop_farm(const shcore::Argument_list &args)
+{
+  args.ensure_count(1, "AdminSession.dropFarm");
+
+  //TODO: just do it!
 
   return shcore::Value();
 }
-
 
 shcore::Value AdminSession::get_capability(const std::string& name)
 {

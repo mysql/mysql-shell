@@ -61,6 +61,7 @@ namespace mysh
       virtual shcore::Value get_capability(const std::string& name);
 
       shcore::Value create_farm(const shcore::Argument_list &args);
+      shcore::Value drop_farm(const shcore::Argument_list &args);
       shcore::Value get_farm(const shcore::Argument_list &args) const;
 
       virtual void set_option(const char *option, int value);
@@ -76,6 +77,7 @@ namespace mysh
       Farm defaultFarm; //!< Same as getDefaultSchema()
 
       Farm createFarm(String name);
+      None dropFarm(String name);
       Farm getFarm(String name);
       Farm getDefaultFarm();
       String getUri();
