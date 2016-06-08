@@ -6682,6 +6682,16 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+  def test_MYS_502(self):
+      '''Add println function for JavaScript'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full','--sql']
+      x_cmds = [("\\connect {0}:{1}@{2}\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host),"Creating an X Session"),
+                ("\\js\n", "mysql-js>"),
+                ("println(session);\n", "<XSession:"+LOCALHOST.user+"@"+LOCALHOST.host+":"+LOCALHOST.xprotocol_port+">" + os.linesep + "")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
 
   # ----------------------------------------------------------------------
 
