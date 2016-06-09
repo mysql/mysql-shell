@@ -579,8 +579,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[2.0.03]:4 Connect local Server on SQL mode: NODE SESSION W/O PORT'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [("\\connect -n {0}:{1}@{2}\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host),
-                 "Creating a Node Session"),
+      x_cmds = [("\\connect -n {0}:{1}@{2}\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "Creating a Node Session"),
                 ("print(session);\n", "NodeSession:"),
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
@@ -6682,6 +6681,50 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+  def test_MYS_500_01(self):
+      '''Add println function for JavaScript'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full','--sql']
+      x_cmds = [("\\connect {0}:{1}@{2}\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host),"Creating an X Session"),
+                ("\\js\n", "mysql-js>"),
+                ("println(session);\n", "<XSession:"+LOCALHOST.user+"@"+LOCALHOST.host+":"+LOCALHOST.xprotocol_port+">" + os.linesep + ""),
+                ("\\use sakila\n", "mysql-js>"),
+                ("db;\n", "<Schema:sakila>"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_MYS_500_02(self):
+      '''Add println function for JavaScript'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full','--sql']
+      x_cmds = [("\\connect -n {0}:{1}@{2}\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "Creating a Node Session"),
+                ("\\js\n", "mysql-js>"),
+                ("println(session);\n", "<NodeSession:"+LOCALHOST.user+"@"+LOCALHOST.host+":"+LOCALHOST.xprotocol_port+">" + os.linesep + ""),
+                ("\\use sakila\n", "mysql-js>"),
+                ("session.getCurrentSchema();\n", "<Schema:sakila>"),
+                ("db;\n", "<Schema:sakila>"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_MYS_500_03(self):
+      '''Add println function for JavaScript'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full','--sql']
+      x_cmds = [("\\connect -c {0}:{1}@{2}:{3}\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
+                                                              LOCALHOST.port),"Creating a Classic Session"),
+                ("\\js\n", "mysql-js>"),
+                ("println(session);\n", "<ClassicSession:"+LOCALHOST.user+"@"+LOCALHOST.host+":"+LOCALHOST.port+">" + os.linesep + ""),
+                ("\\use sakila\n", "mysql-js>"),
+                ("session.getCurrentSchema();\n", "<ClassicSchema:sakila>"),
+                ("db;\n", "<ClassicSchema:sakila>"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+
+
   def test_MYS_502(self):
       '''Add println function for JavaScript'''
       results = ''
@@ -6692,6 +6735,7 @@ class XShell_TestCases(unittest.TestCase):
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
+
 
   # ----------------------------------------------------------------------
 
