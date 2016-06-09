@@ -6681,6 +6681,30 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+  def test_MYS_470_1(self):
+      '''Enable named parameters in python for mysqlx.getSession() and mysqlx.getNodeSession()'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full','--py']
+      x_cmds = [("import mysqlx\n","mysql-py>"),
+                ("session=mysqlx.getSession(host= '" + LOCALHOST.host + "', dbUser= '"
+                 + LOCALHOST.user + "', dbPassword= '" + LOCALHOST.password + "')\n", "mysql-py>"),
+                ("session\n", "<XSession:"+ LOCALHOST.user +"@"+LOCALHOST.host+":"+LOCALHOST.xprotocol_port +">"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_MYS_470_2(self):
+      '''Enable named parameters in python for mysqlx.getSession() and mysqlx.getNodeSession()'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full','--py']
+      x_cmds = [("import mysqlx\n","mysql-py>"),
+                ("session=mysqlx.getNodeSession(host= '" + LOCALHOST.host + "', dbUser= '"
+                 + LOCALHOST.user + "', dbPassword= '" + LOCALHOST.password + "')\n", "mysql-py>"),
+                ("session\n", "<NodeSession:"+ LOCALHOST.user +"@"+LOCALHOST.host+":"+LOCALHOST.xprotocol_port +">"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
   def test_MYS_500_01(self):
       '''Add println function for JavaScript'''
       results = ''
