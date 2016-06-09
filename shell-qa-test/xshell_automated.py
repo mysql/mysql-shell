@@ -6510,6 +6510,50 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+  def test_MYS_400_01(self):
+      ''' using  getDocumentId() and getDocumentIds() functions based in js'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                       '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--node', '--js']
+      x_cmds = [("DocumentIDsColl = session.getSchema('sakila_x').createCollection('colldocumentids');\n", "<Collection:colldocumentids>"),
+                ("res = DocumentIDsColl.add({ _id: '1', name: 'Rubens', lastname: 'Morquecho'}).add({ _id: '2', name: 'Omar', lastname: 'Mendez'}).execute()\n", "Query OK, 2 items affected"),
+                # Validate getDocumentIds() with chaining add() and user-supplied document IDs
+                ("res.getLastDocumentIds()\n", "\"1\""),
+                ("res.getLastDocumentIds()\n", "\"2\""),
+                # Validate getDocumentId() not allowed with chaining add()
+                ("res.getLastDocumentId()\n", "mysql-js>"),
+                ("res = DocumentIDsColl.add({ _id: '3', name: 'Armando', lastname: 'Lopez'}).execute()\n", "Query OK, 1 item affected"),
+                # Validate getDocumentId() for single add()
+                ("res.getLastDocumentId()\n", "3"),
+                # Validate getDocumentIds() without chaining
+                ("res.getLastDocumentIds()\n", "\"3\""),
+                ("session.dropCollection('sakila_x','colldocumentids');\n", "Query OK")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_MYS_400_02(self):
+      ''' using  getDocumentId() and getDocumentIds() functions based in py'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                       '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--node', '--py']
+      x_cmds = [("DocumentIDsColl = session.getSchema('sakila_x').createCollection('colldocumentids');\n", "mysql-py>"),
+                ("res = DocumentIDsColl.add({ '_id': '1', 'name': 'Rubens', 'lastname': 'Morquecho'}).add({ '_id': '2', 'name': 'Omar', 'lastname': 'Mendez'}).execute()\n", "mysql-py>"),
+                # Validate getDocumentIds() with chaining add() and user-supplied document IDs
+                ("res.getLastDocumentIds()\n", "\"1\""),
+                ("res.getLastDocumentIds()\n", "\"2\""),
+                # Validate getDocumentId() not allowed with chaining add()
+                ("res.getLastDocumentId()\n", "mysql-py>"),
+                ("res = DocumentIDsColl.add({ '_id': '3', 'name': 'Armando', 'lastname': 'Lopez'}).execute()\n", "mysql-py>"),
+                # Validate getDocumentId() for single add()
+                ("res.getLastDocumentId()\n", "3"),
+                # Validate getDocumentIds() without chaining
+                ("res.getLastDocumentIds()\n", "\"3\""),
+                ("session.dropCollection('sakila_x','colldocumentids');\n", "Query OK")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')	  
+	  
 
   #FAILING........
   @unittest.skip("connecting to store session without $, shows the password: ISSUE MYS-402")
