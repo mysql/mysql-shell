@@ -6596,6 +6596,78 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+  def test_MYS_432_1(self):
+      '''Add support for log level names'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=none','--js']
+      x_cmds = [(";\n", "mysql-js>"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_MYS_432_2(self):
+      '''Add support for log level names'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=internal','--js']
+      x_cmds = [(";\n", "mysql-js>"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_MYS_432_3(self):
+      '''Add support for log level names'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=error','--js']
+      x_cmds = [(";\n", "mysql-js>"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_MYS_432_4(self):
+      '''Add support for log level names'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=warning','--js']
+      x_cmds = [(";\n", "mysql-js>"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_MYS_432_5(self):
+      '''Add support for log level names'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=info','--js']
+      x_cmds = [(";\n", "mysql-js>"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_MYS_432_6(self):
+      '''Add support for log level names'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=debug','--js']
+      x_cmds = [(";\n", "mysql-js>"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_MYS_432_7(self):
+      '''Add support for log level names'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=debug2','--js']
+      x_cmds = [(";\n", "mysql-js>"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_MYS_432_8(self):
+      '''Add support for log level names'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=debug3','--js']
+      x_cmds = [(";\n", "mysql-js>"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
 
   def test_MYS_437_1(self):
       ''' NOT AND LIKE OPERATORS ARE NOT ACCEPTED IN UPPERCASE'''
