@@ -6121,6 +6121,16 @@ class XShell_TestCases(unittest.TestCase):
           results="FAIL"
       self.assertEqual(results, 'PASS')
 
+  def test_MYS_326(self):
+      ''' Error displayed as json instead of common error format for sql mode, more info on
+      https://jira.oraclecorp.com/jira/browse/MYS-471 and
+      https://jira.oraclecorp.com/jira/browse/MYS-326 '''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                       '-h' + LOCALHOST.host, '-P' + LOCALHOST.port, '--classic', '--sqlc']
+      x_cmds = [("foo\"AnyText\";\n", "ERROR: 1064 (42000): You have an error in your SQL syntax")]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
 
   def test_MYS_335(self):
       '''[CHLOG 1.0.2.5_2] Different password command line args'''
@@ -6390,7 +6400,41 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+  def test_MYS_365_01(self):
+      ''' Schema names not available directly as session.schema and getSchema('uri') must work for classic session'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                       '-h' + LOCALHOST.host, '-P' + LOCALHOST.port, '--classic', '--py']
+      x_cmds = [("session.createSchema('uri')\n", ""),
+                ("session.getSchema('uri')\n", ""),
+                ("session.dropSchema('uri')\n", "Query OK")
+               ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
 
+  def test_MYS_365_02(self):
+      ''' Schema names not available directly as session.schema and getSchema('uri') must work for node session'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                       '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--node', '--js']
+      x_cmds = [("session.createSchema('uri')\n", ""),
+                ("session.getSchema('uri')\n", ""),
+                ("session.dropSchema('uri')\n", "Query OK")
+               ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_MYS_365_03(self):
+      ''' Schema names not available directly as session.schema and getSchema('uri') must work for node session'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                       '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--x', '--js']
+      x_cmds = [("session.createSchema('uri')\n", ""),
+                ("session.getSchema('uri')\n", ""),
+                ("session.dropSchema('uri')\n", "Query OK")
+               ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
 
   def test_MYS_366_00(self):
       """ Verify the bug https://jira.oraclecorp.com/jira/browse/MYS-366 with node session """
