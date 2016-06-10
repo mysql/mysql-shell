@@ -6804,6 +6804,94 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+  def test_MYS_518_01(self):
+      ''' Session object Bool isOpen() function in js mode for node session'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                       '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--node', '--js']
+      x_cmds = [("session.isOpen()\n", "true"),
+                ("session.close()\n", "mysql-js>"),
+                ("session.isOpen()\n", "false"),
+               ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_MYS_518_02(self):
+      ''' Session object Bool isOpen() function in py mode for node session'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                       '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--node', '--py']
+      x_cmds = [("session.isOpen()\n", "true"),
+                ("session.close()\n", "mysql-py>"),
+                ("session.isOpen()\n", "false")
+               ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_MYS_518_03(self):
+      ''' Session object Bool isOpen() function in js mode for classic session'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                       '-h' + LOCALHOST.host,'-P' + LOCALHOST.port, '--classic', '--js']
+      x_cmds = [("session.isOpen()\n", "true"),
+                ("session.close()\n", "mysql-js>"),
+                ("session.isOpen()\n", "false"),
+               ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_MYS_518_04(self):
+      ''' Session object Bool isOpen() function in py mode for classic session'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                       '-h' + LOCALHOST.host,'-P' + LOCALHOST.port, '--classic', '--py']
+      x_cmds = [("session.isOpen()\n", "true"),
+                ("session.close()\n", "mysql-py>"),
+                ("session.isOpen()\n", "false")
+               ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_MYS_518_05(self):
+      ''' pasreUri function in js mode for node session'''
+      results = ''
+      Sschema = "world_x"
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                       '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--node', '--js']
+      x_cmds = [("shell.parseUri('{0}:{1}@{2}:{3}/{4}')\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
+                                                                  LOCALHOST.port,  Sschema), "\"dbPassword\": \"" + LOCALHOST.password + "\""),
+                ("shell.parseUri('{0}:{1}@{2}:{3}/{4}')\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
+                                                                  LOCALHOST.port,  Sschema), "\"dbUser\": \"" + LOCALHOST.user + "\""),
+                ("shell.parseUri('{0}:{1}@{2}:{3}/{4}')\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
+                                                                  LOCALHOST.port,  Sschema), "\"host\": \"" + LOCALHOST.host + "\""),
+                #("shell.parseUri('{0}:{1}@{2}:{3}/{4}')\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
+                #                                                  LOCALHOST.port,  Sschema), "\"port\": " + LOCALHOST.xprotocol_port),
+                ("shell.parseUri('{0}:{1}@{2}:{3}/{4}')\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
+                                                                  LOCALHOST.port,  Sschema), "\"schema\": \"" + Sschema + "\"")
+               ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_MYS_518_06(self):
+      ''' pasreUri function in py mode for node session'''
+      results = ''
+      Sschema = "world_x"
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                       '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--node', '--py']
+      x_cmds = [("shell.parseUri('{0}:{1}@{2}:{3}/{4}')\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
+                                                                  LOCALHOST.port,  Sschema), "\"dbPassword\": \"" + LOCALHOST.password + "\""),
+                ("shell.parseUri('{0}:{1}@{2}:{3}/{4}')\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
+                                                                  LOCALHOST.port,  Sschema), "\"dbUser\": \"" + LOCALHOST.user + "\""),
+                ("shell.parseUri('{0}:{1}@{2}:{3}/{4}')\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
+                                                                  LOCALHOST.port,  Sschema), "\"host\": \"" + LOCALHOST.host + "\""),
+                #("shell.parseUri('{0}:{1}@{2}:{3}/{4}')\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
+                #                                                  LOCALHOST.port,  Sschema), "\"port\": " + LOCALHOST.xprotocol_port),
+                ("shell.parseUri('{0}:{1}@{2}:{3}/{4}')\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
+                                                                  LOCALHOST.port,  Sschema), "\"schema\": \"" + Sschema + "\"")
+               ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
 
   # ----------------------------------------------------------------------
 
