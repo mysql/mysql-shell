@@ -6552,8 +6552,88 @@ class XShell_TestCases(unittest.TestCase):
                 ("session.dropCollection('sakila_x','colldocumentids');\n", "Query OK")
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
-      self.assertEqual(results, 'PASS')	  
-	  
+      self.assertEqual(results, 'PASS')
+
+  def test_MYS_401_1(self):
+      ''' View support (without DDL)'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                       '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--node', '--js']
+
+      x_cmds = [("var db = session.getSchema('sakila');\n", "mysql-js>"),
+                ("var table = db.getTable('actor');\n", "mysql-js>"),
+                ("table.isView();\n", "false"),
+                ("view = db.getTable('actor_info');\n","<Table:actor_info>"),
+                ("view.isView();\n","true"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_MYS_401_2(self):
+      ''' View support (without DDL)'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                       '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--node', '--js']
+
+      x_cmds = [("var db = session.getSchema('sakila');\n", "mysql-js>"),
+                ("var table = db.getTable('actor');\n", "mysql-js>"),
+                ("table.isView();\n", "false"),
+                ("view = db.getTable('actor_info');\n","<Table:actor_info>"),
+                ("view.isView();\n","true"),
+                ("view.update().set('last_name','GUINESSE').where('actor_id=1').execute();\n","The target table actor_info of the UPDATE is not updatable"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_MYS_401_3(self):
+      ''' View support (without DDL)'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                       '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--node', '--js']
+
+      x_cmds = [("var db = session.getSchema('sakila');\n", "mysql-js>"),
+                ("var table = db.getTable('actor');\n", "mysql-js>"),
+                ("table.isView();\n", "false"),
+                ("view = db.getTable('actor_info');\n","<Table:actor_info>"),
+                ("view.isView();\n","true"),
+                ("view.delete().where('actor_id = 1').execute();\n","The target table actor_info of the DELETE is not updatable"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_MYS_401_4(self):
+      ''' View support (without DDL)'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                       '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--node', '--js']
+
+      x_cmds = [("var db = session.getSchema('sakila');\n", "mysql-js>"),
+                ("var table = db.getTable('actor');\n", "mysql-js>"),
+                ("table.isView();\n", "false"),
+                ("view = db.getTable('actor_info');\n","<Table:actor_info>"),
+                ("view.isView();\n","true"),
+                ("view.insert().values(203,'JOHN','CENA', 'Action: The Marine').execute();\n","The target table actor_info of the INSERT is not insertable-into"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_MYS_401_5(self):
+      ''' View support (without DDL)'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                       '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--node', '--sql', '--schema=sakila']
+
+      x_cmds = [("create view actor_list as select actor_id as id, first_name as name, last_name as lname from actor;\n", "Query OK"),
+                ("\\js\n", "mysql-js>"),
+                ("view = db.getTable('actor_list');\n", "<Table:actor_list>"),
+                ("view.isView();\n", "true"),
+                ("view.insert().values(201, 'JOHN', 'SENA').execute();\n","Query OK, 1 item affected"),
+                ("view.update().set('lname', 'CENA').where('id=201').execute();\n","Query OK, 1 item affected"),
+                ("view.delete().where('id=201').execute();\n","Query OK, 1 item affected"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
 
   #FAILING........
   @unittest.skip("connecting to store session without $, shows the password: ISSUE MYS-402")
