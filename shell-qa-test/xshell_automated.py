@@ -6797,6 +6797,19 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+  def test_MYS_446(self):
+      ''' How should Collection.add([]).execute() behave? Error is not displayed, nothing added '''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                       '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--node', '--py']
+      x_cmds = [("testCollection = session.getSchema('sakila_x').createCollection('testcoll');\n", "mysql-py>"),
+                ("res = testCollection.add([]).execute();\n", ""),
+                ("session.sql(\"select * from sakila_x.testcoll;\").execute();\n", "Empty set"),
+                ("session.dropCollection('sakila_x','testcoll');\n", "Query OK")
+               ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
   def test_MYS_470_1(self):
       '''Enable named parameters in python for mysqlx.getSession() and mysqlx.getNodeSession()'''
       results = ''
