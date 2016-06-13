@@ -6947,6 +6947,32 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+  def test_MYS_451(self):
+      '''MYSQL SHELL HELP OUTPUT IS WRONG ABOUT MYSH'''
+      results = ''
+      var = "===== Global Commands ====="+os.linesep +\
+            "\\help       (\\?,\\h)    Print this help."+os.linesep +\
+            "\\sql                   Switch to SQL processing mode."+os.linesep +\
+            "\\js                    Switch to JavaScript processing mode."+os.linesep +\
+            "\\py                    Switch to Python processing mode."+os.linesep +\
+            "\\source     (\\.)       Execute a script file. Takes a file name as an argument."+os.linesep +\
+            "\\                      Start multi-line input when in SQL mode."+os.linesep +\
+            "\\quit       (\\q,\\exit) Quit MySQL Shell."+os.linesep +\
+            "\\connect    (\\c)       Connect to a server."+os.linesep +\
+            "\\warnings   (\\W)       Show warnings after every statement."+os.linesep +\
+            "\\nowarnings (\\w)       Don't show warnings after every statement."+os.linesep +\
+            "\\status     (\\s)       Print information about the current global connection."+os.linesep +\
+            "\\use        (\\u)       Set the current schema for the global session."+os.linesep +\
+            "\\saveconn   (\\savec)   Store a session configuration."+os.linesep +\
+            "\\rmconn     (\\rmc)     Remove the stored session configuration."+os.linesep +\
+            "\\lsconn     (\\lsc)     List stored session configurations."
+      init_command = [MYSQL_SHELL, '--interactive=full']
+      x_cmds = [("\\help\n", var)
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+
   def test_MYS_470_1(self):
       '''Enable named parameters in python for mysqlx.getSession() and mysqlx.getNodeSession()'''
       results = ''
