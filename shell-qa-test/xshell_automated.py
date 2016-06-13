@@ -6958,6 +6958,23 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+  def test_MYS_497(self):
+      '''No output if missing ";" on the -e option or redirecting to STDIN'''
+      results = ''
+      #init_command = [MYSQL_SHELL, '--interactive=full', '--version' ]
+      init_command = [MYSQL_SHELL, '--interactive=full','-e show databases;', '--sql', '--uri',  LOCALHOST.user+ ':' + LOCALHOST.password +
+                      '@' + LOCALHOST.host     ]
+      p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+      p.stdin.flush()
+      stdin,stdout = p.communicate()
+      if stdin.find(bytearray("| sakila_x","ascii"), 0, len(stdin)) >= 0:
+          results="PASS"
+      else:
+          results="FAIL"
+      self.assertEqual(results, 'PASS')
+
+
+
   def test_MYS_500_01(self):
       '''Add println function for JavaScript'''
       results = ''
