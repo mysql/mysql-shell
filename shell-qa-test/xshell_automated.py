@@ -4797,12 +4797,12 @@ class XShell_TestCases(unittest.TestCase):
 
 
   def test_4_9_01_5(self):
-      '''[4.9.002] Create a Stored Session: '''
+      '''[4.9.002] Create a Stored Session: using saveconn '''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
 
       x_cmds = [("\\rmconn classic_session\n","mysql-js>"),
-                ("\\addconn classic_session "+LOCALHOST.user+":"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+"/sakila\n","mysql-js>"),
+                ("\\saveconn classic_session "+LOCALHOST.user+":"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+"/sakila\n","mysql-js>"),
                 ("shell.storedSessions;\n","    \"classic_session\": {" + os.linesep + "        \"dbPassword\": \"**********\", " + os.linesep + "        \"dbUser\": \""+LOCALHOST.user+"\", " + os.linesep + "        \"host\": \""+LOCALHOST.host+"\", " + os.linesep + "        \"port\": "+LOCALHOST.port+", " + os.linesep + "        \"schema\": \"sakila\"" + os.linesep + "    }"),
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
@@ -4810,14 +4810,14 @@ class XShell_TestCases(unittest.TestCase):
 
 
   def test_4_9_02_1(self):
-      '''[4.9.002] Update a Stored Session: '''
+      '''[4.9.002] Update a Stored Session: using savec -f to override current value  '''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
 
       x_cmds = [("\\rmconn classic_session\n","mysql-js>"),
-                ("\\addconn classic_session "+LOCALHOST.user+":"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+"\sakila\n","mysql-js>"),
+                ("\\savec classic_session "+LOCALHOST.user+":"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+"\sakila\n","mysql-js>"),
                 ("shell.storedSessions;\n","\"classic_session\": {" + os.linesep + ""),
-                ("\\chconn classic_session dummy:"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+"\sakila\n","mysql-js>"),
+                ("\\savec -f classic_session dummy:"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+"\sakila\n","mysql-js>"),
                 ("shell.storedSessions;\n","\"dbUser\": \"dummy\", " + os.linesep + ""),
 
                 ]
@@ -4825,12 +4825,12 @@ class XShell_TestCases(unittest.TestCase):
       self.assertEqual(results, 'PASS')
 
   def test_4_9_02_2(self):
-      '''[4.9.002] Update a Stored Session: '''
+      '''[4.9.002] Update a Stored Session: using saveconn '''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
 
       x_cmds = [("\\rmconn classic_session\n","mysql-js>"),
-                ("\\addconn classic_session "+LOCALHOST.user+":"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+"\sakila\n","mysql-js>"),
+                ("\\saveconn classic_session "+LOCALHOST.user+":"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+"\sakila\n","mysql-js>"),
                 ("shell.storedSessions;\n","\"classic_session\": {" + os.linesep + ""),
                 ("shell.storedSessions.update(\"classic_session\", \"dummy:"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+"\sakila\")\n","mysql-js>"),
                 ("shell.storedSessions;\n","\"dbUser\": \"dummy\", " + os.linesep + ""),
@@ -4839,14 +4839,13 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
-
   def test_4_9_03_1(self):
-      '''[4.9.002] remove a Stored Session: '''
+      '''[4.9.002] remove a Stored Session: using savec'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
 
       x_cmds = [("\\rmconn classic_session\n","mysql-js>"),
-                ("\\addconn classic_session "+LOCALHOST.user+":"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+"\sakila\n","mysql-js>"),
+                ("\\savec classic_session "+LOCALHOST.user+":"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+"\sakila\n","mysql-js>"),
                 ("shell.storedSessions;\n","\"classic_session\": {" + os.linesep + ""),
                 ("\\rmconn classic_session\n","mysql-js>"),
                 ("shell.storedSessions.update(\"classic_session\", \"dummy:"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+"\sakila\")\n","does not exist"),
@@ -4856,12 +4855,12 @@ class XShell_TestCases(unittest.TestCase):
 
 
   def test_4_9_03_2(self):
-      '''[4.9.002] remove a Stored Session: '''
+      '''[4.9.002] remove a Stored Session: using saveconn'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
 
       x_cmds = [("\\rmconn classic_session\n","mysql-js>"),
-                ("\\addconn classic_session "+LOCALHOST.user+":"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+"\sakila\n","mysql-js>"),
+                ("\\saveconn classic_session "+LOCALHOST.user+":"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+"\sakila\n","mysql-js>"),
                 ("shell.storedSessions;\n","\"classic_session\": {" + os.linesep + ""),
                 ("shell.storedSessions.remove(\"classic_session\");","true"),
                 ]
@@ -4870,37 +4869,38 @@ class XShell_TestCases(unittest.TestCase):
 
 
   def test_4_9_04_1(self):
-      '''[4.9.002] remove a Stored Session: '''
+      '''[4.9.002] remove a Stored Session: using savec '''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
 
       x_cmds = [("\\rmconn classic_session\n","mysql-js>"),
-                ("\\addconn classic_session "+LOCALHOST.user+":"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+"\sakila\n","mysql-js>"),
+                ("\\savec classic_session "+LOCALHOST.user+":"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+"\sakila\n","mysql-js>"),
                 ("shell.storedSessions;\n","\"classic_session\": {" + os.linesep + ""),
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
-
+  @unittest.skip("Format displayed incorrectly related to bug https://jira.oraclecorp.com/jira/browse/MYS-538")
   def test_4_9_04_2(self):
-      '''[4.9.002] remove a Stored Session: '''
+      '''[4.9.002] remove a Stored Session: using saveconn '''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
 
       x_cmds = [("\\rmconn classic_session\n","mysql-js>"),
-                ("\\addconn classic_session "+LOCALHOST.user+":"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+"\sakila\n","mysql-js>"),
+                ("\\saveconn classic_session "+LOCALHOST.user+":"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+"\sakila\n","mysql-js>"),
                 ("\\lsc\n","\"classic_session\": {" + os.linesep + ""),
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+  @unittest.skip("Format displayed incorrectly related to bug https://jira.oraclecorp.com/jira/browse/MYS-538")
   def test_4_9_04_3(self):
-      '''[4.9.002] remove a Stored Session: '''
+      '''[4.9.002] remove a Stored Session: using savec '''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
 
       x_cmds = [("\\rmconn classic_session\n","mysql-js>"),
-                ("\\addconn classic_session "+LOCALHOST.user+":"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+"\sakila\n","mysql-js>"),
+                ("\\savec classic_session "+LOCALHOST.user+":"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+"\sakila\n","mysql-js>"),
                 ("\\lsconn\n","\"classic_session\": {" + os.linesep + ""),
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
@@ -6703,6 +6703,19 @@ class XShell_TestCases(unittest.TestCase):
                 ("\\connect $classic_session\n","Creating an X Session to root@localhost:33060"),
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_MYS_427(self):
+      '''[MYS_427] Warning is not longer displayed when password is not provided in URI connection '''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--uri',
+                      '{0}:@{1}:{2}'.format(LOCALHOST.user, LOCALHOST.host, LOCALHOST.xprotocol_port), '--node', '--js']
+      p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin =subprocess.PIPE )
+      stdin,stdout = p.communicate()
+      if stdin.find(bytearray("[Warning]","ascii"),0,len(stdin))> -1:
+        results = 'FAIL'
+      else:
+        results = 'PASS'
       self.assertEqual(results, 'PASS')
 
   def test_MYS_441(self):
