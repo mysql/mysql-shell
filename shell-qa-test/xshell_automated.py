@@ -6958,6 +6958,17 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+  def test_MYS_496(self):
+      '''MySQL Shell prints Undefined on JSON column (Classic Session)'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + REMOTEHOST.user, '--password=' + REMOTEHOST.password,
+                      '-h' + REMOTEHOST.host,'-P' + REMOTEHOST.port, '--classic', '--sqlc', '--schema=sakila_x']
+      x_cmds = [("select * from users limit 2;\n", '{\"_id\": \"'),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+
   def test_MYS_497(self):
       '''No output if missing ";" on the -e option or redirecting to STDIN'''
       results = ''
