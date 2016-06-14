@@ -6733,6 +6733,123 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+  def test_MYS_442_01(self):
+      '''JS In node mode check isView() function to identify whether the underlying object is a View or not, return bool '''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--uri',
+                      '{0}:{1}@{2}:{3}'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), '--node', '--js']
+      x_cmds = [("table = session.getSchema('sakila').getTable('actor')\n", "mysql-js>"),
+                ("table.isView()\n", "false"),
+                ("view = session.getSchema('sakila').getTable('actor_info')\n", "mysql-js>"),
+                ("view.isView()\n", "true")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_MYS_442_02(self):
+      '''JS In classic mode check isView() function to identify whether the underlying object is a View or not, return bool '''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--uri',
+                      '{0}:{1}@{2}:{3}'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.port), '--classic', '--js']
+      x_cmds = [("table = session.getSchema('sakila').getTable('actor')\n", "mysql-js>"),
+                ("table.isView()\n", "false"),
+                ("view = session.getSchema('sakila').getTable('actor_info')\n", "mysql-js>"),
+                ("view.isView()\n", "true")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_MYS_442_03(self):
+      '''PY In node mode check isView() function to identify whether the underlying object is a View or not, return bool '''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--uri',
+                      '{0}:{1}@{2}:{3}'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), '--node', '--py']
+      x_cmds = [("table = session.getSchema('sakila').getTable('actor')\n", ""),
+                ("table.isView()\n", "false"),
+                ("view = session.getSchema('sakila').getTable('actor_info')\n", ""),
+                ("view.isView()\n", "true")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_MYS_442_04(self):
+      '''PY In classic mode check isView() function to identify whether the underlying object is a View or not, return bool '''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--uri',
+                      '{0}:{1}@{2}:{3}'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.port), '--classic', '--py']
+      x_cmds = [("table = session.getSchema('sakila').getTable('actor')\n", ""),
+                ("table.isView()\n", "false"),
+                ("view = session.getSchema('sakila').getTable('actor_info')\n", ""),
+                ("view.isView()\n", "true")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_MYS_442_05(self):
+      '''View select all response '''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--uri',
+                      '{0}:{1}@{2}:{3}'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), '--node', '--js']
+      x_cmds = [("view = session.getSchema('sakila').getTable('actor_info')\n", "mysql-js>"),
+                ("view.select().execute()\n", "200 rows in set")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_MYS_442_06(self):
+      '''Error displayed when try to update the view '''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--uri',
+                      '{0}:{1}@{2}:{3}'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), '--node', '--js']
+      x_cmds = [("view = session.getSchema('sakila').getTable('actor_info')\n", "mysql-js>"),
+                ("view.update().set('last_name','GUINESSE').where('actor_id=1').execute()\n", "MySQL Error (1288): The target table actor_info of the UPDATE is not updatable")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_MYS_442_07(self):
+      '''Vies displayed as part of getTables() function '''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--uri',
+                      '{0}:{1}@{2}:{3}'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), '--node', '--js']
+      x_cmds = [("session.getSchema('sakila').getTables()\n", "<Table:actor_info>,"),
+                ("session.getSchema('sakila').getTables()\n", "<Table:actor_list>,")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_MYS_442_08(self):
+      '''JS node For a view to be updatable, there must be a one-to-one relationship between the rows in the view and the rows in the underlying table
+       therefore a new view is created following sakila.actor so update, insert and delete rows works'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--uri',
+                      '{0}:{1}@{2}:{3}/{4}'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port, "sakila"), '--node', '--js']
+      x_cmds = [("session.sql(\"create view actor_list2 as select actor_id as id, first_name as name, last_name as lname from actor;\").execute()\n", "Query OK"),
+                ("view = session.getSchema('sakila').getTable('actor_list2')\n", ""),
+                ("view.insert().values(250, 'XShellName','XShellLastName').execute()\n", "Query OK, 1 item affected"),
+                ("view.update().set('lname','XShellUpd').where('id=250').execute()\n", "Query OK, 1 item affected"),
+                ("view.delete().where('id=250').execute()\n", "Query OK, 1 item affected"),
+                ("session.dropView('sakila','actor_list2')\n", "Query OK")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_MYS_442_09(self):
+      '''PY node For a view to be updatable, there must be a one-to-one relationship between the rows in the view and the rows in the underlying table
+       therefore a new view is created following sakila.actor so update, insert and delete rows works'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--uri',
+                      '{0}:{1}@{2}:{3}/{4}'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port, "sakila"), '--node', '--py']
+      x_cmds = [("session.sql(\"create view actor_list2 as select actor_id as id, first_name as name, last_name as lname from actor;\").execute()\n", "Query OK"),
+                ("view = session.getSchema('sakila').getTable('actor_list2')\n", ""),
+                ("view.insert().values(250, 'XShellName','XShellLastName').execute()\n", "Query OK, 1 item affected"),
+                ("view.update().set('lname','XShellUpd').where('id=250').execute()\n", "Query OK, 1 item affected"),
+                ("view.delete().where('id=250').execute()\n", "Query OK, 1 item affected"),
+                ("session.dropView('sakila','actor_list2')\n", "Query OK")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
   def test_MYS_432_1(self):
       '''Add support for log level names'''
       results = ''
