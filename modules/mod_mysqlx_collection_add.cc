@@ -170,6 +170,8 @@ shcore::Value CollectionAdd::add(const shcore::Argument_list &args)
             {
               if (!shell_doc->has_key("_id"))
                 (*shell_doc)["_id"] = Value(get_new_uuid());
+              else if ((*shell_doc)["_id"].type != shcore::String)
+                throw shcore::Exception::argument_error("Invalid data type for _id field, should be a string");
 
               // No matter how the document was received, gets passed as expression to the
               // backend
