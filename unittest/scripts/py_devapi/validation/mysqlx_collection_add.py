@@ -14,6 +14,7 @@
 ||Invalid number of arguments in CollectionAdd.add, expected 1 but got 0
 ||CollectionAdd.add: Argument is expected to be either a document or a list of documents
 ||CollectionAdd.add: Element #1 is expected to be a JSON expression
+||CollectionAdd.add: Invalid data type for _id field, should be a string
 
 #@ Collection.add execution
 |Affected Rows Single: 1|

@@ -35,13 +35,14 @@ crud = collection.add()
 crud = collection.add(45)
 crud = collection.add(['invalid data'])
 crud = collection.add(mysqlx.expr('5+1'))
+crud = collection.add({'_id':45, 'name': 'sample'});
 
 # ---------------------------------------
 # Collection.Add Unit Testing: Execution
 # ---------------------------------------
 
 #@ Collection.add execution
-result = collection.add({ "name": 'my first', "passed": 'document', "count": 1 }).execute()
+result = collection.add({ "name": 'my first', "Passed": 'document', "count": 1 }).execute()
 print "Affected Rows Single:", result.affectedItemCount, "\n"
 print "lastDocumentId Single:", result.lastDocumentId
 print "getLastDocumentId Single:", result.getLastDocumentId()

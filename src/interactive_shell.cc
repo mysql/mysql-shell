@@ -840,7 +840,7 @@ bool Interactive_shell::cmd_list_connections(const std::vector<std::string>& arg
       for (auto connection : (*connections.get()))
       {
         std::string uri = shcore::build_connection_string(connection.second.as_map(), false);
-        _delegate.print(_delegate.user_data, (boost::format("%1% : %2%") % connection.first % uri).str().c_str());
+        _delegate.print(_delegate.user_data, (boost::format("%1% : %2%\n") % connection.first % uri).str().c_str());
       }
     }
 

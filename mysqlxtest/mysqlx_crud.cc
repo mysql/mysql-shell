@@ -402,20 +402,27 @@ AddStatement &AddStatement::add(const Document &doc)
     bool found = false;
     int size = expr_obj->object().fld_size();
     int index = 0;
-    while (index < size && !found)
+    while (index < size)
     {
       found = expr_obj->object().fld(index).key() == "_id";
 
-      // The document ID is stored as literal-octests
-      if (found &&
-          expr_obj->object().fld(index).value().has_literal() &&
-          expr_obj->object().fld(index).value().literal().has_v_octets())
-        m_last_document_ids.push_back(expr_obj->object().fld(index).value().literal().v_octets().value());
-      else
-        throw std::logic_error("missing document _id");
+      if (found)
+        break;
 
       index++;
     }
+
+    // The document ID is stored as literal-octests
+    if (found)
+    {
+      if (expr_obj->object().fld(index).value().has_literal() &&
+          expr_obj->object().fld(index).value().literal().has_v_octets())
+        m_last_document_ids.push_back(expr_obj->object().fld(index).value().literal().v_octets().value());
+      else
+        throw std::logic_error("Invalid data type for _id field, should be a string");
+    }
+    else
+      throw std::logic_error("Missing document _id");
 
     m_insert->mutable_row()->Add()->mutable_field()->AddAllocated(expr_obj);
   }
