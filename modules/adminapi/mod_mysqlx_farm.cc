@@ -171,7 +171,7 @@ shcore::Value Farm::get_replicaset(const shcore::Argument_list &args)
     std::string name = args.string_at(0);
 
     if (name == "default")
-      ret_val = shcore::Value(_default_replica_set);
+      ret_val = shcore::Value(boost::dynamic_pointer_cast<shcore::Object_bridge>(_default_replica_set));
 
     else
     {

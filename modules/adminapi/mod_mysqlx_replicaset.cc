@@ -138,43 +138,55 @@ shcore::Value ReplicaSet::add_node(const shcore::Argument_list &args)
   else
     throw shcore::Exception::argument_error("Unexpected argument on connection data.");
 
-  if (options->has_key("host"))
-    host = (*options)["host"].as_string();
+  if(options->size() == 0)
+    throw shcore::Exception::argument_error("Connection data empty.");
+  else
+  {
+    if (options->has_key("host"))
+      host = (*options)["host"].as_string();
 
-  if (options->has_key("port"))
-    port = (*options)["port"].as_int();
+    if (options->has_key("port"))
+      port = (*options)["port"].as_int();
 
-  if (options->has_key("socket"))
-    sock = (*options)["socket"].as_string();
+    if (options->has_key("socket"))
+      sock = (*options)["socket"].as_string();
 
-  if (options->has_key("schema"))
-    throw shcore::Exception::argument_error("Unexpected argument on connection data.");
+    if (options->has_key("schema"))
+      throw shcore::Exception::argument_error("Unexpected argument on connection data.");
 
-  if (options->has_key("user"))
-    throw shcore::Exception::argument_error("Unexpected argument on connection data.");
+    if (options->has_key("user") || options->has_key("dbUser"))
+      throw shcore::Exception::argument_error("Unexpected argument on connection data.");
 
-  if (options->has_key("password"))
-    throw shcore::Exception::argument_error("Unexpected argument on connection data.");
+    if (options->has_key("password") || options->has_key("dbPassword"))
+      throw shcore::Exception::argument_error("Unexpected argument on connection data.");
 
-  if (options->has_key("ssl_ca"))
-    ssl_ca = (*options)["ssl_ca"].as_string();
+    if (options->has_key("ssl_ca"))
+      ssl_ca = (*options)["ssl_ca"].as_string();
 
-  if (options->has_key("ssl_cert"))
-    ssl_cert = (*options)["ssl_cert"].as_string();
+    if (options->has_key("ssl_cert"))
+      ssl_cert = (*options)["ssl_cert"].as_string();
 
-  if (options->has_key("ssl_key"))
-    ssl_key = (*options)["ssl_key"].as_string();
+    if (options->has_key("ssl_key"))
+      ssl_key = (*options)["ssl_key"].as_string();
 
-  if (options->has_key("authMethod"))
-    throw shcore::Exception::argument_error("Unexpected argument on connection data.");
+    if (options->has_key("authMethod"))
+      throw shcore::Exception::argument_error("Unexpected argument on connection data.");
 
-  if (port == 0 && sock.empty())
-    port = get_default_port();
+    if (port == 0 && sock.empty())
+      port = get_default_port();
 
-  std::string sock_port = (port == 0) ? sock : boost::lexical_cast<std::string>(port);
+    // TODO: validate additional data.
 
-  // Add the Node on the Metadata Schema
-  // TODO!
+    std::string sock_port = (port == 0) ? sock : boost::lexical_cast<std::string>(port);
+
+    // Handle empty required values
+    if (!options->has_key("host"))
+      throw shcore::Exception::argument_error("Missing required value for hostname.");
+
+
+    // Add the Node on the Metadata Schema
+    // TODO!
+  }
 
   return Value();
 }
