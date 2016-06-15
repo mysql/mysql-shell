@@ -7319,6 +7319,23 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+  def test_MYS_539(self):
+      ''' Unable to add documents to collection'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                       '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--node','--schema=world_x', '--js']
+      var = "{ GNP: .6, IndepYear: 1967, Name: \"Sealand\", _id: \"SEA\""+\
+            "demographics: { LifeExpectancy: 79, Population: 27},"+\
+            "geography: { Continent: \"Europe\", Region: \"British Islands\", SurfaceArea: 193},"+\
+            "government: { GovernmentForm: \"Monarchy\", HeadOfState: \"Michael Bates\"}}"
+
+      x_cmds = [("var myColl = session.getSchema('world_x').getCollection('countryinfo');\n","mysql-js>"),
+                ("var result = myColl.add("+var+" ).execute();\n","mysql-js>"),
+                ("result.getLastDocumentId();\n","SEA"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
 
 
   # ----------------------------------------------------------------------
