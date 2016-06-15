@@ -1,5 +1,4 @@
-
-// New method chaining used for executing a SQL SELECT statement
+// New method chaining used for executing an SQL SELECT statement
 // Recommended way for executing queries
 var employees = db.getTable('employee');
 
