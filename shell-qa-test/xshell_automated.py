@@ -1398,8 +1398,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[3.1.002]:1 Check that help command with parameter  works: \help connect'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [("\\help connect\n", "Connect to server")
-                ]
+      x_cmds = [("\\help connect\n", "Connect to a server." + os.linesep)]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
@@ -1407,8 +1406,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[3.1.002]:2 Check that help command with parameter  works: \h connect'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [("\\h connect\n", "Connect to server")
-                ]
+      x_cmds = [("\\h connect\n", "Connect to a server.")]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
@@ -1416,8 +1414,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[3.1.002]:3 Check that help command with parameter  works: \? connect'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [("\\? connect\n", "Connect to server")
-                ]
+      x_cmds = [("\\? connect\n", "Connect to a server.")]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
