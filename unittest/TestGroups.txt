@@ -20,3 +20,4 @@ add_test(Shell_py_mysqlx_tests run_unit_tests --gtest_filter=Shell_py_mysqlx_tes
 add_test(Shell_js_mysqlx_tests run_unit_tests --gtest_filter=Shell_js_mysqlx_tests.*)
 add_test(Proj_parser_tests run_unit_tests --gtest_filter=Proj_parser_tests.*)
 add_test(Shell_js_mysql_tests run_unit_tests --gtest_filter=Shell_js_mysql_tests.*)
+add_test(Shell_js_adminapi_tests run_unit_tests --gtest_filter=Shell_js_adminapi_tests.*)
