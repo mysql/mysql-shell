@@ -7283,6 +7283,44 @@ class XShell_TestCases(unittest.TestCase):
       self.assertEqual(results, 'PASS')
 
 
+  def test_MYS_538_1(self):
+      '''WRONG FORMAT DISPLAYED TO USER FOR \LSC OR \LSCONN'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+
+      x_cmds = [("\\rmconn classic_session1\n","mysql-js>"),
+                ("\\rmconn classic_session2\n","mysql-js>"),
+                ("\\rmconn classic_session3\n","mysql-js>"),
+                ("\\saveconn classic_session1 "+LOCALHOST.user+":"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+"/sakila\n","mysql-js>"),
+                ("\\saveconn classic_session2 "+LOCALHOST.user+":"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+"/test\n","mysql-js>"),
+                ("\\saveconn classic_session3 "+LOCALHOST.user+":"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+"/test2\n","mysql-js>"),
+                ("\\lsc\n","classicsession1 : "+LOCALHOST.user+"@"+LOCALHOST.host+":"+LOCALHOST.port+"/sakila"+os.linesep+\
+                 "classicsession2 : "+LOCALHOST.user+"@"+LOCALHOST.host+":"+LOCALHOST.port+"/test"+os.linesep+\
+                 "classicsession3 : "+LOCALHOST.user+"@"+LOCALHOST.host+":"+LOCALHOST.port+"/test2" + os.linesep),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_MYS_538_2(self):
+      '''WRONG FORMAT DISPLAYED TO USER FOR \LSC OR \LSCONN'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+
+      x_cmds = [("\\rmconn classic_session1\n","mysql-js>"),
+                ("\\rmconn classic_session2\n","mysql-js>"),
+                ("\\rmconn classic_session3\n","mysql-js>"),
+                ("\\saveconn classic_session1 "+LOCALHOST.user+":"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+"/sakila\n","mysql-js>"),
+                ("\\saveconn classic_session2 "+LOCALHOST.user+":"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+"/test\n","mysql-js>"),
+                ("\\saveconn classic_session3 "+LOCALHOST.user+":"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+"/test2\n","mysql-js>"),
+                ("\\lsconn\n","classicsession1 : "+LOCALHOST.user+"@"+LOCALHOST.host+":"+LOCALHOST.port+"/sakila"+os.linesep+\
+                 "classicsession2 : "+LOCALHOST.user+"@"+LOCALHOST.host+":"+LOCALHOST.port+"/test"+os.linesep+\
+                 "classicsession3 : "+LOCALHOST.user+"@"+LOCALHOST.host+":"+LOCALHOST.port+"/test2" + os.linesep),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+
+
   # ----------------------------------------------------------------------
 
 
