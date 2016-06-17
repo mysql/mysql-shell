@@ -5903,28 +5903,32 @@ class XShell_TestCases(unittest.TestCase):
       self.assertEqual(results, 'PASS')
 
   def test_MYS_290_00(self):
-     '''Verify the bug https://jira.oraclecorp.com/jira/browse/MYS-290 with --file'''
-     results = ''
-     init_command = [MYSQL_SHELL, '--file=' + Exec_files_location + 'JavaScript_Error.js']
-     p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE )
-     stdin,stdout = p.communicate()
-     if stdout.startswith('ReferenceError'):
-         results = 'PASS'
-     else:
-         results = 'FAIL'
-     self.assertEqual(results, 'PASS', str(stdout))
+      '''Verify the bug https://jira.oraclecorp.com/jira/browse/MYS-290 with --file'''
+      results = ''
+      init_command = [MYSQL_SHELL, '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                      '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--node',
+                      '--file=' + Exec_files_location + 'JavaScript_Error.js']
+      p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+      stdin, stdout = p.communicate()
+      if stdout.find(bytearray("Invalid object member getdatabase", "ascii")):
+          results = 'PASS'
+      else:
+          results = 'FAIL'
+      self.assertEqual(results, 'PASS', str(stdout))
 
   def test_MYS_290_01(self):
-     '''Verify the bug https://jira.oraclecorp.com/jira/browse/MYS-290 with --interactive=full --file '''
-     results = ''
-     init_command = [MYSQL_SHELL, '--interactive=full', '--file=' + Exec_files_location + 'JavaScript_Error.js']
-     p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE )
-     stdin,stdout = p.communicate()
-     if stdout.startswith('ReferenceError'):
-         results = 'PASS'
-     else:
-         results = 'FAIL'
-     self.assertEqual(results, 'PASS', str(stdout))
+      '''Verify the bug https://jira.oraclecorp.com/jira/browse/MYS-290 with --interactive=full --file '''
+      results = ''
+      init_command = [MYSQL_SHELL, '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                      '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--node', '--interactive=full',
+                      '--file=' + Exec_files_location + 'JavaScript_Error.js']
+      p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+      stdin, stdout = p.communicate()
+      if stdout.find(bytearray("Invalid object member getdatabase", "ascii")):
+          results = 'PASS'
+      else:
+          results = 'FAIL'
+      self.assertEqual(results, 'PASS', str(stdout))
   
   #FAILING........
   @unittest.skip("SSL is not creating the connection, related issue: https://jira.oraclecorp.com/jira/browse/MYS-488")
