@@ -7298,9 +7298,9 @@ class XShell_TestCases(unittest.TestCase):
                 ("\\saveconn classic_session1 "+LOCALHOST.user+":"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+"/sakila\n","mysql-js>"),
                 ("\\saveconn classic_session2 "+LOCALHOST.user+":"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+"/test\n","mysql-js>"),
                 ("\\saveconn classic_session3 "+LOCALHOST.user+":"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+"/test2\n","mysql-js>"),
-                ("\\lsc\n","classicsession1 : "+LOCALHOST.user+"@"+LOCALHOST.host+":"+LOCALHOST.port+"/sakila"+os.linesep+\
-                 "classicsession2 : "+LOCALHOST.user+"@"+LOCALHOST.host+":"+LOCALHOST.port+"/test"+os.linesep+\
-                 "classicsession3 : "+LOCALHOST.user+"@"+LOCALHOST.host+":"+LOCALHOST.port+"/test2" + os.linesep),
+                ("\\lsc\n","classic_session1 : "+LOCALHOST.user+"@"+LOCALHOST.host+":"+LOCALHOST.port+"/sakila"+os.linesep+\
+                 "classic_session2 : "+LOCALHOST.user+"@"+LOCALHOST.host+":"+LOCALHOST.port+"/test"+os.linesep+\
+                 "classic_session3 : "+LOCALHOST.user+"@"+LOCALHOST.host+":"+LOCALHOST.port+"/test2" + os.linesep),
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
@@ -7316,9 +7316,9 @@ class XShell_TestCases(unittest.TestCase):
                 ("\\saveconn classic_session1 "+LOCALHOST.user+":"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+"/sakila\n","mysql-js>"),
                 ("\\saveconn classic_session2 "+LOCALHOST.user+":"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+"/test\n","mysql-js>"),
                 ("\\saveconn classic_session3 "+LOCALHOST.user+":"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+"/test2\n","mysql-js>"),
-                ("\\lsconn\n","classicsession1 : "+LOCALHOST.user+"@"+LOCALHOST.host+":"+LOCALHOST.port+"/sakila"+os.linesep+\
-                 "classicsession2 : "+LOCALHOST.user+"@"+LOCALHOST.host+":"+LOCALHOST.port+"/test"+os.linesep+\
-                 "classicsession3 : "+LOCALHOST.user+"@"+LOCALHOST.host+":"+LOCALHOST.port+"/test2" + os.linesep),
+                ("\\lsconn\n","classic_session1 : "+LOCALHOST.user+"@"+LOCALHOST.host+":"+LOCALHOST.port+"/sakila"+os.linesep+\
+                 "classic_session2 : "+LOCALHOST.user+"@"+LOCALHOST.host+":"+LOCALHOST.port+"/test"+os.linesep+\
+                 "classic_session3 : "+LOCALHOST.user+"@"+LOCALHOST.host+":"+LOCALHOST.port+"/test2" + os.linesep),
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
