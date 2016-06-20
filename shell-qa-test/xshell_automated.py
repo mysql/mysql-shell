@@ -6792,7 +6792,7 @@ class XShell_TestCases(unittest.TestCase):
       init_command = [MYSQL_SHELL, '--interactive=full', '--uri',
                       '{0}:{1}@{2}:{3}'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), '--node', '--js']
       x_cmds = [("view = session.getSchema('sakila').getTable('actor_info')\n", "mysql-js>"),
-                ("view.select().execute()\n", "200 rows in set")
+                ("view.select().execute()\n", "rows in set")
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
