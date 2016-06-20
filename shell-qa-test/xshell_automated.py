@@ -6851,6 +6851,7 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+  @unittest.skip("issues MYS432 , Add support for log level names")
   def test_MYS_432_1(self):
       '''Add support for log level names'''
       results = ''
@@ -6860,6 +6861,7 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+  @unittest.skip("issues MYS432 , Add support for log level names")
   def test_MYS_432_2(self):
       '''Add support for log level names'''
       results = ''
@@ -6869,6 +6871,7 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+  @unittest.skip("issues MYS432 , Add support for log level names")
   def test_MYS_432_3(self):
       '''Add support for log level names'''
       results = ''
@@ -6878,6 +6881,7 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+  @unittest.skip("issues MYS432 , Add support for log level names")
   def test_MYS_432_4(self):
       '''Add support for log level names'''
       results = ''
@@ -6887,6 +6891,7 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+  @unittest.skip("issues MYS432 , Add support for log level names")
   def test_MYS_432_5(self):
       '''Add support for log level names'''
       results = ''
@@ -6896,6 +6901,7 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+  @unittest.skip("issues MYS432 , Add support for log level names")
   def test_MYS_432_6(self):
       '''Add support for log level names'''
       results = ''
@@ -6905,6 +6911,7 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+  @unittest.skip("issues MYS432 , Add support for log level names")
   def test_MYS_432_7(self):
       '''Add support for log level names'''
       results = ''
@@ -6914,6 +6921,7 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+  @unittest.skip("issues MYS432 , Add support for log level names")
   def test_MYS_432_8(self):
       '''Add support for log level names'''
       results = ''
