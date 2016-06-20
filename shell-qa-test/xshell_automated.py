@@ -6254,7 +6254,7 @@ class XShell_TestCases(unittest.TestCase):
                       '-h' + LOCALHOST.host,'-P' + LOCALHOST.port, '--classic', '--py']
       x_cmds = [(";\n", 'mysql-py>'),
                 ("def custom_prompt(): return \'--mypy--prompt-->\'\n", ""),
-                ("shell.ps = custom_prompt\n", "--mypy--prompt-->"),
+                ("shell.custom_prompt = custom_prompt\n", "--mypy--prompt-->"),
                 ("\\js\n", "mysql-js>"),
                 ("\\py\n", "--mypy--prompt-->")
                 ]
@@ -6268,7 +6268,7 @@ class XShell_TestCases(unittest.TestCase):
                       '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--node', '--js']
       x_cmds = [(";\n", 'mysql-js>'),
                 ("function custom_prompt(){ return session.uri + \'>>\'; }\n", ""),
-                ("shell.ps = custom_prompt\n", LOCALHOST.user + "@" + LOCALHOST.host + ":" + LOCALHOST.xprotocol_port + ">>"),
+                ("shell.custom_prompt = custom_prompt\n", LOCALHOST.user + "@" + LOCALHOST.host + ":" + LOCALHOST.xprotocol_port + ">>"),
                 ("\\py\n", "mysql-py>"),
                 ("\\js\n", LOCALHOST.user + "@" + LOCALHOST.host + ":" + LOCALHOST.xprotocol_port + ">>")
                 ]
