@@ -6226,9 +6226,10 @@ class XShell_TestCases(unittest.TestCase):
       init_command = [MYSQL_SHELL, '--interactive=full']
 
       x_cmds = [("\\rmconn classic_session\n","mysql-js>"),
-                ("\\addconn classic_session "+LOCALHOST.user+":"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+"\sakila\n","mysql-js>"),
+                ("\\saveconn classic_session "+LOCALHOST.user+":"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+"/sakila\n","mysql-js>"),
                 ("shell.storedSessions;\n","\"classic_session\": {" + os.linesep + ""),
-                ("\\chconn classic_session dummy:"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+"\sakila\n","mysql-js>"),
+                ("\\rmconn classic_session\n","mysql-js>"),
+                ("\\saveconn classic_session dummy:"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+"/sakila\n","mysql-js>"),
                 ("shell.storedSessions;\n","\"dbUser\": \"dummy\", " + os.linesep + ""),
 
                 ]
