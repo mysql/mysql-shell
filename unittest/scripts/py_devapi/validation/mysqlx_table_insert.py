@@ -44,10 +44,10 @@
 |Affected Rows Columns: 1|
 |Affected Rows Multiple Values: 2|
 |Affected Rows Document: 1|
-|lastDocumentId: LogicError: Result.getLastDocumentId(): document id is not available.|
-|getLastDocumentId(): LogicError: Result.getLastDocumentId(): document id is not available.|
-|lastDocumentIds: LogicError: Result.getLastDocumentIds(): document ids are not available.|
-|getLastDocumentIds(): LogicError: Result.getLastDocumentIds(): document ids are not available.|
+|last_document_id: LogicError: Result.get_last_document_id: document id is not available.|
+|get_last_document_id(): LogicError: Result.get_last_document_id: document id is not available.|
+|last_document_ids: LogicError: Result.get_last_document_ids: document ids are not available.|
+|get_last_document_ids(): LogicError: Result.get_last_document_ids: document ids are not available.|
 
 #@ Table.insert execution on a View
 |Affected Rows Through View: 1|

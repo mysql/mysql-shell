@@ -100,7 +100,8 @@ Connection *ClassicSession::connection()
 
 Value ClassicSession::connect(const Argument_list &args)
 {
-  args.ensure_count(1, 2, "ClassicSession.connect");
+  std::string function = class_name() + '.' + "connect";
+  args.ensure_count(1, 2, function.c_str());
 
   try
   {
@@ -125,7 +126,7 @@ Undefined ClassicSession::close(){}
 #endif
 Value ClassicSession::close(const shcore::Argument_list &args)
 {
-  args.ensure_count(0, "ClassicSession.close");
+  args.ensure_count(0, get_function_name("close").c_str());
 
   // Connection must be explicitly closed, we can't rely on the
   // automatic destruction because if shared across different objects
@@ -149,7 +150,7 @@ ClassicResult ClassicSession::runSql(String query){}
 #endif
 Value ClassicSession::run_sql(const shcore::Argument_list &args) const
 {
-  args.ensure_count(1, "ClassicSession.sql");
+  args.ensure_count(1, get_function_name("runSql").c_str());
   // Will return the result of the SQL execution
   // In case of error will be Undefined
   Value ret_val;
@@ -181,7 +182,7 @@ ClassicSchema ClassicSession::createSchema(String name){}
 #endif
 Value ClassicSession::create_schema(const shcore::Argument_list &args)
 {
-  args.ensure_count(1, "ClassicSession.createSchema");
+  args.ensure_count(1, get_function_name("createSchema").c_str());
 
   Value ret_val;
   if (!_conn)
@@ -303,8 +304,7 @@ ClassicSchema ClassicSession::getSchema(String name){}
 #endif
 shcore::Value ClassicSession::get_schema(const shcore::Argument_list &args) const
 {
-  std::string function_name = class_name() + ".getSchema";
-  args.ensure_count(1, function_name.c_str());
+  args.ensure_count(1, get_function_name("getSchema").c_str());
   shcore::Value ret_val;
 
   std::string type = "Schema";
@@ -379,7 +379,7 @@ ClassicSchema ClassicSession::setCurrentSchema(String schema){}
 #endif
 shcore::Value ClassicSession::set_current_schema(const shcore::Argument_list &args)
 {
-  args.ensure_count(1, "ClassicSession.setCurrentSchema");
+  args.ensure_count(1, get_function_name("setCurrentSchema").c_str());
 
   if (_conn)
   {
@@ -411,7 +411,7 @@ ClassicResult ClassicSession::dropSchema(String name){}
 #endif
 shcore::Value ClassicSession::drop_schema(const shcore::Argument_list &args)
 {
-  std::string function = class_name() + ".dropSchema";
+  std::string function = get_function_name("dropSchema");
 
   args.ensure_count(1, function.c_str());
 
@@ -444,7 +444,7 @@ ClassicResult ClassicSession::dropView(String schema, String name){}
 #endif
 shcore::Value ClassicSession::drop_schema_object(const shcore::Argument_list &args, const std::string& type)
 {
-  std::string function = class_name() + ".drop" + type;
+  std::string function = get_function_name("drop" + type);
 
   args.ensure_count(2, function.c_str());
 
@@ -544,8 +544,7 @@ ClassicResult ClassicSession::startTransaction(){}
 #endif
 shcore::Value ClassicSession::startTransaction(const shcore::Argument_list &args)
 {
-  std::string function_name = class_name() + ".startTransaction";
-  args.ensure_count(0, function_name.c_str());
+  args.ensure_count(0, get_function_name("startTransaction").c_str());
 
   return Value::wrap(new ClassicResult(boost::shared_ptr<Result>(_conn->run_sql("start transaction"))));
 }
@@ -563,8 +562,7 @@ ClassicResult ClassicSession::commit(){}
 #endif
 shcore::Value ClassicSession::commit(const shcore::Argument_list &args)
 {
-  std::string function_name = class_name() + ".startTransaction";
-  args.ensure_count(0, function_name.c_str());
+  args.ensure_count(0, get_function_name("commit").c_str());
 
   return Value::wrap(new ClassicResult(boost::shared_ptr<Result>(_conn->run_sql("commit"))));
 }
@@ -582,8 +580,7 @@ ClassicResult ClassicSession::rollback(){}
 #endif
 shcore::Value ClassicSession::rollback(const shcore::Argument_list &args)
 {
-  std::string function_name = class_name() + ".startTransaction";
-  args.ensure_count(0, function_name.c_str());
+  args.ensure_count(0, get_function_name("rollback").c_str());
 
   return Value::wrap(new ClassicResult(boost::shared_ptr<Result>(_conn->run_sql("rollback"))));
 }

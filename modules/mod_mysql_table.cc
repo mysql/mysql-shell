@@ -55,7 +55,7 @@ Bool Table::isView(){}
 #endif
 shcore::Value ClassicTable::is_view(const shcore::Argument_list &args)
 {
-  args.ensure_count(0, "ClassicTable.isView");
+  args.ensure_count(0, get_function_name("isView").c_str());
 
   return Value(_is_view);
 }

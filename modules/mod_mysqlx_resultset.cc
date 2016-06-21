@@ -87,9 +87,9 @@ shcore::Value BaseResult::get_member(const std::string &prop) const
       {
         mysh::Row *warning_row = new mysh::Row();
 
-        warning_row->add_item("Level", shcore::Value(warnings[index].is_note ? "Note" : "Warning"));
-        warning_row->add_item("Code", shcore::Value(warnings[index].code));
-        warning_row->add_item("Message", shcore::Value(warnings[index].text));
+        warning_row->add_item("level", shcore::Value(warnings[index].is_note ? "Note" : "Warning"));
+        warning_row->add_item("code", shcore::Value(warnings[index].code));
+        warning_row->add_item("message", shcore::Value(warnings[index].text));
 
         array->push_back(shcore::Value::wrap(warning_row));
       }
@@ -235,7 +235,7 @@ std::string Result::get_last_document_id() const
   {
     ret_val = _result->lastDocumentId();
   }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION("Result.getLastDocumentId()");
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("getLastDocumentId"));
 
   return ret_val;
 }
@@ -247,7 +247,7 @@ const std::vector<std::string> Result::get_last_document_ids() const
   {
     ret_val = _result->lastDocumentIds();
   }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION("Result.getLastDocumentIds()");
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("getLastDocumentIds"));
   return ret_val;
 }
 
@@ -283,7 +283,7 @@ shcore::Value DocResult::fetch_one(const shcore::Argument_list &args) const
 {
   Value ret_val = Value::Null();
 
-  args.ensure_count(0, "DocResult.fetchOne");
+  args.ensure_count(0, get_function_name("fetchOne").c_str());
 
   if (_result->columnMetadata() && _result->columnMetadata()->size())
   {
@@ -309,7 +309,7 @@ shcore::Value DocResult::fetch_all(const shcore::Argument_list &args) const
 {
   Value::Array_type_ref array(new Value::Array_type());
 
-  args.ensure_count(0, "DocResult.fetchAll");
+  args.ensure_count(0, get_function_name("fetchAll").c_str());
 
   // Gets the next document
   Value record = fetch_one(args);
@@ -326,7 +326,7 @@ shcore::Value DocResult::get_metadata() const
 {
   if (!_metadata)
   {
-    shcore::Value data_type = mysh::Constant::get_constant("mysqlx", "Type", "Json", shcore::Argument_list());
+    shcore::Value data_type = mysh::Constant::get_constant("mysqlx", "Type", "JSON", shcore::Argument_list());
 
     // the plugin may not send these if they are equal to table/name respectively
     // We need to reconstruct them
@@ -481,38 +481,38 @@ shcore::Value::Array_type_ref RowResult::get_columns() const
           {
             case 3:
             case 4:
-              type_name = "TinyInt";
+              type_name = "TINYINT";
               break;
             case 5:
             case 6:
-              type_name = "SmallInt";
+              type_name = "SMALLINT";
               break;
             case 8:
             case 9:
-              type_name = "MediumInt";
+              type_name = "MEDIUMINT";
               break;
             case 10:
             case 11:
-              type_name = "Int";
+              type_name = "INT";
               break;
             case 20:
-              type_name = "BigInt";
+              type_name = "BIGINT";
               break;
           }
           break;
         case ::mysqlx::BIT:
-          type_name = "Bit";
+          type_name = "BIT";
           break;
         case ::mysqlx::DOUBLE:
-          type_name = "Double";
+          type_name = "DOUBLE";
           is_signed = !(_result->columnMetadata()->at(i).flags & 0x001);
           break;
         case ::mysqlx::FLOAT:
-          type_name = "Float";
+          type_name = "FLOAT";
           is_signed = !(_result->columnMetadata()->at(i).flags & 0x001);
           break;
         case ::mysqlx::DECIMAL:
-          type_name = "Decimal";
+          type_name = "DECIMAL";
           is_signed = !(_result->columnMetadata()->at(i).flags & 0x001);
           break;
         case ::mysqlx::BYTES:
@@ -521,38 +521,38 @@ shcore::Value::Array_type_ref RowResult::get_columns() const
           switch (_result->columnMetadata()->at(i).content_type & 0x0003)
           {
             case 1:
-              type_name = "Geometry";
+              type_name = "GEOMETRY";
               break;
             case 2:
-              type_name = "Json";
+              type_name = "JSON";
               break;
             case 3:
-              type_name = "Xml";
+              type_name = "XML";
               break;
             default:
               if (Charset::item[_result->columnMetadata()->at(i).collation].collation == "Binary")
-                type_name = "Bytes";
+                type_name = "BYTES";
               else
-                type_name = "String";
+                type_name = "STRING";
               break;
           }
           break;
         case ::mysqlx::TIME:
-          type_name = "Time";
+          type_name = "TIME";
           break;
         case ::mysqlx::DATETIME:
           if (_result->columnMetadata()->at(i).flags & 0x001)
-            type_name = "Timestamp";
+            type_name = "TIMESTAMP";
           else if (_result->columnMetadata()->at(i).length == 10)
-            type_name = "Date";
+            type_name = "DATE";
           else
-            type_name = "DateTime";
+            type_name = "DATETIME";
           break;
         case ::mysqlx::SET:
-          type_name = "Set";
+          type_name = "SET";
           break;
         case ::mysqlx::ENUM:
-          type_name = "Enum";
+          type_name = "ENUM";
           break;
       }
 
@@ -600,9 +600,7 @@ Row RowResult::fetchOne(){};
 #endif
 shcore::Value RowResult::fetch_one(const shcore::Argument_list &args) const
 {
-  std::string function = class_name() + ".next";
-
-  args.ensure_count(0, function.c_str());
+  args.ensure_count(0, get_function_name("fetchOne").c_str());
 
   boost::shared_ptr<std::vector< ::mysqlx::ColumnMetadata> > metadata = _result->columnMetadata();
   if (metadata->size() > 0)
@@ -682,7 +680,7 @@ shcore::Value RowResult::fetch_all(const shcore::Argument_list &args) const
 {
   Value::Array_type_ref array(new Value::Array_type());
 
-  args.ensure_count(0, "RowResult.fetchAll");
+  args.ensure_count(0, get_function_name("fetchAll").c_str());
 
   // Gets the next row
   Value record = fetch_one(args);
@@ -728,7 +726,7 @@ Bool SqlResult::hasData(){}
 #endif
 shcore::Value SqlResult::has_data(const shcore::Argument_list &args) const
 {
-  args.ensure_count(0, "SqlResult.hasData");
+  args.ensure_count(0, get_function_name("hasData").c_str());
 
   return Value(_result->has_data());
 }
@@ -779,7 +777,7 @@ Bool SqlResult::nextDataSet(){};
 #endif
 shcore::Value SqlResult::next_data_set(const shcore::Argument_list &args)
 {
-  args.ensure_count(0, "SqlResult.nextDataSet");
+  args.ensure_count(0, get_function_name("nextDataSet").c_str());
 
   return shcore::Value(_result->nextDataSet());
 }

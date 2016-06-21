@@ -36,31 +36,27 @@
 using namespace shcore;
 using namespace mysh::mysqlx;
 
-std::vector<std::string> Type::get_members() const
+Type::Type()
 {
-  std::vector<std::string> members(Cpp_object_bridge::get_members());
-
-  members.push_back("Bit");
-  members.push_back("TinyInt");
-  members.push_back("SmallInt");
-  members.push_back("MediumInt");
-  members.push_back("Int");
-  members.push_back("BigInt");
-  members.push_back("Float");
-  members.push_back("Decimal");
-  members.push_back("Double");
-  members.push_back("Json");
-  members.push_back("String");
-  members.push_back("Bytes");
-  members.push_back("Time");
-  members.push_back("Date");
-  members.push_back("DateTime");
-  members.push_back("Timestamp");
-  members.push_back("Set");
-  members.push_back("Enum");
-  members.push_back("Geometry");
-
-  return members;
+  add_constant("BIT");
+  add_constant("TINYINT");
+  add_constant("SMALLINT");
+  add_constant("MEDIUMINT");
+  add_constant("INT");
+  add_constant("BIGINT");
+  add_constant("FLOAT");
+  add_constant("DECIMAL");
+  add_constant("DOUBLE");
+  add_constant("JSON");
+  add_constant("STRING");
+  add_constant("BYTES");
+  add_constant("TIME");
+  add_constant("DATE");
+  add_constant("DATETIME");
+  add_constant("TIMESTAMP");
+  add_constant("SET");
+  add_constant("ENUM");
+  add_constant("GEOMETRY");
 }
 
 shcore::Value Type::get_member(const std::string &prop) const
@@ -82,13 +78,9 @@ boost::shared_ptr<shcore::Object_bridge> Type::create(const shcore::Argument_lis
   return ret_val;
 }
 
-std::vector<std::string> IndexType::get_members() const
+IndexType::IndexType()
 {
-  std::vector<std::string> members(Cpp_object_bridge::get_members());
-
-  members.push_back("Unique");
-
-  return members;
+  add_constant("UNIQUE");
 }
 
 shcore::Value IndexType::get_member(const std::string &prop) const

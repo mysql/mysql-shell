@@ -73,7 +73,7 @@ static PyObject *call_object_method(boost::shared_ptr<Cpp_object_bridge> object,
   try
   {
     WillLeavePython lock;
-    return ctx->shcore_value_to_pyobj(object->call(method, arglist));
+    return ctx->shcore_value_to_pyobj(object->call_advanced(method, arglist, shcore::LowerCaseUnderscores));
   }
   catch (Exception &e)
   {
@@ -261,14 +261,14 @@ static PyObject *object_getattro(PyShObjObject *self, PyObject *attr_name)
 
     boost::shared_ptr<Cpp_object_bridge> cobj(boost::static_pointer_cast<Cpp_object_bridge>(*self->object));
 
-    if (cobj->has_method(attrname))
+    if (cobj->has_method_advanced(attrname, shcore::LowerCaseUnderscores))
       return wrap_method(cobj, attrname);
 
     shcore::Value member;
     bool error_handled = false;
     try
     {
-      member = (*self->object)->get_member(attrname);
+      member = cobj->get_member_advanced(attrname, shcore::LowerCaseUnderscores);
     }
     catch (Exception &exc)
     {
@@ -289,7 +289,9 @@ static PyObject *object_getattro(PyShObjObject *self, PyObject *attr_name)
     }
     else if (strcmp(attrname, "__members__") == 0)
     {
-      std::vector<std::string> members((*self->object)->get_members());
+      boost::shared_ptr<Cpp_object_bridge> cobj(boost::static_pointer_cast<Cpp_object_bridge>(*self->object));
+
+      std::vector<std::string> members(cobj->get_members_advanced(shcore::LowerCaseUnderscores));
       PyObject *list = PyList_New(members.size());
       int i = 0;
       for (std::vector<std::string>::const_iterator iter = members.begin(); iter != members.end(); ++iter)
@@ -309,9 +311,10 @@ static int object_setattro(PyShObjObject *self, PyObject *attr_name, PyObject *a
 {
   if (PyString_Check(attr_name))
   {
+    boost::shared_ptr<Cpp_object_bridge> cobj(boost::static_pointer_cast<Cpp_object_bridge>(*self->object));
     const char *attrname = PyString_AsString(attr_name);
 
-    if ((*self->object)->has_member(attrname))
+    if (cobj->has_member_advanced(attrname, shcore::LowerCaseUnderscores))
     {
       Python_context *ctx = Python_context::get_and_check();
       if (!ctx) return -1;
@@ -329,7 +332,7 @@ static int object_setattro(PyShObjObject *self, PyObject *attr_name, PyObject *a
       }
       try
       {
-        (*self->object)->set_member(attrname, value);
+        cobj->set_member_advanced(attrname, value, shcore::LowerCaseUnderscores);
       }
       catch (const std::exception &exc)
       {
@@ -354,8 +357,9 @@ static PyObject *call_object_method(boost::shared_ptr<shcore::Object_bridge> obj
 
   if ((int)func->signature().size() != PyTuple_Size(args))
   {
+    boost::shared_ptr<Cpp_function> cfunc(boost::static_pointer_cast<Cpp_function>(func));
     std::stringstream err;
-    err << func->name().c_str() << "()" <<
+    err << cfunc->name(shcore::LowerCaseUnderscores).c_str() << "()" <<
     " takes " << (int)func->signature().size() <<
     " arguments (" << (int)PyTuple_Size(args) <<
     " given)";
@@ -388,7 +392,10 @@ static PyObject *call_object_method(boost::shared_ptr<shcore::Object_bridge> obj
     {
       WillLeavePython lock;
 
-      result = object->call(func->name(), r);
+      boost::shared_ptr<Cpp_object_bridge> cobj(boost::static_pointer_cast<Cpp_object_bridge>(object));
+      boost::shared_ptr<Cpp_function> cfunc(boost::static_pointer_cast<Cpp_function>(func));
+
+      result = cobj->call_advanced(cfunc->name(shcore::LowerCaseUnderscores), r, shcore::LowerCaseUnderscores);
     }
     return ctx->shcore_value_to_pyobj(result);
   }
@@ -411,8 +418,9 @@ object_callmethod(PyShObjObject *self, PyObject *args)
     Python_context::set_python_error(PyExc_TypeError, "1st argument must be name of method to call");
     return NULL;
   }
+  boost::shared_ptr<Cpp_object_bridge> cobj(boost::static_pointer_cast<Cpp_object_bridge>(*self->object));
 
-  const Value method = (*self->object)->get_member(PyString_AsString(method_name));
+  const Value method = cobj->get_member_advanced(PyString_AsString(method_name), shcore::LowerCaseUnderscores);
   if (!method)
   {
     Python_context::set_python_error(PyExc_TypeError, "invalid method");

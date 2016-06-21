@@ -24,9 +24,51 @@
 
 using namespace shcore;
 
+// Retrieves a member name on a specific NamingStyle
+// NOTE: Assumption is given that everything is created using a lowerUpperCase naming style
+//       Which is the default to be used on C++ and JS
+std::string shcore::get_member_name(const std::string& name, NamingStyle style)
+{
+  std::string new_name;
+  switch (style)
+  {
+    // This is the default style, input is returned without modifications
+    case LowerCamelCase:
+      return new_name = name;
+    case LowerCaseUnderscores:
+    {
+      for (auto character : name)
+      {
+        if (character >= 65 && character <= 90)
+        {
+          new_name.append(1, '_');
+          new_name.append(1, character + 32);
+        }
+        else
+          new_name.append(1, character);
+      }
+      break;
+    }
+    case Constants:
+    {
+      for (auto character : name)
+      {
+        if (character >= 97 && character <= 122)
+          new_name.append(1, character - 32);
+        else
+          new_name.append(1, character);
+      }
+      break;
+    }
+  }
+
+  return new_name;
+}
+
 Cpp_object_bridge::~Cpp_object_bridge()
 {
   _funcs.clear();
+  _properties.clear();
 }
 
 std::string &Cpp_object_bridge::append_descr(std::string &s_out, int UNUSED(indent), int UNUSED(quote_strings)) const
@@ -40,23 +82,64 @@ std::string &Cpp_object_bridge::append_repr(std::string &s_out) const
   return append_descr(s_out, 0, '"');
 }
 
+std::vector<std::string> Cpp_object_bridge::get_members_advanced(const NamingStyle& style)
+{
+  ScopedStyle ss(this, style);
+
+  std::vector<std::string> members(get_members());
+
+  return members;
+}
+
 std::vector<std::string> Cpp_object_bridge::get_members() const
 {
-  std::vector<std::string> _members(_properties);
+  std::vector<std::string> members;
 
-  for (std::map<std::string, boost::shared_ptr<Cpp_function> >::const_iterator i = _funcs.begin(); i != _funcs.end(); ++i)
-  {
-    _members.push_back(i->first);
-  }
-  return _members;
+  for (auto prop : _properties)
+    members.push_back(prop->name(naming_style));
+
+  for (auto func : _funcs)
+    members.push_back(func.second->name(naming_style));
+
+  return members;
+}
+
+std::string Cpp_object_bridge::get_function_name(const std::string& member) const
+{
+  return class_name() + "." + _funcs.at(member)->name(naming_style);
 }
 
 shcore::Value Cpp_object_bridge::get_member_method(const shcore::Argument_list &args, const std::string& method, const std::string& prop)
 {
-  std::string function = class_name() + "." + method;
-  args.ensure_count(0, function.c_str());
+  args.ensure_count(0, get_function_name(method).c_str());
 
-  return get_member(prop);
+  return get_member_advanced(get_member_name(prop, naming_style), naming_style);
+}
+
+Value Cpp_object_bridge::get_member_advanced(const std::string &prop, const NamingStyle &style)
+{
+  Value ret_val;
+
+  auto func = std::find_if(_funcs.begin(), _funcs.end(), [prop, style](const FunctionEntry &f){ return f.second->name(style) == prop; });
+
+  if (func != _funcs.end())
+  {
+    ScopedStyle ss(this, style);
+    ret_val = get_member(func->first);
+  }
+  else
+  {
+    auto prop_index = std::find_if(_properties.begin(), _properties.end(), [prop, style](boost::shared_ptr<Cpp_property_name> p){ return p->name(style) == prop; });
+    if (prop_index != _properties.end())
+    {
+      ScopedStyle ss(this, style);
+      ret_val = get_member((*prop_index)->base_name());
+    }
+    else
+      throw Exception::attrib_error("Invalid object member " + prop);
+  }
+
+  return ret_val;
 }
 
 Value Cpp_object_bridge::get_member(const std::string &prop) const
@@ -67,12 +150,35 @@ Value Cpp_object_bridge::get_member(const std::string &prop) const
   throw Exception::attrib_error("Invalid object member " + prop);
 }
 
-bool Cpp_object_bridge::has_member(const std::string &prop) const
+bool Cpp_object_bridge::has_member_advanced(const std::string &prop, const NamingStyle &style)
 {
-  auto method_index = _funcs.find(prop);
-  auto prop_index = std::find(_properties.begin(), _properties.end(), prop);
+  auto method_index = std::find_if(_funcs.begin(), _funcs.end(), [prop, style](const FunctionEntry &f){ return f.second->name(style) == prop; });
+
+  auto prop_index = std::find_if(_properties.begin(), _properties.end(), [prop, style](boost::shared_ptr<Cpp_property_name> p){ return p->name(style) == prop; });
 
   return (method_index != _funcs.end() || prop_index != _properties.end());
+}
+
+bool Cpp_object_bridge::has_member(const std::string &prop) const
+{
+  auto method_index = std::find_if(_funcs.begin(), _funcs.end(), [prop](const FunctionEntry &f){ return f.first == prop; });
+
+  auto prop_index = std::find_if(_properties.begin(), _properties.end(), [prop](boost::shared_ptr<Cpp_property_name> p){ return p->base_name() == prop; });
+
+  return (method_index != _funcs.end() || prop_index != _properties.end());
+}
+
+void Cpp_object_bridge::set_member_advanced(const std::string &prop, Value value, const NamingStyle &style)
+{
+  auto prop_index = std::find_if(_properties.begin(), _properties.end(), [prop, style](boost::shared_ptr<Cpp_property_name> p){ return p->name(style) == prop; });
+  if (prop_index != _properties.end())
+  {
+    ScopedStyle ss(this, style);
+
+    set_member((*prop_index)->base_name(), value);
+  }
+  else
+    throw Exception::attrib_error("Can't set object member " + prop);
 }
 
 void Cpp_object_bridge::set_member(const std::string &prop, Value UNUSED(value))
@@ -97,7 +203,16 @@ void Cpp_object_bridge::set_member(size_t UNUSED(index), Value UNUSED(value))
 
 bool Cpp_object_bridge::has_method(const std::string &name) const
 {
-  return (_funcs.find(name) != _funcs.end());
+  auto method_index = _funcs.find(name);
+
+  return method_index != _funcs.end();
+}
+
+bool Cpp_object_bridge::has_method_advanced(const std::string &name, const NamingStyle &style)
+{
+  auto method_index = std::find_if(_funcs.begin(), _funcs.end(), [name, style](const FunctionEntry &f){ return f.second->name(style) == name; });
+
+  return method_index != _funcs.end();
 }
 
 void Cpp_object_bridge::add_method(const std::string &name, Cpp_function::Function func,
@@ -125,35 +240,83 @@ void Cpp_object_bridge::add_method(const std::string &name, Cpp_function::Functi
     va_end(l);
   }
 
-  _funcs[name] = boost::shared_ptr<Cpp_function>(new Cpp_function(name, func, NULL));
+  auto function = boost::shared_ptr<Cpp_function>(new Cpp_function(name, func, NULL));
+  _funcs[name] = function;
+}
+
+void Cpp_object_bridge::add_constant(const std::string &name)
+{
+  _properties.push_back(boost::shared_ptr<Cpp_property_name>(new Cpp_property_name(name, true)));
 }
 
 void Cpp_object_bridge::add_property(const std::string &name, const std::string &getter)
 {
-  _properties.push_back(name);
+  _properties.push_back(boost::shared_ptr<Cpp_property_name>(new Cpp_property_name(name)));
 
   if (!getter.empty())
       add_method(getter, boost::bind(&Cpp_object_bridge::get_member_method, this, _1, getter, name), NULL);
+}
+
+void Cpp_object_bridge::delete_property(const std::string &name, const std::string &getter)
+{
+  auto prop_index = std::find_if(_properties.begin(), _properties.end(), [name](boost::shared_ptr<Cpp_property_name> p){ return p->base_name() == name; });
+  if (prop_index != _properties.end())
+  {
+    _properties.erase(prop_index);
+
+    if (!getter.empty())
+      _funcs.erase(getter);
+  }
+}
+
+Value Cpp_object_bridge::call_advanced(const std::string &name, const Argument_list &args, const NamingStyle &style)
+{
+  auto func = std::find_if(_funcs.begin(), _funcs.end(), [name, style](const FunctionEntry &f){ return f.second->name(style) == name; });
+
+  Value ret_val;
+
+  if (func != _funcs.end())
+  {
+    ScopedStyle ss(this, style);
+
+    ret_val = call(func->first, args);
+  }
+  else
+    throw Exception::attrib_error("Invalid object function " + name);
+
+  return ret_val;
 }
 
 Value Cpp_object_bridge::call(const std::string &name, const Argument_list &args)
 {
   std::map<std::string, boost::shared_ptr<Cpp_function> >::const_iterator i;
   if ((i = _funcs.find(name)) == _funcs.end())
-    throw Exception::attrib_error("Invalid object function " + name);
+      throw Exception::attrib_error("Invalid object function " + name);
   return i->second->invoke(args);
+}
+
+boost::shared_ptr<Cpp_object_bridge::ScopedStyle> Cpp_object_bridge::set_scoped_naming_style(const NamingStyle& style)
+{
+  boost::shared_ptr<Cpp_object_bridge::ScopedStyle> ss(new Cpp_object_bridge::ScopedStyle(this, style));
+
+  return ss;
 }
 
 //-------
 
 Cpp_function::Cpp_function(const std::string &name_, const Function &func, const std::vector<std::pair<std::string, Value_type> > &signature_)
-  : _name(name_), _func(func), _signature(signature_)
+  : _func(func), _signature(signature_)
 {
+  _name[LowerCamelCase] = get_member_name(name_, LowerCamelCase);
+  _name[LowerCaseUnderscores] = get_member_name(name_, LowerCaseUnderscores);
 }
 
 Cpp_function::Cpp_function(const std::string &name_, const Function &func, const char *arg1_name, Value_type arg1_type, ...)
-  : _name(name_), _func(func)
+  : _func(func)
 {
+  _name[LowerCamelCase] = get_member_name(name_, LowerCamelCase);
+  _name[LowerCaseUnderscores] = get_member_name(name_, LowerCaseUnderscores);
+
   va_list l;
   if (arg1_name && arg1_type != Undefined)
   {
@@ -178,7 +341,12 @@ Cpp_function::Cpp_function(const std::string &name_, const Function &func, const
 
 std::string Cpp_function::name()
 {
-  return _name;
+  return _name[LowerCamelCase];
+}
+
+std::string Cpp_function::name(const NamingStyle& style)
+{
+  return _name[style];
 }
 
 std::vector<std::pair<std::string, Value_type> > Cpp_function::signature()
@@ -233,4 +401,20 @@ boost::shared_ptr<Function_base> Cpp_function::create(const std::string &name, c
                                                       const std::vector<std::pair<std::string, Value_type> > &signature)
 {
   return boost::shared_ptr<Function_base>(new Cpp_function(name, func, signature));
+}
+
+Cpp_property_name::Cpp_property_name(const std::string &name, bool constant)
+{
+  _name[LowerCamelCase] = get_member_name(name, constant ? Constants : LowerCamelCase);
+  _name[LowerCaseUnderscores] = get_member_name(name, constant ? Constants : LowerCaseUnderscores);
+}
+
+std::string Cpp_property_name::name(const NamingStyle& style)
+{
+  return _name[style];
+}
+
+std::string Cpp_property_name::base_name()
+{
+  return _name[LowerCamelCase];
 }

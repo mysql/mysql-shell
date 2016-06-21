@@ -59,14 +59,14 @@ Bool ClassicResult::hasData(){}
 #endif
 shcore::Value ClassicResult::has_data(const shcore::Argument_list &args) const
 {
-  args.ensure_count(0, "ClassicResult.hasData");
+  args.ensure_count(0, get_function_name("hasData").c_str());
 
   return Value(_result->has_resultset());
 }
 
 shcore::Value ClassicResult::fetch_one(const shcore::Argument_list &args) const
 {
-  args.ensure_count(0, "ClassicResult.fetchOne");
+  args.ensure_count(0, get_function_name("fetchOne").c_str());
   Row *inner_row = _result->fetch_one();
 
   if (inner_row)
@@ -86,14 +86,14 @@ shcore::Value ClassicResult::fetch_one(const shcore::Argument_list &args) const
 
 shcore::Value ClassicResult::next_data_set(const shcore::Argument_list &args)
 {
-  args.ensure_count(0, "ClassicResult.nextDataSet");
+  args.ensure_count(0, get_function_name("nextDataSet").c_str());
 
   return shcore::Value(_result->next_data_set());
 }
 
 shcore::Value ClassicResult::fetch_all(const shcore::Argument_list &args) const
 {
-  args.ensure_count(0, "ClassicResult.fetchAll");
+  args.ensure_count(0, get_function_name("fetchAll").c_str());
 
   boost::shared_ptr<shcore::Value::Array_type> array(new shcore::Value::Array_type);
 

@@ -54,8 +54,9 @@ static PyObject *method_call(PyShFuncObject *self, PyObject *args, PyObject *UNU
 
   if (func->signature().size() != (size_t)PyTuple_Size(args))
   {
+    boost::shared_ptr<Cpp_function> cfunc(boost::static_pointer_cast<Cpp_function>(func));
     std::stringstream err;
-    err << func->name().c_str() << "()" <<
+    err << cfunc->name(shcore::LowerCaseUnderscores).c_str() << "()" <<
     " takes " << (int)func->signature().size() <<
     " arguments (" << (int)PyTuple_Size(args) <<
     " given)";

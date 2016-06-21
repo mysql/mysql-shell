@@ -1,10 +1,10 @@
 # New method chaining used for executing an SQL SELECT statement
 # Recommended way for executing queries
-employees = db.getTable('employee')
+employees = db.get_table('employee')
 
 res = employees.select(['name', 'age']) \
         .where('name like :param') \
-        .orderBy(['name']) \
+        .order_by(['name']) \
         .bind('param', 'm%').execute()
 
 # Traditional SQL execution by passing an SQL string

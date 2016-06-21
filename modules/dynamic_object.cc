@@ -32,11 +32,11 @@ using namespace shcore;
 std::vector<std::string> Dynamic_object::get_members() const
 {
   std::vector<std::string> _members;
-  for (std::map<std::string, boost::shared_ptr<shcore::Cpp_function> >::const_iterator i = _funcs.begin(); i != _funcs.end(); ++i)
+  for (auto i : _funcs)
   {
     // Only returns the enabled functions
-    if (_enabled_functions.at(i->first))
-      _members.push_back(i->first);
+    if (_enabled_functions.at(i.first))
+      _members.push_back(i.second->name(naming_style));
   }
   return _members;
 }
@@ -54,10 +54,16 @@ Value Dynamic_object::get_member(const std::string &prop) const
 
 bool Dynamic_object::has_member(const std::string &prop) const
 {
-  // The function must exist and be enabled
-  return Cpp_object_bridge::has_member(prop) &&
-    _enabled_functions.find(prop) != _enabled_functions.end() &&
-    _enabled_functions.at(prop);
+  bool ret_val = false;
+
+  // A function is considered only if it is enanbled
+  auto i = std::find_if(_funcs.begin(), _funcs.end(), [this, prop](const FunctionEntry &f){ return f.second->name(naming_style) == prop; });
+  if (i != _funcs.end())
+    ret_val = _enabled_functions.find(i->first) != _enabled_functions.end() && _enabled_functions.at(i->first);
+  else
+    ret_val = Cpp_object_bridge::has_member(prop);
+
+  return ret_val;
 }
 
 Value Dynamic_object::call(const std::string &name, const shcore::Argument_list &args)

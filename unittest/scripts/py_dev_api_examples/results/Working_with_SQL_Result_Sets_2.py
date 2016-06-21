@@ -1,22 +1,22 @@
 def print_result(res):
-  if res.hasData():
+  if res.has_data():
     # SELECT
-    columns = res.getColumns()
-    record = res.fetchOne()
+    columns = res.get_columns()
+    record = res.fetch_one()
     
     while record:
       index = 0
       
       for column in columns:
-        print "%s: %s \n" % (column.getColumnName(), record[index])
+        print "%s: %s \n" % (column.get_column_name(), record[index])
         index = index + 1
         
       # Get the next record
-      record = res.fetchOne()
+      record = res.fetch_one()
       
   else:
     #INSERT, UPDATE, DELETE, ...
-    print 'Rows affected: %s' % res.getAffectedRowCount()
+    print 'Rows affected: %s' % res.get_affected_row_count()
     
 
 print_result(nodeSession.sql('DELETE FROM users WHERE age > 40').execute())

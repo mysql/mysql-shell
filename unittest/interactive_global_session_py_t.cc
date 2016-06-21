@@ -45,9 +45,9 @@ namespace shcore
 
       // Answers no to the question if session should be established
       output_handler.prompts.push_back("n");
-      _interactive_shell->process_line("session.getUri()");
+      _interactive_shell->process_line("session.get_uri()");
       MY_EXPECT_STDOUT_CONTAINS("The global session is not set, do you want to establish a session?");
-      MY_EXPECT_STDERR_CONTAINS("unknown attribute: getUri");
+      MY_EXPECT_STDERR_CONTAINS("unknown attribute: get_uri");
       output_handler.wipe_all();
     }
 
@@ -64,7 +64,7 @@ namespace shcore
       MY_EXPECT_STDOUT_CONTAINS(_uri_nopasswd);
       output_handler.wipe_all();
 
-      _interactive_shell->process_line("session.getUri()");
+      _interactive_shell->process_line("session.get_uri()");
       MY_EXPECT_STDOUT_CONTAINS(_uri_nopasswd);
       output_handler.wipe_all();
 
@@ -239,7 +239,7 @@ namespace shcore
       output_handler.prompts.push_back(_uri_nopasswd); // Connection data
       output_handler.ret_pwd = _pwd;
       output_handler.prompts.push_back("y"); // Would you like to create the schema
-      _interactive_shell->process_line("myschema = session.getSchema('mysample')");
+      _interactive_shell->process_line("myschema = session.get_schema('mysample')");
       MY_EXPECT_STDOUT_CONTAINS("The global session is not set, do you want to establish a session?");
       MY_EXPECT_STDOUT_CONTAINS("Please specify the session type:");
       MY_EXPECT_STDOUT_CONTAINS("Please specify the MySQL server URI (or $alias):");

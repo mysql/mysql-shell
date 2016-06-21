@@ -2,14 +2,14 @@
 # Assumes __uripwd is defined as <user>:<pwd>@<host>:<plugin_port>
 import mysqlx
 
-mySession = mysqlx.getNodeSession(__uripwd)
+mySession = mysqlx.get_node_session(__uripwd)
 
 ensure_schema_does_not_exist(mySession, 'js_shell_test')
 
-schema = mySession.createSchema('js_shell_test')
+schema = mySession.create_schema('js_shell_test')
 
 # Creates a test collection and inserts data into it
-collection = schema.createCollection('collection1')
+collection = schema.create_collection('collection1')
 
 result = collection.add({"name": 'jack', "age": 17, "gender": 'male'}).execute()
 result = collection.add({"name": 'adam', "age": 15, "gender": 'male'}).execute()
@@ -24,51 +24,51 @@ result = collection.add({"name": 'angel', "age": 14, "gender": 'male'}).execute(
 # ------------------------------------------------
 #@ CollectionModify: valid operations after modify and set
 crud = collection.modify()
-validate_crud_functions(crud, ['set', 'unset', 'merge', 'arrayInsert', 'arrayAppend', 'arrayDelete'])
+validate_crud_functions(crud, ['set', 'unset', 'merge', 'array_insert', 'array_append', 'array_delete'])
 crud = crud.set('name', 'dummy')
-validate_crud_functions(crud, ['set', 'unset', 'merge', 'arrayInsert', 'arrayAppend', 'arrayDelete', 'sort', 'limit', 'bind', 'execute', '__shell_hook__'])
+validate_crud_functions(crud, ['set', 'unset', 'merge', 'array_insert', 'array_append', 'array_delete', 'sort', 'limit', 'bind', 'execute', '__shell_hook__'])
 
 #@ CollectionModify: valid operations after modify and unset empty
 crud = collection.modify()
-validate_crud_functions(crud, ['set', 'unset', 'merge', 'arrayInsert', 'arrayAppend', 'arrayDelete'])
+validate_crud_functions(crud, ['set', 'unset', 'merge', 'array_insert', 'array_append', 'array_delete'])
 crud.unset([])
-validate_crud_functions(crud, ['set', 'unset', 'merge', 'arrayInsert', 'arrayAppend', 'arrayDelete'])
+validate_crud_functions(crud, ['set', 'unset', 'merge', 'array_insert', 'array_append', 'array_delete'])
 
 #@ CollectionModify: valid operations after modify and unset list
 crud = collection.modify()
-validate_crud_functions(crud, ['set', 'unset', 'merge', 'arrayInsert', 'arrayAppend', 'arrayDelete'])
+validate_crud_functions(crud, ['set', 'unset', 'merge', 'array_insert', 'array_append', 'array_delete'])
 crud = crud.unset(['name', 'type'])
-validate_crud_functions(crud, ['set', 'unset', 'merge', 'arrayInsert', 'arrayAppend', 'arrayDelete', 'sort', 'limit', 'bind', 'execute', '__shell_hook__'])
+validate_crud_functions(crud, ['set', 'unset', 'merge', 'array_insert', 'array_append', 'array_delete', 'sort', 'limit', 'bind', 'execute', '__shell_hook__'])
 
 #@ CollectionModify: valid operations after modify and unset multiple params
 crud = collection.modify()
-validate_crud_functions(crud, ['set', 'unset', 'merge', 'arrayInsert', 'arrayAppend', 'arrayDelete'])
+validate_crud_functions(crud, ['set', 'unset', 'merge', 'array_insert', 'array_append', 'array_delete'])
 crud = crud.unset('name', 'type')
-validate_crud_functions(crud, ['set', 'unset', 'merge', 'arrayInsert', 'arrayAppend', 'arrayDelete', 'sort', 'limit', 'bind', 'execute', '__shell_hook__'])
+validate_crud_functions(crud, ['set', 'unset', 'merge', 'array_insert', 'array_append', 'array_delete', 'sort', 'limit', 'bind', 'execute', '__shell_hook__'])
 
 #@ CollectionModify: valid operations after modify and merge
 crud = collection.modify()
-validate_crud_functions(crud, ['set', 'unset', 'merge', 'arrayInsert', 'arrayAppend', 'arrayDelete'])
+validate_crud_functions(crud, ['set', 'unset', 'merge', 'array_insert', 'array_append', 'array_delete'])
 crud = crud.merge({'att':'value','second':'final'})
-validate_crud_functions(crud, ['set', 'unset', 'merge', 'arrayInsert', 'arrayAppend', 'arrayDelete', 'sort', 'limit', 'bind', 'execute', '__shell_hook__'])
+validate_crud_functions(crud, ['set', 'unset', 'merge', 'array_insert', 'array_append', 'array_delete', 'sort', 'limit', 'bind', 'execute', '__shell_hook__'])
 
-#@ CollectionModify: valid operations after modify and arrayInsert
+#@ CollectionModify: valid operations after modify and array_insert
 crud = collection.modify()
-validate_crud_functions(crud, ['set', 'unset', 'merge', 'arrayInsert', 'arrayAppend', 'arrayDelete'])
-crud = crud.arrayInsert('hobbies[3]', 'run')
-validate_crud_functions(crud, ['set', 'unset', 'merge', 'arrayInsert', 'arrayAppend', 'arrayDelete', 'sort', 'limit', 'bind', 'execute', '__shell_hook__'])
+validate_crud_functions(crud, ['set', 'unset', 'merge', 'array_insert', 'array_append', 'array_delete'])
+crud = crud.array_insert('hobbies[3]', 'run')
+validate_crud_functions(crud, ['set', 'unset', 'merge', 'array_insert', 'array_append', 'array_delete', 'sort', 'limit', 'bind', 'execute', '__shell_hook__'])
 
-#@ CollectionModify: valid operations after modify and arrayAppend
+#@ CollectionModify: valid operations after modify and array_append
 crud = collection.modify()
-validate_crud_functions(crud, ['set', 'unset', 'merge', 'arrayInsert', 'arrayAppend', 'arrayDelete'])
-crud = crud.arrayAppend('hobbies','skate')
-validate_crud_functions(crud, ['set', 'unset', 'merge', 'arrayInsert', 'arrayAppend', 'arrayDelete', 'sort', 'limit', 'bind', 'execute', '__shell_hook__'])
+validate_crud_functions(crud, ['set', 'unset', 'merge', 'array_insert', 'array_append', 'array_delete'])
+crud = crud.array_append('hobbies','skate')
+validate_crud_functions(crud, ['set', 'unset', 'merge', 'array_insert', 'array_append', 'array_delete', 'sort', 'limit', 'bind', 'execute', '__shell_hook__'])
 
-#@ CollectionModify: valid operations after modify and arrayDelete
+#@ CollectionModify: valid operations after modify and array_delete
 crud = collection.modify()
-validate_crud_functions(crud, ['set', 'unset', 'merge', 'arrayInsert', 'arrayAppend', 'arrayDelete'])
-crud = crud.arrayDelete('hobbies[5]')
-validate_crud_functions(crud, ['set', 'unset', 'merge', 'arrayInsert', 'arrayAppend', 'arrayDelete', 'sort', 'limit', 'bind', 'execute', '__shell_hook__'])
+validate_crud_functions(crud, ['set', 'unset', 'merge', 'array_insert', 'array_append', 'array_delete'])
+crud = crud.array_delete('hobbies[5]')
+validate_crud_functions(crud, ['set', 'unset', 'merge', 'array_insert', 'array_append', 'array_delete', 'sort', 'limit', 'bind', 'execute', '__shell_hook__'])
 
 #@ CollectionModify: valid operations after sort
 crud = crud.sort(['name'])
@@ -87,9 +87,9 @@ result = crud.execute()
 validate_crud_functions(crud, ['bind', 'execute', '__shell_hook__'])
 
 #@ Reusing CRUD with binding
-print 'Updated Angel:', result.affectedItemCount, '\n'
+print 'Updated Angel:', result.affected_item_count, '\n'
 result=crud.bind('data', 'carol').execute()
-print 'Updated Carol:', result.affectedItemCount, '\n'
+print 'Updated Carol:', result.affected_item_count, '\n'
 
 
 # ----------------------------------------------
@@ -117,23 +117,23 @@ crud = collection.modify().unset('')
 crud = collection.modify().merge()
 crud = collection.modify().merge('')
 
-#@# CollectionModify: Error conditions on arrayInsert
-crud = collection.modify().arrayInsert()
-crud = collection.modify().arrayInsert(5, 'another')
-crud = collection.modify().arrayInsert('', 'another')
-crud = collection.modify().arrayInsert('test', 'another')
+#@# CollectionModify: Error conditions on array_insert
+crud = collection.modify().array_insert()
+crud = collection.modify().array_insert(5, 'another')
+crud = collection.modify().array_insert('', 'another')
+crud = collection.modify().array_insert('test', 'another')
 
-#@# CollectionModify: Error conditions on arrayAppend
-crud = collection.modify().arrayAppend()
-crud = collection.modify().arrayAppend({},'')
-crud = collection.modify().arrayAppend('',45)
-crud = collection.modify().arrayAppend('data', mySession)
+#@# CollectionModify: Error conditions on array_append
+crud = collection.modify().array_append()
+crud = collection.modify().array_append({},'')
+crud = collection.modify().array_append('',45)
+crud = collection.modify().array_append('data', mySession)
 
-#@# CollectionModify: Error conditions on arrayDelete
-crud = collection.modify().arrayDelete()
-crud = collection.modify().arrayDelete(5)
-crud = collection.modify().arrayDelete('')
-crud = collection.modify().arrayDelete('test')
+#@# CollectionModify: Error conditions on array_delete
+crud = collection.modify().array_delete()
+crud = collection.modify().array_delete(5)
+crud = collection.modify().array_delete('')
+crud = collection.modify().array_delete('test')
 
 #@# CollectionModify: Error conditions on sort
 crud = collection.modify().unset('name').sort()
@@ -161,18 +161,18 @@ crud = collection.modify('name = :data and age > :years').set('hobby', 'swim').b
 
 #@# CollectionModify: Set Execution
 result = collection.modify('name = "brian"').set('alias', 'bri').set('last_name', 'black').set('age', mysqlx.expr('13+1')).execute()
-print 'Set Affected Rows:', result.affectedItemCount, '\n'
+print 'Set Affected Rows:', result.affected_item_count, '\n'
 
 result = collection.find('name = "brian"').execute()
-doc = result.fetchOne()
+doc = result.fetch_one()
 print dir(doc)
 
 #@# CollectionModify: Set Execution Binding Array
 result = collection.modify('name = "brian"').set('hobbies', mysqlx.expr(':list')).bind('list', ['soccer', 'dance', 'reading']).execute()
-print 'Set Affected Rows:', result.affectedItemCount, '\n'
+print 'Set Affected Rows:', result.affected_item_count, '\n'
 
 result = collection.find('name = "brian"').execute()
-doc = result.fetchOne()
+doc = result.fetch_one()
 print dir(doc)
 print doc.hobbies[0]
 print doc.hobbies[1]
@@ -180,101 +180,101 @@ print doc.hobbies[2]
 
 #@ CollectionModify: Simple Unset Execution
 result = collection.modify('name = "brian"').unset('last_name').execute()
-print 'Unset Affected Rows:', result.affectedItemCount, '\n'
+print 'Unset Affected Rows:', result.affected_item_count, '\n'
 
 result = collection.find('name = "brian"').execute()
-doc = result.fetchOne()
+doc = result.fetch_one()
 print dir(doc)
 
 #@ CollectionModify: List Unset Execution
 result = collection.modify('name = "brian"').unset(['alias', 'age']).execute()
-print 'Unset Affected Rows:', result.affectedItemCount, '\n'
+print 'Unset Affected Rows:', result.affected_item_count, '\n'
 
 result = collection.find('name = "brian"').execute()
-doc = result.fetchOne()
+doc = result.fetch_one()
 print dir(doc)
 
 #@ CollectionModify: Merge Execution
 result = collection.modify('name = "brian"').merge({'last_name':'black', "age":15, 'alias':'bri', 'girlfriends':['martha', 'karen']}).execute()
-print 'Merge Affected Rows:', result.affectedItemCount, '\n'
+print 'Merge Affected Rows:', result.affected_item_count, '\n'
 
 result = collection.find('name = "brian"').execute()
-doc = result.fetchOne()
+doc = result.fetch_one()
 print "Brian's last_name:",  doc.last_name, '\n'
 print "Brian's age:",  doc.age, '\n'
 print "Brian's alias:",  doc.alias, '\n'
 print "Brian's first girlfriend:",  doc.girlfriends[0], '\n'
 print "Brian's second girlfriend:",  doc.girlfriends[1], '\n'
 
-#@ CollectionModify: arrayAppend Execution
-result = collection.modify('name = "brian"').arrayAppend('girlfriends','cloe').execute()
-print 'Array Append Affected Rows:', result.affectedItemCount, '\n'
+#@ CollectionModify: array_append Execution
+result = collection.modify('name = "brian"').array_append('girlfriends','cloe').execute()
+print 'Array Append Affected Rows:', result.affected_item_count, '\n'
 
 try:
-  print "lastDocumentId:", result.lastDocumentId
+  print "last_document_id:", result.last_document_id
 except Exception, err:
-  print "lastDocumentId:", str(err), "\n"
+  print "last_document_id:", str(err), "\n"
 
 try:
-  print "getLastDocumentId():", result.getLastDocumentId()
+  print "get_last_document_id():", result.get_last_document_id()
 except Exception, err:
-  print "getLastDocumentId():", str(err), "\n"
+  print "get_last_document_id():", str(err), "\n"
 
 try:
-  print "lastDocumentIds:", result.lastDocumentIds
+  print "last_document_ids:", result.last_document_ids
 except Exception, err:
-  print "lastDocumentIds:", str(err), "\n"
+  print "last_document_ids:", str(err), "\n"
 
 try:
-  print "getLastDocumentIds():", result.getLastDocumentIds()
+  print "get_last_document_ids():", result.get_last_document_ids()
 except Exception, err:
-  print "getLastDocumentIds():", str(err), "\n"
+  print "get_last_document_ids():", str(err), "\n"
 
 result = collection.find('name = "brian"').execute()
-doc = result.fetchOne()
+doc = result.fetch_one()
 print "Brian's girlfriends:", len(doc.girlfriends)
 print "Brian's last:", doc.girlfriends[2]
 
-#@ CollectionModify: arrayInsert Execution
-result = collection.modify('name = "brian"').arrayInsert('girlfriends[1]','samantha').execute()
-print 'Array Insert Affected Rows:', result.affectedItemCount, '\n'
+#@ CollectionModify: array_insert Execution
+result = collection.modify('name = "brian"').array_insert('girlfriends[1]','samantha').execute()
+print 'Array Insert Affected Rows:', result.affected_item_count, '\n'
 
 result = collection.find('name = "brian"').execute()
-doc = result.fetchOne()
+doc = result.fetch_one()
 print "Brian's girlfriends:", len(doc.girlfriends), '\n'
 print "Brian's second:", doc.girlfriends[1], '\n'
 
-#@ CollectionModify: arrayDelete Execution
-result = collection.modify('name = "brian"').arrayDelete('girlfriends[2]').execute()
-print 'Array Delete Affected Rows:', result.affectedItemCount, '\n'
+#@ CollectionModify: array_delete Execution
+result = collection.modify('name = "brian"').array_delete('girlfriends[2]').execute()
+print 'Array Delete Affected Rows:', result.affected_item_count, '\n'
 
 result = collection.find('name = "brian"').execute()
-doc = result.fetchOne()
+doc = result.fetch_one()
 print "Brian's girlfriends:", len(doc.girlfriends), '\n'
 print "Brian's third:", doc.girlfriends[2], '\n'
 
 #@ CollectionModify: sorting and limit Execution
 result = collection.modify('age = 15').set('sample', 'in_limit').sort(['name']).limit(2).execute()
-print 'Affected Rows:', result.affectedItemCount, '\n'
+print 'Affected Rows:', result.affected_item_count, '\n'
 
 result = collection.find('age = 15').sort(['name']).execute()
 
 #@ CollectionModify: sorting and limit Execution - 1
-doc = result.fetchOne()
+doc = result.fetch_one()
 print dir(doc)
 
 #@ CollectionModify: sorting and limit Execution - 2
-doc = result.fetchOne()
+doc = result.fetch_one()
 print dir(doc)
 
 #@ CollectionModify: sorting and limit Execution - 3
-doc = result.fetchOne()
+doc = result.fetch_one()
 print dir(doc)
 
 #@ CollectionModify: sorting and limit Execution - 4
-doc = result.fetchOne()
+doc = result.fetch_one()
 print dir(doc)
 
 # Cleanup
-mySession.dropSchema('js_shell_test')
+mySession.drop_schema('js_shell_test')
 mySession.close()

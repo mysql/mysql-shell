@@ -290,8 +290,7 @@ std::string ShellBaseSession::get_quoted_name(const std::string& name)
 
 shcore::Value ShellBaseSession::is_open(const shcore::Argument_list &args)
 {
-  std::string function = class_name() + ".isOpen";
-  args.ensure_count(0, function.c_str());
+  args.ensure_count(0, get_function_name("isOpen").c_str());
 
   return shcore::Value(is_connected());
 }

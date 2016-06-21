@@ -22,8 +22,8 @@ def validate_crud_functions(crud, expected):
 
 def ensure_schema_does_not_exist(session, name):
 	try:
-		schema = session.getSchema(name)
-		session.dropSchema(name)
+		schema = session.get_schema(name)
+		session.drop_schema(name)
 	except:
 		# Nothing happens, it means the schema did not exist
 		pass

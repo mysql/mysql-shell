@@ -71,7 +71,7 @@ CollectionCreateIndex CollectionCreateIndex::createIndex(String indexName, Index
 shcore::Value CollectionCreateIndex::create_index(const shcore::Argument_list &args)
 {
   // Each method validates the received parameters
-  args.ensure_count(1, 2, "CollectionCreateIndex.createIndex");
+  args.ensure_count(1, 2, get_function_name("createIndex").c_str());
 
   try
   {
@@ -90,7 +90,7 @@ shcore::Value CollectionCreateIndex::create_index(const shcore::Argument_list &a
       }
 
       if (!unique)
-        throw shcore::Exception::argument_error("Argument #2 is expected to be mysqlx.IndexType.Unique");
+        throw shcore::Exception::argument_error("Argument #2 is expected to be mysqlx.IndexType.UNIQUE");
     }
     else
       unique = Value::False();
@@ -106,7 +106,7 @@ shcore::Value CollectionCreateIndex::create_index(const shcore::Argument_list &a
       _create_index_args.push_back(unique);
     }
   }
-  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionCreateIndex.createIndex");
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("createIndex").c_str());
 
   update_functions("createIndex");
 
@@ -133,7 +133,7 @@ CollectionCreateIndex CollectionCreateIndex::field(DocPath documentPath, IndexCo
 #endif
 shcore::Value CollectionCreateIndex::field(const shcore::Argument_list &args)
 {
-  args.ensure_count(3, "CollectionCreateIndex.field");
+  args.ensure_count(3, get_function_name("field").c_str());
 
   try
   {
@@ -148,7 +148,7 @@ shcore::Value CollectionCreateIndex::field(const shcore::Argument_list &args)
     _create_index_args.push_back(args[1]);
     _create_index_args.push_back(args[2]);
   }
-  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionCreateIndex.field");
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("field").c_str());
 
   update_functions("field");
 
@@ -172,7 +172,7 @@ shcore::Value CollectionCreateIndex::execute(const shcore::Argument_list &args)
 {
   Value result;
 
-  args.ensure_count(0, "CollectionCreateIndex.execute");
+  args.ensure_count(0, get_function_name("execute").c_str());
 
   boost::shared_ptr<Collection> raw_owner(_owner.lock());
 

@@ -1,5 +1,5 @@
 # Create a new collection
-myColl = db.createCollection('my_collection')
+myColl = db.create_collection('my_collection')
 
 # Insert a document
 myColl.add( { 'name': 'Sakila', 'age': 15 } ).execute()

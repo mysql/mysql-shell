@@ -195,7 +195,7 @@ namespace shcore
       _interactive_shell->process_line("import mysqlx");
       _interactive_shell->process_line("import mysql");
 
-      _interactive_shell->process_line("session = mysqlx.getSession('" + _uri + "');");
+      _interactive_shell->process_line("session = mysqlx.get_session('" + _uri + "');");
 
       ASSERT_EQ(1, _notifications.size());
       n = _notifications.front();
@@ -205,7 +205,7 @@ namespace shcore
 
       _interactive_shell->process_line("session.close()");
 
-      _interactive_shell->process_line("session = mysql.getClassicSession('" + _mysql_uri + "');");
+      _interactive_shell->process_line("session = mysql.get_classic_session('" + _mysql_uri + "');");
 
       ASSERT_EQ(1, _notifications.size());
       n = _notifications.front();
@@ -215,7 +215,7 @@ namespace shcore
 
       _interactive_shell->process_line("session.close()");
 
-      _interactive_shell->process_line("session = mysqlx.getNodeSession('" + _uri + "');");
+      _interactive_shell->process_line("session = mysqlx.get_node_session('" + _uri + "');");
 
       ASSERT_EQ(1, _notifications.size());
       n = _notifications.front();
@@ -227,19 +227,19 @@ namespace shcore
 
       this->ignore_notification("SN_SESSION_CONNECTED");
 
-      _interactive_shell->process_line("session = mysqlx.getSession('" + _uri + "');");
+      _interactive_shell->process_line("session = mysqlx.get_session('" + _uri + "');");
 
       ASSERT_EQ(0, _notifications.size());
 
       _interactive_shell->process_line("session.close()");
 
-      _interactive_shell->process_line("session = mysql.getClassicSession('" + _mysql_uri + "');");
+      _interactive_shell->process_line("session = mysql.get_classic_session('" + _mysql_uri + "');");
 
       ASSERT_EQ(0, _notifications.size());
 
       _interactive_shell->process_line("session.close()");
 
-      _interactive_shell->process_line("session = mysqlx.getNodeSession('" + _uri + "');");
+      _interactive_shell->process_line("session = mysqlx.get_node_session('" + _uri + "');");
 
       ASSERT_EQ(0, _notifications.size());
 

@@ -80,8 +80,8 @@
 
 //@ TableDelete: with limit 3
 |Affected Rows: 1|
-|lastDocumentId: Result.getLastDocumentId(): document id is not available.|
-|getLastDocumentId(): Result.getLastDocumentId(): document id is not available.|
-|lastDocumentIds: Result.getLastDocumentIds(): document ids are not available.|
-|getLastDocumentIds(): Result.getLastDocumentIds(): document ids are not available.|
+|lastDocumentId: Result.getLastDocumentId: document id is not available.|
+|getLastDocumentId(): Result.getLastDocumentId: document id is not available.|
+|lastDocumentIds: Result.getLastDocumentIds: document ids are not available.|
+|getLastDocumentIds(): Result.getLastDocumentIds: document ids are not available.|
 |Records Left: 0|

@@ -76,7 +76,7 @@ CollectionRemove CollectionRemove::remove(String searchCondition){}
 shcore::Value CollectionRemove::remove(const shcore::Argument_list &args)
 {
   // Each method validates the received parameters
-  args.ensure_count(0, 1, "CollectionRemove.remove");
+  args.ensure_count(0, 1, get_function_name("remove").c_str());
 
   boost::shared_ptr<Collection> collection(boost::static_pointer_cast<Collection>(_owner.lock()));
 
@@ -93,7 +93,7 @@ shcore::Value CollectionRemove::remove(const shcore::Argument_list &args)
       // Updates the exposed functions
       update_functions("remove");
     }
-    CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionRemove.remove");
+    CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("remove"));
   }
 
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
@@ -126,7 +126,7 @@ CollectionRemove CollectionRemove::sort(List sortExprStr){}
 #endif
 shcore::Value CollectionRemove::sort(const shcore::Argument_list &args)
 {
-  args.ensure_count(1, "CollectionRemove.sort");
+  args.ensure_count(1, get_function_name("sort").c_str());
 
   try
   {
@@ -141,7 +141,7 @@ shcore::Value CollectionRemove::sort(const shcore::Argument_list &args)
 
     update_functions("sort");
   }
-  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionRemove.sort");
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("sort"));
 
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
@@ -173,7 +173,7 @@ CollectionRemove CollectionRemove::limit(Integer numberOfDocs){}
 #endif
 shcore::Value CollectionRemove::limit(const shcore::Argument_list &args)
 {
-  args.ensure_count(1, "CollectionRemove.limit");
+  args.ensure_count(1, get_function_name("limit").c_str());
 
   try
   {
@@ -181,7 +181,7 @@ shcore::Value CollectionRemove::limit(const shcore::Argument_list &args)
 
     update_functions("limit");
   }
-  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionRemove.limit");
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("limit"));
 
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
@@ -213,7 +213,7 @@ CollectionFind CollectionRemove::bind(String name, Value value){}
 #endif
 shcore::Value CollectionRemove::bind(const shcore::Argument_list &args)
 {
-  args.ensure_count(2, "CollectionRemove.bind");
+  args.ensure_count(2, get_function_name("bind").c_str());
 
   try
   {
@@ -221,7 +221,7 @@ shcore::Value CollectionRemove::bind(const shcore::Argument_list &args)
 
     update_functions("bind");
   }
-  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionRemove.bind");
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("bind"));
 
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
@@ -259,14 +259,14 @@ shcore::Value CollectionRemove::execute(const shcore::Argument_list &args)
 
   try
   {
-    args.ensure_count(0, "CollectionRemove.execute");
+    args.ensure_count(0, get_function_name("execute").c_str());
     MySQL_timer timer;
     timer.start();
     result = new mysqlx::Result(boost::shared_ptr< ::mysqlx::Result>(_remove_statement->execute()));
     timer.end();
     result->set_execution_time(timer.raw_duration());
   }
-  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionRemove.execute");
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("execute"));
 
   return result ? shcore::Value::wrap(result) : shcore::Value::Null();
 }

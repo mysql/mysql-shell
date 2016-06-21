@@ -3,14 +3,14 @@
 import mysqlx
 
 # Connect to server
-mySession = mysqlx.getSession( {
+mySession = mysqlx.get_session( {
 'host': 'localhost', 'port': 33060,
 'dbUser': 'mike', 'dbPassword': 's3cr3t!'} )
 
-myDb = mySession.getSchema('test')
+myDb = mySession.get_schema('test')
 
 # Create a new collection 'my_collection'
-myColl = myDb.createCollection('my_collection')
+myColl = myDb.create_collection('my_collection')
 
 # Insert documents
 myColl.add({'name': 'Sakila', 'age': 15}).execute()
@@ -25,8 +25,8 @@ docs = myColl.find('name like :param1 AND age < :param2') \
           .execute()
 
 # Print document
-doc = docs.fetchOne()
+doc = docs.fetch_one()
 print doc
 
 # Drop the collection
-session.dropCollection('test','my_collection')
+session.drop_collection('test','my_collection')

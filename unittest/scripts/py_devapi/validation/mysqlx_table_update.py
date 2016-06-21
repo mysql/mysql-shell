@@ -10,7 +10,7 @@
 |All expected functions are available|
 |No additional functions are available|
 
-#@ TableUpdate: valid operations after orderBy
+#@ TableUpdate: valid operations after order_by
 |All expected functions are available|
 |No additional functions are available|
 
@@ -45,11 +45,11 @@
 ||TableUpdate.where: Unterminated quoted string starting at position 8
 
 
-#@# TableUpdate: Error conditions on orderBy
-||Invalid number of arguments in TableUpdate.orderBy, expected 1 but got 0
-||TableUpdate.orderBy: Argument #1 is expected to be an array
-||TableUpdate.orderBy: Order criteria can not be empty
-||TableUpdate.orderBy: Element #2 is expected to be a string
+#@# TableUpdate: Error conditions on order_by
+||Invalid number of arguments in TableUpdate.order_by, expected 1 but got 0
+||TableUpdate.order_by: Argument #1 is expected to be an array
+||TableUpdate.order_by: Order criteria can not be empty
+||TableUpdate.order_by: Element #2 is expected to be a string
 
 #@# TableUpdate: Error conditions on limit
 ||Invalid number of arguments in TableUpdate.limit, expected 1 but got 0
@@ -74,10 +74,10 @@
 
 #@ TableUpdate: test using limits
 |Affected Rows: 2|
-|lastDocumentId: LogicError: Result.getLastDocumentId(): document id is not available.|
-|getLastDocumentId(): LogicError: Result.getLastDocumentId(): document id is not available.|
-|lastDocumentIds: LogicError: Result.getLastDocumentIds(): document ids are not available.|
-|getLastDocumentIds(): LogicError: Result.getLastDocumentIds(): document ids are not available.|
+|last_document_id: LogicError: Result.get_last_document_id: document id is not available.|
+|get_last_document_id(): LogicError: Result.get_last_document_id: document id is not available.|
+|last_document_ids: LogicError: Result.get_last_document_ids: document ids are not available.|
+|get_last_document_ids(): LogicError: Result.get_last_document_ids: document ids are not available.|
 |With 16 Years: 3|
 |With 15 Years: 1|
 

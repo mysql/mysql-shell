@@ -1,7 +1,7 @@
 import mysqlx
 
 # Connect to server using a NodeSession
-mySession = mysqlx.getNodeSession('mike:s3cr3t!@localhost')
+mySession = mysqlx.get_node_session('mike:s3cr3t!@localhost')
 
 # Switch to use schema 'test'
 mySession.sql("USE test").execute()
@@ -23,7 +23,7 @@ mySession.sql("DROP PROCEDURE my_add_one_procedure").execute()
 myResult = mySession.sql("SELECT @my_var").execute()
 
 # Gets the row and prints the first column
-row = myResult.fetchOne()
+row = myResult.fetch_one()
 print row[0]
 
 mySession.close()

@@ -441,36 +441,10 @@ std::string &Row::append_repr(std::string &s_out) const
   return append_descr(s_out);
 }
 
-//! Returns the list of members that this object has
-std::vector<std::string> Row::get_members() const
-{
-  std::vector<std::string> l = shcore::Cpp_object_bridge::get_members();
-
-  for (size_t index = 0; index < value_iterators.size(); index++)
-  {
-    if (shcore::is_valid_identifier(value_iterators[index]->first))
-      l.push_back(value_iterators[index]->first);
-  }
-
-  return l;
-}
-
 //! Implements equality operator
 bool Row::operator == (const Object_bridge &UNUSED(other)) const
 {
   return false;
-}
-
-bool Row::has_member(const std::string &prop) const
-{
-  bool ret_val = false;
-
-  if (Cpp_object_bridge::has_member(prop))
-    ret_val = true;
-  else if (values.find(prop) != values.end())
-    ret_val = true;
-
-  return ret_val;
 }
 
 shcore::Value Row::get_field(const shcore::Argument_list &args)
@@ -516,5 +490,8 @@ shcore::Value Row::get_member(size_t index) const
 
 void Row::add_item(const std::string &key, shcore::Value value)
 {
+  if (shcore::is_valid_identifier(key))
+    add_property(key);
+
   value_iterators.push_back(values.insert(values.end(), std::pair<std::string, shcore::Value>(key, value)));
 }

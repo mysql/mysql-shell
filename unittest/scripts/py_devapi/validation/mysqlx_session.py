@@ -1,12 +1,12 @@
 #@ Session: validating members
 |close: OK|
-|createSchema: OK|
-|getDefaultSchema: OK|
-|getSchema: OK|
-|getSchemas: OK|
-|getUri: OK|
-|setFetchWarnings: OK|
-|defaultSchema: OK|
+|create_schema: OK|
+|get_default_schema: OK|
+|get_schema: OK|
+|get_schemas: OK|
+|get_uri: OK|
+|set_fetch_warnings: OK|
+|default_schema: OK|
 |uri: OK|
 
 #@ Session: validate dynamic members for system schemas
@@ -45,18 +45,18 @@
 
 #@ NodeSession: validating members
 |close: OK|
-|createSchema: OK|
-|getCurrentSchema: OK|
-|getDefaultSchema: OK|
-|getSchema: OK|
-|getSchemas: OK|
-|getUri: OK|
-|setCurrentSchema: OK|
-|setFetchWarnings: OK|
+|create_schema: OK|
+|get_current_schema: OK|
+|get_default_schema: OK|
+|get_schema: OK|
+|get_schemas: OK|
+|get_uri: OK|
+|set_current_schema: OK|
+|set_fetch_warnings: OK|
 |sql: OK|
-|defaultSchema: OK|
+|default_schema: OK|
 |uri: OK|
-|currentSchema: OK|		
+|current_schema: OK|		
 
 #@ NodeSession: accessing Schemas
 |<Schema:mysql>|
@@ -101,20 +101,20 @@
 |<Schema:mysql>|
 |<Schema:information_schema>|
 
-#@ NodeSession: setFetchWarnings(False)
+#@ NodeSession: set_fetch_warnings(False)
 |0|
 
-#@ NodeSession: setFetchWarnings(True)
+#@ NodeSession: set_fetch_warnings(True)
 |1|
 |Can't drop database 'unexisting'; database doesn't exist|
 
-#@ NodeSession: quoteName no parameters
-||ArgumentError: Invalid number of arguments in NodeSession.quoteName, expected 1 but got 0
+#@ NodeSession: quote_name no parameters
+||ArgumentError: Invalid number of arguments in NodeSession.quote_name, expected 1 but got 0
 
-#@ NodeSession: quoteName wrong param type
+#@ NodeSession: quote_name wrong param type
 ||TypeError: Argument #1 is expected to be a string
 
-#@ NodeSession: quoteName with correct parameters
+#@ NodeSession: quote_name with correct parameters
 |`sample`|
 |`sam``ple`|
 |```sample```|

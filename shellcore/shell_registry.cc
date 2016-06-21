@@ -93,18 +93,6 @@ bool StoredSessions::operator == (const Object_bridge &other) const
   return false;
 };
 
-std::vector<std::string> StoredSessions::get_members() const
-{
-  std::vector<std::string> members(Cpp_object_bridge::get_members());
-
-  Value::Map_type::const_iterator index, end = _connections->end();
-
-  for (index = _connections->begin(); index != end; index++)
-    members.push_back(index->first);
-
-  return members;
-}
-
 Value StoredSessions::get_member(const std::string &prop) const
 {
   Value ret_val;
@@ -114,11 +102,6 @@ Value StoredSessions::get_member(const std::string &prop) const
     ret_val = Cpp_object_bridge::get_member(prop);
 
   return ret_val;
-}
-
-bool StoredSessions::has_member(const std::string &prop) const
-{
-  return _connections->has_key(prop) || Cpp_object_bridge::has_member(prop);
 }
 
 StoredSessions::StoredSessions() :
@@ -136,6 +119,9 @@ _connections(new shcore::Value::Map_type)
   {
     const Connection_options& cs = it->second;
     (*_connections)[cs.get_name()] = Value(fill_connection(cs));
+
+    if (shcore::is_valid_identifier(cs.get_name()))
+      add_property(cs.get_name());
   }
 }
 
@@ -321,6 +307,10 @@ shcore::Value StoredSessions::store_connection(const std::string& name, const sh
 
     sr.merge();
     (*_connections)[name] = Value(connection);
+
+    if (shcore::is_valid_identifier(name))
+      add_property(name);
+
     ret_val = Value::True();
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION((boost::format("ShellRegistry.%1%") % (update ? "update" : "add")).str());
@@ -367,6 +357,7 @@ bool StoredSessions::remove_connection(const std::string& name)
       sr.merge();
 
       _connections->erase(name);
+      delete_property(name);
       ret_val = true;
     }
     else

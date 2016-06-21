@@ -78,13 +78,13 @@ void Schema::init()
   auto view_generator = [this](const std::string& name){return shcore::Value::wrap<Table>(new Table(shared_from_this(), name, true)); };
   auto collection_generator = [this](const std::string& name){return shcore::Value::wrap<Collection>(new Collection(shared_from_this(), name)); };
 
-  update_table_cache = [table_generator, this](const std::string &name, bool exists){DatabaseObject::update_cache(name, table_generator, exists, _tables); };
-  update_view_cache = [view_generator, this](const std::string &name, bool exists){DatabaseObject::update_cache(name, view_generator, exists, _views); };
-  update_collection_cache = [collection_generator, this](const std::string &name, bool exists){DatabaseObject::update_cache(name, collection_generator, exists, _collections); };
+  update_table_cache = [table_generator, this](const std::string &name, bool exists){DatabaseObject::update_cache(name, table_generator, exists, _tables, this); };
+  update_view_cache = [view_generator, this](const std::string &name, bool exists){DatabaseObject::update_cache(name, view_generator, exists, _views, this); };
+  update_collection_cache = [collection_generator, this](const std::string &name, bool exists){DatabaseObject::update_cache(name, collection_generator, exists, _collections, this); };
 
-  update_full_table_cache = [table_generator, this](const std::vector<std::string> &names){DatabaseObject::update_cache(names, table_generator, _tables); };
-  update_full_view_cache = [view_generator, this](const std::vector<std::string> &names){DatabaseObject::update_cache(names, view_generator, _views); };
-  update_full_collection_cache = [collection_generator, this](const std::vector<std::string> &names){DatabaseObject::update_cache(names, collection_generator, _collections); };
+  update_full_table_cache = [table_generator, this](const std::vector<std::string> &names){DatabaseObject::update_cache(names, table_generator, _tables, this); };
+  update_full_view_cache = [view_generator, this](const std::vector<std::string> &names){DatabaseObject::update_cache(names, view_generator, _views, this); };
+  update_full_collection_cache = [collection_generator, this](const std::vector<std::string> &names){DatabaseObject::update_cache(names, collection_generator, _collections, this); };
 }
 
 void Schema::update_cache()
@@ -161,44 +161,6 @@ void Schema::_remove_object(const std::string& name, const std::string& type)
   }
 }
 
-std::vector<std::string> Schema::get_members() const
-{
-  std::vector<std::string> members(DatabaseObject::get_members());
-
-  for (Value::Map_type::const_iterator iter = _tables->begin();
-       iter != _tables->end(); ++iter)
-  {
-    if (shcore::is_valid_identifier(iter->first))
-      members.push_back(iter->first);
-  }
-
-  for (Value::Map_type::const_iterator iter = _collections->begin();
-       iter != _collections->end(); ++iter)
-  {
-    if (shcore::is_valid_identifier(iter->first))
-      members.push_back(iter->first);
-  }
-
-  for (Value::Map_type::const_iterator iter = _views->begin();
-       iter != _views->end(); ++iter)
-  {
-    if (shcore::is_valid_identifier(iter->first))
-      members.push_back(iter->first);
-  }
-
-  return members;
-}
-
-bool Schema::has_member(const std::string &prop) const
-{
-  return DatabaseObject::has_member(prop) ||
-    (shcore::is_valid_identifier(prop) && (
-    _tables->has_key(prop) ||
-    _views->has_key(prop) ||
-    _collections->has_key(prop)
-    ));
-}
-
 Value Schema::get_member(const std::string &prop) const
 {
   // Searches prop as  a table
@@ -234,7 +196,7 @@ List Schema::getTables(){}
 #endif
 shcore::Value Schema::get_tables(const shcore::Argument_list &args)
 {
-  args.ensure_count(0, (class_name() + ".getTables").c_str());
+  args.ensure_count(0, get_function_name("getTables").c_str());
 
   update_cache();
 
@@ -262,7 +224,7 @@ List Schema::getCollections(){}
 #endif
 shcore::Value Schema::get_collections(const shcore::Argument_list &args)
 {
-  args.ensure_count(0, (class_name() + ".getCollections").c_str());
+  args.ensure_count(0, get_function_name("getCollections").c_str());
 
   update_cache();
 
@@ -288,7 +250,7 @@ View Schema::getTable(String name){}
 #endif
 shcore::Value Schema::get_table(const shcore::Argument_list &args)
 {
-  args.ensure_count(1, (class_name() + ".getTable").c_str());
+  args.ensure_count(1, get_function_name("getTable").c_str());
 
   std::string name = args.string_at(0);
   shcore::Value ret_val;
@@ -323,7 +285,7 @@ shcore::Value Schema::get_table(const shcore::Argument_list &args)
 
     if (!exists)
       throw shcore::Exception::runtime_error("The table " + _name + "." + name + " does not exist");
-  }
+}
   else
     throw shcore::Exception::argument_error("An empty name is invalid for a table");
 
@@ -345,7 +307,7 @@ View Schema::getCollection(String name){}
 #endif
 shcore::Value Schema::get_collection(const shcore::Argument_list &args)
 {
-  args.ensure_count(1, (class_name() + ".getCollection").c_str());
+  args.ensure_count(1, get_function_name("getCollection").c_str());
 
   std::string name = args.string_at(0);
   shcore::Value ret_val;
@@ -370,7 +332,7 @@ shcore::Value Schema::get_collection(const shcore::Argument_list &args)
     throw shcore::Exception::argument_error("An empty name is invalid for a collection");
 
   return ret_val;
-}
+  }
 
 #ifdef DOXYGEN
 /**
@@ -382,7 +344,7 @@ Collection Schema::getCollectionAsTable(String name){}
 #endif
 shcore::Value Schema::get_collection_as_table(const shcore::Argument_list &args)
 {
-  args.ensure_count(1, "Schema.getCollectionAsTable");
+  args.ensure_count(1, get_function_name("getCollectionAsTable").c_str());
 
   Value ret_val = get_collection(args);
 
@@ -390,7 +352,7 @@ shcore::Value Schema::get_collection_as_table(const shcore::Argument_list &args)
   {
     boost::shared_ptr<Table> table(new Table(shared_from_this(), args.string_at(0)));
     ret_val = Value(boost::static_pointer_cast<Object_bridge>(table));
-  }
+}
 
   return ret_val;
 }
@@ -410,7 +372,7 @@ shcore::Value Schema::create_collection(const shcore::Argument_list &args)
 {
   Value ret_val;
 
-  args.ensure_count(1, (class_name() + ".createCollection").c_str());
+  args.ensure_count(1, get_function_name("createCollection").c_str());
 
   // Creates the collection on the server
   shcore::Argument_list command_args;
@@ -422,9 +384,8 @@ shcore::Value Schema::create_collection(const shcore::Argument_list &args)
 
   // If this is reached it implies all went OK on the previous operation
   std::string name = args.string_at(0);
-  boost::shared_ptr<Collection> collection(new Collection(shared_from_this(), name));
-  ret_val = Value(boost::static_pointer_cast<Object_bridge>(collection));
-  (*_collections)[name] = ret_val;
+  update_collection_cache(name, true);
+  ret_val = (*_collections)[name];
 
   return ret_val;
 }

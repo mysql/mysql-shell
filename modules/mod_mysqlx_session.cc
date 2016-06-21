@@ -115,8 +115,8 @@ void BaseSession::init()
 
 Value BaseSession::connect(const Argument_list &args)
 {
-  std::string function_name = class_name() + ".connect";
-  args.ensure_count(1, 2, function_name.c_str());
+  std::string function = class_name() + '.' + "connect";
+  args.ensure_count(1, 2, function.c_str());
 
   try
   {
@@ -183,9 +183,7 @@ Undefined BaseSession::close(){}
 #endif
 Value BaseSession::close(const shcore::Argument_list &args)
 {
-  std::string function_name = class_name() + ".close";
-
-  args.ensure_count(0, function_name.c_str());
+  args.ensure_count(0, get_function_name("close").c_str());
 
   // Connection must be explicitly closed, we can't rely on the
   // automatic destruction because if shared across different objects
@@ -211,8 +209,7 @@ void BaseSession::reset_session()
 
 Value BaseSession::sql(const Argument_list &args)
 {
-  std::string function_name = class_name() + ".sql";
-  args.ensure_count(1, function_name.c_str());
+  args.ensure_count(1, get_function_name("sql").c_str());
 
   // NOTE: This function is no longer exposed as part of the API but it kept
   //       since it is used internally.
@@ -238,8 +235,7 @@ Schema BaseSession::createSchema(String name){}
 #endif
 Value BaseSession::create_schema(const shcore::Argument_list &args)
 {
-  std::string function_name = class_name() + ".createSchema";
-  args.ensure_count(1, function_name.c_str());
+  args.ensure_count(1, get_function_name("createSchema").c_str());
 
   Value ret_val;
   try
@@ -274,8 +270,7 @@ Result BaseSession::startTransaction(){}
 #endif
 shcore::Value BaseSession::startTransaction(const shcore::Argument_list &args)
 {
-  std::string function_name = class_name() + ".startTransaction";
-  args.ensure_count(0, function_name.c_str());
+  args.ensure_count(0, get_function_name("startTransaction").c_str());
 
   return executeStmt("sql", "start transaction", false, shcore::Argument_list());
 }
@@ -293,8 +288,7 @@ Result BaseSession::commit(){}
 #endif
 shcore::Value BaseSession::commit(const shcore::Argument_list &args)
 {
-  std::string function_name = class_name() + ".startTransaction";
-  args.ensure_count(0, function_name.c_str());
+  args.ensure_count(0, get_function_name("commit").c_str());
 
   return executeStmt("sql", "commit", false, shcore::Argument_list());
 }
@@ -312,8 +306,7 @@ Result BaseSession::rollback(){}
 #endif
 shcore::Value BaseSession::rollback(const shcore::Argument_list &args)
 {
-  std::string function_name = class_name() + ".startTransaction";
-  args.ensure_count(0, function_name.c_str());
+  args.ensure_count(0, get_function_name("rollback").c_str());
 
   return executeStmt("sql", "rollback", false, shcore::Argument_list());
 }
@@ -325,8 +318,8 @@ Value BaseSession::execute_sql(const std::string& statement, const Argument_list
 
 Value BaseSession::executeAdminCommand(const std::string& command, bool expect_data, const Argument_list &args) const
 {
-  std::string function_name = class_name() + ".executeAdminCommand";
-  args.ensure_at_least(1, function_name.c_str());
+  std::string function = class_name() + '.' + "executeAdminCommand";
+  args.ensure_at_least(1, function.c_str());
 
   return executeStmt("xplugin", command, expect_data, args);
 }
@@ -427,8 +420,7 @@ Schema BaseSession::getSchema(String name){}
 #endif
 shcore::Value BaseSession::get_schema(const shcore::Argument_list &args) const
 {
-  std::string function_name = class_name() + ".getSchema";
-  args.ensure_count(1, function_name.c_str());
+  args.ensure_count(1, get_function_name("getSchema").c_str());
   shcore::Value ret_val;
 
   std::string type = "Schema";
@@ -462,8 +454,7 @@ List BaseSession::getSchemas(){}
 #endif
 shcore::Value BaseSession::get_schemas(const shcore::Argument_list &args) const
 {
-  std::string function_name = class_name() + ".getSchemas";
-  args.ensure_count(0, function_name.c_str());
+  args.ensure_count(0, get_function_name("getSchemas").c_str());
 
   shcore::Value::Array_type_ref schemas(new shcore::Value::Array_type);
 
@@ -500,7 +491,7 @@ shcore::Value BaseSession::get_schemas(const shcore::Argument_list &args) const
 
 shcore::Value BaseSession::set_fetch_warnings(const shcore::Argument_list &args)
 {
-  args.ensure_count(1, (class_name() + ".setFetchWarnings").c_str());
+  args.ensure_count(1, get_function_name("setFetchWarnings").c_str());
 
   bool enable = args.bool_at(0);
   std::string command = enable ? "enable_notices" : "disable_notices";
@@ -521,7 +512,7 @@ Result BaseSession::dropSchema(String name){}
 #endif
 shcore::Value BaseSession::drop_schema(const shcore::Argument_list &args)
 {
-  std::string function = class_name() + ".dropSchema";
+  std::string function = get_function_name("dropSchema");
 
   args.ensure_count(1, function.c_str());
 
@@ -563,7 +554,7 @@ Result BaseSession::dropView(String schema, String name){}
 #endif
 shcore::Value BaseSession::drop_schema_object(const shcore::Argument_list &args, const std::string& type)
 {
-  std::string function = class_name() + ".drop" + type;
+  std::string function = get_function_name("drop" + type);
 
   args.ensure_count(2, function.c_str());
 
@@ -840,7 +831,7 @@ String NodeSession::quoteName(String id){}
 #endif
 shcore::Value NodeSession::quote_name(const shcore::Argument_list &args)
 {
-  args.ensure_count(1, "NodeSession.quoteName");
+  args.ensure_count(1, get_function_name("quoteName").c_str());
 
   if (args[0].type != shcore::String)
     throw shcore::Exception::type_error("Argument #1 is expected to be a string");
@@ -865,8 +856,7 @@ Schema NodeSession::setCurrentSchema(String name){}
 
 shcore::Value NodeSession::set_current_schema(const shcore::Argument_list &args)
 {
-  std::string function_name = class_name() + ".setCurrentSchema";
-  args.ensure_count(1, function_name.c_str());
+  args.ensure_count(1, get_function_name("setCurrentSchema").c_str());
 
   if (_session.is_connected())
   {

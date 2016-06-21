@@ -2,14 +2,14 @@
 import mysqlx
 
 # Connect to server using a connection URL
-mySession = mysqlx.getSession( {
+mySession = mysqlx.get_session( {
   'host': 'localhost', 'port': 33060,
   'dbUser': 'mike', 'dbPassword': 's3cr3t!'} )
 
-myDb = mySession.getSchema('test')
+myDb = mySession.get_schema('test')
 
 # Accessing an existing table
-myTable = myDb.getTable('my_table')
+myTable = myDb.get_table('my_table')
 
 # Insert SQL Table data
 myTable.insert(['name','birthday','age']) \
@@ -22,4 +22,4 @@ myResult = myTable.select(['_id', 'name', 'birthday']) \
   .bind('age', 20).execute()
 
 # Print result
-print myResult.fetchAll()
+print myResult.fetch_all()

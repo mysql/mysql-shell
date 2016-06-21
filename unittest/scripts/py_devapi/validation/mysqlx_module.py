@@ -1,43 +1,43 @@
 #@ mysqlx module: exports
 |Exported Items: 6|
-|getSession: <type 'builtin_function_or_method'>|
-|getNodeSession: <type 'builtin_function_or_method'>|
+|get_session: <type 'builtin_function_or_method'>|
+|get_node_session: <type 'builtin_function_or_method'>|
 |expr: <type 'builtin_function_or_method'>|
 |dateValue: <type 'builtin_function_or_method'>|
 |Type: <mysqlx.Type>|
 |IndexType: <mysqlx.IndexType>|
 
 
-#@ mysqlx module: getSession through URI
+#@ mysqlx module: get_session through URI
 |<XSession:|
 |Session using right URI|
 
-#@ mysqlx module: getSession through URI and password
+#@ mysqlx module: get_session through URI and password
 |<XSession:|
 |Session using right URI|
 
-#@ mysqlx module: getSession through data
+#@ mysqlx module: get_session through data
 |<XSession:|
 |Session using right URI|
 
-#@ mysqlx module: getSession through data and password
+#@ mysqlx module: get_session through data and password
 |<XSession:|
 |Session using right URI|
 
 
-#@ mysqlx module: getNodeSession through URI
+#@ mysqlx module: get_node_session through URI
 |<NodeSession:|
 |Session using right URI|
 
-#@ mysqlx module: getNodeSession through URI and password
+#@ mysqlx module: get_node_session through URI and password
 |<NodeSession:|
 |Session using right URI|
 
-#@ mysqlx module: getNodeSession through data
+#@ mysqlx module: get_node_session through data
 |<NodeSession:|
 |Session using right URI|
 
-#@ mysqlx module: getNodeSession through data and password
+#@ mysqlx module: get_node_session through data and password
 |<NodeSession:|
 |Session using right URI|
 

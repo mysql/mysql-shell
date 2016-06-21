@@ -84,7 +84,7 @@ TableSelect TableSelect::select(List searchExprStr){}
 shcore::Value TableSelect::select(const shcore::Argument_list &args)
 {
   // Each method validates the received parameters
-  args.ensure_count(0, 1, "TableSelect.select");
+  args.ensure_count(0, 1, get_function_name("select").c_str());
 
   boost::shared_ptr<Table> table(boost::static_pointer_cast<Table>(_owner.lock()));
 
@@ -107,7 +107,7 @@ shcore::Value TableSelect::select(const shcore::Argument_list &args)
       // Updates the exposed functions
       update_functions("select");
     }
-    CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableSelect.select");
+    CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("select"));
   }
 
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
@@ -141,7 +141,7 @@ shcore::Value TableSelect::select(const shcore::Argument_list &args)
 #endif
 shcore::Value TableSelect::where(const shcore::Argument_list &args)
 {
-  args.ensure_count(1, "TableSelect.where");
+  args.ensure_count(1, get_function_name("where").c_str());
 
   try
   {
@@ -149,7 +149,7 @@ shcore::Value TableSelect::where(const shcore::Argument_list &args)
 
     update_functions("where");
   }
-  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableSelect.where");
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("where"));
 
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
@@ -182,7 +182,7 @@ TableSelect TableSelect::groupBy(List searchExprStr){}
 #endif
 shcore::Value TableSelect::group_by(const shcore::Argument_list &args)
 {
-  args.ensure_count(1, "TableSelect.groupBy");
+  args.ensure_count(1, get_function_name("groupBy").c_str());
 
   try
   {
@@ -197,7 +197,7 @@ shcore::Value TableSelect::group_by(const shcore::Argument_list &args)
 
     update_functions("groupBy");
   }
-  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableSelect.groupBy");
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("groupBy"));
 
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
@@ -231,7 +231,7 @@ TableSelect TableSelect::having(String searchCondition){}
 #endif
 shcore::Value TableSelect::having(const shcore::Argument_list &args)
 {
-  args.ensure_count(1, "TableSelect.having");
+  args.ensure_count(1, get_function_name("having").c_str());
 
   try
   {
@@ -239,7 +239,7 @@ shcore::Value TableSelect::having(const shcore::Argument_list &args)
 
     update_functions("having");
   }
-  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableSelect.having");
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("having"));
 
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
@@ -276,7 +276,7 @@ TableSelect TableSelect::orderBy(List sortExprStr){}
 #endif
 shcore::Value TableSelect::order_by(const shcore::Argument_list &args)
 {
-  args.ensure_count(1, "TableSelect.orderBy");
+  args.ensure_count(1, get_function_name("orderBy").c_str());
 
   try
   {
@@ -291,7 +291,7 @@ shcore::Value TableSelect::order_by(const shcore::Argument_list &args)
 
     update_functions("orderBy");
   }
-  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableSelect.orderBy");
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("orderBy"));
 
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
@@ -326,7 +326,7 @@ TableSelect TableSelect::limit(Integer numberOfRows){}
 #endif
 shcore::Value TableSelect::limit(const shcore::Argument_list &args)
 {
-  args.ensure_count(1, "TableSelect.limit");
+  args.ensure_count(1, get_function_name("limit").c_str());
 
   try
   {
@@ -334,7 +334,7 @@ shcore::Value TableSelect::limit(const shcore::Argument_list &args)
 
     update_functions("limit");
   }
-  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableSelect.limit");
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("limit"));
 
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
@@ -362,7 +362,7 @@ TableSelect TableSelect::offset(Integer limitOffset){}
 #endif
 shcore::Value TableSelect::offset(const shcore::Argument_list &args)
 {
-  args.ensure_count(1, "TableSelect.offset");
+  args.ensure_count(1, get_function_name("offset").c_str());
 
   try
   {
@@ -370,7 +370,7 @@ shcore::Value TableSelect::offset(const shcore::Argument_list &args)
 
     update_functions("offset");
   }
-  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableSelect.offset");
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("offset"));
 
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
@@ -403,7 +403,7 @@ TableSelect TableSelect::bind(String name, Value value){}
 
 shcore::Value TableSelect::bind(const shcore::Argument_list &args)
 {
-  args.ensure_count(2, "TableSelect.bind");
+  args.ensure_count(2, get_function_name("bind").c_str());
 
   try
   {
@@ -411,7 +411,7 @@ shcore::Value TableSelect::bind(const shcore::Argument_list &args)
 
     update_functions("bind");
   }
-  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableSelect.bind");
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("bind"));
 
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
@@ -445,7 +445,7 @@ shcore::Value TableSelect::execute(const shcore::Argument_list &args)
 
   try
   {
-    args.ensure_count(0, "TableSelect.execute");
+    args.ensure_count(0, get_function_name("execute").c_str());
 
     MySQL_timer timer;
     timer.start();
@@ -455,7 +455,7 @@ shcore::Value TableSelect::execute(const shcore::Argument_list &args)
     timer.end();
     result->set_execution_time(timer.raw_duration());
   }
-  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableSelect.execute");
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("execute"));
 
   return result ? shcore::Value::wrap(result) : shcore::Value::Null();
 }

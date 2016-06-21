@@ -6,7 +6,7 @@
 |All expected functions are available|
 |No additional functions are available|
 
-#@ TableSelect: valid operations after groupBy
+#@ TableSelect: valid operations after group_by
 |All expected functions are available|
 |No additional functions are available|
 
@@ -14,7 +14,7 @@
 |All expected functions are available|
 |No additional functions are available|
 
-#@ TableSelect: valid operations after orderBy
+#@ TableSelect: valid operations after order_by
 |All expected functions are available|
 |No additional functions are available|
 
@@ -49,21 +49,21 @@
 ||TableSelect.where: Argument #1 is expected to be a string
 ||TableSelect.where: Unterminated quoted string starting at position 8
 
-#@# TableSelect: Error conditions on groupBy
-||Invalid number of arguments in TableSelect.groupBy, expected 1 but got 0
-||TableSelect.groupBy: Argument #1 is expected to be an array
-||TableSelect.groupBy: Grouping criteria can not be empty
-||TableSelect.groupBy: Element #2 is expected to be a string
+#@# TableSelect: Error conditions on group_by
+||Invalid number of arguments in TableSelect.group_by, expected 1 but got 0
+||TableSelect.group_by: Argument #1 is expected to be an array
+||TableSelect.group_by: Grouping criteria can not be empty
+||TableSelect.group_by: Element #2 is expected to be a string
 
 #@# TableSelect: Error conditions on having
 ||Invalid number of arguments in TableSelect.having, expected 1 but got 0
 ||TableSelect.having: Argument #1 is expected to be a string
 
-#@# TableSelect: Error conditions on orderBy
-||Invalid number of arguments in TableSelect.orderBy, expected 1 but got 0
-||TableSelect.orderBy: Argument #1 is expected to be an array
-||TableSelect.orderBy: Order criteria can not be empty
-||TableSelect.orderBy: Element #2 is expected to be a string
+#@# TableSelect: Error conditions on order_by
+||Invalid number of arguments in TableSelect.order_by, expected 1 but got 0
+||TableSelect.order_by: Argument #1 is expected to be an array
+||TableSelect.order_by: Order criteria can not be empty
+||TableSelect.order_by: Element #2 is expected to be a string
 
 #@# TableSelect: Error conditions on limit
 ||Invalid number of arguments in TableSelect.limit, expected 1 but got 0

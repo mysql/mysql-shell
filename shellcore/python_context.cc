@@ -561,7 +561,6 @@ namespace shcore
       else
         throw std::runtime_error("Expected a string parameter");
 
-
       // Parses the connection data
       connection_data = shcore::Value(shcore::get_connection_data(connection_data.as_string(), false));
 
@@ -571,7 +570,7 @@ namespace shcore
     {
       Python_context::set_python_error(PyExc_SystemError, e.what());
     }
-    
+
     return ret_val;
   }
 
@@ -615,7 +614,7 @@ namespace shcore
     "Prompts input to the user." },
     { "parseUri", &Python_context::shell_parse_uri, METH_VARARGS,
       "Creates a dictionary with the URI components." },
-    { "interactivehook", &Python_context::shell_interactive_eval_hook, METH_VARARGS,
+      { "interactivehook", &Python_context::shell_interactive_eval_hook, METH_VARARGS,
       "Custom displayhook to capture interactive expr evaluation results." },
       { NULL, NULL, 0, NULL }        /* Sentinel */
   };
@@ -731,9 +730,9 @@ namespace shcore
 
   static PyMethodDef MysqlxModuleMethods[] =
   {
-    { "getSession", (PyCFunction)Python_context::mysqlx_get_session, METH_VARARGS | METH_KEYWORDS,
+    { "get_session", (PyCFunction)Python_context::mysqlx_get_session, METH_VARARGS | METH_KEYWORDS,
     "Creates an XSession object." },
-    { "getNodeSession", (PyCFunction)Python_context::mysqlx_get_node_session, METH_VARARGS | METH_KEYWORDS,
+    { "get_node_session", (PyCFunction)Python_context::mysqlx_get_node_session, METH_VARARGS | METH_KEYWORDS,
     "Creates a NodeSession object." },
     { "expr", &Python_context::mysqlx_expr, METH_VARARGS,
     "Creates a Expression object." },
@@ -744,7 +743,7 @@ namespace shcore
 
   static PyMethodDef MysqlModuleMethods[] =
   {
-    { "getClassicSession",(PyCFunction)Python_context::mysql_get_classic_session, METH_VARARGS | METH_KEYWORDS,
+    { "get_classic_session", (PyCFunction)Python_context::mysql_get_classic_session, METH_VARARGS | METH_KEYWORDS,
     "Creates an ClassicSession object." },
     { NULL, NULL, 0, NULL }        /* Sentinel */
   };

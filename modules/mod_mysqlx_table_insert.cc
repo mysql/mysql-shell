@@ -236,7 +236,7 @@ TableInsert TableInsert::values(Value value1, Value value2, ...){}
 shcore::Value TableInsert::values(const shcore::Argument_list &args)
 {
   // Each method validates the received parameters
-  args.ensure_at_least(1, "TableInsert.values");
+  args.ensure_at_least(1, get_function_name("values").c_str());
 
   try
   {
@@ -253,7 +253,7 @@ shcore::Value TableInsert::values(const shcore::Argument_list &args)
     // Updates the exposed functions
     update_functions("values");
   }
-  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableInsert.values");
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("values"));
 
   // Returns the same object
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
@@ -289,7 +289,7 @@ shcore::Value TableInsert::execute(const shcore::Argument_list &args)
 
   try
   {
-    args.ensure_count(0, "TableInsert.execute");
+    args.ensure_count(0, get_function_name("execute").c_str());
 
     MySQL_timer timer;
     timer.start();
@@ -297,7 +297,7 @@ shcore::Value TableInsert::execute(const shcore::Argument_list &args)
     timer.end();
     result->set_execution_time(timer.raw_duration());
   }
-  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableInsert.execute");
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("execute"));
 
   return result ? shcore::Value::wrap(result) : shcore::Value::Null();
 }

@@ -61,7 +61,7 @@ CollectionDropIndex CollectionDropIndex::dropIndex(String indexName){}
 shcore::Value CollectionDropIndex::drop_index(const shcore::Argument_list &args)
 {
   // Each method validates the received parameters
-  args.ensure_count(1, 2, "CollectionCreateIndex.dropIndex");
+  args.ensure_count(1, 2, get_function_name("dropIndex").c_str());
 
   try
   {
@@ -79,7 +79,7 @@ shcore::Value CollectionDropIndex::drop_index(const shcore::Argument_list &args)
       _drop_index_args.push_back(args[0]);
     }
   }
-  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionCreateIndex.createIndex");
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("dropIndex"));
 
   update_functions("dropIndex");
 
@@ -100,7 +100,7 @@ shcore::Value CollectionDropIndex::execute(const shcore::Argument_list &args)
 {
   Value result;
 
-  args.ensure_count(0, "CollectionDropIndex.execute");
+  args.ensure_count(0, get_function_name("execute").c_str());
 
   boost::shared_ptr<Collection> raw_owner(_owner.lock());
 

@@ -54,7 +54,7 @@ namespace shcore
       MY_EXPECT_STDOUT_CONTAINS("<Schema:mysql>");
       output_handler.wipe_all();
 
-      _interactive_shell->process_line("db.getName()");
+      _interactive_shell->process_line("db.get_name()");
       MY_EXPECT_STDOUT_CONTAINS("mysql");
       output_handler.wipe_all();
 
@@ -134,7 +134,7 @@ namespace shcore
 
       output_handler.prompts.push_back("y");  // The db variable is not set, do you want to set the active schema?
       output_handler.prompts.push_back("");   // Please specify the schema
-      _interactive_shell->process_line("print('Schema: ' + db.getName())");
+      _interactive_shell->process_line("print('Schema: ' + db.get_name())");
 
       MY_EXPECT_STDERR_CONTAINS("Invalid schema specified");
       output_handler.wipe_all();
@@ -153,7 +153,7 @@ namespace shcore
 
       output_handler.prompts.push_back("y");          // The db variable is not set, do you want to set the active schema?
       output_handler.prompts.push_back("unexisting"); // Please specify the schema
-      _interactive_shell->process_line("print('Schema: ' + db.getName())");
+      _interactive_shell->process_line("print('Schema: ' + db.get_name())");
 
       MY_EXPECT_STDERR_CONTAINS("Unknown database 'unexisting'");
       output_handler.wipe_all();
@@ -173,7 +173,7 @@ namespace shcore
       // TEST: Attempt to configure an unexisting schema
       output_handler.prompts.push_back("y");     // The db variable is not set, do you want to set the active schema?
       output_handler.prompts.push_back("mysql"); // Please specify the schema
-      _interactive_shell->process_line("print('Schema: ' + db.getName())");
+      _interactive_shell->process_line("print('Schema: ' + db.get_name())");
 
       MY_EXPECT_STDOUT_CONTAINS("Schema: mysql");
       output_handler.wipe_all();

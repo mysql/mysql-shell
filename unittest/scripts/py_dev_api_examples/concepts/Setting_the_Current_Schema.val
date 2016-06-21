@@ -1,4 +1,4 @@
-print(mySession.currentSchema.name)|test|
+print(mySession.current_schema.name)|test|
 mySession.close();||
 session.close();||
 testSession.close();||

@@ -80,7 +80,7 @@ TableUpdate TableUpdate::update(){}
 shcore::Value TableUpdate::update(const shcore::Argument_list &args)
 {
   // Each method validates the received parameters
-  args.ensure_count(0, "TableUpdate.update");
+  args.ensure_count(0, get_function_name("update").c_str());
 
   boost::shared_ptr<Table> table(boost::static_pointer_cast<Table>(_owner.lock()));
 
@@ -93,7 +93,7 @@ shcore::Value TableUpdate::update(const shcore::Argument_list &args)
       // Updates the exposed functions
       update_functions("update");
     }
-    CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableUpdate.update");
+    CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("update"));
   }
 
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
@@ -144,7 +144,7 @@ TableUpdate TableUpdate::set(String attribute, Value value){}
 shcore::Value TableUpdate::set(const shcore::Argument_list &args)
 {
   // Each method validates the received parameters
-  args.ensure_count(2, "TableUpdate.set");
+  args.ensure_count(2, get_function_name("set").c_str());
 
   try
   {
@@ -176,7 +176,7 @@ shcore::Value TableUpdate::set(const shcore::Argument_list &args)
 
     update_functions("set");
   }
-  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableUpdate.set");
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("set"));
 
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
@@ -210,7 +210,7 @@ TableUpdate TableUpdate::where(String searchCondition){}
 shcore::Value TableUpdate::where(const shcore::Argument_list &args)
 {
   // Each method validates the received parameters
-  args.ensure_count(1, "TableUpdate.where");
+  args.ensure_count(1, get_function_name("where").c_str());
 
   try
   {
@@ -219,7 +219,7 @@ shcore::Value TableUpdate::where(const shcore::Argument_list &args)
     // Updates the exposed functions
     update_functions("where");
   }
-  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableUpdate.where");
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("where"));
 
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
@@ -252,7 +252,7 @@ TableUpdate TableUpdate::orderBy(List sortExprStr){}
 #endif
 shcore::Value TableUpdate::order_by(const shcore::Argument_list &args)
 {
-  args.ensure_count(1, "TableUpdate.orderBy");
+  args.ensure_count(1, get_function_name("orderBy").c_str());
 
   try
   {
@@ -267,7 +267,7 @@ shcore::Value TableUpdate::order_by(const shcore::Argument_list &args)
 
     update_functions("orderBy");
   }
-  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableUpdate.orderBy");
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("orderBy"));
 
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
@@ -299,7 +299,7 @@ TableUpdate TableUpdate::limit(Integer numberOfRows){}
 #endif
 shcore::Value TableUpdate::limit(const shcore::Argument_list &args)
 {
-  args.ensure_count(1, "TableUpdate.limit");
+  args.ensure_count(1, get_function_name("limit").c_str());
 
   try
   {
@@ -307,7 +307,7 @@ shcore::Value TableUpdate::limit(const shcore::Argument_list &args)
 
     update_functions("limit");
   }
-  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableUpdate.limit");
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("limit"));
 
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
@@ -339,7 +339,7 @@ TableUpdate TableUpdate::bind(String name, Value value){}
 #endif
 shcore::Value TableUpdate::bind(const shcore::Argument_list &args)
 {
-  args.ensure_count(2, "TableUpdate.bind");
+  args.ensure_count(2, get_function_name("bind").c_str());
 
   try
   {
@@ -347,7 +347,7 @@ shcore::Value TableUpdate::bind(const shcore::Argument_list &args)
 
     update_functions("bind");
   }
-  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableUpdate.bind");
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("bind"));
 
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
@@ -381,14 +381,14 @@ shcore::Value TableUpdate::execute(const shcore::Argument_list &args)
 
   try
   {
-    args.ensure_count(0, "TableUpdate.execute");
+    args.ensure_count(0, get_function_name("execute").c_str());
     MySQL_timer timer;
     timer.start();
     result = new mysqlx::Result(boost::shared_ptr< ::mysqlx::Result>(_update_statement->execute()));
     timer.end();
     result->set_execution_time(timer.raw_duration());
   }
-  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableUpdate.execute");
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("execute"));
 
   return result ? shcore::Value::wrap(result) : shcore::Value::Null();
 }

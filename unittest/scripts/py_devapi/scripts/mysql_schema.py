@@ -2,17 +2,17 @@
 # Assumes __uripwd is defined as <user>:<pwd>@<host>:<mysql_port>
 import mysql
 
-mySession = mysql.getClassicSession(__uripwd)
+mySession = mysql.get_classic_session(__uripwd)
 
 ensure_schema_does_not_exist(mySession, 'js_shell_test')
 
-mySession.createSchema('js_shell_test')
-mySession.setCurrentSchema('js_shell_test')
+mySession.create_schema('js_shell_test')
+mySession.set_current_schema('js_shell_test')
 
-result = mySession.runSql('create table table1 (name varchar(50))')
-result = mySession.runSql('create view view1 (my_name) as select name from table1')
+result = mySession.run_sql('create table table1 (name varchar(50))')
+result = mySession.run_sql('create view view1 (my_name) as select name from table1')
 
-schema = mySession.getSchema('js_shell_test')
+schema = mySession.get_schema('js_shell_test')
 
 #@ Schema: validating members
 all_members = dir(schema)
@@ -28,45 +28,45 @@ print "Member Count: %s" % len(members)
 validateMember(members, 'name')
 validateMember(members, 'schema')
 validateMember(members, 'session')
-validateMember(members, 'existsInDatabase')
-validateMember(members, 'getName')
-validateMember(members, 'getSchema')
-validateMember(members, 'getSession')
-validateMember(members, 'getTable')
-validateMember(members, 'getTables')
+validateMember(members, 'exists_in_database')
+validateMember(members, 'get_name')
+validateMember(members, 'get_schema')
+validateMember(members, 'get_session')
+validateMember(members, 'get_table')
+validateMember(members, 'get_tables')
 
 # Dynamic Properties
 validateMember(members, 'table1')
 validateMember(members, 'view1')
 
 #@ Testing schema name retrieving
-print 'getName(): ' + schema.getName()
+print 'get_name(): ' + schema.get_name()
 print 'name: ' + schema.name
 
-#@ Testing schema.getSession
-print 'getSession():',schema.getSession()
+#@ Testing schema.get_session
+print 'get_session():',schema.get_session()
 
 #@ Testing schema.session
 print 'session:', schema.session
 
 #@ Testing schema schema retrieving
-print 'getSchema():', schema.getSchema()
+print 'get_schema():', schema.get_schema()
 print 'schema:', schema.schema
 
 #@ Testing tables, views and collection retrieval
-mySchema = mySession.getSchema('js_shell_test')
-print 'getTables():', mySchema.getTables()[0]
+mySchema = mySession.get_schema('js_shell_test')
+print 'get_tables():', mySchema.get_tables()[0]
 
 #@ Testing specific object retrieval
-print 'Retrieving a table:', mySchema.getTable('table1')
+print 'Retrieving a table:', mySchema.get_table('table1')
 print '.<table>:', mySchema.table1
-print 'Retrieving a view:', mySchema.getTable('view1')
+print 'Retrieving a view:', mySchema.get_table('view1')
 print '.<view>:', mySchema.view1
 
 #@ Testing existence
-print 'Valid:', schema.existsInDatabase()
-mySession.dropSchema('js_shell_test')
-print 'Invalid:', schema.existsInDatabase()
+print 'Valid:', schema.exists_in_database()
+mySession.drop_schema('js_shell_test')
+print 'Invalid:', schema.exists_in_database()
 
 # Closes the session
 mySession.close()

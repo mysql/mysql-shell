@@ -18,15 +18,15 @@
 |All expected functions are available|
 |No additional functions are available|
 
-#@ CollectionModify: valid operations after modify and arrayInsert
+#@ CollectionModify: valid operations after modify and array_insert
 |All expected functions are available|
 |No additional functions are available|
 
-#@ CollectionModify: valid operations after modify and arrayAppend
+#@ CollectionModify: valid operations after modify and array_append
 |All expected functions are available|
 |No additional functions are available|
 
-#@ CollectionModify: valid operations after modify and arrayDelete
+#@ CollectionModify: valid operations after modify and array_delete
 |All expected functions are available|
 |No additional functions are available|
 
@@ -70,23 +70,23 @@
 ||Invalid number of arguments in CollectionModify.merge, expected 1 but got 0
 ||CollectionModify.merge: Argument #1 is expected to be a map
 
-#@# CollectionModify: Error conditions on arrayInsert
-||Invalid number of arguments in CollectionModify.arrayInsert, expected 2 but got 0
-||CollectionModify.arrayInsert: Argument #1 is expected to be a string
-||CollectionModify.arrayInsert: Invalid document path
-||CollectionModify.arrayInsert: An array document path must be specified
+#@# CollectionModify: Error conditions on array_insert
+||Invalid number of arguments in CollectionModify.array_insert, expected 2 but got 0
+||CollectionModify.array_insert: Argument #1 is expected to be a string
+||CollectionModify.array_insert: Invalid document path
+||CollectionModify.array_insert: An array document path must be specified
 
-#@# CollectionModify: Error conditions on arrayAppend
-||Invalid number of arguments in CollectionModify.arrayAppend, expected 2 but got 0
-||CollectionModify.arrayAppend: Argument #1 is expected to be a string
-||CollectionModify.arrayAppend: Invalid document path
-||CollectionModify.arrayAppend: Unsupported value received: <NodeSession:
+#@# CollectionModify: Error conditions on array_append
+||Invalid number of arguments in CollectionModify.array_append, expected 2 but got 0
+||CollectionModify.array_append: Argument #1 is expected to be a string
+||CollectionModify.array_append: Invalid document path
+||CollectionModify.array_append: Unsupported value received: <NodeSession:
 
-#@# CollectionModify: Error conditions on arrayDelete
-||Invalid number of arguments in CollectionModify.arrayDelete, expected 1 but got
-||CollectionModify.arrayDelete: Argument #1 is expected to be a string
-||CollectionModify.arrayDelete: Invalid document path
-||CollectionModify.arrayDelete: An array document path must be specified
+#@# CollectionModify: Error conditions on array_delete
+||Invalid number of arguments in CollectionModify.array_delete, expected 1 but got
+||CollectionModify.array_delete: Argument #1 is expected to be a string
+||CollectionModify.array_delete: Invalid document path
+||CollectionModify.array_delete: An array document path must be specified
 
 #@# CollectionModify: Error conditions on sort
 ||Invalid number of arguments in CollectionModify.sort, expected 1 but got 0
@@ -148,22 +148,22 @@
 |Brian's first girlfriend: martha|
 |Brian's second girlfriend: karen|
 
-#@ CollectionModify: arrayAppend Execution
-|lastDocumentId: LogicError: Result.getLastDocumentId(): document id is not available.|
-|getLastDocumentId(): LogicError: Result.getLastDocumentId(): document id is not available.|
-|lastDocumentIds: LogicError: Result.getLastDocumentIds(): document ids are not available.|
-|getLastDocumentIds(): LogicError: Result.getLastDocumentIds(): document ids are not available.|
+#@ CollectionModify: array_append Execution
+|last_document_id: LogicError: Result.get_last_document_id: document id is not available.|
+|get_last_document_id(): LogicError: Result.get_last_document_id: document id is not available.|
+|last_document_ids: LogicError: Result.get_last_document_ids: document ids are not available.|
+|get_last_document_ids(): LogicError: Result.get_last_document_ids: document ids are not available.|
 
 |Array Append Affected Rows: 1|
 |Brian's girlfriends: 3|
 |Brian's last: cloe|
 
-#@ CollectionModify: arrayInsert Execution
+#@ CollectionModify: array_insert Execution
 |Array Insert Affected Rows: 1|
 |Brian's girlfriends: 4|
 |Brian's second: samantha|
 
-#@ CollectionModify: arrayDelete Execution
+#@ CollectionModify: array_delete Execution
 |Array Delete Affected Rows: 1|
 |Brian's girlfriends: 3|
 |Brian's third: cloe|

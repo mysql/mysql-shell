@@ -61,6 +61,7 @@ namespace shcore
     virtual bool operator == (const Object_bridge &other) const { return _target ? *_target == other : *this == other; };
     virtual bool operator != (const Object_bridge &other) const { return _target ? *_target != other : *this != other; };
     virtual std::vector<std::string> get_members() const { return _target ? _target->get_members() : Cpp_object_bridge::get_members(); }
+    virtual std::vector<std::string> get_members_advanced(const NamingStyle &style) { return _target ? _target->get_members_advanced(style) : Cpp_object_bridge::get_members(); }
     virtual void set_member(const std::string &prop, Value value){ _target ? _target->set_member(prop, value) : Cpp_object_bridge::set_member(prop, value); }
     virtual bool is_indexed() const { return _target ? _target->is_indexed() : Cpp_object_bridge::is_indexed(); }
     virtual Value get_member(size_t index) const { return _target ? _target->get_member(index) : Cpp_object_bridge::get_member(index); }
@@ -73,9 +74,13 @@ namespace shcore
     // These functions are bridged too, but they include a resolution step: if the target object os not set, resolve() will be called on an attempt to
     // set _target based on input from the user (interaction)
     // These functions are called on attempts to access an object's property or method
+    virtual bool has_method_advanced(const std::string &name, const NamingStyle &style);
     virtual bool has_member(const std::string &prop) const;
+    virtual bool has_member_advanced(const std::string &prop, const NamingStyle &style);
     virtual Value get_member(const std::string &prop) const;
+    virtual Value get_member_advanced(const std::string &prop, const NamingStyle &style);
     virtual Value call(const std::string &name, const Argument_list &args);
+    virtual Value call_advanced(const std::string &name, const Argument_list &args, const NamingStyle &style);
 
     /*
     * resolve() is called when the target object is not defined and an attempt to use it
@@ -96,6 +101,7 @@ namespace shcore
     * making the existence of this wrapper transparent.
     */
     virtual Value interactive_get_member(const std::string &prop) const;
+    virtual Value interactive_get_member_advanced(const std::string &prop, const NamingStyle &style);
 
   public:
     // Accessors for the target object.
@@ -109,7 +115,9 @@ namespace shcore
     Interpreter_delegate *_delegate;
 
     // This array would contain function names that work even when _target is not set
-    std::vector<std::string> _wrapper_functions;
+    std::map<std::string, boost::shared_ptr<Cpp_function> > _wrapper_functions;
+
+    void set_wrapper_function(const std::string& name) { _wrapper_functions[name] = _funcs[name]; }
 
     // Helper functions to enable implementing interaction
     void print(const std::string& text) const;

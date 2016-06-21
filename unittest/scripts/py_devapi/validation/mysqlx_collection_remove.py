@@ -47,10 +47,10 @@
 
 #@ CollectionRemove: remove under condition
 |Affected Rows: 1|
-|lastDocumentId: LogicError: Result.getLastDocumentId(): document id is not available.|
-|getLastDocumentId(): LogicError: Result.getLastDocumentId(): document id is not available.|
-|lastDocumentIds: LogicError: Result.getLastDocumentIds(): document ids are not available.|
-|getLastDocumentIds(): LogicError: Result.getLastDocumentIds(): document ids are not available.|
+|last_document_id: LogicError: Result.get_last_document_id: document id is not available.|
+|get_last_document_id(): LogicError: Result.get_last_document_id: document id is not available.|
+|last_document_ids: LogicError: Result.get_last_document_ids: document ids are not available.|
+|get_last_document_ids(): LogicError: Result.get_last_document_ids: document ids are not available.|
 |Records Left: 4|
 
 #@ CollectionRemove: remove with binding
@@ -93,17 +93,17 @@
 |Brian's first girlfriend: martha|
 |Brian's second girlfriend: karen|
 
-#@ CollectionRemove: arrayAppend Execution
+#@ CollectionRemove: array_append Execution
 |Array Append Affected Rows: 1|
 |Brian's girlfriends: 3|
 |Brian's last: cloe|
 
-#@ CollectionRemove: arrayInsert Execution
+#@ CollectionRemove: array_insert Execution
 |Array Insert Affected Rows: 1|
 |Brian's girlfriends: 4|
 |Brian's second: samantha|
 
-#@ CollectionRemove: arrayDelete Execution
+#@ CollectionRemove: array_delete Execution
 |Array Delete Affected Rows: 1|
 |Brian's girlfriends: 3|
 |Brian's third: cloe|

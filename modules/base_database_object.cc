@@ -24,6 +24,7 @@
 #include "shellcore/lang_base.h"
 #include "shellcore/common.h"
 #include "shellcore/proxy_object.h"
+#include "utils/utils_general.h"
 #include "base_session.h"
 
 #include <boost/bind.hpp>
@@ -153,7 +154,7 @@ shcore::Value DatabaseObject::existsInDatabase(const shcore::Argument_list &args
   return shcore::Value(!_session.lock()->db_object_exists(type, _name, _schema._empty() ? "" : _schema.lock()->get_member("name").as_string()).empty());
 }
 
-void DatabaseObject::update_cache(const std::vector<std::string>& names, const std::function<shcore::Value(const std::string &name)>& generator, Cache target_cache)
+void DatabaseObject::update_cache(const std::vector<std::string>& names, const std::function<shcore::Value(const std::string &name)>& generator, Cache target_cache, DatabaseObject* target)
 {
   std::set<std::string> existing;
 
@@ -167,7 +168,12 @@ void DatabaseObject::update_cache(const std::vector<std::string>& names, const s
   for (auto name : names)
   {
     if (existing.find(name) == existing.end())
+    {
       (*target_cache)[name] = generator(name);
+
+      if (target && shcore::is_valid_identifier(name))
+        target->add_property(name);
+    }
 
     else
       existing.erase(name);
@@ -175,16 +181,31 @@ void DatabaseObject::update_cache(const std::vector<std::string>& names, const s
 
   // Removes no longer existing items
   for (auto name : existing)
+  {
     target_cache->erase(name);
+
+    if (target)
+      target->delete_property(name);
+  }
 }
 
-void DatabaseObject::update_cache(const std::string& name, const std::function<shcore::Value(const std::string &name)>& generator, bool exists, Cache target_cache)
+void DatabaseObject::update_cache(const std::string& name, const std::function<shcore::Value(const std::string &name)>& generator, bool exists, Cache target_cache, DatabaseObject* target)
 {
   if (exists && target_cache->find(name) == target_cache->end())
+  {
     (*target_cache)[name] = generator(name);
 
+    if (target && shcore::is_valid_identifier(name))
+      target->add_property(name);
+  }
+
   if (!exists && target_cache->find(name) != target_cache->end())
+  {
     target_cache->erase(name);
+
+    if (target)
+      target->delete_property(name);
+  }
 }
 
 void DatabaseObject::get_object_list(Cache target_cache, shcore::Value::Array_type_ref list)

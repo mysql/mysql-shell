@@ -1,5 +1,5 @@
 res = db.my_coll.find('name="mike"').execute()||
-print res.fetchOne().name|mike|
-print res.fetchOne().name|mike|
+print res.fetch_one().name|mike|
+print res.fetch_one().name|mike|
 testSession.close()||
 testSession=None||

@@ -2,17 +2,17 @@
 # Assumes __uripwd is defined as <user>:<pwd>@<host>:<plugin_port>
 import mysqlx
 
-mySession = mysqlx.getNodeSession(__uripwd)
+mySession = mysqlx.get_node_session(__uripwd)
 
 ensure_schema_does_not_exist(mySession, 'js_shell_test')
 
-schema = mySession.createSchema('js_shell_test')
-mySession.setCurrentSchema('js_shell_test')
+schema = mySession.create_schema('js_shell_test')
+mySession.set_current_schema('js_shell_test')
 
 # Creates a test table with initial data
 result = mySession.sql('create table table1 (name varchar(50), age integer, gender varchar(20))').execute()
 result = mySession.sql('create view view1 (my_name, my_age, my_gender) as select name, age, gender from table1;').execute()
-table = schema.getTable('table1')
+table = schema.get_table('table1')
 
 result = table.insert({"name": 'jack', "age": 17, "gender": 'male'}).execute()
 result = table.insert({"name": 'adam', "age": 15, "gender": 'male'}).execute()
@@ -31,14 +31,14 @@ validate_crud_functions(crud, ['set'])
 
 #@ TableUpdate: valid operations after set
 crud = crud.set('name', 'Jack')
-validate_crud_functions(crud, ['set', 'where', 'orderBy', 'limit', 'bind', 'execute', '__shell_hook__'])
+validate_crud_functions(crud, ['set', 'where', 'order_by', 'limit', 'bind', 'execute', '__shell_hook__'])
 
 #@ TableUpdate: valid operations after where
 crud = crud.where("age < 100")
-validate_crud_functions(crud, ['orderBy', 'limit', 'bind', 'execute', '__shell_hook__'])
+validate_crud_functions(crud, ['order_by', 'limit', 'bind', 'execute', '__shell_hook__'])
 
-#@ TableUpdate: valid operations after orderBy
-crud = crud.orderBy(['name'])
+#@ TableUpdate: valid operations after order_by
+crud = crud.order_by(['name'])
 validate_crud_functions(crud, ['limit', 'bind', 'execute', '__shell_hook__'])
 
 #@ TableUpdate: valid operations after limit
@@ -54,9 +54,9 @@ result = crud.execute()
 validate_crud_functions(crud, ['bind', 'execute', '__shell_hook__'])
 
 #@ Reusing CRUD with binding
-print 'Updated Angel:', result.affectedItemCount, '\n'
+print 'Updated Angel:', result.affected_item_count, '\n'
 result=crud.bind('data', 'carol').execute()
-print 'Updated Carol:', result.affectedItemCount, '\n'
+print 'Updated Carol:', result.affected_item_count, '\n'
 
 
 # ----------------------------------------------
@@ -78,11 +78,11 @@ crud = table.update().set('age', 17).where(5)
 crud = table.update().set('age', 17).where('name = \"2')
 
 
-#@# TableUpdate: Error conditions on orderBy
-crud = table.update().set('age', 17).orderBy()
-crud = table.update().set('age', 17).orderBy(5)
-crud = table.update().set('age', 17).orderBy([])
-crud = table.update().set('age', 17).orderBy(['name', 5])
+#@# TableUpdate: Error conditions on order_by
+crud = table.update().set('age', 17).order_by()
+crud = table.update().set('age', 17).order_by(5)
+crud = table.update().set('age', 17).order_by([])
+crud = table.update().set('age', 17).order_by(['name', 5])
 
 #@# TableUpdate: Error conditions on limit
 crud = table.update().set('age', 17).limit()
@@ -103,60 +103,60 @@ crud = table.update().set('age', 17).where('name = :data and age > :years').bind
 # ---------------------------------------
 #@# TableUpdate: simple test
 result = result = table.update().set('name', 'aline').where('age = 13').execute()
-print 'Affected Rows:', result.affectedItemCount, '\n'
+print 'Affected Rows:', result.affected_item_count, '\n'
 
 result = table.select().where('name = "aline"').execute()
-record = result.fetchOne()
+record = result.fetch_one()
 print "Updated Record:", record.name, record.age
 
 #@ TableUpdate: test using expression
 result = table.update().set('age', mysqlx.expr('13+10')).where('age = 13').execute()
-print 'Affected Rows:', result.affectedItemCount, '\n'
+print 'Affected Rows:', result.affected_item_count, '\n'
 
 result = table.select().where('age = 23').execute()
-record = result.fetchOne()
+record = result.fetch_one()
 print "Updated Record:", record.name, record.age
 
 #@ TableUpdate: test using limits
 result = table.update().set('age', mysqlx.expr(':new_year')).where('age = :old_year').limit(2).bind('new_year', 16).bind('old_year', 15).execute()
-print 'Affected Rows:', result.affectedItemCount, '\n'
+print 'Affected Rows:', result.affected_item_count, '\n'
 
 try:
-  print "lastDocumentId:", result.lastDocumentId
+  print "last_document_id:", result.last_document_id
 except Exception, err:
-  print "lastDocumentId:", str(err), "\n"
+  print "last_document_id:", str(err), "\n"
 
 try:
-  print "getLastDocumentId():", result.getLastDocumentId()
+  print "get_last_document_id():", result.get_last_document_id()
 except Exception, err:
-  print "getLastDocumentId():", str(err), "\n"
+  print "get_last_document_id():", str(err), "\n"
 
 try:
-  print "lastDocumentIds:", result.lastDocumentIds
+  print "last_document_ids:", result.last_document_ids
 except Exception, err:
-  print "lastDocumentIds:", str(err), "\n"
+  print "last_document_ids:", str(err), "\n"
 
 try:
-  print "getLastDocumentIds():", result.getLastDocumentIds()
+  print "get_last_document_ids():", result.get_last_document_ids()
 except Exception, err:
-  print "getLastDocumentIds():", str(err), "\n"
+  print "get_last_document_ids():", str(err), "\n"
 
 
-records = table.select().where('age = 16').execute().fetchAll()
+records = table.select().where('age = 16').execute().fetch_all()
 print 'With 16 Years:', len(records), '\n'
 
-records = table.select().where('age = 15').execute().fetchAll()
+records = table.select().where('age = 15').execute().fetch_all()
 print 'With 15 Years:', len(records), '\n'
 
 #@ TableUpdate: test full update with view object
-view = schema.getTable('view1')
+view = schema.get_table('view1')
 result = view.update().set('my_gender', 'female').execute()
-print 'Updated Females:', result.affectedItemCount, '\n'
+print 'Updated Females:', result.affected_item_count, '\n'
 
 # Result gets reflected on the target table
-records = table.select().where('gender = \"female\"').execute().fetchAll()
+records = table.select().where('gender = \"female\"').execute().fetch_all()
 print 'All Females:', len(records), '\n'
 
 # Cleanup
-mySession.dropSchema('js_shell_test')
+mySession.drop_schema('js_shell_test')
 mySession.close()

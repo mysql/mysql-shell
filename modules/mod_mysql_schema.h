@@ -89,9 +89,7 @@ namespace mysh
 
       virtual std::string class_name() const{ return "ClassicSchema"; };
 
-      virtual std::vector<std::string> get_members() const;
       virtual shcore::Value get_member(const std::string &prop) const;
-      virtual bool has_member(const std::string &prop) const;
 
       void update_cache();
       void _remove_object(const std::string& name, const std::string& type);

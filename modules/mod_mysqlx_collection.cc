@@ -33,7 +33,7 @@ using namespace mysh::mysqlx;
 using namespace shcore;
 
 Collection::Collection(boost::shared_ptr<Schema> owner, const std::string &name)
-: DatabaseObject(owner->_session.lock(), boost::static_pointer_cast<DatabaseObject>(owner), name),
+  : DatabaseObject(owner->_session.lock(), boost::static_pointer_cast<DatabaseObject>(owner), name),
   _collection_impl(owner->_schema_impl->getCollection(name))
 {
   init();
@@ -209,6 +209,8 @@ CollectionCreateIndex Collection::createIndex(String name, IndexType type){}
 shcore::Value Collection::create_index_(const shcore::Argument_list &args)
 {
   boost::shared_ptr<CollectionCreateIndex> createIndex(new CollectionCreateIndex(shared_from_this()));
+
+  auto ss = createIndex->set_scoped_naming_style(naming_style);
 
   return createIndex->create_index(args);
 }

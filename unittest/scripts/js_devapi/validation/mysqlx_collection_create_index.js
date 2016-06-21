@@ -17,7 +17,7 @@
 //@# Error conditions on createIndex
 ||ArgumentError: Invalid number of arguments in CollectionCreateIndex.createIndex, expected 1 to 2 but got 0
 ||ArgumentError: CollectionCreateIndex.createIndex: Argument #1 is expected to be a string
-||ArgumentError: CollectionCreateIndex.createIndex: Argument #2 is expected to be mysqlx.IndexType.Unique
+||ArgumentError: CollectionCreateIndex.createIndex: Argument #2 is expected to be mysqlx.IndexType.UNIQUE
 
 //@# Error conditions on field
 ||ArgumentError: Invalid number of arguments in CollectionCreateIndex.field, expected 3 but got 0

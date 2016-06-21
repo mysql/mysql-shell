@@ -6,7 +6,7 @@
 |All expected functions are available|
 |No additional functions are available|
 
-#@ CollectionFind: valid operations after groupBy
+#@ CollectionFind: valid operations after group_by
 |All expected functions are available|
 |No additional functions are available|
 
@@ -50,11 +50,11 @@
 ||CollectionFind.fields: Element #2 is expected to be a string
 ||CollectionFind.fields: Argument #1 is expected to be a JSON expression
 
-#@# CollectionFind: Error conditions on groupBy
-||Invalid number of arguments in CollectionFind.groupBy, expected 1 but got 0
-||CollectionFind.groupBy: Argument #1 is expected to be an array
-||CollectionFind.groupBy: Grouping criteria can not be empty
-||CollectionFind.groupBy: Element #2 is expected to be a string
+#@# CollectionFind: Error conditions on group_by
+||Invalid number of arguments in CollectionFind.group_by, expected 1 but got 0
+||CollectionFind.group_by: Argument #1 is expected to be an array
+||CollectionFind.group_by: Grouping criteria can not be empty
+||CollectionFind.group_by: Element #2 is expected to be a string
 
 #@# CollectionFind: Error conditions on having
 ||Invalid number of arguments in CollectionFind.having, expected 1 but got 0

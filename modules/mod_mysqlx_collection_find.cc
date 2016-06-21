@@ -230,7 +230,7 @@ CollectionFind CollectionFind::groupBy(List searchExprStr){}
 #endif
 shcore::Value CollectionFind::group_by(const shcore::Argument_list &args)
 {
-  args.ensure_count(1, "CollectionFind.groupBy");
+  args.ensure_count(1, get_function_name("groupBy").c_str());
 
   try
   {
@@ -245,7 +245,7 @@ shcore::Value CollectionFind::group_by(const shcore::Argument_list &args)
 
     update_functions("groupBy");
   }
-  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionFind.groupBy");
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("groupBy"));
 
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }

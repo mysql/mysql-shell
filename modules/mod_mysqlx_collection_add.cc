@@ -111,7 +111,7 @@ CollectionAdd CollectionAdd::add(List documents){}
 shcore::Value CollectionAdd::add(const shcore::Argument_list &args)
 {
   // Each method validates the received parameters
-  args.ensure_count(1, "CollectionAdd.add");
+  args.ensure_count(1, get_function_name("add").c_str());
 
   boost::shared_ptr<DatabaseObject> raw_owner(_owner.lock());
 
@@ -186,7 +186,7 @@ shcore::Value CollectionAdd::add(const shcore::Argument_list &args)
           update_functions("add");
         }
       }
-      CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionAdd.add");
+      CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("add").c_str());
     }
   }
 
@@ -244,7 +244,7 @@ shcore::Value CollectionAdd::execute(const shcore::Argument_list &args)
 
   try
   {
-    args.ensure_count(0, "CollectionAdd.execute");
+    args.ensure_count(0, get_function_name("execute").c_str());
 
     MySQL_timer timer;
     timer.start();
@@ -252,7 +252,7 @@ shcore::Value CollectionAdd::execute(const shcore::Argument_list &args)
     timer.end();
     result->set_execution_time(timer.raw_duration());
   }
-  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionAdd.execute");
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("execute").c_str());
 
   return result ? shcore::Value::wrap(result) : shcore::Value::Null();
 }

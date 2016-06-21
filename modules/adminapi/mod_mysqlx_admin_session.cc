@@ -53,8 +53,7 @@ void AdminSession::init()
 
 Value AdminSession::connect(const Argument_list &args)
 {
-  std::string function_name = class_name() + ".connect";
-  args.ensure_count(1, 2, function_name.c_str());
+  args.ensure_count(1, 2, get_function_name("connect").c_str());
 
   try
   {
@@ -90,9 +89,7 @@ Undefined BaseSession::close(){}
 #endif
 Value AdminSession::close(const shcore::Argument_list &args)
 {
-  std::string function_name = class_name() + ".close";
-
-  args.ensure_count(0, function_name.c_str());
+  args.ensure_count(0, get_function_name("close").c_str());
 
   // Connection must be explicitly closed, we can't rely on the
   // automatic destruction because if shared across different objects
@@ -114,16 +111,6 @@ void AdminSession::reset_session()
   {
     log_warning("Error occurred closing admin session: %s", e.what());
   }
-}
-
-bool AdminSession::has_member(const std::string &prop) const
-{
-  if (ShellAdminSession::has_member(prop))
-    return true;
-  if (prop == "defaultCluster" || prop == "uri")
-    return true;
-
-  return false;
 }
 
 #ifdef DOXYGEN
@@ -179,8 +166,7 @@ Schema BaseSession::getCluster(String name){}
 #endif
 shcore::Value AdminSession::get_cluster(const shcore::Argument_list &args) const
 {
-  std::string function_name = class_name() + ".getCluster";
-  args.ensure_count(1, function_name.c_str());
+  args.ensure_count(1, get_function_name("getCluster").c_str());
   shcore::Value ret_val;
 
   return ret_val;
@@ -195,8 +181,7 @@ List BaseSession::getClusters(){}
 #endif
 shcore::Value AdminSession::get_clusters(const shcore::Argument_list &args) const
 {
-  std::string function_name = class_name() + ".getClusters";
-  args.ensure_count(0, function_name.c_str());
+  args.ensure_count(0, get_function_name("getClusters").c_str());
 
   shcore::Value::Array_type_ref clusters(new shcore::Value::Array_type);
 

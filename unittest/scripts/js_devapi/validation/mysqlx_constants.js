@@ -1,24 +1,24 @@
 //@ mysqlx type constants
-|Type.Bit: <Type.Bit>|
-|Type.TinyInt: <Type.TinyInt>|
-|Type.SmallInt: <Type.SmallInt>|
-|Type.MediumInt: <Type.MediumInt>|
-|Type.Int: <Type.Int>|
-|Type.BigInt: <Type.BigInt>|
-|Type.Float: <Type.Float>|
-|Type.Decimal: <Type.Decimal>|
-|Type.Double: <Type.Double>|
-|Type.Json: <Type.Json>|
-|Type.String: <Type.String>|
-|Type.Bytes: <Type.Bytes>|
-|Type.Time: <Type.Time>|
-|Type.Date: <Type.Date>|
-|Type.DateTime: <Type.DateTime>|
-|Type.Timestamp: <Type.Timestamp>|
-|Type.Set: <Type.Set>|
-|Type.Enum: <Type.Enum>|
-|Type.Geometry: <Type.Geometry>|
-|Type.Set: <Type.Set>|
+|Type.BIT: <Type.BIT>|
+|Type.TINYINT: <Type.TINYINT>|
+|Type.SMALLINT: <Type.SMALLINT>|
+|Type.MEDIUMINT: <Type.MEDIUMINT>|
+|Type.INT: <Type.INT>|
+|Type.BIGINT: <Type.BIGINT>|
+|Type.FLOAT: <Type.FLOAT>|
+|Type.DECIMAL: <Type.DECIMAL>|
+|Type.DOUBLE: <Type.DOUBLE>|
+|Type.JSON: <Type.JSON>|
+|Type.STRING: <Type.STRING>|
+|Type.BYTES: <Type.BYTES>|
+|Type.TIME: <Type.TIME>|
+|Type.DATE: <Type.DATE>|
+|Type.DATETIME: <Type.DATETIME>|
+|Type.TIMESTAMP: <Type.TIMESTAMP>|
+|Type.SET: <Type.SET>|
+|Type.ENUM: <Type.ENUM>|
+|Type.GEOMETRY: <Type.GEOMETRY>|
+|Type.SET: <Type.SET>|
 
 //@ mysqlx index type constants
-|IndexType.Unique: <IndexType.Unique>|
+|IndexType.UNIQUE: <IndexType.UNIQUE>|
