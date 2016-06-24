@@ -46,10 +46,13 @@ Dynamic_object(), _session(owner)
   update_functions("");
 }
 
-#ifdef DOXYGEN
+//! Sets the sql statement to be executed by this handler.
+#ifdef DOXYGEN_CPP
+//! \param args should contain a string containing the SQL statement to be executed.
+#else
+//! \param statement A string containing the SQL statement to be executed.
+#endif
 /**
-* Sets the sql statement to be executed by this handler.
-* \param statement A string containing the SQL statement to be executed.
 * \return This SqlExecute object.
 *
 * This function is called automatically when NodeSession.sql(sql) is called.
@@ -64,7 +67,10 @@ Dynamic_object(), _session(owner)
 * - bind(List values)
 * - execute().
 */
+#if DOXYGEN_JS
 SqlExecute SqlExecute::sql(String statement){}
+#elif DOXYGEN_PY
+SqlExecute SqlExecute::sql(str statement){}
 #endif
 shcore::Value SqlExecute::sql(const shcore::Argument_list &args)
 {
@@ -84,8 +90,27 @@ shcore::Value SqlExecute::sql(const shcore::Argument_list &args)
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
-#ifdef DOXYGEN
-
+#ifdef DOXYGEN_CPP
+/**
+* Registers value to be bound on the execution of the SQL statement.
+* \param args should contain the value to be bound, possible values include:
+* \li A value to be bound.
+* \li A list of values to be bound.
+* \return This SqlExecute object.
+*
+* This method can be invoked any number of times, each time the received parameter will be added to an internal binding list.
+*
+* This function can be invoked after:
+* - sql(String statement)
+* - bind(Value value)
+* - bind(List values)
+*
+* After this function invocation, the following functions can be invoked:
+* - bind(Value value)
+* - bind(List values)
+* - execute().
+*/
+#else
 /**
 * Registers a parameter to be bound on the execution of the SQL statement.
 * \param value the value to be bound.
@@ -103,7 +128,11 @@ shcore::Value SqlExecute::sql(const shcore::Argument_list &args)
 * - bind(List values)
 * - execute().
 */
+#if DOXYGEN_JS
 SqlExecute SqlExecute::bind(Value value){}
+#elif DOXYGEN_PY
+SqlExecute SqlExecute::bind(Value value){}
+#endif
 
 /**
 * Registers a list of parameter to be bound on the execution of the SQL statement.
@@ -122,7 +151,11 @@ SqlExecute SqlExecute::bind(Value value){}
 * - bind(List values)
 * - execute().
 */
+#if DOXYGEN_JS
 SqlExecute SqlExecute::bind(List values){}
+#elif DOXYGEN_PY
+SqlExecute SqlExecute::bind(list values){}
+#endif
 #endif
 shcore::Value SqlExecute::bind(const shcore::Argument_list &args)
 {
@@ -142,7 +175,6 @@ shcore::Value SqlExecute::bind(const shcore::Argument_list &args)
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
-#ifdef DOXYGEN
 /**
 * Executes the sql statement.
 * \return A SqlResult object.
@@ -152,6 +184,9 @@ shcore::Value SqlExecute::bind(const shcore::Argument_list &args)
 * - bind(Value value)
 * - bind(List values)
 */
+#if DOXYGEN_JS
+SqlResult SqlExecute::execute(){}
+#elif DOXYGEN_PY
 SqlResult SqlExecute::execute(){}
 #endif
 shcore::Value SqlExecute::execute(const shcore::Argument_list &args)

@@ -32,6 +32,18 @@
 using namespace shcore;
 using namespace mysh::mysqlx;
 
+#if DOXYGEN_CPP
+/**
+ * Use this function to retrieve an valid member of this class exposed to the scripting languages.
+ * \param prop : A string containing the name of the member to be returned
+ *
+ * This function returns a Value that wraps the object returned by this function. The the content of the returned value depends on the property being requested. The next list shows the valid properties as well as the returned value for each of them:
+ *
+ * \li data: returns the String used to create this Expression.
+ *
+ * See the implementation of DatabaseObject for additional valid members.
+ */
+#endif
 Value Expression::get_member(const std::string &prop) const
 {
   // Retrieves the member first from the parent

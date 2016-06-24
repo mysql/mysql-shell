@@ -45,6 +45,35 @@ namespace mysh
     public:
       CollectionModify(boost::shared_ptr<Collection> owner);
     public:
+#ifdef DOXYGEN_JS
+      CollectionModify modify(String searchCondition);
+      CollectionModify set(String attribute, Value value);
+      CollectionModify unset(String attribute);
+      CollectionModify unset(List attributes);
+      CollectionModify merge(Document document);
+      CollectionModify arrayAppend(String path, Value value);
+      CollectionModify arrayInsert(String path, Value value);
+      CollectionModify arrayDelete(String path);
+      CollectionModify sort(List sortExprStr);
+      CollectionModify limit(Integer numberOfRows);
+      CollectionModify skip(Integer limitOffset);
+      CollectionFind bind(String name, Value value);
+      Result execute();
+#elif DOXYGEN_PY
+      CollectionModify modify(str searchCondition);
+      CollectionModify set(str attribute, Value value);
+      CollectionModify unset(str attribute);
+      CollectionModify unset(list attributes);
+      CollectionModify merge(Document document);
+      CollectionModify array_append(str path, Value value);
+      CollectionModify array_insert(str path, Value value);
+      CollectionModify array_delete(str path);
+      CollectionModify sort(list sortExprStr);
+      CollectionModify limit(int numberOfRows);
+      CollectionModify skip(int limitOffset);
+      CollectionFind bind(str name, Value value);
+      Result execute();
+#endif
       virtual std::string class_name() const { return "CollectionModify"; }
       static boost::shared_ptr<shcore::Object_bridge> create(const shcore::Argument_list &args);
       shcore::Value modify(const shcore::Argument_list &args);
@@ -59,21 +88,6 @@ namespace mysh
       shcore::Value bind(const shcore::Argument_list &args);
 
       virtual shcore::Value execute(const shcore::Argument_list &args);
-#ifdef DOXYGEN
-      CollectionModify modify(String searchCondition);
-      CollectionModify set(String attribute, Value value);
-      CollectionModify unset(String attribute);
-      CollectionModify unset(List attributes);
-      CollectionModify merge(Document document);
-      CollectionModify arrayAppend(String path, Value value);
-      CollectionModify arrayInsert(String path, Value value);
-      CollectionModify arrayDelete(String path);
-      CollectionModify sort(List sortExprStr);
-      CollectionModify limit(Integer numberOfRows);
-      CollectionModify skip(Integer limitOffset);
-      CollectionFind bind(String name, Value value);
-      Result execute(ExecuteOptions opt);
-#endif
     private:
       std::unique_ptr< ::mysqlx::ModifyStatement> _modify_statement;
     };

@@ -58,7 +58,7 @@ namespace mysh
       virtual bool tell(size_t &dataset, size_t &record);
       virtual bool seek(size_t dataset, size_t record);
 
-#ifdef DOXYGEN
+#if DOXYGEN_JS
       Integer warningCount; //!< Same as getwarningCount()
       List warnings; //!< Same as getWarnings()
       String executionTime; //!< Same as getExecutionTime()
@@ -66,6 +66,14 @@ namespace mysh
       Integer getWarningCount();
       List getWarnings();
       String getExecutionTime();
+#elif DOXYGEN_PY
+      int warning_count; //!< Same as get_warning_count()
+      list warnings; //!< Same as get_warnings()
+      str execution_time; //!< Same as get_execution_time()
+
+      int get_warning_count();
+      list get_warnings();
+      str get_execution_time();
 #endif
 
     protected:
@@ -103,7 +111,7 @@ namespace mysh
       std::string get_last_document_id() const;
       const std::vector<std::string> get_last_document_ids() const;
 
-#ifdef DOXYGEN
+#if DOXYGEN_JS
       Integer affectedItemCount; //!< Same as getAffectedItemCount()
       Integer autoIncrementValue; //!< Same as getAutoIncrementValue()
       Integer lastDocumentId; //!< Same as getLastDocumentId()
@@ -111,6 +119,14 @@ namespace mysh
       Integer getAffectedItemCount();
       Integer getAutoIncrementValue();
       String getLastDocumentId();
+#elif DOXYGEN_PY
+      int affected_item_count; //!< Same as get_affected_item_count()
+      int auto_increment_value; //!< Same as get_auto_increment_value()
+      int last_document_id; //!< Same as get_last_document_id()
+
+      int get_affected_item_count();
+      int get_auto_increment_value();
+      str get_last_document_id();
 #endif
     };
 
@@ -132,9 +148,12 @@ namespace mysh
 
       shcore::Value get_metadata() const;
 
-#ifdef DOXYGEN
+#if DOXYGEN_JS
       Document fetchOne();
       List fetchAll();
+#elif DOXYGEN_PY
+      Document fetch_one();
+      list fetch_all();
 #endif
 
     private:
@@ -164,7 +183,7 @@ namespace mysh
       std::vector<std::string> get_column_names() const;
       shcore::Value::Array_type_ref get_columns() const;
 
-#ifdef DOXYGEN
+#if DOXYGEN_JS
       Row fetchOne();
       List fetchAll();
 
@@ -175,6 +194,17 @@ namespace mysh
       Integer getColumnCount();
       List getColumnNames();
       List getColumns();
+#elif DOXYGEN_PY
+      Row fetch_one();
+      list fetch_all();
+
+      int column_count; //!< Same as get_column_count()
+      list column_names; //!< Same as get_column_names()
+      list columns; //!< Same as get_columns()
+
+      int get_column_count();
+      list get_column_names();
+      list get_columns();
 #endif
 
     private:
@@ -207,7 +237,7 @@ namespace mysh
       // TODO: Enable it once the way to have a reference to the unmanaged object is found
       //bool nextDataSet() const;
 
-#ifdef DOXYGEN
+#ifdef DOXYGEN_JS
       Integer autoIncrementValue; //!< Same as getAutoIncrementValue()
       Integer affectedRowCount; //!< Same as getAffectedRowCount()
 
@@ -215,6 +245,14 @@ namespace mysh
       Integer getAffectedRowCount();
       Bool hasData();
       Bool nextDataSet();
+#elif DOXYGEN_PY
+      int auto_increment_value; //!< Same as get_auto_increment_value()
+      int affected_row_count; //!< Same as get_affected_row_count()
+
+      int get_auto_increment_value();
+      int get_affected_row_count();
+      bool has_data();
+      bool next_data_set();
 #endif
     };
   }

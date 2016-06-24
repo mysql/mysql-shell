@@ -70,6 +70,44 @@ namespace mysh
     class SHCORE_PUBLIC BaseSession : public ShellDevelopmentSession
     {
     public:
+#if DOXYGEN_JS
+      String uri; //!< Same as getUri()
+      Schema defaultSchema; //!< Same as getDefaultSchema()
+
+      Schema createSchema(String name);
+      Schema getSchema(String name);
+      Schema getDefaultSchema();
+      List getSchemas();
+      String getUri();
+      Undefined close();
+      Undefined setFetchWarnings(Bool value);
+      Result startTransaction();
+      Result commit();
+      Result rollback();
+      Result dropSchema(String name);
+      Result dropTable(String schema, String name);
+      Result dropCollection(String schema, String name);
+      Result dropView(String schema, String name);
+#elif DOXYGEN_PY
+      str uri; //!< Same as get_uri()
+      Schema default_schema; //!< Same as get_default_schema()
+
+      Schema create_schema(str name);
+      Schema get_schema(str name);
+      Schema get_default_schema();
+      list get_schemas();
+      str get_uri();
+      None close();
+      None set_fetch_warnings(bool value);
+      Result start_transaction();
+      Result commit();
+      Result rollback();
+      Result drop_schema(str name);
+      Result drop_table(str schema, str name);
+      Result drop_collection(str schema, str name);
+      Result drop_view(str schema, str name);
+#endif
+
       BaseSession();
       BaseSession(const BaseSession& s);
       virtual ~BaseSession() { reset_session(); }
@@ -108,26 +146,6 @@ namespace mysh
 
       virtual uint64_t get_connection_id() const;
 
-#ifdef DOXYGEN
-      String uri; //!< Same as getUri()
-      Schema defaultSchema; //!< Same as getDefaultSchema()
-
-      Schema createSchema(String name);
-      Schema getSchema(String name);
-      Schema getDefaultSchema();
-      List getSchemas();
-      String getUri();
-      Undefined close();
-      Undefined setFetchWarnings(Bool value);
-      Result startTransaction();
-      Result commit();
-      Result rollback();
-      Result dropSchema(String name);
-      Result dropTable(String schema, String name);
-      Result dropCollection(String schema, String name);
-      Result dropView(String schema, String name);
-
-#endif
     protected:
       shcore::Value executeStmt(const std::string &domain, const std::string& command, bool expect_data, const shcore::Argument_list &args) const;
       virtual boost::shared_ptr<BaseSession> _get_shared_this() const = 0;
@@ -177,6 +195,21 @@ namespace mysh
     class SHCORE_PUBLIC NodeSession : public BaseSession, public boost::enable_shared_from_this<NodeSession>
     {
     public:
+#if DOXYGEN_JS
+      Schema currentSchema; //!< Same as getCurrentSchema()
+
+      Schema getCurrentSchema();
+      Schema setCurrentSchema(String name);
+      SqlExecute sql(String sql);
+      String quoteName(String id);
+#elif DOXYGEN_PY
+      Schema current_schema; //!< Same as get_current_schema()
+
+      Schema get_current_schema();
+      Schema set_current_schema(str name);
+      SqlExecute sql(str sql);
+      str quote_name(str id);
+#endif
       NodeSession();
       NodeSession(const NodeSession& s);
       virtual ~NodeSession(){};
@@ -190,14 +223,6 @@ namespace mysh
       shcore::Value quote_name(const shcore::Argument_list &args);
 
       shcore::Value set_current_schema(const shcore::Argument_list &args);
-#ifdef DOXYGEN
-      Schema currentSchema; //!< Same as getCurrentSchema()
-
-      Schema getCurrentSchema();
-      Schema setCurrentSchema(String name);
-      SqlExecute sql(String sql);
-      String quoteName(String id);
-#endif
     protected:
       void init();
     };

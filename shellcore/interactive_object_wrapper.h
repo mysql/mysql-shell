@@ -31,7 +31,7 @@ namespace shcore
 {
   class Shell_core;
 
-  /*
+  /**
   * Base object to provide interaction capabilities on calls to the wrapped object
   * which on this context is called the Target Object.
   *
@@ -82,7 +82,7 @@ namespace shcore
     virtual Value call(const std::string &name, const Argument_list &args);
     virtual Value call_advanced(const std::string &name, const Argument_list &args, const NamingStyle &style);
 
-    /*
+    /**
     * resolve() is called when the target object is not defined and an attempt to use it
     * has been done either by trying to:
     * - Access a property
@@ -93,7 +93,7 @@ namespace shcore
     */
     virtual void resolve() const {};
 
-    /*
+    /**
     * interactive_get_member must be implemented by derived classes to add
     * interactivity when accessing specific properties of the target object.
     *

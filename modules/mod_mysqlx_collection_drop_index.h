@@ -50,8 +50,11 @@ namespace mysh
       shcore::Value drop_index(const shcore::Argument_list &args);
       virtual shcore::Value execute(const shcore::Argument_list &args);
 
-#ifdef DOXYGEN
+#if DOXYGEN_JS
       CollectionDropIndex dropIndex(String indexName);
+      Result execute();
+#elif DOXYGEN_PY
+      CollectionDropIndex drop_index(str indexName);
       Result execute();
 #endif
 

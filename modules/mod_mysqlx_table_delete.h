@@ -48,12 +48,19 @@ namespace mysh
       shcore::Value bind(const shcore::Argument_list &args);
 
       virtual shcore::Value execute(const shcore::Argument_list &args);
-#ifdef DOXYGEN
+#if DOXYGEN_JS
       TableDelete delete();
       TableDelete where(String searchCondition);
       TableDelete orderBy(List sortExprStr);
       TableDelete limit(Integer numberOfRows);
       TableDelete bind(String name, Value value);
+      Result execute();
+#elif DOXYGEN_PY
+      TableDelete delete();
+      TableDelete where(str searchCondition);
+      TableDelete order_by(list sortExprStr);
+      TableDelete limit(int numberOfRows);
+      TableDelete bind(str name, Value value);
       Result execute();
 #endif
     private:

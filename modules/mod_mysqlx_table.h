@@ -45,6 +45,25 @@ namespace mysh
     class Table : public DatabaseObject, public boost::enable_shared_from_this<Table>
     {
     public:
+#if DOXYGEN_JS
+      TableInsert insert();
+      TableInsert insert(List columns);
+      TableInsert insert(String col1, String col2, ...);
+      TableSelect select();
+      TableSelect select(List columns);
+      TableUpdate update();
+      TableDelete delete();
+      Bool isView();
+#elif DOXYGEN_PY
+      TableInsert insert();
+      TableInsert insert(list columns);
+      TableInsert insert(str col1, str col2, ...);
+      TableSelect select();
+      TableSelect select(list columns);
+      TableUpdate update();
+      TableDelete delete();
+      bool is_view();
+#endif
       Table(boost::shared_ptr<Schema> owner, const std::string &name, bool is_view = false);
       Table(boost::shared_ptr<const Schema> owner, const std::string &name, bool is_view = false);
       virtual ~Table();
@@ -54,22 +73,12 @@ namespace mysh
       virtual std::string get_object_type() { return _is_view ? "View" : "Table"; }
 
       bool is_view() const { return _is_view; }
-#ifdef DOXYGEN
-      TableInsert insert();
-      TableInsert insert(List columns);
-      TableInsert insert(String col1, String col2, ...);
-      TableSelect select();
-      TableSelect select(List columns);
-      TableUpdate update();
-      TableDelete delete();
-      Bool isView();
-#endif
-    private:
       shcore::Value insert_(const shcore::Argument_list &args);
       shcore::Value select_(const shcore::Argument_list &args);
       shcore::Value update_(const shcore::Argument_list &args);
       shcore::Value delete_(const shcore::Argument_list &args);
       shcore::Value is_view(const shcore::Argument_list &args);
+    private:
 
       void init();
 

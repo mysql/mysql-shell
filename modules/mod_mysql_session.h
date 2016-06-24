@@ -105,7 +105,7 @@ namespace mysh
 
       virtual uint64_t get_connection_id() const { return (uint64_t)_conn->get_thread_id(); }
 
-#ifdef DOXYGEN
+#if DOXYGEN_JS
       String uri; //!< Same as getUri()
       ClassicSchema defaultSchema; //!< Same as getDefaultSchema()
       ClassicSchema currentSchema; //!< Same as getCurrentSchema()
@@ -125,8 +125,28 @@ namespace mysh
       ClassicResult dropSchema(String name);
       ClassicResult dropTable(String schema, String name);
       ClassicResult dropView(String schema, String name);
+#elif DOXYGEN_PY
+      str uri; //!< Same as get_uri()
+      ClassicSchema default_schema; //!< Same as get_default_schema()
+      ClassicSchema current_schema; //!< Same as get_current_schema()
 
+      ClassicSchema create_schema(str name);
+      ClassicSchema get_schema(str name);
+      ClassicSchema get_default_schema();
+      ClassicSchema get_current_schema();
+      ClassicSchema set_current_schema(str name);
+      list get_schemas();
+      str get_uri();
+      ClassicResult run_sql(str query);
+      None close();
+      ClassicResult start_transaction();
+      ClassicResult commit();
+      ClassicResult rollback();
+      ClassicResult drop_schema(str name);
+      ClassicResult drop_table(str schema, str name);
+      ClassicResult drop_view(str schema, str name);
 #endif
+
     protected:
       virtual int get_default_port() { return 3306; };
 

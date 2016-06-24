@@ -123,6 +123,16 @@ void ShellBaseSession::append_json(shcore::JSON_dumper& dumper) const
   dumper.end_object();
 }
 
+#if DOXYGEN_CPP
+/**
+ * Use this function to retrieve an valid member of this class exposed to the scripting languages.
+ * \param prop : A string containing the name of the member to be returned
+ *
+ * This function returns a Value that wraps the object returned by this function. The content of the returned value depends on the property being requested. The next list shows the valid properties as well as the returned value for each of them:
+ *
+ * \li uri: returns a String object with connection information in URI format.
+ */
+#endif
 shcore::Value ShellBaseSession::get_member(const std::string &prop) const
 {
   shcore::Value ret_val;
@@ -307,6 +317,16 @@ ShellBaseSession(s)
   init();
 }
 
+#if DOXYGEN_CPP
+/**
+ * Use this function to retrieve an valid member of this class exposed to the scripting languages.
+ * \param prop : A string containing the name of the member to be returned
+ *
+ * This function returns a Value that wraps the object returned by this function. The content of the returned value depends on the property being requested. The next list shows the valid properties as well as the returned value for each of them:
+ *
+ * \li defaultSchema: returns Schema or ClassicSchema object representing the default schema defined on the connectio ninformatio used to create the session. If none was specified, returns Null.
+ */
+#endif
 shcore::Value ShellDevelopmentSession::get_member(const std::string &prop) const
 {
   shcore::Value ret_val;

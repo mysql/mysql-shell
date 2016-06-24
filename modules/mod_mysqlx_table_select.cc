@@ -56,10 +56,13 @@ TableSelect::TableSelect(boost::shared_ptr<Table> owner)
   update_functions("");
 }
 
-#ifdef DOXYGEN
+//! Initializes this record selection handler.
+#ifdef DOXYGEN_CPP
+//! \param args should contain an optional list of string expressions identifying the columns to be retrieved, alias support is enabled on these fields.
+#else
+//! \param searchExprStr: An optional list of string expressions identifying the columns to be retrieved, alias support is enabled on these fields.
+#endif
 /**
-* Initializes this record selection handler.
-* \param searchExprStr: An optional list of string expressions identifying the columns to be retrieved, alias support is enabled on these fields.
 * \return This TableSelect object.
 *
 * The TableSelect handler will only retrieve the columns that were included on the filter, if no filter was set then all the columns will be included.
@@ -79,7 +82,10 @@ TableSelect::TableSelect(boost::shared_ptr<Table> owner)
 *
 * \sa Usage examples at execute().
 */
+#if DOXYGEN_JS
 TableSelect TableSelect::select(List searchExprStr){}
+#elif DOXYGEN_PY
+TableSelect TableSelect::select(list searchExprStr){}
 #endif
 shcore::Value TableSelect::select(const shcore::Argument_list &args)
 {
@@ -113,10 +119,13 @@ shcore::Value TableSelect::select(const shcore::Argument_list &args)
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
-#ifdef DOXYGEN
+//! Sets the search condition to filter the records to be retrieved from the owner Table.
+#ifdef DOXYGEN_CPP
+//! \param args should contain an optional expression to filter the records to be retrieved.
+#else
+//! \param searchCondition: An optional expression to filter the records to be retrieved.
+#endif
 /**
-* Sets the search condition to filter the records to be retrieved from the owner Table.
-* \param searchCondition: An optional expression to filter the records to be retrieved;
 * if not specified all the records will be retrieved from the table unless a limit is set.
 * \return This TableSelect object.
 *
@@ -137,7 +146,11 @@ shcore::Value TableSelect::select(const shcore::Argument_list &args)
 * - execute()
 *
 * \sa Usage examples at execute().
-*/TableSelect TableSelect::where(String searchCondition){}
+*/
+#if DOXYGEN_JS
+TableSelect TableSelect::where(String searchCondition){}
+#elif DOXYGEN_PY
+TableSelect TableSelect::where(str searchCondition){}
 #endif
 shcore::Value TableSelect::where(const shcore::Argument_list &args)
 {
@@ -154,10 +167,13 @@ shcore::Value TableSelect::where(const shcore::Argument_list &args)
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
-#ifdef DOXYGEN
+//! Sets a grouping criteria for the resultset.
+#ifdef DOXYGEN_CPP
+//! \param args should contain a list of string expressions identifying the grouping criteria.
+#else
+//! \param searchExprStr: A list of string expressions identifying the grouping criteria.
+#endif
 /**
-* Sets a grouping criteria for the resultset.
-* \param searchExprStr: A list of string expressions identifying the grouping criteria.
 * \return This TableSelect object.
 *
 * If used, the TableSelect handler will group the records using the stablished criteria.
@@ -178,7 +194,10 @@ shcore::Value TableSelect::where(const shcore::Argument_list &args)
 *
 * \sa Usage examples at execute().
 */
+#if DOXYGEN_JS
 TableSelect TableSelect::groupBy(List searchExprStr){}
+#elif DOXYGEN_PY
+TableSelect TableSelect::group_by(list searchExprStr){}
 #endif
 shcore::Value TableSelect::group_by(const shcore::Argument_list &args)
 {
@@ -202,10 +221,13 @@ shcore::Value TableSelect::group_by(const shcore::Argument_list &args)
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
-#ifdef DOXYGEN
+//! Sets a condition for records to be considered in agregate function operations.
+#ifdef DOXYGEN_CPP
+//! \param args should contain a condition on the agregate functions used on the grouping criteria.
+#else
+//! \param searchCondition: A condition on the agregate functions used on the grouping criteria.
+#endif
 /**
-* Sets a condition for records to be considered in agregate function operations.
-* \param searchCondition: A condition on the agregate functions used on the grouping criteria.
 * \return This TableSelect object.
 *
 * If used the TableSelect operation will only consider the records matching the stablished criteria.
@@ -227,7 +249,10 @@ shcore::Value TableSelect::group_by(const shcore::Argument_list &args)
 *
 * \sa Usage examples at execute().
 */
+#if DOXYGEN_JS
 TableSelect TableSelect::having(String searchCondition){}
+#elif DOXYGEN_PY
+TableSelect TableSelect::having(str searchCondition){}
 #endif
 shcore::Value TableSelect::having(const shcore::Argument_list &args)
 {
@@ -244,10 +269,13 @@ shcore::Value TableSelect::having(const shcore::Argument_list &args)
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
-#ifdef DOXYGEN
+//! Sets the sorting criteria to be used on the RowResult.
+#ifdef DOXYGEN_CPP
+//! \param args should contain a list of expression strings defining the sort criteria for the returned records.
+#else
+//! \param sortExprStr: A list of expression strings defining the sort criteria for the returned records.
+#endif
 /**
-* Sets the sorting criteria to be used on the RowResult.
-* \param sortExprStr: A list of expression strings defining the sort criteria for the returned records.
 * \return This TableSelect object.
 *
 * If used the TableSelect handler will return the records sorted with the defined criteria.
@@ -272,7 +300,10 @@ shcore::Value TableSelect::having(const shcore::Argument_list &args)
 *
 * \sa Usage examples at execute().
 */
+#if DOXYGEN_JS
 TableSelect TableSelect::orderBy(List sortExprStr){}
+#elif DOXYGEN_PY
+TableSelect TableSelect::order_by(list sortExprStr){}
 #endif
 shcore::Value TableSelect::order_by(const shcore::Argument_list &args)
 {
@@ -296,10 +327,13 @@ shcore::Value TableSelect::order_by(const shcore::Argument_list &args)
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
-#ifdef DOXYGEN
+//! Sets the maximum number of records to be returned on the select operation.
+#ifdef DOXYGEN_CPP
+//! \param args should contain the maximum number of records to be retrieved.
+#else
+//! \param numberOfRows: The maximum number of records to be retrieved.
+#endif
 /**
-* Sets the maximum number of records to be returned on the select operation.
-* \param numberOfRows: The maximum number of records to be retrieved.
 * \return This TableSelect object.
 *
 * If used, the TableSelect operation will return at most numberOfRows records.
@@ -322,7 +356,10 @@ shcore::Value TableSelect::order_by(const shcore::Argument_list &args)
 *
 * \sa Usage examples at execute().
 */
+#if DOXYGEN_JS
 TableSelect TableSelect::limit(Integer numberOfRows){}
+#elif DOXYGEN_PY
+TableSelect TableSelect::limit(int numberOfRows){}
 #endif
 shcore::Value TableSelect::limit(const shcore::Argument_list &args)
 {
@@ -339,10 +376,13 @@ shcore::Value TableSelect::limit(const shcore::Argument_list &args)
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
-#ifdef DOXYGEN
+//! Sets number of records to skip on the RowResult when a limit has been defined.
+#ifdef DOXYGEN_CPP
+//! \param args should contain the number of records to skip before start including them on the Resultset.
+#else
+//! \param limitOffset: The number of records to skip before start including them on the Resultset.
+#endif
 /**
-* Sets number of records to skip on the RowResult when a limit has been defined.
-* \param limitOffset: The number of records to skip before start including them on the Resultset.
 * \return This TableSelect object.
 *
 * #### Method Chaining
@@ -358,7 +398,10 @@ shcore::Value TableSelect::limit(const shcore::Argument_list &args)
 *
 * \sa Usage examples at execute().
 */
+#if DOXYGEN_JS
 TableSelect TableSelect::offset(Integer limitOffset){}
+#elif DOXYGEN_PY
+TableSelect TableSelect::offset(int limitOffset){}#endif
 #endif
 shcore::Value TableSelect::offset(const shcore::Argument_list &args)
 {
@@ -375,11 +418,16 @@ shcore::Value TableSelect::offset(const shcore::Argument_list &args)
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
-#ifdef DOXYGEN
+//! Binds a value to a specific placeholder used on this TableSelect object.
+#ifdef DOXYGEN_CPP
+//! \param args should contain the next elements:
+//! \li The name of the placeholder to which the value will be bound.
+//! \li The value to be bound on the placeholder.
+#else
+//! \param name: The name of the placeholder to which the value will be bound.
+//! \param value: The value to be bound on the placeholder.
+#endif
 /**
-* Binds a value to a specific placeholder used on this TableSelect object.
-* \param name: The name of the placeholder to which the value will be bound.
-* \param value: The value to be bound on the placeholder.
 * \return This TableSelect object.
 *
 * #### Method Chaining
@@ -398,7 +446,10 @@ shcore::Value TableSelect::offset(const shcore::Argument_list &args)
 *
 * \sa Usage examples at execute().
 */
+#if DOXYGEN_JS
 TableSelect TableSelect::bind(String name, Value value){}
+#elif DOXYGEN_PY
+TableSelect TableSelect::bind(str name, Value value){}
 #endif
 
 shcore::Value TableSelect::bind(const shcore::Argument_list &args)
@@ -416,7 +467,6 @@ shcore::Value TableSelect::bind(const shcore::Argument_list &args)
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
-#ifdef DOXYGEN
 /**
 * Executes the Find operation with all the configured options and returns.
 * \return RowResult A Row result object that can be used to traverse the records returned by rge select operation.
@@ -424,15 +474,20 @@ shcore::Value TableSelect::bind(const shcore::Argument_list &args)
 * #### Method Chaining
 *
 * This function can be invoked after any other function on this class.
+*/
+#if DOXYGEN_JS
+/**
 *
-* #### JavaScript Examples
-*
+* #### Examples
 * \dontinclude "js_devapi/scripts/mysqlx_table_select.js"
 * \skip //@ Table.Select All
-* \until print('Select Binding Name:', records[0].name, '\n');
+* \until print('Select Binding Name:', records[0].my_name, '\n');
+*/
+RowResult TableSelect::execute(){}
+#elif DOXYGEN_PY
+/**
 *
-* #### Python Examples
-*
+* #### Examples
 * \dontinclude "py_devapi/scripts/mysqlx_table_select.py"
 * \skip #@ Table.Select All
 * \until print 'Select Binding Name:', records[0].name, '\n'

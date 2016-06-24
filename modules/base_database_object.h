@@ -60,8 +60,7 @@ namespace mysh
 
     virtual std::string get_object_type() { return class_name(); }
 
-#ifdef DOXYGEN
-
+#if DOXYGEN_JS
     String name; //!< Same as getName()
     Object session; //!< Same as getSession()
     Object schema; //!< Same as getSchema()
@@ -69,7 +68,16 @@ namespace mysh
     String getName();
     Object getSession();
     Object getSchema();
+    Bool existsInDatabase();
+#elif DOXYGEN_PY
+    str name; //!< Same as get_name()
+    object session; //!< Same as get_session()
+    object schema; //!< Same as get_schema()
 
+    str get_name();
+    object get_session();
+    object get_schema();
+    bool exists_in_database();
 #endif
 
   protected:

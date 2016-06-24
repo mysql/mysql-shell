@@ -49,7 +49,6 @@ TableDelete::TableDelete(boost::shared_ptr<Table> owner)
   update_functions("");
 }
 
-#ifdef DOXYGEN
 /**
 * Initializes this record deletion handler.
 * \return This TableDelete object.
@@ -70,6 +69,9 @@ TableDelete::TableDelete(boost::shared_ptr<Table> owner)
 *
 * \sa Usage examples at execute().
 */
+#if DOXYGEN_JS
+TableDelete TableDelete::delete(){}
+#elif DOXYGEN_PY
 TableDelete TableDelete::delete(){}
 #endif
 shcore::Value TableDelete::remove(const shcore::Argument_list &args)
@@ -94,10 +96,13 @@ shcore::Value TableDelete::remove(const shcore::Argument_list &args)
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
-#ifdef DOXYGEN
+//! Sets the search condition to filter the records to be deleted from the owner Table.
+#ifdef DOXYGEN_CPP
+//! \param args should contain an optional string expression to filter the records to be deleted.
+#else
+//! \param searchCondition: An optional expression to filter the records to be deleted.
+#endif
 /**
-* Sets the search condition to filter the records to be deleted from the owner Table.
-* \param searchCondition: An optional expression to filter the records to be deleted;
 * if not specified all the records will be deleted from the table unless a limit is set.
 * \return This TableDelete object.
 *
@@ -118,7 +123,10 @@ shcore::Value TableDelete::remove(const shcore::Argument_list &args)
 *
 * \sa Usage examples at execute().
 */
+#if DOXYGEN_JS
 TableDelete TableDelete::where(String searchCondition){}
+#elif DOXYGEN_PY
+TableDelete TableDelete::where(str searchCondition){}
 #endif
 shcore::Value TableDelete::where(const shcore::Argument_list &args)
 {
@@ -142,10 +150,13 @@ shcore::Value TableDelete::where(const shcore::Argument_list &args)
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
-#ifdef DOXYGEN
+//! Sets the order in which the deletion should be done.
+#ifdef DOXYGEN_CPP
+//! \param args should contain a list of expression strings defining a sort criteria, the deletion will be done following the order defined by this criteria.
+#else
+//! \param sortExprStr: A list of expression strings defining a sort criteria, the deletion will be done following the order defined by this criteria.
+#endif
 /**
-* Sets the order in which the deletion should be done.
-* \param sortExprStr: A list of expression strings defining a sort criteria, the deletion will be done following the order defined by this criteria.
 * \return This TableDelete object.
 *
 * The elements of sortExprStr list are strings defining the column name on which the sorting will be based in the form of "columnIdentifier [ ASC | DESC ]".
@@ -167,7 +178,10 @@ shcore::Value TableDelete::where(const shcore::Argument_list &args)
 * - execute()
 *
 */
+#if DOXYGEN_JS
 TableDelete TableDelete::orderBy(List sortExprStr){}
+#elif DOXYGEN_PY
+TableDelete TableDelete::order_by(list sortExprStr){}
 #endif
 shcore::Value TableDelete::order_by(const shcore::Argument_list &args)
 {
@@ -191,10 +205,13 @@ shcore::Value TableDelete::order_by(const shcore::Argument_list &args)
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
-#ifdef DOXYGEN
+//! Sets a limit for the records to be deleted.
+#ifdef DOXYGEN_CPP
+//! \param args should contain the number of records to be deleted.
+#else
+//! \param numberOfRows the number of records to be deleted.
+#endif
 /**
-* Sets a limit for the records to be deleted.
-* \param numberOfRows the number of records to be deleted.
 * \return This TableDelete object.
 *
 * This method is usually used in combination with sort to fix the amount of records to be deleted.
@@ -214,7 +231,10 @@ shcore::Value TableDelete::order_by(const shcore::Argument_list &args)
 *
 * \sa Usage examples at execute().
 */
+#if DOXYGEN_JS
 TableDelete TableDelete::limit(Integer numberOfRows){}
+#elif DOXYGEN_PY
+TableDelete TableDelete::limit(int numberOfRows){}
 #endif
 shcore::Value TableDelete::limit(const shcore::Argument_list &args)
 {
@@ -231,11 +251,16 @@ shcore::Value TableDelete::limit(const shcore::Argument_list &args)
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
-#ifdef DOXYGEN
+//! Binds a value to a specific placeholder used on this TableDelete object.
+#ifdef DOXYGEN_CPP
+//! \param args should contain the next elements:
+//! \li The name of the placeholder to which the value will be bound.
+//! \li The value to be bound on the placeholder.
+#else
+//! \param name: The name of the placeholder to which the value will be bound.
+//! \param value: The value to be bound on the placeholder.
+#endif
 /**
-* Binds a value to a specific placeholder used on this TableDelete object.
-* \param name: The name of the placeholder to which the value will be bound.
-* \param value: The value to be bound on the placeholder.
 * \return This TableDelete object.
 *
 * #### Method Chaining
@@ -254,7 +279,10 @@ shcore::Value TableDelete::limit(const shcore::Argument_list &args)
 *
 * \sa Usage examples at execute().
 */
+#if DOXYGEN_JS
 TableDelete TableDelete::bind(String name, Value value){}
+#elif DOXYGEN_PY
+TableDelete TableDelete::bind(str name, Value value){}
 #endif
 shcore::Value TableDelete::bind(const shcore::Argument_list &args)
 {
@@ -271,7 +299,6 @@ shcore::Value TableDelete::bind(const shcore::Argument_list &args)
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
-#ifdef DOXYGEN
 /**
 * Executes the record deletion with the configured filter and limit.
 * \return Result A result object that can be used to retrieve the results of the deletion operation.
@@ -279,16 +306,21 @@ shcore::Value TableDelete::bind(const shcore::Argument_list &args)
 * #### Method Chaining
 *
 * This function can be invoked after any other function on this class.
+*/
+#if DOXYGEN_JS
+/**
 *
-* #### JavaScript Examples
-*
+* #### Examples
 * \dontinclude "js_devapi/scripts/mysqlx_table_delete.js"
 * \skip //@ TableDelete: delete under condition
 * \until //@ TableDelete: with limit 3
 * \until print('Records Left:', records.length, '\n');
+*/
+Result TableDelete::execute(){}
+#elif DOXYGEN_PY
+/**
 *
-* #### Python Examples
-*
+* #### Examples
 * \dontinclude "py_devapi/scripts/mysqlx_table_delete.py"
 * \skip #@ TableDelete: delete under condition
 * \until #@ TableDelete: with limit 3

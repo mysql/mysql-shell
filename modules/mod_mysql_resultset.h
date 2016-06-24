@@ -55,9 +55,9 @@ namespace mysh
     protected:
       boost::shared_ptr<Result> _result;
 
-#ifdef DOXYGEN
+#if DOXYGEN_JS
       Integer affectedRowCount; //!< Same as getAffectedItemCount()
-      Integer columnCount; //!< Same as getcolumnCount()
+      Integer columnCount; //!< Same as getColumnCount()
       List columnNames; //!< Same as getColumnNames()
       List columns; //!< Same as getColumns()
       String executionTime; //!< Same as getExecutionTime()
@@ -79,6 +79,30 @@ namespace mysh
       Integer getWarningCount();
       List getWarnings();
       Bool nextDataSet();
+#elif DOXYGEN_PY
+      int affected_row_count; //!< Same as get_affected_item_count()
+      int column_count; //!< Same as get_column_count()
+      list column_names; //!< Same as get_column_names()
+      list columns; //!< Same as get_columns()
+      str execution_time; //!< Same as get_execution_time()
+      str info; //!< Same as get_info()
+      int auto_increment_value; //!< Same as get_auto_increment_value()
+      list warnings; //!< Same as get_warnings()
+      int warning_count; //!< Same as get_warning_count()
+
+      Row fetch_one();
+      list fetch_all();
+      int get_affected_row_count();
+      int get_column_count();
+      list get_column_names();
+      list get_columns();
+      str get_execution_time();
+      bool has_data();
+      str get_info();
+      int get_auto_increment_value();
+      int get_warning_count();
+      list get_warnings();
+      bool next_data_set();
 #endif
     };
   }

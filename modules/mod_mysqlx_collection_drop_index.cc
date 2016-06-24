@@ -46,17 +46,23 @@ CollectionDropIndex::CollectionDropIndex(boost::shared_ptr<Collection> owner)
   update_functions("");
 }
 
-#ifdef DOXYGEN
+//! Drops an index from a collection.
+#ifdef DOXYGEN_CPP
+//! \param args should contain the name of the index to be dropped.
+#else
+//! \param indexName The name of the index to be dropped.
+#endif
 /**
-* Drops a collection index based on its name.
-* \param indexName The name of the index to be dropped.
 * \return This CollectionDropIndex object.
 *
 * #### Method Chaining
 *
 * This function can be invoked only once but the operation will be performed when the execute() function is invoked.
 */
+#if DOXYGEN_JS
 CollectionDropIndex CollectionDropIndex::dropIndex(String indexName){}
+#elif DOXYGEN_PY
+CollectionDropIndex CollectionDropIndex::drop_index(str indexName){}
 #endif
 shcore::Value CollectionDropIndex::drop_index(const shcore::Argument_list &args)
 {
@@ -86,14 +92,15 @@ shcore::Value CollectionDropIndex::drop_index(const shcore::Argument_list &args)
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
-#ifdef DOXYGEN
 /**
 * Executes the drop index operation for the index indicated in dropIndex.
 * \return A Result object.
 *
 * This function can be invoked once after:
-* \sa dropIndex(String indexName)
 */
+#if DOXYGEN_JS
+Result CollectionDropIndex::execute(){}
+#elif DOXYGEN_PY
 Result CollectionDropIndex::execute(){}
 #endif
 shcore::Value CollectionDropIndex::execute(const shcore::Argument_list &args)

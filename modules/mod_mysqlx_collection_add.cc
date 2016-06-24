@@ -47,7 +47,26 @@ CollectionAdd::CollectionAdd(boost::shared_ptr<Collection> owner)
   update_functions("");
 }
 
-#ifdef DOXYGEN
+#if DOXYGEN_CPP
+/**
+ * Adds documents to a collection.
+ * \param args the document(s) to be added.
+ * \return A CollectionAdd object.
+ *
+ * This function supports adding either one or a list of documents, so args may contain either:
+ *
+ * \li A Map defining the document to be added.
+ * \li An array of Maps defining the documents to be added
+ *
+ * To be added, each document must have a property named '_id' with a universal unique identifier (UUID). If the property is missing, it is set with an auto generated UUID.
+ *
+ * This function creates a CollectionAdd object which is a document addition handler, the received document is added into this handler.
+ *
+ * The CollectionAdd class has other functions that allow specifying the way the addition occurs.
+ *
+ * The addition is done when the execute function is called on the handler.
+ */
+#else
 /**
 * Adds a document into a collection.
 * \param document The document to be added into the collection.
@@ -76,7 +95,12 @@ CollectionAdd::CollectionAdd(boost::shared_ptr<Collection> owner)
 *
 * \sa Usage examples at execute().
 */
+#if DOXYGEN_JS
 CollectionAdd CollectionAdd::add(Document document){}
+#elif DOXYGEN_PY
+CollectionAdd CollectionAdd::add(Document document){}
+#endif
+
 
 /**
 * Adds a list of documents into a collection.
@@ -106,7 +130,11 @@ CollectionAdd CollectionAdd::add(Document document){}
 *
 * \sa Usage examples at execute().
 */
+#if DOXYGEN_JS
 CollectionAdd CollectionAdd::add(List documents){}
+#elif DOXYGEN_PY
+CollectionAdd CollectionAdd::add(list documents){}
+#endif
 #endif
 shcore::Value CollectionAdd::add(const shcore::Argument_list &args)
 {
@@ -212,7 +240,6 @@ std::string CollectionAdd::get_new_uuid()
   return str.str();
 }
 
-#ifdef DOXYGEN
 /**
 * Executes the document addition for the documents cached on this object.
 * \return A Result object.
@@ -223,19 +250,24 @@ std::string CollectionAdd::get_new_uuid()
 *
 * - add(Document document)
 * - add(List documents)
-*
-* #### JavaScript Examples
-*
-* \dontinclude "js_devapi/scripts/mysqlx_collection_add.js"
-* \skip //@ Collection.add execution
-* \until print("Affected Rows Mixed List:", result.affectedItemCount, "\n")
-*
-* #### Python Examples
-*
-* \dontinclude "py_devapi/scripts/mysqlx_collection_add.py"
-* \skip #@ Collection.add execution
-* \until print "Affected Rows Mixed List:", result.affectedItemCount, "\n"
 */
+#if DOXYGEN_JS
+/**
+ *
+ * #### Examples
+ * \dontinclude "js_devapi/scripts/mysqlx_collection_add.js"
+ * \skip //@ Collection.add execution
+ * \until print("Affected Rows Mixed List:", result.affectedItemCount, "\n")
+ */
+Result CollectionAdd::execute(){}
+#elif DOXYGEN_PY
+/**
+ *
+ * #### Examples
+ * \dontinclude "py_devapi/scripts/mysqlx_collection_add.py"
+ * \skip #@ Collection.add execution
+ * \until print "Affected Rows Mixed List:", result.affected_item_count, "\n"
+ */
 Result CollectionAdd::execute(){}
 #endif
 shcore::Value CollectionAdd::execute(const shcore::Argument_list &args)

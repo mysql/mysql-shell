@@ -98,9 +98,12 @@ namespace mysh
 
       friend class ClassicTable;
 
-#ifdef DOXYGEN
+#if DOXYGEN_JS
       ClassicTable getTable(String name);
       List getTables();
+#elif DOXYGEN_PY
+      ClassicTable get_table(str name);
+      list get_tables();
 #endif
     public:
       shcore::Value get_table(const shcore::Argument_list &args);

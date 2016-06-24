@@ -58,10 +58,14 @@ CollectionFind::CollectionFind(boost::shared_ptr<Collection> owner)
   update_functions("");
 }
 
-#ifdef DOXYGEN
+
+//! Sets the search condition to identify the Documents to be retrieved from the owner Collection.
+#ifdef DOXYGEN_CPP
+//! \param args may contain an optional string with the filter expression of the documents to be retrieved.
+#else
+//! \param searchCondition An optional string with the filter expression of the documents to be retrieved.
+#endif
 /**
-* Sets the search condition to identify the Documents to be retrieved from the owner Collection.
-* \param searchCondition: An optional expression to identify the documents to be retrieved;
 * if not specified all the documents will be included on the result unless a limit is set.
 * \return This CollectionFind object.
 *
@@ -82,7 +86,10 @@ CollectionFind::CollectionFind(boost::shared_ptr<Collection> owner)
 *
 * \sa Usage examples at execute().
 */
+#if DOXYGEN_JS
 CollectionFind CollectionFind::find(String searchCondition){}
+#elif DOXYGEN_PY
+CollectionFind CollectionFind::find(str searchCondition){}
 #endif
 shcore::Value CollectionFind::find(const shcore::Argument_list &args)
 {
@@ -110,7 +117,34 @@ shcore::Value CollectionFind::find(const shcore::Argument_list &args)
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
-#ifdef DOXYGEN
+#ifdef DOXYGEN_CPP
+/**
+ * Sets a document field filter or a projection defining the ourput format.
+ * \param args: may contain two different values depending on the desired output:
+ *
+ * \li To select document fields: should contain list of string expressions identifying the fields to be extracted, alias support is enabled on these fields.
+ * \li To define output format: define a expression representing the layout of the documents to be returned. (mysqlx.expr)
+ *
+ * \return This CollectionFind object.
+ *
+ * Calling this function is allowed only for the first time and only if the search criteria has been set by calling CollectionFind.find(searchCriteria), after that its usage is forbidden since the internal class state has been updated to handle the rest of the Find operation.
+ *
+ * #### Method Chaining
+ *
+ * This function can be invoked only once after:
+ * - find(String searchCondition)
+ *
+ * After this function invocation, the following functions can be invoked:
+ *
+ * - groupBy(List searchExprStr)
+ * - sort(List sortExprStr)
+ * - limit(Integer numberOfRows)
+ * - bind(String name, Value value)
+ * - execute()
+ *
+ * \sa Usage examples at execute().
+ */
+#else
 /**
 * Sets a document field filter.
 * \param projectedSearchExprStr: A list of string expressions identifying the fields to be extracted, alias support is enabled on these fields.
@@ -135,7 +169,11 @@ shcore::Value CollectionFind::find(const shcore::Argument_list &args)
 *
 * \sa Usage examples at execute().
 */
+#if DOXYGEN_JS
 CollectionFind CollectionFind::fields(List projectedSearchExprStr){}
+#elif DOXYGEN_PY
+CollectionFind CollectionFind::fields(list projectedSearchExprStr){}
+#endif
 
 /**
 * Sets a document field projection.
@@ -162,7 +200,11 @@ CollectionFind CollectionFind::fields(List projectedSearchExprStr){}
 *
 * \sa Usage examples at execute().
 */
+#if DOXYGEN_JS
 CollectionFind CollectionFind::fields(DocExpression projection);
+#elif DOXYGEN_PY
+CollectionFind CollectionFind::fields(DocExpression projection);
+#endif
 #endif
 shcore::Value CollectionFind::fields(const shcore::Argument_list &args)
 {
@@ -202,10 +244,13 @@ shcore::Value CollectionFind::fields(const shcore::Argument_list &args)
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
-#ifdef DOXYGEN
+//! Sets a grouping criteria for the resultset.
+#ifdef DOXYGEN_CPP
+//! \param args should contain a list of string expressions identifying the grouping criteria.
+#else
+//! \param searchExprStr: A list of string expressions identifying the grouping criteria.
+#endif
 /**
-* Sets a grouping criteria for the resultset.
-* \param searchExprStr: A list of string expressions identifying the grouping criteria.
 * \return This CollectionFind object.
 *
 * If used, the CollectionFind operation will group the records using the stablished criteria.
@@ -226,7 +271,10 @@ shcore::Value CollectionFind::fields(const shcore::Argument_list &args)
 *
 * \sa Usage examples at execute().
 */
+#if DOXYGEN_JS
 CollectionFind CollectionFind::groupBy(List searchExprStr){}
+#elif DOXYGEN_PY
+CollectionFind CollectionFind::group_by(list searchExprStr){}
 #endif
 shcore::Value CollectionFind::group_by(const shcore::Argument_list &args)
 {
@@ -250,10 +298,13 @@ shcore::Value CollectionFind::group_by(const shcore::Argument_list &args)
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
-#ifdef DOXYGEN
+//! Sets a condition for records to be considered in agregate function operations.
+#ifdef DOXYGEN_CPP
+//! \param args should contain a condition on the agregate functions used on the grouping criteria.
+#else
+//! \param searchCondition: A condition on the agregate functions used on the grouping criteria.
+#endif
 /**
-* Sets a condition for records to be considered in agregate function operations.
-* \param searchCondition: A condition on the agregate functions used on the grouping criteria.
 * \return This CollectionFind object.
 *
 * If used the CollectionFind operation will only consider the records matching the stablished criteria.
@@ -275,7 +326,10 @@ shcore::Value CollectionFind::group_by(const shcore::Argument_list &args)
 *
 * \sa Usage examples at execute().
 */
+#if DOXYGEN_JS
 CollectionFind CollectionFind::having(String searchCondition){}
+#elif DOXYGEN_PY
+CollectionFind CollectionFind::having(str searchCondition){}
 #endif
 shcore::Value CollectionFind::having(const shcore::Argument_list &args)
 {
@@ -292,10 +346,13 @@ shcore::Value CollectionFind::having(const shcore::Argument_list &args)
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
-#ifdef DOXYGEN
+//! Sets the sorting criteria to be used on the DocResult.
+#ifdef DOXYGEN_CPP
+//! \param args should contain a a list of expression strings defining the sort criteria for the returned documents.
+#else
+//! \param sortExprStr: A list of expression strings defining the sort criteria for the returned documents.
+#endif
 /**
-* Sets the sorting criteria to be used on the DocResult.
-* \param sortExprStr: A list of expression strings defining the sort criteria for the returned documents.
 * \return This CollectionFind object.
 *
 * If used the CollectionFind operation will return the records sorted with the defined criteria.
@@ -320,7 +377,10 @@ shcore::Value CollectionFind::having(const shcore::Argument_list &args)
 *
 * \sa Usage examples at execute().
 */
+#if DOXYGEN_JS
 CollectionFind CollectionFind::sort(List sortExprStr){}
+#elif DOXYGEN_PY
+CollectionFind CollectionFind::sort(list sortExprStr){}
 #endif
 shcore::Value CollectionFind::sort(const shcore::Argument_list &args)
 {
@@ -344,10 +404,13 @@ shcore::Value CollectionFind::sort(const shcore::Argument_list &args)
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
-#ifdef DOXYGEN
+//! Sets the maximum number of documents to be returned on the find operation.
+#ifdef DOXYGEN_CPP
+//! \param args should contain the maximum number of documents to be retrieved.
+#else
+//! \param numberOfRows: The maximum number of documents to be retrieved.
+#endif
 /**
-* Sets the maximum number of documents to be returned on the find operation.
-* \param numberOfRows: The maximum number of documents to be retrieved.
 * \return This CollectionFind object.
 *
 * If used, the CollectionFind operation will return at most numberOfRows documents.
@@ -370,7 +433,10 @@ shcore::Value CollectionFind::sort(const shcore::Argument_list &args)
 *
 * \sa Usage examples at execute().
 */
+#if DOXYGEN_JS
 CollectionFind CollectionFind::limit(Integer numberOfRows){}
+#elif DOXYGEN_PY
+CollectionFind CollectionFind::limit(int numberOfRows){}
 #endif
 shcore::Value CollectionFind::limit(const shcore::Argument_list &args)
 {
@@ -387,10 +453,13 @@ shcore::Value CollectionFind::limit(const shcore::Argument_list &args)
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
-#ifdef DOXYGEN
+//! Sets number of documents to skip on the resultset when a limit has been defined.
+#ifdef DOXYGEN_CPP
+//! \param args should contain the number of documents to skip before start including them on the DocResult.
+#else
+//! \param limitOffset: The number of documents to skip before start including them on the DocResult.
+#endif
 /**
-* Sets number of documents to skip on the resultset when a limit has been defined.
-* \param limitOffset: The number of documents to skip before start including them on the DocResult.
 * \return This CollectionFind object.
 *
 * #### Method Chaining
@@ -406,7 +475,10 @@ shcore::Value CollectionFind::limit(const shcore::Argument_list &args)
 *
 * \sa Usage examples at execute().
 */
+#if DOXYGEN_JS
 CollectionFind CollectionFind::skip(Integer limitOffset){}
+#elif DOXYGEN_PY
+CollectionFind CollectionFind::skip(int limitOffset){}
 #endif
 shcore::Value CollectionFind::skip(const shcore::Argument_list &args)
 {
@@ -423,11 +495,14 @@ shcore::Value CollectionFind::skip(const shcore::Argument_list &args)
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
-#ifdef DOXYGEN
+//! Binds a value to a specific placeholder used on this CollectionFind object.
+#ifdef DOXYGEN_CPP
+//! \param args should contain the place holder name and the value to be bound on it.
+#else
+//! \param name: The name of the placeholder to which the value will be bound.
+//! \param value: The value to be bound on the placeholder.
+#endif
 /**
-* Binds a value to a specific placeholder used on this CollectionFind object.
-* \param name: The name of the placeholder to which the value will be bound.
-* \param value: The value to be bound on the placeholder.
 * \return This CollectionFind object.
 *
 * #### Method Chaining
@@ -446,7 +521,10 @@ shcore::Value CollectionFind::skip(const shcore::Argument_list &args)
 *
 * \sa Usage examples at execute().
 */
+#if DOXYGEN_JS
 CollectionFind CollectionFind::bind(String name, Value value){}
+#elif DOXYGEN_PY
+CollectionFind CollectionFind::bind(str name, Value value){}
 #endif
 shcore::Value CollectionFind::bind(const shcore::Argument_list &args)
 {
@@ -463,7 +541,6 @@ shcore::Value CollectionFind::bind(const shcore::Argument_list &args)
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
-#ifdef DOXYGEN
 /**
 * Executes the Find operation with all the configured options and returns.
 * \return CollectionResultset A DocResult object that can be used to traverse the collections returned by the find operation.
@@ -471,15 +548,20 @@ shcore::Value CollectionFind::bind(const shcore::Argument_list &args)
 * #### Method Chaining
 *
 * This function can be invoked after any other function on this class.
+*/
+#if DOXYGEN_JS
+/**
 *
-* #### JavaScript Examples
-*
+* #### Examples
 * \dontinclude "js_devapi/scripts/mysqlx_collection_find.js"
 * \skip //@ Collection.Find All
 * \until print(columns[1], ':', record.InThreeYears, '\n');
+*/
+DocResult CollectionFind::execute(){}
+#elif DOXYGEN_PY
+/**
 *
-* #### Python Examples
-*
+* #### Examples
 * \dontinclude "py_devapi/scripts/mysqlx_collection_find.py"
 * \skip #@ Collection.Find All
 * \until print "%s: %s\n" % (columns[1], record.InThreeYears)

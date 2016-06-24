@@ -174,12 +174,14 @@ bool BaseSession::table_name_compare(const std::string &n1, const std::string &n
     return strcasecmp(n1.c_str(), n2.c_str()) == 0;
 }
 
-#ifdef DOXYGEN
 /**
 * \brief Closes the session.
 * After closing the session it is still possible to make read only operation to gather metadata info, like getTable(name) or getSchemas().
 */
+#if DOXYGEN_JS
 Undefined BaseSession::close(){}
+#elif DOXYGEN_PY
+None BaseSession::close(){}
 #endif
 Value BaseSession::close(const shcore::Argument_list &args)
 {
@@ -224,14 +226,20 @@ Value BaseSession::sql(const Argument_list &args)
   return ret_val;
 }
 
-#ifdef DOXYGEN
+//! Creates a schema on the database and returns the corresponding object.
+#if DOXYGEN_CPP
+//! \param args should contain a string value indicating the schema name.
+#else
+//! \param name A string value indicating the schema name.
+#endif
 /**
-* Creates a schema on the database and returns the corresponding object.
-* \param name A string value indicating the schema name.
 * \return The created schema object.
 * \exception An exception is thrown if an error occurs creating the XSession.
 */
+#if DOXYGEN_JS
 Schema BaseSession::createSchema(String name){}
+#elif DOXYGEN_PY
+Schema BaseSession::create_schema(str name){}
 #endif
 Value BaseSession::create_schema(const shcore::Argument_list &args)
 {
@@ -254,7 +262,6 @@ Value BaseSession::create_schema(const shcore::Argument_list &args)
   return ret_val;
 }
 
-#ifdef DOXYGEN
 /**
 * Starts a transaction context on the server.
 * \return A SqlResult object.
@@ -265,8 +272,11 @@ Value BaseSession::create_schema(const shcore::Argument_list &args)
 * All the operations executed after calling this function, will be discarded is rollback() is called.
 *
 * When commit() or rollback() are called, the server autocommit mode will return back to it's state before calling startTransaction().
-*/
+ */
+#if DOXYGEN_JS
 Result BaseSession::startTransaction(){}
+#elif DOXYGEN_PY
+Result BaseSession::start_transaction(){}
 #endif
 shcore::Value BaseSession::startTransaction(const shcore::Argument_list &args)
 {
@@ -275,7 +285,6 @@ shcore::Value BaseSession::startTransaction(const shcore::Argument_list &args)
   return executeStmt("sql", "start transaction", false, shcore::Argument_list());
 }
 
-#ifdef DOXYGEN
 /**
 * Commits all the operations executed after a call to startTransaction().
 * \return A SqlResult object.
@@ -283,7 +292,10 @@ shcore::Value BaseSession::startTransaction(const shcore::Argument_list &args)
 * All the operations executed after calling startTransaction() will take place when this function is called.
 *
 * The server autocommit mode will return back to it's state before calling startTransaction().
-*/
+ */
+#if DOXYGEN_JS
+Result BaseSession::commit(){}
+#elif DOXYGEN_PY
 Result BaseSession::commit(){}
 #endif
 shcore::Value BaseSession::commit(const shcore::Argument_list &args)
@@ -293,7 +305,6 @@ shcore::Value BaseSession::commit(const shcore::Argument_list &args)
   return executeStmt("sql", "commit", false, shcore::Argument_list());
 }
 
-#ifdef DOXYGEN
 /**
 * Discards all the operations executed after a call to startTransaction().
 * \return A SqlResult object.
@@ -301,7 +312,10 @@ shcore::Value BaseSession::commit(const shcore::Argument_list &args)
 * All the operations executed after calling startTransaction() will be discarded when this function is called.
 *
 * The server autocommit mode will return back to it's state before calling startTransaction().
-*/
+ */
+#if DOXYGEN_JS
+Result BaseSession::rollback(){}
+#elif DOXYGEN_PY
 Result BaseSession::rollback(){}
 #endif
 shcore::Value BaseSession::rollback(const shcore::Argument_list &args)
@@ -351,18 +365,26 @@ Value BaseSession::executeStmt(const std::string &domain, const std::string& com
   return ret_val;
 }
 
-#ifdef DOXYGEN
+#ifdef DOXYGEN_JS || DOXYGEN_PY
 /**
 * Retrieves the Schema configured as default for the session.
 * \return A Schema object or Null
-*/
+ */
+#if DOXYGEN_JS
 Schema BaseSession::getDefaultSchema(){}
+#elif DOXYGEN_PY
+Schema BaseSession::get_default_schema(){}
+#endif
 
 /**
 * Retrieves the connection data for this session in string format.
 * \return A string representing the connection data.
-*/
+ */
+#if DOXYGEN_JS
 String BaseSession::getUri(){}
+#elif DOXYGEN_PY
+str BaseSession::get_uri(){}
+#endif
 #endif
 
 std::string BaseSession::_retrieve_current_schema()
@@ -408,15 +430,21 @@ void BaseSession::_retrieve_session_info(std::string &current_schema,
   CATCH_AND_TRANSLATE();
 }
 
-#ifdef DOXYGEN
+//! Retrieves a Schema object from the current session through it's name.
+#if DOXYGEN_CPP
+//! \param args should contain the name of the Schema object to be retrieved.
+#else
+//! \param name The name of the Schema object to be retrieved.
+#endif
 /**
-* Retrieves a Schema object from the current session through it's name.
-* \param name The name of the Schema object to be retrieved.
 * \return The Schema object with the given name.
 * \exception An exception is thrown if the given name is not a valid schema on the XSession.
 * \sa Schema
 */
+#if DOXYGEN_JS
 Schema BaseSession::getSchema(String name){}
+#elif DOXYGEN_PY
+Schema BaseSession::get_schema(str name){}
 #endif
 shcore::Value BaseSession::get_schema(const shcore::Argument_list &args) const
 {
@@ -445,12 +473,14 @@ shcore::Value BaseSession::get_schema(const shcore::Argument_list &args) const
   return ret_val;
 }
 
-#ifdef DOXYGEN
 /**
 * Retrieves the Schemas available on the session.
 * \return A List containing the Schema objects available o the session.
 */
+#if DOXYGEN_JS
 List BaseSession::getSchemas(){}
+#elif DOXYGEN_PY
+list BaseSession::get_schemas(){}
 #endif
 shcore::Value BaseSession::get_schemas(const shcore::Argument_list &args) const
 {
@@ -502,13 +532,15 @@ shcore::Value BaseSession::set_fetch_warnings(const shcore::Argument_list &args)
   return executeAdminCommand(command, false, command_args);
 }
 
-#ifdef DOXYGEN
 /**
 * Drops the schema with the specified name.
 * \return A SqlResult object if succeeded.
 * \exception An error is raised if the schema did not exist.
 */
+#if DOXYGEN_JS
 Result BaseSession::dropSchema(String name){}
+#elif DOXYGEN_PY
+Result BaseSession::drop_schema(str name){}
 #endif
 shcore::Value BaseSession::drop_schema(const shcore::Argument_list &args)
 {
@@ -529,28 +561,49 @@ shcore::Value BaseSession::drop_schema(const shcore::Argument_list &args)
   return ret_val;
 }
 
-#ifdef DOXYGEN
+#ifdef DOXYGEN_CPP
+/**
+ * Drops a table, view or collection from a specific Schema.
+ * \param args contains the identification data for the object to be deleted.
+ * \param type indicates the object type to be deleted
+ *
+ * args must contain two string entries: schema and table/view/collection name.
+ *
+ * type must be either "Table", "View", or "Collection"
+ */
+#else
 /**
 * Drops a table from the specified schema.
 * \return A SqlResult object if succeeded.
 * \exception An error is raised if the table did not exist.
 */
+#if DOXYGEN_JS
 Result BaseSession::dropTable(String schema, String name){}
+#elif DOXYGEN_PY
+Result BaseSession::drop_table(str schema, str name){}
+#endif
 
 /**
 * Drops a collection from the specified schema.
 * \return A SqlResult object if succeeded.
 * \exception An error is raised if the collection did not exist.
 */
+#if DOXYGEN_JS
 Result BaseSession::dropCollection(String schema, String name){}
+#elif DOXYGEN_PY
+Result BaseSession::drop_collection(str schema, str name){}
+#endif
 
 /**
 * Drops a view from the specified schema.
 * \return A SqlResult object if succeeded.
 * \exception An error is raised if the view did not exist.
 */
+#if DOXYGEN_JS
 Result BaseSession::dropView(String schema, String name){}
-
+#elif DOXYGEN_PY
+Result BaseSession::drop_view(str schema, str name){}
+#endif
 #endif
 shcore::Value BaseSession::drop_schema_object(const shcore::Argument_list &args, const std::string& type)
 {
@@ -762,12 +815,14 @@ boost::shared_ptr<shcore::Object_bridge> NodeSession::create(const shcore::Argum
   return connect_session(args, mysh::Node);
 }
 
-#ifdef DOXYGEN
+//! Creates a SqlExecute object to allow running the received SQL statement on the target MySQL Server.
+#ifdef DOXYGEN_CPP
+//! \param args should contain a string with the SQL statement to be executed.
+#else
+//! \param sql A string containing the SQL statement to be executed.
+#endif
 /**
-* Creates a SqlExecute object to allow running the received SQL statement on the target MySQL Server.
-* \param sql A string containing the SQL statement to be executed.
 * \return A SqlExecute object.
-* \sa SqlExecute
 *
 * This method creates an SqlExecute object which is a SQL execution handler.
 *
@@ -782,7 +837,10 @@ boost::shared_ptr<shcore::Object_bridge> NodeSession::create(const shcore::Argum
 * \endcode
 * \sa SqlExecute
 */
+#if DOXYGEN_JS
 SqlExecute NodeSession::sql(String sql){}
+#elif DOXYGEN_PY
+SqlExecute NodeSession::sql(str sql){}
 #endif
 shcore::Value NodeSession::sql(const shcore::Argument_list &args)
 {
@@ -791,12 +849,25 @@ shcore::Value NodeSession::sql(const shcore::Argument_list &args)
   return sql_execute->sql(args);
 }
 
-#ifdef DOXYGEN
+#if DOXYGEN_CPP
+/**
+ * Use this function to retrieve an valid member of this class exposed to the scripting languages.
+ * \param prop : A string containing the name of the member to be returned
+ *
+ * This function returns a Value that wraps the object returned by this function. The content of the returned value depends on the property being requested. The next list shows the valid properties as well as the returned value for each of them:
+ *
+ * \li currentSchema: returns Schema object representing the active schema on the session. If none is active, returns Null.
+ */
+#else
 /**
 * Retrieves the Schema set as active on the session.
 * \return A Schema object or Null
 */
+#if DOXYGEN_JS
 Schema NodeSession::getCurrentSchema(){}
+#elif DOXYGEN_PY
+Schema NodeSession::get_current_schema(){}
+#endif
 #endif
 Value NodeSession::get_member(const std::string &prop) const
 {
@@ -822,12 +893,14 @@ Value NodeSession::get_member(const std::string &prop) const
   return ret_val;
 }
 
-#ifdef DOXYGEN
 /**
 * Escapes the passed identifier.
 * \return A String containing the escaped identifier.
 */
+#if DOXYGEN_JS
 String NodeSession::quoteName(String id){}
+#elif DOXYGEN_PY
+str NodeSession::quote_name(str id){}
 #endif
 shcore::Value NodeSession::quote_name(const shcore::Argument_list &args)
 {
@@ -841,17 +914,22 @@ shcore::Value NodeSession::quote_name(const shcore::Argument_list &args)
   return shcore::Value(get_quoted_name(id));
 }
 
-#ifdef DOXYGEN
+//! Sets the current schema for this session, and returns the schema object for it.
+#ifdef DOXYGEN_CPP
+//! \param args should contain the name of the new schema to switch to.
+#else
+//! \param name the name of the new schema to switch to.
+#endif
 /**
-* Sets the current schema for this session, and returns the schema object for it.
+* \return the Schema object for the new schema.
+*
 * At the database level, this is equivalent at issuing the following SQL query:
 *   use <new-default-schema>;
-*
-* \sa getSchemas(), getSchema()
-* \param name the name of the new schema to switch to.
-* \return the Schema object for the new schema.
 */
+#if DOXYGEN_JS
 Schema NodeSession::setCurrentSchema(String name){}
+#elif DOXYGEN_PY
+Schema NodeSession::set_current_schema(str name){}
 #endif
 
 shcore::Value NodeSession::set_current_schema(const shcore::Argument_list &args)

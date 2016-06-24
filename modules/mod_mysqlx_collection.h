@@ -39,9 +39,7 @@ namespace mysh
   {
     class Schema;
 
-    /**
-    * Represents a Collection on an Schema, retrieved with session created using the mysqlx module.
-    */
+    //! Represents a Collection on an Schema, retrieved with session created using the mysqlx module.
     class Collection : public DatabaseObject, public boost::enable_shared_from_this<Collection>
     {
     public:
@@ -51,7 +49,7 @@ namespace mysh
 
       virtual std::string class_name() const { return "Collection"; }
 
-#ifdef DOXYGEN
+#if DOXYGEN_JS
       CollectionAdd add(Document doc);
       CollectionAdd add(List documents);
       CollectionFind find(String searchCriteria);
@@ -60,8 +58,16 @@ namespace mysh
       CollectionCreateIndex createIndex(String name);
       CollectionCreateIndex createIndex(String name, IndexType type);
       CollectionDropIndex dropIndex(String name);
+#elif DOXYGEN_PY
+      CollectionAdd add(Document doc);
+      CollectionAdd add(list documents);
+      CollectionFind find(str search_criteria);
+      CollectionRemove remove(str search_condition);
+      CollectionModify modify(str search_condition);
+      CollectionCreateIndex create_index(str name);
+      CollectionCreateIndex create_index(str name, IndexType type);
+      CollectionDropIndex drop_index(str name);
 #endif
-    private:
       shcore::Value add_(const shcore::Argument_list &args);
       shcore::Value find_(const shcore::Argument_list &args);
       shcore::Value modify_(const shcore::Argument_list &args);
@@ -69,6 +75,7 @@ namespace mysh
       shcore::Value create_index_(const shcore::Argument_list &args);
       shcore::Value drop_index_(const shcore::Argument_list &args);
 
+    private:
       void init();
       boost::shared_ptr< ::mysqlx::Collection> _collection_impl;
 

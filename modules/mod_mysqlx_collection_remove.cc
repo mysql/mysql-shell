@@ -47,10 +47,13 @@ CollectionRemove::CollectionRemove(boost::shared_ptr<Collection> owner)
   update_functions("");
 }
 
-#ifdef DOXYGEN
+//! Sets the search condition to filter the Documents to be deleted from the owner Collection.
+#ifdef DOXYGEN_CPP
+//! \param args may contain an optional expression to filter the documents to be deleted.
+#else
+//! \param searchCondition: An optional expression to filter the documents to be deleted.
+#endif
 /**
-* Sets the search condition to filter the Documents to be deleted from the owner Collection.
-* \param searchCondition: An optional expression to filter the documents to be deleted;
 * if not specified all the documents will be deleted from the collection unless a limit is set.
 * \return This CollectionRemove object.
 *
@@ -71,7 +74,10 @@ CollectionRemove::CollectionRemove(boost::shared_ptr<Collection> owner)
 *
 * \sa Usage examples at execute().
 */
+#if DOXYGEN_JS
 CollectionRemove CollectionRemove::remove(String searchCondition){}
+#elif DOXYGEN_PY
+CollectionRemove CollectionRemove::remove(str searchCondition){}
 #endif
 shcore::Value CollectionRemove::remove(const shcore::Argument_list &args)
 {
@@ -99,10 +105,13 @@ shcore::Value CollectionRemove::remove(const shcore::Argument_list &args)
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
-#ifdef DOXYGEN
+//! Sets the order in which the deletion should be done.
+#ifdef DOXYGEN_CPP
+//! \param args should contain a list of expression strings defining a sort criteria, the deletion will be done following the order defined by this criteria.
+#else
+//! \param sortExprStr: A list of expression strings defining a sort criteria, the deletion will be done following the order defined by this criteria.
+#endif
 /**
-* Sets the order in which the deletion should be done.
-* \param sortExprStr: A list of expression strings defining a sort criteria, the deletion will be done following the order defined by this criteria.
 * \return This CollectionRemove object.
 *
 * The elements of sortExprStr list are strings defining the column name on which the sorting will be based in the form of "columnIdentifier [ ASC | DESC ]".
@@ -122,7 +131,10 @@ shcore::Value CollectionRemove::remove(const shcore::Argument_list &args)
 * - bind(String name, Value value)
 * - execute()
 */
+#if DOXYGEN_JS
 CollectionRemove CollectionRemove::sort(List sortExprStr){}
+#elif DOXYGEN_PY
+CollectionRemove CollectionRemove::sort(list sortExprStr){}
 #endif
 shcore::Value CollectionRemove::sort(const shcore::Argument_list &args)
 {
@@ -146,11 +158,14 @@ shcore::Value CollectionRemove::sort(const shcore::Argument_list &args)
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
-#ifdef DOXYGEN
 
+//! Sets a limit for the documents to be deleted.
+#ifdef DOXYGEN_CPP
+//! \param args should contain the number of documents to affect in the remove execution.
+#else
+//! \param numberOfDocs the number of documents to affect in the remove execution.
+#endif
 /**
-* Sets a limit for the documents to be deleted.
-* \param numberOfDocs the number of documents to affect in the remove execution.
 * \return This CollectionRemove object.
 *
 * This method is usually used in combination with sort to fix the amount of documents to be deleted.
@@ -169,7 +184,10 @@ shcore::Value CollectionRemove::sort(const shcore::Argument_list &args)
 *
 * \sa Usage examples at execute().
 */
+#if DOXYGEN_JS
 CollectionRemove CollectionRemove::limit(Integer numberOfDocs){}
+#elif DOXYGEN_PY
+CollectionRemove CollectionRemove::limit(int numberOfDocs){}
 #endif
 shcore::Value CollectionRemove::limit(const shcore::Argument_list &args)
 {
@@ -186,11 +204,16 @@ shcore::Value CollectionRemove::limit(const shcore::Argument_list &args)
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
-#ifdef DOXYGEN
+//! Binds a value to a specific placeholder used on this CollectionRemove object.
+#ifdef DOXYGEN_CPP
+//! \param args should contain the next elements:
+//! \li The name of the placeholder to which the value will be bound.
+//! \li The value to be bound on the placeholder.
+#else
+//! \param name: The name of the placeholder to which the value will be bound.
+//! \param value: The value to be bound on the placeholder.
+#endif
 /**
-* Binds a value to a specific placeholder used on this CollectionRemove object.
-* \param name: The name of the placeholder to which the value will be bound.
-* \param value: The value to be bound on the placeholder.
 * \return This CollectionRemove object.
 *
 * An error will be raised if the placeholder indicated by name does not exist.
@@ -209,7 +232,10 @@ shcore::Value CollectionRemove::limit(const shcore::Argument_list &args)
 *
 * \sa Usage examples at execute().
 */
+#if DOXYGEN_JS
 CollectionFind CollectionRemove::bind(String name, Value value){}
+#elif DOXYGEN_PY
+CollectionFind CollectionRemove::bind(str name, Value value){}
 #endif
 shcore::Value CollectionRemove::bind(const shcore::Argument_list &args)
 {
@@ -226,7 +252,6 @@ shcore::Value CollectionRemove::bind(const shcore::Argument_list &args)
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
-#ifdef DOXYGEN
 /**
 * Executes the document deletion with the configured filter and limit.
 * \return Result A Result object that can be used to retrieve the results of the deletion operation.
@@ -234,24 +259,29 @@ shcore::Value CollectionRemove::bind(const shcore::Argument_list &args)
 * #### Method Chaining
 *
 * This function can be invoked after any other function on this class.
+*/
+#if DOXYGEN_JS
+/**
 *
-* #### JavaScript Examples
-*
+* #### Examples
 * \dontinclude "js_devapi/scripts/mysqlx_collection_remove.js"
 * \skip //@ CollectionRemove: remove under condition
 * \until print('Records Left:', docs.length, '\n');
 * \until print('Records Left:', docs.length, '\n');
 * \until print('Records Left:', docs.length, '\n');
+*/
+Result CollectionRemove::execute(){}
+#elif DOXYGEN_PY
+/**
 *
-* #### Python Examples
-*
+* #### Examples
 * \dontinclude "py_devapi/scripts/mysqlx_collection_remove.py"
 * \skip #@ CollectionRemove: remove under condition
 * \until print 'Records Left:', len(docs), '\n'
 * \until print 'Records Left:', len(docs), '\n'
 * \until print 'Records Left:', len(docs), '\n'
 */
-Result CollectionRemove::execute(ExecuteOptions opt){}
+Result CollectionRemove::execute(){}
 #endif
 shcore::Value CollectionRemove::execute(const shcore::Argument_list &args)
 {

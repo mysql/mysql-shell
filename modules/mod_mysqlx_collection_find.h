@@ -46,6 +46,29 @@ namespace mysh
       CollectionFind(boost::shared_ptr<Collection> owner);
     public:
       virtual std::string class_name() const { return "CollectionFind"; }
+#ifdef DOXYGEN_JS
+      CollectionFind find(String searchCondition);
+      CollectionFind fields(List projectedSearchExprStr);
+      CollectionFind fields(DocExpression projection);
+      CollectionFind groupBy(List searchExprStr);
+      CollectionFind having(String searchCondition);
+      CollectionFind sort(List sortExprStr);
+      CollectionFind limit(Integer numberOfRows);
+      CollectionFind skip(Integer limitOffset);
+      CollectionFind bind(String name, Value value);
+      DocResult execute();
+#elif DOXYGEN_PY
+      CollectionFind find(str searchCondition);
+      CollectionFind fields(list projectedSearchExprStr);
+      CollectionFind fields(DocExpression projection);
+      CollectionFind group_by(list searchExprStr);
+      CollectionFind having(str searchCondition);
+      CollectionFind sort(list sortExprStr);
+      CollectionFind limit(int numberOfRows);
+      CollectionFind skip(int limitOffset);
+      CollectionFind bind(str name, Value value);
+      DocResult execute();
+#endif
       shcore::Value find(const shcore::Argument_list &args);
       shcore::Value fields(const shcore::Argument_list &args);
       shcore::Value group_by(const shcore::Argument_list &args);
@@ -57,18 +80,6 @@ namespace mysh
 
       virtual shcore::Value execute(const shcore::Argument_list &args);
 
-#ifdef DOXYGEN
-      CollectionFind find(String searchCondition);
-      CollectionFind fields(List projectedSearchExprStr);
-      CollectionFind fields(DocExpression projection);
-      CollectionFind groupBy(List searchExprStr);
-      CollectionFind having(String searchCondition);
-      CollectionFind sort(List sortExprStr);
-      CollectionFind limit(Integer numberOfRows);
-      CollectionFind skip(Integer limitOffset);
-      CollectionFind bind(String name, Value value);
-      DocResult execute();
-#endif
 
     private:
       std::unique_ptr< ::mysqlx::FindStatement> _find_statement;

@@ -127,6 +127,20 @@ void ClassicSchema::_remove_object(const std::string& name, const std::string& t
   }
 }
 
+#if DOXYGEN_CPP
+/**
+ * Use this function to retrieve an valid member of this class exposed to the scripting languages.
+ * \param prop : A string containing the name of the member to be returned
+ *
+ * This function returns a Value that wraps the object returned by this function. The the content of the returned value depends on the property being requested. The next list shows the valid properties as well as the returned value for each of them:
+ *
+ * The Schema tables and views are exposed as members of the Schema object so:
+ *
+ * \li If prop is the name of a valid Table or View on the Schema, the corresponding ClassicTable object will be returned.
+ *
+ * See the implementation of DatabaseObject for additional valid members.
+ */
+#endif
 Value ClassicSchema::get_member(const std::string &prop) const
 {
   // Searches the property in tables
@@ -143,19 +157,25 @@ Value ClassicSchema::get_member(const std::string &prop) const
   return ret_val;
 }
 
-#ifdef DOXYGEN
+
+//! Returns the table of the given name for this schema.
+#if DOXYGEN_CPP
+//! \param args should contain the name of the table to look for.
+#else
+//! \param name the name of the table to look for.
+#endif
 /**
-* Returns the table of the given name for this schema.
-* \sa ClassicTable
-* \param name the name of the table to look for.
 * \return the ClassicTable object matching the name.
 *
 * Verifies if the requested Table exist on the database, if exists, returns the corresponding ClassicTable object.
 *
 * Updates the Tables cache.
+ * \sa ClassicTable
 */
-ClassicTable ClassicSchema::getTable(String name)
-{}
+#if DOXYGEN_JS
+ClassicTable ClassicSchema::getTable(String name){}
+#elif DOXYGEN_PY
+ClassicTable ClassicSchema::get_table(str name){}
 #endif
 shcore::Value ClassicSchema::get_table(const shcore::Argument_list &args)
 {
@@ -199,7 +219,6 @@ shcore::Value ClassicSchema::get_table(const shcore::Argument_list &args)
   return ret_val;
 }
 
-#ifdef DOXYGEN
 /**
 * Returns a list of Tables for this Schema.
 * \sa ClassicTable
@@ -211,7 +230,10 @@ shcore::Value ClassicSchema::get_table(const shcore::Argument_list &args)
 *
 * Returns a List of available Table objects.
 */
+#if DOXYGEN_JS
 List ClassicSchema::getTables(){}
+#elif DOXYGEN_PY
+list ClassicSchema::get_tables(){}
 #endif
 shcore::Value ClassicSchema::get_tables(const shcore::Argument_list &args)
 {

@@ -35,6 +35,9 @@ namespace mysh
 {
   namespace mysqlx
   {
+#if DOXYGEN_CPP
+    //! Layer to provide the behavior of objects that can dynamically enable/disable its functions.
+#endif
     class Dynamic_object : public shcore::Cpp_object_bridge
     {
       // Overrides to consider enabled/disabled status

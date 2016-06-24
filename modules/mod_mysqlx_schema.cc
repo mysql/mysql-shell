@@ -161,6 +161,21 @@ void Schema::_remove_object(const std::string& name, const std::string& type)
   }
 }
 
+#if DOXYGEN_CPP
+/**
+ * Use this function to retrieve an valid member of this class exposed to the scripting languages.
+ * \param prop : A string containing the name of the member to be returned
+ *
+ * This function returns a Value that wraps the object returned by this function. The the content of the returned value depends on the property being requested. The next list shows the valid properties as well as the returned value for each of them:
+ *
+ * The Schema collections, tables and views are exposed as members of the Schema object so:
+ *
+ * \li If prop is the name of a valid Collection on the Schema, the corresponding Collection object will be returned.
+ * \li If prop is the name of a valid Table or View on the Schema, the corresponding Table object will be returned.
+ *
+ * See the implementation of DatabaseObject for additional valid members.
+ */
+#endif
 Value Schema::get_member(const std::string &prop) const
 {
   // Searches prop as  a table
@@ -180,7 +195,6 @@ Value Schema::get_member(const std::string &prop) const
   return ret_val;
 }
 
-#ifdef DOXYGEN
 /**
 * Returns a list of Tables for this Schema.
 * \sa Table
@@ -192,7 +206,10 @@ Value Schema::get_member(const std::string &prop) const
 *
 * Returns a List of available Table objects.
 */
+#if DOXYGEN_JS
 List Schema::getTables(){}
+#elif DOXYGEN_PY
+list Schema::get_tables(){}
 #endif
 shcore::Value Schema::get_tables(const shcore::Argument_list &args)
 {
@@ -208,7 +225,6 @@ shcore::Value Schema::get_tables(const shcore::Argument_list &args)
   return shcore::Value(list);
 }
 
-#ifdef DOXYGEN
 /**
 * Returns a list of Collections for this Schema.
 * \sa Collection
@@ -220,7 +236,10 @@ shcore::Value Schema::get_tables(const shcore::Argument_list &args)
 *
 * Returns a List of available Collection objects.
 */
+#if DOXYGEN_JS
 List Schema::getCollections(){}
+#elif DOXYGEN_PY
+list Schema::get_collections(){}
 #endif
 shcore::Value Schema::get_collections(const shcore::Argument_list &args)
 {
@@ -235,18 +254,24 @@ shcore::Value Schema::get_collections(const shcore::Argument_list &args)
   return shcore::Value(list);
 }
 
-#ifdef DOXYGEN
+//! Returns the Table of the given name for this schema.
+#ifdef DOXYGEN_CPP
+//! \param args should contain the name of the Table to look for.
+#else
+//! \param name the name of the Table to look for.
+#endif
 /**
-* Returns the Table of the given name for this schema.
-* \sa Table
-* \param name the name of the Table to look for.
 * \return the Table object matching the name.
 *
 * Verifies if the requested Table exist on the database, if exists, returns the corresponding Table object.
 *
 * Updates the Tables cache.
+* \sa Table
 */
-View Schema::getTable(String name){}
+#if DOXYGEN_JS
+Table Schema::getTable(String name){}
+#elif DOXYGEN_PY
+Table Schema::get_table(str name){}
 #endif
 shcore::Value Schema::get_table(const shcore::Argument_list &args)
 {
@@ -292,18 +317,24 @@ shcore::Value Schema::get_table(const shcore::Argument_list &args)
   return ret_val;
 }
 
-#ifdef DOXYGEN
+//! Returns the Collection of the given name for this schema.
+#ifdef DOXYGEN_CPP
+//! \param args should contain the name of the Collection to look for.
+#else
+//! \param name the name of the Collection to look for.
+#endif
 /**
-* Returns the Collection of the given name for this schema.
-* \sa Collection
-* \param name the name of the Collection to look for.
 * \return the Collection object matching the name.
 *
 * Verifies if the requested Collection exist on the database, if exists, returns the corresponding Collection object.
 *
 * Updates the Collections cache.
+* \sa Collection
 */
-View Schema::getCollection(String name){}
+#if DOXYGEN_JS
+Collection Schema::getCollection(String name){}
+#elif DOXYGEN_PY
+Collection Schema::get_collection(str name){}
 #endif
 shcore::Value Schema::get_collection(const shcore::Argument_list &args)
 {
@@ -334,13 +365,19 @@ shcore::Value Schema::get_collection(const shcore::Argument_list &args)
   return ret_val;
   }
 
-#ifdef DOXYGEN
+//! Returns a Table object representing a Collection on the database.
+#ifdef DOXYGEN_CPP
+//! \param args should contain the name of the collection to be retrieved as a table.
+#else
+//! \param name the name of the collection to be retrieved as a table.
+#endif
 /**
-* Returns a Table object representing a Collection on the database.
-* \param name the name of the collection to be retrieved as a table.
 * \return the Table object representing the collection or undefined.
 */
+#if DOXYGEN_JS
 Collection Schema::getCollectionAsTable(String name){}
+#elif DOXYGEN_PY
+Collection Schema::get_collection_as_table(str name){}
 #endif
 shcore::Value Schema::get_collection_as_table(const shcore::Argument_list &args)
 {
@@ -357,16 +394,21 @@ shcore::Value Schema::get_collection_as_table(const shcore::Argument_list &args)
   return ret_val;
 }
 
-#ifdef DOXYGEN
+//! Creates in the current schema a new collection with the specified name and retrieves an object representing the new collection created.
+#ifdef DOXYGEN_CPP
+//! \param args should contain the name of the collection.
+#else
+//! \param name the name of the collection.
+#endif
 /**
-* Creates in the current schema a new collection with the specified name and retrieves an object representing the new collection created.
-* \param name the name of the collection.
 * \return the new created collection.
 *
 * To specify a name for a collection, follow the naming conventions in MySQL.
-* \sa getCollections(), getCollection()
 */
+#if DOXYGEN_JS
 Collection Schema::createCollection(String name){}
+#elif DOXYGEN_PY
+Collection Schema::create_collection(str name){}
 #endif
 shcore::Value Schema::create_collection(const shcore::Argument_list &args)
 {

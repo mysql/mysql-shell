@@ -43,8 +43,28 @@ namespace mysh
     class TableSelect : public Table_crud_definition, public boost::enable_shared_from_this<TableSelect>
     {
     public:
+#if DOXYGEN_JS
+      TableSelect select(List searchExprStr);
+      TableSelect where(String searchCondition);
+      TableSelect groupBy(List searchExprStr);
+      TableSelect having(String searchCondition);
+      TableSelect orderBy(List sortExprStr);
+      TableSelect limit(Integer numberOfRows);
+      TableSelect offset(Integer limitOffset);
+      TableSelect bind(String name, Value value);
+      RowResult execute();
+#elif DOXYGEN_PY
+      TableSelect select(list searchExprStr);
+      TableSelect where(str searchCondition);
+      TableSelect group_by(list searchExprStr);
+      TableSelect having(str searchCondition);
+      TableSelect order_by(list sortExprStr);
+      TableSelect limit(int numberOfRows);
+      TableSelect offset(int limitOffset);
+      TableSelect bind(str name, Value value);
+      RowResult execute();
+#endif
       TableSelect(boost::shared_ptr<Table> owner);
-    public:
       virtual std::string class_name() const { return "TableSelect"; }
       shcore::Value select(const shcore::Argument_list &args);
       shcore::Value where(const shcore::Argument_list &args);
@@ -56,17 +76,6 @@ namespace mysh
       shcore::Value bind(const shcore::Argument_list &args);
 
       virtual shcore::Value execute(const shcore::Argument_list &args);
-#ifdef DOXYGEN
-      TableSelect select(List searchExprStr);
-      TableSelect where(String searchCondition);
-      TableSelect groupBy(List searchExprStr);
-      TableSelect having(String searchCondition);
-      TableSelect orderBy(List sortExprStr);
-      TableSelect limit(Integer numberOfRows);
-      TableSelect offset(Integer limitOffset);
-      TableSelect bind(String name, Value value);
-      RowResult execute();
-#endif
     private:
       std::unique_ptr< ::mysqlx::SelectStatement> _select_statement;
     };
