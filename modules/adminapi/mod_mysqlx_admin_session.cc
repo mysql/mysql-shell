@@ -80,7 +80,7 @@ uint64_t AdminSession::get_connection_id() const
   return _connection_id;
 }
 
-#ifdef DOXYGEN_JS
+#if DOXYGEN_JS
 /**
 * \brief Closes the session.
 * After closing the session it is still possible to make read only operation to gather metadata info, like getTable(name) or getSchemas().
@@ -113,7 +113,7 @@ void AdminSession::reset_session()
   }
 }
 
-#ifdef DOXYGEN_JS
+#if DOXYGEN_JS
 /**
 * Retrieves the Cluster configured as default on this Metadata instance.
 * \return A Cluster object or Null
@@ -154,7 +154,7 @@ Value AdminSession::get_member(const std::string &prop) const
   return ret_val;
 }
 
-#ifdef DOXYGEN_JS
+#if DOXYGEN_JS
 /**
 * Retrieves a Cluster object from the current session through it's name.
 * \param name The name of the Schema object to be retrieved.
@@ -172,7 +172,7 @@ shcore::Value AdminSession::get_cluster(const shcore::Argument_list &args) const
   return ret_val;
 }
 
-#ifdef DOXYGEN_JS
+#if DOXYGEN_JS
 /**
 * Retrieves the Schemas available on the session.
 * \return A List containing the Schema objects available o the session.

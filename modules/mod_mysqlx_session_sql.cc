@@ -47,7 +47,7 @@ Dynamic_object(), _session(owner)
 }
 
 //! Sets the sql statement to be executed by this handler.
-#ifdef DOXYGEN_CPP
+#if DOXYGEN_CPP
 //! \param args should contain a string containing the SQL statement to be executed.
 #else
 //! \param statement A string containing the SQL statement to be executed.
@@ -90,7 +90,7 @@ shcore::Value SqlExecute::sql(const shcore::Argument_list &args)
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
-#ifdef DOXYGEN_CPP
+#if DOXYGEN_CPP
 /**
 * Registers value to be bound on the execution of the SQL statement.
 * \param args should contain the value to be bound, possible values include:

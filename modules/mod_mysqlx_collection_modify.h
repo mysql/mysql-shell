@@ -45,7 +45,7 @@ namespace mysh
     public:
       CollectionModify(boost::shared_ptr<Collection> owner);
     public:
-#ifdef DOXYGEN_JS
+#if DOXYGEN_JS
       CollectionModify modify(String searchCondition);
       CollectionModify set(String attribute, Value value);
       CollectionModify unset(String attribute);

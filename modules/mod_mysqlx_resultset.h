@@ -237,7 +237,7 @@ namespace mysh
       // TODO: Enable it once the way to have a reference to the unmanaged object is found
       //bool nextDataSet() const;
 
-#ifdef DOXYGEN_JS
+#if DOXYGEN_JS
       Integer autoIncrementValue; //!< Same as getAutoIncrementValue()
       Integer affectedRowCount; //!< Same as getAffectedRowCount()
 

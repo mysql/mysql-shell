@@ -255,7 +255,7 @@ shcore::Value Schema::get_collections(const shcore::Argument_list &args)
 }
 
 //! Returns the Table of the given name for this schema.
-#ifdef DOXYGEN_CPP
+#if DOXYGEN_CPP
 //! \param args should contain the name of the Table to look for.
 #else
 //! \param name the name of the Table to look for.
@@ -318,7 +318,7 @@ shcore::Value Schema::get_table(const shcore::Argument_list &args)
 }
 
 //! Returns the Collection of the given name for this schema.
-#ifdef DOXYGEN_CPP
+#if DOXYGEN_CPP
 //! \param args should contain the name of the Collection to look for.
 #else
 //! \param name the name of the Collection to look for.
@@ -366,7 +366,7 @@ shcore::Value Schema::get_collection(const shcore::Argument_list &args)
   }
 
 //! Returns a Table object representing a Collection on the database.
-#ifdef DOXYGEN_CPP
+#if DOXYGEN_CPP
 //! \param args should contain the name of the collection to be retrieved as a table.
 #else
 //! \param name the name of the collection to be retrieved as a table.
@@ -395,7 +395,7 @@ shcore::Value Schema::get_collection_as_table(const shcore::Argument_list &args)
 }
 
 //! Creates in the current schema a new collection with the specified name and retrieves an object representing the new collection created.
-#ifdef DOXYGEN_CPP
+#if DOXYGEN_CPP
 //! \param args should contain the name of the collection.
 #else
 //! \param name the name of the collection.

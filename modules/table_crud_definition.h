@@ -44,6 +44,9 @@ namespace mysh
 {
   namespace mysqlx
   {
+#if DOXYGEN_CPP
+    //! Base class for table CRUD operations.
+#endif
     class Table_crud_definition : public Crud_definition
     {
     public:

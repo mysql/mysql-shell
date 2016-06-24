@@ -97,7 +97,7 @@ shcore::Value TableDelete::remove(const shcore::Argument_list &args)
 }
 
 //! Sets the search condition to filter the records to be deleted from the owner Table.
-#ifdef DOXYGEN_CPP
+#if DOXYGEN_CPP
 //! \param args should contain an optional string expression to filter the records to be deleted.
 #else
 //! \param searchCondition: An optional expression to filter the records to be deleted.
@@ -151,7 +151,7 @@ shcore::Value TableDelete::where(const shcore::Argument_list &args)
 }
 
 //! Sets the order in which the deletion should be done.
-#ifdef DOXYGEN_CPP
+#if DOXYGEN_CPP
 //! \param args should contain a list of expression strings defining a sort criteria, the deletion will be done following the order defined by this criteria.
 #else
 //! \param sortExprStr: A list of expression strings defining a sort criteria, the deletion will be done following the order defined by this criteria.
@@ -206,7 +206,7 @@ shcore::Value TableDelete::order_by(const shcore::Argument_list &args)
 }
 
 //! Sets a limit for the records to be deleted.
-#ifdef DOXYGEN_CPP
+#if DOXYGEN_CPP
 //! \param args should contain the number of records to be deleted.
 #else
 //! \param numberOfRows the number of records to be deleted.
@@ -252,7 +252,7 @@ shcore::Value TableDelete::limit(const shcore::Argument_list &args)
 }
 
 //! Binds a value to a specific placeholder used on this TableDelete object.
-#ifdef DOXYGEN_CPP
+#if DOXYGEN_CPP
 //! \param args should contain the next elements:
 //! \li The name of the placeholder to which the value will be bound.
 //! \li The value to be bound on the placeholder.

@@ -68,7 +68,7 @@ namespace mysh
 
       boost::shared_ptr<shcore::Object_bridge> create(const shcore::Argument_list &args);
 
-#ifdef DOXYGEN_JS
+#if DOXYGEN_JS
       String uri; //!< Same as getUri()
       Schema defaultCluster; //!< Same as getDefaultSchema()
 

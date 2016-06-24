@@ -474,7 +474,7 @@ shcore::Value ClassicSession::drop_schema(const shcore::Argument_list &args)
   return ret_val;
 }
 
-#ifdef DOXYGEN_CPP
+#if DOXYGEN_CPP
 /**
  * Drops a table or a view from a specific ClassicSchema.
  * \param args contains the identification data for the object to be deleted.

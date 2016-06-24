@@ -50,7 +50,7 @@ namespace mysh
 
       shcore::Value is_view(const shcore::Argument_list &args);
 
-#ifdef DOXYGEN_JS
+#if DOXYGEN_JS
       Bool isView();
 #elif DOXYGEN_PY
       bool is_view();

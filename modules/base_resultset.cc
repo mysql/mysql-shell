@@ -393,7 +393,7 @@ bool Row::operator == (const Object_bridge &UNUSED(other)) const
 }
 
 //! Returns the value of a field on the Row based on the field name.
-#ifdef DOXYGEN_CPP
+#if DOXYGEN_CPP
  //! \param args : Should contain the name of the field to be returned
 #else
 //! \param fieldName : The name of the field to be returned

@@ -49,7 +49,7 @@ CollectionCreateIndex::CollectionCreateIndex(boost::shared_ptr<Collection> owner
   update_functions("");
 }
 
-#ifdef DOXYGEN_CPP
+#if DOXYGEN_CPP
 /**
  * Creates an index on a collection.
  * \param args should contain the name and optionally the type of index to be created.
@@ -138,7 +138,7 @@ shcore::Value CollectionCreateIndex::create_index(const shcore::Argument_list &a
 }
 
 //! Adds column to be part of the collection index being created.
-#ifdef DOXYGEN_CPP
+#if DOXYGEN_CPP
 //! \param args : Should contain three elements described below.
 //!
 //! \li A string with the document path to the field to be added into the index.

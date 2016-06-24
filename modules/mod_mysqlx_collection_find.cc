@@ -60,7 +60,7 @@ CollectionFind::CollectionFind(boost::shared_ptr<Collection> owner)
 
 
 //! Sets the search condition to identify the Documents to be retrieved from the owner Collection.
-#ifdef DOXYGEN_CPP
+#if DOXYGEN_CPP
 //! \param args may contain an optional string with the filter expression of the documents to be retrieved.
 #else
 //! \param searchCondition An optional string with the filter expression of the documents to be retrieved.
@@ -117,7 +117,7 @@ shcore::Value CollectionFind::find(const shcore::Argument_list &args)
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
-#ifdef DOXYGEN_CPP
+#if DOXYGEN_CPP
 /**
  * Sets a document field filter or a projection defining the ourput format.
  * \param args: may contain two different values depending on the desired output:
@@ -245,7 +245,7 @@ shcore::Value CollectionFind::fields(const shcore::Argument_list &args)
 }
 
 //! Sets a grouping criteria for the resultset.
-#ifdef DOXYGEN_CPP
+#if DOXYGEN_CPP
 //! \param args should contain a list of string expressions identifying the grouping criteria.
 #else
 //! \param searchExprStr: A list of string expressions identifying the grouping criteria.
@@ -299,7 +299,7 @@ shcore::Value CollectionFind::group_by(const shcore::Argument_list &args)
 }
 
 //! Sets a condition for records to be considered in agregate function operations.
-#ifdef DOXYGEN_CPP
+#if DOXYGEN_CPP
 //! \param args should contain a condition on the agregate functions used on the grouping criteria.
 #else
 //! \param searchCondition: A condition on the agregate functions used on the grouping criteria.
@@ -347,7 +347,7 @@ shcore::Value CollectionFind::having(const shcore::Argument_list &args)
 }
 
 //! Sets the sorting criteria to be used on the DocResult.
-#ifdef DOXYGEN_CPP
+#if DOXYGEN_CPP
 //! \param args should contain a a list of expression strings defining the sort criteria for the returned documents.
 #else
 //! \param sortExprStr: A list of expression strings defining the sort criteria for the returned documents.
@@ -405,7 +405,7 @@ shcore::Value CollectionFind::sort(const shcore::Argument_list &args)
 }
 
 //! Sets the maximum number of documents to be returned on the find operation.
-#ifdef DOXYGEN_CPP
+#if DOXYGEN_CPP
 //! \param args should contain the maximum number of documents to be retrieved.
 #else
 //! \param numberOfRows: The maximum number of documents to be retrieved.
@@ -454,7 +454,7 @@ shcore::Value CollectionFind::limit(const shcore::Argument_list &args)
 }
 
 //! Sets number of documents to skip on the resultset when a limit has been defined.
-#ifdef DOXYGEN_CPP
+#if DOXYGEN_CPP
 //! \param args should contain the number of documents to skip before start including them on the DocResult.
 #else
 //! \param limitOffset: The number of documents to skip before start including them on the DocResult.
@@ -496,7 +496,7 @@ shcore::Value CollectionFind::skip(const shcore::Argument_list &args)
 }
 
 //! Binds a value to a specific placeholder used on this CollectionFind object.
-#ifdef DOXYGEN_CPP
+#if DOXYGEN_CPP
 //! \param args should contain the place holder name and the value to be bound on it.
 #else
 //! \param name: The name of the placeholder to which the value will be bound.

@@ -63,7 +63,7 @@ CollectionModify::CollectionModify(boost::shared_ptr<Collection> owner)
 }
 
 //! Sets the search condition to identify the Documents to be updated on the owner Collection.
-#ifdef DOXYGEN_CPP
+#if DOXYGEN_CPP
 //! \param args may contain an optional string with the filter expression of the documents to be updated.
 #else
 //! \param searchCondition: An optional expression to identify the documents to be updated.
@@ -133,7 +133,7 @@ shcore::Value CollectionModify::modify(const shcore::Argument_list &args)
 }
 
 //! Sets or updates attributes on documents in a collection.
-#ifdef DOXYGEN_CPP
+#if DOXYGEN_CPP
 //! \param args should contain the next entries:
 //! \li A string with the document path of the item to be set.
 //! \li The value to be set on the specified attribute.
@@ -214,7 +214,7 @@ shcore::Value CollectionModify::set(const shcore::Argument_list &args)
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
-#ifdef DOXYGEN_CPP
+#if DOXYGEN_CPP
 /**
  * Removes attributes from documents in a collection.
  * \param args should identify the element to be unset on the collection, possible values include:
@@ -404,7 +404,7 @@ shcore::Value CollectionModify::unset(const shcore::Argument_list &args)
 }
 
 //! Adds attributes taken from a document into the documents in a collection.
-#ifdef DOXYGEN_CPP
+#if DOXYGEN_CPP
 //! \param args should contain the document from which the attributes will be merged.
 #else
 //! \param document The document from which the attributes will be merged.
@@ -472,7 +472,7 @@ shcore::Value CollectionModify::merge(const shcore::Argument_list &args)
 }
 
 //! Inserts a value into a specific position in an array attribute in documents of a collection.
-#ifdef DOXYGEN_CPP
+#if DOXYGEN_CPP
 //! \param args should contain the next elements:
 //! \li A document path that identifies the array attribute and position where the value will be inserted.
 //! \li The value to be inserted.
@@ -539,7 +539,7 @@ shcore::Value CollectionModify::array_insert(const shcore::Argument_list &args)
 }
 
 //! Appends a value into an array attribute in documents of a collection.
-#ifdef DOXYGEN_CPP
+#if DOXYGEN_CPP
 //! \param args should contain the next elements:
 //! \li A document path that identifies the array attribute where the value will be appended.
 //! \li The value to be appended.
@@ -607,7 +607,7 @@ shcore::Value CollectionModify::array_append(const shcore::Argument_list &args)
 }
 
 //! Deletes the value at a specific position in an array attribute in documents of a collection.
-#ifdef DOXYGEN_CPP
+#if DOXYGEN_CPP
 //! \param args should contain a document path that identifies the array attribute and position of the value to be deleted.
 #else
 //! \param path A document path that identifies the array attribute and position of the value to be deleted.
@@ -671,7 +671,7 @@ shcore::Value CollectionModify::array_delete(const shcore::Argument_list &args)
 }
 
 //! Sets the document order in which the update operations added to the handler should be done.
-#ifdef DOXYGEN_CPP
+#if DOXYGEN_CPP
 //! \param args should contain a list of expression strings defining a collection sort criteria.
 #else
 //! \param sortExprStr: A list of expression strings defining a collection sort criteria.
@@ -732,7 +732,7 @@ shcore::Value CollectionModify::sort(const shcore::Argument_list &args)
 }
 
 //! Sets a limit for the documents to be updated by the operations added to the handler.
-#ifdef DOXYGEN_CPP
+#if DOXYGEN_CPP
 //! \param args should contain the number of documents to affect on the update operations.
 #else
 //! \param numberOfDocs the number of documents to affect on the update operations.
@@ -783,7 +783,7 @@ shcore::Value CollectionModify::limit(const shcore::Argument_list &args)
 }
 
 //! Binds a value to a specific placeholder used on this CollectionModify object.
-#ifdef DOXYGEN_CPP
+#if DOXYGEN_CPP
 //! \param args should contain the next entries:
 //! \li The name of the placeholder to which the value will be bound.
 //! \li The value to be bound on the placeholder.

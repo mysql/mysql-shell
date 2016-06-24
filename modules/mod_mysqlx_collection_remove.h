@@ -45,7 +45,7 @@ namespace mysh
     public:
       CollectionRemove(boost::shared_ptr<Collection> owner);
     public:
-#ifdef DOXYGEN_JS
+#if DOXYGEN_JS
       CollectionRemove remove(String searchCondition);
       CollectionRemove sort(List sortExprStr);
       CollectionRemove limit(Integer numberOfRows);

@@ -48,7 +48,7 @@ CollectionRemove::CollectionRemove(boost::shared_ptr<Collection> owner)
 }
 
 //! Sets the search condition to filter the Documents to be deleted from the owner Collection.
-#ifdef DOXYGEN_CPP
+#if DOXYGEN_CPP
 //! \param args may contain an optional expression to filter the documents to be deleted.
 #else
 //! \param searchCondition: An optional expression to filter the documents to be deleted.
@@ -106,7 +106,7 @@ shcore::Value CollectionRemove::remove(const shcore::Argument_list &args)
 }
 
 //! Sets the order in which the deletion should be done.
-#ifdef DOXYGEN_CPP
+#if DOXYGEN_CPP
 //! \param args should contain a list of expression strings defining a sort criteria, the deletion will be done following the order defined by this criteria.
 #else
 //! \param sortExprStr: A list of expression strings defining a sort criteria, the deletion will be done following the order defined by this criteria.
@@ -160,7 +160,7 @@ shcore::Value CollectionRemove::sort(const shcore::Argument_list &args)
 
 
 //! Sets a limit for the documents to be deleted.
-#ifdef DOXYGEN_CPP
+#if DOXYGEN_CPP
 //! \param args should contain the number of documents to affect in the remove execution.
 #else
 //! \param numberOfDocs the number of documents to affect in the remove execution.
@@ -205,7 +205,7 @@ shcore::Value CollectionRemove::limit(const shcore::Argument_list &args)
 }
 
 //! Binds a value to a specific placeholder used on this CollectionRemove object.
-#ifdef DOXYGEN_CPP
+#if DOXYGEN_CPP
 //! \param args should contain the next elements:
 //! \li The name of the placeholder to which the value will be bound.
 //! \li The value to be bound on the placeholder.

@@ -53,7 +53,7 @@ TableInsert::TableInsert(boost::shared_ptr<Table> owner)
   update_functions("");
 }
 
-#ifdef DOXYGEN_CPP
+#if DOXYGEN_CPP
 /**
  * Initializes the record insertion handler.
  * \param args contains the initialization data, possible values include:
@@ -223,7 +223,7 @@ shcore::Value TableInsert::insert(const shcore::Argument_list &args)
 }
 
 //! Sets the values for a row to be inserted.
-#ifdef DOXYGEN_CPP
+#if DOXYGEN_CPP
 //! \param args should contain a list of values to be used to insert a record.
 #else
 //! \param value1 The value for the first column.

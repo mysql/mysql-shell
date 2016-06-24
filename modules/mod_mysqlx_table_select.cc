@@ -57,7 +57,7 @@ TableSelect::TableSelect(boost::shared_ptr<Table> owner)
 }
 
 //! Initializes this record selection handler.
-#ifdef DOXYGEN_CPP
+#if DOXYGEN_CPP
 //! \param args should contain an optional list of string expressions identifying the columns to be retrieved, alias support is enabled on these fields.
 #else
 //! \param searchExprStr: An optional list of string expressions identifying the columns to be retrieved, alias support is enabled on these fields.
@@ -120,7 +120,7 @@ shcore::Value TableSelect::select(const shcore::Argument_list &args)
 }
 
 //! Sets the search condition to filter the records to be retrieved from the owner Table.
-#ifdef DOXYGEN_CPP
+#if DOXYGEN_CPP
 //! \param args should contain an optional expression to filter the records to be retrieved.
 #else
 //! \param searchCondition: An optional expression to filter the records to be retrieved.
@@ -168,7 +168,7 @@ shcore::Value TableSelect::where(const shcore::Argument_list &args)
 }
 
 //! Sets a grouping criteria for the resultset.
-#ifdef DOXYGEN_CPP
+#if DOXYGEN_CPP
 //! \param args should contain a list of string expressions identifying the grouping criteria.
 #else
 //! \param searchExprStr: A list of string expressions identifying the grouping criteria.
@@ -222,7 +222,7 @@ shcore::Value TableSelect::group_by(const shcore::Argument_list &args)
 }
 
 //! Sets a condition for records to be considered in agregate function operations.
-#ifdef DOXYGEN_CPP
+#if DOXYGEN_CPP
 //! \param args should contain a condition on the agregate functions used on the grouping criteria.
 #else
 //! \param searchCondition: A condition on the agregate functions used on the grouping criteria.
@@ -270,7 +270,7 @@ shcore::Value TableSelect::having(const shcore::Argument_list &args)
 }
 
 //! Sets the sorting criteria to be used on the RowResult.
-#ifdef DOXYGEN_CPP
+#if DOXYGEN_CPP
 //! \param args should contain a list of expression strings defining the sort criteria for the returned records.
 #else
 //! \param sortExprStr: A list of expression strings defining the sort criteria for the returned records.
@@ -328,7 +328,7 @@ shcore::Value TableSelect::order_by(const shcore::Argument_list &args)
 }
 
 //! Sets the maximum number of records to be returned on the select operation.
-#ifdef DOXYGEN_CPP
+#if DOXYGEN_CPP
 //! \param args should contain the maximum number of records to be retrieved.
 #else
 //! \param numberOfRows: The maximum number of records to be retrieved.
@@ -377,7 +377,7 @@ shcore::Value TableSelect::limit(const shcore::Argument_list &args)
 }
 
 //! Sets number of records to skip on the RowResult when a limit has been defined.
-#ifdef DOXYGEN_CPP
+#if DOXYGEN_CPP
 //! \param args should contain the number of records to skip before start including them on the Resultset.
 #else
 //! \param limitOffset: The number of records to skip before start including them on the Resultset.
@@ -419,7 +419,7 @@ shcore::Value TableSelect::offset(const shcore::Argument_list &args)
 }
 
 //! Binds a value to a specific placeholder used on this TableSelect object.
-#ifdef DOXYGEN_CPP
+#if DOXYGEN_CPP
 //! \param args should contain the next elements:
 //! \li The name of the placeholder to which the value will be bound.
 //! \li The value to be bound on the placeholder.

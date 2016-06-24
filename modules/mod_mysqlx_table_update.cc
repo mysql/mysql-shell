@@ -102,7 +102,7 @@ shcore::Value TableUpdate::update(const shcore::Argument_list &args)
 }
 
 //! Updates the column value on records in a table.
-#ifdef DOXYGEN_CPP
+#if DOXYGEN_CPP
 //! \param args should contain the next elements:
 //! \li A string with the column name to be updated.
 //! \li The value to be set on the specified column.
@@ -192,7 +192,7 @@ shcore::Value TableUpdate::set(const shcore::Argument_list &args)
 }
 
 //! Sets the search condition to filter the records to be updated from the owner Table.
-#ifdef DOXYGEN_CPP
+#if DOXYGEN_CPP
 //! \param args should contain an optional string expression to filter the records to be updated.
 #else
 //! \param searchCondition: An optional expression to filter the records to be updated.
@@ -242,7 +242,7 @@ shcore::Value TableUpdate::where(const shcore::Argument_list &args)
 }
 
 //! Sets the order in which the update should be done.
-#ifdef DOXYGEN_CPP
+#if DOXYGEN_CPP
 //! \param args should contain a list of expression strings defining a sort criteria, the update will be done following the order defined by this criteria.
 #else
 //! \param sortExprStr: A list of expression strings defining a sort criteria, the update will be done following the order defined by this criteria.
@@ -297,7 +297,7 @@ shcore::Value TableUpdate::order_by(const shcore::Argument_list &args)
 
 
 //! Sets a limit for the records to be updated.
-#ifdef DOXYGEN_CPP
+#if DOXYGEN_CPP
 //! \param args should contain the number of records to be updated.
 #else
 //! \param numberOfRows the number of records to be updated.
@@ -343,7 +343,7 @@ shcore::Value TableUpdate::limit(const shcore::Argument_list &args)
 }
 
 //! Binds a value to a specific placeholder used on this TableSelect object.
-#ifdef DOXYGEN_CPP
+#if DOXYGEN_CPP
 //! \param args should contain the next elements:
 //! \li The name of the placeholder to which the value will be bound.
 //! \li The value to be bound on the placeholder.

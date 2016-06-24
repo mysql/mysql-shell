@@ -57,7 +57,7 @@ Table::~Table()
 {
 }
 
-#ifdef DOXYGEN_CPP
+#if DOXYGEN_CPP
 /**
 * Creates a record insertion handler.
 * \param args contains initialization information about how the insertion will be done, possible values include:
@@ -186,7 +186,7 @@ shcore::Value Table::delete_(const shcore::Argument_list &args)
   return tableDelete->remove(args);
 }
 
-#ifdef DOXYGEN_CPP
+#if DOXYGEN_CPP
 /**
 * Creates a full record retrieval handler.
 * \param args may contain an optional list of columns to be retrieved, if not specified all the columns on the table will be retrieved.

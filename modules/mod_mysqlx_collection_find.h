@@ -46,7 +46,7 @@ namespace mysh
       CollectionFind(boost::shared_ptr<Collection> owner);
     public:
       virtual std::string class_name() const { return "CollectionFind"; }
-#ifdef DOXYGEN_JS
+#if DOXYGEN_JS
       CollectionFind find(String searchCondition);
       CollectionFind fields(List projectedSearchExprStr);
       CollectionFind fields(DocExpression projection);

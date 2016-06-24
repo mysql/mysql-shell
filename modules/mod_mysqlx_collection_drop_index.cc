@@ -47,7 +47,7 @@ CollectionDropIndex::CollectionDropIndex(boost::shared_ptr<Collection> owner)
 }
 
 //! Drops an index from a collection.
-#ifdef DOXYGEN_CPP
+#if DOXYGEN_CPP
 //! \param args should contain the name of the index to be dropped.
 #else
 //! \param indexName The name of the index to be dropped.

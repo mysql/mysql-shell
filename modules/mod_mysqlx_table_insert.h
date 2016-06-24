@@ -37,7 +37,7 @@ namespace mysh
     class TableInsert : public Table_crud_definition, public boost::enable_shared_from_this<TableInsert>
     {
     public:
-#ifdef DOXYGEN_JS
+#if DOXYGEN_JS
       TableInsert insert();
       TableInsert insert(List columns);
       TableInsert insert(String col1, String col2, ...);

@@ -130,7 +130,7 @@ shcore::Value Collection::add_(const shcore::Argument_list &args)
 }
 
 //! Creates a collection update handler.
-#ifdef DOXYGEN_CPP
+#if DOXYGEN_CPP
 //! \param args may contain an optional string with the filter expression of the documents to be modified.
 #else
 //! \param searchCondition An optional string with the filter expression of the documents to be modified.
@@ -159,7 +159,7 @@ shcore::Value Collection::modify_(const shcore::Argument_list &args)
 }
 
 //! Creates a document deletion handler.
-#ifdef DOXYGEN_CPP
+#if DOXYGEN_CPP
 //! \param args may contain an optional string with the filter expression of the documents to be deleted.
 #else
 //! \param searchCondition An optional string with the filter expression of the documents to be deleted.
@@ -188,7 +188,7 @@ shcore::Value Collection::remove_(const shcore::Argument_list &args)
 }
 
 //! Retrieves documents from a collection.
-#ifdef DOXYGEN_CPP
+#if DOXYGEN_CPP
 //! \param args may contain an optional string with the filter expression of the documents to be retrieved.
 #else
 //! \param searchCriteria An optional string with the filter expression of the documents to be retrieved.
@@ -216,7 +216,7 @@ shcore::Value Collection::find_(const shcore::Argument_list &args)
   return collectionFind->find(args);
 }
 
-#ifdef DOXYGEN_CPP
+#if DOXYGEN_CPP
 /**
  * Creates an index on a collection.
  * \param args should contain the name and optionally the type of index to be created.
@@ -285,7 +285,7 @@ shcore::Value Collection::create_index_(const shcore::Argument_list &args)
 }
 
 //! Drops an index from a collection.
-#ifdef DOXYGEN_CPP
+#if DOXYGEN_CPP
 //! \param args should contain the name of the index to be dropped.
 #else
 //! \param name The name of the index to be dropped.

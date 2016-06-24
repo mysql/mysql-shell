@@ -365,7 +365,7 @@ Value BaseSession::executeStmt(const std::string &domain, const std::string& com
   return ret_val;
 }
 
-#ifdef DOXYGEN_JS || DOXYGEN_PY
+#if DOXYGEN_JS || DOXYGEN_PY
 /**
 * Retrieves the Schema configured as default for the session.
 * \return A Schema object or Null
@@ -561,7 +561,7 @@ shcore::Value BaseSession::drop_schema(const shcore::Argument_list &args)
   return ret_val;
 }
 
-#ifdef DOXYGEN_CPP
+#if DOXYGEN_CPP
 /**
  * Drops a table, view or collection from a specific Schema.
  * \param args contains the identification data for the object to be deleted.
@@ -816,7 +816,7 @@ boost::shared_ptr<shcore::Object_bridge> NodeSession::create(const shcore::Argum
 }
 
 //! Creates a SqlExecute object to allow running the received SQL statement on the target MySQL Server.
-#ifdef DOXYGEN_CPP
+#if DOXYGEN_CPP
 //! \param args should contain a string with the SQL statement to be executed.
 #else
 //! \param sql A string containing the SQL statement to be executed.
@@ -915,7 +915,7 @@ shcore::Value NodeSession::quote_name(const shcore::Argument_list &args)
 }
 
 //! Sets the current schema for this session, and returns the schema object for it.
-#ifdef DOXYGEN_CPP
+#if DOXYGEN_CPP
 //! \param args should contain the name of the new schema to switch to.
 #else
 //! \param name the name of the new schema to switch to.
