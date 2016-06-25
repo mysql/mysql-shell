@@ -6,7 +6,7 @@ function process_warnings(result){
     var warnings = result.getWarnings();
     for (index in warnings){
       var warning = warnings[index];
-      print ('Type ['+ warning.Level + '] (Code ' + warning.Code + '): ' + warning.Message + '\n');
+      print ('Type ['+ warning.level + '] (Code ' + warning.code + '): ' + warning.message + '\n');
     }
   }
   else{

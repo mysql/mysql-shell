@@ -1,4 +1,3 @@
-
 function print_result(res) {
   if (res.hasData()) {
     // SELECT
@@ -10,7 +9,7 @@ function print_result(res) {
         print (columns[index].getColumnName() + ": " + record[index] + "\n");
       }
       
-      // Gets the next record
+      // Get the next record
       record = res.fetchOne();
     }
     

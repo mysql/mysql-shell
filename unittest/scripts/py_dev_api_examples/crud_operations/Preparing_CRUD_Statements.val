@@ -1,6 +1,6 @@
-print(myDocs.fetchOne().name)|Sally|
-print(MyOtherDocs.fetchOne().name)|Molly|
-print(myFind.bind('param1','mike').bind('param2', 39).execute().fetchOne())|None|
-print(myFind.bind('param1','johannes').bind('param2', 28).execute().fetchOne())|None|
+print(myDocs.fetch_one().name)|Sally|
+print(MyOtherDocs.fetch_one().name)|Molly|
+print(myFind.bind('param1','mike').bind('param2', 39).execute().fetch_one())|None|
+print(myFind.bind('param1','johannes').bind('param2', 28).execute().fetch_one())|None|
 testSession.close();||
 testSession = None;||

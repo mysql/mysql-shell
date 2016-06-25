@@ -285,81 +285,27 @@ bool Column::operator == (const Object_bridge &other) const
 {
   return this == &other;
 }
-
-#ifdef DOXYGEN
+#if DOXYGEN_CPP
 /**
-* Retrieves the name of the Schema where the column is defined.
-* \return a string value representing the owner schema.
-*/
-String Column::getSchemaName(){};
-
-/**
-* Retrieves table name where the column is defined.
-* \return a string value representing the table name.
-*/
-String Column::getTableName(){};
-
-/**
-* Retrieves table alias where the column is defined.
-* \return a string value representing the table alias or the table name if no alias is defined.
-*/
-String Column::getTableLabel(){};
-
-/**
-* Retrieves column name.
-* \return a string value representing the column name.
-*/
-String Column::getColumnName(){};
-
-/**
-* Retrieves column alias.
-* \return a string value representing the column alias or the column name if no alias is defined.
-*/
-String Column::getColumnLabel(){};
-
-/**
-* Retrieves column Type.
-* \return a constant value for the supported column types.
-*/
-Type Column::getType(){};
-
-/**
-* Retrieves column length.
-* \return the column length.
-*/
-Integer Column::getLength(){};
-
-/**
-* Retrieves the fractional digits if applicable
-* \return the number of fractional digits, this only applies to specific data types.
-*/
-Integer Column::getFractionalDigits(){};
-
-/**
-* Indicates if a numeric column is signed.
-* \return a boolean indicating whether a numeric column is signed or not.
-*/
-Boolean Column::isNumberSigned(){};
-
-/**
-* Retrieves the collation name
-* \return a String representing the collation name, aplicable only to specific data types.
-*/
-String Column::getCollationName(){};
-
-/**
-* Retrieves the character set name
-* \return a String representing the character set name, aplicable only to specific data types.
-*/
-String getCharacterSetName(){};
-
-/**
-* Indicates if padding is used for the column
-* \return a boolean indicating if padding is used on the column.
-*/
-Boolean Column::isPadded(){};
+ * Use this function to retrieve an valid member of this class exposed to the scripting languages.
+ * \param prop : A string containing the name of the member to be returned
+ *
+ * This function returns a Value that wraps the object returned by this function. The content of the returned value depends on the property being requested. The next list shows the valid properties as well as the returned value for each of them:
+ *
+ * \li schemaName: returns a String object with the name of the Schema to which this Column belongs.
+ * \li tableName: returns a String object with the name of the Table to which this Column belongs.
+ * \li tableLabel: returns a String object with the alias of the Table to which this Column belongs.
+ * \li columnName: returns a String object with the name of the this Column.
+ * \li columnLabel: returns a String object with the alias of this Column.
+ * \li type: returns a Type object with the information about this Column data type.
+ * \li length: returns an uint64_t value with the length in bytes of this Column.
+ * \li fractionalDigits: returns an uint64_t value with the number of fractional digits on this Column (Only applies to certain data types).
+ * \li numberSigned: returns an boolean value indicating wether a numeric Column is signed.
+ * \li collationName: returns a String object with the collation name of the Column.
+ * \li characterSetName: returns a String object with the collation name of the Column.
+ * \li padded: returns an boolean value indicating wether the Column is padded.
+ */
 #endif
-
 shcore::Value Column::get_member(const std::string &prop) const
 {
   shcore::Value ret_val;
@@ -441,38 +387,22 @@ std::string &Row::append_repr(std::string &s_out) const
   return append_descr(s_out);
 }
 
-//! Returns the list of members that this object has
-std::vector<std::string> Row::get_members() const
-{
-  std::vector<std::string> l = shcore::Cpp_object_bridge::get_members();
-
-  for (size_t index = 0; index < value_iterators.size(); index++)
-  {
-    if (shcore::is_valid_identifier(value_iterators[index]->first))
-      l.push_back(value_iterators[index]->first);
-  }
-
-  return l;
-}
-
-//! Implements equality operator
 bool Row::operator == (const Object_bridge &UNUSED(other)) const
 {
   return false;
 }
 
-bool Row::has_member(const std::string &prop) const
-{
-  bool ret_val = false;
-
-  if (Cpp_object_bridge::has_member(prop))
-    ret_val = true;
-  else if (values.find(prop) != values.end())
-    ret_val = true;
-
-  return ret_val;
-}
-
+//! Returns the value of a field on the Row based on the field name.
+#if DOXYGEN_CPP
+ //! \param args : Should contain the name of the field to be returned
+#else
+//! \param fieldName : The name of the field to be returned
+#endif
+#if DOXYGEN_JS
+Object Row::getField(String fieldName){}
+#elif DOXYGEN_PY
+object Row::get_field(str fieldName){}
+#endif
 shcore::Value Row::get_field(const shcore::Argument_list &args)
 {
   shcore::Value ret_val;
@@ -491,7 +421,28 @@ shcore::Value Row::get_field(const shcore::Argument_list &args)
   return ret_val;
 }
 
-//! Returns the value of a member
+#if DOXYGEN_CPP
+/**
+ * Use this function to retrieve an valid member of this class exposed to the scripting languages.
+ * \param prop : A string containing the name of the member to be returned
+ *
+ * This function returns a Value that wraps the object returned by this function. The the content of the returned value depends on the property being requested. The next list shows the valid properties as well as the returned value for each of them:
+ *
+ * \li length: returns the number of fields contained on this Row object.
+ * \li Each field is exposed as a member of this Row object, if prop is a valid field name the value for that field will be returned.
+ *
+ * NOTE: if a field of on the Row is named "length", it´s value must be retrieved using the get_field() function.
+ */
+#else
+/**
+ *  Returns the number of field contained on this Row object.
+ */
+#if DOXYGEN_JS
+Integer Row::getLength(){}
+#elif DOXYGEN_PY
+int Row::get_length(){}
+#endif
+#endif
 shcore::Value Row::get_member(const std::string &prop) const
 {
   if (prop == "length")
@@ -506,6 +457,11 @@ shcore::Value Row::get_member(const std::string &prop) const
   return shcore::Cpp_object_bridge::get_member(prop);
 }
 
+#if DOXYGEN_CPP
+/**
+ * Returns the value of a field on the Row based on the field position.
+ */
+#endif
 shcore::Value Row::get_member(size_t index) const
 {
   if (index < value_iterators.size())
@@ -516,5 +472,8 @@ shcore::Value Row::get_member(size_t index) const
 
 void Row::add_item(const std::string &key, shcore::Value value)
 {
+  if (shcore::is_valid_identifier(key))
+    add_property(key);
+
   value_iterators.push_back(values.insert(values.end(), std::pair<std::string, shcore::Value>(key, value)));
 }

@@ -50,9 +50,13 @@ namespace mysh
       shcore::Value add(const shcore::Argument_list &args);
       virtual shcore::Value execute(const shcore::Argument_list &args);
 
-#ifdef DOXYGEN
+#if DOXYGEN_JS
       CollectionAdd add(Document document);
       CollectionAdd add(List documents);
+      Result execute();
+#elif DOXYGEN_PY
+      CollectionAdd add(Document document);
+      CollectionAdd add(list documents);
       Result execute();
 #endif
 

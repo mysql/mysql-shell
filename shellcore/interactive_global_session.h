@@ -27,6 +27,7 @@
 
 namespace shcore
 {
+  //! Interactive wrapper for the global session
   class SHCORE_PUBLIC Global_session : public Interactive_object_wrapper
   {
   public:

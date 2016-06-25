@@ -53,7 +53,26 @@ TableInsert::TableInsert(boost::shared_ptr<Table> owner)
   update_functions("");
 }
 
-#ifdef DOXYGEN
+#if DOXYGEN_CPP
+/**
+ * Initializes the record insertion handler.
+ * \param args contains the initialization data, possible values include:
+ * \li An array of strings identifying the columns to be inserted. Sinsequent calls to values must contain a value for each column defined here.
+ * \li If no column information is set at all, it is the database who will validate if the provided values can be inserted or not.
+ * \return This TableInsert object.
+ *
+ * This function is called automatically when Table.insert() is called.
+ *
+ * #### Method Chaining
+ *
+ * After this function invocation, the following functions can be invoked:
+ *
+ * - values(Value value1, Value value2, ...)
+ * - execute().
+ *
+ * \sa Usage examples at execute().
+ */
+#else
 /**
 * Initializes the record insertion handler.
 * \return This TableInsert object.
@@ -69,7 +88,11 @@ TableInsert::TableInsert(boost::shared_ptr<Table> owner)
 *
 * \sa Usage examples at execute().
 */
+#if DOXYGEN_JS
 TableInsert TableInsert::insert(){}
+#elif DOXYGEN_PY
+TableInsert TableInsert::insert(){}
+#endif
 
 /**
 * Initializes the record insertion handler with the received column list.
@@ -86,7 +109,11 @@ TableInsert TableInsert::insert(){}
 *
 * \sa Usage examples at execute().
 */
+#if DOXYGEN_JS
 TableInsert TableInsert::insert(List columns){}
+#elif DOXYGEN_PY
+TableInsert TableInsert::insert(list columns){}
+#endif
 
 /**
 * Initializes the record insertion handler with the received column list.
@@ -107,7 +134,11 @@ TableInsert TableInsert::insert(List columns){}
 *
 * \sa Usage examples at execute().
 */
+#if DOXYGEN_JS
 TableInsert TableInsert::insert(String col1, String col2, ...){}
+#elif DOXYGEN_PY
+TableInsert TableInsert::insert(str col1, str col2, ...){}
+#endif
 #endif
 shcore::Value TableInsert::insert(const shcore::Argument_list &args)
 {
@@ -191,11 +222,15 @@ shcore::Value TableInsert::insert(const shcore::Argument_list &args)
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
-#ifdef DOXYGEN
+//! Sets the values for a row to be inserted.
+#if DOXYGEN_CPP
+//! \param args should contain a list of values to be used to insert a record.
+#else
+//! \param value1 The value for the first column.
+//! \param value2 The value for the second column.
+//! And so on.
+#endif
 /**
-* Sets the values for a row to be inserted.
-* \param value1 The value for the first column.
-* \param value2 The value for the second column.
 * \return This TableInsert object.
 *
 * Each column value comes as a parameter on this function call.
@@ -231,12 +266,15 @@ shcore::Value TableInsert::insert(const shcore::Argument_list &args)
 *
 * \sa Usage examples at execute().
 */
+#if DOXYGEN_JS
+TableInsert TableInsert::values(Value value1, Value value2, ...){}
+#elif DOXYGEN_PY
 TableInsert TableInsert::values(Value value1, Value value2, ...){}
 #endif
 shcore::Value TableInsert::values(const shcore::Argument_list &args)
 {
   // Each method validates the received parameters
-  args.ensure_at_least(1, "TableInsert.values");
+  args.ensure_at_least(1, get_function_name("values").c_str());
 
   try
   {
@@ -253,13 +291,12 @@ shcore::Value TableInsert::values(const shcore::Argument_list &args)
     // Updates the exposed functions
     update_functions("values");
   }
-  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableInsert.values");
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("values"));
 
   // Returns the same object
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
-#ifdef DOXYGEN
 /**
 * Executes the record insertion.
 * \return Result A result object that can be used to retrieve the results of the insertion operation.
@@ -268,18 +305,23 @@ shcore::Value TableInsert::values(const shcore::Argument_list &args)
 *
 * This function can be invoked after:
 * - values(Value value1, Value value2, ...)
+*/
+#if DOXYGEN_JS
+/**
 *
-* #### JavaScript Examples
-*
+* #### Examples
 * \dontinclude "js_devapi/scripts/mysqlx_table_insert.js"
 * \skip //@ Table.insert execution
 * \until print("Affected Rows Document:", result.affectedItemCount, "\n");
+*/
+Result TableInsert::execute(){}
+#elif DOXYGEN_PY
+/**
 *
-* #### Python Examples
-*
+* #### Examples
 * \dontinclude "py_devapi/scripts/mysqlx_table_insert.py"
 * \skip #@ Table.insert execution
-* \until print "Affected Rows Document:", result.affectedItemCount, "\n"
+* \until print "Affected Rows Document:", result.affected_item_count, "\n"
 */
 Result TableInsert::execute(){}
 #endif
@@ -289,7 +331,7 @@ shcore::Value TableInsert::execute(const shcore::Argument_list &args)
 
   try
   {
-    args.ensure_count(0, "TableInsert.execute");
+    args.ensure_count(0, get_function_name("execute").c_str());
 
     MySQL_timer timer;
     timer.start();
@@ -297,7 +339,7 @@ shcore::Value TableInsert::execute(const shcore::Argument_list &args)
     timer.end();
     result->set_execution_time(timer.raw_duration());
   }
-  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableInsert.execute");
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("execute"));
 
   return result ? shcore::Value::wrap(result) : shcore::Value::Null();
 }

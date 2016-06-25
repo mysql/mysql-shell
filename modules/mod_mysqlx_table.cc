@@ -57,9 +57,12 @@ Table::~Table()
 {
 }
 
-#ifdef DOXYGEN
+#if DOXYGEN_CPP
 /**
 * Creates a record insertion handler.
+* \param args contains initialization information about how the insertion will be done, possible values include:
+* \li If empty, will attempt doing the insert with the information used on the values function.
+* \li A list of columns can be defined, on this case the number of values used on the values function must match the number of columns defined.
 * \return A TableInsert object.
 *
 * This function creates a TableInsert object which is a record insertion handler.
@@ -70,7 +73,24 @@ Table::~Table()
 *
 * \sa TableInsert
 */
+#else
+/**
+ * Creates a record insertion handler.
+ * \return A TableInsert object.
+ *
+ * This function creates a TableInsert object which is a record insertion handler.
+ *
+ * The TableInsert class has other functions that allow specifying the way the insertion occurs.
+ *
+ * The insertion is done when the execute method is called on the handler.
+ *
+ * \sa TableInsert
+ */
+#if DOXYGEN_JS
 TableInsert Table::insert(){}
+#elif DOXYGEN_PY
+TableInsert Table::insert(){}
+#endif
 
 /**
 * Creates a record insertion handler using a column list to insert records.
@@ -85,7 +105,11 @@ TableInsert Table::insert(){}
 *
 * \sa TableInsert
 */
+#if DOXYGEN_JS
 TableInsert Table::insert(List columns){}
+#elif DOXYGEN_PY
+TableInsert Table::insert(list columns){}
+#endif
 
 /**
 * Creates a record insertion handler using a column list to insert records.
@@ -101,7 +125,11 @@ TableInsert Table::insert(List columns){}
 *
 * \sa TableInsert
 */
+#if DOXYGEN_JS
 TableInsert Table::insert(String col1, String col2, ...){}
+#elif DOXYGEN_PY
+TableInsert Table::insert(str col1, str col2, ...){}
+#endif
 #endif
 shcore::Value Table::insert_(const shcore::Argument_list &args)
 {
@@ -110,7 +138,6 @@ shcore::Value Table::insert_(const shcore::Argument_list &args)
   return tableInsert->insert(args);
 }
 
-#ifdef DOXYGEN
 /**
 * Creates a record update handler.
 * \return A TableUpdate object.
@@ -123,6 +150,9 @@ shcore::Value Table::insert_(const shcore::Argument_list &args)
 *
 * \sa TableUpdate
 */
+#if DOXYGEN_JS
+TableUpdate Table::update(){}
+#elif DOXYGEN_PY
 TableUpdate Table::update(){}
 #endif
 shcore::Value Table::update_(const shcore::Argument_list &args)
@@ -132,7 +162,6 @@ shcore::Value Table::update_(const shcore::Argument_list &args)
   return tableUpdate->update(args);
 }
 
-#ifdef DOXYGEN
 /**
 * Creates a record deletion handler.
 * \return A TableDelete object.
@@ -145,6 +174,9 @@ shcore::Value Table::update_(const shcore::Argument_list &args)
 *
 * \sa TableDelete
 */
+#if DOXYGEN_JS
+TableDelete Table::delete(){}
+#elif DOXYGEN_PY
 TableDelete Table::delete(){}
 #endif
 shcore::Value Table::delete_(const shcore::Argument_list &args)
@@ -154,7 +186,23 @@ shcore::Value Table::delete_(const shcore::Argument_list &args)
   return tableDelete->remove(args);
 }
 
-#ifdef DOXYGEN
+#if DOXYGEN_CPP
+/**
+* Creates a full record retrieval handler.
+* \param args may contain an optional list of columns to be retrieved, if not specified all the columns on the table will be retrieved.
+* \return A TableSelect object.
+*
+* This function creates a TableSelect object which is a record selection handler.
+*
+* This handler will retrieve all the columns for each included record.
+*
+* The TableSelect class has several functions that allow specifying what records should be retrieved from the table, if a searchCondition was specified, it will be set on the handler.
+*
+* The selection will be returned when the execute function is called on the handler.
+*
+* \sa TableSelect
+*/
+#else
 /**
 * Creates a full record retrieval handler.
 * \return A TableSelect object.
@@ -169,7 +217,11 @@ shcore::Value Table::delete_(const shcore::Argument_list &args)
 *
 * \sa TableSelect
 */
+#if DOXYGEN_JS
 TableSelect Table::select(){}
+#elif DOXYGEN_PY
+TableSelect Table::select(){}
+#endif
 
 /**
 * Creates a partial record retrieval handler.
@@ -188,7 +240,11 @@ TableSelect Table::select(){}
 *
 * \sa TableSelect
 */
+#if DOXYGEN_JS
 TableSelect Table::select(List columns){}
+#elif DOXYGEN_PY
+TableSelect Table::select(list columns){}
+#endif
 #endif
 shcore::Value Table::select_(const shcore::Argument_list &args)
 {
@@ -197,12 +253,14 @@ shcore::Value Table::select_(const shcore::Argument_list &args)
   return tableSelect->select(args);
 }
 
-#ifdef DOXYGEN
 /**
 * Indicates whether this Table object represents a View on the database.
 * \return True if the Table represents a View on the database, False if represents a Table.
 */
+#if DOXYGEN_JS
 Bool Table::isView(){}
+#elif DOXYGEN_PY
+Bool Table::is_view(){}
 #endif
 shcore::Value Table::is_view(const shcore::Argument_list &args)
 {

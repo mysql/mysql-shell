@@ -1,4 +1,3 @@
-
 		    // Use the collection 'my_collection'
 		    var myColl = db.getCollection('my_collection');
 

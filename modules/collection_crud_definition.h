@@ -44,6 +44,9 @@ namespace mysh
 {
   namespace mysqlx
   {
+#if DOXYGEN_CPP
+    //! Base class for collection CRUD operations.
+#endif
     class Collection_crud_definition : public Crud_definition
     {
     public:

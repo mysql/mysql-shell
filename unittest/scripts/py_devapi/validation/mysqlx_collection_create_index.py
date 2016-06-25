@@ -1,4 +1,4 @@
-#@ CollectionCreateIndex: valid operations after createIndex
+#@ CollectionCreateIndex: valid operations after create_index
 |All expected functions are available|
 |No additional functions are available|
 
@@ -14,10 +14,10 @@
 # -----------------------------------
 # Error conditions on chained methods
 # -----------------------------------
-#@# Error conditions on createIndex
-||ArgumentError: Invalid number of arguments in CollectionCreateIndex.createIndex, expected 1 to 2 but got 0
-||ArgumentError: CollectionCreateIndex.createIndex: Argument #1 is expected to be a string
-||ArgumentError: CollectionCreateIndex.createIndex: Argument #2 is expected to be mysqlx.IndexType.Unique
+#@# Error conditions on create_index
+||ArgumentError: Invalid number of arguments in CollectionCreateIndex.create_index, expected 1 to 2 but got 0
+||ArgumentError: CollectionCreateIndex.create_index: Argument #1 is expected to be a string
+||ArgumentError: CollectionCreateIndex.create_index: Argument #2 is expected to be mysqlx.IndexType.UNIQUE
 
 #@# Error conditions on field
 ||ArgumentError: Invalid number of arguments in CollectionCreateIndex.field, expected 3 but got 0

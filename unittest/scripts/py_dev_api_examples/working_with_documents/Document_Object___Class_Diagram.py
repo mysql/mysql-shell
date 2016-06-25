@@ -1,5 +1,5 @@
 # Create a new collection 'my_collection'
-myColl = db.createCollection('my_collection')
+myColl = db.create_collection('my_collection')
 
 # Insert JSON data directly
 myColl.add({'name': 'Sakila', 'age': 15})

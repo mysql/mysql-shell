@@ -80,7 +80,7 @@ void print_base_result(const shcore::Value& value)
     for (size_t index = 0; index < warnings->size(); index++)
     {
       boost::shared_ptr<mysh::Row> row = boost::static_pointer_cast<mysh::Row>(warnings->at(index).as_object());
-      std::cout << row->get_member("Level").as_string() << "(" << row->get_member("Code").descr(true) << "): " << row->get_member("Message").descr(true) << std::endl;
+      std::cout << row->get_member("level").as_string() << "(" << row->get_member("code").descr(true) << "): " << row->get_member("message").descr(true) << std::endl;
     }
   }
 }

@@ -1,4 +1,3 @@
-
 // Connecting to MySQL and working with a Session
 var mysqlx = require('mysqlx').mysqlx;
 

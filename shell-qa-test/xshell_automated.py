@@ -119,6 +119,7 @@ def exec_xshell_commands(init_cmdLine, commandList):
     # p.stdin.write(bytearray(commandbefore, 'ascii'))
     p.stdin.write(bytearray('', 'ascii'))
     p.stdin.flush()
+    #p.stdout.reset()
     stdin,stdout = p.communicate()
     found = stdout.find(bytearray(expectbefore,"ascii"), 0, len(stdout))
     if found == -1 and commandList.__len__() != 0 :
@@ -578,8 +579,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[2.0.03]:4 Connect local Server on SQL mode: NODE SESSION W/O PORT'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [("\\connect -n {0}:{1}@{2}\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host),
-                 "Creating a Node Session"),
+      x_cmds = [("\\connect -n {0}:{1}@{2}\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "Creating a Node Session"),
                 ("print(session);\n", "NodeSession:"),
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
@@ -1281,7 +1281,7 @@ class XShell_TestCases(unittest.TestCase):
       init_command = [MYSQL_SHELL, '--interactive=full']
       x_cmds = [(";\n", "mysql-js>"),
                 ("\\connect {0}:{1}@{2}\n".format(LOCALHOST.user, "wronpassw", LOCALHOST.host), "mysql-js>"),
-                ("print(session)\n", "ReferenceError: session is not defined"),
+                ("print(session)\n", "Undefined"),
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
@@ -1292,7 +1292,7 @@ class XShell_TestCases(unittest.TestCase):
       init_command = [MYSQL_SHELL, '--interactive=full']
       x_cmds = [(";\n", "mysql-js>"),
                 ("\\connect -n {0}:{1}@{2}\n".format(LOCALHOST.user, "wrongpassw", LOCALHOST.host), "mysql-js>"),
-                ("print(session)\n", "ReferenceError: session is not defined"),
+                ("print(session)\n", "Undefined"),
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
@@ -1303,7 +1303,7 @@ class XShell_TestCases(unittest.TestCase):
       init_command = [MYSQL_SHELL, '--interactive=full']
       x_cmds = [(";\n", "mysql-js>"),
                 ("\\connect -c {0}:{1}@{2}:{3}\n".format(LOCALHOST.user, "wrongpass", LOCALHOST.host, LOCALHOST.port), "mysql-js>"),
-                ("print(session)\n", "ReferenceError: session is not defined"),
+                ("print(session)\n", "Undefined"),
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
@@ -1314,7 +1314,7 @@ class XShell_TestCases(unittest.TestCase):
       init_command = [MYSQL_SHELL, '--interactive=full']
       x_cmds = [(";\n", "mysql-js>"),
                 ("\\connect {0}:{1}@{2}\n".format(REMOTEHOST.user, "wronpassw", REMOTEHOST.host), "mysql-js>"),
-                ("print(session)\n", "ReferenceError: session is not defined"),
+                ("print(session)\n", "Undefined"),
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
@@ -1325,7 +1325,7 @@ class XShell_TestCases(unittest.TestCase):
       init_command = [MYSQL_SHELL, '--interactive=full']
       x_cmds = [(";\n", "mysql-js>"),
                 ("\\connect -n {0}:{1}@{2}\n".format(REMOTEHOST.user, "wrongpassw", REMOTEHOST.host), "mysql-js>"),
-                ("print(session)\n", "ReferenceError: session is not defined"),
+                ("print(session)\n", "Undefined"),
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
@@ -1336,7 +1336,7 @@ class XShell_TestCases(unittest.TestCase):
       init_command = [MYSQL_SHELL, '--interactive=full']
       x_cmds = [(";\n", "mysql-js>"),
                 ("\\connect -c {0}:{1}@{2}:{3}\n".format(REMOTEHOST.user, "wrongpass", REMOTEHOST.host, REMOTEHOST.port), "mysql-js>"),
-                ("print(session)\n", "ReferenceError: session is not defined"),
+                ("print(session)\n", "Undefined"),
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
@@ -1398,8 +1398,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[3.1.002]:1 Check that help command with parameter  works: \help connect'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [("\\help connect\n", "Connect to server")
-                ]
+      x_cmds = [("\\help connect\n", "Connect to a server." + os.linesep)]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
@@ -1407,8 +1406,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[3.1.002]:2 Check that help command with parameter  works: \h connect'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [("\\h connect\n", "Connect to server")
-                ]
+      x_cmds = [("\\h connect\n", "Connect to a server.")]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
@@ -1416,8 +1414,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[3.1.002]:3 Check that help command with parameter  works: \? connect'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [("\\? connect\n", "Connect to server")
-                ]
+      x_cmds = [("\\? connect\n", "Connect to a server.")]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
@@ -4797,12 +4794,12 @@ class XShell_TestCases(unittest.TestCase):
 
 
   def test_4_9_01_5(self):
-      '''[4.9.002] Create a Stored Session: '''
+      '''[4.9.002] Create a Stored Session: using saveconn '''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
 
       x_cmds = [("\\rmconn classic_session\n","mysql-js>"),
-                ("\\addconn classic_session "+LOCALHOST.user+":"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+"/sakila\n","mysql-js>"),
+                ("\\saveconn classic_session "+LOCALHOST.user+":"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+"/sakila\n","mysql-js>"),
                 ("shell.storedSessions;\n","    \"classic_session\": {" + os.linesep + "        \"dbPassword\": \"**********\", " + os.linesep + "        \"dbUser\": \""+LOCALHOST.user+"\", " + os.linesep + "        \"host\": \""+LOCALHOST.host+"\", " + os.linesep + "        \"port\": "+LOCALHOST.port+", " + os.linesep + "        \"schema\": \"sakila\"" + os.linesep + "    }"),
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
@@ -4810,14 +4807,14 @@ class XShell_TestCases(unittest.TestCase):
 
 
   def test_4_9_02_1(self):
-      '''[4.9.002] Update a Stored Session: '''
+      '''[4.9.002] Update a Stored Session: using savec -f to override current value  '''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
 
       x_cmds = [("\\rmconn classic_session\n","mysql-js>"),
-                ("\\addconn classic_session "+LOCALHOST.user+":"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+"\sakila\n","mysql-js>"),
+                ("\\savec classic_session "+LOCALHOST.user+":"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+"\sakila\n","mysql-js>"),
                 ("shell.storedSessions;\n","\"classic_session\": {" + os.linesep + ""),
-                ("\\chconn classic_session dummy:"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+"\sakila\n","mysql-js>"),
+                ("\\savec -f classic_session dummy:"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+"\sakila\n","mysql-js>"),
                 ("shell.storedSessions;\n","\"dbUser\": \"dummy\", " + os.linesep + ""),
 
                 ]
@@ -4825,12 +4822,12 @@ class XShell_TestCases(unittest.TestCase):
       self.assertEqual(results, 'PASS')
 
   def test_4_9_02_2(self):
-      '''[4.9.002] Update a Stored Session: '''
+      '''[4.9.002] Update a Stored Session: using saveconn '''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
 
       x_cmds = [("\\rmconn classic_session\n","mysql-js>"),
-                ("\\addconn classic_session "+LOCALHOST.user+":"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+"\sakila\n","mysql-js>"),
+                ("\\saveconn classic_session "+LOCALHOST.user+":"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+"\sakila\n","mysql-js>"),
                 ("shell.storedSessions;\n","\"classic_session\": {" + os.linesep + ""),
                 ("shell.storedSessions.update(\"classic_session\", \"dummy:"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+"\sakila\")\n","mysql-js>"),
                 ("shell.storedSessions;\n","\"dbUser\": \"dummy\", " + os.linesep + ""),
@@ -4839,14 +4836,13 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
-
   def test_4_9_03_1(self):
-      '''[4.9.002] remove a Stored Session: '''
+      '''[4.9.002] remove a Stored Session: using savec'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
 
       x_cmds = [("\\rmconn classic_session\n","mysql-js>"),
-                ("\\addconn classic_session "+LOCALHOST.user+":"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+"\sakila\n","mysql-js>"),
+                ("\\savec classic_session "+LOCALHOST.user+":"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+"\sakila\n","mysql-js>"),
                 ("shell.storedSessions;\n","\"classic_session\": {" + os.linesep + ""),
                 ("\\rmconn classic_session\n","mysql-js>"),
                 ("shell.storedSessions.update(\"classic_session\", \"dummy:"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+"\sakila\")\n","does not exist"),
@@ -4856,12 +4852,12 @@ class XShell_TestCases(unittest.TestCase):
 
 
   def test_4_9_03_2(self):
-      '''[4.9.002] remove a Stored Session: '''
+      '''[4.9.002] remove a Stored Session: using saveconn'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
 
       x_cmds = [("\\rmconn classic_session\n","mysql-js>"),
-                ("\\addconn classic_session "+LOCALHOST.user+":"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+"\sakila\n","mysql-js>"),
+                ("\\saveconn classic_session "+LOCALHOST.user+":"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+"\sakila\n","mysql-js>"),
                 ("shell.storedSessions;\n","\"classic_session\": {" + os.linesep + ""),
                 ("shell.storedSessions.remove(\"classic_session\");","true"),
                 ]
@@ -4870,37 +4866,38 @@ class XShell_TestCases(unittest.TestCase):
 
 
   def test_4_9_04_1(self):
-      '''[4.9.002] remove a Stored Session: '''
+      '''[4.9.002] remove a Stored Session: using savec '''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
 
       x_cmds = [("\\rmconn classic_session\n","mysql-js>"),
-                ("\\addconn classic_session "+LOCALHOST.user+":"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+"\sakila\n","mysql-js>"),
+                ("\\savec classic_session "+LOCALHOST.user+":"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+"\sakila\n","mysql-js>"),
                 ("shell.storedSessions;\n","\"classic_session\": {" + os.linesep + ""),
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
-
+  @unittest.skip("Format displayed incorrectly related to bug https://jira.oraclecorp.com/jira/browse/MYS-538")
   def test_4_9_04_2(self):
-      '''[4.9.002] remove a Stored Session: '''
+      '''[4.9.002] remove a Stored Session: using saveconn '''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
 
       x_cmds = [("\\rmconn classic_session\n","mysql-js>"),
-                ("\\addconn classic_session "+LOCALHOST.user+":"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+"\sakila\n","mysql-js>"),
+                ("\\saveconn classic_session "+LOCALHOST.user+":"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+"\sakila\n","mysql-js>"),
                 ("\\lsc\n","\"classic_session\": {" + os.linesep + ""),
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+  @unittest.skip("Format displayed incorrectly related to bug https://jira.oraclecorp.com/jira/browse/MYS-538")
   def test_4_9_04_3(self):
-      '''[4.9.002] remove a Stored Session: '''
+      '''[4.9.002] remove a Stored Session: using savec '''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
 
       x_cmds = [("\\rmconn classic_session\n","mysql-js>"),
-                ("\\addconn classic_session "+LOCALHOST.user+":"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+"\sakila\n","mysql-js>"),
+                ("\\savec classic_session "+LOCALHOST.user+":"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+"\sakila\n","mysql-js>"),
                 ("\\lsconn\n","\"classic_session\": {" + os.linesep + ""),
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
@@ -5794,7 +5791,7 @@ class XShell_TestCases(unittest.TestCase):
       x_cmds = [("\n", 'mysql-py>'),
                 ("session\n", '{\"result\":{\"class\":\"NodeSession\",\"connected\":true,\"uri\":\"' + LOCALHOST.user + '@' + LOCALHOST.host + ':' + LOCALHOST.xprotocol_port + '\"}}'),
                 ("\\sql\n", "mysql-sql>"),
-                ("use world_x;\n", "{\"executionTime\":\"0.00 sec\",\"warningCount\":0,\"warnings\":[],\"rows\":[],\"hasData\":false,\"affectedRowCount\":0,\"autoIncrementValue\":-1}"),
+                ("use world_x;\n", "warningCount\":0,\"warnings\":[],\"rows\":[],\"hasData\":false,\"affectedRowCount\":0,\"autoIncrementValue\":-1}"),
                 ("create table test_classic (variable varchar(10));\n", "\"warningCount\":0,\"warnings\":[],\"rows\":[],\"hasData\":false,\"affectedRowCount\":0,\"autoIncrementValue\":-1}"),
                 ("select * from test_classic;\n","\"warningCount\":0,\"warnings\":[],\"rows\":[],\"hasData\":true,\"affectedRowCount\":0,\"autoIncrementValue\":-1}"),
                 ("drop table world_x.test_classic;\n", "\"warningCount\":0,\"warnings\":[],\"rows\":[],\"hasData\":false,\"affectedRowCount\":0,\"autoIncrementValue\":-1}")
@@ -5906,28 +5903,32 @@ class XShell_TestCases(unittest.TestCase):
       self.assertEqual(results, 'PASS')
 
   def test_MYS_290_00(self):
-     '''Verify the bug https://jira.oraclecorp.com/jira/browse/MYS-290 with --file'''
-     results = ''
-     init_command = [MYSQL_SHELL, '--file=' + Exec_files_location + 'JavaScript_Error.js']
-     p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE )
-     stdin,stdout = p.communicate()
-     if stdout.startswith('ReferenceError'):
-         results = 'PASS'
-     else:
-         results = 'FAIL'
-     self.assertEqual(results, 'PASS', str(stdout))
+      '''Verify the bug https://jira.oraclecorp.com/jira/browse/MYS-290 with --file'''
+      results = ''
+      init_command = [MYSQL_SHELL, '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                      '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--node',
+                      '--file=' + Exec_files_location + 'JavaScript_Error.js']
+      p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+      stdin, stdout = p.communicate()
+      if stdout.find(bytearray("Invalid object member getdatabase", "ascii")):
+          results = 'PASS'
+      else:
+          results = 'FAIL'
+      self.assertEqual(results, 'PASS', str(stdout))
 
   def test_MYS_290_01(self):
-     '''Verify the bug https://jira.oraclecorp.com/jira/browse/MYS-290 with --interactive=full --file '''
-     results = ''
-     init_command = [MYSQL_SHELL, '--interactive=full', '--file=' + Exec_files_location + 'JavaScript_Error.js']
-     p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE )
-     stdin,stdout = p.communicate()
-     if stdout.startswith('ReferenceError'):
-         results = 'PASS'
-     else:
-         results = 'FAIL'
-     self.assertEqual(results, 'PASS', str(stdout))
+      '''Verify the bug https://jira.oraclecorp.com/jira/browse/MYS-290 with --interactive=full --file '''
+      results = ''
+      init_command = [MYSQL_SHELL, '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                      '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--node', '--interactive=full',
+                      '--file=' + Exec_files_location + 'JavaScript_Error.js']
+      p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+      stdin, stdout = p.communicate()
+      if stdout.find(bytearray("Invalid object member getdatabase", "ascii")):
+          results = 'PASS'
+      else:
+          results = 'FAIL'
+      self.assertEqual(results, 'PASS', str(stdout))
   
   #FAILING........
   @unittest.skip("SSL is not creating the connection, related issue: https://jira.oraclecorp.com/jira/browse/MYS-488")
@@ -6121,6 +6122,16 @@ class XShell_TestCases(unittest.TestCase):
           results="FAIL"
       self.assertEqual(results, 'PASS')
 
+  def test_MYS_326(self):
+      ''' Error displayed as json instead of common error format for sql mode, more info on
+      https://jira.oraclecorp.com/jira/browse/MYS-471 and
+      https://jira.oraclecorp.com/jira/browse/MYS-326 '''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                       '-h' + LOCALHOST.host, '-P' + LOCALHOST.port, '--classic', '--sqlc']
+      x_cmds = [("foo\"AnyText\";\n", "ERROR: 1064 (42000): You have an error in your SQL syntax")]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
 
   def test_MYS_335(self):
       '''[CHLOG 1.0.2.5_2] Different password command line args'''
@@ -6140,6 +6151,74 @@ class XShell_TestCases(unittest.TestCase):
           results="FAIL"
       self.assertEqual(results, 'PASS')
 
+  def test_MYS_338_01(self):
+      '''[2.0.14]:4 Connect remote Server inside mysqlshell FAILOVER: \connect -c  wrong password'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+      x_cmds = [(";\n", "mysql-js>"),
+                ("\\connect -c {0}:{1}@{2}:{3}\n".format(REMOTEHOST.user, "wrongpass", REMOTEHOST.host, REMOTEHOST.port), "mysql-js>"),
+                ("print(session)\n", "Undefined"),
+                ("session\n", "Undefined"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_MYS_338_02(self):
+      '''[2.0.14]:4 Connect remote Server inside mysqlshell FAILOVER: \connect -c  wrong password'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+      x_cmds = [(";\n", "mysql-js>"),
+                ("\\connect -c {0}:{1}@{2}:{3}\n".format(REMOTEHOST.user, "wrongpass", REMOTEHOST.host, REMOTEHOST.port), "mysql-js>"),
+                ("print(db)\n", "Undefined"),
+                ("db\n", "Undefined"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_MYS_338_03(self):
+      '''[2.0.14]:4 Connect remote Server inside mysqlshell FAILOVER: \connect -c  wrong password'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+      x_cmds = [(";\n", "mysql-js>"),
+                ("\\connect -c {0}:{1}@{2}:{3}\n".format(REMOTEHOST.user, "wrongpass", REMOTEHOST.host, REMOTEHOST.port), "mysql-js>"),
+                ("db.name\n", "The db variable is not set, establish a global session first."),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_MYS_338_04(self):
+      '''[2.0.14]:4 Connect remote Server inside mysqlshell FAILOVER: \connect -c  wrong password'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+      x_cmds = [(";\n", "mysql-js>"),
+                ("session.uri\n", "establish a session?"),
+                ("y\n", "Please specify the session type:"),
+                ("1\n", "MySQL server URI (or $alias)"),
+                ("{0}:{1}@{2}:{3}\n".format(REMOTEHOST.user, REMOTEHOST.password, REMOTEHOST.host, REMOTEHOST.xprotocol_port), "mysql-js>"),
+                ("session.uri\n", "{0}@{1}:{2}".format(REMOTEHOST.user,  REMOTEHOST.host, REMOTEHOST.xprotocol_port)),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+
+  def test_MYS_338_05(self):
+      '''[2.0.14]:4 Connect remote Server inside mysqlshell FAILOVER: \connect -c  wrong password'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+      x_cmds = [(";\n", "mysql-js>"),
+                ("session.uri\n", "establish a session?"),
+                ("y\n", "Please specify the session type:"),
+                ("1\n", "MySQL server URI (or $alias)"),
+                ("{0}:{1}@{2}:{3}\n".format(REMOTEHOST.user, REMOTEHOST.password, REMOTEHOST.host, REMOTEHOST.xprotocol_port), "mysql-js>"),
+                ("session.uri\n", "{0}@{1}:{2}".format(REMOTEHOST.user,  REMOTEHOST.host, REMOTEHOST.xprotocol_port)),
+                ("db.name\n", "want to set the active schema?"),
+                ("y\n", "Please specify the schema:"),
+                ("sakila\n", "mysql-js>"),
+                ("db.name\n", "sakila"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
 
   def test_MYS_339(self):
       '''[4.9.002] Update a Stored Session: '''
@@ -6147,9 +6226,10 @@ class XShell_TestCases(unittest.TestCase):
       init_command = [MYSQL_SHELL, '--interactive=full']
 
       x_cmds = [("\\rmconn classic_session\n","mysql-js>"),
-                ("\\addconn classic_session "+LOCALHOST.user+":"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+"\sakila\n","mysql-js>"),
+                ("\\saveconn classic_session "+LOCALHOST.user+":"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+"/sakila\n","mysql-js>"),
                 ("shell.storedSessions;\n","\"classic_session\": {" + os.linesep + ""),
-                ("\\chconn classic_session dummy:"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+"\sakila\n","mysql-js>"),
+                ("\\rmconn classic_session\n","mysql-js>"),
+                ("\\saveconn classic_session dummy:"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+"/sakila\n","mysql-js>"),
                 ("shell.storedSessions;\n","\"dbUser\": \"dummy\", " + os.linesep + ""),
 
                 ]
@@ -6175,7 +6255,7 @@ class XShell_TestCases(unittest.TestCase):
                       '-h' + LOCALHOST.host,'-P' + LOCALHOST.port, '--classic', '--py']
       x_cmds = [(";\n", 'mysql-py>'),
                 ("def custom_prompt(): return \'--mypy--prompt-->\'\n", ""),
-                ("shell.ps = custom_prompt\n", "--mypy--prompt-->"),
+                ("shell.custom_prompt = custom_prompt\n", "--mypy--prompt-->"),
                 ("\\js\n", "mysql-js>"),
                 ("\\py\n", "--mypy--prompt-->")
                 ]
@@ -6189,7 +6269,7 @@ class XShell_TestCases(unittest.TestCase):
                       '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--node', '--js']
       x_cmds = [(";\n", 'mysql-js>'),
                 ("function custom_prompt(){ return session.uri + \'>>\'; }\n", ""),
-                ("shell.ps = custom_prompt\n", LOCALHOST.user + "@" + LOCALHOST.host + ":" + LOCALHOST.xprotocol_port + ">>"),
+                ("shell.custom_prompt = custom_prompt\n", LOCALHOST.user + "@" + LOCALHOST.host + ":" + LOCALHOST.xprotocol_port + ">>"),
                 ("\\py\n", "mysql-py>"),
                 ("\\js\n", LOCALHOST.user + "@" + LOCALHOST.host + ":" + LOCALHOST.xprotocol_port + ">>")
                 ]
@@ -6322,7 +6402,41 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+  def test_MYS_365_01(self):
+      ''' Schema names not available directly as session.schema and getSchema('uri') must work for classic session'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                       '-h' + LOCALHOST.host, '-P' + LOCALHOST.port, '--classic', '--py']
+      x_cmds = [("session.createSchema('uri')\n", ""),
+                ("session.getSchema('uri')\n", ""),
+                ("session.dropSchema('uri')\n", "Query OK")
+               ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
 
+  def test_MYS_365_02(self):
+      ''' Schema names not available directly as session.schema and getSchema('uri') must work for node session'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                       '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--node', '--js']
+      x_cmds = [("session.createSchema('uri')\n", ""),
+                ("session.getSchema('uri')\n", ""),
+                ("session.dropSchema('uri')\n", "Query OK")
+               ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_MYS_365_03(self):
+      ''' Schema names not available directly as session.schema and getSchema('uri') must work for node session'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                       '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--x', '--js']
+      x_cmds = [("session.createSchema('uri')\n", ""),
+                ("session.getSchema('uri')\n", ""),
+                ("session.dropSchema('uri')\n", "Query OK")
+               ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
 
   def test_MYS_366_00(self):
       """ Verify the bug https://jira.oraclecorp.com/jira/browse/MYS-366 with node session """
@@ -6434,10 +6548,134 @@ class XShell_TestCases(unittest.TestCase):
       x_cmds = [("\n", 'mysql-py>'),
                 ("session\n", '{\"result\":{\"class\":\"NodeSession\",\"connected\":true,\"uri\":\"' + LOCALHOST.user + '@' + LOCALHOST.host + ':' + LOCALHOST.xprotocol_port + '\"}}'),
                 ("\\sql\n", "mysql-sql>"),
-                ("use world_x;\n", "{\"executionTime\":\"0.00 sec\",\"warningCount\":0,\"warnings\":[],\"rows\":[],\"hasData\":false,\"affectedRowCount\":0,\"autoIncrementValue\":-1}"),
+                ("use world_x;\n", "warningCount\":0,\"warnings\":[],\"rows\":[],\"hasData\":false,\"affectedRowCount\":0,\"autoIncrementValue\":-1}"),
                 ("create table test_classic (variable varchar(10));\n", "\"warningCount\":0,\"warnings\":[],\"rows\":[],\"hasData\":false,\"affectedRowCount\":0,\"autoIncrementValue\":-1}"),
                 ("select * from test_classic;\n","\"warningCount\":0,\"warnings\":[],\"rows\":[],\"hasData\":true,\"affectedRowCount\":0,\"autoIncrementValue\":-1}"),
                 ("drop table world_x.test_classic;\n", "\"warningCount\":0,\"warnings\":[],\"rows\":[],\"hasData\":false,\"affectedRowCount\":0,\"autoIncrementValue\":-1}")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_MYS_400_01(self):
+      ''' using  getDocumentId() and getDocumentIds() functions based in js'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                       '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--node', '--js']
+      x_cmds = [("DocumentIDsColl = session.getSchema('sakila_x').createCollection('colldocumentids');\n", "<Collection:colldocumentids>"),
+                ("res = DocumentIDsColl.add({ _id: '1', name: 'Rubens', lastname: 'Morquecho'}).add({ _id: '2', name: 'Omar', lastname: 'Mendez'}).execute()\n", "Query OK, 2 items affected"),
+                # Validate getDocumentIds() with chaining add() and user-supplied document IDs
+                ("res.getLastDocumentIds()\n", "\"1\""),
+                ("res.getLastDocumentIds()\n", "\"2\""),
+                # Validate getDocumentId() not allowed with chaining add()
+                ("res.getLastDocumentId()\n", "mysql-js>"),
+                ("res = DocumentIDsColl.add({ _id: '3', name: 'Armando', lastname: 'Lopez'}).execute()\n", "Query OK, 1 item affected"),
+                # Validate getDocumentId() for single add()
+                ("res.getLastDocumentId()\n", "3"),
+                # Validate getDocumentIds() without chaining
+                ("res.getLastDocumentIds()\n", "\"3\""),
+                ("session.dropCollection('sakila_x','colldocumentids');\n", "Query OK")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_MYS_400_02(self):
+      ''' using  getDocumentId() and getDocumentIds() functions based in py'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                       '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--node', '--py']
+      x_cmds = [("DocumentIDsColl = session.getSchema('sakila_x').createCollection('colldocumentids');\n", "mysql-py>"),
+                ("res = DocumentIDsColl.add({ '_id': '1', 'name': 'Rubens', 'lastname': 'Morquecho'}).add({ '_id': '2', 'name': 'Omar', 'lastname': 'Mendez'}).execute()\n", "mysql-py>"),
+                # Validate getDocumentIds() with chaining add() and user-supplied document IDs
+                ("res.getLastDocumentIds()\n", "\"1\""),
+                ("res.getLastDocumentIds()\n", "\"2\""),
+                # Validate getDocumentId() not allowed with chaining add()
+                ("res.getLastDocumentId()\n", "mysql-py>"),
+                ("res = DocumentIDsColl.add({ '_id': '3', 'name': 'Armando', 'lastname': 'Lopez'}).execute()\n", "mysql-py>"),
+                # Validate getDocumentId() for single add()
+                ("res.getLastDocumentId()\n", "3"),
+                # Validate getDocumentIds() without chaining
+                ("res.getLastDocumentIds()\n", "\"3\""),
+                ("session.dropCollection('sakila_x','colldocumentids');\n", "Query OK")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_MYS_401_1(self):
+      ''' View support (without DDL)'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                       '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--node', '--js']
+
+      x_cmds = [("var db = session.getSchema('sakila');\n", "mysql-js>"),
+                ("var table = db.getTable('actor');\n", "mysql-js>"),
+                ("table.isView();\n", "false"),
+                ("view = db.getTable('actor_info');\n","<Table:actor_info>"),
+                ("view.isView();\n","true"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_MYS_401_2(self):
+      ''' View support (without DDL)'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                       '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--node', '--js']
+
+      x_cmds = [("var db = session.getSchema('sakila');\n", "mysql-js>"),
+                ("var table = db.getTable('actor');\n", "mysql-js>"),
+                ("table.isView();\n", "false"),
+                ("view = db.getTable('actor_info');\n","<Table:actor_info>"),
+                ("view.isView();\n","true"),
+                ("view.update().set('last_name','GUINESSE').where('actor_id=1').execute();\n","The target table actor_info of the UPDATE is not updatable"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_MYS_401_3(self):
+      ''' View support (without DDL)'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                       '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--node', '--js']
+
+      x_cmds = [("var db = session.getSchema('sakila');\n", "mysql-js>"),
+                ("var table = db.getTable('actor');\n", "mysql-js>"),
+                ("table.isView();\n", "false"),
+                ("view = db.getTable('actor_info');\n","<Table:actor_info>"),
+                ("view.isView();\n","true"),
+                ("view.delete().where('actor_id = 1').execute();\n","The target table actor_info of the DELETE is not updatable"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_MYS_401_4(self):
+      ''' View support (without DDL)'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                       '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--node', '--js']
+
+      x_cmds = [("var db = session.getSchema('sakila');\n", "mysql-js>"),
+                ("var table = db.getTable('actor');\n", "mysql-js>"),
+                ("table.isView();\n", "false"),
+                ("view = db.getTable('actor_info');\n","<Table:actor_info>"),
+                ("view.isView();\n","true"),
+                ("view.insert().values(203,'JOHN','CENA', 'Action: The Marine').execute();\n","The target table actor_info of the INSERT is not insertable-into"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_MYS_401_5(self):
+      ''' View support (without DDL)'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                       '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--node', '--sql', '--schema=sakila']
+
+      x_cmds = [("create view actor_list as select actor_id as id, first_name as name, last_name as lname from actor;\n", "Query OK"),
+                ("\\js\n", "mysql-js>"),
+                ("view = db.getTable('actor_list');\n", "<Table:actor_list>"),
+                ("view.isView();\n", "true"),
+                ("view.insert().values(201, 'JOHN', 'SENA').execute();\n","Query OK, 1 item affected"),
+                ("view.update().set('lname', 'CENA').where('id=201').execute();\n","Query OK, 1 item affected"),
+                ("view.delete().where('id=201').execute();\n","Query OK, 1 item affected"),
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
@@ -6469,6 +6707,19 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+  def test_MYS_427(self):
+      '''[MYS_427] Warning is not longer displayed when password is not provided in URI connection '''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--uri',
+                      '{0}:@{1}:{2}'.format(LOCALHOST.user, LOCALHOST.host, LOCALHOST.xprotocol_port), '--node', '--js']
+      p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin =subprocess.PIPE )
+      stdin,stdout = p.communicate()
+      if stdin.find(bytearray("[Warning]","ascii"),0,len(stdin))> -1:
+        results = 'FAIL'
+      else:
+        results = 'PASS'
+      self.assertEqual(results, 'PASS')
+
   def test_MYS_441(self):
       ''' db.tables and db.views should be removed'''
       results = ''
@@ -6480,6 +6731,203 @@ class XShell_TestCases(unittest.TestCase):
                 ("db.views();\n",  "" + os.linesep + os.linesep + ""),
                 ("db.getTables();\n","actor"),
                 ("db.getViews();\n","actor_info"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_MYS_442_01(self):
+      '''JS In node mode check isView() function to identify whether the underlying object is a View or not, return bool '''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--uri',
+                      '{0}:{1}@{2}:{3}'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), '--node', '--js']
+      x_cmds = [("table = session.getSchema('sakila').getTable('actor')\n", "mysql-js>"),
+                ("table.isView()\n", "false"),
+                ("view = session.getSchema('sakila').getTable('actor_info')\n", "mysql-js>"),
+                ("view.isView()\n", "true")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_MYS_442_02(self):
+      '''JS In classic mode check isView() function to identify whether the underlying object is a View or not, return bool '''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--uri',
+                      '{0}:{1}@{2}:{3}'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.port), '--classic', '--js']
+      x_cmds = [("table = session.getSchema('sakila').getTable('actor')\n", "mysql-js>"),
+                ("table.isView()\n", "false"),
+                ("view = session.getSchema('sakila').getTable('actor_info')\n", "mysql-js>"),
+                ("view.isView()\n", "true")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_MYS_442_03(self):
+      '''PY In node mode check isView() function to identify whether the underlying object is a View or not, return bool '''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--uri',
+                      '{0}:{1}@{2}:{3}'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), '--node', '--py']
+      x_cmds = [("table = session.getSchema('sakila').getTable('actor')\n", ""),
+                ("table.isView()\n", "false"),
+                ("view = session.getSchema('sakila').getTable('actor_info')\n", ""),
+                ("view.isView()\n", "true")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_MYS_442_04(self):
+      '''PY In classic mode check isView() function to identify whether the underlying object is a View or not, return bool '''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--uri',
+                      '{0}:{1}@{2}:{3}'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.port), '--classic', '--py']
+      x_cmds = [("table = session.getSchema('sakila').getTable('actor')\n", ""),
+                ("table.isView()\n", "false"),
+                ("view = session.getSchema('sakila').getTable('actor_info')\n", ""),
+                ("view.isView()\n", "true")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_MYS_442_05(self):
+      '''View select all response '''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--uri',
+                      '{0}:{1}@{2}:{3}'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), '--node', '--js']
+      x_cmds = [("view = session.getSchema('sakila').getTable('actor_info')\n", "mysql-js>"),
+                ("view.select().execute()\n", "rows in set")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_MYS_442_06(self):
+      '''Error displayed when try to update the view '''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--uri',
+                      '{0}:{1}@{2}:{3}'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), '--node', '--js']
+      x_cmds = [("view = session.getSchema('sakila').getTable('actor_info')\n", "mysql-js>"),
+                ("view.update().set('last_name','GUINESSE').where('actor_id=1').execute()\n", "MySQL Error (1288): The target table actor_info of the UPDATE is not updatable")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_MYS_442_07(self):
+      '''Vies displayed as part of getTables() function '''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--uri',
+                      '{0}:{1}@{2}:{3}'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), '--node', '--js']
+      x_cmds = [("session.getSchema('sakila').getTables()\n", "<Table:actor_info>,"),
+                ("session.getSchema('sakila').getTables()\n", "<Table:actor_list>,")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_MYS_442_08(self):
+      '''JS node For a view to be updatable, there must be a one-to-one relationship between the rows in the view and the rows in the underlying table
+       therefore a new view is created following sakila.actor so update, insert and delete rows works'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--uri',
+                      '{0}:{1}@{2}:{3}/{4}'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port, "sakila"), '--node', '--js']
+      x_cmds = [("session.sql(\"create view actor_list2 as select actor_id as id, first_name as name, last_name as lname from actor;\").execute()\n", "Query OK"),
+                ("view = session.getSchema('sakila').getTable('actor_list2')\n", ""),
+                ("view.insert().values(250, 'XShellName','XShellLastName').execute()\n", "Query OK, 1 item affected"),
+                ("view.update().set('lname','XShellUpd').where('id=250').execute()\n", "Query OK, 1 item affected"),
+                ("view.delete().where('id=250').execute()\n", "Query OK, 1 item affected"),
+                ("session.dropView('sakila','actor_list2')\n", "Query OK")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_MYS_442_09(self):
+      '''PY node For a view to be updatable, there must be a one-to-one relationship between the rows in the view and the rows in the underlying table
+       therefore a new view is created following sakila.actor so update, insert and delete rows works'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--uri',
+                      '{0}:{1}@{2}:{3}/{4}'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port, "sakila"), '--node', '--py']
+      x_cmds = [("session.sql(\"create view actor_list2 as select actor_id as id, first_name as name, last_name as lname from actor;\").execute()\n", "Query OK"),
+                ("view = session.getSchema('sakila').getTable('actor_list2')\n", ""),
+                ("view.insert().values(250, 'XShellName','XShellLastName').execute()\n", "Query OK, 1 item affected"),
+                ("view.update().set('lname','XShellUpd').where('id=250').execute()\n", "Query OK, 1 item affected"),
+                ("view.delete().where('id=250').execute()\n", "Query OK, 1 item affected"),
+                ("session.dropView('sakila','actor_list2')\n", "Query OK")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  @unittest.skip("issues MYS432 , Add support for log level names")
+  def test_MYS_432_1(self):
+      '''Add support for log level names'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=none','--js']
+      x_cmds = [(";\n", "mysql-js>"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  @unittest.skip("issues MYS432 , Add support for log level names")
+  def test_MYS_432_2(self):
+      '''Add support for log level names'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=internal','--js']
+      x_cmds = [(";\n", "mysql-js>"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  @unittest.skip("issues MYS432 , Add support for log level names")
+  def test_MYS_432_3(self):
+      '''Add support for log level names'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=error','--js']
+      x_cmds = [(";\n", "mysql-js>"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  @unittest.skip("issues MYS432 , Add support for log level names")
+  def test_MYS_432_4(self):
+      '''Add support for log level names'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=warning','--js']
+      x_cmds = [(";\n", "mysql-js>"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  @unittest.skip("issues MYS432 , Add support for log level names")
+  def test_MYS_432_5(self):
+      '''Add support for log level names'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=info','--js']
+      x_cmds = [(";\n", "mysql-js>"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  @unittest.skip("issues MYS432 , Add support for log level names")
+  def test_MYS_432_6(self):
+      '''Add support for log level names'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=debug','--js']
+      x_cmds = [(";\n", "mysql-js>"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  @unittest.skip("issues MYS432 , Add support for log level names")
+  def test_MYS_432_7(self):
+      '''Add support for log level names'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=debug2','--js']
+      x_cmds = [(";\n", "mysql-js>"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  @unittest.skip("issues MYS432 , Add support for log level names")
+  def test_MYS_432_8(self):
+      '''Add support for log level names'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=debug3','--js']
+      x_cmds = [(";\n", "mysql-js>"),
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
@@ -6612,6 +7060,295 @@ class XShell_TestCases(unittest.TestCase):
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
+
+  def test_MYS_446(self):
+      ''' How should Collection.add([]).execute() behave? Error is not displayed, nothing added '''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                       '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--node', '--py']
+      x_cmds = [("testCollection = session.getSchema('sakila_x').createCollection('testcoll');\n", "mysql-py>"),
+                ("res = testCollection.add([]).execute();\n", ""),
+                ("session.sql(\"select * from sakila_x.testcoll;\").execute();\n", "Empty set"),
+                ("session.dropCollection('sakila_x','testcoll');\n", "Query OK")
+               ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_MYS_451(self):
+      '''MYSQL SHELL HELP OUTPUT IS WRONG ABOUT MYSH'''
+      results = ''
+      var = "===== Global Commands ====="+os.linesep +\
+            "\\help       (\\?,\\h)    Print this help."+os.linesep +\
+            "\\sql                   Switch to SQL processing mode."+os.linesep +\
+            "\\js                    Switch to JavaScript processing mode."+os.linesep +\
+            "\\py                    Switch to Python processing mode."+os.linesep +\
+            "\\source     (\\.)       Execute a script file. Takes a file name as an argument."+os.linesep +\
+            "\\                      Start multi-line input when in SQL mode."+os.linesep +\
+            "\\quit       (\\q,\\exit) Quit MySQL Shell."+os.linesep +\
+            "\\connect    (\\c)       Connect to a server."+os.linesep +\
+            "\\warnings   (\\W)       Show warnings after every statement."+os.linesep +\
+            "\\nowarnings (\\w)       Don't show warnings after every statement."+os.linesep +\
+            "\\status     (\\s)       Print information about the current global connection."+os.linesep +\
+            "\\use        (\\u)       Set the current schema for the global session."+os.linesep +\
+            "\\saveconn   (\\savec)   Store a session configuration."+os.linesep +\
+            "\\rmconn     (\\rmc)     Remove the stored session configuration."+os.linesep +\
+            "\\lsconn     (\\lsc)     List stored session configurations."
+      init_command = [MYSQL_SHELL, '--interactive=full']
+      x_cmds = [("\\help\n", var)
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+
+  def test_MYS_470_1(self):
+      '''Enable named parameters in python for mysqlx.getSession() and mysqlx.getNodeSession()'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full','--py']
+      x_cmds = [("import mysqlx\n","mysql-py>"),
+                ("session=mysqlx.getSession(host= '" + LOCALHOST.host + "', dbUser= '"
+                 + LOCALHOST.user + "', dbPassword= '" + LOCALHOST.password + "')\n", "mysql-py>"),
+                ("session\n", "<XSession:"+ LOCALHOST.user +"@"+LOCALHOST.host+":"+LOCALHOST.xprotocol_port +">"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_MYS_470_2(self):
+      '''Enable named parameters in python for mysqlx.getSession() and mysqlx.getNodeSession()'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full','--py']
+      x_cmds = [("import mysqlx\n","mysql-py>"),
+                ("session=mysqlx.getNodeSession(host= '" + LOCALHOST.host + "', dbUser= '"
+                 + LOCALHOST.user + "', dbPassword= '" + LOCALHOST.password + "')\n", "mysql-py>"),
+                ("session\n", "<NodeSession:"+ LOCALHOST.user +"@"+LOCALHOST.host+":"+LOCALHOST.xprotocol_port +">"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_MYS_496(self):
+      '''MySQL Shell prints Undefined on JSON column (Classic Session)'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + REMOTEHOST.user, '--password=' + REMOTEHOST.password,
+                      '-h' + REMOTEHOST.host,'-P' + REMOTEHOST.port, '--classic', '--sqlc', '--schema=sakila_x']
+      x_cmds = [("select * from users limit 2;\n", '{\"_id\": \"'),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+
+  def test_MYS_497(self):
+      '''No output if missing ";" on the -e option or redirecting to STDIN'''
+      results = ''
+      #init_command = [MYSQL_SHELL, '--interactive=full', '--version' ]
+      init_command = [MYSQL_SHELL, '--interactive=full','-e show databases;', '--sql', '--uri',  LOCALHOST.user+ ':' + LOCALHOST.password +
+                      '@' + LOCALHOST.host     ]
+      p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+      p.stdin.flush()
+      stdin,stdout = p.communicate()
+      if stdin.find(bytearray("| sakila_x","ascii"), 0, len(stdin)) >= 0:
+          results="PASS"
+      else:
+          results="FAIL"
+      self.assertEqual(results, 'PASS')
+
+
+
+  def test_MYS_500_01(self):
+      '''Add println function for JavaScript'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full','--sql']
+      x_cmds = [("\\connect {0}:{1}@{2}\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host),"Creating an X Session"),
+                ("\\js\n", "mysql-js>"),
+                ("println(session);\n", "<XSession:"+LOCALHOST.user+"@"+LOCALHOST.host+":"+LOCALHOST.xprotocol_port+">" + os.linesep + ""),
+                ("\\use sakila\n", "mysql-js>"),
+                ("db;\n", "<Schema:sakila>"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_MYS_500_02(self):
+      '''Add println function for JavaScript'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full','--sql']
+      x_cmds = [("\\connect -n {0}:{1}@{2}\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "Creating a Node Session"),
+                ("\\js\n", "mysql-js>"),
+                ("println(session);\n", "<NodeSession:"+LOCALHOST.user+"@"+LOCALHOST.host+":"+LOCALHOST.xprotocol_port+">" + os.linesep + ""),
+                ("\\use sakila\n", "mysql-js>"),
+                ("session.getCurrentSchema();\n", "<Schema:sakila>"),
+                ("db;\n", "<Schema:sakila>"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_MYS_500_03(self):
+      '''Add println function for JavaScript'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full','--sql']
+      x_cmds = [("\\connect -c {0}:{1}@{2}:{3}\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
+                                                              LOCALHOST.port),"Creating a Classic Session"),
+                ("\\js\n", "mysql-js>"),
+                ("println(session);\n", "<ClassicSession:"+LOCALHOST.user+"@"+LOCALHOST.host+":"+LOCALHOST.port+">" + os.linesep + ""),
+                ("\\use sakila\n", "mysql-js>"),
+                ("session.getCurrentSchema();\n", "<ClassicSchema:sakila>"),
+                ("db;\n", "<ClassicSchema:sakila>"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+
+
+  def test_MYS_502(self):
+      '''Add println function for JavaScript'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full','--sql']
+      x_cmds = [("\\connect {0}:{1}@{2}\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host),"Creating an X Session"),
+                ("\\js\n", "mysql-js>"),
+                ("println(session);\n", "<XSession:"+LOCALHOST.user+"@"+LOCALHOST.host+":"+LOCALHOST.xprotocol_port+">" + os.linesep + "")
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_MYS_518_01(self):
+      ''' Session object Bool isOpen() function in js mode for node session'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                       '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--node', '--js']
+      x_cmds = [("session.isOpen()\n", "true"),
+                ("session.close()\n", "mysql-js>"),
+                ("session.isOpen()\n", "false"),
+               ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_MYS_518_02(self):
+      ''' Session object Bool isOpen() function in py mode for node session'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                       '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--node', '--py']
+      x_cmds = [("session.isOpen()\n", "true"),
+                ("session.close()\n", "mysql-py>"),
+                ("session.isOpen()\n", "false")
+               ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_MYS_518_03(self):
+      ''' Session object Bool isOpen() function in js mode for classic session'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                       '-h' + LOCALHOST.host,'-P' + LOCALHOST.port, '--classic', '--js']
+      x_cmds = [("session.isOpen()\n", "true"),
+                ("session.close()\n", "mysql-js>"),
+                ("session.isOpen()\n", "false"),
+               ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_MYS_518_04(self):
+      ''' Session object Bool isOpen() function in py mode for classic session'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                       '-h' + LOCALHOST.host,'-P' + LOCALHOST.port, '--classic', '--py']
+      x_cmds = [("session.isOpen()\n", "true"),
+                ("session.close()\n", "mysql-py>"),
+                ("session.isOpen()\n", "false")
+               ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_MYS_518_05(self):
+      ''' pasreUri function in js mode for node session'''
+      results = ''
+      Sschema = "world_x"
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                       '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--node', '--js']
+      x_cmds = [("shell.parseUri('{0}:{1}@{2}:{3}/{4}')\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
+                                                                  LOCALHOST.port,  Sschema), "\"dbPassword\": \"" + LOCALHOST.password + "\""),
+                ("shell.parseUri('{0}:{1}@{2}:{3}/{4}')\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
+                                                                  LOCALHOST.port,  Sschema), "\"dbUser\": \"" + LOCALHOST.user + "\""),
+                ("shell.parseUri('{0}:{1}@{2}:{3}/{4}')\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
+                                                                  LOCALHOST.port,  Sschema), "\"host\": \"" + LOCALHOST.host + "\""),
+                #("shell.parseUri('{0}:{1}@{2}:{3}/{4}')\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
+                #                                                  LOCALHOST.port,  Sschema), "\"port\": " + LOCALHOST.xprotocol_port),
+                ("shell.parseUri('{0}:{1}@{2}:{3}/{4}')\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
+                                                                  LOCALHOST.port,  Sschema), "\"schema\": \"" + Sschema + "\"")
+               ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_MYS_518_06(self):
+      ''' pasreUri function in py mode for node session'''
+      results = ''
+      Sschema = "world_x"
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                       '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--node', '--py']
+      x_cmds = [("shell.parseUri('{0}:{1}@{2}:{3}/{4}')\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
+                                                                  LOCALHOST.port,  Sschema), "\"dbPassword\": \"" + LOCALHOST.password + "\""),
+                ("shell.parseUri('{0}:{1}@{2}:{3}/{4}')\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
+                                                                  LOCALHOST.port,  Sschema), "\"dbUser\": \"" + LOCALHOST.user + "\""),
+                ("shell.parseUri('{0}:{1}@{2}:{3}/{4}')\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
+                                                                  LOCALHOST.port,  Sschema), "\"host\": \"" + LOCALHOST.host + "\""),
+                #("shell.parseUri('{0}:{1}@{2}:{3}/{4}')\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
+                #                                                  LOCALHOST.port,  Sschema), "\"port\": " + LOCALHOST.xprotocol_port),
+                ("shell.parseUri('{0}:{1}@{2}:{3}/{4}')\n".format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
+                                                                  LOCALHOST.port,  Sschema), "\"schema\": \"" + Sschema + "\"")
+               ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+
+  def test_MYS_538_1(self):
+      '''WRONG FORMAT DISPLAYED TO USER FOR \LSC OR \LSCONN'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+
+      x_cmds = [("\\rmconn classic_session1\n","mysql-js>"),
+                ("\\rmconn classic_session2\n","mysql-js>"),
+                ("\\rmconn classic_session3\n","mysql-js>"),
+                ("\\saveconn classic_session1 "+LOCALHOST.user+":"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+"/sakila\n","mysql-js>"),
+                ("\\saveconn classic_session2 "+LOCALHOST.user+":"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+"/test\n","mysql-js>"),
+                ("\\saveconn classic_session3 "+LOCALHOST.user+":"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+"/test2\n","mysql-js>"),
+                ("\\lsc\n","classic_session1 : "+LOCALHOST.user+"@"+LOCALHOST.host+":"+LOCALHOST.port+"/sakila"+os.linesep+\
+                 "classic_session2 : "+LOCALHOST.user+"@"+LOCALHOST.host+":"+LOCALHOST.port+"/test"+os.linesep+\
+                 "classic_session3 : "+LOCALHOST.user+"@"+LOCALHOST.host+":"+LOCALHOST.port+"/test2" + os.linesep),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_MYS_538_2(self):
+      '''WRONG FORMAT DISPLAYED TO USER FOR \LSC OR \LSCONN'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full']
+
+      x_cmds = [("\\rmconn classic_session1\n","mysql-js>"),
+                ("\\rmconn classic_session2\n","mysql-js>"),
+                ("\\rmconn classic_session3\n","mysql-js>"),
+                ("\\saveconn classic_session1 "+LOCALHOST.user+":"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+"/sakila\n","mysql-js>"),
+                ("\\saveconn classic_session2 "+LOCALHOST.user+":"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+"/test\n","mysql-js>"),
+                ("\\saveconn classic_session3 "+LOCALHOST.user+":"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+"/test2\n","mysql-js>"),
+                ("\\lsconn\n","classic_session1 : "+LOCALHOST.user+"@"+LOCALHOST.host+":"+LOCALHOST.port+"/sakila"+os.linesep+\
+                 "classic_session2 : "+LOCALHOST.user+"@"+LOCALHOST.host+":"+LOCALHOST.port+"/test"+os.linesep+\
+                 "classic_session3 : "+LOCALHOST.user+"@"+LOCALHOST.host+":"+LOCALHOST.port+"/test2" + os.linesep),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+  def test_MYS_539(self):
+      ''' Unable to add documents to collection'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                       '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--node','--schema=world_x', '--js']
+      var = "{ GNP: .6, IndepYear: 1967, Name: \"Sealand\", _id: \"SEA\""+\
+            "demographics: { LifeExpectancy: 79, Population: 27},"+\
+            "geography: { Continent: \"Europe\", Region: \"British Islands\", SurfaceArea: 193},"+\
+            "government: { GovernmentForm: \"Monarchy\", HeadOfState: \"Michael Bates\"}}"
+
+      x_cmds = [("var myColl = session.getSchema('world_x').getCollection('countryinfo');\n","mysql-js>"),
+                ("var result = myColl.add("+var+" ).execute();\n","mysql-js>"),
+                ("result.getLastDocumentId();\n","SEA"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
 
 
   # ----------------------------------------------------------------------

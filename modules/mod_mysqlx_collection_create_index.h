@@ -51,10 +51,15 @@ namespace mysh
       shcore::Value field(const shcore::Argument_list &args);
       virtual shcore::Value execute(const shcore::Argument_list &args);
 
-#ifdef DOXYGEN
+#if DOXYGEN_JS
       CollectionCreateIndex createIndex(String name);
       CollectionCreateIndex createIndex(String name, IndexType type);
       CollectionCreateIndex field(DocPath documentPath, IndexColumnType type, Bool isRequired);
+      Result execute();
+#elif DOXYGEN_PY
+      CollectionCreateIndex create_index(str name);
+      CollectionCreateIndex create_index(str name, IndexType type);
+      CollectionCreateIndex field(DocPath documentPath, IndexColumnType type, bool isRequired);
       Result execute();
 #endif
 

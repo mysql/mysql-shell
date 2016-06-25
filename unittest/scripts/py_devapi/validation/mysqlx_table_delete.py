@@ -6,7 +6,7 @@
 |All expected functions are available|
 |No additional functions are available|
 
-#@ TableDelete: valid operations after orderBy
+#@ TableDelete: valid operations after order_by
 |All expected functions are available|
 |No additional functions are available|
 
@@ -35,11 +35,11 @@
 ||TableDelete.where: Argument #1 is expected to be a string
 ||TableDelete.where: Unterminated quoted string starting at position 8
 
-#@# TableDelete: Error conditions on orderBy
-||Invalid number of arguments in TableDelete.orderBy, expected 1 but got 0
-||TableDelete.orderBy: Argument #1 is expected to be an array
-||TableDelete.orderBy: Order criteria can not be empty
-||TableDelete.orderBy: Element #2 is expected to be a string
+#@# TableDelete: Error conditions on order_by
+||Invalid number of arguments in TableDelete.order_by, expected 1 but got 0
+||TableDelete.order_by: Argument #1 is expected to be an array
+||TableDelete.order_by: Order criteria can not be empty
+||TableDelete.order_by: Element #2 is expected to be a string
 
 #@# TableDelete: Error conditions on limit
 ||Invalid number of arguments in TableDelete.limit, expected 1 but got 0
@@ -80,8 +80,8 @@
 
 #@ TableDelete: with limit 3
 |Affected Rows: 1|
-|lastDocumentId: LogicError: Result.getLastDocumentId(): document id is not available.|
-|getLastDocumentId(): LogicError: Result.getLastDocumentId(): document id is not available.|
-|lastDocumentIds: LogicError: Result.getLastDocumentIds(): document ids are not available.|
-|getLastDocumentIds(): LogicError: Result.getLastDocumentIds(): document ids are not available.|
+|last_document_id: LogicError: Result.get_last_document_id: document id is not available.|
+|get_last_document_id(): LogicError: Result.get_last_document_id: document id is not available.|
+|last_document_ids: LogicError: Result.get_last_document_ids: document ids are not available.|
+|get_last_document_ids(): LogicError: Result.get_last_document_ids: document ids are not available.|
 |Records Left: 0|

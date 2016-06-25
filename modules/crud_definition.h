@@ -43,6 +43,15 @@ namespace mysh
   class DatabaseObject;
   namespace mysqlx
   {
+#if DOXYGEN_CPP
+    /** 
+    * Base class for CRUD operations.
+    *
+    * The CRUD operations will use "dynamic" functions to control the method chaining.
+    * A dynamic function is one that will be enabled/disabled based on the method
+    * chain sequence.
+    */
+#endif
     class Crud_definition : public Dynamic_object
     {
     public:
@@ -52,9 +61,6 @@ namespace mysh
       virtual shcore::Value execute(const shcore::Argument_list &args) = 0;
     protected:
       boost::weak_ptr<DatabaseObject> _owner;
-      // The CRUD operations will use "dynamic" functions to control the method chaining.
-      // A dynamic function is one that will be enabled/disabled based on the method
-      // chain sequence.
 
       void parse_string_list(const shcore::Argument_list &args, std::vector<std::string> &data);
     };

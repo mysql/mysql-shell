@@ -43,8 +43,24 @@ namespace mysh
     class TableUpdate : public Table_crud_definition, public boost::enable_shared_from_this<TableUpdate>
     {
     public:
+#if DOXYGEN_JS
+      TableUpdate update();
+      TableUpdate set(String attribute, Value value);
+      TableUpdate where(String searchCondition);
+      TableUpdate orderBy(List sortExprStr);
+      TableUpdate limit(Integer numberOfRows);
+      TableUpdate bind(String name, Value value);
+      Result execute();
+#elif DOXYGEN_PY
+      TableUpdate update();
+      TableUpdate set(str attribute, Value value);
+      TableUpdate where(str searchCondition);
+      TableUpdate order_by(list sortExprStr);
+      TableUpdate limit(int numberOfRows);
+      TableUpdate bind(str name, Value value);
+      Result execute();
+#endif
       TableUpdate(boost::shared_ptr<Table> owner);
-    public:
       virtual std::string class_name() const { return "TableUpdate"; }
       static boost::shared_ptr<shcore::Object_bridge> create(const shcore::Argument_list &args);
       shcore::Value update(const shcore::Argument_list &args);
@@ -55,15 +71,6 @@ namespace mysh
       shcore::Value bind(const shcore::Argument_list &args);
 
       virtual shcore::Value execute(const shcore::Argument_list &args);
-#ifdef DOXYGEN
-      TableUpdate update();
-      TableUpdate set(String attribute, Value value);
-      TableUpdate where(String searchCondition);
-      TableUpdate orderBy(List sortExprStr);
-      TableUpdate limit(Integer numberOfRows);
-      TableUpdate bind(String name, Value value);
-      Result execute();
-#endif
     private:
       std::unique_ptr< ::mysqlx::UpdateStatement> _update_statement;
     };

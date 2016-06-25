@@ -73,22 +73,7 @@ namespace mysh
     // Shell Specific for internal use
     bool is_numeric(){ return _numeric; }
 
-    std::string get_schema_name(){ return _schema; }
-    std::string get_table_name(){ return _table_name; }
-    std::string get_table_label(){ return _table_label; }
-    std::string get_column_name(){ return _column_name; }
-    std::string get_column_label(){ return _column_label; }
-
-    shcore::Value get_type(){ return _type; }
-    uint64_t get_length(){ return _length; }
-
-    uint64_t get_fractional_digits(){ return _fractional; }
-    bool is_number_signed() { return _signed; }
-    std::string get_collation_name() { return _collation; }
-    std::string get_character_set_name() { return _charset; }
-    bool is_padded() { return _padded; }
-
-#ifdef DOXYGEN
+#if DOXYGEN_JS
     schemaName; //!< Same as getSchemaName()
     tableName; //!< Same as getTableName()
     tableLabel; //!< Same as getTableLabel()
@@ -101,20 +86,152 @@ namespace mysh
     collationName; //!< Same as getCollationName()
     characterSetName; //!< Same as getCharacterSetName()
     padded; //!< Same as isPadded()
-
-    String getSchemaName();
-    String getTableName();
-    String getTableLabel();
-    String getColumnName();
-    String getColumnLabel();
-    Type getType();
-    Integer getLength();
-    Integer getFractionalDigits();
-    Boolean isNumberSigned();
-    String getCollationName();
-    String getCharacterSetName();
-    Boolean isPadded();
+#elif DOXYGEN_PY
+    schema_name; //!< Same as get_schema_name()
+    table_name; //!< Same as get_table_name()
+    table_label; //!< Same as get_table_label()
+    column_name; //!< Same as get_column_name()
+    column_label; //!< Same as get_column_label()
+    type; //!< Same as get_type()
+    length; //!< Same as get_length()
+    fractional_digits; //!< Same as get_fractional_digits()
+    number_signed; //!< Same as is_number_signed()
+    collation_name; //!< Same as get_collation_name()
+    character_set_name; //!< Same as get_character_set_name()
+    padded; //!< Same as is_padded()
 #endif
+
+    /**
+     * Retrieves the name of the Schema where the column is defined.
+     * \return a string value representing the owner schema.
+     */
+#if DOXYGEN_JS
+    String getSchemaName(){};
+#elif DOXYGEN_PY
+    str get_schema_name(){};
+#endif
+    std::string get_schema_name(){ return _schema; }
+
+    /**
+     * Retrieves table name where the column is defined.
+     * \return a string value representing the table name.
+     */
+#if DOXYGEN_JS
+    String getTableName(){};
+#elif DOXYGEN_PY
+    str get_table_name(){};
+#endif
+    std::string get_table_name(){ return _table_name; }
+
+    /**
+     * Retrieves table alias where the column is defined.
+     * \return a string value representing the table alias or the table name if no alias is defined.
+     */
+#if DOXYGEN_JS
+    String getTableLabel(){};
+#elif DOXYGEN_PY
+    str get_table_label(){};
+#endif
+    std::string get_table_label(){ return _table_label; }
+
+    /**
+     * Retrieves column name.
+     * \return a string value representing the column name.
+     */
+#if DOXYGEN_JS
+    String getColumnName(){};
+#elif DOXYGEN_PY
+    str get_column_name(){};
+#endif
+    std::string get_column_name(){ return _column_name; }
+
+    /**
+     * Retrieves column alias.
+     * \return a string value representing the column alias or the column name if no alias is defined.
+     */
+#if DOXYGEN_JS
+    String getColumnLabel(){};
+#elif DOXYGEN_PY
+    str get_column_label(){};
+#endif
+    std::string get_column_label(){ return _column_label; }
+
+    /**
+     * Retrieves column Type.
+     * \return a constant value for the supported column types.
+     */
+#if DOXYGEN_JS
+    Type getType(){};
+#elif DOXYGEN_PY
+    Type get_type(){};
+#endif
+    shcore::Value get_type(){ return _type; }
+
+    /**
+     * Retrieves column length.
+     * \return the column length.
+     */
+#if DOXYGEN_JS
+    Integer getLength(){};
+#elif DOXYGEN_PY
+    int get_length(){};
+#endif
+    uint64_t get_length(){ return _length; }
+
+    /**
+     * Retrieves the fractional digits if applicable
+     * \return the number of fractional digits, this only applies to specific data types.
+     */
+#if DOXYGEN_JS
+    Integer getFractionalDigits(){};
+#elif DOXYGEN_PY
+    int get_fractional_digits(){};
+#endif
+    uint64_t get_fractional_digits(){ return _fractional; }
+
+    /**
+     * Indicates if a numeric column is signed.
+     * \return a boolean indicating whether a numeric column is signed or not.
+     */
+#if DOXYGEN_JS
+    Bool isNumberSigned(){};
+#elif DOXYGEN_PY
+    bool is_number_signed(){};
+#endif
+    bool is_number_signed() { return _signed; }
+
+    /**
+     * Retrieves the collation name
+     * \return a String representing the collation name, aplicable only to specific data types.
+     */
+#if DOXYGEN_JS
+    String getCollationName(){};
+#elif DOXYGEN_PY
+    str get_collation_name(){};
+#endif
+    std::string get_collation_name() { return _collation; }
+
+    /**
+     * Retrieves the character set name
+     * \return a String representing the character set name, aplicable only to specific data types.
+     */
+#if DOXYGEN_JS
+    String getCharacterSetName(){};
+#elif DOXYGEN_PY
+    str get_character_setName(){};
+#endif
+    std::string get_character_set_name() { return _charset; }
+
+    /**
+     * Indicates if padding is used for the column
+     * \return a boolean indicating if padding is used on the column.
+     */
+#if DOXYGEN_JS
+    Bool isPadded(){};
+#elif DOXYGEN_PY
+    bool is_padded(){};
+#endif
+    bool is_padded() { return _padded; }
 
   private:
     std::string _schema;
@@ -132,13 +249,48 @@ namespace mysh
     bool _numeric;
   };
 
+  /**
+   * Represents the a Row in a Result.
+   */
+#if !DOXYGEN_CPP
+  /**
+   * \b Dynamic \b Properties
+   *
+   * In addition to the length property documented above, when a row object is created,
+   * its fields are exposed as properties of the Row object if two conditions are met:
+   *
+   * \li Its name must be a valid identifier: [_a-zA-Z][_a-zA-Z0-9]*
+   * \li Its name must be different from the fixed members of this object: length, get_length and get_field
+   *
+   * In the case a field does not met these conditions, it must be retrieved through the 
+   */
+#if DOXYGEN_JS
+  //! getField(String fieldName)
+#else
+  //! get_field(str fieldName)
+#endif
+  /**
+   * function.
+   */
+#endif
+
   class SHCORE_PUBLIC Row : public shcore::Cpp_object_bridge
   {
   public:
+#if DOXYGEN_JS
+    length; //!< Same as getLength()
+
+    Integer getLength();
+    Value getField(String fieldName);
+#elif DOXYGEN_PY
+    length; //!< Same as get_length()
+
+    int get_length();
+    Value get_field(str fieldName);
+#endif
     Row();
     virtual std::string class_name() const { return "Row"; }
 
-  public:
     std::map<std::string, shcore::Value> values;
     std::vector<std::map<std::string, shcore::Value>::iterator> value_iterators;
 
@@ -148,13 +300,8 @@ namespace mysh
 
     shcore::Value get_field(const shcore::Argument_list &args);
 
-    virtual bool has_member(const std::string &prop) const;
-    //! Returns the list of members that this object has
-    virtual std::vector<std::string> get_members() const;
-    //! Implements equality operator
     virtual bool operator == (const Object_bridge &other) const;
 
-    //! Returns the value of a member
     virtual shcore::Value get_member(const std::string &prop) const;
     shcore::Value get_member(size_t index) const;
 

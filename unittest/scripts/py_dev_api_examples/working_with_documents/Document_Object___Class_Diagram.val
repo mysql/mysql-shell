@@ -1,5 +1,5 @@
-myColl.find('name like "Sak%"').execute().fetchOne().name;|Sakila|
-myColl.find('name like "Su%"').execute().fetchOne().name;|Susanne|
-myColl.find('name like "Mi%"').execute().fetchOne().name;|Mike|
+myColl.find('name like "Sak%"').execute().fetch_one().name;|Sakila|
+myColl.find('name like "Su%"').execute().fetch_one().name;|Susanne|
+myColl.find('name like "Mi%"').execute().fetch_one().name;|Mike|
 testSession.close()||
 testSession=None||

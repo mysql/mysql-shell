@@ -2,38 +2,38 @@
 # Assumes __uripwd is defined as <user>:<pwd>@<host>:<mysql_port>
 import mysql
 
-mySession = mysql.getClassicSession(__uripwd)
+mySession = mysql.get_classic_session(__uripwd)
 
 ensure_schema_does_not_exist(mySession, 'js_shell_test')
 
-schema = mySession.createSchema('js_shell_test')
-mySession.setCurrentSchema('js_shell_test')
+schema = mySession.create_schema('js_shell_test')
+mySession.set_current_schema('js_shell_test')
 
-result = mySession.runSql('create table table1 (name varchar(50))')
-table = mySession.getSchema('js_shell_test').getTable('table1')
+result = mySession.run_sql('create table table1 (name varchar(50))')
+table = mySession.get_schema('js_shell_test').get_table('table1')
 
 #@ Testing table name retrieving
-print 'getName(): ' + table.getName()
+print 'get_name(): ' + table.get_name()
 print 'name: ' + table.name
 
 
 #@ Testing session retrieving
-print 'getSession():', table.getSession()
+print 'get_session():', table.get_session()
 print 'session:', table.session
 
 #@ Testing table schema retrieving
-print 'getSchema():', table.getSchema()
+print 'get_schema():', table.get_schema()
 print 'schema:', table.schema
 
 
 #@ Testing existence
-print 'Valid:', table.existsInDatabase()
-mySession.dropTable('js_shell_test', 'table1')
-print 'Invalid:', table.existsInDatabase()
+print 'Valid:', table.exists_in_database()
+mySession.drop_table('js_shell_test', 'table1')
+print 'Invalid:', table.exists_in_database()
 
 #@ Testing view check
-print 'Is View:', table.isView()
+print 'Is View:', table.is_view()
 
 # Closes the session
-mySession.dropSchema('js_shell_test')
+mySession.drop_schema('js_shell_test')
 mySession.close()

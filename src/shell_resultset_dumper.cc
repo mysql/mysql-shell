@@ -417,11 +417,11 @@ void ResultsetDumper::dump_warnings()
       Value record = warning_list->at(index);
       boost::shared_ptr<mysh::Row> row = record.as_object<mysh::Row>();
 
-      unsigned long error = row->get_member("Code").as_int();
+      unsigned long error = row->get_member("code").as_int();
 
-      std::string type = row->get_member("Level").as_string();
-      std::string msg = row->get_member("Message").as_string();
-      shcore::print((boost::format("%s (Code %ld): %s\n") % type % error % msg).str());
+      std::string type = row->get_member("level").as_string();
+      std::string msg = row->get_member("message").as_string();
+      shcore::print((boost::format("%s (code %ld): %s\n") % type % error % msg).str());
 
       index++;
     }

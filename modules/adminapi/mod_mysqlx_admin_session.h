@@ -72,7 +72,7 @@ namespace mysh
       static boost::shared_ptr<shcore::Object_bridge> create(const shcore::Argument_list &args);
       virtual int get_default_port() { return 33060; };
 
-#ifdef DOXYGEN
+#if DOXYGEN_JS
       String uri; //!< Same as getUri()
       Farm defaultFarm; //!< Same as getDefaultSchema()
 

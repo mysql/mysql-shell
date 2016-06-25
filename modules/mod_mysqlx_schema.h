@@ -48,7 +48,9 @@ namespace mysh
 
     /**
     * Represents a Schema as retrived from a session created using the X Protocol.
-    *
+    */
+#if !DOXYGEN_CPP
+    /**
     * \b Dynamic \b Properties
     *
     * In addition to the properties documented above, when a schema object is retrieved from the session,
@@ -74,7 +76,10 @@ namespace mysh
     * The object cache is updated every time getTables() or getCollections() are called.
     *
     * To retrieve an object that is not available through a Dynamic Property use getTable(name) or getCollection(name)
-    *
+    * \n \n
+    */
+#endif
+    /**
     * \b View \b Support
     *
     * MySQL Views are stored queries that when executed produce a result set.
@@ -92,16 +97,14 @@ namespace mysh
 
       virtual std::string class_name() const { return "Schema"; };
 
-      virtual std::vector<std::string> get_members() const;
       virtual shcore::Value get_member(const std::string &prop) const;
-      virtual bool has_member(const std::string &prop) const;
 
       void update_cache();
       void _remove_object(const std::string& name, const std::string& type);
 
       friend class Table;
       friend class Collection;
-#ifdef DOXYGEN
+#if DOXYGEN_JS
       List getTables();
       List getCollections();
 
@@ -109,6 +112,14 @@ namespace mysh
       Collection getCollection(String name);
       Table getCollectionAsTable(String name);
       Collection createCollection(String name);
+#elif DOXYGEN_PY
+      list get_tables();
+      list get_collections();
+
+      Table get_table(str name);
+      Collection get_collection(str name);
+      Table get_collection_as_table(str name);
+      Collection create_collection(str name);
 #endif
     public:
       shcore::Value get_tables(const shcore::Argument_list &args);

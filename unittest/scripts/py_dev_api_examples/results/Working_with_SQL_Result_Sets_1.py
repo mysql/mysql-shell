@@ -1,13 +1,13 @@
 res = nodeSession.sql('CALL my_proc()').execute()
 
-if res.hasData():
+if res.has_data():
         
-        row = res.fetchOne()
+        row = res.fetch_one()
         if row:
                 print 'List of row available for fetching.'
                 while row:
                         print row
-                        row = res.fetchOne()
+                        row = res.fetch_one()
         else:
                 print 'Empty list of rows.'
 else:

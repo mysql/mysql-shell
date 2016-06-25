@@ -2,18 +2,18 @@
 # Assumes __uripwd is defined as <user>:<pwd>@<host>:<plugin_port>
 import mysqlx
 
-mySession = mysqlx.getNodeSession(__uripwd)
+mySession = mysqlx.get_node_session(__uripwd)
 
 ensure_schema_does_not_exist(mySession, 'js_shell_test')
 
-schema = mySession.createSchema('js_shell_test')
-mySession.setCurrentSchema('js_shell_test')
+schema = mySession.create_schema('js_shell_test')
+mySession.set_current_schema('js_shell_test')
 
 # Creates a test table
 result = mySession.sql('create table table1 (name varchar(50), age integer, gender varchar(20))').execute()
 result = mySession.sql('create view view1 (my_name, my_age, my_gender) as select name, age, gender from table1;').execute()
 
-table = schema.getTable('table1')
+table = schema.get_table('table1')
 
 # ---------------------------------------------
 # Table.insert Unit Testing: Dynamic Behavior
@@ -71,46 +71,46 @@ crud = table.insert(['name', 'id', 'gender']).values('carol', 20, 'female').exec
 
 #@ Table.insert execution
 result = table.insert().values('jack', 17, 'male').execute()
-print "Affected Rows No Columns:", result.affectedItemCount, "\n"
+print "Affected Rows No Columns:", result.affected_item_count, "\n"
 
 result = table.insert(['age', 'name', 'gender']).values(21, 'john', 'male').execute()
-print "Affected Rows Columns:", result.affectedItemCount, "\n"
+print "Affected Rows Columns:", result.affected_item_count, "\n"
 
 insert = table.insert('name', 'age', 'gender')
 insert.values('clark', 22,'male')
 insert.values('mary', 13,'female')
 result = insert.execute()
-print "Affected Rows Multiple Values:", result.affectedItemCount, "\n"
+print "Affected Rows Multiple Values:", result.affected_item_count, "\n"
 
 result = table.insert({'age':14, 'name':'jackie', 'gender': 'female'}).execute()
-print "Affected Rows Document:", result.affectedItemCount, "\n"
+print "Affected Rows Document:", result.affected_item_count, "\n"
 
 try:
-  print "lastDocumentId:", result.lastDocumentId
+  print "last_document_id:", result.last_document_id
 except Exception, err:
-  print "lastDocumentId:", str(err), "\n"
+  print "last_document_id:", str(err), "\n"
 
 try:
-  print "getLastDocumentId():", result.getLastDocumentId()
+  print "get_last_document_id():", result.get_last_document_id()
 except Exception, err:
-  print "getLastDocumentId():", str(err), "\n"
+  print "get_last_document_id():", str(err), "\n"
 
 try:
-  print "lastDocumentIds:", result.lastDocumentIds
+  print "last_document_ids:", result.last_document_ids
 except Exception, err:
-  print "lastDocumentIds:", str(err), "\n"
+  print "last_document_ids:", str(err), "\n"
 
 try:
-  print "getLastDocumentIds():", result.getLastDocumentIds()
+  print "get_last_document_ids():", result.get_last_document_ids()
 except Exception, err:
-  print "getLastDocumentIds():", str(err), "\n"
+  print "get_last_document_ids():", str(err), "\n"
 
 #@ Table.insert execution on a View
-view = schema.getTable('view1')
+view = schema.get_table('view1')
 result = view.insert({ 'my_age': 15, 'my_name': 'jhonny', 'my_gender': 'male' }).execute()
-print "Affected Rows Through View:", result.affectedItemCount, "\n"
+print "Affected Rows Through View:", result.affected_item_count, "\n"
 
 
 # Cleanup
-mySession.dropSchema('js_shell_test')
+mySession.drop_schema('js_shell_test')
 mySession.close()

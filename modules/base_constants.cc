@@ -40,7 +40,7 @@ Constant::Constant(const std::string& module, const std::string& group, const st
 _module(module), _group(group), _id(id)
 {
   _data = get_constant_value(_module, _group, _id, args);
-  
+
   add_property("data");
 }
 
@@ -121,15 +121,15 @@ Value Constant::get_constant_value(const std::string &module, const std::string&
   {
     if (group == "Type")
     {
-      if (id == "Bit"){ ret_val = Value("BIT"); }
-      else if (id == "TinyInt"){ ret_val = Value("TINYINT"); }
-      else if (id == "SmallInt"){ ret_val = Value("SMALLINT"); }
-      else if (id == "MediumInt"){ ret_val = Value("MEDIUMINT"); }
-      else if (id == "Int"){ ret_val = Value("INT"); }
-      else if (id == "BigInt"){ ret_val = Value("BIGINT"); }
-      else if (id == "Float"){ ret_val = Value("FLOAT"); }
-      else if (id == "Decimal"){ ret_val = Value("DECIMAL"); }
-      else if (id == "Double"){ ret_val = Value("DOUBLE"); }
+      if (id == "BIT"){ ret_val = Value("BIT"); }
+      else if (id == "TINYINT"){ ret_val = Value("TINYINT"); }
+      else if (id == "SMALLINT"){ ret_val = Value("SMALLINT"); }
+      else if (id == "MEDIUMINT"){ ret_val = Value("MEDIUMINT"); }
+      else if (id == "INT"){ ret_val = Value("INT"); }
+      else if (id == "BIGINT"){ ret_val = Value("BIGINT"); }
+      else if (id == "FLOAT"){ ret_val = Value("FLOAT"); }
+      else if (id == "DECIMAL"){ ret_val = Value("DECIMAL"); }
+      else if (id == "DOUBLE"){ ret_val = Value("DOUBLE"); }
       // Commenting this, could be useful when we change all the constats to function calls
       // On MySQL 8 S II
       //       else if (id == "Decimal" || id == "Numeric")
@@ -166,20 +166,20 @@ Value Constant::get_constant_value(const std::string &module, const std::string&
       //       }
 
       // These are new
-      else if (id == "Json"){ ret_val = Value("JSON"); }
-      else if (id == "String"){ ret_val = Value("STRING"); }
-      else if (id == "Bytes"){ ret_val = Value("BYTES"); }
-      else if (id == "Time"){ ret_val = Value("TIME"); }
-      else if (id == "Date"){ ret_val = Value("DATE"); }
-      else if (id == "DateTime"){ ret_val = Value("DATETIME"); }
-      else if (id == "Timestamp"){ ret_val = Value("TIMESTAMP"); }
-      else if (id == "Set"){ ret_val = Value("SET"); }
-      else if (id == "Enum"){ ret_val = Value("ENUM"); }
-      else if (id == "Geometry"){ ret_val = Value("GEOMETRY"); }
+      else if (id == "JSON"){ ret_val = Value("JSON"); }
+      else if (id == "STRING"){ ret_val = Value("STRING"); }
+      else if (id == "BYTES"){ ret_val = Value("BYTES"); }
+      else if (id == "TIME"){ ret_val = Value("TIME"); }
+      else if (id == "DATE"){ ret_val = Value("DATE"); }
+      else if (id == "DATETIME"){ ret_val = Value("DATETIME"); }
+      else if (id == "TIMESTAMP"){ ret_val = Value("TIMESTAMP"); }
+      else if (id == "SET"){ ret_val = Value("SET"); }
+      else if (id == "ENUM"){ ret_val = Value("ENUM"); }
+      else if (id == "GEOMETRY"){ ret_val = Value("GEOMETRY"); }
     }
     else if (group == "IndexType")
     {
-      if (id == "Unique"){ ret_val = Value::True(); }
+      if (id == "UNIQUE"){ ret_val = Value::True(); }
     }
     else
       throw shcore::Exception::logic_error("Invalid group on constant definition:" + group + "." + id);

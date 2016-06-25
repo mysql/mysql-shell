@@ -32,8 +32,8 @@ validate_crud_functions(create_index, []);
 create_index = collection.createIndex();
 create_index = collection.createIndex(5);
 create_index = collection.createIndex('_sample', 5);
-create_index = collection.createIndex('_sample', mysqlx.Type.String)
-create_index = collection.createIndex('_sample', mysqlx.IndexType.Unique)
+create_index = collection.createIndex('_sample', mysqlx.Type.STRING)
+create_index = collection.createIndex('_sample', mysqlx.IndexType.UNIQUE)
 
 //@# Error conditions on field
 create_index.field();
@@ -69,14 +69,14 @@ var result = collection.createIndex('_name').field('alias', "TEXT(50)", true).ex
 
 //@ ERROR: Attempt to create unique index when records already duplicate the key field
 var result = collection.dropIndex('_name').execute();
-var result = collection.createIndex('_name', mysqlx.IndexType.Unique).field('name', "TEXT(50)", true).execute();
+var result = collection.createIndex('_name', mysqlx.IndexType.UNIQUE).field('name', "TEXT(50)", true).execute();
 
 //@ ERROR: Attempt to create unique index when records are missing the key field
-var result = collection.createIndex('_alias', mysqlx.IndexType.Unique).field('alias', "TEXT(50)", true).execute();
+var result = collection.createIndex('_alias', mysqlx.IndexType.UNIQUE).field('alias', "TEXT(50)", true).execute();
 
 //@ Unique index: creation with required field
 var result = collection.remove().execute();
-var result = collection.createIndex('_name', mysqlx.IndexType.Unique).field('name', "TEXT(50)", true).execute();
+var result = collection.createIndex('_name', mysqlx.IndexType.UNIQUE).field('name', "TEXT(50)", true).execute();
 var result = collection.add({ name: 'John', last_name: 'Carter', age: 17 }).execute();
 var result = collection.add({ name: 'John', last_name: 'Doe', age: 18 }).execute();
 

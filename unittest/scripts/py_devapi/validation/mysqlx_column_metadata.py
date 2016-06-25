@@ -4,7 +4,7 @@
 |Table Label: table1|
 |Column Name: one|
 |Column Label: one|
-|Type: <Type.Bit>|
+|Type: <Type.BIT>|
 |Length: 1|
 |Fractional Digits: 0|
 |Is Number Signed: False|
@@ -18,7 +18,7 @@
 |Table Label: table1|
 |Column Name: two|
 |Column Label: two|
-|Type: <Type.TinyInt>|
+|Type: <Type.TINYINT>|
 |Length: 4|
 |Fractional Digits: 0|
 |Is Number Signed: True|
@@ -32,7 +32,7 @@
 |Table Label: table1|
 |Column Name: utwo|
 |Column Label: utwo|
-|Type: <Type.TinyInt>|
+|Type: <Type.TINYINT>|
 |Length: 3|
 |Fractional Digits: 0|
 |Is Number Signed: False|
@@ -46,7 +46,7 @@
 |Table Label: table1|
 |Column Name: three|
 |Column Label: three|
-|Type: <Type.SmallInt>|
+|Type: <Type.SMALLINT>|
 |Length: 6|
 |Fractional Digits: 0|
 |Is Number Signed: True|
@@ -60,7 +60,7 @@
 |Table Label: table1|
 |Column Name: uthree|
 |Column Label: uthree|
-|Type: <Type.SmallInt>|
+|Type: <Type.SMALLINT>|
 |Length: 5|
 |Fractional Digits: 0|
 |Is Number Signed: False|
@@ -74,7 +74,7 @@
 |Table Label: table1|
 |Column Name: four|
 |Column Label: four|
-|Type: <Type.MediumInt>|
+|Type: <Type.MEDIUMINT>|
 |Length: 9|
 |Fractional Digits: 0|
 |Is Number Signed: True|
@@ -88,7 +88,7 @@
 |Table Label: table1|
 |Column Name: ufour|
 |Column Label: ufour|
-|Type: <Type.MediumInt>|
+|Type: <Type.MEDIUMINT>|
 |Length: 8|
 |Fractional Digits: 0|
 |Is Number Signed: False|
@@ -102,7 +102,7 @@
 |Table Label: table1|
 |Column Name: five|
 |Column Label: five|
-|Type: <Type.Int>|
+|Type: <Type.INT>|
 |Length: 11|
 |Fractional Digits: 0|
 |Is Number Signed: True|
@@ -116,7 +116,7 @@
 |Table Label: table1|
 |Column Name: ufive|
 |Column Label: ufive|
-|Type: <Type.Int>|
+|Type: <Type.INT>|
 |Length: 10|
 |Fractional Digits: 0|
 |Is Number Signed: False|
@@ -130,7 +130,7 @@
 |Table Label: table1|
 |Column Name: six|
 |Column Label: six|
-|Type: <Type.Float>|
+|Type: <Type.FLOAT>|
 |Length: 12|
 |Fractional Digits: 31|
 |Is Number Signed: True|
@@ -144,7 +144,7 @@
 |Table Label: table1|
 |Column Name: usix|
 |Column Label: usix|
-|Type: <Type.Float>|
+|Type: <Type.FLOAT>|
 |Length: 12|
 |Fractional Digits: 31|
 |Is Number Signed: False|
@@ -158,7 +158,7 @@
 |Table Label: table1|
 |Column Name: csix|
 |Column Label: csix|
-|Type: <Type.Float>|
+|Type: <Type.FLOAT>|
 |Length: 5|
 |Fractional Digits: 3|
 |Is Number Signed: True|
@@ -172,7 +172,7 @@
 |Table Label: table1|
 |Column Name: seven|
 |Column Label: seven|
-|Type: <Type.Decimal>|
+|Type: <Type.DECIMAL>|
 |Length: 11|
 |Fractional Digits: 0|
 |Is Number Signed: True|
@@ -186,7 +186,7 @@
 |Table Label: table1|
 |Column Name: useven|
 |Column Label: useven|
-|Type: <Type.Decimal>|
+|Type: <Type.DECIMAL>|
 |Length: 10|
 |Fractional Digits: 0|
 |Is Number Signed: False|
@@ -200,7 +200,7 @@
 |Table Label: table1|
 |Column Name: cseven|
 |Column Label: cseven|
-|Type: <Type.Decimal>|
+|Type: <Type.DECIMAL>|
 |Length: 6|
 |Fractional Digits: 2|
 |Is Number Signed: True|
@@ -214,7 +214,7 @@
 |Table Label: table1|
 |Column Name: eight|
 |Column Label: eight|
-|Type: <Type.Double>|
+|Type: <Type.DOUBLE>|
 |Length: 22|
 |Fractional Digits: 31|
 |Is Number Signed: True|
@@ -228,7 +228,7 @@
 |Table Label: table1|
 |Column Name: ueight|
 |Column Label: ueight|
-|Type: <Type.Double>|
+|Type: <Type.DOUBLE>|
 |Length: 22|
 |Fractional Digits: 31|
 |Is Number Signed: False|
@@ -242,7 +242,7 @@
 |Table Label: table1|
 |Column Name: ceight|
 |Column Label: ceight|
-|Type: <Type.Double>|
+|Type: <Type.DOUBLE>|
 |Length: 8|
 |Fractional Digits: 3|
 |Is Number Signed: True|
@@ -256,7 +256,7 @@
 |Table Label: table2|
 |Column Name: one|
 |Column Label: one|
-|Type: <Type.Json>|
+|Type: <Type.JSON>|
 |Fractional Digits: 0|
 |Is Number Signed: False|
 |Collation Name: armscii8_bin|
@@ -269,7 +269,7 @@
 |Table Label: table2|
 |Column Name: two|
 |Column Label: two|
-|Type: <Type.String>|
+|Type: <Type.STRING>|
 |Length: 5|
 |Fractional Digits: 0|
 |Is Number Signed: True|
@@ -283,7 +283,7 @@
 |Table Label: table2|
 |Column Name: three|
 |Column Label: three|
-|Type: <Type.String>|
+|Type: <Type.STRING>|
 |Length: 20|
 |Fractional Digits: 0|
 |Is Number Signed: False|
@@ -297,7 +297,7 @@
 |Table Label: table2|
 |Column Name: four|
 |Column Label: four|
-|Type: <Type.String>|
+|Type: <Type.STRING>|
 |Length: 65535|
 |Fractional Digits: 0|
 |Is Number Signed: False|
@@ -311,7 +311,7 @@
 |Table Label: table2|
 |Column Name: five|
 |Column Label: five|
-|Type: <Type.Time>|
+|Type: <Type.TIME>|
 |Length: 10|
 |Fractional Digits: 0|
 |Is Number Signed: False|
@@ -325,7 +325,7 @@
 |Table Label: table2|
 |Column Name: six|
 |Column Label: six|
-|Type: <Type.Date>|
+|Type: <Type.DATE>|
 |Length: 10|
 |Fractional Digits: 0|
 |Is Number Signed: False|
@@ -339,7 +339,7 @@
 |Table Label: table2|
 |Column Name: seven|
 |Column Label: seven|
-|Type: <Type.Timestamp>|
+|Type: <Type.TIMESTAMP>|
 |Length: 19|
 |Fractional Digits: 0|
 |Is Number Signed: False|
@@ -353,7 +353,7 @@
 |Table Label: table2|
 |Column Name: eight|
 |Column Label: eight|
-|Type: <Type.Set>|
+|Type: <Type.SET>|
 |Length: 5|
 |Fractional Digits: 0|
 |Is Number Signed: False|
@@ -367,7 +367,7 @@
 |Table Label: table2|
 |Column Name: nine|
 |Column Label: nine|
-|Type: <Type.Enum>|
+|Type: <Type.ENUM>|
 |Length: 1|
 |Fractional Digits: 0|
 |Is Number Signed: False|

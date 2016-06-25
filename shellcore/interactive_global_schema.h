@@ -27,6 +27,7 @@
 
 namespace shcore
 {
+  //! Interactive wrapper for the global schema
   class SHCORE_PUBLIC Global_schema : public Interactive_object_wrapper
   {
   public:

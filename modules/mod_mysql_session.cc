@@ -100,7 +100,8 @@ Connection *ClassicSession::connection()
 
 Value ClassicSession::connect(const Argument_list &args)
 {
-  args.ensure_count(1, 2, "ClassicSession.connect");
+  std::string function = class_name() + '.' + "connect";
+  args.ensure_count(1, 2, function.c_str());
 
   try
   {
@@ -117,15 +118,17 @@ Value ClassicSession::connect(const Argument_list &args)
   return Value::Null();
 }
 
-#ifdef DOXYGEN
 /**
 * Closes the internal connection to the MySQL Server held on this session object.
 */
+#if DOXYGEN_JS
 Undefined ClassicSession::close(){}
+#elif DOXYGEN_PY
+None ClassicSession::close(){}
 #endif
 Value ClassicSession::close(const shcore::Argument_list &args)
 {
-  args.ensure_count(0, "ClassicSession.close");
+  args.ensure_count(0, get_function_name("close").c_str());
 
   // Connection must be explicitly closed, we can't rely on the
   // automatic destruction because if shared across different objects
@@ -138,18 +141,24 @@ Value ClassicSession::close(const shcore::Argument_list &args)
   return shcore::Value();
 }
 
-#ifdef DOXYGEN
+//! Executes a query against the database and returns a  ClassicResult object wrapping the result.
+#if DOXYGEN_CPP
+//! \param args should contain the SQL query to execute against the database.
+#else
+//! \param query the SQL query to execute against the database.
+#endif
 /**
-* Executes a query against the database and returns a  ClassicResult object wrapping the result.
-* \param query the SQL query to execute against the database.
 * \return A ClassicResult object.
 * \exception An exception is thrown if an error occurs on the SQL execution.
 */
+#if DOXYGEN_JS
 ClassicResult ClassicSession::runSql(String query){}
+#elif DOXYGEN_PY
+ClassicResult ClassicSession::run_sql(str query){}
 #endif
 Value ClassicSession::run_sql(const shcore::Argument_list &args) const
 {
-  args.ensure_count(1, "ClassicSession.sql");
+  args.ensure_count(1, get_function_name("runSql").c_str());
   // Will return the result of the SQL execution
   // In case of error will be Undefined
   Value ret_val;
@@ -170,18 +179,24 @@ Value ClassicSession::run_sql(const shcore::Argument_list &args) const
   return ret_val;
 }
 
-#ifdef DOXYGEN
+//! Creates a schema on the database and returns the corresponding object.
+#if DOXYGEN_CPP
+//! \param args should contain a string value indicating the schema name.
+#else
+//! \param name A string value indicating the schema name..
+#endif
 /**
-* Creates a schema on the database and returns the corresponding object.
-* \param name A string value indicating the schema name.
 * \return The created schema object.
 * \exception An exception is thrown if an error occurs creating the Session.
 */
+#if DOXYGEN_JS
 ClassicSchema ClassicSession::createSchema(String name){}
+#elif DOXYGEN_PY
+ClassicSchema ClassicSession::create_schema(str name){}
 #endif
 Value ClassicSession::create_schema(const shcore::Argument_list &args)
 {
-  args.ensure_count(1, "ClassicSession.createSchema");
+  args.ensure_count(1, get_function_name("createSchema").c_str());
 
   Value ret_val;
   if (!_conn)
@@ -210,14 +225,27 @@ Value ClassicSession::create_schema(const shcore::Argument_list &args)
   return ret_val;
 }
 
-#ifdef DOXYGEN
+#if DOXYGEN_CPP
+/**
+ * Use this function to retrieve an valid member of this class exposed to the scripting languages.
+ * \param prop : A string containing the name of the member to be returned
+ *
+ * This function returns a Value that wraps the object returned by this function. The content of the returned value depends on the property being requested. The next list shows the valid properties as well as the returned value for each of them:
+ *
+ * \li currentSchema: returns ClassicSchema object representing the active schema on the session. If none is active, returns Null.
+ */
+#else
 /**
 * Retrieves the ClassicSchema configured as default for the session.
 * \return A ClassicSchema object or Null
 *
 * If the configured schema is not valid anymore Null wil be returned.
 */
+#if DOXYGEN_JS
 ClassicSchema ClassicSession::getDefaultSchema(){}
+#elif DOXYGEN_PY
+ClassicSchema ClassicSession::get_default_schema(){}
+#endif
 
 /**
 * Retrieves the ClassicSchema that is active as current on the session.
@@ -225,13 +253,21 @@ ClassicSchema ClassicSession::getDefaultSchema(){}
 *
 * The current schema is configured either throu setCurrentSchema(String name) or by using the USE statement.
 */
+#if DOXYGEN_JS
 ClassicSchema ClassicSession::getCurrentSchema(){}
+#elif DOXYGEN_PY
+ClassicSchema ClassicSession::get_current_schema(){}
+#endif
 
 /**
 * Returns the connection string passed to connect() method.
 * \return A string representation of the connection data in URI format (excluding the password or the database).
 */
+#if DOXYGEN_JS
 String ClassicSession::getUri(){}
+#elif DOXYGEN_PY
+str ClassicSession::get_uri(){}
+#endif
 #endif
 Value ClassicSession::get_member(const std::string &prop) const
 {
@@ -291,20 +327,25 @@ void ClassicSession::_remove_schema(const std::string& name)
     _schemas->erase(name);
 }
 
-#ifdef DOXYGEN
+//! Retrieves a ClassicSchema object from the current session through it's name.
+#if DOXYGEN_CPP
+//! \param args should contain the name of the ClassicSchema object to be retrieved.
+#else
+//! \param name The name of the ClassicSchema object to be retrieved.
+#endif
 /**
-* Retrieves a ClassicSchema object from the current session through it's name.
-* \param name The name of the ClassicSchema object to be retrieved.
 * \return The ClassicSchema object with the given name.
 * \exception An exception is thrown if the given name is not a valid schema on the Session.
 * \sa ClassicSchema
 */
+#if DOXYGEN_JS
 ClassicSchema ClassicSession::getSchema(String name){}
+#elif DOXYGEN_PY
+ClassicSchema ClassicSession::get_schema(str name){}
 #endif
 shcore::Value ClassicSession::get_schema(const shcore::Argument_list &args) const
 {
-  std::string function_name = class_name() + ".getSchema";
-  args.ensure_count(1, function_name.c_str());
+  args.ensure_count(1, get_function_name("getSchema").c_str());
   shcore::Value ret_val;
 
   std::string type = "Schema";
@@ -329,12 +370,14 @@ shcore::Value ClassicSession::get_schema(const shcore::Argument_list &args) cons
   return ret_val;
 }
 
-#ifdef DOXYGEN
 /**
 * Retrieves the Schemas available on the session.
 * \return A List containing the ClassicSchema objects available o the session.
 */
+#if DOXYGEN_JS
 List ClassicSession::getSchemas(){}
+#elif DOXYGEN_PY
+list ClassicSession::get_schemas(){}
 #endif
 shcore::Value ClassicSession::get_schemas(const shcore::Argument_list &args) const
 {
@@ -370,16 +413,18 @@ shcore::Value ClassicSession::get_schemas(const shcore::Argument_list &args) con
   return shcore::Value(schemas);
 }
 
-#ifdef DOXYGEN
 /**
 * Sets the selected schema for this session's connection.
 * \return The new schema.
 */
+#if DOXYGEN_JS
 ClassicSchema ClassicSession::setCurrentSchema(String schema){}
+#elif DOXYGEN_PY
+ClassicSchema ClassicSession::set_current_schema(str schema){}
 #endif
 shcore::Value ClassicSession::set_current_schema(const shcore::Argument_list &args)
 {
-  args.ensure_count(1, "ClassicSession.setCurrentSchema");
+  args.ensure_count(1, get_function_name("setCurrentSchema").c_str());
 
   if (_conn)
   {
@@ -401,17 +446,19 @@ boost::shared_ptr<shcore::Object_bridge> ClassicSession::create(const shcore::Ar
   return connect_session(args, mysh::Classic);
 }
 
-#ifdef DOXYGEN
 /**
 * Drops the schema with the specified name.
 * \return A ClassicResult object if succeeded.
 * \exception An error is raised if the schema did not exist.
 */
+#if DOXYGEN_JS
 ClassicResult ClassicSession::dropSchema(String name){}
+#elif DOXYGEN_PY
+ClassicResult ClassicSession::drop_schema(str name){}
 #endif
 shcore::Value ClassicSession::drop_schema(const shcore::Argument_list &args)
 {
-  std::string function = class_name() + ".dropSchema";
+  std::string function = get_function_name("dropSchema");
 
   args.ensure_count(1, function.c_str());
 
@@ -427,24 +474,42 @@ shcore::Value ClassicSession::drop_schema(const shcore::Argument_list &args)
   return ret_val;
 }
 
-#ifdef DOXYGEN
+#if DOXYGEN_CPP
+/**
+ * Drops a table or a view from a specific ClassicSchema.
+ * \param args contains the identification data for the object to be deleted.
+ * \param type indicates the object type to be deleted
+ *
+ * args must contain two string entries: schema and table/view name.
+ *
+ * type must be either "Table" or "View"
+ */
+#else
 /**
 * Drops a table from the specified schema.
 * \return A ClassicResult object if succeeded.
 * \exception An error is raised if the table did not exist.
 */
+#if DOXYGEN_JS
 ClassicResult ClassicSession::dropTable(String schema, String name){}
+#elif DOXYGEN_PY
+ClassicResult ClassicSession::drop_table(str schema, str name){}
+#endif
 
 /**
 * Drops a view from the specified schema.
 * \return A ClassicResult object if succeeded.
 * \exception An error is raised if the view did not exist.
 */
+#if DOXYGEN_JS
 ClassicResult ClassicSession::dropView(String schema, String name){}
+#elif DOXYGEN_PY
+ClassicResult ClassicSession::drop_view(str schema, str name){}
+#endif
 #endif
 shcore::Value ClassicSession::drop_schema_object(const shcore::Argument_list &args, const std::string& type)
 {
-  std::string function = class_name() + ".drop" + type;
+  std::string function = get_function_name("drop" + type);
 
   args.ensure_count(2, function.c_str());
 
@@ -528,7 +593,6 @@ std::string ClassicSession::db_object_exists(std::string &type, const std::strin
   return ret_val;
 }
 
-#ifdef DOXYGEN
 /**
 * Starts a transaction context on the server.
 * \return A ClassicResult object.
@@ -540,17 +604,18 @@ std::string ClassicSession::db_object_exists(std::string &type, const std::strin
 *
 * When commit() or rollback() are called, the server autocommit mode will return back to it's state before calling startTransaction().
 */
+#if DOXYGEN_JS
 ClassicResult ClassicSession::startTransaction(){}
+#elif DOXYGEN_PY
+ClassicResult ClassicSession::start_transaction(){}
 #endif
 shcore::Value ClassicSession::startTransaction(const shcore::Argument_list &args)
 {
-  std::string function_name = class_name() + ".startTransaction";
-  args.ensure_count(0, function_name.c_str());
+  args.ensure_count(0, get_function_name("startTransaction").c_str());
 
   return Value::wrap(new ClassicResult(boost::shared_ptr<Result>(_conn->run_sql("start transaction"))));
 }
 
-#ifdef DOXYGEN
 /**
 * Commits all the operations executed after a call to startTransaction().
 * \return A ClassicResult object.
@@ -559,17 +624,18 @@ shcore::Value ClassicSession::startTransaction(const shcore::Argument_list &args
 *
 * The server autocommit mode will return back to it's state before calling startTransaction().
 */
+#if DOXYGEN_JS
+ClassicResult ClassicSession::commit(){}
+#elif DOXYGEN_PY
 ClassicResult ClassicSession::commit(){}
 #endif
 shcore::Value ClassicSession::commit(const shcore::Argument_list &args)
 {
-  std::string function_name = class_name() + ".startTransaction";
-  args.ensure_count(0, function_name.c_str());
+  args.ensure_count(0, get_function_name("commit").c_str());
 
   return Value::wrap(new ClassicResult(boost::shared_ptr<Result>(_conn->run_sql("commit"))));
 }
 
-#ifdef DOXYGEN
 /**
 * Discards all the operations executed after a call to startTransaction().
 * \return A ClassicResult object.
@@ -578,12 +644,14 @@ shcore::Value ClassicSession::commit(const shcore::Argument_list &args)
 *
 * The server autocommit mode will return back to it's state before calling startTransaction().
 */
+#if DOXYGEN_JS
+ClassicResult ClassicSession::rollback(){}
+#elif DOXYGEN_PY
 ClassicResult ClassicSession::rollback(){}
 #endif
 shcore::Value ClassicSession::rollback(const shcore::Argument_list &args)
 {
-  std::string function_name = class_name() + ".startTransaction";
-  args.ensure_count(0, function_name.c_str());
+  args.ensure_count(0, get_function_name("rollback").c_str());
 
   return Value::wrap(new ClassicResult(boost::shared_ptr<Result>(_conn->run_sql("rollback"))));
 }

@@ -1,13 +1,13 @@
 #@ Testing view name retrieving
-|getName(): view1|
+|get_name(): view1|
 |name: view1|
 
 #@ Testing session retrieving
-|getSession(): <NodeSession:|
+|get_session(): <NodeSession:|
 |session: <NodeSession:|
 
 #@ Testing view schema retrieving
-|getSchema(): <Schema:js_shell_test>|
+|get_schema(): <Schema:js_shell_test>|
 |schema: <Schema:js_shell_test>|
 
 #@ Testing existence

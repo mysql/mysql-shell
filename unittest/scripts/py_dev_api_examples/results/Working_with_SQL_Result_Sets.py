@@ -1,8 +1,8 @@
 res = nodeSession.sql('SELECT name, age FROM users').execute()
 
-row = res.fetchOne()
+row = res.fetch_one()
 
 while row:
         print 'Name: %s\n' % row[0]
         print ' Age: %s\n' % row.age
-        row = res.fetchOne()
+        row = res.fetch_one()

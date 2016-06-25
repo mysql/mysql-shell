@@ -53,7 +53,6 @@ TableUpdate::TableUpdate(boost::shared_ptr<Table> owner)
   update_functions("");
 }
 
-#ifdef DOXYGEN
 /**
 * Initializes this record update handler.
 * \return This TableUpdate object.
@@ -75,12 +74,15 @@ TableUpdate::TableUpdate(boost::shared_ptr<Table> owner)
 *
 * \sa Usage examples at execute().
 */
+#if DOXYGEN_JS
+TableUpdate TableUpdate::update(){}
+#elif DOXYGEN_PY
 TableUpdate TableUpdate::update(){}
 #endif
 shcore::Value TableUpdate::update(const shcore::Argument_list &args)
 {
   // Each method validates the received parameters
-  args.ensure_count(0, "TableUpdate.update");
+  args.ensure_count(0, get_function_name("update").c_str());
 
   boost::shared_ptr<Table> table(boost::static_pointer_cast<Table>(_owner.lock()));
 
@@ -93,17 +95,22 @@ shcore::Value TableUpdate::update(const shcore::Argument_list &args)
       // Updates the exposed functions
       update_functions("update");
     }
-    CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableUpdate.update");
+    CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("update"));
   }
 
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
-#ifdef DOXYGEN
+//! Updates the column value on records in a table.
+#if DOXYGEN_CPP
+//! \param args should contain the next elements:
+//! \li A string with the column name to be updated.
+//! \li The value to be set on the specified column.
+#else
+//! \param attribute A string with the column name to be updated.
+//! \param value The value to be set on the specified column.
+#endif
 /**
-* Updates the column value on records in a table.
-* \param attribute A string with the column name to be updated.
-* \param value The value to be set on the specified column.
 * \return This TableUpdate object.
 *
 * Adds an opertion into the update handler to update a column value in on the records that were included on the selection filter and limit.
@@ -139,12 +146,15 @@ shcore::Value TableUpdate::update(const shcore::Argument_list &args)
 *
 * \sa Usage examples at execute().
 */
+#if DOXYGEN_JS
 TableUpdate TableUpdate::set(String attribute, Value value){}
+#elif DOXYGEN_PY
+TableUpdate TableUpdate::set(str attribute, Value value){}
 #endif
 shcore::Value TableUpdate::set(const shcore::Argument_list &args)
 {
   // Each method validates the received parameters
-  args.ensure_count(2, "TableUpdate.set");
+  args.ensure_count(2, get_function_name("set").c_str());
 
   try
   {
@@ -176,15 +186,19 @@ shcore::Value TableUpdate::set(const shcore::Argument_list &args)
 
     update_functions("set");
   }
-  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableUpdate.set");
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("set"));
 
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
-#ifdef DOXYGEN
+//! Sets the search condition to filter the records to be updated from the owner Table.
+#if DOXYGEN_CPP
+//! \param args should contain an optional string expression to filter the records to be updated.
+#else
+//! \param searchCondition: An optional expression to filter the records to be updated.
+#endif
 /**
 * Sets the search condition to filter the records to be updated on the owner Table.
-* \param searchCondition: An optional expression to filter the records to be updated;
 * if not specified all the records will be updated from the table unless a limit is set.
 * \return This TableUpdate object.
 *
@@ -205,12 +219,15 @@ shcore::Value TableUpdate::set(const shcore::Argument_list &args)
 *
 * \sa Usage examples at execute().
 */
+#if DOXYGEN_JS
 TableUpdate TableUpdate::where(String searchCondition){}
+#elif DOXYGEN_PY
+TableUpdate TableUpdate::where(str searchCondition){}
 #endif
 shcore::Value TableUpdate::where(const shcore::Argument_list &args)
 {
   // Each method validates the received parameters
-  args.ensure_count(1, "TableUpdate.where");
+  args.ensure_count(1, get_function_name("where").c_str());
 
   try
   {
@@ -219,15 +236,18 @@ shcore::Value TableUpdate::where(const shcore::Argument_list &args)
     // Updates the exposed functions
     update_functions("where");
   }
-  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableUpdate.where");
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("where"));
 
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
-#ifdef DOXYGEN
+//! Sets the order in which the update should be done.
+#if DOXYGEN_CPP
+//! \param args should contain a list of expression strings defining a sort criteria, the update will be done following the order defined by this criteria.
+#else
+//! \param sortExprStr: A list of expression strings defining a sort criteria, the update will be done following the order defined by this criteria.
+#endif
 /**
-* Sets the order in which the update should be done.
-* \param sortExprStr: A list of expression strings defining a sort criteria, the update will be done following the order defined by this criteria.
 * \return This TableUpdate object.
 *
 * The elements of sortExprStr list are strings defining the column name on which the sorting will be based in the form of "columnIdentifier [ ASC | DESC ]".
@@ -248,11 +268,14 @@ shcore::Value TableUpdate::where(const shcore::Argument_list &args)
 * - bind(String name, Value value)
 * - execute()
 */
+#if DOXYGEN_JS
 TableUpdate TableUpdate::orderBy(List sortExprStr){}
+#elif DOXYGEN_PY
+TableUpdate TableUpdate::order_by(list sortExprStr){}
 #endif
 shcore::Value TableUpdate::order_by(const shcore::Argument_list &args)
 {
-  args.ensure_count(1, "TableUpdate.orderBy");
+  args.ensure_count(1, get_function_name("orderBy").c_str());
 
   try
   {
@@ -267,15 +290,19 @@ shcore::Value TableUpdate::order_by(const shcore::Argument_list &args)
 
     update_functions("orderBy");
   }
-  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableUpdate.orderBy");
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("orderBy"));
 
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
-#ifdef DOXYGEN
+
+//! Sets a limit for the records to be updated.
+#if DOXYGEN_CPP
+//! \param args should contain the number of records to be updated.
+#else
+//! \param numberOfRows the number of records to be updated.
+#endif
 /**
-* Sets a limit for the records to be updated.
-* \param numberOfRows the number of records to be updated.
 * \return This TableUpdate object.
 *
 * This method is usually used in combination with sort to fix the amount of records to be updated.
@@ -295,11 +322,14 @@ shcore::Value TableUpdate::order_by(const shcore::Argument_list &args)
 *
 * \sa Usage examples at execute().
 */
+#if DOXYGEN_JS
 TableUpdate TableUpdate::limit(Integer numberOfRows){}
+#elif DOXYGEN_PY
+TableUpdate TableUpdate::limit(int numberOfRows){}
 #endif
 shcore::Value TableUpdate::limit(const shcore::Argument_list &args)
 {
-  args.ensure_count(1, "TableUpdate.limit");
+  args.ensure_count(1, get_function_name("limit").c_str());
 
   try
   {
@@ -307,16 +337,21 @@ shcore::Value TableUpdate::limit(const shcore::Argument_list &args)
 
     update_functions("limit");
   }
-  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableUpdate.limit");
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("limit"));
 
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
-#ifdef DOXYGEN
+//! Binds a value to a specific placeholder used on this TableSelect object.
+#if DOXYGEN_CPP
+//! \param args should contain the next elements:
+//! \li The name of the placeholder to which the value will be bound.
+//! \li The value to be bound on the placeholder.
+#else
+//! \param name: The name of the placeholder to which the value will be bound.
+//! \param value: The value to be bound on the placeholder.
+#endif
 /**
-* Binds a value to a specific placeholder used on this TableUpdate object.
-* \param name: The name of the placeholder to which the value will be bound.
-* \param value: The value to be bound on the placeholder.
 * \return This TableUpdate object.
 *
 * #### Method Chaining
@@ -335,11 +370,14 @@ shcore::Value TableUpdate::limit(const shcore::Argument_list &args)
 *
 * \sa Usage examples at execute().
 */
+#if DOXYGEN_JS
 TableUpdate TableUpdate::bind(String name, Value value){}
+#elif DOXYGEN_PY
+TableUpdate TableUpdate::bind(str name, Value value){}
 #endif
 shcore::Value TableUpdate::bind(const shcore::Argument_list &args)
 {
-  args.ensure_count(2, "TableUpdate.bind");
+  args.ensure_count(2, get_function_name("bind").c_str());
 
   try
   {
@@ -347,12 +385,11 @@ shcore::Value TableUpdate::bind(const shcore::Argument_list &args)
 
     update_functions("bind");
   }
-  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableUpdate.bind");
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("bind"));
 
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
-#ifdef DOXYGEN
 /**
 * Executes the record update with the configured filter and limit.
 * \return Result A result object that can be used to retrieve the results of the update operation.
@@ -360,15 +397,20 @@ shcore::Value TableUpdate::bind(const shcore::Argument_list &args)
 * #### Method Chaining
 *
 * This function can be invoked after any other function on this class except update().
+*/
+#if DOXYGEN_JS
+/**
 *
-* #### JavaScript Examples
-*
+* #### Examples
 * \dontinclude "js_devapi/scripts/mysqlx_table_update.js"
 * \skip //@# TableUpdate: simple test
 * \until print('All Females:', records.length, '\n');
+*/
+Result TableUpdate::execute(){}
+#elif DOXYGEN_PY
+/**
 *
-* #### Python Examples
-*
+* #### Examples
 * \dontinclude "py_devapi/scripts/mysqlx_table_update.py"
 * \skip #@# TableUpdate: simple test
 * \until print 'All Females:', len(records), '\n'
@@ -381,14 +423,14 @@ shcore::Value TableUpdate::execute(const shcore::Argument_list &args)
 
   try
   {
-    args.ensure_count(0, "TableUpdate.execute");
+    args.ensure_count(0, get_function_name("execute").c_str());
     MySQL_timer timer;
     timer.start();
     result = new mysqlx::Result(boost::shared_ptr< ::mysqlx::Result>(_update_statement->execute()));
     timer.end();
     result->set_execution_time(timer.raw_duration());
   }
-  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("TableUpdate.execute");
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("execute"));
 
   return result ? shcore::Value::wrap(result) : shcore::Value::Null();
 }

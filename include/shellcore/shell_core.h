@@ -103,7 +103,7 @@ namespace shcore
 
   struct Interpreter_delegate;
 
-#ifdef DOXYGEN_CPP
+#if DOXYGEN_JS_CPP
   /**
   * Class that encloses the shell functionality.
   */

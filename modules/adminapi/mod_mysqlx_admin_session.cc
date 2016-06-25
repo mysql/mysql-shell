@@ -69,8 +69,7 @@ void AdminSession::init()
 
 Value AdminSession::connect(const Argument_list &args)
 {
-  std::string function_name = class_name() + ".connect";
-  args.ensure_count(1, 2, function_name.c_str());
+  args.ensure_count(1, 2, get_function_name("connect").c_str());
 
   try
   {
@@ -110,7 +109,7 @@ std::string AdminSession::db_object_exists(std::string &type, const std::string 
 }
 
 
-#ifdef DOXYGEN
+#if DOXYGEN_JS
 /**
 * \brief Closes the session.
 * After closing the session it is still possible to make read only operation to gather metadata info, like getTable(name) or getSchemas().
@@ -119,9 +118,7 @@ Undefined AdminSession::close(){}
 #endif
 Value AdminSession::close(const shcore::Argument_list &args)
 {
-  std::string function_name = class_name() + ".close";
-
-  args.ensure_count(0, function_name.c_str());
+  args.ensure_count(0, get_function_name("close").c_str());
 
   // Connection must be explicitly closed, we can't rely on the
   // automatic destruction because if shared across different objects
@@ -163,7 +160,7 @@ std::vector<std::string> AdminSession::get_members() const
 }
 
 
-#ifdef DOXYGEN
+#if DOXYGEN_JS
 /**
 * Retrieves the Farm configured as default on this Metadata instance.
 * \return A Farm object or Null
@@ -205,7 +202,7 @@ Value AdminSession::get_member(const std::string &prop) const
   return ret_val;
 }
 
-#ifdef DOXYGEN
+#if DOXYGEN_JS
 /**
 * Retrieves a Farm object from the current session through it's name.
 * \param name The name of the Farm object to be retrieved.
@@ -262,7 +259,7 @@ shcore::Value AdminSession::create_farm(const shcore::Argument_list &args)
   return ret_val;
 }
 
-#ifdef DOXYGEN
+#if DOXYGEN_JS
 /**
  * Drops a Farm object.
  * \param name The name of the Farm object to be dropped.

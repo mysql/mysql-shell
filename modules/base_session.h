@@ -30,6 +30,9 @@
 
 namespace mysh
 {
+#if DOXYGEN_CPP
+  //! Abstraction layer with core elements for all the session types
+#endif
   class SHCORE_PUBLIC ShellBaseSession : public shcore::Cpp_object_bridge
   {
   public:
@@ -85,8 +88,10 @@ namespace mysh
 
   };
 
-  // Abstraction layer with core elements for development sessions
-  // This is the parent class for development sessions implemented in both protocols
+#if DOXYGEN_CPP
+  //! Abstraction layer with core elements for development sessions
+  //! This is the parent class for development sessions implemented in both protocols
+#endif
   class SHCORE_PUBLIC ShellDevelopmentSession : public ShellBaseSession
   {
   public:

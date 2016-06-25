@@ -4,32 +4,32 @@
 |name: OK|
 |schema: OK|
 |session: OK|
-|existsInDatabase: OK|
-|getName: OK|
-|getSchema: OK|
-|getSession: OK|
-|getTable: OK|
-|getTables: OK|
+|exists_in_database: OK|
+|get_name: OK|
+|get_schema: OK|
+|get_session: OK|
+|get_table: OK|
+|get_tables: OK|
 
 |table1: OK|
 |view1: OK|
 
 #@ Testing schema name retrieving
-|getName(): js_shell_test|
+|get_name(): js_shell_test|
 |name: js_shell_test|
 
-#@ Testing schema.getSession
-|getSession(): <ClassicSession:|
+#@ Testing schema.get_session
+|get_session(): <ClassicSession:|
 
 #@ Testing schema.session
 |session: <ClassicSession:|
 
 #@ Testing schema schema retrieving
-|getSchema(): None|
+|get_schema(): None|
 |schema: None|
 
 #@ Testing tables, views and collection retrieval
-|getTables(): <ClassicTable:|
+|get_tables(): <ClassicTable:|
 
 #@ Testing specific object retrieval
 |Retrieving a table: <ClassicTable:table1>|

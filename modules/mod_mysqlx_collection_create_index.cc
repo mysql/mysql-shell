@@ -49,13 +49,33 @@ CollectionCreateIndex::CollectionCreateIndex(boost::shared_ptr<Collection> owner
   update_functions("");
 }
 
-#ifdef DOXYGEN
+#if DOXYGEN_CPP
+/**
+ * Creates an index on a collection.
+ * \param args should contain the name and optionally the type of index to be created.
+ * \return A CollectionCreateIndex object.
+ *
+ * This function creates a CollectionCreateIndex object which is an index creation handler.
+ *
+ * The CollectionCreateIndex class has a function to define the fields to be included on the index.
+ *
+ * The index will be created when the execute function is called on the index creation handler.
+ *
+ * The function will create a non unique index unless mysqlx.IndexType.IndexUnique is passed as the second element on args.
+ *
+ * \sa CollectionCreateIndex
+ */
+#else
 /**
 * Sets the name for the creation of a non unique index on the collection.
 * \param indexName The name of the index to be created.
 * \return This CollectionCreateIndex object.
 */
+#if DOXYGEN_JS
 CollectionCreateIndex CollectionCreateIndex::createIndex(String indexName){}
+#elif DOXYGEN_PY
+CollectionCreateIndex CollectionCreateIndex::create_index(str indexName){}
+#endif
 
 /**
 * Sets the name for the creation of a unique index on the collection.
@@ -66,12 +86,16 @@ CollectionCreateIndex CollectionCreateIndex::createIndex(String indexName){}
 * #### Method Chaining
 *
 */
+#if DOXYGEN_JS
 CollectionCreateIndex CollectionCreateIndex::createIndex(String indexName, IndexType type){}
+#elif DOXYGEN_PY
+CollectionCreateIndex CollectionCreateIndex::create_index(str indexName, IndexType type){}
+#endif
 #endif
 shcore::Value CollectionCreateIndex::create_index(const shcore::Argument_list &args)
 {
   // Each method validates the received parameters
-  args.ensure_count(1, 2, "CollectionCreateIndex.createIndex");
+  args.ensure_count(1, 2, get_function_name("createIndex").c_str());
 
   try
   {
@@ -90,7 +114,7 @@ shcore::Value CollectionCreateIndex::create_index(const shcore::Argument_list &a
       }
 
       if (!unique)
-        throw shcore::Exception::argument_error("Argument #2 is expected to be mysqlx.IndexType.Unique");
+        throw shcore::Exception::argument_error("Argument #2 is expected to be mysqlx.IndexType.UNIQUE");
     }
     else
       unique = Value::False();
@@ -106,19 +130,26 @@ shcore::Value CollectionCreateIndex::create_index(const shcore::Argument_list &a
       _create_index_args.push_back(unique);
     }
   }
-  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionCreateIndex.createIndex");
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("createIndex").c_str());
 
   update_functions("createIndex");
 
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
-#ifdef DOXYGEN
+//! Adds column to be part of the collection index being created.
+#if DOXYGEN_CPP
+//! \param args : Should contain three elements described below.
+//!
+//! \li A string with the document path to the field to be added into the index.
+//! \li A string defining a valid MySQL data type.
+//! \li A boolean a flag that indicates whether the field is required or not.
+#else
+//! \param documentPath The document path to the field to be added into the index.
+//! \param type A string defining a valid MySQL data type.
+//! \param isRequired a flag that indicates whether the field is required or not.
+#endif
 /**
-* Adds column to be part of the collection index being created .
-* \param documentPath The document path to the field to be added into the index.
-* \param type A string defining a valid MySQL data type.
-* \param isRequired a flag that indicates whether the field is required or not.
 * \return A Result object.
 *
 * #### Method Chaining
@@ -129,11 +160,14 @@ shcore::Value CollectionCreateIndex::create_index(const shcore::Argument_list &a
 *
 * - execute()
 */
+#if DOXYGEN_JS
 CollectionCreateIndex CollectionCreateIndex::field(DocPath documentPath, IndexColumnType type, Bool isRequired){}
+#elif DOXYGEN_PY
+CollectionCreateIndex CollectionCreateIndex::field(DocPath documentPath, IndexColumnType type, bool isRequired){}
 #endif
 shcore::Value CollectionCreateIndex::field(const shcore::Argument_list &args)
 {
-  args.ensure_count(3, "CollectionCreateIndex.field");
+  args.ensure_count(3, get_function_name("field").c_str());
 
   try
   {
@@ -148,14 +182,13 @@ shcore::Value CollectionCreateIndex::field(const shcore::Argument_list &args)
     _create_index_args.push_back(args[1]);
     _create_index_args.push_back(args[2]);
   }
-  CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionCreateIndex.field");
+  CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("field").c_str());
 
   update_functions("field");
 
   return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
-#ifdef DOXYGEN
 /**
 * Executes the document addition for the documents cached on this object.
 * \return A Result object.
@@ -166,13 +199,16 @@ shcore::Value CollectionCreateIndex::field(const shcore::Argument_list &args)
 * - add(Document document)
 * - add(List documents)
 */
+#if DOXYGEN_JS
+Result CollectionCreateIndex::execute(){}
+#elif DOXYGEN_PY
 Result CollectionCreateIndex::execute(){}
 #endif
 shcore::Value CollectionCreateIndex::execute(const shcore::Argument_list &args)
 {
   Value result;
 
-  args.ensure_count(0, "CollectionCreateIndex.execute");
+  args.ensure_count(0, get_function_name("execute").c_str());
 
   boost::shared_ptr<Collection> raw_owner(_owner.lock());
 

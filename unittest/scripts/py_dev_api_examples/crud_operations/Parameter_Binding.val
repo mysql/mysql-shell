@@ -1,6 +1,6 @@
-print(myRes1.fetchOne().name)|adam|
-print(myRes2.fetchOne().name)|jack|
-print(myRes3.fetchOne().name)|John|
-print(myColl.find('name = "clare"').execute().fetchOne().age)|37|
+print(myRes1.fetch_one().name)|adam|
+print(myRes2.fetch_one().name)|jack|
+print(myRes3.fetch_one().name)|John|
+print(myColl.find('name = "clare"').execute().fetch_one().age)|37|
 testSession.close();||
 testSession = None;||

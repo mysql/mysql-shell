@@ -149,15 +149,16 @@ print("Not 14 Years:", records.length, "\n");
 var result = table.select(['name', 'age']).execute();
 var record = result.fetchOne();
 var columns = dir(record)
+print (columns)
 print('1-Metadata Length:', columns.length, '\n');
-print('1-Metadata Field:', columns[3], '\n');
-print('1-Metadata Field:', columns[4], '\n');
+print('1-Metadata Field:', columns[1], '\n');
+print('1-Metadata Field:', columns[2], '\n');
 
 var result = table.select(['age']).execute();
 var record = result.fetchOne();
 var columns = dir(record)
 print('2-Metadata Length:', columns.length, '\n');
-print('2-Metadata Field:', columns[3], '\n');
+print('2-Metadata Field:', columns[1], '\n');
 
 //@ Table.Select Sorting
 var records = table.select().orderBy(['name']).execute().fetchAll();

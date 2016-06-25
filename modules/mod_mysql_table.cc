@@ -46,16 +46,18 @@ void ClassicTable::init()
   add_method("isView", boost::bind(&ClassicTable::is_view, this, _1), NULL);
 }
 
-#ifdef DOXYGEN
 /**
 * Indicates whether this ClassicTable object represents a View on the database.
 * \return True if the Table represents a View on the database, False if represents a Table.
 */
-Bool Table::isView(){}
+#if DOXYGEN_JS
+Bool ClassicTable::isView(){}
+#elif DOXYGEN_PY
+bool ClassicTable::is_view(){}
 #endif
 shcore::Value ClassicTable::is_view(const shcore::Argument_list &args)
 {
-  args.ensure_count(0, "ClassicTable.isView");
+  args.ensure_count(0, get_function_name("isView").c_str());
 
   return Value(_is_view);
 }

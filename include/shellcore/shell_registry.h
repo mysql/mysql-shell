@@ -58,9 +58,7 @@ namespace shcore
 
     virtual std::string class_name() const;
     virtual bool operator == (const Object_bridge &other) const;
-    virtual std::vector<std::string> get_members() const;
     virtual Value get_member(const std::string &prop) const;
-    virtual bool has_member(const std::string &prop) const;
     virtual std::string &append_descr(std::string &s_out, int indent = -1, int quote_strings = 0) const;
     virtual void append_json(shcore::JSON_dumper& dumper) const;
 

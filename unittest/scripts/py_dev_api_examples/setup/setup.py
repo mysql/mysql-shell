@@ -14,7 +14,7 @@ def ensure_session():
   if testSession is None:
     print "Creating session...\n"
 
-    testSession = mysqlx.getNodeSession(__uripwd)
+    testSession = mysqlx.get_node_session(__uripwd)
 
     # Ensures the user on dev-api exists
     try:
@@ -31,7 +31,7 @@ def ensure_not_a_schema(schema):
   ensure_session()
 
   try:
-      s = testSession.dropSchema(schema)
+      s = testSession.drop_schema(schema)
       print "%s schema has been deleted...\n" % schema
   except:
     print "%s schema does not exist...\n" % schema
@@ -40,31 +40,31 @@ def ensure_test_schema():
   ensure_session()
 
   try:
-      s = testSession.getSchema('test')
+      s = testSession.get_schema('test')
       print "Test schema exists...\n"
   except:
     print "Creating test schema...\n"
-    testSession.createSchema('test')
+    testSession.create_schema('test')
 
-  testSession.setCurrentSchema('test')
+  testSession.set_current_schema('test')
 
 def ensure_test_schema_on_db():
   global db
   ensure_test_schema()
   print "Assigning test schema to db...\n"
-  db = testSession.getSchema('test')
+  db = testSession.get_schema('test')
 
 def ensure_employee_table():
   ensure_test_schema_on_db()
 
   try:
-    table = testSession.getSchema('test').getTable('employee')
+    table = testSession.get_schema('test').get_table('employee')
 
     print "Employee table exists...\n"
   except:
     print "Creating employee table...\n"
     testSession.sql('create table test.employee (name varchar(50), age integer, gender varchar(20))').execute()
-    table = db.getTable('employee')
+    table = db.get_table('employee')
     
     result = table.insert({'name': 'jack', 'age': 17, 'gender': 'male'}).execute()
     result = table.insert({'name': 'adam', 'age': 15, 'gender': 'male'}).execute()
@@ -83,12 +83,12 @@ def ensure_relatives_collection():
   ensure_test_schema_on_db()
 
   try:
-    test_coll = testSession.getSchema('test').getCollection('relatives')
+    test_coll = testSession.get_schema('test').get_collection('relatives')
 
     print "Relatives collection exists...\n"
   except:
     print "Creating relatives collection...\n"
-    test_coll = db.createCollection('relatives')
+    test_coll = db.create_collection('relatives')
     
     result = test_coll.add({'name': 'jack', 'age': 17, 'alias': 'jack'}).execute()
     result = test_coll.add({'name': 'adam', 'age': 15, 'alias': 'jr'}).execute()
@@ -103,7 +103,7 @@ def ensure_employee_table_on_mytable():
   
   print "Assigning employee table to myTable...\n"
   
-  myTable = testSession.getSchema('test').getTable('employee')
+  myTable = testSession.get_schema('test').get_table('employee')
 
 def ensure_empty_my_table_table():
   ensure_test_schema()
@@ -124,12 +124,12 @@ def ensure_my_collection_collection():
   ensure_test_schema_on_db()
 
   try:
-    test_coll = testSession.getSchema('test').getCollection('my_collection')
+    test_coll = testSession.get_schema('test').get_collection('my_collection')
 
     print "my_collection collection exists...\n"
   except:
     print "Creating my_collection collection...\n"
-    test_coll = db.createCollection('my_collection')
+    test_coll = db.create_collection('my_collection')
 
     result = test_coll.add({'name': 'jack', 'age': 17, 'gender': 'male'}).execute()
     result = test_coll.add({'name': 'adam', 'age': 15, 'gender': 'male'}).execute()
@@ -148,39 +148,39 @@ def ensure_customers_collection():
   ensure_test_schema_on_db()
 
   try:
-    test_coll = testSession.getSchema('test').getCollection('customers')
+    test_coll = testSession.get_schema('test').get_collection('customers')
 
     print "customers collection exists...\n"
   except:
     print "Creating customers collection...\n"
-    test_coll = db.createCollection('customers')
+    test_coll = db.create_collection('customers')
 
 def ensure_my_coll_collection():
   ensure_test_schema_on_db()
 
   try:
-    test_coll = testSession.getSchema('test').getCollection('my_coll')
+    test_coll = testSession.get_schema('test').get_collection('my_coll')
 
     print "my_coll collection exists...\n"
   except:
     print "Creating my_coll collection...\n"
-    test_coll = db.createCollection('my_coll')
+    test_coll = db.create_collection('my_coll')
 
 def ensure_not_collection(name):
   ensure_test_schema()
 
   try:
-    test_coll = testSession.getSchema('test').getCollection(name)
+    test_coll = testSession.get_schema('test').get_collection(name)
 
     print "Dropping %s...\n" % name
-    testSession.dropCollection('test', name)
+    testSession.drop_collection('test', name)
   except:
     print "%s does not exist...\n" % name
 
 def ensure_custom_id_unique():
   global myColl
   ensure_my_collection_collection()
-  myColl = db.getCollection('my_collection')
+  myColl = db.get_collection('my_collection')
 
   myColl.remove('_id = "custom_id"').execute()
 
@@ -189,7 +189,7 @@ def ensure_table_users_exists():
   ensure_test_schema()
 
   try:
-    test_coll = testSession.getSchema('test').getTable('users')
+    test_coll = testSession.get_schema('test').get_table('users')
 
     print 'users table exists...'
   except:

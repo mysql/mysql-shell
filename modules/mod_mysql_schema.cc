@@ -63,11 +63,11 @@ void ClassicSchema::init()
   auto table_generator = [this](const std::string& name){return shcore::Value::wrap<ClassicTable>(new ClassicTable(shared_from_this(), name, false)); };
   auto view_generator = [this](const std::string& name){return shcore::Value::wrap<ClassicTable>(new ClassicTable(shared_from_this(), name, true)); };
 
-  update_table_cache = [table_generator, this](const std::string &name, bool exists){DatabaseObject::update_cache(name, table_generator, exists, _tables); };
-  update_view_cache = [view_generator, this](const std::string &name, bool exists){DatabaseObject::update_cache(name, view_generator, exists, _views); };
+  update_table_cache = [table_generator, this](const std::string &name, bool exists){DatabaseObject::update_cache(name, table_generator, exists, _tables, this); };
+  update_view_cache = [view_generator, this](const std::string &name, bool exists){DatabaseObject::update_cache(name, view_generator, exists, _views, this); };
 
-  update_full_table_cache = [table_generator, this](const std::vector<std::string> &names){DatabaseObject::update_cache(names, table_generator, _tables); };
-  update_full_view_cache = [view_generator, this](const std::vector<std::string> &names){DatabaseObject::update_cache(names, view_generator, _views); };
+  update_full_table_cache = [table_generator, this](const std::vector<std::string> &names){DatabaseObject::update_cache(names, table_generator, _tables, this); };
+  update_full_view_cache = [view_generator, this](const std::vector<std::string> &names){DatabaseObject::update_cache(names, view_generator, _views, this); };
 }
 
 ClassicSchema::~ClassicSchema()
@@ -127,34 +127,20 @@ void ClassicSchema::_remove_object(const std::string& name, const std::string& t
   }
 }
 
-std::vector<std::string> ClassicSchema::get_members() const
-{
-  std::vector<std::string> members(DatabaseObject::get_members());
-
-  for (Value::Map_type::const_iterator iter = _tables->begin();
-       iter != _tables->end(); ++iter)
-  {
-    if (shcore::is_valid_identifier(iter->first))
-      members.push_back(iter->first);
-  }
-
-  for (Value::Map_type::const_iterator iter = _views->begin();
-       iter != _views->end(); ++iter)
-  {
-    if (shcore::is_valid_identifier(iter->first))
-      members.push_back(iter->first);
-  }
-
-  return members;
-}
-
-bool ClassicSchema::has_member(const std::string &prop) const
-{
-  return DatabaseObject::has_member(prop) ||
-    (shcore::is_valid_identifier(prop) &&
-    (_tables->has_key(prop) || _views->has_key(prop)));
-}
-
+#if DOXYGEN_CPP
+/**
+ * Use this function to retrieve an valid member of this class exposed to the scripting languages.
+ * \param prop : A string containing the name of the member to be returned
+ *
+ * This function returns a Value that wraps the object returned by this function. The the content of the returned value depends on the property being requested. The next list shows the valid properties as well as the returned value for each of them:
+ *
+ * The Schema tables and views are exposed as members of the Schema object so:
+ *
+ * \li If prop is the name of a valid Table or View on the Schema, the corresponding ClassicTable object will be returned.
+ *
+ * See the implementation of DatabaseObject for additional valid members.
+ */
+#endif
 Value ClassicSchema::get_member(const std::string &prop) const
 {
   // Searches the property in tables
@@ -171,23 +157,29 @@ Value ClassicSchema::get_member(const std::string &prop) const
   return ret_val;
 }
 
-#ifdef DOXYGEN
+
+//! Returns the table of the given name for this schema.
+#if DOXYGEN_CPP
+//! \param args should contain the name of the table to look for.
+#else
+//! \param name the name of the table to look for.
+#endif
 /**
-* Returns the table of the given name for this schema.
-* \sa ClassicTable
-* \param name the name of the table to look for.
 * \return the ClassicTable object matching the name.
 *
 * Verifies if the requested Table exist on the database, if exists, returns the corresponding ClassicTable object.
 *
 * Updates the Tables cache.
+ * \sa ClassicTable
 */
-ClassicTable ClassicSchema::getTable(String name)
-{}
+#if DOXYGEN_JS
+ClassicTable ClassicSchema::getTable(String name){}
+#elif DOXYGEN_PY
+ClassicTable ClassicSchema::get_table(str name){}
 #endif
 shcore::Value ClassicSchema::get_table(const shcore::Argument_list &args)
 {
-  args.ensure_count(1, (class_name() + ".getTable").c_str());
+  args.ensure_count(1, get_function_name("getTable").c_str());
   std::string name = args.string_at(0);
   shcore::Value ret_val;
 
@@ -215,19 +207,18 @@ shcore::Value ClassicSchema::get_table(const shcore::Argument_list &args)
         update_view_cache(real_name, exists);
 
         ret_val = (*_views)[real_name];
-      }
     }
+  }
 
     if (!exists)
       throw shcore::Exception::runtime_error("The table " + _name + "." + name + " does not exist");
-  }
+}
   else
     throw shcore::Exception::argument_error("An empty name is invalid for a table");
 
   return ret_val;
 }
 
-#ifdef DOXYGEN
 /**
 * Returns a list of Tables for this Schema.
 * \sa ClassicTable
@@ -239,11 +230,14 @@ shcore::Value ClassicSchema::get_table(const shcore::Argument_list &args)
 *
 * Returns a List of available Table objects.
 */
+#if DOXYGEN_JS
 List ClassicSchema::getTables(){}
+#elif DOXYGEN_PY
+list ClassicSchema::get_tables(){}
 #endif
 shcore::Value ClassicSchema::get_tables(const shcore::Argument_list &args)
 {
-  args.ensure_count(0, (class_name() + ".getTables").c_str());
+  args.ensure_count(0, get_function_name("getTables").c_str());
 
   update_cache();
 

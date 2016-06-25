@@ -4,7 +4,7 @@
 import mysqlx
 
 #@ Session: validating members
-mySession = mysqlx.getSession(__uripwd)
+mySession = mysqlx.get_session(__uripwd)
 all_members = dir(mySession)
 
 # Remove the python built in members
@@ -16,13 +16,13 @@ for member in all_members:
 print sessionMembers
 
 validateMember(sessionMembers, 'close')
-validateMember(sessionMembers, 'createSchema')
-validateMember(sessionMembers, 'getDefaultSchema')
-validateMember(sessionMembers, 'getSchema')
-validateMember(sessionMembers, 'getSchemas')
-validateMember(sessionMembers, 'getUri')
-validateMember(sessionMembers, 'setFetchWarnings')
-validateMember(sessionMembers, 'defaultSchema')
+validateMember(sessionMembers, 'create_schema')
+validateMember(sessionMembers, 'get_default_schema')
+validateMember(sessionMembers, 'get_schema')
+validateMember(sessionMembers, 'get_schemas')
+validateMember(sessionMembers, 'get_uri')
+validateMember(sessionMembers, 'set_fetch_warnings')
+validateMember(sessionMembers, 'default_schema')
 validateMember(sessionMembers, 'uri')
 
 #@ Session: validate dynamic members for system schemas
@@ -31,31 +31,31 @@ validateNotMember(sessionMembers, 'information_schema')
 
 
 #@ Session: accessing Schemas
-schemas = mySession.getSchemas()
+schemas = mySession.get_schemas()
 print getSchemaFromList(schemas, 'mysql')
 print getSchemaFromList(schemas, 'information_schema')
 
 #@ Session: accessing individual schema
-schema = mySession.getSchema('mysql')
+schema = mySession.get_schema('mysql')
 print schema.name
-schema = mySession.getSchema('information_schema')
+schema = mySession.get_schema('information_schema')
 print schema.name
 
 #@ Session: accessing unexisting schema
-schema = mySession.getSchema('unexisting_schema')
+schema = mySession.get_schema('unexisting_schema')
 
 #@ Session: create schema success
 ensure_schema_does_not_exist(mySession, 'session_schema')
 
-ss = mySession.createSchema('session_schema')
+ss = mySession.create_schema('session_schema')
 print ss
 
 #@ Session: create schema failure
-sf = mySession.createSchema('session_schema')
+sf = mySession.create_schema('session_schema')
 
 #@ Session: create quoted schema
 ensure_schema_does_not_exist(mySession, 'quoted schema')
-qs = mySession.createSchema('quoted schema')
+qs = mySession.create_schema('quoted schema')
 print qs
 
 #@ Session: validate dynamic members for created schemas
@@ -64,34 +64,34 @@ validateNotMember(sessionMembers, 'session_schema');
 validateNotMember(sessionMembers, 'quoted schema');
 
 #@ Session: Transaction handling: rollback
-collection = ss.createCollection('sample')
-mySession.startTransaction()
+collection = ss.create_collection('sample')
+mySession.start_transaction()
 res1 = collection.add({"name":'john', "age": 15}).execute()
 res2 = collection.add({"name":'carol', "age": 16}).execute()
 res3 = collection.add({"name":'alma', "age": 17}).execute()
 mySession.rollback()
 
 result = collection.find().execute()
-print 'Inserted Documents:', len(result.fetchAll())
+print 'Inserted Documents:', len(result.fetch_all())
 
 #@ Session: Transaction handling: commit
-mySession.startTransaction()
+mySession.start_transaction()
 res1 = collection.add({"name":'john', "age": 15}).execute()
 res2 = collection.add({"name":'carol', "age": 16}).execute()
 res3 = collection.add({"name":'alma', "age": 17}).execute()
 mySession.commit()
 
 result = collection.find().execute()
-print 'Inserted Documents:', len(result.fetchAll())
+print 'Inserted Documents:', len(result.fetch_all())
 
 
 # Cleanup
-mySession.dropSchema('session_schema')
-mySession.dropSchema('quoted schema')
+mySession.drop_schema('session_schema')
+mySession.drop_schema('quoted schema')
 mySession.close()
 
 #@ NodeSession: validating members
-nodeSession = mysqlx.getNodeSession(__uripwd)
+nodeSession = mysqlx.get_node_session(__uripwd)
 all_members = dir(nodeSession)
 
 # Remove the python built in members
@@ -101,124 +101,124 @@ for member in all_members:
     nodeSessionMembers.append(member)
 
 validateMember(nodeSessionMembers, 'close')
-validateMember(nodeSessionMembers, 'createSchema')
-validateMember(nodeSessionMembers, 'getCurrentSchema')
-validateMember(nodeSessionMembers, 'getDefaultSchema')
-validateMember(nodeSessionMembers, 'getSchema')
-validateMember(nodeSessionMembers, 'getSchemas')
-validateMember(nodeSessionMembers, 'getUri')
-validateMember(nodeSessionMembers, 'setCurrentSchema')
-validateMember(nodeSessionMembers, 'setFetchWarnings')
+validateMember(nodeSessionMembers, 'create_schema')
+validateMember(nodeSessionMembers, 'get_current_schema')
+validateMember(nodeSessionMembers, 'get_default_schema')
+validateMember(nodeSessionMembers, 'get_schema')
+validateMember(nodeSessionMembers, 'get_schemas')
+validateMember(nodeSessionMembers, 'get_uri')
+validateMember(nodeSessionMembers, 'set_current_schema')
+validateMember(nodeSessionMembers, 'set_fetch_warnings')
 validateMember(nodeSessionMembers, 'sql')
-validateMember(nodeSessionMembers, 'defaultSchema')
+validateMember(nodeSessionMembers, 'default_schema')
 validateMember(nodeSessionMembers, 'uri')
-validateMember(nodeSessionMembers, 'currentSchema')
+validateMember(nodeSessionMembers, 'current_schema')
 
 
 #@ NodeSession: accessing Schemas
-schemas = nodeSession.getSchemas()
+schemas = nodeSession.get_schemas()
 print getSchemaFromList(schemas, 'mysql')
 print getSchemaFromList(schemas, 'information_schema')
 
 #@ NodeSession: accessing individual schema
-schema = nodeSession.getSchema('mysql')
+schema = nodeSession.get_schema('mysql')
 print schema.name
-schema = nodeSession.getSchema('information_schema')
+schema = nodeSession.get_schema('information_schema')
 print schema.name
 
 #@ NodeSession: accessing unexisting schema
-schema = nodeSession.getSchema('unexisting_schema')
+schema = nodeSession.get_schema('unexisting_schema')
 
 #@ NodeSession: current schema validations: nodefault
-dschema = nodeSession.getDefaultSchema()
-cschema = nodeSession.getCurrentSchema()
+dschema = nodeSession.get_default_schema()
+cschema = nodeSession.get_current_schema()
 print dschema
 print cschema
 
 #@ NodeSession: create schema success
 ensure_schema_does_not_exist(nodeSession, 'node_session_schema')
 
-ss = nodeSession.createSchema('node_session_schema')
+ss = nodeSession.create_schema('node_session_schema')
 print ss
 
 #@ NodeSession: create schema failure
-sf = nodeSession.createSchema('node_session_schema')
+sf = nodeSession.create_schema('node_session_schema')
 
 #@ NodeSession: Transaction handling: rollback
-collection = ss.createCollection('sample')
-nodeSession.startTransaction()
+collection = ss.create_collection('sample')
+nodeSession.start_transaction()
 res1 = collection.add({"name":'john', "age": 15}).execute()
 res2 = collection.add({"name":'carol', "age": 16}).execute()
 res3 = collection.add({"name":'alma', "age": 17}).execute()
 nodeSession.rollback()
 
 result = collection.find().execute()
-print 'Inserted Documents:', len(result.fetchAll())
+print 'Inserted Documents:', len(result.fetch_all())
 
 #@ NodeSession: Transaction handling: commit
-nodeSession.startTransaction()
+nodeSession.start_transaction()
 res1 = collection.add({"name":'john', "age": 15}).execute()
 res2 = collection.add({"name":'carol', "age": 16}).execute()
 res3 = collection.add({"name":'alma', "age": 17}).execute()
 nodeSession.commit()
 
 result = collection.find().execute()
-print 'Inserted Documents:', len(result.fetchAll())
+print 'Inserted Documents:', len(result.fetch_all())
 
-nodeSession.dropSchema('node_session_schema')
+nodeSession.drop_schema('node_session_schema')
 
 #@ NodeSession: current schema validations: nodefault, mysql
-nodeSession.setCurrentSchema('mysql')
-dschema = nodeSession.getDefaultSchema()
-cschema = nodeSession.getCurrentSchema()
+nodeSession.set_current_schema('mysql')
+dschema = nodeSession.get_default_schema()
+cschema = nodeSession.get_current_schema()
 print dschema
 print cschema
 
 #@ NodeSession: current schema validations: nodefault, information_schema
-nodeSession.setCurrentSchema('information_schema')
-dschema = nodeSession.getDefaultSchema()
-cschema = nodeSession.getCurrentSchema()
+nodeSession.set_current_schema('information_schema')
+dschema = nodeSession.get_default_schema()
+cschema = nodeSession.get_current_schema()
 print dschema
 print cschema
 
 #@ NodeSession: current schema validations: default 
 nodeSession.close()
-nodeSession = mysqlx.getNodeSession(__uripwd + '/mysql')
-dschema = nodeSession.getDefaultSchema()
-cschema = nodeSession.getCurrentSchema()
+nodeSession = mysqlx.get_node_session(__uripwd + '/mysql')
+dschema = nodeSession.get_default_schema()
+cschema = nodeSession.get_current_schema()
 print dschema
 print cschema
 
 #@ NodeSession: current schema validations: default, information_schema
-nodeSession.setCurrentSchema('information_schema')
-dschema = nodeSession.getDefaultSchema()
-cschema = nodeSession.getCurrentSchema()
+nodeSession.set_current_schema('information_schema')
+dschema = nodeSession.get_default_schema()
+cschema = nodeSession.get_current_schema()
 print dschema
 print cschema
 
-#@ NodeSession: setFetchWarnings(False)
-nodeSession.setFetchWarnings(False)
+#@ NodeSession: set_fetch_warnings(False)
+nodeSession.set_fetch_warnings(False)
 result = nodeSession.sql('drop database if exists unexisting').execute()
-print result.warningCount
+print result.warning_count
 
-#@ NodeSession: setFetchWarnings(True)
-nodeSession.setFetchWarnings(True)
+#@ NodeSession: set_fetch_warnings(True)
+nodeSession.set_fetch_warnings(True)
 result = nodeSession.sql('drop database if exists unexisting').execute()
-print result.warningCount
-print result.warnings[0].Message
+print result.warning_count
+print result.warnings[0].message
 
-#@ NodeSession: quoteName no parameters
-print nodeSession.quoteName()
+#@ NodeSession: quote_name no parameters
+print nodeSession.quote_name()
 
-#@ NodeSession: quoteName wrong param type
-print nodeSession.quoteName(5)
+#@ NodeSession: quote_name wrong param type
+print nodeSession.quote_name(5)
 
-#@ NodeSession: quoteName with correct parameters
-print nodeSession.quoteName('sample')
-print nodeSession.quoteName('sam`ple')
-print nodeSession.quoteName('`sample`')
-print nodeSession.quoteName('`sample')
-print nodeSession.quoteName('sample`')
+#@ NodeSession: quote_name with correct parameters
+print nodeSession.quote_name('sample')
+print nodeSession.quote_name('sam`ple')
+print nodeSession.quote_name('`sample`')
+print nodeSession.quote_name('`sample')
+print nodeSession.quote_name('sample`')
 
 # Cleanup
 nodeSession.close()

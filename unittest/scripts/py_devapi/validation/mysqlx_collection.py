@@ -1,13 +1,13 @@
 #@ Testing collection name retrieving
-|getName(): collection1|
+|get_name(): collection1|
 |name: collection1|
 
 #@ Testing session retrieving
-|getSession(): <NodeSession:|
+|get_session(): <NodeSession:|
 |session: <NodeSession:|
 
 #@ Testing collection schema retrieving
-|getSchema(): <Schema:js_shell_test>|
+|get_schema(): <Schema:js_shell_test>|
 |schema: <Schema:js_shell_test>|
 
 #@ Testing existence

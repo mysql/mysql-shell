@@ -59,13 +59,12 @@ namespace mysh
     class SHCORE_PUBLIC Type : public shcore::Cpp_object_bridge
     {
     public:
+      Type();
       // Virtual methods from object bridge
       virtual std::string class_name() const { return "mysqlx.Type"; };
       virtual bool operator == (const Object_bridge &other) const { return this == &other; };
 
       virtual shcore::Value get_member(const std::string &prop) const;
-
-      std::vector<std::string> get_members() const;
 
       static boost::shared_ptr<shcore::Object_bridge> create(const shcore::Argument_list &args);
     };
@@ -73,12 +72,12 @@ namespace mysh
     class SHCORE_PUBLIC IndexType : public shcore::Cpp_object_bridge
     {
     public:
+      IndexType();
       // Virtual methods from object bridge
       virtual std::string class_name() const { return "mysqlx.IndexType"; };
       virtual bool operator == (const Object_bridge &other) const { return this == &other; }
 
       virtual shcore::Value get_member(const std::string &prop) const;
-      std::vector<std::string> get_members() const;
 
       static boost::shared_ptr<shcore::Object_bridge> create(const shcore::Argument_list &args);
     };

@@ -2,17 +2,17 @@
 # Assumes __uripwd is defined as <user>:<pwd>@<host>:<plugin_port>
 import mysqlx
 
-mySession = mysqlx.getNodeSession(__uripwd)
+mySession = mysqlx.get_node_session(__uripwd)
 
 ensure_schema_does_not_exist(mySession, 'js_shell_test')
 
-schema = mySession.createSchema('js_shell_test')
-mySession.setCurrentSchema('js_shell_test')
+schema = mySession.create_schema('js_shell_test')
+mySession.set_current_schema('js_shell_test')
 
 # Creates a test table with initial data
 result = mySession.sql('create table table1 (name varchar(50), age integer, gender varchar(20))').execute()
 result = mySession.sql('create view view1 (my_name, my_age, my_gender) as select name, age, gender from table1;').execute()
-table = schema.getTable('table1')
+table = schema.get_table('table1')
 
 result = table.insert({"name": 'jack', "age": 17, "gender": 'male'}).execute()
 result = table.insert({"name": 'adam', "age": 15, "gender": 'male'}).execute()
@@ -27,22 +27,22 @@ result = table.insert({"name": 'angel', "age": 14, "gender": 'male'}).execute()
 # ----------------------------------------------
 #@ TableSelect: valid operations after select
 crud = table.select()
-validate_crud_functions(crud, ['where', 'groupBy', 'orderBy', 'limit', 'bind', 'execute', '__shell_hook__'])
+validate_crud_functions(crud, ['where', 'group_by', 'order_by', 'limit', 'bind', 'execute', '__shell_hook__'])
 
 #@ TableSelect: valid operations after where
 crud = crud.where('age > 13')
-validate_crud_functions(crud, ['groupBy', 'orderBy', 'limit', 'bind', 'execute', '__shell_hook__'])
+validate_crud_functions(crud, ['group_by', 'order_by', 'limit', 'bind', 'execute', '__shell_hook__'])
 
-#@ TableSelect: valid operations after groupBy
-crud = crud.groupBy(['name'])
-validate_crud_functions(crud, ['having', 'orderBy', 'limit', 'bind', 'execute', '__shell_hook__'])
+#@ TableSelect: valid operations after group_by
+crud = crud.group_by(['name'])
+validate_crud_functions(crud, ['having', 'order_by', 'limit', 'bind', 'execute', '__shell_hook__'])
 
 #@ TableSelect: valid operations after having
 crud = crud.having('age > 10')
-validate_crud_functions(crud, ['orderBy', 'limit', 'bind', 'execute', '__shell_hook__'])
+validate_crud_functions(crud, ['order_by', 'limit', 'bind', 'execute', '__shell_hook__'])
 
-#@ TableSelect: valid operations after orderBy
-crud = crud.orderBy(['age'])
+#@ TableSelect: valid operations after order_by
+crud = crud.order_by(['age'])
 validate_crud_functions(crud, ['limit', 'bind', 'execute', '__shell_hook__'])
 
 #@ TableSelect: valid operations after limit
@@ -62,9 +62,9 @@ result = crud.execute()
 validate_crud_functions(crud, ['bind', 'execute', '__shell_hook__'])
 
 #@ Reusing CRUD with binding
-print result.fetchOne().name + '\n'
+print result.fetch_one().name + '\n'
 result=crud.bind('data', 'alma').execute()
-print result.fetchOne().name + '\n'
+print result.fetch_one().name + '\n'
 
 
 # ----------------------------------------------
@@ -81,21 +81,21 @@ crud = table.select().where()
 crud = table.select().where(5)
 crud = table.select().where('name = "whatever')
 
-#@# TableSelect: Error conditions on groupBy
-crud = table.select().groupBy()
-crud = table.select().groupBy(5)
-crud = table.select().groupBy([])
-crud = table.select().groupBy(['name', 5])
+#@# TableSelect: Error conditions on group_by
+crud = table.select().group_by()
+crud = table.select().group_by(5)
+crud = table.select().group_by([])
+crud = table.select().group_by(['name', 5])
 
 #@# TableSelect: Error conditions on having
-crud = table.select().groupBy(['name']).having()
-crud = table.select().groupBy(['name']).having(5)
+crud = table.select().group_by(['name']).having()
+crud = table.select().group_by(['name']).having(5)
 
-#@# TableSelect: Error conditions on orderBy
-crud = table.select().orderBy()
-crud = table.select().orderBy(5)
-crud = table.select().orderBy([])
-crud = table.select().orderBy(['name', 5])
+#@# TableSelect: Error conditions on order_by
+crud = table.select().order_by()
+crud = table.select().order_by(5)
+crud = table.select().order_by([])
+crud = table.select().order_by(['name', 5])
 
 #@# TableSelect: Error conditions on limit
 crud = table.select().limit()
@@ -121,37 +121,37 @@ crud = table.select().where('name = :data and age > :years').bind('years', 5).ex
 records
 
 #@ Table.Select All
-records = table.select().execute().fetchAll()
+records = table.select().execute().fetch_all()
 print "All:", len(records), "\n"
 
 #@ Table.Select Filtering
-records = table.select().where('gender = "male"').execute().fetchAll()
+records = table.select().where('gender = "male"').execute().fetch_all()
 print "Males:", len(records), "\n"
 
-records = table.select().where('gender = "female"').execute().fetchAll()
+records = table.select().where('gender = "female"').execute().fetch_all()
 print "Females:", len(records), "\n"
 
-records = table.select().where('age = 13').execute().fetchAll()
+records = table.select().where('age = 13').execute().fetch_all()
 print "13 Years:", len(records), "\n"
 
-records = table.select().where('age = 14').execute().fetchAll()
+records = table.select().where('age = 14').execute().fetch_all()
 print "14 Years:", len(records), "\n"
 
-records = table.select().where('age < 17').execute().fetchAll()
+records = table.select().where('age < 17').execute().fetch_all()
 print "Under 17:", len(records), "\n"
 
-records = table.select().where('name like "a%"').execute().fetchAll()
+records = table.select().where('name like "a%"').execute().fetch_all()
 print "Names With A:", len(records), "\n"
 
-records = table.select().where('name LIKE "a%"').execute().fetchAll()
+records = table.select().where('name LIKE "a%"').execute().fetch_all()
 print "Names With A:", len(records), "\n"
 
-records = table.select().where('NOT (age = 14)').execute().fetchAll()
+records = table.select().where('NOT (age = 14)').execute().fetch_all()
 print "Not 14 Years:", len(records), "\n"
 
 #@ Table.Select Field Selection
 result = table.select(['name','age']).execute()
-record = result.fetchOne()
+record = result.fetch_one()
 all_members = dir(record)
 
 # Remove the python built in members
@@ -161,13 +161,13 @@ for member in all_members:
     columns.append(member)
 
 # In python, members are returned in alphabetic order
-# We print the requested members here (getLength and getField are members too)
+# We print the requested members here (get_length and getField are members too)
 print '1-Metadata Length:', len(columns), '\n'
 print '1-Metadata Field:', columns[4], '\n'
 print '1-Metadata Field:', columns[0], '\n'
 
 result = table.select(['age']).execute()
-record = result.fetchOne()
+record = result.fetch_one()
 
 all_members = dir(record)
 
@@ -178,34 +178,34 @@ for member in all_members:
     columns.append(member)
 
 # In python, members are returned in alphabetic order
-# We print the requested members here (getLength and getField are members too)
+# We print the requested members here (get_length and getField are members too)
 print '2-Metadata Length:', len(columns), '\n'
 print '2-Metadata Field:', columns[0], '\n'
 
 #@ Table.Select Sorting
-records = table.select().orderBy(['name']).execute().fetchAll()
+records = table.select().order_by(['name']).execute().fetch_all()
 for index in xrange(7):
 	print 'Select Asc', index, ':', records[index].name, '\n'
 
-records = table.select().orderBy(['name desc']).execute().fetchAll()
+records = table.select().order_by(['name desc']).execute().fetch_all()
 for index in xrange(7):
 	print 'Select Desc', index, ':', records[index].name, '\n'
 
 #@ Table.Select Limit and Offset
-records = table.select().limit(4).execute().fetchAll()
+records = table.select().limit(4).execute().fetch_all()
 print 'Limit-Offset 0 :', len(records), '\n'
 
 for index in xrange(7):
-	records = table.select().limit(4).offset(index + 1).execute().fetchAll()
+	records = table.select().limit(4).offset(index + 1).execute().fetch_all()
 	print 'Limit-Offset', index + 1, ':', len(records), '\n'
 
 #@ Table.Select Parameter Binding through a View
-view = schema.getTable('view1');
-records = view.select().where('my_age = :years and my_gender = :heorshe').bind('years', 13).bind('heorshe', 'female').execute().fetchAll()
+view = schema.get_table('view1');
+records = view.select().where('my_age = :years and my_gender = :heorshe').bind('years', 13).bind('heorshe', 'female').execute().fetch_all()
 print 'Select Binding Length:', len(records), '\n'
 print 'Select Binding Name:', records[0].my_name, '\n'
 
 
 # Cleanup
-mySession.dropSchema('js_shell_test')
+mySession.drop_schema('js_shell_test')
 mySession.close()

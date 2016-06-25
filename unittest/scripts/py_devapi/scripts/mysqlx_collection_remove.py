@@ -2,14 +2,14 @@
 # Assumes __uripwd is defined as <user>:<pwd>@<host>:<plugin_port>
 import mysqlx
 
-mySession = mysqlx.getNodeSession(__uripwd)
+mySession = mysqlx.get_node_session(__uripwd)
 
 ensure_schema_does_not_exist(mySession, 'js_shell_test')
 
-schema = mySession.createSchema('js_shell_test')
+schema = mySession.create_schema('js_shell_test')
 
 # Creates a test collection and inserts data into it
-collection = schema.createCollection('collection1')
+collection = schema.create_collection('collection1')
 
 result = collection.add({"name": 'jack', "age": 17, "gender": 'male'}).execute()
 result = collection.add({"name": 'adam', "age": 15, "gender": 'male'}).execute()
@@ -43,9 +43,9 @@ result = crud.execute()
 validate_crud_functions(crud, ['bind', 'execute', '__shell_hook__'])
 
 #@ Reusing CRUD with binding
-print 'Deleted donna:', result.affectedItemCount, '\n'
+print 'Deleted donna:', result.affected_item_count, '\n'
 result=crud.bind('data', 'alma').execute()
-print 'Deleted alma:', result.affectedItemCount, '\n'
+print 'Deleted alma:', result.affected_item_count, '\n'
 
 
 # ----------------------------------------------
@@ -81,47 +81,47 @@ crud = collection.remove('name = :data and age > :years').bind('years', 5).execu
 
 #@ CollectionRemove: remove under condition
 result = collection.remove('age = 15').execute()
-print 'Affected Rows:', result.affectedItemCount, '\n'
+print 'Affected Rows:', result.affected_item_count, '\n'
 
 try:
-  print "lastDocumentId:", result.lastDocumentId
+  print "last_document_id:", result.last_document_id
 except Exception, err:
-  print "lastDocumentId:", str(err), "\n"
+  print "last_document_id:", str(err), "\n"
 
 try:
-  print "getLastDocumentId():", result.getLastDocumentId()
+  print "get_last_document_id():", result.get_last_document_id()
 except Exception, err:
-  print "getLastDocumentId():", str(err), "\n"
+  print "get_last_document_id():", str(err), "\n"
 
 try:
-  print "lastDocumentIds:", result.lastDocumentIds
+  print "last_document_ids:", result.last_document_ids
 except Exception, err:
-  print "lastDocumentIds:", str(err), "\n"
+  print "last_document_ids:", str(err), "\n"
 
 try:
-  print "getLastDocumentIds():", result.getLastDocumentIds()
+  print "get_last_document_ids():", result.get_last_document_ids()
 except Exception, err:
-  print "getLastDocumentIds():", str(err), "\n"
+  print "get_last_document_ids():", str(err), "\n"
 
 
-docs = collection.find().execute().fetchAll()
+docs = collection.find().execute().fetch_all()
 print 'Records Left:', len(docs), '\n'
 
 #@ CollectionRemove: remove with binding
 result = collection.remove('gender = :heorshe').limit(2).bind('heorshe', 'male').execute()
-print 'Affected Rows:', result.affectedItemCount, '\n'
+print 'Affected Rows:', result.affected_item_count, '\n'
 
-docs = collection.find().execute().fetchAll()
+docs = collection.find().execute().fetch_all()
 print 'Records Left:', len(docs), '\n'
 
 #@ CollectionRemove: full remove
 result = collection.remove().execute()
-print 'Affected Rows:', result.affectedItemCount, '\n'
+print 'Affected Rows:', result.affected_item_count, '\n'
 
-docs = collection.find().execute().fetchAll()
+docs = collection.find().execute().fetch_all()
 print 'Records Left:', len(docs), '\n'
 
 
 # Cleanup
-mySession.dropSchema('js_shell_test')
+mySession.drop_schema('js_shell_test')
 mySession.close()

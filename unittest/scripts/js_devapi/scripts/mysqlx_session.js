@@ -191,7 +191,7 @@ print(result.warningCount);
 nodeSession.setFetchWarnings(true);
 var result = nodeSession.sql('drop database if exists unexisting').execute();
 print(result.warningCount);
-print(result.warnings[0].Message);
+print(result.warnings[0].message);
 
 //@ NodeSession: quoteName no parameters
 print(nodeSession.quoteName());

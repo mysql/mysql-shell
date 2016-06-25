@@ -15,6 +15,7 @@
 ||CollectionAdd.add: Argument is expected to be either a document or a list of documents
 ||CollectionAdd.add: Element #1 is expected to be a document or a JSON expression
 ||CollectionAdd.add: Element #1 is expected to be a JSON expression
+||CollectionAdd.add: Invalid data type for _id field, should be a string
 
 
 //@ Collection.add execution
@@ -34,15 +35,15 @@
 
 
 |Affected Rows Multi: 2|
-|lastDocumentId Multi: Result.getLastDocumentId(): document id is not available.|
-|getLastDocumentId Multi: Result.getLastDocumentId(): document id is not available.|
+|lastDocumentId Multi: Result.getLastDocumentId: document id is not available.|
+|getLastDocumentId Multi: Result.getLastDocumentId: document id is not available.|
 |#lastDocumentIds Multi: 2|
 |#getLastDocumentIds Multi: 2|
 
 
 |Affected Rows Multi Known IDs: 2|
-|lastDocumentId Multi Known IDs: Result.getLastDocumentId(): document id is not available.|
-|getLastDocumentId Multi Known IDs: Result.getLastDocumentId(): document id is not available.|
+|lastDocumentId Multi Known IDs: Result.getLastDocumentId: document id is not available.|
+|getLastDocumentId Multi Known IDs: Result.getLastDocumentId: document id is not available.|
 
 |#lastDocumentIds Multi Known IDs: 2|
 |#getLastDocumentIds Multi Known IDs: 2|
@@ -52,8 +53,8 @@
 |Second getLastDocumentIds Multi Known IDs: known_01|
 
 |Affected Rows Empty List: -1|
-|lastDocumentId Empty List: Result.getLastDocumentId(): document id is not available.|
-|getLastDocumentId Empty List: Result.getLastDocumentId(): document id is not available.|
+|lastDocumentId Empty List: Result.getLastDocumentId: document id is not available.|
+|getLastDocumentId Empty List: Result.getLastDocumentId: document id is not available.|
 
 |#lastDocumentIds Empty List: 0|
 |#getLastDocumentIds Empty List: 0|

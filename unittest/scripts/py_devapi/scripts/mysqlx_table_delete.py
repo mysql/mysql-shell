@@ -2,17 +2,17 @@
 
 import mysqlx
 
-mySession = mysqlx.getNodeSession(__uripwd)
+mySession = mysqlx.get_node_session(__uripwd)
 
 ensure_schema_does_not_exist(mySession, 'js_shell_test')
 
-schema = mySession.createSchema('js_shell_test')
-mySession.setCurrentSchema('js_shell_test')
+schema = mySession.create_schema('js_shell_test')
+mySession.set_current_schema('js_shell_test')
 
 # Creates a test table with initial data
 result = mySession.sql('create table table1 (name varchar(50), age integer, gender varchar(20))').execute()
 result = mySession.sql('create view view1 (my_name, my_age, my_gender) as select name, age, gender from table1;').execute()
-table = schema.getTable('table1')
+table = schema.get_table('table1')
 
 result = table.insert({"name": 'jack', "age": 17, "gender": 'male'}).execute()
 result = table.insert({"name": 'adam', "age": 15, "gender": 'male'}).execute()
@@ -27,14 +27,14 @@ result = table.insert({"name": 'angel', "age": 14, "gender": 'male'}).execute()
 # ------------------------------------------------
 #@ TableDelete: valid operations after delete
 crud = table.delete()
-validate_crud_functions(crud, ['where', 'orderBy', 'limit', 'bind', 'execute', '__shell_hook__'])
+validate_crud_functions(crud, ['where', 'order_by', 'limit', 'bind', 'execute', '__shell_hook__'])
 
 #@ TableDelete: valid operations after where
 crud = crud.where("id < 100")
-validate_crud_functions(crud, ['orderBy', 'limit', 'bind', 'execute', '__shell_hook__'])
+validate_crud_functions(crud, ['order_by', 'limit', 'bind', 'execute', '__shell_hook__'])
 
-#@ TableDelete: valid operations after orderBy
-crud = crud.orderBy(['name'])
+#@ TableDelete: valid operations after order_by
+crud = crud.order_by(['name'])
 validate_crud_functions(crud, ['limit', 'bind', 'execute', '__shell_hook__'])
 
 #@ TableDelete: valid operations after limit
@@ -50,9 +50,9 @@ result = crud.execute()
 validate_crud_functions(crud, ['bind', 'execute', '__shell_hook__'])
 
 #@ Reusing CRUD with binding
-print 'Deleted donna:', result.affectedItemCount, '\n'
+print 'Deleted donna:', result.affected_item_count, '\n'
 result=crud.bind('data', 'alma').execute()
-print 'Deleted alma:', result.affectedItemCount, '\n'
+print 'Deleted alma:', result.affected_item_count, '\n'
 
 
 # ----------------------------------------------
@@ -67,11 +67,11 @@ crud = table.delete().where()
 crud = table.delete().where(5)
 crud = table.delete().where('test = "2')
 
-#@# TableDelete: Error conditions on orderBy
-crud = table.delete().orderBy()
-crud = table.delete().orderBy(5)
-crud = table.delete().orderBy([])
-crud = table.delete().orderBy(['name', 5])
+#@# TableDelete: Error conditions on order_by
+crud = table.delete().order_by()
+crud = table.delete().order_by(5)
+crud = table.delete().order_by([])
+crud = table.delete().order_by(['name', 5])
 
 #@# TableDelete: Error conditions on limit
 crud = table.delete().limit()
@@ -92,25 +92,25 @@ crud = table.delete().where('name = :data and age > :years').bind('years', 5).ex
 
 #@ TableDelete: delete under condition
 result = table.delete().where('age = 15').execute()
-print 'Affected Rows:', result.affectedItemCount, '\n'
+print 'Affected Rows:', result.affected_item_count, '\n'
 
-records = table.select().execute().fetchAll()
+records = table.select().execute().fetch_all()
 print 'Records Left:', len(records), '\n'
 
 #@ TableDelete: delete with binding
 result = table.delete().where('gender = :heorshe').limit(2).bind('heorshe', 'male').execute()
-print 'Affected Rows:', result.affectedItemCount, '\n'
+print 'Affected Rows:', result.affected_item_count, '\n'
 
-records = table.select().execute().fetchAll()
+records = table.select().execute().fetch_all()
 print 'Records Left:', len(records), '\n'
 
 #@ TableDelete: full delete with a view object
-view = schema.getTable('view1')
+view = schema.get_table('view1')
 result = view.delete().execute()
-print 'Affected Rows:', result.affectedItemCount, '\n'
+print 'Affected Rows:', result.affected_item_count, '\n'
 
 # Deletion is of course reflected on the target table
-records = table.select().execute().fetchAll()
+records = table.select().execute().fetch_all()
 print 'Records Left:', len(records), '\n'
 
 #@ TableDelete: with limit 0
@@ -120,52 +120,52 @@ result = table.insert({"name": 'alma', "age": 13, "gender": 'female'}).execute()
 result = table.insert({"name": 'carol', "age": 14, "gender": 'female'}).execute()
 result = table.insert({"name": 'donna', "age": 16, "gender": 'female'}).execute()
 
-records = table.select().execute().fetchAll()
+records = table.select().execute().fetch_all()
 print 'Records Left:', len(records), '\n'
 
 #@ TableDelete: with limit 1
 result = table.delete().limit(2).execute()
-print 'Affected Rows:', result.affectedItemCount, '\n'
+print 'Affected Rows:', result.affected_item_count, '\n'
 
-records = table.select().execute().fetchAll()
+records = table.select().execute().fetch_all()
 print 'Records Left:', len(records), '\n'
 
 #@ TableDelete: with limit 2
 result = table.delete().limit(2).execute()
-print 'Affected Rows:', result.affectedItemCount, '\n'
+print 'Affected Rows:', result.affected_item_count, '\n'
 
-records = table.select().execute().fetchAll()
+records = table.select().execute().fetch_all()
 print 'Records Left:', len(records), '\n'
 
 #@ TableDelete: with limit 3
 result = table.delete().limit(2).execute()
-print 'Affected Rows:', result.affectedItemCount, '\n'
+print 'Affected Rows:', result.affected_item_count, '\n'
 
 try:
-  print "lastDocumentId:", result.lastDocumentId
+  print "last_document_id:", result.last_document_id
 except Exception, err:
-  print "lastDocumentId:", str(err), "\n"
+  print "last_document_id:", str(err), "\n"
 
 try:
-  print "getLastDocumentId():", result.getLastDocumentId()
+  print "get_last_document_id():", result.get_last_document_id()
 except Exception, err:
-  print "getLastDocumentId():", str(err), "\n"
+  print "get_last_document_id():", str(err), "\n"
 
 try:
-  print "lastDocumentIds:", result.lastDocumentIds
+  print "last_document_ids:", result.last_document_ids
 except Exception, err:
-  print "lastDocumentIds:", str(err), "\n"
+  print "last_document_ids:", str(err), "\n"
 
 try:
-  print "getLastDocumentIds():", result.getLastDocumentIds()
+  print "get_last_document_ids():", result.get_last_document_ids()
 except Exception, err:
-  print "getLastDocumentIds():", str(err), "\n"
+  print "get_last_document_ids():", str(err), "\n"
 
 
-records = table.select().execute().fetchAll()
+records = table.select().execute().fetch_all()
 print 'Records Left:', len(records), '\n'
 
 
 # Cleanup
-mySession.dropSchema('js_shell_test')
+mySession.drop_schema('js_shell_test')
 mySession.close()

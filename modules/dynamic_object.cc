@@ -32,15 +32,29 @@ using namespace shcore;
 std::vector<std::string> Dynamic_object::get_members() const
 {
   std::vector<std::string> _members;
-  for (std::map<std::string, boost::shared_ptr<shcore::Cpp_function> >::const_iterator i = _funcs.begin(); i != _funcs.end(); ++i)
+  for (auto i : _funcs)
   {
     // Only returns the enabled functions
-    if (_enabled_functions.at(i->first))
-      _members.push_back(i->first);
+    if (_enabled_functions.at(i.first))
+      _members.push_back(i.second->name(naming_style));
   }
   return _members;
 }
 
+#if DOXYGEN_CPP
+/**
+ * Use this function to retrieve an valid member of this class exposed to the scripting languages.
+ * \param prop : A string containing the name of the member to be returned
+ *
+ * This function returns a Value that wraps the object returned by this function. The content of the returned value depends on the property being requested. The next list shows the valid properties as well as the returned value for each of them:
+ *
+ * This object represents objects that can dynamically enable or disable functions. The functions will only be returned if they are found and enabled, otherwise a shcore::Exception will be thrown:
+ *
+ * \li Invalid object member: when the function is not found.
+ * \li Forbidden usage of: when the function found but is disabled.
+ *
+ */
+#endif
 Value Dynamic_object::get_member(const std::string &prop) const
 {
   std::map<std::string, boost::shared_ptr<shcore::Cpp_function> >::const_iterator i;
@@ -54,10 +68,16 @@ Value Dynamic_object::get_member(const std::string &prop) const
 
 bool Dynamic_object::has_member(const std::string &prop) const
 {
-  // The function must exist and be enabled
-  return Cpp_object_bridge::has_member(prop) &&
-    _enabled_functions.find(prop) != _enabled_functions.end() &&
-    _enabled_functions.at(prop);
+  bool ret_val = false;
+
+  // A function is considered only if it is enanbled
+  auto i = std::find_if(_funcs.begin(), _funcs.end(), [this, prop](const FunctionEntry &f){ return f.second->name(naming_style) == prop; });
+  if (i != _funcs.end())
+    ret_val = _enabled_functions.find(i->first) != _enabled_functions.end() && _enabled_functions.at(i->first);
+  else
+    ret_val = Cpp_object_bridge::has_member(prop);
+
+  return ret_val;
 }
 
 Value Dynamic_object::call(const std::string &name, const shcore::Argument_list &args)

@@ -1,8 +1,8 @@
 # Gets the collection
-myColl = db.getCollection('my_collection')
+myColl = db.get_collection('my_collection')
 
 # Insert a document
 res = myColl.add({ 'name': 'Jack', 'age': 15, 'height': 1.76 }).execute()
 
 # Print the documentId that was assigned to the document
-print 'Document Id: %s\n' % res.getLastDocumentId()
+print 'Document Id: %s\n' % res.get_last_document_id()

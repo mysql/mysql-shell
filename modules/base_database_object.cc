@@ -24,6 +24,7 @@
 #include "shellcore/lang_base.h"
 #include "shellcore/common.h"
 #include "shellcore/proxy_object.h"
+#include "utils/utils_general.h"
 #include "base_session.h"
 
 #include <boost/bind.hpp>
@@ -87,13 +88,28 @@ bool DatabaseObject::operator == (const Object_bridge &other) const
   return false;
 }
 
-#ifdef DOXYGEN
+
+#if DOXYGEN_CPP
+/**
+ * Use this function to retrieve an valid member of this class exposed to the scripting languages.
+ * \param prop : A string containing the name of the member to be returned
+ *
+ * This function returns a Value that wraps the object returned by this function. The content of the returned value depends on the property being requested. The next list shows the valid properties as well as the returned value for each of them:
+ *
+ * \li name: returns a String object with the name of this database object.
+ * \li schema: returns the schema object that owns this DatabaseObject, so it could be either an instance of Schema or ClassicSchema. If this DatabaseObject is either an instance of Schema or ClassicSchema it returns Null.
+ * \li session: returns a session object under which the DatabaseObject was created, it could be any of XSession, NodeSession or ClassicSession.
+ */
+#else
 /**
 * Returns the name of this database object.
 * \return the name as an String object.
 */
+#if DOXYGEN_JS
 String DatabaseObject::getName(){}
-
+#elif DOXYGEN_PY
+str DatabaseObject::get_name(){}
+#endif
 /**
 * Returns the Session object of this database object.
 * \return the Session object used to get to this object.
@@ -103,7 +119,11 @@ String DatabaseObject::getName(){}
 * - NodeSession: if the object was created/retrieved using an NodeSession instance.
 * - ClassicSession: if the object was created/retrieved using an ClassicSession instance.
 */
+#if DOXYGEN_JS
 Object DatabaseObject::getSession(){}
+#elif DOXYGEN_PY
+object DatabaseObject::get_session(){}
+#endif
 
 /**
 * Returns the Schema object of this database object.
@@ -113,7 +133,11 @@ Object DatabaseObject::getSession(){}
 * - Schema: if the object was created/retrieved using a Schema instance.
 * - ClassicSchema: if the object was created/retrieved using an ClassicSchema instance.
 */
+#if DOXYGEN_JS
 Object DatabaseObject::getSchema(){}
+#elif DOXYGEN_PY
+object DatabaseObject::get_schema(){}
+#endif
 #endif
 Value DatabaseObject::get_member(const std::string &prop) const
 {
@@ -141,11 +165,11 @@ Value DatabaseObject::get_member(const std::string &prop) const
   return ret_val;
 }
 
-#ifdef DOXYGEN
-/**
-* Verifies if this object exists in the database.
-*/
-Undefined DatabaseObject::existsInDatabase(){}
+//! Verifies if this object exists in the database.
+#if DOXYGEN_JS
+Bool DatabaseObject::existsInDatabase(){}
+#elif DOXYGEN_PY
+bool DatabaseObject::exists_in_database(){}
 #endif
 shcore::Value DatabaseObject::existsInDatabase(const shcore::Argument_list &args)
 {
@@ -153,7 +177,7 @@ shcore::Value DatabaseObject::existsInDatabase(const shcore::Argument_list &args
   return shcore::Value(!_session.lock()->db_object_exists(type, _name, _schema._empty() ? "" : _schema.lock()->get_member("name").as_string()).empty());
 }
 
-void DatabaseObject::update_cache(const std::vector<std::string>& names, const std::function<shcore::Value(const std::string &name)>& generator, Cache target_cache)
+void DatabaseObject::update_cache(const std::vector<std::string>& names, const std::function<shcore::Value(const std::string &name)>& generator, Cache target_cache, DatabaseObject* target)
 {
   std::set<std::string> existing;
 
@@ -167,7 +191,12 @@ void DatabaseObject::update_cache(const std::vector<std::string>& names, const s
   for (auto name : names)
   {
     if (existing.find(name) == existing.end())
+    {
       (*target_cache)[name] = generator(name);
+
+      if (target && shcore::is_valid_identifier(name))
+        target->add_property(name);
+    }
 
     else
       existing.erase(name);
@@ -175,16 +204,31 @@ void DatabaseObject::update_cache(const std::vector<std::string>& names, const s
 
   // Removes no longer existing items
   for (auto name : existing)
+  {
     target_cache->erase(name);
+
+    if (target)
+      target->delete_property(name);
+  }
 }
 
-void DatabaseObject::update_cache(const std::string& name, const std::function<shcore::Value(const std::string &name)>& generator, bool exists, Cache target_cache)
+void DatabaseObject::update_cache(const std::string& name, const std::function<shcore::Value(const std::string &name)>& generator, bool exists, Cache target_cache, DatabaseObject* target)
 {
   if (exists && target_cache->find(name) == target_cache->end())
+  {
     (*target_cache)[name] = generator(name);
 
+    if (target && shcore::is_valid_identifier(name))
+      target->add_property(name);
+  }
+
   if (!exists && target_cache->find(name) != target_cache->end())
+  {
     target_cache->erase(name);
+
+    if (target)
+      target->delete_property(name);
+  }
 }
 
 void DatabaseObject::get_object_list(Cache target_cache, shcore::Value::Array_type_ref list)

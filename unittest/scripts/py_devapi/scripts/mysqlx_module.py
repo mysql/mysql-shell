@@ -21,15 +21,15 @@ for member in all_members:
 
 print 'Exported Items:', len(exports)
 
-print 'getSession:', type(mysqlx.getSession), '\n'
-print 'getNodeSession:', type(mysqlx.getNodeSession), '\n'
+print 'get_session:', type(mysqlx.get_session), '\n'
+print 'get_node_session:', type(mysqlx.get_node_session), '\n'
 print 'expr:', type(mysqlx.expr), '\n'
 print 'dateValue:', type(mysqlx.dateValue), '\n'
 print 'Type:', mysqlx.Type, '\n'
 print 'IndexType:', mysqlx.IndexType, '\n'
 
-#@ mysqlx module: getSession through URI
-mySession = mysqlx.getSession(__uripwd)
+#@ mysqlx module: get_session through URI
+mySession = mysqlx.get_session(__uripwd)
 
 print mySession, '\n'
 
@@ -40,8 +40,8 @@ else:
 
 mySession.close()
 
-#@ mysqlx module: getSession through URI and password
-mySession = mysqlx.getSession(__uri, __pwd)
+#@ mysqlx module: get_session through URI and password
+mySession = mysqlx.get_session(__uri, __pwd)
 
 print mySession, '\n'
 
@@ -53,7 +53,7 @@ else:
 mySession.close()
 
 
-#@ mysqlx module: getSession through data
+#@ mysqlx module: get_session through data
 data = { 'host': __host,
 				 'port': __port,
 				 'schema': __schema,
@@ -61,7 +61,7 @@ data = { 'host': __host,
 				 'dbPassword': __pwd }
 
 
-mySession = mysqlx.getSession(data)
+mySession = mysqlx.get_session(data)
 
 print mySession, '\n'
 
@@ -72,14 +72,14 @@ else:
 
 mySession.close()
 
-#@ mysqlx module: getSession through data and password
+#@ mysqlx module: get_session through data and password
 data = { 'host': __host,
 				 'port': __port,
 				 'schema': __schema,
 				 'dbUser': __user}
 
 
-mySession = mysqlx.getSession(data, __pwd)
+mySession = mysqlx.get_session(data, __pwd)
 
 print mySession, '\n'
 
@@ -91,8 +91,8 @@ else:
 mySession.close()
 
 
-#@ mysqlx module: getNodeSession through URI
-mySession = mysqlx.getNodeSession(__uripwd)
+#@ mysqlx module: get_node_session through URI
+mySession = mysqlx.get_node_session(__uripwd)
 
 print mySession, '\n'
 
@@ -103,8 +103,8 @@ else:
 
 mySession.close()
 
-#@ mysqlx module: getNodeSession through URI and password
-mySession = mysqlx.getNodeSession(__uri, __pwd)
+#@ mysqlx module: get_node_session through URI and password
+mySession = mysqlx.get_node_session(__uri, __pwd)
 
 print mySession, '\n'
 
@@ -116,7 +116,7 @@ else:
 mySession.close()
 
 
-#@ mysqlx module: getNodeSession through data
+#@ mysqlx module: get_node_session through data
 data = { 'host': __host,
 				 'port': __port,
 				 'schema': __schema,
@@ -124,7 +124,7 @@ data = { 'host': __host,
 				 'dbPassword': __pwd }
 
 
-mySession = mysqlx.getNodeSession(data)
+mySession = mysqlx.get_node_session(data)
 
 print mySession, '\n'
 
@@ -135,14 +135,14 @@ else:
 
 mySession.close()
 
-#@ mysqlx module: getNodeSession through data and password
+#@ mysqlx module: get_node_session through data and password
 data = { 'host': __host,
 				 'port': __port,
 				 'schema': __schema,
 				 'dbUser': __user}
 
 
-mySession = mysqlx.getNodeSession(data, __pwd)
+mySession = mysqlx.get_node_session(data, __pwd)
 
 print mySession, '\n'
 
@@ -157,7 +157,7 @@ mySession.close()
 #@ Stored Sessions, session from data dictionary
 shell.storedSessions.add('mysqlx_data', data);
 
-mySession = mysqlx.getSession(shell.storedSessions.mysqlx_data, __pwd);
+mySession = mysqlx.get_session(shell.storedSessions.mysqlx_data, __pwd);
 
 print "%s\n" % mySession
 
@@ -170,13 +170,13 @@ mySession.close()
 
 #@ Stored Sessions, session from data dictionary removed
 shell.storedSessions.remove('mysqlx_data')
-mySession = mysqlx.getSession(shell.storedSessions.mysqlx_data)
+mySession = mysqlx.get_session(shell.storedSessions.mysqlx_data)
 
 
 #@ Stored Sessions, session from uri
 shell.storedSessions.add('mysqlx_uri', __uripwd)
 
-mySession = mysqlx.getSession(shell.storedSessions.mysqlx_uri, __pwd)
+mySession = mysqlx.get_session(shell.storedSessions.mysqlx_uri, __pwd)
 
 print "%s\n" % mySession
 
@@ -189,7 +189,7 @@ mySession.close()
 
 #@ Stored Sessions, session from uri removed
 shell.storedSessions.remove('mysqlx_uri')
-mySession = mysqlx.getSession(shell.storedSessions.mysqlx_uri)
+mySession = mysqlx.get_session(shell.storedSessions.mysqlx_uri)
 
 
 # @# mysqlx module: expression errors

@@ -4,45 +4,45 @@
 |name: OK|
 |schema: OK|
 |session: OK|
-|existsInDatabase: OK|
-|getName: OK|
-|getSchema: OK|
-|getSession: OK|
-|getTable: OK|
-|getTables: OK|
-|getCollection: OK|
-|getCollections: OK|
-|createCollection: OK|
-|getCollectionAsTable: OK|
+|exists_in_database: OK|
+|get_name: OK|
+|get_schema: OK|
+|get_session: OK|
+|get_table: OK|
+|get_tables: OK|
+|get_collection: OK|
+|get_collections: OK|
+|create_collection: OK|
+|get_collection_as_table: OK|
 
 |table1: OK|
 |view1: OK|
 |collection1: OK|
 
 #@ Testing schema name retrieving
-|getName(): js_shell_test|
+|get_name(): js_shell_test|
 |name: js_shell_test|
 
-#@ Testing schema.getSession
-|getSession(): <NodeSession:|
+#@ Testing schema.get_session
+|get_session(): <NodeSession:|
 
 #@ Testing schema.session
 |session: <NodeSession:|
 
 #@ Testing schema schema retrieving
-|getSchema(): None|
+|get_schema(): None|
 |schema: None|
 
 #@ Testing tables, views and collection retrieval
-|getTables(): <Table:|
-|getCollections(): <Collection:collection1>|
+|get_tables(): <Table:|
+|get_collections(): <Collection:collection1>|
 
 #@ Testing specific object retrieval
 |Retrieving a Table: <Table:table1>|
 |.<table>: <Table:table1>|
 |Retrieving a View: <Table:view1>|
 |.<view>: <Table:view1>|
-|getCollection(): <Collection:collection1>|
+|get_collection(): <Collection:collection1>|
 |.<collection>: <Collection:collection1>|
 
 #@# Testing specific object retrieval: unexisting objects
@@ -54,10 +54,10 @@
 ||An empty name is invalid for a collection
 
 #@ Retrieving collection as table
-|getCollectionAsTable(): <Table:collection1>|
+|get_collection_as_table(): <Table:collection1>|
 
 #@ Collection creation
-|createCollection(): <Collection:my_sample_collection>|
+|create_collection(): <Collection:my_sample_collection>|
 
 #@ Testing existence
 |Valid: True|

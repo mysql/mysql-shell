@@ -1,15 +1,15 @@
 #@ Session: validating members
 |close: OK|
-|createSchema: OK|
-|getCurrentSchema: OK|
-|getDefaultSchema: OK|
-|getSchema: OK|
-|getSchemas: OK|
-|getUri: OK|
-|setCurrentSchema: OK|
-|defaultSchema: OK|
+|create_schema: OK|
+|get_current_schema: OK|
+|get_default_schema: OK|
+|get_schema: OK|
+|get_schemas: OK|
+|get_uri: OK|
+|set_current_schema: OK|
+|default_schema: OK|
 |uri: OK|
-|currentSchema: OK|
+|current_schema: OK|
 
 #@ ClassicSession: validate dynamic members for system schemas
 |mysql: OK|

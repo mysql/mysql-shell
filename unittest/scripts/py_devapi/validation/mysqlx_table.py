@@ -1,13 +1,13 @@
 #@ Testing table name retrieving
-|getName(): table1|
+|get_name(): table1|
 |name: table1|
 
 #@ Testing session retrieving
-|getSession(): <NodeSession:|
+|get_session(): <NodeSession:|
 |session: <NodeSession:|
 
 #@ Testing table schema retrieving
-|getSchema(): <Schema:js_shell_test>|
+|get_schema(): <Schema:js_shell_test>|
 |schema: <Schema:js_shell_test>|
 
 #@ Testing existence

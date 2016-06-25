@@ -89,9 +89,7 @@ namespace mysh
 
       virtual std::string class_name() const{ return "ClassicSchema"; };
 
-      virtual std::vector<std::string> get_members() const;
       virtual shcore::Value get_member(const std::string &prop) const;
-      virtual bool has_member(const std::string &prop) const;
 
       void update_cache();
       void _remove_object(const std::string& name, const std::string& type);
@@ -100,9 +98,12 @@ namespace mysh
 
       friend class ClassicTable;
 
-#ifdef DOXYGEN
+#if DOXYGEN_JS
       ClassicTable getTable(String name);
       List getTables();
+#elif DOXYGEN_PY
+      ClassicTable get_table(str name);
+      list get_tables();
 #endif
     public:
       shcore::Value get_table(const shcore::Argument_list &args);

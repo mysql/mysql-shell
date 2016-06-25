@@ -1,4 +1,4 @@
-myColl = db.getCollection('my_collection')
+myColl = db.get_collection('my_collection')
 
 # Only prepare a Collection.remove() operation, but do not run it yet
 myRemove = myColl.remove('name = :param1 AND age = :param2')

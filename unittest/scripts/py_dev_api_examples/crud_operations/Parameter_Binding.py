@@ -1,5 +1,5 @@
 # Collection.find() function with hardcoded values
-myColl = db.getCollection('my_collection')
+myColl = db.get_collection('my_collection')
 
 myRes1 = myColl.find('age = 15').execute()
 
