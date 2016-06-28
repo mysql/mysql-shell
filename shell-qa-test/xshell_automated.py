@@ -7349,6 +7349,24 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+  def test_MYS_540(self):
+      if sys.platform == 'win32':
+           results = "PASS"
+           self.assertEqual(results, 'PASS')
+      else:
+           '''Running scripts from command line including'''
+           results = ''
+           expectedValue = 'Hello World'
+           init_command = [ Exec_files_location + './test_540.txt']
+           p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+           stdin, stdout = p.communicate()
+           found = stdin.find(bytearray(expectedValue, "ascii"), 0, len(stdin))
+           if found == -1:
+               results = "FAIL \n\r" + stdin.decode("ascii")
+           else:
+               results = "PASS"
+           self.assertEqual(results, 'PASS')
+
 
 
   # ----------------------------------------------------------------------
