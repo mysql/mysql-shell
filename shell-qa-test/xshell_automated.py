@@ -145,13 +145,7 @@ class REMOTEHOST:
     xprotocol_port = ""
     port = ""
 
-if os.path.split(os.path.expanduser('~'))[-1] =='guidev':
-    # **** LOCAL EXECUTION ****
-    config=json.load(open('config_local.json'))
-    MYSQL_SHELL = str(config["general"]["xshell_path"])
-    Exec_files_location = str(config["general"]["aux_files_path"])
-    XMLReportFilePath = "xshell_qa_test.xml"
-else:
+if 'CONFIG_PATH' in os.environ and 'MYSQLX_PATH' in os.environ and os.path.isdir(os.environ['CONFIG_PATH']) and os.path.isfile(os.environ['MYSQLX_PATH']):
     # **** JENKINS EXECUTION ****
     config_path = os.environ['CONFIG_PATH']
     config=json.load(open(config_path))
@@ -159,6 +153,12 @@ else:
     Exec_files_location = os.environ['AUX_FILES_PATH']
     XSHELL_QA_TEST_ROOT = os.environ['XSHELL_QA_TEST_ROOT']
     XMLReportFilePath = XSHELL_QA_TEST_ROOT+"/xshell_qa_test.xml"
+else:
+    # **** LOCAL EXECUTION ****
+    config=json.load(open('config_local.json'))
+    MYSQL_SHELL = str(config["general"]["xshell_path"])
+    Exec_files_location = str(config["general"]["aux_files_path"])
+    XMLReportFilePath = "xshell_qa_test.xml"
 
 #########################################################################
 
