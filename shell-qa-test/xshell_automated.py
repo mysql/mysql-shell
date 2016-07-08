@@ -145,7 +145,7 @@ class REMOTEHOST:
     xprotocol_port = ""
     port = ""
 
-if 'CONFIG_PATH' in os.environ and 'MYSQLX_PATH' in os.environ and os.path.isdir(os.environ['CONFIG_PATH']) and os.path.isfile(os.environ['MYSQLX_PATH']):
+if 'CONFIG_PATH' in os.environ and 'MYSQLX_PATH' in os.environ and os.path.isfile(os.environ['CONFIG_PATH']) and os.path.isfile(os.environ['MYSQLX_PATH']):
     # **** JENKINS EXECUTION ****
     config_path = os.environ['CONFIG_PATH']
     config=json.load(open(config_path))
