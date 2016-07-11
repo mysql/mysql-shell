@@ -6186,6 +6186,7 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+  @unittest.skip("SESSION.URI DISPLAY WRONG MENU DATA TO THE USER: ISSUE MYS-542")
   def test_MYS_338_04(self):
       '''[2.0.14]:4 Connect remote Server inside mysqlshell FAILOVER: \connect -c  wrong password'''
       results = ''
@@ -6201,6 +6202,7 @@ class XShell_TestCases(unittest.TestCase):
       self.assertEqual(results, 'PASS')
 
 
+  @unittest.skip("SESSION.URI DISPLAY WRONG MENU DATA TO THE USER: ISSUE MYS-542")
   def test_MYS_338_05(self):
       '''[2.0.14]:4 Connect remote Server inside mysqlshell FAILOVER: \connect -c  wrong password'''
       results = ''
