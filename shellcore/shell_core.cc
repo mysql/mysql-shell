@@ -25,6 +25,7 @@
 #include "modules/base_session.h"
 #include "interactive_global_schema.h"
 #include "interactive_global_session.h"
+#include "interactive_global_admin.h"
 #include <boost/algorithm/string.hpp>
 #include <boost/format.hpp>
 #include <boost/bind.hpp>
@@ -61,6 +62,7 @@ Shell_core::Shell_core(Interpreter_delegate *shdelegate)
   {
     set_global("db", shcore::Value::wrap<Global_schema>(new Global_schema(*this)));
     set_global("session", shcore::Value::wrap<Global_session>(new Global_session(*this)));
+    set_global("admin", shcore::Value::wrap<Global_admin>(new Global_admin(*this)));
   }
 
   shcore::print = boost::bind(&shcore::Shell_core::print, this, _1);
@@ -428,9 +430,17 @@ boost::shared_ptr<mysh::ShellAdminSession> Shell_core::set_admin_session(boost::
 {
   _global_admin_session.reset(session, session.get());
 
-  set_global("admin", shcore::Value(boost::static_pointer_cast<Object_bridge>(_global_admin_session)));
+  // When using the interactive wrappers instead of setting the global variables
+  // The target Objects on the wrappers are set
+  if ((*Shell_core_options::get())[SHCORE_USE_WIZARDS].as_bool())
+    get_global("admin").as_object<Interactive_object_wrapper>()->set_target(boost::static_pointer_cast<Cpp_object_bridge>(_global_admin_session));
 
-  //set_global("farm", _global_admin_session->get_member("defaultFarm"));
+  // Use the admin session objects directly if the wizards are OFF
+  else
+  {
+    set_global("admin", shcore::Value(boost::static_pointer_cast<Object_bridge>(_global_admin_session)));
+    //set_global("farm", _global_admin_session->get_member("defaultFarm"));
+  }
 
   return _global_admin_session;
 }
