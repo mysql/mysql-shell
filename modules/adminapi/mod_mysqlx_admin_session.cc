@@ -28,6 +28,7 @@
 #include <boost/pointer_cast.hpp>
 
 #include "mod_mysqlx_farm.h"
+#include "mod_mysqlx_metadata_storage.h"
 
 using namespace mysh;
 using namespace mysh::mysqlx;
@@ -43,6 +44,11 @@ AdminSession::AdminSession()
 bool AdminSession::is_connected() const
 {
   return _session.is_connected();
+}
+
+SessionHandle AdminSession::get_session() const
+{
+  return _session;
 }
 
 AdminSession::AdminSession(const AdminSession& s) : ShellAdminSession(s)
@@ -69,7 +75,7 @@ void AdminSession::init()
 
 Value AdminSession::connect(const Argument_list &args)
 {
-  args.ensure_count(1, 2, get_function_name("connect").c_str());
+  args.ensure_count(1, 2, "AdminSession.connect");
 
   try
   {
@@ -77,8 +83,11 @@ Value AdminSession::connect(const Argument_list &args)
     load_connection_data(args);
 
     _session.open(_host, _port, _schema, _user, _password, _ssl_ca, _ssl_cert, _ssl_key, 10000, _auth_method, true);
+
+    // initializes the MetadataStorage
+    _metadata_storage.reset(new MetadataStorage(shared_from_this()));
   }
-  CATCH_AND_TRANSLATE();
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION("AdminSession.connect");
 
   return Value::Null();
 }
@@ -108,13 +117,14 @@ std::string AdminSession::db_object_exists(std::string &type, const std::string 
   return _session.db_object_exists(type, name, owner);
 }
 
-
-#if DOXYGEN_JS
 /**
 * \brief Closes the session.
 * After closing the session it is still possible to make read only operation to gather metadata info, like getTable(name) or getSchemas().
 */
+#if DOXYGEN_JS
 Undefined AdminSession::close(){}
+#elif DOXYGEN_PY
+None AdminSession::close(){}
 #endif
 Value AdminSession::close(const shcore::Argument_list &args)
 {
@@ -159,20 +169,39 @@ std::vector<std::string> AdminSession::get_members() const
   return members;
 }
 
-
-#if DOXYGEN_JS
+#if DOXYGEN_CPP
 /**
-* Retrieves the Farm configured as default on this Metadata instance.
-* \return A Farm object or Null
-*/
-Farm AdminSession::getDefaultFarm(){}
-
+ * Use this function to retrieve an valid member of this class exposed to the scripting languages.
+ * \param prop : A string containing the name of the member to be returned
+ *
+ * This function returns a Value that wraps the object returned by this function.
+ * The content of the returned value depends on the property being requested.
+ * The next list shows the valid properties as well as the returned value for each of them:
+ *
+ * \li uri: returns a String object with a string representing the connection data for this session.
+ * \li defaultFarm: returns the default Farm object.
+ */
+#else
 /**
 * Retrieves the connection data for this session in string format.
 * \return A string representing the connection data.
 */
+#if DOXYGEN_JS
 String AdminSession::getUri(){}
+#elif DOXYGEN_PY
+str AdminSession::get_uri(){}
 #endif
+/**
+* Retrieves the Farm configured as default on this Metadata instance.
+* \return A Farm object or Null
+*/
+#if DOXYGEN_JS
+Farm AdminSession::getDefaultFarm(){}
+#elif DOXYGEN_PY
+Farm AdminSession::get_default_farm(){}
+#endif
+#endif
+
 Value AdminSession::get_member(const std::string &prop) const
 {
   // Retrieves the member first from the parent
@@ -202,79 +231,155 @@ Value AdminSession::get_member(const std::string &prop) const
   return ret_val;
 }
 
-#if DOXYGEN_JS
 /**
 * Retrieves a Farm object from the current session through it's name.
 * \param name The name of the Farm object to be retrieved.
 * \return The Farm object with the given name.
 * \sa Farm
 */
+#if DOXYGEN_JS
 Farm AdminSession::getFarm(String name){}
+#elif DOXYGEN_PY
+Farm AdminSession::get_farm(str name){}
 #endif
+
 shcore::Value AdminSession::get_farm(const shcore::Argument_list &args) const
 {
-  args.ensure_count(1, "AdminSession.getFarm");
+  Value ret_val;
+  args.ensure_count(1, get_function_name("getFarm").c_str());
 
-  // TODO: just do it!
+  try
+  {
+    if (!_session.is_connected())
+      throw Exception::metadata_error("Not connected to the Metadata Storage.");
 
-  return shcore::Value();
+    std::string farm_name = args.string_at(0);
+
+    if (farm_name.empty())
+      throw Exception::argument_error("The Farm name cannot be empty.");
+
+    if (!_farms->has_key(farm_name))
+      (*_farms)[farm_name] = shcore::Value(_metadata_storage->get_farm(farm_name));
+
+    ret_val = (*_farms)[farm_name];
+  }
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("getFarm"))
+
+  return ret_val;
 }
 
-#ifdef DOXYGEN
 /**
  * Creates a Farm object.
  * \param name The name of the Farm object to be retrieved.
  * \return The created Farm object.
  * \sa Farm
  */
+#if DOXYGEN_JS
 Farm AdminSession::createFarm(String name){}
+#elif DOXYGEN_PY
+Farm AdminSession::create_farm(str name){}
 #endif
 shcore::Value AdminSession::create_farm(const shcore::Argument_list &args)
 {
   Value ret_val;
-  args.ensure_count(1, "AdminSession.createFarm");
+  args.ensure_count(1, get_function_name("createFarm").c_str());
 
-  if (!_session.is_connected())
-    throw Exception::logic_error("Not connected.");
-  else
+  try
   {
-    std::string name = args.string_at(0);
-
-    if (name.empty())
-      throw Exception::argument_error("The Farm name cannot be empty.");
+    if (!_session.is_connected())
+      throw Exception::metadata_error("Not connected to the Metadata Storage.");
     else
     {
-      boost::shared_ptr<Farm> farm (new Farm(name));
+      std::string farm_name = args.string_at(0);
 
-      // If reaches this point it indicates the Farm was created successfully
+      if (farm_name.empty())
+        throw Exception::argument_error("The Farm name cannot be empty.");
+
+      // First we need to create the Metadata Schema, or update it if already exists
+      _metadata_storage->create_metadata_schema();
+
+      boost::shared_ptr<Farm> farm (new Farm(farm_name));
+
+      // Insert Farm on the Metadata Schema
+      _metadata_storage->insert_farm(farm);
+
+      // If it reaches here, it means there are no exceptions
       ret_val = Value(boost::static_pointer_cast<Object_bridge>(farm));
-      (*_farms)[name] = ret_val;
-
-      // Now we need to create the Farm on the Metadata Schema: TODO!
-      //std::string query = "CREATE ...";
-      //_session.execute_sql(query);
+      (*_farms)[farm_name] = ret_val;
     }
   }
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("createFarm"))
 
   return ret_val;
 }
 
-#if DOXYGEN_JS
 /**
  * Drops a Farm object.
  * \param name The name of the Farm object to be dropped.
  * \return nothing.
  * \sa Farm
  */
-None minSession::dropFarm(String name){}
+#if DOXYGEN_JS
+Undefined AdminSession::dropFarm(String name){}
+#elif DOXYGEN_PY
+None AdminSession::drop_farm(str name){}
 #endif
+
 shcore::Value AdminSession::drop_farm(const shcore::Argument_list &args)
 {
-  args.ensure_count(1, "AdminSession.dropFarm");
+  args.ensure_count(1, 2, get_function_name("dropFarm").c_str());
 
-  //TODO: just do it!
+  try
+  {
+    if (!_session.is_connected())
+      throw Exception::metadata_error("Not connected to the Metadata Storage.");
+    else
+    {
+      std::string farm_name = args.string_at(0);
 
-  return shcore::Value();
+      if (farm_name.empty())
+        throw Exception::argument_error("The Farm name cannot be empty.");
+
+      shcore::Value::Map_type_ref options; // Map with the options
+      bool drop_default_rs = false;
+
+      // Check for options
+      if(args.size() == 2)
+      {
+        options = args.map_at(1);
+
+        if (options->has_key("dropDefaultReplicaSet"))
+          drop_default_rs = (*options)["dropDefaultReplicaSet"].as_bool();
+      }
+
+      if (!drop_default_rs)
+      {
+        _metadata_storage->drop_farm(farm_name);
+
+        // If it reaches here, it means there are no exceptions
+        if (_farms->has_key(farm_name))
+          _farms->erase(farm_name);
+      }
+      else
+      {
+        // check if the Farm has more replicaSets than the default one
+        if (!_metadata_storage->farm_has_default_replicaset_only(farm_name))
+          throw Exception::logic_error("Cannot drop Farm: The farm with the name '"
+              + farm_name + "' has more replicasets than the default replicaset.");
+
+        // drop the default ReplicaSet and call drop_farm again
+        _metadata_storage->drop_default_replicaset(farm_name);
+        _metadata_storage->drop_farm(farm_name);
+
+        // If it reaches here, it means there are no exceptions
+        if (_farms->has_key(farm_name))
+          _farms->erase(farm_name);
+      }
+    }
+  }
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("dropFarm"))
+
+  return Value();
 }
 
 shcore::Value AdminSession::get_capability(const std::string& name)
