@@ -45,25 +45,37 @@ namespace mysh
 
       virtual shcore::Value get_member(const std::string &prop) const;
 
-      static std::string new_uuid();
-      const std::string get_uuid() { return _uuid; }
+      const uint64_t get_id() { return _id; }
+      void set_id(uint64_t id) { _id = id; }
       boost::shared_ptr<ReplicaSet> get_default_replicaset() { return _default_replica_set; }
+      void set_default_replicaset(boost::shared_ptr<ReplicaSet> default_rs)
+      {
+        _default_replica_set = default_rs;
+      };
 
-    #ifdef DOXYGEN
-      std::string getName();
-      std::string getAdminType();
-      None addNode(std::string conn);
-      None addNode(Document doc);
-      None removeNode(std::string name);
-      None removeNode(Document doc);
-    #endif
+#if DOXYGEN_JS
+      String getName();
+      String getAdminType();
+      Undefined addNode(String conn);
+      Undefined addNode(Document doc);
+      Undefined removeNode(String name);
+      Undefined removeNode(Document doc);
+
+#elif DOXYGEN_PY
+      str get_name();
+      str get_admin_type();
+      None add_node(str conn);
+      None add_node(Document doc);
+      None remove_node(str name);
+      None remove_node(Document doc);
+#endif
 
       shcore::Value add_node(const shcore::Argument_list &args);
       shcore::Value remove_node(const shcore::Argument_list &args);
       shcore::Value get_replicaset(const shcore::Argument_list &args);
 
     protected:
-      std::string _uuid;
+      uint64_t _id;
       std::string _name;
       std::string _admin_type;
       boost::shared_ptr<ReplicaSet> _default_replica_set;

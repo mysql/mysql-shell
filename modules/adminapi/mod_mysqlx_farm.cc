@@ -26,12 +26,14 @@
 #include <iostream>
 #include <iomanip>
 
+#include "mod_mysqlx_replicaset.h"
+
 using namespace mysh;
 using namespace mysh::mysqlx;
 using namespace shcore;
 
 Farm::Farm(const std::string &name) :
-_uuid(new_uuid()), _name(name), _default_replica_set(new ReplicaSet("default"))
+_name(name), _default_replica_set(new ReplicaSet("default"))
 {
   init();
 }
@@ -40,29 +42,43 @@ Farm::~Farm()
 {
 }
 
-std::string Farm::new_uuid()
-{
-  uuid_type uuid;
-  generate_uuid(uuid);
-
-  std::stringstream str;
-  str << std::hex << std::noshowbase << std::setfill('0') << std::setw(2);
-
-  str << (int)uuid[0] << std::setw(2) << (int)uuid[1] << std::setw(2) << (int)uuid[2] << std::setw(2) << (int)uuid[3];
-  str << "-" << std::setw(2) << (int)uuid[4] << std::setw(2) << (int)uuid[5];
-  str << "-" << std::setw(2) << (int)uuid[6] << std::setw(2) << (int)uuid[7];
-  str << "-" << std::setw(2) << (int)uuid[8] << std::setw(2) << (int)uuid[9];
-  str << "-" << std::setw(2) << (int)uuid[10] << std::setw(2) << (int)uuid[11]
-    << std::setw(2) << (int)uuid[12] << std::setw(2) << (int)uuid[13]
-    << std::setw(2) << (int)uuid[14] << std::setw(2) << (int)uuid[15];
-
-  return str.str();
-}
-
 bool Farm::operator == (const Object_bridge &other) const
 {
   return class_name() == other.class_name() && this == &other;
 }
+
+#if DOXYGEN_CPP
+/**
+ * Use this function to retrieve an valid member of this class exposed to the scripting languages.
+ * \param prop : A string containing the name of the member to be returned
+ *
+ * This function returns a Value that wraps the object returned by this function.
+ * The content of the returned value depends on the property being requested.
+ * The next list shows the valid properties as well as the returned value for each of them:
+ *
+ * \li name: returns a String object with the name of this Farm object.
+ * \li adminType: returns the admin Type for this Farm object.
+ */
+#else
+/**
+* Returns the name of this Farm object.
+* \return the name as an String object.
+*/
+#if DOXYGEN_JS
+String Farm::getName(){}
+#elif DOXYGEN_PY
+str Farm::get_name(){}
+#endif
+/**
+* Returns the admin type of this Farm object.
+* \return the admin type as an String object.
+*/
+#if DOXYGEN_JS
+Farm Farm::getAdminType(){}
+#elif DOXYGEN_PY
+Farm Farm::get_admin_type(){}
+#endif
+#endif
 
 shcore::Value Farm::get_member(const std::string &prop) const
 {
@@ -86,30 +102,53 @@ void Farm::init()
   add_method("getReplicaSet", boost::bind(&Farm::get_replicaset, this, _1), "name", shcore::String, NULL);
 }
 
-#ifdef DOXYGEN
 /**
 * Retrieves the name of the Farm object
 * \return The Farm name
 */
+#if DOXYGEN_JS
 String Farm::getName(){}
+#elif DOXYGEN_PY
+str Farm::get_name(){}
+#endif
 
 /**
 * Retrieves the Administration type of the Farm object
 * \return The Administration type
 */
+#if DOXYGEN_JS
 String Farm::getAdminType(){}
+#elif DOXYGEN_PY
+str Farm::get_admin_type(){}
+#endif
 
+#if DOXYGEN_CPP
+/**
+ * Use this function to add a Node to the Farm object
+ * \param args : A list of values to be used to add a Node to the Farm.
+ *
+ * This function calls ReplicaSet::add_node(args).
+ * This function returns an empty Value.
+ */
+#else
 /**
 * Adds a Node to the Farm
 * \param conn The Connection String or URI of the Node to be added
 */
-None addNode(std::string conn){}
-
+#if DOXYGEN_JS
+Undefined addNode(String conn){}
+#elif DOXYGEN_PY
+None add_node(str conn){}
+#endif
 /**
 * Adds a Node to the Farm
 * \param doc The Document representing the Node to be added
 */
-None addNode(Document doc){}
+#if DOXYGEN_JS
+Undefined addNode(Document doc){}
+#elif DOXYGEN_PY
+None add_node(Document doc){}
+#endif
 #endif
 
 shcore::Value Farm::add_node(const shcore::Argument_list &args)
@@ -122,18 +161,33 @@ shcore::Value Farm::add_node(const shcore::Argument_list &args)
   return Value();
 }
 
-#ifdef DOXYGEN
+#if DOXYGEN_CPP
 /**
-* Removes a Node from the From
+ * Use this function to remove a Node from the Farm object
+ * \param args : A list of values to be used to remove a Node to the Farm.
+ *
+ * This function calls ReplicaSet::remove_node(args).
+ * This function returns an empty Value.
+ */
+#else
+/**
+* Removes a Node from the Farm
 * \param name The name of the Node to be removed
 */
-None removeNode(std::string name){}
-
+#if DOXYGEN_JS
+Undefined removeNode(String name){}
+#elif DOXYGEN_PY
+None remove_node(str name){}
+#endif
 /**
-* Removes a Node from the From
+* Removes a Node from the Farm
 * \param doc The Document representing the Node to be removed
 */
-None removeNode(Document doc){}
+#if DOXYGEN_JS
+Undefined removeNode(Document doc){}
+#elif DOXYGEN_PY
+None remove_node(Document doc){}
+#endif
 #endif
 
 shcore::Value Farm::remove_node(const shcore::Argument_list &args)
@@ -146,7 +200,6 @@ shcore::Value Farm::remove_node(const shcore::Argument_list &args)
   return Value();
 }
 
-#ifdef DOXYGEN
 /**
 * Returns the ReplicaSet of the given name.
 * \sa ReplicaSet
@@ -155,7 +208,10 @@ shcore::Value Farm::remove_node(const shcore::Argument_list &args)
 *
 * Verifies if the requested Collection exist on the metadata schema, if exists, returns the corresponding ReplicaSet object.
 */
+#if DOXYGEN_JS
 ReplicaSet Farm::getReplicaSet(String name){}
+#elif DOXYGEN_PY
+ReplicaSet Farm::get_replica_set(str name){}
 #endif
 
 shcore::Value Farm::get_replicaset(const shcore::Argument_list &args)
@@ -163,7 +219,7 @@ shcore::Value Farm::get_replicaset(const shcore::Argument_list &args)
   shcore::Value ret_val;
 
   if (args.size() == 0)
-    ret_val = shcore::Value(_default_replica_set);
+    ret_val = shcore::Value(boost::dynamic_pointer_cast<shcore::Object_bridge>(_default_replica_set));
 
   else
   {
