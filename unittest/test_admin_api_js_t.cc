@@ -98,7 +98,38 @@ namespace shcore
       MY_EXPECT_STDERR_CONTAINS("The Farm name cannot be empty");
       output_handler.wipe_all();
 
+      // Clean up the created Farm
+      _interactive_shell->process_line("admin.dropFarm('devFarm', {dropDefaultReplicaSet: true})");
+      output_handler.wipe_all();
+
       _interactive_shell->process_line("admin.close()");
+    }
+
+    TEST_F(Shell_js_adminapi_tests, dropFarm)
+    {
+      _interactive_shell->process_line("var mysqlx = require('mysqlx').mysqlx;");
+      _interactive_shell->process_line("var admin = mysqlx.getAdminSession('" + _uri + "');");
+
+      _interactive_shell->process_line("admin.createFarm('devFarm')");
+      output_handler.wipe_all();
+
+      _interactive_shell->process_line("admin.dropFarm('devFarm', {dropDefaultReplicaSet: true})");
+
+      _interactive_shell->process_line("farm");
+      MY_EXPECT_STDERR_CONTAINS("farm is not defined at");
+      output_handler.wipe_all();
+
+      _interactive_shell->process_line("admin.dropFarm()");
+      MY_EXPECT_STDERR_CONTAINS("Invalid number of arguments in AdminSession.dropFarm, expected 1 to 2 but got 0");
+      output_handler.wipe_all();
+
+      _interactive_shell->process_line("admin.dropFarm('')");
+      MY_EXPECT_STDERR_CONTAINS("The Farm name cannot be empty");
+      output_handler.wipe_all();
+
+      _interactive_shell->process_line("admin.dropFarm('foobar')");
+      MY_EXPECT_STDERR_CONTAINS("The farm with the name 'foobar' does not exist");
+      output_handler.wipe_all();
     }
 
     TEST_F(Shell_js_adminapi_tests, addNodeFarm)
@@ -139,6 +170,10 @@ namespace shcore
       MY_EXPECT_STDERR_CONTAINS("Connection data empty");
       output_handler.wipe_all();
 
+      // Clean up the created Farm
+      _interactive_shell->process_line("admin.dropFarm('devFarm', {dropDefaultReplicaSet: true})");
+      output_handler.wipe_all();
+
       _interactive_shell->process_line("admin.close()");
     }
 
@@ -171,6 +206,10 @@ namespace shcore
 
       _interactive_shell->process_line("rs.getName()");
       MY_EXPECT_STDOUT_CONTAINS("default");
+      output_handler.wipe_all();
+
+      // Clean up the created Farm
+      _interactive_shell->process_line("admin.dropFarm('devFarm', {dropDefaultReplicaSet: true})");
       output_handler.wipe_all();
 
       _interactive_shell->process_line("admin.close()");
