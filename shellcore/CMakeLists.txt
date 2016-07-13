@@ -112,6 +112,48 @@ else()
   endforeach()
 endif()
 
+# Loads the metadata-model.sql file
+FILE(READ "${CMAKE_SOURCE_DIR}/modules/adminapi/metadata-model.sql" MD_MODEL_SQL)
+
+# Strips the copyright + comments from it
+string(FIND "${MD_MODEL_SQL}" "CREATE DATABASE" COPYRIGHT_END)
+string(SUBSTRING "${MD_MODEL_SQL}" 0 ${COPYRIGHT_END}+2 COPYRIGHT_TEXT)
+string(REPLACE "${COPYRIGHT_TEXT}" "" MD_MODEL_SQL_STRIPPED "${MD_MODEL_SQL}")
+
+# Updates format to be a C++ multiline definition
+string(REPLACE "\\" "\\\\" MD_MODEL_SQL_PREPARED "${MD_MODEL_SQL_STRIPPED}")
+string(REPLACE "\n" "\\n\"\n\"" MD_MODEL_SQL_UPDATED "${MD_MODEL_SQL_PREPARED}")
+
+# Escape the " characters in "manual"
+string(REPLACE "\"manual\"" "\\\"manual\\\"" MD_MODEL_SQL_UPDATED "${MD_MODEL_SQL_UPDATED}")
+
+# Escape the " characters in "ssh"
+string(REPLACE "\"ssh\"" "\\\"ssh\\\"" MD_MODEL_SQL_UPDATED "${MD_MODEL_SQL_UPDATED}")
+
+# Escape the " characters in "254616cc-fb47-11e5-aac5"
+string(REPLACE "\"254616cc-fb47-11e5-aac5\"" "\\\"254616cc-fb47-11e5-aac5\\\"" MD_MODEL_SQL_UPDATED "${MD_MODEL_SQL_UPDATED}")
+
+# Escape the " characters in "mysql://host.foo.com:3306"
+string(REPLACE "\"mysql://host.foo.com:3306\"" "\\\"mysql://host.foo.com:3306\\\"" MD_MODEL_SQL_UPDATED "${MD_MODEL_SQL_UPDATED}")
+
+# Escape the " characters in "mysqlx://host.foo.com:33060"
+string(REPLACE "\"mysqlx://host.foo.com:33060\"" "\\\"mysqlx://host.foo.com:33060\\\"" MD_MODEL_SQL_UPDATED "${MD_MODEL_SQL_UPDATED}")
+
+# Escape the " characters in "mysql://localhost:/tmp/mysql.sock"
+string(REPLACE "\"mysql://localhost:/tmp/mysql.sock\"" "\\\"mysql://localhost:/tmp/mysql.sock\\\"" MD_MODEL_SQL_UPDATED "${MD_MODEL_SQL_UPDATED}")
+
+# Escape the " characters in "mysqlx://localhost:/tmp/mysqlx.sock"
+string(REPLACE "\"mysqlx://localhost:/tmp/mysqlx.sock\"" "\\\"mysqlx://localhost:/tmp/mysqlx.sock\\\"" MD_MODEL_SQL_UPDATED "${MD_MODEL_SQL_UPDATED}")
+
+# Escape the " characters in "mysqlx://localhost:/tmp/mysqlx.sock"
+string(REPLACE "\"mysqlXcom://host.foo.com:49213?channelName=<..>\"" "\\\"mysqlXcom://host.foo.com:49213?channelName=<..>\\\"" MD_MODEL_SQL_UPDATED "${MD_MODEL_SQL_UPDATED}")
+
+
+
+# Creates the target file containing the code ready for processing
+configure_file("${CMAKE_SOURCE_DIR}/include/adminapi/metadata-model_definitions.h.in"
+                 "${CMAKE_BINARY_DIR}/modules/adminapi/metadata-model_definitions.h")
+
 file(GLOB libmysqlshmods_SRC
       "../modules/base_*.cc"
       "../modules/base_*.h"
@@ -133,6 +175,7 @@ file(GLOB libmysqlshmods_SRC
       "../modules/adminapi/mod_mysqlx_*.cc"
       "../modules/adminapi/mod_mysqlx_*.h"
       "${CMAKE_SOURCE_DIR}/common/uuid/src/uuid_gen.cc"
+      "${CMAKE_BINARY_DIR}/modules/adminapi/metadata-model_definitions.h"
 )
 
 #Protobuf related includes
