@@ -26,51 +26,43 @@ CREATE DATABASE farm_metadata_schema;
 USE farm_metadata_schema;
 
 /*
+  The major and minor version of the schema representing the semantic
+  version of the schema that is in use
+*/
+CREATE VIEW schema_version (major, minor) AS SELECT 1, 0;
+
+/*
   This table contain information about the metadata and is used to identify
   basic information about the farm.
 */
 CREATE TABLE farms (
   /* unique ID used to distinguish the farm from other farms */
-  `farm_uuid` VARCHAR(40) NOT NULL,
+  `farm_id` INT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
   /* unique, user specified name for the farm */
   `farm_name` VARCHAR(40) UNIQUE NOT NULL,
-  /*
-    The major version of the schema version field representing the semantic
-    version of the schema that is in use.
-  */
-  `major_version` INT UNSIGNED NOT NULL,
-  /*
-    The minor version of the schema version field representing the semantic
-    version of the schema that is in use.
-  */
-  `minor_version` INT UNSIGNED NOT NULL,
   /* Points to the default replicaset. */
-  `default_replicaset` VARCHAR(40),
+  `default_replicaset` INT UNSIGNED,
   /* Brief description of the farm. */
   `description` TEXT,
-  PRIMARY KEY (farm_uuid)
-) CHARSET = utf8;
-
-/*
-  This table contains all the user accounts that are used while working with
-  a farm.
-*/
-CREATE TABLE accounts (
-  /* Associates the user account with a farm definition. */
-  `farm_uuid` VARCHAR(40) NOT NULL,
-  /* The user name associated with the account */
-  `user` VARCHAR(64) NOT NULL,
-  /* The encrypted password to be used for the account */
-  `password` TEXT NOT NULL,
   /*
-     Random data to defend against dictionary attacks and against pre-computed
-     rainbow table attacks.
+    Stores default mysql user accounts for automated management.
+    The passwords are encrypted using the FarmAdminPassword.
+    {
+      -- User for Read-Only access to the Farm (Router metadata cache access)
+      mysqlRoUserName: <..>,
+      mysqlRoUserPassword: <..>
+    }
   */
-  salt VARCHAR(32),
-  /* The role for which the usr account is created in the farm */
-  role VARCHAR(64),
-  PRIMARY KEY(farm_uuid, role),
-  FOREIGN KEY (farm_uuid) REFERENCES farms(farm_uuid) ON DELETE RESTRICT
+  `mysql_user_accounts` JSON,
+  /*
+    Stores all management options in the JSON format.
+    {
+      farmAdminType: < "manual" | "ssh" >,
+      defaultSshUserName: < ... >,
+      ...
+    }
+  */
+  `options` JSON
 ) CHARSET = utf8;
 
 /*
@@ -79,95 +71,112 @@ CREATE TABLE accounts (
 */
 CREATE TABLE replicasets (
   /*
-    The replicaset UUID is generated on creation of the replicaset and does not
+    The replicaset_id is generated on creation of the replicaset and does not
     change over its lifetime.
   */
-  `replicaset_uuid` VARCHAR(40) NOT NULL,
+  `replicaset_id` INT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  /* Associates the replicaset with a farm definition. */
+  `farm_id` INT UNSIGNED NOT NULL,
   /*
-    Specifies the type of a replicaset, for example, Group Replication,
-    Primary Backup, MySQL Cluster etc. A string is selected to allow
-    custom types to be defined without having to change the schema.
+    Specifies the type of a replicaset, for now this needs to be set to
+    Group Replication.
   */
-  `replicaset_type` VARCHAR(20),
+  `replicaset_type` ENUM('gr') NOT NULL,
   /*
     A replicaset can be assigned a name and this can be used to refer to it.
     The name of the replicaset can change over time and can even be NULL.
   */
-  `replicaset_name` VARCHAR(40) UNIQUE NOT NULL,
-  /* Associates the replicaset with a farm definition. */
-  `farm_uuid` VARCHAR(40) NOT NULL,
+  `replicaset_name` VARCHAR(40) NOT NULL,
   /*
     State of the rs. Either active, in which case traffic can be directed at
-    the replicaset, or inactive, in which case no traffic should be directed to
-    it.
+    the replicaset, or inactive, in which case no traffic should be directed
+    to it.
   */
   `active` BIT(1) NOT NULL,
-  /* Custom properties. */
+  /*
+    Custom properties.
+    {
+      groupReplicationChannelName: "254616cc-fb47-11e5-aac5"
+    }
+  */
   `attributes` JSON,
   /* An optional brief description of the replicaset. */
   `description` TEXT,
-  PRIMARY KEY (replicaset_uuid),
-  FOREIGN KEY (farm_uuid) REFERENCES farms(farm_uuid) ON DELETE RESTRICT
+  FOREIGN KEY (farm_id) REFERENCES farms(farm_id) ON DELETE RESTRICT
 ) CHARSET = utf8;
 
-ALTER TABLE farms ADD FOREIGN KEY (default_replicaset) REFERENCES replicasets(replicaset_uuid) ON DELETE RESTRICT;
+ALTER TABLE farms ADD FOREIGN KEY (default_replicaset) REFERENCES replicasets(replicaset_id) ON DELETE RESTRICT;
 
 /*
   This table contains a list of all the hosts in the farm.
 */
 CREATE TABLE hosts (
   /*
-    The UUID of the host instance. The host UUID is used internally for
-    farm management.
+    The ID of the host instance. The host UUID is used internally for farm
+    management.
   */
-  `host_uuid` VARCHAR(40) NOT NULL,
-  /*
-    unique name of the host
-  */
-  `host_name` VARCHAR(40) UNIQUE NOT NULL,
-  /* A string representing the location. */
+  `host_id` INT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  /* network host name address of the host */
+  `host_name` VARCHAR(128),
+  /* network ip address of the host */
+  `ip_address` VARCHAR(45),
+  /* A string representing the location (e.g. datacenter name). */
   `location` VARCHAR(256) NOT NULL,
   /*
-    A JSON blob with the addresses available for the server instance. The
-    protocols and addresses are further described in the Protocol section below.
+    Stores the admin user accounts information (e.g. for SSH) for automated
+    management.
+    {
+      -- SSH User for Administrative access to the Host
+      sshUserName: <..>
+    }
   */
-  `addresses` JSON NOT NULL,
-  PRIMARY KEY(host_uuid)
+  `admin_user_account` JSON
 ) CHARSET = utf8;
 
 /*
-  This table contain a list of all server instances that are tracked by the
-  farm.
+  This table contain a list of all server instances that are tracked by the farm.
 */
 CREATE TABLE instances (
   /*
-    The UUID of the server instance and is a unique identifer of the server
+    The ID of the server instance and is a unique identifier of the server
     instance.
   */
-  `instance_uuid` VARCHAR(40) NOT NULL,
+  `instance_id` INT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  /* The ID of the host in which the server is running. */
+  `host_id` INT UNSIGNED NOT NULL,
   /*
-    The UUID of the host in which the server is running.
+    Replicaset ID that the server belongs to. Can be NULL if it does not belong
+    to any.
   */
-  `host_uuid` VARCHAR(40) NOT NULL,
-  /*
-    Replicaset UUID that the server belongs to. Can be NULL if it does not
-    belong to any.
-  */
-  `replicaset_uuid` VARCHAR(40),
+  `replicaset_id` INT UNSIGNED,
+  /* MySQL generated server_uuid for the instance */
+  `mysql_server_uuid` VARCHAR(40) UNIQUE NOT NULL,
   /* unique, user specified name for the server */
   `instance_name` VARCHAR(40) UNIQUE NOT NULL,
   /* The role of the server instance in the setup e.g. scale-out, master etc. */
-  `role` VARCHAR(30) NOT NULL,
+  `role` ENUM('master', 'scaleOut', 'hotSpare') NOT NULL,
   /*
-    The mode of the server instance : if it accept read queries, write queries,
-    neither, or both.
+    The mode of the server instance : if it accept read queries, read and write
+    queries, or neither.
   */
-  `mode` VARCHAR(30) NOT NULL,
+  `mode` ENUM('rw', 'ro', 'none') NOT NULL,
   /*
     The weight of the server instance for load balancing purposes. The relative
     proportion of traffic it should receive.
   */
   `weight` FLOAT,
+  /*
+    A JSON blob with the addresses available for the server instance. The
+    protocols and addresses are further described in the Protocol section below.
+    {
+      mysqlClassic: "mysql://host.foo.com:3306",
+      mysqlX: "mysqlx://host.foo.com:33060",
+      localClassic: "mysql://localhost:/tmp/mysql.sock",
+      localX: "mysqlx://localhost:/tmp/mysqlx.sock",
+      mysqlXcom: "mysqlXcom://host.foo.com:49213?channelName=<..>"
+    }
+  */
+  `addresses` JSON NOT NULL,
   /*
     Contain attributes assigned to the server and is a JSON data type with
     key-value pair. The attributes can be used to tag the servers with custom
@@ -176,32 +185,12 @@ CREATE TABLE instances (
   `attributes` JSON,
   /*
     Server version token in effect for the server instance. The version token
-    changes whenever there is a change of the role of the server instance and
-    is used to force cache invalidation when topology changes.
+    changes whenever there is a change of the role of the server instance and is
+    used to force cache invalidation when topology changes.
   */
   `version_token` INTEGER UNSIGNED,
   /* An optional brief description of the group. */
   `description` TEXT,
-  PRIMARY KEY (instance_uuid),
-  FOREIGN KEY (host_uuid) REFERENCES hosts(host_uuid) ON DELETE RESTRICT,
-  FOREIGN KEY (replicaset_uuid) REFERENCES replicasets(replicaset_uuid) ON DELETE SET NULL
+  FOREIGN KEY (host_id) REFERENCES hosts(host_id) ON DELETE RESTRICT,
+  FOREIGN KEY (replicaset_id) REFERENCES replicasets(replicaset_id) ON DELETE SET NULL
 ) CHARSET = utf8;
-
-/*
-  This table provide the default port to use for a protocol given by a symbol.
-  In the schema, we are using a string for the protocol name since this will
-  allow custom definitions of protocols.
-*/
-CREATE TABLE protocol_defaults (
-  /* String describing the protocol e.g. mysql.classic */
-  `protocol` VARCHAR(40) NOT NULL,
-  /*
-    Default address JSON object for the protocol without the address field
-    filled in.
-  */
-  `default_address` JSON NOT NULL,
-  PRIMARY KEY (protocol)
-) CHARSET = utf8;
-
-INSERT INTO protocol_defaults VALUES ('mysql.classic', '{"port": 3306}');
-INSERT INTO protocol_defaults VALUES ('mysql.x', '{"port": 33060}');
