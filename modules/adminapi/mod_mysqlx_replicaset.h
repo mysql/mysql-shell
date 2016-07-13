@@ -43,23 +43,33 @@ namespace mysh
 
       virtual shcore::Value get_member(const std::string &prop) const;
 
-      static std::string new_uuid();
-      const std::string get_uuid() { return _uuid;}
+      void set_id(uint64_t id) { _id = id; }
+      uint64_t get_id() { return _id;}
 
-    #ifdef DOXYGEN
-      std::string getName();
-      void addNode(std::string conn);
-      void addNode(Document doc);
-      void removeNode(std::string name);
-      void removeNode(Document doc);
-    #endif
+      void set_name(std::string name) { _name = name; }
+
+#if DOXYGEN_JS
+      String getName();
+      Undefined addNode(String conn);
+      Undefined addNode(Document doc);
+      Undefined removeNode(String name);
+      Undefined removeNode(Document doc);
+
+#elif DOXYGEN_PY
+      str get_name();
+      None add_node(str conn);
+      None add_node(Document doc);
+      None remove_node(str name);
+      None remove_node(Document doc);
+#endif
 
       shcore::Value add_node(const shcore::Argument_list &args);
       shcore::Value remove_node(const shcore::Argument_list &args);
 
     protected:
-      std::string _uuid;
+      uint64_t _id;
       std::string _name;
+      // TODO: add missing fields, rs_type, etc
 
     private:
       void init();

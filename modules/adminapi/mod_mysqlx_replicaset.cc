@@ -35,7 +35,7 @@ using namespace mysh::mysqlx;
 using namespace shcore;
 
 ReplicaSet::ReplicaSet(const std::string &name) :
-_uuid(new_uuid()), _name(name)
+_name(name)
 {
   init();
 }
@@ -44,30 +44,33 @@ ReplicaSet::~ReplicaSet()
 {
 }
 
-std::string ReplicaSet::new_uuid()
-{
-  uuid_type uuid;
-  generate_uuid(uuid);
-
-  std::stringstream str;
-  str << std::hex << std::noshowbase << std::setfill('0') << std::setw(2);
-
-  str << (int)uuid[0] << std::setw(2) << (int)uuid[1] << std::setw(2) << (int)uuid[2] << std::setw(2) << (int)uuid[3];
-  str << "-" << std::setw(2) << (int)uuid[4] << std::setw(2) << (int)uuid[5];
-  str << "-" << std::setw(2) << (int)uuid[6] << std::setw(2) << (int)uuid[7];
-  str << "-" << std::setw(2) << (int)uuid[8] << std::setw(2) << (int)uuid[9];
-  str << "-" << std::setw(2) << (int)uuid[10] << std::setw(2) << (int)uuid[11]
-    << std::setw(2) << (int)uuid[12] << std::setw(2) << (int)uuid[13]
-    << std::setw(2) << (int)uuid[14] << std::setw(2) << (int)uuid[15];
-
-  return str.str();
-}
-
 bool ReplicaSet::operator == (const Object_bridge &other) const
 {
   return class_name() == other.class_name() && this == &other;
 }
 
+#if DOXYGEN_CPP
+/**
+ * Use this function to retrieve an valid member of this class exposed to the scripting languages.
+ * \param prop : A string containing the name of the member to be returned
+ *
+ * This function returns a Value that wraps the object returned by this function.
+ * The content of the returned value depends on the property being requested.
+ * The next list shows the valid properties as well as the returned value for each of them:
+ *
+ * \li name: returns a String object with the name of this ReplicaSet object.
+ */
+#else
+/**
+* Returns the name of this ReplicaSet object.
+* \return the name as an String object.
+*/
+#if DOXYGEN_JS
+String ReplicaSet::getName(){}
+#elif DOXYGEN_PY
+str ReplicaSet::get_name(){}
+#endif
+#endif
 shcore::Value ReplicaSet::get_member(const std::string &prop) const
 {
   shcore::Value ret_val;
@@ -86,24 +89,32 @@ void ReplicaSet::init()
   add_method("removeNode", boost::bind(&ReplicaSet::remove_node, this, _1), "data");
 }
 
-#ifdef DOXYGEN
+#if DOXYGEN_CPP
 /**
-* Retrieves the name of the ReplicaSet object
-* \return The ReplicaSet name
-*/
-String ReplicaSet::get_name(){}
-
+ * Use this function to add a Node to the ReplicaSet object
+ * \param args : A list of values to be used to add a Node to the ReplicaSet.
+ *
+ * This function returns an empty Value.
+ */
+#else
 /**
 * Adds a Node to the ReplicaSet
 * \param conn The Connection String or URI of the Node to be added
 */
-None addNode(std::string conn){}
-
+#if DOXYGEN_JS
+Undefined ReplicaSet::addNode(String conn){}
+#elif DOXYGEN_PY
+None ReplicaSet::add_node(str conn){}
+#endif
 /**
 * Adds a Node to the ReplicaSet
 * \param doc The Document representing the Node to be added
 */
-None addNode(Document doc){}
+#if DOXYGEN_JS
+Undefined ReplicaSet::addNode(Document doc){}
+#elif DOXYGEN_PY
+None ReplicaSet::add_node(Document doc){}
+#endif
 #endif
 
 shcore::Value ReplicaSet::add_node(const shcore::Argument_list &args)
@@ -140,69 +151,81 @@ shcore::Value ReplicaSet::add_node(const shcore::Argument_list &args)
 
   if(options->size() == 0)
     throw shcore::Exception::argument_error("Connection data empty.");
-  else
-  {
-    if (options->has_key("host"))
-      host = (*options)["host"].as_string();
 
-    if (options->has_key("port"))
-      port = (*options)["port"].as_int();
+  if (options->has_key("host"))
+    host = (*options)["host"].as_string();
 
-    if (options->has_key("socket"))
-      sock = (*options)["socket"].as_string();
+  if (options->has_key("port"))
+    port = (*options)["port"].as_int();
 
-    if (options->has_key("schema"))
-      throw shcore::Exception::argument_error("Unexpected argument on connection data.");
+  if (options->has_key("socket"))
+    sock = (*options)["socket"].as_string();
 
-    if (options->has_key("user") || options->has_key("dbUser"))
-      throw shcore::Exception::argument_error("Unexpected argument on connection data.");
+  if (options->has_key("schema"))
+    throw shcore::Exception::argument_error("Unexpected argument on connection data.");
 
-    if (options->has_key("password") || options->has_key("dbPassword"))
-      throw shcore::Exception::argument_error("Unexpected argument on connection data.");
+  if (options->has_key("user") || options->has_key("dbUser"))
+    throw shcore::Exception::argument_error("Unexpected argument on connection data.");
 
-    if (options->has_key("ssl_ca"))
-      ssl_ca = (*options)["ssl_ca"].as_string();
+  if (options->has_key("password") || options->has_key("dbPassword"))
+    throw shcore::Exception::argument_error("Unexpected argument on connection data.");
 
-    if (options->has_key("ssl_cert"))
-      ssl_cert = (*options)["ssl_cert"].as_string();
+  if (options->has_key("ssl_ca"))
+    ssl_ca = (*options)["ssl_ca"].as_string();
 
-    if (options->has_key("ssl_key"))
-      ssl_key = (*options)["ssl_key"].as_string();
+  if (options->has_key("ssl_cert"))
+    ssl_cert = (*options)["ssl_cert"].as_string();
 
-    if (options->has_key("authMethod"))
-      throw shcore::Exception::argument_error("Unexpected argument on connection data.");
+  if (options->has_key("ssl_key"))
+    ssl_key = (*options)["ssl_key"].as_string();
 
-    if (port == 0 && sock.empty())
-      port = get_default_port();
+  if (options->has_key("authMethod"))
+    throw shcore::Exception::argument_error("Unexpected argument on connection data.");
 
-    // TODO: validate additional data.
+  if (port == 0 && sock.empty())
+    port = get_default_port();
 
-    std::string sock_port = (port == 0) ? sock : boost::lexical_cast<std::string>(port);
+  // TODO: validate additional data.
 
-    // Handle empty required values
-    if (!options->has_key("host"))
-      throw shcore::Exception::argument_error("Missing required value for hostname.");
+  std::string sock_port = (port == 0) ? sock : boost::lexical_cast<std::string>(port);
 
+  // Handle empty required values
+  if (!options->has_key("host"))
+    throw shcore::Exception::argument_error("Missing required value for hostname.");
 
-    // Add the Node on the Metadata Schema
-    // TODO!
-  }
+  // Add the Node on the Metadata Schema
+  // TODO!
 
   return Value();
 }
 
-#ifdef DOXYGEN
+#if DOXYGEN_CPP
+/**
+ * Use this function to remove a Node from the ReplicaSet object
+ * \param args : A list of values to be used to remove a Node to the Farm.
+ *
+ * This function returns an empty Value.
+ */
+#else
 /**
 * Removes a Node from the ReplicaSet
 * \param name The name of the Node to be removed
 */
-None removeNode(std::string name){}
+#if DOXYGEN_JS
+Undefined ReplicaSet::removeNode(String name){}
+#elif DOXYGEN_PY
+None ReplicaSet::remove_node(str name){}
+#endif
 
 /**
 * Removes a Node from the ReplicaSet
 * \param doc The Document representing the Node to be removed
 */
-None removeNode(Document doc){}
+#if DOXYGEN_JS
+Undefined ReplicaSet::removeNode(Document doc){}
+#elif DOXYGEN_PY
+None ReplicaSet::remove_node(Document doc){}
+#endif
 #endif
 
 shcore::Value ReplicaSet::remove_node(const shcore::Argument_list &args)
