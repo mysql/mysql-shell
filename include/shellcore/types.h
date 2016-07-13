@@ -374,6 +374,7 @@ namespace shcore {
     static Exception value_error(const std::string &message);
     static Exception type_error(const std::string &message);
     static Exception logic_error(const std::string &message);
+    static Exception metadata_error(const std::string &message);
 
     static Exception mysql_error_with_code(const std::string &message, int code)
     {

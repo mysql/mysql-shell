@@ -104,6 +104,15 @@ Exception Exception::scripting_error(const std::string &message)
   return e;
 }
 
+Exception Exception::metadata_error(const std::string &message)
+{
+  boost::shared_ptr<Value::Map_type> error(new Value::Map_type());
+  (*error)["type"] = Value("MetadataError");
+  (*error)["message"] = Value(message);
+  Exception e(error);
+  return e;
+}
+
 Exception Exception::error_with_code(const std::string &type, const std::string &message, int code)
 {
   boost::shared_ptr<Value::Map_type> error(new Value::Map_type());
