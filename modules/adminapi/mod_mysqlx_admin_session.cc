@@ -259,7 +259,7 @@ shcore::Value AdminSession::get_farm(const shcore::Argument_list &args) const
       throw Exception::argument_error("The Farm name cannot be empty.");
 
     if (!_farms->has_key(farm_name))
-      (*_farms)[farm_name] = shcore::Value(_metadata_storage->get_farm(farm_name));
+      (*_farms)[farm_name] = shcore::Value(boost::dynamic_pointer_cast<shcore::Object_bridge>(_metadata_storage->get_farm(farm_name)));
 
     ret_val = (*_farms)[farm_name];
   }
