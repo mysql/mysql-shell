@@ -18,6 +18,7 @@
 */
 
 #include "utils_general.h"
+#include "uri_parser.h"
 #include "utils_file.h"
 #include "shellcore/server_registry.h"
 #include <locale>
@@ -140,133 +141,38 @@ namespace shcore
   }
 
   void parse_mysql_connstring(const std::string &connstring,
-                              std::string &protocol, std::string &user, std::string &password,
+                              std::string &scheme, std::string &user, std::string &password,
                               std::string &host, int &port, std::string &sock,
                               std::string &db, int &pwd_found, std::string& ssl_ca, std::string& ssl_cert, std::string& ssl_key,
                               bool set_defaults)
   {
-    // 
-    // format is [dbuser[:dbpassword]@]host[:(port|socket)][/db] like what cmdline utilities use
-    // with SSL [user[:pass]]@host[:port][/db]?ssl_ca=path_to_ca&ssl_cert=path_to_cert&ssl_key=path_to_key
-    // with app name format is $app_name
-    pwd_found = 0;
-    std::string remaining = connstring;
-    std::string::size_type p;
-    std::string::size_type p_query;
-    p = remaining.find("://");
-    if (p != std::string::npos)
+    try
     {
-      protocol = connstring.substr(0, p);
-      remaining = remaining.substr(p + 3);
-    }
+      Uri_parser parser;
+      parser.parse(connstring);
 
-    std::string s = remaining;
-    p = remaining.find('/');
-    p_query = remaining.find('?');
-    if (p != std::string::npos)
-    {
-      if (p_query == std::string::npos)
-        db = remaining.substr(p + 1);
-      else
-        db = remaining.substr(p + 1, p_query);
-      s = remaining.substr(0, p);
-    }
+      scheme = parser.get_scheme();
+      user = parser.get_user();
+      password = parser.get_password();
+      host = parser.get_host();
+      port = parser.get_port();
+      sock = parser.get_socket(); // Not Yet Supported
+      db = parser.get_db();
+      pwd_found = parser.has_password();
+      ssl_ca = parser.get_attribute("ssl_ca");
+      ssl_cert = parser.get_attribute("ssl_cert");
+      ssl_key = parser.get_attribute("ssl_key");
 
-    p = s.rfind('@');
-    std::string user_part;
-    std::string server_part;
-    if (p_query == std::string::npos)
-      server_part = (p == std::string::npos) ? s : s.substr(p + 1);
-    else
-      server_part = (p == std::string::npos) ? s.substr(0, p_query) : s.substr(p + 1, p_query - p - 1);
-
-    if (p == std::string::npos)
-    {
-      // by default, connect using the current OS username
-#ifdef _WIN32
-      //XXX find out current username here
-#else
       if (set_defaults)
       {
-        const char *tmp = getenv("USER");
-        user_part = tmp ? tmp : "";
+        if (user.empty())
+          user = get_system_user();
       }
-#endif
     }
-    else
-      user_part = s.substr(0, p);
-
-    if ((p = user_part.find(':')) != std::string::npos)
+    catch (std::exception &err)
     {
-      user = user_part.substr(0, p);
-      password = user_part.substr(p + 1);
-      pwd_found = 1;
+      throw Exception::argument_error(err.what());
     }
-    else
-      user = user_part;
-
-    p = server_part.find(':');
-    if (p != std::string::npos)
-    {
-      host = server_part.substr(0, p);
-      server_part = server_part.substr(p + 1);
-      bool is_port = true;
-      for (int i = 0; i < server_part.size(); i++)
-      {
-        char c = server_part[i];
-        if (c < '0' || c > '9')
-        {
-          is_port = false;
-          break;
-        }
-      }
-      if (is_port)
-      {
-        if (!sscanf(server_part.c_str(), "%i", &port))
-          throw Exception::argument_error((boost::format("Invalid value found for port component: %1%") % server_part).str());
-      }
-      else 
-      {
-        // A socket name in unix / pipe name in windows is similar to a filename path, can have non alphanumeric but no ':'
-        // we validate against them to check a common pitfall.
-        if (server_part.find(':') != std::string::npos)
-          throw Exception::argument_error((boost::format("the socket portion '%s' cannot have ':'") % server_part).str());
-        sock = server_part;
-      }
-    }
-    else
-      host = server_part;
-
-    std::map<std::string, std::string> ssl_data;
-    ssl_data["ssl_ca"] = "";
-    ssl_data["ssl_key"] = "";
-    ssl_data["ssl_cert"] = "";
-    if (p_query != std::string::npos)
-    {
-      // Parsing SSL data
-      std::string::size_type p_next = p_query;
-      do
-      {
-        ++p_next;
-        std::string::size_type p_eq = remaining.find('=', p_next);
-        if (p_eq == std::string::npos)
-          throw Exception::argument_error((boost::format("Expected '=' in connection string uri starting at pos %d.") % p_next).str());
-        const std::string name = remaining.substr(p_next, p_eq - p_next);
-        p_next = remaining.find('&', p_next + 1);
-        const std::string value = remaining.substr(p_eq + 1, p_next - p_eq - 1);
-
-        if (ssl_data.find(name) == ssl_data.end())
-          throw Exception::argument_error((boost::format("Unknown key provided %s in connection string uri (expected any of ssl_ca, ssl_cert, ssl_key)") % name).str());
-
-        ssl_data[name] = value;
-      } while (p_next != std::string::npos);
-    }
-    if (!ssl_data["ssl_ca"].empty())
-      ssl_ca = ssl_data["ssl_ca"];
-    if (!ssl_data["ssl_cert"].empty())
-      ssl_cert = ssl_data["ssl_cert"];
-    if (!ssl_data["ssl_key"].empty())
-      ssl_key = ssl_data["ssl_key"];
   }
 
   std::string strip_password(const std::string &connstring)
@@ -402,7 +308,7 @@ namespace shcore
   Value::Map_type_ref get_connection_data(const std::string &uri, bool set_defaults)
   {
     // NOTE: protocol is left in case an URI still uses it, however, it is ignored everywhere
-    std::string uri_protocol;
+    std::string uri_scheme;
     std::string uri_user;
     std::string uri_password;
     std::string uri_host;
@@ -422,8 +328,11 @@ namespace shcore
     {
       try
       {
-        parse_mysql_connstring(uri, uri_protocol, uri_user, uri_password, uri_host, uri_port, uri_sock, uri_database, pwd_found,
+        parse_mysql_connstring(uri, uri_scheme, uri_user, uri_password, uri_host, uri_port, uri_sock, uri_database, pwd_found,
                                uri_ssl_ca, uri_ssl_cert, uri_ssl_key, set_defaults);
+
+        if (!uri_user.empty())
+          (*ret_val)["scheme"] = Value(uri_scheme);
 
         if (!uri_user.empty())
           (*ret_val)["dbUser"] = Value(uri_user);

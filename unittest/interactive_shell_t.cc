@@ -313,7 +313,7 @@ namespace shcore {
       // Cleanup for the test
       _interactive_shell->process_line("\\rmconn test_01");
       _interactive_shell->process_line("\\rmconn test_02");
-      _interactive_shell->process_line("\\saveconn test_01 sample@host:port");
+      _interactive_shell->process_line("\\saveconn test_01 sample@host:4025");
       output_handler.wipe_all();
 
       // Command errors
