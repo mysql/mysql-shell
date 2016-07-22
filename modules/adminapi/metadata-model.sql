@@ -62,7 +62,14 @@ CREATE TABLE farms (
       ...
     }
   */
-  `options` JSON
+  `options` JSON,
+   /*
+    Contain attributes assigned to each farm and is a JSON data type with
+    key-value pair. The attributes can be used to tag the farms with custom
+    attributes.
+   */
+  `attributes` JSON
+
 ) CHARSET = utf8;
 
 /*
@@ -122,6 +129,12 @@ CREATE TABLE hosts (
   `ip_address` VARCHAR(45),
   /* A string representing the location (e.g. datacenter name). */
   `location` VARCHAR(256) NOT NULL,
+  /*
+    Contain attributes assigned to the server host and is a JSON data type with
+        key-value pair. The attributes can be used to tag the servers with custom
+        attributes.
+  */
+  attributes JSON,
   /*
     Stores the admin user accounts information (e.g. for SSH) for automated
     management.
