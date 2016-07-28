@@ -56,22 +56,22 @@ namespace mysh
 #if DOXYGEN_JS
       String getName();
       String getAdminType();
-      Undefined addNode(String conn);
-      Undefined addNode(Document doc);
-      Undefined removeNode(String name);
-      Undefined removeNode(Document doc);
+      Undefined addInstance(String conn);
+      Undefined addInstance(Document doc);
+      Undefined removeInstance(String name);
+      Undefined removeInstance(Document doc);
 
 #elif DOXYGEN_PY
       str get_name();
       str get_admin_type();
-      None add_node(str conn);
-      None add_node(Document doc);
-      None remove_node(str name);
-      None remove_node(Document doc);
+      None add_instance(str conn);
+      None add_instance(Document doc);
+      None remove_instance(str name);
+      None remove_instance(Document doc);
 #endif
 
-      shcore::Value add_node(const shcore::Argument_list &args);
-      shcore::Value remove_node(const shcore::Argument_list &args);
+      shcore::Value add_instance(const shcore::Argument_list &args);
+      shcore::Value remove_instance(const shcore::Argument_list &args);
       shcore::Value get_replicaset(const shcore::Argument_list &args);
 
     protected:

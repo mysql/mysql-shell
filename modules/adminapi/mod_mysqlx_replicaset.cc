@@ -85,39 +85,39 @@ shcore::Value ReplicaSet::get_member(const std::string &prop) const
 void ReplicaSet::init()
 {
   add_property("name", "getName");
-  add_method("addNode", boost::bind(&ReplicaSet::add_node, this, _1), "data");
-  add_method("removeNode", boost::bind(&ReplicaSet::remove_node, this, _1), "data");
+  add_method("addInstance", boost::bind(&ReplicaSet::add_instance, this, _1), "data");
+  add_method("removeInstance", boost::bind(&ReplicaSet::remove_instance, this, _1), "data");
 }
 
 #if DOXYGEN_CPP
 /**
- * Use this function to add a Node to the ReplicaSet object
- * \param args : A list of values to be used to add a Node to the ReplicaSet.
+ * Use this function to add a Instance to the ReplicaSet object
+ * \param args : A list of values to be used to add a Instance to the ReplicaSet.
  *
  * This function returns an empty Value.
  */
 #else
 /**
-* Adds a Node to the ReplicaSet
-* \param conn The Connection String or URI of the Node to be added
+* Adds a Instance to the ReplicaSet
+* \param conn The Connection String or URI of the Instance to be added
 */
 #if DOXYGEN_JS
-Undefined ReplicaSet::addNode(String conn){}
+Undefined ReplicaSet::addInstance(String conn){}
 #elif DOXYGEN_PY
-None ReplicaSet::add_node(str conn){}
+None ReplicaSet::add_instance(str conn){}
 #endif
 /**
-* Adds a Node to the ReplicaSet
-* \param doc The Document representing the Node to be added
+* Adds a Instance to the ReplicaSet
+* \param doc The Document representing the Instance to be added
 */
 #if DOXYGEN_JS
-Undefined ReplicaSet::addNode(Document doc){}
+Undefined ReplicaSet::addInstance(Document doc){}
 #elif DOXYGEN_PY
-None ReplicaSet::add_node(Document doc){}
+None ReplicaSet::add_instance(Document doc){}
 #endif
 #endif
 
-shcore::Value ReplicaSet::add_node(const shcore::Argument_list &args)
+shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args)
 {
   std::string uri;
   shcore::Value::Map_type_ref options; // Map with the connection data
@@ -133,7 +133,7 @@ shcore::Value ReplicaSet::add_node(const shcore::Argument_list &args)
   std::string ssl_cert;
   std::string ssl_key;
 
-  args.ensure_count(1, (class_name() + ".addNode").c_str());
+  args.ensure_count(1, (class_name() + ".addInstance").c_str());
 
   // Identify the type of connection data (String or Document)
   if (args[0].type == String)
@@ -193,7 +193,7 @@ shcore::Value ReplicaSet::add_node(const shcore::Argument_list &args)
   if (!options->has_key("host"))
     throw shcore::Exception::argument_error("Missing required value for hostname.");
 
-  // Add the Node on the Metadata Schema
+  // Add the Instance on the Metadata Schema
   // TODO!
 
   return Value();
@@ -201,36 +201,36 @@ shcore::Value ReplicaSet::add_node(const shcore::Argument_list &args)
 
 #if DOXYGEN_CPP
 /**
- * Use this function to remove a Node from the ReplicaSet object
- * \param args : A list of values to be used to remove a Node to the Farm.
+ * Use this function to remove a Instance from the ReplicaSet object
+ * \param args : A list of values to be used to remove a Instance to the Farm.
  *
  * This function returns an empty Value.
  */
 #else
 /**
-* Removes a Node from the ReplicaSet
-* \param name The name of the Node to be removed
+* Removes a Instance from the ReplicaSet
+* \param name The name of the Instance to be removed
 */
 #if DOXYGEN_JS
-Undefined ReplicaSet::removeNode(String name){}
+Undefined ReplicaSet::removeInstance(String name){}
 #elif DOXYGEN_PY
-None ReplicaSet::remove_node(str name){}
+None ReplicaSet::remove_instance(str name){}
 #endif
 
 /**
-* Removes a Node from the ReplicaSet
-* \param doc The Document representing the Node to be removed
+* Removes a Instance from the ReplicaSet
+* \param doc The Document representing the Instance to be removed
 */
 #if DOXYGEN_JS
-Undefined ReplicaSet::removeNode(Document doc){}
+Undefined ReplicaSet::removeInstance(Document doc){}
 #elif DOXYGEN_PY
-None ReplicaSet::remove_node(Document doc){}
+None ReplicaSet::remove_instance(Document doc){}
 #endif
 #endif
 
-shcore::Value ReplicaSet::remove_node(const shcore::Argument_list &args)
+shcore::Value ReplicaSet::remove_instance(const shcore::Argument_list &args)
 {
-  args.ensure_count(1, "ReplicaSet.removeNode");
+  args.ensure_count(1, "ReplicaSet.removeInstance");
 
   // TODO!
 

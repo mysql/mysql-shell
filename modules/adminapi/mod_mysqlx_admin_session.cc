@@ -58,6 +58,7 @@ AdminSession::AdminSession(const AdminSession& s) : ShellAdminSession(s)
 
 void AdminSession::init()
 {
+  std::cout << "CONA\n";
   // In case we are going to keep a cache of Farms
   // If not, _farms can be removed
   _farms.reset(new shcore::Value::Map_type);
@@ -395,9 +396,9 @@ shcore::Value AdminSession::get_status(const shcore::Argument_list &args)
 
   (*status)["SESSION_TYPE"] = shcore::Value("Admin");
 
-  shcore::Value node_type = get_capability("node_type");
-  if (node_type)
-    (*status)["NODE_TYPE"] = node_type;
+  shcore::Value instance_type = get_capability("instance_type");
+  if (instance_type)
+    (*status)["NODE_TYPE"] = instance_type;
 
   // TODO: Uncomment or Delete
   // (*status)["DEFAULT_FARM"] = shcore::Value(_default_farm);

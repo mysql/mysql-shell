@@ -97,8 +97,8 @@ void Farm::init()
 {
   add_property("name", "getName");
   add_property("adminType", "getAdminType");
-  add_method("addNode", boost::bind(&Farm::add_node, this, _1), "data");
-  add_method("removeNode", boost::bind(&Farm::remove_node, this, _1), "data");
+  add_method("addInstance", boost::bind(&Farm::add_instance, this, _1), "data");
+  add_method("removeInstance", boost::bind(&Farm::remove_instance, this, _1), "data");
   add_method("getReplicaSet", boost::bind(&Farm::get_replicaset, this, _1), "name", shcore::String, NULL);
 }
 
@@ -124,78 +124,78 @@ str Farm::get_admin_type(){}
 
 #if DOXYGEN_CPP
 /**
- * Use this function to add a Node to the Farm object
- * \param args : A list of values to be used to add a Node to the Farm.
+ * Use this function to add a Instance to the Farm object
+ * \param args : A list of values to be used to add a Instance to the Farm.
  *
- * This function calls ReplicaSet::add_node(args).
+ * This function calls ReplicaSet::add_instance(args).
  * This function returns an empty Value.
  */
 #else
 /**
-* Adds a Node to the Farm
-* \param conn The Connection String or URI of the Node to be added
+* Adds a Instance to the Farm
+* \param conn The Connection String or URI of the Instance to be added
 */
 #if DOXYGEN_JS
-Undefined addNode(String conn){}
+Undefined addInstance(String conn){}
 #elif DOXYGEN_PY
-None add_node(str conn){}
+None add_instance(str conn){}
 #endif
 /**
-* Adds a Node to the Farm
-* \param doc The Document representing the Node to be added
+* Adds a Instance to the Farm
+* \param doc The Document representing the Instance to be added
 */
 #if DOXYGEN_JS
-Undefined addNode(Document doc){}
+Undefined addInstance(Document doc){}
 #elif DOXYGEN_PY
-None add_node(Document doc){}
+None add_instance(Document doc){}
 #endif
 #endif
 
-shcore::Value Farm::add_node(const shcore::Argument_list &args)
+shcore::Value Farm::add_instance(const shcore::Argument_list &args)
 {
-  args.ensure_count(1, (class_name() + ".addNode").c_str());
+  args.ensure_count(1, (class_name() + ".addInstance").c_str());
 
-  // Add the Node to the Default ReplicaSet
-  _default_replica_set->add_node(args);
+  // Add the Instance to the Default ReplicaSet
+  _default_replica_set->add_instance(args);
 
   return Value();
 }
 
 #if DOXYGEN_CPP
 /**
- * Use this function to remove a Node from the Farm object
- * \param args : A list of values to be used to remove a Node to the Farm.
+ * Use this function to remove a Instance from the Farm object
+ * \param args : A list of values to be used to remove a Instance to the Farm.
  *
- * This function calls ReplicaSet::remove_node(args).
+ * This function calls ReplicaSet::remove_instance(args).
  * This function returns an empty Value.
  */
 #else
 /**
-* Removes a Node from the Farm
-* \param name The name of the Node to be removed
+* Removes a Instance from the Farm
+* \param name The name of the Instance to be removed
 */
 #if DOXYGEN_JS
-Undefined removeNode(String name){}
+Undefined removeInstance(String name){}
 #elif DOXYGEN_PY
-None remove_node(str name){}
+None remove_instance(str name){}
 #endif
 /**
-* Removes a Node from the Farm
-* \param doc The Document representing the Node to be removed
+* Removes a Instance from the Farm
+* \param doc The Document representing the Instance to be removed
 */
 #if DOXYGEN_JS
-Undefined removeNode(Document doc){}
+Undefined removeInstance(Document doc){}
 #elif DOXYGEN_PY
-None remove_node(Document doc){}
+None remove_instance(Document doc){}
 #endif
 #endif
 
-shcore::Value Farm::remove_node(const shcore::Argument_list &args)
+shcore::Value Farm::remove_instance(const shcore::Argument_list &args)
 {
-  args.ensure_count(1, (class_name() + ".removeNode").c_str());
+  args.ensure_count(1, (class_name() + ".removeInstance").c_str());
 
-  // Remove the Node from the Default ReplicaSet
-  _default_replica_set->remove_node(args);
+  // Remove the Instance from the Default ReplicaSet
+  _default_replica_set->remove_instance(args);
 
   return Value();
 }
