@@ -298,9 +298,12 @@ shcore::Value AdminSession::create_farm(const shcore::Argument_list &args)
 
       /*
        * For V1.0 we only support one single Farm. That one shall be the default Farm.
-       * We must check if there's already a Default Farm, and if so thrown an exception.
+       * We must check if there's already a Default Farm assigned, and if so thrown an exception.
+       * And we must check if there's already one Farm on the MD and if so assign it to Default
        */
-      if (!_default_farm.empty())
+      bool has_default_farm = _metadata_storage->has_default_farm();
+
+      if (!_default_farm.empty() || has_default_farm)
         throw Exception::argument_error("There is already one Farm initialized. Only one Farm is supported.");
 
       // First we need to create the Metadata Schema, or update it if already exists
@@ -315,7 +318,7 @@ shcore::Value AdminSession::create_farm(const shcore::Argument_list &args)
       ret_val = Value(boost::static_pointer_cast<Object_bridge>(farm));
       (*_farms)[farm_name] = ret_val;
 
-      // Updated the default_farm
+      // Update the default_farm
       _default_farm = farm_name;
     }
   }

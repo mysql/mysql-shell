@@ -161,6 +161,19 @@ void MetadataStorage::insert_farm(boost::shared_ptr<Farm> farm)
   uint64_t farm_id = get_farm_id(farm_name);
   farm->set_id(farm_id);
 
+  // For V1.0 we only support one Farm, so let's mark it as 'default' on the attributed column
+  query = "UPDATE farm_metadata_schema.farms SET attributes = '{\"default\": true}' WHERE farm_id = '" + std::to_string(farm_id) + "'";
+
+  try {
+    _admin_session->get_session().execute_sql(query);
+  }
+  catch (::mysqlx::Error &e) {
+    if ((CR_SERVER_GONE_ERROR || ER_X_BAD_PIPE) == e.error())
+      throw Exception::metadata_error("The Metadata is inaccessible");
+    else
+      throw;
+  }
+
   // Insert the default ReplicaSet on the replicasets table
   query = "INSERT INTO farm_metadata_schema.replicasets (farm_id, replicaset_type, replicaset_name, active) VALUES (" +
         std::to_string(farm_id) + ", 'gr', 'default', 1)";
@@ -500,4 +513,32 @@ boost::shared_ptr<Farm> MetadataStorage::get_farm(std::string farm_name)
   farm->set_default_replicaset(default_rs);
 
   return farm;
+}
+
+bool MetadataStorage::has_default_farm()
+{
+  std::string query;
+  boost::shared_ptr< ::mysqlx::Result> result;
+  boost::shared_ptr< ::mysqlx::Row> row;
+
+  if (metadata_schema_exists())
+  {
+    try {
+      query = "SELECT farm_id from farm_metadata_schema.farms WHERE attributes->\"$.default\" = true";
+      result = _admin_session->get_session().execute_sql(query);
+    }
+    catch (::mysqlx::Error &e) {
+      if ((CR_SERVER_GONE_ERROR || ER_X_BAD_PIPE) == e.error())
+        throw Exception::metadata_error("The Metadata is inaccessible");
+      else
+        throw;
+    }
+
+    row = result->next();
+
+    if (!row) return false;
+
+    return true;
+  }
+  return false;
 }

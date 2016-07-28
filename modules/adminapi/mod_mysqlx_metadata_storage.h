@@ -49,6 +49,7 @@ namespace mysh
 
       uint64_t get_farm_default_rs_id(std::string farm_name);
       boost::shared_ptr<Farm> get_farm(std::string farm_name);
+      bool has_default_farm();
 
       std::string get_replicaset_name(uint64_t rs_id);
       boost::shared_ptr<ReplicaSet> get_replicaset(uint64_t rs_id);
