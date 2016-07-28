@@ -204,9 +204,6 @@ class XShell_TestCases(unittest.TestCase):
                   '-h' + LOCALHOST.host, '-P' + LOCALHOST.port, '--sqlc', '--classic', '--file=' + Exec_files_location + 'world_x.sql']
       p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
       stdin,stdout = p.communicate()
-      if stdout.find(bytearray("ERROR","ascii"),0,len(stdout))> -1:
-        raise ValueError("FAILED initializing schema world_x")
-        #cls.assertEqual(stdin, 'PASS')
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
       x_cmds = [('\\connect -n {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
