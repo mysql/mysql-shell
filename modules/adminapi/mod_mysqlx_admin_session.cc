@@ -224,7 +224,16 @@ Value AdminSession::get_member(const std::string &prop) const
       args.push_back(shcore::Value(_default_farm));
       ret_val = get_farm(args);
     }
-    // TODO: For V1 we only support one Farm. Check if there's a Farm on the MD and update _default_farm to it.
+    // For V1 we only support one Farm. Check if there's a Farm on the MD and update _default_farm to it.
+    else if (_metadata_storage->has_default_farm())
+    {
+      _default_farm = _metadata_storage->get_default_farm_name();
+
+      shcore::Argument_list args;
+      args.push_back(shcore::Value(_default_farm));
+
+      ret_val = get_farm(args);
+    }
     else
       ret_val = Value::Null();
   }

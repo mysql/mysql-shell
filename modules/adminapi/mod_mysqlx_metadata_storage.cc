@@ -542,3 +542,44 @@ bool MetadataStorage::has_default_farm()
   }
   return false;
 }
+
+std::string MetadataStorage::get_default_farm_name()
+{
+  std::string query;
+  boost::shared_ptr< ::mysqlx::Result> result;
+  boost::shared_ptr< ::mysqlx::Row> row;
+  std::string rs_name;
+
+  if (!metadata_schema_exists())
+    throw Exception::metadata_error("Metadata Schema does not exist.");
+
+  // Get the Default Farm name
+
+  try {
+    query = "SELECT farm_name from farm_metadata_schema.farms WHERE attributes->\"$.default\" = true";
+    result = _admin_session->get_session().execute_sql(query);
+  }
+  catch (::mysqlx::Error &e) {
+    if ((CR_SERVER_GONE_ERROR || ER_X_BAD_PIPE) == e.error())
+      throw Exception::metadata_error("The Metadata is inaccessible");
+    else
+      throw;
+  }
+
+  row = result->next();
+
+  if (!row) return NULL;
+
+  // It exists, so let's get the farm_name
+  else
+  {
+    while (row)
+    {
+      rs_name = row->stringField(0);
+      result->flush();
+      break;
+    }
+  }
+
+  return rs_name;
+}
