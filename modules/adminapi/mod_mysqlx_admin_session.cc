@@ -58,7 +58,6 @@ AdminSession::AdminSession(const AdminSession& s) : ShellAdminSession(s)
 
 void AdminSession::init()
 {
-  std::cout << "CONA\n";
   // In case we are going to keep a cache of Farms
   // If not, _farms can be removed
   _farms.reset(new shcore::Value::Map_type);
@@ -218,13 +217,14 @@ Value AdminSession::get_member(const std::string &prop) const
     ret_val = Value(_uri);
   else if (prop == "defaultFarm")
   {
-    // TODO: If there is a default farm and we have the name, retrieve it with the next call
-    if (/*!_default_farm.empty()*/0)
+    // If there is a default farm and we have the name, retrieve it with the next call
+    if (!_default_farm.empty())
     {
-      //shcore::Argument_list args;
-      //args.push_back(shcore::Value(_default_farm));
-      //ret_val = get_farm(args);
+      shcore::Argument_list args;
+      args.push_back(shcore::Value(_default_farm));
+      ret_val = get_farm(args);
     }
+    // TODO: For V1 we only support one Farm. Check if there's a Farm on the MD and update _default_farm to it.
     else
       ret_val = Value::Null();
   }
@@ -296,6 +296,13 @@ shcore::Value AdminSession::create_farm(const shcore::Argument_list &args)
       if (farm_name.empty())
         throw Exception::argument_error("The Farm name cannot be empty.");
 
+      /*
+       * For V1.0 we only support one single Farm. That one shall be the default Farm.
+       * We must check if there's already a Default Farm, and if so thrown an exception.
+       */
+      if (!_default_farm.empty())
+        throw Exception::argument_error("There is already one Farm initialized. Only one Farm is supported.");
+
       // First we need to create the Metadata Schema, or update it if already exists
       _metadata_storage->create_metadata_schema();
 
@@ -307,6 +314,9 @@ shcore::Value AdminSession::create_farm(const shcore::Argument_list &args)
       // If it reaches here, it means there are no exceptions
       ret_val = Value(boost::static_pointer_cast<Object_bridge>(farm));
       (*_farms)[farm_name] = ret_val;
+
+      // Updated the default_farm
+      _default_farm = farm_name;
     }
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("createFarm"))
@@ -401,7 +411,7 @@ shcore::Value AdminSession::get_status(const shcore::Argument_list &args)
     (*status)["NODE_TYPE"] = instance_type;
 
   // TODO: Uncomment or Delete
-  // (*status)["DEFAULT_FARM"] = shcore::Value(_default_farm);
+  (*status)["DEFAULT_FARM"] = shcore::Value(_default_farm);
 
   return shcore::Value(status);
 }

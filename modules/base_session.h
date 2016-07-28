@@ -124,6 +124,7 @@ namespace mysh
     // NOTE: At the moment this class is just to keep abstraction consistent
   protected:
     mutable boost::shared_ptr<shcore::Value::Map_type> _farms;
+    std::string _default_farm;
   };
 
   boost::shared_ptr<mysh::ShellDevelopmentSession> SHCORE_PUBLIC connect_session(const shcore::Argument_list &args, SessionType session_type);
