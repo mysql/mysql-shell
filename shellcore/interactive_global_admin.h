@@ -33,7 +33,7 @@ namespace shcore
     Global_admin(Shell_core& shell_core) : Interactive_object_wrapper("admin", shell_core){ init(); }
 
     void init();
-    virtual void resolve() const;
+    //virtual void resolve() const;
 
     shcore::Value drop_farm(const shcore::Argument_list &args);
     shcore::Value is_open(const shcore::Argument_list &args);

@@ -32,6 +32,8 @@ void Global_admin::init()
   set_wrapper_function("isOpen");
 }
 
+/*
+// TODO: we may not want to have this wrapper.
 void Global_admin::resolve() const
 {
   std::string answer;
@@ -71,6 +73,7 @@ void Global_admin::resolve() const
     }
   }
 }
+*/
 
 shcore::Value Global_admin::drop_farm(const shcore::Argument_list &args)
 {
