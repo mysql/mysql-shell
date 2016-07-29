@@ -2889,7 +2889,7 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
- def test_4_3_30_2(self):
+  def test_4_3_30_2(self):
       '''[4.3.030]:2 PY Update alter stored procedure using session object: NODE SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--py']
