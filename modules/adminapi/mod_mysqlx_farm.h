@@ -31,13 +31,14 @@ namespace mysh
 {
   namespace mysqlx
   {
+    class MetadataStorage;
     /**
     * Represents a Farm on an AdminSession
     */
     class Farm : public boost::enable_shared_from_this<Farm>, public shcore::Cpp_object_bridge
     {
     public:
-      Farm(const std::string &name);
+      Farm(const std::string &name, boost::shared_ptr<MetadataStorage> metadata_storage);
       virtual ~Farm();
 
       virtual std::string class_name() const { return "Farm"; }
@@ -56,6 +57,8 @@ namespace mysh
 #if DOXYGEN_JS
       String getName();
       String getAdminType();
+      Undefined addSeedInstance(String conn);
+      Undefined addSeedInstance(Document doc);
       Undefined addInstance(String conn);
       Undefined addInstance(Document doc);
       Undefined removeInstance(String name);
@@ -64,12 +67,15 @@ namespace mysh
 #elif DOXYGEN_PY
       str get_name();
       str get_admin_type();
+      None add_seed_instance(str conn);
+      None add_seed_instance(Document doc);
       None add_instance(str conn);
       None add_instance(Document doc);
       None remove_instance(str name);
       None remove_instance(Document doc);
 #endif
 
+      shcore::Value add_seed_instance(const shcore::Argument_list &args);
       shcore::Value add_instance(const shcore::Argument_list &args);
       shcore::Value remove_instance(const shcore::Argument_list &args);
       shcore::Value get_replicaset(const shcore::Argument_list &args);
@@ -82,6 +88,7 @@ namespace mysh
 
     private:
       void init();
+      boost::shared_ptr<MetadataStorage> _metadata_storage;
     };
   }
 }

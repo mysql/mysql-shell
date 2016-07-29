@@ -87,7 +87,7 @@ uint64_t MetadataStorage::get_farm_id(std::string farm_name)
     result = _admin_session->get_session().execute_sql(query);
   }
   catch (::mysqlx::Error &e) {
-    if ((CR_SERVER_GONE_ERROR || ER_X_BAD_PIPE) == e.error())
+    if (CR_SERVER_GONE_ERROR == e.error() || ER_X_BAD_PIPE == e.error())
       throw Exception::metadata_error("The Metadata is inaccessible");
     else
       throw;
@@ -150,7 +150,7 @@ void MetadataStorage::insert_farm(boost::shared_ptr<Farm> farm)
     if (e.what() == "Duplicate entry '" + farm_name + "' for key 'farm_name'")
       throw Exception::argument_error("A Farm with the name '" + farm_name + "' already exists.");
 
-    else if ((CR_SERVER_GONE_ERROR || ER_X_BAD_PIPE) == e.error())
+    else if (CR_SERVER_GONE_ERROR == e.error() || ER_X_BAD_PIPE == e.error())
       throw Exception::metadata_error("The Metadata is inaccessible");
 
     else
@@ -168,11 +168,21 @@ void MetadataStorage::insert_farm(boost::shared_ptr<Farm> farm)
     _admin_session->get_session().execute_sql(query);
   }
   catch (::mysqlx::Error &e) {
-    if ((CR_SERVER_GONE_ERROR || ER_X_BAD_PIPE) == e.error())
+    if (CR_SERVER_GONE_ERROR == e.error() || ER_X_BAD_PIPE == e.error())
       throw Exception::metadata_error("The Metadata is inaccessible");
     else
       throw;
   }
+}
+
+void MetadataStorage::insert_default_replica_set(boost::shared_ptr<Farm> farm)
+{
+  std::string query;
+  uint64_t farm_id;
+  boost::shared_ptr< ::mysqlx::Result> result;
+  boost::shared_ptr< ::mysqlx::Row> row;
+
+  farm_id = farm->get_id();
 
   // Insert the default ReplicaSet on the replicasets table
   query = "INSERT INTO farm_metadata_schema.replicasets (farm_id, replicaset_type, replicaset_name, active) VALUES (" +
@@ -182,7 +192,7 @@ void MetadataStorage::insert_farm(boost::shared_ptr<Farm> farm)
     _admin_session->get_session().execute_sql(query);
   }
   catch (::mysqlx::Error &e) {
-    if ((CR_SERVER_GONE_ERROR || ER_X_BAD_PIPE) == e.error())
+    if (CR_SERVER_GONE_ERROR == e.error() || ER_X_BAD_PIPE == e.error())
       throw Exception::metadata_error("The Metadata is inaccessible");
     else
       throw;
@@ -196,7 +206,7 @@ void MetadataStorage::insert_farm(boost::shared_ptr<Farm> farm)
     result = _admin_session->get_session().execute_sql(query);
   }
   catch (::mysqlx::Error &e) {
-    if ((CR_SERVER_GONE_ERROR || ER_X_BAD_PIPE) == e.error())
+    if (CR_SERVER_GONE_ERROR == e.error() || ER_X_BAD_PIPE == e.error())
       throw Exception::metadata_error("The Metadata is inaccessible");
     else
       throw;
@@ -227,7 +237,7 @@ void MetadataStorage::insert_farm(boost::shared_ptr<Farm> farm)
     _admin_session->get_session().execute_sql(query);
   }
   catch (::mysqlx::Error &e) {
-    if ((CR_SERVER_GONE_ERROR || ER_X_BAD_PIPE) == e.error())
+    if (CR_SERVER_GONE_ERROR == e.error() || ER_X_BAD_PIPE == e.error())
       throw Exception::metadata_error("The Metadata is inaccessible");
     else
       throw;
@@ -259,7 +269,7 @@ void MetadataStorage::drop_farm(std::string farm_name)
       result = _admin_session->get_session().execute_sql(query);
     }
     catch (::mysqlx::Error &e) {
-      if ((CR_SERVER_GONE_ERROR || ER_X_BAD_PIPE) == e.error())
+      if (CR_SERVER_GONE_ERROR == e.error() || ER_X_BAD_PIPE == e.error())
         throw Exception::metadata_error("The Metadata is inaccessible");
       else
         throw;
@@ -281,7 +291,7 @@ void MetadataStorage::drop_farm(std::string farm_name)
         _admin_session->get_session().execute_sql(query);
       }
       catch (::mysqlx::Error &e) {
-        if ((CR_SERVER_GONE_ERROR || ER_X_BAD_PIPE) == e.error())
+        if (CR_SERVER_GONE_ERROR == e.error() || ER_X_BAD_PIPE == e.error())
           throw Exception::metadata_error("The Metadata is inaccessible");
         else
           throw;
@@ -309,7 +319,7 @@ bool MetadataStorage::farm_has_default_replicaset_only(std::string farm_name)
     result = _admin_session->get_session().execute_sql(query);
   }
   catch (::mysqlx::Error &e) {
-    if ((CR_SERVER_GONE_ERROR || ER_X_BAD_PIPE) == e.error())
+    if (CR_SERVER_GONE_ERROR == e.error() || ER_X_BAD_PIPE == e.error())
       throw Exception::metadata_error("The Metadata is inaccessible");
     else
       throw;
@@ -342,7 +352,7 @@ bool MetadataStorage::farm_has_default_replicaset_only(std::string farm_name)
     result = _admin_session->get_session().execute_sql(query);
   }
   catch (::mysqlx::Error &e) {
-    if ((CR_SERVER_GONE_ERROR || ER_X_BAD_PIPE) == e.error())
+    if (CR_SERVER_GONE_ERROR == e.error() || ER_X_BAD_PIPE == e.error())
       throw Exception::metadata_error("The Metadata is inaccessible");
     else
       throw;
@@ -373,7 +383,7 @@ void MetadataStorage::drop_default_replicaset(std::string farm_name)
     result = _admin_session->get_session().execute_sql(query);
   }
   catch (::mysqlx::Error &e) {
-    if ((CR_SERVER_GONE_ERROR || ER_X_BAD_PIPE) == e.error())
+    if (CR_SERVER_GONE_ERROR == e.error() || ER_X_BAD_PIPE == e.error())
       throw Exception::metadata_error("The Metadata is inaccessible");
     else
       throw;
@@ -386,7 +396,7 @@ void MetadataStorage::drop_default_replicaset(std::string farm_name)
     result = _admin_session->get_session().execute_sql(query);
   }
   catch (::mysqlx::Error &e) {
-    if ((CR_SERVER_GONE_ERROR || ER_X_BAD_PIPE) == e.error())
+    if (CR_SERVER_GONE_ERROR == e.error() || ER_X_BAD_PIPE == e.error())
       throw Exception::metadata_error("The Metadata is inaccessible");
     else
       throw;
@@ -410,7 +420,7 @@ uint64_t MetadataStorage::get_farm_default_rs_id(std::string farm_name)
     result = _admin_session->get_session().execute_sql(query);
   }
   catch (::mysqlx::Error &e) {
-    if ((CR_SERVER_GONE_ERROR || ER_X_BAD_PIPE) == e.error())
+    if (CR_SERVER_GONE_ERROR == e.error() || ER_X_BAD_PIPE == e.error())
       throw Exception::metadata_error("The Metadata is inaccessible");
     else
       throw;
@@ -451,7 +461,7 @@ std::string MetadataStorage::get_replicaset_name(uint64_t rs_id)
     result = _admin_session->get_session().execute_sql(query);
   }
   catch (::mysqlx::Error &e) {
-    if ((CR_SERVER_GONE_ERROR || ER_X_BAD_PIPE) == e.error())
+    if (CR_SERVER_GONE_ERROR == e.error() || ER_X_BAD_PIPE == e.error())
       throw Exception::metadata_error("The Metadata is inaccessible");
     else
       throw;
@@ -497,7 +507,7 @@ boost::shared_ptr<Farm> MetadataStorage::get_farm(std::string farm_name)
   if (!farm_exists(farm_name))
     throw Exception::logic_error("The farm with the name '" + farm_name + "' does not exist.");
 
-  boost::shared_ptr<Farm> farm (new Farm(farm_name));
+  boost::shared_ptr<Farm> farm (new Farm(farm_name, shared_from_this()));
 
   // Update the farm_id
   uint64_t farm_id = get_farm_id(farm_name);
@@ -528,7 +538,7 @@ bool MetadataStorage::has_default_farm()
       result = _admin_session->get_session().execute_sql(query);
     }
     catch (::mysqlx::Error &e) {
-      if ((CR_SERVER_GONE_ERROR || ER_X_BAD_PIPE) == e.error())
+      if (CR_SERVER_GONE_ERROR == e.error() || ER_X_BAD_PIPE == e.error())
         throw Exception::metadata_error("The Metadata is inaccessible");
       else
         throw;
@@ -560,7 +570,7 @@ std::string MetadataStorage::get_default_farm_name()
     result = _admin_session->get_session().execute_sql(query);
   }
   catch (::mysqlx::Error &e) {
-    if ((CR_SERVER_GONE_ERROR || ER_X_BAD_PIPE) == e.error())
+    if (CR_SERVER_GONE_ERROR == e.error() || ER_X_BAD_PIPE == e.error())
       throw Exception::metadata_error("The Metadata is inaccessible");
     else
       throw;

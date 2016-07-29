@@ -27,13 +27,14 @@
 #include <iomanip>
 
 #include "mod_mysqlx_replicaset.h"
+#include "mod_mysqlx_metadata_storage.h"
 
 using namespace mysh;
 using namespace mysh::mysqlx;
 using namespace shcore;
 
-Farm::Farm(const std::string &name) :
-_name(name), _default_replica_set(new ReplicaSet("default"))
+Farm::Farm(const std::string &name, boost::shared_ptr<MetadataStorage> metadata_storage) :
+_name(name), _metadata_storage(metadata_storage)
 {
   init();
 }
@@ -97,6 +98,7 @@ void Farm::init()
 {
   add_property("name", "getName");
   add_property("adminType", "getAdminType");
+  add_method("addSeedInstance", boost::bind(&Farm::add_seed_instance, this, _1), "data");
   add_method("addInstance", boost::bind(&Farm::add_instance, this, _1), "data");
   add_method("removeInstance", boost::bind(&Farm::remove_instance, this, _1), "data");
   add_method("getReplicaSet", boost::bind(&Farm::get_replicaset, this, _1), "name", shcore::String, NULL);
@@ -121,6 +123,51 @@ String Farm::getAdminType(){}
 #elif DOXYGEN_PY
 str Farm::get_admin_type(){}
 #endif
+
+#if DOXYGEN_CPP
+/**
+ * Use this function to add a Seed Instance to the Farm object
+ * \param args : A list of values to be used to add a Seed Instance to the Farm.
+ *
+ * This function creates the Default ReplicaSet implicitly and adds the Instance to it
+ * This function returns an empty Value.
+ */
+#else
+/**
+* Adds a Seed Instance to the Farm
+* \param conn The Connection String or URI of the Instance to be added
+*/
+#if DOXYGEN_JS
+Undefined addSeedInstance(String conn){}
+#elif DOXYGEN_PY
+None add_seed_instance(str conn){}
+#endif
+/**
+* Adds a Seed Instance to the Farm
+* \param doc The Document representing the Instance to be added
+*/
+#if DOXYGEN_JS
+Undefined addSeedInstance(Document doc){}
+#elif DOXYGEN_PY
+None add_seed_instance(Document doc){}
+#endif
+#endif
+
+shcore::Value Farm::add_seed_instance(const shcore::Argument_list &args)
+{
+  args.ensure_count(1, (class_name() + ".addSeedInstance").c_str());
+
+  // Create the Default ReplicaSet and assign it to the Farm's default_replica_set var
+  _default_replica_set.reset(new ReplicaSet("default"));
+
+  // Update the Farm table with the Default ReplicaSet on the Metadata
+  _metadata_storage->insert_default_replica_set(shared_from_this());
+
+  // Add the Instance to the Default ReplicaSet
+  _default_replica_set->add_instance(args);
+
+  return Value();
+}
 
 #if DOXYGEN_CPP
 /**

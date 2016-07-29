@@ -70,7 +70,6 @@ void AdminSession::init()
   add_method("dropFarm", boost::bind(&AdminSession::drop_farm, this, _1), "farmName", shcore::String, NULL);
   add_method("getFarm", boost::bind(&AdminSession::get_farm, this, _1), "farmName", shcore::String, NULL);
   add_method("close", boost::bind(&AdminSession::close, this, _1), "data");
-
 }
 
 Value AdminSession::connect(const Argument_list &args)
@@ -318,7 +317,7 @@ shcore::Value AdminSession::create_farm(const shcore::Argument_list &args)
       // First we need to create the Metadata Schema, or update it if already exists
       _metadata_storage->create_metadata_schema();
 
-      boost::shared_ptr<Farm> farm (new Farm(farm_name));
+      boost::shared_ptr<Farm> farm (new Farm(farm_name, _metadata_storage));
 
       // Insert Farm on the Metadata Schema
       _metadata_storage->insert_farm(farm);

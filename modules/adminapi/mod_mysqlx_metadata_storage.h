@@ -43,6 +43,7 @@ namespace mysh
       uint64_t get_farm_id(std::string farm_name);
       bool farm_exists(std::string farm_name);
       void insert_farm(boost::shared_ptr<Farm> farm);
+      void insert_default_replica_set(boost::shared_ptr<Farm> farm);
       void drop_farm(std::string farm_name);
       bool farm_has_default_replicaset_only(std::string farm_name);
       void drop_default_replicaset(std::string farm_name);
