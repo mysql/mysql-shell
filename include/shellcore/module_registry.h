@@ -38,7 +38,6 @@ class SHCORE_PUBLIC C : public shcore::Module_base \
           void init(); \
           virtual std::string class_name() const { return #N; };\
           virtual bool operator == (const Object_bridge &other) const{ return false; }\
-          static std::string module_name;\
           static boost::shared_ptr<shcore::Object_bridge> create(const shcore::Argument_list &args)
 
 #define DECLARE_FUNCTION(F) shcore::Value F(const shcore::Argument_list &args);
@@ -47,7 +46,6 @@ class SHCORE_PUBLIC C : public shcore::Module_base \
 
 #define REGISTER_MODULE(C,N) \
   shcore::Module_register<C>C ## _ ## N ## _register(#N); \
-  std::string C ## ::module_name = ## #N; \
   C::C() { init(); } \
   boost::shared_ptr<shcore::Object_bridge> C::create(const shcore::Argument_list &args) \
                               { \

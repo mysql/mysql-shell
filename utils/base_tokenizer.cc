@@ -138,9 +138,6 @@ void BaseTokenizer::unget_token()
 
 void BaseTokenizer::get_tokens()
 {
-  bool arrow_last = false;
-  bool inside_arrow = false;
-
   for (size_t i = 0; i < _input.size(); ++i)
   {
     if (std::isspace(_input[i]))

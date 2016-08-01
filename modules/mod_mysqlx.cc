@@ -33,7 +33,7 @@ REGISTER_MODULE(Mysqlx, mysqlx)
   REGISTER_VARARGS_FUNCTION(Mysqlx, get_session, getSession);
   REGISTER_VARARGS_FUNCTION(Mysqlx, get_node_session, getNodeSession);
   REGISTER_VARARGS_FUNCTION(Mysqlx, date_value, dateValue);
-  REGISTER_FUNCTION(Mysqlx, expr, expr, "expression", shcore::String);
+  REGISTER_FUNCTION(Mysqlx, expr, expr, "expression", shcore::String, NULL);
 
   _type.reset(new Type());
   _index_type.reset(new IndexType());
