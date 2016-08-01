@@ -49,7 +49,7 @@
 
 namespace shcore
 {
-  class Uri_parser
+  class SHCORE_PUBLIC Uri_parser
   {
   public:
     Uri_parser();
