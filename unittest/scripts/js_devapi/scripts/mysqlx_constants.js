@@ -1,4 +1,4 @@
-var mysqlx = require('mysqlx').mysqlx;
+var mysqlx = require('mysqlx');
 
 //@ mysqlx type constants
 print('Type.BIT:', mysqlx.Type.BIT);

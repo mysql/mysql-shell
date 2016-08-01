@@ -1,6 +1,6 @@
 
 // Working with Relational Tables
-var mysqlx = require('mysqlx').mysqlx;
+var mysqlx = require('mysqlx');
 
 // Connect to server using a connection URL
 var mySession = mysqlx.getSession( {

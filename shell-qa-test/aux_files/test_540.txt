@@ -1,0 +1,2 @@
+#!/usr/bin/mysqlsh -f 
+print("Hello World\n");

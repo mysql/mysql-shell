@@ -385,10 +385,6 @@ void Shell_js_script_tester::SetUp()
   Shell_script_tester::SetUp();
 
   _interactive_shell->process_line("\\js");
-
-  std::string js_modules_path = MYSQLX_SOURCE_HOME;
-  js_modules_path += "/scripting/modules/js";
-  execute("shell.js.module_paths[shell.js.module_paths.length] = '" + js_modules_path + "';");
 }
 
 void Shell_py_script_tester::SetUp()

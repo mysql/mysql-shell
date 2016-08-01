@@ -323,19 +323,6 @@ target_link_libraries(mysqlsh ${MYSQLSHCORE_LIBS} ${GCOV_LDFLAGS})
 
 install(TARGETS mysqlsh RUNTIME COMPONENT main DESTINATION ${INSTALL_BINDIR})
 
-if (HAVE_V8)
-  install(DIRECTORY scripting/modules DESTINATION ${INSTALL_SHAREDIR} COMPONENT main)
-  install(DIRECTORY scripting/modules DESTINATION ${INSTALL_SHAREDIR} COMPONENT dev)
-endif()
-
-IF(CMAKE_BUILD_TYPE MATCHES Debug)
-  # This is to copy the modules into the build directory to make them
-  # available for debugging purposes
-  add_custom_command(TARGET mysqlsh PRE_BUILD
-                        COMMAND ${CMAKE_COMMAND} -E copy_directory
-                        ${CMAKE_SOURCE_DIR}/scripting/modules $<TARGET_FILE_DIR:mysqlsh>/modules)
-ENDIF()
-
 if(WIN32)
   if(NOT WINDOWS_RUNTIME_MD)
     CHANGE_MD_2_MT()

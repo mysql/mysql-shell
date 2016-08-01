@@ -33,6 +33,12 @@
 #include "shellcore/types_cpp.h"
 #include "shellcore/python_utils.h"
 
+#ifndef WIN32
+#define PY_SIZE_T_FMT "%zi"
+#else
+#define PY_SIZE_T_FMT "%Ii"
+#endif
+
 using namespace shcore;
 
 /** Wraps a GRT method as a Python object
@@ -64,7 +70,7 @@ static PyObject *call_object_method(boost::shared_ptr<Cpp_object_bridge> object,
     catch (Exception &e)
     {
       char buffer[100];
-      snprintf(buffer, sizeof(buffer), "argument #%li", a);
+      snprintf(buffer, sizeof(buffer), "argument #" PY_SIZE_T_FMT, a);
       Python_context::set_python_error(e, buffer);
       return NULL;
     }

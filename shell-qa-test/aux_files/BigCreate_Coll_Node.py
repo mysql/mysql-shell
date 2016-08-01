@@ -1,5 +1,5 @@
-schema = session.getSchema('world_x')
-coll = schema.createCollection('big_coll_node_py')
+schema = session.get_schema('world_x')
+coll = schema.create_collection('big_coll_node_py')
 id_m = 1
 while id_m <= 1000:
 	res = {

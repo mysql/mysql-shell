@@ -15,7 +15,7 @@ function createTestTable(session, name) {
   return session.getCurrentSchema().getTable(name);
 }
 
-var mysqlx = require('mysqlx').mysqlx;
+var mysqlx = require('mysqlx');
 
 var session = mysqlx.getNodeSession({
 dataSourceFile: 'mysqlxconfig.json', app: 'myapp',

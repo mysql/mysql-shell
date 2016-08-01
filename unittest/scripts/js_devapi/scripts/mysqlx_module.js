@@ -1,4 +1,4 @@
-var mysqlx = require('mysqlx').mysqlx;
+var mysqlx = require('mysqlx');
 
 // The tests assume the next variables have been put in place
 // on the JS Context

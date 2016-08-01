@@ -1,6 +1,6 @@
 // Assumptions: ensure_schema_does_not_exist
 // Assumes __uripwd is defined as <user>:<pwd>@<host>:<plugin_port>
-var mysqlx = require('mysqlx').mysqlx;
+var mysqlx = require('mysqlx');
 
 var mySession = mysqlx.getNodeSession(__uripwd);
 

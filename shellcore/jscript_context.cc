@@ -34,6 +34,7 @@
 #include "shellcore/shell_core.h"
 #include "shellcore/object_factory.h"
 #include "shellcore/object_registry.h"
+#include "shellcore/module_registry.h"
 
 #include "shellcore/jscript_object_wrapper.h"
 #include "shellcore/jscript_function_wrapper.h"
@@ -118,6 +119,9 @@ struct JScript_context::JScript_context_impl
     // source('module')
     globals->Set(v8::String::NewFromUtf8(isolate, "source"),
       v8::FunctionTemplate::New(isolate, &JScript_context_impl::f_source, client_data));
+
+    globals->Set(v8::String::NewFromUtf8(isolate, "__require"),
+      v8::FunctionTemplate::New(isolate, &JScript_context_impl::f_require, client_data));
 
     globals->Set(v8::String::NewFromUtf8(isolate, "__build_module"),
       v8::FunctionTemplate::New(isolate, &JScript_context_impl::f_build_module, client_data));
@@ -494,7 +498,6 @@ struct JScript_context::JScript_context_impl
     args.GetReturnValue().Set(ret_val);
   }
 
-
   static void f_source(const v8::FunctionCallbackInfo<v8::Value>& args)
   {
     v8::HandleScope outer_handle_scope(args.GetIsolate());
@@ -509,6 +512,33 @@ struct JScript_context::JScript_context_impl
     v8::HandleScope handle_scope(args.GetIsolate());
     v8::String::Utf8Value str(args[0]);
     self->delegate->source(self->delegate->user_data, *str);
+  }
+
+  static void f_require(const v8::FunctionCallbackInfo<v8::Value>& args)
+  {
+    v8::HandleScope handle_scope(args.GetIsolate());
+    JScript_context_impl *self = static_cast<JScript_context_impl*>(v8::External::Cast(*args.Data())->Value());
+
+    if (args.Length() != 1)
+      args.GetIsolate()->ThrowException(v8::String::NewFromUtf8(args.GetIsolate(), "Invalid number of parameters"));
+    else
+    {
+      try
+      {
+        v8::String::Utf8Value s(args[0]);
+
+        auto core_modules = Object_factory::package_contents("__modules__");
+        if (std::find(core_modules.begin(), core_modules.end(), *s) != core_modules.end())
+        {
+          auto module = Object_factory::call_constructor("__modules__", *s, shcore::Argument_list());
+          args.GetReturnValue().Set(self->types.shcore_value_to_v8_value(shcore::Value(boost::dynamic_pointer_cast<Object_bridge>(module))));
+        }
+      }
+      catch (std::exception &e)
+      {
+        args.GetIsolate()->ThrowException(v8::String::NewFromUtf8(args.GetIsolate(), e.what()));
+      }
+    }
   }
 
   v8::Local<v8::Value> _build_module(v8::Handle<v8::String> origin, v8::Handle<v8::String> source)
@@ -607,7 +637,7 @@ struct JScript_context::JScript_context_impl
 #endif
       args.GetReturnValue().Set(v8::Null(args.GetIsolate()));
     }
-}
+  }
 
   static void os_getenv(const v8::FunctionCallbackInfo<v8::Value>& args)
   {

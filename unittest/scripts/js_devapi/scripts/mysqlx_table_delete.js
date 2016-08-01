@@ -1,6 +1,6 @@
 // Assumptions: validate_crud_functions available
 
-var mysqlx = require('mysqlx').mysqlx;
+var mysqlx = require('mysqlx');
 
 var mySession = mysqlx.getNodeSession(__uripwd);
 

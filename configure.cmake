@@ -1,14 +1,14 @@
 # Copyright (c) 2009, 2015, Oracle and/or its affiliates. All rights reserved.
-# 
+#
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; version 2 of the License.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
@@ -28,15 +28,15 @@ INCLUDE (CheckSymbolExists)
 # WITH_PIC options.Not of much use, PIC is taken care of on platforms
 # where it makes sense anyway.
 IF(UNIX)
-  IF(APPLE)  
+  IF(APPLE)
     # OSX  executable are always PIC
     SET(WITH_PIC ON)
   ELSE()
     OPTION(WITH_PIC "Generate PIC objects" OFF)
     IF(WITH_PIC)
-      SET(CMAKE_C_FLAGS 
+      SET(CMAKE_C_FLAGS
         "${CMAKE_C_FLAGS} ${CMAKE_SHARED_LIBRARY_C_FLAGS}")
-      SET(CMAKE_CXX_FLAGS 
+      SET(CMAKE_CXX_FLAGS
         "${CMAKE_CXX_FLAGS} ${CMAKE_SHARED_LIBRARY_CXX_FLAGS}")
     ENDIF()
   ENDIF()
@@ -53,7 +53,7 @@ IF(CMAKE_SYSTEM_NAME MATCHES "SunOS" AND CMAKE_COMPILER_IS_GNUCXX)
 ENDIF()
 
 
-# System type affects version_compile_os variable 
+# System type affects version_compile_os variable
 IF(NOT SYSTEM_TYPE)
   IF(PLATFORM)
     SET(SYSTEM_TYPE ${PLATFORM})
@@ -248,7 +248,7 @@ IF(CMAKE_SYSTEM_NAME MATCHES "SunOS" AND
 ENDIF()
 
 IF(CMAKE_COMPILER_IS_GNUCXX)
-  IF (CMAKE_EXE_LINKER_FLAGS MATCHES " -static " 
+  IF (CMAKE_EXE_LINKER_FLAGS MATCHES " -static "
      OR CMAKE_EXE_LINKER_FLAGS MATCHES " -static$")
      SET(HAVE_DLOPEN FALSE CACHE "Disable dlopen due to -static flag" FORCE)
      SET(WITHOUT_DYNAMIC_PLUGINS TRUE)
@@ -272,7 +272,7 @@ ENDFUNCTION()
 
 # Searches function in libraries
 # if function is found, sets output parameter result to the name of the library
-# if function is found in libc, result will be empty 
+# if function is found in libc, result will be empty
 FUNCTION(MY_SEARCH_LIBS func libs result)
   IF(${${result}})
     # Library is already found or was predefined
@@ -284,7 +284,7 @@ FUNCTION(MY_SEARCH_LIBS func libs result)
     RETURN()
   ENDIF()
   FOREACH(lib  ${libs})
-    CHECK_LIBRARY_EXISTS(${lib} ${func} "" HAVE_${func}_IN_${lib}) 
+    CHECK_LIBRARY_EXISTS(${lib} ${func} "" HAVE_${func}_IN_${lib})
     IF(HAVE_${func}_IN_${lib})
       SET(${result} ${lib} PARENT_SCOPE)
       SET(HAVE_${result} 1 PARENT_SCOPE)
@@ -315,7 +315,7 @@ IF(UNIX)
   ENDIF()
   MY_SEARCH_LIBS(timer_create rt LIBRT)
 
-  SET(CMAKE_REQUIRED_LIBRARIES 
+  SET(CMAKE_REQUIRED_LIBRARIES
     ${LIBM} ${LIBNSL} ${LIBBIND} ${LIBCRYPT} ${LIBSOCKET} ${LIBDL} ${CMAKE_THREAD_LIBS_INIT} ${LIBRT})
   # Need explicit pthread for gcc -fsanitize=address
   IF(CMAKE_C_FLAGS MATCHES "-fsanitize=")
@@ -325,9 +325,9 @@ IF(UNIX)
   LIST(LENGTH CMAKE_REQUIRED_LIBRARIES required_libs_length)
   IF(${required_libs_length} GREATER 0)
     LIST(REMOVE_DUPLICATES CMAKE_REQUIRED_LIBRARIES)
-  ENDIF()  
+  ENDIF()
   LINK_LIBRARIES(${CMAKE_THREAD_LIBS_INIT})
-  
+
   OPTION(WITH_LIBWRAP "Compile with tcp wrappers support" OFF)
   IF(WITH_LIBWRAP)
     SET(SAVE_CMAKE_REQUIRED_LIBRARIES ${CMAKE_REQUIRED_LIBRARIES})
@@ -346,7 +346,7 @@ IF(UNIX)
     IF(HAVE_LIBWRAP)
       SET(LIBWRAP "wrap")
     ELSE()
-      MESSAGE(FATAL_ERROR 
+      MESSAGE(FATAL_ERROR
       "WITH_LIBWRAP is defined, but can not find a working libwrap. "
       "Make sure both the header files (tcpd.h) "
       "and the library (libwrap) are installed.")
@@ -511,8 +511,8 @@ CHECK_SYMBOL_EXISTS(isinf "math.h" HAVE_C_ISINF)
 # isinf() prototype not found on Solaris
 CHECK_CXX_SOURCE_COMPILES(
 "#include  <math.h>
-int main() { 
-  isinf(0.0); 
+int main() {
+  isinf(0.0);
   return 0;
 }" HAVE_CXX_ISINF)
 
@@ -593,7 +593,7 @@ SET(CMAKE_EXTRA_INCLUDE_FILES)
 IF(CMAKE_COMPILER_IS_GNUCXX AND HAVE_CXXABI_H)
 CHECK_CXX_SOURCE_COMPILES("
  #include <cxxabi.h>
- int main(int argc, char **argv) 
+ int main(int argc, char **argv)
   {
     char *foo= 0; int bar= 0;
     foo= abi::__cxa_demangle(foo, foo, 0, &bar);
@@ -603,7 +603,7 @@ CHECK_CXX_SOURCE_COMPILES("
 ENDIF()
 
 CHECK_C_SOURCE_COMPILES("
-  int main(int argc, char **argv) 
+  int main(int argc, char **argv)
   {
     extern char *__bss_start;
     return __bss_start ? 1 : 0;
@@ -752,6 +752,7 @@ CHECK_FUNCTION_EXISTS(chown HAVE_CHOWN)
 CHECK_INCLUDE_FILES (numaif.h HAVE_NUMAIF_H)
 SET(WITH_NUMA 1 CACHE BOOL "Explicitly set NUMA memory allocation policy")
 IF(HAVE_NUMAIF_H AND WITH_NUMA)
+    SET(SAVED_CMAKE_REQUIRED_LIBRARIES ${CMAKE_REQUIRED_LIBRARIES})
     SET(CMAKE_REQUIRED_LIBRARIES ${CMAKE_REQUIRED_LIBRARIES} numa)
     CHECK_C_SOURCE_COMPILES(
     "
@@ -761,4 +762,8 @@ IF(HAVE_NUMAIF_H AND WITH_NUMA)
        set_mempolicy(MPOL_DEFAULT, 0, 0);
     }"
     HAVE_LIBNUMA)
+    
+    IF(NOT HAVE_LIBNUMA)
+      SET(CMAKE_REQUIRED_LIBRARIES ${SAVED_CMAKE_REQUIRED_LIBRARIES})
+    ENDIF()
 ENDIF()

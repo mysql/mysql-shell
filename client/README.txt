@@ -105,7 +105,7 @@ As sample session would be
 sql> use sakila;
 sql> select * from actor limit 5;
 \quit
-js> var mysqlx = require('mysqlx').mysqlx;
+js> var mysqlx = require('mysqlx');
 js> var mysession = mysqlx.getNodeSession("root:123@localhost:33060");
 js> mysession.sql("show databases").execute();
 js> dir(mysession);

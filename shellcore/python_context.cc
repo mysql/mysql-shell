@@ -20,6 +20,7 @@
 #include "shellcore/python_utils.h"
 #include "shellcore/shell_core.h"
 #include "shellcore/common.h"
+#include "shellcore/module_registry.h"
 #include "modules/base_constants.h"
 #include "utils/utils_file.h"
 #include "utils/utils_general.h"
@@ -61,10 +62,9 @@ namespace shcore
     Python_init_singleton::init_python();
 
     // register shell module
+    register_shell_modules();
     register_shell_module();
     register_shell_stderr_module();
-    register_mysqlx_module();
-    register_mysql_module();
 
     PyObject *main = PyImport_AddModule("__main__");
     _globals = PyModule_GetDict(main);
@@ -625,6 +625,79 @@ namespace shcore
     { NULL, NULL, 0, NULL }        /* Sentinel */
   };
 
+  PyObject *Python_context::call_module_function(PyObject *self, PyObject *args, PyObject *keywords, const std::string& name)
+  {
+    Python_context *ctx;
+    std::string text;
+
+    if (!(ctx = Python_context::get_and_check()))
+      return NULL;
+
+    shcore::Argument_list shell_args;
+
+    if (keywords)
+      shell_args.push_back(ctx->pyobj_to_shcore_value(keywords));
+    else if (args)
+    {
+      int size = (int)PyTuple_Size(args);
+
+      for (int index = 0; index < size; index++)
+        shell_args.push_back(ctx->pyobj_to_shcore_value(PyTuple_GetItem(args, index)));
+    }
+
+    PyObject *py_ret_val;
+    try
+    {
+      auto module = _modules[self];
+      shcore::Value ret_val = module->call(name, shell_args);
+      py_ret_val = ctx->shcore_value_to_pyobj(ret_val);
+    }
+    catch (shcore::Exception &e)
+    {
+      set_python_error(e);
+    }
+
+    if (py_ret_val)
+    {
+      Py_INCREF(py_ret_val);
+      return py_ret_val;
+    }
+    else
+    {
+      Py_INCREF(Py_None);
+      return Py_None;
+    }
+
+    return NULL;
+  }
+
+  void Python_context::register_shell_modules()
+  {
+    auto modules = Object_factory::package_contents("__modules__");
+
+    for (auto name : modules)
+    {
+      auto module_obj = Object_factory::call_constructor("__modules__", name, shcore::Argument_list());
+
+      boost::shared_ptr<shcore::Module_base> module = boost::dynamic_pointer_cast<shcore::Module_base>(module_obj);
+
+      PyMethodDef py_members[] = { { NULL, NULL, 0, NULL } };
+
+      PyObject *py_module = Py_InitModule(name.c_str(), py_members);
+
+      _modules[py_module] = module;
+
+      PyObject* py_dict = PyModule_GetDict(py_module);
+
+      for (auto name : module->get_members_advanced(shcore::LowerCaseUnderscores))
+      {
+        shcore::Value member = module->get_member_advanced(name, shcore::LowerCaseUnderscores);
+        if (member.type == shcore::Function || member.type == shcore::Object)
+          PyDict_SetItem(py_dict, PyString_FromString(name.c_str()), _types.shcore_value_to_pyobj(member));
+      }
+    }
+  }
+
   void Python_context::register_shell_module() {
     PyObject *module = Py_InitModule("shell", ShellModuleMethods);
     if (module == NULL)
@@ -657,127 +730,5 @@ namespace shcore
       throw std::runtime_error("Error initializing SHELL module in Python support");
 
     _shell_stderr_module = module;
-  }
-
-  PyObject *Python_context::get_object(PyObject *UNUSED(self), PyObject *args, const std::string &module, const std::string &type, PyObject *keywords /*= NULL*/)
-  {
-    Python_context *ctx;
-    std::string text;
-
-    if (!(ctx = Python_context::get_and_check()))
-      return NULL;
-
-    shcore::Argument_list shell_args;
-
-    if (keywords)
-      shell_args.push_back(ctx->pyobj_to_shcore_value(keywords));
-    else if (args)
-    {
-      int size = (int)PyTuple_Size(args);
-
-      for (int index = 0; index < size; index++)
-        shell_args.push_back(ctx->pyobj_to_shcore_value(PyTuple_GetItem(args, index)));
-    }
-
-    PyObject *py_session = NULL;
-
-    try
-    {
-      shcore::Value session(Object_factory::call_constructor(module, type, shell_args));
-      py_session = ctx->shcore_value_to_pyobj(session);
-    }
-    catch (shcore::Exception &e)
-    {
-      set_python_error(e);
-    }
-
-    if (py_session)
-    {
-      Py_INCREF(py_session);
-      return py_session;
-    }
-    else
-    {
-      Py_INCREF(Py_None);
-      return Py_None;
-    }
-  }
-
-  PyObject *Python_context::mysqlx_get_session(PyObject *self, PyObject *args, PyObject *keywords)
-  {
-    return get_object(self, args, "mysqlx", "XSession", keywords);
-  }
-
-  PyObject *Python_context::mysqlx_get_node_session(PyObject *self, PyObject *args, PyObject *keywords)
-  {
-    return get_object(self, args, "mysqlx", "NodeSession", keywords);
-  }
-
-  PyObject *Python_context::mysqlx_get_admin_session(PyObject *self, PyObject *args, PyObject *keywords)
-  {
-    return get_object(self, args, "mysqlx", "AdminSession", keywords);
-  }
-
-  PyObject *Python_context::mysqlx_expr(PyObject *self, PyObject *args)
-  {
-    return get_object(self, args, "mysqlx", "Expression");
-  }
-
-  PyObject *Python_context::mysqlx_date_value(PyObject *self, PyObject *args)
-  {
-    return get_object(self, args, "mysqlx", "Date");
-  }
-
-  PyObject *Python_context::mysql_get_classic_session(PyObject *self, PyObject *args, PyObject *keywords)
-  {
-    return get_object(self, args, "mysql", "ClassicSession", keywords);
-  }
-
-  static PyMethodDef MysqlxModuleMethods[] =
-  {
-    { "get_session", (PyCFunction)Python_context::mysqlx_get_session, METH_VARARGS | METH_KEYWORDS,
-    "Creates an XSession object." },
-    { "get_node_session", (PyCFunction)Python_context::mysqlx_get_node_session, METH_VARARGS | METH_KEYWORDS,
-    "Creates a NodeSession object." },
-    { "getAdminSession", (PyCFunction)Python_context::mysqlx_get_admin_session, METH_VARARGS | METH_KEYWORDS,
-      "Creates an AdminSession object." },
-    { "expr", &Python_context::mysqlx_expr, METH_VARARGS,
-    "Creates a Expression object." },
-    { "dateValue", &Python_context::mysqlx_date_value, METH_VARARGS,
-    "Creates a Date object." },
-    { NULL, NULL, 0, NULL }        /* Sentinel */
-  };
-
-  static PyMethodDef MysqlModuleMethods[] =
-  {
-    { "get_classic_session", (PyCFunction)Python_context::mysql_get_classic_session, METH_VARARGS | METH_KEYWORDS,
-    "Creates an ClassicSession object." },
-    { NULL, NULL, 0, NULL }        /* Sentinel */
-  };
-
-  void Python_context::register_mysqlx_module()
-  {
-    PyObject *module = Py_InitModule("mysqlx", MysqlxModuleMethods);
-
-    if (module == NULL)
-      throw std::runtime_error("Error initializing mysqlx module in Python support");
-    else
-    {
-      // Type Constants
-      PyModule_AddObject(module, "Type", get_object(NULL, NULL, "mysqlx", "Type"));
-      PyModule_AddObject(module, "IndexType", get_object(NULL, NULL, "mysqlx", "IndexType"));
-    }
-
-    _mysqlx_module = module;
-  }
-
-  void Python_context::register_mysql_module()
-  {
-    PyObject *module = Py_InitModule("mysql", MysqlModuleMethods);
-
-    if (module == NULL)
-      throw std::runtime_error("Error initializing mysql module in Python support");
-
-    _mysql_module = module;
   }
 }

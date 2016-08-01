@@ -1,4 +1,4 @@
-mysqlx = require('mysqlx').mysqlx;
+mysqlx = require('mysqlx');
 
 // Variables assummed to exist on the script must be declared in global scope
 var testSession = null;

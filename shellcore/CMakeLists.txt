@@ -12,7 +12,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
-
 remove_definitions(-Dmysqlshmods_EXPORTS)
 
 include_directories( ${MYSQL_INCLUDE_DIRS} )
@@ -60,6 +59,10 @@ file(GLOB libmysqlshcore_SRC
     "${CMAKE_SOURCE_DIR}/utils/utils_general.cc"
     "${CMAKE_SOURCE_DIR}/utils/utils_sqlstring.h"
     "${CMAKE_SOURCE_DIR}/utils/utils_sqlstring.cc"
+    "${CMAKE_SOURCE_DIR}/utils/base_tokenizer.h"
+    "${CMAKE_SOURCE_DIR}/utils/base_tokenizer.cc"
+    "${CMAKE_SOURCE_DIR}/utils/uri_parser.h"
+    "${CMAKE_SOURCE_DIR}/utils/uri_parser.cc"
     "*.cc"
     "*.h"
     "${CMAKE_SOURCE_DIR}/common/uuid/src/uuid_gen.cc"
@@ -165,6 +168,10 @@ file(GLOB libmysqlshmods_SRC
       "../modules/crud_*.h"
       "../modules/dynamic_*.cc"
       "../modules/dynamic_*.h"
+      "../modules/mod_mysqlx.cc"
+      "../modules/mod_mysqlx.h"
+      "../modules/mod_mysql.cc"
+      "../modules/mod_mysql.h"
       "../modules/mod_mysqlx_*.cc"
       "../modules/mod_mysqlx_*.h"
       "../modules/mod_mysql_*.cc"
