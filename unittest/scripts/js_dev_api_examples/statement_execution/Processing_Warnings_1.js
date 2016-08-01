@@ -1,5 +1,5 @@
 
-var mysqlx = require('mysqlx').mysqlx;
+var mysqlx = require('mysqlx');
 
 function process_warnings(result){
   if (result.getWarningCount()){

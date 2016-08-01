@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -17,17 +17,19 @@
  * 02110-1301  USA
  */
 
-exports.mysql = {}
+#include "mod_mysql.h"
+#include "base_session.h"
+#include <boost/bind.hpp>
 
-// Connection functions
-exports.mysql.getClassicSession = function(connection_data, password)
+using namespace mysh::mysql;
+
+REGISTER_MODULE(Mysql, mysql)
 {
-  var session;
+  REGISTER_VARARGS_FUNCTION(Mysql, get_classic_session, getClassicSession);
+}
 
-  if (typeof(password) == 'undefined')
-    session = _F.mysql.ClassicSession(connection_data);
-  else
-    session = _F.mysql.ClassicSession(connection_data, password);
-  
-  return session;
+DEFINE_FUNCTION(Mysql, get_classic_session)
+{
+  auto session = connect_session(args, mysh::Classic);
+  return shcore::Value(boost::dynamic_pointer_cast<shcore::Object_bridge>(session));
 }

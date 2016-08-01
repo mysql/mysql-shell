@@ -1,6 +1,6 @@
 // Assumptions: ensure_schema_does_not_exist is available
 // Assumes __uripwd is defined as <user>:<pwd>@<host>:<mysql_port>
-var mysql = require('mysql').mysql;
+var mysql = require('mysql');
 
 var mySession = mysql.getClassicSession(__uripwd);
 

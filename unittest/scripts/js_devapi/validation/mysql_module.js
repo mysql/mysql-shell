@@ -1,6 +1,6 @@
 //@ mysql module: exports
 |Exported Items: 1|
-|getClassicSession: function|
+|getClassicSession: object|
 
 //@ mysql module: getClassicSession through URI
 |<ClassicSession:|

@@ -53,16 +53,6 @@ namespace shcore
     protected:
       std::queue<Notification> _notifications;
 
-      virtual void SetUp()
-      {
-        Shell_core_test_wrapper::SetUp();
-
-        // Initializes the JS mode to point to the right module paths
-        std::string js_modules_path = MYSQLX_SOURCE_HOME;
-        js_modules_path += "/scripting/modules/js";
-        _interactive_shell->process_line("shell.js.module_paths[shell.js.module_paths.length] = '" + js_modules_path + "'; ");
-      }
-
       virtual void handle_notification(const std::string &name, shcore::Object_bridge_ref sender, shcore::Value::Map_type_ref data)
       {
         _notifications.push({ name, sender, data });
@@ -132,8 +122,8 @@ namespace shcore
 
       this->observe_notification("SN_SESSION_CONNECTED");
 
-      _interactive_shell->process_line("var mysqlx = require('mysqlx').mysqlx;");
-      _interactive_shell->process_line("var mysql = require('mysql').mysql;");
+      _interactive_shell->process_line("var mysqlx = require('mysqlx');");
+      _interactive_shell->process_line("var mysql = require('mysql');");
       _interactive_shell->process_line("var session = mysqlx.getSession('" + _uri + "');");
 
       ASSERT_EQ(1, _notifications.size());

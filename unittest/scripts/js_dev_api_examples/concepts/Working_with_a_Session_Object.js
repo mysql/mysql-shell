@@ -1,5 +1,5 @@
 // Connecting to MySQL and working with a Session
-var mysqlx = require('mysqlx').mysqlx;
+var mysqlx = require('mysqlx');
 
 // Connect to a dedicated MySQL server using a connection URL
 var mySession = mysqlx.getSession('mike:s3cr3t!@localhost');

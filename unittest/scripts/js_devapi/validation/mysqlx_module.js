@@ -1,9 +1,9 @@
 //@ mysqlx module: exports
 |Exported Items: 6|
-|getSession: function|
-|getNodeSession: function|
-|expr: function|
-|dateValue: function|
+|getSession: object|
+|getNodeSession: object|
+|expr: object|
+|dateValue: object|
 |Type: <mysqlx.Type>|
 |IndexType: <mysqlx.IndexType>|
 

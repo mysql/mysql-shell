@@ -44,23 +44,29 @@ function ModuleHandler()
   
   this._load_module = function(name)
   {
-    var path = this._find_module(name);
-    
-    if (path)
+    var module = __require(name);
+    if (module)
+      this._module_cache[name] = module;
+    else
     {
-      var source = os.load_text_file(path);
-      if (source)
+      var path = this._find_module(name);
+      
+      if (path)
       {
-        var wrapped_source = '(function (exports){' + source + '});';
-        var module_definition = __build_module(path, wrapped_source);
-        
-        var module = {}
-        module_definition(module)
-        
-        this._module_cache[name] = module;
+        var source = os.load_text_file(path);
+        if (source)
+        {
+          var wrapped_source = '(function (exports){' + source + '});';
+          var module_definition = __build_module(path, wrapped_source);
+          
+          var module = {}
+          module_definition(module)
+          
+          this._module_cache[name] = module;
+        }
+        else
+          throw ('Module ' + name + ' is empty.');
       }
-      else
-        throw ('Module ' + name + ' is empty.');
     }
   }
   

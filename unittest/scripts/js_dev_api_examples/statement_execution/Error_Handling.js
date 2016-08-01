@@ -1,5 +1,5 @@
 
-var mysqlx = require('mysqlx').mysqlx;
+var mysqlx = require('mysqlx');
 
 var mySession;
 

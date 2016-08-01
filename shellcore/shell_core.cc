@@ -28,6 +28,8 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/format.hpp>
 #include <boost/bind.hpp>
+#include "modules/mod_mysqlx.h"
+#include "modules/mod_mysql.h"
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wshadow"
 #pragma GCC diagnostic ignored "-Wunused-parameter"
@@ -43,6 +45,9 @@ using namespace shcore;
 Shell_core::Shell_core(Interpreter_delegate *shdelegate)
   : IShell_core(), _lang_delegate(shdelegate), _running_query(false)
 {
+  INIT_MODULE(mysh::mysqlx::Mysqlx);
+  INIT_MODULE(mysh::mysql::Mysql);
+
   // Use a random seed for UUIDs
   std::time_t now = std::time(NULL);
   boost::uniform_int<> dist(INT_MIN, INT_MAX);
@@ -191,7 +196,7 @@ int Shell_core::process_stream(std::istream& stream, const std::string& source, 
 
     // When processing JavaScript files, validates the very first line to start with #!
     // If that's the case, it is replaced by a comment indicator //
-    if (_mode == IShell_core::Mode_JScript && data.size() > 1 && data[0]=='#' && data[1]=='!')
+    if (_mode == IShell_core::Mode_JScript && data.size() > 1 && data[0] == '#' && data[1] == '!')
       data.replace(0, 2, "//");
 
     handle_input(data, state, result_processor);

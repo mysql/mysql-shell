@@ -1,5 +1,5 @@
 
-var mysqlx = require('mysqlx').mysqlx;
+var mysqlx = require('mysqlx');
 
 // Connect to server on localhost
 var mySession = mysqlx.getSession( {

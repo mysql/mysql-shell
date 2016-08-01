@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2016, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -214,13 +214,6 @@ namespace shcore
     static PyObject *shell_interactive_eval_hook(PyObject *self, PyObject *args);
     static PyObject *shell_parse_uri(PyObject *self, PyObject *args);
 
-    static PyObject *get_object(PyObject *self, PyObject *args, const std::string &module, const std::string &type, PyObject *keywords = NULL);
-    static PyObject *mysqlx_get_session(PyObject *self, PyObject *args, PyObject *keywords);
-    static PyObject *mysqlx_get_node_session(PyObject *self, PyObject *args, PyObject *keywords);
-    static PyObject *mysqlx_expr(PyObject *self, PyObject *args);
-    static PyObject *mysqlx_date_value(PyObject *self, PyObject *args);
-    static PyObject *mysql_get_classic_session(PyObject *self, PyObject *args, PyObject *keywords);
-
   private:
     PyObject *_globals;
     PyObject *_locals;
@@ -230,13 +223,14 @@ namespace shcore
 
     PyObject *_shell_module;
     PyObject *_shell_stderr_module;
-    PyObject *_mysqlx_module;
-    PyObject *_mysql_module;
+
+    std::map<PyObject*, boost::shared_ptr<shcore::Object_bridge> > _modules;
+
+    void register_shell_modules();
+    PyObject *call_module_function(PyObject *self, PyObject *args, PyObject *keywords, const std::string& name);
 
     void register_shell_module();
     void register_shell_stderr_module();
-    void register_mysqlx_module();
-    void register_mysql_module();
 
     void init_shell_list_type();
     void init_shell_dict_type();

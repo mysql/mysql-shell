@@ -1,7 +1,7 @@
 
 // Connecting to MySQL Server and working with a Collection
 
-var mysqlx = require('mysqlx').mysqlx;
+var mysqlx = require('mysqlx');
 
 // Connect to server
 var mySession = mysqlx.getSession( {

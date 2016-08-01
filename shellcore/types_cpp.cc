@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2016, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -240,8 +240,14 @@ void Cpp_object_bridge::add_method(const std::string &name, Cpp_function::Functi
     va_end(l);
   }
 
-  auto function = boost::shared_ptr<Cpp_function>(new Cpp_function(name, func, NULL));
-  _funcs[name] = function;
+  auto function = boost::shared_ptr<Cpp_function>(new Cpp_function(name, func, signature));
+  _funcs[name.substr(0, name.find("|"))] = function;
+}
+
+void Cpp_object_bridge::add_varargs_method(const std::string &name, Cpp_function::Function func)
+{
+  auto function = boost::shared_ptr<Cpp_function>(new Cpp_function(name, func, true));
+  _funcs[name.substr(0, name.find("|"))] = function;
 }
 
 void Cpp_object_bridge::add_constant(const std::string &name)
@@ -303,19 +309,60 @@ boost::shared_ptr<Cpp_object_bridge::ScopedStyle> Cpp_object_bridge::set_scoped_
 }
 
 //-------
+Cpp_function::Cpp_function(const std::string &name, const Function &func, bool var_args) :_func(func)
+{
+  // The | separator is used when specific names are given for a function
+  // Otherwise the function name is retrieved based on the style
+  auto index = name.find("|");
+  if (index == std::string::npos)
+  {
+    _name[LowerCamelCase] = get_member_name(name, LowerCamelCase);
+    _name[LowerCaseUnderscores] = get_member_name(name, LowerCaseUnderscores);
+  }
+  else
+  {
+    _name[LowerCamelCase] = name.substr(0, index);
+    _name[LowerCaseUnderscores] = name.substr(index + 1);
+  }
+  _var_args = var_args;
+}
 
 Cpp_function::Cpp_function(const std::string &name_, const Function &func, const std::vector<std::pair<std::string, Value_type> > &signature_)
   : _func(func), _signature(signature_)
 {
-  _name[LowerCamelCase] = get_member_name(name_, LowerCamelCase);
-  _name[LowerCaseUnderscores] = get_member_name(name_, LowerCaseUnderscores);
+  // The | separator is used when specific names are given for a function
+  // Otherwise the function name is retrieved based on the style
+  auto index = name_.find("|");
+  if (index == std::string::npos)
+  {
+    _name[LowerCamelCase] = get_member_name(name_, LowerCamelCase);
+    _name[LowerCaseUnderscores] = get_member_name(name_, LowerCaseUnderscores);
+  }
+  else
+  {
+    _name[LowerCamelCase] = name_.substr(0, index);
+    _name[LowerCaseUnderscores] = name_.substr(index + 1);
+  }
+  _var_args = false;
 }
 
 Cpp_function::Cpp_function(const std::string &name_, const Function &func, const char *arg1_name, Value_type arg1_type, ...)
   : _func(func)
 {
-  _name[LowerCamelCase] = get_member_name(name_, LowerCamelCase);
-  _name[LowerCaseUnderscores] = get_member_name(name_, LowerCaseUnderscores);
+  _var_args = false;
+  // The | separator is used when specific names are given for a function
+  // Otherwise the function name is retrieved based on the style
+  auto index = name_.find("|");
+  if (index == std::string::npos)
+  {
+    _name[LowerCamelCase] = get_member_name(name_, LowerCamelCase);
+    _name[LowerCaseUnderscores] = get_member_name(name_, LowerCaseUnderscores);
+  }
+  else
+  {
+    _name[LowerCamelCase] = name_.substr(0, index);
+    _name[LowerCaseUnderscores] = name_.substr(index + 1);
+  }
 
   va_list l;
   if (arg1_name && arg1_type != Undefined)
@@ -405,8 +452,19 @@ boost::shared_ptr<Function_base> Cpp_function::create(const std::string &name, c
 
 Cpp_property_name::Cpp_property_name(const std::string &name, bool constant)
 {
-  _name[LowerCamelCase] = get_member_name(name, constant ? Constants : LowerCamelCase);
-  _name[LowerCaseUnderscores] = get_member_name(name, constant ? Constants : LowerCaseUnderscores);
+  // The | separator is used when specific names are given for a function
+  // Otherwise the function name is retrieved based on the style
+  auto index = name.find("|");
+  if (index == std::string::npos)
+  {
+    _name[LowerCamelCase] = get_member_name(name, constant ? Constants : LowerCamelCase);
+    _name[LowerCaseUnderscores] = get_member_name(name, constant ? Constants : LowerCaseUnderscores);
+  }
+  else
+  {
+    _name[LowerCamelCase] = name.substr(0, index);
+    _name[LowerCaseUnderscores] = name.substr(index + 1);
+  }
 }
 
 std::string Cpp_property_name::name(const NamingStyle& style)

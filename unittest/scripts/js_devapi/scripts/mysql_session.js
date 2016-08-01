@@ -1,7 +1,7 @@
 // Assumptions: ensure_schema_does_not_exist is available
 // Assumes __uripwd is defined as <user>:<pwd>@<host>:<mysql_port>
 // validateMemer and validateNotMember are defined on the setup script
-var mysql = require('mysql').mysql;
+var mysql = require('mysql');
 
 //@ Session: validating members
 var classicSession = mysql.getClassicSession(__uripwd);

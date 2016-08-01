@@ -540,18 +540,6 @@ namespace shcore {
 
     TEST_F(Interactive_shell_test, js_startup_scripts)
     {
-      // Default module paths will not contain the mysqlx module since they are calculated
-      // Based on the binary location.
-      // Here we use the env variable to setup additional paths for JS modules so
-      // It can be found as expected
-      std::string js_modules_path = MYSQLX_SOURCE_HOME;
-      js_modules_path += "/scripting/modules/js";
-#ifdef WIN32
-      _putenv_s("MYSQLSH_JS_MODULE_PATH", js_modules_path.c_str());
-#else
-      setenv("MYSQLSH_JS_MODULE_PATH", js_modules_path.c_str(), 1);
-#endif
-
       std::string user_path = shcore::get_user_config_path();
       user_path += "mysqlshrc.js";
 
@@ -580,7 +568,7 @@ namespace shcore {
       out.open(bin_path, std::ios_base::app);
       if (!out.fail())
       {
-        out << "var mysqlx = require('mysqlx').mysqlx;" << std::endl;
+        out << "var mysqlx = require('mysqlx');" << std::endl;
         out << "var the_variable = 'Global Value';" << std::endl;
         out.close();
       }
@@ -589,7 +577,7 @@ namespace shcore {
       reset_shell();
       output_handler.wipe_all();
 
-      _interactive_shell->process_line("mysqlx");
+      _interactive_shell->process_line("dir(mysqlx)");
       MY_EXPECT_STDOUT_CONTAINS("getSession");
       output_handler.wipe_all();
 

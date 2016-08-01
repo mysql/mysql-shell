@@ -52,7 +52,7 @@ namespace mysh
     *
     * \code{.js}
     * // Establishes the connection.
-    * var mysql = require('mysql').mysql;
+    * var mysql = require('mysql');
     * var session = mysql.getClassicSession("myuser@localhost", pwd);
     *
     * // Getting a schema through the getSchema function
