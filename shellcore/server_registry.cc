@@ -57,7 +57,9 @@
 #  include <fcntl.h>
 #  include <errno.h>
 #  include <cstring>
+#define SIZE_T_FMT "%zu"
 #else
+#define SIZE_T_FMT "%Iu"
 #  include <windows.h>
 #endif
 
@@ -130,7 +132,7 @@ void Server_registry::load()
     doc.Parse(s.c_str());
     if (doc.GetParseError() != rapidjson::kParseErrorNone)
     {
-      log_error("Server Registry: Error when parsing the file '%s', error: %s at %lu", c_filename, rapidjson::GetParseError_En(doc.GetParseError()),
+      log_error("Server Registry: Error when parsing the file '%s', error: %s at " SIZE_T_FMT, c_filename, rapidjson::GetParseError_En(doc.GetParseError()),
         doc.GetErrorOffset());
       return;
     }
