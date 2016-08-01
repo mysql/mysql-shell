@@ -105,10 +105,6 @@ rm -f %{buildroot}%{_datadir}/mysqlsh/{@LICENSE_FILE@,README}
 %doc @LICENSE_FILE@
 %doc README
 %{_bindir}/mysqlsh
-%if 0%{?static}
-%{_prefix}/share/mysqlsh/modules/js/mysql.js
-%{_prefix}/share/mysqlsh/modules/js/mysqlx.js
-%endif
 
 %changelog
 * Wed Mar 23 2016 Alfredo Kojima <alfredo.kengi.kojima@oracle.com> - 1.0.3-1
