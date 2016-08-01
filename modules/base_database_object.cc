@@ -27,16 +27,15 @@
 #include "utils/utils_general.h"
 #include "base_session.h"
 
-#include <boost/bind.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/format.hpp>
-#include <boost/pointer_cast.hpp>
 #include <set>
 
+using namespace std::placeholders;
 using namespace mysh;
 using namespace shcore;
 
-DatabaseObject::DatabaseObject(boost::shared_ptr<ShellBaseSession> session, boost::shared_ptr<DatabaseObject> schema, const std::string &name)
+DatabaseObject::DatabaseObject(std::shared_ptr<ShellBaseSession> session, std::shared_ptr<DatabaseObject> schema, const std::string &name)
   : _session(session), _schema(schema), _name(name)
 {
   init();
@@ -52,7 +51,7 @@ void DatabaseObject::init()
   add_property("session", "getSession");
   add_property("schema", "getSchema");
 
-  add_method("existsInDatabase", boost::bind(&DatabaseObject::existsInDatabase, this, _1), "data");
+  add_method("existsInDatabase", std::bind(&DatabaseObject::existsInDatabase, this, _1), "data");
 }
 
 std::string &DatabaseObject::append_descr(std::string &s_out, int UNUSED(indent), int UNUSED(quote_strings)) const
@@ -147,17 +146,17 @@ Value DatabaseObject::get_member(const std::string &prop) const
     ret_val = Value(_name);
   else if (prop == "session")
   {
-    if (_session._empty())
+    if (_session.expired())
       ret_val = Value::Null();
     else
-      ret_val = Value(boost::static_pointer_cast<Object_bridge>(_session.lock()));
+      ret_val = Value(std::static_pointer_cast<Object_bridge>(_session.lock()));
   }
   else if (prop == "schema")
   {
-    if (_schema._empty())
+    if (_schema.expired())
       ret_val = Value::Null();
     else
-    ret_val = Value(boost::static_pointer_cast<Object_bridge>(_schema.lock()));
+    ret_val = Value(std::static_pointer_cast<Object_bridge>(_schema.lock()));
   }
   else
     ret_val = Cpp_object_bridge::get_member(prop);
@@ -174,7 +173,7 @@ bool DatabaseObject::exists_in_database(){}
 shcore::Value DatabaseObject::existsInDatabase(const shcore::Argument_list &args)
 {
   std::string type(get_object_type());
-  return shcore::Value(!_session.lock()->db_object_exists(type, _name, _schema._empty() ? "" : _schema.lock()->get_member("name").as_string()).empty());
+  return shcore::Value(!_session.lock()->db_object_exists(type, _name, _schema.expired() ? "" : _schema.lock()->get_member("name").as_string()).empty());
 }
 
 void DatabaseObject::update_cache(const std::vector<std::string>& names, const std::function<shcore::Value(const std::string &name)>& generator, Cache target_cache, DatabaseObject* target)
@@ -241,7 +240,7 @@ shcore::Value DatabaseObject::find_in_cache(const std::string& name, Cache targe
 {
   Value::Map_type::const_iterator iter = target_cache->find(name);
   if (iter != target_cache->end())
-    return Value(boost::shared_ptr<Object_bridge>(iter->second.as_object()));
+    return Value(std::shared_ptr<Object_bridge>(iter->second.as_object()));
   else
     return Value();
 }

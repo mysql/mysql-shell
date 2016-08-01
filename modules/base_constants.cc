@@ -25,8 +25,6 @@
 #pragma clang diagnostic ignored "-Wunused-private-field"
 #endif
 
-#include <boost/algorithm/string.hpp>
-
 #ifdef __clang__
 #pragma clang diagnostic pop
 #endif
@@ -71,13 +69,13 @@ Value Constant::get_constant(const std::string &module, const std::string& group
     if (_constants.at(module).find(group) != _constants.at(module).end())
     {
       if (_constants.at(module).at(group).find(id) != _constants.at(module).at(group).end())
-        ret_val = shcore::Value(boost::static_pointer_cast<shcore::Object_bridge>(_constants.at(module).at(group).at(id)));
+        ret_val = shcore::Value(std::static_pointer_cast<shcore::Object_bridge>(_constants.at(module).at(group).at(id)));
     }
   }
 
   if (!ret_val)
   {
-    boost::shared_ptr<Constant> constant(new Constant(module, group, id, args));
+    std::shared_ptr<Constant> constant(new Constant(module, group, id, args));
 
     if (constant->data())
     {
@@ -96,7 +94,7 @@ Value Constant::get_constant(const std::string &module, const std::string& group
       if (_constants.at(module).at(group).find(id) == _constants.at(module).at(group).end())
         _constants.at(module).at(group).insert({ id, constant });
 
-      ret_val = shcore::Value(boost::static_pointer_cast<shcore::Object_bridge>(constant));
+      ret_val = shcore::Value(std::static_pointer_cast<shcore::Object_bridge>(constant));
     }
   }
 

@@ -31,7 +31,7 @@ namespace shcore {
 class SHCORE_PUBLIC JScript_function : public Function_base
 {
 public:
-  JScript_function(boost::shared_ptr<JScript_context> context);
+  JScript_function(std::shared_ptr<JScript_context> context);
   virtual ~JScript_function() {}
 
   virtual std::string name();
@@ -47,7 +47,7 @@ public:
   virtual Value invoke(const Argument_list &args);
 
 private:
-  boost::shared_ptr<JScript_context> _js;
+  std::shared_ptr<JScript_context> _js;
   v8::Handle<v8::Function> _jsfunc;
 };
 

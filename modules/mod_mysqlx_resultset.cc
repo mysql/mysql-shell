@@ -21,18 +21,18 @@
 #include "base_constants.h"
 #include "mysqlx.h"
 #include "shellcore/common.h"
-#include <boost/bind.hpp>
 #include "shellcore/shell_core_options.h"
 #include "shellcore/obj_date.h"
 #include "utils/utils_time.h"
 #include "mysqlxtest_utils.h"
 
+using namespace std::placeholders;
 using namespace shcore;
 using namespace mysh::mysqlx;
 
 // -----------------------------------------------------------------------
 
-BaseResult::BaseResult(boost::shared_ptr< ::mysqlx::Result> result) :
+BaseResult::BaseResult(std::shared_ptr< ::mysqlx::Result> result) :
 _result(result), _execution_time(0)
 {
   add_property("executionTime", "getExecutionTime");
@@ -100,7 +100,7 @@ shcore::Value BaseResult::get_member(const std::string &prop) const
 
   else if (prop == "warnings")
   {
-    boost::shared_ptr<shcore::Value::Array_type> array(new shcore::Value::Array_type);
+    std::shared_ptr<shcore::Value::Array_type> array(new shcore::Value::Array_type);
 
     std::vector< ::mysqlx::Result::Warning> warnings = _result->getWarnings();
 
@@ -177,7 +177,7 @@ void BaseResult::append_json(shcore::JSON_dumper& dumper) const
 
 // -----------------------------------------------------------------------
 
-Result::Result(boost::shared_ptr< ::mysqlx::Result> result) :
+Result::Result(std::shared_ptr< ::mysqlx::Result> result) :
 BaseResult(result)
 {
   add_property("affectedItemCount", "getAffectedItemCount");
@@ -312,11 +312,11 @@ void Result::append_json(shcore::JSON_dumper& dumper) const
 }
 
 // -----------------------------------------------------------------------
-DocResult::DocResult(boost::shared_ptr< ::mysqlx::Result> result) :
+DocResult::DocResult(std::shared_ptr< ::mysqlx::Result> result) :
 BaseResult(result)
 {
-  add_method("fetchOne", boost::bind(&DocResult::fetch_one, this, _1), "nothing", shcore::String, NULL);
-  add_method("fetchAll", boost::bind(&DocResult::fetch_all, this, _1), "nothing", shcore::String, NULL);
+  add_method("fetchOne", std::bind(&DocResult::fetch_one, this, _1), "nothing", shcore::String, NULL);
+  add_method("fetchAll", std::bind(&DocResult::fetch_all, this, _1), "nothing", shcore::String, NULL);
 }
 
 /**
@@ -336,7 +336,7 @@ shcore::Value DocResult::fetch_one(const shcore::Argument_list &args) const
 
   if (_result->columnMetadata() && _result->columnMetadata()->size())
   {
-    boost::shared_ptr< ::mysqlx::Row> r(_result->next());
+    std::shared_ptr< ::mysqlx::Row> r(_result->next());
     if (r.get())
       return Value::parse(r->stringField(0));
   }
@@ -390,7 +390,7 @@ shcore::Value DocResult::get_metadata() const
     if (orig_name.empty())
       orig_name = _result->columnMetadata()->at(0).name;
 
-    boost::shared_ptr<mysh::Column> metadata(new mysh::Column(
+    std::shared_ptr<mysh::Column> metadata(new mysh::Column(
       _result->columnMetadata()->at(0).schema,
       orig_table,
       _result->columnMetadata()->at(0).table,
@@ -405,7 +405,7 @@ shcore::Value DocResult::get_metadata() const
       Charset::item[_result->columnMetadata()->at(0).collation].name,
       true)); // IS PADDED
 
-    _metadata = shcore::Value(boost::static_pointer_cast<Object_bridge>(metadata));
+    _metadata = shcore::Value(std::static_pointer_cast<Object_bridge>(metadata));
   }
 
   return _metadata;
@@ -423,15 +423,15 @@ void DocResult::append_json(shcore::JSON_dumper& dumper) const
 }
 
 // -----------------------------------------------------------------------
-RowResult::RowResult(boost::shared_ptr< ::mysqlx::Result> result) :
+RowResult::RowResult(std::shared_ptr< ::mysqlx::Result> result) :
 BaseResult(result)
 {
   add_property("columnCount", "getColumnCount");
   add_property("columns", "getColumns");
   add_property("columnNames", "getColumnNames");
 
-  add_method("fetchOne", boost::bind(&RowResult::fetch_one, this, _1), "nothing", shcore::String, NULL);
-  add_method("fetchAll", boost::bind(&RowResult::fetch_all, this, _1), "nothing", shcore::String, NULL);
+  add_method("fetchOne", std::bind(&RowResult::fetch_one, this, _1), "nothing", shcore::String, NULL);
+  add_method("fetchAll", std::bind(&RowResult::fetch_all, this, _1), "nothing", shcore::String, NULL);
 }
 
 #if DOXYGEN_CPP
@@ -483,7 +483,7 @@ shcore::Value RowResult::get_member(const std::string &prop) const
     ret_val = shcore::Value(get_column_count());
   else if (prop == "columnNames")
   {
-    boost::shared_ptr<shcore::Value::Array_type> array(new shcore::Value::Array_type);
+    std::shared_ptr<shcore::Value::Array_type> array(new shcore::Value::Array_type);
 
     if (_result->columnMetadata())
     {
@@ -643,7 +643,7 @@ shcore::Value::Array_type_ref RowResult::get_columns() const
       if (orig_name.empty())
         orig_name = _result->columnMetadata()->at(i).name;
 
-      boost::shared_ptr<mysh::Column> column(new mysh::Column(
+      std::shared_ptr<mysh::Column> column(new mysh::Column(
         _result->columnMetadata()->at(i).schema,
         orig_table,
         _result->columnMetadata()->at(i).table,
@@ -658,7 +658,7 @@ shcore::Value::Array_type_ref RowResult::get_columns() const
   Charset::item[_result->columnMetadata()->at(i).collation].name,
         is_padded));
 
-      _columns->push_back(shcore::Value(boost::static_pointer_cast<Object_bridge>(column)));
+      _columns->push_back(shcore::Value(std::static_pointer_cast<Object_bridge>(column)));
     }
   }
 
@@ -678,10 +678,10 @@ shcore::Value RowResult::fetch_one(const shcore::Argument_list &args) const
 {
   args.ensure_count(0, get_function_name("fetchOne").c_str());
 
-  boost::shared_ptr<std::vector< ::mysqlx::ColumnMetadata> > metadata = _result->columnMetadata();
+  std::shared_ptr<std::vector< ::mysqlx::ColumnMetadata> > metadata = _result->columnMetadata();
   if (metadata->size() > 0)
   {
-    boost::shared_ptr< ::mysqlx::Row>row = _result->next();
+    std::shared_ptr< ::mysqlx::Row>row = _result->next();
     if (row)
     {
       mysh::Row *value_row = new mysh::Row();
@@ -720,8 +720,8 @@ shcore::Value RowResult::fetch_one(const shcore::Argument_list &args) const
             case ::mysqlx::DATETIME:
             {
               ::mysqlx::DateTime date = row->dateTimeField(index);
-              boost::shared_ptr<shcore::Date> shell_date(new shcore::Date(date.year(), date.month(), date.day(), date.hour(), date.minutes(), date.seconds()));
-              field_value = Value(boost::static_pointer_cast<Object_bridge>(shell_date));
+              std::shared_ptr<shcore::Date> shell_date(new shcore::Date(date.year(), date.month(), date.day(), date.hour(), date.minutes(), date.seconds()));
+              field_value = Value(std::static_pointer_cast<Object_bridge>(shell_date));
               break;
             }
             case ::mysqlx::ENUM:
@@ -786,11 +786,11 @@ void RowResult::append_json(shcore::JSON_dumper& dumper) const
     dumper.end_object();
 }
 
-SqlResult::SqlResult(boost::shared_ptr< ::mysqlx::Result> result) :
+SqlResult::SqlResult(std::shared_ptr< ::mysqlx::Result> result) :
 RowResult(result)
 {
-  add_method("hasData", boost::bind(&SqlResult::has_data, this, _1), "nothing", shcore::String, NULL);
-  add_method("nextDataSet", boost::bind(&SqlResult::next_data_set, this, _1), "nothing", shcore::String, NULL);
+  add_method("hasData", std::bind(&SqlResult::has_data, this, _1), "nothing", shcore::String, NULL);
+  add_method("nextDataSet", std::bind(&SqlResult::next_data_set, this, _1), "nothing", shcore::String, NULL);
   add_property("autoIncrementValue", "getAutoIncrementValue");
   add_property("affectedRowCount", "getAffectedRowCount");
 }

@@ -16,7 +16,6 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301  USA
  */
-#include <boost/bind.hpp>
 #include <boost/format.hpp>
 #include "mod_mysqlx_collection_find.h"
 #include "mod_mysqlx_collection.h"
@@ -26,21 +25,22 @@
 #include "mysqlxtest/common/expr_parser.h"
 #include "utils/utils_time.h"
 
+using namespace std::placeholders;
 using namespace mysh::mysqlx;
 using namespace shcore;
 
-CollectionFind::CollectionFind(boost::shared_ptr<Collection> owner)
-  : Collection_crud_definition(boost::static_pointer_cast<DatabaseObject>(owner))
+CollectionFind::CollectionFind(std::shared_ptr<Collection> owner)
+  : Collection_crud_definition(std::static_pointer_cast<DatabaseObject>(owner))
 {
   // Exposes the methods available for chaining
-  add_method("find", boost::bind(&CollectionFind::find, this, _1), "data");
-  add_method("fields", boost::bind(&CollectionFind::fields, this, _1), "data");
-  add_method("groupBy", boost::bind(&CollectionFind::group_by, this, _1), "data");
-  add_method("having", boost::bind(&CollectionFind::having, this, _1), "data");
-  add_method("sort", boost::bind(&CollectionFind::sort, this, _1), "data");
-  add_method("skip", boost::bind(&CollectionFind::skip, this, _1), "data");
-  add_method("limit", boost::bind(&CollectionFind::limit, this, _1), "data");
-  add_method("bind", boost::bind(&CollectionFind::bind, this, _1), "data");
+  add_method("find", std::bind(&CollectionFind::find, this, _1), "data");
+  add_method("fields", std::bind(&CollectionFind::fields, this, _1), "data");
+  add_method("groupBy", std::bind(&CollectionFind::group_by, this, _1), "data");
+  add_method("having", std::bind(&CollectionFind::having, this, _1), "data");
+  add_method("sort", std::bind(&CollectionFind::sort, this, _1), "data");
+  add_method("skip", std::bind(&CollectionFind::skip, this, _1), "data");
+  add_method("limit", std::bind(&CollectionFind::limit, this, _1), "data");
+  add_method("bind", std::bind(&CollectionFind::bind, this, _1), "data");
 
   // Registers the dynamic function behavior
   register_dynamic_function("find", "");
@@ -96,7 +96,7 @@ shcore::Value CollectionFind::find(const shcore::Argument_list &args)
   // Each method validates the received parameters
   args.ensure_count(0, 1, "CollectionFind.find");
 
-  boost::shared_ptr<Collection> collection(boost::static_pointer_cast<Collection>(_owner.lock()));
+  std::shared_ptr<Collection> collection(std::static_pointer_cast<Collection>(_owner.lock()));
 
   if (collection)
   {
@@ -114,7 +114,7 @@ shcore::Value CollectionFind::find(const shcore::Argument_list &args)
     CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionFind.find");
   }
 
-  return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
+  return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
 #if DOXYGEN_CPP
@@ -224,7 +224,7 @@ shcore::Value CollectionFind::fields(const shcore::Argument_list &args)
     }
     else if (args[0].type == Object && args[0].as_object()->class_name() == "Expression")
     {
-      boost::shared_ptr<mysqlx::Expression> expression = boost::static_pointer_cast<mysqlx::Expression>(args[0].as_object());
+      std::shared_ptr<mysqlx::Expression> expression = std::static_pointer_cast<mysqlx::Expression>(args[0].as_object());
       ::mysqlx::Expr_parser parser(expression->get_data());
       std::unique_ptr<Mysqlx::Expr::Expr> expr_obj(parser.expr());
 
@@ -241,7 +241,7 @@ shcore::Value CollectionFind::fields(const shcore::Argument_list &args)
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionFind.fields");
 
-  return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
+  return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
 //! Sets a grouping criteria for the resultset.
@@ -295,7 +295,7 @@ shcore::Value CollectionFind::group_by(const shcore::Argument_list &args)
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("groupBy"));
 
-  return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
+  return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
 //! Sets a condition for records to be considered in agregate function operations.
@@ -343,7 +343,7 @@ shcore::Value CollectionFind::having(const shcore::Argument_list &args)
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionFind.having");
 
-  return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
+  return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
 //! Sets the sorting criteria to be used on the DocResult.
@@ -401,7 +401,7 @@ shcore::Value CollectionFind::sort(const shcore::Argument_list &args)
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionFind.sort");
 
-  return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
+  return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
 //! Sets the maximum number of documents to be returned on the find operation.
@@ -450,7 +450,7 @@ shcore::Value CollectionFind::limit(const shcore::Argument_list &args)
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionFind.limit");
 
-  return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
+  return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
 //! Sets number of documents to skip on the resultset when a limit has been defined.
@@ -492,7 +492,7 @@ shcore::Value CollectionFind::skip(const shcore::Argument_list &args)
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionFind.skip");
 
-  return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
+  return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
 //! Binds a value to a specific placeholder used on this CollectionFind object.
@@ -538,7 +538,7 @@ shcore::Value CollectionFind::bind(const shcore::Argument_list &args)
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION("CollectionFind.bind");
 
-  return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
+  return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
 /**
@@ -577,7 +577,7 @@ shcore::Value CollectionFind::execute(const shcore::Argument_list &args)
     args.ensure_count(0, "CollectionFind.execute");
     MySQL_timer timer;
     timer.start();
-    result = new mysqlx::DocResult(boost::shared_ptr< ::mysqlx::Result>(_find_statement->execute()));
+    result = new mysqlx::DocResult(std::shared_ptr< ::mysqlx::Result>(_find_statement->execute()));
     timer.end();
     result->set_execution_time(timer.raw_duration());
   }

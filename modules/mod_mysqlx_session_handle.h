@@ -39,24 +39,24 @@ namespace mysh
     {
     public:
       bool is_connected() const { return _session ? true : false; }
-      boost::shared_ptr< ::mysqlx::Session> get() const { return _session; }
+      std::shared_ptr< ::mysqlx::Session> get() const { return _session; }
       void open(const std::string &host, int port, const std::string &schema,
                 const std::string &user, const std::string &pass,
                 const std::string &ssl_ca, const std::string &ssl_cert,
                 const std::string &ssl_key, const std::size_t timeout,
                 const std::string &auth_method = "", const bool get_caps = false);
 
-      boost::shared_ptr< ::mysqlx::Result> execute_sql(const std::string &sql) const;
+      std::shared_ptr< ::mysqlx::Result> execute_sql(const std::string &sql) const;
       void enable_protocol_trace(bool value);
       void reset();
-      boost::shared_ptr< ::mysqlx::Result> execute_statement(const std::string &domain, const std::string& command, const shcore::Argument_list &args) const;
+      std::shared_ptr< ::mysqlx::Result> execute_statement(const std::string &domain, const std::string& command, const shcore::Argument_list &args) const;
 
       shcore::Value get_capability(const std::string& name);
       uint64_t get_client_id();
 
     private:
-      mutable boost::shared_ptr< ::mysqlx::Result> _last_result;
-      boost::shared_ptr< ::mysqlx::Session> _session;
+      mutable std::shared_ptr< ::mysqlx::Result> _last_result;
+      std::shared_ptr< ::mysqlx::Session> _session;
 
       ::mysqlx::ArgumentValue get_argument_value(shcore::Value source) const;
     };

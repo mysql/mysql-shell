@@ -110,7 +110,7 @@ namespace mysh
 
   protected:
     std::string _default_schema;
-    mutable boost::shared_ptr<shcore::Value::Map_type> _schemas;
+    mutable std::shared_ptr<shcore::Value::Map_type> _schemas;
     std::function<void(const std::string&, bool exists)> update_schema_cache;
 
   private:
@@ -124,10 +124,10 @@ namespace mysh
     // NOTE: At the moment this class is just to keep abstraction consistent
   protected:
     std::string _default_cluster;
-    mutable boost::shared_ptr<shcore::Value::Map_type> _clusters;
+    mutable std::shared_ptr<shcore::Value::Map_type> _clusters;
   };
 
-  boost::shared_ptr<mysh::ShellDevelopmentSession> SHCORE_PUBLIC connect_session(const shcore::Argument_list &args, SessionType session_type);
+  std::shared_ptr<mysh::ShellDevelopmentSession> SHCORE_PUBLIC connect_session(const shcore::Argument_list &args, SessionType session_type);
 };
 
 #endif

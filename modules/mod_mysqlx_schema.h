@@ -30,9 +30,6 @@
 
 #include "mysqlx_crud.h"
 
-#include <boost/enable_shared_from_this.hpp>
-#include <boost/weak_ptr.hpp>
-
 namespace shcore
 {
   class Proxy_object;
@@ -88,11 +85,11 @@ namespace mysh
     *
     * For the purpose of this API, Views behave similar to a Table, and so they are threated as Tables.
     */
-    class SHCORE_PUBLIC Schema : public DatabaseObject, public boost::enable_shared_from_this<Schema>
+    class SHCORE_PUBLIC Schema : public DatabaseObject, public std::enable_shared_from_this<Schema>
     {
     public:
-      Schema(boost::shared_ptr<BaseSession> owner, const std::string &name);
-      Schema(boost::shared_ptr<const BaseSession> owner, const std::string &name);
+      Schema(std::shared_ptr<BaseSession> owner, const std::string &name);
+      Schema(std::shared_ptr<const BaseSession> owner, const std::string &name);
       ~Schema();
 
       virtual std::string class_name() const { return "Schema"; };
@@ -130,14 +127,14 @@ namespace mysh
       shcore::Value create_collection(const shcore::Argument_list &args);
 
     private:
-      boost::shared_ptr< ::mysqlx::Schema> _schema_impl;
+      std::shared_ptr< ::mysqlx::Schema> _schema_impl;
 
       void init();
 
       // Object cache
-      boost::shared_ptr<shcore::Value::Map_type> _tables;
-      boost::shared_ptr<shcore::Value::Map_type> _collections;
-      boost::shared_ptr<shcore::Value::Map_type> _views;
+      std::shared_ptr<shcore::Value::Map_type> _tables;
+      std::shared_ptr<shcore::Value::Map_type> _collections;
+      std::shared_ptr<shcore::Value::Map_type> _views;
 
       std::function<void(const std::string&, bool exists)> update_table_cache, update_view_cache, update_collection_cache;
       std::function<void(const std::vector<std::string>&)> update_full_table_cache, update_full_view_cache, update_full_collection_cache;

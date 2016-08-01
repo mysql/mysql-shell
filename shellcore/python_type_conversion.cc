@@ -93,7 +93,7 @@ Value Python_type_bridger::pyobj_to_shcore_value(PyObject *py) const
   }  // } TODO: else if (Buffer/MemoryView || Tuple || DateTime || generic_object) {
   else if (PyList_Check(py))
   {
-    boost::shared_ptr<Value::Array_type> array(new Value::Array_type);
+    std::shared_ptr<Value::Array_type> array(new Value::Array_type);
 
     for (Py_ssize_t c = PyList_Size(py), i = 0; i < c; i++)
     {
@@ -104,7 +104,7 @@ Value Python_type_bridger::pyobj_to_shcore_value(PyObject *py) const
   }
   else if (PyDict_Check(py))
   {
-    boost::shared_ptr<Value::Map_type> map(new Value::Map_type);
+    std::shared_ptr<Value::Map_type> map(new Value::Map_type);
 
     PyObject *key, *value;
     Py_ssize_t pos = 0;
@@ -118,10 +118,10 @@ Value Python_type_bridger::pyobj_to_shcore_value(PyObject *py) const
   }
   else
   {
-    boost::shared_ptr<Value::Array_type> array;
-    boost::shared_ptr<Value::Map_type> map;
-    boost::shared_ptr<Object_bridge> object;
-    boost::shared_ptr<Function_base> function;
+    std::shared_ptr<Value::Array_type> array;
+    std::shared_ptr<Value::Map_type> map;
+    std::shared_ptr<Object_bridge> object;
+    std::shared_ptr<Function_base> function;
 
     if (unwrap(py, array))
     {
@@ -209,7 +209,7 @@ PyObject *Python_type_bridger::shcore_value_to_pyobj(const Value &value)
     case MapRef:
       /*
       {
-      boost::shared_ptr<Value::Map_type> map(value.value.mapref->lock());
+      std::shared_ptr<Value::Map_type> map(value.value.mapref->lock());
       if (map)
       {
       std::cout << "wrapmapref not implemented\n";

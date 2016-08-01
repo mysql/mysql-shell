@@ -41,7 +41,7 @@ namespace mysh
     class SHCORE_PUBLIC ClassicResult : public ShellBaseResult
     {
     public:
-      ClassicResult(boost::shared_ptr<Result> result);
+      ClassicResult(std::shared_ptr<Result> result);
 
       virtual std::string class_name() const { return "ClassicResult"; }
       virtual shcore::Value get_member(const std::string &prop) const;
@@ -53,7 +53,7 @@ namespace mysh
       virtual shcore::Value next_data_set(const shcore::Argument_list &args);
 
     protected:
-      boost::shared_ptr<Result> _result;
+      std::shared_ptr<Result> _result;
 
 #if DOXYGEN_JS
       Integer affectedRowCount; //!< Same as getAffectedItemCount()

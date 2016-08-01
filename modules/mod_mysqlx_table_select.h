@@ -40,7 +40,7 @@ namespace mysh
     *
     * \sa Table
     */
-    class TableSelect : public Table_crud_definition, public boost::enable_shared_from_this<TableSelect>
+    class TableSelect : public Table_crud_definition, public std::enable_shared_from_this<TableSelect>
     {
     public:
 #if DOXYGEN_JS
@@ -64,7 +64,7 @@ namespace mysh
       TableSelect bind(str name, Value value);
       RowResult execute();
 #endif
-      TableSelect(boost::shared_ptr<Table> owner);
+      TableSelect(std::shared_ptr<Table> owner);
       virtual std::string class_name() const { return "TableSelect"; }
       shcore::Value select(const shcore::Argument_list &args);
       shcore::Value where(const shcore::Argument_list &args);

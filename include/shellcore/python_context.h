@@ -224,7 +224,7 @@ namespace shcore
     PyObject *_shell_module;
     PyObject *_shell_stderr_module;
 
-    std::map<PyObject*, boost::shared_ptr<shcore::Object_bridge> > _modules;
+    std::map<PyObject*, std::shared_ptr<shcore::Object_bridge> > _modules;
 
     void register_shell_modules();
     PyObject *call_module_function(PyObject *self, PyObject *args, PyObject *keywords, const std::string& name);

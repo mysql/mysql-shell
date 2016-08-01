@@ -71,7 +71,7 @@ public:
   void abort();
   std::string prompt();
 
-  boost::shared_ptr<Shell_core> shell_context() const { return _shell; }
+  std::shared_ptr<Shell_core> shell_context() const { return _shell; }
 
 private:
   Shell_command_line_options _options;
@@ -81,7 +81,7 @@ private:
   ngcommon::Logger* _logger;
 
   bool switch_shell_mode(Shell_core::Mode mode, const std::vector<std::string> &args);
-  boost::function<void(shcore::Value)> _result_processor;
+  std::function<void(shcore::Value)> _result_processor;
 
 private:
   shcore::Value connect_session(const shcore::Argument_list &args, mysh::SessionType session_type, bool recreate_schema);
@@ -97,7 +97,7 @@ private:
 private:
   Interpreter_delegate _delegate;
 
-  boost::shared_ptr<Shell_core> _shell;
+  std::shared_ptr<Shell_core> _shell;
 
   std::string _input_buffer;
   Interactive_input_state _input_mode;

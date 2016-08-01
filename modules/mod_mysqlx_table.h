@@ -42,7 +42,7 @@ namespace mysh
     /**
     * Represents a Table on an Schema, retrieved with a session created using mysqlx module.
     */
-    class Table : public DatabaseObject, public boost::enable_shared_from_this<Table>
+    class Table : public DatabaseObject, public std::enable_shared_from_this<Table>
     {
     public:
 #if DOXYGEN_JS
@@ -64,8 +64,8 @@ namespace mysh
       TableDelete delete();
       bool is_view();
 #endif
-      Table(boost::shared_ptr<Schema> owner, const std::string &name, bool is_view = false);
-      Table(boost::shared_ptr<const Schema> owner, const std::string &name, bool is_view = false);
+      Table(std::shared_ptr<Schema> owner, const std::string &name, bool is_view = false);
+      Table(std::shared_ptr<const Schema> owner, const std::string &name, bool is_view = false);
       virtual ~Table();
 
       virtual std::string class_name() const { return "Table"; }
@@ -77,13 +77,13 @@ namespace mysh
       shcore::Value select_(const shcore::Argument_list &args);
       shcore::Value update_(const shcore::Argument_list &args);
       shcore::Value delete_(const shcore::Argument_list &args);
-      shcore::Value is_view(const shcore::Argument_list &args);
+      shcore::Value is_view_(const shcore::Argument_list &args);
     private:
 
       void init();
 
     private:
-      boost::shared_ptr< ::mysqlx::Table> _table_impl;
+      std::shared_ptr< ::mysqlx::Table> _table_impl;
       bool _is_view;
 
       // Allows initial functions on the CRUD operations

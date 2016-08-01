@@ -18,23 +18,23 @@
  */
 
 #include "proj_parser.h"
-#include <boost/bind.hpp>
 #include <boost/algorithm/string.hpp>
 
 #include "crud_definition.h"
 #include "base_database_object.h"
 #include "mod_mysqlx_expression.h"
 
+using namespace std::placeholders;
 using namespace mysh;
 using namespace mysh::mysqlx;
 using namespace shcore;
 
-Crud_definition::Crud_definition(boost::shared_ptr<DatabaseObject> owner) : _owner(owner)
+Crud_definition::Crud_definition(std::shared_ptr<DatabaseObject> owner) : _owner(owner)
 {
   try
   {
-    add_method("__shell_hook__", boost::bind(&Crud_definition::execute, this, _1), "data");
-    add_method("execute", boost::bind(&Crud_definition::execute, this, _1), "data");
+    add_method("__shell_hook__", std::bind(&Crud_definition::execute, this, _1), "data");
+    add_method("execute", std::bind(&Crud_definition::execute, this, _1), "data");
   }
   catch (shcore::Exception &e)
   {
@@ -48,7 +48,7 @@ shcore::Value Crud_definition::execute(const shcore::Argument_list &UNUSED(args)
 {
   // TODO: Callback handling logic
   shcore::Value ret_val;
-  /*boost::shared_ptr<mysh::X_connection> connection(_conn.lock());
+  /*std::shared_ptr<mysh::X_connection> connection(_conn.lock());
 
   if (connection)
   ret_val = connection->crud_execute(class_name(), _data);*/

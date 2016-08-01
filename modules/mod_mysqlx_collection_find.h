@@ -40,10 +40,10 @@ namespace mysh
     *
     * \sa Collection
     */
-    class CollectionFind : public Collection_crud_definition, public boost::enable_shared_from_this<CollectionFind>
+    class CollectionFind : public Collection_crud_definition, public std::enable_shared_from_this<CollectionFind>
     {
     public:
-      CollectionFind(boost::shared_ptr<Collection> owner);
+      CollectionFind(std::shared_ptr<Collection> owner);
     public:
       virtual std::string class_name() const { return "CollectionFind"; }
 #if DOXYGEN_JS

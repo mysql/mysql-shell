@@ -16,7 +16,6 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301  USA
  */
-#include <boost/bind.hpp>
 #include "mod_mysqlx_session_sql.h"
 #include "mod_mysqlx_session.h"
 #include "mod_mysqlx_resultset.h"
@@ -24,17 +23,18 @@
 #include "mysqlx.h"
 #include "mysqlxtest_utils.h"
 
+using namespace std::placeholders;
 using namespace mysh::mysqlx;
 using namespace shcore;
 
-SqlExecute::SqlExecute(boost::shared_ptr<NodeSession> owner) :
+SqlExecute::SqlExecute(std::shared_ptr<NodeSession> owner) :
 Dynamic_object(), _session(owner)
 {
   // Exposes the methods available for chaining
-  add_method("sql", boost::bind(&SqlExecute::sql, this, _1), "data");
-  add_method("bind", boost::bind(&SqlExecute::bind, this, _1), "data");
-  add_method("__shell_hook__", boost::bind(&SqlExecute::execute, this, _1), "data");
-  add_method("execute", boost::bind(&SqlExecute::execute, this, _1), "data");
+  add_method("sql", std::bind(&SqlExecute::sql, this, _1), "data");
+  add_method("bind", std::bind(&SqlExecute::bind, this, _1), "data");
+  add_method("__shell_hook__", std::bind(&SqlExecute::execute, this, _1), "data");
+  add_method("execute", std::bind(&SqlExecute::execute, this, _1), "data");
 
   // Registers the dynamic function behavior
   register_dynamic_function("sql", "");
@@ -87,7 +87,7 @@ shcore::Value SqlExecute::sql(const shcore::Argument_list &args)
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("sql"));
   //}
 
-  return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
+  return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
 #if DOXYGEN_CPP
@@ -172,7 +172,7 @@ shcore::Value SqlExecute::bind(const shcore::Argument_list &args)
   else
     _parameters.push_back(args[0]);
 
-  return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
+  return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
 /**
@@ -193,7 +193,7 @@ shcore::Value SqlExecute::execute(const shcore::Argument_list &args)
 {
   args.ensure_count(0, get_function_name("execute").c_str());
 
-  boost::shared_ptr<NodeSession> session(boost::static_pointer_cast<NodeSession>(_session.lock()));
+  std::shared_ptr<NodeSession> session(std::static_pointer_cast<NodeSession>(_session.lock()));
 
   return session->execute_sql(_sql, _parameters);
 }

@@ -51,8 +51,6 @@
 #endif
 
 #include <boost/format.hpp>
-/*#include <boost/lexical_cast.hpp>
-#include <boost/algorithm/string/case_conv.hpp>*/
 
 #ifdef __GNUC__
 #pragma GCC diagnostic pop

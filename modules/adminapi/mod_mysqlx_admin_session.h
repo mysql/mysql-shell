@@ -66,7 +66,7 @@ namespace mysh
 
       virtual uint64_t get_connection_id() const;
 
-      boost::shared_ptr<shcore::Object_bridge> create(const shcore::Argument_list &args);
+      std::shared_ptr<shcore::Object_bridge> create(const shcore::Argument_list &args);
 
 #if DOXYGEN_JS
       String uri; //!< Same as getUri()

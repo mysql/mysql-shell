@@ -105,17 +105,17 @@ namespace shcore
 
   public:
     // Accessors for the target object.
-    void set_target(boost::shared_ptr<Cpp_object_bridge> target) { _target = target; }
-    boost::shared_ptr<Cpp_object_bridge> get_target() { return _target; }
+    void set_target(std::shared_ptr<Cpp_object_bridge> target) { _target = target; }
+    std::shared_ptr<Cpp_object_bridge> get_target() { return _target; }
 
   protected:
     std::string _alias;
-    boost::shared_ptr<Cpp_object_bridge> _target;
+    std::shared_ptr<Cpp_object_bridge> _target;
     Shell_core& _shell_core;
     Interpreter_delegate *_delegate;
 
     // This array would contain function names that work even when _target is not set
-    std::map<std::string, boost::shared_ptr<Cpp_function> > _wrapper_functions;
+    std::map<std::string, std::shared_ptr<Cpp_function> > _wrapper_functions;
 
     void set_wrapper_function(const std::string& name) { _wrapper_functions[name] = _funcs[name]; }
 

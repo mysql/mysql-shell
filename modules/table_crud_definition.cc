@@ -54,7 +54,7 @@ using namespace mysh::mysqlx;
 
       if (object_class == "Expression")
       {
-        boost::shared_ptr<Expression> expression = boost::dynamic_pointer_cast<Expression>(object);
+        std::shared_ptr<Expression> expression = std::dynamic_pointer_cast<Expression>(object);
 
         if (expression)
         {

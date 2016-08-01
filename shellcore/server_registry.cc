@@ -47,7 +47,6 @@
 #include <boost/algorithm/string.hpp>
 //#include <boost/function_output_iterator.hpp>
 //#include <boost/lambda/lambda.hpp>
-//#include <boost/bind.hpp>
 //#include <boost/phoenix/function/adapt_callable.hpp>
 //#include <boost/spirit/include/phoenix.hpp>
 
@@ -106,7 +105,7 @@ void Server_registry::load()
   Lock_file _lock(_filename_lock);
 
   const char *c_filename = _filename.c_str();
-  boost::shared_ptr<std::ifstream> iff(new std::ifstream(c_filename, std::ios::in | std::ios::binary));
+  std::shared_ptr<std::ifstream> iff(new std::ifstream(c_filename, std::ios::in | std::ios::binary));
   int nerrno = errno;
   if (iff->fail() && nerrno == ENOENT)
   {

@@ -23,8 +23,7 @@
 
 #include "logger/logger.h"
 
-#include <boost/bind.hpp>
-
+using namespace std::placeholders;
 using namespace mysh;
 using namespace shcore;
 using namespace mysh::mysqlx;
@@ -48,7 +47,7 @@ void AdminSession::init()
 {
   _clusters.reset(new shcore::Value::Map_type);
 
-  add_method("close", boost::bind(&AdminSession::close, this, _1), "data");
+  add_method("close", std::bind(&AdminSession::close, this, _1), "data");
 }
 
 Value AdminSession::connect(const Argument_list &args)
@@ -208,7 +207,7 @@ shcore::Value AdminSession::get_status(const shcore::Argument_list &args)
   return shcore::Value(status);
 }
 
-boost::shared_ptr<shcore::Object_bridge> AdminSession::create(const shcore::Argument_list &args)
+std::shared_ptr<shcore::Object_bridge> AdminSession::create(const shcore::Argument_list &args)
 {
   return connect_session(args, mysh::Application);
 }

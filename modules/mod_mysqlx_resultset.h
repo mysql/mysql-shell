@@ -24,7 +24,6 @@
 #define _MOD_XRESULT_H_
 
 #include "base_resultset.h"
-#include <boost/enable_shared_from_this.hpp>
 
 namespace mysqlx
 {
@@ -41,7 +40,7 @@ namespace mysh
     class SHCORE_PUBLIC BaseResult : public mysh::ShellBaseResult
     {
     public:
-      BaseResult(boost::shared_ptr< ::mysqlx::Result> result);
+      BaseResult(std::shared_ptr< ::mysqlx::Result> result);
       virtual ~BaseResult() {}
 
       virtual shcore::Value get_member(const std::string &prop) const;
@@ -77,7 +76,7 @@ namespace mysh
 #endif
 
     protected:
-      boost::shared_ptr< ::mysqlx::Result> _result;
+      std::shared_ptr< ::mysqlx::Result> _result;
       unsigned long _execution_time;
     };
 
@@ -94,10 +93,10 @@ namespace mysh
     * - Transaction handling functions
     * - Drop functions
     */
-    class SHCORE_PUBLIC Result : public BaseResult, public boost::enable_shared_from_this < Result >
+    class SHCORE_PUBLIC Result : public BaseResult, public std::enable_shared_from_this < Result >
     {
     public:
-      Result(boost::shared_ptr< ::mysqlx::Result> result);
+      Result(std::shared_ptr< ::mysqlx::Result> result);
 
       virtual ~Result(){};
 
@@ -133,10 +132,10 @@ namespace mysh
     /**
     * Allows traversing the DbDoc objects returned by a Collection.find operation.
     */
-    class SHCORE_PUBLIC DocResult : public BaseResult, public boost::enable_shared_from_this < DocResult >
+    class SHCORE_PUBLIC DocResult : public BaseResult, public std::enable_shared_from_this < DocResult >
     {
     public:
-      DocResult(boost::shared_ptr< ::mysqlx::Result> result);
+      DocResult(std::shared_ptr< ::mysqlx::Result> result);
 
       virtual ~DocResult(){};
 
@@ -163,10 +162,10 @@ namespace mysh
     /**
     * Allows traversing the Row objects returned by a Table.select operation.
     */
-    class SHCORE_PUBLIC RowResult : public BaseResult, public boost::enable_shared_from_this < RowResult >
+    class SHCORE_PUBLIC RowResult : public BaseResult, public std::enable_shared_from_this < RowResult >
     {
     public:
-      RowResult(boost::shared_ptr< ::mysqlx::Result> result);
+      RowResult(std::shared_ptr< ::mysqlx::Result> result);
 
       virtual ~RowResult(){};
 
@@ -215,10 +214,10 @@ namespace mysh
     * Allows browsing through the result information after performing an operation on the database
     * done through NodeSession.sql
     */
-    class SHCORE_PUBLIC SqlResult : public RowResult, public boost::enable_shared_from_this < SqlResult >
+    class SHCORE_PUBLIC SqlResult : public RowResult, public std::enable_shared_from_this < SqlResult >
     {
     public:
-      SqlResult(boost::shared_ptr< ::mysqlx::Result> result);
+      SqlResult(std::shared_ptr< ::mysqlx::Result> result);
 
       virtual ~SqlResult(){};
 

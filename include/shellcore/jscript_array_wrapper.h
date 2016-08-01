@@ -34,9 +34,9 @@ public:
   JScript_array_wrapper(JScript_context *context);
   ~JScript_array_wrapper();
 
-  v8::Handle<v8::Object> wrap(boost::shared_ptr<Value::Array_type> array);
+  v8::Handle<v8::Object> wrap(std::shared_ptr<Value::Array_type> array);
 
-  static bool unwrap(v8::Handle<v8::Object> value, boost::shared_ptr<Value::Array_type> &ret_array);
+  static bool unwrap(v8::Handle<v8::Object> value, std::shared_ptr<Value::Array_type> &ret_array);
 
 private:
   struct Collectable;

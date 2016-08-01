@@ -27,7 +27,6 @@
 #include <string>
 #include <stdexcept>
 
-#include <boost/shared_ptr.hpp>
 #include <boost/function.hpp>
 
 #include "shellcore/common.h"
@@ -59,7 +58,7 @@ namespace shcore {
   };
 
   class Object_bridge;
-  typedef boost::shared_ptr<Object_bridge> Object_bridge_ref;
+  typedef std::shared_ptr<Object_bridge> Object_bridge_ref;
 
   /** A generic value that can be used from any language we support.
 
@@ -85,7 +84,7 @@ namespace shcore {
   struct SHCORE_PUBLIC Value
   {
     typedef std::vector<Value> Array_type;
-    typedef boost::shared_ptr<Array_type> Array_type_ref;
+    typedef std::shared_ptr<Array_type> Array_type_ref;
 
     class SHCORE_PUBLIC Map_type
     {
@@ -103,15 +102,15 @@ namespace shcore {
       int64_t get_int(const std::string &k, int64_t def = 0) const;
       uint64_t get_uint(const std::string &k, uint64_t def = 0) const;
       double get_double(const std::string &k, double def = 0.0) const;
-      boost::shared_ptr<Value::Map_type> get_map(const std::string &k,
-              boost::shared_ptr<Map_type> def = boost::shared_ptr<Map_type>()) const;
-      boost::shared_ptr<Value::Array_type> get_array(const std::string &k,
-              boost::shared_ptr<Array_type> def = boost::shared_ptr<Array_type>()) const;
-      void merge_contents(boost::shared_ptr<Map_type> source, bool overwrite);
+      std::shared_ptr<Value::Map_type> get_map(const std::string &k,
+              std::shared_ptr<Map_type> def = std::shared_ptr<Map_type>()) const;
+      std::shared_ptr<Value::Array_type> get_array(const std::string &k,
+              std::shared_ptr<Array_type> def = std::shared_ptr<Array_type>()) const;
+      void merge_contents(std::shared_ptr<Map_type> source, bool overwrite);
 
       template<class C>
-      boost::shared_ptr<C> get_object(const std::string &k,
-                                      boost::shared_ptr<C> def = boost::shared_ptr<C>()) const
+      std::shared_ptr<C> get_object(const std::string &k,
+                                      std::shared_ptr<C> def = std::shared_ptr<C>()) const
       {
         const_iterator iter = find(k);
         if (iter == end())
@@ -139,7 +138,7 @@ namespace shcore {
     private:
       container_type _map;
     };
-    typedef boost::shared_ptr<Map_type> Map_type_ref;
+    typedef std::shared_ptr<Map_type> Map_type_ref;
 
     Value_type type;
     union
@@ -149,11 +148,11 @@ namespace shcore {
       int64_t i;
       uint64_t ui;
       double d;
-      boost::shared_ptr<class Object_bridge> *o;
-      boost::shared_ptr<Array_type> *array;
-      boost::shared_ptr<Map_type> *map;
-      boost::weak_ptr<Map_type> *mapref;
-      boost::shared_ptr<class Function_base> *func;
+      std::shared_ptr<class Object_bridge> *o;
+      std::shared_ptr<Array_type> *array;
+      std::shared_ptr<Map_type> *map;
+      std::weak_ptr<Map_type> *mapref;
+      std::shared_ptr<class Function_base> *func;
     } value;
 
     Value() : type(Undefined) {}
@@ -168,19 +167,19 @@ namespace shcore {
     explicit Value(uint64_t ui);
     explicit Value(double d);
     explicit Value(bool b);
-    explicit Value(boost::shared_ptr<Function_base> f);
-    explicit Value(boost::shared_ptr<Object_bridge> o);
-    explicit Value(boost::weak_ptr<Map_type> n);
+    explicit Value(std::shared_ptr<Function_base> f);
+    explicit Value(std::shared_ptr<Object_bridge> o);
+    explicit Value(std::weak_ptr<Map_type> n);
     explicit Value(Map_type_ref n);
     explicit Value(Array_type_ref n);
 
-    static Value wrap(Object_bridge *o) { return Value(boost::shared_ptr<Object_bridge>(o)); }
+    static Value wrap(Object_bridge *o) { return Value(std::shared_ptr<Object_bridge>(o)); }
 
     template<class T>
-    static Value wrap(T *o) { return Value(boost::static_pointer_cast<Object_bridge>(boost::shared_ptr<T>(o))); }
+    static Value wrap(T *o) { return Value(std::static_pointer_cast<Object_bridge>(std::shared_ptr<T>(o))); }
 
-    static Value new_array() { return Value(boost::shared_ptr<Array_type>(new Array_type())); }
-    static Value new_map() { return Value(boost::shared_ptr<Map_type>(new Map_type())); }
+    static Value new_array() { return Value(std::shared_ptr<Array_type>(new Array_type())); }
+    static Value new_map() { return Value(std::shared_ptr<Map_type>(new Map_type())); }
 
     static Value Null() { Value v; v.type = shcore::Null; return v; }
     static Value True() { Value v; v.type = shcore::Bool; v.value.b = true; return v; }
@@ -223,11 +222,11 @@ namespace shcore {
     double as_double() const;
     const std::string &as_string() const { check_type(String); return *value.s; }
     template<class C>
-    boost::shared_ptr<C> as_object() const { check_type(Object); return boost::static_pointer_cast<C>(*value.o); }
-    boost::shared_ptr<Object_bridge> as_object() const { check_type(Object); return boost::static_pointer_cast<Object_bridge>(*value.o); }
-    boost::shared_ptr<Map_type> as_map() const { check_type(Map); return *value.map; }
-    boost::shared_ptr<Array_type> as_array() const { check_type(Array); return *value.array; }
-    boost::shared_ptr<Function_base> as_function() const { check_type(Function); return boost::static_pointer_cast<Function_base>(*value.func); }
+    std::shared_ptr<C> as_object() const { check_type(Object); return std::static_pointer_cast<C>(*value.o); }
+    std::shared_ptr<Object_bridge> as_object() const { check_type(Object); return std::static_pointer_cast<Object_bridge>(*value.o); }
+    std::shared_ptr<Map_type> as_map() const { check_type(Map); return *value.map; }
+    std::shared_ptr<Array_type> as_array() const { check_type(Array); return *value.array; }
+    std::shared_ptr<Function_base> as_function() const { check_type(Function); return std::static_pointer_cast<Function_base>(*value.func); }
 
   private:
     static Value parse(char **pc);
@@ -247,9 +246,9 @@ namespace shcore {
     int64_t int_at(unsigned int i) const;
     uint64_t uint_at(unsigned int i) const;
     double double_at(unsigned int i) const;
-    boost::shared_ptr<Object_bridge> object_at(unsigned int i) const;
-    boost::shared_ptr<Value::Map_type> map_at(unsigned int i) const;
-    boost::shared_ptr<Value::Array_type> array_at(unsigned int i) const;
+    std::shared_ptr<Object_bridge> object_at(unsigned int i) const;
+    std::shared_ptr<Value::Map_type> map_at(unsigned int i) const;
+    std::shared_ptr<Value::Array_type> array_at(unsigned int i) const;
 
     void ensure_count(unsigned int c, const char *context) const;
     void ensure_count(unsigned int minc, unsigned  int maxc, const char *context) const;
@@ -359,14 +358,14 @@ namespace shcore {
 
   /** Pointer to a function that may be implemented in any language.
    */
-  typedef boost::shared_ptr<Function_base> Function_base_ref;
+  typedef std::shared_ptr<Function_base> Function_base_ref;
 
   class SHCORE_PUBLIC Exception : public std::exception
   {
-    boost::shared_ptr<Value::Map_type> _error;
+    std::shared_ptr<Value::Map_type> _error;
 
   public:
-    Exception(const boost::shared_ptr<Value::Map_type> e);
+    Exception(const std::shared_ptr<Value::Map_type> e);
 
     virtual ~Exception() BOOST_NOEXCEPT_OR_NOTHROW{}
 
@@ -405,7 +404,7 @@ namespace shcore {
 
     int64_t code() const BOOST_NOEXCEPT_OR_NOTHROW;
 
-    boost::shared_ptr<Value::Map_type> error() const { return _error; }
+    std::shared_ptr<Value::Map_type> error() const { return _error; }
 
     std::string format();
   };

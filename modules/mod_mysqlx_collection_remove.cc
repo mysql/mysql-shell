@@ -16,24 +16,24 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301  USA
  */
-#include <boost/bind.hpp>
 #include "mod_mysqlx_collection_remove.h"
 #include "mod_mysqlx_collection.h"
 #include "mod_mysqlx_resultset.h"
 #include "shellcore/common.h"
 #include "utils/utils_time.h"
 
+using namespace std::placeholders;
 using namespace mysh::mysqlx;
 using namespace shcore;
 
-CollectionRemove::CollectionRemove(boost::shared_ptr<Collection> owner)
-  :Collection_crud_definition(boost::static_pointer_cast<DatabaseObject>(owner))
+CollectionRemove::CollectionRemove(std::shared_ptr<Collection> owner)
+  :Collection_crud_definition(std::static_pointer_cast<DatabaseObject>(owner))
 {
   // Exposes the methods available for chaining
-  add_method("remove", boost::bind(&CollectionRemove::remove, this, _1), "data");
-  add_method("sort", boost::bind(&CollectionRemove::sort, this, _1), "data");
-  add_method("limit", boost::bind(&CollectionRemove::limit, this, _1), "data");
-  add_method("bind", boost::bind(&CollectionRemove::bind, this, _1), "data");
+  add_method("remove", std::bind(&CollectionRemove::remove, this, _1), "data");
+  add_method("sort", std::bind(&CollectionRemove::sort, this, _1), "data");
+  add_method("limit", std::bind(&CollectionRemove::limit, this, _1), "data");
+  add_method("bind", std::bind(&CollectionRemove::bind, this, _1), "data");
 
   // Registers the dynamic function behavior
   register_dynamic_function("remove", "");
@@ -84,7 +84,7 @@ shcore::Value CollectionRemove::remove(const shcore::Argument_list &args)
   // Each method validates the received parameters
   args.ensure_count(0, 1, get_function_name("remove").c_str());
 
-  boost::shared_ptr<Collection> collection(boost::static_pointer_cast<Collection>(_owner.lock()));
+  std::shared_ptr<Collection> collection(std::static_pointer_cast<Collection>(_owner.lock()));
 
   if (collection)
   {
@@ -102,7 +102,7 @@ shcore::Value CollectionRemove::remove(const shcore::Argument_list &args)
     CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("remove"));
   }
 
-  return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
+  return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
 //! Sets the order in which the deletion should be done.
@@ -155,7 +155,7 @@ shcore::Value CollectionRemove::sort(const shcore::Argument_list &args)
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("sort"));
 
-  return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
+  return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
 
@@ -201,7 +201,7 @@ shcore::Value CollectionRemove::limit(const shcore::Argument_list &args)
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("limit"));
 
-  return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
+  return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
 //! Binds a value to a specific placeholder used on this CollectionRemove object.
@@ -249,7 +249,7 @@ shcore::Value CollectionRemove::bind(const shcore::Argument_list &args)
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("bind"));
 
-  return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
+  return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
 /**
@@ -292,7 +292,7 @@ shcore::Value CollectionRemove::execute(const shcore::Argument_list &args)
     args.ensure_count(0, get_function_name("execute").c_str());
     MySQL_timer timer;
     timer.start();
-    result = new mysqlx::Result(boost::shared_ptr< ::mysqlx::Result>(_remove_statement->execute()));
+    result = new mysqlx::Result(std::shared_ptr< ::mysqlx::Result>(_remove_statement->execute()));
     timer.end();
     result->set_execution_time(timer.raw_duration());
   }

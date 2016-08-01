@@ -38,9 +38,9 @@ namespace shcore
     JScript_object_wrapper(JScript_context *context, bool indexed = false);
     ~JScript_object_wrapper();
 
-    v8::Handle<v8::Object> wrap(boost::shared_ptr<Object_bridge> object);
+    v8::Handle<v8::Object> wrap(std::shared_ptr<Object_bridge> object);
 
-    static bool unwrap(v8::Handle<v8::Object> value, boost::shared_ptr<Object_bridge> &ret_object);
+    static bool unwrap(v8::Handle<v8::Object> value, std::shared_ptr<Object_bridge> &ret_object);
 
   private:
     struct Collectable;

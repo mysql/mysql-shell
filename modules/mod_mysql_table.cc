@@ -19,20 +19,20 @@
 
 #include "mod_mysql_schema.h"
 #include "mod_mysql_table.h"
-#include <boost/bind.hpp>
 
+using namespace std::placeholders;
 using namespace mysh;
 using namespace mysh::mysql;
 using namespace shcore;
 
-ClassicTable::ClassicTable(boost::shared_ptr<ClassicSchema> owner, const std::string &name, bool is_view)
-  : DatabaseObject(owner->_session.lock(), boost::static_pointer_cast<DatabaseObject>(owner), name), _is_view(is_view)
+ClassicTable::ClassicTable(std::shared_ptr<ClassicSchema> owner, const std::string &name, bool is_view)
+  : DatabaseObject(owner->_session.lock(), std::static_pointer_cast<DatabaseObject>(owner), name), _is_view(is_view)
 {
   init();
 }
 
-ClassicTable::ClassicTable(boost::shared_ptr<const ClassicSchema> owner, const std::string &name, bool is_view)
-  : DatabaseObject(owner->_session.lock(), boost::const_pointer_cast<ClassicSchema>(owner), name), _is_view(is_view)
+ClassicTable::ClassicTable(std::shared_ptr<const ClassicSchema> owner, const std::string &name, bool is_view)
+  : DatabaseObject(owner->_session.lock(), std::const_pointer_cast<ClassicSchema>(owner), name), _is_view(is_view)
 {
   init();
 }
@@ -43,7 +43,7 @@ ClassicTable::~ClassicTable()
 
 void ClassicTable::init()
 {
-  add_method("isView", boost::bind(&ClassicTable::is_view, this, _1), NULL);
+  add_method("isView", std::bind(&ClassicTable::is_view_, this, _1), NULL);
 }
 
 /**
@@ -55,7 +55,7 @@ Bool ClassicTable::isView(){}
 #elif DOXYGEN_PY
 bool ClassicTable::is_view(){}
 #endif
-shcore::Value ClassicTable::is_view(const shcore::Argument_list &args)
+shcore::Value ClassicTable::is_view_(const shcore::Argument_list &args)
 {
   args.ensure_count(0, get_function_name("isView").c_str());
 

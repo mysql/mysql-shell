@@ -17,7 +17,6 @@
 #include <cstdlib>
 #include <fstream>
 #include <string>
-#include <boost/shared_ptr.hpp>
 #include <boost/pointer_cast.hpp>
 
 #include "gtest/gtest.h"
@@ -34,7 +33,6 @@
 #include "../src/shell_resultset_dumper.h"
 #include "test_utils.h"
 #include "utils/utils_file.h"
-#include <boost/bind.hpp>
 #include <queue>
 
 namespace shcore

@@ -17,7 +17,6 @@
 #include <cstdlib>
 #include <fstream>
 #include <string>
-#include <boost/bind.hpp>
 
 #include "gtest/gtest.h"
 #include "shellcore/types.h"
@@ -26,6 +25,8 @@
 
 #include "shellcore/shell_core.h"
 #include "shellcore/shell_sql.h"
+
+using namespace std::placeholders;
 
 namespace shcore {
   namespace command_handler_tests {
@@ -48,8 +49,8 @@ namespace shcore {
       {
         SET_SHELL_COMMAND("cmdone", "No shortcut command.", "", Command_handler_tests::cmd_one);
         SET_SHELL_COMMAND("cmd2|\\2", "Shortcut command.", "", Command_handler_tests::cmd_two);
-        SET_CUSTOM_SHELL_COMMAND("three", "No shortcut command with help.", "Third command.", boost::bind(&Command_handler_tests::cmd_other, this, "cmd_three", _1));
-        SET_CUSTOM_SHELL_COMMAND("four|\\4", "Shortcut command with help.", "Fourth command.", boost::bind(&Command_handler_tests::cmd_other, this, "cmd_four", _1));
+        SET_CUSTOM_SHELL_COMMAND("three", "No shortcut command with help.", "Third command.", std::bind(&Command_handler_tests::cmd_other, this, "cmd_three", _1));
+        SET_CUSTOM_SHELL_COMMAND("four|\\4", "Shortcut command with help.", "Fourth command.", std::bind(&Command_handler_tests::cmd_other, this, "cmd_four", _1));
       }
     protected:
       Shell_command_handler _shell_command_handler;

@@ -32,28 +32,28 @@
 
 using namespace mysqlx;
 
-Schema::Schema(boost::shared_ptr<Session> conn, const std::string &name_)
+Schema::Schema(std::shared_ptr<Session> conn, const std::string &name_)
   : m_sess(conn), m_name(name_)
 {
 }
 
-boost::shared_ptr<Table> Schema::getTable(const std::string &name_)
+std::shared_ptr<Table> Schema::getTable(const std::string &name_)
 {
-  std::map<std::string, boost::shared_ptr<Table> >::const_iterator iter = m_tables.find(name_);
+  std::map<std::string, std::shared_ptr<Table> >::const_iterator iter = m_tables.find(name_);
   if (iter != m_tables.end())
     return iter->second;
-  return m_tables[name_] = boost::shared_ptr<Table>(new Table(shared_from_this(), name_));
+  return m_tables[name_] = std::shared_ptr<Table>(new Table(shared_from_this(), name_));
 }
 
-boost::shared_ptr<Collection> Schema::getCollection(const std::string &name_)
+std::shared_ptr<Collection> Schema::getCollection(const std::string &name_)
 {
-  std::map<std::string, boost::shared_ptr<Collection> >::const_iterator iter = m_collections.find(name_);
+  std::map<std::string, std::shared_ptr<Collection> >::const_iterator iter = m_collections.find(name_);
   if (iter != m_collections.end())
     return iter->second;
-  return m_collections[name_] = boost::shared_ptr<Collection>(new Collection(shared_from_this(), name_));
+  return m_collections[name_] = std::shared_ptr<Collection>(new Collection(shared_from_this(), name_));
 }
 
-Table::Table(boost::shared_ptr<Schema> schema_, const std::string &name_)
+Table::Table(std::shared_ptr<Schema> schema_, const std::string &name_)
   : m_schema(schema_), m_name(name_)
 {
 }
@@ -82,7 +82,7 @@ SelectStatement Table::select(const std::vector<std::string> &fieldList)
   return tmp;
 }
 
-Collection::Collection(boost::shared_ptr<Schema> schema_, const std::string &name_)
+Collection::Collection(std::shared_ptr<Schema> schema_, const std::string &name_)
   : m_schema(schema_), m_name(name_)
 {
 }
@@ -167,7 +167,7 @@ void Statement::insert_bound_values(::google::protobuf::RepeatedPtrField< ::Mysq
     target->AddAllocated(*index);
 }
 
-Collection_Statement::Collection_Statement(boost::shared_ptr<Collection> coll)
+Collection_Statement::Collection_Statement(std::shared_ptr<Collection> coll)
   : m_coll(coll)
 {
 }
@@ -227,7 +227,7 @@ Mysqlx::Datatypes::Scalar* Collection_Statement::convert_document_value(const Do
 
 // -----
 
-Find_Base::Find_Base(boost::shared_ptr<Collection> coll)
+Find_Base::Find_Base(std::shared_ptr<Collection> coll)
   : Collection_Statement(coll), m_find(new Mysqlx::Crud::Find())
 {
 }
@@ -243,7 +243,7 @@ Find_Base &Find_Base::operator = (const Find_Base &other)
   return *this;
 }
 
-boost::shared_ptr<Result> Find_Base::execute()
+std::shared_ptr<Result> Find_Base::execute()
 {
   insert_bound_values(m_find->mutable_args());
 
@@ -252,7 +252,7 @@ boost::shared_ptr<Result> Find_Base::execute()
 
   SessionRef session(m_coll->schema()->session());
 
-  boost::shared_ptr<Result> result(session->connection()->execute_find(*m_find));
+  std::shared_ptr<Result> result(session->connection()->execute_find(*m_find));
 
   // wait for results (at least metadata) to arrive
   result->wait();
@@ -321,7 +321,7 @@ Find_GroupBy &FindStatement::fields(const std::vector<std::string> &searchFields
   return *this;
 }
 
-FindStatement::FindStatement(boost::shared_ptr<Collection> coll, const std::string &searchCondition)
+FindStatement::FindStatement(std::shared_ptr<Collection> coll, const std::string &searchCondition)
   : Find_GroupBy(coll)
 {
   m_find->mutable_collection()->set_schema(coll->schema()->name());
@@ -334,7 +334,7 @@ FindStatement::FindStatement(boost::shared_ptr<Collection> coll, const std::stri
 
 //----------------------------------
 
-Add_Base::Add_Base(boost::shared_ptr<Collection> coll)
+Add_Base::Add_Base(std::shared_ptr<Collection> coll)
   : Collection_Statement(coll), m_insert(new Mysqlx::Crud::Insert())
 {
 }
@@ -350,7 +350,7 @@ Add_Base &Add_Base::operator = (const Add_Base &other)
   return *this;
 }
 
-boost::shared_ptr<Result> Add_Base::execute()
+std::shared_ptr<Result> Add_Base::execute()
 {
   // TODO: Inserte MUST have mustable_args to enable parameter binding so this will be hidden for now
   //insert_bound_values(m_insert->mutable_args());
@@ -360,7 +360,7 @@ boost::shared_ptr<Result> Add_Base::execute()
 
   SessionRef session(m_coll->schema()->session());
 
-  boost::shared_ptr<Result> result;
+  std::shared_ptr<Result> result;
   if (m_insert->mutable_row()->size())
   {
     result = session->connection()->execute_insert(*m_insert);
@@ -375,7 +375,7 @@ boost::shared_ptr<Result> Add_Base::execute()
   return result;
 }
 
-AddStatement::AddStatement(boost::shared_ptr<Collection> coll)
+AddStatement::AddStatement(std::shared_ptr<Collection> coll)
   : Add_Base(coll)
 {
   m_insert->mutable_collection()->set_schema(coll->schema()->name());
@@ -383,7 +383,7 @@ AddStatement::AddStatement(boost::shared_ptr<Collection> coll)
   m_insert->set_data_model(Mysqlx::Crud::DOCUMENT);
 }
 
-AddStatement::AddStatement(boost::shared_ptr<Collection> coll, const Document &doc)
+AddStatement::AddStatement(std::shared_ptr<Collection> coll, const Document &doc)
   : Add_Base(coll)
 {
   m_insert->mutable_collection()->set_schema(coll->schema()->name());
@@ -432,7 +432,7 @@ AddStatement &AddStatement::add(const Document &doc)
 
 //--------------------------------------------------------------
 
-Remove_Base::Remove_Base(boost::shared_ptr<Collection> coll)
+Remove_Base::Remove_Base(std::shared_ptr<Collection> coll)
   : Collection_Statement(coll), m_delete(new Mysqlx::Crud::Delete())
 {
 }
@@ -448,7 +448,7 @@ Remove_Base &Remove_Base::operator = (const Remove_Base &other)
   return *this;
 }
 
-boost::shared_ptr<Result> Remove_Base::execute()
+std::shared_ptr<Result> Remove_Base::execute()
 {
   insert_bound_values(m_delete->mutable_args());
 
@@ -457,7 +457,7 @@ boost::shared_ptr<Result> Remove_Base::execute()
 
   SessionRef session(m_coll->schema()->session());
 
-  boost::shared_ptr<Result> result(session->connection()->execute_delete(*m_delete));
+  std::shared_ptr<Result> result(session->connection()->execute_delete(*m_delete));
 
   result->wait();
 
@@ -470,7 +470,7 @@ Remove_Base &Remove_Limit::limit(uint64_t limit_)
   return *this;
 }
 
-RemoveStatement::RemoveStatement(boost::shared_ptr<Collection> coll, const std::string &searchCondition)
+RemoveStatement::RemoveStatement(std::shared_ptr<Collection> coll, const std::string &searchCondition)
   : Remove_Limit(coll)
 {
   m_delete->mutable_collection()->set_schema(coll->schema()->name());
@@ -493,7 +493,7 @@ Remove_Limit &RemoveStatement::sort(const std::vector<std::string> &sortFields)
 
 //--------------------------------------------------------------
 
-Modify_Base::Modify_Base(boost::shared_ptr<Collection> coll)
+Modify_Base::Modify_Base(std::shared_ptr<Collection> coll)
   : Collection_Statement(coll), m_update(new Mysqlx::Crud::Update())
 {
 }
@@ -510,7 +510,7 @@ Modify_Base &Modify_Base::operator = (const Modify_Base &other)
   return *this;
 }
 
-boost::shared_ptr<Result> Modify_Base::execute()
+std::shared_ptr<Result> Modify_Base::execute()
 {
   insert_bound_values(m_update->mutable_args());
 
@@ -519,7 +519,7 @@ boost::shared_ptr<Result> Modify_Base::execute()
 
   SessionRef session(m_coll->schema()->session());
 
-  boost::shared_ptr<Result> result(session->connection()->execute_update(*m_update));
+  std::shared_ptr<Result> result(session->connection()->execute_update(*m_update));
 
   result->wait();
 
@@ -625,7 +625,7 @@ Modify_Operation &Modify_Operation::arrayAppend(const std::string &path, const D
   return set_operation(Mysqlx::Crud::UpdateOperation::ARRAY_APPEND, path, &value);
 }
 
-ModifyStatement::ModifyStatement(boost::shared_ptr<Collection> coll, const std::string& searchCondition)
+ModifyStatement::ModifyStatement(std::shared_ptr<Collection> coll, const std::string& searchCondition)
   : Modify_Operation(coll)
 {
   m_update->mutable_collection()->set_schema(coll->schema()->name());
@@ -638,7 +638,7 @@ ModifyStatement::ModifyStatement(boost::shared_ptr<Collection> coll, const std::
 
 //--------------------------------------------------------------
 
-Table_Statement::Table_Statement(boost::shared_ptr<Table> table)
+Table_Statement::Table_Statement(std::shared_ptr<Table> table)
   : m_table(table)
 {
 }
@@ -713,7 +713,7 @@ Mysqlx::Datatypes::Scalar* Table_Statement::convert_table_value(const TableValue
 //  return *this;
 //}
 
-Delete_Base::Delete_Base(boost::shared_ptr<Table> table)
+Delete_Base::Delete_Base(std::shared_ptr<Table> table)
   : Table_Statement(table), m_delete(new Mysqlx::Crud::Delete())
 {
 }
@@ -729,7 +729,7 @@ Delete_Base &Delete_Base::operator = (const Delete_Base &other)
   return *this;
 }
 
-boost::shared_ptr<Result> Delete_Base::execute()
+std::shared_ptr<Result> Delete_Base::execute()
 {
   insert_bound_values(m_delete->mutable_args());
 
@@ -738,7 +738,7 @@ boost::shared_ptr<Result> Delete_Base::execute()
 
   SessionRef session(m_table->schema()->session());
 
-  boost::shared_ptr<Result> result(session->connection()->execute_delete(*m_delete));
+  std::shared_ptr<Result> result(session->connection()->execute_delete(*m_delete));
 
   result->wait();
 
@@ -761,7 +761,7 @@ Delete_Limit &Delete_OrderBy::orderBy(const std::vector<std::string> &sortFields
   return *this;
 }
 
-DeleteStatement::DeleteStatement(boost::shared_ptr<Table> table)
+DeleteStatement::DeleteStatement(std::shared_ptr<Table> table)
   : Delete_OrderBy(table)
 {
   m_delete->mutable_collection()->set_schema(table->schema()->name());
@@ -779,7 +779,7 @@ Delete_OrderBy &DeleteStatement::where(const std::string& searchCondition)
 
 //--------------------------------------------------------------
 
-Update_Base::Update_Base(boost::shared_ptr<Table> table)
+Update_Base::Update_Base(std::shared_ptr<Table> table)
   : Table_Statement(table), m_update(new Mysqlx::Crud::Update())
 {
 }
@@ -795,7 +795,7 @@ Update_Base &Update_Base::operator = (const Update_Base &other)
   return *this;
 }
 
-boost::shared_ptr<Result> Update_Base::execute()
+std::shared_ptr<Result> Update_Base::execute()
 {
   insert_bound_values(m_update->mutable_args());
 
@@ -804,7 +804,7 @@ boost::shared_ptr<Result> Update_Base::execute()
 
   SessionRef session(m_table->schema()->session());
 
-  boost::shared_ptr<Result> result(session->connection()->execute_update(*m_update));
+  std::shared_ptr<Result> result(session->connection()->execute_update(*m_update));
 
   result->wait();
 
@@ -862,7 +862,7 @@ Update_Set &Update_Set::set(const std::string &field, const std::string& express
   return *this;
 }
 
-UpdateStatement::UpdateStatement(boost::shared_ptr<Table> table)
+UpdateStatement::UpdateStatement(std::shared_ptr<Table> table)
   : Update_Set(table)
 {
   m_update->mutable_collection()->set_schema(table->schema()->name());
@@ -872,7 +872,7 @@ UpdateStatement::UpdateStatement(boost::shared_ptr<Table> table)
 
 //--------------------------------------------------------------
 
-Select_Base::Select_Base(boost::shared_ptr<Table> table)
+Select_Base::Select_Base(std::shared_ptr<Table> table)
   : Table_Statement(table), m_find(new Mysqlx::Crud::Find())
 {
 }
@@ -888,7 +888,7 @@ Select_Base &Select_Base::operator = (const Select_Base &other)
   return *this;
 }
 
-boost::shared_ptr<Result> Select_Base::execute()
+std::shared_ptr<Result> Select_Base::execute()
 {
   insert_bound_values(m_find->mutable_args());
 
@@ -897,7 +897,7 @@ boost::shared_ptr<Result> Select_Base::execute()
 
   SessionRef session(m_table->schema()->session());
 
-  boost::shared_ptr<Result> result(session->connection()->execute_find(*m_find));
+  std::shared_ptr<Result> result(session->connection()->execute_find(*m_find));
 
   // wait for results (at least metadata) to arrive
   result->wait();
@@ -945,7 +945,7 @@ Select_Having &Select_GroupBy::groupBy(const std::vector<std::string> &searchFie
   return *this;
 }
 
-SelectStatement::SelectStatement(boost::shared_ptr<Table> table, const std::vector<std::string> &fieldList)
+SelectStatement::SelectStatement(std::shared_ptr<Table> table, const std::vector<std::string> &fieldList)
   : Select_GroupBy(table)
 {
   m_find->mutable_collection()->set_schema(table->schema()->name());
@@ -971,7 +971,7 @@ Select_GroupBy &SelectStatement::where(const std::string &searchCondition)
 
 //--------------------------------------------------------------
 
-Insert_Base::Insert_Base(boost::shared_ptr<Table> table)
+Insert_Base::Insert_Base(std::shared_ptr<Table> table)
   : Table_Statement(table), m_insert(new Mysqlx::Crud::Insert())
 {
 }
@@ -987,21 +987,21 @@ Insert_Base &Insert_Base::operator = (const Insert_Base &other)
   return *this;
 }
 
-boost::shared_ptr<Result> Insert_Base::execute()
+std::shared_ptr<Result> Insert_Base::execute()
 {
   if (!m_insert->IsInitialized())
     throw std::logic_error("InsertStatement is not completely initialized: " + m_insert->InitializationErrorString());
 
   SessionRef session(m_table->schema()->session());
 
-  boost::shared_ptr<Result> result(session->connection()->execute_insert(*m_insert));
+  std::shared_ptr<Result> result(session->connection()->execute_insert(*m_insert));
 
   result->wait();
 
   return result;
 }
 
-Insert_Values::Insert_Values(boost::shared_ptr<Table> table)
+Insert_Values::Insert_Values(std::shared_ptr<Table> table)
   : Insert_Base(table)
 {
 }
@@ -1040,7 +1040,7 @@ Insert_Values &InsertStatement::insert(const std::vector<std::string> &columns)
   return *this;
 }
 
-InsertStatement::InsertStatement(boost::shared_ptr<Table> table)
+InsertStatement::InsertStatement(std::shared_ptr<Table> table)
   : Insert_Values(table)
 {
   m_insert->mutable_collection()->set_schema(table->schema()->name());

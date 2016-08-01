@@ -21,7 +21,7 @@
 
 using namespace shcore;
 
-Proxy_object::Proxy_object(const boost::function<Value (const std::string&)> &delegate)
+Proxy_object::Proxy_object(const std::function<Value (const std::string&)> &delegate)
 : _delegate(delegate)
 {
 

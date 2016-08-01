@@ -26,7 +26,6 @@
 #include "shellcore/types.h"
 #include "shellcore/types_cpp.h"
 #include "utils/utils_time.h"
-#include <boost/enable_shared_from_this.hpp>
 
 #if WIN32
 #  include <winsock2.h>
@@ -39,7 +38,7 @@ namespace mysh
 {
   namespace mysql
   {
-    /*    class Session :public ISession, public shcore::Cpp_object_bridge, public boost::enable_shared_from_this<Mysql_connection>
+    /*    class Session :public ISession, public shcore::Cpp_object_bridge, public std::enable_shared_from_this<Mysql_connection>
         {
         private:
         MySQL_timer _timer;
@@ -105,10 +104,10 @@ namespace mysh
     class SHCORE_PUBLIC Result
     {
     public:
-      Result(boost::shared_ptr<Connection> owner, my_ulonglong affected_rows, unsigned int warning_count, const char *info);
+      Result(std::shared_ptr<Connection> owner, my_ulonglong affected_rows, unsigned int warning_count, const char *info);
       virtual ~Result();
 
-      void reset(boost::shared_ptr<MYSQL_RES> res, unsigned long duration);
+      void reset(std::shared_ptr<MYSQL_RES> res, unsigned long duration);
 
     public:
       std::vector<Field>& get_metadata(){ return _metadata; };
@@ -133,10 +132,10 @@ namespace mysh
       int fetch_warnings();
 
     private:
-      boost::shared_ptr<Connection> _connection;
+      std::shared_ptr<Connection> _connection;
       std::vector<Field>_metadata;
 
-      boost::weak_ptr<MYSQL_RES> _result;
+      std::weak_ptr<MYSQL_RES> _result;
       uint64_t _affected_rows;
       uint64_t _last_insert_id;
       unsigned int _warning_count;
@@ -146,7 +145,7 @@ namespace mysh
       bool _has_resultset;
     };
 
-    class SHCORE_PUBLIC Connection : public boost::enable_shared_from_this<Connection>
+    class SHCORE_PUBLIC Connection : public std::enable_shared_from_this<Connection>
     {
     public:
       Connection(const std::string &uri, const char *password = NULL);
@@ -173,7 +172,7 @@ namespace mysh
       MYSQL *_mysql;
       MySQL_timer _timer;
 
-      boost::shared_ptr<MYSQL_RES> _prev_result;
+      std::shared_ptr<MYSQL_RES> _prev_result;
     };
   };
 };

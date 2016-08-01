@@ -21,13 +21,14 @@
 #include "shellcore/shell_registry.h"
 #include "utils/utils_general.h"
 #include <boost/format.hpp>
-#include <boost/bind.hpp>
+
+using namespace std::placeholders;
 using namespace shcore;
 
 void Global_session::init()
 {
-  add_method("getSchema", boost::bind(&Global_session::get_schema, this, _1), "name", shcore::String, NULL);
-  add_method("isOpen", boost::bind(&Global_session::is_open, this, _1), NULL);
+  add_method("getSchema", std::bind(&Global_session::get_schema, this, _1), "name", shcore::String, NULL);
+  add_method("isOpen", std::bind(&Global_session::is_open, this, _1), NULL);
   set_wrapper_function("isOpen");
 }
 

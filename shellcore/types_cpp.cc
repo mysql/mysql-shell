@@ -19,9 +19,9 @@
 
 #include "shellcore/types_cpp.h"
 #include "shellcore/common.h"
-#include <boost/bind.hpp>
 #include <cstdarg>
 
+using namespace std::placeholders;
 using namespace shcore;
 
 // Retrieves a member name on a specific NamingStyle
@@ -129,7 +129,7 @@ Value Cpp_object_bridge::get_member_advanced(const std::string &prop, const Nami
   }
   else
   {
-    auto prop_index = std::find_if(_properties.begin(), _properties.end(), [prop, style](boost::shared_ptr<Cpp_property_name> p){ return p->name(style) == prop; });
+    auto prop_index = std::find_if(_properties.begin(), _properties.end(), [prop, style](std::shared_ptr<Cpp_property_name> p){ return p->name(style) == prop; });
     if (prop_index != _properties.end())
     {
       ScopedStyle ss(this, style);
@@ -144,9 +144,9 @@ Value Cpp_object_bridge::get_member_advanced(const std::string &prop, const Nami
 
 Value Cpp_object_bridge::get_member(const std::string &prop) const
 {
-  std::map<std::string, boost::shared_ptr<Cpp_function> >::const_iterator i;
+  std::map<std::string, std::shared_ptr<Cpp_function> >::const_iterator i;
   if ((i = _funcs.find(prop)) != _funcs.end())
-    return Value(boost::shared_ptr<Function_base>(i->second));
+    return Value(std::shared_ptr<Function_base>(i->second));
   throw Exception::attrib_error("Invalid object member " + prop);
 }
 
@@ -154,7 +154,7 @@ bool Cpp_object_bridge::has_member_advanced(const std::string &prop, const Namin
 {
   auto method_index = std::find_if(_funcs.begin(), _funcs.end(), [prop, style](const FunctionEntry &f){ return f.second->name(style) == prop; });
 
-  auto prop_index = std::find_if(_properties.begin(), _properties.end(), [prop, style](boost::shared_ptr<Cpp_property_name> p){ return p->name(style) == prop; });
+  auto prop_index = std::find_if(_properties.begin(), _properties.end(), [prop, style](std::shared_ptr<Cpp_property_name> p){ return p->name(style) == prop; });
 
   return (method_index != _funcs.end() || prop_index != _properties.end());
 }
@@ -163,14 +163,14 @@ bool Cpp_object_bridge::has_member(const std::string &prop) const
 {
   auto method_index = std::find_if(_funcs.begin(), _funcs.end(), [prop](const FunctionEntry &f){ return f.first == prop; });
 
-  auto prop_index = std::find_if(_properties.begin(), _properties.end(), [prop](boost::shared_ptr<Cpp_property_name> p){ return p->base_name() == prop; });
+  auto prop_index = std::find_if(_properties.begin(), _properties.end(), [prop](std::shared_ptr<Cpp_property_name> p){ return p->base_name() == prop; });
 
   return (method_index != _funcs.end() || prop_index != _properties.end());
 }
 
 void Cpp_object_bridge::set_member_advanced(const std::string &prop, Value value, const NamingStyle &style)
 {
-  auto prop_index = std::find_if(_properties.begin(), _properties.end(), [prop, style](boost::shared_ptr<Cpp_property_name> p){ return p->name(style) == prop; });
+  auto prop_index = std::find_if(_properties.begin(), _properties.end(), [prop, style](std::shared_ptr<Cpp_property_name> p){ return p->name(style) == prop; });
   if (prop_index != _properties.end())
   {
     ScopedStyle ss(this, style);
@@ -240,32 +240,32 @@ void Cpp_object_bridge::add_method(const std::string &name, Cpp_function::Functi
     va_end(l);
   }
 
-  auto function = boost::shared_ptr<Cpp_function>(new Cpp_function(name, func, signature));
+  auto function = std::shared_ptr<Cpp_function>(new Cpp_function(name, func, signature));
   _funcs[name.substr(0, name.find("|"))] = function;
 }
 
 void Cpp_object_bridge::add_varargs_method(const std::string &name, Cpp_function::Function func)
 {
-  auto function = boost::shared_ptr<Cpp_function>(new Cpp_function(name, func, true));
+  auto function = std::shared_ptr<Cpp_function>(new Cpp_function(name, func, true));
   _funcs[name.substr(0, name.find("|"))] = function;
 }
 
 void Cpp_object_bridge::add_constant(const std::string &name)
 {
-  _properties.push_back(boost::shared_ptr<Cpp_property_name>(new Cpp_property_name(name, true)));
+  _properties.push_back(std::shared_ptr<Cpp_property_name>(new Cpp_property_name(name, true)));
 }
 
 void Cpp_object_bridge::add_property(const std::string &name, const std::string &getter)
 {
-  _properties.push_back(boost::shared_ptr<Cpp_property_name>(new Cpp_property_name(name)));
+  _properties.push_back(std::shared_ptr<Cpp_property_name>(new Cpp_property_name(name)));
 
   if (!getter.empty())
-      add_method(getter, boost::bind(&Cpp_object_bridge::get_member_method, this, _1, getter, name), NULL);
+      add_method(getter, std::bind(&Cpp_object_bridge::get_member_method, this, _1, getter, name), NULL);
 }
 
 void Cpp_object_bridge::delete_property(const std::string &name, const std::string &getter)
 {
-  auto prop_index = std::find_if(_properties.begin(), _properties.end(), [name](boost::shared_ptr<Cpp_property_name> p){ return p->base_name() == name; });
+  auto prop_index = std::find_if(_properties.begin(), _properties.end(), [name](std::shared_ptr<Cpp_property_name> p){ return p->base_name() == name; });
   if (prop_index != _properties.end())
   {
     _properties.erase(prop_index);
@@ -295,15 +295,15 @@ Value Cpp_object_bridge::call_advanced(const std::string &name, const Argument_l
 
 Value Cpp_object_bridge::call(const std::string &name, const Argument_list &args)
 {
-  std::map<std::string, boost::shared_ptr<Cpp_function> >::const_iterator i;
+  std::map<std::string, std::shared_ptr<Cpp_function> >::const_iterator i;
   if ((i = _funcs.find(name)) == _funcs.end())
       throw Exception::attrib_error("Invalid object function " + name);
   return i->second->invoke(args);
 }
 
-boost::shared_ptr<Cpp_object_bridge::ScopedStyle> Cpp_object_bridge::set_scoped_naming_style(const NamingStyle& style)
+std::shared_ptr<Cpp_object_bridge::ScopedStyle> Cpp_object_bridge::set_scoped_naming_style(const NamingStyle& style)
 {
-  boost::shared_ptr<Cpp_object_bridge::ScopedStyle> ss(new Cpp_object_bridge::ScopedStyle(this, style));
+  std::shared_ptr<Cpp_object_bridge::ScopedStyle> ss(new Cpp_object_bridge::ScopedStyle(this, style));
 
   return ss;
 }
@@ -417,7 +417,7 @@ Value Cpp_function::invoke(const Argument_list &args)
   return _func(args);
 }
 
-boost::shared_ptr<Function_base> Cpp_function::create(const std::string &name, const Function &func, const char *arg1_name, Value_type arg1_type, ...)
+std::shared_ptr<Function_base> Cpp_function::create(const std::string &name, const Function &func, const char *arg1_name, Value_type arg1_type, ...)
 {
   va_list l;
   std::vector<std::pair<std::string, Value_type> > signature;
@@ -441,13 +441,13 @@ boost::shared_ptr<Function_base> Cpp_function::create(const std::string &name, c
     } while (n && t != Undefined);
     va_end(l);
   }
-  return boost::shared_ptr<Function_base>(new Cpp_function(name, func, signature));
+  return std::shared_ptr<Function_base>(new Cpp_function(name, func, signature));
 }
 
-boost::shared_ptr<Function_base> Cpp_function::create(const std::string &name, const Function &func,
+std::shared_ptr<Function_base> Cpp_function::create(const std::string &name, const Function &func,
                                                       const std::vector<std::pair<std::string, Value_type> > &signature)
 {
-  return boost::shared_ptr<Function_base>(new Cpp_function(name, func, signature));
+  return std::shared_ptr<Function_base>(new Cpp_function(name, func, signature));
 }
 
 Cpp_property_name::Cpp_property_name(const std::string &name, bool constant)

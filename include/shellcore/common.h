@@ -53,7 +53,7 @@
 namespace shcore
 {
   extern void SHCORE_PUBLIC default_print(const std::string& text);
-  extern SHCORE_PUBLIC boost::function<void(std::string)> print;
+  extern SHCORE_PUBLIC std::function<void(std::string)> print;
 }
 
 #endif

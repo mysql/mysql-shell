@@ -27,7 +27,7 @@ using namespace shcore;
 Shell_python::Shell_python(Shell_core *shcore)
   : Shell_language(shcore)
 {
-  _py = boost::shared_ptr<Python_context>(new Python_context(shcore->lang_delegate()));
+  _py = std::shared_ptr<Python_context>(new Python_context(shcore->lang_delegate()));
 }
 
 Shell_python::~Shell_python()
@@ -53,7 +53,7 @@ std::string Shell_python::preprocess_input_line(const std::string &s)
 /*
  * Handle shell input on Python mode
  */
-void Shell_python::handle_input(std::string &code, Interactive_input_state &state, boost::function<void(shcore::Value)> result_processor)
+void Shell_python::handle_input(std::string &code, Interactive_input_state &state, std::function<void(shcore::Value)> result_processor)
 {
   Value result;
 
@@ -107,7 +107,7 @@ std::string Shell_python::prompt()
       Value session_wrapper = _owner->active_session();
       if (session_wrapper)
       {
-        boost::shared_ptr<mysh::ShellBaseSession> session = session_wrapper.as_object<mysh::ShellBaseSession>();
+        std::shared_ptr<mysh::ShellBaseSession> session = session_wrapper.as_object<mysh::ShellBaseSession>();
 
         if (session)
         {

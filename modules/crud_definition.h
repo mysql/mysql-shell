@@ -25,9 +25,6 @@
 
 #include "shellcore/types_cpp.h"
 #include "shellcore/common.h"
-
-#include <boost/weak_ptr.hpp>
-#include <boost/enable_shared_from_this.hpp>
 #include "dynamic_object.h"
 
 #include <set>
@@ -55,12 +52,12 @@ namespace mysh
     class Crud_definition : public Dynamic_object
     {
     public:
-      Crud_definition(boost::shared_ptr<DatabaseObject> owner);
+      Crud_definition(std::shared_ptr<DatabaseObject> owner);
 
       // The last step on CRUD operations
       virtual shcore::Value execute(const shcore::Argument_list &args) = 0;
     protected:
-      boost::weak_ptr<DatabaseObject> _owner;
+      std::weak_ptr<DatabaseObject> _owner;
 
       void parse_string_list(const shcore::Argument_list &args, std::vector<std::string> &data);
     };

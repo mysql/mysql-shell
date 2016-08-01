@@ -34,9 +34,9 @@ public:
   JScript_map_wrapper(JScript_context *context);
   ~JScript_map_wrapper();
 
-  v8::Handle<v8::Object> wrap(boost::shared_ptr<Value::Map_type> map);
+  v8::Handle<v8::Object> wrap(std::shared_ptr<Value::Map_type> map);
 
-  static bool unwrap(v8::Handle<v8::Object> value, boost::shared_ptr<Value::Map_type> &ret_map);
+  static bool unwrap(v8::Handle<v8::Object> value, std::shared_ptr<Value::Map_type> &ret_map);
 
 private:
   struct Collectable;

@@ -27,7 +27,6 @@
 #endif
 
 #include <boost/algorithm/string.hpp>
-#include <boost/bind.hpp>
 
 #ifdef __clang__
 #pragma clang diagnostic pop
@@ -69,11 +68,11 @@ shcore::Value Type::get_member(const std::string &prop) const
   return ret_val;
 }
 
-boost::shared_ptr<shcore::Object_bridge> Type::create(const shcore::Argument_list &args)
+std::shared_ptr<shcore::Object_bridge> Type::create(const shcore::Argument_list &args)
 {
   args.ensure_count(0, "mysqlx.Type");
 
-  boost::shared_ptr<Type> ret_val(new Type());
+  std::shared_ptr<Type> ret_val(new Type());
 
   return ret_val;
 }
@@ -93,11 +92,11 @@ shcore::Value IndexType::get_member(const std::string &prop) const
   return ret_val;
 }
 
-boost::shared_ptr<shcore::Object_bridge> IndexType::create(const shcore::Argument_list &args)
+std::shared_ptr<shcore::Object_bridge> IndexType::create(const shcore::Argument_list &args)
 {
   args.ensure_count(0, "mysqlx.IndexType");
 
-  boost::shared_ptr<IndexType> ret_val(new IndexType());
+  std::shared_ptr<IndexType> ret_val(new IndexType());
 
   return ret_val;
 }

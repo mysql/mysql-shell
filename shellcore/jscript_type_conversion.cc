@@ -33,9 +33,7 @@
 
 #include <fstream>
 #include <cerrno>
-#include <boost/weak_ptr.hpp>
 #include <boost/format.hpp>
-#include <boost/bind.hpp>
 #include <boost/system/error_code.hpp>
 
 #include <iostream>
@@ -106,7 +104,7 @@ v8::Handle<v8::Value> JScript_type_bridger::native_object_to_js(Object_bridge_re
 {
   if (object && object->class_name() == "Date")
   {
-    boost::shared_ptr<Date> date = boost::static_pointer_cast<Date>(object);
+    std::shared_ptr<Date> date = std::static_pointer_cast<Date>(object);
     // The only Date constructor exposed to C++ takes milliseconds, the constructor that parses a date from an string is implemented
     // in Javascript, so it is invoked this way.
     v8::Handle<v8::String> source = v8::String::NewFromUtf8(owner->isolate(), (boost::format("new Date('%d-%d-%d %d:%d:%d')") % 
@@ -161,7 +159,7 @@ Value JScript_type_bridger::v8_value_to_shcore_value(const v8::Handle<v8::Value>
   else if (value->IsArray())
   {
     v8::Array *jsarray = v8::Array::Cast(*value);
-    boost::shared_ptr<Value::Array_type> array(new Value::Array_type(jsarray->Length()));
+    std::shared_ptr<Value::Array_type> array(new Value::Array_type(jsarray->Length()));
     for (int32_t c = jsarray->Length(), i = 0; i < c; i++)
     {
       v8::Local<v8::Value> item(jsarray->Get(i));
@@ -177,10 +175,10 @@ Value JScript_type_bridger::v8_value_to_shcore_value(const v8::Handle<v8::Value>
   else if (value->IsObject()) // JS object
   {
     v8::Handle<v8::Object> jsobject = value->ToObject();
-    boost::shared_ptr<Object_bridge> object;
-    boost::shared_ptr<Value::Map_type> map;
-    boost::shared_ptr<Value::Array_type> array;
-    boost::shared_ptr<Function_base> function;
+    std::shared_ptr<Object_bridge> object;
+    std::shared_ptr<Value::Map_type> map;
+    std::shared_ptr<Value::Array_type> array;
+    std::shared_ptr<Function_base> function;
 
     if (JScript_array_wrapper::unwrap(jsobject, array))
     {
@@ -205,7 +203,7 @@ Value JScript_type_bridger::v8_value_to_shcore_value(const v8::Handle<v8::Value>
         return Value(object_ref);
 
       v8::Local<v8::Array> pnames(jsobject->GetPropertyNames());
-      boost::shared_ptr<Value::Map_type> map_ptr(new Value::Map_type);
+      std::shared_ptr<Value::Map_type> map_ptr(new Value::Map_type);
       for (int32_t c = pnames->Length(), i = 0; i < c; i++)
       {
         v8::Local<v8::Value> k(pnames->Get(i));
@@ -262,7 +260,7 @@ v8::Handle<v8::Value> JScript_type_bridger::shcore_value_to_v8_value(const Value
       break;
     case MapRef:
     {
-      boost::shared_ptr<Value::Map_type> map(value.value.mapref->lock());
+      std::shared_ptr<Value::Map_type> map(value.value.mapref->lock());
       if (map)
       {
         throw std::invalid_argument("Cannot convert internal value to JS: wrapmapref not implemented\n");
@@ -299,10 +297,10 @@ v8::Handle<v8::String> JScript_type_bridger::type_info(v8::Handle<v8::Value> val
   else if (value->IsObject()) // JS object
   {
     v8::Handle<v8::Object> jsobject = value->ToObject();
-    boost::shared_ptr<Object_bridge> object;
-    boost::shared_ptr<Value::Map_type> map;
-    boost::shared_ptr<Value::Array_type> array;
-    boost::shared_ptr<Function_base> function;
+    std::shared_ptr<Object_bridge> object;
+    std::shared_ptr<Value::Map_type> map;
+    std::shared_ptr<Value::Array_type> array;
+    std::shared_ptr<Function_base> function;
 
     if (JScript_array_wrapper::unwrap(jsobject, array))
       return v8::String::NewFromUtf8(owner->isolate(), "m.Array");

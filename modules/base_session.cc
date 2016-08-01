@@ -32,10 +32,8 @@
 #include "utils/utils_file.h"
 #include "mysqlxtest_utils.h"
 
-#include <boost/bind.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/format.hpp>
-#include <boost/pointer_cast.hpp>
 
 #ifdef HAVE_LIBMYSQLCLIENT
 #include "mod_mysql_session.h"
@@ -48,9 +46,9 @@
 using namespace mysh;
 using namespace shcore;
 
-boost::shared_ptr<mysh::ShellDevelopmentSession> mysh::connect_session(const shcore::Argument_list &args, SessionType session_type)
+std::shared_ptr<mysh::ShellDevelopmentSession> mysh::connect_session(const shcore::Argument_list &args, SessionType session_type)
 {
-  boost::shared_ptr<ShellDevelopmentSession> ret_val;
+  std::shared_ptr<ShellDevelopmentSession> ret_val;
 
   switch (session_type)
   {
@@ -93,7 +91,7 @@ _ssl_ca(s._ssl_ca), _ssl_cert(s._ssl_cert), _ssl_key(s._ssl_key)
 void ShellBaseSession::init()
 {
   add_property("uri", "getUri");
-  add_method("isOpen", boost::bind(&ShellBaseSession::is_open, this, _1), NULL);
+  add_method("isOpen", std::bind(&ShellBaseSession::is_open, this, _1), NULL);
 }
 
 std::string &ShellBaseSession::append_descr(std::string &s_out, int UNUSED(indent), int UNUSED(quote_strings)) const
@@ -352,7 +350,7 @@ void ShellDevelopmentSession::init()
 {
   add_property("defaultSchema", "getDefaultSchema");
 
-  add_method("createSchema", boost::bind(&ShellDevelopmentSession::create_schema, this, _1), "name", shcore::String, NULL);
-  add_method("getSchema", boost::bind(&ShellDevelopmentSession::get_schema, this, _1), "name", shcore::String, NULL);
-  add_method("getSchemas", boost::bind(&ShellDevelopmentSession::get_schemas, this, _1), NULL);
+  add_method("createSchema", std::bind(&ShellDevelopmentSession::create_schema, this, _1), "name", shcore::String, NULL);
+  add_method("getSchema", std::bind(&ShellDevelopmentSession::get_schema, this, _1), "name", shcore::String, NULL);
+  add_method("getSchemas", std::bind(&ShellDevelopmentSession::get_schemas, this, _1), NULL);
 }

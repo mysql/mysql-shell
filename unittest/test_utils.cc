@@ -15,7 +15,6 @@
 
 #include "test_utils.h"
 #include <boost/algorithm/string.hpp>
-#include <boost/bind.hpp>
 #include "shellcore/shell_core_options.h"
 #include "src/shell_resultset_dumper.h"
 #include "src/interactive_shell.h"

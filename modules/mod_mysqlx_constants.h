@@ -66,7 +66,7 @@ namespace mysh
 
       virtual shcore::Value get_member(const std::string &prop) const;
 
-      static boost::shared_ptr<shcore::Object_bridge> create(const shcore::Argument_list &args);
+      static std::shared_ptr<shcore::Object_bridge> create(const shcore::Argument_list &args);
     };
 
     class SHCORE_PUBLIC IndexType : public shcore::Cpp_object_bridge
@@ -79,7 +79,7 @@ namespace mysh
 
       virtual shcore::Value get_member(const std::string &prop) const;
 
-      static boost::shared_ptr<shcore::Object_bridge> create(const shcore::Argument_list &args);
+      static std::shared_ptr<shcore::Object_bridge> create(const shcore::Argument_list &args);
     };
   };
 };

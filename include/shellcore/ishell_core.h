@@ -24,7 +24,6 @@
 #include "shellcore/types_common.h"
 #include "shellcore/types.h"
 #include "shellcore/lang_base.h"
-#include <boost/shared_ptr.hpp>
 
 #include <iostream>
 
@@ -71,15 +70,15 @@ namespace shcore
     virtual Value active_session() const = 0;
 
     virtual Object_registry *registry() = 0;
-    virtual void handle_input(std::string &code, Interactive_input_state &state, boost::function<void(shcore::Value)> result_processor) = 0;
+    virtual void handle_input(std::string &code, Interactive_input_state &state, std::function<void(shcore::Value)> result_processor) = 0;
     virtual bool handle_shell_command(const std::string &code) = 0;
     virtual std::string get_handled_input() = 0;
-    virtual int process_stream(std::istream& stream, const std::string& source, boost::function<void(shcore::Value)> result_processor) = 0;
+    virtual int process_stream(std::istream& stream, const std::string& source, std::function<void(shcore::Value)> result_processor) = 0;
 
     // Development Session Handling
-    virtual boost::shared_ptr<mysh::ShellDevelopmentSession> connect_dev_session(const Argument_list &args, mysh::SessionType session_type) = 0;
-    virtual boost::shared_ptr<mysh::ShellDevelopmentSession> set_dev_session(boost::shared_ptr<mysh::ShellDevelopmentSession> session) = 0;
-    virtual boost::shared_ptr<mysh::ShellDevelopmentSession> get_dev_session() = 0;
+    virtual std::shared_ptr<mysh::ShellDevelopmentSession> connect_dev_session(const Argument_list &args, mysh::SessionType session_type) = 0;
+    virtual std::shared_ptr<mysh::ShellDevelopmentSession> set_dev_session(std::shared_ptr<mysh::ShellDevelopmentSession> session) = 0;
+    virtual std::shared_ptr<mysh::ShellDevelopmentSession> get_dev_session() = 0;
 
     // Global Schema
     virtual shcore::Value set_current_schema(const std::string& name) = 0;

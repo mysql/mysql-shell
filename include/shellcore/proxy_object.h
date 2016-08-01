@@ -30,7 +30,7 @@ class SHCORE_PUBLIC Proxy_object : public shcore::Cpp_object_bridge
 public:
   virtual std::string class_name() const { return "Proxy_object"; }
 
-  Proxy_object(const boost::function<Value (const std::string&)> &delegate);
+  Proxy_object(const std::function<Value (const std::string&)> &delegate);
 
   virtual Value get_member(const std::string &prop) const;
 
@@ -40,7 +40,7 @@ public:
   }
 
 private:
-  boost::function<Value (const std::string&)> _delegate;
+  std::function<Value (const std::string&)> _delegate;
 };
 
 };

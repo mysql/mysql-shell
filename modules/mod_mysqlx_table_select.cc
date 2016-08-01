@@ -16,7 +16,6 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301  USA
  */
-#include <boost/bind.hpp>
 #include <boost/format.hpp>
 #include "mod_mysqlx_table_select.h"
 #include "mod_mysqlx_table.h"
@@ -24,21 +23,22 @@
 #include "shellcore/common.h"
 #include "utils/utils_time.h"
 
+using namespace std::placeholders;
 using namespace mysh::mysqlx;
 using namespace shcore;
 
-TableSelect::TableSelect(boost::shared_ptr<Table> owner)
-  : Table_crud_definition(boost::static_pointer_cast<DatabaseObject>(owner))
+TableSelect::TableSelect(std::shared_ptr<Table> owner)
+  : Table_crud_definition(std::static_pointer_cast<DatabaseObject>(owner))
 {
   // Exposes the methods available for chaining
-  add_method("select", boost::bind(&TableSelect::select, this, _1), "data");
-  add_method("where", boost::bind(&TableSelect::where, this, _1), "data");
-  add_method("groupBy", boost::bind(&TableSelect::group_by, this, _1), "data");
-  add_method("having", boost::bind(&TableSelect::having, this, _1), "data");
-  add_method("orderBy", boost::bind(&TableSelect::order_by, this, _1), "data");
-  add_method("limit", boost::bind(&TableSelect::limit, this, _1), "data");
-  add_method("offset", boost::bind(&TableSelect::offset, this, _1), "data");
-  add_method("bind", boost::bind(&TableSelect::bind, this, _1), "data");
+  add_method("select", std::bind(&TableSelect::select, this, _1), "data");
+  add_method("where", std::bind(&TableSelect::where, this, _1), "data");
+  add_method("groupBy", std::bind(&TableSelect::group_by, this, _1), "data");
+  add_method("having", std::bind(&TableSelect::having, this, _1), "data");
+  add_method("orderBy", std::bind(&TableSelect::order_by, this, _1), "data");
+  add_method("limit", std::bind(&TableSelect::limit, this, _1), "data");
+  add_method("offset", std::bind(&TableSelect::offset, this, _1), "data");
+  add_method("bind", std::bind(&TableSelect::bind, this, _1), "data");
 
   // Registers the dynamic function behavior
   register_dynamic_function("select", "");
@@ -92,7 +92,7 @@ shcore::Value TableSelect::select(const shcore::Argument_list &args)
   // Each method validates the received parameters
   args.ensure_count(0, 1, get_function_name("select").c_str());
 
-  boost::shared_ptr<Table> table(boost::static_pointer_cast<Table>(_owner.lock()));
+  std::shared_ptr<Table> table(std::static_pointer_cast<Table>(_owner.lock()));
 
   if (table)
   {
@@ -116,7 +116,7 @@ shcore::Value TableSelect::select(const shcore::Argument_list &args)
     CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("select"));
   }
 
-  return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
+  return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
 //! Sets the search condition to filter the records to be retrieved from the owner Table.
@@ -164,7 +164,7 @@ shcore::Value TableSelect::where(const shcore::Argument_list &args)
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("where"));
 
-  return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
+  return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
 //! Sets a grouping criteria for the resultset.
@@ -218,7 +218,7 @@ shcore::Value TableSelect::group_by(const shcore::Argument_list &args)
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("groupBy"));
 
-  return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
+  return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
 //! Sets a condition for records to be considered in agregate function operations.
@@ -266,7 +266,7 @@ shcore::Value TableSelect::having(const shcore::Argument_list &args)
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("having"));
 
-  return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
+  return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
 //! Sets the sorting criteria to be used on the RowResult.
@@ -324,7 +324,7 @@ shcore::Value TableSelect::order_by(const shcore::Argument_list &args)
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("orderBy"));
 
-  return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
+  return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
 //! Sets the maximum number of records to be returned on the select operation.
@@ -373,7 +373,7 @@ shcore::Value TableSelect::limit(const shcore::Argument_list &args)
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("limit"));
 
-  return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
+  return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
 //! Sets number of records to skip on the RowResult when a limit has been defined.
@@ -415,7 +415,7 @@ shcore::Value TableSelect::offset(const shcore::Argument_list &args)
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("offset"));
 
-  return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
+  return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
 //! Binds a value to a specific placeholder used on this TableSelect object.
@@ -464,7 +464,7 @@ shcore::Value TableSelect::bind(const shcore::Argument_list &args)
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("bind"));
 
-  return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
+  return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
 /**
@@ -505,7 +505,7 @@ shcore::Value TableSelect::execute(const shcore::Argument_list &args)
     MySQL_timer timer;
     timer.start();
 
-    result = new mysqlx::RowResult(boost::shared_ptr< ::mysqlx::Result>(_select_statement->execute()));
+    result = new mysqlx::RowResult(std::shared_ptr< ::mysqlx::Result>(_select_statement->execute()));
 
     timer.end();
     result->set_execution_time(timer.raw_duration());

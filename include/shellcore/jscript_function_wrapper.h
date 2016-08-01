@@ -37,9 +37,9 @@ public:
   JScript_function_wrapper(JScript_context *context);
   ~JScript_function_wrapper();
 
-  v8::Handle<v8::Object> wrap(boost::shared_ptr<Function_base> object);
+  v8::Handle<v8::Object> wrap(std::shared_ptr<Function_base> object);
 
-  static bool unwrap(v8::Handle<v8::Object> value, boost::shared_ptr<Function_base> &ret_function);
+  static bool unwrap(v8::Handle<v8::Object> value, std::shared_ptr<Function_base> &ret_function);
 
 private:
   struct Collectable;

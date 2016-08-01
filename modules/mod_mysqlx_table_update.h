@@ -40,7 +40,7 @@ namespace mysh
     *
     * \sa Table
     */
-    class TableUpdate : public Table_crud_definition, public boost::enable_shared_from_this<TableUpdate>
+    class TableUpdate : public Table_crud_definition, public std::enable_shared_from_this<TableUpdate>
     {
     public:
 #if DOXYGEN_JS
@@ -60,9 +60,9 @@ namespace mysh
       TableUpdate bind(str name, Value value);
       Result execute();
 #endif
-      TableUpdate(boost::shared_ptr<Table> owner);
+      TableUpdate(std::shared_ptr<Table> owner);
       virtual std::string class_name() const { return "TableUpdate"; }
-      static boost::shared_ptr<shcore::Object_bridge> create(const shcore::Argument_list &args);
+      static std::shared_ptr<shcore::Object_bridge> create(const shcore::Argument_list &args);
       shcore::Value update(const shcore::Argument_list &args);
       shcore::Value set(const shcore::Argument_list &args);
       shcore::Value where(const shcore::Argument_list &args);

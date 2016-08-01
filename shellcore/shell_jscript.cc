@@ -28,10 +28,10 @@ using namespace shcore;
 Shell_javascript::Shell_javascript(Shell_core *shcore)
   : Shell_language(shcore)
 {
-  _js = boost::shared_ptr<JScript_context>(new JScript_context(shcore->registry(), shcore->lang_delegate()));
+  _js = std::shared_ptr<JScript_context>(new JScript_context(shcore->registry(), shcore->lang_delegate()));
 }
 
-void Shell_javascript::handle_input(std::string &code, Interactive_input_state &state, boost::function<void(shcore::Value)> result_processor)
+void Shell_javascript::handle_input(std::string &code, Interactive_input_state &state, std::function<void(shcore::Value)> result_processor)
 {
   // Undefined to be returned in case of errors
   Value result;
@@ -72,7 +72,7 @@ std::string Shell_javascript::prompt()
   Value session_wrapper = _owner->active_session();
   if (session_wrapper)
   {
-    boost::shared_ptr<mysh::ShellBaseSession> session = session_wrapper.as_object<mysh::ShellBaseSession>();
+    std::shared_ptr<mysh::ShellBaseSession> session = session_wrapper.as_object<mysh::ShellBaseSession>();
 
     if (session)
     {
@@ -97,9 +97,9 @@ void Shell_javascript::abort()
   // TODO: this way to gather the session is wrong in JS, because there sessions are typically created with getNodeSession
 
   Value session_wrapper = _owner->active_session();
-  boost::shared_ptr<mysh::ShellBaseSession> session = session_wrapper.as_object<mysh::ShellBaseSession>();
+  std::shared_ptr<mysh::ShellBaseSession> session = session_wrapper.as_object<mysh::ShellBaseSession>();
   // duplicate the connection
-  boost::shared_ptr<mysh::mysqlx::BaseSession> kill_session = NULL;
+  std::shared_ptr<mysh::mysqlx::BaseSession> kill_session = NULL;
   mysh::mysqlx::NodeSession* node_session = dynamic_cast<mysh::mysqlx::NodeSession*>(session.get());
   mysh::mysqlx::XSession* x_session = dynamic_cast<mysh::mysqlx::XSession*>(session.get());
 

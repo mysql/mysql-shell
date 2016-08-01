@@ -29,6 +29,8 @@
 
 #include <iostream>
 
+using namespace std::placeholders;
+
 // Helper to add commands in standard format to the dispatcher.
 // Use it as:
 // SET_SHELL_COMMAND("<name>", "<description>", "<help>", Class::method)
@@ -36,7 +38,7 @@
 // - Caller class has a command handler defined as _shell_command_handler
 // - Command method has the required signature: void class::method(const std::vector<std::string>& params)
 // - Command methid is a method on the caller class
-#define SET_SHELL_COMMAND(name,desc,help,function) _shell_command_handler.add_command(name,desc,help,boost::bind(&function,this,_1))
+#define SET_SHELL_COMMAND(name,desc,help,function) _shell_command_handler.add_command(name,desc,help,std::bind(&function,this,_1))
 
 // Helper to add commands in non standard format to the dispatcher.
 // Use it as:
@@ -53,7 +55,7 @@ namespace shcore
 
   // A command function should return true if handling was OK
   // Returning false tells the caller to continue processing it
-  typedef boost::function<bool(const std::vector<std::string>&) > Shell_command_function;
+  typedef std::function<bool(const std::vector<std::string>&) > Shell_command_function;
 
   struct Shell_command
   {
@@ -88,7 +90,7 @@ namespace shcore
     virtual void set_global(const std::string &name, const Value &value) = 0;
 
     virtual std::string preprocess_input_line(const std::string &s) { return s; }
-    virtual void handle_input(std::string &code, Interactive_input_state &state, boost::function<void(shcore::Value)> result_processor) = 0;
+    virtual void handle_input(std::string &code, Interactive_input_state &state, std::function<void(shcore::Value)> result_processor) = 0;
     virtual bool handle_shell_command(const std::string &code) { return _shell_command_handler.process(code); }
     virtual std::string get_handled_input() { return _last_handled; }
     virtual std::string prompt() = 0;
@@ -128,19 +130,19 @@ namespace shcore
     void set_active_session(const Value &session);
     Value active_session() const { return _active_session; }
 
-    virtual boost::shared_ptr<mysh::ShellDevelopmentSession> connect_dev_session(const Argument_list &args, mysh::SessionType session_type);
-    virtual boost::shared_ptr<mysh::ShellDevelopmentSession> set_dev_session(boost::shared_ptr<mysh::ShellDevelopmentSession> session);
-    virtual boost::shared_ptr<mysh::ShellDevelopmentSession> get_dev_session();
+    virtual std::shared_ptr<mysh::ShellDevelopmentSession> connect_dev_session(const Argument_list &args, mysh::SessionType session_type);
+    virtual std::shared_ptr<mysh::ShellDevelopmentSession> set_dev_session(std::shared_ptr<mysh::ShellDevelopmentSession> session);
+    virtual std::shared_ptr<mysh::ShellDevelopmentSession> get_dev_session();
 
     virtual shcore::Value set_current_schema(const std::string& name);
 
     virtual Object_registry *registry() { return _registry; }
   public:
     virtual std::string preprocess_input_line(const std::string &s);
-    virtual void handle_input(std::string &code, Interactive_input_state &state, boost::function<void(shcore::Value)> result_processor);
+    virtual void handle_input(std::string &code, Interactive_input_state &state, std::function<void(shcore::Value)> result_processor);
     virtual bool handle_shell_command(const std::string &code);
     virtual std::string get_handled_input();
-    virtual int process_stream(std::istream& stream, const std::string& source, boost::function<void(shcore::Value)> result_processor);
+    virtual int process_stream(std::istream& stream, const std::string& source, std::function<void(shcore::Value)> result_processor);
 
     virtual std::string prompt();
 
@@ -168,7 +170,7 @@ namespace shcore
     std::map<Mode, Shell_language*> _langs;
     Value _active_session;
 
-    boost::shared_ptr<mysh::ShellDevelopmentSession> _global_dev_session;
+    std::shared_ptr<mysh::ShellDevelopmentSession> _global_dev_session;
 
     Interpreter_delegate *_lang_delegate;
     std::string _input_source;

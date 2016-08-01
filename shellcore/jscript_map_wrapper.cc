@@ -53,12 +53,12 @@ JScript_map_wrapper::~JScript_map_wrapper()
 
 struct shcore::JScript_map_wrapper::Collectable
 {
-    boost::shared_ptr<Value::Map_type> data;
+    std::shared_ptr<Value::Map_type> data;
     v8::Persistent<v8::Object> handle;
 };
 
 
-v8::Handle<v8::Object> JScript_map_wrapper::wrap(boost::shared_ptr<Value::Map_type> map)
+v8::Handle<v8::Object> JScript_map_wrapper::wrap(std::shared_ptr<Value::Map_type> map)
 {
   v8::Handle<v8::ObjectTemplate> templ = v8::Local<v8::ObjectTemplate>::New(_context->isolate(), _map_template);
 
@@ -94,7 +94,7 @@ void JScript_map_wrapper::handler_getter(v8::Local<v8::String> property, const v
 {
   v8::HandleScope hscope(info.GetIsolate());
   v8::Handle<v8::Object> obj(info.Holder());
-  boost::shared_ptr<Value::Map_type> *map = static_cast<boost::shared_ptr<Value::Map_type>*>(obj->GetAlignedPointerFromInternalField(1));
+  std::shared_ptr<Value::Map_type> *map = static_cast<std::shared_ptr<Value::Map_type>*>(obj->GetAlignedPointerFromInternalField(1));
   JScript_map_wrapper *self = static_cast<JScript_map_wrapper*>(obj->GetAlignedPointerFromInternalField(2));
 
   if (!map)
@@ -127,7 +127,7 @@ void JScript_map_wrapper::handler_setter(v8::Local<v8::String> property, v8::Loc
 {
   v8::HandleScope hscope(info.GetIsolate());
   v8::Handle<v8::Object> obj(info.Holder());
-  boost::shared_ptr<Value::Map_type> *map = static_cast<boost::shared_ptr<Value::Map_type>*>(obj->GetAlignedPointerFromInternalField(1));
+  std::shared_ptr<Value::Map_type> *map = static_cast<std::shared_ptr<Value::Map_type>*>(obj->GetAlignedPointerFromInternalField(1));
   JScript_map_wrapper *self = static_cast<JScript_map_wrapper*>(obj->GetAlignedPointerFromInternalField(2));
   if (!map)
     throw std::logic_error("bug!");
@@ -143,7 +143,7 @@ void JScript_map_wrapper::handler_enumerator(const v8::PropertyCallbackInfo<v8::
 {
   v8::HandleScope hscope(info.GetIsolate());
   v8::Handle<v8::Object> obj(info.Holder());
-  boost::shared_ptr<Value::Map_type> *map = static_cast<boost::shared_ptr<Value::Map_type>*>(obj->GetAlignedPointerFromInternalField(1));
+  std::shared_ptr<Value::Map_type> *map = static_cast<std::shared_ptr<Value::Map_type>*>(obj->GetAlignedPointerFromInternalField(1));
 
   if (!map)
     throw std::logic_error("bug!");
@@ -159,11 +159,11 @@ void JScript_map_wrapper::handler_enumerator(const v8::PropertyCallbackInfo<v8::
 }
 
 
-bool JScript_map_wrapper::unwrap(v8::Handle<v8::Object> value, boost::shared_ptr<Value::Map_type> &ret_object)
+bool JScript_map_wrapper::unwrap(v8::Handle<v8::Object> value, std::shared_ptr<Value::Map_type> &ret_object)
 {
   if (value->InternalFieldCount() == 3 && value->GetAlignedPointerFromInternalField(0) == (void*)&magic_pointer)
   {
-    boost::shared_ptr<Value::Map_type> *object = static_cast<boost::shared_ptr<Value::Map_type>*>(value->GetAlignedPointerFromInternalField(1));
+    std::shared_ptr<Value::Map_type> *object = static_cast<std::shared_ptr<Value::Map_type>*>(value->GetAlignedPointerFromInternalField(1));
     ret_object = *object;
     return true;
   }

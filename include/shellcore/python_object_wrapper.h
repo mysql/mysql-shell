@@ -49,8 +49,8 @@ namespace shcore
     PyMemberCache *cache;
   };
 
-  PyObject *wrap(boost::shared_ptr<Object_bridge> object);
-  bool unwrap(PyObject *value, boost::shared_ptr<Object_bridge> &ret_object);
+  PyObject *wrap(std::shared_ptr<Object_bridge> object);
+  bool unwrap(PyObject *value, std::shared_ptr<Object_bridge> &ret_object);
 };
 
 #endif  // _PYTHON_OBJECT_WRAPPER_H_

@@ -27,10 +27,8 @@
 #include "utils/utils_time.h"
 #include "logger/logger.h"
 
-#include <boost/bind.hpp>
 #include <boost/format.hpp>
 #include <boost/algorithm/string.hpp>
-#include <boost/pointer_cast.hpp>
 #include <boost/lexical_cast.hpp>
 
 // TODO: This should be ported from the server, not used from there (see comment bellow)
@@ -121,9 +119,9 @@ _options(options)
     "The global db variable will be updated to hold the requested schema.\n";
 
   SET_SHELL_COMMAND("\\help|\\?|\\h", "Print this help.", "", Interactive_shell::cmd_print_shell_help);
-  SET_CUSTOM_SHELL_COMMAND("\\sql", "Switch to SQL processing mode.", "", boost::bind(&Interactive_shell::switch_shell_mode, this, Shell_core::Mode_SQL, _1));
-  SET_CUSTOM_SHELL_COMMAND("\\js", "Switch to JavaScript processing mode.", "", boost::bind(&Interactive_shell::switch_shell_mode, this, Shell_core::Mode_JScript, _1));
-  SET_CUSTOM_SHELL_COMMAND("\\py", "Switch to Python processing mode.", "", boost::bind(&Interactive_shell::switch_shell_mode, this, Shell_core::Mode_Python, _1));
+  SET_CUSTOM_SHELL_COMMAND("\\sql", "Switch to SQL processing mode.", "", std::bind(&Interactive_shell::switch_shell_mode, this, Shell_core::Mode_SQL, _1));
+  SET_CUSTOM_SHELL_COMMAND("\\js", "Switch to JavaScript processing mode.", "", std::bind(&Interactive_shell::switch_shell_mode, this, Shell_core::Mode_JScript, _1));
+  SET_CUSTOM_SHELL_COMMAND("\\py", "Switch to Python processing mode.", "", std::bind(&Interactive_shell::switch_shell_mode, this, Shell_core::Mode_Python, _1));
   SET_SHELL_COMMAND("\\source|\\.", "Execute a script file. Takes a file name as an argument.", cmd_help_source, Interactive_shell::cmd_process_file);
   SET_SHELL_COMMAND("\\", "Start multi-line input when in SQL mode.", "", Interactive_shell::cmd_start_multiline);
   SET_SHELL_COMMAND("\\quit|\\q|\\exit", "Quit MySQL Shell.", "", Interactive_shell::cmd_quit);
@@ -157,7 +155,7 @@ _options(options)
   bool lang_initialized;
   _shell->switch_mode(_options.initial_mode, lang_initialized);
 
-  _result_processor = boost::bind(&Interactive_shell::process_result, this, _1);
+  _result_processor = std::bind(&Interactive_shell::process_result, this, _1);
 
   if (lang_initialized)
     init_scripts(_options.initial_mode);
@@ -314,7 +312,7 @@ Value Interactive_shell::connect_session(const Argument_list &args, mysh::Sessio
   }
 
   // Performs the connection
-  boost::shared_ptr<mysh::ShellDevelopmentSession> old_session(_shell->get_dev_session()),
+  std::shared_ptr<mysh::ShellDevelopmentSession> old_session(_shell->get_dev_session()),
                                                    new_session(_shell->connect_dev_session(connect_args, session_type));
 
   new_session->set_option("trace_protocol", _options.trace_protocol);
@@ -1175,7 +1173,7 @@ void Interactive_shell::process_result(shcore::Value result)
     if (result)
     {
       Value shell_hook;
-      boost::shared_ptr<Object_bridge> object;
+      std::shared_ptr<Object_bridge> object;
       if (result.type == shcore::Object)
       {
         object = result.as_object();
@@ -1198,7 +1196,7 @@ void Interactive_shell::process_result(shcore::Value result)
         // Resultset objects get printed
         if (object && object->class_name().find("Result") != std::string::npos)
         {
-          boost::shared_ptr<mysh::ShellBaseResult> resultset = boost::static_pointer_cast<mysh::ShellBaseResult> (object);
+          std::shared_ptr<mysh::ShellBaseResult> resultset = std::static_pointer_cast<mysh::ShellBaseResult> (object);
 
           // Result buffering will be done ONLY if on any of the scripting interfaces
           ResultsetDumper dumper(resultset, _shell->interactive_mode() != IShell_core::Mode_SQL);

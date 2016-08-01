@@ -27,7 +27,6 @@
 #include "interactive_global_session.h"
 #include <boost/algorithm/string.hpp>
 #include <boost/format.hpp>
-#include <boost/bind.hpp>
 #include "modules/mod_mysqlx.h"
 #include "modules/mod_mysql.h"
 #pragma GCC diagnostic push
@@ -40,6 +39,7 @@
 #include "uuid_gen.h"
 #include <fstream>
 
+using namespace std::placeholders;
 using namespace shcore;
 
 Shell_core::Shell_core(Interpreter_delegate *shdelegate)
@@ -68,7 +68,7 @@ Shell_core::Shell_core(Interpreter_delegate *shdelegate)
     set_global("session", shcore::Value::wrap<Global_session>(new Global_session(*this)));
   }
 
-  shcore::print = boost::bind(&shcore::Shell_core::print, this, _1);
+  shcore::print = std::bind(&shcore::Shell_core::print, this, _1);
 }
 
 Shell_core::~Shell_core()
@@ -111,7 +111,7 @@ std::string Shell_core::preprocess_input_line(const std::string &s)
   return _langs[_mode]->preprocess_input_line(s);
 }
 
-void Shell_core::handle_input(std::string &code, Interactive_input_state &state, boost::function<void(shcore::Value)> result_processor)
+void Shell_core::handle_input(std::string &code, Interactive_input_state &state, std::function<void(shcore::Value)> result_processor)
 {
   try
   {
@@ -141,7 +141,7 @@ std::string Shell_core::get_handled_input()
 * - 1 in case of any processing error is found.
 * - 0 if no processing errors were found.
 */
-int Shell_core::process_stream(std::istream& stream, const std::string& source, boost::function<void(shcore::Value)> result_processor)
+int Shell_core::process_stream(std::istream& stream, const std::string& source, std::function<void(shcore::Value)> result_processor)
 {
   // NOTE: global return code is unused at the moment
   //       return code should be determined at application level on process_result
@@ -343,7 +343,7 @@ bool Shell_core::handle_shell_command(const std::string &line)
 *
 * If the Connection Data contained the *schema* attribute, the schema will be made available to the scripting interfaces on the global *db* variable.
 */
-boost::shared_ptr<mysh::ShellDevelopmentSession> Shell_core::connect_dev_session(const Argument_list &args, mysh::SessionType session_type)
+std::shared_ptr<mysh::ShellDevelopmentSession> Shell_core::connect_dev_session(const Argument_list &args, mysh::SessionType session_type)
 {
   return set_dev_session(mysh::connect_session(args, session_type));
 }
@@ -354,9 +354,9 @@ boost::shared_ptr<mysh::ShellDevelopmentSession> Shell_core::connect_dev_session
 *
 * If there's a selected schema on the received session, it will be made available to the scripting interfaces on the global *db* variable
 */
-boost::shared_ptr<mysh::ShellDevelopmentSession> Shell_core::set_dev_session(boost::shared_ptr<mysh::ShellDevelopmentSession> session)
+std::shared_ptr<mysh::ShellDevelopmentSession> Shell_core::set_dev_session(std::shared_ptr<mysh::ShellDevelopmentSession> session)
 {
-  _global_dev_session.reset(session, session.get());
+  _global_dev_session.swap(session);
 
   // X Session can't have a currentSchema so we set on db the default schema
   shcore::Value currentSchema;
@@ -371,18 +371,18 @@ boost::shared_ptr<mysh::ShellDevelopmentSession> Shell_core::set_dev_session(boo
   // The target Objects on the wrappers are set
   if ((*Shell_core_options::get())[SHCORE_USE_WIZARDS].as_bool())
   {
-    get_global("session").as_object<Interactive_object_wrapper>()->set_target(boost::static_pointer_cast<Cpp_object_bridge>(_global_dev_session));
+    get_global("session").as_object<Interactive_object_wrapper>()->set_target(std::static_pointer_cast<Cpp_object_bridge>(_global_dev_session));
 
     if (currentSchema)
       get_global("db").as_object<Interactive_object_wrapper>()->set_target(currentSchema.as_object<Cpp_object_bridge>());
     else
-      get_global("db").as_object<Interactive_object_wrapper>()->set_target(boost::shared_ptr<Cpp_object_bridge>());
+      get_global("db").as_object<Interactive_object_wrapper>()->set_target(std::shared_ptr<Cpp_object_bridge>());
   }
 
   // Use the db/session objects directly if the wizards are OFF
   else
   {
-    set_global("session", shcore::Value(boost::static_pointer_cast<Object_bridge>(_global_dev_session)));
+    set_global("session", shcore::Value(std::static_pointer_cast<Object_bridge>(_global_dev_session)));
     set_global("db", currentSchema);
   }
 
@@ -392,7 +392,7 @@ boost::shared_ptr<mysh::ShellDevelopmentSession> Shell_core::set_dev_session(boo
 /**
 * Returns the global development session.
 */
-boost::shared_ptr<mysh::ShellDevelopmentSession> Shell_core::get_dev_session()
+std::shared_ptr<mysh::ShellDevelopmentSession> Shell_core::get_dev_session()
 {
   return _global_dev_session;
 }
@@ -430,7 +430,7 @@ shcore::Value Shell_core::set_current_schema(const std::string& name)
     if (new_schema)
       get_global("db").as_object<Interactive_object_wrapper>()->set_target(new_schema.as_object<Cpp_object_bridge>());
     else
-      get_global("db").as_object<Interactive_object_wrapper>()->set_target(boost::shared_ptr<Cpp_object_bridge>());
+      get_global("db").as_object<Interactive_object_wrapper>()->set_target(std::shared_ptr<Cpp_object_bridge>());
   }
   else
     set_global("db", new_schema);

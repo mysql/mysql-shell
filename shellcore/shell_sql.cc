@@ -22,7 +22,6 @@
 #include "../modules/mod_mysql_session.h"
 #include "../modules/mod_mysqlx_session.h"
 #include "../utils/utils_mysql_parsing.h"
-#include <boost/bind.hpp>
 #include <boost/format.hpp>
 #include <boost/algorithm/string.hpp>
 #include <fstream>
@@ -36,7 +35,7 @@ Shell_sql::Shell_sql(IShell_core *owner)
   _delimiter = ";";
 }
 
-void Shell_sql::handle_input(std::string &code, Interactive_input_state &state, boost::function<void(shcore::Value)> result_processor)
+void Shell_sql::handle_input(std::string &code, Interactive_input_state &state, std::function<void(shcore::Value)> result_processor)
 {
   Value ret_val;
   state = Input_ok;
@@ -188,7 +187,7 @@ std::string Shell_sql::prompt()
     Value session_wrapper = _owner->active_session();
     if (session_wrapper)
     {
-      boost::shared_ptr<mysh::ShellBaseSession> session = session_wrapper.as_object<mysh::ShellBaseSession>();
+      std::shared_ptr<mysh::ShellBaseSession> session = session_wrapper.as_object<mysh::ShellBaseSession>();
 
       if (session)
       {
@@ -224,10 +223,10 @@ void Shell_sql::print_exception(const shcore::Exception &e)
 void Shell_sql::abort()
 {
   Value session_wrapper = _owner->active_session();
-  boost::shared_ptr<mysh::ShellBaseSession> session = session_wrapper.as_object<mysh::ShellBaseSession>();
+  std::shared_ptr<mysh::ShellBaseSession> session = session_wrapper.as_object<mysh::ShellBaseSession>();
   // duplicate the connection
-  boost::shared_ptr<mysh::mysql::ClassicSession> kill_session;
-  boost::shared_ptr<mysh::mysqlx::NodeSession> kill_session2;
+  std::shared_ptr<mysh::mysql::ClassicSession> kill_session;
+  std::shared_ptr<mysh::mysqlx::NodeSession> kill_session2;
   mysh::mysql::ClassicSession* classic = NULL;
   mysh::mysqlx::NodeSession* node = NULL;
   classic = dynamic_cast<mysh::mysql::ClassicSession*>(session.get());

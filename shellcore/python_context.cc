@@ -114,7 +114,7 @@ namespace shcore
 
     _types.init();
 
-    set_global_item("shell", "options", Value(boost::static_pointer_cast<Object_bridge>(Shell_core_options::get_instance())));
+    set_global_item("shell", "options", Value(std::static_pointer_cast<Object_bridge>(Shell_core_options::get_instance())));
     set_global_item("shell", "storedSessions", StoredSessions::get());
   }
 
@@ -679,7 +679,7 @@ namespace shcore
     {
       auto module_obj = Object_factory::call_constructor("__modules__", name, shcore::Argument_list());
 
-      boost::shared_ptr<shcore::Module_base> module = boost::dynamic_pointer_cast<shcore::Module_base>(module_obj);
+      std::shared_ptr<shcore::Module_base> module = std::dynamic_pointer_cast<shcore::Module_base>(module_obj);
 
       PyMethodDef py_members[] = { { NULL, NULL, 0, NULL } };
 

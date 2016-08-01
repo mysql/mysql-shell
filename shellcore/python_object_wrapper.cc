@@ -47,11 +47,11 @@ struct PyShMethodObject
 {
   PyObject_HEAD
 
-  boost::shared_ptr<Cpp_object_bridge> *object;
+  std::shared_ptr<Cpp_object_bridge> *object;
   std::string *method;
 };
 
-static PyObject *call_object_method(boost::shared_ptr<Cpp_object_bridge> object, const char *method, PyObject *args)
+static PyObject *call_object_method(std::shared_ptr<Cpp_object_bridge> object, const char *method, PyObject *args)
 {
   Python_context *ctx = Python_context::get_and_check();
   if (!ctx)
@@ -184,13 +184,13 @@ static PyTypeObject PyShMethodObjectType =
 #endif
 };
 
-static PyObject *wrap_method(boost::shared_ptr<Cpp_object_bridge> object, const char *method_name)
+static PyObject *wrap_method(std::shared_ptr<Cpp_object_bridge> object, const char *method_name)
 {
   // create a method call object and return it
   PyShMethodObject *method = PyObject_New(PyShMethodObject, &PyShMethodObjectType);
   if (!method)
     return NULL;
-  method->object = new boost::shared_ptr<Cpp_object_bridge>(object);
+  method->object = new std::shared_ptr<Cpp_object_bridge>(object);
   method->method = new std::string(method_name);
   return (PyObject*)method;
 }
@@ -265,7 +265,7 @@ static PyObject *object_getattro(PyShObjObject *self, PyObject *attr_name)
       return object;
     PyErr_Clear();
 
-    boost::shared_ptr<Cpp_object_bridge> cobj(boost::static_pointer_cast<Cpp_object_bridge>(*self->object));
+    std::shared_ptr<Cpp_object_bridge> cobj(std::static_pointer_cast<Cpp_object_bridge>(*self->object));
 
     if (cobj->has_method_advanced(attrname, shcore::LowerCaseUnderscores))
       return wrap_method(cobj, attrname);
@@ -295,7 +295,7 @@ static PyObject *object_getattro(PyShObjObject *self, PyObject *attr_name)
     }
     else if (strcmp(attrname, "__members__") == 0)
     {
-      boost::shared_ptr<Cpp_object_bridge> cobj(boost::static_pointer_cast<Cpp_object_bridge>(*self->object));
+      std::shared_ptr<Cpp_object_bridge> cobj(std::static_pointer_cast<Cpp_object_bridge>(*self->object));
 
       std::vector<std::string> members(cobj->get_members_advanced(shcore::LowerCaseUnderscores));
       PyObject *list = PyList_New(members.size());
@@ -317,7 +317,7 @@ static int object_setattro(PyShObjObject *self, PyObject *attr_name, PyObject *a
 {
   if (PyString_Check(attr_name))
   {
-    boost::shared_ptr<Cpp_object_bridge> cobj(boost::static_pointer_cast<Cpp_object_bridge>(*self->object));
+    std::shared_ptr<Cpp_object_bridge> cobj(std::static_pointer_cast<Cpp_object_bridge>(*self->object));
     const char *attrname = PyString_AsString(attr_name);
 
     if (cobj->has_member_advanced(attrname, shcore::LowerCaseUnderscores))
@@ -353,17 +353,17 @@ static int object_setattro(PyShObjObject *self, PyObject *attr_name, PyObject *a
   return -1;
 }
 
-static PyObject *call_object_method(boost::shared_ptr<shcore::Object_bridge> object, Value method, PyObject *args)
+static PyObject *call_object_method(std::shared_ptr<shcore::Object_bridge> object, Value method, PyObject *args)
 {
   Python_context *ctx = Python_context::get_and_check();
   if (!ctx)
     return NULL;
 
-  boost::shared_ptr<shcore::Function_base> func = method.as_function();
+  std::shared_ptr<shcore::Function_base> func = method.as_function();
 
   if ((int)func->signature().size() != PyTuple_Size(args))
   {
-    boost::shared_ptr<Cpp_function> cfunc(boost::static_pointer_cast<Cpp_function>(func));
+    std::shared_ptr<Cpp_function> cfunc(std::static_pointer_cast<Cpp_function>(func));
     std::stringstream err;
     err << cfunc->name(shcore::LowerCaseUnderscores).c_str() << "()" <<
     " takes " << (int)func->signature().size() <<
@@ -398,8 +398,8 @@ static PyObject *call_object_method(boost::shared_ptr<shcore::Object_bridge> obj
     {
       WillLeavePython lock;
 
-      boost::shared_ptr<Cpp_object_bridge> cobj(boost::static_pointer_cast<Cpp_object_bridge>(object));
-      boost::shared_ptr<Cpp_function> cfunc(boost::static_pointer_cast<Cpp_function>(func));
+      std::shared_ptr<Cpp_object_bridge> cobj(std::static_pointer_cast<Cpp_object_bridge>(object));
+      std::shared_ptr<Cpp_function> cfunc(std::static_pointer_cast<Cpp_function>(func));
 
       result = cobj->call_advanced(cfunc->name(shcore::LowerCaseUnderscores), r, shcore::LowerCaseUnderscores);
     }
@@ -424,7 +424,7 @@ object_callmethod(PyShObjObject *self, PyObject *args)
     Python_context::set_python_error(PyExc_TypeError, "1st argument must be name of method to call");
     return NULL;
   }
-  boost::shared_ptr<Cpp_object_bridge> cobj(boost::static_pointer_cast<Cpp_object_bridge>(*self->object));
+  std::shared_ptr<Cpp_object_bridge> cobj(std::static_pointer_cast<Cpp_object_bridge>(*self->object));
 
   const Value method = cobj->get_member_advanced(PyString_AsString(method_name), shcore::LowerCaseUnderscores);
   if (!method)
@@ -439,7 +439,7 @@ object_callmethod(PyShObjObject *self, PyObject *args)
    */
   try
   {
-    boost::shared_ptr<shcore::Function_base> func = method.as_function();
+    std::shared_ptr<shcore::Function_base> func = method.as_function();
   }
   catch (std::exception &exc)
   {
@@ -727,7 +727,7 @@ void Python_context::init_shell_object_type()
   _shell_indexed_object_class = PyDict_GetItemString(PyModule_GetDict(get_shell_module()), "IndexedObject");
 }
 
-PyObject *shcore::wrap(boost::shared_ptr<Object_bridge> object)
+PyObject *shcore::wrap(std::shared_ptr<Object_bridge> object)
 {
   PyShObjObject *wrapper;
 
@@ -741,7 +741,7 @@ PyObject *shcore::wrap(boost::shared_ptr<Object_bridge> object)
   return reinterpret_cast<PyObject*>(wrapper);
 }
 
-bool shcore::unwrap(PyObject *value, boost::shared_ptr<Object_bridge> &ret_object)
+bool shcore::unwrap(PyObject *value, std::shared_ptr<Object_bridge> &ret_object)
 {
   Python_context *ctx = Python_context::get_and_check();
   if (!ctx) return false;

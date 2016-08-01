@@ -27,9 +27,6 @@
 #include "shellcore/types.h"
 #include "shellcore/types_cpp.h"
 
-#include <boost/enable_shared_from_this.hpp>
-#include <boost/weak_ptr.hpp>
-
 namespace shcore
 {
   class Proxy_object;
@@ -45,7 +42,7 @@ namespace mysh
   class SHCORE_PUBLIC DatabaseObject : public shcore::Cpp_object_bridge
   {
   public:
-    DatabaseObject(boost::shared_ptr<ShellBaseSession> session, boost::shared_ptr<DatabaseObject> schema, const std::string &name);
+    DatabaseObject(std::shared_ptr<ShellBaseSession> session, std::shared_ptr<DatabaseObject> schema, const std::string &name);
     ~DatabaseObject();
 
     virtual std::string &append_descr(std::string &s_out, int indent = -1, int quote_strings = 0) const;
@@ -81,15 +78,15 @@ namespace mysh
 #endif
 
   protected:
-    boost::weak_ptr<ShellBaseSession> _session;
-    boost::weak_ptr<DatabaseObject> _schema;
+    std::weak_ptr<ShellBaseSession> _session;
+    std::weak_ptr<DatabaseObject> _schema;
     std::string _name;
 
   private:
     void init();
     // Handling of database object caches
   public:
-    typedef boost::shared_ptr<shcore::Value::Map_type> Cache;
+    typedef std::shared_ptr<shcore::Value::Map_type> Cache;
     static void update_cache(const std::vector<std::string>& names, const std::function<shcore::Value(const std::string &name)>& generator, Cache target_cache, DatabaseObject* target = NULL);
     static void update_cache(const std::string& name, const std::function<shcore::Value(const std::string &name)>& generator, bool exists, Cache target_cache, DatabaseObject* target = NULL);
     static void get_object_list(Cache target_cache, shcore::Value::Array_type_ref list);

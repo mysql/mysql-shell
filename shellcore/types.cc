@@ -35,7 +35,7 @@ using namespace shcore;
 
 // --
 
-Exception::Exception(const boost::shared_ptr<Value::Map_type> e)
+Exception::Exception(const std::shared_ptr<Value::Map_type> e)
   : _error(e)
 {
   log_error("%s", what());
@@ -43,7 +43,7 @@ Exception::Exception(const boost::shared_ptr<Value::Map_type> e)
 
 Exception Exception::argument_error(const std::string &message)
 {
-  boost::shared_ptr<Value::Map_type> error(new Value::Map_type());
+  std::shared_ptr<Value::Map_type> error(new Value::Map_type());
   (*error)["type"] = Value("ArgumentError");
   (*error)["message"] = Value(message);
   Exception e(error);
@@ -52,7 +52,7 @@ Exception Exception::argument_error(const std::string &message)
 
 Exception Exception::attrib_error(const std::string &message)
 {
-  boost::shared_ptr<Value::Map_type> error(new Value::Map_type());
+  std::shared_ptr<Value::Map_type> error(new Value::Map_type());
   (*error)["type"] = Value("AttributeError");
   (*error)["message"] = Value(message);
   Exception e(error);
@@ -61,7 +61,7 @@ Exception Exception::attrib_error(const std::string &message)
 
 Exception Exception::type_error(const std::string &message)
 {
-  boost::shared_ptr<Value::Map_type> error(new Value::Map_type());
+  std::shared_ptr<Value::Map_type> error(new Value::Map_type());
   (*error)["type"] = Value("TypeError");
   (*error)["message"] = Value(message);
   Exception e(error);
@@ -70,7 +70,7 @@ Exception Exception::type_error(const std::string &message)
 
 Exception Exception::value_error(const std::string &message)
 {
-  boost::shared_ptr<Value::Map_type> error(new Value::Map_type());
+  std::shared_ptr<Value::Map_type> error(new Value::Map_type());
   (*error)["type"] = Value("ValueError");
   (*error)["message"] = Value(message);
   Exception e(error);
@@ -79,7 +79,7 @@ Exception Exception::value_error(const std::string &message)
 
 Exception Exception::logic_error(const std::string &message)
 {
-  boost::shared_ptr<Value::Map_type> error(new Value::Map_type());
+  std::shared_ptr<Value::Map_type> error(new Value::Map_type());
   (*error)["type"] = Value("LogicError");
   (*error)["message"] = Value(message);
   Exception e(error);
@@ -88,7 +88,7 @@ Exception Exception::logic_error(const std::string &message)
 
 Exception Exception::runtime_error(const std::string &message)
 {
-  boost::shared_ptr<Value::Map_type> error(new Value::Map_type());
+  std::shared_ptr<Value::Map_type> error(new Value::Map_type());
   (*error)["type"] = Value("RuntimeError");
   (*error)["message"] = Value(message);
   Exception e(error);
@@ -97,7 +97,7 @@ Exception Exception::runtime_error(const std::string &message)
 
 Exception Exception::scripting_error(const std::string &message)
 {
-  boost::shared_ptr<Value::Map_type> error(new Value::Map_type());
+  std::shared_ptr<Value::Map_type> error(new Value::Map_type());
   (*error)["type"] = Value("ScriptingError");
   (*error)["message"] = Value(message);
   Exception e(error);
@@ -106,7 +106,7 @@ Exception Exception::scripting_error(const std::string &message)
 
 Exception Exception::error_with_code(const std::string &type, const std::string &message, int code)
 {
-  boost::shared_ptr<Value::Map_type> error(new Value::Map_type());
+  std::shared_ptr<Value::Map_type> error(new Value::Map_type());
   (*error)["type"] = Value(type);
   (*error)["message"] = Value(message);
   (*error)["code"] = Value(code);
@@ -116,7 +116,7 @@ Exception Exception::error_with_code(const std::string &type, const std::string 
 
 Exception Exception::error_with_code_and_state(const std::string &type, const std::string &message, int code, const char *sqlstate)
 {
-  boost::shared_ptr<Value::Map_type> error(new Value::Map_type());
+  std::shared_ptr<Value::Map_type> error(new Value::Map_type());
   (*error)["type"] = Value(type);
   (*error)["message"] = Value(message);
   (*error)["code"] = Value(code);
@@ -127,7 +127,7 @@ Exception Exception::error_with_code_and_state(const std::string &type, const st
 
 Exception Exception::parser_error(const std::string &message)
 {
-  boost::shared_ptr<Value::Map_type> error(new Value::Map_type());
+  std::shared_ptr<Value::Map_type> error(new Value::Map_type());
   (*error)["type"] = Value("ParserError");
   (*error)["message"] = Value(message);
   Exception e(error);
@@ -315,8 +315,8 @@ double Value::Map_type::get_double(const std::string &k, double def) const
   return iter->second.as_double();
 }
 
-boost::shared_ptr<Value::Map_type> Value::Map_type::get_map(const std::string &k,
-  boost::shared_ptr<Map_type> def) const
+std::shared_ptr<Value::Map_type> Value::Map_type::get_map(const std::string &k,
+  std::shared_ptr<Map_type> def) const
 {
   const_iterator iter = find(k);
   if (iter == end())
@@ -325,8 +325,8 @@ boost::shared_ptr<Value::Map_type> Value::Map_type::get_map(const std::string &k
   return iter->second.as_map();
 }
 
-boost::shared_ptr<Value::Array_type> Value::Map_type::get_array(const std::string &k,
-  boost::shared_ptr<Array_type> def) const
+std::shared_ptr<Value::Array_type> Value::Map_type::get_array(const std::string &k,
+  std::shared_ptr<Array_type> def) const
 {
   const_iterator iter = find(k);
   if (iter == end())
@@ -335,7 +335,7 @@ boost::shared_ptr<Value::Array_type> Value::Map_type::get_array(const std::strin
   return iter->second.as_array();
 }
 
-void Value::Map_type::merge_contents(boost::shared_ptr<Map_type> source, bool overwrite)
+void Value::Map_type::merge_contents(std::shared_ptr<Map_type> source, bool overwrite)
 {
   Value::Map_type::const_iterator iter;
   for (iter = source->begin(); iter != source->end(); ++iter)
@@ -418,34 +418,34 @@ Value::Value(bool b)
   value.b = b;
 }
 
-Value::Value(boost::shared_ptr<Function_base> f)
+Value::Value(std::shared_ptr<Function_base> f)
   : type(Function)
 {
-  value.func = new boost::shared_ptr<Function_base>(f);
+  value.func = new std::shared_ptr<Function_base>(f);
 }
 
-Value::Value(boost::shared_ptr<Object_bridge> n)
+Value::Value(std::shared_ptr<Object_bridge> n)
   : type(Object)
 {
-  value.o = new boost::shared_ptr<Object_bridge>(n);
+  value.o = new std::shared_ptr<Object_bridge>(n);
 }
 
 Value::Value(Map_type_ref n)
   : type(Map)
 {
-  value.map = new boost::shared_ptr<Map_type>(n);
+  value.map = new std::shared_ptr<Map_type>(n);
 }
 
-Value::Value(boost::weak_ptr<Map_type> n)
+Value::Value(std::weak_ptr<Map_type> n)
   : type(MapRef)
 {
-  value.mapref = new boost::weak_ptr<Map_type>(n);
+  value.mapref = new std::weak_ptr<Map_type>(n);
 }
 
 Value::Value(Array_type_ref n)
   : type(Array)
 {
-  value.array = new boost::shared_ptr<Array_type>(n);
+  value.array = new std::shared_ptr<Array_type>(n);
 }
 
 Value &Value::operator= (const Value &other)
@@ -542,19 +542,19 @@ Value &Value::operator= (const Value &other)
       value.s = new std::string(*other.value.s);
       break;
     case Object:
-      value.o = new boost::shared_ptr<Object_bridge>(*other.value.o);
+      value.o = new std::shared_ptr<Object_bridge>(*other.value.o);
       break;
     case Array:
-      value.array = new boost::shared_ptr<Array_type>(*other.value.array);
+      value.array = new std::shared_ptr<Array_type>(*other.value.array);
       break;
     case Map:
-      value.map = new boost::shared_ptr<Map_type>(*other.value.map);
+      value.map = new std::shared_ptr<Map_type>(*other.value.map);
       break;
     case MapRef:
-      value.mapref = new boost::weak_ptr<Map_type>(*other.value.mapref);
+      value.mapref = new std::weak_ptr<Map_type>(*other.value.mapref);
       break;
     case Function:
-      value.func = new boost::shared_ptr<Function_base>(*other.value.func);
+      value.func = new std::shared_ptr<Function_base>(*other.value.func);
       break;
     }
   }
@@ -1411,7 +1411,7 @@ double Argument_list::double_at(unsigned int i) const
   return ret_val;
 }
 
-boost::shared_ptr<Object_bridge> Argument_list::object_at(unsigned int i) const
+std::shared_ptr<Object_bridge> Argument_list::object_at(unsigned int i) const
 {
   if (i >= size())
     throw Exception::argument_error("Insufficient number of arguments");
@@ -1420,7 +1420,7 @@ boost::shared_ptr<Object_bridge> Argument_list::object_at(unsigned int i) const
   return *at(i).value.o;
 }
 
-boost::shared_ptr<Value::Map_type> Argument_list::map_at(unsigned int i) const
+std::shared_ptr<Value::Map_type> Argument_list::map_at(unsigned int i) const
 {
   if (i >= size())
     throw Exception::argument_error("Insufficient number of arguments");
@@ -1429,7 +1429,7 @@ boost::shared_ptr<Value::Map_type> Argument_list::map_at(unsigned int i) const
   return *at(i).value.map;
 }
 
-boost::shared_ptr<Value::Array_type> Argument_list::array_at(unsigned int i) const
+std::shared_ptr<Value::Array_type> Argument_list::array_at(unsigned int i) const
 {
   if (i >= size())
     throw Exception::argument_error("Insufficient number of arguments");

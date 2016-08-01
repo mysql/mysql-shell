@@ -23,11 +23,8 @@
 #include <fstream>
 #include <string>
 #include <boost/format.hpp>
-#include <boost/shared_ptr.hpp>
-#include <boost/bind.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/algorithm/string.hpp>
-#include <boost/pointer_cast.hpp>
 
 #include "gtest/gtest.h"
 #include "shellcore/types.h"
@@ -215,10 +212,10 @@ namespace shcore
     TEST_F(Python, array_to_py)
     {
       boost::system::error_code error;
-      boost::shared_ptr<Value::Array_type> arr2(new Value::Array_type);
+      std::shared_ptr<Value::Array_type> arr2(new Value::Array_type);
       arr2->push_back(Value(444));
 
-      boost::shared_ptr<Value::Array_type> arr(new Value::Array_type);
+      std::shared_ptr<Value::Array_type> arr(new Value::Array_type);
       arr->push_back(Value(123));
       arr->push_back(Value("text"));
       arr->push_back(Value(arr2));
@@ -246,10 +243,10 @@ namespace shcore
     TEST_F(Python, map_to_py)
     {
       boost::system::error_code error;
-      boost::shared_ptr<Value::Map_type> map2(new Value::Map_type);
+      std::shared_ptr<Value::Map_type> map2(new Value::Map_type);
       (*map2)["submap"] = Value(444);
 
-      boost::shared_ptr<Value::Map_type> map(new Value::Map_type);
+      std::shared_ptr<Value::Map_type> map(new Value::Map_type);
       (*map)["k1"] = Value(123);
       (*map)["k2"] = Value("text");
       (*map)["k3"] = Value(map2);
@@ -286,20 +283,20 @@ namespace shcore
     TEST_F(Python, object_to_py)
     {
       boost::system::error_code error;
-      boost::shared_ptr<Test_object> obj = boost::shared_ptr<Test_object>(new Test_object(1234));
-      boost::shared_ptr<Test_object> obj2 = boost::shared_ptr<Test_object>(new Test_object(1234));
-      boost::shared_ptr<Test_object> obj3 = boost::shared_ptr<Test_object>(new Test_object(123));
+      std::shared_ptr<Test_object> obj = std::shared_ptr<Test_object>(new Test_object(1234));
+      std::shared_ptr<Test_object> obj2 = std::shared_ptr<Test_object>(new Test_object(1234));
+      std::shared_ptr<Test_object> obj3 = std::shared_ptr<Test_object>(new Test_object(123));
 
       ASSERT_EQ(*obj, *obj2);
-      ASSERT_EQ(Value(boost::static_pointer_cast<Object_bridge>(obj)), Value(boost::static_pointer_cast<Object_bridge>(obj2)));
+      ASSERT_EQ(Value(std::static_pointer_cast<Object_bridge>(obj)), Value(std::static_pointer_cast<Object_bridge>(obj2)));
       ASSERT_NE(*obj, *obj3);
 
       WillEnterPython lock;
 
-      ASSERT_EQ(Value(boost::static_pointer_cast<Object_bridge>(obj2)), py->pyobj_to_shcore_value(py->shcore_value_to_pyobj(Value(boost::static_pointer_cast<Object_bridge>(obj)))));
+      ASSERT_EQ(Value(std::static_pointer_cast<Object_bridge>(obj2)), py->pyobj_to_shcore_value(py->shcore_value_to_pyobj(Value(std::static_pointer_cast<Object_bridge>(obj)))));
 
       // expose the object to JS
-      //py->set_global("test_obj", Value(boost::static_pointer_cast<Object_bridge>(obj)));
+      //py->set_global("test_obj", Value(std::static_pointer_cast<Object_bridge>(obj)));
 
       //ASSERT_EQ(py->execute_interactive("type(test_obj)").descr(false), "m.Test");
 
@@ -321,8 +318,8 @@ namespace shcore
     TEST_F(Python, function_to_py)
     {
       boost::system::error_code error;
-      boost::shared_ptr<Function_base> func(Cpp_function::create("do_tests",
-      boost::bind(do_tests, _1), "bla", String, NULL));
+      std::shared_ptr<Function_base> func(Cpp_function::create("do_tests",
+      std::bind(do_tests, _1), "bla", String, NULL));
 
       shcore::Value v(func);
       shcore::Value v2(func);

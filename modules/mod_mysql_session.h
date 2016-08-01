@@ -30,8 +30,6 @@
 #include "mysql_connection.h"
 #include "base_session.h"
 
-#include <boost/enable_shared_from_this.hpp>
-
 namespace shcore
 {
   class Shell_core;
@@ -65,7 +63,7 @@ namespace mysh
     * \sa mysql.getClassicSession(String connectionData, String password)
     * \sa mysql.getClassicSession(Map connectionData, String password)
     */
-    class SHCORE_PUBLIC ClassicSession : public ShellDevelopmentSession, public boost::enable_shared_from_this<ClassicSession>
+    class SHCORE_PUBLIC ClassicSession : public ShellDevelopmentSession, public std::enable_shared_from_this<ClassicSession>
     {
     public:
       ClassicSession();
@@ -99,7 +97,7 @@ namespace mysh
 
       virtual std::string db_object_exists(std::string &type, const std::string &name, const std::string& owner) const;
 
-      static boost::shared_ptr<shcore::Object_bridge> create(const shcore::Argument_list &args);
+      static std::shared_ptr<shcore::Object_bridge> create(const shcore::Argument_list &args);
 
       Connection *connection();
 
@@ -154,7 +152,7 @@ namespace mysh
       void init();
       std::string _retrieve_current_schema();
       void _remove_schema(const std::string& name);
-      boost::shared_ptr<Connection> _conn;
+      std::shared_ptr<Connection> _conn;
     };
   };
 };

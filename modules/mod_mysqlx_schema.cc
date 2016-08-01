@@ -31,10 +31,8 @@
 #include "mod_mysqlx_collection.h"
 #include "mod_mysqlx_resultset.h"
 
-#include <boost/bind.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/format.hpp>
-#include <boost/pointer_cast.hpp>
 #include "utils/utils_general.h"
 #include "logger/logger.h"
 
@@ -42,14 +40,14 @@ using namespace mysh;
 using namespace mysh::mysqlx;
 using namespace shcore;
 
-Schema::Schema(boost::shared_ptr<BaseSession> session, const std::string &schema)
-  : DatabaseObject(session, boost::shared_ptr<DatabaseObject>(), schema), _schema_impl(session->session_obj()->getSchema(schema))
+Schema::Schema(std::shared_ptr<BaseSession> session, const std::string &schema)
+  : DatabaseObject(session, std::shared_ptr<DatabaseObject>(), schema), _schema_impl(session->session_obj()->getSchema(schema))
 {
   init();
 }
 
-Schema::Schema(boost::shared_ptr<const BaseSession> session, const std::string &schema) :
-DatabaseObject(boost::const_pointer_cast<BaseSession>(session), boost::shared_ptr<DatabaseObject>(), schema)
+Schema::Schema(std::shared_ptr<const BaseSession> session, const std::string &schema) :
+DatabaseObject(std::const_pointer_cast<BaseSession>(session), std::shared_ptr<DatabaseObject>(), schema)
 {
   init();
 }
@@ -60,14 +58,14 @@ Schema::~Schema()
 
 void Schema::init()
 {
-  add_method("getTables", boost::bind(&Schema::get_tables, this, _1), NULL);
-  add_method("getCollections", boost::bind(&Schema::get_collections, this, _1), NULL);
+  add_method("getTables", std::bind(&Schema::get_tables, this, _1), NULL);
+  add_method("getCollections", std::bind(&Schema::get_collections, this, _1), NULL);
 
-  add_method("getTable", boost::bind(&Schema::get_table, this, _1), "name", shcore::String, NULL);
-  add_method("getCollection", boost::bind(&Schema::get_collection, this, _1), "name", shcore::String, NULL);
-  add_method("getCollectionAsTable", boost::bind(&Schema::get_collection_as_table, this, _1), "name", shcore::String, NULL);
+  add_method("getTable", std::bind(&Schema::get_table, this, _1), "name", shcore::String, NULL);
+  add_method("getCollection", std::bind(&Schema::get_collection, this, _1), "name", shcore::String, NULL);
+  add_method("getCollectionAsTable", std::bind(&Schema::get_collection_as_table, this, _1), "name", shcore::String, NULL);
 
-  add_method("createCollection", boost::bind(&Schema::create_collection, this, _1), "name", shcore::String, NULL);
+  add_method("createCollection", std::bind(&Schema::create_collection, this, _1), "name", shcore::String, NULL);
 
   _tables = Value::new_map().as_map();
   _views = Value::new_map().as_map();
@@ -91,7 +89,7 @@ void Schema::update_cache()
 {
   try
   {
-    boost::shared_ptr<BaseSession> sess(boost::static_pointer_cast<BaseSession>(_session.lock()));
+    std::shared_ptr<BaseSession> sess(std::static_pointer_cast<BaseSession>(_session.lock()));
     if (sess)
     {
       std::vector<std::string> tables;
@@ -105,13 +103,13 @@ void Schema::update_cache()
         args.push_back(Value(""));
 
         Value myres = sess->executeAdminCommand("list_objects", true, args);
-        boost::shared_ptr<mysh::mysqlx::SqlResult> my_res = myres.as_object<mysh::mysqlx::SqlResult>();
+        std::shared_ptr<mysh::mysqlx::SqlResult> my_res = myres.as_object<mysh::mysqlx::SqlResult>();
 
         Value raw_entry;
 
         while ((raw_entry = my_res->fetch_one(shcore::Argument_list())))
         {
-          boost::shared_ptr<mysh::Row> row = raw_entry.as_object<mysh::Row>();
+          std::shared_ptr<mysh::Row> row = raw_entry.as_object<mysh::Row>();
           std::string object_name = row->get_member("name").as_string();
           std::string object_type = row->get_member("type").as_string();
 
@@ -387,8 +385,8 @@ shcore::Value Schema::get_collection_as_table(const shcore::Argument_list &args)
 
   if (ret_val)
   {
-    boost::shared_ptr<Table> table(new Table(shared_from_this(), args.string_at(0)));
-    ret_val = Value(boost::static_pointer_cast<Object_bridge>(table));
+    std::shared_ptr<Table> table(new Table(shared_from_this(), args.string_at(0)));
+    ret_val = Value(std::static_pointer_cast<Object_bridge>(table));
 }
 
   return ret_val;
@@ -421,7 +419,7 @@ shcore::Value Schema::create_collection(const shcore::Argument_list &args)
   command_args.push_back(Value(_name));
   command_args.push_back(args[0]);
 
-  boost::shared_ptr<BaseSession> sess(boost::static_pointer_cast<BaseSession>(_session.lock()));
+  std::shared_ptr<BaseSession> sess(std::static_pointer_cast<BaseSession>(_session.lock()));
   sess->executeAdminCommand("create_collection", false, command_args);
 
   // If this is reached it implies all went OK on the previous operation

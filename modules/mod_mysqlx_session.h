@@ -31,8 +31,6 @@
 #include "mod_mysqlx_session_handle.h"
 #include "mysqlxtest/mysqlx.h"
 
-#include <boost/enable_shared_from_this.hpp>
-
 namespace shcore
 {
   class Proxy_object;
@@ -136,9 +134,9 @@ namespace mysh
 
       shcore::Value set_fetch_warnings(const shcore::Argument_list &args);
 
-      boost::shared_ptr< ::mysqlx::Session> session_obj() const;
+      std::shared_ptr< ::mysqlx::Session> session_obj() const;
 
-      static boost::shared_ptr<shcore::Object_bridge> create(const shcore::Argument_list &args);
+      static std::shared_ptr<shcore::Object_bridge> create(const shcore::Argument_list &args);
 
       bool table_name_compare(const std::string &n1, const std::string &n2);
 
@@ -148,7 +146,7 @@ namespace mysh
 
     protected:
       shcore::Value executeStmt(const std::string &domain, const std::string& command, bool expect_data, const shcore::Argument_list &args) const;
-      virtual boost::shared_ptr<BaseSession> _get_shared_this() const = 0;
+      virtual std::shared_ptr<BaseSession> _get_shared_this() const = 0;
       std::string _retrieve_current_schema();
       void _retrieve_session_info(std::string &current_schema, int &case_sensitive_table_names);
 
@@ -173,16 +171,16 @@ namespace mysh
     *
     * \sa BaseSession
     */
-    class SHCORE_PUBLIC XSession : public BaseSession, public boost::enable_shared_from_this<XSession>
+    class SHCORE_PUBLIC XSession : public BaseSession, public std::enable_shared_from_this<XSession>
     {
     public:
       XSession(){};
       XSession(const XSession& s) : BaseSession(s) {}
       virtual ~XSession(){};
       virtual std::string class_name() const { return "XSession"; };
-      static boost::shared_ptr<shcore::Object_bridge> create(const shcore::Argument_list &args);
+      static std::shared_ptr<shcore::Object_bridge> create(const shcore::Argument_list &args);
 
-      virtual boost::shared_ptr<BaseSession> _get_shared_this() const;
+      virtual std::shared_ptr<BaseSession> _get_shared_this() const;
     };
 
     /**
@@ -192,7 +190,7 @@ namespace mysh
     *
     * \sa BaseSession
     */
-    class SHCORE_PUBLIC NodeSession : public BaseSession, public boost::enable_shared_from_this<NodeSession>
+    class SHCORE_PUBLIC NodeSession : public BaseSession, public std::enable_shared_from_this<NodeSession>
     {
     public:
 #if DOXYGEN_JS
@@ -217,8 +215,8 @@ namespace mysh
 
       virtual shcore::Value get_member(const std::string &prop) const;
 
-      static boost::shared_ptr<shcore::Object_bridge> create(const shcore::Argument_list &args);
-      virtual boost::shared_ptr<BaseSession> _get_shared_this() const;
+      static std::shared_ptr<shcore::Object_bridge> create(const shcore::Argument_list &args);
+      virtual std::shared_ptr<BaseSession> _get_shared_this() const;
       shcore::Value sql(const shcore::Argument_list &args);
       shcore::Value quote_name(const shcore::Argument_list &args);
 

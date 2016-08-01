@@ -48,7 +48,7 @@ void SessionHandle::open(const std::string &host, int port, const std::string &s
   _session = ::mysqlx::openSession(host, port, schema, user, pass, ssl, 10000, auth_method, true);
 }
 
-boost::shared_ptr< ::mysqlx::Result> SessionHandle::execute_sql(const std::string &sql) const
+std::shared_ptr< ::mysqlx::Result> SessionHandle::execute_sql(const std::string &sql) const
 {
   return _session->executeSql(sql);
 }
@@ -68,11 +68,11 @@ void SessionHandle::reset()
   }
 }
 
-boost::shared_ptr< ::mysqlx::Result> SessionHandle::execute_statement(const std::string &domain, const std::string& command, const Argument_list &args) const
+std::shared_ptr< ::mysqlx::Result> SessionHandle::execute_statement(const std::string &domain, const std::string& command, const Argument_list &args) const
 {
   // Will return the result of the SQL execution
   // In case of error will be Undefined
-  boost::shared_ptr< ::mysqlx::Result> ret_val;
+  std::shared_ptr< ::mysqlx::Result> ret_val;
 
   if (!_session)
     throw Exception::logic_error("Not connected.");
