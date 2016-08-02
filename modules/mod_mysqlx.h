@@ -33,6 +33,7 @@ namespace mysh
 
     DECLARE_FUNCTION(get_session);
     DECLARE_FUNCTION(get_node_session);
+    DECLARE_FUNCTION(get_admin_session);
     DECLARE_FUNCTION(expr);
     DECLARE_FUNCTION(date_value);
 
