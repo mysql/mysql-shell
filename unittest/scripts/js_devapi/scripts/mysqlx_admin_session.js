@@ -1,7 +1,7 @@
 // Assumptions: ensure_schema_does_not_exist is available
 // Assumes __uripwd is defined as <user>:<pwd>@<host>:<plugin_port>
 // validateMemer and validateNotMember are defined on the setup script
-var mysqlx = require('mysqlx').mysqlx;
+var mysqlx = require('mysqlx');
 
 //@ Session: validating members
 var myAdmin = mysqlx.getAdminSession(__uripwd);

@@ -63,7 +63,7 @@ namespace shcore
 
     TEST_F(Shell_js_adminapi_tests, getAdminSession)
     {
-      _interactive_shell->process_line("var mysqlx = require('mysqlx').mysqlx;");
+      _interactive_shell->process_line("var mysqlx = require('mysqlx');");
       _interactive_shell->process_line("var admin = mysqlx.getAdminSession('" + _uri + "');");
       _interactive_shell->process_line("admin");
       MY_EXPECT_STDOUT_CONTAINS("<AdminSession:"+_uri_nopasswd);
@@ -74,7 +74,7 @@ namespace shcore
 
     TEST_F(Shell_js_adminapi_tests, createFarm)
     {
-      _interactive_shell->process_line("var mysqlx = require('mysqlx').mysqlx;");
+      _interactive_shell->process_line("var mysqlx = require('mysqlx');");
       _interactive_shell->process_line("var admin = mysqlx.getAdminSession('" + _uri + "');");
 
       _interactive_shell->process_line("farm = admin.createFarm('devFarm')");
@@ -107,7 +107,7 @@ namespace shcore
 
     TEST_F(Shell_js_adminapi_tests, dropFarm)
     {
-      _interactive_shell->process_line("var mysqlx = require('mysqlx').mysqlx;");
+      _interactive_shell->process_line("var mysqlx = require('mysqlx');");
       _interactive_shell->process_line("var admin = mysqlx.getAdminSession('" + _uri + "');");
 
       _interactive_shell->process_line("admin.createFarm('devFarm')");
@@ -134,7 +134,7 @@ namespace shcore
 
     TEST_F(Shell_js_adminapi_tests, addNodeFarm)
     {
-      _interactive_shell->process_line("var mysqlx = require('mysqlx').mysqlx;");
+      _interactive_shell->process_line("var mysqlx = require('mysqlx');");
       _interactive_shell->process_line("var admin = mysqlx.getAdminSession('" + _uri + "');");
 
       _interactive_shell->process_line("farm = admin.createFarm('devFarm')");
@@ -179,7 +179,7 @@ namespace shcore
 
     TEST_F(Shell_js_adminapi_tests, defaultReplicaSet)
     {
-       _interactive_shell->process_line("var mysqlx = require('mysqlx').mysqlx;");
+       _interactive_shell->process_line("var mysqlx = require('mysqlx');");
       _interactive_shell->process_line("var admin = mysqlx.getAdminSession('" + _uri + "');");
       _interactive_shell->process_line("farm = admin.createFarm('devFarm')");
       output_handler.wipe_all();
