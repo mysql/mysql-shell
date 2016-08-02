@@ -27,6 +27,7 @@
 #include <vector>
 #include <map>
 #include <set>
+#include <memory>
 
 #include "ngs_common/xdatetime.h"
 #include "mysqlx_common.h"
