@@ -19,9 +19,6 @@
 
 #include "shell_client.h"
 
-#include <boost/shared_ptr.hpp>
-#include <boost/bind.hpp>
-
 #include "shellcore/shell_core.h"
 #include "shellcore/lang_base.h"
 #include "logger/logger.h"
@@ -60,13 +57,13 @@ Shell_client::Shell_client()
 
   _shell->set_global("connect",
     Value(Cpp_function::create("connect",
-    boost::bind(&Shell_client::connect_session, this, _1),
+    std::bind(&Shell_client::connect_session, this, _1),
     "connection_string", String, NULL)));
 }
 
 shcore::Value Shell_client::connect_session(const shcore::Argument_list &args)
 {
-  boost::shared_ptr<mysh::ShellDevelopmentSession> old_session(_shell->get_dev_session()),
+  std::shared_ptr<mysh::ShellDevelopmentSession> old_session(_shell->get_dev_session()),
                                                    new_session(mysh::connect_session(args, mysh::Node));
 
   if (old_session && old_session.unique() && old_session->is_connected())
@@ -89,12 +86,11 @@ shcore::Value Shell_client::connect_session(const shcore::Argument_list &args)
 shcore::Value Shell_client::process_line(const std::string &line)
 {
   Interactive_input_state state = Input_ok;
-  //boost::shared_ptr<Result_set> empty_result = boost::shared_ptr<Result_set>(new Result_set(-1, -1, ""));
 
   try
   {
     std::string l = line;
-    _shell->handle_input(l, state, boost::bind(&Shell_client::process_result, this, _1));
+    _shell->handle_input(l, state, std::bind(&Shell_client::process_result, this, _1));
 
     return _last_result;
   }

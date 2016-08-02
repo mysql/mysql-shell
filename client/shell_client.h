@@ -61,7 +61,7 @@ protected:
   virtual void source(const char* module);
 private:
   shcore::Interpreter_delegate _delegate;
-  boost::shared_ptr<shcore::Shell_core> _shell;
+  std::shared_ptr<shcore::Shell_core> _shell;
   shcore::Value _last_result;
 
   static void deleg_print(void *self, const char *text);
