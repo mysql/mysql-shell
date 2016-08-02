@@ -93,7 +93,7 @@ namespace mysh
     * - Transaction handling functions
     * - Drop functions
     */
-    class SHCORE_PUBLIC Result : public BaseResult, public std::enable_shared_from_this < Result >
+    class SHCORE_PUBLIC Result : public BaseResult
     {
     public:
       Result(std::shared_ptr< ::mysqlx::Result> result);
@@ -132,7 +132,7 @@ namespace mysh
     /**
     * Allows traversing the DbDoc objects returned by a Collection.find operation.
     */
-    class SHCORE_PUBLIC DocResult : public BaseResult, public std::enable_shared_from_this < DocResult >
+    class SHCORE_PUBLIC DocResult : public BaseResult
     {
     public:
       DocResult(std::shared_ptr< ::mysqlx::Result> result);
@@ -162,7 +162,7 @@ namespace mysh
     /**
     * Allows traversing the Row objects returned by a Table.select operation.
     */
-    class SHCORE_PUBLIC RowResult : public BaseResult, public std::enable_shared_from_this < RowResult >
+    class SHCORE_PUBLIC RowResult : public BaseResult
     {
     public:
       RowResult(std::shared_ptr< ::mysqlx::Result> result);
@@ -214,7 +214,7 @@ namespace mysh
     * Allows browsing through the result information after performing an operation on the database
     * done through NodeSession.sql
     */
-    class SHCORE_PUBLIC SqlResult : public RowResult, public std::enable_shared_from_this < SqlResult >
+    class SHCORE_PUBLIC SqlResult : public RowResult
     {
     public:
       SqlResult(std::shared_ptr< ::mysqlx::Result> result);
