@@ -4543,9 +4543,9 @@ class XShell_TestCases(unittest.TestCase):
                 ("session.getSchema(\'sakila\').createCollection(\"test_collection_js\");\n", "mysql-js>"),
                 ("session.getSchema(\'sakila\').getCollection(\"test_collection_js\")\n","<Collection:test_collection_js"),
                 ("\\py\n","mysql-py>"),
-                ("session.dropCollection(\"sakila\",\"test_collection_py\")\n", "mysql-py>"),
-                ("session.getSchema(\'sakila\').createCollection(\"test_collection_py\")\n", "mysql-py>"),
-                ("session.getSchema(\'sakila\').getCollection(\"test_collection_py\")\n","<Collection:test_collection_py"),
+                ("session.drop_collection(\"sakila\",\"test_collection_py\")\n", "mysql-py>"),
+                ("session.get_schema(\'sakila\').create_collection(\"test_collection_py\")\n", "mysql-py>"),
+                ("session.get_schema(\'sakila\').get_collection(\"test_collection_py\")\n","<Collection:test_collection_py"),
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
@@ -4560,9 +4560,9 @@ class XShell_TestCases(unittest.TestCase):
                 ("session.getSchema(\'sakila\').createCollection(\"test_collection_js\");\n", "mysql-js>"),
                 ("session.getSchema(\'sakila\').getCollection(\"test_collection_js\").existsInDatabase()\n","true"),
                 ("\\py\n","mysql-py>"),
-                ("session.dropCollection(\"sakila\",\"test_collection_py\")\n", "mysql-py>"),
-                ("session.getSchema(\'sakila\').createCollection(\"test_collection_py\")\n", "mysql-py>"),
-                ("session.getSchema(\'sakila\').getCollection(\"test_collection_py\").existsInDatabase()\n","true"),
+                ("session.drop_collection(\"sakila\",\"test_collection_py\")\n", "mysql-py>"),
+                ("session.get_schema(\'sakila\').create_collection(\"test_collection_py\")\n", "mysql-py>"),
+                ("session.get_schema(\'sakila\').get_collection(\"test_collection_py\").exists_in_database()\n","true"),
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
