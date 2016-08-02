@@ -1359,7 +1359,7 @@ void Interactive_shell::print_banner()
   println("affiliates. Other names may be trademarks of their respective");
   println("owners.");
   println("");
-  println("Type '\\help', '\\h' or '\\?' for help.");
+  println("Type '\\help', '\\h' or '\\?' for help, type '\\quit' or '\\q' to exit.");
   println("");
 }
 
