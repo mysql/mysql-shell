@@ -34,7 +34,7 @@ namespace MySqlX
   public ref class BaseResult
   {
   public:
-    BaseResult(boost::shared_ptr<mysh::mysqlx::BaseResult> result);
+    BaseResult(std::shared_ptr<mysh::mysqlx::BaseResult> result);
 
     UInt64 GetWarningCount() { return (UInt64)_warningCount; }
     List<Dictionary<String^, Object^>^>^ GetWarnings(){ return _warnings; }
@@ -48,13 +48,13 @@ namespace MySqlX
   protected:
     // TODO: Improve this so the data is returned interactively
     //       only when requested from the managed app
-    //boost::shared_ptr<mysh::mysqlx::BaseResult> _inner;
+    //std::shared_ptr<mysh::mysqlx::BaseResult> _inner;
   };
 
   public ref class Result : public BaseResult
   {
   public:
-    Result(boost::shared_ptr<mysh::mysqlx::Result> result);
+    Result(std::shared_ptr<mysh::mysqlx::Result> result);
     Int64 GetAffectedItemCount() { return (Int64)_affectedItemCount; }
     Int64 GetLastInsertId() { return (Int64)_lastInsertId; }
     String^ GetLastDocumentId() { return _lastDocumentId; }
@@ -68,7 +68,7 @@ namespace MySqlX
   public ref class DocResult : public BaseResult
   {
   public:
-    DocResult(boost::shared_ptr<mysh::mysqlx::DocResult> result);
+    DocResult(std::shared_ptr<mysh::mysqlx::DocResult> result);
 
     Dictionary<String^, Object^>^ FetchOne();
     List<Dictionary<String^, Object^>^>^ FetchAll();
@@ -123,7 +123,7 @@ namespace MySqlX
   public ref class RowResult : public BaseResult
   {
   public:
-    RowResult(boost::shared_ptr<mysh::mysqlx::RowResult> result);
+    RowResult(std::shared_ptr<mysh::mysqlx::RowResult> result);
 
     array<Object^>^ FetchOne();
     List<array<Object^>^>^ FetchAll();
@@ -144,7 +144,7 @@ namespace MySqlX
   public ref class SqlResult : public RowResult
   {
   public:
-    SqlResult(boost::shared_ptr<mysh::mysqlx::SqlResult> result);
+    SqlResult(std::shared_ptr<mysh::mysqlx::SqlResult> result);
 
     Int64 GetAffectedRowCount(){ return (Int64)_affectedRowCount; }
     Int64 GetLastInsertId(){ return (Int64)_lastInsertId; }

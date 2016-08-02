@@ -270,7 +270,7 @@ Value BaseSession::create_schema(const shcore::Argument_list &args)
 * All the operations executed after calling this function, will be discarded is rollback() is called.
 *
 * When commit() or rollback() are called, the server autocommit mode will return back to it's state before calling startTransaction().
- */
+*/
 #if DOXYGEN_JS
 Result BaseSession::startTransaction(){}
 #elif DOXYGEN_PY
@@ -290,7 +290,7 @@ shcore::Value BaseSession::startTransaction(const shcore::Argument_list &args)
 * All the operations executed after calling startTransaction() will take place when this function is called.
 *
 * The server autocommit mode will return back to it's state before calling startTransaction().
- */
+*/
 #if DOXYGEN_JS
 Result BaseSession::commit(){}
 #elif DOXYGEN_PY
@@ -310,7 +310,7 @@ shcore::Value BaseSession::commit(const shcore::Argument_list &args)
 * All the operations executed after calling startTransaction() will be discarded when this function is called.
 *
 * The server autocommit mode will return back to it's state before calling startTransaction().
- */
+*/
 #if DOXYGEN_JS
 Result BaseSession::rollback(){}
 #elif DOXYGEN_PY
@@ -349,15 +349,15 @@ Value BaseSession::executeStmt(const std::string &domain, const std::string& com
 
   if (expect_data)
   {
-    SqlResult *result;
-    ret_val = shcore::Value::wrap(result = new SqlResult(exec_result));
+    SqlResult *result = new SqlResult(exec_result);
     result->set_execution_time(timer.raw_duration());
+    ret_val = shcore::Value::wrap(result);
   }
   else
   {
-    Result *result;
-    ret_val = shcore::Value::wrap(result = new Result(exec_result));
+    Result *result = new Result(exec_result);
     result->set_execution_time(timer.raw_duration());
+    ret_val = shcore::Value::wrap(result);
   }
 
   return ret_val;
@@ -367,7 +367,7 @@ Value BaseSession::executeStmt(const std::string &domain, const std::string& com
 /**
 * Retrieves the Schema configured as default for the session.
 * \return A Schema object or Null
- */
+*/
 #if DOXYGEN_JS
 Schema BaseSession::getDefaultSchema(){}
 #elif DOXYGEN_PY
@@ -377,7 +377,7 @@ Schema BaseSession::get_default_schema(){}
 /**
 * Retrieves the connection data for this session in string format.
 * \return A string representing the connection data.
- */
+*/
 #if DOXYGEN_JS
 String BaseSession::getUri(){}
 #elif DOXYGEN_PY
