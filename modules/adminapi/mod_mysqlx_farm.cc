@@ -26,6 +26,7 @@
 
 #include "mod_mysqlx_replicaset.h"
 #include "mod_mysqlx_metadata_storage.h"
+#include "../mysqlxtest_utils.h"
 
 using namespace std::placeholders;
 using namespace mysh;
@@ -45,6 +46,12 @@ Farm::~Farm()
 bool Farm::operator == (const Object_bridge &other) const
 {
   return class_name() == other.class_name() && this == &other;
+}
+
+std::string &Farm::append_descr(std::string &s_out, int UNUSED(indent), int UNUSED(quote_strings)) const
+{
+  s_out.append("<" + class_name() + ":" + _name + ">");
+  return s_out;
 }
 
 #if DOXYGEN_CPP
@@ -79,7 +86,6 @@ Farm Farm::getAdminType(){}
 Farm Farm::get_admin_type(){}
 #endif
 #endif
-
 shcore::Value Farm::get_member(const std::string &prop) const
 {
   shcore::Value ret_val;
@@ -199,10 +205,14 @@ None add_instance(Document doc){}
 
 shcore::Value Farm::add_instance(const shcore::Argument_list &args)
 {
-  args.ensure_count(1, (class_name() + ".addInstance").c_str());
+  args.ensure_count(1, get_function_name("addInstance").c_str());
 
   // Add the Instance to the Default ReplicaSet
-  _default_replica_set->add_instance(args);
+  try
+  {
+    _default_replica_set->add_instance(args);
+  }
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("addInstance"));
 
   return Value();
 }
@@ -238,7 +248,7 @@ None remove_instance(Document doc){}
 
 shcore::Value Farm::remove_instance(const shcore::Argument_list &args)
 {
-  args.ensure_count(1, (class_name() + ".removeInstance").c_str());
+  args.ensure_count(1, get_function_name("removeInstance").c_str());
 
   // Remove the Instance from the Default ReplicaSet
   _default_replica_set->remove_instance(args);
@@ -269,7 +279,7 @@ shcore::Value Farm::get_replicaset(const shcore::Argument_list &args)
 
   else
   {
-    args.ensure_count(1, (class_name() + ".getReplicaSet").c_str());
+    args.ensure_count(1, get_function_name("getReplicaSet").c_str());
     std::string name = args.string_at(0);
 
     if (name == "default")

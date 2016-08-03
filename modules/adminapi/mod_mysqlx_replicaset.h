@@ -61,6 +61,7 @@ namespace mysh
       None remove_instance(Document doc);
 #endif
 
+      shcore::Value add_instance_(const shcore::Argument_list &args);
       shcore::Value add_instance(const shcore::Argument_list &args);
       shcore::Value remove_instance(const shcore::Argument_list &args);
 

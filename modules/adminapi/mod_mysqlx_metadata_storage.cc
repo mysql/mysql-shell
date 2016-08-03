@@ -327,14 +327,13 @@ bool MetadataStorage::farm_has_default_replicaset_only(std::string farm_name)
 
   row = result->next();
 
+  int count = 0;
   if (!row)
     return true;
 
   // Count the replicasets
   else
   {
-    int count;
-
     while (row)
     {
       count = row->sIntField(0);
@@ -346,21 +345,24 @@ bool MetadataStorage::farm_has_default_replicaset_only(std::string farm_name)
   }
 
   // Confirm that is the default replicaset
-  query = "SELECT replicaset_id FROM farm_metadata_schema.replicasets WHERE farm_id = " + std::to_string(farm_id) + " AND replicaset_name = 'default'";
+  if (count)
+  {
+    query = "SELECT replicaset_id FROM farm_metadata_schema.replicasets WHERE farm_id = " + std::to_string(farm_id) + " AND replicaset_name = 'default'";
 
-  try {
-    result = _admin_session->get_session().execute_sql(query);
+    try {
+      result = _admin_session->get_session().execute_sql(query);
+    }
+    catch (::mysqlx::Error &e) {
+      if (CR_SERVER_GONE_ERROR == e.error() || ER_X_BAD_PIPE == e.error())
+        throw Exception::metadata_error("The Metadata is inaccessible");
+      else
+        throw;
+    }
+
+    row = result->next();
+
+    if (!row) return false;
   }
-  catch (::mysqlx::Error &e) {
-    if (CR_SERVER_GONE_ERROR == e.error() || ER_X_BAD_PIPE == e.error())
-      throw Exception::metadata_error("The Metadata is inaccessible");
-    else
-      throw;
-  }
-
-  row = result->next();
-
-  if (!row) return false;
 
   return true;
 }

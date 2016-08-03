@@ -18,5 +18,40 @@ validateMember(members, 'dropFarm');
 validateMember(members, 'getFarm');
 validateMember(members, 'close');
 
+//@# AdminSession: createFarm errors
+var farm = myAdmin.createFarm();
+var farm = myAdmin.createFarm(5);
+var farm = myAdmin.createFarm('', 5);
+var farm = myAdmin.createFarm('');
+var farm = myAdmin.createFarm('devFarm');
+var farm = myAdmin.createFarm('devFarm');
+
+//@ AdminSession: createFarm
+print (farm)
+
+//@# AdminSession: getFarm errors
+var farm = myAdmin.getFarm();
+var farm = myAdmin.getFarm(5);
+var farm = myAdmin.getFarm('', 5);
+var farm = myAdmin.getFarm('');
+var farm = myAdmin.getFarm('devFarm');
+
+//@ AdminSession: getFarm
+print(farm);
+
+//@# AdminSession: dropFarm errors
+// Need a node to reproduce the not empty error
+farm.addSeedInstance('192.168.1.1:33060');
+var farm = myAdmin.dropFarm();
+var farm = myAdmin.dropFarm(5);
+var farm = myAdmin.dropFarm('');
+var farm = myAdmin.dropFarm('sample', 5);
+var farm = myAdmin.dropFarm('sample', {}, 5);
+var farm = myAdmin.dropFarm('sample');
+var farm = myAdmin.dropFarm('devFarm');
+
+//@ AdminSession: dropFarm
+myAdmin.dropFarm('devFarm', {dropDefaultReplicaSet: true});
+
 // Cleanup
 myAdmin.close();

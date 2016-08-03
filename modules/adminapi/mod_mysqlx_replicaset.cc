@@ -21,6 +21,7 @@
 
 #include "common/uuid/include/uuid_gen.h"
 #include "utils/utils_general.h"
+#include "../mysqlxtest_utils.h"
 
 #include <sstream>
 #include <iostream>
@@ -84,7 +85,7 @@ shcore::Value ReplicaSet::get_member(const std::string &prop) const
 void ReplicaSet::init()
 {
   add_property("name", "getName");
-  add_method("addInstance", std::bind(&ReplicaSet::add_instance, this, _1), "data");
+  add_method("addInstance", std::bind(&ReplicaSet::add_instance_, this, _1), "data");
   add_method("removeInstance", std::bind(&ReplicaSet::remove_instance, this, _1), "data");
 }
 
@@ -115,6 +116,19 @@ Undefined ReplicaSet::addInstance(Document doc){}
 None ReplicaSet::add_instance(Document doc){}
 #endif
 #endif
+shcore::Value ReplicaSet::add_instance_(const shcore::Argument_list &args)
+{
+  args.ensure_count(1, get_function_name("addInstance").c_str());
+
+  // Add the Instance to the Default ReplicaSet
+  try
+  {
+    add_instance(args);
+  }
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("addInstance"));
+
+  return Value();
+}
 
 shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args)
 {
@@ -132,7 +146,9 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args)
   std::string ssl_cert;
   std::string ssl_key;
 
-  args.ensure_count(1, (class_name() + ".addInstance").c_str());
+  // NOTE: This function is called from either the add_instance_ on this class
+  //       or the add_instance in Farm class, hence this just throws exceptions
+  //       and the proper handling is done on the caller functions (to append the called function name)
 
   // Identify the type of connection data (String or Document)
   if (args[0].type == String)
@@ -161,13 +177,13 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args)
     sock = (*options)["socket"].as_string();
 
   if (options->has_key("schema"))
-    throw shcore::Exception::argument_error("Unexpected argument on connection data.");
+    throw shcore::Exception::argument_error("Unexpected argument 'schema' on connection data.");
 
   if (options->has_key("user") || options->has_key("dbUser"))
-    throw shcore::Exception::argument_error("Unexpected argument on connection data.");
+    throw shcore::Exception::argument_error("Unexpected argument 'user' on connection data.");
 
   if (options->has_key("password") || options->has_key("dbPassword"))
-    throw shcore::Exception::argument_error("Unexpected argument on connection data.");
+    throw shcore::Exception::argument_error("Unexpected argument 'password' on connection data.");
 
   if (options->has_key("ssl_ca"))
     ssl_ca = (*options)["ssl_ca"].as_string();
@@ -179,7 +195,7 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args)
     ssl_key = (*options)["ssl_key"].as_string();
 
   if (options->has_key("authMethod"))
-    throw shcore::Exception::argument_error("Unexpected argument on connection data.");
+    throw shcore::Exception::argument_error("Unexpected argument 'authMethod' on connection data.");
 
   if (port == 0 && sock.empty())
     port = get_default_port();
@@ -229,7 +245,7 @@ None ReplicaSet::remove_instance(Document doc){}
 
 shcore::Value ReplicaSet::remove_instance(const shcore::Argument_list &args)
 {
-  args.ensure_count(1, "ReplicaSet.removeInstance");
+  args.ensure_count(1, get_function_name("removeInstance").c_str());
 
   // TODO!
 

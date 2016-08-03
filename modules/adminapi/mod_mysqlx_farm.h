@@ -40,6 +40,7 @@ namespace mysh
       virtual ~Farm();
 
       virtual std::string class_name() const { return "Farm"; }
+      virtual std::string &append_descr(std::string &s_out, int indent = -1, int quote_strings = 0) const;
       virtual bool operator == (const Object_bridge &other) const;
 
       virtual shcore::Value get_member(const std::string &prop) const;
