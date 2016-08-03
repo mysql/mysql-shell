@@ -42,7 +42,7 @@ namespace shcore
     static Value::Map_type_ref get();
 
     // Exposes the object to JS/PY to allow custom validations on options
-    static boost::shared_ptr<Shell_core_options> get_instance();
+    static std::shared_ptr<Shell_core_options> get_instance();
 
     virtual std::string class_name() const;
     virtual bool operator == (const Object_bridge &other) const;
@@ -60,7 +60,7 @@ namespace shcore
     Value::Map_type_ref _options;
 
     // The only available instance
-    static boost::shared_ptr<Shell_core_options> _instance;
+    static std::shared_ptr<Shell_core_options> _instance;
   };
 };
 

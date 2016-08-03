@@ -39,8 +39,8 @@ namespace mysh
     class ClassicTable : public DatabaseObject
     {
     public:
-      ClassicTable(boost::shared_ptr<ClassicSchema> owner, const std::string &name, bool is_view = false);
-      ClassicTable(boost::shared_ptr<const ClassicSchema> owner, const std::string &name, bool is_view = false);
+      ClassicTable(std::shared_ptr<ClassicSchema> owner, const std::string &name, bool is_view = false);
+      ClassicTable(std::shared_ptr<const ClassicSchema> owner, const std::string &name, bool is_view = false);
       virtual ~ClassicTable();
 
       virtual std::string class_name() const { return "ClassicTable"; }
@@ -48,7 +48,7 @@ namespace mysh
 
       virtual std::string get_object_type() { return _is_view ? "View" : "Table"; }
 
-      shcore::Value is_view(const shcore::Argument_list &args);
+      shcore::Value is_view_(const shcore::Argument_list &args);
 
 #if DOXYGEN_JS
       Bool isView();

@@ -28,7 +28,7 @@ using namespace mysh;
 using namespace mysh::mysqlx;
 using namespace shcore;
 
-MetadataStorage::MetadataStorage(boost::shared_ptr<AdminSession> admin_session) :
+MetadataStorage::MetadataStorage(std::shared_ptr<AdminSession> admin_session) :
 _admin_session(admin_session)
 {
 }
@@ -55,7 +55,7 @@ void MetadataStorage::create_metadata_schema()
     std::string query = shcore::md_model_sql;
 
     size_t pos = 0;
-    std::string token, delimiter=";\n";
+    std::string token, delimiter = ";\n";
     while ((pos = query.find(delimiter)) != std::string::npos) {
       token = query.substr(0, pos);
 
@@ -73,8 +73,8 @@ void MetadataStorage::create_metadata_schema()
 uint64_t MetadataStorage::get_farm_id(std::string farm_name)
 {
   std::string query;
-  boost::shared_ptr< ::mysqlx::Result> result;
-  boost::shared_ptr< ::mysqlx::Row> row;
+  std::shared_ptr< ::mysqlx::Result> result;
+  std::shared_ptr< ::mysqlx::Row> row;
   uint64_t farm_id = 0;
 
   if (!metadata_schema_exists())
@@ -125,11 +125,11 @@ bool MetadataStorage::farm_exists(std::string farm_name)
   return false;
 }
 
-void MetadataStorage::insert_farm(boost::shared_ptr<Farm> farm)
+void MetadataStorage::insert_farm(std::shared_ptr<Farm> farm)
 {
   std::string farm_name, query;
-  boost::shared_ptr< ::mysqlx::Result> result;
-  boost::shared_ptr< ::mysqlx::Row> row;
+  std::shared_ptr< ::mysqlx::Result> result;
+  std::shared_ptr< ::mysqlx::Row> row;
 
   farm_name = farm->get_member("name").as_string();
 
@@ -175,12 +175,12 @@ void MetadataStorage::insert_farm(boost::shared_ptr<Farm> farm)
   }
 }
 
-void MetadataStorage::insert_default_replica_set(boost::shared_ptr<Farm> farm)
+void MetadataStorage::insert_default_replica_set(std::shared_ptr<Farm> farm)
 {
   std::string query;
   uint64_t farm_id;
-  boost::shared_ptr< ::mysqlx::Result> result;
-  boost::shared_ptr< ::mysqlx::Row> row;
+  std::shared_ptr< ::mysqlx::Result> result;
+  std::shared_ptr< ::mysqlx::Row> row;
 
   farm_id = farm->get_id();
 
@@ -230,7 +230,7 @@ void MetadataStorage::insert_default_replica_set(boost::shared_ptr<Farm> farm)
   farm->get_default_replicaset()->set_id(rs_id);
 
   // Insert the default ReplicaSet on the replicasets table
-  query = "UPDATE farm_metadata_schema.farms SET default_replicaset = "+ std::to_string(rs_id) +
+  query = "UPDATE farm_metadata_schema.farms SET default_replicaset = " + std::to_string(rs_id) +
         " WHERE farm_id = " + std::to_string(farm_id) + "";
 
   try {
@@ -247,8 +247,8 @@ void MetadataStorage::insert_default_replica_set(boost::shared_ptr<Farm> farm)
 void MetadataStorage::drop_farm(std::string farm_name)
 {
   std::string query, ret;
-  boost::shared_ptr< ::mysqlx::Result> result;
-  boost::shared_ptr< ::mysqlx::Row> row;
+  std::shared_ptr< ::mysqlx::Result> result;
+  std::shared_ptr< ::mysqlx::Row> row;
 
   if (!metadata_schema_exists())
     throw Exception::metadata_error("Metadata Schema does not exist.");
@@ -303,8 +303,8 @@ void MetadataStorage::drop_farm(std::string farm_name)
 bool MetadataStorage::farm_has_default_replicaset_only(std::string farm_name)
 {
   std::string query, ret;
-  boost::shared_ptr< ::mysqlx::Result> result;
-  boost::shared_ptr< ::mysqlx::Row> row;
+  std::shared_ptr< ::mysqlx::Result> result;
+  std::shared_ptr< ::mysqlx::Row> row;
 
   if (!metadata_schema_exists())
     throw Exception::metadata_error("Metadata Schema does not exist.");
@@ -368,8 +368,8 @@ bool MetadataStorage::farm_has_default_replicaset_only(std::string farm_name)
 void MetadataStorage::drop_default_replicaset(std::string farm_name)
 {
   std::string query, ret;
-  boost::shared_ptr< ::mysqlx::Result> result;
-  boost::shared_ptr< ::mysqlx::Row> row;
+  std::shared_ptr< ::mysqlx::Result> result;
+  std::shared_ptr< ::mysqlx::Row> row;
 
   if (!metadata_schema_exists())
     throw Exception::metadata_error("Metadata Schema does not exist.");
@@ -406,8 +406,8 @@ void MetadataStorage::drop_default_replicaset(std::string farm_name)
 uint64_t MetadataStorage::get_farm_default_rs_id(std::string farm_name)
 {
   std::string query;
-  boost::shared_ptr< ::mysqlx::Result> result;
-  boost::shared_ptr< ::mysqlx::Row> row;
+  std::shared_ptr< ::mysqlx::Result> result;
+  std::shared_ptr< ::mysqlx::Row> row;
   uint64_t default_rs_id = 0;
 
   if (!metadata_schema_exists())
@@ -447,8 +447,8 @@ uint64_t MetadataStorage::get_farm_default_rs_id(std::string farm_name)
 std::string MetadataStorage::get_replicaset_name(uint64_t rs_id)
 {
   std::string query;
-  boost::shared_ptr< ::mysqlx::Result> result;
-  boost::shared_ptr< ::mysqlx::Row> row;
+  std::shared_ptr< ::mysqlx::Result> result;
+  std::shared_ptr< ::mysqlx::Row> row;
   std::string rs_name;
 
   if (!metadata_schema_exists())
@@ -485,10 +485,10 @@ std::string MetadataStorage::get_replicaset_name(uint64_t rs_id)
   return rs_name;
 }
 
-boost::shared_ptr<ReplicaSet> MetadataStorage::get_replicaset(uint64_t rs_id)
+std::shared_ptr<ReplicaSet> MetadataStorage::get_replicaset(uint64_t rs_id)
 {
   // Create a ReplicaSet Object to match the Metadata
-  boost::shared_ptr<ReplicaSet> rs (new ReplicaSet("name"));
+  std::shared_ptr<ReplicaSet> rs(new ReplicaSet("name"));
   std::string rs_name;
 
   // Get and set the Metadata data
@@ -501,13 +501,13 @@ boost::shared_ptr<ReplicaSet> MetadataStorage::get_replicaset(uint64_t rs_id)
   return rs;
 }
 
-boost::shared_ptr<Farm> MetadataStorage::get_farm(std::string farm_name)
+std::shared_ptr<Farm> MetadataStorage::get_farm(std::string farm_name)
 {
   // Check if the Farm exists
   if (!farm_exists(farm_name))
     throw Exception::logic_error("The farm with the name '" + farm_name + "' does not exist.");
 
-  boost::shared_ptr<Farm> farm (new Farm(farm_name, shared_from_this()));
+  std::shared_ptr<Farm> farm(new Farm(farm_name, shared_from_this()));
 
   // Update the farm_id
   uint64_t farm_id = get_farm_id(farm_name);
@@ -517,7 +517,7 @@ boost::shared_ptr<Farm> MetadataStorage::get_farm(std::string farm_name)
   uint64_t default_rs_id = get_farm_default_rs_id(farm_name);
 
   // Get the default replicaset from the Farm
-  boost::shared_ptr<ReplicaSet> default_rs = get_replicaset(default_rs_id);
+  std::shared_ptr<ReplicaSet> default_rs = get_replicaset(default_rs_id);
 
   // Update the default replicaset_id
   farm->set_default_replicaset(default_rs);
@@ -528,8 +528,8 @@ boost::shared_ptr<Farm> MetadataStorage::get_farm(std::string farm_name)
 bool MetadataStorage::has_default_farm()
 {
   std::string query;
-  boost::shared_ptr< ::mysqlx::Result> result;
-  boost::shared_ptr< ::mysqlx::Row> row;
+  std::shared_ptr< ::mysqlx::Result> result;
+  std::shared_ptr< ::mysqlx::Row> row;
 
   if (metadata_schema_exists())
   {
@@ -556,8 +556,8 @@ bool MetadataStorage::has_default_farm()
 std::string MetadataStorage::get_default_farm_name()
 {
   std::string query;
-  boost::shared_ptr< ::mysqlx::Result> result;
-  boost::shared_ptr< ::mysqlx::Row> row;
+  std::shared_ptr< ::mysqlx::Result> result;
+  std::shared_ptr< ::mysqlx::Row> row;
   std::string rs_name;
 
   if (!metadata_schema_exists())

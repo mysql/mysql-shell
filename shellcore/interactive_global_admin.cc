@@ -21,14 +21,14 @@
 #include "shellcore/shell_registry.h"
 #include "utils/utils_general.h"
 #include <boost/format.hpp>
-#include <boost/bind.hpp>
 
+using namespace std::placeholders;
 using namespace shcore;
 
 void Global_admin::init()
 {
-  add_method("dropFarm", boost::bind(&Global_admin::drop_farm, this, _1), "name", shcore::String, NULL);
-  add_method("isOpen", boost::bind(&Global_admin::is_open, this, _1), NULL);
+  add_method("dropFarm", std::bind(&Global_admin::drop_farm, this, _1), "name", shcore::String, NULL);
+  add_method("isOpen", std::bind(&Global_admin::is_open, this, _1), NULL);
   set_wrapper_function("isOpen");
 }
 
@@ -36,42 +36,42 @@ void Global_admin::init()
 // TODO: we may not want to have this wrapper.
 void Global_admin::resolve() const
 {
-  std::string answer;
+std::string answer;
 
-  if (prompt("The admin session is not set, do you want to establish a session? [y/N]: ", answer))
-  {
-    if (!answer.compare("y") || !answer.compare("Y"))
-    {
-      if (prompt("Please specify the Metadata Store URI (or $alias): ", answer))
-      {
-        Value::Map_type_ref connection_data;
-        if (answer.find("$") == 0)
-        {
-          std::string stored_session_name = answer.substr(1);
-          if (StoredSessions::get_instance()->connections()->has_key(stored_session_name))
-            connection_data = (*StoredSessions::get_instance()->connections())[stored_session_name].as_map();
-          else
-            throw shcore::Exception::argument_error((boost::format("The stored connection %1% was not found") % stored_session_name).str());
-        }
-        else
-          connection_data = shcore::get_connection_data(answer);
+if (prompt("The admin session is not set, do you want to establish a session? [y/N]: ", answer))
+{
+if (!answer.compare("y") || !answer.compare("Y"))
+{
+if (prompt("Please specify the Metadata Store URI (or $alias): ", answer))
+{
+Value::Map_type_ref connection_data;
+if (answer.find("$") == 0)
+{
+std::string stored_session_name = answer.substr(1);
+if (StoredSessions::get_instance()->connections()->has_key(stored_session_name))
+connection_data = (*StoredSessions::get_instance()->connections())[stored_session_name].as_map();
+else
+throw shcore::Exception::argument_error((boost::format("The stored connection %1% was not found") % stored_session_name).str());
+}
+else
+connection_data = shcore::get_connection_data(answer);
 
-        if (!connection_data->has_key("dbPassword"))
-        {
-          if (password("Enter password: ", answer))
-            (*connection_data)["dbPassword"] = shcore::Value(answer);
-        }
+if (!connection_data->has_key("dbPassword"))
+{
+if (password("Enter password: ", answer))
+(*connection_data)["dbPassword"] = shcore::Value(answer);
+}
 
-        if (connection_data)
-        {
-          shcore::Argument_list args;
-          args.push_back(shcore::Value(connection_data));
+if (connection_data)
+{
+shcore::Argument_list args;
+args.push_back(shcore::Value(connection_data));
 
-          _shell_core.connect_admin_session(args);
-        }
-      }
-    }
-  }
+_shell_core.connect_admin_session(args);
+}
+}
+}
+}
 }
 */
 

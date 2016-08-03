@@ -69,7 +69,7 @@ void print_doc_value(const shcore::Value& val)
 
 void print_base_result(const shcore::Value& value)
 {
-  boost::shared_ptr<mysh::mysqlx::BaseResult> result = boost::static_pointer_cast<mysh::mysqlx::BaseResult>(value.as_object());
+  std::shared_ptr<mysh::mysqlx::BaseResult> result = std::static_pointer_cast<mysh::mysqlx::BaseResult>(value.as_object());
 
   std::cout << "Execution Time: " << result->get_execution_time() << std::endl;
   std::cout << "Warning Count: " << result->get_warning_count() << std::endl;
@@ -79,7 +79,7 @@ void print_base_result(const shcore::Value& value)
     shcore::Value::Array_type_ref warnings = result->get_member("warnings").as_array();
     for (size_t index = 0; index < warnings->size(); index++)
     {
-      boost::shared_ptr<mysh::Row> row = boost::static_pointer_cast<mysh::Row>(warnings->at(index).as_object());
+      std::shared_ptr<mysh::Row> row = std::static_pointer_cast<mysh::Row>(warnings->at(index).as_object());
       std::cout << row->get_member("level").as_string() << "(" << row->get_member("code").descr(true) << "): " << row->get_member("message").descr(true) << std::endl;
     }
   }
@@ -87,7 +87,7 @@ void print_base_result(const shcore::Value& value)
 
 void print_result(const shcore::Value& value)
 {
-  boost::shared_ptr<mysh::mysqlx::Result> result = boost::static_pointer_cast<mysh::mysqlx::Result>(value.as_object());
+  std::shared_ptr<mysh::mysqlx::Result> result = std::static_pointer_cast<mysh::mysqlx::Result>(value.as_object());
 
   std::cout << "Affected Items: " << result->get_affected_item_count() << std::endl;
   std::cout << "Last Insert Id: " << result->get_auto_increment_value() << std::endl;
@@ -98,7 +98,7 @@ void print_result(const shcore::Value& value)
 
 void print_row_result(const shcore::Value& value)
 {
-  boost::shared_ptr<mysh::mysqlx::RowResult> result = boost::static_pointer_cast<mysh::mysqlx::RowResult>(value.as_object());
+  std::shared_ptr<mysh::mysqlx::RowResult> result = std::static_pointer_cast<mysh::mysqlx::RowResult>(value.as_object());
 
   // a table result set is an array of shcore::Value's each of them in turn is an array (vector) of shcore::Value's (escalars)
   std::vector<std::string> columns = result->get_column_names();
@@ -113,7 +113,7 @@ void print_row_result(const shcore::Value& value)
 
   while ((raw_record = result->fetch_one(args)))
   {
-    boost::shared_ptr<mysh::Row> record = boost::static_pointer_cast<mysh::Row>(raw_record.as_object());
+    std::shared_ptr<mysh::Row> record = std::static_pointer_cast<mysh::Row>(raw_record.as_object());
 
     for (size_t i = 0; i < columns.size(); i++)
     {
@@ -128,7 +128,7 @@ void print_row_result(const shcore::Value& value)
 
 void print_sql_result(const shcore::Value& value)
 {
-  boost::shared_ptr<mysh::mysqlx::SqlResult> result = boost::static_pointer_cast<mysh::mysqlx::SqlResult>(value.as_object());
+  std::shared_ptr<mysh::mysqlx::SqlResult> result = std::static_pointer_cast<mysh::mysqlx::SqlResult>(value.as_object());
 
   if (result->has_data(shcore::Argument_list()))
     print_row_result(value);
@@ -139,7 +139,7 @@ void print_sql_result(const shcore::Value& value)
 
 void print_doc_result(const shcore::Value& value)
 {
-  boost::shared_ptr<mysh::mysqlx::DocResult> result = boost::static_pointer_cast<mysh::mysqlx::DocResult>(value.as_object());
+  std::shared_ptr<mysh::mysqlx::DocResult> result = std::static_pointer_cast<mysh::mysqlx::DocResult>(value.as_object());
 
   shcore::Value document;
   shcore::Argument_list args;

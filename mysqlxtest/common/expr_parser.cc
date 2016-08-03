@@ -41,7 +41,6 @@
 
 using namespace mysqlx;
 
-
 struct Expr_parser::operator_list Expr_parser::_ops;
 Mysqlx::Datatypes::Scalar* Expr_builder::build_null_scalar()
 {
@@ -66,7 +65,7 @@ Mysqlx::Datatypes::Scalar* Expr_builder::build_int_scalar(google::protobuf::int6
     sc->set_type(Mysqlx::Datatypes::Scalar::V_SINT);
     sc->set_v_signed_int(i);
   }
-  else 
+  else
   {
     sc->set_type(Mysqlx::Datatypes::Scalar::V_UINT);
     sc->set_v_unsigned_int((google::protobuf::uint64)i);
@@ -838,7 +837,7 @@ Mysqlx::Expr::Expr *Expr_parser::binary()
 Mysqlx::Expr::Expr* Expr_parser::parse_left_assoc_binary_op_expr(std::set<Token::TokenType>& types, inner_parser_t inner_parser)
 {
   // Given a `set' of types and an Expr-returning inner parser function, parse a left associate binary operator expression
-  Memory_new<Mysqlx::Expr::Expr>::Unique_ptr lhs(inner_parser(this));
+  Memory_new<Mysqlx::Expr::Expr>::Unique_ptr lhs(inner_parser());
   while (_tokenizer.tokens_available() && _tokenizer.is_type_within_set(types))
   {
     Memory_new<Mysqlx::Expr::Expr>::Unique_ptr e(new Mysqlx::Expr::Expr());
@@ -851,7 +850,7 @@ Mysqlx::Expr::Expr* Expr_parser::parse_left_assoc_binary_op_expr(std::set<Token:
     op->mutable_param()->AddAllocated(lhs.get());
     lhs.release();
 
-    Memory_new<Mysqlx::Expr::Expr>::Unique_ptr tmp(inner_parser(this));
+    Memory_new<Mysqlx::Expr::Expr>::Unique_ptr tmp(inner_parser());
     op->mutable_param()->AddAllocated(tmp.get());
     tmp.release();
     lhs.release();
@@ -865,7 +864,7 @@ Mysqlx::Expr::Expr* Expr_parser::parse_left_assoc_binary_op_expr(std::set<Token:
  */
 Mysqlx::Expr::Expr* Expr_parser::mul_div_expr()
 {
-  return parse_left_assoc_binary_op_expr(_ops.mul_div_expr_types, &Expr_parser::atomic_expr);
+  return parse_left_assoc_binary_op_expr(_ops.mul_div_expr_types, std::bind(&Expr_parser::atomic_expr, this));
 }
 
 /*
@@ -873,7 +872,7 @@ Mysqlx::Expr::Expr* Expr_parser::mul_div_expr()
  */
 Mysqlx::Expr::Expr* Expr_parser::add_sub_expr()
 {
-  return parse_left_assoc_binary_op_expr(_ops.add_sub_expr_types, &Expr_parser::mul_div_expr);
+  return parse_left_assoc_binary_op_expr(_ops.add_sub_expr_types, std::bind(&Expr_parser::mul_div_expr, this));
 }
 
 /*
@@ -881,7 +880,7 @@ Mysqlx::Expr::Expr* Expr_parser::add_sub_expr()
  */
 Mysqlx::Expr::Expr* Expr_parser::shift_expr()
 {
-  return parse_left_assoc_binary_op_expr(_ops.shift_expr_types, &Expr_parser::add_sub_expr);
+  return parse_left_assoc_binary_op_expr(_ops.shift_expr_types, std::bind(&Expr_parser::add_sub_expr, this));
 }
 
 /*
@@ -889,7 +888,7 @@ Mysqlx::Expr::Expr* Expr_parser::shift_expr()
  */
 Mysqlx::Expr::Expr* Expr_parser::bit_expr()
 {
-  return parse_left_assoc_binary_op_expr(_ops.bit_expr_types, &Expr_parser::shift_expr);
+  return parse_left_assoc_binary_op_expr(_ops.bit_expr_types, std::bind(&Expr_parser::shift_expr, this));
 }
 
 /*
@@ -897,7 +896,7 @@ Mysqlx::Expr::Expr* Expr_parser::bit_expr()
  */
 Mysqlx::Expr::Expr* Expr_parser::comp_expr()
 {
-  return parse_left_assoc_binary_op_expr(_ops.comp_expr_types, &Expr_parser::bit_expr);
+  return parse_left_assoc_binary_op_expr(_ops.comp_expr_types, std::bind(&Expr_parser::bit_expr, this));
 }
 
 /*
@@ -1029,7 +1028,7 @@ Mysqlx::Expr::Expr* Expr_parser::ilri_expr()
  */
 Mysqlx::Expr::Expr* Expr_parser::and_expr()
 {
-  return parse_left_assoc_binary_op_expr(_ops.and_expr_types, &Expr_parser::ilri_expr);
+  return parse_left_assoc_binary_op_expr(_ops.and_expr_types, std::bind(&Expr_parser::ilri_expr, this));
 }
 
 /*
@@ -1037,7 +1036,7 @@ Mysqlx::Expr::Expr* Expr_parser::and_expr()
  */
 Mysqlx::Expr::Expr* Expr_parser::or_expr()
 {
-  return parse_left_assoc_binary_op_expr(_ops.or_expr_types, &Expr_parser::and_expr);
+  return parse_left_assoc_binary_op_expr(_ops.or_expr_types, std::bind(&Expr_parser::and_expr, this));
 }
 
 /*
@@ -1053,7 +1052,7 @@ Mysqlx::Expr::Expr* Expr_parser::my_expr()
  */
 Mysqlx::Expr::Expr* Expr_parser::expr()
 {
- Memory_new<Mysqlx::Expr::Expr>::Unique_ptr result(or_expr());
+  Memory_new<Mysqlx::Expr::Expr>::Unique_ptr result(or_expr());
   if (_tokenizer.tokens_available())
   {
     const Token& tok = _tokenizer.peek_token();
@@ -1087,28 +1086,28 @@ std::string Expr_unparser::scalar_to_string(const Mysqlx::Datatypes::Scalar& s)
 {
   switch (s.type())
   {
-  case Mysqlx::Datatypes::Scalar::V_SINT:
-    return (boost::format("%d") % s.v_signed_int()).str();
-  case Mysqlx::Datatypes::Scalar::V_UINT:
-    return (boost::format("%u") % s.v_unsigned_int()).str();
-  case Mysqlx::Datatypes::Scalar::V_DOUBLE:
-    return (boost::format("%f") % s.v_double()).str();
-  case Mysqlx::Datatypes::Scalar::V_BOOL:
-  {
-    if (s.v_bool())
-      return "TRUE";
-    else
-      return "FALSE";
-  }
-  case Mysqlx::Datatypes::Scalar::V_OCTETS:
-  {
+    case Mysqlx::Datatypes::Scalar::V_SINT:
+      return (boost::format("%d") % s.v_signed_int()).str();
+    case Mysqlx::Datatypes::Scalar::V_UINT:
+      return (boost::format("%u") % s.v_unsigned_int()).str();
+    case Mysqlx::Datatypes::Scalar::V_DOUBLE:
+      return (boost::format("%f") % s.v_double()).str();
+    case Mysqlx::Datatypes::Scalar::V_BOOL:
+    {
+      if (s.v_bool())
+        return "TRUE";
+      else
+        return "FALSE";
+    }
+    case Mysqlx::Datatypes::Scalar::V_OCTETS:
+    {
       const char* value = s.v_octets().value().c_str();
-    return "\"" + Expr_unparser::escape_literal(value) + "\"";
-  }
-  case Mysqlx::Datatypes::Scalar::V_NULL:
-    return "NULL";
-  default:
-    throw Parser_error("Unknown type tag at Scalar: " + s.DebugString());
+      return "\"" + Expr_unparser::escape_literal(value) + "\"";
+    }
+    case Mysqlx::Datatypes::Scalar::V_NULL:
+      return "NULL";
+    default:
+      throw Parser_error("Unknown type tag at Scalar: " + s.DebugString());
   }
 }
 
@@ -1121,21 +1120,21 @@ std::string Expr_unparser::document_path_to_string(const ::google::protobuf::Rep
     const Mysqlx::Expr::DocumentPathItem& dpi = dp.Get(i);
     switch (dpi.type())
     {
-    case Mysqlx::Expr::DocumentPathItem::MEMBER:
-      parts.push_back("." + dpi.value());
-      break;
-    case Mysqlx::Expr::DocumentPathItem::MEMBER_ASTERISK:
-      parts.push_back("." + dpi.value());
-      break;
-    case Mysqlx::Expr::DocumentPathItem::ARRAY_INDEX:
-      parts.push_back((boost::format("[%d]") % dpi.index()).str());
-      break;
-    case Mysqlx::Expr::DocumentPathItem::ARRAY_INDEX_ASTERISK:
-      parts.push_back("[*]");
-      break;
-    case Mysqlx::Expr::DocumentPathItem::DOUBLE_ASTERISK:
-      parts.push_back("**");
-      break;
+      case Mysqlx::Expr::DocumentPathItem::MEMBER:
+        parts.push_back("." + dpi.value());
+        break;
+      case Mysqlx::Expr::DocumentPathItem::MEMBER_ASTERISK:
+        parts.push_back("." + dpi.value());
+        break;
+      case Mysqlx::Expr::DocumentPathItem::ARRAY_INDEX:
+        parts.push_back((boost::format("[%d]") % dpi.index()).str());
+        break;
+      case Mysqlx::Expr::DocumentPathItem::ARRAY_INDEX_ASTERISK:
+        parts.push_back("[*]");
+        break;
+      case Mysqlx::Expr::DocumentPathItem::DOUBLE_ASTERISK:
+        parts.push_back("**");
+        break;
     }
   }
 

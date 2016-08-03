@@ -81,8 +81,8 @@ protected:
   }
 
   Shell_test_output_handler output_handler;
-  boost::shared_ptr<Interactive_shell> _interactive_shell;
-  boost::shared_ptr<Shell_command_line_options> _options;
+  std::shared_ptr<Interactive_shell> _interactive_shell;
+  std::shared_ptr<Shell_command_line_options> _options;
   void wipe_out() { output_handler.wipe_out(); }
   void wipe_err() { output_handler.wipe_err(); }
   void wipe_all() { output_handler.wipe_all(); }

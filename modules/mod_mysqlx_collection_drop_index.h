@@ -40,10 +40,10 @@ namespace mysh
     *
     * \sa Collection
     */
-    class CollectionDropIndex : public Dynamic_object, public boost::enable_shared_from_this<CollectionDropIndex>
+    class CollectionDropIndex : public Dynamic_object, public std::enable_shared_from_this<CollectionDropIndex>
     {
     public:
-      CollectionDropIndex(boost::shared_ptr<Collection> owner);
+      CollectionDropIndex(std::shared_ptr<Collection> owner);
 
       virtual std::string class_name() const { return "CollectionDropIndex"; }
 
@@ -59,7 +59,7 @@ namespace mysh
 #endif
 
     private:
-      boost::weak_ptr<Collection> _owner;
+      std::weak_ptr<Collection> _owner;
       shcore::Argument_list _drop_index_args;
     };
   }

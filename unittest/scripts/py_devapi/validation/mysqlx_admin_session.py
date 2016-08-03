@@ -1,9 +1,11 @@
 #@ Session: validating members
-|Session Members: 7|
+|Session Members: 9|
 |uri: OK|
-|defaultFarm: OK|
-|getUri: OK|
-|getDefaultFarm: OK|
-|createFarm: OK|
-|getFarm: OK|
+|default_farm: OK|
+|get_uri: OK|
+|get_default_farm: OK|
+|is_open: OK|
+|create_farm: OK|
+|drop_farm: OK|
+|get_farm: OK|
 |close: OK|

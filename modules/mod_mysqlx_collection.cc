@@ -19,7 +19,6 @@
 
 #include "mod_mysqlx_schema.h"
 #include "mod_mysqlx_collection.h"
-#include <boost/bind.hpp>
 
 #include "mod_mysqlx_collection_add.h"
 #include "mod_mysqlx_collection_find.h"
@@ -28,19 +27,20 @@
 #include "mod_mysqlx_collection_create_index.h"
 #include "mod_mysqlx_collection_drop_index.h"
 
+using namespace std::placeholders;
 using namespace mysh;
 using namespace mysh::mysqlx;
 using namespace shcore;
 
-Collection::Collection(boost::shared_ptr<Schema> owner, const std::string &name)
-  : DatabaseObject(owner->_session.lock(), boost::static_pointer_cast<DatabaseObject>(owner), name),
+Collection::Collection(std::shared_ptr<Schema> owner, const std::string &name)
+  : DatabaseObject(owner->_session.lock(), std::static_pointer_cast<DatabaseObject>(owner), name),
   _collection_impl(owner->_schema_impl->getCollection(name))
 {
   init();
 }
 
-Collection::Collection(boost::shared_ptr<const Schema> owner, const std::string &name) :
-DatabaseObject(owner->_session.lock(), boost::const_pointer_cast<Schema>(owner), name)
+Collection::Collection(std::shared_ptr<const Schema> owner, const std::string &name) :
+DatabaseObject(owner->_session.lock(), std::const_pointer_cast<Schema>(owner), name)
 {
   _collection_impl = owner->_schema_impl->getCollection(name);
   init();
@@ -48,12 +48,12 @@ DatabaseObject(owner->_session.lock(), boost::const_pointer_cast<Schema>(owner),
 
 void Collection::init()
 {
-  add_method("add", boost::bind(&Collection::add_, this, _1), "searchCriteria", shcore::String, NULL);
-  add_method("modify", boost::bind(&Collection::modify_, this, _1), "searchCriteria", shcore::String, NULL);
-  add_method("find", boost::bind(&Collection::find_, this, _1), "searchCriteria", shcore::String, NULL);
-  add_method("remove", boost::bind(&Collection::remove_, this, _1), "searchCriteria", shcore::String, NULL);
-  add_method("createIndex", boost::bind(&Collection::create_index_, this, _1), "searchCriteria", shcore::String, NULL);
-  add_method("dropIndex", boost::bind(&Collection::drop_index_, this, _1), "searchCriteria", shcore::String, NULL);
+  add_method("add", std::bind(&Collection::add_, this, _1), "searchCriteria", shcore::String, NULL);
+  add_method("modify", std::bind(&Collection::modify_, this, _1), "searchCriteria", shcore::String, NULL);
+  add_method("find", std::bind(&Collection::find_, this, _1), "searchCriteria", shcore::String, NULL);
+  add_method("remove", std::bind(&Collection::remove_, this, _1), "searchCriteria", shcore::String, NULL);
+  add_method("createIndex", std::bind(&Collection::create_index_, this, _1), "searchCriteria", shcore::String, NULL);
+  add_method("dropIndex", std::bind(&Collection::drop_index_, this, _1), "searchCriteria", shcore::String, NULL);
 }
 
 Collection::~Collection()
@@ -124,7 +124,7 @@ CollectionAdd Collection::add(list documents){}
 #endif
 shcore::Value Collection::add_(const shcore::Argument_list &args)
 {
-  boost::shared_ptr<CollectionAdd> collectionAdd(new CollectionAdd(shared_from_this()));
+  std::shared_ptr<CollectionAdd> collectionAdd(new CollectionAdd(shared_from_this()));
 
   return collectionAdd->add(args);
 }
@@ -153,7 +153,7 @@ CollectionModify Collection::modify(str searchCondition){}
 #endif
 shcore::Value Collection::modify_(const shcore::Argument_list &args)
 {
-  boost::shared_ptr<CollectionModify> collectionModify(new CollectionModify(shared_from_this()));
+  std::shared_ptr<CollectionModify> collectionModify(new CollectionModify(shared_from_this()));
 
   return collectionModify->modify(args);
 }
@@ -182,7 +182,7 @@ CollectionRemove Collection::remove(str searchCondition){}
 #endif
 shcore::Value Collection::remove_(const shcore::Argument_list &args)
 {
-  boost::shared_ptr<CollectionRemove> collectionRemove(new CollectionRemove(shared_from_this()));
+  std::shared_ptr<CollectionRemove> collectionRemove(new CollectionRemove(shared_from_this()));
 
   return collectionRemove->remove(args);
 }
@@ -211,7 +211,7 @@ CollectionFind Collection::find(str searchCriteria){}
 #endif
 shcore::Value Collection::find_(const shcore::Argument_list &args)
 {
-  boost::shared_ptr<CollectionFind> collectionFind(new CollectionFind(shared_from_this()));
+  std::shared_ptr<CollectionFind> collectionFind(new CollectionFind(shared_from_this()));
 
   return collectionFind->find(args);
 }
@@ -277,7 +277,7 @@ CollectionCreateIndex Collection::create_index(str name, IndexType type){}
 
 shcore::Value Collection::create_index_(const shcore::Argument_list &args)
 {
-  boost::shared_ptr<CollectionCreateIndex> createIndex(new CollectionCreateIndex(shared_from_this()));
+  std::shared_ptr<CollectionCreateIndex> createIndex(new CollectionCreateIndex(shared_from_this()));
 
   auto ss = createIndex->set_scoped_naming_style(naming_style);
 
@@ -306,7 +306,7 @@ CollectionDropIndex Collection::drop_index(str name){}
 #endif
 shcore::Value Collection::drop_index_(const shcore::Argument_list &args)
 {
-  boost::shared_ptr<CollectionDropIndex> dropIndex(new CollectionDropIndex(shared_from_this()));
+  std::shared_ptr<CollectionDropIndex> dropIndex(new CollectionDropIndex(shared_from_this()));
 
   return dropIndex->drop_index(args);
 }

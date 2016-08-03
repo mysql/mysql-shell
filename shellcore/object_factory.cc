@@ -42,7 +42,7 @@ void Object_factory::register_factory(const std::string &package, const std::str
 }
 
 
-boost::shared_ptr<Object_bridge> Object_factory::call_constructor(const std::string &package, const std::string &name,
+std::shared_ptr<Object_bridge> Object_factory::call_constructor(const std::string &package, const std::string &name,
                                                                   const Argument_list &args)
 {
   std::map<std::string, Package>::iterator iter;

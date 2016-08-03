@@ -23,8 +23,6 @@
 #include "shellcore/types.h"
 #include "shellcore/types_cpp.h"
 
-#include <boost/enable_shared_from_this.hpp>
-
 #include "mod_mysqlx_replicaset.h"
 
 namespace mysh
@@ -35,10 +33,10 @@ namespace mysh
     /**
     * Represents a Farm on an AdminSession
     */
-    class Farm : public boost::enable_shared_from_this<Farm>, public shcore::Cpp_object_bridge
+    class Farm : public std::enable_shared_from_this<Farm>, public shcore::Cpp_object_bridge
     {
     public:
-      Farm(const std::string &name, boost::shared_ptr<MetadataStorage> metadata_storage);
+      Farm(const std::string &name, std::shared_ptr<MetadataStorage> metadata_storage);
       virtual ~Farm();
 
       virtual std::string class_name() const { return "Farm"; }
@@ -48,8 +46,8 @@ namespace mysh
 
       const uint64_t get_id() { return _id; }
       void set_id(uint64_t id) { _id = id; }
-      boost::shared_ptr<ReplicaSet> get_default_replicaset() { return _default_replica_set; }
-      void set_default_replicaset(boost::shared_ptr<ReplicaSet> default_rs)
+      std::shared_ptr<ReplicaSet> get_default_replicaset() { return _default_replica_set; }
+      void set_default_replicaset(std::shared_ptr<ReplicaSet> default_rs)
       {
         _default_replica_set = default_rs;
       };
@@ -84,11 +82,11 @@ namespace mysh
       uint64_t _id;
       std::string _name;
       std::string _admin_type;
-      boost::shared_ptr<ReplicaSet> _default_replica_set;
+      std::shared_ptr<ReplicaSet> _default_replica_set;
 
     private:
       void init();
-      boost::shared_ptr<MetadataStorage> _metadata_storage;
+      std::shared_ptr<MetadataStorage> _metadata_storage;
     };
   }
 }

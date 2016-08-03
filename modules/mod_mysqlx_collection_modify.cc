@@ -16,7 +16,6 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301  USA
  */
-#include <boost/bind.hpp>
 #include "mod_mysqlx_collection_modify.h"
 #include "mod_mysqlx_collection.h"
 #include "mod_mysqlx_resultset.h"
@@ -26,23 +25,24 @@
 #include <sstream>
 #include <boost/format.hpp>
 
+using namespace std::placeholders;
 using namespace mysh::mysqlx;
 using namespace shcore;
 
-CollectionModify::CollectionModify(boost::shared_ptr<Collection> owner)
-  :Collection_crud_definition(boost::static_pointer_cast<DatabaseObject>(owner))
+CollectionModify::CollectionModify(std::shared_ptr<Collection> owner)
+  :Collection_crud_definition(std::static_pointer_cast<DatabaseObject>(owner))
 {
   // Exposes the methods available for chaining
-  add_method("modify", boost::bind(&CollectionModify::modify, this, _1), "data");
-  add_method("set", boost::bind(&CollectionModify::set, this, _1), "data");
-  add_method("unset", boost::bind(&CollectionModify::unset, this, _1), "data");
-  add_method("merge", boost::bind(&CollectionModify::merge, this, _1), "data");
-  add_method("arrayInsert", boost::bind(&CollectionModify::array_insert, this, _1), "data");
-  add_method("arrayAppend", boost::bind(&CollectionModify::array_append, this, _1), "data");
-  add_method("arrayDelete", boost::bind(&CollectionModify::array_delete, this, _1), "data");
-  add_method("sort", boost::bind(&CollectionModify::sort, this, _1), "data");
-  add_method("limit", boost::bind(&CollectionModify::limit, this, _1), "data");
-  add_method("bind", boost::bind(&CollectionModify::bind, this, _1), "data");
+  add_method("modify", std::bind(&CollectionModify::modify, this, _1), "data");
+  add_method("set", std::bind(&CollectionModify::set, this, _1), "data");
+  add_method("unset", std::bind(&CollectionModify::unset, this, _1), "data");
+  add_method("merge", std::bind(&CollectionModify::merge, this, _1), "data");
+  add_method("arrayInsert", std::bind(&CollectionModify::array_insert, this, _1), "data");
+  add_method("arrayAppend", std::bind(&CollectionModify::array_append, this, _1), "data");
+  add_method("arrayDelete", std::bind(&CollectionModify::array_delete, this, _1), "data");
+  add_method("sort", std::bind(&CollectionModify::sort, this, _1), "data");
+  add_method("limit", std::bind(&CollectionModify::limit, this, _1), "data");
+  add_method("bind", std::bind(&CollectionModify::bind, this, _1), "data");
 
   // Registers the dynamic function behavior
   register_dynamic_function("modify", "");
@@ -111,7 +111,7 @@ shcore::Value CollectionModify::modify(const shcore::Argument_list &args)
   // Each method validates the received parameters
   args.ensure_count(0, 1, get_function_name("modify").c_str());
 
-  boost::shared_ptr<Collection> collection(boost::static_pointer_cast<Collection>(_owner.lock()));
+  std::shared_ptr<Collection> collection(std::static_pointer_cast<Collection>(_owner.lock()));
 
   if (collection)
   {
@@ -129,7 +129,7 @@ shcore::Value CollectionModify::modify(const shcore::Argument_list &args)
     CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("modify"));
   }
 
-  return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
+  return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
 //! Sets or updates attributes on documents in a collection.
@@ -211,7 +211,7 @@ shcore::Value CollectionModify::set(const shcore::Argument_list &args)
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("set"));
 
-  return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
+  return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
 #if DOXYGEN_CPP
@@ -400,7 +400,7 @@ shcore::Value CollectionModify::unset(const shcore::Argument_list &args)
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("unset"));
 
-  return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
+  return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
 //! Adds attributes taken from a document into the documents in a collection.
@@ -468,7 +468,7 @@ shcore::Value CollectionModify::merge(const shcore::Argument_list &args)
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("merge"));
 
-  return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
+  return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
 //! Inserts a value into a specific position in an array attribute in documents of a collection.
@@ -535,7 +535,7 @@ shcore::Value CollectionModify::array_insert(const shcore::Argument_list &args)
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("arrayInsert"));
 
-  return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
+  return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
 //! Appends a value into an array attribute in documents of a collection.
@@ -603,7 +603,7 @@ shcore::Value CollectionModify::array_append(const shcore::Argument_list &args)
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("arrayAppend"));
 
-  return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
+  return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
 //! Deletes the value at a specific position in an array attribute in documents of a collection.
@@ -667,7 +667,7 @@ shcore::Value CollectionModify::array_delete(const shcore::Argument_list &args)
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("arrayDelete"));
 
-  return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
+  return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
 //! Sets the document order in which the update operations added to the handler should be done.
@@ -728,7 +728,7 @@ shcore::Value CollectionModify::sort(const shcore::Argument_list &args)
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("sort"));
 
-  return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
+  return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
 //! Sets a limit for the documents to be updated by the operations added to the handler.
@@ -779,7 +779,7 @@ shcore::Value CollectionModify::limit(const shcore::Argument_list &args)
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("limit"));
 
-  return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
+  return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
 //! Binds a value to a specific placeholder used on this CollectionModify object.
@@ -827,7 +827,7 @@ shcore::Value CollectionModify::bind(const shcore::Argument_list &args)
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("bind"));
 
-  return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
+  return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
 /**
@@ -870,7 +870,7 @@ shcore::Value CollectionModify::execute(const shcore::Argument_list &args)
     args.ensure_count(0, get_function_name("execute").c_str());
     MySQL_timer timer;
     timer.start();
-    result = new mysqlx::Result(boost::shared_ptr< ::mysqlx::Result>(_modify_statement->execute()));
+    result = new mysqlx::Result(std::shared_ptr< ::mysqlx::Result>(_modify_statement->execute()));
     timer.end();
     result->set_execution_time(timer.raw_duration());
   }

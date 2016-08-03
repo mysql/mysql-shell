@@ -25,11 +25,11 @@
 #include "modules/mysqlxtest_utils.h"
 #include <boost/format.hpp>
 #include <boost/lexical_cast.hpp>
-#include <boost/bind.hpp>
 
+using namespace std::placeholders;
 using namespace shcore;
 
-boost::shared_ptr<StoredSessions> StoredSessions::_instance;
+std::shared_ptr<StoredSessions> StoredSessions::_instance;
 
 std::string StoredSessions::class_name() const
 {
@@ -107,9 +107,9 @@ Value StoredSessions::get_member(const std::string &prop) const
 StoredSessions::StoredSessions() :
 _connections(new shcore::Value::Map_type)
 {
-  add_method("add", boost::bind(&StoredSessions::add, this, _1), "name", shcore::String, NULL);
-  add_method("remove", boost::bind(&StoredSessions::remove, this, _1), "name", shcore::String, NULL);
-  add_method("update", boost::bind(&StoredSessions::update, this, _1), "name", shcore::String, NULL);
+  add_method("add", std::bind(&StoredSessions::add, this, _1), "name", shcore::String, NULL);
+  add_method("remove", std::bind(&StoredSessions::remove, this, _1), "name", shcore::String, NULL);
+  add_method("update", std::bind(&StoredSessions::update, this, _1), "name", shcore::String, NULL);
 
   shcore::Server_registry sr(shcore::get_default_config_path());
   try { sr.load(); }
@@ -133,10 +133,10 @@ StoredSessions::~StoredSessions()
 
 Value StoredSessions::get()
 {
-  return Value(boost::static_pointer_cast<Object_bridge>(get_instance()));
+  return Value(std::static_pointer_cast<Object_bridge>(get_instance()));
 }
 
-boost::shared_ptr<StoredSessions> StoredSessions::get_instance()
+std::shared_ptr<StoredSessions> StoredSessions::get_instance()
 {
   if (!_instance)
     _instance.reset(new StoredSessions());

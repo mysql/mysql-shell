@@ -18,7 +18,6 @@
  */
 
 #include <boost/asio.hpp>
-#include <boost/bind.hpp>
 #include <boost/algorithm/string.hpp>
 
 #include <string>
@@ -27,11 +26,12 @@
 #include "mysql_connection.h"
 #include "shellcore/shell_core_options.h"
 
+using namespace std::placeholders;
 using namespace mysh;
 using namespace shcore;
 using namespace mysh::mysql;
 
-ClassicResult::ClassicResult(boost::shared_ptr<Result> result)
+ClassicResult::ClassicResult(std::shared_ptr<Result> result)
   : _result(result)
 {
   add_property("columns", "getColumns");
@@ -44,10 +44,10 @@ ClassicResult::ClassicResult(boost::shared_ptr<Result> result)
   add_property("autoIncrementValue", "getAutoIncrementValue");
   add_property("info", "getInfo");
 
-  add_method("fetchOne", boost::bind(&ClassicResult::fetch_one, this, _1), "nothing", shcore::String, NULL);
-  add_method("fetchAll", boost::bind(&ClassicResult::fetch_all, this, _1), "nothing", shcore::String, NULL);
-  add_method("nextDataSet", boost::bind(&ClassicResult::next_data_set, this, _1), "nothing", shcore::String, NULL);
-  add_method("hasData", boost::bind(&ClassicResult::has_data, this, _1), "nothing", shcore::String, NULL);
+  add_method("fetchOne", std::bind(&ClassicResult::fetch_one, this, _1), "nothing", shcore::String, NULL);
+  add_method("fetchAll", std::bind(&ClassicResult::fetch_all, this, _1), "nothing", shcore::String, NULL);
+  add_method("nextDataSet", std::bind(&ClassicResult::next_data_set, this, _1), "nothing", shcore::String, NULL);
+  add_method("hasData", std::bind(&ClassicResult::has_data, this, _1), "nothing", shcore::String, NULL);
 }
 
 //! Returns true if the last statement execution has a result set.
@@ -94,7 +94,7 @@ shcore::Value ClassicResult::fetch_all(const shcore::Argument_list &args) const
 {
   args.ensure_count(0, get_function_name("fetchAll").c_str());
 
-  boost::shared_ptr<shcore::Value::Array_type> array(new shcore::Value::Array_type);
+  std::shared_ptr<shcore::Value::Array_type> array(new shcore::Value::Array_type);
 
   shcore::Value record = fetch_one(args);
 
@@ -269,7 +269,7 @@ shcore::Value ClassicResult::get_member(const std::string &prop) const
   if (prop == "warnings")
   {
     Result* inner_warnings = _result->query_warnings();
-    boost::shared_ptr<ClassicResult> warnings(new ClassicResult(boost::shared_ptr<Result>(inner_warnings)));
+    std::shared_ptr<ClassicResult> warnings(new ClassicResult(std::shared_ptr<Result>(inner_warnings)));
     return warnings->fetch_all(shcore::Argument_list());
   }
 
@@ -293,7 +293,7 @@ shcore::Value ClassicResult::get_member(const std::string &prop) const
   {
     std::vector<Field> metadata(_result->get_metadata());
 
-    boost::shared_ptr<shcore::Value::Array_type> array(new shcore::Value::Array_type);
+    std::shared_ptr<shcore::Value::Array_type> array(new shcore::Value::Array_type);
 
     int num_fields = metadata.size();
 
@@ -307,14 +307,14 @@ shcore::Value ClassicResult::get_member(const std::string &prop) const
   {
     std::vector<Field> metadata(_result->get_metadata());
 
-    boost::shared_ptr<shcore::Value::Array_type> array(new shcore::Value::Array_type);
+    std::shared_ptr<shcore::Value::Array_type> array(new shcore::Value::Array_type);
 
     int num_fields = metadata.size();
 
     for (int i = 0; i < num_fields; i++)
     {
       bool numeric = IS_NUM(metadata[i].type());
-      boost::shared_ptr<mysh::Column> column(new mysh::Column(
+      std::shared_ptr<mysh::Column> column(new mysh::Column(
         metadata[i].db(),
         metadata[i].org_table(),
         metadata[i].table(),
@@ -330,7 +330,7 @@ shcore::Value ClassicResult::get_member(const std::string &prop) const
         false //padded
       ));
 
-      array->push_back(shcore::Value(boost::static_pointer_cast<Object_bridge>(column)));
+      array->push_back(shcore::Value(std::static_pointer_cast<Object_bridge>(column)));
     }
 
     return shcore::Value(array);

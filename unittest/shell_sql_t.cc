@@ -17,7 +17,6 @@
 #include <cstdlib>
 #include <fstream>
 #include <string>
-#include <boost/shared_ptr.hpp>
 #include <boost/pointer_cast.hpp>
 
 #include "gtest/gtest.h"
@@ -33,7 +32,8 @@
 #include "shellcore/common.h"
 #include "test_utils.h"
 #include <boost/algorithm/string.hpp>
-#include <boost/bind.hpp>
+
+using namespace std::placeholders;
 
 namespace shcore {
   namespace sql_shell_tests {
@@ -52,8 +52,8 @@ namespace shcore {
       }
 
       Shell_test_output_handler output_handler;
-      boost::shared_ptr<Shell_core> shell_core;
-      boost::shared_ptr<Shell_sql> shell_sql;
+      std::shared_ptr<Shell_core> shell_core;
+      std::shared_ptr<Shell_sql> shell_sql;
     };
 
     class Shell_sql_test : public ::testing::Test
@@ -80,7 +80,7 @@ namespace shcore {
 
       shcore::Value handle_input(std::string& query, Interactive_input_state& state)
       {
-        env.shell_sql->handle_input(query, state, boost::bind(&Shell_sql_test::process_result, this, _1));
+        env.shell_sql->handle_input(query, state, std::bind(&Shell_sql_test::process_result, this, _1));
 
         return _returned_value;
       }

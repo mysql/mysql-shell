@@ -20,8 +20,6 @@
 #ifndef _MOD_MYSQLX_METADATA_STORAGE_H_
 #define _MOD_MYSQLX_METADATA_STORAGE_H_
 
-#include <boost/enable_shared_from_this.hpp>
-
 #include "mod_mysqlx_admin_session.h"
 #include "mod_mysqlx_farm.h"
 
@@ -32,32 +30,32 @@ namespace mysh
     /**
     * Represents a Session to a Metadata Storage
     */
-    class MetadataStorage : public boost::enable_shared_from_this<MetadataStorage>
+    class MetadataStorage : public std::enable_shared_from_this<MetadataStorage>
     {
     public:
-      MetadataStorage(boost::shared_ptr<AdminSession> admin_session);
+      MetadataStorage(std::shared_ptr<AdminSession> admin_session);
       ~MetadataStorage();
 
       bool metadata_schema_exists();
       void create_metadata_schema();
       uint64_t get_farm_id(std::string farm_name);
       bool farm_exists(std::string farm_name);
-      void insert_farm(boost::shared_ptr<Farm> farm);
-      void insert_default_replica_set(boost::shared_ptr<Farm> farm);
+      void insert_farm(std::shared_ptr<Farm> farm);
+      void insert_default_replica_set(std::shared_ptr<Farm> farm);
       void drop_farm(std::string farm_name);
       bool farm_has_default_replicaset_only(std::string farm_name);
       void drop_default_replicaset(std::string farm_name);
 
       uint64_t get_farm_default_rs_id(std::string farm_name);
-      boost::shared_ptr<Farm> get_farm(std::string farm_name);
+      std::shared_ptr<Farm> get_farm(std::string farm_name);
       bool has_default_farm();
       std::string get_default_farm_name();
 
       std::string get_replicaset_name(uint64_t rs_id);
-      boost::shared_ptr<ReplicaSet> get_replicaset(uint64_t rs_id);
+      std::shared_ptr<ReplicaSet> get_replicaset(uint64_t rs_id);
 
     private:
-      boost::shared_ptr<AdminSession> _admin_session;
+      std::shared_ptr<AdminSession> _admin_session;
     };
   }
 }

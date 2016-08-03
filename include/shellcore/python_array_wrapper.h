@@ -37,8 +37,8 @@ struct PyShListObject
 };
 
 
-PyObject *wrap(boost::shared_ptr<Value::Array_type> array);
-bool unwrap(PyObject *value, boost::shared_ptr<Value::Array_type> &ret_array);
+PyObject *wrap(std::shared_ptr<Value::Array_type> array);
+bool unwrap(PyObject *value, std::shared_ptr<Value::Array_type> &ret_array);
 
 };
 

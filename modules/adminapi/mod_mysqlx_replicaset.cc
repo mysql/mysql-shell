@@ -17,8 +17,6 @@
  * 02110-1301  USA
  */
 
-#include <boost/bind.hpp>
-
 #include "mod_mysqlx_replicaset.h"
 
 #include "common/uuid/include/uuid_gen.h"
@@ -30,6 +28,7 @@
 
 #include <boost/lexical_cast.hpp>
 
+using namespace std::placeholders;
 using namespace mysh;
 using namespace mysh::mysqlx;
 using namespace shcore;
@@ -85,8 +84,8 @@ shcore::Value ReplicaSet::get_member(const std::string &prop) const
 void ReplicaSet::init()
 {
   add_property("name", "getName");
-  add_method("addInstance", boost::bind(&ReplicaSet::add_instance, this, _1), "data");
-  add_method("removeInstance", boost::bind(&ReplicaSet::remove_instance, this, _1), "data");
+  add_method("addInstance", std::bind(&ReplicaSet::add_instance, this, _1), "data");
+  add_method("removeInstance", std::bind(&ReplicaSet::remove_instance, this, _1), "data");
 }
 
 #if DOXYGEN_CPP
@@ -149,7 +148,7 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args)
   else
     throw shcore::Exception::argument_error("Unexpected argument on connection data.");
 
-  if(options->size() == 0)
+  if (options->size() == 0)
     throw shcore::Exception::argument_error("Connection data empty.");
 
   if (options->has_key("host"))

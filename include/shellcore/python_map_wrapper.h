@@ -34,8 +34,8 @@ namespace shcore
     shcore::Value::Map_type_ref *map;
   };
 
-  PyObject *wrap(boost::shared_ptr<Value::Map_type> map);
-  bool unwrap(PyObject *value, boost::shared_ptr<Value::Map_type> &ret_object);
+  PyObject *wrap(std::shared_ptr<Value::Map_type> map);
+  bool unwrap(PyObject *value, std::shared_ptr<Value::Map_type> &ret_object);
 
 };
 

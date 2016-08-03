@@ -676,7 +676,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[2.0.05]:2 Connect local Server on JS mode: NODE SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [("var mysqlx=require(\'mysqlx\').mysqlx;\n","mysql-js>"),
+      x_cmds = [("var mysqlx=require(\'mysqlx\');\n","mysql-js>"),
                 ("var session=mysqlx.getNodeSession(\'{0}:{1}@{2}\');\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                                 LOCALHOST.host), "mysql-js>"),
                 ("var schemaList = session.getSchemas();\n", "mysql-js>"),
@@ -689,7 +689,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[2.0.05]:3 Connect local Server on JS mode: NODE SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [("var mysqlx=require(\'mysqlx\').mysqlx;\n","mysql-js>"),
+      x_cmds = [("var mysqlx=require(\'mysqlx\');\n","mysql-js>"),
                 ("var session=mysqlx.getNodeSession({host: '" + LOCALHOST.host + "', dbUser: '"
                  + LOCALHOST.user +  "', dbPassword: '" + LOCALHOST.password + "'});\n", "mysql-js>"),
                 ("var schemaList = session.getSchemas();\n", "mysql-js>"),
@@ -702,7 +702,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[2.0.05]:4 Connect local Server on JS mode: CLASSIC SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [("var mysql=require(\'mysql\').mysql;\n","mysql-js>"),
+      x_cmds = [("var mysql=require(\'mysql\');\n","mysql-js>"),
                 ("var session=mysql.getClassicSession(\'{0}:{1}@{2}:{3}\');\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                             LOCALHOST.host, LOCALHOST.port), "mysql-js>"),
                 ("var schemaList = session.getSchemas();\n", "mysql-js>"),
@@ -715,7 +715,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[2.0.06]:2 Connect remote Server on JS mode: NODE SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [("var mysqlx=require(\'mysqlx\').mysqlx;\n","mysql-js>"),
+      x_cmds = [("var mysqlx=require(\'mysqlx\');\n","mysql-js>"),
                  ("var session=mysqlx.getNodeSession(\'{0}:{1}@{2}\');\n".format(REMOTEHOST.user, REMOTEHOST.password,
                                                                                 REMOTEHOST.host), "mysql-js>"),
                 ("var schemaList = session.getSchemas();\n", "mysql-js>"),
@@ -728,7 +728,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[2.0.06]:3 Connect remote Server on JS mode: NODE SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [("var mysqlx=require(\'mysqlx\').mysqlx;\n","mysql-js>"),
+      x_cmds = [("var mysqlx=require(\'mysqlx\');\n","mysql-js>"),
                 ("var session=mysqlx.getNodeSession({host: '" + REMOTEHOST.host + "', dbUser: '"
                  + REMOTEHOST.user +  "', dbPassword: '" + REMOTEHOST.password + "'});\n", "mysql-js>"),
                 ("var schemaList = session.getSchemas();\n", "mysql-js>"),
@@ -741,7 +741,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[2.0.06]:4 Connect remote Server on JS mode: CLASSIC SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [("var mysql=require(\'mysql\').mysql;\n","mysql-js>"),
+      x_cmds = [("var mysql=require(\'mysql\');\n","mysql-js>"),
                 ("var session=mysql.getClassicSession(\'{0}:{1}@{2}:{3}\');\n".format(REMOTEHOST.user, REMOTEHOST.password,
                                                                             REMOTEHOST.host, REMOTEHOST.port), "mysql-js>"),
                 ("var schemaList = session.getSchemas();\n", "mysql-js>"),
@@ -1990,7 +1990,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[4.3.009]:1 JS Update table using session object: CLASSIC SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [("var mysql=require(\'mysql\').mysql;\n","mysql-js>"),
+      x_cmds = [("var mysql=require(\'mysql\');\n","mysql-js>"),
                 ("var session=mysql.getClassicSession(\'{0}:{1}@{2}:{3}\');\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                                 LOCALHOST.host, LOCALHOST.port),"mysql-js>"),
                 ("session.runSql(\"use sakila;\");\n","Query OK"),
@@ -2011,7 +2011,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[4.3.009]:2 JS Update table using session object: NODE SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [("var mysqlx=require(\'mysqlx\').mysqlx;\n","mysql-js>"),
+      x_cmds = [("var mysqlx=require(\'mysqlx\');\n","mysql-js>"),
                 ("var session=mysqlx.getNodeSession(\'{0}:{1}@{2}\');\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                                 LOCALHOST.host),"mysql-js>"),
                 ("session.sql(\"use sakila;\").execute();\n","Query OK"),
@@ -2031,7 +2031,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[4.3.010]:1 JS Update table using multiline mode: CLASSIC SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [("var mysql=require('mysql').mysql;\n","mysql-js>"),
+      x_cmds = [("var mysql=require('mysql');\n","mysql-js>"),
                 ("var session=mysql.getClassicSession('{0}:{1}@{2}:{3}');\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                                       LOCALHOST.host, LOCALHOST.port), "mysql-js>"),
                 ("session.runSql('use sakila;');\n","Query OK"),
@@ -2056,7 +2056,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[4.3.010]:2 JS Update table using multiline mode: NODE SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [("var mysqlx=require(\'mysqlx\').mysqlx;\n","mysql-js>"),
+      x_cmds = [("var mysqlx=require(\'mysqlx\');\n","mysql-js>"),
                 ("var session=mysqlx.getNodeSession(\'{0}:{1}@{2}\');\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                                 LOCALHOST.host),"mysql-js>"),
                 ("session.sql('use sakila;').execute();\n","Query OK"),
@@ -2128,7 +2128,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[4.3.012]:1 JS Update database using session object: CLASSIC SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [("var mysql=require('mysql').mysql;\n","mysql-js>"),
+      x_cmds = [("var mysql=require('mysql');\n","mysql-js>"),
                 ("var session=mysql.getClassicSession('{0}:{1}@{2}:{3}');\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                                       LOCALHOST.host, LOCALHOST.port), "mysql-js>"),
                 ("session.runSql('drop database if exists automation_test;');\n","Query OK"),
@@ -2143,7 +2143,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[4.3.012]:2 JS Update database using session object: NODE SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [("var mysqlx=require('mysqlx').mysqlx;\n","mysql-js>"),
+      x_cmds = [("var mysqlx=require('mysqlx');\n","mysql-js>"),
                 ("var session=mysqlx.getNodeSession(\'{0}:{1}@{2}\');\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                                 LOCALHOST.host),"mysql-js>"),
                 ("session.sql(\'drop database if exists automation_test;\').execute();\n","Query OK"),
@@ -2159,7 +2159,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[4.3.013]:1 JS Update database using multiline mode: CLASSIC SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [("var mysql=require('mysql').mysql;\n","mysql-js>"),
+      x_cmds = [("var mysql=require('mysql');\n","mysql-js>"),
                 ("var session=mysql.getClassicSession('{0}:{1}@{2}:{3}');\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                                       LOCALHOST.host, LOCALHOST.port), "mysql-js>"),
                 ("session.runSql('drop database if exists automation_test;');\n","Query OK"),
@@ -2180,7 +2180,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[4.3.013]:2 JS Update database using multiline mode: NODE SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [("var mysqlx=require('mysqlx').mysqlx;\n","mysql-js>"),
+      x_cmds = [("var mysqlx=require('mysqlx');\n","mysql-js>"),
                 ("var session=mysqlx.getNodeSession('{0}:{1}@{2}');\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                                 LOCALHOST.host),"mysql-js>"),
                 ("session.sql('drop database if exists automation_test;').execute();\n","Query OK"),
@@ -2241,7 +2241,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[4.3.015]:1 JS Update alter view using session object: CLASSIC SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [("var mysql=require('mysql').mysql;\n","mysql-js>"),
+      x_cmds = [("var mysql=require('mysql');\n","mysql-js>"),
                 ("var session=mysql.getClassicSession(\'{0}:{1}@{2}:{3}\');\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                                       LOCALHOST.host, LOCALHOST.port), "mysql-js>"),
                 ("session.runSql('use sakila;');\n","Query OK"),
@@ -2257,7 +2257,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[4.3.015]:2 JS Update alter view using session object: NODE SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [("var mysqlx=require('mysqlx').mysqlx;\n","mysql-js>"),
+      x_cmds = [("var mysqlx=require('mysqlx');\n","mysql-js>"),
                 ("var session=mysqlx.getNodeSession(\'{0}:{1}@{2}\');\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                                 LOCALHOST.host),"mysql-js>"),
                 ("session.sql('use sakila;').execute();\n","Query OK"),
@@ -2274,7 +2274,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[4.3.016]:1 JS Update alter view using multiline mode: CLASSIC SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [("var mysql=require('mysql').mysql;\n","mysql-js>"),
+      x_cmds = [("var mysql=require('mysql');\n","mysql-js>"),
                 ("var session=mysql.getClassicSession('{0}:{1}@{2}:{3}');\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                                       LOCALHOST.host, LOCALHOST.port), "mysql-js>"),
                 ("session.runSql('use sakila;');\n","Query OK"),
@@ -2295,7 +2295,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[4.3.016]:2 JS Update alter view using multiline mode: NODE SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [("var mysqlx=require('mysqlx').mysqlx;\n","mysql-js>"),
+      x_cmds = [("var mysqlx=require('mysqlx');\n","mysql-js>"),
                 ("var session=mysqlx.getNodeSession('{0}:{1}@{2}');\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                                 LOCALHOST.host),"mysql-js>"),
                 ("session.sql('use sakila;').execute();\n","Query OK"),
@@ -2357,7 +2357,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[4.3.018]:1 JS Update alter stored procedure using session object: CLASSIC SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [("var mysql=require('mysql').mysql;\n","mysql-js>"),
+      x_cmds = [("var mysql=require('mysql');\n","mysql-js>"),
                 ("var session=mysql.getClassicSession('{0}:{1}@{2}:{3}');\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                                       LOCALHOST.host, LOCALHOST.port), "mysql-js>"),
                 ("session.runSql('use sakila;');\n","Query OK"),
@@ -2377,7 +2377,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[4.3.018]:2 JS Update alter stored procedure using session object: NODE SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [("var mysqlx=require('mysqlx').mysqlx;\n","mysql-js>"),
+      x_cmds = [("var mysqlx=require('mysqlx');\n","mysql-js>"),
                 ("var session=mysqlx.getNodeSession(\'{0}:{1}@{2}\');\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                                 LOCALHOST.host),"mysql-js>"),
                 ("session.sql('use sakila;').execute();\n","Query OK"),
@@ -2397,7 +2397,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[4.3.019]:1 JS Update alter stored procedure using multiline mode: CLASSIC SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [("var mysql=require(\'mysql\').mysql;\n","mysql-js>"),
+      x_cmds = [("var mysql=require(\'mysql\');\n","mysql-js>"),
                 ("var session=mysql.getClassicSession(\'{0}:{1}@{2}:{3}\');\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                                       LOCALHOST.host, LOCALHOST.port), "mysql-js>"),
                 ("session.runSql(\'use sakila;\');\n","Query OK"),
@@ -2419,7 +2419,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[4.3.019]:2 JS Update alter stored procedure using multiline mode: NODE SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [("var mysqlx=require('mysqlx').mysqlx;\n","mysql-js>"),
+      x_cmds = [("var mysqlx=require('mysqlx');\n","mysql-js>"),
                 ("var session=mysqlx.getNodeSession('{0}:{1}@{2}');\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                                 LOCALHOST.host),"mysql-js>"),
                 ("session.sql('use sakila;').execute();\n","Query OK"),
@@ -3306,7 +3306,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[4.4.009]:1 JS Delete table using session object: CLASSIC SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [("var mysql=require(\'mysql\').mysql;\n","mysql-js>"),
+      x_cmds = [("var mysql=require(\'mysql\');\n","mysql-js>"),
                 ("var session=mysql.getClassicSession(\'{0}:{1}@{2}:{3}\');\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                                 LOCALHOST.host, LOCALHOST.port),"mysql-js>"),
                 ("session.runSql(\"use sakila;\");\n","Query OK"),
@@ -3327,7 +3327,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[4.4.009]:2 JS Delete table using session object: NODE SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [("var mysqlx=require(\'mysqlx\').mysqlx;\n","mysql-js>"),
+      x_cmds = [("var mysqlx=require(\'mysqlx\');\n","mysql-js>"),
                 ("var session=mysqlx.getNodeSession(\'{0}:{1}@{2}\');\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                                 LOCALHOST.host),"mysql-js>"),
                 ("session.sql(\"use sakila;\").execute();\n","Query OK"),
@@ -3348,7 +3348,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[4.4.010]:1 JS Delete table using multiline mode: CLASSIC SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [("var mysql=require('mysql').mysql;\n","mysql-js>"),
+      x_cmds = [("var mysql=require('mysql');\n","mysql-js>"),
                 ("var session=mysql.getClassicSession(\'{0}:{1}@{2}:{3}\');\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                                 LOCALHOST.host, LOCALHOST.port),"mysql-js>"),
                 ("session.runSql('use sakila;');\n","Query OK"),
@@ -3374,7 +3374,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[4.4.010]:2 JS Delete table using multiline modet: NODE SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [("var mysqlx=require('mysqlx').mysqlx;\n","mysql-js>"),
+      x_cmds = [("var mysqlx=require('mysqlx');\n","mysql-js>"),
                 ("var session=mysqlx.getNodeSession('{0}:{1}@{2}');\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                                 LOCALHOST.host),"mysql-js>"),
                 ("session.sql('use sakila;').execute();\n","Query OK"),
@@ -3442,7 +3442,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[4.4.012]:1 JS Delete database using session object: CLASSIC SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [("var mysql=require(\'mysql\').mysql;\n","mysql-js>"),
+      x_cmds = [("var mysql=require(\'mysql\');\n","mysql-js>"),
                 ("var session=mysql.getClassicSession(\'{0}:{1}@{2}:{3}\');\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                                       LOCALHOST.host, LOCALHOST.port), "mysql-js>"),
                 ("session.runSql(\"drop database if exists automation_test;\");\n","Query OK"),
@@ -3457,7 +3457,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[4.4.012]:2 JS Delete database using session object: NODE SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [("var mysqlx=require(\'mysqlx\').mysqlx;\n","mysql-js>"),
+      x_cmds = [("var mysqlx=require(\'mysqlx\');\n","mysql-js>"),
                 ("var session=mysqlx.getNodeSession(\'{0}:{1}@{2}\');\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                                 LOCALHOST.host),"mysql-js>"),
                 ("session.sql(\"drop database if exists automation_test;\").execute();\n","Query OK"),
@@ -3473,7 +3473,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[4.4.013]:1 JS Delete database using multiline mode: CLASSIC SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [("var mysql=require('mysql').mysql;\n","mysql-js>"),
+      x_cmds = [("var mysql=require('mysql');\n","mysql-js>"),
                 ("var session=mysql.getClassicSession('{0}:{1}@{2}:{3}');\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                                       LOCALHOST.host, LOCALHOST.port), "mysql-js>"),
                 ("session.runSql('drop database if exists automation_test;');\n","Query OK"),
@@ -3493,7 +3493,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[4.4.013]:2 JS Delete database using multiline mode: NODE SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [("var mysqlx=require('mysqlx').mysqlx;\n","mysql-js>"),
+      x_cmds = [("var mysqlx=require('mysqlx');\n","mysql-js>"),
                 ("var session=mysqlx.getNodeSession('{0}:{1}@{2}');\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                                 LOCALHOST.host),"mysql-js>"),
                 ("session.\n","..."),
@@ -3557,7 +3557,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[4.4.015]:1 JS Delete view using session object: CLASSIC SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [("var mysql=require('mysql').mysql;\n","mysql-js>"),
+      x_cmds = [("var mysql=require('mysql');\n","mysql-js>"),
                 ("var session=mysql.getClassicSession(\'{0}:{1}@{2}:{3}\');\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                                       LOCALHOST.host, LOCALHOST.port), "mysql-js>"),
                 ("session.runSql('use sakila;');\n","Query OK"),
@@ -3574,7 +3574,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[4.4.015]:2 JS Delete view using session object: NODE SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [("var mysqlx=require(\'mysqlx\').mysqlx;\n","mysql-js>"),
+      x_cmds = [("var mysqlx=require(\'mysqlx\');\n","mysql-js>"),
                 ("var session=mysqlx.getNodeSession(\'{0}:{1}@{2}\');\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                                 LOCALHOST.host),"mysql-js>"),
                 ("session.sql(\'use sakila;\').execute();\n","Query OK"),
@@ -3591,7 +3591,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[4.3.016]:1 JS Update alter view using multiline mode: CLASSIC SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [("var mysql=require('mysql').mysql;\n","mysql-js>"),
+      x_cmds = [("var mysql=require('mysql');\n","mysql-js>"),
                 ("var session=mysql.getClassicSession('{0}:{1}@{2}:{3}');\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                                       LOCALHOST.host, LOCALHOST.port), "mysql-js>"),
                 ("session.runSql('use sakila;');\n","Query OK"),
@@ -3614,7 +3614,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[4.3.016]:2 JS Update alter view using multiline mode: NODE SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [("var mysqlx=require('mysqlx').mysqlx;\n","mysql-js>"),
+      x_cmds = [("var mysqlx=require('mysqlx');\n","mysql-js>"),
                 ("var session=mysqlx.getNodeSession('{0}:{1}@{2}');\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                                 LOCALHOST.host),"mysql-js>"),
                 ("session.sql('use sakila;').execute();\n","Query OK"),
@@ -3680,7 +3680,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[4.4.018]:1 JS Delete stored procedure using session object: CLASSIC SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full','--js']
-      x_cmds = [("var mysql=require('mysql').mysql;\n","mysql-js>"),
+      x_cmds = [("var mysql=require('mysql');\n","mysql-js>"),
                 ("var session=mysql.getClassicSession('{0}:{1}@{2}:{3}');\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                                       LOCALHOST.host, LOCALHOST.port), "mysql-js>"),
                 ("session.runSql('use sakila;');\n","Query OK"),
@@ -3702,7 +3702,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[4.4.018]:2 JS Delete stored procedure using session object: NODE SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [("var mysqlx=require(\'mysqlx\').mysqlx;\n","mysql-js>"),
+      x_cmds = [("var mysqlx=require(\'mysqlx\');\n","mysql-js>"),
                 ("var session=mysqlx.getNodeSession(\'{0}:{1}@{2}\');\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                                 LOCALHOST.host),"mysql-js>"),
                 ("session.sql(\'use sakila;\').execute();\n","Query OK"),
@@ -3724,7 +3724,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[4.4.019]:1 JS Delete stored procedure using multiline mode: CLASSIC SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full','--js']
-      x_cmds = [("var mysql=require(\'mysql\').mysql;\n","mysql-js>"),
+      x_cmds = [("var mysql=require(\'mysql\');\n","mysql-js>"),
                 ("var session=mysql.getClassicSession(\'{0}:{1}@{2}:{3}\');\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                                       LOCALHOST.host, LOCALHOST.port), "mysql-js>"),
                 ("session.runSql(\'use sakila;\');\n","Query OK"),
@@ -3748,7 +3748,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[4.4.019]:2 JS Delete stored procedure using multiline mode: NODE SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
-      x_cmds = [("var mysqlx=require(\'mysqlx\').mysqlx;\n","mysql-js>"),
+      x_cmds = [("var mysqlx=require(\'mysqlx\');\n","mysql-js>"),
                 ("var session=mysqlx.getNodeSession(\'{0}:{1}@{2}\');\n".format(LOCALHOST.user, LOCALHOST.password,
                                                                                 LOCALHOST.host),"mysql-js>"),
                 ("session.sql(\'use sakila;\').execute();\n","Query OK"),
@@ -4543,9 +4543,9 @@ class XShell_TestCases(unittest.TestCase):
                 ("session.getSchema(\'sakila\').createCollection(\"test_collection_js\");\n", "mysql-js>"),
                 ("session.getSchema(\'sakila\').getCollection(\"test_collection_js\")\n","<Collection:test_collection_js"),
                 ("\\py\n","mysql-py>"),
-                ("session.dropCollection(\"sakila\",\"test_collection_py\")\n", "mysql-py>"),
-                ("session.getSchema(\'sakila\').createCollection(\"test_collection_py\")\n", "mysql-py>"),
-                ("session.getSchema(\'sakila\').getCollection(\"test_collection_py\")\n","<Collection:test_collection_py"),
+                ("session.drop_collection(\"sakila\",\"test_collection_py\")\n", "mysql-py>"),
+                ("session.get_schema(\'sakila\').create_collection(\"test_collection_py\")\n", "mysql-py>"),
+                ("session.get_schema(\'sakila\').get_collection(\"test_collection_py\")\n","<Collection:test_collection_py"),
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
@@ -4560,9 +4560,9 @@ class XShell_TestCases(unittest.TestCase):
                 ("session.getSchema(\'sakila\').createCollection(\"test_collection_js\");\n", "mysql-js>"),
                 ("session.getSchema(\'sakila\').getCollection(\"test_collection_js\").existsInDatabase()\n","true"),
                 ("\\py\n","mysql-py>"),
-                ("session.dropCollection(\"sakila\",\"test_collection_py\")\n", "mysql-py>"),
-                ("session.getSchema(\'sakila\').createCollection(\"test_collection_py\")\n", "mysql-py>"),
-                ("session.getSchema(\'sakila\').getCollection(\"test_collection_py\").existsInDatabase()\n","true"),
+                ("session.drop_collection(\"sakila\",\"test_collection_py\")\n", "mysql-py>"),
+                ("session.get_schema(\'sakila\').create_collection(\"test_collection_py\")\n", "mysql-py>"),
+                ("session.get_schema(\'sakila\').get_collection(\"test_collection_py\").exists_in_database()\n","true"),
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
@@ -4781,7 +4781,7 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
 
-      x_cmds = [("var mysqlx=require('mysqlx').mysqlx;\n","mysql-js>"),
+      x_cmds = [("var mysqlx=require('mysqlx');\n","mysql-js>"),
                 ("var mySession = mysqlx.getSession('"+LOCALHOST.user+":"+LOCALHOST.password+"@"+LOCALHOST.host+"');\n","mysql-js>"),
                 ("mySession;\n","<XSession:"+LOCALHOST.user+"@"+LOCALHOST.host+""),
                 ("var result = mySession.getSchema('world_x').getCollection('Countryinfo').find().execute();\n","mysql-js>"),
@@ -4797,7 +4797,7 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
 
-      x_cmds = [("var mysqlx=require('mysqlx').mysqlx;\n","mysql-js>"),
+      x_cmds = [("var mysqlx=require('mysqlx');\n","mysql-js>"),
                 ("var mySession = mysqlx.getSession('"+LOCALHOST.user+":"+LOCALHOST.password+"@"+LOCALHOST.host+"');\n","mysql-js>"),
                 ("var result = mySession.getSchema('world_x').getCollection('Countryinfo').find().execute();\n","mysql-js>"),
                 ("var record = result.fetchAll();\n","mysql-js>"),
@@ -5103,7 +5103,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[2.0.07]:3 Connect local Server on JS mode: APP SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full','--js']
-      x_cmds = [("var mysqlx=require('mysqlx').mysqlx;\n","mysql-js>"),
+      x_cmds = [("var mysqlx=require('mysqlx');\n","mysql-js>"),
                 ("var session=mysqlx.getSession({'host': '" + LOCALHOST.host + "', 'dbUser': '"
                  + LOCALHOST.user + "', 'port': " + LOCALHOST.xprotocol_port + ", 'dbPassword': '" + LOCALHOST.password + "'}).getSchema('sakila');\n", "mysql-js>"),
                 ("var myTable = session.getTable('actor');\n", "mysql-js>"),
@@ -5121,7 +5121,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[2.0.07]:3 Connect local Server on JS mode: NODE SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full','--js']
-      x_cmds = [("var mysqlx=require('mysqlx').mysqlx;\n","mysql-js>"),
+      x_cmds = [("var mysqlx=require('mysqlx');\n","mysql-js>"),
                 ("var session=mysqlx.getNodeSession({'host': '" + LOCALHOST.host + "', 'dbUser': '"
                  + LOCALHOST.user + "', 'port': " + LOCALHOST.xprotocol_port + ", 'dbPassword': '" + LOCALHOST.password + "'}).getSchema('sakila');\n", "mysql-js>"),
                 ("var myTable = session.getTable('actor');\n", "mysql-js>"),
@@ -5139,7 +5139,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[2.0.07]:3 Connect local Server on JS mode: APP SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full','--js']
-      x_cmds = [("var mysqlx=require('mysqlx').mysqlx;\n","mysql-js>"),
+      x_cmds = [("var mysqlx=require('mysqlx');\n","mysql-js>"),
                 ("var session=mysqlx.getSession({'host': '" + LOCALHOST.host + "', 'dbUser': '"
                  + LOCALHOST.user + "', 'port': " + LOCALHOST.xprotocol_port + ", 'dbPassword': '" + LOCALHOST.password + "'}).getSchema('sakila');\n", "mysql-js>"),
                 ("var myTable = session.getTable('actor');\n", "mysql-js>"),
@@ -5157,7 +5157,7 @@ class XShell_TestCases(unittest.TestCase):
       '''[2.0.07]:3 Connect local Server on JS mode: NODE SESSION'''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full','--js']
-      x_cmds = [("var mysqlx=require('mysqlx').mysqlx;\n","mysql-js>"),
+      x_cmds = [("var mysqlx=require('mysqlx');\n","mysql-js>"),
                 ("var session=mysqlx.getNodeSession({'host': '" + LOCALHOST.host + "', 'dbUser': '"
                  + LOCALHOST.user + "', 'port': " + LOCALHOST.xprotocol_port + ", 'dbPassword': '" + LOCALHOST.password + "'}).getSchema('sakila');\n", "mysql-js>"),
                 ("var myTable = session.getTable('actor');\n", "mysql-js>"),
@@ -5709,7 +5709,7 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
       x_cmds = [(";\n", 'mysql-js>'),
-                ("var mysqlx = require('mysqlx').mysqlx;\n", "mysql-js>"),
+                ("var mysqlx = require('mysqlx');\n", "mysql-js>"),
                 ("var session = mysqlx.getSession('"+ LOCALHOST.user +":"+ LOCALHOST.password +"@"+ LOCALHOST.host +":"+ LOCALHOST.xprotocol_port +"');\n", "mysql-js>"),
                 ("var schema = session.getSchema('sakila_x');\n", "mysql-js>"),
                 ("var coll = session.getSchema('sakila_x').getCollection('movies');\n", "mysql-js>"),
@@ -5723,7 +5723,7 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
       x_cmds = [(";\n", 'mysql-js>'),
-                ("var mysqlx = require('mysqlx').mysqlx;\n", "mysql-js>"),
+                ("var mysqlx = require('mysqlx');\n", "mysql-js>"),
                 ("var session = mysqlx.getSession('"+ LOCALHOST.user +":"+ LOCALHOST.password +"@"+ LOCALHOST.host +":"+ LOCALHOST.xprotocol_port +"');\n", "mysql-js>"),
                 ("var schema = session.getSchema('sakila_x');\n", "mysql-js>"),
                 ("var coll = session.getSchema('sakila_x').getCollection('movies');\n", "mysql-js>"),
@@ -6125,7 +6125,7 @@ class XShell_TestCases(unittest.TestCase):
       '''SSL Support '''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--js']
-      x_cmds = [("var mysqlx=require('mysqlx').mysqlx;\n", "mysql-js>"),
+      x_cmds = [("var mysqlx=require('mysqlx');\n", "mysql-js>"),
                 ("var session=mysqlx.getNodeSession({host: '"+LOCALHOST.host+"', dbUser: '"+LOCALHOST.user+"', port: '"+LOCALHOST.xprotocol_port+
                  "', dbPassword: '"+LOCALHOST.password+"', ssl-ca: '"+ Exec_files_location + "ca.pem', ssl-cert: '"+
                  Exec_files_location+"client-cert.pem', ssl-key: '"+Exec_files_location+"client-key.pem'});\n","mysql-js>" ),

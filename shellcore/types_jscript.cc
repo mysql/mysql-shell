@@ -31,7 +31,7 @@ using namespace shcore;
 class JScript_object : public Object_bridge
 {
 public:
-  JScript_object(boost::shared_ptr<JScript_context> UNUSED(context))
+  JScript_object(std::shared_ptr<JScript_context> UNUSED(context))
   {
   }
 
@@ -95,7 +95,7 @@ public:
   }
   
 private:
-  boost::shared_ptr<JScript_context> _js;
+  std::shared_ptr<JScript_context> _js;
   v8::Handle<v8::Object> _object;
 };
 
@@ -104,26 +104,26 @@ private:
 class JScript_object_factory : public Object_factory
 {
 public:
-  JScript_object_factory(boost::shared_ptr<JScript_context> context, v8::Handle<v8::Object> constructor);
+  JScript_object_factory(std::shared_ptr<JScript_context> context, v8::Handle<v8::Object> constructor);
 
-  virtual boost::shared_ptr<Object_bridge> construct(const Argument_list &UNUSED(args))
+  virtual std::shared_ptr<Object_bridge> construct(const Argument_list &UNUSED(args))
   {
     return construct_from_repr("");
   }
 
-  virtual boost::shared_ptr<Object_bridge> construct_from_repr(const std::string &UNUSED(repr))
+  virtual std::shared_ptr<Object_bridge> construct_from_repr(const std::string &UNUSED(repr))
   {
-    return boost::shared_ptr<Object_bridge>();
+    return std::shared_ptr<Object_bridge>();
   }
 
 private:
-  boost::weak_ptr<JScript_context> _context;
+  std::weak_ptr<JScript_context> _context;
 };
 
 // -------------------------------------------------------------------------------------------------------
 
 
-JScript_function::JScript_function(boost::shared_ptr<JScript_context> context)
+JScript_function::JScript_function(std::shared_ptr<JScript_context> context)
 : _js(context)
 {
 throw std::logic_error("not implemented");

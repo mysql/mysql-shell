@@ -22,7 +22,7 @@
 
 using namespace shcore;
 
-boost::shared_ptr<Shell_core_options> Shell_core_options::_instance;
+std::shared_ptr<Shell_core_options> Shell_core_options::_instance;
 
 std::string Shell_core_options::class_name() const
 {
@@ -113,7 +113,7 @@ Value::Map_type_ref Shell_core_options::get()
   return _instance->_options;
 }
 
-boost::shared_ptr<Shell_core_options> Shell_core_options::get_instance()
+std::shared_ptr<Shell_core_options> Shell_core_options::get_instance()
 {
   if (!_instance)
     _instance.reset(new Shell_core_options());

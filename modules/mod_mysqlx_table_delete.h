@@ -34,13 +34,13 @@ namespace mysh
     /**
     * Handler for Delete operation on Tables.
     */
-    class TableDelete : public Table_crud_definition, public boost::enable_shared_from_this<TableDelete>
+    class TableDelete : public Table_crud_definition, public std::enable_shared_from_this<TableDelete>
     {
     public:
-      TableDelete(boost::shared_ptr<Table> owner);
+      TableDelete(std::shared_ptr<Table> owner);
     public:
       virtual std::string class_name() const { return "TableDelete"; }
-      static boost::shared_ptr<shcore::Object_bridge> create(const shcore::Argument_list &args);
+      static std::shared_ptr<shcore::Object_bridge> create(const shcore::Argument_list &args);
       shcore::Value remove(const shcore::Argument_list &args);
       shcore::Value where(const shcore::Argument_list &args);
       shcore::Value order_by(const shcore::Argument_list &args);

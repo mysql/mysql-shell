@@ -34,7 +34,7 @@ namespace mysh
     /**
     * Handler for Insert operations on Tables.
     */
-    class TableInsert : public Table_crud_definition, public boost::enable_shared_from_this<TableInsert>
+    class TableInsert : public Table_crud_definition, public std::enable_shared_from_this<TableInsert>
     {
     public:
 #if DOXYGEN_JS
@@ -50,9 +50,9 @@ namespace mysh
       TableInsert values(Value value, Value value, ...);
       Result execute();
 #endif
-      TableInsert(boost::shared_ptr<Table> owner);
+      TableInsert(std::shared_ptr<Table> owner);
       virtual std::string class_name() const { return "TableInsert"; }
-      static boost::shared_ptr<shcore::Object_bridge> create(const shcore::Argument_list &args);
+      static std::shared_ptr<shcore::Object_bridge> create(const shcore::Argument_list &args);
       shcore::Value insert(const shcore::Argument_list &args);
       shcore::Value values(const shcore::Argument_list &args);
 

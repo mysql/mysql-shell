@@ -45,9 +45,7 @@
 
 #include "shellcore/jscript_type_conversion.h"
 #include "shellcore/jscript_core_definitions.h"
-#include <boost/weak_ptr.hpp>
 #include <boost/format.hpp>
-#include <boost/bind.hpp>
 #include <boost/system/error_code.hpp>
 #include <cerrno>
 #ifdef HAVE_UNISTD_H
@@ -531,7 +529,7 @@ struct JScript_context::JScript_context_impl
         if (std::find(core_modules.begin(), core_modules.end(), *s) != core_modules.end())
         {
           auto module = Object_factory::call_constructor("__modules__", *s, shcore::Argument_list());
-          args.GetReturnValue().Set(self->types.shcore_value_to_v8_value(shcore::Value(boost::dynamic_pointer_cast<Object_bridge>(module))));
+          args.GetReturnValue().Set(self->types.shcore_value_to_v8_value(shcore::Value(std::dynamic_pointer_cast<Object_bridge>(module))));
         }
       }
       catch (std::exception &e)
@@ -785,7 +783,7 @@ JScript_context::JScript_context(Object_registry *registry, Interpreter_delegate
   }
 
   set_global("globals", Value(registry->_registry));
-  set_global_item("shell", "options", Value(boost::static_pointer_cast<Object_bridge>(Shell_core_options::get_instance())));
+  set_global_item("shell", "options", Value(std::static_pointer_cast<Object_bridge>(Shell_core_options::get_instance())));
   set_global_item("shell", "storedSessions", StoredSessions::get());
 }
 

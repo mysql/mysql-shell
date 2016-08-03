@@ -36,7 +36,7 @@ namespace mysh
     * This object should only be created by calling the sql function a NodeSession instance.
     * \sa NodeSession
     */
-    class SqlExecute : public Dynamic_object, public boost::enable_shared_from_this<SqlExecute>
+    class SqlExecute : public Dynamic_object, public std::enable_shared_from_this<SqlExecute>
     {
     public:
 #if DOXYGEN_JS
@@ -50,13 +50,13 @@ namespace mysh
       SqlExecute bind(list values);
       SqlResult execute();
 #endif
-      SqlExecute(boost::shared_ptr<NodeSession> owner);
+      SqlExecute(std::shared_ptr<NodeSession> owner);
       virtual std::string class_name() const { return "SqlExecute"; }
       shcore::Value sql(const shcore::Argument_list &args);
       shcore::Value bind(const shcore::Argument_list &args);
       virtual shcore::Value execute(const shcore::Argument_list &args);
     private:
-      boost::weak_ptr<NodeSession> _session;
+      std::weak_ptr<NodeSession> _session;
       std::string _sql;
       shcore::Argument_list _parameters;
     };

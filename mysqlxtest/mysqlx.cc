@@ -167,7 +167,7 @@ Error::Error(int err, const std::string &message)
 {
 }
 
-Error::~Error() BOOST_NOEXCEPT_OR_NOTHROW
+Error::~Error()
 {
 }
 
@@ -186,23 +186,23 @@ Session::~Session()
   m_connection.reset();
 }
 
-boost::shared_ptr<Session> mysqlx::openSession(const std::string &uri, const std::string &pass, const mysqlx::Ssl_config &ssl_config,
+std::shared_ptr<Session> mysqlx::openSession(const std::string &uri, const std::string &pass, const mysqlx::Ssl_config &ssl_config,
                                                const bool cap_expired_password, const std::size_t timeout, const bool get_caps)
 {
-  boost::shared_ptr<Session> session(new Session(ssl_config, timeout));
+  std::shared_ptr<Session> session(new Session(ssl_config, timeout));
   session->connection()->connect(uri, pass, cap_expired_password);
   if (get_caps)
     session->connection()->fetch_capabilities();
   return session;
 }
 
-boost::shared_ptr<Session> mysqlx::openSession(const std::string &host, int port, const std::string &schema,
+std::shared_ptr<Session> mysqlx::openSession(const std::string &host, int port, const std::string &schema,
                                                const std::string &user, const std::string &pass,
                                                const mysqlx::Ssl_config &ssl_config, const std::size_t timeout,
                                                const std::string &auth_method,
                                                const bool get_caps)
 {
-  boost::shared_ptr<Session> session(new Session(ssl_config, timeout));
+  std::shared_ptr<Session> session(new Session(ssl_config, timeout));
   session->connection()->connect(host, port);
   if (get_caps)
     session->connection()->fetch_capabilities();
@@ -385,12 +385,12 @@ void Connection::perform_close()
   throw Error(CR_COMMANDS_OUT_OF_SYNC, s.str());
 }
 
-boost::shared_ptr<Result> Connection::recv_result()
+std::shared_ptr<Result> Connection::recv_result()
 {
   return new_result(true);
 }
 
-boost::shared_ptr<Result> Connection::execute_sql(const std::string &sql)
+std::shared_ptr<Result> Connection::execute_sql(const std::string &sql)
 {
   {
     Mysqlx::Sql::StmtExecute exec;
@@ -402,7 +402,7 @@ boost::shared_ptr<Result> Connection::execute_sql(const std::string &sql)
   return new_result(true);
 }
 
-boost::shared_ptr<Result> Connection::execute_stmt(const std::string &ns, const std::string &sql, const std::vector<ArgumentValue> &args)
+std::shared_ptr<Result> Connection::execute_stmt(const std::string &ns, const std::string &sql, const std::vector<ArgumentValue> &args)
 {
   {
     Mysqlx::Sql::StmtExecute exec;
@@ -456,28 +456,28 @@ boost::shared_ptr<Result> Connection::execute_stmt(const std::string &ns, const 
   return new_result(true);
 }
 
-boost::shared_ptr<Result> Connection::execute_find(const Mysqlx::Crud::Find &m)
+std::shared_ptr<Result> Connection::execute_find(const Mysqlx::Crud::Find &m)
 {
   send(m);
 
   return new_result(true);
 }
 
-boost::shared_ptr<Result> Connection::execute_update(const Mysqlx::Crud::Update &m)
+std::shared_ptr<Result> Connection::execute_update(const Mysqlx::Crud::Update &m)
 {
   send(m);
 
   return new_result(false);
 }
 
-boost::shared_ptr<Result> Connection::execute_insert(const Mysqlx::Crud::Insert &m)
+std::shared_ptr<Result> Connection::execute_insert(const Mysqlx::Crud::Insert &m)
 {
   send(m);
 
   return new_result(false);
 }
 
-boost::shared_ptr<Result> Connection::execute_delete(const Mysqlx::Crud::Delete &m)
+std::shared_ptr<Result> Connection::execute_delete(const Mysqlx::Crud::Delete &m)
 {
   send(m);
 
@@ -910,7 +910,7 @@ void Connection::throw_mysqlx_error(const boost::system::error_code &error)
   }
 }
 
-boost::shared_ptr<Result> Connection::new_result(bool expect_data)
+std::shared_ptr<Result> Connection::new_result(bool expect_data)
 {
   if (m_last_result)
     m_last_result->buffer();
@@ -920,28 +920,28 @@ boost::shared_ptr<Result> Connection::new_result(bool expect_data)
   return m_last_result;
 }
 
-boost::shared_ptr<Result> Connection::new_empty_result()
+std::shared_ptr<Result> Connection::new_empty_result()
 {
-  boost::shared_ptr<Result> empty_result(new Result(shared_from_this(), false, false));
+  std::shared_ptr<Result> empty_result(new Result(shared_from_this(), false, false));
 
   return empty_result;
 }
 
-boost::shared_ptr<Schema> Session::getSchema(const std::string &name)
+std::shared_ptr<Schema> Session::getSchema(const std::string &name)
 {
-  std::map<std::string, boost::shared_ptr<Schema> >::const_iterator iter = m_schemas.find(name);
+  std::map<std::string, std::shared_ptr<Schema> >::const_iterator iter = m_schemas.find(name);
   if (iter != m_schemas.end())
     return iter->second;
 
-  return m_schemas[name] = boost::shared_ptr<Schema>(new Schema(shared_from_this(), name));
+  return m_schemas[name] = std::shared_ptr<Schema>(new Schema(shared_from_this(), name));
 }
 
-boost::shared_ptr<Result> Session::executeSql(const std::string &sql)
+std::shared_ptr<Result> Session::executeSql(const std::string &sql)
 {
   return m_connection->execute_sql(sql);
 }
 
-boost::shared_ptr<Result> Session::executeStmt(const std::string &ns, const std::string &stmt,
+std::shared_ptr<Result> Session::executeStmt(const std::string &ns, const std::string &stmt,
                              const std::vector<ArgumentValue> &args)
 {
   return m_connection->execute_stmt(ns, stmt, args);
@@ -979,7 +979,7 @@ void Document::reset(const std::string &doc, bool expression, const std::string 
   m_id = id;
 }
 
-Result::Result(boost::shared_ptr<Connection>owner, bool expect_data, bool expect_ok)
+Result::Result(std::shared_ptr<Connection>owner, bool expect_data, bool expect_ok)
   : current_message(NULL), m_owner(owner), m_last_insert_id(-1), m_affected_rows(-1),
   m_result_index(0), m_state(expect_data ? ReadMetadataI : expect_ok ? ReadStmtOkI : ReadDone), m_buffered(false), m_buffering(false), m_has_doc_ids(false)
 {
@@ -999,7 +999,7 @@ Result::~Result()
   delete current_message;
 }
 
-boost::shared_ptr<std::vector<ColumnMetadata> > Result::columnMetadata()
+std::shared_ptr<std::vector<ColumnMetadata> > Result::columnMetadata()
 {
   // If cached, works with the cache data
   if (m_buffered)
@@ -1106,7 +1106,7 @@ int Result::get_message_id()
     return current_message_id;
   }
 
-  boost::shared_ptr<Connection>owner = m_owner.lock();
+  std::shared_ptr<Connection>owner = m_owner.lock();
 
   if (owner)
   {
@@ -1340,9 +1340,9 @@ void Result::read_metadata()
   }
 }
 
-boost::shared_ptr<Row> Result::read_row()
+std::shared_ptr<Row> Result::read_row()
 {
-  boost::shared_ptr<Row> ret_val;
+  std::shared_ptr<Row> ret_val;
 
   if (m_state != ReadRows)
     throw std::logic_error("read_row() called at wrong time");
@@ -1481,9 +1481,9 @@ bool Result::nextDataSet()
   return false;
 }
 
-boost::shared_ptr<Row> Result::next()
+std::shared_ptr<Row> Result::next()
 {
-  boost::shared_ptr<Row> ret_val;
+  std::shared_ptr<Row> ret_val;
 
   if (m_buffered)
     ret_val = m_current_result->next();
@@ -1545,19 +1545,19 @@ Result& Result::buffer()
   return *this;
 }
 
-ResultData::ResultData(boost::shared_ptr<std::vector<ColumnMetadata> > columns) :
+ResultData::ResultData(std::shared_ptr<std::vector<ColumnMetadata> > columns) :
 m_columns(columns), m_row_index(0)
 {
 }
 
-void ResultData::add_row(boost::shared_ptr<Row> row)
+void ResultData::add_row(std::shared_ptr<Row> row)
 {
   m_rows.push_back(row);
 }
 
-boost::shared_ptr<Row> ResultData::next()
+std::shared_ptr<Row> ResultData::next()
 {
-  boost::shared_ptr<Row> ret_val;
+  std::shared_ptr<Row> ret_val;
 
   if (m_row_index < m_rows.size())
     ret_val = m_rows[m_row_index++];
@@ -1583,7 +1583,7 @@ void ResultData::seek(size_t record)
     m_row_index = record;
 }
 
-Row::Row(boost::shared_ptr<std::vector<ColumnMetadata> > columns, Mysqlx::Resultset::Row *data)
+Row::Row(std::shared_ptr<std::vector<ColumnMetadata> > columns, Mysqlx::Resultset::Row *data)
   : m_columns(columns), m_data(data)
 {
 }

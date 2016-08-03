@@ -29,5 +29,5 @@ namespace shcore
     std::cout << text;
   }
 
-  boost::function<void(std::string)> print = shcore::default_print;
+  std::function<void(std::string)> print = shcore::default_print;
 }

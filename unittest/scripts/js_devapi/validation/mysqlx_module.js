@@ -1,7 +1,8 @@
 //@ mysqlx module: exports
-|Exported Items: 6|
+|Exported Items: 7|
 |getSession: object|
 |getNodeSession: object|
+|getAdminSession: object|
 |expr: object|
 |dateValue: object|
 |Type: <mysqlx.Type>|

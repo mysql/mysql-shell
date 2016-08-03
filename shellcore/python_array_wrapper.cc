@@ -405,14 +405,14 @@ void Python_context::init_shell_list_type()
   _shell_list_class = PyDict_GetItemString(PyModule_GetDict(get_shell_module()), "List");
 }
 
-PyObject *shcore::wrap(boost::shared_ptr<Value::Array_type> array)
+PyObject *shcore::wrap(std::shared_ptr<Value::Array_type> array)
 {
   PyShListObject *wrapper = PyObject_New(PyShListObject, &PyShListObjectType);
   wrapper->array = new Value::Array_type_ref(array);
   return reinterpret_cast<PyObject*>(wrapper);
 }
 
-bool shcore::unwrap(PyObject *value, boost::shared_ptr<Value::Array_type> &ret_object)
+bool shcore::unwrap(PyObject *value, std::shared_ptr<Value::Array_type> &ret_object)
 {
   Python_context *ctx = Python_context::get_and_check();
   if (!ctx) return false;

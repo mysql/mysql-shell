@@ -16,25 +16,25 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301  USA
  */
-#include <boost/bind.hpp>
 #include "mod_mysqlx_table_delete.h"
 #include "mod_mysqlx_table.h"
 #include "mod_mysqlx_resultset.h"
 #include "shellcore/common.h"
 #include "utils/utils_time.h"
 
+using namespace std::placeholders;
 using namespace mysh::mysqlx;
 using namespace shcore;
 
-TableDelete::TableDelete(boost::shared_ptr<Table> owner)
-  :Table_crud_definition(boost::static_pointer_cast<DatabaseObject>(owner))
+TableDelete::TableDelete(std::shared_ptr<Table> owner)
+  :Table_crud_definition(std::static_pointer_cast<DatabaseObject>(owner))
 {
   // Exposes the methods available for chaining
-  add_method("delete", boost::bind(&TableDelete::remove, this, _1), "data");
-  add_method("where", boost::bind(&TableDelete::where, this, _1), "data");
-  add_method("orderBy", boost::bind(&TableDelete::order_by, this, _1), "data");
-  add_method("limit", boost::bind(&TableDelete::limit, this, _1), "data");
-  add_method("bind", boost::bind(&TableDelete::bind, this, _1), "data");
+  add_method("delete", std::bind(&TableDelete::remove, this, _1), "data");
+  add_method("where", std::bind(&TableDelete::where, this, _1), "data");
+  add_method("orderBy", std::bind(&TableDelete::order_by, this, _1), "data");
+  add_method("limit", std::bind(&TableDelete::limit, this, _1), "data");
+  add_method("bind", std::bind(&TableDelete::bind, this, _1), "data");
 
   // Registers the dynamic function behavior
   register_dynamic_function("delete", "");
@@ -79,7 +79,7 @@ shcore::Value TableDelete::remove(const shcore::Argument_list &args)
   // Each method validates the received parameters
   args.ensure_count(0, get_function_name("delete").c_str());
 
-  boost::shared_ptr<Table> table(boost::static_pointer_cast<Table>(_owner.lock()));
+  std::shared_ptr<Table> table(std::static_pointer_cast<Table>(_owner.lock()));
 
   if (table)
   {
@@ -93,7 +93,7 @@ shcore::Value TableDelete::remove(const shcore::Argument_list &args)
     CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("delete"));
   }
 
-  return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
+  return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
 //! Sets the search condition to filter the records to be deleted from the owner Table.
@@ -133,7 +133,7 @@ shcore::Value TableDelete::where(const shcore::Argument_list &args)
   // Each method validates the received parameters
   args.ensure_count(1, get_function_name("where").c_str());
 
-  boost::shared_ptr<Table> table(boost::static_pointer_cast<Table>(_owner.lock()));
+  std::shared_ptr<Table> table(std::static_pointer_cast<Table>(_owner.lock()));
 
   if (table)
   {
@@ -147,7 +147,7 @@ shcore::Value TableDelete::where(const shcore::Argument_list &args)
     CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("where"));
   }
 
-  return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
+  return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
 //! Sets the order in which the deletion should be done.
@@ -202,7 +202,7 @@ shcore::Value TableDelete::order_by(const shcore::Argument_list &args)
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("orderBy"));
 
-  return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
+  return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
 //! Sets a limit for the records to be deleted.
@@ -248,7 +248,7 @@ shcore::Value TableDelete::limit(const shcore::Argument_list &args)
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("limit"));
 
-  return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
+  return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
 //! Binds a value to a specific placeholder used on this TableDelete object.
@@ -296,7 +296,7 @@ shcore::Value TableDelete::bind(const shcore::Argument_list &args)
   }
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("bind"));
 
-  return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
+  return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
 /**
@@ -338,7 +338,7 @@ shcore::Value TableDelete::execute(const shcore::Argument_list &args)
 
     MySQL_timer timer;
     timer.start();
-    result = new mysqlx::Result(boost::shared_ptr< ::mysqlx::Result>(_delete_statement->execute()));
+    result = new mysqlx::Result(std::shared_ptr< ::mysqlx::Result>(_delete_statement->execute()));
     timer.end();
     result->set_execution_time(timer.raw_duration());
   }

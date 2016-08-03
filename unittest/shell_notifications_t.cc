@@ -17,7 +17,6 @@
 #include <cstdlib>
 #include <fstream>
 #include <string>
-#include <boost/shared_ptr.hpp>
 #include <boost/pointer_cast.hpp>
 
 #include "gtest/gtest.h"
@@ -34,7 +33,6 @@
 #include "../src/shell_resultset_dumper.h"
 #include "test_utils.h"
 #include "utils/utils_file.h"
-#include <boost/bind.hpp>
 #include <queue>
 
 namespace shcore
@@ -245,7 +243,7 @@ namespace shcore
 
       _interactive_shell->process_line("session.close()");
 
-      _interactive_shell->process_line("session = mysqlx.getAdminSession('" + _uri + "');");
+      _interactive_shell->process_line("session = mysqlx.get_admin_session('" + _uri + "');");
 
       ASSERT_EQ(1, _notifications.size());
       n = _notifications.front();
@@ -275,7 +273,7 @@ namespace shcore
 
       _interactive_shell->process_line("session.close()");
 
-      _interactive_shell->process_line("session = mysqlx.getAdminSession('" + _uri + "');");
+      _interactive_shell->process_line("session = mysqlx.get_admin_session('" + _uri + "');");
 
       ASSERT_EQ(0, _notifications.size());
 

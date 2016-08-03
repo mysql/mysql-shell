@@ -22,8 +22,8 @@
 #include "mod_mysqlx_expression.h"
 #include "mod_mysqlx_constants.h"
 #include "shellcore/obj_date.h"
-#include <boost/bind.hpp>
 
+using namespace std::placeholders;
 using namespace mysh::mysqlx;
 
 REGISTER_MODULE(Mysqlx, mysqlx)
@@ -57,19 +57,19 @@ shcore::Value Mysqlx::get_member(const std::string &prop) const
 DEFINE_FUNCTION(Mysqlx, get_session)
 {
   auto session = connect_session(args, mysh::Application);
-  return shcore::Value(boost::dynamic_pointer_cast<shcore::Object_bridge>(session));
+  return shcore::Value(std::dynamic_pointer_cast<shcore::Object_bridge>(session));
 }
 
 DEFINE_FUNCTION(Mysqlx, get_node_session)
 {
   auto session = connect_session(args, mysh::Node);
-  return shcore::Value(boost::dynamic_pointer_cast<shcore::Object_bridge>(session));
+  return shcore::Value(std::dynamic_pointer_cast<shcore::Object_bridge>(session));
 }
 
 DEFINE_FUNCTION(Mysqlx, get_admin_session)
 {
   auto session = connect_admin_session(args);
-  return shcore::Value(boost::dynamic_pointer_cast<shcore::Object_bridge>(session));
+  return shcore::Value(std::dynamic_pointer_cast<shcore::Object_bridge>(session));
 }
 
 DEFINE_FUNCTION(Mysqlx, expr)

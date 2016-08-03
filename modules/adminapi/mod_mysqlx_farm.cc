@@ -17,8 +17,6 @@
  * 02110-1301  USA
  */
 
-#include <boost/bind.hpp>
-
 #include "mod_mysqlx_farm.h"
 
 #include "common/uuid/include/uuid_gen.h"
@@ -29,11 +27,12 @@
 #include "mod_mysqlx_replicaset.h"
 #include "mod_mysqlx_metadata_storage.h"
 
+using namespace std::placeholders;
 using namespace mysh;
 using namespace mysh::mysqlx;
 using namespace shcore;
 
-Farm::Farm(const std::string &name, boost::shared_ptr<MetadataStorage> metadata_storage) :
+Farm::Farm(const std::string &name, std::shared_ptr<MetadataStorage> metadata_storage) :
 _name(name), _metadata_storage(metadata_storage)
 {
   init();
@@ -98,10 +97,10 @@ void Farm::init()
 {
   add_property("name", "getName");
   add_property("adminType", "getAdminType");
-  add_method("addSeedInstance", boost::bind(&Farm::add_seed_instance, this, _1), "data");
-  add_method("addInstance", boost::bind(&Farm::add_instance, this, _1), "data");
-  add_method("removeInstance", boost::bind(&Farm::remove_instance, this, _1), "data");
-  add_method("getReplicaSet", boost::bind(&Farm::get_replicaset, this, _1), "name", shcore::String, NULL);
+  add_method("addSeedInstance", std::bind(&Farm::add_seed_instance, this, _1), "data");
+  add_method("addInstance", std::bind(&Farm::add_instance, this, _1), "data");
+  add_method("removeInstance", std::bind(&Farm::remove_instance, this, _1), "data");
+  add_method("getReplicaSet", std::bind(&Farm::get_replicaset, this, _1), "name", shcore::String, NULL);
 }
 
 /**
@@ -266,7 +265,7 @@ shcore::Value Farm::get_replicaset(const shcore::Argument_list &args)
   shcore::Value ret_val;
 
   if (args.size() == 0)
-    ret_val = shcore::Value(boost::dynamic_pointer_cast<shcore::Object_bridge>(_default_replica_set));
+    ret_val = shcore::Value(std::dynamic_pointer_cast<shcore::Object_bridge>(_default_replica_set));
 
   else
   {
@@ -274,7 +273,7 @@ shcore::Value Farm::get_replicaset(const shcore::Argument_list &args)
     std::string name = args.string_at(0);
 
     if (name == "default")
-      ret_val = shcore::Value(boost::dynamic_pointer_cast<shcore::Object_bridge>(_default_replica_set));
+      ret_val = shcore::Value(std::dynamic_pointer_cast<shcore::Object_bridge>(_default_replica_set));
 
     else
     {

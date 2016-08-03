@@ -26,9 +26,6 @@
 #include "shellcore/types_cpp.h"
 #include "shellcore/common.h"
 
-#include <boost/weak_ptr.hpp>
-#include <boost/enable_shared_from_this.hpp>
-
 #include <set>
 
 namespace mysh

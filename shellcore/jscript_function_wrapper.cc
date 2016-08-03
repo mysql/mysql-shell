@@ -46,12 +46,12 @@ JScript_function_wrapper::~JScript_function_wrapper()
 
 struct shcore::JScript_function_wrapper::Collectable
 {
-  boost::shared_ptr<Function_base> data;
+  std::shared_ptr<Function_base> data;
   v8::Persistent<v8::Object> handle;
 };
 
 
-v8::Handle<v8::Object> JScript_function_wrapper::wrap(boost::shared_ptr<Function_base> function)
+v8::Handle<v8::Object> JScript_function_wrapper::wrap(std::shared_ptr<Function_base> function)
 {
   v8::Handle<v8::Object> obj(v8::Local<v8::ObjectTemplate>::New(_context->isolate(), _object_template)->NewInstance());
 
@@ -85,7 +85,7 @@ void JScript_function_wrapper::call(const v8::FunctionCallbackInfo<v8::Value>& a
   v8::Handle<v8::Object> obj(args.Holder());
   JScript_function_wrapper *self = static_cast<JScript_function_wrapper*>(obj->GetAlignedPointerFromInternalField(2));
 
-  boost::shared_ptr<Function_base> *shared_ptr_data = static_cast<boost::shared_ptr<Function_base>*>(obj->GetAlignedPointerFromInternalField(1));
+  std::shared_ptr<Function_base> *shared_ptr_data = static_cast<std::shared_ptr<Function_base>*>(obj->GetAlignedPointerFromInternalField(1));
 
   try
   {
@@ -104,11 +104,11 @@ void JScript_function_wrapper::call(const v8::FunctionCallbackInfo<v8::Value>& a
 }
 
 
-bool JScript_function_wrapper::unwrap(v8::Handle<v8::Object> value, boost::shared_ptr<Function_base> &ret_object)
+bool JScript_function_wrapper::unwrap(v8::Handle<v8::Object> value, std::shared_ptr<Function_base> &ret_object)
 {
   if (value->InternalFieldCount() == 3 && value->GetAlignedPointerFromInternalField(0) == (void*)&magic_pointer)
   {
-    boost::shared_ptr<Function_base> *object = static_cast<boost::shared_ptr<Function_base>*>(value->GetAlignedPointerFromInternalField(1));
+    std::shared_ptr<Function_base> *object = static_cast<std::shared_ptr<Function_base>*>(value->GetAlignedPointerFromInternalField(1));
     ret_object = *object;
     return true;
   }

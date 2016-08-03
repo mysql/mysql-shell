@@ -16,7 +16,6 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301  USA
  */
-#include <boost/bind.hpp>
 #include "mod_mysqlx_table_insert.h"
 #include "mod_mysqlx_table.h"
 #include "shellcore/common.h"
@@ -24,6 +23,7 @@
 #include <boost/format.hpp>
 #include "utils/utils_time.h"
 
+using namespace std::placeholders;
 using namespace mysh::mysqlx;
 using namespace shcore;
 
@@ -36,12 +36,12 @@ using namespace shcore;
 *   creating the message.
 * - Message information that is not provided through the different functions
 */
-TableInsert::TableInsert(boost::shared_ptr<Table> owner)
-  :Table_crud_definition(boost::static_pointer_cast<DatabaseObject>(owner))
+TableInsert::TableInsert(std::shared_ptr<Table> owner)
+  :Table_crud_definition(std::static_pointer_cast<DatabaseObject>(owner))
 {
   // The values function should not be enabled if values were already given
-  add_method("insert", boost::bind(&TableInsert::insert, this, _1), "data");
-  add_method("values", boost::bind(&TableInsert::values, this, _1), "data");
+  add_method("insert", std::bind(&TableInsert::insert, this, _1), "data");
+  add_method("values", std::bind(&TableInsert::values, this, _1), "data");
 
   // Registers the dynamic function behavior
   register_dynamic_function("insert", "");
@@ -142,7 +142,7 @@ TableInsert TableInsert::insert(str col1, str col2, ...){}
 #endif
 shcore::Value TableInsert::insert(const shcore::Argument_list &args)
 {
-  boost::shared_ptr<Table> table(boost::static_pointer_cast<Table>(_owner.lock()));
+  std::shared_ptr<Table> table(std::static_pointer_cast<Table>(_owner.lock()));
 
   std::string path;
 
@@ -219,7 +219,7 @@ shcore::Value TableInsert::insert(const shcore::Argument_list &args)
   // Updates the exposed functions
   update_functions("insert" + path);
 
-  return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
+  return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
 //! Sets the values for a row to be inserted.
@@ -294,7 +294,7 @@ shcore::Value TableInsert::values(const shcore::Argument_list &args)
   CATCH_AND_TRANSLATE_CRUD_EXCEPTION(get_function_name("values"));
 
   // Returns the same object
-  return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
+  return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
 /**
@@ -335,7 +335,7 @@ shcore::Value TableInsert::execute(const shcore::Argument_list &args)
 
     MySQL_timer timer;
     timer.start();
-    result = new mysqlx::Result(boost::shared_ptr< ::mysqlx::Result>(_insert_statement->execute()));
+    result = new mysqlx::Result(std::shared_ptr< ::mysqlx::Result>(_insert_statement->execute()));
     timer.end();
     result->set_execution_time(timer.raw_duration());
   }

@@ -40,11 +40,11 @@ namespace mysh
     class Schema;
 
     //! Represents a Collection on an Schema, retrieved with session created using the mysqlx module.
-    class Collection : public DatabaseObject, public boost::enable_shared_from_this<Collection>
+    class Collection : public DatabaseObject, public std::enable_shared_from_this<Collection>
     {
     public:
-      Collection(boost::shared_ptr<Schema> owner, const std::string &name);
-      Collection(boost::shared_ptr<const Schema> owner, const std::string &name);
+      Collection(std::shared_ptr<Schema> owner, const std::string &name);
+      Collection(std::shared_ptr<const Schema> owner, const std::string &name);
       ~Collection();
 
       virtual std::string class_name() const { return "Collection"; }
@@ -77,7 +77,7 @@ namespace mysh
 
     private:
       void init();
-      boost::shared_ptr< ::mysqlx::Collection> _collection_impl;
+      std::shared_ptr< ::mysqlx::Collection> _collection_impl;
 
       // Allows initial functions on the CRUD operations
       friend shcore::Value CollectionAdd::add(const shcore::Argument_list &args);

@@ -16,7 +16,6 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301  USA
  */
-#include <boost/bind.hpp>
 #include "mod_mysqlx_collection_add.h"
 #include "mod_mysqlx_collection.h"
 #include "mod_mysqlx_resultset.h"
@@ -29,14 +28,15 @@
 #include <sstream>
 #include <boost/format.hpp>
 
+using namespace std::placeholders;
 using namespace mysh::mysqlx;
 using namespace shcore;
 
-CollectionAdd::CollectionAdd(boost::shared_ptr<Collection> owner)
-  :Collection_crud_definition(boost::static_pointer_cast<DatabaseObject>(owner))
+CollectionAdd::CollectionAdd(std::shared_ptr<Collection> owner)
+  :Collection_crud_definition(std::static_pointer_cast<DatabaseObject>(owner))
 {
   // Exposes the methods available for chaining
-  add_method("add", boost::bind(&CollectionAdd::add, this, _1), "data");
+  add_method("add", std::bind(&CollectionAdd::add, this, _1), "data");
 
   // Registers the dynamic function behavior
   register_dynamic_function("add", ",add");
@@ -141,11 +141,11 @@ shcore::Value CollectionAdd::add(const shcore::Argument_list &args)
   // Each method validates the received parameters
   args.ensure_count(1, get_function_name("add").c_str());
 
-  boost::shared_ptr<DatabaseObject> raw_owner(_owner.lock());
+  std::shared_ptr<DatabaseObject> raw_owner(_owner.lock());
 
   if (raw_owner)
   {
-    boost::shared_ptr<Collection> collection(boost::static_pointer_cast<Collection>(raw_owner));
+    std::shared_ptr<Collection> collection(std::static_pointer_cast<Collection>(raw_owner));
 
     if (collection)
     {
@@ -183,7 +183,7 @@ shcore::Value CollectionAdd::add(const shcore::Argument_list &args)
                shell_doc = element.as_map();
             else if (element.type == Object && element.as_object()->class_name() == "Expression")
             {
-              boost::shared_ptr<mysqlx::Expression> expression = boost::static_pointer_cast<mysqlx::Expression>(element.as_object());
+              std::shared_ptr<mysqlx::Expression> expression = std::static_pointer_cast<mysqlx::Expression>(element.as_object());
               shcore::Value document = shcore::Value::parse(expression->get_data());
               if (document.type == Map)
                 shell_doc = document.as_map();
@@ -218,7 +218,7 @@ shcore::Value CollectionAdd::add(const shcore::Argument_list &args)
     }
   }
 
-  return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
+  return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
 std::string CollectionAdd::get_new_uuid()
@@ -280,7 +280,7 @@ shcore::Value CollectionAdd::execute(const shcore::Argument_list &args)
 
     MySQL_timer timer;
     timer.start();
-    result = new mysqlx::Result(boost::shared_ptr< ::mysqlx::Result>(_add_statement->execute()));
+    result = new mysqlx::Result(std::shared_ptr< ::mysqlx::Result>(_add_statement->execute()));
     timer.end();
     result->set_execution_time(timer.raw_duration());
   }

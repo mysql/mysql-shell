@@ -60,12 +60,12 @@ JScript_array_wrapper::~JScript_array_wrapper()
 
 struct shcore::JScript_array_wrapper::Collectable
 {
-  boost::shared_ptr<Value::Array_type> data;
+  std::shared_ptr<Value::Array_type> data;
   v8::Persistent<v8::Object> handle;
 };
 
 
-v8::Handle<v8::Object> JScript_array_wrapper::wrap(boost::shared_ptr<Value::Array_type> array)
+v8::Handle<v8::Object> JScript_array_wrapper::wrap(std::shared_ptr<Value::Array_type> array)
 {
   v8::Handle<v8::ObjectTemplate> templ = v8::Local<v8::ObjectTemplate>::New(_context->isolate(), _array_template);
 
@@ -101,7 +101,7 @@ void JScript_array_wrapper::handler_getter(v8::Local<v8::String> property, const
 {
   v8::HandleScope hscope(info.GetIsolate());
   v8::Handle<v8::Object> obj(info.Holder());
-  boost::shared_ptr<Value::Array_type> *array = static_cast<boost::shared_ptr<Value::Array_type>*>(obj->GetAlignedPointerFromInternalField(1));
+  std::shared_ptr<Value::Array_type> *array = static_cast<std::shared_ptr<Value::Array_type>*>(obj->GetAlignedPointerFromInternalField(1));
 //  JScript_array_wrapper *self = static_cast<JScript_array_wrapper*>(obj->GetAlignedPointerFromInternalField(2));
 
   if (!array)
@@ -126,7 +126,7 @@ void JScript_array_wrapper::handler_igetter(uint32_t index, const v8::PropertyCa
 {
   v8::HandleScope hscope(info.GetIsolate());
   v8::Handle<v8::Object> obj(info.Holder());
-  boost::shared_ptr<Value::Array_type> *array = static_cast<boost::shared_ptr<Value::Array_type>*>(obj->GetAlignedPointerFromInternalField(1));
+  std::shared_ptr<Value::Array_type> *array = static_cast<std::shared_ptr<Value::Array_type>*>(obj->GetAlignedPointerFromInternalField(1));
   JScript_array_wrapper *self = static_cast<JScript_array_wrapper*>(obj->GetAlignedPointerFromInternalField(2));
 
   if (!array)
@@ -143,7 +143,7 @@ void JScript_array_wrapper::handler_ienumerator(const v8::PropertyCallbackInfo<v
 {
   v8::HandleScope hscope(info.GetIsolate());
   v8::Handle<v8::Object> obj(info.Holder());
-  boost::shared_ptr<Value::Array_type> *array = static_cast<boost::shared_ptr<Value::Array_type>*>(obj->GetAlignedPointerFromInternalField(1));
+  std::shared_ptr<Value::Array_type> *array = static_cast<std::shared_ptr<Value::Array_type>*>(obj->GetAlignedPointerFromInternalField(1));
 
   v8::Handle<v8::Array> r = v8::Array::New(info.GetIsolate(), (*array)->size());
   for (size_t i = 0, c = (*array)->size(); i < c; i++)
@@ -152,11 +152,11 @@ void JScript_array_wrapper::handler_ienumerator(const v8::PropertyCallbackInfo<v
 }
 
 
-bool JScript_array_wrapper::unwrap(v8::Handle<v8::Object> value, boost::shared_ptr<Value::Array_type> &ret_object)
+bool JScript_array_wrapper::unwrap(v8::Handle<v8::Object> value, std::shared_ptr<Value::Array_type> &ret_object)
 {
   if (value->InternalFieldCount() == 3 && value->GetAlignedPointerFromInternalField(0) == (void*)&magic_pointer)
   {
-    boost::shared_ptr<Value::Array_type> *object = static_cast<boost::shared_ptr<Value::Array_type>*>(value->GetAlignedPointerFromInternalField(1));
+    std::shared_ptr<Value::Array_type> *object = static_cast<std::shared_ptr<Value::Array_type>*>(value->GetAlignedPointerFromInternalField(1));
     ret_object = *object;
     return true;
   }

@@ -138,7 +138,7 @@ static PyObject *dict_update(PyShDictObject *self, PyObject *arg)
     return NULL;
   }
 
-  boost::shared_ptr<Value::Map_type> map = value.as_map();
+  std::shared_ptr<Value::Map_type> map = value.as_map();
 
   self->map->get()->merge_contents(map, true);
 
@@ -520,14 +520,14 @@ void Python_context::init_shell_dict_type()
   _shell_dict_class = PyDict_GetItemString(PyModule_GetDict(get_shell_module()), "Dict");
 }
 
-PyObject *shcore::wrap(boost::shared_ptr<Value::Map_type> map)
+PyObject *shcore::wrap(std::shared_ptr<Value::Map_type> map)
 {
   PyShDictObject *map_wrapper = PyObject_New(PyShDictObject, &PyShDictObjectType);
   map_wrapper->map = new Value::Map_type_ref(map);
   return reinterpret_cast<PyObject*>(map_wrapper);
 }
 
-bool shcore::unwrap(PyObject *value, boost::shared_ptr<Value::Map_type> &ret_object)
+bool shcore::unwrap(PyObject *value, std::shared_ptr<Value::Map_type> &ret_object)
 {
   Python_context *ctx = Python_context::get_and_check();
   if (!ctx) return false;

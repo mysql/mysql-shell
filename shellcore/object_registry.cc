@@ -24,7 +24,7 @@ using namespace shcore;
 
 Object_registry::Object_registry()
 {
-  _registry = boost::shared_ptr<Value::Map_type>(new Value::Map_type);
+  _registry = std::shared_ptr<Value::Map_type>(new Value::Map_type);
 }
 
 
@@ -43,12 +43,12 @@ Value &Object_registry::get_reg(const std::string &name)
 }
 
 
-void Object_registry::add_to_reg_list(const std::string &list_name, const boost::shared_ptr<Object_bridge> &object)
+void Object_registry::add_to_reg_list(const std::string &list_name, const std::shared_ptr<Object_bridge> &object)
 {
   Value::Map_type::iterator liter = _registry->find(list_name);
 
   if (liter == _registry->end())
-    (*_registry)[list_name] = Value(boost::shared_ptr<Value::Array_type>(new Value::Array_type()));
+    (*_registry)[list_name] = Value(std::shared_ptr<Value::Array_type>(new Value::Array_type()));
   else if (liter->second.type != Array)
     throw std::invalid_argument("Registry "+list_name+" is not a list");
 
@@ -61,7 +61,7 @@ void Object_registry::add_to_reg_list(const std::string &list_name, const Value 
   Value::Map_type::iterator liter = _registry->find(list_name);
 
   if (liter == _registry->end())
-    (*_registry)[list_name] = Value(boost::shared_ptr<Value::Array_type>(new Value::Array_type()));
+    (*_registry)[list_name] = Value(std::shared_ptr<Value::Array_type>(new Value::Array_type()));
   else if (liter->second.type != Array)
     throw std::invalid_argument("Registry "+list_name+" is not a list");
 
@@ -69,7 +69,7 @@ void Object_registry::add_to_reg_list(const std::string &list_name, const Value 
 }
 
 
-void Object_registry::remove_from_reg_list(const std::string &list_name, const boost::shared_ptr<Object_bridge> &object)
+void Object_registry::remove_from_reg_list(const std::string &list_name, const std::shared_ptr<Object_bridge> &object)
 {
   Value::Map_type::iterator liter = _registry->find(list_name);
   if (liter != _registry->end() || liter->second.type != Array)
@@ -92,7 +92,7 @@ void Object_registry::remove_from_reg_list(const std::string &list_name, Value::
 }
 
 
-boost::shared_ptr<Value::Array_type> &Object_registry::get_reg_list(const std::string &list_name)
+std::shared_ptr<Value::Array_type> &Object_registry::get_reg_list(const std::string &list_name)
 {
   Value::Map_type::iterator liter = _registry->find(list_name);
   if (liter != _registry->end() || liter->second.type != Array)

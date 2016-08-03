@@ -17,7 +17,6 @@
 #include <cstdlib>
 #include <fstream>
 #include <string>
-#include <boost/shared_ptr.hpp>
 #include <boost/pointer_cast.hpp>
 
 #include "gtest/gtest.h"
@@ -33,7 +32,6 @@
 #include "../src/shell_resultset_dumper.h"
 #include "test_utils.h"
 #include "utils/utils_file.h"
-#include <boost/bind.hpp>
 
 namespace shcore {
   namespace shell_core_tests {
@@ -116,7 +114,7 @@ namespace shcore {
 
       EXPECT_EQ("mysql-sql> ", _interactive_shell->prompt());
       (*Shell_core_options::get())[SHCORE_USE_WIZARDS] = shcore::Value::False();
-      _interactive_shell->shell_context()->set_global("session", Value(boost::static_pointer_cast<Object_bridge>(Shell_core_options::get_instance())));
+      _interactive_shell->shell_context()->set_global("session", Value(std::static_pointer_cast<Object_bridge>(Shell_core_options::get_instance())));
       (*Shell_core_options::get())[SHCORE_USE_WIZARDS] = shcore::Value::True();
       EXPECT_EQ("mysql-sql> ", _interactive_shell->prompt());
     }

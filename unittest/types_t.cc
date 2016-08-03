@@ -17,7 +17,6 @@
 #include <cstdlib>
 #include <fstream>
 #include <string>
-#include <boost/shared_ptr.hpp>
 #include <boost/lexical_cast.hpp>
 
 #include "gtest/gtest.h"
@@ -135,7 +134,7 @@ namespace shcore
 
     TEST(Functions, function_wrappers)
     {
-      boost::shared_ptr<Function_base> f(Cpp_function::create("test", do_test,
+      std::shared_ptr<Function_base> f(Cpp_function::create("test", do_test,
         "test_index", Integer,
         "test_arg", String,
         NULL));

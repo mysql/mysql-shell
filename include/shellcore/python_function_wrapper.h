@@ -36,8 +36,8 @@ struct PyShFuncObject
   shcore::Function_base_ref *func;
 };
 
-PyObject *wrap(boost::shared_ptr<Function_base> func);
-bool unwrap(PyObject *value, boost::shared_ptr<Function_base> &ret_func);
+PyObject *wrap(std::shared_ptr<Function_base> func);
+bool unwrap(PyObject *value, std::shared_ptr<Function_base> &ret_func);
 
 };
 

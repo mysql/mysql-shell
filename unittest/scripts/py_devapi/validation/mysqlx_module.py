@@ -1,7 +1,8 @@
 #@ mysqlx module: exports
 |Exported Items: 7|
-|getSession: <type 'builtin_function_or_method'>|
-|getNodeSession: <type 'builtin_function_or_method'>|
+|get_session: <type 'builtin_function_or_method'>|
+|get_node_session: <type 'builtin_function_or_method'>|
+|get_admin_session: <type 'builtin_function_or_method'>|
 |expr: <type 'builtin_function_or_method'>|
 |dateValue: <type 'builtin_function_or_method'>|
 |Type: <mysqlx.Type>|

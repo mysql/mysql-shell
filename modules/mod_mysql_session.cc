@@ -37,10 +37,8 @@
 #include "shellcore/proxy_object.h"
 #include "mysqlxtest_utils.h"
 
-#include <boost/bind.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/format.hpp>
-#include <boost/pointer_cast.hpp>
 #include <set>
 
 #include "mysql_connection.h"
@@ -51,6 +49,7 @@
 #define MAX_COLUMN_LENGTH 1024
 #define MIN_COLUMN_LENGTH 4
 
+using namespace std::placeholders;
 using namespace mysh;
 using namespace mysh::mysql;
 using namespace shcore;
@@ -70,21 +69,21 @@ ShellDevelopmentSession(session), _conn(session._conn)
 
 void ClassicSession::init()
 {
-  //_schema_proxy.reset(new Proxy_object(boost::bind(&ClassicSession::get_db, this, _1)));
+  //_schema_proxy.reset(new Proxy_object(std::bind(&ClassicSession::get_db, this, _1)));
 
   add_property("currentSchema", "getCurrentSchema");
 
-  add_method("close", boost::bind(&ClassicSession::close, this, _1), "data");
-  add_method("runSql", boost::bind(&ClassicSession::run_sql, this, _1),
+  add_method("close", std::bind(&ClassicSession::close, this, _1), "data");
+  add_method("runSql", std::bind(&ClassicSession::run_sql, this, _1),
     "stmt", shcore::String,
     NULL);
-  add_method("setCurrentSchema", boost::bind(&ClassicSession::set_current_schema, this, _1), "name", shcore::String, NULL);
-  add_method("startTransaction", boost::bind(&ClassicSession::startTransaction, this, _1), "data");
-  add_method("commit", boost::bind(&ClassicSession::commit, this, _1), "data");
-  add_method("rollback", boost::bind(&ClassicSession::rollback, this, _1), "data");
-  add_method("dropSchema", boost::bind(&ClassicSession::drop_schema, this, _1), "data");
-  add_method("dropTable", boost::bind(&ClassicSession::drop_schema_object, this, _1, "Table"), "data");
-  add_method("dropView", boost::bind(&ClassicSession::drop_schema_object, this, _1, "View"), "data");
+  add_method("setCurrentSchema", std::bind(&ClassicSession::set_current_schema, this, _1), "name", shcore::String, NULL);
+  add_method("startTransaction", std::bind(&ClassicSession::startTransaction, this, _1), "data");
+  add_method("commit", std::bind(&ClassicSession::commit, this, _1), "data");
+  add_method("rollback", std::bind(&ClassicSession::rollback, this, _1), "data");
+  add_method("dropSchema", std::bind(&ClassicSession::drop_schema, this, _1), "data");
+  add_method("dropTable", std::bind(&ClassicSession::drop_schema_object, this, _1, "Table"), "data");
+  add_method("dropView", std::bind(&ClassicSession::drop_schema_object, this, _1, "View"), "data");
 
   _schemas.reset(new shcore::Value::Map_type);
 
@@ -173,7 +172,7 @@ Value ClassicSession::run_sql(const shcore::Argument_list &args) const
     if (statement.empty())
       throw Exception::argument_error("No query specified.");
     else
-      ret_val = Value::wrap(new ClassicResult(boost::shared_ptr<Result>(_conn->run_sql(statement))));
+      ret_val = Value::wrap(new ClassicResult(std::shared_ptr<Result>(_conn->run_sql(statement))));
   }
 
   return ret_val;
@@ -212,12 +211,12 @@ Value ClassicSession::create_schema(const shcore::Argument_list &args)
     else
     {
       std::string statement = sqlstring("create schema !", 0) << schema;
-      ret_val = Value::wrap(new ClassicResult(boost::shared_ptr<Result>(_conn->run_sql(statement))));
+      ret_val = Value::wrap(new ClassicResult(std::shared_ptr<Result>(_conn->run_sql(statement))));
 
-      boost::shared_ptr<ClassicSchema> object(new ClassicSchema(shared_from_this(), schema));
+      std::shared_ptr<ClassicSchema> object(new ClassicSchema(shared_from_this(), schema));
 
       // If reached this point it indicates the schema was created successfully
-      ret_val = shcore::Value(boost::static_pointer_cast<Object_bridge>(object));
+      ret_val = shcore::Value(std::static_pointer_cast<Object_bridge>(object));
       (*_schemas)[schema] = ret_val;
     }
   }
@@ -305,12 +304,12 @@ std::string ClassicSession::_retrieve_current_schema()
 
     Value res = run_sql(query);
 
-    boost::shared_ptr<ClassicResult> rset = res.as_object<ClassicResult>();
+    std::shared_ptr<ClassicResult> rset = res.as_object<ClassicResult>();
     Value next_row = rset->fetch_one(shcore::Argument_list());
 
     if (next_row)
     {
-      boost::shared_ptr<mysh::Row> row = next_row.as_object<mysh::Row>();
+      std::shared_ptr<mysh::Row> row = next_row.as_object<mysh::Row>();
       shcore::Value schema = row->get_member("schema()");
 
       if (schema)
@@ -391,9 +390,9 @@ shcore::Value ClassicSession::get_schemas(const shcore::Argument_list &args) con
     Value res = run_sql(query);
 
     shcore::Argument_list args;
-    boost::shared_ptr<ClassicResult> rset = res.as_object<ClassicResult>();
+    std::shared_ptr<ClassicResult> rset = res.as_object<ClassicResult>();
     Value next_row = rset->fetch_one(args);
-    boost::shared_ptr<mysh::Row> row;
+    std::shared_ptr<mysh::Row> row;
 
     while (next_row)
     {
@@ -441,7 +440,7 @@ shcore::Value ClassicSession::set_current_schema(const shcore::Argument_list &ar
   return get_member("currentSchema");
 }
 
-boost::shared_ptr<shcore::Object_bridge> ClassicSession::create(const shcore::Argument_list &args)
+std::shared_ptr<shcore::Object_bridge> ClassicSession::create(const shcore::Argument_list &args)
 {
   return connect_session(args, mysh::Classic);
 }
@@ -467,7 +466,7 @@ shcore::Value ClassicSession::drop_schema(const shcore::Argument_list &args)
 
   std::string name = args[0].as_string();
 
-  Value ret_val = Value::wrap(new ClassicResult(boost::shared_ptr<Result>(_conn->run_sql(sqlstring("drop schema !", 0) << name))));
+  Value ret_val = Value::wrap(new ClassicResult(std::shared_ptr<Result>(_conn->run_sql(sqlstring("drop schema !", 0) << name))));
 
   _remove_schema(name);
 
@@ -530,11 +529,11 @@ shcore::Value ClassicSession::drop_schema_object(const shcore::Argument_list &ar
 
   statement = sqlstring(statement.c_str(), 0) << schema << name;
 
-  Value ret_val = Value::wrap(new ClassicResult(boost::shared_ptr<Result>(_conn->run_sql(statement))));
+  Value ret_val = Value::wrap(new ClassicResult(std::shared_ptr<Result>(_conn->run_sql(statement))));
 
   if (_schemas->count(schema))
   {
-    boost::shared_ptr<ClassicSchema> schema_obj = boost::static_pointer_cast<ClassicSchema>((*_schemas)[schema].as_object());
+    std::shared_ptr<ClassicSchema> schema_obj = std::static_pointer_cast<ClassicSchema>((*_schemas)[schema].as_object());
     if (schema_obj)
       schema_obj->_remove_object(name, type);
   }
@@ -613,7 +612,7 @@ shcore::Value ClassicSession::startTransaction(const shcore::Argument_list &args
 {
   args.ensure_count(0, get_function_name("startTransaction").c_str());
 
-  return Value::wrap(new ClassicResult(boost::shared_ptr<Result>(_conn->run_sql("start transaction"))));
+  return Value::wrap(new ClassicResult(std::shared_ptr<Result>(_conn->run_sql("start transaction"))));
 }
 
 /**
@@ -633,7 +632,7 @@ shcore::Value ClassicSession::commit(const shcore::Argument_list &args)
 {
   args.ensure_count(0, get_function_name("commit").c_str());
 
-  return Value::wrap(new ClassicResult(boost::shared_ptr<Result>(_conn->run_sql("commit"))));
+  return Value::wrap(new ClassicResult(std::shared_ptr<Result>(_conn->run_sql("commit"))));
 }
 
 /**
@@ -653,7 +652,7 @@ shcore::Value ClassicSession::rollback(const shcore::Argument_list &args)
 {
   args.ensure_count(0, get_function_name("rollback").c_str());
 
-  return Value::wrap(new ClassicResult(boost::shared_ptr<Result>(_conn->run_sql("rollback"))));
+  return Value::wrap(new ClassicResult(std::shared_ptr<Result>(_conn->run_sql("rollback"))));
 }
 
 shcore::Value ClassicSession::get_status(const shcore::Argument_list &args)

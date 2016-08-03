@@ -40,10 +40,10 @@ namespace mysh
     *
     * \sa Collection
     */
-    class CollectionCreateIndex : public Dynamic_object, public boost::enable_shared_from_this<CollectionCreateIndex>
+    class CollectionCreateIndex : public Dynamic_object, public std::enable_shared_from_this<CollectionCreateIndex>
     {
     public:
-      CollectionCreateIndex(boost::shared_ptr<Collection> owner);
+      CollectionCreateIndex(std::shared_ptr<Collection> owner);
 
       virtual std::string class_name() const { return "CollectionCreateIndex"; }
 
@@ -64,7 +64,7 @@ namespace mysh
 #endif
 
     private:
-      boost::weak_ptr<Collection> _owner;
+      std::weak_ptr<Collection> _owner;
       shcore::Argument_list _create_index_args;
     };
   }

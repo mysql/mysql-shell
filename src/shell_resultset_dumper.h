@@ -43,11 +43,11 @@ namespace mysh
 class ResultsetDumper
 {
 public:
-  ResultsetDumper(boost::shared_ptr<mysh::ShellBaseResult>target, bool buffer_data);
+  ResultsetDumper(std::shared_ptr<mysh::ShellBaseResult>target, bool buffer_data);
   virtual void dump();
 
 protected:
-  boost::shared_ptr<mysh::ShellBaseResult>_resultset;
+  std::shared_ptr<mysh::ShellBaseResult>_resultset;
   std::string _format;
   bool _show_warnings;
   bool _interactive;
@@ -55,11 +55,11 @@ protected:
 
   void dump_json();
   void dump_normal();
-  void dump_normal(boost::shared_ptr<mysh::mysql::ClassicResult> result);
-  void dump_normal(boost::shared_ptr<mysh::mysqlx::SqlResult> result);
-  void dump_normal(boost::shared_ptr<mysh::mysqlx::RowResult> result);
-  void dump_normal(boost::shared_ptr<mysh::mysqlx::DocResult> result);
-  void dump_normal(boost::shared_ptr<mysh::mysqlx::Result> result);
+  void dump_normal(std::shared_ptr<mysh::mysql::ClassicResult> result);
+  void dump_normal(std::shared_ptr<mysh::mysqlx::SqlResult> result);
+  void dump_normal(std::shared_ptr<mysh::mysqlx::RowResult> result);
+  void dump_normal(std::shared_ptr<mysh::mysqlx::DocResult> result);
+  void dump_normal(std::shared_ptr<mysh::mysqlx::Result> result);
 
   std::string get_affected_stats(const std::string& member, const std::string &legend);
   int get_warning_and_execution_time_stats(std::string& output_stats);

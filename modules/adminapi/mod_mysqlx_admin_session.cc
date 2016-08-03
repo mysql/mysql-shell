@@ -24,12 +24,10 @@
 
 #include "logger/logger.h"
 
-#include <boost/bind.hpp>
-#include <boost/pointer_cast.hpp>
-
 #include "mod_mysqlx_farm.h"
 #include "mod_mysqlx_metadata_storage.h"
 
+using namespace std::placeholders;
 using namespace mysh;
 using namespace mysh::mysqlx;
 using namespace shcore;
@@ -63,13 +61,13 @@ void AdminSession::init()
   _farms.reset(new shcore::Value::Map_type);
 
   // Note this one is a function that has a property equivalent: getDefaultFarm/defaultFarm
-  add_method("getDefaultFarm", boost::bind(&AdminSession::get_member_method, this, _1, "getDefaultFarm", "defaultFarm"), NULL);
+  add_method("getDefaultFarm", std::bind(&AdminSession::get_member_method, this, _1, "getDefaultFarm", "defaultFarm"), NULL);
 
   // Pure functions
-  add_method("createFarm", boost::bind(&AdminSession::create_farm, this, _1), "farmName", shcore::String, NULL);
-  add_method("dropFarm", boost::bind(&AdminSession::drop_farm, this, _1), "farmName", shcore::String, NULL);
-  add_method("getFarm", boost::bind(&AdminSession::get_farm, this, _1), "farmName", shcore::String, NULL);
-  add_method("close", boost::bind(&AdminSession::close, this, _1), "data");
+  add_method("createFarm", std::bind(&AdminSession::create_farm, this, _1), "farmName", shcore::String, NULL);
+  add_method("dropFarm", std::bind(&AdminSession::drop_farm, this, _1), "farmName", shcore::String, NULL);
+  add_method("getFarm", std::bind(&AdminSession::get_farm, this, _1), "farmName", shcore::String, NULL);
+  add_method("close", std::bind(&AdminSession::close, this, _1), "data");
 }
 
 Value AdminSession::connect(const Argument_list &args)
@@ -268,7 +266,7 @@ shcore::Value AdminSession::get_farm(const shcore::Argument_list &args) const
       throw Exception::argument_error("The Farm name cannot be empty.");
 
     if (!_farms->has_key(farm_name))
-      (*_farms)[farm_name] = shcore::Value(boost::dynamic_pointer_cast<shcore::Object_bridge>(_metadata_storage->get_farm(farm_name)));
+      (*_farms)[farm_name] = shcore::Value(std::dynamic_pointer_cast<shcore::Object_bridge>(_metadata_storage->get_farm(farm_name)));
 
     ret_val = (*_farms)[farm_name];
   }
@@ -317,13 +315,13 @@ shcore::Value AdminSession::create_farm(const shcore::Argument_list &args)
       // First we need to create the Metadata Schema, or update it if already exists
       _metadata_storage->create_metadata_schema();
 
-      boost::shared_ptr<Farm> farm (new Farm(farm_name, _metadata_storage));
+      std::shared_ptr<Farm> farm(new Farm(farm_name, _metadata_storage));
 
       // Insert Farm on the Metadata Schema
       _metadata_storage->insert_farm(farm);
 
       // If it reaches here, it means there are no exceptions
-      ret_val = Value(boost::static_pointer_cast<Object_bridge>(farm));
+      ret_val = Value(std::static_pointer_cast<Object_bridge>(farm));
       (*_farms)[farm_name] = ret_val;
 
       // Update the default_farm
@@ -366,7 +364,7 @@ shcore::Value AdminSession::drop_farm(const shcore::Argument_list &args)
       bool drop_default_rs = false;
 
       // Check for options
-      if(args.size() == 2)
+      if (args.size() == 2)
       {
         options = args.map_at(1);
 
@@ -409,7 +407,6 @@ shcore::Value AdminSession::get_capability(const std::string& name)
   return _session.get_capability(name);
 }
 
-
 // TODO: Careful wit this one, this means the status printed on the shell with the \s command
 shcore::Value AdminSession::get_status(const shcore::Argument_list &args)
 {
@@ -427,7 +424,7 @@ shcore::Value AdminSession::get_status(const shcore::Argument_list &args)
   return shcore::Value(status);
 }
 
-boost::shared_ptr<shcore::Object_bridge> AdminSession::create(const shcore::Argument_list &args)
+std::shared_ptr<shcore::Object_bridge> AdminSession::create(const shcore::Argument_list &args)
 {
   return connect_admin_session(args);
 }

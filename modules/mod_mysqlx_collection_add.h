@@ -40,10 +40,10 @@ namespace mysh
     *
     * \sa Collection
     */
-    class CollectionAdd : public Collection_crud_definition, public boost::enable_shared_from_this<CollectionAdd>
+    class CollectionAdd : public Collection_crud_definition, public std::enable_shared_from_this<CollectionAdd>
     {
     public:
-      CollectionAdd(boost::shared_ptr<Collection> owner);
+      CollectionAdd(std::shared_ptr<Collection> owner);
 
       virtual std::string class_name() const { return "CollectionAdd"; }
 

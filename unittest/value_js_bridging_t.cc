@@ -18,11 +18,8 @@
 #include <fstream>
 #include <string>
 #include <boost/format.hpp>
-#include <boost/shared_ptr.hpp>
-#include <boost/bind.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/algorithm/string.hpp>
-#include <boost/pointer_cast.hpp>
 
 #include "gtest/gtest.h"
 #include "shellcore/types.h"
@@ -32,6 +29,7 @@
 #include "shellcore/jscript_context.h"
 #include "test_utils.h"
 #include "shellcore/common.h"
+using namespace std::placeholders;
 
 extern void JScript_context_init();
 
@@ -277,10 +275,10 @@ namespace shcore {
       v8::Context::Scope context_scope(v8::Local<v8::Context>::New(env.js->isolate(),
                                                                    env.js->context()));
 
-      boost::shared_ptr<Value::Array_type> arr2(new Value::Array_type);
+      std::shared_ptr<Value::Array_type> arr2(new Value::Array_type);
       arr2->push_back(Value(444));
 
-      boost::shared_ptr<Value::Array_type> arr(new Value::Array_type);
+      std::shared_ptr<Value::Array_type> arr(new Value::Array_type);
       arr->push_back(Value(123));
       arr->push_back(Value("text"));
       arr->push_back(Value(arr2));
@@ -319,10 +317,10 @@ namespace shcore {
       v8::Context::Scope context_scope(v8::Local<v8::Context>::New(env.js->isolate(),
                                                                    env.js->context()));
 
-      boost::shared_ptr<Value::Map_type> map2(new Value::Map_type);
+      std::shared_ptr<Value::Map_type> map2(new Value::Map_type);
       (*map2)["submap"] = Value(444);
 
-      boost::shared_ptr<Value::Map_type> map(new Value::Map_type);
+      std::shared_ptr<Value::Map_type> map(new Value::Map_type);
       (*map)["k1"] = Value(123);
       (*map)["k2"] = Value("text");
       (*map)["k3"] = Value(map2);
@@ -359,18 +357,18 @@ namespace shcore {
       v8::Context::Scope context_scope(v8::Local<v8::Context>::New(env.js->isolate(),
                                                                    env.js->context()));
 
-      boost::shared_ptr<Test_object> obj = boost::shared_ptr<Test_object>(new Test_object(1234));
-      boost::shared_ptr<Test_object> obj2 = boost::shared_ptr<Test_object>(new Test_object(1234));
-      boost::shared_ptr<Test_object> obj3 = boost::shared_ptr<Test_object>(new Test_object(123));
+      std::shared_ptr<Test_object> obj = std::shared_ptr<Test_object>(new Test_object(1234));
+      std::shared_ptr<Test_object> obj2 = std::shared_ptr<Test_object>(new Test_object(1234));
+      std::shared_ptr<Test_object> obj3 = std::shared_ptr<Test_object>(new Test_object(123));
 
       ASSERT_EQ(*obj, *obj2);
-      ASSERT_EQ(Value(boost::static_pointer_cast<Object_bridge>(obj)), Value(boost::static_pointer_cast<Object_bridge>(obj2)));
+      ASSERT_EQ(Value(std::static_pointer_cast<Object_bridge>(obj)), Value(std::static_pointer_cast<Object_bridge>(obj2)));
       ASSERT_NE(*obj, *obj3);
 
-      ASSERT_EQ(Value(boost::static_pointer_cast<Object_bridge>(obj2)), env.js->v8_value_to_shcore_value(env.js->shcore_value_to_v8_value(Value(boost::static_pointer_cast<Object_bridge>(obj)))));
+      ASSERT_EQ(Value(std::static_pointer_cast<Object_bridge>(obj2)), env.js->v8_value_to_shcore_value(env.js->shcore_value_to_v8_value(Value(std::static_pointer_cast<Object_bridge>(obj)))));
 
       // expose the object to JS
-      env.js->set_global("test_obj", Value(boost::static_pointer_cast<Object_bridge>(obj)));
+      env.js->set_global("test_obj", Value(std::static_pointer_cast<Object_bridge>(obj)));
       ASSERT_EQ(env.js->execute("type(test_obj)").descr(false), "m.Test");
 
       // test getting member from obj
@@ -390,14 +388,14 @@ namespace shcore {
       v8::Context::Scope context_scope(v8::Local<v8::Context>::New(env.js->isolate(),
                                                                    env.js->context()));
 
-      boost::shared_ptr<Maparray> obj = boost::shared_ptr<Maparray>(new Maparray());
+      std::shared_ptr<Maparray> obj = std::shared_ptr<Maparray>(new Maparray());
 
       obj->add_item("one", Value(42));
       obj->add_item("two", Value("hello"));
       obj->add_item("three", Value::Null());
 
       // expose the object to JS
-      env.js->set_global("test_ma", Value(boost::static_pointer_cast<Object_bridge>(obj)));
+      env.js->set_global("test_ma", Value(std::static_pointer_cast<Object_bridge>(obj)));
       ASSERT_EQ(env.js->execute("type(test_ma)").descr(false), "m.MapArray");
 
       ASSERT_EQ(env.js->execute("test_ma.length").descr(false), "3");
@@ -424,8 +422,8 @@ namespace shcore {
       v8::Context::Scope context_scope(v8::Local<v8::Context>::New(env.js->isolate(),
                                                                    env.js->context()));
 
-      boost::shared_ptr<Function_base> func(Cpp_function::create("do_test",
-                                                         boost::bind(do_test, _1), "bla", String, NULL));
+      std::shared_ptr<Function_base> func(Cpp_function::create("do_test",
+                                                         std::bind(do_test, _1), "bla", String, NULL));
 
       shcore::Value v(func);
       shcore::Value v2(func);

@@ -23,8 +23,6 @@
 #include "shellcore/types.h"
 #include "shellcore/types_cpp.h"
 
-#include <boost/enable_shared_from_this.hpp>
-
 namespace mysh
 {
   namespace mysqlx
@@ -32,7 +30,7 @@ namespace mysh
     /**
     * Represents a ReplicaSet
     */
-    class ReplicaSet : public boost::enable_shared_from_this<ReplicaSet>, public shcore::Cpp_object_bridge
+    class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>, public shcore::Cpp_object_bridge
     {
     public:
       ReplicaSet(const std::string &name);
@@ -44,7 +42,7 @@ namespace mysh
       virtual shcore::Value get_member(const std::string &prop) const;
 
       void set_id(uint64_t id) { _id = id; }
-      uint64_t get_id() { return _id;}
+      uint64_t get_id() { return _id; }
 
       void set_name(std::string name) { _name = name; }
 

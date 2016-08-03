@@ -1037,7 +1037,7 @@ private:
       if (cmd_args.size())
         boost::algorithm::split(columns, cmd_args, boost::is_any_of(" "));
 
-      result = context.connection()->recv_result();
+      auto result = context.connection()->recv_result();
       print_result_set(*result, columns, value_callback);
       variables_to_unreplace.clear();
       int64_t x = result->affectedRows();
@@ -1897,7 +1897,7 @@ std::string get_object_value(const T &value)
   return result.str();
   }
 
-std::string get_field_value(boost::shared_ptr<mysqlx::Row> &row, const int field, boost::shared_ptr<std::vector<mysqlx::ColumnMetadata> > &meta)
+std::string get_field_value(std::shared_ptr<mysqlx::Row> &row, const int field, std::shared_ptr<std::vector<mysqlx::ColumnMetadata> > &meta)
   {
       if (row->isNullField(field))
       {
@@ -1979,7 +1979,7 @@ std::string get_field_value(boost::shared_ptr<mysqlx::Row> &row, const int field
 
 static void print_result_set(mysqlx::Result &result, const std::vector<std::string> &columns, Value_callback value_callback)
 {
-  boost::shared_ptr<std::vector<mysqlx::ColumnMetadata> > meta(result.columnMetadata());
+  std::shared_ptr<std::vector<mysqlx::ColumnMetadata> > meta(result.columnMetadata());
   std::vector<int> column_indexes;
   int column_index = -1;
   bool first = true;
@@ -2004,7 +2004,7 @@ static void print_result_set(mysqlx::Result &result, const std::vector<std::stri
 
   for (;;)
   {
-    boost::shared_ptr<mysqlx::Row> row(result.next());
+    std::shared_ptr<mysqlx::Row> row(result.next());
     if (!row.get())
       break;
 
@@ -2046,7 +2046,7 @@ static int run_sql_batch(mysqlx::Connection *conn, const std::string &sql_)
     {
       if (!OPT_quiet)
           std::cout << "RUN " << sql.substr(st->first, st->second) << "\n";
-      boost::shared_ptr<mysqlx::Result> result(conn->execute_sql(sql.substr(st->first, st->second)));
+      std::shared_ptr<mysqlx::Result> result(conn->execute_sql(sql.substr(st->first, st->second)));
       if (result.get())
       {
         do

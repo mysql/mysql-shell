@@ -40,10 +40,10 @@ namespace mysh
     *
     * \sa Collection
     */
-    class CollectionRemove : public Collection_crud_definition, public boost::enable_shared_from_this<CollectionRemove>
+    class CollectionRemove : public Collection_crud_definition, public std::enable_shared_from_this<CollectionRemove>
     {
     public:
-      CollectionRemove(boost::shared_ptr<Collection> owner);
+      CollectionRemove(std::shared_ptr<Collection> owner);
     public:
 #if DOXYGEN_JS
       CollectionRemove remove(String searchCondition);
@@ -59,7 +59,7 @@ namespace mysh
       Result execute();
 #endif
       virtual std::string class_name() const { return "CollectionRemove"; }
-      static boost::shared_ptr<shcore::Object_bridge> create(const shcore::Argument_list &args);
+      static std::shared_ptr<shcore::Object_bridge> create(const shcore::Argument_list &args);
       shcore::Value remove(const shcore::Argument_list &args);
       shcore::Value sort(const shcore::Argument_list &args);
       shcore::Value limit(const shcore::Argument_list &args);

@@ -4,7 +4,7 @@
 import mysqlx
 
 #@ Session: validating members
-myAdmin = mysqlx.getAdminSession(__uripwd)
+myAdmin = mysqlx.get_admin_session(__uripwd)
 all_members = dir(myAdmin)
 
 # Remove the python built in members
@@ -15,11 +15,13 @@ for member in all_members:
 
 print "Session Members:", len(members)
 validateMember(members, 'uri')
-validateMember(members, 'defaultFarm')
-validateMember(members, 'getUri')
-validateMember(members, 'getDefaultFarm')
-validateMember(members, 'createFarm')
-validateMember(members, 'getFarm')
+validateMember(members, 'default_farm')
+validateMember(members, 'get_uri')
+validateMember(members, 'get_default_farm')
+validateMember(members, 'is_open')
+validateMember(members, 'create_farm')
+validateMember(members, 'drop_farm')
+validateMember(members, 'get_farm')
 validateMember(members, 'close')
 
 # Cleanup

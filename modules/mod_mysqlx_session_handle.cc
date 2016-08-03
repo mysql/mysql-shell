@@ -50,7 +50,7 @@ void SessionHandle::open(const std::string &host, int port, const std::string &s
   _session = ::mysqlx::openSession(host, port, schema, user, pass, ssl, 10000, auth_method, true);
 }
 
-boost::shared_ptr< ::mysqlx::Result> SessionHandle::execute_sql(const std::string &sql) const
+std::shared_ptr< ::mysqlx::Result> SessionHandle::execute_sql(const std::string &sql) const
 {
   return _session->executeSql(sql);
 }
@@ -70,11 +70,11 @@ void SessionHandle::reset()
   }
 }
 
-boost::shared_ptr< ::mysqlx::Result> SessionHandle::execute_statement(const std::string &domain, const std::string& command, const Argument_list &args) const
+std::shared_ptr< ::mysqlx::Result> SessionHandle::execute_statement(const std::string &domain, const std::string& command, const Argument_list &args) const
 {
   // Will return the result of the SQL execution
   // In case of error will be Undefined
-  boost::shared_ptr< ::mysqlx::Result> ret_val;
+  std::shared_ptr< ::mysqlx::Result> ret_val;
 
   if (!_session)
     throw Exception::logic_error("Not connected.");
@@ -112,8 +112,8 @@ std::string SessionHandle::db_object_exists(std::string &type, const std::string
   std::string statement;
   std::string ret_val;
 
-  boost::shared_ptr< ::mysqlx::Result> res;
-  boost::shared_ptr< ::mysqlx::Row> raw_entry;
+  std::shared_ptr< ::mysqlx::Result> res;
+  std::shared_ptr< ::mysqlx::Row> raw_entry;
   if (type == "Schema")
   {
     res = execute_statement("sql", sqlstring("show databases like ?", 0) << name, Argument_list());
@@ -136,7 +136,7 @@ std::string SessionHandle::db_object_exists(std::string &type, const std::string
       std::string object_name;
       std::string object_type;
 
-      boost::shared_ptr<std::vector< ::mysqlx::ColumnMetadata> > metadata = res->columnMetadata();
+      std::shared_ptr<std::vector< ::mysqlx::ColumnMetadata> > metadata = res->columnMetadata();
       for (size_t index = 0; index < metadata->size(); ++index)
       {
         if (metadata->at(index).name == "name")

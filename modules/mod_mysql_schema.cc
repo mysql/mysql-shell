@@ -29,32 +29,30 @@
 
 #include "shellcore/proxy_object.h"
 
-#include <boost/bind.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/format.hpp>
-#include <boost/pointer_cast.hpp>
 #include "utils/utils_general.h"
 #include "logger/logger.h"
 
 using namespace mysh::mysql;
 using namespace shcore;
 
-ClassicSchema::ClassicSchema(boost::shared_ptr<ClassicSession> session, const std::string &schema)
-  : DatabaseObject(boost::dynamic_pointer_cast<ShellBaseSession>(session), boost::shared_ptr<DatabaseObject>(), schema)
+ClassicSchema::ClassicSchema(std::shared_ptr<ClassicSession> session, const std::string &schema)
+  : DatabaseObject(std::dynamic_pointer_cast<ShellBaseSession>(session), std::shared_ptr<DatabaseObject>(), schema)
 {
   init();
 }
 
-ClassicSchema::ClassicSchema(boost::shared_ptr<const ClassicSession> session, const std::string &schema) :
-DatabaseObject(boost::const_pointer_cast<ClassicSession>(session), boost::shared_ptr<DatabaseObject>(), schema)
+ClassicSchema::ClassicSchema(std::shared_ptr<const ClassicSession> session, const std::string &schema) :
+DatabaseObject(std::const_pointer_cast<ClassicSession>(session), std::shared_ptr<DatabaseObject>(), schema)
 {
   init();
 }
 
 void ClassicSchema::init()
 {
-  add_method("getTables", boost::bind(&ClassicSchema::get_tables, this, _1), NULL);
-  add_method("getTable", boost::bind(&ClassicSchema::get_table, this, _1), "name", shcore::String, NULL);
+  add_method("getTables", std::bind(&ClassicSchema::get_tables, this, _1), NULL);
+  add_method("getTable", std::bind(&ClassicSchema::get_table, this, _1), "name", shcore::String, NULL);
 
   _tables = Value::new_map().as_map();
   _views = Value::new_map().as_map();
@@ -76,7 +74,7 @@ ClassicSchema::~ClassicSchema()
 
 void ClassicSchema::update_cache()
 {
-  boost::shared_ptr<ClassicSession> sess(boost::dynamic_pointer_cast<ClassicSession>(_session.lock()));
+  std::shared_ptr<ClassicSession> sess(std::dynamic_pointer_cast<ClassicSession>(_session.lock()));
   if (sess)
   {
     std::vector<std::string> tables;

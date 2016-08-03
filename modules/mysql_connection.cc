@@ -24,7 +24,6 @@
 #include "shellcore/obj_date.h"
 
 #include <boost/format.hpp>
-#include <boost/bind.hpp>
 #include <boost/lexical_cast.hpp>
 
 using namespace mysh::mysql;
@@ -36,7 +35,7 @@ using namespace mysh::mysql;
 #define MAX_COLUMN_LENGTH 1024
 #define MIN_COLUMN_LENGTH 4
 
-Result::Result(boost::shared_ptr<Connection> owner, my_ulonglong affected_rows_, unsigned int warning_count_, const char *info_)
+Result::Result(std::shared_ptr<Connection> owner, my_ulonglong affected_rows_, unsigned int warning_count_, const char *info_)
   : _connection(owner), _affected_rows(affected_rows_), _last_insert_id(0), _warning_count(warning_count_), _fetched_row_count(0), _execution_time(0), _has_resultset(false)
 {
   if (info_)
@@ -50,7 +49,7 @@ int Result::fetch_metadata()
   _metadata.clear();
 
   // res could be NULL on queries not returning data
-  boost::shared_ptr<MYSQL_RES> res = _result.lock();
+  std::shared_ptr<MYSQL_RES> res = _result.lock();
 
   if (res)
   {
@@ -87,7 +86,7 @@ Row * Result::fetch_one()
   if (has_resultset())
   {
     // Loads the first row
-    boost::shared_ptr<MYSQL_RES> res = _result.lock();
+    std::shared_ptr<MYSQL_RES> res = _result.lock();
 
     if (res)
     {
@@ -118,7 +117,7 @@ Result *Result::query_warnings()
   return _connection->run_sql("show warnings");
 }
 
-void Result::reset(boost::shared_ptr<MYSQL_RES> res, unsigned long duration)
+void Result::reset(std::shared_ptr<MYSQL_RES> res, unsigned long duration)
 {
   _has_resultset = false;
   if (res)
@@ -365,7 +364,7 @@ bool Connection::next_data_set(Result *target, bool first_result)
     MYSQL_RES* result = mysql_use_result(_mysql);
 
     if (result)
-      _prev_result = boost::shared_ptr<MYSQL_RES>(result, &free_result<MYSQL_RES>);
+      _prev_result = std::shared_ptr<MYSQL_RES>(result, &free_result<MYSQL_RES>);
 
     // Only returns true when this method was called and there were
     // Additional results

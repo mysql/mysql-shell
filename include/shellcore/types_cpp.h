@@ -48,8 +48,8 @@ namespace shcore
   class SHCORE_PUBLIC Cpp_function : public Function_base
   {
   public:
-    //TODO make this work with direct function pointers and skip boost::function
-    typedef boost::function<Value(const shcore::Argument_list &)> Function;
+    //TODO make this work with direct function pointers and skip std::function
+    typedef std::function<Value(const shcore::Argument_list &)> Function;
 
     virtual ~Cpp_function() {}
 
@@ -66,9 +66,9 @@ namespace shcore
 
     virtual bool has_var_args() { return _var_args; }
 
-    static boost::shared_ptr<Function_base> create(const std::string &name, const Function &func, const char *arg1_name, Value_type arg1_type = Undefined, ...);
+    static std::shared_ptr<Function_base> create(const std::string &name, const Function &func, const char *arg1_name, Value_type arg1_type = Undefined, ...);
 
-    static boost::shared_ptr<Function_base> create(const std::string &name, const Function &func, const std::vector<std::pair<std::string, Value_type> > &signature);
+    static std::shared_ptr<Function_base> create(const std::string &name, const Function &func, const std::vector<std::pair<std::string, Value_type> > &signature);
 
   protected:
     friend class Cpp_object_bridge;
@@ -136,7 +136,7 @@ namespace shcore
 
     virtual std::string &append_descr(std::string &s_out, int indent = -1, int quote_strings = 0) const;
     virtual std::string &append_repr(std::string &s_out) const;
-    boost::shared_ptr<ScopedStyle> set_scoped_naming_style(const NamingStyle& style);
+    std::shared_ptr<ScopedStyle> set_scoped_naming_style(const NamingStyle& style);
 
   protected:
     virtual void add_method(const std::string &name, Cpp_function::Function func,
@@ -153,9 +153,9 @@ namespace shcore
     // Used mostly for errors in function validations
     std::string get_function_name(const std::string& member) const;
 
-    typedef std::pair< std::string, boost::shared_ptr<Cpp_function> > FunctionEntry;
-    std::map<std::string, boost::shared_ptr<Cpp_function> > _funcs;
-    std::vector<boost::shared_ptr<Cpp_property_name> > _properties;
+    typedef std::pair< std::string, std::shared_ptr<Cpp_function> > FunctionEntry;
+    std::map<std::string, std::shared_ptr<Cpp_function> > _funcs;
+    std::vector<std::shared_ptr<Cpp_property_name> > _properties;
 
     // The global active naming style
     NamingStyle naming_style;

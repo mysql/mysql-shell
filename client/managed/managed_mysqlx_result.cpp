@@ -23,8 +23,6 @@
 
 #include <string>
 
-#include <boost/shared_ptr.hpp>
-
 using namespace MySqlX;
 using namespace System::Runtime::InteropServices;
 using namespace System::Reflection;
@@ -44,13 +42,13 @@ Object^ wrap_value(const shcore::Value& val)
     case shcore::Object:
       class_name = val.as_object()->class_name();
       if (class_name == "Result")
-        o = gcnew Result(boost::static_pointer_cast<mysh::mysqlx::Result>(val.as_object()));
+        o = gcnew Result(std::static_pointer_cast<mysh::mysqlx::Result>(val.as_object()));
       else if (class_name == "DocResult")
-        o = gcnew DocResult(boost::static_pointer_cast<mysh::mysqlx::DocResult>(val.as_object()));
+        o = gcnew DocResult(std::static_pointer_cast<mysh::mysqlx::DocResult>(val.as_object()));
       else if (class_name == "RowResult")
-        o = gcnew DocResult(boost::static_pointer_cast<mysh::mysqlx::DocResult>(val.as_object()));
+        o = gcnew DocResult(std::static_pointer_cast<mysh::mysqlx::DocResult>(val.as_object()));
       else if (class_name == "SqlResult")
-        o = gcnew DocResult(boost::static_pointer_cast<mysh::mysqlx::DocResult>(val.as_object()));
+        o = gcnew DocResult(std::static_pointer_cast<mysh::mysqlx::DocResult>(val.as_object()));
       break;
     case shcore::Integer:
       o = gcnew Int32(val.as_int());
@@ -94,7 +92,7 @@ Object^ wrap_value(const shcore::Value& val)
   return o;
 }
 
-BaseResult::BaseResult(boost::shared_ptr<mysh::mysqlx::BaseResult> result)
+BaseResult::BaseResult(std::shared_ptr<mysh::mysqlx::BaseResult> result)
 {
   _warningCount = gcnew UInt64(result->get_warning_count());
   _executionTime = msclr::interop::marshal_as<String^>(result->get_execution_time());
@@ -106,7 +104,7 @@ BaseResult::BaseResult(boost::shared_ptr<mysh::mysqlx::BaseResult> result)
 
   for (size_t index = 0; index < warnings->size(); index++)
   {
-    boost::shared_ptr<mysh::Row> row = boost::static_pointer_cast<mysh::Row>(warnings->at(index).as_object());
+    std::shared_ptr<mysh::Row> row = std::static_pointer_cast<mysh::Row>(warnings->at(index).as_object());
 
     Dictionary<String^, Object^>^ warning = gcnew Dictionary<String^, Object^>();
 
@@ -118,7 +116,7 @@ BaseResult::BaseResult(boost::shared_ptr<mysh::mysqlx::BaseResult> result)
   }
 }
 
-Result::Result(boost::shared_ptr<mysh::mysqlx::Result> result) :
+Result::Result(std::shared_ptr<mysh::mysqlx::Result> result) :
 BaseResult(result)
 {
   _affectedItemCount = gcnew Int64(result->get_affected_item_count());
@@ -126,7 +124,7 @@ BaseResult(result)
   _lastDocumentId = msclr::interop::marshal_as<String^>(result->get_last_document_id());
 }
 
-DocResult::DocResult(boost::shared_ptr<mysh::mysqlx::DocResult> result) :
+DocResult::DocResult(std::shared_ptr<mysh::mysqlx::DocResult> result) :
 BaseResult(result)
 {
   shcore::Argument_list args;
@@ -157,7 +155,7 @@ List<Dictionary<String^, Object^>^>^ DocResult::FetchAll()
   return _documents;
 }
 
-RowResult::RowResult(boost::shared_ptr<mysh::mysqlx::RowResult> result) :
+RowResult::RowResult(std::shared_ptr<mysh::mysqlx::RowResult> result) :
 BaseResult(result)
 {
   _columnCount = gcnew Int64(result->get_column_count());
@@ -169,7 +167,7 @@ BaseResult(result)
 
   for (size_t index = 0; index < columns->size(); index++)
   {
-    boost::shared_ptr<mysh::Column> column = boost::static_pointer_cast<mysh::Column>(columns->at(index).as_object());
+    std::shared_ptr<mysh::Column> column = std::static_pointer_cast<mysh::Column>(columns->at(index).as_object());
 
     _columnNames->Add(msclr::interop::marshal_as<String^>(column->get_column_label()));
 
@@ -193,7 +191,7 @@ BaseResult(result)
   shcore::Argument_list args;
   while (raw_record = result->fetch_one(args))
   {
-    boost::shared_ptr<mysh::Row> row = boost::static_pointer_cast<mysh::Row>(raw_record.as_object());
+    std::shared_ptr<mysh::Row> row = std::static_pointer_cast<mysh::Row>(raw_record.as_object());
 
     if (row)
     {
@@ -226,7 +224,7 @@ List<array<Object^>^>^ RowResult::FetchAll()
   return _records;
 }
 
-SqlResult::SqlResult(boost::shared_ptr<mysh::mysqlx::SqlResult> result) :
+SqlResult::SqlResult(std::shared_ptr<mysh::mysqlx::SqlResult> result) :
 RowResult(result)
 {
   _affectedRowCount = gcnew Int64(result->get_affected_row_count());
@@ -236,7 +234,7 @@ RowResult(result)
 
 //Boolean^ SqlResult::NextDataSet()
 //{
-//  boost::shared_ptr<mysh::mysqlx::SqlResult> result = boost::static_pointer_cast<mysh::mysqlx::SqlResult>(_inner);
+//  std::shared_ptr<mysh::mysqlx::SqlResult> result = std::static_pointer_cast<mysh::mysqlx::SqlResult>(_inner);
 //
 //  return gcnew Boolean(result->next_data_set());
 //}

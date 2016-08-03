@@ -29,7 +29,7 @@ using namespace shcore;
 #define MAX_COLUMN_LENGTH 1024
 #define MIN_COLUMN_LENGTH 4
 
-ResultsetDumper::ResultsetDumper(boost::shared_ptr<mysh::ShellBaseResult> target, bool buffer_data) :
+ResultsetDumper::ResultsetDumper(std::shared_ptr<mysh::ShellBaseResult> target, bool buffer_data) :
 _resultset(target), _buffer_data(buffer_data)
 {
   _format = Shell_core_options::get()->get_string(SHCORE_OUTPUT_FORMAT);
@@ -66,7 +66,7 @@ void ResultsetDumper::dump_json()
 {
   shcore::Value::Map_type_ref data(new shcore::Value::Map_type);
 
-  shcore::Value resultset(boost::static_pointer_cast<Object_bridge>(_resultset));
+  shcore::Value resultset(std::static_pointer_cast<Object_bridge>(_resultset));
 
   shcore::print(resultset.json(_format != "json/raw") + "\n");
 }
@@ -79,37 +79,37 @@ void ResultsetDumper::dump_normal()
 
   if (class_name == "ClassicResult")
   {
-    boost::shared_ptr<mysh::mysql::ClassicResult> resultset = boost::static_pointer_cast<mysh::mysql::ClassicResult>(_resultset);
+    std::shared_ptr<mysh::mysql::ClassicResult> resultset = std::static_pointer_cast<mysh::mysql::ClassicResult>(_resultset);
     if (resultset)
       dump_normal(resultset);
   }
   else if (class_name == "SqlResult")
   {
-    boost::shared_ptr<mysh::mysqlx::SqlResult> resultset = boost::static_pointer_cast<mysh::mysqlx::SqlResult>(_resultset);
+    std::shared_ptr<mysh::mysqlx::SqlResult> resultset = std::static_pointer_cast<mysh::mysqlx::SqlResult>(_resultset);
     if (resultset)
       dump_normal(resultset);
   }
   else if (class_name == "RowResult")
   {
-    boost::shared_ptr<mysh::mysqlx::RowResult> resultset = boost::static_pointer_cast<mysh::mysqlx::RowResult>(_resultset);
+    std::shared_ptr<mysh::mysqlx::RowResult> resultset = std::static_pointer_cast<mysh::mysqlx::RowResult>(_resultset);
     if (resultset)
       dump_normal(resultset);
   }
   else if (class_name == "DocResult")
   {
-    boost::shared_ptr<mysh::mysqlx::DocResult> resultset = boost::static_pointer_cast<mysh::mysqlx::DocResult>(_resultset);
+    std::shared_ptr<mysh::mysqlx::DocResult> resultset = std::static_pointer_cast<mysh::mysqlx::DocResult>(_resultset);
     if (resultset)
       dump_normal(resultset);
   }
   else if (class_name == "Result")
   {
-    boost::shared_ptr<mysh::mysqlx::Result> resultset = boost::static_pointer_cast<mysh::mysqlx::Result>(_resultset);
+    std::shared_ptr<mysh::mysqlx::Result> resultset = std::static_pointer_cast<mysh::mysqlx::Result>(_resultset);
     if (resultset)
       dump_normal(resultset);
   }
 }
 
-void ResultsetDumper::dump_normal(boost::shared_ptr<mysh::mysql::ClassicResult> result)
+void ResultsetDumper::dump_normal(std::shared_ptr<mysh::mysql::ClassicResult> result)
 {
   std::string output;
 
@@ -139,7 +139,7 @@ void ResultsetDumper::dump_normal(boost::shared_ptr<mysh::mysql::ClassicResult> 
   } while (result->next_data_set(shcore::Argument_list()).as_bool());
 }
 
-void ResultsetDumper::dump_normal(boost::shared_ptr<mysh::mysqlx::SqlResult> result)
+void ResultsetDumper::dump_normal(std::shared_ptr<mysh::mysqlx::SqlResult> result)
 {
   std::string output;
 
@@ -164,7 +164,7 @@ void ResultsetDumper::dump_normal(boost::shared_ptr<mysh::mysqlx::SqlResult> res
   } while (result->next_data_set(shcore::Argument_list()).as_bool());
 }
 
-void ResultsetDumper::dump_normal(boost::shared_ptr<mysh::mysqlx::RowResult> result)
+void ResultsetDumper::dump_normal(std::shared_ptr<mysh::mysqlx::RowResult> result)
 {
   std::string output;
 
@@ -183,7 +183,7 @@ void ResultsetDumper::dump_normal(boost::shared_ptr<mysh::mysqlx::RowResult> res
   }
 }
 
-void ResultsetDumper::dump_normal(boost::shared_ptr<mysh::mysqlx::DocResult> result)
+void ResultsetDumper::dump_normal(std::shared_ptr<mysh::mysqlx::DocResult> result)
 {
   std::string output;
 
@@ -213,7 +213,7 @@ void ResultsetDumper::dump_normal(boost::shared_ptr<mysh::mysqlx::DocResult> res
   }
 }
 
-void ResultsetDumper::dump_normal(boost::shared_ptr<mysh::mysqlx::Result> result)
+void ResultsetDumper::dump_normal(std::shared_ptr<mysh::mysqlx::Result> result)
 {
   // This information output is only printed in interactive mode
   if (_interactive)
@@ -231,7 +231,7 @@ void ResultsetDumper::dump_normal(boost::shared_ptr<mysh::mysqlx::Result> result
 
 void ResultsetDumper::dump_tabbed(shcore::Value::Array_type_ref records)
 {
-  boost::shared_ptr<shcore::Value::Array_type> metadata = _resultset->get_member("columns").as_array();
+  std::shared_ptr<shcore::Value::Array_type> metadata = _resultset->get_member("columns").as_array();
 
   size_t index = 0;
   size_t field_count = metadata->size();
@@ -241,7 +241,7 @@ void ResultsetDumper::dump_tabbed(shcore::Value::Array_type_ref records)
   // TODO: Consider the charset information on the length calculations
   for (index = 0; index < field_count; index++)
   {
-    boost::shared_ptr<mysh::Column> column = boost::static_pointer_cast<mysh::Column>(metadata->at(index).as_object());
+    std::shared_ptr<mysh::Column> column = std::static_pointer_cast<mysh::Column>(metadata->at(index).as_object());
     shcore::print(column->get_column_label());
     shcore::print(index < (field_count - 1) ? "\t" : "\n");
   }
@@ -249,7 +249,7 @@ void ResultsetDumper::dump_tabbed(shcore::Value::Array_type_ref records)
   // Now prints the records
   for (size_t row_index = 0; row_index < records->size(); row_index++)
   {
-    boost::shared_ptr<mysh::Row> row = (*records)[row_index].as_object<mysh::Row>();
+    std::shared_ptr<mysh::Row> row = (*records)[row_index].as_object<mysh::Row>();
 
     for (size_t field_index = 0; field_index < field_count; field_index++)
     {
@@ -262,7 +262,7 @@ void ResultsetDumper::dump_tabbed(shcore::Value::Array_type_ref records)
 
 void ResultsetDumper::dump_table(shcore::Value::Array_type_ref records)
 {
-  boost::shared_ptr<shcore::Value::Array_type> metadata = _resultset->get_member("columns").as_array();
+  std::shared_ptr<shcore::Value::Array_type> metadata = _resultset->get_member("columns").as_array();
   std::vector<uint64_t> max_lengths;
   std::vector<std::string> column_names;
   std::vector<bool> numerics;
@@ -272,7 +272,7 @@ void ResultsetDumper::dump_table(shcore::Value::Array_type_ref records)
   // Updates the max_length array with the maximum length between column name, min column length and column max length
   for (size_t field_index = 0; field_index < field_count; field_index++)
   {
-    boost::shared_ptr<mysh::Column> column = boost::static_pointer_cast<mysh::Column>(metadata->at(field_index).as_object());
+    std::shared_ptr<mysh::Column> column = std::static_pointer_cast<mysh::Column>(metadata->at(field_index).as_object());
 
     column_names.push_back(column->get_column_label());
     numerics.push_back(column->is_numeric());
@@ -285,7 +285,7 @@ void ResultsetDumper::dump_table(shcore::Value::Array_type_ref records)
   size_t row_index;
   for (row_index = 0; row_index < records->size(); row_index++)
   {
-    boost::shared_ptr<mysh::Row> row = (*records)[row_index].as_object<mysh::Row>();
+    std::shared_ptr<mysh::Row> row = (*records)[row_index].as_object<mysh::Row>();
     for (size_t field_index = 0; field_index < field_count; field_index++)
       max_lengths[field_index] = std::max<uint64_t>(max_lengths[field_index], row->get_member(field_index).descr().length());
   }
@@ -333,7 +333,7 @@ void ResultsetDumper::dump_table(shcore::Value::Array_type_ref records)
   {
     shcore::print("| ");
 
-    boost::shared_ptr<mysh::Row> row = (*records)[row_index].as_object<mysh::Row>();
+    std::shared_ptr<mysh::Row> row = (*records)[row_index].as_object<mysh::Row>();
 
     for (size_t field_index = 0; field_index < field_count; field_index++)
     {
@@ -415,7 +415,7 @@ void ResultsetDumper::dump_warnings()
     while (index < size)
     {
       Value record = warning_list->at(index);
-      boost::shared_ptr<mysh::Row> row = record.as_object<mysh::Row>();
+      std::shared_ptr<mysh::Row> row = record.as_object<mysh::Row>();
 
       unsigned long error = row->get_member("code").as_int();
 

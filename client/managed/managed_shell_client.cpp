@@ -101,13 +101,13 @@ Object^ ShellClient::Execute(String^ query)
   {
     std::string class_name = n_result.as_object()->class_name();
     if (class_name == "Result")
-      ret_val = gcnew Result(boost::static_pointer_cast<mysh::mysqlx::Result>(n_result.as_object()));
+      ret_val = gcnew Result(std::static_pointer_cast<mysh::mysqlx::Result>(n_result.as_object()));
     else if (class_name == "DocResult")
-      ret_val = gcnew DocResult(boost::static_pointer_cast<mysh::mysqlx::DocResult>(n_result.as_object()));
+      ret_val = gcnew DocResult(std::static_pointer_cast<mysh::mysqlx::DocResult>(n_result.as_object()));
     else if (class_name == "RowResult")
-      ret_val = gcnew RowResult(boost::static_pointer_cast<mysh::mysqlx::RowResult>(n_result.as_object()));
+      ret_val = gcnew RowResult(std::static_pointer_cast<mysh::mysqlx::RowResult>(n_result.as_object()));
     else if (class_name == "SqlResult")
-      ret_val = gcnew SqlResult(boost::static_pointer_cast<mysh::mysqlx::SqlResult>(n_result.as_object()));
+      ret_val = gcnew SqlResult(std::static_pointer_cast<mysh::mysqlx::SqlResult>(n_result.as_object()));
     else
       ret_val = msclr::interop::marshal_as<String^>(n_result.descr(true));
   }

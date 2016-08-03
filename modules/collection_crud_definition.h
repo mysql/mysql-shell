@@ -29,9 +29,6 @@
 #include "mysqlx_crud.h"
 #include "mysqlxtest_utils.h"
 
-#include <boost/weak_ptr.hpp>
-#include <boost/enable_shared_from_this.hpp>
-
 #include <set>
 
 #ifdef __GNUC__
@@ -50,7 +47,7 @@ namespace mysh
     class Collection_crud_definition : public Crud_definition
     {
     public:
-      Collection_crud_definition(boost::shared_ptr<DatabaseObject> owner) :Crud_definition(owner){}
+      Collection_crud_definition(std::shared_ptr<DatabaseObject> owner) :Crud_definition(owner){}
 
     protected:
       ::mysqlx::DocumentValue map_document_value(shcore::Value source);

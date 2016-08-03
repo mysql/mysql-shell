@@ -44,7 +44,7 @@ namespace mysh
 
       virtual shcore::Value get_member(const std::string &prop) const;
 
-      static boost::shared_ptr<shcore::Object_bridge> create(const shcore::Argument_list &args);
+      static std::shared_ptr<shcore::Object_bridge> create(const shcore::Argument_list &args);
 
       std::string get_data() { return _data; };
 

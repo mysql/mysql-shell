@@ -35,10 +35,8 @@
 
 #include "mysqlxtest_utils.h"
 
-#include <boost/bind.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/format.hpp>
-#include <boost/pointer_cast.hpp>
 #include <boost/algorithm/string.hpp>
 #include "mysqlx_connection.h"
 #include "logger/logger.h"
@@ -83,7 +81,7 @@ bool BaseSession::is_connected() const
   return _session.is_connected();
 }
 
-boost::shared_ptr< ::mysqlx::Session> BaseSession::session_obj() const
+std::shared_ptr< ::mysqlx::Session> BaseSession::session_obj() const
 {
   return _session.get();
 }
@@ -97,16 +95,16 @@ void BaseSession::init()
 {
   _schemas.reset(new shcore::Value::Map_type);
 
-  add_method("close", boost::bind(&BaseSession::close, this, _1), "data");
-  add_method("setFetchWarnings", boost::bind(&BaseSession::set_fetch_warnings, this, _1), "data");
-  add_method("startTransaction", boost::bind(&BaseSession::startTransaction, this, _1), "data");
-  add_method("commit", boost::bind(&BaseSession::commit, this, _1), "data");
-  add_method("rollback", boost::bind(&BaseSession::rollback, this, _1), "data");
+  add_method("close", std::bind(&BaseSession::close, this, _1), "data");
+  add_method("setFetchWarnings", std::bind(&BaseSession::set_fetch_warnings, this, _1), "data");
+  add_method("startTransaction", std::bind(&BaseSession::startTransaction, this, _1), "data");
+  add_method("commit", std::bind(&BaseSession::commit, this, _1), "data");
+  add_method("rollback", std::bind(&BaseSession::rollback, this, _1), "data");
 
-  add_method("dropSchema", boost::bind(&BaseSession::drop_schema, this, _1), "data");
-  add_method("dropTable", boost::bind(&BaseSession::drop_schema_object, this, _1, "Table"), "data");
-  add_method("dropCollection", boost::bind(&BaseSession::drop_schema_object, this, _1, "Collection"), "data");
-  add_method("dropView", boost::bind(&BaseSession::drop_schema_object, this, _1, "View"), "data");
+  add_method("dropSchema", std::bind(&BaseSession::drop_schema, this, _1), "data");
+  add_method("dropTable", std::bind(&BaseSession::drop_schema_object, this, _1, "Table"), "data");
+  add_method("dropCollection", std::bind(&BaseSession::drop_schema_object, this, _1, "Collection"), "data");
+  add_method("dropView", std::bind(&BaseSession::drop_schema_object, this, _1, "View"), "data");
 
   // Prepares the cache handling
   auto generator = [this](const std::string& name){return shcore::Value::wrap<Schema>(new Schema(_get_shared_this(), name)); };
@@ -142,8 +140,8 @@ void BaseSession::set_connection_id()
   if (_session.is_connected())
   {
     // the client id from xprotocol is not the same as the connection id so it is gathered here.
-    boost::shared_ptr< ::mysqlx::Result> result = _session.execute_sql("select connection_id();");
-    boost::shared_ptr< ::mysqlx::Row> row = result->next();
+    std::shared_ptr< ::mysqlx::Result> result = _session.execute_sql("select connection_id();");
+    std::shared_ptr< ::mysqlx::Row> row = result->next();
     if (row)
     {
       if (!row->isNullField(0))
@@ -272,7 +270,7 @@ Value BaseSession::create_schema(const shcore::Argument_list &args)
 * All the operations executed after calling this function, will be discarded is rollback() is called.
 *
 * When commit() or rollback() are called, the server autocommit mode will return back to it's state before calling startTransaction().
- */
+*/
 #if DOXYGEN_JS
 Result BaseSession::startTransaction(){}
 #elif DOXYGEN_PY
@@ -292,7 +290,7 @@ shcore::Value BaseSession::startTransaction(const shcore::Argument_list &args)
 * All the operations executed after calling startTransaction() will take place when this function is called.
 *
 * The server autocommit mode will return back to it's state before calling startTransaction().
- */
+*/
 #if DOXYGEN_JS
 Result BaseSession::commit(){}
 #elif DOXYGEN_PY
@@ -312,7 +310,7 @@ shcore::Value BaseSession::commit(const shcore::Argument_list &args)
 * All the operations executed after calling startTransaction() will be discarded when this function is called.
 *
 * The server autocommit mode will return back to it's state before calling startTransaction().
- */
+*/
 #if DOXYGEN_JS
 Result BaseSession::rollback(){}
 #elif DOXYGEN_PY
@@ -345,21 +343,21 @@ Value BaseSession::executeStmt(const std::string &domain, const std::string& com
 
   timer.start();
 
-  boost::shared_ptr< ::mysqlx::Result> exec_result = _session.execute_statement(domain, command, args);
+  std::shared_ptr< ::mysqlx::Result> exec_result = _session.execute_statement(domain, command, args);
 
   timer.end();
 
   if (expect_data)
   {
-    SqlResult *result;
-    ret_val = shcore::Value::wrap(result = new SqlResult(exec_result));
+    SqlResult *result = new SqlResult(exec_result);
     result->set_execution_time(timer.raw_duration());
+    ret_val = shcore::Value::wrap(result);
   }
   else
   {
-    Result *result;
-    ret_val = shcore::Value::wrap(result = new Result(exec_result));
+    Result *result = new Result(exec_result);
     result->set_execution_time(timer.raw_duration());
+    ret_val = shcore::Value::wrap(result);
   }
 
   return ret_val;
@@ -369,7 +367,7 @@ Value BaseSession::executeStmt(const std::string &domain, const std::string& com
 /**
 * Retrieves the Schema configured as default for the session.
 * \return A Schema object or Null
- */
+*/
 #if DOXYGEN_JS
 Schema BaseSession::getDefaultSchema(){}
 #elif DOXYGEN_PY
@@ -379,7 +377,7 @@ Schema BaseSession::get_default_schema(){}
 /**
 * Retrieves the connection data for this session in string format.
 * \return A string representing the connection data.
- */
+*/
 #if DOXYGEN_JS
 String BaseSession::getUri(){}
 #elif DOXYGEN_PY
@@ -395,8 +393,8 @@ std::string BaseSession::_retrieve_current_schema()
     if (_session.is_connected())
     {
       // TODO: update this logic properly
-      boost::shared_ptr< ::mysqlx::Result> result = _session.execute_sql("select schema()");
-      boost::shared_ptr< ::mysqlx::Row>row = result->next();
+      std::shared_ptr< ::mysqlx::Result> result = _session.execute_sql("select schema()");
+      std::shared_ptr< ::mysqlx::Row>row = result->next();
 
       if (!row->isNullField(0))
         name = row->stringField(0);
@@ -417,8 +415,8 @@ void BaseSession::_retrieve_session_info(std::string &current_schema,
     if (_session.is_connected())
     {
       // TODO: update this logic properly
-      boost::shared_ptr< ::mysqlx::Result> result = _session.execute_sql("select schema(), @@lower_case_table_names");
-      boost::shared_ptr< ::mysqlx::Row>row = result->next();
+      std::shared_ptr< ::mysqlx::Result> result = _session.execute_sql("select schema(), @@lower_case_table_names");
+      std::shared_ptr< ::mysqlx::Row>row = result->next();
 
       if (!row->isNullField(0))
         current_schema = row->stringField(0);
@@ -492,8 +490,8 @@ shcore::Value BaseSession::get_schemas(const shcore::Argument_list &args) const
   {
     if (_session.is_connected())
     {
-      boost::shared_ptr< ::mysqlx::Result> result = _session.execute_sql("show databases;");
-      boost::shared_ptr< ::mysqlx::Row> row = result->next();
+      std::shared_ptr< ::mysqlx::Result> result = _session.execute_sql("show databases;");
+      std::shared_ptr< ::mysqlx::Row> row = result->next();
 
       while (row)
       {
@@ -634,7 +632,7 @@ shcore::Value BaseSession::drop_schema_object(const shcore::Argument_list &args,
 
   if (_schemas->count(schema))
   {
-    boost::shared_ptr<Schema> schema_obj = boost::static_pointer_cast<Schema>((*_schemas)[schema].as_object());
+    std::shared_ptr<Schema> schema_obj = std::static_pointer_cast<Schema>((*_schemas)[schema].as_object());
     if (schema_obj)
       schema_obj->_remove_object(name, type);
   }
@@ -674,8 +672,8 @@ shcore::Value BaseSession::get_status(const shcore::Argument_list &args)
 
   (*status)["DEFAULT_SCHEMA"] = shcore::Value(_default_schema);
 
-  boost::shared_ptr< ::mysqlx::Result> result;
-  boost::shared_ptr< ::mysqlx::Row>row;
+  std::shared_ptr< ::mysqlx::Result> result;
+  std::shared_ptr< ::mysqlx::Row>row;
   result = _session.execute_sql("select DATABASE(), USER() limit 1");
   row = result->next();
 
@@ -720,14 +718,14 @@ shcore::Value BaseSession::get_status(const shcore::Argument_list &args)
   return shcore::Value(status);
 }
 
-boost::shared_ptr<BaseSession> XSession::_get_shared_this() const
+std::shared_ptr<BaseSession> XSession::_get_shared_this() const
 {
-  boost::shared_ptr<const XSession> shared = shared_from_this();
+  std::shared_ptr<const XSession> shared = shared_from_this();
 
-  return boost::const_pointer_cast<XSession>(shared);
+  return std::const_pointer_cast<XSession>(shared);
 }
 
-boost::shared_ptr<shcore::Object_bridge> XSession::create(const shcore::Argument_list &args)
+std::shared_ptr<shcore::Object_bridge> XSession::create(const shcore::Argument_list &args)
 {
   return connect_session(args, mysh::Application);
 }
@@ -746,19 +744,19 @@ void NodeSession::init()
 {
   add_property("currentSchema", "getCurrentSchema");
 
-  add_method("sql", boost::bind(&NodeSession::sql, this, _1), "sql", shcore::String, NULL);
-  add_method("setCurrentSchema", boost::bind(&NodeSession::set_current_schema, this, _1), "name", shcore::String, NULL);
-  add_method("quoteName", boost::bind(&NodeSession::quote_name, this, _1), "name", shcore::String, NULL);
+  add_method("sql", std::bind(&NodeSession::sql, this, _1), "sql", shcore::String, NULL);
+  add_method("setCurrentSchema", std::bind(&NodeSession::set_current_schema, this, _1), "name", shcore::String, NULL);
+  add_method("quoteName", std::bind(&NodeSession::quote_name, this, _1), "name", shcore::String, NULL);
 }
 
-boost::shared_ptr<BaseSession> NodeSession::_get_shared_this() const
+std::shared_ptr<BaseSession> NodeSession::_get_shared_this() const
 {
-  boost::shared_ptr<const NodeSession> shared = shared_from_this();
+  std::shared_ptr<const NodeSession> shared = shared_from_this();
 
-  return boost::const_pointer_cast<NodeSession>(shared);
+  return std::const_pointer_cast<NodeSession>(shared);
 }
 
-boost::shared_ptr<shcore::Object_bridge> NodeSession::create(const shcore::Argument_list &args)
+std::shared_ptr<shcore::Object_bridge> NodeSession::create(const shcore::Argument_list &args)
 {
   return connect_session(args, mysh::Node);
 }
@@ -792,7 +790,7 @@ SqlExecute NodeSession::sql(str sql){}
 #endif
 shcore::Value NodeSession::sql(const shcore::Argument_list &args)
 {
-  boost::shared_ptr<SqlExecute> sql_execute(new SqlExecute(shared_from_this()));
+  std::shared_ptr<SqlExecute> sql_execute(new SqlExecute(shared_from_this()));
 
   return sql_execute->sql(args);
 }
@@ -888,7 +886,7 @@ shcore::Value NodeSession::set_current_schema(const shcore::Argument_list &args)
   {
     std::string name = args[0].as_string();
 
-    boost::shared_ptr< ::mysqlx::Result> result = _session.execute_sql(sqlstring("use !", 0) << name);
+    std::shared_ptr< ::mysqlx::Result> result = _session.execute_sql(sqlstring("use !", 0) << name);
     result->flush();
   }
   else

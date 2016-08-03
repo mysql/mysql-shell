@@ -35,7 +35,7 @@ using namespace shcore;
 
 // --
 
-Exception::Exception(const boost::shared_ptr<Value::Map_type> e)
+Exception::Exception(const std::shared_ptr<Value::Map_type> e)
   : _error(e)
 {
   log_error("%s", what());
@@ -43,7 +43,7 @@ Exception::Exception(const boost::shared_ptr<Value::Map_type> e)
 
 Exception Exception::argument_error(const std::string &message)
 {
-  boost::shared_ptr<Value::Map_type> error(new Value::Map_type());
+  std::shared_ptr<Value::Map_type> error(new Value::Map_type());
   (*error)["type"] = Value("ArgumentError");
   (*error)["message"] = Value(message);
   Exception e(error);
@@ -52,7 +52,7 @@ Exception Exception::argument_error(const std::string &message)
 
 Exception Exception::attrib_error(const std::string &message)
 {
-  boost::shared_ptr<Value::Map_type> error(new Value::Map_type());
+  std::shared_ptr<Value::Map_type> error(new Value::Map_type());
   (*error)["type"] = Value("AttributeError");
   (*error)["message"] = Value(message);
   Exception e(error);
@@ -61,7 +61,7 @@ Exception Exception::attrib_error(const std::string &message)
 
 Exception Exception::type_error(const std::string &message)
 {
-  boost::shared_ptr<Value::Map_type> error(new Value::Map_type());
+  std::shared_ptr<Value::Map_type> error(new Value::Map_type());
   (*error)["type"] = Value("TypeError");
   (*error)["message"] = Value(message);
   Exception e(error);
@@ -70,7 +70,7 @@ Exception Exception::type_error(const std::string &message)
 
 Exception Exception::value_error(const std::string &message)
 {
-  boost::shared_ptr<Value::Map_type> error(new Value::Map_type());
+  std::shared_ptr<Value::Map_type> error(new Value::Map_type());
   (*error)["type"] = Value("ValueError");
   (*error)["message"] = Value(message);
   Exception e(error);
@@ -79,7 +79,7 @@ Exception Exception::value_error(const std::string &message)
 
 Exception Exception::logic_error(const std::string &message)
 {
-  boost::shared_ptr<Value::Map_type> error(new Value::Map_type());
+  std::shared_ptr<Value::Map_type> error(new Value::Map_type());
   (*error)["type"] = Value("LogicError");
   (*error)["message"] = Value(message);
   Exception e(error);
@@ -88,7 +88,7 @@ Exception Exception::logic_error(const std::string &message)
 
 Exception Exception::runtime_error(const std::string &message)
 {
-  boost::shared_ptr<Value::Map_type> error(new Value::Map_type());
+  std::shared_ptr<Value::Map_type> error(new Value::Map_type());
   (*error)["type"] = Value("RuntimeError");
   (*error)["message"] = Value(message);
   Exception e(error);
@@ -97,7 +97,7 @@ Exception Exception::runtime_error(const std::string &message)
 
 Exception Exception::scripting_error(const std::string &message)
 {
-  boost::shared_ptr<Value::Map_type> error(new Value::Map_type());
+  std::shared_ptr<Value::Map_type> error(new Value::Map_type());
   (*error)["type"] = Value("ScriptingError");
   (*error)["message"] = Value(message);
   Exception e(error);
@@ -106,7 +106,7 @@ Exception Exception::scripting_error(const std::string &message)
 
 Exception Exception::metadata_error(const std::string &message)
 {
-  boost::shared_ptr<Value::Map_type> error(new Value::Map_type());
+  std::shared_ptr<Value::Map_type> error(new Value::Map_type());
   (*error)["type"] = Value("MetadataError");
   (*error)["message"] = Value(message);
   Exception e(error);
@@ -115,7 +115,7 @@ Exception Exception::metadata_error(const std::string &message)
 
 Exception Exception::error_with_code(const std::string &type, const std::string &message, int code)
 {
-  boost::shared_ptr<Value::Map_type> error(new Value::Map_type());
+  std::shared_ptr<Value::Map_type> error(new Value::Map_type());
   (*error)["type"] = Value(type);
   (*error)["message"] = Value(message);
   (*error)["code"] = Value(code);
@@ -125,7 +125,7 @@ Exception Exception::error_with_code(const std::string &type, const std::string 
 
 Exception Exception::error_with_code_and_state(const std::string &type, const std::string &message, int code, const char *sqlstate)
 {
-  boost::shared_ptr<Value::Map_type> error(new Value::Map_type());
+  std::shared_ptr<Value::Map_type> error(new Value::Map_type());
   (*error)["type"] = Value(type);
   (*error)["message"] = Value(message);
   (*error)["code"] = Value(code);
@@ -136,7 +136,7 @@ Exception Exception::error_with_code_and_state(const std::string &type, const st
 
 Exception Exception::parser_error(const std::string &message)
 {
-  boost::shared_ptr<Value::Map_type> error(new Value::Map_type());
+  std::shared_ptr<Value::Map_type> error(new Value::Map_type());
   (*error)["type"] = Value("ParserError");
   (*error)["message"] = Value(message);
   Exception e(error);
@@ -240,32 +240,32 @@ std::string shcore::type_name(Value_type type)
 {
   switch (type)
   {
-  case Undefined:
-    return "Undefined";
-  case shcore::Null:
-    return "Null";
-  case Bool:
-    return "Bool";
-  case Integer:
-    return "Integer";
-  case UInteger:
-    return "UInteger";
-  case Float:
-    return "Float";
-  case String:
-    return "String";
-  case Object:
-    return "Object";
-  case Array:
-    return "Array";
-  case Map:
-    return "Map";
-  case MapRef:
-    return "MapRef";
-  case Function:
-    return "Function";
-  default:
-    return "";
+    case Undefined:
+      return "Undefined";
+    case shcore::Null:
+      return "Null";
+    case Bool:
+      return "Bool";
+    case Integer:
+      return "Integer";
+    case UInteger:
+      return "UInteger";
+    case Float:
+      return "Float";
+    case String:
+      return "String";
+    case Object:
+      return "Object";
+    case Array:
+      return "Array";
+    case Map:
+      return "Map";
+    case MapRef:
+      return "MapRef";
+    case Function:
+      return "Function";
+    default:
+      return "";
   }
 }
 
@@ -324,8 +324,8 @@ double Value::Map_type::get_double(const std::string &k, double def) const
   return iter->second.as_double();
 }
 
-boost::shared_ptr<Value::Map_type> Value::Map_type::get_map(const std::string &k,
-  boost::shared_ptr<Map_type> def) const
+std::shared_ptr<Value::Map_type> Value::Map_type::get_map(const std::string &k,
+  std::shared_ptr<Map_type> def) const
 {
   const_iterator iter = find(k);
   if (iter == end())
@@ -334,8 +334,8 @@ boost::shared_ptr<Value::Map_type> Value::Map_type::get_map(const std::string &k
   return iter->second.as_map();
 }
 
-boost::shared_ptr<Value::Array_type> Value::Map_type::get_array(const std::string &k,
-  boost::shared_ptr<Array_type> def) const
+std::shared_ptr<Value::Array_type> Value::Map_type::get_array(const std::string &k,
+  std::shared_ptr<Array_type> def) const
 {
   const_iterator iter = find(k);
   if (iter == end())
@@ -344,7 +344,7 @@ boost::shared_ptr<Value::Array_type> Value::Map_type::get_array(const std::strin
   return iter->second.as_array();
 }
 
-void Value::Map_type::merge_contents(boost::shared_ptr<Map_type> source, bool overwrite)
+void Value::Map_type::merge_contents(std::shared_ptr<Map_type> source, bool overwrite)
 {
   Value::Map_type::const_iterator iter;
   for (iter = source->begin(); iter != source->end(); ++iter)
@@ -427,34 +427,34 @@ Value::Value(bool b)
   value.b = b;
 }
 
-Value::Value(boost::shared_ptr<Function_base> f)
+Value::Value(std::shared_ptr<Function_base> f)
   : type(Function)
 {
-  value.func = new boost::shared_ptr<Function_base>(f);
+  value.func = new std::shared_ptr<Function_base>(f);
 }
 
-Value::Value(boost::shared_ptr<Object_bridge> n)
+Value::Value(std::shared_ptr<Object_bridge> n)
   : type(Object)
 {
-  value.o = new boost::shared_ptr<Object_bridge>(n);
+  value.o = new std::shared_ptr<Object_bridge>(n);
 }
 
 Value::Value(Map_type_ref n)
   : type(Map)
 {
-  value.map = new boost::shared_ptr<Map_type>(n);
+  value.map = new std::shared_ptr<Map_type>(n);
 }
 
-Value::Value(boost::weak_ptr<Map_type> n)
+Value::Value(std::weak_ptr<Map_type> n)
   : type(MapRef)
 {
-  value.mapref = new boost::weak_ptr<Map_type>(n);
+  value.mapref = new std::weak_ptr<Map_type>(n);
 }
 
 Value::Value(Array_type_ref n)
   : type(Array)
 {
-  value.array = new boost::shared_ptr<Array_type>(n);
+  value.array = new std::shared_ptr<Array_type>(n);
 }
 
 Value &Value::operator= (const Value &other)
@@ -463,108 +463,108 @@ Value &Value::operator= (const Value &other)
   {
     switch (type)
     {
-    case Undefined:
-      break;
-    case shcore::Null:
-      break;
-    case Bool:
-      value.b = other.value.b;
-      break;
-    case Integer:
-      value.i = other.value.i;
-      break;
-    case UInteger:
-      value.ui = other.value.ui;
-      break;
-    case Float:
-      value.d = other.value.d;
-      break;
-    case String:
-      *value.s = *other.value.s;
-      break;
-    case Object:
-      *value.o = *other.value.o;
-      break;
-    case Array:
-      *value.array = *other.value.array;
-      break;
-    case Map:
-      *value.map = *other.value.map;
-      break;
-    case MapRef:
-      *value.mapref = *other.value.mapref;
-      break;
-    case Function:
-      *value.func = *other.value.func;
-      break;
+      case Undefined:
+        break;
+      case shcore::Null:
+        break;
+      case Bool:
+        value.b = other.value.b;
+        break;
+      case Integer:
+        value.i = other.value.i;
+        break;
+      case UInteger:
+        value.ui = other.value.ui;
+        break;
+      case Float:
+        value.d = other.value.d;
+        break;
+      case String:
+        *value.s = *other.value.s;
+        break;
+      case Object:
+        *value.o = *other.value.o;
+        break;
+      case Array:
+        *value.array = *other.value.array;
+        break;
+      case Map:
+        *value.map = *other.value.map;
+        break;
+      case MapRef:
+        *value.mapref = *other.value.mapref;
+        break;
+      case Function:
+        *value.func = *other.value.func;
+        break;
     }
   }
   else
   {
     switch (type)
     {
-    case Undefined:
-    case shcore::Null:
-    case Bool:
-    case Integer:
-    case UInteger:
-    case Float:
-      break;
-    case String:
-      delete value.s;
-      break;
-    case Object:
-      delete value.o;
-      break;
-    case Array:
-      delete value.array;
-      break;
-    case Map:
-      delete value.map;
-      break;
-    case MapRef:
-      delete value.mapref;
-      break;
-    case Function:
-      delete value.func;
-      break;
+      case Undefined:
+      case shcore::Null:
+      case Bool:
+      case Integer:
+      case UInteger:
+      case Float:
+        break;
+      case String:
+        delete value.s;
+        break;
+      case Object:
+        delete value.o;
+        break;
+      case Array:
+        delete value.array;
+        break;
+      case Map:
+        delete value.map;
+        break;
+      case MapRef:
+        delete value.mapref;
+        break;
+      case Function:
+        delete value.func;
+        break;
     }
     type = other.type;
     switch (type)
     {
-    case Undefined:
-    case shcore::Null:
-      break;
-    case Bool:
-      value.b = other.value.b;
-      break;
-    case Integer:
-      value.i = other.value.i;
-      break;
-    case UInteger:
-      value.ui = other.value.ui;
-      break;
-    case Float:
-      value.d = other.value.d;
-      break;
-    case String:
-      value.s = new std::string(*other.value.s);
-      break;
-    case Object:
-      value.o = new boost::shared_ptr<Object_bridge>(*other.value.o);
-      break;
-    case Array:
-      value.array = new boost::shared_ptr<Array_type>(*other.value.array);
-      break;
-    case Map:
-      value.map = new boost::shared_ptr<Map_type>(*other.value.map);
-      break;
-    case MapRef:
-      value.mapref = new boost::weak_ptr<Map_type>(*other.value.mapref);
-      break;
-    case Function:
-      value.func = new boost::shared_ptr<Function_base>(*other.value.func);
-      break;
+      case Undefined:
+      case shcore::Null:
+        break;
+      case Bool:
+        value.b = other.value.b;
+        break;
+      case Integer:
+        value.i = other.value.i;
+        break;
+      case UInteger:
+        value.ui = other.value.ui;
+        break;
+      case Float:
+        value.d = other.value.d;
+        break;
+      case String:
+        value.s = new std::string(*other.value.s);
+        break;
+      case Object:
+        value.o = new std::shared_ptr<Object_bridge>(*other.value.o);
+        break;
+      case Array:
+        value.array = new std::shared_ptr<Array_type>(*other.value.array);
+        break;
+      case Map:
+        value.map = new std::shared_ptr<Map_type>(*other.value.map);
+        break;
+      case MapRef:
+        value.mapref = new std::weak_ptr<Map_type>(*other.value.mapref);
+        break;
+      case Function:
+        value.func = new std::shared_ptr<Function_base>(*other.value.func);
+        break;
     }
   }
   return *this;
@@ -703,39 +703,39 @@ Value Value::parse_string(char **pc, char quote)
     {
       switch (*(pc_i + 1))
       {
-      case 'n':
-        s.append("\n");
-        break;
-      case '"':
-        s.append("\"");
-        break;
-      case '\'':
-        s.append("\'");
-        break;
-      case 'a':
-        s.append("\a");
-        break;
-      case 'b':
-        s.append("\b");
-        break;
-      case 'f':
-        s.append("\f");
-        break;
-      case 'r':
-        s.append("\r");
-        break;
-      case 't':
-        s.append("\t");
-        break;
-      case 'v':
-        s.append("\v");
-        break;
-      case '\\':
-        s.append("\\");
-        break;
-      case '\0':
-        s.append("\0");
-        break;
+        case 'n':
+          s.append("\n");
+          break;
+        case '"':
+          s.append("\"");
+          break;
+        case '\'':
+          s.append("\'");
+          break;
+        case 'a':
+          s.append("\a");
+          break;
+        case 'b':
+          s.append("\b");
+          break;
+        case 'f':
+          s.append("\f");
+          break;
+        case 'r':
+          s.append("\r");
+          break;
+        case 't':
+          s.append("\t");
+          break;
+        case 'v':
+          s.append("\v");
+          break;
+        case '\\':
+          s.append("\\");
+          break;
+        case '\0':
+          s.append("\0");
+          break;
       }
       *pc = pc_i + 2;
     }
@@ -919,30 +919,30 @@ bool Value::operator == (const Value &other) const
   {
     switch (type)
     {
-    case Undefined:
-      return true;  // undefined == undefined is true
-    case shcore::Null:
-      return true;
-    case Bool:
-      return value.b == other.value.b;
-    case Integer:
-      return value.i == other.value.i;
-    case UInteger:
-      return value.ui == other.value.ui;
-    case Float:
-      return value.d == other.value.d;
-    case String:
-      return *value.s == *other.value.s;
-    case Object:
-      return **value.o == **other.value.o;
-    case Array:
-      return **value.array == **other.value.array;
-    case Map:
-      return **value.map == **other.value.map;
-    case MapRef:
-      return *value.mapref->lock() == *other.value.mapref->lock();
-    case Function:
-      return **value.func == **other.value.func;
+      case Undefined:
+        return true;  // undefined == undefined is true
+      case shcore::Null:
+        return true;
+      case Bool:
+        return value.b == other.value.b;
+      case Integer:
+        return value.i == other.value.i;
+      case UInteger:
+        return value.ui == other.value.ui;
+      case Float:
+        return value.d == other.value.d;
+      case String:
+        return *value.s == *other.value.s;
+      case Object:
+        return **value.o == **other.value.o;
+      case Array:
+        return **value.array == **other.value.array;
+      case Map:
+        return **value.map == **other.value.map;
+      case MapRef:
+        return *value.mapref->lock() == *other.value.mapref->lock();
+      case Function:
+        return **value.func == **other.value.func;
     }
   }
   else
@@ -950,67 +950,67 @@ bool Value::operator == (const Value &other) const
     // with type conversion
     switch (type)
     {
-    case Undefined:
-      return false;
-    case shcore::Null:
-      return false;
-    case Bool:
-      switch (other.type)
-      {
+      case Undefined:
+        return false;
+      case shcore::Null:
+        return false;
+      case Bool:
+        switch (other.type)
+        {
+          case Integer:
+            if (other.value.i == 1)
+              return value.b == true;
+            else if (other.value.i == 0)
+              return value.b == false;
+            return false;
+          case UInteger:
+            if (other.value.ui == 1)
+              return value.b == true;
+            else if (other.value.ui == 0)
+              return value.b == false;
+            return false;
+          case Float:
+            if (other.value.d == 1.0)
+              return value.b == true;
+            else if (other.value.d == 0.0)
+              return value.b == false;
+            return false;
+          default:
+            return false;
+        }
       case Integer:
-        if (other.value.i == 1)
-          return value.b == true;
-        else if (other.value.i == 0)
-          return value.b == false;
-        return false;
+        switch (other.type)
+        {
+          case Bool:
+            return other.operator==(*this);
+          case Float:
+            return value.i == (int)other.value.d && ((other.value.d - (int)other.value.d) == 0.0);
+          default:
+            return false;
+        }
       case UInteger:
-        if (other.value.ui == 1)
-          return value.b == true;
-        else if (other.value.ui == 0)
-          return value.b == false;
-        return false;
+        switch (other.type)
+        {
+          case Bool:
+            return other.operator==(*this);
+          case Float:
+            return value.ui == (unsigned int)other.value.d && ((other.value.d - (int)other.value.d) == 0.0);
+          default:
+            return false;
+        }
       case Float:
-        if (other.value.d == 1.0)
-          return value.b == true;
-        else if (other.value.d == 0.0)
-          return value.b == false;
-        return false;
+        switch (other.type)
+        {
+          case Bool:
+            return other.operator==(*this);
+          case Integer:
+          case UInteger:
+            return other.operator==(*this);
+          default:
+            return false;
+        }
       default:
         return false;
-      }
-    case Integer:
-      switch (other.type)
-      {
-      case Bool:
-        return other.operator==(*this);
-      case Float:
-        return value.i == (int)other.value.d && ((other.value.d - (int)other.value.d) == 0.0);
-      default:
-        return false;
-      }
-    case UInteger:
-      switch (other.type)
-      {
-      case Bool:
-        return other.operator==(*this);
-      case Float:
-        return value.ui == (unsigned int)other.value.d && ((other.value.d - (int)other.value.d) == 0.0);
-      default:
-        return false;
-      }
-    case Float:
-      switch (other.type)
-      {
-      case Bool:
-        return other.operator==(*this);
-      case Integer:
-      case UInteger:
-        return other.operator==(*this);
-      default:
-        return false;
-      }
-    default:
-      return false;
     }
   }
   return false;
@@ -1045,103 +1045,103 @@ std::string &Value::append_descr(std::string &s_out, int indent, int quote_strin
   std::string nl = (indent >= 0) ? "\n" : "";
   switch (type)
   {
-  case Undefined:
-    s_out.append("undefined");
-    break;
-  case shcore::Null:
-    s_out.append("null");
-    break;
-  case Bool:
-    if (value.b)
-      s_out += "true";
-    else
-      s_out += "false";
-    break;
-  case Integer:
-  {
-    boost::format fmt("%ld");
-    fmt % value.i;
-    s_out += fmt.str();
-  }
-    break;
-  case UInteger:
-  {
-    boost::format fmt("%ld");
-    fmt % value.ui;
-    s_out += fmt.str();
-  }
-    break;
-  case Float:
-  {
-    boost::format fmt("%g");
-    fmt % value.d;
-    s_out += fmt.str();
-  }
-    break;
-  case String:
-    if (quote_strings)
-      s_out += (char)quote_strings + *value.s + (char)quote_strings;
-    else
-      s_out += *value.s;
-    break;
-  case Object:
-    if (!value.o || !*value.o)
-      throw Exception::value_error("Invalid object value encountered");
-    as_object()->append_descr(s_out, indent, quote_strings);
-    break;
-  case Array:
-  {
-    if (!value.array || !*value.array)
-      throw Exception::value_error("Invalid array value encountered");
-    Array_type *vec = value.array->get();
-    Array_type::iterator myend = vec->end(), mybegin = vec->begin();
-    s_out += "[";
-    for (Array_type::iterator iter = mybegin; iter != myend; ++iter)
+    case Undefined:
+      s_out.append("undefined");
+      break;
+    case shcore::Null:
+      s_out.append("null");
+      break;
+    case Bool:
+      if (value.b)
+        s_out += "true";
+      else
+        s_out += "false";
+      break;
+    case Integer:
     {
-      if (iter != mybegin)
-        s_out += ",";
+      boost::format fmt("%ld");
+      fmt % value.i;
+      s_out += fmt.str();
+    }
+    break;
+    case UInteger:
+    {
+      boost::format fmt("%ld");
+      fmt % value.ui;
+      s_out += fmt.str();
+    }
+    break;
+    case Float:
+    {
+      boost::format fmt("%g");
+      fmt % value.d;
+      s_out += fmt.str();
+    }
+    break;
+    case String:
+      if (quote_strings)
+        s_out += (char)quote_strings + *value.s + (char)quote_strings;
+      else
+        s_out += *value.s;
+      break;
+    case Object:
+      if (!value.o || !*value.o)
+        throw Exception::value_error("Invalid object value encountered");
+      as_object()->append_descr(s_out, indent, quote_strings);
+      break;
+    case Array:
+    {
+      if (!value.array || !*value.array)
+        throw Exception::value_error("Invalid array value encountered");
+      Array_type *vec = value.array->get();
+      Array_type::iterator myend = vec->end(), mybegin = vec->begin();
+      s_out += "[";
+      for (Array_type::iterator iter = mybegin; iter != myend; ++iter)
+      {
+        if (iter != mybegin)
+          s_out += ",";
+        s_out += nl;
+        if (indent >= 0)
+          s_out.append((indent + 1) * 4, ' ');
+        iter->append_descr(s_out, indent < 0 ? indent : indent + 1, '"');
+      }
       s_out += nl;
-      if (indent >= 0)
-        s_out.append((indent + 1) * 4, ' ');
-      iter->append_descr(s_out, indent < 0 ? indent : indent + 1, '"');
+      if (indent > 0)
+        s_out.append(indent * 4, ' ');
+      s_out += "]";
     }
-    s_out += nl;
-    if (indent > 0)
-      s_out.append(indent * 4, ' ');
-    s_out += "]";
-  }
     break;
-  case Map:
-  {
-    if (!value.map || !*value.map)
-      throw Exception::value_error("Invalid map value encountered");
-    Map_type *map = value.map->get();
-    Map_type::iterator myend = map->end(), mybegin = map->begin();
-    s_out += "{" + nl;
-    for (Map_type::iterator iter = mybegin; iter != myend; ++iter)
+    case Map:
     {
-      if (iter != mybegin)
-        s_out += ", " + nl;
-      if (indent >= 0)
-        s_out.append((indent + 1) * 4, ' ');
-      s_out += "\"";
-      s_out += iter->first;
-      s_out += "\": ";
-      iter->second.append_descr(s_out, indent < 0 ? indent : indent + 1, '"');
+      if (!value.map || !*value.map)
+        throw Exception::value_error("Invalid map value encountered");
+      Map_type *map = value.map->get();
+      Map_type::iterator myend = map->end(), mybegin = map->begin();
+      s_out += "{" + nl;
+      for (Map_type::iterator iter = mybegin; iter != myend; ++iter)
+      {
+        if (iter != mybegin)
+          s_out += ", " + nl;
+        if (indent >= 0)
+          s_out.append((indent + 1) * 4, ' ');
+        s_out += "\"";
+        s_out += iter->first;
+        s_out += "\": ";
+        iter->second.append_descr(s_out, indent < 0 ? indent : indent + 1, '"');
+      }
+      s_out += nl;
+      if (indent > 0)
+        s_out.append(indent * 4, ' ');
+      s_out += "}";
     }
-    s_out += nl;
-    if (indent > 0)
-      s_out.append(indent * 4, ' ');
-    s_out += "}";
-  }
     break;
-  case MapRef:
-    s_out.append("mapref");
-    break;
-  case Function:
-    // TODO:
-    //value.func->get()->append_descr(s_out, pprint);
-    break;
+    case MapRef:
+      s_out.append("mapref");
+      break;
+    case Function:
+      // TODO:
+      //value.func->get()->append_descr(s_out, pprint);
+      break;
   }
   return s_out;
 }
@@ -1150,127 +1150,127 @@ std::string &Value::append_repr(std::string &s_out) const
 {
   switch (type)
   {
-  case Undefined:
-    s_out.append("undefined");
-    break;
-  case shcore::Null:
-    s_out.append("null");
-    break;
-  case Bool:
-    if (value.b)
-      s_out += "true";
-    else
-      s_out += "false";
-    break;
-  case Integer:
-  {
-    boost::format fmt("%ld");
-    fmt % value.i;
-    s_out += fmt.str();
-  }
-    break;
-  case UInteger:
-  {
-    boost::format fmt("%ld");
-    fmt % value.ui;
-    s_out += fmt.str();
-  }
-    break;
-  case Float:
-  {
-    boost::format fmt("%g");
-    fmt % value.d;
-    s_out += fmt.str();
-  }
-    break;
-  case String:
-  {
-    std::string &s = *value.s;
-    s_out += "\"";
-    for (size_t i = 0; i < s.length(); i++)
+    case Undefined:
+      s_out.append("undefined");
+      break;
+    case shcore::Null:
+      s_out.append("null");
+      break;
+    case Bool:
+      if (value.b)
+        s_out += "true";
+      else
+        s_out += "false";
+      break;
+    case Integer:
     {
-      char c = s[i];
-      switch (c)
-      {
-      case '\n':
-        s_out += "\\n";
-        break;
-      case '\"':
-        s_out += "\\\"";
-        break;
-      case '\'':
-        s_out += "\\\'";
-        break;
-      case '\a':
-        s_out += "\\a";
-        break;
-      case '\b':
-        s_out += "\\b";
-        break;
-      case '\f':
-        s_out += "\\f";
-        break;
-      case '\r':
-        s_out += "\\r";
-        break;
-      case '\t':
-        s_out += "\\t";
-        break;
-      case '\v':
-        s_out += "\\v";
-        break;
-      case '\\':
-        s_out += "\\\\";
-        break;
-      case '\0':
-        s_out += "\\\0";
-      default:
-        s_out += c;
-      }
+      boost::format fmt("%ld");
+      fmt % value.i;
+      s_out += fmt.str();
     }
-    s_out += "\"";
-  }
     break;
-  case Object:
-    s_out = (*value.o)->append_repr(s_out);
-    break;
-  case Array:
-  {
-    Array_type *vec = value.array->get();
-    Array_type::iterator myend = vec->end(), mybegin = vec->begin();
-    s_out += "[";
-    for (Array_type::iterator iter = mybegin; iter != myend; ++iter)
+    case UInteger:
     {
-      if (iter != mybegin)
-        s_out += ", ";
-      iter->append_repr(s_out);
+      boost::format fmt("%ld");
+      fmt % value.ui;
+      s_out += fmt.str();
     }
-    s_out += "]";
-  }
     break;
-  case Map:
-  {
-    Map_type *map = value.map->get();
-    Map_type::iterator myend = map->end(), mybegin = map->begin();
-    s_out += "{";
-    for (Map_type::iterator iter = mybegin; iter != myend; ++iter)
+    case Float:
     {
-      if (iter != mybegin)
-        s_out += ", ";
+      boost::format fmt("%g");
+      fmt % value.d;
+      s_out += fmt.str();
+    }
+    break;
+    case String:
+    {
+      std::string &s = *value.s;
       s_out += "\"";
-      s_out += iter->first;
-      s_out += "\": ";
-      iter->second.append_repr(s_out);
+      for (size_t i = 0; i < s.length(); i++)
+      {
+        char c = s[i];
+        switch (c)
+        {
+          case '\n':
+            s_out += "\\n";
+            break;
+          case '\"':
+            s_out += "\\\"";
+            break;
+          case '\'':
+            s_out += "\\\'";
+            break;
+          case '\a':
+            s_out += "\\a";
+            break;
+          case '\b':
+            s_out += "\\b";
+            break;
+          case '\f':
+            s_out += "\\f";
+            break;
+          case '\r':
+            s_out += "\\r";
+            break;
+          case '\t':
+            s_out += "\\t";
+            break;
+          case '\v':
+            s_out += "\\v";
+            break;
+          case '\\':
+            s_out += "\\\\";
+            break;
+          case '\0':
+            s_out += "\\\0";
+          default:
+            s_out += c;
+        }
+      }
+      s_out += "\"";
     }
-    s_out += "}";
-  }
     break;
-  case MapRef:
+    case Object:
+      s_out = (*value.o)->append_repr(s_out);
+      break;
+    case Array:
+    {
+      Array_type *vec = value.array->get();
+      Array_type::iterator myend = vec->end(), mybegin = vec->begin();
+      s_out += "[";
+      for (Array_type::iterator iter = mybegin; iter != myend; ++iter)
+      {
+        if (iter != mybegin)
+          s_out += ", ";
+        iter->append_repr(s_out);
+      }
+      s_out += "]";
+    }
     break;
-  case Function:
-    // TODO:
-    //value.func->get()->append_repr(s_out);
+    case Map:
+    {
+      Map_type *map = value.map->get();
+      Map_type::iterator myend = map->end(), mybegin = map->begin();
+      s_out += "{";
+      for (Map_type::iterator iter = mybegin; iter != myend; ++iter)
+      {
+        if (iter != mybegin)
+          s_out += ", ";
+        s_out += "\"";
+        s_out += iter->first;
+        s_out += "\": ";
+        iter->second.append_repr(s_out);
+      }
+      s_out += "}";
+    }
     break;
+    case MapRef:
+      break;
+    case Function:
+      // TODO:
+      //value.func->get()->append_repr(s_out);
+      break;
   }
   return s_out;
 }
@@ -1279,31 +1279,31 @@ Value::~Value()
 {
   switch (type)
   {
-  case Undefined:
-  case shcore::Null:
-  case Bool:
-  case Integer:
-  case UInteger:
-  case Float:
-    break;
-  case String:
-    delete value.s;
-    break;
-  case Object:
-    delete value.o;
-    break;
-  case Array:
-    delete value.array;
-    break;
-  case Map:
-    delete value.map;
-    break;
-  case MapRef:
-    delete value.mapref;
-    break;
-  case Function:
-    delete value.func;
-    break;
+    case Undefined:
+    case shcore::Null:
+    case Bool:
+    case Integer:
+    case UInteger:
+    case Float:
+      break;
+    case String:
+      delete value.s;
+      break;
+    case Object:
+      delete value.o;
+      break;
+    case Array:
+      delete value.array;
+      break;
+    case Map:
+      delete value.map;
+      break;
+    case MapRef:
+      delete value.mapref;
+      break;
+    case Function:
+      delete value.func;
+      break;
   }
 }
 
@@ -1420,7 +1420,7 @@ double Argument_list::double_at(unsigned int i) const
   return ret_val;
 }
 
-boost::shared_ptr<Object_bridge> Argument_list::object_at(unsigned int i) const
+std::shared_ptr<Object_bridge> Argument_list::object_at(unsigned int i) const
 {
   if (i >= size())
     throw Exception::argument_error("Insufficient number of arguments");
@@ -1429,7 +1429,7 @@ boost::shared_ptr<Object_bridge> Argument_list::object_at(unsigned int i) const
   return *at(i).value.o;
 }
 
-boost::shared_ptr<Value::Map_type> Argument_list::map_at(unsigned int i) const
+std::shared_ptr<Value::Map_type> Argument_list::map_at(unsigned int i) const
 {
   if (i >= size())
     throw Exception::argument_error("Insufficient number of arguments");
@@ -1438,7 +1438,7 @@ boost::shared_ptr<Value::Map_type> Argument_list::map_at(unsigned int i) const
   return *at(i).value.map;
 }
 
-boost::shared_ptr<Value::Array_type> Argument_list::array_at(unsigned int i) const
+std::shared_ptr<Value::Array_type> Argument_list::array_at(unsigned int i) const
 {
   if (i >= size())
     throw Exception::argument_error("Insufficient number of arguments");

@@ -42,7 +42,7 @@ namespace mysh
     * - Accessing available Farms.
     * - Farm management operations.
     */
-    class SHCORE_PUBLIC AdminSession : public ShellAdminSession, public boost::enable_shared_from_this<AdminSession>
+    class SHCORE_PUBLIC AdminSession : public ShellAdminSession, public std::enable_shared_from_this<AdminSession>
     {
     public:
       AdminSession();
@@ -71,7 +71,7 @@ namespace mysh
       virtual uint64_t get_connection_id() const;
       virtual std::string db_object_exists(std::string &type, const std::string &name, const std::string& owner) const;
 
-      static boost::shared_ptr<shcore::Object_bridge> create(const shcore::Argument_list &args);
+      static std::shared_ptr<shcore::Object_bridge> create(const shcore::Argument_list &args);
       virtual int get_default_port() { return 33060; };
 
       SessionHandle get_session() const;
@@ -104,7 +104,7 @@ namespace mysh
 
       void init();
     private:
-      boost::shared_ptr<MetadataStorage> _metadata_storage;
+      std::shared_ptr<MetadataStorage> _metadata_storage;
       uint64_t _connection_id;
       void reset_session();
     };

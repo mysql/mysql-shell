@@ -19,8 +19,8 @@
 
 #include "mod_mysql.h"
 #include "base_session.h"
-#include <boost/bind.hpp>
 
+using namespace std::placeholders;
 using namespace mysh::mysql;
 
 REGISTER_MODULE(Mysql, mysql)
@@ -31,5 +31,5 @@ REGISTER_MODULE(Mysql, mysql)
 DEFINE_FUNCTION(Mysql, get_classic_session)
 {
   auto session = connect_session(args, mysh::Classic);
-  return shcore::Value(boost::dynamic_pointer_cast<shcore::Object_bridge>(session));
+  return shcore::Value(std::dynamic_pointer_cast<shcore::Object_bridge>(session));
 }

@@ -12,7 +12,9 @@ validateMember(members, 'uri');
 validateMember(members, 'defaultFarm');
 validateMember(members, 'getUri');
 validateMember(members, 'getDefaultFarm');
+validateMember(members, 'isOpen');
 validateMember(members, 'createFarm');
+validateMember(members, 'dropFarm');
 validateMember(members, 'getFarm');
 validateMember(members, 'close');
 

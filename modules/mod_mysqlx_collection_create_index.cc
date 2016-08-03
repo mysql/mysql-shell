@@ -16,7 +16,6 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301  USA
  */
-#include <boost/bind.hpp>
 #include "mod_mysqlx_collection_create_index.h"
 #include "mod_mysqlx_collection.h"
 #include "mod_mysqlx_resultset.h"
@@ -29,16 +28,17 @@
 #include <sstream>
 #include <boost/format.hpp>
 
+using namespace std::placeholders;
 using namespace mysh::mysqlx;
 using namespace shcore;
 
-CollectionCreateIndex::CollectionCreateIndex(boost::shared_ptr<Collection> owner)
+CollectionCreateIndex::CollectionCreateIndex(std::shared_ptr<Collection> owner)
   :_owner(owner)
 {
   // Exposes the methods available for chaining
-  add_method("createIndex", boost::bind(&CollectionCreateIndex::create_index, this, _1), "data");
-  add_method("field", boost::bind(&CollectionCreateIndex::field, this, _1), "data");
-  add_method("execute", boost::bind(&CollectionCreateIndex::execute, this, _1), "data");
+  add_method("createIndex", std::bind(&CollectionCreateIndex::create_index, this, _1), "data");
+  add_method("field", std::bind(&CollectionCreateIndex::field, this, _1), "data");
+  add_method("execute", std::bind(&CollectionCreateIndex::execute, this, _1), "data");
 
   // Registers the dynamic function behavior
   register_dynamic_function("createIndex", "");
@@ -108,7 +108,7 @@ shcore::Value CollectionCreateIndex::create_index(const shcore::Argument_list &a
     {
       if (args[1].type == shcore::Object)
       {
-        boost::shared_ptr <Constant> constant = boost::dynamic_pointer_cast<Constant>(args.object_at(1));
+        std::shared_ptr <Constant> constant = std::dynamic_pointer_cast<Constant>(args.object_at(1));
         if (constant && constant->group() == "IndexType")
             unique = constant->data();
       }
@@ -119,7 +119,7 @@ shcore::Value CollectionCreateIndex::create_index(const shcore::Argument_list &a
     else
       unique = Value::False();
 
-    boost::shared_ptr<Collection> raw_owner(_owner.lock());
+    std::shared_ptr<Collection> raw_owner(_owner.lock());
 
     if (raw_owner)
     {
@@ -134,7 +134,7 @@ shcore::Value CollectionCreateIndex::create_index(const shcore::Argument_list &a
 
   update_functions("createIndex");
 
-  return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
+  return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
 //! Adds column to be part of the collection index being created.
@@ -186,7 +186,7 @@ shcore::Value CollectionCreateIndex::field(const shcore::Argument_list &args)
 
   update_functions("field");
 
-  return Value(boost::static_pointer_cast<Object_bridge>(shared_from_this()));
+  return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
 /**
@@ -210,12 +210,12 @@ shcore::Value CollectionCreateIndex::execute(const shcore::Argument_list &args)
 
   args.ensure_count(0, get_function_name("execute").c_str());
 
-  boost::shared_ptr<Collection> raw_owner(_owner.lock());
+  std::shared_ptr<Collection> raw_owner(_owner.lock());
 
   if (raw_owner)
   {
     Value session = raw_owner->get_member("session");
-    boost::shared_ptr<BaseSession> session_obj = boost::static_pointer_cast<BaseSession>(session.as_object());
+    std::shared_ptr<BaseSession> session_obj = std::static_pointer_cast<BaseSession>(session.as_object());
     result = session_obj->executeAdminCommand("create_collection_index", false, _create_index_args);
   }
 

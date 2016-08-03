@@ -25,9 +25,6 @@
 #include "shellcore/common.h"
 #include "utils/utils_general.h"
 
-#include <boost/bind.hpp>
-#include <boost/pointer_cast.hpp>
-
 using namespace mysh;
 using namespace shcore;
 
@@ -342,8 +339,8 @@ shcore::Value Column::get_member(const std::string &prop) const
 Row::Row()
 {
   add_property("length", "getLength");
-  add_method("getField", boost::bind(&Row::get_field, this, _1), "field", shcore::String, NULL);
-  add_method("getLength", boost::bind(&Row::get_member_method, this, _1, "getLength", "length"), NULL);
+  add_method("getField", std::bind(&Row::get_field, this, _1), "field", shcore::String, NULL);
+  add_method("getLength", std::bind(&Row::get_member_method, this, _1, "getLength", "length"), NULL);
 }
 
 std::string &Row::append_descr(std::string &s_out, int indent, int UNUSED(quote_strings)) const

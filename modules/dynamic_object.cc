@@ -18,7 +18,6 @@
  */
 
 #include "proj_parser.h"
-#include <boost/bind.hpp>
 #include <boost/algorithm/string.hpp>
 
 #include "crud_definition.h"
@@ -57,13 +56,13 @@ std::vector<std::string> Dynamic_object::get_members() const
 #endif
 Value Dynamic_object::get_member(const std::string &prop) const
 {
-  std::map<std::string, boost::shared_ptr<shcore::Cpp_function> >::const_iterator i;
+  std::map<std::string, std::shared_ptr<shcore::Cpp_function> >::const_iterator i;
   if ((i = _funcs.find(prop)) == _funcs.end())
     throw shcore::Exception::attrib_error("Invalid object member " + prop);
   else if (!_enabled_functions.at(prop))
     throw shcore::Exception::logic_error("Forbidden usage of " + prop);
   else
-    return Value(boost::shared_ptr<shcore::Function_base>(i->second));
+    return Value(std::shared_ptr<shcore::Function_base>(i->second));
 }
 
 bool Dynamic_object::has_member(const std::string &prop) const
@@ -82,7 +81,7 @@ bool Dynamic_object::has_member(const std::string &prop) const
 
 Value Dynamic_object::call(const std::string &name, const shcore::Argument_list &args)
 {
-  std::map<std::string, boost::shared_ptr<shcore::Cpp_function> >::const_iterator i;
+  std::map<std::string, std::shared_ptr<shcore::Cpp_function> >::const_iterator i;
   if ((i = _funcs.find(name)) == _funcs.end())
     throw shcore::Exception::attrib_error("Invalid object function " + name);
   else if (!_enabled_functions.at(name))

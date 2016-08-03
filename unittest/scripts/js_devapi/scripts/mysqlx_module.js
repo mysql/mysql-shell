@@ -16,6 +16,7 @@ print('Exported Items:', exports.length);
 
 print('getSession:', typeof mysqlx.getSession, '\n');
 print('getNodeSession:', typeof mysqlx.getNodeSession, '\n');
+print('getAdminSession:', typeof mysqlx.getAdminSession, '\n');
 print('expr:', typeof mysqlx.expr, '\n');
 print('dateValue:', typeof mysqlx.dateValue, '\n');
 print('Type:', mysqlx.Type, '\n');
@@ -79,7 +80,7 @@ print(mySession, '\n');
 if (mySession.uri == __displayuridb)
 	print('Session using right URI\n');
 else
-	print('Session using wrong URI\n');	
+	print('Session using wrong URI\n');
 
 mySession.close();
 
@@ -104,7 +105,7 @@ print(mySession, '\n');
 if (mySession.uri == __displayuri)
 	print('Session using right URI\n');
 else
-	print('Session using wrong URI\n');	
+	print('Session using wrong URI\n');
 
 mySession.close();
 
@@ -157,7 +158,7 @@ print(mySession, '\n');
 if (mySession.uri == __displayuridb)
 	print('Session using right URI\n');
 else
-	print('Session using wrong URI\n');	
+	print('Session using wrong URI\n');
 
 mySession.close();
 
@@ -176,7 +177,7 @@ print(mySession, '\n');
 if (mySession.uri == __displayuri)
 	print('Session using right URI\n');
 else
-	print('Session using wrong URI\n');	
+	print('Session using wrong URI\n');
 
 mySession.close();
 

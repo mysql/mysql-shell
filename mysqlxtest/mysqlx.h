@@ -27,11 +27,10 @@
 #include <vector>
 #include <map>
 #include <set>
+#include <memory>
 
 #include "ngs_common/xdatetime.h"
 #include "mysqlx_common.h"
-
-#include <boost/enable_shared_from_this.hpp>
 
 namespace Mysqlx
 {
@@ -58,7 +57,7 @@ namespace mysqlx
   {
   public:
     Error(int error = 0, const std::string &message = "");
-    virtual ~Error() BOOST_NOEXCEPT_OR_NOTHROW;
+    virtual ~Error();
     int error() const { return _error; }
 
   private:
@@ -207,26 +206,26 @@ namespace mysqlx
     } m_value;
   };
 
-  class Session : public boost::enable_shared_from_this < Session >
+  class Session : public std::enable_shared_from_this < Session >
   {
   public:
     Session(const mysqlx::Ssl_config &ssl_config, const std::size_t timeout);
     ~Session();
-    boost::shared_ptr<Result> executeSql(const std::string &sql);
+    std::shared_ptr<Result> executeSql(const std::string &sql);
 
-    boost::shared_ptr<Result> executeStmt(const std::string &ns, const std::string &stmt,
+    std::shared_ptr<Result> executeStmt(const std::string &ns, const std::string &stmt,
                                           const std::vector<ArgumentValue> &args);
 
-    boost::shared_ptr<Schema> getSchema(const std::string &name);
+    std::shared_ptr<Schema> getSchema(const std::string &name);
 
-    boost::shared_ptr<Connection> connection() { return m_connection; }
+    std::shared_ptr<Connection> connection() { return m_connection; }
 
     void close();
   private:
-    boost::shared_ptr<Connection> m_connection;
-    std::map<std::string, boost::shared_ptr<Schema> > m_schemas;
+    std::shared_ptr<Connection> m_connection;
+    std::map<std::string, std::shared_ptr<Schema> > m_schemas;
   };
-  typedef boost::shared_ptr<Session> SessionRef;
+  typedef std::shared_ptr<Session> SessionRef;
 
   SessionRef openSession(const std::string &uri, const std::string &pass, const mysqlx::Ssl_config &ssl_config,
                          const bool cap_expired_password, const std::size_t timeout, const bool get_caps = false);
@@ -288,7 +287,7 @@ namespace mysqlx
     void reset(const std::string &doc, bool expression = false, const std::string &id = "");
 
   private:
-    boost::shared_ptr<std::string> m_data;
+    std::shared_ptr<std::string> m_data;
     bool m_expression;
     std::string m_id;
   };
@@ -319,27 +318,27 @@ namespace mysqlx
 
   private:
     friend class Result;
-    Row(boost::shared_ptr<std::vector<ColumnMetadata> > columns, Mysqlx::Resultset::Row *data);
+    Row(std::shared_ptr<std::vector<ColumnMetadata> > columns, Mysqlx::Resultset::Row *data);
 
     void check_field(int field, FieldType type) const;
 
-    boost::shared_ptr<std::vector<ColumnMetadata> > m_columns;
+    std::shared_ptr<std::vector<ColumnMetadata> > m_columns;
     Mysqlx::Resultset::Row *m_data;
   };
 
   class MYSQLXTEST_PUBLIC ResultData
   {
   public:
-    ResultData(boost::shared_ptr<std::vector<ColumnMetadata> > columns);
-    boost::shared_ptr<std::vector<ColumnMetadata> > columnMetadata(){ return m_columns; }
-    void add_row(boost::shared_ptr<Row> row);
+    ResultData(std::shared_ptr<std::vector<ColumnMetadata> > columns);
+    std::shared_ptr<std::vector<ColumnMetadata> > columnMetadata(){ return m_columns; }
+    void add_row(std::shared_ptr<Row> row);
     void rewind();
     void tell(size_t &record);
     void seek(size_t record);
-    boost::shared_ptr<Row> next();
+    std::shared_ptr<Row> next();
   private:
-    boost::shared_ptr<std::vector<ColumnMetadata> > m_columns;
-    std::vector<boost::shared_ptr<Row> > m_rows;
+    std::shared_ptr<std::vector<ColumnMetadata> > m_columns;
+    std::vector<std::shared_ptr<Row> > m_rows;
     size_t m_row_index;
   };
 
@@ -348,7 +347,7 @@ namespace mysqlx
   public:
     ~Result();
 
-    boost::shared_ptr<std::vector<ColumnMetadata> > columnMetadata();
+    std::shared_ptr<std::vector<ColumnMetadata> > columnMetadata();
     int64_t lastInsertId() const { return m_last_insert_id; }
     std::string lastDocumentId();
     const std::vector<std::string>& lastDocumentIds();
@@ -358,7 +357,7 @@ namespace mysqlx
     bool ready();
     void wait();
 
-    boost::shared_ptr<Row> next();
+    std::shared_ptr<Row> next();
     bool nextDataSet();
     void flush();
 
@@ -384,10 +383,10 @@ namespace mysqlx
   private:
     Result();
     Result(const Result &o);
-    Result(boost::shared_ptr<Connection>owner, bool expect_data, bool expect_ok = true);
+    Result(std::shared_ptr<Connection>owner, bool expect_data, bool expect_ok = true);
 
     void read_metadata();
-    boost::shared_ptr<Row> read_row();
+    std::shared_ptr<Row> read_row();
     void read_stmt_ok();
 
     bool handle_notice(int32_t type, const std::string &data);
@@ -399,8 +398,8 @@ namespace mysqlx
     int              current_message_id;
 
     friend class Connection;
-    boost::weak_ptr<Connection>m_owner;
-    boost::shared_ptr<std::vector<ColumnMetadata> > m_columns;
+    std::weak_ptr<Connection>m_owner;
+    std::shared_ptr<std::vector<ColumnMetadata> > m_columns;
     int64_t m_last_insert_id;
     std::vector<std::string> m_last_document_ids;
     int64_t m_affected_rows;
@@ -408,8 +407,8 @@ namespace mysqlx
 
     std::vector<Warning> m_warnings;
 
-    std::vector<boost::shared_ptr<ResultData> > m_result_cache;
-    boost::shared_ptr<ResultData> m_current_result;
+    std::vector<std::shared_ptr<ResultData> > m_result_cache;
+    std::shared_ptr<ResultData> m_current_result;
     size_t m_result_index;
 
     enum {

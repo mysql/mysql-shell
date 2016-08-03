@@ -28,9 +28,6 @@
 #include "shellcore/types.h"
 #include "shellcore/types_cpp.h"
 
-#include <boost/enable_shared_from_this.hpp>
-#include <boost/weak_ptr.hpp>
-
 namespace shcore
 {
   class Proxy_object;
@@ -80,11 +77,11 @@ namespace mysh
     *
     * For the purpose of this API, Views behave similar to a Table, and so they are threated as Tables.
     */
-    class SHCORE_PUBLIC ClassicSchema : public DatabaseObject, public boost::enable_shared_from_this<ClassicSchema>
+    class SHCORE_PUBLIC ClassicSchema : public DatabaseObject, public std::enable_shared_from_this<ClassicSchema>
     {
     public:
-      ClassicSchema(boost::shared_ptr<ClassicSession> owner, const std::string &name);
-      ClassicSchema(boost::shared_ptr<const ClassicSession> owner, const std::string &name);
+      ClassicSchema(std::shared_ptr<ClassicSession> owner, const std::string &name);
+      ClassicSchema(std::shared_ptr<const ClassicSession> owner, const std::string &name);
       ~ClassicSchema();
 
       virtual std::string class_name() const{ return "ClassicSchema"; };
@@ -113,8 +110,8 @@ namespace mysh
       void init();
 
       // Object cache
-      boost::shared_ptr<shcore::Value::Map_type> _tables;
-      boost::shared_ptr<shcore::Value::Map_type> _views;
+      std::shared_ptr<shcore::Value::Map_type> _tables;
+      std::shared_ptr<shcore::Value::Map_type> _views;
 
       std::function<void(const std::string&, bool exists)> update_table_cache, update_view_cache;
       std::function<void(const std::vector<std::string>&)> update_full_table_cache, update_full_view_cache;

@@ -50,7 +50,6 @@
 
 namespace mysqlx
 {
-
   class Expr_builder
   {
   public:
@@ -68,7 +67,7 @@ namespace mysqlx
   public:
     Expr_parser(const std::string& expr_str, bool document_mode = false, bool allow_alias = false, std::vector<std::string>* place_holders = NULL);
 
-    typedef boost::function<Mysqlx::Expr::Expr*(Expr_parser*)> inner_parser_t;
+    typedef std::function<Mysqlx::Expr::Expr*(void)> inner_parser_t;
 
     void paren_expr_list(::google::protobuf::RepeatedPtrField< ::Mysqlx::Expr::Expr >* expr_list);
     Mysqlx::Expr::Identifier* identifier();
