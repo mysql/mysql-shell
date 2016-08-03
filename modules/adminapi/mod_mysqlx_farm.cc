@@ -43,6 +43,12 @@ Farm::~Farm()
 {
 }
 
+std::string &Farm::append_descr(std::string &s_out, int UNUSED(indent), int UNUSED(quote_strings)) const
+{
+  s_out.append("<" + class_name() + ":" + _name + ">");
+  return s_out;
+}
+
 bool Farm::operator == (const Object_bridge &other) const
 {
   return class_name() == other.class_name() && this == &other;
@@ -299,3 +305,4 @@ shcore::Value Farm::get_replicaset(const shcore::Argument_list &args)
 
   return ret_val;
 }
+

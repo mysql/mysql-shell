@@ -39,6 +39,8 @@ namespace mysh
       Farm(const std::string &name, std::shared_ptr<MetadataStorage> metadata_storage);
       virtual ~Farm();
 
+      virtual std::string &append_descr(std::string &s_out, int indent, int quote_strings) const;
+
       virtual std::string class_name() const { return "Farm"; }
       virtual std::string &append_descr(std::string &s_out, int indent = -1, int quote_strings = 0) const;
       virtual bool operator == (const Object_bridge &other) const;
