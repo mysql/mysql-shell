@@ -5055,10 +5055,9 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--py']
       x_cmds = [("import mysqlx\n", "mysql-py>"),
-                ("session=mysqlx.get_session({'host': '" + LOCALHOST.host + "', 'dbUser': '"
-                 + LOCALHOST.user + "', 'port': " + LOCALHOST.xprotocol_port + ", 'dbPassword': '" + LOCALHOST.password + "'}).get_schema('sakila')\n",
+                ("session=mysqlx.get_session('" + LOCALHOST.user + ":" + LOCALHOST.password + "@" + LOCALHOST.host + ":" + LOCALHOST.xprotocol_port + "')\n",
                  "mysql-py>"),
-                ("myTable = session.get_table('actor')\n", "mysql-py>"),
+                ("myTable = session.get_schema('sakila').get_table('actor')\n", "mysql-py>"),
                 ("myTable.delete().where(\"first_name like 'testFN%'\").execute()\n", "Query OK"),
                 (
                 "myTable.insert({ 'first_name': 'testFN', 'last_name':'testLN','last_update': '2006-02-15 04:34:33' }).execute()\n",
@@ -5078,10 +5077,9 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--py']
       x_cmds = [("import mysqlx\n", "mysql-py>"),
-                ("session=mysqlx.get_node_session({'host': '" + LOCALHOST.host + "', 'dbUser': '"
-                 + LOCALHOST.user + "', 'port': " + LOCALHOST.xprotocol_port + ", 'dbPassword': '" + LOCALHOST.password + "'}).get_schema('sakila')\n",
+                ("session=mysqlx.get_node_session('" + LOCALHOST.user + ":" + LOCALHOST.password + "@" + LOCALHOST.host + ":" + LOCALHOST.xprotocol_port + "')\n",
                  "mysql-py>"),
-                ("myTable = session.get_table('actor')\n", "mysql-py>"),
+                ("myTable = session.get_schema('sakila').get_table('actor')\n", "mysql-py>"),
                 ("myTable.delete().where(\"first_name like 'testFN%'\").execute()\n", "Query OK"),
                 (
                 "myTable.insert({ 'first_name': 'testFN', 'last_name':'testLN','last_update': '2006-02-15 04:34:33' }).execute()\n",
