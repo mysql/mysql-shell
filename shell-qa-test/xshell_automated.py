@@ -572,6 +572,7 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+  @unittest.skip("using semicolon (;) at the end of \connect statement, behaves weird: ISSUE MYS-562")
   def test_2_0_03_03(self):
       '''[2.0.03]:3 Connect local Server on SQL mode: APPLICATION SESSION WITH PORT'''
       results = ''
@@ -594,6 +595,7 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+  @unittest.skip("using semicolon (;) at the end of \connect statement, behaves weird: ISSUE MYS-562")
   def test_2_0_03_05(self):
       '''[2.0.03]:5 Connect local Server on SQL mode: NODE SESSION WITH PORT'''
       results = ''
@@ -627,6 +629,7 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+  @unittest.skip("using semicolon (;) at the end of \connect statement, behaves weird: ISSUE MYS-562")
   def test_2_0_04_03(self):
       '''[2.0.04]:3 Connect remote Server on SQL mode: APPLICATION SESSION WITH PORT'''
       results = ''
@@ -650,6 +653,7 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+  @unittest.skip("using semicolon (;) at the end of \connect statement, behaves weird: ISSUE MYS-562")
   def test_2_0_04_05(self):
       '''[2.0.04]:5 Connect remote Server on SQL mode: NODE SESSION WITH PORT'''
       results = ''
