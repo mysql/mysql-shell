@@ -3959,7 +3959,7 @@ class XShell_TestCases(unittest.TestCase):
       init_command = [MYSQL_SHELL, '--interactive=full', '--js', '-u' + LOCALHOST.user,
                       '--password=' + LOCALHOST.password,'-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port,
                       '--schema=sakila','--node']
-      p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=open(Exec_files_location + 'DeleteTable_NodeMode.py'))
+      p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=open(Exec_files_location + 'DeleteTable_NodeMode.js'))
       stdin,stdout = p.communicate()
       if stdout.find(bytearray("ERROR","ascii"),0,len(stdin))> -1:
         self.assertEqual(stdin, 'PASS')
