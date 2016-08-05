@@ -54,12 +54,6 @@ bool Farm::operator == (const Object_bridge &other) const
   return class_name() == other.class_name() && this == &other;
 }
 
-std::string &Farm::append_descr(std::string &s_out, int UNUSED(indent), int UNUSED(quote_strings)) const
-{
-  s_out.append("<" + class_name() + ":" + _name + ">");
-  return s_out;
-}
-
 #if DOXYGEN_CPP
 /**
  * Use this function to retrieve an valid member of this class exposed to the scripting languages.
@@ -168,14 +162,20 @@ shcore::Value Farm::add_seed_instance(const shcore::Argument_list &args)
 {
   args.ensure_count(1, (class_name() + ".addSeedInstance").c_str());
 
-  // Create the Default ReplicaSet and assign it to the Farm's default_replica_set var
-  _default_replica_set.reset(new ReplicaSet("default"));
+  std::string default_replication_user = "rpl_user"; // Default for V1.0 is rpl_user
 
-  // Update the Farm table with the Default ReplicaSet on the Metadata
-  _metadata_storage->insert_default_replica_set(shared_from_this());
+  // Create the Default ReplicaSet and assign it to the Farm's default_replica_set var
+  _default_replica_set.reset(new ReplicaSet("default", _metadata_storage));
+
+  _default_replica_set->set_replication_user(default_replication_user);
 
   // Add the Instance to the Default ReplicaSet
   _default_replica_set->add_instance(args);
+
+  // If we reached here without errors we can update the Metadata
+
+  // Update the Farm table with the Default ReplicaSet on the Metadata
+  _metadata_storage->insert_default_replica_set(shared_from_this());
 
   return Value();
 }
@@ -213,10 +213,14 @@ shcore::Value Farm::add_instance(const shcore::Argument_list &args)
 {
   args.ensure_count(1, get_function_name("addInstance").c_str());
 
+  // Check if we have a Default ReplicaSet
+  if (!_default_replica_set)
+    throw shcore::Exception::logic_error("ReplicaSet not initialized. Please add the Seed Instance using: addSeedInstance().");
+
   // Add the Instance to the Default ReplicaSet
   try
   {
-    _default_replica_set->add_instance(args);
+    _default_replica_set->add_instance_(args);
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("addInstance"));
 
