@@ -65,6 +65,7 @@ namespace mysh
       shcore::Value create_farm(const shcore::Argument_list &args);
       shcore::Value drop_farm(const shcore::Argument_list &args);
       shcore::Value get_farm(const shcore::Argument_list &args) const;
+      shcore::Value drop_metadata_schema(const shcore::Argument_list &args);
 
       virtual void set_option(const char *option, int value);
 
@@ -76,6 +77,9 @@ namespace mysh
 
       SessionHandle get_session() const;
 
+      std::string get_user() { return _user; };
+      std::string get_password() { return _password; };
+
 #if DOXYGEN_JS
       String uri; //!< Same as getUri()
       Farm defaultFarm; //!< Same as getDefaultSchema()
@@ -84,6 +88,7 @@ namespace mysh
       Undefined dropFarm(String name);
       Farm getFarm(String name);
       Farm getDefaultFarm();
+      Undefined dropMetadataSchema();
       String getUri();
       Undefined close();
 
@@ -95,6 +100,7 @@ namespace mysh
       None drop_farm(str name);
       Farm get_farm(str name);
       Farm get_default_farm();
+      None drop_metadata_schema();
       str get_uri();
       None close();
 #endif
@@ -106,7 +112,9 @@ namespace mysh
     private:
       std::shared_ptr<MetadataStorage> _metadata_storage;
       uint64_t _connection_id;
+
       void reset_session();
+      std::string generate_password(int password_lenght);
     };
   }
 }

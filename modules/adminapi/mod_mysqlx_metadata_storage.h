@@ -22,6 +22,7 @@
 
 #include "mod_mysqlx_admin_session.h"
 #include "mod_mysqlx_farm.h"
+#include "mod_mysqlx_replicaset.h"
 
 namespace mysh
 {
@@ -33,26 +34,30 @@ namespace mysh
     class MetadataStorage : public std::enable_shared_from_this<MetadataStorage>
     {
     public:
-      MetadataStorage(std::shared_ptr<AdminSession> admin_session);
+      MetadataStorage(const std::shared_ptr<AdminSession> &admin_session);
       ~MetadataStorage();
 
       bool metadata_schema_exists();
       void create_metadata_schema();
-      uint64_t get_farm_id(std::string farm_name);
-      bool farm_exists(std::string farm_name);
-      void insert_farm(std::shared_ptr<Farm> farm);
-      void insert_default_replica_set(std::shared_ptr<Farm> farm);
-      void drop_farm(std::string farm_name);
-      bool farm_has_default_replicaset_only(std::string farm_name);
-      void drop_default_replicaset(std::string farm_name);
+      void drop_metadata_schema();
+      uint64_t get_farm_id(const std::string &farm_name);
+      bool farm_exists(const std::string &farm_name);
+      void insert_farm(const std::shared_ptr<Farm> &farm);
+      void insert_default_replica_set(const std::shared_ptr<Farm> &farm);
+      void drop_farm(const std::string &farm_name);
+      bool farm_has_default_replicaset_only(const std::string &farm_name);
+      void drop_default_replicaset(const std::string &farm_name);
 
-      uint64_t get_farm_default_rs_id(std::string farm_name);
-      std::shared_ptr<Farm> get_farm(std::string farm_name);
+      uint64_t get_farm_default_rs_id(const std::string &farm_name);
+      std::shared_ptr<Farm> get_farm(const std::string &farm_name);
       bool has_default_farm();
       std::string get_default_farm_name();
 
       std::string get_replicaset_name(uint64_t rs_id);
       std::shared_ptr<ReplicaSet> get_replicaset(uint64_t rs_id);
+      bool is_replicaset_empty(uint64_t rs_id);
+
+      std::shared_ptr<AdminSession> get_admin_session() { return _admin_session; };
 
     private:
       std::shared_ptr<AdminSession> _admin_session;

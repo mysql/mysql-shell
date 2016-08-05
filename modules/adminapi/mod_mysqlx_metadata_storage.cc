@@ -28,7 +28,7 @@ using namespace mysh;
 using namespace mysh::mysqlx;
 using namespace shcore;
 
-MetadataStorage::MetadataStorage(std::shared_ptr<AdminSession> admin_session) :
+MetadataStorage::MetadataStorage(const std::shared_ptr<AdminSession> &admin_session) :
 _admin_session(admin_session)
 {
 }
@@ -70,7 +70,25 @@ void MetadataStorage::create_metadata_schema()
   }
 }
 
-uint64_t MetadataStorage::get_farm_id(std::string farm_name)
+void MetadataStorage::drop_metadata_schema()
+{
+  std::string query;
+
+  query = "DROP SCHEMA farm_metadata_schema";
+
+  try
+  {
+    _admin_session->get_session().execute_sql(query);
+  }
+  catch (::mysqlx::Error &e) {
+    if (CR_SERVER_GONE_ERROR == e.error() || ER_X_BAD_PIPE == e.error())
+      throw Exception::metadata_error("The Metadata is inaccessible");
+    else
+      throw;
+  }
+}
+
+uint64_t MetadataStorage::get_farm_id(const std::string &farm_name)
 {
   std::string query;
   std::shared_ptr< ::mysqlx::Result> result;
@@ -111,7 +129,7 @@ uint64_t MetadataStorage::get_farm_id(std::string farm_name)
   return farm_id;
 }
 
-bool MetadataStorage::farm_exists(std::string farm_name)
+bool MetadataStorage::farm_exists(const std::string &farm_name)
 {
   /*
    * To check if the farm exists, we can use get_farm_id
@@ -125,20 +143,32 @@ bool MetadataStorage::farm_exists(std::string farm_name)
   return false;
 }
 
-void MetadataStorage::insert_farm(std::shared_ptr<Farm> farm)
+void MetadataStorage::insert_farm(const std::shared_ptr<Farm> &farm)
 {
-  std::string farm_name, query;
+  std::string farm_name, query, farm_admin_type, farm_description,
+              instance_admin_user, instance_admin_user_password,
+              farm_read_user, farm_read_user_password;
   std::shared_ptr< ::mysqlx::Result> result;
   std::shared_ptr< ::mysqlx::Row> row;
 
   farm_name = farm->get_member("name").as_string();
+  farm_admin_type = farm->get_member("adminType").as_string();
+  instance_admin_user = farm->get_instance_admin_user();
+  instance_admin_user_password = farm->get_instance_admin_user_password();
+  farm_read_user = farm->get_farm_reader_user();
+  farm_read_user_password = farm->get_farm_reader_user_password();
 
   if (!metadata_schema_exists())
     throw Exception::metadata_error("Metadata Schema does not exist.");
 
-  // Insert the Farm on the farms table
-  query = "INSERT INTO farm_metadata_schema.farms (farm_name) VALUES ('" + farm_name + "')";
+  // Check if the Farm has some description
+  farm_description = farm->get_description();
+  query = "INSERT INTO farm_metadata_schema.farms (farm_name, description, mysql_user_accounts, options, attributes) "
+          "VALUES ('" + farm_name + "', '" + farm_description + "', '{\"instanceAdmin\": {\"username\": \"" + instance_admin_user +
+          "\", \"password\": \"" + instance_admin_user_password + "\"}, \"farmReader\": {\"username\": \"" + farm_read_user +
+          "\", \"password\": \"" + farm_read_user_password + "\"}}','{\"farmAdminType\": \"" + farm_admin_type + "\"}', '{\"default\": true}')";
 
+  // Insert the Farm on the farms table
   try
   {
     result = _admin_session->get_session().execute_sql(query);
@@ -161,9 +191,6 @@ void MetadataStorage::insert_farm(std::shared_ptr<Farm> farm)
   uint64_t farm_id = get_farm_id(farm_name);
   farm->set_id(farm_id);
 
-  // For V1.0 we only support one Farm, so let's mark it as 'default' on the attributed column
-  query = "UPDATE farm_metadata_schema.farms SET attributes = '{\"default\": true}' WHERE farm_id = '" + std::to_string(farm_id) + "'";
-
   try {
     _admin_session->get_session().execute_sql(query);
   }
@@ -175,7 +202,7 @@ void MetadataStorage::insert_farm(std::shared_ptr<Farm> farm)
   }
 }
 
-void MetadataStorage::insert_default_replica_set(std::shared_ptr<Farm> farm)
+void MetadataStorage::insert_default_replica_set(const std::shared_ptr<Farm> &farm)
 {
   std::string query;
   uint64_t farm_id;
@@ -244,7 +271,7 @@ void MetadataStorage::insert_default_replica_set(std::shared_ptr<Farm> farm)
   }
 }
 
-void MetadataStorage::drop_farm(std::string farm_name)
+void MetadataStorage::drop_farm(const std::string &farm_name)
 {
   std::string query, ret;
   std::shared_ptr< ::mysqlx::Result> result;
@@ -300,7 +327,7 @@ void MetadataStorage::drop_farm(std::string farm_name)
   }
 }
 
-bool MetadataStorage::farm_has_default_replicaset_only(std::string farm_name)
+bool MetadataStorage::farm_has_default_replicaset_only(const std::string &farm_name)
 {
   std::string query, ret;
   std::shared_ptr< ::mysqlx::Result> result;
@@ -367,11 +394,9 @@ bool MetadataStorage::farm_has_default_replicaset_only(std::string farm_name)
   return true;
 }
 
-void MetadataStorage::drop_default_replicaset(std::string farm_name)
+void MetadataStorage::drop_default_replicaset(const std::string &farm_name)
 {
-  std::string query, ret;
-  std::shared_ptr< ::mysqlx::Result> result;
-  std::shared_ptr< ::mysqlx::Row> row;
+  std::string query;
 
   if (!metadata_schema_exists())
     throw Exception::metadata_error("Metadata Schema does not exist.");
@@ -382,7 +407,7 @@ void MetadataStorage::drop_default_replicaset(std::string farm_name)
   query = "UPDATE farm_metadata_schema.farms SET default_replicaset = NULL WHERE farm_id = " + std::to_string(farm_id) + "";
 
   try {
-    result = _admin_session->get_session().execute_sql(query);
+    _admin_session->get_session().execute_sql(query);
   }
   catch (::mysqlx::Error &e) {
     if (CR_SERVER_GONE_ERROR == e.error() || ER_X_BAD_PIPE == e.error())
@@ -395,7 +420,7 @@ void MetadataStorage::drop_default_replicaset(std::string farm_name)
   query = "delete from farm_metadata_schema.replicasets where farm_id = " + std::to_string(farm_id) + "";
 
   try {
-    result = _admin_session->get_session().execute_sql(query);
+    _admin_session->get_session().execute_sql(query);
   }
   catch (::mysqlx::Error &e) {
     if (CR_SERVER_GONE_ERROR == e.error() || ER_X_BAD_PIPE == e.error())
@@ -405,7 +430,7 @@ void MetadataStorage::drop_default_replicaset(std::string farm_name)
   }
 }
 
-uint64_t MetadataStorage::get_farm_default_rs_id(std::string farm_name)
+uint64_t MetadataStorage::get_farm_default_rs_id(const std::string &farm_name)
 {
   std::string query;
   std::shared_ptr< ::mysqlx::Result> result;
@@ -437,9 +462,14 @@ uint64_t MetadataStorage::get_farm_default_rs_id(std::string farm_name)
   {
     while (row)
     {
-      default_rs_id = row->uIntField(0);
-      result->flush();
-      break;
+      if (row->isNullField(0))
+        break;
+      else
+      {
+        default_rs_id = row->uIntField(0);
+        result->flush();
+        break;
+      }
     }
   }
 
@@ -490,7 +520,7 @@ std::string MetadataStorage::get_replicaset_name(uint64_t rs_id)
 std::shared_ptr<ReplicaSet> MetadataStorage::get_replicaset(uint64_t rs_id)
 {
   // Create a ReplicaSet Object to match the Metadata
-  std::shared_ptr<ReplicaSet> rs(new ReplicaSet("name"));
+  std::shared_ptr<ReplicaSet> rs(new ReplicaSet("name", shared_from_this()));
   std::string rs_name;
 
   // Get and set the Metadata data
@@ -503,7 +533,7 @@ std::shared_ptr<ReplicaSet> MetadataStorage::get_replicaset(uint64_t rs_id)
   return rs;
 }
 
-std::shared_ptr<Farm> MetadataStorage::get_farm(std::string farm_name)
+std::shared_ptr<Farm> MetadataStorage::get_farm(const std::string &farm_name)
 {
   // Check if the Farm exists
   if (!farm_exists(farm_name))
@@ -518,11 +548,15 @@ std::shared_ptr<Farm> MetadataStorage::get_farm(std::string farm_name)
   // Get the Farm's Default replicaSet ID
   uint64_t default_rs_id = get_farm_default_rs_id(farm_name);
 
-  // Get the default replicaset from the Farm
-  std::shared_ptr<ReplicaSet> default_rs = get_replicaset(default_rs_id);
+  // Check if the Farm has a Default ReplicaSet
+  if (default_rs_id != 0)
+  {
+    // Get the default replicaset from the Farm
+    std::shared_ptr<ReplicaSet> default_rs = get_replicaset(default_rs_id);
 
-  // Update the default replicaset_id
-  farm->set_default_replicaset(default_rs);
+    // Update the default replicaset_id
+    farm->set_default_replicaset(default_rs);
+  }
 
   return farm;
 }
@@ -594,4 +628,42 @@ std::string MetadataStorage::get_default_farm_name()
   }
 
   return rs_name;
+}
+
+bool MetadataStorage::is_replicaset_empty(uint64_t rs_id)
+{
+  std::string query;
+  std::shared_ptr< ::mysqlx::Result> result;
+  std::shared_ptr< ::mysqlx::Row> row;
+  uint64_t count = 0;
+
+  try {
+    query = "SELECT COUNT(*) FROM farm_metadata_schema.replicasets WHERE replicaset_id = '" + std::to_string(rs_id) + "'";
+    result = _admin_session->get_session().execute_sql(query);
+  }
+  catch (::mysqlx::Error &e) {
+    if (CR_SERVER_GONE_ERROR == e.error() || ER_X_BAD_PIPE == e.error())
+      throw Exception::metadata_error("The Metadata is inaccessible");
+    else
+      throw;
+  }
+
+  row = result->next();
+
+  if (!row) return true; // something went wrong?
+
+  else
+  {
+    while (row)
+    {
+      count = row->sInt64Field(0);
+      result->flush();
+      break;
+    }
+  }
+
+  if (count != 0)
+    return false;
+
+  return true;
 }
