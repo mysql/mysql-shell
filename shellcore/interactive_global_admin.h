@@ -37,6 +37,8 @@ namespace shcore
 
     shcore::Value drop_farm(const shcore::Argument_list &args);
     shcore::Value is_open(const shcore::Argument_list &args);
+    shcore::Value create_farm(const shcore::Argument_list &args);
+    shcore::Value drop_metadata_schema(const shcore::Argument_list &args);
   };
 }
 

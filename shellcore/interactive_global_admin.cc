@@ -19,6 +19,7 @@
 
 #include "interactive_global_admin.h"
 #include "shellcore/shell_registry.h"
+#include "modules/mysqlxtest_utils.h"
 #include "utils/utils_general.h"
 #include <boost/format.hpp>
 
@@ -29,6 +30,8 @@ void Global_admin::init()
 {
   add_method("dropFarm", std::bind(&Global_admin::drop_farm, this, _1), "name", shcore::String, NULL);
   add_method("isOpen", std::bind(&Global_admin::is_open, this, _1), NULL);
+  add_method("createFarm", std::bind(&Global_admin::create_farm, this, _1), "name", shcore::String, NULL);
+  add_method("dropMetadataSchema", std::bind(&Global_admin::drop_metadata_schema, this, _1), "data", shcore::Map, NULL);
   set_wrapper_function("isOpen");
 }
 
@@ -120,4 +123,92 @@ shcore::Value Global_admin::drop_farm(const shcore::Argument_list &args)
 shcore::Value Global_admin::is_open(const shcore::Argument_list &args)
 {
   return _target ? _target->call("isOpen", args) : shcore::Value::False();
+}
+
+shcore::Value Global_admin::create_farm(const shcore::Argument_list &args)
+{
+  shcore::Value ret_val;
+
+  args.ensure_count(1, 3, get_function_name("createFarm").c_str());
+
+  try
+  {
+    std::string farm_name = args.string_at(0);
+    std::string answer, farm_password, instance_admin_user_pwd;
+    shcore::Value::Map_type_ref options;
+
+    if (farm_name.empty())
+      throw Exception::argument_error("The Farm name cannot be empty.");
+
+    if (args[1].type == shcore::String)
+      farm_password = args.string_at(1);
+
+    if (farm_password.empty())
+    {
+      if (password("Please enter an administration password to be used for the Farm 'devFarm': ", answer))
+        farm_password = answer;
+    }
+
+    if ((args[1].type == shcore::Map) || (args[2].type == shcore::Map))
+    {
+      options = args.map_at(args.size()-1);
+
+      // Check if some option is missing
+      if (options->has_key("instanceAdminUser"))
+      {
+        if (!options->has_key("instanceAdminPassword"))
+        {
+          // TODO: use farm_name
+          if (password("Please enter 'devFarm' MySQL instance administration user password: ", answer))
+            instance_admin_user_pwd = answer;
+        }
+      }
+    }
+
+    shcore::Argument_list new_args;
+    new_args.push_back(shcore::Value(farm_name));
+    new_args.push_back(shcore::Value(farm_password));
+
+    if (!instance_admin_user_pwd.empty())
+      (*options)["instanceAdminPassword"] = shcore::Value(answer);
+
+    if (options != NULL)
+      new_args.push_back(shcore::Value(options));
+
+    ret_val = _target->call("createFarm", new_args);
+  } CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("createFarm"));
+
+  return ret_val;
+}
+
+shcore::Value Global_admin::drop_metadata_schema(const shcore::Argument_list &args)
+{
+  shcore::Value ret_val;
+
+  try
+  {
+    if (args.size() < 1)
+    {
+      std::string answer;
+
+      if (prompt((boost::format("Are you sure you want to remove the Metadata? [y/N]: ")).str().c_str(), answer))
+      {
+        if (!answer.compare("y") || !answer.compare("Y"))
+        {
+          shcore::Argument_list new_args;
+          Value::Map_type_ref options(new shcore::Value::Map_type);
+
+          (*options)["enforce"] = shcore::Value(true);
+          new_args.push_back(shcore::Value(options));
+
+          ret_val = _target->call("dropMetadataSchema", new_args);
+        }
+      }
+    }
+    else
+      ret_val = _target->call("dropMetadataSchema", args);
+  }
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("dropMetadataSchema"))
+
+  return ret_val;
 }
