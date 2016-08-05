@@ -1,5 +1,5 @@
 //@ Session: validating members
-|Session Members: 9|
+|Session Members: 10|
 |uri: OK|
 |defaultFarm: OK|
 |getUri: OK|
@@ -11,9 +11,9 @@
 |close: OK|
 
 //@# AdminSession: createFarm errors
-||Invalid number of arguments in AdminSession.createFarm, expected 1 but got 0
+||Invalid number of arguments in AdminSession.createFarm, expected 1 to 3 but got 0
 ||AdminSession.createFarm: Argument #1 is expected to be a string
-||Invalid number of arguments in AdminSession.createFarm, expected 1 but got 2
+||AdminSession.createFarm: The Farm name cannot be empty
 ||AdminSession.createFarm: The Farm name cannot be empty
 ||AdminSession.createFarm: There is already one Farm initialized. Only one Farm is supported.
 
