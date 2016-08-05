@@ -21,6 +21,8 @@ include_directories("${CMAKE_SOURCE_DIR}/mysqlxtest/common")
 include_directories("${CMAKE_SOURCE_DIR}/include" "${CMAKE_SOURCE_DIR}/utils")
 include_directories( "${CMAKE_SOURCE_DIR}/common/uuid/include" )
 include_directories( "${CMAKE_SOURCE_DIR}/common/logger" )
+include_directories( "${CMAKE_SOURCE_DIR}/common/common" )
+include_directories( "${CMAKE_SOURCE_DIR}/common/process_launcher" )
 include_directories( "${CMAKE_SOURCE_DIR}/ext/rapidjson/include" )
 include_directories(SYSTEM ${Boost_INCLUDE_DIRS})
 
@@ -74,6 +76,8 @@ file(GLOB libmysqlshcore_SRC
 #if(NOT WINDOWS_RUNTIME_MD)
   list(APPEND libmysqlshcore_SRC "${CMAKE_SOURCE_DIR}/types/ishell_core.cc")
   list(APPEND libmysqlshcore_SRC "${CMAKE_SOURCE_DIR}/common/logger/logger.cc")
+  list(APPEND libmysqlshcore_SRC "${CMAKE_SOURCE_DIR}/common/process_launcher/process_launcher.cc")
+  list(APPEND libmysqlshcore_SRC "${CMAKE_SOURCE_DIR}/common/common/exception.cc")
 #else()
 #  list(REMOVE_ITEM libmysqlshcore_SRC "${CMAKE_SOURCE_DIR}/shellcore/types.cc")
 #  list(REMOVE_ITEM libmysqlshcore_SRC "${CMAKE_SOURCE_DIR}/shellcore/types_cpp.cc")
@@ -172,6 +176,8 @@ file(GLOB libmysqlshmods_SRC
       "../modules/mod_mysqlx.h"
       "../modules/mod_mysql.cc"
       "../modules/mod_mysql.h"
+      "../modules/mod_mysqlx_mysql_instance.cc"
+      "../modules/mod_mysqlx_mysql_instance.h"
       "../modules/mod_mysqlx_*.cc"
       "../modules/mod_mysqlx_*.h"
       "../modules/mod_mysql_*.cc"

@@ -97,6 +97,7 @@ _options(new shcore::Value::Map_type)
   (*_options)[SHCORE_BATCH_CONTINUE_ON_ERROR] = Value::False();
   (*_options)[SHCORE_MULTIPLE_INSTANCES] = Value::False();
   (*_options)[SHCORE_USE_WIZARDS] = Value::True();
+  (*_options)[SHCORE_GADGETS_PATH] = Value("/home/miguel/work/mysql-ng/mysql-orchestrator/gadgets/python/front_end/mysqlprovision.py");
 }
 
 Shell_core_options::~Shell_core_options()
