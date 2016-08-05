@@ -39,8 +39,6 @@ namespace mysh
       Farm(const std::string &name, std::shared_ptr<MetadataStorage> metadata_storage);
       virtual ~Farm();
 
-      virtual std::string &append_descr(std::string &s_out, int indent, int quote_strings) const;
-
       virtual std::string class_name() const { return "Farm"; }
       virtual std::string &append_descr(std::string &s_out, int indent = -1, int quote_strings = 0) const;
       virtual bool operator == (const Object_bridge &other) const;
@@ -54,6 +52,20 @@ namespace mysh
       {
         _default_replica_set = default_rs;
       };
+      std::string get_admin_type() { return _admin_type; }
+      void set_admin_type(std::string admin_type) { _admin_type = admin_type; }
+      std::string get_password() { return _password; }
+      void set_password(std::string farm_password) { _password = farm_password; }
+      std::string get_description() { return _description; }
+      void set_description(std::string description) { _description = description; };
+      std::string get_instance_admin_user() { return _instance_admin_user; };
+      void set_instance_admin_user(std::string user) { _instance_admin_user = user; };
+      std::string get_instance_admin_user_password() { return _instance_admin_user_password; };
+      void set_instance_admin_user_password(std::string password) { _instance_admin_user_password = password; };
+      std::string get_farm_reader_user() { return _farm_reader_user; };
+      void set_farm_reader_user(std::string user) { _farm_reader_user = user; };
+      std::string get_farm_reader_user_password() { return _farm_reader_user_password; }
+      void set_farm_reader_user_password(std::string password) { _farm_reader_user_password = password; };
 
 #if DOXYGEN_JS
       String getName();
@@ -86,10 +98,17 @@ namespace mysh
       std::string _name;
       std::string _admin_type;
       std::shared_ptr<ReplicaSet> _default_replica_set;
+      std::string _password;
+      std::string _description;
 
     private:
       void init();
+
       std::shared_ptr<MetadataStorage> _metadata_storage;
+      std::string _instance_admin_user;
+      std::string _instance_admin_user_password;
+      std::string _farm_reader_user;
+      std::string _farm_reader_user_password;
     };
   }
 }

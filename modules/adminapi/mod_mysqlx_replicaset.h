@@ -27,16 +27,19 @@ namespace mysh
 {
   namespace mysqlx
   {
+    class MetadataStorage;
+
     /**
     * Represents a ReplicaSet
     */
     class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>, public shcore::Cpp_object_bridge
     {
     public:
-      ReplicaSet(const std::string &name);
+      ReplicaSet(const std::string &name, std::shared_ptr<MetadataStorage> metadata_storage);
       virtual ~ReplicaSet();
 
       virtual std::string class_name() const { return "ReplicaSet"; }
+      virtual std::string &append_descr(std::string &s_out, int indent = -1, int quote_strings = 0) const;
       virtual bool operator == (const Object_bridge &other) const;
 
       virtual shcore::Value get_member(const std::string &prop) const;
@@ -45,6 +48,9 @@ namespace mysh
       uint64_t get_id() { return _id; }
 
       void set_name(std::string name) { _name = name; }
+
+      std::string get_replication_user() { return _replication_user; };
+      void set_replication_user(std::string user) { _replication_user = user; };
 
 #if DOXYGEN_JS
       String getName();
@@ -72,6 +78,9 @@ namespace mysh
 
     private:
       void init();
+
+      std::shared_ptr<MetadataStorage> _metadata_storage;
+      std::string _replication_user;
 
     protected:
       virtual int get_default_port() { return 33060; };

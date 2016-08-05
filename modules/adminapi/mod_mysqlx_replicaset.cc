@@ -18,6 +18,7 @@
  */
 
 #include "mod_mysqlx_replicaset.h"
+#include "mod_mysqlx_metadata_storage.h"
 
 #include "common/uuid/include/uuid_gen.h"
 #include "utils/utils_general.h"
@@ -34,14 +35,20 @@ using namespace mysh;
 using namespace mysh::mysqlx;
 using namespace shcore;
 
-ReplicaSet::ReplicaSet(const std::string &name) :
-_name(name)
+ReplicaSet::ReplicaSet(const std::string &name, std::shared_ptr<MetadataStorage> metadata_storage) :
+_name(name), _metadata_storage(metadata_storage)
 {
   init();
 }
 
 ReplicaSet::~ReplicaSet()
 {
+}
+
+std::string &ReplicaSet::append_descr(std::string &s_out, int UNUSED(indent), int UNUSED(quote_strings)) const
+{
+  s_out.append("<" + class_name() + ":" + _name + ">");
+  return s_out;
 }
 
 bool ReplicaSet::operator == (const Object_bridge &other) const
@@ -120,6 +127,10 @@ shcore::Value ReplicaSet::add_instance_(const shcore::Argument_list &args)
 {
   args.ensure_count(1, get_function_name("addInstance").c_str());
 
+  // Check if the ReplicaSet is empty
+  if (_metadata_storage->is_replicaset_empty(_id))
+    throw shcore::Exception::logic_error("ReplicaSet not initialized. Please add the Seed Instance using: addSeedInstance().");
+
   // Add the Instance to the Default ReplicaSet
   try
   {
@@ -132,6 +143,7 @@ shcore::Value ReplicaSet::add_instance_(const shcore::Argument_list &args)
 
 shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args)
 {
+  bool seed_instance = false;
   std::string uri;
   shcore::Value::Map_type_ref options; // Map with the connection data
 
@@ -146,9 +158,14 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args)
   std::string ssl_cert;
   std::string ssl_key;
 
+  std::vector<std::string> valid_options = {"host", "port", "socket", "ssl_ca", "ssl_cert", "ssl_key", "ssl_key"};
+
   // NOTE: This function is called from either the add_instance_ on this class
   //       or the add_instance in Farm class, hence this just throws exceptions
   //       and the proper handling is done on the caller functions (to append the called function name)
+
+  // Check if we're on a addSeedInstance or not
+  if (_metadata_storage->is_replicaset_empty(_id)) seed_instance = true;
 
   // Identify the type of connection data (String or Document)
   if (args[0].type == String)
@@ -167,6 +184,12 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args)
   if (options->size() == 0)
     throw shcore::Exception::argument_error("Connection data empty.");
 
+  for (shcore::Value::Map_type::iterator i = options->begin(); i != options->end(); ++i)
+  {
+    if ((std::find(valid_options.begin(), valid_options.end(), i->first) == valid_options.end()))
+      throw shcore::Exception::argument_error("Unexpected argument " + i->first + " on connection data.");
+  }
+
   if (options->has_key("host"))
     host = (*options)["host"].as_string();
 
@@ -176,15 +199,6 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args)
   if (options->has_key("socket"))
     sock = (*options)["socket"].as_string();
 
-  if (options->has_key("schema"))
-    throw shcore::Exception::argument_error("Unexpected argument 'schema' on connection data.");
-
-  if (options->has_key("user") || options->has_key("dbUser"))
-    throw shcore::Exception::argument_error("Unexpected argument 'user' on connection data.");
-
-  if (options->has_key("password") || options->has_key("dbPassword"))
-    throw shcore::Exception::argument_error("Unexpected argument 'password' on connection data.");
-
   if (options->has_key("ssl_ca"))
     ssl_ca = (*options)["ssl_ca"].as_string();
 
@@ -193,9 +207,6 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args)
 
   if (options->has_key("ssl_key"))
     ssl_key = (*options)["ssl_key"].as_string();
-
-  if (options->has_key("authMethod"))
-    throw shcore::Exception::argument_error("Unexpected argument 'authMethod' on connection data.");
 
   if (port == 0 && sock.empty())
     port = get_default_port();
@@ -210,6 +221,34 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args)
 
   // Add the Instance on the Metadata Schema
   // TODO!
+
+  std::string session_user = _metadata_storage->get_admin_session()->get_user();
+  std::string session_password = _metadata_storage->get_admin_session()->get_password();
+
+/*
+  std::string instance_admin_user = _metadata_storage->get_instance_admin_user(get_id());
+  std::string instance_admin_user_password = _metadata_storage->get_instance_admin_user_password(get_id());
+
+  // check if we have to create the user on the Instance
+  if (instance_admin_user == "instance_admin")
+  {
+    // TODO: create the user on the instance
+  }
+
+
+  // Call the gadget to bootstrap the group with this instance
+  if (seed_instance)
+  {
+    // Call mysqlprovision to bootstrap the group using "start"
+  }
+  else
+  {
+    // We need to retrieve a peer instance, so let's use the Seed one
+    std::string peer_instance = _metadata_storage->get_seed_instance(_id);
+
+    // Call mysqlprovision to join the instance on the group using "join"
+  }
+  */
 
   return Value();
 }
