@@ -11,10 +11,10 @@
 |close: OK|
 
 //@# AdminSession: createFarm errors
-||Invalid number of arguments in AdminSession.createFarm, expected 1 to 3 but got 0
-||AdminSession.createFarm: Argument #1 is expected to be a string
+||Invalid number of arguments in AdminSession.createFarm, expected 2 to 3 but got 0
+||Invalid number of arguments in AdminSession.createFarm, expected 2 to 3 but got 1
 ||AdminSession.createFarm: The Farm name cannot be empty
-||AdminSession.createFarm: The Farm name cannot be empty
+||Invalid number of arguments in AdminSession.createFarm, expected 2 to 3 but got 1
 ||AdminSession.createFarm: There is already one Farm initialized. Only one Farm is supported.
 
 //@ AdminSession: createFarm

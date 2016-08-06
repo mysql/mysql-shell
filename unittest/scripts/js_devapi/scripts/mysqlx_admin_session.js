@@ -22,7 +22,7 @@ validateMember(members, 'close');
 var farm = myAdmin.createFarm();
 var farm = myAdmin.createFarm(5);
 var farm = myAdmin.createFarm('', 5);
-var farm = myAdmin.createFarm('');
+var farm = myAdmin.createFarm('devFarm');
 var farm = myAdmin.createFarm('devFarm', 'password');
 var farm = myAdmin.createFarm('devFarm', 'password');
 
