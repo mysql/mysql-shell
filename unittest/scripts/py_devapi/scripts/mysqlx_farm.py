@@ -4,7 +4,7 @@
 import mysqlx
 
 myAdmin = mysqlx.get_admin_session(__uripwd)
-farm = myAdmin.create_farm('devFarm')
+farm = myAdmin.create_farm('devFarm', 'testing')
 
 #@ Farm: validating members
 all_members = dir(farm)

@@ -59,6 +59,8 @@ namespace mysh
 
       std::shared_ptr<AdminSession> get_admin_session() { return _admin_session; };
 
+      std::shared_ptr< ::mysqlx::Result> execute_sql(const std::string &sql) const;
+
     private:
       std::shared_ptr<AdminSession> _admin_session;
     };

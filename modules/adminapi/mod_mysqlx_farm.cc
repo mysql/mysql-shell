@@ -220,7 +220,7 @@ shcore::Value Farm::add_instance(const shcore::Argument_list &args)
   // Add the Instance to the Default ReplicaSet
   try
   {
-    _default_replica_set->add_instance_(args);
+    _default_replica_set->add_instance(args);
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("addInstance"));
 

@@ -158,7 +158,7 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args)
   std::string ssl_cert;
   std::string ssl_key;
 
-  std::vector<std::string> valid_options = {"host", "port", "socket", "ssl_ca", "ssl_cert", "ssl_key", "ssl_key"};
+  std::vector<std::string> valid_options = { "host", "port", "socket", "ssl_ca", "ssl_cert", "ssl_key", "ssl_key" };
 
   // NOTE: This function is called from either the add_instance_ on this class
   //       or the add_instance in Farm class, hence this just throws exceptions
@@ -187,7 +187,7 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args)
   for (shcore::Value::Map_type::iterator i = options->begin(); i != options->end(); ++i)
   {
     if ((std::find(valid_options.begin(), valid_options.end(), i->first) == valid_options.end()))
-      throw shcore::Exception::argument_error("Unexpected argument " + i->first + " on connection data.");
+      throw shcore::Exception::argument_error("Unexpected argument '" + i->first + "' on connection data.");
   }
 
   if (options->has_key("host"))
@@ -225,30 +225,29 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args)
   std::string session_user = _metadata_storage->get_admin_session()->get_user();
   std::string session_password = _metadata_storage->get_admin_session()->get_password();
 
-/*
-  std::string instance_admin_user = _metadata_storage->get_instance_admin_user(get_id());
-  std::string instance_admin_user_password = _metadata_storage->get_instance_admin_user_password(get_id());
+  /*
+    std::string instance_admin_user = _metadata_storage->get_instance_admin_user(get_id());
+    std::string instance_admin_user_password = _metadata_storage->get_instance_admin_user_password(get_id());
 
-  // check if we have to create the user on the Instance
-  if (instance_admin_user == "instance_admin")
-  {
+    // check if we have to create the user on the Instance
+    if (instance_admin_user == "instance_admin")
+    {
     // TODO: create the user on the instance
-  }
+    }
 
-
-  // Call the gadget to bootstrap the group with this instance
-  if (seed_instance)
-  {
+    // Call the gadget to bootstrap the group with this instance
+    if (seed_instance)
+    {
     // Call mysqlprovision to bootstrap the group using "start"
-  }
-  else
-  {
+    }
+    else
+    {
     // We need to retrieve a peer instance, so let's use the Seed one
     std::string peer_instance = _metadata_storage->get_seed_instance(_id);
 
     // Call mysqlprovision to join the instance on the group using "join"
-  }
-  */
+    }
+    */
 
   return Value();
 }

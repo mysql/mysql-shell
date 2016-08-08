@@ -5,7 +5,7 @@ var mysqlx = require('mysqlx');
 
 //@ Farm: validating members
 var myAdmin = mysqlx.getAdminSession(__uripwd);
-var farm = myAdmin.createFarm('devFarm');
+var farm = myAdmin.createFarm('devFarm', 'testing');
 farm.addSeedInstance({host: '192.168.1.1'});
 var rset = farm.getReplicaSet();
 

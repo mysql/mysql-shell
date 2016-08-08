@@ -4,7 +4,7 @@
 import mysqlx
 
 myAdmin = mysqlx.get_admin_session(__uripwd)
-farm = myAdmin.create_farm('devFarm')
+farm = myAdmin.create_farm('devFarm', 'testing')
 farm.add_seed_instance({'host': '192.168.1.1'})
 rset = farm.get_replica_set()
 

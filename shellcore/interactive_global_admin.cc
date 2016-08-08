@@ -140,29 +140,34 @@ shcore::Value Global_admin::create_farm(const shcore::Argument_list &args)
     if (farm_name.empty())
       throw Exception::argument_error("The Farm name cannot be empty.");
 
-    if (args[1].type == shcore::String)
-      farm_password = args.string_at(1);
+    if (args.size() > 1)
+    {
+      int opts_index = 1;
+      if (args[1].type == shcore::String)
+      {
+        farm_password = args.string_at(1);
+        opts_index++;
+      }
+
+      if (args.size() > opts_index)
+      {
+        options = args.map_at(opts_index);
+        // Check if some option is missing
+        if (options->has_key("instanceAdminUser"))
+        {
+          if (!options->has_key("instanceAdminPassword"))
+          {
+            if (password("Please enter '" + farm_name + "' MySQL instance administration user password: ", answer))
+              instance_admin_user_pwd = answer;
+          }
+        }
+      }
+    }
 
     if (farm_password.empty())
     {
-      if (password("Please enter an administration password to be used for the Farm 'devFarm': ", answer))
+      if (password("Please enter an administration password to be used for the Farm '" + farm_name + "': ", answer))
         farm_password = answer;
-    }
-
-    if ((args[1].type == shcore::Map) || (args[2].type == shcore::Map))
-    {
-      options = args.map_at(args.size()-1);
-
-      // Check if some option is missing
-      if (options->has_key("instanceAdminUser"))
-      {
-        if (!options->has_key("instanceAdminPassword"))
-        {
-          // TODO: use farm_name
-          if (password("Please enter 'devFarm' MySQL instance administration user password: ", answer))
-            instance_admin_user_pwd = answer;
-        }
-      }
     }
 
     shcore::Argument_list new_args;

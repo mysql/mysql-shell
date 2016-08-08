@@ -47,7 +47,11 @@ REGISTER_MODULE(MysqlInstance, mysql_instance)
     current_python_path = std::string(getenv("PYTHONPATH"));
 
   std::string python_path = current_python_path + ":" + "/home/miguel/work/mysql-ng/mysql-orchestrator/gadgets/python";
+#ifdef WIN32
+  _putenv_s("PYTHONPATH", python_path.c_str());
+#else
   setenv("PYTHONPATH", python_path.c_str(), true);
+#endif
 }
 
 DEFINE_FUNCTION(MysqlInstance, validate_instance)
@@ -69,7 +73,7 @@ DEFINE_FUNCTION(MysqlInstance, validate_instance)
   std::string ssl_cert;
   std::string ssl_key;
 
-  std::vector<std::string> valid_options = {"host", "port", "socket", "ssl_ca", "ssl_cert", "ssl_key", "ssl_key"};
+  std::vector<std::string> valid_options = { "host", "port", "socket", "ssl_ca", "ssl_cert", "ssl_key", "ssl_key" };
 
   try
   {
@@ -138,11 +142,11 @@ DEFINE_FUNCTION(MysqlInstance, validate_instance)
     std::string password = "msandbox\n"; // TODO: get the password from the session
     std::string error;
 
-  #ifdef WIN32
+#ifdef WIN32
     success += "\r\n";
-  #else
+#else
     success += "\n";
-  #endif
+#endif
 
     try
     {

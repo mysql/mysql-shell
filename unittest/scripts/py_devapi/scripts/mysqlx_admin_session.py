@@ -14,6 +14,8 @@ for member in all_members:
   if not member.startswith('__'):
     members.append(member)
 
+print members
+
 print "Session Members:", len(members)
 validateMember(members, 'uri')
 validateMember(members, 'default_farm')
@@ -23,6 +25,7 @@ validateMember(members, 'is_open')
 validateMember(members, 'create_farm')
 validateMember(members, 'drop_farm')
 validateMember(members, 'get_farm')
+validateMember(members, 'drop_metadata_schema')
 validateMember(members, 'close')
 
 #@# AdminSession: create_farm errors
@@ -30,8 +33,8 @@ farm = myAdmin.create_farm();
 farm = myAdmin.create_farm(5);
 farm = myAdmin.create_farm('', 5);
 farm = myAdmin.create_farm('');
-farm = myAdmin.create_farm('devFarm');
-farm = myAdmin.create_farm('devFarm');
+farm = myAdmin.create_farm('devFarm', 'password');
+farm = myAdmin.create_farm('devFarm', 'password');
 
 #@ AdminSession: create_farm
 print farm

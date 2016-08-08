@@ -5,6 +5,7 @@ var mysqlx = require('mysqlx');
 
 //@ Session: validating members
 var myAdmin = mysqlx.getAdminSession(__uripwd);
+myAdmin.dropMetadataSchema({enforce:true});
 var members = dir(myAdmin);
 
 print("Session Members:", members.length);
@@ -16,6 +17,7 @@ validateMember(members, 'isOpen');
 validateMember(members, 'createFarm');
 validateMember(members, 'dropFarm');
 validateMember(members, 'getFarm');
+validateMember(members, 'dropMetadataSchema');
 validateMember(members, 'close');
 
 //@# AdminSession: createFarm errors

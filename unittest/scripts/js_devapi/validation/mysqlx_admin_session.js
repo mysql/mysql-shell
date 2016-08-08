@@ -8,6 +8,7 @@
 |createFarm: OK|
 |dropFarm: OK|
 |getFarm: OK|
+|dropMetadataSchema: OK|
 |close: OK|
 
 //@# AdminSession: createFarm errors

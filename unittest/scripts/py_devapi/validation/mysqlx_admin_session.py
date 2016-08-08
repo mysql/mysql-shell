@@ -1,5 +1,5 @@
 #@ Session: validating members
-|Session Members: 9|
+|Session Members: 10|
 |uri: OK|
 |default_farm: OK|
 |get_uri: OK|
@@ -8,13 +8,14 @@
 |create_farm: OK|
 |drop_farm: OK|
 |get_farm: OK|
+|drop_metadata_schema: OK|
 |close: OK|
 
 #@# AdminSession: create_farm errors
-||Invalid number of arguments in AdminSession.create_farm, expected 1 but got 0
-||AdminSession.create_farm: Argument #1 is expected to be a string
-||Invalid number of arguments in AdminSession.create_farm, expected 1 but got 2
+||Invalid number of arguments in AdminSession.create_farm, expected 2 to 3 but got 0
+||Invalid number of arguments in AdminSession.create_farm, expected 2 to 3 but got 1
 ||AdminSession.create_farm: The Farm name cannot be empty
+||Invalid number of arguments in AdminSession.create_farm, expected 2 to 3 but got 1
 ||AdminSession.create_farm: There is already one Farm initialized. Only one Farm is supported.
 
 #@ AdminSession: create_farm

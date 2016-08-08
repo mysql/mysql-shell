@@ -65,8 +65,7 @@ void AdminSession::init()
   // If not, _farms can be removed
   _farms.reset(new shcore::Value::Map_type);
 
-  // Note this one is a function that has a property equivalent: getDefaultFarm/defaultFarm
-  add_method("getDefaultFarm", std::bind(&AdminSession::get_member_method, this, _1, "getDefaultFarm", "defaultFarm"), NULL);
+  add_property("defaultFarm", "getDefaultFarm");
 
   // Pure functions
   add_method("createFarm", std::bind(&AdminSession::create_farm, this, _1), "farmName", shcore::String, NULL);
@@ -160,29 +159,12 @@ std::string AdminSession::generate_password(int password_lenght)
   std::random_device rd;
   std::string pwd;
   const char *alphabet = "1234567890abcdefghijklmnopqrstuvwxyz";
-  std::uniform_int_distribution<int> dist(0, strlen(alphabet)-1);
+  std::uniform_int_distribution<int> dist(0, strlen(alphabet) - 1);
 
-  for (int i = 0; i < password_lenght ; i++)
+  for (int i = 0; i < password_lenght; i++)
     pwd += alphabet[dist(rd)];
 
   return pwd;
-}
-
-bool AdminSession::has_member(const std::string &prop) const
-{
-  if (ShellAdminSession::has_member(prop))
-    return true;
-  if (prop == "defaultFarm" || prop == "uri")
-    return true;
-
-  return false;
-}
-
-std::vector<std::string> AdminSession::get_members() const
-{
-  std::vector<std::string> members(ShellAdminSession::get_members());
-  members.push_back("defaultFarm");
-  return members;
 }
 
 #if DOXYGEN_CPP
@@ -229,8 +211,6 @@ Value AdminSession::get_member(const std::string &prop) const
   // it is a schema and attempt loading it as such
   if (ShellAdminSession::has_member(prop))
     ret_val = ShellAdminSession::get_member(prop);
-  else if (prop == "uri")
-    ret_val = Value(_uri);
   else if (prop == "defaultFarm")
   {
     // If there is a default farm and we have the name, retrieve it with the next call
@@ -342,7 +322,7 @@ shcore::Value AdminSession::create_farm(const shcore::Argument_list &args)
         shcore::Value::Map_type_ref options = args.map_at(2);
 
         // Verify if the options are valid
-        std::vector<std::string> valid_options = {"farmAdminType", "instanceAdminUser", "instanceAdminPassword"};
+        std::vector<std::string> valid_options = { "farmAdminType", "instanceAdminUser", "instanceAdminPassword" };
 
         for (shcore::Value::Map_type::iterator i = options->begin(); i != options->end(); ++i)
         {
