@@ -21,6 +21,7 @@
 #include "mod_mysqlx_admin_session.h"
 #include "shellcore/object_factory.h"
 #include "../mysqlxtest_utils.h"
+#include <random>
 
 #include "logger/logger.h"
 
