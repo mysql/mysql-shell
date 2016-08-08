@@ -3194,9 +3194,9 @@ class XShell_TestCases(unittest.TestCase):
                       '--schema=sakila','--classic']
       p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=open(Exec_files_location + 'DeleteView_SQL.sql'))
       stdin,stdout = p.communicate()
-      if stdout.find(bytearray("ERROR","ascii"),0,len(stdin))> -1:
-        self.assertEqual(stdin, 'PASS')
-      results = ''
+      # if stdout.find(bytearray("ERROR","ascii"),0,len(stdin))> -1:
+      #  self.assertEqual(stdin, 'PASS')
+      # results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
       x_cmds = [('\\connect -n {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
                 ("\\sql\n","mysql-sql>"),
@@ -3274,9 +3274,9 @@ class XShell_TestCases(unittest.TestCase):
                       '--schema=sakila','--classic']
       p = subprocess.Popen(init_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=open(Exec_files_location + 'DeleteProcedure_SQL.sql'))
       stdin,stdout = p.communicate()
-      if stdout.find(bytearray("ERROR","ascii"),0,len(stdin))> -1:
-        self.assertEqual(stdin, 'PASS')
-      results = ''
+      # if stdout.find(bytearray("ERROR","ascii"),0,len(stdin))> -1:
+      #  self.assertEqual(stdin, 'PASS')
+      # results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
       x_cmds = [('\\connect -n {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
                 ("\\sql\n","mysql-sql>"),
@@ -5881,7 +5881,7 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--uri',
                       'mysqlx://{0}:{1}@{2}:{3}'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), '--x', '--js']
-      x_cmds = [("\\s\n", "Current user:                 root@localhost")
+      x_cmds = [("\\s\n", "Current user:                 "+ LOCALHOST.user +"@localhost")
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
@@ -6514,7 +6514,7 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--sqlc', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
                       '-h' + LOCALHOST.host, '-P' + LOCALHOST.port, '--classic','--schema=sakila']
-      x_cmds = [("SELECT * FROM INFORMATION_SCHEMA.PROCESSLIST WHERE USER ='root';\n","| root |")
+      x_cmds = [("SELECT * FROM INFORMATION_SCHEMA.PROCESSLIST WHERE USER ='"+ LOCALHOST.user +"';\n","| "+ LOCALHOST.user +" |")
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
@@ -6655,7 +6655,7 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--js', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
                       '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--node','--schema=sakila']
-      x_cmds = [("print(session);\n","NodeSession:root@localhost:33060/sakila")
+      x_cmds = [("print(session);\n","NodeSession:" + LOCALHOST.user + "@localhost:33060/sakila")
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
@@ -6665,7 +6665,7 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--js', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
                       '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--x','--schema=sakila']
-      x_cmds = [("print(session);\n","XSession:root@localhost:33060/sakila")
+      x_cmds = [("print(session);\n","XSession:"+ LOCALHOST.user +"@localhost:33060/sakila")
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
@@ -6896,7 +6896,7 @@ class XShell_TestCases(unittest.TestCase):
 
       x_cmds = [("\\rmconn classic_session\n","mysql-js>"),
                 ("shell.storedSessions.add('classic_session', '"+LOCALHOST.user+":"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+"\sakila');\n","mysql-js>"),
-                ("\\connect $classic_session\n","Creating an X Session to root@localhost:33060"),
+                ("\\connect $classic_session\n","Creating an X Session to "+ LOCALHOST.user +"@localhost:33060"),
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
