@@ -1537,7 +1537,7 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--uri',
                       'mysqlx://{0}:{1}@{2}:{3}'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port), '--x', '--js']
-      x_cmds = [("\\status\n", "Current user:                 root@localhost")
+      x_cmds = [("\\status\n", "Current user:                 " + LOCALHOST.user + "@localhost")
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
@@ -1547,7 +1547,7 @@ class XShell_TestCases(unittest.TestCase):
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full', '--uri',
                       'mysqlx://{0}:{1}@{2}:{3}'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,LOCALHOST.port), '--classic', '--js']
-      x_cmds = [("\\status\n", "Current user:                 root@localhost")
+      x_cmds = [("\\status\n", "Current user:                 " + LOCALHOST.user + "@localhost")
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
@@ -4585,13 +4585,13 @@ class XShell_TestCases(unittest.TestCase):
                 ("myColl.add({ name: 'Test2', lastname:'lastname2'});\n","Query OK"),
                 ("session.getSchema('sakila').getCollectionAsTable('test_collection_js').select();\n","2 rows"),
                 ("\\py\n","mysql-py>"),
-                ("session.dropCollection(\"sakila\",\"test_collection_py\")\n", "mysql-py>"),
-                ("session.getSchema(\'sakila\').createCollection(\"test_collection_py\")\n", "mysql-py>"),
-                ("session.getSchema(\'sakila\').getCollection(\"test_collection_py\").existsInDatabase()\n","true"),
-                ("myColl2 = session.getSchema(\'sakila\').getCollection(\"test_collection_py\")\n","mysql-py>"),
+                ("session.drop_collection(\"sakila\",\"test_collection_py\")\n", "mysql-py>"),
+                ("session.get_schema(\'sakila\').create_collection(\"test_collection_py\")\n", "mysql-py>"),
+                ("session.get_schema(\'sakila\').get_collection(\"test_collection_py\").exists_in_database()\n","true"),
+                ("myColl2 = session.get_schema(\'sakila\').get_collection(\"test_collection_py\")\n","mysql-py>"),
                 ("myColl2.add([{ \"name\": \"TestPy2\", \"lastname\":\"lastnamePy2\"},{ \"name\": \"TestPy3\", \"lastname\":\"lastnamePy3\"}])\n","Query OK"),
                 ("myColl2.add({ \"name\": \'TestPy1\', \"lastname\":\'lastnamePy1\'})\n","Query OK"),
-                ("session.getSchema(\'sakila\').getCollectionAsTable(\'test_collection_py\').select()\n","3 rows"),
+                ("session.get_schema(\'sakila\').get_collection_as_table(\'test_collection_py\').select()\n","3 rows"),
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
@@ -4607,7 +4607,7 @@ class XShell_TestCases(unittest.TestCase):
                 ("myColl.find(\"Name = \'Mexico\'\").fields([\'_id\', \'Name\',\'geography.Region\',\'geography.Continent\']);\n","1 document"),
                 ("myColl.find(\"geography.Region = \'Central America\'\").fields([\'_id\', \'Name\','geography.Region\',\'geography.Continent\']).limit(4);\n","4 documents"),
                 ("\\py\n","mysql-py>"),
-                ("myColl2 = session.getSchema(\'world_x\').getCollection(\"countryinfo\")\n","mysql-py>"),
+                ("myColl2 = session.get_schema(\'world_x\').getCollection(\"countryinfo\")\n","mysql-py>"),
                 ("myColl2.find(\"Name = \'Mexico\'\").fields([\'_id\', \'Name\',\'geography.Region\',\'geography.Continent\'])\n","1 document"),
                 ("myColl2.find(\"geography.Region = \'Central America\'\").fields([\'_id\', \'Name\','geography.Region\',\'geography.Continent\']).limit(4)\n","4 documents"),
                     ]
@@ -4665,12 +4665,12 @@ class XShell_TestCases(unittest.TestCase):
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
                        '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--node','--schema=sakila', '--js']
 
-      x_cmds = [("session.getSchema(\'world_x\').getCollection(\"countryinfo\").existsInDatabase();\n","true"),
+      x_cmds = [("session.getStest_MYS_323_00 chema(\'world_x\').getCollection(\"countryinfo\").existsInDatabase();\n","true"),
                 # ("var myColl = session.getSchema(\'world_x\').getCollection(\"countryinfo\");\n","mysql-js>"),
                 # ("myColl.modify(\"Name = :country\").set(\'Soccer_World_Championships\',\'3\').bind(\'country\',\'Argentina\');\n","Query OK, 1 item affected"),
                 # ("myColl.modify(\"Name = :country\").unset(\'Soccer_World_Championships\').bind(\'country\',\'Argentina\');\n","Query OK, 1 item affected"),
                 ("\\py\n","mysql-py>"),
-                ("myColl2 = session.getSchema(\'world_x\').getCollection(\"countryinfo\")\n","mysql-py>"),
+                ("myColl2 = session.get_schema(\'world_x\').get_collection(\"countryinfo\")\n","mysql-py>"),
                 ("myColl2.modify(\"Name = :country\").set(\'Soccer_World_Championships\',\'6\').bind(\'country\',\'Argentina\')\n","Query OK, 1 item affected"),
                 ("myColl2.modify(\"Name = :country\").unset(\'Soccer_World_Championships\').bind(\'country\',\'Argentina\')\n","Query OK, 1 item affected"),
                     ]
