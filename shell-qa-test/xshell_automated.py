@@ -4607,7 +4607,7 @@ class XShell_TestCases(unittest.TestCase):
                 ("myColl.find(\"Name = \'Mexico\'\").fields([\'_id\', \'Name\',\'geography.Region\',\'geography.Continent\']);\n","1 document"),
                 ("myColl.find(\"geography.Region = \'Central America\'\").fields([\'_id\', \'Name\','geography.Region\',\'geography.Continent\']).limit(4);\n","4 documents"),
                 ("\\py\n","mysql-py>"),
-                ("myColl2 = session.get_schema(\'world_x\').getCollection(\"countryinfo\")\n","mysql-py>"),
+                ("myColl2 = session.get_schema(\'world_x\').get_collection(\"countryinfo\")\n","mysql-py>"),
                 ("myColl2.find(\"Name = \'Mexico\'\").fields([\'_id\', \'Name\',\'geography.Region\',\'geography.Continent\'])\n","1 document"),
                 ("myColl2.find(\"geography.Region = \'Central America\'\").fields([\'_id\', \'Name\','geography.Region\',\'geography.Continent\']).limit(4)\n","4 documents"),
                     ]
@@ -4665,7 +4665,7 @@ class XShell_TestCases(unittest.TestCase):
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
                        '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--node','--schema=sakila', '--js']
 
-      x_cmds = [("session.getStest_MYS_323_00 chema(\'world_x\').getCollection(\"countryinfo\").existsInDatabase();\n","true"),
+      x_cmds = [("session.getSchema(\'world_x\').getCollection(\"countryinfo\").existsInDatabase();\n","true"),
                 # ("var myColl = session.getSchema(\'world_x\').getCollection(\"countryinfo\");\n","mysql-js>"),
                 # ("myColl.modify(\"Name = :country\").set(\'Soccer_World_Championships\',\'3\').bind(\'country\',\'Argentina\');\n","Query OK, 1 item affected"),
                 # ("myColl.modify(\"Name = :country\").unset(\'Soccer_World_Championships\').bind(\'country\',\'Argentina\');\n","Query OK, 1 item affected"),
@@ -7037,11 +7037,11 @@ class XShell_TestCases(unittest.TestCase):
       init_command = [MYSQL_SHELL, '--interactive=full', '--uri',
                       '{0}:{1}@{2}:{3}/{4}'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host, LOCALHOST.xprotocol_port, "sakila"), '--node', '--py']
       x_cmds = [("session.sql(\"create view actor_list2 as select actor_id as id, first_name as name, last_name as lname from actor;\").execute()\n", "Query OK"),
-                ("view = session.getSchema('sakila').getTable('actor_list2')\n", ""),
+                ("view = session.get_schema('sakila').get_table('actor_list2')\n", ""),
                 ("view.insert().values(250, 'XShellName','XShellLastName').execute()\n", "Query OK, 1 item affected"),
                 ("view.update().set('lname','XShellUpd').where('id=250').execute()\n", "Query OK, 1 item affected"),
                 ("view.delete().where('id=250').execute()\n", "Query OK, 1 item affected"),
-                ("session.dropView('sakila','actor_list2')\n", "Query OK")
+                ("session.drop_view('sakila','actor_list2')\n", "Query OK")
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
