@@ -4587,7 +4587,7 @@ class XShell_TestCases(unittest.TestCase):
                 ("\\py\n","mysql-py>"),
                 ("session.drop_collection(\"sakila\",\"test_collection_py\")\n", "mysql-py>"),
                 ("session.get_schema(\'sakila\').create_collection(\"test_collection_py\")\n", "mysql-py>"),
-                ("session.get_schema(\'sakila\').get_collection(\"test_collection_py\").exists_in_database()\n","true"),
+                ("session.get_schema('sakila').get_collection(\"test_collection_py\").exists_in_database()\n","true"),
                 ("myColl2 = session.get_schema(\'sakila\').get_collection(\"test_collection_py\")\n","mysql-py>"),
                 ("myColl2.add([{ \"name\": \"TestPy2\", \"lastname\":\"lastnamePy2\"},{ \"name\": \"TestPy3\", \"lastname\":\"lastnamePy3\"}])\n","Query OK"),
                 ("myColl2.add({ \"name\": \'TestPy1\', \"lastname\":\'lastnamePy1\'})\n","Query OK"),
@@ -4602,7 +4602,7 @@ class XShell_TestCases(unittest.TestCase):
       init_command = [MYSQL_SHELL, '--interactive=full', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
                        '-h' + LOCALHOST.host,'-P' + LOCALHOST.xprotocol_port, '--node','--schema=sakila', '--js']
 
-      x_cmds = [("session.getSchema(\'world_x\').getCollection(\"countryinfo\").existsInDatabase();\n","true"),
+      x_cmds = [("session.getSchema('world_x').getCollection('countryinfo').existsInDatabase();\n","true"),
                 ("var myColl = session.getSchema(\'world_x\').getCollection(\"countryinfo\");\n","mysql-js>"),
                 ("myColl.find(\"Name = \'Mexico\'\").fields([\'_id\', \'Name\',\'geography.Region\',\'geography.Continent\']);\n","1 document"),
                 ("myColl.find(\"geography.Region = \'Central America\'\").fields([\'_id\', \'Name\','geography.Region\',\'geography.Continent\']).limit(4);\n","4 documents"),
