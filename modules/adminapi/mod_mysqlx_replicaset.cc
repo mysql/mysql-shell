@@ -23,6 +23,11 @@
 #include "common/uuid/include/uuid_gen.h"
 #include "utils/utils_general.h"
 #include "../mysqlxtest_utils.h"
+#include "xerrmsg.h"
+#include "mysqlx_connection.h"
+#include "shellcore/shell_core_options.h"
+#include "common/process_launcher/process_launcher.h"
+#include "../mod_mysql_session.h"
 
 #include <sstream>
 #include <iostream>
@@ -143,6 +148,8 @@ shcore::Value ReplicaSet::add_instance_(const shcore::Argument_list &args)
 
 shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args)
 {
+  shcore::Value ret_val;
+
   bool seed_instance = false;
   std::string uri;
   shcore::Value::Map_type_ref options; // Map with the connection data
@@ -153,12 +160,11 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args)
   std::string host;
   int port = 0;
   std::string sock;
-  std::string schema;
   std::string ssl_ca;
   std::string ssl_cert;
   std::string ssl_key;
 
-  std::vector<std::string> valid_options = { "host", "port", "socket", "ssl_ca", "ssl_cert", "ssl_key", "ssl_key" };
+  std::vector<std::string> valid_options = { "host", "port", "dbUser", "socket", "ssl_ca", "ssl_cert", "ssl_key", "ssl_key" };
 
   // NOTE: This function is called from either the add_instance_ on this class
   //       or the add_instance in Farm class, hence this just throws exceptions
@@ -196,6 +202,9 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args)
   if (options->has_key("port"))
     port = (*options)["port"].as_int();
 
+  if (options->has_key("dbUser"))
+    user = (*options)["dbUser"].as_string();
+
   if (options->has_key("socket"))
     sock = (*options)["socket"].as_string();
 
@@ -219,37 +228,256 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args)
   if (!options->has_key("host"))
     throw shcore::Exception::argument_error("Missing required value for hostname.");
 
-  // Add the Instance on the Metadata Schema
-  // TODO!
+  std::string instance_admin_user = _metadata_storage->get_instance_admin_user(get_id());
+  std::string instance_admin_user_password = _metadata_storage->get_instance_admin_user_password(get_id());
+  std::string replication_user_password = _metadata_storage->get_replication_user_password(get_id());
 
-  std::string session_user = _metadata_storage->get_admin_session()->get_user();
-  std::string session_password = _metadata_storage->get_admin_session()->get_password();
+  // check if we have to create the user on the Instance
+  // TODO: what if someone already created the instance_admin user?
+  if (instance_admin_user == "instance_admin")
+  {
+    shcore::Argument_list args;
+    Value::Map_type_ref options_session(new shcore::Value::Map_type);
 
-  /*
-    std::string instance_admin_user = _metadata_storage->get_instance_admin_user(get_id());
-    std::string instance_admin_user_password = _metadata_storage->get_instance_admin_user_password(get_id());
+    (*options_session)["host"] = shcore::Value(host);
+    (*options_session)["port"] = shcore::Value(port);
 
-    // check if we have to create the user on the Instance
-    if (instance_admin_user == "instance_admin")
-    {
-    // TODO: create the user on the instance
-    }
-
-    // Call the gadget to bootstrap the group with this instance
-    if (seed_instance)
-    {
-    // Call mysqlprovision to bootstrap the group using "start"
-    }
+    if (!user.empty())
+      (*options_session)["dbUser"] = shcore::Value(user);
     else
+      (*options_session)["dbUser"] = shcore::Value("root");
+
+    (*options_session)["dbPassword"] = shcore::Value("root"); // TODO: create interactive mode to query for the password
+
+    args.push_back(shcore::Value(options_session));
+
+    auto session = mysh::connect_session(args, mysh::Classic);
+    mysh::mysql::ClassicSession *classic = dynamic_cast<mysh::mysql::ClassicSession*>(session.get());
+
+    std::string query = "CREATE USER 'instance_admin'@'" + host + "' IDENTIFIED BY '" + instance_admin_user_password + "'";
+
+    args.clear();
+    args.push_back(shcore::Value(query));
+
+    classic->run_sql(args);
+
+    query = "GRANT PROCESS, RELOAD, REPLICATION CLIENT, REPLICATION SLAVE ON *.* TO 'instance_admin'@'" + host + "'";
+
+    args.clear();
+    args.push_back(shcore::Value(query));
+
+    classic->run_sql(args);
+
+    query = "CREATE USER 'replication_user'@'%' IDENTIFIED BY '" + replication_user_password + "'";
+
+    args.clear();
+    args.push_back(shcore::Value(query));
+
+    classic->run_sql(args);
+
+    query = "GRANT REPLICATION SLAVE ON *.* to 'replication_user'@'%'";
+
+    args.clear();
+    args.push_back(shcore::Value(query));
+
+    classic->run_sql(args);
+  }
+
+  // Call the gadget to bootstrap the group with this instance
+  if (seed_instance)
+  {
+    // Call mysqlprovision to bootstrap the group using "start"
+    std::string gadgets_path = (*shcore::Shell_core_options::get())[SHCORE_GADGETS_PATH].as_string();
+
+    std::string instance_cmd = "--instance=" + user + "@" + host + ":" + std::to_string(port);
+    std::string replication_user = "--replication-user=replication_user";
+    const char *args_script[] = { "python", gadgets_path.c_str(), "start-replicaset", instance_cmd.c_str(), replication_user.c_str(), "--stdin", NULL };
+
+    ngcommon::Process_launcher p("python", args_script);
+
+    std::string buf;
+    char c;
+    std::string success("Operation completed with success.");
+    std::string password = "root\n"; // TODO: interactive wrapper to query it
+    std::string replication_password = replication_user_password + "\n";
+    std::string error;
+
+#ifdef WIN32
+    success += "\r\n";
+#else
+    success += "\n";
+#endif
+
+    try
     {
+      p.write(password.c_str(), password.length());
+    }
+    catch (shcore::Exception &e)
+    {
+      throw shcore::Exception::runtime_error(e.what());
+    }
+
+    try
+    {
+      p.write(replication_password.c_str(), replication_password.length());
+    }
+    catch (shcore::Exception &e)
+    {
+      throw shcore::Exception::runtime_error(e.what());
+    }
+
+    bool read_error = false;
+
+    while (p.read(&c, 1) > 0)
+    {
+      buf += c;
+      if (c == '\n')
+      {
+        if ((buf.find("ERROR") != std::string::npos))
+          read_error = true;
+
+        if (read_error)
+          error += buf;
+
+        if (strcmp(success.c_str(), buf.c_str()) == 0)
+        {
+          std::string s_out = "The instance: " + host + ":" + std::to_string(port) + " was successfully added as Seed";
+          ret_val = shcore::Value(s_out);
+          break;
+        }
+        buf = "";
+      }
+    }
+
+    if (read_error)
+      throw shcore::Exception::logic_error(error);
+
+    p.wait();
+
+    // OK, if we reached here without errors we can update the metadata with the host
+    _metadata_storage->insert_host(args);
+
+    // And the instance
+    uint64_t host_id = _metadata_storage->get_host_id(host);
+
+    shcore::Argument_list args_instance;
+    Value::Map_type_ref options_instance(new shcore::Value::Map_type);
+    args_instance.push_back(shcore::Value(options_instance));
+
+    (*options_instance)["role"] = shcore::Value("master");
+    (*options_instance)["mode"] = shcore::Value("rw");
+
+    // TODO: construct properly the addresses
+    std::string address = host + ":" + std::to_string(port);
+    (*options_instance)["addresses"] = shcore::Value(address);
+
+    _metadata_storage->insert_instance(args_instance, host_id, get_id());
+  }
+
+  else
+  {
     // We need to retrieve a peer instance, so let's use the Seed one
-    std::string peer_instance = _metadata_storage->get_seed_instance(_id);
+    std::string peer_instance = _metadata_storage->get_seed_instance(get_id());
 
     // Call mysqlprovision to join the instance on the group using "join"
-    }
-    */
+    std::string gadgets_path = (*shcore::Shell_core_options::get())[SHCORE_GADGETS_PATH].as_string();
 
-  return Value();
+    std::string instance_cmd = "--instance=" + user + "@" + host + ":" + std::to_string(port);
+    std::string replication_user = "--replication-user=replication_user";
+    std::string peer_cmd = "--peer-instance=" + user + "@" + peer_instance;
+    const char *args_script[] = { "python", gadgets_path.c_str(), "join-replicaset", instance_cmd.c_str(), replication_user.c_str(), peer_cmd.c_str(), "--stdin", NULL };
+
+    ngcommon::Process_launcher p("python", args_script);
+
+    std::string buf;
+    char c;
+    std::string success("Operation completed with success.");
+    std::string password = "root\n"; // TODO: interactive wrapper to query it
+    std::string replication_password = replication_user_password + "\n";
+    std::string error;
+
+#ifdef WIN32
+    success += "\r\n";
+#else
+    success += "\n";
+#endif
+
+    try
+    {
+      p.write(password.c_str(), password.length());
+    }
+    catch (shcore::Exception &e)
+    {
+      throw shcore::Exception::runtime_error(e.what());
+    }
+
+    try
+    {
+      p.write(replication_password.c_str(), replication_password.length());
+    }
+    catch (shcore::Exception &e)
+    {
+      throw shcore::Exception::runtime_error(e.what());
+    }
+
+    try
+    {
+      p.write(password.c_str(), password.length());
+    }
+    catch (shcore::Exception &e)
+    {
+      throw shcore::Exception::runtime_error(e.what());
+    }
+
+    bool read_error = false;
+
+    while (p.read(&c, 1) > 0)
+    {
+      buf += c;
+      if (c == '\n')
+      {
+        if ((buf.find("ERROR") != std::string::npos))
+          read_error = true;
+
+        if (read_error)
+          error += buf;
+
+        if (strcmp(success.c_str(), buf.c_str()) == 0)
+        {
+          std::string s_out = "The instance: " + host + ":" + std::to_string(port) + " was successfully added";
+          ret_val = shcore::Value(s_out);
+          break;
+        }
+        buf = "";
+      }
+    }
+
+    if (read_error)
+      throw shcore::Exception::logic_error(error);
+
+    p.wait();
+
+    // OK, if we reached here without errors we can update the metadata with the host
+    _metadata_storage->insert_host(args);
+
+    // And the instance
+    uint64_t host_id = _metadata_storage->get_host_id(host);
+
+    shcore::Argument_list args_instance;
+    Value::Map_type_ref options_instance(new shcore::Value::Map_type);
+    args_instance.push_back(shcore::Value(options_instance));
+
+    (*options_instance)["role"] = shcore::Value("hotSpare");
+    (*options_instance)["mode"] = shcore::Value("ro");
+
+    // TODO: construct properly the addresses
+    std::string address = host + ":" + std::to_string(port);
+    (*options_instance)["addresses"] = shcore::Value(address);
+
+    _metadata_storage->insert_instance(args_instance, host_id, get_id());
+  }
+
+  return ret_val;
 }
 
 #if DOXYGEN_CPP

@@ -209,9 +209,7 @@ Value AdminSession::get_member(const std::string &prop) const
   // retrieve it since it may throw invalid member otherwise
   // If not on the parent classes and not here then we can safely assume
   // it is a schema and attempt loading it as such
-  if (ShellAdminSession::has_member(prop))
-    ret_val = ShellAdminSession::get_member(prop);
-  else if (prop == "defaultFarm")
+  if (prop == "defaultFarm")
   {
     // If there is a default farm and we have the name, retrieve it with the next call
     if (!_default_farm.empty())
@@ -233,6 +231,8 @@ Value AdminSession::get_member(const std::string &prop) const
     else
       throw Exception::logic_error("There is no default Farm.");
   }
+  else if (ShellAdminSession::has_member(prop))
+    ret_val = ShellAdminSession::get_member(prop);
 
   return ret_val;
 }
@@ -296,6 +296,7 @@ shcore::Value AdminSession::create_farm(const shcore::Argument_list &args)
   std::string farm_admin_type = "local"; // Default is local
   std::string instance_admin_user = "instance_admin"; // Default is instance_admin
   std::string farm_reader_user = "farm_reader"; // Default is farm_reader
+  std::string replication_user = "replication_user"; // Default is replication_user
 
   std::string instance_admin_user_password;
 
@@ -381,6 +382,8 @@ shcore::Value AdminSession::create_farm(const shcore::Argument_list &args)
       farm->set_instance_admin_user_password(instance_admin_user_password);
       farm->set_farm_reader_user(farm_reader_user);
       farm->set_farm_reader_user_password(generate_password(PASSWORD_LENGHT));
+      farm->set_replication_user(replication_user);
+      farm->set_replication_user_password(generate_password(PASSWORD_LENGHT));
 
       // For V1.0, let's see the Farm's description to "default"
       farm->set_description("Default Farm");

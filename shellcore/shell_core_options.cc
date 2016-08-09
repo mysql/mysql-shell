@@ -97,7 +97,18 @@ _options(new shcore::Value::Map_type)
   (*_options)[SHCORE_BATCH_CONTINUE_ON_ERROR] = Value::False();
   (*_options)[SHCORE_MULTIPLE_INSTANCES] = Value::False();
   (*_options)[SHCORE_USE_WIZARDS] = Value::True();
-  (*_options)[SHCORE_GADGETS_PATH] = Value("/home/miguel/work/mysql-ng/mysql-orchestrator/gadgets/python/front_end/mysqlprovision.py");
+
+  std::string gadgets_path;
+
+  if (getenv("MYSQLPROVISION") != NULL)
+    gadgets_path = std::string(getenv("MYSQLPROVISION")); // should be set to the mysqlprovision root dir
+
+  if (gadgets_path.empty())
+    throw shcore::Exception::logic_error("Please set the mysqlprovision path using the environmental variable: MYSQLPROVISION.");
+
+  std::string mysqlprovision_path = gadgets_path + "/gadgets/python/front_end/mysqlprovision.py";
+
+  (*_options)[SHCORE_GADGETS_PATH] = Value(mysqlprovision_path.c_str());
 }
 
 Shell_core_options::~Shell_core_options()

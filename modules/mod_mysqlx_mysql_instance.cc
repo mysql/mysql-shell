@@ -26,6 +26,7 @@
 #include "shellcore/types.h"
 #include "shellcore/types_cpp.h"
 #include "modules/mysqlxtest_utils.h"
+#include "shellcore/interactive_object_wrapper.h"
 
 #include <boost/lexical_cast.hpp>
 
@@ -37,16 +38,24 @@ using namespace mysh::mysqlx;
 REGISTER_MODULE(MysqlInstance, mysql_instance)
 {
   REGISTER_VARARGS_FUNCTION(MysqlInstance, validate_instance, validateInstance);
+  REGISTER_VARARGS_FUNCTION(MysqlInstance, deploy_local_instance, deployLocalInstance);
 
   // Set the python environmental variable and the gadgets path
-  // TODO: set the env var depending on gadgets_path.
 
   std::string current_python_path = "";
+  std::string gadgets_path;
+
+  if (getenv("MYSQLPROVISION") != NULL)
+    gadgets_path = std::string(getenv("MYSQLPROVISION")); // should be set to the mysqlprovision root dir
+
+  if (gadgets_path.empty())
+    throw shcore::Exception::logic_error("Please set the mysqlprovision path using the environmental variable: MYSQLPROVISION.");
 
   if (getenv("PYTHONPATH") != NULL)
     current_python_path = std::string(getenv("PYTHONPATH"));
 
-  std::string python_path = current_python_path + ":" + "/home/miguel/work/mysql-ng/mysql-orchestrator/gadgets/python";
+  std::string python_path = current_python_path + ":" + gadgets_path + "/gadgets/python";
+
 #ifdef WIN32
   _putenv_s("PYTHONPATH", python_path.c_str());
 #else
@@ -64,7 +73,7 @@ DEFINE_FUNCTION(MysqlInstance, validate_instance)
   shcore::Value::Map_type_ref options; // Map with the connection data
 
   std::string protocol;
-  std::string user = "msandbox"; // TODO: get the user from the session
+  std::string user = "root"; // TODO: get the user from the session
   std::string host;
   int port = 0;
   std::string sock;
@@ -139,7 +148,7 @@ DEFINE_FUNCTION(MysqlInstance, validate_instance)
     std::string buf;
     char c;
     std::string success("Operation completed with success.");
-    std::string password = "msandbox\n"; // TODO: get the password from the session
+    std::string password = "root\n";
     std::string error;
 
 #ifdef WIN32
@@ -164,6 +173,7 @@ DEFINE_FUNCTION(MysqlInstance, validate_instance)
       buf += c;
       if (c == '\n')
       {
+        std::cout << "buf: " << buf << "\n";
         if ((buf.find("ERROR") != std::string::npos))
           read_error = true;
 
@@ -186,6 +196,144 @@ DEFINE_FUNCTION(MysqlInstance, validate_instance)
     p.wait();
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION("validateInstance");
+
+  return ret_val;
+}
+
+DEFINE_FUNCTION(MysqlInstance, deploy_local_instance)
+{
+  args.ensure_count(1, "deployLocalInstance");
+
+  shcore::Value ret_val;
+
+  shcore::Value::Map_type_ref options; // Map with the connection data
+
+  int port = 0;
+  int portx = 0;
+  std::string data_dir;
+
+  std::vector<std::string> valid_options = {"port", "portx", "dataDir"};
+
+  try
+  {
+    options = args.map_at(0);
+
+    if (options->size() == 0)
+      throw shcore::Exception::argument_error("Options empty.");
+
+    for (shcore::Value::Map_type::iterator i = options->begin(); i != options->end(); ++i)
+    {
+      if ((std::find(valid_options.begin(), valid_options.end(), i->first) == valid_options.end()))
+        throw shcore::Exception::argument_error("Unexpected argument " + i->first + " on connection data.");
+    }
+
+    if (options->has_key("port"))
+      port = (*options)["port"].as_int();
+
+    if (options->has_key("portx"))
+      portx = (*options)["portx"].as_int();
+
+    if (options->has_key("dataDir"))
+      data_dir = (*options)["dataDir"].as_string();
+
+    std::string gadgets_path = (*shcore::Shell_core_options::get())[SHCORE_GADGETS_PATH].as_string();
+
+    std::vector<std::string> sandbox_args;
+    std::string arg;
+
+    if (port != 0)
+    {
+      arg = "--port=" + std::to_string(port);
+      sandbox_args.push_back(arg);
+    }
+
+    if (portx !=0)
+    {
+      arg = "--mysqlx-port=" +std::to_string(portx);
+      sandbox_args.push_back(arg);
+    }
+
+    if (!data_dir.empty())
+    {
+      arg = "--sandboxdir=" + data_dir;
+      sandbox_args.push_back(arg);
+    }
+
+    char **args_script = new char*[10];
+    args_script[0] = const_cast<char*>("python");
+    args_script[1] = const_cast<char*>(gadgets_path.c_str());
+    args_script[2] = const_cast<char*>("sandbox");
+    args_script[3] = const_cast<char*>("start");
+
+    int i;
+
+    for(i = 0; i < sandbox_args.size(); i++)
+      args_script[i+4] = const_cast<char*>(sandbox_args[i].c_str());
+
+    args_script[i++ + 4] = const_cast<char*>("--stdin");
+    args_script[i++ + 4] = NULL;
+
+    ngcommon::Process_launcher p("python", const_cast<const char**>(args_script));
+
+    std::string buf, passwd, error, answer;
+    char c;
+    std::string success("Operation completed with success.");
+
+    // TODO: We're not a derived class of Interactive_object_wrapper, how to query for the password?
+    /*
+    if (password("Please enter a password for the root user of the MySQL Sandbox (root@localhost): ", answer))
+      passwd = answer;
+
+    if (passwd.empty())
+      throw shcore::Exception::argument_error("The password cannot be empty.");
+    */
+
+    passwd = "root\n"; // TODO: see above
+
+  #ifdef WIN32
+    success += "\r\n";
+  #else
+    success += "\n";
+  #endif
+
+    try
+    {
+      p.write(passwd.c_str(), passwd.length());
+    }
+    catch (shcore::Exception &e)
+    {
+      throw shcore::Exception::runtime_error(e.what());
+    }
+
+    bool read_error = false;
+
+    while (p.read(&c, 1) > 0)
+    {
+      buf += c;
+      if (c == '\n')
+      {
+        if ((buf.find("ERROR") != std::string::npos))
+          read_error = true;
+
+        if (read_error)
+          error += buf;
+
+        if (strcmp(success.c_str(), buf.c_str()) == 0)
+        {
+          std::string s_out = "Instance: localhost:" + std::to_string(port) + " successfully deployed.";
+          ret_val = shcore::Value(s_out);
+          break;
+        }
+        buf = "";
+      }
+    }
+
+    if (read_error)
+      throw shcore::Exception::logic_error(error);
+
+      p.wait();
+  }
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION("deployLocalInstance");
 
   return ret_val;
 }

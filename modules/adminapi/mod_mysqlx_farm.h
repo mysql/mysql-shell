@@ -66,6 +66,10 @@ namespace mysh
       void set_farm_reader_user(std::string user) { _farm_reader_user = user; };
       std::string get_farm_reader_user_password() { return _farm_reader_user_password; }
       void set_farm_reader_user_password(std::string password) { _farm_reader_user_password = password; };
+      std::string get_replication_user() { return _farm_replication_user; };
+      void set_replication_user(std::string user) { _farm_replication_user = user; };
+      std::string get_replication_user_password() { return _farm_reader_user_password; };
+      void set_replication_user_password(std::string password) { _farm_reader_user_password = password; };
 
 #if DOXYGEN_JS
       String getName();
@@ -109,6 +113,8 @@ namespace mysh
       std::string _instance_admin_user_password;
       std::string _farm_reader_user;
       std::string _farm_reader_user_password;
+      std::string _farm_replication_user;
+      std::string _farm_replication_user_password;
     };
   }
 }

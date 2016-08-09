@@ -331,7 +331,7 @@ namespace shcore
         parse_mysql_connstring(uri, uri_scheme, uri_user, uri_password, uri_host, uri_port, uri_sock, uri_database, pwd_found,
                                uri_ssl_ca, uri_ssl_cert, uri_ssl_key, set_defaults);
 
-        if (!uri_user.empty())
+        if (!uri_scheme.empty())
           (*ret_val)["scheme"] = Value(uri_scheme);
 
         if (!uri_user.empty())

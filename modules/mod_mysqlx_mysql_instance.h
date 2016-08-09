@@ -32,8 +32,10 @@ namespace mysh
     DECLARE_MODULE(MysqlInstance, mysql_instance);
 
     DECLARE_FUNCTION(validateInstance);
+    DECLARE_FUNCTION(deployLocalInstance);
 
     shcore::Value validate_instance(const shcore::Argument_list &args);
+    shcore::Value deploy_local_instance(const shcore::Argument_list &args);
     shcore::Value clone_instance(const shcore::Argument_list &args);
     shcore::Value configure_instance(const shcore::Argument_list &args);
     shcore::Value reset_instance(const shcore::Argument_list &args);
