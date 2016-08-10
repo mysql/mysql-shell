@@ -24,26 +24,26 @@ validateMember(members, 'get_farm')
 validateMember(members, 'drop_metadata_schema')
 validateMember(members, 'reset_session')
 
-#@# AdminSession: create_farm errors
+#@# Dba: create_farm errors
 farm = dba.create_farm()
 farm = dba.create_farm(5)
 farm = dba.create_farm('')
 
-#@# AdminSession: create_farm with interaction
+#@# Dba: create_farm with interaction
 farm = dba.create_farm('devFarm')
 print farm
 
-#@# AdminSession: get_farm errors
+#@# Dba: get_farm errors
 farm = dba.get_farm()
 farm = dba.get_farm(5)
 farm = dba.get_farm('', 5)
 farm = dba.get_farm('')
 farm = dba.get_farm('devFarm')
 
-#@ AdminSession: get_farm
+#@ Dba: get_farm
 print farm
 
-#@# AdminSession: drop_farm errors
+#@# Dba: drop_farm errors
 # Need a node to reproduce the not empty error
 farm.add_seed_instance('192.168.1.1:33060')
 farm = dba.drop_farm()
@@ -52,11 +52,11 @@ farm = dba.drop_farm('')
 farm = dba.drop_farm('sample', 5)
 farm = dba.drop_farm('sample', {}, 5)
 
-#@ AdminSession: drop_farm interaction no options, cancel
+#@ Dba: drop_farm interaction no options, cancel
 farm = dba.drop_farm('sample')
 
-#@ AdminSession: drop_farm interaction missing option, ok error
+#@ Dba: drop_farm interaction missing option, ok error
 farm = dba.drop_farm('sample', {})
 
-#@ AdminSession: drop_farm interaction no options, ok success
+#@ Dba: drop_farm interaction no options, ok success
 farm = dba.drop_farm('devFarm')

@@ -17,8 +17,8 @@
  * 02110-1301  USA
  */
 
-#ifndef _MOD_MYSQLX_ADMIN_REPLICASET_H_
-#define _MOD_MYSQLX_ADMIN_REPLICASET_H_
+#ifndef _MOD_DBA_ADMIN_REPLICASET_H_
+#define _MOD_DBA_ADMIN_REPLICASET_H_
 
 #include "shellcore/types.h"
 #include "shellcore/types_cpp.h"
@@ -88,4 +88,4 @@ namespace mysh
   }
 }
 
-#endif  // _MOD_MYSQLX_ADMIN_REPLICASET_H_
+#endif  // _MOD_DBA_ADMIN_REPLICASET_H_

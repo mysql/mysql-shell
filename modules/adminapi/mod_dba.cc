@@ -37,18 +37,18 @@ using namespace shcore;
 
 #define PASSWORD_LENGHT 16
 
-AdminSession::AdminSession(IShell_core* owner) :
+Dba::Dba(IShell_core* owner) :
 _shell_core(owner)
 {
   init();
 }
 
-bool AdminSession::operator == (const Object_bridge &other) const
+bool Dba::operator == (const Object_bridge &other) const
 {
   return class_name() == other.class_name() && this == &other;
 }
 
-void AdminSession::init()
+void Dba::init()
 {
   // In case we are going to keep a cache of Farms
   // If not, _farms can be removed
@@ -57,16 +57,16 @@ void AdminSession::init()
   add_property("defaultFarm", "getDefaultFarm");
 
   // Pure functions
-  add_method("resetSession", std::bind(&AdminSession::reset_session, this, _1), "session", shcore::Object, NULL);
-  add_method("createFarm", std::bind(&AdminSession::create_farm, this, _1), "farmName", shcore::String, NULL);
-  add_method("dropFarm", std::bind(&AdminSession::drop_farm, this, _1), "farmName", shcore::String, NULL);
-  add_method("getFarm", std::bind(&AdminSession::get_farm, this, _1), "farmName", shcore::String, NULL);
-  add_method("dropMetadataSchema", std::bind(&AdminSession::drop_metadata_schema, this, _1), "data", shcore::Map, NULL);
+  add_method("resetSession", std::bind(&Dba::reset_session, this, _1), "session", shcore::Object, NULL);
+  add_method("createFarm", std::bind(&Dba::create_farm, this, _1), "farmName", shcore::String, NULL);
+  add_method("dropFarm", std::bind(&Dba::drop_farm, this, _1), "farmName", shcore::String, NULL);
+  add_method("getFarm", std::bind(&Dba::get_farm, this, _1), "farmName", shcore::String, NULL);
+  add_method("dropMetadataSchema", std::bind(&Dba::drop_metadata_schema, this, _1), "data", shcore::Map, NULL);
 
   _metadata_storage.reset(new MetadataStorage(this));
 }
 
-std::string AdminSession::generate_password(int password_lenght)
+std::string Dba::generate_password(int password_lenght)
 {
   std::random_device rd;
   std::string pwd;
@@ -79,7 +79,7 @@ std::string AdminSession::generate_password(int password_lenght)
   return pwd;
 }
 
-std::shared_ptr<ShellDevelopmentSession> AdminSession::get_active_session()
+std::shared_ptr<ShellDevelopmentSession> Dba::get_active_session()
 {
   std::shared_ptr<ShellDevelopmentSession> ret_val;
   if (_custom_session)
@@ -111,22 +111,22 @@ std::shared_ptr<ShellDevelopmentSession> AdminSession::get_active_session()
 * \return A string representing the connection data.
 */
 #if DOXYGEN_JS
-String AdminSession::getUri(){}
+String Dba::getUri(){}
 #elif DOXYGEN_PY
-str AdminSession::get_uri(){}
+str Dba::get_uri(){}
 #endif
 /**
 * Retrieves the Farm configured as default on this Metadata instance.
 * \return A Farm object or Null
 */
 #if DOXYGEN_JS
-Farm AdminSession::getDefaultFarm(){}
+Farm Dba::getDefaultFarm(){}
 #elif DOXYGEN_PY
-Farm AdminSession::get_default_farm(){}
+Farm Dba::get_default_farm(){}
 #endif
 #endif
 
-Value AdminSession::get_member(const std::string &prop) const
+Value Dba::get_member(const std::string &prop) const
 {
   // Retrieves the member first from the parent
   Value ret_val;
@@ -170,12 +170,12 @@ Value AdminSession::get_member(const std::string &prop) const
 * \sa Farm
 */
 #if DOXYGEN_JS
-Farm AdminSession::getFarm(String name){}
+Farm Dba::getFarm(String name){}
 #elif DOXYGEN_PY
-Farm AdminSession::get_farm(str name){}
+Farm Dba::get_farm(str name){}
 #endif
 
-shcore::Value AdminSession::get_farm(const shcore::Argument_list &args) const
+shcore::Value Dba::get_farm(const shcore::Argument_list &args) const
 {
   Value ret_val;
   args.ensure_count(1, get_function_name("getFarm").c_str());
@@ -209,11 +209,11 @@ shcore::Value AdminSession::get_farm(const shcore::Argument_list &args) const
  * \sa Farm
  */
 #if DOXYGEN_JS
-Farm AdminSession::createFarm(String name, String farmAdminPassword, JSON options){}
+Farm Dba::createFarm(String name, String farmAdminPassword, JSON options){}
 #elif DOXYGEN_PY
-Farm AdminSession::create_farm(str name, str farm_admin_password, JSON options){}
+Farm Dba::create_farm(str name, str farm_admin_password, JSON options){}
 #endif
-shcore::Value AdminSession::create_farm(const shcore::Argument_list &args)
+shcore::Value Dba::create_farm(const shcore::Argument_list &args)
 {
   Value ret_val;
   args.ensure_count(2, 3, get_function_name("createFarm").c_str());
@@ -332,12 +332,12 @@ shcore::Value AdminSession::create_farm(const shcore::Argument_list &args)
  * \sa Farm
  */
 #if DOXYGEN_JS
-Undefined AdminSession::dropFarm(String name){}
+Undefined Dba::dropFarm(String name){}
 #elif DOXYGEN_PY
-None AdminSession::drop_farm(str name){}
+None Dba::drop_farm(str name){}
 #endif
 
-shcore::Value AdminSession::drop_farm(const shcore::Argument_list &args)
+shcore::Value Dba::drop_farm(const shcore::Argument_list &args)
 {
   args.ensure_count(1, 2, get_function_name("dropFarm").c_str());
 
@@ -394,12 +394,12 @@ shcore::Value AdminSession::drop_farm(const shcore::Argument_list &args)
  * \return nothing.
  */
 #if DOXYGEN_JS
-Undefined AdminSession::dropMetadataSchema(){}
+Undefined Dba::dropMetadataSchema(){}
 #elif DOXYGEN_PY
-None AdminSession::drop_metadata_schema(){}
+None Dba::drop_metadata_schema(){}
 #endif
 
-shcore::Value AdminSession::drop_metadata_schema(const shcore::Argument_list &args)
+shcore::Value Dba::drop_metadata_schema(const shcore::Argument_list &args)
 {
   args.ensure_count(1, get_function_name("dropMetadataSchema").c_str());
 
@@ -429,7 +429,7 @@ shcore::Value AdminSession::drop_metadata_schema(const shcore::Argument_list &ar
   return Value();
 }
 
-shcore::Value AdminSession::reset_session(const shcore::Argument_list &args)
+shcore::Value Dba::reset_session(const shcore::Argument_list &args)
 {
   args.ensure_count(0, 1, get_function_name("resetSession").c_str());
 

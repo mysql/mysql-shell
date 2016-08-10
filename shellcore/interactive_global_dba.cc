@@ -26,16 +26,16 @@
 using namespace std::placeholders;
 using namespace shcore;
 
-void Global_admin::init()
+void Global_dba::init()
 {
-  add_method("dropFarm", std::bind(&Global_admin::drop_farm, this, _1), "name", shcore::String, NULL);
-  add_method("isOpen", std::bind(&Global_admin::is_open, this, _1), NULL);
-  add_method("createFarm", std::bind(&Global_admin::create_farm, this, _1), "name", shcore::String, NULL);
-  add_method("dropMetadataSchema", std::bind(&Global_admin::drop_metadata_schema, this, _1), "data", shcore::Map, NULL);
+  add_method("dropFarm", std::bind(&Global_dba::drop_farm, this, _1), "name", shcore::String, NULL);
+  add_method("isOpen", std::bind(&Global_dba::is_open, this, _1), NULL);
+  add_method("createFarm", std::bind(&Global_dba::create_farm, this, _1), "name", shcore::String, NULL);
+  add_method("dropMetadataSchema", std::bind(&Global_dba::drop_metadata_schema, this, _1), "data", shcore::Map, NULL);
   set_wrapper_function("isOpen");
 }
 
-shcore::Value Global_admin::drop_farm(const shcore::Argument_list &args)
+shcore::Value Global_dba::drop_farm(const shcore::Argument_list &args)
 {
   shcore::Value ret_val;
 
@@ -86,12 +86,12 @@ shcore::Value Global_admin::drop_farm(const shcore::Argument_list &args)
   return ret_val;
 }
 
-shcore::Value Global_admin::is_open(const shcore::Argument_list &args)
+shcore::Value Global_dba::is_open(const shcore::Argument_list &args)
 {
   return _target ? _target->call("isOpen", args) : shcore::Value::False();
 }
 
-shcore::Value Global_admin::create_farm(const shcore::Argument_list &args)
+shcore::Value Global_dba::create_farm(const shcore::Argument_list &args)
 {
   shcore::Value ret_val;
 
@@ -157,7 +157,7 @@ shcore::Value Global_admin::create_farm(const shcore::Argument_list &args)
   return ret_val;
 }
 
-shcore::Value Global_admin::drop_metadata_schema(const shcore::Argument_list &args)
+shcore::Value Global_dba::drop_metadata_schema(const shcore::Argument_list &args)
 {
   shcore::Value ret_val;
 

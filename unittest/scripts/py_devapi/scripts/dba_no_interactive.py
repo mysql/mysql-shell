@@ -22,7 +22,7 @@ validateMember(members, 'get_farm')
 validateMember(members, 'drop_metadata_schema')
 validateMember(members, 'reset_session')
 
-#@# AdminSession: create_farm errors
+#@# Dba: create_farm errors
 farm = dba.create_farm()
 farm = dba.create_farm(5)
 farm = dba.create_farm('', 5)
@@ -30,20 +30,20 @@ farm = dba.create_farm('devFarm')
 farm = dba.create_farm('devFarm', 'password')
 farm = dba.create_farm('devFarm', 'password')
 
-#@ AdminSession: create_farm
+#@ Dba: create_farm
 print farm
 
-#@# AdminSession: get_farm errors
+#@# Dba: get_farm errors
 farm = dba.get_farm()
 farm = dba.get_farm(5)
 farm = dba.get_farm('', 5)
 farm = dba.get_farm('')
 farm = dba.get_farm('devFarm')
 
-#@ AdminSession: get_farm
+#@ Dba: get_farm
 print farm
 
-#@# AdminSession: drop_farm errors
+#@# Dba: drop_farm errors
 # Need a node to reproduce the not empty error
 farm.add_seed_instance('192.168.1.1:33060')
 farm = dba.drop_farm()
@@ -54,5 +54,5 @@ farm = dba.drop_farm('sample', {}, 5)
 farm = dba.drop_farm('sample')
 farm = dba.drop_farm('devFarm')
 
-#@ AdminSession: drop_farm
+#@ Dba: drop_farm
 dba.drop_farm('devFarm', {"dropDefaultReplicaSet": True})

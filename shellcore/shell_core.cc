@@ -70,7 +70,7 @@ Shell_core::Shell_core(Interpreter_delegate *shdelegate)
   {
     set_global("db", shcore::Value::wrap<Global_schema>(new Global_schema(*this)));
     set_global("session", shcore::Value::wrap<Global_session>(new Global_session(*this)));
-    set_global("dba", shcore::Value::wrap<Global_admin>(new Global_admin(*this)));
+    set_global("dba", shcore::Value::wrap<Global_dba>(new Global_dba(*this)));
   }
 
   set_dba_global();
@@ -412,7 +412,7 @@ std::shared_ptr<mysh::ShellDevelopmentSession> Shell_core::get_dev_session()
  */
 void Shell_core::set_dba_global()
 {
-  std::shared_ptr<mysh::mysqlx::AdminSession>dba(new mysh::mysqlx::AdminSession(this));
+  std::shared_ptr<mysh::mysqlx::Dba>dba(new mysh::mysqlx::Dba(this));
 
   // When using the interactive wrappers instead of setting the global variables
   // The target Objects on the wrappers are set

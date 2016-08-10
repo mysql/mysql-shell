@@ -20,8 +20,8 @@
 // Interactive session access module for MySQL X sessions
 // Exposed as "session" in the shell
 
-#ifndef _MOD_MYSQLX_ADMIN_SESSION_H_
-#define _MOD_MYSQLX_ADMIN_SESSION_H_
+#ifndef _MOD_DBA_H_
+#define _MOD_DBA_H_
 
 #include "modules/mod_common.h"
 #include "shellcore/types_cpp.h"
@@ -40,13 +40,13 @@ namespace mysh
     * - Accessing available Farms.
     * - Farm management operations.
     */
-    class SHCORE_PUBLIC AdminSession : public shcore::Cpp_object_bridge, public std::enable_shared_from_this<AdminSession>
+    class SHCORE_PUBLIC Dba : public shcore::Cpp_object_bridge, public std::enable_shared_from_this<Dba>
     {
     public:
-      AdminSession(shcore::IShell_core* owner);
-      virtual ~AdminSession() { /*reset_session();*/ }
+      Dba(shcore::IShell_core* owner);
+      virtual ~Dba() { /*reset_session();*/ }
 
-      virtual std::string class_name() const { return "AdminSession"; };
+      virtual std::string class_name() const { return "Dba"; };
 
       virtual shcore::Value get_member(const std::string &prop) const;
 

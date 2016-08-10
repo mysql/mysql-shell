@@ -17,8 +17,8 @@
  * 02110-1301  USA
  */
 
-#ifndef _MOD_MYSQLX_METADATA_STORAGE_H_
-#define _MOD_MYSQLX_METADATA_STORAGE_H_
+#ifndef _MOD_DBA_METADATA_STORAGE_H_
+#define _MOD_DBA_METADATA_STORAGE_H_
 
 #include "mod_dba.h"
 #include "mod_dba_farm.h"
@@ -35,7 +35,7 @@ namespace mysh
     class MetadataStorage : public std::enable_shared_from_this<MetadataStorage>
     {
     public:
-      MetadataStorage(AdminSession* admin_session);
+      MetadataStorage(Dba* admin_session);
       ~MetadataStorage();
 
       bool metadata_schema_exists();
@@ -68,14 +68,14 @@ namespace mysh
       std::string get_replication_user_password(uint64_t rs_id);
       std::string get_seed_instance(uint64_t rs_id);
 
-      AdminSession* get_admin_session() { return _admin_session; };
+      Dba* get_dba() { return _dba; };
 
       std::shared_ptr<ShellBaseResult> execute_sql(const std::string &sql) const;
 
     private:
-      AdminSession* _admin_session;
+      Dba* _dba;
     };
   }
 }
 
-#endif  // _MOD_MYSQLX_METADATA_STORAGE_H_
+#endif  // _MOD_DBA_METADATA_STORAGE_H_

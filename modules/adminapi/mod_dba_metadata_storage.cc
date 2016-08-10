@@ -31,8 +31,8 @@ using namespace mysh;
 using namespace mysh::mysqlx;
 using namespace shcore;
 
-MetadataStorage::MetadataStorage(AdminSession* admin_session) :
-_admin_session(admin_session)
+MetadataStorage::MetadataStorage(Dba* dba) :
+_dba(dba)
 {
 }
 
@@ -44,7 +44,7 @@ std::shared_ptr<ShellBaseResult> MetadataStorage::execute_sql(const std::string 
 {
   shcore::Value ret_val;
 
-  auto session = _admin_session->get_active_session();
+  auto session = _dba->get_active_session();
   if (!session)
     throw Exception::metadata_error("The Metadata is inaccessible");
 
@@ -68,7 +68,7 @@ bool MetadataStorage::metadata_schema_exists()
   std::string found_object;
   std::string type = "Schema";
   std::string search_name = "farm_metadata_schema";
-  auto session = _admin_session->get_active_session();
+  auto session = _dba->get_active_session();
 
   if (session)
     found_object = session->db_object_exists(type, search_name, "");
@@ -86,7 +86,7 @@ void MetadataStorage::create_metadata_schema()
 
     size_t pos = 0;
     std::string token, delimiter = ";\n";
-    auto session = _admin_session->get_active_session();
+    auto session = _dba->get_active_session();
     while ((pos = query.find(delimiter)) != std::string::npos) {
       token = query.substr(0, pos);
 
@@ -384,7 +384,7 @@ void MetadataStorage::insert_instance(const shcore::Argument_list &args, uint64_
 
   // Insert the default ReplicaSet on the replicasets table
   query = "INSERT INTO farm_metadata_schema.instances (host_id, replicaset_id, mysql_server_uuid, instance_name,\
-                                                                                                                role, mode, addresses) VALUES ('" +
+                                                                                                                                              role, mode, addresses) VALUES ('" +
         std::to_string(host_id) + "', '" + std::to_string(rs_id) + "', '" + mysql_server_uuid + "', '" +
         instance_name + "', '" + role + "', '" + mode + "', '{\"mysqlClassic\": \"" + addresses + "\"}')";
 

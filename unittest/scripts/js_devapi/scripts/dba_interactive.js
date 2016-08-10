@@ -16,26 +16,26 @@ validateMember(members, 'getFarm');
 validateMember(members, 'dropMetadataSchema');
 validateMember(members, 'resetSession');
 
-//@# AdminSession: createFarm errors
+//@# Dba: createFarm errors
 var farm = dba.createFarm();
 var farm = dba.createFarm(5);
 var farm = dba.createFarm('');
 
-//@# AdminSession: createFarm with interaction
+//@# Dba: createFarm with interaction
 var farm = dba.createFarm('devFarm');
-print (farm)
+print(farm)
 
-//@# AdminSession: getFarm errors
+//@# Dba: getFarm errors
 var farm = dba.getFarm();
 var farm = dba.getFarm(5);
 var farm = dba.getFarm('', 5);
 var farm = dba.getFarm('');
 var farm = dba.getFarm('devFarm');
 
-//@ AdminSession: getFarm
+//@ Dba: getFarm
 print(farm);
 
-//@# AdminSession: dropFarm errors
+//@# Dba: dropFarm errors
 // Need a node to reproduce the not empty error
 farm.addSeedInstance(__host_port);
 var farm = dba.dropFarm();
@@ -44,11 +44,11 @@ var farm = dba.dropFarm('');
 var farm = dba.dropFarm('sample', 5);
 var farm = dba.dropFarm('sample', {}, 5);
 
-//@ AdminSession: dropFarm interaction no options, cancel
+//@ Dba: dropFarm interaction no options, cancel
 var farm = dba.dropFarm('sample');
 
-//@ AdminSession: dropFarm interaction missing option, ok error
+//@ Dba: dropFarm interaction missing option, ok error
 var farm = dba.dropFarm('sample', {});
 
-//@ AdminSession: dropFarm interaction no options, ok success
+//@ Dba: dropFarm interaction no options, ok success
 var farm = dba.dropFarm('devFarm');

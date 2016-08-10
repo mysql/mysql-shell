@@ -91,6 +91,8 @@ namespace shcore
       ASSERT_EQ("SN_SESSION_CONNECTED", n.name);
       ASSERT_EQ("NodeSession", n.sender->class_name());
 
+      this->ignore_notification("SN_SESSION_CONNECTED");
+
       _interactive_shell->process_line("\\connect " + _uri);
 
       ASSERT_EQ(0, _notifications.size());

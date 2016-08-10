@@ -20,17 +20,17 @@
 // Interactive DB access module
 // (the one exposed as the db variable in the shell)
 
-#ifndef _INTERACTIVE_GLOBAL_ADMIN_H_
-#define _INTERACTIVE_GLOBAL_ADMIN_H_
+#ifndef _INTERACTIVE_GLOBAL_DBA_H_
+#define _INTERACTIVE_GLOBAL_DBA_H_
 
 #include "interactive_object_wrapper.h"
 
 namespace shcore
 {
-  class SHCORE_PUBLIC Global_admin : public Interactive_object_wrapper
+  class SHCORE_PUBLIC Global_dba : public Interactive_object_wrapper
   {
   public:
-    Global_admin(Shell_core& shell_core) : Interactive_object_wrapper("admin", shell_core){ init(); }
+    Global_dba(Shell_core& shell_core) : Interactive_object_wrapper("dba", shell_core){ init(); }
 
     void init();
     //virtual void resolve() const;
@@ -42,4 +42,4 @@ namespace shcore
   };
 }
 
-#endif // _INTERACTIVE_GLOBAL_ADMIN_H_
+#endif // _INTERACTIVE_GLOBAL_DBA_H_

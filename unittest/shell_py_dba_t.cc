@@ -74,7 +74,7 @@ namespace shcore
     reset_shell();
 
     execute("\\connect " + _uri);
-    validate_interactive("mysqlx_admin_no_interactive.py");
+    validate_interactive("dba_no_interactive.py");
     execute("session.close()");
   }
 
@@ -84,7 +84,7 @@ namespace shcore
     reset_shell();
 
     execute("\\connect -n " + _uri);
-    validate_interactive("mysqlx_admin_no_interactive.py");
+    validate_interactive("dba_no_interactive.py");
     execute("session.close()");
   }
 
@@ -94,7 +94,7 @@ namespace shcore
     reset_shell();
 
     execute("\\connect -c " + _mysql_uri);
-    validate_interactive("mysqlx_admin_no_interactive.py");
+    validate_interactive("dba_no_interactive.py");
     execute("session.close()");
   }
 
@@ -106,7 +106,7 @@ namespace shcore
     execute("import mysqlx");
     execute("mySession = mysqlx.get_session('" + _uri + "')");
     execute("dba.reset_session(mySession)");
-    validate_interactive("mysqlx_admin_no_interactive.py");
+    validate_interactive("dba_no_interactive.py");
     execute("mySession.close()");
   }
 
@@ -118,7 +118,7 @@ namespace shcore
     execute("import mysqlx");
     execute("mySession = mysqlx.get_node_session('" + _uri + "')");
     execute("dba.reset_session(mySession)");
-    validate_interactive("mysqlx_admin_no_interactive.py");
+    validate_interactive("dba_no_interactive.py");
     execute("mySession.close()");
   }
 
@@ -130,7 +130,7 @@ namespace shcore
     execute("import mysql");
     execute("mySession = mysql.get_classic_session('" + _mysql_uri + "')");
     execute("dba.reset_session(mySession)");
-    validate_interactive("mysqlx_admin_no_interactive.py");
+    validate_interactive("dba_no_interactive.py");
     execute("mySession.close()");
   }
 
@@ -140,22 +140,22 @@ namespace shcore
     //@ Initialization
     output_handler.prompts.push_back("y");
 
-    //@# AdminSession: createFarm with interaction
+    //@# Dba: createFarm with interaction
     output_handler.passwords.push_back("testing");
 
-    //@ AdminSession: dropFarm interaction no options, cancel
+    //@ Dba: dropFarm interaction no options, cancel
     output_handler.passwords.push_back("n");
 
-    //@ AdminSession: dropFarm interaction missing option, ok error
+    //@ Dba: dropFarm interaction missing option, ok error
     output_handler.passwords.push_back("y");
 
-    //@ AdminSession: dropFarm interaction no options, ok success
+    //@ Dba: dropFarm interaction no options, ok success
     output_handler.passwords.push_back("y");
 
     execute("import mysqlx");
     execute("mySession = mysqlx.get_session('" + _uri + "')");
     execute("dba.reset_session(mySession)");
-    validate_interactive("mysqlx_admin_interactive.py");
+    validate_interactive("dba_interactive.py");
     execute("mySession.close()");
   }
 
@@ -165,22 +165,22 @@ namespace shcore
     //@ Initialization
     output_handler.prompts.push_back("y");
 
-    //@# AdminSession: createFarm with interaction
+    //@# Dba: createFarm with interaction
     output_handler.passwords.push_back("testing");
 
-    //@ AdminSession: dropFarm interaction no options, cancel
+    //@ Dba: dropFarm interaction no options, cancel
     output_handler.passwords.push_back("n");
 
-    //@ AdminSession: dropFarm interaction missing option, ok error
+    //@ Dba: dropFarm interaction missing option, ok error
     output_handler.passwords.push_back("y");
 
-    //@ AdminSession: dropFarm interaction no options, ok success
+    //@ Dba: dropFarm interaction no options, ok success
     output_handler.passwords.push_back("y");
 
     execute("import mysqlx");
     execute("mySession = mysqlx.get_node_session('" + _uri + "')");
     execute("dba.reset_session(mySession)");
-    validate_interactive("mysqlx_admin_interactive.py");
+    validate_interactive("dba_interactive.py");
     execute("mySession.close()");
   }
 
@@ -190,22 +190,22 @@ namespace shcore
     //@ Initialization
     output_handler.prompts.push_back("y");
 
-    //@# AdminSession: createFarm with interaction
+    //@# Dba: createFarm with interaction
     output_handler.passwords.push_back("testing");
 
-    //@ AdminSession: dropFarm interaction no options, cancel
+    //@ Dba: dropFarm interaction no options, cancel
     output_handler.passwords.push_back("n");
 
-    //@ AdminSession: dropFarm interaction missing option, ok error
+    //@ Dba: dropFarm interaction missing option, ok error
     output_handler.passwords.push_back("y");
 
-    //@ AdminSession: dropFarm interaction no options, ok success
+    //@ Dba: dropFarm interaction no options, ok success
     output_handler.passwords.push_back("y");
 
     execute("import mysql");
     execute("mySession = mysql.get_classic_session('" + _mysql_uri + "')");
     execute("dba.reset_session(mySession)");
-    validate_interactive("mysqlx_admin_interactive.py");
+    validate_interactive("dba_interactive.py");
     execute("mySession.close()");
   }
 
@@ -215,20 +215,20 @@ namespace shcore
     //@ Initialization
     output_handler.prompts.push_back("y");
 
-    //@# AdminSession: createFarm with interaction
+    //@# Dba: createFarm with interaction
     output_handler.passwords.push_back("testing");
 
-    //@ AdminSession: dropFarm interaction no options, cancel
+    //@ Dba: dropFarm interaction no options, cancel
     output_handler.passwords.push_back("n");
 
-    //@ AdminSession: dropFarm interaction missing option, ok error
+    //@ Dba: dropFarm interaction missing option, ok error
     output_handler.passwords.push_back("y");
 
-    //@ AdminSession: dropFarm interaction no options, ok success
+    //@ Dba: dropFarm interaction no options, ok success
     output_handler.passwords.push_back("y");
 
     execute("\\connect " + _uri);
-    validate_interactive("mysqlx_admin_interactive.py");
+    validate_interactive("dba_interactive.py");
     execute("mySession.close()");
   }
 
@@ -238,20 +238,20 @@ namespace shcore
     //@ Initialization
     output_handler.prompts.push_back("y");
 
-    //@# AdminSession: createFarm with interaction
+    //@# Dba: createFarm with interaction
     output_handler.passwords.push_back("testing");
 
-    //@ AdminSession: dropFarm interaction no options, cancel
+    //@ Dba: dropFarm interaction no options, cancel
     output_handler.passwords.push_back("n");
 
-    //@ AdminSession: dropFarm interaction missing option, ok error
+    //@ Dba: dropFarm interaction missing option, ok error
     output_handler.passwords.push_back("y");
 
-    //@ AdminSession: dropFarm interaction no options, ok success
+    //@ Dba: dropFarm interaction no options, ok success
     output_handler.passwords.push_back("y");
 
     execute("\\connect -n " + _uri);
-    validate_interactive("mysqlx_admin_interactive.py");
+    validate_interactive("dba_interactive.py");
     execute("mySession.close()");
   }
 
@@ -261,20 +261,20 @@ namespace shcore
     //@ Initialization
     output_handler.prompts.push_back("y");
 
-    //@# AdminSession: createFarm with interaction
+    //@# Dba: createFarm with interaction
     output_handler.passwords.push_back("testing");
 
-    //@ AdminSession: dropFarm interaction no options, cancel
+    //@ Dba: dropFarm interaction no options, cancel
     output_handler.passwords.push_back("n");
 
-    //@ AdminSession: dropFarm interaction missing option, ok error
+    //@ Dba: dropFarm interaction missing option, ok error
     output_handler.passwords.push_back("y");
 
-    //@ AdminSession: dropFarm interaction no options, ok success
+    //@ Dba: dropFarm interaction no options, ok success
     output_handler.passwords.push_back("y");
 
     execute("\\connect -c " + _mysql_uri);
-    validate_interactive("mysqlx_admin_interactive.py");
+    validate_interactive("dba_interactive.py");
   }
 
   TEST_F(Shell_py_dba_tests, farm_no_interactive_global_session_x)
@@ -283,7 +283,7 @@ namespace shcore
     reset_shell();
 
     execute("\\connect " + _uri);
-    validate_interactive("mysqlx_farm_no_interactive.py");
+    validate_interactive("dba_farm_no_interactive.py");
     execute("session.close()");
   }
 
@@ -293,7 +293,7 @@ namespace shcore
     reset_shell();
 
     execute("\\connect -n " + _uri);
-    validate_interactive("mysqlx_farm_no_interactive.py");
+    validate_interactive("dba_farm_no_interactive.py");
     execute("session.close()");
   }
 
@@ -303,7 +303,7 @@ namespace shcore
     reset_shell();
 
     execute("\\connect -c " + _mysql_uri);
-    validate_interactive("mysqlx_farm_no_interactive.py");
+    validate_interactive("dba_farm_no_interactive.py");
     execute("session.close()");
   }
 
@@ -315,7 +315,7 @@ namespace shcore
     execute("import mysqlx");
     execute("mySession = mysqlx.get_session('" + _uri + "')");
     execute("dba.reset_session(mySession)");
-    validate_interactive("mysqlx_farm_no_interactive.py");
+    validate_interactive("dba_farm_no_interactive.py");
     execute("mySession.close()");
   }
 
@@ -327,7 +327,7 @@ namespace shcore
     execute("import mysqlx");
     execute("mySession = mysqlx.get_node_session('" + _uri + "')");
     execute("dba.reset_session(mySession)");
-    validate_interactive("mysqlx_farm_no_interactive.py");
+    validate_interactive("dba_farm_no_interactive.py");
     execute("mySession.close()");
   }
 
@@ -339,7 +339,7 @@ namespace shcore
     execute("import mysql");
     execute("mySession = mysql.get_classic_session('" + _mysql_uri + "')");
     execute("dba.reset_session(mySession)");
-    validate_interactive("mysqlx_farm_no_interactive.py");
+    validate_interactive("dba_farm_no_interactive.py");
     execute("mySession.close()");
   }
 
@@ -349,22 +349,22 @@ namespace shcore
   //  //@ Initialization
   //  output_handler.prompts.push_back("y");
 
-  //  //@# AdminSession: createFarm with interaction
+  //  //@# Dba: createFarm with interaction
   //  output_handler.passwords.push_back("testing");
 
-  //  //@ AdminSession: dropFarm interaction no options, cancel
+  //  //@ Dba: dropFarm interaction no options, cancel
   //  output_handler.passwords.push_back("n");
 
-  //  //@ AdminSession: dropFarm interaction missing option, ok error
+  //  //@ Dba: dropFarm interaction missing option, ok error
   //  output_handler.passwords.push_back("y");
 
-  //  //@ AdminSession: dropFarm interaction no options, ok success
+  //  //@ Dba: dropFarm interaction no options, ok success
   //  output_handler.passwords.push_back("y");
 
   //  execute("import mysqlx");
   //  execute("mySession = mysqlx.get_session('" + _uri + "')");
   //  execute("dba.reset_session(mySession)");
-  //  validate_interactive("mysqlx_farm_interactive.py");
+  //  validate_interactive("dba_farm_interactive.py");
   //  execute("mySession.close()");
   //}
 
@@ -374,22 +374,22 @@ namespace shcore
   //  //@ Initialization
   //  output_handler.prompts.push_back("y");
 
-  //  //@# AdminSession: createFarm with interaction
+  //  //@# Dba: createFarm with interaction
   //  output_handler.passwords.push_back("testing");
 
-  //  //@ AdminSession: dropFarm interaction no options, cancel
+  //  //@ Dba: dropFarm interaction no options, cancel
   //  output_handler.passwords.push_back("n");
 
-  //  //@ AdminSession: dropFarm interaction missing option, ok error
+  //  //@ Dba: dropFarm interaction missing option, ok error
   //  output_handler.passwords.push_back("y");
 
-  //  //@ AdminSession: dropFarm interaction no options, ok success
+  //  //@ Dba: dropFarm interaction no options, ok success
   //  output_handler.passwords.push_back("y");
 
   //  execute("import mysqlx");
   //  execute("mySession = mysqlx.get_node_session('" + _uri + "')");
   //  execute("dba.reset_session(mySession)");
-  //  validate_interactive("mysqlx_farm_interactive.py");
+  //  validate_interactive("dba_farm_interactive.py");
   //  execute("mySession.close()");
   //}
 
@@ -399,22 +399,22 @@ namespace shcore
   //  //@ Initialization
   //  output_handler.prompts.push_back("y");
 
-  //  //@# AdminSession: createFarm with interaction
+  //  //@# Dba: createFarm with interaction
   //  output_handler.passwords.push_back("testing");
 
-  //  //@ AdminSession: dropFarm interaction no options, cancel
+  //  //@ Dba: dropFarm interaction no options, cancel
   //  output_handler.passwords.push_back("n");
 
-  //  //@ AdminSession: dropFarm interaction missing option, ok error
+  //  //@ Dba: dropFarm interaction missing option, ok error
   //  output_handler.passwords.push_back("y");
 
-  //  //@ AdminSession: dropFarm interaction no options, ok success
+  //  //@ Dba: dropFarm interaction no options, ok success
   //  output_handler.passwords.push_back("y");
 
   //  execute("mysql = require('mysql')");
   //  execute("mySession = mysql.get_classic_session('" + _mysql_uri + "')");
   //  execute("dba.reset_session(mySession)");
-  //  validate_interactive("mysqlx_farm_interactive.py");
+  //  validate_interactive("dba_farm_interactive.py");
   //  execute("mySession.close()");
   //}
 
@@ -424,20 +424,20 @@ namespace shcore
   //  //@ Initialization
   //  output_handler.prompts.push_back("y");
 
-  //  //@# AdminSession: createFarm with interaction
+  //  //@# Dba: createFarm with interaction
   //  output_handler.passwords.push_back("testing");
 
-  //  //@ AdminSession: dropFarm interaction no options, cancel
+  //  //@ Dba: dropFarm interaction no options, cancel
   //  output_handler.passwords.push_back("n");
 
-  //  //@ AdminSession: dropFarm interaction missing option, ok error
+  //  //@ Dba: dropFarm interaction missing option, ok error
   //  output_handler.passwords.push_back("y");
 
-  //  //@ AdminSession: dropFarm interaction no options, ok success
+  //  //@ Dba: dropFarm interaction no options, ok success
   //  output_handler.passwords.push_back("y");
 
   //  execute("\\connect " + _uri);
-  //  validate_interactive("mysqlx_farm_interactive.py");
+  //  validate_interactive("dba_farm_interactive.py");
   //  execute("mySession.close()");
   //}
 
@@ -447,20 +447,20 @@ namespace shcore
   //  //@ Initialization
   //  output_handler.prompts.push_back("y");
 
-  //  //@# AdminSession: createFarm with interaction
+  //  //@# Dba: createFarm with interaction
   //  output_handler.passwords.push_back("testing");
 
-  //  //@ AdminSession: dropFarm interaction no options, cancel
+  //  //@ Dba: dropFarm interaction no options, cancel
   //  output_handler.passwords.push_back("n");
 
-  //  //@ AdminSession: dropFarm interaction missing option, ok error
+  //  //@ Dba: dropFarm interaction missing option, ok error
   //  output_handler.passwords.push_back("y");
 
-  //  //@ AdminSession: dropFarm interaction no options, ok success
+  //  //@ Dba: dropFarm interaction no options, ok success
   //  output_handler.passwords.push_back("y");
 
   //  execute("\\connect -n " + _uri);
-  //  validate_interactive("mysqlx_farm_interactive.py");
+  //  validate_interactive("dba_farm_interactive.py");
   //  execute("mySession.close()");
   //}
 
@@ -470,20 +470,20 @@ namespace shcore
   //  //@ Initialization
   //  output_handler.prompts.push_back("y");
 
-  //  //@# AdminSession: createFarm with interaction
+  //  //@# Dba: createFarm with interaction
   //  output_handler.passwords.push_back("testing");
 
-  //  //@ AdminSession: dropFarm interaction no options, cancel
+  //  //@ Dba: dropFarm interaction no options, cancel
   //  output_handler.passwords.push_back("n");
 
-  //  //@ AdminSession: dropFarm interaction missing option, ok error
+  //  //@ Dba: dropFarm interaction missing option, ok error
   //  output_handler.passwords.push_back("y");
 
-  //  //@ AdminSession: dropFarm interaction no options, ok success
+  //  //@ Dba: dropFarm interaction no options, ok success
   //  output_handler.passwords.push_back("y");
 
   //  execute("\\connect -c " + _mysql_uri);
-  //  validate_interactive("mysqlx_farm_interactive.py");
+  //  validate_interactive("dba_farm_interactive.py");
   //}
 
   TEST_F(Shell_py_dba_tests, replica_set_no_interactive_global_session_x)
@@ -492,7 +492,7 @@ namespace shcore
     reset_shell();
 
     execute("\\connect " + _uri);
-    validate_interactive("mysqlx_replica_set_no_interactive.py");
+    validate_interactive("dba_replica_set_no_interactive.py");
     execute("session.close()");
   }
 
@@ -502,7 +502,7 @@ namespace shcore
     reset_shell();
 
     execute("\\connect -n " + _uri);
-    validate_interactive("mysqlx_replica_set_no_interactive.py");
+    validate_interactive("dba_replica_set_no_interactive.py");
     execute("session.close()");
   }
 
@@ -512,7 +512,7 @@ namespace shcore
     reset_shell();
 
     execute("\\connect -c " + _mysql_uri);
-    validate_interactive("mysqlx_replica_set_no_interactive.py");
+    validate_interactive("dba_replica_set_no_interactive.py");
     execute("session.close()");
   }
 
@@ -524,7 +524,7 @@ namespace shcore
     execute("import mysqlx");
     execute("mySession = mysqlx.get_session('" + _uri + "')");
     execute("dba.reset_session(mySession)");
-    validate_interactive("mysqlx_replica_set_no_interactive.py");
+    validate_interactive("dba_replica_set_no_interactive.py");
     execute("mySession.close()");
   }
 
@@ -536,7 +536,7 @@ namespace shcore
     execute("import mysqlx");
     execute("mySession = mysqlx.get_node_session('" + _uri + "')");
     execute("dba.reset_session(mySession)");
-    validate_interactive("mysqlx_replica_set_no_interactive.py");
+    validate_interactive("dba_replica_set_no_interactive.py");
     execute("mySession.close()");
   }
 
@@ -548,7 +548,7 @@ namespace shcore
     execute("mysql = require('mysql')");
     execute("mySession = mysql.get_classic_session('" + _mysql_uri + "')");
     execute("dba.reset_session(mySession)");
-    validate_interactive("mysqlx_replica_set_no_interactive.py");
+    validate_interactive("dba_replica_set_no_interactive.py");
     execute("mySession.close()");
   }
 }
