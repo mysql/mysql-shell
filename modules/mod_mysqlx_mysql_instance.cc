@@ -175,7 +175,6 @@ DEFINE_FUNCTION(MysqlInstance, validate_instance)
       buf += c;
       if (c == '\n')
       {
-        std::cout << "buf: " << buf << "\n";
         if ((buf.find("ERROR") != std::string::npos))
           read_error = true;
 
