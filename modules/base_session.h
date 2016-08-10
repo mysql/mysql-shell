@@ -62,6 +62,9 @@ namespace mysh
     virtual void set_option(const char *option, int value) {}
     virtual uint64_t get_connection_id() const { return 0; }
 
+    std::string get_user() { return _user; }
+    std::string get_password() { return _password; }
+
   protected:
     std::string get_quoted_name(const std::string& name);
     virtual int get_default_port() = 0;
@@ -85,7 +88,6 @@ namespace mysh
     void init();
 
     shcore::Value is_open(const shcore::Argument_list &args);
-
   };
 
 #if DOXYGEN_CPP
@@ -107,6 +109,7 @@ namespace mysh
 
     virtual shcore::Value get_schema(const shcore::Argument_list &args) const = 0;
     virtual shcore::Value get_schemas(const shcore::Argument_list &args) const = 0;
+    virtual shcore::Value execute_sql(const std::string& query, const shcore::Argument_list &args) const = 0;
 
   protected:
     std::string _default_schema;
@@ -117,18 +120,7 @@ namespace mysh
     void init();
   };
 
-  // Abstraction layer with core elements for admin sessions
-  // This is the parent class for admin sessions implemented in both protocols
-  class SHCORE_PUBLIC ShellAdminSession : public ShellBaseSession
-  {
-    // NOTE: At the moment this class is just to keep abstraction consistent
-  protected:
-    mutable std::shared_ptr<shcore::Value::Map_type> _farms;
-    mutable std::string _default_farm;
-  };
-
   std::shared_ptr<mysh::ShellDevelopmentSession> SHCORE_PUBLIC connect_session(const shcore::Argument_list &args, SessionType session_type);
-  std::shared_ptr<mysh::ShellAdminSession> SHCORE_PUBLIC connect_admin_session(const shcore::Argument_list &args);
 };
 
 #endif

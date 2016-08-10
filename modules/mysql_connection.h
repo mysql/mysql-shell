@@ -104,7 +104,7 @@ namespace mysh
     class SHCORE_PUBLIC Result
     {
     public:
-      Result(std::shared_ptr<Connection> owner, my_ulonglong affected_rows, unsigned int warning_count, const char *info);
+      Result(std::shared_ptr<Connection> owner, my_ulonglong affected_rows, unsigned int warning_count, uint64_t last_insert_id, const char *info);
       virtual ~Result();
 
       void reset(std::shared_ptr<MYSQL_RES> res, unsigned long duration);

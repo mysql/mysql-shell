@@ -40,12 +40,12 @@ public:
   shcore::Interpreter_delegate deleg;
   std::string std_err;
   std::string std_out;
-  std::string ret_pwd;
 
   void validate_stdout_content(const std::string& content, bool expected);
   void validate_stderr_content(const std::string& content, bool expected);
 
   std::list<std::string> prompts;
+  std::list<std::string> passwords;
 };
 
 #define MY_EXPECT_STDOUT_CONTAINS(x) output_handler.validate_stdout_content(x,true)
@@ -59,6 +59,7 @@ protected:
   // You can define per-test set-up and tear-down logic as usual.
   virtual void SetUp();
   virtual void TearDown();
+  virtual void set_defaults(){};
 
   // void process_result(shcore::Value result);
   shcore::Value execute(const std::string& code);
@@ -78,6 +79,8 @@ protected:
   void reset_shell()
   {
     _interactive_shell.reset(new Interactive_shell(*_options.get(), &output_handler.deleg));
+
+    set_defaults();
   }
 
   Shell_test_output_handler output_handler;

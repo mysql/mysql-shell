@@ -1,15 +1,12 @@
 #@ Session: validating members
-|Session Members: 10|
-|uri: OK|
+|Session Members: 7|
 |default_farm: OK|
-|get_uri: OK|
 |get_default_farm: OK|
-|is_open: OK|
 |create_farm: OK|
 |drop_farm: OK|
 |get_farm: OK|
 |drop_metadata_schema: OK|
-|close: OK|
+|reset_session: OK|
 
 #@# AdminSession: create_farm errors
 ||Invalid number of arguments in AdminSession.create_farm, expected 2 to 3 but got 0

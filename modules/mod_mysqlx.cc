@@ -32,7 +32,6 @@ REGISTER_MODULE(Mysqlx, mysqlx)
   add_property("IndexType|IndexType");
   REGISTER_VARARGS_FUNCTION(Mysqlx, get_session, getSession);
   REGISTER_VARARGS_FUNCTION(Mysqlx, get_node_session, getNodeSession);
-  REGISTER_VARARGS_FUNCTION(Mysqlx, get_admin_session, getAdminSession);
   REGISTER_VARARGS_FUNCTION(Mysqlx, date_value, dateValue);
   REGISTER_FUNCTION(Mysqlx, expr, expr, "expression", shcore::String, NULL);
 
@@ -63,12 +62,6 @@ DEFINE_FUNCTION(Mysqlx, get_session)
 DEFINE_FUNCTION(Mysqlx, get_node_session)
 {
   auto session = connect_session(args, mysh::Node);
-  return shcore::Value(std::dynamic_pointer_cast<shcore::Object_bridge>(session));
-}
-
-DEFINE_FUNCTION(Mysqlx, get_admin_session)
-{
-  auto session = connect_admin_session(args);
   return shcore::Value(std::dynamic_pointer_cast<shcore::Object_bridge>(session));
 }
 

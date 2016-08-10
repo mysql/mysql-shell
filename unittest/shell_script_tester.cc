@@ -90,11 +90,14 @@ void Shell_script_tester::validate(const std::string& context, const std::string
       {
         std::string out = (*validations)[valindex].expected_output;
 
-        SCOPED_TRACE("File: " + context);
-        SCOPED_TRACE("Executing: " + chunk_id);
-        SCOPED_TRACE("STDOUT missing: " + out);
-        SCOPED_TRACE("STDOUT actual: " + output_handler.std_out);
-        EXPECT_NE(-1, int(output_handler.std_out.find(out)));
+        if (out != "*")
+        {
+          SCOPED_TRACE("File: " + context);
+          SCOPED_TRACE("Executing: " + chunk_id);
+          SCOPED_TRACE("STDOUT missing: " + out);
+          SCOPED_TRACE("STDOUT actual: " + output_handler.std_out);
+          EXPECT_NE(-1, int(output_handler.std_out.find(out)));
+        }
       }
 
       // Validates unexpected output if any
@@ -113,12 +116,14 @@ void Shell_script_tester::validate(const std::string& context, const std::string
       if (!(*validations)[valindex].expected_error.empty())
       {
         std::string error = (*validations)[valindex].expected_error;
-
-        SCOPED_TRACE("File: " + context);
-        SCOPED_TRACE("Executing: " + chunk_id);
-        SCOPED_TRACE("STDOUT missing: " + error);
-        SCOPED_TRACE("STDOUT actual: " + output_handler.std_err);
-        EXPECT_NE(-1, int(output_handler.std_err.find(error)));
+        if (error != "*")
+        {
+          SCOPED_TRACE("File: " + context);
+          SCOPED_TRACE("Executing: " + chunk_id);
+          SCOPED_TRACE("STDOUT missing: " + error);
+          SCOPED_TRACE("STDOUT actual: " + output_handler.std_err);
+          EXPECT_NE(-1, int(output_handler.std_err.find(error)));
+        }
       }
     }
     output_handler.wipe_all();
@@ -134,6 +139,8 @@ void Shell_script_tester::validate(const std::string& context, const std::string
       SCOPED_TRACE("MISSING VALIDATIONS!!!");
       ADD_FAILURE();
     }
+    else
+      output_handler.wipe_all();
   }
 }
 
@@ -380,16 +387,18 @@ void Shell_script_tester::validate_batch(const std::string& script)
   execute_script(script, false);
 }
 
-void Shell_js_script_tester::SetUp()
+void Shell_js_script_tester::set_defaults()
 {
-  Shell_script_tester::SetUp();
+  Shell_script_tester::set_defaults();
 
   _interactive_shell->process_line("\\js");
+
+  output_handler.wipe_all();
 }
 
-void Shell_py_script_tester::SetUp()
+void Shell_py_script_tester::set_defaults()
 {
-  Shell_script_tester::SetUp();
+  Shell_script_tester::set_defaults();
 
   _interactive_shell->process_line("\\py");
 

@@ -35,87 +35,53 @@ void Global_admin::init()
   set_wrapper_function("isOpen");
 }
 
-/*
-// TODO: we may not want to have this wrapper.
-void Global_admin::resolve() const
-{
-std::string answer;
-
-if (prompt("The admin session is not set, do you want to establish a session? [y/N]: ", answer))
-{
-if (!answer.compare("y") || !answer.compare("Y"))
-{
-if (prompt("Please specify the Metadata Store URI (or $alias): ", answer))
-{
-Value::Map_type_ref connection_data;
-if (answer.find("$") == 0)
-{
-std::string stored_session_name = answer.substr(1);
-if (StoredSessions::get_instance()->connections()->has_key(stored_session_name))
-connection_data = (*StoredSessions::get_instance()->connections())[stored_session_name].as_map();
-else
-throw shcore::Exception::argument_error((boost::format("The stored connection %1% was not found") % stored_session_name).str());
-}
-else
-connection_data = shcore::get_connection_data(answer);
-
-if (!connection_data->has_key("dbPassword"))
-{
-if (password("Enter password: ", answer))
-(*connection_data)["dbPassword"] = shcore::Value(answer);
-}
-
-if (connection_data)
-{
-shcore::Argument_list args;
-args.push_back(shcore::Value(connection_data));
-
-_shell_core.connect_admin_session(args);
-}
-}
-}
-}
-}
-*/
-
 shcore::Value Global_admin::drop_farm(const shcore::Argument_list &args)
 {
   shcore::Value ret_val;
-  std::string farm_name = args.string_at(0);
+
+  args.ensure_count(1, 2, get_function_name("dropFarm").c_str());
 
   try
   {
-    ret_val = _target->call("dropFarm", args);
-  }
-  catch (shcore::Exception &e)
-  {
-    std::string error(e.what());
+    std::string farm_name = args.string_at(0);
 
-    if (error.find("is not empty") != std::string::npos)
+    if (farm_name.empty())
+      throw shcore::Exception::argument_error("The Farm name cannot be empty");
+
+    shcore::Value::Map_type_ref options;
+    bool valid_options = false;
+    if (args.size() == 2)
+    {
+      options = args.map_at(1);
+      valid_options = options->has_key("dropDefaultReplicaSet");
+    }
+
+    if (!valid_options)
     {
       std::string answer;
-
-      shcore::print((boost::format("To remove the Farm %1% the default replica set needs to be removed.\n") % farm_name).str());
-
+      shcore::print((boost::format("To remove the Farm '%1%' the default replica set needs to be removed.\n") % farm_name).str());
       if (prompt((boost::format("Do you want to remove the default replica set? [y/n]: ")).str().c_str(), answer))
       {
         if (!answer.compare("y") || !answer.compare("Y"))
         {
-          shcore::Argument_list new_args;
-          Value::Map_type_ref options(new shcore::Value::Map_type);
-
-          new_args.push_back(shcore::Value(farm_name));
-
+          options.reset(new shcore::Value::Map_type);
           (*options)["dropDefaultReplicaSet"] = shcore::Value(true);
-          new_args.push_back(shcore::Value(options));
 
-          ret_val = _target->call("dropFarm", new_args);
+          valid_options = true;
         }
       }
     }
-    else
-      throw;
+
+    if (valid_options)
+    {
+      shcore::Argument_list new_args;
+      new_args.push_back(shcore::Value(farm_name));
+      new_args.push_back(shcore::Value(options));
+
+      ret_val = _target->call("dropFarm", new_args);
+    }
   }
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("dropFarm"));
 
   return ret_val;
 }
@@ -164,23 +130,28 @@ shcore::Value Global_admin::create_farm(const shcore::Argument_list &args)
       }
     }
 
-    if (farm_password.empty())
+    bool prompt_password = true;
+    while (prompt_password && farm_password.empty())
     {
-      if (password("Please enter an administration password to be used for the Farm '" + farm_name + "': ", answer))
+      prompt_password = password("Please enter an administration password to be used for the Farm '" + farm_name + "': ", answer);
+      if (prompt_password)
         farm_password = answer;
     }
 
-    shcore::Argument_list new_args;
-    new_args.push_back(shcore::Value(farm_name));
-    new_args.push_back(shcore::Value(farm_password));
+    if (!farm_password.empty())
+    {
+      shcore::Argument_list new_args;
+      new_args.push_back(shcore::Value(farm_name));
+      new_args.push_back(shcore::Value(farm_password));
 
-    if (!instance_admin_user_pwd.empty())
-      (*options)["instanceAdminPassword"] = shcore::Value(answer);
+      if (!instance_admin_user_pwd.empty())
+        (*options)["instanceAdminPassword"] = shcore::Value(answer);
 
-    if (options != NULL)
-      new_args.push_back(shcore::Value(options));
+      if (options != NULL)
+        new_args.push_back(shcore::Value(options));
 
-    ret_val = _target->call("createFarm", new_args);
+      ret_val = _target->call("createFarm", new_args);
+    }
   } CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("createFarm"));
 
   return ret_val;

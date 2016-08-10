@@ -30,6 +30,16 @@ namespace shcore
     {
       Shell_py_script_tester::SetUp();
 
+      // All of the test cases share the same config folder
+      // and setup script
+      set_config_folder("py_devapi");
+      set_setup_script("setup.py");
+    }
+
+    virtual void set_defaults()
+    {
+      Shell_py_script_tester::set_defaults();
+
       int port = 33060, pwd_found;
       std::string protocol, user, password, host, sock, schema, ssl_ca, ssl_cert, ssl_key;
       shcore::parse_mysql_connstring(_uri, protocol, user, password, host, port, sock, schema, pwd_found, ssl_ca, ssl_cert, ssl_key);
@@ -55,11 +65,6 @@ namespace shcore
       exec_and_out_equals(code);
       code = "__displayuridb = '" + user + "@" + host + ":" + _port + "/mysql';";
       exec_and_out_equals(code);
-
-      // All of the test cases share the same config folder
-      // and setup script
-      set_config_folder("py_devapi");
-      set_setup_script("setup.py");
     }
   };
 
@@ -166,5 +171,489 @@ namespace shcore
   TEST_F(Shell_py_mysqlx_tests, mysqlx_replica_set)
   {
     validate_interactive("mysqlx_replica_set.py");
+  }
+
+  TEST_F(Shell_py_mysqlx_tests, admin_no_interactive_global_session_x)
+  {
+    _options->wizards = false;
+    reset_shell();
+
+    execute("\\connect " + _uri);
+    validate_interactive("mysqlx_admin_no_interactive.py");
+    execute("session.close()");
+  }
+
+  TEST_F(Shell_py_mysqlx_tests, admin_no_interactive_global_session_node)
+  {
+    _options->wizards = false;
+    reset_shell();
+
+    execute("\\connect -n " + _uri);
+    validate_interactive("mysqlx_admin_no_interactive.py");
+    execute("session.close()");
+  }
+
+  TEST_F(Shell_py_mysqlx_tests, admin_no_interactive_global_session_classic)
+  {
+    _options->wizards = false;
+    reset_shell();
+
+    execute("\\connect -c " + _mysql_uri);
+    validate_interactive("mysqlx_admin_no_interactive.py");
+    execute("session.close()");
+  }
+
+  TEST_F(Shell_py_mysqlx_tests, admin_no_interactive_custom_session_x)
+  {
+    _options->wizards = false;
+    reset_shell();
+
+    execute("import mysqlx");
+    execute("mySession = mysqlx.get_session('" + _uri + "')");
+    execute("dba.reset_session(mySession)");
+    validate_interactive("mysqlx_admin_no_interactive.py");
+    execute("mySession.close()");
+  }
+
+  TEST_F(Shell_py_mysqlx_tests, admin_no_interactive_custom_session_node)
+  {
+    _options->wizards = false;
+    reset_shell();
+
+    execute("import mysqlx");
+    execute("mySession = mysqlx.get_node_session('" + _uri + "')");
+    execute("dba.reset_session(mySession)");
+    validate_interactive("mysqlx_admin_no_interactive.py");
+    execute("mySession.close()");
+  }
+
+  TEST_F(Shell_py_mysqlx_tests, admin_no_interactive_custom_session_classic)
+  {
+    _options->wizards = false;
+    reset_shell();
+
+    execute("import mysql");
+    execute("mySession = mysql.get_classic_session('" + _mysql_uri + "')");
+    execute("dba.reset_session(mySession)");
+    validate_interactive("mysqlx_admin_no_interactive.py");
+    execute("mySession.close()");
+  }
+
+  TEST_F(Shell_py_mysqlx_tests, admin_interactive_custom_session_x)
+  {
+    // Fills the required prompts and passwords...
+    //@ Initialization
+    output_handler.prompts.push_back("y");
+
+    //@# AdminSession: createFarm with interaction
+    output_handler.passwords.push_back("testing");
+
+    //@ AdminSession: dropFarm interaction no options, cancel
+    output_handler.passwords.push_back("n");
+
+    //@ AdminSession: dropFarm interaction missing option, ok error
+    output_handler.passwords.push_back("y");
+
+    //@ AdminSession: dropFarm interaction no options, ok success
+    output_handler.passwords.push_back("y");
+
+    execute("import mysqlx");
+    execute("mySession = mysqlx.get_session('" + _uri + "')");
+    execute("dba.reset_session(mySession)");
+    validate_interactive("mysqlx_admin_interactive.py");
+    execute("mySession.close()");
+  }
+
+  TEST_F(Shell_py_mysqlx_tests, admin_interactive_custom_session_node)
+  {
+    // Fills the required prompts and passwords...
+    //@ Initialization
+    output_handler.prompts.push_back("y");
+
+    //@# AdminSession: createFarm with interaction
+    output_handler.passwords.push_back("testing");
+
+    //@ AdminSession: dropFarm interaction no options, cancel
+    output_handler.passwords.push_back("n");
+
+    //@ AdminSession: dropFarm interaction missing option, ok error
+    output_handler.passwords.push_back("y");
+
+    //@ AdminSession: dropFarm interaction no options, ok success
+    output_handler.passwords.push_back("y");
+
+    execute("import mysqlx");
+    execute("mySession = mysqlx.get_node_session('" + _uri + "')");
+    execute("dba.reset_session(mySession)");
+    validate_interactive("mysqlx_admin_interactive.py");
+    execute("mySession.close()");
+  }
+
+  TEST_F(Shell_py_mysqlx_tests, admin_interactive_custom_session_classic)
+  {
+    // Fills the required prompts and passwords...
+    //@ Initialization
+    output_handler.prompts.push_back("y");
+
+    //@# AdminSession: createFarm with interaction
+    output_handler.passwords.push_back("testing");
+
+    //@ AdminSession: dropFarm interaction no options, cancel
+    output_handler.passwords.push_back("n");
+
+    //@ AdminSession: dropFarm interaction missing option, ok error
+    output_handler.passwords.push_back("y");
+
+    //@ AdminSession: dropFarm interaction no options, ok success
+    output_handler.passwords.push_back("y");
+
+    execute("import mysql");
+    execute("mySession = mysql.get_classic_session('" + _mysql_uri + "')");
+    execute("dba.reset_session(mySession)");
+    validate_interactive("mysqlx_admin_interactive.py");
+    execute("mySession.close()");
+  }
+
+  TEST_F(Shell_py_mysqlx_tests, admin_interactive_global_session_x)
+  {
+    // Fills the required prompts and passwords...
+    //@ Initialization
+    output_handler.prompts.push_back("y");
+
+    //@# AdminSession: createFarm with interaction
+    output_handler.passwords.push_back("testing");
+
+    //@ AdminSession: dropFarm interaction no options, cancel
+    output_handler.passwords.push_back("n");
+
+    //@ AdminSession: dropFarm interaction missing option, ok error
+    output_handler.passwords.push_back("y");
+
+    //@ AdminSession: dropFarm interaction no options, ok success
+    output_handler.passwords.push_back("y");
+
+    execute("\\connect " + _uri);
+    validate_interactive("mysqlx_admin_interactive.py");
+    execute("mySession.close()");
+  }
+
+  TEST_F(Shell_py_mysqlx_tests, admin_interactive_global_session_node)
+  {
+    // Fills the required prompts and passwords...
+    //@ Initialization
+    output_handler.prompts.push_back("y");
+
+    //@# AdminSession: createFarm with interaction
+    output_handler.passwords.push_back("testing");
+
+    //@ AdminSession: dropFarm interaction no options, cancel
+    output_handler.passwords.push_back("n");
+
+    //@ AdminSession: dropFarm interaction missing option, ok error
+    output_handler.passwords.push_back("y");
+
+    //@ AdminSession: dropFarm interaction no options, ok success
+    output_handler.passwords.push_back("y");
+
+    execute("\\connect -n " + _uri);
+    validate_interactive("mysqlx_admin_interactive.py");
+    execute("mySession.close()");
+  }
+
+  TEST_F(Shell_py_mysqlx_tests, admin_interactive_global_session_classic)
+  {
+    // Fills the required prompts and passwords...
+    //@ Initialization
+    output_handler.prompts.push_back("y");
+
+    //@# AdminSession: createFarm with interaction
+    output_handler.passwords.push_back("testing");
+
+    //@ AdminSession: dropFarm interaction no options, cancel
+    output_handler.passwords.push_back("n");
+
+    //@ AdminSession: dropFarm interaction missing option, ok error
+    output_handler.passwords.push_back("y");
+
+    //@ AdminSession: dropFarm interaction no options, ok success
+    output_handler.passwords.push_back("y");
+
+    execute("\\connect -c " + _mysql_uri);
+    validate_interactive("mysqlx_admin_interactive.py");
+  }
+
+  TEST_F(Shell_py_mysqlx_tests, farm_no_interactive_global_session_x)
+  {
+    _options->wizards = false;
+    reset_shell();
+
+    execute("\\connect " + _uri);
+    validate_interactive("mysqlx_farm_no_interactive.py");
+    execute("session.close()");
+  }
+
+  TEST_F(Shell_py_mysqlx_tests, farm_no_interactive_global_session_node)
+  {
+    _options->wizards = false;
+    reset_shell();
+
+    execute("\\connect -n " + _uri);
+    validate_interactive("mysqlx_farm_no_interactive.py");
+    execute("session.close()");
+  }
+
+  TEST_F(Shell_py_mysqlx_tests, farm_no_interactive_global_session_classic)
+  {
+    _options->wizards = false;
+    reset_shell();
+
+    execute("\\connect -c " + _mysql_uri);
+    validate_interactive("mysqlx_farm_no_interactive.py");
+    execute("session.close()");
+  }
+
+  TEST_F(Shell_py_mysqlx_tests, farm_no_interactive_custom_session_x)
+  {
+    _options->wizards = false;
+    reset_shell();
+
+    execute("import mysqlx");
+    execute("mySession = mysqlx.get_session('" + _uri + "')");
+    execute("dba.reset_session(mySession)");
+    validate_interactive("mysqlx_farm_no_interactive.py");
+    execute("mySession.close()");
+  }
+
+  TEST_F(Shell_py_mysqlx_tests, farm_no_interactive_custom_session_node)
+  {
+    _options->wizards = false;
+    reset_shell();
+
+    execute("import mysqlx");
+    execute("mySession = mysqlx.get_node_session('" + _uri + "')");
+    execute("dba.reset_session(mySession)");
+    validate_interactive("mysqlx_farm_no_interactive.py");
+    execute("mySession.close()");
+  }
+
+  TEST_F(Shell_py_mysqlx_tests, farm_no_interactive_custom_session_classic)
+  {
+    _options->wizards = false;
+    reset_shell();
+
+    execute("import mysql");
+    execute("mySession = mysql.get_classic_session('" + _mysql_uri + "')");
+    execute("dba.reset_session(mySession)");
+    validate_interactive("mysqlx_farm_no_interactive.py");
+    execute("mySession.close()");
+  }
+
+  //TEST_F(Shell_py_mysqlx_tests, farm_interactive_custom_session_x)
+  //{
+  //  // Fills the required prompts and passwords...
+  //  //@ Initialization
+  //  output_handler.prompts.push_back("y");
+
+  //  //@# AdminSession: createFarm with interaction
+  //  output_handler.passwords.push_back("testing");
+
+  //  //@ AdminSession: dropFarm interaction no options, cancel
+  //  output_handler.passwords.push_back("n");
+
+  //  //@ AdminSession: dropFarm interaction missing option, ok error
+  //  output_handler.passwords.push_back("y");
+
+  //  //@ AdminSession: dropFarm interaction no options, ok success
+  //  output_handler.passwords.push_back("y");
+
+  //  execute("import mysqlx");
+  //  execute("mySession = mysqlx.get_session('" + _uri + "')");
+  //  execute("dba.reset_session(mySession)");
+  //  validate_interactive("mysqlx_farm_interactive.py");
+  //  execute("mySession.close()");
+  //}
+
+  //TEST_F(Shell_py_mysqlx_tests, farm_interactive_custom_session_node)
+  //{
+  //  // Fills the required prompts and passwords...
+  //  //@ Initialization
+  //  output_handler.prompts.push_back("y");
+
+  //  //@# AdminSession: createFarm with interaction
+  //  output_handler.passwords.push_back("testing");
+
+  //  //@ AdminSession: dropFarm interaction no options, cancel
+  //  output_handler.passwords.push_back("n");
+
+  //  //@ AdminSession: dropFarm interaction missing option, ok error
+  //  output_handler.passwords.push_back("y");
+
+  //  //@ AdminSession: dropFarm interaction no options, ok success
+  //  output_handler.passwords.push_back("y");
+
+  //  execute("import mysqlx");
+  //  execute("mySession = mysqlx.get_node_session('" + _uri + "')");
+  //  execute("dba.reset_session(mySession)");
+  //  validate_interactive("mysqlx_farm_interactive.py");
+  //  execute("mySession.close()");
+  //}
+
+  //TEST_F(Shell_py_mysqlx_tests, farm_interactive_custom_session_classic)
+  //{
+  //  // Fills the required prompts and passwords...
+  //  //@ Initialization
+  //  output_handler.prompts.push_back("y");
+
+  //  //@# AdminSession: createFarm with interaction
+  //  output_handler.passwords.push_back("testing");
+
+  //  //@ AdminSession: dropFarm interaction no options, cancel
+  //  output_handler.passwords.push_back("n");
+
+  //  //@ AdminSession: dropFarm interaction missing option, ok error
+  //  output_handler.passwords.push_back("y");
+
+  //  //@ AdminSession: dropFarm interaction no options, ok success
+  //  output_handler.passwords.push_back("y");
+
+  //  execute("mysql = require('mysql')");
+  //  execute("mySession = mysql.get_classic_session('" + _mysql_uri + "')");
+  //  execute("dba.reset_session(mySession)");
+  //  validate_interactive("mysqlx_farm_interactive.py");
+  //  execute("mySession.close()");
+  //}
+
+  //TEST_F(Shell_py_mysqlx_tests, farm_interactive_global_session_x)
+  //{
+  //  // Fills the required prompts and passwords...
+  //  //@ Initialization
+  //  output_handler.prompts.push_back("y");
+
+  //  //@# AdminSession: createFarm with interaction
+  //  output_handler.passwords.push_back("testing");
+
+  //  //@ AdminSession: dropFarm interaction no options, cancel
+  //  output_handler.passwords.push_back("n");
+
+  //  //@ AdminSession: dropFarm interaction missing option, ok error
+  //  output_handler.passwords.push_back("y");
+
+  //  //@ AdminSession: dropFarm interaction no options, ok success
+  //  output_handler.passwords.push_back("y");
+
+  //  execute("\\connect " + _uri);
+  //  validate_interactive("mysqlx_farm_interactive.py");
+  //  execute("mySession.close()");
+  //}
+
+  //TEST_F(Shell_py_mysqlx_tests, farm_interactive_global_session_node)
+  //{
+  //  // Fills the required prompts and passwords...
+  //  //@ Initialization
+  //  output_handler.prompts.push_back("y");
+
+  //  //@# AdminSession: createFarm with interaction
+  //  output_handler.passwords.push_back("testing");
+
+  //  //@ AdminSession: dropFarm interaction no options, cancel
+  //  output_handler.passwords.push_back("n");
+
+  //  //@ AdminSession: dropFarm interaction missing option, ok error
+  //  output_handler.passwords.push_back("y");
+
+  //  //@ AdminSession: dropFarm interaction no options, ok success
+  //  output_handler.passwords.push_back("y");
+
+  //  execute("\\connect -n " + _uri);
+  //  validate_interactive("mysqlx_farm_interactive.py");
+  //  execute("mySession.close()");
+  //}
+
+  //TEST_F(Shell_py_mysqlx_tests, farm_interactive_global_session_classic)
+  //{
+  //  // Fills the required prompts and passwords...
+  //  //@ Initialization
+  //  output_handler.prompts.push_back("y");
+
+  //  //@# AdminSession: createFarm with interaction
+  //  output_handler.passwords.push_back("testing");
+
+  //  //@ AdminSession: dropFarm interaction no options, cancel
+  //  output_handler.passwords.push_back("n");
+
+  //  //@ AdminSession: dropFarm interaction missing option, ok error
+  //  output_handler.passwords.push_back("y");
+
+  //  //@ AdminSession: dropFarm interaction no options, ok success
+  //  output_handler.passwords.push_back("y");
+
+  //  execute("\\connect -c " + _mysql_uri);
+  //  validate_interactive("mysqlx_farm_interactive.py");
+  //}
+
+  TEST_F(Shell_py_mysqlx_tests, replica_set_no_interactive_global_session_x)
+  {
+    _options->wizards = false;
+    reset_shell();
+
+    execute("\\connect " + _uri);
+    validate_interactive("mysqlx_replica_set_no_interactive.py");
+    execute("session.close()");
+  }
+
+  TEST_F(Shell_py_mysqlx_tests, replica_set_no_interactive_global_session_node)
+  {
+    _options->wizards = false;
+    reset_shell();
+
+    execute("\\connect -n " + _uri);
+    validate_interactive("mysqlx_replica_set_no_interactive.py");
+    execute("session.close()");
+  }
+
+  TEST_F(Shell_py_mysqlx_tests, replica_set_no_interactive_global_session_classic)
+  {
+    _options->wizards = false;
+    reset_shell();
+
+    execute("\\connect -c " + _mysql_uri);
+    validate_interactive("mysqlx_replica_set_no_interactive.py");
+    execute("session.close()");
+  }
+
+  TEST_F(Shell_py_mysqlx_tests, replica_set_no_interactive_custom_session_x)
+  {
+    _options->wizards = false;
+    reset_shell();
+
+    execute("import mysqlx");
+    execute("mySession = mysqlx.get_session('" + _uri + "')");
+    execute("dba.reset_session(mySession)");
+    validate_interactive("mysqlx_replica_set_no_interactive.py");
+    execute("mySession.close()");
+  }
+
+  TEST_F(Shell_py_mysqlx_tests, replica_set_no_interactive_custom_session_node)
+  {
+    _options->wizards = false;
+    reset_shell();
+
+    execute("import mysqlx");
+    execute("mySession = mysqlx.get_node_session('" + _uri + "')");
+    execute("dba.reset_session(mySession)");
+    validate_interactive("mysqlx_replica_set_no_interactive.py");
+    execute("mySession.close()");
+  }
+
+  TEST_F(Shell_py_mysqlx_tests, replica_set_no_interactive_custom_session_classic)
+  {
+    _options->wizards = false;
+    reset_shell();
+
+    execute("mysql = require('mysql')");
+    execute("mySession = mysql.get_classic_session('" + _mysql_uri + "')");
+    execute("dba.reset_session(mySession)");
+    validate_interactive("mysqlx_replica_set_no_interactive.py");
+    execute("mySession.close()");
   }
 }

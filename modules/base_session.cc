@@ -76,17 +76,6 @@ std::shared_ptr<mysh::ShellDevelopmentSession> mysh::connect_session(const shcor
   return ret_val;
 }
 
-std::shared_ptr<mysh::ShellAdminSession> mysh::connect_admin_session(const shcore::Argument_list &args)
-{
-  std::shared_ptr<ShellAdminSession> ret_val(new mysh::mysqlx::AdminSession());
-
-  ret_val->connect(args);
-
-  ShellNotifications::get()->notify("SN_SESSION_CONNECTED", ret_val);
-
-  return ret_val;
-}
-
 ShellBaseSession::ShellBaseSession() :
 _port(0)
 {

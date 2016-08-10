@@ -48,19 +48,21 @@ REGISTER_MODULE(MysqlInstance, mysql_instance)
   if (getenv("MYSQLPROVISION") != NULL)
     gadgets_path = std::string(getenv("MYSQLPROVISION")); // should be set to the mysqlprovision root dir
 
-  if (gadgets_path.empty())
-    throw shcore::Exception::logic_error("Please set the mysqlprovision path using the environmental variable: MYSQLPROVISION.");
+  if (!gadgets_path.empty())
+  {
+    if (getenv("PYTHONPATH") != NULL)
+      current_python_path = std::string(getenv("PYTHONPATH"));
 
-  if (getenv("PYTHONPATH") != NULL)
-    current_python_path = std::string(getenv("PYTHONPATH"));
-
-  std::string python_path = current_python_path + ":" + gadgets_path + "/gadgets/python";
+    std::string python_path = current_python_path + ":" + gadgets_path + "/gadgets/python";
 
 #ifdef WIN32
-  _putenv_s("PYTHONPATH", python_path.c_str());
+    _putenv_s("PYTHONPATH", python_path.c_str());
 #else
-  setenv("PYTHONPATH", python_path.c_str(), true);
+    setenv("PYTHONPATH", python_path.c_str(), true);
 #endif
+  }
+  // Dont complain, just validate later and disable functions... or warn the user when attempts to use them
+  //throw shcore::Exception::logic_error("Please set the mysqlprovision path using the environmental variable: MYSQLPROVISION.");
 }
 
 DEFINE_FUNCTION(MysqlInstance, validate_instance)
@@ -212,7 +214,7 @@ DEFINE_FUNCTION(MysqlInstance, deploy_local_instance)
   int portx = 0;
   std::string data_dir;
 
-  std::vector<std::string> valid_options = {"port", "portx", "dataDir"};
+  std::vector<std::string> valid_options = { "port", "portx", "dataDir" };
 
   try
   {
@@ -247,9 +249,9 @@ DEFINE_FUNCTION(MysqlInstance, deploy_local_instance)
       sandbox_args.push_back(arg);
     }
 
-    if (portx !=0)
+    if (portx != 0)
     {
-      arg = "--mysqlx-port=" +std::to_string(portx);
+      arg = "--mysqlx-port=" + std::to_string(portx);
       sandbox_args.push_back(arg);
     }
 
@@ -267,8 +269,8 @@ DEFINE_FUNCTION(MysqlInstance, deploy_local_instance)
 
     int i;
 
-    for(i = 0; i < sandbox_args.size(); i++)
-      args_script[i+4] = const_cast<char*>(sandbox_args[i].c_str());
+    for (i = 0; i < sandbox_args.size(); i++)
+      args_script[i + 4] = const_cast<char*>(sandbox_args[i].c_str());
 
     args_script[i++ + 4] = const_cast<char*>("--stdin");
     args_script[i++ + 4] = NULL;
@@ -282,19 +284,19 @@ DEFINE_FUNCTION(MysqlInstance, deploy_local_instance)
     // TODO: We're not a derived class of Interactive_object_wrapper, how to query for the password?
     /*
     if (password("Please enter a password for the root user of the MySQL Sandbox (root@localhost): ", answer))
-      passwd = answer;
+    passwd = answer;
 
     if (passwd.empty())
-      throw shcore::Exception::argument_error("The password cannot be empty.");
+    throw shcore::Exception::argument_error("The password cannot be empty.");
     */
 
     passwd = "root\n"; // TODO: see above
 
-  #ifdef WIN32
+#ifdef WIN32
     success += "\r\n";
-  #else
+#else
     success += "\n";
-  #endif
+#endif
 
     try
     {
@@ -331,7 +333,7 @@ DEFINE_FUNCTION(MysqlInstance, deploy_local_instance)
     if (read_error)
       throw shcore::Exception::logic_error(error);
 
-      p.wait();
+    p.wait();
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION("deployLocalInstance");
 

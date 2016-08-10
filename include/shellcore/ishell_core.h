@@ -34,11 +34,9 @@ namespace mysh
   {
     Application,
     Node,
-    Classic,
-    Admin
+    Classic
   };
   class ShellDevelopmentSession;
-  class ShellAdminSession;
 };
 
 namespace shcore
@@ -81,11 +79,6 @@ namespace shcore
     virtual std::shared_ptr<mysh::ShellDevelopmentSession> connect_dev_session(const Argument_list &args, mysh::SessionType session_type) = 0;
     virtual std::shared_ptr<mysh::ShellDevelopmentSession> set_dev_session(std::shared_ptr<mysh::ShellDevelopmentSession> session) = 0;
     virtual std::shared_ptr<mysh::ShellDevelopmentSession> get_dev_session() = 0;
-
-    // Admin Session Handling
-    virtual std::shared_ptr<mysh::ShellAdminSession> connect_admin_session(const Argument_list &args) = 0;
-    virtual std::shared_ptr<mysh::ShellAdminSession> set_admin_session(std::shared_ptr<mysh::ShellAdminSession> session) = 0;
-    virtual std::shared_ptr<mysh::ShellAdminSession> get_admin_session() = 0;
 
     // Global Schema
     virtual shcore::Value set_current_schema(const std::string& name) = 0;

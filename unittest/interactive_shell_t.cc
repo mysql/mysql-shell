@@ -33,7 +33,7 @@ namespace shcore {
       // Test secure call passing uri with no password (will be prompted)
       _options->uri = "root@localhost";
       reset_shell();
-      output_handler.ret_pwd = "whatever";
+      output_handler.passwords.push_back("whatever");
 
       _interactive_shell->connect(true);
       MY_EXPECT_STDOUT_NOT_CONTAINS("mysqlx: [Warning] Using a password on the command line interface can be insecure.");

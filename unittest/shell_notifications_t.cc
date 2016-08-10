@@ -91,18 +91,6 @@ namespace shcore
       ASSERT_EQ("SN_SESSION_CONNECTED", n.name);
       ASSERT_EQ("NodeSession", n.sender->class_name());
 
-      _interactive_shell->process_line("\\connect -a " + _uri);
-
-      ASSERT_EQ(1, _notifications.size());
-      n = _notifications.front();
-      _notifications.pop();
-      ASSERT_EQ("SN_SESSION_CONNECTED", n.name);
-      ASSERT_EQ("AdminSession", n.sender->class_name());
-
-      this->ignore_notification("SN_SESSION_CONNECTED");
-
-      _interactive_shell->process_line("session.close()");
-
       _interactive_shell->process_line("\\connect " + _uri);
 
       ASSERT_EQ(0, _notifications.size());
@@ -120,12 +108,6 @@ namespace shcore
       ASSERT_EQ(0, _notifications.size());
 
       _interactive_shell->process_line("session.close()");
-
-      _interactive_shell->process_line("\\connect -a " + _uri);
-
-      ASSERT_EQ(0, _notifications.size());
-
-      _interactive_shell->process_line("admin.close()");
     }
 
     TEST_F(Shell_notifications_test, test_sn_session_connected_javascript)
@@ -166,16 +148,6 @@ namespace shcore
 
       _interactive_shell->process_line("session.close()");
 
-      _interactive_shell->process_line("var session = mysqlx.getAdminSession('" + _uri + "');");
-
-      ASSERT_EQ(1, _notifications.size());
-      n = _notifications.front();
-      _notifications.pop();
-      ASSERT_EQ("SN_SESSION_CONNECTED", n.name);
-      ASSERT_EQ("AdminSession", n.sender->class_name());
-
-      _interactive_shell->process_line("session.close()");
-
       this->ignore_notification("SN_SESSION_CONNECTED");
 
       _interactive_shell->process_line("var session = mysqlx.getSession('" + _uri + "');");
@@ -191,12 +163,6 @@ namespace shcore
       _interactive_shell->process_line("session.close()");
 
       _interactive_shell->process_line("var session = mysqlx.getNodeSession('" + _uri + "');");
-
-      ASSERT_EQ(0, _notifications.size());
-
-      _interactive_shell->process_line("session.close()");
-
-      _interactive_shell->process_line("var session = mysqlx.getAdminSession('" + _uri + "');");
 
       ASSERT_EQ(0, _notifications.size());
 
@@ -243,16 +209,6 @@ namespace shcore
 
       _interactive_shell->process_line("session.close()");
 
-      _interactive_shell->process_line("session = mysqlx.get_admin_session('" + _uri + "');");
-
-      ASSERT_EQ(1, _notifications.size());
-      n = _notifications.front();
-      _notifications.pop();
-      ASSERT_EQ("SN_SESSION_CONNECTED", n.name);
-      ASSERT_EQ("AdminSession", n.sender->class_name());
-
-      _interactive_shell->process_line("session.close()");
-
       this->ignore_notification("SN_SESSION_CONNECTED");
 
       _interactive_shell->process_line("session = mysqlx.get_session('" + _uri + "');");
@@ -268,12 +224,6 @@ namespace shcore
       _interactive_shell->process_line("session.close()");
 
       _interactive_shell->process_line("session = mysqlx.get_node_session('" + _uri + "');");
-
-      ASSERT_EQ(0, _notifications.size());
-
-      _interactive_shell->process_line("session.close()");
-
-      _interactive_shell->process_line("session = mysqlx.get_admin_session('" + _uri + "');");
 
       ASSERT_EQ(0, _notifications.size());
 

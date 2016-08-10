@@ -164,15 +164,22 @@ Value ClassicSession::run_sql(const shcore::Argument_list &args) const
   if (!_conn)
     throw Exception::logic_error("Not connected.");
   else
-  {
-    // Options are the statement and optionally options to modify
-    // How the resultset is created.
-    std::string statement = args.string_at(0);
+    ret_val = execute_sql(args.string_at(0), shcore::Argument_list());
 
-    if (statement.empty())
+  return ret_val;
+}
+
+shcore::Value ClassicSession::execute_sql(const std::string& query, const shcore::Argument_list &UNUSED(args)) const
+{
+  Value ret_val;
+  if (!_conn)
+    throw Exception::logic_error("Not connected.");
+  else
+  {
+    if (query.empty())
       throw Exception::argument_error("No query specified.");
     else
-      ret_val = Value::wrap(new ClassicResult(std::shared_ptr<Result>(_conn->run_sql(statement))));
+      ret_val = Value::wrap(new ClassicResult(std::shared_ptr<Result>(_conn->run_sql(query))));
   }
 
   return ret_val;

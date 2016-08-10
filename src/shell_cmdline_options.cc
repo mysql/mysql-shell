@@ -177,8 +177,6 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
       override_session_type(mysh::Node, "--node");
     else if (check_arg(argv, i, "--classic", "--classic"))
       override_session_type(mysh::Classic, "--x");
-    else if (check_arg(argv, i, "--admin", "--admin"))
-      override_session_type(mysh::Admin, "--admin");
     else if (check_arg(argv, i, "--sql", "--sql"))
     {
       initial_mode = IShell_core::Mode_SQL;
@@ -299,13 +297,10 @@ void Shell_command_line_options::override_session_type(mysh::SessionType new_typ
         label = "X";
         break;
       case mysh::Node:
-        label= "Node";
+        label = "Node";
         break;
       case mysh::Classic:
-        label= "Classic";
-        break;
-      case mysh::Admin:
-        label= "Admin";
+        label = "Classic";
         break;
     }
 

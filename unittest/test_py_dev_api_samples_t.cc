@@ -112,7 +112,7 @@ namespace shcore
   TEST_F(Shell_py_dev_api_sample_tester, Connecting_to_a_Single_MySQL_Server_1)
   {
     output_handler.prompts.push_back("mike");
-    output_handler.ret_pwd = "s3cr3t!";
+    output_handler.passwords.push_back("s3cr3t!");
 
     validate_interactive("concepts/Connecting_to_a_Single_MySQL_Server_1");
   }
@@ -193,7 +193,7 @@ namespace shcore
   TEST_F(Shell_py_dev_api_sample_tester, Working_with_Results_1)
   {
     validate_interactive("results/Working_with_Results_1");
-}
+  }
 
   TEST_F(Shell_py_dev_api_sample_tester, Working_with_SQL_Result_Sets)
   {

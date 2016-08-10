@@ -192,9 +192,6 @@ void Interactive_shell::print_connection_message(mysh::SessionType type, const s
     case mysh::Classic:
       stype = "a Classic";
       break;
-    case mysh::Admin:
-      stype = "an Admin";
-      break;
   }
 
   std::string message;
@@ -314,74 +311,66 @@ Value Interactive_shell::connect_session(const Argument_list &args, mysh::Sessio
       connect_args.push_back(Value(pass));
   }
 
-  // Performs the connection
-  if (session_type != mysh::Admin)
+  std::shared_ptr<mysh::ShellDevelopmentSession> old_session(_shell->get_dev_session()),
+                                                   new_session(_shell->connect_dev_session(connect_args, session_type));
+
+  new_session->set_option("trace_protocol", _options.trace_protocol);
+
+  if (recreate_schema)
   {
-    std::shared_ptr<mysh::ShellDevelopmentSession> old_session(_shell->get_dev_session()),
-                                                     new_session(_shell->connect_dev_session(connect_args, session_type));
-
-    new_session->set_option("trace_protocol", _options.trace_protocol);
-
-    if (recreate_schema)
+    std::string message = "Recreating schema " + schema_name + "...\n";
+    _delegate.print(_delegate.user_data, message.c_str());
+    try
     {
-      std::string message = "Recreating schema " + schema_name + "...\n";
-      _delegate.print(_delegate.user_data, message.c_str());
-      try
-      {
-        new_session->drop_schema(schema_arg);
-      }
-      catch (shcore::Exception &e)
-      {
-        if (e.is_mysql() && e.code() == 1008)
-          ; // ignore DB doesn't exist error
-        else
-          throw;
-      }
-      new_session->create_schema(schema_arg);
-
-      if (new_session->class_name().compare("XSession"))
-        new_session->call("setCurrentSchema", schema_arg);
+      new_session->drop_schema(schema_arg);
     }
-
-    _shell->set_dev_session(new_session);
-
-    if (_options.interactive)
+    catch (shcore::Exception &e)
     {
-      if (old_session && old_session.unique() && old_session->is_connected())
-      {
-        if (_options.interactive)
-          _delegate.print(_delegate.user_data, "Closing old connection...\n");
-
-        old_session->close(shcore::Argument_list());
-      }
-
-      std::string message;
-      shcore::Value default_schema;
-      if (!new_session->class_name().compare("XSession"))
-         default_schema = new_session->get_member("defaultSchema");
+      if (e.is_mysql() && e.code() == 1008)
+        ; // ignore DB doesn't exist error
       else
-         default_schema = new_session->get_member("currentSchema");
-
-      if (default_schema)
-        message = "Default schema `" + default_schema.as_object()->get_member("name").as_string() + "` accessible through db.";
-      else
-        message = "No default schema selected.";
-
-      if ((*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string().find("json") == 0)
-        print_json_info(message);
-      else
-      {
-        message += "\n";
-        _delegate.print(_delegate.user_data, message.c_str());
-      }
-
-      // extra empty line to separate connect msgs from the stdheader nobody reads
-      _delegate.print(_delegate.user_data, "\n");
+        throw;
     }
+    new_session->create_schema(schema_arg);
+
+    if (new_session->class_name().compare("XSession"))
+      new_session->call("setCurrentSchema", schema_arg);
   }
-  else
+
+  _shell->set_dev_session(new_session);
+
+  if (_options.interactive)
   {
-    _shell->connect_admin_session(connect_args);
+    if (old_session && old_session.unique() && old_session->is_connected())
+    {
+      if (_options.interactive)
+        _delegate.print(_delegate.user_data, "Closing old connection...\n");
+
+      old_session->close(shcore::Argument_list());
+    }
+
+    std::string message;
+    shcore::Value default_schema;
+    if (!new_session->class_name().compare("XSession"))
+       default_schema = new_session->get_member("defaultSchema");
+    else
+       default_schema = new_session->get_member("currentSchema");
+
+    if (default_schema)
+      message = "Default schema `" + default_schema.as_object()->get_member("name").as_string() + "` accessible through db.";
+    else
+      message = "No default schema selected.";
+
+    if ((*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string().find("json") == 0)
+      print_json_info(message);
+    else
+    {
+      message += "\n";
+      _delegate.print(_delegate.user_data, message.c_str());
+    }
+
+    // extra empty line to separate connect msgs from the stdheader nobody reads
+    _delegate.print(_delegate.user_data, "\n");
   }
 
   return Value::Null();
@@ -475,8 +464,7 @@ bool Interactive_shell::switch_shell_mode(Shell_core::Mode mode, const std::vect
       case Shell_core::Mode_SQL:
       {
         Value session = _shell->active_session();
-        if (session && (session.as_object()->class_name() == "XSession" ||
-                        session.as_object()->class_name() == "AdminSession"))
+        if (session && (session.as_object()->class_name() == "XSession"))
         {
           println("The active session is an " + session.as_object()->class_name());
           println("SQL mode is not supported on this session type: command ignored.");
@@ -664,8 +652,6 @@ bool Interactive_shell::cmd_connect(const std::vector<std::string>& args)
         _options.session_type = mysh::Node;
       else if (!type.compare("-c") || !type.compare("-C"))
         _options.session_type = mysh::Classic;
-      else if (!type.compare("-a") || !type.compare("-A"))
-        _options.session_type = mysh::Admin;
       else
         error = true;
     }
@@ -1411,7 +1397,6 @@ void Interactive_shell::print_cmd_line_helper()
   println("  --x                      Uses connection data to create an X Session.");
   println("  --node                   Uses connection data to create a Node Session.");
   println("  --classic                Uses connection data to create a Classic Session.");
-  println("  --admin                  Uses connection data to create an Admin Session.");
   println("  --sql                    Start in SQL mode using a node session.");
   println("  --sqlc                   Start in SQL mode using a classic session.");
   println("  --js                     Start in JavaScript mode.");

@@ -31,7 +31,7 @@ namespace mysh
   {
     class MetadataStorage;
     /**
-    * Represents a Farm on an AdminSession
+    * Represents a Farm
     */
     class Farm : public std::enable_shared_from_this<Farm>, public shcore::Cpp_object_bridge
     {

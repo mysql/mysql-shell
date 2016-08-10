@@ -23,6 +23,7 @@
 #include "mod_mysqlx_admin_session.h"
 #include "mod_mysqlx_farm.h"
 #include "mod_mysqlx_replicaset.h"
+#include "modules/base_resultset.h"
 
 namespace mysh
 {
@@ -34,7 +35,7 @@ namespace mysh
     class MetadataStorage : public std::enable_shared_from_this<MetadataStorage>
     {
     public:
-      MetadataStorage(const std::shared_ptr<AdminSession> &admin_session);
+      MetadataStorage(AdminSession* admin_session);
       ~MetadataStorage();
 
       bool metadata_schema_exists();
@@ -66,12 +67,12 @@ namespace mysh
       std::string get_replication_user_password(uint64_t rs_id);
       std::string get_seed_instance(uint64_t rs_id);
 
-      std::shared_ptr<AdminSession> get_admin_session() { return _admin_session; };
+      AdminSession* get_admin_session() { return _admin_session; };
 
-      std::shared_ptr< ::mysqlx::Result> execute_sql(const std::string &sql) const;
+      std::shared_ptr<ShellBaseResult> execute_sql(const std::string &sql) const;
 
     private:
-      std::shared_ptr<AdminSession> _admin_session;
+      AdminSession* _admin_session;
     };
   }
 }

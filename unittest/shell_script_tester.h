@@ -96,7 +96,7 @@ class Shell_js_script_tester : public Shell_script_tester
 {
 protected:
   // You can define per-test set-up and tear-down logic as usual.
-  virtual void SetUp();
+  virtual void set_defaults();
 
   virtual std::string get_chunk_token() { return "//@"; }
   virtual std::string get_chunk_by_line_token() { return "//@#"; }
@@ -108,7 +108,7 @@ class Shell_py_script_tester : public Shell_script_tester
 {
 protected:
   // You can define per-test set-up and tear-down logic as usual.
-  virtual void SetUp();
+  virtual void set_defaults();
 
   virtual std::string get_chunk_token() { return "#@"; }
   virtual std::string get_chunk_by_line_token() { return "#@#"; }

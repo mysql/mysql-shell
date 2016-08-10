@@ -103,6 +103,8 @@ namespace mysh
 
       virtual uint64_t get_connection_id() const { return (uint64_t)_conn->get_thread_id(); }
 
+      virtual shcore::Value execute_sql(const std::string& query, const shcore::Argument_list &args) const;
+
 #if DOXYGEN_JS
       String uri; //!< Same as getUri()
       ClassicSchema defaultSchema; //!< Same as getDefaultSchema()

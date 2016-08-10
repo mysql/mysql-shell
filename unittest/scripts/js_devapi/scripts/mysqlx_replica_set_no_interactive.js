@@ -1,11 +1,9 @@
 // Assumptions: ensure_schema_does_not_exist is available
 // Assumes __uripwd is defined as <user>:<pwd>@<host>:<plugin_port>
 // validateMemer and validateNotMember are defined on the setup script
-var mysqlx = require('mysqlx');
-
+dba.dropMetadataSchema({enforce:true});
 //@ Farm: validating members
-var myAdmin = mysqlx.getAdminSession(__uripwd);
-var farm = myAdmin.createFarm('devFarm', 'testing');
+var farm = dba.createFarm('devFarm', 'testing');
 farm.addSeedInstance({host: '192.168.1.1'});
 var rset = farm.getReplicaSet();
 
@@ -30,8 +28,6 @@ rset.addInstance('');
 
 //@# Farm: addInstance
 rset.addInstance('192.168.1.1:33060');
-rset.addInstance({host: '192.168.1.1', port: 1234});
 
 // Cleanup
-myAdmin.dropFarm('devFarm', {dropDefaultReplicaSet: true});
-myAdmin.close();
+dba.dropFarm('devFarm', {dropDefaultReplicaSet: true});

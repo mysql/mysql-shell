@@ -23,12 +23,10 @@
 #ifndef _MOD_MYSQLX_ADMIN_SESSION_H_
 #define _MOD_MYSQLX_ADMIN_SESSION_H_
 
-#include "../mod_common.h"
-#include "shellcore/types.h"
+#include "modules/mod_common.h"
 #include "shellcore/types_cpp.h"
 #include "shellcore/ishell_core.h"
-#include "../base_session.h"
-#include "../mod_mysqlx_session_handle.h"
+#include "modules/base_session.h"
 
 namespace mysh
 {
@@ -42,44 +40,28 @@ namespace mysh
     * - Accessing available Farms.
     * - Farm management operations.
     */
-    class SHCORE_PUBLIC AdminSession : public ShellAdminSession, public std::enable_shared_from_this<AdminSession>
+    class SHCORE_PUBLIC AdminSession : public shcore::Cpp_object_bridge, public std::enable_shared_from_this<AdminSession>
     {
     public:
-      AdminSession();
-      AdminSession(const AdminSession& s);
-      virtual ~AdminSession() { reset_session(); }
+      AdminSession(shcore::IShell_core* owner);
+      virtual ~AdminSession() { /*reset_session();*/ }
 
       virtual std::string class_name() const { return "AdminSession"; };
 
       virtual shcore::Value get_member(const std::string &prop) const;
 
-      virtual shcore::Value connect(const shcore::Argument_list &args);
-      virtual shcore::Value close(const shcore::Argument_list &args);
+      virtual bool operator == (const Object_bridge &other) const;
 
-      virtual bool is_connected() const;
-      virtual shcore::Value get_status(const shcore::Argument_list &args);
-      virtual shcore::Value get_capability(const std::string& name);
-
+      shcore::Value reset_session(const shcore::Argument_list &args);
       shcore::Value create_farm(const shcore::Argument_list &args);
       shcore::Value drop_farm(const shcore::Argument_list &args);
       shcore::Value get_farm(const shcore::Argument_list &args) const;
       shcore::Value drop_metadata_schema(const shcore::Argument_list &args);
+      std::shared_ptr<ShellDevelopmentSession> get_active_session();
 
-      virtual void set_option(const char *option, int value);
-
-      virtual uint64_t get_connection_id() const;
-      virtual std::string db_object_exists(std::string &type, const std::string &name, const std::string& owner) const;
-
-      static std::shared_ptr<shcore::Object_bridge> create(const shcore::Argument_list &args);
       virtual int get_default_port() { return 33060; };
 
-      SessionHandle get_session() const;
-
-      std::string get_user() { return _user; };
-      std::string get_password() { return _password; };
-
 #if DOXYGEN_JS
-      String uri; //!< Same as getUri()
       Farm defaultFarm; //!< Same as getDefaultSchema()
 
       Farm createFarm(String name);
@@ -87,11 +69,8 @@ namespace mysh
       Farm getFarm(String name);
       Farm getDefaultFarm();
       Undefined dropMetadataSchema();
-      String getUri();
-      Undefined close();
 
 #elif DOXYGEN_PY
-      str uri; //!< Same as get_uri()
       Farm defaultFarm; //!< Same as get_default_schema()
 
       Farm create_farm(str name);
@@ -99,19 +78,20 @@ namespace mysh
       Farm get_farm(str name);
       Farm get_default_farm();
       None drop_metadata_schema();
-      str get_uri();
-      None close();
 #endif
 
     protected:
-      SessionHandle _session;
+      std::shared_ptr<mysh::ShellDevelopmentSession> _custom_session;
+      shcore::IShell_core *_shell_core;
+
+      mutable std::shared_ptr<shcore::Value::Map_type> _farms;
+      mutable std::string _default_farm;
 
       void init();
     private:
       std::shared_ptr<MetadataStorage> _metadata_storage;
       uint64_t _connection_id;
 
-      void reset_session();
       std::string generate_password(int password_lenght);
     };
   }

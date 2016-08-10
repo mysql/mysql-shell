@@ -30,6 +30,16 @@ namespace shcore
     {
       Shell_js_script_tester::SetUp();
 
+      // All of the test cases share the same config folder
+      // and setup script
+      set_config_folder("js_devapi");
+      set_setup_script("setup.js");
+    }
+
+    virtual void set_defaults()
+    {
+      Shell_js_script_tester::set_defaults();
+
       int port = 33060, pwd_found;
       std::string protocol, user, password, host, sock, schema, ssl_ca, ssl_cert, ssl_key;
       shcore::parse_mysql_connstring(_uri, protocol, user, password, host, port, sock, schema, pwd_found, ssl_ca, ssl_cert, ssl_key);
@@ -49,17 +59,20 @@ namespace shcore
       exec_and_out_equals(code);
       code = "var __uri = '" + user + "@" + host + ":" + _port + "';";
       exec_and_out_equals(code);
+      code = "var __xhost_port = '" + host + ":" + _port + "';";
+      exec_and_out_equals(code);
+
+      if (_mysql_port.empty())
+        code = "var __host_port = '" + host + ":3306';";
+      else
+        code = "var __host_port = '" + host + ":" + _mysql_port + "';";
+      exec_and_out_equals(code);
       code = "var __uripwd = '" + user + ":" + password + "@" + host + ":" + _port + "';";
       exec_and_out_equals(code);
       code = "var __displayuri = '" + user + "@" + host + ":" + _port + "';";
       exec_and_out_equals(code);
       code = "var __displayuridb = '" + user + "@" + host + ":" + _port + "/mysql';";
       exec_and_out_equals(code);
-
-      // All of the test cases share the same config folder
-      // and setup script
-      set_config_folder("js_devapi");
-      set_setup_script("setup.js");
     }
   };
 
@@ -148,18 +161,487 @@ namespace shcore
     validate_interactive("mysqlx_column_metadata.js");
   }
 
-  TEST_F(Shell_js_mysqlx_tests, mysqlx_admin_session)
+  TEST_F(Shell_js_mysqlx_tests, admin_no_interactive_global_session_x)
   {
-    validate_interactive("mysqlx_admin_session.js");
+    _options->wizards = false;
+    reset_shell();
+
+    execute("\\connect " + _uri);
+    validate_interactive("mysqlx_admin_no_interactive.js");
+    execute("session.close();");
   }
 
-  TEST_F(Shell_js_mysqlx_tests, mysqlx_farm)
+  TEST_F(Shell_js_mysqlx_tests, admin_no_interactive_global_session_node)
   {
-    validate_interactive("mysqlx_farm.js");
+    _options->wizards = false;
+    reset_shell();
+
+    execute("\\connect -n " + _uri);
+    validate_interactive("mysqlx_admin_no_interactive.js");
+    execute("session.close();");
   }
 
-  TEST_F(Shell_js_mysqlx_tests, mysqlx_replica_set)
+  TEST_F(Shell_js_mysqlx_tests, admin_no_interactive_global_session_classic)
   {
-    validate_interactive("mysqlx_replica_set.js");
+    _options->wizards = false;
+    reset_shell();
+
+    execute("\\connect -c " + _mysql_uri);
+    validate_interactive("mysqlx_admin_no_interactive.js");
+    execute("session.close();");
   }
+
+  TEST_F(Shell_js_mysqlx_tests, admin_no_interactive_custom_session_x)
+  {
+    _options->wizards = false;
+    reset_shell();
+
+    execute("var mysqlx = require('mysqlx');");
+    execute("var mySession = mysqlx.getSession('" + _uri + "');");
+    execute("dba.resetSession(mySession);");
+    validate_interactive("mysqlx_admin_no_interactive.js");
+    execute("mySession.close();");
+  }
+
+  TEST_F(Shell_js_mysqlx_tests, admin_no_interactive_custom_session_node)
+  {
+    _options->wizards = false;
+    reset_shell();
+
+    execute("var mysqlx = require('mysqlx');");
+    execute("var mySession = mysqlx.getNodeSession('" + _uri + "');");
+    execute("dba.resetSession(mySession);");
+    validate_interactive("mysqlx_admin_no_interactive.js");
+    execute("mySession.close();");
+  }
+
+  TEST_F(Shell_js_mysqlx_tests, admin_no_interactive_custom_session_classic)
+  {
+    _options->wizards = false;
+    reset_shell();
+
+    execute("var mysql = require('mysql');");
+    execute("var mySession = mysql.getClassicSession('" + _mysql_uri + "');");
+    execute("dba.resetSession(mySession);");
+    validate_interactive("mysqlx_admin_no_interactive.js");
+    execute("mySession.close();");
+  }
+
+  TEST_F(Shell_js_mysqlx_tests, admin_interactive_custom_session_x)
+  {
+    // Fills the required prompts and passwords...
+    //@ Initialization
+    output_handler.prompts.push_back("y");
+
+    //@# AdminSession: createFarm with interaction
+    output_handler.passwords.push_back("testing");
+
+    //@ AdminSession: dropFarm interaction no options, cancel
+    output_handler.passwords.push_back("n");
+
+    //@ AdminSession: dropFarm interaction missing option, ok error
+    output_handler.passwords.push_back("y");
+
+    //@ AdminSession: dropFarm interaction no options, ok success
+    output_handler.passwords.push_back("y");
+
+    execute("var mysqlx = require('mysqlx');");
+    execute("var mySession = mysqlx.getSession('" + _uri + "');");
+    execute("dba.resetSession(mySession);");
+    validate_interactive("mysqlx_admin_interactive.js");
+    execute("mySession.close();");
+  }
+
+  TEST_F(Shell_js_mysqlx_tests, admin_interactive_custom_session_node)
+  {
+    // Fills the required prompts and passwords...
+    //@ Initialization
+    output_handler.prompts.push_back("y");
+
+    //@# AdminSession: createFarm with interaction
+    output_handler.passwords.push_back("testing");
+
+    //@ AdminSession: dropFarm interaction no options, cancel
+    output_handler.passwords.push_back("n");
+
+    //@ AdminSession: dropFarm interaction missing option, ok error
+    output_handler.passwords.push_back("y");
+
+    //@ AdminSession: dropFarm interaction no options, ok success
+    output_handler.passwords.push_back("y");
+
+    execute("var mysqlx = require('mysqlx');");
+    execute("var mySession = mysqlx.getNodeSession('" + _uri + "');");
+    execute("dba.resetSession(mySession);");
+    validate_interactive("mysqlx_admin_interactive.js");
+    execute("mySession.close();");
+  }
+
+  TEST_F(Shell_js_mysqlx_tests, admin_interactive_custom_session_classic)
+  {
+    // Fills the required prompts and passwords...
+    //@ Initialization
+    output_handler.prompts.push_back("y");
+
+    //@# AdminSession: createFarm with interaction
+    output_handler.passwords.push_back("testing");
+
+    //@ AdminSession: dropFarm interaction no options, cancel
+    output_handler.passwords.push_back("n");
+
+    //@ AdminSession: dropFarm interaction missing option, ok error
+    output_handler.passwords.push_back("y");
+
+    //@ AdminSession: dropFarm interaction no options, ok success
+    output_handler.passwords.push_back("y");
+
+    execute("var mysql = require('mysql');");
+    execute("var mySession = mysql.getClassicSession('" + _mysql_uri + "');");
+    execute("dba.resetSession(mySession);");
+    validate_interactive("mysqlx_admin_interactive.js");
+    execute("mySession.close();");
+  }
+
+  TEST_F(Shell_js_mysqlx_tests, admin_interactive_global_session_x)
+  {
+    // Fills the required prompts and passwords...
+    //@ Initialization
+    output_handler.prompts.push_back("y");
+
+    //@# AdminSession: createFarm with interaction
+    output_handler.passwords.push_back("testing");
+
+    //@ AdminSession: dropFarm interaction no options, cancel
+    output_handler.passwords.push_back("n");
+
+    //@ AdminSession: dropFarm interaction missing option, ok error
+    output_handler.passwords.push_back("y");
+
+    //@ AdminSession: dropFarm interaction no options, ok success
+    output_handler.passwords.push_back("y");
+
+    execute("\\connect " + _uri);
+    validate_interactive("mysqlx_admin_interactive.js");
+    execute("mySession.close();");
+  }
+
+  TEST_F(Shell_js_mysqlx_tests, admin_interactive_global_session_node)
+  {
+    // Fills the required prompts and passwords...
+    //@ Initialization
+    output_handler.prompts.push_back("y");
+
+    //@# AdminSession: createFarm with interaction
+    output_handler.passwords.push_back("testing");
+
+    //@ AdminSession: dropFarm interaction no options, cancel
+    output_handler.passwords.push_back("n");
+
+    //@ AdminSession: dropFarm interaction missing option, ok error
+    output_handler.passwords.push_back("y");
+
+    //@ AdminSession: dropFarm interaction no options, ok success
+    output_handler.passwords.push_back("y");
+
+    execute("\\connect -n " + _uri);
+    validate_interactive("mysqlx_admin_interactive.js");
+    execute("mySession.close();");
+  }
+
+  TEST_F(Shell_js_mysqlx_tests, admin_interactive_global_session_classic)
+  {
+    // Fills the required prompts and passwords...
+    //@ Initialization
+    output_handler.prompts.push_back("y");
+
+    //@# AdminSession: createFarm with interaction
+    output_handler.passwords.push_back("testing");
+
+    //@ AdminSession: dropFarm interaction no options, cancel
+    output_handler.passwords.push_back("n");
+
+    //@ AdminSession: dropFarm interaction missing option, ok error
+    output_handler.passwords.push_back("y");
+
+    //@ AdminSession: dropFarm interaction no options, ok success
+    output_handler.passwords.push_back("y");
+
+    execute("\\connect -c " + _mysql_uri);
+    validate_interactive("mysqlx_admin_interactive.js");
+  }
+
+  TEST_F(Shell_js_mysqlx_tests, farm_no_interactive_global_session_x)
+  {
+    _options->wizards = false;
+    reset_shell();
+
+    execute("\\connect " + _uri);
+    validate_interactive("mysqlx_farm_no_interactive.js");
+    execute("session.close();");
+  }
+
+  TEST_F(Shell_js_mysqlx_tests, farm_no_interactive_global_session_node)
+  {
+    _options->wizards = false;
+    reset_shell();
+
+    execute("\\connect -n " + _uri);
+    validate_interactive("mysqlx_farm_no_interactive.js");
+    execute("session.close();");
+  }
+
+  TEST_F(Shell_js_mysqlx_tests, farm_no_interactive_global_session_classic)
+  {
+    _options->wizards = false;
+    reset_shell();
+
+    execute("\\connect -c " + _mysql_uri);
+    validate_interactive("mysqlx_farm_no_interactive.js");
+    execute("session.close();");
+  }
+
+  TEST_F(Shell_js_mysqlx_tests, farm_no_interactive_custom_session_x)
+  {
+    _options->wizards = false;
+    reset_shell();
+
+    execute("var mysqlx = require('mysqlx');");
+    execute("var mySession = mysqlx.getSession('" + _uri + "');");
+    execute("dba.resetSession(mySession);");
+    validate_interactive("mysqlx_farm_no_interactive.js");
+    execute("mySession.close();");
+  }
+
+  TEST_F(Shell_js_mysqlx_tests, farm_no_interactive_custom_session_node)
+  {
+    _options->wizards = false;
+    reset_shell();
+
+    execute("var mysqlx = require('mysqlx');");
+    execute("var mySession = mysqlx.getNodeSession('" + _uri + "');");
+    execute("dba.resetSession(mySession);");
+    validate_interactive("mysqlx_farm_no_interactive.js");
+    execute("mySession.close();");
+  }
+
+  TEST_F(Shell_js_mysqlx_tests, farm_no_interactive_custom_session_classic)
+  {
+    _options->wizards = false;
+    reset_shell();
+
+    execute("var mysql = require('mysql');");
+    execute("var mySession = mysql.getClassicSession('" + _mysql_uri + "');");
+    execute("dba.resetSession(mySession);");
+    validate_interactive("mysqlx_farm_no_interactive.js");
+    execute("mySession.close();");
+  }
+
+  //TEST_F(Shell_js_mysqlx_tests, farm_interactive_custom_session_x)
+  //{
+  //  // Fills the required prompts and passwords...
+  //  //@ Initialization
+  //  output_handler.prompts.push_back("y");
+
+  //  //@# AdminSession: createFarm with interaction
+  //  output_handler.passwords.push_back("testing");
+
+  //  //@ AdminSession: dropFarm interaction no options, cancel
+  //  output_handler.passwords.push_back("n");
+
+  //  //@ AdminSession: dropFarm interaction missing option, ok error
+  //  output_handler.passwords.push_back("y");
+
+  //  //@ AdminSession: dropFarm interaction no options, ok success
+  //  output_handler.passwords.push_back("y");
+
+  //  execute("var mysqlx = require('mysqlx');");
+  //  execute("var mySession = mysqlx.getSession('" + _uri + "');");
+  //  execute("dba.resetSession(mySession);");
+  //  validate_interactive("mysqlx_farm_interactive.js");
+  //  execute("mySession.close();");
+  //}
+
+  //TEST_F(Shell_js_mysqlx_tests, farm_interactive_custom_session_node)
+  //{
+  //  // Fills the required prompts and passwords...
+  //  //@ Initialization
+  //  output_handler.prompts.push_back("y");
+
+  //  //@# AdminSession: createFarm with interaction
+  //  output_handler.passwords.push_back("testing");
+
+  //  //@ AdminSession: dropFarm interaction no options, cancel
+  //  output_handler.passwords.push_back("n");
+
+  //  //@ AdminSession: dropFarm interaction missing option, ok error
+  //  output_handler.passwords.push_back("y");
+
+  //  //@ AdminSession: dropFarm interaction no options, ok success
+  //  output_handler.passwords.push_back("y");
+
+  //  execute("var mysqlx = require('mysqlx');");
+  //  execute("var mySession = mysqlx.getNodeSession('" + _uri + "');");
+  //  execute("dba.resetSession(mySession);");
+  //  validate_interactive("mysqlx_farm_interactive.js");
+  //  execute("mySession.close();");
+  //}
+
+  //TEST_F(Shell_js_mysqlx_tests, farm_interactive_custom_session_classic)
+  //{
+  //  // Fills the required prompts and passwords...
+  //  //@ Initialization
+  //  output_handler.prompts.push_back("y");
+
+  //  //@# AdminSession: createFarm with interaction
+  //  output_handler.passwords.push_back("testing");
+
+  //  //@ AdminSession: dropFarm interaction no options, cancel
+  //  output_handler.passwords.push_back("n");
+
+  //  //@ AdminSession: dropFarm interaction missing option, ok error
+  //  output_handler.passwords.push_back("y");
+
+  //  //@ AdminSession: dropFarm interaction no options, ok success
+  //  output_handler.passwords.push_back("y");
+
+  //  execute("var mysql = require('mysql');");
+  //  execute("var mySession = mysql.getClassicSession('" + _mysql_uri + "');");
+  //  execute("dba.resetSession(mySession);");
+  //  validate_interactive("mysqlx_farm_interactive.js");
+  //  execute("mySession.close();");
+  //}
+
+  //TEST_F(Shell_js_mysqlx_tests, farm_interactive_global_session_x)
+  //{
+  //  // Fills the required prompts and passwords...
+  //  //@ Initialization
+  //  output_handler.prompts.push_back("y");
+
+  //  //@# AdminSession: createFarm with interaction
+  //  output_handler.passwords.push_back("testing");
+
+  //  //@ AdminSession: dropFarm interaction no options, cancel
+  //  output_handler.passwords.push_back("n");
+
+  //  //@ AdminSession: dropFarm interaction missing option, ok error
+  //  output_handler.passwords.push_back("y");
+
+  //  //@ AdminSession: dropFarm interaction no options, ok success
+  //  output_handler.passwords.push_back("y");
+
+  //  execute("\\connect " + _uri);
+  //  validate_interactive("mysqlx_farm_interactive.js");
+  //  execute("mySession.close();");
+  //}
+
+  //TEST_F(Shell_js_mysqlx_tests, farm_interactive_global_session_node)
+  //{
+  //  // Fills the required prompts and passwords...
+  //  //@ Initialization
+  //  output_handler.prompts.push_back("y");
+
+  //  //@# AdminSession: createFarm with interaction
+  //  output_handler.passwords.push_back("testing");
+
+  //  //@ AdminSession: dropFarm interaction no options, cancel
+  //  output_handler.passwords.push_back("n");
+
+  //  //@ AdminSession: dropFarm interaction missing option, ok error
+  //  output_handler.passwords.push_back("y");
+
+  //  //@ AdminSession: dropFarm interaction no options, ok success
+  //  output_handler.passwords.push_back("y");
+
+  //  execute("\\connect -n " + _uri);
+  //  validate_interactive("mysqlx_farm_interactive.js");
+  //  execute("mySession.close();");
+  //}
+
+  //TEST_F(Shell_js_mysqlx_tests, farm_interactive_global_session_classic)
+  //{
+  //  // Fills the required prompts and passwords...
+  //  //@ Initialization
+  //  output_handler.prompts.push_back("y");
+
+  //  //@# AdminSession: createFarm with interaction
+  //  output_handler.passwords.push_back("testing");
+
+  //  //@ AdminSession: dropFarm interaction no options, cancel
+  //  output_handler.passwords.push_back("n");
+
+  //  //@ AdminSession: dropFarm interaction missing option, ok error
+  //  output_handler.passwords.push_back("y");
+
+  //  //@ AdminSession: dropFarm interaction no options, ok success
+  //  output_handler.passwords.push_back("y");
+
+  //  execute("\\connect -c " + _mysql_uri);
+  //  validate_interactive("mysqlx_farm_interactive.js");
+  //}
+}
+
+TEST_F(Shell_js_mysqlx_tests, replica_set_no_interactive_global_session_x)
+{
+  _options->wizards = false;
+  reset_shell();
+
+  execute("\\connect " + _uri);
+  validate_interactive("mysqlx_replica_set_no_interactive.js");
+  execute("session.close();");
+}
+
+TEST_F(Shell_js_mysqlx_tests, replica_set_no_interactive_global_session_node)
+{
+  _options->wizards = false;
+  reset_shell();
+
+  execute("\\connect -n " + _uri);
+  validate_interactive("mysqlx_replica_set_no_interactive.js");
+  execute("session.close();");
+}
+
+TEST_F(Shell_js_mysqlx_tests, replica_set_no_interactive_global_session_classic)
+{
+  _options->wizards = false;
+  reset_shell();
+
+  execute("\\connect -c " + _mysql_uri);
+  validate_interactive("mysqlx_replica_set_no_interactive.js");
+  execute("session.close();");
+}
+
+TEST_F(Shell_js_mysqlx_tests, replica_set_no_interactive_custom_session_x)
+{
+  _options->wizards = false;
+  reset_shell();
+
+  execute("var mysqlx = require('mysqlx');");
+  execute("var mySession = mysqlx.getSession('" + _uri + "');");
+  execute("dba.resetSession(mySession);");
+  validate_interactive("mysqlx_replica_set_no_interactive.js");
+  execute("mySession.close();");
+}
+
+TEST_F(Shell_js_mysqlx_tests, replica_set_no_interactive_custom_session_node)
+{
+  _options->wizards = false;
+  reset_shell();
+
+  execute("var mysqlx = require('mysqlx');");
+  execute("var mySession = mysqlx.getNodeSession('" + _uri + "');");
+  execute("dba.resetSession(mySession);");
+  validate_interactive("mysqlx_replica_set_no_interactive.js");
+  execute("mySession.close();");
+}
+
+TEST_F(Shell_js_mysqlx_tests, replica_set_no_interactive_custom_session_classic)
+{
+  _options->wizards = false;
+  reset_shell();
+
+  execute("var mysql = require('mysql');");
+  execute("var mySession = mysql.getClassicSession('" + _mysql_uri + "');");
+  execute("dba.resetSession(mySession);");
+  validate_interactive("mysqlx_replica_set_no_interactive.js");
+  execute("mySession.close();");
 }

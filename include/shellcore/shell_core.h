@@ -135,10 +135,6 @@ namespace shcore
     virtual std::shared_ptr<mysh::ShellDevelopmentSession> get_dev_session();
 
     virtual shcore::Value set_current_schema(const std::string& name);
-    // Admin Session Handling
-    virtual std::shared_ptr<mysh::ShellAdminSession> connect_admin_session(const Argument_list &args);
-    virtual std::shared_ptr<mysh::ShellAdminSession> set_admin_session(std::shared_ptr<mysh::ShellAdminSession> session);
-    virtual std::shared_ptr<mysh::ShellAdminSession> get_admin_session();
 
     virtual Object_registry *registry() { return _registry; }
   public:
@@ -164,6 +160,7 @@ namespace shcore
     virtual const std::string& get_input_source() { return _input_source; }
     virtual bool print_help(const std::string& topic);
   private:
+    void set_dba_global();
     void init_sql();
     void init_js();
     void init_py();
@@ -175,7 +172,6 @@ namespace shcore
     Value _active_session;
 
     std::shared_ptr<mysh::ShellDevelopmentSession> _global_dev_session;
-    std::shared_ptr<mysh::ShellAdminSession> _global_admin_session;
 
     Interpreter_delegate *_lang_delegate;
     std::string _input_source;

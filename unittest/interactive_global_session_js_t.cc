@@ -81,7 +81,7 @@ namespace shcore
       output_handler.prompts.push_back("y");  // Would you like to establish a session
       output_handler.prompts.push_back("1");  // Session type 1) X
       output_handler.prompts.push_back(_uri_nopasswd); // Connection data
-      output_handler.ret_pwd = _pwd;
+      output_handler.passwords.push_back(_pwd);
       _interactive_shell->process_line("println('Resolved: ' + session.uri);");
       MY_EXPECT_STDOUT_CONTAINS("The global session is not set, do you want to establish a session?");
       MY_EXPECT_STDOUT_CONTAINS("Please specify the session type:");
@@ -107,7 +107,7 @@ namespace shcore
       output_handler.prompts.push_back("y");  // Would you like to establish a session
       output_handler.prompts.push_back("1");  // Session type 1) X
       output_handler.prompts.push_back(_uri_nopasswd); // Connection data
-      output_handler.ret_pwd = _pwd;
+      output_handler.passwords.push_back(_pwd);
       _interactive_shell->process_line("println('Resolved: ' + session.getUri());");
       MY_EXPECT_STDOUT_CONTAINS("The global session is not set, do you want to establish a session?");
       MY_EXPECT_STDOUT_CONTAINS("Please specify the session type:");
@@ -133,7 +133,7 @@ namespace shcore
       output_handler.prompts.push_back("y");  // Would you like to establish a session
       output_handler.prompts.push_back("2");  // Session type 1) Node
       output_handler.prompts.push_back(_uri_nopasswd); // Connection data
-      output_handler.ret_pwd = _pwd;
+      output_handler.passwords.push_back(_pwd);
       _interactive_shell->process_line("println('Resolved: ' + session.uri);");
       MY_EXPECT_STDOUT_CONTAINS("The global session is not set, do you want to establish a session?");
       MY_EXPECT_STDOUT_CONTAINS("Please specify the session type:");
@@ -159,7 +159,7 @@ namespace shcore
       output_handler.prompts.push_back("y");  // Would you like to establish a session
       output_handler.prompts.push_back("2");  // Session type 1) Node
       output_handler.prompts.push_back(_uri_nopasswd); // Connection data
-      output_handler.ret_pwd = _pwd;
+      output_handler.passwords.push_back(_pwd);
       _interactive_shell->process_line("println('Resolved: ' + session.getUri());");
       MY_EXPECT_STDOUT_CONTAINS("The global session is not set, do you want to establish a session?");
       MY_EXPECT_STDOUT_CONTAINS("Please specify the session type:");
@@ -185,7 +185,7 @@ namespace shcore
       output_handler.prompts.push_back("y");  // Would you like to establish a session
       output_handler.prompts.push_back("3");  // Session type 1) Classic
       output_handler.prompts.push_back(_mysql_uri_nopasswd); // Connection data
-      output_handler.ret_pwd = _pwd;
+      output_handler.passwords.push_back(_pwd);
       _interactive_shell->process_line("println('Resolved: ' + session.uri);");
       MY_EXPECT_STDOUT_CONTAINS("The global session is not set, do you want to establish a session?");
       MY_EXPECT_STDOUT_CONTAINS("Please specify the session type:");
@@ -211,7 +211,7 @@ namespace shcore
       output_handler.prompts.push_back("y");  // Would you like to establish a session
       output_handler.prompts.push_back("3");  // Session type 1) Classic
       output_handler.prompts.push_back(_mysql_uri_nopasswd); // Connection data
-      output_handler.ret_pwd = _pwd;
+      output_handler.passwords.push_back(_pwd);
       _interactive_shell->process_line("println('Resolved: ' + session.getUri());");
       MY_EXPECT_STDOUT_CONTAINS("The global session is not set, do you want to establish a session?");
       MY_EXPECT_STDOUT_CONTAINS("Please specify the session type:");
@@ -237,7 +237,7 @@ namespace shcore
       output_handler.prompts.push_back("y");  // Would you like to establish a session
       output_handler.prompts.push_back("2");  // Session type 1) Node
       output_handler.prompts.push_back(_uri_nopasswd); // Connection data
-      output_handler.ret_pwd = _pwd;
+      output_handler.passwords.push_back(_pwd);
       output_handler.prompts.push_back("y"); // Would you like to create the schema
       _interactive_shell->process_line("var myschema = session.getSchema('mysample')");
       MY_EXPECT_STDOUT_CONTAINS("The global session is not set, do you want to establish a session?");
