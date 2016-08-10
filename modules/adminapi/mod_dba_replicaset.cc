@@ -254,7 +254,7 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args)
     else
       (*options_session)["dbUser"] = shcore::Value("root");
 
-    (*options_session)["dbPassword"] = shcore::Value("root"); // TODO: create interactive mode to query for the password
+    (*options_session)["dbPassword"] = shcore::Value(""); // TODO: create interactive mode to query for the password
 
     args.push_back(shcore::Value(options_session));
 

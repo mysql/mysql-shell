@@ -4,7 +4,7 @@
 dba.dropMetadataSchema({enforce:true});
 //@ Farm: validating members
 var farm = dba.createFarm('devFarm', 'testing');
-farm.addSeedInstance({host: '192.168.1.1'});
+farm.addSeedInstance({host: __host});
 var rset = farm.getReplicaSet();
 
 var members = dir(rset);
@@ -19,15 +19,15 @@ validateMember(members, 'removeInstance');
 rset.addInstance()
 rset.addInstance(5,6)
 rset.addInstance(5)
-rset.addInstance({host: '192.168.1.1', schema: 'abs'});
-rset.addInstance({host: '192.168.1.1', user: 'abs'});
-rset.addInstance({host: '192.168.1.1', password: 'abs'});
-rset.addInstance({host: '192.168.1.1', authMethod: 'abs'});
-rset.addInstance({port: 33060});
+rset.addInstance({host: __host, schema: 'abs'});
+rset.addInstance({host: __host, user: 'abs'});
+rset.addInstance({host: __host, password: 'abs'});
+rset.addInstance({host: __host, authMethod: 'abs'});
+rset.addInstance({port: __port});
 rset.addInstance('');
 
 //@# Farm: addInstance
-rset.addInstance('192.168.1.1:33060');
+rset.addInstance(__host_port);
 
 // Cleanup
 dba.dropFarm('devFarm', {dropDefaultReplicaSet: true});

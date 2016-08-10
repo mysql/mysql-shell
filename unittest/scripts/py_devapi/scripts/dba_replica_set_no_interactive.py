@@ -5,7 +5,7 @@
 dba.get_farm({"enforce":True})
 #@ Farm: validating members
 farm = dba.create_farm('devFarm', 'testing')
-farm.add_seed_instance({"host": '192.168.1.1'})
+farm.add_seed_instance({"host": __host})
 rset = farm.getReplicaSet()
 
 all_members = dir(rset)
@@ -26,16 +26,16 @@ validateMember(members, 'remove_instance')
 rset.add_instance()
 rset.add_instance(5,6)
 rset.add_instance(5)
-rset.add_instance({"host": '192.168.1.1', "schema": 'abs'})
-rset.add_instance({"host": '192.168.1.1', "user": 'abs'})
-rset.add_instance({"host": '192.168.1.1', "password": 'abs'})
-rset.add_instance({"host": '192.168.1.1', "authMethod": 'abs'})
-rset.add_instance({"port": 33060})
+rset.add_instance({"host": __host, "schema": 'abs'})
+rset.add_instance({"host": __host, "user": 'abs'})
+rset.add_instance({"host": __host, "password": 'abs'})
+rset.add_instance({"host": __host, "authMethod": 'abs'})
+rset.add_instance({"port": __port})
 rset.add_instance('')
 
 #@# Farm: add_instance
-rset.add_instance('192.168.1.1:33060')
-rset.add_instance({"host": '192.168.1.1', "port": 1234})
+rset.add_instance(__host_port)
+rset.add_instance({"host": __host, "port": __port})
 
 # Cleanup
 dba.drop_farm('devFarm', {"dropDefaultReplicaSet": True})

@@ -2,7 +2,7 @@
 |Are you sure you want to remove the Metadata? [y/N]:|*
 
 #@ Session: validating members
-|Session Members: 7|
+|Session Members: 9|
 |default_farm: OK|
 |get_default_farm: OK|
 |create_farm: OK|
@@ -10,6 +10,8 @@
 |get_farm: OK|
 |drop_metadata_schema: OK|
 |reset_session: OK|
+|validate_nstance: OK|
+|deploy_local_instance: OK|
 
 #@# Dba: create_farm errors
 ||Invalid number of arguments in Dba.create_farm, expected 1 to 3 but got 0
@@ -28,6 +30,9 @@
 
 #@ Dba: get_farm
 |<Farm:devFarm>|
+
+#@ Dba: add_seed_instance
+||
 
 #@# Dba: drop_farm errors
 ||Invalid number of arguments in Dba.drop_farm, expected 1 to 2 but got 0

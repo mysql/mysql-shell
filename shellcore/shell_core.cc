@@ -31,7 +31,6 @@
 #include <boost/format.hpp>
 #include "modules/mod_mysqlx.h"
 #include "modules/mod_mysql.h"
-#include "modules/mod_mysqlx_mysql_instance.h"
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wshadow"
 #pragma GCC diagnostic ignored "-Wunused-parameter"
@@ -50,7 +49,6 @@ Shell_core::Shell_core(Interpreter_delegate *shdelegate)
 {
   INIT_MODULE(mysh::mysqlx::Mysqlx);
   INIT_MODULE(mysh::mysql::Mysql);
-  INIT_MODULE(mysh::mysqlx::MysqlInstance);
 
   // Use a random seed for UUIDs
   std::time_t now = std::time(NULL);

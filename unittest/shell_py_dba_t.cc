@@ -59,6 +59,23 @@ namespace shcore
       exec_and_out_equals(code);
       code = "__uri = '" + user + "@" + host + ":" + _port + "';";
       exec_and_out_equals(code);
+      code = "__xhost_port = '" + host + ":" + _port + "';";
+      exec_and_out_equals(code);
+      if (_mysql_port.empty())
+      {
+        code = "__host_port = '" + host + ":3306';";
+        exec_and_out_equals(code);
+        code = "__mysql_port = 3306;";
+        exec_and_out_equals(code);
+      }
+      else
+      {
+        code = "__host_port = '" + host + ":" + _mysql_port + "';";
+        exec_and_out_equals(code);
+        code = "__mysql_port = " + _mysql_port + ";";
+        exec_and_out_equals(code);
+      }
+
       code = "__uripwd = '" + user + ":" + password + "@" + host + ":" + _port + "';";
       exec_and_out_equals(code);
       code = "__displayuri = '" + user + "@" + host + ":" + _port + "';";

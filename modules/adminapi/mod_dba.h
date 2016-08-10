@@ -52,14 +52,21 @@ namespace mysh
 
       virtual bool operator == (const Object_bridge &other) const;
 
+      std::shared_ptr<ShellDevelopmentSession> get_active_session();
+      virtual int get_default_port() { return 33060; };
+      int get_default_instance_port() { return 3306; }
+
+      shcore::Value validate_instance(const shcore::Argument_list &args);
+      shcore::Value deploy_local_instance(const shcore::Argument_list &args);
+      shcore::Value clone_instance(const shcore::Argument_list &args);
+      shcore::Value configure_instance(const shcore::Argument_list &args);
+      shcore::Value reset_instance(const shcore::Argument_list &args);
+
       shcore::Value reset_session(const shcore::Argument_list &args);
       shcore::Value create_farm(const shcore::Argument_list &args);
       shcore::Value drop_farm(const shcore::Argument_list &args);
       shcore::Value get_farm(const shcore::Argument_list &args) const;
       shcore::Value drop_metadata_schema(const shcore::Argument_list &args);
-      std::shared_ptr<ShellDevelopmentSession> get_active_session();
-
-      virtual int get_default_port() { return 33060; };
 
 #if DOXYGEN_JS
       Farm defaultFarm; //!< Same as getDefaultSchema()

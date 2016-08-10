@@ -21,6 +21,8 @@ validateMember(members, 'drop_farm')
 validateMember(members, 'get_farm')
 validateMember(members, 'drop_metadata_schema')
 validateMember(members, 'reset_session')
+validateMember(members, 'validate_instance')
+validateMember(members, 'deploy_local_instance')
 
 #@# Dba: create_farm errors
 farm = dba.create_farm()
@@ -43,9 +45,10 @@ farm = dba.get_farm('devFarm')
 #@ Dba: get_farm
 print farm
 
+#@ Dba: add_seed_instance
+farm.add_seed_instance(__host_port)
+
 #@# Dba: drop_farm errors
-# Need a node to reproduce the not empty error
-farm.add_seed_instance('192.168.1.1:33060')
 farm = dba.drop_farm()
 farm = dba.drop_farm(5)
 farm = dba.drop_farm('')

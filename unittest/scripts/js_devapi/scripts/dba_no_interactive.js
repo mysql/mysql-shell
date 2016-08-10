@@ -14,6 +14,8 @@ validateMember(members, 'dropFarm');
 validateMember(members, 'getFarm');
 validateMember(members, 'dropMetadataSchema');
 validateMember(members, 'resetSession');
+validateMember(members, 'validateInstance');
+validateMember(members, 'deployLocalInstance');
 
 //@# Dba: createFarm errors
 var farm = dba.createFarm();
@@ -36,9 +38,10 @@ var farm = dba.getFarm('devFarm');
 //@ Dba: getFarm
 print(farm);
 
-//@# Dba: dropFarm errors
-// Need a node to reproduce the not empty error
+//@ Dba: addSeedInstance
 farm.addSeedInstance(__host_port);
+
+//@# Dba: dropFarm errors
 var farm = dba.dropFarm();
 var farm = dba.dropFarm(5);
 var farm = dba.dropFarm('');

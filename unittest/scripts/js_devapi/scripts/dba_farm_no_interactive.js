@@ -26,16 +26,16 @@ farm.addSeedInstance(__host_port);
 farm.addInstance();
 farm.addInstance(5,6);
 farm.addInstance(5);
-farm.addInstance({host: '192.168.1.1', schema: 'abs'});
-farm.addInstance({host: '192.168.1.1', user: 'abs'});
-farm.addInstance({host: '192.168.1.1', password: 'abs'});
-farm.addInstance({host: '192.168.1.1', authMethod: 'abs'});
-farm.addInstance({port: 33060});
+farm.addInstance({host: __host, schema: 'abs'});
+farm.addInstance({host: __host, user: 'abs'});
+farm.addInstance({host: __host, password: 'abs'});
+farm.addInstance({host: __host, authMethod: 'abs'});
+farm.addInstance({port: __port});
 farm.addInstance('');
 
 //@# Farm: addInstance
 farm.addInstance(__host_port);
-farm.addInstance({host: '192.168.1.1', port: 1234});
+farm.addInstance({host: __host, port: __port});
 
 // Cleanup
 dba.dropFarm('devFarm', {dropDefaultReplicaSet: true});
