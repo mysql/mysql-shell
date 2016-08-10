@@ -553,6 +553,9 @@ shcore::Value Dba::validate_instance(const shcore::Argument_list &args)
 
     std::string gadgets_path = (*shcore::Shell_core_options::get())[SHCORE_GADGETS_PATH].as_string();
 
+    if (gadgets_path.empty())
+      throw shcore::Exception::logic_error("Please set the mysqlprovision path using the environmental variable: MYSQLPROVISION.");
+
     std::string instance_cmd = "--instance=" + user + "@" + host + ":" + std::to_string(port);
     const char *args_script[] = { "python", gadgets_path.c_str(), "check", instance_cmd.c_str(), "--stdin", NULL };
 
@@ -650,6 +653,9 @@ shcore::Value Dba::deploy_local_instance(const shcore::Argument_list &args)
       sandbox_dir = (*options)["sandboxDir"].as_string();
 
     std::string gadgets_path = (*shcore::Shell_core_options::get())[SHCORE_GADGETS_PATH].as_string();
+
+    if (gadgets_path.empty())
+      throw shcore::Exception::logic_error("Please set the mysqlprovision path using the environmental variable: MYSQLPROVISION.");
 
     std::vector<std::string> sandbox_args;
     std::string arg;

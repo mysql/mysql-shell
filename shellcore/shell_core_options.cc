@@ -108,8 +108,6 @@ _options(new shcore::Value::Map_type)
   if (!gadgets_path.empty())
     mysqlprovision_path = gadgets_path + "/gadgets/python/front_end/mysqlprovision.py";
 
-  //  throw shcore::Exception::logic_error("Please set the mysqlprovision path using the environmental variable: MYSQLPROVISION.");
-
   (*_options)[SHCORE_GADGETS_PATH] = Value(mysqlprovision_path.c_str());
 }
 
