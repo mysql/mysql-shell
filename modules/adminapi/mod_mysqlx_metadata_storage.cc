@@ -628,6 +628,27 @@ bool MetadataStorage::is_replicaset_empty(uint64_t rs_id)
   return count == 0;
 }
 
+bool MetadataStorage::is_instance_on_replicaset(uint64_t rs_id, std::string address)
+{
+  auto result = execute_sql("SELECT COUNT(*) as count FROM farm_metadata_schema.instances WHERE replicaset_id = '" +
+                            std::to_string(rs_id) + "' AND addresses->\"$.mysqlClassic\"='" + address + "'");
+
+  auto row = result->call("fetchOne", shcore::Argument_list());
+
+  //result->flush();
+
+  uint64_t count = 0;
+  if (row)
+  {
+    auto real_row = row.as_object<Row>();
+    shcore::Argument_list args;
+    args.push_back(shcore::Value("count"));
+    count = row.as_object<Row>()->get_field(args).as_int();
+  }
+
+  return count == 1;
+}
+
 std::string MetadataStorage::get_instance_admin_user(uint64_t rs_id)
 {
   std::string instance_admin_user, query;

@@ -212,9 +212,9 @@ DEFINE_FUNCTION(MysqlInstance, deploy_local_instance)
 
   int port = 0;
   int portx = 0;
-  std::string data_dir;
+  std::string sandbox_dir;
 
-  std::vector<std::string> valid_options = { "port", "portx", "dataDir" };
+  std::vector<std::string> valid_options = { "port", "portx", "sandboxDir" };
 
   try
   {
@@ -235,8 +235,8 @@ DEFINE_FUNCTION(MysqlInstance, deploy_local_instance)
     if (options->has_key("portx"))
       portx = (*options)["portx"].as_int();
 
-    if (options->has_key("dataDir"))
-      data_dir = (*options)["dataDir"].as_string();
+    if (options->has_key("sandboxDir"))
+      sandbox_dir = (*options)["sandboxDir"].as_string();
 
     std::string gadgets_path = (*shcore::Shell_core_options::get())[SHCORE_GADGETS_PATH].as_string();
 
@@ -255,9 +255,9 @@ DEFINE_FUNCTION(MysqlInstance, deploy_local_instance)
       sandbox_args.push_back(arg);
     }
 
-    if (!data_dir.empty())
+    if (!sandbox_dir.empty())
     {
-      arg = "--sandboxdir=" + data_dir;
+      arg = "--sandboxdir=" + sandbox_dir;
       sandbox_args.push_back(arg);
     }
 

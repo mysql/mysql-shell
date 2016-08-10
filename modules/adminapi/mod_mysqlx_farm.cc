@@ -160,6 +160,8 @@ None add_seed_instance(Document doc){}
 
 shcore::Value Farm::add_seed_instance(const shcore::Argument_list &args)
 {
+  shcore::Value ret_val;
+
   args.ensure_count(1, (class_name() + ".addSeedInstance").c_str());
 
   std::string default_replication_user = "rpl_user"; // Default for V1.0 is rpl_user
@@ -167,7 +169,11 @@ shcore::Value Farm::add_seed_instance(const shcore::Argument_list &args)
 
   // Check if we have a Default ReplicaSet, if so it means we already added the Seed Instance
   if (default_rs != NULL)
-    throw shcore::Exception::logic_error("Default ReplicaSet already initialized. Please use: addInstance() to add more Instances to the ReplicaSet.");
+  {
+    uint64_t rs_id = default_rs->get_id();
+    if (!_metadata_storage->is_replicaset_empty(rs_id))
+      throw shcore::Exception::logic_error("Default ReplicaSet already initialized. Please use: addInstance() to add more Instances to the ReplicaSet.");
+  }
 
   // Create the Default ReplicaSet and assign it to the Farm's default_replica_set var
   _default_replica_set.reset(new ReplicaSet("default", _metadata_storage));
@@ -179,10 +185,11 @@ shcore::Value Farm::add_seed_instance(const shcore::Argument_list &args)
   // Update the Farm table with the Default ReplicaSet on the Metadata
   _metadata_storage->insert_default_replica_set(shared_from_this());
 
-  // Add the Instance to the Default ReplicaSet
-  _default_replica_set->add_instance(args);
 
-  return Value();
+  // Add the Instance to the Default ReplicaSet
+  ret_val = _default_replica_set->add_instance(args);
+
+  return ret_val;
 }
 
 #if DOXYGEN_CPP
@@ -216,6 +223,8 @@ None add_instance(Document doc){}
 
 shcore::Value Farm::add_instance(const shcore::Argument_list &args)
 {
+  shcore::Value ret_val;
+
   args.ensure_count(1, get_function_name("addInstance").c_str());
 
   // Check if we have a Default ReplicaSet
@@ -225,11 +234,11 @@ shcore::Value Farm::add_instance(const shcore::Argument_list &args)
   // Add the Instance to the Default ReplicaSet
   try
   {
-    _default_replica_set->add_instance(args);
+    ret_val = _default_replica_set->add_instance(args);
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("addInstance"));
 
-  return Value();
+  return ret_val;
 }
 
 #if DOXYGEN_CPP

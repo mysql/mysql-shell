@@ -61,6 +61,7 @@ namespace mysh
       std::string get_replicaset_name(uint64_t rs_id);
       std::shared_ptr<ReplicaSet> get_replicaset(uint64_t rs_id);
       bool is_replicaset_empty(uint64_t rs_id);
+      bool is_instance_on_replicaset(uint64_t rs_id, std::string address);
 
       std::string get_instance_admin_user(uint64_t rs_id);
       std::string get_instance_admin_user_password(uint64_t rs_id);

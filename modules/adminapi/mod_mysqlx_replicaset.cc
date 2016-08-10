@@ -130,20 +130,21 @@ None ReplicaSet::add_instance(Document doc){}
 #endif
 shcore::Value ReplicaSet::add_instance_(const shcore::Argument_list &args)
 {
+  shcore::Value ret_val;
   args.ensure_count(1, get_function_name("addInstance").c_str());
 
   // Check if the ReplicaSet is empty
-  if (_metadata_storage->is_replicaset_empty(_id))
+  if (!_metadata_storage->is_replicaset_empty(get_id()))
     throw shcore::Exception::logic_error("ReplicaSet not initialized. Please add the Seed Instance using: addSeedInstance().");
 
   // Add the Instance to the Default ReplicaSet
   try
   {
-    add_instance(args);
+    ret_val = add_instance(args);
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("addInstance"));
 
-  return Value();
+  return ret_val;
 }
 
 shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args)
@@ -228,6 +229,12 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args)
   if (!options->has_key("host"))
     throw shcore::Exception::argument_error("Missing required value for hostname.");
 
+  // Check if the instance was already added
+  std::string instance_address = host + ":" + std::to_string(port);
+
+  if(_metadata_storage->is_instance_on_replicaset(get_id(), instance_address))
+    throw shcore::Exception::logic_error("The instance '" + instance_address + "'' already belongs to the ReplicaSet: '" + get_member("name").as_string() + "'.");
+
   std::string instance_admin_user = _metadata_storage->get_instance_admin_user(get_id());
   std::string instance_admin_user_password = _metadata_storage->get_instance_admin_user_password(get_id());
   std::string replication_user_password = _metadata_storage->get_replication_user_password(get_id());
@@ -254,7 +261,11 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args)
     auto session = mysh::connect_session(args, mysh::Classic);
     mysh::mysql::ClassicSession *classic = dynamic_cast<mysh::mysql::ClassicSession*>(session.get());
 
-    std::string query = "CREATE USER 'instance_admin'@'" + host + "' IDENTIFIED BY '" + instance_admin_user_password + "'";
+    std::string query = "CREATE USER IF NOT EXISTS 'instance_admin'@'" + host + "' IDENTIFIED BY '" + instance_admin_user_password + "'";
+
+    args.clear();
+    args.push_back(shcore::Value("SET sql_log_bin = 0"));
+    classic->run_sql(args);
 
     args.clear();
     args.push_back(shcore::Value(query));
@@ -268,7 +279,7 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args)
 
     classic->run_sql(args);
 
-    query = "CREATE USER 'replication_user'@'%' IDENTIFIED BY '" + replication_user_password + "'";
+    query = "CREATE USER IF NOT EXISTS 'replication_user'@'%' IDENTIFIED BY '" + replication_user_password + "'";
 
     args.clear();
     args.push_back(shcore::Value(query));
@@ -281,36 +292,41 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args)
     args.push_back(shcore::Value(query));
 
     classic->run_sql(args);
+
+    args.clear();
+    args.push_back(shcore::Value("SET sql_log_bin = 1"));
+    classic->run_sql(args);
   }
+
+  // Gadgets handling
+  std::string buf;
+  char c;
+  std::string success("Operation completed with success.");
+  std::string super_user_password = "root\n"; // TODO: interactive wrapper to query it
+  std::string replication_password = replication_user_password + "\n";
+  std::string error;
+
+  std::string gadgets_path = (*shcore::Shell_core_options::get())[SHCORE_GADGETS_PATH].as_string();
+
+#ifdef WIN32
+  success += "\r\n";
+#else
+  success += "\n";
+#endif
 
   // Call the gadget to bootstrap the group with this instance
   if (seed_instance)
   {
     // Call mysqlprovision to bootstrap the group using "start"
-    std::string gadgets_path = (*shcore::Shell_core_options::get())[SHCORE_GADGETS_PATH].as_string();
-
     std::string instance_cmd = "--instance=" + user + "@" + host + ":" + std::to_string(port);
     std::string replication_user = "--replication-user=replication_user";
     const char *args_script[] = { "python", gadgets_path.c_str(), "start-replicaset", instance_cmd.c_str(), replication_user.c_str(), "--stdin", NULL };
 
     ngcommon::Process_launcher p("python", args_script);
 
-    std::string buf;
-    char c;
-    std::string success("Operation completed with success.");
-    std::string password = "root\n"; // TODO: interactive wrapper to query it
-    std::string replication_password = replication_user_password + "\n";
-    std::string error;
-
-#ifdef WIN32
-    success += "\r\n";
-#else
-    success += "\n";
-#endif
-
     try
     {
-      p.write(password.c_str(), password.length());
+      p.write(super_user_password.c_str(), super_user_password.length());
     }
     catch (shcore::Exception &e)
     {
@@ -341,7 +357,7 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args)
 
         if (strcmp(success.c_str(), buf.c_str()) == 0)
         {
-          std::string s_out = "The instance: " + host + ":" + std::to_string(port) + " was successfully added as Seed";
+          std::string s_out = "The instance '" + host + ":" + std::to_string(port) + "' was successfully added as seeding instance to the MySQL Farm.";
           ret_val = shcore::Value(s_out);
           break;
         }
@@ -380,8 +396,6 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args)
     std::string peer_instance = _metadata_storage->get_seed_instance(get_id());
 
     // Call mysqlprovision to join the instance on the group using "join"
-    std::string gadgets_path = (*shcore::Shell_core_options::get())[SHCORE_GADGETS_PATH].as_string();
-
     std::string instance_cmd = "--instance=" + user + "@" + host + ":" + std::to_string(port);
     std::string replication_user = "--replication-user=replication_user";
     std::string peer_cmd = "--peer-instance=" + user + "@" + peer_instance;
@@ -389,22 +403,9 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args)
 
     ngcommon::Process_launcher p("python", args_script);
 
-    std::string buf;
-    char c;
-    std::string success("Operation completed with success.");
-    std::string password = "root\n"; // TODO: interactive wrapper to query it
-    std::string replication_password = replication_user_password + "\n";
-    std::string error;
-
-#ifdef WIN32
-    success += "\r\n";
-#else
-    success += "\n";
-#endif
-
     try
     {
-      p.write(password.c_str(), password.length());
+      p.write(super_user_password.c_str(), super_user_password.length());
     }
     catch (shcore::Exception &e)
     {
@@ -444,7 +445,7 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args)
 
         if (strcmp(success.c_str(), buf.c_str()) == 0)
         {
-          std::string s_out = "The instance: " + host + ":" + std::to_string(port) + " was successfully added";
+          std::string s_out = "The instance '" + host + ":" + std::to_string(port) + "' was successfully added to the MySQL Farm.";
           ret_val = shcore::Value(s_out);
           break;
         }
@@ -455,6 +456,7 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args)
     if (read_error)
       throw shcore::Exception::logic_error(error);
 
+    // wait for termination
     p.wait();
 
     // OK, if we reached here without errors we can update the metadata with the host
