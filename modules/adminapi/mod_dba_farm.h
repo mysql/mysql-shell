@@ -23,7 +23,7 @@
 #include "shellcore/types.h"
 #include "shellcore/types_cpp.h"
 
-#include "mod_mysqlx_replicaset.h"
+#include "mod_dba_replicaset.h"
 
 namespace mysh
 {

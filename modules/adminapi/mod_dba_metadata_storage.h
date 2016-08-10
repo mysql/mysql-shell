@@ -20,9 +20,9 @@
 #ifndef _MOD_MYSQLX_METADATA_STORAGE_H_
 #define _MOD_MYSQLX_METADATA_STORAGE_H_
 
-#include "mod_mysqlx_admin_session.h"
-#include "mod_mysqlx_farm.h"
-#include "mod_mysqlx_replicaset.h"
+#include "mod_dba.h"
+#include "mod_dba_farm.h"
+#include "mod_dba_replicaset.h"
 #include "modules/base_resultset.h"
 
 namespace mysh

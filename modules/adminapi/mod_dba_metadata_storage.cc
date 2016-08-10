@@ -17,7 +17,7 @@
  * 02110-1301  USA
  */
 
-#include "mod_mysqlx_metadata_storage.h"
+#include "mod_dba_metadata_storage.h"
 #include "modules/adminapi/metadata-model_definitions.h"
 #include "modules/base_session.h"
 #include "mysqlx_connection.h"
@@ -384,7 +384,7 @@ void MetadataStorage::insert_instance(const shcore::Argument_list &args, uint64_
 
   // Insert the default ReplicaSet on the replicasets table
   query = "INSERT INTO farm_metadata_schema.instances (host_id, replicaset_id, mysql_server_uuid, instance_name,\
-                                                                                                      role, mode, addresses) VALUES ('" +
+                                                                                                                role, mode, addresses) VALUES ('" +
         std::to_string(host_id) + "', '" + std::to_string(rs_id) + "', '" + mysql_server_uuid + "', '" +
         instance_name + "', '" + role + "', '" + mode + "', '{\"mysqlClassic\": \"" + addresses + "\"}')";
 

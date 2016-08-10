@@ -185,8 +185,8 @@ file(GLOB libmysqlshmods_SRC
       "../modules/mysql_connection.cc"
       "../modules/mysql_connection.h"
       "../modules/mysqlxtest_utils.h"
-      "../modules/adminapi/mod_mysqlx_*.cc"
-      "../modules/adminapi/mod_mysqlx_*.h"
+      "../modules/adminapi/mod_dba*.cc"
+      "../modules/adminapi/mod_dba*.h"
       "${CMAKE_SOURCE_DIR}/common/uuid/src/uuid_gen.cc"
       "${CMAKE_BINARY_DIR}/modules/adminapi/metadata-model_definitions.h"
 )

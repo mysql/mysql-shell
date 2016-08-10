@@ -17,15 +17,15 @@
  * 02110-1301  USA
  */
 
-#include "mod_mysqlx_farm.h"
+#include "mod_dba_farm.h"
 
 #include "common/uuid/include/uuid_gen.h"
 #include <sstream>
 #include <iostream>
 #include <iomanip>
 
-#include "mod_mysqlx_replicaset.h"
-#include "mod_mysqlx_metadata_storage.h"
+#include "mod_dba_replicaset.h"
+#include "mod_dba_metadata_storage.h"
 #include "../mysqlxtest_utils.h"
 
 using namespace std::placeholders;
@@ -185,7 +185,6 @@ shcore::Value Farm::add_seed_instance(const shcore::Argument_list &args)
   // Update the Farm table with the Default ReplicaSet on the Metadata
   _metadata_storage->insert_default_replica_set(shared_from_this());
 
-
   // Add the Instance to the Default ReplicaSet
   ret_val = _default_replica_set->add_instance(args);
 
@@ -323,4 +322,3 @@ shcore::Value Farm::get_replicaset(const shcore::Argument_list &args)
 
   return ret_val;
 }
-

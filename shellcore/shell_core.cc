@@ -23,10 +23,10 @@
 #include "shellcore/shell_python.h"
 #include "shellcore/object_registry.h"
 #include "modules/base_session.h"
-#include "modules/adminapi/mod_mysqlx_admin_session.h"
+#include "modules/adminapi/mod_dba.h"
 #include "interactive_global_schema.h"
 #include "interactive_global_session.h"
-#include "interactive_global_admin.h"
+#include "interactive_global_dba.h"
 #include <boost/algorithm/string.hpp>
 #include <boost/format.hpp>
 #include "modules/mod_mysqlx.h"

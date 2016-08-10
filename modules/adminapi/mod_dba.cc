@@ -18,15 +18,15 @@
  */
 
 #include "utils/utils_sqlstring.h"
-#include "mod_mysqlx_admin_session.h"
+#include "mod_dba.h"
 #include "shellcore/object_factory.h"
 #include "../mysqlxtest_utils.h"
 #include <random>
 
 #include "logger/logger.h"
 
-#include "mod_mysqlx_farm.h"
-#include "mod_mysqlx_metadata_storage.h"
+#include "mod_dba_farm.h"
+#include "mod_dba_metadata_storage.h"
 
 #include "common/process_launcher/process_launcher.h"
 

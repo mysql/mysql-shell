@@ -17,8 +17,8 @@
  * 02110-1301  USA
  */
 
-#include "mod_mysqlx_replicaset.h"
-#include "mod_mysqlx_metadata_storage.h"
+#include "mod_dba_replicaset.h"
+#include "mod_dba_metadata_storage.h"
 
 #include "common/uuid/include/uuid_gen.h"
 #include "utils/utils_general.h"
@@ -232,7 +232,7 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args)
   // Check if the instance was already added
   std::string instance_address = host + ":" + std::to_string(port);
 
-  if(_metadata_storage->is_instance_on_replicaset(get_id(), instance_address))
+  if (_metadata_storage->is_instance_on_replicaset(get_id(), instance_address))
     throw shcore::Exception::logic_error("The instance '" + instance_address + "'' already belongs to the ReplicaSet: '" + get_member("name").as_string() + "'.");
 
   std::string instance_admin_user = _metadata_storage->get_instance_admin_user(get_id());

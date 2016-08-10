@@ -17,7 +17,7 @@
  * 02110-1301  USA
  */
 
-#include "interactive_global_admin.h"
+#include "interactive_global_dba.h"
 #include "shellcore/shell_registry.h"
 #include "modules/mysqlxtest_utils.h"
 #include "utils/utils_general.h"
