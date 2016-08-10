@@ -423,6 +423,15 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args)
 
     try
     {
+      p.write(super_user_password.c_str(), super_user_password.length());
+    }
+    catch (shcore::Exception &e)
+    {
+      throw shcore::Exception::runtime_error(e.what());
+    }
+
+    try
+    {
       p.write(password.c_str(), password.length());
     }
     catch (shcore::Exception &e)
