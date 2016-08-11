@@ -559,7 +559,7 @@ shcore::Value Dba::validate_instance(const shcore::Argument_list &args)
     std::string gadgets_path = (*shcore::Shell_core_options::get())[SHCORE_GADGETS_PATH].as_string();
 
     if (gadgets_path.empty())
-      throw shcore::Exception::logic_error("Please set the mysqlprovision path using the environmental variable: MYSQLPROVISION.");
+      throw shcore::Exception::logic_error("Please set the mysqlprovision path using the environment variable: MYSQLPROVISION.");
 
     // Let's get the user to know we're starting to validate the instance
     shcore::print("Validating instance...\n");
@@ -672,7 +672,7 @@ shcore::Value Dba::deploy_local_instance(const shcore::Argument_list &args)
     std::string gadgets_path = (*shcore::Shell_core_options::get())[SHCORE_GADGETS_PATH].as_string();
 
     if (gadgets_path.empty())
-      throw shcore::Exception::logic_error("Please set the mysqlprovision path using the environmental variable: MYSQLPROVISION.");
+      throw shcore::Exception::logic_error("Please set the mysqlprovision path using the environment variable: MYSQLPROVISION.");
 
     // Let's get the user to know we're starting to deploy the instance
     shcore::print("Deploying instance...\n");

@@ -312,7 +312,7 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args)
   std::string gadgets_path = (*shcore::Shell_core_options::get())[SHCORE_GADGETS_PATH].as_string();
 
   if (gadgets_path.empty())
-      throw shcore::Exception::logic_error("Please set the mysqlprovision path using the environmental variable: MYSQLPROVISION.");
+      throw shcore::Exception::logic_error("Please set the mysqlprovision path using the environment variable: MYSQLPROVISION.");
 
 #ifdef WIN32
   success += "\r\n";
