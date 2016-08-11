@@ -6250,21 +6250,18 @@ class XShell_TestCases(unittest.TestCase):
       """ Verify the bug https://jira.oraclecorp.com/jira/browse/MYS-323"""
       results = 'FAIL'
       init_command = [MYSQL_SHELL, '--interactive=full', '--py']
-      x_cmds = [('\\saveconn  -f myNConn {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,LOCALHOST.xprotocol_port), "Successfully stored"),
-                ('\\connect -n $myNConn\n', 'Creating a Node Session'),
-                ('\\saveconn  -f myXConn {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,LOCALHOST.xprotocol_port), "Successfully stored"),
-                ('\\connect -x $myNConn\n', 'Creating an X Session'),
-                ('\\saveconn  -f myCConn {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,LOCALHOST.port), "Successfully stored"),
-                ('\\connect -c $myNConn\n', 'Creating a Classic Session'),
-                # ----------------("\\connect -c\n", "mysql-py>"),
-                #("\\connect -c\n", "\\connect -c <uri or $name>"),
-                # ----------------("\\connect -n\n", "mysql-py>"),
-                #("\\connect -n\n", "\\connect -n <uri or $name>"),
-                #("\\addconn\n", "\\addconn [-f] <name> [<uri>]"),  #  (Removed in version 1.0.4, see \saveconn) Store the connection data of a session.
-                # ----------------("\\rmconn\n", "mysql-py>"),
-                #("\\rmconn\n", "\\rmconn <name>"),
-                #("\\chconn\n", "mysql-py>")       # Removed the \chconn Shell Command, \saveconn can be used instead (MYS-371).
-                #("\\chconn\n", "\\chconn <name> <URI>")
+      x_cmds = [('\\saveconn  -f myNConn {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
+                                                                   LOCALHOST.xprotocol_port), "Successfully stored"),
+                ('\\connect -n $myNConn\n',
+                 'Using \'myNConn\' stored connection' + os.linesep + 'Creating a Node Session'),
+                ('\\saveconn  -f myXConn {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
+                                                                   LOCALHOST.xprotocol_port), "Successfully stored"),
+                ('\\connect -x $myXConn\n',
+                 'Using \'myXConn\' stored connection' + os.linesep + 'Creating an X Session'),
+                ('\\saveconn  -f myCConn {0}:{1}@{2}:{3}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host,
+                                                                   LOCALHOST.port), "Successfully stored"),
+                ('\\connect -c $myCConn\n',
+                 'Using \'myCConn\' stored connection' + os.linesep + 'Creating a Classic Session'),
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
