@@ -5,8 +5,8 @@
 dba.get_farm({"enforce":True})
 #@ Farm: validating members
 farm = dba.create_farm('devFarm', 'testing')
-farm.add_seed_instance({"host": __host})
-rset = farm.getReplicaSet()
+farm.add_seed_instance({'host': __host, 'port':__mysql_port}, __pwd)
+rset = farm.get_replica_set()
 
 all_members = dir(rset)
 
@@ -24,18 +24,11 @@ validateMember(members, 'remove_instance')
 
 #@# Farm: add_instance errors
 rset.add_instance()
-rset.add_instance(5,6)
+rset.add_instance(5,6,7)
 rset.add_instance(5)
-rset.add_instance({"host": __host, "schema": 'abs'})
-rset.add_instance({"host": __host, "user": 'abs'})
-rset.add_instance({"host": __host, "password": 'abs'})
-rset.add_instance({"host": __host, "authMethod": 'abs'})
+rset.add_instance({'host': __host, 'schema': 'abs', 'user':"sample", 'authMethod':56})
 rset.add_instance({"port": __port})
-rset.add_instance('')
-
-#@# Farm: add_instance
-rset.add_instance(__host_port)
-rset.add_instance({"host": __host, "port": __port})
+farm.add_instance({'host': __host, 'port':__mysql_port}, __pwd)
 
 # Cleanup
 dba.drop_farm('devFarm', {"dropDefaultReplicaSet": True})

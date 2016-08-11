@@ -162,7 +162,7 @@ shcore::Value Farm::add_seed_instance(const shcore::Argument_list &args)
 {
   shcore::Value ret_val;
 
-  args.ensure_count(1, (class_name() + ".addSeedInstance").c_str());
+  args.ensure_count(1, 2, (class_name() + ".addSeedInstance").c_str());
 
   try
   {
@@ -228,7 +228,7 @@ shcore::Value Farm::add_instance(const shcore::Argument_list &args)
 {
   shcore::Value ret_val;
 
-  args.ensure_count(1, get_function_name("addInstance").c_str());
+  args.ensure_count(1, 2, get_function_name("addInstance").c_str());
 
   // Check if we have a Default ReplicaSet
   if (!_default_replica_set)

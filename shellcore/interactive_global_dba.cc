@@ -19,6 +19,7 @@
 
 #include "interactive_global_dba.h"
 #include "shellcore/shell_registry.h"
+#include "shellcore/interactive_dba_farm.h"
 #include "modules/mysqlxtest_utils.h"
 #include "utils/utils_general.h"
 #include <boost/format.hpp>
@@ -28,10 +29,11 @@ using namespace shcore;
 
 void Global_dba::init()
 {
-  add_method("dropFarm", std::bind(&Global_dba::drop_farm, this, _1), "name", shcore::String, NULL);
+  add_method("dropFarm", std::bind(&Global_dba::drop_farm, this, _1), "farmName", shcore::String, NULL);
   add_method("isOpen", std::bind(&Global_dba::is_open, this, _1), NULL);
-  add_method("createFarm", std::bind(&Global_dba::create_farm, this, _1), "name", shcore::String, NULL);
+  add_method("createFarm", std::bind(&Global_dba::create_farm, this, _1), "farmName", shcore::String, NULL);
   add_method("dropMetadataSchema", std::bind(&Global_dba::drop_metadata_schema, this, _1), "data", shcore::Map, NULL);
+  add_method("getFarm", std::bind(&Global_dba::get_farm, this, _1), "farmName", shcore::String, NULL);
   set_wrapper_function("isOpen");
 }
 
@@ -150,7 +152,13 @@ shcore::Value Global_dba::create_farm(const shcore::Argument_list &args)
       if (options != NULL)
         new_args.push_back(shcore::Value(options));
 
-      ret_val = _target->call("createFarm", new_args);
+      // This is an instance of the API farm
+      auto raw_farm = _target->call("createFarm", new_args);
+
+      // Returns an interactive wrapper of this instance
+      Interactive_dba_farm* farm = new Interactive_dba_farm(this->_shell_core);
+      farm->set_target(std::dynamic_pointer_cast<Cpp_object_bridge>(raw_farm.as_object()));
+      ret_val = shcore::Value::wrap<Interactive_dba_farm>(farm);
     }
   } CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("createFarm"));
 
@@ -187,4 +195,15 @@ shcore::Value Global_dba::drop_metadata_schema(const shcore::Argument_list &args
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("dropMetadataSchema"))
 
   return ret_val;
+}
+
+shcore::Value Global_dba::get_farm(const shcore::Argument_list &args)
+{
+  ScopedStyle ss(_target.get(), naming_style);
+
+  Value raw_farm = _target->call("getFarm", args);
+
+  Interactive_dba_farm* farm = new Interactive_dba_farm(this->_shell_core);
+  farm->set_target(std::dynamic_pointer_cast<Cpp_object_bridge>(raw_farm.as_object()));
+  return shcore::Value::wrap<Interactive_dba_farm>(farm);
 }

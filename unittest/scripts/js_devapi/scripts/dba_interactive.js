@@ -38,7 +38,7 @@ var farm = dba.getFarm('devFarm');
 print(farm);
 
 //@ Dba: addSeedInstance
-farm.addSeedInstance(__host_port);
+farm.addInstance({host: __host, port:__mysql_port}, __pwd);
 
 //@# Dba: dropFarm errors
 var farm = dba.dropFarm();

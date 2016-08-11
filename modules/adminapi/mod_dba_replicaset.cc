@@ -131,10 +131,10 @@ None ReplicaSet::add_instance(Document doc){}
 shcore::Value ReplicaSet::add_instance_(const shcore::Argument_list &args)
 {
   shcore::Value ret_val;
-  args.ensure_count(1, get_function_name("addInstance").c_str());
+  args.ensure_count(1, 2, get_function_name("addInstance").c_str());
 
   // Check if the ReplicaSet is empty
-  if (!_metadata_storage->is_replicaset_empty(get_id()))
+  if (_metadata_storage->is_replicaset_empty(get_id()))
     throw shcore::Exception::logic_error("ReplicaSet not initialized. Please add the Seed Instance using: addSeedInstance().");
 
   // Add the Instance to the Default ReplicaSet
@@ -147,6 +147,17 @@ shcore::Value ReplicaSet::add_instance_(const shcore::Argument_list &args)
   return ret_val;
 }
 
+std::set<std::string> ReplicaSet::_valid_attributes = { "host", "port", "dbUser", "socket", "ssl_ca", "ssl_cert", "ssl_key", "ssl_key" };
+
+std::set<std::string> ReplicaSet::get_invalid_attributes(const std::set<std::string> input)
+{
+  std::set<std::string> diff;
+
+  std::set_difference(input.begin(), input.end(), _valid_attributes.begin(), _valid_attributes.end(), std::inserter(diff, diff.begin()));
+
+  return diff;
+}
+
 shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args)
 {
   shcore::Value ret_val;
@@ -155,17 +166,11 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args)
   std::string uri;
   shcore::Value::Map_type_ref options; // Map with the connection data
 
-  std::string protocol;
   std::string user;
-  std::string password;
   std::string host;
   int port = 0;
-  std::string sock;
-  std::string ssl_ca;
-  std::string ssl_cert;
-  std::string ssl_key;
 
-  std::vector<std::string> valid_options = { "host", "port", "dbUser", "socket", "ssl_ca", "ssl_cert", "ssl_key", "ssl_key" };
+  std::vector<std::string> valid_options = { "host", "port", "user", "dbUser", "password", "dbPassword", "socket", "ssl_ca", "ssl_cert", "ssl_key", "ssl_key" };
 
   // NOTE: This function is called from either the add_instance_ on this class
   //       or the add_instance in Farm class, hence this just throws exceptions
@@ -186,51 +191,64 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args)
     options = args.map_at(0);
 
   else
-    throw shcore::Exception::argument_error("Unexpected argument on connection data.");
+    throw shcore::Exception::argument_error("Invalid connection options, expected either a URI or a Dictionary.");
 
-  if (options->size() == 0)
-    throw shcore::Exception::argument_error("Connection data empty.");
+  // Gets the list of incoming attributes
+  std::set<std::string> attributes;
+  for (auto option : *options)
+    attributes.insert(option.first);
 
-  for (shcore::Value::Map_type::iterator i = options->begin(); i != options->end(); ++i)
+  auto invalids = mysh::mysqlx::ReplicaSet::get_invalid_attributes(attributes);
+
+  // Verification of invalid attributes on the connection data
+  bool proceed = true;
+  if (invalids.size())
   {
-    if ((std::find(valid_options.begin(), valid_options.end(), i->first) == valid_options.end()))
-      throw shcore::Exception::argument_error("Unexpected argument '" + i->first + "' on connection data.");
+    std::string error = "The connection data contains the next invalid attributes: ";
+    error += *invalids.begin();
+
+    invalids.erase(invalids.begin());
+
+    for (auto attribute : invalids)
+      error += ", " + attribute;
+
+    throw shcore::Exception::argument_error(error);
   }
 
-  if (options->has_key("host"))
-    host = (*options)["host"].as_string();
-
   if (options->has_key("port"))
-    port = (*options)["port"].as_int();
-
-  if (options->has_key("dbUser"))
-    user = (*options)["dbUser"].as_string();
-
-  if (options->has_key("socket"))
-    sock = (*options)["socket"].as_string();
-
-  if (options->has_key("ssl_ca"))
-    ssl_ca = (*options)["ssl_ca"].as_string();
-
-  if (options->has_key("ssl_cert"))
-    ssl_cert = (*options)["ssl_cert"].as_string();
-
-  if (options->has_key("ssl_key"))
-    ssl_key = (*options)["ssl_key"].as_string();
-
-  if (port == 0 && sock.empty())
+    port = options->get_int("port");
+  else
     port = get_default_port();
 
-  // TODO: validate additional data.
-
-  std::string sock_port = (port == 0) ? sock : boost::lexical_cast<std::string>(port);
+  // Sets a default user if not specified
+  if (options->has_key("user"))
+    user = options->get_string("user");
+  else if (options->has_key("dbUser"))
+      user = options->get_string("dbUser");
+  else
+  {
+    user = "root";
+    (*options)["dbUser"] = shcore::Value(user);
+  }
 
   // Handle empty required values
   if (!options->has_key("host"))
-    throw shcore::Exception::argument_error("Missing required value for hostname.");
+    throw shcore::Exception::argument_error("Missing required attribute: host.");
+  else
+    host = options->get_string("host");
+
+  std::string password;
+  bool has_password = true;
+  if (!options->has_key("password") && !options->has_key("dbPassword"))
+  {
+    if (args.size() == 2)
+      (*options)["dbPassword"] = shcore::Value(args.string_at(1));
+    else
+      throw shcore::Exception::argument_error("Missing password for " + build_connection_string(options, false));
+  }
 
   // Check if the instance was already added
-  std::string instance_address = host + ":" + std::to_string(port);
+  std::string instance_address = options->get_string("host") + ":" + std::to_string(options->get_int("port"));
 
   if (_metadata_storage->is_instance_on_replicaset(get_id(), instance_address))
     throw shcore::Exception::logic_error("The instance '" + instance_address + "'' already belongs to the ReplicaSet: '" + get_member("name").as_string() + "'.");
@@ -239,29 +257,15 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args)
   std::string instance_admin_user_password = _metadata_storage->get_instance_admin_user_password(get_id());
   std::string replication_user_password = _metadata_storage->get_replication_user_password(get_id());
 
-  // Let's get the user to know we're starting to add the instance
-  shcore::print("Adding instance...\n");
-
   // check if we have to create the user on the Instance
   // TODO: what if someone already created the instance_admin user?
   if (instance_admin_user == "instance_admin")
   {
     shcore::Argument_list args;
-    Value::Map_type_ref options_session(new shcore::Value::Map_type);
 
-    (*options_session)["host"] = shcore::Value(host);
-    (*options_session)["port"] = shcore::Value(port);
-
-    if (!user.empty())
-      (*options_session)["dbUser"] = shcore::Value(user);
-    else
-      (*options_session)["dbUser"] = shcore::Value("root");
-
-    (*options_session)["dbPassword"] = shcore::Value("root"); // TODO: create interactive mode to query for the password
-
-    args.push_back(shcore::Value(options_session));
-
-    auto session = mysh::connect_session(args, mysh::Classic);
+    shcore::Argument_list new_args;
+    new_args.push_back(shcore::Value(options));
+    auto session = mysh::connect_session(new_args, mysh::Classic);
     mysh::mysql::ClassicSession *classic = dynamic_cast<mysh::mysql::ClassicSession*>(session.get());
 
     std::string query = "CREATE USER IF NOT EXISTS 'instance_admin'@'" + host + "' IDENTIFIED BY '" + instance_admin_user_password + "'";

@@ -27,22 +27,15 @@ validateMember(members, 'get_replica_set')
 
 #@ Farm: add_seed_instance
 # Added this to enable add_instance, full testing of add_seed_instance is needed
-farm.add_seed_instance({"host": __host})
+farm.add_seed_instance({'host': __host, 'port':__mysql_port}, __pwd)
 
 #@# Farm: add_instance errors
 farm.add_instance()
-farm.add_instance(5,6)
+farm.add_instance(5,6,7)
 farm.add_instance(5)
-farm.add_instance({"host": __host, "schema": 'abs'})
-farm.add_instance({"host": __host, "user": 'abs'})
-farm.add_instance({"host": __host, "password": 'abs'})
-farm.add_instance({"host": __host, "authMethod": 'abs'})
+farm.add_instance({'host': __host, 'schema': 'abs', 'user':"sample", 'authMethod':56})
 farm.add_instance({"port": __port})
-farm.add_instance('')
-
-#@# Farm: add_instance
-farm.add_instance(__host_port)
-farm.add_instance({"host": __host, "port": __port})
+farm.add_instance({'host': __host, 'port':__mysql_port}, __pwd)
 
 # Cleanup
 dba.drop_farm('devFarm', {"dropDefaultReplicaSet": True})

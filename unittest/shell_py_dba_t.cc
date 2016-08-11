@@ -562,7 +562,7 @@ namespace shcore
     _options->wizards = false;
     reset_shell();
 
-    execute("mysql = require('mysql')");
+    execute("import mysql");
     execute("mySession = mysql.get_classic_session('" + _mysql_uri + "')");
     execute("dba.reset_session(mySession)");
     validate_interactive("dba_replica_set_no_interactive.py");

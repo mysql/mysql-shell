@@ -20,27 +20,27 @@
 // Interactive DB access module
 // (the one exposed as the db variable in the shell)
 
-#ifndef _INTERACTIVE_GLOBAL_DBA_H_
-#define _INTERACTIVE_GLOBAL_DBA_H_
+#ifndef _INTERACTIVE_DBA_FARM_H_
+#define _INTERACTIVE_DBA_FARM_H_
 
 #include "interactive_object_wrapper.h"
 
 namespace shcore
 {
-  class SHCORE_PUBLIC Global_dba : public Interactive_object_wrapper
+  class SHCORE_PUBLIC Interactive_dba_farm : public Interactive_object_wrapper
   {
   public:
-    Global_dba(Shell_core& shell_core) : Interactive_object_wrapper("dba", shell_core){ init(); }
+    Interactive_dba_farm(Shell_core& shell_core) : Interactive_object_wrapper("dba", shell_core){ init(); }
 
     void init();
-    //virtual void resolve() const;
 
-    shcore::Value drop_farm(const shcore::Argument_list &args);
-    shcore::Value is_open(const shcore::Argument_list &args);
-    shcore::Value create_farm(const shcore::Argument_list &args);
-    shcore::Value get_farm(const shcore::Argument_list &args);
-    shcore::Value drop_metadata_schema(const shcore::Argument_list &args);
+    shcore::Value add_seed_instance(const shcore::Argument_list &args);
+    shcore::Value add_instance(const shcore::Argument_list &args);
+    shcore::Value get_farm(const shcore::Argument_list &args) const;
+
+  private:
+    bool resolve_instance_options(const std::string& function, const shcore::Argument_list &args, shcore::Value::Map_type_ref &options) const;
   };
 }
 
-#endif // _INTERACTIVE_GLOBAL_DBA_H_
+#endif // _INTERACTIVE_DBA_FARM_H_

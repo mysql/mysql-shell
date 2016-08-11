@@ -13,15 +13,9 @@
 ||
 
 #@# Farm: add_instance errors
-||Invalid number of arguments in Farm.add_instance, expected 1 but got 0
-||Invalid number of arguments in Farm.add_instance, expected 1 but got 2
-||Farm.add_instance: Unexpected argument on connection data
-||Farm.add_instance: Unexpected argument 'schema' on connection data
-||Farm.add_instance: Unexpected argument 'user' on connection data
-||Farm.add_instance: Unexpected argument 'password' on connection data
-||Farm.add_instance: Unexpected argument 'authMethod' on connection data
-||Farm.add_instance: Missing required value for hostname
-||Farm.add_instance: Connection data empty
-
-#@# Farm: add_instance
-||
+||Invalid number of arguments in Farm.add_instance, expected 1 to 2 but got 0
+||Invalid number of arguments in Farm.add_instance, expected 1 to 2 but got 3
+||Farm.add_instance: Invalid connection options, expected either a URI or a Dictionary
+||Farm.add_instance: The connection data contains the next invalid attributes: authMethod, schema
+||Farm.add_instance: Missing required attribute: host
+||already belongs to the ReplicaSet

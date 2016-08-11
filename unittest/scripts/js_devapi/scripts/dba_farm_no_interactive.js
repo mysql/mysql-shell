@@ -20,22 +20,15 @@ validateMember(members, 'getReplicaSet');
 
 //@ Farm: addSeedInstance
 // Added this to enable addInstance, full testing of addSeedInstance is needed
-farm.addSeedInstance(__host_port);
+farm.addSeedInstance({host: __host, port:__mysql_port}, __pwd);
 
 //@# Farm: addInstance errors
-farm.addInstance();
-farm.addInstance(5,6);
-farm.addInstance(5);
-farm.addInstance({host: __host, schema: 'abs'});
-farm.addInstance({host: __host, user: 'abs'});
-farm.addInstance({host: __host, password: 'abs'});
-farm.addInstance({host: __host, authMethod: 'abs'});
+farm.addInstance()
+farm.addInstance(5,6,7)
+farm.addInstance(5)
+farm.addInstance({host: __host, schema: 'abs', user:"sample", authMethod:56});
 farm.addInstance({port: __port});
-farm.addInstance('');
-
-//@# Farm: addInstance
-farm.addInstance(__host_port);
-farm.addInstance({host: __host, port: __port});
+farm.addInstance({host: __host, port:__mysql_port}, __pwd);
 
 // Cleanup
 dba.dropFarm('devFarm', {dropDefaultReplicaSet: true});

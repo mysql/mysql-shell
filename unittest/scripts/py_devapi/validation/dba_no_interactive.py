@@ -7,7 +7,7 @@
 |get_farm: OK|
 |drop_metadata_schema: OK|
 |reset_session: OK|
-|validate_nstance: OK|
+|validate_instance: OK|
 |deploy_local_instance: OK|
 
 #@# Dba: create_farm errors

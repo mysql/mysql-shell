@@ -22,7 +22,7 @@
 
 #include "shellcore/types.h"
 #include "shellcore/types_cpp.h"
-
+#include <set>
 namespace mysh
 {
   namespace mysqlx
@@ -71,6 +71,8 @@ namespace mysh
       shcore::Value add_instance(const shcore::Argument_list &args);
       shcore::Value remove_instance(const shcore::Argument_list &args);
 
+      static std::set<std::string> get_invalid_attributes(const std::set<std::string> input);
+
     protected:
       uint64_t _id;
       std::string _name;
@@ -78,6 +80,8 @@ namespace mysh
 
     private:
       void init();
+
+      static std::set<std::string> _valid_attributes;
 
       std::shared_ptr<MetadataStorage> _metadata_storage;
       std::string _replication_user;

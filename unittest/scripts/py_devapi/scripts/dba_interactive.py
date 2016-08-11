@@ -46,7 +46,7 @@ farm = dba.get_farm('devFarm')
 print farm
 
 #@ Dba: add_seed_instance
-farm.add_seed_instance('192.168.1.1:33060')
+farm.add_seed_instance({'host': __host, 'port':__mysql_port}, __pwd)
 
 #@# Dba: drop_farm errors
 farm = dba.drop_farm()

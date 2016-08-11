@@ -13,15 +13,11 @@
 ||
 
 //@# Farm: addInstance errors
-||Invalid number of arguments in Farm.addInstance, expected 1 but got 0
-||Invalid number of arguments in Farm.addInstance, expected 1 but got 2
-||Farm.addInstance: Unexpected argument on connection data
-||Farm.addInstance: Unexpected argument 'schema' on connection data
-||Farm.addInstance: Unexpected argument 'user' on connection data
-||Farm.addInstance: Unexpected argument 'password' on connection data
-||Farm.addInstance: Unexpected argument 'authMethod' on connection data
-||Farm.addInstance: Missing required value for hostname
-||Farm.addInstance: Connection data empty
+||Invalid number of arguments in Farm.addInstance, expected 1 to 2 but got 0
+||Invalid number of arguments in Farm.addInstance, expected 1 to 2 but got 3
+||Farm.addInstance: Invalid connection options, expected either a URI or a Dictionary
+||Farm.addInstance: The connection data contains the next invalid attributes: authMethod, schema
+||Farm.addInstance: Missing required attribute: host
 
 //@# Farm: addInstance
 ||

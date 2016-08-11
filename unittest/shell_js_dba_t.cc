@@ -362,20 +362,26 @@ namespace shcore
   //TEST_F(Shell_js_dba_tests, farm_interactive_custom_session_x)
   //{
   //  // Fills the required prompts and passwords...
-  //  //@ Initialization
+
+  //  //@ Farm: addInstance, no seed instance answer no
+  //  output_handler.prompts.push_back("n");
+
+  //  //@ Farm: addInstance, no seed instance answer yes
   //  output_handler.prompts.push_back("y");
 
-  //  //@# Dba: createFarm with interaction
-  //  output_handler.passwords.push_back("testing");
+  //  //@ Farm: addInstance, ignore invalid attributes no ignore
+  //  output_handler.prompts.push_back("y");
+  //  output_handler.prompts.push_back("n");
 
-  //  //@ Dba: dropFarm interaction no options, cancel
-  //  output_handler.passwords.push_back("n");
+  //  //@ Farm: addInstance, ignore invalid attributes ignore
+  //  output_handler.prompts.push_back("y");
+  //  output_handler.prompts.push_back("y");
 
-  //  //@ Dba: dropFarm interaction missing option, ok error
-  //  output_handler.passwords.push_back("y");
+  //  //@ Farm: addSeedInstance, it already initialized, answer no
+  //  output_handler.prompts.push_back("n");
 
-  //  //@ Dba: dropFarm interaction no options, ok success
-  //  output_handler.passwords.push_back("y");
+  //  //@ Farm: addSeedInstance, it already initialized, answer yes
+  //  output_handler.prompts.push_back("y");
 
   //  execute("var mysqlx = require('mysqlx');");
   //  execute("var mySession = mysqlx.getSession('" + _uri + "');");
