@@ -281,9 +281,11 @@ shcore::Value Dba::create_farm(const shcore::Argument_list &args)
       if (options->has_key("farmAdminType"))
         farm_admin_type = (*options)["farmAdminType"].as_string();
 
-      if (farm_admin_type != "local" &&
-          farm_admin_type != "guided" &&
-          farm_admin_type != "manual" &&
+      std::cout << "farm admin type: " << farm_admin_type << "\n";
+
+      if (farm_admin_type != "local" ||
+          farm_admin_type != "guided" ||
+          farm_admin_type != "manual" ||
           farm_admin_type != "ssh")
       {
         throw shcore::Exception::argument_error("Farm Administration Type invalid. Valid types are: 'local', 'guided', 'manual', 'ssh'");
@@ -486,7 +488,7 @@ shcore::Value Dba::validate_instance(const shcore::Argument_list &args)
   shcore::Value::Map_type_ref options; // Map with the connection data
 
   std::string protocol;
-  std::string user = "root"; // TODO: get the user from the session
+  std::string user;
   std::string host;
   int port = 0;
   std::string sock;
@@ -495,7 +497,7 @@ shcore::Value Dba::validate_instance(const shcore::Argument_list &args)
   std::string ssl_cert;
   std::string ssl_key;
 
-  std::vector<std::string> valid_options = { "host", "port", "socket", "ssl_ca", "ssl_cert", "ssl_key", "ssl_key" };
+  std::vector<std::string> valid_options = { "host", "port", "dbUser", "socket", "ssl_ca", "ssl_cert", "ssl_key", "ssl_key" };
 
   try
   {
@@ -519,7 +521,7 @@ shcore::Value Dba::validate_instance(const shcore::Argument_list &args)
     for (shcore::Value::Map_type::iterator i = options->begin(); i != options->end(); ++i)
     {
       if ((std::find(valid_options.begin(), valid_options.end(), i->first) == valid_options.end()))
-        throw shcore::Exception::argument_error("Unexpected argument " + i->first + " on connection data.");
+        throw shcore::Exception::argument_error("Unexpected argument '" + i->first + "' on connection data.");
     }
 
     if (options->has_key("host"))
@@ -527,6 +529,9 @@ shcore::Value Dba::validate_instance(const shcore::Argument_list &args)
 
     if (options->has_key("port"))
       port = (*options)["port"].as_int();
+
+    if (options->has_key("dbUser"))
+      user = (*options)["dbUser"].as_string();
 
     if (options->has_key("socket"))
       sock = (*options)["socket"].as_string();
@@ -556,6 +561,9 @@ shcore::Value Dba::validate_instance(const shcore::Argument_list &args)
     if (gadgets_path.empty())
       throw shcore::Exception::logic_error("Please set the mysqlprovision path using the environmental variable: MYSQLPROVISION.");
 
+    // Let's get the user to know we're starting to validate the instance
+    shcore::print("Validating instance...\n");
+
     std::string instance_cmd = "--instance=" + user + "@" + host + ":" + std::to_string(port);
     const char *args_script[] = { "python", gadgets_path.c_str(), "check", instance_cmd.c_str(), "--stdin", NULL };
 
@@ -564,7 +572,7 @@ shcore::Value Dba::validate_instance(const shcore::Argument_list &args)
     std::string buf;
     char c;
     std::string success("Operation completed with success.");
-    std::string password = "root\n";
+    std::string password = "root\n"; // TODO: interactive wrapper to query it
     std::string error;
 
 #ifdef WIN32
@@ -589,7 +597,6 @@ shcore::Value Dba::validate_instance(const shcore::Argument_list &args)
       buf += c;
       if (c == '\n')
       {
-        std::cout << "buf: " << buf << "\n";
         if ((buf.find("ERROR") != std::string::npos))
           read_error = true;
 
@@ -607,7 +614,17 @@ shcore::Value Dba::validate_instance(const shcore::Argument_list &args)
     }
 
     if (read_error)
+    {
+      // Remove unnecessary gadgets output
+      std::string remove_me = "ERROR: Error executing the 'check' command:";
+
+      std::string::size_type i = error.find(remove_me);
+
+      if (i != std::string::npos)
+        error.erase(i, remove_me.length());
+
       throw shcore::Exception::logic_error(error);
+    }
 
     p.wait();
   }
@@ -656,6 +673,9 @@ shcore::Value Dba::deploy_local_instance(const shcore::Argument_list &args)
 
     if (gadgets_path.empty())
       throw shcore::Exception::logic_error("Please set the mysqlprovision path using the environmental variable: MYSQLPROVISION.");
+
+    // Let's get the user to know we're starting to deploy the instance
+    shcore::print("Deploying instance...\n");
 
     std::vector<std::string> sandbox_args;
     std::string arg;
@@ -748,7 +768,17 @@ shcore::Value Dba::deploy_local_instance(const shcore::Argument_list &args)
     }
 
     if (read_error)
+    {
+       // Remove unnecessary gadgets output
+      std::string remove_me = "ERROR: Error executing the 'sandbox' command:";
+
+      std::string::size_type i = error.find(remove_me);
+
+      if (i != std::string::npos)
+        error.erase(i, remove_me.length());
+
       throw shcore::Exception::logic_error(error);
+    }
 
     p.wait();
   }

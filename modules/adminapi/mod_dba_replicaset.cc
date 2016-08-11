@@ -239,6 +239,9 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args)
   std::string instance_admin_user_password = _metadata_storage->get_instance_admin_user_password(get_id());
   std::string replication_user_password = _metadata_storage->get_replication_user_password(get_id());
 
+  // Let's get the user to know we're starting to add the instance
+  shcore::print("Adding instance...\n");
+
   // check if we have to create the user on the Instance
   // TODO: what if someone already created the instance_admin user?
   if (instance_admin_user == "instance_admin")
@@ -254,7 +257,7 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args)
     else
       (*options_session)["dbUser"] = shcore::Value("root");
 
-    (*options_session)["dbPassword"] = shcore::Value(""); // TODO: create interactive mode to query for the password
+    (*options_session)["dbPassword"] = shcore::Value("root"); // TODO: create interactive mode to query for the password
 
     args.push_back(shcore::Value(options_session));
 
