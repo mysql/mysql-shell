@@ -55,9 +55,8 @@ std::string shcore::get_member_name(const std::string& name, NamingStyle style)
         }
         else
         {
-          // Character is '_'
-          if (character == 95)
-            skip_underscore = true;
+          // if character is '_'
+          skip_underscore = character == 95;
 
           new_name.append(1, character);
         }
