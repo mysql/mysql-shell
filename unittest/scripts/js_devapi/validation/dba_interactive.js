@@ -19,7 +19,7 @@
 ||Dba.createFarm: The Farm name cannot be empty
 
 //@# Dba: createFarm with interaction
-|Please enter an administration password to be used for the Farm|
+|Please enter an administrative MASTER password to be used for the Farm|
 |<Farm:devFarm>|
 
   //@# Dba: getFarm errors

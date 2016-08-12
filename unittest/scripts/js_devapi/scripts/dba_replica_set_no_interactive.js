@@ -2,9 +2,11 @@
 // Assumes __uripwd is defined as <user>:<pwd>@<host>:<plugin_port>
 // validateMemer and validateNotMember are defined on the setup script
 dba.dropMetadataSchema({enforce:true});
+
+var farmPassword = 'testing';
 //@ Farm: validating members
-var farm = dba.createFarm('devFarm', 'testing');
-farm.addSeedInstance({host: __host, port:__mysql_port}, __pwd);
+var farm = dba.createFarm('devFarm', farmPassword);
+farm.addSeedInstance(farmPassword, {host: __host, port:__mysql_port}, __pwd);
 var rset = farm.getReplicaSet();
 
 var members = dir(rset);
@@ -17,11 +19,13 @@ validateMember(members, 'removeInstance');
 
 //@# Farm: addInstance errors
 rset.addInstance()
-rset.addInstance(5,6,7)
-rset.addInstance(5)
-rset.addInstance({host: __host, schema: 'abs', user:"sample", authMethod:56});
-rset.addInstance({port: __port});
-rset.addInstance({host: __host, port:__mysql_port}, __pwd);
+rset.addInstance(5,6,7,1)
+rset.addInstance(5, 5)
+rset.addInstance('', 5)
+rset.addInstance(farmPassword, 5)
+rset.addInstance(farmPassword, {host: __host, schema: 'abs', user:"sample", authMethod:56});
+rset.addInstance(farmPassword, {port: __port});
+rset.addInstance(farmPassword, {host: __host, port:__mysql_port}, __pwd);
 
 // Cleanup
 dba.dropFarm('devFarm', {dropDefaultReplicaSet: true});

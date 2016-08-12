@@ -162,7 +162,7 @@ shcore::Value Farm::add_seed_instance(const shcore::Argument_list &args)
 {
   shcore::Value ret_val;
 
-  args.ensure_count(1, 2, (class_name() + ".addSeedInstance").c_str());
+  args.ensure_count(2, 3, (class_name() + ".addSeedInstance").c_str());
 
   try
   {
@@ -176,16 +176,18 @@ shcore::Value Farm::add_seed_instance(const shcore::Argument_list &args)
       if (!_metadata_storage->is_replicaset_empty(rs_id))
         throw shcore::Exception::logic_error("Default ReplicaSet already initialized. Please use: addInstance() to add more Instances to the ReplicaSet.");
     }
+    else
+    {
+      // Create the Default ReplicaSet and assign it to the Farm's default_replica_set var
+      _default_replica_set.reset(new ReplicaSet("default", _metadata_storage));
 
-    // Create the Default ReplicaSet and assign it to the Farm's default_replica_set var
-    _default_replica_set.reset(new ReplicaSet("default", _metadata_storage));
+      _default_replica_set->set_replication_user(default_replication_user);
 
-    _default_replica_set->set_replication_user(default_replication_user);
+      // If we reached here without errors we can update the Metadata
 
-    // If we reached here without errors we can update the Metadata
-
-    // Update the Farm table with the Default ReplicaSet on the Metadata
-    _metadata_storage->insert_default_replica_set(shared_from_this());
+      // Update the Farm table with the Default ReplicaSet on the Metadata
+      _metadata_storage->insert_default_replica_set(shared_from_this());
+    }
 
     // Add the Instance to the Default ReplicaSet
     ret_val = _default_replica_set->add_instance(args);
@@ -228,7 +230,7 @@ shcore::Value Farm::add_instance(const shcore::Argument_list &args)
 {
   shcore::Value ret_val;
 
-  args.ensure_count(1, 2, get_function_name("addInstance").c_str());
+  args.ensure_count(2, 3, get_function_name("addInstance").c_str());
 
   // Check if we have a Default ReplicaSet
   if (!_default_replica_set)

@@ -131,7 +131,7 @@ None ReplicaSet::add_instance(Document doc){}
 shcore::Value ReplicaSet::add_instance_(const shcore::Argument_list &args)
 {
   shcore::Value ret_val;
-  args.ensure_count(1, 2, get_function_name("addInstance").c_str());
+  args.ensure_count(2, 3, get_function_name("addInstance").c_str());
 
   // Check if the ReplicaSet is empty
   if (_metadata_storage->is_replicaset_empty(get_id()))
@@ -147,7 +147,7 @@ shcore::Value ReplicaSet::add_instance_(const shcore::Argument_list &args)
   return ret_val;
 }
 
-std::set<std::string> ReplicaSet::_valid_attributes = { "host", "port", "dbUser", "socket", "ssl_ca", "ssl_cert", "ssl_key", "ssl_key" };
+std::set<std::string> ReplicaSet::_valid_attributes = { "host", "port", "user", "dbUser", "password", "dbPassword", "socket", "ssl_ca", "ssl_cert", "ssl_key", "ssl_key" };
 
 std::set<std::string> ReplicaSet::get_invalid_attributes(const std::set<std::string> input)
 {
@@ -170,8 +170,6 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args)
   std::string host;
   int port = 0;
 
-  std::vector<std::string> valid_options = { "host", "port", "user", "dbUser", "password", "dbPassword", "socket", "ssl_ca", "ssl_cert", "ssl_key", "ssl_key" };
-
   // NOTE: This function is called from either the add_instance_ on this class
   //       or the add_instance in Farm class, hence this just throws exceptions
   //       and the proper handling is done on the caller functions (to append the called function name)
@@ -179,16 +177,22 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args)
   // Check if we're on a addSeedInstance or not
   if (_metadata_storage->is_replicaset_empty(_id)) seed_instance = true;
 
+  std::string farm_admin_password = args.string_at(0);
+
+  // Check if we have a valid password
+  if (farm_admin_password.empty())
+    throw Exception::argument_error("The MASTER Farm password cannot be empty.");
+
   // Identify the type of connection data (String or Document)
-  if (args[0].type == String)
+  if (args[1].type == String)
   {
-    uri = args.string_at(0);
+    uri = args.string_at(1);
     options = get_connection_data(uri, false);
   }
 
   // Connection data comes in a dictionary
-  else if (args[0].type == Map)
-    options = args.map_at(0);
+  else if (args[1].type == Map)
+    options = args.map_at(1);
 
   else
     throw shcore::Exception::argument_error("Invalid connection options, expected either a URI or a Dictionary.");
@@ -201,7 +205,6 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args)
   auto invalids = mysh::mysqlx::ReplicaSet::get_invalid_attributes(attributes);
 
   // Verification of invalid attributes on the connection data
-  bool proceed = true;
   if (invalids.size())
   {
     std::string error = "The connection data contains the next invalid attributes: ";
@@ -238,11 +241,10 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args)
     host = options->get_string("host");
 
   std::string password;
-  bool has_password = true;
   if (!options->has_key("password") && !options->has_key("dbPassword"))
   {
-    if (args.size() == 2)
-      (*options)["dbPassword"] = shcore::Value(args.string_at(1));
+    if (args.size() == 3)
+      (*options)["dbPassword"] = shcore::Value(args.string_at(2));
     else
       throw shcore::Exception::argument_error("Missing password for " + build_connection_string(options, false));
   }
@@ -257,53 +259,61 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args)
   std::string instance_admin_user_password = _metadata_storage->get_instance_admin_user_password(get_id());
   std::string replication_user_password = _metadata_storage->get_replication_user_password(get_id());
 
-  // check if we have to create the user on the Instance
-  // TODO: what if someone already created the instance_admin user?
-  if (instance_admin_user == "instance_admin")
-  {
-    shcore::Argument_list args;
+  // Drop and create the instanceAdmin user
+  shcore::Argument_list temp_args;
 
-    shcore::Argument_list new_args;
-    new_args.push_back(shcore::Value(options));
-    auto session = mysh::connect_session(new_args, mysh::Classic);
-    mysh::mysql::ClassicSession *classic = dynamic_cast<mysh::mysql::ClassicSession*>(session.get());
+  shcore::Argument_list new_args;
+  new_args.push_back(shcore::Value(options));
+  auto session = mysh::connect_session(new_args, mysh::Classic);
+  mysh::mysql::ClassicSession *classic = dynamic_cast<mysh::mysql::ClassicSession*>(session.get());
 
-    std::string query = "CREATE USER IF NOT EXISTS 'instance_admin'@'" + host + "' IDENTIFIED BY '" + instance_admin_user_password + "'";
+  temp_args.clear();
+  temp_args.push_back(shcore::Value("SET sql_log_bin = 0"));
+  classic->run_sql(temp_args);
 
-    args.clear();
-    args.push_back(shcore::Value("SET sql_log_bin = 0"));
-    classic->run_sql(args);
+  std::string query = "DROP USER IF EXISTS 'instance_admin'@'" + host + "'";
 
-    args.clear();
-    args.push_back(shcore::Value(query));
+  temp_args.clear();
+  temp_args.push_back(shcore::Value(query));
 
-    classic->run_sql(args);
+  classic->run_sql(temp_args);
 
-    query = "GRANT PROCESS, RELOAD, REPLICATION CLIENT, REPLICATION SLAVE ON *.* TO 'instance_admin'@'" + host + "'";
+  query = "CREATE USER 'instance_admin'@'" + host + "' IDENTIFIED BY '" + instance_admin_user_password + "'";
 
-    args.clear();
-    args.push_back(shcore::Value(query));
+  temp_args.clear();
+  temp_args.push_back(shcore::Value(query));
 
-    classic->run_sql(args);
+  classic->run_sql(temp_args);
 
-    query = "CREATE USER IF NOT EXISTS 'replication_user'@'%' IDENTIFIED BY '" + replication_user_password + "'";
+  query = "GRANT PROCESS, RELOAD, REPLICATION CLIENT, REPLICATION SLAVE ON *.* TO 'instance_admin'@'" + host + "'";
 
-    args.clear();
-    args.push_back(shcore::Value(query));
+  temp_args.clear();
+  temp_args.push_back(shcore::Value(query));
 
-    classic->run_sql(args);
+  classic->run_sql(temp_args);
 
-    query = "GRANT REPLICATION SLAVE ON *.* to 'replication_user'@'%'";
+  query = "DROP USER IF EXISTS 'replication_user'@'" + host + "'";
 
-    args.clear();
-    args.push_back(shcore::Value(query));
+  temp_args.clear();
+  temp_args.push_back(shcore::Value(query));
 
-    classic->run_sql(args);
+  query = "CREATE USER IF NOT EXISTS 'replication_user'@'%' IDENTIFIED BY '" + replication_user_password + "'";
 
-    args.clear();
-    args.push_back(shcore::Value("SET sql_log_bin = 1"));
-    classic->run_sql(args);
-  }
+  temp_args.clear();
+  temp_args.push_back(shcore::Value(query));
+
+  classic->run_sql(temp_args);
+
+  query = "GRANT REPLICATION SLAVE ON *.* to 'replication_user'@'%'";
+
+  temp_args.clear();
+  temp_args.push_back(shcore::Value(query));
+
+  classic->run_sql(temp_args);
+
+  temp_args.clear();
+  temp_args.push_back(shcore::Value("SET sql_log_bin = 1"));
+  classic->run_sql(temp_args);
 
   // Gadgets handling
   std::string buf;
@@ -376,22 +386,31 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args)
     }
 
     if (read_error)
+    {
+      // Remove unnecessary gadgets output
+      std::string remove_me = "ERROR: Error executing the 'start-replicaset' command:";
+
+      std::string::size_type i = error.find(remove_me);
+
+      if (i != std::string::npos)
+        error.erase(i, remove_me.length());
+
       throw shcore::Exception::logic_error(error);
+    }
 
     p.wait();
 
     // OK, if we reached here without errors we can update the metadata with the host
-    _metadata_storage->insert_host(args);
+    auto result = _metadata_storage->insert_host(args);
 
     // And the instance
-    uint64_t host_id = _metadata_storage->get_host_id(host);
+    uint64_t host_id = result->get_member("autoIncrementValue").as_int();
 
     shcore::Argument_list args_instance;
     Value::Map_type_ref options_instance(new shcore::Value::Map_type);
     args_instance.push_back(shcore::Value(options_instance));
 
     (*options_instance)["role"] = shcore::Value("master");
-    (*options_instance)["mode"] = shcore::Value("rw");
 
     // TODO: construct properly the addresses
     std::string address = host + ":" + std::to_string(port);
@@ -473,16 +492,26 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args)
     }
 
     if (read_error)
+    {
+      // Remove unnecessary gadgets output
+      std::string remove_me = "ERROR: Error executing the 'join-replicaset' command:";
+
+      std::string::size_type i = error.find(remove_me);
+
+      if (i != std::string::npos)
+        error.erase(i, remove_me.length());
+
       throw shcore::Exception::logic_error(error);
+    }
 
     // wait for termination
     p.wait();
 
     // OK, if we reached here without errors we can update the metadata with the host
-    _metadata_storage->insert_host(args);
+    auto result = _metadata_storage->insert_host(args);
 
     // And the instance
-    uint64_t host_id = _metadata_storage->get_host_id(host);
+    uint64_t host_id = result->get_member("autoIncrementValue").as_int();
 
     shcore::Argument_list args_instance;
     Value::Map_type_ref options_instance(new shcore::Value::Map_type);

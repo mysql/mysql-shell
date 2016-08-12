@@ -167,12 +167,15 @@ CREATE TABLE instances (
   /* unique, user specified name for the server */
   `instance_name` VARCHAR(40) UNIQUE NOT NULL,
   /* The role of the server instance in the setup e.g. scale-out, master etc. */
-  `role` ENUM('master', 'scaleOut', 'hotSpare') NOT NULL,
+  `role` ENUM('HA', 'readScaleOut') NOT NULL,
   /*
     The mode of the server instance : if it accept read queries, read and write
     queries, or neither.
   */
-  `mode` ENUM('rw', 'ro', 'none') NOT NULL,
+  /*
+    TODO: We don't store status information. Shouldn't this be the ReplicaSet mode?
+    `mode` ENUM('rw', 'ro', 'none') NOT NULL,
+  */
   /*
     The weight of the server instance for load balancing purposes. The relative
     proportion of traffic it should receive.

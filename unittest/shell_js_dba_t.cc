@@ -507,70 +507,70 @@ namespace shcore
   //  execute("\\connect -c " + _mysql_uri);
   //  validate_interactive("dba_farm_interactive.js");
   //}
-}
 
-TEST_F(Shell_js_dba_tests, replica_set_no_interactive_global_session_x)
-{
-  _options->wizards = false;
-  reset_shell();
+  TEST_F(Shell_js_dba_tests, replica_set_no_interactive_global_session_x)
+  {
+    _options->wizards = false;
+    reset_shell();
 
-  execute("\\connect " + _uri);
-  validate_interactive("dba_replica_set_no_interactive.js");
-  execute("session.close();");
-}
+    execute("\\connect " + _uri);
+    validate_interactive("dba_replica_set_no_interactive.js");
+    execute("session.close();");
+  }
 
-TEST_F(Shell_js_dba_tests, replica_set_no_interactive_global_session_node)
-{
-  _options->wizards = false;
-  reset_shell();
+  TEST_F(Shell_js_dba_tests, replica_set_no_interactive_global_session_node)
+  {
+    _options->wizards = false;
+    reset_shell();
 
-  execute("\\connect -n " + _uri);
-  validate_interactive("dba_replica_set_no_interactive.js");
-  execute("session.close();");
-}
+    execute("\\connect -n " + _uri);
+    validate_interactive("dba_replica_set_no_interactive.js");
+    execute("session.close();");
+  }
 
-TEST_F(Shell_js_dba_tests, replica_set_no_interactive_global_session_classic)
-{
-  _options->wizards = false;
-  reset_shell();
+  TEST_F(Shell_js_dba_tests, replica_set_no_interactive_global_session_classic)
+  {
+    _options->wizards = false;
+    reset_shell();
 
-  execute("\\connect -c " + _mysql_uri);
-  validate_interactive("dba_replica_set_no_interactive.js");
-  execute("session.close();");
-}
+    execute("\\connect -c " + _mysql_uri);
+    validate_interactive("dba_replica_set_no_interactive.js");
+    execute("session.close();");
+  }
 
-TEST_F(Shell_js_dba_tests, replica_set_no_interactive_custom_session_x)
-{
-  _options->wizards = false;
-  reset_shell();
+  TEST_F(Shell_js_dba_tests, replica_set_no_interactive_custom_session_x)
+  {
+    _options->wizards = false;
+    reset_shell();
 
-  execute("var mysqlx = require('mysqlx');");
-  execute("var mySession = mysqlx.getSession('" + _uri + "');");
-  execute("dba.resetSession(mySession);");
-  validate_interactive("dba_replica_set_no_interactive.js");
-  execute("mySession.close();");
-}
+    execute("var mysqlx = require('mysqlx');");
+    execute("var mySession = mysqlx.getSession('" + _uri + "');");
+    execute("dba.resetSession(mySession);");
+    validate_interactive("dba_replica_set_no_interactive.js");
+    execute("mySession.close();");
+  }
 
-TEST_F(Shell_js_dba_tests, replica_set_no_interactive_custom_session_node)
-{
-  _options->wizards = false;
-  reset_shell();
+  TEST_F(Shell_js_dba_tests, replica_set_no_interactive_custom_session_node)
+  {
+    _options->wizards = false;
+    reset_shell();
 
-  execute("var mysqlx = require('mysqlx');");
-  execute("var mySession = mysqlx.getNodeSession('" + _uri + "');");
-  execute("dba.resetSession(mySession);");
-  validate_interactive("dba_replica_set_no_interactive.js");
-  execute("mySession.close();");
-}
+    execute("var mysqlx = require('mysqlx');");
+    execute("var mySession = mysqlx.getNodeSession('" + _uri + "');");
+    execute("dba.resetSession(mySession);");
+    validate_interactive("dba_replica_set_no_interactive.js");
+    execute("mySession.close();");
+  }
 
-TEST_F(Shell_js_dba_tests, replica_set_no_interactive_custom_session_classic)
-{
-  _options->wizards = false;
-  reset_shell();
+  TEST_F(Shell_js_dba_tests, replica_set_no_interactive_custom_session_classic)
+  {
+    _options->wizards = false;
+    reset_shell();
 
-  execute("var mysql = require('mysql');");
-  execute("var mySession = mysql.getClassicSession('" + _mysql_uri + "');");
-  execute("dba.resetSession(mySession);");
-  validate_interactive("dba_replica_set_no_interactive.js");
-  execute("mySession.close();");
+    execute("var mysql = require('mysql');");
+    execute("var mySession = mysql.getClassicSession('" + _mysql_uri + "');");
+    execute("dba.resetSession(mySession);");
+    validate_interactive("dba_replica_set_no_interactive.js");
+    execute("mySession.close();");
+  }
 }

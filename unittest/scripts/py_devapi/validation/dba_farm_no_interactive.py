@@ -13,8 +13,10 @@
 ||
 
 #@# Farm: add_instance errors
-||Invalid number of arguments in Farm.add_instance, expected 1 to 2 but got 0
-||Invalid number of arguments in Farm.add_instance, expected 1 to 2 but got 3
+||Invalid number of arguments in Farm.add_instance, expected 2 to 3 but got 0
+||Invalid number of arguments in Farm.add_instance, expected 2 to 3 but got 4
+||Farm.add_instance: Argument #1 is expected to be a string
+||Farm.add_instance: The MASTER Farm password cannot be empty
 ||Farm.add_instance: Invalid connection options, expected either a URI or a Dictionary
 ||Farm.add_instance: The connection data contains the next invalid attributes: authMethod, schema
 ||Farm.add_instance: Missing required attribute: host

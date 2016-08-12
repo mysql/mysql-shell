@@ -18,6 +18,7 @@
  */
 
 #include "interactive_dba_farm.h"
+#include "interactive_global_dba.h"
 #include "modules/adminapi/mod_dba_farm.h"
 #include "shellcore/shell_registry.h"
 #include "modules/mysqlxtest_utils.h"
@@ -55,11 +56,15 @@ shcore::Value Interactive_dba_farm::add_seed_instance(const shcore::Argument_lis
   if (!function.empty())
   {
     shcore::Value::Map_type_ref options;
+    std::string farm_admin_password;
+
     if (resolve_instance_options(function, args, options))
     {
       shcore::Argument_list new_args;
+      farm_admin_password = _shell_core.get_global("dba").as_object<Global_dba>()->get_farm_admin_password();
+      new_args.push_back(shcore::Value(farm_admin_password));
       new_args.push_back(shcore::Value(options));
-      ret_val = _target->call(function, args);
+      ret_val = _target->call(function, new_args);
     }
   }
 
@@ -88,62 +93,103 @@ shcore::Value Interactive_dba_farm::add_instance(const shcore::Argument_list &ar
   if (!function.empty())
   {
     shcore::Value::Map_type_ref options;
+    std::string farm_admin_password;
+
     if (resolve_instance_options(function, args, options))
     {
       shcore::Argument_list new_args;
+      farm_admin_password = _shell_core.get_global("dba").as_object<Global_dba>()->get_farm_admin_password();
+      new_args.push_back(shcore::Value(farm_admin_password));
       new_args.push_back(shcore::Value(options));
-      ret_val = _target->call(function, args);
+      ret_val = _target->call(function, new_args);
     }
   }
 
   return ret_val;
 }
 
+int Interactive_dba_farm::identify_connection_options(const std::string &function, const shcore::Argument_list &args) const
+{
+  int options_index = 0;
+
+  if ((args.size() == 2 && args[0].type == shcore::Map) || args.size() == 3)
+    options_index++;
+  else if (args.size() == 2 && args[0].type == shcore::String && args[1].type == shcore::String)
+  {
+    std::string message = "Ambiguos call for to" + get_function_name(function) + ", from the parameters:\n\n" \
+      " 1) " + args[0].as_string() + "\n"\
+      " 2) " + args[1].as_string() + "\n"\
+      " 3) Cancel the operation.\n\n"\
+      "Which is the connection data? [3] :";
+
+    std::string answer;
+    if (prompt(message, answer))
+    {
+      if (answer.empty() || answer == "3")
+        options_index = -1;
+      else if (answer == "2")
+        options_index++;
+    }
+  }
+
+  return options_index;
+}
+
 bool Interactive_dba_farm::resolve_instance_options(const std::string& function, const shcore::Argument_list &args, shcore::Value::Map_type_ref &options) const
 {
   std::string answer;
-  args.ensure_count(1, 2, get_function_name(function).c_str());
+  args.ensure_count(1, 3, get_function_name(function).c_str());
 
-  // Gets the connection options which come on the first parameter
-  // Either as URI or as JSON
-  if (args[0].type == String)
-    options = get_connection_data(args.string_at(0), false);
-  else if (args[0].type == Map)
-    options = args.map_at(0);
-  else
-    throw shcore::Exception::argument_error(get_function_name(function) + ": Invalid connection options, expected either a URI or a Dictionary.");
-
-  // Gets the list of incoming attributes
-  std::set<std::string> attributes;
-  for (auto option : *options)
-    attributes.insert(option.first);
-
-  auto invalids = mysh::mysqlx::ReplicaSet::get_invalid_attributes(attributes);
-
-  // Verification of invalid attributes on the connection data
   bool proceed = true;
-  if (invalids.size())
+
+  // The signature of the addInstance and addSeedInstance functions is as follows
+  // addInstance([farmPwd,] connOptions[, rootPwd])
+  //
+  // connOptions can be either a map or a URI
+  // When URI is used with one of hte passwords, call is ambiguos so the user needs to
+  // determine what parameter is the URI
+  int options_index = identify_connection_options(function, args);
+
+  if (options_index >= 0)
   {
-    std::string error = "The connection data contains the next invalid attributes: ";
-    std::string first = *invalids.begin();
-    error += first;
+    if (args[options_index].type == String)
+      options = get_connection_data(args.string_at(options_index), false);
+    else if (args[options_index].type == Map)
+       options = args.map_at(options_index);
+    else
+       throw shcore::Exception::argument_error(get_function_name(function) + ": Invalid connection options, expected either a URI or a Dictionary.");
 
-    invalids.erase(invalids.begin());
+    // Gets the list of incoming attributes
+    std::set<std::string> attributes;
+    for (auto option : *options)
+      attributes.insert(option.first);
 
-    for (auto attribute : invalids)
-      error += ", " + attribute;
+    auto invalids = mysh::mysqlx::ReplicaSet::get_invalid_attributes(attributes);
 
-    invalids.insert(first);
-
-    proceed = false;
-    if (prompt((boost::format("%s.\nDo you want to ignore these attributes and continue? [Y/n]: ") % error).str().c_str(), answer))
+    // Verification of invalid attributes on the connection data
+    if (invalids.size())
     {
-      proceed = (!answer.compare("y") || !answer.compare("Y") || answer.empty());
+      std::string error = "The connection data contains the next invalid attributes: ";
+      std::string first = *invalids.begin();
+      error += first;
 
-      if (proceed)
+      invalids.erase(invalids.begin());
+
+      for (auto attribute : invalids)
+        error += ", " + attribute;
+
+      invalids.insert(first);
+
+      proceed = false;
+      if (prompt((boost::format("%s. Do you want to ignore these attributes and continue? [Y/n]: ") % error).str().c_str(), answer))
       {
-        for (auto attribute : invalids)
-          options->erase(attribute);
+        proceed = (!answer.compare("y") || !answer.compare("Y") || answer.empty());
+
+        if (proceed)
+        {
+          for (auto attribute : invalids)
+            options->erase(attribute);
+        }
       }
     }
   }
@@ -151,7 +197,7 @@ bool Interactive_dba_farm::resolve_instance_options(const std::string& function,
   // Verification of the host attribute
   if (proceed && !options->has_key("host"))
   {
-    if (prompt("The connection data is missing the host, would you like to: \n  1) Use localhost\n 2) Specify a host\n 3) Cancel\n\nPlease select an option [1]: ", answer))
+    if (prompt("The connection data is missing the host, would you like to: 1) Use localhost  2) Specify a host  3) Cancel  Please select an option [1]: ", answer))
     {
       if (answer == "1")
         (*options)["host"] = shcore::Value("localhost");
@@ -179,29 +225,53 @@ bool Interactive_dba_farm::resolve_instance_options(const std::string& function,
     {
       user = "root";
       (*options)["dbUser"] = shcore::Value(user);
-      print("The connection data does not contain a user, using 'root'.\n");
     }
 
     // Verification of the password
-    std::string password;
+    std::string user_password;
     bool has_password = true;
     if (options->has_key("password"))
-      password = options->get_string("password");
+      user_password = options->get_string("password");
     else if (options->has_key("dbPassword"))
-      password = options->get_string("dbPassword");
-    else if (args.size() == 2)
-      password = args.string_at(1);
+      user_password = options->get_string("dbPassword");
+    else if ((args.size() == 2 && options_index == 0) || args.size() == 3)
+    {
+      user_password = args.string_at(args.size() - 1);
+      (*options)["dbPassword"] = shcore::Value(user_password);
+    }
     else
       has_password = false;
 
     if (!has_password)
     {
       proceed = false;
-      if (prompt("Please provide a password for " + build_connection_string(options, false), answer))
+      if (password("Please provide a password for '" + build_connection_string(options, false) + "': ", answer))
       {
         (*options)["dbPassword"] = shcore::Value(answer);
         proceed = true;
       }
+    }
+  }
+
+  // Verify the farmAdminPassword
+  std::string farm_password;
+
+  if (options_index == 1)
+    farm_password = args.string_at(0);
+
+  if (farm_password.empty())
+    farm_password = _shell_core.get_global("dba").as_object<Global_dba>()->get_farm_admin_password();
+
+  bool prompt_password = true;
+  while (prompt_password && farm_password.empty())
+  {
+    prompt_password = password("Please enter Farm administrative MASTER password: ", answer);
+    if (prompt_password)
+    {
+      farm_password = answer;
+
+      // update the cache
+      _shell_core.get_global("dba").as_object<Global_dba>()->set_farm_admin_password(farm_password);
     }
   }
 

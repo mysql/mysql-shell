@@ -131,31 +131,6 @@ uint64_t MetadataStorage::get_farm_id(const std::string &farm_name)
   return farm_id;
 }
 
-uint64_t MetadataStorage::get_host_id(std::string host_name)
-{
-  uint64_t host_id = 0;
-
-  if (!metadata_schema_exists())
-    throw Exception::metadata_error("Metadata Schema does not exist.");
-
-  // Get the Farm ID
-
-  auto result = execute_sql("SELECT host_id from farm_metadata_schema.hosts where host_name = '" + host_name + "'");
-
-  auto row = result->call("fetchOne", shcore::Argument_list());
-
-  //result->flush();
-
-  if (row)
-  {
-    shcore::Argument_list args;
-    args.push_back(shcore::Value("host_id"));
-    host_id = row.as_object<Row>()->get_field(args).as_uint();
-  }
-
-  return host_id;
-}
-
 uint64_t MetadataStorage::get_farm_id(uint64_t rs_id)
 {
   uint64_t farm_id = 0;
@@ -264,7 +239,7 @@ void MetadataStorage::insert_default_replica_set(const std::shared_ptr<Farm> &fa
   execute_sql(query);
 }
 
-void MetadataStorage::insert_host(const shcore::Argument_list &args)
+std::shared_ptr<ShellBaseResult> MetadataStorage::insert_host(const shcore::Argument_list &args)
 {
   std::string uri;
   shcore::Value::Map_type_ref options; // Map with the connection data
@@ -306,7 +281,7 @@ void MetadataStorage::insert_host(const shcore::Argument_list &args)
   query = "INSERT INTO farm_metadata_schema.hosts (host_name, ip_address, location) VALUES ('" +
         host_name + "', '" + ip_address + "', '" + location + "')";
 
-  execute_sql(query);
+  return execute_sql(query);
 }
 
 void MetadataStorage::insert_instance(const shcore::Argument_list &args, uint64_t host_id, uint64_t rs_id)
@@ -317,7 +292,6 @@ void MetadataStorage::insert_instance(const shcore::Argument_list &args, uint64_
   std::string mysql_server_uuid;
   std::string instance_name;
   std::string role;
-  std::string mode;
   float weight;
   shcore::Value::Map_type_ref attributes;
   std::string addresses;
@@ -364,9 +338,6 @@ void MetadataStorage::insert_instance(const shcore::Argument_list &args, uint64_
   if (options->has_key("role"))
     role = (*options)["role"].as_string();
 
-  if (options->has_key("mode"))
-    mode = (*options)["mode"].as_string();
-
   //if (options->has_key("weight"))
   //  weight = (*options)["weight"].as_float();
 
@@ -380,13 +351,13 @@ void MetadataStorage::insert_instance(const shcore::Argument_list &args, uint64_
     version_token = (*options)["version_token"].as_int();
 
   if (options->has_key("description"))
-    mode = (*options)["description"].as_string();
+    description = (*options)["description"].as_string();
 
   // Insert the default ReplicaSet on the replicasets table
   query = "INSERT INTO farm_metadata_schema.instances (host_id, replicaset_id, mysql_server_uuid, instance_name,\
-                                                                                                                                              role, mode, addresses) VALUES ('" +
+                  role, addresses) VALUES ('" +
         std::to_string(host_id) + "', '" + std::to_string(rs_id) + "', '" + mysql_server_uuid + "', '" +
-        instance_name + "', '" + role + "', '" + mode + "', '{\"mysqlClassic\": \"" + addresses + "\"}')";
+        instance_name + "', '" + role + "', '{\"mysqlClassic\": \"" + addresses + "\"}')";
 
   execute_sql(query);
 }

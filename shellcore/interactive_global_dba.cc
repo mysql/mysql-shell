@@ -34,6 +34,7 @@ void Global_dba::init()
   add_method("createFarm", std::bind(&Global_dba::create_farm, this, _1), "farmName", shcore::String, NULL);
   add_method("dropMetadataSchema", std::bind(&Global_dba::drop_metadata_schema, this, _1), "data", shcore::Map, NULL);
   add_method("getFarm", std::bind(&Global_dba::get_farm, this, _1), "farmName", shcore::String, NULL);
+  add_method("getDefaultFarm", std::bind(&Global_dba::get_default_farm, this, _1), NULL);
   set_wrapper_function("isOpen");
 }
 
@@ -135,9 +136,14 @@ shcore::Value Global_dba::create_farm(const shcore::Argument_list &args)
     bool prompt_password = true;
     while (prompt_password && farm_password.empty())
     {
-      prompt_password = password("Please enter an administration password to be used for the Farm '" + farm_name + "': ", answer);
+      prompt_password = password("Please enter an administrative MASTER password to be used for the Farm '" + farm_name + "': ", answer);
       if (prompt_password)
+      {
         farm_password = answer;
+
+        // Update the cache as well
+        set_farm_admin_password(farm_password);
+      }
     }
 
     if (!farm_password.empty())
@@ -202,6 +208,17 @@ shcore::Value Global_dba::get_farm(const shcore::Argument_list &args)
   ScopedStyle ss(_target.get(), naming_style);
 
   Value raw_farm = _target->call("getFarm", args);
+
+  Interactive_dba_farm* farm = new Interactive_dba_farm(this->_shell_core);
+  farm->set_target(std::dynamic_pointer_cast<Cpp_object_bridge>(raw_farm.as_object()));
+  return shcore::Value::wrap<Interactive_dba_farm>(farm);
+}
+
+shcore::Value Global_dba::get_default_farm(const shcore::Argument_list &args)
+{
+  ScopedStyle ss(_target.get(), naming_style);
+
+  Value raw_farm = _target->call("getDefaultFarm", args);
 
   Interactive_dba_farm* farm = new Interactive_dba_farm(this->_shell_core);
   farm->set_target(std::dynamic_pointer_cast<Cpp_object_bridge>(raw_farm.as_object()));
