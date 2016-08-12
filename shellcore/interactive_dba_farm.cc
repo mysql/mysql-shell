@@ -265,13 +265,12 @@ bool Interactive_dba_farm::resolve_instance_options(const std::string& function,
   bool prompt_password = true;
   while (prompt_password && farm_password.empty())
   {
-    prompt_password = password("Please enter Farm administrative MASTER password: ", answer);
+    prompt_password = password("Please enter Farm administrative MASTER password: ", farm_password);
     if (prompt_password)
     {
-      farm_password = answer;
-
+      if (!farm_password.empty())
       // update the cache
-      _shell_core.get_global("dba").as_object<Global_dba>()->set_farm_admin_password(farm_password);
+        _shell_core.get_global("dba").as_object<Global_dba>()->set_farm_admin_password(farm_password);
     }
   }
 

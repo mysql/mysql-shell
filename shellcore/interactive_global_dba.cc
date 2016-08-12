@@ -139,10 +139,8 @@ shcore::Value Global_dba::create_farm(const shcore::Argument_list &args)
       prompt_password = password("Please enter an administrative MASTER password to be used for the Farm '" + farm_name + "': ", answer);
       if (prompt_password)
       {
-        farm_password = answer;
-
-        // Update the cache as well
-        set_farm_admin_password(farm_password);
+        if (!answer.empty())
+          farm_password = answer;
       }
     }
 
@@ -151,6 +149,9 @@ shcore::Value Global_dba::create_farm(const shcore::Argument_list &args)
       shcore::Argument_list new_args;
       new_args.push_back(shcore::Value(farm_name));
       new_args.push_back(shcore::Value(farm_password));
+
+      // Update the cache as well
+      set_farm_admin_password(farm_password);
 
       if (!instance_admin_user_pwd.empty())
         (*options)["instanceAdminPassword"] = shcore::Value(answer);

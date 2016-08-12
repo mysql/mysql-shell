@@ -28,6 +28,7 @@
 #include "shellcore/shell_core_options.h"
 #include "common/process_launcher/process_launcher.h"
 #include "../mod_mysql_session.h"
+#include "../mod_mysql_resultset.h"
 
 #include <sstream>
 #include <iostream>
@@ -238,7 +239,7 @@ shcore::Value ReplicaSet::add_instance_(const shcore::Argument_list &args)
   return ret_val;
 }
 
-std::set<std::string> ReplicaSet::_valid_attributes = { "host", "port", "user", "dbUser", "password", "dbPassword", "socket", "ssl_ca", "ssl_cert", "ssl_key", "ssl_key" };
+std::set<std::string> ReplicaSet::_valid_attributes = { "name", "host", "port", "user", "dbUser", "password", "dbPassword", "socket", "ssl_ca", "ssl_cert", "ssl_key", "ssl_key" };
 
 std::set<std::string> ReplicaSet::get_invalid_attributes(const std::set<std::string> input)
 {
@@ -406,6 +407,17 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args)
   temp_args.push_back(shcore::Value("SET sql_log_bin = 1"));
   classic->run_sql(temp_args);
 
+  temp_args.clear();
+  temp_args.push_back(shcore::Value("SELECT @@server_uuid"));
+  auto uuid_raw_result = classic->run_sql(temp_args);
+  auto uuid_result = uuid_raw_result.as_object<mysh::mysql::ClassicResult>();
+
+  auto uuid_row = uuid_result->fetch_one(shcore::Argument_list());
+
+  std::string mysql_server_uuid;
+  if (uuid_row)
+    mysql_server_uuid = uuid_row.as_object<mysh::Row>()->get_member(0).as_string();
+
   // Gadgets handling
   std::string buf;
   char c;
@@ -501,11 +513,18 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args)
     Value::Map_type_ref options_instance(new shcore::Value::Map_type);
     args_instance.push_back(shcore::Value(options_instance));
 
-    (*options_instance)["role"] = shcore::Value("master");
+    (*options_instance)["role"] = shcore::Value("HA");
 
     // TODO: construct properly the addresses
     std::string address = host + ":" + std::to_string(port);
-    (*options_instance)["addresses"] = shcore::Value(address);
+    shcore::Value val_address = shcore::Value(address);
+    (*options_instance)["addresses"] = val_address;
+    (*options_instance)["mysql_server_uuid"] = shcore::Value(mysql_server_uuid);
+
+    if (options->has_key("name"))
+      (*options_instance)["instance_name"] = (*options)["name"];
+    else
+      (*options_instance)["instance_name"] = val_address;
 
     _metadata_storage->insert_instance(args_instance, host_id, get_id());
   }
@@ -608,12 +627,18 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args)
     Value::Map_type_ref options_instance(new shcore::Value::Map_type);
     args_instance.push_back(shcore::Value(options_instance));
 
-    (*options_instance)["role"] = shcore::Value("hotSpare");
-    (*options_instance)["mode"] = shcore::Value("ro");
+    (*options_instance)["role"] = shcore::Value("HA");
 
-    // TODO: construct properly the addresses
     std::string address = host + ":" + std::to_string(port);
-    (*options_instance)["addresses"] = shcore::Value(address);
+    shcore::Value val_address = shcore::Value(address);
+    (*options_instance)["addresses"] = val_address;
+
+    (*options_instance)["mysql_server_uuid"] = shcore::Value(mysql_server_uuid);
+
+    if (options->has_key("name"))
+      (*options_instance)["instance_name"] = (*options)["name"];
+    else
+      (*options_instance)["instance_name"] = val_address;
 
     _metadata_storage->insert_instance(args_instance, host_id, get_id());
   }

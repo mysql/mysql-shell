@@ -305,35 +305,8 @@ void MetadataStorage::insert_instance(const shcore::Argument_list &args, uint64_
   // args data comes in a dictionary
   options = args.map_at(0);
 
-  if (options->has_key("mysql_server_uuid"))
-    mysql_server_uuid = (*options)["mysql_server_uuid"].as_string();
-  else // TODO: remove this, get uuid properly
-  {
-    std::random_device rd;
-    std::string random_text;
-    const char *alphabet = "1234567890abcdefghijklmnopqrstuvwxyz";
-    std::uniform_int_distribution<int> dist(0, strlen(alphabet) - 1);
-
-    for (int i = 0; i < 6; i++)
-      random_text += alphabet[dist(rd)];
-
-    mysql_server_uuid = random_text;
-  }
-
-  if (options->has_key("instance_name"))
-    instance_name = (*options)["instance_name"].as_string();
-  else //TODO: remove this, get instance_name properly
-  {
-    std::random_device rd;
-    std::string random_text;
-    const char *alphabet = "1234567890abcdefghijklmnopqrstuvwxyz";
-    std::uniform_int_distribution<int> dist(0, strlen(alphabet) - 1);
-
-    for (int i = 0; i < 6; i++)
-      random_text += alphabet[dist(rd)];
-
-    instance_name = random_text;
-  }
+  mysql_server_uuid = (*options)["mysql_server_uuid"].as_string();
+  instance_name = (*options)["instance_name"].as_string();
 
   if (options->has_key("role"))
     role = (*options)["role"].as_string();
@@ -355,7 +328,7 @@ void MetadataStorage::insert_instance(const shcore::Argument_list &args, uint64_
 
   // Insert the default ReplicaSet on the replicasets table
   query = "INSERT INTO farm_metadata_schema.instances (host_id, replicaset_id, mysql_server_uuid, instance_name,\
-                  role, addresses) VALUES ('" +
+                                                role, addresses) VALUES ('" +
         std::to_string(host_id) + "', '" + std::to_string(rs_id) + "', '" + mysql_server_uuid + "', '" +
         instance_name + "', '" + role + "', '{\"mysqlClassic\": \"" + addresses + "\"}')";
 
@@ -716,7 +689,7 @@ std::string MetadataStorage::get_seed_instance(uint64_t rs_id)
 
   // Get the Farm instanceAdminUser
 
-  query = "SELECT JSON_UNQUOTE(addresses->\"$.mysqlClassic\")  as address FROM farm_metadata_schema.instances WHERE replicaset_id = '" + std::to_string(rs_id) + "' AND role = 'master'";
+  query = "SELECT JSON_UNQUOTE(addresses->\"$.mysqlClassic\")  as address FROM farm_metadata_schema.instances WHERE replicaset_id = '" + std::to_string(rs_id) + "' AND role = 'HA'";
 
   auto result = execute_sql(query);
 
