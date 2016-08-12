@@ -56,6 +56,97 @@ std::string &ReplicaSet::append_descr(std::string &s_out, int UNUSED(indent), in
   return s_out;
 }
 
+void ReplicaSet::append_json(shcore::JSON_dumper& dumper) const
+{
+  std::shared_ptr<mysh::ShellBaseResult>result1 = _metadata_storage->execute_sql("show status like 'group_replication_primary_member'");
+
+  auto row = result1->call("fetchOne", shcore::Argument_list());
+
+  std::string master_uuid;
+  if (row)
+    master_uuid = row.as_object<Row>()->get_member(1).as_string();
+
+  std::string query = "select mysql_server_uuid, instance_name, role, MEMBER_STATE, JSON_UNQUOTE(JSON_EXTRACT(addresses, \"$.mysqlClassic\")) as host from farm_metadata_schema.instances left join performance_schema.replication_group_members on `mysql_server_uuid`=`MEMBER_ID` where replicaset_id = " + std::to_string(_id);
+  auto result2 = _metadata_storage->execute_sql(query);
+
+  auto raw_instances = result2->call("fetchAll", shcore::Argument_list());
+
+  // First we identify the master instance
+  auto instances = raw_instances.as_array();
+
+  std::shared_ptr<mysh::Row> master;
+  for (auto value : *instances.get())
+  {
+    auto row = value.as_object<mysh::Row>();
+    if (row->get_member(0).as_string() == master_uuid)
+    {
+      master = row;
+      break;
+    }
+  }
+
+  dumper.start_object();
+  dumper.append_string("status", "<Some Status>");
+
+  // Creates the instances element
+  dumper.append_string("instances");
+  dumper.start_array();
+
+  dumper.start_object();
+  dumper.append_string("name", master->get_member(1).as_string());
+  dumper.append_string("host", master->get_member(4).as_string());
+  dumper.append_string("role", master->get_member(2).as_string());
+  dumper.append_string("mode", "R/W");
+  dumper.append_string("status", master->get_member(3).as_string() == "ONLINE" ? "ONLINE" : "OFFLINE");
+  dumper.end_object();
+
+  for (auto value : *instances.get())
+  {
+    auto row = value.as_object<mysh::Row>();
+    if (row != master)
+    {
+      dumper.start_object();
+      dumper.append_string("name", row->get_member(1).as_string());
+      dumper.append_string("host", row->get_member(4).as_string());
+      dumper.append_string("role", row->get_member(2).as_string());
+      dumper.append_string("mode", "R/O");
+      dumper.append_string("status", row->get_member(3).as_string() == "ONLINE" ? "ONLINE" : "OFFLINE");
+      dumper.end_object();
+    }
+  }
+  dumper.end_array();
+
+  dumper.append_string("topology");
+
+  dumper.start_object();
+  dumper.append_string("name", master->get_member(1).as_string());
+  dumper.append_string("role", master->get_member(2).as_string());
+  dumper.append_string("mode", "R/W");
+
+  dumper.append_string("leaves");
+  dumper.start_array();
+  for (auto value : *instances.get())
+  {
+    auto row = value.as_object<mysh::Row>();
+    if (row != master)
+    {
+      dumper.start_object();
+      dumper.append_string("name", row->get_member(1).as_string());
+      dumper.append_string("role", row->get_member(2).as_string());
+      dumper.append_string("mode", "R/O");
+      dumper.append_string("leaves");
+      dumper.start_array();
+      dumper.end_array();
+      dumper.end_object();
+    }
+  }
+
+  dumper.end_array();
+  dumper.end_object();
+
+  dumper.end_object();
+}
+
 bool ReplicaSet::operator == (const Object_bridge &other) const
 {
   return class_name() == other.class_name() && this == &other;

@@ -107,6 +107,7 @@ void Farm::init()
   add_method("addInstance", std::bind(&Farm::add_instance, this, _1), "data");
   add_method("removeInstance", std::bind(&Farm::remove_instance, this, _1), "data");
   add_method("getReplicaSet", std::bind(&Farm::get_replicaset, this, _1), "name", shcore::String, NULL);
+  add_method("describe", std::bind(&Farm::describe, this, _1), NULL);
 }
 
 /**
@@ -327,4 +328,32 @@ shcore::Value Farm::get_replicaset(const shcore::Argument_list &args)
   }
 
   return ret_val;
+}
+
+void Farm::append_json(shcore::JSON_dumper& dumper) const
+{
+  dumper.start_object();
+  dumper.append_string("farmName", _name);
+  dumper.append_string("adminType", _admin_type);
+
+  if (!_default_replica_set)
+    dumper.append_null("defaultReplicaSet");
+  else
+    dumper.append_value("defaultReplicaSet", shcore::Value(std::dynamic_pointer_cast<shcore::Object_bridge>(_default_replica_set)));
+
+  dumper.end_object();
+}
+
+/**
+* Returns a formatted JSON describing the structure of the Farm
+*/
+#if DOXYGEN_JS
+String Farm::describe(){}
+#elif DOXYGEN_PY
+str Farm::describe(){}
+#endif
+shcore::Value Farm::describe(const shcore::Argument_list &args)
+{
+  shcore::Value myself = shcore::Value(std::dynamic_pointer_cast<shcore::Object_bridge>(shared_from_this()));
+  return shcore::Value(myself.json(true));
 }

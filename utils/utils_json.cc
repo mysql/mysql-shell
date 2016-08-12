@@ -64,37 +64,55 @@ void JSON_dumper::append_value(const Value &value)
       _writer->append_string(value.as_string().c_str());
       break;
     case Object:
-      value.as_object()->append_json(*this);
-      break;
+    {
+      auto object = value.as_object();
+      if (object)
+        object->append_json(*this);
+      else
+        _writer->append_null();
+    }
+    break;
     case Array:
     {
-                Value::Array_type_ref array = value.as_array();
-                Value::Array_type::const_iterator index, end = array->end();
+      Value::Array_type_ref array = value.as_array();
 
-                _writer->start_array();
+      if (array)
+      {
+        Value::Array_type::const_iterator index, end = array->end();
 
-                for (index = array->begin(); index != end; ++index)
-                  append_value(*index);
+        _writer->start_array();
 
-                _writer->end_array();
+        for (index = array->begin(); index != end; ++index)
+          append_value(*index);
+
+        _writer->end_array();
+      }
+      else
+        _writer->append_null();
     }
-      break;
+    break;
     case Map:
     {
-              Value::Map_type_ref map = value.as_map();
-              Value::Map_type::const_iterator index, end = map->end();
+      Value::Map_type_ref map = value.as_map();
 
-              _writer->start_object();
+      if (map)
+      {
+        Value::Map_type::const_iterator index, end = map->end();
 
-              for (index = map->begin(); index != end; ++index)
-              {
-                _writer->append_string(index->first);
-                append_value(index->second);
-              }
+        _writer->start_object();
 
-              _writer->end_object();
+        for (index = map->begin(); index != end; ++index)
+        {
+          _writer->append_string(index->first);
+          append_value(index->second);
+        }
+
+        _writer->end_object();
+      }
+      else
+        _writer->append_null();
     }
-      break;
+    break;
     case MapRef:
       // TODO: define what to do with this too
       //s_out.append("mapref");

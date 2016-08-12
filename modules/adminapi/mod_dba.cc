@@ -70,7 +70,7 @@ void Dba::init()
 
   _metadata_storage.reset(new MetadataStorage(this));
 
-  std::string current_python_path = "";
+  std::string python_path = "";
   std::string gadgets_path;
 
   if (getenv("MYSQLPROVISION") != NULL)
@@ -78,10 +78,19 @@ void Dba::init()
 
   if (!gadgets_path.empty())
   {
-    if (getenv("PYTHONPATH") != NULL)
-      current_python_path = std::string(getenv("PYTHONPATH"));
+    gadgets_path += "/gadgets/python";
 
-    std::string python_path = current_python_path + ":" + gadgets_path + "/gadgets/python";
+    std::string sep;
+#ifdef WIN32
+    sep = ";";
+#else
+    sep = ":";
+#endif
+
+    if (getenv("PYTHONPATH") != NULL)
+      python_path = std::string(getenv("PYTHONPATH") + sep + gadgets_path);
+    else
+      python_path = gadgets_path;
 
 #ifdef WIN32
     _putenv_s("PYTHONPATH", python_path.c_str());

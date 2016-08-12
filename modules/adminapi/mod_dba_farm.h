@@ -43,6 +43,8 @@ namespace mysh
       virtual std::string &append_descr(std::string &s_out, int indent = -1, int quote_strings = 0) const;
       virtual bool operator == (const Object_bridge &other) const;
 
+      virtual void append_json(shcore::JSON_dumper& dumper) const;
+
       virtual shcore::Value get_member(const std::string &prop) const;
 
       const uint64_t get_id() { return _id; }
@@ -80,7 +82,7 @@ namespace mysh
       Undefined addInstance(Document doc);
       Undefined removeInstance(String name);
       Undefined removeInstance(Document doc);
-
+      String describe();
 #elif DOXYGEN_PY
       str get_name();
       str get_admin_type();
@@ -90,12 +92,14 @@ namespace mysh
       None add_instance(Document doc);
       None remove_instance(str name);
       None remove_instance(Document doc);
+      str describe();
 #endif
 
       shcore::Value add_seed_instance(const shcore::Argument_list &args);
       shcore::Value add_instance(const shcore::Argument_list &args);
       shcore::Value remove_instance(const shcore::Argument_list &args);
       shcore::Value get_replicaset(const shcore::Argument_list &args);
+      shcore::Value describe(const shcore::Argument_list &args);
 
     protected:
       uint64_t _id;

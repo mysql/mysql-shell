@@ -42,6 +42,8 @@ namespace mysh
       virtual std::string &append_descr(std::string &s_out, int indent = -1, int quote_strings = 0) const;
       virtual bool operator == (const Object_bridge &other) const;
 
+      virtual void append_json(shcore::JSON_dumper& dumper) const;
+
       virtual shcore::Value get_member(const std::string &prop) const;
 
       void set_id(uint64_t id) { _id = id; }
