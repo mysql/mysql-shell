@@ -459,7 +459,7 @@ shcore::Value Dba::drop_metadata_schema(const shcore::Argument_list &args)
 
       _default_farm = "";
 
-      shcore::print("Metadata Schema successfully removed.\n").
+      shcore::print("Metadata Schema successfully removed.\n");
     }
     CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("dropMetadataSchema"))
   }
