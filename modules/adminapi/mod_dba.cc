@@ -506,7 +506,7 @@ shcore::Value Dba::validate_instance(const shcore::Argument_list &args)
   std::string ssl_cert;
   std::string ssl_key;
 
-  std::vector<std::string> valid_options = { "host", "port", "dbUser", "socket", "ssl_ca", "ssl_cert", "ssl_key", "ssl_key" };
+  std::vector<std::string> valid_options = { "host", "port", "user", "dbUser", "password", "dbPassword", "socket", "ssl_ca", "ssl_cert", "ssl_key", "ssl_key" };
 
   try
   {
@@ -539,8 +539,16 @@ shcore::Value Dba::validate_instance(const shcore::Argument_list &args)
     if (options->has_key("port"))
       port = (*options)["port"].as_int();
 
-    if (options->has_key("dbUser"))
-      user = (*options)["dbUser"].as_string();
+    // Sets a default user if not specified
+    if (options->has_key("user"))
+      user = options->get_string("user");
+    else if (options->has_key("dbUser"))
+      user = options->get_string("dbUser");
+
+    if (options->has_key("password"))
+      user = options->get_string("password");
+    else if (options->has_key("dbPassword"))
+      user = options->get_string("dbPassword");
 
     if (options->has_key("socket"))
       sock = (*options)["socket"].as_string();

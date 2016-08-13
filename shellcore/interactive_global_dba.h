@@ -41,6 +41,7 @@ namespace shcore
     shcore::Value get_farm(const shcore::Argument_list &args);
     shcore::Value get_default_farm(const shcore::Argument_list &args);
     shcore::Value drop_metadata_schema(const shcore::Argument_list &args);
+    shcore::Value validate_instance(const shcore::Argument_list &args);
 
     void set_farm_admin_password(std::string passwd) { _farm_admin_password = passwd; };
     std::string get_farm_admin_password() { return _farm_admin_password; };

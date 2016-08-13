@@ -35,6 +35,7 @@ void Global_dba::init()
   add_method("dropMetadataSchema", std::bind(&Global_dba::drop_metadata_schema, this, _1), "data", shcore::Map, NULL);
   add_method("getFarm", std::bind(&Global_dba::get_farm, this, _1), "farmName", shcore::String, NULL);
   add_method("getDefaultFarm", std::bind(&Global_dba::get_default_farm, this, _1), NULL);
+  add_method("validateInstance", std::bind(&Global_dba::validate_instance, this, _1), "data", shcore::Map, NULL);
   set_wrapper_function("isOpen");
 }
 
@@ -224,4 +225,58 @@ shcore::Value Global_dba::get_default_farm(const shcore::Argument_list &args)
   Interactive_dba_farm* farm = new Interactive_dba_farm(this->_shell_core);
   farm->set_target(std::dynamic_pointer_cast<Cpp_object_bridge>(raw_farm.as_object()));
   return shcore::Value::wrap<Interactive_dba_farm>(farm);
+}
+
+shcore::Value Global_dba::validate_instance(const shcore::Argument_list &args)
+{
+  shcore::Value ret_val;
+
+  args.ensure_count(1, get_function_name("validateInstance").c_str());
+
+  std::string uri, answer, user;
+  shcore::Value::Map_type_ref options; // Map with the connection data
+
+  // Identify the type of connection data (String or Document)
+  if (args[0].type == shcore::String)
+  {
+    uri = args.string_at(0);
+    options = shcore::get_connection_data(uri, false);
+  }
+  // Connection data comes in a dictionary
+  else if (args[0].type == shcore::Map)
+    options = args.map_at(0);
+
+  // Verification of the password
+  std::string user_password;
+  bool has_password = true;
+
+  // Sets a default user if not specified
+  if (options->has_key("user"))
+    user = options->get_string("user");
+  else if (options->has_key("dbUser"))
+    user = options->get_string("dbUser");
+  else
+  {
+    user = "root";
+    (*options)["dbUser"] = shcore::Value(user);
+  }
+
+  if (options->has_key("password"))
+    user_password = options->get_string("password");
+  else if (options->has_key("dbPassword"))
+    user_password = options->get_string("dbPassword");
+  else
+    has_password = false;
+
+  if (!has_password)
+  {
+    if (password("Please provide a password for '" + build_connection_string(options, false) + "': ", answer))
+      (*options)["dbPassword"] = shcore::Value(answer);
+  }
+
+  shcore::Argument_list new_args;
+  new_args.push_back(shcore::Value(options));
+  ret_val = _target->call("validateInstance", new_args);
+
+  return ret_val;
 }
