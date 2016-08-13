@@ -137,18 +137,22 @@ Value BaseSession::connect(const Argument_list &args)
 
 void BaseSession::set_connection_id()
 {
-  if (_session.is_connected())
+  try
   {
-    // the client id from xprotocol is not the same as the connection id so it is gathered here.
-    std::shared_ptr< ::mysqlx::Result> result = _session.execute_sql("select connection_id();");
-    std::shared_ptr< ::mysqlx::Row> row = result->next();
-    if (row)
+    if (_session.is_connected())
     {
-      if (!row->isNullField(0))
-        _connection_id = row->uInt64Field(0);
+      // the client id from xprotocol is not the same as the connection id so it is gathered here.
+      std::shared_ptr< ::mysqlx::Result> result = _session.execute_sql("select connection_id();");
+      std::shared_ptr< ::mysqlx::Row> row = result->next();
+      if (row)
+      {
+        if (!row->isNullField(0))
+          _connection_id = row->uInt64Field(0);
+      }
+      result->flush();
     }
-    result->flush();
   }
+  CATCH_AND_TRANSLATE();
 }
 
 void BaseSession::set_option(const char *option, int value)
@@ -726,46 +730,55 @@ shcore::Value BaseSession::get_status(const shcore::Argument_list &args)
 
   std::shared_ptr< ::mysqlx::Result> result;
   std::shared_ptr< ::mysqlx::Row>row;
-  result = _session.execute_sql("select DATABASE(), USER() limit 1");
-  row = result->next();
 
-  std::string current_schema = row->isNullField(0) ? "" : row->stringField(0);
-  if (current_schema == "null")
-    current_schema = "";
+  try
+  {
+    result = _session.execute_sql("select DATABASE(), USER() limit 1");
+    row = result->next();
 
-  (*status)["CURRENT_SCHEMA"] = shcore::Value(current_schema);
-  (*status)["CURRENT_USER"] = shcore::Value(row->isNullField(1) ? "" : row->stringField(1));
-  (*status)["CONNECTION_ID"] = shcore::Value(_session.get_client_id());
-  //(*status)["SSL_CIPHER"] = shcore::Value(_conn->get_ssl_cipher());
-  //(*status)["SKIP_UPDATES"] = shcore::Value(???);
-  //(*status)["DELIMITER"] = shcore::Value(???);
+    std::string current_schema = row->isNullField(0) ? "" : row->stringField(0);
+    if (current_schema == "null")
+      current_schema = "";
 
-  //(*status)["SERVER_INFO"] = shcore::Value(_conn->get_server_info());
+    (*status)["CURRENT_SCHEMA"] = shcore::Value(current_schema);
+    (*status)["CURRENT_USER"] = shcore::Value(row->isNullField(1) ? "" : row->stringField(1));
+    (*status)["CONNECTION_ID"] = shcore::Value(_session.get_client_id());
+    //(*status)["SSL_CIPHER"] = shcore::Value(_conn->get_ssl_cipher());
+    //(*status)["SKIP_UPDATES"] = shcore::Value(???);
+    //(*status)["DELIMITER"] = shcore::Value(???);
 
-  //(*status)["PROTOCOL_VERSION"] = shcore::Value(_conn->get_protocol_info());
-  //(*status)["CONNECTION"] = shcore::Value(_conn->get_connection_info());
-  //(*status)["INSERT_ID"] = shcore::Value(???);
+    //(*status)["SERVER_INFO"] = shcore::Value(_conn->get_server_info());
 
-  result = _session.execute_sql("select @@character_set_client, @@character_set_connection, @@character_set_server, @@character_set_database, @@version_comment limit 1");
-  row = result->next();
-  (*status)["CLIENT_CHARSET"] = shcore::Value(row->isNullField(0) ? "" : row->stringField(0));
-  (*status)["CONNECTION_CHARSET"] = shcore::Value(row->isNullField(1) ? "" : row->stringField(1));
-  (*status)["SERVER_CHARSET"] = shcore::Value(row->isNullField(2) ? "" : row->stringField(2));
-  (*status)["SCHEMA_CHARSET"] = shcore::Value(row->isNullField(3) ? "" : row->stringField(3));
-  (*status)["SERVER_VERSION"] = shcore::Value(row->isNullField(4) ? "" : row->stringField(4));
+    //(*status)["PROTOCOL_VERSION"] = shcore::Value(_conn->get_protocol_info());
+    //(*status)["CONNECTION"] = shcore::Value(_conn->get_connection_info());
+    //(*status)["INSERT_ID"] = shcore::Value(???);
 
-  //(*status)["SERVER_STATS"] = shcore::Value(_conn->get_stats());
+    result = _session.execute_sql("select @@character_set_client, @@character_set_connection, @@character_set_server, @@character_set_database, @@version_comment limit 1");
+    row = result->next();
+    (*status)["CLIENT_CHARSET"] = shcore::Value(row->isNullField(0) ? "" : row->stringField(0));
+    (*status)["CONNECTION_CHARSET"] = shcore::Value(row->isNullField(1) ? "" : row->stringField(1));
+    (*status)["SERVER_CHARSET"] = shcore::Value(row->isNullField(2) ? "" : row->stringField(2));
+    (*status)["SCHEMA_CHARSET"] = shcore::Value(row->isNullField(3) ? "" : row->stringField(3));
+    (*status)["SERVER_VERSION"] = shcore::Value(row->isNullField(4) ? "" : row->stringField(4));
 
-  // TODO: Review retrieval from charset_info, mysql connection
+    //(*status)["SERVER_STATS"] = shcore::Value(_conn->get_stats());
 
-  // TODO: Embedded library stuff
-  //(*status)["TCP_PORT"] = row->get_value(1);
-  //(*status)["UNIX_SOCKET"] = row->get_value(2);
-  //(*status)["PROTOCOL_COMPRESSED"] = row->get_value(3);
+    // TODO: Review retrieval from charset_info, mysql connection
 
-  // STATUS
+    // TODO: Embedded library stuff
+    //(*status)["TCP_PORT"] = row->get_value(1);
+    //(*status)["UNIX_SOCKET"] = row->get_value(2);
+    //(*status)["PROTOCOL_COMPRESSED"] = row->get_value(3);
 
-  // SAFE UPDATES
+    // STATUS
+
+    // SAFE UPDATES
+  }
+  catch(shcore::Exception &e)
+  {
+    (*status)["STATUS_ERROR"] = shcore::Value(e.format());
+  }
+
 
   return shcore::Value(status);
 }

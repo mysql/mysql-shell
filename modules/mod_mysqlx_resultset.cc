@@ -334,13 +334,18 @@ shcore::Value DocResult::fetch_one(const shcore::Argument_list &args) const
 
   args.ensure_count(0, get_function_name("fetchOne").c_str());
 
-  if (_result->columnMetadata() && _result->columnMetadata()->size())
+  try
   {
-    std::shared_ptr< ::mysqlx::Row> r(_result->next());
-    if (r.get())
-      return Value::parse(r->stringField(0));
+    if (_result->columnMetadata() && _result->columnMetadata()->size())
+    {
+      std::shared_ptr< ::mysqlx::Row> r(_result->next());
+      if (r.get())
+        ret_val = Value::parse(r->stringField(0));
+    }
   }
-  return shcore::Value();
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("fetchOne"));
+
+  return ret_val;
 }
 
 /**
@@ -676,73 +681,79 @@ Row RowResult::fetch_one(){};
 #endif
 shcore::Value RowResult::fetch_one(const shcore::Argument_list &args) const
 {
+  shcore::Value ret_val;
   args.ensure_count(0, get_function_name("fetchOne").c_str());
 
-  std::shared_ptr<std::vector< ::mysqlx::ColumnMetadata> > metadata = _result->columnMetadata();
-  if (metadata->size() > 0)
+  try
   {
-    std::shared_ptr< ::mysqlx::Row>row = _result->next();
-    if (row)
+    std::shared_ptr<std::vector< ::mysqlx::ColumnMetadata> > metadata = _result->columnMetadata();
+    if (metadata->size() > 0)
     {
-      mysh::Row *value_row = new mysh::Row();
-
-      for (int index = 0; index < int(metadata->size()); index++)
+      std::shared_ptr< ::mysqlx::Row>row = _result->next();
+      if (row)
       {
-        Value field_value;
+        mysh::Row *value_row = new mysh::Row();
 
-        if (row->isNullField(index))
-          field_value = Value::Null();
-        else
+        for (int index = 0; index < int(metadata->size()); index++)
         {
-          switch (metadata->at(index).type)
-          {
-            case ::mysqlx::SINT:
-              field_value = Value(row->sInt64Field(index));
-              break;
-            case ::mysqlx::UINT:
-              field_value = Value(row->uInt64Field(index));
-              break;
-            case ::mysqlx::DOUBLE:
-              field_value = Value(row->doubleField(index));
-              break;
-            case ::mysqlx::FLOAT:
-              field_value = Value(row->floatField(index));
-              break;
-            case ::mysqlx::BYTES:
-              field_value = Value(row->stringField(index));
-              break;
-            case ::mysqlx::DECIMAL:
-              field_value = Value(row->decimalField(index));
-              break;
-            case ::mysqlx::TIME:
-              field_value = Value(row->timeField(index).to_string());
-              break;
-            case ::mysqlx::DATETIME:
-            {
-              ::mysqlx::DateTime date = row->dateTimeField(index);
-              std::shared_ptr<shcore::Date> shell_date(new shcore::Date(date.year(), date.month(), date.day(), date.hour(), date.minutes(), date.seconds()));
-              field_value = Value(std::static_pointer_cast<Object_bridge>(shell_date));
-              break;
-            }
-            case ::mysqlx::ENUM:
-              field_value = Value(row->enumField(index));
-              break;
-            case ::mysqlx::BIT:
-              field_value = Value(row->bitField(index));
-              break;
-              //TODO: Fix the handling of SET
-            case ::mysqlx::SET:
-              //field_value = Value(row->setField(int(index)));
-              break;
-          }
-        }
-        value_row->add_item(metadata->at(index).name, field_value);
-      }
+          Value field_value;
 
-      return shcore::Value::wrap(value_row);
+          if (row->isNullField(index))
+            field_value = Value::Null();
+          else
+          {
+            switch (metadata->at(index).type)
+            {
+              case ::mysqlx::SINT:
+                field_value = Value(row->sInt64Field(index));
+                break;
+              case ::mysqlx::UINT:
+                field_value = Value(row->uInt64Field(index));
+                break;
+              case ::mysqlx::DOUBLE:
+                field_value = Value(row->doubleField(index));
+                break;
+              case ::mysqlx::FLOAT:
+                field_value = Value(row->floatField(index));
+                break;
+              case ::mysqlx::BYTES:
+                field_value = Value(row->stringField(index));
+                break;
+              case ::mysqlx::DECIMAL:
+                field_value = Value(row->decimalField(index));
+                break;
+              case ::mysqlx::TIME:
+                field_value = Value(row->timeField(index).to_string());
+                break;
+              case ::mysqlx::DATETIME:
+              {
+                ::mysqlx::DateTime date = row->dateTimeField(index);
+                std::shared_ptr<shcore::Date> shell_date(new shcore::Date(date.year(), date.month(), date.day(), date.hour(), date.minutes(), date.seconds()));
+                field_value = Value(std::static_pointer_cast<Object_bridge>(shell_date));
+                break;
+              }
+              case ::mysqlx::ENUM:
+                field_value = Value(row->enumField(index));
+                break;
+              case ::mysqlx::BIT:
+                field_value = Value(row->bitField(index));
+                break;
+                //TODO: Fix the handling of SET
+              case ::mysqlx::SET:
+                //field_value = Value(row->setField(int(index)));
+                break;
+            }
+          }
+          value_row->add_item(metadata->at(index).name, field_value);
+        }
+
+        ret_val = shcore::Value::wrap(value_row);
+      }
     }
   }
-  return shcore::Value();
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("fetchOne"));
+
+  return ret_val;
 }
 
 /**

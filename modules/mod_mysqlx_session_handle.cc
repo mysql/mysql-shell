@@ -50,7 +50,16 @@ void SessionHandle::open(const std::string &host, int port, const std::string &s
 
 std::shared_ptr< ::mysqlx::Result> SessionHandle::execute_sql(const std::string &sql) const
 {
-  return _session->executeSql(sql);
+  std::shared_ptr< ::mysqlx::Result> ret_val;
+
+  try
+  {
+    ret_val = _session->executeSql(sql);
+    ret_val->wait();
+  }
+  CATCH_AND_TRANSLATE();
+
+  return ret_val;
 }
 
 void SessionHandle::enable_protocol_trace(bool value)

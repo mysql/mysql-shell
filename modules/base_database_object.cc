@@ -149,14 +149,23 @@ Value DatabaseObject::get_member(const std::string &prop) const
     if (_session.expired())
       ret_val = Value::Null();
     else
-      ret_val = Value(std::static_pointer_cast<Object_bridge>(_session.lock()));
+    {
+      auto session = _session.lock();
+      if(session)
+        ret_val = Value(std::static_pointer_cast<Object_bridge>(session));
+    }
   }
   else if (prop == "schema")
   {
     if (_schema.expired())
       ret_val = Value::Null();
     else
-    ret_val = Value(std::static_pointer_cast<Object_bridge>(_schema.lock()));
+    {
+      auto schema = _schema.lock();
+
+      if(schema)
+        ret_val = Value(std::static_pointer_cast<Object_bridge>(_schema.lock()));
+    }
   }
   else
     ret_val = Cpp_object_bridge::get_member(prop);
@@ -172,8 +181,24 @@ bool DatabaseObject::exists_in_database(){}
 #endif
 shcore::Value DatabaseObject::existsInDatabase(const shcore::Argument_list &args)
 {
+  shcore::Value ret_val;
   std::string type(get_object_type());
-  return shcore::Value(!_session.lock()->db_object_exists(type, _name, _schema.expired() ? "" : _schema.lock()->get_member("name").as_string()).empty());
+
+  auto session = _session.lock();
+  auto schema = _schema.lock();
+
+  if (session)
+    ret_val = shcore::Value(!session->db_object_exists(type, _name, schema ? schema->get_member("name").as_string() : "").empty());
+  else
+  {
+    std::string name = _name;
+    if(schema)
+      name = schema->get_member("name").as_string() + "." + _name;
+
+    throw shcore::Exception::logic_error("Unable to verify existence of '" + name + "', no Session available" );
+  }
+
+  return ret_val;
 }
 
 void DatabaseObject::update_cache(const std::vector<std::string>& names, const std::function<shcore::Value(const std::string &name)>& generator, Cache target_cache, DatabaseObject* target)
