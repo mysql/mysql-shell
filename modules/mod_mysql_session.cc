@@ -286,7 +286,7 @@ Value ClassicSession::get_member(const std::string &prop) const
     }
     else
       ret_val = Value::Null();
-  }
+}
   else
     ret_val = ShellDevelopmentSession::get_member(prop);
 
@@ -407,7 +407,7 @@ shcore::Value ClassicSession::get_schemas(const shcore::Argument_list &args) con
 
       next_row = rset->fetch_one(args);
     }
-  }
+}
 
   return shcore::Value(schemas);
 }
@@ -433,7 +433,7 @@ shcore::Value ClassicSession::set_current_schema(const shcore::Argument_list &ar
     query.push_back(Value(sqlstring("use !", 0) << name));
 
     Value res = run_sql(query);
-  }
+}
   else
     throw Exception::runtime_error("ClassicSession not connected");
 
@@ -708,7 +708,7 @@ shcore::Value ClassicSession::get_status(const shcore::Argument_list &args)
 
     // SAFE UPDATES
   }
-  catch(shcore::Exception& e)
+  catch (shcore::Exception& e)
   {
     (*status)["STATUS_ERROR"] = shcore::Value(e.format());
   }

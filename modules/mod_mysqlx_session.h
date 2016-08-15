@@ -86,6 +86,7 @@ namespace mysh
       Result dropTable(String schema, String name);
       Result dropCollection(String schema, String name);
       Result dropView(String schema, String name);
+      Bool isOpen();
 #elif DOXYGEN_PY
       str uri; //!< Same as get_uri()
       Schema default_schema; //!< Same as get_default_schema()
@@ -104,6 +105,7 @@ namespace mysh
       Result drop_table(str schema, str name);
       Result drop_collection(str schema, str name);
       Result drop_view(str schema, str name);
+      Bool is_open();
 #endif
 
       BaseSession();

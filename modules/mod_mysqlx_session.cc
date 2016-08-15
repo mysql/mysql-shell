@@ -76,6 +76,14 @@ BaseSession::BaseSession()
   init();
 }
 
+/**
+* \brief Verifies if the session is still open.
+*/
+#if DOXYGEN_JS
+Bool BaseSession::isOpen(){}
+#elif DOXYGEN_PY
+bool BaseSession::is_open(){}
+#endif
 bool BaseSession::is_connected() const
 {
   return _session.is_connected();
@@ -774,11 +782,10 @@ shcore::Value BaseSession::get_status(const shcore::Argument_list &args)
 
     // SAFE UPDATES
   }
-  catch(shcore::Exception &e)
+  catch (shcore::Exception &e)
   {
     (*status)["STATUS_ERROR"] = shcore::Value(e.format());
   }
-
 
   return shcore::Value(status);
 }

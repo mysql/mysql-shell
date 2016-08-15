@@ -86,7 +86,6 @@ namespace mysh
       virtual shcore::Value drop_schema(const shcore::Argument_list &args);
       virtual shcore::Value drop_schema_object(const shcore::Argument_list &args, const std::string& type);
 
-      virtual bool is_connected() const { return _conn ? true : false; }
       virtual shcore::Value get_status(const shcore::Argument_list &args);
 
       virtual shcore::Value get_schema(const shcore::Argument_list &args) const;
@@ -144,6 +143,16 @@ namespace mysh
       ClassicResult drop_table(str schema, str name);
       ClassicResult drop_view(str schema, str name);
 #endif
+
+      /**
+      * \brief Verifies if the session is still open.
+      */
+#if DOXYGEN_JS
+      Bool isOpen(){}
+#elif DOXYGEN_PY
+      bool is_open(){}
+#endif
+      virtual bool is_connected() const { return _conn ? true : false; }
 
     protected:
       virtual int get_default_port() { return 3306; };
