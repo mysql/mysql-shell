@@ -4985,15 +4985,17 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
-  @unittest.skip("Format displayed incorrectly related to bug https://jira.oraclecorp.com/jira/browse/MYS-538")
+  #@unittest.skip("Format displayed incorrectly related to bug https://jira.oraclecorp.com/jira/browse/MYS-538")
   def test_4_9_04_2(self):
       '''[4.9.002] remove a Stored Session: using saveconn '''
       results = ''
       init_command = [MYSQL_SHELL, '--interactive=full']
 
       x_cmds = [("\\rmconn classic_session\n","mysql-js>"),
-                ("\\saveconn classic_session "+LOCALHOST.user+":"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+"\sakila\n","mysql-js>"),
-                ("\\lsc\n","\"classic_session\": {" + os.linesep + ""),
+                ("\\rmconn classic_session1\n", "mysql-js>"),
+                ("\\saveconn classic_session "+LOCALHOST.user+":"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+"/sakila\n","mysql-js>"),
+                ("\\saveconn classic_session1 "+LOCALHOST.user+":"+LOCALHOST.password+"@"+LOCALHOST.host+":"+LOCALHOST.port+"/sakila\n","mysql-js>"),
+                ("\\lsc\n","classic_session : "+LOCALHOST.user+"@"+LOCALHOST.host+":"+LOCALHOST.port+"/sakila" + os.linesep + "classic_session1"),
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
