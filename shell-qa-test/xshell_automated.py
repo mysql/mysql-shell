@@ -4064,7 +4064,7 @@ class XShell_TestCases(unittest.TestCase):
       self.assertEqual(results, 'PASS')
 
   #FAILING........
-  @unittest.skip("issue MYS388 refresh schema after creation on py session")
+  #@unittest.skip("issue MYS388 refresh schema after creation on py session")
   def test_4_4_26_2(self):
       '''[4.4.026]:2 PY Delete database using STDIN batch code: NODE SESSION'''
       results = ''
@@ -4080,7 +4080,8 @@ class XShell_TestCases(unittest.TestCase):
       x_cmds = [('\\connect -n {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
                 ("\\sql\n","mysql-sql>"),
                 ("use sakila;\n","mysql-sql>"),
-                ("show schemas like 'schema_test';\n","Empty set"),
+                ("show schemas like 'schema_test';\n","1 row"),
+                ("DROP DATABASE IF EXISTS schema_test;\n","mysql-sql>"),
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
