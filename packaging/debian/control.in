@@ -1,4 +1,4 @@
-Source: mysql-shell
+Source: mysql-shell@PRODUCT_SUFFIX@
 Section: database
 Priority: optional
 Maintainer: Oracle MySQL Product Engineering Team <mysql-build@oss.oracle.com>
@@ -9,7 +9,7 @@ Homepage: http://dev.mysql.com/downloads/mysql-shell
 #Vcs-Git: git://git.debian.org/collab-maint/mysql-shell.git
 #Vcs-Browser: http://git.debian.org/?p=collab-maint/mysql-shell.git;a=summary
 
-Package: mysql-shell
+Package: mysql-shell@PRODUCT_SUFFIX@
 Section: database
 Architecture: any
 Multi-Arch: same
