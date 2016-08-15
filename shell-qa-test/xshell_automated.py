@@ -4058,7 +4058,7 @@ class XShell_TestCases(unittest.TestCase):
       x_cmds = [('\\connect -n {0}:{1}@{2}\n'.format(LOCALHOST.user, LOCALHOST.password, LOCALHOST.host), "mysql-js>"),
                 ("\\sql\n","mysql-sql>"),
                 ("use sakila;\n","mysql-sql>"),
-                ("show schemas like 'schema_test';\n","Empty set"),
+                ("show schemas like 'schema_test';\n","1 row"),
                 ]
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
