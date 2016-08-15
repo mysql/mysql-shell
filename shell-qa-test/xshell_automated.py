@@ -4042,7 +4042,7 @@ class XShell_TestCases(unittest.TestCase):
 
 
   #FAILING........
-  @unittest.skip("issue MYS388 refresh schema after creation on py session")
+  #@unittest.skip("issue MYS388 refresh schema after creation on py session")
   def test_4_4_26_1(self):
       '''[4.4.026]:1 PY Delete database using STDIN batch code: CLASSIC SESSION'''
       results = ''
