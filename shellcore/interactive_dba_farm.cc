@@ -28,13 +28,13 @@
 using namespace std::placeholders;
 using namespace shcore;
 
-void Interactive_dba_farm::init()
+void Interactive_dba_cluster::init()
 {
-  add_method("addSeedInstance", std::bind(&Interactive_dba_farm::add_seed_instance, this, _1), "data");
-  add_method("addInstance", std::bind(&Interactive_dba_farm::add_instance, this, _1), "data");
+  add_method("addSeedInstance", std::bind(&Interactive_dba_cluster::add_seed_instance, this, _1), "data");
+  add_method("addInstance", std::bind(&Interactive_dba_cluster::add_instance, this, _1), "data");
 }
 
-shcore::Value Interactive_dba_farm::add_seed_instance(const shcore::Argument_list &args)
+shcore::Value Interactive_dba_cluster::add_seed_instance(const shcore::Argument_list &args)
 {
   shcore::Value ret_val;
   std::string function;
@@ -56,13 +56,13 @@ shcore::Value Interactive_dba_farm::add_seed_instance(const shcore::Argument_lis
   if (!function.empty())
   {
     shcore::Value::Map_type_ref options;
-    std::string farm_admin_password;
+    std::string cluster_admin_password;
 
     if (resolve_instance_options(function, args, options))
     {
       shcore::Argument_list new_args;
-      farm_admin_password = _shell_core.get_global("dba").as_object<Global_dba>()->get_farm_admin_password();
-      new_args.push_back(shcore::Value(farm_admin_password));
+      cluster_admin_password = _shell_core.get_global("dba").as_object<Global_dba>()->get_cluster_admin_password();
+      new_args.push_back(shcore::Value(cluster_admin_password));
       new_args.push_back(shcore::Value(options));
       ret_val = _target->call(function, new_args);
     }
@@ -71,7 +71,7 @@ shcore::Value Interactive_dba_farm::add_seed_instance(const shcore::Argument_lis
   return ret_val;
 }
 
-shcore::Value Interactive_dba_farm::add_instance(const shcore::Argument_list &args)
+shcore::Value Interactive_dba_cluster::add_instance(const shcore::Argument_list &args)
 {
   shcore::Value ret_val;
   std::string function;
@@ -93,13 +93,13 @@ shcore::Value Interactive_dba_farm::add_instance(const shcore::Argument_list &ar
   if (!function.empty())
   {
     shcore::Value::Map_type_ref options;
-    std::string farm_admin_password;
+    std::string cluster_admin_password;
 
     if (resolve_instance_options(function, args, options))
     {
       shcore::Argument_list new_args;
-      farm_admin_password = _shell_core.get_global("dba").as_object<Global_dba>()->get_farm_admin_password();
-      new_args.push_back(shcore::Value(farm_admin_password));
+      cluster_admin_password = _shell_core.get_global("dba").as_object<Global_dba>()->get_cluster_admin_password();
+      new_args.push_back(shcore::Value(cluster_admin_password));
       new_args.push_back(shcore::Value(options));
       ret_val = _target->call(function, new_args);
     }
@@ -108,7 +108,7 @@ shcore::Value Interactive_dba_farm::add_instance(const shcore::Argument_list &ar
   return ret_val;
 }
 
-int Interactive_dba_farm::identify_connection_options(const std::string &function, const shcore::Argument_list &args) const
+int Interactive_dba_cluster::identify_connection_options(const std::string &function, const shcore::Argument_list &args) const
 {
   int options_index = 0;
 
@@ -135,7 +135,7 @@ int Interactive_dba_farm::identify_connection_options(const std::string &functio
   return options_index;
 }
 
-bool Interactive_dba_farm::resolve_instance_options(const std::string& function, const shcore::Argument_list &args, shcore::Value::Map_type_ref &options) const
+bool Interactive_dba_cluster::resolve_instance_options(const std::string& function, const shcore::Argument_list &args, shcore::Value::Map_type_ref &options) const
 {
   std::string answer;
   args.ensure_count(1, 3, get_function_name(function).c_str());
@@ -143,7 +143,7 @@ bool Interactive_dba_farm::resolve_instance_options(const std::string& function,
   bool proceed = true;
 
   // The signature of the addInstance and addSeedInstance functions is as follows
-  // addInstance([farmPwd,] connOptions[, rootPwd])
+  // addInstance([clusterPwd,] connOptions[, rootPwd])
   //
   // connOptions can be either a map or a URI
   // When URI is used with one of hte passwords, call is ambiguos so the user needs to
@@ -240,24 +240,24 @@ bool Interactive_dba_farm::resolve_instance_options(const std::string& function,
     }
   }
 
-  // Verify the farmAdminPassword
-  std::string farm_password;
+  // Verify the clusterAdminPassword
+  std::string cluster_password;
 
   if (options_index == 1)
-    farm_password = args.string_at(0);
+    cluster_password = args.string_at(0);
 
-  if (farm_password.empty())
-    farm_password = _shell_core.get_global("dba").as_object<Global_dba>()->get_farm_admin_password();
+  if (cluster_password.empty())
+    cluster_password = _shell_core.get_global("dba").as_object<Global_dba>()->get_cluster_admin_password();
 
   bool prompt_password = true;
-  while (prompt_password && farm_password.empty())
+  while (prompt_password && cluster_password.empty())
   {
-    prompt_password = password("Please enter Farm administrative MASTER password: ", farm_password);
+    prompt_password = password("Please enter Cluster administrative MASTER password: ", cluster_password);
     if (prompt_password)
     {
-      if (!farm_password.empty())
+      if (!cluster_password.empty())
       // update the cache
-        _shell_core.get_global("dba").as_object<Global_dba>()->set_farm_admin_password(farm_password);
+      _shell_core.get_global("dba").as_object<Global_dba>()->set_cluster_admin_password(cluster_password);
     }
   }
 

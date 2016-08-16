@@ -33,23 +33,23 @@ using namespace mysh;
 using namespace mysh::mysqlx;
 using namespace shcore;
 
-Farm::Farm(const std::string &name, std::shared_ptr<MetadataStorage> metadata_storage) :
+Cluster::Cluster(const std::string &name, std::shared_ptr<MetadataStorage> metadata_storage) :
 _name(name), _metadata_storage(metadata_storage), _json_mode(JSON_STANDARD_OUTPUT)
 {
   init();
 }
 
-Farm::~Farm()
+Cluster::~Cluster()
 {
 }
 
-std::string &Farm::append_descr(std::string &s_out, int UNUSED(indent), int UNUSED(quote_strings)) const
+std::string &Cluster::append_descr(std::string &s_out, int UNUSED(indent), int UNUSED(quote_strings)) const
 {
   s_out.append("<" + class_name() + ":" + _name + ">");
   return s_out;
 }
 
-bool Farm::operator == (const Object_bridge &other) const
+bool Cluster::operator == (const Object_bridge &other) const
 {
   return class_name() == other.class_name() && this == &other;
 }
@@ -63,30 +63,30 @@ bool Farm::operator == (const Object_bridge &other) const
  * The content of the returned value depends on the property being requested.
  * The next list shows the valid properties as well as the returned value for each of them:
  *
- * \li name: returns a String object with the name of this Farm object.
- * \li adminType: returns the admin Type for this Farm object.
+ * \li name: returns a String object with the name of this Cluster object.
+ * \li adminType: returns the admin Type for this Cluster object.
  */
 #else
 /**
-* Returns the name of this Farm object.
+* Returns the name of this Cluster object.
 * \return the name as an String object.
 */
 #if DOXYGEN_JS
-String Farm::getName(){}
+String Cluster::getName(){}
 #elif DOXYGEN_PY
-str Farm::get_name(){}
+str Cluster::get_name(){}
 #endif
 /**
-* Returns the admin type of this Farm object.
+* Returns the admin type of this Cluster object.
 * \return the admin type as an String object.
 */
 #if DOXYGEN_JS
-Farm Farm::getAdminType(){}
+Cluster Cluster::getAdminType(){}
 #elif DOXYGEN_PY
-Farm Farm::get_admin_type(){}
+Cluster Cluster::get_admin_type(){}
 #endif
 #endif
-shcore::Value Farm::get_member(const std::string &prop) const
+shcore::Value Cluster::get_member(const std::string &prop) const
 {
   shcore::Value ret_val;
   if (prop == "name")
@@ -99,49 +99,49 @@ shcore::Value Farm::get_member(const std::string &prop) const
   return ret_val;
 }
 
-void Farm::init()
+void Cluster::init()
 {
   add_property("name", "getName");
   add_property("adminType", "getAdminType");
-  add_method("addSeedInstance", std::bind(&Farm::add_seed_instance, this, _1), "data");
-  add_method("addInstance", std::bind(&Farm::add_instance, this, _1), "data");
-  add_method("removeInstance", std::bind(&Farm::remove_instance, this, _1), "data");
-  add_method("getReplicaSet", std::bind(&Farm::get_replicaset, this, _1), "name", shcore::String, NULL);
-  add_method("describe", std::bind(&Farm::describe, this, _1), NULL);
-  add_method("status", std::bind(&Farm::status, this, _1), NULL);
+  add_method("addSeedInstance", std::bind(&Cluster::add_seed_instance, this, _1), "data");
+  add_method("addInstance", std::bind(&Cluster::add_instance, this, _1), "data");
+  add_method("removeInstance", std::bind(&Cluster::remove_instance, this, _1), "data");
+  add_method("getReplicaSet", std::bind(&Cluster::get_replicaset, this, _1), "name", shcore::String, NULL);
+  add_method("describe", std::bind(&Cluster::describe, this, _1), NULL);
+  add_method("status", std::bind(&Cluster::status, this, _1), NULL);
 }
 
 /**
-* Retrieves the name of the Farm object
-* \return The Farm name
+* Retrieves the name of the Cluster object
+* \return The Cluster name
 */
 #if DOXYGEN_JS
-String Farm::getName(){}
+String Cluster::getName(){}
 #elif DOXYGEN_PY
-str Farm::get_name(){}
+str Cluster::get_name(){}
 #endif
 
 /**
-* Retrieves the Administration type of the Farm object
+* Retrieves the Administration type of the Cluster object
 * \return The Administration type
 */
 #if DOXYGEN_JS
-String Farm::getAdminType(){}
+String Cluster::getAdminType(){}
 #elif DOXYGEN_PY
-str Farm::get_admin_type(){}
+str Cluster::get_admin_type(){}
 #endif
 
 #if DOXYGEN_CPP
 /**
- * Use this function to add a Seed Instance to the Farm object
- * \param args : A list of values to be used to add a Seed Instance to the Farm.
+ * Use this function to add a Seed Instance to the Cluster object
+ * \param args : A list of values to be used to add a Seed Instance to the Cluster.
  *
  * This function creates the Default ReplicaSet implicitly and adds the Instance to it
  * This function returns an empty Value.
  */
 #else
 /**
-* Adds a Seed Instance to the Farm
+* Adds a Seed Instance to the Cluster
 * \param conn The Connection String or URI of the Instance to be added
 */
 #if DOXYGEN_JS
@@ -150,7 +150,7 @@ Undefined addSeedInstance(String conn){}
 None add_seed_instance(str conn){}
 #endif
 /**
-* Adds a Seed Instance to the Farm
+* Adds a Seed Instance to the Cluster
 * \param doc The Document representing the Instance to be added
 */
 #if DOXYGEN_JS
@@ -160,7 +160,7 @@ None add_seed_instance(Document doc){}
 #endif
 #endif
 
-shcore::Value Farm::add_seed_instance(const shcore::Argument_list &args)
+shcore::Value Cluster::add_seed_instance(const shcore::Argument_list &args)
 {
   shcore::Value ret_val;
 
@@ -181,14 +181,14 @@ shcore::Value Farm::add_seed_instance(const shcore::Argument_list &args)
     }
     else
     {
-      // Create the Default ReplicaSet and assign it to the Farm's default_replica_set var
+      // Create the Default ReplicaSet and assign it to the Cluster's default_replica_set var
       _default_replica_set.reset(new ReplicaSet("default", _metadata_storage));
 
       _default_replica_set->set_replication_user(default_replication_user);
 
       // If we reached here without errors we can update the Metadata
 
-      // Update the Farm table with the Default ReplicaSet on the Metadata
+      // Update the Cluster table with the Default ReplicaSet on the Metadata
       _metadata_storage->insert_default_replica_set(shared_from_this());
     }
 
@@ -203,15 +203,15 @@ shcore::Value Farm::add_seed_instance(const shcore::Argument_list &args)
 
 #if DOXYGEN_CPP
 /**
- * Use this function to add a Instance to the Farm object
- * \param args : A list of values to be used to add a Instance to the Farm.
+ * Use this function to add a Instance to the Cluster object
+ * \param args : A list of values to be used to add a Instance to the Cluster.
  *
  * This function calls ReplicaSet::add_instance(args).
  * This function returns an empty Value.
  */
 #else
 /**
-* Adds a Instance to the Farm
+* Adds a Instance to the Cluster
 * \param conn The Connection String or URI of the Instance to be added
 */
 #if DOXYGEN_JS
@@ -220,7 +220,7 @@ Undefined addInstance(String conn){}
 None add_instance(str conn){}
 #endif
 /**
-* Adds a Instance to the Farm
+* Adds a Instance to the Cluster
 * \param doc The Document representing the Instance to be added
 */
 #if DOXYGEN_JS
@@ -230,7 +230,7 @@ None add_instance(Document doc){}
 #endif
 #endif
 
-shcore::Value Farm::add_instance(const shcore::Argument_list &args)
+shcore::Value Cluster::add_instance(const shcore::Argument_list &args)
 {
   shcore::Value ret_val;
 
@@ -254,15 +254,15 @@ shcore::Value Farm::add_instance(const shcore::Argument_list &args)
 
 #if DOXYGEN_CPP
 /**
- * Use this function to remove a Instance from the Farm object
- * \param args : A list of values to be used to remove a Instance to the Farm.
+ * Use this function to remove a Instance from the Cluster object
+ * \param args : A list of values to be used to remove a Instance to the Cluster.
  *
  * This function calls ReplicaSet::remove_instance(args).
  * This function returns an empty Value.
  */
 #else
 /**
-* Removes a Instance from the Farm
+* Removes a Instance from the Cluster
 * \param name The name of the Instance to be removed
 */
 #if DOXYGEN_JS
@@ -271,7 +271,7 @@ Undefined removeInstance(String name){}
 None remove_instance(str name){}
 #endif
 /**
-* Removes a Instance from the Farm
+* Removes a Instance from the Cluster
 * \param doc The Document representing the Instance to be removed
 */
 #if DOXYGEN_JS
@@ -281,7 +281,7 @@ None remove_instance(Document doc){}
 #endif
 #endif
 
-shcore::Value Farm::remove_instance(const shcore::Argument_list &args)
+shcore::Value Cluster::remove_instance(const shcore::Argument_list &args)
 {
   args.ensure_count(1, get_function_name("removeInstance").c_str());
 
@@ -300,12 +300,12 @@ shcore::Value Farm::remove_instance(const shcore::Argument_list &args)
 * Verifies if the requested Collection exist on the metadata schema, if exists, returns the corresponding ReplicaSet object.
 */
 #if DOXYGEN_JS
-ReplicaSet Farm::getReplicaSet(String name){}
+ReplicaSet Cluster::getReplicaSet(String name){}
 #elif DOXYGEN_PY
-ReplicaSet Farm::get_replica_set(str name){}
+ReplicaSet Cluster::get_replica_set(str name){}
 #endif
 
-shcore::Value Farm::get_replicaset(const shcore::Argument_list &args)
+shcore::Value Cluster::get_replicaset(const shcore::Argument_list &args)
 {
   shcore::Value ret_val;
 
@@ -335,12 +335,12 @@ shcore::Value Farm::get_replicaset(const shcore::Argument_list &args)
   return ret_val;
 }
 
-void Farm::append_json(shcore::JSON_dumper& dumper) const
+void Cluster::append_json(shcore::JSON_dumper& dumper) const
 {
   if (_json_mode)
   {
     dumper.start_object();
-    dumper.append_string("farmName", _name);
+    dumper.append_string("clusterName", _name);
 
     if (!_default_replica_set)
       dumper.append_null("defaultReplicaSet");
@@ -361,14 +361,14 @@ void Farm::append_json(shcore::JSON_dumper& dumper) const
 }
 
 /**
-* Returns a formatted JSON describing the structure of the Farm
+* Returns a formatted JSON describing the structure of the Cluster
 */
 #if DOXYGEN_JS
-String Farm::describe(){}
+String Cluster::describe(){}
 #elif DOXYGEN_PY
-str Farm::describe(){}
+str Cluster::describe(){}
 #endif
-shcore::Value Farm::describe(const shcore::Argument_list &args)
+shcore::Value Cluster::describe(const shcore::Argument_list &args)
 {
   shcore::Value ret_val;
   _json_mode = JSON_TOPOLOGY_OUTPUT;
@@ -380,14 +380,14 @@ shcore::Value Farm::describe(const shcore::Argument_list &args)
 }
 
 /**
-* Returns a formatted JSON describing the status of the Farm
+* Returns a formatted JSON describing the status of the Cluster
 */
 #if DOXYGEN_JS
-String Farm::status(){}
+String Cluster::status(){}
 #elif DOXYGEN_PY
-str Farm::status(){}
+str Cluster::status(){}
 #endif
-shcore::Value Farm::status(const shcore::Argument_list &args)
+shcore::Value Cluster::status(const shcore::Argument_list &args)
 {
   shcore::Value ret_val;
   _json_mode = JSON_STATUS_OUTPUT;

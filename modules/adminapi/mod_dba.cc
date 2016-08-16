@@ -55,17 +55,17 @@ bool Dba::operator == (const Object_bridge &other) const
 
 void Dba::init()
 {
-  // In case we are going to keep a cache of Farms
-  // If not, _farms can be removed
-  _farms.reset(new shcore::Value::Map_type);
+  // In case we are going to keep a cache of Clusters
+  // If not, _clusters can be removed
+  _clusters.reset(new shcore::Value::Map_type);
 
-  add_property("defaultFarm", "getDefaultFarm");
+  add_property("defaultCluster", "getDefaultCluster");
 
   // Pure functions
   add_method("resetSession", std::bind(&Dba::reset_session, this, _1), "session", shcore::Object, NULL);
-  add_method("createFarm", std::bind(&Dba::create_farm, this, _1), "farmName", shcore::String, NULL);
-  add_method("dropFarm", std::bind(&Dba::drop_farm, this, _1), "farmName", shcore::String, NULL);
-  add_method("getFarm", std::bind(&Dba::get_farm, this, _1), "farmName", shcore::String, NULL);
+  add_method("createCluster", std::bind(&Dba::create_cluster, this, _1), "clusterName", shcore::String, NULL);
+  add_method("dropCluster", std::bind(&Dba::drop_cluster, this, _1), "clusterName", shcore::String, NULL);
+  add_method("getCluster", std::bind(&Dba::get_cluster, this, _1), "clusterName", shcore::String, NULL);
   add_method("dropMetadataSchema", std::bind(&Dba::drop_metadata_schema, this, _1), "data", shcore::Map, NULL);
   add_method("validateInstance", std::bind(&Dba::validate_instance, this, _1), "data", shcore::Map, NULL);
   add_method("deployLocalInstance", std::bind(&Dba::deploy_local_instance, this, _1), "data", shcore::Map, NULL);
@@ -140,7 +140,7 @@ std::shared_ptr<ShellDevelopmentSession> Dba::get_active_session()
  * The next list shows the valid properties as well as the returned value for each of them:
  *
  * \li uri: returns a String object with a string representing the connection data for this session.
- * \li defaultFarm: returns the default Farm object.
+ * \li defaultCluster: returns the default Cluster object.
  */
 #else
 /**
@@ -153,13 +153,13 @@ String Dba::getUri(){}
 str Dba::get_uri(){}
 #endif
 /**
-* Retrieves the Farm configured as default on this Metadata instance.
-* \return A Farm object or Null
+* Retrieves the Cluster configured as default on this Metadata instance.
+* \return A Cluster object or Null
 */
 #if DOXYGEN_JS
-Farm Dba::getDefaultFarm(){}
+Cluster Dba::getDefaultCluster(){}
 #elif DOXYGEN_PY
-Farm Dba::get_default_farm(){}
+Cluster Dba::get_default_cluster(){}
 #endif
 #endif
 
@@ -172,15 +172,15 @@ Value Dba::get_member(const std::string &prop) const
   // retrieve it since it may throw invalid member otherwise
   // If not on the parent classes and not here then we can safely assume
   // it is a schema and attempt loading it as such
-  if (prop == "defaultFarm")
+  if (prop == "defaultCluster")
   {
-    if (!_default_farm)
-      _default_farm = _metadata_storage->get_default_farm();
+    if (!_default_cluster)
+      _default_cluster = _metadata_storage->get_default_cluster();
 
-    if (_default_farm)
-      ret_val = shcore::Value(std::dynamic_pointer_cast<Object_bridge>(_default_farm));
+    if (_default_cluster)
+      ret_val = shcore::Value(std::dynamic_pointer_cast<Object_bridge>(_default_cluster));
     else
-      throw Exception::logic_error("There is no default Farm.");
+      throw Exception::logic_error("There is no default Cluster.");
   }
   else if (Cpp_object_bridge::has_member(prop))
     ret_val = Cpp_object_bridge::get_member(prop);
@@ -189,80 +189,80 @@ Value Dba::get_member(const std::string &prop) const
 }
 
 /**
-* Retrieves a Farm object from the current session through it's name.
-* \param name The name of the Farm object to be retrieved.
-* \return The Farm object with the given name.
-* \sa Farm
+* Retrieves a Cluster object from the current session through it's name.
+* \param name The name of the Cluster object to be retrieved.
+* \return The Cluster object with the given name.
+* \sa Cluster
 */
 #if DOXYGEN_JS
-Farm Dba::getFarm(String name){}
+Cluster Dba::getCluster(String name){}
 #elif DOXYGEN_PY
-Farm Dba::get_farm(str name){}
+Cluster Dba::get_cluster(str name){}
 #endif
 
-shcore::Value Dba::get_farm(const shcore::Argument_list &args) const
+shcore::Value Dba::get_cluster(const shcore::Argument_list &args) const
 {
   Value ret_val;
-  args.ensure_count(1, get_function_name("getFarm").c_str());
+  args.ensure_count(1, get_function_name("getCluster").c_str());
 
   try
   {
-    std::string farm_name = args.string_at(0);
+    std::string cluster_name = args.string_at(0);
 
-    if (farm_name.empty())
-      throw Exception::argument_error("The Farm name cannot be empty.");
+    if (cluster_name.empty())
+      throw Exception::argument_error("The Cluster name cannot be empty.");
 
     //if (!_session.is_connected())
     //  throw Exception::metadata_error("Not connected to the Metadata Storage.");
 
-    if (!_farms->has_key(farm_name))
-      (*_farms)[farm_name] = shcore::Value(std::dynamic_pointer_cast<shcore::Object_bridge>(_metadata_storage->get_farm(farm_name)));
+    if (!_clusters->has_key(cluster_name))
+      (*_clusters)[cluster_name] = shcore::Value(std::dynamic_pointer_cast<shcore::Object_bridge>(_metadata_storage->get_cluster(cluster_name)));
 
-    ret_val = (*_farms)[farm_name];
+    ret_val = (*_clusters)[cluster_name];
   }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("getFarm"))
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("getCluster"))
 
   return ret_val;
 }
 
 /**
- * Creates a Farm object.
- * \param name The name of the Farm object to be created
- * \param farmAdminPassword The Farm Administration password
+ * Creates a Cluster object.
+ * \param name The name of the Cluster object to be created
+ * \param clusterAdminPassword The Cluster Administration password
  * \param options Options
- * \return The created Farm object.
- * \sa Farm
+ * \return The created Cluster object.
+ * \sa Cluster
  */
 #if DOXYGEN_JS
-Farm Dba::createFarm(String name, String farmAdminPassword, JSON options){}
+Cluster Dba::createCluster(String name, String clusterAdminPassword, JSON options){}
 #elif DOXYGEN_PY
-Farm Dba::create_farm(str name, str farm_admin_password, JSON options){}
+Cluster Dba::create_cluster(str name, str cluster_admin_password, JSON options){}
 #endif
-shcore::Value Dba::create_farm(const shcore::Argument_list &args)
+shcore::Value Dba::create_cluster(const shcore::Argument_list &args)
 {
   Value ret_val;
-  args.ensure_count(2, 3, get_function_name("createFarm").c_str());
+  args.ensure_count(2, 3, get_function_name("createCluster").c_str());
 
   // Available options
-  std::string farm_admin_type = "local"; // Default is local
+  std::string cluster_admin_type = "local"; // Default is local
   std::string instance_admin_user = "instance_admin"; // Default is instance_admin
-  std::string farm_reader_user = "farm_reader"; // Default is farm_reader
+  std::string cluster_reader_user = "farm_reader"; // Default is farm_reader
   std::string replication_user = "replication_user"; // Default is replication_user
 
   std::string instance_admin_user_password;
 
   try
   {
-    std::string farm_name = args.string_at(0);
+    std::string cluster_name = args.string_at(0);
 
-    if (farm_name.empty())
-      throw Exception::argument_error("The Farm name cannot be empty.");
+    if (cluster_name.empty())
+      throw Exception::argument_error("The Cluster name cannot be empty.");
 
-    std::string farm_password = args.string_at(1);
+    std::string cluster_password = args.string_at(1);
 
     // Check if we have a valid password
-    if (farm_password.empty())
-      throw Exception::argument_error("The Farm password cannot be empty.");
+    if (cluster_password.empty())
+      throw Exception::argument_error("The Cluster password cannot be empty.");
 
     if (args.size() > 2)
     {
@@ -270,7 +270,7 @@ shcore::Value Dba::create_farm(const shcore::Argument_list &args)
       shcore::Value::Map_type_ref options = args.map_at(2);
 
       // Verify if the options are valid
-      std::vector<std::string> valid_options = { "farmAdminType", "instanceAdminUser", "instanceAdminPassword" };
+      std::vector<std::string> valid_options = { "clusterAdminType", "instanceAdminUser", "instanceAdminPassword" };
 
       for (shcore::Value::Map_type::iterator i = options->begin(); i != options->end(); ++i)
       {
@@ -278,17 +278,17 @@ shcore::Value Dba::create_farm(const shcore::Argument_list &args)
           throw shcore::Exception::argument_error("Unexpected argument " + i->first + " on connection data.");
       }
 
-      if (options->has_key("farmAdminType"))
-        farm_admin_type = (*options)["farmAdminType"].as_string();
+      if (options->has_key("clusterAdminType"))
+        cluster_admin_type = (*options)["clusterAdminType"].as_string();
 
-      std::cout << "farm admin type: " << farm_admin_type << "\n";
+      std::cout << "cluster admin type: " << cluster_admin_type << "\n";
 
-      if (farm_admin_type != "local" ||
-          farm_admin_type != "guided" ||
-          farm_admin_type != "manual" ||
-          farm_admin_type != "ssh")
+      if (cluster_admin_type != "local" ||
+          cluster_admin_type != "guided" ||
+          cluster_admin_type != "manual" ||
+          cluster_admin_type != "ssh")
       {
-        throw shcore::Exception::argument_error("Farm Administration Type invalid. Valid types are: 'local', 'guided', 'manual', 'ssh'");
+        throw shcore::Exception::argument_error("Cluster Administration Type invalid. Valid types are: 'local', 'guided', 'manual', 'ssh'");
       }
 
       if (options->has_key("instanceAdminUser"))
@@ -308,73 +308,73 @@ shcore::Value Dba::create_farm(const shcore::Argument_list &args)
     MetadataStorage::Transaction tx(_metadata_storage);
 
     /*
-     * For V1.0 we only support one single Farm. That one shall be the default Farm.
-     * We must check if there's already a Default Farm assigned, and if so thrown an exception.
-     * And we must check if there's already one Farm on the MD and if so assign it to Default
+     * For V1.0 we only support one single Cluster. That one shall be the default Cluster.
+     * We must check if there's already a Default Cluster assigned, and if so thrown an exception.
+     * And we must check if there's already one Cluster on the MD and if so assign it to Default
      */
-    bool has_default_farm = _metadata_storage->has_default_farm();
+    bool has_default_cluster = _metadata_storage->has_default_cluster();
 
-    if (_default_farm || has_default_farm)
-      throw Exception::argument_error("Farm is alredy initialized. Use getFarm() to access it.");
+    if (_default_cluster || has_default_cluster)
+      throw Exception::argument_error("Cluster is alredy initialized. Use getCluster() to access it.");
 
     // First we need to create the Metadata Schema, or update it if already exists
     _metadata_storage->create_metadata_schema();
 
-    _default_farm.reset(new Farm(farm_name, _metadata_storage));
+    _default_cluster.reset(new Cluster(cluster_name, _metadata_storage));
 
     // Check if we have the instanceAdminUser password or we need to generate it
     if (instance_admin_user_password.empty())
       instance_admin_user_password = generate_password(PASSWORD_LENGHT);
 
     // Update the properties
-    _default_farm->set_admin_type(farm_admin_type);
-    _default_farm->set_password(farm_password);
-    _default_farm->set_instance_admin_user(instance_admin_user);
-    _default_farm->set_instance_admin_user_password(instance_admin_user_password);
-    _default_farm->set_farm_reader_user(farm_reader_user);
-    _default_farm->set_farm_reader_user_password(generate_password(PASSWORD_LENGHT));
-    _default_farm->set_replication_user(replication_user);
-    _default_farm->set_replication_user_password(generate_password(PASSWORD_LENGHT));
+    _default_cluster->set_admin_type(cluster_admin_type);
+    _default_cluster->set_password(cluster_password);
+    _default_cluster->set_instance_admin_user(instance_admin_user);
+    _default_cluster->set_instance_admin_user_password(instance_admin_user_password);
+    _default_cluster->set_cluster_reader_user(cluster_reader_user);
+    _default_cluster->set_cluster_reader_user_password(generate_password(PASSWORD_LENGHT));
+    _default_cluster->set_replication_user(replication_user);
+    _default_cluster->set_replication_user_password(generate_password(PASSWORD_LENGHT));
 
-    // For V1.0, let's see the Farm's description to "default"
-    _default_farm->set_description("Default Farm");
+    // For V1.0, let's see the Cluster's description to "default"
+    _default_cluster->set_description("Default Cluster");
 
-    // Insert Farm on the Metadata Schema
-    _metadata_storage->insert_farm(_default_farm);
+    // Insert Cluster on the Metadata Schema
+    _metadata_storage->insert_cluster(_default_cluster);
 
     // If it reaches here, it means there are no exceptions
-    ret_val = Value(std::static_pointer_cast<Object_bridge>(_default_farm));
-    (*_farms)[farm_name] = ret_val;
+    ret_val = Value(std::static_pointer_cast<Object_bridge>(_default_cluster));
+    (*_clusters)[cluster_name] = ret_val;
 
     tx.commit();
   }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("createFarm"))
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("createCluster"))
 
   return ret_val;
 }
 
 /**
- * Drops a Farm object.
- * \param name The name of the Farm object to be dropped.
+ * Drops a Cluster object.
+ * \param name The name of the Cluster object to be dropped.
  * \return nothing.
- * \sa Farm
+ * \sa Cluster
  */
 #if DOXYGEN_JS
-Undefined Dba::dropFarm(String name){}
+Undefined Dba::dropCluster(String name){}
 #elif DOXYGEN_PY
-None Dba::drop_farm(str name){}
+None Dba::drop_cluster(str name){}
 #endif
 
-shcore::Value Dba::drop_farm(const shcore::Argument_list &args)
+shcore::Value Dba::drop_cluster(const shcore::Argument_list &args)
 {
-  args.ensure_count(1, 2, get_function_name("dropFarm").c_str());
+  args.ensure_count(1, 2, get_function_name("dropCluster").c_str());
 
   try
   {
-    std::string farm_name = args.string_at(0);
+    std::string cluster_name = args.string_at(0);
 
-    if (farm_name.empty())
-      throw Exception::argument_error("The Farm name cannot be empty.");
+    if (cluster_name.empty())
+      throw Exception::argument_error("The Cluster name cannot be empty.");
 
     shcore::Value::Map_type_ref options; // Map with the options
     bool drop_default_rs = false;
@@ -390,29 +390,29 @@ shcore::Value Dba::drop_farm(const shcore::Argument_list &args)
 
     if (!drop_default_rs)
     {
-      _metadata_storage->drop_farm(farm_name);
+      _metadata_storage->drop_cluster(cluster_name);
 
       // If it reaches here, it means there are no exceptions
-      if (_farms->has_key(farm_name))
-        _farms->erase(farm_name);
+      if (_clusters->has_key(cluster_name))
+        _clusters->erase(cluster_name);
     }
     else
     {
-      // check if the Farm has more replicaSets than the default one
-      if (!_metadata_storage->farm_has_default_replicaset_only(farm_name))
-        throw Exception::logic_error("Cannot drop Farm: The farm with the name '"
-            + farm_name + "' has more replicasets than the default replicaset.");
+      // check if the Cluster has more replicaSets than the default one
+      if (!_metadata_storage->cluster_has_default_replicaset_only(cluster_name))
+        throw Exception::logic_error("Cannot drop Cluster: The cluster with the name '"
+            + cluster_name + "' has more replicasets than the default replicaset.");
 
-      // drop the default ReplicaSet and call drop_farm again
-      _metadata_storage->drop_default_replicaset(farm_name);
-      _metadata_storage->drop_farm(farm_name);
+      // drop the default ReplicaSet and call drop_cluster again
+      _metadata_storage->drop_default_replicaset(cluster_name);
+      _metadata_storage->drop_cluster(cluster_name);
 
       // If it reaches here, it means there are no exceptions
-      if (_farms->has_key(farm_name))
-        _farms->erase(farm_name);
+      if (_clusters->has_key(cluster_name))
+        _clusters->erase(cluster_name);
     }
   }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("dropFarm"))
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("dropCluster"))
 
   return Value();
 }
@@ -445,12 +445,12 @@ shcore::Value Dba::drop_metadata_schema(const shcore::Argument_list &args)
     {
       _metadata_storage->drop_metadata_schema();
 
-      // If it reaches here, it means there are no exceptions and we can reset the farms cache
-      if (_farms->size() > 0)
-        _farms.reset(new shcore::Value::Map_type);
+      // If it reaches here, it means there are no exceptions and we can reset the clusters cache
+      if (_clusters->size() > 0)
+        _clusters.reset(new shcore::Value::Map_type);
 
-      _default_farm.reset();
-      _default_farm_name = "";
+      _default_cluster.reset();
+      _default_cluster_name = "";
     }
     CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("dropMetadataSchema"))
   }
@@ -612,7 +612,7 @@ shcore::Value Dba::validate_instance(const shcore::Argument_list &args)
 
         if (strcmp(success.c_str(), buf.c_str()) == 0)
         {
-          std::string s_out = "The instance: " + host + ":" + std::to_string(port) + " is valid for Farm usage";
+          std::string s_out = "The instance: " + host + ":" + std::to_string(port) + " is valid for Cluster usage";
           ret_val = shcore::Value(s_out);
           break;
         }
@@ -801,22 +801,25 @@ shcore::Value Dba::deploy_local_instance(const shcore::Argument_list &args)
 
 std::string Dba::get_help_text(const std::string& topic)
 {
+  std::string ret_val;
   std::map<std::string, std::string> help_data;
 
   if (topic == "__brief__")
-    return "Enables cluster administration operations.";
-  else if (topic == get_function_name("createFarm", false))
-    return "Creates a farm.";
-  else if (topic == get_function_name("dropFarm", false))
-    return "Deletes a farm.";
-  else if (topic == get_function_name("getFarm", false))
-    return "Retrieves a Farm object based on its name.";
-  else if (topic == get_function_name("getDefaultFarm", false))
-    return "Retrieves the default Farm.";
+    ret_val = "Enables cluster administration operations.";
+  else if (topic == get_function_name("createCluster", false))
+    ret_val = "Creates a Cluster.";
+  else if (topic == get_function_name("dropCluster", false))
+    ret_val = "Deletes a Cluster.";
+  else if (topic == get_function_name("getCluster", false))
+    ret_val = "Retrieves a Cluster object based on its name.";
+  else if (topic == get_function_name("getDefaultCluster", false))
+    ret_val = "Retrieves the default Cluster.";
   else if (topic == get_function_name("dropMetadataSchema", false))
-    return "Destroys the Farm configuration data.";
+    ret_val = "Destroys the Cluster configuration data.";
   else if (topic == get_function_name("validateInstance", false))
-    return "Validates an instance.";
+    ret_val = "Validates an instance.";
   else if (topic == get_function_name("deployLocalInstance", false))
-    return "Creates a new MySQL Server instance.";
+    ret_val = "Creates a new MySQL Server instance.";
+
+  return ret_val;
 }

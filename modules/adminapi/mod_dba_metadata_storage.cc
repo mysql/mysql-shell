@@ -121,39 +121,35 @@ void MetadataStorage::drop_metadata_schema()
   execute_sql("DROP SCHEMA farm_metadata_schema");
 }
 
-uint64_t MetadataStorage::get_farm_id(const std::string &farm_name)
+uint64_t MetadataStorage::get_cluster_id(const std::string &cluster_name)
 {
-  uint64_t farm_id = 0;
+  uint64_t cluster_id = 0;
 
   if (!metadata_schema_exists())
     throw Exception::metadata_error("Metadata Schema does not exist.");
 
-  // Get the Farm ID
+  // Get the Cluster ID
 
-  auto result = execute_sql("SELECT farm_id from farm_metadata_schema.farms where farm_name = '" + farm_name + "'");
+  auto result = execute_sql("SELECT farm_id from farm_metadata_schema.farms where farm_name = '" + cluster_name + "'");
 
   auto row = result->call("fetchOne", shcore::Argument_list());
 
   if (row)
-  {
-    shcore::Argument_list args;
-    args.push_back(shcore::Value("farm_id"));
-    farm_id = row.as_object<Row>()->get_field(args).as_uint();
-  }
+    cluster_id = row.as_object<Row>()->get_member(0).as_uint();
 
   //result->flush();
 
-  return farm_id;
+  return cluster_id;
 }
 
-uint64_t MetadataStorage::get_farm_id(uint64_t rs_id)
+uint64_t MetadataStorage::get_cluster_id(uint64_t rs_id)
 {
-  uint64_t farm_id = 0;
+  uint64_t cluster_id = 0;
 
   if (!metadata_schema_exists())
     throw Exception::metadata_error("Metadata Schema does not exist.");
 
-  // Get the Farm ID
+  // Get the Cluster ID
 
   auto result = execute_sql("SELECT farm_id from farm_metadata_schema.replicasets where replicaset_id = '" + std::to_string(rs_id) + "'");
 
@@ -162,81 +158,77 @@ uint64_t MetadataStorage::get_farm_id(uint64_t rs_id)
   //result->flush();
 
   if (row)
-  {
-    shcore::Argument_list args;
-    args.push_back(shcore::Value("farm_id"));
-    farm_id = row.as_object<Row>()->get_field(args).as_uint();
-  }
+    cluster_id = row.as_object<Row>()->get_member(0).as_uint();
 
-  return farm_id;
+  return cluster_id;
 }
 
-bool MetadataStorage::farm_exists(const std::string &farm_name)
+bool MetadataStorage::cluster_exists(const std::string &cluster_name)
 {
   /*
-   * To check if the farm exists, we can use get_farm_id
+   * To check if the cluster exists, we can use get_cluster_id
    * and simply check for its return value.
-   * If zero, it means the farm does not exist (farm_id cannot be zero)
+   * If zero, it means the cluster does not exist (cluster_id cannot be zero)
    */
 
-  if (get_farm_id(farm_name))
+  if (get_cluster_id(cluster_name))
     return true;
 
   return false;
 }
 
-void MetadataStorage::insert_farm(const std::shared_ptr<Farm> &farm)
+void MetadataStorage::insert_cluster(const std::shared_ptr<Cluster> &cluster)
 {
-  std::string farm_name, query, farm_admin_type, farm_description,
+  std::string cluster_name, query, cluster_admin_type, cluster_description,
               instance_admin_user, instance_admin_user_password,
-              farm_read_user, farm_read_user_password, replication_user,
+              cluster_read_user, cluster_read_user_password, replication_user,
               replication_user_password;
 
-  farm_name = farm->get_member("name").as_string();
-  farm_admin_type = farm->get_member("adminType").as_string();
-  instance_admin_user = farm->get_instance_admin_user();
-  instance_admin_user_password = farm->get_instance_admin_user_password();
-  farm_read_user = farm->get_farm_reader_user();
-  farm_read_user_password = farm->get_farm_reader_user_password();
-  replication_user = farm->get_replication_user();
-  replication_user_password = farm->get_replication_user_password();
+  cluster_name = cluster->get_member("name").as_string();
+  cluster_admin_type = cluster->get_member("adminType").as_string();
+  instance_admin_user = cluster->get_instance_admin_user();
+  instance_admin_user_password = cluster->get_instance_admin_user_password();
+  cluster_read_user = cluster->get_cluster_reader_user();
+  cluster_read_user_password = cluster->get_cluster_reader_user_password();
+  replication_user = cluster->get_replication_user();
+  replication_user_password = cluster->get_replication_user_password();
 
   if (!metadata_schema_exists())
     throw Exception::metadata_error("Metadata Schema does not exist.");
 
-  // Check if the Farm has some description
-  farm_description = farm->get_description();
+  // Check if the Cluster has some description
+  cluster_description = cluster->get_description();
   query = "INSERT INTO farm_metadata_schema.farms (farm_name, description, mysql_user_accounts, options, attributes) "
-          "VALUES ('" + farm_name + "', '" + farm_description + "', '{\"instanceAdmin\": {\"username\": \"" + instance_admin_user +
-          "\", \"password\": \"" + instance_admin_user_password + "\"}, \"farmReader\": {\"username\": \"" + farm_read_user +
-          "\", \"password\": \"" + farm_read_user_password + "\"}, \"replicationUser\": {\"username\": \"" + replication_user +
-          "\", \"password\": \"" + replication_user_password + "\"}}','{\"farmAdminType\": \"" + farm_admin_type + "\"}', '{\"default\": true}')";
+          "VALUES ('" + cluster_name + "', '" + cluster_description + "', '{\"instanceAdmin\": {\"username\": \"" + instance_admin_user +
+          "\", \"password\": \"" + instance_admin_user_password + "\"}, \"farmReader\": {\"username\": \"" + cluster_read_user +
+          "\", \"password\": \"" + cluster_read_user_password + "\"}, \"replicationUser\": {\"username\": \"" + replication_user +
+          "\", \"password\": \"" + replication_user_password + "\"}}','{\"clusterAdminType\": \"" + cluster_admin_type + "\"}', '{\"default\": true}')";
 
-  // Insert the Farm on the farms table
+  // Insert the Cluster on the cluster table
   try
   {
     auto result = execute_sql(query);
-    farm->set_id(result->get_member("autoIncrementValue").as_int());
+    cluster->set_id(result->get_member("autoIncrementValue").as_int());
   }
   catch (shcore::Exception &e)
   {
-    if (e.what() == "Duplicate entry '" + farm_name + "' for key 'farm_name'")
-      throw Exception::argument_error("A Farm with the name '" + farm_name + "' already exists.");
+    if (e.what() == "Duplicate entry '" + cluster_name + "' for key 'cluster_name'")
+      throw Exception::argument_error("A Cluster with the name '" + cluster_name + "' already exists.");
     else
       throw;
   }
 }
 
-void MetadataStorage::insert_default_replica_set(const std::shared_ptr<Farm> &farm)
+void MetadataStorage::insert_default_replica_set(const std::shared_ptr<Cluster> &cluster)
 {
   std::string query;
-  uint64_t farm_id;
+  uint64_t cluster_id;
 
-  farm_id = farm->get_id();
+  cluster_id = cluster->get_id();
 
   // Insert the default ReplicaSet on the replicasets table
   query = "INSERT INTO farm_metadata_schema.replicasets (farm_id, replicaset_type, replicaset_name, active) VALUES (" +
-        std::to_string(farm_id) + ", 'gr', 'default', 1)";
+        std::to_string(cluster_id) + ", 'gr', 'default', 1)";
 
   auto result = execute_sql(query);
 
@@ -244,12 +236,12 @@ void MetadataStorage::insert_default_replica_set(const std::shared_ptr<Farm> &fa
   uint64_t rs_id = 0;
   rs_id = result->get_member("autoIncrementValue").as_uint();
 
-  // Update the farm entry with the replicaset_id
-  farm->get_default_replicaset()->set_id(rs_id);
+  // Update the cluster entry with the replicaset_id
+  cluster->get_default_replicaset()->set_id(rs_id);
 
   // Insert the default ReplicaSet on the replicasets table
   query = "UPDATE farm_metadata_schema.farms SET default_replicaset = " + std::to_string(rs_id) +
-        " WHERE farm_id = " + std::to_string(farm_id) + "";
+        " WHERE farm_id = " + std::to_string(cluster_id) + "";
 
   execute_sql(query);
 }
@@ -343,31 +335,31 @@ void MetadataStorage::insert_instance(const shcore::Argument_list &args, uint64_
 
   // Insert the default ReplicaSet on the replicasets table
   query = "INSERT INTO farm_metadata_schema.instances (host_id, replicaset_id, mysql_server_uuid, instance_name,\
-                                                                                                                                                                                                                                                                            role, addresses) VALUES ('" +
+                                                                                                                                                                                                                                                                                                                                                                                                                        role, addresses) VALUES ('" +
         std::to_string(host_id) + "', '" + std::to_string(rs_id) + "', '" + mysql_server_uuid + "', '" +
         instance_name + "', '" + role + "', '{\"mysqlClassic\": \"" + addresses + "\"}')";
 
   execute_sql(query);
 }
 
-void MetadataStorage::drop_farm(const std::string &farm_name)
+void MetadataStorage::drop_cluster(const std::string &cluster_name)
 {
   std::string query, ret;
 
   if (!metadata_schema_exists())
     throw Exception::metadata_error("Metadata Schema does not exist.");
 
-  // Check if the Farm exists
-  if (!farm_exists(farm_name))
-    throw Exception::logic_error("The farm with the name '" + farm_name + "' does not exist.");
+  // Check if the Cluster exists
+  if (!cluster_exists(cluster_name))
+    throw Exception::logic_error("The cluster with the name '" + cluster_name + "' does not exist.");
 
-  // It exists, so let's get the farm_id and move on
+  // It exists, so let's get the cluster_id and move on
   else
   {
-    uint64_t farm_id = get_farm_id(farm_name);
+    uint64_t cluster_id = get_cluster_id(cluster_name);
 
-    // Check if the Farm is empty
-    query = "SELECT * from farm_metadata_schema.replicasets where farm_id = " + std::to_string(farm_id) + "";
+    // Check if the Cluster is empty
+    query = "SELECT * from farm_metadata_schema.replicasets where farm_id = " + std::to_string(cluster_id) + "";
 
     auto result = execute_sql(query);
 
@@ -376,27 +368,27 @@ void MetadataStorage::drop_farm(const std::string &farm_name)
     //result->flush();
 
     if (row)
-      throw Exception::logic_error("The farm with the name '" + farm_name + "' is not empty.");
+      throw Exception::logic_error("The cluster with the name '" + cluster_name + "' is not empty.");
 
-    // OK the farm exists and is empty, we can remove it
-    query = "DELETE from farm_metadata_schema.farms where farm_id = " + std::to_string(farm_id) + "";
+    // OK the cluster exists and is empty, we can remove it
+    query = "DELETE from farm_metadata_schema.farms where farm_id = " + std::to_string(cluster_id) + "";
 
     execute_sql(query);
   }
 }
 
-bool MetadataStorage::farm_has_default_replicaset_only(const std::string &farm_name)
+bool MetadataStorage::cluster_has_default_replicaset_only(const std::string &cluster_name)
 {
   std::string query, ret;
 
   if (!metadata_schema_exists())
     throw Exception::metadata_error("Metadata Schema does not exist.");
 
-  // Get the Farm ID
-  uint64_t farm_id = get_farm_id(farm_name);
+  // Get the Cluster ID
+  uint64_t cluster_id = get_cluster_id(cluster_name);
 
-  // Check if the Farm has only one replicaset
-  query = "SELECT count(*) as count FROM farm_metadata_schema.replicasets WHERE farm_id = " + std::to_string(farm_id) + " AND replicaset_name <> 'default'";
+  // Check if the Cluster has only one replicaset
+  query = "SELECT count(*) as count FROM farm_metadata_schema.replicasets WHERE farm_id = " + std::to_string(cluster_id) + " AND replicaset_name <> 'default'";
 
   auto result = execute_sql(query);
 
@@ -415,23 +407,23 @@ bool MetadataStorage::farm_has_default_replicaset_only(const std::string &farm_n
   return count == 0;
 }
 
-void MetadataStorage::drop_default_replicaset(const std::string &farm_name)
+void MetadataStorage::drop_default_replicaset(const std::string &cluster_name)
 {
   std::string query;
 
   if (!metadata_schema_exists())
     throw Exception::metadata_error("Metadata Schema does not exist.");
 
-  uint64_t farm_id = get_farm_id(farm_name);
+  uint64_t cluster_id = get_cluster_id(cluster_name);
 
   // Set the default_replicaset as NULL
-  execute_sql("UPDATE farm_metadata_schema.farms SET default_replicaset = NULL WHERE farm_id = " + std::to_string(farm_id) + "");
+  execute_sql("UPDATE farm_metadata_schema.farms SET default_replicaset = NULL WHERE farm_id = " + std::to_string(cluster_id) + "");
 
   // Delete the default_replicaset
-  execute_sql("delete from farm_metadata_schema.replicasets where farm_id = " + std::to_string(farm_id) + "");
+  execute_sql("delete from farm_metadata_schema.replicasets where farm_id = " + std::to_string(cluster_id) + "");
 }
 
-uint64_t MetadataStorage::get_farm_default_rs_id(const std::string &farm_name)
+uint64_t MetadataStorage::get_cluster_default_rs_id(const std::string &cluster_name)
 {
   uint64_t default_rs_id = 0;
 
@@ -440,7 +432,7 @@ uint64_t MetadataStorage::get_farm_default_rs_id(const std::string &farm_name)
 
   // Get the Default ReplicaSet ID
 
-  auto result = execute_sql("SELECT default_replicaset from farm_metadata_schema.farms where farm_name = '" + farm_name + "'");
+  auto result = execute_sql("SELECT default_replicaset from farm_metadata_schema.farms where farm_name = '" + cluster_name + "'");
 
   auto row = result->call("fetchOne", shcore::Argument_list());
 
@@ -499,9 +491,9 @@ std::shared_ptr<ReplicaSet> MetadataStorage::get_replicaset(uint64_t rs_id)
   return rs;
 }
 
-std::shared_ptr<Farm> MetadataStorage::get_default_farm()
+std::shared_ptr<Cluster> MetadataStorage::get_default_cluster()
 {
-  std::shared_ptr<Farm> farm;
+  std::shared_ptr<Cluster> cluster;
   try
   {
     auto result = execute_sql("SELECT farm_id, farm_name, default_replicaset, description, JSON_UNQUOTE(JSON_EXTRACT(options, '$.farmAdminType')) as admin_type from farm_metadata_schema.farms WHERE attributes->\"$.default\" = true");
@@ -513,57 +505,59 @@ std::shared_ptr<Farm> MetadataStorage::get_default_farm()
       auto real_row = row.as_object<Row>();
       shcore::Argument_list args;
 
-      farm.reset(new Farm(real_row->get_member(1).as_string(), shared_from_this()));
+      cluster.reset(new Cluster(real_row->get_member(1).as_string(), shared_from_this()));
 
-      farm->set_id(real_row->get_member(0).as_int());
-      farm->set_admin_type(real_row->get_member(4).as_string());
-      farm->set_description(real_row->get_member(3).as_string());
+      cluster->set_id(real_row->get_member(0).as_int());
+      cluster->set_admin_type(real_row->get_member(4).as_string());
+      cluster->set_description(real_row->get_member(3).as_string());
 
       int rsetid = real_row->get_member(2).as_int();
       if (rsetid)
-        farm->set_default_replicaset(get_replicaset(rsetid));
+        cluster->set_default_replicaset(get_replicaset(rsetid));
     }
   }
   catch (shcore::Exception &e)
   {
     std::string error = e.what();
 
-    if (error == "Table 'wahe.farms' doesn't exist")
+    if (error == "Table 'farm_metadata_schema.farms' doesn't exist")
       throw Exception::metadata_error("Metadata Schema does not exist.");
+    else
+      throw;
   }
 
-  return farm;
+  return cluster;
 }
 
-std::shared_ptr<Farm> MetadataStorage::get_farm(const std::string &farm_name)
+std::shared_ptr<Cluster> MetadataStorage::get_cluster(const std::string &cluster_name)
 {
-  // Check if the Farm exists
-  if (!farm_exists(farm_name))
-    throw Exception::logic_error("The farm with the name '" + farm_name + "' does not exist.");
+  // Check if the Cluster exists
+  if (!cluster_exists(cluster_name))
+    throw Exception::logic_error("The cluster with the name '" + cluster_name + "' does not exist.");
 
-  std::shared_ptr<Farm> farm(new Farm(farm_name, shared_from_this()));
+  std::shared_ptr<Cluster> cluster(new Cluster(cluster_name, shared_from_this()));
 
-  // Update the farm_id
-  uint64_t farm_id = get_farm_id(farm_name);
-  farm->set_id(farm_id);
+  // Update the cluster_id
+  uint64_t cluster_id = get_cluster_id(cluster_name);
+  cluster->set_id(cluster_id);
 
-  // Get the Farm's Default replicaSet ID
-  uint64_t default_rs_id = get_farm_default_rs_id(farm_name);
+  // Get the Cluster's Default replicaSet ID
+  uint64_t default_rs_id = get_cluster_default_rs_id(cluster_name);
 
-  // Check if the Farm has a Default ReplicaSet
+  // Check if the Cluster has a Default ReplicaSet
   if (default_rs_id != 0)
   {
-    // Get the default replicaset from the Farm
+    // Get the default replicaset from the Cluster
     std::shared_ptr<ReplicaSet> default_rs = get_replicaset(default_rs_id);
 
     // Update the default replicaset_id
-    farm->set_default_replicaset(default_rs);
+    cluster->set_default_replicaset(default_rs);
   }
 
-  return farm;
+  return cluster;
 }
 
-bool MetadataStorage::has_default_farm()
+bool MetadataStorage::has_default_cluster()
 {
   bool ret_val = false;
 
@@ -580,14 +574,14 @@ bool MetadataStorage::has_default_farm()
   return ret_val;
 }
 
-std::string MetadataStorage::get_default_farm_name()
+std::string MetadataStorage::get_default_cluster_name()
 {
   std::string rs_name;
 
   if (!metadata_schema_exists())
     throw Exception::metadata_error("Metadata Schema does not exist.");
 
-  // Get the Default Farm name
+  // Get the Default Cluster name
   auto result = execute_sql("SELECT farm_name from farm_metadata_schema.farms WHERE attributes->\"$.default\" = true");
 
   auto row = result->call("fetchOne", shcore::Argument_list());
@@ -596,7 +590,7 @@ std::string MetadataStorage::get_default_farm_name()
   {
     auto real_row = row.as_object<Row>();
     shcore::Argument_list args;
-    args.push_back(shcore::Value("farm_name"));
+    args.push_back(shcore::Value("cluster_name"));
     rs_name = row.as_object<Row>()->get_field(args).as_string();
   }
 
@@ -648,14 +642,14 @@ std::string MetadataStorage::get_instance_admin_user(uint64_t rs_id)
 {
   std::string instance_admin_user, query;
 
-  uint64_t farm_id = get_farm_id(rs_id);
+  uint64_t cluster_id = get_cluster_id(rs_id);
 
   if (!metadata_schema_exists())
     throw Exception::metadata_error("Metadata Schema does not exist.");
 
-  // Get the Farm instanceAdminUser
+  // Get the Cluster instanceAdminUser
 
-  query = "SELECT JSON_UNQUOTE(mysql_user_accounts->\"$.instanceAdmin.username\")  as user FROM farm_metadata_schema.farms WHERE farm_id = '" + std::to_string(farm_id) + "'";
+  query = "SELECT JSON_UNQUOTE(mysql_user_accounts->\"$.instanceAdmin.username\")  as user FROM farm_metadata_schema.farms WHERE farm_id = '" + std::to_string(cluster_id) + "'";
 
   auto result = execute_sql(query);
 
@@ -677,14 +671,14 @@ std::string MetadataStorage::get_instance_admin_user_password(uint64_t rs_id)
 {
   std::string instance_admin_user_password, query;
 
-  uint64_t farm_id = get_farm_id(rs_id);
+  uint64_t cluster_id = get_cluster_id(rs_id);
 
   if (!metadata_schema_exists())
     throw Exception::metadata_error("Metadata Schema does not exist.");
 
-  // Get the Farm instanceAdminUser
+  // Get the Cluster instanceAdminUser
 
-  query = "SELECT JSON_UNQUOTE(mysql_user_accounts->\"$.instanceAdmin.password\")  as password FROM farm_metadata_schema.farms WHERE farm_id = '" + std::to_string(farm_id) + "'";
+  query = "SELECT JSON_UNQUOTE(mysql_user_accounts->\"$.instanceAdmin.password\")  as password FROM farm_metadata_schema.farms WHERE farm_id = '" + std::to_string(cluster_id) + "'";
 
   auto result = execute_sql(query);
 
@@ -706,14 +700,14 @@ std::string MetadataStorage::get_replication_user_password(uint64_t rs_id)
 {
   std::string replication_user_password, query;
 
-  uint64_t farm_id = get_farm_id(rs_id);
+  uint64_t cluster_id = get_cluster_id(rs_id);
 
   if (!metadata_schema_exists())
     throw Exception::metadata_error("Metadata Schema does not exist.");
 
-  // Get the Farm instanceAdminUser
+  // Get the Cluster instanceAdminUser
 
-  query = "SELECT JSON_UNQUOTE(mysql_user_accounts->\"$.replicationUser.password\")  as password FROM farm_metadata_schema.farms WHERE farm_id = '" + std::to_string(farm_id) + "'";
+  query = "SELECT JSON_UNQUOTE(mysql_user_accounts->\"$.replicationUser.password\")  as password FROM farm_metadata_schema.farms WHERE farm_id = '" + std::to_string(cluster_id) + "'";
 
   auto result = execute_sql(query);
 
@@ -738,7 +732,7 @@ std::string MetadataStorage::get_seed_instance(uint64_t rs_id)
   if (!metadata_schema_exists())
     throw Exception::metadata_error("Metadata Schema does not exist.");
 
-  // Get the Farm instanceAdminUser
+  // Get the Cluster instanceAdminUser
 
   query = "SELECT JSON_UNQUOTE(addresses->\"$.mysqlClassic\")  as address FROM farm_metadata_schema.instances WHERE replicaset_id = '" + std::to_string(rs_id) + "' AND role = 'HA'";
 

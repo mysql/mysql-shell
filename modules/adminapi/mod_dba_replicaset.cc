@@ -286,17 +286,17 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args)
   int port = 0;
 
   // NOTE: This function is called from either the add_instance_ on this class
-  //       or the add_instance in Farm class, hence this just throws exceptions
+  //       or the add_instance in Cluster class, hence this just throws exceptions
   //       and the proper handling is done on the caller functions (to append the called function name)
 
   // Check if we're on a addSeedInstance or not
   if (_metadata_storage->is_replicaset_empty(_id)) seed_instance = true;
 
-  std::string farm_admin_password = args.string_at(0);
+  std::string cluster_admin_password = args.string_at(0);
 
   // Check if we have a valid password
-  if (farm_admin_password.empty())
-    throw Exception::argument_error("The MASTER Farm password cannot be empty.");
+  if (cluster_admin_password.empty())
+    throw Exception::argument_error("The MASTER Cluster password cannot be empty.");
 
   // Identify the type of connection data (String or Document)
   if (args[1].type == String)
@@ -503,7 +503,7 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args)
 
         if (strcmp(success.c_str(), buf.c_str()) == 0)
         {
-          std::string s_out = "The instance '" + host + ":" + std::to_string(port) + "' was successfully added as seeding instance to the MySQL Farm.";
+          std::string s_out = "The instance '" + host + ":" + std::to_string(port) + "' was successfully added as seeding instance to the MySQL Cluster.";
           ret_val = shcore::Value(s_out);
           break;
         }
@@ -616,7 +616,7 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args)
 
         if (strcmp(success.c_str(), buf.c_str()) == 0)
         {
-          std::string s_out = "The instance '" + host + ":" + std::to_string(port) + "' was successfully added to the MySQL Farm.";
+          std::string s_out = "The instance '" + host + ":" + std::to_string(port) + "' was successfully added to the MySQL Cluster.";
           ret_val = shcore::Value(s_out);
           break;
         }
@@ -672,7 +672,7 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args)
 #if DOXYGEN_CPP
 /**
  * Use this function to remove a Instance from the ReplicaSet object
- * \param args : A list of values to be used to remove a Instance to the Farm.
+ * \param args : A list of values to be used to remove a Instance to the Cluster.
  *
  * This function returns an empty Value.
  */

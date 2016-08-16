@@ -17,8 +17,8 @@
  * 02110-1301  USA
  */
 
-#ifndef _MOD_DBA_ADMIN_FARM_H_
-#define _MOD_DBA_ADMIN_FARM_H_
+#ifndef _MOD_DBA_ADMIN_CLUSTER_H_
+#define _MOD_DBA_ADMIN_CLUSTER_H_
 
 #include "shellcore/types.h"
 #include "shellcore/types_cpp.h"
@@ -31,15 +31,15 @@ namespace mysh
   {
     class MetadataStorage;
     /**
-    * Represents a Farm
+    * Represents a Cluster
     */
-    class Farm : public std::enable_shared_from_this<Farm>, public shcore::Cpp_object_bridge
+    class Cluster : public std::enable_shared_from_this<Cluster>, public shcore::Cpp_object_bridge
     {
     public:
-      Farm(const std::string &name, std::shared_ptr<MetadataStorage> metadata_storage);
-      virtual ~Farm();
+      Cluster(const std::string &name, std::shared_ptr<MetadataStorage> metadata_storage);
+      virtual ~Cluster();
 
-      virtual std::string class_name() const { return "Farm"; }
+      virtual std::string class_name() const { return "Cluster"; }
       virtual std::string &append_descr(std::string &s_out, int indent = -1, int quote_strings = 0) const;
       virtual bool operator == (const Object_bridge &other) const;
 
@@ -57,21 +57,21 @@ namespace mysh
       std::string get_admin_type() { return _admin_type; }
       void set_admin_type(std::string admin_type) { _admin_type = admin_type; }
       std::string get_password() { return _password; }
-      void set_password(std::string farm_password) { _password = farm_password; }
+      void set_password(std::string cluster_password) { _password = cluster_password; }
       std::string get_description() { return _description; }
       void set_description(std::string description) { _description = description; };
       std::string get_instance_admin_user() { return _instance_admin_user; };
       void set_instance_admin_user(std::string user) { _instance_admin_user = user; };
       std::string get_instance_admin_user_password() { return _instance_admin_user_password; };
       void set_instance_admin_user_password(std::string password) { _instance_admin_user_password = password; };
-      std::string get_farm_reader_user() { return _farm_reader_user; };
-      void set_farm_reader_user(std::string user) { _farm_reader_user = user; };
-      std::string get_farm_reader_user_password() { return _farm_reader_user_password; }
-      void set_farm_reader_user_password(std::string password) { _farm_reader_user_password = password; };
-      std::string get_replication_user() { return _farm_replication_user; };
-      void set_replication_user(std::string user) { _farm_replication_user = user; };
-      std::string get_replication_user_password() { return _farm_reader_user_password; };
-      void set_replication_user_password(std::string password) { _farm_reader_user_password = password; };
+      std::string get_cluster_reader_user() { return _cluster_reader_user; };
+      void set_cluster_reader_user(std::string user) { _cluster_reader_user = user; };
+      std::string get_cluster_reader_user_password() { return _cluster_reader_user_password; }
+      void set_cluster_reader_user_password(std::string password) { _cluster_reader_user_password = password; };
+      std::string get_replication_user() { return _cluster_replication_user; };
+      void set_replication_user(std::string user) { _cluster_replication_user = user; };
+      std::string get_replication_user_password() { return _cluster_reader_user_password; };
+      void set_replication_user_password(std::string password) { _cluster_reader_user_password = password; };
 
 #if DOXYGEN_JS
       String getName();
@@ -121,12 +121,12 @@ namespace mysh
       std::shared_ptr<MetadataStorage> _metadata_storage;
       std::string _instance_admin_user;
       std::string _instance_admin_user_password;
-      std::string _farm_reader_user;
-      std::string _farm_reader_user_password;
-      std::string _farm_replication_user;
-      std::string _farm_replication_user_password;
+      std::string _cluster_reader_user;
+      std::string _cluster_reader_user_password;
+      std::string _cluster_replication_user;
+      std::string _cluster_replication_user_password;
     };
   }
 }
 
-#endif  // _MOD_DBA_ADMIN_FARM_H_
+#endif  // _MOD_DBA_ADMIN_CLUSTER_H_

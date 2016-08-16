@@ -39,8 +39,8 @@ namespace mysh
     /**
     * This class represents a connection to a Metadata Store and enables
     *
-    * - Accessing available Farms.
-    * - Farm management operations.
+    * - Accessing available Clusters.
+    * - Cluster management operations.
     */
     class SHCORE_PUBLIC Dba : public shcore::Cpp_object_bridge, public std::enable_shared_from_this<Dba>
     {
@@ -67,29 +67,29 @@ namespace mysh
       shcore::Value reset_instance(const shcore::Argument_list &args);
 
       shcore::Value reset_session(const shcore::Argument_list &args);
-      shcore::Value create_farm(const shcore::Argument_list &args);
-      shcore::Value drop_farm(const shcore::Argument_list &args);
-      shcore::Value get_farm(const shcore::Argument_list &args) const;
+      shcore::Value create_cluster(const shcore::Argument_list &args);
+      shcore::Value drop_cluster(const shcore::Argument_list &args);
+      shcore::Value get_cluster(const shcore::Argument_list &args) const;
       shcore::Value drop_metadata_schema(const shcore::Argument_list &args);
 
-      Farm get_default_farm();
+      Cluster get_default_cluster();
 
 #if DOXYGEN_JS
-      Farm defaultFarm; //!< Same as getDefaultSchema()
+      Cluster defaultCluster; //!< Same as getDefaultSchema()
 
-      Farm createFarm(String name);
-      Undefined dropFarm(String name);
-      Farm getFarm(String name);
-      Farm getDefaultFarm();
+      Cluster createCluster(String name);
+      Undefined dropCluster(String name);
+      Cluster getCluster(String name);
+      Cluster getDefaultCluster();
       Undefined dropMetadataSchema();
 
 #elif DOXYGEN_PY
-      Farm defaultFarm; //!< Same as get_default_schema()
+      Cluster defaultCluster; //!< Same as get_default_schema()
 
-      Farm create_farm(str name);
-      None drop_farm(str name);
-      Farm get_farm(str name);
-      Farm get_default_farm();
+      Cluster create_cluster(str name);
+      None drop_cluster(str name);
+      Cluster get_cluster(str name);
+      Cluster get_default_cluster();
       None drop_metadata_schema();
 #endif
 
@@ -97,9 +97,9 @@ namespace mysh
       std::shared_ptr<mysh::ShellDevelopmentSession> _custom_session;
       shcore::IShell_core *_shell_core;
 
-      mutable std::shared_ptr<shcore::Value::Map_type> _farms;
-      mutable std::string _default_farm_name;
-      mutable std::shared_ptr<mysh::mysqlx::Farm> _default_farm;
+      mutable std::shared_ptr<shcore::Value::Map_type> _clusters;
+      mutable std::string _default_cluster_name;
+      mutable std::shared_ptr<mysh::mysqlx::Cluster> _default_cluster;
 
       void init();
     private:
