@@ -311,8 +311,8 @@ shcore::Value Dba::create_farm(const shcore::Argument_list &args)
      */
     bool has_default_farm = _metadata_storage->has_default_farm();
 
-    if (has_default_farm)
-      throw Exception::argument_error("There is already one Farm initialized. Only one Farm is supported.");
+    if ((!_default_farm.empty()) || has_default_farm)
+      throw Exception::argument_error("Farm is alredy initialized. Use getFarm() to access it.");
 
     // First we need to create the Metadata Schema, or update it if already exists
     _metadata_storage->create_metadata_schema();

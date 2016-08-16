@@ -116,7 +116,7 @@ int Interactive_dba_farm::identify_connection_options(const std::string &functio
     options_index++;
   else if (args.size() == 2 && args[0].type == shcore::String && args[1].type == shcore::String)
   {
-    std::string message = "Ambiguos call for to" + get_function_name(function) + ", from the parameters:\n\n" \
+    std::string message = "Ambiguous call for to" + get_function_name(function) + ", from the parameters:\n\n" \
       " 1) " + args[0].as_string() + "\n"\
       " 2) " + args[1].as_string() + "\n"\
       " 3) Cancel the operation.\n\n"\
@@ -232,7 +232,7 @@ bool Interactive_dba_farm::resolve_instance_options(const std::string& function,
     if (!has_password)
     {
       proceed = false;
-      if (password("Please provide a password for '" + build_connection_string(options, false) + "': ", answer))
+      if (password("Please provide the password for '" + build_connection_string(options, false) + "': ", answer))
       {
         (*options)["dbPassword"] = shcore::Value(answer);
         proceed = true;
