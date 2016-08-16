@@ -65,6 +65,11 @@ std::string shcore::get_member_name(const std::string& name, NamingStyle style)
   return new_name;
 }
 
+Cpp_object_bridge::Cpp_object_bridge() : naming_style(LowerCamelCase)
+{
+  add_varargs_method("help", std::bind(&Cpp_object_bridge::help, this, _1));
+};
+
 Cpp_object_bridge::~Cpp_object_bridge()
 {
   _funcs.clear();
@@ -104,9 +109,12 @@ std::vector<std::string> Cpp_object_bridge::get_members() const
   return members;
 }
 
-std::string Cpp_object_bridge::get_function_name(const std::string& member) const
+std::string Cpp_object_bridge::get_function_name(const std::string& member, bool fully_specified) const
 {
-  return class_name() + "." + _funcs.at(member)->name(naming_style);
+  if (fully_specified)
+    return class_name() + "." + _funcs.at(member)->name(naming_style);
+  else
+    return _funcs.at(member)->name(naming_style);
 }
 
 shcore::Value Cpp_object_bridge::get_member_method(const shcore::Argument_list &args, const std::string& method, const std::string& prop)
@@ -299,6 +307,43 @@ Value Cpp_object_bridge::call(const std::string &name, const Argument_list &args
   if ((i = _funcs.find(name)) == _funcs.end())
       throw Exception::attrib_error("Invalid object function " + name);
   return i->second->invoke(args);
+}
+
+shcore::Value Cpp_object_bridge::help(const shcore::Argument_list &args)
+{
+  std::string ret_val;
+  size_t params = args.size();
+
+  switch (args.size())
+  {
+    case 1:
+      if (args[0].type == shcore::String)
+      {
+        ret_val = get_help_text(args.string_at(0));
+        break;
+      }
+    default:
+    {
+      ret_val = get_help_text("__brief__");
+      if (_properties.size())
+      {
+        ret_val += "\nThe next properties are available:\n";
+        for (auto property : _properties)
+          ret_val += "  - " + property->name(naming_style) + "\n";
+      }
+
+      if (_funcs.size())
+      {
+        ret_val += "\nThe next functions are available:\n";
+        for (auto function : _funcs)
+          ret_val += "  - " + function.second->_name[naming_style] + "\n";
+      }
+
+      ret_val += "\n\nFor additional help on a property or function use: \n\n<object>.help('<name>')\n";
+    }
+  }
+
+  return shcore::Value(ret_val);
 }
 
 std::shared_ptr<Cpp_object_bridge::ScopedStyle> Cpp_object_bridge::set_scoped_naming_style(const NamingStyle& style)

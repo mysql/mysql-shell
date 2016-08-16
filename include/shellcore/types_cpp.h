@@ -104,7 +104,7 @@ namespace shcore
       Cpp_object_bridge *_target;
     };
 
-    Cpp_object_bridge() : naming_style(LowerCamelCase) {};
+    Cpp_object_bridge();
     virtual ~Cpp_object_bridge();
 
     virtual std::vector<std::string> get_members() const;
@@ -138,6 +138,9 @@ namespace shcore
     virtual std::string &append_repr(std::string &s_out) const;
     std::shared_ptr<ScopedStyle> set_scoped_naming_style(const NamingStyle& style);
 
+    virtual shcore::Value help(const shcore::Argument_list &args);
+    virtual std::string get_help_text(const std::string& topic){ return ""; }
+
   protected:
     virtual void add_method(const std::string &name, Cpp_function::Function func,
                     const char *arg1_name, Value_type arg1_type = Undefined, ...);
@@ -151,7 +154,7 @@ namespace shcore
 
     // Helper function that retrieves a qualified functio name using the active naming style
     // Used mostly for errors in function validations
-    std::string get_function_name(const std::string& member) const;
+    std::string get_function_name(const std::string& member, bool fully_specified = true) const;
 
     typedef std::pair< std::string, std::shared_ptr<Cpp_function> > FunctionEntry;
     std::map<std::string, std::shared_ptr<Cpp_function> > _funcs;

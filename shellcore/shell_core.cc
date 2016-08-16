@@ -303,6 +303,19 @@ Value Shell_core::get_global(const std::string &name)
   return (_globals.count(name) > 0) ? _globals[name] : Value();
 }
 
+std::vector<std::string> Shell_core::get_global_objects()
+{
+  std::vector<std::string> globals;
+
+  for (auto entry : _globals)
+  {
+    if (entry.second.type == shcore::Object)
+      globals.push_back(entry.first);
+  }
+
+  return globals;
+}
+
 void Shell_core::set_active_session(const Value &session)
 {
   _active_session = session;

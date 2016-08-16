@@ -612,6 +612,29 @@ bool Interactive_shell::cmd_print_shell_help(const std::vector<std::string>& arg
 
     println("");
     println("For help on a specific command use the command as \\? <command>");
+
+    println("");
+    auto globals = _shell->get_global_objects();
+
+    if (globals.size())
+    {
+      println("===== Global Variables =====");
+
+      for (auto name : globals)
+      {
+        auto object_val = _shell->get_global(name);
+        auto object = std::dynamic_pointer_cast<Cpp_object_bridge>(object_val.as_object());
+        auto brief = object->get_help_text("__brief__");
+
+        if (!brief.empty())
+          println((boost::format("%-10s %s") % name % brief).str());
+      }
+
+      println("");
+      println("");
+      println("For more help on a global variable use <var>.help(), e.g. dba.help()");
+      println("");
+    }
   }
 
   return true;
@@ -1124,9 +1147,9 @@ void Interactive_shell::process_line(const std::string &line)
             add_history(executed.c_str());
 #endif
             println("");
-          }
         }
       }
+    }
       catch (shcore::Exception &exc)
       {
         _delegate.print_error(_delegate.user_data, exc.format().c_str());
@@ -1143,8 +1166,8 @@ void Interactive_shell::process_line(const std::string &line)
       // the non executed code
       if (_input_mode == Input_ok)
         _input_buffer.clear();
-    }
   }
+}
 }
 
 void Interactive_shell::abort()

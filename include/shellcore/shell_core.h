@@ -126,6 +126,7 @@ namespace shcore
     // case the context for some langauge is not yet created at the time this is called
     virtual void set_global(const std::string &name, const Value &value);
     virtual Value get_global(const std::string &name);
+    std::vector<std::string> get_global_objects();
 
     void set_active_session(const Value &session);
     Value active_session() const { return _active_session; }

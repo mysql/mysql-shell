@@ -104,6 +104,8 @@ namespace mysh
       void init();
     private:
 
+      virtual std::string get_help_text(const std::string& topic);
+
       std::shared_ptr<MetadataStorage> _metadata_storage;
       uint64_t _connection_id;
 

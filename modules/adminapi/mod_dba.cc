@@ -69,6 +69,7 @@ void Dba::init()
   add_method("dropMetadataSchema", std::bind(&Dba::drop_metadata_schema, this, _1), "data", shcore::Map, NULL);
   add_method("validateInstance", std::bind(&Dba::validate_instance, this, _1), "data", shcore::Map, NULL);
   add_method("deployLocalInstance", std::bind(&Dba::deploy_local_instance, this, _1), "data", shcore::Map, NULL);
+  add_varargs_method("help", std::bind(&Dba::help, this, _1));
 
   _metadata_storage.reset(new MetadataStorage(this));
 
@@ -796,4 +797,26 @@ shcore::Value Dba::deploy_local_instance(const shcore::Argument_list &args)
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION("deployLocalInstance");
 
   return ret_val;
+}
+
+std::string Dba::get_help_text(const std::string& topic)
+{
+  std::map<std::string, std::string> help_data;
+
+  if (topic == "__brief__")
+    return "Enables cluster administration operations.";
+  else if (topic == get_function_name("createFarm", false))
+    return "Creates a farm.";
+  else if (topic == get_function_name("dropFarm", false))
+    return "Deletes a farm.";
+  else if (topic == get_function_name("getFarm", false))
+    return "Retrieves a Farm object based on its name.";
+  else if (topic == get_function_name("getDefaultFarm", false))
+    return "Retrieves the default Farm.";
+  else if (topic == get_function_name("dropMetadataSchema", false))
+    return "Destroys the Farm configuration data.";
+  else if (topic == get_function_name("validateInstance", false))
+    return "Validates an instance.";
+  else if (topic == get_function_name("deployLocalInstance", false))
+    return "Creates a new MySQL Server instance.";
 }

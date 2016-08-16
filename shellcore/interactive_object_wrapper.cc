@@ -209,3 +209,20 @@ bool Interactive_object_wrapper::password(const std::string& prompt, std::string
 {
   return _delegate->password(_delegate->user_data, prompt.c_str(), ret_val);
 }
+
+std::string Interactive_object_wrapper::get_help_text(const std::string& topic)
+{
+  std::string ret_val;
+
+  if (_target)
+  {
+    shcore::Argument_list args;
+    args.push_back(shcore::Value(topic));
+
+    auto text = _target->call("help", args);
+
+    ret_val = text.as_string();
+  }
+
+  return ret_val;
+}
