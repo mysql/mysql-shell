@@ -54,6 +54,7 @@ namespace mysh
 
       uint64_t get_farm_default_rs_id(const std::string &farm_name);
       std::shared_ptr<Farm> get_farm(const std::string &farm_name);
+      std::shared_ptr<Farm> get_default_farm();
       bool has_default_farm();
       std::string get_default_farm_name();
 

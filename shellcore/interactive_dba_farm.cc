@@ -164,7 +164,7 @@ bool Interactive_dba_farm::resolve_instance_options(const std::string& function,
     // Verification of invalid attributes on the connection data
     if (invalids.size())
     {
-      std::string error = "The connection data contains the next invalid attributes: ";
+      std::string error = "The connection data contains the following invalid attributes: ";
       error += shcore::join_strings(invalids, ", ");
 
       proceed = false;

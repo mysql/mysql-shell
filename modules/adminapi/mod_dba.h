@@ -27,6 +27,7 @@
 #include "shellcore/types_cpp.h"
 #include "shellcore/ishell_core.h"
 #include "modules/base_session.h"
+#include "mod_dba_farm.h"
 #include <set>
 
 namespace mysh
@@ -71,6 +72,8 @@ namespace mysh
       shcore::Value get_farm(const shcore::Argument_list &args) const;
       shcore::Value drop_metadata_schema(const shcore::Argument_list &args);
 
+      Farm get_default_farm();
+
 #if DOXYGEN_JS
       Farm defaultFarm; //!< Same as getDefaultSchema()
 
@@ -95,7 +98,8 @@ namespace mysh
       shcore::IShell_core *_shell_core;
 
       mutable std::shared_ptr<shcore::Value::Map_type> _farms;
-      mutable std::string _default_farm;
+      mutable std::string _default_farm_name;
+      mutable std::shared_ptr<mysh::mysqlx::Farm> _default_farm;
 
       void init();
     private:

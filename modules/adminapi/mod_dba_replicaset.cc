@@ -44,7 +44,7 @@ using namespace shcore;
 std::set<std::string> ReplicaSet::_add_instance_opts = { "name", "host", "port", "user", "dbUser", "password", "dbPassword", "socket", "ssl_ca", "ssl_cert", "ssl_key", "ssl_key" };
 
 ReplicaSet::ReplicaSet(const std::string &name, std::shared_ptr<MetadataStorage> metadata_storage) :
-_name(name), _metadata_storage(metadata_storage)
+_name(name), _metadata_storage(metadata_storage), _json_mode(JSON_STANDARD_OUTPUT)
 {
   init();
 }
@@ -59,70 +59,58 @@ std::string &ReplicaSet::append_descr(std::string &s_out, int UNUSED(indent), in
   return s_out;
 }
 
-void ReplicaSet::append_json(shcore::JSON_dumper& dumper) const
+void ReplicaSet::append_json_status(shcore::JSON_dumper& dumper) const
 {
-  std::shared_ptr<mysh::ShellBaseResult>result1 = _metadata_storage->execute_sql("show status like 'group_replication_primary_member'");
-
-  auto row = result1->call("fetchOne", shcore::Argument_list());
+  // Identifies the master node
+  auto uuid_result = _metadata_storage->execute_sql("show status like 'group_replication_primary_member'");
+  auto uuid_row = uuid_result->call("fetchOne", shcore::Argument_list());
 
   std::string master_uuid;
-  if (row)
-    master_uuid = row.as_object<Row>()->get_member(1).as_string();
+  if (uuid_row)
+    master_uuid = uuid_row.as_object<Row>()->get_member(1).as_string();
 
   std::string query = "select mysql_server_uuid, instance_name, role, MEMBER_STATE, JSON_UNQUOTE(JSON_EXTRACT(addresses, \"$.mysqlClassic\")) as host from farm_metadata_schema.instances left join performance_schema.replication_group_members on `mysql_server_uuid`=`MEMBER_ID` where replicaset_id = " + std::to_string(_id);
-  auto result2 = _metadata_storage->execute_sql(query);
+  auto result = _metadata_storage->execute_sql(query);
 
-  auto raw_instances = result2->call("fetchAll", shcore::Argument_list());
+  auto raw_instances = result->call("fetchAll", shcore::Argument_list());
 
   // First we identify the master instance
   auto instances = raw_instances.as_array();
 
   std::shared_ptr<mysh::Row> master;
+  int online_count = 0;
   for (auto value : *instances.get())
   {
     auto row = value.as_object<mysh::Row>();
     if (row->get_member(0).as_string() == master_uuid)
-    {
       master = row;
-      break;
-    }
+
+    auto status = row->get_member(3);
+    if (status && status.as_string() == "ONLINE")
+      online_count++;
   }
 
-  dumper.start_object();
-  dumper.append_string("status", "<Some Status>");
-
-  // Creates the instances element
-  dumper.append_string("instances");
-  dumper.start_array();
-
-  dumper.start_object();
-  dumper.append_string("name", master->get_member(1).as_string());
-  dumper.append_string("host", master->get_member(4).as_string());
-  dumper.append_string("role", master->get_member(2).as_string());
-  dumper.append_string("mode", "R/W");
-  dumper.append_string("status", master->get_member(3).as_string() == "ONLINE" ? "ONLINE" : "OFFLINE");
-  dumper.end_object();
-
-  for (auto value : *instances.get())
+  std::string rset_status;
+  switch (online_count)
   {
-    auto row = value.as_object<mysh::Row>();
-    if (row != master)
-    {
-      dumper.start_object();
-      dumper.append_string("name", row->get_member(1).as_string());
-      dumper.append_string("host", row->get_member(4).as_string());
-      dumper.append_string("role", row->get_member(2).as_string());
-      dumper.append_string("mode", "R/O");
-      dumper.append_string("status", row->get_member(3).as_string() == "ONLINE" ? "ONLINE" : "OFFLINE");
-      dumper.end_object();
-    }
+    case 0:
+    case 1: rset_status = "Fatal";
+      break;
+    case 2: rset_status = "Critical";
+      break;
+      // Add logic on the default for the even/uneven count
+    default:rset_status = "Healthy";
+      break;
   }
-  dumper.end_array();
 
+  dumper.start_object();
+  dumper.append_string("status", rset_status);
   dumper.append_string("topology");
 
   dumper.start_object();
   dumper.append_string("name", master->get_member(1).as_string());
+  auto status = master->get_member(3);
+  dumper.append_string("status", (status && status.as_string() == "ONLINE") ? "ONLINE" : "OFFLINE");
   dumper.append_string("role", master->get_member(2).as_string());
   dumper.append_string("mode", "R/W");
 
@@ -135,6 +123,8 @@ void ReplicaSet::append_json(shcore::JSON_dumper& dumper) const
     {
       dumper.start_object();
       dumper.append_string("name", row->get_member(1).as_string());
+      auto status = row->get_member(3);
+      dumper.append_string("status", (status && status.as_string() == "ONLINE") ? "ONLINE" : "OFFLINE");
       dumper.append_string("role", row->get_member(2).as_string());
       dumper.append_string("mode", "R/O");
       dumper.append_string("leaves");
@@ -146,8 +136,49 @@ void ReplicaSet::append_json(shcore::JSON_dumper& dumper) const
 
   dumper.end_array();
   dumper.end_object();
-
   dumper.end_object();
+}
+
+void ReplicaSet::append_json_topology(shcore::JSON_dumper& dumper) const
+{
+  std::string query = "select mysql_server_uuid, instance_name, role, JSON_UNQUOTE(JSON_EXTRACT(addresses, \"$.mysqlClassic\")) as host from farm_metadata_schema.instances  where replicaset_id = " + std::to_string(_id);
+  auto result = _metadata_storage->execute_sql(query);
+
+  auto raw_instances = result->call("fetchAll", shcore::Argument_list());
+
+  // First we identify the master instance
+  auto instances = raw_instances.as_array();
+
+  dumper.start_object();
+
+  // Creates the instances element
+  dumper.append_string("instances");
+  dumper.start_array();
+
+  for (auto value : *instances.get())
+  {
+    auto row = value.as_object<mysh::Row>();
+    dumper.start_object();
+    dumper.append_string("name", row->get_member(1).as_string());
+    dumper.append_string("host", row->get_member(3).as_string());
+    dumper.append_string("role", row->get_member(2).as_string());
+    dumper.end_object();
+  }
+  dumper.end_array();
+  dumper.end_object();
+}
+
+void ReplicaSet::append_json(shcore::JSON_dumper& dumper) const
+{
+  if (_json_mode == JSON_STANDARD_OUTPUT)
+    shcore::Cpp_object_bridge::append_json(dumper);
+  else
+  {
+    if (_json_mode == JSON_STATUS_OUTPUT)
+      append_json_status(dumper);
+    else if (_json_mode == JSON_TOPOLOGY_OUTPUT)
+      append_json_topology(dumper);
+  }
 }
 
 bool ReplicaSet::operator == (const Object_bridge &other) const

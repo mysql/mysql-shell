@@ -173,23 +173,11 @@ Value Dba::get_member(const std::string &prop) const
   // it is a schema and attempt loading it as such
   if (prop == "defaultFarm")
   {
-    // If there is a default farm and we have the name, retrieve it with the next call
-    if (!_default_farm.empty())
-    {
-      shcore::Argument_list args;
-      args.push_back(shcore::Value(_default_farm));
-      ret_val = get_farm(args);
-    }
-    // For V1 we only support one Farm. Check if there's a Farm on the MD and update _default_farm to it.
-    else if (_metadata_storage->has_default_farm())
-    {
-      _default_farm = _metadata_storage->get_default_farm_name();
+    if (!_default_farm)
+      _default_farm = _metadata_storage->get_default_farm();
 
-      shcore::Argument_list args;
-      args.push_back(shcore::Value(_default_farm));
-
-      ret_val = get_farm(args);
-    }
+    if (_default_farm)
+      ret_val = shcore::Value(std::dynamic_pointer_cast<Object_bridge>(_default_farm));
     else
       throw Exception::logic_error("There is no default Farm.");
   }
@@ -323,40 +311,37 @@ shcore::Value Dba::create_farm(const shcore::Argument_list &args)
      */
     bool has_default_farm = _metadata_storage->has_default_farm();
 
-    if ((!_default_farm.empty()) || has_default_farm)
+    if (has_default_farm)
       throw Exception::argument_error("There is already one Farm initialized. Only one Farm is supported.");
 
     // First we need to create the Metadata Schema, or update it if already exists
     _metadata_storage->create_metadata_schema();
 
-    std::shared_ptr<Farm> farm(new Farm(farm_name, _metadata_storage));
+    _default_farm.reset(new Farm(farm_name, _metadata_storage));
 
     // Check if we have the instanceAdminUser password or we need to generate it
     if (instance_admin_user_password.empty())
       instance_admin_user_password = generate_password(PASSWORD_LENGHT);
 
     // Update the properties
-    farm->set_admin_type(farm_admin_type);
-    farm->set_password(farm_password);
-    farm->set_instance_admin_user(instance_admin_user);
-    farm->set_instance_admin_user_password(instance_admin_user_password);
-    farm->set_farm_reader_user(farm_reader_user);
-    farm->set_farm_reader_user_password(generate_password(PASSWORD_LENGHT));
-    farm->set_replication_user(replication_user);
-    farm->set_replication_user_password(generate_password(PASSWORD_LENGHT));
+    _default_farm->set_admin_type(farm_admin_type);
+    _default_farm->set_password(farm_password);
+    _default_farm->set_instance_admin_user(instance_admin_user);
+    _default_farm->set_instance_admin_user_password(instance_admin_user_password);
+    _default_farm->set_farm_reader_user(farm_reader_user);
+    _default_farm->set_farm_reader_user_password(generate_password(PASSWORD_LENGHT));
+    _default_farm->set_replication_user(replication_user);
+    _default_farm->set_replication_user_password(generate_password(PASSWORD_LENGHT));
 
     // For V1.0, let's see the Farm's description to "default"
-    farm->set_description("Default Farm");
+    _default_farm->set_description("Default Farm");
 
     // Insert Farm on the Metadata Schema
-    _metadata_storage->insert_farm(farm);
+    _metadata_storage->insert_farm(_default_farm);
 
     // If it reaches here, it means there are no exceptions
-    ret_val = Value(std::static_pointer_cast<Object_bridge>(farm));
+    ret_val = Value(std::static_pointer_cast<Object_bridge>(_default_farm));
     (*_farms)[farm_name] = ret_val;
-
-    // Update the default_farm
-    _default_farm = farm_name;
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("createFarm"))
 
@@ -459,7 +444,8 @@ shcore::Value Dba::drop_metadata_schema(const shcore::Argument_list &args)
       if (_farms->size() > 0)
         _farms.reset(new shcore::Value::Map_type);
 
-      _default_farm = "";
+      _default_farm.reset();
+      _default_farm_name = "";
     }
     CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("dropMetadataSchema"))
   }
@@ -670,7 +656,7 @@ shcore::Value Dba::deploy_local_instance(const shcore::Argument_list &args)
     auto invalids = shcore::get_additional_keys(options, _deploy_instance_opts);
     if (invalids.size())
     {
-      std::string error = "The instance data contains the next invalid attributes: ";
+      std::string error = "The instance data contains the following invalid attributes: ";
       error += shcore::join_strings(invalids, ", ");
       throw shcore::Exception::argument_error(error);
     }

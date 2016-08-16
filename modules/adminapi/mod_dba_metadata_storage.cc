@@ -328,7 +328,7 @@ void MetadataStorage::insert_instance(const shcore::Argument_list &args, uint64_
 
   // Insert the default ReplicaSet on the replicasets table
   query = "INSERT INTO farm_metadata_schema.instances (host_id, replicaset_id, mysql_server_uuid, instance_name,\
-                                                role, addresses) VALUES ('" +
+                                                                                                                                                                                                                                                                            role, addresses) VALUES ('" +
         std::to_string(host_id) + "', '" + std::to_string(rs_id) + "', '" + mysql_server_uuid + "', '" +
         instance_name + "', '" + role + "', '{\"mysqlClassic\": \"" + addresses + "\"}')";
 
@@ -482,6 +482,42 @@ std::shared_ptr<ReplicaSet> MetadataStorage::get_replicaset(uint64_t rs_id)
   rs->set_name(rs_name);
 
   return rs;
+}
+
+std::shared_ptr<Farm> MetadataStorage::get_default_farm()
+{
+  std::shared_ptr<Farm> farm;
+  try
+  {
+    auto result = execute_sql("SELECT farm_id, farm_name, default_replicaset, description, JSON_UNQUOTE(JSON_EXTRACT(options, '$.farmAdminType')) as admin_type from farm_metadata_schema.farms WHERE attributes->\"$.default\" = true");
+
+    auto row = result->call("fetchOne", shcore::Argument_list());
+
+    if (row)
+    {
+      auto real_row = row.as_object<Row>();
+      shcore::Argument_list args;
+
+      farm.reset(new Farm(real_row->get_member(1).as_string(), shared_from_this()));
+
+      farm->set_id(real_row->get_member(0).as_int());
+      farm->set_admin_type(real_row->get_member(4).as_string());
+      farm->set_description(real_row->get_member(3).as_string());
+
+      int rsetid = real_row->get_member(2).as_int();
+      if (rsetid)
+        farm->set_default_replicaset(get_replicaset(rsetid));
+    }
+  }
+  catch (shcore::Exception &e)
+  {
+    std::string error = e.what();
+
+    if (error == "Table 'wahe.farms' doesn't exist")
+      throw Exception::metadata_error("Metadata Schema does not exist.");
+  }
+
+  return farm;
 }
 
 std::shared_ptr<Farm> MetadataStorage::get_farm(const std::string &farm_name)

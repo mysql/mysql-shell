@@ -34,7 +34,7 @@ using namespace mysh::mysqlx;
 using namespace shcore;
 
 Farm::Farm(const std::string &name, std::shared_ptr<MetadataStorage> metadata_storage) :
-_name(name), _metadata_storage(metadata_storage)
+_name(name), _metadata_storage(metadata_storage), _json_mode(JSON_STANDARD_OUTPUT)
 {
   init();
 }
@@ -108,6 +108,7 @@ void Farm::init()
   add_method("removeInstance", std::bind(&Farm::remove_instance, this, _1), "data");
   add_method("getReplicaSet", std::bind(&Farm::get_replicaset, this, _1), "name", shcore::String, NULL);
   add_method("describe", std::bind(&Farm::describe, this, _1), NULL);
+  add_method("status", std::bind(&Farm::status, this, _1), NULL);
 }
 
 /**
@@ -332,16 +333,27 @@ shcore::Value Farm::get_replicaset(const shcore::Argument_list &args)
 
 void Farm::append_json(shcore::JSON_dumper& dumper) const
 {
-  dumper.start_object();
-  dumper.append_string("farmName", _name);
-  dumper.append_string("adminType", _admin_type);
+  if (_json_mode)
+  {
+    dumper.start_object();
+    dumper.append_string("farmName", _name);
 
-  if (!_default_replica_set)
-    dumper.append_null("defaultReplicaSet");
+    if (!_default_replica_set)
+      dumper.append_null("defaultReplicaSet");
+    else
+    {
+      if (_json_mode == JSON_TOPOLOGY_OUTPUT)
+        dumper.append_string("adminType", _admin_type);
+
+      _default_replica_set->set_json_mode(_json_mode);
+      dumper.append_value("defaultReplicaSet", shcore::Value(std::dynamic_pointer_cast<shcore::Object_bridge>(_default_replica_set)));
+      _default_replica_set->set_json_mode(JSON_STANDARD_OUTPUT);
+    }
+
+    dumper.end_object();
+  }
   else
-    dumper.append_value("defaultReplicaSet", shcore::Value(std::dynamic_pointer_cast<shcore::Object_bridge>(_default_replica_set)));
-
-  dumper.end_object();
+    Cpp_object_bridge::append_json(dumper);
 }
 
 /**
@@ -354,6 +366,30 @@ str Farm::describe(){}
 #endif
 shcore::Value Farm::describe(const shcore::Argument_list &args)
 {
+  shcore::Value ret_val;
+  _json_mode = JSON_TOPOLOGY_OUTPUT;
   shcore::Value myself = shcore::Value(std::dynamic_pointer_cast<shcore::Object_bridge>(shared_from_this()));
-  return shcore::Value(myself.json(true));
+  ret_val = shcore::Value(myself.json(true));
+  _json_mode = JSON_STANDARD_OUTPUT;
+
+  return ret_val;
+}
+
+/**
+* Returns a formatted JSON describing the status of the Farm
+*/
+#if DOXYGEN_JS
+String Farm::status(){}
+#elif DOXYGEN_PY
+str Farm::status(){}
+#endif
+shcore::Value Farm::status(const shcore::Argument_list &args)
+{
+  shcore::Value ret_val;
+  _json_mode = JSON_STATUS_OUTPUT;
+  shcore::Value myself = shcore::Value(std::dynamic_pointer_cast<shcore::Object_bridge>(shared_from_this()));
+  ret_val = shcore::Value(myself.json(true));
+  _json_mode = JSON_STANDARD_OUTPUT;
+
+  return ret_val;
 }

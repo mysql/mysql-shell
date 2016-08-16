@@ -20,6 +20,10 @@
 #ifndef _MOD_DBA_ADMIN_REPLICASET_H_
 #define _MOD_DBA_ADMIN_REPLICASET_H_
 
+#define JSON_STANDARD_OUTPUT 0
+#define JSON_STATUS_OUTPUT 1
+#define JSON_TOPOLOGY_OUTPUT 2
+
 #include "shellcore/types.h"
 #include "shellcore/types_cpp.h"
 #include <set>
@@ -55,6 +59,7 @@ namespace mysh
 
       std::string get_replication_user() { return _replication_user; };
       void set_replication_user(std::string user) { _replication_user = user; };
+      void set_json_mode(int mode) { _json_mode = mode; }
 
 #if DOXYGEN_JS
       String getName();
@@ -81,6 +86,13 @@ namespace mysh
       // TODO: add missing fields, rs_type, etc
 
     private:
+      // This flag will be used to determine what should be included on the JSON output for the object
+      // 0 standard
+      // 1 means status
+      // 2 means describe
+      int _json_mode;
+      void append_json_status(shcore::JSON_dumper& dumper) const;
+      void append_json_topology(shcore::JSON_dumper& dumper) const;
       void init();
 
       std::shared_ptr<MetadataStorage> _metadata_storage;

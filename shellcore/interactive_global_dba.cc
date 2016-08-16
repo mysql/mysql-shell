@@ -60,7 +60,7 @@ shcore::Value Global_dba::deploy_local_instance(const shcore::Argument_list &arg
     auto invalids = shcore::get_additional_keys(options, mysh::mysqlx::Dba::_deploy_instance_opts);
     if (invalids.size())
     {
-      std::string error = "The instance data contains the next invalid attributes: ";
+      std::string error = "The instance data contains the following invalid attributes: ";
       error += shcore::join_strings(invalids, ", ");
 
       proceed = false;

@@ -100,6 +100,7 @@ namespace mysh
       shcore::Value remove_instance(const shcore::Argument_list &args);
       shcore::Value get_replicaset(const shcore::Argument_list &args);
       shcore::Value describe(const shcore::Argument_list &args);
+      shcore::Value status(const shcore::Argument_list &args);
 
     protected:
       uint64_t _id;
@@ -110,6 +111,11 @@ namespace mysh
       std::string _description;
 
     private:
+      // This flag will be used to determine what should be included on the JSON output for the object
+      // 0 standard
+      // 1 means status
+      // 2 means describe
+      int _json_mode;
       void init();
 
       std::shared_ptr<MetadataStorage> _metadata_storage;
