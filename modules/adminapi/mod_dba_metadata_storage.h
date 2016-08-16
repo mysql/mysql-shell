@@ -72,8 +72,32 @@ namespace mysh
 
       std::shared_ptr<ShellBaseResult> execute_sql(const std::string &sql) const;
 
+      class Transaction
+      {
+      public:
+        explicit Transaction(std::shared_ptr<MetadataStorage> md) : _md(md) {
+          md->start_transaction();
+        }
+
+        ~Transaction() {
+          if (_md) _md->rollback();
+        }
+
+        void commit() {
+          if (_md) {
+            _md->commit();
+            _md.reset();
+          }
+        }
+      private:
+        std::shared_ptr<MetadataStorage> _md;
+      };
     private:
       Dba* _dba;
+
+      void start_transaction();
+      void commit();
+      void rollback();
     };
   }
 }

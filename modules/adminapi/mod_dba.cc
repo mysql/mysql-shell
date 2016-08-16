@@ -304,6 +304,8 @@ shcore::Value Dba::create_farm(const shcore::Argument_list &args)
       }
     }
 
+    MetadataStorage::Transaction tx(_metadata_storage);
+
     /*
      * For V1.0 we only support one single Farm. That one shall be the default Farm.
      * We must check if there's already a Default Farm assigned, and if so thrown an exception.
@@ -342,6 +344,8 @@ shcore::Value Dba::create_farm(const shcore::Argument_list &args)
     // If it reaches here, it means there are no exceptions
     ret_val = Value(std::static_pointer_cast<Object_bridge>(_default_farm));
     (*_farms)[farm_name] = ret_val;
+
+    tx.commit();
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("createFarm"))
 

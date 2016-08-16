@@ -63,6 +63,21 @@ std::shared_ptr<ShellBaseResult> MetadataStorage::execute_sql(const std::string 
   return ret_val.as_object<ShellBaseResult>();
 }
 
+void MetadataStorage::start_transaction()
+{
+  execute_sql("start transaction");
+}
+
+void MetadataStorage::commit()
+{
+  execute_sql("commit");
+}
+
+void MetadataStorage::rollback()
+{
+  execute_sql("rollback");
+}
+
 bool MetadataStorage::metadata_schema_exists()
 {
   std::string found_object;

@@ -168,6 +168,7 @@ shcore::Value Farm::add_seed_instance(const shcore::Argument_list &args)
 
   try
   {
+    MetadataStorage::Transaction tx(_metadata_storage);
     std::string default_replication_user = "rpl_user"; // Default for V1.0 is rpl_user
     std::shared_ptr<ReplicaSet> default_rs = get_default_replicaset();
 
@@ -193,6 +194,7 @@ shcore::Value Farm::add_seed_instance(const shcore::Argument_list &args)
 
     // Add the Instance to the Default ReplicaSet
     ret_val = _default_replica_set->add_instance(args);
+    tx.commit();
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("addSeedInstance"));
 
@@ -241,7 +243,9 @@ shcore::Value Farm::add_instance(const shcore::Argument_list &args)
   // Add the Instance to the Default ReplicaSet
   try
   {
+    MetadataStorage::Transaction tx(_metadata_storage);
     ret_val = _default_replica_set->add_instance(args);
+    tx.commit();
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("addInstance"));
 
