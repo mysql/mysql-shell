@@ -41,6 +41,8 @@ using namespace mysh;
 using namespace mysh::mysqlx;
 using namespace shcore;
 
+std::set<std::string> ReplicaSet::_add_instance_opts = { "name", "host", "port", "user", "dbUser", "password", "dbPassword", "socket", "ssl_ca", "ssl_cert", "ssl_key", "ssl_key" };
+
 ReplicaSet::ReplicaSet(const std::string &name, std::shared_ptr<MetadataStorage> metadata_storage) :
 _name(name), _metadata_storage(metadata_storage)
 {
@@ -239,17 +241,6 @@ shcore::Value ReplicaSet::add_instance_(const shcore::Argument_list &args)
   return ret_val;
 }
 
-std::set<std::string> ReplicaSet::_valid_attributes = { "name", "host", "port", "user", "dbUser", "password", "dbPassword", "socket", "ssl_ca", "ssl_cert", "ssl_key", "ssl_key" };
-
-std::set<std::string> ReplicaSet::get_invalid_attributes(const std::set<std::string> input)
-{
-  std::set<std::string> diff;
-
-  std::set_difference(input.begin(), input.end(), _valid_attributes.begin(), _valid_attributes.end(), std::inserter(diff, diff.begin()));
-
-  return diff;
-}
-
 shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args)
 {
   shcore::Value ret_val;
@@ -259,6 +250,7 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args)
   shcore::Value::Map_type_ref options; // Map with the connection data
 
   std::string user;
+  std::string super_user_password;
   std::string host;
   int port = 0;
 
@@ -289,24 +281,24 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args)
   else
     throw shcore::Exception::argument_error("Invalid connection options, expected either a URI or a Dictionary.");
 
-  // Gets the list of incoming attributes
-  std::set<std::string> attributes;
-  for (auto option : *options)
-    attributes.insert(option.first);
-
-  auto invalids = mysh::mysqlx::ReplicaSet::get_invalid_attributes(attributes);
-
   // Verification of invalid attributes on the connection data
+  auto invalids = shcore::get_additional_keys(options, _add_instance_opts);
   if (invalids.size())
   {
-    std::string error = "The connection data contains the next invalid attributes: ";
-    error += *invalids.begin();
+    std::string error = "Unexpected instance options: ";
+    error += shcore::join_strings(invalids, ", ");
+    throw shcore::Exception::argument_error(error);
+  }
 
-    invalids.erase(invalids.begin());
+  // Verification of required attributes on the connection data
+  auto missing = shcore::get_missing_keys(options, { "host", "password|dbPassword" });
+  if (missing.find("password") != missing.end() && args.size() == 3)
+    missing.erase("password");
 
-    for (auto attribute : invalids)
-      error += ", " + attribute;
-
+  if (missing.size())
+  {
+    std::string error = "Missing instance options: ";
+    error += shcore::join_strings(missing, ", ");
     throw shcore::Exception::argument_error(error);
   }
 
@@ -326,20 +318,20 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args)
     (*options)["dbUser"] = shcore::Value(user);
   }
 
-  // Handle empty required values
-  if (!options->has_key("host"))
-    throw shcore::Exception::argument_error("Missing required attribute: host.");
-  else
-    host = options->get_string("host");
+  host = options->get_string("host");
 
   std::string password;
-  if (!options->has_key("password") && !options->has_key("dbPassword"))
+  if (options->has_key("password"))
+    super_user_password = options->get_string("password");
+  else if (options->has_key("dbPassword"))
+    super_user_password = options->get_string("dbPassword");
+  else if (args.size() == 3 && args[2].type == shcore::String)
   {
-    if (args.size() == 3)
-      (*options)["dbPassword"] = shcore::Value(args.string_at(2));
-    else
-      throw shcore::Exception::argument_error("Missing password for " + build_connection_string(options, false));
+    super_user_password = args.string_at(2);
+    (*options)["dbPassword"] = shcore::Value(super_user_password);
   }
+  else
+    throw shcore::Exception::argument_error("Missing password for " + build_connection_string(options, false));
 
   // Check if the instance was already added
   std::string instance_address = options->get_string("host") + ":" + std::to_string(options->get_int("port"));
@@ -422,7 +414,7 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args)
   std::string buf;
   char c;
   std::string success("Operation completed with success.");
-  std::string super_user_password = "root\n"; // TODO: interactive wrapper to query it
+  super_user_password += "\n";
   std::string replication_password = replication_user_password + "\n";
   std::string error;
 

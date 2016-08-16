@@ -21,6 +21,7 @@
 #include "shellcore/shell_registry.h"
 #include "shellcore/interactive_dba_farm.h"
 #include "modules/mysqlxtest_utils.h"
+#include "modules/adminapi/mod_dba.h"
 #include "utils/utils_general.h"
 #include <boost/format.hpp>
 
@@ -29,6 +30,7 @@ using namespace shcore;
 
 void Global_dba::init()
 {
+  add_varargs_method("deployLocalInstance", std::bind(&Global_dba::deploy_local_instance, this, _1));
   add_method("dropFarm", std::bind(&Global_dba::drop_farm, this, _1), "farmName", shcore::String, NULL);
   add_method("isOpen", std::bind(&Global_dba::is_open, this, _1), NULL);
   add_method("createFarm", std::bind(&Global_dba::create_farm, this, _1), "farmName", shcore::String, NULL);
@@ -37,6 +39,81 @@ void Global_dba::init()
   add_method("getDefaultFarm", std::bind(&Global_dba::get_default_farm, this, _1), NULL);
   add_method("validateInstance", std::bind(&Global_dba::validate_instance, this, _1), "data", shcore::Map, NULL);
   set_wrapper_function("isOpen");
+}
+
+shcore::Value Global_dba::deploy_local_instance(const shcore::Argument_list &args)
+{
+  args.ensure_count(1, 2, get_function_name("deployLocalInstance").c_str());
+
+  shcore::Value ret_val;
+
+  shcore::Value::Map_type_ref options; // Map with the connection data
+
+  std::string answer;
+  bool proceed = true;
+
+  try
+  {
+    options = args.map_at(0);
+
+    // Verification of invalid attributes on the instance deployment data
+    auto invalids = shcore::get_additional_keys(options, mysh::mysqlx::Dba::_deploy_instance_opts);
+    if (invalids.size())
+    {
+      std::string error = "The instance data contains the next invalid attributes: ";
+      error += shcore::join_strings(invalids, ", ");
+
+      proceed = false;
+      if (prompt((boost::format("%s. Do you want to ignore these attributes and continue? [Y/n]: ") % error).str().c_str(), answer))
+      {
+        proceed = (!answer.compare("y") || !answer.compare("Y") || answer.empty());
+
+        if (proceed)
+        {
+          for (auto attribute : invalids)
+            options->erase(attribute);
+        }
+      }
+    }
+
+    if (proceed)
+    {
+      // Verification of required attributes on the instance deployment data
+      auto missing = shcore::get_missing_keys(options, { "password|dbPassword" });
+
+      if (missing.size())
+      {
+        if (args.size() == 2)
+          (*options)["password"] = shcore::Value(args.string_at(1));
+        else
+        {
+          proceed = false;
+          bool prompt_password = true;
+          while (prompt_password && !proceed)
+          {
+            prompt_password = password("Please enter root password for the deployed instance: ", answer);
+            if (prompt_password)
+            {
+              if (!answer.empty())
+              {
+                (*options)["password"] = shcore::Value(answer);
+                proceed = true;
+              }
+            }
+          }
+        }
+      }
+    }
+
+    if (proceed)
+    {
+      shcore::print("Deploying instance...\n");
+      ret_val = _target->call("deployLocalInstance", args);
+    }
+  }
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("deployLocalInstance"));
+
+  return ret_val;
 }
 
 shcore::Value Global_dba::drop_farm(const shcore::Argument_list &args)
@@ -199,6 +276,8 @@ shcore::Value Global_dba::drop_metadata_schema(const shcore::Argument_list &args
     }
     else
       ret_val = _target->call("dropMetadataSchema", args);
+
+    shcore::print("Metadata Schema successfully removed.\n");
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("dropMetadataSchema"))
 
@@ -276,6 +355,10 @@ shcore::Value Global_dba::validate_instance(const shcore::Argument_list &args)
 
   shcore::Argument_list new_args;
   new_args.push_back(shcore::Value(options));
+
+  // Let's get the user to know we're starting to validate the instance
+  shcore::print("Validating instance...\n");
+
   ret_val = _target->call("validateInstance", new_args);
 
   return ret_val;

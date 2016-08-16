@@ -35,6 +35,7 @@ namespace shcore
     void init();
     //virtual void resolve() const;
 
+    shcore::Value deploy_local_instance(const shcore::Argument_list &args);
     shcore::Value drop_farm(const shcore::Argument_list &args);
     shcore::Value is_open(const shcore::Argument_list &args);
     shcore::Value create_farm(const shcore::Argument_list &args);

@@ -27,6 +27,7 @@
 #include "shellcore/types_cpp.h"
 #include "shellcore/ishell_core.h"
 #include "modules/base_session.h"
+#include <set>
 
 namespace mysh
 {
@@ -45,6 +46,8 @@ namespace mysh
     public:
       Dba(shcore::IShell_core* owner);
       virtual ~Dba() { /*reset_session();*/ }
+
+      static std::set<std::string> _deploy_instance_opts;
 
       virtual std::string class_name() const { return "Dba"; };
 
@@ -96,6 +99,7 @@ namespace mysh
 
       void init();
     private:
+
       std::shared_ptr<MetadataStorage> _metadata_storage;
       uint64_t _connection_id;
 

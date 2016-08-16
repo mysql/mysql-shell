@@ -40,6 +40,8 @@ using namespace shcore;
 
 #define PASSWORD_LENGHT 16
 
+std::set<std::string> Dba::_deploy_instance_opts = { "port", "portx", "sandboxDir", "password", "dbPassword" };
+
 Dba::Dba(IShell_core* owner) :
 _shell_core(owner)
 {
@@ -458,8 +460,6 @@ shcore::Value Dba::drop_metadata_schema(const shcore::Argument_list &args)
         _farms.reset(new shcore::Value::Map_type);
 
       _default_farm = "";
-
-      shcore::print("Metadata Schema successfully removed.\n");
     }
     CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("dropMetadataSchema"))
   }
@@ -580,9 +580,6 @@ shcore::Value Dba::validate_instance(const shcore::Argument_list &args)
     if (gadgets_path.empty())
       throw shcore::Exception::logic_error("Please set the mysqlprovision path using the environment variable: MYSQLPROVISION.");
 
-    // Let's get the user to know we're starting to validate the instance
-    shcore::print("Validating instance...\n");
-
     std::string instance_cmd = "--instance=" + user + "@" + host + ":" + std::to_string(port);
     const char *args_script[] = { "python", gadgets_path.c_str(), "check", instance_cmd.c_str(), "--stdin", NULL };
 
@@ -654,7 +651,7 @@ shcore::Value Dba::validate_instance(const shcore::Argument_list &args)
 
 shcore::Value Dba::deploy_local_instance(const shcore::Argument_list &args)
 {
-  args.ensure_count(1, "deployLocalInstance");
+  args.ensure_count(1, 2, "deployLocalInstance");
 
   shcore::Value ret_val;
 
@@ -662,22 +659,41 @@ shcore::Value Dba::deploy_local_instance(const shcore::Argument_list &args)
 
   int port = 0;
   int portx = 0;
+  std::string password;
   std::string sandbox_dir;
-
-  std::vector<std::string> valid_options = { "port", "portx", "sandboxDir" };
 
   try
   {
     options = args.map_at(0);
 
-    if (options->size() == 0)
-      throw shcore::Exception::argument_error("Options empty.");
-
-    for (shcore::Value::Map_type::iterator i = options->begin(); i != options->end(); ++i)
+    // Verification of invalid attributes on the instance deployment data
+    auto invalids = shcore::get_additional_keys(options, _deploy_instance_opts);
+    if (invalids.size())
     {
-      if ((std::find(valid_options.begin(), valid_options.end(), i->first) == valid_options.end()))
-        throw shcore::Exception::argument_error("Unexpected argument " + i->first + " on connection data.");
+      std::string error = "The instance data contains the next invalid attributes: ";
+      error += shcore::join_strings(invalids, ", ");
+      throw shcore::Exception::argument_error(error);
     }
+
+    // Verification of required attributes on the instance deployment data
+    auto missing = shcore::get_missing_keys(options, { "password|dbPassword" });
+
+    if (missing.size())
+    {
+      if (args.size() == 2)
+        password = args.string_at(1);
+      else
+        throw shcore::Exception::argument_error("Missing root password for the deployed instance");
+    }
+    else
+    {
+      if (options->has_key("password"))
+        password = options->get_string("password");
+      else if (options->has_key("dbPassword"))
+        password = options->get_string("dbPassword");
+    }
+
+    password += "\n";
 
     if (options->has_key("port"))
       port = (*options)["port"].as_int();
@@ -692,9 +708,6 @@ shcore::Value Dba::deploy_local_instance(const shcore::Argument_list &args)
 
     if (gadgets_path.empty())
       throw shcore::Exception::logic_error("Please set the mysqlprovision path using the environment variable: MYSQLPROVISION.");
-
-    // Let's get the user to know we're starting to deploy the instance
-    shcore::print("Deploying instance...\n");
 
     std::vector<std::string> sandbox_args;
     std::string arg;
@@ -733,20 +746,9 @@ shcore::Value Dba::deploy_local_instance(const shcore::Argument_list &args)
 
     ngcommon::Process_launcher p("python", const_cast<const char**>(args_script));
 
-    std::string buf, passwd, error, answer;
+    std::string buf, error, answer;
     char c;
     std::string success("Operation completed with success.");
-
-    // TODO: We're not a derived class of Interactive_object_wrapper, how to query for the password?
-    /*
-    if (password("Please enter a password for the root user of the MySQL Sandbox (root@localhost): ", answer))
-    passwd = answer;
-
-    if (passwd.empty())
-    throw shcore::Exception::argument_error("The password cannot be empty.");
-    */
-
-    passwd = "root\n"; // TODO: see above
 
 #ifdef WIN32
     success += "\r\n";
@@ -756,7 +758,7 @@ shcore::Value Dba::deploy_local_instance(const shcore::Argument_list &args)
 
     try
     {
-      p.write(passwd.c_str(), passwd.length());
+      p.write(password.c_str(), password.length());
     }
     catch (shcore::Exception &e)
     {
@@ -788,7 +790,7 @@ shcore::Value Dba::deploy_local_instance(const shcore::Argument_list &args)
 
     if (read_error)
     {
-       // Remove unnecessary gadgets output
+      // Remove unnecessary gadgets output
       std::string remove_me = "ERROR: Error executing the 'sandbox' command:";
 
       std::string::size_type i = error.find(remove_me);

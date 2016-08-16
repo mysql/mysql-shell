@@ -159,26 +159,13 @@ bool Interactive_dba_farm::resolve_instance_options(const std::string& function,
     else
        throw shcore::Exception::argument_error(get_function_name(function) + ": Invalid connection options, expected either a URI or a Dictionary.");
 
-    // Gets the list of incoming attributes
-    std::set<std::string> attributes;
-    for (auto option : *options)
-      attributes.insert(option.first);
-
-    auto invalids = mysh::mysqlx::ReplicaSet::get_invalid_attributes(attributes);
+    auto invalids = shcore::get_additional_keys(options, mysh::mysqlx::ReplicaSet::_add_instance_opts);
 
     // Verification of invalid attributes on the connection data
     if (invalids.size())
     {
       std::string error = "The connection data contains the next invalid attributes: ";
-      std::string first = *invalids.begin();
-      error += first;
-
-      invalids.erase(invalids.begin());
-
-      for (auto attribute : invalids)
-        error += ", " + attribute;
-
-      invalids.insert(first);
+      error += shcore::join_strings(invalids, ", ");
 
       proceed = false;
       if (prompt((boost::format("%s. Do you want to ignore these attributes and continue? [Y/n]: ") % error).str().c_str(), answer))
