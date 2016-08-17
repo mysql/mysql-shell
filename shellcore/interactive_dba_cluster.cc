@@ -17,9 +17,9 @@
  * 02110-1301  USA
  */
 
-#include "interactive_dba_farm.h"
+#include "interactive_dba_cluster.h"
 #include "interactive_global_dba.h"
-#include "modules/adminapi/mod_dba_farm.h"
+#include "modules/adminapi/mod_dba_cluster.h"
 #include "shellcore/shell_registry.h"
 #include "modules/mysqlxtest_utils.h"
 #include "utils/utils_general.h"

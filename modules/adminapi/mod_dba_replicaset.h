@@ -32,6 +32,7 @@ namespace mysh
   namespace mysqlx
   {
     class MetadataStorage;
+    class Cluster;
 
     /**
     * Represents a ReplicaSet
@@ -57,9 +58,9 @@ namespace mysh
 
       void set_name(std::string name) { _name = name; }
 
-      std::string get_replication_user() { return _replication_user; };
-      void set_replication_user(std::string user) { _replication_user = user; };
       void set_json_mode(int mode) { _json_mode = mode; }
+
+      void set_cluster(std::shared_ptr<Cluster> cluster) { _cluster = cluster; }
 
 #if DOXYGEN_JS
       String getName();
@@ -95,8 +96,8 @@ namespace mysh
       void append_json_topology(shcore::JSON_dumper& dumper) const;
       void init();
 
+      std::shared_ptr<Cluster> _cluster;
       std::shared_ptr<MetadataStorage> _metadata_storage;
-      std::string _replication_user;
 
     protected:
       virtual int get_default_port() { return 33060; };

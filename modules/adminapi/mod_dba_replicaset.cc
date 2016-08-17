@@ -69,7 +69,7 @@ void ReplicaSet::append_json_status(shcore::JSON_dumper& dumper) const
   if (uuid_row)
     master_uuid = uuid_row.as_object<Row>()->get_member(1).as_string();
 
-  std::string query = "select mysql_server_uuid, instance_name, role, MEMBER_STATE, JSON_UNQUOTE(JSON_EXTRACT(addresses, \"$.mysqlClassic\")) as host from farm_metadata_schema.instances left join performance_schema.replication_group_members on `mysql_server_uuid`=`MEMBER_ID` where replicaset_id = " + std::to_string(_id);
+  std::string query = "select mysql_server_uuid, instance_name, role, MEMBER_STATE, JSON_UNQUOTE(JSON_EXTRACT(addresses, \"$.mysqlClassic\")) as host from mysql_innodb_cluster_metadata.instances left join performance_schema.replication_group_members on `mysql_server_uuid`=`MEMBER_ID` where replicaset_id = " + std::to_string(_id);
   auto result = _metadata_storage->execute_sql(query);
 
   auto raw_instances = result->call("fetchAll", shcore::Argument_list());
@@ -108,11 +108,14 @@ void ReplicaSet::append_json_status(shcore::JSON_dumper& dumper) const
   dumper.append_string("topology");
 
   dumper.start_object();
-  dumper.append_string("name", master->get_member(1).as_string());
-  auto status = master->get_member(3);
-  dumper.append_string("status", status.as_string());
-  dumper.append_string("role", master->get_member(2).as_string());
-  dumper.append_string("mode", "R/W");
+  if (master)
+  {
+    dumper.append_string("name", master->get_member(1).as_string());
+    auto status = master->get_member(3);
+    dumper.append_string("status", status ? status.as_string() : "OFFLINE");
+    dumper.append_string("role", master->get_member(2).as_string());
+    dumper.append_string("mode", "R/W");
+  }
 
   dumper.append_string("leaves");
   dumper.start_array();
@@ -124,7 +127,7 @@ void ReplicaSet::append_json_status(shcore::JSON_dumper& dumper) const
       dumper.start_object();
       dumper.append_string("name", row->get_member(1).as_string());
       auto status = row->get_member(3);
-      dumper.append_string("status", status.as_string());
+      dumper.append_string("status", status ? status.as_string() : "OFFLINE");
       dumper.append_string("role", row->get_member(2).as_string());
       dumper.append_string("mode", "R/O");
       dumper.append_string("leaves");
@@ -141,7 +144,7 @@ void ReplicaSet::append_json_status(shcore::JSON_dumper& dumper) const
 
 void ReplicaSet::append_json_topology(shcore::JSON_dumper& dumper) const
 {
-  std::string query = "select mysql_server_uuid, instance_name, role, JSON_UNQUOTE(JSON_EXTRACT(addresses, \"$.mysqlClassic\")) as host from farm_metadata_schema.instances  where replicaset_id = " + std::to_string(_id);
+  std::string query = "select mysql_server_uuid, instance_name, role, JSON_UNQUOTE(JSON_EXTRACT(addresses, \"$.mysqlClassic\")) as host from mysql_innodb_cluster_metadata.instances  where replicaset_id = " + std::to_string(_id);
   auto result = _metadata_storage->execute_sql(query);
 
   auto raw_instances = result->call("fetchAll", shcore::Argument_list());
@@ -364,9 +367,10 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args)
   if (_metadata_storage->is_instance_on_replicaset(get_id(), instance_address))
     throw shcore::Exception::logic_error("The instance '" + instance_address + "'' already belongs to the ReplicaSet: '" + get_member("name").as_string() + "'.");
 
-  std::string instance_admin_user = _metadata_storage->get_instance_admin_user(get_id());
-  std::string instance_admin_user_password = _metadata_storage->get_instance_admin_user_password(get_id());
-  std::string replication_user_password = _metadata_storage->get_replication_user_password(get_id());
+  std::string instance_admin_user = _cluster->get_account_user(ACC_INSTANCE_ADMIN);
+  std::string instance_admin_user_password = _cluster->get_account_password(ACC_INSTANCE_ADMIN);
+  std::string replication_user = _cluster->get_account_user(ACC_REPLICATION_USER);
+  std::string replication_user_password = _cluster->get_account_password(ACC_REPLICATION_USER);
 
   // Drop and create the instanceAdmin user
   shcore::Argument_list temp_args;
@@ -380,40 +384,40 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args)
   temp_args.push_back(shcore::Value("SET sql_log_bin = 0"));
   classic->run_sql(temp_args);
 
-  std::string query = "DROP USER IF EXISTS 'instance_admin'@'" + host + "'";
+  std::string query = "DROP USER IF EXISTS '" + instance_admin_user + "'@'" + host + "'";
 
   temp_args.clear();
   temp_args.push_back(shcore::Value(query));
 
   classic->run_sql(temp_args);
 
-  query = "CREATE USER 'instance_admin'@'" + host + "' IDENTIFIED BY '" + instance_admin_user_password + "'";
+  query = "CREATE USER '" + instance_admin_user + "'@'" + host + "' IDENTIFIED BY '" + instance_admin_user_password + "'";
 
   temp_args.clear();
   temp_args.push_back(shcore::Value(query));
 
   classic->run_sql(temp_args);
 
-  query = "GRANT PROCESS, RELOAD, REPLICATION CLIENT, REPLICATION SLAVE ON *.* TO 'instance_admin'@'" + host + "'";
+  query = "GRANT PROCESS, RELOAD, REPLICATION CLIENT, REPLICATION SLAVE ON *.* TO '" + instance_admin_user + "'@'" + host + "'";
 
   temp_args.clear();
   temp_args.push_back(shcore::Value(query));
 
   classic->run_sql(temp_args);
 
-  query = "DROP USER IF EXISTS 'replication_user'@'" + host + "'";
+  query = "DROP USER IF EXISTS '" + replication_user + "'@'" + host + "'";
 
   temp_args.clear();
   temp_args.push_back(shcore::Value(query));
 
-  query = "CREATE USER IF NOT EXISTS 'replication_user'@'%' IDENTIFIED BY '" + replication_user_password + "'";
+  query = "CREATE USER IF NOT EXISTS '" + replication_user + "'@'%' IDENTIFIED BY '" + replication_user_password + "'";
 
   temp_args.clear();
   temp_args.push_back(shcore::Value(query));
 
   classic->run_sql(temp_args);
 
-  query = "GRANT REPLICATION SLAVE ON *.* to 'replication_user'@'%'";
+  query = "GRANT REPLICATION SLAVE ON *.* to '" + replication_user + "'@'%'";
 
   temp_args.clear();
   temp_args.push_back(shcore::Value(query));
@@ -458,9 +462,9 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args)
   if (seed_instance)
   {
     // Call mysqlprovision to bootstrap the group using "start"
-    std::string instance_cmd = "--instance=" + user + "@" + host + ":" + std::to_string(port);
-    std::string replication_user = "--replication-user=replication_user";
-    const char *args_script[] = { "python", gadgets_path.c_str(), "start-replicaset", instance_cmd.c_str(), replication_user.c_str(), "--stdin", NULL };
+    std::string instance_param = "--instance=" + user + "@" + host + ":" + std::to_string(port);
+    std::string repl_user_param = "--replication-user=" + replication_user;
+    const char *args_script[] = { "python", gadgets_path.c_str(), "start-replicaset", instance_param.c_str(), repl_user_param.c_str(), "--stdin", NULL };
 
     ngcommon::Process_launcher p("python", args_script, false);
 
@@ -501,6 +505,7 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args)
           ret_val = shcore::Value(s_out);
           break;
         }
+        shcore::print(buf);
         buf = "";
       }
     }
@@ -519,10 +524,10 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args)
     }
 
     int rc = p.wait();
-    if (rc != 0)
-    {
-      ret_val = shcore::Value("ERROR: Error executing mysqlprovision");
-    }
+    //if (rc != 0)
+    //{
+    //  ret_val = shcore::Value("ERROR: Error executing mysqlprovision");
+    //}
 
     // OK, if we reached here without errors we can update the metadata with the host
     auto result = _metadata_storage->insert_host(args);
@@ -548,7 +553,7 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args)
       (*options_instance)["instance_name"] = val_address;
 
     _metadata_storage->insert_instance(args_instance, host_id, get_id());
-}
+  }
 
   else
   {
@@ -556,10 +561,10 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args)
     std::string peer_instance = _metadata_storage->get_seed_instance(get_id());
 
     // Call mysqlprovision to join the instance on the group using "join"
-    std::string instance_cmd = "--instance=" + user + "@" + host + ":" + std::to_string(port);
-    std::string replication_user = "--replication-user=replication_user";
-    std::string peer_cmd = "--peer-instance=" + user + "@" + peer_instance;
-    const char *args_script[] = { "python", gadgets_path.c_str(), "join-replicaset", instance_cmd.c_str(), replication_user.c_str(), peer_cmd.c_str(), "--stdin", NULL };
+    std::string instance_param = "--instance=" + user + "@" + host + ":" + std::to_string(port);
+    std::string repl_user_param = "--replication-user=" + replication_user;
+    std::string peer_instance_param = "--peer-instance=" + user + "@" + peer_instance;
+    const char *args_script[] = { "python", gadgets_path.c_str(), "join-replicaset", instance_param.c_str(), repl_user_param.c_str(), peer_instance_param.c_str(), "--stdin", NULL };
 
     ngcommon::Process_launcher p("python", args_script, false);
 
@@ -618,6 +623,7 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args)
           ret_val = shcore::Value(s_out);
           break;
         }
+        shcore::print(buf);
         buf = "";
       }
     }
@@ -637,10 +643,10 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args)
 
     // wait for termination
     int rc = p.wait();
-    if (rc != 0)
-    {
-      ret_val = shcore::Value("ERROR: Error executing mysqlprovision");
-    }
+    //if (rc != 0)
+    //{
+    //  ret_val = shcore::Value("ERROR: Error executing mysqlprovision");
+    //}
 
     // OK, if we reached here without errors we can update the metadata with the host
     auto result = _metadata_storage->insert_host(args);

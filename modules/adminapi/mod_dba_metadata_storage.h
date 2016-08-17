@@ -21,7 +21,7 @@
 #define _MOD_DBA_METADATA_STORAGE_H_
 
 #include "mod_dba.h"
-#include "mod_dba_farm.h"
+#include "mod_dba_cluster.h"
 #include "mod_dba_replicaset.h"
 #include "modules/base_resultset.h"
 
@@ -63,9 +63,6 @@ namespace mysh
       bool is_replicaset_empty(uint64_t rs_id);
       bool is_instance_on_replicaset(uint64_t rs_id, std::string address);
 
-      std::string get_instance_admin_user(uint64_t rs_id);
-      std::string get_instance_admin_user_password(uint64_t rs_id);
-      std::string get_replication_user_password(uint64_t rs_id);
       std::string get_seed_instance(uint64_t rs_id);
 
       Dba* get_dba() { return _dba; };

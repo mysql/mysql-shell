@@ -27,7 +27,7 @@
 
 #include "logger/logger.h"
 
-#include "mod_dba_farm.h"
+#include "mod_dba_cluster.h"
 #include "mod_dba_metadata_storage.h"
 #include <boost/lexical_cast.hpp>
 
@@ -224,11 +224,11 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args)
 
   // Available options
   std::string cluster_admin_type = "local"; // Default is local
-  std::string instance_admin_user = "instance_admin"; // Default is instance_admin
-  std::string cluster_reader_user = "farm_reader"; // Default is farm_reader
-  std::string replication_user = "replication_user"; // Default is replication_user
+  std::string instance_admin_user = "mysql_innodb_cluster_admin"; // Default is mysql_innodb_cluster_admin
+  std::string cluster_reader_user = "mysql_innodb_cluster_reader"; // Default is mysql_innodb_cluster_reader
+  std::string replication_user = "mysql_innodb_cluster_rpl_user"; // Default is mysql_innodb_cluster_rpl_user
 
-  std::string instance_admin_user_password;
+  std::string mysql_innodb_cluster_admin_pwd;
 
   try
   {
@@ -280,7 +280,7 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args)
         if (!options->has_key("instanceAdminPassword"))
           throw shcore::Exception::argument_error("instanceAdminUser password not provided.");
         else
-          instance_admin_user_password = (*options)["instanceAdminPassword"].as_string();
+          mysql_innodb_cluster_admin_pwd = (*options)["instanceAdminPassword"].as_string();
       }
     }
 
@@ -294,29 +294,33 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args)
     bool has_default_cluster = _metadata_storage->has_default_cluster();
 
     if (_default_cluster || has_default_cluster)
-      throw Exception::argument_error("Cluster is alredy initialized. Use getCluster() to access it.");
+      throw Exception::argument_error("Cluster is already initialized. Use getCluster() to access it.");
 
     // First we need to create the Metadata Schema, or update it if already exists
     _metadata_storage->create_metadata_schema();
 
+    // Check if we have the instanceAdminUser password or we need to generate it
+    if (mysql_innodb_cluster_admin_pwd.empty())
+      mysql_innodb_cluster_admin_pwd = cluster_password;
+
     _default_cluster.reset(new Cluster(cluster_name, _metadata_storage));
 
-    // Check if we have the instanceAdminUser password or we need to generate it
-    if (instance_admin_user_password.empty())
-      instance_admin_user_password = generate_password(PASSWORD_LENGHT);
-
     // Update the properties
-    _default_cluster->set_admin_type(cluster_admin_type);
     _default_cluster->set_password(cluster_password);
-    _default_cluster->set_instance_admin_user(instance_admin_user);
-    _default_cluster->set_instance_admin_user_password(instance_admin_user_password);
-    _default_cluster->set_cluster_reader_user(cluster_reader_user);
-    _default_cluster->set_cluster_reader_user_password(generate_password(PASSWORD_LENGHT));
-    _default_cluster->set_replication_user(replication_user);
-    _default_cluster->set_replication_user_password(generate_password(PASSWORD_LENGHT));
+    _default_cluster->set_description("Default Cluster");
+
+    _default_cluster->set_account_user(ACC_INSTANCE_ADMIN, instance_admin_user);
+    _default_cluster->set_account_password(ACC_INSTANCE_ADMIN, mysql_innodb_cluster_admin_pwd);
+    _default_cluster->set_account_user(ACC_CLUSTER_READER, cluster_reader_user);
+    _default_cluster->set_account_password(ACC_CLUSTER_READER, generate_password(PASSWORD_LENGHT));
+    _default_cluster->set_account_user(ACC_REPLICATION_USER, replication_user);
+    _default_cluster->set_account_password(ACC_REPLICATION_USER, generate_password(PASSWORD_LENGHT));
+
+    _default_cluster->set_option(OPT_ADMIN_TYPE, shcore::Value(cluster_admin_type));
+
+    _default_cluster->set_attribute(ATT_DEFAULT, shcore::Value::True());
 
     // For V1.0, let's see the Cluster's description to "default"
-    _default_cluster->set_description("Default Cluster");
 
     // Insert Cluster on the Metadata Schema
     _metadata_storage->insert_cluster(_default_cluster);

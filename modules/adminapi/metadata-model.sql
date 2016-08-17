@@ -19,11 +19,11 @@
 
 /*
   All the tables that contain information about the topology of MySQL servers
-  are stored in the farm_metadata_schema database.
+  are stored in the mysql_innodb_cluster_metadata database.
 */
 
-CREATE DATABASE farm_metadata_schema;
-USE farm_metadata_schema;
+CREATE DATABASE mysql_innodb_cluster_metadata;
+USE mysql_innodb_cluster_metadata;
 
 /*
   The major and minor version of the schema representing the semantic
@@ -33,16 +33,16 @@ CREATE VIEW schema_version (major, minor) AS SELECT 1, 0;
 
 /*
   This table contain information about the metadata and is used to identify
-  basic information about the farm.
+  basic information about the cluster.
 */
-CREATE TABLE farms (
-  /* unique ID used to distinguish the farm from other farms */
-  `farm_id` INT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
-  /* unique, user specified name for the farm */
-  `farm_name` VARCHAR(40) UNIQUE NOT NULL,
+CREATE TABLE clusters (
+  /* unique ID used to distinguish the cluster from other clusters */
+  `cluster_id` INT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  /* unique, user specified name for the cluster */
+  `cluster_name` VARCHAR(40) UNIQUE NOT NULL,
   /* Points to the default replicaset. */
   `default_replicaset` INT UNSIGNED,
-  /* Brief description of the farm. */
+  /* Brief description of the cluster. */
   `description` TEXT,
   /*
     Stores default mysql user accounts for automated management.
@@ -64,8 +64,8 @@ CREATE TABLE farms (
   */
   `options` JSON,
    /*
-    Contain attributes assigned to each farm and is a JSON data type with
-    key-value pair. The attributes can be used to tag the farms with custom
+    Contain attributes assigned to each cluster and is a JSON data type with
+    key-value pair. The attributes can be used to tag the clusters with custom
     attributes.
    */
   `attributes` JSON
@@ -82,8 +82,8 @@ CREATE TABLE replicasets (
     change over its lifetime.
   */
   `replicaset_id` INT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
-  /* Associates the replicaset with a farm definition. */
-  `farm_id` INT UNSIGNED NOT NULL,
+  /* Associates the replicaset with a cluster definition. */
+  `cluster_id` INT UNSIGNED NOT NULL,
   /*
     Specifies the type of a replicaset, for now this needs to be set to
     Group Replication.
@@ -109,17 +109,17 @@ CREATE TABLE replicasets (
   `attributes` JSON,
   /* An optional brief description of the replicaset. */
   `description` TEXT,
-  FOREIGN KEY (farm_id) REFERENCES farms(farm_id) ON DELETE RESTRICT
+  FOREIGN KEY (cluster_id) REFERENCES clusters(cluster_id) ON DELETE RESTRICT
 ) CHARSET = utf8;
 
-ALTER TABLE farms ADD FOREIGN KEY (default_replicaset) REFERENCES replicasets(replicaset_id) ON DELETE RESTRICT;
+ALTER TABLE clusters ADD FOREIGN KEY (default_replicaset) REFERENCES replicasets(replicaset_id) ON DELETE RESTRICT;
 
 /*
-  This table contains a list of all the hosts in the farm.
+  This table contains a list of all the hosts in the cluster.
 */
 CREATE TABLE hosts (
   /*
-    The ID of the host instance. The host UUID is used internally for farm
+    The ID of the host instance. The host UUID is used internally for cluster
     management.
   */
   `host_id` INT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
@@ -147,7 +147,7 @@ CREATE TABLE hosts (
 ) CHARSET = utf8;
 
 /*
-  This table contain a list of all server instances that are tracked by the farm.
+  This table contain a list of all server instances that are tracked by the cluster.
 */
 CREATE TABLE instances (
   /*

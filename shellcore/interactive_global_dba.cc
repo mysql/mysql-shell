@@ -19,7 +19,7 @@
 
 #include "interactive_global_dba.h"
 #include "shellcore/shell_registry.h"
-#include "shellcore/interactive_dba_farm.h"
+#include "shellcore/interactive_dba_cluster.h"
 #include "modules/mysqlxtest_utils.h"
 #include "modules/adminapi/mod_dba.h"
 #include "utils/utils_general.h"
@@ -245,7 +245,7 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args)
       cluster->set_target(std::dynamic_pointer_cast<Cpp_object_bridge>(raw_cluster.as_object()));
       ret_val = shcore::Value::wrap<Interactive_dba_cluster>(cluster);
     }
-  } CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("createFarm"));
+  } CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("createCluster"));
 
   return ret_val;
 }

@@ -17,7 +17,7 @@
  * 02110-1301  USA
  */
 
-#include "mod_dba_farm.h"
+#include "mod_dba_cluster.h"
 
 #include "common/uuid/include/uuid_gen.h"
 #include <sstream>
@@ -92,7 +92,7 @@ shcore::Value Cluster::get_member(const std::string &prop) const
   if (prop == "name")
     ret_val = shcore::Value(_name);
   else if (prop == "adminType")
-    ret_val = shcore::Value(_admin_type);
+    ret_val = (*_options)[OPT_ADMIN_TYPE];
   else
     ret_val = shcore::Cpp_object_bridge::get_member(prop);
 
@@ -184,7 +184,7 @@ shcore::Value Cluster::add_seed_instance(const shcore::Argument_list &args)
       // Create the Default ReplicaSet and assign it to the Cluster's default_replica_set var
       _default_replica_set.reset(new ReplicaSet("default", _metadata_storage));
 
-      _default_replica_set->set_replication_user(default_replication_user);
+      _default_replica_set->set_cluster(shared_from_this());
 
       // If we reached here without errors we can update the Metadata
 
@@ -335,6 +335,14 @@ shcore::Value Cluster::get_replicaset(const shcore::Argument_list &args)
   return ret_val;
 }
 
+void Cluster::set_default_replicaset(std::shared_ptr<ReplicaSet> default_rs)
+{
+  _default_replica_set = default_rs;
+
+  if (_default_replica_set)
+    _default_replica_set->set_cluster(shared_from_this());
+};
+
 void Cluster::append_json(shcore::JSON_dumper& dumper) const
 {
   if (_json_mode)
@@ -347,7 +355,7 @@ void Cluster::append_json(shcore::JSON_dumper& dumper) const
     else
     {
       if (_json_mode == JSON_TOPOLOGY_OUTPUT)
-        dumper.append_string("adminType", _admin_type);
+        dumper.append_string("adminType", (*_options)[OPT_ADMIN_TYPE].as_string());
 
       _default_replica_set->set_json_mode(_json_mode);
       dumper.append_value("defaultReplicaSet", shcore::Value(std::dynamic_pointer_cast<shcore::Object_bridge>(_default_replica_set)));
@@ -396,4 +404,42 @@ shcore::Value Cluster::status(const shcore::Argument_list &args)
   _json_mode = JSON_STANDARD_OUTPUT;
 
   return ret_val;
+}
+
+void Cluster::set_account_data(const std::string& account, const std::string& key, const std::string& value)
+{
+  if (!_accounts)
+    _accounts.reset(new shcore::Value::Map_type());
+
+  if (!_accounts->has_key(account))
+    (*_accounts)[account] = shcore::Value::new_map();
+
+  auto account_data = (*_accounts)[account].as_map();
+  (*account_data)[key] = shcore::Value(value);
+}
+
+std::string Cluster::get_account_data(const std::string& account, const std::string& key)
+{
+  std::string ret_val;
+
+  if (_accounts && _accounts->has_key(account))
+    ret_val = _accounts->get_map(account)->get_string(key);
+
+  return ret_val;
+}
+
+void Cluster::set_option(const std::string& option, const shcore::Value& value)
+{
+  if (!_options)
+    _options.reset(new shcore::Value::Map_type());
+
+  (*_options)[option] = value;
+}
+
+void Cluster::set_attribute(const std::string& attribute, const shcore::Value& value)
+{
+  if (!_attributes)
+    _attributes.reset(new shcore::Value::Map_type());
+
+  (*_attributes)[attribute] = value;
 }

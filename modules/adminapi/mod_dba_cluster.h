@@ -25,6 +25,16 @@
 
 #include "mod_dba_replicaset.h"
 
+#define ACC_USER "username"
+#define ACC_PASSWORD "password"
+#define ACC_INSTANCE_ADMIN "instanceAdmin"
+#define ACC_CLUSTER_READER "clusterReader"
+#define ACC_REPLICATION_USER "replicationUser"
+
+#define OPT_ADMIN_TYPE "adminType"
+
+#define ATT_DEFAULT "default"
+
 namespace mysh
 {
   namespace mysqlx
@@ -50,29 +60,27 @@ namespace mysh
       const uint64_t get_id() { return _id; }
       void set_id(uint64_t id) { _id = id; }
       std::shared_ptr<ReplicaSet> get_default_replicaset() { return _default_replica_set; }
-      void set_default_replicaset(std::shared_ptr<ReplicaSet> default_rs)
-      {
-        _default_replica_set = default_rs;
-      };
+      void set_default_replicaset(std::shared_ptr<ReplicaSet> default_rs);
       std::string get_name() { return _name; }
-      std::string get_admin_type() { return _admin_type; }
-      void set_admin_type(std::string admin_type) { _admin_type = admin_type; }
-      std::string get_password() { return _password; }
       void set_password(std::string cluster_password) { _password = cluster_password; }
+      std::string get_password() { return _password; }
       std::string get_description() { return _description; }
       void set_description(std::string description) { _description = description; };
-      std::string get_instance_admin_user() { return _instance_admin_user; };
-      void set_instance_admin_user(std::string user) { _instance_admin_user = user; };
-      std::string get_instance_admin_user_password() { return _instance_admin_user_password; };
-      void set_instance_admin_user_password(std::string password) { _instance_admin_user_password = password; };
-      std::string get_cluster_reader_user() { return _cluster_reader_user; };
-      void set_cluster_reader_user(std::string user) { _cluster_reader_user = user; };
-      std::string get_cluster_reader_user_password() { return _cluster_reader_user_password; }
-      void set_cluster_reader_user_password(std::string password) { _cluster_reader_user_password = password; };
-      std::string get_replication_user() { return _cluster_replication_user; };
-      void set_replication_user(std::string user) { _cluster_replication_user = user; };
-      std::string get_replication_user_password() { return _cluster_reader_user_password; };
-      void set_replication_user_password(std::string password) { _cluster_reader_user_password = password; };
+
+      void set_account_user(const std::string& account, const std::string& value)  { set_account_data(account, ACC_USER, value); }
+      std::string get_account_user(const std::string& account){ return get_account_data(account, ACC_USER); }
+      void set_account_password(const std::string& account, const std::string& value)  { set_account_data(account, ACC_PASSWORD, value); }
+      std::string get_account_password(const std::string& account){ return get_account_data(account, ACC_PASSWORD); }
+      std::string get_accounts() { return shcore::Value(_accounts).json(false); }
+      void set_accounts(const std::string& json) { _accounts = shcore::Value::parse(json).as_map(); }
+
+      void set_option(const std::string& option, const shcore::Value &value);
+      void set_options(const std::string& json) { _options = shcore::Value::parse(json).as_map(); }
+      std::string get_options() { return shcore::Value(_options).json(false); }
+
+      void set_attribute(const std::string& attribute, const shcore::Value &value);
+      void set_attributes(const std::string& json) { _attributes = shcore::Value::parse(json).as_map(); }
+      std::string get_attributes() { return shcore::Value(_attributes).json(false); }
 
 #if DOXYGEN_JS
       String getName();
@@ -106,10 +114,12 @@ namespace mysh
     protected:
       uint64_t _id;
       std::string _name;
-      std::string _admin_type;
       std::shared_ptr<ReplicaSet> _default_replica_set;
       std::string _password;
       std::string _description;
+      shcore::Value::Map_type_ref _accounts;
+      shcore::Value::Map_type_ref _options;
+      shcore::Value::Map_type_ref _attributes;
 
     private:
       // This flag will be used to determine what should be included on the JSON output for the object
@@ -120,12 +130,9 @@ namespace mysh
       void init();
 
       std::shared_ptr<MetadataStorage> _metadata_storage;
-      std::string _instance_admin_user;
-      std::string _instance_admin_user_password;
-      std::string _cluster_reader_user;
-      std::string _cluster_reader_user_password;
-      std::string _cluster_replication_user;
-      std::string _cluster_replication_user_password;
+
+      void set_account_data(const std::string& account, const std::string& key, const std::string& value);
+      std::string get_account_data(const std::string& account, const std::string& key);
     };
   }
 }

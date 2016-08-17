@@ -27,7 +27,7 @@
 #include "shellcore/types_cpp.h"
 #include "shellcore/ishell_core.h"
 #include "modules/base_session.h"
-#include "mod_dba_farm.h"
+#include "mod_dba_cluster.h"
 #include <set>
 
 namespace mysh
