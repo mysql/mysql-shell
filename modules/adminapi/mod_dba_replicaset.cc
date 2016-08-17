@@ -110,7 +110,7 @@ void ReplicaSet::append_json_status(shcore::JSON_dumper& dumper) const
   dumper.start_object();
   dumper.append_string("name", master->get_member(1).as_string());
   auto status = master->get_member(3);
-  dumper.append_string("status", (status && status.as_string() == "ONLINE") ? "ONLINE" : "OFFLINE");
+  dumper.append_string("status", status.as_string());
   dumper.append_string("role", master->get_member(2).as_string());
   dumper.append_string("mode", "R/W");
 
@@ -124,7 +124,7 @@ void ReplicaSet::append_json_status(shcore::JSON_dumper& dumper) const
       dumper.start_object();
       dumper.append_string("name", row->get_member(1).as_string());
       auto status = row->get_member(3);
-      dumper.append_string("status", (status && status.as_string() == "ONLINE") ? "ONLINE" : "OFFLINE");
+      dumper.append_string("status", status.as_string());
       dumper.append_string("role", row->get_member(2).as_string());
       dumper.append_string("mode", "R/O");
       dumper.append_string("leaves");
@@ -462,7 +462,7 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args)
     std::string replication_user = "--replication-user=replication_user";
     const char *args_script[] = { "python", gadgets_path.c_str(), "start-replicaset", instance_cmd.c_str(), replication_user.c_str(), "--stdin", NULL };
 
-    ngcommon::Process_launcher p("python", args_script);
+    ngcommon::Process_launcher p("python", args_script, false);
 
     try
     {
@@ -518,7 +518,11 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args)
       throw shcore::Exception::logic_error(error);
     }
 
-    p.wait();
+    int rc = p.wait();
+    if (rc != 0)
+    {
+      ret_val = shcore::Value("ERROR: Error executing mysqlprovision");
+    }
 
     // OK, if we reached here without errors we can update the metadata with the host
     auto result = _metadata_storage->insert_host(args);
@@ -557,7 +561,7 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args)
     std::string peer_cmd = "--peer-instance=" + user + "@" + peer_instance;
     const char *args_script[] = { "python", gadgets_path.c_str(), "join-replicaset", instance_cmd.c_str(), replication_user.c_str(), peer_cmd.c_str(), "--stdin", NULL };
 
-    ngcommon::Process_launcher p("python", args_script);
+    ngcommon::Process_launcher p("python", args_script, false);
 
     try
     {
@@ -632,7 +636,11 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args)
     }
 
     // wait for termination
-    p.wait();
+    int rc = p.wait();
+    if (rc != 0)
+    {
+      ret_val = shcore::Value("ERROR: Error executing mysqlprovision");
+    }
 
     // OK, if we reached here without errors we can update the metadata with the host
     auto result = _metadata_storage->insert_host(args);
