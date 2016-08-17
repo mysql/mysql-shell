@@ -198,7 +198,7 @@ void Interactive_shell::print_connection_message(mysh::SessionType type, const s
   if (!sessionid.empty())
     message = "Using '" + sessionid + "' stored connection\n";
 
-  message += "Creating " + stype + " Session to " + uri;
+  message += "Creating " + stype + " Session to '" + uri + "'";
 
   if ((*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string().find("json") == 0)
     print_json_info(message);
@@ -349,15 +349,23 @@ Value Interactive_shell::connect_session(const Argument_list &args, mysh::Sessio
       old_session->close(shcore::Argument_list());
     }
 
+    _delegate.print(_delegate.user_data, "Session successfully established. ");
+
     std::string message;
     shcore::Value default_schema;
-    if (!new_session->class_name().compare("XSession"))
+    std::string session_type = new_session->class_name();
+    if (!session_type.compare("XSession"))
        default_schema = new_session->get_member("defaultSchema");
     else
        default_schema = new_session->get_member("currentSchema");
 
     if (default_schema)
-      message = "Default schema `" + default_schema.as_object()->get_member("name").as_string() + "` accessible through db.";
+    {
+      if (session_type == "ClassicSession")
+        message = "Default schema set to `" + default_schema.as_object()->get_member("name").as_string() + "`.";
+      else
+        message = "Default schema `" + default_schema.as_object()->get_member("name").as_string() + "` accessible through db.";
+    }
     else
       message = "No default schema selected.";
 
@@ -1147,9 +1155,9 @@ void Interactive_shell::process_line(const std::string &line)
             add_history(executed.c_str());
 #endif
             println("");
+          }
         }
       }
-    }
       catch (shcore::Exception &exc)
       {
         _delegate.print_error(_delegate.user_data, exc.format().c_str());
@@ -1166,8 +1174,8 @@ void Interactive_shell::process_line(const std::string &line)
       // the non executed code
       if (_input_mode == Input_ok)
         _input_buffer.clear();
+    }
   }
-}
 }
 
 void Interactive_shell::abort()

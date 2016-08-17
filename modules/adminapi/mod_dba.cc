@@ -40,7 +40,7 @@ using namespace shcore;
 
 #define PASSWORD_LENGHT 16
 
-std::set<std::string> Dba::_deploy_instance_opts = { "port", "portx", "sandboxDir", "password", "dbPassword" };
+std::set<std::string> Dba::_deploy_instance_opts = { "portx", "sandboxDir", "password", "dbPassword" };
 
 Dba::Dba(IShell_core* owner) :
 _shell_core(owner)
@@ -248,19 +248,17 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args)
       // Map with the options
       shcore::Value::Map_type_ref options = args.map_at(2);
 
-      // Verify if the options are valid
-      std::vector<std::string> valid_options = { "clusterAdminType", "instanceAdminUser", "instanceAdminPassword" };
-
-      for (shcore::Value::Map_type::iterator i = options->begin(); i != options->end(); ++i)
+      // Verification of invalid attributes on the instance creation options
+      auto invalids = shcore::get_additional_keys(options, { "clusterAdminType" });
+      if (invalids.size())
       {
-        if ((std::find(valid_options.begin(), valid_options.end(), i->first) == valid_options.end()))
-          throw shcore::Exception::argument_error("Unexpected argument " + i->first + " on connection data.");
+        std::string error = "The instance options contain the following invalid attributes: ";
+        error += shcore::join_strings(invalids, ", ");
+        throw shcore::Exception::argument_error(error);
       }
 
       if (options->has_key("clusterAdminType"))
         cluster_admin_type = (*options)["clusterAdminType"].as_string();
-
-      std::cout << "cluster admin type: " << cluster_admin_type << "\n";
 
       if (cluster_admin_type != "local" ||
           cluster_admin_type != "guided" ||
@@ -268,19 +266,6 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args)
           cluster_admin_type != "ssh")
       {
         throw shcore::Exception::argument_error("Cluster Administration Type invalid. Valid types are: 'local', 'guided', 'manual', 'ssh'");
-      }
-
-      if (options->has_key("instanceAdminUser"))
-      {
-        instance_admin_user = (*options)["instanceAdminUser"].as_string();
-
-        if (instance_admin_user.empty())
-          throw Exception::argument_error("The instanceAdminUser option cannot be empty.");
-
-        if (!options->has_key("instanceAdminPassword"))
-          throw shcore::Exception::argument_error("instanceAdminUser password not provided.");
-        else
-          mysql_innodb_cluster_admin_pwd = (*options)["instanceAdminPassword"].as_string();
       }
     }
 
@@ -631,46 +616,43 @@ shcore::Value Dba::deploy_local_instance(const shcore::Argument_list &args)
 
   shcore::Value::Map_type_ref options; // Map with the connection data
 
-  int port = 0;
+  int port = args.int_at(0);
   int portx = 0;
   std::string password;
   std::string sandbox_dir;
 
   try
   {
-    options = args.map_at(0);
-
-    // Verification of invalid attributes on the instance deployment data
-    auto invalids = shcore::get_additional_keys(options, _deploy_instance_opts);
-    if (invalids.size())
+    if (args.size() == 2)
     {
-      std::string error = "The instance data contains the following invalid attributes: ";
-      error += shcore::join_strings(invalids, ", ");
-      throw shcore::Exception::argument_error(error);
-    }
+      options = args.map_at(1);
 
-    // Verification of required attributes on the instance deployment data
-    auto missing = shcore::get_missing_keys(options, { "password|dbPassword" });
+      // Verification of invalid attributes on the instance deployment data
+      auto invalids = shcore::get_additional_keys(options, _deploy_instance_opts);
+      if (invalids.size())
+      {
+        std::string error = "The instance data contains the following invalid attributes: ";
+        error += shcore::join_strings(invalids, ", ");
+        throw shcore::Exception::argument_error(error);
+      }
 
-    if (missing.size())
-    {
-      if (args.size() == 2)
-        password = args.string_at(1);
+      // Verification of required attributes on the instance deployment data
+      auto missing = shcore::get_missing_keys(options, { "password|dbPassword" });
+
+      if (missing.size())
+          throw shcore::Exception::argument_error("Missing root password for the deployed instance");
       else
-        throw shcore::Exception::argument_error("Missing root password for the deployed instance");
+      {
+        if (options->has_key("password"))
+          password = options->get_string("password");
+        else if (options->has_key("dbPassword"))
+          password = options->get_string("dbPassword");
+      }
     }
     else
-    {
-      if (options->has_key("password"))
-        password = options->get_string("password");
-      else if (options->has_key("dbPassword"))
-        password = options->get_string("dbPassword");
-    }
+      throw shcore::Exception::argument_error("Missing root password for the deployed instance");
 
     password += "\n";
-
-    if (options->has_key("port"))
-      port = (*options)["port"].as_int();
 
     if (options->has_key("portx"))
       portx = (*options)["portx"].as_int();
@@ -753,11 +735,8 @@ shcore::Value Dba::deploy_local_instance(const shcore::Argument_list &args)
           error += buf;
 
         if (strcmp(success.c_str(), buf.c_str()) == 0)
-        {
-          std::string s_out = "Instance: localhost:" + std::to_string(port) + " successfully deployed.";
-          ret_val = shcore::Value(s_out);
           break;
-        }
+
         buf = "";
       }
     }

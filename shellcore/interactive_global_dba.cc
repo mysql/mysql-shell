@@ -46,6 +46,7 @@ shcore::Value Global_dba::deploy_local_instance(const shcore::Argument_list &arg
   args.ensure_count(1, 2, get_function_name("deployLocalInstance").c_str());
 
   shcore::Value ret_val;
+  shcore::Argument_list new_args;
 
   shcore::Value::Map_type_ref options; // Map with the connection data
 
@@ -54,26 +55,38 @@ shcore::Value Global_dba::deploy_local_instance(const shcore::Argument_list &arg
 
   try
   {
-    options = args.map_at(0);
+    int port = args.int_at(0);
+    new_args.push_back(args[0]);
 
-    // Verification of invalid attributes on the instance deployment data
-    auto invalids = shcore::get_additional_keys(options, mysh::mysqlx::Dba::_deploy_instance_opts);
-    if (invalids.size())
+    if (args.size() == 2)
     {
-      std::string error = "The instance data contains the following invalid attributes: ";
-      error += shcore::join_strings(invalids, ", ");
+      new_args.push_back(args[1]);
+      options = args.map_at(1);
 
-      proceed = false;
-      if (prompt((boost::format("%s. Do you want to ignore these attributes and continue? [Y/n]: ") % error).str().c_str(), answer))
+      // Verification of invalid attributes on the instance deployment data
+      auto invalids = shcore::get_additional_keys(options, mysh::mysqlx::Dba::_deploy_instance_opts);
+      if (invalids.size())
       {
-        proceed = (!answer.compare("y") || !answer.compare("Y") || answer.empty());
+        std::string error = "The instance data contains the following invalid attributes: ";
+        error += shcore::join_strings(invalids, ", ");
 
-        if (proceed)
+        proceed = false;
+        if (prompt((boost::format("%s. Do you want to ignore these attributes and continue? [Y/n]: ") % error).str().c_str(), answer))
         {
-          for (auto attribute : invalids)
-            options->erase(attribute);
+          proceed = (!answer.compare("y") || !answer.compare("Y") || answer.empty());
+
+          if (proceed)
+          {
+            for (auto attribute : invalids)
+              options->erase(attribute);
+          }
         }
       }
+    }
+    else
+    {
+      options.reset(new shcore::Value::Map_type());
+      new_args.push_back(shcore::Value(options));
     }
 
     if (proceed)
@@ -83,22 +96,22 @@ shcore::Value Global_dba::deploy_local_instance(const shcore::Argument_list &arg
 
       if (missing.size())
       {
-        if (args.size() == 2)
-          (*options)["password"] = shcore::Value(args.string_at(1));
-        else
+        proceed = false;
+        bool prompt_password = true;
+        while (prompt_password && !proceed)
         {
-          proceed = false;
-          bool prompt_password = true;
-          while (prompt_password && !proceed)
+          std::string message = "A new MySQL instance will be created on localhost, running on the specified\n"\
+                                "port. The data directory will be located inside the sandbox directory and match\n"
+                                "the port number.\n\n"\
+                                "Please enter a MySQL root password for the new instance: ";
+
+          prompt_password = password(message, answer);
+          if (prompt_password)
           {
-            prompt_password = password("Please enter root password for the deployed instance: ", answer);
-            if (prompt_password)
+            if (!answer.empty())
             {
-              if (!answer.empty())
-              {
-                (*options)["password"] = shcore::Value(answer);
-                proceed = true;
-              }
+              (*options)["password"] = shcore::Value(answer);
+              proceed = true;
             }
           }
         }
@@ -108,7 +121,10 @@ shcore::Value Global_dba::deploy_local_instance(const shcore::Argument_list &arg
     if (proceed)
     {
       shcore::print("Deploying instance...\n");
-      ret_val = _target->call("deployLocalInstance", args);
+      ret_val = _target->call("deployLocalInstance", new_args);
+
+      shcore::print("Instance: localhost:" + std::to_string(port) + " successfully deployed and started.\n\n");
+      shcore::print("Use '\\connect -c root@localhost:" + std::to_string(port) + "' to connect to the new instance.");
     }
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("deployLocalInstance"));
@@ -181,7 +197,7 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args)
   try
   {
     std::string cluster_name = args.string_at(0);
-    std::string answer, cluster_password, instance_admin_user_pwd;
+    std::string answer, cluster_password;
     shcore::Value::Map_type_ref options;
 
     if (cluster_name.empty())
@@ -200,21 +216,24 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args)
       {
         options = args.map_at(opts_index);
         // Check if some option is missing
-        if (options->has_key("instanceAdminUser"))
-        {
-          if (!options->has_key("instanceAdminPassword"))
-          {
-            if (password("Please enter '" + cluster_name + "' MySQL instance administration user password: ", answer))
-              instance_admin_user_pwd = answer;
-          }
-        }
+        // TODO: Validate adminType parameter value
       }
     }
 
+    auto dba = std::dynamic_pointer_cast<mysh::mysqlx::Dba>(_target);
+    auto session = dba->get_active_session();
     bool prompt_password = true;
     while (prompt_password && cluster_password.empty())
     {
-      prompt_password = password("Please enter an administrative MASTER password to be used for the Cluster '" + cluster_name + "': ", answer);
+      std::string message = "A new InnoDB cluster will be created on instance '" + session->uri() + "'.\n\n"
+                            "When setting up a new InnoDB cluster it is required to define an administrative\n"\
+                            "MASTER key for the cluster.This MASTER key needs to be re - entered when making\n"\
+                            "changes to the cluster later on, e.g.adding new MySQL instances or configuring\n"\
+                            "MySQL Routers.Losing this MASTER key will require the configuration of all\n"\
+                            "InnoDB cluster entities to be changed.\n\n"\
+                            "Please specify an administrative MASTER key for the cluster '" + cluster_name + "':\n";
+
+      prompt_password = password(message, answer);
       if (prompt_password)
       {
         if (!answer.empty())
@@ -231,11 +250,10 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args)
       // Update the cache as well
       set_cluster_admin_password(cluster_password);
 
-      if (!instance_admin_user_pwd.empty())
-        (*options)["instanceAdminPassword"] = shcore::Value(answer);
-
       if (options != NULL)
         new_args.push_back(shcore::Value(options));
+
+      print("Creating InnoDB cluster '" + cluster_name + "' on '" + session->uri() + "'...");
 
       // This is an instance of the API cluster
       auto raw_cluster = _target->call("createCluster", new_args);
@@ -244,6 +262,9 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args)
       Interactive_dba_cluster* cluster = new Interactive_dba_cluster(this->_shell_core);
       cluster->set_target(std::dynamic_pointer_cast<Cpp_object_bridge>(raw_cluster.as_object()));
       ret_val = shcore::Value::wrap<Interactive_dba_cluster>(cluster);
+
+      print("\nCluster successfully created. Use Cluster.addInstance() to add MySQL instances.\n");
+      print("At least 3 instances are needed for the cluster to be able to withstand up to one server failure.\n");
     }
   } CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("createCluster"));
 

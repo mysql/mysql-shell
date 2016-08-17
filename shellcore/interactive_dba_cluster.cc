@@ -91,10 +91,15 @@ shcore::Value Interactive_dba_cluster::add_instance(const shcore::Argument_list 
   {
     shcore::Value::Map_type_ref options;
 
+    std::string message = "A new instance will be added to the InnoDB cluster.Depending on the amount of\n"
+                          "data on the cluster this might take from a few seconds to several hours.";
+
     if (resolve_instance_options(function, args, options))
     {
       shcore::Argument_list new_args;
       new_args.push_back(shcore::Value(options));
+
+      print("Adding instance to the cluster ...");
       ret_val = _target->call(function, new_args);
     }
   }
@@ -179,7 +184,7 @@ bool Interactive_dba_cluster::resolve_instance_options(const std::string& functi
       user_password = options->get_string("password");
     else if (options->has_key("dbPassword"))
       user_password = options->get_string("dbPassword");
-    else if (args.size())
+    else if (args.size() == 2)
     {
       user_password = args.string_at(1);
       (*options)["dbPassword"] = shcore::Value(user_password);
