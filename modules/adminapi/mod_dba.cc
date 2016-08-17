@@ -59,8 +59,6 @@ void Dba::init()
   // If not, _clusters can be removed
   _clusters.reset(new shcore::Value::Map_type);
 
-  add_property("defaultCluster", "getDefaultCluster");
-
   // Pure functions
   add_method("resetSession", std::bind(&Dba::reset_session, this, _1), "session", shcore::Object, NULL);
   add_method("createCluster", std::bind(&Dba::create_cluster, this, _1), "clusterName", shcore::String, NULL);
@@ -132,95 +130,76 @@ std::shared_ptr<ShellDevelopmentSession> Dba::get_active_session()
 
 #if DOXYGEN_CPP
 /**
- * Use this function to retrieve an valid member of this class exposed to the scripting languages.
- * \param prop : A string containing the name of the member to be returned
- *
- * This function returns a Value that wraps the object returned by this function.
- * The content of the returned value depends on the property being requested.
- * The next list shows the valid properties as well as the returned value for each of them:
- *
- * \li uri: returns a String object with a string representing the connection data for this session.
- * \li defaultCluster: returns the default Cluster object.
- */
+* Retrieves a Cluster object from the Metadata Schema.
+* \ param name Optional parameter to specify the name of the Cluster to be returned.
+*
+* If the name is provided the Cluster with the given name will be returned. If a Cluster with the given name does not exist
+* an error will be raised.
+*
+* If no name is provided, the Cluster configured as "default" will be returned.
+* \return The Cluster configured as default.
+*/
 #else
 /**
-* Retrieves the connection data for this session in string format.
-* \return A string representing the connection data.
+* Retrieves the default Cluster from the Metadata Schema.
+* \return The Cluster configured as default.
 */
 #if DOXYGEN_JS
-String Dba::getUri(){}
+Cluster Dba::getCluster(){}
 #elif DOXYGEN_PY
-str Dba::get_uri(){}
+Cluster Dba::get_cluster(){}
 #endif
 /**
-* Retrieves the Cluster configured as default on this Metadata instance.
-* \return A Cluster object or Null
-*/
-#if DOXYGEN_JS
-Cluster Dba::getDefaultCluster(){}
-#elif DOXYGEN_PY
-Cluster Dba::get_default_cluster(){}
-#endif
-#endif
-
-Value Dba::get_member(const std::string &prop) const
-{
-  // Retrieves the member first from the parent
-  Value ret_val;
-
-  // Check the member is on the base classes before attempting to
-  // retrieve it since it may throw invalid member otherwise
-  // If not on the parent classes and not here then we can safely assume
-  // it is a schema and attempt loading it as such
-  if (prop == "defaultCluster")
-  {
-    if (!_default_cluster)
-      _default_cluster = _metadata_storage->get_default_cluster();
-
-    if (_default_cluster)
-      ret_val = shcore::Value(std::dynamic_pointer_cast<Object_bridge>(_default_cluster));
-    else
-      throw Exception::logic_error("There is no default Cluster.");
-  }
-  else if (Cpp_object_bridge::has_member(prop))
-    ret_val = Cpp_object_bridge::get_member(prop);
-
-  return ret_val;
-}
-
-/**
-* Retrieves a Cluster object from the current session through it's name.
+* Retrieves a Cluster object from the Metadata schema.
 * \param name The name of the Cluster object to be retrieved.
 * \return The Cluster object with the given name.
-* \sa Cluster
+*
+* If a Cluster with the given name does not exist an error will be raised.
 */
 #if DOXYGEN_JS
 Cluster Dba::getCluster(String name){}
 #elif DOXYGEN_PY
 Cluster Dba::get_cluster(str name){}
 #endif
-
+#endif
 shcore::Value Dba::get_cluster(const shcore::Argument_list &args) const
 {
   Value ret_val;
-  args.ensure_count(1, get_function_name("getCluster").c_str());
+  args.ensure_count(0, 1, get_function_name("getCluster").c_str());
+
+  std::shared_ptr<mysh::mysqlx::Cluster> cluster;
 
   try
   {
-    std::string cluster_name = args.string_at(0);
+    if (args.size())
+    {
+      std::string cluster_name = args.string_at(0);
 
-    if (cluster_name.empty())
-      throw Exception::argument_error("The Cluster name cannot be empty.");
+      if (cluster_name.empty())
+        throw Exception::argument_error("The Cluster name cannot be empty.");
 
-    //if (!_session.is_connected())
-    //  throw Exception::metadata_error("Not connected to the Metadata Storage.");
+      if (!_clusters->has_key(cluster_name))
+        cluster = _metadata_storage->get_cluster(cluster_name);
+      else
+        ret_val = (*_clusters)[cluster_name];
+    }
+    else
+    {
+      if (!_default_cluster)
+        _default_cluster = _metadata_storage->get_default_cluster();
 
-    if (!_clusters->has_key(cluster_name))
-      (*_clusters)[cluster_name] = shcore::Value(std::dynamic_pointer_cast<shcore::Object_bridge>(_metadata_storage->get_cluster(cluster_name)));
-
-    ret_val = (*_clusters)[cluster_name];
+      cluster = _default_cluster;
+    }
   }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("getCluster"))
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("getCluster"));
+
+  if (cluster)
+  {
+    if (!_clusters->has_key(cluster->get_name()))
+       (*_clusters)[cluster->get_name()] = shcore::Value(std::dynamic_pointer_cast<Object_bridge>(cluster));
+
+    ret_val = (*_clusters)[cluster->get_name()];
+  }
 
   return ret_val;
 }
@@ -811,9 +790,14 @@ std::string Dba::get_help_text(const std::string& topic)
   else if (topic == get_function_name("dropCluster", false))
     ret_val = "Deletes a Cluster.";
   else if (topic == get_function_name("getCluster", false))
-    ret_val = "Retrieves a Cluster object based on its name.";
-  else if (topic == get_function_name("getDefaultCluster", false))
-    ret_val = "Retrieves the default Cluster.";
+    ret_val = "Retrieves an InnoDB cluster from the Metadata Store.\n\n"\
+    "SYNTAX:\n\n"\
+    "   " + get_function_name("getCluster", false) + "([name])\n\n"\
+    "WHERE:\n\n"\
+    "   name: is an optional parameter to specify name of cluster to be returned.\n\n"\
+    "   If name is not specified, the default cluster will be returned.\n\n"\
+    "   If name is specified, and no cluster with the indicated name is found,\n"\
+    "   an error will be raised.\n";
   else if (topic == get_function_name("dropMetadataSchema", false))
     ret_val = "Destroys the Cluster configuration data.";
   else if (topic == get_function_name("validateInstance", false))

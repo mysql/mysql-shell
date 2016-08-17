@@ -98,6 +98,8 @@ namespace mysh
       void start_transaction();
       void commit();
       void rollback();
+
+      std::shared_ptr<Cluster> get_cluster_matching(const std::string& condition);
     };
   }
 }

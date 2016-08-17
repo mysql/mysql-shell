@@ -52,8 +52,6 @@ namespace mysh
 
       virtual std::string class_name() const { return "Dba"; };
 
-      virtual shcore::Value get_member(const std::string &prop) const;
-
       virtual bool operator == (const Object_bridge &other) const;
 
       std::shared_ptr<ShellDevelopmentSession> get_active_session();
@@ -75,21 +73,15 @@ namespace mysh
       Cluster get_default_cluster();
 
 #if DOXYGEN_JS
-      Cluster defaultCluster; //!< Same as getDefaultSchema()
-
       Cluster createCluster(String name);
       Undefined dropCluster(String name);
       Cluster getCluster(String name);
-      Cluster getDefaultCluster();
       Undefined dropMetadataSchema();
 
 #elif DOXYGEN_PY
-      Cluster defaultCluster; //!< Same as get_default_schema()
-
       Cluster create_cluster(str name);
       None drop_cluster(str name);
       Cluster get_cluster(str name);
-      Cluster get_default_cluster();
       None drop_metadata_schema();
 #endif
 

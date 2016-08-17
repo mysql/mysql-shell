@@ -54,6 +54,7 @@ namespace mysh
       {
         _default_replica_set = default_rs;
       };
+      std::string get_name() { return _name; }
       std::string get_admin_type() { return _admin_type; }
       void set_admin_type(std::string admin_type) { _admin_type = admin_type; }
       std::string get_password() { return _password; }

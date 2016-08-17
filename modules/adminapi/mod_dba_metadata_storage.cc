@@ -335,7 +335,7 @@ void MetadataStorage::insert_instance(const shcore::Argument_list &args, uint64_
 
   // Insert the default ReplicaSet on the replicasets table
   query = "INSERT INTO farm_metadata_schema.instances (host_id, replicaset_id, mysql_server_uuid, instance_name,\
-                                                                                                                                                                                                                                                                                                                                                                                                                        role, addresses) VALUES ('" +
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        role, addresses) VALUES ('" +
         std::to_string(host_id) + "', '" + std::to_string(rs_id) + "', '" + mysql_server_uuid + "', '" +
         instance_name + "', '" + role + "', '{\"mysqlClassic\": \"" + addresses + "\"}')";
 
@@ -491,12 +491,18 @@ std::shared_ptr<ReplicaSet> MetadataStorage::get_replicaset(uint64_t rs_id)
   return rs;
 }
 
-std::shared_ptr<Cluster> MetadataStorage::get_default_cluster()
+std::shared_ptr<Cluster> MetadataStorage::get_cluster_matching(const std::string& condition)
 {
   std::shared_ptr<Cluster> cluster;
+  std::string query = "SELECT farm_id, farm_name, default_replicaset, description, JSON_UNQUOTE(JSON_EXTRACT(options, '$.clusterAdminType')) as admin_type " \
+    "from farm_metadata_schema.farms " \
+    "WHERE ";
+
+  query += condition;
+
   try
   {
-    auto result = execute_sql("SELECT farm_id, farm_name, default_replicaset, description, JSON_UNQUOTE(JSON_EXTRACT(options, '$.farmAdminType')) as admin_type from farm_metadata_schema.farms WHERE attributes->\"$.default\" = true");
+    auto result = execute_sql(query);
 
     auto row = result->call("fetchOne", shcore::Argument_list());
 
@@ -529,30 +535,17 @@ std::shared_ptr<Cluster> MetadataStorage::get_default_cluster()
   return cluster;
 }
 
+std::shared_ptr<Cluster> MetadataStorage::get_default_cluster()
+{
+  return get_cluster_matching("attributes->'$.default' = true");
+}
+
 std::shared_ptr<Cluster> MetadataStorage::get_cluster(const std::string &cluster_name)
 {
-  // Check if the Cluster exists
-  if (!cluster_exists(cluster_name))
+  std::shared_ptr<Cluster> cluster = get_cluster_matching("farm_name = '" + cluster_name + "'");
+
+  if (!cluster)
     throw Exception::logic_error("The cluster with the name '" + cluster_name + "' does not exist.");
-
-  std::shared_ptr<Cluster> cluster(new Cluster(cluster_name, shared_from_this()));
-
-  // Update the cluster_id
-  uint64_t cluster_id = get_cluster_id(cluster_name);
-  cluster->set_id(cluster_id);
-
-  // Get the Cluster's Default replicaSet ID
-  uint64_t default_rs_id = get_cluster_default_rs_id(cluster_name);
-
-  // Check if the Cluster has a Default ReplicaSet
-  if (default_rs_id != 0)
-  {
-    // Get the default replicaset from the Cluster
-    std::shared_ptr<ReplicaSet> default_rs = get_replicaset(default_rs_id);
-
-    // Update the default replicaset_id
-    cluster->set_default_replicaset(default_rs);
-  }
 
   return cluster;
 }
