@@ -275,6 +275,17 @@ shcore::Value ReplicaSet::add_instance_(const shcore::Argument_list &args)
   return ret_val;
 }
 
+
+static void run_queries(mysh::mysql::ClassicSession *session, const std::vector<std::string> &queries)
+{
+  for (auto &q : queries) {
+    shcore::Argument_list args;
+    args.push_back(shcore::Value(q));
+    session->run_sql(args);
+  }
+}
+
+
 shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args)
 {
   shcore::Value ret_val;
@@ -367,12 +378,14 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args)
   if (_metadata_storage->is_instance_on_replicaset(get_id(), instance_address))
     throw shcore::Exception::logic_error("The instance '" + instance_address + "'' already belongs to the ReplicaSet: '" + get_member("name").as_string() + "'.");
 
-  std::string instance_admin_user = _cluster->get_account_user(ACC_INSTANCE_ADMIN);
-  std::string instance_admin_user_password = _cluster->get_account_password(ACC_INSTANCE_ADMIN);
+  std::string cluster_admin_user = _cluster->get_account_user(ACC_INSTANCE_ADMIN);
+  std::string cluster_admin_user_password = _cluster->get_account_password(ACC_INSTANCE_ADMIN);
   std::string replication_user = _cluster->get_account_user(ACC_REPLICATION_USER);
   std::string replication_user_password = _cluster->get_account_password(ACC_REPLICATION_USER);
+  std::string cluster_reader_user = _cluster->get_account_user(ACC_CLUSTER_READER);
+  std::string cluster_reader_user_password = _cluster->get_account_password(ACC_CLUSTER_READER);
 
-  // Drop and create the instanceAdmin user
+  // Drop and create users
   shcore::Argument_list temp_args;
 
   shcore::Argument_list new_args;
@@ -384,45 +397,20 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args)
   temp_args.push_back(shcore::Value("SET sql_log_bin = 0"));
   classic->run_sql(temp_args);
 
-  std::string query = "DROP USER IF EXISTS '" + instance_admin_user + "'@'" + host + "'";
+  run_queries(classic, {
+      "DROP USER IF EXISTS '" + cluster_admin_user + "'@'" + host + "'",
+      "CREATE USER '" + cluster_admin_user + "'@'" + host + "' IDENTIFIED BY '" + cluster_admin_user_password + "'",
+      "GRANT PROCESS, RELOAD, REPLICATION CLIENT, REPLICATION SLAVE ON *.* TO '" + cluster_admin_user + "'@'" + host + "'",
+      "GRANT ALL ON mysql_innodb_cluster_metadata.* TO '" + cluster_admin_user + "'@'" + host + "'",
+      "GRANT SELECT ON performance_schema.* TO '" + cluster_admin_user + "'@'" + host + "'"
+  });
 
-  temp_args.clear();
-  temp_args.push_back(shcore::Value(query));
-
-  classic->run_sql(temp_args);
-
-  query = "CREATE USER '" + instance_admin_user + "'@'" + host + "' IDENTIFIED BY '" + instance_admin_user_password + "'";
-
-  temp_args.clear();
-  temp_args.push_back(shcore::Value(query));
-
-  classic->run_sql(temp_args);
-
-  query = "GRANT PROCESS, RELOAD, REPLICATION CLIENT, REPLICATION SLAVE ON *.* TO '" + instance_admin_user + "'@'" + host + "'";
-
-  temp_args.clear();
-  temp_args.push_back(shcore::Value(query));
-
-  classic->run_sql(temp_args);
-
-  query = "DROP USER IF EXISTS '" + replication_user + "'@'" + host + "'";
-
-  temp_args.clear();
-  temp_args.push_back(shcore::Value(query));
-
-  query = "CREATE USER IF NOT EXISTS '" + replication_user + "'@'%' IDENTIFIED BY '" + replication_user_password + "'";
-
-  temp_args.clear();
-  temp_args.push_back(shcore::Value(query));
-
-  classic->run_sql(temp_args);
-
-  query = "GRANT REPLICATION SLAVE ON *.* to '" + replication_user + "'@'%'";
-
-  temp_args.clear();
-  temp_args.push_back(shcore::Value(query));
-
-  classic->run_sql(temp_args);
+  run_queries(classic, {
+     "DROP USER IF EXISTS '" + cluster_reader_user + "'@'" + host + "'",
+     "CREATE USER IF NOT EXISTS '" + cluster_reader_user + "'@'%' IDENTIFIED BY '" + cluster_reader_user_password + "'",
+     "GRANT SELECT ON mysql_innodb_cluster_metadata.* to '" + cluster_reader_user + "'@'%'",
+     "GRANT SELECT ON performance_schema.replication_group_members to '" + cluster_reader_user + "'@'%'"
+  });
 
   temp_args.clear();
   temp_args.push_back(shcore::Value("SET sql_log_bin = 1"));
