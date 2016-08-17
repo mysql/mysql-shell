@@ -335,7 +335,7 @@ void MetadataStorage::insert_instance(const shcore::Argument_list &args, uint64_
 
   // Insert the default ReplicaSet on the replicasets table
   query = "INSERT INTO farm_metadata_schema.instances (host_id, replicaset_id, mysql_server_uuid, instance_name,\
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        role, addresses) VALUES ('" +
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            role, addresses) VALUES ('" +
         std::to_string(host_id) + "', '" + std::to_string(rs_id) + "', '" + mysql_server_uuid + "', '" +
         instance_name + "', '" + role + "', '{\"mysqlClassic\": \"" + addresses + "\"}')";
 
@@ -517,9 +517,9 @@ std::shared_ptr<Cluster> MetadataStorage::get_cluster_matching(const std::string
       cluster->set_admin_type(real_row->get_member(4).as_string());
       cluster->set_description(real_row->get_member(3).as_string());
 
-      int rsetid = real_row->get_member(2).as_int();
-      if (rsetid)
-        cluster->set_default_replicaset(get_replicaset(rsetid));
+      auto rsetid_val = real_row->get_member(2);
+      if (rsetid_val)
+        cluster->set_default_replicaset(get_replicaset(rsetid_val.as_int()));
     }
   }
   catch (shcore::Exception &e)

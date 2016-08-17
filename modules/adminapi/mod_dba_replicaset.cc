@@ -256,7 +256,7 @@ None ReplicaSet::add_instance(Document doc){}
 shcore::Value ReplicaSet::add_instance_(const shcore::Argument_list &args)
 {
   shcore::Value ret_val;
-  args.ensure_count(2, 3, get_function_name("addInstance").c_str());
+  args.ensure_count(1, 2, get_function_name("addInstance").c_str());
 
   // Check if the ReplicaSet is empty
   if (_metadata_storage->is_replicaset_empty(get_id()))
@@ -292,22 +292,16 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args)
   // Check if we're on a addSeedInstance or not
   if (_metadata_storage->is_replicaset_empty(_id)) seed_instance = true;
 
-  std::string cluster_admin_password = args.string_at(0);
-
-  // Check if we have a valid password
-  if (cluster_admin_password.empty())
-    throw Exception::argument_error("The MASTER Cluster password cannot be empty.");
-
   // Identify the type of connection data (String or Document)
-  if (args[1].type == String)
+  if (args[0].type == String)
   {
-    uri = args.string_at(1);
+    uri = args.string_at(0);
     options = get_connection_data(uri, false);
   }
 
   // Connection data comes in a dictionary
-  else if (args[1].type == Map)
-    options = args.map_at(1);
+  else if (args[0].type == Map)
+    options = args.map_at(0);
 
   else
     throw shcore::Exception::argument_error("Invalid connection options, expected either a URI or a Dictionary.");
@@ -323,7 +317,7 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args)
 
   // Verification of required attributes on the connection data
   auto missing = shcore::get_missing_keys(options, { "host", "password|dbPassword" });
-  if (missing.find("password") != missing.end() && args.size() == 3)
+  if (missing.find("password") != missing.end() && args.size() == 2)
     missing.erase("password");
 
   if (missing.size())
@@ -356,9 +350,9 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args)
     super_user_password = options->get_string("password");
   else if (options->has_key("dbPassword"))
     super_user_password = options->get_string("dbPassword");
-  else if (args.size() == 3 && args[2].type == shcore::String)
+  else if (args.size() == 1 && args[1].type == shcore::String)
   {
-    super_user_password = args.string_at(2);
+    super_user_password = args.string_at(1);
     (*options)["dbPassword"] = shcore::Value(super_user_password);
   }
   else
@@ -550,7 +544,7 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args)
       (*options_instance)["instance_name"] = val_address;
 
     _metadata_storage->insert_instance(args_instance, host_id, get_id());
-  }
+}
 
   else
   {

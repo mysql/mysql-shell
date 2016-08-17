@@ -56,13 +56,10 @@ shcore::Value Interactive_dba_cluster::add_seed_instance(const shcore::Argument_
   if (!function.empty())
   {
     shcore::Value::Map_type_ref options;
-    std::string cluster_admin_password;
 
     if (resolve_instance_options(function, args, options))
     {
       shcore::Argument_list new_args;
-      cluster_admin_password = _shell_core.get_global("dba").as_object<Global_dba>()->get_cluster_admin_password();
-      new_args.push_back(shcore::Value(cluster_admin_password));
       new_args.push_back(shcore::Value(options));
       ret_val = _target->call(function, new_args);
     }
@@ -93,13 +90,10 @@ shcore::Value Interactive_dba_cluster::add_instance(const shcore::Argument_list 
   if (!function.empty())
   {
     shcore::Value::Map_type_ref options;
-    std::string cluster_admin_password;
 
     if (resolve_instance_options(function, args, options))
     {
       shcore::Argument_list new_args;
-      cluster_admin_password = _shell_core.get_global("dba").as_object<Global_dba>()->get_cluster_admin_password();
-      new_args.push_back(shcore::Value(cluster_admin_password));
       new_args.push_back(shcore::Value(options));
       ret_val = _target->call(function, new_args);
     }
@@ -108,75 +102,39 @@ shcore::Value Interactive_dba_cluster::add_instance(const shcore::Argument_list 
   return ret_val;
 }
 
-int Interactive_dba_cluster::identify_connection_options(const std::string &function, const shcore::Argument_list &args) const
-{
-  int options_index = 0;
-
-  if ((args.size() == 2 && args[0].type == shcore::Map) || args.size() == 3)
-    options_index++;
-  else if (args.size() == 2 && args[0].type == shcore::String && args[1].type == shcore::String)
-  {
-    std::string message = "Ambiguous call for to" + get_function_name(function) + ", from the parameters:\n\n" \
-      " 1) " + args[0].as_string() + "\n"\
-      " 2) " + args[1].as_string() + "\n"\
-      " 3) Cancel the operation.\n\n"\
-      "Which is the connection data? [3] :";
-
-    std::string answer;
-    if (prompt(message, answer))
-    {
-      if (answer.empty() || answer == "3")
-        options_index = -1;
-      else if (answer == "2")
-        options_index++;
-    }
-  }
-
-  return options_index;
-}
-
 bool Interactive_dba_cluster::resolve_instance_options(const std::string& function, const shcore::Argument_list &args, shcore::Value::Map_type_ref &options) const
 {
   std::string answer;
-  args.ensure_count(1, 3, get_function_name(function).c_str());
+  args.ensure_count(1, 2, get_function_name(function).c_str());
 
   bool proceed = true;
 
-  // The signature of the addInstance and addSeedInstance functions is as follows
-  // addInstance([clusterPwd,] connOptions[, rootPwd])
-  //
-  // connOptions can be either a map or a URI
-  // When URI is used with one of hte passwords, call is ambiguos so the user needs to
-  // determine what parameter is the URI
-  int options_index = identify_connection_options(function, args);
+  // Identify the type of connection data (String or Document)
+  if (args[0].type == String)
+    options = get_connection_data(args.string_at(0), false);
+  // Connection data comes in a dictionary
+  else if (args[0].type == Map)
+    options = args.map_at(0);
+  else
+    throw shcore::Exception::argument_error("Invalid connection options, expected either a URI or a Dictionary.");
 
-  if (options_index >= 0)
+  auto invalids = shcore::get_additional_keys(options, mysh::mysqlx::ReplicaSet::_add_instance_opts);
+
+  // Verification of invalid attributes on the connection data
+  if (invalids.size())
   {
-    if (args[options_index].type == String)
-      options = get_connection_data(args.string_at(options_index), false);
-    else if (args[options_index].type == Map)
-       options = args.map_at(options_index);
-    else
-       throw shcore::Exception::argument_error(get_function_name(function) + ": Invalid connection options, expected either a URI or a Dictionary.");
+    std::string error = "The connection data contains the following invalid attributes: ";
+    error += shcore::join_strings(invalids, ", ");
 
-    auto invalids = shcore::get_additional_keys(options, mysh::mysqlx::ReplicaSet::_add_instance_opts);
-
-    // Verification of invalid attributes on the connection data
-    if (invalids.size())
+    proceed = false;
+    if (prompt((boost::format("%s. Do you want to ignore these attributes and continue? [Y/n]: ") % error).str().c_str(), answer))
     {
-      std::string error = "The connection data contains the following invalid attributes: ";
-      error += shcore::join_strings(invalids, ", ");
+      proceed = (!answer.compare("y") || !answer.compare("Y") || answer.empty());
 
-      proceed = false;
-      if (prompt((boost::format("%s. Do you want to ignore these attributes and continue? [Y/n]: ") % error).str().c_str(), answer))
+      if (proceed)
       {
-        proceed = (!answer.compare("y") || !answer.compare("Y") || answer.empty());
-
-        if (proceed)
-        {
-          for (auto attribute : invalids)
-            options->erase(attribute);
-        }
+        for (auto attribute : invalids)
+          options->erase(attribute);
       }
     }
   }
@@ -221,9 +179,9 @@ bool Interactive_dba_cluster::resolve_instance_options(const std::string& functi
       user_password = options->get_string("password");
     else if (options->has_key("dbPassword"))
       user_password = options->get_string("dbPassword");
-    else if ((args.size() == 2 && options_index == 0) || args.size() == 3)
+    else if (args.size())
     {
-      user_password = args.string_at(args.size() - 1);
+      user_password = args.string_at(1);
       (*options)["dbPassword"] = shcore::Value(user_password);
     }
     else
@@ -237,27 +195,6 @@ bool Interactive_dba_cluster::resolve_instance_options(const std::string& functi
         (*options)["dbPassword"] = shcore::Value(answer);
         proceed = true;
       }
-    }
-  }
-
-  // Verify the clusterAdminPassword
-  std::string cluster_password;
-
-  if (options_index == 1)
-    cluster_password = args.string_at(0);
-
-  if (cluster_password.empty())
-    cluster_password = _shell_core.get_global("dba").as_object<Global_dba>()->get_cluster_admin_password();
-
-  bool prompt_password = true;
-  while (prompt_password && cluster_password.empty())
-  {
-    prompt_password = password("Please enter Cluster administrative MASTER password: ", cluster_password);
-    if (prompt_password)
-    {
-      if (!cluster_password.empty())
-      // update the cache
-      _shell_core.get_global("dba").as_object<Global_dba>()->set_cluster_admin_password(cluster_password);
     }
   }
 

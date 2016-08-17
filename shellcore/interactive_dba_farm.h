@@ -39,7 +39,6 @@ namespace shcore
 
   private:
     bool resolve_instance_options(const std::string& function, const shcore::Argument_list &args, shcore::Value::Map_type_ref &options) const;
-    int identify_connection_options(const std::string &function, const shcore::Argument_list &args) const;
   };
 }
 
