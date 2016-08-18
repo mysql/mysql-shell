@@ -108,9 +108,8 @@ _options(new shcore::Value::Map_type)
   std::string mysqlprovision_path;
   if (!gadgets_path.empty())
   {
-    if (!shcore::file_exists(gadgets_path)) // if not a file, assume its a dir
-      mysqlprovision_path = gadgets_path + "/gadgets/python/front_end/mysqlprovision.py";
-    else
+    mysqlprovision_path = gadgets_path + "/gadgets/python/front_end/mysqlprovision.py";
+    if (!shcore::file_exists(mysqlprovision_path))
       mysqlprovision_path = gadgets_path;
   }
   (*_options)[SHCORE_GADGETS_PATH] = Value(mysqlprovision_path.c_str());

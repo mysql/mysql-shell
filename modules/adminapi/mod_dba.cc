@@ -783,7 +783,8 @@ shcore::Value Dba::deploy_local_instance(const shcore::Argument_list &args)
       buf += c;
       if (c == '\n')
       {
-        if (buf.find("You can use '") != std::string::npos)
+        if (buf.find("You can use '") != std::string::npos
+          || buf.find("Operation completed with success.") != std::string::npos) // older versions
           read_success = true;
         full_output.append(buf);
         buf = "";
