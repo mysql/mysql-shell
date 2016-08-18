@@ -307,9 +307,70 @@ shcore::Value Global_dba::drop_metadata_schema(const shcore::Argument_list &args
 
 shcore::Value Global_dba::get_cluster(const shcore::Argument_list &args)
 {
-  ScopedStyle ss(_target.get(), naming_style);
+  Value ret_val;
+  args.ensure_count(0, 2, get_function_name("getCluster").c_str());
 
-  Value raw_cluster = _target->call("getCluster", args);
+  std::string master_key;
+  shcore::Value::Map_type_ref options;
+
+  shcore::Argument_list new_args(args);
+  std::string cluster_name;
+  bool get_default_cluster = false;
+
+  if (args.size())
+  {
+    if (args.size() == 1)
+    {
+      if (args[0].type == shcore::String)
+        cluster_name = args[0].as_string();
+      else if (args[0].type == shcore::Map)
+      {
+        options = args[0].as_map();
+        get_default_cluster = true;
+      }
+      else
+        throw shcore::Exception::argument_error("Unexpected parameter received expected either the InnoDB cluster name or a Dictionary with options");
+    }
+    else
+    {
+      cluster_name = args.string_at(0);
+      options = args[1].as_map();
+    }
+  }
+  else
+    get_default_cluster = true;
+
+  if (!options)
+  {
+    options.reset(new shcore::Value::Map_type());
+    new_args.push_back(shcore::Value(options));
+  }
+
+  if (options->has_key("masterKey"))
+    master_key = options->get_string("masterKey");
+
+  bool prompt_key = true;
+  while (prompt_key && master_key.empty())
+  {
+    std::string message =
+      "When the InnoDB cluster was setup, a MASTER key was defined in order to enable\n"\
+      "performing administrative tasks on the cluster.\n\n";
+
+    if (get_default_cluster)
+      message += "Please specify the administrative MASTER key for the default cluster: ";
+    else
+      message += "Please specify the administrative MASTER key for the cluster '" + cluster_name + "':\n";
+
+    prompt_key = password(message, master_key);
+    if (prompt_key)
+    {
+      if (!master_key.empty())
+        (*options)["masterKey"] = shcore::Value(master_key);
+    }
+  }
+
+  ScopedStyle ss(_target.get(), naming_style);
+  Value raw_cluster = _target->call("getCluster", new_args);
 
   Interactive_dba_cluster* cluster = new Interactive_dba_cluster(this->_shell_core);
   cluster->set_target(std::dynamic_pointer_cast<Cpp_object_bridge>(raw_cluster.as_object()));

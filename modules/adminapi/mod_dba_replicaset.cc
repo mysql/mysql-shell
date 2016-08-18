@@ -275,7 +275,6 @@ shcore::Value ReplicaSet::add_instance_(const shcore::Argument_list &args)
   return ret_val;
 }
 
-
 static void run_queries(mysh::mysql::ClassicSession *session, const std::vector<std::string> &queries)
 {
   for (auto &q : queries) {
@@ -284,7 +283,6 @@ static void run_queries(mysh::mysql::ClassicSession *session, const std::vector<
     session->run_sql(args);
   }
 }
-
 
 shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args)
 {
@@ -398,18 +396,18 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args)
   classic->run_sql(temp_args);
 
   run_queries(classic, {
-      "DROP USER IF EXISTS '" + cluster_admin_user + "'@'" + host + "'",
-      "CREATE USER '" + cluster_admin_user + "'@'" + host + "' IDENTIFIED BY '" + cluster_admin_user_password + "'",
-      "GRANT PROCESS, RELOAD, REPLICATION CLIENT, REPLICATION SLAVE ON *.* TO '" + cluster_admin_user + "'@'" + host + "'",
-      "GRANT ALL ON mysql_innodb_cluster_metadata.* TO '" + cluster_admin_user + "'@'" + host + "'",
-      "GRANT SELECT ON performance_schema.* TO '" + cluster_admin_user + "'@'" + host + "'"
+    "DROP USER IF EXISTS '" + cluster_admin_user + "'@'" + host + "'",
+    "CREATE USER '" + cluster_admin_user + "'@'" + host + "' IDENTIFIED BY '" + cluster_admin_user_password + "'",
+    "GRANT PROCESS, RELOAD, REPLICATION CLIENT, REPLICATION SLAVE ON *.* TO '" + cluster_admin_user + "'@'" + host + "'",
+    "GRANT ALL ON mysql_innodb_cluster_metadata.* TO '" + cluster_admin_user + "'@'" + host + "'",
+    "GRANT SELECT ON performance_schema.* TO '" + cluster_admin_user + "'@'" + host + "'"
   });
 
   run_queries(classic, {
-     "DROP USER IF EXISTS '" + cluster_reader_user + "'@'" + host + "'",
-     "CREATE USER IF NOT EXISTS '" + cluster_reader_user + "'@'%' IDENTIFIED BY '" + cluster_reader_user_password + "'",
-     "GRANT SELECT ON mysql_innodb_cluster_metadata.* to '" + cluster_reader_user + "'@'%'",
-     "GRANT SELECT ON performance_schema.replication_group_members to '" + cluster_reader_user + "'@'%'"
+    "DROP USER IF EXISTS '" + cluster_reader_user + "'@'" + host + "'",
+    "CREATE USER IF NOT EXISTS '" + cluster_reader_user + "'@'%' IDENTIFIED BY '" + cluster_reader_user_password + "'",
+    "GRANT SELECT ON mysql_innodb_cluster_metadata.* to '" + cluster_reader_user + "'@'%'",
+    "GRANT SELECT ON performance_schema.replication_group_members to '" + cluster_reader_user + "'@'%'"
   });
 
   temp_args.clear();
@@ -493,7 +491,6 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args)
           ret_val = shcore::Value(s_out);
           break;
         }
-        shcore::print(buf);
         buf = "";
       }
     }
@@ -611,7 +608,6 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args)
           ret_val = shcore::Value(s_out);
           break;
         }
-        shcore::print(buf);
         buf = "";
       }
     }

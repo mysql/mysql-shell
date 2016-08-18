@@ -165,16 +165,70 @@ Cluster Dba::get_cluster(str name){}
 shcore::Value Dba::get_cluster(const shcore::Argument_list &args) const
 {
   Value ret_val;
-  args.ensure_count(0, 1, get_function_name("getCluster").c_str());
+  args.ensure_count(0, 2, get_function_name("getCluster").c_str());
 
   std::shared_ptr<mysh::mysqlx::Cluster> cluster;
+  bool get_default_cluster = false;
+  std::string cluster_name;
+  std::string master_key;
+  shcore::Value::Map_type_ref options;
 
   try
   {
+    // gets the cluster_name and/or options
     if (args.size())
     {
-      std::string cluster_name = args.string_at(0);
+      if (args.size() == 1)
+      {
+        if (args[0].type == shcore::String)
+          cluster_name = args[0].as_string();
+        else if (args[0].type == shcore::Map)
+        {
+          options = args[0].as_map();
+          get_default_cluster = true;
+        }
+        else
+          throw shcore::Exception::argument_error("Unexpected parameter received expected either the InnoDB cluster name or a Dictionary with options");
+      }
+      else
+      {
+        cluster_name = args.string_at(0);
+        options = args[1].as_map();
+      }
+    }
+    else
+      get_default_cluster = true;
 
+    // Validates the options for invalid and missing required attributes
+    if (options)
+    {
+      // Verification of invalid attributes on the instance creation options
+      auto invalids = shcore::get_additional_keys(options, { "masterKey" });
+      if (invalids.size())
+      {
+        std::string error = "The instance options contain the following invalid attributes: ";
+        error += shcore::join_strings(invalids, ", ");
+        throw shcore::Exception::argument_error(error);
+      }
+
+      // Verification of required attributes on the instance deployment data
+      auto missing = shcore::get_missing_keys(options, { "masterKey" });
+
+      if (missing.size())
+        throw shcore::Exception::argument_error("Missing the administrative MASTER key for the cluster");
+      else
+        master_key = options->get_string("masterKey");
+    }
+
+    if (get_default_cluster)
+    {
+      if (!_default_cluster)
+        _default_cluster = _metadata_storage->get_default_cluster();
+
+      cluster = _default_cluster;
+    }
+    else
+    {
       if (cluster_name.empty())
         throw Exception::argument_error("The Cluster name cannot be empty.");
 
@@ -183,18 +237,14 @@ shcore::Value Dba::get_cluster(const shcore::Argument_list &args) const
       else
         ret_val = (*_clusters)[cluster_name];
     }
-    else
-    {
-      if (!_default_cluster)
-        _default_cluster = _metadata_storage->get_default_cluster();
-
-      cluster = _default_cluster;
-    }
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("getCluster"));
 
   if (cluster)
   {
+    // Caches the master key on the loaded cluster
+    cluster->set_password(master_key);
+
     if (!_clusters->has_key(cluster->get_name()))
        (*_clusters)[cluster->get_name()] = shcore::Value(std::dynamic_pointer_cast<Object_bridge>(cluster));
 
