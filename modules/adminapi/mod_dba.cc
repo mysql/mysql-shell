@@ -360,6 +360,14 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args)
     // Insert Cluster on the Metadata Schema
     _metadata_storage->insert_cluster(_default_cluster);
 
+    auto session = get_active_session();
+
+    shcore::Argument_list args;
+    args.push_back(shcore::Value(session->uri()));
+    args.push_back(shcore::Value(session->get_password()));
+
+    _default_cluster->add_seed_instance(args);
+
     // If it reaches here, it means there are no exceptions
     ret_val = Value(std::static_pointer_cast<Object_bridge>(_default_cluster));
     (*_clusters)[cluster_name] = ret_val;

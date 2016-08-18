@@ -30,7 +30,6 @@ using namespace shcore;
 
 void Interactive_dba_cluster::init()
 {
-  add_method("addSeedInstance", std::bind(&Interactive_dba_cluster::add_seed_instance, this, _1), "data");
   add_method("addInstance", std::bind(&Interactive_dba_cluster::add_instance, this, _1), "data");
   add_method("rejoinInstance", std::bind(&Interactive_dba_cluster::rejoin_instance, this, _1), "data");
 }
