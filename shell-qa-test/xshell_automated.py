@@ -7606,6 +7606,17 @@ class XShell_TestCases(unittest.TestCase):
               results = "PASS"
           self.assertEqual(results, 'PASS')
 
+  def test_MYS_560(self):
+      '''Error message and close mysqlshell session when using get_table()'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--py']
+      x_cmds = [("import mysqlx\n", "mysql-py>"),
+                ("session=mysqlx.get_session('" + LOCALHOST.user + ":" + LOCALHOST.password + "@" + LOCALHOST.host + ":" + LOCALHOST.xprotocol_port + "').get_schema('sakila')\n",
+                 "mysql-py>"),
+                ("myTable = session.get_table('actor')\n", "Unable to get table 'actor', no Session available"),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
 
 
   # ----------------------------------------------------------------------
