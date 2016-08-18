@@ -537,8 +537,10 @@ bool ReplicaSet::do_join_replicaset(const std::string &instance_url,
       instance_param.c_str(), repl_user_param.c_str(), "--stdin",
       is_seed_instance ? NULL : peer_instance_param.c_str(),
       NULL };
+  const char **args = gadgets_path.find(".py") == gadgets_path.size()-3
+      ? args_script : args_script+1;
 
-  ngcommon::Process_launcher p(args_script[0], args_script, false);
+  ngcommon::Process_launcher p(args[0], args, false);
 
   try {
     std::string password = super_user_password + "\n";
