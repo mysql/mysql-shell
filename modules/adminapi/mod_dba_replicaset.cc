@@ -494,7 +494,8 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args)
 bool ReplicaSet::do_join_replicaset(const std::string &instance_url,
     const std::string &peer_instance_url,
     const std::string &super_user_password,
-    const std::string &repl_user, const std::string &repl_user_password) {
+    const std::string &repl_user, const std::string &repl_user_password,
+    bool verbose) {
   shcore::Value ret_val;
 
   bool is_seed_instance = peer_instance_url.empty() ? true : false;
@@ -567,6 +568,8 @@ bool ReplicaSet::do_join_replicaset(const std::string &instance_url,
   while (p.read(&c, 1) > 0) {
     buf += c;
     if (c == '\n') {
+      if (verbose)
+        print(buf);
       if ((buf.find("ERROR") != std::string::npos))
         read_error = true;
 
@@ -639,8 +642,8 @@ shcore::Value ReplicaSet::rejoin_instance(const shcore::Argument_list &args) {
       options = get_connection_data(uri, false);
     }
     else
-   throw shcore::Exception::argument_error(
-          "Invalid connection options, expected either a URI.");
+     throw shcore::Exception::argument_error(
+            "Invalid connection options, expected either a URI.");
     // Verification of required attributes on the connection data
     auto missing = shcore::get_missing_keys(options, { "host" });
     if (missing.size()) {
@@ -687,7 +690,8 @@ shcore::Value ReplicaSet::rejoin_instance(const shcore::Argument_list &args) {
     do_join_replicaset(user + "@" + host + ":" + std::to_string(port),
         user + "@" + peer_instance,
         super_user_password,
-        replication_user, replication_user_password);
+        replication_user, replication_user_password,
+        true);
   } CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("addInstance"));
 
   return ret_val;
