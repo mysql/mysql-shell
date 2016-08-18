@@ -33,6 +33,7 @@
 #include "shellcore/shell_core.h"
 #include "shellcore/lang_base.h"
 #include "shellcore/server_registry.h"
+#include "shellcore/shell_notifications.h"
 
 #include "shellcore/proxy_object.h"
 #include "mysqlxtest_utils.h"
@@ -164,7 +165,24 @@ Value ClassicSession::run_sql(const shcore::Argument_list &args) const
   if (!_conn)
     throw Exception::logic_error("Not connected.");
   else
-    ret_val = execute_sql(args.string_at(0), shcore::Argument_list());
+  {
+    try
+    {
+      ret_val = execute_sql(args.string_at(0), shcore::Argument_list());
+    }
+    catch (shcore::Exception & e)
+    {
+      // Connection lost, sends a notification
+      //if (CR_SERVER_GONE_ERROR == e.code() || ER_X_BAD_PIPE == e.code())
+      std::shared_ptr<ClassicSession> myself = std::const_pointer_cast<ClassicSession>(shared_from_this());
+
+      if (e.code() == 2006 || e.code() == 5166)
+        ShellNotifications::get()->notify("SN_SESSION_CONNECTION_LOST", std::dynamic_pointer_cast<Cpp_object_bridge>(myself));
+
+      // Rethrows the exception for normal flow
+      throw;
+    }
+  }
 
   return ret_val;
 }
@@ -218,7 +236,7 @@ Value ClassicSession::create_schema(const shcore::Argument_list &args)
     else
     {
       std::string statement = sqlstring("create schema !", 0) << schema;
-      ret_val = Value::wrap(new ClassicResult(std::shared_ptr<Result>(_conn->run_sql(statement))));
+      ret_val = execute_sql(statement, shcore::Argument_list());
 
       std::shared_ptr<ClassicSchema> object(new ClassicSchema(shared_from_this(), schema));
 
@@ -473,7 +491,7 @@ shcore::Value ClassicSession::drop_schema(const shcore::Argument_list &args)
 
   std::string name = args[0].as_string();
 
-  Value ret_val = Value::wrap(new ClassicResult(std::shared_ptr<Result>(_conn->run_sql(sqlstring("drop schema !", 0) << name))));
+  Value ret_val = execute_sql(sqlstring("drop schema !", 0) << name, shcore::Argument_list());
 
   _remove_schema(name);
 
@@ -536,7 +554,7 @@ shcore::Value ClassicSession::drop_schema_object(const shcore::Argument_list &ar
 
   statement = sqlstring(statement.c_str(), 0) << schema << name;
 
-  Value ret_val = Value::wrap(new ClassicResult(std::shared_ptr<Result>(_conn->run_sql(statement))));
+  Value ret_val = execute_sql(statement, shcore::Argument_list());
 
   if (_schemas->count(schema))
   {
@@ -562,34 +580,39 @@ std::string ClassicSession::db_object_exists(std::string &type, const std::strin
   if (type == "Schema")
   {
     statement = sqlstring("show databases like ?", 0) << name;
-    Result *res = _conn->run_sql(statement);
-    if (res->has_resultset())
+    auto val_result = execute_sql(statement, shcore::Argument_list());
+    auto result = val_result.as_object<ClassicResult>();
+    auto val_row = result->fetch_one(shcore::Argument_list());
+
+    if (val_row)
     {
-      Row *row = res->fetch_one();
+      auto row = val_row.as_object<mysh::Row>();
       if (row)
-        ret_val = row->get_value(0).as_string();
+        ret_val = row->get_member(0).as_string();
     }
   }
   else
   {
     statement = sqlstring("show full tables from ! like ?", 0) << owner << name;
-    Result *res = _conn->run_sql(statement);
+    auto val_result = execute_sql(statement, shcore::Argument_list());
+    auto result = val_result.as_object<ClassicResult>();
+    auto val_row = result->fetch_one(shcore::Argument_list());
 
-    if (res->has_resultset())
+    if (val_row)
     {
-      Row *row = res->fetch_one();
+      auto row = val_row.as_object<mysh::Row>();
 
       if (row)
       {
-        std::string db_type = row->get_value(1).as_string();
+        std::string db_type = row->get_member(1).as_string();
 
         if (type == "Table" && (db_type == "BASE TABLE" || db_type == "LOCAL TEMPORARY"))
-          ret_val = row->get_value(0).as_string();
+          ret_val = row->get_member(0).as_string();
         else if (type == "View" && (db_type == "VIEW" || db_type == "SYSTEM VIEW"))
-          ret_val = row->get_value(0).as_string();
+          ret_val = row->get_member(0).as_string();
         else if (type.empty())
         {
-          ret_val = row->get_value(0).as_string();
+          ret_val = row->get_member(0).as_string();
           type = db_type;
         }
       }
@@ -619,7 +642,7 @@ shcore::Value ClassicSession::startTransaction(const shcore::Argument_list &args
 {
   args.ensure_count(0, get_function_name("startTransaction").c_str());
 
-  return Value::wrap(new ClassicResult(std::shared_ptr<Result>(_conn->run_sql("start transaction"))));
+  return execute_sql("start transaction", shcore::Argument_list());
 }
 
 /**
@@ -639,7 +662,7 @@ shcore::Value ClassicSession::commit(const shcore::Argument_list &args)
 {
   args.ensure_count(0, get_function_name("commit").c_str());
 
-  return Value::wrap(new ClassicResult(std::shared_ptr<Result>(_conn->run_sql("commit"))));
+  return execute_sql("commit", shcore::Argument_list());
 }
 
 /**
@@ -659,59 +682,74 @@ shcore::Value ClassicSession::rollback(const shcore::Argument_list &args)
 {
   args.ensure_count(0, get_function_name("rollback").c_str());
 
-  return Value::wrap(new ClassicResult(std::shared_ptr<Result>(_conn->run_sql("rollback"))));
+  return execute_sql("rollback", shcore::Argument_list());
 }
 
 shcore::Value ClassicSession::get_status(const shcore::Argument_list &args)
 {
   shcore::Value::Map_type_ref status(new shcore::Value::Map_type);
 
-  Result *result;
-  Row *row;
+  auto val_result = execute_sql("select DATABASE(), USER() limit 1", shcore::Argument_list());
+  auto result = val_result.as_object<ClassicResult>();
+  auto val_row = result->fetch_one(shcore::Argument_list());
+  if (val_row)
+  {
+    auto row = val_row.as_object<mysh::Row>();
 
-  result = _conn->run_sql("select DATABASE(), USER() limit 1");
-  row = result->fetch_one();
+    if (row)
+    {
+      (*status)["SESSION_TYPE"] = shcore::Value("Classic");
+      (*status)["DEFAULT_SCHEMA"] = shcore::Value(_default_schema);
 
-  (*status)["SESSION_TYPE"] = shcore::Value("Classic");
-  (*status)["DEFAULT_SCHEMA"] = shcore::Value(_default_schema);
+      std::string current_schema = row->get_member(0).descr(true);
+      if (current_schema == "null")
+        current_schema = "";
 
-  std::string current_schema = row->get_value(0).descr(true);
-  if (current_schema == "null")
-    current_schema = "";
+      (*status)["CURRENT_SCHEMA"] = shcore::Value(current_schema);
+      (*status)["CURRENT_USER"] = row->get_member(1);
+      (*status)["CONNECTION_ID"] = shcore::Value(uint64_t(_conn->get_thread_id()));
+      (*status)["SSL_CIPHER"] = shcore::Value(_conn->get_ssl_cipher());
+      //(*status)["SKIP_UPDATES"] = shcore::Value(???);
+      //(*status)["DELIMITER"] = shcore::Value(???);
 
-  (*status)["CURRENT_SCHEMA"] = shcore::Value(current_schema);
-  (*status)["CURRENT_USER"] = row->get_value(1);
-  (*status)["CONNECTION_ID"] = shcore::Value(uint64_t(_conn->get_thread_id()));
-  (*status)["SSL_CIPHER"] = shcore::Value(_conn->get_ssl_cipher());
-  //(*status)["SKIP_UPDATES"] = shcore::Value(???);
-  //(*status)["DELIMITER"] = shcore::Value(???);
+      (*status)["SERVER_INFO"] = shcore::Value(_conn->get_server_info());
 
-  (*status)["SERVER_INFO"] = shcore::Value(_conn->get_server_info());
+      (*status)["PROTOCOL_VERSION"] = shcore::Value(uint64_t(_conn->get_protocol_info()));
+      (*status)["CONNECTION"] = shcore::Value(_conn->get_connection_info());
+      //(*status)["INSERT_ID"] = shcore::Value(???);
+    }
+  }
 
-  (*status)["PROTOCOL_VERSION"] = shcore::Value(uint64_t(_conn->get_protocol_info()));
-  (*status)["CONNECTION"] = shcore::Value(_conn->get_connection_info());
-  //(*status)["INSERT_ID"] = shcore::Value(???);
+  val_result = execute_sql("select @@character_set_client, @@character_set_connection, @@character_set_server, @@character_set_database, @@version_comment limit 1", shcore::Argument_list());
+  result = val_result.as_object<ClassicResult>();
+  val_row = result->fetch_one(shcore::Argument_list());
 
-  result = _conn->run_sql("select @@character_set_client, @@character_set_connection, @@character_set_server, @@character_set_database, @@version_comment limit 1");
-  row = result->fetch_one();
-  (*status)["CLIENT_CHARSET"] = row->get_value(0);
-  (*status)["CONNECTION_CHARSET"] = row->get_value(1);
-  (*status)["SERVER_CHARSET"] = row->get_value(2);
-  (*status)["SCHEMA_CHARSET"] = row->get_value(3);
-  (*status)["SERVER_VERSION"] = row->get_value(4);
+  if (val_row)
+  {
+    auto row = val_row.as_object<mysh::Row>();
 
-  (*status)["SERVER_STATS"] = shcore::Value(_conn->get_stats());
+    if (row)
+    {
+      (*status)["CLIENT_CHARSET"] = row->get_member(0);
+      (*status)["CONNECTION_CHARSET"] = row->get_member(1);
+      (*status)["SERVER_CHARSET"] = row->get_member(2);
+      (*status)["SCHEMA_CHARSET"] = row->get_member(3);
+      (*status)["SERVER_VERSION"] = row->get_member(4);
 
-  // TODO: Review retrieval from charset_info, mysql connection
+      (*status)["SERVER_STATS"] = shcore::Value(_conn->get_stats());
 
-  // TODO: Embedded library stuff
-  //(*status)["TCP_PORT"] = row->get_value(1);
-  //(*status)["UNIX_SOCKET"] = row->get_value(2);
-  //(*status)["PROTOCOL_COMPRESSED"] = row->get_value(3);
+      // TODO: Review retrieval from charset_info, mysql connection
 
-  // STATUS
+      // TODO: Embedded library stuff
+      //(*status)["TCP_PORT"] = row->get_value(1);
+      //(*status)["UNIX_SOCKET"] = row->get_value(2);
+      //(*status)["PROTOCOL_COMPRESSED"] = row->get_value(3);
 
-  // SAFE UPDATES
+      // STATUS
+
+      // SAFE UPDATES
+    }
+  }
 
   return shcore::Value(status);
 }

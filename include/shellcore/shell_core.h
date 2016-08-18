@@ -24,6 +24,7 @@
 #include "shellcore/types.h"
 #include "shellcore/ishell_core.h"
 #include "shellcore/shell_core_options.h"
+#include "shellcore/shell_notifications.h"
 #include <boost/system/error_code.hpp>
 #include <list>
 
@@ -111,7 +112,7 @@ namespace shcore
   */
 #endif
 
-  class SHCORE_PUBLIC Shell_core : public shcore::IShell_core
+  class SHCORE_PUBLIC Shell_core : public shcore::IShell_core, public shcore::NotificationObserver
   {
   public:
 
@@ -160,7 +161,9 @@ namespace shcore
     virtual bool password(const std::string &s, std::string &ret_pass);
     virtual const std::string& get_input_source() { return _input_source; }
     virtual bool print_help(const std::string& topic);
+    bool reconnect_if_needed();
   private:
+    virtual void handle_notification(const std::string &name, shcore::Object_bridge_ref sender, shcore::Value::Map_type_ref data);
     void set_dba_global();
     void init_sql();
     void init_js();
@@ -179,6 +182,7 @@ namespace shcore
     Mode _mode;
     int _global_return_code;
     bool _running_query;
+    bool _reconnect_session;
   };
 };
 

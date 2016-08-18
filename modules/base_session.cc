@@ -304,6 +304,16 @@ shcore::Value ShellBaseSession::is_open(const shcore::Argument_list &args)
   return shcore::Value(is_connected());
 }
 
+
+void ShellBaseSession::reconnect()
+{
+  shcore::Argument_list args;
+  args.push_back(shcore::Value(_uri));
+  args.push_back(shcore::Value(_password));
+
+  connect(args);
+}
+
 ShellDevelopmentSession::ShellDevelopmentSession() :
 ShellBaseSession()
 {

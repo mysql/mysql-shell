@@ -1176,6 +1176,8 @@ void Interactive_shell::process_line(const std::string &line)
         _input_buffer.clear();
     }
   }
+
+  _shell->reconnect_if_needed();
 }
 
 void Interactive_shell::abort()

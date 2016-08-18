@@ -64,6 +64,7 @@ namespace mysh
 
     std::string get_user() { return _user; }
     std::string get_password() { return _password; }
+    virtual void reconnect();
 
   protected:
     std::string get_quoted_name(const std::string& name);

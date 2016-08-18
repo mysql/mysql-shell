@@ -81,21 +81,31 @@ void ClassicSchema::update_cache()
     std::vector<std::string> views;
     std::vector<std::string> others;
 
-    Result *result = sess->connection()->run_sql(sqlstring("show full tables in !", 0) << _name);
-    Row *row = result->fetch_one();
-    while (row)
+    auto val_result = sess->execute_sql(sqlstring("show full tables in !", 0) << _name, shcore::Argument_list());
+    auto result = val_result.as_object<ClassicResult>();
+    auto val_row = result->fetch_one(shcore::Argument_list());
+
+    if (val_row)
     {
-      std::string object_name = row->get_value_as_string(0);
-      std::string object_type = row->get_value_as_string(1);
+      auto row = val_row.as_object<mysh::Row>();
+      while (row)
+      {
+        std::string object_name = row->get_member(0).as_string();
+        std::string object_type = row->get_member(1).as_string();
 
-      if (object_type == "BASE TABLE" || object_type == "LOCAL TEMPORARY")
-        tables.push_back(object_name);
-      else if (object_type == "VIEW" || object_type == "SYSTEM VIEW")
-        views.push_back(object_name);
-      else
-        others.push_back((boost::format("Unexpected Object Retrieved from Database: %s% of type %s%") % object_name % object_type).str());;
+        if (object_type == "BASE TABLE" || object_type == "LOCAL TEMPORARY")
+          tables.push_back(object_name);
+        else if (object_type == "VIEW" || object_type == "SYSTEM VIEW")
+          views.push_back(object_name);
+        else
+          others.push_back((boost::format("Unexpected Object Retrieved from Database: %s% of type %s%") % object_name % object_type).str());;
 
-      row = result->fetch_one();
+        row.reset();
+        val_row = result->fetch_one(shcore::Argument_list());
+
+        if (val_row)
+          row = val_row.as_object<mysh::Row>();
+      }
     }
 
     // Updates the cache
@@ -155,7 +165,6 @@ Value ClassicSchema::get_member(const std::string &prop) const
   return ret_val;
 }
 
-
 //! Returns the table of the given name for this schema.
 #if DOXYGEN_CPP
 //! \param args should contain the name of the table to look for.
@@ -168,7 +177,7 @@ Value ClassicSchema::get_member(const std::string &prop) const
 * Verifies if the requested Table exist on the database, if exists, returns the corresponding ClassicTable object.
 *
 * Updates the Tables cache.
- * \sa ClassicTable
+* \sa ClassicTable
 */
 #if DOXYGEN_JS
 ClassicTable ClassicSchema::getTable(String name){}
@@ -205,12 +214,12 @@ shcore::Value ClassicSchema::get_table(const shcore::Argument_list &args)
         update_view_cache(real_name, exists);
 
         ret_val = (*_views)[real_name];
+      }
     }
-  }
 
     if (!exists)
       throw shcore::Exception::runtime_error("The table " + _name + "." + name + " does not exist");
-}
+  }
   else
     throw shcore::Exception::argument_error("An empty name is invalid for a table");
 

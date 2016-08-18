@@ -45,7 +45,7 @@ using namespace std::placeholders;
 using namespace shcore;
 
 Shell_core::Shell_core(Interpreter_delegate *shdelegate)
-  : IShell_core(), _lang_delegate(shdelegate), _running_query(false)
+  : IShell_core(), _lang_delegate(shdelegate), _running_query(false), _reconnect_session(false)
 {
   INIT_MODULE(mysh::mysqlx::Mysqlx);
   INIT_MODULE(mysh::mysql::Mysql);
@@ -72,6 +72,8 @@ Shell_core::Shell_core(Interpreter_delegate *shdelegate)
   }
 
   set_dba_global();
+
+  observe_notification("SN_SESSION_CONNECTION_LOST");
 
   shcore::print = std::bind(&shcore::Shell_core::print, this, _1);
 }
@@ -477,6 +479,42 @@ shcore::Value Shell_core::set_current_schema(const std::string& name)
     set_global("db", new_schema);
 
   return new_schema;
+}
+
+void Shell_core::handle_notification(const std::string &name, shcore::Object_bridge_ref sender, shcore::Value::Map_type_ref data)
+{
+  if (name == "SN_SESSION_CONNECTION_LOST")
+  {
+    auto session = std::dynamic_pointer_cast<mysh::ShellDevelopmentSession>(sender);
+
+    if (session && session == _global_dev_session)
+      _reconnect_session = true;
+  }
+}
+
+bool Shell_core::reconnect_if_needed()
+{
+  bool ret_val = false;
+  if (_reconnect_session)
+  {
+    {
+      print("The global session is disconnected, attempting reconnection to '" + _global_dev_session->uri() + "'...");
+      try
+      {
+        _global_dev_session->reconnect();
+        print("success!\n");
+        ret_val = true;
+      }
+      catch (shcore::Exception &e)
+      {
+        print("failed!\n");
+      }
+    }
+
+    _reconnect_session = false;
+  }
+
+  return ret_val;
 }
 
 //------------------ COMMAND HANDLER FUNCTIONS ------------------//
