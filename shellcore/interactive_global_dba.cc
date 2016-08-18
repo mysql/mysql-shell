@@ -52,6 +52,7 @@ shcore::Value Global_dba::deploy_local_instance(const shcore::Argument_list &arg
 
   std::string answer;
   bool proceed = true;
+  std::string sandboxDir;
 
   try
   {
@@ -62,7 +63,6 @@ shcore::Value Global_dba::deploy_local_instance(const shcore::Argument_list &arg
     {
       new_args.push_back(args[1]);
       options = args.map_at(1);
-
       // Verification of invalid attributes on the instance deployment data
       auto invalids = shcore::get_additional_keys(options, mysh::mysqlx::Dba::_deploy_instance_opts);
       if (invalids.size())
@@ -88,6 +88,16 @@ shcore::Value Global_dba::deploy_local_instance(const shcore::Argument_list &arg
       options.reset(new shcore::Value::Map_type());
       new_args.push_back(shcore::Value(options));
     }
+    if (!options->has_key("sandboxDir"))
+    {
+      if (shcore::Shell_core_options::get()->has_key(SHCORE_SANDBOX_DIR))
+      {
+        sandboxDir = (*shcore::Shell_core_options::get())[SHCORE_SANDBOX_DIR].as_string();
+        (*options)["sandboxDir"] = shcore::Value(sandboxDir);
+      }
+    }
+    else
+      sandboxDir = (*options)["sandboxDir"].as_string();
 
     if (proceed)
     {
@@ -100,9 +110,8 @@ shcore::Value Global_dba::deploy_local_instance(const shcore::Argument_list &arg
         bool prompt_password = true;
         while (prompt_password && !proceed)
         {
-          std::string message = "A new MySQL instance will be created on localhost, running on the specified\n"\
-                                "port. The data directory will be located inside the sandbox directory and match\n"
-                                "the port number.\n\n"\
+          std::string message = "A new MySQL sandbox instance will be created on this host in \n"\
+                                sandboxDir + "/" + std::to_string(port) + "\n\n"
                                 "Please enter a MySQL root password for the new instance: ";
 
           prompt_password = password(message, answer);
@@ -120,10 +129,11 @@ shcore::Value Global_dba::deploy_local_instance(const shcore::Argument_list &arg
 
     if (proceed)
     {
-      shcore::print("Deploying instance...\n");
+      shcore::print("Deploying new MySQL instance...\n");
       ret_val = _target->call("deployLocalInstance", new_args);
 
-      shcore::print("Instance: localhost:" + std::to_string(port) + " successfully deployed and started.\n\n");
+      shcore::print("Instance localhost:" + std::to_string(port) +
+          " successfully deployed and started.\n\n");
       shcore::print("Use '\\connect -c root@localhost:" + std::to_string(port) + "' to connect to the new instance.");
     }
   }

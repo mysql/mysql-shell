@@ -743,6 +743,12 @@ shcore::Value Dba::deploy_local_instance(const shcore::Argument_list &args)
       arg = "--sandboxdir=" + sandbox_dir;
       sandbox_args.push_back(arg);
     }
+    else if (shcore::Shell_core_options::get()->has_key(SHCORE_SANDBOX_DIR))
+    {
+      std::string dir = (*shcore::Shell_core_options::get())[SHCORE_SANDBOX_DIR].as_string();
+      arg = "--sandboxdir="+dir;
+      sandbox_args.push_back(arg);
+    }
 
     char **args_script = new char*[10];
     args_script[0] = const_cast<char*>("python");

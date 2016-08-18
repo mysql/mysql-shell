@@ -112,8 +112,8 @@ shcore::Value Interactive_dba_cluster::rejoin_instance(const shcore::Argument_li
 
   shcore::Value::Map_type_ref options;
 
-  std::string message = "The instance will try rejoining the InnoDB cluster. Depending on original\n"
-                        "problem that made the instance unavailable the rejoin operation might not be\n"
+  std::string message = "The instance will try rejoining the InnoDB cluster. Depending on the original\n"
+                        "problem that made the instance unavailable the rejoin, operation might not be\n"
                         "successful and further manual steps will be needed to fix the underlying\n"
                         "problem.\n"
                         "\n"

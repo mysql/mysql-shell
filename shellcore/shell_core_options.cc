@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2016, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -109,6 +109,12 @@ _options(new shcore::Value::Map_type)
     mysqlprovision_path = gadgets_path + "/gadgets/python/front_end/mysqlprovision.py";
 
   (*_options)[SHCORE_GADGETS_PATH] = Value(mysqlprovision_path.c_str());
+
+  if (getenv("HOME"))
+  {
+    std::string dir = std::string(getenv("HOME")) + "/mysql-sandboxes";
+    (*_options)[SHCORE_SANDBOX_DIR] = Value(dir.c_str());
+  }
 }
 
 Shell_core_options::~Shell_core_options()

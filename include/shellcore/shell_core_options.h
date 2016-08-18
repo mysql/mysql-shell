@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2016, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -33,6 +33,8 @@
 // AdminAPI: Gadgets path
 // TODO: which will be the path? How do we get it?
 #define SHCORE_GADGETS_PATH "gadgetsPath"
+
+#define SHCORE_SANDBOX_DIR "sandboxDir"
 
 namespace shcore
 {
