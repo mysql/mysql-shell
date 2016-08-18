@@ -94,12 +94,13 @@ void ReplicaSet::append_json_status(shcore::JSON_dumper& dumper) const
   switch (online_count)
   {
     case 0:
-    case 1: rset_status = "Fatal";
+    case 1:
+    case 2: rset_status = "Cluster is NOT tolerant to any failures.";
       break;
-    case 2: rset_status = "Critical";
+    case 3: rset_status = "Cluster tolerant up to ONE failure.";
       break;
       // Add logic on the default for the even/uneven count
-    default:rset_status = "Healthy";
+    default:rset_status = "Cluster tolerant up to " + std::to_string(online_count - 2) + " failures.";
       break;
   }
 
@@ -450,7 +451,8 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args)
         "",
         super_user_password,
         replication_user, replication_user_password);
-  } else {
+  }
+  else {
     // We need to retrieve a peer instance, so let's use the Seed one
     std::string peer_instance = _metadata_storage->get_seed_instance(get_id());
 
@@ -489,7 +491,6 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args)
   return ret_val;
 }
 
-
 bool ReplicaSet::do_join_replicaset(const std::string &instance_url,
     const std::string &peer_instance_url,
     const std::string &super_user_password,
@@ -524,7 +525,8 @@ bool ReplicaSet::do_join_replicaset(const std::string &instance_url,
   std::string peer_instance_param;
   if (is_seed_instance) {
     command = "start-replicaset";
-  } else {
+  }
+  else {
     command = "join-replicaset";
     peer_instance_param = "--peer-instance=" + peer_instance_url;
   }
@@ -538,22 +540,25 @@ bool ReplicaSet::do_join_replicaset(const std::string &instance_url,
   ngcommon::Process_launcher p(args_script[0], args_script, false);
 
   try {
-    std::string password = super_user_password+"\n";
+    std::string password = super_user_password + "\n";
     p.write(password.c_str(), password.length());
-  } catch (shcore::Exception &e) {
+  }
+  catch (shcore::Exception &e) {
     throw shcore::Exception::runtime_error(e.what());
   }
   try {
-    std::string password = repl_user_password+"\n";
+    std::string password = repl_user_password + "\n";
     p.write(password.c_str(), password.length());
-  } catch (shcore::Exception &e) {
+  }
+  catch (shcore::Exception &e) {
     throw shcore::Exception::runtime_error(e.what());
   }
   if (!is_seed_instance) {
     try {
-      std::string password = super_user_password+"\n";
+      std::string password = super_user_password + "\n";
       p.write(password.c_str(), password.length());
-    } catch (shcore::Exception &e) {
+    }
+    catch (shcore::Exception &e) {
       throw shcore::Exception::runtime_error(e.what());
     }
   }
@@ -570,9 +575,9 @@ bool ReplicaSet::do_join_replicaset(const std::string &instance_url,
 
       if (strcmp(success.c_str(), buf.c_str()) == 0) {
         if (is_seed_instance)
-          ret_val = shcore::Value("The instance '" + instance_url+ "' was successfully added as seeding instance to the MySQL Cluster.");
+          ret_val = shcore::Value("The instance '" + instance_url + "' was successfully added as seeding instance to the MySQL Cluster.");
         else
-          ret_val = shcore::Value("The instance '" + instance_url+ "' was successfully added to the MySQL Cluster.");
+          ret_val = shcore::Value("The instance '" + instance_url + "' was successfully added to the MySQL Cluster.");
         break;
       }
       buf = "";
@@ -594,7 +599,6 @@ bool ReplicaSet::do_join_replicaset(const std::string &instance_url,
   // wait for termination
   return p.wait() == 0;
 }
-
 
 #if DOXYGEN_CPP
 /**
@@ -633,8 +637,9 @@ shcore::Value ReplicaSet::rejoin_instance(const shcore::Argument_list &args) {
     if (args[0].type == String) {
       std::string uri = args.string_at(0);
       options = get_connection_data(uri, false);
-    } else
-      throw shcore::Exception::argument_error(
+    }
+    else
+   throw shcore::Exception::argument_error(
           "Invalid connection options, expected either a URI.");
     // Verification of required attributes on the connection data
     auto missing = shcore::get_missing_keys(options, { "host" });
@@ -687,7 +692,6 @@ shcore::Value ReplicaSet::rejoin_instance(const shcore::Argument_list &args) {
 
   return ret_val;
 }
-
 
 #if DOXYGEN_CPP
 /**
