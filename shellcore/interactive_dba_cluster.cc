@@ -32,6 +32,7 @@ void Interactive_dba_cluster::init()
 {
   add_method("addSeedInstance", std::bind(&Interactive_dba_cluster::add_seed_instance, this, _1), "data");
   add_method("addInstance", std::bind(&Interactive_dba_cluster::add_instance, this, _1), "data");
+  add_method("rejoinInstance", std::bind(&Interactive_dba_cluster::rejoin_instance, this, _1), "data");
 }
 
 shcore::Value Interactive_dba_cluster::add_seed_instance(const shcore::Argument_list &args)
@@ -91,7 +92,7 @@ shcore::Value Interactive_dba_cluster::add_instance(const shcore::Argument_list 
   {
     shcore::Value::Map_type_ref options;
 
-    std::string message = "A new instance will be added to the InnoDB cluster.Depending on the amount of\n"
+    std::string message = "A new instance will be added to the InnoDB cluster. Depending on the amount of\n"
                           "data on the cluster this might take from a few seconds to several hours.";
 
     if (resolve_instance_options(function, args, options))
@@ -102,6 +103,32 @@ shcore::Value Interactive_dba_cluster::add_instance(const shcore::Argument_list 
       print("Adding instance to the cluster ...");
       ret_val = _target->call(function, new_args);
     }
+  }
+  return ret_val;
+}
+
+shcore::Value Interactive_dba_cluster::rejoin_instance(const shcore::Argument_list &args)
+{
+  shcore::Value ret_val;
+
+  shcore::Value::Map_type_ref options;
+
+  std::string message = "The instance will try rejoining the InnoDB cluster. Depending on original\n"
+                        "problem that made the instance unavailable the rejoin operation might not be\n"
+                        "successful and further manual steps will be needed to fix the underlying\n"
+                        "problem.\n"
+                        "\n"
+                        "Please monitor the output of the rejoin operation and take necessary action if\n"
+                        "the instance cannot rejoin.\n";
+
+  std::string answer;
+  if (password("Please provide the password for '" + args.string_at(0) + "': ", answer))
+  {
+    shcore::Argument_list new_args;
+    new_args.push_back(args[0]);
+    new_args.push_back(shcore::Value(answer));
+    print(message);
+    ret_val = _target->call("rejoinInstance", new_args);
   }
 
   return ret_val;

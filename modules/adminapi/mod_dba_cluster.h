@@ -89,6 +89,7 @@ namespace mysh
       Undefined addSeedInstance(Document doc);
       Undefined addInstance(String conn);
       Undefined addInstance(Document doc);
+      Undefined rejoinInstance(String doc);
       Undefined removeInstance(String name);
       Undefined removeInstance(Document doc);
       String describe();
@@ -99,6 +100,7 @@ namespace mysh
       None add_seed_instance(Document doc);
       None add_instance(str conn);
       None add_instance(Document doc);
+      None rejoin_instance(str conn);
       None remove_instance(str name);
       None remove_instance(Document doc);
       str describe();
@@ -106,6 +108,7 @@ namespace mysh
 
       shcore::Value add_seed_instance(const shcore::Argument_list &args);
       shcore::Value add_instance(const shcore::Argument_list &args);
+      shcore::Value rejoin_instance(const shcore::Argument_list &args);
       shcore::Value remove_instance(const shcore::Argument_list &args);
       shcore::Value get_replicaset(const shcore::Argument_list &args);
       shcore::Value describe(const shcore::Argument_list &args);

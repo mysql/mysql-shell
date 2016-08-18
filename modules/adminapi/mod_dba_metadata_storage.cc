@@ -625,6 +625,7 @@ std::string MetadataStorage::get_seed_instance(uint64_t rs_id)
 
   // Get the Cluster instanceAdminUser
 
+  //TODO: this should use the performance_schema to find a live instance
   query = "SELECT JSON_UNQUOTE(addresses->\"$.mysqlClassic\")  as address FROM mysql_innodb_cluster_metadata.instances WHERE replicaset_id = '" + std::to_string(rs_id) + "' AND role = 'HA'";
 
   auto result = execute_sql(query);

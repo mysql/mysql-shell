@@ -66,6 +66,7 @@ namespace mysh
       String getName();
       Undefined addInstance(String conn);
       Undefined addInstance(Document doc);
+      Undefined rejoinInstance(String name);
       Undefined removeInstance(String name);
       Undefined removeInstance(Document doc);
 
@@ -73,12 +74,14 @@ namespace mysh
       str get_name();
       None add_instance(str conn);
       None add_instance(Document doc);
+      None rejoin_instance(str name);
       None remove_instance(str name);
       None remove_instance(Document doc);
 #endif
 
       shcore::Value add_instance_(const shcore::Argument_list &args);
       shcore::Value add_instance(const shcore::Argument_list &args);
+      shcore::Value rejoin_instance(const shcore::Argument_list &args);
       shcore::Value remove_instance(const shcore::Argument_list &args);
 
     protected:
@@ -95,6 +98,11 @@ namespace mysh
       void append_json_status(shcore::JSON_dumper& dumper) const;
       void append_json_topology(shcore::JSON_dumper& dumper) const;
       void init();
+
+      bool do_join_replicaset(const std::string &instance_url,
+          const std::string &peer_instance_url,
+          const std::string &super_user_password,
+          const std::string &repl_user, const std::string &repl_user_password);
 
       std::shared_ptr<Cluster> _cluster;
       std::shared_ptr<MetadataStorage> _metadata_storage;

@@ -226,6 +226,7 @@ void ReplicaSet::init()
 {
   add_property("name", "getName");
   add_method("addInstance", std::bind(&ReplicaSet::add_instance_, this, _1), "data");
+  add_method("rejoinInstance", std::bind(&ReplicaSet::rejoin_instance, this, _1), "data");
   add_method("removeInstance", std::bind(&ReplicaSet::remove_instance, this, _1), "data");
 }
 
@@ -362,7 +363,7 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args)
     super_user_password = options->get_string("password");
   else if (options->has_key("dbPassword"))
     super_user_password = options->get_string("dbPassword");
-  else if (args.size() == 1 && args[1].type == shcore::String)
+  else if (args.size() == 2 && args[1].type == shcore::String)
   {
     super_user_password = args.string_at(1);
     (*options)["dbPassword"] = shcore::Value(super_user_password);
@@ -429,8 +430,6 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args)
   std::string buf;
   char c;
   std::string success("Operation completed with success.");
-  super_user_password += "\n";
-  std::string replication_password = replication_user_password + "\n";
   std::string error;
 
   std::string gadgets_path = (*shcore::Shell_core_options::get())[SHCORE_GADGETS_PATH].as_string();
@@ -445,221 +444,250 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args)
 #endif
 
   // Call the gadget to bootstrap the group with this instance
-  if (seed_instance)
-  {
+  if (seed_instance) {
     // Call mysqlprovision to bootstrap the group using "start"
-    std::string instance_param = "--instance=" + user + "@" + host + ":" + std::to_string(port);
-    std::string repl_user_param = "--replication-user=" + replication_user;
-    const char *args_script[] = { "python", gadgets_path.c_str(), "start-replicaset", instance_param.c_str(), repl_user_param.c_str(), "--stdin", NULL };
-
-    ngcommon::Process_launcher p("python", args_script, false);
-
-    try
-    {
-      p.write(super_user_password.c_str(), super_user_password.length());
-    }
-    catch (shcore::Exception &e)
-    {
-      throw shcore::Exception::runtime_error(e.what());
-    }
-
-    try
-    {
-      p.write(replication_password.c_str(), replication_password.length());
-    }
-    catch (shcore::Exception &e)
-    {
-      throw shcore::Exception::runtime_error(e.what());
-    }
-
-    bool read_error = false;
-
-    while (p.read(&c, 1) > 0)
-    {
-      buf += c;
-      if (c == '\n')
-      {
-        if ((buf.find("ERROR") != std::string::npos))
-          read_error = true;
-
-        if (read_error)
-          error += buf;
-
-        if (strcmp(success.c_str(), buf.c_str()) == 0)
-        {
-          std::string s_out = "The instance '" + host + ":" + std::to_string(port) + "' was successfully added as seeding instance to the MySQL Cluster.";
-          ret_val = shcore::Value(s_out);
-          break;
-        }
-        buf = "";
-      }
-    }
-
-    if (read_error)
-    {
-      // Remove unnecessary gadgets output
-      std::string remove_me = "ERROR: Error executing the 'start-replicaset' command:";
-
-      std::string::size_type i = error.find(remove_me);
-
-      if (i != std::string::npos)
-        error.erase(i, remove_me.length());
-
-      throw shcore::Exception::logic_error(error);
-    }
-
-    int rc = p.wait();
-    //if (rc != 0)
-    //{
-    //  ret_val = shcore::Value("ERROR: Error executing mysqlprovision");
-    //}
-
-    // OK, if we reached here without errors we can update the metadata with the host
-    auto result = _metadata_storage->insert_host(args);
-
-    // And the instance
-    uint64_t host_id = result->get_member("autoIncrementValue").as_int();
-
-    shcore::Argument_list args_instance;
-    Value::Map_type_ref options_instance(new shcore::Value::Map_type);
-    args_instance.push_back(shcore::Value(options_instance));
-
-    (*options_instance)["role"] = shcore::Value("HA");
-
-    // TODO: construct properly the addresses
-    std::string address = host + ":" + std::to_string(port);
-    shcore::Value val_address = shcore::Value(address);
-    (*options_instance)["addresses"] = val_address;
-    (*options_instance)["mysql_server_uuid"] = shcore::Value(mysql_server_uuid);
-
-    if (options->has_key("name"))
-      (*options_instance)["instance_name"] = (*options)["name"];
-    else
-      (*options_instance)["instance_name"] = val_address;
-
-    _metadata_storage->insert_instance(args_instance, host_id, get_id());
-  }
-
-  else
-  {
+    do_join_replicaset(user + "@" + host + ":" + std::to_string(port),
+        "",
+        super_user_password,
+        replication_user, replication_user_password);
+  } else {
     // We need to retrieve a peer instance, so let's use the Seed one
     std::string peer_instance = _metadata_storage->get_seed_instance(get_id());
 
-    // Call mysqlprovision to join the instance on the group using "join"
-    std::string instance_param = "--instance=" + user + "@" + host + ":" + std::to_string(port);
-    std::string repl_user_param = "--replication-user=" + replication_user;
-    std::string peer_instance_param = "--peer-instance=" + user + "@" + peer_instance;
-    const char *args_script[] = { "python", gadgets_path.c_str(), "join-replicaset", instance_param.c_str(), repl_user_param.c_str(), peer_instance_param.c_str(), "--stdin", NULL };
-
-    ngcommon::Process_launcher p("python", args_script, false);
-
-    try
-    {
-      p.write(super_user_password.c_str(), super_user_password.length());
-    }
-    catch (shcore::Exception &e)
-    {
-      throw shcore::Exception::runtime_error(e.what());
-    }
-
-    try
-    {
-      p.write(replication_password.c_str(), replication_password.length());
-    }
-    catch (shcore::Exception &e)
-    {
-      throw shcore::Exception::runtime_error(e.what());
-    }
-
-    try
-    {
-      p.write(super_user_password.c_str(), super_user_password.length());
-    }
-    catch (shcore::Exception &e)
-    {
-      throw shcore::Exception::runtime_error(e.what());
-    }
-
-    try
-    {
-      p.write(password.c_str(), password.length());
-    }
-    catch (shcore::Exception &e)
-    {
-      throw shcore::Exception::runtime_error(e.what());
-    }
-
-    bool read_error = false;
-
-    while (p.read(&c, 1) > 0)
-    {
-      buf += c;
-      if (c == '\n')
-      {
-        if ((buf.find("ERROR") != std::string::npos))
-          read_error = true;
-
-        if (read_error)
-          error += buf;
-
-        if (strcmp(success.c_str(), buf.c_str()) == 0)
-        {
-          std::string s_out = "The instance '" + host + ":" + std::to_string(port) + "' was successfully added to the MySQL Cluster.";
-          ret_val = shcore::Value(s_out);
-          break;
-        }
-        buf = "";
-      }
-    }
-
-    if (read_error)
-    {
-      // Remove unnecessary gadgets output
-      std::string remove_me = "ERROR: Error executing the 'join-replicaset' command:";
-
-      std::string::size_type i = error.find(remove_me);
-
-      if (i != std::string::npos)
-        error.erase(i, remove_me.length());
-
-      throw shcore::Exception::logic_error(error);
-    }
-
-    // wait for termination
-    int rc = p.wait();
-    //if (rc != 0)
-    //{
-    //  ret_val = shcore::Value("ERROR: Error executing mysqlprovision");
-    //}
-
-    // OK, if we reached here without errors we can update the metadata with the host
-    auto result = _metadata_storage->insert_host(args);
-
-    // And the instance
-    uint64_t host_id = result->get_member("autoIncrementValue").as_int();
-
-    shcore::Argument_list args_instance;
-    Value::Map_type_ref options_instance(new shcore::Value::Map_type);
-    args_instance.push_back(shcore::Value(options_instance));
-
-    (*options_instance)["role"] = shcore::Value("HA");
-
-    std::string address = host + ":" + std::to_string(port);
-    shcore::Value val_address = shcore::Value(address);
-    (*options_instance)["addresses"] = val_address;
-
-    (*options_instance)["mysql_server_uuid"] = shcore::Value(mysql_server_uuid);
-
-    if (options->has_key("name"))
-      (*options_instance)["instance_name"] = (*options)["name"];
-    else
-      (*options_instance)["instance_name"] = val_address;
-
-    _metadata_storage->insert_instance(args_instance, host_id, get_id());
+    // Call mysqlprovision to do the work
+    do_join_replicaset(user + "@" + host + ":" + std::to_string(port),
+        user + "@" + peer_instance,
+        super_user_password,
+        replication_user, replication_user_password);
   }
+
+  // OK, if we reached here without errors we can update the metadata with the host
+  auto result = _metadata_storage->insert_host(args);
+
+  // And the instance
+  uint64_t host_id = result->get_member("autoIncrementValue").as_int();
+
+  shcore::Argument_list args_instance;
+  Value::Map_type_ref options_instance(new shcore::Value::Map_type);
+  args_instance.push_back(shcore::Value(options_instance));
+
+  (*options_instance)["role"] = shcore::Value("HA");
+
+  std::string address = host + ":" + std::to_string(port);
+  shcore::Value val_address = shcore::Value(address);
+  (*options_instance)["addresses"] = val_address;
+
+  (*options_instance)["mysql_server_uuid"] = shcore::Value(mysql_server_uuid);
+
+  if (options->has_key("name"))
+    (*options_instance)["instance_name"] = (*options)["name"];
+  else
+    (*options_instance)["instance_name"] = val_address;
+
+  _metadata_storage->insert_instance(args_instance, host_id, get_id());
 
   return ret_val;
 }
+
+
+bool ReplicaSet::do_join_replicaset(const std::string &instance_url,
+    const std::string &peer_instance_url,
+    const std::string &super_user_password,
+    const std::string &repl_user, const std::string &repl_user_password) {
+  shcore::Value ret_val;
+
+  bool is_seed_instance = peer_instance_url.empty() ? true : false;
+
+  // Gadgets handling
+  std::string buf;
+  char c;
+  std::string success("Operation completed with success.");
+  std::string error;
+
+  std::string gadgets_path = (*shcore::Shell_core_options::get())[SHCORE_GADGETS_PATH].as_string();
+
+  if (gadgets_path.empty())
+    throw shcore::Exception::logic_error("Please set the mysqlprovision path using the environment variable: MYSQLPROVISION.");
+
+#ifdef WIN32
+  success += "\r\n";
+#else
+  success += "\n";
+#endif
+
+  // We need to retrieve a peer instance, so let's use the Seed one
+  std::string peer_instance = _metadata_storage->get_seed_instance(get_id());
+
+  const char *command;
+  std::string instance_param = "--instance=" + instance_url;
+  std::string repl_user_param = "--replication-user=" + repl_user;
+  std::string peer_instance_param;
+  if (is_seed_instance) {
+    command = "start-replicaset";
+  } else {
+    command = "join-replicaset";
+    peer_instance_param = "--peer-instance=" + peer_instance_url;
+  }
+
+  // Call mysqlprovision to join or start the instance in the group
+  const char *args_script[] = { "python", gadgets_path.c_str(), command,
+      instance_param.c_str(), repl_user_param.c_str(), "--stdin",
+      is_seed_instance ? NULL : peer_instance_param.c_str(),
+      NULL };
+
+  ngcommon::Process_launcher p(args_script[0], args_script, false);
+
+  try {
+    std::string password = super_user_password+"\n";
+    p.write(password.c_str(), password.length());
+  } catch (shcore::Exception &e) {
+    throw shcore::Exception::runtime_error(e.what());
+  }
+  try {
+    std::string password = repl_user_password+"\n";
+    p.write(password.c_str(), password.length());
+  } catch (shcore::Exception &e) {
+    throw shcore::Exception::runtime_error(e.what());
+  }
+  if (!is_seed_instance) {
+    try {
+      std::string password = super_user_password+"\n";
+      p.write(password.c_str(), password.length());
+    } catch (shcore::Exception &e) {
+      throw shcore::Exception::runtime_error(e.what());
+    }
+  }
+  bool read_error = false;
+
+  while (p.read(&c, 1) > 0) {
+    buf += c;
+    if (c == '\n') {
+      if ((buf.find("ERROR") != std::string::npos))
+        read_error = true;
+
+      if (read_error)
+        error += buf;
+
+      if (strcmp(success.c_str(), buf.c_str()) == 0) {
+        if (is_seed_instance)
+          ret_val = shcore::Value("The instance '" + instance_url+ "' was successfully added as seeding instance to the MySQL Cluster.");
+        else
+          ret_val = shcore::Value("The instance '" + instance_url+ "' was successfully added to the MySQL Cluster.");
+        break;
+      }
+      buf = "";
+    }
+  }
+
+  if (read_error) {
+    // Remove unnecessary gadgets output
+    std::string remove_me = std::string("ERROR: Error executing the '") + command + "' command:";
+
+    std::string::size_type i = error.find(remove_me);
+
+    if (i != std::string::npos)
+      error.erase(i, remove_me.length());
+
+    throw shcore::Exception::logic_error(error);
+  }
+
+  // wait for termination
+  return p.wait() == 0;
+}
+
+
+#if DOXYGEN_CPP
+/**
+ * Use this function to rejoin an Instance to the ReplicaSet
+ * \param args : A list of values to be used to add a Instance to the ReplicaSet.
+ *
+ * This function returns an empty Value.
+ */
+#else
+/**
+* Rejoin a Instance to the ReplicaSet
+* \param name The name of the Instance to be rejoined
+*/
+#if DOXYGEN_JS
+Undefined ReplicaSet::rejoinInstance(String name, Dictionary options){}
+#elif DOXYGEN_PY
+None ReplicaSet::rejoin_instance(str name, Dictionary options){}
+#endif
+#endif // DOXYGEN_CPP
+shcore::Value ReplicaSet::rejoin_instance(const shcore::Argument_list &args) {
+  shcore::Value ret_val;
+  args.ensure_count(1, 2, get_function_name("rejoinInstance").c_str());
+  // Check if the ReplicaSet is empty
+  if (_metadata_storage->is_replicaset_empty(get_id()))
+    throw shcore::Exception::logic_error(
+        "ReplicaSet not initialized. Please add the Seed Instance using: addSeedInstance().");
+
+  // Add the Instance to the Default ReplicaSet
+  try {
+    shcore::Value::Map_type_ref options; // Map with the connection data
+    std::string super_user_password;
+    std::string host;
+    int port = 0;
+
+    // Identify the type of connection data (String or Document)
+    if (args[0].type == String) {
+      std::string uri = args.string_at(0);
+      options = get_connection_data(uri, false);
+    } else
+      throw shcore::Exception::argument_error(
+          "Invalid connection options, expected either a URI.");
+    // Verification of required attributes on the connection data
+    auto missing = shcore::get_missing_keys(options, { "host" });
+    if (missing.size()) {
+      std::string error = "Missing instance options: ";
+      error += shcore::join_strings(missing, ", ");
+      throw shcore::Exception::argument_error(error);
+    }
+    if (options->has_key("port"))
+      port = options->get_int("port");
+    else
+      port = get_default_port();
+    std::string peer_instance = _metadata_storage->get_seed_instance(get_id());
+    if (peer_instance.empty()) {
+      throw shcore::Exception::runtime_error("Cannot rejoin instance. There are no remaining available instances in the replicaset.");
+    }
+    std::string user;
+    // Sets a default user if not specified
+    if (options->has_key("user"))
+      user = options->get_string("user");
+    else if (options->has_key("dbUser"))
+      user = options->get_string("dbUser");
+    else {
+      user = "root";
+      (*options)["dbUser"] = shcore::Value(user);
+    }
+    host = options->get_string("host");
+
+    std::string password;
+    if (options->has_key("password"))
+      super_user_password = options->get_string("password");
+    else if (options->has_key("dbPassword"))
+      super_user_password = options->get_string("dbPassword");
+    else if (args.size() == 2 && args[1].type == shcore::String) {
+      super_user_password = args.string_at(1);
+      (*options)["dbPassword"] = shcore::Value(super_user_password);
+    }
+    else
+      throw shcore::Exception::argument_error("Missing password for " + build_connection_string(options, false));
+    std::string cluster_admin_user = _cluster->get_account_user(ACC_INSTANCE_ADMIN);
+    std::string cluster_admin_user_password = _cluster->get_account_password(ACC_INSTANCE_ADMIN);
+    std::string replication_user = _cluster->get_account_user(ACC_REPLICATION_USER);
+    std::string replication_user_password = _cluster->get_account_password(ACC_REPLICATION_USER);
+
+    do_join_replicaset(user + "@" + host + ":" + std::to_string(port),
+        user + "@" + peer_instance,
+        super_user_password,
+        replication_user, replication_user_password);
+  } CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("addInstance"));
+
+  return ret_val;
+}
+
 
 #if DOXYGEN_CPP
 /**

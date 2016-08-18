@@ -105,6 +105,7 @@ void Cluster::init()
   add_property("adminType", "getAdminType");
   add_method("addSeedInstance", std::bind(&Cluster::add_seed_instance, this, _1), "data");
   add_method("addInstance", std::bind(&Cluster::add_instance, this, _1), "data");
+  add_method("rejoinInstance", std::bind(&Cluster::rejoin_instance, this, _1), "data");
   add_method("removeInstance", std::bind(&Cluster::remove_instance, this, _1), "data");
   add_method("getReplicaSet", std::bind(&Cluster::get_replicaset, this, _1), "name", shcore::String, NULL);
   add_method("describe", std::bind(&Cluster::describe, this, _1), NULL);
@@ -248,6 +249,42 @@ shcore::Value Cluster::add_instance(const shcore::Argument_list &args)
     tx.commit();
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("addInstance"));
+
+  return ret_val;
+}
+
+#if DOXYGEN_CPP
+/**
+ * Use this function to rejoin an Instance in its replicaset
+ * \param conn : The hostname:port of the instance to be rejoined
+ *
+ * This function returns an empty Value.
+ */
+#else
+/**
+* Rejoins an Instance to the Cluster
+* \param conn The Connection String or URI of the Instance to be rejoined
+*/
+#if DOXYGEN_JS
+Undefined rejoinInstance(String conn){}
+#elif DOXYGEN_PY
+None rejoin_instance(str conn){}
+#endif
+#endif
+shcore::Value Cluster::rejoin_instance(const shcore::Argument_list &args)
+{
+  shcore::Value ret_val;
+  args.ensure_count(1, 2, get_function_name("rejoinInstance").c_str());
+  // Check if we have a Default ReplicaSet
+  if (!_default_replica_set)
+    throw shcore::Exception::logic_error("ReplicaSet not initialized.");
+  // rejoin the Instance to the Default ReplicaSet
+  try
+  {
+    // if not, call mysqlprovision to join the instance to its own group
+    ret_val = _default_replica_set->rejoin_instance(args);
+  }
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("rejoinInstance"));
 
   return ret_val;
 }
