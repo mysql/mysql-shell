@@ -92,15 +92,19 @@ shcore::Value Interactive_dba_cluster::add_instance(const shcore::Argument_list 
     shcore::Value::Map_type_ref options;
 
     std::string message = "A new instance will be added to the InnoDB cluster. Depending on the amount of\n"
-                          "data on the cluster this might take from a few seconds to several hours.";
+                          "data on the cluster this might take from a few seconds to several hours.\n";
+
+    print(message);
 
     if (resolve_instance_options(function, args, options))
     {
       shcore::Argument_list new_args;
       new_args.push_back(shcore::Value(options));
 
-      print("Adding instance to the cluster ...");
+      print("Adding instance to the cluster ...\n");
       ret_val = _target->call(function, new_args);
+
+      print("The instance '" + build_connection_string(options, false) + "' was successfully added to the cluster.\n");
     }
   }
   return ret_val;

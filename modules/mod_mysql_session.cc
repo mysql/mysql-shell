@@ -176,7 +176,7 @@ Value ClassicSession::run_sql(const shcore::Argument_list &args) const
       //if (CR_SERVER_GONE_ERROR == e.code() || ER_X_BAD_PIPE == e.code())
       std::shared_ptr<ClassicSession> myself = std::const_pointer_cast<ClassicSession>(shared_from_this());
 
-      if (e.code() == 2006 || e.code() == 5166)
+      if (e.code() == 2006 || e.code() == 5166 || e.code() == 2013)
         ShellNotifications::get()->notify("SN_SESSION_CONNECTION_LOST", std::dynamic_pointer_cast<Cpp_object_bridge>(myself));
 
       // Rethrows the exception for normal flow

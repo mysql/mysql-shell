@@ -139,7 +139,7 @@ namespace shcore
     std::shared_ptr<ScopedStyle> set_scoped_naming_style(const NamingStyle& style);
 
     virtual shcore::Value help(const shcore::Argument_list &args);
-    virtual std::string get_help_text(const std::string& topic){ return ""; }
+    virtual std::string get_help_text(const std::string& topic, bool full){ return ""; }
 
   protected:
     virtual void add_method(const std::string &name, Cpp_function::Function func,

@@ -37,10 +37,8 @@ namespace shcore
 
     shcore::Value deploy_local_instance(const shcore::Argument_list &args);
     shcore::Value drop_cluster(const shcore::Argument_list &args);
-    shcore::Value is_open(const shcore::Argument_list &args);
     shcore::Value create_cluster(const shcore::Argument_list &args);
     shcore::Value get_cluster(const shcore::Argument_list &args);
-    shcore::Value get_default_cluster(const shcore::Argument_list &args);
     shcore::Value drop_metadata_schema(const shcore::Argument_list &args);
     shcore::Value validate_instance(const shcore::Argument_list &args);
 

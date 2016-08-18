@@ -498,16 +498,16 @@ bool Shell_core::reconnect_if_needed()
   if (_reconnect_session)
   {
     {
-      print("The global session is disconnected, attempting reconnection to '" + _global_dev_session->uri() + "'...");
+      print("The global session got disconnected.\nAttempting to reconnect to '" + _global_dev_session->uri() + "'...\n");
       try
       {
         _global_dev_session->reconnect();
-        print("success!\n");
+        print("The global session was successfully reconnected.\n");
         ret_val = true;
       }
       catch (shcore::Exception &e)
       {
-        print("failed!\n");
+        print("The global session could not be reconnected automatically.\nPlease use \\connect instead to manually reconnect.\n");
       }
     }
 

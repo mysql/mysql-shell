@@ -32,13 +32,10 @@ void Global_dba::init()
 {
   add_varargs_method("deployLocalInstance", std::bind(&Global_dba::deploy_local_instance, this, _1));
   add_method("dropCluster", std::bind(&Global_dba::drop_cluster, this, _1), "clusterName", shcore::String, NULL);
-  add_method("isOpen", std::bind(&Global_dba::is_open, this, _1), NULL);
   add_method("createCluster", std::bind(&Global_dba::create_cluster, this, _1), "clusterName", shcore::String, NULL);
   add_method("dropMetadataSchema", std::bind(&Global_dba::drop_metadata_schema, this, _1), "data", shcore::Map, NULL);
   add_method("getCluster", std::bind(&Global_dba::get_cluster, this, _1), "clusterName", shcore::String, NULL);
-  add_method("getDefaultCluster", std::bind(&Global_dba::get_default_cluster, this, _1), NULL);
   add_method("validateInstance", std::bind(&Global_dba::validate_instance, this, _1), "data", shcore::Map, NULL);
-  set_wrapper_function("isOpen");
 }
 
 shcore::Value Global_dba::deploy_local_instance(const shcore::Argument_list &args)
@@ -111,7 +108,7 @@ shcore::Value Global_dba::deploy_local_instance(const shcore::Argument_list &arg
         while (prompt_password && !proceed)
         {
           std::string message = "A new MySQL sandbox instance will be created on this host in \n"\
-                                sandboxDir + "/" + std::to_string(port) + "\n\n"
+                                "" + sandboxDir + "/" + std::to_string(port) + "\n\n"
                                 "Please enter a MySQL root password for the new instance: ";
 
           prompt_password = password(message, answer);
@@ -193,11 +190,6 @@ shcore::Value Global_dba::drop_cluster(const shcore::Argument_list &args)
   return ret_val;
 }
 
-shcore::Value Global_dba::is_open(const shcore::Argument_list &args)
-{
-  return _target ? _target->call("isOpen", args) : shcore::Value::False();
-}
-
 shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args)
 {
   shcore::Value ret_val;
@@ -274,7 +266,7 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args)
       ret_val = shcore::Value::wrap<Interactive_dba_cluster>(cluster);
 
       print("\nCluster successfully created. Use Cluster.addInstance() to add MySQL instances.\n");
-      print("At least 3 instances are needed for the cluster to be able to withstand up to one server failure.\n");
+      print("At least 3 instances are needed for the cluster to be able to withstand up to\none server failure.\n");
     }
   } CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("createCluster"));
 
@@ -381,17 +373,6 @@ shcore::Value Global_dba::get_cluster(const shcore::Argument_list &args)
 
   ScopedStyle ss(_target.get(), naming_style);
   Value raw_cluster = _target->call("getCluster", new_args);
-
-  Interactive_dba_cluster* cluster = new Interactive_dba_cluster(this->_shell_core);
-  cluster->set_target(std::dynamic_pointer_cast<Cpp_object_bridge>(raw_cluster.as_object()));
-  return shcore::Value::wrap<Interactive_dba_cluster>(cluster);
-}
-
-shcore::Value Global_dba::get_default_cluster(const shcore::Argument_list &args)
-{
-  ScopedStyle ss(_target.get(), naming_style);
-
-  Value raw_cluster = _target->call("getDefaultCluster", args);
 
   Interactive_dba_cluster* cluster = new Interactive_dba_cluster(this->_shell_core);
   cluster->set_target(std::dynamic_pointer_cast<Cpp_object_bridge>(raw_cluster.as_object()));

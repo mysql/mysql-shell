@@ -125,7 +125,7 @@ namespace shcore
     bool prompt(const std::string& prompt, std::string &ret_val) const;
     bool password(const std::string& prompt, std::string &ret_val) const;
 
-    virtual std::string get_help_text(const std::string& topic);
+    virtual std::string get_help_text(const std::string& topic, bool full);
   };
 }
 

@@ -319,27 +319,82 @@ shcore::Value Cpp_object_bridge::help(const shcore::Argument_list &args)
     case 1:
       if (args[0].type == shcore::String)
       {
-        ret_val = get_help_text(args.string_at(0));
+        ret_val = get_help_text(args.string_at(0), true);
         break;
       }
     default:
     {
-      ret_val = get_help_text("__brief__");
+      ret_val = get_help_text("__detail__", false);
       if (_properties.size())
       {
-        ret_val += "\nThe next properties are available:\n";
+        int text_col = 0;
         for (auto property : _properties)
-          ret_val += "  - " + property->name(naming_style) + "\n";
+        {
+          int new_length = property->name(naming_style).length();
+          text_col = new_length > text_col ? new_length : text_col;
+        }
+
+        text_col++;
+
+        ret_val += "\n\nThe following properties are currently supported.\n\n";
+        for (auto property : _properties)
+        {
+          std::string name = property->name(naming_style);
+          std::string help_text = get_help_text(name, false);
+
+          std::string text = " - " + name;
+
+          if (!help_text.empty())
+          {
+            for (int index = 0; index < (text_col - name.length()); index++)
+              text += " ";
+
+            text += help_text;
+          }
+
+          text += "\n";
+
+          ret_val += text;
+        }
       }
 
       if (_funcs.size())
       {
-        ret_val += "\nThe next functions are available:\n";
+        int text_col = 0;
         for (auto function : _funcs)
-          ret_val += "  - " + function.second->_name[naming_style] + "\n";
+        {
+          int new_length = function.second->_name[naming_style].length();
+          text_col = new_length > text_col ? new_length : text_col;
+        }
+
+        text_col++;
+
+        ret_val += "\n\nThe following functions are currently supported.\n\n";
+        for (auto function : _funcs)
+        {
+          std::string name = function.second->_name[naming_style];
+          std::string help_text = get_help_text(name, false);
+
+          std::string text = " - " + name + "()";
+
+          if (!help_text.empty())
+          {
+            for (int index = 0; index < (text_col - name.length()); index++)
+              text += " ";
+
+            text += help_text;
+          }
+
+          text += "\n";
+
+          ret_val += text;
+        }
       }
 
-      ret_val += "\n\nFor additional help on a property or function use: \n\n<object>.help('<name>')\n";
+      std::string closing = get_help_text("__closing__", false);
+
+      if (!closing.empty())
+        ret_val += "\n" + closing + "\n";
     }
   }
 

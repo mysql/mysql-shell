@@ -825,19 +825,29 @@ shcore::Value Dba::deploy_local_instance(const shcore::Argument_list &args)
   return ret_val;
 }
 
-std::string Dba::get_help_text(const std::string& topic)
+std::string Dba::get_help_text(const std::string& topic, bool full)
 {
   std::string ret_val;
   std::map<std::string, std::string> help_data;
 
   if (topic == "__brief__")
-    ret_val = "Enables cluster administration operations.";
+    ret_val = "Perform DBA operations using the MySQL AdminAPI.";
+  else if (topic == "__detail__")
+    ret_val = "The global variable 'dba' is used to access the MySQL AdminAPI functionality and"\
+              "perform DBA operations.It is mainly used for managing MySQL InnoDB clusters.";
+  else if (topic == "__closing__")
+    ret_val = "For more help on a specific function use dba.help('<functionName>')\n"\
+              "e.g. dba.help('deployLocalInstance') or dba.help('deployLocalInstance()')";
   else if (topic == get_function_name("createCluster", false))
-    ret_val = "Creates a Cluster.";
+    ret_val = "Creates a MySQL InnoDB cluster.";
   else if (topic == get_function_name("dropCluster", false))
-    ret_val = "Deletes a Cluster.";
+    ret_val = "Deletes a cluster.";
   else if (topic == get_function_name("getCluster", false))
-    ret_val = "Retrieves an InnoDB cluster from the Metadata Store.\n\n"\
+  {
+    ret_val = "Retrieves a cluster from the Metadata Store.";
+    if (full)
+    {
+      ret_val += "\n\n"\
     "SYNTAX:\n\n"\
     "   " + get_function_name("getCluster", false) + "([name])\n\n"\
     "WHERE:\n\n"\
@@ -845,12 +855,16 @@ std::string Dba::get_help_text(const std::string& topic)
     "   If name is not specified, the default cluster will be returned.\n\n"\
     "   If name is specified, and no cluster with the indicated name is found,\n"\
     "   an error will be raised.\n";
+    }
+  }
   else if (topic == get_function_name("dropMetadataSchema", false))
-    ret_val = "Destroys the Cluster configuration data.";
+    ret_val = "Destroys the cluster configuration data.";
   else if (topic == get_function_name("validateInstance", false))
     ret_val = "Validates an instance.";
   else if (topic == get_function_name("deployLocalInstance", false))
-    ret_val = "Creates a new MySQL Server instance.";
+    ret_val = "Creates a new MySQL Server instance on localhost.";
+  else if (topic == get_function_name("help", false))
+    ret_val = "Prints this help.";
 
   return ret_val;
 }
