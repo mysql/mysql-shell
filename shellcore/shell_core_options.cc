@@ -19,6 +19,7 @@
 
 #include <boost/format.hpp>
 #include "shellcore/shell_core_options.h"
+#include "utils/utils_file.h"
 
 using namespace shcore;
 
@@ -101,13 +102,17 @@ _options(new shcore::Value::Map_type)
   std::string gadgets_path;
 
   if (getenv("MYSQLPROVISION") != NULL)
-    gadgets_path = std::string(getenv("MYSQLPROVISION")); // should be set to the mysqlprovision root dir
+    gadgets_path = std::string(getenv("MYSQLPROVISION")); // should be set to the mysqlprovision root dir or an executable path
 
   // The mysqlprovision_path will only be set if the environment variable was configured.
   std::string mysqlprovision_path;
   if (!gadgets_path.empty())
-    mysqlprovision_path = gadgets_path + "/gadgets/python/front_end/mysqlprovision.py";
-
+  {
+    if (!shcore::file_exists(gadgets_path)) // if not a file, assume its a dir
+      mysqlprovision_path = gadgets_path + "/gadgets/python/front_end/mysqlprovision.py";
+    else
+      mysqlprovision_path = gadgets_path;
+  }
   (*_options)[SHCORE_GADGETS_PATH] = Value(mysqlprovision_path.c_str());
 
   if (getenv("HOME"))

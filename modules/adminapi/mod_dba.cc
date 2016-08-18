@@ -750,31 +750,21 @@ shcore::Value Dba::deploy_local_instance(const shcore::Argument_list &args)
       sandbox_args.push_back(arg);
     }
 
-    char **args_script = new char*[10];
-    args_script[0] = const_cast<char*>("python");
-    args_script[1] = const_cast<char*>(gadgets_path.c_str());
-    args_script[2] = const_cast<char*>("sandbox");
-    args_script[3] = const_cast<char*>("start");
+    std::vector<const char *> args_script;
+    if (gadgets_path.find(".py") == gadgets_path.size()-3)
+      args_script.push_back("python");
+    args_script.push_back(gadgets_path.c_str());
+    args_script.push_back("sandbox");
+    args_script.push_back("start");
+    args_script.push_back("--stdin");
+    for (size_t i = 0; i < sandbox_args.size(); i++)
+      args_script.push_back(sandbox_args[i].c_str());
+    args_script.push_back(NULL);
 
-    int i;
+    ngcommon::Process_launcher p(args_script[0], &args_script[0]);
 
-    for (i = 0; i < sandbox_args.size(); i++)
-      args_script[i + 4] = const_cast<char*>(sandbox_args[i].c_str());
-
-    args_script[i++ + 4] = const_cast<char*>("--stdin");
-    args_script[i++ + 4] = NULL;
-
-    ngcommon::Process_launcher p("python", const_cast<const char**>(args_script));
-
-    std::string buf, error, answer;
+    std::string buf, answer;
     char c;
-    std::string success("Operation completed with success.");
-
-#ifdef WIN32
-    success += "\r\n";
-#else
-    success += "\n";
-#endif
 
     try
     {
@@ -785,37 +775,27 @@ shcore::Value Dba::deploy_local_instance(const shcore::Argument_list &args)
       throw shcore::Exception::runtime_error(e.what());
     }
 
-    bool read_error = false;
+    bool read_success = false;
+    std::string full_output;
 
     while (p.read(&c, 1) > 0)
     {
       buf += c;
       if (c == '\n')
       {
-        if ((buf.find("ERROR") != std::string::npos))
-          read_error = true;
-
-        if (read_error)
-          error += buf;
-
-        if (strcmp(success.c_str(), buf.c_str()) == 0)
-          break;
-
+        if (buf.find("You can use '") != std::string::npos)
+          read_success = true;
+        full_output.append(buf);
         buf = "";
       }
     }
 
-    if (read_error)
+    if (!read_success)
     {
-      // Remove unnecessary gadgets output
-      std::string remove_me = "ERROR: Error executing the 'sandbox' command:";
+      print("An error occurred executing the sandbox command:\n");
+      print(full_output);
 
-      std::string::size_type i = error.find(remove_me);
-
-      if (i != std::string::npos)
-        error.erase(i, remove_me.length());
-
-      throw shcore::Exception::logic_error(error);
+      throw shcore::Exception::logic_error("Error executing sandbox command");
     }
 
     p.wait();
