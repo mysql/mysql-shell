@@ -52,11 +52,9 @@ namespace mysh
       bool cluster_has_default_replicaset_only(const std::string &cluster_name);
       void drop_default_replicaset(const std::string &cluster_name);
 
-      uint64_t get_cluster_default_rs_id(const std::string &cluster_name);
       std::shared_ptr<Cluster> get_cluster(const std::string &cluster_name);
       std::shared_ptr<Cluster> get_default_cluster();
       bool has_default_cluster();
-      std::string get_default_cluster_name();
 
       std::string get_replicaset_name(uint64_t rs_id);
       std::shared_ptr<ReplicaSet> get_replicaset(uint64_t rs_id);

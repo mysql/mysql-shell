@@ -304,7 +304,6 @@ shcore::Value ShellBaseSession::is_open(const shcore::Argument_list &args)
   return shcore::Value(is_connected());
 }
 
-
 void ShellBaseSession::reconnect()
 {
   shcore::Argument_list args;
@@ -364,4 +363,34 @@ void ShellDevelopmentSession::init()
   add_method("createSchema", std::bind(&ShellDevelopmentSession::create_schema, this, _1), "name", shcore::String, NULL);
   add_method("getSchema", std::bind(&ShellDevelopmentSession::get_schema, this, _1), "name", shcore::String, NULL);
   add_method("getSchemas", std::bind(&ShellDevelopmentSession::get_schemas, this, _1), NULL);
+
+  _tx_deep = 0;
+}
+
+void ShellDevelopmentSession::start_transaction()
+{
+  if (_tx_deep == 0)
+    execute_sql("start transaction", shcore::Argument_list());
+
+  _tx_deep++;
+}
+
+void ShellDevelopmentSession::commit()
+{
+  _tx_deep--;
+
+  assert(_tx_deep >= 0);
+
+  if (_tx_deep == 0)
+    execute_sql("commit", shcore::Argument_list());
+}
+
+void ShellDevelopmentSession::rollback()
+{
+  _tx_deep--;
+
+  assert(_tx_deep >= 0);
+
+  if (_tx_deep == 0)
+    execute_sql("rollback", shcore::Argument_list());
 }

@@ -112,12 +112,17 @@ namespace mysh
     virtual shcore::Value get_schemas(const shcore::Argument_list &args) const = 0;
     virtual shcore::Value execute_sql(const std::string& query, const shcore::Argument_list &args) const = 0;
 
+    void start_transaction();
+    void commit();
+    void rollback();
+
   protected:
     std::string _default_schema;
     mutable std::shared_ptr<shcore::Value::Map_type> _schemas;
     std::function<void(const std::string&, bool exists)> update_schema_cache;
 
   private:
+    int _tx_deep;
     void init();
   };
 

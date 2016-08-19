@@ -397,6 +397,7 @@ shcore::Value Dba::drop_cluster(const shcore::Argument_list &args)
 
   try
   {
+    MetadataStorage::Transaction tx(_metadata_storage);
     std::string cluster_name = args.string_at(0);
 
     if (cluster_name.empty())
@@ -437,6 +438,7 @@ shcore::Value Dba::drop_cluster(const shcore::Argument_list &args)
       if (_clusters->has_key(cluster_name))
         _clusters->erase(cluster_name);
     }
+    tx.commit();
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("dropCluster"))
 
@@ -746,7 +748,7 @@ shcore::Value Dba::deploy_local_instance(const shcore::Argument_list &args)
     else if (shcore::Shell_core_options::get()->has_key(SHCORE_SANDBOX_DIR))
     {
       std::string dir = (*shcore::Shell_core_options::get())[SHCORE_SANDBOX_DIR].as_string();
-      arg = "--sandboxdir="+dir;
+      arg = "--sandboxdir=" + dir;
       sandbox_args.push_back(arg);
     }
 

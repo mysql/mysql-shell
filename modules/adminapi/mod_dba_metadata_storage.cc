@@ -65,17 +65,20 @@ std::shared_ptr<ShellBaseResult> MetadataStorage::execute_sql(const std::string 
 
 void MetadataStorage::start_transaction()
 {
-  execute_sql("start transaction");
+  auto session = _dba->get_active_session();
+  session->start_transaction();
 }
 
 void MetadataStorage::commit()
 {
-  execute_sql("commit");
+  auto session = _dba->get_active_session();
+  session->commit();
 }
 
 void MetadataStorage::rollback()
 {
-  execute_sql("rollback");
+  auto session = _dba->get_active_session();
+  session->rollback();
 }
 
 bool MetadataStorage::metadata_schema_exists()
@@ -318,7 +321,7 @@ void MetadataStorage::insert_instance(const shcore::Argument_list &args, uint64_
 
   // Insert the default ReplicaSet on the replicasets table
   query = "INSERT INTO mysql_innodb_cluster_metadata.instances (host_id, replicaset_id, mysql_server_uuid, instance_name,\
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        role, addresses) VALUES ('" +
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          role, addresses) VALUES ('" +
         std::to_string(host_id) + "', '" + std::to_string(rs_id) + "', '" + mysql_server_uuid + "', '" +
         instance_name + "', '" + role + "', '{\"mysqlClassic\": \"" + addresses + "\"}')";
 
@@ -399,39 +402,14 @@ void MetadataStorage::drop_default_replicaset(const std::string &cluster_name)
 
   uint64_t cluster_id = get_cluster_id(cluster_name);
 
+  Transaction tx(shared_from_this());
   // Set the default_replicaset as NULL
   execute_sql("UPDATE mysql_innodb_cluster_metadata.clusters SET default_replicaset = NULL WHERE cluster_id = " + std::to_string(cluster_id) + "");
 
   // Delete the default_replicaset
   execute_sql("delete from mysql_innodb_cluster_metadata.replicasets where cluster_id = " + std::to_string(cluster_id) + "");
-}
 
-uint64_t MetadataStorage::get_cluster_default_rs_id(const std::string &cluster_name)
-{
-  uint64_t default_rs_id = 0;
-
-  if (!metadata_schema_exists())
-    throw Exception::metadata_error("Metadata Schema does not exist.");
-
-  // Get the Default ReplicaSet ID
-
-  auto result = execute_sql("SELECT default_replicaset from mysql_innodb_cluster_metadata.clusters where cluster_name = '" + cluster_name + "'");
-
-  auto row = result->call("fetchOne", shcore::Argument_list());
-
-  if (row)
-  {
-    shcore::Argument_list args;
-    args.push_back(shcore::Value("default_replicaset"));
-    auto field = row.as_object<Row>()->get_field(args);
-
-    if (field)
-      default_rs_id = field.as_uint();
-  }
-
-  //result->flush();
-
-  return default_rs_id;
+  tx.commit();
 }
 
 std::string MetadataStorage::get_replicaset_name(uint64_t rs_id)
@@ -550,29 +528,6 @@ bool MetadataStorage::has_default_cluster()
   }
 
   return ret_val;
-}
-
-std::string MetadataStorage::get_default_cluster_name()
-{
-  std::string rs_name;
-
-  if (!metadata_schema_exists())
-    throw Exception::metadata_error("Metadata Schema does not exist.");
-
-  // Get the Default Cluster name
-  auto result = execute_sql("SELECT cluster_name from mysql_innodb_cluster_metadata.clusters WHERE attributes->\"$.default\" = true");
-
-  auto row = result->call("fetchOne", shcore::Argument_list());
-
-  if (row)
-  {
-    auto real_row = row.as_object<Row>();
-    shcore::Argument_list args;
-    args.push_back(shcore::Value("cluster_name"));
-    rs_name = row.as_object<Row>()->get_field(args).as_string();
-  }
-
-  return rs_name;
 }
 
 bool MetadataStorage::is_replicaset_empty(uint64_t rs_id)

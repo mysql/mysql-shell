@@ -243,9 +243,7 @@ shcore::Value Cluster::add_instance(const shcore::Argument_list &args)
   // Add the Instance to the Default ReplicaSet
   try
   {
-    MetadataStorage::Transaction tx(_metadata_storage);
     ret_val = _default_replica_set->add_instance(args);
-    tx.commit();
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("addInstance"));
 

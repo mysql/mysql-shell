@@ -92,7 +92,7 @@ shcore::Value Interactive_dba_cluster::add_instance(const shcore::Argument_list 
     shcore::Value::Map_type_ref options;
 
     std::string message = "A new instance will be added to the InnoDB cluster. Depending on the amount of\n"
-                          "data on the cluster this might take from a few seconds to several hours.\n";
+                          "data on the cluster this might take from a few seconds to several hours.\n\n";
 
     print(message);
 

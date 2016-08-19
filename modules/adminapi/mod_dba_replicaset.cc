@@ -393,6 +393,8 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args)
   auto session = mysh::connect_session(new_args, mysh::Classic);
   mysh::mysql::ClassicSession *classic = dynamic_cast<mysh::mysql::ClassicSession*>(session.get());
 
+  MetadataStorage::Transaction tx(_metadata_storage);
+
   temp_args.clear();
   temp_args.push_back(shcore::Value("SET sql_log_bin = 0"));
   classic->run_sql(temp_args);
@@ -487,6 +489,8 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args)
     (*options_instance)["instance_name"] = val_address;
 
   _metadata_storage->insert_instance(args_instance, host_id, get_id());
+
+  tx.commit();
 
   return ret_val;
 }
