@@ -37,15 +37,29 @@ std::string shcore::get_member_name(const std::string& name, NamingStyle style)
       return new_name = name;
     case LowerCaseUnderscores:
     {
+      // Uppercase letters will be converted to underscore+lowercase letter
+      // except in two situations:
+      // - When it is the first letter
+      // - When an underscore is already before the uppercase letter
+      bool skip_underscore = true;
       for (auto character : name)
       {
         if (character >= 65 && character <= 90)
         {
-          new_name.append(1, '_');
+          if (!skip_underscore)
+            new_name.append(1, '_');
+          else
+            skip_underscore = false;
+
           new_name.append(1, character + 32);
         }
         else
+        {
+          // if character is '_'
+          skip_underscore = character == 95;
+
           new_name.append(1, character);
+        }
       }
       break;
     }

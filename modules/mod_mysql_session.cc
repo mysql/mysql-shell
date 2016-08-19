@@ -689,66 +689,73 @@ shcore::Value ClassicSession::get_status(const shcore::Argument_list &args)
 {
   shcore::Value::Map_type_ref status(new shcore::Value::Map_type);
 
-  auto val_result = execute_sql("select DATABASE(), USER() limit 1", shcore::Argument_list());
-  auto result = val_result.as_object<ClassicResult>();
-  auto val_row = result->fetch_one(shcore::Argument_list());
-  if (val_row)
+  try
   {
-    auto row = val_row.as_object<mysh::Row>();
-
-    if (row)
+    auto val_result = execute_sql("select DATABASE(), USER() limit 1", shcore::Argument_list());
+    auto result = val_result.as_object<ClassicResult>();
+    auto val_row = result->fetch_one(shcore::Argument_list());
+    if (val_row)
     {
-      (*status)["SESSION_TYPE"] = shcore::Value("Classic");
-      (*status)["DEFAULT_SCHEMA"] = shcore::Value(_default_schema);
+      auto row = val_row.as_object<mysh::Row>();
 
-      std::string current_schema = row->get_member(0).descr(true);
-      if (current_schema == "null")
-        current_schema = "";
+      if (row)
+      {
+        (*status)["SESSION_TYPE"] = shcore::Value("Classic");
+        (*status)["DEFAULT_SCHEMA"] = shcore::Value(_default_schema);
 
-      (*status)["CURRENT_SCHEMA"] = shcore::Value(current_schema);
-      (*status)["CURRENT_USER"] = row->get_member(1);
-      (*status)["CONNECTION_ID"] = shcore::Value(uint64_t(_conn->get_thread_id()));
-      (*status)["SSL_CIPHER"] = shcore::Value(_conn->get_ssl_cipher());
-      //(*status)["SKIP_UPDATES"] = shcore::Value(???);
-      //(*status)["DELIMITER"] = shcore::Value(???);
+        std::string current_schema = row->get_member(0).descr(true);
+        if (current_schema == "null")
+          current_schema = "";
 
-      (*status)["SERVER_INFO"] = shcore::Value(_conn->get_server_info());
+        (*status)["CURRENT_SCHEMA"] = shcore::Value(current_schema);
+        (*status)["CURRENT_USER"] = row->get_member(1);
+        (*status)["CONNECTION_ID"] = shcore::Value(uint64_t(_conn->get_thread_id()));
+        (*status)["SSL_CIPHER"] = shcore::Value(_conn->get_ssl_cipher());
+        //(*status)["SKIP_UPDATES"] = shcore::Value(???);
+        //(*status)["DELIMITER"] = shcore::Value(???);
 
-      (*status)["PROTOCOL_VERSION"] = shcore::Value(uint64_t(_conn->get_protocol_info()));
-      (*status)["CONNECTION"] = shcore::Value(_conn->get_connection_info());
-      //(*status)["INSERT_ID"] = shcore::Value(???);
+        (*status)["SERVER_INFO"] = shcore::Value(_conn->get_server_info());
+
+        (*status)["PROTOCOL_VERSION"] = shcore::Value(uint64_t(_conn->get_protocol_info()));
+        (*status)["CONNECTION"] = shcore::Value(_conn->get_connection_info());
+        //(*status)["INSERT_ID"] = shcore::Value(???);
+      }
+    }
+
+    val_result = execute_sql("select @@character_set_client, @@character_set_connection, @@character_set_server, @@character_set_database, @@version_comment limit 1", shcore::Argument_list());
+    result = val_result.as_object<ClassicResult>();
+    val_row = result->fetch_one(shcore::Argument_list());
+
+    if (val_row)
+    {
+      auto row = val_row.as_object<mysh::Row>();
+
+      if (row)
+      {
+        (*status)["CLIENT_CHARSET"] = row->get_member(0);
+        (*status)["CONNECTION_CHARSET"] = row->get_member(1);
+        (*status)["SERVER_CHARSET"] = row->get_member(2);
+        (*status)["SCHEMA_CHARSET"] = row->get_member(3);
+        (*status)["SERVER_VERSION"] = row->get_member(4);
+
+        (*status)["SERVER_STATS"] = shcore::Value(_conn->get_stats());
+
+        // TODO: Review retrieval from charset_info, mysql connection
+
+        // TODO: Embedded library stuff
+        //(*status)["TCP_PORT"] = row->get_value(1);
+        //(*status)["UNIX_SOCKET"] = row->get_value(2);
+        //(*status)["PROTOCOL_COMPRESSED"] = row->get_value(3);
+
+        // STATUS
+
+        // SAFE UPDATES
+      }
     }
   }
-
-  val_result = execute_sql("select @@character_set_client, @@character_set_connection, @@character_set_server, @@character_set_database, @@version_comment limit 1", shcore::Argument_list());
-  result = val_result.as_object<ClassicResult>();
-  val_row = result->fetch_one(shcore::Argument_list());
-
-  if (val_row)
+  catch (shcore::Exception& e)
   {
-    auto row = val_row.as_object<mysh::Row>();
-
-    if (row)
-    {
-      (*status)["CLIENT_CHARSET"] = row->get_member(0);
-      (*status)["CONNECTION_CHARSET"] = row->get_member(1);
-      (*status)["SERVER_CHARSET"] = row->get_member(2);
-      (*status)["SCHEMA_CHARSET"] = row->get_member(3);
-      (*status)["SERVER_VERSION"] = row->get_member(4);
-
-      (*status)["SERVER_STATS"] = shcore::Value(_conn->get_stats());
-
-      // TODO: Review retrieval from charset_info, mysql connection
-
-      // TODO: Embedded library stuff
-      //(*status)["TCP_PORT"] = row->get_value(1);
-      //(*status)["UNIX_SOCKET"] = row->get_value(2);
-      //(*status)["PROTOCOL_COMPRESSED"] = row->get_value(3);
-
-      // STATUS
-
-      // SAFE UPDATES
-    }
+    (*status)["STATUS_ERROR"] = shcore::Value(e.format());
   }
 
   return shcore::Value(status);

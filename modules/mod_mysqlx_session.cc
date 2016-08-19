@@ -1,21 +1,21 @@
 /*
- * Copyright (c) 2014, 2016, Oracle and/or its affiliates. All rights reserved.
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; version 2 of the
- * License.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
- * 02110-1301  USA
- */
+* Copyright (c) 2014, 2016, Oracle and/or its affiliates. All rights reserved.
+*
+* This program is free software; you can redistribute it and/or
+* modify it under the terms of the GNU General Public License as
+* published by the Free Software Foundation; version 2 of the
+* License.
+*
+* This program is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+* GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with this program; if not, write to the Free Software
+* Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
+* 02110-1301  USA
+*/
 
 #include "utils/utils_sqlstring.h"
 #include "mod_mysqlx_session.h"
@@ -76,6 +76,14 @@ BaseSession::BaseSession()
   init();
 }
 
+/**
+* \brief Verifies if the session is still open.
+*/
+#if DOXYGEN_JS
+Bool BaseSession::isOpen(){}
+#elif DOXYGEN_PY
+bool BaseSession::is_open(){}
+#endif
 bool BaseSession::is_connected() const
 {
   return _session.is_connected();
@@ -137,18 +145,22 @@ Value BaseSession::connect(const Argument_list &args)
 
 void BaseSession::set_connection_id()
 {
-  if (_session.is_connected())
+  try
   {
-    // the client id from xprotocol is not the same as the connection id so it is gathered here.
-    std::shared_ptr< ::mysqlx::Result> result = _session.execute_sql("select connection_id();");
-    std::shared_ptr< ::mysqlx::Row> row = result->next();
-    if (row)
+    if (_session.is_connected())
     {
-      if (!row->isNullField(0))
-        _connection_id = row->uInt64Field(0);
+      // the client id from xprotocol is not the same as the connection id so it is gathered here.
+      std::shared_ptr< ::mysqlx::Result> result = _session.execute_sql("select connection_id();");
+      std::shared_ptr< ::mysqlx::Row> row = result->next();
+      if (row)
+      {
+        if (!row->isNullField(0))
+          _connection_id = row->uInt64Field(0);
+      }
+      result->flush();
     }
-    result->flush();
   }
+  CATCH_AND_TRANSLATE();
 }
 
 void BaseSession::set_option(const char *option, int value)
@@ -408,7 +420,7 @@ std::string BaseSession::_retrieve_current_schema()
 }
 
 void BaseSession::_retrieve_session_info(std::string &current_schema,
-                                        int &case_sensitive_table_names)
+                                         int &case_sensitive_table_names)
 {
   try
   {
@@ -561,14 +573,14 @@ shcore::Value BaseSession::drop_schema(const shcore::Argument_list &args)
 
 #if DOXYGEN_CPP
 /**
- * Drops a table, view or collection from a specific Schema.
- * \param args contains the identification data for the object to be deleted.
- * \param type indicates the object type to be deleted
- *
- * args must contain two string entries: schema and table/view/collection name.
- *
- * type must be either "Table", "View", or "Collection"
- */
+* Drops a table, view or collection from a specific Schema.
+* \param args contains the identification data for the object to be deleted.
+* \param type indicates the object type to be deleted
+*
+* args must contain two string entries: schema and table/view/collection name.
+*
+* type must be either "Table", "View", or "Collection"
+*/
 #else
 /**
 * Drops a table from the specified schema.
@@ -674,46 +686,54 @@ shcore::Value BaseSession::get_status(const shcore::Argument_list &args)
 
   std::shared_ptr< ::mysqlx::Result> result;
   std::shared_ptr< ::mysqlx::Row>row;
-  result = _session.execute_sql("select DATABASE(), USER() limit 1");
-  row = result->next();
 
-  std::string current_schema = row->isNullField(0) ? "" : row->stringField(0);
-  if (current_schema == "null")
-    current_schema = "";
+  try
+  {
+    result = _session.execute_sql("select DATABASE(), USER() limit 1");
+    row = result->next();
 
-  (*status)["CURRENT_SCHEMA"] = shcore::Value(current_schema);
-  (*status)["CURRENT_USER"] = shcore::Value(row->isNullField(1) ? "" : row->stringField(1));
-  (*status)["CONNECTION_ID"] = shcore::Value(_session.get_client_id());
-  //(*status)["SSL_CIPHER"] = shcore::Value(_conn->get_ssl_cipher());
-  //(*status)["SKIP_UPDATES"] = shcore::Value(???);
-  //(*status)["DELIMITER"] = shcore::Value(???);
+    std::string current_schema = row->isNullField(0) ? "" : row->stringField(0);
+    if (current_schema == "null")
+      current_schema = "";
 
-  //(*status)["SERVER_INFO"] = shcore::Value(_conn->get_server_info());
+    (*status)["CURRENT_SCHEMA"] = shcore::Value(current_schema);
+    (*status)["CURRENT_USER"] = shcore::Value(row->isNullField(1) ? "" : row->stringField(1));
+    (*status)["CONNECTION_ID"] = shcore::Value(_session.get_client_id());
+    //(*status)["SSL_CIPHER"] = shcore::Value(_conn->get_ssl_cipher());
+    //(*status)["SKIP_UPDATES"] = shcore::Value(???);
+    //(*status)["DELIMITER"] = shcore::Value(???);
 
-  //(*status)["PROTOCOL_VERSION"] = shcore::Value(_conn->get_protocol_info());
-  //(*status)["CONNECTION"] = shcore::Value(_conn->get_connection_info());
-  //(*status)["INSERT_ID"] = shcore::Value(???);
+    //(*status)["SERVER_INFO"] = shcore::Value(_conn->get_server_info());
 
-  result = _session.execute_sql("select @@character_set_client, @@character_set_connection, @@character_set_server, @@character_set_database, @@version_comment limit 1");
-  row = result->next();
-  (*status)["CLIENT_CHARSET"] = shcore::Value(row->isNullField(0) ? "" : row->stringField(0));
-  (*status)["CONNECTION_CHARSET"] = shcore::Value(row->isNullField(1) ? "" : row->stringField(1));
-  (*status)["SERVER_CHARSET"] = shcore::Value(row->isNullField(2) ? "" : row->stringField(2));
-  (*status)["SCHEMA_CHARSET"] = shcore::Value(row->isNullField(3) ? "" : row->stringField(3));
-  (*status)["SERVER_VERSION"] = shcore::Value(row->isNullField(4) ? "" : row->stringField(4));
+    //(*status)["PROTOCOL_VERSION"] = shcore::Value(_conn->get_protocol_info());
+    //(*status)["CONNECTION"] = shcore::Value(_conn->get_connection_info());
+    //(*status)["INSERT_ID"] = shcore::Value(???);
 
-  //(*status)["SERVER_STATS"] = shcore::Value(_conn->get_stats());
+    result = _session.execute_sql("select @@character_set_client, @@character_set_connection, @@character_set_server, @@character_set_database, @@version_comment limit 1");
+    row = result->next();
+    (*status)["CLIENT_CHARSET"] = shcore::Value(row->isNullField(0) ? "" : row->stringField(0));
+    (*status)["CONNECTION_CHARSET"] = shcore::Value(row->isNullField(1) ? "" : row->stringField(1));
+    (*status)["SERVER_CHARSET"] = shcore::Value(row->isNullField(2) ? "" : row->stringField(2));
+    (*status)["SCHEMA_CHARSET"] = shcore::Value(row->isNullField(3) ? "" : row->stringField(3));
+    (*status)["SERVER_VERSION"] = shcore::Value(row->isNullField(4) ? "" : row->stringField(4));
 
-  // TODO: Review retrieval from charset_info, mysql connection
+    //(*status)["SERVER_STATS"] = shcore::Value(_conn->get_stats());
 
-  // TODO: Embedded library stuff
-  //(*status)["TCP_PORT"] = row->get_value(1);
-  //(*status)["UNIX_SOCKET"] = row->get_value(2);
-  //(*status)["PROTOCOL_COMPRESSED"] = row->get_value(3);
+    // TODO: Review retrieval from charset_info, mysql connection
 
-  // STATUS
+    // TODO: Embedded library stuff
+    //(*status)["TCP_PORT"] = row->get_value(1);
+    //(*status)["UNIX_SOCKET"] = row->get_value(2);
+    //(*status)["PROTOCOL_COMPRESSED"] = row->get_value(3);
 
-  // SAFE UPDATES
+    // STATUS
+
+    // SAFE UPDATES
+  }
+  catch (shcore::Exception &e)
+  {
+    (*status)["STATUS_ERROR"] = shcore::Value(e.format());
+  }
 
   return shcore::Value(status);
 }
@@ -797,13 +817,13 @@ shcore::Value NodeSession::sql(const shcore::Argument_list &args)
 
 #if DOXYGEN_CPP
 /**
- * Use this function to retrieve an valid member of this class exposed to the scripting languages.
- * \param prop : A string containing the name of the member to be returned
- *
- * This function returns a Value that wraps the object returned by this function. The content of the returned value depends on the property being requested. The next list shows the valid properties as well as the returned value for each of them:
- *
- * \li currentSchema: returns Schema object representing the active schema on the session. If none is active, returns Null.
- */
+* Use this function to retrieve an valid member of this class exposed to the scripting languages.
+* \param prop : A string containing the name of the member to be returned
+*
+* This function returns a Value that wraps the object returned by this function. The content of the returned value depends on the property being requested. The next list shows the valid properties as well as the returned value for each of them:
+*
+* \li currentSchema: returns Schema object representing the active schema on the session. If none is active, returns Null.
+*/
 #else
 /**
 * Retrieves the Schema set as active on the session.

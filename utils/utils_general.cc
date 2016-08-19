@@ -326,45 +326,38 @@ namespace shcore
     // Parses the URI if provided
     if (!uri.empty())
     {
-      try
-      {
-        parse_mysql_connstring(uri, uri_scheme, uri_user, uri_password, uri_host, uri_port, uri_sock, uri_database, pwd_found,
-                               uri_ssl_ca, uri_ssl_cert, uri_ssl_key, set_defaults);
+      parse_mysql_connstring(uri, uri_scheme, uri_user, uri_password, uri_host, uri_port, uri_sock, uri_database, pwd_found,
+                             uri_ssl_ca, uri_ssl_cert, uri_ssl_key, set_defaults);
 
-        if (!uri_scheme.empty())
-          (*ret_val)["scheme"] = Value(uri_scheme);
+      if (!uri_scheme.empty())
+        (*ret_val)["scheme"] = Value(uri_scheme);
 
-        if (!uri_user.empty())
-          (*ret_val)["dbUser"] = Value(uri_user);
+      if (!uri_user.empty())
+        (*ret_val)["dbUser"] = Value(uri_user);
 
-        if (!uri_host.empty())
-          (*ret_val)["host"] = Value(uri_host);
+      if (!uri_host.empty())
+        (*ret_val)["host"] = Value(uri_host);
 
-        if (uri_port != 0)
-          (*ret_val)["port"] = Value(uri_port);
+      if (uri_port != 0)
+        (*ret_val)["port"] = Value(uri_port);
 
-        if (pwd_found)
-          (*ret_val)["dbPassword"] = Value(uri_password);
+      if (pwd_found)
+        (*ret_val)["dbPassword"] = Value(uri_password);
 
-        if (!uri_database.empty())
-          (*ret_val)["schema"] = Value(uri_database);
+      if (!uri_database.empty())
+        (*ret_val)["schema"] = Value(uri_database);
 
-        if (!uri_sock.empty())
-          (*ret_val)["sock"] = Value(uri_sock);
+      if (!uri_sock.empty())
+        (*ret_val)["sock"] = Value(uri_sock);
 
-        if (!uri_ssl_ca.empty())
-          (*ret_val)["ssl_ca"] = Value(uri_ssl_ca);
+      if (!uri_ssl_ca.empty())
+        (*ret_val)["ssl_ca"] = Value(uri_ssl_ca);
 
-        if (!uri_ssl_cert.empty())
-          (*ret_val)["ssl_cert"] = Value(uri_ssl_cert);
+      if (!uri_ssl_cert.empty())
+        (*ret_val)["ssl_cert"] = Value(uri_ssl_cert);
 
-        if (!uri_ssl_key.empty())
-          (*ret_val)["ssl_key"] = Value(uri_ssl_key);
-      }
-      catch (...)
-      {
-        // If there's an error simply ignores the parsing
-      }
+      if (!uri_ssl_key.empty())
+        (*ret_val)["ssl_key"] = Value(uri_ssl_key);
     }
 
     // If needed we construct the URi from the individual parameters

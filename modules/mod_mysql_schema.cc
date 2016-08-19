@@ -193,7 +193,13 @@ shcore::Value ClassicSchema::get_table(const shcore::Argument_list &args)
   if (!name.empty())
   {
     std::string found_type;
-    std::string real_name = _session.lock()->db_object_exists(found_type, name, _name);
+    auto session = _session.lock();
+    std::string real_name;
+    if(session)
+      real_name = session->db_object_exists(found_type, name, _name);
+    else
+      throw shcore::Exception::logic_error("Unable to retrieve table '" + name + "', no Session available");
+    
     bool exists = false;
     if (!real_name.empty())
     {

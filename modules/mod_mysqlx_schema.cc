@@ -281,7 +281,14 @@ shcore::Value Schema::get_table(const shcore::Argument_list &args)
   if (!name.empty())
   {
     std::string found_type;
-    std::string real_name = _session.lock()->db_object_exists(found_type, name, _name);
+    std::string real_name;
+
+    auto session = _session.lock();
+    if (session)
+      real_name = session->db_object_exists(found_type, name, _name);
+    else
+      throw shcore::Exception::logic_error("Unable to get table '" + name + "', no Session available");
+
     bool exists = false;
 
     if (!real_name.empty())
@@ -344,7 +351,14 @@ shcore::Value Schema::get_collection(const shcore::Argument_list &args)
   if (!name.empty())
   {
     std::string found_type;
-    std::string real_name = _session.lock()->db_object_exists(found_type, name, _name);
+    std::string real_name;
+
+    auto session = _session.lock();
+    if(session)
+      real_name = session->db_object_exists(found_type, name, _name);
+    else
+      throw shcore::Exception::logic_error("Unable to retrieve collection '" + name + "', no Session available");
+
     bool exists = false;
     if (!real_name.empty() && found_type == "COLLECTION")
       exists = true;
@@ -416,16 +430,22 @@ shcore::Value Schema::create_collection(const shcore::Argument_list &args)
 
   // Creates the collection on the server
   shcore::Argument_list command_args;
+  std::string name = args.string_at(0);
   command_args.push_back(Value(_name));
   command_args.push_back(args[0]);
 
   std::shared_ptr<BaseSession> sess(std::static_pointer_cast<BaseSession>(_session.lock()));
-  sess->executeAdminCommand("create_collection", false, command_args);
 
-  // If this is reached it implies all went OK on the previous operation
-  std::string name = args.string_at(0);
-  update_collection_cache(name, true);
-  ret_val = (*_collections)[name];
+  if (sess)
+  {
+    sess->executeAdminCommand("create_collection", false, command_args);
+
+    // If this is reached it implies all went OK on the previous operation
+    update_collection_cache(name, true);
+    ret_val = (*_collections)[name];
+  }
+  else
+    throw shcore::Exception::logic_error("Unable to create collection '" + name + "', no Session available");
 
   return ret_val;
 }

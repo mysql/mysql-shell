@@ -876,85 +876,90 @@ bool Interactive_shell::cmd_list_connections(const std::vector<std::string>& arg
 
 bool Interactive_shell::cmd_status(const std::vector<std::string>& UNUSED(args))
 {
+  std::string version_msg("MySQL Shell Version ");
+  version_msg += MYSH_VERSION;
+  version_msg += " Development Preview\n";
+  println(version_msg);
+
   if (_shell->get_dev_session() && _shell->get_dev_session()->is_connected())
   {
     shcore::Value raw_status = _shell->get_dev_session()->get_status(shcore::Argument_list());
-    std::string format = (*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string();
+    std::string output_format = (*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string();
 
-    if (format.find("json") == 0)
-      println(raw_status.json(format == "json"));
+    if (output_format.find("json") == 0)
+      println(raw_status.json(output_format == "json"));
     else
     {
       shcore::Value::Map_type_ref status = raw_status.as_map();
 
-      std::string version_msg("MySQL Shell Version ");
-      version_msg += MYSH_VERSION;
-      version_msg += " Development Preview\n";
-      println(version_msg);
-
       std::string format = "%-30s%s";
 
-      if (status->has_key("SESSION_TYPE"))
-        println((boost::format(format) % "Session type: " % (*status)["SESSION_TYPE"].descr(true)).str());
-
-      if (status->has_key("NODE_TYPE"))
-        println((boost::format(format) % "Server type: " % (*status)["NODE_TYPE"].descr(true)).str());
-
-      if (status->has_key("CONNECTION_ID"))
-        println((boost::format(format) % "Connection Id: " % (*status)["CONNECTION_ID"].descr(true)).str());
-
-      if (status->has_key("DEFAULT_SCHEMA"))
-        println((boost::format(format) % "Default schema: " % (*status)["DEFAULT_SCHEMA"].descr(true)).str());
-
-      if (status->has_key("CURRENT_SCHEMA"))
-        println((boost::format(format) % "Current schema: " % (*status)["CURRENT_SCHEMA"].descr(true)).str());
-
-      if (status->has_key("CURRENT_USER"))
-        println((boost::format(format) % "Current user: " % (*status)["CURRENT_USER"].descr(true)).str());
-
-      if (status->has_key("SSL_CIPHER"))
-        println((boost::format(format) % "SSL: Cipher in use: " % (*status)["SSL_CIPHER"].descr(true)).str());
+      if (status->has_key("STATUS_ERROR"))
+        println((boost::format(format) % "Error Retrieving Status: " % (*status)["STATUS_ERROR"].descr(true)).str());
       else
-        println((boost::format(format) % "SSL:" % "Not in use.").str());
-
-      if (status->has_key("SERVER_VERSION"))
-        println((boost::format(format) % "Server version: " % (*status)["SERVER_VERSION"].descr(true)).str());
-
-      if (status->has_key("SERVER_INFO"))
-        println((boost::format(format) % "Server info: " % (*status)["SERVER_INFO"].descr(true)).str());
-
-      if (status->has_key("PROTOCOL_VERSION"))
-        println((boost::format(format) % "Protocol version: " % (*status)["PROTOCOL_VERSION"].descr(true)).str());
-
-      if (status->has_key("CONNECTION"))
-        println((boost::format(format) % "Connection: " % (*status)["CONNECTION"].descr(true)).str());
-
-      if (status->has_key("SERVER_CHARSET"))
-        println((boost::format(format) % "Server characterset: " % (*status)["SERVER_CHARSET"].descr(true)).str());
-
-      if (status->has_key("SCHEMA_CHARSET"))
-        println((boost::format(format) % "Schema characterset: " % (*status)["SCHEMA_CHARSET"].descr(true)).str());
-
-      if (status->has_key("CLIENT_CHARSET"))
-        println((boost::format(format) % "Client characterset: " % (*status)["CLIENT_CHARSET"].descr(true)).str());
-
-      if (status->has_key("CONNECTION_CHARSET"))
-        println((boost::format(format) % "Conn. characterset: " % (*status)["CONNECTION_CHARSET"].descr(true)).str());
-
-      if (status->has_key("SERVER_STATS"))
       {
-        std::string stats = (*status)["SERVER_STATS"].descr(true);
-        size_t start = stats.find(" ");
-        start++;
-        size_t end = stats.find(" ", start);
+        if (status->has_key("SESSION_TYPE"))
+          println((boost::format(format) % "Session type: " % (*status)["SESSION_TYPE"].descr(true)).str());
 
-        std::string time = stats.substr(start, end - start);
-        unsigned long ltime = boost::lexical_cast<unsigned long>(time);
-        std::string str_time = MySQL_timer::format_legacy(ltime, false, true);
+        if (status->has_key("NODE_TYPE"))
+          println((boost::format(format) % "Server type: " % (*status)["NODE_TYPE"].descr(true)).str());
 
-        println((boost::format(format) % "Up time: " % str_time).str());
-        println("");
-        println(stats.substr(end + 2));
+        if (status->has_key("CONNECTION_ID"))
+          println((boost::format(format) % "Connection Id: " % (*status)["CONNECTION_ID"].descr(true)).str());
+
+        if (status->has_key("DEFAULT_SCHEMA"))
+          println((boost::format(format) % "Default schema: " % (*status)["DEFAULT_SCHEMA"].descr(true)).str());
+
+        if (status->has_key("CURRENT_SCHEMA"))
+          println((boost::format(format) % "Current schema: " % (*status)["CURRENT_SCHEMA"].descr(true)).str());
+
+        if (status->has_key("CURRENT_USER"))
+          println((boost::format(format) % "Current user: " % (*status)["CURRENT_USER"].descr(true)).str());
+
+        if (status->has_key("SSL_CIPHER"))
+          println((boost::format(format) % "SSL: Cipher in use: " % (*status)["SSL_CIPHER"].descr(true)).str());
+        else
+          println((boost::format(format) % "SSL:" % "Not in use.").str());
+
+        if (status->has_key("SERVER_VERSION"))
+          println((boost::format(format) % "Server version: " % (*status)["SERVER_VERSION"].descr(true)).str());
+
+        if (status->has_key("SERVER_INFO"))
+          println((boost::format(format) % "Server info: " % (*status)["SERVER_INFO"].descr(true)).str());
+
+        if (status->has_key("PROTOCOL_VERSION"))
+          println((boost::format(format) % "Protocol version: " % (*status)["PROTOCOL_VERSION"].descr(true)).str());
+
+        if (status->has_key("CONNECTION"))
+          println((boost::format(format) % "Connection: " % (*status)["CONNECTION"].descr(true)).str());
+
+        if (status->has_key("SERVER_CHARSET"))
+          println((boost::format(format) % "Server characterset: " % (*status)["SERVER_CHARSET"].descr(true)).str());
+
+        if (status->has_key("SCHEMA_CHARSET"))
+          println((boost::format(format) % "Schema characterset: " % (*status)["SCHEMA_CHARSET"].descr(true)).str());
+
+        if (status->has_key("CLIENT_CHARSET"))
+          println((boost::format(format) % "Client characterset: " % (*status)["CLIENT_CHARSET"].descr(true)).str());
+
+        if (status->has_key("CONNECTION_CHARSET"))
+          println((boost::format(format) % "Conn. characterset: " % (*status)["CONNECTION_CHARSET"].descr(true)).str());
+
+        if (status->has_key("SERVER_STATS"))
+        {
+          std::string stats = (*status)["SERVER_STATS"].descr(true);
+          size_t start = stats.find(" ");
+          start++;
+          size_t end = stats.find(" ", start);
+
+          std::string time = stats.substr(start, end - start);
+          unsigned long ltime = boost::lexical_cast<unsigned long>(time);
+          std::string str_time = MySQL_timer::format_legacy(ltime, false, true);
+
+          println((boost::format(format) % "Up time: " % str_time).str());
+          println("");
+          println(stats.substr(end + 2));
+        }
       }
     }
   }
