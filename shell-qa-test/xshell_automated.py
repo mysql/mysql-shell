@@ -7319,6 +7319,23 @@ class XShell_TestCases(unittest.TestCase):
       results = exec_xshell_commands(init_command, x_cmds)
       self.assertEqual(results, 'PASS')
 
+  def test_MYS_492(self):
+      '''MYSQLSH SHOWS TIME COLUMNS AS BOOLEAN VALUES'''
+      results = ''
+      init_command = [MYSQL_SHELL, '--interactive=full', '--log-level=7', '-u' + LOCALHOST.user, '--password=' + LOCALHOST.password,
+                      '-h' + LOCALHOST.host, '-P' + LOCALHOST.xprotocol_port, '--node','--schema=sakila']
+      x_cmds = [('\\sql\n', "mysql-sql>"),
+                ("use sakila;\n","mysql-sql>"),
+                ("DROP TABLE IF EXISTS t1;\n","mysql-sql>"),
+                ("create table t1 (id int not null primary key, t time);\n","Query OK"),
+                ("insert into t1 values (1, '10:05:30');\n","Query OK"),
+                ('\\js\n', "Switching to JavaScript mode"),
+                ("db.getTable('t1').select();", '10:05:30'),
+                ]
+      results = exec_xshell_commands(init_command, x_cmds)
+      self.assertEqual(results, 'PASS')
+
+
   def test_MYS_496(self):
       '''MySQL Shell prints Undefined on JSON column (Classic Session)'''
       results = ''
