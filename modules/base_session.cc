@@ -39,7 +39,6 @@
 #include "mod_mysql_session.h"
 #endif
 #include "mod_mysqlx_session.h"
-#include "adminapi/mod_dba.h"
 
 #define MAX_COLUMN_LENGTH 1024
 #define MIN_COLUMN_LENGTH 4
