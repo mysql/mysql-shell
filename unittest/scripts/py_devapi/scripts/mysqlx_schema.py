@@ -39,6 +39,7 @@ validateMember(members, 'get_collection')
 validateMember(members, 'get_collections')
 validateMember(members, 'create_collection')
 validateMember(members, 'get_collection_as_table')
+validateMember(members, 'help')
 
 # Dynamic Properties
 validateMember(members, 'table1')

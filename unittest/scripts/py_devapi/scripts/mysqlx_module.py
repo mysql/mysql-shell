@@ -25,6 +25,7 @@ print 'get_session:', type(mysqlx.get_session), '\n'
 print 'get_node_session:', type(mysqlx.get_node_session), '\n'
 print 'expr:', type(mysqlx.expr), '\n'
 print 'dateValue:', type(mysqlx.date_value), '\n'
+print 'help:', type(mysqlx.date_value), '\n'
 print 'Type:', mysqlx.Type, '\n'
 print 'IndexType:', mysqlx.IndexType, '\n'
 

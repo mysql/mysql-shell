@@ -20,7 +20,7 @@ result = table.insert({"name": 'brian', "age": 14, "gender": 'male'}).execute()
 result = table.insert({"name": 'alma', "age": 13, "gender": 'female'}).execute()
 result = table.insert({"name": 'carol', "age": 14, "gender": 'female'}).execute()
 result = table.insert({"name": 'donna', "age": 16, "gender": 'female'}).execute()
-result = table.insert({"name": 'angel', "age": 14, "gender": 'male'}).execute()	
+result = table.insert({"name": 'angel', "age": 14, "gender": 'male'}).execute()
 
 # ----------------------------------------------
 # Table.Select Unit Testing: Dynamic Behavior
@@ -163,7 +163,7 @@ for member in all_members:
 # In python, members are returned in alphabetic order
 # We print the requested members here (get_length and getField are members too)
 print '1-Metadata Length:', len(columns), '\n'
-print '1-Metadata Field:', columns[4], '\n'
+print '1-Metadata Field:', columns[5], '\n'
 print '1-Metadata Field:', columns[0], '\n'
 
 result = table.select(['age']).execute()

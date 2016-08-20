@@ -24,6 +24,7 @@ for member in all_exports:
 print 'Exported Items:', len(exports)
 
 print 'get_classic_session:', type(mysql.get_classic_session)
+print 'help:', type(mysql.get_classic_session)
 
 #@ mysql module: get_classic_session through URI
 mySession = mysql.get_classic_session(__uripwd)
@@ -33,7 +34,7 @@ print mySession, '\n'
 if mySession.uri == __displayuri:
 	print 'Session using right URI\n'
 else:
-	print 'Session using wrong URI\n' 
+	print 'Session using wrong URI\n'
 
 mySession.close()
 
@@ -123,4 +124,3 @@ mySession.close()
 #@ Stored Sessions, session from uri removed
 shell.storedSessions.remove('mysql_uri')
 mySession = mysql.get_classic_session(shell.storedSessions.mysql_uri)
-

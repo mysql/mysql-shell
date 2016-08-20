@@ -35,6 +35,7 @@ validateMember(members, 'getCollection');
 validateMember(members, 'getCollections');
 validateMember(members, 'createCollection');
 validateMember(members, 'getCollectionAsTable');
+validateMember(members, 'help');
 
 //Dynamic Properties
 validateMember(members, 'table1');

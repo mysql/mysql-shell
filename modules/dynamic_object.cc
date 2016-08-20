@@ -34,7 +34,7 @@ std::vector<std::string> Dynamic_object::get_members() const
   for (auto i : _funcs)
   {
     // Only returns the enabled functions
-    if (_enabled_functions.at(i.first))
+    if (_enabled_functions.find(i.first) != _enabled_functions.end() && _enabled_functions.at(i.first))
       _members.push_back(i.second->name(naming_style));
   }
   return _members;

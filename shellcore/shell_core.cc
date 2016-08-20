@@ -23,14 +23,18 @@
 #include "shellcore/shell_python.h"
 #include "shellcore/object_registry.h"
 #include "modules/base_session.h"
-#include "modules/adminapi/mod_dba.h"
 #include "interactive_global_schema.h"
 #include "interactive_global_session.h"
-#include "interactive_global_dba.h"
 #include <boost/algorithm/string.hpp>
 #include <boost/format.hpp>
 #include "modules/mod_mysqlx.h"
 #include "modules/mod_mysql.h"
+
+#ifdef WITH_ADMINAPI
+#include "interactive_global_dba.h"
+#include "modules/adminapi/mod_dba.h"
+#endif
+
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wshadow"
 #pragma GCC diagnostic ignored "-Wunused-parameter"
@@ -68,7 +72,9 @@ Shell_core::Shell_core(Interpreter_delegate *shdelegate)
   {
     set_global("db", shcore::Value::wrap<Global_schema>(new Global_schema(*this)));
     set_global("session", shcore::Value::wrap<Global_session>(new Global_session(*this)));
+#ifdef WITH_ADMINAPI
     set_global("dba", shcore::Value::wrap<Global_dba>(new Global_dba(*this)));
+#endif
   }
 
   set_dba_global();
@@ -425,6 +431,7 @@ std::shared_ptr<mysh::ShellDevelopmentSession> Shell_core::get_dev_session()
  */
 void Shell_core::set_dba_global()
 {
+#ifdef WITH_ADMINAPI
   std::shared_ptr<mysh::mysqlx::Dba>dba(new mysh::mysqlx::Dba(this));
 
   // When using the interactive wrappers instead of setting the global variables
@@ -438,6 +445,7 @@ void Shell_core::set_dba_global()
     set_global("dba", shcore::Value(std::dynamic_pointer_cast<Object_bridge>(dba)));
     //set_global("farm", _global_admin_session->get_member("defaultFarm"));
   }
+#endif
 }
 
 /**

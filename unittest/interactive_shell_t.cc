@@ -141,7 +141,7 @@ namespace shcore {
       _interactive_shell->process_line("session.close()");
 
       _interactive_shell->process_line("\\connect -c " + _mysql_uri + "/mysql");
-      MY_EXPECT_STDOUT_CONTAINS("Default schema `mysql` accessible through db.");
+      MY_EXPECT_STDOUT_CONTAINS("Default schema set to `mysql`.");
       output_handler.wipe_all();
 
       _interactive_shell->process_line("session");
@@ -214,7 +214,7 @@ namespace shcore {
       output_handler.wipe_all();
 
       _interactive_shell->process_line("\\use mysql");
-      MY_EXPECT_STDOUT_CONTAINS("Schema `mysql` accessible through db.");
+      MY_EXPECT_STDOUT_CONTAINS("Schema set to `mysql`.");
       output_handler.wipe_all();
 
       _interactive_shell->process_line("db");

@@ -1002,14 +1002,25 @@ bool Interactive_shell::cmd_use(const std::vector<std::string>& args)
       try
       {
         shcore::Value schema = _shell->set_current_schema(real_param);
-        std::string message = "Schema `" + schema.as_object()->get_member("name").as_string() + "` accessible through db.";
+        auto session = _shell->get_dev_session();
 
-        if ((*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string().find("json") == 0)
-          print_json_info(message);
-        else
+        if (session)
         {
-          message += "\n";
-          _delegate.print(_delegate.user_data, message.c_str());
+          auto session_type = session->class_name();
+          std::string message = "Schema `" + schema.as_object()->get_member("name").as_string() + "` accessible through db.";
+
+          if (session_type == "ClassicSession")
+            message = "Schema set to `" + schema.as_object()->get_member("name").as_string() + "`.";
+          else
+            message = "Schema `" + schema.as_object()->get_member("name").as_string() + "` accessible through db.";
+
+          if ((*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string().find("json") == 0)
+            print_json_info(message);
+          else
+          {
+            message += "\n";
+            _delegate.print(_delegate.user_data, message.c_str());
+          }
         }
       }
       catch (shcore::Exception &e)
@@ -1156,7 +1167,7 @@ void Interactive_shell::process_line(const std::string &line)
             println("");
           }
         }
-          }
+      }
       catch (shcore::Exception &exc)
       {
         _delegate.print_error(_delegate.user_data, exc.format().c_str());
@@ -1173,11 +1184,11 @@ void Interactive_shell::process_line(const std::string &line)
       // the non executed code
       if (_input_mode == Input_ok)
         _input_buffer.clear();
-        }
-      }
+    }
+  }
 
   _shell->reconnect_if_needed();
-    }
+}
 
 void Interactive_shell::abort()
 {
