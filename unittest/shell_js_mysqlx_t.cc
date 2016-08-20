@@ -30,6 +30,16 @@ namespace shcore
     {
       Shell_js_script_tester::SetUp();
 
+      // All of the test cases share the same config folder
+      // and setup script
+      set_config_folder("js_devapi");
+      set_setup_script("setup.js");
+    }
+
+    virtual void set_defaults()
+    {
+      Shell_js_script_tester::set_defaults();
+
       int port = 33060, pwd_found;
       std::string protocol, user, password, host, sock, schema, ssl_ca, ssl_cert, ssl_key;
       shcore::parse_mysql_connstring(_uri, protocol, user, password, host, port, sock, schema, pwd_found, ssl_ca, ssl_cert, ssl_key);
@@ -49,17 +59,20 @@ namespace shcore
       exec_and_out_equals(code);
       code = "var __uri = '" + user + "@" + host + ":" + _port + "';";
       exec_and_out_equals(code);
+      code = "var __xhost_port = '" + host + ":" + _port + "';";
+      exec_and_out_equals(code);
+
+      if (_mysql_port.empty())
+        code = "var __host_port = '" + host + ":3306';";
+      else
+        code = "var __host_port = '" + host + ":" + _mysql_port + "';";
+      exec_and_out_equals(code);
       code = "var __uripwd = '" + user + ":" + password + "@" + host + ":" + _port + "';";
       exec_and_out_equals(code);
       code = "var __displayuri = '" + user + "@" + host + ":" + _port + "';";
       exec_and_out_equals(code);
       code = "var __displayuridb = '" + user + "@" + host + ":" + _port + "/mysql';";
       exec_and_out_equals(code);
-
-      // All of the test cases share the same config folder
-      // and setup script
-      set_config_folder("js_devapi");
-      set_setup_script("setup.js");
     }
   };
 

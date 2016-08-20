@@ -40,6 +40,7 @@
 #include "mysqlx_expect.pb.h"
 #include "mysqlx_session.pb.h"
 #include "mysqlx_sql.pb.h"
+#include "mysqlx.h"
 
 #if __GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 6)
 #pragma GCC diagnostic pop

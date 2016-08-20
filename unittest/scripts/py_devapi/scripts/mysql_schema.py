@@ -34,6 +34,7 @@ validateMember(members, 'get_schema')
 validateMember(members, 'get_session')
 validateMember(members, 'get_table')
 validateMember(members, 'get_tables')
+validateMember(members, 'help')
 
 # Dynamic Properties
 validateMember(members, 'table1')

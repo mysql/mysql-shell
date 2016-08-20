@@ -30,6 +30,16 @@ namespace shcore
     {
       Shell_py_script_tester::SetUp();
 
+      // All of the test cases share the same config folder
+      // and setup script
+      set_config_folder("py_devapi");
+      set_setup_script("setup.py");
+    }
+
+    virtual void set_defaults()
+    {
+      Shell_py_script_tester::set_defaults();
+
       int port = 33060, pwd_found;
       std::string protocol, user, password, host, sock, schema, ssl_ca, ssl_cert, ssl_key;
       shcore::parse_mysql_connstring(_uri, protocol, user, password, host, port, sock, schema, pwd_found, ssl_ca, ssl_cert, ssl_key);
@@ -55,11 +65,6 @@ namespace shcore
       exec_and_out_equals(code);
       code = "__displayuridb = '" + user + "@" + host + ":" + _port + "/mysql';";
       exec_and_out_equals(code);
-
-      // All of the test cases share the same config folder
-      // and setup script
-      set_config_folder("py_devapi");
-      set_setup_script("setup.py");
     }
   };
 

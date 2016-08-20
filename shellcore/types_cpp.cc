@@ -79,6 +79,11 @@ std::string shcore::get_member_name(const std::string& name, NamingStyle style)
   return new_name;
 }
 
+Cpp_object_bridge::Cpp_object_bridge() : naming_style(LowerCamelCase)
+{
+  add_varargs_method("help", std::bind(&Cpp_object_bridge::help, this, _1));
+};
+
 Cpp_object_bridge::~Cpp_object_bridge()
 {
   _funcs.clear();
@@ -118,9 +123,12 @@ std::vector<std::string> Cpp_object_bridge::get_members() const
   return members;
 }
 
-std::string Cpp_object_bridge::get_function_name(const std::string& member) const
+std::string Cpp_object_bridge::get_function_name(const std::string& member, bool fully_specified) const
 {
-  return class_name() + "." + _funcs.at(member)->name(naming_style);
+  if (fully_specified)
+    return class_name() + "." + _funcs.at(member)->name(naming_style);
+  else
+    return _funcs.at(member)->name(naming_style);
 }
 
 shcore::Value Cpp_object_bridge::get_member_method(const shcore::Argument_list &args, const std::string& method, const std::string& prop)
@@ -313,6 +321,98 @@ Value Cpp_object_bridge::call(const std::string &name, const Argument_list &args
   if ((i = _funcs.find(name)) == _funcs.end())
       throw Exception::attrib_error("Invalid object function " + name);
   return i->second->invoke(args);
+}
+
+shcore::Value Cpp_object_bridge::help(const shcore::Argument_list &args)
+{
+  std::string ret_val;
+  size_t params = args.size();
+
+  switch (args.size())
+  {
+    case 1:
+      if (args[0].type == shcore::String)
+      {
+        ret_val = get_help_text(args.string_at(0), true);
+        break;
+      }
+    default:
+    {
+      ret_val = get_help_text("__detail__", false);
+      if (_properties.size())
+      {
+        int text_col = 0;
+        for (auto property : _properties)
+        {
+          int new_length = property->name(naming_style).length();
+          text_col = new_length > text_col ? new_length : text_col;
+        }
+
+        text_col++;
+
+        ret_val += "\n\nThe following properties are currently supported.\n\n";
+        for (auto property : _properties)
+        {
+          std::string name = property->name(naming_style);
+          std::string help_text = get_help_text(name, false);
+
+          std::string text = " - " + name;
+
+          if (!help_text.empty())
+          {
+            for (int index = 0; index < (text_col - name.length()); index++)
+              text += " ";
+
+            text += help_text;
+          }
+
+          text += "\n";
+
+          ret_val += text;
+        }
+      }
+
+      if (_funcs.size())
+      {
+        int text_col = 0;
+        for (auto function : _funcs)
+        {
+          int new_length = function.second->_name[naming_style].length();
+          text_col = new_length > text_col ? new_length : text_col;
+        }
+
+        text_col++;
+
+        ret_val += "\n\nThe following functions are currently supported.\n\n";
+        for (auto function : _funcs)
+        {
+          std::string name = function.second->_name[naming_style];
+          std::string help_text = get_help_text(name, false);
+
+          std::string text = " - " + name + "()";
+
+          if (!help_text.empty())
+          {
+            for (int index = 0; index < (text_col - name.length()); index++)
+              text += " ";
+
+            text += help_text;
+          }
+
+          text += "\n";
+
+          ret_val += text;
+        }
+      }
+
+      std::string closing = get_help_text("__closing__", false);
+
+      if (!closing.empty())
+        ret_val += "\n" + closing + "\n";
+    }
+  }
+
+  return shcore::Value(ret_val);
 }
 
 std::shared_ptr<Cpp_object_bridge::ScopedStyle> Cpp_object_bridge::set_scoped_naming_style(const NamingStyle& style)

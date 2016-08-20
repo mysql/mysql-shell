@@ -34,12 +34,18 @@ Shell_test_output_handler::Shell_test_output_handler()
 void Shell_test_output_handler::deleg_print(void *user_data, const char *text)
 {
   Shell_test_output_handler* target = (Shell_test_output_handler*)(user_data);
+#ifdef TEST_DEBUG
+  std::cout << text << std::endl;
+#endif
   target->std_out.append(text);
 }
 
 void Shell_test_output_handler::deleg_print_error(void *user_data, const char *text)
 {
   Shell_test_output_handler* target = (Shell_test_output_handler*)(user_data);
+#ifdef TEST_DEBUG
+  std::cerr << text << std::endl;
+#endif
   target->std_err.append(text);
 }
 
@@ -66,9 +72,21 @@ bool Shell_test_output_handler::deleg_prompt(void *user_data, const char *prompt
 bool Shell_test_output_handler::deleg_password(void *user_data, const char *prompt, std::string &ret)
 {
   Shell_test_output_handler* target = (Shell_test_output_handler*)(user_data);
+  std::string answer;
+
   target->std_out.append(prompt);
-  ret = target->ret_pwd;
-  return true;
+
+  bool ret_val = false;
+  if (!target->passwords.empty())
+  {
+    answer = target->passwords.front();
+    target->passwords.pop_front();
+
+    ret_val = true;
+  }
+
+  ret = answer;
+  return ret_val;
 }
 
 void Shell_test_output_handler::validate_stdout_content(const std::string& content, bool expected)
@@ -107,9 +125,6 @@ void Shell_core_test_wrapper::SetUp()
   // Allows derived classes configuring specific options
   set_options();
 
-  // Initializes the interactive shell
-  reset_shell();
-
   const char *uri = getenv("MYSQL_URI");
   if (uri)
   {
@@ -145,6 +160,9 @@ void Shell_core_test_wrapper::SetUp()
 
     _mysql_uri_nopasswd = shcore::strip_password(_mysql_uri);
   }
+
+  // Initializes the interactive shell
+  reset_shell();
 }
 
 void Shell_core_test_wrapper::TearDown()
@@ -177,8 +195,11 @@ shcore::Value Shell_core_test_wrapper::exec_and_out_equals(const std::string& co
   boost::trim(output_handler.std_out);
   boost::trim(output_handler.std_err);
 
-  EXPECT_EQ(expected_output, output_handler.std_out);
-  EXPECT_EQ(expected_error, output_handler.std_err);
+  if (expected_output != "*")
+    EXPECT_EQ(expected_output, output_handler.std_out);
+
+  if (expected_error != "*")
+    EXPECT_EQ(expected_error, output_handler.std_err);
 
   output_handler.wipe_all();
 

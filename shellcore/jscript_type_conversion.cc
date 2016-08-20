@@ -107,7 +107,7 @@ v8::Handle<v8::Value> JScript_type_bridger::native_object_to_js(Object_bridge_re
     std::shared_ptr<Date> date = std::static_pointer_cast<Date>(object);
     // The only Date constructor exposed to C++ takes milliseconds, the constructor that parses a date from an string is implemented
     // in Javascript, so it is invoked this way.
-    v8::Handle<v8::String> source = v8::String::NewFromUtf8(owner->isolate(), (boost::format("new Date('%d-%d-%d %d:%d:%d')") % 
+    v8::Handle<v8::String> source = v8::String::NewFromUtf8(owner->isolate(), (boost::format("new Date('%d-%d-%d %d:%d:%d')") %
       date->get_year() % date->get_month() % date->get_day() % date->get_hour() % date->get_min() % (int)date->get_sec()).str().c_str());
     v8::Handle<v8::Script> script = v8::Script::Compile(source);
     v8::Handle<v8::Value> result = script->Run();

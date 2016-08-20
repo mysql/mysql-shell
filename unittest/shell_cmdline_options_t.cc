@@ -381,6 +381,7 @@ namespace shcore
     EXPECT_TRUE(options.user.empty());
     EXPECT_TRUE(options.execute_statement.empty());
     EXPECT_TRUE(options.wizards);
+    EXPECT_TRUE(options.default_session_type);
   }
 
   TEST_F(Shell_cmdline_options_t, app)

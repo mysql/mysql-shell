@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2016, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -19,6 +19,7 @@
 
 #include <boost/format.hpp>
 #include "shellcore/shell_core_options.h"
+#include "utils/utils_file.h"
 
 using namespace shcore;
 
@@ -97,6 +98,27 @@ _options(new shcore::Value::Map_type)
   (*_options)[SHCORE_BATCH_CONTINUE_ON_ERROR] = Value::False();
   (*_options)[SHCORE_MULTIPLE_INSTANCES] = Value::False();
   (*_options)[SHCORE_USE_WIZARDS] = Value::True();
+
+  std::string gadgets_path;
+
+  if (getenv("MYSQLPROVISION") != NULL)
+    gadgets_path = std::string(getenv("MYSQLPROVISION")); // should be set to the mysqlprovision root dir or an executable path
+
+  // The mysqlprovision_path will only be set if the environment variable was configured.
+  std::string mysqlprovision_path;
+  if (!gadgets_path.empty())
+  {
+    mysqlprovision_path = gadgets_path + "/gadgets/python/front_end/mysqlprovision.py";
+    if (!shcore::file_exists(mysqlprovision_path))
+      mysqlprovision_path = gadgets_path;
+  }
+  (*_options)[SHCORE_GADGETS_PATH] = Value(mysqlprovision_path.c_str());
+
+  if (getenv("HOME"))
+  {
+    std::string dir = std::string(getenv("HOME")) + "/mysql-sandboxes";
+    (*_options)[SHCORE_SANDBOX_DIR] = Value(dir.c_str());
+  }
 }
 
 Shell_core_options::~Shell_core_options()

@@ -1,5 +1,5 @@
 //@ Schema: validating members
-|Member Count: 16|
+|Member Count: 17|
 
 |name: OK|
 |schema: OK|
@@ -14,6 +14,7 @@
 |getCollections: OK|
 |createCollection: OK|
 |getCollectionAsTable: OK|
+|help: OK|
 
 |table1: OK|
 |view1: OK|
@@ -46,8 +47,8 @@
 |.<collection>: <Collection:collection1>|
 
 //@# Testing specific object retrieval: unexisting objects
-||The table js_shell_test.unexisting does not exist 
-||The collection js_shell_test.unexisting does not exist 
+||The table js_shell_test.unexisting does not exist
+||The collection js_shell_test.unexisting does not exist
 
 //@# Testing specific object retrieval: empty name
 ||An empty name is invalid for a table
@@ -62,4 +63,3 @@
 //@ Testing existence
 |Valid: true|
 |Invalid: false|
-

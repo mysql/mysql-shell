@@ -29,6 +29,12 @@
 #include <boost/format.hpp>
 #include "modules/mod_mysqlx.h"
 #include "modules/mod_mysql.h"
+
+#ifdef WITH_ADMINAPI
+#include "interactive_global_dba.h"
+#include "modules/adminapi/mod_dba.h"
+#endif
+
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wshadow"
 #pragma GCC diagnostic ignored "-Wunused-parameter"
@@ -43,7 +49,7 @@ using namespace std::placeholders;
 using namespace shcore;
 
 Shell_core::Shell_core(Interpreter_delegate *shdelegate)
-  : IShell_core(), _lang_delegate(shdelegate), _running_query(false)
+  : IShell_core(), _lang_delegate(shdelegate), _running_query(false), _reconnect_session(false)
 {
   INIT_MODULE(mysh::mysqlx::Mysqlx);
   INIT_MODULE(mysh::mysql::Mysql);
@@ -66,7 +72,14 @@ Shell_core::Shell_core(Interpreter_delegate *shdelegate)
   {
     set_global("db", shcore::Value::wrap<Global_schema>(new Global_schema(*this)));
     set_global("session", shcore::Value::wrap<Global_session>(new Global_session(*this)));
+#ifdef WITH_ADMINAPI
+    set_global("dba", shcore::Value::wrap<Global_dba>(new Global_dba(*this)));
+#endif
   }
+
+  set_dba_global();
+
+  observe_notification("SN_SESSION_CONNECTION_LOST");
 
   shcore::print = std::bind(&shcore::Shell_core::print, this, _1);
 }
@@ -298,6 +311,19 @@ Value Shell_core::get_global(const std::string &name)
   return (_globals.count(name) > 0) ? _globals[name] : Value();
 }
 
+std::vector<std::string> Shell_core::get_global_objects()
+{
+  std::vector<std::string> globals;
+
+  for (auto entry : _globals)
+  {
+    if (entry.second.type == shcore::Object)
+      globals.push_back(entry.first);
+  }
+
+  return globals;
+}
+
 void Shell_core::set_active_session(const Value &session)
 {
   _active_session = session;
@@ -318,9 +344,9 @@ bool Shell_core::handle_shell_command(const std::string &line)
 * Creates a Development session of the given type using the received connection parameters.
 * \param args The connection parameters to be used creating the session.
 *
-* The args list should be filled with a Connectio Data Dictionary and optionally a Password
+* The args list should be filled with a Connection Data Dictionary and optionally a Password
 *
-* The Connection Data Dictionary which supports the next elements:
+* The Connection Data Dictionary supports the next elements:
 *
 *  - host, the host to use for the connection (can be an IP or DNS name)
 *  - port, the TCP port where the server is listening (default value is 33060).
@@ -398,6 +424,31 @@ std::shared_ptr<mysh::ShellDevelopmentSession> Shell_core::get_dev_session()
 }
 
 /**
+ * Configures the received session as the global admin session.
+ * \param session: The session to be set as global.
+ *
+ * If there's unique farm on the received session, it will be made available to the scripting interfaces on the global *farm* variable
+ */
+void Shell_core::set_dba_global()
+{
+#ifdef WITH_ADMINAPI
+  std::shared_ptr<mysh::mysqlx::Dba>dba(new mysh::mysqlx::Dba(this));
+
+  // When using the interactive wrappers instead of setting the global variables
+  // The target Objects on the wrappers are set
+  if ((*Shell_core_options::get())[SHCORE_USE_WIZARDS].as_bool())
+    get_global("dba").as_object<Interactive_object_wrapper>()->set_target(std::dynamic_pointer_cast<Cpp_object_bridge>(dba));
+
+  // Use the admin session objects directly if the wizards are OFF
+  else
+  {
+    set_global("dba", shcore::Value(std::dynamic_pointer_cast<Object_bridge>(dba)));
+    //set_global("farm", _global_admin_session->get_member("defaultFarm"));
+  }
+#endif
+}
+
+/**
 * Sets the received schema as the selected one on the global development session.
 * \param name: The name of the schema to be selected.
 *
@@ -436,6 +487,42 @@ shcore::Value Shell_core::set_current_schema(const std::string& name)
     set_global("db", new_schema);
 
   return new_schema;
+}
+
+void Shell_core::handle_notification(const std::string &name, shcore::Object_bridge_ref sender, shcore::Value::Map_type_ref data)
+{
+  if (name == "SN_SESSION_CONNECTION_LOST")
+  {
+    auto session = std::dynamic_pointer_cast<mysh::ShellDevelopmentSession>(sender);
+
+    if (session && session == _global_dev_session)
+      _reconnect_session = true;
+  }
+}
+
+bool Shell_core::reconnect_if_needed()
+{
+  bool ret_val = false;
+  if (_reconnect_session)
+  {
+    {
+      print("The global session got disconnected.\nAttempting to reconnect to '" + _global_dev_session->uri() + "'...\n");
+      try
+      {
+        _global_dev_session->reconnect();
+        print("The global session was successfully reconnected.\n");
+        ret_val = true;
+      }
+      catch (shcore::Exception &e)
+      {
+        print("The global session could not be reconnected automatically.\nPlease use \\connect instead to manually reconnect.\n");
+      }
+    }
+
+    _reconnect_session = false;
+  }
+
+  return ret_val;
 }
 
 //------------------ COMMAND HANDLER FUNCTIONS ------------------//

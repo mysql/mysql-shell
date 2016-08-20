@@ -14,6 +14,7 @@ var exports = dir(mysql);
 print('Exported Items:', exports.length);
 
 print('getClassicSession:', typeof mysql.getClassicSession);
+print('help:', typeof mysql.help);
 
 //@ mysql module: getClassicSession through URI
 mySession = mysql.getClassicSession(__uripwd);

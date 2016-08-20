@@ -198,7 +198,7 @@ void Interactive_shell::print_connection_message(mysh::SessionType type, const s
   if (!sessionid.empty())
     message = "Using '" + sessionid + "' stored connection\n";
 
-  message += "Creating " + stype + " Session to " + uri;
+  message += "Creating " + stype + " Session to '" + uri + "'";
 
   if ((*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string().find("json") == 0)
     print_json_info(message);
@@ -311,7 +311,6 @@ Value Interactive_shell::connect_session(const Argument_list &args, mysh::Sessio
       connect_args.push_back(Value(pass));
   }
 
-  // Performs the connection
   std::shared_ptr<mysh::ShellDevelopmentSession> old_session(_shell->get_dev_session()),
                                                    new_session(_shell->connect_dev_session(connect_args, session_type));
 
@@ -350,15 +349,23 @@ Value Interactive_shell::connect_session(const Argument_list &args, mysh::Sessio
       old_session->close(shcore::Argument_list());
     }
 
+    _delegate.print(_delegate.user_data, "Session successfully established. ");
+
     std::string message;
     shcore::Value default_schema;
-    if (!new_session->class_name().compare("XSession"))
+    std::string session_type = new_session->class_name();
+    if (!session_type.compare("XSession"))
        default_schema = new_session->get_member("defaultSchema");
     else
        default_schema = new_session->get_member("currentSchema");
 
     if (default_schema)
-      message = "Default schema `" + default_schema.as_object()->get_member("name").as_string() + "` accessible through db.";
+    {
+      if (session_type == "ClassicSession")
+        message = "Default schema set to `" + default_schema.as_object()->get_member("name").as_string() + "`.";
+      else
+        message = "Default schema `" + default_schema.as_object()->get_member("name").as_string() + "` accessible through db.";
+    }
     else
       message = "No default schema selected.";
 
@@ -465,10 +472,10 @@ bool Interactive_shell::switch_shell_mode(Shell_core::Mode mode, const std::vect
       case Shell_core::Mode_SQL:
       {
         Value session = _shell->active_session();
-        if (session && session.as_object()->class_name() == "XSession")
+        if (session && (session.as_object()->class_name() == "XSession"))
         {
-          println("The active session is an X Session.");
-          println("SQL mode is not supported on X Sessions: command ignored.");
+          println("The active session is an " + session.as_object()->class_name());
+          println("SQL mode is not supported on this session type: command ignored.");
           println("To switch to SQL mode reconnect with a Node Session by either:");
           println("* Using the \\connect -n shell command.");
           println("* Using --session-type=node when calling the MySQL Shell on the command line.");
@@ -605,14 +612,31 @@ bool Interactive_shell::cmd_print_shell_help(const std::vector<std::string>& arg
   {
     _shell_command_handler.print_commands("===== Global Commands =====");
 
-    println("");
-    println("");
-
     // Prints the active shell specific help
     _shell->print_help("");
 
     println("");
     println("For help on a specific command use the command as \\? <command>");
+    println("");
+    auto globals = _shell->get_global_objects();
+
+    if (globals.size())
+    {
+      println("===== Global Variables =====");
+
+      for (auto name : globals)
+      {
+        auto object_val = _shell->get_global(name);
+        auto object = std::dynamic_pointer_cast<Cpp_object_bridge>(object_val.as_object());
+        auto brief = object->get_help_text("__brief__", false);
+
+        if (!brief.empty())
+          println((boost::format("%-10s %s") % name % brief).str());
+      }
+      println("");
+      println("For more help on a global variable use <var>.help(), e.g. dba.help()");
+      println("");
+    }
   }
 
   return true;
@@ -978,14 +1002,25 @@ bool Interactive_shell::cmd_use(const std::vector<std::string>& args)
       try
       {
         shcore::Value schema = _shell->set_current_schema(real_param);
-        std::string message = "Schema `" + schema.as_object()->get_member("name").as_string() + "` accessible through db.";
+        auto session = _shell->get_dev_session();
 
-        if ((*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string().find("json") == 0)
-          print_json_info(message);
-        else
+        if (session)
         {
-          message += "\n";
-          _delegate.print(_delegate.user_data, message.c_str());
+          auto session_type = session->class_name();
+          std::string message = "Schema `" + schema.as_object()->get_member("name").as_string() + "` accessible through db.";
+
+          if (session_type == "ClassicSession")
+            message = "Schema set to `" + schema.as_object()->get_member("name").as_string() + "`.";
+          else
+            message = "Schema `" + schema.as_object()->get_member("name").as_string() + "` accessible through db.";
+
+          if ((*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string().find("json") == 0)
+            print_json_info(message);
+          else
+          {
+            message += "\n";
+            _delegate.print(_delegate.user_data, message.c_str());
+          }
         }
       }
       catch (shcore::Exception &e)
@@ -1151,6 +1186,8 @@ void Interactive_shell::process_line(const std::string &line)
         _input_buffer.clear();
     }
   }
+
+  _shell->reconnect_if_needed();
 }
 
 void Interactive_shell::abort()

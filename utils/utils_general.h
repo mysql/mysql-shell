@@ -23,6 +23,7 @@
 #include "shellcore/common.h"
 #include "shellcore/types.h"
 #include <string>
+#include <set>
 
 namespace shcore
 {
@@ -58,6 +59,12 @@ namespace shcore
   char SHCORE_PUBLIC *mysh_get_stdin_password(const char *prompt);
 
   void SHCORE_PUBLIC normalize_sslca_args(std::string &ssl_ca, std::string &ssl_ca_path);
+
+  std::set<std::string> SHCORE_PUBLIC get_additional_keys(Value::Map_type_ref input, const std::set<std::string> base);
+  std::set<std::string> SHCORE_PUBLIC get_missing_keys(Value::Map_type_ref input, const std::set<std::string> base);
+
+  std::string SHCORE_PUBLIC join_strings(const std::set<std::string>& strings, const std::string& separator);
+  std::vector<std::string> SHCORE_PUBLIC split_string(const std::string& input, const std::string& separator);
 }
 
 #endif /* defined(__mysh__utils_general__) */

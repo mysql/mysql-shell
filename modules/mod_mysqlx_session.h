@@ -123,7 +123,7 @@ namespace mysh
       virtual shcore::Value drop_schema_object(const shcore::Argument_list &args, const std::string& type);
 
       shcore::Value executeAdminCommand(const std::string& command, bool expect_data, const shcore::Argument_list &args) const;
-      shcore::Value execute_sql(const std::string& query, const shcore::Argument_list &args);
+      virtual shcore::Value execute_sql(const std::string& query, const shcore::Argument_list &args) const;
       virtual bool is_connected() const;
       virtual shcore::Value get_status(const shcore::Argument_list &args);
       virtual shcore::Value get_capability(const std::string& name);

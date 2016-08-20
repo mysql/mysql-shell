@@ -209,3 +209,13 @@ bool Interactive_object_wrapper::password(const std::string& prompt, std::string
 {
   return _delegate->password(_delegate->user_data, prompt.c_str(), ret_val);
 }
+
+std::string Interactive_object_wrapper::get_help_text(const std::string& topic, bool full)
+{
+  std::string ret_val;
+
+  if (_target)
+    ret_val = _target->get_help_text(topic, full);
+
+  return ret_val;
+}

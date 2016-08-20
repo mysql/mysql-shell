@@ -1,14 +1,14 @@
 # Copyright (c) 2014, 2016, Oracle and/or its affiliates. All rights reserved.
-# 
+#
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; version 2 of the License.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
@@ -21,11 +21,13 @@ include_directories("${CMAKE_SOURCE_DIR}/mysqlxtest/common")
 include_directories("${CMAKE_SOURCE_DIR}/include" "${CMAKE_SOURCE_DIR}/utils")
 include_directories( "${CMAKE_SOURCE_DIR}/common/uuid/include" )
 include_directories( "${CMAKE_SOURCE_DIR}/common/logger" )
+include_directories( "${CMAKE_SOURCE_DIR}/common/common" )
+include_directories( "${CMAKE_SOURCE_DIR}/common/process_launcher" )
 include_directories( "${CMAKE_SOURCE_DIR}/ext/rapidjson/include" )
 include_directories(SYSTEM ${Boost_INCLUDE_DIRS})
 
 
-# Will generate the js_core_definitions file which will contain the 
+# Will generate the js_core_definitions file which will contain the
 # core.js file in a variable.
 if ( HAVE_V8 )
   # Loads the core.js file
@@ -41,7 +43,7 @@ if ( HAVE_V8 )
   string(REPLACE "\n" "\\n\"\n\"" JS_CORE_MODULE_UPDATED "${JS_CORE_MODULE_PREPARED}")
 
   # Creates the target file containing the code ready for processing
-  configure_file("${CMAKE_SOURCE_DIR}/include/shellcore/jscript_core_definitions.h.in" 
+  configure_file("${CMAKE_SOURCE_DIR}/include/shellcore/jscript_core_definitions.h.in"
                  "${CMAKE_BINARY_DIR}/shellcore/jscript_core_definitions.h")
 endif()
 
@@ -70,10 +72,20 @@ file(GLOB libmysqlshcore_SRC
     "${BOOST_SOURCE_CODE}"
 )
 
-
 #if(NOT WINDOWS_RUNTIME_MD)
   list(APPEND libmysqlshcore_SRC "${CMAKE_SOURCE_DIR}/types/ishell_core.cc")
   list(APPEND libmysqlshcore_SRC "${CMAKE_SOURCE_DIR}/common/logger/logger.cc")
+
+IF ( WITH_ADMINAPI )
+  list(APPEND libmysqlshcore_SRC "${CMAKE_SOURCE_DIR}/common/process_launcher/process_launcher.cc")
+  list(APPEND libmysqlshcore_SRC "${CMAKE_SOURCE_DIR}/common/common/exception.cc")
+ELSE()
+  list(REMOVE_ITEM libmysqlshcore_SRC "${CMAKE_SOURCE_DIR}/shellcore/interactive_global_dba.h")
+  list(REMOVE_ITEM libmysqlshcore_SRC "${CMAKE_SOURCE_DIR}/shellcore/interactive_global_dba.cc")
+  list(REMOVE_ITEM libmysqlshcore_SRC "${CMAKE_SOURCE_DIR}/shellcore/interactive_dba_cluster.h")
+  list(REMOVE_ITEM libmysqlshcore_SRC "${CMAKE_SOURCE_DIR}/shellcore/interactive_dba_cluster.cc")
+ENDIF()
+
 #else()
 #  list(REMOVE_ITEM libmysqlshcore_SRC "${CMAKE_SOURCE_DIR}/shellcore/types.cc")
 #  list(REMOVE_ITEM libmysqlshcore_SRC "${CMAKE_SOURCE_DIR}/shellcore/types_cpp.cc")
@@ -115,6 +127,50 @@ else()
   endforeach()
 endif()
 
+IF( WITH_ADMINAPI )
+  # Loads the metadata-model.sql file
+  FILE(READ "${CMAKE_SOURCE_DIR}/modules/adminapi/metadata-model.sql" MD_MODEL_SQL)
+
+  # Strips the copyright + comments from it
+  string(FIND "${MD_MODEL_SQL}" "CREATE DATABASE" COPYRIGHT_END)
+  string(SUBSTRING "${MD_MODEL_SQL}" 0 ${COPYRIGHT_END}+2 COPYRIGHT_TEXT)
+  string(REPLACE "${COPYRIGHT_TEXT}" "" MD_MODEL_SQL_STRIPPED "${MD_MODEL_SQL}")
+
+  # Updates format to be a C++ multiline definition
+  string(REPLACE "\\" "\\\\" MD_MODEL_SQL_PREPARED "${MD_MODEL_SQL_STRIPPED}")
+  string(REPLACE "\n" "\\n\"\n\"" MD_MODEL_SQL_UPDATED "${MD_MODEL_SQL_PREPARED}")
+
+  # Escape the " characters in "manual"
+  string(REPLACE "\"manual\"" "\\\"manual\\\"" MD_MODEL_SQL_UPDATED "${MD_MODEL_SQL_UPDATED}")
+
+  # Escape the " characters in "ssh"
+  string(REPLACE "\"ssh\"" "\\\"ssh\\\"" MD_MODEL_SQL_UPDATED "${MD_MODEL_SQL_UPDATED}")
+
+  # Escape the " characters in "254616cc-fb47-11e5-aac5"
+  string(REPLACE "\"254616cc-fb47-11e5-aac5\"" "\\\"254616cc-fb47-11e5-aac5\\\"" MD_MODEL_SQL_UPDATED "${MD_MODEL_SQL_UPDATED}")
+
+  # Escape the " characters in "mysql://host.foo.com:3306"
+  string(REPLACE "\"mysql://host.foo.com:3306\"" "\\\"mysql://host.foo.com:3306\\\"" MD_MODEL_SQL_UPDATED "${MD_MODEL_SQL_UPDATED}")
+
+  # Escape the " characters in "mysqlx://host.foo.com:33060"
+  string(REPLACE "\"mysqlx://host.foo.com:33060\"" "\\\"mysqlx://host.foo.com:33060\\\"" MD_MODEL_SQL_UPDATED "${MD_MODEL_SQL_UPDATED}")
+
+  # Escape the " characters in "mysql://localhost:/tmp/mysql.sock"
+  string(REPLACE "\"mysql://localhost:/tmp/mysql.sock\"" "\\\"mysql://localhost:/tmp/mysql.sock\\\"" MD_MODEL_SQL_UPDATED "${MD_MODEL_SQL_UPDATED}")
+
+  # Escape the " characters in "mysqlx://localhost:/tmp/mysqlx.sock"
+  string(REPLACE "\"mysqlx://localhost:/tmp/mysqlx.sock\"" "\\\"mysqlx://localhost:/tmp/mysqlx.sock\\\"" MD_MODEL_SQL_UPDATED "${MD_MODEL_SQL_UPDATED}")
+
+  # Escape the " characters in "mysqlx://localhost:/tmp/mysqlx.sock"
+  string(REPLACE "\"mysqlXcom://host.foo.com:49213?channelName=<..>\"" "\\\"mysqlXcom://host.foo.com:49213?channelName=<..>\\\"" MD_MODEL_SQL_UPDATED "${MD_MODEL_SQL_UPDATED}")
+
+
+
+  # Creates the target file containing the code ready for processing
+  configure_file("${CMAKE_SOURCE_DIR}/include/adminapi/metadata-model_definitions.h.in"
+                   "${CMAKE_BINARY_DIR}/modules/adminapi/metadata-model_definitions.h")
+ENDIF()
+
 file(GLOB libmysqlshmods_SRC
       "../modules/base_*.cc"
       "../modules/base_*.h"
@@ -137,10 +193,22 @@ file(GLOB libmysqlshmods_SRC
       "../modules/mysql_connection.cc"
       "../modules/mysql_connection.h"
       "../modules/mysqlxtest_utils.h"
-      "../modules/adminapi/mod_mysqlx_*.cc"
-      "../modules/adminapi/mod_mysqlx_*.h"
       "${CMAKE_SOURCE_DIR}/common/uuid/src/uuid_gen.cc"
 )
+
+IF( WITH_ADMINAPI )
+  add_definitions(-DWITH_ADMINAPI )
+  list(APPEND libmysqlshmods_SRC "${CMAKE_BINARY_DIR}/modules/adminapi/metadata-model_definitions.h")
+  list(APPEND libmysqlshmods_SRC "${CMAKE_SOURCE_DIR}/modules/adminapi/mod_dba.cc")
+  list(APPEND libmysqlshmods_SRC "${CMAKE_SOURCE_DIR}/modules/adminapi/mod_dba.h")
+  list(APPEND libmysqlshmods_SRC "${CMAKE_SOURCE_DIR}/modules/adminapi/mod_dba_cluster.cc")
+  list(APPEND libmysqlshmods_SRC "${CMAKE_SOURCE_DIR}/modules/adminapi/mod_dba_cluster.h")
+  list(APPEND libmysqlshmods_SRC "${CMAKE_SOURCE_DIR}/modules/adminapi/mod_dba_metadata_storage.cc")
+  list(APPEND libmysqlshmods_SRC "${CMAKE_SOURCE_DIR}/modules/adminapi/mod_dba_metadata_storage.h")
+  list(APPEND libmysqlshmods_SRC "${CMAKE_SOURCE_DIR}/modules/adminapi/mod_dba_replicaset.cc")
+  list(APPEND libmysqlshmods_SRC "${CMAKE_SOURCE_DIR}/modules/adminapi/mod_dba_replicaset.h")
+ENDIF()
+
 
 #Protobuf related includes
 INCLUDE(protobuf)

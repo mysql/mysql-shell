@@ -35,8 +35,8 @@ using namespace mysh::mysql;
 #define MAX_COLUMN_LENGTH 1024
 #define MIN_COLUMN_LENGTH 4
 
-Result::Result(std::shared_ptr<Connection> owner, my_ulonglong affected_rows_, unsigned int warning_count_, const char *info_)
-  : _connection(owner), _affected_rows(affected_rows_), _last_insert_id(0), _warning_count(warning_count_), _fetched_row_count(0), _execution_time(0), _has_resultset(false)
+Result::Result(std::shared_ptr<Connection> owner, my_ulonglong affected_rows_, unsigned int warning_count_, uint64_t last_insert_id, const char *info_)
+  : _connection(owner), _affected_rows(affected_rows_), _last_insert_id(last_insert_id), _warning_count(warning_count_), _fetched_row_count(0), _execution_time(0), _has_resultset(false)
 {
   if (info_)
     _info.assign(info_);
@@ -264,7 +264,7 @@ Connection::Connection(const std::string &host, int port, const std::string &soc
   std::stringstream str;
   str << user << "@" << host << ":" << port;
   _uri = str.str();
-  
+
   if (!setup_ssl(ssl_ca, ssl_cert, ssl_key))
   {
     unsigned int ssl_mode = SSL_MODE_DISABLED;
@@ -288,8 +288,8 @@ bool Connection::setup_ssl(const std::string &ssl_ca, const std::string &ssl_cer
 {
   if (ssl_ca.empty() && ssl_cert.empty() && ssl_key.empty())
     return false;
-  
-  std::string my_ssl_ca_path;  
+
+  std::string my_ssl_ca_path;
   std::string my_ssl_ca(ssl_ca);
 
   shcore::normalize_sslca_args(my_ssl_ca, my_ssl_ca_path);
@@ -328,7 +328,7 @@ Result *Connection::run_sql(const std::string &query)
     throw shcore::Exception::mysql_error_with_code_and_state(mysql_error(_mysql), mysql_errno(_mysql), mysql_sqlstate(_mysql));
   }
 
-  Result* result = new Result(shared_from_this(), mysql_affected_rows(_mysql), mysql_warning_count(_mysql), mysql_info(_mysql));
+  Result* result = new Result(shared_from_this(), mysql_affected_rows(_mysql), mysql_warning_count(_mysql), mysql_insert_id(_mysql), mysql_info(_mysql));
 
   next_data_set(result, true);
 

@@ -1,21 +1,21 @@
 /*
- * Copyright (c) 2014, 2016, Oracle and/or its affiliates. All rights reserved.
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; version 2 of the
- * License.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
- * 02110-1301  USA
- */
+* Copyright (c) 2014, 2016, Oracle and/or its affiliates. All rights reserved.
+*
+* This program is free software; you can redistribute it and/or
+* modify it under the terms of the GNU General Public License as
+* published by the Free Software Foundation; version 2 of the
+* License.
+*
+* This program is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+* GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with this program; if not, write to the Free Software
+* Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
+* 02110-1301  USA
+*/
 
 #include "utils/utils_sqlstring.h"
 #include "mod_mysqlx_session.h"
@@ -335,7 +335,7 @@ shcore::Value BaseSession::rollback(const shcore::Argument_list &args)
   return executeStmt("sql", "rollback", false, shcore::Argument_list());
 }
 
-Value BaseSession::execute_sql(const std::string& statement, const Argument_list &args)
+Value BaseSession::execute_sql(const std::string& statement, const Argument_list &args) const
 {
   return executeStmt("sql", statement, true, args);
 }
@@ -420,7 +420,7 @@ std::string BaseSession::_retrieve_current_schema()
 }
 
 void BaseSession::_retrieve_session_info(std::string &current_schema,
-                                        int &case_sensitive_table_names)
+                                         int &case_sensitive_table_names)
 {
   try
   {
@@ -573,14 +573,14 @@ shcore::Value BaseSession::drop_schema(const shcore::Argument_list &args)
 
 #if DOXYGEN_CPP
 /**
- * Drops a table, view or collection from a specific Schema.
- * \param args contains the identification data for the object to be deleted.
- * \param type indicates the object type to be deleted
- *
- * args must contain two string entries: schema and table/view/collection name.
- *
- * type must be either "Table", "View", or "Collection"
- */
+* Drops a table, view or collection from a specific Schema.
+* \param args contains the identification data for the object to be deleted.
+* \param type indicates the object type to be deleted
+*
+* args must contain two string entries: schema and table/view/collection name.
+*
+* type must be either "Table", "View", or "Collection"
+*/
 #else
 /**
 * Drops a table from the specified schema.
@@ -661,59 +661,7 @@ shcore::Value BaseSession::drop_schema_object(const shcore::Argument_list &args,
 */
 std::string BaseSession::db_object_exists(std::string &type, const std::string &name, const std::string& owner) const
 {
-  std::string statement;
-  std::string ret_val;
-
-  if (type == "Schema")
-  {
-    shcore::Value res = executeStmt("sql", sqlstring("show databases like ?", 0) << name, true, shcore::Argument_list());
-    std::shared_ptr<SqlResult> my_res = res.as_object<SqlResult>();
-
-    Value raw_entry = my_res->fetch_one(shcore::Argument_list());
-
-    if (raw_entry)
-    {
-      std::shared_ptr<mysh::Row> row = raw_entry.as_object<mysh::Row>();
-
-      ret_val = row->get_member(0).as_string();
-    }
-
-    my_res->fetch_all(shcore::Argument_list());
-  }
-  else
-  {
-    shcore::Argument_list args;
-    args.push_back(Value(owner));
-    args.push_back(Value(name));
-
-    Value myres = executeAdminCommand("list_objects", true, args);
-    std::shared_ptr<mysh::mysqlx::SqlResult> my_res = myres.as_object<mysh::mysqlx::SqlResult>();
-
-    Value raw_entry = my_res->fetch_one(shcore::Argument_list());
-
-    if (raw_entry)
-    {
-      std::shared_ptr<mysh::Row> row = raw_entry.as_object<mysh::Row>();
-      std::string object_name = row->get_member("name").as_string();
-      std::string object_type = row->get_member("type").as_string();
-
-      if (type.empty())
-      {
-        type = object_type;
-        ret_val = object_name;
-      }
-      else
-      {
-        boost::algorithm::to_upper(type);
-
-        if (type == object_type)
-          ret_val = object_name;
-      }
-    }
-    my_res->fetch_all(shcore::Argument_list());
-  }
-
-  return ret_val;
+  return _session.db_object_exists(type, name, owner);
 }
 
 shcore::Value BaseSession::get_capability(const std::string& name)
@@ -869,13 +817,13 @@ shcore::Value NodeSession::sql(const shcore::Argument_list &args)
 
 #if DOXYGEN_CPP
 /**
- * Use this function to retrieve an valid member of this class exposed to the scripting languages.
- * \param prop : A string containing the name of the member to be returned
- *
- * This function returns a Value that wraps the object returned by this function. The content of the returned value depends on the property being requested. The next list shows the valid properties as well as the returned value for each of them:
- *
- * \li currentSchema: returns Schema object representing the active schema on the session. If none is active, returns Null.
- */
+* Use this function to retrieve an valid member of this class exposed to the scripting languages.
+* \param prop : A string containing the name of the member to be returned
+*
+* This function returns a Value that wraps the object returned by this function. The content of the returned value depends on the property being requested. The next list shows the valid properties as well as the returned value for each of them:
+*
+* \li currentSchema: returns Schema object representing the active schema on the session. If none is active, returns Null.
+*/
 #else
 /**
 * Retrieves the Schema set as active on the session.

@@ -54,6 +54,7 @@ public:
 
   std::string output_format;
   mysh::SessionType session_type;
+  bool default_session_type;
   bool print_cmd_line_helper;
   bool print_version;
   bool force;
@@ -67,10 +68,14 @@ public:
   std::string execute_dba_statement;
   ngcommon::Logger::LOG_LEVEL log_level;
   bool wizards;
+  bool admin_mode;
 
   // Takes the URI and the individual connection parameters and overrides
   Shell_command_line_options(int argc, char **argv);
 
   bool has_connection_data();
+
+private:
+  void override_session_type(mysh::SessionType new_type, const std::string& option, char* value = NULL);
 };
 #endif

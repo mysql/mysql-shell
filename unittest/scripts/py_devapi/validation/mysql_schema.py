@@ -1,5 +1,5 @@
 #@ Schema: validating members
-|Member Count: 11|
+|Member Count: 12|
 
 |name: OK|
 |schema: OK|
@@ -10,6 +10,7 @@
 |get_session: OK|
 |get_table: OK|
 |get_tables: OK|
+|help: OK|
 
 |table1: OK|
 |view1: OK|
@@ -40,4 +41,3 @@
 #@ Testing existence
 |Valid: True|
 |Invalid: False|
-

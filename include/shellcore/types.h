@@ -222,11 +222,11 @@ namespace shcore {
     double as_double() const;
     const std::string &as_string() const { check_type(String); return *value.s; }
     template<class C>
-    std::shared_ptr<C> as_object() const { check_type(Object); return std::static_pointer_cast<C>(*value.o); }
-    std::shared_ptr<Object_bridge> as_object() const { check_type(Object); return std::static_pointer_cast<Object_bridge>(*value.o); }
+    std::shared_ptr<C> as_object() const { check_type(Object); return std::dynamic_pointer_cast<C>(*value.o); }
+    std::shared_ptr<Object_bridge> as_object() const { check_type(Object); return std::dynamic_pointer_cast<Object_bridge>(*value.o); }
     std::shared_ptr<Map_type> as_map() const { check_type(Map); return *value.map; }
     std::shared_ptr<Array_type> as_array() const { check_type(Array); return *value.array; }
-    std::shared_ptr<Function_base> as_function() const { check_type(Function); return std::static_pointer_cast<Function_base>(*value.func); }
+    std::shared_ptr<Function_base> as_function() const { check_type(Function); return std::dynamic_pointer_cast<Function_base>(*value.func); }
 
   private:
     static Value parse(char **pc);
@@ -375,6 +375,7 @@ namespace shcore {
     static Exception value_error(const std::string &message);
     static Exception type_error(const std::string &message);
     static Exception logic_error(const std::string &message);
+    static Exception metadata_error(const std::string &message);
 
     static Exception mysql_error_with_code(const std::string &message, int code)
     {

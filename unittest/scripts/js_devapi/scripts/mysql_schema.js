@@ -29,6 +29,7 @@ validateMember(members, 'getSchema');
 validateMember(members, 'getSession');
 validateMember(members, 'getTable');
 validateMember(members, 'getTables');
+validateMember(members, 'help');
 
 //Dynamic Properties
 validateMember(members, 'table1');

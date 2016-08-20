@@ -329,7 +329,7 @@ namespace shcore
       parse_mysql_connstring(uri, uri_scheme, uri_user, uri_password, uri_host, uri_port, uri_sock, uri_database, pwd_found,
                              uri_ssl_ca, uri_ssl_cert, uri_ssl_key, set_defaults);
 
-      if (!uri_user.empty())
+      if (!uri_scheme.empty())
         (*ret_val)["scheme"] = Value(uri_scheme);
 
       if (!uri_user.empty())
@@ -474,4 +474,76 @@ namespace shcore
       ssl_ca = ca_path.c_str();
     }
   }
+
+  std::set<std::string> get_additional_keys(Value::Map_type_ref input, const std::set<std::string> base)
+  {
+    std::set<std::string> all_keys, additional_keys;
+
+    // Gets the list of incoming keys
+    for (auto option : *input)
+      all_keys.insert(option.first);
+
+    std::set_difference(all_keys.begin(), all_keys.end(), base.begin(), base.end(), std::inserter(additional_keys, additional_keys.begin()));
+
+    return additional_keys;
   }
+
+  std::set<std::string> get_missing_keys(Value::Map_type_ref input, const std::set<std::string> base)
+  {
+    std::set<std::string> missing_keys;
+
+    // Gets the list of incoming keys
+    for (auto option : base)
+    {
+      auto tokens = split_string(option, "|");
+      int found = 0;
+      for (auto token : tokens)
+      {
+        if (input->has_key(token))
+          found++;
+      }
+
+      if (!found)
+        missing_keys.insert(tokens[0]);
+    }
+
+    return missing_keys;
+  }
+
+  std::vector<std::string> split_string(const std::string& input, const std::string& separator)
+  {
+    std::vector<std::string> ret_val;
+
+    size_t index = 0, new_find = 0;
+
+    while (new_find != std::string::npos)
+    {
+      new_find = input.find(separator, index);
+
+      if (new_find != std::string::npos)
+      {
+        ret_val.push_back(input.substr(index, new_find - index));
+        index += new_find + separator.length();
+      }
+      else
+        ret_val.push_back(input.substr(index));
+    }
+
+    return ret_val;
+  }
+
+  std::string join_strings(const std::set<std::string>& strings, const std::string& separator)
+  {
+    std::set<std::string> input(strings);
+    std::string ret_val;
+
+    ret_val += *input.begin();
+
+    input.erase(input.begin());
+
+    for (auto item : input)
+      ret_val += separator + item;
+
+    return ret_val;
+  }
+}
