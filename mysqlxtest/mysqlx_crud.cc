@@ -295,7 +295,7 @@ Find_Having &Find_GroupBy::groupBy(const std::vector<std::string> &searchFields)
   std::vector<std::string>::const_iterator index, end = searchFields.end();
 
   for (index = searchFields.begin(); index != end; index++)
-    m_find->mutable_grouping()->AddAllocated(parser::parse_table_filter(*index));
+    m_find->mutable_grouping()->AddAllocated(parser::parse_collection_filter(*index));
 
   return *this;
 }
