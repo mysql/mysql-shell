@@ -36,25 +36,25 @@ namespace mysh
     *
     * Supported Data Types
     *
-    *  - Bit
-    *  - TinyInt
-    *  - SmallInt
-    *  - MediumInt
-    *  - Int
-    *  - BigInt
-    *  - Float
-    *  - Decimal
-    *  - Double
-    *  - Json
-    *  - String
-    *  - Bytes
-    *  - Time
-    *  - Date
-    *  - DateTime
-    *  - Timestamp
-    *  - Set
-    *  - Enum
-    *  - Geometry
+    *  - BIT
+    *  - TINYINT
+    *  - SMALLINT
+    *  - MEDIUMINT
+    *  - INT
+    *  - BIGINT
+    *  - FLOAT
+    *  - DECIMAL
+    *  - DOUBLE
+    *  - JSON
+    *  - STRING
+    *  - BYTES
+    *  - TIME
+    *  - DATE
+    *  - DATETIME
+    *  - TIMESTAMP
+    *  - SET
+    *  - ENUM
+    *  - GEOMETRY
     */
     class SHCORE_PUBLIC Type : public shcore::Cpp_object_bridge
     {
@@ -68,6 +68,14 @@ namespace mysh
 
       static std::shared_ptr<shcore::Object_bridge> create(const shcore::Argument_list &args);
     };
+
+    /**
+    * Constants to represent index types
+    *
+    * Supported Index Types
+    *
+    *  - UNIQUE
+    */
 
     class SHCORE_PUBLIC IndexType : public shcore::Cpp_object_bridge
     {
