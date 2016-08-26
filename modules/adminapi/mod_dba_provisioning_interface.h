@@ -40,8 +40,17 @@ class ProvisioningInterface {
   int check(const std::string &user, const std::string &host, int port, const std::string &password,
             std::string &errors, bool verbose);
 
-  int start_sandbox(int port, int portx, const std::string &sandbox_dir,
-              const std::string &password, std::string &errors, bool verbose);
+  int deploy_sandbox(int port, int portx, const std::string &sandbox_dir,
+                     const std::string &password, std::string &errors, bool verbose);
+
+  //int stop_sandbox(int port, int portx, const std::string &sandbox_dir,
+  //                 const std::string &password, std::string &errors, bool verbose);
+
+  int delete_sandbox(int port, int portx, const std::string &sandbox_dir,
+                     std::string &errors, bool verbose);
+
+  int kill_sandbox(int port, int portx, const std::string &sandbox_dir,
+                   std::string &errors, bool verbose);
 
   int start_replicaset(const std::string &instance_url, const std::string &repl_user,
                  const std::string &super_user_password, const std::string &repl_user_password,
@@ -56,6 +65,9 @@ class ProvisioningInterface {
 
   int executeMp(std::string cmd, std::vector<const char *> args, const std::vector<std::string> &passwords,
                 std::string &errors, bool verbose);
+
+  int exec_sandbox_op(std::string op, int port, int portx, const std::string &sandbox_dir,
+                     const std::string &password, std::string &errors, bool verbose);
 };
 }  // namespace mysqlx
 }  // namespace mysh

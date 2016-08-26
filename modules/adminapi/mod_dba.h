@@ -61,7 +61,12 @@ namespace mysh
       int get_default_instance_port() { return 3306; }
 
       shcore::Value validate_instance(const shcore::Argument_list &args);
-      shcore::Value deploy_local_instance(const shcore::Argument_list &args);
+      shcore::Value deploy_local_instance(const shcore::Argument_list &args); // create and start
+      //shcore::Value stop_local_instance(const shcore::Argument_list &args);
+      shcore::Value delete_local_instance(const shcore::Argument_list &args);
+      shcore::Value kill_local_instance(const shcore::Argument_list &args);
+
+
       shcore::Value clone_instance(const shcore::Argument_list &args);
       shcore::Value configure_instance(const shcore::Argument_list &args);
       shcore::Value reset_instance(const shcore::Argument_list &args);
@@ -105,6 +110,8 @@ namespace mysh
       std::shared_ptr<ProvisioningInterface> _provisioning_interface;
 
       std::string generate_password(int password_lenght);
+
+      shcore::Value exec_instance_op(const std::string &function, const shcore::Argument_list &args);
     };
   }
 }

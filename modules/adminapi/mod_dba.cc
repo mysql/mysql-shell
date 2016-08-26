@@ -68,6 +68,10 @@ void Dba::init()
   add_method("dropMetadataSchema", std::bind(&Dba::drop_metadata_schema, this, _1), "data", shcore::Map, NULL);
   add_method("validateInstance", std::bind(&Dba::validate_instance, this, _1), "data", shcore::Map, NULL);
   add_method("deployLocalInstance", std::bind(&Dba::deploy_local_instance, this, _1), "data", shcore::Map, NULL);
+  add_varargs_method("startLocalInstance", std::bind(&Dba::deploy_local_instance, this, _1));
+  //add_method("stopLocalInstance", std::bind(&Dba::deploy_local_instance, this, _1), "data", shcore::Map, NULL);
+  add_method("deleteLocalInstance", std::bind(&Dba::delete_local_instance, this, _1), "data", shcore::Map, NULL);
+  add_method("killLocalInstance", std::bind(&Dba::kill_local_instance, this, _1), "data", shcore::Map, NULL);
   add_varargs_method("help", std::bind(&Dba::help, this, _1));
 
   _metadata_storage.reset(new MetadataStorage(this));
@@ -607,10 +611,8 @@ shcore::Value Dba::validate_instance(const shcore::Argument_list &args)
   return ret_val;
 }
 
-shcore::Value Dba::deploy_local_instance(const shcore::Argument_list &args)
+shcore::Value Dba::exec_instance_op(const std::string &function, const shcore::Argument_list &args)
 {
-  args.ensure_count(1, 2, "deployLocalInstance");
-
   shcore::Value ret_val;
 
   shcore::Value::Map_type_ref options; // Map with the connection data
@@ -620,55 +622,117 @@ shcore::Value Dba::deploy_local_instance(const shcore::Argument_list &args)
   std::string password;
   std::string sandbox_dir;
 
-  try
+  if (args.size() == 2)
   {
-    if (args.size() == 2)
+    options = args.map_at(1);
+
+    // Verification of invalid attributes on the instance deployment data
+    auto invalids = shcore::get_additional_keys(options, _deploy_instance_opts);
+    if (invalids.size())
     {
-      options = args.map_at(1);
+      std::string error = "The instance data contains the following invalid attributes: ";
+      error += shcore::join_strings(invalids, ", ");
+      throw shcore::Exception::argument_error(error);
+    }
 
-      // Verification of invalid attributes on the instance deployment data
-      auto invalids = shcore::get_additional_keys(options, _deploy_instance_opts);
-      if (invalids.size())
-      {
-        std::string error = "The instance data contains the following invalid attributes: ";
-        error += shcore::join_strings(invalids, ", ");
-        throw shcore::Exception::argument_error(error);
-      }
-
+    if (function == "deploy")
+    {
       // Verification of required attributes on the instance deployment data
       auto missing = shcore::get_missing_keys(options, { "password|dbPassword" });
 
       if (missing.size())
-          throw shcore::Exception::argument_error("Missing root password for the deployed instance");
+        throw shcore::Exception::argument_error("Missing root password for the deployed instance");
       else
       {
         if (options->has_key("password"))
           password = options->get_string("password");
         else if (options->has_key("dbPassword"))
           password = options->get_string("dbPassword");
+
+        password += "\n";
       }
     }
-    else
+  }
+  else
+  {
+    if (function == "deploy")
       throw shcore::Exception::argument_error("Missing root password for the deployed instance");
+  }
 
-    password += "\n";
+  if (options->has_key("portx"))
+    portx = (*options)["portx"].as_int();
 
-    if (options->has_key("portx"))
-      portx = (*options)["portx"].as_int();
+  if (options->has_key("sandboxDir"))
+    sandbox_dir = (*options)["sandboxDir"].as_string();
 
-    if (options->has_key("sandboxDir"))
-      sandbox_dir = (*options)["sandboxDir"].as_string();
+  std::string errors;
 
-    std::string errors;
+  if (port < 0 || port > 65535)
+    throw shcore::Exception::argument_error("Please use a valid TCP port number");
 
-    if (port < 0 || port > 65535)
-      throw shcore::Exception::argument_error("Please use a valid TCP port number");
+  // TODO: Add verbose option
 
-    // TODO: Add verbose option
-    if (_provisioning_interface->start_sandbox(port, portx, sandbox_dir, password, errors, false) == 1)
+  if (function == "deploy")
+  {
+    if (_provisioning_interface->deploy_sandbox(port, portx, sandbox_dir, password, errors, false) == 1)
       throw shcore::Exception::logic_error(errors);
   }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION("deployLocalInstance");
+
+  if (function == "delete")
+  {
+    if (_provisioning_interface->delete_sandbox(port, portx, sandbox_dir, errors, false) == 1)
+      throw shcore::Exception::logic_error(errors);
+  }
+  if (function == "kill")
+  {
+    if (_provisioning_interface->kill_sandbox(port, portx, sandbox_dir, errors, false) == 1)
+      throw shcore::Exception::logic_error(errors);
+  }
+
+  return ret_val;
+}
+
+shcore::Value Dba::deploy_local_instance(const shcore::Argument_list &args)
+{
+  shcore::Value ret_val;
+
+  args.ensure_count(1, 2, get_function_name("deployLocalInstance").c_str());
+
+  try
+  {
+    ret_val = exec_instance_op("deploy", args);
+  }
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("deployLocalInstance"));
+
+  return ret_val;
+}
+
+shcore::Value Dba::delete_local_instance(const shcore::Argument_list &args)
+{
+  shcore::Value ret_val;
+
+  args.ensure_count(1, 2, get_function_name("deleteLocalInstance").c_str());
+
+  try
+  {
+    ret_val = exec_instance_op("delete", args);
+  }
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("deleteLocalInstance"));
+
+  return ret_val;
+}
+
+shcore::Value Dba::kill_local_instance(const shcore::Argument_list &args)
+{
+  shcore::Value ret_val;
+
+  args.ensure_count(1, 2, get_function_name("killLocalInstance").c_str());
+
+  try
+  {
+    ret_val = exec_instance_op("kill", args);
+  }
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("killLocalInstance"));
 
   return ret_val;
 }

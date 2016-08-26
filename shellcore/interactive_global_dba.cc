@@ -31,6 +31,10 @@ using namespace shcore;
 void Global_dba::init()
 {
   add_varargs_method("deployLocalInstance", std::bind(&Global_dba::deploy_local_instance, this, _1));
+  add_varargs_method("startLocalInstance", std::bind(&Global_dba::start_local_instance, this, _1));
+  add_varargs_method("deleteLocalInstance", std::bind(&Global_dba::delete_local_instance, this, _1));
+  add_varargs_method("killLocalInstance", std::bind(&Global_dba::kill_local_instance, this, _1));
+
   add_method("dropCluster", std::bind(&Global_dba::drop_cluster, this, _1), "clusterName", shcore::String, NULL);
   add_method("createCluster", std::bind(&Global_dba::create_cluster, this, _1), "clusterName", shcore::String, NULL);
   add_method("dropMetadataSchema", std::bind(&Global_dba::drop_metadata_schema, this, _1), "data", shcore::Map, NULL);
@@ -38,10 +42,8 @@ void Global_dba::init()
   add_method("validateInstance", std::bind(&Global_dba::validate_instance, this, _1), "data", shcore::Map, NULL);
 }
 
-shcore::Value Global_dba::deploy_local_instance(const shcore::Argument_list &args)
+shcore::Value Global_dba::exec_instance_op(const std::string &function, const shcore::Argument_list &args)
 {
-  args.ensure_count(1, 2, get_function_name("deployLocalInstance").c_str());
-
   shcore::Value ret_val;
   shcore::Argument_list new_args;
 
@@ -98,45 +100,136 @@ shcore::Value Global_dba::deploy_local_instance(const shcore::Argument_list &arg
 
     if (proceed)
     {
-      // Verification of required attributes on the instance deployment data
-      auto missing = shcore::get_missing_keys(options, { "password|dbPassword" });
+      std::string message;
 
-      if (missing.size())
+      if (function == "deploy" || function == "start")
       {
-        proceed = false;
-        bool prompt_password = true;
-        while (prompt_password && !proceed)
-        {
-          std::string message = "A new MySQL sandbox instance will be created on this host in \n"\
-                                "" + sandboxDir + "/" + std::to_string(port) + "\n\n"
-                                "Please enter a MySQL root password for the new instance: ";
+        // Verification of required attributes on the instance deployment data
+        auto missing = shcore::get_missing_keys(options, { "password|dbPassword" });
 
-          prompt_password = password(message, answer);
-          if (prompt_password)
+        if (missing.size())
+        {
+          proceed = false;
+          bool prompt_password = true;
+
+          while (prompt_password && !proceed)
           {
-            if (!answer.empty())
+            if (function == "deploy")
             {
-              (*options)["password"] = shcore::Value(answer);
-              proceed = true;
+              message = "A new MySQL sandbox instance will be created on this host in \n"\
+                        "" + sandboxDir + "/" + std::to_string(port) + "\n\n"
+                        "Please enter a MySQL root password for the new instance: ";
+            }
+
+            if (function == "start")
+            {
+              message = "The MySQL sandbox instance on this host in \n"\
+                        "" + sandboxDir + "/" + std::to_string(port) + " will be started\n\n"
+                        "Please enter the MySQL root password of the instance: ";
+            }
+
+            prompt_password = password(message, answer);
+            if (prompt_password)
+            {
+              if (!answer.empty())
+              {
+                (*options)["password"] = shcore::Value(answer);
+                proceed = true;
+              }
             }
           }
+        }
+      }
+      else
+      {
+        if (function == "delete")
+        {
+          message = "The MySQL sandbox instance on this host in \n"\
+                    "" + sandboxDir + "/" + std::to_string(port) + " will be deleted\n\n";
+          shcore::print(message);
+          proceed = true;
+        }
+        else if (function == "kill")
+        {
+          message = "The MySQL sandbox instance on this host in \n"\
+                    "" + sandboxDir + "/" + std::to_string(port) + " will be killed\n\n";
+          shcore::print(message);
+          proceed = true;
         }
       }
     }
 
     if (proceed)
     {
-      shcore::print("Deploying new MySQL instance...\n");
-      ret_val = _target->call("deployLocalInstance", new_args);
+      if (function == "deploy")
+      {
+        shcore::print("Deploying new MySQL instance...\n");
+        ret_val = _target->call("deployLocalInstance", new_args);
 
-      shcore::print("Instance localhost:" + std::to_string(port) +
-          " successfully deployed and started.\n\n");
-      shcore::print("Use '\\connect -c root@localhost:" + std::to_string(port) + "' to connect to the new instance.");
+        shcore::print("Instance localhost:" + std::to_string(port) +
+            " successfully deployed and started.\n\n");
+        shcore::print("Use '\\connect -c root@localhost:" + std::to_string(port) + "' to connect to the new instance.");
+      }
+
+      if (function == "start")
+      {
+        shcore::print("Starting MySQL instance...\n");
+        ret_val = _target->call("startLocalInstance", new_args);
+
+        shcore::print("Instance localhost:" + std::to_string(port) +
+            " successfully started.\n\n");
+      }
+
+      if (function == "delete")
+      {
+        shcore::print("Deleting MySQL instance...\n");
+        ret_val = _target->call("deleteLocalInstance", new_args);
+
+        shcore::print("Instance localhost:" + std::to_string(port) +
+                      " successfully deleted.\n\n");
+      }
+
+      if (function == "kill")
+      {
+        shcore::print("Killing MySQL instance...\n");
+        ret_val = _target->call("killLocalInstance", new_args);
+
+        shcore::print("Instance localhost:" + std::to_string(port) +
+            " successfully killed.\n\n");
+      }
     }
   }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("deployLocalInstance"));
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(function);
 
   return ret_val;
+}
+
+shcore::Value Global_dba::deploy_local_instance(const shcore::Argument_list &args)
+{
+  args.ensure_count(1, 2, get_function_name("deployLocalInstance").c_str());
+
+  return exec_instance_op("deploy", args);
+}
+
+shcore::Value Global_dba::start_local_instance(const shcore::Argument_list &args)
+{
+  args.ensure_count(1, 2, get_function_name("startLocalInstance").c_str());
+
+  return exec_instance_op("start", args);
+}
+
+shcore::Value Global_dba::delete_local_instance(const shcore::Argument_list &args)
+{
+  args.ensure_count(1, 2, get_function_name("deleteLocalInstance").c_str());
+
+  return exec_instance_op("delete", args);
+}
+
+shcore::Value Global_dba::kill_local_instance(const shcore::Argument_list &args)
+{
+  args.ensure_count(1, 2, get_function_name("killLocalInstance").c_str());
+
+  return exec_instance_op("kill", args);
 }
 
 shcore::Value Global_dba::drop_cluster(const shcore::Argument_list &args)

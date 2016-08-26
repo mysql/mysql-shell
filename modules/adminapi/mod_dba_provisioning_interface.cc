@@ -77,15 +77,12 @@ int ProvisioningInterface::executeMp(std::string cmd, std::vector<const char *> 
       if ((buf.find("ERROR") != std::string::npos))
         full_output.append(buf);
       buf = "";
-    } else {
-        if (verbose)
-          shcore::print(buf);
     }
   }
 
   exit_code = p.wait();
 
-  if (exit_code) {
+  if (exit_code != 0) {
     std::string remove_me = "ERROR: Error executing the '" + cmd + "' command:";
 
     std::string::size_type i = full_output.find(remove_me);
@@ -116,8 +113,8 @@ int ProvisioningInterface::check(const std::string &user, const std::string &hos
   return executeMp("check", args, passwords, errors, verbose);
 }
 
-int ProvisioningInterface::start_sandbox(int port, int portx, const std::string &sandbox_dir,
-                                   const std::string &password, std::string &errors, bool verbose) {
+int ProvisioningInterface::exec_sandbox_op(std::string op, int port, int portx, const std::string &sandbox_dir,
+                                           const std::string &password, std::string &errors, bool verbose) {
   std::vector<std::string> sandbox_args, passwords;
   std::string arg, pwd = password;
 
@@ -141,17 +138,35 @@ int ProvisioningInterface::start_sandbox(int port, int portx, const std::string 
     sandbox_args.push_back(arg);
   }
 
-  pwd += "\n";
-  passwords.push_back(pwd);
+  if (!pwd.empty()) {
+    pwd += "\n";
+    passwords.push_back(pwd);
+  }
 
   std::vector<const char *> args;
-  args.push_back("start");
+  args.push_back(op.c_str());
   for (size_t i = 0; i < sandbox_args.size(); i++)
     args.push_back(sandbox_args[i].c_str());
-  args.push_back("--stdin");
+  if (!pwd.empty())
+    args.push_back("--stdin");
   args.push_back(NULL);
 
   return executeMp("sandbox", args, passwords, errors, verbose);
+}
+
+int ProvisioningInterface::deploy_sandbox(int port, int portx, const std::string &sandbox_dir,
+                                          const std::string &password, std::string &errors, bool verbose) {
+  return exec_sandbox_op("start", port, portx, sandbox_dir, password, errors, verbose);
+}
+
+int ProvisioningInterface::delete_sandbox(int port, int portx, const std::string &sandbox_dir,
+                                          std::string &errors, bool verbose) {
+  return exec_sandbox_op("delete", port, portx, sandbox_dir, "", errors, verbose);
+}
+
+int ProvisioningInterface::kill_sandbox(int port, int portx, const std::string &sandbox_dir,
+                                        std::string &errors, bool verbose) {
+  return exec_sandbox_op("kill", port, portx, sandbox_dir, "", errors, verbose);
 }
 
 int ProvisioningInterface::start_replicaset(const std::string &instance_url, const std::string &repl_user,

@@ -35,7 +35,12 @@ namespace shcore
     void init();
     //virtual void resolve() const;
 
-    shcore::Value deploy_local_instance(const shcore::Argument_list &args);
+    shcore::Value deploy_local_instance(const shcore::Argument_list &args); // create and start
+    shcore::Value start_local_instance(const shcore::Argument_list &args);
+    //shcore::Value stop_local_instance(const shcore::Argument_list &args);
+    shcore::Value delete_local_instance(const shcore::Argument_list &args);
+    shcore::Value kill_local_instance(const shcore::Argument_list &args);
+
     shcore::Value drop_cluster(const shcore::Argument_list &args);
     shcore::Value create_cluster(const shcore::Argument_list &args);
     shcore::Value get_cluster(const shcore::Argument_list &args);
@@ -47,6 +52,8 @@ namespace shcore
 
   private:
     std::string _cluster_admin_password;
+
+    shcore::Value exec_instance_op(const std::string &function, const shcore::Argument_list &args);
   };
 }
 
