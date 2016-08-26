@@ -41,11 +41,16 @@ int main(int argc, char **argv)
 
   ::testing::InitGoogleTest(&argc, argv);
 
-#ifndef WITH_ADMINAPI
-  std::string flags = ::testing::GTEST_FLAG(filter);
+std::string flags = ::testing::GTEST_FLAG(filter);
+#ifdef WITH_ADMINAPI
+if (flags.empty())
+  flags = "Shell_py_dba_tests.*:Shell_js_dba_tests.*";
+else
+  flags += ":Shell_py_dba_tests.*:Shell_js_dba_tests.*";
+#else
   flags += "-Shell_py_dba_tests.*:Shell_js_dba_tests.*";
-  ::testing::GTEST_FLAG(filter) = flags.c_str();
 #endif
+::testing::GTEST_FLAG(filter) = flags.c_str();
 
   const char *generate_option = "--generate_test_groups=";
   if (argc > 1 && strncmp(argv[1], generate_option, strlen(generate_option)) == 0)
