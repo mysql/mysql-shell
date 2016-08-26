@@ -229,6 +229,8 @@ void ReplicaSet::init()
   add_method("addInstance", std::bind(&ReplicaSet::add_instance_, this, _1), "data");
   add_method("rejoinInstance", std::bind(&ReplicaSet::rejoin_instance, this, _1), "data");
   add_method("removeInstance", std::bind(&ReplicaSet::remove_instance, this, _1), "data");
+
+  _provisioning_interface.reset(new ProvisioningInterface());
 }
 
 #if DOXYGEN_CPP
@@ -429,23 +431,6 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args)
   if (uuid_row)
     mysql_server_uuid = uuid_row.as_object<mysh::Row>()->get_member(0).as_string();
 
-  // Gadgets handling
-  std::string buf;
-  char c;
-  std::string success("Operation completed with success.");
-  std::string error;
-
-  std::string gadgets_path = (*shcore::Shell_core_options::get())[SHCORE_GADGETS_PATH].as_string();
-
-  if (gadgets_path.empty())
-      throw shcore::Exception::logic_error("Please set the mysqlprovision path using the environment variable: MYSQLPROVISION.");
-
-#ifdef WIN32
-  success += "\r\n";
-#else
-  success += "\n";
-#endif
-
   // Call the gadget to bootstrap the group with this instance
   if (seed_instance) {
     // Call mysqlprovision to bootstrap the group using "start"
@@ -501,112 +486,31 @@ bool ReplicaSet::do_join_replicaset(const std::string &instance_url,
     const std::string &repl_user, const std::string &repl_user_password,
     bool verbose) {
   shcore::Value ret_val;
+  int exit_code = -1;
 
   bool is_seed_instance = peer_instance_url.empty() ? true : false;
 
-  // Gadgets handling
-  std::string buf;
-  char c;
-  std::string success("Operation completed with success.");
-  std::string error;
+  std::string command, errors;
 
-  std::string gadgets_path = (*shcore::Shell_core_options::get())[SHCORE_GADGETS_PATH].as_string();
-
-  if (gadgets_path.empty())
-    throw shcore::Exception::logic_error("Please set the mysqlprovision path using the environment variable: MYSQLPROVISION.");
-
-#ifdef WIN32
-  success += "\r\n";
-#else
-  success += "\n";
-#endif
-
-  // We need to retrieve a peer instance, so let's use the Seed one
-  std::string peer_instance = _metadata_storage->get_seed_instance(get_id());
-
-  const char *command;
-  std::string instance_param = "--instance=" + instance_url;
-  std::string repl_user_param = "--replication-user=" + repl_user;
-  std::string peer_instance_param;
   if (is_seed_instance) {
-    command = "start-replicaset";
-  }
-  else {
-    command = "join-replicaset";
-    peer_instance_param = "--peer-instance=" + peer_instance_url;
-  }
-
-  // Call mysqlprovision to join or start the instance in the group
-  const char *args_script[] = { "python", gadgets_path.c_str(), command,
-      instance_param.c_str(), repl_user_param.c_str(), "--stdin",
-      is_seed_instance ? NULL : peer_instance_param.c_str(),
-      NULL };
-  const char **args = gadgets_path.find(".py") == gadgets_path.size()-3
-      ? args_script : args_script+1;
-
-  ngcommon::Process_launcher p(args[0], args, false);
-
-  try {
-    std::string password = super_user_password + "\n";
-    p.write(password.c_str(), password.length());
-  }
-  catch (shcore::Exception &e) {
-    throw shcore::Exception::runtime_error(e.what());
-  }
-  try {
-    std::string password = repl_user_password + "\n";
-    p.write(password.c_str(), password.length());
-  }
-  catch (shcore::Exception &e) {
-    throw shcore::Exception::runtime_error(e.what());
-  }
-  if (!is_seed_instance) {
-    try {
-      std::string password = super_user_password + "\n";
-      p.write(password.c_str(), password.length());
-    }
-    catch (shcore::Exception &e) {
-      throw shcore::Exception::runtime_error(e.what());
-    }
-  }
-  bool read_error = false;
-
-  while (p.read(&c, 1) > 0) {
-    buf += c;
-    if (c == '\n') {
-      if (verbose)
-        print(buf);
-      if ((buf.find("ERROR") != std::string::npos))
-        read_error = true;
-
-      if (read_error)
-        error += buf;
-
-      if (strcmp(success.c_str(), buf.c_str()) == 0) {
-        if (is_seed_instance)
-          ret_val = shcore::Value("The instance '" + instance_url + "' was successfully added as seeding instance to the MySQL Cluster.");
-        else
-          ret_val = shcore::Value("The instance '" + instance_url + "' was successfully added to the MySQL Cluster.");
-        break;
-      }
-      buf = "";
-    }
+    exit_code = _provisioning_interface->start_replicaset(instance_url, repl_user, super_user_password,
+                                                              repl_user_password, errors, verbose);
+  } else {
+    exit_code = _provisioning_interface->join_replicaset(instance_url, repl_user, peer_instance_url,
+                                                      super_user_password, repl_user_password, errors, verbose);
   }
 
-  if (read_error) {
-    // Remove unnecessary gadgets output
-    std::string remove_me = std::string("ERROR: Error executing the '") + command + "' command:";
-
-    std::string::size_type i = error.find(remove_me);
-
-    if (i != std::string::npos)
-      error.erase(i, remove_me.length());
-
-    throw shcore::Exception::logic_error(error);
+  if (exit_code == 0)
+  {
+    if (is_seed_instance)
+      ret_val = shcore::Value("The instance '" + instance_url + "' was successfully added as seeding instance to the MySQL Cluster.");
+    else
+      ret_val = shcore::Value("The instance '" + instance_url + "' was successfully added to the MySQL Cluster.");
   }
+  else
+    throw shcore::Exception::logic_error(errors);
 
-  // wait for termination
-  return p.wait() == 0;
+  return exit_code == 0;
 }
 
 #if DOXYGEN_CPP

@@ -27,6 +27,8 @@
 #include "shellcore/types.h"
 #include "shellcore/types_cpp.h"
 #include <set>
+#include "mod_dba_provisioning_interface.h"
+
 namespace mysh
 {
   namespace mysqlx
@@ -107,6 +109,7 @@ namespace mysh
 
       std::shared_ptr<Cluster> _cluster;
       std::shared_ptr<MetadataStorage> _metadata_storage;
+      std::shared_ptr<ProvisioningInterface> _provisioning_interface;
 
     protected:
       virtual int get_default_port() { return 33060; };

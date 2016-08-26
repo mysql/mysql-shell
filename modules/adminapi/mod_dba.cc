@@ -41,6 +41,7 @@ using namespace shcore;
 #define PASSWORD_LENGHT 16
 
 std::set<std::string> Dba::_deploy_instance_opts = { "portx", "sandboxDir", "password", "dbPassword" };
+std::set<std::string> Dba::_validate_instance_opts = { "host", "port", "user", "dbUser", "password", "dbPassword", "socket", "ssl_ca", "ssl_cert", "ssl_key", "ssl_key" };
 
 Dba::Dba(IShell_core* owner) :
 _shell_core(owner)
@@ -70,16 +71,17 @@ void Dba::init()
   add_varargs_method("help", std::bind(&Dba::help, this, _1));
 
   _metadata_storage.reset(new MetadataStorage(this));
+  _provisioning_interface.reset(new ProvisioningInterface());
 
   std::string python_path = "";
-  std::string gadgets_path;
+  std::string local_mysqlprovision_path;
 
   if (getenv("MYSQLPROVISION") != NULL)
-    gadgets_path = std::string(getenv("MYSQLPROVISION")); // should be set to the mysqlprovision root dir
+    local_mysqlprovision_path = std::string(getenv("MYSQLPROVISION")); // should be set to the mysqlprovision root dir
 
-  if (!gadgets_path.empty())
+  if (!local_mysqlprovision_path.empty())
   {
-    gadgets_path += "/gadgets/python";
+    local_mysqlprovision_path += "/gadgets/python";
 
     std::string sep;
 #ifdef WIN32
@@ -89,9 +91,9 @@ void Dba::init()
 #endif
 
     if (getenv("PYTHONPATH") != NULL)
-      python_path = std::string(getenv("PYTHONPATH") + sep + gadgets_path);
+      python_path = std::string(getenv("PYTHONPATH") + sep + local_mysqlprovision_path);
     else
-      python_path = gadgets_path;
+      python_path = local_mysqlprovision_path;
 
 #ifdef WIN32
     _putenv_s("PYTHONPATH", python_path.c_str());
@@ -510,24 +512,17 @@ shcore::Value Dba::reset_session(const shcore::Argument_list &args)
 
 shcore::Value Dba::validate_instance(const shcore::Argument_list &args)
 {
-  args.ensure_count(1, "validateInstance");
+  args.ensure_count(1, 2, "validateInstance");
 
   shcore::Value ret_val;
 
   std::string uri;
   shcore::Value::Map_type_ref options; // Map with the connection data
 
-  std::string protocol;
   std::string user;
+  std::string password;
   std::string host;
   int port = 0;
-  std::string sock;
-  std::string schema;
-  std::string ssl_ca;
-  std::string ssl_cert;
-  std::string ssl_key;
-
-  std::vector<std::string> valid_options = { "host", "port", "user", "dbUser", "password", "dbPassword", "socket", "ssl_ca", "ssl_cert", "ssl_key", "ssl_key" };
 
   try
   {
@@ -548,120 +543,64 @@ shcore::Value Dba::validate_instance(const shcore::Argument_list &args)
     if (options->size() == 0)
       throw shcore::Exception::argument_error("Connection data empty.");
 
-    for (shcore::Value::Map_type::iterator i = options->begin(); i != options->end(); ++i)
+    // Verification of invalid attributes on the instance data
+     auto invalids = shcore::get_additional_keys(options, _validate_instance_opts);
+    if (invalids.size())
     {
-      if ((std::find(valid_options.begin(), valid_options.end(), i->first) == valid_options.end()))
-        throw shcore::Exception::argument_error("Unexpected argument '" + i->first + "' on connection data.");
+      std::string error = "The instance data contains the following invalid options: ";
+      error += shcore::join_strings(invalids, ", ");
+      throw shcore::Exception::argument_error(error);
     }
 
-    if (options->has_key("host"))
-      host = (*options)["host"].as_string();
+    // Verification of required attributes on the connection data
+    auto missing = shcore::get_missing_keys(options, { "host", "password|dbPassword", "port" });
+    if (missing.find("password") != missing.end() && args.size() == 2)
+      missing.erase("password");
 
-    if (options->has_key("port"))
-      port = (*options)["port"].as_int();
+    if (missing.size())
+    {
+      std::string error = "Missing instance options: ";
+      error += shcore::join_strings(missing, ", ");
+      throw shcore::Exception::argument_error(error);
+    }
+
+    port = options->get_int("port");
 
     // Sets a default user if not specified
     if (options->has_key("user"))
       user = options->get_string("user");
     else if (options->has_key("dbUser"))
       user = options->get_string("dbUser");
+    else
+    {
+      user = "root";
+      (*options)["dbUser"] = shcore::Value(user);
+    }
+
+    host = options->get_string("host");
 
     if (options->has_key("password"))
-      user = options->get_string("password");
+      password = options->get_string("password");
     else if (options->has_key("dbPassword"))
-      user = options->get_string("dbPassword");
-
-    if (options->has_key("socket"))
-      sock = (*options)["socket"].as_string();
-
-    if (options->has_key("ssl_ca"))
-      ssl_ca = (*options)["ssl_ca"].as_string();
-
-    if (options->has_key("ssl_cert"))
-      ssl_cert = (*options)["ssl_cert"].as_string();
-
-    if (options->has_key("ssl_key"))
-      ssl_key = (*options)["ssl_key"].as_string();
-
-    if (port == 0 && sock.empty())
-      port = get_default_instance_port();
-
-    // TODO: validate additional data.
-
-    std::string sock_port = (port == 0) ? sock : boost::lexical_cast<std::string>(port);
-
-    // Handle empty required values
-    if (!options->has_key("host"))
-      throw shcore::Exception::argument_error("Missing required value for hostname.");
-
-    std::string gadgets_path = (*shcore::Shell_core_options::get())[SHCORE_GADGETS_PATH].as_string();
-
-    if (gadgets_path.empty())
-      throw shcore::Exception::logic_error("Please set the mysqlprovision path using the environment variable: MYSQLPROVISION.");
-
-    std::string instance_cmd = "--instance=" + user + "@" + host + ":" + std::to_string(port);
-    const char *args_script[] = { "python", gadgets_path.c_str(), "check", instance_cmd.c_str(), "--stdin", NULL };
-
-    ngcommon::Process_launcher p("python", args_script);
-
-    std::string buf;
-    char c;
-    std::string success("Operation completed with success.");
-    std::string password = "root\n"; // TODO: interactive wrapper to query it
-    std::string error;
-
-#ifdef WIN32
-    success += "\r\n";
-#else
-    success += "\n";
-#endif
-
-    try
+      password = options->get_string("dbPassword");
+    else if (args.size() == 2 && args[1].type == shcore::String)
     {
-      p.write(password.c_str(), password.length());
+      password = args.string_at(1);
+      (*options)["dbPassword"] = shcore::Value(password);
     }
-    catch (shcore::Exception &e)
+    else
+      throw shcore::Exception::argument_error("Missing password for " + build_connection_string(options, false));
+
+    std::string errors;
+
+    // TODO: Add verbose option
+    if (_provisioning_interface->check(user, host, port, password, errors, false) == 0)
     {
-      throw shcore::Exception::runtime_error(e.what());
+      std::string s_out = "The instance: " + host + ":" + std::to_string(port) + " is valid for Cluster usage";
+      ret_val = shcore::Value(s_out);
     }
-
-    bool read_error = false;
-
-    while (p.read(&c, 1) > 0)
-    {
-      buf += c;
-      if (c == '\n')
-      {
-        if ((buf.find("ERROR") != std::string::npos))
-          read_error = true;
-
-        if (read_error)
-          error += buf;
-
-        if (strcmp(success.c_str(), buf.c_str()) == 0)
-        {
-          std::string s_out = "The instance: " + host + ":" + std::to_string(port) + " is valid for Cluster usage";
-          ret_val = shcore::Value(s_out);
-          break;
-        }
-        buf = "";
-      }
-    }
-
-    if (read_error)
-    {
-      // Remove unnecessary gadgets output
-      std::string remove_me = "ERROR: Error executing the 'check' command:";
-
-      std::string::size_type i = error.find(remove_me);
-
-      if (i != std::string::npos)
-        error.erase(i, remove_me.length());
-
-      throw shcore::Exception::logic_error(error);
-    }
-
-    p.wait();
+    else
+      throw shcore::Exception::logic_error(errors);
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION("validateInstance");
 
@@ -720,88 +659,14 @@ shcore::Value Dba::deploy_local_instance(const shcore::Argument_list &args)
     if (options->has_key("sandboxDir"))
       sandbox_dir = (*options)["sandboxDir"].as_string();
 
-    std::string gadgets_path = (*shcore::Shell_core_options::get())[SHCORE_GADGETS_PATH].as_string();
+    std::string errors;
 
-    if (gadgets_path.empty())
-      throw shcore::Exception::logic_error("Please set the mysqlprovision path using the environment variable: MYSQLPROVISION.");
+    if (port < 0 || port > 65535)
+      throw shcore::Exception::argument_error("Please use a valid TCP port number");
 
-    std::vector<std::string> sandbox_args;
-    std::string arg;
-
-    if (port != 0)
-    {
-      arg = "--port=" + std::to_string(port);
-      sandbox_args.push_back(arg);
-    }
-
-    if (portx != 0)
-    {
-      arg = "--mysqlx-port=" + std::to_string(portx);
-      sandbox_args.push_back(arg);
-    }
-
-    if (!sandbox_dir.empty())
-    {
-      arg = "--sandboxdir=" + sandbox_dir;
-      sandbox_args.push_back(arg);
-    }
-    else if (shcore::Shell_core_options::get()->has_key(SHCORE_SANDBOX_DIR))
-    {
-      std::string dir = (*shcore::Shell_core_options::get())[SHCORE_SANDBOX_DIR].as_string();
-      arg = "--sandboxdir=" + dir;
-      sandbox_args.push_back(arg);
-    }
-
-    std::vector<const char *> args_script;
-    if (gadgets_path.find(".py") == gadgets_path.size()-3)
-      args_script.push_back("python");
-    args_script.push_back(gadgets_path.c_str());
-    args_script.push_back("sandbox");
-    args_script.push_back("start");
-    args_script.push_back("--stdin");
-    for (size_t i = 0; i < sandbox_args.size(); i++)
-      args_script.push_back(sandbox_args[i].c_str());
-    args_script.push_back(NULL);
-
-    ngcommon::Process_launcher p(args_script[0], &args_script[0]);
-
-    std::string buf, answer;
-    char c;
-
-    try
-    {
-      p.write(password.c_str(), password.length());
-    }
-    catch (shcore::Exception &e)
-    {
-      throw shcore::Exception::runtime_error(e.what());
-    }
-
-    bool read_success = false;
-    std::string full_output;
-
-    while (p.read(&c, 1) > 0)
-    {
-      buf += c;
-      if (c == '\n')
-      {
-        if (buf.find("You can use '") != std::string::npos
-          || buf.find("Operation completed with success.") != std::string::npos) // older versions
-          read_success = true;
-        full_output.append(buf);
-        buf = "";
-      }
-    }
-
-    if (!read_success)
-    {
-      print("An error occurred executing the sandbox command:\n");
-      print(full_output);
-
-      throw shcore::Exception::logic_error("Error executing sandbox command");
-    }
-
-    p.wait();
+    // TODO: Add verbose option
+    if (_provisioning_interface->start_sandbox(port, portx, sandbox_dir, password, errors, false) == 1)
+      throw shcore::Exception::logic_error(errors);
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION("deployLocalInstance");
 

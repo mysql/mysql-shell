@@ -29,6 +29,7 @@
 #include "modules/base_session.h"
 #include "mod_dba_cluster.h"
 #include <set>
+#include "mod_dba_provisioning_interface.h"
 
 namespace mysh
 {
@@ -49,6 +50,7 @@ namespace mysh
       virtual ~Dba() { /*reset_session();*/ }
 
       static std::set<std::string> _deploy_instance_opts;
+      static std::set<std::string> _validate_instance_opts;
 
       virtual std::string class_name() const { return "Dba"; };
 
@@ -100,6 +102,7 @@ namespace mysh
 
       std::shared_ptr<MetadataStorage> _metadata_storage;
       uint64_t _connection_id;
+      std::shared_ptr<ProvisioningInterface> _provisioning_interface;
 
       std::string generate_password(int password_lenght);
     };
