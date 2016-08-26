@@ -83,6 +83,9 @@ cmake .. \
     -DWITH_GTEST=%{with_gtest} \
 %endif
     -DHAVE_PYTHON=1 \
+%if 0%{?with_adminapi:1}
+    -DWITH_ADMINAPI=1
+%endif
 
 # Supported V8 versions are limited, disable
 # V8 in non static for now.
