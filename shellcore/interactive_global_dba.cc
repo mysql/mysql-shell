@@ -382,8 +382,9 @@ shcore::Value Global_dba::get_cluster(const shcore::Argument_list &args)
 shcore::Value Global_dba::validate_instance(const shcore::Argument_list &args)
 {
   shcore::Value ret_val;
+  shcore::Argument_list new_args;
 
-  args.ensure_count(1, get_function_name("validateInstance").c_str());
+  args.ensure_count(1, 2, get_function_name("validateInstance").c_str());
 
   std::string uri, answer, user;
   shcore::Value::Map_type_ref options; // Map with the connection data
@@ -402,21 +403,15 @@ shcore::Value Global_dba::validate_instance(const shcore::Argument_list &args)
   std::string user_password;
   bool has_password = true;
 
-  // Sets a default user if not specified
-  if (options->has_key("user"))
-    user = options->get_string("user");
-  else if (options->has_key("dbUser"))
-    user = options->get_string("dbUser");
-  else
-  {
-    user = "root";
-    (*options)["dbUser"] = shcore::Value(user);
-  }
-
   if (options->has_key("password"))
     user_password = options->get_string("password");
   else if (options->has_key("dbPassword"))
     user_password = options->get_string("dbPassword");
+  else if (args.size() == 2 && args[1].type == shcore::String)
+  {
+    user_password = args.string_at(1);
+    (*options)["dbPassword"] = shcore::Value(user_password);
+  }
   else
     has_password = false;
 
@@ -426,7 +421,6 @@ shcore::Value Global_dba::validate_instance(const shcore::Argument_list &args)
       (*options)["dbPassword"] = shcore::Value(answer);
   }
 
-  shcore::Argument_list new_args;
   new_args.push_back(shcore::Value(options));
 
   // Let's get the user to know we're starting to validate the instance
