@@ -492,6 +492,18 @@ shcore::Value Global_dba::validate_instance(const shcore::Argument_list &args)
   else if (args[0].type == shcore::Map)
     options = args.map_at(0);
 
+  // Verification of required attributes on the connection data
+  auto missing = shcore::get_missing_keys(options, { "host", "port" });
+  if (missing.find("password") != missing.end() && args.size() == 2)
+    missing.erase("password");
+
+  if (missing.size())
+  {
+    std::string error = "Missing instance options: ";
+    error += shcore::join_strings(missing, ", ");
+    throw shcore::Exception::argument_error(error);
+  }
+
   // Verification of the password
   std::string user_password;
   bool has_password = true;
