@@ -37,6 +37,7 @@ namespace shcore
     shcore::Value add_seed_instance(const shcore::Argument_list &args);
     shcore::Value add_instance(const shcore::Argument_list &args);
     shcore::Value rejoin_instance(const shcore::Argument_list &args);
+    shcore::Value remove_instance(const shcore::Argument_list &args);
 
   private:
     bool resolve_instance_options(const std::string& function, const shcore::Argument_list &args, shcore::Value::Map_type_ref &options) const;

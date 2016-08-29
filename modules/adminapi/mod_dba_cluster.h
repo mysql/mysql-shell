@@ -30,6 +30,7 @@
 #define ACC_INSTANCE_ADMIN "instanceAdmin"
 #define ACC_CLUSTER_READER "clusterReader"
 #define ACC_REPLICATION_USER "replicationUser"
+#define ACC_CLUSTER_ADMIN "clusterAdmin"
 
 #define OPT_ADMIN_TYPE "adminType"
 
@@ -71,7 +72,7 @@ namespace mysh
       std::string get_account_user(const std::string& account){ return get_account_data(account, ACC_USER); }
       void set_account_password(const std::string& account, const std::string& value)  { set_account_data(account, ACC_PASSWORD, value); }
       std::string get_account_password(const std::string& account){ return get_account_data(account, ACC_PASSWORD); }
-      std::string get_accounts() { return shcore::Value(_accounts).json(false); }
+      std::string get_accounts();
       void set_accounts(const std::string& json) { _accounts = shcore::Value::parse(json).as_map(); }
 
       void set_option(const std::string& option, const shcore::Value &value);

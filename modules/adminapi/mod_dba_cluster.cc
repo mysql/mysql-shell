@@ -317,10 +317,14 @@ None remove_instance(Document doc){}
 
 shcore::Value Cluster::remove_instance(const shcore::Argument_list &args)
 {
-  args.ensure_count(1, get_function_name("removeInstance").c_str());
+  args.ensure_count(1, 2, get_function_name("removeInstance").c_str());
 
   // Remove the Instance from the Default ReplicaSet
-  _default_replica_set->remove_instance(args);
+  try
+  {
+    _default_replica_set->remove_instance(args);
+  }
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("removeInstance"));
 
   return Value();
 }
@@ -460,6 +464,17 @@ std::string Cluster::get_account_data(const std::string& account, const std::str
     ret_val = _accounts->get_map(account)->get_string(key);
 
   return ret_val;
+}
+
+std::string Cluster::get_accounts()
+{
+  shcore::Value::Map_type_ref accounts = _accounts;
+
+  // Hide the MASTER key
+  auto account_data = (*accounts)["clusterAdmin"].as_map();
+  account_data->erase("password");
+
+  return shcore::Value(accounts).json(false);
 }
 
 void Cluster::set_option(const std::string& option, const shcore::Value& value)

@@ -32,6 +32,7 @@ void Interactive_dba_cluster::init()
 {
   add_method("addInstance", std::bind(&Interactive_dba_cluster::add_instance, this, _1), "data");
   add_method("rejoinInstance", std::bind(&Interactive_dba_cluster::rejoin_instance, this, _1), "data");
+  add_method("removeInstance", std::bind(&Interactive_dba_cluster::remove_instance, this, _1), "data");
 }
 
 shcore::Value Interactive_dba_cluster::add_seed_instance(const shcore::Argument_list &args)
@@ -234,4 +235,36 @@ bool Interactive_dba_cluster::resolve_instance_options(const std::string& functi
   }
 
   return proceed;
+}
+
+shcore::Value Interactive_dba_cluster::remove_instance(const shcore::Argument_list &args)
+{
+  shcore::Value ret_val;
+  std::string uri;
+  shcore::Value::Map_type_ref options; // Map with the connection data
+
+  std::string message = "The instance will be removed from the InnoDB cluster. Depending on the \n"
+                        "instance being the Seed or not, the Metadata session might become invalid. \n"
+                        "If so, please start a new session to the Metadata Storage R/W instance.\n\n";
+
+  print(message);
+
+  // Identify the type of connection data (String or Document)
+  if (args[0].type == String)
+  {
+    uri = args.string_at(0);
+    options = get_connection_data(uri, false);
+  }
+
+  // TODO: what if args[0] is a String containing the name of the instance?
+
+  // Connection data comes in a dictionary
+  else if (args[0].type == Map)
+    options = args.map_at(0);
+
+  ret_val = _target->call("removeInstance", args);
+
+  print("The instance '" + build_connection_string(options, false) + "' was successfully removed to the cluster.\n");
+
+  return ret_val;
 }

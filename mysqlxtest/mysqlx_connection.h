@@ -64,6 +64,7 @@
 #define CR_SSL_CONNECTION_ERROR 2026
 #define CR_MALFORMED_PACKET     2027
 #define CR_INVALID_AUTH_METHOD  2028
+#define CR_SQLSTATE             1290
 
 namespace mysqlx
 {

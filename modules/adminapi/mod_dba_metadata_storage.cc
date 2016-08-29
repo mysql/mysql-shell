@@ -56,6 +56,8 @@ std::shared_ptr<ShellBaseResult> MetadataStorage::execute_sql(const std::string 
   {
     if (CR_SERVER_GONE_ERROR == e.code() || ER_X_BAD_PIPE == e.code())
       throw Exception::metadata_error("The Metadata is inaccessible");
+    else if (CR_SQLSTATE == e.code())
+      throw Exception::metadata_error("The Metadata session is invalid. A R/W session is required.");
     else
       throw;
   }
@@ -324,6 +326,16 @@ void MetadataStorage::insert_instance(const shcore::Argument_list &args, uint64_
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           role, addresses) VALUES ('" +
         std::to_string(host_id) + "', '" + std::to_string(rs_id) + "', '" + mysql_server_uuid + "', '" +
         instance_name + "', '" + role + "', '{\"mysqlClassic\": \"" + addresses + "\"}')";
+
+  execute_sql(query);
+}
+
+void MetadataStorage::remove_instance(const std::string &instance_name)
+{
+  std::string query;
+
+  // Remove the instance
+  query = "DELETE FROM mysql_innodb_cluster_metadata.instances WHERE instance_name = '" + instance_name + "'";
 
   execute_sql(query);
 }

@@ -45,7 +45,7 @@ namespace mysh
       ReplicaSet(const std::string &name, std::shared_ptr<MetadataStorage> metadata_storage);
       virtual ~ReplicaSet();
 
-      static std::set<std::string> _add_instance_opts;
+      static std::set<std::string> _add_instance_opts, _remove_instance_opts;
 
       virtual std::string class_name() const { return "ReplicaSet"; }
       virtual std::string &append_descr(std::string &s_out, int indent = -1, int quote_strings = 0) const;
@@ -84,6 +84,7 @@ namespace mysh
       shcore::Value add_instance_(const shcore::Argument_list &args);
       shcore::Value add_instance(const shcore::Argument_list &args);
       shcore::Value rejoin_instance(const shcore::Argument_list &args);
+      shcore::Value remove_instance_(const shcore::Argument_list &args);
       shcore::Value remove_instance(const shcore::Argument_list &args);
 
     protected:

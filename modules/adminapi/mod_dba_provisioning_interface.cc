@@ -229,3 +229,23 @@ int ProvisioningInterface::join_replicaset(const std::string &instance_url, cons
 
   return executeMp("join-replicaset", args, passwords, errors, verbose);
 }
+
+int ProvisioningInterface::leave_replicaset(const std::string &instance_url,  const std::string &super_user_password,
+                                            std::string &errors, bool verbose) {
+  std::vector<std::string> passwords;
+  std::string instance_args, repl_user_args;
+  std::string super_user_pwd = super_user_password;
+
+  instance_args = "--instance=" + instance_url;
+
+  super_user_pwd += "\n";
+  passwords.push_back(super_user_pwd);
+
+  std::vector<const char *> args;
+  args.push_back(instance_args.c_str());
+
+  args.push_back("--stdin");
+  args.push_back(NULL);
+
+  return executeMp("leave-replicaset", args, passwords, errors, verbose);
+}

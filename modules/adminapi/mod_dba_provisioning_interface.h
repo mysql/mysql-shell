@@ -60,6 +60,9 @@ class ProvisioningInterface {
                  const std::string &peer_instance_url, const std::string &super_user_password,
                  const std::string &repl_user_password, std::string &errors, bool verbose);
 
+  int leave_replicaset(const std::string &instance_url, const std::string &super_user_password,
+                       std::string &errors, bool verbose);
+
  private:
   std::string _local_mysqlprovision_path;
 

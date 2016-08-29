@@ -48,6 +48,7 @@ namespace mysh
       void insert_default_replica_set(const std::shared_ptr<Cluster> &cluster);
       std::shared_ptr<ShellBaseResult> insert_host(const shcore::Argument_list &args);
       void insert_instance(const shcore::Argument_list &args, uint64_t host_id, uint64_t rs_id);
+      void remove_instance(const std::string &instance_name);
       void drop_cluster(const std::string &cluster_name);
       bool cluster_has_default_replicaset_only(const std::string &cluster_name);
       void drop_default_replicaset(const std::string &cluster_name);

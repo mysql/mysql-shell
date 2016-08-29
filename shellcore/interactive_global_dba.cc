@@ -294,6 +294,7 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args)
     std::string cluster_name = args.string_at(0);
     std::string answer, cluster_password;
     shcore::Value::Map_type_ref options;
+    bool verbose = false; // Default is false
 
     if (cluster_name.empty())
       throw Exception::argument_error("The Cluster name cannot be empty.");
@@ -314,6 +315,9 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args)
         // TODO: Validate adminType parameter value
       }
     }
+
+    if (options->has_key("verbose"))
+      verbose = options->get_bool("verbose");
 
     auto dba = std::dynamic_pointer_cast<mysh::mysqlx::Dba>(_target);
     auto session = dba->get_active_session();
@@ -352,6 +356,9 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args)
 
       // This is an instance of the API cluster
       auto raw_cluster = _target->call("createCluster", new_args);
+
+      if (verbose)
+        shcore::print("Adding Seed Instance...");
 
       // Returns an interactive wrapper of this instance
       Interactive_dba_cluster* cluster = new Interactive_dba_cluster(this->_shell_core);

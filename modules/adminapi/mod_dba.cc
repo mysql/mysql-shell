@@ -40,8 +40,8 @@ using namespace shcore;
 
 #define PASSWORD_LENGHT 16
 
-std::set<std::string> Dba::_deploy_instance_opts = { "portx", "sandboxDir", "password", "dbPassword" };
-std::set<std::string> Dba::_validate_instance_opts = { "host", "port", "user", "dbUser", "password", "dbPassword", "socket", "ssl_ca", "ssl_cert", "ssl_key", "ssl_key" };
+std::set<std::string> Dba::_deploy_instance_opts = { "portx", "sandboxDir", "password", "dbPassword", "verbose" };
+std::set<std::string> Dba::_validate_instance_opts = { "host", "port", "user", "dbUser", "password", "dbPassword", "socket", "ssl_ca", "ssl_cert", "ssl_key", "ssl_key", "verbose" };
 
 Dba::Dba(IShell_core* owner) :
 _shell_core(owner)
@@ -280,11 +280,13 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args)
 
   // Available options
   std::string cluster_admin_type = "local"; // Default is local
-  std::string instance_admin_user = "mysql_innodb_cluster_admin"; // Default is mysql_innodb_cluster_admin
+  std::string instance_admin_user = "mysql_innodb_instance_admin"; // Default is mysql_innodb_cluster_admin
   std::string cluster_reader_user = "mysql_innodb_cluster_reader"; // Default is mysql_innodb_cluster_reader
   std::string replication_user = "mysql_innodb_cluster_rpl_user"; // Default is mysql_innodb_cluster_rpl_user
+  std::string cluster_admin_user = "mysql_innodb_cluster_admin";
 
   std::string mysql_innodb_cluster_admin_pwd;
+  bool verbose = false; // Default is false
 
   try
   {
@@ -305,7 +307,7 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args)
       shcore::Value::Map_type_ref options = args.map_at(2);
 
       // Verification of invalid attributes on the instance creation options
-      auto invalids = shcore::get_additional_keys(options, { "clusterAdminType" });
+      auto invalids = shcore::get_additional_keys(options, { "clusterAdminType", "verbose" });
       if (invalids.size())
       {
         std::string error = "The instance options contain the following invalid attributes: ";
@@ -314,15 +316,18 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args)
       }
 
       if (options->has_key("clusterAdminType"))
-        cluster_admin_type = (*options)["clusterAdminType"].as_string();
+        cluster_admin_type = options->get_string("clusterAdminType");
 
-      if (cluster_admin_type != "local" ||
-          cluster_admin_type != "guided" ||
-          cluster_admin_type != "manual" ||
+      if (cluster_admin_type != "local" &&
+          cluster_admin_type != "guided" &&
+          cluster_admin_type != "manual" &&
           cluster_admin_type != "ssh")
       {
         throw shcore::Exception::argument_error("Cluster Administration Type invalid. Valid types are: 'local', 'guided', 'manual', 'ssh'");
       }
+
+      if (options->has_key("verbose"))
+        verbose = options->get_bool("verbose");
     }
 
     MetadataStorage::Transaction tx(_metadata_storage);
@@ -351,11 +356,13 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args)
     _default_cluster->set_description("Default Cluster");
 
     _default_cluster->set_account_user(ACC_INSTANCE_ADMIN, instance_admin_user);
-    _default_cluster->set_account_password(ACC_INSTANCE_ADMIN, mysql_innodb_cluster_admin_pwd);
+    _default_cluster->set_account_password(ACC_INSTANCE_ADMIN, generate_password(PASSWORD_LENGHT));
     _default_cluster->set_account_user(ACC_CLUSTER_READER, cluster_reader_user);
     _default_cluster->set_account_password(ACC_CLUSTER_READER, generate_password(PASSWORD_LENGHT));
     _default_cluster->set_account_user(ACC_REPLICATION_USER, replication_user);
     _default_cluster->set_account_password(ACC_REPLICATION_USER, generate_password(PASSWORD_LENGHT));
+    _default_cluster->set_account_user(ACC_CLUSTER_ADMIN, cluster_admin_user);
+    _default_cluster->set_account_password(ACC_CLUSTER_ADMIN, mysql_innodb_cluster_admin_pwd);
 
     _default_cluster->set_option(OPT_ADMIN_TYPE, shcore::Value(cluster_admin_type));
 
@@ -418,7 +425,7 @@ shcore::Value Dba::drop_cluster(const shcore::Argument_list &args)
       options = args.map_at(1);
 
       if (options->has_key("dropDefaultReplicaSet"))
-        drop_default_rs = (*options)["dropDefaultReplicaSet"].as_bool();
+        drop_default_rs = options->get_bool("dropDefaultReplicaSet");
     }
 
     if (!drop_default_rs)
@@ -471,7 +478,7 @@ shcore::Value Dba::drop_metadata_schema(const shcore::Argument_list &args)
   shcore::Value::Map_type_ref options = args.map_at(0);
 
   if (options->has_key("enforce"))
-        enforce = (*options)["enforce"].as_bool();
+    enforce = options->get_bool("enforce");
 
   if (enforce)
   {
@@ -527,6 +534,7 @@ shcore::Value Dba::validate_instance(const shcore::Argument_list &args)
   std::string password;
   std::string host;
   int port = 0;
+  bool verbose = false;
 
   try
   {
@@ -595,10 +603,13 @@ shcore::Value Dba::validate_instance(const shcore::Argument_list &args)
     else
       throw shcore::Exception::argument_error("Missing password for " + build_connection_string(options, false));
 
+    if (options->has_key("verbose"))
+      verbose = options->get_bool("verbose");
+
     std::string errors;
 
     // TODO: Add verbose option
-    if (_provisioning_interface->check(user, host, port, password, errors, false) == 0)
+    if (_provisioning_interface->check(user, host, port, password, errors, verbose) == 0)
     {
       std::string s_out = "The instance: " + host + ":" + std::to_string(port) + " is valid for Cluster usage";
       ret_val = shcore::Value(s_out);
@@ -619,6 +630,7 @@ shcore::Value Dba::exec_instance_op(const std::string &function, const shcore::A
 
   int port = args.int_at(0);
   int portx = 0;
+  bool verbose = false;
   std::string password;
   std::string sandbox_dir;
 
@@ -660,32 +672,35 @@ shcore::Value Dba::exec_instance_op(const std::string &function, const shcore::A
   }
 
   if (options->has_key("portx"))
-    portx = (*options)["portx"].as_int();
+    portx = options->get_int("portx");
 
   if (options->has_key("sandboxDir"))
-    sandbox_dir = (*options)["sandboxDir"].as_string();
+    sandbox_dir = options->get_string("sandboxDir");
 
   std::string errors;
 
   if (port < 0 || port > 65535)
     throw shcore::Exception::argument_error("Please use a valid TCP port number");
 
+  if (options->has_key("verbose"))
+    verbose = options->get_bool("verbose");
+
   // TODO: Add verbose option
 
   if (function == "deploy")
   {
-    if (_provisioning_interface->deploy_sandbox(port, portx, sandbox_dir, password, errors, false) == 1)
+    if (_provisioning_interface->deploy_sandbox(port, portx, sandbox_dir, password, errors, verbose) == 1)
       throw shcore::Exception::logic_error(errors);
   }
 
   if (function == "delete")
   {
-    if (_provisioning_interface->delete_sandbox(port, portx, sandbox_dir, errors, false) == 1)
+    if (_provisioning_interface->delete_sandbox(port, portx, sandbox_dir, errors, verbose) == 1)
       throw shcore::Exception::logic_error(errors);
   }
   if (function == "kill")
   {
-    if (_provisioning_interface->kill_sandbox(port, portx, sandbox_dir, errors, false) == 1)
+    if (_provisioning_interface->kill_sandbox(port, portx, sandbox_dir, errors, verbose) == 1)
       throw shcore::Exception::logic_error(errors);
   }
 
