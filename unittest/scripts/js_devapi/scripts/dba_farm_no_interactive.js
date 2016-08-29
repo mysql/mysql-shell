@@ -2,13 +2,13 @@
 // Assumes __uripwd is defined as <user>:<pwd>@<host>:<plugin_port>
 // validateMemer and validateNotMember are defined on the setup script
 dba.dropMetadataSchema({enforce:true});
-var farmPassword = 'testing';
-//@ Farm: validating members
-var farm = dba.createFarm('devFarm', farmPassword);
+var ClusterPassword = 'testing';
+//@ Cluster: validating members
+var Cluster = dba.createCluster('devCluster', ClusterPassword);
 
-var members = dir(farm);
+var members = dir(Cluster);
 
-print("Farm Members:", members.length);
+print("Cluster Members:", members.length);
 validateMember(members, 'name');
 validateMember(members, 'getName');
 validateMember(members, 'adminType');
@@ -18,19 +18,19 @@ validateMember(members, 'addInstance');
 validateMember(members, 'removeInstance');
 validateMember(members, 'getReplicaSet');
 
-//@ Farm: addSeedInstance
+//@ Cluster: addSeedInstance
 // Added this to enable addInstance, full testing of addSeedInstance is needed
-farm.addSeedInstance(farmPassword, {host: __host, port:__mysql_port}, __pwd);
+Cluster.addSeedInstance(ClusterPassword, {host: __host, port:__mysql_port}, __pwd);
 
-//@# Farm: addInstance errors
-farm.addInstance()
-farm.addInstance(5,6,7,1)
-farm.addInstance(5, 5)
-farm.addInstance('', 5)
-farm.addInstance(farmPassword, 5)
-farm.addInstance(farmPassword, {host: __host, schema: 'abs', user:"sample", authMethod:56});
-farm.addInstance(farmPassword, {port: __port});
-farm.addInstance(farmPassword, {host: __host, port:__mysql_port}, __pwd);
+//@# Cluster: addInstance errors
+Cluster.addInstance()
+Cluster.addInstance(5,6,7,1)
+Cluster.addInstance(5, 5)
+Cluster.addInstance('', 5)
+Cluster.addInstance(ClusterPassword, 5)
+Cluster.addInstance(ClusterPassword, {host: __host, schema: 'abs', user:"sample", authMethod:56});
+Cluster.addInstance(ClusterPassword, {port: __port});
+Cluster.addInstance(ClusterPassword, {host: __host, port:__mysql_port}, __pwd);
 
 // Cleanup
-dba.dropFarm('devFarm', {dropDefaultReplicaSet: true});
+dba.dropCluster('devCluster', {dropDefaultReplicaSet: true});

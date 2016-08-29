@@ -3,11 +3,11 @@
 // validateMemer and validateNotMember are defined on the setup script
 dba.dropMetadataSchema({enforce:true});
 
-var farmPassword = 'testing';
-//@ Farm: validating members
-var farm = dba.createFarm('devFarm', farmPassword);
-farm.addSeedInstance(farmPassword, {host: __host, port:__mysql_port}, __pwd);
-var rset = farm.getReplicaSet();
+var ClusterPassword = 'testing';
+//@ Cluster: validating members
+var Cluster = dba.createCluster('devCluster', ClusterPassword);
+Cluster.addSeedInstance(ClusterPassword, {host: __host, port:__mysql_port}, __pwd);
+var rset = Cluster.getReplicaSet();
 
 var members = dir(rset);
 
@@ -17,15 +17,15 @@ validateMember(members, 'getName');
 validateMember(members, 'addInstance');
 validateMember(members, 'removeInstance');
 
-//@# Farm: addInstance errors
+//@# Cluster: addInstance errors
 rset.addInstance()
 rset.addInstance(5,6,7,1)
 rset.addInstance(5, 5)
 rset.addInstance('', 5)
-rset.addInstance(farmPassword, 5)
-rset.addInstance(farmPassword, {host: __host, schema: 'abs', user:"sample", authMethod:56});
-rset.addInstance(farmPassword, {port: __port});
-rset.addInstance(farmPassword, {host: __host, port:__mysql_port}, __pwd);
+rset.addInstance(ClusterPassword, 5)
+rset.addInstance(ClusterPassword, {host: __host, schema: 'abs', user:"sample", authMethod:56});
+rset.addInstance(ClusterPassword, {port: __port});
+rset.addInstance(ClusterPassword, {host: __host, port:__mysql_port}, __pwd);
 
 // Cleanup
-dba.dropFarm('devFarm', {dropDefaultReplicaSet: true});
+dba.dropCluster('devCluster', {dropDefaultReplicaSet: true});

@@ -7,48 +7,48 @@ dba.dropMetadataSchema({ enforce: true });
 var members = dir(dba);
 
 print("Session Members:", members.length);
-validateMember(members, 'defaultFarm');
-validateMember(members, 'getDefaultFarm');
-validateMember(members, 'createFarm');
-validateMember(members, 'dropFarm');
-validateMember(members, 'getFarm');
+validateMember(members, 'defaultCluster');
+validateMember(members, 'getDefaultCluster');
+validateMember(members, 'createCluster');
+validateMember(members, 'dropCluster');
+validateMember(members, 'getCluster');
 validateMember(members, 'dropMetadataSchema');
 validateMember(members, 'resetSession');
 validateMember(members, 'validateInstance');
 validateMember(members, 'deployLocalInstance');
 
-//@# Dba: createFarm errors
-var farm = dba.createFarm();
-var farm = dba.createFarm(5);
-var farm = dba.createFarm('', 5);
-var farm = dba.createFarm('devFarm');
-var farm = dba.createFarm('devFarm', 'password');
-var farm = dba.createFarm('devFarm', 'password');
+//@# Dba: createCluster errors
+var Cluster = dba.createCluster();
+var Cluster = dba.createCluster(5);
+var Cluster = dba.createCluster('', 5);
+var Cluster = dba.createCluster('devCluster');
+var Cluster = dba.createCluster('devCluster', 'password');
+var Cluster = dba.createCluster('devCluster', 'password');
 
-//@ Dba: createFarm
-print(farm)
+//@ Dba: createCluster
+print(Cluster)
 
-//@# Dba: getFarm errors
-var farm = dba.getFarm();
-var farm = dba.getFarm(5);
-var farm = dba.getFarm('', 5);
-var farm = dba.getFarm('');
-var farm = dba.getFarm('devFarm');
+//@# Dba: getCluster errors
+var Cluster = dba.getCluster();
+var Cluster = dba.getCluster(5);
+var Cluster = dba.getCluster('', 5);
+var Cluster = dba.getCluster('');
+var Cluster = dba.getCluster('devCluster');
 
-//@ Dba: getFarm
-print(farm);
+//@ Dba: getCluster
+print(Cluster);
 
 //@ Dba: addSeedInstance
-farm.addSeedInstance('testing', {host: __host, port:__mysql_port}, __pwd);
+Cluster.addSeedInstance('testing', {host: __host, port:__mysql_port}, __pwd);
 
-//@# Dba: dropFarm errors
-var farm = dba.dropFarm();
-var farm = dba.dropFarm(5);
-var farm = dba.dropFarm('');
-var farm = dba.dropFarm('sample', 5);
-var farm = dba.dropFarm('sample', {}, 5);
-var farm = dba.dropFarm('sample');
-var farm = dba.dropFarm('devFarm');
+//@# Dba: dropCluster errors
+var Cluster = dba.dropCluster();
+var Cluster = dba.dropCluster(5);
+var Cluster = dba.dropCluster('');
+var Cluster = dba.dropCluster('sample', 5);
+var Cluster = dba.dropCluster('sample', {}, 5);
+var Cluster = dba.dropCluster('sample');
+var Cluster = dba.dropCluster('devCluster');
 
-//@ Dba: dropFarm
-dba.dropFarm('devFarm', { dropDefaultReplicaSet: true });
+//@ Dba: dropCluster
+dba.dropCluster('devCluster', { dropDefaultReplicaSet: true });

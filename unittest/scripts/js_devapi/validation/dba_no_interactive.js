@@ -1,46 +1,46 @@
 //@ Session: validating members
 |Session Members: 9|
-|defaultFarm: OK|
-|getDefaultFarm: OK|
-|createFarm: OK|
-|dropFarm: OK|
-|getFarm: OK|
+|defaultCluster: OK|
+|getDefaultCluster: OK|
+|createCluster: OK|
+|dropCluster: OK|
+|getCluster: OK|
 |dropMetadataSchema: OK|
 |resetSession: OK|
 |validateInstance: OK|
 |deployLocalInstance: OK|
 
-//@# Dba: createFarm errors
-||Invalid number of arguments in Dba.createFarm, expected 2 to 3 but got 0
-||Invalid number of arguments in Dba.createFarm, expected 2 to 3 but got 1
-||Dba.createFarm: The Farm name cannot be empty
-||Invalid number of arguments in Dba.createFarm, expected 2 to 3 but got 1
-||Dba.createFarm: There is already one Farm initialized. Only one Farm is supported.
+//@# Dba: createCluster errors
+||Invalid number of arguments in Dba.createCluster, expected 2 to 3 but got 0
+||Invalid number of arguments in Dba.createCluster, expected 2 to 3 but got 1
+||Dba.createCluster: The Cluster name cannot be empty
+||Invalid number of arguments in Dba.createCluster, expected 2 to 3 but got 1
+||Dba.createCluster: There is already one Cluster initialized. Only one Cluster is supported.
 
-//@ Dba: createFarm
-|<Farm:devFarm>|
+//@ Dba: createCluster
+|<Cluster:devCluster>|
 
-//@# Dba: getFarm errors
-||Invalid number of arguments in Dba.getFarm, expected 1 but got 0
-||Dba.getFarm: Argument #1 is expected to be a string
-||Invalid number of arguments in Dba.getFarm, expected 1 but got 2
-||Dba.getFarm: The Farm name cannot be empty
+//@# Dba: getCluster errors
+||Invalid number of arguments in Dba.getCluster, expected 1 but got 0
+||Dba.getCluster: Argument #1 is expected to be a string
+||Invalid number of arguments in Dba.getCluster, expected 1 but got 2
+||Dba.getCluster: The Cluster name cannot be empty
 
-//@ Dba: getFarm
-|<Farm:devFarm>|
+//@ Dba: getCluster
+|<Cluster:devCluster>|
 
 //@ Dba: addSeedInstance
 ||
 
 
-//@# Dba: dropFarm errors
-||Invalid number of arguments in Dba.dropFarm, expected 1 to 2 but got 0
-||Dba.dropFarm: Argument #1 is expected to be a string
-||Dba.dropFarm: The Farm name cannot be empty
-||Dba.dropFarm: Argument #2 is expected to be a map
-||Invalid number of arguments in Dba.dropFarm, expected 1 to 2 but got 3
-||Dba.dropFarm: The farm with the name 'sample' does not exist.
-||Dba.dropFarm: The farm with the name 'devFarm' is not empty.
+//@# Dba: dropCluster errors
+||Invalid number of arguments in Dba.dropCluster, expected 1 to 2 but got 0
+||Dba.dropCluster: Argument #1 is expected to be a string
+||Dba.dropCluster: The Cluster name cannot be empty
+||Dba.dropCluster: Argument #2 is expected to be a map
+||Invalid number of arguments in Dba.dropCluster, expected 1 to 2 but got 3
+||Dba.dropCluster: The Cluster with the name 'sample' does not exist.
+||Dba.dropCluster: The Cluster with the name 'devCluster' is not empty.
 
-//@ Dba: dropFarm
+//@ Dba: dropCluster
 ||

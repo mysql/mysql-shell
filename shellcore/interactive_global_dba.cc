@@ -313,11 +313,11 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args)
         options = args.map_at(opts_index);
         // Check if some option is missing
         // TODO: Validate adminType parameter value
+
+        if (options->has_key("verbose"))
+          verbose = options->get_bool("verbose");
       }
     }
-
-    if (options->has_key("verbose"))
-      verbose = options->get_bool("verbose");
 
     auto dba = std::dynamic_pointer_cast<mysh::mysqlx::Dba>(_target);
     auto session = dba->get_active_session();

@@ -8,50 +8,50 @@ dba.dropMetadataSchema();
 var members = dir(dba);
 
 print("Session Members:", members.length);
-validateMember(members, 'defaultFarm');
-validateMember(members, 'getDefaultFarm');
-validateMember(members, 'createFarm');
-validateMember(members, 'dropFarm');
-validateMember(members, 'getFarm');
+validateMember(members, 'defaultCluster');
+validateMember(members, 'getDefaultCluster');
+validateMember(members, 'createCluster');
+validateMember(members, 'dropCluster');
+validateMember(members, 'getCluster');
 validateMember(members, 'dropMetadataSchema');
 validateMember(members, 'resetSession');
 validateMember(members, 'validateInstance');
 validateMember(members, 'deployLocalInstance');
 
-//@# Dba: createFarm errors
-var farm = dba.createFarm();
-var farm = dba.createFarm(5);
-var farm = dba.createFarm('');
+//@# Dba: createCluster errors
+var Cluster = dba.createCluster();
+var Cluster = dba.createCluster(5);
+var Cluster = dba.createCluster('');
 
-//@# Dba: createFarm with interaction
-var farm = dba.createFarm('devFarm');
-print(farm)
+//@# Dba: createCluster with interaction
+var Cluster = dba.createCluster('devCluster');
+print(Cluster)
 
-//@# Dba: getFarm errors
-var farm = dba.getFarm();
-var farm = dba.getFarm(5);
-var farm = dba.getFarm('', 5);
-var farm = dba.getFarm('');
-var farm = dba.getFarm('devFarm');
+//@# Dba: getCluster errors
+var Cluster = dba.getCluster();
+var Cluster = dba.getCluster(5);
+var Cluster = dba.getCluster('', 5);
+var Cluster = dba.getCluster('');
+var Cluster = dba.getCluster('devCluster');
 
-//@ Dba: getFarm
-print(farm);
+//@ Dba: getCluster
+print(Cluster);
 
 //@ Dba: addSeedInstance
-farm.addInstance({host: __host, port:__mysql_port}, __pwd);
+Cluster.addInstance({host: __host, port:__mysql_port}, __pwd);
 
-//@# Dba: dropFarm errors
-var farm = dba.dropFarm();
-var farm = dba.dropFarm(5);
-var farm = dba.dropFarm('');
-var farm = dba.dropFarm('sample', 5);
-var farm = dba.dropFarm('sample', {}, 5);
+//@# Dba: dropCluster errors
+var Cluster = dba.dropCluster();
+var Cluster = dba.dropCluster(5);
+var Cluster = dba.dropCluster('');
+var Cluster = dba.dropCluster('sample', 5);
+var Cluster = dba.dropCluster('sample', {}, 5);
 
-//@ Dba: dropFarm interaction no options, cancel
-var farm = dba.dropFarm('sample');
+//@ Dba: dropCluster interaction no options, cancel
+var Cluster = dba.dropCluster('sample');
 
-//@ Dba: dropFarm interaction missing option, ok error
-var farm = dba.dropFarm('sample', {});
+//@ Dba: dropCluster interaction missing option, ok error
+var Cluster = dba.dropCluster('sample', {});
 
-//@ Dba: dropFarm interaction no options, ok success
-var farm = dba.dropFarm('devFarm');
+//@ Dba: dropCluster interaction no options, ok success
+var Cluster = dba.dropCluster('devCluster');

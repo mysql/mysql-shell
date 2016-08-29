@@ -3,7 +3,7 @@
 # validateMemer and validateNotMember are defined on the setup script
 
 #@ Initialization
-dba.drop_metadata_schema()
+dba.drop_metadata_schema({'enforce':True})
 
 #@ Session: validating members
 all_members = dir(dba)
@@ -16,50 +16,50 @@ for member in all_members:
 
 
 print "Session Members: %d" % len(members)
-validateMember(members, 'default_farm')
-validateMember(members, 'get_default_farm')
-validateMember(members, 'create_farm')
-validateMember(members, 'drop_farm')
-validateMember(members, 'get_farm')
+validateMember(members, 'default_cluster')
+validateMember(members, 'get_default_cluster')
+validateMember(members, 'create_cluster')
+validateMember(members, 'drop_cluster')
+validateMember(members, 'get_cluster')
 validateMember(members, 'drop_metadata_schema')
 validateMember(members, 'reset_session')
 validateMember(members, 'validate_instance')
 validateMember(members, 'deploy_local_instance')
 
-#@# Dba: create_farm errors
-farm = dba.create_farm()
-farm = dba.create_farm(5)
-farm = dba.create_farm('')
+#@# Dba: create_cluster errors
+cluster = dba.create_cluster()
+cluster = dba.create_cluster(5)
+cluster = dba.create_cluster('')
 
-#@# Dba: create_farm with interaction
-farm = dba.create_farm('devFarm')
-print farm
+#@# Dba: create_cluster with interaction
+cluster = dba.create_cluster('devCluster')
+print cluster
 
-#@# Dba: get_farm errors
-farm = dba.get_farm()
-farm = dba.get_farm(5)
-farm = dba.get_farm('', 5)
-farm = dba.get_farm('')
-farm = dba.get_farm('devFarm')
+#@# Dba: get_cluster errors
+cluster = dba.get_cluster()
+cluster = dba.get_cluster(5)
+cluster = dba.get_cluster('', 5)
+cluster = dba.get_cluster('')
+cluster = dba.get_cluster('devCluster')
 
-#@ Dba: get_farm
-print farm
+#@ Dba: get_cluster
+print cluster
 
 #@ Dba: add_seed_instance
-farm.add_seed_instance({'host': __host, 'port':__mysql_port}, __pwd)
+cluster.add_seed_instance({'host': __host, 'port':__mysql_port}, __pwd)
 
-#@# Dba: drop_farm errors
-farm = dba.drop_farm()
-farm = dba.drop_farm(5)
-farm = dba.drop_farm('')
-farm = dba.drop_farm('sample', 5)
-farm = dba.drop_farm('sample', {}, 5)
+#@# Dba: drop_cluster errors
+cluster = dba.drop_cluster()
+cluster = dba.drop_cluster(5)
+cluster = dba.drop_cluster('')
+cluster = dba.drop_cluster('sample', 5)
+cluster = dba.drop_cluster('sample', {}, 5)
 
-#@ Dba: drop_farm interaction no options, cancel
-farm = dba.drop_farm('sample')
+#@ Dba: drop_cluster interaction no options, cancel
+cluster = dba.drop_cluster('sample')
 
-#@ Dba: drop_farm interaction missing option, ok error
-farm = dba.drop_farm('sample', {})
+#@ Dba: drop_cluster interaction missing option, ok error
+cluster = dba.drop_cluster('sample', {})
 
-#@ Dba: drop_farm interaction no options, ok success
-farm = dba.drop_farm('devFarm')
+#@ Dba: drop_cluster interaction no options, ok success
+cluster = dba.drop_cluster('devCluster')

@@ -3,53 +3,53 @@
 
 //@ Session: validating members
 |Session Members: 9|
-|defaultFarm: OK|
-|getDefaultFarm: OK|
-|createFarm: OK|
-|dropFarm: OK|
-|getFarm: OK|
+|defaultCluster: OK|
+|getDefaultCluster: OK|
+|createCluster: OK|
+|dropCluster: OK|
+|getCluster: OK|
 |dropMetadataSchema: OK|
 |resetSession: OK|
 |validateInstance: OK|
 |deployLocalInstance: OK|
 
-//@# Dba: createFarm errors
-||Invalid number of arguments in Dba.createFarm, expected 1 to 3 but got 0
-||Dba.createFarm: Argument #1 is expected to be a string
-||Dba.createFarm: The Farm name cannot be empty
+//@# Dba: createCluster errors
+||Invalid number of arguments in Dba.createCluster, expected 1 to 3 but got 0
+||Dba.createCluster: Argument #1 is expected to be a string
+||Dba.createCluster: The Cluster name cannot be empty
 
-//@# Dba: createFarm with interaction
-|Please enter an administrative MASTER password to be used for the Farm|
-|<Farm:devFarm>|
+//@# Dba: createCluster with interaction
+|Please enter an administrative MASTER password to be used for the Cluster|
+|<Cluster:devCluster>|
 
-  //@# Dba: getFarm errors
-||Invalid number of arguments in Dba.getFarm, expected 1 but got 0
-||Dba.getFarm: Argument #1 is expected to be a string
-||Invalid number of arguments in Dba.getFarm, expected 1 but got 2
-||Dba.getFarm: The Farm name cannot be empty
+  //@# Dba: getCluster errors
+||Invalid number of arguments in Dba.getCluster, expected 1 but got 0
+||Dba.getCluster: Argument #1 is expected to be a string
+||Invalid number of arguments in Dba.getCluster, expected 1 but got 2
+||Dba.getCluster: The Cluster name cannot be empty
 
-  //@ Dba: getFarm
-|<Farm:devFarm>|
+  //@ Dba: getCluster
+|<Cluster:devCluster>|
 
 //@ Dba: addSeedInstance
 ||
 
-  //@# Dba: dropFarm errors
-||Invalid number of arguments in Dba.dropFarm, expected 1 to 2 but got 0
-||Dba.dropFarm: Argument #1 is expected to be a string
-||Dba.dropFarm: The Farm name cannot be empty
-||Dba.dropFarm: Argument #2 is expected to be a map
-||Invalid number of arguments in Dba.dropFarm, expected 1 to 2 but got 3
+  //@# Dba: dropCluster errors
+||Invalid number of arguments in Dba.dropCluster, expected 1 to 2 but got 0
+||Dba.dropCluster: Argument #1 is expected to be a string
+||Dba.dropCluster: The Cluster name cannot be empty
+||Dba.dropCluster: Argument #2 is expected to be a map
+||Invalid number of arguments in Dba.dropCluster, expected 1 to 2 but got 3
 
-  //@ Dba: dropFarm interaction no options, cancel
-|To remove the Farm 'sample' the default replica set needs to be removed.|
+  //@ Dba: dropCluster interaction no options, cancel
+|To remove the Cluster 'sample' the default replica set needs to be removed.|
 |Do you want to remove the default replica set? [y/n]:|
 
-  //@ Dba: dropFarm interaction missing option, ok error
-|To remove the Farm 'sample' the default replica set needs to be removed.|
+  //@ Dba: dropCluster interaction missing option, ok error
+|To remove the Cluster 'sample' the default replica set needs to be removed.|
 |Do you want to remove the default replica set? [y/n]:|
-||||Dba.dropFarm: The farm with the name 'sample' does not exist.
+||||Dba.dropCluster: The Cluster with the name 'sample' does not exist.
 
-  //@ Dba: dropFarm interaction no options, ok success
-|To remove the Farm 'devFarm' the default replica set needs to be removed.|
+  //@ Dba: dropCluster interaction no options, ok success
+|To remove the Cluster 'devCluster' the default replica set needs to be removed.|
 |Do you want to remove the default replica set? [y/n]:|
