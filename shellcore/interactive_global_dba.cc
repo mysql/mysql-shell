@@ -477,7 +477,7 @@ shcore::Value Global_dba::validate_instance(const shcore::Argument_list &args)
   shcore::Value ret_val;
   shcore::Argument_list new_args;
 
-  args.ensure_count(1, 2, get_function_name("validateInstance").c_str());
+  args.ensure_count(1, get_function_name("validateInstance").c_str());
 
   std::string uri, answer, user;
   shcore::Value::Map_type_ref options; // Map with the connection data
@@ -494,8 +494,6 @@ shcore::Value Global_dba::validate_instance(const shcore::Argument_list &args)
 
   // Verification of required attributes on the connection data
   auto missing = shcore::get_missing_keys(options, { "host", "port" });
-  if (missing.find("password") != missing.end() && args.size() == 2)
-    missing.erase("password");
 
   if (missing.size())
   {
