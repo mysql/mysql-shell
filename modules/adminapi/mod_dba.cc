@@ -187,10 +187,10 @@ shcore::Value Dba::get_cluster(const shcore::Argument_list &args) const
       if (args.size() == 1)
       {
         if (args[0].type == shcore::String)
-          cluster_name = args[0].as_string();
+          cluster_name = args.string_at(0);
         else if (args[0].type == shcore::Map)
         {
-          options = args[0].as_map();
+          options = args.map_at(0);
           get_default_cluster = true;
         }
         else
@@ -199,7 +199,7 @@ shcore::Value Dba::get_cluster(const shcore::Argument_list &args) const
       else
       {
         cluster_name = args.string_at(0);
-        options = args[1].as_map();
+        options = args.map_at(1);
       }
     }
     else
@@ -440,7 +440,7 @@ shcore::Value Dba::drop_cluster(const shcore::Argument_list &args)
     {
       // check if the Cluster has more replicaSets than the default one
       if (!_metadata_storage->cluster_has_default_replicaset_only(cluster_name))
-        throw Exception::logic_error("Cannot drop Cluster: The cluster with the name '"
+        throw Exception::logic_error("Cannot drop Cluster: The Cluster with the name '"
             + cluster_name + "' has more replicasets than the default replicaset.");
 
       // drop the default ReplicaSet and call drop_cluster again
@@ -664,6 +664,15 @@ shcore::Value Dba::exec_instance_op(const std::string &function, const shcore::A
         password += "\n";
       }
     }
+
+    if (options->has_key("portx"))
+      portx = options->get_int("portx");
+
+    if (options->has_key("sandboxDir"))
+      sandbox_dir = options->get_string("sandboxDir");
+
+    if (options->has_key("verbose"))
+      verbose = options->get_bool("verbose");
   }
   else
   {
@@ -671,21 +680,10 @@ shcore::Value Dba::exec_instance_op(const std::string &function, const shcore::A
       throw shcore::Exception::argument_error("Missing root password for the deployed instance");
   }
 
-  if (options->has_key("portx"))
-    portx = options->get_int("portx");
-
-  if (options->has_key("sandboxDir"))
-    sandbox_dir = options->get_string("sandboxDir");
-
   std::string errors;
 
   if (port < 0 || port > 65535)
     throw shcore::Exception::argument_error("Please use a valid TCP port number");
-
-  if (options->has_key("verbose"))
-    verbose = options->get_bool("verbose");
-
-  // TODO: Add verbose option
 
   if (function == "deploy")
   {
