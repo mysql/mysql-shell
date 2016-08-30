@@ -471,10 +471,10 @@ bool Interactive_shell::switch_shell_mode(Shell_core::Mode mode, const std::vect
         break;
       case Shell_core::Mode_SQL:
       {
-        Value session = _shell->get_global("session");
-        if (session && (session.as_object()->class_name() == "XSession"))
+        auto session = _shell->get_dev_session();
+        if (session && (session->class_name() == "XSession"))
         {
-          println("The active session is an " + session.as_object()->class_name());
+          println("The active session is an " + session->class_name());
           println("SQL mode is not supported on this session type: command ignored.");
           println("To switch to SQL mode reconnect with a Node Session by either:");
           println("* Using the \\connect -n shell command.");
@@ -1344,7 +1344,11 @@ void Interactive_shell::command_loop()
   if (_options.interactive) // check if interactive
   {
     std::string message;
-    Value session;
+    auto session = _shell->get_dev_session();
+
+    if (!session || (session && session->class_name() != "XSession"))
+      message = " Use \\sql to switch to SQL mode and execute queries.";
+
     switch (_shell->interactive_mode())
     {
       case Shell_core::Mode_SQL:
@@ -1355,20 +1359,10 @@ void Interactive_shell::command_loop()
 #endif
         break;
       case Shell_core::Mode_JScript:
-        message = "Currently in JavaScript mode. Use \\sql to switch to SQL mode and execute queries.";
-        session = _shell->get_global("session");
-
-        if (session && session.as_object()->class_name() == "XSession")
-          message = "Currently in JavaScript mode.";
-
+        message = "Currently in JavaScript mode." + message;
         break;
       case Shell_core::Mode_Python:
-        message = "Currently in Python mode. Use \\sql to switch to SQL mode and execute queries.";
-        session = _shell->get_global("session");
-
-        if (session && session.as_object()->class_name() == "XSession")
-          message = "Currently in Python mode.";
-
+        message = "Currently in Python mode." + message;
         break;
       default:
         break;
