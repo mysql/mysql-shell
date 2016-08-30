@@ -387,7 +387,7 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args)
   std::string instance_address = options->get_string("host") + ":" + std::to_string(options->get_int("port"));
 
   if (_metadata_storage->is_instance_on_replicaset(get_id(), instance_address))
-    throw shcore::Exception::logic_error("The instance '" + instance_address + "'' already belongs to the ReplicaSet: '" + get_member("name").as_string() + "'.");
+    throw shcore::Exception::logic_error("The instance '" + instance_address + "' already belongs to the ReplicaSet: '" + get_member("name").as_string() + "'.");
 
   std::string instance_admin_user = _cluster->get_account_user(ACC_INSTANCE_ADMIN);
   std::string instance_admin_user_password = _cluster->get_account_password(ACC_INSTANCE_ADMIN);
@@ -749,7 +749,7 @@ shcore::Value ReplicaSet::remove_instance(const shcore::Argument_list &args)
   exit_code = _provisioning_interface->leave_replicaset(instance_url, instance_admin_user_password, errors, verbose);
 
   if (exit_code == 0)
-    ret_val = shcore::Value("The instance '" + instance_url + "' was successfully removed from the MySQL Cluster.");
+    ret_val = shcore::Value("The instance '" + instance_name + "' was successfully removed from the MySQL Cluster.");
   else
     throw shcore::Exception::logic_error(errors);
 
