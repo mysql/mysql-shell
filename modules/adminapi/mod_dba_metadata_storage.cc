@@ -349,7 +349,7 @@ void MetadataStorage::drop_cluster(const std::string &cluster_name)
 
   // Check if the Cluster exists
   if (!cluster_exists(cluster_name))
-    throw Exception::logic_error("The cluster with the name '" + cluster_name + "' does not exist.");
+    throw Exception::logic_error("The Cluster with the name '" + cluster_name + "' does not exist.");
 
   // It exists, so let's get the cluster_id and move on
   else
@@ -366,7 +366,7 @@ void MetadataStorage::drop_cluster(const std::string &cluster_name)
     //result->flush();
 
     if (row)
-      throw Exception::logic_error("The cluster with the name '" + cluster_name + "' is not empty.");
+      throw Exception::logic_error("The Cluster with the name '" + cluster_name + "' is not empty.");
 
     // OK the cluster exists and is empty, we can remove it
     query = "DELETE from mysql_innodb_cluster_metadata.clusters where cluster_id = " + std::to_string(cluster_id) + "";
