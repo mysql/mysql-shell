@@ -46,7 +46,12 @@ int ProvisioningInterface::executeMp(std::string cmd, std::vector<const char *> 
 
   // set _local_mysqlprovision_path if empty
   if (_local_mysqlprovision_path.empty())
+  {
     _local_mysqlprovision_path = (*shcore::Shell_core_options::get())[SHCORE_GADGETS_PATH].as_string();
+
+    if (_local_mysqlprovision_path.empty())
+      throw shcore::Exception::logic_error("Please set the mysqlprovision path using the environment variable: MYSQLPROVISION");
+  }
 
   if (_local_mysqlprovision_path.find(".py") == _local_mysqlprovision_path.size()-3)
     args_script.push_back("python");
