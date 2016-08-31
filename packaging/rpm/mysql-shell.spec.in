@@ -31,7 +31,7 @@ Version:        @MYSH_NO_DASH_VERSION@
 Release:        @RPM_RELEASE@@RPM_EXTRA_VERSION@%{?dist}
 License:        @LICENSE_TYPE@
 URL:            http://dev.mysql.com/
-Source0:        https://cdn.mysql.com/Downloads/%{name}-%{version}-src.tar.gz
+Source0:        https://cdn.mysql.com/Downloads/%{name}-@VERSION@-src.tar.gz
 BuildRequires:  cmake
 %if 0%{!?with_boost:1}
 BuildRequires:  boost-devel
