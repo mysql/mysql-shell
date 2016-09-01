@@ -68,7 +68,7 @@ int ProvisioningInterface::executeMp(std::string cmd, std::vector<const char *> 
       if (s)
         cmdline.append(s).append(" ");
     }
-    log_info("DBA: Executing %s...", cmdline.c_str());
+    log_info("DBA: mysqlprovision: Executing %s...", cmdline.c_str());
   }
 
   ngcommon::Process_launcher p(args_script[0], &args_script[0]);
@@ -79,6 +79,7 @@ int ProvisioningInterface::executeMp(std::string cmd, std::vector<const char *> 
         p.write(passwords[i].c_str(), passwords[i].length());
       }
       catch (shcore::Exception &e) {
+        log_debug("DBA: mysqlprovision: %s", e.what());
         throw shcore::Exception::runtime_error(e.what());
       }
     }
@@ -102,8 +103,6 @@ int ProvisioningInterface::executeMp(std::string cmd, std::vector<const char *> 
   exit_code = p.wait();
 
   if (exit_code != 0) {
-    log_warning("DBA: Command returned exit code %i", exit_code);
-
     std::string remove_me = "ERROR: Error executing the '" + cmd + "' command:";
 
     std::string::size_type i = full_output.find(remove_me);
@@ -113,6 +112,8 @@ int ProvisioningInterface::executeMp(std::string cmd, std::vector<const char *> 
 
     errors = full_output;
   }
+
+  log_info("DBA: mysqlprovision: Command returned exit code %i", exit_code);
 
   return exit_code;
 }

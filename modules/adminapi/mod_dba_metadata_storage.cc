@@ -45,6 +45,8 @@ std::shared_ptr<ShellBaseResult> MetadataStorage::execute_sql(const std::string 
 {
   shcore::Value ret_val;
 
+  log_debug("DBA: execute_sql('%s'", sql.c_str());
+
   auto session = _dba->get_active_session();
   if (!session)
     throw Exception::metadata_error("The Metadata is inaccessible");
@@ -56,9 +58,15 @@ std::shared_ptr<ShellBaseResult> MetadataStorage::execute_sql(const std::string 
   catch (shcore::Exception& e)
   {
     if (CR_SERVER_GONE_ERROR == e.code() || ER_X_BAD_PIPE == e.code())
+    {
+      log_debug("DBA: The Metadata is inaccessible");
       throw Exception::metadata_error("The Metadata is inaccessible");
+    }
     else if (CR_SQLSTATE == e.code())
-      throw Exception::metadata_error("The Metadata session is invalid. A R/W session is required.");
+    {
+      log_debug("DBA: The Metadata session is invalid. A R/W session is required");
+      throw Exception::metadata_error("The Metadata session is invalid. A R/W session is required");
+    }
     else
       throw;
   }
@@ -206,7 +214,10 @@ void MetadataStorage::insert_cluster(const std::shared_ptr<Cluster> &cluster)
   catch (shcore::Exception &e)
   {
     if (e.what() == "Duplicate entry '" + cluster->get_name() + "' for key 'cluster_name'")
+    {
+      log_debug("DBA: A Cluster with the name '%s' already exists", (cluster->get_name()).c_str());
       throw Exception::argument_error("A Cluster with the name '" + cluster->get_name() + "' already exists.");
+    }
     else
       throw;
   }
@@ -508,9 +519,15 @@ std::shared_ptr<Cluster> MetadataStorage::get_cluster_matching(const std::string
     std::string error = e.what();
 
     if (error == "Table 'mysql_innodb_cluster_metadata.clusters' doesn't exist")
+    {
+      log_debug("Metadata Schema does not exist.");
       throw Exception::metadata_error("Metadata Schema does not exist.");
+    }
     else if (error == "Unable to decrypt account information")
+    {
+      log_debug("Authentication failure: wrong MASTER key.");
       throw Exception::metadata_error("Authentication failure: wrong MASTER key.");
+    }
     else
       throw;
   }
