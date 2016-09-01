@@ -127,12 +127,12 @@ namespace shcore
 
     if (_sandbox_dir.empty())
     {
-      execute("dba.stop_local_instance(" + _mysql_port_adminapi + ");");
+      execute("dba.kill_local_instance(" + _mysql_port_adminapi + ");");
       execute("dba.delete_local_instance(" + _mysql_port_adminapi+ ");");
     }
     else
     {
-      execute("dba.stop_local_instance(" + _mysql_port_adminapi + ", {'sandboxDir': '" + _sandbox_dir + "', 'verbose': True});");
+      execute("dba.kill_local_instance(" + _mysql_port_adminapi + ", {'sandboxDir': '" + _sandbox_dir + "', 'verbose': True});");
       execute("dba.delete_local_instance(" + _mysql_port_adminapi + ", {'sandboxDir': '" + _sandbox_dir + "', 'verbose': True});");
     }
   }
@@ -183,12 +183,12 @@ namespace shcore
 
     if (_sandbox_dir.empty())
     {
-      execute("dba.stop_local_instance(" + _mysql_port_adminapi + ");");
+      execute("dba.kill_local_instance(" + _mysql_port_adminapi + ");");
       execute("dba.delete_local_instance(" + _mysql_port_adminapi+ ");");
     }
     else
     {
-      execute("dba.stop_local_instance(" + _mysql_port_adminapi + ", {'sandboxDir': '" + _sandbox_dir + "', 'verbose': True});");
+      execute("dba.kill_local_instance(" + _mysql_port_adminapi + ", {'sandboxDir': '" + _sandbox_dir + "', 'verbose': True});");
       execute("dba.delete_local_instance(" + _mysql_port_adminapi + ", {'sandboxDir': '" + _sandbox_dir + "', 'verbose': True});");
     }
   }
@@ -278,12 +278,12 @@ namespace shcore
 
     if (_sandbox_dir.empty())
     {
-      execute("dba.stop_local_instance(" + _mysql_port_adminapi + ");");
+      execute("dba.kill_local_instance(" + _mysql_port_adminapi + ");");
       execute("dba.delete_local_instance(" + _mysql_port_adminapi+ ");");
     }
     else
     {
-      execute("dba.stop_local_instance(" + _mysql_port_adminapi + ", {'sandboxDir': '" + _sandbox_dir + "', 'verbose': True});");
+      execute("dba.kill_local_instance(" + _mysql_port_adminapi + ", {'sandboxDir': '" + _sandbox_dir + "', 'verbose': True});");
       execute("dba.delete_local_instance(" + _mysql_port_adminapi + ", {'sandboxDir': '" + _sandbox_dir + "', 'verbose': True});");
     }
   }
@@ -366,12 +366,12 @@ namespace shcore
 
     if (_sandbox_dir.empty())
     {
-      execute("dba.stop_local_instance(" + _mysql_port_adminapi + ");");
+      execute("dba.kill_local_instance(" + _mysql_port_adminapi + ");");
       execute("dba.delete_local_instance(" + _mysql_port_adminapi+ ");");
     }
     else
     {
-      execute("dba.stop_local_instance(" + _mysql_port_adminapi + ", {'sandboxDir': '" + _sandbox_dir + "', 'verbose': True});");
+      execute("dba.kill_local_instance(" + _mysql_port_adminapi + ", {'sandboxDir': '" + _sandbox_dir + "', 'verbose': True});");
       execute("dba.delete_local_instance(" + _mysql_port_adminapi + ", {'sandboxDir': '" + _sandbox_dir + "', 'verbose': True});");
     }
   }
@@ -416,12 +416,12 @@ namespace shcore
 
     if (_sandbox_dir.empty())
     {
-      execute("dba.stop_local_instance(" + _mysql_port_adminapi + ");");
+      execute("dba.kill_local_instance(" + _mysql_port_adminapi + ");");
       execute("dba.delete_local_instance(" + _mysql_port_adminapi+ ");");
     }
     else
     {
-      execute("dba.stop_local_instance(" + _mysql_port_adminapi + ", {'sandboxDir': '" + _sandbox_dir + "', 'verbose': True});");
+      execute("dba.kill_local_instance(" + _mysql_port_adminapi + ", {'sandboxDir': '" + _sandbox_dir + "', 'verbose': True});");
       execute("dba.delete_local_instance(" + _mysql_port_adminapi + ", {'sandboxDir': '" + _sandbox_dir + "', 'verbose': True});");
     }
   }
@@ -472,12 +472,12 @@ namespace shcore
 
     if (_sandbox_dir.empty())
     {
-      execute("dba.stop_local_instance(" + _mysql_port_adminapi + ");");
+      execute("dba.kill_local_instance(" + _mysql_port_adminapi + ");");
       execute("dba.delete_local_instance(" + _mysql_port_adminapi+ ");");
     }
     else
     {
-      execute("dba.stop_local_instance(" + _mysql_port_adminapi + ", {'sandboxDir': '" + _sandbox_dir + "', 'verbose': True});");
+      execute("dba.kill_local_instance(" + _mysql_port_adminapi + ", {'sandboxDir': '" + _sandbox_dir + "', 'verbose': True});");
       execute("dba.delete_local_instance(" + _mysql_port_adminapi + ", {'sandboxDir': '" + _sandbox_dir + "', 'verbose': True});");
     }
   }
@@ -665,12 +665,12 @@ namespace shcore
 
     if (_sandbox_dir.empty())
     {
-      execute("dba.stop_local_instance(" + _mysql_port_adminapi + ");");
+      execute("dba.kill_local_instance(" + _mysql_port_adminapi + ");");
       execute("dba.delete_local_instance(" + _mysql_port_adminapi+ ");");
     }
     else
     {
-      execute("dba.stop_local_instance(" + _mysql_port_adminapi + ", {'sandboxDir': '" + _sandbox_dir + "', 'verbose': True});");
+      execute("dba.kill_local_instance(" + _mysql_port_adminapi + ", {'sandboxDir': '" + _sandbox_dir + "', 'verbose': True});");
       execute("dba.delete_local_instance(" + _mysql_port_adminapi + ", {'sandboxDir': '" + _sandbox_dir + "', 'verbose': True});");
     }
   }
@@ -721,12 +721,12 @@ namespace shcore
 
     if (_sandbox_dir.empty())
     {
-      execute("dba.stop_local_instance(" + _mysql_port_adminapi + ");");
+      execute("dba.kill_local_instance(" + _mysql_port_adminapi + ");");
       execute("dba.delete_local_instance(" + _mysql_port_adminapi+ ");");
     }
     else
     {
-      execute("dba.stop_local_instance(" + _mysql_port_adminapi + ", {'sandboxDir': '" + _sandbox_dir + "', 'verbose': True});");
+      execute("dba.kill_local_instance(" + _mysql_port_adminapi + ", {'sandboxDir': '" + _sandbox_dir + "', 'verbose': True});");
       execute("dba.delete_local_instance(" + _mysql_port_adminapi + ", {'sandboxDir': '" + _sandbox_dir + "', 'verbose': True});");
     }
   }
