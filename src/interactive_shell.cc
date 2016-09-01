@@ -658,6 +658,7 @@ bool Interactive_shell::cmd_start_multiline(const std::vector<std::string>& args
 bool Interactive_shell::cmd_connect(const std::vector<std::string>& args)
 {
   bool error = false;
+  bool uri = false;
   _options.session_type = mysh::Application;
 
   // Holds the argument index for the target to which the session will be established
@@ -667,36 +668,56 @@ bool Interactive_shell::cmd_connect(const std::vector<std::string>& args)
   {
     if (args.size() == 3)
     {
-      target_index++;
+      std::string arg_2 = args[2];
+      boost::trim(arg_2);
 
-      std::string type = args[1];
+      if (!arg_2.empty())
+      {
+        target_index++;
+        uri = true;
+      }
+    }
 
-      if (!type.compare("-x") || !type.compare("-X"))
-        _options.session_type = mysh::Application;
-      else if (!type.compare("-n") || !type.compare("-N"))
-        _options.session_type = mysh::Node;
-      else if (!type.compare("-c") || !type.compare("-C"))
-        _options.session_type = mysh::Classic;
-      else
+    std::string arg = args[1];
+    boost::trim(arg);
+
+    if(arg.empty())
+      error = true;
+    else if (!arg.compare("-x") || !arg.compare("-X"))
+      _options.session_type = mysh::Application;
+    else if (!arg.compare("-n") || !arg.compare("-N"))
+      _options.session_type = mysh::Node;
+    else if (!arg.compare("-c") || !arg.compare("-C"))
+      _options.session_type = mysh::Classic;
+    else
+    {
+      if (args.size() == 3)
         error = true;
+      else
+        uri = true;
     }
 
     if (!error)
     {
-      if (args[target_index].find("$") == 0)
-        _options.app = args[target_index].substr(1);
-      else
+      if (uri)
       {
-        _options.app = "";
-        _options.uri = args[target_index];
+        if (args[target_index].find("$") == 0)
+          _options.app = args[target_index].substr(1);
+        else
+        {
+          _options.app = "";
+          _options.uri = args[target_index];
+        }
       }
-
       connect();
 
       if (_shell->interactive_mode() == IShell_core::Mode_SQL && _options.session_type == mysh::Application)
         println("WARNING: An X Session has been established and SQL execution is not allowed.");
+
     }
   }
+  else
+    error = true;
 
   if (error)
     _delegate.print_error(_delegate.user_data, "\\connect [-<type>] <uri or $name>\n");

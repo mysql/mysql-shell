@@ -93,6 +93,33 @@ namespace shcore {
       output_handler.wipe_all();
 
       _interactive_shell->process_line("session.close()");
+
+      _interactive_shell->process_line("\\connect -x");
+      output_handler.wipe_all();
+
+      _interactive_shell->process_line("session");
+      MY_EXPECT_STDOUT_CONTAINS("<XSession:" + _uri_nopasswd);
+      output_handler.wipe_all();
+
+      _interactive_shell->process_line("session.close()");
+
+      _interactive_shell->process_line("\\connect -x ");
+      output_handler.wipe_all();
+
+      _interactive_shell->process_line("session");
+      MY_EXPECT_STDOUT_CONTAINS("<XSession:" + _uri_nopasswd);
+      output_handler.wipe_all();
+
+      _interactive_shell->process_line("session.close()");
+
+      _interactive_shell->process_line("\\connect -x    ");
+      output_handler.wipe_all();
+
+      _interactive_shell->process_line("session");
+      MY_EXPECT_STDOUT_CONTAINS("<XSession:" + _uri_nopasswd);
+      output_handler.wipe_all();
+
+      _interactive_shell->process_line("session.close()");
     }
 
     TEST_F(Interactive_shell_test, shell_command_connect_node)
@@ -123,6 +150,34 @@ namespace shcore {
       output_handler.wipe_all();
 
       _interactive_shell->process_line("session.close()");
+
+      _interactive_shell->process_line("\\connect -n");
+      output_handler.wipe_all();
+
+      _interactive_shell->process_line("session");
+      MY_EXPECT_STDOUT_CONTAINS("<NodeSession:" + _uri_nopasswd);
+      output_handler.wipe_all();
+
+      _interactive_shell->process_line("session.close()");
+
+      _interactive_shell->process_line("\\connect -n ");
+      output_handler.wipe_all();
+
+      _interactive_shell->process_line("session");
+      MY_EXPECT_STDOUT_CONTAINS("<NodeSession:" + _uri_nopasswd);
+      output_handler.wipe_all();
+
+      _interactive_shell->process_line("session.close()");
+
+      _interactive_shell->process_line("\\connect -n    ");
+      output_handler.wipe_all();
+
+      _interactive_shell->process_line("session");
+      MY_EXPECT_STDOUT_CONTAINS("<NodeSession:" + _uri_nopasswd);
+      output_handler.wipe_all();
+
+      _interactive_shell->process_line("session.close()");
+
     }
 
     TEST_F(Interactive_shell_test, shell_command_connect_classic)
@@ -153,6 +208,66 @@ namespace shcore {
       output_handler.wipe_all();
 
       _interactive_shell->process_line("session.close()");
+
+      _interactive_shell->process_line("\\connect -c");
+      output_handler.wipe_all();
+
+      _interactive_shell->process_line("session");
+      MY_EXPECT_STDOUT_CONTAINS("<ClassicSession:" + _mysql_uri_nopasswd);
+      output_handler.wipe_all();
+
+      _interactive_shell->process_line("session.close()");
+
+      _interactive_shell->process_line("\\connect -c ");
+      output_handler.wipe_all();
+
+      _interactive_shell->process_line("session");
+      MY_EXPECT_STDOUT_CONTAINS("<ClassicSession:" + _mysql_uri_nopasswd);
+      output_handler.wipe_all();
+
+      _interactive_shell->process_line("session.close()");
+
+      _interactive_shell->process_line("\\connect -c    ");
+      output_handler.wipe_all();
+
+      _interactive_shell->process_line("session");
+      MY_EXPECT_STDOUT_CONTAINS("<ClassicSession:" + _mysql_uri_nopasswd);
+      output_handler.wipe_all();
+
+      _interactive_shell->process_line("session.close()");
+    }
+
+    TEST_F(Interactive_shell_test, shell_command_connect_errors)
+    {
+      std::string err_msg = "\\connect [-<type>] <uri or $name>";
+      std::string syntax_err_msg = "SyntaxError: Unexpected token "
+                                   "ILLEGAL at (shell):1:1\n"
+                                   "in  \\connect\n"
+                                   "    ^\n\n";
+      std::string syntax_err_msg_1 = "SyntaxError: Unexpected token "
+                                     "ILLEGAL at (shell):1:1\n"
+                                     "in  \\connect \n"
+                                     "    ^\n\n";
+
+      _interactive_shell->process_line("\\connect");
+      MY_EXPECT_STDERR_CONTAINS(err_msg);
+      output_handler.wipe_all();
+
+      _interactive_shell->process_line("\\connect ");
+      MY_EXPECT_STDERR_CONTAINS(err_msg);
+      output_handler.wipe_all();
+
+      _interactive_shell->process_line("\\connect    ");
+      MY_EXPECT_STDERR_CONTAINS(err_msg);
+      output_handler.wipe_all();
+
+      _interactive_shell->process_line(" \\connect");
+      MY_EXPECT_STDERR_CONTAINS(syntax_err_msg);
+      output_handler.wipe_all();
+
+      _interactive_shell->process_line(" \\connect ");
+      MY_EXPECT_STDERR_CONTAINS(syntax_err_msg_1);
+      output_handler.wipe_all();
     }
 
     TEST_F(Interactive_shell_test, shell_command_use)
