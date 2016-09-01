@@ -21,10 +21,10 @@ validateMember(members, 'describe');
 validateMember(members, 'status');
 
 //@ Cluster: removeInstance
-Cluster.removeInstance({host: "localhost", port:__mysql_port_adminapi});
+Cluster.removeInstance({host: "127.0.0.1", port:__mysql_port_adminapi});
 
 //@ Cluster: addInstance
-Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_port_adminapi}, "root");
+Cluster.addInstance({dbUser: "root", host: "127.0.0.1", port:__mysql_port_adminapi}, "root");
 
 //@# Cluster: addInstance errors
 Cluster.addInstance()
@@ -32,9 +32,9 @@ Cluster.addInstance(5,6,7,1)
 Cluster.addInstance(5, 5)
 Cluster.addInstance('', 5)
 Cluster.addInstance( 5)
-Cluster.addInstance({host: "localhost", schema: 'abs', user:"sample", authMethod:56});
+Cluster.addInstance({host: "127.0.0.1", schema: 'abs', user:"sample", authMethod:56});
 Cluster.addInstance({port: __mysql_port_adminapi});
-Cluster.addInstance({host: "localhost", port:__mysql_port_adminapi}, "root");
+Cluster.addInstance({host: "127.0.0.1", port:__mysql_port_adminapi}, "root");
 
 // Cleanup
 dba.dropCluster('devCluster', {dropDefaultReplicaSet: true});

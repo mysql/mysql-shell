@@ -24,9 +24,9 @@ rset.addInstance(5,6,7,1)
 rset.addInstance(5, 5)
 rset.addInstance('', 5)
 rset.addInstance( 5)
-rset.addInstance({host: "localhost", schema: 'abs', user:"sample", authMethod:56});
+rset.addInstance({host: "127.0.0.1", schema: 'abs', user:"sample", authMethod:56});
 rset.addInstance({port: __mysql_port_adminapi});
-rset.addInstance({host: "localhost", port:__mysql_port_adminapi}, "root");
+rset.addInstance({host: "127.0.0.1", port:__mysql_port_adminapi}, "root");
 
 // Cleanup
 dba.dropCluster('devCluster', {dropDefaultReplicaSet: true});

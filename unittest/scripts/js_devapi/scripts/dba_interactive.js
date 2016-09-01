@@ -41,10 +41,10 @@ var Cluster = dba.getCluster('devCluster');
 print(Cluster);
 
 //@ Dba: addInstance
-Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_port_adminapi}, "root");
+Cluster.addInstance({dbUser: "root", host: "127.0.0.1", port:__mysql_port_adminapi}, "root");
 
 //@ Dba: removeInstance
-Cluster.removeInstance({host: "localhost", port:__mysql_port_adminapi});
+Cluster.removeInstance({host: "127.0.0.1", port:__mysql_port_adminapi});
 
 //@# Dba: dropCluster errors
 var Cluster = dba.dropCluster();

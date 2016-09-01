@@ -121,7 +121,7 @@ namespace shcore
     else
       execute("dba.deploy_local_instance(" + _mysql_port_adminapi + ", {'password': 'root', 'sandboxDir': '" + _sandbox_dir + "'});");
 
-    execute("\\connect -c root:root@localhost:" + _mysql_port_adminapi + "");
+    execute("\\connect -c root:root@127.0.0.1:" + _mysql_port_adminapi + "");
     validate_interactive("dba_no_interactive.py");
     execute("session.close()");
 
@@ -176,7 +176,7 @@ namespace shcore
       execute("dba.deploy_local_instance(" + _mysql_port_adminapi + ", {'password': 'root', 'sandboxDir': '" + _sandbox_dir + "'});");
 
     execute("import mysql");
-    execute("mySession = mysql.get_classic_session('root:root@localhost:" + _mysql_port_adminapi +"');");
+    execute("mySession = mysql.get_classic_session('root:root@127.0.0.1:" + _mysql_port_adminapi +"');");
     execute("dba.reset_session(mySession)");
     validate_interactive("dba_no_interactive.py");
     execute("mySession.close()");
@@ -271,7 +271,7 @@ namespace shcore
       execute("dba.deploy_local_instance(" + _mysql_port_adminapi + ", {'password': 'root', 'sandboxDir': '" + _sandbox_dir + "'});");
 
     execute("import mysql");
-    execute("mySession = mysql.get_classic_session('root:root@localhost:" + _mysql_port_adminapi +"');");
+    execute("mySession = mysql.get_classic_session('root:root@127.0.0.1:" + _mysql_port_adminapi +"');");
     execute("dba.reset_session(mySession)");
     validate_interactive("dba_interactive.py");
     execute("mySession.close()");
@@ -361,7 +361,7 @@ namespace shcore
     else
       execute("dba.deploy_local_instance(" + _mysql_port_adminapi + ", {'password': 'root', 'sandboxDir': '" + _sandbox_dir + "'});");
 
-    execute("\\connect -c root:root@localhost:" + _mysql_port_adminapi + "");
+    execute("\\connect -c root:root@127.0.0.1:" + _mysql_port_adminapi + "");
     validate_interactive("dba_interactive.py");
 
     if (_sandbox_dir.empty())
@@ -410,7 +410,7 @@ namespace shcore
     else
       execute("dba.deploy_local_instance(" + _mysql_port_adminapi + ", {'password': 'root', 'sandboxDir': '" + _sandbox_dir + "'});");
 
-    execute("\\connect -c root:root@localhost:" + _mysql_port_adminapi + "");
+    execute("\\connect -c root:root@127.0.0.1:" + _mysql_port_adminapi + "");
     validate_interactive("dba_cluster_no_interactive.py");
     execute("session.close()");
 
@@ -465,7 +465,7 @@ namespace shcore
       execute("dba.deploy_local_instance(" + _mysql_port_adminapi + ", {'password': 'root', 'sandboxDir': '" + _sandbox_dir + "'});");
 
     execute("import mysql");
-    execute("mySession = mysql.get_classic_session('root:root@localhost:" + _mysql_port_adminapi +"');");
+    execute("mySession = mysql.get_classic_session('root:root@127.0.0.1:" + _mysql_port_adminapi +"');");
     execute("dba.reset_session(mySession)");
     validate_interactive("dba_cluster_no_interactive.py");
     execute("mySession.close()");
@@ -659,7 +659,7 @@ namespace shcore
     else
       execute("dba.deploy_local_instance(" + _mysql_port_adminapi + ", {'password': 'root', 'sandboxDir': '" + _sandbox_dir + "'});");
 
-    execute("\\connect -c root:root@localhost:" + _mysql_port_adminapi + "");
+    execute("\\connect -c root:root@127.0.0.1:" + _mysql_port_adminapi + "");
     validate_interactive("dba_replica_set_no_interactive.py");
     execute("session.close()");
 
@@ -714,7 +714,7 @@ namespace shcore
       execute("dba.deploy_local_instance(" + _mysql_port_adminapi + ", {'password': 'root', 'sandboxDir': '" + _sandbox_dir + "'});");
 
     execute("import mysql");
-    execute("mySession = mysql.get_classic_session('root:root@localhost:" + _mysql_port_adminapi +"');");
+    execute("mySession = mysql.get_classic_session('root:root@127.0.0.1:" + _mysql_port_adminapi +"');");
     execute("dba.reset_session(mySession)");
     validate_interactive("dba_replica_set_no_interactive.py");
     execute("mySession.close()");

@@ -29,10 +29,10 @@ validateMember(members, 'describe');
 validateMember(members, 'status');
 
 #@ Cluster: remove_instance
-cluster.remove_instance({'host': 'localhost', 'port': __mysql_port_adminapi});
+cluster.remove_instance({'host': '127.0.0.1', 'port': __mysql_port_adminapi});
 
 #@ Cluster: add_instance
-cluster.add_instance({'dbUser': 'root', 'host': 'localhost', 'port': __mysql_port_adminapi}, 'root')
+cluster.add_instance({'dbUser': 'root', 'host': '127.0.0.1', 'port': __mysql_port_adminapi}, 'root')
 
 #@# Cluster: add_instance errors
 cluster.add_instance()
@@ -40,9 +40,9 @@ cluster.add_instance(5,6,7,1)
 cluster.add_instance(5,5)
 cluster.add_instance('',5)
 cluster.add_instance( 5)
-cluster.add_instance({'host': 'localhost', 'schema': 'abs', 'user':"sample", 'authMethod':56})
+cluster.add_instance({'host': '127.0.0.1', 'schema': 'abs', 'user':"sample", 'authMethod':56})
 cluster.add_instance({'port': __mysql_port_adminapi})
-cluster.add_instance({'host': 'localhost', 'port':__mysql_port_adminapi}, 'root')
+cluster.add_instance({'host': '127.0.0.1', 'port':__mysql_port_adminapi}, 'root')
 
 # Cleanup
 dba.drop_cluster('devCluster', {"dropDefaultReplicaSet": True})
