@@ -521,12 +521,13 @@ void Cluster::set_accounts_data(const std::string& encrypted_json)
   }
   catch (shcore::Exception &e)
   {
-    std::string error = e.what();
-
-    if (error.find("Can't parse") != std::string::npos)
+    if (e.is_parser())
+    {
+      log_info("DBA: Error parsing account data for cluster '%s': %s",
+              _name.c_str(), e.format().c_str());
       throw Exception::logic_error("Unable to decrypt account information");
-    else
-      throw;
+    }
+    throw;
   }
 }
 

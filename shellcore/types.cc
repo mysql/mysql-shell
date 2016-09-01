@@ -203,6 +203,11 @@ bool Exception::is_mysql() const
   return strcmp(type(), "MySQL Error") == 0;
 }
 
+bool Exception::is_parser() const
+{
+  return strcmp(type(), "Can't parse") == 0;
+}
+
 std::string Exception::format()
 {
   std::string error_message;
