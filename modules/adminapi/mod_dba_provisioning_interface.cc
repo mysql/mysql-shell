@@ -88,7 +88,10 @@ int ProvisioningInterface::executeMp(std::string cmd, std::vector<const char *> 
     buf += c;
     if (c == '\n') {
       if (verbose)
+      {
         shcore::print(buf);
+        log_debug("DBA: mysqlprovision: %s", buf.c_str());
+      }
       if ((buf.find("ERROR") != std::string::npos))
         full_output.append(buf);
       buf = "";
@@ -96,7 +99,10 @@ int ProvisioningInterface::executeMp(std::string cmd, std::vector<const char *> 
   }
   if (!buf.empty()) {
     if (verbose)
+    {
       shcore::print(buf);
+      log_debug("DBA: mysqlprovision: %s", buf.c_str());
+    }
     if ((buf.find("ERROR") != std::string::npos))
       full_output.append(buf);
   }
