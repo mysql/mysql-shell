@@ -2,7 +2,7 @@
 |Are you sure you want to remove the Metadata? [y/N]:|*
 
 #@ Session: validating members
-|Session Members: 11|
+|Session Members: 12|
 |create_cluster: OK|
 |delete_local_instance: OK|
 |deploy_local_instance: OK|
