@@ -515,9 +515,6 @@ void Cluster::set_accounts_data(const std::string& encrypted_json)
 
   decrypted_data.resize(len);
 
-  if (encrypted_json.data() == decrypted_data)
-    throw shcore::Exception::logic_error("Unable to decrypt account information.");
-
   try
   {
     _accounts = shcore::Value::parse(decrypted_data).as_map();

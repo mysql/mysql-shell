@@ -31,7 +31,7 @@ using namespace System::Reflection;
 [assembly:AssemblyKeyName("MySQLShell")];
 
 // AssemblyVersion does not allow slashes. Example: 1.0.5-labs
-#ifdef MYSH_INFO_VERSION
+#ifdef _WIN32
 [assembly:AssemblyVersion(MYSH_VERSION_WIN)];
 #else
 [assembly:AssemblyVersion(MYSH_VERSION)];
