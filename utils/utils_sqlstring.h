@@ -20,7 +20,9 @@
 #ifndef _UTILS_SQLSTRING_H_
 #define _UTILS_SQLSTRING_H_
 
+#ifndef __STDC_FORMAT_MACROS
 #define __STDC_FORMAT_MACROS 1
+#endif
 #include <inttypes.h>
 
 #include "shellcore/common.h"

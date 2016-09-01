@@ -17,6 +17,7 @@
  * 02110-1301  USA
  */
 
+#include "utils/utils_sqlstring.h"
 #include "mod_dba_metadata_storage.h"
 #include "modules/adminapi/metadata-model_definitions.h"
 #include "modules/base_session.h"
@@ -24,7 +25,6 @@
 #include "xerrmsg.h"
 
 #include "utils/utils_file.h"
-#include "utils/utils_sqlstring.h"
 #include "utils/utils_general.h"
 #include <random>
 
