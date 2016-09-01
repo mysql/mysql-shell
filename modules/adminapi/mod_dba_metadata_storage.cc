@@ -24,6 +24,7 @@
 #include "xerrmsg.h"
 
 #include "utils/utils_file.h"
+#include "utils/utils_sqlstring.h"
 #include "utils/utils_general.h"
 #include <random>
 
@@ -188,10 +189,14 @@ void MetadataStorage::insert_cluster(const std::shared_ptr<Cluster> &cluster)
     throw Exception::metadata_error("Metadata Schema does not exist.");
 
   // Check if the Cluster has some description
-  std::string query = "INSERT INTO mysql_innodb_cluster_metadata.clusters (cluster_name, description, mysql_user_accounts, options, attributes) "\
-                      "VALUES ('" + cluster->get_name() + "', '" + cluster->get_description() + "', '" + cluster->get_accounts() + "'"\
-                      ",'" + cluster->get_options() + "', '" + cluster->get_attributes() + "')";
-
+  shcore::sqlstring query("INSERT INTO mysql_innodb_cluster_metadata.clusters (cluster_name, description, mysql_user_accounts, options, attributes) "\
+                          "VALUES (?, ?, ?, ?, ?)", 0);
+  query << cluster->get_name()
+        << cluster->get_description()
+        << cluster->get_accounts_data()
+        << cluster->get_options()
+        << cluster->get_attributes();
+  query.done();
   // Insert the Cluster on the cluster table
   try
   {
@@ -464,7 +469,7 @@ std::shared_ptr<ReplicaSet> MetadataStorage::get_replicaset(uint64_t rs_id)
   return rs;
 }
 
-std::shared_ptr<Cluster> MetadataStorage::get_cluster_matching(const std::string& condition)
+std::shared_ptr<Cluster> MetadataStorage::get_cluster_matching(const std::string& condition, const std::string &master_key)
 {
   std::shared_ptr<Cluster> cluster;
   std::string query = "SELECT cluster_id, cluster_name, default_replicaset, description, mysql_user_accounts, options, attributes " \
@@ -485,10 +490,11 @@ std::shared_ptr<Cluster> MetadataStorage::get_cluster_matching(const std::string
       shcore::Argument_list args;
 
       cluster.reset(new Cluster(real_row->get_member(1).as_string(), shared_from_this()));
+      cluster->set_master_key(master_key);
 
       cluster->set_id(real_row->get_member(0).as_int());
       cluster->set_description(real_row->get_member(3).as_string());
-      cluster->set_accounts(real_row->get_member(4).as_string());
+      cluster->set_accounts_data(real_row->get_member(4).as_string());
       cluster->set_options(real_row->get_member(5).as_string());
       cluster->set_attributes(real_row->get_member(6).as_string());
 
@@ -510,14 +516,15 @@ std::shared_ptr<Cluster> MetadataStorage::get_cluster_matching(const std::string
   return cluster;
 }
 
-std::shared_ptr<Cluster> MetadataStorage::get_default_cluster()
+std::shared_ptr<Cluster> MetadataStorage::get_default_cluster(const std::string &master_key)
 {
-  return get_cluster_matching("attributes->'$.default' = true");
+  return get_cluster_matching("attributes->'$.default' = true", master_key);
 }
 
-std::shared_ptr<Cluster> MetadataStorage::get_cluster(const std::string &cluster_name)
+std::shared_ptr<Cluster> MetadataStorage::get_cluster(const std::string &cluster_name,
+                                                      const std::string &master_key)
 {
-  std::shared_ptr<Cluster> cluster = get_cluster_matching("cluster_name = '" + cluster_name + "'");
+  std::shared_ptr<Cluster> cluster = get_cluster_matching("cluster_name = '" + cluster_name + "'", master_key);
 
   if (!cluster)
     throw Exception::logic_error("The cluster with the name '" + cluster_name + "' does not exist.");

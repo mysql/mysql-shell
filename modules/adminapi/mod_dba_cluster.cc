@@ -24,6 +24,8 @@
 #include <iostream>
 #include <iomanip>
 
+#include "my_aes.h"
+
 #include "mod_dba_replicaset.h"
 #include "mod_dba_metadata_storage.h"
 #include "../mysqlxtest_utils.h"
@@ -461,12 +463,13 @@ std::string Cluster::get_account_data(const std::string& account, const std::str
   std::string ret_val;
 
   if (_accounts && _accounts->has_key(account))
+  {
     ret_val = _accounts->get_map(account)->get_string(key);
-
+  }
   return ret_val;
 }
 
-std::string Cluster::get_accounts()
+std::string Cluster::get_accounts_data()
 {
   shcore::Value::Map_type_ref accounts = _accounts;
 
@@ -474,7 +477,43 @@ std::string Cluster::get_accounts()
   auto account_data = (*accounts)["clusterAdmin"].as_map();
   account_data->erase("password");
 
-  return shcore::Value(accounts).json(false);
+  std::string data(shcore::Value(accounts).json(false));
+
+  std::string dest;
+  size_t rounded_size = myaes::my_aes_get_size(static_cast<uint32_t>(data.length()),
+                                    myaes::my_aes_128_ecb);
+  if (data.length() < rounded_size)
+    data.append(rounded_size - data.length(), ' ');
+  dest.resize(rounded_size);
+
+  if (myaes::my_aes_encrypt(reinterpret_cast<const unsigned char*>(data.data()),
+                 static_cast<uint32_t>(data.length()),
+                 reinterpret_cast<unsigned char*>(&dest[0]),
+                 reinterpret_cast<const unsigned char*>(_master_key.data()),
+                 static_cast<uint32_t>(_master_key.length()),
+                 myaes::my_aes_128_ecb, NULL, false) < 0)
+    throw shcore::Exception::logic_error("Error encrypting account information");
+  return dest;
+}
+
+/** Set cluster account data as stored in metadata table
+ *
+ * The account data is expected to a JSON string, AES encrypted.
+ */
+void Cluster::set_accounts_data(const std::string& encrypted_json)
+{
+  std::string decrypted_data;
+  decrypted_data.resize(encrypted_json.length());
+  int len;
+  if ((len = myaes::my_aes_decrypt(reinterpret_cast<const unsigned char*>(encrypted_json.data()),
+                     static_cast<uint32_t>(encrypted_json.length()),
+                     reinterpret_cast<unsigned char*>(&decrypted_data[0]),
+                     reinterpret_cast<const unsigned char*>(_master_key.data()),
+                     static_cast<uint32_t>(_master_key.length()),
+                     myaes::my_aes_128_ecb, NULL, false)) < 0)
+    throw shcore::Exception::logic_error("Error decrypting account information");
+  decrypted_data.resize(len);
+  _accounts = shcore::Value::parse(decrypted_data).as_map();
 }
 
 void Cluster::set_option(const std::string& option, const shcore::Value& value)

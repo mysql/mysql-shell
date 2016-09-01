@@ -902,7 +902,7 @@ Value Value::parse(char **pc)
       }
       else
       {
-        throw Exception::parser_error(std::string("Can't parse ") + *pc);
+        throw Exception::parser_error(std::string("Can't parse '") + *pc + "'");
         //report_error(pi - _pc_json_start,
         //  "one of (array, string, number, true, false, null) expected");
         return Value();

@@ -52,8 +52,10 @@ CREATE TABLE clusters (
       mysqlRoUserName: <..>,
       mysqlRoUserPassword: <..>
     }
+
+    The data is in JSON format, but encrypted using the master key.
   */
-  `mysql_user_accounts` JSON,
+  `mysql_user_accounts` BLOB,
   /*
     Stores all management options in the JSON format.
     {

@@ -61,6 +61,16 @@ int ProvisioningInterface::executeMp(std::string cmd, std::vector<const char *> 
 
   args_script.insert(args_script.end(), args.begin(), args.end());
 
+  {
+    std::string cmdline;
+    for (auto s : args_script)
+    {
+      if (s)
+        cmdline.append(s).append(" ");
+    }
+    log_info("DBA: Executing %s...", cmdline.c_str());
+  }
+
   ngcommon::Process_launcher p(args_script[0], &args_script[0]);
 
   if (!passwords.empty()) {
@@ -73,7 +83,6 @@ int ProvisioningInterface::executeMp(std::string cmd, std::vector<const char *> 
       }
     }
   }
-
   while (p.read(&c, 1) > 0) {
     buf += c;
     if (c == '\n') {
@@ -84,10 +93,17 @@ int ProvisioningInterface::executeMp(std::string cmd, std::vector<const char *> 
       buf = "";
     }
   }
-
+  if (!buf.empty()) {
+    if (verbose)
+      shcore::print(buf);
+    if ((buf.find("ERROR") != std::string::npos))
+      full_output.append(buf);
+  }
   exit_code = p.wait();
 
   if (exit_code != 0) {
+    log_warning("DBA: Command returned exit code %i", exit_code);
+
     std::string remove_me = "ERROR: Error executing the '" + cmd + "' command:";
 
     std::string::size_type i = full_output.find(remove_me);

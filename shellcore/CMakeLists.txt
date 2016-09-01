@@ -197,18 +197,23 @@ file(GLOB libmysqlshmods_SRC
 )
 
 IF( WITH_ADMINAPI )
-  add_definitions(-DWITH_ADMINAPI )
-  list(APPEND libmysqlshmods_SRC "${CMAKE_BINARY_DIR}/modules/adminapi/metadata-model_definitions.h")
-  list(APPEND libmysqlshmods_SRC "${CMAKE_SOURCE_DIR}/modules/adminapi/mod_dba.cc")
-  list(APPEND libmysqlshmods_SRC "${CMAKE_SOURCE_DIR}/modules/adminapi/mod_dba.h")
-  list(APPEND libmysqlshmods_SRC "${CMAKE_SOURCE_DIR}/modules/adminapi/mod_dba_cluster.cc")
-  list(APPEND libmysqlshmods_SRC "${CMAKE_SOURCE_DIR}/modules/adminapi/mod_dba_cluster.h")
-  list(APPEND libmysqlshmods_SRC "${CMAKE_SOURCE_DIR}/modules/adminapi/mod_dba_metadata_storage.cc")
-  list(APPEND libmysqlshmods_SRC "${CMAKE_SOURCE_DIR}/modules/adminapi/mod_dba_metadata_storage.h")
-  list(APPEND libmysqlshmods_SRC "${CMAKE_SOURCE_DIR}/modules/adminapi/mod_dba_provisioning_interface.cc")
-  list(APPEND libmysqlshmods_SRC "${CMAKE_SOURCE_DIR}/modules/adminapi/mod_dba_provisioning_interface.h")
-  list(APPEND libmysqlshmods_SRC "${CMAKE_SOURCE_DIR}/modules/adminapi/mod_dba_replicaset.cc")
-  list(APPEND libmysqlshmods_SRC "${CMAKE_SOURCE_DIR}/modules/adminapi/mod_dba_replicaset.h")
+  add_definitions(-DWITH_ADMINAPI)
+  include_directories("${CMAKE_SOURCE_DIR}/common/yassl/taocrypt/include/"
+                      "${CMAKE_SOURCE_DIR}/common/yassl/include/")
+  list(APPEND libmysqlshmods_SRC "${CMAKE_BINARY_DIR}/modules/adminapi/metadata-model_definitions.h"
+             "${CMAKE_SOURCE_DIR}/modules/adminapi/my_aes.cc"
+             "${CMAKE_SOURCE_DIR}/modules/adminapi/my_aes_yassl.cc"
+             "${CMAKE_SOURCE_DIR}/modules/adminapi/mod_dba.cc"
+             "${CMAKE_SOURCE_DIR}/modules/adminapi/mod_dba.h"
+             "${CMAKE_SOURCE_DIR}/modules/adminapi/mod_dba_cluster.cc"
+             "${CMAKE_SOURCE_DIR}/modules/adminapi/mod_dba_cluster.h"
+             "${CMAKE_SOURCE_DIR}/modules/adminapi/mod_dba_metadata_storage.cc"
+             "${CMAKE_SOURCE_DIR}/modules/adminapi/mod_dba_metadata_storage.h"
+             "${CMAKE_SOURCE_DIR}/modules/adminapi/mod_dba_provisioning_interface.cc"
+             "${CMAKE_SOURCE_DIR}/modules/adminapi/mod_dba_provisioning_interface.h"
+             "${CMAKE_SOURCE_DIR}/modules/adminapi/mod_dba_replicaset.cc"
+             "${CMAKE_SOURCE_DIR}/modules/adminapi/mod_dba_replicaset.h"
+             "${CMAKE_SOURCE_DIR}/modules/adminapi/mod_dba_replicaset.h")
 ENDIF()
 
 
