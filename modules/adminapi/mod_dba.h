@@ -62,7 +62,7 @@ namespace mysh
 
       shcore::Value validate_instance(const shcore::Argument_list &args);
       shcore::Value deploy_local_instance(const shcore::Argument_list &args); // create and start
-      //shcore::Value stop_local_instance(const shcore::Argument_list &args);
+      shcore::Value stop_local_instance(const shcore::Argument_list &args);
       shcore::Value delete_local_instance(const shcore::Argument_list &args);
       shcore::Value kill_local_instance(const shcore::Argument_list &args);
 

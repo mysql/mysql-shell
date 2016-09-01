@@ -69,7 +69,7 @@ void Dba::init()
   add_method("validateInstance", std::bind(&Dba::validate_instance, this, _1), "data", shcore::Map, NULL);
   add_method("deployLocalInstance", std::bind(&Dba::deploy_local_instance, this, _1), "data", shcore::Map, NULL);
   add_varargs_method("startLocalInstance", std::bind(&Dba::deploy_local_instance, this, _1));
-  //add_method("stopLocalInstance", std::bind(&Dba::deploy_local_instance, this, _1), "data", shcore::Map, NULL);
+  add_method("stopLocalInstance", std::bind(&Dba::stop_local_instance, this, _1), "data", shcore::Map, NULL);
   add_method("deleteLocalInstance", std::bind(&Dba::delete_local_instance, this, _1), "data", shcore::Map, NULL);
   add_method("killLocalInstance", std::bind(&Dba::kill_local_instance, this, _1), "data", shcore::Map, NULL);
   add_varargs_method("help", std::bind(&Dba::help, this, _1));
@@ -699,6 +699,11 @@ shcore::Value Dba::exec_instance_op(const std::string &function, const shcore::A
     if (_provisioning_interface->kill_sandbox(port, portx, sandbox_dir, errors, verbose) != 0)
       throw shcore::Exception::logic_error(errors);
   }
+  else if (function == "stop")
+  {
+    if (_provisioning_interface->stop_sandbox(port, portx, sandbox_dir, errors, verbose) != 0)
+      throw shcore::Exception::logic_error(errors);
+  }
 
   return ret_val;
 }
@@ -744,6 +749,21 @@ shcore::Value Dba::kill_local_instance(const shcore::Argument_list &args)
     ret_val = exec_instance_op("kill", args);
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("killLocalInstance"));
+
+  return ret_val;
+}
+
+shcore::Value Dba::stop_local_instance(const shcore::Argument_list &args)
+{
+  shcore::Value ret_val;
+
+  args.ensure_count(1, 2, get_function_name("stopLocalInstance").c_str());
+
+  try
+  {
+    ret_val = exec_instance_op("stop", args);
+  }
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("stopLocalInstance"));
 
   return ret_val;
 }

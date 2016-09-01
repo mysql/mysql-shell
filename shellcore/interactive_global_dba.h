@@ -37,7 +37,7 @@ namespace shcore
 
     shcore::Value deploy_local_instance(const shcore::Argument_list &args); // create and start
     shcore::Value start_local_instance(const shcore::Argument_list &args);
-    //shcore::Value stop_local_instance(const shcore::Argument_list &args);
+    shcore::Value stop_local_instance(const shcore::Argument_list &args);
     shcore::Value delete_local_instance(const shcore::Argument_list &args);
     shcore::Value kill_local_instance(const shcore::Argument_list &args);
 

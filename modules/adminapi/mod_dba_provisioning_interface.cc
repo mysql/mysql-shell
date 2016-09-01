@@ -191,6 +191,11 @@ int ProvisioningInterface::kill_sandbox(int port, int portx, const std::string &
   return exec_sandbox_op("kill", port, portx, sandbox_dir, "", errors, verbose);
 }
 
+int ProvisioningInterface::stop_sandbox(int port, int portx, const std::string &sandbox_dir,
+                                        std::string &errors, bool verbose) {
+  return exec_sandbox_op("stop", port, portx, sandbox_dir, "", errors, verbose);
+}
+
 int ProvisioningInterface::start_replicaset(const std::string &instance_url, const std::string &repl_user,
                                       const std::string &super_user_password, const std::string &repl_user_password,
                                       std::string &errors, bool verbose) {

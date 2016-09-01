@@ -52,6 +52,9 @@ class ProvisioningInterface {
   int kill_sandbox(int port, int portx, const std::string &sandbox_dir,
                    std::string &errors, bool verbose);
 
+  int stop_sandbox(int port, int portx, const std::string &sandbox_dir,
+                   std::string &errors, bool verbose);
+
   int start_replicaset(const std::string &instance_url, const std::string &repl_user,
                  const std::string &super_user_password, const std::string &repl_user_password,
                  std::string &errors, bool verbose);

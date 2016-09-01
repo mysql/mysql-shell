@@ -34,6 +34,7 @@ void Global_dba::init()
   add_varargs_method("startLocalInstance", std::bind(&Global_dba::start_local_instance, this, _1));
   add_varargs_method("deleteLocalInstance", std::bind(&Global_dba::delete_local_instance, this, _1));
   add_varargs_method("killLocalInstance", std::bind(&Global_dba::kill_local_instance, this, _1));
+  add_varargs_method("stopLocalInstance", std::bind(&Global_dba::stop_local_instance, this, _1));
 
   add_method("dropCluster", std::bind(&Global_dba::drop_cluster, this, _1), "clusterName", shcore::String, NULL);
   add_method("createCluster", std::bind(&Global_dba::create_cluster, this, _1), "clusterName", shcore::String, NULL);
@@ -156,6 +157,14 @@ shcore::Value Global_dba::exec_instance_op(const std::string &function, const sh
           shcore::print(message);
           proceed = true;
         }
+
+        else if (function == "stop")
+        {
+          message = "The MySQL sandbox instance on this host in \n"\
+                    "" + sandboxDir + "/" + std::to_string(port) + " will be stopped\n\n";
+          shcore::print(message);
+          proceed = true;
+        }
       }
     }
 
@@ -197,6 +206,15 @@ shcore::Value Global_dba::exec_instance_op(const std::string &function, const sh
         shcore::print("Instance localhost:" + std::to_string(port) +
             " successfully killed.\n\n");
       }
+
+      if (function == "stop")
+      {
+        shcore::print("Stopping MySQL instance...\n");
+        ret_val = _target->call("stopLocalInstance", new_args);
+
+        shcore::print("Instance localhost:" + std::to_string(port) +
+            " successfully stopped.\n\n");
+      }
     }
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(function);
@@ -230,6 +248,13 @@ shcore::Value Global_dba::kill_local_instance(const shcore::Argument_list &args)
   args.ensure_count(1, 2, get_function_name("killLocalInstance").c_str());
 
   return exec_instance_op("kill", args);
+}
+
+shcore::Value Global_dba::stop_local_instance(const shcore::Argument_list &args)
+{
+  args.ensure_count(1, 2, get_function_name("stopLocalInstance").c_str());
+
+  return exec_instance_op("stop", args);
 }
 
 shcore::Value Global_dba::drop_cluster(const shcore::Argument_list &args)
