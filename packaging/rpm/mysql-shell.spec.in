@@ -51,7 +51,7 @@ BuildRequires:  openssl-devel
 MySQL query and administration shell client and framework.
 
 %prep
-%setup -q -n %{name}-%{version}-src
+%setup -q -n %{name}-@MYSH_VERSION@-src
 
 %build
 rm -rf build && mkdir build && cd build
