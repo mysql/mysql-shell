@@ -512,8 +512,25 @@ void Cluster::set_accounts_data(const std::string& encrypted_json)
                      static_cast<uint32_t>(_master_key.length()),
                      myaes::my_aes_128_ecb, NULL, false)) < 0)
     throw shcore::Exception::logic_error("Error decrypting account information");
+
   decrypted_data.resize(len);
-  _accounts = shcore::Value::parse(decrypted_data).as_map();
+
+  if (encrypted_json.data() == decrypted_data)
+    throw shcore::Exception::logic_error("Unable to decrypt account information.");
+
+  try
+  {
+    _accounts = shcore::Value::parse(decrypted_data).as_map();
+  }
+  catch (shcore::Exception &e)
+  {
+    std::string error = e.what();
+
+    if (error.find("Can't parse") != std::string::npos)
+      throw Exception::logic_error("Unable to decrypt account information");
+    else
+      throw;
+  }
 }
 
 void Cluster::set_option(const std::string& option, const shcore::Value& value)

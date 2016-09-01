@@ -509,6 +509,8 @@ std::shared_ptr<Cluster> MetadataStorage::get_cluster_matching(const std::string
 
     if (error == "Table 'mysql_innodb_cluster_metadata.clusters' doesn't exist")
       throw Exception::metadata_error("Metadata Schema does not exist.");
+    else if (error == "Unable to decrypt account information")
+      throw Exception::metadata_error("Authentication failure: wrong MASTER key.");
     else
       throw;
   }
