@@ -13,6 +13,7 @@
 |reset_session: OK|
 |start_local_instance: OK|
 |validate_instance: OK|
+|stop_local_instance: OK|
 
 #@# Dba: create_cluster errors
 ||Invalid number of arguments in Dba.create_cluster, expected 1 to 3 but got 0

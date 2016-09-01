@@ -164,6 +164,10 @@ void Shell_core_test_wrapper::SetUp()
     _mysql_uri_nopasswd = shcore::strip_password(_mysql_uri);
   }
 
+  const char *tmpdir = getenv("TMPDIR");
+  if (tmpdir)
+    _sandbox_dir.assign(tmpdir);
+
   // Initializes the interactive shell
   reset_shell();
 }

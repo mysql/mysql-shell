@@ -27,6 +27,7 @@ validateMember(members, 'kill_local_instance');
 validateMember(members, 'reset_session');
 validateMember(members, 'start_local_instance');
 validateMember(members, 'validate_instance');
+validateMember(members, 'stop_local_instance');
 
 #@# Dba: create_cluster errors
 cluster = dba.create_cluster()

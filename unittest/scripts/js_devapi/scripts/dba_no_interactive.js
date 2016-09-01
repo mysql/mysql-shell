@@ -18,6 +18,7 @@ validateMember(members, 'killLocalInstance');
 validateMember(members, 'resetSession');
 validateMember(members, 'startLocalInstance');
 validateMember(members, 'validateInstance');
+validateMember(members, 'stopLocalInstance');
 
 //@# Dba: createCluster errors
 var Cluster = dba.createCluster();

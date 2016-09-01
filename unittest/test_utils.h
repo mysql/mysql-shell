@@ -98,6 +98,7 @@ protected:
   std::string _mysql_port_adminapi;
   std::string _mysql_uri;
   std::string _mysql_uri_nopasswd;
+  std::string _sandbox_dir;
 
   shcore::Value _returned_value;
 

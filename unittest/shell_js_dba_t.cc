@@ -111,12 +111,25 @@ namespace shcore
     _options->wizards = false;
     reset_shell();
 
-    execute("dba.deployLocalInstance(" + _mysql_port_adminapi + ", {password: \"root\"});");
+    if (_sandbox_dir.empty())
+      execute("dba.deployLocalInstance(" + _mysql_port_adminapi + ", {password: \"root\"});");
+    else
+      execute("dba.deployLocalInstance(" + _mysql_port_adminapi + ", {password: \"root\", sandboxDir: \"" + _sandbox_dir + "\"});");
+
     execute("\\connect -c root:root@localhost:" + _mysql_port_adminapi + "");
     validate_interactive("dba_no_interactive.js");
     execute("session.close();");
-    execute("dba.killLocalInstance(" + _mysql_port_adminapi + ");");
-    execute("dba.deleteLocalInstance(" + _mysql_port_adminapi+ ");");
+
+    if (_sandbox_dir.empty())
+    {
+      execute("dba.stopLocalInstance(" + _mysql_port_adminapi + ");");
+      execute("dba.deleteLocalInstance(" + _mysql_port_adminapi+ ");");
+    }
+    else
+    {
+      execute("dba.stopLocalInstance(" + _mysql_port_adminapi + ", {sandboxDir: \"" + _sandbox_dir + "\"});");
+      execute("dba.deleteLocalInstance(" + _mysql_port_adminapi + ", {sandboxDir: \"" + _sandbox_dir + "\"});");
+    }
   }
 
 /*
@@ -150,14 +163,27 @@ namespace shcore
     _options->wizards = false;
     reset_shell();
 
-    execute("dba.deployLocalInstance(" + _mysql_port_adminapi + ", {password: \"root\"});");
+    if (_sandbox_dir.empty())
+      execute("dba.deployLocalInstance(" + _mysql_port_adminapi + ", {password: \"root\"});");
+    else
+      execute("dba.deployLocalInstance(" + _mysql_port_adminapi + ", {password: \"root\", sandboxDir: \"" + _sandbox_dir + "\"});");
+
     execute("var mysql = require('mysql');");
     execute("var mySession = mysql.getClassicSession('root:root@localhost:" + _mysql_port_adminapi +"');");
     execute("dba.resetSession(mySession);");
     validate_interactive("dba_no_interactive.js");
     execute("mySession.close();");
-    execute("dba.killLocalInstance(" + _mysql_port_adminapi + ");");
-    execute("dba.deleteLocalInstance(" + _mysql_port_adminapi+ ");");
+
+    if (_sandbox_dir.empty())
+    {
+      execute("dba.stopLocalInstance(" + _mysql_port_adminapi + ");");
+      execute("dba.deleteLocalInstance(" + _mysql_port_adminapi+ ");");
+    }
+    else
+    {
+      execute("dba.stopLocalInstance(" + _mysql_port_adminapi + ", {sandboxDir: \"" + _sandbox_dir + "\"});");
+      execute("dba.deleteLocalInstance(" + _mysql_port_adminapi + ", {sandboxDir: \"" + _sandbox_dir + "\"});");
+    }
   }
 /*
   TEST_F(Shell_js_dba_tests, admin_interactive_custom_session_x)
@@ -229,14 +255,27 @@ namespace shcore
     //@ Dba: dropFarm interaction no options, ok success
     output_handler.passwords.push_back("y");
 
-    execute("dba.deployLocalInstance(" + _mysql_port_adminapi + ", {password: \"root\"});");
+    if (_sandbox_dir.empty())
+      execute("dba.deployLocalInstance(" + _mysql_port_adminapi + ", {password: \"root\"});");
+    else
+      execute("dba.deployLocalInstance(" + _mysql_port_adminapi + ", {password: \"root\", sandboxDir: \"" + _sandbox_dir + "\"});");
+
     execute("var mysql = require('mysql');");
     execute("var mySession = mysql.getClassicSession('root:root@localhost:" + _mysql_port_adminapi +"');");
     execute("dba.resetSession(mySession);");
     validate_interactive("dba_interactive.js");
     execute("mySession.close();");
-    execute("dba.killLocalInstance(" + _mysql_port_adminapi + ");");
-    execute("dba.deleteLocalInstance(" + _mysql_port_adminapi+ ");");
+
+    if (_sandbox_dir.empty())
+    {
+      execute("dba.stopLocalInstance(" + _mysql_port_adminapi + ");");
+      execute("dba.deleteLocalInstance(" + _mysql_port_adminapi+ ");");
+    }
+    else
+    {
+      execute("dba.stopLocalInstance(" + _mysql_port_adminapi + ", {sandboxDir: \"" + _sandbox_dir + "\"});");
+      execute("dba.deleteLocalInstance(" + _mysql_port_adminapi + ", {sandboxDir: \"" + _sandbox_dir + "\"});");
+    }
   }
 
 /*
@@ -306,11 +345,24 @@ namespace shcore
     //@ Dba: dropFarm interaction no options, ok success
     output_handler.passwords.push_back("y");
 
-    execute("dba.deployLocalInstance(" + _mysql_port_adminapi + ", {password: \"root\"});");
+    if (_sandbox_dir.empty())
+      execute("dba.deployLocalInstance(" + _mysql_port_adminapi + ", {password: \"root\"});");
+    else
+      execute("dba.deployLocalInstance(" + _mysql_port_adminapi + ", {password: \"root\", sandboxDir: \"" + _sandbox_dir + "\"});");
+
     execute("\\connect -c root:root@localhost:" + _mysql_port_adminapi + "");
     validate_interactive("dba_interactive.js");
-    execute("dba.killLocalInstance(" + _mysql_port_adminapi + ");");
-    execute("dba.deleteLocalInstance(" + _mysql_port_adminapi + ");");
+
+    if (_sandbox_dir.empty())
+    {
+      execute("dba.stopLocalInstance(" + _mysql_port_adminapi + ");");
+      execute("dba.deleteLocalInstance(" + _mysql_port_adminapi+ ");");
+    }
+    else
+    {
+      execute("dba.stopLocalInstance(" + _mysql_port_adminapi + ", {sandboxDir: \"" + _sandbox_dir + "\"});");
+      execute("dba.deleteLocalInstance(" + _mysql_port_adminapi + ", {sandboxDir: \"" + _sandbox_dir + "\"});");
+    }
   }
 
 /*
@@ -342,12 +394,25 @@ namespace shcore
     _options->wizards = false;
     reset_shell();
 
-    execute("dba.deployLocalInstance(" + _mysql_port_adminapi + ", {password: \"root\"});");
+    if (_sandbox_dir.empty())
+      execute("dba.deployLocalInstance(" + _mysql_port_adminapi + ", {password: \"root\"});");
+    else
+      execute("dba.deployLocalInstance(" + _mysql_port_adminapi + ", {password: \"root\", sandboxDir: \"" + _sandbox_dir + "\"});");
+
     execute("\\connect -c root:root@localhost:" + _mysql_port_adminapi + "");
     validate_interactive("dba_cluster_no_interactive.js");
     execute("session.close();");
-    execute("dba.killLocalInstance(" + _mysql_port_adminapi + ");");
-    execute("dba.deleteLocalInstance(" + _mysql_port_adminapi + ");");
+
+    if (_sandbox_dir.empty())
+    {
+      execute("dba.stopLocalInstance(" + _mysql_port_adminapi + ");");
+      execute("dba.deleteLocalInstance(" + _mysql_port_adminapi+ ");");
+    }
+    else
+    {
+      execute("dba.stopLocalInstance(" + _mysql_port_adminapi + ", {sandboxDir: \"" + _sandbox_dir + "\"});");
+      execute("dba.deleteLocalInstance(" + _mysql_port_adminapi + ", {sandboxDir: \"" + _sandbox_dir + "\"});");
+    }
   }
 
 /*
@@ -383,14 +448,27 @@ namespace shcore
     _options->wizards = false;
     reset_shell();
 
-    execute("dba.deployLocalInstance(" + _mysql_port_adminapi + ", {password: \"root\"});");
+    if (_sandbox_dir.empty())
+      execute("dba.deployLocalInstance(" + _mysql_port_adminapi + ", {password: \"root\"});");
+    else
+      execute("dba.deployLocalInstance(" + _mysql_port_adminapi + ", {password: \"root\", sandboxDir: \"" + _sandbox_dir + "\"});");
+
     execute("var mysql = require('mysql');");
     execute("var mySession = mysql.getClassicSession('root:root@localhost:" + _mysql_port_adminapi +"');");
     execute("dba.resetSession(mySession);");
     validate_interactive("dba_cluster_no_interactive.js");
     execute("mySession.close();");
-    execute("dba.killLocalInstance(" + _mysql_port_adminapi + ");");
-    execute("dba.deleteLocalInstance(" + _mysql_port_adminapi + ");");
+
+    if (_sandbox_dir.empty())
+    {
+      execute("dba.stopLocalInstance(" + _mysql_port_adminapi + ");");
+      execute("dba.deleteLocalInstance(" + _mysql_port_adminapi+ ");");
+    }
+    else
+    {
+      execute("dba.stopLocalInstance(" + _mysql_port_adminapi + ", {sandboxDir: \"" + _sandbox_dir + "\"});");
+      execute("dba.deleteLocalInstance(" + _mysql_port_adminapi + ", {sandboxDir: \"" + _sandbox_dir + "\"});");
+    }
   }
 
   //TEST_F(Shell_js_dba_tests, farm_interactive_custom_session_x)
@@ -570,14 +648,27 @@ namespace shcore
     _options->wizards = false;
     reset_shell();
 
-    execute("dba.deployLocalInstance(" + _mysql_port_adminapi + ", {password: \"root\"});");
+    if (_sandbox_dir.empty())
+      execute("dba.deployLocalInstance(" + _mysql_port_adminapi + ", {password: \"root\"});");
+    else
+      execute("dba.deployLocalInstance(" + _mysql_port_adminapi + ", {password: \"root\", sandboxDir: \"" + _sandbox_dir + "\"});");
+
     execute("var mysql = require('mysql');");
     execute("var mySession = mysql.getClassicSession('root:root@localhost:" + _mysql_port_adminapi +"');");
     execute("\\connect -c root:root@localhost:" + _mysql_port_adminapi + "");
     validate_interactive("dba_replica_set_no_interactive.js");
     execute("session.close();");
-    execute("dba.killLocalInstance(" + _mysql_port_adminapi + ");");
-    execute("dba.deleteLocalInstance(" + _mysql_port_adminapi + ");");
+
+    if (_sandbox_dir.empty())
+    {
+      execute("dba.stopLocalInstance(" + _mysql_port_adminapi + ");");
+      execute("dba.deleteLocalInstance(" + _mysql_port_adminapi+ ");");
+    }
+    else
+    {
+      execute("dba.stopLocalInstance(" + _mysql_port_adminapi + ", {sandboxDir: \"" + _sandbox_dir + "\"});");
+      execute("dba.deleteLocalInstance(" + _mysql_port_adminapi + ", {sandboxDir: \"" + _sandbox_dir + "\"});");
+    }
   }
 
 /*
@@ -613,13 +704,26 @@ namespace shcore
     _options->wizards = false;
     reset_shell();
 
-    execute("dba.deployLocalInstance(" + _mysql_port_adminapi + ", {password: \"root\"});");
+    if (_sandbox_dir.empty())
+      execute("dba.deployLocalInstance(" + _mysql_port_adminapi + ", {password: \"root\"});");
+    else
+      execute("dba.deployLocalInstance(" + _mysql_port_adminapi + ", {password: \"root\", sandboxDir: \"" + _sandbox_dir + "\"});");
+
     execute("var mysql = require('mysql');");
     execute("var mySession = mysql.getClassicSession('root:root@localhost:" + _mysql_port_adminapi +"');");
     execute("dba.resetSession(mySession);");
     validate_interactive("dba_replica_set_no_interactive.js");
     execute("mySession.close();");
-    execute("dba.killLocalInstance(" + _mysql_port_adminapi + ");");
-    execute("dba.deleteLocalInstance(" + _mysql_port_adminapi + ");");
+
+    if (_sandbox_dir.empty())
+    {
+      execute("dba.stopLocalInstance(" + _mysql_port_adminapi + ");");
+      execute("dba.deleteLocalInstance(" + _mysql_port_adminapi+ ");");
+    }
+    else
+    {
+      execute("dba.stopLocalInstance(" + _mysql_port_adminapi + ", {sandboxDir: \"" + _sandbox_dir + "\"});");
+      execute("dba.deleteLocalInstance(" + _mysql_port_adminapi + ", {sandboxDir: \"" + _sandbox_dir + "\"});");
+    }
   }
 }
