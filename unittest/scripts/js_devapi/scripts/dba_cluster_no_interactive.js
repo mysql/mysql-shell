@@ -24,7 +24,7 @@ validateMember(members, 'status');
 Cluster.removeInstance({host: __host, port:__mysql_port_adminapi});
 
 //@ Cluster: addInstance
-Cluster.addInstance({dbUser: __user, host: __host, port:__mysql_port_adminapi}, __pwd);
+Cluster.addInstance({dbUser: __user, host: __host, port:__mysql_port_adminapi}, "root");
 
 //@# Cluster: addInstance errors
 Cluster.addInstance()
@@ -34,7 +34,7 @@ Cluster.addInstance('', 5)
 Cluster.addInstance( 5)
 Cluster.addInstance({host: __host, schema: 'abs', user:"sample", authMethod:56});
 Cluster.addInstance({port: __mysql_port_adminapi});
-Cluster.addInstance({host: __host, port:__mysql_port_adminapi}, __pwd);
+Cluster.addInstance({host: __host, port:__mysql_port_adminapi}, "root");
 
 // Cleanup
 dba.dropCluster('devCluster', {dropDefaultReplicaSet: true});

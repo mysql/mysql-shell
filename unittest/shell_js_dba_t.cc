@@ -111,8 +111,8 @@ namespace shcore
     _options->wizards = false;
     reset_shell();
 
-    execute("dba.deployLocalInstance(" + _mysql_port_adminapi + ", {password: \"" + _pwd + "\"});");
-    execute("\\connect -c " + _mysql_uri_adminapi);
+    execute("dba.deployLocalInstance(" + _mysql_port_adminapi + ", {password: \"root\"});");
+    execute("\\connect -c root:root@localhost:" + _mysql_port_adminapi + "");
     validate_interactive("dba_no_interactive.js");
     execute("session.close();");
     execute("dba.killLocalInstance(" + _mysql_port_adminapi + ");");
@@ -150,9 +150,9 @@ namespace shcore
     _options->wizards = false;
     reset_shell();
 
-    execute("dba.deployLocalInstance(" + _mysql_port_adminapi + ", {password: \"" + _pwd + "\"});");
+    execute("dba.deployLocalInstance(" + _mysql_port_adminapi + ", {password: \"root\"});");
     execute("var mysql = require('mysql');");
-    execute("var mySession = mysql.getClassicSession('" + _mysql_uri_adminapi + "');");
+    execute("var mySession = mysql.getClassicSession('root:root@localhost:" + _mysql_port_adminapi +"');");
     execute("dba.resetSession(mySession);");
     validate_interactive("dba_no_interactive.js");
     execute("mySession.close();");
@@ -229,9 +229,9 @@ namespace shcore
     //@ Dba: dropFarm interaction no options, ok success
     output_handler.passwords.push_back("y");
 
-    execute("dba.deployLocalInstance(" + _mysql_port_adminapi + ", {password: \"" + _pwd + "\"});");
+    execute("dba.deployLocalInstance(" + _mysql_port_adminapi + ", {password: \"root\"});");
     execute("var mysql = require('mysql');");
-    execute("var mySession = mysql.getClassicSession('" + _mysql_uri_adminapi + "');");
+    execute("var mySession = mysql.getClassicSession('root:root@localhost:" + _mysql_port_adminapi +"');");
     execute("dba.resetSession(mySession);");
     validate_interactive("dba_interactive.js");
     execute("mySession.close();");
@@ -306,8 +306,8 @@ namespace shcore
     //@ Dba: dropFarm interaction no options, ok success
     output_handler.passwords.push_back("y");
 
-    execute("dba.deployLocalInstance(" + _mysql_port_adminapi + ", {password: \"" + _pwd + "\"});");
-    execute("\\connect -c " + _mysql_uri_adminapi);
+    execute("dba.deployLocalInstance(" + _mysql_port_adminapi + ", {password: \"root\"});");
+    execute("\\connect -c root:root@localhost:" + _mysql_port_adminapi + "");
     validate_interactive("dba_interactive.js");
     execute("dba.killLocalInstance(" + _mysql_port_adminapi + ");");
     execute("dba.deleteLocalInstance(" + _mysql_port_adminapi + ");");
@@ -342,8 +342,8 @@ namespace shcore
     _options->wizards = false;
     reset_shell();
 
-    execute("dba.deployLocalInstance(" + _mysql_port_adminapi + ", {password: \"" + _pwd + "\"});");
-    execute("\\connect -c " + _mysql_uri_adminapi);
+    execute("dba.deployLocalInstance(" + _mysql_port_adminapi + ", {password: \"root\"});");
+    execute("\\connect -c root:root@localhost:" + _mysql_port_adminapi + "");
     validate_interactive("dba_cluster_no_interactive.js");
     execute("session.close();");
     execute("dba.killLocalInstance(" + _mysql_port_adminapi + ");");
@@ -383,9 +383,9 @@ namespace shcore
     _options->wizards = false;
     reset_shell();
 
-    execute("dba.deployLocalInstance(" + _mysql_port_adminapi + ", {password: \"" + _pwd + "\"});");
+    execute("dba.deployLocalInstance(" + _mysql_port_adminapi + ", {password: \"root\"});");
     execute("var mysql = require('mysql');");
-    execute("var mySession = mysql.getClassicSession('" + _mysql_uri_adminapi + "');");
+    execute("var mySession = mysql.getClassicSession('root:root@localhost:" + _mysql_port_adminapi +"');");
     execute("dba.resetSession(mySession);");
     validate_interactive("dba_cluster_no_interactive.js");
     execute("mySession.close();");
@@ -570,8 +570,9 @@ namespace shcore
     _options->wizards = false;
     reset_shell();
 
-    execute("dba.deployLocalInstance(" + _mysql_port_adminapi + ", {password: \"" + _pwd + "\"});");
-    execute("\\connect -c " + _mysql_uri_adminapi);
+    execute("dba.deployLocalInstance(" + _mysql_port_adminapi + ", {password: \"root\"});");
+    execute("var mySession = mysql.getClassicSession('root:root@localhost:" + _mysql_port_adminapi +"');");
+    execute("\\connect -c root:root@localhost:" + _mysql_port_adminapi + "");
     validate_interactive("dba_replica_set_no_interactive.js");
     execute("session.close();");
     execute("dba.killLocalInstance(" + _mysql_port_adminapi + ");");
@@ -611,9 +612,9 @@ namespace shcore
     _options->wizards = false;
     reset_shell();
 
-    execute("dba.deployLocalInstance(" + _mysql_port_adminapi + ", {password: \"" + _pwd + "\"});");
+    execute("dba.deployLocalInstance(" + _mysql_port_adminapi + ", {password: \"root\"});");
     execute("var mysql = require('mysql');");
-    execute("var mySession = mysql.getClassicSession('" + _mysql_uri_adminapi + "');");
+    execute("var mySession = mysql.getClassicSession('root:root@localhost:" + _mysql_port_adminapi +"');");
     execute("dba.resetSession(mySession);");
     validate_interactive("dba_replica_set_no_interactive.js");
     execute("mySession.close();");

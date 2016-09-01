@@ -32,7 +32,7 @@ validateMember(members, 'status');
 cluster.remove_instance({'host': __host, 'port': __mysql_port_adminapi});
 
 #@ Cluster: add_instance
-cluster.add_instance({'dbUser': __user, 'host': __host, 'port': __mysql_port_adminapi}, __pwd)
+cluster.add_instance({'dbUser': __user, 'host': __host, 'port': __mysql_port_adminapi}, 'root')
 
 #@# Cluster: add_instance errors
 cluster.add_instance()
@@ -42,7 +42,7 @@ cluster.add_instance('',5)
 cluster.add_instance( 5)
 cluster.add_instance({'host': __host, 'schema': 'abs', 'user':"sample", 'authMethod':56})
 cluster.add_instance({'port': __mysql_port_adminapi})
-cluster.add_instance({'host': __host, 'port':__mysql_port_adminapi}, __pwd)
+cluster.add_instance({'host': __host, 'port':__mysql_port_adminapi}, 'root')
 
 # Cleanup
 dba.drop_cluster('devCluster', {"dropDefaultReplicaSet": True})

@@ -25,16 +25,16 @@ Cluster.addInstance();
 Cluster.addInstance(5);
 
 //@ Cluster: addInstance, ignore invalid attributes no ignore
-Cluster.addInstance({host: __host, data:'sample', port:__mysql_port_adminapi, whatever:5}, __pwd);
+Cluster.addInstance({host: __host, data:'sample', port:__mysql_port_adminapi, whatever:5}, "root");
 
 //@ Cluster: addInstance, ignore invalid attributes ignore
-Cluster.addInstance({host: __host, data:'sample', port:__mysql_port_adminapi, whatever:5}, __pwd);
+Cluster.addInstance({host: __host, data:'sample', port:__mysql_port_adminapi, whatever:5}, "root");
 
 //@ Cluster: addSeedInstance, it already initialized, answer no
-Cluster.addSeedInstance({host: __host, port:__mysql_port_adminapi}, __pwd);
+Cluster.addSeedInstance({host: __host, port:__mysql_port_adminapi}, "root");
 
 //@ Cluster: addSeedInstance, it already initialized, answer yes
-Cluster.addSeedInstance({host: __host, port:__mysql_port_adminapi}, __pwd);
+Cluster.addSeedInstance({host: __host, port:__mysql_port_adminapi}, "root");
 
 // Cleanup
 dba.dropCluster('devCluster', {dropDefaultReplicaSet: true});

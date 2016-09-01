@@ -47,7 +47,7 @@ cluster = dba.get_cluster('devCluster')
 print cluster
 
 #@ Dba: add_instance
-cluster.add_instance({'dbUser': __user, 'host': __host, 'port':__mysql_port_adminapi}, __pwd)
+cluster.add_instance({'dbUser': __user, 'host': __host, 'port':__mysql_port_adminapi}, 'root')
 
 #@ Dba: remove_instance
 cluster.remove_instance({'host': __host, 'port': __mysql_port_adminapi});
