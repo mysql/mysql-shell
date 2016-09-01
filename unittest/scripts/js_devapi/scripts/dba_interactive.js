@@ -8,15 +8,17 @@ dba.dropMetadataSchema();
 var members = dir(dba);
 
 print("Session Members:", members.length);
-validateMember(members, 'defaultCluster');
-validateMember(members, 'getDefaultCluster');
 validateMember(members, 'createCluster');
-validateMember(members, 'dropCluster');
-validateMember(members, 'getCluster');
-validateMember(members, 'dropMetadataSchema');
-validateMember(members, 'resetSession');
-validateMember(members, 'validateInstance');
+validateMember(members, 'deleteLocalInstance');
 validateMember(members, 'deployLocalInstance');
+validateMember(members, 'dropCluster');
+validateMember(members, 'dropMetadataSchema');
+validateMember(members, 'getCluster');
+validateMember(members, 'help');
+validateMember(members, 'killLocalInstance');
+validateMember(members, 'resetSession');
+validateMember(members, 'startLocalInstance');
+validateMember(members, 'validateInstance');
 
 //@# Dba: createCluster errors
 var Cluster = dba.createCluster();
@@ -37,8 +39,11 @@ var Cluster = dba.getCluster('devCluster');
 //@ Dba: getCluster
 print(Cluster);
 
-//@ Dba: addSeedInstance
-Cluster.addInstance({host: __host, port:__mysql_port}, __pwd);
+//@ Dba: addInstance
+Cluster.addInstance({dbUser: __user, host: __host, port:__mysql_port_adminapi}, __pwd);
+
+//@ Dba: removeInstance
+Cluster.removeInstance({host: __host, port:__mysql_port_adminapi});
 
 //@# Dba: dropCluster errors
 var Cluster = dba.dropCluster();

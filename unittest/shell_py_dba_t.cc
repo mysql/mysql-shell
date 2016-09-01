@@ -74,6 +74,8 @@ namespace shcore
         exec_and_out_equals(code);
         code = "__mysql_port = " + _mysql_port + ";";
         exec_and_out_equals(code);
+        code = "__mysql_port_adminapi = " + std::to_string(atoi(_mysql_port.c_str()) + 10) + ";";
+        exec_and_out_equals(code);
       }
 
       code = "__uripwd = '" + user + ":" + password + "@" + host + ":" + _port + "';";
@@ -85,6 +87,7 @@ namespace shcore
     }
   };
 
+/*
   TEST_F(Shell_py_dba_tests, admin_no_interactive_global_session_x)
   {
     _options->wizards = false;
@@ -105,15 +108,22 @@ namespace shcore
     execute("session.close()");
   }
 
+*/
+
   TEST_F(Shell_py_dba_tests, admin_no_interactive_global_session_classic)
   {
     _options->wizards = false;
     reset_shell();
 
-    execute("\\connect -c " + _mysql_uri);
+    execute("dba.deploy_local_instance(" + _mysql_port_adminapi + ", {'password': '" + _pwd + "'});");
+    execute("\\connect -c " + _mysql_uri_adminapi);
     validate_interactive("dba_no_interactive.py");
     execute("session.close()");
+    execute("dba.kill_local_instance(" + _mysql_port_adminapi + ");");
+    execute("dba.delete_local_instance(" + _mysql_port_adminapi+ ");");
   }
+
+/*
 
   TEST_F(Shell_py_dba_tests, admin_no_interactive_custom_session_x)
   {
@@ -139,17 +149,24 @@ namespace shcore
     execute("mySession.close()");
   }
 
+*/
+
   TEST_F(Shell_py_dba_tests, admin_no_interactive_custom_session_classic)
   {
     _options->wizards = false;
     reset_shell();
 
+    execute("dba.deploy_local_instance(" + _mysql_port_adminapi + ", {'password': '" + _pwd + "'});");
     execute("import mysql");
-    execute("mySession = mysql.get_classic_session('" + _mysql_uri + "')");
+    execute("mySession = mysql.get_classic_session('" + _mysql_uri_adminapi + "')");
     execute("dba.reset_session(mySession)");
     validate_interactive("dba_no_interactive.py");
     execute("mySession.close()");
+    execute("dba.kill_local_instance(" + _mysql_port_adminapi + ");");
+    execute("dba.delete_local_instance(" + _mysql_port_adminapi+ ");");
   }
+
+/*
 
   TEST_F(Shell_py_dba_tests, admin_interactive_custom_session_x)
   {
@@ -201,6 +218,8 @@ namespace shcore
     execute("mySession.close()");
   }
 
+*/
+
   TEST_F(Shell_py_dba_tests, admin_interactive_custom_session_classic)
   {
     // Fills the required prompts and passwords...
@@ -219,12 +238,17 @@ namespace shcore
     //@ Dba: dropFarm interaction no options, ok success
     output_handler.passwords.push_back("y");
 
+    execute("dba.deploy_local_instance(" + _mysql_port_adminapi + ", {'password': '" + _pwd + "'});");
     execute("import mysql");
-    execute("mySession = mysql.get_classic_session('" + _mysql_uri + "')");
+    execute("mySession = mysql.get_classic_session('" + _mysql_uri_adminapi + "')");
     execute("dba.reset_session(mySession)");
     validate_interactive("dba_interactive.py");
     execute("mySession.close()");
+    execute("dba.kill_local_instance(" + _mysql_port_adminapi + ");");
+    execute("dba.delete_local_instance(" + _mysql_port_adminapi+ ");");
   }
+
+/*
 
   TEST_F(Shell_py_dba_tests, admin_interactive_global_session_x)
   {
@@ -272,6 +296,8 @@ namespace shcore
     execute("mySession.close()");
   }
 
+*/
+
   TEST_F(Shell_py_dba_tests, admin_interactive_global_session_classic)
   {
     // Fills the required prompts and passwords...
@@ -290,9 +316,14 @@ namespace shcore
     //@ Dba: dropFarm interaction no options, ok success
     output_handler.passwords.push_back("y");
 
-    execute("\\connect -c " + _mysql_uri);
+    execute("dba.deploy_local_instance(" + _mysql_port_adminapi + ", {'password': '" + _pwd + "'});");
+    execute("\\connect -c " + _mysql_uri_adminapi);
     validate_interactive("dba_interactive.py");
+    execute("dba.kill_local_instance(" + _mysql_port_adminapi + ");");
+    execute("dba.delete_local_instance(" + _mysql_port_adminapi+ ");");
   }
+
+/*
 
   TEST_F(Shell_py_dba_tests, farm_no_interactive_global_session_x)
   {
@@ -314,15 +345,22 @@ namespace shcore
     execute("session.close()");
   }
 
-  TEST_F(Shell_py_dba_tests, farm_no_interactive_global_session_classic)
+*/
+
+  TEST_F(Shell_py_dba_tests, cluster_no_interactive_global_session_classic)
   {
     _options->wizards = false;
     reset_shell();
 
-    execute("\\connect -c " + _mysql_uri);
-    validate_interactive("dba_farm_no_interactive.py");
+    execute("dba.deploy_local_instance(" + _mysql_port_adminapi + ", {'password': '" + _pwd + "'});");
+    execute("\\connect -c " + _mysql_uri_adminapi);
+    validate_interactive("dba_cluster_no_interactive.py");
     execute("session.close()");
+    execute("dba.kill_local_instance(" + _mysql_port_adminapi + ");");
+    execute("dba.delete_local_instance(" + _mysql_port_adminapi+ ");");
   }
+
+/*
 
   TEST_F(Shell_py_dba_tests, farm_no_interactive_custom_session_x)
   {
@@ -348,16 +386,21 @@ namespace shcore
     execute("mySession.close()");
   }
 
-  TEST_F(Shell_py_dba_tests, farm_no_interactive_custom_session_classic)
+*/
+
+  TEST_F(Shell_py_dba_tests, cluster_no_interactive_custom_session_classic)
   {
     _options->wizards = false;
     reset_shell();
 
+    execute("dba.deploy_local_instance(" + _mysql_port_adminapi + ", {'password': '" + _pwd + "'});");
     execute("import mysql");
-    execute("mySession = mysql.get_classic_session('" + _mysql_uri + "')");
+    execute("mySession = mysql.get_classic_session('" + _mysql_uri_adminapi + "')");
     execute("dba.reset_session(mySession)");
-    validate_interactive("dba_farm_no_interactive.py");
+    validate_interactive("dba_cluster_no_interactive.py");
     execute("mySession.close()");
+    execute("dba.kill_local_instance(" + _mysql_port_adminapi + ");");
+    execute("dba.delete_local_instance(" + _mysql_port_adminapi+ ");");
   }
 
   //TEST_F(Shell_py_dba_tests, farm_interactive_custom_session_x)
@@ -503,6 +546,8 @@ namespace shcore
   //  validate_interactive("dba_farm_interactive.py");
   //}
 
+/*
+
   TEST_F(Shell_py_dba_tests, replica_set_no_interactive_global_session_x)
   {
     _options->wizards = false;
@@ -523,15 +568,22 @@ namespace shcore
     execute("session.close()");
   }
 
+*/
+
   TEST_F(Shell_py_dba_tests, replica_set_no_interactive_global_session_classic)
   {
     _options->wizards = false;
     reset_shell();
 
-    execute("\\connect -c " + _mysql_uri);
+    execute("dba.deploy_local_instance(" + _mysql_port_adminapi + ", {'password': '" + _pwd + "'});");
+    execute("\\connect -c " + _mysql_uri_adminapi);
     validate_interactive("dba_replica_set_no_interactive.py");
     execute("session.close()");
+    execute("dba.kill_local_instance(" + _mysql_port_adminapi + ");");
+    execute("dba.delete_local_instance(" + _mysql_port_adminapi+ ");");
   }
+
+/*
 
   TEST_F(Shell_py_dba_tests, replica_set_no_interactive_custom_session_x)
   {
@@ -557,15 +609,20 @@ namespace shcore
     execute("mySession.close()");
   }
 
+*/
+
   TEST_F(Shell_py_dba_tests, replica_set_no_interactive_custom_session_classic)
   {
     _options->wizards = false;
     reset_shell();
 
+    execute("dba.deploy_local_instance(" + _mysql_port_adminapi + ", {'password': '" + _pwd + "'});");
     execute("import mysql");
-    execute("mySession = mysql.get_classic_session('" + _mysql_uri + "')");
+    execute("mySession = mysql.get_classic_session('" + _mysql_uri_adminapi + "')");
     execute("dba.reset_session(mySession)");
     validate_interactive("dba_replica_set_no_interactive.py");
     execute("mySession.close()");
+    execute("dba.kill_local_instance(" + _mysql_port_adminapi + ");");
+    execute("dba.delete_local_instance(" + _mysql_port_adminapi+ ");");
   }
 }

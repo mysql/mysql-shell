@@ -13,24 +13,28 @@ validateMember(members, 'name');
 validateMember(members, 'getName');
 validateMember(members, 'adminType');
 validateMember(members, 'getAdminType');
-validateMember(members, 'addSeedInstance');
 validateMember(members, 'addInstance');
 validateMember(members, 'removeInstance');
 validateMember(members, 'getReplicaSet');
+validateMember(members, 'rejoinInstance');
+validateMember(members, 'describe');
+validateMember(members, 'status');
 
-//@ Cluster: addSeedInstance
-// Added this to enable addInstance, full testing of addSeedInstance is needed
-Cluster.addSeedInstance(ClusterPassword, {host: __host, port:__mysql_port}, __pwd);
+//@ Cluster: removeInstance
+Cluster.removeInstance({host: __host, port:__mysql_port_adminapi});
+
+//@ Cluster: addInstance
+Cluster.addInstance({dbUser: __user, host: __host, port:__mysql_port_adminapi}, __pwd);
 
 //@# Cluster: addInstance errors
 Cluster.addInstance()
 Cluster.addInstance(5,6,7,1)
 Cluster.addInstance(5, 5)
 Cluster.addInstance('', 5)
-Cluster.addInstance(ClusterPassword, 5)
-Cluster.addInstance(ClusterPassword, {host: __host, schema: 'abs', user:"sample", authMethod:56});
-Cluster.addInstance(ClusterPassword, {port: __port});
-Cluster.addInstance(ClusterPassword, {host: __host, port:__mysql_port}, __pwd);
+Cluster.addInstance( 5)
+Cluster.addInstance({host: __host, schema: 'abs', user:"sample", authMethod:56});
+Cluster.addInstance({port: __mysql_port_adminapi});
+Cluster.addInstance({host: __host, port:__mysql_port_adminapi}, __pwd);
 
 // Cleanup
 dba.dropCluster('devCluster', {dropDefaultReplicaSet: true});

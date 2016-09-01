@@ -1,37 +1,39 @@
 //@ Session: validating members
-|Session Members: 9|
-|defaultCluster: OK|
-|getDefaultCluster: OK|
+|Session Members: 11|
 |createCluster: OK|
+|deleteLocalInstance: OK|
+|deployLocalInstance: OK|
 |dropCluster: OK|
 |getCluster: OK|
-|dropMetadataSchema: OK|
+|help: OK|
+|killLocalInstance: OK|
 |resetSession: OK|
+|startLocalInstance: OK|
 |validateInstance: OK|
-|deployLocalInstance: OK|
 
 //@# Dba: createCluster errors
 ||Invalid number of arguments in Dba.createCluster, expected 2 to 3 but got 0
 ||Invalid number of arguments in Dba.createCluster, expected 2 to 3 but got 1
 ||Dba.createCluster: The Cluster name cannot be empty
 ||Invalid number of arguments in Dba.createCluster, expected 2 to 3 but got 1
-||Dba.createCluster: There is already one Cluster initialized. Only one Cluster is supported.
+||Dba.createCluster: Cluster is already initialized. Use getCluster() to access it.
 
 //@ Dba: createCluster
 |<Cluster:devCluster>|
 
 //@# Dba: getCluster errors
-||Invalid number of arguments in Dba.getCluster, expected 1 but got 0
-||Dba.getCluster: Argument #1 is expected to be a string
-||Invalid number of arguments in Dba.getCluster, expected 1 but got 2
+||Dba.getCluster: Unexpected parameter received expected either the InnoDB cluster name or a Dictionary with options
+||Dba.getCluster: Unexpected parameter received expected either the InnoDB cluster name or a Dictionary with options
 ||Dba.getCluster: The Cluster name cannot be empty
 
 //@ Dba: getCluster
 |<Cluster:devCluster>|
 
-//@ Dba: addSeedInstance
-||
+//@ Dba: addInstance
+||already belongs to the ReplicaSet: 'default'.||
 
+//@ Dba: removeInstance
+||
 
 //@# Dba: dropCluster errors
 ||Invalid number of arguments in Dba.dropCluster, expected 1 to 2 but got 0

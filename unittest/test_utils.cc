@@ -141,6 +141,7 @@ void Shell_core_test_wrapper::SetUp()
 
     _uri = shcore::build_connection_string(data, true);
     _mysql_uri = _uri;
+    _mysql_uri_adminapi = _uri;
 
     const char *xport = getenv("MYSQLX_PORT");
     if (xport)
@@ -156,6 +157,10 @@ void Shell_core_test_wrapper::SetUp()
     {
       _mysql_port.assign(port);
       _mysql_uri += ":" + _mysql_port;
+
+      std::string port_adminapi = std::to_string(atoi(port) + 10);
+      _mysql_port_adminapi.assign(port_adminapi);
+      _mysql_uri_adminapi += ":" + _mysql_port_adminapi;
     }
 
     _mysql_uri_nopasswd = shcore::strip_password(_mysql_uri);

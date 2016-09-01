@@ -7,7 +7,6 @@
 |getName: OK|
 |adminType: OK|
 |getAdminType: OK|
-|addSeedInstance: OK|
 |addInstance: OK|
 |removeInstance: OK|
 |getReplicaSet: OK|

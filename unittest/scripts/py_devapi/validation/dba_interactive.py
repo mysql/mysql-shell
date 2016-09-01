@@ -2,16 +2,17 @@
 |Are you sure you want to remove the Metadata? [y/N]:|*
 
 #@ Session: validating members
-|Session Members: 9|
-|default_cluster: OK|
-|get_default_cluster: OK|
+|Session Members: 11|
 |create_cluster: OK|
+|delete_local_instance: OK|
+|deploy_local_instance: OK|
 |drop_cluster: OK|
 |get_cluster: OK|
-|drop_metadata_schema: OK|
+|help: OK|
+|kill_local_instance: OK|
 |reset_session: OK|
+|start_local_instance: OK|
 |validate_instance: OK|
-|deploy_local_instance: OK|
 
 #@# Dba: create_cluster errors
 ||Invalid number of arguments in Dba.create_cluster, expected 1 to 3 but got 0
@@ -19,19 +20,32 @@
 ||Dba.create_cluster: The Cluster name cannot be empty
 
 #@# Dba: create_cluster with interaction
-|Please enter an administrative MASTER password to be used for the Cluster|
+|A new InnoDB cluster will be created on instance|
+|When setting up a new InnoDB cluster it is required to define an administrative|
+|MASTER key for the cluster.This MASTER key needs to be re - entered when making|
+|changes to the cluster later on, e.g.adding new MySQL instances or configuring|
+|MySQL Routers.Losing this MASTER key will require the configuration of all|
+|InnoDB cluster entities to be changed.|
+|Please specify an administrative MASTER key for the cluster 'devCluster':|
+|Creating InnoDB cluster 'devCluster' on|
+|Cluster successfully created. Use Cluster.addInstance() to add MySQL instances.|
+|At least 3 instances are needed for the cluster to be able to withstand up to|
+|one server failure.|
+
 |<Cluster:devCluster>|
 
 #@# Dba: get_cluster errors
-||Invalid number of arguments in Dba.get_cluster, expected 1 but got 0
-||Dba.get_cluster: Argument #1 is expected to be a string
-||Invalid number of arguments in Dba.get_cluster, expected 1 but got 2
+||ArgumentError: Unexpected parameter received expected either the InnoDB cluster name or a Dictionary with options
+||ArgumentError: Unexpected parameter received expected either the InnoDB cluster name or a Dictionary with options
 ||Dba.get_cluster: The Cluster name cannot be empty
 
 #@ Dba: get_cluster
 |<Cluster:devCluster>|
 
-#@ Dba: add_seed_instance
+#@ Dba: add_instance
+||already belongs to the ReplicaSet: 'default'.||
+
+#@ Dba: remove_instance
 ||
 
 #@# Dba: drop_cluster errors

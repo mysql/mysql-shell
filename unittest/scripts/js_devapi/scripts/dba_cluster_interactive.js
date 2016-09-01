@@ -14,7 +14,6 @@ validateMember(members, 'name');
 validateMember(members, 'getName');
 validateMember(members, 'adminType');
 validateMember(members, 'getAdminType');
-validateMember(members, 'addSeedInstance');
 validateMember(members, 'addInstance');
 validateMember(members, 'removeInstance');
 validateMember(members, 'getReplicaSet');
@@ -26,16 +25,16 @@ Cluster.addInstance();
 Cluster.addInstance(5);
 
 //@ Cluster: addInstance, ignore invalid attributes no ignore
-Cluster.addInstance({host: __host, data:'sample', port:__mysql_port, whatever:5}, __pwd);
+Cluster.addInstance({host: __host, data:'sample', port:__mysql_port_adminapi, whatever:5}, __pwd);
 
 //@ Cluster: addInstance, ignore invalid attributes ignore
-Cluster.addInstance({host: __host, data:'sample', port:__mysql_port, whatever:5}, __pwd);
+Cluster.addInstance({host: __host, data:'sample', port:__mysql_port_adminapi, whatever:5}, __pwd);
 
 //@ Cluster: addSeedInstance, it already initialized, answer no
-Cluster.addSeedInstance({host: __host, port:__mysql_port}, __pwd);
+Cluster.addSeedInstance({host: __host, port:__mysql_port_adminapi}, __pwd);
 
 //@ Cluster: addSeedInstance, it already initialized, answer yes
-Cluster.addSeedInstance({host: __host, port:__mysql_port}, __pwd);
+Cluster.addSeedInstance({host: __host, port:__mysql_port_adminapi}, __pwd);
 
 // Cleanup
 dba.dropCluster('devCluster', {dropDefaultReplicaSet: true});

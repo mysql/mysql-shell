@@ -1,16 +1,18 @@
-//@ Cluster: validating members
-|Replica Set Members: 4|
+//@ ReplicaSet: validating members
+|Replica Set Members: 6|
 |name: OK|
 |getName: OK|
 |addInstance: OK|
 |removeInstance: OK|
+|help: OK|
+|rejoinInstance: OK|
 
-//@# Cluster: addInstance errors
-||Invalid number of arguments in ReplicaSet.addInstance, expected 2 to 3 but got 0
-||Invalid number of arguments in ReplicaSet.addInstance, expected 2 to 3 but got 4
-||ReplicaSet.addInstance: Argument #1 is expected to be a string
-||ReplicaSet.addInstance: The MASTER Cluster password cannot be empty
+//@# ReplicaSet: addInstance errors
+||Invalid number of arguments in ReplicaSet.addInstance, expected 1 to 2 but got 0
+||Invalid number of arguments in ReplicaSet.addInstance, expected 1 to 2 but got 4
+||ReplicaSet.addInstance: Invalid connection options, expected either a URI or a Dictionary
+||ReplicaSet.addInstance: Missing instance options: host
 ||ReplicaSet.addInstance: Invalid connection options, expected either a URI or a Dictionary
 ||ReplicaSet.addInstance: Unexpected instance options: authMethod, schema
-||ReplicaSet.addInstance: Missing required attribute: host
-||already belongs to the ReplicaSet
+||ReplicaSet.addInstance: Missing instance options: host, password
+||already belongs to the ReplicaSet: 'default'

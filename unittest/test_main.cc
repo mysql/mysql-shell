@@ -45,8 +45,6 @@ std::string flags = ::testing::GTEST_FLAG(filter);
 #ifdef WITH_ADMINAPI
 if (flags.empty())
   flags = "Shell_py_dba_tests.*:Shell_js_dba_tests.*";
-else
-  flags += ":Shell_py_dba_tests.*:Shell_js_dba_tests.*";
 #else
   flags += "-Shell_py_dba_tests.*:Shell_js_dba_tests.*";
 #endif
