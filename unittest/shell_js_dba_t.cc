@@ -571,6 +571,7 @@ namespace shcore
     reset_shell();
 
     execute("dba.deployLocalInstance(" + _mysql_port_adminapi + ", {password: \"root\"});");
+    execute("var mysql = require('mysql');");
     execute("var mySession = mysql.getClassicSession('root:root@localhost:" + _mysql_port_adminapi +"');");
     execute("\\connect -c root:root@localhost:" + _mysql_port_adminapi + "");
     validate_interactive("dba_replica_set_no_interactive.js");
