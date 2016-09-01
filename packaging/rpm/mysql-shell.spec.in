@@ -28,7 +28,7 @@
 Summary:        Command line shell and scripting environment for MySQL
 Name:           mysql-shell@PRODUCT_SUFFIX@
 Version:        @MYSH_NO_DASH_VERSION@
-Release:        @RPM_RELEASE@@RPM_EXTRA_VERSION@%{?dist}
+Release:        0.1@@RPM_EXTRA_VERSION@%{?dist}
 License:        @LICENSE_TYPE@
 URL:            http://dev.mysql.com/
 Source0:        https://cdn.mysql.com/Downloads/%{name}-@MYSH_VERSION@-src.tar.gz
@@ -110,6 +110,9 @@ rm -f %{buildroot}%{_datadir}/mysqlsh/{@LICENSE_FILE@,README}
 %{_bindir}/mysqlsh
 
 %changelog
+* Thu Sep 01 2016 Balasubramanian Kandasamy <balasubramanian.kandasamy@oracle.com> - 1.0.5-0.1
+- Updated for 1.0.5 labs release
+
 * Wed Mar 23 2016 Alfredo Kojima <alfredo.kengi.kojima@oracle.com> - 1.0.3-1
 - updated for 1.0.3, bug fixes
 
