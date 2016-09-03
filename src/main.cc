@@ -72,7 +72,6 @@ void handle_ctrlc_signal(int sig)
   {
     shell_ptr->abort();
     shell_ptr->println("^C");
-    shell_ptr->print(shell_ptr->prompt());
   }
 }
 
