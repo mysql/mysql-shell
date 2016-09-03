@@ -206,9 +206,17 @@ bool Shell_sql::print_help(const std::string& topic)
 {
   bool ret_val = true;
   if (topic.empty())
-    _shell_command_handler.print_commands("===== SQL Mode Commands =====");
+    _owner->print(_shell_command_handler.get_commands("===== SQL Mode Commands ====="));
   else
-    ret_val = _shell_command_handler.print_command_help(topic);
+  {
+    std::string help;
+    ret_val = _shell_command_handler.get_command_help(topic, help);
+    if (ret_val)
+    {
+      help += "\n";
+      _owner->print(help);
+    }
+  }
 
   return ret_val;
 }

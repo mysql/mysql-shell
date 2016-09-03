@@ -77,8 +77,8 @@ namespace shcore
   public:
     bool process(const std::string& command_line);
     void add_command(const std::string& triggers, const std::string& description, const std::string& help, Shell_command_function function);
-    void print_commands(const std::string& title);
-    bool print_command_help(const std::string& command);
+    std::string get_commands(const std::string& title);
+    bool get_command_help(const std::string& command, std::string& help);
   };
 
   class SHCORE_PUBLIC Shell_language
@@ -148,7 +148,7 @@ namespace shcore
 
     virtual std::string prompt();
 
-    virtual Interpreter_delegate *lang_delegate() { return _lang_delegate; }
+    virtual Interpreter_delegate *get_delegate() { return &_delegate; }
 
     bool is_running_query() { return _running_query; }
     virtual void abort();
@@ -157,12 +157,27 @@ namespace shcore
     void set_error_processing() { _global_return_code = 1; }
   public:
     virtual void print(const std::string &s);
+    void println(const std::string &s = "", const std::string& tag = "");
+    void print_value(const shcore::Value &value, const std::string& tag);
     virtual void print_error(const std::string &s);
     virtual bool password(const std::string &s, std::string &ret_pass);
+    bool prompt(const std::string &s, std::string &ret_val);
     virtual const std::string& get_input_source() { return _input_source; }
     virtual bool print_help(const std::string& topic);
     bool reconnect_if_needed();
+
   private:
+    static void deleg_print(void *self, const char *text);
+    static void deleg_print_error(void *self, const char *text);
+    static void deleg_print_value(void *self, const shcore::Value &value, const char *tag);
+    static bool deleg_prompt(void *self, const char *text, std::string &ret);
+    static bool deleg_password(void *self, const char *text, std::string &ret);
+    static void deleg_source(void *self, const char *module);
+
+  private:
+    std::string format_json_output(const std::string &info, const std::string& tag);
+    std::string format_json_output(const shcore::Value &info, const std::string& tag);
+
     virtual void handle_notification(const std::string &name, shcore::Object_bridge_ref sender, shcore::Value::Map_type_ref data);
     void set_dba_global();
     void init_sql();
@@ -177,7 +192,8 @@ namespace shcore
 
     std::shared_ptr<mysh::ShellDevelopmentSession> _global_dev_session;
 
-    Interpreter_delegate *_lang_delegate;
+    Interpreter_delegate *_client_delegate;
+    Interpreter_delegate _delegate;
     std::string _input_source;
     Mode _mode;
     int _global_return_code;

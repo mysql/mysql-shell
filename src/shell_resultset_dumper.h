@@ -24,6 +24,7 @@
 #include <iostream>
 #include "cmdline_options.h"
 #include "modules/base_resultset.h"
+#include "shellcore/lang_base.h"
 
 namespace mysh
 {
@@ -43,10 +44,11 @@ namespace mysh
 class ResultsetDumper
 {
 public:
-  ResultsetDumper(std::shared_ptr<mysh::ShellBaseResult>target, bool buffer_data);
+  ResultsetDumper(std::shared_ptr<mysh::ShellBaseResult>target, shcore::Interpreter_delegate *output_handler, bool buffer_data);
   virtual void dump();
 
 protected:
+  shcore::Interpreter_delegate *_output_handler;
   std::shared_ptr<mysh::ShellBaseResult>_resultset;
   std::string _format;
   bool _show_warnings;

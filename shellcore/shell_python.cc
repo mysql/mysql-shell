@@ -27,7 +27,7 @@ using namespace shcore;
 Shell_python::Shell_python(Shell_core *shcore)
   : Shell_language(shcore)
 {
-  _py = std::shared_ptr<Python_context>(new Python_context(shcore->lang_delegate()));
+  _py = std::shared_ptr<Python_context>(new Python_context(shcore->get_delegate()));
 }
 
 Shell_python::~Shell_python()

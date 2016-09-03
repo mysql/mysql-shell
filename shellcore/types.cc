@@ -203,6 +203,11 @@ bool Exception::is_mysql() const
   return strcmp(type(), "MySQL Error") == 0;
 }
 
+bool Exception::is_parser() const
+{
+  return strcmp(type(), "Can't parse") == 0;
+}
+
 std::string Exception::format()
 {
   std::string error_message;
@@ -902,7 +907,7 @@ Value Value::parse(char **pc)
       }
       else
       {
-        throw Exception::parser_error(std::string("Can't parse ") + *pc);
+        throw Exception::parser_error(std::string("Can't parse '") + *pc + "'");
         //report_error(pi - _pc_json_start,
         //  "one of (array, string, number, true, false, null) expected");
         return Value();

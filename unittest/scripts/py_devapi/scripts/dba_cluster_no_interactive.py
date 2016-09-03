@@ -3,7 +3,8 @@
 # validateMemer and validateNotMember are defined on the setup script
 
 dba.drop_metadata_schema({'enforce':True})
-clusterPassword = 'testing'
+clusterPassword = 'testing';
+
 #@ Cluster: validating members
 cluster = dba.create_cluster('devCluster', clusterPassword)
 
@@ -20,24 +21,28 @@ validateMember(members, 'name')
 validateMember(members, 'get_name')
 validateMember(members, 'admin_type')
 validateMember(members, 'get_admin_type')
-validateMember(members, 'add_seed_instance')
 validateMember(members, 'add_instance')
 validateMember(members, 'remove_instance')
 validateMember(members, 'get_replica_set')
+validateMember(members, 'rejoin_instance');
+validateMember(members, 'describe');
+validateMember(members, 'status');
 
-#@ Cluster: add_seed_instance
-# Added this to enable add_instance, full testing of add_seed_instance is needed
-cluster.add_seed_instance(clusterPassword, {'host': __host, 'port':__mysql_port}, __pwd)
+#@ Cluster: remove_instance
+cluster.remove_instance({'host': '127.0.0.1', 'port': __mysql_port_adminapi});
+
+#@ Cluster: add_instance
+cluster.add_instance({'dbUser': 'root', 'host': '127.0.0.1', 'port': __mysql_port_adminapi}, 'root')
 
 #@# Cluster: add_instance errors
 cluster.add_instance()
 cluster.add_instance(5,6,7,1)
 cluster.add_instance(5,5)
 cluster.add_instance('',5)
-cluster.add_instance(clusterPassword, 5)
-cluster.add_instance(clusterPassword, {'host': __host, 'schema': 'abs', 'user':"sample", 'authMethod':56})
-cluster.add_instance(clusterPassword, {"port": __port})
-cluster.add_instance(clusterPassword, {'host': __host, 'port':__mysql_port}, __pwd)
+cluster.add_instance( 5)
+cluster.add_instance({'host': '127.0.0.1', 'schema': 'abs', 'user':"sample", 'authMethod':56})
+cluster.add_instance({'port': __mysql_port_adminapi})
+cluster.add_instance({'host': '127.0.0.1', 'port':__mysql_port_adminapi}, 'root')
 
 # Cleanup
 dba.drop_cluster('devCluster', {"dropDefaultReplicaSet": True})

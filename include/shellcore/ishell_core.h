@@ -85,7 +85,7 @@ namespace shcore
 
     virtual std::string prompt() = 0;
 
-    virtual Interpreter_delegate *lang_delegate() = 0;
+    virtual Interpreter_delegate *get_delegate() = 0;
 
     virtual void print(const std::string &s) = 0;
     virtual void print_error(const std::string &s) = 0;

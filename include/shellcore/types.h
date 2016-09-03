@@ -398,6 +398,7 @@ namespace shcore {
     bool is_type() const;
     bool is_server() const;
     bool is_mysql() const;
+    bool is_parser() const;
 
     virtual const char *what() const BOOST_NOEXCEPT_OR_NOTHROW;
 

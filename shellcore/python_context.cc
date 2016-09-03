@@ -55,7 +55,7 @@ namespace shcore
   }
 
   Python_context::Python_context(Interpreter_delegate *deleg) throw (Exception)
-    : _types(this)
+    : _types(this), _error_buffer_ready(false)
   {
     _delegate = deleg;
 
@@ -460,7 +460,25 @@ namespace shcore
     // TODO: logging
 #endif
     if (stream == "error")
-      ctx->_delegate->print_error(ctx->_delegate->user_data, text.c_str());
+    {
+      ctx->_error_buffer += text;
+
+      // Hack to buffer python errors until error description is
+      // received and \n is received
+      // Python error descriptions come in the format of
+      // <Operation>Error
+      // i.e. ImportError, AttributeError, SystemError
+      auto position = text.find("Error");
+      if (position > 0 && position != std::string::npos)
+        ctx->_error_buffer_ready = true;
+
+      if (ctx->_error_buffer_ready && text == "\n")
+      {
+        ctx->_delegate->print_error(ctx->_delegate->user_data, ctx->_error_buffer.c_str());
+        ctx->_error_buffer.clear();
+        ctx->_error_buffer_ready = false;
+      }
+    }
     else
       ctx->_delegate->print(ctx->_delegate->user_data, text.c_str());
 

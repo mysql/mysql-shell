@@ -50,6 +50,7 @@ _options(options)
 
   _input_mode = Input_ok;
 
+  // The custom delegate function is used only if o
   if (custom_delegate)
   {
     _delegate.user_data = custom_delegate->user_data;
@@ -58,6 +59,7 @@ _options(options)
     _delegate.prompt = custom_delegate->prompt;
     _delegate.password = custom_delegate->password;
     _delegate.source = custom_delegate->source;
+    _delegate.print_value = custom_delegate->print_value;
   }
   else
   {
@@ -67,6 +69,7 @@ _options(options)
     _delegate.prompt = &Interactive_shell::deleg_prompt;
     _delegate.password = &Interactive_shell::deleg_password;
     _delegate.source = &Interactive_shell::deleg_source;
+    _delegate.print_value = nullptr;
   }
 
   // Sets the global options
@@ -200,13 +203,7 @@ void Interactive_shell::print_connection_message(mysh::SessionType type, const s
 
   message += "Creating " + stype + " Session to '" + uri + "'";
 
-  if ((*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string().find("json") == 0)
-    print_json_info(message);
-  else
-  {
-    message += "\n";
-    _delegate.print(_delegate.user_data, message.c_str());
-  }
+  println(message);
 }
 
 bool Interactive_shell::connect(bool primary_session)
@@ -247,10 +244,10 @@ bool Interactive_shell::connect(bool primary_session)
                                      _options.ssl_ca, _options.ssl_cert, _options.ssl_key,
                                      _options.auth_method);
       if (_options.auth_method == "PLAIN")
-        _delegate.print(_delegate.user_data, "mysqlx: [Warning] PLAIN authentication method is NOT secure!\n");
+        println("mysqlx: [Warning] PLAIN authentication method is NOT secure!");
 
       if (!secure_password)
-        _delegate.print(_delegate.user_data, "mysqlx: [Warning] Using a password on the command line interface can be insecure.\n");
+        println("mysqlx: [Warning] Using a password on the command line interface can be insecure.");
     }
 
     // Sets any missing parameter to default values
@@ -265,14 +262,12 @@ bool Interactive_shell::connect(bool primary_session)
   }
   catch (Exception &exc)
   {
-    _delegate.print_error(_delegate.user_data, exc.format().c_str());
+    _shell->print_value(shcore::Value(exc.error()), "error");
     return false;
   }
   catch (std::exception &exc)
   {
-    std::string error(exc.what());
-    error += "\n";
-    _delegate.print_error(_delegate.user_data, error.c_str());
+    print_error(exc.what());
     return false;
   }
 
@@ -307,7 +302,7 @@ Value Interactive_shell::connect_session(const Argument_list &args, mysh::Sessio
   // Prompts for the password if needed
   if (!connection_data->has_key("dbPassword") || _options.prompt_password)
   {
-    if (_delegate.password(_delegate.user_data, "Enter password:", pass))
+    if (_shell->password("Enter password:", pass))
       connect_args.push_back(Value(pass));
   }
 
@@ -318,8 +313,7 @@ Value Interactive_shell::connect_session(const Argument_list &args, mysh::Sessio
 
   if (recreate_schema)
   {
-    std::string message = "Recreating schema " + schema_name + "...\n";
-    _delegate.print(_delegate.user_data, message.c_str());
+    println("Recreating schema " + schema_name + "...");
     try
     {
       new_session->drop_schema(schema_arg);
@@ -344,14 +338,12 @@ Value Interactive_shell::connect_session(const Argument_list &args, mysh::Sessio
     if (old_session && old_session.unique() && old_session->is_connected())
     {
       if (_options.interactive)
-        _delegate.print(_delegate.user_data, "Closing old connection...\n");
+        println("Closing old connection...");
 
       old_session->close(shcore::Argument_list());
     }
 
-    _delegate.print(_delegate.user_data, "Session successfully established. ");
-
-    std::string message;
+    std::string message = "Session successfully established. ";
     shcore::Value default_schema;
     std::string session_type = new_session->class_name();
     if (!session_type.compare("XSession"))
@@ -362,23 +354,14 @@ Value Interactive_shell::connect_session(const Argument_list &args, mysh::Sessio
     if (default_schema)
     {
       if (session_type == "ClassicSession")
-        message = "Default schema set to `" + default_schema.as_object()->get_member("name").as_string() + "`.";
+        message += "Default schema set to `" + default_schema.as_object()->get_member("name").as_string() + "`.";
       else
-        message = "Default schema `" + default_schema.as_object()->get_member("name").as_string() + "` accessible through db.";
+        message += "Default schema `" + default_schema.as_object()->get_member("name").as_string() + "` accessible through db.";
     }
     else
-      message = "No default schema selected.";
+      message += "No default schema selected.";
 
-    if ((*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string().find("json") == 0)
-      print_json_info(message);
-    else
-    {
-      message += "\n";
-      _delegate.print(_delegate.user_data, message.c_str());
-    }
-
-    // extra empty line to separate connect msgs from the stdheader nobody reads
-    _delegate.print(_delegate.user_data, "\n");
+    println(message);
   }
 
   return Value::Null();
@@ -440,7 +423,7 @@ void Interactive_shell::init_scripts(Shell_core::Mode mode)
   {
     std::string error(e.what());
     error += "\n";
-    _delegate.print_error(_delegate.user_data, error.c_str());
+    print_error(error);
   }
 }
 
@@ -513,84 +496,14 @@ bool Interactive_shell::switch_shell_mode(Shell_core::Mode mode, const std::vect
   return true;
 }
 
-void Interactive_shell::print(const std::string &str)
-{
-  std::cout << str;
-}
-
 void Interactive_shell::println(const std::string &str)
 {
-  std::string line(str);
-  line += "\n";
-  _delegate.print(_delegate.user_data, line.c_str());
+  _shell->println(str);
 }
 
 void Interactive_shell::print_error(const std::string &error)
 {
-  Value error_val;
-  try
-  {
-    error_val = Value::parse(error);
-  }
-  catch (shcore::Exception &e)
-  {
-    error_val = Value(error);
-  }
-
-  log_error("%s", error.c_str());
-  std::string message;
-
-  if ((*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string().find("json") == 0)
-  {
-    Value::Map_type_ref error_map(new Value::Map_type());
-
-    Value error_obj(error_map);
-
-    (*error_map)["error"] = error_val;
-
-    message = error_obj.json((*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string() == "json");
-  }
-  else
-  {
-    message = "ERROR: ";
-    if (error_val.type == shcore::Map)
-    {
-      Value::Map_type_ref error_map = error_val.as_map();
-
-      if (error_map->has_key("code"))
-      {
-        //message.append(" ");
-        message.append(((*error_map)["code"].repr()));
-
-        if (error_map->has_key("state") && (*error_map)["state"])
-          message.append(" (" + (*error_map)["state"].as_string() + ")");
-
-        message.append(": ");
-      }
-
-      if (error_map->has_key("message"))
-        message.append((*error_map)["message"].as_string());
-      else
-        message.append("?");
-      message.append("\n");
-    }
-    else
-      message = error_val.descr();
-  }
-
-  std::cerr << message << std::flush;
-}
-
-void Interactive_shell::print_json_info(const std::string &info, const std::string& label)
-{
-  shcore::JSON_dumper dumper((*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string() == "json");
-  dumper.start_object();
-  dumper.append_string(label);
-  dumper.append_string(info);
-  dumper.end_object();
-
-  _delegate.print(_delegate.user_data, dumper.str().c_str());
-  _delegate.print(_delegate.user_data, "\n");
+  _shell->print_error(error);
 }
 
 bool Interactive_shell::cmd_print_shell_help(const std::vector<std::string>& args)
@@ -604,13 +517,20 @@ bool Interactive_shell::cmd_print_shell_help(const std::vector<std::string>& arg
     printed = _shell->print_help(args[1]);
 
     if (!printed)
-      printed = _shell_command_handler.print_command_help(args[1]);
+    {
+      std::string help;
+      if (_shell_command_handler.get_command_help(args[1], help))
+      {
+        _shell->println(help);
+        printed = true;
+      }
+    }
   }
 
   // If not specific help found, prints the generic help
   if (!printed)
   {
-    _shell_command_handler.print_commands("===== Global Commands =====");
+    _shell->print(_shell_command_handler.get_commands("===== Global Commands ====="));
 
     // Prints the active shell specific help
     _shell->print_help("");
@@ -720,7 +640,7 @@ bool Interactive_shell::cmd_connect(const std::vector<std::string>& args)
     error = true;
 
   if (error)
-    _delegate.print_error(_delegate.user_data, "\\connect [-<type>] <uri or $name>\n");
+    print_error("\\connect [-<type>] <uri or $name>\n");
 
   return true;
 }
@@ -821,7 +741,7 @@ bool Interactive_shell::cmd_store_connection(const std::vector<std::string>& arg
 
       std::string uri = shcore::build_connection_string((*StoredSessions::get_instance()->connections())[name].as_map(), false);
 
-      _delegate.print(_delegate.user_data, (boost::format("Successfully stored %s as %s.\n") % uri % name).str().c_str());
+      println((boost::format("Successfully stored %s as %s.") % uri % name).str().c_str());
     }
     catch (std::exception& err)
     {
@@ -834,7 +754,7 @@ bool Interactive_shell::cmd_store_connection(const std::vector<std::string>& arg
   if (!error.empty())
   {
     error += "\n";
-    _delegate.print_error(_delegate.user_data, error.c_str());
+    print_error(error);
   }
 
   return true;
@@ -850,7 +770,7 @@ bool Interactive_shell::cmd_delete_connection(const std::vector<std::string>& ar
     {
       StoredSessions::get_instance()->remove_connection(args[1]);
 
-      _delegate.print(_delegate.user_data, (boost::format("Successfully deleted session configuration named %s.\n") % args[1]).str().c_str());
+      println((boost::format("Successfully deleted session configuration named %s.") % args[1]).str().c_str());
     }
     catch (std::exception& err)
     {
@@ -863,7 +783,7 @@ bool Interactive_shell::cmd_delete_connection(const std::vector<std::string>& ar
   if (!error.empty())
   {
     error += "\n";
-    _delegate.print_error(_delegate.user_data, error.c_str());
+    print_error(error);
   }
 
   return true;
@@ -877,20 +797,20 @@ bool Interactive_shell::cmd_list_connections(const std::vector<std::string>& arg
 
     Value::Map_type_ref connections = StoredSessions::get_instance()->connections();
     if (format.find("json") != std::string::npos)
-      _delegate.print(_delegate.user_data, shcore::Value(connections).json(format != "json/raw").c_str());
+      _shell->print_value(shcore::Value(connections), "");
     else
     {
       for (auto connection : (*connections.get()))
       {
         std::string uri = shcore::build_connection_string(connection.second.as_map(), false);
-        _delegate.print(_delegate.user_data, (boost::format("%1% : %2%\n") % connection.first % uri).str().c_str());
+        println((boost::format("%1% : %2%") % connection.first % uri).str());
       }
     }
 
-    _delegate.print(_delegate.user_data, "\n");
+    println();
   }
   else
-    _delegate.print_error(_delegate.user_data, "\\lsconn\n");
+    print_error("\\lsconn\n");
 
   return true;
 }
@@ -985,7 +905,7 @@ bool Interactive_shell::cmd_status(const std::vector<std::string>& UNUSED(args))
     }
   }
   else
-    _delegate.print_error(_delegate.user_data, "Not Connected.\n");
+    print_error("Not Connected.\n");
 
   return true;
 }
@@ -1035,13 +955,7 @@ bool Interactive_shell::cmd_use(const std::vector<std::string>& args)
           else
             message = "Schema `" + schema.as_object()->get_member("name").as_string() + "` accessible through db.";
 
-          if ((*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string().find("json") == 0)
-            print_json_info(message);
-          else
-          {
-            message += "\n";
-            _delegate.print(_delegate.user_data, message.c_str());
-          }
+          println(message);
         }
       }
       catch (shcore::Exception &e)
@@ -1054,21 +968,19 @@ bool Interactive_shell::cmd_use(const std::vector<std::string>& args)
     error = "Not Connected.\n";
 
   if (!error.empty())
-    _delegate.print_error(_delegate.user_data, error.c_str());
+    print_error(error);
 
   return true;
 }
 
 void Interactive_shell::deleg_print(void *cdata, const char *text)
 {
-  Interactive_shell *self = (Interactive_shell*)cdata;
-  self->print(text);
+  std::cout << text;
 }
 
 void Interactive_shell::deleg_print_error(void *cdata, const char *text)
 {
-  Interactive_shell *self = (Interactive_shell*)cdata;
-  self->print_error(text);
+  std::cerr << text;
 }
 
 char *Interactive_shell::readline(const char *prompt)
@@ -1153,7 +1065,7 @@ void Interactive_shell::process_line(const std::string &line)
     {
       std::string error(exc.what());
       error += "\n";
-      _delegate.print_error(_delegate.user_data, error.c_str());
+      print_error(error);
     }
   }
 
@@ -1185,19 +1097,18 @@ void Interactive_shell::process_line(const std::string &line)
 #ifndef WIN32
             add_history(executed.c_str());
 #endif
-            println("");
           }
         }
       }
       catch (shcore::Exception &exc)
       {
-        _delegate.print_error(_delegate.user_data, exc.format().c_str());
+        _shell->print_value(shcore::Value(exc.error()), "error");
       }
       catch (std::exception &exc)
       {
         std::string error(exc.what());
         error += "\n";
-        _delegate.print_error(_delegate.user_data, error.c_str());
+        print_error(error);
       }
 
       // TODO: Do we need this cleanup? i.e. in case of exceptions above??
@@ -1262,22 +1173,18 @@ void Interactive_shell::process_result(shcore::Value result)
           std::shared_ptr<mysh::ShellBaseResult> resultset = std::static_pointer_cast<mysh::ShellBaseResult> (object);
 
           // Result buffering will be done ONLY if on any of the scripting interfaces
-          ResultsetDumper dumper(resultset, _shell->interactive_mode() != IShell_core::Mode_SQL);
+          ResultsetDumper dumper(resultset, _shell->get_delegate(), _shell->interactive_mode() != IShell_core::Mode_SQL);
           dumper.dump();
         }
         else
         {
-          if ((*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string().find("json") == 0)
-          {
-            shcore::JSON_dumper dumper((*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string() == "json");
-            dumper.start_object();
-            dumper.append_value("result", result);
-            dumper.end_object();
+          // In JSON mode: the json representation is used for Object, Array and Map
+          // For anything else a map is printed with the "value" key
+          std::string tag;
+          if (result.type != shcore::Object && result.type != shcore::Array && result.type != shcore::Map)
+            tag = "value";
 
-            _delegate.print(_delegate.user_data, dumper.str().c_str());
-          }
-          else
-            _delegate.print(_delegate.user_data, result.descr(true).c_str());
+          _shell->print_value(result, tag);
         }
       }
     }
@@ -1285,7 +1192,7 @@ void Interactive_shell::process_result(shcore::Value result)
 
   // Return value of undefined implies an error processing
   if (result.type == shcore::Undefined)
-    _shell->set_error_processing();
+  _shell->set_error_processing();
 }
 
 int Interactive_shell::process_file()
@@ -1294,7 +1201,7 @@ int Interactive_shell::process_file()
   int ret_val = 1;
 
   if (_options.run_file.empty())
-    _delegate.print_error(_delegate.user_data, "Usage: \\. <filename> | \\source <filename>\n");
+    print_error("Usage: \\. <filename> | \\source <filename>\n");
   else
     //TODO: do path expansion (in case ~ is used in linux)
   {
@@ -1315,7 +1222,7 @@ int Interactive_shell::process_file()
     else
     {
       // TODO: add a log entry once logging is
-      _delegate.print_error(_delegate.user_data, (boost::format("Failed to open file '%s', error: %d\n") % _options.run_file % errno).str().c_str());
+      print_error((boost::format("Failed to open file '%s', error: %d\n") % _options.run_file % errno).str());
     }
   }
 
@@ -1344,7 +1251,7 @@ int Interactive_shell::process_stream(std::istream & stream, const std::string& 
 
       if (_options.full_interactive)
       {
-        _delegate.print(_delegate.user_data, prompt().c_str());
+        std::string trace = prompt() + line;
         println(line);
       }
 
@@ -1387,19 +1294,10 @@ void Interactive_shell::command_loop()
         break;
       default:
         break;
-    }
-
-    if (!message.empty())
-    {
-      if ((*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string().find("json") == 0)
-        print_json_info(message);
-      else
-      {
-        message += "\n";
-        _delegate.print(_delegate.user_data, message.c_str());
-      }
-    }
   }
+
+    println(message);
+}
 
   while (_options.interactive)
   {
@@ -1418,17 +1316,15 @@ void Interactive_shell::print_banner()
 {
   std::string welcome_msg("Welcome to MySQL Shell ");
   welcome_msg += MYSH_VERSION;
-  welcome_msg += " Development Preview";
+  welcome_msg += " Development Preview\n\n";
+  welcome_msg += "Copyright (c) 2016, Oracle and/or its affiliates. All rights reserved.\n\n"\
+                 "Oracle is a registered trademark of Oracle Corporation and/or its\n"\
+                 "affiliates. Other names may be trademarks of their respective\n"\
+                 "owners.";
   println(welcome_msg);
-  println("");
-  println("Copyright (c) 2016, Oracle and/or its affiliates. All rights reserved.");
-  println("");
-  println("Oracle is a registered trademark of Oracle Corporation and/or its");
-  println("affiliates. Other names may be trademarks of their respective");
-  println("owners.");
-  println("");
+  println();
   println("Type '\\help', '\\h' or '\\?' for help, type '\\quit' or '\\q' to exit.");
-  println("");
+  println();
 }
 
 void Interactive_shell::print_cmd_line_helper()

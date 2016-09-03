@@ -29,6 +29,7 @@
 #include <boost/format.hpp>
 #include "modules/mod_mysqlx.h"
 #include "modules/mod_mysql.h"
+#include "utils/utils_general.h"
 
 #ifdef WITH_ADMINAPI
 #include "interactive_global_dba.h"
@@ -49,7 +50,7 @@ using namespace std::placeholders;
 using namespace shcore;
 
 Shell_core::Shell_core(Interpreter_delegate *shdelegate)
-  : IShell_core(), _lang_delegate(shdelegate), _running_query(false), _reconnect_session(false)
+  : IShell_core(), _client_delegate(shdelegate), _running_query(false), _reconnect_session(false)
 {
   INIT_MODULE(mysh::mysqlx::Mysqlx);
   INIT_MODULE(mysh::mysql::Mysql);
@@ -81,13 +82,20 @@ Shell_core::Shell_core(Interpreter_delegate *shdelegate)
 
   observe_notification("SN_SESSION_CONNECTION_LOST");
 
-  shcore::print = std::bind(&shcore::Shell_core::print, this, _1);
+  // Setus the shell core delegate
+  _delegate.user_data = this;
+  _delegate.user_data = this;
+  _delegate.print = &Shell_core::deleg_print;
+  _delegate.print_error = &Shell_core::deleg_print_error;
+  _delegate.prompt = &Shell_core::deleg_prompt;
+  _delegate.password = &Shell_core::deleg_password;
+  _delegate.source = &Shell_core::deleg_source;
+  _delegate.print_value = &Shell_core::deleg_print_value;
 }
 
 Shell_core::~Shell_core()
 {
   delete _registry;
-  shcore::print = shcore::default_print;
 
   if (_langs[Mode_JScript])
     delete _langs[Mode_JScript];
@@ -106,17 +114,99 @@ bool Shell_core::print_help(const std::string& topic)
 
 void Shell_core::print(const std::string &s)
 {
-  _lang_delegate->print(_lang_delegate->user_data, s.c_str());
+  _delegate.print(_delegate.user_data, s.c_str());
+}
+
+void Shell_core::println(const std::string &s, const std::string& tag)
+{
+  std::string output(s);
+
+  // When using JSON output ALL must be JSON
+  if (!s.empty())
+  {
+    std::string format = (*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string();
+    if (format.find("json") != std::string::npos)
+      output = format_json_output(output, tag.empty() ? "info" : tag);
+  }
+
+  output += "\n";
+
+  _client_delegate->print(_client_delegate->user_data, output.c_str());
+}
+
+void Shell_core::print_value(const shcore::Value &value, const std::string& tag)
+{
+  _delegate.print_value(_delegate.user_data, value, tag.c_str());
+}
+
+std::string Shell_core::format_json_output(const std::string &info, const std::string& tag)
+{
+  // Splits the incoming text in lines
+  auto lines = shcore::split_string(info, "\n");
+
+  std::string target;
+  target.reserve(info.length());
+
+  auto index = lines.begin(), end = lines.end();
+  if (index != end)
+    target = *index++;
+
+  while (index != end)
+  {
+    if (!(*index).empty())
+      target += " " + *index;
+
+    index++;
+  }
+
+  return format_json_output(shcore::Value(target), tag);
+}
+
+std::string Shell_core::format_json_output(const shcore::Value &info, const std::string& tag)
+{
+  shcore::JSON_dumper dumper((*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string() == "json");
+  dumper.start_object();
+  dumper.append_value(tag, info);
+  dumper.end_object();
+
+  return dumper.str();
 }
 
 void Shell_core::print_error(const std::string &s)
 {
-  _lang_delegate->print_error(_lang_delegate->user_data, s.c_str());
+  std::string output;
+  // When using JSON output ALL must be JSON
+  std::string format = (*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string();
+  if (format.find("json") != std::string::npos)
+    output = format_json_output(output, "error");
+  else
+    output = s;
+
+  _client_delegate->print_error(_client_delegate->user_data, output.c_str());
 }
 
 bool Shell_core::password(const std::string &s, std::string &ret_pass)
 {
-  return _lang_delegate->password(_lang_delegate->user_data, s.c_str(), ret_pass);
+  std::string prompt(s);
+
+  // When using JSON output ALL must be JSON
+  std::string format = (*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string();
+  if (format.find("json") != std::string::npos)
+    prompt = format_json_output(prompt, "password");
+
+  return _client_delegate->password(_client_delegate->user_data, prompt.c_str(), ret_pass);
+}
+
+bool Shell_core::prompt(const std::string &s, std::string &ret_val)
+{
+  std::string prompt(s);
+
+  // When using JSON output ALL must be JSON
+  std::string format = (*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string();
+  if (format.find("json") != std::string::npos)
+    prompt = format_json_output(prompt, "prompt");
+
+  return _client_delegate->prompt(_client_delegate->user_data, prompt.c_str(), ret_val);
 }
 
 std::string Shell_core::preprocess_input_line(const std::string &s)
@@ -525,6 +615,125 @@ bool Shell_core::reconnect_if_needed()
   return ret_val;
 }
 
+void Shell_core::deleg_print(void *self, const char *text)
+{
+  Shell_core *shcore = (Shell_core*)self;
+
+  std::string output(text);
+
+  // When using JSON output ALL must be JSON
+  std::string format = (*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string();
+  if (format.find("json") != std::string::npos)
+    output = shcore->format_json_output(output, "info");
+
+  auto deleg = shcore->_client_delegate;
+  deleg->print(deleg->user_data, output.c_str());
+}
+
+void Shell_core::deleg_print_error(void *self, const char *text)
+{
+  Shell_core *shcore = (Shell_core*)self;
+  auto deleg = shcore->_client_delegate;
+
+  std::string output;
+
+  if (text)
+    output.assign(text);
+
+  // When using JSON output ALL must be JSON
+  std::string format = (*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string();
+  if (format.find("json") != std::string::npos)
+    output = shcore->format_json_output(output, "error");
+
+  if (output.length() && output[output.length() - 1] != '\n')
+    output += "\n";
+
+  deleg->print_error(deleg->user_data, output.c_str());
+}
+
+bool Shell_core::deleg_prompt(void *self, const char *text, std::string &ret)
+{
+  Shell_core *shcore = (Shell_core*)self;
+  auto deleg = shcore->_client_delegate;
+  return deleg->prompt(deleg->user_data, text, ret);
+}
+
+bool Shell_core::deleg_password(void *self, const char *text, std::string &ret)
+{
+  Shell_core *shcore = (Shell_core*)self;
+  auto deleg = shcore->_client_delegate;
+  return deleg->password(deleg->user_data, text, ret);
+}
+
+void Shell_core::deleg_source(void *self, const char *module)
+{
+  Shell_core *shcore = (Shell_core*)self;
+  auto deleg = shcore->_client_delegate;
+  deleg->source(deleg->user_data, module);
+}
+
+void Shell_core::deleg_print_value(void *self, const shcore::Value &value, const char *tag)
+{
+  Shell_core *shcore = (Shell_core*)self;
+  auto deleg = shcore->_client_delegate;
+  std::string mtag;
+
+  if (tag)
+    mtag.assign(tag);
+
+  // If the client delegate has it's own logic to print errors then let it go
+  // not expected to be the case.
+  if (deleg->print_value)
+    deleg->print_value(deleg->user_data, value, tag);
+  else
+  {
+    std::string output;
+    // When using JSON output ALL must be JSON
+    std::string format = (*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string();
+    if (format.find("json") != std::string::npos)
+    {
+      // If no tag is provided, prints the JSON representation of the Value
+      if (mtag.empty())
+        output = value.json((*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string() == "json");
+      else
+        output = shcore->format_json_output(value, mtag);
+    }
+    else
+    {
+      if (mtag == "error" && value.type == shcore::Map)
+      {
+        output = "ERROR: ";
+        Value::Map_type_ref error_map = value.as_map();
+
+        if (error_map->has_key("code"))
+        {
+          //message.append(" ");
+          output.append(((*error_map)["code"].repr()));
+
+          if (error_map->has_key("state") && (*error_map)["state"])
+            output.append(" (" + (*error_map)["state"].as_string() + ")");
+
+          output.append(": ");
+        }
+
+        if (error_map->has_key("message"))
+          output.append((*error_map)["message"].as_string());
+        else
+          output.append("?");
+      }
+      else
+        output = value.descr(true);
+    }
+
+    output += "\n";
+
+    if (mtag == "error")
+      deleg->print_error(deleg->user_data, output.c_str());
+    else
+      deleg->print(deleg->user_data, output.c_str());
+  }
+}
+
 //------------------ COMMAND HANDLER FUNCTIONS ------------------//
 bool Shell_command_handler::process(const std::string& command_line)
 {
@@ -562,7 +771,7 @@ void Shell_command_handler::add_command(const std::string& triggers, const std::
   }
 }
 
-void Shell_command_handler::print_commands(const std::string& title)
+std::string Shell_command_handler::get_commands(const std::string& title)
 {
   // Gets the length of the longest command
   Command_list::iterator index, end = _commands.end();
@@ -595,7 +804,9 @@ void Shell_command_handler::print_commands(const std::string& title)
   }
 
   // Prints the command list title
-  shcore::print(title);
+  std::string ret_val;
+
+  ret_val = title;
 
   // Prints the command list
   std::string format = "%-";
@@ -604,16 +815,18 @@ void Shell_command_handler::print_commands(const std::string& title)
   format += (boost::format("%d") % (max_alias_length)).str();
   format += "s %s\n";
 
-  shcore::print("\n");
+  ret_val += "\n";
 
   size_t tmpindex = 0;
   for (index = _commands.begin(); index != end; index++, tmpindex++)
   {
-    shcore::print((boost::format(format.c_str()) % tmp_commands[tmpindex] % tmp_alias[tmpindex] % (*index).description.c_str()).str().c_str());
+    ret_val += (boost::format(format.c_str()) % tmp_commands[tmpindex] % tmp_alias[tmpindex] % (*index).description.c_str()).str();
   }
+
+  return ret_val;
 }
 
-bool Shell_command_handler::print_command_help(const std::string& command)
+bool Shell_command_handler::get_command_help(const std::string& command, std::string &help)
 {
   bool ret_val = false;
   std::string cmd = command;
@@ -634,19 +847,19 @@ bool Shell_command_handler::print_command_help(const std::string& command)
   if (item != _command_dict.end())
   {
     // Prints the command description.
-    shcore::print(item->second->description + "\n");
+    help += item->second->description;
 
     // Prints additional triggers if any
     if (item->second->triggers != command)
     {
       std::vector<std::string> triggers;
       boost::algorithm::split(triggers, item->second->triggers, boost::is_any_of("|"), boost::token_compress_on);
-      shcore::print("\nTRIGGERS: " + boost::algorithm::join(triggers, " or ") + "\n");
+      help += "\n\nTRIGGERS: " + boost::algorithm::join(triggers, " or ");
     }
 
     // Prints the additional help
     if (!item->second->help.empty())
-      shcore::print("\n" + item->second->help + "\n");
+      help += "\n\n" + item->second->help;
 
     ret_val = true;
   }

@@ -252,6 +252,10 @@ ENDIF()
 
 add_definitions(-DMYSH_VERSION="${MYSH_VERSION}")
 
+IF(WIN32)
+  add_definitions(-DMYSH_VERSION_WIN="${MYSH_VERSION_WIN}")
+ENDIF()
+
 IF(WITH_TESTS)
   ###
   ### Unit-test support

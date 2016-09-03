@@ -29,8 +29,8 @@ using namespace shcore;
 #define MAX_COLUMN_LENGTH 1024
 #define MIN_COLUMN_LENGTH 4
 
-ResultsetDumper::ResultsetDumper(std::shared_ptr<mysh::ShellBaseResult> target, bool buffer_data) :
-_resultset(target), _buffer_data(buffer_data)
+ResultsetDumper::ResultsetDumper(std::shared_ptr<mysh::ShellBaseResult> target, shcore::Interpreter_delegate *output_handler, bool buffer_data) :
+_resultset(target), _output_handler(output_handler), _buffer_data(buffer_data)
 {
   _format = Shell_core_options::get()->get_string(SHCORE_OUTPUT_FORMAT);
   _interactive = Shell_core_options::get()->get_bool(SHCORE_INTERACTIVE);
@@ -64,11 +64,9 @@ void ResultsetDumper::dump()
 
 void ResultsetDumper::dump_json()
 {
-  shcore::Value::Map_type_ref data(new shcore::Value::Map_type);
-
   shcore::Value resultset(std::static_pointer_cast<Object_bridge>(_resultset));
 
-  shcore::print(resultset.json(_format != "json/raw") + "\n");
+  _output_handler->print_value(_output_handler->user_data, resultset, "");
 }
 
 void ResultsetDumper::dump_normal()
@@ -126,12 +124,15 @@ void ResultsetDumper::dump_normal(std::shared_ptr<mysh::mysql::ClassicResult> re
     {
       warning_count = get_warning_and_execution_time_stats(output);
 
-      shcore::print(output);
+      _output_handler->print(_output_handler->user_data, output.c_str());
     }
 
     std::string info = result->get_member("info").as_string();
     if (!info.empty())
-      shcore::print("\n" + info + "\n");
+    {
+      info = "\n" + info + "\n";
+      _output_handler->print(_output_handler->user_data, info.c_str());
+    }
 
     // Prints the warnings if there were any
     if (warning_count && _show_warnings)
@@ -155,7 +156,7 @@ void ResultsetDumper::dump_normal(std::shared_ptr<mysh::mysqlx::SqlResult> resul
     {
       int warning_count = get_warning_and_execution_time_stats(output);
 
-      shcore::print(output);
+      _output_handler->print(_output_handler->user_data, output.c_str());
 
       // Prints the warnings if there were any
       if (warning_count && _show_warnings)
@@ -175,7 +176,7 @@ void ResultsetDumper::dump_normal(std::shared_ptr<mysh::mysqlx::RowResult> resul
   {
     int warning_count = get_warning_and_execution_time_stats(output);
 
-    shcore::print(output);
+    _output_handler->print(_output_handler->user_data, output.c_str());
 
     // Prints the warnings if there were any
     if (warning_count && _show_warnings)
@@ -192,7 +193,7 @@ void ResultsetDumper::dump_normal(std::shared_ptr<mysh::mysqlx::DocResult> resul
 
   if (array_docs->size())
   {
-    shcore::print(documents.json(_format != "json/raw") + "\n");
+    _output_handler->print_value(_output_handler->user_data, documents, "");
 
     int row_count = int(array_docs->size());
     output = (boost::format("%lld %s in set") % row_count % (row_count == 1 ? "document" : "documents")).str();
@@ -205,7 +206,7 @@ void ResultsetDumper::dump_normal(std::shared_ptr<mysh::mysqlx::DocResult> resul
   {
     int warning_count = get_warning_and_execution_time_stats(output);
 
-    shcore::print(output);
+    _output_handler->print(_output_handler->user_data, output.c_str());
 
     // Prints the warnings if there were any
     if (warning_count && _show_warnings)
@@ -221,7 +222,7 @@ void ResultsetDumper::dump_normal(std::shared_ptr<mysh::mysqlx::Result> result)
     std::string output = get_affected_stats("affectedItemCount", "item");
     int warning_count = get_warning_and_execution_time_stats(output);
 
-    shcore::print(output);
+    _output_handler->print(_output_handler->user_data, output.c_str());
 
     // Prints the warnings if there were any
     if (warning_count && _show_warnings)
@@ -242,8 +243,8 @@ void ResultsetDumper::dump_tabbed(shcore::Value::Array_type_ref records)
   for (index = 0; index < field_count; index++)
   {
     std::shared_ptr<mysh::Column> column = std::static_pointer_cast<mysh::Column>(metadata->at(index).as_object());
-    shcore::print(column->get_column_label());
-    shcore::print(index < (field_count - 1) ? "\t" : "\n");
+    _output_handler->print(_output_handler->user_data, column->get_column_label().c_str());
+    _output_handler->print(_output_handler->user_data, index < (field_count - 1) ? "\t" : "\n");
   }
 
   // Now prints the records
@@ -254,8 +255,8 @@ void ResultsetDumper::dump_tabbed(shcore::Value::Array_type_ref records)
     for (size_t field_index = 0; field_index < field_count; field_index++)
     {
       std::string raw_value = row->get_member(field_index).descr();
-      shcore::print(raw_value);
-      shcore::print(field_index < (field_count - 1) ? "\t" : "\n");
+      _output_handler->print(_output_handler->user_data, raw_value.c_str());
+      _output_handler->print(_output_handler->user_data, field_index < (field_count - 1) ? "\t" : "\n");
     }
   }
 }
@@ -314,24 +315,25 @@ void ResultsetDumper::dump_table(shcore::Value::Array_type_ref records)
 
   // Prints the initial separator line and the column headers
   // TODO: Consider the charset information on the length calculations
-  shcore::print(separator + "| ");
+  _output_handler->print(_output_handler->user_data, separator.c_str());
+  _output_handler->print(_output_handler->user_data, +"| ");
   for (index = 0; index < field_count; index++)
   {
     std::string data = (boost::format(formats[index]) % column_names[index]).str();
-    shcore::print(data);
+    _output_handler->print(_output_handler->user_data, data.c_str());
 
     // Once the header is printed, updates the numeric fields formats
     // so they are right aligned
     if (numerics[index])
     formats[index] = formats[index].replace(1, 1, "");
   }
-
-  shcore::print("\n" + separator);
+  _output_handler->print(_output_handler->user_data, "\n");
+  _output_handler->print(_output_handler->user_data, separator.c_str());
 
   // Now prints the records
   for (row_index = 0; row_index < records->size(); row_index++)
   {
-    shcore::print("| ");
+    _output_handler->print(_output_handler->user_data, "| ");
 
     std::shared_ptr<mysh::Row> row = (*records)[row_index].as_object<mysh::Row>();
 
@@ -340,12 +342,12 @@ void ResultsetDumper::dump_table(shcore::Value::Array_type_ref records)
       std::string raw_value = row->get_member(field_index).descr();
       std::string data = (boost::format(formats[field_index]) % (raw_value)).str();
 
-      shcore::print(data);
+      _output_handler->print(_output_handler->user_data, data.c_str());
     }
-    shcore::print("\n");
+    _output_handler->print(_output_handler->user_data, "\n");
   }
 
-  shcore::print(separator);
+  _output_handler->print(_output_handler->user_data, separator.c_str());
 }
 
 std::string ResultsetDumper::get_affected_stats(const std::string& member, const std::string &legend)
@@ -421,7 +423,7 @@ void ResultsetDumper::dump_warnings()
 
       std::string type = row->get_member("level").as_string();
       std::string msg = row->get_member("message").as_string();
-      shcore::print((boost::format("%s (code %ld): %s\n") % type % error % msg).str());
+      _output_handler->print(_output_handler->user_data, (boost::format("%s (code %ld): %s\n") % type % error % msg).str().c_str());
 
       index++;
     }

@@ -3,7 +3,7 @@
 # validateMemer and validateNotMember are defined on the setup script
 
 #@ Initialization
-dba.drop_metadata_schema({'enforce':True})
+dba.drop_metadata_schema()
 
 #@ Session: validating members
 all_members = dir(dba)
@@ -16,15 +16,18 @@ for member in all_members:
 
 
 print "Session Members: %d" % len(members)
-validateMember(members, 'default_cluster')
-validateMember(members, 'get_default_cluster')
-validateMember(members, 'create_cluster')
-validateMember(members, 'drop_cluster')
-validateMember(members, 'get_cluster')
-validateMember(members, 'drop_metadata_schema')
-validateMember(members, 'reset_session')
-validateMember(members, 'validate_instance')
-validateMember(members, 'deploy_local_instance')
+validateMember(members, 'create_cluster');
+validateMember(members, 'delete_local_instance');
+validateMember(members, 'deploy_local_instance');
+validateMember(members, 'drop_cluster');
+validateMember(members, 'drop_metadata_schema');
+validateMember(members, 'get_cluster');
+validateMember(members, 'help');
+validateMember(members, 'kill_local_instance');
+validateMember(members, 'reset_session');
+validateMember(members, 'start_local_instance');
+validateMember(members, 'validate_instance');
+validateMember(members, 'stop_local_instance');
 
 #@# Dba: create_cluster errors
 cluster = dba.create_cluster()
@@ -45,8 +48,11 @@ cluster = dba.get_cluster('devCluster')
 #@ Dba: get_cluster
 print cluster
 
-#@ Dba: add_seed_instance
-cluster.add_seed_instance({'host': __host, 'port':__mysql_port}, __pwd)
+#@ Dba: add_instance
+cluster.add_instance({'dbUser': 'root', 'host': '127.0.0.1', 'port':__mysql_port_adminapi}, 'root')
+
+#@ Dba: remove_instance
+cluster.remove_instance({'host': '127.0.0.1', 'port': __mysql_port_adminapi});
 
 #@# Dba: drop_cluster errors
 cluster = dba.drop_cluster()

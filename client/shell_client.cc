@@ -68,7 +68,7 @@ shcore::Value Shell_client::connect_session(const shcore::Argument_list &args)
 
   if (old_session && old_session.unique() && old_session->is_connected())
   {
-    shcore::print("Closing old connection...\n");
+    print("Closing old connection...\n");
     old_session->close(shcore::Argument_list());
   }
   _shell->set_dev_session(new_session);
@@ -139,7 +139,8 @@ bool Shell_client::connect(const std::string &uri)
   {
     // strip password from uri
     std::string uri_stripped = shcore::strip_password(uri);
-    shcore::print("Connecting to " + uri_stripped + "...\n");
+    std::string message = "Connecting to " + uri_stripped + "...\n";
+    print(message.c_str());
 
     connect_session(args);
   }
@@ -230,10 +231,12 @@ void Shell_client::deleg_source(void *self, const char *module)
 
 void Shell_client::print(const char *text)
 {
+  std::cout << text;
 }
 
 void Shell_client::print_error(const char *text)
 {
+  std::cerr << text;
 }
 
 bool Shell_client::input(const char *text, std::string &ret)

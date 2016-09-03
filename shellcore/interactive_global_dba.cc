@@ -34,6 +34,7 @@ void Global_dba::init()
   add_varargs_method("startLocalInstance", std::bind(&Global_dba::start_local_instance, this, _1));
   add_varargs_method("deleteLocalInstance", std::bind(&Global_dba::delete_local_instance, this, _1));
   add_varargs_method("killLocalInstance", std::bind(&Global_dba::kill_local_instance, this, _1));
+  add_varargs_method("stopLocalInstance", std::bind(&Global_dba::stop_local_instance, this, _1));
 
   add_method("dropCluster", std::bind(&Global_dba::drop_cluster, this, _1), "clusterName", shcore::String, NULL);
   add_method("createCluster", std::bind(&Global_dba::create_cluster, this, _1), "clusterName", shcore::String, NULL);
@@ -145,15 +146,23 @@ shcore::Value Global_dba::exec_instance_op(const std::string &function, const sh
         if (function == "delete")
         {
           message = "The MySQL sandbox instance on this host in \n"\
-                    "" + sandboxDir + "/" + std::to_string(port) + " will be deleted\n\n";
-          shcore::print(message);
+                    "" + sandboxDir + "/" + std::to_string(port) + " will be deleted\n";
+          println(message);
           proceed = true;
         }
         else if (function == "kill")
         {
           message = "The MySQL sandbox instance on this host in \n"\
-                    "" + sandboxDir + "/" + std::to_string(port) + " will be killed\n\n";
-          shcore::print(message);
+                    "" + sandboxDir + "/" + std::to_string(port) + " will be killed\n";
+          println(message);
+          proceed = true;
+        }
+
+        else if (function == "stop")
+        {
+          message = "The MySQL sandbox instance on this host in \n"\
+                    "" + sandboxDir + "/" + std::to_string(port) + " will be stopped\n";
+          _shell_core.println(message);
           proceed = true;
         }
       }
@@ -163,39 +172,45 @@ shcore::Value Global_dba::exec_instance_op(const std::string &function, const sh
     {
       if (function == "deploy")
       {
-        shcore::print("Deploying new MySQL instance...\n");
+        println("Deploying new MySQL instance...");
         ret_val = _target->call("deployLocalInstance", new_args);
 
-        shcore::print("Instance localhost:" + std::to_string(port) +
-            " successfully deployed and started.\n\n");
-        shcore::print("Use '\\connect -c root@localhost:" + std::to_string(port) + "' to connect to the new instance.");
+        println("Instance localhost:" + std::to_string(port) +
+            " successfully deployed and started.\n");
+        println("Use '\\connect -c root@localhost:" + std::to_string(port) + "' to connect to the new instance.");
       }
 
       if (function == "start")
       {
-        shcore::print("Starting MySQL instance...\n");
+        println("Starting MySQL instance...");
         ret_val = _target->call("startLocalInstance", new_args);
 
-        shcore::print("Instance localhost:" + std::to_string(port) +
-            " successfully started.\n\n");
+        println("Instance localhost:" + std::to_string(port) + " successfully started.\n");
       }
 
       if (function == "delete")
       {
-        shcore::print("Deleting MySQL instance...\n");
+        println("Deleting MySQL instance...");
         ret_val = _target->call("deleteLocalInstance", new_args);
 
-        shcore::print("Instance localhost:" + std::to_string(port) +
-                      " successfully deleted.\n\n");
+        println("Instance localhost:" + std::to_string(port) + " successfully deleted.\n");
       }
 
       if (function == "kill")
       {
-        shcore::print("Killing MySQL instance...\n");
+        println("Killing MySQL instance...");
         ret_val = _target->call("killLocalInstance", new_args);
 
-        shcore::print("Instance localhost:" + std::to_string(port) +
-            " successfully killed.\n\n");
+        println("Instance localhost:" + std::to_string(port) + " successfully killed.\n");
+      }
+
+      if (function == "stop")
+      {
+        _shell_core.println("Stopping MySQL instance...");
+        ret_val = _target->call("stopLocalInstance", new_args);
+
+        _shell_core.println("Instance localhost:" + std::to_string(port) +
+            " successfully stopped.\n");
       }
     }
   }
@@ -232,6 +247,13 @@ shcore::Value Global_dba::kill_local_instance(const shcore::Argument_list &args)
   return exec_instance_op("kill", args);
 }
 
+shcore::Value Global_dba::stop_local_instance(const shcore::Argument_list &args)
+{
+  args.ensure_count(1, 2, get_function_name("stopLocalInstance").c_str());
+
+  return exec_instance_op("stop", args);
+}
+
 shcore::Value Global_dba::drop_cluster(const shcore::Argument_list &args)
 {
   shcore::Value ret_val;
@@ -256,7 +278,7 @@ shcore::Value Global_dba::drop_cluster(const shcore::Argument_list &args)
     if (!valid_options)
     {
       std::string answer;
-      shcore::print((boost::format("To remove the Cluster '%1%' the default replica set needs to be removed.\n") % cluster_name).str());
+      println((boost::format("To remove the Cluster '%1%' the default replica set needs to be removed.") % cluster_name).str());
       if (prompt((boost::format("Do you want to remove the default replica set? [y/n]: ")).str().c_str(), answer))
       {
         if (!answer.compare("y") || !answer.compare("Y"))
@@ -329,10 +351,11 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args)
                             "MASTER key for the cluster.This MASTER key needs to be re - entered when making\n"\
                             "changes to the cluster later on, e.g.adding new MySQL instances or configuring\n"\
                             "MySQL Routers.Losing this MASTER key will require the configuration of all\n"\
-                            "InnoDB cluster entities to be changed.\n\n"\
-                            "Please specify an administrative MASTER key for the cluster '" + cluster_name + "':\n";
+                            "InnoDB cluster entities to be changed.\n";
 
-      prompt_password = password(message, answer);
+      println(message);
+
+      prompt_password = password("Please specify an administrative MASTER key for the cluster '" + cluster_name + "':", answer);
       if (prompt_password)
       {
         if (!answer.empty())
@@ -352,21 +375,26 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args)
       if (options != NULL)
         new_args.push_back(shcore::Value(options));
 
-      print("Creating InnoDB cluster '" + cluster_name + "' on '" + session->uri() + "'...");
+      println("Creating InnoDB cluster '" + cluster_name + "' on '" + session->uri() + "'...");
 
       // This is an instance of the API cluster
       auto raw_cluster = _target->call("createCluster", new_args);
 
       if (verbose)
-        shcore::print("Adding Seed Instance...");
+        print("Adding Seed Instance...");
 
       // Returns an interactive wrapper of this instance
       Interactive_dba_cluster* cluster = new Interactive_dba_cluster(this->_shell_core);
       cluster->set_target(std::dynamic_pointer_cast<Cpp_object_bridge>(raw_cluster.as_object()));
       ret_val = shcore::Value::wrap<Interactive_dba_cluster>(cluster);
 
-      print("\nCluster successfully created. Use Cluster.addInstance() to add MySQL instances.\n");
-      print("At least 3 instances are needed for the cluster to be able to withstand up to\none server failure.\n");
+      println();
+
+      std::string message = "Cluster successfully created. Use Cluster.addInstance() to add MySQL instances.\n"\
+                            "At least 3 instances are needed for the cluster to be able to withstand up to\n";
+      "one server failure.";
+
+      println(message);
     }
   } CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("createCluster"));
 
@@ -400,7 +428,7 @@ shcore::Value Global_dba::drop_metadata_schema(const shcore::Argument_list &args
     else
       ret_val = _target->call("dropMetadataSchema", args);
 
-    shcore::print("Metadata Schema successfully removed.\n");
+    println("Metadata Schema successfully removed.");
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("dropMetadataSchema"))
 
@@ -454,14 +482,15 @@ shcore::Value Global_dba::get_cluster(const shcore::Argument_list &args)
   bool prompt_key = true;
   while (prompt_key && master_key.empty())
   {
-    std::string message =
-      "When the InnoDB cluster was setup, a MASTER key was defined in order to enable\n"\
-      "performing administrative tasks on the cluster.\n\n";
+    std::string message = "When the InnoDB cluster was setup, a MASTER key was defined in order to enable\n"\
+                          "performing administrative tasks on the cluster.\n";
+
+    println(message);
 
     if (get_default_cluster)
-      message += "Please specify the administrative MASTER key for the default cluster: ";
+      message = "Please specify the administrative MASTER key for the default cluster: ";
     else
-      message += "Please specify the administrative MASTER key for the cluster '" + cluster_name + "':\n";
+      message = "Please specify the administrative MASTER key for the cluster '" + cluster_name + "':";
 
     prompt_key = password(message, master_key);
     if (prompt_key)
@@ -534,7 +563,7 @@ shcore::Value Global_dba::validate_instance(const shcore::Argument_list &args)
   new_args.push_back(shcore::Value(options));
 
   // Let's get the user to know we're starting to validate the instance
-  shcore::print("Validating instance...\n");
+  println("Validating instance...");
 
   ret_val = _target->call("validateInstance", new_args);
 

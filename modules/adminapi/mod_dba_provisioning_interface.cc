@@ -29,7 +29,8 @@ using namespace mysh;
 using namespace mysh::mysqlx;
 using namespace shcore;
 
-ProvisioningInterface::ProvisioningInterface() {
+ProvisioningInterface::ProvisioningInterface(shcore::Interpreter_delegate* deleg) :
+_delegate(deleg){
 }
 
 ProvisioningInterface::~ProvisioningInterface() {
@@ -53,13 +54,23 @@ int ProvisioningInterface::executeMp(std::string cmd, std::vector<const char *> 
       throw shcore::Exception::logic_error("Please set the mysqlprovision path using the environment variable: MYSQLPROVISION");
   }
 
-  if (_local_mysqlprovision_path.find(".py") == _local_mysqlprovision_path.size()-3)
+  if (_local_mysqlprovision_path.find(".py") == _local_mysqlprovision_path.size() - 3)
     args_script.push_back("python");
 
   args_script.push_back(_local_mysqlprovision_path.c_str());
   args_script.push_back(cmd.c_str());
 
   args_script.insert(args_script.end(), args.begin(), args.end());
+
+  {
+    std::string cmdline;
+    for (auto s : args_script)
+    {
+      if (s)
+        cmdline.append(s).append(" ");
+    }
+    log_info("DBA: mysqlprovision: Executing %s...", cmdline.c_str());
+  }
 
   ngcommon::Process_launcher p(args_script[0], &args_script[0]);
 
@@ -69,22 +80,34 @@ int ProvisioningInterface::executeMp(std::string cmd, std::vector<const char *> 
         p.write(passwords[i].c_str(), passwords[i].length());
       }
       catch (shcore::Exception &e) {
+        log_debug("DBA: mysqlprovision: %s", e.what());
         throw shcore::Exception::runtime_error(e.what());
       }
     }
   }
-
   while (p.read(&c, 1) > 0) {
     buf += c;
     if (c == '\n') {
       if (verbose)
-        shcore::print(buf);
+      {
+        _delegate->print(_delegate->user_data, buf.c_str());
+        log_debug("DBA: mysqlprovision: %s", buf.c_str());
+      }
+
       if ((buf.find("ERROR") != std::string::npos))
         full_output.append(buf);
       buf = "";
     }
   }
-
+  if (!buf.empty()) {
+    if (verbose)
+    {
+      _delegate->print(_delegate->user_data, buf.c_str());
+      log_debug("DBA: mysqlprovision: %s", buf.c_str());
+    }
+    if ((buf.find("ERROR") != std::string::npos))
+      full_output.append(buf);
+  }
   exit_code = p.wait();
 
   if (exit_code != 0) {
@@ -97,6 +120,8 @@ int ProvisioningInterface::executeMp(std::string cmd, std::vector<const char *> 
 
     errors = full_output;
   }
+
+  log_info("DBA: mysqlprovision: Command returned exit code %i", exit_code);
 
   return exit_code;
 }
@@ -136,8 +161,8 @@ int ProvisioningInterface::exec_sandbox_op(std::string op, int port, int portx, 
   if (!sandbox_dir.empty()) {
     arg = "--sandboxdir=" + sandbox_dir;
     sandbox_args.push_back(arg);
-
-  } else if (shcore::Shell_core_options::get()->has_key(SHCORE_SANDBOX_DIR)) {
+  }
+  else if (shcore::Shell_core_options::get()->has_key(SHCORE_SANDBOX_DIR)) {
     std::string dir = (*shcore::Shell_core_options::get())[SHCORE_SANDBOX_DIR].as_string();
     arg = "--sandboxdir=" + dir;
     sandbox_args.push_back(arg);
@@ -172,6 +197,11 @@ int ProvisioningInterface::delete_sandbox(int port, int portx, const std::string
 int ProvisioningInterface::kill_sandbox(int port, int portx, const std::string &sandbox_dir,
                                         std::string &errors, bool verbose) {
   return exec_sandbox_op("kill", port, portx, sandbox_dir, "", errors, verbose);
+}
+
+int ProvisioningInterface::stop_sandbox(int port, int portx, const std::string &sandbox_dir,
+                                        std::string &errors, bool verbose) {
+  return exec_sandbox_op("stop", port, portx, sandbox_dir, "", errors, verbose);
 }
 
 int ProvisioningInterface::start_replicaset(const std::string &instance_url, const std::string &repl_user,
@@ -235,7 +265,7 @@ int ProvisioningInterface::join_replicaset(const std::string &instance_url, cons
   return executeMp("join-replicaset", args, passwords, errors, verbose);
 }
 
-int ProvisioningInterface::leave_replicaset(const std::string &instance_url,  const std::string &super_user_password,
+int ProvisioningInterface::leave_replicaset(const std::string &instance_url, const std::string &super_user_password,
                                             std::string &errors, bool verbose) {
   std::vector<std::string> passwords;
   std::string instance_args, repl_user_args;

@@ -69,13 +69,13 @@ void Dba::init()
   add_method("validateInstance", std::bind(&Dba::validate_instance, this, _1), "data", shcore::Map, NULL);
   add_method("deployLocalInstance", std::bind(&Dba::deploy_local_instance, this, _1), "data", shcore::Map, NULL);
   add_varargs_method("startLocalInstance", std::bind(&Dba::deploy_local_instance, this, _1));
-  //add_method("stopLocalInstance", std::bind(&Dba::deploy_local_instance, this, _1), "data", shcore::Map, NULL);
+  add_method("stopLocalInstance", std::bind(&Dba::stop_local_instance, this, _1), "data", shcore::Map, NULL);
   add_method("deleteLocalInstance", std::bind(&Dba::delete_local_instance, this, _1), "data", shcore::Map, NULL);
   add_method("killLocalInstance", std::bind(&Dba::kill_local_instance, this, _1), "data", shcore::Map, NULL);
   add_varargs_method("help", std::bind(&Dba::help, this, _1));
 
   _metadata_storage.reset(new MetadataStorage(this));
-  _provisioning_interface.reset(new ProvisioningInterface());
+  _provisioning_interface.reset(new ProvisioningInterface(_shell_core->get_delegate()));
 
   std::string python_path = "";
   std::string local_mysqlprovision_path;
@@ -229,7 +229,7 @@ shcore::Value Dba::get_cluster(const shcore::Argument_list &args) const
     if (get_default_cluster)
     {
       if (!_default_cluster)
-        _default_cluster = _metadata_storage->get_default_cluster();
+        _default_cluster = _metadata_storage->get_default_cluster(master_key);
 
       cluster = _default_cluster;
     }
@@ -239,7 +239,7 @@ shcore::Value Dba::get_cluster(const shcore::Argument_list &args) const
         throw Exception::argument_error("The Cluster name cannot be empty.");
 
       if (!_clusters->has_key(cluster_name))
-        cluster = _metadata_storage->get_cluster(cluster_name);
+        cluster = _metadata_storage->get_cluster(cluster_name, master_key);
       else
         ret_val = (*_clusters)[cluster_name];
     }
@@ -248,9 +248,6 @@ shcore::Value Dba::get_cluster(const shcore::Argument_list &args) const
 
   if (cluster)
   {
-    // Caches the master key on the loaded cluster
-    cluster->set_password(master_key);
-
     if (!_clusters->has_key(cluster->get_name()))
        (*_clusters)[cluster->get_name()] = shcore::Value(std::dynamic_pointer_cast<Object_bridge>(cluster));
 
@@ -329,9 +326,6 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args)
       if (options->has_key("verbose"))
         verbose = options->get_bool("verbose");
     }
-
-    MetadataStorage::Transaction tx(_metadata_storage);
-
     /*
      * For V1.0 we only support one single Cluster. That one shall be the default Cluster.
      * We must check if there's already a Default Cluster assigned, and if so thrown an exception.
@@ -345,6 +339,8 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args)
     // First we need to create the Metadata Schema, or update it if already exists
     _metadata_storage->create_metadata_schema();
 
+    MetadataStorage::Transaction tx(_metadata_storage);
+
     // Check if we have the instanceAdminUser password or we need to generate it
     if (mysql_innodb_cluster_admin_pwd.empty())
       mysql_innodb_cluster_admin_pwd = cluster_password;
@@ -352,7 +348,7 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args)
     _default_cluster.reset(new Cluster(cluster_name, _metadata_storage));
 
     // Update the properties
-    _default_cluster->set_password(cluster_password);
+    _default_cluster->set_master_key(cluster_password);
     _default_cluster->set_description("Default Cluster");
 
     _default_cluster->set_account_user(ACC_INSTANCE_ADMIN, instance_admin_user);
@@ -387,8 +383,11 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args)
 
     tx.commit();
   }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("createCluster"))
-
+  catch (...)
+  {
+    _default_cluster.reset();
+    translate_crud_exception(get_function_name("createCluster"));
+  }
   return ret_val;
 }
 
@@ -556,7 +555,7 @@ shcore::Value Dba::validate_instance(const shcore::Argument_list &args)
       throw shcore::Exception::argument_error("Connection data empty.");
 
     // Verification of invalid attributes on the instance data
-     auto invalids = shcore::get_additional_keys(options, _validate_instance_opts);
+    auto invalids = shcore::get_additional_keys(options, _validate_instance_opts);
     if (invalids.size())
     {
       std::string error = "The instance data contains the following invalid options: ";
@@ -682,23 +681,27 @@ shcore::Value Dba::exec_instance_op(const std::string &function, const shcore::A
 
   std::string errors;
 
-  if (port < 0 || port > 65535)
+  if (port <= 0 || port > 65535)
     throw shcore::Exception::argument_error("Please use a valid TCP port number");
 
   if (function == "deploy")
   {
-    if (_provisioning_interface->deploy_sandbox(port, portx, sandbox_dir, password, errors, verbose) == 1)
+    if (_provisioning_interface->deploy_sandbox(port, portx, sandbox_dir, password, errors, verbose) != 0)
       throw shcore::Exception::logic_error(errors);
   }
-
-  if (function == "delete")
+  else if (function == "delete")
   {
-    if (_provisioning_interface->delete_sandbox(port, portx, sandbox_dir, errors, verbose) == 1)
+    if (_provisioning_interface->delete_sandbox(port, portx, sandbox_dir, errors, verbose) != 0)
       throw shcore::Exception::logic_error(errors);
   }
-  if (function == "kill")
+  else if (function == "kill")
   {
-    if (_provisioning_interface->kill_sandbox(port, portx, sandbox_dir, errors, verbose) == 1)
+    if (_provisioning_interface->kill_sandbox(port, portx, sandbox_dir, errors, verbose) != 0)
+      throw shcore::Exception::logic_error(errors);
+  }
+  else if (function == "stop")
+  {
+    if (_provisioning_interface->stop_sandbox(port, portx, sandbox_dir, errors, verbose) != 0)
       throw shcore::Exception::logic_error(errors);
   }
 
@@ -746,6 +749,21 @@ shcore::Value Dba::kill_local_instance(const shcore::Argument_list &args)
     ret_val = exec_instance_op("kill", args);
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("killLocalInstance"));
+
+  return ret_val;
+}
+
+shcore::Value Dba::stop_local_instance(const shcore::Argument_list &args)
+{
+  shcore::Value ret_val;
+
+  args.ensure_count(1, 2, get_function_name("stopLocalInstance").c_str());
+
+  try
+  {
+    ret_val = exec_instance_op("stop", args);
+  }
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("stopLocalInstance"));
 
   return ret_val;
 }

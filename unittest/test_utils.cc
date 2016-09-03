@@ -156,10 +156,17 @@ void Shell_core_test_wrapper::SetUp()
     {
       _mysql_port.assign(port);
       _mysql_uri += ":" + _mysql_port;
+
+      std::string port_adminapi = std::to_string(atoi(port) + 10);
+      _mysql_port_adminapi.assign(port_adminapi);
     }
 
     _mysql_uri_nopasswd = shcore::strip_password(_mysql_uri);
   }
+
+  const char *tmpdir = getenv("TMPDIR");
+  if (tmpdir)
+    _sandbox_dir.assign(tmpdir);
 
   // Initializes the interactive shell
   reset_shell();
