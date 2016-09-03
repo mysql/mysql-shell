@@ -66,7 +66,6 @@ namespace mysh
       shcore::Value delete_local_instance(const shcore::Argument_list &args);
       shcore::Value kill_local_instance(const shcore::Argument_list &args);
 
-
       shcore::Value clone_instance(const shcore::Argument_list &args);
       shcore::Value configure_instance(const shcore::Argument_list &args);
       shcore::Value reset_instance(const shcore::Argument_list &args);
@@ -78,6 +77,8 @@ namespace mysh
       shcore::Value drop_metadata_schema(const shcore::Argument_list &args);
 
       Cluster get_default_cluster();
+
+      shcore::IShell_core* get_owner() { return _shell_core; }
 
 #if DOXYGEN_JS
       Cluster createCluster(String name);

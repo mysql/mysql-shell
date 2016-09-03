@@ -48,12 +48,4 @@
 #    define UNUSED(x) x
 #endif
 
-#include <boost/function.hpp>
-
-namespace shcore
-{
-  extern void SHCORE_PUBLIC default_print(const std::string& text);
-  extern SHCORE_PUBLIC std::function<void(std::string)> print;
-}
-
 #endif

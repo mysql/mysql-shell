@@ -43,10 +43,9 @@ public:
   bool cmd_process_file(const std::vector<std::string>& params);
   bool connect(bool primary_session = false);
 
-  void print(const std::string &str);
-  void println(const std::string &str);
+  void println(const std::string &str = "");
+
   void print_error(const std::string &error);
-  void print_json_info(const std::string &info, const std::string& label = "info");
 
   bool cmd_print_shell_help(const std::vector<std::string>& args);
   bool cmd_start_multiline(const std::vector<std::string>& args);

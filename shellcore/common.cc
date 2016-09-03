@@ -17,17 +17,7 @@
  * 02110-1301  USA
  */
 
-
 #include "shellcore/common.h"
 #include <iostream>
 #include <string>
-
-namespace shcore
-{
-  void default_print(const std::string& text)
-  {
-    std::cout << text;
-  }
-
-  std::function<void(std::string)> print = shcore::default_print;
-}
+#include "shellcore/types.h"

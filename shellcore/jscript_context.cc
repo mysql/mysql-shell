@@ -988,7 +988,8 @@ std::string JScript_context::format_exception(const shcore::Value &exc)
   else
     error_message = "Unexpected format of exception object.";
 
-  error_message += "\n";
+  if (error_message.length() && error_message[error_message.length() - 1] != '\n')
+    error_message += "\n";
 
   return error_message;
 }

@@ -523,7 +523,7 @@ namespace shcore
       if (new_find != std::string::npos)
       {
         ret_val.push_back(input.substr(index, new_find - index));
-        index += new_find + separator.length();
+        index = new_find + separator.length();
       }
       else
         ret_val.push_back(input.substr(index));

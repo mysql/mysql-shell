@@ -235,7 +235,7 @@ void ReplicaSet::init()
   add_method("rejoinInstance", std::bind(&ReplicaSet::rejoin_instance, this, _1), "data");
   add_method("removeInstance", std::bind(&ReplicaSet::remove_instance_, this, _1), "data");
 
-  _provisioning_interface.reset(new ProvisioningInterface());
+  _provisioning_interface.reset(new ProvisioningInterface(_metadata_storage->get_dba()->get_owner()->get_delegate()));
 }
 
 #if DOXYGEN_CPP
@@ -512,7 +512,8 @@ bool ReplicaSet::do_join_replicaset(const std::string &instance_url,
   if (is_seed_instance) {
     exit_code = _provisioning_interface->start_replicaset(instance_url, repl_user, super_user_password,
                                                               repl_user_password, errors, verbose);
-  } else {
+  }
+  else {
     exit_code = _provisioning_interface->join_replicaset(instance_url, repl_user, peer_instance_url,
                                                       super_user_password, repl_user_password, errors, verbose);
   }

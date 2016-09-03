@@ -24,7 +24,7 @@ namespace shcore {
       virtual void set_options()
       {
         _options->interactive = true;
-        _options->wizards = false;
+        _options->wizards = true;
       };
     };
 
@@ -76,7 +76,7 @@ namespace shcore {
       output_handler.wipe_all();
 
       _interactive_shell->process_line("db");
-      EXPECT_STREQ("\n", output_handler.std_out.c_str());
+      EXPECT_STREQ("<Undefined>\n", output_handler.std_out.c_str());
 
       _interactive_shell->process_line("session.close()");
 
@@ -106,7 +106,7 @@ namespace shcore {
       output_handler.wipe_all();
 
       _interactive_shell->process_line("db");
-      EXPECT_STREQ("\n", output_handler.std_out.c_str());
+      EXPECT_STREQ("<Undefined>\n", output_handler.std_out.c_str());
 
       _interactive_shell->process_line("session.close()");
 
@@ -136,7 +136,7 @@ namespace shcore {
       output_handler.wipe_all();
 
       _interactive_shell->process_line("db");
-      EXPECT_STREQ("\n", output_handler.std_out.c_str());
+      EXPECT_STREQ("<Undefined>\n", output_handler.std_out.c_str());
 
       _interactive_shell->process_line("session.close()");
 
@@ -166,7 +166,7 @@ namespace shcore {
       output_handler.wipe_all();
 
       _interactive_shell->process_line("db");
-      EXPECT_STREQ("\n", output_handler.std_out.c_str());
+      EXPECT_STREQ("<Undefined>\n", output_handler.std_out.c_str());
       output_handler.wipe_all();
 
       _interactive_shell->process_line("\\use mysql");
@@ -192,7 +192,7 @@ namespace shcore {
       output_handler.wipe_all();
 
       _interactive_shell->process_line("db");
-      EXPECT_STREQ("\n", output_handler.std_out.c_str());
+      EXPECT_STREQ("<Undefined>\n", output_handler.std_out.c_str());
       output_handler.wipe_all();
 
       _interactive_shell->process_line("\\use mysql");
@@ -210,7 +210,7 @@ namespace shcore {
       output_handler.wipe_all();
 
       _interactive_shell->process_line("db");
-      EXPECT_STREQ("\n", output_handler.std_out.c_str());
+      EXPECT_STREQ("<Undefined>\n", output_handler.std_out.c_str());
       output_handler.wipe_all();
 
       _interactive_shell->process_line("\\use mysql");
@@ -394,6 +394,9 @@ namespace shcore {
 
     TEST_F(Interactive_shell_test, js_db_usage_with_no_wizards)
     {
+      _options->wizards = false;
+      reset_shell();
+
       _interactive_shell->process_line("db");
       MY_EXPECT_STDERR_CONTAINS("ReferenceError: db is not defined");
       output_handler.wipe_all();
@@ -429,6 +432,9 @@ namespace shcore {
 
     TEST_F(Interactive_shell_test, js_session_usage_with_no_wizards)
     {
+      _options->wizards = false;
+      reset_shell();
+
       _interactive_shell->process_line("session");
       MY_EXPECT_STDOUT_NOT_CONTAINS("ReferenceError: session is not defined");
       output_handler.wipe_all();

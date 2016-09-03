@@ -75,7 +75,7 @@ void Dba::init()
   add_varargs_method("help", std::bind(&Dba::help, this, _1));
 
   _metadata_storage.reset(new MetadataStorage(this));
-  _provisioning_interface.reset(new ProvisioningInterface());
+  _provisioning_interface.reset(new ProvisioningInterface(_shell_core->get_delegate()));
 
   std::string python_path = "";
   std::string local_mysqlprovision_path;
@@ -555,7 +555,7 @@ shcore::Value Dba::validate_instance(const shcore::Argument_list &args)
       throw shcore::Exception::argument_error("Connection data empty.");
 
     // Verification of invalid attributes on the instance data
-     auto invalids = shcore::get_additional_keys(options, _validate_instance_opts);
+    auto invalids = shcore::get_additional_keys(options, _validate_instance_opts);
     if (invalids.size())
     {
       std::string error = "The instance data contains the following invalid options: ";

@@ -25,6 +25,7 @@
 
 #include "shellcore/shell_core.h"
 #include "shellcore/shell_sql.h"
+#include "utils/utils_general.h"
 
 using namespace std::placeholders;
 
@@ -138,91 +139,46 @@ namespace shcore {
       EXPECT_EQ("parameters", _params[4]);
     }
 
-    TEST_F(Command_handler_tests, printing_commands)
+    TEST_F(Command_handler_tests, getting_commands)
     {
-      std::stringstream my_stdout;
-      std::streambuf* stdout_backup = std::cout.rdbuf();
-      std::string line;
-      std::cout.rdbuf(my_stdout.rdbuf());
+      std::string commands = _shell_command_handler.get_commands("These are the test commands:");
+      auto lines = shcore::split_string(commands, "\n");
 
-      _shell_command_handler.print_commands("These are the test commands:");
-
-      std::getline(my_stdout, line);
-      EXPECT_EQ("These are the test commands:", line);
-      std::getline(my_stdout, line);
-      EXPECT_EQ("cmdone      No shortcut command.", line);
-      std::getline(my_stdout, line);
-      EXPECT_EQ("cmd2   (\\2) Shortcut command.", line);
-      std::getline(my_stdout, line);
-      EXPECT_EQ("three       No shortcut command with help.", line);
-      std::getline(my_stdout, line);
-      EXPECT_EQ("four   (\\4) Shortcut command with help.", line);
-
-      std::cout.rdbuf(stdout_backup);
+      EXPECT_EQ("These are the test commands:", lines[0]);
+      EXPECT_EQ("cmdone      No shortcut command.", lines[1]);
+      EXPECT_EQ("cmd2   (\\2) Shortcut command.", lines[2]);
+      EXPECT_EQ("three       No shortcut command with help.", lines[3]);
+      EXPECT_EQ("four   (\\4) Shortcut command with help.", lines[4]);
     }
 
-    TEST_F(Command_handler_tests, printing_command_help)
+    TEST_F(Command_handler_tests, getting_command_help)
     {
-      std::stringstream my_stdout;
-      std::streambuf* stdout_backup = std::cout.rdbuf();
-      std::string line;
-      std::cout.rdbuf(my_stdout.rdbuf());
-
       EXPECT_FALSE(_shell_command_handler.process("whatever"));
 
-      EXPECT_TRUE(_shell_command_handler.print_command_help("cmdone"));
-      std::getline(my_stdout, line);
-      EXPECT_EQ("No shortcut command.", line);
+      std::string help;
 
-      EXPECT_TRUE(_shell_command_handler.print_command_help("cmd2"));
-      std::getline(my_stdout, line);
-      EXPECT_EQ("Shortcut command.", line);
-      std::getline(my_stdout, line);
-      EXPECT_EQ("", line);
-      std::getline(my_stdout, line);
-      EXPECT_EQ("TRIGGERS: cmd2 or \\2", line);
+      EXPECT_TRUE(_shell_command_handler.get_command_help("cmdone", help));
+      EXPECT_EQ("No shortcut command.", help);
 
-      EXPECT_TRUE(_shell_command_handler.print_command_help("\\2"));
-      std::getline(my_stdout, line);
-      EXPECT_EQ("Shortcut command.", line);
-      std::getline(my_stdout, line);
-      EXPECT_EQ("", line);
-      std::getline(my_stdout, line);
-      EXPECT_EQ("TRIGGERS: cmd2 or \\2", line);
+      help.clear();
+      EXPECT_TRUE(_shell_command_handler.get_command_help("cmd2", help));
+      EXPECT_EQ("Shortcut command.\n\nTRIGGERS: cmd2 or \\2", help);
 
-      EXPECT_TRUE(_shell_command_handler.print_command_help("three"));
-      std::getline(my_stdout, line);
-      EXPECT_EQ("No shortcut command with help.", line);
-      std::getline(my_stdout, line);
-      EXPECT_EQ("", line);
-      std::getline(my_stdout, line);
-      EXPECT_EQ("Third command.", line);
+      help.clear();
+      EXPECT_TRUE(_shell_command_handler.get_command_help("\\2", help));
+      EXPECT_EQ("Shortcut command.\n\nTRIGGERS: cmd2 or \\2", help);
 
-      EXPECT_TRUE(_shell_command_handler.print_command_help("four"));
-      std::getline(my_stdout, line);
-      EXPECT_EQ("Shortcut command with help.", line);
-      std::getline(my_stdout, line);
-      EXPECT_EQ("", line);
-      std::getline(my_stdout, line);
-      EXPECT_EQ("TRIGGERS: four or \\4", line);
-      std::getline(my_stdout, line);
-      EXPECT_EQ("", line);
-      std::getline(my_stdout, line);
-      EXPECT_EQ("Fourth command.", line);
+      help.clear();
+      EXPECT_TRUE(_shell_command_handler.get_command_help("three", help));
+      EXPECT_EQ("No shortcut command with help.\n\nThird command.", help);
 
-      EXPECT_TRUE(_shell_command_handler.print_command_help("\\4"));
-      std::getline(my_stdout, line);
-      EXPECT_EQ("Shortcut command with help.", line);
-      std::getline(my_stdout, line);
-      EXPECT_EQ("", line);
-      std::getline(my_stdout, line);
-      EXPECT_EQ("TRIGGERS: four or \\4", line);
-      std::getline(my_stdout, line);
-      EXPECT_EQ("", line);
-      std::getline(my_stdout, line);
-      EXPECT_EQ("Fourth command.", line);
+      help.clear();
+      EXPECT_TRUE(_shell_command_handler.get_command_help("four", help));
+      EXPECT_EQ("Shortcut command with help.\n\nTRIGGERS: four or \\4\n\nFourth command.", help);
 
-      std::cout.rdbuf(stdout_backup);
+      help.clear();
+      EXPECT_TRUE(_shell_command_handler.get_command_help("\\4", help));
+      EXPECT_EQ("Shortcut command with help.\n\nTRIGGERS: four or \\4\n\nFourth command.", help);
     }
   }
 }

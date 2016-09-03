@@ -20,7 +20,7 @@
 #include "interactive_object_wrapper.h"
 using namespace shcore;
 
-Interactive_object_wrapper::Interactive_object_wrapper(const std::string& alias, shcore::Shell_core& core) : _alias(alias), _shell_core(core), _delegate(core.lang_delegate()){};
+Interactive_object_wrapper::Interactive_object_wrapper(const std::string& alias, shcore::Shell_core& core) : _alias(alias), _shell_core(core), _delegate(core.get_delegate()){};
 
 Value Interactive_object_wrapper::get_member_advanced(const std::string &prop, const NamingStyle &style)
 {
@@ -192,22 +192,27 @@ bool Interactive_object_wrapper::has_member_advanced(const std::string &prop, co
 /*-----------------------------------------------------------------*/
 void Interactive_object_wrapper::print(const std::string& text) const
 {
-  _delegate->print(_delegate->user_data, text.c_str());
+  _shell_core.print(text);
 }
 
-void Interactive_object_wrapper::print_error(const std::string& error) const
+void Interactive_object_wrapper::println(const std::string& text, const std::string& tag) const
 {
-  _delegate->print_error(_delegate->user_data, error.c_str());
+  _shell_core.println(text, tag);
+}
+
+void Interactive_object_wrapper::print_value(const shcore::Value& value, const std::string& tag) const
+{
+  _shell_core.print_value(value, tag);
 }
 
 bool Interactive_object_wrapper::prompt(const std::string& prompt, std::string &ret_val) const
 {
-  return _delegate->prompt(_delegate->user_data, prompt.c_str(), ret_val);
+  return _shell_core.prompt(prompt, ret_val);
 }
 
 bool Interactive_object_wrapper::password(const std::string& prompt, std::string &ret_val) const
 {
-  return _delegate->password(_delegate->user_data, prompt.c_str(), ret_val);
+  return _shell_core.password(prompt, ret_val);
 }
 
 std::string Interactive_object_wrapper::get_help_text(const std::string& topic, bool full)

@@ -38,7 +38,7 @@ BOOL windows_ctrl_handler(DWORD fdwCtrlType)
       {
         shell_ptr->abort();
         shell_ptr->println("^C");
-        shell_ptr->print(shell_ptr->prompt());
+        //shell_ptr->print(shell_ptr->prompt());
       }
       return TRUE;
     case CTRL_CLOSE_EVENT:
@@ -222,8 +222,8 @@ int main(int argc, char **argv)
     {
       std::string version_msg("MySQL Shell Version ");
       version_msg += MYSH_VERSION;
-      version_msg += " Development Preview\n";
-      shell.print(version_msg);
+      version_msg += " Development Preview";
+      shell.println(version_msg);
       ret_val = options.exit_code;
     }
     else if (options.print_cmd_line_helper)

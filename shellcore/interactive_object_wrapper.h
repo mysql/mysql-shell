@@ -121,7 +121,8 @@ namespace shcore
 
     // Helper functions to enable implementing interaction
     void print(const std::string& text) const;
-    void print_error(const std::string& error) const;
+    void println(const std::string& text = "", const std::string& tag = "") const;
+    void print_value(const shcore::Value& value, const std::string& tag) const;
     bool prompt(const std::string& prompt, std::string &ret_val) const;
     bool password(const std::string& prompt, std::string &ret_val) const;
 
