@@ -177,7 +177,6 @@ namespace shcore {
       output_handler.wipe_all();
 
       _interactive_shell->process_line("session.close()");
-
     }
 
     TEST_F(Interactive_shell_test, shell_command_connect_classic)
@@ -243,11 +242,11 @@ namespace shcore {
       std::string syntax_err_msg = "SyntaxError: Unexpected token "
                                    "ILLEGAL at (shell):1:1\n"
                                    "in  \\connect\n"
-                                   "    ^\n\n";
+                                   "    ^\n";
       std::string syntax_err_msg_1 = "SyntaxError: Unexpected token "
                                      "ILLEGAL at (shell):1:1\n"
                                      "in  \\connect \n"
-                                     "    ^\n\n";
+                                     "    ^\n";
 
       _interactive_shell->process_line("\\connect");
       MY_EXPECT_STDERR_CONTAINS(err_msg);
