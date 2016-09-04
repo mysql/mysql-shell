@@ -391,8 +391,8 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args)
       println();
 
       std::string message = "Cluster successfully created. Use Cluster.addInstance() to add MySQL instances.\n"\
-                            "At least 3 instances are needed for the cluster to be able to withstand up to\n";
-      "one server failure.";
+                            "At least 3 instances are needed for the cluster to be able to withstand up to\n"\
+                            "one server failure.";
 
       println(message);
     }
