@@ -473,9 +473,11 @@ std::string Cluster::get_accounts_data()
 {
   shcore::Value::Map_type_ref accounts = _accounts;
 
+  /* Can't hide the key, because we need it when creating the accounts.
   // Hide the MASTER key
   auto account_data = (*accounts)["clusterAdmin"].as_map();
   account_data->erase("password");
+  */
 
   std::string data(shcore::Value(accounts).json(false));
 
