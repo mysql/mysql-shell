@@ -48,10 +48,10 @@ cluster = dba.get_cluster('devCluster')
 print cluster
 
 #@ Dba: add_instance
-cluster.add_instance({'dbUser': 'root', 'host': '127.0.0.1', 'port':__mysql_port_adminapi}, 'root')
+cluster.add_instance({'dbUser': 'root', 'host': '127.0.0.1', 'port':__mysql_sandbox_port1}, 'root')
 
 #@ Dba: remove_instance
-cluster.remove_instance({'host': '127.0.0.1', 'port': __mysql_port_adminapi});
+cluster.remove_instance({'host': '127.0.0.1', 'port': __mysql_sandbox_port1});
 
 #@# Dba: drop_cluster errors
 cluster = dba.drop_cluster()

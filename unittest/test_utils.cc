@@ -156,9 +156,39 @@ void Shell_core_test_wrapper::SetUp()
     {
       _mysql_port.assign(port);
       _mysql_uri += ":" + _mysql_port;
+    }
 
-      std::string port_adminapi = std::to_string(atoi(port) + 10);
-      _mysql_port_adminapi.assign(port_adminapi);
+    const char *sandbox_port1 = getenv("MYSQL_SANDBOX_PORT1");
+    if (sandbox_port1)
+    {
+      _mysql_sandbox_port1.assign(sandbox_port1);
+    }
+    else
+    {
+      std::string sandbox_port1 = std::to_string(atoi(port) + 10);
+      _mysql_sandbox_port1.assign(sandbox_port1);
+    }
+
+    const char *sandbox_port2 = getenv("MYSQL_SANDBOX_PORT2");
+    if (sandbox_port2)
+    {
+      _mysql_sandbox_port2.assign(sandbox_port2);
+    }
+    else
+    {
+      std::string sandbox_port2 = std::to_string(atoi(port) + 20);
+      _mysql_sandbox_port2.assign(sandbox_port2);
+    }
+
+    const char *sandbox_port3 = getenv("MYSQL_SANDBOX_PORT3");
+    if (sandbox_port3)
+    {
+      _mysql_sandbox_port3.assign(sandbox_port3);
+    }
+    else
+    {
+      std::string sandbox_port3 = std::to_string(atoi(port) + 30);
+      _mysql_sandbox_port3.assign(sandbox_port3);
     }
 
     _mysql_uri_nopasswd = shcore::strip_password(_mysql_uri);
