@@ -225,7 +225,7 @@ void Shell_sql::print_exception(const shcore::Exception &e)
 {
   // Sends a description of the exception data to the error handler wich will define the final format.
   shcore::Value exception(e.error());
-  _owner->print_error(exception.json());
+  _owner->get_delegate()->print_value(_owner->get_delegate()->user_data, exception, "error");
 }
 
 void Shell_sql::abort()
