@@ -430,7 +430,8 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args)
   run_queries(classic, {
     "DROP USER IF EXISTS '" + cluster_admin_user + "'@'" + host + "'",
     "CREATE USER '" + cluster_admin_user + "'@'" + host + "' IDENTIFIED BY '" + cluster_admin_user_password + "'",
-    "GRANT ALL ON mysql_innodb_cluster_metadata.* TO '" + instance_admin_user + "'@'" + host + "'"
+    "GRANT ALL ON mysql_innodb_cluster_metadata.* TO '" + cluster_admin_user + "'@'" + host + "'",
+    "GRANT SELECT ON performance_schema.* TO '" + cluster_admin_user + "'@'" + host + "'"
   });
 
   temp_args.clear();
