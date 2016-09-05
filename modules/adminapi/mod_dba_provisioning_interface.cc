@@ -94,7 +94,7 @@ int ProvisioningInterface::executeMp(std::string cmd, std::vector<const char *> 
         log_debug("DBA: mysqlprovision: %s", buf.c_str());
       }
 
-      if ((buf.find("ERROR") != std::string::npos))
+      if ((buf.find("ERROR") != std::string::npos) || (buf.find("mysqlprovision: error") != std::string::npos))
         full_output.append(buf);
       buf = "";
     }
@@ -105,13 +105,31 @@ int ProvisioningInterface::executeMp(std::string cmd, std::vector<const char *> 
       _delegate->print(_delegate->user_data, buf.c_str());
       log_debug("DBA: mysqlprovision: %s", buf.c_str());
     }
-    if ((buf.find("ERROR") != std::string::npos))
+    if ((buf.find("ERROR") != std::string::npos) || (buf.find("mysqlprovision: error") != std::string::npos))
       full_output.append(buf);
   }
   exit_code = p.wait();
 
-  if (exit_code != 0) {
+  /*
+   * mysqlprovision returns 1 as exit-code for internal behaviour errors.
+   * The logged message starts with "ERROR: "
+   */
+  if (exit_code == 1) {
     std::string remove_me = "ERROR: Error executing the '" + cmd + "' command:";
+
+    std::string::size_type i = full_output.find(remove_me);
+
+    if (i != std::string::npos)
+      full_output.erase(i, remove_me.length());
+
+    errors = full_output;
+
+  /*
+   * mysqlprovision returns 2 as exit-code for parameters parsing errors
+   * The logged message starts with "mysqlprovision: error: "
+   */
+  } else if (exit_code == 2) {
+    std::string remove_me = "mysqlprovision: error:";
 
     std::string::size_type i = full_output.find(remove_me);
 
