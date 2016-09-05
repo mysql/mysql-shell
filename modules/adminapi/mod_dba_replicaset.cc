@@ -44,8 +44,10 @@ using namespace shcore;
 std::set<std::string> ReplicaSet::_add_instance_opts = { "name", "host", "port", "user", "dbUser", "password", "dbPassword", "socket", "ssl_ca", "ssl_cert", "ssl_key", "ssl_key", "verbose" };
 std::set<std::string> ReplicaSet::_remove_instance_opts = { "name", "host", "port", "socket", "ssl_ca", "ssl_cert", "ssl_key", "ssl_key", "verbose" };
 
-ReplicaSet::ReplicaSet(const std::string &name, std::shared_ptr<MetadataStorage> metadata_storage) :
-_name(name), _metadata_storage(metadata_storage), _json_mode(JSON_STANDARD_OUTPUT)
+ReplicaSet::ReplicaSet(const std::string &name, const std::string &topology_type,
+                       std::shared_ptr<MetadataStorage> metadata_storage) :
+_name(name), _metadata_storage(metadata_storage), _json_mode(JSON_STANDARD_OUTPUT),
+_topology_type(topology_type)
 {
   init();
 }
@@ -60,21 +62,36 @@ std::string &ReplicaSet::append_descr(std::string &s_out, int UNUSED(indent), in
   return s_out;
 }
 
+
+static void append_member_status(shcore::JSON_dumper& dumper,
+                                std::shared_ptr<mysh::Row> member_row,
+                                bool read_write)
+{
+  //dumper.append_string("name", member_row->get_member(1).as_string());
+  auto status = member_row->get_member(3);
+  dumper.append_string("address", member_row->get_member(4).as_string());
+  dumper.append_string("status", status ? status.as_string() : "OFFLINE");
+  dumper.append_string("role", member_row->get_member(2).as_string());
+  dumper.append_string("mode", read_write ? "R/W" : "R/O");
+}
+
+
 void ReplicaSet::append_json_status(shcore::JSON_dumper& dumper) const
 {
+  bool single_primary_mode = _topology_type == kTopologyPrimaryMaster;
+
   // Identifies the master node
-  auto uuid_result = _metadata_storage->execute_sql("show status like 'group_replication_primary_member'");
-  auto uuid_row = uuid_result->call("fetchOne", shcore::Argument_list());
-
   std::string master_uuid;
-  if (uuid_row)
-    master_uuid = uuid_row.as_object<Row>()->get_member(1).as_string();
+  if (single_primary_mode) {
+    auto uuid_result = _metadata_storage->execute_sql("show status like 'group_replication_primary_member'");
+    auto uuid_row = uuid_result->call("fetchOne", shcore::Argument_list());
+    if (uuid_row)
+      master_uuid = uuid_row.as_object<Row>()->get_member(1).as_string();
+  }
 
-  // TODO: Shall we verify this on the MetadataStorage class?
-  if (master_uuid.empty())
-    throw Exception::metadata_error("The Metadata session is not valid.");
-
-  std::string query = "select mysql_server_uuid, instance_name, role, MEMBER_STATE, JSON_UNQUOTE(JSON_EXTRACT(addresses, \"$.mysqlClassic\")) as host from mysql_innodb_cluster_metadata.instances left join performance_schema.replication_group_members on `mysql_server_uuid`=`MEMBER_ID` where replicaset_id = " + std::to_string(_id);
+  std::string query = "select mysql_server_uuid, instance_name, role, MEMBER_STATE, JSON_UNQUOTE(JSON_EXTRACT(addresses, \"$.mysqlClassic\")) as host"
+                      " from mysql_innodb_cluster_metadata.instances left join performance_schema.replication_group_members on `mysql_server_uuid`=`MEMBER_ID`"
+                      " where replicaset_id = " + std::to_string(_id);
   auto result = _metadata_storage->execute_sql(query);
 
   auto raw_instances = result->call("fetchAll", shcore::Argument_list());
@@ -102,55 +119,68 @@ void ReplicaSet::append_json_status(shcore::JSON_dumper& dumper) const
     case 1:
     case 2: rset_status = "Cluster is NOT tolerant to any failures.";
       break;
-    case 3: rset_status = "Cluster tolerant up to ONE failure.";
+    case 3: rset_status = "Cluster tolerant to up to ONE failure.";
       break;
       // Add logic on the default for the even/uneven count
-    default:rset_status = "Cluster tolerant up to " + std::to_string(online_count - 2) + " failures.";
+    default:rset_status = "Cluster tolerant to up to " + std::to_string(online_count - 2) + " failures.";
       break;
   }
 
   dumper.start_object();
   dumper.append_string("status", rset_status);
-  dumper.append_string("topology");
-
-  dumper.start_object();
-  if (master)
-  {
-    dumper.append_string("name", master->get_member(1).as_string());
-    auto status = master->get_member(3);
-    dumper.append_string("status", status ? status.as_string() : "OFFLINE");
-    dumper.append_string("role", master->get_member(2).as_string());
-    dumper.append_string("mode", "R/W");
+  if (!single_primary_mode) {
+  //  dumper.append_string("topology", _topology_type);
   }
-
-  dumper.append_string("leaves");
-  dumper.start_array();
-  for (auto value : *instances.get())
-  {
-    auto row = value.as_object<mysh::Row>();
-    if (row != master)
-    {
+  dumper.append_string("topology");
+  if (single_primary_mode) {
+    dumper.start_object();
+    if (master) {
+      dumper.append_string(master->get_member(1).as_string());
       dumper.start_object();
-      dumper.append_string("name", row->get_member(1).as_string());
-      auto status = row->get_member(3);
-      dumper.append_string("status", status ? status.as_string() : "OFFLINE");
-      dumper.append_string("role", row->get_member(2).as_string());
-      dumper.append_string("mode", "R/O");
+      append_member_status(dumper, master, true);
       dumper.append_string("leaves");
-      dumper.start_array();
-      dumper.end_array();
+      dumper.start_object();
+    }
+    for (auto value : *instances.get()) {
+      auto row = value.as_object<mysh::Row>();
+      if (row != master) {
+        dumper.append_string(row->get_member(1).as_string());
+        dumper.start_object();
+        append_member_status(dumper, row, single_primary_mode ? false : true);
+        dumper.append_string("leaves");
+        dumper.start_object();
+        dumper.end_object();
+        dumper.end_object();
+      }
+    }
+    if (master) {
+      dumper.end_object();
       dumper.end_object();
     }
+    dumper.end_object();
+  } else {
+    dumper.start_object();
+    for (auto value : *instances.get()) {
+      auto row = value.as_object<mysh::Row>();
+      dumper.append_string(row->get_member(1).as_string());
+      dumper.start_object();
+      append_member_status(dumper, row, true);
+      dumper.append_string("leaves");
+      dumper.start_object();
+      dumper.end_object();
+      dumper.end_object();
+    }
+    dumper.end_object();
   }
-
-  dumper.end_array();
-  dumper.end_object();
   dumper.end_object();
 }
 
-void ReplicaSet::append_json_topology(shcore::JSON_dumper& dumper) const
+void ReplicaSet::append_json_description(shcore::JSON_dumper& dumper) const
 {
-  std::string query = "select mysql_server_uuid, instance_name, role, JSON_UNQUOTE(JSON_EXTRACT(addresses, \"$.mysqlClassic\")) as host from mysql_innodb_cluster_metadata.instances  where replicaset_id = " + std::to_string(_id);
+  std::string query = "select mysql_server_uuid, instance_name, role,"
+                        " JSON_UNQUOTE(JSON_EXTRACT(addresses, \"$.mysqlClassic\")) as host"
+                      " from mysql_innodb_cluster_metadata.instances"
+                      " where replicaset_id = " + std::to_string(_id);
   auto result = _metadata_storage->execute_sql(query);
 
   auto raw_instances = result->call("fetchAll", shcore::Argument_list());
@@ -186,7 +216,7 @@ void ReplicaSet::append_json(shcore::JSON_dumper& dumper) const
     if (_json_mode == JSON_STATUS_OUTPUT)
       append_json_status(dumper);
     else if (_json_mode == JSON_TOPOLOGY_OUTPUT)
-      append_json_topology(dumper);
+      append_json_description(dumper);
   }
 }
 
@@ -289,6 +319,7 @@ static void run_queries(mysh::mysql::ClassicSession *session, const std::vector<
   for (auto &q : queries) {
     shcore::Argument_list args;
     args.push_back(shcore::Value(q));
+    log_info("DBA: run_sql(%s)", q.c_str());
     session->run_sql(args);
   }
 }
@@ -421,7 +452,7 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args)
   });
 
   run_queries(classic, {
-    "DROP USER IF EXISTS '" + cluster_reader_user + "'@'" + host + "'",
+    "DROP USER IF EXISTS '" + cluster_reader_user + "'@'%'",
     "CREATE USER IF NOT EXISTS '" + cluster_reader_user + "'@'%' IDENTIFIED BY '" + cluster_reader_user_password + "'",
     "GRANT SELECT ON mysql_innodb_cluster_metadata.* to '" + cluster_reader_user + "'@'%'",
     "GRANT SELECT ON performance_schema.replication_group_members to '" + cluster_reader_user + "'@'%'"
@@ -431,7 +462,13 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args)
     "DROP USER IF EXISTS '" + cluster_admin_user + "'@'" + host + "'",
     "CREATE USER '" + cluster_admin_user + "'@'" + host + "' IDENTIFIED BY '" + cluster_admin_user_password + "'",
     "GRANT ALL ON mysql_innodb_cluster_metadata.* TO '" + cluster_admin_user + "'@'" + host + "'",
-    "GRANT SELECT ON performance_schema.* TO '" + cluster_admin_user + "'@'" + host + "'"
+    "GRANT SELECT ON performance_schema.replication_group_members to '" + cluster_admin_user + "'@'" + host + "'"
+  });
+
+  run_queries(classic, {
+    "DROP USER IF EXISTS '" + replication_user + "'@'%'",
+    "CREATE USER IF NOT EXISTS '" + replication_user + "'@'%' IDENTIFIED BY '" + replication_user_password + "'",
+    "GRANT REPLICATION SLAVE ON *.* to '" + replication_user + "'@'%'"
   });
 
   temp_args.clear();
@@ -455,9 +492,9 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args)
     do_join_replicaset(user + "@" + host + ":" + std::to_string(port),
         "",
         super_user_password,
-        replication_user, replication_user_password, verbose);
-  }
-  else {
+        replication_user, replication_user_password,
+        verbose);
+  } else {
     // We need to retrieve a peer instance, so let's use the Seed one
     std::string peer_instance = _metadata_storage->get_seed_instance(get_id());
 
@@ -465,7 +502,8 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args)
     do_join_replicaset(user + "@" + host + ":" + std::to_string(port),
         user + "@" + peer_instance,
         super_user_password,
-        replication_user, replication_user_password, verbose);
+        replication_user, replication_user_password,
+        verbose);
   }
 
   // OK, if we reached here without errors we can update the metadata with the host
@@ -511,12 +549,17 @@ bool ReplicaSet::do_join_replicaset(const std::string &instance_url,
   std::string command, errors;
 
   if (is_seed_instance) {
-    exit_code = _provisioning_interface->start_replicaset(instance_url, repl_user, super_user_password,
-                                                              repl_user_password, errors, verbose);
-  }
-  else {
-    exit_code = _provisioning_interface->join_replicaset(instance_url, repl_user, peer_instance_url,
-                                                      super_user_password, repl_user_password, errors, verbose);
+    exit_code = _provisioning_interface->start_replicaset(instance_url,
+                      repl_user, super_user_password,
+                      repl_user_password,
+                      _topology_type == kTopologyMultiMaster,
+                      errors, verbose);
+  } else {
+    exit_code = _provisioning_interface->join_replicaset(instance_url,
+                      repl_user, peer_instance_url,
+                      super_user_password, repl_user_password,
+                      _topology_type == kTopologyMultiMaster,
+                      errors, verbose);
   }
 
   if (exit_code == 0)

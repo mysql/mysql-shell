@@ -70,6 +70,7 @@ void Dba::init()
   add_method("deployLocalInstance", std::bind(&Dba::deploy_local_instance, this, _1), "data", shcore::Map, NULL);
   add_varargs_method("startLocalInstance", std::bind(&Dba::deploy_local_instance, this, _1));
   add_method("stopLocalInstance", std::bind(&Dba::stop_local_instance, this, _1), "data", shcore::Map, NULL);
+  add_method("restartLocalInstance", std::bind(&Dba::restart_local_instance, this, _1), "data", shcore::Map, NULL);
   add_method("deleteLocalInstance", std::bind(&Dba::delete_local_instance, this, _1), "data", shcore::Map, NULL);
   add_method("killLocalInstance", std::bind(&Dba::kill_local_instance, this, _1), "data", shcore::Map, NULL);
   add_varargs_method("help", std::bind(&Dba::help, this, _1));
@@ -283,6 +284,7 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args)
   std::string cluster_admin_user = "mysql_innodb_cluster_admin";
 
   std::string mysql_innodb_cluster_admin_pwd;
+  bool multi_master = false; // Default single/primary master
   bool verbose = false; // Default is false
 
   try
@@ -304,7 +306,7 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args)
       shcore::Value::Map_type_ref options = args.map_at(2);
 
       // Verification of invalid attributes on the instance creation options
-      auto invalids = shcore::get_additional_keys(options, { "clusterAdminType", "verbose" });
+      auto invalids = shcore::get_additional_keys(options, { "clusterAdminType", "multiMaster", "verbose" });
       if (invalids.size())
       {
         std::string error = "The instance options contain the following invalid attributes: ";
@@ -314,6 +316,9 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args)
 
       if (options->has_key("clusterAdminType"))
         cluster_admin_type = options->get_string("clusterAdminType");
+
+      if (options->has_key("multiMaster"))
+        multi_master = options->get_bool("multiMaster");
 
       if (cluster_admin_type != "local" &&
           cluster_admin_type != "guided" &&
@@ -374,7 +379,8 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args)
     shcore::Argument_list args;
     args.push_back(shcore::Value(session->uri()));
     args.push_back(shcore::Value(session->get_password()));
-
+    args.push_back(shcore::Value(multi_master ? ReplicaSet::kTopologyMultiMaster
+                                              : ReplicaSet::kTopologyPrimaryMaster));
     _default_cluster->add_seed_instance(args);
 
     // If it reaches here, it means there are no exceptions
@@ -626,6 +632,7 @@ shcore::Value Dba::exec_instance_op(const std::string &function, const shcore::A
   shcore::Value ret_val;
 
   shcore::Value::Map_type_ref options; // Map with the connection data
+  shcore::Value mycnf_options;
 
   int port = args.int_at(0);
   int portx = 0;
@@ -672,6 +679,9 @@ shcore::Value Dba::exec_instance_op(const std::string &function, const shcore::A
 
     if (options->has_key("verbose"))
       verbose = options->get_bool("verbose");
+
+    if (options->has_key("options"))
+      mycnf_options = (*options)["options"];
   }
   else
   {
@@ -686,25 +696,24 @@ shcore::Value Dba::exec_instance_op(const std::string &function, const shcore::A
 
   if (function == "deploy")
   {
-    if (_provisioning_interface->deploy_sandbox(port, portx, sandbox_dir, password, errors, verbose) != 0)
+    if (_provisioning_interface->deploy_sandbox(port, portx, sandbox_dir, password, mycnf_options, errors, verbose) != 0)
       throw shcore::Exception::logic_error(errors);
   }
   else if (function == "delete")
   {
-    if (_provisioning_interface->delete_sandbox(port, portx, sandbox_dir, errors, verbose) != 0)
+    if (_provisioning_interface->delete_sandbox(port, sandbox_dir, errors, verbose) != 0)
       throw shcore::Exception::logic_error(errors);
   }
   else if (function == "kill")
   {
-    if (_provisioning_interface->kill_sandbox(port, portx, sandbox_dir, errors, verbose) != 0)
+    if (_provisioning_interface->kill_sandbox(port, sandbox_dir, errors, verbose) != 0)
       throw shcore::Exception::logic_error(errors);
   }
   else if (function == "stop")
   {
-    if (_provisioning_interface->stop_sandbox(port, portx, sandbox_dir, errors, verbose) != 0)
+    if (_provisioning_interface->stop_sandbox(port, sandbox_dir, errors, verbose) != 0)
       throw shcore::Exception::logic_error(errors);
   }
-
   return ret_val;
 }
 
@@ -764,6 +773,23 @@ shcore::Value Dba::stop_local_instance(const shcore::Argument_list &args)
     ret_val = exec_instance_op("stop", args);
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("stopLocalInstance"));
+
+  return ret_val;
+}
+
+shcore::Value Dba::restart_local_instance(const shcore::Argument_list &args)
+{
+  shcore::Value ret_val;
+
+  args.ensure_count(1, 2, get_function_name("restartLocalInstance").c_str());
+
+  try
+  {
+    // check if the instance is live 1st
+    ret_val = exec_instance_op("stop", args);
+    ret_val = exec_instance_op("deploy", args);
+  }
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("restartLocalInstance"));
 
   return ret_val;
 }

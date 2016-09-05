@@ -408,14 +408,16 @@ shcore::Value Row::get_field(const shcore::Argument_list &args)
   if (args[0].type != shcore::String)
     throw shcore::Exception::argument_error("Row.getField: Argument #1 is expected to be a string");
 
-  std::string field = args[0].as_string();
+  return get_field_(args[0].as_string());
+}
 
-  if (values.find(field) != values.end())
-    ret_val = values[field];
+shcore::Value Row::get_field_(const std::string &field)
+{
+  auto iter = values.find(field);
+  if (iter != values.end())
+    return iter->second;
   else
     throw shcore::Exception::argument_error("Row.getField: Field " + field + " does not exist");
-
-  return ret_val;
 }
 
 #if DOXYGEN_CPP

@@ -45,7 +45,7 @@ namespace mysh
       uint64_t get_cluster_id(uint64_t rs_id);
       bool cluster_exists(const std::string &cluster_name);
       void insert_cluster(const std::shared_ptr<Cluster> &cluster);
-      void insert_default_replica_set(const std::shared_ptr<Cluster> &cluster);
+      void insert_replica_set(std::shared_ptr<ReplicaSet> replicaset, bool is_default);
       std::shared_ptr<ShellBaseResult> insert_host(const shcore::Argument_list &args);
       void insert_instance(const shcore::Argument_list &args, uint64_t host_id, uint64_t rs_id);
       void remove_instance(const std::string &instance_name);
@@ -57,7 +57,6 @@ namespace mysh
       std::shared_ptr<Cluster> get_default_cluster(const std::string &master_key);
       bool has_default_cluster();
 
-      std::string get_replicaset_name(uint64_t rs_id);
       std::shared_ptr<ReplicaSet> get_replicaset(uint64_t rs_id);
       bool is_replicaset_empty(uint64_t rs_id);
       bool is_instance_on_replicaset(uint64_t rs_id, std::string address);

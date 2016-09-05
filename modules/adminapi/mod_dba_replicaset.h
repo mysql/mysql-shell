@@ -42,7 +42,8 @@ namespace mysh
     class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>, public shcore::Cpp_object_bridge
     {
     public:
-      ReplicaSet(const std::string &name, std::shared_ptr<MetadataStorage> metadata_storage);
+      ReplicaSet(const std::string &name, const std::string &topology_type,
+                std::shared_ptr<MetadataStorage> metadata_storage);
       virtual ~ReplicaSet();
 
       static std::set<std::string> _add_instance_opts, _remove_instance_opts;
@@ -63,6 +64,12 @@ namespace mysh
       void set_json_mode(int mode) { _json_mode = mode; }
 
       void set_cluster(std::shared_ptr<Cluster> cluster) { _cluster = cluster; }
+      std::shared_ptr<Cluster> get_cluster() const { return _cluster; }
+
+      std::string get_topology_type() const { return _topology_type; }
+
+      static constexpr char const *kTopologyPrimaryMaster = "pm";
+      static constexpr char const *kTopologyMultiMaster = "mm";
 
 #if DOXYGEN_JS
       String getName();
@@ -90,6 +97,7 @@ namespace mysh
     protected:
       uint64_t _id;
       std::string _name;
+      std::string _topology_type;
       // TODO: add missing fields, rs_type, etc
 
     private:
@@ -99,7 +107,7 @@ namespace mysh
       // 2 means describe
       int _json_mode;
       void append_json_status(shcore::JSON_dumper& dumper) const;
-      void append_json_topology(shcore::JSON_dumper& dumper) const;
+      void append_json_description(shcore::JSON_dumper& dumper) const;
       void init();
 
       bool do_join_replicaset(const std::string &instance_url,

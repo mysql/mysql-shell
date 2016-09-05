@@ -223,16 +223,19 @@ void MetadataStorage::insert_cluster(const std::shared_ptr<Cluster> &cluster)
   }
 }
 
-void MetadataStorage::insert_default_replica_set(const std::shared_ptr<Cluster> &cluster)
+void MetadataStorage::insert_replica_set(std::shared_ptr<ReplicaSet> replicaset,
+      bool is_default)
 {
-  std::string query;
+  shcore::sqlstring query("INSERT INTO mysql_innodb_cluster_metadata.replicasets "
+      "(cluster_id, replicaset_type, topology_type, replicaset_name, active) "
+      "VALUES (?, ?, ?, ?, ?)", 0);
   uint64_t cluster_id;
 
-  cluster_id = cluster->get_id();
+  cluster_id = replicaset->get_cluster()->get_id();
 
   // Insert the default ReplicaSet on the replicasets table
-  query = "INSERT INTO mysql_innodb_cluster_metadata.replicasets (cluster_id, replicaset_type, replicaset_name, active) VALUES (" +
-        std::to_string(cluster_id) + ", 'gr', 'default', 1)";
+  query << cluster_id << "gr" << replicaset->get_topology_type() << "default" << 1;
+  query.done();
 
   auto result = execute_sql(query);
 
@@ -241,11 +244,13 @@ void MetadataStorage::insert_default_replica_set(const std::shared_ptr<Cluster> 
   rs_id = result->get_member("autoIncrementValue").as_uint();
 
   // Update the cluster entry with the replicaset_id
-  cluster->get_default_replicaset()->set_id(rs_id);
+  replicaset->set_id(rs_id);
 
   // Insert the default ReplicaSet on the replicasets table
-  query = "UPDATE mysql_innodb_cluster_metadata.clusters SET default_replicaset = " + std::to_string(rs_id) +
-        " WHERE cluster_id = " + std::to_string(cluster_id) + "";
+  query = shcore::sqlstring("UPDATE mysql_innodb_cluster_metadata.clusters SET default_replicaset = ?"
+                            " WHERE cluster_id = ?", 0);
+  query << rs_id << cluster_id;
+  query.done();
 
   execute_sql(query);
 }
@@ -440,44 +445,30 @@ void MetadataStorage::drop_default_replicaset(const std::string &cluster_name)
   tx.commit();
 }
 
-std::string MetadataStorage::get_replicaset_name(uint64_t rs_id)
+std::shared_ptr<ReplicaSet> MetadataStorage::get_replicaset(uint64_t rs_id)
 {
-  std::string rs_name;
-
   if (!metadata_schema_exists())
     throw Exception::metadata_error("Metadata Schema does not exist.");
 
-  // Get the ReplicaSet name
-  auto result = execute_sql("SELECT replicaset_name from mysql_innodb_cluster_metadata.replicasets where replicaset_id = '" + std::to_string(rs_id) + "'");
-
+  shcore::sqlstring query("SELECT replicaset_name, topology_type"
+                          " FROM mysql_innodb_cluster_metadata.replicasets"
+                          " WHERE replicaset_id = ?", 0);
+  query << rs_id;
+  auto result = execute_sql(query);
   auto row = result->call("fetchOne", shcore::Argument_list());
-
   if (row)
   {
-    shcore::Argument_list args;
-    args.push_back(shcore::Value("replicaset_name"));
-    rs_name = row.as_object<Row>()->get_field(args).as_string();
+    std::string rs_name = row.as_object<Row>()->get_field_("replicaset_name").as_string();
+    std::string topo = row.as_object<Row>()->get_field_("topology_type").as_string();
+
+    // Create a ReplicaSet Object to match the Metadata
+    std::shared_ptr<ReplicaSet> rs(new ReplicaSet("name", topo, shared_from_this()));
+    // Get and set the Metadata data
+    rs->set_id(rs_id);
+    rs->set_name(rs_name);
+    return rs;
   }
-
-  //result->flush();
-
-  return rs_name;
-}
-
-std::shared_ptr<ReplicaSet> MetadataStorage::get_replicaset(uint64_t rs_id)
-{
-  // Create a ReplicaSet Object to match the Metadata
-  std::shared_ptr<ReplicaSet> rs(new ReplicaSet("name", shared_from_this()));
-  std::string rs_name;
-
-  // Get and set the Metadata data
-  rs->set_id(rs_id);
-
-  rs_name = get_replicaset_name(rs_id);
-
-  rs->set_name(rs_name);
-
-  return rs;
+  throw Exception::metadata_error("Unknown replicaset "+std::to_string(rs_id));
 }
 
 std::shared_ptr<Cluster> MetadataStorage::get_cluster_matching(const std::string& condition, const std::string &master_key)

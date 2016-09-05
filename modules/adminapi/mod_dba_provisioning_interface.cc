@@ -36,7 +36,7 @@ _delegate(deleg){
 ProvisioningInterface::~ProvisioningInterface() {
 }
 
-int ProvisioningInterface::executeMp(std::string cmd, std::vector<const char *> args,
+int ProvisioningInterface::execute_mysqlprovision(const std::string &cmd, const std::vector<const char *> &args,
                                      const std::vector<std::string> &passwords,
                                      std::string &errors, bool verbose) {
   std::vector<const char *> args_script;
@@ -44,6 +44,7 @@ int ProvisioningInterface::executeMp(std::string cmd, std::vector<const char *> 
   char c;
   int exit_code;
   std::string full_output;
+  std::string error_output;
 
   // set _local_mysqlprovision_path if empty
   if (_local_mysqlprovision_path.empty())
@@ -64,12 +65,11 @@ int ProvisioningInterface::executeMp(std::string cmd, std::vector<const char *> 
 
   {
     std::string cmdline;
-    for (auto s : args_script)
-    {
+    for (auto s : args_script) {
       if (s)
         cmdline.append(s).append(" ");
     }
-    log_info("DBA: mysqlprovision: Executing %s...", cmdline.c_str());
+    log_info("DBA: mysqlprovision: Executing %s", cmdline.c_str());
   }
 
   ngcommon::Process_launcher p(args_script[0], &args_script[0]);
@@ -78,33 +78,34 @@ int ProvisioningInterface::executeMp(std::string cmd, std::vector<const char *> 
     for (size_t i = 0; i < passwords.size(); i++) {
       try {
         p.write(passwords[i].c_str(), passwords[i].length());
-      }
-      catch (shcore::Exception &e) {
-        log_debug("DBA: mysqlprovision: %s", e.what());
-        throw shcore::Exception::runtime_error(e.what());
+      } catch (std::exception &e) {
+        log_warning("DBA: %s while executing mysqlprovision", e.what());
+        // continue so we can read the output from the tool
+        break;
       }
     }
   }
-  while (p.read(&c, 1) > 0) {
-    buf += c;
-    if (c == '\n') {
-      if (verbose)
-      {
-        _delegate->print(_delegate->user_data, buf.c_str());
+  int rc;
+  try {
+    while ((rc = p.read(&c, 1)) > 0) {
+      buf += c;
+      if (c == '\n') {
+        if (verbose)
+          _delegate->print(_delegate->user_data, buf.c_str());
         log_debug("DBA: mysqlprovision: %s", buf.c_str());
+        if ((buf.find("ERROR") != std::string::npos) || (buf.find("mysqlprovision: error") != std::string::npos))
+            error_output.append(buf);
+          full_output.append(buf);
+          buf = "";
       }
-
-      if ((buf.find("ERROR") != std::string::npos) || (buf.find("mysqlprovision: error") != std::string::npos))
-        full_output.append(buf);
-      buf = "";
     }
+  } catch (std::exception &e) {
+    log_warning("DBA: %s while reading from mysqlprovision", e.what());
   }
   if (!buf.empty()) {
     if (verbose)
-    {
       _delegate->print(_delegate->user_data, buf.c_str());
-      log_debug("DBA: mysqlprovision: %s", buf.c_str());
-    }
+    log_debug("DBA: mysqlprovision: %s", buf.c_str());
     if ((buf.find("ERROR") != std::string::npos) || (buf.find("mysqlprovision: error") != std::string::npos))
       full_output.append(buf);
   }
@@ -114,7 +115,12 @@ int ProvisioningInterface::executeMp(std::string cmd, std::vector<const char *> 
    * mysqlprovision returns 1 as exit-code for internal behaviour errors.
    * The logged message starts with "ERROR: "
    */
-  if (exit_code == 1) {
+  if (exit_code != 0) {
+    _delegate->print(_delegate->user_data,
+                     ("ERROR: mysqlprovision exited with error code " + std::to_string(exit_code)+"\n").c_str());
+    if (!verbose) {
+      _delegate->print(_delegate->user_data, full_output.c_str());
+    }
     std::string remove_me = "ERROR: Error executing the '" + cmd + "' command:";
 
     std::string::size_type i = full_output.find(remove_me);
@@ -138,7 +144,9 @@ int ProvisioningInterface::executeMp(std::string cmd, std::vector<const char *> 
 
     errors = full_output;
   }
-
+  if (errors.empty() && exit_code != 0) {
+    errors = "Error while executing mysqlprovision (return "+std::to_string(exit_code)+")";
+  }
   log_info("DBA: mysqlprovision: Command returned exit code %i", exit_code);
 
   return exit_code;
@@ -158,11 +166,13 @@ int ProvisioningInterface::check(const std::string &user, const std::string &hos
   args.push_back("--stdin");
   args.push_back(NULL);
 
-  return executeMp("check", args, passwords, errors, verbose);
+  return execute_mysqlprovision("check", args, passwords, errors, verbose);
 }
 
-int ProvisioningInterface::exec_sandbox_op(std::string op, int port, int portx, const std::string &sandbox_dir,
-                                           const std::string &password, std::string &errors, bool verbose) {
+int ProvisioningInterface::exec_sandbox_op(const std::string &op, int port, int portx, const std::string &sandbox_dir,
+                                           const std::string &password,
+                                           const std::vector<std::string> &extra_args,
+                                           std::string &errors, bool verbose) {
   std::vector<std::string> sandbox_args, passwords;
   std::string arg, pwd = password;
 
@@ -195,35 +205,50 @@ int ProvisioningInterface::exec_sandbox_op(std::string op, int port, int portx, 
   args.push_back(op.c_str());
   for (size_t i = 0; i < sandbox_args.size(); i++)
     args.push_back(sandbox_args[i].c_str());
+  for (size_t i = 0; i < extra_args.size(); i++)
+    args.push_back(extra_args[i].c_str());
   if (!pwd.empty())
     args.push_back("--stdin");
   args.push_back(NULL);
 
-  return executeMp("sandbox", args, passwords, errors, verbose);
+  return execute_mysqlprovision("sandbox", args, passwords, errors, verbose);
 }
 
 int ProvisioningInterface::deploy_sandbox(int port, int portx, const std::string &sandbox_dir,
-                                          const std::string &password, std::string &errors, bool verbose) {
-  return exec_sandbox_op("start", port, portx, sandbox_dir, password, errors, verbose);
-}
-
-int ProvisioningInterface::delete_sandbox(int port, int portx, const std::string &sandbox_dir,
+                                          const std::string &password,
+                                          const shcore::Value &mycnf_options,
                                           std::string &errors, bool verbose) {
-  return exec_sandbox_op("delete", port, portx, sandbox_dir, "", errors, verbose);
+  std::vector<std::string> extra_args;
+  if (mycnf_options) {
+    for (auto s : *mycnf_options.as_array()) {
+      extra_args.push_back("--opt="+s.as_string());
+    }
+  }
+  return exec_sandbox_op("start", port, portx, sandbox_dir, password,
+                         extra_args, errors, verbose);
 }
 
-int ProvisioningInterface::kill_sandbox(int port, int portx, const std::string &sandbox_dir,
-                                        std::string &errors, bool verbose) {
-  return exec_sandbox_op("kill", port, portx, sandbox_dir, "", errors, verbose);
+int ProvisioningInterface::delete_sandbox(int port, const std::string &sandbox_dir,
+                                          std::string &errors, bool verbose) {
+  return exec_sandbox_op("delete", port, 0, sandbox_dir, "",
+                         std::vector<std::string>(), errors, verbose);
 }
 
-int ProvisioningInterface::stop_sandbox(int port, int portx, const std::string &sandbox_dir,
+int ProvisioningInterface::kill_sandbox(int port, const std::string &sandbox_dir,
                                         std::string &errors, bool verbose) {
-  return exec_sandbox_op("stop", port, portx, sandbox_dir, "", errors, verbose);
+  return exec_sandbox_op("kill", port, 0, sandbox_dir, "",
+                         std::vector<std::string>(), errors, verbose);
+}
+
+int ProvisioningInterface::stop_sandbox(int port, const std::string &sandbox_dir,
+                                        std::string &errors, bool verbose) {
+  return exec_sandbox_op("stop", port, 0, sandbox_dir, "",
+                         std::vector<std::string>(), errors, verbose);
 }
 
 int ProvisioningInterface::start_replicaset(const std::string &instance_url, const std::string &repl_user,
                                       const std::string &super_user_password, const std::string &repl_user_password,
+                                      bool multi_master,
                                       std::string &errors, bool verbose) {
   std::vector<std::string> passwords;
   std::string instance_args, repl_user_args;
@@ -242,16 +267,19 @@ int ProvisioningInterface::start_replicaset(const std::string &instance_url, con
   std::vector<const char *> args;
   args.push_back(instance_args.c_str());
   args.push_back(repl_user_args.c_str());
-
+  if (multi_master)
+    args.push_back("--single-primary=OFF");
   args.push_back("--stdin");
   args.push_back(NULL);
 
-  return executeMp("start-replicaset", args, passwords, errors, verbose);
+  return execute_mysqlprovision("start-replicaset", args, passwords, errors, verbose);
 }
 
 int ProvisioningInterface::join_replicaset(const std::string &instance_url, const std::string &repl_user,
                                       const std::string &peer_instance_url, const std::string &super_user_password,
-                                      const std::string &repl_user_password, std::string &errors, bool verbose) {
+                                      const std::string &repl_user_password,
+                                      bool multi_master,
+                                      std::string &errors, bool verbose) {
   std::vector<std::string> passwords;
   std::string instance_args, peer_instance_args, repl_user_args;
   std::string super_user_pwd = super_user_password;
@@ -261,26 +289,25 @@ int ProvisioningInterface::join_replicaset(const std::string &instance_url, cons
   repl_user_args = "--replication-user=" + repl_user;
 
   super_user_pwd += "\n";
+  // password for instance being joined
   passwords.push_back(super_user_pwd);
-
+  // password for the replication user
   repl_user_pwd += "\n";
   passwords.push_back(repl_user_pwd);
+  // we need to enter the super-user password again for the peer instance
+  passwords.push_back(super_user_pwd);
 
   peer_instance_args = "--peer-instance=" + peer_instance_url;
-
-  // we need to enter the super-user password again
-  passwords.push_back(super_user_pwd);
 
   std::vector<const char *> args;
   args.push_back(instance_args.c_str());
   args.push_back(repl_user_args.c_str());
-
   args.push_back(peer_instance_args.c_str());
 
   args.push_back("--stdin");
   args.push_back(NULL);
 
-  return executeMp("join-replicaset", args, passwords, errors, verbose);
+  return execute_mysqlprovision("join-replicaset", args, passwords, errors, verbose);
 }
 
 int ProvisioningInterface::leave_replicaset(const std::string &instance_url, const std::string &super_user_password,
@@ -300,5 +327,5 @@ int ProvisioningInterface::leave_replicaset(const std::string &instance_url, con
   args.push_back("--stdin");
   args.push_back(NULL);
 
-  return executeMp("leave-replicaset", args, passwords, errors, verbose);
+  return execute_mysqlprovision("leave-replicaset", args, passwords, errors, verbose);
 }

@@ -36,7 +36,7 @@ using namespace mysh::mysqlx;
 using namespace shcore;
 
 Cluster::Cluster(const std::string &name, std::shared_ptr<MetadataStorage> metadata_storage) :
-_name(name), _metadata_storage(metadata_storage), _json_mode(JSON_STANDARD_OUTPUT)
+  _name(name), _metadata_storage(metadata_storage), _json_mode(JSON_STANDARD_OUTPUT)
 {
   init();
 }
@@ -147,9 +147,9 @@ str Cluster::get_admin_type(){}
 //* \param conn The Connection String or URI of the Instance to be added
 //*/
 //#if DOXYGEN_JS
-//Undefined addSeedInstance(String conn){}
+//Undefined addSeedInstance(String conn, String root_password, String topology_type){}
 //#elif DOXYGEN_PY
-//None add_seed_instance(str conn){}
+//None add_seed_instance(str conn, str root_password, str topology_type){}
 //#endif
 ///**
 //* Adds a Seed Instance to the Cluster
@@ -162,11 +162,12 @@ str Cluster::get_admin_type(){}
 //#endif
 //#endif
 
-shcore::Value Cluster::add_seed_instance(const shcore::Argument_list &args)
+shcore::Value Cluster::add_seed_instance(const shcore::Argument_list &args_)
 {
   shcore::Value ret_val;
+  shcore::Argument_list args(args_);
 
-  //args.ensure_count(1, 2, (class_name() + ".addSeedInstance").c_str());
+  //args.ensure_count(1, 3, (class_name() + ".addSeedInstance").c_str());
 
   //try
   //{
@@ -183,17 +184,22 @@ shcore::Value Cluster::add_seed_instance(const shcore::Argument_list &args)
   }
   else
   {
+    std::string topology_type = ReplicaSet::kTopologyPrimaryMaster;
+    if (args.size() == 3)
+    {
+      topology_type = args[2].as_string();
+      args.pop_back();
+    }
     // Create the Default ReplicaSet and assign it to the Cluster's default_replica_set var
-    _default_replica_set.reset(new ReplicaSet("default", _metadata_storage));
-
+    _default_replica_set.reset(new ReplicaSet("default", topology_type,
+                                              _metadata_storage));
     _default_replica_set->set_cluster(shared_from_this());
 
     // If we reached here without errors we can update the Metadata
 
     // Update the Cluster table with the Default ReplicaSet on the Metadata
-    _metadata_storage->insert_default_replica_set(shared_from_this());
+    _metadata_storage->insert_replica_set(_default_replica_set, true);
   }
-
   // Add the Instance to the Default ReplicaSet
   ret_val = _default_replica_set->add_instance(args);
   tx.commit();
@@ -494,7 +500,7 @@ std::string Cluster::get_accounts_data()
                  reinterpret_cast<const unsigned char*>(_master_key.data()),
                  static_cast<uint32_t>(_master_key.length()),
                  myaes::my_aes_128_ecb, NULL, false) < 0)
-    throw shcore::Exception::logic_error("Error encrypting account information");
+    throw shcore::Exception::runtime_error("Error encrypting account information");
   return dest;
 }
 
@@ -513,7 +519,7 @@ void Cluster::set_accounts_data(const std::string& encrypted_json)
                      reinterpret_cast<const unsigned char*>(_master_key.data()),
                      static_cast<uint32_t>(_master_key.length()),
                      myaes::my_aes_128_ecb, NULL, false)) < 0)
-    throw shcore::Exception::logic_error("Error decrypting account information");
+    throw shcore::Exception::runtime_error("Error decrypting account information");
 
   decrypted_data.resize(len);
 

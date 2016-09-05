@@ -42,27 +42,28 @@ namespace mysh {
                 std::string &errors, bool verbose);
 
       int deploy_sandbox(int port, int portx, const std::string &sandbox_dir,
-                         const std::string &password, std::string &errors, bool verbose);
+                         const std::string &password,
+                         const shcore::Value &mycnf_options,
+                         std::string &errors, bool verbose);
 
       //int stop_sandbox(int port, int portx, const std::string &sandbox_dir,
       //                 const std::string &password, std::string &errors, bool verbose);
 
-      int delete_sandbox(int port, int portx, const std::string &sandbox_dir,
+      int delete_sandbox(int port, const std::string &sandbox_dir,
                          std::string &errors, bool verbose);
-
-      int kill_sandbox(int port, int portx, const std::string &sandbox_dir,
+      int kill_sandbox(int port, const std::string &sandbox_dir,
                        std::string &errors, bool verbose);
-
-      int stop_sandbox(int port, int portx, const std::string &sandbox_dir,
+      int stop_sandbox(int port, const std::string &sandbox_dir,
                        std::string &errors, bool verbose);
-
       int start_replicaset(const std::string &instance_url, const std::string &repl_user,
                      const std::string &super_user_password, const std::string &repl_user_password,
+                     bool multi_master,
                      std::string &errors, bool verbose);
-
       int join_replicaset(const std::string &instance_url, const std::string &repl_user,
                      const std::string &peer_instance_url, const std::string &super_user_password,
-                     const std::string &repl_user_password, std::string &errors, bool verbose);
+                     const std::string &repl_user_password,
+                     bool multi_master,
+                     std::string &errors, bool verbose);
 
       int leave_replicaset(const std::string &instance_url, const std::string &super_user_password,
                            std::string &errors, bool verbose);
@@ -71,13 +72,15 @@ namespace mysh {
       shcore::Interpreter_delegate *_delegate;
       std::string _local_mysqlprovision_path;
 
-      int executeMp(std::string cmd, std::vector<const char *> args, const std::vector<std::string> &passwords,
+      int execute_mysqlprovision(const std::string &cmd, const std::vector<const char *> &args,
+                    const std::vector<std::string> &passwords,
                     std::string &errors, bool verbose);
-
-      int exec_sandbox_op(std::string op, int port, int portx, const std::string &sandbox_dir,
-                         const std::string &password, std::string &errors, bool verbose);
+      int exec_sandbox_op(const std::string &op, int port, int portx, const std::string &sandbox_dir,
+                         const std::string &password,
+                         const std::vector<std::string> &extra_args,
+                         std::string &errors, bool verbose);
     };
-  }  // namespace mysqlx
+}  // namespace mysqlx
 }  // namespace mysh
 
 #endif  // MODULES_ADMINAPI_MOD_DBA_PROVISIONING_INTERFACE_H_
