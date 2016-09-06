@@ -2,7 +2,7 @@
 |Are you sure you want to remove the Metadata? [y/N]:|*
 
 //@ Session: validating members
-|Session Members: 12|
+|Session Members: 13|
 |createCluster: OK|
 |deleteLocalInstance: OK|
 |deployLocalInstance: OK|
@@ -14,6 +14,7 @@
 |startLocalInstance: OK|
 |validateInstance: OK|
 |stopLocalInstance: OK|
+|dropMetadataSchema: OK|
 
 //@# Dba: createCluster errors
 ||Invalid number of arguments in Dba.createCluster, expected 1 to 3 but got 0
