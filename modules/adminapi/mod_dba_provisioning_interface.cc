@@ -30,11 +30,9 @@ using namespace mysh::mysqlx;
 using namespace shcore;
 
 ProvisioningInterface::ProvisioningInterface(shcore::Interpreter_delegate* deleg) :
-_delegate(deleg){
-}
+_delegate(deleg) {}
 
-ProvisioningInterface::~ProvisioningInterface() {
-}
+ProvisioningInterface::~ProvisioningInterface() {}
 
 int ProvisioningInterface::execute_mysqlprovision(const std::string &cmd, const std::vector<const char *> &args,
                                      const std::vector<std::string> &passwords,
@@ -47,8 +45,7 @@ int ProvisioningInterface::execute_mysqlprovision(const std::string &cmd, const 
   std::string error_output;
 
   // set _local_mysqlprovision_path if empty
-  if (_local_mysqlprovision_path.empty())
-  {
+  if (_local_mysqlprovision_path.empty()) {
     _local_mysqlprovision_path = (*shcore::Shell_core_options::get())[SHCORE_GADGETS_PATH].as_string();
 
     if (_local_mysqlprovision_path.empty())
@@ -74,6 +71,8 @@ int ProvisioningInterface::execute_mysqlprovision(const std::string &cmd, const 
 
   ngcommon::Process_launcher p(args_script[0], &args_script[0]);
 
+  p.start();
+
   if (!passwords.empty()) {
     for (size_t i = 0; i < passwords.size(); i++) {
       try {
@@ -95,8 +94,8 @@ int ProvisioningInterface::execute_mysqlprovision(const std::string &cmd, const 
         log_debug("DBA: mysqlprovision: %s", buf.c_str());
         if ((buf.find("ERROR") != std::string::npos) || (buf.find("mysqlprovision: error") != std::string::npos))
             error_output.append(buf);
-          full_output.append(buf);
-          buf = "";
+        full_output.append(buf);
+        buf = "";
       }
     }
   } catch (std::exception &e) {
@@ -117,7 +116,7 @@ int ProvisioningInterface::execute_mysqlprovision(const std::string &cmd, const 
    */
   if (exit_code != 0) {
     _delegate->print(_delegate->user_data,
-                     ("ERROR: mysqlprovision exited with error code " + std::to_string(exit_code)+"\n").c_str());
+                     ("ERROR: mysqlprovision exited with error code " + std::to_string(exit_code) + "\n").c_str());
     if (!verbose) {
       _delegate->print(_delegate->user_data, full_output.c_str());
     }
@@ -130,10 +129,10 @@ int ProvisioningInterface::execute_mysqlprovision(const std::string &cmd, const 
 
     errors = full_output;
 
-  /*
-   * mysqlprovision returns 2 as exit-code for parameters parsing errors
-   * The logged message starts with "mysqlprovision: error: "
-   */
+    /*
+     * mysqlprovision returns 2 as exit-code for parameters parsing errors
+     * The logged message starts with "mysqlprovision: error: "
+     */
   } else if (exit_code == 2) {
     std::string remove_me = "mysqlprovision: error:";
 
@@ -145,7 +144,7 @@ int ProvisioningInterface::execute_mysqlprovision(const std::string &cmd, const 
     errors = full_output;
   }
   if (errors.empty() && exit_code != 0) {
-    errors = "Error while executing mysqlprovision (return "+std::to_string(exit_code)+")";
+    errors = "Error while executing mysqlprovision (return " + std::to_string(exit_code) + ")";
   }
   log_info("DBA: mysqlprovision: Command returned exit code %i", exit_code);
 
@@ -189,8 +188,7 @@ int ProvisioningInterface::exec_sandbox_op(const std::string &op, int port, int 
   if (!sandbox_dir.empty()) {
     arg = "--sandboxdir=" + sandbox_dir;
     sandbox_args.push_back(arg);
-  }
-  else if (shcore::Shell_core_options::get()->has_key(SHCORE_SANDBOX_DIR)) {
+  } else if (shcore::Shell_core_options::get()->has_key(SHCORE_SANDBOX_DIR)) {
     std::string dir = (*shcore::Shell_core_options::get())[SHCORE_SANDBOX_DIR].as_string();
     arg = "--sandboxdir=" + dir;
     sandbox_args.push_back(arg);
@@ -221,7 +219,7 @@ int ProvisioningInterface::deploy_sandbox(int port, int portx, const std::string
   std::vector<std::string> extra_args;
   if (mycnf_options) {
     for (auto s : *mycnf_options.as_array()) {
-      extra_args.push_back("--opt="+s.as_string());
+      extra_args.push_back("--opt=" + s.as_string());
     }
   }
   return exec_sandbox_op("start", port, portx, sandbox_dir, password,
