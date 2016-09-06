@@ -115,8 +115,8 @@ int ProvisioningInterface::execute_mysqlprovision(const std::string &cmd, const 
    * The logged message starts with "ERROR: "
    */
   if (exit_code != 0) {
-    _delegate->print(_delegate->user_data,
-                     ("ERROR: mysqlprovision exited with error code " + std::to_string(exit_code) + "\n").c_str());
+    _delegate->print_error(_delegate->user_data,
+                     ("mysqlprovision exited with error code " + std::to_string(exit_code) + "\n").c_str());
     if (!verbose) {
       _delegate->print(_delegate->user_data, full_output.c_str());
     }
