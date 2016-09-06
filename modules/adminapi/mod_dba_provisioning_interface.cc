@@ -48,8 +48,9 @@ int ProvisioningInterface::execute_mysqlprovision(const std::string &cmd, const 
   if (_local_mysqlprovision_path.empty()) {
     _local_mysqlprovision_path = (*shcore::Shell_core_options::get())[SHCORE_GADGETS_PATH].as_string();
 
+    // If is not set, we have to assume that it's located on the PATH
     if (_local_mysqlprovision_path.empty())
-      throw shcore::Exception::logic_error("Please set the mysqlprovision path using the environment variable: MYSQLPROVISION");
+      _local_mysqlprovision_path = "mysqlprovision";
   }
 
   if (_local_mysqlprovision_path.find(".py") == _local_mysqlprovision_path.size() - 3)
@@ -70,18 +71,15 @@ int ProvisioningInterface::execute_mysqlprovision(const std::string &cmd, const 
   }
 
   ngcommon::Process_launcher p(args_script[0], &args_script[0]);
-
   p.start();
 
   if (!passwords.empty()) {
-    for (size_t i = 0; i < passwords.size(); i++) {
-      try {
-        p.write(passwords[i].c_str(), passwords[i].length());
-      } catch (std::exception &e) {
-        log_warning("DBA: %s while executing mysqlprovision", e.what());
-        // continue so we can read the output from the tool
-        break;
+    try {
+      for (size_t i = 0; i < passwords.size(); i++) {
+          p.write(passwords[i].c_str(), passwords[i].length());
       }
+    } catch (std::system_error &e) {
+        log_warning("DBA: %s while executing mysqlprovision", e.what());
     }
   }
   int rc;
@@ -98,8 +96,8 @@ int ProvisioningInterface::execute_mysqlprovision(const std::string &cmd, const 
         buf = "";
       }
     }
-  } catch (std::exception &e) {
-    log_warning("DBA: %s while reading from mysqlprovision", e.what());
+  } catch (std::system_error &e) {
+      log_warning("DBA: %s while reading from mysqlprovision", e.what());
   }
   if (!buf.empty()) {
     if (verbose)
@@ -111,10 +109,20 @@ int ProvisioningInterface::execute_mysqlprovision(const std::string &cmd, const 
   exit_code = p.wait();
 
   /*
+   * process launcher returns 128 if an ENOENT happened.
+   */
+  if (exit_code == 128) {
+    if (!verbose) {
+      _delegate->print(_delegate->user_data, full_output.c_str());
+    }
+    throw shcore::Exception::runtime_error("Please install mysqlprovision. If already installed, set its path using the environment variable: MYSQLPROVISION");
+  }
+
+  /*
    * mysqlprovision returns 1 as exit-code for internal behaviour errors.
    * The logged message starts with "ERROR: "
    */
-  if (exit_code != 0) {
+  else if (exit_code == 1) {
     _delegate->print_error(_delegate->user_data,
                      ("mysqlprovision exited with error code " + std::to_string(exit_code) + "\n").c_str());
     if (!verbose) {

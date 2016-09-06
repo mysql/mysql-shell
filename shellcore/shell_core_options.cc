@@ -101,18 +101,29 @@ _options(new shcore::Value::Map_type)
 
   std::string gadgets_path;
 
-  if (getenv("MYSQLPROVISION") != NULL)
-    gadgets_path = std::string(getenv("MYSQLPROVISION")); // should be set to the mysqlprovision root dir or an executable path
-
-  // The mysqlprovision_path will only be set if the environment variable was configured.
-  std::string mysqlprovision_path;
-  if (!gadgets_path.empty())
+  if (getenv("MYSQL_ORCHESTRATOR") != NULL)
   {
-    mysqlprovision_path = gadgets_path + "/gadgets/python/front_end/mysqlprovision.py";
-    if (!shcore::file_exists(mysqlprovision_path))
-      mysqlprovision_path = gadgets_path;
+    gadgets_path = std::string(getenv("MYSQL_ORCHESTRATOR")); // should be set to the mysql-orchestrator root dir
+
+    // The mysqlprovision_path will only be set if the environment variable was configured.
+   std::string mysqlprovision_path;
+    if (!gadgets_path.empty())
+    {
+      mysqlprovision_path = gadgets_path + "/gadgets/python/front_end/mysqlprovision.py";
+      if (!shcore::file_exists(mysqlprovision_path))
+        mysqlprovision_path = gadgets_path;
+    }
+    (*_options)[SHCORE_GADGETS_PATH] = Value(mysqlprovision_path.c_str());
   }
-  (*_options)[SHCORE_GADGETS_PATH] = Value(mysqlprovision_path.c_str());
+
+  else if (getenv("MYSQLPROVISION") != NULL)
+  {
+    gadgets_path = std::string(getenv("MYSQLPROVISION")); // should be set to the mysqlprovision binary path
+    (*_options)[SHCORE_GADGETS_PATH] = Value(gadgets_path.c_str());
+  }
+
+  else
+    (*_options)[SHCORE_GADGETS_PATH] = Value("");
 
   if (getenv("HOME"))
   {

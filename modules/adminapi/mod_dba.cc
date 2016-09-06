@@ -78,8 +78,8 @@ void Dba::init() {
   std::string python_path = "";
   std::string local_mysqlprovision_path;
 
-  if (getenv("MYSQLPROVISION") != NULL)
-    local_mysqlprovision_path = std::string(getenv("MYSQLPROVISION")); // should be set to the mysqlprovision root dir
+  if (getenv("MYSQL_ORCHESTRATOR") != NULL)
+    local_mysqlprovision_path = std::string(getenv("MYSQL_ORCHESTRATOR")); // should be set to the mysql-orchestrator root dir
 
   if (!local_mysqlprovision_path.empty()) {
     local_mysqlprovision_path += "/gadgets/python";
@@ -610,8 +610,6 @@ shcore::Value Dba::exec_instance_op(const std::string &function, const shcore::A
           password = options->get_string("password");
         else if (options->has_key("dbPassword"))
           password = options->get_string("dbPassword");
-
-        password += "\n";
       }
     }
 
