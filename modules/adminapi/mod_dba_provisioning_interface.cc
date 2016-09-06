@@ -19,6 +19,7 @@
 
 #include <string>
 #include <vector>
+#include <system_error>
 
 #include "modules/adminapi/mod_dba_provisioning_interface.h"
 #include "modules/base_session.h"
