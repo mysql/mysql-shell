@@ -46,12 +46,37 @@
 using namespace mysh;
 using namespace shcore;
 
-std::shared_ptr<mysh::ShellDevelopmentSession> mysh::connect_session(const shcore::Argument_list &args, SessionType session_type)
-{
+std::shared_ptr<mysh::ShellDevelopmentSession> mysh::connect_session(const shcore::Argument_list &args, SessionType session_type) {
   std::shared_ptr<ShellDevelopmentSession> ret_val;
 
-  switch (session_type)
-  {
+  mysh::SessionType type(session_type);
+
+  // Automatic protocol detection is ON
+  // Attempts X Protocol first, then Classic
+  if (type == Auto) {
+    ret_val.reset(new mysh::mysqlx::XSession());
+    try {
+      ret_val->connect(args);
+
+      ShellNotifications::get()->notify("SN_SESSION_CONNECTED", ret_val);
+
+      return ret_val;
+    } catch (shcore::Exception &e) {
+      // Unknown message received from server indicates an attempt to create
+      // And X Protocol session through the MySQL protocol
+      int code = 0;
+      if (e.error()->has_key("code"))
+        code = e.error()->get_int("code");
+
+      if (code == 2027 || // Unknown message received from server 10
+         code == 2002)    // No connection could be made because the target machine actively refused it connecting to host:port
+        type = Classic;
+      else
+        throw;
+    }
+  }
+
+  switch (type) {
     case Application:
       ret_val.reset(new mysh::mysqlx::XSession());
       break;
@@ -76,26 +101,22 @@ std::shared_ptr<mysh::ShellDevelopmentSession> mysh::connect_session(const shcor
 }
 
 ShellBaseSession::ShellBaseSession() :
-_port(0)
-{
+_port(0) {
   init();
 }
 
 ShellBaseSession::ShellBaseSession(const ShellBaseSession& s) :
 _user(s._user), _password(s._password), _host(s._host), _port(s._port), _sock(s._sock), _schema(s._schema),
-_ssl_ca(s._ssl_ca), _ssl_cert(s._ssl_cert), _ssl_key(s._ssl_key)
-{
+_ssl_ca(s._ssl_ca), _ssl_cert(s._ssl_cert), _ssl_key(s._ssl_key) {
   init();
 }
 
-void ShellBaseSession::init()
-{
+void ShellBaseSession::init() {
   add_property("uri", "getUri");
   add_method("isOpen", std::bind(&ShellBaseSession::is_open, this, _1), NULL);
 }
 
-std::string &ShellBaseSession::append_descr(std::string &s_out, int UNUSED(indent), int UNUSED(quote_strings)) const
-{
+std::string &ShellBaseSession::append_descr(std::string &s_out, int UNUSED(indent), int UNUSED(quote_strings)) const {
   if (!is_connected())
     s_out.append("<" + class_name() + ":disconnected>");
   else
@@ -103,13 +124,11 @@ std::string &ShellBaseSession::append_descr(std::string &s_out, int UNUSED(inden
   return s_out;
 }
 
-std::string &ShellBaseSession::append_repr(std::string &s_out) const
-{
+std::string &ShellBaseSession::append_repr(std::string &s_out) const {
   return append_descr(s_out, false);
 }
 
-void ShellBaseSession::append_json(shcore::JSON_dumper& dumper) const
-{
+void ShellBaseSession::append_json(shcore::JSON_dumper& dumper) const {
   dumper.start_object();
 
   dumper.append_string("class", class_name());
@@ -131,8 +150,7 @@ void ShellBaseSession::append_json(shcore::JSON_dumper& dumper) const
  * \li uri: returns a String object with connection information in URI format.
  */
 #endif
-shcore::Value ShellBaseSession::get_member(const std::string &prop) const
-{
+shcore::Value ShellBaseSession::get_member(const std::string &prop) const {
   shcore::Value ret_val;
 
   if (prop == "uri")
@@ -143,8 +161,7 @@ shcore::Value ShellBaseSession::get_member(const std::string &prop) const
   return ret_val;
 }
 
-void ShellBaseSession::load_connection_data(const shcore::Argument_list &args)
-{
+void ShellBaseSession::load_connection_data(const shcore::Argument_list &args) {
   // The connection data can come from different sources
   std::string uri;
   std::string app;
@@ -155,8 +172,7 @@ void ShellBaseSession::load_connection_data(const shcore::Argument_list &args)
   //-----------------------------------------------------
   // STEP 1: Identifies the source of the connection data
   //-----------------------------------------------------
-  if (args[0].type == String)
-  {
+  if (args[0].type == String) {
     std::string temp = args.string_at(0);
 
     // The connection data to be loaded from the stored sessions
@@ -169,8 +185,7 @@ void ShellBaseSession::load_connection_data(const shcore::Argument_list &args)
   }
 
   // Connection data comes in a dictionary
-  else if (args[0].type == Map)
-  {
+  else if (args[0].type == Map) {
     options = args.map_at(0);
 
     // Connection data should be loaded from a stored session
@@ -180,22 +195,18 @@ void ShellBaseSession::load_connection_data(const shcore::Argument_list &args)
     // Use a custom stored sessions file, rather than the default one
     if (options->has_key("dataSourceFile"))
       connections_file = (*options)["dataSourceFile"].as_string();
-  }
-  else
+  } else
     throw shcore::Exception::argument_error("Unexpected argument on connection data.");
 
   //-------------------------------------------------------------------------
   // STEP 2: Gets the individual connection parameters whatever the source is
   //-------------------------------------------------------------------------
   // Handles the case where an URI was received
-  if (!uri.empty())
-  {
+  if (!uri.empty()) {
     std::string protocol;
     int pwd_found;
     parse_mysql_connstring(uri, protocol, _user, _password, _host, _port, _sock, _schema, pwd_found, _ssl_ca, _ssl_cert, _ssl_key);
-  }
-  else if (!app.empty())
-  {
+  } else if (!app.empty()) {
     // If no custom connection file is indicated, then uses the default one
     if (connections_file.empty())
       connections_file = shcore::get_default_config_path();
@@ -210,8 +221,7 @@ void ShellBaseSession::load_connection_data(const shcore::Argument_list &args)
     _user = conn.get_user();
     _host = conn.get_server();
     std::string str_port = conn.get_port();
-    if (!str_port.empty())
-    {
+    if (!str_port.empty()) {
       int tmp_port = boost::lexical_cast<int>(str_port);
       if (tmp_port)
         _port = tmp_port;
@@ -226,8 +236,7 @@ void ShellBaseSession::load_connection_data(const shcore::Argument_list &args)
   // If the connection data came in a dictionary, the values in the dictionary override whatever
   // is already loaded: i.e. if the dictionary indicated a stored session, that info is already
   // loaded but will be overriden with whatever extra values exist on the dictionary
-  if (options)
-  {
+  if (options) {
     if (options->has_key("host"))
       _host = (*options)["host"].as_string();
 
@@ -275,18 +284,15 @@ void ShellBaseSession::load_connection_data(const shcore::Argument_list &args)
     _uri = (boost::format("%1%@%2%:%3%/%4%") % _user % _host % sock_port % _schema).str();
 }
 
-bool ShellBaseSession::operator == (const Object_bridge &other) const
-{
+bool ShellBaseSession::operator == (const Object_bridge &other) const {
   return class_name() == other.class_name() && this == &other;
 }
 
-std::string ShellBaseSession::get_quoted_name(const std::string& name)
-{
+std::string ShellBaseSession::get_quoted_name(const std::string& name) {
   size_t index = 0;
   std::string quoted_name(name);
 
-  while ((index = quoted_name.find("`", index)) != std::string::npos)
-  {
+  while ((index = quoted_name.find("`", index)) != std::string::npos) {
     quoted_name.replace(index, 1, "``");
     index += 2;
   }
@@ -296,15 +302,13 @@ std::string ShellBaseSession::get_quoted_name(const std::string& name)
   return quoted_name;
 }
 
-shcore::Value ShellBaseSession::is_open(const shcore::Argument_list &args)
-{
+shcore::Value ShellBaseSession::is_open(const shcore::Argument_list &args) {
   args.ensure_count(0, get_function_name("isOpen").c_str());
 
   return shcore::Value(is_connected());
 }
 
-void ShellBaseSession::reconnect()
-{
+void ShellBaseSession::reconnect() {
   shcore::Argument_list args;
   args.push_back(shcore::Value(_uri));
   args.push_back(shcore::Value(_password));
@@ -313,14 +317,12 @@ void ShellBaseSession::reconnect()
 }
 
 ShellDevelopmentSession::ShellDevelopmentSession() :
-ShellBaseSession()
-{
+ShellBaseSession() {
   init();
 }
 
 ShellDevelopmentSession::ShellDevelopmentSession(const ShellDevelopmentSession& s) :
-ShellBaseSession(s)
-{
+ShellBaseSession(s) {
   init();
 }
 
@@ -334,29 +336,23 @@ ShellBaseSession(s)
  * \li defaultSchema: returns Schema or ClassicSchema object representing the default schema defined on the connectio ninformatio used to create the session. If none was specified, returns Null.
  */
 #endif
-shcore::Value ShellDevelopmentSession::get_member(const std::string &prop) const
-{
+shcore::Value ShellDevelopmentSession::get_member(const std::string &prop) const {
   shcore::Value ret_val;
 
-  if (prop == "defaultSchema")
-  {
-    if (!_default_schema.empty())
-    {
+  if (prop == "defaultSchema") {
+    if (!_default_schema.empty()) {
       shcore::Argument_list args;
       args.push_back(shcore::Value(_default_schema));
       ret_val = get_schema(args);
-    }
-    else
+    } else
       ret_val = Value::Null();
-  }
-  else
+  } else
     ret_val = ShellBaseSession::get_member(prop);
 
   return ret_val;
 }
 
-void ShellDevelopmentSession::init()
-{
+void ShellDevelopmentSession::init() {
   add_property("defaultSchema", "getDefaultSchema");
 
   add_method("createSchema", std::bind(&ShellDevelopmentSession::create_schema, this, _1), "name", shcore::String, NULL);
@@ -366,16 +362,14 @@ void ShellDevelopmentSession::init()
   _tx_deep = 0;
 }
 
-void ShellDevelopmentSession::start_transaction()
-{
+void ShellDevelopmentSession::start_transaction() {
   if (_tx_deep == 0)
     execute_sql("start transaction", shcore::Argument_list());
 
   _tx_deep++;
 }
 
-void ShellDevelopmentSession::commit()
-{
+void ShellDevelopmentSession::commit() {
   _tx_deep--;
 
   assert(_tx_deep >= 0);
@@ -384,8 +378,7 @@ void ShellDevelopmentSession::commit()
     execute_sql("commit", shcore::Argument_list());
 }
 
-void ShellDevelopmentSession::rollback()
-{
+void ShellDevelopmentSession::rollback() {
   _tx_deep--;
 
   assert(_tx_deep >= 0);

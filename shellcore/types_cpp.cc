@@ -290,7 +290,7 @@ shcore::Value Cpp_object_bridge::help(const shcore::Argument_list &args) {
     ret_val = get_help_text(item, true);
 
     if (ret_val.empty()) {
-      std::string error = get_function_name("help") + ": '" + item + "' is not recognized as a property or fuction.\n"
+      std::string error = get_function_name("help") + ": '" + item + "' is not recognized as a property or function.\n"
                           "Use " + get_function_name("help") + "() to get a list of supported members.";
       throw shcore::Exception::argument_error(error);
     }

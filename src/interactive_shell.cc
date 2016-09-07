@@ -36,8 +36,7 @@
 extern char *mysh_get_tty_password(const char *opt_message);
 
 Interactive_shell::Interactive_shell(const Shell_command_line_options &options, Interpreter_delegate *custom_delegate) :
-_options(options)
-{
+_options(options) {
   std::string log_path = get_user_config_path();
   log_path += "mysqlsh.log";
   ngcommon::Logger::create_instance(log_path.c_str(), false, _options.log_level);
@@ -51,8 +50,7 @@ _options(options)
   _input_mode = Input_ok;
 
   // The custom delegate function is used only if o
-  if (custom_delegate)
-  {
+  if (custom_delegate) {
     _delegate.user_data = custom_delegate->user_data;
     _delegate.print = custom_delegate->print;
     _delegate.print_error = custom_delegate->print_error;
@@ -60,9 +58,7 @@ _options(options)
     _delegate.password = custom_delegate->password;
     _delegate.source = custom_delegate->source;
     _delegate.print_value = custom_delegate->print_value;
-  }
-  else
-  {
+  } else {
     _delegate.user_data = this;
     _delegate.print = &Interactive_shell::deleg_print;
     _delegate.print_error = &Interactive_shell::deleg_print_error;
@@ -164,8 +160,7 @@ _options(options)
     init_scripts(_options.initial_mode);
 }
 
-bool Interactive_shell::cmd_process_file(const std::vector<std::string>& params)
-{
+bool Interactive_shell::cmd_process_file(const std::vector<std::string>& params) {
   std::string file;
 
   if (params[0].find("\\source") != std::string::npos)
@@ -180,12 +175,10 @@ bool Interactive_shell::cmd_process_file(const std::vector<std::string>& params)
   return true;
 }
 
-void Interactive_shell::print_connection_message(mysh::SessionType type, const std::string& uri, const std::string& sessionid)
-{
+void Interactive_shell::print_connection_message(mysh::SessionType type, const std::string& uri, const std::string& sessionid) {
   std::string stype;
 
-  switch (type)
-  {
+  switch (type) {
     case mysh::Application:
       stype = "an X";
       break;
@@ -194,6 +187,9 @@ void Interactive_shell::print_connection_message(mysh::SessionType type, const s
       break;
     case mysh::Classic:
       stype = "a Classic";
+      break;
+    case mysh::Auto:
+      stype = "a";
       break;
   }
 
@@ -206,33 +202,26 @@ void Interactive_shell::print_connection_message(mysh::SessionType type, const s
   println(message);
 }
 
-bool Interactive_shell::connect(bool primary_session)
-{
-  try
-  {
+bool Interactive_shell::connect(bool primary_session) {
+  try {
     Argument_list args;
     Value::Map_type_ref connection_data;
     bool secure_password = true;
-    if (!_options.app.empty())
-    {
+    if (!_options.app.empty()) {
       if (StoredSessions::get_instance()->connections()->has_key(_options.app))
         connection_data = (*StoredSessions::get_instance()->connections())[_options.app].as_map();
       else
         throw shcore::Exception::argument_error((boost::format("The stored connection %1% was not found") % _options.app).str());
-    }
-    else if (!_options.uri.empty())
-    {
+    } else if (!_options.uri.empty()) {
       connection_data = get_connection_data(_options.uri);
       if (connection_data->has_key("dbPassword") && !connection_data->get_string("dbPassword").empty())
         secure_password = false;
-    }
-    else
+    } else
       connection_data.reset(new shcore::Value::Map_type);
 
     // If the session is being created from command line
     // Individual parameters will override whatever was defined on the URI/stored connection
-    if (primary_session)
-    {
+    if (primary_session) {
       if (_options.password)
         secure_password = false;
 
@@ -250,8 +239,33 @@ bool Interactive_shell::connect(bool primary_session)
         println("mysqlx: [Warning] Using a password on the command line interface can be insecure.");
     }
 
-    // Sets any missing parameter to default values
-    shcore::set_default_connection_data(connection_data, _options.session_type == mysh::Classic ? 3306 : 33060);
+    // If a scheme is given on the URI the session type must match the URI scheme
+    if (connection_data->has_key("scheme")) {
+      std::string scheme = connection_data->get_string("scheme");
+      std::string error;
+
+      if (_options.session_type == mysh::Auto) {
+        if (scheme == "mysqlx")
+          _options.session_type = mysh::Application;
+        else if (scheme == "mysql")
+          _options.session_type = mysh::Classic;
+      } else {
+        if (scheme == "mysqlx") {
+          if (_options.session_type == mysh::Classic)
+            error = "Invalid URI for Classic session";
+        } else if (scheme == "mysql") {
+          if (_options.session_type == mysh::Application)
+            error = "Invalid URI for X session";
+          else if (_options.session_type == mysh::Node)
+            error = "Invalid URI for Node session";
+        }
+      }
+
+      if (!error.empty())
+        throw shcore::Exception::argument_error(error);
+    }
+
+    shcore::set_default_connection_data(connection_data);
 
     if (_options.interactive)
       print_connection_message(_options.session_type, shcore::build_connection_string(connection_data, false), _options.app);
@@ -259,14 +273,10 @@ bool Interactive_shell::connect(bool primary_session)
     args.push_back(Value(connection_data));
 
     connect_session(args, _options.session_type, primary_session ? _options.recreate_database : false);
-  }
-  catch (Exception &exc)
-  {
+  } catch (Exception &exc) {
     _shell->print_value(shcore::Value(exc.error()), "error");
     return false;
-  }
-  catch (std::exception &exc)
-  {
+  } catch (std::exception &exc) {
     print_error(exc.what());
     return false;
   }
@@ -274,8 +284,7 @@ bool Interactive_shell::connect(bool primary_session)
   return true;
 }
 
-Value Interactive_shell::connect_session(const Argument_list &args, mysh::SessionType session_type, bool recreate_schema)
-{
+Value Interactive_shell::connect_session(const Argument_list &args, mysh::SessionType session_type, bool recreate_schema) {
   std::string pass;
   std::string schema_name;
 
@@ -286,8 +295,7 @@ Value Interactive_shell::connect_session(const Argument_list &args, mysh::Sessio
 
   // Retrieves the schema on which the session will work on
   Argument_list schema_arg;
-  if (connection_data->has_key("schema"))
-  {
+  if (connection_data->has_key("schema")) {
     schema_name = (*connection_data)["schema"].as_string();
     schema_arg.push_back(Value(schema_name));
   }
@@ -300,8 +308,7 @@ Value Interactive_shell::connect_session(const Argument_list &args, mysh::Sessio
   connect_args.push_back(shcore::Value(connection_data));
 
   // Prompts for the password if needed
-  if (!connection_data->has_key("dbPassword") || _options.prompt_password)
-  {
+  if (!connection_data->has_key("dbPassword") || _options.prompt_password) {
     if (_shell->password("Enter password:", pass))
       connect_args.push_back(Value(pass));
   }
@@ -311,15 +318,11 @@ Value Interactive_shell::connect_session(const Argument_list &args, mysh::Sessio
 
   new_session->set_option("trace_protocol", _options.trace_protocol);
 
-  if (recreate_schema)
-  {
+  if (recreate_schema) {
     println("Recreating schema " + schema_name + "...");
-    try
-    {
+    try {
       new_session->drop_schema(schema_arg);
-    }
-    catch (shcore::Exception &e)
-    {
+    } catch (shcore::Exception &e) {
       if (e.is_mysql() && e.code() == 1008)
         ; // ignore DB doesn't exist error
       else
@@ -333,32 +336,39 @@ Value Interactive_shell::connect_session(const Argument_list &args, mysh::Sessio
 
   _shell->set_dev_session(new_session);
 
-  if (_options.interactive)
-  {
-    if (old_session && old_session.unique() && old_session->is_connected())
-    {
+  if (_options.interactive) {
+    if (old_session && old_session.unique() && old_session->is_connected()) {
       if (_options.interactive)
         println("Closing old connection...");
 
       old_session->close(shcore::Argument_list());
     }
 
-    std::string message = "Session successfully established. ";
-    shcore::Value default_schema;
     std::string session_type = new_session->class_name();
+    std::string message;
+
+    if (_options.session_type == mysh::Auto) {
+      if (session_type == "ClassicSession")
+        message = "Classic ";
+      else if (session_type == "XSession")
+        message = "X ";
+    }
+
+    message += "Session successfully established. ";
+
+    shcore::Value default_schema;
+
     if (!session_type.compare("XSession"))
        default_schema = new_session->get_member("defaultSchema");
     else
        default_schema = new_session->get_member("currentSchema");
 
-    if (default_schema)
-    {
+    if (default_schema) {
       if (session_type == "ClassicSession")
         message += "Default schema set to `" + default_schema.as_object()->get_member("name").as_string() + "`.";
       else
         message += "Default schema `" + default_schema.as_object()->get_member("name").as_string() + "` accessible through db.";
-    }
-    else
+    } else
       message += "No default schema selected.";
 
     println(message);
@@ -368,8 +378,7 @@ Value Interactive_shell::connect_session(const Argument_list &args, mysh::Sessio
 }
 
 // load scripts for standard locations in order to be able to implement standard routines
-void Interactive_shell::init_scripts(Shell_core::Mode mode)
-{
+void Interactive_shell::init_scripts(Shell_core::Mode mode) {
   std::string extension;
 
   if (mode == Shell_core::Mode_JScript)
@@ -383,8 +392,7 @@ void Interactive_shell::init_scripts(Shell_core::Mode mode)
 
   std::string user_file = "";
 
-  try
-  {
+  try {
     // Checks existence of gobal startup script
     std::string path = shcore::get_global_config_path();
     path.append("shellrc");
@@ -397,8 +405,7 @@ void Interactive_shell::init_scripts(Shell_core::Mode mode)
     path = shcore::get_mysqlx_home_path();
     if (!path.empty())
       path.append("/share/mysqlsh/mysqlshrc");
-    else
-    {
+    else {
       path = shcore::get_binary_folder();
       path.append("/mysqlshrc");
     }
@@ -413,58 +420,46 @@ void Interactive_shell::init_scripts(Shell_core::Mode mode)
     if (file_exists(path))
       scripts_paths.push_back(path);
 
-    for (std::vector<std::string>::iterator i = scripts_paths.begin(); i != scripts_paths.end(); ++i)
-    {
+    for (std::vector<std::string>::iterator i = scripts_paths.begin(); i != scripts_paths.end(); ++i) {
       _options.run_file = *i;
       process_file();
     }
-  }
-  catch (std::exception &e)
-  {
+  } catch (std::exception &e) {
     std::string error(e.what());
     error += "\n";
     print_error(error);
   }
 }
 
-std::string Interactive_shell::prompt()
-{
-  if (_input_mode != Input_ok)
-  {
+std::string Interactive_shell::prompt() {
+  if (_input_mode != Input_ok) {
     return std::string(_shell->prompt().length() - 4, ' ').append("... ");
-  }
-  else
+  } else
     return _shell->prompt();
 }
 
-bool Interactive_shell::switch_shell_mode(Shell_core::Mode mode, const std::vector<std::string> &UNUSED(args))
-{
+bool Interactive_shell::switch_shell_mode(Shell_core::Mode mode, const std::vector<std::string> &UNUSED(args)) {
   Shell_core::Mode old_mode = _shell->interactive_mode();
   bool lang_initialized = false;
 
-  if (old_mode != mode)
-  {
+  if (old_mode != mode) {
     _input_mode = Input_ok;
     _input_buffer.clear();
 
     //XXX reset the history... history should be specific to each shell mode
-    switch (mode)
-    {
+    switch (mode) {
       case Shell_core::Mode_None:
         break;
       case Shell_core::Mode_SQL:
       {
         auto session = _shell->get_dev_session();
-        if (session && (session->class_name() == "XSession"))
-        {
+        if (session && (session->class_name() == "XSession")) {
           println("The active session is an " + session->class_name());
           println("SQL mode is not supported on this session type: command ignored.");
           println("To switch to SQL mode reconnect with a Node Session by either:");
           println("* Using the \\connect -n shell command.");
           println("* Using --node when calling the MySQL Shell on the command line.");
-        }
-        else
-        {
+        } else {
           if (_shell->switch_mode(mode, lang_initialized))
             println("Switching to SQL mode... Commands end with ;");
         }
@@ -496,31 +491,25 @@ bool Interactive_shell::switch_shell_mode(Shell_core::Mode mode, const std::vect
   return true;
 }
 
-void Interactive_shell::println(const std::string &str)
-{
+void Interactive_shell::println(const std::string &str) {
   _shell->println(str);
 }
 
-void Interactive_shell::print_error(const std::string &error)
-{
+void Interactive_shell::print_error(const std::string &error) {
   _shell->print_error(error);
 }
 
-bool Interactive_shell::cmd_print_shell_help(const std::vector<std::string>& args)
-{
+bool Interactive_shell::cmd_print_shell_help(const std::vector<std::string>& args) {
   bool printed = false;
 
   // If help came with parameter attempts to print the
   // specific help on the active shell first and global commands
-  if (args.size() > 1)
-  {
+  if (args.size() > 1) {
     printed = _shell->print_help(args[1]);
 
-    if (!printed)
-    {
+    if (!printed) {
       std::string help;
-      if (_shell_command_handler.get_command_help(args[1], help))
-      {
+      if (_shell_command_handler.get_command_help(args[1], help)) {
         _shell->println(help);
         printed = true;
       }
@@ -528,8 +517,7 @@ bool Interactive_shell::cmd_print_shell_help(const std::vector<std::string>& arg
   }
 
   // If not specific help found, prints the generic help
-  if (!printed)
-  {
+  if (!printed) {
     _shell->print(_shell_command_handler.get_commands("===== Global Commands ====="));
 
     // Prints the active shell specific help
@@ -540,12 +528,10 @@ bool Interactive_shell::cmd_print_shell_help(const std::vector<std::string>& arg
     println("");
     auto globals = _shell->get_global_objects();
 
-    if (globals.size())
-    {
+    if (globals.size()) {
       println("===== Global Variables =====");
 
-      for (auto name : globals)
-      {
+      for (auto name : globals) {
         auto object_val = _shell->get_global(name);
         auto object = std::dynamic_pointer_cast<Cpp_object_bridge>(object_val.as_object());
         auto brief = object->get_help_text("__brief__", false);
@@ -562,11 +548,9 @@ bool Interactive_shell::cmd_print_shell_help(const std::vector<std::string>& arg
   return true;
 }
 
-bool Interactive_shell::cmd_start_multiline(const std::vector<std::string>& args)
-{
+bool Interactive_shell::cmd_start_multiline(const std::vector<std::string>& args) {
   // This command is only available for SQL Mode
-  if (args.size() == 1 && _shell->interactive_mode() == Shell_core::Mode_SQL)
-  {
+  if (args.size() == 1 && _shell->interactive_mode() == Shell_core::Mode_SQL) {
     _input_mode = Input_continued_block;
 
     return true;
@@ -575,18 +559,15 @@ bool Interactive_shell::cmd_start_multiline(const std::vector<std::string>& args
   return false;
 }
 
-bool Interactive_shell::cmd_connect(const std::vector<std::string>& args)
-{
+bool Interactive_shell::cmd_connect(const std::vector<std::string>& args) {
   bool error = false;
-  _options.session_type = mysh::Application;
+  _options.session_type = mysh::Auto;
 
   // Holds the argument index for the target to which the session will be established
   size_t target_index = 1;
 
-  if (args.size() > 1 && args.size() < 4)
-  {
-    if (args.size() == 3)
-    {
+  if (args.size() > 1 && args.size() < 4) {
+    if (args.size() == 3) {
       target_index++;
 
       std::string type = args[1];
@@ -601,12 +582,10 @@ bool Interactive_shell::cmd_connect(const std::vector<std::string>& args)
         error = true;
     }
 
-    if (!error)
-    {
+    if (!error) {
       if (args[target_index].find("$") == 0)
         _options.app = args[target_index].substr(1);
-      else
-      {
+      else {
         _options.app = "";
         _options.uri = args[target_index];
       }
@@ -624,15 +603,13 @@ bool Interactive_shell::cmd_connect(const std::vector<std::string>& args)
   return true;
 }
 
-bool Interactive_shell::cmd_quit(const std::vector<std::string>& UNUSED(args))
-{
+bool Interactive_shell::cmd_quit(const std::vector<std::string>& UNUSED(args)) {
   _options.interactive = false;
 
   return true;
 }
 
-bool Interactive_shell::cmd_warnings(const std::vector<std::string>& UNUSED(args))
-{
+bool Interactive_shell::cmd_warnings(const std::vector<std::string>& UNUSED(args)) {
   (*Shell_core_options::get())[SHCORE_SHOW_WARNINGS] = Value::True();
 
   println("Show warnings enabled.");
@@ -640,8 +617,7 @@ bool Interactive_shell::cmd_warnings(const std::vector<std::string>& UNUSED(args
   return true;
 }
 
-bool Interactive_shell::cmd_nowarnings(const std::vector<std::string>& UNUSED(args))
-{
+bool Interactive_shell::cmd_nowarnings(const std::vector<std::string>& UNUSED(args)) {
   (*Shell_core_options::get())[SHCORE_SHOW_WARNINGS] = Value::False();
 
   println("Show warnings disabled.");
@@ -649,8 +625,7 @@ bool Interactive_shell::cmd_nowarnings(const std::vector<std::string>& UNUSED(ar
   return true;
 }
 
-bool Interactive_shell::cmd_store_connection(const std::vector<std::string>& args)
-{
+bool Interactive_shell::cmd_store_connection(const std::vector<std::string>& args) {
   std::string error;
   std::string name;
   std::string uri;
@@ -658,8 +633,7 @@ bool Interactive_shell::cmd_store_connection(const std::vector<std::string>& arg
   bool overwrite = false;
 
   // Reads the parameters
-  switch (args.size())
-  {
+  switch (args.size()) {
     case 2:
       if (args[1] == "-f")
         error = "usage";
@@ -667,13 +641,10 @@ bool Interactive_shell::cmd_store_connection(const std::vector<std::string>& arg
         name = args[1];
       break;
     case 3:
-      if (args[1] == "-f")
-      {
+      if (args[1] == "-f") {
         overwrite = true;
         name = args[2];
-      }
-      else
-      {
+      } else {
         name = args[1];
         uri = args[2];
       }
@@ -681,8 +652,7 @@ bool Interactive_shell::cmd_store_connection(const std::vector<std::string>& arg
     case 4:
       if (args[1] != "-f")
         error = "usage";
-      else
-      {
+      else {
         overwrite = true;
         name = args[2];
         uri = args[3];
@@ -695,14 +665,11 @@ bool Interactive_shell::cmd_store_connection(const std::vector<std::string>& arg
   }
 
   // Performs additional validations
-  if (error.empty())
-  {
+  if (error.empty()) {
     if (!shcore::is_valid_identifier(name))
       error = (boost::format("The session configuration name '%s' is not a valid identifier") % name).str();
-    else
-    {
-      if (uri.empty())
-      {
+    else {
+      if (uri.empty()) {
         if (_shell->get_dev_session())
           uri = _shell->get_dev_session()->uri();
         else
@@ -712,26 +679,20 @@ bool Interactive_shell::cmd_store_connection(const std::vector<std::string>& arg
   }
 
   // Attempsts the store
-  if (error.empty())
-  {
-    try
-    {
+  if (error.empty()) {
+    try {
       StoredSessions::get_instance()->add_connection(name, uri, overwrite);
 
       std::string uri = shcore::build_connection_string((*StoredSessions::get_instance()->connections())[name].as_map(), false);
 
       println((boost::format("Successfully stored %s as %s.") % uri % name).str().c_str());
-    }
-    catch (std::exception& err)
-    {
+    } catch (std::exception& err) {
       error = err.what();
     }
-  }
-  else if (error == "usage")
+  } else if (error == "usage")
     error = "\\saveconn [-f] <session_cfg_name> [<uri>]";
 
-  if (!error.empty())
-  {
+  if (!error.empty()) {
     error += "\n";
     print_error(error);
   }
@@ -739,28 +700,21 @@ bool Interactive_shell::cmd_store_connection(const std::vector<std::string>& arg
   return true;
 }
 
-bool Interactive_shell::cmd_delete_connection(const std::vector<std::string>& args)
-{
+bool Interactive_shell::cmd_delete_connection(const std::vector<std::string>& args) {
   std::string error;
 
-  if (args.size() == 2)
-  {
-    try
-    {
+  if (args.size() == 2) {
+    try {
       StoredSessions::get_instance()->remove_connection(args[1]);
 
       println((boost::format("Successfully deleted session configuration named %s.") % args[1]).str().c_str());
-    }
-    catch (std::exception& err)
-    {
+    } catch (std::exception& err) {
       error = err.what();
     }
-  }
-  else
+  } else
     error = "\\rmconn <session_cfg_name>";
 
-  if (!error.empty())
-  {
+  if (!error.empty()) {
     error += "\n";
     print_error(error);
   }
@@ -768,56 +722,47 @@ bool Interactive_shell::cmd_delete_connection(const std::vector<std::string>& ar
   return true;
 }
 
-bool Interactive_shell::cmd_list_connections(const std::vector<std::string>& args)
-{
-  if (args.size() == 1)
-  {
+bool Interactive_shell::cmd_list_connections(const std::vector<std::string>& args) {
+  if (args.size() == 1) {
     std::string format = (*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string();
 
     Value::Map_type_ref connections = StoredSessions::get_instance()->connections();
     if (format.find("json") != std::string::npos)
       _shell->print_value(shcore::Value(connections), "");
-    else
-    {
-      for (auto connection : (*connections.get()))
-      {
+    else {
+      for (auto connection : (*connections.get())) {
         std::string uri = shcore::build_connection_string(connection.second.as_map(), false);
         println((boost::format("%1% : %2%") % connection.first % uri).str());
       }
     }
 
     println();
-  }
-  else
+  } else
     print_error("\\lsconn\n");
 
   return true;
 }
 
-bool Interactive_shell::cmd_status(const std::vector<std::string>& UNUSED(args))
-{
+bool Interactive_shell::cmd_status(const std::vector<std::string>& UNUSED(args)) {
   std::string version_msg("MySQL Shell Version ");
   version_msg += MYSH_VERSION;
   version_msg += " Development Preview\n";
   println(version_msg);
 
-  if (_shell->get_dev_session() && _shell->get_dev_session()->is_connected())
-  {
+  if (_shell->get_dev_session() && _shell->get_dev_session()->is_connected()) {
     shcore::Value raw_status = _shell->get_dev_session()->get_status(shcore::Argument_list());
     std::string output_format = (*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string();
 
     if (output_format.find("json") == 0)
       println(raw_status.json(output_format == "json"));
-    else
-    {
+    else {
       shcore::Value::Map_type_ref status = raw_status.as_map();
 
       std::string format = "%-30s%s";
 
       if (status->has_key("STATUS_ERROR"))
         println((boost::format(format) % "Error Retrieving Status: " % (*status)["STATUS_ERROR"].descr(true)).str());
-      else
-      {
+      else {
         if (status->has_key("SESSION_TYPE"))
           println((boost::format(format) % "Session type: " % (*status)["SESSION_TYPE"].descr(true)).str());
 
@@ -865,8 +810,7 @@ bool Interactive_shell::cmd_status(const std::vector<std::string>& UNUSED(args))
         if (status->has_key("CONNECTION_CHARSET"))
           println((boost::format(format) % "Conn. characterset: " % (*status)["CONNECTION_CHARSET"].descr(true)).str());
 
-        if (status->has_key("SERVER_STATS"))
-        {
+        if (status->has_key("SERVER_STATS")) {
           std::string stats = (*status)["SERVER_STATS"].descr(true);
           size_t start = stats.find(" ");
           start++;
@@ -882,28 +826,23 @@ bool Interactive_shell::cmd_status(const std::vector<std::string>& UNUSED(args))
         }
       }
     }
-  }
-  else
+  } else
     print_error("Not Connected.\n");
 
   return true;
 }
 
-bool Interactive_shell::cmd_use(const std::vector<std::string>& args)
-{
+bool Interactive_shell::cmd_use(const std::vector<std::string>& args) {
   std::string error;
-  if (_shell->get_dev_session() && _shell->get_dev_session()->is_connected())
-  {
+  if (_shell->get_dev_session() && _shell->get_dev_session()->is_connected()) {
     std::string real_param;
 
     // If quoted, takes as param what's inside of the quotes
     auto start = args[0].find_first_of("\"'`");
-    if (start != std::string::npos)
-    {
+    if (start != std::string::npos) {
       std::string quote = args[0].substr(start, 1);
 
-      if (args[0].size() >= start)
-      {
+      if (args[0].size() >= start) {
         auto end = args[0].find(quote, start + 1);
 
         if (end != std::string::npos)
@@ -911,21 +850,17 @@ bool Interactive_shell::cmd_use(const std::vector<std::string>& args)
         else
           error = "Mistmatched quote on command parameter: " + args[0].substr(start) + "\n";
       }
-    }
-    else if (args.size() == 2)
+    } else if (args.size() == 2)
       real_param = args[1];
     else
       error = "\\use <schema_name>\n";
 
-    if (error.empty())
-    {
-      try
-      {
+    if (error.empty()) {
+      try {
         shcore::Value schema = _shell->set_current_schema(real_param);
         auto session = _shell->get_dev_session();
 
-        if (session)
-        {
+        if (session) {
           auto session_type = session->class_name();
           std::string message = "Schema `" + schema.as_object()->get_member("name").as_string() + "` accessible through db.";
 
@@ -936,14 +871,11 @@ bool Interactive_shell::cmd_use(const std::vector<std::string>& args)
 
           println(message);
         }
-      }
-      catch (shcore::Exception &e)
-      {
+      } catch (shcore::Exception &e) {
         error = e.format();
       }
     }
-  }
-  else
+  } else
     error = "Not Connected.\n";
 
   if (!error.empty())
@@ -952,18 +884,15 @@ bool Interactive_shell::cmd_use(const std::vector<std::string>& args)
   return true;
 }
 
-void Interactive_shell::deleg_print(void *cdata, const char *text)
-{
+void Interactive_shell::deleg_print(void *cdata, const char *text) {
   std::cout << text;
 }
 
-void Interactive_shell::deleg_print_error(void *cdata, const char *text)
-{
+void Interactive_shell::deleg_print_error(void *cdata, const char *text) {
   std::cerr << text;
 }
 
-char *Interactive_shell::readline(const char *prompt)
-{
+char *Interactive_shell::readline(const char *prompt) {
   char *tmp = NULL;
 #ifndef WIN32
   tmp = ::readline(prompt);
@@ -987,8 +916,7 @@ char *Interactive_shell::readline(const char *prompt)
   return tmp;
 }
 
-bool Interactive_shell::deleg_prompt(void *UNUSED(cdata), const char *prompt, std::string &ret)
-{
+bool Interactive_shell::deleg_prompt(void *UNUSED(cdata), const char *prompt, std::string &ret) {
   char *tmp = Interactive_shell::readline(prompt);
   if (!tmp)
     return false;
@@ -999,8 +927,7 @@ bool Interactive_shell::deleg_prompt(void *UNUSED(cdata), const char *prompt, st
   return true;
 }
 
-bool Interactive_shell::deleg_password(void *cdata, const char *prompt, std::string &ret)
-{
+bool Interactive_shell::deleg_password(void *cdata, const char *prompt, std::string &ret) {
   Interactive_shell *self = (Interactive_shell*)cdata;
   char *tmp = self->_options.passwords_from_stdin ? mysh_get_stdin_password(prompt) : mysh_get_tty_password(prompt);
   if (!tmp)
@@ -1010,15 +937,13 @@ bool Interactive_shell::deleg_password(void *cdata, const char *prompt, std::str
   return true;
 }
 
-void Interactive_shell::deleg_source(void *cdata, const char *module)
-{
+void Interactive_shell::deleg_source(void *cdata, const char *module) {
   Interactive_shell *self = (Interactive_shell*)cdata;
   self->_options.run_file.assign(module);
   self->process_file();
 }
 
-bool Interactive_shell::do_shell_command(const std::string &line)
-{
+bool Interactive_shell::do_shell_command(const std::string &line) {
   // Verifies if the command can be handled by the active shell
   bool handled = _shell->handle_shell_command(line);
 
@@ -1029,27 +954,21 @@ bool Interactive_shell::do_shell_command(const std::string &line)
   return handled;
 }
 
-void Interactive_shell::process_line(const std::string &line)
-{
+void Interactive_shell::process_line(const std::string &line) {
   bool handled_as_command = false;
 
   // check if the line is an escape/shell command
-  if (_input_buffer.empty() && !line.empty() && _input_mode == Input_ok)
-  {
-    try
-    {
+  if (_input_buffer.empty() && !line.empty() && _input_mode == Input_ok) {
+    try {
       handled_as_command = do_shell_command(line);
-    }
-    catch (std::exception &exc)
-    {
+    } catch (std::exception &exc) {
       std::string error(exc.what());
       error += "\n";
       print_error(error);
     }
   }
 
-  if (!handled_as_command)
-  {
+  if (!handled_as_command) {
     if (_input_mode == Input_continued_block && line.empty())
       _input_mode = Input_ok;
 
@@ -1060,31 +979,23 @@ void Interactive_shell::process_line(const std::string &line)
     if (!_input_buffer.empty())
       _input_buffer.append("\n");
 
-    if (_input_mode != Input_continued_block && !_input_buffer.empty())
-    {
-      try
-      {
+    if (_input_mode != Input_continued_block && !_input_buffer.empty()) {
+      try {
         _shell->handle_input(_input_buffer, _input_mode, _result_processor);
 
         // Here we analyze the input mode as it was let after executing the code
-        if (_input_mode == Input_ok)
-        {
+        if (_input_mode == Input_ok) {
           std::string executed = _shell->get_handled_input();
 
-          if (!executed.empty())
-          {
+          if (!executed.empty()) {
 #ifndef WIN32
             add_history(executed.c_str());
 #endif
           }
         }
-      }
-      catch (shcore::Exception &exc)
-      {
+      } catch (shcore::Exception &exc) {
         _shell->print_value(shcore::Value(exc.error()), "error");
-      }
-      catch (std::exception &exc)
-      {
+      } catch (std::exception &exc) {
         std::string error(exc.what());
         error += "\n";
         print_error(error);
@@ -1101,40 +1012,30 @@ void Interactive_shell::process_line(const std::string &line)
   _shell->reconnect_if_needed();
 }
 
-void Interactive_shell::abort()
-{
+void Interactive_shell::abort() {
   if (!_shell) return;
 
-  if (_shell->is_running_query())
-  {
-    try
-    {
+  if (_shell->is_running_query()) {
+    try {
       _shell->abort();
-    }
-    catch (std::runtime_error& e)
-    {
+    } catch (std::runtime_error& e) {
       log_exception("Error when killing connection ", e);
     }
   }
 }
 
-void Interactive_shell::process_result(shcore::Value result)
-{
+void Interactive_shell::process_result(shcore::Value result) {
   if ((*Shell_core_options::get())[SHCORE_INTERACTIVE].as_bool()
-      || _shell->interactive_mode() == Shell_core::Mode_SQL)
-  {
-    if (result)
-    {
+      || _shell->interactive_mode() == Shell_core::Mode_SQL) {
+    if (result) {
       Value shell_hook;
       std::shared_ptr<Object_bridge> object;
-      if (result.type == shcore::Object)
-      {
+      if (result.type == shcore::Object) {
         object = result.as_object();
         if (object && object->has_member("__shell_hook__"))
           shell_hook = object->get_member("__shell_hook__");
 
-        if (shell_hook)
-        {
+        if (shell_hook) {
           Argument_list args;
           Value hook_result = object->call("__shell_hook__", args);
 
@@ -1144,19 +1045,15 @@ void Interactive_shell::process_result(shcore::Value result)
       }
 
       // If the function is not found the values still needs to be printed
-      if (!shell_hook)
-      {
+      if (!shell_hook) {
         // Resultset objects get printed
-        if (object && object->class_name().find("Result") != std::string::npos)
-        {
+        if (object && object->class_name().find("Result") != std::string::npos) {
           std::shared_ptr<mysh::ShellBaseResult> resultset = std::static_pointer_cast<mysh::ShellBaseResult> (object);
 
           // Result buffering will be done ONLY if on any of the scripting interfaces
           ResultsetDumper dumper(resultset, _shell->get_delegate(), _shell->interactive_mode() != IShell_core::Mode_SQL);
           dumper.dump();
-        }
-        else
-        {
+        } else {
           // In JSON mode: the json representation is used for Object, Array and Map
           // For anything else a map is printed with the "value" key
           std::string tag;
@@ -1174,8 +1071,7 @@ void Interactive_shell::process_result(shcore::Value result)
   _shell->set_error_processing();
 }
 
-int Interactive_shell::process_file()
-{
+int Interactive_shell::process_file() {
   // Default return value will be 1 indicating there were errors
   int ret_val = 1;
 
@@ -1186,8 +1082,7 @@ int Interactive_shell::process_file()
   {
     std::ifstream s(_options.run_file.c_str());
 
-    if (!s.fail())
-    {
+    if (!s.fail()) {
       // The return value now depends on the stream processing
       ret_val = process_stream(s, _options.run_file);
 
@@ -1197,9 +1092,7 @@ int Interactive_shell::process_file()
         ret_val = 0;
 
       s.close();
-    }
-    else
-    {
+    } else {
       // TODO: add a log entry once logging is
       print_error((boost::format("Failed to open file '%s', error: %d\n") % _options.run_file % errno).str());
     }
@@ -1208,15 +1101,12 @@ int Interactive_shell::process_file()
   return ret_val;
 }
 
-int Interactive_shell::process_stream(std::istream & stream, const std::string& source)
-{
+int Interactive_shell::process_stream(std::istream & stream, const std::string& source) {
   // If interactive is set, it means that the shell was started with the option to
   // Emulate interactive mode while processing the stream
-  if (_options.interactive)
-  {
+  if (_options.interactive) {
     bool comment_first_js_line = _shell->interactive_mode() == IShell_core::Mode_JScript;
-    while (!stream.eof())
-    {
+    while (!stream.eof()) {
       std::string line;
 
       std::getline(stream, line);
@@ -1228,8 +1118,7 @@ int Interactive_shell::process_stream(std::istream & stream, const std::string& 
 
       comment_first_js_line = false;
 
-      if (_options.full_interactive)
-      {
+      if (_options.full_interactive) {
         std::string trace = prompt() + line;
         println(line);
       }
@@ -1239,15 +1128,12 @@ int Interactive_shell::process_stream(std::istream & stream, const std::string& 
 
     // Being interactive, we do not care about the return value
     return 0;
-  }
-  else
-  {
+  } else {
     return _shell->process_stream(stream, source, _result_processor);
   }
 }
 
-void Interactive_shell::command_loop()
-{
+void Interactive_shell::command_loop() {
   if (_options.interactive) // check if interactive
   {
     std::string message;
@@ -1256,8 +1142,7 @@ void Interactive_shell::command_loop()
     if (!session || (session && session->class_name() != "XSession"))
       message = " Use \\sql to switch to SQL mode and execute queries.";
 
-    switch (_shell->interactive_mode())
-    {
+    switch (_shell->interactive_mode()) {
       case Shell_core::Mode_SQL:
 #ifdef HAVE_V8
         message = "Currently in SQL mode. Use \\js or \\py to switch the shell to a scripting language.";
@@ -1273,13 +1158,12 @@ void Interactive_shell::command_loop()
         break;
       default:
         break;
-  }
+    }
 
     println(message);
-}
+  }
 
-  while (_options.interactive)
-  {
+  while (_options.interactive) {
     char *cmd = Interactive_shell::readline(prompt().c_str());
     if (!cmd)
       break;
@@ -1291,8 +1175,7 @@ void Interactive_shell::command_loop()
   std::cout << "Bye!\n";
 }
 
-void Interactive_shell::print_banner()
-{
+void Interactive_shell::print_banner() {
   std::string welcome_msg("Welcome to MySQL Shell ");
   welcome_msg += MYSH_VERSION;
   welcome_msg += " Development Preview\n\n";
@@ -1306,8 +1189,7 @@ void Interactive_shell::print_banner()
   println();
 }
 
-void Interactive_shell::print_cmd_line_helper()
-{
+void Interactive_shell::print_cmd_line_helper() {
   std::string help_msg("MySQL Shell ");
   help_msg += MYSH_VERSION;
   help_msg += " Development Preview";
