@@ -279,9 +279,6 @@ Value Interactive_shell::connect_session(const Argument_list &args, mysh::Sessio
   std::string pass;
   std::string schema_name;
 
-  if (recreate_schema && session_type != mysh::Node && session_type != mysh::Classic)
-    throw shcore::Exception::argument_error("Recreate schema option can only be used in classic or node sessions");
-
   shcore::Value::Map_type_ref connection_data = args.map_at(0);
 
   // Retrieves the schema on which the session will work on
