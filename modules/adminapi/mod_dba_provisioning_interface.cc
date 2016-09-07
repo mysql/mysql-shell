@@ -25,6 +25,7 @@
 #include "modules/base_session.h"
 
 #include "common/process_launcher/process_launcher.h"
+#include "utils/utils_file.h"
 
 using namespace mysh;
 using namespace mysh::mysqlx;
@@ -77,10 +78,10 @@ int ProvisioningInterface::execute_mysqlprovision(const std::string &cmd, const 
   if (!passwords.empty()) {
     try {
       for (size_t i = 0; i < passwords.size(); i++) {
-          p.write(passwords[i].c_str(), passwords[i].length());
+        p.write(passwords[i].c_str(), passwords[i].length());
       }
     } catch (std::system_error &e) {
-        log_warning("DBA: %s while executing mysqlprovision", e.what());
+      log_warning("DBA: %s while executing mysqlprovision", e.what());
     }
   }
   int rc;
@@ -98,7 +99,7 @@ int ProvisioningInterface::execute_mysqlprovision(const std::string &cmd, const 
       }
     }
   } catch (std::system_error &e) {
-      log_warning("DBA: %s while reading from mysqlprovision", e.what());
+    log_warning("DBA: %s while reading from mysqlprovision", e.what());
   }
   if (!buf.empty()) {
     if (verbose)
@@ -195,12 +196,25 @@ int ProvisioningInterface::exec_sandbox_op(const std::string &op, int port, int 
   }
 
   if (!sandbox_dir.empty()) {
-    arg = "--sandboxdir=" + sandbox_dir;
-    sandbox_args.push_back(arg);
+    // When the user specifies the sandbox dir we validate it
+    if (!sandbox_dir.empty() && !shcore::is_folder(sandbox_dir))
+      throw shcore::Exception::argument_error("The sandboxDir path '" + sandbox_dir + "' is not valid");
+
+    sandbox_args.push_back("--sandboxdir");
+
+#ifdef _WIN32
+    sandbox_args.push_back("\"" + sandbox_dir + "\"");
+#else
+    sandbox_args.push_back(sandbox_dir);
+#endif
   } else if (shcore::Shell_core_options::get()->has_key(SHCORE_SANDBOX_DIR)) {
     std::string dir = (*shcore::Shell_core_options::get())[SHCORE_SANDBOX_DIR].as_string();
-    arg = "--sandboxdir=" + dir;
-    sandbox_args.push_back(arg);
+    sandbox_args.push_back("--sandboxdir");
+#ifdef _WIN32
+    sandbox_args.push_back("\"" + dir + "\"");
+#else
+    sandbox_args.push_back(dir);
+#endif
   }
 
   if (!pwd.empty()) {

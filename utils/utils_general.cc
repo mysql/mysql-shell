@@ -38,7 +38,7 @@ bool is_valid_identifier(const std::string& name) {
   if (!name.empty()) {
     std::locale locale;
 
-    ret_val = std::isalpha(name[0], locale);
+    ret_val = std::isalpha(name[0], locale) || name[0] == '_';
 
     size_t index = 1;
     while (ret_val && index < name.size()) {

@@ -107,7 +107,7 @@ void Dba::init() {
 std::string Dba::generate_password(int password_lenght) {
   std::random_device rd;
   std::string pwd;
-  const char *alphabet = "1234567890abcdefghijklmnopqrstuvwxyz";
+  const char *alphabet = "1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ~@#%$^&*()-_=+]}[{|;:.>,</?";
   std::uniform_int_distribution<int> dist(0, strlen(alphabet) - 1);
 
   for (int i = 0; i < password_lenght; i++)
@@ -146,9 +146,9 @@ std::shared_ptr<ShellDevelopmentSession> Dba::get_active_session() {
 * \return The Cluster configured as default.
 */
 #if DOXYGEN_JS
-Cluster Dba::getCluster(){}
+Cluster Dba::getCluster() {}
 #elif DOXYGEN_PY
-Cluster Dba::get_cluster(){}
+Cluster Dba::get_cluster() {}
 #endif
 /**
 * Retrieves a Cluster object from the Metadata schema.
@@ -158,9 +158,9 @@ Cluster Dba::get_cluster(){}
 * If a Cluster with the given name does not exist an error will be raised.
 */
 #if DOXYGEN_JS
-Cluster Dba::getCluster(String name){}
+Cluster Dba::getCluster(String name) {}
 #elif DOXYGEN_PY
-Cluster Dba::get_cluster(str name){}
+Cluster Dba::get_cluster(str name) {}
 #endif
 #endif
 shcore::Value Dba::get_cluster(const shcore::Argument_list &args) const {
@@ -224,15 +224,23 @@ shcore::Value Dba::get_cluster(const shcore::Argument_list &args) const {
       else
         ret_val = (*_clusters)[cluster_name];
     }
+
+    if (cluster) {
+      if (!_clusters->has_key(cluster->get_name()))
+        (*_clusters)[cluster->get_name()] = shcore::Value(std::dynamic_pointer_cast<Object_bridge>(cluster));
+
+      ret_val = (*_clusters)[cluster->get_name()];
+    } else {
+      std::string message;
+      if (get_default_cluster)
+        message = "No default cluster is configured.";
+      else
+        message = "The cluster '" + cluster_name + "' is not configured.";
+
+      throw shcore::Exception::logic_error(message);
+    }
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("getCluster"));
-
-  if (cluster) {
-    if (!_clusters->has_key(cluster->get_name()))
-       (*_clusters)[cluster->get_name()] = shcore::Value(std::dynamic_pointer_cast<Object_bridge>(cluster));
-
-    ret_val = (*_clusters)[cluster->get_name()];
-  }
 
   return ret_val;
 }
@@ -246,9 +254,9 @@ shcore::Value Dba::get_cluster(const shcore::Argument_list &args) const {
  * \sa Cluster
  */
 #if DOXYGEN_JS
-Cluster Dba::createCluster(String name, String clusterAdminPassword, JSON options){}
+Cluster Dba::createCluster(String name, String clusterAdminPassword, JSON options) {}
 #elif DOXYGEN_PY
-Cluster Dba::create_cluster(str name, str cluster_admin_password, JSON options){}
+Cluster Dba::create_cluster(str name, str cluster_admin_password, JSON options) {}
 #endif
 shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
   Value ret_val;
@@ -270,6 +278,9 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
 
     if (cluster_name.empty())
       throw Exception::argument_error("The Cluster name cannot be empty.");
+
+    if (!shcore::is_valid_identifier(cluster_name))
+      throw Exception::argument_error("The Cluster name must be a valid identifier.");
 
     std::string cluster_password = args.string_at(1);
 
@@ -376,9 +387,9 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
  * \sa Cluster
  */
 #if DOXYGEN_JS
-Undefined Dba::dropCluster(String name){}
+Undefined Dba::dropCluster(String name) {}
 #elif DOXYGEN_PY
-None Dba::drop_cluster(str name){}
+None Dba::drop_cluster(str name) {}
 #endif
 
 shcore::Value Dba::drop_cluster(const shcore::Argument_list &args) {
@@ -434,9 +445,9 @@ shcore::Value Dba::drop_cluster(const shcore::Argument_list &args) {
  * \return nothing.
  */
 #if DOXYGEN_JS
-Undefined Dba::dropMetadataSchema(){}
+Undefined Dba::dropMetadataSchema() {}
 #elif DOXYGEN_PY
-None Dba::drop_metadata_schema(){}
+None Dba::drop_metadata_schema() {}
 #endif
 
 shcore::Value Dba::drop_metadata_schema(const shcore::Argument_list &args) {

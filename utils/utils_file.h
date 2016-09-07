@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2016, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -23,17 +23,17 @@
 #include <string>
 #include "shellcore/common.h"
 
-namespace shcore
-{
-  std::string SHCORE_PUBLIC get_global_config_path();
-  std::string SHCORE_PUBLIC get_user_config_path();
-  std::string SHCORE_PUBLIC get_mysqlx_home_path();
-  std::string SHCORE_PUBLIC get_binary_folder();
-  bool SHCORE_PUBLIC file_exists(const std::string& filename);
-  void SHCORE_PUBLIC ensure_dir_exists(const std::string& path);
-  std::string SHCORE_PUBLIC get_last_error();
-  bool SHCORE_PUBLIC load_text_file(const std::string& path, std::string& data);
-  void SHCORE_PUBLIC delete_file(const std::string& filename);
-  std::string SHCORE_PUBLIC get_default_config_path();
+namespace shcore {
+std::string SHCORE_PUBLIC get_global_config_path();
+std::string SHCORE_PUBLIC get_user_config_path();
+std::string SHCORE_PUBLIC get_mysqlx_home_path();
+std::string SHCORE_PUBLIC get_binary_folder();
+bool SHCORE_PUBLIC is_folder(const std::string& filename);
+bool SHCORE_PUBLIC file_exists(const std::string& filename);
+void SHCORE_PUBLIC ensure_dir_exists(const std::string& path);
+std::string SHCORE_PUBLIC get_last_error();
+bool SHCORE_PUBLIC load_text_file(const std::string& path, std::string& data);
+void SHCORE_PUBLIC delete_file(const std::string& filename);
+std::string SHCORE_PUBLIC get_default_config_path();
 }
 #endif /* defined(__mysh__utils_file__) */

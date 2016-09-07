@@ -264,7 +264,7 @@ shcore::Value Interactive_dba_cluster::remove_instance(const shcore::Argument_li
 
   ret_val = _target->call("removeInstance", args);
 
-  print("The instance '" + build_connection_string(options, false) + "' was successfully removed to the cluster.\n");
+  print("The instance '" + build_connection_string(options, false) + "' was successfully removed from the cluster.\n");
 
   return ret_val;
 }

@@ -23,13 +23,13 @@
 #include "modules/mysqlxtest_utils.h"
 #include "modules/adminapi/mod_dba.h"
 #include "utils/utils_general.h"
+#include "utils/utils_file.h"
 #include <boost/format.hpp>
 
 using namespace std::placeholders;
 using namespace shcore;
 
-void Global_dba::init()
-{
+void Global_dba::init() {
   add_varargs_method("deployLocalInstance", std::bind(&Global_dba::deploy_local_instance, this, _1));
   add_varargs_method("startLocalInstance", std::bind(&Global_dba::start_local_instance, this, _1));
   add_varargs_method("deleteLocalInstance", std::bind(&Global_dba::delete_local_instance, this, _1));
@@ -43,8 +43,7 @@ void Global_dba::init()
   add_method("validateInstance", std::bind(&Global_dba::validate_instance, this, _1), "data", shcore::Map, NULL);
 }
 
-shcore::Value Global_dba::exec_instance_op(const std::string &function, const shcore::Argument_list &args)
-{
+shcore::Value Global_dba::exec_instance_op(const std::string &function, const shcore::Argument_list &args) {
   shcore::Value ret_val;
   shcore::Argument_list new_args;
 
@@ -54,112 +53,94 @@ shcore::Value Global_dba::exec_instance_op(const std::string &function, const sh
   bool proceed = true;
   std::string sandboxDir;
 
-  try
-  {
+  try {
     int port = args.int_at(0);
     new_args.push_back(args[0]);
 
-    if (args.size() == 2)
-    {
+    if (args.size() == 2) {
       new_args.push_back(args[1]);
       options = args.map_at(1);
       // Verification of invalid attributes on the instance deployment data
       auto invalids = shcore::get_additional_keys(options, mysh::mysqlx::Dba::_deploy_instance_opts);
-      if (invalids.size())
-      {
+      if (invalids.size()) {
         std::string error = "The instance data contains the following invalid attributes: ";
         error += shcore::join_strings(invalids, ", ");
 
         proceed = false;
-        if (prompt((boost::format("%s. Do you want to ignore these attributes and continue? [Y/n]: ") % error).str().c_str(), answer))
-        {
+        if (prompt((boost::format("%s. Do you want to ignore these attributes and continue? [Y/n]: ") % error).str().c_str(), answer)) {
           proceed = (!answer.compare("y") || !answer.compare("Y") || answer.empty());
 
-          if (proceed)
-          {
+          if (proceed) {
             for (auto attribute : invalids)
               options->erase(attribute);
           }
         }
       }
-    }
-    else
-    {
+    } else {
       options.reset(new shcore::Value::Map_type());
       new_args.push_back(shcore::Value(options));
     }
-    if (!options->has_key("sandboxDir"))
-    {
-      if (shcore::Shell_core_options::get()->has_key(SHCORE_SANDBOX_DIR))
-      {
+
+    if (!options->has_key("sandboxDir")) {
+      if (shcore::Shell_core_options::get()->has_key(SHCORE_SANDBOX_DIR)) {
         sandboxDir = (*shcore::Shell_core_options::get())[SHCORE_SANDBOX_DIR].as_string();
         (*options)["sandboxDir"] = shcore::Value(sandboxDir);
       }
-    }
-    else
+    } else {
       sandboxDir = (*options)["sandboxDir"].as_string();
 
-    if (proceed)
-    {
+      // When the user specifies the sandbox dir we validate it
+      if (!sandboxDir.empty() && !shcore::is_folder(sandboxDir))
+        throw shcore::Exception::argument_error("The sandboxDir path '" + sandboxDir + "' is not valid");
+    }
+
+    if (proceed) {
       std::string message;
 
-      if (function == "deploy" || function == "start")
-      {
+      if (function == "deploy" || function == "start") {
         // Verification of required attributes on the instance deployment data
         auto missing = shcore::get_missing_keys(options, { "password|dbPassword" });
 
-        if (missing.size())
-        {
+        if (missing.size()) {
           proceed = false;
           bool prompt_password = true;
 
-          while (prompt_password && !proceed)
-          {
-            if (function == "deploy")
-            {
+          while (prompt_password && !proceed) {
+            if (function == "deploy") {
               message = "A new MySQL sandbox instance will be created on this host in \n"\
                         "" + sandboxDir + "/" + std::to_string(port) + "\n\n"
                         "Please enter a MySQL root password for the new instance: ";
             }
 
-            if (function == "start")
-            {
+            if (function == "start") {
               message = "The MySQL sandbox instance on this host in \n"\
                         "" + sandboxDir + "/" + std::to_string(port) + " will be started\n\n"
                         "Please enter the MySQL root password of the instance: ";
             }
 
             prompt_password = password(message, answer);
-            if (prompt_password)
-            {
-              if (!answer.empty())
-              {
+            if (prompt_password) {
+              if (!answer.empty()) {
                 (*options)["password"] = shcore::Value(answer);
                 proceed = true;
               }
             }
           }
         }
-      }
-      else
-      {
-        if (function == "delete")
-        {
+      } else {
+        if (function == "delete") {
           message = "The MySQL sandbox instance on this host in \n"\
                     "" + sandboxDir + "/" + std::to_string(port) + " will be deleted\n";
           println(message);
           proceed = true;
-        }
-        else if (function == "kill")
-        {
+        } else if (function == "kill") {
           message = "The MySQL sandbox instance on this host in \n"\
                     "" + sandboxDir + "/" + std::to_string(port) + " will be killed\n";
           println(message);
           proceed = true;
         }
 
-        else if (function == "stop")
-        {
+        else if (function == "stop") {
           message = "The MySQL sandbox instance on this host in \n"\
                     "" + sandboxDir + "/" + std::to_string(port) + " will be stopped\n";
           _shell_core.println(message);
@@ -168,10 +149,8 @@ shcore::Value Global_dba::exec_instance_op(const std::string &function, const sh
       }
     }
 
-    if (proceed)
-    {
-      if (function == "deploy")
-      {
+    if (proceed) {
+      if (function == "deploy") {
         println("Deploying new MySQL instance...");
         ret_val = _target->call("deployLocalInstance", new_args);
 
@@ -180,32 +159,28 @@ shcore::Value Global_dba::exec_instance_op(const std::string &function, const sh
         println("Use '\\connect -c root@localhost:" + std::to_string(port) + "' to connect to the new instance.");
       }
 
-      if (function == "start")
-      {
+      if (function == "start") {
         println("Starting MySQL instance...");
         ret_val = _target->call("startLocalInstance", new_args);
 
         println("Instance localhost:" + std::to_string(port) + " successfully started.\n");
       }
 
-      if (function == "delete")
-      {
+      if (function == "delete") {
         println("Deleting MySQL instance...");
         ret_val = _target->call("deleteLocalInstance", new_args);
 
         println("Instance localhost:" + std::to_string(port) + " successfully deleted.\n");
       }
 
-      if (function == "kill")
-      {
+      if (function == "kill") {
         println("Killing MySQL instance...");
         ret_val = _target->call("killLocalInstance", new_args);
 
         println("Instance localhost:" + std::to_string(port) + " successfully killed.\n");
       }
 
-      if (function == "stop")
-      {
+      if (function == "stop") {
         _shell_core.println("Stopping MySQL instance...");
         ret_val = _target->call("stopLocalInstance", new_args);
 
@@ -219,49 +194,42 @@ shcore::Value Global_dba::exec_instance_op(const std::string &function, const sh
   return ret_val;
 }
 
-shcore::Value Global_dba::deploy_local_instance(const shcore::Argument_list &args)
-{
+shcore::Value Global_dba::deploy_local_instance(const shcore::Argument_list &args) {
   args.ensure_count(1, 2, get_function_name("deployLocalInstance").c_str());
 
   return exec_instance_op("deploy", args);
 }
 
-shcore::Value Global_dba::start_local_instance(const shcore::Argument_list &args)
-{
+shcore::Value Global_dba::start_local_instance(const shcore::Argument_list &args) {
   args.ensure_count(1, 2, get_function_name("startLocalInstance").c_str());
 
   return exec_instance_op("start", args);
 }
 
-shcore::Value Global_dba::delete_local_instance(const shcore::Argument_list &args)
-{
+shcore::Value Global_dba::delete_local_instance(const shcore::Argument_list &args) {
   args.ensure_count(1, 2, get_function_name("deleteLocalInstance").c_str());
 
   return exec_instance_op("delete", args);
 }
 
-shcore::Value Global_dba::kill_local_instance(const shcore::Argument_list &args)
-{
+shcore::Value Global_dba::kill_local_instance(const shcore::Argument_list &args) {
   args.ensure_count(1, 2, get_function_name("killLocalInstance").c_str());
 
   return exec_instance_op("kill", args);
 }
 
-shcore::Value Global_dba::stop_local_instance(const shcore::Argument_list &args)
-{
+shcore::Value Global_dba::stop_local_instance(const shcore::Argument_list &args) {
   args.ensure_count(1, 2, get_function_name("stopLocalInstance").c_str());
 
   return exec_instance_op("stop", args);
 }
 
-shcore::Value Global_dba::drop_cluster(const shcore::Argument_list &args)
-{
+shcore::Value Global_dba::drop_cluster(const shcore::Argument_list &args) {
   shcore::Value ret_val;
 
   args.ensure_count(1, 2, get_function_name("dropCluster").c_str());
 
-  try
-  {
+  try {
     std::string cluster_name = args.string_at(0);
 
     if (cluster_name.empty())
@@ -269,20 +237,16 @@ shcore::Value Global_dba::drop_cluster(const shcore::Argument_list &args)
 
     shcore::Value::Map_type_ref options;
     bool valid_options = false;
-    if (args.size() == 2)
-    {
+    if (args.size() == 2) {
       options = args.map_at(1);
       valid_options = options->has_key("dropDefaultReplicaSet");
     }
 
-    if (!valid_options)
-    {
+    if (!valid_options) {
       std::string answer;
       println((boost::format("To remove the Cluster '%1%' the default replica set needs to be removed.") % cluster_name).str());
-      if (prompt((boost::format("Do you want to remove the default replica set? [y/n]: ")).str().c_str(), answer))
-      {
-        if (!answer.compare("y") || !answer.compare("Y"))
-        {
+      if (prompt((boost::format("Do you want to remove the default replica set? [y/n]: ")).str().c_str(), answer)) {
+        if (!answer.compare("y") || !answer.compare("Y")) {
           options.reset(new shcore::Value::Map_type);
           (*options)["dropDefaultReplicaSet"] = shcore::Value(true);
 
@@ -291,8 +255,7 @@ shcore::Value Global_dba::drop_cluster(const shcore::Argument_list &args)
       }
     }
 
-    if (valid_options)
-    {
+    if (valid_options) {
       shcore::Argument_list new_args;
       new_args.push_back(shcore::Value(cluster_name));
       new_args.push_back(shcore::Value(options));
@@ -305,14 +268,12 @@ shcore::Value Global_dba::drop_cluster(const shcore::Argument_list &args)
   return ret_val;
 }
 
-shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args)
-{
+shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
   shcore::Value ret_val;
 
   args.ensure_count(1, 3, get_function_name("createCluster").c_str());
 
-  try
-  {
+  try {
     std::string cluster_name = args.string_at(0);
     std::string answer, cluster_password;
     shcore::Value::Map_type_ref options;
@@ -321,17 +282,17 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args)
     if (cluster_name.empty())
       throw Exception::argument_error("The Cluster name cannot be empty.");
 
-    if (args.size() > 1)
-    {
+    if (!shcore::is_valid_identifier(cluster_name))
+      throw Exception::argument_error("The Cluster name must be a valid identifier.");
+
+    if (args.size() > 1) {
       int opts_index = 1;
-      if (args[1].type == shcore::String)
-      {
+      if (args[1].type == shcore::String) {
         cluster_password = args.string_at(1);
         opts_index++;
       }
 
-      if (args.size() > opts_index)
-      {
+      if (args.size() > opts_index) {
         options = args.map_at(opts_index);
         // Check if some option is missing
         // TODO: Validate adminType parameter value
@@ -344,8 +305,7 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args)
     auto dba = std::dynamic_pointer_cast<mysh::mysqlx::Dba>(_target);
     auto session = dba->get_active_session();
     bool prompt_password = true;
-    while (prompt_password && cluster_password.empty())
-    {
+    while (prompt_password && cluster_password.empty()) {
       std::string message = "A new InnoDB cluster will be created on instance '" + session->uri() + "'.\n\n"
                             "When setting up a new InnoDB cluster it is required to define an administrative\n"\
                             "MASTER key for the cluster.This MASTER key needs to be re - entered when making\n"\
@@ -356,15 +316,13 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args)
       println(message);
 
       prompt_password = password("Please specify an administrative MASTER key for the cluster '" + cluster_name + "':", answer);
-      if (prompt_password)
-      {
+      if (prompt_password) {
         if (!answer.empty())
           cluster_password = answer;
       }
     }
 
-    if (!cluster_password.empty())
-    {
+    if (!cluster_password.empty()) {
       shcore::Argument_list new_args;
       new_args.push_back(shcore::Value(cluster_name));
       new_args.push_back(shcore::Value(cluster_password));
@@ -401,20 +359,15 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args)
   return ret_val;
 }
 
-shcore::Value Global_dba::drop_metadata_schema(const shcore::Argument_list &args)
-{
+shcore::Value Global_dba::drop_metadata_schema(const shcore::Argument_list &args) {
   shcore::Value ret_val;
 
-  try
-  {
-    if (args.size() < 1)
-    {
+  try {
+    if (args.size() < 1) {
       std::string answer;
 
-      if (prompt((boost::format("Are you sure you want to remove the Metadata? [y/N]: ")).str().c_str(), answer))
-      {
-        if (!answer.compare("y") || !answer.compare("Y"))
-        {
+      if (prompt((boost::format("Are you sure you want to remove the Metadata? [y/N]: ")).str().c_str(), answer)) {
+        if (!answer.compare("y") || !answer.compare("Y")) {
           shcore::Argument_list new_args;
           Value::Map_type_ref options(new shcore::Value::Map_type);
 
@@ -424,8 +377,7 @@ shcore::Value Global_dba::drop_metadata_schema(const shcore::Argument_list &args
           ret_val = _target->call("dropMetadataSchema", new_args);
         }
       }
-    }
-    else
+    } else
       ret_val = _target->call("dropMetadataSchema", args);
 
     println("Metadata Schema successfully removed.");
@@ -435,8 +387,7 @@ shcore::Value Global_dba::drop_metadata_schema(const shcore::Argument_list &args
   return ret_val;
 }
 
-shcore::Value Global_dba::get_cluster(const shcore::Argument_list &args)
-{
+shcore::Value Global_dba::get_cluster(const shcore::Argument_list &args) {
   Value ret_val;
   args.ensure_count(0, 2, get_function_name("getCluster").c_str());
 
@@ -447,31 +398,23 @@ shcore::Value Global_dba::get_cluster(const shcore::Argument_list &args)
   std::string cluster_name;
   bool get_default_cluster = false;
 
-  if (args.size())
-  {
-    if (args.size() == 1)
-    {
+  if (args.size()) {
+    if (args.size() == 1) {
       if (args[0].type == shcore::String)
         cluster_name = args[0].as_string();
-      else if (args[0].type == shcore::Map)
-      {
+      else if (args[0].type == shcore::Map) {
         options = args[0].as_map();
         get_default_cluster = true;
-      }
-      else
+      } else
         throw shcore::Exception::argument_error("Unexpected parameter received expected either the InnoDB cluster name or a Dictionary with options");
-    }
-    else
-    {
+    } else {
       cluster_name = args.string_at(0);
       options = args[1].as_map();
     }
-  }
-  else
+  } else
     get_default_cluster = true;
 
-  if (!options)
-  {
+  if (!options) {
     options.reset(new shcore::Value::Map_type());
     new_args.push_back(shcore::Value(options));
   }
@@ -480,8 +423,7 @@ shcore::Value Global_dba::get_cluster(const shcore::Argument_list &args)
     master_key = options->get_string("masterKey");
 
   bool prompt_key = true;
-  while (prompt_key && master_key.empty())
-  {
+  while (prompt_key && master_key.empty()) {
     std::string message = "When the InnoDB cluster was setup, a MASTER key was defined in order to enable\n"\
                           "performing administrative tasks on the cluster.\n";
 
@@ -493,8 +435,7 @@ shcore::Value Global_dba::get_cluster(const shcore::Argument_list &args)
       message = "Please specify the administrative MASTER key for the cluster '" + cluster_name + "':";
 
     prompt_key = password(message, master_key);
-    if (prompt_key)
-    {
+    if (prompt_key) {
       if (!master_key.empty())
         (*options)["masterKey"] = shcore::Value(master_key);
     }
@@ -508,8 +449,7 @@ shcore::Value Global_dba::get_cluster(const shcore::Argument_list &args)
   return shcore::Value::wrap<Interactive_dba_cluster>(cluster);
 }
 
-shcore::Value Global_dba::validate_instance(const shcore::Argument_list &args)
-{
+shcore::Value Global_dba::validate_instance(const shcore::Argument_list &args) {
   shcore::Value ret_val;
   shcore::Argument_list new_args;
 
@@ -519,8 +459,7 @@ shcore::Value Global_dba::validate_instance(const shcore::Argument_list &args)
   shcore::Value::Map_type_ref options; // Map with the connection data
 
   // Identify the type of connection data (String or Document)
-  if (args[0].type == shcore::String)
-  {
+  if (args[0].type == shcore::String) {
     uri = args.string_at(0);
     options = shcore::get_connection_data(uri, false);
   }
@@ -531,8 +470,7 @@ shcore::Value Global_dba::validate_instance(const shcore::Argument_list &args)
   // Verification of required attributes on the connection data
   auto missing = shcore::get_missing_keys(options, { "host", "port" });
 
-  if (missing.size())
-  {
+  if (missing.size()) {
     std::string error = "Missing instance options: ";
     error += shcore::join_strings(missing, ", ");
     throw shcore::Exception::argument_error(error);
@@ -546,16 +484,13 @@ shcore::Value Global_dba::validate_instance(const shcore::Argument_list &args)
     user_password = options->get_string("password");
   else if (options->has_key("dbPassword"))
     user_password = options->get_string("dbPassword");
-  else if (args.size() == 2 && args[1].type == shcore::String)
-  {
+  else if (args.size() == 2 && args[1].type == shcore::String) {
     user_password = args.string_at(1);
     (*options)["dbPassword"] = shcore::Value(user_password);
-  }
-  else
+  } else
     has_password = false;
 
-  if (!has_password)
-  {
+  if (!has_password) {
     if (password("Please provide a password for '" + build_connection_string(options, false) + "': ", answer))
       (*options)["dbPassword"] = shcore::Value(answer);
   }
