@@ -110,7 +110,8 @@ namespace shcore
     execute("session.close();");
   }
 */
-  TEST_F(Shell_js_dba_tests, dba_no_interactive_global_session_classic)
+
+  TEST_F(Shell_js_dba_tests, dba_deploy_instances)
   {
     _options->wizards = false;
     reset_shell();
@@ -119,21 +120,16 @@ namespace shcore
       execute("dba.deployLocalInstance(" + _mysql_sandbox_port1 + ", {password: \"root\", verbose: true});");
     else
       execute("dba.deployLocalInstance(" + _mysql_sandbox_port1 + ", {password: \"root\", sandboxDir: \"" + _sandbox_dir + "\", verbose: true});");
+  }
+
+  TEST_F(Shell_js_dba_tests, dba_no_interactive_global_session_classic)
+  {
+    _options->wizards = false;
+    reset_shell();
 
     execute("\\connect -c root:root@127.0.0.1:" + _mysql_sandbox_port1 + "");
     validate_interactive("dba_no_interactive.js");
     execute("session.close();");
-
-    if (_sandbox_dir.empty())
-    {
-      execute("dba.killLocalInstance(" + _mysql_sandbox_port1 + ");");
-      execute("dba.deleteLocalInstance(" + _mysql_sandbox_port1+ ");");
-    }
-    else
-    {
-      execute("dba.killLocalInstance(" + _mysql_sandbox_port1 + ", {sandboxDir: \"" + _sandbox_dir + "\", verbose: true});");
-      execute("dba.deleteLocalInstance(" + _mysql_sandbox_port1 + ", {sandboxDir: \"" + _sandbox_dir + "\", verbose: true});");
-    }
   }
 
 /*
@@ -167,27 +163,11 @@ namespace shcore
     _options->wizards = false;
     reset_shell();
 
-    if (_sandbox_dir.empty())
-      execute("dba.deployLocalInstance(" + _mysql_sandbox_port1 + ", {password: \"root\", verbose: true});");
-    else
-      execute("dba.deployLocalInstance(" + _mysql_sandbox_port1 + ", {password: \"root\", sandboxDir: \"" + _sandbox_dir + "\", verbose: true});");
-
     execute("var mysql = require('mysql');");
     execute("var mySession = mysql.getClassicSession('root:root@127.0.0.1:" + _mysql_sandbox_port1 +"');");
     execute("dba.resetSession(mySession);");
     validate_interactive("dba_no_interactive.js");
     execute("mySession.close();");
-
-    if (_sandbox_dir.empty())
-    {
-      execute("dba.killLocalInstance(" + _mysql_sandbox_port1 + ");");
-      execute("dba.deleteLocalInstance(" + _mysql_sandbox_port1+ ");");
-    }
-    else
-    {
-      execute("dba.killLocalInstance(" + _mysql_sandbox_port1 + ", {sandboxDir: \"" + _sandbox_dir + "\", verbose: true});");
-      execute("dba.deleteLocalInstance(" + _mysql_sandbox_port1 + ", {sandboxDir: \"" + _sandbox_dir + "\", verbose: true});");
-    }
   }
 /*
   TEST_F(Shell_js_dba_tests, admin_interactive_custom_session_x)
@@ -196,16 +176,16 @@ namespace shcore
     //@ Initialization
     output_handler.prompts.push_back("y");
 
-    //@# Dba: createFarm with interaction
+    //@# Dba: createCluster with interaction
     output_handler.passwords.push_back("testing");
 
-    //@ Dba: dropFarm interaction no options, cancel
+    //@ Dba: dropCluster interaction no options, cancel
     output_handler.passwords.push_back("n");
 
-    //@ Dba: dropFarm interaction missing option, ok error
+    //@ Dba: dropCluster interaction missing option, ok error
     output_handler.passwords.push_back("y");
 
-    //@ Dba: dropFarm interaction no options, ok success
+    //@ Dba: dropCluster interaction no options, ok success
     output_handler.passwords.push_back("y");
 
     execute("var mysqlx = require('mysqlx');");
@@ -221,16 +201,16 @@ namespace shcore
     //@ Initialization
     output_handler.prompts.push_back("y");
 
-    //@# Dba: createFarm with interaction
+    //@# Dba: createCluster with interaction
     output_handler.passwords.push_back("testing");
 
-    //@ Dba: dropFarm interaction no options, cancel
+    //@ Dba: dropCluster interaction no options, cancel
     output_handler.passwords.push_back("n");
 
-    //@ Dba: dropFarm interaction missing option, ok error
+    //@ Dba: dropCluster interaction missing option, ok error
     output_handler.passwords.push_back("y");
 
-    //@ Dba: dropFarm interaction no options, ok success
+    //@ Dba: dropCluster interaction no options, ok success
     output_handler.passwords.push_back("y");
 
     execute("var mysqlx = require('mysqlx');");
@@ -247,39 +227,23 @@ namespace shcore
     //@ Initialization
     output_handler.prompts.push_back("y");
 
-    //@# Dba: createFarm with interaction
+    //@# Dba: createCluster with interaction
     output_handler.passwords.push_back("testing");
 
-    //@ Dba: dropFarm interaction no options, cancel
+    //@ Dba: dropCluster interaction no options, cancel
     output_handler.passwords.push_back("n");
 
-    //@ Dba: dropFarm interaction missing option, ok error
+    //@ Dba: dropCluster interaction missing option, ok error
     output_handler.passwords.push_back("y");
 
-    //@ Dba: dropFarm interaction no options, ok success
+    //@ Dba: dropCluster interaction no options, ok success
     output_handler.passwords.push_back("y");
-
-    if (_sandbox_dir.empty())
-      execute("dba.deployLocalInstance(" + _mysql_sandbox_port1 + ", {password: \"root\", verbose: true});");
-    else
-      execute("dba.deployLocalInstance(" + _mysql_sandbox_port1 + ", {password: \"root\", sandboxDir: \"" + _sandbox_dir + "\", verbose: true});");
 
     execute("var mysql = require('mysql');");
     execute("var mySession = mysql.getClassicSession('root:root@127.0.0.1:" + _mysql_sandbox_port1 +"');");
     execute("dba.resetSession(mySession);");
     validate_interactive("dba_interactive.js");
     execute("mySession.close();");
-
-    if (_sandbox_dir.empty())
-    {
-      execute("dba.killLocalInstance(" + _mysql_sandbox_port1 + ");");
-      execute("dba.deleteLocalInstance(" + _mysql_sandbox_port1+ ");");
-    }
-    else
-    {
-      execute("dba.killLocalInstance(" + _mysql_sandbox_port1 + ", {sandboxDir: \"" + _sandbox_dir + "\", verbose: true});");
-      execute("dba.deleteLocalInstance(" + _mysql_sandbox_port1 + ", {sandboxDir: \"" + _sandbox_dir + "\", verbose: true});");
-    }
   }
 
 /*
@@ -289,16 +253,16 @@ namespace shcore
     //@ Initialization
     output_handler.prompts.push_back("y");
 
-    //@# Dba: createFarm with interaction
+    //@# Dba: createCluster with interaction
     output_handler.passwords.push_back("testing");
 
-    //@ Dba: dropFarm interaction no options, cancel
+    //@ Dba: dropCluster interaction no options, cancel
     output_handler.passwords.push_back("n");
 
-    //@ Dba: dropFarm interaction missing option, ok error
+    //@ Dba: dropCluster interaction missing option, ok error
     output_handler.passwords.push_back("y");
 
-    //@ Dba: dropFarm interaction no options, ok success
+    //@ Dba: dropCluster interaction no options, ok success
     output_handler.passwords.push_back("y");
 
     execute("\\connect " + _uri);
@@ -312,16 +276,16 @@ namespace shcore
     //@ Initialization
     output_handler.prompts.push_back("y");
 
-    //@# Dba: createFarm with interaction
+    //@# Dba: createCluster with interaction
     output_handler.passwords.push_back("testing");
 
-    //@ Dba: dropFarm interaction no options, cancel
+    //@ Dba: dropCluster interaction no options, cancel
     output_handler.passwords.push_back("n");
 
-    //@ Dba: dropFarm interaction missing option, ok error
+    //@ Dba: dropCluster interaction missing option, ok error
     output_handler.passwords.push_back("y");
 
-    //@ Dba: dropFarm interaction no options, ok success
+    //@ Dba: dropCluster interaction no options, ok success
     output_handler.passwords.push_back("y");
 
     execute("\\connect -n " + _uri);
@@ -337,36 +301,20 @@ namespace shcore
     //@ Initialization
     output_handler.prompts.push_back("y");
 
-    //@# Dba: createFarm with interaction
+    //@# Dba: createCluster with interaction
     output_handler.passwords.push_back("testing");
 
-    //@ Dba: dropFarm interaction no options, cancel
+    //@ Dba: dropCluster interaction no options, cancel
     output_handler.passwords.push_back("n");
 
-    //@ Dba: dropFarm interaction missing option, ok error
+    //@ Dba: dropCluster interaction missing option, ok error
     output_handler.passwords.push_back("y");
 
-    //@ Dba: dropFarm interaction no options, ok success
+    //@ Dba: dropCluster interaction no options, ok success
     output_handler.passwords.push_back("y");
-
-    if (_sandbox_dir.empty())
-      execute("dba.deployLocalInstance(" + _mysql_sandbox_port1 + ", {password: \"root\", verbose: true});");
-    else
-      execute("dba.deployLocalInstance(" + _mysql_sandbox_port1 + ", {password: \"root\", sandboxDir: \"" + _sandbox_dir + "\", verbose: true});");
 
     execute("\\connect -c root:root@127.0.0.1:" + _mysql_sandbox_port1 + "");
     validate_interactive("dba_interactive.js");
-
-    if (_sandbox_dir.empty())
-    {
-      execute("dba.killLocalInstance(" + _mysql_sandbox_port1 + ");");
-      execute("dba.deleteLocalInstance(" + _mysql_sandbox_port1+ ");");
-    }
-    else
-    {
-      execute("dba.killLocalInstance(" + _mysql_sandbox_port1 + ", {sandboxDir: \"" + _sandbox_dir + "\", verbose: true});");
-      execute("dba.deleteLocalInstance(" + _mysql_sandbox_port1 + ", {sandboxDir: \"" + _sandbox_dir + "\", verbose: true});");
-    }
   }
 
 /*
@@ -398,25 +346,9 @@ namespace shcore
     _options->wizards = false;
     reset_shell();
 
-    if (_sandbox_dir.empty())
-      execute("dba.deployLocalInstance(" + _mysql_sandbox_port1 + ", {password: \"root\", verbose: true});");
-    else
-      execute("dba.deployLocalInstance(" + _mysql_sandbox_port1 + ", {password: \"root\", sandboxDir: \"" + _sandbox_dir + "\", verbose: true});");
-
     execute("\\connect -c root:root@127.0.0.1:" + _mysql_sandbox_port1 + "");
     validate_interactive("dba_cluster_no_interactive.js");
     execute("session.close();");
-
-    if (_sandbox_dir.empty())
-    {
-      execute("dba.killLocalInstance(" + _mysql_sandbox_port1 + ");");
-      execute("dba.deleteLocalInstance(" + _mysql_sandbox_port1+ ");");
-    }
-    else
-    {
-      execute("dba.killLocalInstance(" + _mysql_sandbox_port1 + ", {sandboxDir: \"" + _sandbox_dir + "\", verbose: true});");
-      execute("dba.deleteLocalInstance(" + _mysql_sandbox_port1 + ", {sandboxDir: \"" + _sandbox_dir + "\", verbose: true});");
-    }
   }
 
 /*
@@ -452,51 +384,35 @@ namespace shcore
     _options->wizards = false;
     reset_shell();
 
-    if (_sandbox_dir.empty())
-      execute("dba.deployLocalInstance(" + _mysql_sandbox_port1 + ", {password: \"root\", verbose: true});");
-    else
-      execute("dba.deployLocalInstance(" + _mysql_sandbox_port1 + ", {password: \"root\", sandboxDir: \"" + _sandbox_dir + "\", verbose: true});");
-
     execute("var mysql = require('mysql');");
     execute("var mySession = mysql.getClassicSession('root:root@127.0.0.1:" + _mysql_sandbox_port1 +"');");
     execute("dba.resetSession(mySession);");
     validate_interactive("dba_cluster_no_interactive.js");
     execute("mySession.close();");
-
-    if (_sandbox_dir.empty())
-    {
-      execute("dba.killLocalInstance(" + _mysql_sandbox_port1 + ");");
-      execute("dba.deleteLocalInstance(" + _mysql_sandbox_port1+ ");");
-    }
-    else
-    {
-      execute("dba.killLocalInstance(" + _mysql_sandbox_port1 + ", {sandboxDir: \"" + _sandbox_dir + "\", verbose: true});");
-      execute("dba.deleteLocalInstance(" + _mysql_sandbox_port1 + ", {sandboxDir: \"" + _sandbox_dir + "\", verbose: true});");
-    }
   }
 
   //TEST_F(Shell_js_dba_tests, farm_interactive_custom_session_x)
   //{
   //  // Fills the required prompts and passwords...
 
-  //  //@ Farm: addInstance, no seed instance answer no
+  //  //@ Cluster: addInstance, no seed instance answer no
   //  output_handler.prompts.push_back("n");
 
-  //  //@ Farm: addInstance, no seed instance answer yes
+  //  //@ Cluster: addInstance, no seed instance answer yes
   //  output_handler.prompts.push_back("y");
 
-  //  //@ Farm: addInstance, ignore invalid attributes no ignore
+  //  //@ Cluster: addInstance, ignore invalid attributes no ignore
   //  output_handler.prompts.push_back("y");
   //  output_handler.prompts.push_back("n");
 
-  //  //@ Farm: addInstance, ignore invalid attributes ignore
+  //  //@ Cluster: addInstance, ignore invalid attributes ignore
   //  output_handler.prompts.push_back("y");
   //  output_handler.prompts.push_back("y");
 
-  //  //@ Farm: addSeedInstance, it already initialized, answer no
+  //  //@ Cluster: addSeedInstance, it already initialized, answer no
   //  output_handler.prompts.push_back("n");
 
-  //  //@ Farm: addSeedInstance, it already initialized, answer yes
+  //  //@ Cluster: addSeedInstance, it already initialized, answer yes
   //  output_handler.prompts.push_back("y");
 
   //  execute("var mysqlx = require('mysqlx');");
@@ -512,16 +428,16 @@ namespace shcore
   //  //@ Initialization
   //  output_handler.prompts.push_back("y");
 
-  //  //@# Dba: createFarm with interaction
+  //  //@# Dba: createCluster with interaction
   //  output_handler.passwords.push_back("testing");
 
-  //  //@ Dba: dropFarm interaction no options, cancel
+  //  //@ Dba: dropCluster interaction no options, cancel
   //  output_handler.passwords.push_back("n");
 
-  //  //@ Dba: dropFarm interaction missing option, ok error
+  //  //@ Dba: dropCluster interaction missing option, ok error
   //  output_handler.passwords.push_back("y");
 
-  //  //@ Dba: dropFarm interaction no options, ok success
+  //  //@ Dba: dropCluster interaction no options, ok success
   //  output_handler.passwords.push_back("y");
 
   //  execute("var mysqlx = require('mysqlx');");
@@ -537,16 +453,16 @@ namespace shcore
   //  //@ Initialization
   //  output_handler.prompts.push_back("y");
 
-  //  //@# Dba: createFarm with interaction
+  //  //@# Dba: createCluster with interaction
   //  output_handler.passwords.push_back("testing");
 
-  //  //@ Dba: dropFarm interaction no options, cancel
+  //  //@ Dba: dropCluster interaction no options, cancel
   //  output_handler.passwords.push_back("n");
 
-  //  //@ Dba: dropFarm interaction missing option, ok error
+  //  //@ Dba: dropCluster interaction missing option, ok error
   //  output_handler.passwords.push_back("y");
 
-  //  //@ Dba: dropFarm interaction no options, ok success
+  //  //@ Dba: dropCluster interaction no options, ok success
   //  output_handler.passwords.push_back("y");
 
   //  execute("var mysql = require('mysql');");
@@ -562,16 +478,16 @@ namespace shcore
   //  //@ Initialization
   //  output_handler.prompts.push_back("y");
 
-  //  //@# Dba: createFarm with interaction
+  //  //@# Dba: createCluster with interaction
   //  output_handler.passwords.push_back("testing");
 
-  //  //@ Dba: dropFarm interaction no options, cancel
+  //  //@ Dba: dropCluster interaction no options, cancel
   //  output_handler.passwords.push_back("n");
 
-  //  //@ Dba: dropFarm interaction missing option, ok error
+  //  //@ Dba: dropCluster interaction missing option, ok error
   //  output_handler.passwords.push_back("y");
 
-  //  //@ Dba: dropFarm interaction no options, ok success
+  //  //@ Dba: dropCluster interaction no options, ok success
   //  output_handler.passwords.push_back("y");
 
   //  execute("\\connect " + _uri);
@@ -585,16 +501,16 @@ namespace shcore
   //  //@ Initialization
   //  output_handler.prompts.push_back("y");
 
-  //  //@# Dba: createFarm with interaction
+  //  //@# Dba: createCluster with interaction
   //  output_handler.passwords.push_back("testing");
 
-  //  //@ Dba: dropFarm interaction no options, cancel
+  //  //@ Dba: dropCluster interaction no options, cancel
   //  output_handler.passwords.push_back("n");
 
-  //  //@ Dba: dropFarm interaction missing option, ok error
+  //  //@ Dba: dropCluster interaction missing option, ok error
   //  output_handler.passwords.push_back("y");
 
-  //  //@ Dba: dropFarm interaction no options, ok success
+  //  //@ Dba: dropCluster interaction no options, ok success
   //  output_handler.passwords.push_back("y");
 
   //  execute("\\connect -n " + _uri);
@@ -608,16 +524,16 @@ namespace shcore
   //  //@ Initialization
   //  output_handler.prompts.push_back("y");
 
-  //  //@# Dba: createFarm with interaction
+  //  //@# Dba: createCluster with interaction
   //  output_handler.passwords.push_back("testing");
 
-  //  //@ Dba: dropFarm interaction no options, cancel
+  //  //@ Dba: dropCluster interaction no options, cancel
   //  output_handler.passwords.push_back("n");
 
-  //  //@ Dba: dropFarm interaction missing option, ok error
+  //  //@ Dba: dropCluster interaction missing option, ok error
   //  output_handler.passwords.push_back("y");
 
-  //  //@ Dba: dropFarm interaction no options, ok success
+  //  //@ Dba: dropCluster interaction no options, ok success
   //  output_handler.passwords.push_back("y");
 
   //  execute("\\connect -c " + _mysql_uri);
@@ -652,27 +568,11 @@ namespace shcore
     _options->wizards = false;
     reset_shell();
 
-    if (_sandbox_dir.empty())
-      execute("dba.deployLocalInstance(" + _mysql_sandbox_port1 + ", {password: \"root\", verbose: true});");
-    else
-      execute("dba.deployLocalInstance(" + _mysql_sandbox_port1 + ", {password: \"root\", sandboxDir: \"" + _sandbox_dir + "\", verbose: true});");
-
     execute("var mysql = require('mysql');");
     execute("var mySession = mysql.getClassicSession('root:root@127.0.0.1:" + _mysql_sandbox_port1 +"');");
     execute("\\connect -c root:root@127.0.0.1:" + _mysql_sandbox_port1 + "");
     validate_interactive("dba_replica_set_no_interactive.js");
     execute("session.close();");
-
-    if (_sandbox_dir.empty())
-    {
-      execute("dba.killLocalInstance(" + _mysql_sandbox_port1 + ");");
-      execute("dba.deleteLocalInstance(" + _mysql_sandbox_port1+ ");");
-    }
-    else
-    {
-      execute("dba.killLocalInstance(" + _mysql_sandbox_port1 + ", {sandboxDir: \"" + _sandbox_dir + "\", verbose: true});");
-      execute("dba.deleteLocalInstance(" + _mysql_sandbox_port1 + ", {sandboxDir: \"" + _sandbox_dir + "\", verbose: true});");
-    }
   }
 
 /*
@@ -708,26 +608,25 @@ namespace shcore
     _options->wizards = false;
     reset_shell();
 
-    if (_sandbox_dir.empty())
-      execute("dba.deployLocalInstance(" + _mysql_sandbox_port1 + ", {password: \"root\"});");
-    else
-      execute("dba.deployLocalInstance(" + _mysql_sandbox_port1 + ", {password: \"root\", sandboxDir: \"" + _sandbox_dir + "\"});");
-
     execute("var mysql = require('mysql');");
     execute("var mySession = mysql.getClassicSession('root:root@127.0.0.1:" + _mysql_sandbox_port1 +"');");
     execute("dba.resetSession(mySession);");
     validate_interactive("dba_replica_set_no_interactive.js");
     execute("mySession.close();");
+  }
 
-    if (_sandbox_dir.empty())
-    {
-      execute("dba.killLocalInstance(" + _mysql_sandbox_port1 + ");");
-      execute("dba.deleteLocalInstance(" + _mysql_sandbox_port1+ ");");
+  TEST_F(Shell_js_dba_tests, dba_delete_instances)
+  {
+    _options->wizards = false;
+    reset_shell();
+
+    if (_sandbox_dir.empty()) {
+      execute("dba.stopLocalInstance(" + _mysql_sandbox_port1 + ");");
+      execute("dba.deleteLocalInstance(" + _mysql_sandbox_port1 + ");");
     }
-    else
-    {
-      execute("dba.killLocalInstance(" + _mysql_sandbox_port1 + ", {sandboxDir: \"" + _sandbox_dir + "\"});");
-      execute("dba.deleteLocalInstance(" + _mysql_sandbox_port1 + ", {sandboxDir: \"" + _sandbox_dir + "\"});");
+    else {
+      execute("dba.stopLocalInstance(" + _mysql_sandbox_port1 + ", {sandboxDir: \"" + _sandbox_dir + "\", verbose: true});");
+      execute("dba.deleteLocalInstance(" + _mysql_sandbox_port1 + ", {sandboxDir: \"" + _sandbox_dir + "\", verbose: true});");
     }
   }
 }

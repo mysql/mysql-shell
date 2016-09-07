@@ -45,4 +45,4 @@ cluster.add_instance({'port': __mysql_sandbox_port1})
 cluster.add_instance({'host': '127.0.0.1', 'port':__mysql_sandbox_port1}, 'root')
 
 # Cleanup
-dba.drop_cluster('devCluster', {"dropDefaultReplicaSet": True})
+dba.drop_cluster('devCluster', {'dropDefaultReplicaSet': True, 'masterKey': clusterPassword})

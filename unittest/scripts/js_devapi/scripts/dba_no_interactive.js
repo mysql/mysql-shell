@@ -2,6 +2,7 @@
 // Assumes __uripwd is defined as <user>:<pwd>@<host>:<plugin_port>
 // validateMember and validateNotMember are defined on the setup script
 dba.dropMetadataSchema({ enforce: true });
+var ClusterPassword = 'testing';
 
 //@ Session: validating members
 var members = dir(dba);
@@ -25,8 +26,8 @@ var Cluster = dba.createCluster();
 var Cluster = dba.createCluster(5);
 var Cluster = dba.createCluster('', 5);
 var Cluster = dba.createCluster('devCluster');
-var Cluster = dba.createCluster('devCluster', 'password');
-var Cluster = dba.createCluster('devCluster', 'password');
+var Cluster = dba.createCluster('devCluster', ClusterPassword);
+var Cluster = dba.createCluster('devCluster', ClusterPassword);
 
 //@ Dba: createCluster
 print(Cluster)
@@ -57,4 +58,4 @@ var Cluster = dba.dropCluster('sample');
 var Cluster = dba.dropCluster('devCluster');
 
 //@ Dba: dropCluster
-dba.dropCluster('devCluster', { dropDefaultReplicaSet: true });
+dba.dropCluster('devCluster', {dropDefaultReplicaSet: true, masterKey: ClusterPassword});

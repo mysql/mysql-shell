@@ -37,4 +37,4 @@ Cluster.addInstance({port: __mysql_sandbox_port1});
 Cluster.addInstance({host: "127.0.0.1", port:__mysql_sandbox_port1}, "root");
 
 // Cleanup
-dba.dropCluster('devCluster', {dropDefaultReplicaSet: true});
+dba.dropCluster('devCluster', {dropDefaultReplicaSet: true, masterKey: ClusterPassword});

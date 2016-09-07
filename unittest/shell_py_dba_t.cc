@@ -93,7 +93,7 @@ namespace shcore
   };
 
 /*
-  TEST_F(Shell_py_dba_tests, admin_no_interactive_global_session_x)
+  TEST_F(Shell_py_dba_tests, dba_no_interactive_global_session_x)
   {
     _options->wizards = false;
     reset_shell();
@@ -103,7 +103,7 @@ namespace shcore
     execute("session.close()");
   }
 
-  TEST_F(Shell_py_dba_tests, admin_no_interactive_global_session_node)
+  TEST_F(Shell_py_dba_tests, dba_no_interactive_global_session_node)
   {
     _options->wizards = false;
     reset_shell();
@@ -115,7 +115,7 @@ namespace shcore
 
 */
 
-  TEST_F(Shell_py_dba_tests, admin_no_interactive_global_session_classic)
+  TEST_F(Shell_py_dba_tests, dba_deploy_instances)
   {
     _options->wizards = false;
     reset_shell();
@@ -123,27 +123,22 @@ namespace shcore
     if (_sandbox_dir.empty())
       execute("dba.deploy_local_instance(" + _mysql_sandbox_port1 + ", {'password': 'root', 'verbose': True});");
     else
-      execute("dba.deploy_local_instance(" + _mysql_sandbox_port1 + ", {'password': 'root', 'sandboxDir': '" + _sandbox_dir + "', 'verbose': True});");
+      execute("dba.deploy_local_instance(" + _mysql_sandbox_port1 + ", {'password': 'root', 'sandboxDir': '" + _sandbox_dir + "', verbose: True});");
+  }
+
+  TEST_F(Shell_py_dba_tests, dba_no_interactive_global_session_classic)
+  {
+    _options->wizards = false;
+    reset_shell();
 
     execute("\\connect -c root:root@127.0.0.1:" + _mysql_sandbox_port1 + "");
     validate_interactive("dba_no_interactive.py");
     execute("session.close()");
-
-    if (_sandbox_dir.empty())
-    {
-      execute("dba.kill_local_instance(" + _mysql_sandbox_port1 + ");");
-      execute("dba.delete_local_instance(" + _mysql_sandbox_port1+ ");");
-    }
-    else
-    {
-      execute("dba.kill_local_instance(" + _mysql_sandbox_port1 + ", {'sandboxDir': '" + _sandbox_dir + "', 'verbose': True});");
-      execute("dba.delete_local_instance(" + _mysql_sandbox_port1 + ", {'sandboxDir': '" + _sandbox_dir + "', 'verbose': True});");
-    }
   }
 
 /*
 
-  TEST_F(Shell_py_dba_tests, admin_no_interactive_custom_session_x)
+  TEST_F(Shell_py_dba_tests, dba_no_interactive_custom_session_x)
   {
     _options->wizards = false;
     reset_shell();
@@ -155,7 +150,7 @@ namespace shcore
     execute("mySession.close()");
   }
 
-  TEST_F(Shell_py_dba_tests, admin_no_interactive_custom_session_node)
+  TEST_F(Shell_py_dba_tests, dba_no_interactive_custom_session_node)
   {
     _options->wizards = false;
     reset_shell();
@@ -169,37 +164,21 @@ namespace shcore
 
 */
 
-  TEST_F(Shell_py_dba_tests, admin_no_interactive_custom_session_classic)
+  TEST_F(Shell_py_dba_tests, dba_no_interactive_custom_session_classic)
   {
     _options->wizards = false;
     reset_shell();
-
-    if (_sandbox_dir.empty())
-      execute("dba.deploy_local_instance(" + _mysql_sandbox_port1 + ", {'password': 'root', 'verbose': True});");
-    else
-      execute("dba.deploy_local_instance(" + _mysql_sandbox_port1 + ", {'password': 'root', 'sandboxDir': '" + _sandbox_dir + "', 'verbose': True});");
 
     execute("import mysql");
     execute("mySession = mysql.get_classic_session('root:root@127.0.0.1:" + _mysql_sandbox_port1 +"');");
     execute("dba.reset_session(mySession)");
     validate_interactive("dba_no_interactive.py");
     execute("mySession.close()");
-
-    if (_sandbox_dir.empty())
-    {
-      execute("dba.kill_local_instance(" + _mysql_sandbox_port1 + ");");
-      execute("dba.delete_local_instance(" + _mysql_sandbox_port1+ ");");
-    }
-    else
-    {
-      execute("dba.kill_local_instance(" + _mysql_sandbox_port1 + ", {'sandboxDir': '" + _sandbox_dir + "', 'verbose': True});");
-      execute("dba.delete_local_instance(" + _mysql_sandbox_port1 + ", {'sandboxDir': '" + _sandbox_dir + "', 'verbose': True});");
-    }
   }
 
 /*
 
-  TEST_F(Shell_py_dba_tests, admin_interactive_custom_session_x)
+  TEST_F(Shell_py_dba_tests, dba_interactive_custom_session_x)
   {
     // Fills the required prompts and passwords...
     //@ Initialization
@@ -224,7 +203,7 @@ namespace shcore
     execute("mySession.close()");
   }
 
-  TEST_F(Shell_py_dba_tests, admin_interactive_custom_session_node)
+  TEST_F(Shell_py_dba_tests, dba_interactive_custom_session_node)
   {
     // Fills the required prompts and passwords...
     //@ Initialization
@@ -251,7 +230,7 @@ namespace shcore
 
 */
 
-  TEST_F(Shell_py_dba_tests, admin_interactive_custom_session_classic)
+  TEST_F(Shell_py_dba_tests, dba_interactive_custom_session_classic)
   {
     // Fills the required prompts and passwords...
     //@ Initialization
@@ -269,32 +248,16 @@ namespace shcore
     //@ Dba: dropFarm interaction no options, ok success
     output_handler.passwords.push_back("y");
 
-    if (_sandbox_dir.empty())
-      execute("dba.deploy_local_instance(" + _mysql_sandbox_port1 + ", {'password': 'root', 'verbose': True});");
-    else
-      execute("dba.deploy_local_instance(" + _mysql_sandbox_port1 + ", {'password': 'root', 'sandboxDir': '" + _sandbox_dir + "', 'verbose': True});");
-
     execute("import mysql");
     execute("mySession = mysql.get_classic_session('root:root@127.0.0.1:" + _mysql_sandbox_port1 +"');");
     execute("dba.reset_session(mySession)");
     validate_interactive("dba_interactive.py");
     execute("mySession.close()");
-
-    if (_sandbox_dir.empty())
-    {
-      execute("dba.kill_local_instance(" + _mysql_sandbox_port1 + ");");
-      execute("dba.delete_local_instance(" + _mysql_sandbox_port1+ ");");
-    }
-    else
-    {
-      execute("dba.kill_local_instance(" + _mysql_sandbox_port1 + ", {'sandboxDir': '" + _sandbox_dir + "', 'verbose': True});");
-      execute("dba.delete_local_instance(" + _mysql_sandbox_port1 + ", {'sandboxDir': '" + _sandbox_dir + "', 'verbose': True});");
-    }
   }
 
 /*
 
-  TEST_F(Shell_py_dba_tests, admin_interactive_global_session_x)
+  TEST_F(Shell_py_dba_tests, dba_interactive_global_session_x)
   {
     // Fills the required prompts and passwords...
     //@ Initialization
@@ -317,7 +280,7 @@ namespace shcore
     execute("mySession.close()");
   }
 
-  TEST_F(Shell_py_dba_tests, admin_interactive_global_session_node)
+  TEST_F(Shell_py_dba_tests, dba_interactive_global_session_node)
   {
     // Fills the required prompts and passwords...
     //@ Initialization
@@ -342,7 +305,7 @@ namespace shcore
 
 */
 
-  TEST_F(Shell_py_dba_tests, admin_interactive_global_session_classic)
+  TEST_F(Shell_py_dba_tests, dba_interactive_global_session_classic)
   {
     // Fills the required prompts and passwords...
     //@ Initialization
@@ -360,24 +323,8 @@ namespace shcore
     //@ Dba: dropFarm interaction no options, ok success
     output_handler.passwords.push_back("y");
 
-    if (_sandbox_dir.empty())
-      execute("dba.deploy_local_instance(" + _mysql_sandbox_port1 + ", {'password': 'root', 'verbose': True});");
-    else
-      execute("dba.deploy_local_instance(" + _mysql_sandbox_port1 + ", {'password': 'root', 'sandboxDir': '" + _sandbox_dir + "', 'verbose': True});");
-
     execute("\\connect -c root:root@127.0.0.1:" + _mysql_sandbox_port1 + "");
     validate_interactive("dba_interactive.py");
-
-    if (_sandbox_dir.empty())
-    {
-      execute("dba.kill_local_instance(" + _mysql_sandbox_port1 + ");");
-      execute("dba.delete_local_instance(" + _mysql_sandbox_port1+ ");");
-    }
-    else
-    {
-      execute("dba.kill_local_instance(" + _mysql_sandbox_port1 + ", {'sandboxDir': '" + _sandbox_dir + "', 'verbose': True});");
-      execute("dba.delete_local_instance(" + _mysql_sandbox_port1 + ", {'sandboxDir': '" + _sandbox_dir + "', 'verbose': True});");
-    }
   }
 
 /*
@@ -409,25 +356,9 @@ namespace shcore
     _options->wizards = false;
     reset_shell();
 
-    if (_sandbox_dir.empty())
-      execute("dba.deploy_local_instance(" + _mysql_sandbox_port1 + ", {'password': 'root', 'verbose': True});");
-    else
-      execute("dba.deploy_local_instance(" + _mysql_sandbox_port1 + ", {'password': 'root', 'sandboxDir': '" + _sandbox_dir + "', 'verbose': True});");
-
     execute("\\connect -c root:root@127.0.0.1:" + _mysql_sandbox_port1 + "");
     validate_interactive("dba_cluster_no_interactive.py");
     execute("session.close()");
-
-    if (_sandbox_dir.empty())
-    {
-      execute("dba.kill_local_instance(" + _mysql_sandbox_port1 + ");");
-      execute("dba.delete_local_instance(" + _mysql_sandbox_port1+ ");");
-    }
-    else
-    {
-      execute("dba.kill_local_instance(" + _mysql_sandbox_port1 + ", {'sandboxDir': '" + _sandbox_dir + "', 'verbose': True});");
-      execute("dba.delete_local_instance(" + _mysql_sandbox_port1 + ", {'sandboxDir': '" + _sandbox_dir + "', 'verbose': True});");
-    }
   }
 
 /*
@@ -463,27 +394,11 @@ namespace shcore
     _options->wizards = false;
     reset_shell();
 
-    if (_sandbox_dir.empty())
-      execute("dba.deploy_local_instance(" + _mysql_sandbox_port1 + ", {'password': 'root', 'verbose': True});");
-    else
-      execute("dba.deploy_local_instance(" + _mysql_sandbox_port1 + ", {'password': 'root', 'sandboxDir': '" + _sandbox_dir + "', 'verbose': True});");
-
     execute("import mysql");
     execute("mySession = mysql.get_classic_session('root:root@127.0.0.1:" + _mysql_sandbox_port1 +"');");
     execute("dba.reset_session(mySession)");
     validate_interactive("dba_cluster_no_interactive.py");
     execute("mySession.close()");
-
-    if (_sandbox_dir.empty())
-    {
-      execute("dba.kill_local_instance(" + _mysql_sandbox_port1 + ");");
-      execute("dba.delete_local_instance(" + _mysql_sandbox_port1+ ");");
-    }
-    else
-    {
-      execute("dba.kill_local_instance(" + _mysql_sandbox_port1 + ", {'sandboxDir': '" + _sandbox_dir + "', 'verbose': True});");
-      execute("dba.delete_local_instance(" + _mysql_sandbox_port1 + ", {'sandboxDir': '" + _sandbox_dir + "', 'verbose': True});");
-    }
   }
 
   //TEST_F(Shell_py_dba_tests, farm_interactive_custom_session_x)
@@ -658,25 +573,9 @@ namespace shcore
     _options->wizards = false;
     reset_shell();
 
-    if (_sandbox_dir.empty())
-      execute("dba.deploy_local_instance(" + _mysql_sandbox_port1 + ", {'password': 'root', 'verbose': True});");
-    else
-      execute("dba.deploy_local_instance(" + _mysql_sandbox_port1 + ", {'password': 'root', 'sandboxDir': '" + _sandbox_dir + "', 'verbose': True});");
-
     execute("\\connect -c root:root@127.0.0.1:" + _mysql_sandbox_port1 + "");
     validate_interactive("dba_replica_set_no_interactive.py");
     execute("session.close()");
-
-    if (_sandbox_dir.empty())
-    {
-      execute("dba.kill_local_instance(" + _mysql_sandbox_port1 + ");");
-      execute("dba.delete_local_instance(" + _mysql_sandbox_port1+ ");");
-    }
-    else
-    {
-      execute("dba.kill_local_instance(" + _mysql_sandbox_port1 + ", {'sandboxDir': '" + _sandbox_dir + "', 'verbose': True});");
-      execute("dba.delete_local_instance(" + _mysql_sandbox_port1 + ", {'sandboxDir': '" + _sandbox_dir + "', 'verbose': True});");
-    }
   }
 
 /*
@@ -712,26 +611,25 @@ namespace shcore
     _options->wizards = false;
     reset_shell();
 
-    if (_sandbox_dir.empty())
-      execute("dba.deploy_local_instance(" + _mysql_sandbox_port1 + ", {'password': 'root', 'verbose': True});");
-    else
-      execute("dba.deploy_local_instance(" + _mysql_sandbox_port1 + ", {'password': 'root', 'sandboxDir': '" + _sandbox_dir + "', 'verbose': True});");
-
     execute("import mysql");
     execute("mySession = mysql.get_classic_session('root:root@127.0.0.1:" + _mysql_sandbox_port1 +"');");
     execute("dba.reset_session(mySession)");
     validate_interactive("dba_replica_set_no_interactive.py");
     execute("mySession.close()");
+  }
 
-    if (_sandbox_dir.empty())
-    {
-      execute("dba.kill_local_instance(" + _mysql_sandbox_port1 + ");");
-      execute("dba.delete_local_instance(" + _mysql_sandbox_port1+ ");");
+  TEST_F(Shell_py_dba_tests, dba_delete_instances)
+  {
+    _options->wizards = false;
+    reset_shell();
+
+    if (_sandbox_dir.empty()) {
+      execute("dba.stop_local_instance(" + _mysql_sandbox_port1 + ");");
+      execute("dba.delete_local_instance(" + _mysql_sandbox_port1 + ");");
     }
-    else
-    {
-      execute("dba.kill_local_instance(" + _mysql_sandbox_port1 + ", {'sandboxDir': '" + _sandbox_dir + "', 'verbose': True});");
-      execute("dba.delete_local_instance(" + _mysql_sandbox_port1 + ", {'sandboxDir': '" + _sandbox_dir + "', 'verbose': True});");
+    else {
+      execute("dba.stop_local_instance(" + _mysql_sandbox_port1 + ", {'sandboxDir': '" + _sandbox_dir + "', 'verbose': True});");
+      execute("dba.stop_local_instance(" + _mysql_sandbox_port1 + ", {'sandboxDir': '" + _sandbox_dir + "', 'verbose': True});");
     }
   }
 }
