@@ -262,7 +262,7 @@ bool file_exists(const std::string& filename) {
 /*
 * Returns true when the specified path is a folder
 */
-bool is_folder(const std::string& filename) {
+bool is_folder(const std::string& path) {
   bool ret_val = false;
 #ifdef WIN32
   DWORD dwAttrib = GetFileAttributesA(filename.c_str());
