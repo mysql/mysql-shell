@@ -31,91 +31,90 @@
 #include <set>
 #include "mod_dba_provisioning_interface.h"
 
-namespace mysh
-{
-  namespace mysqlx
-  {
-    class MetadataStorage;
+namespace mysh {
+namespace mysqlx {
+class MetadataStorage;
 
-    /**
-    * This class represents a connection to a Metadata Store and enables
-    *
-    * - Accessing available Clusters.
-    * - Cluster management operations.
-    */
-    class SHCORE_PUBLIC Dba : public shcore::Cpp_object_bridge, public std::enable_shared_from_this<Dba>
-    {
-    public:
-      Dba(shcore::IShell_core* owner);
-      virtual ~Dba() { /*reset_session();*/ }
+/**
+* This class represents a connection to a Metadata Store and enables
+*
+* - Accessing available Clusters.
+* - Cluster management operations.
+*/
+class SHCORE_PUBLIC Dba : public shcore::Cpp_object_bridge, public std::enable_shared_from_this<Dba> {
+public:
+  Dba(shcore::IShell_core* owner);
+  virtual ~Dba() { /*reset_session();*/ }
 
-      static std::set<std::string> _deploy_instance_opts;
-      static std::set<std::string> _validate_instance_opts;
+  static std::set<std::string> _deploy_instance_opts;
+  static std::set<std::string> _validate_instance_opts;
 
-      virtual std::string class_name() const { return "Dba"; };
+  virtual std::string class_name() const { return "Dba"; };
 
-      virtual bool operator == (const Object_bridge &other) const;
+  virtual bool operator == (const Object_bridge &other) const;
 
-      std::shared_ptr<ShellDevelopmentSession> get_active_session();
-      virtual int get_default_port() { return 33060; };
-      int get_default_instance_port() { return 3306; }
+  std::shared_ptr<ShellDevelopmentSession> get_active_session() const;
+  virtual int get_default_port() { return 33060; };
+  int get_default_instance_port() { return 3306; }
 
-      shcore::Value validate_instance(const shcore::Argument_list &args);
-      shcore::Value deploy_local_instance(const shcore::Argument_list &args); // create and start
-      shcore::Value stop_local_instance(const shcore::Argument_list &args);
-      shcore::Value delete_local_instance(const shcore::Argument_list &args);
-      shcore::Value kill_local_instance(const shcore::Argument_list &args);
-      shcore::Value restart_local_instance(const shcore::Argument_list &args);
+  shcore::Value validate_instance(const shcore::Argument_list &args);
+  shcore::Value deploy_local_instance(const shcore::Argument_list &args, const std::string &fname); // create and start
+  shcore::Value stop_local_instance(const shcore::Argument_list &args);
+  shcore::Value delete_local_instance(const shcore::Argument_list &args);
+  shcore::Value kill_local_instance(const shcore::Argument_list &args);
+  shcore::Value restart_local_instance(const shcore::Argument_list &args);
 
-      shcore::Value clone_instance(const shcore::Argument_list &args);
-      shcore::Value configure_instance(const shcore::Argument_list &args);
-      shcore::Value reset_instance(const shcore::Argument_list &args);
+  shcore::Value clone_instance(const shcore::Argument_list &args);
+  shcore::Value configure_instance(const shcore::Argument_list &args);
+  shcore::Value reset_instance(const shcore::Argument_list &args);
 
-      shcore::Value reset_session(const shcore::Argument_list &args);
-      shcore::Value create_cluster(const shcore::Argument_list &args);
-      shcore::Value drop_cluster(const shcore::Argument_list &args);
-      shcore::Value get_cluster(const shcore::Argument_list &args) const;
-      shcore::Value drop_metadata_schema(const shcore::Argument_list &args);
+  shcore::Value reset_session(const shcore::Argument_list &args);
+  shcore::Value create_cluster(const shcore::Argument_list &args);
+  shcore::Value drop_cluster(const shcore::Argument_list &args);
+  shcore::Value get_cluster(const shcore::Argument_list &args) const;
+  shcore::Value drop_metadata_schema(const shcore::Argument_list &args);
 
-      Cluster get_default_cluster();
+  Cluster get_default_cluster();
 
-      shcore::IShell_core* get_owner() { return _shell_core; }
+  shcore::IShell_core* get_owner() { return _shell_core; }
 
 #if DOXYGEN_JS
-      Cluster createCluster(String name);
-      Undefined dropCluster(String name);
-      Cluster getCluster(String name);
-      Undefined dropMetadataSchema();
+  Cluster createCluster(String name);
+  Undefined dropCluster(String name);
+  Cluster getCluster(String name);
+  Undefined dropMetadataSchema();
 
 #elif DOXYGEN_PY
-      Cluster create_cluster(str name);
-      None drop_cluster(str name);
-      Cluster get_cluster(str name);
-      None drop_metadata_schema();
+  Cluster create_cluster(str name);
+  None drop_cluster(str name);
+  Cluster get_cluster(str name);
+  None drop_metadata_schema();
 #endif
 
-    protected:
-      std::shared_ptr<mysh::ShellDevelopmentSession> _custom_session;
-      shcore::IShell_core *_shell_core;
+  void validate_session(const std::string &source) const;
 
-      mutable std::shared_ptr<shcore::Value::Map_type> _clusters;
-      mutable std::string _default_cluster_name;
-      mutable std::shared_ptr<mysh::mysqlx::Cluster> _default_cluster;
+protected:
+  std::shared_ptr<mysh::ShellDevelopmentSession> _custom_session;
+  shcore::IShell_core *_shell_core;
 
-      void init();
-    private:
+  mutable std::shared_ptr<shcore::Value::Map_type> _clusters;
+  mutable std::string _default_cluster_name;
+  mutable std::shared_ptr<mysh::mysqlx::Cluster> _default_cluster;
 
-      virtual std::string get_help_text(const std::string& topic, bool full);
+  void init();
 
-      std::shared_ptr<MetadataStorage> _metadata_storage;
-      uint64_t _connection_id;
-      std::shared_ptr<ProvisioningInterface> _provisioning_interface;
+private:
+  virtual std::string get_help_text(const std::string& topic, bool full);
 
-      std::string generate_password(int password_lenght);
+  std::shared_ptr<MetadataStorage> _metadata_storage;
+  uint64_t _connection_id;
+  std::shared_ptr<ProvisioningInterface> _provisioning_interface;
 
-      shcore::Value exec_instance_op(const std::string &function, const shcore::Argument_list &args);
-    };
-  }
+  std::string generate_password(int password_lenght);
+
+  shcore::Value exec_instance_op(const std::string &function, const shcore::Argument_list &args);
+};
+}
 }
 
 #endif

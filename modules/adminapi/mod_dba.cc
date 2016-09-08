@@ -64,8 +64,8 @@ void Dba::init() {
   add_method("getCluster", std::bind(&Dba::get_cluster, this, _1), "clusterName", shcore::String, NULL);
   add_method("dropMetadataSchema", std::bind(&Dba::drop_metadata_schema, this, _1), "data", shcore::Map, NULL);
   add_method("validateInstance", std::bind(&Dba::validate_instance, this, _1), "data", shcore::Map, NULL);
-  add_method("deployLocalInstance", std::bind(&Dba::deploy_local_instance, this, _1), "data", shcore::Map, NULL);
-  add_varargs_method("startLocalInstance", std::bind(&Dba::deploy_local_instance, this, _1));
+  add_method("deployLocalInstance", std::bind(&Dba::deploy_local_instance, this, _1, "deployLocalInstance"), "data", shcore::Map, NULL);
+  add_varargs_method("startLocalInstance", std::bind(&Dba::deploy_local_instance, this, _1, "startLocalInstance"));
   add_method("stopLocalInstance", std::bind(&Dba::stop_local_instance, this, _1), "data", shcore::Map, NULL);
   add_method("restartLocalInstance", std::bind(&Dba::restart_local_instance, this, _1), "data", shcore::Map, NULL);
   add_method("deleteLocalInstance", std::bind(&Dba::delete_local_instance, this, _1), "data", shcore::Map, NULL);
@@ -116,7 +116,7 @@ std::string Dba::generate_password(int password_lenght) {
   return pwd;
 }
 
-std::shared_ptr<ShellDevelopmentSession> Dba::get_active_session() {
+std::shared_ptr<ShellDevelopmentSession> Dba::get_active_session() const {
   std::shared_ptr<ShellDevelopmentSession> ret_val;
   if (_custom_session)
     ret_val = _custom_session;
@@ -165,6 +165,9 @@ Cluster Dba::get_cluster(str name) {}
 #endif
 shcore::Value Dba::get_cluster(const shcore::Argument_list &args) const {
   Value ret_val;
+
+  validate_session(get_function_name("createCluster"));
+
   args.ensure_count(0, 2, get_function_name("getCluster").c_str());
 
   std::shared_ptr<mysh::mysqlx::Cluster> cluster;
@@ -260,6 +263,9 @@ Cluster Dba::create_cluster(str name, str cluster_admin_password, JSON options) 
 #endif
 shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
   Value ret_val;
+
+  validate_session(get_function_name("createCluster"));
+
   args.ensure_count(2, 3, get_function_name("createCluster").c_str());
 
   // Available options
@@ -393,6 +399,8 @@ None Dba::drop_cluster(str name) {}
 #endif
 
 shcore::Value Dba::drop_cluster(const shcore::Argument_list &args) {
+  validate_session(get_function_name("dropCluster"));
+
   args.ensure_count(1, 2, get_function_name("dropCluster").c_str());
 
   try {
@@ -497,6 +505,8 @@ shcore::Value Dba::reset_session(const shcore::Argument_list &args) {
 }
 
 shcore::Value Dba::validate_instance(const shcore::Argument_list &args) {
+  validate_session(get_function_name("validateInstance"));
+
   args.ensure_count(1, 2, "validateInstance");
 
   shcore::Value ret_val;
@@ -660,15 +670,16 @@ shcore::Value Dba::exec_instance_op(const std::string &function, const shcore::A
   }
   return ret_val;
 }
-shcore::Value Dba::deploy_local_instance(const shcore::Argument_list &args) {
+
+shcore::Value Dba::deploy_local_instance(const shcore::Argument_list &args, const std::string& fname) {
   shcore::Value ret_val;
 
-  args.ensure_count(1, 2, get_function_name("deployLocalInstance").c_str());
+  args.ensure_count(1, 2, get_function_name(fname).c_str());
 
   try {
     ret_val = exec_instance_op("deploy", args);
   }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("deployLocalInstance"));
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name(fname));
 
   return ret_val;
 }
@@ -765,4 +776,11 @@ std::string Dba::get_help_text(const std::string& topic, bool full) {
     ret_val = "Prints this help.";
 
   return ret_val;
+}
+
+void Dba::validate_session(const std::string &source) const {
+  auto session = get_active_session();
+
+  if (!session || session->class_name() != "ClassicSession")
+    throw shcore::Exception::runtime_error(source + ": a Classic Session is required to perform this operation");
 }

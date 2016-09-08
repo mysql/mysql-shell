@@ -156,7 +156,7 @@ shcore::Value Global_dba::exec_instance_op(const std::string &function, const sh
 
         println("Instance localhost:" + std::to_string(port) +
             " successfully deployed and started.\n");
-        println("Use '\\connect -c root@localhost:" + std::to_string(port) + "' to connect to the new instance.");
+        println("Use '\\connect root@localhost:" + std::to_string(port) + "' to connect to the new instance.");
       }
 
       if (function == "start") {
@@ -227,6 +227,8 @@ shcore::Value Global_dba::stop_local_instance(const shcore::Argument_list &args)
 shcore::Value Global_dba::drop_cluster(const shcore::Argument_list &args) {
   shcore::Value ret_val;
 
+  validate_session(get_function_name("dropCluster"));
+
   args.ensure_count(1, 2, get_function_name("dropCluster").c_str());
 
   try {
@@ -270,6 +272,8 @@ shcore::Value Global_dba::drop_cluster(const shcore::Argument_list &args) {
 
 shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
   shcore::Value ret_val;
+
+  validate_session(get_function_name("createCluster"));
 
   args.ensure_count(1, 3, get_function_name("createCluster").c_str());
 
@@ -389,6 +393,9 @@ shcore::Value Global_dba::drop_metadata_schema(const shcore::Argument_list &args
 
 shcore::Value Global_dba::get_cluster(const shcore::Argument_list &args) {
   Value ret_val;
+
+  validate_session(get_function_name("getCluster"));
+
   args.ensure_count(0, 2, get_function_name("getCluster").c_str());
 
   std::string master_key;
@@ -453,6 +460,8 @@ shcore::Value Global_dba::validate_instance(const shcore::Argument_list &args) {
   shcore::Value ret_val;
   shcore::Argument_list new_args;
 
+  validate_session(get_function_name("validateInstance"));
+
   args.ensure_count(1, get_function_name("validateInstance").c_str());
 
   std::string uri, answer, user;
@@ -503,4 +512,9 @@ shcore::Value Global_dba::validate_instance(const shcore::Argument_list &args) {
   ret_val = _target->call("validateInstance", new_args);
 
   return ret_val;
+}
+
+void Global_dba::validate_session(const std::string &source) const {
+  auto dba = std::dynamic_pointer_cast<mysh::mysqlx::Dba>(_target);
+  dba->validate_session(source);
 }
