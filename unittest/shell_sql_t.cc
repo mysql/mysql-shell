@@ -124,7 +124,7 @@ namespace shcore {
       // Prompt is for full statement
       EXPECT_EQ(Input_ok, state);
       EXPECT_EQ("", query);
-      EXPECT_EQ("show databases", env.shell_sql->get_handled_input());
+      EXPECT_EQ("show databases;", env.shell_sql->get_handled_input());
       EXPECT_EQ("mysql-sql> ", env.shell_sql->prompt());
     }
 
@@ -160,7 +160,7 @@ namespace shcore {
       // Prompt changes to multiline
       EXPECT_EQ(Input_ok, state);
       EXPECT_EQ("", query);
-      EXPECT_EQ("show\ndatabases", env.shell_sql->get_handled_input());
+      EXPECT_EQ("show\ndatabases;", env.shell_sql->get_handled_input());
       EXPECT_EQ("mysql-sql> ", env.shell_sql->prompt());
     }
 
@@ -203,7 +203,7 @@ namespace shcore {
       // Prompt changes to multiline
       EXPECT_EQ(Input_ok, state);
       EXPECT_EQ("", query);
-      EXPECT_EQ("show\ndatabases", env.shell_sql->get_handled_input());
+      EXPECT_EQ("show\ndatabases%%%", env.shell_sql->get_handled_input());
       EXPECT_EQ("mysql-sql> ", env.shell_sql->prompt());
 
       query = "delimiter ;";
@@ -226,14 +226,14 @@ namespace shcore {
       // query will be updated to only keep what has not been executed
       EXPECT_EQ(Input_continued_single, state);
       //EXPECT_EQ("show", query);
-      EXPECT_EQ("show databases", env.shell_sql->get_handled_input());
+      EXPECT_EQ("show databases;", env.shell_sql->get_handled_input());
       EXPECT_EQ("        -> ", env.shell_sql->prompt());
 
       query = "databases;";
       handle_input(query, state);
       EXPECT_EQ(Input_ok, state);
       EXPECT_EQ("", query);
-      EXPECT_EQ("show\ndatabases", env.shell_sql->get_handled_input());
+      EXPECT_EQ("show\ndatabases;", env.shell_sql->get_handled_input());
       EXPECT_EQ("mysql-sql> ", env.shell_sql->prompt());
     }
 
@@ -254,7 +254,7 @@ namespace shcore {
 
       // Being global multiline make sthe statement to be executed right away
       EXPECT_EQ(Input_continued_single, state);
-      EXPECT_EQ("show\ndatabases", env.shell_sql->get_handled_input());
+      EXPECT_EQ("show\ndatabases;", env.shell_sql->get_handled_input());
       EXPECT_EQ("        -> ", env.shell_sql->prompt());
 
       query = "databases;";
@@ -262,7 +262,7 @@ namespace shcore {
 
       // Being global multiline make sthe statement to be executed right away
       EXPECT_EQ(Input_ok, state);
-      EXPECT_EQ("show\ndatabases", env.shell_sql->get_handled_input());
+      EXPECT_EQ("show\ndatabases;", env.shell_sql->get_handled_input());
       EXPECT_EQ("mysql-sql> ", env.shell_sql->prompt());
     }
 
@@ -307,7 +307,7 @@ namespace shcore {
       handle_input(query, state);
       EXPECT_EQ(Input_ok, state);
       EXPECT_EQ("", query);
-      EXPECT_EQ("select 'hello \nworld'", env.shell_sql->get_handled_input());
+      EXPECT_EQ("select 'hello \nworld';", env.shell_sql->get_handled_input());
       EXPECT_EQ("mysql-sql> ", env.shell_sql->prompt());
     }
 
@@ -326,7 +326,7 @@ namespace shcore {
       handle_input(query, state);
       EXPECT_EQ(Input_ok, state);
       EXPECT_EQ("", query);
-      EXPECT_EQ("select \"hello \nworld\"", env.shell_sql->get_handled_input());
+      EXPECT_EQ("select \"hello \nworld\";", env.shell_sql->get_handled_input());
       EXPECT_EQ("mysql-sql> ", env.shell_sql->prompt());
     }
 

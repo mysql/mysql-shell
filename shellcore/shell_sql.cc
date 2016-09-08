@@ -137,9 +137,9 @@ void Shell_sql::handle_input(std::string &code, Interactive_input_state &state, 
         }
 
         if (_last_handled.empty())
-          _last_handled = statements[index];
+          _last_handled = statements[index].append(_delimiter);
         else
-          _last_handled.append("\n").append(statements[index]);
+          _last_handled.append("\n").append(statements[index]).append(_delimiter);
       }
     }
     else if (range_count)
