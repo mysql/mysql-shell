@@ -56,11 +56,11 @@ std::shared_ptr<ShellBaseResult> MetadataStorage::execute_sql(const std::string 
       retry = false;
     } catch (shcore::Exception& e) {
       if (CR_SERVER_GONE_ERROR == e.code() || ER_X_BAD_PIPE == e.code()) {
-        log_debug(e.format().c_str());
+        log_debug("%s", e.format().c_str());
         log_debug("DBA: The Metadata is inaccessible");
         throw Exception::metadata_error("The Metadata is inaccessible");
       } else {
-        log_debug(e.format().c_str());
+        log_debug("%s", e.format().c_str());
         throw;
       }
     }
