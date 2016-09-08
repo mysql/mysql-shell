@@ -164,23 +164,17 @@ shcore::Value Global_dba::exec_instance_op(const std::string &function, const sh
         ret_val = _target->call("startLocalInstance", new_args);
 
         println("Instance localhost:" + std::to_string(port) + " successfully started.\n");
-      }
-
-      if (function == "delete") {
+      } else if (function == "delete") {
         println("Deleting MySQL instance...");
         ret_val = _target->call("deleteLocalInstance", new_args);
 
         println("Instance localhost:" + std::to_string(port) + " successfully deleted.\n");
-      }
-
-      if (function == "kill") {
+      } else if (function == "kill") {
         println("Killing MySQL instance...");
         ret_val = _target->call("killLocalInstance", new_args);
 
         println("Instance localhost:" + std::to_string(port) + " successfully killed.\n");
-      }
-
-      if (function == "stop") {
+      } else if (function == "stop") {
         _shell_core.println("Stopping MySQL instance...");
         ret_val = _target->call("stopLocalInstance", new_args);
 
@@ -282,6 +276,7 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
     std::string answer, cluster_password;
     shcore::Value::Map_type_ref options;
     bool verbose = false; // Default is false
+    bool multi_master = false;
 
     if (cluster_name.empty())
       throw Exception::argument_error("The Cluster name cannot be empty.");
@@ -303,30 +298,44 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
 
         if (options->has_key("verbose"))
           verbose = options->get_bool("verbose");
+
+        if (options->has_key("multiMaster")) {
+          multi_master = true;
+        }
       }
     }
 
     auto dba = std::dynamic_pointer_cast<mysh::mysqlx::Dba>(_target);
     auto session = dba->get_active_session();
-    bool prompt_password = true;
-    while (prompt_password && cluster_password.empty()) {
-      std::string message = "A new InnoDB cluster will be created on instance '" + session->uri() + "'.\n\n"
-                            "When setting up a new InnoDB cluster it is required to define an administrative\n"\
-                            "MASTER key for the cluster.This MASTER key needs to be re - entered when making\n"\
-                            "changes to the cluster later on, e.g.adding new MySQL instances or configuring\n"\
-                            "MySQL Routers.Losing this MASTER key will require the configuration of all\n"\
-                            "InnoDB cluster entities to be changed.\n";
+    println("A new InnoDB cluster will be created on instance '" + session->uri() + "'.\n\n");
 
-      println(message);
+    if (multi_master) {
+      println(
+        "The MySQL InnoDB cluster is going to be setup in advanced Multi-Master Mode.\n"
+        "Before continuing you have to confirm that you understand the requirements and\n"
+        "limitations of Multi-Master Mode. Please read the manual before proceeding.\n"
+        "\n");
 
-      prompt_password = password("Please specify an administrative MASTER key for the cluster '" + cluster_name + "':", answer);
-      if (prompt_password) {
-        if (!answer.empty())
-          cluster_password = answer;
+      std::string r;
+      println("I have read the MySQL InnoDB cluster manual and I understand the requirements\n"
+              "and limitations of advanced Multi-Master Mode.");
+      if (!(prompt("Confirm (Yes/No): ", r) && (r == "y" || r == "yes" || r == "Yes"))) {
+        println("Cancelled");
+        return shcore::Value();
       }
     }
+    println("When setting up a new InnoDB cluster it is required to define an administrative\n"
+            "MASTER key for the cluster. This MASTER key needs to be re-entered when making\n"
+            "changes to the cluster later on, e.g.adding new MySQL instances or configuring\n"
+            "MySQL Routers. Losing this MASTER key will require the configuration of all\n"
+            "InnoDB cluster entities to be changed.\n");
 
-    if (!cluster_password.empty()) {
+    if (!password("Please specify an administrative MASTER key for the cluster '"
+        + cluster_name + "': ", cluster_password) || cluster_password.empty()) {
+      println("Cancelled");
+      return shcore::Value();
+    }
+    {
       shcore::Argument_list new_args;
       new_args.push_back(shcore::Value(cluster_name));
       new_args.push_back(shcore::Value(cluster_password));
