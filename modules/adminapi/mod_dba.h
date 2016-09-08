@@ -97,7 +97,6 @@ protected:
   std::shared_ptr<mysh::ShellDevelopmentSession> _custom_session;
   shcore::IShell_core *_shell_core;
 
-  mutable std::shared_ptr<shcore::Value::Map_type> _clusters;
   mutable std::string _default_cluster_name;
   mutable std::shared_ptr<mysh::mysqlx::Cluster> _default_cluster;
 

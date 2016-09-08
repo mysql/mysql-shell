@@ -53,10 +53,6 @@ bool Dba::operator == (const Object_bridge &other) const {
 }
 
 void Dba::init() {
-  // In case we are going to keep a cache of Clusters
-  // If not, _clusters can be removed
-  _clusters.reset(new shcore::Value::Map_type);
-
   // Pure functions
   add_method("resetSession", std::bind(&Dba::reset_session, this, _1), "session", shcore::Object, NULL);
   add_method("createCluster", std::bind(&Dba::create_cluster, this, _1), "clusterName", shcore::String, NULL);
@@ -166,7 +162,7 @@ Cluster Dba::get_cluster(str name) {}
 shcore::Value Dba::get_cluster(const shcore::Argument_list &args) const {
   Value ret_val;
 
-  validate_session(get_function_name("createCluster"));
+  validate_session(get_function_name("getCluster"));
 
   args.ensure_count(0, 2, get_function_name("getCluster").c_str());
 
@@ -214,26 +210,23 @@ shcore::Value Dba::get_cluster(const shcore::Argument_list &args) const {
     }
 
     if (get_default_cluster) {
-      if (!_default_cluster)
-        _default_cluster = _metadata_storage->get_default_cluster(master_key);
+      // Reloads the cluster (to avoid losing _default_cluster in case of error)
+      cluster = _metadata_storage->get_default_cluster(master_key);
+
+      // Loaded ok, now it becomes the default cluster
+      _default_cluster = cluster;
 
       cluster = _default_cluster;
     } else {
       if (cluster_name.empty())
         throw Exception::argument_error("The Cluster name cannot be empty.");
 
-      if (!_clusters->has_key(cluster_name))
-        cluster = _metadata_storage->get_cluster(cluster_name, master_key);
-      else
-        ret_val = (*_clusters)[cluster_name];
+      cluster = _metadata_storage->get_cluster(cluster_name, master_key);
     }
 
-    if (cluster) {
-      if (!_clusters->has_key(cluster->get_name()))
-        (*_clusters)[cluster->get_name()] = shcore::Value(std::dynamic_pointer_cast<Object_bridge>(cluster));
-
-      ret_val = (*_clusters)[cluster->get_name()];
-    } else {
+    if (cluster)
+      ret_val = shcore::Value(std::dynamic_pointer_cast<Object_bridge>(cluster));
+    else {
       std::string message;
       if (get_default_cluster)
         message = "No default cluster is configured.";
@@ -376,7 +369,6 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
 
     // If it reaches here, it means there are no exceptions
     ret_val = Value(std::static_pointer_cast<Object_bridge>(_default_cluster));
-    (*_clusters)[cluster_name] = ret_val;
 
     tx.commit();
   } catch (...) {
@@ -421,13 +413,9 @@ shcore::Value Dba::drop_cluster(const shcore::Argument_list &args) {
         drop_default_rs = options->get_bool("dropDefaultReplicaSet");
     }
 
-    if (!drop_default_rs) {
+    if (!drop_default_rs)
       _metadata_storage->drop_cluster(cluster_name);
-
-      // If it reaches here, it means there are no exceptions
-      if (_clusters->has_key(cluster_name))
-        _clusters->erase(cluster_name);
-    } else {
+    else {
       // check if the Cluster has more replicaSets than the default one
       if (!_metadata_storage->cluster_has_default_replicaset_only(cluster_name))
         throw Exception::logic_error("Cannot drop Cluster: The Cluster with the name '"
@@ -436,10 +424,6 @@ shcore::Value Dba::drop_cluster(const shcore::Argument_list &args) {
       // drop the default ReplicaSet and call drop_cluster again
       _metadata_storage->drop_default_replicaset(cluster_name);
       _metadata_storage->drop_cluster(cluster_name);
-
-      // If it reaches here, it means there are no exceptions
-      if (_clusters->has_key(cluster_name))
-        _clusters->erase(cluster_name);
     }
     tx.commit();
   }
@@ -472,11 +456,6 @@ shcore::Value Dba::drop_metadata_schema(const shcore::Argument_list &args) {
   if (enforce) {
     try {
       _metadata_storage->drop_metadata_schema();
-
-      // If it reaches here, it means there are no exceptions and we can reset the clusters cache
-      if (_clusters->size() > 0)
-        _clusters.reset(new shcore::Value::Map_type);
-
       _default_cluster.reset();
       _default_cluster_name = "";
     }
