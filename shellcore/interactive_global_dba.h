@@ -33,8 +33,7 @@ public:
   void init();
   //virtual void resolve() const;
 
-  shcore::Value deploy_local_instance(const shcore::Argument_list &args); // create and start
-  shcore::Value start_local_instance(const shcore::Argument_list &args);
+  shcore::Value deploy_local_instance(const shcore::Argument_list &args, const std::string& fname); // create and start
   shcore::Value stop_local_instance(const shcore::Argument_list &args);
   shcore::Value delete_local_instance(const shcore::Argument_list &args);
   shcore::Value kill_local_instance(const shcore::Argument_list &args);
@@ -52,7 +51,8 @@ public:
 private:
   std::string _cluster_admin_password;
 
-  shcore::Value exec_instance_op(const std::string &function, const shcore::Argument_list &args);
+  shcore::Argument_list check_instance_op_params(const shcore::Argument_list &args);
+  shcore::Value perform_instance_operation(const shcore::Argument_list &args, const std::string &fname, const std::string& progressive, const std::string& past);
   void validate_session(const std::string &source) const;
 };
 }
