@@ -35,7 +35,7 @@
 
 using namespace std::placeholders;
 using namespace mysh;
-using namespace mysh::mysqlx;
+using namespace mysh::dba;
 using namespace shcore;
 
 #define PASSWORD_LENGHT 16
@@ -167,7 +167,7 @@ shcore::Value Dba::get_cluster(const shcore::Argument_list &args) const {
 
   args.ensure_count(0, 2, get_function_name("getCluster").c_str());
 
-  std::shared_ptr<mysh::mysqlx::Cluster> cluster;
+  std::shared_ptr<mysh::dba::Cluster> cluster;
   bool get_default_cluster = false;
   std::string cluster_name;
   std::string master_key;

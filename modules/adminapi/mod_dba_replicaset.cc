@@ -38,7 +38,7 @@
 
 using namespace std::placeholders;
 using namespace mysh;
-using namespace mysh::mysqlx;
+using namespace mysh::dba;
 using namespace shcore;
 
 std::set<std::string> ReplicaSet::_add_instance_opts = { "name", "host", "port", "user", "dbUser", "password", "dbPassword", "socket", "ssl_ca", "ssl_cert", "ssl_key", "ssl_key", "verbose" };

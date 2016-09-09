@@ -32,7 +32,7 @@
 #include "mod_dba_provisioning_interface.h"
 
 namespace mysh {
-namespace mysqlx {
+namespace dba {
 class MetadataStorage;
 
 /**
@@ -100,7 +100,7 @@ protected:
   shcore::IShell_core *_shell_core;
 
   mutable std::string _default_cluster_name;
-  mutable std::shared_ptr<mysh::mysqlx::Cluster> _default_cluster;
+  mutable std::shared_ptr<mysh::dba::Cluster> _default_cluster;
 
   void init();
 

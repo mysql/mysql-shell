@@ -29,7 +29,7 @@
 #include <random>
 
 using namespace mysh;
-using namespace mysh::mysqlx;
+using namespace mysh::dba;
 using namespace shcore;
 
 MetadataStorage::MetadataStorage(Dba* dba) :
@@ -338,7 +338,7 @@ void MetadataStorage::insert_instance(const shcore::Argument_list &args, uint64_
 
   // Insert the default ReplicaSet on the replicasets table
   query = "INSERT INTO mysql_innodb_cluster_metadata.instances (host_id, replicaset_id, mysql_server_uuid, instance_name,\
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          role, addresses) VALUES ('" +
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    role, addresses) VALUES ('" +
         std::to_string(host_id) + "', '" + std::to_string(rs_id) + "', '" + mysql_server_uuid + "', '" +
         instance_name + "', '" + role + "', '{\"mysqlClassic\": \"" + addresses + "\"}')";
 

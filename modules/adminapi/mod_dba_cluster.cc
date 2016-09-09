@@ -32,7 +32,7 @@
 
 using namespace std::placeholders;
 using namespace mysh;
-using namespace mysh::mysqlx;
+using namespace mysh::dba;
 using namespace shcore;
 
 Cluster::Cluster(const std::string &name, std::shared_ptr<MetadataStorage> metadata_storage) :

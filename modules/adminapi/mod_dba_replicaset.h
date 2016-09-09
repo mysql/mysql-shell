@@ -30,13 +30,15 @@
 #include "mod_dba_provisioning_interface.h"
 
 namespace mysh {
-namespace mysqlx {
+namespace dba {
 class MetadataStorage;
 class Cluster;
 
+#if DOXYGEN_CPP
 /**
 * Represents a ReplicaSet
 */
+#endif
 class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>, public shcore::Cpp_object_bridge {
 public:
   ReplicaSet(const std::string &name, const std::string &topology_type,

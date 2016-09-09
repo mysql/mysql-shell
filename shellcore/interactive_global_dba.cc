@@ -60,7 +60,7 @@ shcore::Argument_list Global_dba::check_instance_op_params(const shcore::Argumen
     new_args.push_back(args[1]);
     options = args.map_at(1);
     // Verification of invalid attributes on the instance deployment data
-    auto invalids = shcore::get_additional_keys(options, mysh::mysqlx::Dba::_deploy_instance_opts);
+    auto invalids = shcore::get_additional_keys(options, mysh::dba::Dba::_deploy_instance_opts);
     if (invalids.size()) {
       std::string error = "The following options are invalid: ";
       error += shcore::join_strings(invalids, ", ");
@@ -282,7 +282,7 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
       }
     }
 
-    auto dba = std::dynamic_pointer_cast<mysh::mysqlx::Dba>(_target);
+    auto dba = std::dynamic_pointer_cast<mysh::dba::Dba>(_target);
     auto session = dba->get_active_session();
     println("A new InnoDB cluster will be created on instance '" + session->uri() + "'.\n\n");
 
@@ -501,6 +501,6 @@ shcore::Value Global_dba::validate_instance(const shcore::Argument_list &args) {
 }
 
 void Global_dba::validate_session(const std::string &source) const {
-  auto dba = std::dynamic_pointer_cast<mysh::mysqlx::Dba>(_target);
+  auto dba = std::dynamic_pointer_cast<mysh::dba::Dba>(_target);
   dba->validate_session(source);
 }

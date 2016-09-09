@@ -28,7 +28,7 @@
 #include "utils/utils_file.h"
 
 using namespace mysh;
-using namespace mysh::mysqlx;
+using namespace mysh::dba;
 using namespace shcore;
 
 ProvisioningInterface::ProvisioningInterface(shcore::Interpreter_delegate* deleg) :

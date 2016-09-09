@@ -470,7 +470,7 @@ std::shared_ptr<mysh::ShellDevelopmentSession> Shell_core::get_dev_session() {
  */
 void Shell_core::set_dba_global() {
 #ifdef WITH_ADMINAPI
-  std::shared_ptr<mysh::mysqlx::Dba>dba(new mysh::mysqlx::Dba(this));
+  std::shared_ptr<mysh::dba::Dba>dba(new mysh::dba::Dba(this));
 
   // When using the interactive wrappers instead of setting the global variables
   // The target Objects on the wrappers are set
