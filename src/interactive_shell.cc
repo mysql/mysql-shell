@@ -164,13 +164,13 @@ bool Interactive_shell::cmd_process_file(const std::vector<std::string>& params)
   std::string file;
 
   if (params[0].find("\\source") != std::string::npos)
-    _options.run_file = params[0].substr(8);
+    file = params[0].substr(8);
   else
-    _options.run_file = params[0].substr(3);
+    file = params[0].substr(3);
 
-  boost::trim(_options.run_file);
+  boost::trim(file);
 
-  Interactive_shell::process_file();
+  Interactive_shell::process_file(file);
 
   return true;
 }
@@ -421,8 +421,7 @@ void Interactive_shell::init_scripts(Shell_core::Mode mode) {
       scripts_paths.push_back(path);
 
     for (std::vector<std::string>::iterator i = scripts_paths.begin(); i != scripts_paths.end(); ++i) {
-      _options.run_file = *i;
-      process_file();
+      process_file(*i);
     }
   } catch (std::exception &e) {
     std::string error(e.what());
@@ -939,8 +938,7 @@ bool Interactive_shell::deleg_password(void *cdata, const char *prompt, std::str
 
 void Interactive_shell::deleg_source(void *cdata, const char *module) {
   Interactive_shell *self = (Interactive_shell*)cdata;
-  self->_options.run_file.assign(module);
-  self->process_file();
+  self->process_file(module);
 }
 
 bool Interactive_shell::do_shell_command(const std::string &line) {
@@ -992,25 +990,25 @@ void Interactive_shell::process_line(const std::string &line) {
             add_history(executed.c_str());
 #endif
           }
+          }
+        } catch (shcore::Exception &exc) {
+          _shell->print_value(shcore::Value(exc.error()), "error");
+        } catch (std::exception &exc) {
+          std::string error(exc.what());
+          error += "\n";
+          print_error(error);
         }
-      } catch (shcore::Exception &exc) {
-        _shell->print_value(shcore::Value(exc.error()), "error");
-      } catch (std::exception &exc) {
-        std::string error(exc.what());
-        error += "\n";
-        print_error(error);
-      }
 
-      // TODO: Do we need this cleanup? i.e. in case of exceptions above??
-      // Clears the buffer if OK, if continued, buffer will contain
-      // the non executed code
-      if (_input_mode == Input_ok)
-        _input_buffer.clear();
+        // TODO: Do we need this cleanup? i.e. in case of exceptions above??
+        // Clears the buffer if OK, if continued, buffer will contain
+        // the non executed code
+        if (_input_mode == Input_ok)
+          _input_buffer.clear();
+      }
     }
-  }
 
   _shell->reconnect_if_needed();
-}
+  }
 
 void Interactive_shell::abort() {
   if (!_shell) return;
@@ -1071,20 +1069,20 @@ void Interactive_shell::process_result(shcore::Value result) {
   _shell->set_error_processing();
 }
 
-int Interactive_shell::process_file() {
+int Interactive_shell::process_file(const std::string& file) {
   // Default return value will be 1 indicating there were errors
   int ret_val = 1;
 
-  if (_options.run_file.empty())
+  if (file.empty())
     print_error("Usage: \\. <filename> | \\source <filename>\n");
   else
     //TODO: do path expansion (in case ~ is used in linux)
   {
-    std::ifstream s(_options.run_file.c_str());
+    std::ifstream s(file.c_str());
 
     if (!s.fail()) {
       // The return value now depends on the stream processing
-      ret_val = process_stream(s, _options.run_file);
+      ret_val = process_stream(s, file);
 
       // When force is used, we do not care of the processing
       // errors
@@ -1094,7 +1092,7 @@ int Interactive_shell::process_file() {
       s.close();
     } else {
       // TODO: add a log entry once logging is
-      print_error((boost::format("Failed to open file '%s', error: %d\n") % _options.run_file % errno).str());
+      print_error((boost::format("Failed to open file '%s', error: %d\n") % file % errno).str());
     }
   }
 

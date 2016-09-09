@@ -28,14 +28,11 @@ Interactive_shell* shell_ptr = NULL;
 #  include <windows.h>
 #  define isatty _isatty
 
-BOOL windows_ctrl_handler(DWORD fdwCtrlType)
-{
-  switch (fdwCtrlType)
-  {
+BOOL windows_ctrl_handler(DWORD fdwCtrlType) {
+  switch (fdwCtrlType) {
     case CTRL_C_EVENT:
     case CTRL_BREAK_EVENT:
-      if (shell_ptr != NULL)
-      {
+      if (shell_ptr != NULL) {
         shell_ptr->abort();
         shell_ptr->println("^C");
         //shell_ptr->print(shell_ptr->prompt());
@@ -77,8 +74,7 @@ void handle_ctrlc_signal(int sig)
 
 #endif
 
-static int enable_x_protocol(Interactive_shell &shell)
-{
+static int enable_x_protocol(Interactive_shell &shell) {
   static const char *script = "function enableXProtocol()\n"\
 "{\n"\
 "  try\n"\
@@ -119,10 +115,8 @@ static int enable_x_protocol(Interactive_shell &shell)
 
 // Execute a Administrative DB command passed from the command line via the --dba option
 // Currently, only the enableXProtocol command is supported.
-int execute_dba_command(Interactive_shell &shell, const std::string &command)
-{
-  if (command != "enableXProtocol")
-  {
+int execute_dba_command(Interactive_shell &shell, const std::string &command) {
+  if (command != "enableXProtocol") {
     shell.print_error("Unsupported dba command " + command);
     return 1;
   }
@@ -144,8 +138,7 @@ int execute_dba_command(Interactive_shell &shell, const std::string &command)
 // - No file is processed
 //
 // An error occurs when both --file and STDIN redirection are used
-std::string detect_interactive(Shell_command_line_options &options, bool &from_stdin)
-{
+std::string detect_interactive(Shell_command_line_options &options, bool &from_stdin) {
   bool is_interactive = true;
   std::string error;
 
@@ -162,8 +155,7 @@ std::string detect_interactive(Shell_command_line_options &options, bool &from_s
   __stdout_fileno = STDOUT_FILENO;
 #endif
 
-  if (!isatty(__stdin_fileno))
-  {
+  if (!isatty(__stdin_fileno)) {
     // Here we know the input comes from stdin
     from_stdin = true;
   }
@@ -184,8 +176,7 @@ std::string detect_interactive(Shell_command_line_options &options, bool &from_s
   return error;
 }
 
-int main(int argc, char **argv)
-{
+int main(int argc, char **argv) {
 #ifdef WIN32
   // Sets console handler (Ctrl+C)
   SetConsoleCtrlHandler((PHANDLER_ROUTINE)windows_ctrl_handler, TRUE);
@@ -210,43 +201,34 @@ int main(int argc, char **argv)
     bool from_stdin = false;
     std::string error = detect_interactive(options, from_stdin);
 
+    // Usage of wizards will be disabled if running in non interactive mode
+    if (!options.interactive)
+      options.wizards = false;
+
     Interactive_shell shell(options);
 
-    if (!error.empty())
-    {
+    if (!error.empty()) {
       shell.print_error(error);
       ret_val = 1;
-    }
-    else if (options.print_version)
-    {
+    } else if (options.print_version) {
       std::string version_msg("MySQL Shell Version ");
       version_msg += MYSH_VERSION;
       version_msg += " Development Preview";
       shell.println(version_msg);
       ret_val = options.exit_code;
-    }
-    else if (options.print_cmd_line_helper)
-    {
+    } else if (options.print_cmd_line_helper) {
       shell.print_cmd_line_helper();
       ret_val = options.exit_code;
-    }
-    else
-    {
+    } else {
       // Performs the connection
-      if (options.has_connection_data())
-      {
-        try
-        {
+      if (options.has_connection_data()) {
+        try {
           if (!shell.connect(true))
             return 1;
-        }
-        catch (shcore::Exception &e)
-        {
+        } catch (shcore::Exception &e) {
           shell.print_error(e.format());
           return 1;
-        }
-        catch (std::exception &e)
-        {
+        } catch (std::exception &e) {
           shell.print_error(e.what());
           return 1;
         }
@@ -254,29 +236,20 @@ int main(int argc, char **argv)
 
       shell_ptr = &shell;
 
-      if (!options.execute_statement.empty())
-      {
+      if (!options.execute_statement.empty()) {
         std::stringstream stream(options.execute_statement);
         ret_val = shell.process_stream(stream, "(command line)");
-      }
-      else if (!options.execute_dba_statement.empty())
-      {
-        if (options.initial_mode != IShell_core::Mode_JScript)
-        {
+      } else if (!options.execute_dba_statement.empty()) {
+        if (options.initial_mode != IShell_core::Mode_JScript) {
           shell.print_error("The --dba option cannot be used with --python or --sql options\n");
           ret_val = 1;
-        }
-        else
+        } else
           ret_val = execute_dba_command(shell, options.execute_dba_statement);
-      }
-      else if (!options.run_file.empty())
-        ret_val = shell.process_file();
-      else if (from_stdin)
-      {
+      } else if (!options.run_file.empty())
+        ret_val = shell.process_file(options.run_file);
+      else if (from_stdin) {
         ret_val = shell.process_stream(std::cin, "STDIN");
-      }
-      else if (options.interactive)
-      {
+      } else if (options.interactive) {
         shell.print_banner();
         shell.command_loop();
         ret_val = 0;
