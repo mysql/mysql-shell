@@ -990,25 +990,25 @@ void Interactive_shell::process_line(const std::string &line) {
             add_history(executed.c_str());
 #endif
           }
-          }
-        } catch (shcore::Exception &exc) {
-          _shell->print_value(shcore::Value(exc.error()), "error");
-        } catch (std::exception &exc) {
-          std::string error(exc.what());
-          error += "\n";
-          print_error(error);
         }
-
-        // TODO: Do we need this cleanup? i.e. in case of exceptions above??
-        // Clears the buffer if OK, if continued, buffer will contain
-        // the non executed code
-        if (_input_mode == Input_ok)
-          _input_buffer.clear();
+      } catch (shcore::Exception &exc) {
+        _shell->print_value(shcore::Value(exc.error()), "error");
+      } catch (std::exception &exc) {
+        std::string error(exc.what());
+        error += "\n";
+        print_error(error);
       }
+
+      // TODO: Do we need this cleanup? i.e. in case of exceptions above??
+      // Clears the buffer if OK, if continued, buffer will contain
+      // the non executed code
+      if (_input_mode == Input_ok)
+        _input_buffer.clear();
     }
+  }
 
   _shell->reconnect_if_needed();
-  }
+}
 
 void Interactive_shell::abort() {
   if (!_shell) return;
@@ -1221,8 +1221,9 @@ void Interactive_shell::print_cmd_line_helper() {
   println("  --x                      Uses connection data to create an X Session.");
   println("  --node                   Uses connection data to create a Node Session.");
   println("  --classic                Uses connection data to create a Classic Session.");
-  println("  --sql                    Start in SQL mode using a node session.");
+  println("  --sql                    Start in SQL mode.");
   println("  --sqlc                   Start in SQL mode using a classic session.");
+  println("  --sqln                   Start in SQL mode using a node session.");
   println("  --js                     Start in JavaScript mode.");
   println("  --py                     Start in Python mode.");
   println("  --json                   Produce output in JSON format.");
@@ -1241,6 +1242,7 @@ void Interactive_shell::print_cmd_line_helper() {
   println("  --auth-method=method     Authentication method to use");
   println("  --show-warnings          Automatically display SQL warnings on SQL mode if available");
   println("  --dba enableXProtocol    Enable the X Protocol in the server connected to. Must be used with --classic");
+  println("  --no-wizard              Disables wizard mode");
 
   println("");
 }

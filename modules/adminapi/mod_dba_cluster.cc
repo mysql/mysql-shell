@@ -36,23 +36,18 @@ using namespace mysh::mysqlx;
 using namespace shcore;
 
 Cluster::Cluster(const std::string &name, std::shared_ptr<MetadataStorage> metadata_storage) :
-  _name(name), _metadata_storage(metadata_storage), _json_mode(JSON_STANDARD_OUTPUT)
-{
+_name(name), _metadata_storage(metadata_storage), _json_mode(JSON_STANDARD_OUTPUT) {
   init();
 }
 
-Cluster::~Cluster()
-{
-}
+Cluster::~Cluster() {}
 
-std::string &Cluster::append_descr(std::string &s_out, int UNUSED(indent), int UNUSED(quote_strings)) const
-{
+std::string &Cluster::append_descr(std::string &s_out, int UNUSED(indent), int UNUSED(quote_strings)) const {
   s_out.append("<" + class_name() + ":" + _name + ">");
   return s_out;
 }
 
-bool Cluster::operator == (const Object_bridge &other) const
-{
+bool Cluster::operator == (const Object_bridge &other) const {
   return class_name() == other.class_name() && this == &other;
 }
 
@@ -88,8 +83,7 @@ Cluster Cluster::getAdminType(){}
 Cluster Cluster::get_admin_type(){}
 #endif
 #endif
-shcore::Value Cluster::get_member(const std::string &prop) const
-{
+shcore::Value Cluster::get_member(const std::string &prop) const {
   shcore::Value ret_val;
   if (prop == "name")
     ret_val = shcore::Value(_name);
@@ -101,14 +95,12 @@ shcore::Value Cluster::get_member(const std::string &prop) const
   return ret_val;
 }
 
-void Cluster::init()
-{
+void Cluster::init() {
   add_property("name", "getName");
   add_property("adminType", "getAdminType");
   add_method("addInstance", std::bind(&Cluster::add_instance, this, _1), "data");
   add_method("rejoinInstance", std::bind(&Cluster::rejoin_instance, this, _1), "data");
   add_method("removeInstance", std::bind(&Cluster::remove_instance, this, _1), "data");
-  add_method("getReplicaSet", std::bind(&Cluster::get_replicaset, this, _1), "name", shcore::String, NULL);
   add_method("describe", std::bind(&Cluster::describe, this, _1), NULL);
   add_method("status", std::bind(&Cluster::status, this, _1), NULL);
 }
@@ -133,37 +125,38 @@ String Cluster::getAdminType(){}
 str Cluster::get_admin_type(){}
 #endif
 
-//#if DOXYGEN_CPP
-///**
-// * Use this function to add a Seed Instance to the Cluster object
-// * \param args : A list of values to be used to add a Seed Instance to the Cluster.
-// *
-// * This function creates the Default ReplicaSet implicitly and adds the Instance to it
-// * This function returns an empty Value.
-// */
-//#else
-///**
-//* Adds a Seed Instance to the Cluster
-//* \param conn The Connection String or URI of the Instance to be added
-//*/
-//#if DOXYGEN_JS
-//Undefined addSeedInstance(String conn, String root_password, String topology_type){}
-//#elif DOXYGEN_PY
-//None add_seed_instance(str conn, str root_password, str topology_type){}
-//#endif
-///**
-//* Adds a Seed Instance to the Cluster
-//* \param doc The Document representing the Instance to be added
-//*/
-//#if DOXYGEN_JS
-//Undefined addSeedInstance(Document doc){}
-//#elif DOXYGEN_PY
-//None add_seed_instance(Document doc){}
-//#endif
-//#endif
+#if 0
+#if DOXYGEN_CPP
+/**
+ * Use this function to add a Seed Instance to the Cluster object
+ * \param args : A list of values to be used to add a Seed Instance to the Cluster.
+ *
+ * This function creates the Default ReplicaSet implicitly and adds the Instance to it
+ * This function returns an empty Value.
+ */
+#else
+/**
+* Adds a Seed Instance to the Cluster
+* \param conn The Connection String or URI of the Instance to be added
+*/
+#if DOXYGEN_JS
+Undefined addSeedInstance(String conn, String root_password, String topology_type) {}
+#elif DOXYGEN_PY
+None add_seed_instance(str conn, str root_password, str topology_type) {}
+#endif
+/**
+* Adds a Seed Instance to the Cluster
+* \param doc The Document representing the Instance to be added
+*/
+#if DOXYGEN_JS
+Undefined addSeedInstance(Document doc) {}
+#elif DOXYGEN_PY
+None add_seed_instance(Document doc) {}
+#endif
+#endif
+#endif
 
-shcore::Value Cluster::add_seed_instance(const shcore::Argument_list &args_)
-{
+shcore::Value Cluster::add_seed_instance(const shcore::Argument_list &args_) {
   shcore::Value ret_val;
   shcore::Argument_list args(args_);
 
@@ -176,17 +169,13 @@ shcore::Value Cluster::add_seed_instance(const shcore::Argument_list &args_)
   std::shared_ptr<ReplicaSet> default_rs = get_default_replicaset();
 
   // Check if we have a Default ReplicaSet, if so it means we already added the Seed Instance
-  if (default_rs != NULL)
-  {
+  if (default_rs != NULL) {
     uint64_t rs_id = default_rs->get_id();
     if (!_metadata_storage->is_replicaset_empty(rs_id))
       throw shcore::Exception::logic_error("Default ReplicaSet already initialized. Please use: addInstance() to add more Instances to the ReplicaSet.");
-  }
-  else
-  {
+  } else {
     std::string topology_type = ReplicaSet::kTopologyPrimaryMaster;
-    if (args.size() == 3)
-    {
+    if (args.size() == 3) {
       topology_type = args[2].as_string();
       args.pop_back();
     }
@@ -223,23 +212,22 @@ shcore::Value Cluster::add_seed_instance(const shcore::Argument_list &args_)
 * \param conn The Connection String or URI of the Instance to be added
 */
 #if DOXYGEN_JS
-Undefined addInstance(String conn){}
+Undefined addInstance(String conn) {}
 #elif DOXYGEN_PY
-None add_instance(str conn){}
+None add_instance(str conn) {}
 #endif
 /**
 * Adds a Instance to the Cluster
 * \param doc The Document representing the Instance to be added
 */
 #if DOXYGEN_JS
-Undefined addInstance(Document doc){}
+Undefined addInstance(Document doc) {}
 #elif DOXYGEN_PY
-None add_instance(Document doc){}
+None add_instance(Document doc) {}
 #endif
 #endif
 
-shcore::Value Cluster::add_instance(const shcore::Argument_list &args)
-{
+shcore::Value Cluster::add_instance(const shcore::Argument_list &args) {
   shcore::Value ret_val;
 
   args.ensure_count(1, 2, get_function_name("addInstance").c_str());
@@ -249,8 +237,7 @@ shcore::Value Cluster::add_instance(const shcore::Argument_list &args)
     throw shcore::Exception::logic_error("ReplicaSet not initialized.");
 
   // Add the Instance to the Default ReplicaSet
-  try
-  {
+  try {
     ret_val = _default_replica_set->add_instance(args);
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("addInstance"));
@@ -271,21 +258,19 @@ shcore::Value Cluster::add_instance(const shcore::Argument_list &args)
 * \param conn The Connection String or URI of the Instance to be rejoined
 */
 #if DOXYGEN_JS
-Undefined rejoinInstance(String conn){}
+Undefined rejoinInstance(String conn) {}
 #elif DOXYGEN_PY
-None rejoin_instance(str conn){}
+None rejoin_instance(str conn) {}
 #endif
 #endif
-shcore::Value Cluster::rejoin_instance(const shcore::Argument_list &args)
-{
+shcore::Value Cluster::rejoin_instance(const shcore::Argument_list &args) {
   shcore::Value ret_val;
   args.ensure_count(1, 2, get_function_name("rejoinInstance").c_str());
   // Check if we have a Default ReplicaSet
   if (!_default_replica_set)
     throw shcore::Exception::logic_error("ReplicaSet not initialized.");
   // rejoin the Instance to the Default ReplicaSet
-  try
-  {
+  try {
     // if not, call mysqlprovision to join the instance to its own group
     ret_val = _default_replica_set->rejoin_instance(args);
   }
@@ -308,28 +293,26 @@ shcore::Value Cluster::rejoin_instance(const shcore::Argument_list &args)
 * \param name The name of the Instance to be removed
 */
 #if DOXYGEN_JS
-Undefined removeInstance(String name){}
+Undefined removeInstance(String name) {}
 #elif DOXYGEN_PY
-None remove_instance(str name){}
+None remove_instance(str name) {}
 #endif
 /**
 * Removes a Instance from the Cluster
 * \param doc The Document representing the Instance to be removed
 */
 #if DOXYGEN_JS
-Undefined removeInstance(Document doc){}
+Undefined removeInstance(Document doc) {}
 #elif DOXYGEN_PY
-None remove_instance(Document doc){}
+None remove_instance(Document doc) {}
 #endif
 #endif
 
-shcore::Value Cluster::remove_instance(const shcore::Argument_list &args)
-{
+shcore::Value Cluster::remove_instance(const shcore::Argument_list &args) {
   args.ensure_count(1, 2, get_function_name("removeInstance").c_str());
 
   // Remove the Instance from the Default ReplicaSet
-  try
-  {
+  try {
     _default_replica_set->remove_instance(args);
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("removeInstance"));
@@ -337,6 +320,7 @@ shcore::Value Cluster::remove_instance(const shcore::Argument_list &args)
   return Value();
 }
 
+#if 0 // Hidden for now
 /**
 * Returns the ReplicaSet of the given name.
 * \sa ReplicaSet
@@ -346,28 +330,25 @@ shcore::Value Cluster::remove_instance(const shcore::Argument_list &args)
 * Verifies if the requested Collection exist on the metadata schema, if exists, returns the corresponding ReplicaSet object.
 */
 #if DOXYGEN_JS
-ReplicaSet Cluster::getReplicaSet(String name){}
+ReplicaSet Cluster::getReplicaSet(String name) {}
 #elif DOXYGEN_PY
-ReplicaSet Cluster::get_replica_set(str name){}
+ReplicaSet Cluster::get_replica_set(str name) {}
 #endif
-
-shcore::Value Cluster::get_replicaset(const shcore::Argument_list &args)
-{
+#endif
+shcore::Value Cluster::get_replicaset(const shcore::Argument_list &args) {
   shcore::Value ret_val;
 
   if (args.size() == 0)
     ret_val = shcore::Value(std::dynamic_pointer_cast<shcore::Object_bridge>(_default_replica_set));
 
-  else
-  {
+  else {
     args.ensure_count(1, get_function_name("getReplicaSet").c_str());
     std::string name = args.string_at(0);
 
     if (name == "default")
       ret_val = shcore::Value(std::dynamic_pointer_cast<shcore::Object_bridge>(_default_replica_set));
 
-    else
-    {
+    else {
       /*
        * Retrieve the ReplicaSet from the ReplicaSets array
        */
@@ -381,25 +362,21 @@ shcore::Value Cluster::get_replicaset(const shcore::Argument_list &args)
   return ret_val;
 }
 
-void Cluster::set_default_replicaset(std::shared_ptr<ReplicaSet> default_rs)
-{
+void Cluster::set_default_replicaset(std::shared_ptr<ReplicaSet> default_rs) {
   _default_replica_set = default_rs;
 
   if (_default_replica_set)
     _default_replica_set->set_cluster(shared_from_this());
 };
 
-void Cluster::append_json(shcore::JSON_dumper& dumper) const
-{
-  if (_json_mode)
-  {
+void Cluster::append_json(shcore::JSON_dumper& dumper) const {
+  if (_json_mode) {
     dumper.start_object();
     dumper.append_string("clusterName", _name);
 
     if (!_default_replica_set)
       dumper.append_null("defaultReplicaSet");
-    else
-    {
+    else {
       if (_json_mode == JSON_TOPOLOGY_OUTPUT)
         dumper.append_string("adminType", (*_options)[OPT_ADMIN_TYPE].as_string());
 
@@ -409,8 +386,7 @@ void Cluster::append_json(shcore::JSON_dumper& dumper) const
     }
 
     dumper.end_object();
-  }
-  else
+  } else
     Cpp_object_bridge::append_json(dumper);
 }
 
@@ -418,12 +394,11 @@ void Cluster::append_json(shcore::JSON_dumper& dumper) const
 * Returns a formatted JSON describing the structure of the Cluster
 */
 #if DOXYGEN_JS
-String Cluster::describe(){}
+String Cluster::describe() {}
 #elif DOXYGEN_PY
-str Cluster::describe(){}
+str Cluster::describe() {}
 #endif
-shcore::Value Cluster::describe(const shcore::Argument_list &args)
-{
+shcore::Value Cluster::describe(const shcore::Argument_list &args) {
   shcore::Value ret_val;
   _json_mode = JSON_TOPOLOGY_OUTPUT;
   shcore::Value myself = shcore::Value(std::dynamic_pointer_cast<shcore::Object_bridge>(shared_from_this()));
@@ -437,12 +412,11 @@ shcore::Value Cluster::describe(const shcore::Argument_list &args)
 * Returns a formatted JSON describing the status of the Cluster
 */
 #if DOXYGEN_JS
-String Cluster::status(){}
+String Cluster::status() {}
 #elif DOXYGEN_PY
-str Cluster::status(){}
+str Cluster::status() {}
 #endif
-shcore::Value Cluster::status(const shcore::Argument_list &args)
-{
+shcore::Value Cluster::status(const shcore::Argument_list &args) {
   shcore::Value ret_val;
   _json_mode = JSON_STATUS_OUTPUT;
   shcore::Value myself = shcore::Value(std::dynamic_pointer_cast<shcore::Object_bridge>(shared_from_this()));
@@ -452,8 +426,7 @@ shcore::Value Cluster::status(const shcore::Argument_list &args)
   return ret_val;
 }
 
-void Cluster::set_account_data(const std::string& account, const std::string& key, const std::string& value)
-{
+void Cluster::set_account_data(const std::string& account, const std::string& key, const std::string& value) {
   if (!_accounts)
     _accounts.reset(new shcore::Value::Map_type());
 
@@ -464,19 +437,16 @@ void Cluster::set_account_data(const std::string& account, const std::string& ke
   (*account_data)[key] = shcore::Value(value);
 }
 
-std::string Cluster::get_account_data(const std::string& account, const std::string& key)
-{
+std::string Cluster::get_account_data(const std::string& account, const std::string& key) {
   std::string ret_val;
 
-  if (_accounts && _accounts->has_key(account))
-  {
+  if (_accounts && _accounts->has_key(account)) {
     ret_val = _accounts->get_map(account)->get_string(key);
   }
   return ret_val;
 }
 
-std::string Cluster::get_accounts_data()
-{
+std::string Cluster::get_accounts_data() {
   shcore::Value::Map_type_ref accounts = _accounts;
 
   /* Can't hide the key, because we need it when creating the accounts.
@@ -508,8 +478,7 @@ std::string Cluster::get_accounts_data()
  *
  * The account data is expected to a JSON string, AES encrypted.
  */
-void Cluster::set_accounts_data(const std::string& encrypted_json)
-{
+void Cluster::set_accounts_data(const std::string& encrypted_json) {
   std::string decrypted_data;
   decrypted_data.resize(encrypted_json.length());
   int len;
@@ -523,14 +492,10 @@ void Cluster::set_accounts_data(const std::string& encrypted_json)
 
   decrypted_data.resize(len);
 
-  try
-  {
+  try {
     _accounts = shcore::Value::parse(decrypted_data).as_map();
-  }
-  catch (shcore::Exception &e)
-  {
-    if (e.is_parser())
-    {
+  } catch (shcore::Exception &e) {
+    if (e.is_parser()) {
       log_info("DBA: Error parsing account data for cluster '%s': %s",
               _name.c_str(), e.format().c_str());
       throw Exception::logic_error("Unable to decrypt account information");
@@ -539,16 +504,14 @@ void Cluster::set_accounts_data(const std::string& encrypted_json)
   }
 }
 
-void Cluster::set_option(const std::string& option, const shcore::Value& value)
-{
+void Cluster::set_option(const std::string& option, const shcore::Value& value) {
   if (!_options)
     _options.reset(new shcore::Value::Map_type());
 
   (*_options)[option] = value;
 }
 
-void Cluster::set_attribute(const std::string& attribute, const shcore::Value& value)
-{
+void Cluster::set_attribute(const std::string& attribute, const shcore::Value& value) {
   if (!_attributes)
     _attributes.reset(new shcore::Value::Map_type());
 

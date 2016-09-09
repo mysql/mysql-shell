@@ -29,7 +29,7 @@ void Global_schema::resolve() const
     std::string answer;
     if (prompt("The db variable is not set, do you want to set the active schema? [y/N]:", answer))
     {
-      if (!answer.compare("y") || !answer.compare("Y") || answer.empty())
+      if (!answer.compare("y") || !answer.compare("Y"))
       {
         if (prompt("Please specify the schema:", answer))
         {

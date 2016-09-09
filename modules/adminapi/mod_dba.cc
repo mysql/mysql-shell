@@ -149,6 +149,7 @@ Cluster Dba::get_cluster() {}
 /**
 * Retrieves a Cluster object from the Metadata schema.
 * \param name The name of the Cluster object to be retrieved.
+* \param options Dictionary containing the masterKey value.
 * \return The Cluster object with the given name.
 *
 * If a Cluster with the given name does not exist an error will be raised.
@@ -244,15 +245,22 @@ shcore::Value Dba::get_cluster(const shcore::Argument_list &args) const {
 /**
  * Creates a Cluster object.
  * \param name The name of the Cluster object to be created
- * \param clusterAdminPassword The Cluster Administration password
- * \param options Options
+ * \param masterKey The Cluster master key
+ * \param options optional dictionary with options that modify the behavior of this function
  * \return The created Cluster object.
- * \sa Cluster
+ *
+ *  The options dictionary can contain the next values:
+ *
+ *  - clusterAdminType: determines the type of management to be done on the cluster instances.
+ *    Valid values include: local, manual, guided or ssh.
+ *    At the moment only local is supported and used as default value if not specified.
+ *  - multiMaster: boolean value that indicates whether the group as a singe or multiple master (R/W) nodes.
+ *    If not specified false is assigned.
  */
 #if DOXYGEN_JS
-Cluster Dba::createCluster(String name, String clusterAdminPassword, JSON options) {}
+Cluster Dba::createCluster(String name, String masterKey, Dictionary options) {}
 #elif DOXYGEN_PY
-Cluster Dba::create_cluster(str name, str cluster_admin_password, JSON options) {}
+Cluster Dba::create_cluster(str name, str masterKey, Dictionary options) {}
 #endif
 shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
   Value ret_val;
@@ -465,6 +473,22 @@ shcore::Value Dba::drop_metadata_schema(const shcore::Argument_list &args) {
   return Value();
 }
 
+//! Sets the session object to be used on the Dba operations.
+#if DOXYGEN_CPP
+//! \param args should contain an instance of ShellDevSession.
+#else
+//! \param session could be an instance of ClassicSession, XSession or NodeSession.
+#endif
+/**
+* This function is available to configure a specific Session to be used on the Dba operations.
+*
+* If a specific Session is not set, the Dba operations will be executed through the established global Session.
+*/
+#if DOXYGEN_JS
+Undefined Dba::resetSession(Session session) {}
+#elif DOXYGEN_PY
+None Dba::reset_session(Session session) {}
+#endif
 shcore::Value Dba::reset_session(const shcore::Argument_list &args) {
   args.ensure_count(0, 1, get_function_name("resetSession").c_str());
 

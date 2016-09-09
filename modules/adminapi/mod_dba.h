@@ -79,15 +79,17 @@ public:
   shcore::IShell_core* get_owner() { return _shell_core; }
 
 #if DOXYGEN_JS
-  Cluster createCluster(String name);
+  Undefined resetSession(Session session);
+  Cluster createCluster(String name, String masterKey, Dictionary options);
   Undefined dropCluster(String name);
-  Cluster getCluster(String name);
+  Cluster getCluster(String name, Dictionary options);
   Undefined dropMetadataSchema();
 
 #elif DOXYGEN_PY
-  Cluster create_cluster(str name);
+  None reset_session(Session session);
+  Cluster create_cluster(str name, str masterKey, Dictionary options);
   None drop_cluster(str name);
-  Cluster get_cluster(str name);
+  Cluster get_cluster(str name, Dictionary options);
   None drop_metadata_schema();
 #endif
 
