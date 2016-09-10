@@ -15,16 +15,18 @@
 
 #include "test_utils.h"
 
-struct Validation
-{
-  Validation(const std::vector<std::string>& source)
-  {
+struct Validation {
+  Validation(const std::vector<std::string>& source) {
+    if (source.size() < 3) {
+      std::string a;
+      a = "asads";
+      std::cout << a;
+    }
     code = source.size() >= 1 ? source[0] : "";
     expected_output = source.size() >= 2 ? source[1] : "";
     expected_error = source.size() >= 3 ? source[2] : "";
 
-    if (expected_output.find("~") == 0)
-    {
+    if (expected_output.find("~") == 0) {
       unexpected_output = expected_output.substr(1);
       expected_output = "";
     }
@@ -46,8 +48,7 @@ typedef std::vector<Validation> Validation_t;
 #define SETUP_SCRIPT(x) _shell_scripts_home+"/setup/"+x
 #define VALIDATION_SCRIPT(x) _shell_scripts_home+"/validation/"+x
 
-class Shell_script_tester : public Crud_test_wrapper
-{
+class Shell_script_tester : public Crud_test_wrapper {
 public:
   // You can define per-test set-up and tear-down logic as usual.
   Shell_script_tester();
@@ -86,14 +87,15 @@ private:
   void execute_script(const std::string& path = "", bool in_chunks = false, bool is_pre_script = false);
   void process_setup(std::istream & stream);
   void validate(const std::string& context, const std::string &chunk_id = "__global__");
+  std::string resolve_string(const std::string& source);
   virtual void pre_process_line(const std::string &path, std::string & line) {};
 
   void load_source_chunks(std::istream & stream);
+  void add_validation(const std::string &chunk, const std::vector<std::string>& source);
   void load_validations(const std::string& path, bool in_chunks = false);
 };
 
-class Shell_js_script_tester : public Shell_script_tester
-{
+class Shell_js_script_tester : public Shell_script_tester {
 protected:
   // You can define per-test set-up and tear-down logic as usual.
   virtual void set_defaults();
@@ -104,8 +106,7 @@ protected:
   virtual std::string get_variable_prefix() { return "var "; };
 };
 
-class Shell_py_script_tester : public Shell_script_tester
-{
+class Shell_py_script_tester : public Shell_script_tester {
 protected:
   // You can define per-test set-up and tear-down logic as usual.
   virtual void set_defaults();
