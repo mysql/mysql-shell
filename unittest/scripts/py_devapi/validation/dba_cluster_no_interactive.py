@@ -51,13 +51,13 @@
     "defaultReplicaSet": {
         "status": "Cluster is NOT tolerant to any failures.",
         "topology": {
-            "localhost:3317": {
+            "localhost:<<<__mysql_sandbox_port1>>>": {
                 "address": "localhost:<<<__mysql_sandbox_port1>>>",
                 "status": "ONLINE",
                 "role": "HA",
                 "mode": "R/W",
                 "leaves": {
-                    "localhost:3327": {
+                    "localhost:<<<__mysql_sandbox_port2>>>": {
                         "address": "localhost:<<<__mysql_sandbox_port2>>>",
                         "status": "RECOVERING",
                         "role": "HA",
@@ -104,7 +104,7 @@
     "defaultReplicaSet": {
         "status": "Cluster is NOT tolerant to any failures.",
         "topology": {
-            "localhost:3317": {
+            "localhost:<<<__mysql_sandbox_port1>>>": {
                 "address": "localhost:<<<__mysql_sandbox_port1>>>",
                 "status": "ONLINE",
                 "role": "HA",
