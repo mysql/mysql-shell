@@ -28,40 +28,32 @@ validateMember(members, 'validate_instance');
 validateMember(members, 'stop_local_instance');
 
 #@# Dba: create_cluster errors
-cluster = dba.create_cluster()
-cluster = dba.create_cluster(5)
-cluster = dba.create_cluster('', 5)
-cluster = dba.create_cluster('devCluster')
-cluster = dba.create_cluster('devCluster', clusterPassword)
-cluster = dba.create_cluster('devCluster', clusterPassword)
+c1 = dba.create_cluster()
+c1 = dba.create_cluster(5)
+c1 = dba.create_cluster('', 5)
+c1 = dba.create_cluster('devCluster')
+c1 = dba.create_cluster('devCluster', clusterPassword)
+c1 = dba.create_cluster('devCluster', clusterPassword)
 
 #@ Dba: create_cluster
-print cluster
+print c1
 
 #@# Dba: get_cluster errors
-cluster = dba.get_cluster()
-cluster = dba.get_cluster(5)
-cluster = dba.get_cluster('', 5)
-cluster = dba.get_cluster('')
-cluster = dba.get_cluster('devCluster')
+c2 = dba.get_cluster()
+c2 = dba.get_cluster(5)
+c2 = dba.get_cluster('', 5)
+c2 = dba.get_cluster('')
+c2 = dba.get_cluster('devCluster')
+c2 = dba.get_cluster('devCluster', {'masterKey':clusterPassword});
 
 #@ Dba: get_cluster
-print cluster
-
-#@ Dba: add_instance
-cluster.add_instance({'dbUser': 'root', 'host': '127.0.0.1', 'port':__mysql_sandbox_port1}, 'root')
-
-#@ Dba: remove_instance
-cluster.remove_instance({'host': '127.0.0.1', 'port': __mysql_sandbox_port1});
+print c2
 
 #@# Dba: drop_cluster errors
-cluster = dba.drop_cluster()
-cluster = dba.drop_cluster(5)
-cluster = dba.drop_cluster('')
-cluster = dba.drop_cluster('sample', 5)
-cluster = dba.drop_cluster('sample', {}, 5)
-cluster = dba.drop_cluster('sample')
-cluster = dba.drop_cluster('devCluster')
-
-#@ Dba: drop_cluster
-dba.drop_cluster('devCluster', {'dropDefaultReplicaSet': True, 'masterKey': clusterPassword})
+dba.drop_cluster()
+dba.drop_cluster(5)
+dba.drop_cluster('')
+dba.drop_cluster('sample', 5)
+dba.drop_cluster('sample', {}, 5)
+dba.drop_cluster('sample')
+dba.drop_cluster('devCluster')

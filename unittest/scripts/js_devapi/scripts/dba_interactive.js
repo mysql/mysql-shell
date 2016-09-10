@@ -1,8 +1,6 @@
 // Assumptions: ensure_schema_does_not_exist is available
 // Assumes __uripwd is defined as <user>:<pwd>@<host>:<plugin_port>
 // validateMemer and validateNotMember are defined on the setup script
-//@ Initialization
-dba.dropMetadataSchema();
 
 //@ Session: validating members
 var members = dir(dba);
@@ -22,29 +20,26 @@ validateMember(members, 'validateInstance');
 validateMember(members, 'stopLocalInstance');
 
 //@# Dba: createCluster errors
-var Cluster = dba.createCluster();
-var Cluster = dba.createCluster(5);
-var Cluster = dba.createCluster('');
+var c1 = dba.createCluster();
+var c1 = dba.createCluster(1,2,3,4);
+var c1 = dba.createCluster(5);
+var c1 = dba.createCluster('');
 
-//@# Dba: createCluster with interaction
-var Cluster = dba.createCluster('devCluster');
-print(Cluster)
+//@<OUT> Dba: createCluster with interaction
+var c1 = dba.createCluster('devCluster');
 
 //@# Dba: getCluster errors
-var Cluster = dba.getCluster();
-var Cluster = dba.getCluster(5);
-var Cluster = dba.getCluster('', 5);
-var Cluster = dba.getCluster('');
-var Cluster = dba.getCluster('devCluster');
+var c2 = dba.getCluster(5);
+var c2 = dba.getCluster('', 5);
+var c2 = dba.getCluster('');
 
-//@ Dba: getCluster
-print(Cluster);
+//@<OUT> Dba: getCluster with interaction
+var c2 = dba.getCluster('devCluster');
+c2;
 
-//@ Dba: addInstance
-Cluster.addInstance({dbUser: "root", host: "127.0.0.1", port:__mysql_sandbox_port1}, "root");
-
-//@ Dba: removeInstance
-Cluster.removeInstance({host: "127.0.0.1", port:__mysql_sandbox_port1});
+//@<OUT> Dba: getCluster with interaction (default)
+var c3 = dba.getCluster();
+c3;
 
 //@# Dba: dropCluster errors
 var Cluster = dba.dropCluster();
@@ -53,11 +48,5 @@ var Cluster = dba.dropCluster('');
 var Cluster = dba.dropCluster('sample', 5);
 var Cluster = dba.dropCluster('sample', {}, 5);
 
-//@ Dba: dropCluster interaction no options, cancel
+//@<OUT> Dba: dropCluster interaction no options, cancel
 var Cluster = dba.dropCluster('sample');
-
-//@ Dba: dropCluster interaction missing option, ok error
-var Cluster = dba.dropCluster('sample', {});
-
-//@ Dba: dropCluster interaction no options, ok success
-var Cluster = dba.dropCluster('devCluster');

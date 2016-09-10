@@ -27,15 +27,10 @@
 ||Dba.getCluster: Unexpected parameter received expected either the InnoDB cluster name or a Dictionary with options
 ||Dba.getCluster: Unexpected parameter received expected either the InnoDB cluster name or a Dictionary with options
 ||Dba.getCluster: The Cluster name cannot be empty
+||ArgumentError: Dba.getCluster: Authentication failure: wrong MASTER key.
 
 //@ Dba: getCluster
 |<Cluster:devCluster>|
-
-//@ Dba: addInstance
-||already belongs to the ReplicaSet: 'default'.||
-
-//@ Dba: removeInstance
-||
 
 //@# Dba: dropCluster errors
 ||Invalid number of arguments in Dba.dropCluster, expected 1 to 2 but got 0
@@ -45,6 +40,3 @@
 ||Invalid number of arguments in Dba.dropCluster, expected 1 to 2 but got 3
 ||Dba.dropCluster: The Cluster with the name 'sample' does not exist.
 ||Dba.dropCluster: The Cluster with the name 'devCluster' is not empty.
-
-//@ Dba: dropCluster
-||

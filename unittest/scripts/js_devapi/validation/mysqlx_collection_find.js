@@ -94,14 +94,14 @@
 |13 Years: 1|
 |14 Years: 3|
 |Under 17: 6|
-|Names With A: 3
+|Names With A: 3|
 
 //@ Collection.Find Field Selection
 |1-Metadata Length: 2|
 |1-Metadata Field: name|
 |1-Metadata Field: age|
 
-|2-Metadata Length: 1
+|2-Metadata Length: 1|
 |2-Metadata Field: age|
 
 //@ Collection.Find Sorting

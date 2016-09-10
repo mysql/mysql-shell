@@ -1,7 +1,6 @@
 // Assumptions: ensure_schema_does_not_exist is available
 // Assumes __uripwd is defined as <user>:<pwd>@<host>:<plugin_port>
 // validateMember and validateNotMember are defined on the setup script
-dba.dropMetadataSchema({ enforce: true });
 var ClusterPassword = 'testing';
 
 //@ Session: validating members
@@ -22,40 +21,32 @@ validateMember(members, 'validateInstance');
 validateMember(members, 'stopLocalInstance');
 
 //@# Dba: createCluster errors
-var Cluster = dba.createCluster();
-var Cluster = dba.createCluster(5);
-var Cluster = dba.createCluster('', 5);
-var Cluster = dba.createCluster('devCluster');
-var Cluster = dba.createCluster('devCluster', ClusterPassword);
-var Cluster = dba.createCluster('devCluster', ClusterPassword);
+var c1 = dba.createCluster();
+var c1 = dba.createCluster(5);
+var c1 = dba.createCluster('', 5);
+var c1 = dba.createCluster('devCluster');
+var c1 = dba.createCluster('devCluster', ClusterPassword);
+var c1 = dba.createCluster('devCluster', ClusterPassword);
 
 //@ Dba: createCluster
-print(Cluster)
+print(c1)
 
 //@# Dba: getCluster errors
-var Cluster = dba.getCluster();
-var Cluster = dba.getCluster(5);
-var Cluster = dba.getCluster('', 5);
-var Cluster = dba.getCluster('');
-var Cluster = dba.getCluster('devCluster');
+var c2 = dba.getCluster();
+var c2 = dba.getCluster(5);
+var c2 = dba.getCluster('', 5);
+var c2 = dba.getCluster('');
+var c2 = dba.getCluster('devCluster');
+var c2 = dba.getCluster('devCluster', {masterKey:ClusterPassword});
 
 //@ Dba: getCluster
-print(Cluster);
-
-//@ Dba: addInstance
-Cluster.addInstance({dbUser: "root", host: "127.0.0.1", port:__mysql_sandbox_port1}, "root");
-
-//@ Dba: removeInstance
-Cluster.removeInstance({host: "127.0.0.1", port:__mysql_sandbox_port1});
+print(c2);
 
 //@# Dba: dropCluster errors
-var Cluster = dba.dropCluster();
-var Cluster = dba.dropCluster(5);
-var Cluster = dba.dropCluster('');
-var Cluster = dba.dropCluster('sample', 5);
-var Cluster = dba.dropCluster('sample', {}, 5);
-var Cluster = dba.dropCluster('sample');
-var Cluster = dba.dropCluster('devCluster');
-
-//@ Dba: dropCluster
-dba.dropCluster('devCluster', {dropDefaultReplicaSet: true, masterKey: ClusterPassword});
+dba.dropCluster();
+dba.dropCluster(5);
+dba.dropCluster('');
+dba.dropCluster('sample', 5);
+dba.dropCluster('sample', {}, 5);
+dba.dropCluster('sample');
+dba.dropCluster('devCluster');

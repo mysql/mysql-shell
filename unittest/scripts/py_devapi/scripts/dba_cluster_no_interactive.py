@@ -2,11 +2,10 @@
 # Assumes __uripwd is defined as <user>:<pwd>@<host>:<plugin_port>
 # validateMemer and validateNotMember are defined on the setup script
 
-dba.drop_metadata_schema({'enforce':True})
 clusterPassword = 'testing';
 
 #@ Cluster: validating members
-cluster = dba.create_cluster('devCluster', clusterPassword)
+cluster = dba.get_cluster('devCluster', {"masterKey":clusterPassword})
 
 all_members = dir(cluster)
 
@@ -23,16 +22,10 @@ validateMember(members, 'admin_type')
 validateMember(members, 'get_admin_type')
 validateMember(members, 'add_instance')
 validateMember(members, 'remove_instance')
-validateMember(members, 'get_replica_set')
 validateMember(members, 'rejoin_instance');
 validateMember(members, 'describe');
 validateMember(members, 'status');
-
-#@ Cluster: remove_instance
-cluster.remove_instance({'host': '127.0.0.1', 'port': __mysql_sandbox_port1});
-
-#@ Cluster: add_instance
-cluster.add_instance({'dbUser': 'root', 'host': '127.0.0.1', 'port': __mysql_sandbox_port1}, 'root')
+validateMember(members, 'help');
 
 #@# Cluster: add_instance errors
 cluster.add_instance()
@@ -40,9 +33,43 @@ cluster.add_instance(5,6,7,1)
 cluster.add_instance(5,5)
 cluster.add_instance('',5)
 cluster.add_instance( 5)
-cluster.add_instance({'host': '127.0.0.1', 'schema': 'abs', 'user':"sample", 'authMethod':56})
+cluster.add_instance({'host': 'localhost', 'schema': 'abs', 'user':"sample", 'authMethod':56})
 cluster.add_instance({'port': __mysql_sandbox_port1})
-cluster.add_instance({'host': '127.0.0.1', 'port':__mysql_sandbox_port1}, 'root')
+cluster.add_instance({'host': 'localhost', 'port':__mysql_sandbox_port1}, 'root')
 
-# Cleanup
-dba.drop_cluster('devCluster', {'dropDefaultReplicaSet': True, 'masterKey': clusterPassword})
+#@ Cluster: add_instance
+cluster.add_instance({"dbUser": "root", "host": "localhost", "port":__mysql_sandbox_port2}, "root");
+
+#@<OUT> Cluster: describe1
+cluster.describe()
+
+#@<OUT> Cluster: status1
+cluster.status()
+
+#@ Cluster: remove_instance errors
+cluster.remove_instance();
+cluster.remove_instance(1,2);
+cluster.remove_instance(1);
+cluster.remove_instance({"host": "localhost");
+cluster.remove_instance({"host": "localhost", "schema": 'abs', "user":"sample", "authMethod":56});
+cluster.remove_instance("somehost:3306");
+
+
+#@ Cluster: remove_instance
+cluster.remove_instance({"host":'localhost', "port":__mysql_sandbox_port2})
+
+#@<OUT> Cluster: describe2
+cluster.describe()
+
+#@<OUT> Cluster: status2
+cluster.status()
+
+
+#@ Cluster: remove_instance last
+cluster.remove_instance({"host":'localhost', "port":__mysql_sandbox_port1})
+
+#@<OUT> Cluster: describe3
+cluster.describe()
+
+#@<OUT> Cluster: status3
+cluster.status()
