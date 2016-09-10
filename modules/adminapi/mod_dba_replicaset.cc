@@ -685,7 +685,6 @@ shcore::Value ReplicaSet::remove_instance_(const shcore::Argument_list &args) {
 }
 
 shcore::Value ReplicaSet::remove_instance(const shcore::Argument_list &args) {
-  shcore::Value ret_val;
   args.ensure_count(1, get_function_name("removeInstance").c_str());
 
   std::string uri;
@@ -737,7 +736,7 @@ shcore::Value ReplicaSet::remove_instance(const shcore::Argument_list &args) {
   std::string instance_address = options->get_string("host") + ":" + std::to_string(options->get_int("port"));
 
   if (!_metadata_storage->is_instance_on_replicaset(get_id(), instance_address))
-    throw shcore::Exception::logic_error("The instance '" + instance_address + "'' does not belong to the ReplicaSet: '" + get_member("name").as_string() + "'.");
+    throw shcore::Exception::logic_error("The instance '" + instance_address + "' does not belong to the ReplicaSet: '" + get_member("name").as_string() + "'.");
 
   MetadataStorage::Transaction tx(_metadata_storage);
 
@@ -761,9 +760,7 @@ shcore::Value ReplicaSet::remove_instance(const shcore::Argument_list &args) {
 
   exit_code = _provisioning_interface->leave_replicaset(instance_url, instance_admin_user_password, errors, verbose);
 
-  if (exit_code == 0)
-    ret_val = shcore::Value("The instance '" + instance_name + "' was successfully removed from the MySQL Cluster.");
-  else
+  if (exit_code != 0)
     throw shcore::Exception::logic_error(errors);
 
   // Drop users
@@ -789,5 +786,5 @@ shcore::Value ReplicaSet::remove_instance(const shcore::Argument_list &args) {
   temp_args.push_back(shcore::Value("SET sql_log_bin = 1"));
   classic->run_sql(temp_args);
 
-  return ret_val;
+  return shcore::Value();
 }

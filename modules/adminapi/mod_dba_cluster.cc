@@ -309,7 +309,7 @@ None remove_instance(Document doc) {}
 #endif
 
 shcore::Value Cluster::remove_instance(const shcore::Argument_list &args) {
-  args.ensure_count(1, 2, get_function_name("removeInstance").c_str());
+  args.ensure_count(1, get_function_name("removeInstance").c_str());
 
   // Remove the Instance from the Default ReplicaSet
   try {

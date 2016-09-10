@@ -33,8 +33,8 @@
 
 // These is* functions have undefined behavior if the passed value
 // is out of the -1-255 range
-#define IS_ALPHA(x) (x>=-1 && x<=255 && isalpha(x))
-#define IS_DIGIT(x) (x>=-1 && x<=255 && isdigit(x))
+#define IS_ALPHA(x) (isalpha(static_cast<unsigned char>(x)))
+#define IS_DIGIT(x) (isdigit(static_cast<unsigned char>(x)))
 
 using namespace shcore;
 

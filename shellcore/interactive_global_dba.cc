@@ -146,10 +146,11 @@ shcore::Value Global_dba::deploy_local_instance(const shcore::Argument_list &arg
 
     ret_val = _target->call(fname, valid_args);
 
+    println();
     if (deploying)
-      println("Instance localhost:" + std::to_string(port) + " successfully deployed and started.\n");
+      println("Instance localhost:" + std::to_string(port) + " successfully deployed and started.");
     else
-      println("Instance localhost:" + std::to_string(port) + " successfully started.\n");
+      println("Instance localhost:" + std::to_string(port) + " successfully started.");
 
     println("Use '\\connect root@localhost:" + std::to_string(port) + "' to connect to the instance.");
   }
@@ -218,7 +219,7 @@ shcore::Value Global_dba::drop_cluster(const shcore::Argument_list &args) {
     if (!valid_options) {
       std::string answer;
       println((boost::format("To remove the Cluster '%1%' the default replica set needs to be removed.") % cluster_name).str());
-      if (prompt((boost::format("Do you want to remove the default replica set? [y/n]: ")).str().c_str(), answer)) {
+      if (prompt((boost::format("Do you want to remove the default replica set? [y/N]: ")).str().c_str(), answer)) {
         if (!answer.compare("y") || !answer.compare("Y")) {
           options.reset(new shcore::Value::Map_type);
           (*options)["dropDefaultReplicaSet"] = shcore::Value(true);
@@ -284,7 +285,7 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
 
     auto dba = std::dynamic_pointer_cast<mysh::dba::Dba>(_target);
     auto session = dba->get_active_session();
-    println("A new InnoDB cluster will be created on instance '" + session->uri() + "'.\n\n");
+    println("A new InnoDB cluster will be created on instance '" + session->uri() + "'.\n");
 
     if (multi_master) {
       println(
@@ -378,8 +379,6 @@ shcore::Value Global_dba::drop_metadata_schema(const shcore::Argument_list &args
 }
 
 shcore::Value Global_dba::get_cluster(const shcore::Argument_list &args) {
-  Value ret_val;
-
   validate_session(get_function_name("getCluster"));
 
   args.ensure_count(0, 2, get_function_name("getCluster").c_str());
@@ -390,56 +389,70 @@ shcore::Value Global_dba::get_cluster(const shcore::Argument_list &args) {
   shcore::Argument_list new_args(args);
   std::string cluster_name;
   bool get_default_cluster = false;
+  bool cancelled = false;
 
-  if (args.size()) {
-    if (args.size() == 1) {
-      if (args[0].type == shcore::String)
-        cluster_name = args[0].as_string();
-      else if (args[0].type == shcore::Map) {
-        options = args[0].as_map();
-        get_default_cluster = true;
-      } else
-        throw shcore::Exception::argument_error("Unexpected parameter received expected either the InnoDB cluster name or a Dictionary with options");
-    } else {
-      cluster_name = args.string_at(0);
-      options = args[1].as_map();
+  try {
+    if (args.size()) {
+      if (args.size() == 1) {
+        if (args[0].type == shcore::String)
+          cluster_name = args[0].as_string();
+        else if (args[0].type == shcore::Map) {
+          options = args[0].as_map();
+          get_default_cluster = true;
+        } else
+          throw shcore::Exception::argument_error("Unexpected parameter received expected either the InnoDB cluster name or a Dictionary with options");
+      } else {
+        cluster_name = args.string_at(0);
+        options = args.map_at(1);
+      }
+    } else
+      get_default_cluster = true;
+
+    if (!options) {
+      options.reset(new shcore::Value::Map_type());
+      new_args.push_back(shcore::Value(options));
     }
-  } else
-    get_default_cluster = true;
 
-  if (!options) {
-    options.reset(new shcore::Value::Map_type());
-    new_args.push_back(shcore::Value(options));
-  }
+    if (!get_default_cluster && cluster_name.empty())
+      throw Exception::argument_error("The Cluster name cannot be empty.");
 
-  if (options->has_key("masterKey"))
-    master_key = options->get_string("masterKey");
+    if (options->has_key("masterKey"))
+      master_key = options->get_string("masterKey");
 
-  bool prompt_key = true;
-  while (prompt_key && master_key.empty()) {
     std::string message = "When the InnoDB cluster was setup, a MASTER key was defined in order to enable\n"\
-                          "performing administrative tasks on the cluster.\n";
+      "performing administrative tasks on the cluster.\n";
 
     println(message);
 
-    if (get_default_cluster)
-      message = "Please specify the administrative MASTER key for the default cluster: ";
-    else
-      message = "Please specify the administrative MASTER key for the cluster '" + cluster_name + "':";
+    if (master_key.empty()) {
+      if (get_default_cluster)
+        message = "Please specify the administrative MASTER key for the default cluster: ";
+      else
+        message = "Please specify the administrative MASTER key for the cluster '" + cluster_name + "': ";
 
-    prompt_key = password(message, master_key);
-    if (prompt_key) {
-      if (!master_key.empty())
-        (*options)["masterKey"] = shcore::Value(master_key);
+      std::string answer;
+      if (password(message, answer)) {
+        if (answer.empty())
+          throw shcore::Exception::runtime_error("Missing the administrative MASTER key for the cluster.");
+        else
+          (*options)["masterKey"] = shcore::Value(answer);
+      } else
+        cancelled = true;
     }
   }
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("getCluster"));
 
-  ScopedStyle ss(_target.get(), naming_style);
-  Value raw_cluster = _target->call("getCluster", new_args);
+  Value ret_val;
+  if (!cancelled) {
+    ScopedStyle ss(_target.get(), naming_style);
+    Value raw_cluster = _target->call("getCluster", new_args);
 
-  Interactive_dba_cluster* cluster = new Interactive_dba_cluster(this->_shell_core);
-  cluster->set_target(std::dynamic_pointer_cast<Cpp_object_bridge>(raw_cluster.as_object()));
-  return shcore::Value::wrap<Interactive_dba_cluster>(cluster);
+    Interactive_dba_cluster* cluster = new Interactive_dba_cluster(this->_shell_core);
+    cluster->set_target(std::dynamic_pointer_cast<Cpp_object_bridge>(raw_cluster.as_object()));
+    ret_val = shcore::Value::wrap<Interactive_dba_cluster>(cluster);
+  }
+
+  return ret_val;
 }
 
 shcore::Value Global_dba::validate_instance(const shcore::Argument_list &args) {

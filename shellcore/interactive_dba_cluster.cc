@@ -219,6 +219,8 @@ shcore::Value Interactive_dba_cluster::remove_instance(const shcore::Argument_li
   std::string uri;
   shcore::Value::Map_type_ref options; // Map with the connection data
 
+  args.ensure_count(1, get_function_name("removeInstance").c_str());
+
   std::string message = "The instance will be removed from the InnoDB cluster. Depending on the \n"
                         "instance being the Seed or not, the Metadata session might become invalid. \n"
                         "If so, please start a new session to the Metadata Storage R/W instance.\n\n";
@@ -239,7 +241,7 @@ shcore::Value Interactive_dba_cluster::remove_instance(const shcore::Argument_li
 
   ret_val = _target->call("removeInstance", args);
 
-  print("The instance '" + build_connection_string(options, false) + "' was successfully removed from the cluster.\n");
+  println("The instance '" + build_connection_string(options, false) + "' was successfully removed from the cluster.");
 
   return ret_val;
 }
