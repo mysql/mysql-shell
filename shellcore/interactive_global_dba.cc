@@ -302,16 +302,18 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
         return shcore::Value();
       }
     }
-    println("When setting up a new InnoDB cluster it is required to define an administrative\n"
-            "MASTER key for the cluster. This MASTER key needs to be re-entered when making\n"
-            "changes to the cluster later on, e.g.adding new MySQL instances or configuring\n"
-            "MySQL Routers. Losing this MASTER key will require the configuration of all\n"
-            "InnoDB cluster entities to be changed.\n");
+    if (cluster_password.empty()) {
+      println("When setting up a new InnoDB cluster it is required to define an administrative\n"
+              "MASTER key for the cluster. This MASTER key needs to be re-entered when making\n"
+              "changes to the cluster later on, e.g.adding new MySQL instances or configuring\n"
+              "MySQL Routers. Losing this MASTER key will require the configuration of all\n"
+              "InnoDB cluster entities to be changed.\n");
 
-    if (!password("Please specify an administrative MASTER key for the cluster '"
-        + cluster_name + "': ", cluster_password) || cluster_password.empty()) {
-      println("Cancelled");
-      return shcore::Value();
+      if (!password("Please specify an administrative MASTER key for the cluster '"
+          + cluster_name + "': ", cluster_password) || cluster_password.empty()) {
+        println("Cancelled");
+        return shcore::Value();
+      }
     }
     {
       shcore::Argument_list new_args;
