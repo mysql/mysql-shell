@@ -196,10 +196,6 @@ int ProvisioningInterface::exec_sandbox_op(const std::string &op, int port, int 
   }
 
   if (!sandbox_dir.empty()) {
-    // When the user specifies the sandbox dir we validate it
-    if (!sandbox_dir.empty() && !shcore::is_folder(sandbox_dir))
-      throw shcore::Exception::argument_error("The sandboxDir path '" + sandbox_dir + "' is not valid");
-
     sandbox_args.push_back("--sandboxdir");
 
 #ifdef _WIN32
