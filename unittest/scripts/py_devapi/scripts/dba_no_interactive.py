@@ -17,7 +17,6 @@ print "Session Members: %d" % len(members)
 validateMember(members, 'create_cluster');
 validateMember(members, 'delete_local_instance');
 validateMember(members, 'deploy_local_instance');
-validateMember(members, 'drop_cluster');
 validateMember(members, 'drop_metadata_schema');
 validateMember(members, 'get_cluster');
 validateMember(members, 'help');
@@ -32,11 +31,13 @@ c1 = dba.create_cluster()
 c1 = dba.create_cluster(5)
 c1 = dba.create_cluster('', 5)
 c1 = dba.create_cluster('devCluster')
-c1 = dba.create_cluster('devCluster', clusterPassword)
-c1 = dba.create_cluster('devCluster', clusterPassword)
 
-#@ Dba: create_cluster
+#@# Dba: create_cluster succeed
+c1 = dba.create_cluster('devCluster', clusterPassword);
 print c1
+
+#@# Dba: create_cluster already exist
+c1 = dba.create_cluster('devCluster', clusterPassword);
 
 #@# Dba: get_cluster errors
 c2 = dba.get_cluster()
@@ -48,12 +49,3 @@ c2 = dba.get_cluster('devCluster', {'masterKey':clusterPassword});
 
 #@ Dba: get_cluster
 print c2
-
-#@# Dba: drop_cluster errors
-dba.drop_cluster()
-dba.drop_cluster(5)
-dba.drop_cluster('')
-dba.drop_cluster('sample', 5)
-dba.drop_cluster('sample', {}, 5)
-dba.drop_cluster('sample')
-dba.drop_cluster('devCluster')

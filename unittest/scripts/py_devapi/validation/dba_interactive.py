@@ -1,9 +1,8 @@
 #@ Session: validating members
-|Session Members: 13|
+|Session Members: 12|
 |create_cluster: OK|
 |delete_local_instance: OK|
 |deploy_local_instance: OK|
-|drop_cluster: OK|
 |get_cluster: OK|
 |help: OK|
 |kill_local_instance: OK|
@@ -12,6 +11,7 @@
 |validate_instance: OK|
 |stop_local_instance: OK|
 |drop_metadata_schema: OK|
+|restart_local_instance: OK|
 
 #@# Dba: create_cluster errors
 ||Invalid number of arguments in Dba.create_cluster, expected 1 to 3 but got 0
@@ -49,14 +49,3 @@ When the InnoDB cluster was setup, a MASTER key was defined in order to enable
 performing administrative tasks on the cluster.
 
 Please specify the administrative MASTER key for the default cluster: <Cluster:devCluster>
-
-#@# Dba: drop_cluster errors
-||Invalid number of arguments in Dba.drop_cluster, expected 1 to 2 but got 0
-||Dba.drop_cluster: Argument #1 is expected to be a string
-||Dba.drop_cluster: The Cluster name cannot be empty
-||Dba.drop_cluster: Argument #2 is expected to be a map
-||Invalid number of arguments in Dba.drop_cluster, expected 1 to 2 but got 3
-
-#@<OUT> Dba: drop_cluster interaction no options, cancel
-To remove the Cluster 'sample' the default replica set needs to be removed.
-Do you want to remove the default replica set? [y/N]:

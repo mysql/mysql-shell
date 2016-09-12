@@ -9,7 +9,6 @@ print("Session Members:", members.length);
 validateMember(members, 'createCluster');
 validateMember(members, 'deleteLocalInstance');
 validateMember(members, 'deployLocalInstance');
-validateMember(members, 'dropCluster');
 validateMember(members, 'dropMetadataSchema');
 validateMember(members, 'getCluster');
 validateMember(members, 'help');
@@ -18,6 +17,7 @@ validateMember(members, 'resetSession');
 validateMember(members, 'startLocalInstance');
 validateMember(members, 'validateInstance');
 validateMember(members, 'stopLocalInstance');
+validateMember(members, 'restartLocalInstance');
 
 //@# Dba: createCluster errors
 var c1 = dba.createCluster();
@@ -40,13 +40,3 @@ c2;
 //@<OUT> Dba: getCluster with interaction (default)
 var c3 = dba.getCluster();
 c3;
-
-//@# Dba: dropCluster errors
-var Cluster = dba.dropCluster();
-var Cluster = dba.dropCluster(5);
-var Cluster = dba.dropCluster('');
-var Cluster = dba.dropCluster('sample', 5);
-var Cluster = dba.dropCluster('sample', {}, 5);
-
-//@<OUT> Dba: dropCluster interaction no options, cancel
-var Cluster = dba.dropCluster('sample');

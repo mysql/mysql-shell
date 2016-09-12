@@ -2,40 +2,96 @@
 // Assumes __uripwd is defined as <user>:<pwd>@<host>:<plugin_port>
 // validateMemer and validateNotMember are defined on the setup script
 
-dba.dropMetadataSchema({ enforce: true });
-var ClusterPassword = 'testing';
-var Cluster = dba.createCluster('devCluster', ClusterPassword);
-
-//@ Cluster: validating members
+//@<OUT> Cluster: getCluster with interaction
+var Cluster = dba.getCluster('devCluster');
 
 var members = dir(Cluster);
 
+//@ Cluster: validating members
 print("Cluster Members:", members.length);
+
 validateMember(members, 'name');
 validateMember(members, 'getName');
 validateMember(members, 'adminType');
 validateMember(members, 'getAdminType');
 validateMember(members, 'addInstance');
 validateMember(members, 'removeInstance');
-validateMember(members, 'getReplicaSet');
+validateMember(members, 'rejoinInstance');
+validateMember(members, 'describe');
+validateMember(members, 'status');
+validateMember(members, 'help');
+validateMember(members, 'dissolve');
 
-//@ Cluster: addInstance, no seed instance answer no
-Cluster.addInstance();
+//@# Cluster: addInstance errors
+Cluster.addInstance()
+Cluster.addInstance(5,6,7,1)
+Cluster.addInstance(5, 5)
 
-//@ Cluster: addInstance, no seed instance answer yes
-Cluster.addInstance(5);
+//@# Cluster: addInstance errors: missing host interactive, cancel
+Cluster.addInstance('', 5)
 
-//@ Cluster: addInstance, ignore invalid attributes no ignore
-Cluster.addInstance({host: "127.0.0.1", data:'sample', port:__mysql_sandbox_port1, whatever:5}, "root");
+//@# Cluster: addInstance errors 2
+Cluster.addInstance( 5)
 
-//@ Cluster: addInstance, ignore invalid attributes ignore
-Cluster.addInstance({host: "127.0.0.1", data:'sample', port:__mysql_sandbox_port1, whatever:5}, "root");
+//@# Cluster: addInstance errors: invalid attributes, cancel
+Cluster.addInstance({host: "localhost", schema: 'abs', user:"sample", authMethod:56});
 
-//@ Cluster: addSeedInstance, it already initialized, answer no
-Cluster.addSeedInstance({host: "127.0.0.1", port:__mysql_sandbox_port1}, "root");
+//@# Cluster: addInstance errors: missing host interactive, cancel 2
+Cluster.addInstance({port: __mysql_sandbox_port1});
 
-//@ Cluster: addSeedInstance, it already initialized, answer yes
-Cluster.addSeedInstance({host: "127.0.0.1", port:__mysql_sandbox_port1}, "root");
+//@# Cluster: addInstance with interaction, error
+Cluster.addInstance({host: "localhost", port:__mysql_sandbox_port1});
 
-// Cleanup
-dba.dropCluster('devCluster', {dropDefaultReplicaSet: true, masterKey: ClusterPassword});
+//@<OUT> Cluster: addInstance with interaction, ok
+Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port2});
+
+//@<OUT> Cluster: describe1
+Cluster.describe()
+
+//@<OUT> Cluster: status1
+Cluster.status()
+
+//@# Cluster: removeInstance errors
+Cluster.removeInstance();
+Cluster.removeInstance(1,2);
+Cluster.removeInstance(1);
+Cluster.removeInstance({host: "localhost"});
+Cluster.removeInstance({host: "localhost", schema: 'abs', user:"sample", authMethod:56});
+Cluster.removeInstance("somehost:3306");
+
+//@ Cluster: removeInstance
+Cluster.removeInstance({host:'localhost', port:__mysql_sandbox_port2})
+
+//@<OUT> Cluster: describe2
+Cluster.describe()
+
+//@<OUT> Cluster: status2
+Cluster.status()
+
+//@<OUT> Cluster: dissolve error: not empty
+Cluster.dissolve()
+
+//@ Cluster: dissolve errors
+Cluster.dissolve(1)
+Cluster.dissolve(1,2)
+Cluster.dissolve("")
+Cluster.dissolve({foobar: true})
+Cluster.dissolve({force: 1})
+
+//@ Cluster: remove_instance last
+Cluster.removeInstance({host:'localhost', port:__mysql_sandbox_port1})
+
+//@<OUT> Cluster: describe3
+Cluster.describe()
+
+//@<OUT> Cluster: status3
+Cluster.status()
+
+//@<OUT> Cluster: addInstance with interaction, ok 2
+Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port1});
+
+//@<OUT> Cluster: addInstance with interaction, ok 3
+Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_port2});
+
+//@<OUT> Cluster: dissolve
+Cluster.dissolve({force: true})

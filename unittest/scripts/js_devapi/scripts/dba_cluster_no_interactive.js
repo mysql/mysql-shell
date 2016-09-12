@@ -20,6 +20,7 @@ validateMember(members, 'rejoinInstance');
 validateMember(members, 'describe');
 validateMember(members, 'status');
 validateMember(members, 'help');
+validateMember(members, 'dissolve');
 
 //@# Cluster: addInstance errors
 Cluster.addInstance()
@@ -44,7 +45,7 @@ Cluster.status()
 Cluster.removeInstance();
 Cluster.removeInstance(1,2);
 Cluster.removeInstance(1);
-Cluster.removeInstance({host: "localhost");
+Cluster.removeInstance({host: "localhost"});
 Cluster.removeInstance({host: "localhost", schema: 'abs', user:"sample", authMethod:56});
 Cluster.removeInstance("somehost:3306");
 
@@ -66,3 +67,14 @@ Cluster.describe()
 
 //@<OUT> Cluster: status3
 Cluster.status()
+
+//@ Cluster: dissolve errors
+Cluster.dissolve()
+Cluster.dissolve(1)
+Cluster.dissolve(1,2)
+Cluster.dissolve("")
+Cluster.dissolve({foobar: true})
+Cluster.dissolve({force: 1})
+
+//@ Cluster: dissolve
+Cluster.dissolve({force: true})

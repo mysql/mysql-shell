@@ -1,5 +1,5 @@
 //@ Cluster: validating members
-|Cluster Members: 10|
+|Cluster Members: 11|
 |name: OK|
 |getName: OK|
 |adminType: OK|
@@ -10,6 +10,7 @@
 |describe: OK|
 |status: OK|
 |help: OK|
+|dissolve: OK|
 
 
 //@# Cluster: addInstance errors
@@ -74,11 +75,11 @@
 
 
 //@ Cluster: removeInstance errors
-||ArgumentError: Invalid number of arguments in Cluster.removeInstance, expected 1 but got 0
-||ArgumentError: Invalid number of arguments in Cluster.removeInstance, expected 1 but got 2
-||ArgumentError: Cluster.removeInstance: Invalid connection options, expected either a URI or a Dictionary
-||ArgumentError: Cluster.removeInstance: Unexpected instance options: authMethod, schema, user
-||ArgumentError: Cluster.removeInstance: The instance 'somehost:3306' does not belong to the ReplicaSet: 'default'
+||Invalid number of arguments in Cluster.removeInstance, expected 1 but got 0
+||Invalid number of arguments in Cluster.removeInstance, expected 1 but got 2
+||Cluster.removeInstance: Invalid connection options, expected either a URI or a Dictionary
+||Cluster.removeInstance: Unexpected instance options: authMethod, schema, user
+||Cluster.removeInstance: The instance 'somehost:3306' does not belong to the ReplicaSet: 'default'
 
 //@ Cluster: removeInstance
 ||
@@ -138,3 +139,14 @@
         "topology": {}
     }
 }
+
+//@ Cluster: dissolve errors
+||Cluster.dissolve: Cannot drop cluster: The cluster is not empty
+||Cluster.dissolve: Argument #1 is expected to be a map
+||Invalid number of arguments in Cluster.dissolve, expected 0 to 1 but got 2
+||Cluster.dissolve: Argument #1 is expected to be a map
+||Cluster.dissolve: The options contain the following invalid attributes: foobar
+||Cluster.dissolve: Invalid data type for 'force' field, should be a boolean
+
+//@ Cluster: dissolve
+||

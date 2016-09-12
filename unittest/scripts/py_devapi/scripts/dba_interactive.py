@@ -25,6 +25,7 @@ validateMember(members, 'reset_session');
 validateMember(members, 'start_local_instance');
 validateMember(members, 'validate_instance');
 validateMember(members, 'stop_local_instance');
+validateMember(members, 'restart_local_instance');
 
 #@# Dba: create_cluster errors
 c1 = dba.create_cluster()
@@ -47,13 +48,3 @@ c2
 #@<OUT> Dba: get_cluster with interaction (default)
 c3 = dba.get_cluster()
 c3
-
-#@# Dba: drop_cluster errors
-cluster = dba.drop_cluster()
-cluster = dba.drop_cluster(5)
-cluster = dba.drop_cluster('')
-cluster = dba.drop_cluster('sample', 5)
-cluster = dba.drop_cluster('sample', {}, 5)
-
-#@<OUT> Dba: drop_cluster interaction no options, cancel
-cluster = dba.drop_cluster('sample')

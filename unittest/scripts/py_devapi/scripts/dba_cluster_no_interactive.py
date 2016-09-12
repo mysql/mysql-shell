@@ -26,6 +26,7 @@ validateMember(members, 'rejoin_instance');
 validateMember(members, 'describe');
 validateMember(members, 'status');
 validateMember(members, 'help');
+validateMember(members, 'dissolve');
 
 #@# Cluster: add_instance errors
 cluster.add_instance()
@@ -73,3 +74,14 @@ cluster.describe()
 
 #@<OUT> Cluster: status3
 cluster.status()
+
+#@ Cluster: dissolve errors
+cluster.dissolve()
+cluster.dissolve(1)
+cluster.dissolve(1,2)
+cluster.dissolve("")
+cluster.dissolve({'enforce': True})
+cluster.dissolve({'force': 1})
+
+#@ Cluster: dissolve
+cluster.dissolve({'force': True})

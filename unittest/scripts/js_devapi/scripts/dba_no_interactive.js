@@ -10,7 +10,6 @@ print("Session Members:", members.length);
 validateMember(members, 'createCluster');
 validateMember(members, 'deleteLocalInstance');
 validateMember(members, 'deployLocalInstance');
-validateMember(members, 'dropCluster');
 validateMember(members, 'dropMetadataSchema');
 validateMember(members, 'getCluster');
 validateMember(members, 'help');
@@ -19,17 +18,20 @@ validateMember(members, 'resetSession');
 validateMember(members, 'startLocalInstance');
 validateMember(members, 'validateInstance');
 validateMember(members, 'stopLocalInstance');
+validateMember(members, 'restartLocalInstance');
 
 //@# Dba: createCluster errors
 var c1 = dba.createCluster();
 var c1 = dba.createCluster(5);
 var c1 = dba.createCluster('', 5);
 var c1 = dba.createCluster('devCluster');
-var c1 = dba.createCluster('devCluster', ClusterPassword);
-var c1 = dba.createCluster('devCluster', ClusterPassword);
 
-//@ Dba: createCluster
+//@# Dba: createCluster succeed
+var c1 = dba.createCluster('devCluster', ClusterPassword);
 print(c1)
+
+//@# Dba: createCluster already exist
+var c1 = dba.createCluster('devCluster', ClusterPassword);
 
 //@# Dba: getCluster errors
 var c2 = dba.getCluster();
@@ -41,12 +43,3 @@ var c2 = dba.getCluster('devCluster', {masterKey:ClusterPassword});
 
 //@ Dba: getCluster
 print(c2);
-
-//@# Dba: dropCluster errors
-dba.dropCluster();
-dba.dropCluster(5);
-dba.dropCluster('');
-dba.dropCluster('sample', 5);
-dba.dropCluster('sample', {}, 5);
-dba.dropCluster('sample');
-dba.dropCluster('devCluster');

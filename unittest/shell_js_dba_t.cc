@@ -119,11 +119,6 @@ TEST_F(Shell_js_dba_tests, no_interactive_classic_global_cluster) {
   // Lets the cluster empty
   validate_interactive("dba_cluster_no_interactive.js");
 
-  // Drops the cluster the instances remain intact
-  execute("dba.dropCluster('devCluster', {dropDefaultReplicaSet:true});");
-  execute("var c = dba.getCluster({masterKey:'testing'});");
-  MY_EXPECT_STDERR_CONTAINS("Dba.getCluster: No default cluster is configured.");
-
   execute("session.close();");
 }
 
@@ -154,11 +149,6 @@ TEST_F(Shell_js_dba_tests, no_interactive_classic_custom_cluster) {
   // Lets the cluster empty
   validate_interactive("dba_cluster_no_interactive.js");
 
-  // Drops the cluster the instances remain intact
-  execute("dba.dropCluster('devCluster', {dropDefaultReplicaSet:true});");
-  execute("var c = dba.getCluster();");
-  MY_EXPECT_STDERR_CONTAINS("Dba.getCluster: No default cluster is configured.");
-
   execute("mySession.close();");
 }
 
@@ -184,11 +174,104 @@ TEST_F(Shell_js_dba_tests, interactive_classic_global_dba) {
   // Lets the cluster created
   validate_interactive("dba_interactive.js");
 
-  // TODO: These three lines are temporary cleanup
-  // They should be deleted when the interactive tests for the cluster are in place
-  execute("var c = dba.getCluster({ masterKey:'testing' })");
-  execute("c.removeInstance('localhost':" + _mysql_sandbox_port1 + ")");
-  execute("dba.dropCluster('devCluster', { dropDefaultReplicaSet:true });");
+  execute("session.close();");
+}
+
+TEST_F(Shell_js_dba_tests, interactive_classic_global_cluster) {
+  execute("\\connect -c root:root@localhost:" + _mysql_sandbox_port1 + "");
+
+  //@<OUT> Cluster: getCluster with interaction
+  output_handler.passwords.push_back("testing");
+
+  //@# Cluster: addInstance errors: missing host interactive, cancel
+  output_handler.prompts.push_back("3");
+
+  //@# Cluster: addInstance errors: invalid attributes, cancel
+  output_handler.prompts.push_back("n");
+
+  //@# Cluster: addInstance errors: missing host interactive, cancel 2
+  output_handler.prompts.push_back("3");
+
+  //@# Cluster: addInstance with interaction, error
+  output_handler.passwords.push_back("root");
+
+  //@<OUT> Cluster: addInstance with interaction, ok
+  output_handler.passwords.push_back("root");
+
+  //@<OUT> Cluster: addInstance with interaction, ok 2
+  output_handler.passwords.push_back("root");
+
+  //@<OUT> Cluster: addInstance with interaction, ok 3
+  output_handler.passwords.push_back("root");
+
+  // Tests cluster functionality, adding, removing instances
+  // error conditions
+  // Lets the cluster empty
+  validate_interactive("dba_cluster_interactive.js");
+
+  execute("session.close();");
+}
+
+TEST_F(Shell_js_dba_tests, interactive_custom_global_dba) {
+  execute("var mysql = require('mysql');");
+  execute("var mySession = mysql.getClassicSession('root:root@localhost:" + _mysql_sandbox_port1 + "');");
+  execute("dba.resetSession(mySession);");
+
+  //@<OUT> Dba: createCluster with interaction
+  output_handler.passwords.push_back("testing");
+
+  //@<OUT> Dba: getCluster with interaction
+  output_handler.passwords.push_back("testing");
+
+  //@<OUT> Dba: getCluster with interaction (default)
+  output_handler.passwords.push_back("testing");
+
+  //@<OUT> Dba: dropCluster interaction no options, cancel
+  output_handler.prompts.push_back("n");
+
+  //@<OUT> Dba: dropCluster interaction missing option, ok error
+  output_handler.prompts.push_back("y");
+
+  // Validates error conditions on create, get and drop cluster
+  // Lets the cluster created
+  validate_interactive("dba_interactive.js");
+
+  execute("session.close();");
+}
+
+TEST_F(Shell_js_dba_tests, interactive_custom_global_cluster) {
+  execute("var mysql = require('mysql');");
+  execute("var mySession = mysql.getClassicSession('root:root@localhost:" + _mysql_sandbox_port1 + "');");
+  execute("dba.resetSession(mySession);");
+
+  //@<OUT> Cluster: getCluster with interaction
+  output_handler.passwords.push_back("testing");
+
+  //@# Cluster: addInstance errors: missing host interactive, cancel
+  output_handler.prompts.push_back("3");
+
+  //@# Cluster: addInstance errors: invalid attributes, cancel
+  output_handler.prompts.push_back("n");
+
+  //@# Cluster: addInstance errors: missing host interactive, cancel 2
+  output_handler.prompts.push_back("3");
+
+  //@# Cluster: addInstance with interaction, error
+  output_handler.passwords.push_back("root");
+
+  //@<OUT> Cluster: addInstance with interaction, ok
+  output_handler.passwords.push_back("root");
+
+  //@<OUT> Cluster: addInstance with interaction, ok 2
+  output_handler.passwords.push_back("root");
+
+  //@<OUT> Cluster: addInstance with interaction, ok 3
+  output_handler.passwords.push_back("root");
+
+  // Tests cluster functionality, adding, removing instances
+  // error conditions
+  // Lets the cluster empty
+  validate_interactive("dba_cluster_interactive.js");
 
   execute("session.close();");
 }

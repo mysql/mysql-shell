@@ -121,11 +121,6 @@ TEST_F(Shell_py_dba_tests, no_interactive_classic_global_cluster) {
   // Lets the cluster empty
   validate_interactive("dba_cluster_no_interactive.py");
 
-  // Drops the cluster the instances remain intact
-  execute("dba.drop_cluster('devCluster', {'dropDefaultReplicaSet':True})");
-  execute("c = dba.get_cluster({'masterKey':'testing'})");
-  MY_EXPECT_STDERR_CONTAINS("Dba.get_cluster: No default cluster is configured.");
-
   execute("session.close()");
 }
 
@@ -156,41 +151,129 @@ TEST_F(Shell_py_dba_tests, no_interactive_classic_custom_cluster) {
   // Lets the cluster empty
   validate_interactive("dba_cluster_no_interactive.py");
 
-  // Drops the cluster the instances remain intact
-  execute("dba.drop_cluster('devCluster', {'dropDefaultReplicaSet':True})");
-  execute("c = dba.get_cluster({'masterKey':'testing'})");
-  MY_EXPECT_STDERR_CONTAINS("Dba.get_cluster: No default cluster is configured.");
-
   execute("mySession.close()");
 }
 
 TEST_F(Shell_py_dba_tests, interactive_classic_global_dba) {
   execute("\\connect -c root:root@localhost:" + _mysql_sandbox_port1 + "");
 
-  //@<OUT> Dba: createCluster with interaction
+  //@<OUT> Dba: create_cluster with interaction
   output_handler.passwords.push_back("testing");
 
-  //@<OUT> Dba: getCluster with interaction
+  //@<OUT> Dba: get_cluster with interaction
   output_handler.passwords.push_back("testing");
 
-  //@<OUT> Dba: getCluster with interaction (default)
+  //@<OUT> Dba: get_cluster with interaction (default)
   output_handler.passwords.push_back("testing");
 
-  //@<OUT> Dba: dropCluster interaction no options, cancel
+  //@<OUT> Dba: drop_cluster interaction no options, cancel
   output_handler.prompts.push_back("n");
 
-  //@<OUT> Dba: dropCluster interaction missing option, ok error
+  //@<OUT> Dba: drop_cluster interaction missing option, ok error
   output_handler.prompts.push_back("y");
 
   // Validates error conditions on create, get and drop cluster
   // Lets the cluster created
   validate_interactive("dba_interactive.py");
 
-  // TODO: These three lines are temporary cleanup
-  // They should be deleted when the interactive tests for the cluster are in place
-  execute("var c = dba.getCluster({ 'masterKey':'testing' })");
-  execute("c.removeInstance('localhost':" + _mysql_sandbox_port1 + ")");
-  execute("dba.dropCluster('devCluster', { 'dropDefaultReplicaSet':True });");
+  execute("session.close();");
+}
+
+TEST_F(Shell_py_dba_tests, interactive_classic_global_cluster) {
+  execute("\\connect -c root:root@localhost:" + _mysql_sandbox_port1 + "");
+
+  //@<OUT> Cluster: get_cluster with interaction
+  output_handler.passwords.push_back("testing");
+
+  //@# Cluster: add_instance errors: missing host interactive, cancel
+  output_handler.prompts.push_back("3");
+
+  //@# Cluster: add_instance errors: invalid attributes, cancel
+  output_handler.prompts.push_back("n");
+
+  //@# Cluster: add_instance errors: missing host interactive, cancel 2
+  output_handler.prompts.push_back("3");
+
+  //@# Cluster: add_instance with interaction, error
+  output_handler.passwords.push_back("root");
+
+  //@<OUT> Cluster: add_instance with interaction, ok
+  output_handler.passwords.push_back("root");
+
+  //@<OUT> Cluster: add_instance with interaction, ok 2
+  output_handler.passwords.push_back("root");
+
+  //@<OUT> Cluster: add_instance with interaction, ok 3
+  output_handler.passwords.push_back("root");
+
+  // Tests cluster functionality, adding, removing instances
+  // error conditions
+  // Lets the cluster empty
+  validate_interactive("dba_cluster_interactive.py");
+
+  execute("session.close();");
+}
+
+TEST_F(Shell_py_dba_tests, interactive_custom_global_dba) {
+  execute("import mysql");
+  execute("mySession = mysql.get_classic_session('root:root@localhost:" + _mysql_sandbox_port1 + "')");
+  execute("dba.reset_session(mySession)");
+
+  //@<OUT> Dba: create_cluster with interaction
+  output_handler.passwords.push_back("testing");
+
+  //@<OUT> Dba: get_cluster with interaction
+  output_handler.passwords.push_back("testing");
+
+  //@<OUT> Dba: get_cluster with interaction (default)
+  output_handler.passwords.push_back("testing");
+
+  //@<OUT> Dba: drop_cluster interaction no options, cancel
+  output_handler.prompts.push_back("n");
+
+  //@<OUT> Dba: drop_cluster interaction missing option, ok error
+  output_handler.prompts.push_back("y");
+
+  // Validates error conditions on create, get and drop cluster
+  // Lets the cluster created
+  validate_interactive("dba_interactive.py");
+
+  execute("session.close();");
+}
+
+TEST_F(Shell_py_dba_tests, interactive_custom_global_cluster) {
+  execute("import mysql");
+  execute("mySession = mysql.get_classic_session('root:root@localhost:" + _mysql_sandbox_port1 + "')");
+  execute("dba.reset_session(mySession)");
+
+  //@<OUT> Cluster: get_cluster with interaction
+  output_handler.passwords.push_back("testing");
+
+  //@# Cluster: add_instance errors: missing host interactive, cancel
+  output_handler.prompts.push_back("3");
+
+  //@# Cluster: add_instance errors: invalid attributes, cancel
+  output_handler.prompts.push_back("n");
+
+  //@# Cluster: add_instance errors: missing host interactive, cancel 2
+  output_handler.prompts.push_back("3");
+
+  //@# Cluster: add_instance with interaction, error
+  output_handler.passwords.push_back("root");
+
+  //@<OUT> Cluster: add_instance with interaction, ok
+  output_handler.passwords.push_back("root");
+
+  //@<OUT> Cluster: add_instance with interaction, ok 2
+  output_handler.passwords.push_back("root");
+
+  //@<OUT> Cluster: add_instance with interaction, ok 3
+  output_handler.passwords.push_back("root");
+
+  // Tests cluster functionality, adding, removing instances
+  // error conditionss
+  // Lets the cluster empty
+  validate_interactive("dba_cluster_interactive.py");
 
   execute("session.close();");
 }
