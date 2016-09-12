@@ -410,4 +410,45 @@ std::string get_default_config_path() {
   path += _file_path;
   return path;
 }
+
+/*
+ * Returns the HOME path (~ in Unix or %AppData%\ in Windows).
+ */
+std::string get_home_dir() {
+  std::string path_separator;
+  std::string path;
+  std::vector <std::string> to_append;
+
+#ifdef WIN32
+  path_separator = "\\";
+  char szPath[MAX_PATH];
+  HRESULT hr;
+
+  if (SUCCEEDED(hr = SHGetFolderPathA(NULL, CSIDL_PROFILE, NULL, 0, szPath)))
+    path.assign(szPath);
+  else {
+    _com_error err(hr);
+    throw std::runtime_error((boost::format("Error when gathering the PROFILE folder path: %s") % err.ErrorMessage()).str());
+  }
+#else
+  path_separator = "/";
+  char* cpath = std::getenv("HOME");
+
+  if (cpath != NULL)
+    path.assign(cpath);
+#endif
+
+  // Up to know the path must exist since it was retrieved from OS standard means
+  // we need to guarantee the rest of the path exists
+  if (!path.empty()) {
+    for (size_t index = 0; index < to_append.size(); index++) {
+      path += path_separator + to_append[index];
+      ensure_dir_exists(path);
+    }
+
+    path += path_separator;
+  }
+
+  return path;
+}
 }
