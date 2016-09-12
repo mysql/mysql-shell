@@ -102,16 +102,19 @@ int ProvisioningInterface::execute_mysqlprovision(const std::string &cmd, const 
       log_warning("DBA: %s while executing mysqlprovision", e.what());
     }
   }
-  int rc;
+
   try {
-    while ((rc = p.read(&c, 1)) > 0) {
+    while (p.read(&c, 1) > 0) {
       buf += c;
       if (c == '\n') {
         if (verbose)
           _delegate->print(_delegate->user_data, buf.c_str());
+
         log_debug("DBA: mysqlprovision: %s", buf.c_str());
+
         if ((buf.find("ERROR") != std::string::npos) || (buf.find("mysqlprovision: error") != std::string::npos))
             error_output.append(buf);
+
         full_output.append(buf);
         buf = "";
       }
@@ -122,9 +125,13 @@ int ProvisioningInterface::execute_mysqlprovision(const std::string &cmd, const 
   if (!buf.empty()) {
     if (verbose)
       _delegate->print(_delegate->user_data, buf.c_str());
+
     log_debug("DBA: mysqlprovision: %s", buf.c_str());
+
     if ((buf.find("ERROR") != std::string::npos) || (buf.find("mysqlprovision: error") != std::string::npos))
-      full_output.append(buf);
+      error_output.append(buf);
+
+    full_output.append(buf);
   }
   exit_code = p.wait();
 
@@ -132,6 +139,7 @@ int ProvisioningInterface::execute_mysqlprovision(const std::string &cmd, const 
    * process launcher returns 128 if an ENOENT happened.
    */
   if (exit_code == 128) {
+    // Print full output if it wasn't already printed before because of verbose
     if (!verbose) {
       _delegate->print(_delegate->user_data, full_output.c_str());
     }
@@ -143,33 +151,46 @@ int ProvisioningInterface::execute_mysqlprovision(const std::string &cmd, const 
    * The logged message starts with "ERROR: "
    */
   else if (exit_code == 1) {
-    _delegate->print_error(_delegate->user_data,
-                     ("mysqlprovision exited with error code " + std::to_string(exit_code) + "\n").c_str());
+    // Print full output if it wasn't already printed before because of verbose
     if (!verbose) {
       _delegate->print(_delegate->user_data, full_output.c_str());
     }
+    log_error("DBA: mysqlprovision exited with error code: %s ", std::to_string(exit_code).c_str());
+
     std::string remove_me = "ERROR: Error executing the '" + cmd + "' command:";
 
-    std::string::size_type i = full_output.find(remove_me);
+    std::string::size_type i = error_output.find(remove_me);
 
     if (i != std::string::npos)
-      full_output.erase(i, remove_me.length());
+      error_output.erase(i, remove_me.length());
 
-    errors = full_output;
+    if (verbose)
+      errors = full_output;
+    else
+      errors = error_output;
 
     /*
      * mysqlprovision returns 2 as exit-code for parameters parsing errors
      * The logged message starts with "mysqlprovision: error: "
      */
   } else if (exit_code == 2) {
+    // Print full output if it wasn't already printed before because of verbose
+    if (!verbose) {
+      _delegate->print(_delegate->user_data, full_output.c_str());
+    }
+    log_error("DBA: mysqlprovision exited with error code: %s ", std::to_string(exit_code).c_str());
+
     std::string remove_me = "mysqlprovision: error:";
 
-    std::string::size_type i = full_output.find(remove_me);
+    std::string::size_type i = error_output.find(remove_me);
 
     if (i != std::string::npos)
-      full_output.erase(i, remove_me.length());
+      error_output.erase(i, remove_me.length());
 
-    errors = full_output;
+    if (verbose)
+      errors = full_output;
+    else
+      errors = error_output;
   }
   if (errors.empty() && exit_code != 0) {
     errors = "Error while executing mysqlprovision (return " + std::to_string(exit_code) + ")";

@@ -77,6 +77,8 @@ public:
   Undefined rejoinInstance(String name);
   Undefined removeInstance(String name);
   Undefined removeInstance(Document doc);
+  Undefined dissolve(Document doc);
+  Undefined disable();
 
 #elif DOXYGEN_PY
   str get_name();
@@ -85,6 +87,8 @@ public:
   None rejoin_instance(str name);
   None remove_instance(str name);
   None remove_instance(Document doc);
+  None dissolve(Document doc);
+  None disable();
 #endif
 
   shcore::Value add_instance_(const shcore::Argument_list &args);
@@ -92,6 +96,8 @@ public:
   shcore::Value rejoin_instance(const shcore::Argument_list &args);
   shcore::Value remove_instance_(const shcore::Argument_list &args);
   shcore::Value remove_instance(const shcore::Argument_list &args);
+  shcore::Value dissolve(const shcore::Argument_list &args);
+  shcore::Value disable(const shcore::Argument_list &args);
 
 protected:
   uint64_t _id;

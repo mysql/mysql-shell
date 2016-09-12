@@ -91,6 +91,7 @@ public:
   Undefined removeInstance(String name);
   Undefined removeInstance(Document doc);
   String describe();
+  Undefined dissolve(Document doc);
 #elif DOXYGEN_PY
   str get_name();
   str get_admin_type();
@@ -102,6 +103,7 @@ public:
   None remove_instance(str name);
   None remove_instance(Document doc);
   str describe();
+  None dissolve(Document doc);
 #endif
 
   shcore::Value add_seed_instance(const shcore::Argument_list &args);
@@ -111,6 +113,7 @@ public:
   shcore::Value get_replicaset(const shcore::Argument_list &args);
   shcore::Value describe(const shcore::Argument_list &args);
   shcore::Value status(const shcore::Argument_list &args);
+  shcore::Value dissolve(const shcore::Argument_list &args);
 
 protected:
   uint64_t _id;

@@ -33,6 +33,7 @@
 #include <sstream>
 #include <iostream>
 #include <iomanip>
+#include <string>
 
 #include <boost/lexical_cast.hpp>
 
@@ -251,6 +252,8 @@ void ReplicaSet::init() {
   add_method("addInstance", std::bind(&ReplicaSet::add_instance_, this, _1), "data");
   add_method("rejoinInstance", std::bind(&ReplicaSet::rejoin_instance, this, _1), "data");
   add_method("removeInstance", std::bind(&ReplicaSet::remove_instance_, this, _1), "data");
+  add_varargs_method("disable", std::bind(&ReplicaSet::disable, this, _1));
+  add_varargs_method("dissolve", std::bind(&ReplicaSet::dissolve, this, _1));
 
   _provisioning_interface.reset(new ProvisioningInterface(_metadata_storage->get_dba()->get_owner()->get_delegate()));
 }
@@ -787,4 +790,131 @@ shcore::Value ReplicaSet::remove_instance(const shcore::Argument_list &args) {
   classic->run_sql(temp_args);
 
   return shcore::Value();
+}
+
+shcore::Value ReplicaSet::dissolve(const shcore::Argument_list &args) {
+  shcore::Value ret_val;
+  args.ensure_count(0, 1, get_function_name("dissolve").c_str());
+
+  try {
+    bool verbose = false;
+    bool force = false;
+    shcore::Value::Map_type_ref options;
+
+    if (args.size() == 1)
+      options = args.map_at(0);
+
+      if (options) {
+        // Verification of invalid attributes on the instance creation options
+        auto invalids = shcore::get_additional_keys(options, { "verbose", "force" });
+        if (invalids.size()) {
+          std::string error = "The options contain the following invalid attributes: ";
+          error += shcore::join_strings(invalids, ", ");
+          throw shcore::Exception::argument_error(error);
+        }
+
+      if (options->has_key("force")) {
+        if ((*options)["force"].type != shcore::Bool)
+          throw shcore::Exception::type_error("Invalid data type for 'force' field, should be a boolean");
+        force = options->get_bool("force");
+      }
+
+      if (options->has_key("verbose")) {
+        if ((*options)["verbose"].type != shcore::Bool)
+          throw shcore::Exception::type_error("Invalid data type for 'force' field, should be a boolean");
+        verbose = options->get_bool("verbose");
+      }
+    }
+
+    if (force) {
+      shcore::Argument_list args;
+      Value::Map_type_ref options(new shcore::Value::Map_type);
+      (*options)["verbose"] = shcore::Value(verbose);
+      args.push_back(shcore::Value(options));
+
+      // disable the ReplicaSet
+      disable(args);
+    }
+
+    else if (_metadata_storage->is_replicaset_active(get_id()))
+      throw shcore::Exception::logic_error("Cannot dissolve the ReplicaSet: the ReplicaSet is active.");
+
+    MetadataStorage::Transaction tx(_metadata_storage);
+
+    // remove all the instances from the ReplicaSet
+    auto instances = _metadata_storage->get_replicaset_instances(get_id());
+
+    for (auto value : *instances.get()) {
+      auto row = value.as_object<mysh::Row>();
+
+      std::string instance_name = row->get_member(1).as_string();
+      shcore::Argument_list args_instance;
+      args_instance.push_back(shcore::Value(instance_name));
+
+      remove_instance(args_instance);
+    }
+
+    // Remove the replicaSet
+    _metadata_storage->drop_replicaset(get_id());
+
+    tx.commit();
+  } CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION("dissolve");
+
+  return ret_val;
+}
+
+shcore::Value ReplicaSet::disable(const shcore::Argument_list &args) {
+  shcore::Value ret_val;
+
+  args.ensure_count(0, 1, get_function_name("disable").c_str());
+
+  try {
+    bool verbose = false;
+    shcore::Value::Map_type_ref options;
+    MetadataStorage::Transaction tx(_metadata_storage);
+
+    if (args.size() == 1)
+      options = args.map_at(0);
+
+      if (options) {
+        // Verification of invalid attributes on the instance creation options
+        auto invalids = shcore::get_additional_keys(options, { "verbose" });
+        if (invalids.size()) {
+          std::string error = "The options contain the following invalid attributes: ";
+          error += shcore::join_strings(invalids, ", ");
+          throw shcore::Exception::argument_error(error);
+        }
+
+        if (options->has_key("verbose"))
+          verbose = options->get_bool("verbose");
+      }
+
+    std::string instance_admin_user = _cluster->get_account_user(ACC_INSTANCE_ADMIN);
+    std::string instance_admin_user_password = _cluster->get_account_password(ACC_INSTANCE_ADMIN);
+
+    // Get all instances of the replicaset
+    auto instances = _metadata_storage->get_replicaset_instances(get_id());
+
+    for (auto value : *instances.get()) {
+      int exit_code;
+      auto row = value.as_object<mysh::Row>();
+
+      std::string instance_name = row->get_member(1).as_string();
+      std::string instance_url = instance_admin_user + "@" + instance_name;
+      std::string errors;
+
+      // Leave the replicaset
+      exit_code = _provisioning_interface->leave_replicaset(instance_url,
+                                            instance_admin_user_password, errors, verbose);
+
+      if (exit_code != 0)
+        throw shcore::Exception::logic_error(errors);
+    }
+
+    // Update the metadata to turn 'active' off
+    _metadata_storage->disable_replicaset(get_id());
+    tx.commit();
+  } CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION("disable");
+
+  return ret_val;
 }

@@ -50,7 +50,10 @@ public:
   void remove_instance(const std::string &instance_name);
   void drop_cluster(const std::string &cluster_name);
   bool cluster_has_default_replicaset_only(const std::string &cluster_name);
-  void drop_default_replicaset(const std::string &cluster_name);
+  bool is_cluster_empty(uint64_t cluster_id);
+  void drop_replicaset(uint64_t rs_id);
+  void disable_replicaset(uint64_t rs_id);
+  bool is_replicaset_active(uint64_t rs_id);
 
   std::shared_ptr<Cluster> get_cluster(const std::string &cluster_name, const std::string &master_key);
   std::shared_ptr<Cluster> get_default_cluster(const std::string &master_key);
@@ -61,6 +64,7 @@ public:
   bool is_instance_on_replicaset(uint64_t rs_id, std::string address);
 
   std::string get_seed_instance(uint64_t rs_id);
+  std::shared_ptr<shcore::Value::Array_type> get_replicaset_instances(uint64_t rs_id);
 
   Dba* get_dba() { return _dba; };
 

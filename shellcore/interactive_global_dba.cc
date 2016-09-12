@@ -36,7 +36,6 @@ void Global_dba::init() {
   add_varargs_method("killLocalInstance", std::bind(&Global_dba::kill_local_instance, this, _1));
   add_varargs_method("stopLocalInstance", std::bind(&Global_dba::stop_local_instance, this, _1));
 
-  add_method("dropCluster", std::bind(&Global_dba::drop_cluster, this, _1), "clusterName", shcore::String, NULL);
   add_method("createCluster", std::bind(&Global_dba::create_cluster, this, _1), "clusterName", shcore::String, NULL);
   add_method("dropMetadataSchema", std::bind(&Global_dba::drop_metadata_schema, this, _1), "data", shcore::Map, NULL);
   add_method("getCluster", std::bind(&Global_dba::get_cluster, this, _1), "clusterName", shcore::String, NULL);
@@ -194,52 +193,6 @@ shcore::Value Global_dba::kill_local_instance(const shcore::Argument_list &args)
 
 shcore::Value Global_dba::stop_local_instance(const shcore::Argument_list &args) {
   return perform_instance_operation(args, "stopLocalInstance", "Stopping", "stopped");
-}
-
-shcore::Value Global_dba::drop_cluster(const shcore::Argument_list &args) {
-  shcore::Value ret_val;
-
-  validate_session(get_function_name("dropCluster"));
-
-  args.ensure_count(1, 2, get_function_name("dropCluster").c_str());
-
-  try {
-    std::string cluster_name = args.string_at(0);
-
-    if (cluster_name.empty())
-      throw shcore::Exception::argument_error("The Cluster name cannot be empty");
-
-    shcore::Value::Map_type_ref options;
-    bool valid_options = false;
-    if (args.size() == 2) {
-      options = args.map_at(1);
-      valid_options = options->has_key("dropDefaultReplicaSet");
-    }
-
-    if (!valid_options) {
-      std::string answer;
-      println((boost::format("To remove the Cluster '%1%' the default replica set needs to be removed.") % cluster_name).str());
-      if (prompt((boost::format("Do you want to remove the default replica set? [y/N]: ")).str().c_str(), answer)) {
-        if (!answer.compare("y") || !answer.compare("Y")) {
-          options.reset(new shcore::Value::Map_type);
-          (*options)["dropDefaultReplicaSet"] = shcore::Value(true);
-
-          valid_options = true;
-        }
-      }
-    }
-
-    if (valid_options) {
-      shcore::Argument_list new_args;
-      new_args.push_back(shcore::Value(cluster_name));
-      new_args.push_back(shcore::Value(options));
-
-      ret_val = _target->call("dropCluster", new_args);
-    }
-  }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("dropCluster"));
-
-  return ret_val;
 }
 
 shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {

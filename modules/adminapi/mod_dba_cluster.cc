@@ -29,6 +29,7 @@
 #include "mod_dba_replicaset.h"
 #include "mod_dba_metadata_storage.h"
 #include "../mysqlxtest_utils.h"
+#include "utils/utils_general.h"
 
 using namespace std::placeholders;
 using namespace mysh;
@@ -103,6 +104,7 @@ void Cluster::init() {
   add_method("removeInstance", std::bind(&Cluster::remove_instance, this, _1), "data");
   add_method("describe", std::bind(&Cluster::describe, this, _1), NULL);
   add_method("status", std::bind(&Cluster::status, this, _1), NULL);
+  add_varargs_method("dissolve", std::bind(&Cluster::dissolve, this, _1));
 }
 
 /**
@@ -424,6 +426,66 @@ shcore::Value Cluster::status(const shcore::Argument_list &args) {
   _json_mode = JSON_STANDARD_OUTPUT;
 
   return ret_val;
+}
+
+/**
+ * Dissolves the Cluster object.
+ * \param doc The JSON document representing the options
+ * \return nothing.
+ * \sa Cluster
+ */
+#if DOXYGEN_JS
+Undefined Dba::dissolve(Document doc) {}
+#elif DOXYGEN_PY
+None Dba::dissolve(Document doc) {}
+#endif
+
+shcore::Value Cluster::dissolve(const shcore::Argument_list &args) {
+  args.ensure_count(0, 1, get_function_name("dissolve").c_str());
+
+  try {
+    shcore::Value::Map_type_ref options;
+
+    bool force = false;
+    if (args.size() == 1)
+      options = args.map_at(0);
+
+    if (options) {
+      // Verification of invalid attributes on the instance creation options
+      auto invalids = shcore::get_additional_keys(options, { "force", "verbose", });
+      if (invalids.size()) {
+        std::string error = "The options contain the following invalid attributes: ";
+        error += shcore::join_strings(invalids, ", ");
+        throw shcore::Exception::argument_error(error);
+      }
+
+      if (options->has_key("force") && (*options)["force"].type != shcore::Bool)
+        throw shcore::Exception::type_error("Invalid data type for 'force' field, should be a boolean");
+      else
+        force = options->get_bool("force");
+    }
+
+    MetadataStorage::Transaction tx(_metadata_storage);
+    std::string cluster_name = get_name();
+
+    // check if the Cluster is empty
+    if (_metadata_storage->is_cluster_empty(get_id())) {
+      _metadata_storage->drop_cluster(cluster_name);
+      tx.commit();
+    } else {
+      if(force){
+        // TODO: we only have the Default ReplicaSet, but will have more in the future
+        get_default_replicaset()->dissolve(args);
+        _metadata_storage->drop_cluster(cluster_name);
+        tx.commit();
+      } else {
+          throw Exception::logic_error("Cannot drop cluster: The cluster is not empty.");
+      }
+    }
+  }
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("dissolve"))
+
+  return Value();
 }
 
 void Cluster::set_account_data(const std::string& account, const std::string& key, const std::string& value) {

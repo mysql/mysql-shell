@@ -70,7 +70,6 @@ public:
 
   shcore::Value reset_session(const shcore::Argument_list &args);
   shcore::Value create_cluster(const shcore::Argument_list &args);
-  shcore::Value drop_cluster(const shcore::Argument_list &args);
   shcore::Value get_cluster(const shcore::Argument_list &args) const;
   shcore::Value drop_metadata_schema(const shcore::Argument_list &args);
 

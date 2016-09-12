@@ -56,7 +56,6 @@ void Dba::init() {
   // Pure functions
   add_method("resetSession", std::bind(&Dba::reset_session, this, _1), "session", shcore::Object, NULL);
   add_method("createCluster", std::bind(&Dba::create_cluster, this, _1), "clusterName", shcore::String, NULL);
-  add_method("dropCluster", std::bind(&Dba::drop_cluster, this, _1), "clusterName", shcore::String, NULL);
   add_method("getCluster", std::bind(&Dba::get_cluster, this, _1), "clusterName", shcore::String, NULL);
   add_method("dropMetadataSchema", std::bind(&Dba::drop_metadata_schema, this, _1), "data", shcore::Map, NULL);
   add_method("validateInstance", std::bind(&Dba::validate_instance, this, _1), "data", shcore::Map, NULL);
@@ -368,8 +367,14 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
 
     auto session = get_active_session();
 
+    Value::Map_type_ref options(new shcore::Value::Map_type);
     shcore::Argument_list args;
-    args.push_back(shcore::Value(session->uri()));
+
+    options = get_connection_data(session->uri(), false);
+    (*options)["verbose"] = shcore::Value(verbose);
+    args.push_back(shcore::Value(options));
+
+    //args.push_back(shcore::Value(session->uri()));
     args.push_back(shcore::Value(session->get_password()));
     args.push_back(shcore::Value(multi_master ? ReplicaSet::kTopologyMultiMaster
                                               : ReplicaSet::kTopologyPrimaryMaster));
@@ -384,60 +389,6 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
     translate_crud_exception(get_function_name("createCluster"));
   }
   return ret_val;
-}
-
-/**
- * Drops a Cluster object.
- * \param name The name of the Cluster object to be dropped.
- * \return nothing.
- * \sa Cluster
- */
-#if DOXYGEN_JS
-Undefined Dba::dropCluster(String name) {}
-#elif DOXYGEN_PY
-None Dba::drop_cluster(str name) {}
-#endif
-
-shcore::Value Dba::drop_cluster(const shcore::Argument_list &args) {
-  validate_session(get_function_name("dropCluster"));
-
-  args.ensure_count(1, 2, get_function_name("dropCluster").c_str());
-
-  try {
-    MetadataStorage::Transaction tx(_metadata_storage);
-    std::string cluster_name = args.string_at(0);
-
-    if (cluster_name.empty())
-      throw Exception::argument_error("The Cluster name cannot be empty.");
-
-    shcore::Value::Map_type_ref options; // Map with the options
-    bool drop_default_rs = false;
-
-    // Check for options
-    if (args.size() == 2) {
-      options = args.map_at(1);
-
-      if (options->has_key("dropDefaultReplicaSet"))
-        drop_default_rs = options->get_bool("dropDefaultReplicaSet");
-    }
-
-    if (!drop_default_rs)
-      _metadata_storage->drop_cluster(cluster_name);
-    else {
-      // check if the Cluster has more replicaSets than the default one
-      if (!_metadata_storage->cluster_has_default_replicaset_only(cluster_name))
-        throw Exception::logic_error("Cannot drop Cluster: The Cluster with the name '"
-            + cluster_name + "' has more replicasets than the default replicaset.");
-
-      // drop the default ReplicaSet and call drop_cluster again
-      _metadata_storage->drop_default_replicaset(cluster_name);
-      _metadata_storage->drop_cluster(cluster_name);
-    }
-    tx.commit();
-  }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("dropCluster"))
-
-  return Value();
 }
 
 /**
@@ -755,8 +706,6 @@ std::string Dba::get_help_text(const std::string& topic, bool full) {
               "e.g. dba.help('deployLocalInstance') or dba.help('deployLocalInstance()')";
   else if (topic == get_function_name("createCluster", false))
     ret_val = "Creates a MySQL InnoDB cluster.";
-  else if (topic == get_function_name("dropCluster", false))
-    ret_val = "Deletes a cluster.";
   else if (topic == get_function_name("getCluster", false)) {
     ret_val = "Retrieves a cluster from the Metadata Store.";
     if (full) {

@@ -24,6 +24,7 @@
 #include "modules/mysqlxtest_utils.h"
 #include "utils/utils_general.h"
 #include <boost/format.hpp>
+#include <string>
 
 using namespace std::placeholders;
 using namespace shcore;
@@ -32,6 +33,7 @@ void Interactive_dba_cluster::init() {
   add_method("addInstance", std::bind(&Interactive_dba_cluster::add_instance, this, _1), "data");
   add_method("rejoinInstance", std::bind(&Interactive_dba_cluster::rejoin_instance, this, _1), "data");
   add_method("removeInstance", std::bind(&Interactive_dba_cluster::remove_instance, this, _1), "data");
+  add_varargs_method("dissolve", std::bind(&Interactive_dba_cluster::dissolve, this, _1));
 }
 
 shcore::Value Interactive_dba_cluster::add_seed_instance(const shcore::Argument_list &args) {
@@ -242,6 +244,50 @@ shcore::Value Interactive_dba_cluster::remove_instance(const shcore::Argument_li
   ret_val = _target->call("removeInstance", args);
 
   println("The instance '" + build_connection_string(options, false) + "' was successfully removed from the cluster.");
+
+  return ret_val;
+}
+
+shcore::Value Interactive_dba_cluster::dissolve(const shcore::Argument_list &args) {
+  shcore::Value ret_val;
+  bool force = false;
+  shcore::Value::Map_type_ref options;
+
+  args.ensure_count(0, 1, get_function_name("dissolve").c_str());
+
+  if (args.size() == 1)
+      options = args.map_at(0);
+
+  if (options) {
+    if (options->has_key("force") && (*options)["force"].type != shcore::Bool)
+      throw shcore::Exception::type_error("Invalid data type for 'force' field, should be a boolean");
+    else
+      force = options->get_bool("force");
+  }
+
+  if (!force) {
+    std::shared_ptr<mysh::dba::ReplicaSet> object;
+    auto cluster = std::dynamic_pointer_cast<mysh::dba::Cluster>(_target);
+
+    if (cluster)
+      object = cluster->get_default_replicaset();
+
+    if (object) {
+      std::string message = "The cluster still has active ReplicaSets. \n"
+                            "Please use cluster.dissolve({force: true}) to deactivate replication \n"
+                            "and unregister the ReplicaSets from the cluster.\n\n";
+
+      print(message);
+
+      print("The following replicasets are currently registered:\n");
+
+      ret_val = _target->call("describe", shcore::Argument_list());
+    }
+  } else {
+    ret_val = _target->call("dissolve", args);
+
+    println("The cluster was successfully dissolved.");
+  }
 
   return ret_val;
 }
