@@ -32,7 +32,8 @@ using namespace mysh::dba;
 using namespace shcore;
 
 ProvisioningInterface::ProvisioningInterface(shcore::Interpreter_delegate* deleg) :
-_delegate(deleg) {}
+_delegate(deleg) {
+}
 
 ProvisioningInterface::~ProvisioningInterface() {}
 
@@ -48,11 +49,28 @@ int ProvisioningInterface::execute_mysqlprovision(const std::string &cmd, const 
 
   // set _local_mysqlprovision_path if empty
   if (_local_mysqlprovision_path.empty()) {
+    // 1st try from global options (initialized from MYSQLPROVISION env var)
+    // 2nd check if the binary is in the same dir as ourselves
+    // 3rd set it to mysqlprovision and hope that it will be in $PATH
+
     _local_mysqlprovision_path = (*shcore::Shell_core_options::get())[SHCORE_GADGETS_PATH].as_string();
+
+    if (_local_mysqlprovision_path.empty()) {
+      std::string tmp(get_binary_folder());
+#ifdef _WIN32
+      tmp.append("\\mysqlprovision.exe");
+#else
+      tmp.append("/mysqlprovision");
+#endif
+      if (file_exists(tmp))
+        _local_mysqlprovision_path = tmp;
+    }
 
     // If is not set, we have to assume that it's located on the PATH
     if (_local_mysqlprovision_path.empty())
       _local_mysqlprovision_path = "mysqlprovision";
+
+
   }
 
   if (_local_mysqlprovision_path.find(".py") == _local_mysqlprovision_path.size() - 3)
