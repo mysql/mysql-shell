@@ -255,15 +255,25 @@ shcore::Value Interactive_dba_cluster::dissolve(const shcore::Argument_list &arg
 
   args.ensure_count(0, 1, get_function_name("dissolve").c_str());
 
-  if (args.size() == 1)
-      options = args.map_at(0);
+  try {
+    if (args.size() == 1)
+        options = args.map_at(0);
 
-  if (options) {
-    if (options->has_key("force") && (*options)["force"].type != shcore::Bool)
-      throw shcore::Exception::type_error("Invalid data type for 'force' field, should be a boolean");
-    else
-      force = options->get_bool("force");
-  }
+    if (options) {
+      // Verification of invalid attributes on the instance creation options
+      auto invalids = shcore::get_additional_keys(options, { "force", "verbose", });
+      if (invalids.size()) {
+        std::string error = "The options contain the following invalid attributes: ";
+        error += shcore::join_strings(invalids, ", ");
+        throw shcore::Exception::argument_error(error);
+      }
+
+      if (options->has_key("force") && (*options)["force"].type != shcore::Bool)
+        throw shcore::Exception::type_error("Invalid data type for 'force' field, should be a boolean");
+      else
+        force = options->get_bool("force");
+    }
+  } CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("dissolve"));
 
   if (!force) {
     std::shared_ptr<mysh::dba::ReplicaSet> object;
@@ -273,13 +283,12 @@ shcore::Value Interactive_dba_cluster::dissolve(const shcore::Argument_list &arg
       object = cluster->get_default_replicaset();
 
     if (object) {
-      std::string message = "The cluster still has active ReplicaSets. \n"
-                            "Please use cluster.dissolve({force: true}) to deactivate replication \n"
-                            "and unregister the ReplicaSets from the cluster.\n\n";
+      println("The cluster still has active ReplicaSets.");
+      println("Please use cluster.dissolve({force: true}) to deactivate replication");
+      println("and unregister the ReplicaSets from the cluster.");
+      println();
 
-      print(message);
-
-      print("The following replicasets are currently registered:\n");
+      println("The following replicasets are currently registered:");
 
       ret_val = _target->call("describe", shcore::Argument_list());
     }
