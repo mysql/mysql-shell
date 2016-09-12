@@ -105,7 +105,7 @@ CREATE TABLE replicasets (
     the replicaset, or inactive, in which case no traffic should be directed
     to it.
   */
-  `active` BIT(1) NOT NULL,
+  `active` BOOLEAN NOT NULL,
   /*
     Custom properties.
     {
