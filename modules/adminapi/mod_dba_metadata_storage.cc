@@ -348,7 +348,7 @@ void MetadataStorage::insert_instance(const shcore::Argument_list &args, uint64_
     description = (*options)["description"].as_string();
 
   // Insert the default ReplicaSet on the replicasets table
-  query = shcore::sqlstring("INSERT INTO mysql_innodb_cluster_metadata.instances (host_id, replicaset_id, mysql_server_uuid, instance_name, role, addresses) VALUES (?, ?, ? ,? ,? ,?)", 0);
+  query = shcore::sqlstring("INSERT INTO mysql_innodb_cluster_metadata.instances (host_id, replicaset_id, mysql_server_uuid, instance_name, role, addresses) VALUES (?, ?, ? ,? ,? ,json_object('mysqlClassic', ?))", 0);
   query << host_id;
   query << rs_id;
   query << mysql_server_uuid;
