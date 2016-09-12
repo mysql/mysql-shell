@@ -834,9 +834,7 @@ shcore::Value ReplicaSet::dissolve(const shcore::Argument_list &args) {
 
       // disable the ReplicaSet
       disable(args);
-    }
-
-    else if (_metadata_storage->is_replicaset_active(get_id()))
+    } else if (_metadata_storage->is_replicaset_active(get_id()))
       throw shcore::Exception::logic_error("Cannot dissolve the ReplicaSet: the ReplicaSet is active.");
 
     MetadataStorage::Transaction tx(_metadata_storage);

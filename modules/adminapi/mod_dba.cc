@@ -69,34 +69,6 @@ void Dba::init() {
 
   _metadata_storage.reset(new MetadataStorage(this));
   _provisioning_interface.reset(new ProvisioningInterface(_shell_core->get_delegate()));
-
-  std::string python_path = "";
-  std::string local_mysqlprovision_path;
-
-  if (getenv("MYSQL_ORCHESTRATOR") != NULL)
-    local_mysqlprovision_path = std::string(getenv("MYSQL_ORCHESTRATOR")); // should be set to the mysql-orchestrator root dir
-
-  if (!local_mysqlprovision_path.empty()) {
-    local_mysqlprovision_path += "/gadgets/python";
-
-    std::string sep;
-#ifdef WIN32
-    sep = ";";
-#else
-    sep = ":";
-#endif
-
-    if (getenv("PYTHONPATH") != NULL)
-      python_path = std::string(getenv("PYTHONPATH") + sep + local_mysqlprovision_path);
-    else
-      python_path = local_mysqlprovision_path;
-
-#ifdef WIN32
-    _putenv_s("PYTHONPATH", python_path.c_str());
-#else
-    setenv("PYTHONPATH", python_path.c_str(), true);
-#endif
-  }
 }
 
 std::string Dba::generate_password(int password_lenght) {
@@ -212,11 +184,6 @@ shcore::Value Dba::get_cluster(const shcore::Argument_list &args) const {
     if (get_default_cluster) {
       // Reloads the cluster (to avoid losing _default_cluster in case of error)
       cluster = _metadata_storage->get_default_cluster(master_key);
-
-      // Loaded ok, now it becomes the default cluster
-      _default_cluster = cluster;
-
-      cluster = _default_cluster;
     } else {
       if (cluster_name.empty())
         throw Exception::argument_error("The Cluster name cannot be empty.");
@@ -329,7 +296,7 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
      */
     bool has_default_cluster = _metadata_storage->has_default_cluster();
 
-    if (_default_cluster || has_default_cluster)
+    if (has_default_cluster)
       throw Exception::argument_error("Cluster is already initialized. Use getCluster() to access it.");
 
     // First we need to create the Metadata Schema, or update it if already exists
@@ -341,29 +308,29 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
     if (mysql_innodb_cluster_admin_pwd.empty())
       mysql_innodb_cluster_admin_pwd = cluster_password;
 
-    _default_cluster.reset(new Cluster(cluster_name, _metadata_storage));
+    std::shared_ptr<Cluster> cluster(new Cluster(cluster_name, _metadata_storage));
 
     // Update the properties
-    _default_cluster->set_master_key(cluster_password);
-    _default_cluster->set_description("Default Cluster");
+    cluster->set_master_key(cluster_password);
+    cluster->set_description("Default Cluster");
 
-    _default_cluster->set_account_user(ACC_INSTANCE_ADMIN, instance_admin_user);
-    _default_cluster->set_account_password(ACC_INSTANCE_ADMIN, generate_password(PASSWORD_LENGHT));
-    _default_cluster->set_account_user(ACC_CLUSTER_READER, cluster_reader_user);
-    _default_cluster->set_account_password(ACC_CLUSTER_READER, generate_password(PASSWORD_LENGHT));
-    _default_cluster->set_account_user(ACC_REPLICATION_USER, replication_user);
-    _default_cluster->set_account_password(ACC_REPLICATION_USER, generate_password(PASSWORD_LENGHT));
-    _default_cluster->set_account_user(ACC_CLUSTER_ADMIN, cluster_admin_user);
-    _default_cluster->set_account_password(ACC_CLUSTER_ADMIN, mysql_innodb_cluster_admin_pwd);
+    cluster->set_account_user(ACC_INSTANCE_ADMIN, instance_admin_user);
+    cluster->set_account_password(ACC_INSTANCE_ADMIN, generate_password(PASSWORD_LENGHT));
+    cluster->set_account_user(ACC_CLUSTER_READER, cluster_reader_user);
+    cluster->set_account_password(ACC_CLUSTER_READER, generate_password(PASSWORD_LENGHT));
+    cluster->set_account_user(ACC_REPLICATION_USER, replication_user);
+    cluster->set_account_password(ACC_REPLICATION_USER, generate_password(PASSWORD_LENGHT));
+    cluster->set_account_user(ACC_CLUSTER_ADMIN, cluster_admin_user);
+    cluster->set_account_password(ACC_CLUSTER_ADMIN, mysql_innodb_cluster_admin_pwd);
 
-    _default_cluster->set_option(OPT_ADMIN_TYPE, shcore::Value(cluster_admin_type));
+    cluster->set_option(OPT_ADMIN_TYPE, shcore::Value(cluster_admin_type));
 
-    _default_cluster->set_attribute(ATT_DEFAULT, shcore::Value::True());
+    cluster->set_attribute(ATT_DEFAULT, shcore::Value::True());
 
     // For V1.0, let's see the Cluster's description to "default"
 
     // Insert Cluster on the Metadata Schema
-    _metadata_storage->insert_cluster(_default_cluster);
+    _metadata_storage->insert_cluster(cluster);
 
     auto session = get_active_session();
 
@@ -378,16 +345,13 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
     args.push_back(shcore::Value(session->get_password()));
     args.push_back(shcore::Value(multi_master ? ReplicaSet::kTopologyMultiMaster
                                               : ReplicaSet::kTopologyPrimaryMaster));
-    _default_cluster->add_seed_instance(args);
+    cluster->add_seed_instance(args);
 
     // If it reaches here, it means there are no exceptions
-    ret_val = Value(std::static_pointer_cast<Object_bridge>(_default_cluster));
+    ret_val = Value(std::static_pointer_cast<Object_bridge>(cluster));
 
     tx.commit();
-  } catch (...) {
-    _default_cluster.reset();
-    translate_crud_exception(get_function_name("createCluster"));
-  }
+  } CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("createCluster"));
   return ret_val;
 }
 
@@ -415,8 +379,6 @@ shcore::Value Dba::drop_metadata_schema(const shcore::Argument_list &args) {
   if (enforce) {
     try {
       _metadata_storage->drop_metadata_schema();
-      _default_cluster.reset();
-      _default_cluster_name = "";
     }
     CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("dropMetadataSchema"))
   }

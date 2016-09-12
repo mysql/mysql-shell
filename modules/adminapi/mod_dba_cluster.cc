@@ -429,15 +429,16 @@ shcore::Value Cluster::status(const shcore::Argument_list &args) {
 }
 
 /**
- * Dissolves the Cluster object.
+ * Unregisters the cluster from the metadata, disable replication.
+ * Keeps user data intact.
  * \param doc The JSON document representing the options
  * \return nothing.
  * \sa Cluster
  */
 #if DOXYGEN_JS
-Undefined Dba::dissolve(Document doc) {}
+Undefined Cluster::dissolve(Document doc) {}
 #elif DOXYGEN_PY
-None Dba::dissolve(Document doc) {}
+None Cluster::dissolve(Document doc) {}
 #endif
 
 shcore::Value Cluster::dissolve(const shcore::Argument_list &args) {
@@ -473,13 +474,13 @@ shcore::Value Cluster::dissolve(const shcore::Argument_list &args) {
       _metadata_storage->drop_cluster(cluster_name);
       tx.commit();
     } else {
-      if(force){
+      if (force) {
         // TODO: we only have the Default ReplicaSet, but will have more in the future
         get_default_replicaset()->dissolve(args);
         _metadata_storage->drop_cluster(cluster_name);
         tx.commit();
       } else {
-          throw Exception::logic_error("Cannot drop cluster: The cluster is not empty.");
+        throw Exception::logic_error("Cannot drop cluster: The cluster is not empty.");
       }
     }
   }

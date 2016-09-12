@@ -296,6 +296,7 @@ shcore::Value Interactive_dba_cluster::dissolve(const shcore::Argument_list &arg
     ret_val = _target->call("dissolve", args);
 
     println("The cluster was successfully dissolved.");
+    println("Replication was disabled but user data was left intact.");
   }
 
   return ret_val;

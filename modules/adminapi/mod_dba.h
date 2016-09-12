@@ -73,8 +73,6 @@ public:
   shcore::Value get_cluster(const shcore::Argument_list &args) const;
   shcore::Value drop_metadata_schema(const shcore::Argument_list &args);
 
-  Cluster get_default_cluster();
-
   shcore::IShell_core* get_owner() { return _shell_core; }
 
 #if DOXYGEN_JS
@@ -97,9 +95,6 @@ public:
 protected:
   std::shared_ptr<mysh::ShellDevelopmentSession> _custom_session;
   shcore::IShell_core *_shell_core;
-
-  mutable std::string _default_cluster_name;
-  mutable std::shared_ptr<mysh::dba::Cluster> _default_cluster;
 
   void init();
 

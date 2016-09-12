@@ -309,7 +309,7 @@ Value Interactive_shell::connect_session(const Argument_list &args, mysh::Sessio
 
   // Prompts for the password if needed
   if (!connection_data->has_key("dbPassword") || _options.prompt_password) {
-    if (_shell->password("Enter password:", pass))
+    if (_shell->password("Enter password: ", pass))
       connect_args.push_back(Value(pass));
   }
 
