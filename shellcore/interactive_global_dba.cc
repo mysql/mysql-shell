@@ -101,9 +101,16 @@ shcore::Value Global_dba::deploy_local_instance(const shcore::Argument_list &arg
     port = valid_args.int_at(0);
 
     bool prompt_password = false;
-    std::string sandboxDir;
+    std::string sandbox_dir;
 
     auto options = valid_args.map_at(1);
+
+    if (options && options->has_key("sandboxDir")) {
+        sandbox_dir = options->get_string("sandboxDir");
+    } else {
+        // we get the default value
+        sandbox_dir = (*shcore::Shell_core_options::get())[SHCORE_SANDBOX_DIR].as_string();
+    }
 
     // Verification of required attributes on the instance deployment data
 
@@ -115,11 +122,11 @@ shcore::Value Global_dba::deploy_local_instance(const shcore::Argument_list &arg
     if (prompt_password) {
       if (deploying) {
         message = "A new MySQL sandbox instance will be created on this host in \n"\
-          "" + sandboxDir + "/" + std::to_string(port) + "\n\n"
+          "" + sandbox_dir + "/" + std::to_string(port) + "\n\n"
           "Please enter a MySQL root password for the new instance: ";
       } else {
         message = "The MySQL sandbox instance on this host in \n"\
-          "" + sandboxDir + "/" + std::to_string(port) + " will be started\n\n"
+          "" + sandbox_dir + "/" + std::to_string(port) + " will be started\n\n"
           "Please enter the MySQL root password of the instance: ";
       }
 

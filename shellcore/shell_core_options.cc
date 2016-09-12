@@ -107,11 +107,16 @@ _options(new shcore::Value::Map_type)
   } else
     (*_options)[SHCORE_GADGETS_PATH] = Value("");
 
-  if (getenv("HOME"))
-  {
-    std::string dir = std::string(getenv("HOME")) + "/mysql-sandboxes";
-    (*_options)[SHCORE_SANDBOX_DIR] = Value(dir.c_str());
-  }
+  std::string home = shcore::get_home_dir();
+
+#ifdef WIN32
+  home += ("\\MySQL");
+  home += ("\\mysql-sandboxes");
+#else
+  home += ("mysql-sandboxes");
+#endif
+
+  (*_options)[SHCORE_SANDBOX_DIR] = Value(home.c_str());
 }
 
 Shell_core_options::~Shell_core_options()
