@@ -858,7 +858,7 @@ shcore::Value ReplicaSet::dissolve(const shcore::Argument_list &args) {
     _metadata_storage->drop_replicaset(get_id());
 
     tx.commit();
-  } CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION("dissolve");
+  } CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("dissolve"));
 
   return ret_val;
 }
@@ -914,7 +914,7 @@ shcore::Value ReplicaSet::disable(const shcore::Argument_list &args) {
     // Update the metadata to turn 'active' off
     _metadata_storage->disable_replicaset(get_id());
     tx.commit();
-  } CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION("disable");
+  } CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("disable"));
 
   return ret_val;
 }
