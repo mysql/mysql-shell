@@ -45,6 +45,9 @@
 #include "shellcore/lang_base.h"
 #include "uuid_gen.h"
 #include <fstream>
+#ifdef WIN32
+#include <windows.h>
+#endif
 
 using namespace std::placeholders;
 using namespace shcore;
