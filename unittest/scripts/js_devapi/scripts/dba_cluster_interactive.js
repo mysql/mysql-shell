@@ -95,3 +95,9 @@ Cluster.addInstance({dbUser: "root", host: "localhost", port:__mysql_sandbox_por
 
 //@<OUT> Cluster: dissolve
 Cluster.dissolve({force: true})
+
+//@ Cluster: describe: dissolved cluster
+Cluster.describe()
+
+//@ Cluster: status: dissolved cluster
+Cluster.status()

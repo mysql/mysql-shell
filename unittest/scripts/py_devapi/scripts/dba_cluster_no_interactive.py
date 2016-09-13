@@ -85,3 +85,9 @@ cluster.dissolve({'force': 1})
 
 #@ Cluster: dissolve
 cluster.dissolve({'force': True})
+
+#@ Cluster: describe: dissolved cluster
+cluster.describe()
+
+#@ Cluster: status: dissolved cluster
+cluster.status()

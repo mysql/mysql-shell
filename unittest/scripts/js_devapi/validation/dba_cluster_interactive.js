@@ -206,3 +206,9 @@ The instance 'root@localhost:<<<__mysql_sandbox_port2>>>' was successfully added
 //@<OUT> Cluster: dissolve
 The cluster was successfully dissolved.
 Replication was disabled but user data was left intact.
+
+//@ Cluster: describe: dissolved cluster
+||The cluster 'devCluster' no longer exists.
+
+//@ Cluster: status: dissolved cluster
+||The cluster 'devCluster' no longer exists.

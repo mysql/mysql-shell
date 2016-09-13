@@ -150,3 +150,9 @@
 
 //@ Cluster: dissolve
 ||
+
+//@ Cluster: describe: dissolved cluster
+||The cluster 'devCluster' no longer exists.
+
+//@ Cluster: status: dissolved cluster
+||The cluster 'devCluster' no longer exists.

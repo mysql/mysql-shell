@@ -100,3 +100,9 @@ cluster.add_instance({'dbUser': 'root', 'host': 'localhost', 'port': __mysql_san
 
 #@<OUT> Cluster: dissolve
 cluster.dissolve({'force': True})
+
+#@ Cluster: describe: dissolved cluster
+cluster.describe()
+
+#@ Cluster: status: dissolved cluster
+cluster.status()

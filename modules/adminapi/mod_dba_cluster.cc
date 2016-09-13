@@ -373,6 +373,11 @@ void Cluster::set_default_replicaset(std::shared_ptr<ReplicaSet> default_rs) {
 
 void Cluster::append_json(shcore::JSON_dumper& dumper) const {
   if (_json_mode) {
+
+    // Check if the Cluster exists (was dissolved previously)
+    if (!_metadata_storage->cluster_exists(_name))
+      throw Exception::argument_error("The cluster '" + _name + "' no longer exists.");
+
     dumper.start_object();
     dumper.append_string("clusterName", _name);
 
