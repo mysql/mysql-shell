@@ -530,17 +530,44 @@ void Shell_core::handle_notification(const std::string &name, shcore::Object_bri
   }
 }
 
+bool Shell_core::reconnect() {
+  bool ret_val = false;
+
+  try {
+    _global_dev_session->reconnect();
+    ret_val = true;
+  } catch (shcore::Exception &e) {
+    ret_val = false;
+  }
+
+  return ret_val;
+}
+
 bool Shell_core::reconnect_if_needed() {
   bool ret_val = false;
   if (_reconnect_session) {
     {
       print("The global session got disconnected.\nAttempting to reconnect to '" + _global_dev_session->uri() + "'...\n");
       try {
-        _global_dev_session->reconnect();
+#ifdef _WIN32
+        Sleep(500);
+#else
+        usleep(500000);
+#endif
+        if (!reconnect()) {
+          // Try again
+#ifdef _WIN32
+          Sleep(1500);
+#else
+          usleep(1500000);
+#endif
+          _global_dev_session->reconnect();
+        }
+
         print("The global session was successfully reconnected.\n");
         ret_val = true;
       } catch (shcore::Exception &e) {
-        print("The global session could not be reconnected automatically.\nPlease use \\connect instead to manually reconnect.\n");
+          print("The global session could not be reconnected automatically.\nPlease use '\\connect " + _global_dev_session->uri() + "' instead to manually reconnect.\n");
       }
     }
 
