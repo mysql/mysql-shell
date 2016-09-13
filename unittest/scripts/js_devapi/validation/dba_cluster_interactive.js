@@ -150,8 +150,8 @@ The following replicasets are currently registered:
         "name": "default",
         "instances": [
             {
-                "name": "localhost:3316",
-                "host": "localhost:3316",
+                "name": "localhost:<<<__mysql_sandbox_port1>>>",
+                "host": "localhost:<<<__mysql_sandbox_port1>>>",
                 "role": "HA"
             }
         ]
