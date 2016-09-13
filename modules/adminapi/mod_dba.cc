@@ -64,7 +64,6 @@ void Dba::init() {
   add_method("deployLocalInstance", std::bind(&Dba::deploy_local_instance, this, _1, "deployLocalInstance"), "data", shcore::Map, NULL);
   add_varargs_method("startLocalInstance", std::bind(&Dba::deploy_local_instance, this, _1, "startLocalInstance"));
   add_method("stopLocalInstance", std::bind(&Dba::stop_local_instance, this, _1), "data", shcore::Map, NULL);
-  add_method("restartLocalInstance", std::bind(&Dba::restart_local_instance, this, _1), "data", shcore::Map, NULL);
   add_method("deleteLocalInstance", std::bind(&Dba::delete_local_instance, this, _1), "data", shcore::Map, NULL);
   add_method("killLocalInstance", std::bind(&Dba::kill_local_instance, this, _1), "data", shcore::Map, NULL);
   add_varargs_method("help", std::bind(&Dba::help, this, _1));
@@ -644,21 +643,6 @@ shcore::Value Dba::stop_local_instance(const shcore::Argument_list &args) {
     ret_val = exec_instance_op("stop", args);
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("stopLocalInstance"));
-
-  return ret_val;
-}
-
-shcore::Value Dba::restart_local_instance(const shcore::Argument_list &args) {
-  shcore::Value ret_val;
-
-  args.ensure_count(1, 2, get_function_name("restartLocalInstance").c_str());
-
-  try {
-    // check if the instance is live 1st
-    ret_val = exec_instance_op("stop", args);
-    ret_val = exec_instance_op("deploy", args);
-  }
-  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("restartLocalInstance"));
 
   return ret_val;
 }

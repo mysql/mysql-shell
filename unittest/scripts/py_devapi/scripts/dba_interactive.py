@@ -25,7 +25,6 @@ validateMember(members, 'reset_session');
 validateMember(members, 'start_local_instance');
 validateMember(members, 'validate_instance');
 validateMember(members, 'stop_local_instance');
-validateMember(members, 'restart_local_instance');
 validateMember(members, 'verbose');
 
 #@# Dba: create_cluster errors

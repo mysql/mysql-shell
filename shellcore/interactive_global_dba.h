@@ -37,7 +37,6 @@ public:
   shcore::Value stop_local_instance(const shcore::Argument_list &args);
   shcore::Value delete_local_instance(const shcore::Argument_list &args);
   shcore::Value kill_local_instance(const shcore::Argument_list &args);
-  shcore::Value restart_local_instance(const shcore::Argument_list &args);
 
   shcore::Value create_cluster(const shcore::Argument_list &args);
   shcore::Value get_cluster(const shcore::Argument_list &args);

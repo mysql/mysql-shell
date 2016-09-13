@@ -1,5 +1,5 @@
 //@ Session: validating members
-|Session Members: 13|
+|Session Members: 12|
 |createCluster: OK|
 |deleteLocalInstance: OK|
 |deployLocalInstance: OK|

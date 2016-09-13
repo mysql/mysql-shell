@@ -18,7 +18,6 @@ validateMember(members, 'resetSession');
 validateMember(members, 'startLocalInstance');
 validateMember(members, 'validateInstance');
 validateMember(members, 'stopLocalInstance');
-validateMember(members, 'restartLocalInstance');
 validateMember(members, 'verbose');
 
 //@# Dba: createCluster errors

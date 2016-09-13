@@ -1,5 +1,5 @@
 #@ Session: validating members
-|Session Members: 13|
+|Session Members: 12|
 |create_cluster: OK|
 |delete_local_instance: OK|
 |deploy_local_instance: OK|
@@ -11,7 +11,6 @@
 |validate_instance: OK|
 |stop_local_instance: OK|
 |drop_metadata_schema: OK|
-|restart_local_instance: OK|
 |verbose: OK|
 
 #@# Dba: create_cluster errors
