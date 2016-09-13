@@ -40,8 +40,8 @@ using namespace shcore;
 
 #define PASSWORD_LENGHT 16
 
-std::set<std::string> Dba::_deploy_instance_opts = { "portx", "sandboxDir", "password", "dbPassword", "verbose" };
-std::set<std::string> Dba::_validate_instance_opts = { "host", "port", "user", "dbUser", "password", "dbPassword", "socket", "ssl_ca", "ssl_cert", "ssl_key", "ssl_key", "verbose" };
+std::set<std::string> Dba::_deploy_instance_opts = { "portx", "sandboxDir", "password", "dbPassword" };
+std::set<std::string> Dba::_validate_instance_opts = { "host", "port", "user", "dbUser", "password", "dbPassword", "socket", "ssl_ca", "ssl_cert", "ssl_key", "ssl_key" };
 
 Dba::Dba(IShell_core* owner) :
 _shell_core(owner) {
@@ -53,6 +53,8 @@ bool Dba::operator == (const Object_bridge &other) const {
 }
 
 void Dba::init() {
+  add_property("verbose");
+
   // Pure functions
   add_method("resetSession", std::bind(&Dba::reset_session, this, _1), "session", shcore::Object, NULL);
   add_method("createCluster", std::bind(&Dba::create_cluster, this, _1), "clusterName", shcore::String, NULL);
@@ -69,6 +71,29 @@ void Dba::init() {
 
   _metadata_storage.reset(new MetadataStorage(this));
   _provisioning_interface.reset(new ProvisioningInterface(_shell_core->get_delegate()));
+}
+
+void Dba::set_member(const std::string &prop, Value value) {
+  if (prop == "verbose") {
+    if (value && value.type == shcore::Bool) {
+      _provisioning_interface->set_verbose(value.as_bool());
+    } else
+      throw shcore::Exception::value_error("Invalid value for property 'verbose'");
+  } else {
+    Cpp_object_bridge::set_member(prop, value);
+  }
+}
+
+Value Dba::get_member(const std::string &prop) const {
+  shcore::Value ret_val;
+
+  if (prop == "verbose") {
+    ret_val = shcore::Value(_provisioning_interface->get_verbose());
+  } else {
+    ret_val = Cpp_object_bridge::get_member(prop);
+  }
+
+  return ret_val;
 }
 
 std::string Dba::generate_password(int password_lenght) {
@@ -244,7 +269,6 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
 
   std::string mysql_innodb_cluster_admin_pwd;
   bool multi_master = false; // Default single/primary master
-  bool verbose = false; // Default is false
 
   try {
     std::string cluster_name = args.string_at(0);
@@ -266,7 +290,7 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
       shcore::Value::Map_type_ref options = args.map_at(2);
 
       // Verification of invalid attributes on the instance creation options
-      auto invalids = shcore::get_additional_keys(options, { "clusterAdminType", "multiMaster", "verbose" });
+      auto invalids = shcore::get_additional_keys(options, { "clusterAdminType", "multiMaster" });
       if (invalids.size()) {
         std::string error = "The instance options contain the following invalid attributes: ";
         error += shcore::join_strings(invalids, ", ");
@@ -285,9 +309,6 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
           cluster_admin_type != "ssh") {
         throw shcore::Exception::argument_error("Cluster Administration Type invalid. Valid types are: 'local', 'guided', 'manual', 'ssh'");
       }
-
-      if (options->has_key("verbose"))
-        verbose = options->get_bool("verbose");
     }
     /*
      * For V1.0 we only support one single Cluster. That one shall be the default Cluster.
@@ -336,9 +357,7 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
 
     Value::Map_type_ref options(new shcore::Value::Map_type);
     shcore::Argument_list args;
-
     options = get_connection_data(session->uri(), false);
-    (*options)["verbose"] = shcore::Value(verbose);
     args.push_back(shcore::Value(options));
 
     //args.push_back(shcore::Value(session->uri()));
@@ -496,7 +515,7 @@ shcore::Value Dba::validate_instance(const shcore::Argument_list &args) {
     std::string errors;
 
     // Verbose is mandatory for validateInstance
-    if (_provisioning_interface->check(user, host, port, password, errors, true) == 0) {
+    if (_provisioning_interface->check(user, host, port, password, errors) == 0) {
       std::string s_out = "The instance: " + host + ":" + std::to_string(port) + " is valid for Cluster usage\n";
       ret_val = shcore::Value(s_out);
     } else
@@ -515,7 +534,6 @@ shcore::Value Dba::exec_instance_op(const std::string &function, const shcore::A
 
   int port = args.int_at(0);
   int portx = 0;
-  bool verbose = false;
   std::string password;
   std::string sandbox_dir;
 
@@ -550,9 +568,6 @@ shcore::Value Dba::exec_instance_op(const std::string &function, const shcore::A
     if (options->has_key("sandboxDir"))
       sandbox_dir = options->get_string("sandboxDir");
 
-    if (options->has_key("verbose"))
-      verbose = options->get_bool("verbose");
-
     if (options->has_key("options"))
       mycnf_options = (*options)["options"];
   } else {
@@ -566,16 +581,16 @@ shcore::Value Dba::exec_instance_op(const std::string &function, const shcore::A
     throw shcore::Exception::argument_error("Please use a valid TCP port number");
 
   if (function == "deploy") {
-    if (_provisioning_interface->deploy_sandbox(port, portx, sandbox_dir, password, mycnf_options, errors, verbose) != 0)
+    if (_provisioning_interface->deploy_sandbox(port, portx, sandbox_dir, password, mycnf_options, errors) != 0)
       throw shcore::Exception::logic_error(errors);
   } else if (function == "delete") {
-    if (_provisioning_interface->delete_sandbox(port, sandbox_dir, errors, verbose) != 0)
+    if (_provisioning_interface->delete_sandbox(port, sandbox_dir, errors) != 0)
       throw shcore::Exception::logic_error(errors);
   } else if (function == "kill") {
-    if (_provisioning_interface->kill_sandbox(port, sandbox_dir, errors, verbose) != 0)
+    if (_provisioning_interface->kill_sandbox(port, sandbox_dir, errors) != 0)
       throw shcore::Exception::logic_error(errors);
   } else if (function == "stop") {
-    if (_provisioning_interface->stop_sandbox(port, sandbox_dir, errors, verbose) != 0)
+    if (_provisioning_interface->stop_sandbox(port, sandbox_dir, errors) != 0)
       throw shcore::Exception::logic_error(errors);
   }
   return ret_val;

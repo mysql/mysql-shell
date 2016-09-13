@@ -118,8 +118,7 @@ private:
   bool do_join_replicaset(const std::string &instance_url,
       const std::string &peer_instance_url,
       const std::string &super_user_password,
-      const std::string &repl_user, const std::string &repl_user_password,
-      bool verbose = false);
+      const std::string &repl_user, const std::string &repl_user_password);
 
   std::shared_ptr<Cluster> _cluster;
   std::shared_ptr<MetadataStorage> _metadata_storage;

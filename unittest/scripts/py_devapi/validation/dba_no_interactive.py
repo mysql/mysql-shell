@@ -1,5 +1,5 @@
 #@ Session: validating members
-|Session Members: 12|
+|Session Members: 13|
 |create_cluster: OK|
 |delete_local_instance: OK|
 |deploy_local_instance: OK|
@@ -11,6 +11,7 @@
 |validate_instance: OK|
 |stop_local_instance: OK|
 |drop_metadata_schema: OK|
+|verbose: OK|
 
 #@# Dba: create_cluster errors
 ||Invalid number of arguments in Dba.create_cluster, expected 2 to 3 but got 0

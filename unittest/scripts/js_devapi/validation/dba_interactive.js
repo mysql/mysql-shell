@@ -1,5 +1,5 @@
 //@ Session: validating members
-|Session Members: 12|
+|Session Members: 13|
 |createCluster: OK|
 |deleteLocalInstance: OK|
 |deployLocalInstance: OK|
@@ -12,6 +12,7 @@
 |stopLocalInstance: OK|
 |dropMetadataSchema: OK|
 |restartLocalInstance: OK|
+|verbose: OK|
 
 //@# Dba: createCluster errors
 ||Invalid number of arguments in Dba.createCluster, expected 1 to 3 but got 0
@@ -29,6 +30,7 @@ MySQL Routers. Losing this MASTER key will require the configuration of all
 InnoDB cluster entities to be changed.
 
 Please specify an administrative MASTER key for the cluster 'devCluster': Creating InnoDB cluster 'devCluster' on 'root@localhost:<<<__mysql_sandbox_port1>>>'...
+Adding Seed Instance...
 
 Cluster successfully created. Use Cluster.addInstance() to add MySQL instances.
 At least 3 instances are needed for the cluster to be able to withstand up to

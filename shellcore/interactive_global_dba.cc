@@ -106,10 +106,10 @@ shcore::Value Global_dba::deploy_local_instance(const shcore::Argument_list &arg
     auto options = valid_args.map_at(1);
 
     if (options && options->has_key("sandboxDir")) {
-        sandbox_dir = options->get_string("sandboxDir");
+      sandbox_dir = options->get_string("sandboxDir");
     } else {
-        // we get the default value
-        sandbox_dir = (*shcore::Shell_core_options::get())[SHCORE_SANDBOX_DIR].as_string();
+      // we get the default value
+      sandbox_dir = (*shcore::Shell_core_options::get())[SHCORE_SANDBOX_DIR].as_string();
     }
 
     // Verification of required attributes on the instance deployment data
@@ -217,7 +217,6 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
     std::string cluster_name = args.string_at(0);
     std::string answer, cluster_password;
     shcore::Value::Map_type_ref options;
-    bool verbose = false; // Default is false
     bool multi_master = false;
 
     if (cluster_name.empty())
@@ -237,9 +236,6 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
         options = args.map_at(opts_index);
         // Check if some option is missing
         // TODO: Validate adminType parameter value
-
-        if (options->has_key("verbose"))
-          verbose = options->get_bool("verbose");
 
         if (options->has_key("multiMaster")) {
           multi_master = true;
@@ -295,10 +291,8 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
       // This is an instance of the API cluster
       auto raw_cluster = _target->call("createCluster", new_args);
 
-      if (verbose){
-        println();
-        print("Adding Seed Instance...");
-      }
+      print("Adding Seed Instance...");
+      println();
 
       // Returns an interactive wrapper of this instance
       Interactive_dba_cluster* cluster = new Interactive_dba_cluster(this->_shell_core);

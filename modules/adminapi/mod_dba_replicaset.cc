@@ -42,8 +42,8 @@ using namespace mysh;
 using namespace mysh::dba;
 using namespace shcore;
 
-std::set<std::string> ReplicaSet::_add_instance_opts = { "name", "host", "port", "user", "dbUser", "password", "dbPassword", "socket", "ssl_ca", "ssl_cert", "ssl_key", "ssl_key", "verbose" };
-std::set<std::string> ReplicaSet::_remove_instance_opts = { "name", "host", "port", "socket", "ssl_ca", "ssl_cert", "ssl_key", "ssl_key", "verbose" };
+std::set<std::string> ReplicaSet::_add_instance_opts = { "name", "host", "port", "user", "dbUser", "password", "dbPassword", "socket", "ssl_ca", "ssl_cert", "ssl_key", "ssl_key" };
+std::set<std::string> ReplicaSet::_remove_instance_opts = { "name", "host", "port", "socket", "ssl_ca", "ssl_cert", "ssl_key", "ssl_key" };
 
 char const *ReplicaSet::kTopologyPrimaryMaster = "pm";
 char const *ReplicaSet::kTopologyMultiMaster = "mm";
@@ -322,7 +322,6 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args) {
   std::string super_user_password;
   std::string host;
   int port = 0;
-  bool verbose = false;
 
   // NOTE: This function is called from either the add_instance_ on this class
   //       or the add_instance in Cluster class, hence this just throws exceptions
@@ -390,9 +389,6 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args) {
     (*options)["dbPassword"] = shcore::Value(super_user_password);
   } else
     throw shcore::Exception::argument_error("Missing password for " + build_connection_string(options, false));
-
-  if (options->has_key("verbose"))
-    verbose = options->get_bool("verbose");
 
   // Check if the instance was already added
   std::string instance_address = options->get_string("host") + ":" + std::to_string(options->get_int("port"));
@@ -472,8 +468,7 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args) {
     do_join_replicaset(user + "@" + host + ":" + std::to_string(port),
         "",
         super_user_password,
-        replication_user, replication_user_password,
-        verbose);
+        replication_user, replication_user_password);
   } else {
     // We need to retrieve a peer instance, so let's use the Seed one
     std::string peer_instance = _metadata_storage->get_seed_instance(get_id());
@@ -482,8 +477,7 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args) {
     do_join_replicaset(user + "@" + host + ":" + std::to_string(port),
         user + "@" + peer_instance,
         super_user_password,
-        replication_user, replication_user_password,
-        verbose);
+        replication_user, replication_user_password);
   }
 
   // OK, if we reached here without errors we can update the metadata with the host
@@ -519,8 +513,7 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args) {
 bool ReplicaSet::do_join_replicaset(const std::string &instance_url,
     const std::string &peer_instance_url,
     const std::string &super_user_password,
-    const std::string &repl_user, const std::string &repl_user_password,
-    bool verbose) {
+    const std::string &repl_user, const std::string &repl_user_password) {
   shcore::Value ret_val;
   int exit_code = -1;
 
@@ -533,13 +526,13 @@ bool ReplicaSet::do_join_replicaset(const std::string &instance_url,
                       repl_user, super_user_password,
                       repl_user_password,
                       _topology_type == kTopologyMultiMaster,
-                      errors, verbose);
+                      errors);
   } else {
     exit_code = _provisioning_interface->join_replicaset(instance_url,
                       repl_user, peer_instance_url,
                       super_user_password, repl_user_password,
                       _topology_type == kTopologyMultiMaster,
-                      errors, verbose);
+                      errors);
   }
 
   if (exit_code == 0) {
@@ -638,8 +631,7 @@ shcore::Value ReplicaSet::rejoin_instance(const shcore::Argument_list &args) {
     do_join_replicaset(user + "@" + host + ":" + std::to_string(port),
         user + "@" + peer_instance,
         super_user_password,
-        replication_user, replication_user_password,
-        true);
+        replication_user, replication_user_password);
   } CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("addInstance"));
 
   return ret_val;
@@ -696,7 +688,6 @@ shcore::Value ReplicaSet::remove_instance(const shcore::Argument_list &args) {
   std::string host;
   std::string name;
   int port = 0;
-  bool verbose = false;
 
   // Identify the type of connection data (String or Document)
   if (args[0].type == String) {
@@ -732,9 +723,6 @@ shcore::Value ReplicaSet::remove_instance(const shcore::Argument_list &args) {
 
   host = options->get_string("host");
 
-  if (options->has_key("verbose"))
-    verbose = options->get_bool("verbose");
-
   // Check if the instance exists on the ReplicaSet
   std::string instance_address = options->get_string("host") + ":" + std::to_string(options->get_int("port"));
 
@@ -761,7 +749,7 @@ shcore::Value ReplicaSet::remove_instance(const shcore::Argument_list &args) {
 
   instance_url = instance_admin_user + "@" + host + ":" + std::to_string(port);
 
-  exit_code = _provisioning_interface->leave_replicaset(instance_url, instance_admin_user_password, errors, verbose);
+  exit_code = _provisioning_interface->leave_replicaset(instance_url, instance_admin_user_password, errors);
 
   if (exit_code != 0)
     throw shcore::Exception::logic_error(errors);
@@ -797,43 +785,30 @@ shcore::Value ReplicaSet::dissolve(const shcore::Argument_list &args) {
   args.ensure_count(0, 1, get_function_name("dissolve").c_str());
 
   try {
-    bool verbose = false;
     bool force = false;
     shcore::Value::Map_type_ref options;
 
     if (args.size() == 1)
       options = args.map_at(0);
 
-      if (options) {
-        // Verification of invalid attributes on the instance creation options
-        auto invalids = shcore::get_additional_keys(options, { "verbose", "force" });
-        if (invalids.size()) {
-          std::string error = "The options contain the following invalid attributes: ";
-          error += shcore::join_strings(invalids, ", ");
-          throw shcore::Exception::argument_error(error);
-        }
+    if (options) {
+      // Verification of invalid attributes on the instance creation options
+      auto invalids = shcore::get_additional_keys(options, { "force" });
+      if (invalids.size()) {
+        std::string error = "The options contain the following invalid attributes: ";
+        error += shcore::join_strings(invalids, ", ");
+        throw shcore::Exception::argument_error(error);
+      }
 
       if (options->has_key("force")) {
         if ((*options)["force"].type != shcore::Bool)
           throw shcore::Exception::type_error("Invalid data type for 'force' field, should be a boolean");
         force = options->get_bool("force");
       }
-
-      if (options->has_key("verbose")) {
-        if ((*options)["verbose"].type != shcore::Bool)
-          throw shcore::Exception::type_error("Invalid data type for 'force' field, should be a boolean");
-        verbose = options->get_bool("verbose");
-      }
     }
 
     if (force) {
-      shcore::Argument_list args;
-      Value::Map_type_ref options(new shcore::Value::Map_type);
-      (*options)["verbose"] = shcore::Value(verbose);
-      args.push_back(shcore::Value(options));
-
-      // disable the ReplicaSet
-      disable(args);
+      disable(shcore::Argument_list());
     } else if (_metadata_storage->is_replicaset_active(get_id()))
       throw shcore::Exception::logic_error("Cannot dissolve the ReplicaSet: the ReplicaSet is active.");
 
@@ -864,28 +839,10 @@ shcore::Value ReplicaSet::dissolve(const shcore::Argument_list &args) {
 shcore::Value ReplicaSet::disable(const shcore::Argument_list &args) {
   shcore::Value ret_val;
 
-  args.ensure_count(0, 1, get_function_name("disable").c_str());
+  args.ensure_count(0, get_function_name("disable").c_str());
 
   try {
-    bool verbose = false;
-    shcore::Value::Map_type_ref options;
     MetadataStorage::Transaction tx(_metadata_storage);
-
-    if (args.size() == 1)
-      options = args.map_at(0);
-
-      if (options) {
-        // Verification of invalid attributes on the instance creation options
-        auto invalids = shcore::get_additional_keys(options, { "verbose" });
-        if (invalids.size()) {
-          std::string error = "The options contain the following invalid attributes: ";
-          error += shcore::join_strings(invalids, ", ");
-          throw shcore::Exception::argument_error(error);
-        }
-
-        if (options->has_key("verbose"))
-          verbose = options->get_bool("verbose");
-      }
 
     std::string instance_admin_user = _cluster->get_account_user(ACC_INSTANCE_ADMIN);
     std::string instance_admin_user_password = _cluster->get_account_password(ACC_INSTANCE_ADMIN);
@@ -903,7 +860,7 @@ shcore::Value ReplicaSet::disable(const shcore::Argument_list &args) {
 
       // Leave the replicaset
       exit_code = _provisioning_interface->leave_replicaset(instance_url,
-                                            instance_admin_user_password, errors, verbose);
+                                            instance_admin_user_password, errors);
 
       if (exit_code != 0)
         throw shcore::Exception::logic_error(errors);

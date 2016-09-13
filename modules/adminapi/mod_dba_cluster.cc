@@ -458,7 +458,7 @@ shcore::Value Cluster::dissolve(const shcore::Argument_list &args) {
 
     if (options) {
       // Verification of invalid attributes on the instance creation options
-      auto invalids = shcore::get_additional_keys(options, { "force", "verbose", });
+      auto invalids = shcore::get_additional_keys(options, { "force", });
       if (invalids.size()) {
         std::string error = "The options contain the following invalid attributes: ";
         error += shcore::join_strings(invalids, ", ");

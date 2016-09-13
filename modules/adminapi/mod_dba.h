@@ -53,6 +53,9 @@ public:
 
   virtual bool operator == (const Object_bridge &other) const;
 
+  virtual void set_member(const std::string &prop, shcore::Value value);
+  virtual shcore::Value get_member(const std::string &prop) const;
+
   std::shared_ptr<ShellDevelopmentSession> get_active_session() const;
   virtual int get_default_port() { return 33060; };
   int get_default_instance_port() { return 3306; }
