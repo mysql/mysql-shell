@@ -421,8 +421,6 @@ shcore::Value Global_dba::validate_instance(const shcore::Argument_list &args) {
   shcore::Value ret_val;
   shcore::Argument_list new_args;
 
-  validate_session(get_function_name("validateInstance"));
-
   args.ensure_count(1, get_function_name("validateInstance").c_str());
 
   std::string uri, answer, user;
@@ -445,6 +443,10 @@ shcore::Value Global_dba::validate_instance(const shcore::Argument_list &args) {
     error += shcore::join_strings(missing, ", ");
     throw shcore::Exception::argument_error(error);
   }
+
+  // Sets root user by default if no specified
+  if (!options->has_key("user") && !options->has_key("dbUser"))
+    (*options)["user"] = shcore::Value("root");
 
   // Verification of the password
   std::string user_password;

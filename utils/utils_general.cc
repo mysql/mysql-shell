@@ -56,16 +56,23 @@ std::string build_connection_string(Value::Map_type_ref data, bool with_password
   // If needed we construct the URi from the individual parameters
   {
     if (data->has_key("dbUser"))
-    uri.append((*data)["dbUser"].as_string());
+      uri.append((*data)["dbUser"].as_string());
+    else if (data->has_key("user"))
+      uri.append((*data)["user"].as_string());
 
     // Appends password definition, either if it is empty or not
-    if (with_password) {
+    // only if a user was specified
+    if (with_password && !uri.empty()) {
       uri.append(":");
       if (data->has_key("dbPassword"))
         uri.append((*data)["dbPassword"].as_string());
+      else if (data->has_key("password"))
+        uri.append((*data)["password"].as_string());
     }
 
-    uri.append("@");
+    // Appends the user@host separator, if a user has specified
+    if (!uri.empty())
+      uri.append("@");
 
     // Sets the host
     if (data->has_key("host"))

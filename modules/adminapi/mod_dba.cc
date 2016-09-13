@@ -421,8 +421,6 @@ shcore::Value Dba::reset_session(const shcore::Argument_list &args) {
 }
 
 shcore::Value Dba::validate_instance(const shcore::Argument_list &args) {
-  validate_session(get_function_name("validateInstance"));
-
   args.ensure_count(1, 2, "validateInstance");
 
   shcore::Value ret_val;
@@ -434,7 +432,6 @@ shcore::Value Dba::validate_instance(const shcore::Argument_list &args) {
   std::string password;
   std::string host;
   int port = 0;
-  bool verbose = false;
 
   try {
     // Identify the type of connection data (String or Document)
@@ -462,7 +459,7 @@ shcore::Value Dba::validate_instance(const shcore::Argument_list &args) {
     }
 
     // Verification of required attributes on the connection data
-    auto missing = shcore::get_missing_keys(options, { "host", "password|dbPassword", "port" });
+    auto missing = shcore::get_missing_keys(options, { "host", "password|dbPassword", "port", "user|dbUser" });
     if (missing.find("password") != missing.end() && args.size() == 2)
       missing.erase("password");
 
@@ -496,13 +493,10 @@ shcore::Value Dba::validate_instance(const shcore::Argument_list &args) {
     } else
       throw shcore::Exception::argument_error("Missing password for " + build_connection_string(options, false));
 
-    if (options->has_key("verbose"))
-      verbose = options->get_bool("verbose");
-
     std::string errors;
 
-    // TODO: Add verbose option
-    if (_provisioning_interface->check(user, host, port, password, errors, verbose) == 0) {
+    // Verbose is mandatory for validateInstance
+    if (_provisioning_interface->check(user, host, port, password, errors, true) == 0) {
       std::string s_out = "The instance: " + host + ":" + std::to_string(port) + " is valid for Cluster usage";
       ret_val = shcore::Value(s_out);
     } else
