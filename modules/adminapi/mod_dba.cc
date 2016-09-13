@@ -497,7 +497,7 @@ shcore::Value Dba::validate_instance(const shcore::Argument_list &args) {
 
     // Verbose is mandatory for validateInstance
     if (_provisioning_interface->check(user, host, port, password, errors, true) == 0) {
-      std::string s_out = "The instance: " + host + ":" + std::to_string(port) + " is valid for Cluster usage";
+      std::string s_out = "The instance: " + host + ":" + std::to_string(port) + " is valid for Cluster usage\n";
       ret_val = shcore::Value(s_out);
     } else
       throw shcore::Exception::logic_error(errors);

@@ -97,10 +97,12 @@ shcore::Value Interactive_dba_cluster::add_instance(const shcore::Argument_list 
       shcore::Argument_list new_args;
       new_args.push_back(shcore::Value(options));
 
-      print("Adding instance to the cluster ...\n");
+      println("Adding instance to the cluster ...");
+      println();
       ret_val = _target->call(function, new_args);
 
-      print("The instance '" + build_connection_string(options, false) + "' was successfully added to the cluster.\n");
+      println("The instance '" + build_connection_string(options, false) + "' was successfully added to the cluster.");
+      println();
     }
   }
   return ret_val;
@@ -244,6 +246,7 @@ shcore::Value Interactive_dba_cluster::remove_instance(const shcore::Argument_li
   ret_val = _target->call("removeInstance", args);
 
   println("The instance '" + build_connection_string(options, false) + "' was successfully removed from the cluster.");
+  println();
 
   return ret_val;
 }
@@ -297,6 +300,7 @@ shcore::Value Interactive_dba_cluster::dissolve(const shcore::Argument_list &arg
 
     println("The cluster was successfully dissolved.");
     println("Replication was disabled but user data was left intact.");
+    println();
   }
 
   return ret_val;

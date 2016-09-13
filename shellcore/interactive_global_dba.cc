@@ -159,6 +159,7 @@ shcore::Value Global_dba::deploy_local_instance(const shcore::Argument_list &arg
       println("Instance localhost:" + std::to_string(port) + " successfully started.");
 
     println("Use '\\connect root@localhost:" + std::to_string(port) + "' to connect to the instance.");
+    println();
   }
 
   return ret_val;
@@ -177,15 +178,18 @@ shcore::Value Global_dba::perform_instance_operation(const shcore::Argument_list
   std::string sandboxDir = valid_args.map_at(1)->get_string("sandboxDir");
 
   std::string message = "The MySQL sandbox instance on this host in \n"\
-    "" + sandboxDir + "/" + std::to_string(port) + " will be " + past + "\n";
+    "" + sandboxDir + "/" + std::to_string(port) + " will be " + past;
 
   println(message);
+  println();
 
   println(progressive + " MySQL instance...");
 
   shcore::Value ret_val = _target->call(fname, valid_args);
 
-  println("Instance localhost:" + std::to_string(port) + " successfully " + past + ".\n");
+  println();
+  println("Instance localhost:" + std::to_string(port) + " successfully " + past + ".");
+  println();
 
   return ret_val;
 }
@@ -291,8 +295,10 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
       // This is an instance of the API cluster
       auto raw_cluster = _target->call("createCluster", new_args);
 
-      if (verbose)
+      if (verbose){
+        println();
         print("Adding Seed Instance...");
+      }
 
       // Returns an interactive wrapper of this instance
       Interactive_dba_cluster* cluster = new Interactive_dba_cluster(this->_shell_core);
@@ -306,6 +312,7 @@ shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {
                             "one server failure.";
 
       println(message);
+      println();
     }
   } CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("createCluster"));
 
@@ -334,6 +341,7 @@ shcore::Value Global_dba::drop_metadata_schema(const shcore::Argument_list &args
       ret_val = _target->call("dropMetadataSchema", args);
 
     println("Metadata Schema successfully removed.");
+    println();
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("dropMetadataSchema"))
 
@@ -401,6 +409,8 @@ shcore::Value Global_dba::get_cluster(const shcore::Argument_list &args) {
       } else
         cancelled = true;
     }
+
+    println();
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("getCluster"));
 
@@ -434,6 +444,8 @@ shcore::Value Global_dba::validate_instance(const shcore::Argument_list &args) {
   // Connection data comes in a dictionary
   else if (args[0].type == shcore::Map)
     options = args.map_at(0);
+  else
+    throw shcore::Exception::argument_error("Invalid connection options, expected either a URI or a Dictionary.");
 
   // Verification of required attributes on the connection data
   auto missing = shcore::get_missing_keys(options, { "host", "port" });
@@ -471,6 +483,7 @@ shcore::Value Global_dba::validate_instance(const shcore::Argument_list &args) {
 
   // Let's get the user to know we're starting to validate the instance
   println("Validating instance...");
+  println();
 
   ret_val = _target->call("validateInstance", new_args);
 
