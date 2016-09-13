@@ -730,10 +730,14 @@ std::string MetadataStorage::get_seed_instance(uint64_t rs_id) {
 
 std::shared_ptr<shcore::Value::Array_type> MetadataStorage::get_replicaset_instances(uint64_t rs_id)
 {
-  std::string query = "select mysql_server_uuid, instance_name, role,"
+  shcore::sqlstring query;
+
+  query = shcore::sqlstring("select mysql_server_uuid, instance_name, role,"
                       " JSON_UNQUOTE(JSON_EXTRACT(addresses, \"$.mysqlClassic\")) as host"
                       " from mysql_innodb_cluster_metadata.instances"
-                      " where replicaset_id = " + std::to_string(rs_id);
+                      " where replicaset_id = ?", 0);
+  query << rs_id;
+  query.done();
 
   auto result = execute_sql(query);
   auto raw_instances = result->call("fetchAll", shcore::Argument_list());

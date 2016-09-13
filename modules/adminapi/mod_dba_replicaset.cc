@@ -471,7 +471,13 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args) {
         replication_user, replication_user_password);
   } else {
     // We need to retrieve a peer instance, so let's use the Seed one
-    std::string peer_instance = _metadata_storage->get_seed_instance(get_id());
+    auto instances = _metadata_storage->get_replicaset_instances(get_id());
+
+    // The seed is always the first
+    auto value = instances->at(0);
+    auto row = value.as_object<mysh::Row>();
+    std::string peer_instance = row->get_member('instance_name').as_string();
+    // TODO: if it fails re-try with the other instances of the ReplicaSet
 
     // Call mysqlprovision to do the work
     do_join_replicaset(user + "@" + host + ":" + std::to_string(port),
