@@ -409,8 +409,6 @@ shcore::Value Global_dba::get_cluster(const shcore::Argument_list &args) {
       } else
         cancelled = true;
     }
-
-    println();
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("getCluster"));
 

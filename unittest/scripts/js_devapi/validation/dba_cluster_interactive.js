@@ -44,6 +44,7 @@ A new instance will be added to the InnoDB cluster. Depending on the amount of
 data on the cluster this might take from a few seconds to several hours.
 
 Please provide the password for 'root@localhost:<<<__mysql_sandbox_port2>>>': Adding instance to the cluster ...
+
 The instance 'root@localhost:<<<__mysql_sandbox_port2>>>' was successfully added to the cluster.
 
 //@<OUT> Cluster: describe1
@@ -191,6 +192,7 @@ A new instance will be added to the InnoDB cluster. Depending on the amount of
 data on the cluster this might take from a few seconds to several hours.
 
 Please provide the password for 'root@localhost:<<<__mysql_sandbox_port1>>>': Adding instance to the cluster ...
+
 The instance 'root@localhost:<<<__mysql_sandbox_port1>>>' was successfully added to the cluster.
 
 //@<OUT> Cluster: addInstance with interaction, ok 3
@@ -198,7 +200,9 @@ A new instance will be added to the InnoDB cluster. Depending on the amount of
 data on the cluster this might take from a few seconds to several hours.
 
 Please provide the password for 'root@localhost:<<<__mysql_sandbox_port2>>>': Adding instance to the cluster ...
+
 The instance 'root@localhost:<<<__mysql_sandbox_port2>>>' was successfully added to the cluster.
 
 //@<OUT> Cluster: dissolve
 The cluster was successfully dissolved.
+Replication was disabled but user data was left intact.
