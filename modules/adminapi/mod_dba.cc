@@ -561,8 +561,12 @@ shcore::Value Dba::exec_instance_op(const std::string &function, const shcore::A
       }
     }
 
-    if (options->has_key("portx"))
+    if (options->has_key("portx")) {
       portx = options->get_int("portx");
+
+      if (portx < 1024 || portx > 65535)
+        throw shcore::Exception::argument_error("Invalid value for 'portx': Please use a valid TCP port number >= 1024 and <= 65535");
+    }
 
     if (options->has_key("sandboxDir"))
       sandbox_dir = options->get_string("sandboxDir");
@@ -576,8 +580,8 @@ shcore::Value Dba::exec_instance_op(const std::string &function, const shcore::A
 
   std::string errors;
 
-  if (port <= 0 || port > 65535)
-    throw shcore::Exception::argument_error("Please use a valid TCP port number");
+  if (port < 1024 || port > 65535)
+    throw shcore::Exception::argument_error("Invalid value for 'port': Please use a valid TCP port number >= 1024 and <= 65535");
 
   if (function == "deploy") {
     if (_provisioning_interface->deploy_sandbox(port, portx, sandbox_dir, password, mycnf_options, errors) != 0)
