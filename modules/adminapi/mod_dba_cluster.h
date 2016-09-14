@@ -80,6 +80,14 @@ public:
   void set_attributes(const std::string& json) { _attributes = shcore::Value::parse(json).as_map(); }
   std::string get_attributes() { return shcore::Value(_attributes).json(false); }
 
+  std::shared_ptr<ProvisioningInterface> get_provisioning_interface() {
+    return _provisioning_interface;
+  }
+
+  void set_provisioning_interface(std::shared_ptr<ProvisioningInterface> provisioning_interface) {
+    _provisioning_interface = provisioning_interface;
+  }
+
 #if DOXYGEN_JS
   String getName();
   String getAdminType();
@@ -134,6 +142,7 @@ private:
   void init();
 
   std::shared_ptr<MetadataStorage> _metadata_storage;
+  std::shared_ptr<ProvisioningInterface> _provisioning_interface;
 
   void set_account_data(const std::string& account, const std::string& key, const std::string& value);
   std::string get_account_data(const std::string& account, const std::string& key);

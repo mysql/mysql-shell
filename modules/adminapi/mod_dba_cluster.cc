@@ -37,7 +37,8 @@ using namespace mysh::dba;
 using namespace shcore;
 
 Cluster::Cluster(const std::string &name, std::shared_ptr<MetadataStorage> metadata_storage) :
-_name(name), _metadata_storage(metadata_storage), _json_mode(JSON_STANDARD_OUTPUT) {
+_name(name),  _json_mode(JSON_STANDARD_OUTPUT),
+_metadata_storage(metadata_storage) {
   init();
 }
 

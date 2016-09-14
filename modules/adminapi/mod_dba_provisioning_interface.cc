@@ -107,7 +107,7 @@ int ProvisioningInterface::execute_mysqlprovision(const std::string &cmd, const 
         if (verbose) {
           // TODO: We may need to also filter other messages about
           //       password retrieval
-          if (buf.find("Enter the password for server") == std::string::npos)
+          if (buf.find("Enter the password for") == std::string::npos)
             _delegate->print(_delegate->user_data, buf.c_str());
         }
         log_debug("DBA: mysqlprovision: %s", buf.c_str());

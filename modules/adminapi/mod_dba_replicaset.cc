@@ -50,8 +50,8 @@ char const *ReplicaSet::kTopologyMultiMaster = "mm";
 
 ReplicaSet::ReplicaSet(const std::string &name, const std::string &topology_type,
                        std::shared_ptr<MetadataStorage> metadata_storage) :
-_name(name), _metadata_storage(metadata_storage), _json_mode(JSON_STANDARD_OUTPUT),
-_topology_type(topology_type) {
+_name(name), _topology_type(topology_type), _json_mode(JSON_STANDARD_OUTPUT),
+_metadata_storage(metadata_storage) {
   init();
 }
 
@@ -254,8 +254,6 @@ void ReplicaSet::init() {
   add_method("removeInstance", std::bind(&ReplicaSet::remove_instance_, this, _1), "data");
   add_varargs_method("disable", std::bind(&ReplicaSet::disable, this, _1));
   add_varargs_method("dissolve", std::bind(&ReplicaSet::dissolve, this, _1));
-
-  _provisioning_interface.reset(new ProvisioningInterface(_metadata_storage->get_dba()->get_owner()->get_delegate()));
 }
 
 #if DOXYGEN_CPP
@@ -531,13 +529,13 @@ bool ReplicaSet::do_join_replicaset(const std::string &instance_url,
   std::string command, errors;
 
   if (is_seed_instance) {
-    exit_code = _provisioning_interface->start_replicaset(instance_url,
+    exit_code = _cluster->get_provisioning_interface()->start_replicaset(instance_url,
                       repl_user, super_user_password,
                       repl_user_password,
                       _topology_type == kTopologyMultiMaster,
                       errors);
   } else {
-    exit_code = _provisioning_interface->join_replicaset(instance_url,
+    exit_code = _cluster->get_provisioning_interface()->join_replicaset(instance_url,
                       repl_user, peer_instance_url,
                       super_user_password, repl_user_password,
                       _topology_type == kTopologyMultiMaster,
@@ -758,7 +756,7 @@ shcore::Value ReplicaSet::remove_instance(const shcore::Argument_list &args) {
 
   instance_url = instance_admin_user + "@" + host + ":" + std::to_string(port);
 
-  exit_code = _provisioning_interface->leave_replicaset(instance_url, instance_admin_user_password, errors);
+  exit_code = _cluster->get_provisioning_interface()->leave_replicaset(instance_url, instance_admin_user_password, errors);
 
   if (exit_code != 0)
     throw shcore::Exception::logic_error(errors);
@@ -868,7 +866,7 @@ shcore::Value ReplicaSet::disable(const shcore::Argument_list &args) {
       std::string errors;
 
       // Leave the replicaset
-      exit_code = _provisioning_interface->leave_replicaset(instance_url,
+      exit_code = _cluster->get_provisioning_interface()->leave_replicaset(instance_url,
                                             instance_admin_user_password, errors);
 
       if (exit_code != 0)

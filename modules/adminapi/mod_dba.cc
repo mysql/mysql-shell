@@ -208,11 +208,14 @@ shcore::Value Dba::get_cluster(const shcore::Argument_list &args) const {
     if (get_default_cluster) {
       // Reloads the cluster (to avoid losing _default_cluster in case of error)
       cluster = _metadata_storage->get_default_cluster(master_key);
+      // Set the provision interface pointer
+      cluster->set_provisioning_interface(_provisioning_interface);
     } else {
       if (cluster_name.empty())
         throw Exception::argument_error("The Cluster name cannot be empty.");
 
       cluster = _metadata_storage->get_cluster(cluster_name, master_key);
+      cluster->set_provisioning_interface(_provisioning_interface);
     }
 
     if (cluster)
@@ -329,6 +332,7 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
       mysql_innodb_cluster_admin_pwd = cluster_password;
 
     std::shared_ptr<Cluster> cluster(new Cluster(cluster_name, _metadata_storage));
+    cluster->set_provisioning_interface(_provisioning_interface);
 
     // Update the properties
     cluster->set_master_key(cluster_password);
