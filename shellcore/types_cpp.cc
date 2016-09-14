@@ -19,7 +19,10 @@
 
 #include "shellcore/types_cpp.h"
 #include "shellcore/common.h"
+#include "utils/utils_help.h"
+#include "utils/utils_general.h"
 #include <cstdarg>
+#include <cctype>
 
 using namespace std::placeholders;
 using namespace shcore;
@@ -277,25 +280,85 @@ Value Cpp_object_bridge::call(const std::string &name, const Argument_list &args
   return i->second->invoke(args);
 }
 
+std::string Cpp_object_bridge::get_help_text(const std::string& token) {
+  std::string real_token;
+  for (auto c : token)
+    real_token.append(1, std::toupper(c));
+
+  int index = 0;
+  std::string text = Shell_help::get()->get_token(real_token);
+
+  std::vector<std::string> lines;
+  while (!text.empty()) {
+    lines.push_back(text);
+    text = Shell_help::get()->get_token(real_token + std::to_string(++index));
+  }
+
+  return shcore::join_strings(lines, "\n");
+}
+
 shcore::Value Cpp_object_bridge::help(const shcore::Argument_list &args) {
   args.ensure_count(0, 1, get_function_name("help").c_str());
 
   std::string ret_val;
-
   std::string item;
+
+  std::string prefix = class_name();
+
   if (args.size() == 1)
     item = args.string_at(0);
 
-  if (args.size() == 1 && !item.empty()) {
-    ret_val = get_help_text(item, true);
-
-    if (ret_val.empty()) {
+  if (!item.empty()) {
+    // Checks for an invalid member
+    if (!has_member(item)) {
       std::string error = get_function_name("help") + ": '" + item + "' is not recognized as a property or function.\n"
-                          "Use " + get_function_name("help") + "() to get a list of supported members.";
+        "Use " + get_function_name("help") + "() to get a list of supported members.";
       throw shcore::Exception::argument_error(error);
     }
+
+    // The prefix is increased to include the function/property name
+    prefix.append("_" + item);
+
+    ret_val = get_help_text(prefix + "_BRIEF");
+
+    // On functions we continue with the rest of the documentation
+    if (has_method(item)) {
+      ret_val.append("\n\nSYNTAX\n\n  ");
+      ret_val.append(item);
+
+      std::string params = get_help_text(prefix + "_PARAM");
+      if (!params.empty()) {
+        auto parameters = shcore::split_string(params, "\n");
+
+        std::vector<std::string> pnames;
+        std::vector<std::string> pdescs;
+        for (auto paramdef : parameters) {
+          // 7 is the length of: "\param " or "@param "
+          size_t start_index = 7;
+          auto pname = paramdef.substr(start_index, paramdef.find(" ", start_index) - start_index);
+          pnames.push_back(pname);
+
+          start_index += pname.size() + 1;
+          pdescs.push_back(paramdef.substr(start_index));
+        }
+
+        ret_val.append("(" + shcore::join_strings(pnames, ", ") + ")\n\nWHERE\n\n");
+
+        size_t index;
+        for (index = 0; index < parameters.size(); index++)
+          ret_val.append("  " + pnames[index] + ": " + pdescs[index] + "\n");
+
+        ret_val.append("\n");
+      } else {
+        ret_val.append("()\n\n");
+      }
+    }
+
+    std::string detail = get_help_text(prefix + "_DETAIL");
+    if (!detail.empty())
+      ret_val.append("ADDITIONAL INFO:\n\n" + detail + "\n\n");
   } else {
-    ret_val = get_help_text("__detail__", false);
+    ret_val += get_help_text(prefix + "_DETAIL");
 
     if (_properties.size()) {
       int text_col = 0;
@@ -309,7 +372,8 @@ shcore::Value Cpp_object_bridge::help(const shcore::Argument_list &args) {
       ret_val += "\n\nThe following properties are currently supported.\n\n";
       for (auto property : _properties) {
         std::string name = property->name(naming_style);
-        std::string help_text = get_help_text(name, false);
+        std::string pname = property->name(shcore::NamingStyle::LowerCamelCase);
+        std::string help_text = get_help_text(pname + "_BRIEF");
 
         std::string text = " - " + name;
 
@@ -339,9 +403,12 @@ shcore::Value Cpp_object_bridge::help(const shcore::Argument_list &args) {
 
       for (auto function : _funcs) {
         std::string name = function.second->_name[naming_style];
-        std::string help_text = get_help_text(name, false);
 
-        std::string text = " - " + name + "()";
+        std::string fname = function.second->_name[shcore::NamingStyle::LowerCamelCase];
+
+        std::string help_text = get_help_text(prefix + "_" + fname + "_BRIEF");
+
+        std::string text = " - " + name;
 
         if (!help_text.empty()) {
           for (int index = 0; index < (text_col - name.length()); index++)
@@ -356,7 +423,7 @@ shcore::Value Cpp_object_bridge::help(const shcore::Argument_list &args) {
       }
     }
 
-    std::string closing = get_help_text("__closing__", false);
+    std::string closing = get_help_text(prefix + "_CLOSING");
 
     if (!closing.empty())
       ret_val += "\n" + closing + "\n";

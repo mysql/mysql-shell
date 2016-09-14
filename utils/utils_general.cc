@@ -492,12 +492,14 @@ std::string join_strings(const std::vector<std::string>& strings, const std::str
   std::vector<std::string> input(strings);
   std::string ret_val;
 
-  ret_val += *input.begin();
+  if (!input.empty()) {
+    ret_val += *input.begin();
 
-  input.erase(input.begin());
+    input.erase(input.begin());
 
-  for (auto item : input)
-    ret_val += separator + item;
+    for (auto item : input)
+      ret_val += separator + item;
+  }
 
   return ret_val;
 }

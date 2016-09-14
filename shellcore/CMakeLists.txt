@@ -65,6 +65,8 @@ file(GLOB libmysqlshcore_SRC
     "${CMAKE_SOURCE_DIR}/utils/base_tokenizer.cc"
     "${CMAKE_SOURCE_DIR}/utils/uri_parser.h"
     "${CMAKE_SOURCE_DIR}/utils/uri_parser.cc"
+    "${CMAKE_SOURCE_DIR}/utils/utils_help.h"
+    "${CMAKE_SOURCE_DIR}/utils/utils_help.cc"
     "*.cc"
     "*.h"
     "${CMAKE_SOURCE_DIR}/common/uuid/src/uuid_gen.cc"

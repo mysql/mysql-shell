@@ -533,7 +533,7 @@ bool Interactive_shell::cmd_print_shell_help(const std::vector<std::string>& arg
       for (auto name : globals) {
         auto object_val = _shell->get_global(name);
         auto object = std::dynamic_pointer_cast<Cpp_object_bridge>(object_val.as_object());
-        auto brief = object->get_help_text("__brief__", false);
+        auto brief = object->get_help_text(object->class_name() + "_BRIEF");
 
         if (!brief.empty())
           println((boost::format("%-10s %s") % name % brief).str());
