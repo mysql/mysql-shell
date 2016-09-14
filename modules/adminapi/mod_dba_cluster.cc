@@ -538,7 +538,7 @@ std::string Cluster::get_accounts_data() {
                  reinterpret_cast<unsigned char*>(&dest[0]),
                  reinterpret_cast<const unsigned char*>(_master_key.data()),
                  static_cast<uint32_t>(_master_key.length()),
-                 myaes::my_aes_128_ecb, NULL, false) < 0)
+                 myaes::my_aes_256_ecb, NULL, false) < 0)
     throw shcore::Exception::runtime_error("Error encrypting account information");
   return dest;
 }
