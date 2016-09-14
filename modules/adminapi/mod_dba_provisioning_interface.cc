@@ -270,7 +270,7 @@ int ProvisioningInterface::exec_sandbox_op(const std::string &op, int port, int 
   return execute_mysqlprovision("sandbox", args, passwords, errors, _verbose);
 }
 
-int ProvisioningInterface::deploy_sandbox(int port, int portx, const std::string &sandbox_dir,
+int ProvisioningInterface::create_sandbox(int port, int portx, const std::string &sandbox_dir,
                                           const std::string &password,
                                           const shcore::Value &mycnf_options,
                                           std::string &errors) {
@@ -280,7 +280,7 @@ int ProvisioningInterface::deploy_sandbox(int port, int portx, const std::string
       extra_args.push_back("--opt=" + s.as_string());
     }
   }
-  return exec_sandbox_op("start", port, portx, sandbox_dir, password,
+  return exec_sandbox_op("create", port, portx, sandbox_dir, password,
                          extra_args, errors);
 }
 
@@ -299,6 +299,12 @@ int ProvisioningInterface::kill_sandbox(int port, const std::string &sandbox_dir
 int ProvisioningInterface::stop_sandbox(int port, const std::string &sandbox_dir,
                                         std::string &errors) {
   return exec_sandbox_op("stop", port, 0, sandbox_dir, "",
+                         std::vector<std::string>(), errors);
+}
+
+int ProvisioningInterface::start_sandbox(int port, const std::string &sandbox_dir,
+                                        std::string &errors) {
+  return exec_sandbox_op("start", port, 0, sandbox_dir, "",
                          std::vector<std::string>(), errors);
 }
 

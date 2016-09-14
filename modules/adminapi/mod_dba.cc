@@ -62,7 +62,7 @@ void Dba::init() {
   add_method("dropMetadataSchema", std::bind(&Dba::drop_metadata_schema, this, _1), "data", shcore::Map, NULL);
   add_method("validateInstance", std::bind(&Dba::validate_instance, this, _1), "data", shcore::Map, NULL);
   add_method("deployLocalInstance", std::bind(&Dba::deploy_local_instance, this, _1, "deployLocalInstance"), "data", shcore::Map, NULL);
-  add_varargs_method("startLocalInstance", std::bind(&Dba::deploy_local_instance, this, _1, "startLocalInstance"));
+  add_method("startLocalInstance", std::bind(&Dba::start_local_instance, this, _1), "data", shcore::Map, NULL);
   add_method("stopLocalInstance", std::bind(&Dba::stop_local_instance, this, _1), "data", shcore::Map, NULL);
   add_method("deleteLocalInstance", std::bind(&Dba::delete_local_instance, this, _1), "data", shcore::Map, NULL);
   add_method("killLocalInstance", std::bind(&Dba::kill_local_instance, this, _1), "data", shcore::Map, NULL);
@@ -588,7 +588,11 @@ shcore::Value Dba::exec_instance_op(const std::string &function, const shcore::A
     throw shcore::Exception::argument_error("Invalid value for 'port': Please use a valid TCP port number >= 1024 and <= 65535");
 
   if (function == "deploy") {
-    if (_provisioning_interface->deploy_sandbox(port, portx, sandbox_dir, password, mycnf_options, errors) != 0)
+    // First we need to create the instance
+    if (_provisioning_interface->create_sandbox(port, portx, sandbox_dir, password, mycnf_options, errors) != 0)
+      throw shcore::Exception::logic_error(errors);
+    // And now we start it
+    if (_provisioning_interface->start_sandbox(port, sandbox_dir, errors) != 0)
       throw shcore::Exception::logic_error(errors);
   } else if (function == "delete") {
     if (_provisioning_interface->delete_sandbox(port, sandbox_dir, errors) != 0)
@@ -598,6 +602,9 @@ shcore::Value Dba::exec_instance_op(const std::string &function, const shcore::A
       throw shcore::Exception::logic_error(errors);
   } else if (function == "stop") {
     if (_provisioning_interface->stop_sandbox(port, sandbox_dir, errors) != 0)
+      throw shcore::Exception::logic_error(errors);
+  } else if (function == "start") {
+    if (_provisioning_interface->start_sandbox(port, sandbox_dir, errors) != 0)
       throw shcore::Exception::logic_error(errors);
   }
   return ret_val;
@@ -651,6 +658,19 @@ shcore::Value Dba::stop_local_instance(const shcore::Argument_list &args) {
     ret_val = exec_instance_op("stop", args);
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("stopLocalInstance"));
+
+  return ret_val;
+}
+
+shcore::Value Dba::start_local_instance(const shcore::Argument_list &args) {
+  shcore::Value ret_val;
+
+  args.ensure_count(1, 2, get_function_name("startLocalInstance").c_str());
+
+  try {
+    ret_val = exec_instance_op("start", args);
+  }
+  CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("startLocalInstance"));
 
   return ret_val;
 }

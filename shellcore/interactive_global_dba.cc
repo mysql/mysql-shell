@@ -31,7 +31,7 @@ using namespace shcore;
 
 void Global_dba::init() {
   add_varargs_method("deployLocalInstance", std::bind(&Global_dba::deploy_local_instance, this, _1, "deployLocalInstance"));
-  add_varargs_method("startLocalInstance", std::bind(&Global_dba::deploy_local_instance, this, _1, "startLocalInstance"));
+  add_varargs_method("startLocalInstance", std::bind(&Global_dba::start_local_instance, this, _1));
   add_varargs_method("deleteLocalInstance", std::bind(&Global_dba::delete_local_instance, this, _1));
   add_varargs_method("killLocalInstance", std::bind(&Global_dba::kill_local_instance, this, _1));
   add_varargs_method("stopLocalInstance", std::bind(&Global_dba::stop_local_instance, this, _1));
@@ -204,6 +204,10 @@ shcore::Value Global_dba::kill_local_instance(const shcore::Argument_list &args)
 
 shcore::Value Global_dba::stop_local_instance(const shcore::Argument_list &args) {
   return perform_instance_operation(args, "stopLocalInstance", "Stopping", "stopped");
+}
+
+shcore::Value Global_dba::start_local_instance(const shcore::Argument_list &args) {
+  return perform_instance_operation(args, "startLocalInstance", "Starting", "started");
 }
 
 shcore::Value Global_dba::create_cluster(const shcore::Argument_list &args) {

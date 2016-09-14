@@ -43,19 +43,17 @@ public:
   int check(const std::string &user, const std::string &host, int port, const std::string &password,
             std::string &errors);
 
-  int deploy_sandbox(int port, int portx, const std::string &sandbox_dir,
+  int create_sandbox(int port, int portx, const std::string &sandbox_dir,
                      const std::string &password,
                      const shcore::Value &mycnf_options,
                      std::string &errors);
-
-  //int stop_sandbox(int port, int portx, const std::string &sandbox_dir,
-  //                 const std::string &password, std::string &errors);
-
   int delete_sandbox(int port, const std::string &sandbox_dir,
                      std::string &errors);
   int kill_sandbox(int port, const std::string &sandbox_dir,
                    std::string &errors);
   int stop_sandbox(int port, const std::string &sandbox_dir,
+                   std::string &errors);
+  int start_sandbox(int port, const std::string &sandbox_dir,
                    std::string &errors);
   int start_replicaset(const std::string &instance_url, const std::string &repl_user,
                  const std::string &super_user_password, const std::string &repl_user_password,
