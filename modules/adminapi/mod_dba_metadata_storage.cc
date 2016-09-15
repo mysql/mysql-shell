@@ -29,20 +29,15 @@
 #include <random>
 
 using namespace mysh;
-using namespace mysh::mysqlx;
+using namespace mysh::dba;
 using namespace shcore;
 
 MetadataStorage::MetadataStorage(Dba* dba) :
-_dba(dba)
-{
-}
+_dba(dba) {}
 
-MetadataStorage::~MetadataStorage()
-{
-}
+MetadataStorage::~MetadataStorage() {}
 
-std::shared_ptr<ShellBaseResult> MetadataStorage::execute_sql(const std::string &sql) const
-{
+std::shared_ptr<ShellBaseResult> MetadataStorage::execute_sql(const std::string &sql) const {
   shcore::Value ret_val;
 
   log_debug("DBA: execute_sql('%s'", sql.c_str());
@@ -51,49 +46,45 @@ std::shared_ptr<ShellBaseResult> MetadataStorage::execute_sql(const std::string 
   if (!session)
     throw Exception::metadata_error("The Metadata is inaccessible");
 
-  try
-  {
-    ret_val = session->execute_sql(sql, shcore::Argument_list());
-  }
-  catch (shcore::Exception& e)
-  {
-    if (CR_SERVER_GONE_ERROR == e.code() || ER_X_BAD_PIPE == e.code())
-    {
-      log_debug("DBA: The Metadata is inaccessible");
-      throw Exception::metadata_error("The Metadata is inaccessible");
+  bool retry = true;
+
+  while (retry) {
+    try {
+      ret_val = session->execute_sql(sql, shcore::Argument_list());
+
+      // If reached here it means there were no errors
+      retry = false;
+    } catch (shcore::Exception& e) {
+      if (CR_SERVER_GONE_ERROR == e.code() || ER_X_BAD_PIPE == e.code()) {
+        log_debug("%s", e.format().c_str());
+        log_debug("DBA: The Metadata is inaccessible");
+        throw Exception::metadata_error("The Metadata is inaccessible");
+      } else {
+        log_debug("%s", e.format().c_str());
+        throw;
+      }
     }
-    else if (CR_SQLSTATE == e.code())
-    {
-      log_debug("DBA: The Metadata session is invalid. A R/W session is required");
-      throw Exception::metadata_error("The Metadata session is invalid. A R/W session is required");
-    }
-    else
-      throw;
   }
 
   return ret_val.as_object<ShellBaseResult>();
 }
 
-void MetadataStorage::start_transaction()
-{
+void MetadataStorage::start_transaction() {
   auto session = _dba->get_active_session();
   session->start_transaction();
 }
 
-void MetadataStorage::commit()
-{
+void MetadataStorage::commit() {
   auto session = _dba->get_active_session();
   session->commit();
 }
 
-void MetadataStorage::rollback()
-{
+void MetadataStorage::rollback() {
   auto session = _dba->get_active_session();
   session->rollback();
 }
 
-bool MetadataStorage::metadata_schema_exists()
-{
+bool MetadataStorage::metadata_schema_exists() {
   std::string found_object;
   std::string type = "Schema";
   std::string search_name = "mysql_innodb_cluster_metadata";
@@ -107,10 +98,8 @@ bool MetadataStorage::metadata_schema_exists()
   return !found_object.empty();
 }
 
-void MetadataStorage::create_metadata_schema()
-{
-  if (!metadata_schema_exists())
-  {
+void MetadataStorage::create_metadata_schema() {
+  if (!metadata_schema_exists()) {
     std::string query = shcore::md_model_sql;
 
     size_t pos = 0;
@@ -123,28 +112,28 @@ void MetadataStorage::create_metadata_schema()
 
       query.erase(0, pos + delimiter.length());
     }
-  }
-  else
-  {
+  } else {
     // Check the Schema version and update the schema accordingly
   }
 }
 
-void MetadataStorage::drop_metadata_schema()
-{
+void MetadataStorage::drop_metadata_schema() {
   execute_sql("DROP SCHEMA mysql_innodb_cluster_metadata");
 }
 
-uint64_t MetadataStorage::get_cluster_id(const std::string &cluster_name)
-{
+uint64_t MetadataStorage::get_cluster_id(const std::string &cluster_name) {
   uint64_t cluster_id = 0;
+  shcore::sqlstring query;
 
   if (!metadata_schema_exists())
     throw Exception::metadata_error("Metadata Schema does not exist.");
 
   // Get the Cluster ID
+  query = shcore::sqlstring("SELECT cluster_id from mysql_innodb_cluster_metadata.clusters where cluster_name = ?", 0);
+  query << cluster_name;
+  query.done();
 
-  auto result = execute_sql("SELECT cluster_id from mysql_innodb_cluster_metadata.clusters where cluster_name = '" + cluster_name + "'");
+  auto result = execute_sql(query);
 
   auto row = result->call("fetchOne", shcore::Argument_list());
 
@@ -156,16 +145,19 @@ uint64_t MetadataStorage::get_cluster_id(const std::string &cluster_name)
   return cluster_id;
 }
 
-uint64_t MetadataStorage::get_cluster_id(uint64_t rs_id)
-{
+uint64_t MetadataStorage::get_cluster_id(uint64_t rs_id) {
   uint64_t cluster_id = 0;
+  shcore::sqlstring query;
 
   if (!metadata_schema_exists())
     throw Exception::metadata_error("Metadata Schema does not exist.");
 
   // Get the Cluster ID
+  query = shcore::sqlstring("SELECT cluster_id from mysql_innodb_cluster_metadata.replicasets where replicaset_id = ?", 0);
+  query << rs_id;
+  query.done();
 
-  auto result = execute_sql("SELECT cluster_id from mysql_innodb_cluster_metadata.replicasets where replicaset_id = '" + std::to_string(rs_id) + "'");
+  auto result = execute_sql(query);
 
   auto row = result->call("fetchOne", shcore::Argument_list());
 
@@ -177,8 +169,7 @@ uint64_t MetadataStorage::get_cluster_id(uint64_t rs_id)
   return cluster_id;
 }
 
-bool MetadataStorage::cluster_exists(const std::string &cluster_name)
-{
+bool MetadataStorage::cluster_exists(const std::string &cluster_name) {
   /*
    * To check if the cluster exists, we can use get_cluster_id
    * and simply check for its return value.
@@ -191,8 +182,7 @@ bool MetadataStorage::cluster_exists(const std::string &cluster_name)
   return false;
 }
 
-void MetadataStorage::insert_cluster(const std::shared_ptr<Cluster> &cluster)
-{
+void MetadataStorage::insert_cluster(const std::shared_ptr<Cluster> &cluster) {
   if (!metadata_schema_exists())
     throw Exception::metadata_error("Metadata Schema does not exist.");
 
@@ -206,33 +196,30 @@ void MetadataStorage::insert_cluster(const std::shared_ptr<Cluster> &cluster)
         << cluster->get_attributes();
   query.done();
   // Insert the Cluster on the cluster table
-  try
-  {
+  try {
     auto result = execute_sql(query);
     cluster->set_id(result->get_member("autoIncrementValue").as_int());
-  }
-  catch (shcore::Exception &e)
-  {
-    if (e.what() == "Duplicate entry '" + cluster->get_name() + "' for key 'cluster_name'")
-    {
+  } catch (shcore::Exception &e) {
+    if (e.what() == "Duplicate entry '" + cluster->get_name() + "' for key 'cluster_name'") {
       log_debug("DBA: A Cluster with the name '%s' already exists", (cluster->get_name()).c_str());
       throw Exception::argument_error("A Cluster with the name '" + cluster->get_name() + "' already exists.");
-    }
-    else
+    } else
       throw;
   }
 }
 
-void MetadataStorage::insert_default_replica_set(const std::shared_ptr<Cluster> &cluster)
-{
-  std::string query;
+void MetadataStorage::insert_replica_set(std::shared_ptr<ReplicaSet> replicaset,
+      bool is_default) {
+  shcore::sqlstring query("INSERT INTO mysql_innodb_cluster_metadata.replicasets "
+      "(cluster_id, replicaset_type, topology_type, replicaset_name, active) "
+      "VALUES (?, ?, ?, ?, ?)", 0);
   uint64_t cluster_id;
 
-  cluster_id = cluster->get_id();
+  cluster_id = replicaset->get_cluster()->get_id();
 
   // Insert the default ReplicaSet on the replicasets table
-  query = "INSERT INTO mysql_innodb_cluster_metadata.replicasets (cluster_id, replicaset_type, replicaset_name, active) VALUES (" +
-        std::to_string(cluster_id) + ", 'gr', 'default', 1)";
+  query << cluster_id << "gr" << replicaset->get_topology_type() << "default" << 1;
+  query.done();
 
   auto result = execute_sql(query);
 
@@ -241,32 +228,29 @@ void MetadataStorage::insert_default_replica_set(const std::shared_ptr<Cluster> 
   rs_id = result->get_member("autoIncrementValue").as_uint();
 
   // Update the cluster entry with the replicaset_id
-  cluster->get_default_replicaset()->set_id(rs_id);
+  replicaset->set_id(rs_id);
 
   // Insert the default ReplicaSet on the replicasets table
-  query = "UPDATE mysql_innodb_cluster_metadata.clusters SET default_replicaset = " + std::to_string(rs_id) +
-        " WHERE cluster_id = " + std::to_string(cluster_id) + "";
+  query = shcore::sqlstring("UPDATE mysql_innodb_cluster_metadata.clusters SET default_replicaset = ?"
+                            " WHERE cluster_id = ?", 0);
+  query << rs_id << cluster_id;
+  query.done();
 
   execute_sql(query);
 }
 
-std::shared_ptr<ShellBaseResult> MetadataStorage::insert_host(const shcore::Argument_list &args)
-{
+std::shared_ptr<ShellBaseResult> MetadataStorage::insert_host(const shcore::Argument_list &args) {
   std::string uri;
   shcore::Value::Map_type_ref options; // Map with the connection data
 
   std::string host_name;
   std::string ip_address;
   std::string location;
-  //shcore::Value::Map_type_ref attributes, admin_user_account;
 
-  std::string query;
-  std::shared_ptr< ::mysqlx::Result> result;
-  std::shared_ptr< ::mysqlx::Row> row;
+  shcore::sqlstring query;
 
   // Identify the type of args data (String or Document)
-  if (args[0].type == String)
-  {
+  if (args[0].type == String) {
     uri = args.string_at(0);
     options = get_connection_data(uri, false);
   }
@@ -289,14 +273,40 @@ std::shared_ptr<ShellBaseResult> MetadataStorage::insert_host(const shcore::Argu
     location = "TODO";
 
   // Insert the default ReplicaSet on the replicasets table
-  query = "INSERT INTO mysql_innodb_cluster_metadata.hosts (host_name, ip_address, location) VALUES ('" +
-        host_name + "', '" + ip_address + "', '" + location + "')";
+  query = shcore::sqlstring("INSERT INTO mysql_innodb_cluster_metadata.hosts (host_name, ip_address, location) VALUES (?, ?, ?)", 0);
+  query << host_name;
+  query << ip_address;
+  query << location;
+  query.done();
 
-  return execute_sql(query);
+  std::shared_ptr<ShellBaseResult> result;
+
+  // Arbitrary retry count
+  int retryCount = 50;
+  while (true)
+  try {
+    result = execute_sql(query);
+
+    // Getting here it means it succeeded
+    break;
+  } catch (shcore::Exception &e) {
+    if (e.code() == CR_SQLSTATE) {
+      if (retryCount) {
+#ifdef HAVE_SLEEP
+        sleep(1);
+#elif defined(WIN32)
+        Sleep(100);
+#endif
+        retryCount--;
+      } else
+        throw;
+    }
+  }
+
+  return result;
 }
 
-void MetadataStorage::insert_instance(const shcore::Argument_list &args, uint64_t host_id, uint64_t rs_id)
-{
+void MetadataStorage::insert_instance(const shcore::Argument_list &args, uint64_t host_id, uint64_t rs_id) {
   std::string uri;
   shcore::Value::Map_type_ref options; // Map with the connection data
 
@@ -309,7 +319,7 @@ void MetadataStorage::insert_instance(const shcore::Argument_list &args, uint64_
   int version_token;
   std::string description;
 
-  std::string query;
+  shcore::sqlstring query;
   std::shared_ptr< ::mysqlx::Result> result;
   std::shared_ptr< ::mysqlx::Row> row;
 
@@ -338,42 +348,47 @@ void MetadataStorage::insert_instance(const shcore::Argument_list &args, uint64_
     description = (*options)["description"].as_string();
 
   // Insert the default ReplicaSet on the replicasets table
-  query = "INSERT INTO mysql_innodb_cluster_metadata.instances (host_id, replicaset_id, mysql_server_uuid, instance_name,\
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          role, addresses) VALUES ('" +
-        std::to_string(host_id) + "', '" + std::to_string(rs_id) + "', '" + mysql_server_uuid + "', '" +
-        instance_name + "', '" + role + "', '{\"mysqlClassic\": \"" + addresses + "\"}')";
+  query = shcore::sqlstring("INSERT INTO mysql_innodb_cluster_metadata.instances (host_id, replicaset_id, mysql_server_uuid, instance_name, role, addresses) VALUES (?, ?, ? ,? ,? ,json_object('mysqlClassic', ?))", 0);
+  query << host_id;
+  query << rs_id;
+  query << mysql_server_uuid;
+  query << instance_name;
+  query << role;
+  query << addresses;
+  query.done();
 
   execute_sql(query);
 }
 
-void MetadataStorage::remove_instance(const std::string &instance_name)
-{
-  std::string query;
+void MetadataStorage::remove_instance(const std::string &instance_name) {
+  shcore::sqlstring query;
 
   // Remove the instance
-  query = "DELETE FROM mysql_innodb_cluster_metadata.instances WHERE instance_name = '" + instance_name + "'";
+  query = shcore::sqlstring("DELETE FROM mysql_innodb_cluster_metadata.instances WHERE instance_name = ?", 0);
+  query << instance_name;
+  query.done();
 
   execute_sql(query);
 }
 
-void MetadataStorage::drop_cluster(const std::string &cluster_name)
-{
-  std::string query, ret;
+void MetadataStorage::drop_cluster(const std::string &cluster_name) {
+  shcore::sqlstring query;
 
   if (!metadata_schema_exists())
     throw Exception::metadata_error("Metadata Schema does not exist.");
 
   // Check if the Cluster exists
   if (!cluster_exists(cluster_name))
-    throw Exception::logic_error("The Cluster with the name '" + cluster_name + "' does not exist.");
+    throw Exception::logic_error("The cluster with the name '" + cluster_name + "' does not exist.");
 
   // It exists, so let's get the cluster_id and move on
-  else
-  {
+  else {
     uint64_t cluster_id = get_cluster_id(cluster_name);
 
     // Check if the Cluster is empty
-    query = "SELECT * from mysql_innodb_cluster_metadata.replicasets where cluster_id = " + std::to_string(cluster_id) + "";
+    query = shcore::sqlstring("SELECT * from mysql_innodb_cluster_metadata.replicasets where cluster_id = ?", 0);
+    query << cluster_id;
+    query.done();
 
     auto result = execute_sql(query);
 
@@ -382,18 +397,19 @@ void MetadataStorage::drop_cluster(const std::string &cluster_name)
     //result->flush();
 
     if (row)
-      throw Exception::logic_error("The Cluster with the name '" + cluster_name + "' is not empty.");
+      throw Exception::logic_error("The cluster with the name '" + cluster_name + "' is not empty.");
 
     // OK the cluster exists and is empty, we can remove it
-    query = "DELETE from mysql_innodb_cluster_metadata.clusters where cluster_id = " + std::to_string(cluster_id) + "";
+    query = shcore::sqlstring("DELETE from mysql_innodb_cluster_metadata.clusters where cluster_id = ?", 0);
+    query << cluster_id;
+    query.done();
 
     execute_sql(query);
   }
 }
 
-bool MetadataStorage::cluster_has_default_replicaset_only(const std::string &cluster_name)
-{
-  std::string query, ret;
+bool MetadataStorage::cluster_has_default_replicaset_only(const std::string &cluster_name) {
+  shcore::sqlstring query;
 
   if (!metadata_schema_exists())
     throw Exception::metadata_error("Metadata Schema does not exist.");
@@ -402,7 +418,9 @@ bool MetadataStorage::cluster_has_default_replicaset_only(const std::string &clu
   uint64_t cluster_id = get_cluster_id(cluster_name);
 
   // Check if the Cluster has only one replicaset
-  query = "SELECT count(*) as count FROM mysql_innodb_cluster_metadata.replicasets WHERE cluster_id = " + std::to_string(cluster_id) + " AND replicaset_name <> 'default'";
+  query = shcore::sqlstring("SELECT count(*) as count FROM mysql_innodb_cluster_metadata.replicasets WHERE cluster_id = ? AND replicaset_name <> 'default'", 0);
+  query << cluster_id;
+  query.done();
 
   auto result = execute_sql(query);
 
@@ -411,8 +429,7 @@ bool MetadataStorage::cluster_has_default_replicaset_only(const std::string &clu
   //result->flush();
 
   int count = 0;
-  if (row)
-  {
+  if (row) {
     shcore::Argument_list args;
     args.push_back(shcore::Value("count"));
     count = row.as_object<Row>()->get_field(args).as_uint();
@@ -421,67 +438,144 @@ bool MetadataStorage::cluster_has_default_replicaset_only(const std::string &clu
   return count == 0;
 }
 
-void MetadataStorage::drop_default_replicaset(const std::string &cluster_name)
-{
-  std::string query;
+bool MetadataStorage::is_cluster_empty(uint64_t cluster_id) {
+  shcore::sqlstring query;
 
-  if (!metadata_schema_exists())
-    throw Exception::metadata_error("Metadata Schema does not exist.");
+  query = shcore::sqlstring("SELECT COUNT(*) as count FROM mysql_innodb_cluster_metadata.replicasets WHERE cluster_id = ?", 0);
+  query << cluster_id;
+  query.done();
 
-  uint64_t cluster_id = get_cluster_id(cluster_name);
+  auto result = execute_sql(query);
 
-  Transaction tx(shared_from_this());
-  // Set the default_replicaset as NULL
-  execute_sql("UPDATE mysql_innodb_cluster_metadata.clusters SET default_replicaset = NULL WHERE cluster_id = " + std::to_string(cluster_id) + "");
+  auto row = result->call("fetchOne", shcore::Argument_list());
 
-  // Delete the default_replicaset
-  execute_sql("delete from mysql_innodb_cluster_metadata.replicasets where cluster_id = " + std::to_string(cluster_id) + "");
+  //result->flush();
 
-  tx.commit();
+  uint64_t count = 0;
+  if (row) {
+    auto real_row = row.as_object<Row>();
+    shcore::Argument_list args;
+    args.push_back(shcore::Value("count"));
+    count = row.as_object<Row>()->get_field(args).as_int();
+  }
+
+  return count == 0;
 }
 
-std::string MetadataStorage::get_replicaset_name(uint64_t rs_id)
-{
+void MetadataStorage::drop_replicaset(uint64_t rs_id) {
+  shcore::sqlstring query;
+  bool default_rs = false;
   std::string rs_name;
 
   if (!metadata_schema_exists())
     throw Exception::metadata_error("Metadata Schema does not exist.");
 
-  // Get the ReplicaSet name
-  auto result = execute_sql("SELECT replicaset_name from mysql_innodb_cluster_metadata.replicasets where replicaset_id = '" + std::to_string(rs_id) + "'");
+  Transaction tx(shared_from_this());
+
+  // Check if this is the Default replicaset
+  query = shcore::sqlstring("SELECT replicaset_name FROM mysql_innodb_cluster_metadata.replicasets WHERE replicaset_id = ?", 0);
+  query << rs_id;
+  query.done();
+
+  auto result = execute_sql(query);
 
   auto row = result->call("fetchOne", shcore::Argument_list());
 
-  if (row)
-  {
+  if (row) {
     shcore::Argument_list args;
     args.push_back(shcore::Value("replicaset_name"));
     rs_name = row.as_object<Row>()->get_field(args).as_string();
   }
 
+  if (rs_name == "default")
+    default_rs = true;
+
+  if (default_rs) {
+    // Set the default_replicaset as NULL
+    uint64_t cluster_id = get_cluster_id(rs_id);
+    query = shcore::sqlstring("UPDATE mysql_innodb_cluster_metadata.clusters SET default_replicaset = NULL WHERE cluster_id = ?", 0);
+    query << cluster_id;
+    query.done();
+    execute_sql(query);
+  }
+
+
+  // Delete the replicaset
+  query = shcore::sqlstring("delete from mysql_innodb_cluster_metadata.replicasets where replicaset_id = ?", 0);
+  query << rs_id;
+  query.done();
+
+  execute_sql(query);
+
+  tx.commit();
+}
+
+void MetadataStorage::disable_replicaset(uint64_t rs_id) {
+  shcore::sqlstring query;
+
+  if (!metadata_schema_exists())
+    throw Exception::metadata_error("Metadata Schema does not exist.");
+
+  // Set active as False
+  query = shcore::sqlstring("UPDATE mysql_innodb_cluster_metadata.replicasets SET active = ?"
+                            " WHERE replicaset_id = ?", 0);
+  query << 0 << rs_id;
+  query.done();
+
+  execute_sql(query);
+}
+
+bool MetadataStorage::is_replicaset_active(uint64_t rs_id) {
+  shcore::sqlstring query;
+
+  if (!metadata_schema_exists())
+    throw Exception::metadata_error("Metadata Schema does not exist.");
+
+  query = shcore::sqlstring("SELECT active FROM mysql_innodb_cluster_metadata.replicasets WHERE replicaset_id = ?", 0);
+  query << rs_id;
+  query.done();
+
+  auto result = execute_sql(query);
+
+  auto row = result->call("fetchOne", shcore::Argument_list());
+
   //result->flush();
 
-  return rs_name;
+  int active = 0;
+  if (row) {
+    shcore::Argument_list args;
+    args.push_back(shcore::Value("active"));
+    active = row.as_object<Row>()->get_field(args).as_uint();
+  }
+
+  return active == 1;
 }
 
-std::shared_ptr<ReplicaSet> MetadataStorage::get_replicaset(uint64_t rs_id)
-{
-  // Create a ReplicaSet Object to match the Metadata
-  std::shared_ptr<ReplicaSet> rs(new ReplicaSet("name", shared_from_this()));
-  std::string rs_name;
+std::shared_ptr<ReplicaSet> MetadataStorage::get_replicaset(uint64_t rs_id) {
+  if (!metadata_schema_exists())
+    throw Exception::metadata_error("Metadata Schema does not exist.");
 
-  // Get and set the Metadata data
-  rs->set_id(rs_id);
+  shcore::sqlstring query("SELECT replicaset_name, topology_type"
+                          " FROM mysql_innodb_cluster_metadata.replicasets"
+                          " WHERE replicaset_id = ?", 0);
+  query << rs_id;
+  auto result = execute_sql(query);
+  auto row = result->call("fetchOne", shcore::Argument_list());
+  if (row) {
+    std::string rs_name = row.as_object<Row>()->get_field_("replicaset_name").as_string();
+    std::string topo = row.as_object<Row>()->get_field_("topology_type").as_string();
 
-  rs_name = get_replicaset_name(rs_id);
-
-  rs->set_name(rs_name);
-
-  return rs;
+    // Create a ReplicaSet Object to match the Metadata
+    std::shared_ptr<ReplicaSet> rs(new ReplicaSet("name", topo, shared_from_this()));
+    // Get and set the Metadata data
+    rs->set_id(rs_id);
+    rs->set_name(rs_name);
+    return rs;
+  }
+  throw Exception::metadata_error("Unknown replicaset " + std::to_string(rs_id));
 }
 
-std::shared_ptr<Cluster> MetadataStorage::get_cluster_matching(const std::string& condition, const std::string &master_key)
-{
+std::shared_ptr<Cluster> MetadataStorage::get_cluster_matching(const std::string& condition, const std::string &master_key) {
   std::shared_ptr<Cluster> cluster;
   std::string query = "SELECT cluster_id, cluster_name, default_replicaset, description, mysql_user_accounts, options, attributes " \
     "from mysql_innodb_cluster_metadata.clusters " \
@@ -489,14 +583,12 @@ std::shared_ptr<Cluster> MetadataStorage::get_cluster_matching(const std::string
 
   query += condition;
 
-  try
-  {
+  try {
     auto result = execute_sql(query);
 
     auto row = result->call("fetchOne", shcore::Argument_list());
 
-    if (row)
-    {
+    if (row) {
       auto real_row = row.as_object<Row>();
       shcore::Argument_list args;
 
@@ -513,36 +605,28 @@ std::shared_ptr<Cluster> MetadataStorage::get_cluster_matching(const std::string
       if (rsetid_val)
         cluster->set_default_replicaset(get_replicaset(rsetid_val.as_int()));
     }
-  }
-  catch (shcore::Exception &e)
-  {
+  } catch (shcore::Exception &e) {
     std::string error = e.what();
 
-    if (error == "Table 'mysql_innodb_cluster_metadata.clusters' doesn't exist")
-    {
+    if (error == "Table 'mysql_innodb_cluster_metadata.clusters' doesn't exist") {
       log_debug("Metadata Schema does not exist.");
       throw Exception::metadata_error("Metadata Schema does not exist.");
-    }
-    else if (error == "Unable to decrypt account information")
-    {
+    } else if (error == "Unable to decrypt account information") {
       log_debug("Authentication failure: wrong MASTER key.");
       throw Exception::metadata_error("Authentication failure: wrong MASTER key.");
-    }
-    else
+    } else
       throw;
   }
 
   return cluster;
 }
 
-std::shared_ptr<Cluster> MetadataStorage::get_default_cluster(const std::string &master_key)
-{
+std::shared_ptr<Cluster> MetadataStorage::get_default_cluster(const std::string &master_key) {
   return get_cluster_matching("attributes->'$.default' = true", master_key);
 }
 
 std::shared_ptr<Cluster> MetadataStorage::get_cluster(const std::string &cluster_name,
-                                                      const std::string &master_key)
-{
+                                                      const std::string &master_key) {
   std::shared_ptr<Cluster> cluster = get_cluster_matching("cluster_name = '" + cluster_name + "'", master_key);
 
   if (!cluster)
@@ -551,12 +635,10 @@ std::shared_ptr<Cluster> MetadataStorage::get_cluster(const std::string &cluster
   return cluster;
 }
 
-bool MetadataStorage::has_default_cluster()
-{
+bool MetadataStorage::has_default_cluster() {
   bool ret_val = false;
 
-  if (metadata_schema_exists())
-  {
+  if (metadata_schema_exists()) {
     auto result = execute_sql("SELECT cluster_id from mysql_innodb_cluster_metadata.clusters WHERE attributes->\"$.default\" = true");
 
     auto row = result->call("fetchOne", shcore::Argument_list());
@@ -568,17 +650,21 @@ bool MetadataStorage::has_default_cluster()
   return ret_val;
 }
 
-bool MetadataStorage::is_replicaset_empty(uint64_t rs_id)
-{
-  auto result = execute_sql("SELECT COUNT(*) as count FROM mysql_innodb_cluster_metadata.instances WHERE replicaset_id = '" + std::to_string(rs_id) + "'");
+bool MetadataStorage::is_replicaset_empty(uint64_t rs_id) {
+  shcore::sqlstring query;
+
+  query = shcore::sqlstring("SELECT COUNT(*) as count FROM mysql_innodb_cluster_metadata.instances WHERE replicaset_id = ?", 0);
+  query << rs_id;
+  query.done();
+
+  auto result = execute_sql(query);
 
   auto row = result->call("fetchOne", shcore::Argument_list());
 
   //result->flush();
 
   uint64_t count = 0;
-  if (row)
-  {
+  if (row) {
     auto real_row = row.as_object<Row>();
     shcore::Argument_list args;
     args.push_back(shcore::Value("count"));
@@ -588,18 +674,22 @@ bool MetadataStorage::is_replicaset_empty(uint64_t rs_id)
   return count == 0;
 }
 
-bool MetadataStorage::is_instance_on_replicaset(uint64_t rs_id, std::string address)
-{
-  auto result = execute_sql("SELECT COUNT(*) as count FROM mysql_innodb_cluster_metadata.instances WHERE replicaset_id = '" +
-                            std::to_string(rs_id) + "' AND addresses->\"$.mysqlClassic\"='" + address + "'");
+bool MetadataStorage::is_instance_on_replicaset(uint64_t rs_id, std::string address) {
+  shcore::sqlstring query;
+
+  query = shcore::sqlstring("SELECT COUNT(*) as count FROM mysql_innodb_cluster_metadata.instances WHERE replicaset_id = ? AND addresses->\"$.mysqlClassic\" = ?", 0);
+  query << rs_id;
+  query << address;
+  query.done();
+
+  auto result = execute_sql(query);
 
   auto row = result->call("fetchOne", shcore::Argument_list());
 
   //result->flush();
 
   uint64_t count = 0;
-  if (row)
-  {
+  if (row) {
     auto real_row = row.as_object<Row>();
     shcore::Argument_list args;
     args.push_back(shcore::Value("count"));
@@ -609,8 +699,7 @@ bool MetadataStorage::is_instance_on_replicaset(uint64_t rs_id, std::string addr
   return count == 1;
 }
 
-std::string MetadataStorage::get_seed_instance(uint64_t rs_id)
-{
+std::string MetadataStorage::get_seed_instance(uint64_t rs_id) {
   std::string seed_address, query;
 
   if (!metadata_schema_exists())
@@ -628,8 +717,7 @@ std::string MetadataStorage::get_seed_instance(uint64_t rs_id)
 
   auto row = result->call("fetchOne", shcore::Argument_list());
 
-  if (row)
-  {
+  if (row) {
     shcore::Argument_list args;
     args.push_back(shcore::Value("address"));
     seed_address = row.as_object<Row>()->get_field(args).as_string();
@@ -638,4 +726,22 @@ std::string MetadataStorage::get_seed_instance(uint64_t rs_id)
   //result->flush();
 
   return seed_address;
+}
+
+std::shared_ptr<shcore::Value::Array_type> MetadataStorage::get_replicaset_instances(uint64_t rs_id)
+{
+  shcore::sqlstring query;
+
+  query = shcore::sqlstring("select mysql_server_uuid, instance_name, role,"
+                      " JSON_UNQUOTE(JSON_EXTRACT(addresses, \"$.mysqlClassic\")) as host"
+                      " from mysql_innodb_cluster_metadata.instances"
+                      " where replicaset_id = ?", 0);
+  query << rs_id;
+  query.done();
+
+  auto result = execute_sql(query);
+  auto raw_instances = result->call("fetchAll", shcore::Argument_list());
+  auto instances = raw_instances.as_array();
+
+  return instances;
 }

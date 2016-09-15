@@ -65,17 +65,15 @@
 #ifdef _WIN32
 /* were just going to fake it here and get input from
    the keyboard */
-
-char *mysh_get_tty_password(const char *opt_message)
-{
+#define ETX 3 // Ctrl+C
+char *mysh_get_tty_password(const char *opt_message) {
   char to[80];
   char *pos = to, *end = to + sizeof(to) - 1;
   int i = 0;
 
+  int tmp;
   _cputs(opt_message ? opt_message : "Enter password: ");
-  for (;;)
-  {
-    int tmp;
+  for (;;) {
     tmp = _getch();
 
     // A second call must be read with control arrows
@@ -83,16 +81,14 @@ char *mysh_get_tty_password(const char *opt_message)
     if (tmp == 0 || tmp == 0xE0)
       tmp = _getch();
 
-    if (tmp == '\b' || (int)tmp == 127)
-    {
-      if (pos != to)
-      {
+    if (tmp == '\b' || (int)tmp == 127) {
+      if (pos != to) {
         _cputs("\b \b");
         pos--;
         continue;
       }
     }
-    if (tmp == '\n' || tmp == '\r' || tmp == 3)
+    if (tmp == '\n' || tmp == '\r' || tmp == ETX)
       break;
     if (iscntrl(tmp) || pos == end)
       continue;
@@ -103,7 +99,11 @@ char *mysh_get_tty_password(const char *opt_message)
     pos--;					/* Allow dummy space at end */
   *pos = 0;
   _cputs("\n");
-  return strdup(to);
+
+  if (tmp != ETX)
+    return strdup(to);
+  else
+    return nullptr;
 }
 
 #else // !_WIN32
@@ -227,11 +227,9 @@ char *mysh_get_tty_password(const char *opt_message)
 
 extern "C" {
   char *yassl_mysql_get_tty_password_ext(const char *opt_message,
-                             strdup_handler_t strdup_function)
-  {
+                             strdup_handler_t strdup_function) {
     char *tmp = mysh_get_tty_password(opt_message);
-    if (tmp)
-    {
+    if (tmp) {
       char *tmp2 = strdup_function(tmp, 0);
       free(tmp);
       return tmp2;

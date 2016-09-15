@@ -45,13 +45,15 @@
 #include "shellcore/lang_base.h"
 #include "uuid_gen.h"
 #include <fstream>
+#ifdef WIN32
+#include <windows.h>
+#endif
 
 using namespace std::placeholders;
 using namespace shcore;
 
 Shell_core::Shell_core(Interpreter_delegate *shdelegate)
-  : IShell_core(), _client_delegate(shdelegate), _running_query(false), _reconnect_session(false)
-{
+  : IShell_core(), _client_delegate(shdelegate), _running_query(false), _reconnect_session(false) {
   INIT_MODULE(mysh::mysqlx::Mysqlx);
   INIT_MODULE(mysh::mysql::Mysql);
 
@@ -69,8 +71,7 @@ Shell_core::Shell_core(Interpreter_delegate *shdelegate)
   // When using wizards, the global variables are set to the Interactive Wrappers
   // from the beggining, they will allow interactive resolution when the variables
   // are used by the first time
-  if ((*Shell_core_options::get())[SHCORE_USE_WIZARDS].as_bool())
-  {
+  if ((*Shell_core_options::get())[SHCORE_USE_WIZARDS].as_bool()) {
     set_global("db", shcore::Value::wrap<Global_schema>(new Global_schema(*this)));
     set_global("session", shcore::Value::wrap<Global_session>(new Global_session(*this)));
 #ifdef WITH_ADMINAPI
@@ -93,8 +94,7 @@ Shell_core::Shell_core(Interpreter_delegate *shdelegate)
   _delegate.print_value = &Shell_core::deleg_print_value;
 }
 
-Shell_core::~Shell_core()
-{
+Shell_core::~Shell_core() {
   delete _registry;
 
   if (_langs[Mode_JScript])
@@ -107,23 +107,19 @@ Shell_core::~Shell_core()
     delete _langs[Mode_SQL];
 }
 
-bool Shell_core::print_help(const std::string& topic)
-{
+bool Shell_core::print_help(const std::string& topic) {
   return _langs[_mode]->print_help(topic);
 }
 
-void Shell_core::print(const std::string &s)
-{
+void Shell_core::print(const std::string &s) {
   _delegate.print(_delegate.user_data, s.c_str());
 }
 
-void Shell_core::println(const std::string &s, const std::string& tag)
-{
+void Shell_core::println(const std::string &s, const std::string& tag) {
   std::string output(s);
 
   // When using JSON output ALL must be JSON
-  if (!s.empty())
-  {
+  if (!s.empty()) {
     std::string format = (*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string();
     if (format.find("json") != std::string::npos)
       output = format_json_output(output, tag.empty() ? "info" : tag);
@@ -134,13 +130,11 @@ void Shell_core::println(const std::string &s, const std::string& tag)
   _client_delegate->print(_client_delegate->user_data, output.c_str());
 }
 
-void Shell_core::print_value(const shcore::Value &value, const std::string& tag)
-{
+void Shell_core::print_value(const shcore::Value &value, const std::string& tag) {
   _delegate.print_value(_delegate.user_data, value, tag.c_str());
 }
 
-std::string Shell_core::format_json_output(const std::string &info, const std::string& tag)
-{
+std::string Shell_core::format_json_output(const std::string &info, const std::string& tag) {
   // Splits the incoming text in lines
   auto lines = shcore::split_string(info, "\n");
 
@@ -151,8 +145,7 @@ std::string Shell_core::format_json_output(const std::string &info, const std::s
   if (index != end)
     target = *index++;
 
-  while (index != end)
-  {
+  while (index != end) {
     if (!(*index).empty())
       target += " " + *index;
 
@@ -162,8 +155,7 @@ std::string Shell_core::format_json_output(const std::string &info, const std::s
   return format_json_output(shcore::Value(target), tag);
 }
 
-std::string Shell_core::format_json_output(const shcore::Value &info, const std::string& tag)
-{
+std::string Shell_core::format_json_output(const shcore::Value &info, const std::string& tag) {
   shcore::JSON_dumper dumper((*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string() == "json");
   dumper.start_object();
   dumper.append_value(tag, info);
@@ -172,8 +164,7 @@ std::string Shell_core::format_json_output(const shcore::Value &info, const std:
   return dumper.str();
 }
 
-void Shell_core::print_error(const std::string &s)
-{
+void Shell_core::print_error(const std::string &s) {
   std::string output;
   // When using JSON output ALL must be JSON
   std::string format = (*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string();
@@ -185,8 +176,7 @@ void Shell_core::print_error(const std::string &s)
   _client_delegate->print_error(_client_delegate->user_data, output.c_str());
 }
 
-bool Shell_core::password(const std::string &s, std::string &ret_pass)
-{
+bool Shell_core::password(const std::string &s, std::string &ret_pass) {
   std::string prompt(s);
 
   // When using JSON output ALL must be JSON
@@ -197,8 +187,7 @@ bool Shell_core::password(const std::string &s, std::string &ret_pass)
   return _client_delegate->password(_client_delegate->user_data, prompt.c_str(), ret_pass);
 }
 
-bool Shell_core::prompt(const std::string &s, std::string &ret_val)
-{
+bool Shell_core::prompt(const std::string &s, std::string &ret_val) {
   std::string prompt(s);
 
   // When using JSON output ALL must be JSON
@@ -209,32 +198,25 @@ bool Shell_core::prompt(const std::string &s, std::string &ret_val)
   return _client_delegate->prompt(_client_delegate->user_data, prompt.c_str(), ret_val);
 }
 
-std::string Shell_core::preprocess_input_line(const std::string &s)
-{
+std::string Shell_core::preprocess_input_line(const std::string &s) {
   return _langs[_mode]->preprocess_input_line(s);
 }
 
-void Shell_core::handle_input(std::string &code, Interactive_input_state &state, std::function<void(shcore::Value)> result_processor)
-{
-  try
-  {
+void Shell_core::handle_input(std::string &code, Interactive_input_state &state, std::function<void(shcore::Value)> result_processor) {
+  try {
     _running_query = true;
     _langs[_mode]->handle_input(code, state, result_processor);
-  }
-  catch (...)
-  {
+  } catch (...) {
     _running_query = false;
     throw;
   }
 }
 
-void Shell_core::abort()
-{
+void Shell_core::abort() {
   _langs[_mode]->abort();
 }
 
-std::string Shell_core::get_handled_input()
-{
+std::string Shell_core::get_handled_input() {
   return _langs[_mode]->get_handled_input();
 }
 
@@ -244,8 +226,7 @@ std::string Shell_core::get_handled_input()
 * - 1 in case of any processing error is found.
 * - 0 if no processing errors were found.
 */
-int Shell_core::process_stream(std::istream& stream, const std::string& source, std::function<void(shcore::Value)> result_processor)
-{
+int Shell_core::process_stream(std::istream& stream, const std::string& source, std::function<void(shcore::Value)> result_processor) {
   // NOTE: global return code is unused at the moment
   //       return code should be determined at application level on process_result
   //       this global return code may be used again once the exit() function is in place
@@ -255,10 +236,8 @@ int Shell_core::process_stream(std::istream& stream, const std::string& source, 
   _input_source = source;
 
   // In SQL Mode the stdin and file are processed line by line
-  if (_mode == Shell_core::Mode_SQL)
-  {
-    while (!stream.eof())
-    {
+  if (_mode == Shell_core::Mode_SQL) {
+    while (!stream.eof()) {
       std::string line;
 
       std::getline(stream, line);
@@ -269,27 +248,20 @@ int Shell_core::process_stream(std::istream& stream, const std::string& source, 
         break;
     }
 
-    if (state != Interactive_input_state::Input_ok)
-    {
+    if (state != Interactive_input_state::Input_ok) {
       std::string delimiter = ";";
       handle_input(delimiter, state, result_processor);
     }
-  }
-  else
-  {
+  } else {
     std::string data;
-    if (&std::cin == &stream)
-    {
-      while (!stream.eof())
-      {
+    if (&std::cin == &stream) {
+      while (!stream.eof()) {
         std::string line;
 
         std::getline(stream, line);
         data.append(line).append("\n");
       }
-    }
-    else
-    {
+    } else {
       stream.seekg(0, stream.end);
       std::streamsize fsize = stream.tellg();
       stream.seekg(0, stream.beg);
@@ -310,17 +282,13 @@ int Shell_core::process_stream(std::istream& stream, const std::string& source, 
   return _global_return_code;
 }
 
-bool Shell_core::switch_mode(Mode mode, bool &lang_initialized)
-{
+bool Shell_core::switch_mode(Mode mode, bool &lang_initialized) {
   lang_initialized = false;
 
-  if (_mode != mode)
-  {
+  if (_mode != mode) {
     _mode = mode;
-    if (!_langs[_mode])
-    {
-      switch (_mode)
-      {
+    if (!_langs[_mode]) {
+      switch (_mode) {
         case Mode_None:
           break;
         case Mode_SQL:
@@ -341,13 +309,11 @@ bool Shell_core::switch_mode(Mode mode, bool &lang_initialized)
   return false;
 }
 
-void Shell_core::init_sql()
-{
+void Shell_core::init_sql() {
   _langs[Mode_SQL] = new Shell_sql(this);
 }
 
-void Shell_core::init_js()
-{
+void Shell_core::init_js() {
 #ifdef HAVE_V8
   Shell_javascript *js;
   _langs[Mode_JScript] = js = new Shell_javascript(this);
@@ -358,8 +324,7 @@ void Shell_core::init_js()
 #endif
 }
 
-void Shell_core::init_py()
-{
+void Shell_core::init_py() {
 #ifdef HAVE_PYTHON
   Shell_python *py;
   _langs[Mode_Python] = py = new Shell_python(this);
@@ -370,15 +335,13 @@ void Shell_core::init_py()
 #endif
 }
 
-void Shell_core::set_global(const std::string &name, const Value &value)
-{
+void Shell_core::set_global(const std::string &name, const Value &value) {
   // Exception to ensure consistency, if wizard usage is ON then the global variables
   // Can't be replaced, they were set already and integrators (WB/VS) should use
   // set_dev_session or set_current_schema to set the variables
   if ((!name.compare("db") || !name.compare("session")) &&
   _globals.count(name) != 0 &&
-  (*Shell_core_options::get())[SHCORE_USE_WIZARDS].as_bool())
-  {
+  (*Shell_core_options::get())[SHCORE_USE_WIZARDS].as_bool()) {
     std::string error = "Can't override the global variables when using wizards is ON. ";
 
     if (!name.compare("db"))
@@ -396,17 +359,14 @@ void Shell_core::set_global(const std::string &name, const Value &value)
     iter->second->set_global(name, value);
 }
 
-Value Shell_core::get_global(const std::string &name)
-{
+Value Shell_core::get_global(const std::string &name) {
   return (_globals.count(name) > 0) ? _globals[name] : Value();
 }
 
-std::vector<std::string> Shell_core::get_global_objects()
-{
+std::vector<std::string> Shell_core::get_global_objects() {
   std::vector<std::string> globals;
 
-  for (auto entry : _globals)
-  {
+  for (auto entry : _globals) {
     if (entry.second.type == shcore::Object)
       globals.push_back(entry.first);
   }
@@ -414,19 +374,16 @@ std::vector<std::string> Shell_core::get_global_objects()
   return globals;
 }
 
-void Shell_core::set_active_session(const Value &session)
-{
+void Shell_core::set_active_session(const Value &session) {
   _active_session = session;
   set_global("session", session);
 }
 
-std::string Shell_core::prompt()
-{
+std::string Shell_core::prompt() {
   return _langs[interactive_mode()]->prompt();
 }
 
-bool Shell_core::handle_shell_command(const std::string &line)
-{
+bool Shell_core::handle_shell_command(const std::string &line) {
   return _langs[_mode]->handle_shell_command(line);
 }
 
@@ -459,8 +416,7 @@ bool Shell_core::handle_shell_command(const std::string &line)
 *
 * If the Connection Data contained the *schema* attribute, the schema will be made available to the scripting interfaces on the global *db* variable.
 */
-std::shared_ptr<mysh::ShellDevelopmentSession> Shell_core::connect_dev_session(const Argument_list &args, mysh::SessionType session_type)
-{
+std::shared_ptr<mysh::ShellDevelopmentSession> Shell_core::connect_dev_session(const Argument_list &args, mysh::SessionType session_type) {
   return set_dev_session(mysh::connect_session(args, session_type));
 }
 
@@ -470,8 +426,7 @@ std::shared_ptr<mysh::ShellDevelopmentSession> Shell_core::connect_dev_session(c
 *
 * If there's a selected schema on the received session, it will be made available to the scripting interfaces on the global *db* variable
 */
-std::shared_ptr<mysh::ShellDevelopmentSession> Shell_core::set_dev_session(std::shared_ptr<mysh::ShellDevelopmentSession> session)
-{
+std::shared_ptr<mysh::ShellDevelopmentSession> Shell_core::set_dev_session(std::shared_ptr<mysh::ShellDevelopmentSession> session) {
   _global_dev_session.swap(session);
 
   // X Session can't have a currentSchema so we set on db the default schema
@@ -485,8 +440,7 @@ std::shared_ptr<mysh::ShellDevelopmentSession> Shell_core::set_dev_session(std::
 
   // When using the interactive wrappers instead of setting the global variables
   // The target Objects on the wrappers are set
-  if ((*Shell_core_options::get())[SHCORE_USE_WIZARDS].as_bool())
-  {
+  if ((*Shell_core_options::get())[SHCORE_USE_WIZARDS].as_bool()) {
     get_global("session").as_object<Interactive_object_wrapper>()->set_target(std::static_pointer_cast<Cpp_object_bridge>(_global_dev_session));
 
     if (currentSchema)
@@ -496,8 +450,7 @@ std::shared_ptr<mysh::ShellDevelopmentSession> Shell_core::set_dev_session(std::
   }
 
   // Use the db/session objects directly if the wizards are OFF
-  else
-  {
+  else {
     set_global("session", shcore::Value(std::static_pointer_cast<Object_bridge>(_global_dev_session)));
     set_global("db", currentSchema);
   }
@@ -508,8 +461,7 @@ std::shared_ptr<mysh::ShellDevelopmentSession> Shell_core::set_dev_session(std::
 /**
 * Returns the global development session.
 */
-std::shared_ptr<mysh::ShellDevelopmentSession> Shell_core::get_dev_session()
-{
+std::shared_ptr<mysh::ShellDevelopmentSession> Shell_core::get_dev_session() {
   return _global_dev_session;
 }
 
@@ -519,10 +471,9 @@ std::shared_ptr<mysh::ShellDevelopmentSession> Shell_core::get_dev_session()
  *
  * If there's unique farm on the received session, it will be made available to the scripting interfaces on the global *farm* variable
  */
-void Shell_core::set_dba_global()
-{
+void Shell_core::set_dba_global() {
 #ifdef WITH_ADMINAPI
-  std::shared_ptr<mysh::mysqlx::Dba>dba(new mysh::mysqlx::Dba(this));
+  std::shared_ptr<mysh::dba::Dba>dba(new mysh::dba::Dba(this));
 
   // When using the interactive wrappers instead of setting the global variables
   // The target Objects on the wrappers are set
@@ -530,8 +481,7 @@ void Shell_core::set_dba_global()
     get_global("dba").as_object<Interactive_object_wrapper>()->set_target(std::dynamic_pointer_cast<Cpp_object_bridge>(dba));
 
   // Use the admin session objects directly if the wizards are OFF
-  else
-  {
+  else {
     set_global("dba", shcore::Value(std::dynamic_pointer_cast<Object_bridge>(dba)));
     //set_global("farm", _global_admin_session->get_member("defaultFarm"));
   }
@@ -546,14 +496,11 @@ void Shell_core::set_dba_global()
 *
 * The new active schema will be made available to the scripting interfaces on the global *db* variable.
 */
-shcore::Value Shell_core::set_current_schema(const std::string& name)
-{
+shcore::Value Shell_core::set_current_schema(const std::string& name) {
   shcore::Value new_schema;
 
-  if (!name.empty())
-  {
-    if (_global_dev_session && _global_dev_session->is_connected())
-    {
+  if (!name.empty()) {
+    if (_global_dev_session && _global_dev_session->is_connected()) {
       shcore::Argument_list args;
       args.push_back(shcore::Value(name));
 
@@ -566,23 +513,19 @@ shcore::Value Shell_core::set_current_schema(const std::string& name)
 
   // Updates the Target Object of the global schema if the wizard interaction is
   // turned ON
-  if ((*Shell_core_options::get())[SHCORE_USE_WIZARDS].as_bool())
-  {
+  if ((*Shell_core_options::get())[SHCORE_USE_WIZARDS].as_bool()) {
     if (new_schema)
       get_global("db").as_object<Interactive_object_wrapper>()->set_target(new_schema.as_object<Cpp_object_bridge>());
     else
       get_global("db").as_object<Interactive_object_wrapper>()->set_target(std::shared_ptr<Cpp_object_bridge>());
-  }
-  else
+  } else
     set_global("db", new_schema);
 
   return new_schema;
 }
 
-void Shell_core::handle_notification(const std::string &name, shcore::Object_bridge_ref sender, shcore::Value::Map_type_ref data)
-{
-  if (name == "SN_SESSION_CONNECTION_LOST")
-  {
+void Shell_core::handle_notification(const std::string &name, shcore::Object_bridge_ref sender, shcore::Value::Map_type_ref data) {
+  if (name == "SN_SESSION_CONNECTION_LOST") {
     auto session = std::dynamic_pointer_cast<mysh::ShellDevelopmentSession>(sender);
 
     if (session && session == _global_dev_session)
@@ -590,22 +533,44 @@ void Shell_core::handle_notification(const std::string &name, shcore::Object_bri
   }
 }
 
-bool Shell_core::reconnect_if_needed()
-{
+bool Shell_core::reconnect() {
   bool ret_val = false;
-  if (_reconnect_session)
-  {
+
+  try {
+    _global_dev_session->reconnect();
+    ret_val = true;
+  } catch (shcore::Exception &e) {
+    ret_val = false;
+  }
+
+  return ret_val;
+}
+
+bool Shell_core::reconnect_if_needed() {
+  bool ret_val = false;
+  if (_reconnect_session) {
     {
       print("The global session got disconnected.\nAttempting to reconnect to '" + _global_dev_session->uri() + "'...\n");
-      try
-      {
-        _global_dev_session->reconnect();
+      try {
+#ifdef _WIN32
+        Sleep(500);
+#else
+        usleep(500000);
+#endif
+        if (!reconnect()) {
+          // Try again
+#ifdef _WIN32
+          Sleep(1500);
+#else
+          usleep(1500000);
+#endif
+          _global_dev_session->reconnect();
+        }
+
         print("The global session was successfully reconnected.\n");
         ret_val = true;
-      }
-      catch (shcore::Exception &e)
-      {
-        print("The global session could not be reconnected automatically.\nPlease use \\connect instead to manually reconnect.\n");
+      } catch (shcore::Exception &e) {
+          print("The global session could not be reconnected automatically.\nPlease use '\\connect " + _global_dev_session->uri() + "' instead to manually reconnect.\n");
       }
     }
 
@@ -615,8 +580,7 @@ bool Shell_core::reconnect_if_needed()
   return ret_val;
 }
 
-void Shell_core::deleg_print(void *self, const char *text)
-{
+void Shell_core::deleg_print(void *self, const char *text) {
   Shell_core *shcore = (Shell_core*)self;
 
   std::string output(text);
@@ -630,8 +594,7 @@ void Shell_core::deleg_print(void *self, const char *text)
   deleg->print(deleg->user_data, output.c_str());
 }
 
-void Shell_core::deleg_print_error(void *self, const char *text)
-{
+void Shell_core::deleg_print_error(void *self, const char *text) {
   Shell_core *shcore = (Shell_core*)self;
   auto deleg = shcore->_client_delegate;
 
@@ -651,29 +614,25 @@ void Shell_core::deleg_print_error(void *self, const char *text)
   deleg->print_error(deleg->user_data, output.c_str());
 }
 
-bool Shell_core::deleg_prompt(void *self, const char *text, std::string &ret)
-{
+bool Shell_core::deleg_prompt(void *self, const char *text, std::string &ret) {
   Shell_core *shcore = (Shell_core*)self;
   auto deleg = shcore->_client_delegate;
   return deleg->prompt(deleg->user_data, text, ret);
 }
 
-bool Shell_core::deleg_password(void *self, const char *text, std::string &ret)
-{
+bool Shell_core::deleg_password(void *self, const char *text, std::string &ret) {
   Shell_core *shcore = (Shell_core*)self;
   auto deleg = shcore->_client_delegate;
   return deleg->password(deleg->user_data, text, ret);
 }
 
-void Shell_core::deleg_source(void *self, const char *module)
-{
+void Shell_core::deleg_source(void *self, const char *module) {
   Shell_core *shcore = (Shell_core*)self;
   auto deleg = shcore->_client_delegate;
   deleg->source(deleg->user_data, module);
 }
 
-void Shell_core::deleg_print_value(void *self, const shcore::Value &value, const char *tag)
-{
+void Shell_core::deleg_print_value(void *self, const shcore::Value &value, const char *tag) {
   Shell_core *shcore = (Shell_core*)self;
   auto deleg = shcore->_client_delegate;
   std::string mtag;
@@ -685,28 +644,26 @@ void Shell_core::deleg_print_value(void *self, const shcore::Value &value, const
   // not expected to be the case.
   if (deleg->print_value)
     deleg->print_value(deleg->user_data, value, tag);
-  else
-  {
+  else {
     std::string output;
     // When using JSON output ALL must be JSON
     std::string format = (*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string();
-    if (format.find("json") != std::string::npos)
-    {
+    if (format.find("json") != std::string::npos) {
       // If no tag is provided, prints the JSON representation of the Value
       if (mtag.empty())
         output = value.json((*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string() == "json");
-      else
-        output = shcore->format_json_output(value, mtag);
-    }
-    else
-    {
-      if (mtag == "error" && value.type == shcore::Map)
-      {
+      else {
+        if (value.type == shcore::String)
+          output = shcore->format_json_output(value.as_string(), mtag);
+        else
+          output = shcore->format_json_output(value, mtag);
+      }
+    } else {
+      if (mtag == "error" && value.type == shcore::Map) {
         output = "ERROR: ";
         Value::Map_type_ref error_map = value.as_map();
 
-        if (error_map->has_key("code"))
-        {
+        if (error_map->has_key("code")) {
           //message.append(" ");
           output.append(((*error_map)["code"].repr()));
 
@@ -720,8 +677,7 @@ void Shell_core::deleg_print_value(void *self, const shcore::Value &value, const
           output.append((*error_map)["message"].as_string());
         else
           output.append("?");
-      }
-      else
+      } else
         output = value.descr(true);
     }
 
@@ -735,15 +691,13 @@ void Shell_core::deleg_print_value(void *self, const shcore::Value &value, const
 }
 
 //------------------ COMMAND HANDLER FUNCTIONS ------------------//
-bool Shell_command_handler::process(const std::string& command_line)
-{
+bool Shell_command_handler::process(const std::string& command_line) {
   bool ret_val = false;
   std::vector<std::string> tokens;
   boost::algorithm::split(tokens, command_line, boost::is_any_of(" "), boost::token_compress_on);
 
   Command_registry::iterator item = _command_dict.find(tokens[0]);
-  if (item != _command_dict.end())
-  {
+  if (item != _command_dict.end()) {
     // Sends the original line on the first element
     tokens[0] = command_line;
 
@@ -753,8 +707,7 @@ bool Shell_command_handler::process(const std::string& command_line)
   return ret_val;
 }
 
-void Shell_command_handler::add_command(const std::string& triggers, const std::string& description, const std::string& help, Shell_command_function function)
-{
+void Shell_command_handler::add_command(const std::string& triggers, const std::string& description, const std::string& help, Shell_command_function function) {
   Shell_command command = { triggers, description, help, function };
   _commands.push_back(command);
 
@@ -764,15 +717,13 @@ void Shell_command_handler::add_command(const std::string& triggers, const std::
   std::vector<std::string>::iterator index = tokens.begin(), end = tokens.end();
 
   // Inserts a mapping for each given token
-  while (index != end)
-  {
+  while (index != end) {
     _command_dict.insert(std::pair < const std::string&, Shell_command* >(*index, &_commands.back()));
     index++;
   }
 }
 
-std::string Shell_command_handler::get_commands(const std::string& title)
-{
+std::string Shell_command_handler::get_commands(const std::string& title) {
   // Gets the length of the longest command
   Command_list::iterator index, end = _commands.end();
   int max_length = 0;
@@ -781,8 +732,7 @@ std::string Shell_command_handler::get_commands(const std::string& title)
   std::vector<std::string> tmp_commands;
   std::vector<std::string> tmp_alias;
 
-  for (index = _commands.begin(); index != end; index++)
-  {
+  for (index = _commands.begin(); index != end; index++) {
     std::vector<std::string> tokens;
     boost::algorithm::split(tokens, (*index).triggers, boost::is_any_of("|"), boost::token_compress_on);
 
@@ -818,16 +768,14 @@ std::string Shell_command_handler::get_commands(const std::string& title)
   ret_val += "\n";
 
   size_t tmpindex = 0;
-  for (index = _commands.begin(); index != end; index++, tmpindex++)
-  {
+  for (index = _commands.begin(); index != end; index++, tmpindex++) {
     ret_val += (boost::format(format.c_str()) % tmp_commands[tmpindex] % tmp_alias[tmpindex] % (*index).description.c_str()).str();
   }
 
   return ret_val;
 }
 
-bool Shell_command_handler::get_command_help(const std::string& command, std::string &help)
-{
+bool Shell_command_handler::get_command_help(const std::string& command, std::string &help) {
   bool ret_val = false;
   std::string cmd = command;
 
@@ -835,23 +783,19 @@ bool Shell_command_handler::get_command_help(const std::string& command, std::st
 
   // Add the escape char in order to get the help on an escaped command
   // even without escaping it on the call: \? <command>
-  if (item == _command_dict.end())
-  {
-    if (cmd[0] != '\\')
-    {
+  if (item == _command_dict.end()) {
+    if (cmd[0] != '\\') {
       cmd.insert(0, 1, '\\');
       item = _command_dict.find(cmd);
     }
   }
 
-  if (item != _command_dict.end())
-  {
+  if (item != _command_dict.end()) {
     // Prints the command description.
     help += item->second->description;
 
     // Prints additional triggers if any
-    if (item->second->triggers != command)
-    {
+    if (item->second->triggers != command) {
       std::vector<std::string> triggers;
       boost::algorithm::split(triggers, item->second->triggers, boost::is_any_of("|"), boost::token_compress_on);
       help += "\n\nTRIGGERS: " + boost::algorithm::join(triggers, " or ");

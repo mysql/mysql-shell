@@ -1,3 +1,4 @@
 usr/bin/mysqlsh
 usr/share/mysqlsh/@LIC_FILE@ usr/share/doc/mysqlsh
 usr/share/mysqlsh/README     usr/share/doc/mysqlsh
+@EXTRA_EXE_INSTALL@

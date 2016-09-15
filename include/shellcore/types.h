@@ -255,6 +255,7 @@ namespace shcore {
     void ensure_at_least(unsigned int minc, const char *context) const;
 
     void push_back(const Value &value) { _args.push_back(value); }
+    void pop_back() { _args.pop_back(); }
     size_t size() const { return _args.size(); }
     const Value &at(size_t i) const { return _args.at(i); }
     Value &operator [](size_t i) { return _args[i]; }

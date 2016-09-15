@@ -86,7 +86,7 @@ namespace shcore
       MY_EXPECT_STDOUT_CONTAINS("The global session is not set, do you want to establish a session?");
       MY_EXPECT_STDOUT_CONTAINS("Please specify the session type:");
       MY_EXPECT_STDOUT_CONTAINS("Please specify the MySQL server URI (or $alias):");
-      MY_EXPECT_STDOUT_CONTAINS("Enter password:");
+      MY_EXPECT_STDOUT_CONTAINS("Enter password: ");
       MY_EXPECT_STDOUT_CONTAINS("Resolved: " + _uri_nopasswd);
       output_handler.wipe_all();
 
@@ -112,7 +112,7 @@ namespace shcore
       MY_EXPECT_STDOUT_CONTAINS("The global session is not set, do you want to establish a session?");
       MY_EXPECT_STDOUT_CONTAINS("Please specify the session type:");
       MY_EXPECT_STDOUT_CONTAINS("Please specify the MySQL server URI (or $alias):");
-      MY_EXPECT_STDOUT_CONTAINS("Enter password:");
+      MY_EXPECT_STDOUT_CONTAINS("Enter password: ");
       MY_EXPECT_STDOUT_CONTAINS("Resolved: " + _uri_nopasswd);
       output_handler.wipe_all();
 
@@ -138,7 +138,7 @@ namespace shcore
       MY_EXPECT_STDOUT_CONTAINS("The global session is not set, do you want to establish a session?");
       MY_EXPECT_STDOUT_CONTAINS("Please specify the session type:");
       MY_EXPECT_STDOUT_CONTAINS("Please specify the MySQL server URI (or $alias):");
-      MY_EXPECT_STDOUT_CONTAINS("Enter password:");
+      MY_EXPECT_STDOUT_CONTAINS("Enter password: ");
       MY_EXPECT_STDOUT_CONTAINS("Resolved: " + _uri_nopasswd);
       output_handler.wipe_all();
 
@@ -164,7 +164,7 @@ namespace shcore
       MY_EXPECT_STDOUT_CONTAINS("The global session is not set, do you want to establish a session?");
       MY_EXPECT_STDOUT_CONTAINS("Please specify the session type:");
       MY_EXPECT_STDOUT_CONTAINS("Please specify the MySQL server URI (or $alias):");
-      MY_EXPECT_STDOUT_CONTAINS("Enter password:");
+      MY_EXPECT_STDOUT_CONTAINS("Enter password: ");
       MY_EXPECT_STDOUT_CONTAINS("Resolved: " + _uri_nopasswd);
       output_handler.wipe_all();
 
@@ -190,7 +190,7 @@ namespace shcore
       MY_EXPECT_STDOUT_CONTAINS("The global session is not set, do you want to establish a session?");
       MY_EXPECT_STDOUT_CONTAINS("Please specify the session type:");
       MY_EXPECT_STDOUT_CONTAINS("Please specify the MySQL server URI (or $alias):");
-      MY_EXPECT_STDOUT_CONTAINS("Enter password:");
+      MY_EXPECT_STDOUT_CONTAINS("Enter password: ");
       MY_EXPECT_STDOUT_CONTAINS("Resolved: " + _mysql_uri_nopasswd);
       output_handler.wipe_all();
 
@@ -216,7 +216,7 @@ namespace shcore
       MY_EXPECT_STDOUT_CONTAINS("The global session is not set, do you want to establish a session?");
       MY_EXPECT_STDOUT_CONTAINS("Please specify the session type:");
       MY_EXPECT_STDOUT_CONTAINS("Please specify the MySQL server URI (or $alias):");
-      MY_EXPECT_STDOUT_CONTAINS("Enter password:");
+      MY_EXPECT_STDOUT_CONTAINS("Enter password: ");
       MY_EXPECT_STDOUT_CONTAINS("Resolved: " + _mysql_uri_nopasswd);
       output_handler.wipe_all();
 
@@ -243,7 +243,7 @@ namespace shcore
       MY_EXPECT_STDOUT_CONTAINS("The global session is not set, do you want to establish a session?");
       MY_EXPECT_STDOUT_CONTAINS("Please specify the session type:");
       MY_EXPECT_STDOUT_CONTAINS("Please specify the MySQL server URI (or $alias):");
-      MY_EXPECT_STDOUT_CONTAINS("Enter password:");
+      MY_EXPECT_STDOUT_CONTAINS("Enter password: ");
       output_handler.wipe_all();
 
       _interactive_shell->process_line("myschema");

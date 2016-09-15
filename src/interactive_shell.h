@@ -29,13 +29,12 @@
 
 using namespace shcore;
 
-class Interactive_shell
-{
+class Interactive_shell {
 public:
   Interactive_shell(const Shell_command_line_options &options, Interpreter_delegate *custom_delegate = NULL);
   void command_loop();
   int process_stream(std::istream & stream, const std::string& source);
-  int process_file();
+  int process_file(const std::string& file);
 
   void init_environment();
   void init_scripts(Shell_core::Mode mode);

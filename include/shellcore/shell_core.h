@@ -184,6 +184,8 @@ namespace shcore
     void init_js();
     void init_py();
 
+    bool reconnect();
+
   private:
     Object_registry *_registry;
     std::map<std::string, Value> _globals;

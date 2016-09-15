@@ -101,24 +101,22 @@ _options(new shcore::Value::Map_type)
 
   std::string gadgets_path;
 
-  if (getenv("MYSQLPROVISION") != NULL)
-    gadgets_path = std::string(getenv("MYSQLPROVISION")); // should be set to the mysqlprovision root dir or an executable path
+  if (getenv("MYSQLPROVISION") != NULL) {
+    gadgets_path = std::string(getenv("MYSQLPROVISION")); // should be set to the mysqlprovision binary path
+    (*_options)[SHCORE_GADGETS_PATH] = Value(gadgets_path.c_str());
+  } else
+    (*_options)[SHCORE_GADGETS_PATH] = Value("");
 
-  // The mysqlprovision_path will only be set if the environment variable was configured.
-  std::string mysqlprovision_path;
-  if (!gadgets_path.empty())
-  {
-    mysqlprovision_path = gadgets_path + "/gadgets/python/front_end/mysqlprovision.py";
-    if (!shcore::file_exists(mysqlprovision_path))
-      mysqlprovision_path = gadgets_path;
-  }
-  (*_options)[SHCORE_GADGETS_PATH] = Value(mysqlprovision_path.c_str());
+  std::string home = shcore::get_home_dir();
 
-  if (getenv("HOME"))
-  {
-    std::string dir = std::string(getenv("HOME")) + "/mysql-sandboxes";
-    (*_options)[SHCORE_SANDBOX_DIR] = Value(dir.c_str());
-  }
+#ifdef WIN32
+  home += ("\\MySQL");
+  home += ("\\mysql-sandboxes");
+#else
+  home += ("mysql-sandboxes");
+#endif
+
+  (*_options)[SHCORE_SANDBOX_DIR] = Value(home.c_str());
 }
 
 Shell_core_options::~Shell_core_options()

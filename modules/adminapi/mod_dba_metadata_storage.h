@@ -25,79 +25,80 @@
 #include "mod_dba_replicaset.h"
 #include "modules/base_resultset.h"
 
-namespace mysh
-{
-  namespace mysqlx
-  {
-    /**
-    * Represents a Session to a Metadata Storage
-    */
-    class MetadataStorage : public std::enable_shared_from_this<MetadataStorage>
-    {
-    public:
-      MetadataStorage(Dba* admin_session);
-      ~MetadataStorage();
+namespace mysh {
+namespace dba {
+#if DOXYGEN_CPP
+/**
+* Represents a Session to a Metadata Storage
+*/
+#endif
+class MetadataStorage : public std::enable_shared_from_this<MetadataStorage> {
+public:
+  MetadataStorage(Dba* admin_session);
+  ~MetadataStorage();
 
-      bool metadata_schema_exists();
-      void create_metadata_schema();
-      void drop_metadata_schema();
-      uint64_t get_cluster_id(const std::string &cluster_name);
-      uint64_t get_cluster_id(uint64_t rs_id);
-      bool cluster_exists(const std::string &cluster_name);
-      void insert_cluster(const std::shared_ptr<Cluster> &cluster);
-      void insert_default_replica_set(const std::shared_ptr<Cluster> &cluster);
-      std::shared_ptr<ShellBaseResult> insert_host(const shcore::Argument_list &args);
-      void insert_instance(const shcore::Argument_list &args, uint64_t host_id, uint64_t rs_id);
-      void remove_instance(const std::string &instance_name);
-      void drop_cluster(const std::string &cluster_name);
-      bool cluster_has_default_replicaset_only(const std::string &cluster_name);
-      void drop_default_replicaset(const std::string &cluster_name);
+  bool metadata_schema_exists();
+  void create_metadata_schema();
+  void drop_metadata_schema();
+  uint64_t get_cluster_id(const std::string &cluster_name);
+  uint64_t get_cluster_id(uint64_t rs_id);
+  bool cluster_exists(const std::string &cluster_name);
+  void insert_cluster(const std::shared_ptr<Cluster> &cluster);
+  void insert_replica_set(std::shared_ptr<ReplicaSet> replicaset, bool is_default);
+  std::shared_ptr<ShellBaseResult> insert_host(const shcore::Argument_list &args);
+  void insert_instance(const shcore::Argument_list &args, uint64_t host_id, uint64_t rs_id);
+  void remove_instance(const std::string &instance_name);
+  void drop_cluster(const std::string &cluster_name);
+  bool cluster_has_default_replicaset_only(const std::string &cluster_name);
+  bool is_cluster_empty(uint64_t cluster_id);
+  void drop_replicaset(uint64_t rs_id);
+  void disable_replicaset(uint64_t rs_id);
+  bool is_replicaset_active(uint64_t rs_id);
 
-      std::shared_ptr<Cluster> get_cluster(const std::string &cluster_name, const std::string &master_key);
-      std::shared_ptr<Cluster> get_default_cluster(const std::string &master_key);
-      bool has_default_cluster();
+  std::shared_ptr<Cluster> get_cluster(const std::string &cluster_name, const std::string &master_key);
+  std::shared_ptr<Cluster> get_default_cluster(const std::string &master_key);
+  bool has_default_cluster();
 
-      std::string get_replicaset_name(uint64_t rs_id);
-      std::shared_ptr<ReplicaSet> get_replicaset(uint64_t rs_id);
-      bool is_replicaset_empty(uint64_t rs_id);
-      bool is_instance_on_replicaset(uint64_t rs_id, std::string address);
+  std::shared_ptr<ReplicaSet> get_replicaset(uint64_t rs_id);
+  bool is_replicaset_empty(uint64_t rs_id);
+  bool is_instance_on_replicaset(uint64_t rs_id, std::string address);
 
-      std::string get_seed_instance(uint64_t rs_id);
+  std::string get_seed_instance(uint64_t rs_id);
+  std::shared_ptr<shcore::Value::Array_type> get_replicaset_instances(uint64_t rs_id);
 
-      Dba* get_dba() { return _dba; };
+  Dba* get_dba() { return _dba; };
 
-      std::shared_ptr<ShellBaseResult> execute_sql(const std::string &sql) const;
+  std::shared_ptr<ShellBaseResult> execute_sql(const std::string &sql) const;
 
-      class Transaction
-      {
-      public:
-        explicit Transaction(std::shared_ptr<MetadataStorage> md) : _md(md) {
-          md->start_transaction();
-        }
+  class Transaction {
+  public:
+    explicit Transaction(std::shared_ptr<MetadataStorage> md) : _md(md) {
+      md->start_transaction();
+    }
 
-        ~Transaction() {
-          if (_md) _md->rollback();
-        }
+    ~Transaction() {
+      if (_md) _md->rollback();
+    }
 
-        void commit() {
-          if (_md) {
-            _md->commit();
-            _md.reset();
-          }
-        }
-      private:
-        std::shared_ptr<MetadataStorage> _md;
-      };
-    private:
-      Dba* _dba;
+    void commit() {
+      if (_md) {
+        _md->commit();
+        _md.reset();
+      }
+    }
+  private:
+    std::shared_ptr<MetadataStorage> _md;
+  };
+private:
+  Dba* _dba;
 
-      void start_transaction();
-      void commit();
-      void rollback();
+  void start_transaction();
+  void commit();
+  void rollback();
 
-      std::shared_ptr<Cluster> get_cluster_matching(const std::string& condition, const std::string &master_key);
-    };
-  }
+  std::shared_ptr<Cluster> get_cluster_matching(const std::string& condition, const std::string &master_key);
+};
+}
 }
 
 #endif  // _MOD_DBA_METADATA_STORAGE_H_

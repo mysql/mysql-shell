@@ -65,6 +65,8 @@ file(GLOB libmysqlshcore_SRC
     "${CMAKE_SOURCE_DIR}/utils/base_tokenizer.cc"
     "${CMAKE_SOURCE_DIR}/utils/uri_parser.h"
     "${CMAKE_SOURCE_DIR}/utils/uri_parser.cc"
+    "${CMAKE_SOURCE_DIR}/utils/utils_help.h"
+    "${CMAKE_SOURCE_DIR}/utils/utils_help.cc"
     "*.cc"
     "*.h"
     "${CMAKE_SOURCE_DIR}/common/uuid/src/uuid_gen.cc"
@@ -200,9 +202,14 @@ IF( WITH_ADMINAPI )
   add_definitions(-DWITH_ADMINAPI)
   include_directories("${CMAKE_SOURCE_DIR}/common/yassl/taocrypt/include/"
                       "${CMAKE_SOURCE_DIR}/common/yassl/include/")
+  if(WITH_SSL STREQUAL "bundled")
+    set(MY_AES_SOURCE my_aes_yassl.cc)
+  else()
+    set(MY_AES_SOURCE my_aes_openssl.cc)
+  endif()
   list(APPEND libmysqlshmods_SRC "${CMAKE_BINARY_DIR}/modules/adminapi/metadata-model_definitions.h"
              "${CMAKE_SOURCE_DIR}/modules/adminapi/my_aes.cc"
-             "${CMAKE_SOURCE_DIR}/modules/adminapi/my_aes_yassl.cc"
+             "${CMAKE_SOURCE_DIR}/modules/adminapi/${MY_AES_SOURCE}"
              "${CMAKE_SOURCE_DIR}/modules/adminapi/mod_dba.cc"
              "${CMAKE_SOURCE_DIR}/modules/adminapi/mod_dba.h"
              "${CMAKE_SOURCE_DIR}/modules/adminapi/mod_dba_cluster.cc"

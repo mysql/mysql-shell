@@ -31,18 +31,21 @@
 #include <rapidjson/prettywriter.h>
 #include <limits>
 
+// These is* functions have undefined behavior if the passed value
+// is out of the -1-255 range
+#define IS_ALPHA(x) (isalpha(static_cast<unsigned char>(x)))
+#define IS_DIGIT(x) (isdigit(static_cast<unsigned char>(x)))
+
 using namespace shcore;
 
 // --
 
 Exception::Exception(const std::shared_ptr<Value::Map_type> e)
-  : _error(e)
-{
+  : _error(e) {
   log_error("%s", what());
 }
 
-Exception Exception::argument_error(const std::string &message)
-{
+Exception Exception::argument_error(const std::string &message) {
   std::shared_ptr<Value::Map_type> error(new Value::Map_type());
   (*error)["type"] = Value("ArgumentError");
   (*error)["message"] = Value(message);
@@ -50,8 +53,7 @@ Exception Exception::argument_error(const std::string &message)
   return e;
 }
 
-Exception Exception::attrib_error(const std::string &message)
-{
+Exception Exception::attrib_error(const std::string &message) {
   std::shared_ptr<Value::Map_type> error(new Value::Map_type());
   (*error)["type"] = Value("AttributeError");
   (*error)["message"] = Value(message);
@@ -59,8 +61,7 @@ Exception Exception::attrib_error(const std::string &message)
   return e;
 }
 
-Exception Exception::type_error(const std::string &message)
-{
+Exception Exception::type_error(const std::string &message) {
   std::shared_ptr<Value::Map_type> error(new Value::Map_type());
   (*error)["type"] = Value("TypeError");
   (*error)["message"] = Value(message);
@@ -68,8 +69,7 @@ Exception Exception::type_error(const std::string &message)
   return e;
 }
 
-Exception Exception::value_error(const std::string &message)
-{
+Exception Exception::value_error(const std::string &message) {
   std::shared_ptr<Value::Map_type> error(new Value::Map_type());
   (*error)["type"] = Value("ValueError");
   (*error)["message"] = Value(message);
@@ -77,8 +77,7 @@ Exception Exception::value_error(const std::string &message)
   return e;
 }
 
-Exception Exception::logic_error(const std::string &message)
-{
+Exception Exception::logic_error(const std::string &message) {
   std::shared_ptr<Value::Map_type> error(new Value::Map_type());
   (*error)["type"] = Value("LogicError");
   (*error)["message"] = Value(message);
@@ -86,8 +85,7 @@ Exception Exception::logic_error(const std::string &message)
   return e;
 }
 
-Exception Exception::runtime_error(const std::string &message)
-{
+Exception Exception::runtime_error(const std::string &message) {
   std::shared_ptr<Value::Map_type> error(new Value::Map_type());
   (*error)["type"] = Value("RuntimeError");
   (*error)["message"] = Value(message);
@@ -95,8 +93,7 @@ Exception Exception::runtime_error(const std::string &message)
   return e;
 }
 
-Exception Exception::scripting_error(const std::string &message)
-{
+Exception Exception::scripting_error(const std::string &message) {
   std::shared_ptr<Value::Map_type> error(new Value::Map_type());
   (*error)["type"] = Value("ScriptingError");
   (*error)["message"] = Value(message);
@@ -104,8 +101,7 @@ Exception Exception::scripting_error(const std::string &message)
   return e;
 }
 
-Exception Exception::metadata_error(const std::string &message)
-{
+Exception Exception::metadata_error(const std::string &message) {
   std::shared_ptr<Value::Map_type> error(new Value::Map_type());
   (*error)["type"] = Value("MetadataError");
   (*error)["message"] = Value(message);
@@ -113,8 +109,7 @@ Exception Exception::metadata_error(const std::string &message)
   return e;
 }
 
-Exception Exception::error_with_code(const std::string &type, const std::string &message, int code)
-{
+Exception Exception::error_with_code(const std::string &type, const std::string &message, int code) {
   std::shared_ptr<Value::Map_type> error(new Value::Map_type());
   (*error)["type"] = Value(type);
   (*error)["message"] = Value(message);
@@ -123,8 +118,7 @@ Exception Exception::error_with_code(const std::string &type, const std::string 
   return e;
 }
 
-Exception Exception::error_with_code_and_state(const std::string &type, const std::string &message, int code, const char *sqlstate)
-{
+Exception Exception::error_with_code_and_state(const std::string &type, const std::string &message, int code, const char *sqlstate) {
   std::shared_ptr<Value::Map_type> error(new Value::Map_type());
   (*error)["type"] = Value(type);
   (*error)["message"] = Value(message);
@@ -134,8 +128,7 @@ Exception Exception::error_with_code_and_state(const std::string &type, const st
   return e;
 }
 
-Exception Exception::parser_error(const std::string &message)
-{
+Exception Exception::parser_error(const std::string &message) {
   std::shared_ptr<Value::Map_type> error(new Value::Map_type());
   (*error)["type"] = Value("ParserError");
   (*error)["message"] = Value(message);
@@ -159,57 +152,45 @@ const char *Exception::type() const BOOST_NOEXCEPT_OR_NOTHROW
 
 int64_t Exception::code() const BOOST_NOEXCEPT_OR_NOTHROW
 {
-  if ((*_error).find("code") != (*_error).end())
-  {
-    try
-    {
+  if ((*_error).find("code") != (*_error).end()) {
+    try {
       return (*_error)["code"].as_int();
-    }
-    catch (...)
-    {
+    } catch (...) {
       return 0; //as it's not int
     }
   }
   return 0;
 }
 
-bool Exception::is_argument() const
-{
+bool Exception::is_argument() const {
   return strcmp(type(), "ArgumentError") == 0;
 }
 
-bool Exception::is_attribute() const
-{
+bool Exception::is_attribute() const {
   return strcmp(type(), "AttributeError") == 0;
 }
 
-bool Exception::is_value() const
-{
+bool Exception::is_value() const {
   return strcmp(type(), "ValueError") == 0;
 }
 
-bool Exception::is_type() const
-{
+bool Exception::is_type() const {
   return strcmp(type(), "TypeError") == 0;
 }
 
-bool Exception::is_server() const
-{
+bool Exception::is_server() const {
   return strcmp(type(), "Server") == 0;
 }
 
-bool Exception::is_mysql() const
-{
+bool Exception::is_mysql() const {
   return strcmp(type(), "MySQL Error") == 0;
 }
 
-bool Exception::is_parser() const
-{
-  return strcmp(type(), "Can't parse") == 0;
+bool Exception::is_parser() const {
+  return strcmp(type(), "ParserError") == 0;
 }
 
-std::string Exception::format()
-{
+std::string Exception::format() {
   std::string error_message;
 
   std::string type = _error->get_string("type", "");
@@ -217,8 +198,7 @@ std::string Exception::format()
   int64_t code = _error->get_int("code", -1);
   std::string error_location = _error->get_string("location", "");
 
-  if (!message.empty())
-  {
+  if (!message.empty()) {
     if (!type.empty())
       error_message += type;
 
@@ -241,10 +221,8 @@ std::string Exception::format()
 
 // --
 
-std::string shcore::type_name(Value_type type)
-{
-  switch (type)
-  {
+std::string shcore::type_name(Value_type type) {
+  switch (type) {
     case Undefined:
       return "Undefined";
     case shcore::Null:
@@ -276,16 +254,14 @@ std::string shcore::type_name(Value_type type)
 
 // --
 
-Value_type Value::Map_type::get_type(const std::string &k) const
-{
+Value_type Value::Map_type::get_type(const std::string &k) const {
   const_iterator iter = find(k);
   if (iter == end())
     return Undefined;
   return iter->second.type;
 }
 
-std::string Value::Map_type::get_string(const std::string &k, const std::string &def) const
-{
+std::string Value::Map_type::get_string(const std::string &k, const std::string &def) const {
   const_iterator iter = find(k);
   if (iter == end())
     return def;
@@ -293,8 +269,7 @@ std::string Value::Map_type::get_string(const std::string &k, const std::string 
   return iter->second.as_string();
 }
 
-bool Value::Map_type::get_bool(const std::string &k, bool def) const
-{
+bool Value::Map_type::get_bool(const std::string &k, bool def) const {
   const_iterator iter = find(k);
   if (iter == end())
     return def;
@@ -302,8 +277,7 @@ bool Value::Map_type::get_bool(const std::string &k, bool def) const
   return iter->second.as_bool();
 }
 
-int64_t Value::Map_type::get_int(const std::string &k, int64_t def) const
-{
+int64_t Value::Map_type::get_int(const std::string &k, int64_t def) const {
   const_iterator iter = find(k);
   if (iter == end())
     return def;
@@ -311,8 +285,7 @@ int64_t Value::Map_type::get_int(const std::string &k, int64_t def) const
   return iter->second.as_int();
 }
 
-uint64_t Value::Map_type::get_uint(const std::string &k, uint64_t def) const
-{
+uint64_t Value::Map_type::get_uint(const std::string &k, uint64_t def) const {
   const_iterator iter = find(k);
   if (iter == end())
     return def;
@@ -320,8 +293,7 @@ uint64_t Value::Map_type::get_uint(const std::string &k, uint64_t def) const
   return iter->second.as_uint();
 }
 
-double Value::Map_type::get_double(const std::string &k, double def) const
-{
+double Value::Map_type::get_double(const std::string &k, double def) const {
   const_iterator iter = find(k);
   if (iter == end())
     return def;
@@ -330,8 +302,7 @@ double Value::Map_type::get_double(const std::string &k, double def) const
 }
 
 std::shared_ptr<Value::Map_type> Value::Map_type::get_map(const std::string &k,
-  std::shared_ptr<Map_type> def) const
-{
+  std::shared_ptr<Map_type> def) const {
   const_iterator iter = find(k);
   if (iter == end())
     return def;
@@ -340,8 +311,7 @@ std::shared_ptr<Value::Map_type> Value::Map_type::get_map(const std::string &k,
 }
 
 std::shared_ptr<Value::Array_type> Value::Map_type::get_array(const std::string &k,
-  std::shared_ptr<Array_type> def) const
-{
+  std::shared_ptr<Array_type> def) const {
   const_iterator iter = find(k);
   if (iter == end())
     return def;
@@ -349,11 +319,9 @@ std::shared_ptr<Value::Array_type> Value::Map_type::get_array(const std::string 
   return iter->second.as_array();
 }
 
-void Value::Map_type::merge_contents(std::shared_ptr<Map_type> source, bool overwrite)
-{
+void Value::Map_type::merge_contents(std::shared_ptr<Map_type> source, bool overwrite) {
   Value::Map_type::const_iterator iter;
-  for (iter = source->begin(); iter != source->end(); ++iter)
-  {
+  for (iter = source->begin(); iter != source->end(); ++iter) {
     std::string k = iter->first;
     Value v = iter->second;
 
@@ -365,109 +333,86 @@ void Value::Map_type::merge_contents(std::shared_ptr<Map_type> source, bool over
 }
 
 Value::Value(const Value &copy)
-  : type(shcore::Null)
-{
+  : type(shcore::Null) {
   operator=(copy);
 }
 
 Value::Value(const std::string &s)
-  : type(String)
-{
+  : type(String) {
   value.s = new std::string(s);
 }
 
-Value::Value(const char *s)
-{
-  if (s)
-  {
+Value::Value(const char *s) {
+  if (s) {
     type = String;
     value.s = new std::string(s);
-  }
-  else
-  {
+  } else {
     type = shcore::Null;
   }
 }
 
-Value::Value(const char *s, size_t n)
-{
-  if (s)
-  {
+Value::Value(const char *s, size_t n) {
+  if (s) {
     type = String;
     value.s = new std::string(s, n);
-  }
-  else
-  {
+  } else {
     type = shcore::Null;
   }
 }
 
 Value::Value(int i)
-  : type(Integer)
-{
+  : type(Integer) {
   value.i = i;
 }
 
 Value::Value(int64_t i)
-  : type(Integer)
-{
+  : type(Integer) {
   value.i = i;
 }
 
 Value::Value(uint64_t ui)
-  : type(UInteger)
-{
+  : type(UInteger) {
   value.ui = ui;
 }
 
 Value::Value(double d)
-  : type(Float)
-{
+  : type(Float) {
   value.d = d;
 }
 
 Value::Value(bool b)
-  : type(Bool)
-{
+  : type(Bool) {
   value.b = b;
 }
 
 Value::Value(std::shared_ptr<Function_base> f)
-  : type(Function)
-{
+  : type(Function) {
   value.func = new std::shared_ptr<Function_base>(f);
 }
 
 Value::Value(std::shared_ptr<Object_bridge> n)
-  : type(Object)
-{
+  : type(Object) {
   value.o = new std::shared_ptr<Object_bridge>(n);
 }
 
 Value::Value(Map_type_ref n)
-  : type(Map)
-{
+  : type(Map) {
   value.map = new std::shared_ptr<Map_type>(n);
 }
 
 Value::Value(std::weak_ptr<Map_type> n)
-  : type(MapRef)
-{
+  : type(MapRef) {
   value.mapref = new std::weak_ptr<Map_type>(n);
 }
 
 Value::Value(Array_type_ref n)
-  : type(Array)
-{
+  : type(Array) {
   value.array = new std::shared_ptr<Array_type>(n);
 }
 
-Value &Value::operator= (const Value &other)
-{
-  if (type == other.type)
-  {
-    switch (type)
-    {
+Value &Value::operator= (const Value &other) {
+  if (type == other.type) {
+    switch (type) {
       case Undefined:
         break;
       case shcore::Null:
@@ -503,11 +448,8 @@ Value &Value::operator= (const Value &other)
         *value.func = *other.value.func;
         break;
     }
-  }
-  else
-  {
-    switch (type)
-    {
+  } else {
+    switch (type) {
       case Undefined:
       case shcore::Null:
       case Bool:
@@ -535,8 +477,7 @@ Value &Value::operator= (const Value &other)
         break;
     }
     type = other.type;
-    switch (type)
-    {
+    switch (type) {
       case Undefined:
       case shcore::Null:
         break;
@@ -575,16 +516,14 @@ Value &Value::operator= (const Value &other)
   return *this;
 }
 
-Value Value::parse_map(char **pc)
-{
+Value Value::parse_map(char **pc) {
   Map_type_ref map(new Map_type());
 
   // Skips the opening {
   ++*pc;
 
   bool done = false;
-  while (!done)
-  {
+  while (!done) {
     // Skips the spaces
     while (**pc == ' ' || **pc == '\t' || **pc == '\n')++*pc;
 
@@ -594,8 +533,7 @@ Value Value::parse_map(char **pc)
     Value key, value;
     if (**pc != '"' && **pc != '\'')
       throw Exception::parser_error("Error parsing map, unexpected character reading key.");
-    else
-    {
+    else {
       key = parse_string(pc, **pc);
 
       // Skips the spaces
@@ -617,14 +555,12 @@ Value Value::parse_map(char **pc)
       // Skips the spaces
       while (**pc == ' ' || **pc == '\t' || **pc == '\n')++*pc;
 
-      if (**pc == '}')
-      {
+      if (**pc == '}') {
         done = true;
 
         // Skips the }
         ++*pc;
-      }
-      else if (**pc == ',')
+      } else if (**pc == ',')
         ++*pc;
       else
         throw Exception::parser_error("Error parsing map, unexpected item separator.");
@@ -637,8 +573,7 @@ Value Value::parse_map(char **pc)
   return Value(map);
 }
 
-Value Value::parse_array(char **pc)
-{
+Value Value::parse_array(char **pc) {
   Array_type_ref array(new Array_type());
 
   // Skips the opening [
@@ -648,8 +583,7 @@ Value Value::parse_array(char **pc)
   while (**pc == ' ' || **pc == '\t' || **pc == '\n')++*pc;
 
   bool done = false;
-  while (!done)
-  {
+  while (!done) {
     // Skips the spaces
     while (**pc == ' ' || **pc == '\t' || **pc == '\n')++*pc;
 
@@ -659,14 +593,12 @@ Value Value::parse_array(char **pc)
     // Skips the spaces
     while (**pc == ' ' || **pc == '\t' || **pc == '\n')++*pc;
 
-    if (**pc == ']')
-    {
+    if (**pc == ']') {
       done = true;
 
       // Skips the ]
       ++*pc;
-    }
-    else if (**pc == ',')
+    } else if (**pc == ',')
       ++*pc;
     else
       throw Exception::parser_error("Error parsing array, unexpected value separator.");
@@ -678,20 +610,17 @@ Value Value::parse_array(char **pc)
   return Value(array);
 }
 
-Value Value::parse_string(char **pc, char quote)
-{
+Value Value::parse_string(char **pc, char quote) {
   int32_t len;
   char *p = *pc;
 
   // calculate length
-  do
-  {
+  do {
     while (*p && *++p != quote)
       ;
   } while (*p && *(p - 1) == '\\');
 
-  if (*p != quote)
-  {
+  if (*p != quote) {
     std::string msg = "missing closing ";
     msg.append(&quote);
     throw Exception::parser_error(msg);
@@ -701,13 +630,10 @@ Value Value::parse_string(char **pc, char quote)
 
   p = *pc;
   ++*pc;
-  while (**pc != '\0' && (*pc - p < len))
-  {
+  while (**pc != '\0' && (*pc - p < len)) {
     char *pc_i = *pc;
-    if (*pc_i == '\\')
-    {
-      switch (*(pc_i + 1))
-      {
+    if (*pc_i == '\\') {
+      switch (*(pc_i + 1)) {
         case 'n':
           s.append("\n");
           break;
@@ -743,9 +669,7 @@ Value Value::parse_string(char **pc, char quote)
           break;
       }
       *pc = pc_i + 2;
-    }
-    else
-    {
+    } else {
       s.append(*pc, 1);
       ++*pc;
     }
@@ -757,18 +681,15 @@ Value Value::parse_string(char **pc, char quote)
   return Value(s);
 }
 
-Value Value::parse_single_quoted_string(char **pc)
-{
+Value Value::parse_single_quoted_string(char **pc) {
   return parse_string(pc, '\'');
 }
 
-Value Value::parse_double_quoted_string(char **pc)
-{
+Value Value::parse_double_quoted_string(char **pc) {
   return parse_string(pc, '"');
 }
 
-Value Value::parse_number(char **pcc)
-{
+Value Value::parse_number(char **pcc) {
   Value ret_val;
   char *pc = *pcc;
 
@@ -777,18 +698,17 @@ Value Value::parse_number(char **pcc)
     ++pc;
 
   // Continues while there are digits
-  while (*pc && isdigit(*++pc));
+  while (*pc && IS_DIGIT(*++pc));
 
   bool is_integer = true;
-  if (tolower(*pc) == '.')
-  {
+  if (tolower(*pc) == '.') {
     is_integer = false;
 
     // Skips the .
     ++pc;
 
     // Continues while there are digits
-    while (*pc && isdigit(*++pc));
+    while (*pc && IS_DIGIT(*++pc));
   }
 
   if (tolower(*pc) == 'e') // exponential
@@ -803,36 +723,27 @@ Value Value::parse_number(char **pcc)
       ++pc;
 
     // Continues while there are digits
-    while (*pc && isdigit(*++pc));
+    while (*pc && IS_DIGIT(*++pc));
   }
 
   size_t len = pc - *pcc;
   std::string number(*pcc, len);
 
-  if (is_integer)
-  {
+  if (is_integer) {
     int64_t ll = 0;
-    try
-    {
+    try {
       ll = boost::lexical_cast<int64_t>(number.c_str());
-    }
-    catch (boost::bad_lexical_cast &e)
-    {
+    } catch (boost::bad_lexical_cast &e) {
       std::string s = "Error parsing int: ";
       s += e.what();
       throw Exception::parser_error(s);
     }
     ret_val = Value(static_cast<int64_t>(ll));
-  }
-  else
-  {
+  } else {
     double d = 0;
-    try
-    {
+    try {
       d = boost::lexical_cast<double>(number.c_str());
-    }
-    catch (boost::bad_lexical_cast &e)
-    {
+    } catch (boost::bad_lexical_cast &e) {
       std::string s = "Error parsing float: ";
       s += +e.what();
       throw Exception::parser_error(s);
@@ -846,67 +757,45 @@ Value Value::parse_number(char **pcc)
   return ret_val;
 }
 
-bool my_strnicmp(const char *c1, const char *c2, size_t n)
-{
+bool my_strnicmp(const char *c1, const char *c2, size_t n) {
   return boost::iequals(boost::make_iterator_range(c1, c1 + n), boost::make_iterator_range(c2, c2 + n));
 }
 
-Value Value::parse(const std::string &s)
-{
+Value Value::parse(const std::string &s) {
   char *pc = const_cast<char *>(s.c_str());
   return parse(&pc);
 }
 
-Value Value::parse(char **pc)
-{
-  if (**pc == '{')
-  {
+Value Value::parse(char **pc) {
+  if (**pc == '{') {
     return parse_map(pc);
-  }
-  else if (**pc == '[')
-  {
+  } else if (**pc == '[') {
     return parse_array(pc);
-  }
-  else if (**pc == '"')
-  {
+  } else if (**pc == '"') {
     return parse_double_quoted_string(pc);
-  }
-  else if (**pc == '\'')
-  {
+  } else if (**pc == '\'') {
     return parse_single_quoted_string(pc);
-  }
-  else
-  {
-    if (isdigit(**pc) || **pc == '-' || **pc == '+') // a number
+  } else {
+    if (IS_DIGIT(**pc) || **pc == '-' || **pc == '+') // a number
     {
       return parse_number(pc);
-    }
-    else // a constant between true, false, null
+    } else // a constant between true, false, null
     {
       const char *pi = *pc;
       int n;
-      while (*pc && isalpha(**pc))
+      while (*pc && IS_ALPHA(**pc))
         ++*pc;
 
       n = *pc - pi;
-      if (n == 9 && ::my_strnicmp(pi, "undefined", 9))
-      {
+      if (n == 9 && ::my_strnicmp(pi, "undefined", 9)) {
         return Value();
-      }
-      else if (n == 4 && ::my_strnicmp(pi, "true", 4))
-      {
+      } else if (n == 4 && ::my_strnicmp(pi, "true", 4)) {
         return Value(true);
-      }
-      else if (n == 4 && ::my_strnicmp(pi, "null", 4))
-      {
+      } else if (n == 4 && ::my_strnicmp(pi, "null", 4)) {
         return Value::Null();
-      }
-      else if (n == 5 && ::my_strnicmp(pi, "false", 5))
-      {
+      } else if (n == 5 && ::my_strnicmp(pi, "false", 5)) {
         return Value(false);
-      }
-      else
-      {
+      } else {
         throw Exception::parser_error(std::string("Can't parse '") + *pc + "'");
         //report_error(pi - _pc_json_start,
         //  "one of (array, string, number, true, false, null) expected");
@@ -918,12 +807,9 @@ Value Value::parse(char **pc)
   return Value();
 }
 
-bool Value::operator == (const Value &other) const
-{
-  if (type == other.type)
-  {
-    switch (type)
-    {
+bool Value::operator == (const Value &other) const {
+  if (type == other.type) {
+    switch (type) {
       case Undefined:
         return true;  // undefined == undefined is true
       case shcore::Null:
@@ -949,19 +835,15 @@ bool Value::operator == (const Value &other) const
       case Function:
         return **value.func == **other.value.func;
     }
-  }
-  else
-  {
+  } else {
     // with type conversion
-    switch (type)
-    {
+    switch (type) {
       case Undefined:
         return false;
       case shcore::Null:
         return false;
       case Bool:
-        switch (other.type)
-        {
+        switch (other.type) {
           case Integer:
             if (other.value.i == 1)
               return value.b == true;
@@ -984,8 +866,7 @@ bool Value::operator == (const Value &other) const
             return false;
         }
       case Integer:
-        switch (other.type)
-        {
+        switch (other.type) {
           case Bool:
             return other.operator==(*this);
           case Float:
@@ -994,8 +875,7 @@ bool Value::operator == (const Value &other) const
             return false;
         }
       case UInteger:
-        switch (other.type)
-        {
+        switch (other.type) {
           case Bool:
             return other.operator==(*this);
           case Float:
@@ -1004,8 +884,7 @@ bool Value::operator == (const Value &other) const
             return false;
         }
       case Float:
-        switch (other.type)
-        {
+        switch (other.type) {
           case Bool:
             return other.operator==(*this);
           case Integer:
@@ -1021,8 +900,7 @@ bool Value::operator == (const Value &other) const
   return false;
 }
 
-std::string Value::json(bool pprint) const
-{
+std::string Value::json(bool pprint) const {
   std::stringstream s;
   JSON_dumper dumper(pprint);
 
@@ -1031,25 +909,21 @@ std::string Value::json(bool pprint) const
   return dumper.str();
 }
 
-std::string Value::descr(bool pprint) const
-{
+std::string Value::descr(bool pprint) const {
   std::string s;
   append_descr(s, pprint ? 0 : -1, false); // top level strings are not quoted
   return s;
 }
 
-std::string Value::repr() const
-{
+std::string Value::repr() const {
   std::string s;
   append_repr(s);
   return s;
 }
 
-std::string &Value::append_descr(std::string &s_out, int indent, int quote_strings) const
-{
+std::string &Value::append_descr(std::string &s_out, int indent, int quote_strings) const {
   std::string nl = (indent >= 0) ? "\n" : "";
-  switch (type)
-  {
+  switch (type) {
     case Undefined:
       s_out.append("undefined");
       break;
@@ -1101,8 +975,7 @@ std::string &Value::append_descr(std::string &s_out, int indent, int quote_strin
       Array_type *vec = value.array->get();
       Array_type::iterator myend = vec->end(), mybegin = vec->begin();
       s_out += "[";
-      for (Array_type::iterator iter = mybegin; iter != myend; ++iter)
-      {
+      for (Array_type::iterator iter = mybegin; iter != myend; ++iter) {
         if (iter != mybegin)
           s_out += ",";
         s_out += nl;
@@ -1123,8 +996,7 @@ std::string &Value::append_descr(std::string &s_out, int indent, int quote_strin
       Map_type *map = value.map->get();
       Map_type::iterator myend = map->end(), mybegin = map->begin();
       s_out += "{" + nl;
-      for (Map_type::iterator iter = mybegin; iter != myend; ++iter)
-      {
+      for (Map_type::iterator iter = mybegin; iter != myend; ++iter) {
         if (iter != mybegin)
           s_out += ", " + nl;
         if (indent >= 0)
@@ -1151,10 +1023,8 @@ std::string &Value::append_descr(std::string &s_out, int indent, int quote_strin
   return s_out;
 }
 
-std::string &Value::append_repr(std::string &s_out) const
-{
-  switch (type)
-  {
+std::string &Value::append_repr(std::string &s_out) const {
+  switch (type) {
     case Undefined:
       s_out.append("undefined");
       break;
@@ -1192,11 +1062,9 @@ std::string &Value::append_repr(std::string &s_out) const
     {
       std::string &s = *value.s;
       s_out += "\"";
-      for (size_t i = 0; i < s.length(); i++)
-      {
+      for (size_t i = 0; i < s.length(); i++) {
         char c = s[i];
-        switch (c)
-        {
+        switch (c) {
           case '\n':
             s_out += "\\n";
             break;
@@ -1244,8 +1112,7 @@ std::string &Value::append_repr(std::string &s_out) const
       Array_type *vec = value.array->get();
       Array_type::iterator myend = vec->end(), mybegin = vec->begin();
       s_out += "[";
-      for (Array_type::iterator iter = mybegin; iter != myend; ++iter)
-      {
+      for (Array_type::iterator iter = mybegin; iter != myend; ++iter) {
         if (iter != mybegin)
           s_out += ", ";
         iter->append_repr(s_out);
@@ -1258,8 +1125,7 @@ std::string &Value::append_repr(std::string &s_out) const
       Map_type *map = value.map->get();
       Map_type::iterator myend = map->end(), mybegin = map->begin();
       s_out += "{";
-      for (Map_type::iterator iter = mybegin; iter != myend; ++iter)
-      {
+      for (Map_type::iterator iter = mybegin; iter != myend; ++iter) {
         if (iter != mybegin)
           s_out += ", ";
         s_out += "\"";
@@ -1280,10 +1146,8 @@ std::string &Value::append_repr(std::string &s_out) const
   return s_out;
 }
 
-Value::~Value()
-{
-  switch (type)
-  {
+Value::~Value() {
+  switch (type) {
     case Undefined:
     case shcore::Null:
     case Bool:
@@ -1312,14 +1176,12 @@ Value::~Value()
   }
 }
 
-void Value::check_type(Value_type t) const
-{
+void Value::check_type(Value_type t) const {
   if (type != t)
     throw Exception::type_error("Invalid typecast");
 }
 
-int64_t Value::as_int() const
-{
+int64_t Value::as_int() const {
   int64_t ret_val;
 
   if (type == Integer)
@@ -1332,8 +1194,7 @@ int64_t Value::as_int() const
   return ret_val;
 }
 
-uint64_t Value::as_uint() const
-{
+uint64_t Value::as_uint() const {
   uint64_t ret_val;
 
   if (type == UInteger)
@@ -1346,8 +1207,7 @@ uint64_t Value::as_uint() const
   return ret_val;
 }
 
-double Value::as_double() const
-{
+double Value::as_double() const {
   double ret_val;
   if (type == Float)
     ret_val = value.d;
@@ -1363,8 +1223,7 @@ double Value::as_double() const
 
 //---
 
-const std::string &Argument_list::string_at(unsigned int i) const
-{
+const std::string &Argument_list::string_at(unsigned int i) const {
   if (i >= size())
     throw Exception::argument_error("Insufficient number of arguments");
   if (at(i).type != String)
@@ -1372,8 +1231,7 @@ const std::string &Argument_list::string_at(unsigned int i) const
   return *at(i).value.s;
 }
 
-bool Argument_list::bool_at(unsigned int i) const
-{
+bool Argument_list::bool_at(unsigned int i) const {
   if (i >= size())
     throw Exception::argument_error("Insufficient number of arguments");
   if (at(i).type != Bool)
@@ -1381,8 +1239,7 @@ bool Argument_list::bool_at(unsigned int i) const
   return at(i).value.b;
 }
 
-int64_t Argument_list::int_at(unsigned int i) const
-{
+int64_t Argument_list::int_at(unsigned int i) const {
   if (i >= size())
     throw Exception::argument_error("Insufficient number of arguments");
   if (at(i).type != Integer)
@@ -1390,8 +1247,7 @@ int64_t Argument_list::int_at(unsigned int i) const
   return at(i).value.i;
 }
 
-uint64_t Argument_list::uint_at(unsigned int i) const
-{
+uint64_t Argument_list::uint_at(unsigned int i) const {
   if (i >= size())
     throw Exception::argument_error("Insufficient number of arguments");
 
@@ -1407,8 +1263,7 @@ uint64_t Argument_list::uint_at(unsigned int i) const
   return ret_val;
 }
 
-double Argument_list::double_at(unsigned int i) const
-{
+double Argument_list::double_at(unsigned int i) const {
   if (i >= size())
     throw Exception::argument_error("Insufficient number of arguments");
 
@@ -1425,8 +1280,7 @@ double Argument_list::double_at(unsigned int i) const
   return ret_val;
 }
 
-std::shared_ptr<Object_bridge> Argument_list::object_at(unsigned int i) const
-{
+std::shared_ptr<Object_bridge> Argument_list::object_at(unsigned int i) const {
   if (i >= size())
     throw Exception::argument_error("Insufficient number of arguments");
   if (at(i).type != Object)
@@ -1434,8 +1288,7 @@ std::shared_ptr<Object_bridge> Argument_list::object_at(unsigned int i) const
   return *at(i).value.o;
 }
 
-std::shared_ptr<Value::Map_type> Argument_list::map_at(unsigned int i) const
-{
+std::shared_ptr<Value::Map_type> Argument_list::map_at(unsigned int i) const {
   if (i >= size())
     throw Exception::argument_error("Insufficient number of arguments");
   if (at(i).type != Map)
@@ -1443,8 +1296,7 @@ std::shared_ptr<Value::Map_type> Argument_list::map_at(unsigned int i) const
   return *at(i).value.map;
 }
 
-std::shared_ptr<Value::Array_type> Argument_list::array_at(unsigned int i) const
-{
+std::shared_ptr<Value::Array_type> Argument_list::array_at(unsigned int i) const {
   if (i >= size())
     throw Exception::argument_error("Insufficient number of arguments");
   if (at(i).type != Array)
@@ -1452,26 +1304,22 @@ std::shared_ptr<Value::Array_type> Argument_list::array_at(unsigned int i) const
   return *at(i).value.array;
 }
 
-void Argument_list::ensure_count(unsigned int c, const char *context) const
-{
+void Argument_list::ensure_count(unsigned int c, const char *context) const {
   if (c != size())
     throw Exception::argument_error((boost::format("Invalid number of arguments in %1%, expected %2% but got %3%") % context % c % size()).str());
 }
 
-void Argument_list::ensure_count(unsigned int minc, unsigned int maxc, const char *context) const
-{
+void Argument_list::ensure_count(unsigned int minc, unsigned int maxc, const char *context) const {
   if (size() < minc || size() > maxc)
     throw Exception::argument_error((boost::format("Invalid number of arguments in %1%, expected %2% to %3% but got %4%") % context % minc % maxc % size()).str());
 }
 
-void Argument_list::ensure_at_least(unsigned int minc, const char *context) const
-{
+void Argument_list::ensure_at_least(unsigned int minc, const char *context) const {
   if (size() < minc)
     throw Exception::argument_error((boost::format("Invalid number of arguments in %1%, expected at least %2% but got %3%") % context % minc % size()).str());
 }
 
-void Object_bridge::append_json(JSON_dumper& dumper) const
-{
+void Object_bridge::append_json(JSON_dumper& dumper) const {
   dumper.start_object();
   dumper.append_string("class", class_name());
   dumper.end_object();

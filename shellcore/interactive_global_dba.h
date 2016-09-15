@@ -25,36 +25,35 @@
 
 #include "interactive_object_wrapper.h"
 
-namespace shcore
-{
-  class SHCORE_PUBLIC Global_dba : public Interactive_object_wrapper
-  {
-  public:
-    Global_dba(Shell_core& shell_core) : Interactive_object_wrapper("dba", shell_core){ init(); }
+namespace shcore {
+class SHCORE_PUBLIC Global_dba : public Interactive_object_wrapper {
+public:
+  Global_dba(Shell_core& shell_core) : Interactive_object_wrapper("dba", shell_core) { init(); }
 
-    void init();
-    //virtual void resolve() const;
+  void init();
+  //virtual void resolve() const;
 
-    shcore::Value deploy_local_instance(const shcore::Argument_list &args); // create and start
-    shcore::Value start_local_instance(const shcore::Argument_list &args);
-    shcore::Value stop_local_instance(const shcore::Argument_list &args);
-    shcore::Value delete_local_instance(const shcore::Argument_list &args);
-    shcore::Value kill_local_instance(const shcore::Argument_list &args);
+  shcore::Value deploy_local_instance(const shcore::Argument_list &args, const std::string& fname); // create and start
+  shcore::Value stop_local_instance(const shcore::Argument_list &args);
+  shcore::Value delete_local_instance(const shcore::Argument_list &args);
+  shcore::Value kill_local_instance(const shcore::Argument_list &args);
+  shcore::Value start_local_instance(const shcore::Argument_list &args);
 
-    shcore::Value drop_cluster(const shcore::Argument_list &args);
-    shcore::Value create_cluster(const shcore::Argument_list &args);
-    shcore::Value get_cluster(const shcore::Argument_list &args);
-    shcore::Value drop_metadata_schema(const shcore::Argument_list &args);
-    shcore::Value validate_instance(const shcore::Argument_list &args);
+  shcore::Value create_cluster(const shcore::Argument_list &args);
+  shcore::Value get_cluster(const shcore::Argument_list &args);
+  shcore::Value drop_metadata_schema(const shcore::Argument_list &args);
+  shcore::Value validate_instance(const shcore::Argument_list &args);
 
-    void set_cluster_admin_password(std::string passwd) { _cluster_admin_password = passwd; };
-    std::string get_cluster_admin_password() { return _cluster_admin_password; };
+  void set_cluster_admin_password(std::string passwd) { _cluster_admin_password = passwd; };
+  std::string get_cluster_admin_password() { return _cluster_admin_password; };
 
-  private:
-    std::string _cluster_admin_password;
+private:
+  std::string _cluster_admin_password;
 
-    shcore::Value exec_instance_op(const std::string &function, const shcore::Argument_list &args);
-  };
+  shcore::Argument_list check_instance_op_params(const shcore::Argument_list &args);
+  shcore::Value perform_instance_operation(const shcore::Argument_list &args, const std::string &fname, const std::string& progressive, const std::string& past);
+  void validate_session(const std::string &source) const;
+};
 }
 
 #endif // _INTERACTIVE_GLOBAL_DBA_H_

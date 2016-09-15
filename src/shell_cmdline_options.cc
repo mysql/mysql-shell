@@ -29,14 +29,13 @@
 using namespace shcore;
 
 Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
-  : Command_line_options(argc, argv), log_level(ngcommon::Logger::LOG_ERROR)
-{
+  : Command_line_options(argc, argv), log_level(ngcommon::Logger::LOG_ERROR) {
   output_format = "";
   print_cmd_line_helper = false;
   print_version = false;
   execute_statement = "";
 
-  session_type = mysh::Application;
+  session_type = mysh::Auto;
   default_session_type = true;
 
 #ifdef HAVE_V8
@@ -64,23 +63,19 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
   port = 0;
   ssl = 0;
   int arg_format = 0;
-  for (int i = 1; i < argc && exit_code == 0; i++)
-  {
+  for (int i = 1; i < argc && exit_code == 0; i++) {
     char *value;
     if (check_arg_with_value(argv, i, "--file", "-f", value))
       run_file = value;
-    else if (check_arg_with_value(argv, i, "--uri", NULL, value))
-    {
+    else if (check_arg_with_value(argv, i, "--uri", NULL, value)) {
       if (shcore::validate_uri(value))
         uri = value;
-      else
-      {
+      else {
         std::cerr << "Invalid value specified in --uri parameter.\n";
         exit_code = 1;
         break;
       }
-    }
-    else if (check_arg_with_value(argv, i, "--app", NULL, value))
+    } else if (check_arg_with_value(argv, i, "--app", NULL, value))
       app = value;
     else if (check_arg_with_value(argv, i, "--host", "-h", value))
       host = value;
@@ -103,8 +98,7 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
     else if (check_arg_with_value(argv, i, "--dba", NULL, value))
       execute_dba_statement = value;
     else if ((arg_format = check_arg_with_value(argv, i, "--dbpassword", NULL, value, true)) ||
-             (arg_format = check_arg_with_value(argv, i, "--password", "-p", value, true)))
-    {
+             (arg_format = check_arg_with_value(argv, i, "--password", "-p", value, true))) {
       // Note that in any connection attempt, password prompt will be done if the password is missing.
       // The behavior of the password cmd line argument is as follows:
 
@@ -115,8 +109,7 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
       // -p<value> sets the password to <value>
       // --password=<value> sets the password to <value>
 
-      if (!value)
-      {
+      if (!value) {
         // --password=
         if (arg_format == 3)
           password = const_cast<char *>("");
@@ -130,60 +123,44 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
         password = value;
 
       // --password value (value is ignored)
-      else
-      {
+      else {
         prompt_password = true;
         i--;
       }
-    }
-    else if (check_arg_with_value(argv, i, "--auth-method", NULL, value))
+    } else if (check_arg_with_value(argv, i, "--auth-method", NULL, value))
       auth_method = value;
-    else if (check_arg_with_value(argv, i, "--ssl-ca", NULL, value))
-    {
+    else if (check_arg_with_value(argv, i, "--ssl-ca", NULL, value)) {
       ssl_ca = value;
       ssl = 1;
-    }
-    else if (check_arg_with_value(argv, i, "--ssl-cert", NULL, value))
-    {
+    } else if (check_arg_with_value(argv, i, "--ssl-cert", NULL, value)) {
       ssl_cert = value;
       ssl = 1;
-    }
-    else if (check_arg_with_value(argv, i, "--ssl-key", NULL, value))
-    {
+    } else if (check_arg_with_value(argv, i, "--ssl-key", NULL, value)) {
       ssl_key = value;
       ssl = 1;
-    }
-    else if (check_arg_with_value(argv, i, "--ssl", NULL, value, true))
-    {
+    } else if (check_arg_with_value(argv, i, "--ssl", NULL, value, true)) {
       if (!value)
         ssl = 1;
-      else
-      {
+      else {
         if (boost::iequals(value, "yes") || boost::iequals(value, "1"))
           ssl = 1;
         else if (boost::iequals(value, "no") || boost::iequals(value, "0"))
           ssl = 0;
-        else
-        {
+        else {
           std::cerr << "Value for --ssl must be any of 1|0|yes|no";
           exit_code = 1;
           break;
         }
       }
-    }
-    else if (check_arg(argv, i, "--x", "--x"))
+    } else if (check_arg(argv, i, "--x", "--x"))
       override_session_type(mysh::Application, "--x");
     else if (check_arg(argv, i, "--node", "--node"))
       override_session_type(mysh::Node, "--node");
     else if (check_arg(argv, i, "--classic", "--classic"))
-      override_session_type(mysh::Classic, "--x");
-    else if (check_arg(argv, i, "--sql", "--sql"))
-    {
+      override_session_type(mysh::Classic, "--classic");
+    else if (check_arg(argv, i, "--sql", "--sql")) {
       initial_mode = IShell_core::Mode_SQL;
-      override_session_type(mysh::Node, "--sql");
-    }
-    else if (check_arg(argv, i, "--js", "--javascript"))
-    {
+    } else if (check_arg(argv, i, "--js", "--javascript")) {
 #ifdef HAVE_V8
       initial_mode = IShell_core::Mode_JScript;
 #else
@@ -191,9 +168,7 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
       exit_code = 1;
       break;
 #endif
-    }
-    else if (check_arg(argv, i, "--py", "--python"))
-    {
+    } else if (check_arg(argv, i, "--py", "--python")) {
 #ifdef HAVE_PYTHON
       initial_mode = IShell_core::Mode_Python;
 #else
@@ -201,83 +176,63 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
       exit_code = 1;
       break;
 #endif
-    }
-    else if (check_arg(argv, i, NULL, "--sqlc"))
-    {
+    } else if (check_arg(argv, i, NULL, "--sqlc")) {
       initial_mode = IShell_core::Mode_SQL;
       override_session_type(mysh::Classic, "--sqlc");
-    }
-    else if (check_arg_with_value(argv, i, "--json", NULL, value, true))
-    {
+    } else if (check_arg(argv, i, NULL, "--sqln")) {
+      initial_mode = IShell_core::Mode_SQL;
+      override_session_type(mysh::Node, "--sqln");
+    } else if (check_arg_with_value(argv, i, "--json", NULL, value, true)) {
       if (!value || strcmp(value, "pretty") == 0)
         output_format = "json";
       else if (strcmp(value, "raw") == 0)
         output_format = "json/raw";
-      else
-      {
+      else {
         std::cerr << "Value for --json must be either pretty or raw.\n";
         exit_code = 1;
         break;
       }
-    }
-    else if (check_arg(argv, i, "--table", "--table"))
+    } else if (check_arg(argv, i, "--table", "--table"))
       output_format = "table";
     else if (check_arg(argv, i, "--trace-proto", NULL))
       trace_protocol = true;
-    else if (check_arg(argv, i, "--help", "--help"))
-    {
+    else if (check_arg(argv, i, "--help", "--help")) {
       print_cmd_line_helper = true;
       exit_code = 0;
-    }
-    else if (check_arg(argv, i, "--version", "--version"))
-    {
+    } else if (check_arg(argv, i, "--version", "-V")) {
       print_version = true;
       exit_code = 0;
-    }
-    else if (check_arg(argv, i, "--force", "--force"))
+    } else if (check_arg(argv, i, "--force", "--force"))
       force = true;
     else if (check_arg(argv, i, "--no-wizard", "--nw"))
       wizards = false;
-    else if (check_arg_with_value(argv, i, "--interactive", "-i", value, true))
-    {
-      if (!value)
-      {
+    else if (check_arg_with_value(argv, i, "--interactive", "-i", value, true)) {
+      if (!value) {
         interactive = true;
         full_interactive = false;
-      }
-      else if (strcmp(value, "full") == 0)
-      {
+      } else if (strcmp(value, "full") == 0) {
         interactive = true;
         full_interactive = true;
-      }
-      else
-      {
+      } else {
         std::cerr << "Value for --interactive if any, must be full\n";
         exit_code = 1;
         break;
       }
-    }
-    else if (check_arg(argv, i, NULL, "--passwords-from-stdin"))
+    } else if (check_arg(argv, i, NULL, "--passwords-from-stdin"))
       passwords_from_stdin = true;
-    else if (check_arg_with_value(argv, i, "--log-level", NULL, value))
-    {
+    else if (check_arg_with_value(argv, i, "--log-level", NULL, value)) {
       ngcommon::Logger::LOG_LEVEL nlog_level;
       nlog_level = ngcommon::Logger::get_log_level(value);
-      if (nlog_level == ngcommon::Logger::LOG_NONE && !ngcommon::Logger::is_level_none(value))
-      {
+      if (nlog_level == ngcommon::Logger::LOG_NONE && !ngcommon::Logger::is_level_none(value)) {
         std::cerr << ngcommon::Logger::get_level_range_info() << std::endl;
         exit_code = 1;
         break;
-      }
-      else
+      } else
         log_level = nlog_level;
-    }
-    else if (exit_code == 0)
-    {
+    } else if (exit_code == 0) {
       if (argv[i][0] != '-')
         schema = argv[i];
-      else
-      {
+      else {
         std::cerr << argv[0] << ": unknown option " << argv[i] << "\n";
         exit_code = 1;
         break;
@@ -286,13 +241,11 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
   }
 }
 
-void Shell_command_line_options::override_session_type(mysh::SessionType new_type, const std::string& option, char* value)
-{
+void Shell_command_line_options::override_session_type(mysh::SessionType new_type, const std::string& option, char* value) {
   auto get_session_type = [](mysh::SessionType type)
   {
     std::string label;
-    switch (type)
-    {
+    switch (type) {
       case mysh::Application:
         label = "X";
         break;
@@ -302,29 +255,29 @@ void Shell_command_line_options::override_session_type(mysh::SessionType new_typ
       case mysh::Classic:
         label = "Classic";
         break;
+      case mysh::Auto:
+        break;
     }
 
     return label;
   };
 
-  if (new_type != session_type)
-  {
-    if (!default_session_type)
-    {
-      std::string msg = "Overriding Session Type from ";
+  if (new_type != session_type) {
+    if (!default_session_type) {
+      std::string msg = "Session type already configured to ";
       msg.append(get_session_type(session_type));
-      msg.append(" to ");
+      msg.append(", unable to change to ");
       msg.append(get_session_type(new_type));
-      msg.append(" from option ");
+      msg.append(" with option ");
       msg.append(option);
 
-      if (value)
-      {
+      if (value) {
         msg.append("=");
         msg.append(value);
       }
 
-      std::cout << msg.c_str() << std::endl;
+      std::cerr << msg << std::endl;
+      exit_code = 1;
     }
 
     session_type = new_type;
@@ -333,8 +286,7 @@ void Shell_command_line_options::override_session_type(mysh::SessionType new_typ
   default_session_type = false;
 }
 
-bool Shell_command_line_options::has_connection_data()
-{
+bool Shell_command_line_options::has_connection_data() {
   return !app.empty() ||
          !uri.empty() ||
          !user.empty() ||

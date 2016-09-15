@@ -2,9 +2,6 @@
 # Assumes __uripwd is defined as <user>:<pwd>@<host>:<plugin_port>
 # validateMemer and validateNotMember are defined on the setup script
 
-#@ Initialization
-dba.drop_metadata_schema()
-
 #@ Session: validating members
 all_members = dir(dba)
 
@@ -28,44 +25,26 @@ validateMember(members, 'reset_session');
 validateMember(members, 'start_local_instance');
 validateMember(members, 'validate_instance');
 validateMember(members, 'stop_local_instance');
+validateMember(members, 'verbose');
 
 #@# Dba: create_cluster errors
-cluster = dba.create_cluster()
-cluster = dba.create_cluster(5)
-cluster = dba.create_cluster('')
+c1 = dba.create_cluster()
+c1 = dba.create_cluster(1,2,3,4)
+c1 = dba.create_cluster(5)
+c1 = dba.create_cluster('')
 
-#@# Dba: create_cluster with interaction
+#@<OUT> Dba: create_cluster with interaction
 cluster = dba.create_cluster('devCluster')
-print cluster
 
 #@# Dba: get_cluster errors
-cluster = dba.get_cluster()
-cluster = dba.get_cluster(5)
-cluster = dba.get_cluster('', 5)
-cluster = dba.get_cluster('')
-cluster = dba.get_cluster('devCluster')
+c2 = dba.get_cluster(5)
+c2 = dba.get_cluster('', 5)
+c2 = dba.get_cluster('')
 
-#@ Dba: get_cluster
-print cluster
+#@<OUT> Dba: get_cluster with interaction
+c2 = dba.get_cluster('devCluster')
+c2
 
-#@ Dba: add_instance
-cluster.add_instance({'dbUser': 'root', 'host': '127.0.0.1', 'port':__mysql_port_adminapi}, 'root')
-
-#@ Dba: remove_instance
-cluster.remove_instance({'host': '127.0.0.1', 'port': __mysql_port_adminapi});
-
-#@# Dba: drop_cluster errors
-cluster = dba.drop_cluster()
-cluster = dba.drop_cluster(5)
-cluster = dba.drop_cluster('')
-cluster = dba.drop_cluster('sample', 5)
-cluster = dba.drop_cluster('sample', {}, 5)
-
-#@ Dba: drop_cluster interaction no options, cancel
-cluster = dba.drop_cluster('sample')
-
-#@ Dba: drop_cluster interaction missing option, ok error
-cluster = dba.drop_cluster('sample', {})
-
-#@ Dba: drop_cluster interaction no options, ok success
-cluster = dba.drop_cluster('devCluster')
+#@<OUT> Dba: get_cluster with interaction (default)
+c3 = dba.get_cluster()
+c3

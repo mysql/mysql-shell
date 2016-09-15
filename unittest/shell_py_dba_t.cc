@@ -20,714 +20,280 @@
 #include "shell_script_tester.h"
 #include "utils/utils_general.h"
 
-namespace shcore
-{
-  class Shell_py_dba_tests : public Shell_py_script_tester
-  {
-  protected:
-    // You can define per-test set-up and tear-down logic as usual.
-    virtual void SetUp()
-    {
-      Shell_py_script_tester::SetUp();
+namespace shcore {
+class Shell_py_dba_tests : public Shell_py_script_tester {
+protected:
+  // You can define per-test set-up and tear-down logic as usual.
+  virtual void SetUp() {
+    Shell_py_script_tester::SetUp();
 
-      // All of the test cases share the same config folder
-      // and setup script
-      set_config_folder("py_devapi");
-      set_setup_script("setup.py");
-    }
+    // All of the test cases share the same config folder
+    // and setup script
+    set_config_folder("py_devapi");
+    set_setup_script("setup.py");
+  }
 
-    virtual void set_defaults()
-    {
-      Shell_py_script_tester::set_defaults();
+  virtual void set_defaults() {
+    Shell_py_script_tester::set_defaults();
 
-      int port = 33060, pwd_found;
-      std::string protocol, user, password, host, sock, schema, ssl_ca, ssl_cert, ssl_key;
-      shcore::parse_mysql_connstring(_uri, protocol, user, password, host, port, sock, schema, pwd_found, ssl_ca, ssl_cert, ssl_key);
+    int port = 33060, pwd_found;
+    std::string protocol, user, password, host, sock, schema, ssl_ca, ssl_cert, ssl_key;
+    shcore::parse_mysql_connstring(_uri, protocol, user, password, host, port, sock, schema, pwd_found, ssl_ca, ssl_cert, ssl_key);
 
-      if (_port.empty())
-        _port = "33060";
+    if (_port.empty())
+      _port = "33060";
 
-      std::string code = "__user = '" + user + "';";
+    std::string code = "__user = '" + user + "';";
+    exec_and_out_equals(code);
+    code = "__pwd = '" + password + "';";
+    exec_and_out_equals(code);
+    code = "__host = '" + host + "';";
+    exec_and_out_equals(code);
+    code = "__port = " + _port + ";";
+    exec_and_out_equals(code);
+    code = "__schema = 'mysql';";
+    exec_and_out_equals(code);
+    code = "__uri = '" + user + "@" + host + ":" + _port + "';";
+    exec_and_out_equals(code);
+    code = "__xhost_port = '" + host + ":" + _port + "';";
+    exec_and_out_equals(code);
+    if (_mysql_port.empty()) {
+      code = "__host_port = '" + host + ":3306';";
       exec_and_out_equals(code);
-      code = "__pwd = '" + password + "';";
+      code = "__mysql_port = 3306;";
       exec_and_out_equals(code);
-      code = "__host = '" + host + "';";
+    } else {
+      code = "__host_port = '" + host + ":" + _mysql_port + "';";
       exec_and_out_equals(code);
-      code = "__port = " + _port + ";";
+      code = "__mysql_port = " + _mysql_port + ";";
       exec_and_out_equals(code);
-      code = "__schema = 'mysql';";
+      code = "__mysql_sandbox_port1 = " + _mysql_sandbox_port1 + ";";
       exec_and_out_equals(code);
-      code = "__uri = '" + user + "@" + host + ":" + _port + "';";
+      code = "__mysql_sandbox_port2 = " + _mysql_sandbox_port2 + ";";
       exec_and_out_equals(code);
-      code = "__xhost_port = '" + host + ":" + _port + "';";
+      code = "__mysql_sandbox_port3 = " + _mysql_sandbox_port3 + ";";
       exec_and_out_equals(code);
-      if (_mysql_port.empty())
-      {
-        code = "__host_port = '" + host + ":3306';";
-        exec_and_out_equals(code);
-        code = "__mysql_port = 3306;";
-        exec_and_out_equals(code);
-      }
-      else
-      {
-        code = "__host_port = '" + host + ":" + _mysql_port + "';";
-        exec_and_out_equals(code);
-        code = "__mysql_port = " + _mysql_port + ";";
-        exec_and_out_equals(code);
-        code = "__mysql_port_adminapi = " + std::to_string(atoi(_mysql_port.c_str()) + 10) + ";";
-        exec_and_out_equals(code);
-      }
-
-      code = "__uripwd = '" + user + ":" + password + "@" + host + ":" + _port + "';";
-      exec_and_out_equals(code);
-      code = "__displayuri = '" + user + "@" + host + ":" + _port + "';";
-      exec_and_out_equals(code);
-      code = "__displayuridb = '" + user + "@" + host + ":" + _port + "/mysql';";
-      exec_and_out_equals(code);
-      code = "import os";
     }
-  };
 
-/*
-  TEST_F(Shell_py_dba_tests, admin_no_interactive_global_session_x)
-  {
-    _options->wizards = false;
-    reset_shell();
-
-    execute("\\connect " + _uri);
-    validate_interactive("dba_no_interactive.py");
-    execute("session.close()");
+    code = "__uripwd = '" + user + ":" + password + "@" + host + ":" + _port + "';";
+    exec_and_out_equals(code);
+    code = "__displayuri = '" + user + "@" + host + ":" + _port + "';";
+    exec_and_out_equals(code);
+    code = "__displayuridb = '" + user + "@" + host + ":" + _port + "/mysql';";
+    exec_and_out_equals(code);
+    code = "import os";
   }
+};
 
-  TEST_F(Shell_py_dba_tests, admin_no_interactive_global_session_node)
-  {
-    _options->wizards = false;
-    reset_shell();
+TEST_F(Shell_py_dba_tests, no_interactive_deploy_instances) {
+  _options->wizards = false;
+  reset_shell();
 
-    execute("\\connect -n " + _uri);
-    validate_interactive("dba_no_interactive.py");
-    execute("session.close()");
+  execute("dba.verbose = True");
+
+  if (_sandbox_dir.empty()) {
+    execute("dba.deploy_local_instance(" + _mysql_sandbox_port1 + ", {'password': 'root'});");
+    execute("dba.deploy_local_instance(" + _mysql_sandbox_port2 + ", {'password': 'root'});");
+  } else {
+    execute("dba.deploy_local_instance(" + _mysql_sandbox_port1 + ", {'password': 'root', 'sandboxDir': '" + _sandbox_dir + "'});");
+    execute("dba.deploy_local_instance(" + _mysql_sandbox_port2 + ", {'password': 'root', 'sandboxDir': '" + _sandbox_dir + "'});");
   }
+}
 
-*/
+TEST_F(Shell_py_dba_tests, no_interactive_classic_global_dba) {
+  _options->wizards = false;
+  reset_shell();
 
-  TEST_F(Shell_py_dba_tests, admin_no_interactive_global_session_classic)
-  {
-    _options->wizards = false;
-    reset_shell();
+  execute("\\connect -c root:root@localhost:" + _mysql_sandbox_port1 + "");
 
-    if (_sandbox_dir.empty())
-      execute("dba.deploy_local_instance(" + _mysql_port_adminapi + ", {'password': 'root', 'verbose': True});");
-    else
-      execute("dba.deploy_local_instance(" + _mysql_port_adminapi + ", {'password': 'root', 'sandboxDir': '" + _sandbox_dir + "', 'verbose': True});");
+  // Validates error conditions on create, get and drop cluster
+  // Lets the cluster created
+  validate_interactive("dba_no_interactive.py");
 
-    execute("\\connect -c root:root@127.0.0.1:" + _mysql_port_adminapi + "");
-    validate_interactive("dba_no_interactive.py");
-    execute("session.close()");
+  execute("session.close();");
+}
 
-    if (_sandbox_dir.empty())
-    {
-      execute("dba.kill_local_instance(" + _mysql_port_adminapi + ");");
-      execute("dba.delete_local_instance(" + _mysql_port_adminapi+ ");");
-    }
-    else
-    {
-      execute("dba.kill_local_instance(" + _mysql_port_adminapi + ", {'sandboxDir': '" + _sandbox_dir + "', 'verbose': True});");
-      execute("dba.delete_local_instance(" + _mysql_port_adminapi + ", {'sandboxDir': '" + _sandbox_dir + "', 'verbose': True});");
-    }
+TEST_F(Shell_py_dba_tests, no_interactive_classic_global_cluster) {
+  _options->wizards = false;
+  reset_shell();
+
+  execute("\\connect -c root:root@localhost:" + _mysql_sandbox_port1 + "");
+  // Tests cluster functionality, adding, removing instances
+  // error conditions
+  // Lets the cluster empty
+  validate_interactive("dba_cluster_no_interactive.py");
+
+  execute("session.close()");
+}
+
+TEST_F(Shell_py_dba_tests, no_interactive_classic_custom_dba) {
+  _options->wizards = false;
+  reset_shell();
+
+  execute("import mysql");
+  execute("mySession = mysql.get_classic_session('root:root@localhost:" + _mysql_sandbox_port1 + "')");
+  execute("dba.reset_session(mySession)");
+
+  // Validates error conditions on create, get and drop cluster
+  // Lets the cluster created
+  validate_interactive("dba_no_interactive.py");
+
+  execute("mySession.close()");
+}
+
+TEST_F(Shell_py_dba_tests, no_interactive_classic_custom_cluster) {
+  _options->wizards = false;
+  reset_shell();
+
+  execute("import mysql");
+  execute("mySession = mysql.get_classic_session('root:root@localhost:" + _mysql_sandbox_port1 + "')");
+  execute("dba.reset_session(mySession)");
+  // Tests cluster functionality, adding, removing instances
+  // error conditions
+  // Lets the cluster empty
+  validate_interactive("dba_cluster_no_interactive.py");
+
+  execute("mySession.close()");
+}
+
+TEST_F(Shell_py_dba_tests, interactive_classic_global_dba) {
+  execute("\\connect -c root:root@localhost:" + _mysql_sandbox_port1 + "");
+
+  //@<OUT> Dba: create_cluster with interaction
+  output_handler.passwords.push_back("testing");
+
+  //@<OUT> Dba: get_cluster with interaction
+  output_handler.passwords.push_back("testing");
+
+  //@<OUT> Dba: get_cluster with interaction (default)
+  output_handler.passwords.push_back("testing");
+
+  //@<OUT> Dba: drop_cluster interaction no options, cancel
+  output_handler.prompts.push_back("n");
+
+  //@<OUT> Dba: drop_cluster interaction missing option, ok error
+  output_handler.prompts.push_back("y");
+
+  // Validates error conditions on create, get and drop cluster
+  // Lets the cluster created
+  validate_interactive("dba_interactive.py");
+
+  execute("session.close();");
+}
+
+TEST_F(Shell_py_dba_tests, interactive_classic_global_cluster) {
+  execute("\\connect -c root:root@localhost:" + _mysql_sandbox_port1 + "");
+
+  //@<OUT> Cluster: get_cluster with interaction
+  output_handler.passwords.push_back("testing");
+
+  //@# Cluster: add_instance errors: missing host interactive, cancel
+  output_handler.prompts.push_back("3");
+
+  //@# Cluster: add_instance errors: invalid attributes, cancel
+  output_handler.prompts.push_back("n");
+
+  //@# Cluster: add_instance errors: missing host interactive, cancel 2
+  output_handler.prompts.push_back("3");
+
+  //@# Cluster: add_instance with interaction, error
+  output_handler.passwords.push_back("root");
+
+  //@<OUT> Cluster: add_instance with interaction, ok
+  output_handler.passwords.push_back("root");
+
+  //@<OUT> Cluster: add_instance with interaction, ok 2
+  output_handler.passwords.push_back("root");
+
+  //@<OUT> Cluster: add_instance with interaction, ok 3
+  output_handler.passwords.push_back("root");
+
+  // Tests cluster functionality, adding, removing instances
+  // error conditions
+  // Lets the cluster empty
+  validate_interactive("dba_cluster_interactive.py");
+
+  execute("session.close();");
+}
+
+TEST_F(Shell_py_dba_tests, interactive_custom_global_dba) {
+  execute("import mysql");
+  execute("mySession = mysql.get_classic_session('root:root@localhost:" + _mysql_sandbox_port1 + "')");
+  execute("dba.reset_session(mySession)");
+
+  //@<OUT> Dba: create_cluster with interaction
+  output_handler.passwords.push_back("testing");
+
+  //@<OUT> Dba: get_cluster with interaction
+  output_handler.passwords.push_back("testing");
+
+  //@<OUT> Dba: get_cluster with interaction (default)
+  output_handler.passwords.push_back("testing");
+
+  //@<OUT> Dba: drop_cluster interaction no options, cancel
+  output_handler.prompts.push_back("n");
+
+  //@<OUT> Dba: drop_cluster interaction missing option, ok error
+  output_handler.prompts.push_back("y");
+
+  // Validates error conditions on create, get and drop cluster
+  // Lets the cluster created
+  validate_interactive("dba_interactive.py");
+
+  execute("session.close();");
+}
+
+TEST_F(Shell_py_dba_tests, interactive_custom_global_cluster) {
+  execute("import mysql");
+  execute("mySession = mysql.get_classic_session('root:root@localhost:" + _mysql_sandbox_port1 + "')");
+  execute("dba.reset_session(mySession)");
+
+  //@<OUT> Cluster: get_cluster with interaction
+  output_handler.passwords.push_back("testing");
+
+  //@# Cluster: add_instance errors: missing host interactive, cancel
+  output_handler.prompts.push_back("3");
+
+  //@# Cluster: add_instance errors: invalid attributes, cancel
+  output_handler.prompts.push_back("n");
+
+  //@# Cluster: add_instance errors: missing host interactive, cancel 2
+  output_handler.prompts.push_back("3");
+
+  //@# Cluster: add_instance with interaction, error
+  output_handler.passwords.push_back("root");
+
+  //@<OUT> Cluster: add_instance with interaction, ok
+  output_handler.passwords.push_back("root");
+
+  //@<OUT> Cluster: add_instance with interaction, ok 2
+  output_handler.passwords.push_back("root");
+
+  //@<OUT> Cluster: add_instance with interaction, ok 3
+  output_handler.passwords.push_back("root");
+
+  // Tests cluster functionality, adding, removing instances
+  // error conditionss
+  // Lets the cluster empty
+  validate_interactive("dba_cluster_interactive.py");
+
+  execute("session.close();");
+}
+
+TEST_F(Shell_py_dba_tests, no_interactive_delete_instances) {
+  _options->wizards = false;
+  reset_shell();
+
+  if (_sandbox_dir.empty()) {
+    execute("dba.stop_local_instance(" + _mysql_sandbox_port1 + ");");
+    execute("dba.stop_local_instance(" + _mysql_sandbox_port2 + ");");
+    execute("dba.delete_local_instance(" + _mysql_sandbox_port1 + ");");
+    execute("dba.delete_local_instance(" + _mysql_sandbox_port2 + ");");
+  } else {
+    execute("dba.stop_local_instance(" + _mysql_sandbox_port1 + ", {'sandboxDir': '" + _sandbox_dir + "'});");
+    execute("dba.stop_local_instance(" + _mysql_sandbox_port2 + ", {'sandboxDir': '" + _sandbox_dir + "'});");
+    execute("dba.stop_local_instance(" + _mysql_sandbox_port1 + ", {'sandboxDir': '" + _sandbox_dir + "'});");
+    execute("dba.stop_local_instance(" + _mysql_sandbox_port2 + ", {'sandboxDir': '" + _sandbox_dir + "'});");
   }
-
-/*
-
-  TEST_F(Shell_py_dba_tests, admin_no_interactive_custom_session_x)
-  {
-    _options->wizards = false;
-    reset_shell();
-
-    execute("import mysqlx");
-    execute("mySession = mysqlx.get_session('" + _uri + "')");
-    execute("dba.reset_session(mySession)");
-    validate_interactive("dba_no_interactive.py");
-    execute("mySession.close()");
-  }
-
-  TEST_F(Shell_py_dba_tests, admin_no_interactive_custom_session_node)
-  {
-    _options->wizards = false;
-    reset_shell();
-
-    execute("import mysqlx");
-    execute("mySession = mysqlx.get_node_session('" + _uri + "')");
-    execute("dba.reset_session(mySession)");
-    validate_interactive("dba_no_interactive.py");
-    execute("mySession.close()");
-  }
-
-*/
-
-  TEST_F(Shell_py_dba_tests, admin_no_interactive_custom_session_classic)
-  {
-    _options->wizards = false;
-    reset_shell();
-
-    if (_sandbox_dir.empty())
-      execute("dba.deploy_local_instance(" + _mysql_port_adminapi + ", {'password': 'root', 'verbose': True});");
-    else
-      execute("dba.deploy_local_instance(" + _mysql_port_adminapi + ", {'password': 'root', 'sandboxDir': '" + _sandbox_dir + "', 'verbose': True});");
-
-    execute("import mysql");
-    execute("mySession = mysql.get_classic_session('root:root@127.0.0.1:" + _mysql_port_adminapi +"');");
-    execute("dba.reset_session(mySession)");
-    validate_interactive("dba_no_interactive.py");
-    execute("mySession.close()");
-
-    if (_sandbox_dir.empty())
-    {
-      execute("dba.kill_local_instance(" + _mysql_port_adminapi + ");");
-      execute("dba.delete_local_instance(" + _mysql_port_adminapi+ ");");
-    }
-    else
-    {
-      execute("dba.kill_local_instance(" + _mysql_port_adminapi + ", {'sandboxDir': '" + _sandbox_dir + "', 'verbose': True});");
-      execute("dba.delete_local_instance(" + _mysql_port_adminapi + ", {'sandboxDir': '" + _sandbox_dir + "', 'verbose': True});");
-    }
-  }
-
-/*
-
-  TEST_F(Shell_py_dba_tests, admin_interactive_custom_session_x)
-  {
-    // Fills the required prompts and passwords...
-    //@ Initialization
-    output_handler.prompts.push_back("y");
-
-    //@# Dba: createFarm with interaction
-    output_handler.passwords.push_back("testing");
-
-    //@ Dba: dropFarm interaction no options, cancel
-    output_handler.passwords.push_back("n");
-
-    //@ Dba: dropFarm interaction missing option, ok error
-    output_handler.passwords.push_back("y");
-
-    //@ Dba: dropFarm interaction no options, ok success
-    output_handler.passwords.push_back("y");
-
-    execute("import mysqlx");
-    execute("mySession = mysqlx.get_session('" + _uri + "')");
-    execute("dba.reset_session(mySession)");
-    validate_interactive("dba_interactive.py");
-    execute("mySession.close()");
-  }
-
-  TEST_F(Shell_py_dba_tests, admin_interactive_custom_session_node)
-  {
-    // Fills the required prompts and passwords...
-    //@ Initialization
-    output_handler.prompts.push_back("y");
-
-    //@# Dba: createFarm with interaction
-    output_handler.passwords.push_back("testing");
-
-    //@ Dba: dropFarm interaction no options, cancel
-    output_handler.passwords.push_back("n");
-
-    //@ Dba: dropFarm interaction missing option, ok error
-    output_handler.passwords.push_back("y");
-
-    //@ Dba: dropFarm interaction no options, ok success
-    output_handler.passwords.push_back("y");
-
-    execute("import mysqlx");
-    execute("mySession = mysqlx.get_node_session('" + _uri + "')");
-    execute("dba.reset_session(mySession)");
-    validate_interactive("dba_interactive.py");
-    execute("mySession.close()");
-  }
-
-*/
-
-  TEST_F(Shell_py_dba_tests, admin_interactive_custom_session_classic)
-  {
-    // Fills the required prompts and passwords...
-    //@ Initialization
-    output_handler.prompts.push_back("y");
-
-    //@# Dba: createFarm with interaction
-    output_handler.passwords.push_back("testing");
-
-    //@ Dba: dropFarm interaction no options, cancel
-    output_handler.passwords.push_back("n");
-
-    //@ Dba: dropFarm interaction missing option, ok error
-    output_handler.passwords.push_back("y");
-
-    //@ Dba: dropFarm interaction no options, ok success
-    output_handler.passwords.push_back("y");
-
-    if (_sandbox_dir.empty())
-      execute("dba.deploy_local_instance(" + _mysql_port_adminapi + ", {'password': 'root', 'verbose': True});");
-    else
-      execute("dba.deploy_local_instance(" + _mysql_port_adminapi + ", {'password': 'root', 'sandboxDir': '" + _sandbox_dir + "', 'verbose': True});");
-
-    execute("import mysql");
-    execute("mySession = mysql.get_classic_session('root:root@127.0.0.1:" + _mysql_port_adminapi +"');");
-    execute("dba.reset_session(mySession)");
-    validate_interactive("dba_interactive.py");
-    execute("mySession.close()");
-
-    if (_sandbox_dir.empty())
-    {
-      execute("dba.kill_local_instance(" + _mysql_port_adminapi + ");");
-      execute("dba.delete_local_instance(" + _mysql_port_adminapi+ ");");
-    }
-    else
-    {
-      execute("dba.kill_local_instance(" + _mysql_port_adminapi + ", {'sandboxDir': '" + _sandbox_dir + "', 'verbose': True});");
-      execute("dba.delete_local_instance(" + _mysql_port_adminapi + ", {'sandboxDir': '" + _sandbox_dir + "', 'verbose': True});");
-    }
-  }
-
-/*
-
-  TEST_F(Shell_py_dba_tests, admin_interactive_global_session_x)
-  {
-    // Fills the required prompts and passwords...
-    //@ Initialization
-    output_handler.prompts.push_back("y");
-
-    //@# Dba: createFarm with interaction
-    output_handler.passwords.push_back("testing");
-
-    //@ Dba: dropFarm interaction no options, cancel
-    output_handler.passwords.push_back("n");
-
-    //@ Dba: dropFarm interaction missing option, ok error
-    output_handler.passwords.push_back("y");
-
-    //@ Dba: dropFarm interaction no options, ok success
-    output_handler.passwords.push_back("y");
-
-    execute("\\connect " + _uri);
-    validate_interactive("dba_interactive.py");
-    execute("mySession.close()");
-  }
-
-  TEST_F(Shell_py_dba_tests, admin_interactive_global_session_node)
-  {
-    // Fills the required prompts and passwords...
-    //@ Initialization
-    output_handler.prompts.push_back("y");
-
-    //@# Dba: createFarm with interaction
-    output_handler.passwords.push_back("testing");
-
-    //@ Dba: dropFarm interaction no options, cancel
-    output_handler.passwords.push_back("n");
-
-    //@ Dba: dropFarm interaction missing option, ok error
-    output_handler.passwords.push_back("y");
-
-    //@ Dba: dropFarm interaction no options, ok success
-    output_handler.passwords.push_back("y");
-
-    execute("\\connect -n " + _uri);
-    validate_interactive("dba_interactive.py");
-    execute("mySession.close()");
-  }
-
-*/
-
-  TEST_F(Shell_py_dba_tests, admin_interactive_global_session_classic)
-  {
-    // Fills the required prompts and passwords...
-    //@ Initialization
-    output_handler.prompts.push_back("y");
-
-    //@# Dba: createFarm with interaction
-    output_handler.passwords.push_back("testing");
-
-    //@ Dba: dropFarm interaction no options, cancel
-    output_handler.passwords.push_back("n");
-
-    //@ Dba: dropFarm interaction missing option, ok error
-    output_handler.passwords.push_back("y");
-
-    //@ Dba: dropFarm interaction no options, ok success
-    output_handler.passwords.push_back("y");
-
-    if (_sandbox_dir.empty())
-      execute("dba.deploy_local_instance(" + _mysql_port_adminapi + ", {'password': 'root', 'verbose': True});");
-    else
-      execute("dba.deploy_local_instance(" + _mysql_port_adminapi + ", {'password': 'root', 'sandboxDir': '" + _sandbox_dir + "', 'verbose': True});");
-
-    execute("\\connect -c root:root@127.0.0.1:" + _mysql_port_adminapi + "");
-    validate_interactive("dba_interactive.py");
-
-    if (_sandbox_dir.empty())
-    {
-      execute("dba.kill_local_instance(" + _mysql_port_adminapi + ");");
-      execute("dba.delete_local_instance(" + _mysql_port_adminapi+ ");");
-    }
-    else
-    {
-      execute("dba.kill_local_instance(" + _mysql_port_adminapi + ", {'sandboxDir': '" + _sandbox_dir + "', 'verbose': True});");
-      execute("dba.delete_local_instance(" + _mysql_port_adminapi + ", {'sandboxDir': '" + _sandbox_dir + "', 'verbose': True});");
-    }
-  }
-
-/*
-
-  TEST_F(Shell_py_dba_tests, farm_no_interactive_global_session_x)
-  {
-    _options->wizards = false;
-    reset_shell();
-
-    execute("\\connect " + _uri);
-    validate_interactive("dba_farm_no_interactive.py");
-    execute("session.close()");
-  }
-
-  TEST_F(Shell_py_dba_tests, farm_no_interactive_global_session_node)
-  {
-    _options->wizards = false;
-    reset_shell();
-
-    execute("\\connect -n " + _uri);
-    validate_interactive("dba_farm_no_interactive.py");
-    execute("session.close()");
-  }
-
-*/
-
-  TEST_F(Shell_py_dba_tests, cluster_no_interactive_global_session_classic)
-  {
-    _options->wizards = false;
-    reset_shell();
-
-    if (_sandbox_dir.empty())
-      execute("dba.deploy_local_instance(" + _mysql_port_adminapi + ", {'password': 'root', 'verbose': True});");
-    else
-      execute("dba.deploy_local_instance(" + _mysql_port_adminapi + ", {'password': 'root', 'sandboxDir': '" + _sandbox_dir + "', 'verbose': True});");
-
-    execute("\\connect -c root:root@127.0.0.1:" + _mysql_port_adminapi + "");
-    validate_interactive("dba_cluster_no_interactive.py");
-    execute("session.close()");
-
-    if (_sandbox_dir.empty())
-    {
-      execute("dba.kill_local_instance(" + _mysql_port_adminapi + ");");
-      execute("dba.delete_local_instance(" + _mysql_port_adminapi+ ");");
-    }
-    else
-    {
-      execute("dba.kill_local_instance(" + _mysql_port_adminapi + ", {'sandboxDir': '" + _sandbox_dir + "', 'verbose': True});");
-      execute("dba.delete_local_instance(" + _mysql_port_adminapi + ", {'sandboxDir': '" + _sandbox_dir + "', 'verbose': True});");
-    }
-  }
-
-/*
-
-  TEST_F(Shell_py_dba_tests, farm_no_interactive_custom_session_x)
-  {
-    _options->wizards = false;
-    reset_shell();
-
-    execute("import mysqlx");
-    execute("mySession = mysqlx.get_session('" + _uri + "')");
-    execute("dba.reset_session(mySession)");
-    validate_interactive("dba_farm_no_interactive.py");
-    execute("mySession.close()");
-  }
-
-  TEST_F(Shell_py_dba_tests, farm_no_interactive_custom_session_node)
-  {
-    _options->wizards = false;
-    reset_shell();
-
-    execute("import mysqlx");
-    execute("mySession = mysqlx.get_node_session('" + _uri + "')");
-    execute("dba.reset_session(mySession)");
-    validate_interactive("dba_farm_no_interactive.py");
-    execute("mySession.close()");
-  }
-
-*/
-
-  TEST_F(Shell_py_dba_tests, cluster_no_interactive_custom_session_classic)
-  {
-    _options->wizards = false;
-    reset_shell();
-
-    if (_sandbox_dir.empty())
-      execute("dba.deploy_local_instance(" + _mysql_port_adminapi + ", {'password': 'root', 'verbose': True});");
-    else
-      execute("dba.deploy_local_instance(" + _mysql_port_adminapi + ", {'password': 'root', 'sandboxDir': '" + _sandbox_dir + "', 'verbose': True});");
-
-    execute("import mysql");
-    execute("mySession = mysql.get_classic_session('root:root@127.0.0.1:" + _mysql_port_adminapi +"');");
-    execute("dba.reset_session(mySession)");
-    validate_interactive("dba_cluster_no_interactive.py");
-    execute("mySession.close()");
-
-    if (_sandbox_dir.empty())
-    {
-      execute("dba.kill_local_instance(" + _mysql_port_adminapi + ");");
-      execute("dba.delete_local_instance(" + _mysql_port_adminapi+ ");");
-    }
-    else
-    {
-      execute("dba.kill_local_instance(" + _mysql_port_adminapi + ", {'sandboxDir': '" + _sandbox_dir + "', 'verbose': True});");
-      execute("dba.delete_local_instance(" + _mysql_port_adminapi + ", {'sandboxDir': '" + _sandbox_dir + "', 'verbose': True});");
-    }
-  }
-
-  //TEST_F(Shell_py_dba_tests, farm_interactive_custom_session_x)
-  //{
-  //  // Fills the required prompts and passwords...
-  //  //@ Initialization
-  //  output_handler.prompts.push_back("y");
-
-  //  //@# Dba: createFarm with interaction
-  //  output_handler.passwords.push_back("testing");
-
-  //  //@ Dba: dropFarm interaction no options, cancel
-  //  output_handler.passwords.push_back("n");
-
-  //  //@ Dba: dropFarm interaction missing option, ok error
-  //  output_handler.passwords.push_back("y");
-
-  //  //@ Dba: dropFarm interaction no options, ok success
-  //  output_handler.passwords.push_back("y");
-
-  //  execute("import mysqlx");
-  //  execute("mySession = mysqlx.get_session('" + _uri + "')");
-  //  execute("dba.reset_session(mySession)");
-  //  validate_interactive("dba_farm_interactive.py");
-  //  execute("mySession.close()");
-  //}
-
-  //TEST_F(Shell_py_dba_tests, farm_interactive_custom_session_node)
-  //{
-  //  // Fills the required prompts and passwords...
-  //  //@ Initialization
-  //  output_handler.prompts.push_back("y");
-
-  //  //@# Dba: createFarm with interaction
-  //  output_handler.passwords.push_back("testing");
-
-  //  //@ Dba: dropFarm interaction no options, cancel
-  //  output_handler.passwords.push_back("n");
-
-  //  //@ Dba: dropFarm interaction missing option, ok error
-  //  output_handler.passwords.push_back("y");
-
-  //  //@ Dba: dropFarm interaction no options, ok success
-  //  output_handler.passwords.push_back("y");
-
-  //  execute("import mysqlx");
-  //  execute("mySession = mysqlx.get_node_session('" + _uri + "')");
-  //  execute("dba.reset_session(mySession)");
-  //  validate_interactive("dba_farm_interactive.py");
-  //  execute("mySession.close()");
-  //}
-
-  //TEST_F(Shell_py_dba_tests, farm_interactive_custom_session_classic)
-  //{
-  //  // Fills the required prompts and passwords...
-  //  //@ Initialization
-  //  output_handler.prompts.push_back("y");
-
-  //  //@# Dba: createFarm with interaction
-  //  output_handler.passwords.push_back("testing");
-
-  //  //@ Dba: dropFarm interaction no options, cancel
-  //  output_handler.passwords.push_back("n");
-
-  //  //@ Dba: dropFarm interaction missing option, ok error
-  //  output_handler.passwords.push_back("y");
-
-  //  //@ Dba: dropFarm interaction no options, ok success
-  //  output_handler.passwords.push_back("y");
-
-  //  execute("mysql = require('mysql')");
-  //  execute("mySession = mysql.get_classic_session('" + _mysql_uri + "')");
-  //  execute("dba.reset_session(mySession)");
-  //  validate_interactive("dba_farm_interactive.py");
-  //  execute("mySession.close()");
-  //}
-
-  //TEST_F(Shell_py_dba_tests, farm_interactive_global_session_x)
-  //{
-  //  // Fills the required prompts and passwords...
-  //  //@ Initialization
-  //  output_handler.prompts.push_back("y");
-
-  //  //@# Dba: createFarm with interaction
-  //  output_handler.passwords.push_back("testing");
-
-  //  //@ Dba: dropFarm interaction no options, cancel
-  //  output_handler.passwords.push_back("n");
-
-  //  //@ Dba: dropFarm interaction missing option, ok error
-  //  output_handler.passwords.push_back("y");
-
-  //  //@ Dba: dropFarm interaction no options, ok success
-  //  output_handler.passwords.push_back("y");
-
-  //  execute("\\connect " + _uri);
-  //  validate_interactive("dba_farm_interactive.py");
-  //  execute("mySession.close()");
-  //}
-
-  //TEST_F(Shell_py_dba_tests, farm_interactive_global_session_node)
-  //{
-  //  // Fills the required prompts and passwords...
-  //  //@ Initialization
-  //  output_handler.prompts.push_back("y");
-
-  //  //@# Dba: createFarm with interaction
-  //  output_handler.passwords.push_back("testing");
-
-  //  //@ Dba: dropFarm interaction no options, cancel
-  //  output_handler.passwords.push_back("n");
-
-  //  //@ Dba: dropFarm interaction missing option, ok error
-  //  output_handler.passwords.push_back("y");
-
-  //  //@ Dba: dropFarm interaction no options, ok success
-  //  output_handler.passwords.push_back("y");
-
-  //  execute("\\connect -n " + _uri);
-  //  validate_interactive("dba_farm_interactive.py");
-  //  execute("mySession.close()");
-  //}
-
-  //TEST_F(Shell_py_dba_tests, farm_interactive_global_session_classic)
-  //{
-  //  // Fills the required prompts and passwords...
-  //  //@ Initialization
-  //  output_handler.prompts.push_back("y");
-
-  //  //@# Dba: createFarm with interaction
-  //  output_handler.passwords.push_back("testing");
-
-  //  //@ Dba: dropFarm interaction no options, cancel
-  //  output_handler.passwords.push_back("n");
-
-  //  //@ Dba: dropFarm interaction missing option, ok error
-  //  output_handler.passwords.push_back("y");
-
-  //  //@ Dba: dropFarm interaction no options, ok success
-  //  output_handler.passwords.push_back("y");
-
-  //  execute("\\connect -c " + _mysql_uri);
-  //  validate_interactive("dba_farm_interactive.py");
-  //}
-
-/*
-
-  TEST_F(Shell_py_dba_tests, replica_set_no_interactive_global_session_x)
-  {
-    _options->wizards = false;
-    reset_shell();
-
-    execute("\\connect " + _uri);
-    validate_interactive("dba_replica_set_no_interactive.py");
-    execute("session.close()");
-  }
-
-  TEST_F(Shell_py_dba_tests, replica_set_no_interactive_global_session_node)
-  {
-    _options->wizards = false;
-    reset_shell();
-
-    execute("\\connect -n " + _uri);
-    validate_interactive("dba_replica_set_no_interactive.py");
-    execute("session.close()");
-  }
-
-*/
-
-  TEST_F(Shell_py_dba_tests, replica_set_no_interactive_global_session_classic)
-  {
-    _options->wizards = false;
-    reset_shell();
-
-    if (_sandbox_dir.empty())
-      execute("dba.deploy_local_instance(" + _mysql_port_adminapi + ", {'password': 'root', 'verbose': True});");
-    else
-      execute("dba.deploy_local_instance(" + _mysql_port_adminapi + ", {'password': 'root', 'sandboxDir': '" + _sandbox_dir + "', 'verbose': True});");
-
-    execute("\\connect -c root:root@127.0.0.1:" + _mysql_port_adminapi + "");
-    validate_interactive("dba_replica_set_no_interactive.py");
-    execute("session.close()");
-
-    if (_sandbox_dir.empty())
-    {
-      execute("dba.kill_local_instance(" + _mysql_port_adminapi + ");");
-      execute("dba.delete_local_instance(" + _mysql_port_adminapi+ ");");
-    }
-    else
-    {
-      execute("dba.kill_local_instance(" + _mysql_port_adminapi + ", {'sandboxDir': '" + _sandbox_dir + "', 'verbose': True});");
-      execute("dba.delete_local_instance(" + _mysql_port_adminapi + ", {'sandboxDir': '" + _sandbox_dir + "', 'verbose': True});");
-    }
-  }
-
-/*
-
-  TEST_F(Shell_py_dba_tests, replica_set_no_interactive_custom_session_x)
-  {
-    _options->wizards = false;
-    reset_shell();
-
-    execute("import mysqlx");
-    execute("mySession = mysqlx.get_session('" + _uri + "')");
-    execute("dba.reset_session(mySession)");
-    validate_interactive("dba_replica_set_no_interactive.py");
-    execute("mySession.close()");
-  }
-
-  TEST_F(Shell_py_dba_tests, replica_set_no_interactive_custom_session_node)
-  {
-    _options->wizards = false;
-    reset_shell();
-
-    execute("import mysqlx");
-    execute("mySession = mysqlx.get_node_session('" + _uri + "')");
-    execute("dba.reset_session(mySession)");
-    validate_interactive("dba_replica_set_no_interactive.py");
-    execute("mySession.close()");
-  }
-
-*/
-
-  TEST_F(Shell_py_dba_tests, replica_set_no_interactive_custom_session_classic)
-  {
-    _options->wizards = false;
-    reset_shell();
-
-    if (_sandbox_dir.empty())
-      execute("dba.deploy_local_instance(" + _mysql_port_adminapi + ", {'password': 'root', 'verbose': True});");
-    else
-      execute("dba.deploy_local_instance(" + _mysql_port_adminapi + ", {'password': 'root', 'sandboxDir': '" + _sandbox_dir + "', 'verbose': True});");
-
-    execute("import mysql");
-    execute("mySession = mysql.get_classic_session('root:root@127.0.0.1:" + _mysql_port_adminapi +"');");
-    execute("dba.reset_session(mySession)");
-    validate_interactive("dba_replica_set_no_interactive.py");
-    execute("mySession.close()");
-
-    if (_sandbox_dir.empty())
-    {
-      execute("dba.kill_local_instance(" + _mysql_port_adminapi + ");");
-      execute("dba.delete_local_instance(" + _mysql_port_adminapi+ ");");
-    }
-    else
-    {
-      execute("dba.kill_local_instance(" + _mysql_port_adminapi + ", {'sandboxDir': '" + _sandbox_dir + "', 'verbose': True});");
-      execute("dba.delete_local_instance(" + _mysql_port_adminapi + ", {'sandboxDir': '" + _sandbox_dir + "', 'verbose': True});");
-    }
-  }
+}
 }

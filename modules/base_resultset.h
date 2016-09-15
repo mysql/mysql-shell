@@ -262,7 +262,7 @@ namespace mysh
    * \li Its name must be a valid identifier: [_a-zA-Z][_a-zA-Z0-9]*
    * \li Its name must be different from the fixed members of this object: length, get_length and get_field
    *
-   * In the case a field does not met these conditions, it must be retrieved through the 
+   * In the case a field does not met these conditions, it must be retrieved through the
    */
 #if DOXYGEN_JS
   //! getField(String fieldName)
@@ -299,6 +299,7 @@ namespace mysh
     virtual void append_json(shcore::JSON_dumper& dumper) const;
 
     shcore::Value get_field(const shcore::Argument_list &args);
+    shcore::Value get_field_(const std::string &field);
 
     virtual bool operator == (const Object_bridge &other) const;
 

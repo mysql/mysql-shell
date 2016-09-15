@@ -148,6 +148,13 @@ if(WITH_ADMINAPI)
   list(APPEND EXTRA_CMAKE_OPTS "-DWITH_ADMINAPI=1")
 endif()
 
+# The option WITH_EXTRA_EXE takes a path to a executable to add
+# to the package, and put it into /usr/bin when installing
+if(WITH_EXTRA_EXE)
+  get_filename_component(EXTRA_EXE_NAME "${WITH_EXTRA_EXE}" NAME)
+  set(EXTRA_EXE_INSTALL "usr/bin/${EXTRA_EXE_NAME}")
+endif()
+
 # ----------------------------------------------------------------------
 # Copy this directory and process the .in files
 # ----------------------------------------------------------------------

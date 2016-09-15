@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2016, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -24,6 +24,7 @@
 #define __STDC_FORMAT_MACROS 1
 #endif
 #include <inttypes.h>
+#include <string>
 
 #include "shellcore/common.h"
 
@@ -70,7 +71,8 @@ namespace shcore
     sqlstring(const sqlstring &copy);
     bool done() const;
 
-    operator std::string()const;
+    operator std::string() const;
+    std::string str() const;
 
     //! modifies formatting options
     sqlstring &operator <<(const sqlstringformat);
@@ -83,9 +85,7 @@ namespace shcore
       int esc = next_escape();
       if (esc != '?')
           throw std::invalid_argument("Error formatting SQL query: invalid escape for numeric argument");
-
-      const char *format = (sizeof(T) <= sizeof(int32_t) ? "%i" : "%" PRId64);
-      append(strfmt(format, value));
+      append(std::to_string(value));
       append(consume_until_next_escape());
       return *this;
     }

@@ -92,6 +92,10 @@ CREATE TABLE replicasets (
   */
   `replicaset_type` ENUM('gr') NOT NULL,
   /*
+    Specifies the type of topology of a replicaset.
+  */
+  `topology_type` ENUM('pm', 'mm') NOT NULL DEFAULT 'pm',
+  /*
     A replicaset can be assigned a name and this can be used to refer to it.
     The name of the replicaset can change over time and can even be NULL.
   */
@@ -101,7 +105,7 @@ CREATE TABLE replicasets (
     the replicaset, or inactive, in which case no traffic should be directed
     to it.
   */
-  `active` BIT(1) NOT NULL,
+  `active` BOOLEAN NOT NULL,
   /*
     Custom properties.
     {

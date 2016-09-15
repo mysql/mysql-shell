@@ -29,93 +29,105 @@
 #include <set>
 #include "mod_dba_provisioning_interface.h"
 
-namespace mysh
-{
-  namespace mysqlx
-  {
-    class MetadataStorage;
-    class Cluster;
+namespace mysh {
+namespace dba {
+class MetadataStorage;
+class Cluster;
 
-    /**
-    * Represents a ReplicaSet
-    */
-    class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>, public shcore::Cpp_object_bridge
-    {
-    public:
-      ReplicaSet(const std::string &name, std::shared_ptr<MetadataStorage> metadata_storage);
-      virtual ~ReplicaSet();
+#if DOXYGEN_CPP
+/**
+* Represents a ReplicaSet
+*/
+#endif
+class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>, public shcore::Cpp_object_bridge {
+public:
+  ReplicaSet(const std::string &name, const std::string &topology_type,
+            std::shared_ptr<MetadataStorage> metadata_storage);
+  virtual ~ReplicaSet();
 
-      static std::set<std::string> _add_instance_opts, _remove_instance_opts;
+  static std::set<std::string> _add_instance_opts, _remove_instance_opts;
 
-      virtual std::string class_name() const { return "ReplicaSet"; }
-      virtual std::string &append_descr(std::string &s_out, int indent = -1, int quote_strings = 0) const;
-      virtual bool operator == (const Object_bridge &other) const;
+  virtual std::string class_name() const { return "ReplicaSet"; }
+  virtual std::string &append_descr(std::string &s_out, int indent = -1, int quote_strings = 0) const;
+  virtual bool operator == (const Object_bridge &other) const;
 
-      virtual void append_json(shcore::JSON_dumper& dumper) const;
+  virtual void append_json(shcore::JSON_dumper& dumper) const;
 
-      virtual shcore::Value get_member(const std::string &prop) const;
+  virtual shcore::Value get_member(const std::string &prop) const;
 
-      void set_id(uint64_t id) { _id = id; }
-      uint64_t get_id() { return _id; }
+  void set_id(uint64_t id) { _id = id; }
+  uint64_t get_id() { return _id; }
 
-      void set_name(std::string name) { _name = name; }
+  void set_name(std::string name) { _name = name; }
 
-      void set_json_mode(int mode) { _json_mode = mode; }
+  void set_json_mode(int mode) { _json_mode = mode; }
 
-      void set_cluster(std::shared_ptr<Cluster> cluster) { _cluster = cluster; }
+  void set_cluster(std::shared_ptr<Cluster> cluster) { _cluster = cluster; }
+  std::shared_ptr<Cluster> get_cluster() const { return _cluster; }
+
+  std::string get_topology_type() const { return _topology_type; }
+
+  static char const *kTopologyPrimaryMaster;
+  static char const *kTopologyMultiMaster;
 
 #if DOXYGEN_JS
-      String getName();
-      Undefined addInstance(String conn);
-      Undefined addInstance(Document doc);
-      Undefined rejoinInstance(String name);
-      Undefined removeInstance(String name);
-      Undefined removeInstance(Document doc);
+  String getName();
+  Undefined addInstance(String conn);
+  Undefined addInstance(Document doc);
+  Undefined rejoinInstance(String name);
+  Undefined removeInstance(String name);
+  Undefined removeInstance(Document doc);
+  Undefined dissolve(Document doc);
+  Undefined disable();
 
 #elif DOXYGEN_PY
-      str get_name();
-      None add_instance(str conn);
-      None add_instance(Document doc);
-      None rejoin_instance(str name);
-      None remove_instance(str name);
-      None remove_instance(Document doc);
+  str get_name();
+  None add_instance(str conn);
+  None add_instance(Document doc);
+  None rejoin_instance(str name);
+  None remove_instance(str name);
+  None remove_instance(Document doc);
+  None dissolve(Document doc);
+  None disable();
 #endif
 
-      shcore::Value add_instance_(const shcore::Argument_list &args);
-      shcore::Value add_instance(const shcore::Argument_list &args);
-      shcore::Value rejoin_instance(const shcore::Argument_list &args);
-      shcore::Value remove_instance_(const shcore::Argument_list &args);
-      shcore::Value remove_instance(const shcore::Argument_list &args);
+  shcore::Value add_instance_(const shcore::Argument_list &args);
+  shcore::Value add_instance(const shcore::Argument_list &args);
+  shcore::Value rejoin_instance(const shcore::Argument_list &args);
+  shcore::Value remove_instance_(const shcore::Argument_list &args);
+  shcore::Value remove_instance(const shcore::Argument_list &args);
+  shcore::Value dissolve(const shcore::Argument_list &args);
+  shcore::Value disable(const shcore::Argument_list &args);
 
-    protected:
-      uint64_t _id;
-      std::string _name;
-      // TODO: add missing fields, rs_type, etc
+protected:
+  uint64_t _id;
+  std::string _name;
+  std::string _topology_type;
+  // TODO: add missing fields, rs_type, etc
 
-    private:
-      // This flag will be used to determine what should be included on the JSON output for the object
-      // 0 standard
-      // 1 means status
-      // 2 means describe
-      int _json_mode;
-      void append_json_status(shcore::JSON_dumper& dumper) const;
-      void append_json_topology(shcore::JSON_dumper& dumper) const;
-      void init();
+private:
+  // This flag will be used to determine what should be included on the JSON output for the object
+  // 0 standard
+  // 1 means status
+  // 2 means describe
+  int _json_mode;
+  void append_json_status(shcore::JSON_dumper& dumper) const;
+  void append_json_description(shcore::JSON_dumper& dumper) const;
+  void init();
 
-      bool do_join_replicaset(const std::string &instance_url,
-          const std::string &peer_instance_url,
-          const std::string &super_user_password,
-          const std::string &repl_user, const std::string &repl_user_password,
-          bool verbose=false);
+  bool do_join_replicaset(const std::string &instance_url,
+      const std::string &peer_instance_url,
+      const std::string &super_user_password,
+      const std::string &repl_user, const std::string &repl_user_password);
 
-      std::shared_ptr<Cluster> _cluster;
-      std::shared_ptr<MetadataStorage> _metadata_storage;
-      std::shared_ptr<ProvisioningInterface> _provisioning_interface;
+  std::shared_ptr<Cluster> _cluster;
+  std::shared_ptr<MetadataStorage> _metadata_storage;
+  std::shared_ptr<ProvisioningInterface> _provisioning_interface;
 
-    protected:
-      virtual int get_default_port() { return 33060; };
-    };
-  }
+protected:
+  virtual int get_default_port() { return 33060; };
+};
+}
 }
 
 #endif  // _MOD_DBA_ADMIN_REPLICASET_H_
