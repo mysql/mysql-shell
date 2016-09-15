@@ -534,10 +534,10 @@ bool Interactive_shell::cmd_print_shell_help(const std::vector<std::string>& arg
       for (auto name : globals) {
         auto object_val = _shell->get_global(name);
         auto object = std::dynamic_pointer_cast<Cpp_object_bridge>(object_val.as_object());
-        auto brief = shcore::get_help_text(object->class_name() + "_BRIEF")[0];
+        auto brief = shcore::get_help_text(object->class_name() + "_BRIEF");
 
         if (!brief.empty())
-          println((boost::format("%-10s %s") % name % brief).str());
+          println((boost::format("%-10s %s") % name % brief[0]).str());
       }
       println("");
       println("For more help on a global variable use <var>.help(), e.g. dba.help()");
