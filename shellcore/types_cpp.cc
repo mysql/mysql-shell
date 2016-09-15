@@ -302,7 +302,7 @@ shcore::Value Cpp_object_bridge::help(const shcore::Argument_list &args) {
 
     // The remaining lines are just appended with the space prefix
     for (auto subline : sublines) {
-      if (subline[0] == ' ')
+      if (' ' ==subline[0])
         ret_val += space + subline.substr(1) + "\n";
       else
         ret_val += space + subline + "\n";
@@ -314,7 +314,7 @@ shcore::Value Cpp_object_bridge::help(const shcore::Argument_list &args) {
       for (size_t index = 1; index < lines.size(); index++) {
         sublines = split_string(lines[index], lengths);
         for (auto subline : sublines) {
-          if (subline[0] = ' ')
+          if (' '==subline[0])
             ret_val += space + subline.substr(1) + "\n";
           else
             ret_val += space + subline + "\n";
