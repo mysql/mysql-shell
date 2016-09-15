@@ -153,9 +153,9 @@ REGISTER_HELP(DBA_GETCLUSTER_DETAIL2, "The options dictionary must contain the k
 * $(DBA_GETCLUSTER_DETAIL2)
 */
 #if DOXYGEN_JS
-Cluster Dba::getCluster(String name) {}
+Cluster Dba::getCluster(String name, Dictionary options) {}
 #elif DOXYGEN_PY
-Cluster Dba::get_cluster(str name) {}
+Cluster Dba::get_cluster(str name, dict options) {}
 #endif
 shcore::Value Dba::get_cluster(const shcore::Argument_list &args) const {
   Value ret_val;
@@ -402,9 +402,9 @@ REGISTER_HELP(DBA_DROPMETADATASCHEMA_DETAIL1, "@li enforce: boolean, confirms th
 * $(DBA_DROPMETADATASCHEMA_DETAIL1)
 */
 #if DOXYGEN_JS
-Undefined Dba::dropMetadataSchema() {}
+Undefined Dba::dropMetadataSchema(Dictionary options) {}
 #elif DOXYGEN_PY
-None Dba::drop_metadata_schema() {}
+None Dba::drop_metadata_schema(dict options) {}
 #endif
 
 shcore::Value Dba::drop_metadata_schema(const shcore::Argument_list &args) {
