@@ -37,7 +37,7 @@ using namespace mysh::dba;
 using namespace shcore;
 
 Cluster::Cluster(const std::string &name, std::shared_ptr<MetadataStorage> metadata_storage) :
-_name(name),  _json_mode(JSON_STANDARD_OUTPUT),
+_name(name), _json_mode(JSON_STANDARD_OUTPUT),
 _metadata_storage(metadata_storage) {
   init();
 }
@@ -374,7 +374,6 @@ void Cluster::set_default_replicaset(std::shared_ptr<ReplicaSet> default_rs) {
 
 void Cluster::append_json(shcore::JSON_dumper& dumper) const {
   if (_json_mode) {
-
     // Check if the Cluster exists (was dissolved previously)
     if (!_metadata_storage->cluster_exists(_name))
       throw Exception::argument_error("The cluster '" + _name + "' no longer exists.");
@@ -528,7 +527,7 @@ std::string Cluster::get_accounts_data() {
 
   std::string dest;
   size_t rounded_size = myaes::my_aes_get_size(static_cast<uint32_t>(data.length()),
-                                    myaes::my_aes_128_ecb);
+                                               myaes::my_aes_256_ecb);
   if (data.length() < rounded_size)
     data.append(rounded_size - data.length(), ' ');
   dest.resize(rounded_size);
@@ -556,7 +555,7 @@ void Cluster::set_accounts_data(const std::string& encrypted_json) {
                      reinterpret_cast<unsigned char*>(&decrypted_data[0]),
                      reinterpret_cast<const unsigned char*>(_master_key.data()),
                      static_cast<uint32_t>(_master_key.length()),
-                     myaes::my_aes_128_ecb, NULL, false)) < 0)
+                     myaes::my_aes_256_ecb, NULL, false)) < 0)
     throw shcore::Exception::runtime_error("Error decrypting account information");
 
   decrypted_data.resize(len);
