@@ -18,6 +18,9 @@
 */
 
 #include "utils_help.h"
+#include "utils_general.h"
+#include <vector>
+#include <cctype>
 
 using namespace shcore;
 
@@ -46,3 +49,26 @@ std::string Shell_help::get_token(const std::string& token) {
 Help_register::Help_register(const std::string &token, const std::string &data) {
   shcore::Shell_help::get()->add_help(token, data);
 };
+
+std::vector<std::string> shcore::get_help_text(const std::string& token, const std::vector<size_t> &sizes) {
+  std::string real_token;
+  for (auto c : token)
+    real_token.append(1, std::toupper(c));
+
+  int index = 0;
+  std::string text = Shell_help::get()->get_token(real_token);
+
+  std::vector<std::string> lines;
+  while (!text.empty()) {
+    if (sizes.empty())
+      lines.push_back(text);
+    else {
+      auto sublines = shcore::split_string(text, sizes);
+      for (auto subline : sublines)
+        lines.push_back(subline);
+    }
+    text = Shell_help::get()->get_token(real_token + std::to_string(++index));
+  }
+
+  return lines;
+}

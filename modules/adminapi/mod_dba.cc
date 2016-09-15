@@ -24,6 +24,7 @@
 #include "shellcore/shell_core_options.h"
 #include "../mysqlxtest_utils.h"
 #include <random>
+#include "utils/utils_help.h"
 
 #include "logger/logger.h"
 
@@ -42,6 +43,15 @@ using namespace shcore;
 
 std::set<std::string> Dba::_deploy_instance_opts = { "portx", "sandboxDir", "password", "dbPassword" };
 std::set<std::string> Dba::_validate_instance_opts = { "host", "port", "user", "dbUser", "password", "dbPassword", "socket", "ssl_ca", "ssl_cert", "ssl_key", "ssl_key" };
+
+// Documentation of the DBA Class
+REGISTER_HELP(DBA_BRIEF, "Allows performing DBA operations using the MySQL Admin API.");
+REGISTER_HELP(DBA_DETAIL, "The global variable 'dba' is used to access the MySQL AdminAPI functionality");
+REGISTER_HELP(DBA_DETAIL1, "and perform DBA operations.It is used for managing MySQL InnoDB clusters.");
+REGISTER_HELP(DBA_CLOSING, "For more help on a specific function use dba.help('<functionName>')");
+REGISTER_HELP(DBA_CLOSING1, "e.g. dba.help('deployLocalInstance')");
+
+REGISTER_HELP(DBA_VERBOSE_BRIEF, "Enables verbose mode on the Dba operations.");
 
 Dba::Dba(IShell_core* owner) :
 _shell_core(owner) {
@@ -120,40 +130,32 @@ std::shared_ptr<ShellDevelopmentSession> Dba::get_active_session() const {
   return ret_val;
 }
 
-#if DOXYGEN_CPP
+// Documentation of the getCluster function
+REGISTER_HELP(DBA_GETCLUSTER_BRIEF, "Retrieves a cluster from the Metadata Store.");
+REGISTER_HELP(DBA_GETCLUSTER_PARAM, "@param name Optional parameter to specify the name of the cluster to be returned.");
+REGISTER_HELP(DBA_GETCLUSTER_PARAM1, "@param options Optional parameter to specify the masterKey of the cluster being retrieved.");
+REGISTER_HELP(DBA_GETCLUSTER_RETURN, "@return The cluster identified with the given name or the default cluster.");
+REGISTER_HELP(DBA_GETCLUSTER_DETAIL, "If name is not specified, the default cluster will be returned.");
+REGISTER_HELP(DBA_GETCLUSTER_DETAIL1, "If name is specified, and no cluster with the indicated name is found, an error will be raised.");
+REGISTER_HELP(DBA_GETCLUSTER_DETAIL2, "The options dictionary must contain the key 'masterKey' with the value of the Cluster's MASTER key.");
+
 /**
-* Retrieves a Cluster object from the Metadata Schema.
-* \ param name Optional parameter to specify the name of the Cluster to be returned.
+* $(DBA_GETCLUSTER_BRIEF)
 *
-* If the name is provided the Cluster with the given name will be returned. If a Cluster with the given name does not exist
-* an error will be raised.
+* $(DBA_GETCLUSTER_PARAM)
+* $(DBA_GETCLUSTER_PARAM1)
 *
-* If no name is provided, the Cluster configured as "default" will be returned.
-* \return The Cluster configured as default.
-*/
-#else
-/**
-* Retrieves the default Cluster from the Metadata Schema.
-* \return The Cluster configured as default.
-*/
-#if DOXYGEN_JS
-Cluster Dba::getCluster() {}
-#elif DOXYGEN_PY
-Cluster Dba::get_cluster() {}
-#endif
-/**
-* Retrieves a Cluster object from the Metadata schema.
-* \param name The name of the Cluster object to be retrieved.
-* \param options Dictionary containing the masterKey value.
-* \return The Cluster object with the given name.
+* $(DBA_GETCLUSTER_RETURN)
 *
-* If a Cluster with the given name does not exist an error will be raised.
+* $(DBA_GETCLUSTER_DETAIL)
+*
+* $(DBA_GETCLUSTER_DETAIL1)
+* $(DBA_GETCLUSTER_DETAIL2)
 */
 #if DOXYGEN_JS
 Cluster Dba::getCluster(String name) {}
 #elif DOXYGEN_PY
 Cluster Dba::get_cluster(str name) {}
-#endif
 #endif
 shcore::Value Dba::get_cluster(const shcore::Argument_list &args) const {
   Value ret_val;
@@ -235,25 +237,34 @@ shcore::Value Dba::get_cluster(const shcore::Argument_list &args) const {
   return ret_val;
 }
 
+REGISTER_HELP(DBA_CREATECLUSTER_BRIEF, "Creates a MySQL InnoDB cluster.");
+REGISTER_HELP(DBA_CREATECLUSTER_PARAM, "@param name The name of the cluster object to be created.");
+REGISTER_HELP(DBA_CREATECLUSTER_PARAM1, "@param masterKey The cluster master key.");
+REGISTER_HELP(DBA_CREATECLUSTER_PARAM2, "@param options Optional dictionary with options that modify the behavior of this function.");
+REGISTER_HELP(DBA_CREATECLUSTER_RETURN, "@return The created cluster object.");
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL, "The options dictionary can contain the next values:");
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL1, "@li clusterAdminType: determines the type of management to be done on the cluster instances. "\
+"Valid values include: local, manual, guided or ssh. At the moment only local is supported and used as default value if not specified.");
+REGISTER_HELP(DBA_CREATECLUSTER_DETAIL2, "@li multiMaster: boolean value that indicates whether the group has a single master instance or multiple master instances. "\
+"If not specified false is assigned.");
+
 /**
- * Creates a Cluster object.
- * \param name The name of the Cluster object to be created
- * \param masterKey The Cluster master key
- * \param options optional dictionary with options that modify the behavior of this function
- * \return The created Cluster object.
+ * $(DBA_CREATECLUSTER_BRIEF)
  *
- *  The options dictionary can contain the next values:
+ * $(DBA_CREATECLUSTER_PARAM)
+ * $(DBA_CREATECLUSTER_PARAM1)
+ * $(DBA_CREATECLUSTER_PARAM2)
+ * $(DBA_CREATECLUSTER_RETURN)
  *
- *  - clusterAdminType: determines the type of management to be done on the cluster instances.
- *    Valid values include: local, manual, guided or ssh.
- *    At the moment only local is supported and used as default value if not specified.
- *  - multiMaster: boolean value that indicates whether the group as a singe or multiple master (R/W) nodes.
- *    If not specified false is assigned.
+ * $(DBA_CREATECLUSTER_DETAIL)
+ *
+ * $(DBA_CREATECLUSTER_DETAIL1)
+ * $(DBA_CREATECLUSTER_DETAIL2)
  */
 #if DOXYGEN_JS
 Cluster Dba::createCluster(String name, String masterKey, Dictionary options) {}
 #elif DOXYGEN_PY
-Cluster Dba::create_cluster(str name, str masterKey, Dictionary options) {}
+Cluster Dba::create_cluster(str name, str masterKey, dict options) {}
 #endif
 shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
   Value ret_val;
@@ -377,10 +388,19 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
   return ret_val;
 }
 
+REGISTER_HELP(DBA_DROPMETADATASCHEMA_BRIEF, "Drops the Metadata Schema.");
+REGISTER_HELP(DBA_DROPMETADATASCHEMA_PARAM, "@param options Dictionary containing an option to confirm the drop operation.");
+REGISTER_HELP(DBA_DROPMETADATASCHEMA_DETAIL, "The next is the only option supported:");
+REGISTER_HELP(DBA_DROPMETADATASCHEMA_DETAIL1, "@li enforce: boolean, confirms that the drop operation must be executed.");
+
 /**
- * Drops the Metadata Schema.
- * \return nothing.
- */
+* $(DBA_DROPMETADATASCHEMA_BRIEF)
+*
+* $(DBA_DROPMETADATASCHEMA_PARAM)
+*
+* $(DBA_DROPMETADATASCHEMA_DETAIL)
+* $(DBA_DROPMETADATASCHEMA_DETAIL1)
+*/
 #if DOXYGEN_JS
 Undefined Dba::dropMetadataSchema() {}
 #elif DOXYGEN_PY
@@ -408,16 +428,26 @@ shcore::Value Dba::drop_metadata_schema(const shcore::Argument_list &args) {
   return Value();
 }
 
-//! Sets the session object to be used on the Dba operations.
-#if DOXYGEN_CPP
-//! \param args should contain an instance of ShellDevSession.
-#else
-//! \param session could be an instance of ClassicSession, XSession or NodeSession.
-#endif
+//                                    0         1         2         3         4         5         6         7         8
+//                                    112345678901234567890123456789012345678901234567890123456789012345679801234567980
+REGISTER_HELP(DBA_RESETSESSION_BRIEF, "Sets the session object to be used on the Dba operations.");
+REGISTER_HELP(DBA_RESETSESSION_PARAM, "@param session Session object to be used on the Dba operations.");
+REGISTER_HELP(DBA_RESETSESSION_DETAIL, "Many of the Dba operations require an active session to the Metadata Store, "\
+"use this function to define the session to be used.");
+REGISTER_HELP(DBA_RESETSESSION_DETAIL1, "At the moment only a Classic session type is supported.");
+REGISTER_HELP(DBA_RESETSESSION_DETAIL2, "If the session type is not defined, the global dba object will use the "\
+"established global session.");
+
 /**
-* This function is available to configure a specific Session to be used on the Dba operations.
+* $(DBA_RESETSESSION_BRIEF)
 *
-* If a specific Session is not set, the Dba operations will be executed through the established global Session.
+* $(DBA_RESETSESSION_PARAM)
+*
+* $(DBA_RESETSESSION_DETAIL)
+*
+* $(DBA_RESETSESSION_DETAIL1)
+*
+* $(DBA_RESETSESSION_DETAIL2)
 */
 #if DOXYGEN_JS
 Undefined Dba::resetSession(Session session) {}
@@ -442,6 +472,42 @@ shcore::Value Dba::reset_session(const shcore::Argument_list &args) {
   return Value();
 }
 
+//                                    0         1         2         3         4         5         6         7         8
+//                                    112345678901234567890123456789012345678901234567890123456789012345679801234567980
+REGISTER_HELP(DBA_VALIDATEINSTANCE_BRIEF, "Validates an instance for usage in Group Replication.");
+REGISTER_HELP(DBA_VALIDATEINSTANCE_PARAM, "@param connectionData The instance connection data.");
+REGISTER_HELP(DBA_VALIDATEINSTANCE_PARAM1, "@param password Optional string with the password for the connection.");
+REGISTER_HELP(DBA_VALIDATEINSTANCE_DETAIL, "This function reviews the instance configuration to identify if it is valid "\
+"for usage in group replication.");
+REGISTER_HELP(DBA_VALIDATEINSTANCE_DETAIL3, "The connectionData parameter can be any of:");
+REGISTER_HELP(DBA_VALIDATEINSTANCE_DETAIL4, "@li URI string ");
+REGISTER_HELP(DBA_VALIDATEINSTANCE_DETAIL5, "@li Connection data dictionary ");
+REGISTER_HELP(DBA_VALIDATEINSTANCE_DETAIL7, "The password may be contained on the connectionData parameter or can be "\
+"specified on the password parameter. When both are specified the parameter "\
+"is used instead of the one in the connectionData");
+
+/**
+* $(DBA_VALIDATEINSTANCE_BRIEF)
+*
+* $(DBA_VALIDATEINSTANCE_PARAM)
+* $(DBA_VALIDATEINSTANCE_PARAM1)
+*
+* $(DBA_VALIDATEINSTANCE_DETAIL)
+* $(DBA_VALIDATEINSTANCE_DETAIL1)
+*
+* $(DBA_VALIDATEINSTANCE_DETAIL3)
+* $(DBA_VALIDATEINSTANCE_DETAIL4)
+* $(DBA_VALIDATEINSTANCE_DETAIL5)
+*
+* $(DBA_VALIDATEINSTANCE_DETAIL7)
+* $(DBA_VALIDATEINSTANCE_DETAIL8)
+* $(DBA_VALIDATEINSTANCE_DETAIL9)
+*/
+#if DOXYGEN_JS
+Undefined Dba::validateInstance(Variant connectionData, String password) {}
+#elif DOXYGEN_PY
+None Dba::validate_instance(variant connectionData, str password) {}
+#endif
 shcore::Value Dba::validate_instance(const shcore::Argument_list &args) {
   args.ensure_count(1, 2, "validateInstance");
 
@@ -610,6 +676,49 @@ shcore::Value Dba::exec_instance_op(const std::string &function, const shcore::A
   return ret_val;
 }
 
+//                                    0         1         2         3         4         5         6         7         8
+//                                    112345678901234567890123456789012345678901234567890123456789012345679801234567980
+REGISTER_HELP(DBA_DEPLOYLOCALINSTANCE_BRIEF, "Creates a new MySQL Server instance on localhost.");
+REGISTER_HELP(DBA_DEPLOYLOCALINSTANCE_PARAM, "@param port The port where the new instance will listen for connections.");
+REGISTER_HELP(DBA_DEPLOYLOCALINSTANCE_PARAM1, "@param options Optional dictionary with options affecting the new deployed instance.");
+REGISTER_HELP(DBA_DEPLOYLOCALINSTANCE_DETAIL, "This function will deploy a new MySQL Server instance, the result may be "\
+"affected by the provided options: ");
+REGISTER_HELP(DBA_DEPLOYLOCALINSTANCE_DETAIL1, "@li portx: port where the new instance will listen for X Protocol connections.");
+REGISTER_HELP(DBA_DEPLOYLOCALINSTANCE_DETAIL2, "@li sandboxDir: path where the new instance will be deployed. ");
+REGISTER_HELP(DBA_DEPLOYLOCALINSTANCE_DETAIL3, "@li password: password for the MySQL root user on the new instance. ");
+REGISTER_HELP(DBA_DEPLOYLOCALINSTANCE_DETAIL4, "If the portx option is not specified, it will be automatically calculated "\
+"as 10 times the value of the provided MySQL port.");
+REGISTER_HELP(DBA_DEPLOYLOCALINSTANCE_DETAIL5, "The password or dbPassword options are mandatory to specify the MySQL root "\
+"password on the new instance.");
+REGISTER_HELP(DBA_DEPLOYLOCALINSTANCE_DETAIL6, "The sandboxDir must be an existing folder where the new instance will be "\
+"deployed. If not specified the new instance will be deployed at:");
+REGISTER_HELP(DBA_DEPLOYLOCALINSTANCE_DETAIL7, "  ~HOME/mysql-sandboxes");
+
+/**
+* $(DBA_DEPLOYLOCALINSTANCE_BRIEF)
+*
+* $(DBA_DEPLOYLOCALINSTANCE_PARAM)
+* $(DBA_DEPLOYLOCALINSTANCE_PARAM1)
+*
+* $(DBA_DEPLOYLOCALINSTANCE_DETAIL)
+*
+* $(DBA_DEPLOYLOCALINSTANCE_DETAIL1)
+* $(DBA_DEPLOYLOCALINSTANCE_DETAIL2)
+* $(DBA_DEPLOYLOCALINSTANCE_DETAIL3)
+*
+* $(DBA_DEPLOYLOCALINSTANCE_DETAIL4)
+*
+* $(DBA_DEPLOYLOCALINSTANCE_DETAIL5)
+*
+* $(DBA_DEPLOYLOCALINSTANCE_DETAIL6)
+*
+* $(DBA_DEPLOYLOCALINSTANCE_DETAIL7)
+*/
+#if DOXYGEN_JS
+Undefined Dba::deployLocalInstance(Integer port, Dictionary options) {}
+#elif DOXYGEN_PY
+None Dba::deploy_local_instance(int port, dict options) {}
+#endif
 shcore::Value Dba::deploy_local_instance(const shcore::Argument_list &args, const std::string& fname) {
   shcore::Value ret_val;
 
@@ -623,6 +732,46 @@ shcore::Value Dba::deploy_local_instance(const shcore::Argument_list &args, cons
   return ret_val;
 }
 
+//                                    0         1         2         3         4         5         6         7         8
+//                                    112345678901234567890123456789012345678901234567890123456789012345679801234567980
+REGISTER_HELP(DBA_DELETELOCALINSTANCE_BRIEF, "Deletes an existing MySQL Server instance on localhost.");
+REGISTER_HELP(DBA_DELETELOCALINSTANCE_PARAM, "@param port The port of the instance to be deleted.");
+REGISTER_HELP(DBA_DELETELOCALINSTANCE_PARAM1, "@param options Optional dictionary with options that modify the way this function is executed.");
+REGISTER_HELP(DBA_DELETELOCALINSTANCE_DETAIL, "This function will delete an existing MySQL Server instance on the local host. The next options affect the result:");
+REGISTER_HELP(DBA_DELETELOCALINSTANCE_DETAIL1, "@li portx: port where new instance listens for X Protocol connections.");
+REGISTER_HELP(DBA_DELETELOCALINSTANCE_DETAIL2, "@li sandboxDir: path where the instance is located. ");
+REGISTER_HELP(DBA_DELETELOCALINSTANCE_DETAIL3, "@li password: password for the MySQL root user on the instance. ");
+REGISTER_HELP(DBA_DELETELOCALINSTANCE_DETAIL4, "The password or dbPassword options are mandatory.");
+REGISTER_HELP(DBA_DELETELOCALINSTANCE_DETAIL5, "The sandboxDir must be the one where the MySQL instance was deployed. If not specified it will use:");
+REGISTER_HELP(DBA_DELETELOCALINSTANCE_DETAIL6, "  ~HOME/mysql-sandboxes");
+REGISTER_HELP(DBA_DELETELOCALINSTANCE_DETAIL7, "If the instance is not located on the used path an error will occur.");
+
+/**
+* $(DBA_DELETELOCALINSTANCE_BRIEF)
+*
+* $(DBA_DELETELOCALINSTANCE_PARAM)
+* $(DBA_DELETELOCALINSTANCE_PARAM1)
+*
+* $(DBA_DELETELOCALINSTANCE_DETAIL)
+*
+* $(DBA_DELETELOCALINSTANCE_DETAIL1)
+* $(DBA_DELETELOCALINSTANCE_DETAIL2)
+* $(DBA_DELETELOCALINSTANCE_DETAIL3)
+*
+* $(DBA_DELETELOCALINSTANCE_DETAIL4)
+*
+* $(DBA_DELETELOCALINSTANCE_DETAIL5)
+*
+* $(DBA_DELETELOCALINSTANCE_DETAIL6)
+*
+* $(DBA_DELETELOCALINSTANCE_DETAIL7)
+*
+*/
+#if DOXYGEN_JS
+Undefined Dba::deleteLocalInstance(Integer port, Dictionary options) {}
+#elif DOXYGEN_PY
+None Dba::delete_local_instance(int port, dict options) {}
+#endif
 shcore::Value Dba::delete_local_instance(const shcore::Argument_list &args) {
   shcore::Value ret_val;
 
@@ -636,6 +785,46 @@ shcore::Value Dba::delete_local_instance(const shcore::Argument_list &args) {
   return ret_val;
 }
 
+//                                    0         1         2         3         4         5         6         7         8
+//                                    112345678901234567890123456789012345678901234567890123456789012345679801234567980
+REGISTER_HELP(DBA_KILLLOCALINSTANCE_BRIEF, "Kills a running MySQL Server instance on localhost.");
+REGISTER_HELP(DBA_KILLLOCALINSTANCE_PARAM, "@param port The port of the instance to be killed.");
+REGISTER_HELP(DBA_KILLLOCALINSTANCE_PARAM1, "@param options Optional dictionary with options affecting the result.");
+REGISTER_HELP(DBA_KILLLOCALINSTANCE_DETAIL, "This function will kill the process of a running MySQL Server instance "\
+"on the local host. The next options affect the result:");
+REGISTER_HELP(DBA_KILLLOCALINSTANCE_DETAIL1, "@li portx: port where the instance listens for X Protocol connections.");
+REGISTER_HELP(DBA_KILLLOCALINSTANCE_DETAIL2, "@li sandboxDir: path where the instance is located. ");
+REGISTER_HELP(DBA_KILLLOCALINSTANCE_DETAIL3, "@li password: password for the MySQL root user on the instance. ");
+REGISTER_HELP(DBA_KILLLOCALINSTANCE_DETAIL4, "The password or dbPassword options are mandatory.");
+REGISTER_HELP(DBA_KILLLOCALINSTANCE_DETAIL5, "The sandboxDir must be the one where the MySQL instance was deployed. If not specified it will use:");
+REGISTER_HELP(DBA_KILLLOCALINSTANCE_DETAIL6, "  ~HOME/mysql-sandboxes");
+REGISTER_HELP(DBA_KILLLOCALINSTANCE_DETAIL7, "If the instance is not located on the used path an error will occur.");
+
+/**
+* $(DBA_KILLLOCALINSTANCE_BRIEF)
+*
+* $(DBA_KILLLOCALINSTANCE_PARAM)
+* $(DBA_KILLLOCALINSTANCE_PARAM1)
+*
+* $(DBA_KILLLOCALINSTANCE_DETAIL)
+*
+* $(DBA_KILLLOCALINSTANCE_DETAIL1)
+* $(DBA_KILLLOCALINSTANCE_DETAIL2)
+* $(DBA_KILLLOCALINSTANCE_DETAIL3)
+*
+* $(DBA_KILLLOCALINSTANCE_DETAIL4)
+*
+* $(DBA_KILLLOCALINSTANCE_DETAIL5)
+*
+* $(DBA_KILLLOCALINSTANCE_DETAIL6)
+*
+* $(DBA_KILLLOCALINSTANCE_DETAIL7)
+*/
+#if DOXYGEN_JS
+Undefined Dba::killLocalInstance(Integer port, Dictionary options) {}
+#elif DOXYGEN_PY
+None Dba::kill_local_instance(int port, dict options) {}
+#endif
 shcore::Value Dba::kill_local_instance(const shcore::Argument_list &args) {
   shcore::Value ret_val;
 
@@ -649,6 +838,46 @@ shcore::Value Dba::kill_local_instance(const shcore::Argument_list &args) {
   return ret_val;
 }
 
+//                                    0         1         2         3         4         5         6         7         8
+//                                    112345678901234567890123456789012345678901234567890123456789012345679801234567980
+REGISTER_HELP(DBA_STOPLOCALINSTANCE_BRIEF, "Stops a running MySQL Server instance on localhost.");
+REGISTER_HELP(DBA_STOPLOCALINSTANCE_PARAM, "@param port The port of the instance to be stopped.");
+REGISTER_HELP(DBA_STOPLOCALINSTANCE_PARAM1, "@param options Optional dictionary with options affecting the result.");
+REGISTER_HELP(DBA_STOPLOCALINSTANCE_DETAIL, "This function will gracefully stop a running MySQL Server instance "\
+"on the local host. The next options affect the result:");
+REGISTER_HELP(DBA_STOPLOCALINSTANCE_DETAIL1, "@li portx: port where the instance listens for X Protocol connections.");
+REGISTER_HELP(DBA_STOPLOCALINSTANCE_DETAIL2, "@li sandboxDir: path where the instance is located. ");
+REGISTER_HELP(DBA_STOPLOCALINSTANCE_DETAIL3, "@li password: password for the MySQL root user on the instance. ");
+REGISTER_HELP(DBA_STOPLOCALINSTANCE_DETAIL4, "The password or dbPassword options are mandatory.");
+REGISTER_HELP(DBA_STOPLOCALINSTANCE_DETAIL5, "The sandboxDir must be the one where the MySQL instance was deployed. If not specified it will use:");
+REGISTER_HELP(DBA_STOPLOCALINSTANCE_DETAIL6, "  ~HOME/mysql-sandboxes");
+REGISTER_HELP(DBA_STOPLOCALINSTANCE_DETAIL7, "If the instance is not located on the used path an error will occur.");
+
+/**
+* $(DBA_STOPLOCALINSTANCE_BRIEF)
+*
+* $(DBA_STOPLOCALINSTANCE_PARAM)
+* $(DBA_STOPLOCALINSTANCE_PARAM1)
+*
+* $(DBA_STOPLOCALINSTANCE_DETAIL)
+*
+* $(DBA_STOPLOCALINSTANCE_DETAIL1)
+* $(DBA_STOPLOCALINSTANCE_DETAIL2)
+* $(DBA_STOPLOCALINSTANCE_DETAIL3)
+*
+* $(DBA_STOPLOCALINSTANCE_DETAIL4)
+*
+* $(DBA_STOPLOCALINSTANCE_DETAIL5)
+*
+* $(DBA_STOPLOCALINSTANCE_DETAIL6)
+*
+* $(DBA_STOPLOCALINSTANCE_DETAIL7)
+*/
+#if DOXYGEN_JS
+Undefined Dba::stopLocalInstance(Integer port, Dictionary options) {}
+#elif DOXYGEN_PY
+None Dba::stop_local_instance(int port, dict options) {}
+#endif
 shcore::Value Dba::stop_local_instance(const shcore::Argument_list &args) {
   shcore::Value ret_val;
 
@@ -662,6 +891,46 @@ shcore::Value Dba::stop_local_instance(const shcore::Argument_list &args) {
   return ret_val;
 }
 
+//                                    0         1         2         3         4         5         6         7         8
+//                                    112345678901234567890123456789012345678901234567890123456789012345679801234567980
+REGISTER_HELP(DBA_STARTLOCALINSTANCE_BRIEF, "Starts an existing MySQL Server instance on localhost.");
+REGISTER_HELP(DBA_STARTLOCALINSTANCE_PARAM, "@param port The port where the instance listens for MySQL connections.");
+REGISTER_HELP(DBA_STARTLOCALINSTANCE_PARAM1, "@param options Optional dictionary with options affecting the result.");
+REGISTER_HELP(DBA_STARTLOCALINSTANCE_DETAIL, "This function will start an existing MySQL Server instance on the local"\
+"host. The next options affect the result:");
+REGISTER_HELP(DBA_STARTLOCALINSTANCE_DETAIL1, "@li portx: port where the instance listens for X Protocol connections.");
+REGISTER_HELP(DBA_STARTLOCALINSTANCE_DETAIL2, "@li sandboxDir: path where the instance is located. ");
+REGISTER_HELP(DBA_STARTLOCALINSTANCE_DETAIL3, "@li password: password for the MySQL root user on the instance. ");
+REGISTER_HELP(DBA_STARTLOCALINSTANCE_DETAIL4, "The password or dbPassword options are mandatory.");
+REGISTER_HELP(DBA_STARTLOCALINSTANCE_DETAIL5, "The sandboxDir must be the one where the MySQL instance was deployed. If not specified it will use:");
+REGISTER_HELP(DBA_STARTLOCALINSTANCE_DETAIL6, "  ~HOME/mysql-sandboxes");
+REGISTER_HELP(DBA_STARTLOCALINSTANCE_DETAIL7, "If the instance is not located on the used path an error will occur.");
+
+/**
+* $(DBA_STARTLOCALINSTANCE_BRIEF)
+*
+* $(DBA_STARTLOCALINSTANCE_PARAM)
+* $(DBA_STARTLOCALINSTANCE_PARAM1)
+*
+* $(DBA_STARTLOCALINSTANCE_DETAIL)
+*
+* $(DBA_STARTLOCALINSTANCE_DETAIL1)
+* $(DBA_STARTLOCALINSTANCE_DETAIL2)
+* $(DBA_STARTLOCALINSTANCE_DETAIL3)
+*
+* $(DBA_STARTLOCALINSTANCE_DETAIL4)
+*
+* $(DBA_STARTLOCALINSTANCE_DETAIL5)
+*
+* $(DBA_STARTLOCALINSTANCE_DETAIL6)
+*
+* $(DBA_STARTLOCALINSTANCE_DETAIL7)
+*/
+#if DOXYGEN_JS
+Undefined Dba::startLocalInstance(Integer port, Dictionary options) {}
+#elif DOXYGEN_PY
+None Dba::start_local_instance(int port, dict options) {}
+#endif
 shcore::Value Dba::start_local_instance(const shcore::Argument_list &args) {
   shcore::Value ret_val;
 
@@ -671,44 +940,6 @@ shcore::Value Dba::start_local_instance(const shcore::Argument_list &args) {
     ret_val = exec_instance_op("start", args);
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("startLocalInstance"));
-
-  return ret_val;
-}
-
-std::string Dba::get_help_text(const std::string& topic, bool full) {
-  std::string ret_val;
-  std::map<std::string, std::string> help_data;
-
-  if (topic == "__brief__")
-    ret_val = "Perform DBA operations using the MySQL AdminAPI.";
-  else if (topic == "__detail__")
-    ret_val = "The global variable 'dba' is used to access the MySQL AdminAPI functionality\n"\
-              "and perform DBA operations. It is used for managing MySQL InnoDB clusters.";
-  else if (topic == "__closing__")
-    ret_val = "For more help on a specific function use dba.help('<functionName>')\n"\
-              "e.g. dba.help('deployLocalInstance') or dba.help('deployLocalInstance()')";
-  else if (topic == get_function_name("createCluster", false))
-    ret_val = "Creates a MySQL InnoDB cluster.";
-  else if (topic == get_function_name("getCluster", false)) {
-    ret_val = "Retrieves a cluster from the Metadata Store.";
-    if (full) {
-      ret_val += "\n\n"\
-    "SYNTAX:\n\n"\
-    "   " + get_function_name("getCluster", false) + "([name])\n\n"\
-    "WHERE:\n\n"\
-    "   name: is an optional parameter to specify name of cluster to be returned.\n\n"\
-    "   If name is not specified, the default cluster will be returned.\n\n"\
-    "   If name is specified, and no cluster with the indicated name is found,\n"\
-    "   an error will be raised.\n";
-    }
-  } else if (topic == get_function_name("dropMetadataSchema", false))
-    ret_val = "Destroys the cluster configuration data.";
-  else if (topic == get_function_name("validateInstance", false))
-    ret_val = "Validates an instance.";
-  else if (topic == get_function_name("deployLocalInstance", false))
-    ret_val = "Creates a new MySQL Server instance on localhost.";
-  else if (topic == get_function_name("help", false))
-    ret_val = "Prints this help.";
 
   return ret_val;
 }

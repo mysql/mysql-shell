@@ -22,6 +22,7 @@
 
 #include "shellcore/common.h"
 #include <string>
+#include <vector>
 
 namespace shcore {
 class SHCORE_PUBLIC  Shell_help {
@@ -49,6 +50,8 @@ private:
 struct Help_register {
   Help_register(const std::string &token, const std::string &data);
 };
+
+std::vector<std::string> SHCORE_PUBLIC get_help_text(const std::string& token, const std::vector<size_t> &sizes = {});
 };
 
 #define REGISTER_HELP(x,y) shcore::Help_register x(#x,y)

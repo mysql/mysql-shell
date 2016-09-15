@@ -80,6 +80,8 @@ public:
   virtual Value call(const std::string &name, const Argument_list &args);
   virtual Value call_advanced(const std::string &name, const Argument_list &args, const NamingStyle &style);
 
+  virtual shcore::Value help(const shcore::Argument_list &args);
+
   /**
   * resolve() is called when the target object is not defined and an attempt to use it
   * has been done either by trying to:

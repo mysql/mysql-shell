@@ -25,6 +25,7 @@
 #include "modules/base_resultset.h"
 #include "shell_resultset_dumper.h"
 #include "utils/utils_time.h"
+#include "utils/utils_help.h"
 #include "logger/logger.h"
 
 #include <boost/format.hpp>
@@ -533,7 +534,7 @@ bool Interactive_shell::cmd_print_shell_help(const std::vector<std::string>& arg
       for (auto name : globals) {
         auto object_val = _shell->get_global(name);
         auto object = std::dynamic_pointer_cast<Cpp_object_bridge>(object_val.as_object());
-        auto brief = object->get_help_text(object->class_name() + "_BRIEF");
+        auto brief = shcore::get_help_text(object->class_name() + "_BRIEF")[0];
 
         if (!brief.empty())
           println((boost::format("%-10s %s") % name % brief).str());

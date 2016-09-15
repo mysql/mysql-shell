@@ -474,6 +474,36 @@ std::vector<std::string> split_string(const std::string& input, const std::strin
   return ret_val;
 }
 
+std::vector<std::string> SHCORE_PUBLIC split_string(const std::string& input, std::vector<size_t> max_lengths) {
+  std::vector<std::string> chunks;
+
+  size_t index = max_lengths[0];
+  size_t last_length = max_lengths[0];
+  size_t start = 0;
+
+  // Index will eventually overpass the input size
+  // As lines are added
+  while (input.size() > index) {
+    auto pos = input.rfind(" ", index);
+
+    if (pos != std::string::npos && pos > start) {
+      chunks.push_back(input.substr(start, pos - start));
+      start = pos + 1;
+
+      if (max_lengths.size() > chunks.size())
+        last_length = max_lengths[chunks.size()];
+
+      index = start + last_length;
+    }
+  }
+
+  // Adds the remainder of the input
+  if (start < input.size())
+    chunks.push_back(input.substr(start));
+
+  return chunks;
+}
+
 std::string join_strings(const std::set<std::string>& strings, const std::string& separator) {
   std::set<std::string> input(strings);
   std::string ret_val;

@@ -190,3 +190,13 @@ bool Interactive_object_wrapper::prompt(const std::string& prompt, std::string &
 bool Interactive_object_wrapper::password(const std::string& prompt, std::string &ret_val) const {
   return _shell_core.password(prompt, ret_val);
 }
+
+shcore::Value Interactive_object_wrapper::help(const shcore::Argument_list &args) {
+  shcore::Value ret_val;
+  if (!_target)
+    ret_val = Cpp_object_bridge::help(args);
+  else
+    ret_val = _target->call("help", args);
+
+  return ret_val;
+}

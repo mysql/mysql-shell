@@ -65,6 +65,7 @@ std::set<std::string> SHCORE_PUBLIC get_missing_keys(Value::Map_type_ref input, 
 std::string SHCORE_PUBLIC join_strings(const std::set<std::string>& strings, const std::string& separator);
 std::string SHCORE_PUBLIC join_strings(const std::vector<std::string>& strings, const std::string& separator);
 std::vector<std::string> SHCORE_PUBLIC split_string(const std::string& input, const std::string& separator);
+std::vector<std::string> SHCORE_PUBLIC split_string(const std::string& input, std::vector<size_t> max_lengths);
 }
 
 #endif /* defined(__mysh__utils_general__) */

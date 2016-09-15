@@ -36,10 +36,7 @@ namespace dba {
 class MetadataStorage;
 
 /**
-* This class represents a connection to a Metadata Store and enables
-*
-* - Accessing available Clusters.
-* - Cluster management operations.
+* $(DBA_BRIEF)
 */
 class SHCORE_PUBLIC Dba : public shcore::Cpp_object_bridge, public std::enable_shared_from_this<Dba> {
 public:
@@ -79,18 +76,30 @@ public:
   shcore::IShell_core* get_owner() { return _shell_core; }
 
 #if DOXYGEN_JS
-  Undefined resetSession(Session session);
+  Boolean verbose; //!< $(DBA_VERBOSE_BRIEF)
   Cluster createCluster(String name, String masterKey, Dictionary options);
-  Undefined dropCluster(String name);
+  Undefined deleteLocalInstance(Integer port, Dictionary options);
+  Undefined deployLocalInstance(Integer port, Dictionary options);
+  Undefined dropMetadataSchema(Dictionary options);
   Cluster getCluster(String name, Dictionary options);
-  Undefined dropMetadataSchema();
-
+  Undefined killLocalInstance(Integer port, Dictionary options);
+  Undefined resetSession(Session session);
+  Undefined startLocalInstance(Integer port, Dictionary options);
+  Undefined stopLocalInstance(Integer port, Dictionary options);
+  Undefined validateInstance(Variant connectionData, String password);
 #elif DOXYGEN_PY
-  None reset_session(Session session);
-  Cluster create_cluster(str name, str masterKey, Dictionary options);
+  bool verbose; //! $(DBA_VERBOSE)
+  Cluster create_cluster(str name, str masterKey, dict options);
+  None delete_local_instance(int port, dict options);
+  None deploy_local_instance(int port, dict options);
   None drop_cluster(str name);
-  Cluster get_cluster(str name, Dictionary options);
-  None drop_metadata_schema();
+  None drop_metadata_schema(dict options);
+  Cluster get_cluster(str name, dict options);
+  None kill_local_instance(int port, dict options);
+  None reset_session(Session session);
+  None start_local_instance(int port, dict options);
+  None stop_local_instance(int port, dict options);
+  None validate_instance(variant connectionData, str password);
 #endif
 
   void validate_session(const std::string &source) const;
@@ -102,8 +111,6 @@ protected:
   void init();
 
 private:
-  virtual std::string get_help_text(const std::string& topic, bool full);
-
   std::shared_ptr<MetadataStorage> _metadata_storage;
   uint64_t _connection_id;
   std::shared_ptr<ProvisioningInterface> _provisioning_interface;

@@ -130,7 +130,6 @@ public:
   virtual std::string &append_repr(std::string &s_out) const;
   std::shared_ptr<ScopedStyle> set_scoped_naming_style(const NamingStyle& style);
 
-  std::string get_help_text(const std::string& token);
   virtual shcore::Value help(const shcore::Argument_list &args);
 
 protected:

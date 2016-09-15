@@ -280,25 +280,51 @@ Value Cpp_object_bridge::call(const std::string &name, const Argument_list &args
   return i->second->invoke(args);
 }
 
-std::string Cpp_object_bridge::get_help_text(const std::string& token) {
-  std::string real_token;
-  for (auto c : token)
-    real_token.append(1, std::toupper(c));
-
-  int index = 0;
-  std::string text = Shell_help::get()->get_token(real_token);
-
-  std::vector<std::string> lines;
-  while (!text.empty()) {
-    lines.push_back(text);
-    text = Shell_help::get()->get_token(real_token + std::to_string(++index));
-  }
-
-  return shcore::join_strings(lines, "\n");
-}
-
 shcore::Value Cpp_object_bridge::help(const shcore::Argument_list &args) {
   args.ensure_count(0, 1, get_function_name("help").c_str());
+
+  // Returns a string composed of all the input lines splitted in lines of at most 80 - name_length
+  auto format_sub_items = [](const std::vector<std::string>& lines, size_t name_length)->std::string{
+    std::string ret_val;
+    ret_val.reserve(lines.size() * 80);
+
+    std::string space(name_length, ' ');
+
+    // Considers the new line character being added
+    std::vector<size_t> lengths = { 80 - (name_length + 1) };
+    auto sublines = split_string(lines[0], lengths);
+
+    // Processes the first line
+    // The first subline is meant to be returned without any space prefix
+    // Since this will be appended to an existing line
+    ret_val = sublines[0] + "\n";
+    sublines.erase(sublines.begin());
+
+    // The remaining lines are just appended with the space prefix
+    for (auto subline : sublines) {
+      if (subline[0] == ' ')
+        ret_val += space + subline.substr(1) + "\n";
+      else
+        ret_val += space + subline + "\n";
+    }
+
+    if (lines.size() > 1) {
+      ret_val += "\n";
+
+      for (size_t index = 1; index < lines.size(); index++) {
+        sublines = split_string(lines[index], lengths);
+        for (auto subline : sublines) {
+          if (subline[0] = ' ')
+            ret_val += space + subline.substr(1) + "\n";
+          else
+            ret_val += space + subline + "\n";
+        }
+
+        ret_val += "\n";
+      }
+    }
+    return ret_val;
+  };
 
   std::string ret_val;
   std::string item;
@@ -306,7 +332,9 @@ shcore::Value Cpp_object_bridge::help(const shcore::Argument_list &args) {
   std::string prefix = class_name();
 
   if (args.size() == 1)
-    item = args.string_at(0);
+  item = args.string_at(0);
+
+  ret_val += "\n";
 
   if (!item.empty()) {
     // Checks for an invalid member
@@ -319,34 +347,60 @@ shcore::Value Cpp_object_bridge::help(const shcore::Argument_list &args) {
     // The prefix is increased to include the function/property name
     prefix.append("_" + item);
 
-    ret_val = get_help_text(prefix + "_BRIEF");
+    auto briefs = get_help_text(prefix + "_BRIEF");
+    ret_val += format_sub_items(briefs, 0);
 
     // On functions we continue with the rest of the documentation
     if (has_method(item)) {
-      ret_val.append("\n\nSYNTAX\n\n  ");
-      ret_val.append(item);
-
-      std::string params = get_help_text(prefix + "_PARAM");
+      auto params = get_help_text(prefix + "_PARAM");
       if (!params.empty()) {
-        auto parameters = shcore::split_string(params, "\n");
+        std::vector<std::string> fpnames; // Parameter names as they will look in the signature
+        std::vector<std::string> pnames;  // Parameter names for the WHERE section
+        std::vector<std::string> pdescs;  // Parameter descriptions as they are defined
 
-        std::vector<std::string> pnames;
-        std::vector<std::string> pdescs;
-        for (auto paramdef : parameters) {
+        for (auto paramdef : params) {
           // 7 is the length of: "\param " or "@param "
           size_t start_index = 7;
           auto pname = paramdef.substr(start_index, paramdef.find(" ", start_index) - start_index);
           pnames.push_back(pname);
 
           start_index += pname.size() + 1;
-          pdescs.push_back(paramdef.substr(start_index));
+          auto desc = paramdef.substr(start_index);
+          auto first_word = desc.substr(0, desc.find(" "));
+
+          // Updates paramete names to reflect the optional attribute on the signature
+          // Removed the optionsl word from the description
+          if (first_word == "Optional") {
+            if (fpnames.empty())
+              fpnames.push_back("[" + pname + "]"); // First param, creates: [pname]
+            else {
+              fpnames[fpnames.size() - 1].append("[");
+              fpnames.push_back(pname + "]"); // Non first param creates: pname[, pname]
+            }
+            desc = desc.substr(first_word.size() + 1); // Deletes the optional word
+            desc[0] = std::toupper(desc[0]);
+          } else
+            fpnames.push_back(pname);
+
+          pdescs.push_back(desc);
         }
 
-        ret_val.append("(" + shcore::join_strings(pnames, ", ") + ")\n\nWHERE\n\n");
+        // Creates the syntax
+        ret_val.append("\n\nSYNTAX\n\n  ");
+        ret_val.append(item);
+        ret_val.append("(" + shcore::join_strings(fpnames, ", ") + ")");
+
+        // Describes the parameters
+        ret_val.append("\n\nWHERE\n\n");
 
         size_t index;
-        for (index = 0; index < parameters.size(); index++)
-          ret_val.append("  " + pnames[index] + ": " + pdescs[index] + "\n");
+        for (index = 0; index < params.size(); index++) {
+          ret_val.append("  " + pnames[index] + ": ");
+
+          size_t name_length = pnames[index].size() + 4;
+
+          ret_val.append(format_sub_items({ pdescs[index] }, name_length));
+        }
 
         ret_val.append("\n");
       } else {
@@ -354,11 +408,28 @@ shcore::Value Cpp_object_bridge::help(const shcore::Argument_list &args) {
       }
     }
 
-    std::string detail = get_help_text(prefix + "_DETAIL");
-    if (!detail.empty())
-      ret_val.append("ADDITIONAL INFO:\n\n" + detail + "\n\n");
+    auto details = get_help_text(prefix + "_DETAIL");
+
+    if (!details.empty()) {
+      ret_val.append("ADDITIONAL INFO:\n\n");
+
+      for (auto line : details) {
+        std::string space;
+        std::vector<size_t> lengths;
+        // handles list items
+        auto pos = line.find("@li");
+        if (0 == pos) {
+          ret_val += " - ";
+          ret_val += format_sub_items({ line.substr(4) }, 3);
+        } else {
+          ret_val += format_sub_items({ line }, 0);
+        }
+
+        ret_val.append("\n");
+      }
+    }
   } else {
-    ret_val += get_help_text(prefix + "_DETAIL");
+    ret_val += join_strings(get_help_text(prefix + "_DETAIL"), "\n");
 
     if (_properties.size()) {
       int text_col = 0;
@@ -367,24 +438,24 @@ shcore::Value Cpp_object_bridge::help(const shcore::Argument_list &args) {
         text_col = new_length > text_col ? new_length : text_col;
       }
 
-      text_col++;
+      // Adds the extra espace before the descriptions begin
+      // and the three spaces for the " - " before the property names
+      text_col += 4;
 
       ret_val += "\n\nThe following properties are currently supported.\n\n";
       for (auto property : _properties) {
         std::string name = property->name(naming_style);
         std::string pname = property->name(shcore::NamingStyle::LowerCamelCase);
-        std::string help_text = get_help_text(pname + "_BRIEF");
+
+        // Assuming briefs are one liners for now
+        auto help_text = get_help_text(prefix + "_" + pname + "_BRIEF");
 
         std::string text = " - " + name;
 
-        if (!help_text.empty()) {
-          for (int index = 0; index < (text_col - name.length()); index++)
-            text += " ";
+        std::string first_space(text_col - (pname.size() + 3), ' ');
 
-          text += help_text;
-        }
-
-        text += "\n";
+        if (!help_text.empty())
+          text += first_space + format_sub_items(help_text, text_col);
 
         ret_val += text;
       }
@@ -397,7 +468,9 @@ shcore::Value Cpp_object_bridge::help(const shcore::Argument_list &args) {
         text_col = new_length > text_col ? new_length : text_col;
       }
 
-      text_col++;
+      // Adds the extra espace before the descriptions begins
+      // and the three spaces for the " - " before the function names
+      text_col += 4;
 
       ret_val += "\n\nThe following functions are currently supported.\n\n";
 
@@ -406,27 +479,25 @@ shcore::Value Cpp_object_bridge::help(const shcore::Argument_list &args) {
 
         std::string fname = function.second->_name[shcore::NamingStyle::LowerCamelCase];
 
-        std::string help_text = get_help_text(prefix + "_" + fname + "_BRIEF");
+        auto help_text = get_help_text(prefix + "_" + fname + "_BRIEF");
 
         std::string text = " - " + name;
 
-        if (!help_text.empty()) {
-          for (int index = 0; index < (text_col - name.length()); index++)
-            text += " ";
+        if (help_text.empty() && fname == "help")
+          help_text.push_back("Provides help about this class and it's members");
 
-          text += help_text;
-        }
-
-        text += "\n";
+        std::string first_space(text_col - (fname.size() + 3), ' ');
+        if (!help_text.empty())
+          text += first_space + format_sub_items(help_text, text_col);
 
         ret_val += text;
       }
     }
 
-    std::string closing = get_help_text(prefix + "_CLOSING");
+    auto closing = get_help_text(prefix + "_CLOSING", { 80 });
 
     if (!closing.empty())
-      ret_val += "\n" + closing + "\n";
+      ret_val += "\n" + format_sub_items(closing, 0);
   }
 
   return shcore::Value(ret_val);
