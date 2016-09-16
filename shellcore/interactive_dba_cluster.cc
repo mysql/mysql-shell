@@ -128,6 +128,9 @@ shcore::Value Interactive_dba_cluster::rejoin_instance(const shcore::Argument_li
     new_args.push_back(shcore::Value(answer));
     print(message);
     ret_val = _target->call("rejoinInstance", new_args);
+
+    println("The instance '" + build_connection_string(options, false) + "' was successfully rejoined on the cluster.");
+    println();
   }
 
   return ret_val;
