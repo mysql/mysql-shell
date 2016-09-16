@@ -88,6 +88,15 @@ public:
     _provisioning_interface = provisioning_interface;
   }
 
+  shcore::Value add_seed_instance(const shcore::Argument_list &args);
+  shcore::Value add_instance(const shcore::Argument_list &args);
+  shcore::Value rejoin_instance(const shcore::Argument_list &args);
+  shcore::Value remove_instance(const shcore::Argument_list &args);
+  shcore::Value get_replicaset(const shcore::Argument_list &args);
+  shcore::Value describe(const shcore::Argument_list &args);
+  shcore::Value status(const shcore::Argument_list &args);
+  shcore::Value dissolve(const shcore::Argument_list &args);
+
 #if DOXYGEN_JS
   String name; //!< $(CLUSTER_NAME_BRIEF)
   String adminType; //!< $(CLUSTER_ADMINTYPE_BRIEF)
@@ -108,18 +117,9 @@ public:
   None rejoin_instance(variant connectionData);
   None remove_instance(variant identData);
   str describe();
-  str status()
+  str status();
   None dissolve(Document doc);
 #endif
-
-  shcore::Value add_seed_instance(const shcore::Argument_list &args);
-  shcore::Value add_instance(const shcore::Argument_list &args);
-  shcore::Value rejoin_instance(const shcore::Argument_list &args);
-  shcore::Value remove_instance(const shcore::Argument_list &args);
-  shcore::Value get_replicaset(const shcore::Argument_list &args);
-  shcore::Value describe(const shcore::Argument_list &args);
-  shcore::Value status(const shcore::Argument_list &args);
-  shcore::Value dissolve(const shcore::Argument_list &args);
 
 protected:
   uint64_t _id;

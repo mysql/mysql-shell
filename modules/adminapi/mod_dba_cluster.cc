@@ -66,18 +66,6 @@ bool Cluster::operator == (const Object_bridge &other) const {
   return class_name() == other.class_name() && this == &other;
 }
 
-shcore::Value Cluster::get_member(const std::string &prop) const {
-  shcore::Value ret_val;
-  if (prop == "name")
-    ret_val = shcore::Value(_name);
-  else if (prop == "adminType")
-    ret_val = (*_options)[OPT_ADMIN_TYPE];
-  else
-    ret_val = shcore::Cpp_object_bridge::get_member(prop);
-
-  return ret_val;
-}
-
 void Cluster::init() {
   add_property("name", "getName");
   add_property("adminType", "getAdminType");
@@ -104,6 +92,18 @@ String Cluster::getName(){}
 #elif DOXYGEN_PY
 str Cluster::get_name(){}
 #endif
+
+shcore::Value Cluster::get_member(const std::string &prop) const {
+  shcore::Value ret_val;
+  if (prop == "name")
+    ret_val = shcore::Value(_name);
+  else if (prop == "adminType")
+    ret_val = (*_options)[OPT_ADMIN_TYPE];
+  else
+    ret_val = shcore::Cpp_object_bridge::get_member(prop);
+
+  return ret_val;
+}
 
 // Documentation of the getAdminType function
 REGISTER_HELP(CLUSTER_GETADMINTYPE_BRIEF, "Retrieves the Administration type of the cluster.");
@@ -220,18 +220,10 @@ REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL5, "The password may be contained on the
 * $(CLUSTER_ADDINSTANCE_DETAIL5)
 */
 #if DOXYGEN_JS
-Undefined addInstance(Variant connectionData, String password) {}
+Undefined Cluster::addInstance(Variant connectionData, String password) {}
 #elif DOXYGEN_PY
-None add_instance(variant connectionData, str password) {}
+None Cluster::add_instance(variant connectionData, str password) {}
 #endif
-
-/**
- * Use this function to add a Instance to the Cluster object
- * \param args : A list of values to be used to add a Instance to the Cluster.
- *
- * This function calls ReplicaSet::add_instance(args).
- * This function returns an empty Value.
- */
 shcore::Value Cluster::add_instance(const shcore::Argument_list &args) {
   shcore::Value ret_val;
 
@@ -275,9 +267,9 @@ REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL5, "The password may be contained on 
 * $(CLUSTER_REJOININSTANCE_DETAIL5)
 */
 #if DOXYGEN_JS
-Undefined rejoinInstance(Variant connectionData) {}
+Undefined Cluster::rejoinInstance(Variant connectionData) {}
 #elif DOXYGEN_PY
-None rejoin_instance(variant connectionData) {}
+None Cluster::rejoin_instance(variant connectionData) {}
 #endif
 
 shcore::Value Cluster::rejoin_instance(const shcore::Argument_list &args) {
@@ -317,9 +309,9 @@ REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL4, "@li Connection data Dictionary of
 * $(CLUSTER_REMOVEINSTANCE_DETAIL4)
 */
 #if DOXYGEN_JS
-Undefined removeInstance(Variant identData) {}
+Undefined Cluster::removeInstance(Variant identData) {}
 #elif DOXYGEN_PY
-None remove_instance(variant identData) {}
+None Cluster::remove_instance(variant identData) {}
 #endif
 
 shcore::Value Cluster::remove_instance(const shcore::Argument_list &args) {
@@ -420,14 +412,11 @@ REGISTER_HELP(CLUSTER_DESCRIBE_DETAIL, "This function describes the structure of
 * $(CLUSTER_DESCRIBE_DETAIL)
 */
 #if DOXYGEN_JS
-String describe() {}
+String Cluster::describe() {}
 #elif DOXYGEN_PY
-str describe() {}
+str Cluster::describe() {}
 #endif
 
-/**
-* Returns a formatted JSON describing the structure of the Cluster
-*/
 shcore::Value Cluster::describe(const shcore::Argument_list &args) {
   shcore::Value ret_val;
   _json_mode = JSON_TOPOLOGY_OUTPUT;
@@ -450,14 +439,11 @@ REGISTER_HELP(CLUSTER_STATUS_DETAIL, "This function describes the status of the 
 * $(CLUSTER_STATUS_DETAIL)
 */
 #if DOXYGEN_JS
-String status() {}
+String Cluster::status() {}
 #elif DOXYGEN_PY
-str status() {}
+str Cluster::status() {}
 #endif
 
-/**
-* Returns a formatted JSON describing the status of the Cluster
-*/
 shcore::Value Cluster::status(const shcore::Argument_list &args) {
   shcore::Value ret_val;
   _json_mode = JSON_STATUS_OUTPUT;
@@ -484,18 +470,11 @@ REGISTER_HELP(CLUSTER_DISSOLVE_DETAIL3, "@li force: boolean, confirms that the d
 * $(CLUSTER_DISSOLVE_DETAIL1)
 */
 #if DOXYGEN_JS
-Undefined dissolve(Document doc) {}
+Undefined Cluster::dissolve(Document doc) {}
 #elif DOXYGEN_PY
-None dissolve(Document doc) {}
+None Cluster::dissolve(Document doc) {}
 #endif
 
-/**
- * Unregisters the cluster from the metadata, disable replication.
- * Keeps user data intact.
- * \param doc The JSON document representing the options
- * \return nothing.
- * \sa Cluster
- */
 shcore::Value Cluster::dissolve(const shcore::Argument_list &args) {
   args.ensure_count(0, 1, get_function_name("dissolve").c_str());
 
@@ -592,10 +571,8 @@ std::string Cluster::get_accounts_data() {
   return dest;
 }
 
-/** Set cluster account data as stored in metadata table
- *
- * The account data is expected to a JSON string, AES encrypted.
- */
+// Set cluster account data as stored in metadata table
+// The account data is expected to a JSON string, AES encrypted.
 void Cluster::set_accounts_data(const std::string& encrypted_json) {
   std::string decrypted_data;
   decrypted_data.resize(encrypted_json.length());
