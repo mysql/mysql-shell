@@ -404,6 +404,8 @@ shcore::Value Cpp_object_bridge::help(const shcore::Argument_list &args) {
 
         ret_val.append("\n");
       } else {
+        ret_val.append("\n\nSYNTAX\n\n  ");
+        ret_val.append(item);
         ret_val.append("()\n\n");
       }
     }

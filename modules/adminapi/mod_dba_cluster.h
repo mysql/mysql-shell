@@ -40,8 +40,8 @@ namespace mysh {
 namespace dba {
 class MetadataStorage;
 /**
-* Represents a Cluster
-*/
+ * $(CLUSTER_BRIEF)
+ */
 class Cluster : public std::enable_shared_from_this<Cluster>, public shcore::Cpp_object_bridge {
 public:
   Cluster(const std::string &name, std::shared_ptr<MetadataStorage> metadata_storage);
@@ -89,28 +89,26 @@ public:
   }
 
 #if DOXYGEN_JS
+  String name; //!< $(CLUSTER_NAME_BRIEF)
+  String adminType; //!< $(CLUSTER_ADMINTYPE_BRIEF)
   String getName();
   String getAdminType();
-  Undefined addSeedInstance(String conn);
-  Undefined addSeedInstance(Document doc);
-  Undefined addInstance(String conn);
-  Undefined addInstance(Document doc);
-  Undefined rejoinInstance(String doc);
-  Undefined removeInstance(String name);
-  Undefined removeInstance(Document doc);
+  Undefined addInstance(Variant connectionData, String password);
+  Undefined rejoinInstance(Variant connectionData);
+  Undefined removeInstance(Variant identData);
   String describe();
+  String status();
   Undefined dissolve(Document doc);
 #elif DOXYGEN_PY
+  str name; //!< $(CLUSTER_NAME_BRIEF)
+  std admin_type; //!< $(CLUSTER_ADMINTYPE_BRIEF)
   str get_name();
   str get_admin_type();
-  None add_seed_instance(str conn);
-  None add_seed_instance(Document doc);
-  None add_instance(str conn);
-  None add_instance(Document doc);
-  None rejoin_instance(str conn);
-  None remove_instance(str name);
-  None remove_instance(Document doc);
+  None add_instance(variant connectionData, str password);
+  None rejoin_instance(variant connectionData);
+  None remove_instance(variant identData);
   str describe();
+  str status()
   None dissolve(Document doc);
 #endif
 
