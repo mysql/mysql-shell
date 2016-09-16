@@ -30,11 +30,24 @@
 #include "mod_dba_metadata_storage.h"
 #include "../mysqlxtest_utils.h"
 #include "utils/utils_general.h"
+#include "utils/utils_help.h"
 
 using namespace std::placeholders;
 using namespace mysh;
 using namespace mysh::dba;
 using namespace shcore;
+
+// Documentation of the Cluster Class
+REGISTER_HELP(CLUSTER_BRIEF, "Represents an instance of MySQL InnoDB Cluster");
+REGISTER_HELP(CLUSTER_DETAIL, "The cluster object is the entrance point to manage the MySQL InnoDB Cluster system.");
+REGISTER_HELP(CLUSTER_DETAIL1, "A cluster is a set of MySQLd Instances which holds the user's data.");
+REGISTER_HELP(CLUSTER_DETAIL2, "It provides high-availability and scalability for the user's data.");
+
+REGISTER_HELP(CLUSTER_CLOSING, "For more help on a specific function use cluster.help('<functionName>'");
+REGISTER_HELP(CLUSTER_CLOSING1, "e.g. cluster.help('addInstance')");
+
+REGISTER_HELP(CLUSTER_NAME_BRIEF, "Cluster name.");
+REGISTER_HELP(CLUSTER_ADMINTYPE_BRIEF, "Cluster Administration type.");
 
 Cluster::Cluster(const std::string &name, std::shared_ptr<MetadataStorage> metadata_storage) :
 _name(name), _json_mode(JSON_STANDARD_OUTPUT),
@@ -53,38 +66,6 @@ bool Cluster::operator == (const Object_bridge &other) const {
   return class_name() == other.class_name() && this == &other;
 }
 
-#if DOXYGEN_CPP
-/**
- * Use this function to retrieve an valid member of this class exposed to the scripting languages.
- * \param prop : A string containing the name of the member to be returned
- *
- * This function returns a Value that wraps the object returned by this function.
- * The content of the returned value depends on the property being requested.
- * The next list shows the valid properties as well as the returned value for each of them:
- *
- * \li name: returns a String object with the name of this Cluster object.
- * \li adminType: returns the admin Type for this Cluster object.
- */
-#else
-/**
-* Returns the name of this Cluster object.
-* \return the name as an String object.
-*/
-#if DOXYGEN_JS
-String Cluster::getName(){}
-#elif DOXYGEN_PY
-str Cluster::get_name(){}
-#endif
-/**
-* Returns the admin type of this Cluster object.
-* \return the admin type as an String object.
-*/
-#if DOXYGEN_JS
-Cluster Cluster::getAdminType(){}
-#elif DOXYGEN_PY
-Cluster Cluster::get_admin_type(){}
-#endif
-#endif
 shcore::Value Cluster::get_member(const std::string &prop) const {
   shcore::Value ret_val;
   if (prop == "name")
@@ -108,9 +89,15 @@ void Cluster::init() {
   add_varargs_method("dissolve", std::bind(&Cluster::dissolve, this, _1));
 }
 
+// Documentation of the getName function
+REGISTER_HELP(CLUSTER_GETNAME_BRIEF, "Retrieves the name of the cluster.");
+REGISTER_HELP(CLUSTER_GETNAME_RETURN, "@return The name of the cluster.");
+
 /**
-* Retrieves the name of the Cluster object
-* \return The Cluster name
+* $(CLUSTER_GETNAME_BRIEF)
+*
+* $(CLUSTER_GETNAME_RETURN)
+*
 */
 #if DOXYGEN_JS
 String Cluster::getName(){}
@@ -118,9 +105,15 @@ String Cluster::getName(){}
 str Cluster::get_name(){}
 #endif
 
+// Documentation of the getAdminType function
+REGISTER_HELP(CLUSTER_GETADMINTYPE_BRIEF, "Retrieves the Administration type of the cluster.");
+REGISTER_HELP(CLUSTER_GETADMINTYPE_RETURN, "@return The Administration type of the cluster.");
+
 /**
-* Retrieves the Administration type of the Cluster object
-* \return The Administration type
+* $(CLUSTER_GETADMINTYPE_BRIEF)
+*
+* $(CLUSTER_GETADMINTYPE_RETURN)
+*
 */
 #if DOXYGEN_JS
 String Cluster::getAdminType(){}
@@ -201,7 +194,37 @@ shcore::Value Cluster::add_seed_instance(const shcore::Argument_list &args_) {
   return ret_val;
 }
 
-#if DOXYGEN_CPP
+REGISTER_HELP(CLUSTER_ADDINSTANCE_BRIEF, "Adds an Instance to the cluster.");
+REGISTER_HELP(CLUSTER_ADDINSTANCE_PARAM, "@param connectionData The instance connection data.");
+REGISTER_HELP(CLUSTER_ADDINSTANCE_PARAM1, "@param password Optional string with the password for the connection.");
+REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL, "This function adds an Instance to the cluster. ");
+REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL1, "The Instance is added to the Default ReplicaSet of the cluster.");
+REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL2, "The connectionData parameter can be any of:");
+REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL3, "@li URI string ");
+REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL4, "@li Connection data dictionary ");
+REGISTER_HELP(CLUSTER_ADDINSTANCE_DETAIL5, "The password may be contained on the connectionData parameter or can be "\
+"specified on the password parameter. When both are specified the parameter "\
+"is used instead of the one in the connectionData");
+
+/**
+* $(CLUSTER_ADDINSTANCE_BRIEF)
+*
+* $(CLUSTER_ADDINSTANCE_PARAM)
+* $(CLUSTER_ADDINSTANCE_PARAM1)
+*
+* $(CLUSTER_ADDINSTANCE_DETAIL)
+* $(CLUSTER_ADDINSTANCE_DETAIL1)
+* $(CLUSTER_ADDINSTANCE_DETAIL2)
+* $(CLUSTER_ADDINSTANCE_DETAIL3)
+* $(CLUSTER_ADDINSTANCE_DETAIL4)
+* $(CLUSTER_ADDINSTANCE_DETAIL5)
+*/
+#if DOXYGEN_JS
+Undefined addInstance(Variant connectionData, String password) {}
+#elif DOXYGEN_PY
+None add_instance(variant connectionData, str password) {}
+#endif
+
 /**
  * Use this function to add a Instance to the Cluster object
  * \param args : A list of values to be used to add a Instance to the Cluster.
@@ -209,27 +232,6 @@ shcore::Value Cluster::add_seed_instance(const shcore::Argument_list &args_) {
  * This function calls ReplicaSet::add_instance(args).
  * This function returns an empty Value.
  */
-#else
-/**
-* Adds a Instance to the Cluster
-* \param conn The Connection String or URI of the Instance to be added
-*/
-#if DOXYGEN_JS
-Undefined addInstance(String conn) {}
-#elif DOXYGEN_PY
-None add_instance(str conn) {}
-#endif
-/**
-* Adds a Instance to the Cluster
-* \param doc The Document representing the Instance to be added
-*/
-#if DOXYGEN_JS
-Undefined addInstance(Document doc) {}
-#elif DOXYGEN_PY
-None add_instance(Document doc) {}
-#endif
-#endif
-
 shcore::Value Cluster::add_instance(const shcore::Argument_list &args) {
   shcore::Value ret_val;
 
@@ -248,24 +250,36 @@ shcore::Value Cluster::add_instance(const shcore::Argument_list &args) {
   return ret_val;
 }
 
-#if DOXYGEN_CPP
+REGISTER_HELP(CLUSTER_REJOININSTANCE_BRIEF, "Rejoins an Instance to the cluster.");
+REGISTER_HELP(CLUSTER_REJOININSTANCE_PARAM, "@param connectionData The instance connection data.");
+REGISTER_HELP(CLUSTER_REJOININSTANCE_PARAM1, "@param password Optional string with the password for the connection.");
+REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL, "This function rejoins an Instance to the cluster. ");
+REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL2, "The connectionData parameter can be any of:");
+REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL3, "@li URI string ");
+REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL4, "@li Connection data dictionary ");
+REGISTER_HELP(CLUSTER_REJOININSTANCE_DETAIL5, "The password may be contained on the connectionData parameter or can be "\
+"specified on the password parameter. When both are specified the parameter "\
+"is used instead of the one in the connectionData");
+
 /**
- * Use this function to rejoin an Instance in its replicaset
- * \param conn : The hostname:port of the instance to be rejoined
- *
- * This function returns an empty Value.
- */
-#else
-/**
-* Rejoins an Instance to the Cluster
-* \param conn The Connection String or URI of the Instance to be rejoined
+* $(CLUSTER_REJOININSTANCE_BRIEF)
+*
+* $(CLUSTER_REJOININSTANCE_PARAM)
+* $(CLUSTER_REJOININSTANCE_PARAM2)
+*
+* $(CLUSTER_REJOININSTANCE_DETAIL)
+* $(CLUSTER_REJOININSTANCE_DETAIL1)
+* $(CLUSTER_REJOININSTANCE_DETAIL2)
+* $(CLUSTER_REJOININSTANCE_DETAIL3)
+* $(CLUSTER_REJOININSTANCE_DETAIL4)
+* $(CLUSTER_REJOININSTANCE_DETAIL5)
 */
 #if DOXYGEN_JS
-Undefined rejoinInstance(String conn) {}
+Undefined rejoinInstance(Variant connectionData) {}
 #elif DOXYGEN_PY
-None rejoin_instance(str conn) {}
+None rejoin_instance(variant connectionData) {}
 #endif
-#endif
+
 shcore::Value Cluster::rejoin_instance(const shcore::Argument_list &args) {
   shcore::Value ret_val;
   args.ensure_count(1, 2, get_function_name("rejoinInstance").c_str());
@@ -282,33 +296,30 @@ shcore::Value Cluster::rejoin_instance(const shcore::Argument_list &args) {
   return ret_val;
 }
 
-#if DOXYGEN_CPP
+REGISTER_HELP(CLUSTER_REMOVEINSTANCE_BRIEF, "Removes an Instance from the cluster.");
+REGISTER_HELP(CLUSTER_REMOVEINSTANCE_PARAM, "@param identData The instance identification data.");
+REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL, "This function removes an Instance from the cluster. ");
+REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL1, "The Instance is removed from the Default ReplicaSet of the cluster.");
+REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL2, "The identData parameter can be any of:");
+REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL3, "@li The name of the Instance to be removed.");
+REGISTER_HELP(CLUSTER_REMOVEINSTANCE_DETAIL4, "@li Connection data Dictionary of the Instance to be removed.");
+
 /**
- * Use this function to remove a Instance from the Cluster object
- * \param args : A list of values to be used to remove a Instance to the Cluster.
- *
- * This function calls ReplicaSet::remove_instance(args).
- * This function returns an empty Value.
- */
-#else
-/**
-* Removes a Instance from the Cluster
-* \param name The name of the Instance to be removed
+* $(CLUSTER_REMOVEINSTANCE_BRIEF)
+*
+* $(CLUSTER_REMOVEINSTANCE_PARAM)
+* $(CLUSTER_REMOVEINSTANCE_PARAMALT)
+*
+* $(CLUSTER_REMOVEINSTANCE_DETAIL)
+* $(CLUSTER_REMOVEINSTANCE_DETAIL1)
+* $(CLUSTER_REMOVEINSTANCE_DETAIL2)
+* $(CLUSTER_REMOVEINSTANCE_DETAIL3)
+* $(CLUSTER_REMOVEINSTANCE_DETAIL4)
 */
 #if DOXYGEN_JS
-Undefined removeInstance(String name) {}
+Undefined removeInstance(Variant identData) {}
 #elif DOXYGEN_PY
-None remove_instance(str name) {}
-#endif
-/**
-* Removes a Instance from the Cluster
-* \param doc The Document representing the Instance to be removed
-*/
-#if DOXYGEN_JS
-Undefined removeInstance(Document doc) {}
-#elif DOXYGEN_PY
-None remove_instance(Document doc) {}
-#endif
+None remove_instance(variant identData) {}
 #endif
 
 shcore::Value Cluster::remove_instance(const shcore::Argument_list &args) {
@@ -397,14 +408,26 @@ void Cluster::append_json(shcore::JSON_dumper& dumper) const {
     Cpp_object_bridge::append_json(dumper);
 }
 
+REGISTER_HELP(CLUSTER_DESCRIBE_BRIEF, "Describe the structure of the cluster.");
+REGISTER_HELP(CLUSTER_DESCRIBE_RETURN, "@return A formatted JSON describing the structure of the cluster.");
+REGISTER_HELP(CLUSTER_DESCRIBE_DETAIL, "This function describes the structure of the cluster including all its information, ReplicaSets and Instances. ");
+
+/**
+* $(CLUSTER_DESCRIBE_BRIEF)
+*
+* $(CLUSTER_DESCRIBE_RETURN)
+*
+* $(CLUSTER_DESCRIBE_DETAIL)
+*/
+#if DOXYGEN_JS
+String describe() {}
+#elif DOXYGEN_PY
+str describe() {}
+#endif
+
 /**
 * Returns a formatted JSON describing the structure of the Cluster
 */
-#if DOXYGEN_JS
-String Cluster::describe() {}
-#elif DOXYGEN_PY
-str Cluster::describe() {}
-#endif
 shcore::Value Cluster::describe(const shcore::Argument_list &args) {
   shcore::Value ret_val;
   _json_mode = JSON_TOPOLOGY_OUTPUT;
@@ -415,14 +438,26 @@ shcore::Value Cluster::describe(const shcore::Argument_list &args) {
   return ret_val;
 }
 
+REGISTER_HELP(CLUSTER_STATUS_BRIEF, "Describe the status of the cluster.");
+REGISTER_HELP(CLUSTER_STATUS_RETURN, "@return A formatted JSON describing the status of the cluster.");
+REGISTER_HELP(CLUSTER_STATUS_DETAIL, "This function describes the status of the cluster including its ReplicaSets and Instances. ");
+
+/**
+* $(CLUSTER_STATUS_BRIEF)
+*
+* $(CLUSTER_STATUS_RETURN)
+*
+* $(CLUSTER_STATUS_DETAIL)
+*/
+#if DOXYGEN_JS
+String status() {}
+#elif DOXYGEN_PY
+str status() {}
+#endif
+
 /**
 * Returns a formatted JSON describing the status of the Cluster
 */
-#if DOXYGEN_JS
-String Cluster::status() {}
-#elif DOXYGEN_PY
-str Cluster::status() {}
-#endif
 shcore::Value Cluster::status(const shcore::Argument_list &args) {
   shcore::Value ret_val;
   _json_mode = JSON_STATUS_OUTPUT;
@@ -433,6 +468,27 @@ shcore::Value Cluster::status(const shcore::Argument_list &args) {
   return ret_val;
 }
 
+REGISTER_HELP(CLUSTER_DISSOLVE_BRIEF, "Describe the status of the cluster.");
+REGISTER_HELP(CLUSTER_DISSOLVE_PARAM, "@param options Optional parameter to specify if it should deactivate replication and unregister the ReplicaSets from the cluster.");
+REGISTER_HELP(CLUSTER_DISSOLVE_DETAIL, "This function disables replication on the ReplicaSets, unregisters them and the the cluster from the metadata. ");
+REGISTER_HELP(CLUSTER_DISSOLVE_DETAIL1, "It keeps all the user's data intact.");
+REGISTER_HELP(CLUSTER_DISSOLVE_DETAIL2, "The following is the only option supported:");
+REGISTER_HELP(CLUSTER_DISSOLVE_DETAIL3, "@li force: boolean, confirms that the dissolve operation must be executed.");
+
+/**
+* $(CLUSTER_DISSOLVE_BRIEF)
+*
+* $(CLUSTER_DISSOLVE_PARAM)
+*
+* $(CLUSTER_DISSOLVE_DETAIL)
+* $(CLUSTER_DISSOLVE_DETAIL1)
+*/
+#if DOXYGEN_JS
+Undefined dissolve(Document doc) {}
+#elif DOXYGEN_PY
+None dissolve(Document doc) {}
+#endif
+
 /**
  * Unregisters the cluster from the metadata, disable replication.
  * Keeps user data intact.
@@ -440,12 +496,6 @@ shcore::Value Cluster::status(const shcore::Argument_list &args) {
  * \return nothing.
  * \sa Cluster
  */
-#if DOXYGEN_JS
-Undefined Cluster::dissolve(Document doc) {}
-#elif DOXYGEN_PY
-None Cluster::dissolve(Document doc) {}
-#endif
-
 shcore::Value Cluster::dissolve(const shcore::Argument_list &args) {
   args.ensure_count(0, 1, get_function_name("dissolve").c_str());
 
