@@ -60,32 +60,37 @@
 
 using namespace shcore;
 
-BaseToken::BaseToken(const std::string& type, const std::string& text, int cur_pos) : _type(type), _text(text), _pos(cur_pos)
-{
-}
+BaseToken::BaseToken(const std::string& type, const std::string& text, int cur_pos) : _type(type), _text(text), _pos(cur_pos) {}
 
-BaseTokenizer::BaseTokenizer() : _allow_spaces(true)
-{
+BaseTokenizer::BaseTokenizer() : _allow_spaces(true) {
   _pos = 0;
   _parent_offset = 0;
 }
 
-void BaseTokenizer::process(const std::string& input, size_t offset)
-{
-  _parent_offset = offset;
-  _pos = 0;
-  _input = input;
-
-  get_tokens();
+void BaseTokenizer::reset() {
+  _base_tokens.clear();
+  _custom_tokens.clear();
+  _token_sequences.clear();
+  _token_vectors.clear();
+  _token_functions.clear();
+  _final_type.clear();
+  _final_group.clear();
 }
 
-bool BaseTokenizer::next_char_is(tokens_t::size_type i, int tok)
-{
+void BaseTokenizer::process(const std::pair<size_t, size_t> range) {
+  _parent_offset = 0;
+  _pos = 0;
+
+  _tokens.clear();
+
+  get_tokens(range.first, range.second);
+}
+
+bool BaseTokenizer::next_char_is(tokens_t::size_type i, int tok) {
   return (i + 1) < _input.size() && _input[i + 1] == tok;
 }
 
-void BaseTokenizer::assert_cur_token(const std::string& type)
-{
+void BaseTokenizer::assert_cur_token(const std::string& type) {
   assert_tok_position();
   const BaseToken& tok = _tokens.at(_pos);
   std::string tok_type = tok.get_type();
@@ -93,128 +98,102 @@ void BaseTokenizer::assert_cur_token(const std::string& type)
     throw std::runtime_error((boost::format("Expected token type %1% at position %2% but found type %3% (%4%)") % type % tok.get_pos() % tok_type % tok.get_text()).str());
 }
 
-bool BaseTokenizer::cur_token_type_is(const std::string& type)
-{
+bool BaseTokenizer::cur_token_type_is(const std::string& type) {
   return pos_token_type_is(_pos, type);
 }
 
-bool BaseTokenizer::next_token_type(const std::string& type, size_t pos)
-{
+bool BaseTokenizer::next_token_type(const std::string& type, size_t pos) {
   return pos_token_type_is(_pos + pos, type);
 }
 
-bool BaseTokenizer::pos_token_type_is(tokens_t::size_type pos, const std::string& type)
-{
+bool BaseTokenizer::pos_token_type_is(tokens_t::size_type pos, const std::string& type) {
   return (pos < _tokens.size()) && (_tokens[pos].get_type() == type);
 }
 
-const std::string& BaseTokenizer::consume_token(const std::string& type)
-{
+const std::string& BaseTokenizer::consume_token(const std::string& type) {
   assert_cur_token(type);
   const std::string& v = _tokens[_pos++].get_text();
   return v;
 }
 
-const BaseToken& BaseTokenizer::peek_token()
-{
+const BaseToken& BaseTokenizer::peek_token() {
   assert_tok_position();
   BaseToken& t = _tokens[_pos];
   return t;
 }
 
-const BaseToken* BaseTokenizer::peek_last_token()
-{
+const BaseToken* BaseTokenizer::peek_last_token() {
   return _tokens.size() ? &_tokens[_tokens.size() - 1] : nullptr;
 }
 
-void BaseTokenizer::unget_token()
-{
+void BaseTokenizer::unget_token() {
   if (_pos == 0)
     throw std::runtime_error("Attempt to get back a token when already at first token (position 0).");
   --_pos;
 }
 
-void BaseTokenizer::get_tokens()
-{
-  for (size_t i = 0; i < _input.size(); ++i)
-  {
-    if (std::isspace(_input[i]))
-    {
+void BaseTokenizer::get_tokens(size_t start, size_t end) {
+  for (size_t i = start; i <= end; ++i) {
+    if (std::isspace(_input[i])) {
       if (!_allow_spaces)
         throw std::runtime_error((boost::format("Illegal space found at position %1%") % (_parent_offset + i)).str());
 
       continue;
-    }
-    else
-    {
+    } else {
       std::string type(&_input[i], 1);
       if (_base_tokens.find(type) != _base_tokens.end())
         _tokens.push_back(BaseToken(type, _base_tokens[type], i));
-      else
-      {
+      else {
         bool found = false;
-        for (auto token_type : _custom_tokens)
-        {
-          if (_token_functions.find(token_type) != _token_functions.end())
-          {
+        for (auto token_type : _custom_tokens) {
+          if (_token_functions.find(token_type) != _token_functions.end()) {
             std::string text;
             size_t start = i;
-            if (_token_functions[type](_input, i, text))
-            {
+            if (_token_functions[token_type](_input, i, text)) {
               _tokens.push_back(BaseToken(token_type, text, start));
               found = true;
               break;
-            }
-            else
+            } else
               i = start;
           }
 
           // Token sequences are to create a single token with many characters as long as they belong to the given sequence
-          else if (_token_sequences.find(token_type) != _token_sequences.end())
-          {
+          else if (_token_sequences.find(token_type) != _token_sequences.end()) {
             size_t start = i;
 
             while (i < _input.length() && _token_sequences[token_type].find(_input[i]) != std::string::npos)
               i++;
 
             found = i > start;
-            if (found)
-            {
+            if (found) {
               _tokens.push_back(BaseToken(token_type, _input.substr(start, i - start), start));
               i--;
               break;
             }
           }
 
-          else if (_token_vectors.find(token_type) != _token_vectors.end())
-          {
+          else if (_token_vectors.find(token_type) != _token_vectors.end()) {
             std::string text;
             size_t start = i;
-            for (auto item : _token_vectors[token_type])
-            {
-              if (item.find(_input[i]) != std::string::npos)
-              {
+            for (auto item : _token_vectors[token_type]) {
+              if (item.find(_input[i]) != std::string::npos) {
                 text += _input[i];
                 i++;
-              }
-              else
+              } else
                 break;
             }
 
-            if ((i - start) == _token_vectors[token_type].size())
-            {
+            if ((i - start) == _token_vectors[token_type].size()) {
               _tokens.push_back(BaseToken(token_type, text, start));
               found = true;
               i--;
               break;
-            }
-            else
+            } else
               i = start;
           }
         }
 
-        if (_final_group.find(type) != std::string::npos)
-        {
+        if (_final_group.find(type) != std::string::npos) {
           _tokens.push_back(BaseToken(_final_type, _input.substr(i), i));
           found = true;
           break;
@@ -227,67 +206,54 @@ void BaseTokenizer::get_tokens()
   }
 }
 
-void BaseTokenizer::inc_pos_token()
-{
+void BaseTokenizer::inc_pos_token() {
   ++_pos;
 }
 
-const BaseToken& BaseTokenizer::consume_any_token()
-{
+const BaseToken& BaseTokenizer::consume_any_token() {
   assert_tok_position();
   BaseToken& tok = _tokens[_pos];
   ++_pos;
   return tok;
 }
 
-void BaseTokenizer::assert_tok_position()
-{
+void BaseTokenizer::assert_tok_position() {
   if (_pos >= _tokens.size())
     throw std::runtime_error((boost::format("Expected token at position %d but no tokens left.") % _pos).str());
 }
 
-bool BaseTokenizer::tokens_available()
-{
+bool BaseTokenizer::tokens_available() {
   return _pos < _tokens.size();
 }
 
-void BaseTokenizer::set_complex_token(const std::string &type, std::function<bool(const std::string& input, size_t&, std::string&)>function)
-{
-  if (std::find(_custom_tokens.begin(), _custom_tokens.end(), type) == _custom_tokens.end())
-  {
+void BaseTokenizer::set_complex_token(const std::string &type, std::function<bool(const std::string& input, size_t&, std::string&)>function) {
+  if (std::find(_custom_tokens.begin(), _custom_tokens.end(), type) == _custom_tokens.end()) {
     _custom_tokens.push_back(type);
     _token_functions[type] = function;
   }
 }
 
-void BaseTokenizer::set_complex_token(const std::string &type, const std::string& group)
-{
-  if (std::find(_custom_tokens.begin(), _custom_tokens.end(), type) == _custom_tokens.end())
-  {
+void BaseTokenizer::set_complex_token(const std::string &type, const std::string& group) {
+  if (std::find(_custom_tokens.begin(), _custom_tokens.end(), type) == _custom_tokens.end()) {
     _custom_tokens.push_back(type);
     _token_sequences[type] = group;
   }
 }
 
-void BaseTokenizer::set_complex_token(const std::string &type, const std::vector<std::string>& groups)
-{
-  if (std::find(_custom_tokens.begin(), _custom_tokens.end(), type) == _custom_tokens.end())
-  {
+void BaseTokenizer::set_complex_token(const std::string &type, const std::vector<std::string>& groups) {
+  if (std::find(_custom_tokens.begin(), _custom_tokens.end(), type) == _custom_tokens.end()) {
     _custom_tokens.push_back(type);
     _token_vectors[type] = groups;
   }
 }
 
-void BaseTokenizer::remove_complex_token(const std::string& name)
-{
-  if (_token_functions.find(name) != _token_functions.end())
-  {
+void BaseTokenizer::remove_complex_token(const std::string& name) {
+  if (_token_functions.find(name) != _token_functions.end()) {
     _token_functions.erase(name);
     _custom_tokens.erase(std::find(_custom_tokens.begin(), _custom_tokens.end(), name));
   }
 
-  if (_token_vectors.find(name) != _token_vectors.end())
-  {
+  if (_token_vectors.find(name) != _token_vectors.end()) {
     _token_vectors.erase(name);
     _custom_tokens.erase(std::find(_custom_tokens.begin(), _custom_tokens.end(), name));
   }

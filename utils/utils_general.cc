@@ -137,20 +137,40 @@ void parse_mysql_connstring(const std::string &connstring,
                             std::string &db, int &pwd_found, std::string& ssl_ca, std::string& ssl_cert, std::string& ssl_key,
                             bool set_defaults) {
   try {
-    Uri_parser parser;
-    parser.parse(connstring);
+    uri::Uri_parser parser;
+    uri::Uri_data data = parser.parse(connstring);
 
-    scheme = parser.get_scheme();
-    user = parser.get_user();
-    password = parser.get_password();
-    host = parser.get_host();
-    port = parser.get_port();
-    sock = parser.get_socket(); // Not Yet Supported
-    db = parser.get_db();
-    pwd_found = parser.has_password();
-    ssl_ca = parser.get_attribute("ssl_ca");
-    ssl_cert = parser.get_attribute("ssl_cert");
-    ssl_key = parser.get_attribute("ssl_key");
+    scheme = data.get_scheme();
+    user = data.get_user();
+
+    switch (data.get_type()) {
+      case uri::Tcp:
+        host = data.get_host();
+        if (data.has_port())
+          port = data.get_port();
+        break;
+      case uri::Socket:
+        sock = data.get_socket();
+        break;
+      case uri::Pipe:
+        sock = data.get_pipe();
+        break;
+    }
+
+    db = data.get_db();
+
+    pwd_found = data.has_password();
+    if (pwd_found)
+      password = data.get_password();
+
+    if (data.has_attribute("ssl_ca"))
+      ssl_ca = data.get_attribute("ssl_ca");
+
+    if (data.has_attribute("ssl_cert"))
+      ssl_cert = data.get_attribute("ssl_cert");
+
+    if (data.has_attribute("ssl_key"))
+      ssl_key = data.get_attribute("ssl_key");
 
     if (set_defaults) {
       if (user.empty())
@@ -187,21 +207,21 @@ std::string strip_password(const std::string &connstring) {
     const char *tmp = getenv("USER");
     user_part = tmp ? tmp : "";
 #endif
-  } else
-    user_part = s.substr(0, p);
+} else
+user_part = s.substr(0, p);
 
-  if ((p = user_part.find(':')) != std::string::npos) {
-    password = user_part.substr(p + 1);
-    std::string uri_stripped = connstring;
-    std::string::size_type i = uri_stripped.find(":" + password);
-    if (i != std::string::npos)
-      uri_stripped.erase(i, password.length() + 1);
+if ((p = user_part.find(':')) != std::string::npos) {
+  password = user_part.substr(p + 1);
+  std::string uri_stripped = connstring;
+  std::string::size_type i = uri_stripped.find(":" + password);
+  if (i != std::string::npos)
+    uri_stripped.erase(i, password.length() + 1);
 
-    return uri_stripped;
-  }
+  return uri_stripped;
+}
 
-  // no password to strip, return original one
-  return connstring;
+// no password to strip, return original one
+return connstring;
 }
 
 std::string strip_ssl_args(const std::string &connstring) {
@@ -395,7 +415,7 @@ std::string get_system_user() {
   DWORD username_len = UNLEN + 1;
   if (GetUserName(username, &username_len)) {
     ret_val.assign(username);
-  }
+}
 #else
   char username[30];
   if (!getlogin_r(username, sizeof(username)))
