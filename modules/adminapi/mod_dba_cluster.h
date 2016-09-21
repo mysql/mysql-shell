@@ -107,7 +107,7 @@ public:
   Undefined removeInstance(Variant identData);
   String describe();
   String status();
-  Undefined dissolve(Document doc);
+  Undefined dissolve(Document options);
 #elif DOXYGEN_PY
   str name; //!< $(CLUSTER_NAME_BRIEF)
   std admin_type; //!< $(CLUSTER_ADMINTYPE_BRIEF)
@@ -118,7 +118,7 @@ public:
   None remove_instance(variant identData);
   str describe();
   str status();
-  None dissolve(Document doc);
+  None dissolve(Document options);
 #endif
 
 protected:
