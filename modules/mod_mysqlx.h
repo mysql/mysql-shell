@@ -25,25 +25,23 @@
 
 #include "shellcore/module_registry.h"
 
-namespace mysh
-{
-  namespace mysqlx
-  {
-    DECLARE_MODULE(Mysqlx, mysqlx);
+namespace mysh {
+namespace mysqlx {
+DECLARE_MODULE(Mysqlx, mysqlx);
 
-    DECLARE_FUNCTION(get_session);
-    DECLARE_FUNCTION(get_node_session);
-    DECLARE_FUNCTION(expr);
-    DECLARE_FUNCTION(date_value);
+DECLARE_FUNCTION(get_session);
+DECLARE_FUNCTION(get_node_session);
+DECLARE_FUNCTION(expr);
+DECLARE_FUNCTION(date_value);
 
-    virtual shcore::Value get_member(const std::string &prop) const;
+virtual shcore::Value get_member(const std::string &prop) const;
 
-  private:
-    shcore::Object_bridge_ref _type;
-    shcore::Object_bridge_ref _index_type;
+private:
+  shcore::Object_bridge_ref _type;
+  shcore::Object_bridge_ref _index_type;
 
-    END_DECLARE_MODULE();
-  }
+  END_DECLARE_MODULE();
+}
 }
 
 #endif

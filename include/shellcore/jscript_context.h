@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2015, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2016, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -27,41 +27,39 @@
 #include "shellcore/types.h"
 #include "shellcore/ishell_core.h"
 
-namespace shcore
-{
-  struct Interpreter_delegate;
-  class Object_registry;
+namespace shcore {
+struct Interpreter_delegate;
+class Object_registry;
 
-  class SHCORE_PUBLIC JScript_context
-  {
-  public:
-    JScript_context(Object_registry *registry, Interpreter_delegate *deleg);
-    ~JScript_context();
+class SHCORE_PUBLIC JScript_context {
+public:
+  JScript_context(Object_registry *registry, Interpreter_delegate *deleg);
+  ~JScript_context();
 
-    Value execute(const std::string &code, const std::string& source = "") throw (Exception);
-    Value execute_interactive(const std::string &code, Interactive_input_state& r_state) BOOST_NOEXCEPT_OR_NOTHROW;
+  Value execute(const std::string &code, const std::string& source = "") throw (Exception);
+  Value execute_interactive(const std::string &code, Interactive_input_state& r_state) BOOST_NOEXCEPT_OR_NOTHROW;
 
-    v8::Isolate *isolate() const;
-    v8::Handle<v8::Context> context() const;
+  v8::Isolate *isolate() const;
+  v8::Handle<v8::Context> context() const;
 
-    Value v8_value_to_shcore_value(const v8::Handle<v8::Value> &value);
-    v8::Handle<v8::Value> shcore_value_to_v8_value(const Value &value);
-    Argument_list convert_args(const v8::FunctionCallbackInfo<v8::Value>& args);
+  Value v8_value_to_shcore_value(const v8::Handle<v8::Value> &value);
+  v8::Handle<v8::Value> shcore_value_to_v8_value(const Value &value);
+  Argument_list convert_args(const v8::FunctionCallbackInfo<v8::Value>& args);
 
-    void set_global(const std::string &name, const Value &value);
-    Value get_global(const std::string &name);
+  void set_global(const std::string &name, const Value &value);
+  Value get_global(const std::string &name);
 
-    void set_global_item(const std::string& global_name, const std::string& item_name, const Value &value);
+  void set_global_item(const std::string& global_name, const std::string& item_name, const Value &value);
 
-  private:
-    struct JScript_context_impl;
-    JScript_context_impl *_impl;
+private:
+  struct JScript_context_impl;
+  JScript_context_impl *_impl;
 
-    Object_registry *_registry;
+  Object_registry *_registry;
 
-    Value get_v8_exception_data(v8::TryCatch *exc);
-    std::string format_exception(const shcore::Value &exc);
-  };
+  Value get_v8_exception_data(v8::TryCatch *exc);
+  std::string format_exception(const shcore::Value &exc);
+};
 };
 
 #endif

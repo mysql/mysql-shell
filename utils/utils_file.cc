@@ -158,8 +158,7 @@ std::string get_binary_folder() {
   char path[PATH_MAX];
   char real_path[PATH_MAX];
   uint32_t buffsize = sizeof(path);
-  if (!_NSGetExecutablePath(path, &buffsize))
-  {
+  if (!_NSGetExecutablePath(path, &buffsize)) {
     // _NSGetExecutablePath may return tricky constructs on paths
     // like symbolic links or things like i.e /path/to/./mysqlsh
     // we need to normalize that
@@ -167,8 +166,7 @@ std::string get_binary_folder() {
       exe_path.assign(real_path);
     else
       throw std::runtime_error((boost::format("get_binary_folder: Readlink failed with error %1%\n") % errno).str());
-  }
-  else
+  } else
     throw std::runtime_error("get_binary_folder: _NSGetExecutablePath failed.\n");
 
 #else
@@ -271,8 +269,7 @@ bool is_folder(const std::string& path) {
 #else
   const char *dir_path = path.c_str();
   DIR* dir = opendir(dir_path);
-  if (dir)
-  {
+  if (dir) {
     /* Directory exists. */
     closedir(dir);
 
@@ -299,19 +296,14 @@ void ensure_dir_exists(const std::string& path) {
   }
 #else
   DIR* dir = opendir(dir_path);
-  if (dir)
-  {
+  if (dir) {
     /* Directory exists. */
     closedir(dir);
-  }
-  else if (ENOENT == errno)
-  {
+  } else if (ENOENT == errno) {
     /* Directory does not exist. */
     if (mkdir(dir_path, 0700) != 0)
       throw std::runtime_error((boost::format("Error when verifying dir %s exists: %s") % dir_path % shcore::get_last_error()).str());
-  }
-  else
-  {
+  } else {
     throw std::runtime_error((boost::format("Error when verifying dir %s exists: %s") % dir_path % shcore::get_last_error()).str());
   }
 #endif

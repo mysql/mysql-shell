@@ -242,8 +242,7 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
 }
 
 void Shell_command_line_options::override_session_type(mysh::SessionType new_type, const std::string& option, char* value) {
-  auto get_session_type = [](mysh::SessionType type)
-  {
+  auto get_session_type = [](mysh::SessionType type) {
     std::string label;
     switch (type) {
       case mysh::Application:

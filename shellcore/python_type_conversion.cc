@@ -26,17 +26,11 @@
 using namespace shcore;
 
 Python_type_bridger::Python_type_bridger(Python_context *context)
-  : _owner(context)
-{
-}
+  : _owner(context) {}
 
-Python_type_bridger::~Python_type_bridger()
-{
-}
+Python_type_bridger::~Python_type_bridger() {}
 
-void Python_type_bridger::init()
-{
-}
+void Python_type_bridger::init() {}
 
 /* TODO:
 PyObject *Python_type_bridger::native_object_to_py(Object_bridge_ref object)
@@ -44,8 +38,7 @@ PyObject *Python_type_bridger::native_object_to_py(Object_bridge_ref object)
 }
 */
 
-Value Python_type_bridger::pyobj_to_shcore_value(PyObject *py) const
-{
+Value Python_type_bridger::pyobj_to_shcore_value(PyObject *py) const {
   // Some conversions yield errors, in that case a temporary result is assigned to retval and check_err is set
   bool check_err = false;
   Value retval;
@@ -56,91 +49,68 @@ Value Python_type_bridger::pyobj_to_shcore_value(PyObject *py) const
     return Value(false);
   else if (py == Py_True)
     return Value(true);
-  else if (PyInt_Check(py))
-  {
+  else if (PyInt_Check(py)) {
     long value = PyInt_AsLong(py);
     if (value == -1)
       check_err = true;
     retval = Value((int64_t)value);
-  }
-  else if (PyLong_Check(py))
-  {
+  } else if (PyLong_Check(py)) {
     long value = PyLong_AsLong(py);
     if (value == -1)
       check_err = true;
     retval = Value((int64_t)value);
-  }
-  else if (PyFloat_Check(py))
-  {
+  } else if (PyFloat_Check(py)) {
     double value = PyFloat_AsDouble(py);
     if (value == -1.0)
       check_err = true;
     retval = Value(value);
 #if PY_VERSION_HEX >= 0x2060000
-  }
-  else if (PyByteArray_Check(py))
+  } else if (PyByteArray_Check(py))
     return Value(PyByteArray_AsString(py), PyByteArray_Size(py));
 #endif
   else if (PyString_Check(py))
     return Value(PyString_AsString(py), PyString_Size(py));
-  else if (PyUnicode_Check(py))
-  {
+  else if (PyUnicode_Check(py)) {
     // TODO: In case of error calls ourself using NULL, either handle here before calling
     // recursively or always allow NULL
     PyObject *ref = PyUnicode_AsUTF8String(py);
     retval = pyobj_to_shcore_value(ref);
     Py_DECREF(ref);
   }  // } TODO: else if (Buffer/MemoryView || Tuple || DateTime || generic_object) {
-  else if (PyList_Check(py))
-  {
+  else if (PyList_Check(py)) {
     std::shared_ptr<Value::Array_type> array(new Value::Array_type);
 
-    for (Py_ssize_t c = PyList_Size(py), i = 0; i < c; i++)
-    {
+    for (Py_ssize_t c = PyList_Size(py), i = 0; i < c; i++) {
       PyObject *item = PyList_GetItem(py, i);
       array->push_back(pyobj_to_shcore_value(item));
     }
     return Value(array);
-  }
-  else if (PyDict_Check(py))
-  {
+  } else if (PyDict_Check(py)) {
     std::shared_ptr<Value::Map_type> map(new Value::Map_type);
 
     PyObject *key, *value;
     Py_ssize_t pos = 0;
 
-    while (PyDict_Next(py, &pos, &key, &value))
-    {
+    while (PyDict_Next(py, &pos, &key, &value)) {
       (*map)[PyString_AsString(key)] = pyobj_to_shcore_value(value);
     }
 
     return Value(map);
-  }
-  else
-  {
+  } else {
     std::shared_ptr<Value::Array_type> array;
     std::shared_ptr<Value::Map_type> map;
     std::shared_ptr<Object_bridge> object;
     std::shared_ptr<Function_base> function;
 
-    if (unwrap(py, array))
-    {
+    if (unwrap(py, array)) {
       return Value(array);
-    }
-    else if (unwrap(py, map))
-    {
+    } else if (unwrap(py, map)) {
       return Value(map);
-    }
-    else if (unwrap(py, object))
-    {
+    } else if (unwrap(py, object)) {
       return Value(object);
-    }
-    else if (unwrap(py, function))
-    {
+    } else if (unwrap(py, function)) {
       return Value(function);
-    }
-    else
-    {
+    } else {
       PyObject *obj_repr = PyObject_Repr(py);
       const char *s = PyString_AsString(obj_repr);
       Value ret_val;
@@ -157,11 +127,9 @@ Value Python_type_bridger::pyobj_to_shcore_value(PyObject *py) const
     }
   }
 
-  if (check_err)
-  {
+  if (check_err) {
     PyObject *pyerror = PyErr_Occurred();
-    if (pyerror)
-    {
+    if (pyerror) {
       // TODO: PyErr_Clean();
       throw Exception::argument_error("Error converting return value");
     }
@@ -169,11 +137,9 @@ Value Python_type_bridger::pyobj_to_shcore_value(PyObject *py) const
   return retval;
 }
 
-PyObject *Python_type_bridger::shcore_value_to_pyobj(const Value &value)
-{
+PyObject *Python_type_bridger::shcore_value_to_pyobj(const Value &value) {
   PyObject *r;
-  switch (value.type)
-  {
+  switch (value.type) {
     case Undefined:
       Py_INCREF(Py_None);
       r = Py_None;

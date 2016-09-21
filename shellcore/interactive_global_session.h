@@ -25,20 +25,18 @@
 
 #include "interactive_object_wrapper.h"
 
-namespace shcore
-{
-  //! Interactive wrapper for the global session
-  class SHCORE_PUBLIC Global_session : public Interactive_object_wrapper
-  {
-  public:
-    Global_session(Shell_core& shell_core) : Interactive_object_wrapper("session", shell_core){ init(); }
+namespace shcore {
+//! Interactive wrapper for the global session
+class SHCORE_PUBLIC Global_session : public Interactive_object_wrapper {
+public:
+  Global_session(Shell_core& shell_core) : Interactive_object_wrapper("session", shell_core) { init(); }
 
-    void init();
-    virtual void resolve() const;
+  void init();
+  virtual void resolve() const;
 
-    shcore::Value get_schema(const shcore::Argument_list &args);
-    shcore::Value is_open(const shcore::Argument_list &args);
-  };
+  shcore::Value get_schema(const shcore::Argument_list &args);
+  shcore::Value is_open(const shcore::Argument_list &args);
+};
 }
 
 #endif

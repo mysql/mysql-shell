@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2016, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -27,9 +27,7 @@
 #include "shellcore/include_v8.h"
 
 namespace shcore {
-
-class SHCORE_PUBLIC JScript_function : public Function_base
-{
+class SHCORE_PUBLIC JScript_function : public Function_base {
 public:
   JScript_function(std::shared_ptr<JScript_context> context);
   virtual ~JScript_function() {}
@@ -50,8 +48,6 @@ private:
   std::shared_ptr<JScript_context> _js;
   v8::Handle<v8::Function> _jsfunc;
 };
-
-
 };
 
 #endif

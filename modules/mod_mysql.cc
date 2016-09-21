@@ -23,13 +23,11 @@
 using namespace std::placeholders;
 using namespace mysh::mysql;
 
-REGISTER_MODULE(Mysql, mysql)
-{
+REGISTER_MODULE(Mysql, mysql) {
   REGISTER_VARARGS_FUNCTION(Mysql, get_classic_session, getClassicSession);
 }
 
-DEFINE_FUNCTION(Mysql, get_classic_session)
-{
+DEFINE_FUNCTION(Mysql, get_classic_session) {
   auto session = connect_session(args, mysh::Classic);
   return shcore::Value(std::dynamic_pointer_cast<shcore::Object_bridge>(session));
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2016, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -34,20 +34,17 @@ using namespace shcore;
 
 Collection::Collection(std::shared_ptr<Schema> owner, const std::string &name)
   : DatabaseObject(owner->_session.lock(), std::static_pointer_cast<DatabaseObject>(owner), name),
-  _collection_impl(owner->_schema_impl->getCollection(name))
-{
+  _collection_impl(owner->_schema_impl->getCollection(name)) {
   init();
 }
 
 Collection::Collection(std::shared_ptr<const Schema> owner, const std::string &name) :
-DatabaseObject(owner->_session.lock(), std::const_pointer_cast<Schema>(owner), name)
-{
+DatabaseObject(owner->_session.lock(), std::const_pointer_cast<Schema>(owner), name) {
   _collection_impl = owner->_schema_impl->getCollection(name);
   init();
 }
 
-void Collection::init()
-{
+void Collection::init() {
   add_method("add", std::bind(&Collection::add_, this, _1), "searchCriteria", shcore::String, NULL);
   add_method("modify", std::bind(&Collection::modify_, this, _1), "searchCriteria", shcore::String, NULL);
   add_method("find", std::bind(&Collection::find_, this, _1), "searchCriteria", shcore::String, NULL);
@@ -56,9 +53,7 @@ void Collection::init()
   add_method("dropIndex", std::bind(&Collection::drop_index_, this, _1), "searchCriteria", shcore::String, NULL);
 }
 
-Collection::~Collection()
-{
-}
+Collection::~Collection() {}
 
 #if DOXYGEN_CPP
 /**
@@ -96,9 +91,9 @@ Collection::~Collection()
 * \sa CollectionAdd
 */
 #if DOXYGEN_JS
-CollectionAdd Collection::add(Document document){}
+CollectionAdd Collection::add(Document document) {}
 #elif DOXYGEN_PY
-CollectionAdd Collection::add(Document document){}
+CollectionAdd Collection::add(Document document) {}
 #endif
 
 /**
@@ -117,13 +112,12 @@ CollectionAdd Collection::add(Document document){}
 * \sa CollectionAdd
 */
 #if DOXYGEN_JS
-CollectionAdd Collection::add(List documents){}
+CollectionAdd Collection::add(List documents) {}
 #elif DOXYGEN_PY
-CollectionAdd Collection::add(list documents){}
+CollectionAdd Collection::add(list documents) {}
 #endif
 #endif
-shcore::Value Collection::add_(const shcore::Argument_list &args)
-{
+shcore::Value Collection::add_(const shcore::Argument_list &args) {
   std::shared_ptr<CollectionAdd> collectionAdd(new CollectionAdd(shared_from_this()));
 
   return collectionAdd->add(args);
@@ -147,12 +141,11 @@ shcore::Value Collection::add_(const shcore::Argument_list &args)
 * \sa CollectionModify
 */
 #if DOXYGEN_JS
-CollectionModify Collection::modify(String searchCondition){}
+CollectionModify Collection::modify(String searchCondition) {}
 #elif DOXYGEN_PY
-CollectionModify Collection::modify(str searchCondition){}
+CollectionModify Collection::modify(str searchCondition) {}
 #endif
-shcore::Value Collection::modify_(const shcore::Argument_list &args)
-{
+shcore::Value Collection::modify_(const shcore::Argument_list &args) {
   std::shared_ptr<CollectionModify> collectionModify(new CollectionModify(shared_from_this()));
 
   return collectionModify->modify(args);
@@ -176,12 +169,11 @@ shcore::Value Collection::modify_(const shcore::Argument_list &args)
 * \sa CollectionRemove
 */
 #if DOXYGEN_JS
-CollectionRemove Collection::remove(String searchCondition){}
+CollectionRemove Collection::remove(String searchCondition) {}
 #elif DOXYGEN_PY
-CollectionRemove Collection::remove(str searchCondition){}
+CollectionRemove Collection::remove(str searchCondition) {}
 #endif
-shcore::Value Collection::remove_(const shcore::Argument_list &args)
-{
+shcore::Value Collection::remove_(const shcore::Argument_list &args) {
   std::shared_ptr<CollectionRemove> collectionRemove(new CollectionRemove(shared_from_this()));
 
   return collectionRemove->remove(args);
@@ -205,12 +197,11 @@ shcore::Value Collection::remove_(const shcore::Argument_list &args)
 * \sa CollectionFind
 */
 #if DOXYGEN_JS
-CollectionFind Collection::find(String searchCriteria){}
+CollectionFind Collection::find(String searchCriteria) {}
 #elif DOXYGEN_PY
-CollectionFind Collection::find(str searchCriteria){}
+CollectionFind Collection::find(str searchCriteria) {}
 #endif
-shcore::Value Collection::find_(const shcore::Argument_list &args)
-{
+shcore::Value Collection::find_(const shcore::Argument_list &args) {
   std::shared_ptr<CollectionFind> collectionFind(new CollectionFind(shared_from_this()));
 
   return collectionFind->find(args);
@@ -247,9 +238,9 @@ shcore::Value Collection::find_(const shcore::Argument_list &args)
 * \sa CollectionCreateIndex
 */
 #if DOXYGEN_JS
-CollectionCreateIndex Collection::createIndex(String name){}
+CollectionCreateIndex Collection::createIndex(String name) {}
 #elif DOXYGEN_PY
-CollectionCreateIndex Collection::create_index(str name){}
+CollectionCreateIndex Collection::create_index(str name) {}
 #endif
 
 /**
@@ -269,14 +260,13 @@ CollectionCreateIndex Collection::create_index(str name){}
 * \sa CollectionCreateIndex
 */
 #if DOXYGEN_JS
-CollectionCreateIndex Collection::createIndex(String name, IndexType type){}
+CollectionCreateIndex Collection::createIndex(String name, IndexType type) {}
 #elif DOXYGEN_PY
-CollectionCreateIndex Collection::create_index(str name, IndexType type){}
+CollectionCreateIndex Collection::create_index(str name, IndexType type) {}
 #endif
 #endif
 
-shcore::Value Collection::create_index_(const shcore::Argument_list &args)
-{
+shcore::Value Collection::create_index_(const shcore::Argument_list &args) {
   std::shared_ptr<CollectionCreateIndex> createIndex(new CollectionCreateIndex(shared_from_this()));
 
   auto ss = createIndex->set_scoped_naming_style(naming_style);
@@ -300,12 +290,11 @@ shcore::Value Collection::create_index_(const shcore::Argument_list &args)
 * \sa CollectionDropIndex
 */
 #if DOXYGEN_JS
-CollectionDropIndex Collection::dropIndex(String name){}
+CollectionDropIndex Collection::dropIndex(String name) {}
 #elif DOXYGEN_PY
-CollectionDropIndex Collection::drop_index(str name){}
+CollectionDropIndex Collection::drop_index(str name) {}
 #endif
-shcore::Value Collection::drop_index_(const shcore::Argument_list &args)
-{
+shcore::Value Collection::drop_index_(const shcore::Argument_list &args) {
   std::shared_ptr<CollectionDropIndex> dropIndex(new CollectionDropIndex(shared_from_this()));
 
   return dropIndex->drop_index(args);

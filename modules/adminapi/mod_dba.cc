@@ -41,8 +41,8 @@ using namespace shcore;
 
 #define PASSWORD_LENGHT 16
 
-std::set<std::string> Dba::_deploy_instance_opts = { "portx", "sandboxDir", "password", "dbPassword" };
-std::set<std::string> Dba::_validate_instance_opts = { "host", "port", "user", "dbUser", "password", "dbPassword", "socket", "ssl_ca", "ssl_cert", "ssl_key", "ssl_key" };
+std::set<std::string> Dba::_deploy_instance_opts = {"portx", "sandboxDir", "password", "dbPassword"};
+std::set<std::string> Dba::_validate_instance_opts = {"host", "port", "user", "dbUser", "password", "dbPassword", "socket", "ssl_ca", "ssl_cert", "ssl_key", "ssl_key"};
 
 // Documentation of the DBA Class
 REGISTER_HELP(DBA_BRIEF, "Allows performing DBA operations using the MySQL Admin API.");
@@ -191,7 +191,7 @@ shcore::Value Dba::get_cluster(const shcore::Argument_list &args) const {
     // Validates the options for invalid and missing required attributes
     if (options) {
       // Verification of invalid attributes on the instance creation options
-      auto invalids = shcore::get_additional_keys(options, { "masterKey" });
+      auto invalids = shcore::get_additional_keys(options, {"masterKey"});
       if (invalids.size()) {
         std::string error = "The instance options contain the following invalid attributes: ";
         error += shcore::join_strings(invalids, ", ");
@@ -199,7 +199,7 @@ shcore::Value Dba::get_cluster(const shcore::Argument_list &args) const {
       }
 
       // Verification of required attributes on the instance deployment data
-      auto missing = shcore::get_missing_keys(options, { "masterKey" });
+      auto missing = shcore::get_missing_keys(options, {"masterKey"});
 
       if (missing.size())
         throw shcore::Exception::argument_error("Missing the administrative MASTER key for the cluster");
@@ -303,7 +303,7 @@ shcore::Value Dba::create_cluster(const shcore::Argument_list &args) {
       shcore::Value::Map_type_ref options = args.map_at(2);
 
       // Verification of invalid attributes on the instance creation options
-      auto invalids = shcore::get_additional_keys(options, { "clusterAdminType", "multiMaster" });
+      auto invalids = shcore::get_additional_keys(options, {"clusterAdminType", "multiMaster"});
       if (invalids.size()) {
         std::string error = "The instance options contain the following invalid attributes: ";
         error += shcore::join_strings(invalids, ", ");
@@ -547,7 +547,7 @@ shcore::Value Dba::validate_instance(const shcore::Argument_list &args) {
     }
 
     // Verification of required attributes on the connection data
-    auto missing = shcore::get_missing_keys(options, { "host", "password|dbPassword", "port", "user|dbUser" });
+    auto missing = shcore::get_missing_keys(options, {"host", "password|dbPassword", "port", "user|dbUser"});
     if (missing.find("password") != missing.end() && args.size() == 2)
       missing.erase("password");
 
@@ -619,7 +619,7 @@ shcore::Value Dba::exec_instance_op(const std::string &function, const shcore::A
 
     if (function == "deploy") {
       // Verification of required attributes on the instance deployment data
-      auto missing = shcore::get_missing_keys(options, { "password|dbPassword" });
+      auto missing = shcore::get_missing_keys(options, {"password|dbPassword"});
 
       if (missing.size())
         throw shcore::Exception::argument_error("Missing root password for the deployed instance");

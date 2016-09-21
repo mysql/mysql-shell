@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2016, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -27,41 +27,38 @@
 #include "shellcore/types.h"
 #include "shellcore/types_cpp.h"
 
-namespace mysh
-{
-  namespace mysql
-  {
-    class ClassicSchema;
+namespace mysh {
+namespace mysql {
+class ClassicSchema;
 
-    /**
-    * Represents a ClassicTable on an ClassicSchema, retrieved with a session created using the MySQL Protocol.
-    */
-    class ClassicTable : public DatabaseObject
-    {
-    public:
-      ClassicTable(std::shared_ptr<ClassicSchema> owner, const std::string &name, bool is_view = false);
-      ClassicTable(std::shared_ptr<const ClassicSchema> owner, const std::string &name, bool is_view = false);
-      virtual ~ClassicTable();
+/**
+* Represents a ClassicTable on an ClassicSchema, retrieved with a session created using the MySQL Protocol.
+*/
+class ClassicTable : public DatabaseObject {
+public:
+  ClassicTable(std::shared_ptr<ClassicSchema> owner, const std::string &name, bool is_view = false);
+  ClassicTable(std::shared_ptr<const ClassicSchema> owner, const std::string &name, bool is_view = false);
+  virtual ~ClassicTable();
 
-      virtual std::string class_name() const { return "ClassicTable"; }
-      bool is_view() const { return _is_view; }
+  virtual std::string class_name() const { return "ClassicTable"; }
+  bool is_view() const { return _is_view; }
 
-      virtual std::string get_object_type() { return _is_view ? "View" : "Table"; }
+  virtual std::string get_object_type() { return _is_view ? "View" : "Table"; }
 
-      shcore::Value is_view_(const shcore::Argument_list &args);
+  shcore::Value is_view_(const shcore::Argument_list &args);
 
 #if DOXYGEN_JS
-      Bool isView();
+  Bool isView();
 #elif DOXYGEN_PY
-      bool is_view();
+  bool is_view();
 #endif
 
-    private:
-      bool _is_view;
+private:
+  bool _is_view;
 
-      void init();
-    };
-  }
+  void init();
+};
+}
 }
 
 #endif

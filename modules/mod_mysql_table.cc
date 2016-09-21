@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2016, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -26,23 +26,18 @@ using namespace mysh::mysql;
 using namespace shcore;
 
 ClassicTable::ClassicTable(std::shared_ptr<ClassicSchema> owner, const std::string &name, bool is_view)
-  : DatabaseObject(owner->_session.lock(), std::static_pointer_cast<DatabaseObject>(owner), name), _is_view(is_view)
-{
+  : DatabaseObject(owner->_session.lock(), std::static_pointer_cast<DatabaseObject>(owner), name), _is_view(is_view) {
   init();
 }
 
 ClassicTable::ClassicTable(std::shared_ptr<const ClassicSchema> owner, const std::string &name, bool is_view)
-  : DatabaseObject(owner->_session.lock(), std::const_pointer_cast<ClassicSchema>(owner), name), _is_view(is_view)
-{
+  : DatabaseObject(owner->_session.lock(), std::const_pointer_cast<ClassicSchema>(owner), name), _is_view(is_view) {
   init();
 }
 
-ClassicTable::~ClassicTable()
-{
-}
+ClassicTable::~ClassicTable() {}
 
-void ClassicTable::init()
-{
+void ClassicTable::init() {
   add_method("isView", std::bind(&ClassicTable::is_view_, this, _1), NULL);
 }
 
@@ -51,12 +46,11 @@ void ClassicTable::init()
 * \return True if the Table represents a View on the database, False if represents a Table.
 */
 #if DOXYGEN_JS
-Bool ClassicTable::isView(){}
+Bool ClassicTable::isView() {}
 #elif DOXYGEN_PY
-bool ClassicTable::is_view(){}
+bool ClassicTable::is_view() {}
 #endif
-shcore::Value ClassicTable::is_view_(const shcore::Argument_list &args)
-{
+shcore::Value ClassicTable::is_view_(const shcore::Argument_list &args) {
   args.ensure_count(0, get_function_name("isView").c_str());
 
   return Value(_is_view);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2016, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -35,23 +35,20 @@
 
 using namespace shcore;
 
-static void method_dealloc(PyShFuncObject *self)
-{
+static void method_dealloc(PyShFuncObject *self) {
   delete self->func;
 
   self->ob_type->tp_free(self);
 }
 
-static PyObject *method_call(PyShFuncObject *self, PyObject *args, PyObject *kw)
-{
+static PyObject *method_call(PyShFuncObject *self, PyObject *args, PyObject *kw) {
   Python_context *ctx = Python_context::get_and_check();
   if (!ctx)
     return NULL;
 
   std::shared_ptr<Function_base> func(*self->func);
 
-  if (!func->has_var_args() && func->signature().size() != (size_t)PyTuple_Size(args))
-  {
+  if (!func->has_var_args() && func->signature().size() != (size_t)PyTuple_Size(args)) {
     std::shared_ptr<Cpp_function> cfunc(std::static_pointer_cast<Cpp_function>(func));
     std::stringstream err;
     err << cfunc->name(shcore::LowerCaseUnderscores).c_str() << "()" <<
@@ -67,27 +64,21 @@ static PyObject *method_call(PyShFuncObject *self, PyObject *args, PyObject *kw)
 
   if (kw)
     r.push_back(ctx->pyobj_to_shcore_value(kw));
-  else if (args)
-  {
-    for (size_t c = (size_t)PyTuple_Size(args), i = 0; i < c; i++)
-    {
+  else if (args) {
+    for (size_t c = (size_t)PyTuple_Size(args), i = 0; i < c; i++) {
       PyObject *argval = PyTuple_GetItem(args, i);
 
-      try
-      {
+      try {
         Value v = ctx->pyobj_to_shcore_value(argval);
         r.push_back(v);
-      }
-      catch (std::exception &exc)
-      {
+      } catch (std::exception &exc) {
         Python_context::set_python_error(exc);
         return NULL;
       }
     }
   }
 
-  try
-  {
+  try {
     Value result;
     {
       WillLeavePython lock;
@@ -95,9 +86,7 @@ static PyObject *method_call(PyShFuncObject *self, PyObject *args, PyObject *kw)
       result = func->invoke(r);
     }
     return ctx->shcore_value_to_pyobj(result);
-  }
-  catch (std::exception &exc)
-  {
+  } catch (std::exception &exc) {
     Python_context::set_python_error(exc);
     return NULL;
   }
@@ -187,11 +176,9 @@ static PyTypeObject PyShFuncObjectType =
 #endif
 };
 
-void Python_context::init_shell_function_type()
-{
+void Python_context::init_shell_function_type() {
   PyShFuncObjectType.tp_new = PyType_GenericNew;
-  if (PyType_Ready(&PyShFuncObjectType) < 0)
-  {
+  if (PyType_Ready(&PyShFuncObjectType) < 0) {
     throw std::runtime_error("Could not initialize Shcore Function type in python");
   }
 
@@ -201,15 +188,13 @@ void Python_context::init_shell_function_type()
   _shell_function_class = PyDict_GetItemString(PyModule_GetDict(get_shell_module()), "Function");
 }
 
-PyObject *shcore::wrap(std::shared_ptr<Function_base> func)
-{
+PyObject *shcore::wrap(std::shared_ptr<Function_base> func) {
   PyShFuncObject *wrapper = PyObject_New(PyShFuncObject, &PyShFuncObjectType);
   wrapper->func = new Function_base_ref(func);
   return reinterpret_cast<PyObject*>(wrapper);
 }
 
-bool shcore::unwrap(PyObject *value, std::shared_ptr<Function_base> &ret_func)
-{
+bool shcore::unwrap(PyObject *value, std::shared_ptr<Function_base> &ret_func) {
   Python_context *ctx = Python_context::get_and_check();
   if (!ctx) return false;
 

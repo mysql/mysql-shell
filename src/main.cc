@@ -63,10 +63,8 @@ is treated alike.
 @param [IN]               Signal number
 */
 
-void handle_ctrlc_signal(int sig)
-{
-  if (shell_ptr != NULL)
-  {
+void handle_ctrlc_signal(int sig) {
+  if (shell_ptr != NULL) {
     shell_ptr->abort();
     shell_ptr->println("^C");
   }

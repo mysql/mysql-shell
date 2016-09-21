@@ -129,13 +129,13 @@ shcore::Value Cpp_object_bridge::get_member_method(const shcore::Argument_list &
 Value Cpp_object_bridge::get_member_advanced(const std::string &prop, const NamingStyle &style) {
   Value ret_val;
 
-  auto func = std::find_if(_funcs.begin(), _funcs.end(), [prop, style](const FunctionEntry &f){ return f.second->name(style) == prop; });
+  auto func = std::find_if(_funcs.begin(), _funcs.end(), [prop, style](const FunctionEntry &f) { return f.second->name(style) == prop; });
 
   if (func != _funcs.end()) {
     ScopedStyle ss(this, style);
     ret_val = get_member(func->first);
   } else {
-    auto prop_index = std::find_if(_properties.begin(), _properties.end(), [prop, style](std::shared_ptr<Cpp_property_name> p){ return p->name(style) == prop; });
+    auto prop_index = std::find_if(_properties.begin(), _properties.end(), [prop, style](std::shared_ptr<Cpp_property_name> p) { return p->name(style) == prop; });
     if (prop_index != _properties.end()) {
       ScopedStyle ss(this, style);
       ret_val = get_member((*prop_index)->base_name());
@@ -154,23 +154,23 @@ Value Cpp_object_bridge::get_member(const std::string &prop) const {
 }
 
 bool Cpp_object_bridge::has_member_advanced(const std::string &prop, const NamingStyle &style) {
-  auto method_index = std::find_if(_funcs.begin(), _funcs.end(), [prop, style](const FunctionEntry &f){ return f.second->name(style) == prop; });
+  auto method_index = std::find_if(_funcs.begin(), _funcs.end(), [prop, style](const FunctionEntry &f) { return f.second->name(style) == prop; });
 
-  auto prop_index = std::find_if(_properties.begin(), _properties.end(), [prop, style](std::shared_ptr<Cpp_property_name> p){ return p->name(style) == prop; });
+  auto prop_index = std::find_if(_properties.begin(), _properties.end(), [prop, style](std::shared_ptr<Cpp_property_name> p) { return p->name(style) == prop; });
 
   return (method_index != _funcs.end() || prop_index != _properties.end());
 }
 
 bool Cpp_object_bridge::has_member(const std::string &prop) const {
-  auto method_index = std::find_if(_funcs.begin(), _funcs.end(), [prop](const FunctionEntry &f){ return f.first == prop; });
+  auto method_index = std::find_if(_funcs.begin(), _funcs.end(), [prop](const FunctionEntry &f) { return f.first == prop; });
 
-  auto prop_index = std::find_if(_properties.begin(), _properties.end(), [prop](std::shared_ptr<Cpp_property_name> p){ return p->base_name() == prop; });
+  auto prop_index = std::find_if(_properties.begin(), _properties.end(), [prop](std::shared_ptr<Cpp_property_name> p) { return p->base_name() == prop; });
 
   return (method_index != _funcs.end() || prop_index != _properties.end());
 }
 
 void Cpp_object_bridge::set_member_advanced(const std::string &prop, Value value, const NamingStyle &style) {
-  auto prop_index = std::find_if(_properties.begin(), _properties.end(), [prop, style](std::shared_ptr<Cpp_property_name> p){ return p->name(style) == prop; });
+  auto prop_index = std::find_if(_properties.begin(), _properties.end(), [prop, style](std::shared_ptr<Cpp_property_name> p) { return p->name(style) == prop; });
   if (prop_index != _properties.end()) {
     ScopedStyle ss(this, style);
 
@@ -202,7 +202,7 @@ bool Cpp_object_bridge::has_method(const std::string &name) const {
 }
 
 bool Cpp_object_bridge::has_method_advanced(const std::string &name, const NamingStyle &style) {
-  auto method_index = std::find_if(_funcs.begin(), _funcs.end(), [name, style](const FunctionEntry &f){ return f.second->name(style) == name; });
+  auto method_index = std::find_if(_funcs.begin(), _funcs.end(), [name, style](const FunctionEntry &f) { return f.second->name(style) == name; });
 
   return method_index != _funcs.end();
 }
@@ -249,7 +249,7 @@ void Cpp_object_bridge::add_property(const std::string &name, const std::string 
 }
 
 void Cpp_object_bridge::delete_property(const std::string &name, const std::string &getter) {
-  auto prop_index = std::find_if(_properties.begin(), _properties.end(), [name](std::shared_ptr<Cpp_property_name> p){ return p->base_name() == name; });
+  auto prop_index = std::find_if(_properties.begin(), _properties.end(), [name](std::shared_ptr<Cpp_property_name> p) { return p->base_name() == name; });
   if (prop_index != _properties.end()) {
     _properties.erase(prop_index);
 
@@ -259,7 +259,7 @@ void Cpp_object_bridge::delete_property(const std::string &name, const std::stri
 }
 
 Value Cpp_object_bridge::call_advanced(const std::string &name, const Argument_list &args, const NamingStyle &style) {
-  auto func = std::find_if(_funcs.begin(), _funcs.end(), [name, style](const FunctionEntry &f){ return f.second->name(style) == name; });
+  auto func = std::find_if(_funcs.begin(), _funcs.end(), [name, style](const FunctionEntry &f) { return f.second->name(style) == name; });
 
   Value ret_val;
 
@@ -284,14 +284,14 @@ shcore::Value Cpp_object_bridge::help(const shcore::Argument_list &args) {
   args.ensure_count(0, 1, get_function_name("help").c_str());
 
   // Returns a string composed of all the input lines splitted in lines of at most 80 - name_length
-  auto format_sub_items = [](const std::vector<std::string>& lines, size_t name_length)->std::string{
+  auto format_sub_items = [](const std::vector<std::string>& lines, size_t name_length)->std::string {
     std::string ret_val;
     ret_val.reserve(lines.size() * 80);
 
     std::string space(name_length, ' ');
 
     // Considers the new line character being added
-    std::vector<size_t> lengths = { 80 - (name_length + 1) };
+    std::vector<size_t> lengths = {80 - (name_length + 1)};
     auto sublines = split_string(lines[0], lengths);
 
     // Processes the first line
@@ -302,7 +302,7 @@ shcore::Value Cpp_object_bridge::help(const shcore::Argument_list &args) {
 
     // The remaining lines are just appended with the space prefix
     for (auto subline : sublines) {
-      if (' ' ==subline[0])
+      if (' ' == subline[0])
         ret_val += space + subline.substr(1) + "\n";
       else
         ret_val += space + subline + "\n";
@@ -314,7 +314,7 @@ shcore::Value Cpp_object_bridge::help(const shcore::Argument_list &args) {
       for (size_t index = 1; index < lines.size(); index++) {
         sublines = split_string(lines[index], lengths);
         for (auto subline : sublines) {
-          if (' '==subline[0])
+          if (' ' == subline[0])
             ret_val += space + subline.substr(1) + "\n";
           else
             ret_val += space + subline + "\n";
@@ -399,7 +399,7 @@ shcore::Value Cpp_object_bridge::help(const shcore::Argument_list &args) {
 
           size_t name_length = pnames[index].size() + 4;
 
-          ret_val.append(format_sub_items({ pdescs[index] }, name_length));
+          ret_val.append(format_sub_items({pdescs[index]}, name_length));
         }
 
         ret_val.append("\n");
@@ -422,9 +422,9 @@ shcore::Value Cpp_object_bridge::help(const shcore::Argument_list &args) {
         auto pos = line.find("@li");
         if (0 == pos) {
           ret_val += " - ";
-          ret_val += format_sub_items({ line.substr(4) }, 3);
+          ret_val += format_sub_items({line.substr(4)}, 3);
         } else {
-          ret_val += format_sub_items({ line }, 0);
+          ret_val += format_sub_items({line}, 0);
         }
 
         ret_val.append("\n");
@@ -496,7 +496,7 @@ shcore::Value Cpp_object_bridge::help(const shcore::Argument_list &args) {
       }
     }
 
-    auto closing = get_help_text(prefix + "_CLOSING", { 80 });
+    auto closing = get_help_text(prefix + "_CLOSING", {80});
 
     if (!closing.empty())
       ret_val += "\n" + format_sub_items(closing, 0);

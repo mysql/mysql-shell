@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2016, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -30,8 +30,7 @@ using namespace mysh::mysqlx;
 using namespace shcore;
 
 CollectionFind::CollectionFind(std::shared_ptr<Collection> owner)
-  : Collection_crud_definition(std::static_pointer_cast<DatabaseObject>(owner))
-{
+  : Collection_crud_definition(std::static_pointer_cast<DatabaseObject>(owner)) {
   // Exposes the methods available for chaining
   add_method("find", std::bind(&CollectionFind::find, this, _1), "data");
   add_method("fields", std::bind(&CollectionFind::fields, this, _1), "data");
@@ -57,7 +56,6 @@ CollectionFind::CollectionFind(std::shared_ptr<Collection> owner)
   // Initial function update
   update_functions("");
 }
-
 
 //! Sets the search condition to identify the Documents to be retrieved from the owner Collection.
 #if DOXYGEN_CPP
@@ -87,21 +85,18 @@ CollectionFind::CollectionFind(std::shared_ptr<Collection> owner)
 * \sa Usage examples at execute().
 */
 #if DOXYGEN_JS
-CollectionFind CollectionFind::find(String searchCondition){}
+CollectionFind CollectionFind::find(String searchCondition) {}
 #elif DOXYGEN_PY
-CollectionFind CollectionFind::find(str searchCondition){}
+CollectionFind CollectionFind::find(str searchCondition) {}
 #endif
-shcore::Value CollectionFind::find(const shcore::Argument_list &args)
-{
+shcore::Value CollectionFind::find(const shcore::Argument_list &args) {
   // Each method validates the received parameters
   args.ensure_count(0, 1, "CollectionFind.find");
 
   std::shared_ptr<Collection> collection(std::static_pointer_cast<Collection>(_owner.lock()));
 
-  if (collection)
-  {
-    try
-    {
+  if (collection) {
+    try {
       std::string search_condition;
       if (args.size())
         search_condition = args.string_at(0);
@@ -170,9 +165,9 @@ shcore::Value CollectionFind::find(const shcore::Argument_list &args)
 * \sa Usage examples at execute().
 */
 #if DOXYGEN_JS
-CollectionFind CollectionFind::fields(List projectedSearchExprStr){}
+CollectionFind CollectionFind::fields(List projectedSearchExprStr) {}
 #elif DOXYGEN_PY
-CollectionFind CollectionFind::fields(list projectedSearchExprStr){}
+CollectionFind CollectionFind::fields(list projectedSearchExprStr) {}
 #endif
 
 /**
@@ -206,14 +201,11 @@ CollectionFind CollectionFind::fields(DocExpression projection);
 CollectionFind CollectionFind::fields(DocExpression projection);
 #endif
 #endif
-shcore::Value CollectionFind::fields(const shcore::Argument_list &args)
-{
+shcore::Value CollectionFind::fields(const shcore::Argument_list &args) {
   args.ensure_count(1, "CollectionFind.fields");
 
-  try
-  {
-    if (args[0].type == Array)
-    {
+  try {
+    if (args[0].type == Array) {
       std::vector<std::string> fields;
       parse_string_list(args, fields);
 
@@ -221,9 +213,7 @@ shcore::Value CollectionFind::fields(const shcore::Argument_list &args)
         throw shcore::Exception::argument_error("Field selection criteria can not be empty");
 
       _find_statement->fields(fields);
-    }
-    else if (args[0].type == Object && args[0].as_object()->class_name() == "Expression")
-    {
+    } else if (args[0].type == Object && args[0].as_object()->class_name() == "Expression") {
       std::shared_ptr<mysqlx::Expression> expression = std::static_pointer_cast<mysqlx::Expression>(args[0].as_object());
       ::mysqlx::Expr_parser parser(expression->get_data());
       std::unique_ptr<Mysqlx::Expr::Expr> expr_obj(parser.expr());
@@ -233,8 +223,7 @@ shcore::Value CollectionFind::fields(const shcore::Argument_list &args)
         _find_statement->fields(expression->get_data());
       else
         throw shcore::Exception::argument_error("Argument #1 is expected to be a JSON expression");
-    }
-    else
+    } else
       throw shcore::Exception::argument_error("Argument #1 is expected to be an array or JSON expression");
 
     update_functions("fields");
@@ -272,16 +261,14 @@ shcore::Value CollectionFind::fields(const shcore::Argument_list &args)
 * \sa Usage examples at execute().
 */
 #if DOXYGEN_JS
-CollectionFind CollectionFind::groupBy(List searchExprStr){}
+CollectionFind CollectionFind::groupBy(List searchExprStr) {}
 #elif DOXYGEN_PY
-CollectionFind CollectionFind::group_by(list searchExprStr){}
+CollectionFind CollectionFind::group_by(list searchExprStr) {}
 #endif
-shcore::Value CollectionFind::group_by(const shcore::Argument_list &args)
-{
+shcore::Value CollectionFind::group_by(const shcore::Argument_list &args) {
   args.ensure_count(1, get_function_name("groupBy").c_str());
 
-  try
-  {
+  try {
     std::vector<std::string> fields;
 
     parse_string_list(args, fields);
@@ -327,16 +314,14 @@ shcore::Value CollectionFind::group_by(const shcore::Argument_list &args)
 * \sa Usage examples at execute().
 */
 #if DOXYGEN_JS
-CollectionFind CollectionFind::having(String searchCondition){}
+CollectionFind CollectionFind::having(String searchCondition) {}
 #elif DOXYGEN_PY
-CollectionFind CollectionFind::having(str searchCondition){}
+CollectionFind CollectionFind::having(str searchCondition) {}
 #endif
-shcore::Value CollectionFind::having(const shcore::Argument_list &args)
-{
+shcore::Value CollectionFind::having(const shcore::Argument_list &args) {
   args.ensure_count(1, "CollectionFind.having");
 
-  try
-  {
+  try {
     _find_statement->having(args.string_at(0));
 
     update_functions("having");
@@ -378,16 +363,14 @@ shcore::Value CollectionFind::having(const shcore::Argument_list &args)
 * \sa Usage examples at execute().
 */
 #if DOXYGEN_JS
-CollectionFind CollectionFind::sort(List sortExprStr){}
+CollectionFind CollectionFind::sort(List sortExprStr) {}
 #elif DOXYGEN_PY
-CollectionFind CollectionFind::sort(list sortExprStr){}
+CollectionFind CollectionFind::sort(list sortExprStr) {}
 #endif
-shcore::Value CollectionFind::sort(const shcore::Argument_list &args)
-{
+shcore::Value CollectionFind::sort(const shcore::Argument_list &args) {
   args.ensure_count(1, "CollectionFind.sort");
 
-  try
-  {
+  try {
     std::vector<std::string> fields;
 
     parse_string_list(args, fields);
@@ -434,16 +417,14 @@ shcore::Value CollectionFind::sort(const shcore::Argument_list &args)
 * \sa Usage examples at execute().
 */
 #if DOXYGEN_JS
-CollectionFind CollectionFind::limit(Integer numberOfRows){}
+CollectionFind CollectionFind::limit(Integer numberOfRows) {}
 #elif DOXYGEN_PY
-CollectionFind CollectionFind::limit(int numberOfRows){}
+CollectionFind CollectionFind::limit(int numberOfRows) {}
 #endif
-shcore::Value CollectionFind::limit(const shcore::Argument_list &args)
-{
+shcore::Value CollectionFind::limit(const shcore::Argument_list &args) {
   args.ensure_count(1, "CollectionFind.limit");
 
-  try
-  {
+  try {
     _find_statement->limit(args.uint_at(0));
 
     update_functions("limit");
@@ -476,16 +457,14 @@ shcore::Value CollectionFind::limit(const shcore::Argument_list &args)
 * \sa Usage examples at execute().
 */
 #if DOXYGEN_JS
-CollectionFind CollectionFind::skip(Integer limitOffset){}
+CollectionFind CollectionFind::skip(Integer limitOffset) {}
 #elif DOXYGEN_PY
-CollectionFind CollectionFind::skip(int limitOffset){}
+CollectionFind CollectionFind::skip(int limitOffset) {}
 #endif
-shcore::Value CollectionFind::skip(const shcore::Argument_list &args)
-{
+shcore::Value CollectionFind::skip(const shcore::Argument_list &args) {
   args.ensure_count(1, "CollectionFind.skip");
 
-  try
-  {
+  try {
     _find_statement->skip(args.uint_at(0));
 
     update_functions("skip");
@@ -522,16 +501,14 @@ shcore::Value CollectionFind::skip(const shcore::Argument_list &args)
 * \sa Usage examples at execute().
 */
 #if DOXYGEN_JS
-CollectionFind CollectionFind::bind(String name, Value value){}
+CollectionFind CollectionFind::bind(String name, Value value) {}
 #elif DOXYGEN_PY
-CollectionFind CollectionFind::bind(str name, Value value){}
+CollectionFind CollectionFind::bind(str name, Value value) {}
 #endif
-shcore::Value CollectionFind::bind(const shcore::Argument_list &args)
-{
+shcore::Value CollectionFind::bind(const shcore::Argument_list &args) {
   args.ensure_count(2, "CollectionFind.bind");
 
-  try
-  {
+  try {
     _find_statement->bind(args.string_at(0), map_document_value(args[1]));
 
     update_functions("bind");
@@ -557,7 +534,7 @@ shcore::Value CollectionFind::bind(const shcore::Argument_list &args)
 * \skip //@ Collection.Find All
 * \until print(columns[1], ':', record.InThreeYears, '\n');
 */
-DocResult CollectionFind::execute(){}
+DocResult CollectionFind::execute() {}
 #elif DOXYGEN_PY
 /**
 *
@@ -566,14 +543,12 @@ DocResult CollectionFind::execute(){}
 * \skip #@ Collection.Find All
 * \until print "%s: %s\n" % (columns[1], record.InThreeYears)
 */
-DocResult CollectionFind::execute(){}
+DocResult CollectionFind::execute() {}
 #endif
-shcore::Value CollectionFind::execute(const shcore::Argument_list &args)
-{
+shcore::Value CollectionFind::execute(const shcore::Argument_list &args) {
   mysqlx::DocResult *result = NULL;
 
-  try
-  {
+  try {
     args.ensure_count(0, "CollectionFind.execute");
     MySQL_timer timer;
     timer.start();

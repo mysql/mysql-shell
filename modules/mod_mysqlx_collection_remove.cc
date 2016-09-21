@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2016, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -27,8 +27,7 @@ using namespace mysh::mysqlx;
 using namespace shcore;
 
 CollectionRemove::CollectionRemove(std::shared_ptr<Collection> owner)
-  :Collection_crud_definition(std::static_pointer_cast<DatabaseObject>(owner))
-{
+  :Collection_crud_definition(std::static_pointer_cast<DatabaseObject>(owner)) {
   // Exposes the methods available for chaining
   add_method("remove", std::bind(&CollectionRemove::remove, this, _1), "data");
   add_method("sort", std::bind(&CollectionRemove::sort, this, _1), "data");
@@ -79,17 +78,14 @@ CollectionRemove CollectionRemove::remove(String searchCondition){}
 #elif DOXYGEN_PY
 CollectionRemove CollectionRemove::remove(str searchCondition){}
 #endif
-shcore::Value CollectionRemove::remove(const shcore::Argument_list &args)
-{
+shcore::Value CollectionRemove::remove(const shcore::Argument_list &args) {
   // Each method validates the received parameters
   args.ensure_count(0, 1, get_function_name("remove").c_str());
 
   std::shared_ptr<Collection> collection(std::static_pointer_cast<Collection>(_owner.lock()));
 
-  if (collection)
-  {
-    try
-    {
+  if (collection) {
+    try {
       std::string search_condition;
       if (args.size())
         search_condition = args.string_at(0);
@@ -136,12 +132,10 @@ CollectionRemove CollectionRemove::sort(List sortExprStr){}
 #elif DOXYGEN_PY
 CollectionRemove CollectionRemove::sort(list sortExprStr){}
 #endif
-shcore::Value CollectionRemove::sort(const shcore::Argument_list &args)
-{
+shcore::Value CollectionRemove::sort(const shcore::Argument_list &args) {
   args.ensure_count(1, get_function_name("sort").c_str());
 
-  try
-  {
+  try {
     std::vector<std::string> fields;
 
     parse_string_list(args, fields);
@@ -157,7 +151,6 @@ shcore::Value CollectionRemove::sort(const shcore::Argument_list &args)
 
   return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
-
 
 //! Sets a limit for the documents to be deleted.
 #if DOXYGEN_CPP
@@ -189,12 +182,10 @@ CollectionRemove CollectionRemove::limit(Integer numberOfDocs){}
 #elif DOXYGEN_PY
 CollectionRemove CollectionRemove::limit(int numberOfDocs){}
 #endif
-shcore::Value CollectionRemove::limit(const shcore::Argument_list &args)
-{
+shcore::Value CollectionRemove::limit(const shcore::Argument_list &args) {
   args.ensure_count(1, get_function_name("limit").c_str());
 
-  try
-  {
+  try {
     _remove_statement->limit(args.uint_at(0));
 
     update_functions("limit");
@@ -237,12 +228,10 @@ CollectionFind CollectionRemove::bind(String name, Value value){}
 #elif DOXYGEN_PY
 CollectionFind CollectionRemove::bind(str name, Value value){}
 #endif
-shcore::Value CollectionRemove::bind(const shcore::Argument_list &args)
-{
+shcore::Value CollectionRemove::bind(const shcore::Argument_list &args) {
   args.ensure_count(2, get_function_name("bind").c_str());
 
-  try
-  {
+  try {
     _remove_statement->bind(args.string_at(0), map_document_value(args[1]));
 
     update_functions("bind");
@@ -283,12 +272,10 @@ Result CollectionRemove::execute(){}
 */
 Result CollectionRemove::execute(){}
 #endif
-shcore::Value CollectionRemove::execute(const shcore::Argument_list &args)
-{
+shcore::Value CollectionRemove::execute(const shcore::Argument_list &args) {
   mysqlx::Result *result = NULL;
 
-  try
-  {
+  try {
     args.ensure_count(0, get_function_name("execute").c_str());
     MySQL_timer timer;
     timer.start();

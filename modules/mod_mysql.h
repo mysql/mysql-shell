@@ -25,16 +25,14 @@
 
 #include "shellcore/module_registry.h"
 
-namespace mysh
-{
-  namespace mysql
-  {
-    DECLARE_MODULE(Mysql, mysql);
+namespace mysh {
+namespace mysql {
+DECLARE_MODULE(Mysql, mysql);
 
-    DECLARE_FUNCTION(get_classic_session);
+DECLARE_FUNCTION(get_classic_session);
 
-    END_DECLARE_MODULE();
-  }
+END_DECLARE_MODULE();
+}
 }
 
 #endif

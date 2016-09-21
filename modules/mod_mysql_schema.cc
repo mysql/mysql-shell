@@ -38,19 +38,16 @@ using namespace mysh::mysql;
 using namespace shcore;
 
 ClassicSchema::ClassicSchema(std::shared_ptr<ClassicSession> session, const std::string &schema)
-  : DatabaseObject(std::dynamic_pointer_cast<ShellBaseSession>(session), std::shared_ptr<DatabaseObject>(), schema)
-{
+  : DatabaseObject(std::dynamic_pointer_cast<ShellBaseSession>(session), std::shared_ptr<DatabaseObject>(), schema) {
   init();
 }
 
 ClassicSchema::ClassicSchema(std::shared_ptr<const ClassicSession> session, const std::string &schema) :
-DatabaseObject(std::const_pointer_cast<ClassicSession>(session), std::shared_ptr<DatabaseObject>(), schema)
-{
+DatabaseObject(std::const_pointer_cast<ClassicSession>(session), std::shared_ptr<DatabaseObject>(), schema) {
   init();
 }
 
-void ClassicSchema::init()
-{
+void ClassicSchema::init() {
   add_method("getTables", std::bind(&ClassicSchema::get_tables, this, _1), NULL);
   add_method("getTable", std::bind(&ClassicSchema::get_table, this, _1), "name", shcore::String, NULL);
 
@@ -58,25 +55,21 @@ void ClassicSchema::init()
   _views = Value::new_map().as_map();
 
   // Setups the cache handlers
-  auto table_generator = [this](const std::string& name){return shcore::Value::wrap<ClassicTable>(new ClassicTable(shared_from_this(), name, false)); };
-  auto view_generator = [this](const std::string& name){return shcore::Value::wrap<ClassicTable>(new ClassicTable(shared_from_this(), name, true)); };
+  auto table_generator = [this](const std::string& name) {return shcore::Value::wrap<ClassicTable>(new ClassicTable(shared_from_this(), name, false)); };
+  auto view_generator = [this](const std::string& name) {return shcore::Value::wrap<ClassicTable>(new ClassicTable(shared_from_this(), name, true)); };
 
-  update_table_cache = [table_generator, this](const std::string &name, bool exists){DatabaseObject::update_cache(name, table_generator, exists, _tables, this); };
-  update_view_cache = [view_generator, this](const std::string &name, bool exists){DatabaseObject::update_cache(name, view_generator, exists, _views, this); };
+  update_table_cache = [table_generator, this](const std::string &name, bool exists) {DatabaseObject::update_cache(name, table_generator, exists, _tables, this); };
+  update_view_cache = [view_generator, this](const std::string &name, bool exists) {DatabaseObject::update_cache(name, view_generator, exists, _views, this); };
 
-  update_full_table_cache = [table_generator, this](const std::vector<std::string> &names){DatabaseObject::update_cache(names, table_generator, _tables, this); };
-  update_full_view_cache = [view_generator, this](const std::vector<std::string> &names){DatabaseObject::update_cache(names, view_generator, _views, this); };
+  update_full_table_cache = [table_generator, this](const std::vector<std::string> &names) {DatabaseObject::update_cache(names, table_generator, _tables, this); };
+  update_full_view_cache = [view_generator, this](const std::vector<std::string> &names) {DatabaseObject::update_cache(names, view_generator, _views, this); };
 }
 
-ClassicSchema::~ClassicSchema()
-{
-}
+ClassicSchema::~ClassicSchema() {}
 
-void ClassicSchema::update_cache()
-{
+void ClassicSchema::update_cache() {
   std::shared_ptr<ClassicSession> sess(std::dynamic_pointer_cast<ClassicSession>(_session.lock()));
-  if (sess)
-  {
+  if (sess) {
     std::vector<std::string> tables;
     std::vector<std::string> views;
     std::vector<std::string> others;
@@ -85,11 +78,9 @@ void ClassicSchema::update_cache()
     auto result = val_result.as_object<ClassicResult>();
     auto val_row = result->fetch_one(shcore::Argument_list());
 
-    if (val_row)
-    {
+    if (val_row) {
       auto row = val_row.as_object<mysh::Row>();
-      while (row)
-      {
+      while (row) {
         std::string object_name = row->get_member(0).as_string();
         std::string object_type = row->get_member(1).as_string();
 
@@ -113,23 +104,18 @@ void ClassicSchema::update_cache()
     update_full_view_cache(views);
 
     // Log errors about unexpected object type
-    if (others.size())
-    {
+    if (others.size()) {
       for (size_t index = 0; index < others.size(); index++)
         log_error("%s", others[index].c_str());
     }
   }
 }
 
-void ClassicSchema::_remove_object(const std::string& name, const std::string& type)
-{
-  if (type == "View")
-  {
+void ClassicSchema::_remove_object(const std::string& name, const std::string& type) {
+  if (type == "View") {
     if (_views->count(name))
       _views->erase(name);
-  }
-  else if (type == "Table")
-  {
+  } else if (type == "Table") {
     if (_tables->count(name))
       _tables->erase(name);
   }
@@ -149,8 +135,7 @@ void ClassicSchema::_remove_object(const std::string& name, const std::string& t
  * See the implementation of DatabaseObject for additional valid members.
  */
 #endif
-Value ClassicSchema::get_member(const std::string &prop) const
-{
+Value ClassicSchema::get_member(const std::string &prop) const {
   // Searches the property in tables
   Value ret_val = find_in_cache(prop, _tables);
 
@@ -180,40 +165,34 @@ Value ClassicSchema::get_member(const std::string &prop) const
 * \sa ClassicTable
 */
 #if DOXYGEN_JS
-ClassicTable ClassicSchema::getTable(String name){}
+ClassicTable ClassicSchema::getTable(String name) {}
 #elif DOXYGEN_PY
-ClassicTable ClassicSchema::get_table(str name){}
+ClassicTable ClassicSchema::get_table(str name) {}
 #endif
-shcore::Value ClassicSchema::get_table(const shcore::Argument_list &args)
-{
+shcore::Value ClassicSchema::get_table(const shcore::Argument_list &args) {
   args.ensure_count(1, get_function_name("getTable").c_str());
   std::string name = args.string_at(0);
   shcore::Value ret_val;
 
-  if (!name.empty())
-  {
+  if (!name.empty()) {
     std::string found_type;
     auto session = _session.lock();
     std::string real_name;
-    if(session)
+    if (session)
       real_name = session->db_object_exists(found_type, name, _name);
     else
       throw shcore::Exception::logic_error("Unable to retrieve table '" + name + "', no Session available");
-    
+
     bool exists = false;
-    if (!real_name.empty())
-    {
-      if (found_type == "BASE TABLE" || found_type == "LOCAL TEMPORARY")
-      {
+    if (!real_name.empty()) {
+      if (found_type == "BASE TABLE" || found_type == "LOCAL TEMPORARY") {
         exists = true;
 
         // Updates the cache
         update_table_cache(real_name, exists);
 
         ret_val = (*_tables)[real_name];
-      }
-      else if (found_type == "VIEW" || found_type == "SYSTEM VIEW")
-      {
+      } else if (found_type == "VIEW" || found_type == "SYSTEM VIEW") {
         exists = true;
 
         // Updates the cache
@@ -225,8 +204,7 @@ shcore::Value ClassicSchema::get_table(const shcore::Argument_list &args)
 
     if (!exists)
       throw shcore::Exception::runtime_error("The table " + _name + "." + name + " does not exist");
-  }
-  else
+  } else
     throw shcore::Exception::argument_error("An empty name is invalid for a table");
 
   return ret_val;
@@ -244,12 +222,11 @@ shcore::Value ClassicSchema::get_table(const shcore::Argument_list &args)
 * Returns a List of available Table objects.
 */
 #if DOXYGEN_JS
-List ClassicSchema::getTables(){}
+List ClassicSchema::getTables() {}
 #elif DOXYGEN_PY
-list ClassicSchema::get_tables(){}
+list ClassicSchema::get_tables() {}
 #endif
-shcore::Value ClassicSchema::get_tables(const shcore::Argument_list &args)
-{
+shcore::Value ClassicSchema::get_tables(const shcore::Argument_list &args) {
   args.ensure_count(0, get_function_name("getTables").c_str());
 
   update_cache();

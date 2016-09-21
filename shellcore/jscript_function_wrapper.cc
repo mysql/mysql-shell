@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2016, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -24,35 +24,26 @@
 
 using namespace shcore;
 
-
-
 static int magic_pointer = 0;
 
 JScript_function_wrapper::JScript_function_wrapper(JScript_context *context)
-: _context(context)
-{
+  : _context(context) {
   v8::Handle<v8::ObjectTemplate> templ = v8::ObjectTemplate::New(_context->isolate());
   _object_template.Reset(_context->isolate(), templ);
   templ->SetInternalFieldCount(3);
   templ->SetCallAsFunctionHandler(call);
 }
 
-
-JScript_function_wrapper::~JScript_function_wrapper()
-{
+JScript_function_wrapper::~JScript_function_wrapper() {
   _object_template.Reset();
 }
 
-
-struct shcore::JScript_function_wrapper::Collectable
-{
+struct shcore::JScript_function_wrapper::Collectable {
   std::shared_ptr<Function_base> data;
   v8::Persistent<v8::Object> handle;
 };
 
-
-v8::Handle<v8::Object> JScript_function_wrapper::wrap(std::shared_ptr<Function_base> function)
-{
+v8::Handle<v8::Object> JScript_function_wrapper::wrap(std::shared_ptr<Function_base> function) {
   v8::Handle<v8::Object> obj(v8::Local<v8::ObjectTemplate>::New(_context->isolate(), _object_template)->NewInstance());
 
   obj->SetAlignedPointerInInternalField(0, &magic_pointer);
@@ -69,9 +60,7 @@ v8::Handle<v8::Object> JScript_function_wrapper::wrap(std::shared_ptr<Function_b
   return obj;
 }
 
-
-void JScript_function_wrapper::wrapper_deleted(const v8::WeakCallbackData<v8::Object, Collectable>& data)
-{
+void JScript_function_wrapper::wrapper_deleted(const v8::WeakCallbackData<v8::Object, Collectable>& data) {
   // the JS wrapper object was deleted, so we also free the shared-ref to the object
   v8::HandleScope hscope(data.GetIsolate());
   data.GetParameter()->data.reset();
@@ -79,35 +68,25 @@ void JScript_function_wrapper::wrapper_deleted(const v8::WeakCallbackData<v8::Ob
   delete data.GetParameter();
 }
 
-
-void JScript_function_wrapper::call(const v8::FunctionCallbackInfo<v8::Value>& args)
-{
+void JScript_function_wrapper::call(const v8::FunctionCallbackInfo<v8::Value>& args) {
   v8::Handle<v8::Object> obj(args.Holder());
   JScript_function_wrapper *self = static_cast<JScript_function_wrapper*>(obj->GetAlignedPointerFromInternalField(2));
 
   std::shared_ptr<Function_base> *shared_ptr_data = static_cast<std::shared_ptr<Function_base>*>(obj->GetAlignedPointerFromInternalField(1));
 
-  try
-  {
+  try {
     Value r = (*shared_ptr_data)->invoke(self->_context->convert_args(args));
 
     args.GetReturnValue().Set(self->_context->shcore_value_to_v8_value(r));
-  }
-  catch (Exception &exc)
-  {
+  } catch (Exception &exc) {
     args.GetIsolate()->ThrowException(self->_context->shcore_value_to_v8_value(Value(exc.error())));
-  }
-  catch (std::exception &exc)
-  {
+  } catch (std::exception &exc) {
     args.GetIsolate()->ThrowException(v8::String::NewFromUtf8(args.GetIsolate(), exc.what()));
   }
 }
 
-
-bool JScript_function_wrapper::unwrap(v8::Handle<v8::Object> value, std::shared_ptr<Function_base> &ret_object)
-{
-  if (value->InternalFieldCount() == 3 && value->GetAlignedPointerFromInternalField(0) == (void*)&magic_pointer)
-  {
+bool JScript_function_wrapper::unwrap(v8::Handle<v8::Object> value, std::shared_ptr<Function_base> &ret_object) {
+  if (value->InternalFieldCount() == 3 && value->GetAlignedPointerFromInternalField(0) == (void*)&magic_pointer) {
     std::shared_ptr<Function_base> *object = static_cast<std::shared_ptr<Function_base>*>(value->GetAlignedPointerFromInternalField(1));
     ret_object = *object;
     return true;

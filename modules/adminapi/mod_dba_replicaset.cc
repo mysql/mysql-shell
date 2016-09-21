@@ -42,8 +42,8 @@ using namespace mysh;
 using namespace mysh::dba;
 using namespace shcore;
 
-std::set<std::string> ReplicaSet::_add_instance_opts = { "name", "host", "port", "user", "dbUser", "password", "dbPassword", "socket", "ssl_ca", "ssl_cert", "ssl_key", "ssl_key" };
-std::set<std::string> ReplicaSet::_remove_instance_opts = { "name", "host", "port", "socket", "ssl_ca", "ssl_cert", "ssl_key", "ssl_key" };
+std::set<std::string> ReplicaSet::_add_instance_opts = {"name", "host", "port", "user", "dbUser", "password", "dbPassword", "socket", "ssl_ca", "ssl_cert", "ssl_key", "ssl_key"};
+std::set<std::string> ReplicaSet::_remove_instance_opts = {"name", "host", "port", "socket", "ssl_ca", "ssl_cert", "ssl_key", "ssl_key"};
 
 char const *ReplicaSet::kTopologyPrimaryMaster = "pm";
 char const *ReplicaSet::kTopologyMultiMaster = "mm";
@@ -232,7 +232,7 @@ bool ReplicaSet::operator == (const Object_bridge &other) const {
 * \return the name as an String object.
 */
 #if DOXYGEN_JS
-String ReplicaSet::getName(){}
+String ReplicaSet::getName() {}
 #elif DOXYGEN_PY
 str ReplicaSet::get_name() {}
 #endif
@@ -269,7 +269,7 @@ void ReplicaSet::init() {
 * \param conn The Connection String or URI of the Instance to be added
 */
 #if DOXYGEN_JS
-Undefined ReplicaSet::addInstance(String conn){}
+Undefined ReplicaSet::addInstance(String conn) {}
 #elif DOXYGEN_PY
 None ReplicaSet::add_instance(str conn) {}
 #endif
@@ -278,7 +278,7 @@ None ReplicaSet::add_instance(str conn) {}
 * \param doc The Document representing the Instance to be added
 */
 #if DOXYGEN_JS
-Undefined ReplicaSet::addInstance(Document doc){}
+Undefined ReplicaSet::addInstance(Document doc) {}
 #elif DOXYGEN_PY
 None ReplicaSet::add_instance(Document doc) {}
 #endif
@@ -350,7 +350,7 @@ shcore::Value ReplicaSet::add_instance(const shcore::Argument_list &args) {
   }
 
   // Verification of required attributes on the connection data
-  auto missing = shcore::get_missing_keys(options, { "host", "password|dbPassword" });
+  auto missing = shcore::get_missing_keys(options, {"host", "password|dbPassword"});
   if (missing.find("password") != missing.end() && args.size() == 2)
     missing.erase("password");
 
@@ -566,7 +566,7 @@ bool ReplicaSet::do_join_replicaset(const std::string &instance_url,
 * \param name The name of the Instance to be rejoined
 */
 #if DOXYGEN_JS
-Undefined ReplicaSet::rejoinInstance(String name, Dictionary options){}
+Undefined ReplicaSet::rejoinInstance(String name, Dictionary options) {}
 #elif DOXYGEN_PY
 None ReplicaSet::rejoin_instance(str name, Dictionary options) {}
 #endif
@@ -594,7 +594,7 @@ shcore::Value ReplicaSet::rejoin_instance(const shcore::Argument_list &args) {
      throw shcore::Exception::argument_error(
             "Invalid connection options, expected either a URI.");
     // Verification of required attributes on the connection data
-    auto missing = shcore::get_missing_keys(options, { "host" });
+    auto missing = shcore::get_missing_keys(options, {"host"});
     if (missing.size()) {
       std::string error = "Missing instance options: ";
       error += shcore::join_strings(missing, ", ");
@@ -657,7 +657,7 @@ shcore::Value ReplicaSet::rejoin_instance(const shcore::Argument_list &args) {
 * \param name The name of the Instance to be removed
 */
 #if DOXYGEN_JS
-Undefined ReplicaSet::removeInstance(String name){}
+Undefined ReplicaSet::removeInstance(String name) {}
 #elif DOXYGEN_PY
 None ReplicaSet::remove_instance(str name) {}
 #endif
@@ -667,7 +667,7 @@ None ReplicaSet::remove_instance(str name) {}
 * \param doc The Document representing the Instance to be removed
 */
 #if DOXYGEN_JS
-Undefined ReplicaSet::removeInstance(Document doc){}
+Undefined ReplicaSet::removeInstance(Document doc) {}
 #elif DOXYGEN_PY
 None ReplicaSet::remove_instance(Document doc) {}
 #endif
@@ -800,7 +800,7 @@ shcore::Value ReplicaSet::dissolve(const shcore::Argument_list &args) {
 
     if (options) {
       // Verification of invalid attributes on the instance creation options
-      auto invalids = shcore::get_additional_keys(options, { "force" });
+      auto invalids = shcore::get_additional_keys(options, {"force"});
       if (invalids.size()) {
         std::string error = "The options contain the following invalid attributes: ";
         error += shcore::join_strings(invalids, ", ");

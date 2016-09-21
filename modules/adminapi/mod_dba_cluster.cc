@@ -88,9 +88,9 @@ REGISTER_HELP(CLUSTER_GETNAME_RETURN, "@return The name of the cluster.");
 *
 */
 #if DOXYGEN_JS
-String Cluster::getName(){}
+String Cluster::getName() {}
 #elif DOXYGEN_PY
-str Cluster::get_name(){}
+str Cluster::get_name() {}
 #endif
 
 shcore::Value Cluster::get_member(const std::string &prop) const {
@@ -116,9 +116,9 @@ REGISTER_HELP(CLUSTER_GETADMINTYPE_RETURN, "@return The Administration type of t
 *
 */
 #if DOXYGEN_JS
-String Cluster::getAdminType(){}
+String Cluster::getAdminType() {}
 #elif DOXYGEN_PY
-str Cluster::get_admin_type(){}
+str Cluster::get_admin_type() {}
 #endif
 
 #if 0
@@ -487,7 +487,7 @@ shcore::Value Cluster::dissolve(const shcore::Argument_list &args) {
 
     if (options) {
       // Verification of invalid attributes on the instance creation options
-      auto invalids = shcore::get_additional_keys(options, { "force", });
+      auto invalids = shcore::get_additional_keys(options, {"force", });
       if (invalids.size()) {
         std::string error = "The options contain the following invalid attributes: ";
         error += shcore::join_strings(invalids, ", ");

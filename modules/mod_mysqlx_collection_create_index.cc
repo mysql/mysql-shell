@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2016, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -33,8 +33,7 @@ using namespace mysh::mysqlx;
 using namespace shcore;
 
 CollectionCreateIndex::CollectionCreateIndex(std::shared_ptr<Collection> owner)
-  :_owner(owner)
-{
+  :_owner(owner) {
   // Exposes the methods available for chaining
   add_method("createIndex", std::bind(&CollectionCreateIndex::create_index, this, _1), "data");
   add_method("field", std::bind(&CollectionCreateIndex::field, this, _1), "data");
@@ -72,9 +71,9 @@ CollectionCreateIndex::CollectionCreateIndex(std::shared_ptr<Collection> owner)
 * \return This CollectionCreateIndex object.
 */
 #if DOXYGEN_JS
-CollectionCreateIndex CollectionCreateIndex::createIndex(String indexName){}
+CollectionCreateIndex CollectionCreateIndex::createIndex(String indexName) {}
 #elif DOXYGEN_PY
-CollectionCreateIndex CollectionCreateIndex::create_index(str indexName){}
+CollectionCreateIndex CollectionCreateIndex::create_index(str indexName) {}
 #endif
 
 /**
@@ -87,27 +86,23 @@ CollectionCreateIndex CollectionCreateIndex::create_index(str indexName){}
 *
 */
 #if DOXYGEN_JS
-CollectionCreateIndex CollectionCreateIndex::createIndex(String indexName, IndexType type){}
+CollectionCreateIndex CollectionCreateIndex::createIndex(String indexName, IndexType type) {}
 #elif DOXYGEN_PY
-CollectionCreateIndex CollectionCreateIndex::create_index(str indexName, IndexType type){}
+CollectionCreateIndex CollectionCreateIndex::create_index(str indexName, IndexType type) {}
 #endif
 #endif
-shcore::Value CollectionCreateIndex::create_index(const shcore::Argument_list &args)
-{
+shcore::Value CollectionCreateIndex::create_index(const shcore::Argument_list &args) {
   // Each method validates the received parameters
   args.ensure_count(1, 2, get_function_name("createIndex").c_str());
 
-  try
-  {
+  try {
     // Does nothing with the values, but just calling the proper getter performs
     // standard data type validation.
     args.string_at(0);
 
     Value unique;
-    if (args.size() == 2)
-    {
-      if (args[1].type == shcore::Object)
-      {
+    if (args.size() == 2) {
+      if (args[1].type == shcore::Object) {
         std::shared_ptr <Constant> constant = std::dynamic_pointer_cast<Constant>(args.object_at(1));
         if (constant && constant->group() == "IndexType")
             unique = constant->data();
@@ -115,14 +110,12 @@ shcore::Value CollectionCreateIndex::create_index(const shcore::Argument_list &a
 
       if (!unique)
         throw shcore::Exception::argument_error("Argument #2 is expected to be mysqlx.IndexType.UNIQUE");
-    }
-    else
+    } else
       unique = Value::False();
 
     std::shared_ptr<Collection> raw_owner(_owner.lock());
 
-    if (raw_owner)
-    {
+    if (raw_owner) {
       Value schema = raw_owner->get_member("schema");
       _create_index_args.push_back(schema.as_object()->get_member("name"));
       _create_index_args.push_back(raw_owner->get_member("name"));
@@ -161,16 +154,14 @@ shcore::Value CollectionCreateIndex::create_index(const shcore::Argument_list &a
 * - execute()
 */
 #if DOXYGEN_JS
-CollectionCreateIndex CollectionCreateIndex::field(DocPath documentPath, IndexColumnType type, Bool isRequired){}
+CollectionCreateIndex CollectionCreateIndex::field(DocPath documentPath, IndexColumnType type, Bool isRequired) {}
 #elif DOXYGEN_PY
-CollectionCreateIndex CollectionCreateIndex::field(DocPath documentPath, IndexColumnType type, bool isRequired){}
+CollectionCreateIndex CollectionCreateIndex::field(DocPath documentPath, IndexColumnType type, bool isRequired) {}
 #endif
-shcore::Value CollectionCreateIndex::field(const shcore::Argument_list &args)
-{
+shcore::Value CollectionCreateIndex::field(const shcore::Argument_list &args) {
   args.ensure_count(3, get_function_name("field").c_str());
 
-  try
-  {
+  try {
     // Data Type Validation
     std::string path = args.string_at(0);
     std::string type = args.string_at(1);
@@ -200,20 +191,18 @@ shcore::Value CollectionCreateIndex::field(const shcore::Argument_list &args)
 * - add(List documents)
 */
 #if DOXYGEN_JS
-Result CollectionCreateIndex::execute(){}
+Result CollectionCreateIndex::execute() {}
 #elif DOXYGEN_PY
-Result CollectionCreateIndex::execute(){}
+Result CollectionCreateIndex::execute() {}
 #endif
-shcore::Value CollectionCreateIndex::execute(const shcore::Argument_list &args)
-{
+shcore::Value CollectionCreateIndex::execute(const shcore::Argument_list &args) {
   Value result;
 
   args.ensure_count(0, get_function_name("execute").c_str());
 
   std::shared_ptr<Collection> raw_owner(_owner.lock());
 
-  if (raw_owner)
-  {
+  if (raw_owner) {
     Value session = raw_owner->get_member("session");
     std::shared_ptr<BaseSession> session_obj = std::static_pointer_cast<BaseSession>(session.as_object());
     result = session_obj->executeAdminCommand("create_collection_index", false, _create_index_args);

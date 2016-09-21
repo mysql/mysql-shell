@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2016, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -35,8 +35,7 @@
 using namespace shcore;
 using namespace mysh::mysqlx;
 
-Type::Type()
-{
+Type::Type() {
   add_constant("BIT");
   add_constant("TINYINT");
   add_constant("SMALLINT");
@@ -58,8 +57,7 @@ Type::Type()
   add_constant("GEOMETRY");
 }
 
-shcore::Value Type::get_member(const std::string &prop) const
-{
+shcore::Value Type::get_member(const std::string &prop) const {
   shcore::Value ret_val = mysh::Constant::get_constant("mysqlx", "Type", prop, shcore::Argument_list());
 
   if (!ret_val)
@@ -68,8 +66,7 @@ shcore::Value Type::get_member(const std::string &prop) const
   return ret_val;
 }
 
-std::shared_ptr<shcore::Object_bridge> Type::create(const shcore::Argument_list &args)
-{
+std::shared_ptr<shcore::Object_bridge> Type::create(const shcore::Argument_list &args) {
   args.ensure_count(0, "mysqlx.Type");
 
   std::shared_ptr<Type> ret_val(new Type());
@@ -77,13 +74,11 @@ std::shared_ptr<shcore::Object_bridge> Type::create(const shcore::Argument_list 
   return ret_val;
 }
 
-IndexType::IndexType()
-{
+IndexType::IndexType() {
   add_constant("UNIQUE");
 }
 
-shcore::Value IndexType::get_member(const std::string &prop) const
-{
+shcore::Value IndexType::get_member(const std::string &prop) const {
   shcore::Value ret_val = mysh::Constant::get_constant("mysqlx", "IndexType", prop, shcore::Argument_list());
 
   if (!ret_val)
@@ -92,8 +87,7 @@ shcore::Value IndexType::get_member(const std::string &prop) const
   return ret_val;
 }
 
-std::shared_ptr<shcore::Object_bridge> IndexType::create(const shcore::Argument_list &args)
-{
+std::shared_ptr<shcore::Object_bridge> IndexType::create(const shcore::Argument_list &args) {
   args.ensure_count(0, "mysqlx.IndexType");
 
   std::shared_ptr<IndexType> ret_val(new IndexType());

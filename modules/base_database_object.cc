@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2015, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2016, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -36,17 +36,13 @@ using namespace mysh;
 using namespace shcore;
 
 DatabaseObject::DatabaseObject(std::shared_ptr<ShellBaseSession> session, std::shared_ptr<DatabaseObject> schema, const std::string &name)
-  : _session(session), _schema(schema), _name(name)
-{
+  : _session(session), _schema(schema), _name(name) {
   init();
 }
 
-DatabaseObject::~DatabaseObject()
-{
-}
+DatabaseObject::~DatabaseObject() {}
 
-void DatabaseObject::init()
-{
+void DatabaseObject::init() {
   add_property("name", "getName");
   add_property("session", "getSession");
   add_property("schema", "getSchema");
@@ -54,19 +50,16 @@ void DatabaseObject::init()
   add_method("existsInDatabase", std::bind(&DatabaseObject::existsInDatabase, this, _1), "data");
 }
 
-std::string &DatabaseObject::append_descr(std::string &s_out, int UNUSED(indent), int UNUSED(quote_strings)) const
-{
+std::string &DatabaseObject::append_descr(std::string &s_out, int UNUSED(indent), int UNUSED(quote_strings)) const {
   s_out.append("<" + class_name() + ":" + _name + ">");
   return s_out;
 }
 
-std::string &DatabaseObject::append_repr(std::string &s_out) const
-{
+std::string &DatabaseObject::append_repr(std::string &s_out) const {
   return append_descr(s_out, false);
 }
 
-void DatabaseObject::append_json(shcore::JSON_dumper& dumper) const
-{
+void DatabaseObject::append_json(shcore::JSON_dumper& dumper) const {
   dumper.start_object();
 
   dumper.append_string("class", class_name());
@@ -75,10 +68,8 @@ void DatabaseObject::append_json(shcore::JSON_dumper& dumper) const
   dumper.end_object();
 }
 
-bool DatabaseObject::operator == (const Object_bridge &other) const
-{
-  if (class_name() == other.class_name())
-  {
+bool DatabaseObject::operator == (const Object_bridge &other) const {
+  if (class_name() == other.class_name()) {
     return _session.lock() == ((DatabaseObject*)&other)->_session.lock() &&
            _schema.lock() == ((DatabaseObject*)&other)->_schema.lock() &&
            _name == ((DatabaseObject*)&other)->_name &&
@@ -86,7 +77,6 @@ bool DatabaseObject::operator == (const Object_bridge &other) const
   }
   return false;
 }
-
 
 #if DOXYGEN_CPP
 /**
@@ -105,9 +95,9 @@ bool DatabaseObject::operator == (const Object_bridge &other) const
 * \return the name as an String object.
 */
 #if DOXYGEN_JS
-String DatabaseObject::getName(){}
+String DatabaseObject::getName() {}
 #elif DOXYGEN_PY
-str DatabaseObject::get_name(){}
+str DatabaseObject::get_name() {}
 #endif
 /**
 * Returns the Session object of this database object.
@@ -119,9 +109,9 @@ str DatabaseObject::get_name(){}
 * - ClassicSession: if the object was created/retrieved using an ClassicSession instance.
 */
 #if DOXYGEN_JS
-Object DatabaseObject::getSession(){}
+Object DatabaseObject::getSession() {}
 #elif DOXYGEN_PY
-object DatabaseObject::get_session(){}
+object DatabaseObject::get_session() {}
 #endif
 
 /**
@@ -133,41 +123,34 @@ object DatabaseObject::get_session(){}
 * - ClassicSchema: if the object was created/retrieved using an ClassicSchema instance.
 */
 #if DOXYGEN_JS
-Object DatabaseObject::getSchema(){}
+Object DatabaseObject::getSchema() {}
 #elif DOXYGEN_PY
-object DatabaseObject::get_schema(){}
+object DatabaseObject::get_schema() {}
 #endif
 #endif
-Value DatabaseObject::get_member(const std::string &prop) const
-{
+Value DatabaseObject::get_member(const std::string &prop) const {
   Value ret_val;
 
   if (prop == "name")
     ret_val = Value(_name);
-  else if (prop == "session")
-  {
+  else if (prop == "session") {
     if (_session.expired())
       ret_val = Value::Null();
-    else
-    {
+    else {
       auto session = _session.lock();
-      if(session)
+      if (session)
         ret_val = Value(std::static_pointer_cast<Object_bridge>(session));
     }
-  }
-  else if (prop == "schema")
-  {
+  } else if (prop == "schema") {
     if (_schema.expired())
       ret_val = Value::Null();
-    else
-    {
+    else {
       auto schema = _schema.lock();
 
-      if(schema)
+      if (schema)
         ret_val = Value(std::static_pointer_cast<Object_bridge>(_schema.lock()));
     }
-  }
-  else
+  } else
     ret_val = Cpp_object_bridge::get_member(prop);
 
   return ret_val;
@@ -175,12 +158,11 @@ Value DatabaseObject::get_member(const std::string &prop) const
 
 //! Verifies if this object exists in the database.
 #if DOXYGEN_JS
-Bool DatabaseObject::existsInDatabase(){}
+Bool DatabaseObject::existsInDatabase() {}
 #elif DOXYGEN_PY
-bool DatabaseObject::exists_in_database(){}
+bool DatabaseObject::exists_in_database() {}
 #endif
-shcore::Value DatabaseObject::existsInDatabase(const shcore::Argument_list &args)
-{
+shcore::Value DatabaseObject::existsInDatabase(const shcore::Argument_list &args) {
   shcore::Value ret_val;
   std::string type(get_object_type());
 
@@ -189,20 +171,18 @@ shcore::Value DatabaseObject::existsInDatabase(const shcore::Argument_list &args
 
   if (session)
     ret_val = shcore::Value(!session->db_object_exists(type, _name, schema ? schema->get_member("name").as_string() : "").empty());
-  else
-  {
+  else {
     std::string name = _name;
-    if(schema)
+    if (schema)
       name = schema->get_member("name").as_string() + "." + _name;
 
-    throw shcore::Exception::logic_error("Unable to verify existence of '" + name + "', no Session available" );
+    throw shcore::Exception::logic_error("Unable to verify existence of '" + name + "', no Session available");
   }
 
   return ret_val;
 }
 
-void DatabaseObject::update_cache(const std::vector<std::string>& names, const std::function<shcore::Value(const std::string &name)>& generator, Cache target_cache, DatabaseObject* target)
-{
+void DatabaseObject::update_cache(const std::vector<std::string>& names, const std::function<shcore::Value(const std::string &name)>& generator, Cache target_cache, DatabaseObject* target) {
   std::set<std::string> existing;
 
   // Backups the existing items in the collection
@@ -212,10 +192,8 @@ void DatabaseObject::update_cache(const std::vector<std::string>& names, const s
     existing.insert(index->first);
 
   // Ensures the existing items are on the cache
-  for (auto name : names)
-  {
-    if (existing.find(name) == existing.end())
-    {
+  for (auto name : names) {
+    if (existing.find(name) == existing.end()) {
       (*target_cache)[name] = generator(name);
 
       if (target && shcore::is_valid_identifier(name))
@@ -227,8 +205,7 @@ void DatabaseObject::update_cache(const std::vector<std::string>& names, const s
   }
 
   // Removes no longer existing items
-  for (auto name : existing)
-  {
+  for (auto name : existing) {
     target_cache->erase(name);
 
     if (target)
@@ -236,18 +213,15 @@ void DatabaseObject::update_cache(const std::vector<std::string>& names, const s
   }
 }
 
-void DatabaseObject::update_cache(const std::string& name, const std::function<shcore::Value(const std::string &name)>& generator, bool exists, Cache target_cache, DatabaseObject* target)
-{
-  if (exists && target_cache->find(name) == target_cache->end())
-  {
+void DatabaseObject::update_cache(const std::string& name, const std::function<shcore::Value(const std::string &name)>& generator, bool exists, Cache target_cache, DatabaseObject* target) {
+  if (exists && target_cache->find(name) == target_cache->end()) {
     (*target_cache)[name] = generator(name);
 
     if (target && shcore::is_valid_identifier(name))
       target->add_property(name);
   }
 
-  if (!exists && target_cache->find(name) != target_cache->end())
-  {
+  if (!exists && target_cache->find(name) != target_cache->end()) {
     target_cache->erase(name);
 
     if (target)
@@ -255,14 +229,12 @@ void DatabaseObject::update_cache(const std::string& name, const std::function<s
   }
 }
 
-void DatabaseObject::get_object_list(Cache target_cache, shcore::Value::Array_type_ref list)
-{
+void DatabaseObject::get_object_list(Cache target_cache, shcore::Value::Array_type_ref list) {
   for (auto entry : *target_cache)
     list->push_back(entry.second);
 }
 
-shcore::Value DatabaseObject::find_in_cache(const std::string& name, Cache target_cache)
-{
+shcore::Value DatabaseObject::find_in_cache(const std::string& name, Cache target_cache) {
   Value::Map_type::const_iterator iter = target_cache->find(name);
   if (iter != target_cache->end())
     return Value(std::shared_ptr<Object_bridge>(iter->second.as_object()));

@@ -146,9 +146,9 @@ public:
   * \brief Verifies if the session is still open.
   */
 #if DOXYGEN_JS
-  Bool isOpen(){}
+  Bool isOpen() {}
 #elif DOXYGEN_PY
-  bool is_open(){}
+  bool is_open() {}
 #endif
   virtual bool is_connected() const { return _conn ? true : false; }
 

@@ -29,40 +29,37 @@
 #include "shellcore/ishell_core.h"
 #include "mysqlxtest/mysqlx.h"
 
-namespace mysh
-{
-  namespace mysqlx
-  {
-    // This is a helper class that wraps a connection created using mysqlxtest
-    // and the different operations available through it.
-    class SHCORE_PUBLIC SessionHandle
-    {
-    public:
-      bool is_connected() const { return _session ? true : false; }
-      std::shared_ptr< ::mysqlx::Session> get() const { return _session; }
-      void open(const std::string &host, int port, const std::string &schema,
-                const std::string &user, const std::string &pass,
-                const std::string &ssl_ca, const std::string &ssl_cert,
-                const std::string &ssl_key, const std::size_t timeout,
-                const std::string &auth_method = "", const bool get_caps = false);
+namespace mysh {
+namespace mysqlx {
+// This is a helper class that wraps a connection created using mysqlxtest
+// and the different operations available through it.
+class SHCORE_PUBLIC SessionHandle {
+public:
+  bool is_connected() const { return _session ? true : false; }
+  std::shared_ptr< ::mysqlx::Session> get() const { return _session; }
+  void open(const std::string &host, int port, const std::string &schema,
+            const std::string &user, const std::string &pass,
+            const std::string &ssl_ca, const std::string &ssl_cert,
+            const std::string &ssl_key, const std::size_t timeout,
+            const std::string &auth_method = "", const bool get_caps = false);
 
-      std::shared_ptr< ::mysqlx::Result> execute_sql(const std::string &sql) const;
-      void enable_protocol_trace(bool value);
-      void reset();
-      std::shared_ptr< ::mysqlx::Result> execute_statement(const std::string &domain, const std::string& command, const shcore::Argument_list &args) const;
+  std::shared_ptr< ::mysqlx::Result> execute_sql(const std::string &sql) const;
+  void enable_protocol_trace(bool value);
+  void reset();
+  std::shared_ptr< ::mysqlx::Result> execute_statement(const std::string &domain, const std::string& command, const shcore::Argument_list &args) const;
 
-      std::string db_object_exists(std::string &type, const std::string &name, const std::string& owner) const;      
+  std::string db_object_exists(std::string &type, const std::string &name, const std::string& owner) const;
 
-      shcore::Value get_capability(const std::string& name);
-      uint64_t get_client_id();
+  shcore::Value get_capability(const std::string& name);
+  uint64_t get_client_id();
 
-    private:
-      mutable std::shared_ptr< ::mysqlx::Result> _last_result;
-      std::shared_ptr< ::mysqlx::Session> _session;
+private:
+  mutable std::shared_ptr< ::mysqlx::Result> _last_result;
+  std::shared_ptr< ::mysqlx::Session> _session;
 
-      ::mysqlx::ArgumentValue get_argument_value(shcore::Value source) const;
-    };
-  }
+  ::mysqlx::ArgumentValue get_argument_value(shcore::Value source) const;
+};
+}
 }
 
 #endif

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2016, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -35,33 +35,30 @@
 #define ATTR_UNUSED
 #endif
 
-namespace mysh
-{
-  class DatabaseObject;
-  namespace mysqlx
-  {
+namespace mysh {
+class DatabaseObject;
+namespace mysqlx {
 #if DOXYGEN_CPP
-    /** 
-    * Base class for CRUD operations.
-    *
-    * The CRUD operations will use "dynamic" functions to control the method chaining.
-    * A dynamic function is one that will be enabled/disabled based on the method
-    * chain sequence.
-    */
+/**
+* Base class for CRUD operations.
+*
+* The CRUD operations will use "dynamic" functions to control the method chaining.
+* A dynamic function is one that will be enabled/disabled based on the method
+* chain sequence.
+*/
 #endif
-    class Crud_definition : public Dynamic_object
-    {
-    public:
-      Crud_definition(std::shared_ptr<DatabaseObject> owner);
+class Crud_definition : public Dynamic_object {
+public:
+  Crud_definition(std::shared_ptr<DatabaseObject> owner);
 
-      // The last step on CRUD operations
-      virtual shcore::Value execute(const shcore::Argument_list &args) = 0;
-    protected:
-      std::weak_ptr<DatabaseObject> _owner;
+  // The last step on CRUD operations
+  virtual shcore::Value execute(const shcore::Argument_list &args) = 0;
+protected:
+  std::weak_ptr<DatabaseObject> _owner;
 
-      void parse_string_list(const shcore::Argument_list &args, std::vector<std::string> &data);
-    };
-  }
+  void parse_string_list(const shcore::Argument_list &args, std::vector<std::string> &data);
+};
+}
 }
 
 #endif

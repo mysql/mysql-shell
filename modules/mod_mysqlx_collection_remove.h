@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2016, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -25,51 +25,48 @@
 
 #include "collection_crud_definition.h"
 
-namespace mysh
-{
-  namespace mysqlx
-  {
-    class Collection;
+namespace mysh {
+namespace mysqlx {
+class Collection;
 
-    /**
-    * Handler for document removal from a Collection.
-    *
-    * This object provides the necessary functions to allow removing documents from a collection.
-    *
-    * This object should only be created by calling the remove function on the collection object from which the documents will be removed.
-    *
-    * \sa Collection
-    */
-    class CollectionRemove : public Collection_crud_definition, public std::enable_shared_from_this<CollectionRemove>
-    {
-    public:
-      CollectionRemove(std::shared_ptr<Collection> owner);
-    public:
+/**
+* Handler for document removal from a Collection.
+*
+* This object provides the necessary functions to allow removing documents from a collection.
+*
+* This object should only be created by calling the remove function on the collection object from which the documents will be removed.
+*
+* \sa Collection
+*/
+class CollectionRemove : public Collection_crud_definition, public std::enable_shared_from_this<CollectionRemove> {
+public:
+  CollectionRemove(std::shared_ptr<Collection> owner);
+public:
 #if DOXYGEN_JS
-      CollectionRemove remove(String searchCondition);
-      CollectionRemove sort(List sortExprStr);
-      CollectionRemove limit(Integer numberOfRows);
-      CollectionFind bind(String name, Value value);
-      Result execute();
+  CollectionRemove remove(String searchCondition);
+  CollectionRemove sort(List sortExprStr);
+  CollectionRemove limit(Integer numberOfRows);
+  CollectionFind bind(String name, Value value);
+  Result execute();
 #elif DOXYGEN_PY
-      CollectionRemove remove(str searchCondition);
-      CollectionRemove sort(list sortExprStr);
-      CollectionRemove limit(int numberOfRows);
-      CollectionFind bind(str name, Value value);
-      Result execute();
+  CollectionRemove remove(str searchCondition);
+  CollectionRemove sort(list sortExprStr);
+  CollectionRemove limit(int numberOfRows);
+  CollectionFind bind(str name, Value value);
+  Result execute();
 #endif
-      virtual std::string class_name() const { return "CollectionRemove"; }
-      static std::shared_ptr<shcore::Object_bridge> create(const shcore::Argument_list &args);
-      shcore::Value remove(const shcore::Argument_list &args);
-      shcore::Value sort(const shcore::Argument_list &args);
-      shcore::Value limit(const shcore::Argument_list &args);
-      shcore::Value bind(const shcore::Argument_list &args);
+  virtual std::string class_name() const { return "CollectionRemove"; }
+  static std::shared_ptr<shcore::Object_bridge> create(const shcore::Argument_list &args);
+  shcore::Value remove(const shcore::Argument_list &args);
+  shcore::Value sort(const shcore::Argument_list &args);
+  shcore::Value limit(const shcore::Argument_list &args);
+  shcore::Value bind(const shcore::Argument_list &args);
 
-      virtual shcore::Value execute(const shcore::Argument_list &args);
-    private:
-      std::unique_ptr< ::mysqlx::RemoveStatement> _remove_statement;
-    };
-  };
+  virtual shcore::Value execute(const shcore::Argument_list &args);
+private:
+  std::unique_ptr< ::mysqlx::RemoveStatement> _remove_statement;
+};
+};
 };
 
 #endif

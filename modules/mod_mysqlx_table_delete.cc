@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2016, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -27,8 +27,7 @@ using namespace mysh::mysqlx;
 using namespace shcore;
 
 TableDelete::TableDelete(std::shared_ptr<Table> owner)
-  :Table_crud_definition(std::static_pointer_cast<DatabaseObject>(owner))
-{
+  :Table_crud_definition(std::static_pointer_cast<DatabaseObject>(owner)) {
   // Exposes the methods available for chaining
   add_method("delete", std::bind(&TableDelete::remove, this, _1), "data");
   add_method("where", std::bind(&TableDelete::where, this, _1), "data");
@@ -70,21 +69,18 @@ TableDelete::TableDelete(std::shared_ptr<Table> owner)
 * \sa Usage examples at execute().
 */
 #if DOXYGEN_JS
-TableDelete TableDelete::delete(){}
+TableDelete TableDelete::delete() {}
 #elif DOXYGEN_PY
-TableDelete TableDelete::delete(){}
+TableDelete TableDelete::delete() {}
 #endif
-shcore::Value TableDelete::remove(const shcore::Argument_list &args)
-{
+shcore::Value TableDelete::remove(const shcore::Argument_list &args) {
   // Each method validates the received parameters
   args.ensure_count(0, get_function_name("delete").c_str());
 
   std::shared_ptr<Table> table(std::static_pointer_cast<Table>(_owner.lock()));
 
-  if (table)
-  {
-    try
-    {
+  if (table) {
+    try {
       _delete_statement.reset(new ::mysqlx::DeleteStatement(table->_table_impl->remove()));
 
       // Updates the exposed functions
@@ -124,21 +120,18 @@ shcore::Value TableDelete::remove(const shcore::Argument_list &args)
 * \sa Usage examples at execute().
 */
 #if DOXYGEN_JS
-TableDelete TableDelete::where(String searchCondition){}
+TableDelete TableDelete::where(String searchCondition) {}
 #elif DOXYGEN_PY
-TableDelete TableDelete::where(str searchCondition){}
+TableDelete TableDelete::where(str searchCondition) {}
 #endif
-shcore::Value TableDelete::where(const shcore::Argument_list &args)
-{
+shcore::Value TableDelete::where(const shcore::Argument_list &args) {
   // Each method validates the received parameters
   args.ensure_count(1, get_function_name("where").c_str());
 
   std::shared_ptr<Table> table(std::static_pointer_cast<Table>(_owner.lock()));
 
-  if (table)
-  {
-    try
-    {
+  if (table) {
+    try {
       _delete_statement->where(args.string_at(0));
 
       // Updates the exposed functions
@@ -179,16 +172,14 @@ shcore::Value TableDelete::where(const shcore::Argument_list &args)
 *
 */
 #if DOXYGEN_JS
-TableDelete TableDelete::orderBy(List sortExprStr){}
+TableDelete TableDelete::orderBy(List sortExprStr) {}
 #elif DOXYGEN_PY
-TableDelete TableDelete::order_by(list sortExprStr){}
+TableDelete TableDelete::order_by(list sortExprStr) {}
 #endif
-shcore::Value TableDelete::order_by(const shcore::Argument_list &args)
-{
+shcore::Value TableDelete::order_by(const shcore::Argument_list &args) {
   args.ensure_count(1, get_function_name("orderBy").c_str());
 
-  try
-  {
+  try {
     std::vector<std::string> fields;
 
     parse_string_list(args, fields);
@@ -232,16 +223,14 @@ shcore::Value TableDelete::order_by(const shcore::Argument_list &args)
 * \sa Usage examples at execute().
 */
 #if DOXYGEN_JS
-TableDelete TableDelete::limit(Integer numberOfRows){}
+TableDelete TableDelete::limit(Integer numberOfRows) {}
 #elif DOXYGEN_PY
-TableDelete TableDelete::limit(int numberOfRows){}
+TableDelete TableDelete::limit(int numberOfRows) {}
 #endif
-shcore::Value TableDelete::limit(const shcore::Argument_list &args)
-{
+shcore::Value TableDelete::limit(const shcore::Argument_list &args) {
   args.ensure_count(1, get_function_name("limit").c_str());
 
-  try
-  {
+  try {
     _delete_statement->limit(args.uint_at(0));
 
     update_functions("limit");
@@ -280,16 +269,14 @@ shcore::Value TableDelete::limit(const shcore::Argument_list &args)
 * \sa Usage examples at execute().
 */
 #if DOXYGEN_JS
-TableDelete TableDelete::bind(String name, Value value){}
+TableDelete TableDelete::bind(String name, Value value) {}
 #elif DOXYGEN_PY
-TableDelete TableDelete::bind(str name, Value value){}
+TableDelete TableDelete::bind(str name, Value value) {}
 #endif
-shcore::Value TableDelete::bind(const shcore::Argument_list &args)
-{
+shcore::Value TableDelete::bind(const shcore::Argument_list &args) {
   args.ensure_count(2, get_function_name("bind").c_str());
 
-  try
-  {
+  try {
     _delete_statement->bind(args.string_at(0), map_table_value(args[1]));
 
     update_functions("bind");
@@ -316,7 +303,7 @@ shcore::Value TableDelete::bind(const shcore::Argument_list &args)
 * \until //@ TableDelete: with limit 3
 * \until print('Records Left:', records.length, '\n');
 */
-Result TableDelete::execute(){}
+Result TableDelete::execute() {}
 #elif DOXYGEN_PY
 /**
 *
@@ -326,14 +313,12 @@ Result TableDelete::execute(){}
 * \until #@ TableDelete: with limit 3
 * \until print 'Records Left:', len(records), '\n'
 */
-Result TableDelete::execute(){}
+Result TableDelete::execute() {}
 #endif
-shcore::Value TableDelete::execute(const shcore::Argument_list &args)
-{
+shcore::Value TableDelete::execute(const shcore::Argument_list &args) {
   mysqlx::Result *result = NULL;
 
-  try
-  {
+  try {
     args.ensure_count(0, get_function_name("execute").c_str());
 
     MySQL_timer timer;

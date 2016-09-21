@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2016, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -29,21 +29,16 @@ using namespace shcore;
 REGISTER_OBJECT(mysqlx, Date);
 
 Date::Date(int year, int month, int day, int hour, int min, float sec)
-: _year(year), _month(month), _day(day), _hour(hour), _min(min), _sec(sec)
-{
-}
+  : _year(year), _month(month), _day(day), _hour(hour), _min(min), _sec(sec) {}
 
-bool Date::operator == (const Object_bridge &other) const
-{
-  if (other.class_name() == "Date")
-  {
+bool Date::operator == (const Object_bridge &other) const {
+  if (other.class_name() == "Date") {
     return *this == *(Date*)&other;
   }
   return false;
 }
 
-bool Date::operator == (const Date &other) const
-{
+bool Date::operator == (const Date &other) const {
   if (_year == other._year &&
       _month == other._month &&
       _day == other._day &&
@@ -54,8 +49,7 @@ bool Date::operator == (const Date &other) const
   return false;
 }
 
-std::string &Date::append_descr(std::string &s_out, int UNUSED(indent), int quote_strings) const
-{
+std::string &Date::append_descr(std::string &s_out, int UNUSED(indent), int quote_strings) const {
   if (quote_strings)
     s_out.push_back((char)quote_strings);
   if ((float)(int)_sec != _sec)
@@ -67,13 +61,11 @@ std::string &Date::append_descr(std::string &s_out, int UNUSED(indent), int quot
   return s_out;
 }
 
-std::string &Date::append_repr(std::string &s_out) const
-{
+std::string &Date::append_repr(std::string &s_out) const {
   return append_descr(s_out, 0, '"');
 }
 
-void Date::append_json(shcore::JSON_dumper& dumper) const
-{
+void Date::append_json(shcore::JSON_dumper& dumper) const {
   dumper.start_object();
 
   dumper.append_int("year", _year);
@@ -86,18 +78,15 @@ void Date::append_json(shcore::JSON_dumper& dumper) const
   dumper.end_object();
 }
 
-Value Date::get_member(const std::string &prop) const
-{
+Value Date::get_member(const std::string &prop) const {
   return Cpp_object_bridge::get_member(prop);
 }
 
-void Date::set_member(const std::string &prop, Value value)
-{
+void Date::set_member(const std::string &prop, Value value) {
   Cpp_object_bridge::set_member(prop, value);
 }
 
-Object_bridge_ref Date::create(const shcore::Argument_list &args)
-{
+Object_bridge_ref Date::create(const shcore::Argument_list &args) {
   args.ensure_count(3, 6, "Date()");
 
 #define GETi(i) (args.size() > i ? args.int_at(i) : 0)
@@ -109,8 +98,7 @@ Object_bridge_ref Date::create(const shcore::Argument_list &args)
 #undef GETf
 }
 
-Object_bridge_ref Date::unrepr(const std::string &s)
-{
+Object_bridge_ref Date::unrepr(const std::string &s) {
   int year = 0;
   int month = 0;
   int day = 0;
@@ -122,8 +110,7 @@ Object_bridge_ref Date::unrepr(const std::string &s)
   return Object_bridge_ref(new Date(year, month - 1, day, hour, min, sec));
 }
 
-int64_t Date::as_ms() const
-{
+int64_t Date::as_ms() const {
   struct tm t;
   // caution, this obviously doesnt work for dates before 1970 yr
   t.tm_year = _year - 1900;
@@ -138,8 +125,7 @@ int64_t Date::as_ms() const
   return seconds_since_epoch * 1000 + (int)(_sec * 1000.0) % 1000;
 }
 
-Object_bridge_ref Date::from_ms(int64_t ms_since_epoch)
-{
+Object_bridge_ref Date::from_ms(int64_t ms_since_epoch) {
   int ms = ms_since_epoch % 1000;
   time_t seconds_since_epoch = ms_since_epoch / 1000;
 

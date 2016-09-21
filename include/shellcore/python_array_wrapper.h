@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2016, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -23,23 +23,19 @@
 #include "shellcore/python_context.h"
 #include "shellcore/types.h"
 
-namespace shcore
-{
+namespace shcore {
 class Python_context;
 
 /*
  * Wraps an array object as a Python sequence object
  */
-struct PyShListObject
-{
+struct PyShListObject {
   PyObject_HEAD
   shcore::Value::Array_type_ref *array;
 };
 
-
 PyObject *wrap(std::shared_ptr<Value::Array_type> array);
 bool unwrap(PyObject *value, std::shared_ptr<Value::Array_type> &ret_array);
-
 };
 
 #endif

@@ -25,42 +25,39 @@
 
 #include "dynamic_object.h"
 
-namespace mysh
-{
-  namespace mysqlx
-  {
-    class NodeSession;
-    /**
-    * Handler for execution SQL statements, supports parameter binding.
-    *
-    * This object should only be created by calling the sql function a NodeSession instance.
-    * \sa NodeSession
-    */
-    class SqlExecute : public Dynamic_object, public std::enable_shared_from_this<SqlExecute>
-    {
-    public:
+namespace mysh {
+namespace mysqlx {
+class NodeSession;
+/**
+* Handler for execution SQL statements, supports parameter binding.
+*
+* This object should only be created by calling the sql function a NodeSession instance.
+* \sa NodeSession
+*/
+class SqlExecute : public Dynamic_object, public std::enable_shared_from_this<SqlExecute> {
+public:
 #if DOXYGEN_JS
-      SqlExecute sql(String statement);
-      SqlExecute bind(Value value);
-      SqlExecute bind(List values);
-      SqlResult execute();
+  SqlExecute sql(String statement);
+  SqlExecute bind(Value value);
+  SqlExecute bind(List values);
+  SqlResult execute();
 #elif DOXYGEN_PY
-      SqlExecute sql(str statement);
-      SqlExecute bind(Value value);
-      SqlExecute bind(list values);
-      SqlResult execute();
+  SqlExecute sql(str statement);
+  SqlExecute bind(Value value);
+  SqlExecute bind(list values);
+  SqlResult execute();
 #endif
-      SqlExecute(std::shared_ptr<NodeSession> owner);
-      virtual std::string class_name() const { return "SqlExecute"; }
-      shcore::Value sql(const shcore::Argument_list &args);
-      shcore::Value bind(const shcore::Argument_list &args);
-      virtual shcore::Value execute(const shcore::Argument_list &args);
-    private:
-      std::weak_ptr<NodeSession> _session;
-      std::string _sql;
-      shcore::Argument_list _parameters;
-    };
-  };
+  SqlExecute(std::shared_ptr<NodeSession> owner);
+  virtual std::string class_name() const { return "SqlExecute"; }
+  shcore::Value sql(const shcore::Argument_list &args);
+  shcore::Value bind(const shcore::Argument_list &args);
+  virtual shcore::Value execute(const shcore::Argument_list &args);
+private:
+  std::weak_ptr<NodeSession> _session;
+  std::string _sql;
+  shcore::Argument_list _parameters;
+};
+};
 };
 
 #endif

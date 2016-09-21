@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2016, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -23,34 +23,30 @@
 #include "shellcore/python_context.h"
 #include "shellcore/types.h"
 
-namespace shcore
-{
-  class Python_context;
+namespace shcore {
+class Python_context;
 
-  struct PyMemberCache
-  {
-    std::map<std::string, AutoPyObject> members;
-  };
+struct PyMemberCache {
+  std::map<std::string, AutoPyObject> members;
+};
 
-  /*
-   * Wraps a native/bridged C++ object reference as a Python sequence object
-   */
-  struct PyShObjObject
-  {
-    PyObject_HEAD
-    shcore::Object_bridge_ref *object;
-    PyMemberCache *cache;
-  };
+/*
+ * Wraps a native/bridged C++ object reference as a Python sequence object
+ */
+struct PyShObjObject {
+  PyObject_HEAD
+  shcore::Object_bridge_ref *object;
+  PyMemberCache *cache;
+};
 
-  struct PyShObjIndexedObject
-  {
-    PyObject_HEAD
-    shcore::Object_bridge_ref *object;
-    PyMemberCache *cache;
-  };
+struct PyShObjIndexedObject {
+  PyObject_HEAD
+  shcore::Object_bridge_ref *object;
+  PyMemberCache *cache;
+};
 
-  PyObject *wrap(std::shared_ptr<Object_bridge> object);
-  bool unwrap(PyObject *value, std::shared_ptr<Object_bridge> &ret_object);
+PyObject *wrap(std::shared_ptr<Object_bridge> object);
+bool unwrap(PyObject *value, std::shared_ptr<Object_bridge> &ret_object);
 };
 
 #endif  // _PYTHON_OBJECT_WRAPPER_H_

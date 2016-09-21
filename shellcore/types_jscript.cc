@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2016, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -17,7 +17,6 @@
  * 02110-1301  USA
  */
 
-
 #include "shellcore/types_jscript.h"
 #include "shellcore/object_factory.h"
 #include "shellcore/common.h"
@@ -27,58 +26,42 @@
 
 using namespace shcore;
 
-
-class JScript_object : public Object_bridge
-{
+class JScript_object : public Object_bridge {
 public:
-  JScript_object(std::shared_ptr<JScript_context> UNUSED(context))
-  {
-  }
+  JScript_object(std::shared_ptr<JScript_context> UNUSED(context)) {}
 
-  virtual ~JScript_object()
-  {
-  }
+  virtual ~JScript_object() {}
 
-  virtual std::string &append_descr(std::string &s_out, int UNUSED(indent)=-1, int UNUSED(quote_strings)=0) const
-  {
+  virtual std::string &append_descr(std::string &s_out, int UNUSED(indent) = -1, int UNUSED(quote_strings) = 0) const {
     return s_out;
   }
 
-  virtual std::string &append_repr(std::string &s_out) const
-  {
+  virtual std::string &append_repr(std::string &s_out) const {
     return s_out;
   }
 
-  virtual std::vector<std::string> get_members() const
-  {
+  virtual std::vector<std::string> get_members() const {
     std::vector<std::string> mlist;
     return mlist;
   }
 
-  virtual bool operator == (const Object_bridge &UNUSED(other)) const
-  {
+  virtual bool operator == (const Object_bridge &UNUSED(other)) const {
     return false;
   }
 
-  virtual bool operator != (const Object_bridge &UNUSED(other)) const
-  {
+  virtual bool operator != (const Object_bridge &UNUSED(other)) const {
     return false;
   }
 
-  virtual Value get_property(const std::string &UNUSED(prop)) const
-  {
+  virtual Value get_property(const std::string &UNUSED(prop)) const {
     return Value();
   }
 
-  virtual void set_property(const std::string &UNUSED(prop), Value UNUSED(value))
-  {
-  }
+  virtual void set_property(const std::string &UNUSED(prop), Value UNUSED(value)) {}
 
-  virtual Value call(const std::string &name, const Argument_list &args)
-  {
+  virtual Value call(const std::string &name, const Argument_list &args) {
     v8::Handle<v8::Value> member(_object->Get(v8::String::NewFromUtf8(_js->isolate(), name.c_str())));
-    if (member->IsFunction())
-    {
+    if (member->IsFunction()) {
       v8::Handle<v8::Function> f;
       f.Cast(member);
       std::vector<v8::Handle<v8::Value> > argv;
@@ -87,13 +70,11 @@ public:
 
       v8::Handle<v8::Value> result = f->Call(_js->context()->Global(), (int)args.size(), &argv[0]);
       return _js->v8_value_to_shcore_value(result);
-    }
-    else
-    {
-      throw Exception::attrib_error("Called member "+name+" of JS object is not a function");
+    } else {
+      throw Exception::attrib_error("Called member " + name + " of JS object is not a function");
     }
   }
-  
+
 private:
   std::shared_ptr<JScript_context> _js;
   v8::Handle<v8::Object> _object;
@@ -101,18 +82,15 @@ private:
 
 // -------------------------------------------------------------------------------------------------------
 
-class JScript_object_factory : public Object_factory
-{
+class JScript_object_factory : public Object_factory {
 public:
   JScript_object_factory(std::shared_ptr<JScript_context> context, v8::Handle<v8::Object> constructor);
 
-  virtual std::shared_ptr<Object_bridge> construct(const Argument_list &UNUSED(args))
-  {
+  virtual std::shared_ptr<Object_bridge> construct(const Argument_list &UNUSED(args)) {
     return construct_from_repr("");
   }
 
-  virtual std::shared_ptr<Object_bridge> construct_from_repr(const std::string &UNUSED(repr))
-  {
+  virtual std::shared_ptr<Object_bridge> construct_from_repr(const std::string &UNUSED(repr)) {
     return std::shared_ptr<Object_bridge>();
   }
 
@@ -122,45 +100,37 @@ private:
 
 // -------------------------------------------------------------------------------------------------------
 
-
 JScript_function::JScript_function(std::shared_ptr<JScript_context> context)
-: _js(context)
-{
-throw std::logic_error("not implemented");
+  : _js(context) {
+  throw std::logic_error("not implemented");
 }
 
-std::string JScript_function::name()
-{
+std::string JScript_function::name() {
   // TODO:
   return "";
 }
 
-std::vector<std::pair<std::string, Value_type> > JScript_function::signature()
-{
+std::vector<std::pair<std::string, Value_type> > JScript_function::signature() {
   // TODO:
   return std::vector<std::pair<std::string, Value_type> >();
 }
 
-std::pair<std::string, Value_type> JScript_function::return_type()
-{
+std::pair<std::string, Value_type> JScript_function::return_type() {
   // TODO:
   return std::pair<std::string, Value_type>();
 }
 
-bool JScript_function::operator == (const Function_base &UNUSED(other)) const
-{
+bool JScript_function::operator == (const Function_base &UNUSED(other)) const {
   // TODO:
   return false;
 }
 
-bool JScript_function::operator != (const Function_base &UNUSED(other)) const
-{
+bool JScript_function::operator != (const Function_base &UNUSED(other)) const {
   // TODO:
   return false;
 }
 
-Value JScript_function::invoke(const Argument_list &UNUSED(args))
-{
+Value JScript_function::invoke(const Argument_list &UNUSED(args)) {
   // TODO:
   return Value();
 }

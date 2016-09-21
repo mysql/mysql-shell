@@ -32,75 +32,70 @@
 #include <boost/type_traits/is_signed.hpp>
 #include <stdexcept>
 
-namespace shcore
-{
-  enum SqlStringFlags
-  {
-    QuoteOnlyIfNeeded = 1 << 0,
-    UseAnsiQuotes = 1 << 1
+namespace shcore {
+enum SqlStringFlags {
+  QuoteOnlyIfNeeded = 1 << 0,
+  UseAnsiQuotes = 1 << 1
+};
+
+SHCORE_PUBLIC std::string escape_sql_string(const std::string &string, bool wildcards = false); // "strings" or 'strings'
+SHCORE_PUBLIC std::string escape_backticks(const std::string &string);  // `identifier`
+SHCORE_PUBLIC std::string quote_identifier(const std::string& identifier, const char quote_char);
+SHCORE_PUBLIC std::string quote_identifier_if_needed(const std::string &ident, const char quote_char);
+
+class SHCORE_PUBLIC sqlstring {
+public:
+  struct sqlstringformat {
+    int _flags;
+    sqlstringformat(const int flags) : _flags(flags) {}
   };
 
-  SHCORE_PUBLIC std::string escape_sql_string(const std::string &string, bool wildcards = false); // "strings" or 'strings'
-  SHCORE_PUBLIC std::string escape_backticks(const std::string &string);  // `identifier`
-  SHCORE_PUBLIC std::string quote_identifier(const std::string& identifier, const char quote_char);
-  SHCORE_PUBLIC std::string quote_identifier_if_needed(const std::string &ident, const char quote_char);
+private:
+  std::string _formatted;
+  std::string _format_string_left;
+  sqlstringformat _format;
 
-  class SHCORE_PUBLIC sqlstring
-  {
-  public:
-    struct sqlstringformat
-    {
-      int _flags;
-      sqlstringformat(const int flags) : _flags(flags){}
-    };
+  std::string consume_until_next_escape();
+  int next_escape();
 
-  private:
-    std::string _formatted;
-    std::string _format_string_left;
-    sqlstringformat _format;
+  sqlstring& append(const std::string &s);
+public:
+  static const sqlstring null;
 
-    std::string consume_until_next_escape();
-    int next_escape();
+  sqlstring();
+  sqlstring(const char* format_string, const sqlstringformat format);
+  sqlstring(const sqlstring &copy);
+  bool done() const;
 
-    sqlstring& append(const std::string &s);
-  public:
-    static const sqlstring null;
+  operator std::string() const;
+  std::string str() const;
 
-    sqlstring();
-    sqlstring(const char* format_string, const sqlstringformat format);
-    sqlstring(const sqlstring &copy);
-    bool done() const;
+  //! modifies formatting options
+  sqlstring &operator <<(const sqlstringformat);
 
-    operator std::string() const;
-    std::string str() const;
-
-    //! modifies formatting options
-    sqlstring &operator <<(const sqlstringformat);
-
-    //! replaces a ? in the format string with any integer numeric value
-    template<typename T>
-    typename boost::enable_if_c<boost::is_integral<T>::value, sqlstring &>::type
-    operator <<(const T value)
-    {
-      int esc = next_escape();
-      if (esc != '?')
-          throw std::invalid_argument("Error formatting SQL query: invalid escape for numeric argument");
-      append(std::to_string(value));
-      append(consume_until_next_escape());
-      return *this;
-    }
-    //! replaces a ? in the format string with a float numeric value
-    sqlstring &operator <<(const float val) { return operator<<((double)val); }
-    //! replaces a ? in the format string with a double numeric value
-    sqlstring &operator <<(const double);
-    //! replaces a ? in the format string with a quoted string value or ! with a back-quoted identifier value
-    sqlstring &operator <<(const std::string&);
-    //! replaces a ? in the format string with a quoted string value or ! with a back-quoted identifier value
-    //! is the value is NULL, ? will be replaced with a NULL. ! will raise an exception
-    sqlstring &operator <<(const char*);
-    //! replaces a ? or ! with the content of the other string verbatim
-    sqlstring &operator <<(const sqlstring&);
-  };
+  //! replaces a ? in the format string with any integer numeric value
+  template<typename T>
+  typename boost::enable_if_c<boost::is_integral<T>::value, sqlstring &>::type
+  operator <<(const T value) {
+    int esc = next_escape();
+    if (esc != '?')
+        throw std::invalid_argument("Error formatting SQL query: invalid escape for numeric argument");
+    append(std::to_string(value));
+    append(consume_until_next_escape());
+    return *this;
+  }
+  //! replaces a ? in the format string with a float numeric value
+  sqlstring &operator <<(const float val) { return operator<<((double)val); }
+  //! replaces a ? in the format string with a double numeric value
+  sqlstring &operator <<(const double);
+  //! replaces a ? in the format string with a quoted string value or ! with a back-quoted identifier value
+  sqlstring &operator <<(const std::string&);
+  //! replaces a ? in the format string with a quoted string value or ! with a back-quoted identifier value
+  //! is the value is NULL, ? will be replaced with a NULL. ! will raise an exception
+  sqlstring &operator <<(const char*);
+  //! replaces a ? or ! with the content of the other string verbatim
+  sqlstring &operator <<(const sqlstring&);
+};
 };
 
 #endif

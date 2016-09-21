@@ -15,7 +15,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301  USA */
 
 /**
   @file mysys_ssl/my_aes_yassl.cc
-*/
+  */
 
 #include "mysh_config.h"
 #include "my_aes.h"
@@ -27,9 +27,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301  USA */
 #include "openssl/ssl.h"
 
 namespace myaes {
-
 /* keep in sync with enum my_aes_opmode in my_aes.h */
-const char *my_aes_opmode_names[]=
+const char *my_aes_opmode_names[] =
 {
   "aes-128-ecb",
   "aes-192-ecb",
@@ -40,9 +39,8 @@ const char *my_aes_opmode_names[]=
   NULL /* needed for the type enumeration */
 };
 
-
 /* keep in sync with enum my_aes_opmode in my_aes.h */
-static uint32_t my_aes_opmode_key_sizes_impl[]=
+static uint32_t my_aes_opmode_key_sizes_impl[] =
 {
   128 /* aes-128-ecb */,
   192 /* aes-192-ecb */,
@@ -52,53 +50,44 @@ static uint32_t my_aes_opmode_key_sizes_impl[]=
   256 /* aes-256-cbc */,
 };
 
-uint32_t *my_aes_opmode_key_sizes= my_aes_opmode_key_sizes_impl;
-
+uint32_t *my_aes_opmode_key_sizes = my_aes_opmode_key_sizes_impl;
 
 template <TaoCrypt::CipherDir DIR>
-class MyCipherCtx
-{
+class MyCipherCtx {
 public:
-  MyCipherCtx(enum my_aes_opmode mode) : m_mode(mode)
-  {
-    switch (m_mode)
-    {
-    case my_aes_128_ecb:
-    case my_aes_192_ecb:
-    case my_aes_256_ecb:
-      m_need_iv= false;
-      break;
-    default:
-      m_need_iv= true;
-      break;
+  MyCipherCtx(enum my_aes_opmode mode) : m_mode(mode) {
+    switch (m_mode) {
+      case my_aes_128_ecb:
+      case my_aes_192_ecb:
+      case my_aes_256_ecb:
+        m_need_iv = false;
+        break;
+      default:
+        m_need_iv = true;
+        break;
     }
   }
 
   bool SetKey(const unsigned char *key, uint32_t block_size,
-              const unsigned char *iv)
-  {
-    if (m_need_iv)
-    {
+              const unsigned char *iv) {
+    if (m_need_iv) {
       if (!iv)
         return true;
       cbc.SetKey(key, block_size, iv);
-    }
-    else
+    } else
       ecb.SetKey(key, block_size);
     return false;
   }
 
   void Process(unsigned char *dest, const unsigned char * source,
-               uint32_t block_size)
-  {
+               uint32_t block_size) {
     if (m_need_iv)
       cbc.Process(dest, source, block_size);
     else
       ecb.Process(dest, source, block_size);
   }
 
-  bool needs_iv() const
-  {
+  bool needs_iv() const {
     return m_need_iv;
   }
 
@@ -110,13 +99,11 @@ private:
   bool m_need_iv;
 };
 
-
 int my_aes_encrypt(const unsigned char *source, uint32_t source_length,
                    unsigned char *dest,
                    const unsigned char *key, uint32_t key_length,
-                   enum my_aes_opmode mode, const unsigned char *iv,
-                   bool padding)
-{
+enum my_aes_opmode mode, const unsigned char *iv,
+  bool padding) {
   MyCipherCtx<TaoCrypt::ENCRYPTION> enc(mode);
 
   /* 128 bit block used for padding */
@@ -124,7 +111,7 @@ int my_aes_encrypt(const unsigned char *source, uint32_t source_length,
   uint32_t num_blocks;                               /* number of complete blocks */
   uint32_t i;
   /* predicted real key size */
-  const uint32_t key_size= my_aes_opmode_key_sizes[mode] / 8;
+  const uint32_t key_size = my_aes_opmode_key_sizes[mode] / 8;
   /* The real key to be used for encryption */
   unsigned char rkey[MAX_AES_KEY_LENGTH / 8];
 
@@ -133,16 +120,16 @@ int my_aes_encrypt(const unsigned char *source, uint32_t source_length,
   if (enc.SetKey(rkey, key_size, iv))
     return MY_AES_BAD_DATA;
 
-  num_blocks= source_length / MY_AES_BLOCK_SIZE;
+  num_blocks = source_length / MY_AES_BLOCK_SIZE;
 
   /* Encode all complete blocks */
   for (i = num_blocks; i > 0;
-       i--, source+= MY_AES_BLOCK_SIZE, dest+= MY_AES_BLOCK_SIZE)
+       i--, source += MY_AES_BLOCK_SIZE, dest += MY_AES_BLOCK_SIZE)
        enc.Process(dest, source, MY_AES_BLOCK_SIZE);
 
   /* If no padding, return here */
   if (!padding)
-	  return (int) (MY_AES_BLOCK_SIZE * num_blocks);
+    return (int)(MY_AES_BLOCK_SIZE * num_blocks);
   /*
   Re-implement standard PKCS padding for the last block.
   Pad the last incomplete data block (even if empty) with bytes
@@ -150,7 +137,7 @@ int my_aes_encrypt(const unsigned char *source, uint32_t source_length,
   This also means that there will always be one more block,
   even if the source data size is dividable by the AES block size.
   */
-  unsigned char pad_len=
+  unsigned char pad_len =
     MY_AES_BLOCK_SIZE - (source_length - MY_AES_BLOCK_SIZE * num_blocks);
   memcpy(block, source, MY_AES_BLOCK_SIZE - pad_len);
   memset(block + MY_AES_BLOCK_SIZE - pad_len, pad_len, pad_len);
@@ -158,32 +145,30 @@ int my_aes_encrypt(const unsigned char *source, uint32_t source_length,
   enc.Process(dest, block, MY_AES_BLOCK_SIZE);
 
   /* we've added a block */
-  num_blocks+= 1;
+  num_blocks += 1;
 
-  return (int) (MY_AES_BLOCK_SIZE * num_blocks);
+  return (int)(MY_AES_BLOCK_SIZE * num_blocks);
 }
-
 
 int my_aes_decrypt(const unsigned char *source, uint32_t source_length,
                    unsigned char *dest,
                    const unsigned char *key, uint32_t key_length,
-                   enum my_aes_opmode mode, const unsigned char *iv,
-                   bool padding)
-{
+enum my_aes_opmode mode, const unsigned char *iv,
+  bool padding) {
   MyCipherCtx<TaoCrypt::DECRYPTION> dec(mode);
   /* 128 bit block used for padding */
   uint8_t block[MY_AES_BLOCK_SIZE];
   uint32_t num_blocks;                               /* Number of complete blocks */
   int i;
   /* predicted real key size */
-  const uint32_t key_size= my_aes_opmode_key_sizes[mode] / 8;
+  const uint32_t key_size = my_aes_opmode_key_sizes[mode] / 8;
   /* The real key to be used for decryption */
   unsigned char rkey[MAX_AES_KEY_LENGTH / 8];
 
   my_aes_create_key(key, key_length, rkey, mode);
   dec.SetKey(rkey, key_size, iv);
 
-  num_blocks= source_length / MY_AES_BLOCK_SIZE;
+  num_blocks = source_length / MY_AES_BLOCK_SIZE;
 
   /*
   Input size has to be a multiple of the AES block size.
@@ -193,13 +178,13 @@ int my_aes_decrypt(const unsigned char *source, uint32_t source_length,
     return MY_AES_BAD_DATA;
 
   /* Decode all but the last block */
-  for (i= padding? num_blocks - 1: num_blocks; i > 0;
-       i--, source+= MY_AES_BLOCK_SIZE, dest+= MY_AES_BLOCK_SIZE)
+  for (i = padding ? num_blocks - 1 : num_blocks; i > 0;
+       i--, source += MY_AES_BLOCK_SIZE, dest += MY_AES_BLOCK_SIZE)
        dec.Process(dest, source, MY_AES_BLOCK_SIZE);
 
   /* If no padding, return here. */
   if (!padding)
-	  return MY_AES_BLOCK_SIZE * num_blocks;
+    return MY_AES_BLOCK_SIZE * num_blocks;
 
   /* unwarp the standard PKCS padding */
   dec.Process(block, source, MY_AES_BLOCK_SIZE);
@@ -215,19 +200,14 @@ int my_aes_decrypt(const unsigned char *source, uint32_t source_length,
   return MY_AES_BLOCK_SIZE * num_blocks - pad_len;
 }
 
-
-int my_aes_get_size(uint32_t source_length, my_aes_opmode)
-{
+int my_aes_get_size(uint32_t source_length, my_aes_opmode) {
   return MY_AES_BLOCK_SIZE * (source_length / MY_AES_BLOCK_SIZE)
     + MY_AES_BLOCK_SIZE;
 }
 
-
-bool my_aes_needs_iv(my_aes_opmode opmode)
-{
+bool my_aes_needs_iv(my_aes_opmode opmode) {
   MyCipherCtx<TaoCrypt::ENCRYPTION> enc(opmode);
 
   return enc.needs_iv() ? true : false;
 }
-
 }

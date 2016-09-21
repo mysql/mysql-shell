@@ -26,8 +26,7 @@
 #include "shellcore/ishell_core.h"
 #include "modules/base_session.h"
 
-class Shell_command_line_options : public Command_line_options
-{
+class Shell_command_line_options : public Command_line_options {
 public:
   shcore::IShell_core::Mode initial_mode;
   std::string run_file;

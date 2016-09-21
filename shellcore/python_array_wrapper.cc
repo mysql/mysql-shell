@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2016, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -30,36 +30,26 @@
 
 using namespace shcore;
 
-static int list_init(PyShListObject *self, PyObject *args, PyObject *kwds)
-{
+static int list_init(PyShListObject *self, PyObject *args, PyObject *kwds) {
   PyObject *valueptr = NULL;
-  static const char *kwlist[] = { "__valueptr__", 0 };
+  static const char *kwlist[] = {"__valueptr__", 0};
 
   if (!PyArg_ParseTupleAndKeywords(args, kwds, "|O", (char**)kwlist, &valueptr))
     return -1;
 
   delete self->array;
 
-  if (valueptr)
-  {
-    try
-    {
+  if (valueptr) {
+    try {
       self->array->reset(static_cast<Value::Array_type*>(PyCObject_AsVoidPtr(valueptr)));
-    }
-    catch (std::exception &exc)
-    {
+    } catch (std::exception &exc) {
       Python_context::set_python_error(exc);
       return -1;
     }
-  }
-  else
-  {
-    try
-    {
+  } else {
+    try {
       self->array = new Value::Array_type_ref();
-    }
-    catch (std::exception &exc)
-    {
+    } catch (std::exception &exc) {
       Python_context::set_python_error(exc);
       return -1;
     }
@@ -67,55 +57,45 @@ static int list_init(PyShListObject *self, PyObject *args, PyObject *kwds)
   return 0;
 }
 
-void list_dealloc(PyShListObject *self)
-{
+void list_dealloc(PyShListObject *self) {
   delete self->array;
 
   self->ob_type->tp_free(self);
 }
 
-Py_ssize_t list_length(PyShListObject *self)
-{
+Py_ssize_t list_length(PyShListObject *self) {
   return self->array->get()->size();
 }
 
-PyObject *list_item(PyShListObject *self, Py_ssize_t index)
-{
+PyObject *list_item(PyShListObject *self, Py_ssize_t index) {
   Python_context *ctx;
 
   if (!(ctx = Python_context::get_and_check()))
     return NULL;
 
-  if (index < 0 || index >= (int)self->array->get()->size())
-  {
+  if (index < 0 || index >= (int)self->array->get()->size()) {
     Python_context::set_python_error(PyExc_IndexError, "list index out of range");
     return NULL;
   }
 
-  try
-  {
+  try {
     return ctx->shcore_value_to_pyobj(self->array->get()->at(index));
-  }
-  catch (std::exception &exc)
-  {
+  } catch (std::exception &exc) {
     Python_context::set_python_error(PyExc_RuntimeError, exc.what());
     return NULL;
   }
 }
 
-int list_assign(PyShListObject *self, Py_ssize_t index, PyObject *value)
-{
+int list_assign(PyShListObject *self, Py_ssize_t index, PyObject *value) {
   Python_context *ctx = Python_context::get_and_check();
   if (!ctx) return -1;
 
-  if (index < 0 || index >= (int)self->array->get()->size())
-  {
+  if (index < 0 || index >= (int)self->array->get()->size()) {
     Python_context::set_python_error(PyExc_IndexError, "list index out of range");
     return -1;
   }
 
-  try
-  {
+  try {
     shcore::Value::Array_type *array;
     array = self->array->get();
 
@@ -124,36 +104,29 @@ int list_assign(PyShListObject *self, Py_ssize_t index, PyObject *value)
     else
       array->insert(array->begin() + index, ctx->pyobj_to_shcore_value(value));
     return 0;
-  }
-  catch (std::exception &exc)
-  {
+  } catch (std::exception &exc) {
     Python_context::set_python_error(PyExc_RuntimeError, exc.what());
   }
 
   return -1;
 }
 
-int list_contains(PyShListObject *self, PyObject *value)
-{
+int list_contains(PyShListObject *self, PyObject *value) {
   Python_context *ctx = Python_context::get_and_check();
   if (!ctx) return -1;
 
-  try
-  {
+  try {
     shcore::Value::Array_type *array;
     array = self->array->get();
 
     if (std::find(array->begin(), array->end(), ctx->pyobj_to_shcore_value(value)) != array->end())
       return 1;
-  }
-  catch (...)
-  {
+  } catch (...) {
   }
   return 0;
 }
 
-PyObject *list_inplace_concat(PyShListObject *self, PyObject *other)
-{
+PyObject *list_inplace_concat(PyShListObject *self, PyObject *other) {
   Python_context *ctx = Python_context::get_and_check();
   if (!ctx) return NULL;
 
@@ -172,15 +145,12 @@ PyObject *list_inplace_concat(PyShListObject *self, PyObject *other)
   return (PyObject*)self;
 }
 
-PyObject *list_printable(PyShListObject *self)
-{
+PyObject *list_printable(PyShListObject *self) {
   return PyString_FromString(Value(*self->array).repr().c_str());
 }
 
-PyObject *list_append(PyShListObject *self, PyObject *v)
-{
-  if (!v)
-  {
+PyObject *list_append(PyShListObject *self, PyObject *v) {
+  if (!v) {
     Python_context::set_python_error(PyExc_ValueError, "missing argument");
     return NULL;
   }
@@ -188,21 +158,17 @@ PyObject *list_append(PyShListObject *self, PyObject *v)
   Python_context *ctx = Python_context::get_and_check();
   if (!ctx) return NULL;
 
-  try
-  {
+  try {
     self->array->get()->push_back(ctx->pyobj_to_shcore_value(v));
     Py_RETURN_NONE;
-  }
-  catch (std::exception &exc)
-  {
+  } catch (std::exception &exc) {
     Python_context::set_python_error(exc);
     return NULL;
   }
   return NULL;
 }
 
-PyObject *list_insert(PyShListObject *self, PyObject *args)
-{
+PyObject *list_insert(PyShListObject *self, PyObject *args) {
   int i;
   Python_context *ctx = Python_context::get_and_check();
   if (!ctx) return NULL;
@@ -211,26 +177,21 @@ PyObject *list_insert(PyShListObject *self, PyObject *args)
   if (!PyArg_ParseTuple(args, "iO:insert", &i, &value))
     return NULL;
 
-  try
-  {
+  try {
     shcore::Value::Array_type *array;
     array = self->array->get();
 
     array->insert(array->begin() + i, ctx->pyobj_to_shcore_value(value));
     Py_RETURN_NONE;
-  }
-  catch (std::exception &exc)
-  {
+  } catch (std::exception &exc) {
     Python_context::set_python_error(exc);
     return NULL;
   }
   return NULL;
 }
 
-PyObject *list_remove(PyShListObject *self, PyObject *v)
-{
-  if (!v)
-  {
+PyObject *list_remove(PyShListObject *self, PyObject *v) {
+  if (!v) {
     Python_context::set_python_error(PyExc_ValueError, "missing argument");
     return NULL;
   }
@@ -238,31 +199,24 @@ PyObject *list_remove(PyShListObject *self, PyObject *v)
   Python_context *ctx = Python_context::get_and_check();
   if (!ctx) return NULL;
 
-  try
-  {
+  try {
     shcore::Value::Array_type *array;
     array = self->array->get();
 
     std::remove(array->begin(), array->end(), ctx->pyobj_to_shcore_value(v));
     Py_RETURN_NONE;
-  }
-  catch (std::exception &exc)
-  {
+  } catch (std::exception &exc) {
     Python_context::set_python_error(exc);
     return NULL;
   }
   return NULL;
 }
 
-PyObject *list_remove_all(PyShListObject *self)
-{
-  try
-  {
+PyObject *list_remove_all(PyShListObject *self) {
+  try {
     self->array->get()->clear();
     Py_RETURN_NONE;
-  }
-  catch (std::exception &exc)
-  {
+  } catch (std::exception &exc) {
     Python_context::set_python_error(exc);
     return NULL;
   }
@@ -271,8 +225,8 @@ PyObject *list_remove_all(PyShListObject *self)
 
 PyDoc_STRVAR(PyShListDoc,
              "List() -> shcore Array\n\
-                          \n\
-                                       Creates a new instance of a shcore array object.");
+                                                    \n\
+                                                                                                                                  Creates a new instance of a shcore array object.");
 
 PyDoc_STRVAR(append_doc,
              "L.append(value) -- append object to end");
@@ -287,12 +241,12 @@ PyDoc_STRVAR(extend_doc,
 
 static PyMethodDef PyShListMethods[] = {
   //{"__getitem__", (PyCFunction)list_subscript, METH_O|METH_COEXIST, getitem_doc},
-  { "append", (PyCFunction)list_append, METH_O, append_doc },
-  { "extend", (PyCFunction)list_inplace_concat, METH_O, extend_doc },
-  { "insert", (PyCFunction)list_insert, METH_VARARGS, insert_doc },
-  { "remove", (PyCFunction)list_remove, METH_O, remove_doc },
-  { "remove_all", (PyCFunction)list_remove_all, METH_NOARGS, remove_all_doc },
-  { NULL, NULL, 0, NULL }
+  {"append", (PyCFunction)list_append, METH_O, append_doc},
+  {"extend", (PyCFunction)list_inplace_concat, METH_O, extend_doc},
+  {"insert", (PyCFunction)list_insert, METH_VARARGS, insert_doc},
+  {"remove", (PyCFunction)list_remove, METH_O, remove_doc},
+  {"remove_all", (PyCFunction)list_remove_all, METH_NOARGS, remove_all_doc},
+  {NULL, NULL, 0, NULL}
 };
 
 static PySequenceMethods PyShListObject_as_sequence =
@@ -391,11 +345,9 @@ static PyTypeObject PyShListObjectType =
 #endif
 };
 
-void Python_context::init_shell_list_type()
-{
+void Python_context::init_shell_list_type() {
   PyShListObjectType.tp_new = PyType_GenericNew;
-  if (PyType_Ready(&PyShListObjectType) < 0)
-  {
+  if (PyType_Ready(&PyShListObjectType) < 0) {
     throw Exception::runtime_error("Could not initialize Shcore Array type in python");
   }
 
@@ -405,20 +357,17 @@ void Python_context::init_shell_list_type()
   _shell_list_class = PyDict_GetItemString(PyModule_GetDict(get_shell_module()), "List");
 }
 
-PyObject *shcore::wrap(std::shared_ptr<Value::Array_type> array)
-{
+PyObject *shcore::wrap(std::shared_ptr<Value::Array_type> array) {
   PyShListObject *wrapper = PyObject_New(PyShListObject, &PyShListObjectType);
   wrapper->array = new Value::Array_type_ref(array);
   return reinterpret_cast<PyObject*>(wrapper);
 }
 
-bool shcore::unwrap(PyObject *value, std::shared_ptr<Value::Array_type> &ret_object)
-{
+bool shcore::unwrap(PyObject *value, std::shared_ptr<Value::Array_type> &ret_object) {
   Python_context *ctx = Python_context::get_and_check();
   if (!ctx) return false;
 
-  if (PyObject_IsInstance(value, ctx->get_shell_list_class()))
-  {
+  if (PyObject_IsInstance(value, ctx->get_shell_list_class())) {
     ret_object = *((PyShListObject*)value)->array;
     return true;
   }

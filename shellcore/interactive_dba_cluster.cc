@@ -267,7 +267,7 @@ shcore::Value Interactive_dba_cluster::dissolve(const shcore::Argument_list &arg
 
     if (options) {
       // Verification of invalid attributes on the instance creation options
-      auto invalids = shcore::get_additional_keys(options, { "force", });
+      auto invalids = shcore::get_additional_keys(options, {"force", });
       if (invalids.size()) {
         std::string error = "The options contain the following invalid attributes: ";
         error += shcore::join_strings(invalids, ", ");

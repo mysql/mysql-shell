@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2016, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -28,8 +28,7 @@ using namespace mysh::mysqlx;
 using namespace shcore;
 
 TableSelect::TableSelect(std::shared_ptr<Table> owner)
-  : Table_crud_definition(std::static_pointer_cast<DatabaseObject>(owner))
-{
+  : Table_crud_definition(std::static_pointer_cast<DatabaseObject>(owner)) {
   // Exposes the methods available for chaining
   add_method("select", std::bind(&TableSelect::select, this, _1), "data");
   add_method("where", std::bind(&TableSelect::where, this, _1), "data");
@@ -83,25 +82,21 @@ TableSelect::TableSelect(std::shared_ptr<Table> owner)
 * \sa Usage examples at execute().
 */
 #if DOXYGEN_JS
-TableSelect TableSelect::select(List searchExprStr){}
+TableSelect TableSelect::select(List searchExprStr) {}
 #elif DOXYGEN_PY
-TableSelect TableSelect::select(list searchExprStr){}
+TableSelect TableSelect::select(list searchExprStr) {}
 #endif
-shcore::Value TableSelect::select(const shcore::Argument_list &args)
-{
+shcore::Value TableSelect::select(const shcore::Argument_list &args) {
   // Each method validates the received parameters
   args.ensure_count(0, 1, get_function_name("select").c_str());
 
   std::shared_ptr<Table> table(std::static_pointer_cast<Table>(_owner.lock()));
 
-  if (table)
-  {
-    try
-    {
+  if (table) {
+    try {
       std::vector<std::string> fields;
 
-      if (args.size())
-      {
+      if (args.size()) {
         parse_string_list(args, fields);
 
         if (fields.size() == 0)
@@ -148,16 +143,14 @@ shcore::Value TableSelect::select(const shcore::Argument_list &args)
 * \sa Usage examples at execute().
 */
 #if DOXYGEN_JS
-TableSelect TableSelect::where(String searchCondition){}
+TableSelect TableSelect::where(String searchCondition) {}
 #elif DOXYGEN_PY
-TableSelect TableSelect::where(str searchCondition){}
+TableSelect TableSelect::where(str searchCondition) {}
 #endif
-shcore::Value TableSelect::where(const shcore::Argument_list &args)
-{
+shcore::Value TableSelect::where(const shcore::Argument_list &args) {
   args.ensure_count(1, get_function_name("where").c_str());
 
-  try
-  {
+  try {
     _select_statement->where(args.string_at(0));
 
     update_functions("where");
@@ -195,16 +188,14 @@ shcore::Value TableSelect::where(const shcore::Argument_list &args)
 * \sa Usage examples at execute().
 */
 #if DOXYGEN_JS
-TableSelect TableSelect::groupBy(List searchExprStr){}
+TableSelect TableSelect::groupBy(List searchExprStr) {}
 #elif DOXYGEN_PY
-TableSelect TableSelect::group_by(list searchExprStr){}
+TableSelect TableSelect::group_by(list searchExprStr) {}
 #endif
-shcore::Value TableSelect::group_by(const shcore::Argument_list &args)
-{
+shcore::Value TableSelect::group_by(const shcore::Argument_list &args) {
   args.ensure_count(1, get_function_name("groupBy").c_str());
 
-  try
-  {
+  try {
     std::vector<std::string> fields;
 
     parse_string_list(args, fields);
@@ -250,16 +241,14 @@ shcore::Value TableSelect::group_by(const shcore::Argument_list &args)
 * \sa Usage examples at execute().
 */
 #if DOXYGEN_JS
-TableSelect TableSelect::having(String searchCondition){}
+TableSelect TableSelect::having(String searchCondition) {}
 #elif DOXYGEN_PY
-TableSelect TableSelect::having(str searchCondition){}
+TableSelect TableSelect::having(str searchCondition) {}
 #endif
-shcore::Value TableSelect::having(const shcore::Argument_list &args)
-{
+shcore::Value TableSelect::having(const shcore::Argument_list &args) {
   args.ensure_count(1, get_function_name("having").c_str());
 
-  try
-  {
+  try {
     _select_statement->having(args.string_at(0));
 
     update_functions("having");
@@ -301,16 +290,14 @@ shcore::Value TableSelect::having(const shcore::Argument_list &args)
 * \sa Usage examples at execute().
 */
 #if DOXYGEN_JS
-TableSelect TableSelect::orderBy(List sortExprStr){}
+TableSelect TableSelect::orderBy(List sortExprStr) {}
 #elif DOXYGEN_PY
-TableSelect TableSelect::order_by(list sortExprStr){}
+TableSelect TableSelect::order_by(list sortExprStr) {}
 #endif
-shcore::Value TableSelect::order_by(const shcore::Argument_list &args)
-{
+shcore::Value TableSelect::order_by(const shcore::Argument_list &args) {
   args.ensure_count(1, get_function_name("orderBy").c_str());
 
-  try
-  {
+  try {
     std::vector<std::string> fields;
 
     parse_string_list(args, fields);
@@ -357,16 +344,14 @@ shcore::Value TableSelect::order_by(const shcore::Argument_list &args)
 * \sa Usage examples at execute().
 */
 #if DOXYGEN_JS
-TableSelect TableSelect::limit(Integer numberOfRows){}
+TableSelect TableSelect::limit(Integer numberOfRows) {}
 #elif DOXYGEN_PY
-TableSelect TableSelect::limit(int numberOfRows){}
+TableSelect TableSelect::limit(int numberOfRows) {}
 #endif
-shcore::Value TableSelect::limit(const shcore::Argument_list &args)
-{
+shcore::Value TableSelect::limit(const shcore::Argument_list &args) {
   args.ensure_count(1, get_function_name("limit").c_str());
 
-  try
-  {
+  try {
     _select_statement->limit(args.uint_at(0));
 
     update_functions("limit");
@@ -399,16 +384,14 @@ shcore::Value TableSelect::limit(const shcore::Argument_list &args)
 * \sa Usage examples at execute().
 */
 #if DOXYGEN_JS
-TableSelect TableSelect::offset(Integer limitOffset){}
+TableSelect TableSelect::offset(Integer limitOffset) {}
 #elif DOXYGEN_PY
-TableSelect TableSelect::offset(int limitOffset){}#endif
+TableSelect TableSelect::offset(int limitOffset) {}#endif
 #endif
-shcore::Value TableSelect::offset(const shcore::Argument_list &args)
-{
+shcore::Value TableSelect::offset(const shcore::Argument_list &args) {
   args.ensure_count(1, get_function_name("offset").c_str());
 
-  try
-  {
+  try {
     _select_statement->offset(args.uint_at(0));
 
     update_functions("offset");
@@ -447,17 +430,15 @@ shcore::Value TableSelect::offset(const shcore::Argument_list &args)
 * \sa Usage examples at execute().
 */
 #if DOXYGEN_JS
-TableSelect TableSelect::bind(String name, Value value){}
+TableSelect TableSelect::bind(String name, Value value) {}
 #elif DOXYGEN_PY
-TableSelect TableSelect::bind(str name, Value value){}
+TableSelect TableSelect::bind(str name, Value value) {}
 #endif
 
-shcore::Value TableSelect::bind(const shcore::Argument_list &args)
-{
+shcore::Value TableSelect::bind(const shcore::Argument_list &args) {
   args.ensure_count(2, get_function_name("bind").c_str());
 
-  try
-  {
+  try {
     _select_statement->bind(args.string_at(0), map_table_value(args[1]));
 
     update_functions("bind");
@@ -483,7 +464,7 @@ shcore::Value TableSelect::bind(const shcore::Argument_list &args)
 * \skip //@ Table.Select All
 * \until print('Select Binding Name:', records[0].my_name, '\n');
 */
-RowResult TableSelect::execute(){}
+RowResult TableSelect::execute() {}
 #elif DOXYGEN_PY
 /**
 *
@@ -492,14 +473,12 @@ RowResult TableSelect::execute(){}
 * \skip #@ Table.Select All
 * \until print 'Select Binding Name:', records[0].name, '\n'
 */
-RowResult TableSelect::execute(){}
+RowResult TableSelect::execute() {}
 #endif
-shcore::Value TableSelect::execute(const shcore::Argument_list &args)
-{
+shcore::Value TableSelect::execute(const shcore::Argument_list &args) {
   mysqlx::RowResult *result = NULL;
 
-  try
-  {
+  try {
     args.ensure_count(0, get_function_name("execute").c_str());
 
     MySQL_timer timer;

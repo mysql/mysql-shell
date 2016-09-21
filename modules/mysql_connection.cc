@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 1015, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2016, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -36,14 +36,12 @@ using namespace mysh::mysql;
 #define MIN_COLUMN_LENGTH 4
 
 Result::Result(std::shared_ptr<Connection> owner, my_ulonglong affected_rows_, unsigned int warning_count_, uint64_t last_insert_id, const char *info_)
-  : _connection(owner), _affected_rows(affected_rows_), _last_insert_id(last_insert_id), _warning_count(warning_count_), _fetched_row_count(0), _execution_time(0), _has_resultset(false)
-{
+  : _connection(owner), _affected_rows(affected_rows_), _last_insert_id(last_insert_id), _warning_count(warning_count_), _fetched_row_count(0), _execution_time(0), _has_resultset(false) {
   if (info_)
     _info.assign(info_);
 }
 
-int Result::fetch_metadata()
-{
+int Result::fetch_metadata() {
   int num_fields = 0;
 
   _metadata.clear();
@@ -51,13 +49,11 @@ int Result::fetch_metadata()
   // res could be NULL on queries not returning data
   std::shared_ptr<MYSQL_RES> res = _result.lock();
 
-  if (res)
-  {
+  if (res) {
     num_fields = mysql_num_fields(res.get());
     MYSQL_FIELD *fields = mysql_fetch_fields(res.get());
 
-    for (int index = 0; index < num_fields; index++)
-    {
+    for (int index = 0; index < num_fields; index++) {
       _metadata.push_back(Field(fields[index].catalog,
         fields[index].db,
         fields[index].table,
@@ -75,24 +71,18 @@ int Result::fetch_metadata()
   return num_fields;
 }
 
-Result::~Result()
-{
-}
+Result::~Result() {}
 
-Row * Result::fetch_one()
-{
+Row * Result::fetch_one() {
   Row *ret_val = NULL;
 
-  if (has_resultset())
-  {
+  if (has_resultset()) {
     // Loads the first row
     std::shared_ptr<MYSQL_RES> res = _result.lock();
 
-    if (res)
-    {
+    if (res) {
       MYSQL_ROW mysql_row = mysql_fetch_row(res.get());
-      if (mysql_row)
-      {
+      if (mysql_row) {
         unsigned long *lengths;
         lengths = mysql_fetch_lengths(res.get());
 
@@ -107,18 +97,15 @@ Row * Result::fetch_one()
   return ret_val;
 }
 
-bool Result::next_data_set()
-{
+bool Result::next_data_set() {
   return _connection->next_data_set(this);
 }
 
-Result *Result::query_warnings()
-{
+Result *Result::query_warnings() {
   return _connection->run_sql("show warnings");
 }
 
-void Result::reset(std::shared_ptr<MYSQL_RES> res, unsigned long duration)
-{
+void Result::reset(std::shared_ptr<MYSQL_RES> res, unsigned long duration) {
   _has_resultset = false;
   if (res)
     _has_resultset = true;
@@ -140,23 +127,16 @@ _flags(flags_),
 _decimals(decimals_),
 _charset(charset_),
 _max_length(0),
-_name_length(name_.length())
-{
-}
+_name_length(name_.length()) {}
 
 Row::Row(MYSQL_ROW row, unsigned long *lengths, std::vector<Field>* metadata) :
-_row(row), _lengths(lengths), _metadata(metadata)
-{
-}
+_row(row), _lengths(lengths), _metadata(metadata) {}
 
-shcore::Value Row::get_value(int index)
-{
+shcore::Value Row::get_value(int index) {
   if (_row[index] == NULL)
     return shcore::Value::Null();
-  else
-  {
-    switch ((*_metadata)[index].type())
-    {
+  else {
+    switch ((*_metadata)[index].type()) {
       case MYSQL_TYPE_NULL:
         return shcore::Value::Null();
       case MYSQL_TYPE_DECIMAL:
@@ -212,16 +192,14 @@ shcore::Value Row::get_value(int index)
   return shcore::Value();
 }
 
-std::string Row::get_value_as_string(int index)
-{
+std::string Row::get_value_as_string(int index) {
   return _row[index] ? _row[index] : "NULL";
 }
 
 //----------------------------------------------
 
 Connection::Connection(const std::string &uri_, const char *password)
-  : _mysql(NULL)
-{
+  : _mysql(NULL) {
   std::string protocol;
   std::string user;
   std::string pass;
@@ -247,16 +225,14 @@ Connection::Connection(const std::string &uri_, const char *password)
   setup_ssl(ssl_ca, ssl_cert, ssl_key);
   unsigned int tcp = MYSQL_PROTOCOL_TCP;
   mysql_options(_mysql, MYSQL_OPT_PROTOCOL, &tcp);
-  if (!mysql_real_connect(_mysql, host.c_str(), user.c_str(), pass.c_str(), db.empty() ? NULL : db.c_str(), port, sock.empty() ? NULL : sock.c_str(), flags))
-  {
+  if (!mysql_real_connect(_mysql, host.c_str(), user.c_str(), pass.c_str(), db.empty() ? NULL : db.c_str(), port, sock.empty() ? NULL : sock.c_str(), flags)) {
     throw shcore::Exception::mysql_error_with_code_and_state(mysql_error(_mysql), mysql_errno(_mysql), mysql_sqlstate(_mysql));
   }
 }
 
 Connection::Connection(const std::string &host, int port, const std::string &socket, const std::string &user, const std::string &password, const std::string &schema,
   const std::string &ssl_ca, const std::string &ssl_cert, const std::string &ssl_key)
-: _mysql(NULL)
-{
+: _mysql(NULL) {
   long flags = CLIENT_MULTI_RESULTS;
 
   _mysql = mysql_init(NULL);
@@ -265,27 +241,22 @@ Connection::Connection(const std::string &host, int port, const std::string &soc
   str << user << "@" << host << ":" << port;
   _uri = str.str();
 
-  if (!setup_ssl(ssl_ca, ssl_cert, ssl_key))
-  {
+  if (!setup_ssl(ssl_ca, ssl_cert, ssl_key)) {
     unsigned int ssl_mode = SSL_MODE_DISABLED;
     mysql_options(_mysql, MYSQL_OPT_SSL_MODE, &ssl_mode);
-  }
-  else
-  {
+  } else {
     unsigned int ssl_mode = SSL_MODE_REQUIRED;
     mysql_options(_mysql, MYSQL_OPT_SSL_MODE, &ssl_mode);
   }
 
   unsigned int tcp = MYSQL_PROTOCOL_TCP;
   mysql_options(_mysql, MYSQL_OPT_PROTOCOL, &tcp);
-  if (!mysql_real_connect(_mysql, host.c_str(), user.c_str(), password.c_str(), schema.empty() ? NULL : schema.c_str(), port, socket.empty() ? NULL : socket.c_str(), flags))
-  {
+  if (!mysql_real_connect(_mysql, host.c_str(), user.c_str(), password.c_str(), schema.empty() ? NULL : schema.c_str(), port, socket.empty() ? NULL : socket.c_str(), flags)) {
     throw shcore::Exception::mysql_error_with_code_and_state(mysql_error(_mysql), mysql_errno(_mysql), mysql_sqlstate(_mysql));
   }
 }
 
-bool Connection::setup_ssl(const std::string &ssl_ca, const std::string &ssl_cert, const std::string &ssl_key)
-{
+bool Connection::setup_ssl(const std::string &ssl_ca, const std::string &ssl_cert, const std::string &ssl_key) {
   if (ssl_ca.empty() && ssl_cert.empty() && ssl_key.empty())
     return false;
 
@@ -298,8 +269,7 @@ bool Connection::setup_ssl(const std::string &ssl_ca, const std::string &ssl_cer
   return true;
 }
 
-void Connection::close()
-{
+void Connection::close() {
   // This should be logged, for now commenting to
   // avoid having unneeded output on the script mode
   // shcore::print("disconnect\n");
@@ -308,14 +278,11 @@ void Connection::close()
   _mysql = NULL;
 }
 
-Result *Connection::run_sql(const std::string &query)
-{
-  if (_prev_result)
-  {
+Result *Connection::run_sql(const std::string &query) {
+  if (_prev_result) {
     _prev_result.reset();
 
-    while (mysql_next_result(_mysql) == 0)
-    {
+    while (mysql_next_result(_mysql) == 0) {
       MYSQL_RES *trailing_result = mysql_use_result(_mysql);
       mysql_free_result(trailing_result);
     }
@@ -323,8 +290,7 @@ Result *Connection::run_sql(const std::string &query)
 
   _timer.start();
 
-  if (mysql_real_query(_mysql, query.c_str(), query.length()) != 0)
-  {
+  if (mysql_real_query(_mysql, query.c_str(), query.length()) != 0) {
     throw shcore::Exception::mysql_error_with_code_and_state(mysql_error(_mysql), mysql_errno(_mysql), mysql_sqlstate(_mysql));
   }
 
@@ -336,21 +302,18 @@ Result *Connection::run_sql(const std::string &query)
 }
 
 template <class T>
-static void free_result(T* result)
-{
+static void free_result(T* result) {
   mysql_free_result(result);
   result = NULL;
 }
 
-bool Connection::next_data_set(Result *target, bool first_result)
-{
+bool Connection::next_data_set(Result *target, bool first_result) {
   bool ret_val = false;
 
   // Skips fetching a record on the first result
   int more_results = 0;
 
-  if (!first_result)
-  {
+  if (!first_result) {
     _prev_result.reset();
     more_results = mysql_next_result(_mysql);
   }
@@ -358,8 +321,7 @@ bool Connection::next_data_set(Result *target, bool first_result)
   Result *real_target = dynamic_cast<Result *> (target);
 
   // If there are more results
-  if (more_results == 0)
-  {
+  if (more_results == 0) {
     // Retrieves the next result
     MYSQL_RES* result = mysql_use_result(_mysql);
 
@@ -383,7 +345,6 @@ bool Connection::next_data_set(Result *target, bool first_result)
   return ret_val;
 }
 
-Connection::~Connection()
-{
+Connection::~Connection() {
   close();
 }

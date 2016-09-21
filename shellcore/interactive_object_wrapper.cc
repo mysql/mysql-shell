@@ -24,7 +24,7 @@ Interactive_object_wrapper::Interactive_object_wrapper(const std::string& alias,
 
 Value Interactive_object_wrapper::get_member_advanced(const std::string &prop, const NamingStyle &style) {
   shcore::Value ret_val;
-  auto func = std::find_if(_wrapper_functions.begin(), _wrapper_functions.end(), [style, prop](const FunctionEntry &f){ return f.second->name(style) == prop; });
+  auto func = std::find_if(_wrapper_functions.begin(), _wrapper_functions.end(), [style, prop](const FunctionEntry &f) { return f.second->name(style) == prop; });
 
   if (func != _wrapper_functions.end())
     ret_val = get_member(func->first);
@@ -55,7 +55,7 @@ Value Interactive_object_wrapper::get_member_advanced(const std::string &prop, c
 shcore::Value Interactive_object_wrapper::get_member(const std::string &prop) const {
   shcore::Value ret_val;
 
-  auto func = std::find_if(_wrapper_functions.begin(), _wrapper_functions.end(), [prop](const FunctionEntry &f){ return f.first == prop; });
+  auto func = std::find_if(_wrapper_functions.begin(), _wrapper_functions.end(), [prop](const FunctionEntry &f) { return f.first == prop; });
   if (func != _wrapper_functions.end())
     ret_val = Cpp_object_bridge::get_member(prop);
   else {
@@ -85,7 +85,7 @@ shcore::Value Interactive_object_wrapper::get_member(const std::string &prop) co
 Value Interactive_object_wrapper::call(const std::string &name, const Argument_list &args) {
   shcore::Value ret_val;
 
-  auto func = std::find_if(_wrapper_functions.begin(), _wrapper_functions.end(), [name](const FunctionEntry &f){ return f.first == name; });
+  auto func = std::find_if(_wrapper_functions.begin(), _wrapper_functions.end(), [name](const FunctionEntry &f) { return f.first == name; });
   if (func != _wrapper_functions.end())
     ret_val = Cpp_object_bridge::call(name, args);
   else {
@@ -123,7 +123,7 @@ bool Interactive_object_wrapper::has_method_advanced(const std::string &name, co
 Value Interactive_object_wrapper::call_advanced(const std::string &name, const Argument_list &args, const NamingStyle &style) {
   shcore::Value ret_val;
 
-  auto func = std::find_if(_wrapper_functions.begin(), _wrapper_functions.end(), [style, name](const FunctionEntry &f){ return f.second->name(style) == name; });
+  auto func = std::find_if(_wrapper_functions.begin(), _wrapper_functions.end(), [style, name](const FunctionEntry &f) { return f.second->name(style) == name; });
   if (func != _wrapper_functions.end())
     ret_val = Cpp_object_bridge::call_advanced(name, args, style);
   else {

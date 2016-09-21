@@ -26,26 +26,20 @@
 using namespace shcore;
 
 Shell_javascript::Shell_javascript(Shell_core *shcore)
-  : Shell_language(shcore)
-{
+  : Shell_language(shcore) {
   _js = std::shared_ptr<JScript_context>(new JScript_context(shcore->registry(), shcore->get_delegate()));
 }
 
-void Shell_javascript::handle_input(std::string &code, Interactive_input_state &state, std::function<void(shcore::Value)> result_processor)
-{
+void Shell_javascript::handle_input(std::string &code, Interactive_input_state &state, std::function<void(shcore::Value)> result_processor) {
   // Undefined to be returned in case of errors
   Value result;
 
   if ((*Shell_core_options::get())[SHCORE_INTERACTIVE].as_bool())
     result = _js->execute_interactive(code, state);
-  else
-  {
-    try
-    {
+  else {
+    try {
       result = _js->execute(code, _owner->get_input_source());
-    }
-    catch (std::exception &exc)
-    {
+    } catch (std::exception &exc) {
       _owner->print_error(exc.what());
     }
   }
@@ -55,27 +49,21 @@ void Shell_javascript::handle_input(std::string &code, Interactive_input_state &
   result_processor(result);
 }
 
-std::string Shell_javascript::prompt()
-{
-  try
-  {
+std::string Shell_javascript::prompt() {
+  try {
     shcore::Value value = _js->execute("shell.custom_prompt ? shell.custom_prompt() : null", "shell.custom_prompt");
     if (value && value.type == String)
       return value.as_string();
-  }
-  catch (std::exception &exc)
-  {
+  } catch (std::exception &exc) {
     _owner->print_error(std::string("Exception in JS ps function: ") + exc.what());
   }
 
   std::string node_type = "mysql";
   Value session_wrapper = _owner->active_session();
-  if (session_wrapper)
-  {
+  if (session_wrapper) {
     std::shared_ptr<mysh::ShellBaseSession> session = session_wrapper.as_object<mysh::ShellBaseSession>();
 
-    if (session)
-    {
+    if (session) {
       shcore::Value st = session->get_capability("node_type");
 
       if (st)
@@ -86,13 +74,11 @@ std::string Shell_javascript::prompt()
   return node_type + "-js> ";
 }
 
-void Shell_javascript::set_global(const std::string &name, const Value &value)
-{
+void Shell_javascript::set_global(const std::string &name, const Value &value) {
   _js->set_global(name, value);
 }
 
-void Shell_javascript::abort()
-{
+void Shell_javascript::abort() {
   /*
   // TODO: this way to gather the session is wrong in JS, because there sessions are typically created with getNodeSession
 

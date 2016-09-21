@@ -1,4 +1,4 @@
-/* Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2015, 2016, Oracle and/or its affiliates. All rights reserved.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -241,11 +241,11 @@ void Shell_script_tester::load_validations(const std::string& path, bool in_chun
 
           boost::trim(value);
 
-          add_validation(chunk_id, { "", value, "" });
+          add_validation(chunk_id, {"", value, ""});
           if (format == "OUT")
-            add_validation(chunk_id, { "", value, "" });
+            add_validation(chunk_id, {"", value, ""});
           else if (format == "ERR")
-            add_validation(chunk_id, { "", "", value });
+            add_validation(chunk_id, {"", "", value});
 
           format_lines.clear();
         }
@@ -280,11 +280,11 @@ void Shell_script_tester::load_validations(const std::string& path, bool in_chun
 
       boost::trim(value);
 
-      add_validation(chunk_id, { "", value, "" });
+      add_validation(chunk_id, {"", value, ""});
       if (format == "OUT")
-        add_validation(chunk_id, { "", value, "" });
+        add_validation(chunk_id, {"", value, ""});
       else if (format == "ERR")
-        add_validation(chunk_id, { "", "", value });
+        add_validation(chunk_id, {"", "", value});
     }
 
     file.close();

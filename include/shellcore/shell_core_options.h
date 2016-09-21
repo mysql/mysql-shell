@@ -36,37 +36,35 @@
 
 #define SHCORE_SANDBOX_DIR "sandboxDir"
 
-namespace shcore
-{
-  class SHCORE_PUBLIC  Shell_core_options :public shcore::Cpp_object_bridge
-  {
-  public:
-    virtual ~Shell_core_options();
+namespace shcore {
+class SHCORE_PUBLIC  Shell_core_options :public shcore::Cpp_object_bridge {
+public:
+  virtual ~Shell_core_options();
 
-    // Retrieves the options directly, to be used from C++
-    static Value::Map_type_ref get();
+  // Retrieves the options directly, to be used from C++
+  static Value::Map_type_ref get();
 
-    // Exposes the object to JS/PY to allow custom validations on options
-    static std::shared_ptr<Shell_core_options> get_instance();
+  // Exposes the object to JS/PY to allow custom validations on options
+  static std::shared_ptr<Shell_core_options> get_instance();
 
-    virtual std::string class_name() const;
-    virtual bool operator == (const Object_bridge &other) const;
-    virtual std::vector<std::string> get_members() const;
-    virtual Value get_member(const std::string &prop) const;
-    virtual bool has_member(const std::string &prop) const;
-    virtual void set_member(const std::string &prop, Value value);
-    virtual std::string &append_descr(std::string &s_out, int indent = -1, int quote_strings = 0) const;
+  virtual std::string class_name() const;
+  virtual bool operator == (const Object_bridge &other) const;
+  virtual std::vector<std::string> get_members() const;
+  virtual Value get_member(const std::string &prop) const;
+  virtual bool has_member(const std::string &prop) const;
+  virtual void set_member(const std::string &prop, Value value);
+  virtual std::string &append_descr(std::string &s_out, int indent = -1, int quote_strings = 0) const;
 
-  private:
-    // Private constructor since this is a singleton
-    Shell_core_options();
+private:
+  // Private constructor since this is a singleton
+  Shell_core_options();
 
-    // Options will be stored on a MAP
-    Value::Map_type_ref _options;
+  // Options will be stored on a MAP
+  Value::Map_type_ref _options;
 
-    // The only available instance
-    static std::shared_ptr<Shell_core_options> _instance;
-  };
+  // The only available instance
+  static std::shared_ptr<Shell_core_options> _instance;
+};
 };
 
 #endif // _SHELLCORE_OPTIONS_H_

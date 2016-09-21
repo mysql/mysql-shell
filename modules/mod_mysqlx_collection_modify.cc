@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2016, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -30,8 +30,7 @@ using namespace mysh::mysqlx;
 using namespace shcore;
 
 CollectionModify::CollectionModify(std::shared_ptr<Collection> owner)
-  :Collection_crud_definition(std::static_pointer_cast<DatabaseObject>(owner))
-{
+  :Collection_crud_definition(std::static_pointer_cast<DatabaseObject>(owner)) {
   // Exposes the methods available for chaining
   add_method("modify", std::bind(&CollectionModify::modify, this, _1), "data");
   add_method("set", std::bind(&CollectionModify::set, this, _1), "data");
@@ -102,21 +101,18 @@ CollectionModify::CollectionModify(std::shared_ptr<Collection> owner)
 * \sa Collection
 */
 #if DOXYGEN_JS
-CollectionModify CollectionModify::modify(String searchCondition){}
+CollectionModify CollectionModify::modify(String searchCondition) {}
 #elif DOXYGEN_PY
-CollectionModify CollectionModify::modify(str searchCondition){}
+CollectionModify CollectionModify::modify(str searchCondition) {}
 #endif
-shcore::Value CollectionModify::modify(const shcore::Argument_list &args)
-{
+shcore::Value CollectionModify::modify(const shcore::Argument_list &args) {
   // Each method validates the received parameters
   args.ensure_count(0, 1, get_function_name("modify").c_str());
 
   std::shared_ptr<Collection> collection(std::static_pointer_cast<Collection>(_owner.lock()));
 
-  if (collection)
-  {
-    try
-    {
+  if (collection) {
+    try {
       std::string search_condition;
       if (args.size())
         search_condition = args.string_at(0);
@@ -193,17 +189,15 @@ shcore::Value CollectionModify::modify(const shcore::Argument_list &args)
 * \sa Usage examples at execute().
 */
 #if DOXYGEN_JS
-CollectionModify CollectionModify::set(String attribute, Value value){}
+CollectionModify CollectionModify::set(String attribute, Value value) {}
 #elif DOXYGEN_PY
-CollectionModify CollectionModify::set(str attribute, Value value){}
+CollectionModify CollectionModify::set(str attribute, Value value) {}
 #endif
-shcore::Value CollectionModify::set(const shcore::Argument_list &args)
-{
+shcore::Value CollectionModify::set(const shcore::Argument_list &args) {
   // Each method validates the received parameters
   args.ensure_count(2, get_function_name("set").c_str());
 
-  try
-  {
+  try {
     std::string field = args.string_at(0);
     _modify_statement->set(field, map_document_value(args[1]));
 
@@ -295,9 +289,9 @@ shcore::Value CollectionModify::set(const shcore::Argument_list &args)
 * \sa Usage examples at execute().
 */
 #if DOXYGEN_JS
-CollectionModify CollectionModify::unset(String attribute){}
+CollectionModify CollectionModify::unset(String attribute) {}
 #elif DOXYGEN_PY
-CollectionModify CollectionModify::unset(str attribute){}
+CollectionModify CollectionModify::unset(str attribute) {}
 #endif
 
 /**
@@ -340,29 +334,25 @@ CollectionModify CollectionModify::unset(str attribute){}
 * \sa Usage examples at execute().
 */
 #if DOXYGEN_JS
-CollectionModify CollectionModify::unset(List attributes){}
+CollectionModify CollectionModify::unset(List attributes) {}
 #elif DOXYGEN_PY
-CollectionModify CollectionModify::unset(list attributes){}
+CollectionModify CollectionModify::unset(list attributes) {}
 #endif
 #endif
-shcore::Value CollectionModify::unset(const shcore::Argument_list &args)
-{
+shcore::Value CollectionModify::unset(const shcore::Argument_list &args) {
   // Each method validates the received parameters
   args.ensure_at_least(1, get_function_name("unset").c_str());
 
-  try
-  {
+  try {
     size_t unset_count = 0;
 
     // Could receive either a List or many strings
-    if (args.size() == 1 && args[0].type == Array)
-    {
+    if (args.size() == 1 && args[0].type == Array) {
       shcore::Value::Array_type_ref items = args.array_at(0);
       shcore::Value::Array_type::iterator index, end = items->end();
 
       int int_index = 0;
-      for (index = items->begin(); index != end; index++)
-      {
+      for (index = items->begin(); index != end; index++) {
         int_index++;
         if (index->type == shcore::String)
           _modify_statement->remove(index->as_string());
@@ -371,15 +361,11 @@ shcore::Value CollectionModify::unset(const shcore::Argument_list &args)
       }
 
       unset_count = items->size();
-    }
-    else
-    {
-      for (size_t index = 0; index < args.size(); index++)
-      {
+    } else {
+      for (size_t index = 0; index < args.size(); index++) {
         if (args[index].type == shcore::String)
           _modify_statement->remove(args.string_at(index));
-        else
-        {
+        else {
           std::string error;
 
           if (args.size() == 1)
@@ -447,17 +433,15 @@ shcore::Value CollectionModify::unset(const shcore::Argument_list &args)
 * \sa Usage examples at execute().
 */
 #if DOXYGEN_JS
-CollectionModify CollectionModify::merge(Document document){}
+CollectionModify CollectionModify::merge(Document document) {}
 #elif DOXYGEN_PY
-CollectionModify CollectionModify::merge(Document document){}
+CollectionModify CollectionModify::merge(Document document) {}
 #endif
-shcore::Value CollectionModify::merge(const shcore::Argument_list &args)
-{
+shcore::Value CollectionModify::merge(const shcore::Argument_list &args) {
   // Each method validates the received parameters
   args.ensure_count(1, get_function_name("merge").c_str());
 
-  try
-  {
+  try {
     shcore::Value::Map_type_ref items = args.map_at(0);
 
     Value object_as_json(args[0].json());
@@ -517,17 +501,15 @@ shcore::Value CollectionModify::merge(const shcore::Argument_list &args)
 * \sa Usage examples at execute().
 */
 #if DOXYGEN_JS
-CollectionModify CollectionModify::arrayInsert(String path, Value value){}
+CollectionModify CollectionModify::arrayInsert(String path, Value value) {}
 #elif DOXYGEN_PY
-CollectionModify CollectionModify::array_insert(str path, Value value){}
+CollectionModify CollectionModify::array_insert(str path, Value value) {}
 #endif
-shcore::Value CollectionModify::array_insert(const shcore::Argument_list &args)
-{
+shcore::Value CollectionModify::array_insert(const shcore::Argument_list &args) {
   // Each method validates the received parameters
   args.ensure_count(2, get_function_name("arrayInsert").c_str());
 
-  try
-  {
+  try {
     _modify_statement->arrayInsert(args.string_at(0), map_document_value(args[1]));
 
     // Updates the exposed functions
@@ -584,17 +566,15 @@ shcore::Value CollectionModify::array_insert(const shcore::Argument_list &args)
 * \sa Usage examples at execute().
 */
 #if DOXYGEN_JS
-CollectionModify CollectionModify::arrayAppend(String path, Value value){}
+CollectionModify CollectionModify::arrayAppend(String path, Value value) {}
 #elif DOXYGEN_PY
-CollectionModify CollectionModify::array_append(str path, Value value){}
+CollectionModify CollectionModify::array_append(str path, Value value) {}
 #endif
-shcore::Value CollectionModify::array_append(const shcore::Argument_list &args)
-{
+shcore::Value CollectionModify::array_append(const shcore::Argument_list &args) {
   // Each method validates the received parameters
   args.ensure_count(2, get_function_name("arrayAppend").c_str());
 
-  try
-  {
+  try {
     std::string field = args.string_at(0);
 
     _modify_statement->arrayAppend(field, map_document_value(args[1]));
@@ -649,17 +629,15 @@ shcore::Value CollectionModify::array_append(const shcore::Argument_list &args)
 * \sa Usage examples at execute().
 */
 #if DOXYGEN_JS
-CollectionModify CollectionModify::arrayDelete(String path){}
+CollectionModify CollectionModify::arrayDelete(String path) {}
 #elif DOXYGEN_PY
-CollectionModify CollectionModify::array_delete(str path){}
+CollectionModify CollectionModify::array_delete(str path) {}
 #endif
-shcore::Value CollectionModify::array_delete(const shcore::Argument_list &args)
-{
+shcore::Value CollectionModify::array_delete(const shcore::Argument_list &args) {
   // Each method validates the received parameters
   args.ensure_count(1, get_function_name("arrayDelete").c_str());
 
-  try
-  {
+  try {
     _modify_statement->arrayDelete(args.string_at(0));
 
     // Updates the exposed functions
@@ -705,16 +683,14 @@ shcore::Value CollectionModify::array_delete(const shcore::Argument_list &args)
 * \sa Usage examples at execute().
 */
 #if DOXYGEN_JS
-CollectionModify CollectionModify::sort(List sortExprStr){}
+CollectionModify CollectionModify::sort(List sortExprStr) {}
 #elif DOXYGEN_PY
-CollectionModify CollectionModify::sort(list sortExprStr){}
+CollectionModify CollectionModify::sort(list sortExprStr) {}
 #endif
-shcore::Value CollectionModify::sort(const shcore::Argument_list &args)
-{
+shcore::Value CollectionModify::sort(const shcore::Argument_list &args) {
   args.ensure_count(1, get_function_name("sort").c_str());
 
-  try
-  {
+  try {
     std::vector<std::string> fields;
 
     parse_string_list(args, fields);
@@ -763,16 +739,14 @@ shcore::Value CollectionModify::sort(const shcore::Argument_list &args)
 * \sa Usage examples at execute().
 */
 #if DOXYGEN_JS
-CollectionModify CollectionModify::limit(Integer numberOfDocs){}
+CollectionModify CollectionModify::limit(Integer numberOfDocs) {}
 #elif DOXYGEN_PY
-CollectionModify CollectionModify::limit(int numberOfDocs){}
+CollectionModify CollectionModify::limit(int numberOfDocs) {}
 #endif
-shcore::Value CollectionModify::limit(const shcore::Argument_list &args)
-{
+shcore::Value CollectionModify::limit(const shcore::Argument_list &args) {
   args.ensure_count(1, get_function_name("limit").c_str());
 
-  try
-  {
+  try {
     _modify_statement->limit(args.uint_at(0));
 
     update_functions("limit");
@@ -811,16 +785,14 @@ shcore::Value CollectionModify::limit(const shcore::Argument_list &args)
 * \sa Usage examples at execute().
 */
 #if DOXYGEN_JS
-CollectionFind CollectionModify::bind(String name, Value value){}
+CollectionFind CollectionModify::bind(String name, Value value) {}
 #elif DOXYGEN_PY
-CollectionFind CollectionModify::bind(str name, Value value){}
+CollectionFind CollectionModify::bind(str name, Value value) {}
 #endif
-shcore::Value CollectionModify::bind(const shcore::Argument_list &args)
-{
+shcore::Value CollectionModify::bind(const shcore::Argument_list &args) {
   args.ensure_count(2, get_function_name("bind").c_str());
 
-  try
-  {
+  try {
     _modify_statement->bind(args.string_at(0), map_document_value(args[1]));
 
     update_functions("bind");
@@ -849,7 +821,7 @@ shcore::Value CollectionModify::bind(const shcore::Argument_list &args)
 * \until //@ CollectionModify: sorting and limit Execution - 4
 * \until print(dir(doc));
 */
-Result CollectionModify::execute(){}
+Result CollectionModify::execute() {}
 #elif DOXYGEN_PY
 /**
 *
@@ -859,14 +831,12 @@ Result CollectionModify::execute(){}
 * \until #@ CollectionModify: sorting and limit Execution - 4
 * \until print dir(doc)
 */
-Result CollectionModify::execute(){}
+Result CollectionModify::execute() {}
 #endif
-shcore::Value CollectionModify::execute(const shcore::Argument_list &args)
-{
+shcore::Value CollectionModify::execute(const shcore::Argument_list &args) {
   mysqlx::Result *result = NULL;
 
-  try
-  {
+  try {
     args.ensure_count(0, get_function_name("execute").c_str());
     MySQL_timer timer;
     timer.start();

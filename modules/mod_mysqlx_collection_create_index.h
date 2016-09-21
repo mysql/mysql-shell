@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2016, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -25,49 +25,46 @@
 
 #include "dynamic_object.h"
 
-namespace mysh
-{
-  namespace mysqlx
-  {
-    class Collection;
+namespace mysh {
+namespace mysqlx {
+class Collection;
 
-    /**
-    * Handler for index creation on a Collection.
-    *
-    * This object provides the necessary functions to allow adding an index into a collection.
-    *
-    * This object should only be created by calling any of the createIndex functions on the collection object where the index will be created.
-    *
-    * \sa Collection
-    */
-    class CollectionCreateIndex : public Dynamic_object, public std::enable_shared_from_this<CollectionCreateIndex>
-    {
-    public:
-      CollectionCreateIndex(std::shared_ptr<Collection> owner);
+/**
+* Handler for index creation on a Collection.
+*
+* This object provides the necessary functions to allow adding an index into a collection.
+*
+* This object should only be created by calling any of the createIndex functions on the collection object where the index will be created.
+*
+* \sa Collection
+*/
+class CollectionCreateIndex : public Dynamic_object, public std::enable_shared_from_this<CollectionCreateIndex> {
+public:
+  CollectionCreateIndex(std::shared_ptr<Collection> owner);
 
-      virtual std::string class_name() const { return "CollectionCreateIndex"; }
+  virtual std::string class_name() const { return "CollectionCreateIndex"; }
 
-      shcore::Value create_index(const shcore::Argument_list &args);
-      shcore::Value field(const shcore::Argument_list &args);
-      virtual shcore::Value execute(const shcore::Argument_list &args);
+  shcore::Value create_index(const shcore::Argument_list &args);
+  shcore::Value field(const shcore::Argument_list &args);
+  virtual shcore::Value execute(const shcore::Argument_list &args);
 
 #if DOXYGEN_JS
-      CollectionCreateIndex createIndex(String name);
-      CollectionCreateIndex createIndex(String name, IndexType type);
-      CollectionCreateIndex field(DocPath documentPath, IndexColumnType type, Bool isRequired);
-      Result execute();
+  CollectionCreateIndex createIndex(String name);
+  CollectionCreateIndex createIndex(String name, IndexType type);
+  CollectionCreateIndex field(DocPath documentPath, IndexColumnType type, Bool isRequired);
+  Result execute();
 #elif DOXYGEN_PY
-      CollectionCreateIndex create_index(str name);
-      CollectionCreateIndex create_index(str name, IndexType type);
-      CollectionCreateIndex field(DocPath documentPath, IndexColumnType type, bool isRequired);
-      Result execute();
+  CollectionCreateIndex create_index(str name);
+  CollectionCreateIndex create_index(str name, IndexType type);
+  CollectionCreateIndex field(DocPath documentPath, IndexColumnType type, bool isRequired);
+  Result execute();
 #endif
 
-    private:
-      std::weak_ptr<Collection> _owner;
-      shcore::Argument_list _create_index_args;
-    };
-  }
+private:
+  std::weak_ptr<Collection> _owner;
+  shcore::Argument_list _create_index_args;
+};
+}
 }
 
 #endif

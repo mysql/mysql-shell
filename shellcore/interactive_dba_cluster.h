@@ -25,24 +25,22 @@
 
 #include "interactive_object_wrapper.h"
 
-namespace shcore
-{
-  class SHCORE_PUBLIC Interactive_dba_cluster : public Interactive_object_wrapper
-  {
-  public:
-    Interactive_dba_cluster(Shell_core& shell_core) : Interactive_object_wrapper("dba", shell_core){ init(); }
+namespace shcore {
+class SHCORE_PUBLIC Interactive_dba_cluster : public Interactive_object_wrapper {
+public:
+  Interactive_dba_cluster(Shell_core& shell_core) : Interactive_object_wrapper("dba", shell_core) { init(); }
 
-    void init();
+  void init();
 
-    shcore::Value add_seed_instance(const shcore::Argument_list &args);
-    shcore::Value add_instance(const shcore::Argument_list &args);
-    shcore::Value rejoin_instance(const shcore::Argument_list &args);
-    shcore::Value remove_instance(const shcore::Argument_list &args);
-    shcore::Value dissolve(const shcore::Argument_list &args);
+  shcore::Value add_seed_instance(const shcore::Argument_list &args);
+  shcore::Value add_instance(const shcore::Argument_list &args);
+  shcore::Value rejoin_instance(const shcore::Argument_list &args);
+  shcore::Value remove_instance(const shcore::Argument_list &args);
+  shcore::Value dissolve(const shcore::Argument_list &args);
 
-  private:
-    bool resolve_instance_options(const std::string& function, const shcore::Argument_list &args, shcore::Value::Map_type_ref &options) const;
-  };
+private:
+  bool resolve_instance_options(const std::string& function, const shcore::Argument_list &args, shcore::Value::Map_type_ref &options) const;
+};
 }
 
 #endif // _INTERACTIVE_DBA_CLUSTER_H_

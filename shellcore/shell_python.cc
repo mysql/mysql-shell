@@ -25,18 +25,15 @@
 using namespace shcore;
 
 Shell_python::Shell_python(Shell_core *shcore)
-  : Shell_language(shcore)
-{
+  : Shell_language(shcore) {
   _py = std::shared_ptr<Python_context>(new Python_context(shcore->get_delegate()));
 }
 
-Shell_python::~Shell_python()
-{
+Shell_python::~Shell_python() {
   _py.reset();
 }
 
-std::string Shell_python::preprocess_input_line(const std::string &s)
-{
+std::string Shell_python::preprocess_input_line(const std::string &s) {
   const char *p = s.c_str();
   while (*p && isblank(*p))
     ++p;
@@ -53,29 +50,21 @@ std::string Shell_python::preprocess_input_line(const std::string &s)
 /*
  * Handle shell input on Python mode
  */
-void Shell_python::handle_input(std::string &code, Interactive_input_state &state, std::function<void(shcore::Value)> result_processor)
-{
+void Shell_python::handle_input(std::string &code, Interactive_input_state &state, std::function<void(shcore::Value)> result_processor) {
   Value result;
 
-  if ((*Shell_core_options::get())[SHCORE_INTERACTIVE].as_bool())
-  {
+  if ((*Shell_core_options::get())[SHCORE_INTERACTIVE].as_bool()) {
     WillEnterPython lock;
     result = _py->execute_interactive(code, state);
-  }
-  else
-  {
-    try
-    {
+  } else {
+    try {
       boost::system::error_code err;
       WillEnterPython lock;
       result = _py->execute(code, err, _owner->get_input_source());
-      if (err)
-      {
+      if (err) {
         _owner->print_error(err.message());
       }
-    }
-    catch (Exception &exc)
-    {
+    } catch (Exception &exc) {
       // This exception was already printed in PY
       // and the correct return_value of undefined is set
     }
@@ -90,27 +79,22 @@ void Shell_python::handle_input(std::string &code, Interactive_input_state &stat
 /*
  * Shell prompt string
  */
-std::string Shell_python::prompt()
-{
+std::string Shell_python::prompt() {
   std::string ret_val = "mysql-py> ";
 
   boost::system::error_code err;
-  try
-  {
+  try {
     Interactive_input_state state = Input_ok;
     WillEnterPython lock;
     shcore::Value value = _py->execute_interactive("shell.custom_prompt() if 'custom_prompt' in dir(shell) else None", state);
     if (value && value.type == String)
       ret_val = value.as_string();
-    else
-    {
+    else {
       Value session_wrapper = _owner->active_session();
-      if (session_wrapper)
-      {
+      if (session_wrapper) {
         std::shared_ptr<mysh::ShellBaseSession> session = session_wrapper.as_object<mysh::ShellBaseSession>();
 
-        if (session)
-        {
+        if (session) {
           shcore::Value st = session->get_capability("node_type");
 
           if (st)
@@ -118,9 +102,7 @@ std::string Shell_python::prompt()
         }
       }
     }
-  }
-  catch (std::exception &exc)
-  {
+  } catch (std::exception &exc) {
     _owner->print_error(std::string("Exception in PS ps function: ") + exc.what());
   }
 
@@ -130,12 +112,10 @@ std::string Shell_python::prompt()
 /*
  * Set global variable
  */
-void Shell_python::set_global(const std::string &name, const Value &value)
-{
+void Shell_python::set_global(const std::string &name, const Value &value) {
   _py->set_global(name, value);
 }
 
-void Shell_python::abort()
-{
+void Shell_python::abort() {
   // TODO:
 }

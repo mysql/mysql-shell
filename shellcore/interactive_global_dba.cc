@@ -114,7 +114,7 @@ shcore::Value Global_dba::deploy_local_instance(const shcore::Argument_list &arg
 
     // Verification of required attributes on the instance deployment data
 
-    auto missing = shcore::get_missing_keys(options, { "password|dbPassword" });
+    auto missing = shcore::get_missing_keys(options, {"password|dbPassword"});
 
     prompt_password = !missing.empty();
 
@@ -444,7 +444,7 @@ shcore::Value Global_dba::validate_instance(const shcore::Argument_list &args) {
     throw shcore::Exception::argument_error("Invalid connection options, expected either a URI or a Dictionary.");
 
   // Verification of required attributes on the connection data
-  auto missing = shcore::get_missing_keys(options, { "host", "port" });
+  auto missing = shcore::get_missing_keys(options, {"host", "port"});
 
   if (missing.size()) {
     std::string error = "Missing instance options: ";

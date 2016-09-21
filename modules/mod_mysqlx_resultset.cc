@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2016 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2016, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -33,8 +33,7 @@ using namespace mysh::mysqlx;
 // -----------------------------------------------------------------------
 
 BaseResult::BaseResult(std::shared_ptr< ::mysqlx::Result> result) :
-_result(result), _execution_time(0)
-{
+_result(result), _execution_time(0) {
   add_property("executionTime", "getExecutionTime");
   add_property("warningCount", "getWarningCount");
   add_property("warnings", "getWarnings");
@@ -59,9 +58,9 @@ _result(result), _execution_time(0)
 * \sa warnings
 */
 #if DOXYGEN_JS
-Integer BaseResult::getWarningCount(){};
+Integer BaseResult::getWarningCount() {};
 #elif DOXYGEN_PY
-int BaseResult::get_warning_count(){};
+int BaseResult::get_warning_count() {};
 #endif
 
 /**
@@ -73,23 +72,22 @@ int BaseResult::get_warning_count(){};
 * This information includes: Level, Code and Message.
 */
 #if DOXYGEN_JS
-List BaseResult::getWarnings(){};
+List BaseResult::getWarnings() {};
 #elif DOXYGEN_PY
-list BaseResult::get_warnings(){};
+list BaseResult::get_warnings() {};
 #endif
 
 /**
 * Retrieves a string value indicating the execution time of the executed operation.
 */
 #if DOXYGEN_JS
-String BaseResult::getExecutionTime(){};
+String BaseResult::getExecutionTime() {};
 #elif DOXYGEN_PY
-str BaseResult::get_execution_time(){};
+str BaseResult::get_execution_time() {};
 #endif
 
 #endif
-shcore::Value BaseResult::get_member(const std::string &prop) const
-{
+shcore::Value BaseResult::get_member(const std::string &prop) const {
   Value ret_val;
 
   if (prop == "executionTime")
@@ -98,16 +96,13 @@ shcore::Value BaseResult::get_member(const std::string &prop) const
   else if (prop == "warningCount")
     ret_val = Value(get_warning_count());
 
-  else if (prop == "warnings")
-  {
+  else if (prop == "warnings") {
     std::shared_ptr<shcore::Value::Array_type> array(new shcore::Value::Array_type);
 
     std::vector< ::mysqlx::Result::Warning> warnings = _result->getWarnings();
 
-    if (warnings.size())
-    {
-      for (size_t index = 0; index < warnings.size(); index++)
-      {
+    if (warnings.size()) {
+      for (size_t index = 0; index < warnings.size(); index++) {
         mysh::Row *warning_row = new mysh::Row();
 
         warning_row->add_item("level", shcore::Value(warnings[index].is_note ? "Note" : "Warning"));
@@ -119,45 +114,37 @@ shcore::Value BaseResult::get_member(const std::string &prop) const
     }
 
     ret_val = shcore::Value(array);
-  }
-  else
+  } else
     ret_val = ShellBaseResult::get_member(prop);
 
   return ret_val;
 }
 
-std::string BaseResult::get_execution_time() const
-{
+std::string BaseResult::get_execution_time() const {
   return MySQL_timer::format_legacy(_execution_time, 2);
 }
 
-uint64_t BaseResult::get_warning_count() const
-{
+uint64_t BaseResult::get_warning_count() const {
   return uint64_t(_result->getWarnings().size());
 }
 
-void BaseResult::buffer()
-{
+void BaseResult::buffer() {
   _result->buffer();
 }
 
-bool BaseResult::rewind()
-{
+bool BaseResult::rewind() {
   return _result->rewind();
 }
 
-bool BaseResult::tell(size_t &dataset, size_t &record)
-{
+bool BaseResult::tell(size_t &dataset, size_t &record) {
   return _result->tell(dataset, record);
 }
 
-bool BaseResult::seek(size_t dataset, size_t record)
-{
+bool BaseResult::seek(size_t dataset, size_t record) {
   return _result->seek(dataset, record);
 }
 
-void BaseResult::append_json(shcore::JSON_dumper& dumper) const
-{
+void BaseResult::append_json(shcore::JSON_dumper& dumper) const {
   bool create_object = (dumper.deep_level() == 0);
 
   if (create_object)
@@ -165,8 +152,7 @@ void BaseResult::append_json(shcore::JSON_dumper& dumper) const
 
   dumper.append_value("executionTime", get_member("executionTime"));
 
-  if (Shell_core_options::get()->get_bool(SHCORE_SHOW_WARNINGS))
-  {
+  if (Shell_core_options::get()->get_bool(SHCORE_SHOW_WARNINGS)) {
     dumper.append_value("warningCount", get_member("warningCount"));
     dumper.append_value("warnings", get_member("warnings"));
   }
@@ -178,8 +164,7 @@ void BaseResult::append_json(shcore::JSON_dumper& dumper) const
 // -----------------------------------------------------------------------
 
 Result::Result(std::shared_ptr< ::mysqlx::Result> result) :
-BaseResult(result)
-{
+BaseResult(result) {
   add_property("affectedItemCount", "getAffectedItemCount");
   add_property("autoIncrementValue", "getAutoIncrementValue");
   add_property("lastDocumentId", "getLastDocumentId");
@@ -205,9 +190,9 @@ BaseResult(result)
 * This is the value of the C API mysql_affected_rows(), see https://dev.mysql.com/doc/refman/5.7/en/mysql-affected-rows.html
 */
 #if DOXYGEN_JS
-Integer Result::getAffectedItemCount(){};
+Integer Result::getAffectedItemCount() {};
 #elif DOXYGEN_PY
-int Result::get_affected_item_count(){};
+int Result::get_affected_item_count() {};
 #endif
 
 /**
@@ -218,9 +203,9 @@ int Result::get_affected_item_count(){};
 * Note that this value will be available only when the result is for a Table.insert operation.
 */
 #if DOXYGEN_JS
-Integer Result::getAutoIncrementValue(){};
+Integer Result::getAutoIncrementValue() {};
 #elif DOXYGEN_PY
-int Result::get_auto_increment_value(){};
+int Result::get_auto_increment_value() {};
 #endif
 
 /**
@@ -230,14 +215,13 @@ int Result::get_auto_increment_value(){};
 * Note that this value will be available only when the result is for a Collection.add operation.
 */
 #if DOXYGEN_JS
-String Result::getLastDocumentId(){};
+String Result::getLastDocumentId() {};
 #elif DOXYGEN_PY
-str Result::get_last_document_id(){};
+str Result::get_last_document_id() {};
 #endif
 #endif
 
-shcore::Value Result::get_member(const std::string &prop) const
-{
+shcore::Value Result::get_member(const std::string &prop) const {
   Value ret_val;
 
   if (prop == "affectedItemCount")
@@ -249,8 +233,7 @@ shcore::Value Result::get_member(const std::string &prop) const
   else if (prop == "lastDocumentId")
     ret_val = Value(get_last_document_id());
 
-  else if (prop == "lastDocumentIds")
-  {
+  else if (prop == "lastDocumentIds") {
     shcore::Value::Array_type_ref ret_val(new shcore::Value::Array_type);
     std::vector<std::string> doc_ids = get_last_document_ids();
 
@@ -258,28 +241,23 @@ shcore::Value Result::get_member(const std::string &prop) const
       ret_val->push_back(shcore::Value(doc_id));
 
     return shcore::Value(ret_val);
-  }
-  else
+  } else
     ret_val = BaseResult::get_member(prop);
 
   return ret_val;
 }
 
-int64_t Result::get_affected_item_count() const
-{
+int64_t Result::get_affected_item_count() const {
   return _result->affectedRows();
 }
 
-int64_t Result::get_auto_increment_value() const
-{
+int64_t Result::get_auto_increment_value() const {
   return _result->lastInsertId();
 }
 
-std::string Result::get_last_document_id() const
-{
+std::string Result::get_last_document_id() const {
   std::string ret_val;
-  try
-  {
+  try {
     ret_val = _result->lastDocumentId();
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("getLastDocumentId"));
@@ -287,19 +265,16 @@ std::string Result::get_last_document_id() const
   return ret_val;
 }
 
-const std::vector<std::string> Result::get_last_document_ids() const
-{
+const std::vector<std::string> Result::get_last_document_ids() const {
   std::vector<std::string> ret_val;
-  try
-  {
+  try {
     ret_val = _result->lastDocumentIds();
   }
   CATCH_AND_TRANSLATE_FUNCTION_EXCEPTION(get_function_name("getLastDocumentIds"));
   return ret_val;
 }
 
-void Result::append_json(shcore::JSON_dumper& dumper) const
-{
+void Result::append_json(shcore::JSON_dumper& dumper) const {
   dumper.start_object();
 
   BaseResult::append_json(dumper);
@@ -313,8 +288,7 @@ void Result::append_json(shcore::JSON_dumper& dumper) const
 
 // -----------------------------------------------------------------------
 DocResult::DocResult(std::shared_ptr< ::mysqlx::Result> result) :
-BaseResult(result)
-{
+BaseResult(result) {
   add_method("fetchOne", std::bind(&DocResult::fetch_one, this, _1), "nothing", shcore::String, NULL);
   add_method("fetchAll", std::bind(&DocResult::fetch_all, this, _1), "nothing", shcore::String, NULL);
 }
@@ -324,20 +298,17 @@ BaseResult(result)
 * \return A DbDoc object representing the next Document in the result.
 */
 #if DOXYGEN_JS
-Document DocResult::fetchOne(){};
+Document DocResult::fetchOne() {};
 #elif DOXYGEN_PY
-Document DocResult::fetch_one(){};
+Document DocResult::fetch_one() {};
 #endif
-shcore::Value DocResult::fetch_one(const shcore::Argument_list &args) const
-{
+shcore::Value DocResult::fetch_one(const shcore::Argument_list &args) const {
   Value ret_val = Value::Null();
 
   args.ensure_count(0, get_function_name("fetchOne").c_str());
 
-  try
-  {
-    if (_result->columnMetadata() && _result->columnMetadata()->size())
-    {
+  try {
+    if (_result->columnMetadata() && _result->columnMetadata()->size()) {
       std::shared_ptr< ::mysqlx::Row> r(_result->next());
       if (r.get())
         ret_val = Value::parse(r->stringField(0));
@@ -357,20 +328,18 @@ shcore::Value DocResult::fetch_one(const shcore::Argument_list &args) const
 * If fetchOne is called before this function, when this function is called it will return a DbDoc for each of the remaining documents on the resultset.
 */
 #if DOXYGEN_JS
-List DocResult::fetchAll(){};
+List DocResult::fetchAll() {};
 #elif DOXYGEN_PY
-list DocResult::fetch_all(){};
+list DocResult::fetch_all() {};
 #endif
-shcore::Value DocResult::fetch_all(const shcore::Argument_list &args) const
-{
+shcore::Value DocResult::fetch_all(const shcore::Argument_list &args) const {
   Value::Array_type_ref array(new Value::Array_type());
 
   args.ensure_count(0, get_function_name("fetchAll").c_str());
 
   // Gets the next document
   Value record = fetch_one(args);
-  while (record)
-  {
+  while (record) {
     array->push_back(record);
     record = fetch_one(args);
   }
@@ -378,10 +347,8 @@ shcore::Value DocResult::fetch_all(const shcore::Argument_list &args) const
   return Value(array);
 }
 
-shcore::Value DocResult::get_metadata() const
-{
-  if (!_metadata)
-  {
+shcore::Value DocResult::get_metadata() const {
+  if (!_metadata) {
     shcore::Value data_type = mysh::Constant::get_constant("mysqlx", "Type", "JSON", shcore::Argument_list());
 
     // the plugin may not send these if they are equal to table/name respectively
@@ -416,8 +383,7 @@ shcore::Value DocResult::get_metadata() const
   return _metadata;
 }
 
-void DocResult::append_json(shcore::JSON_dumper& dumper) const
-{
+void DocResult::append_json(shcore::JSON_dumper& dumper) const {
   dumper.start_object();
 
   dumper.append_value("documents", fetch_all(shcore::Argument_list()));
@@ -429,8 +395,7 @@ void DocResult::append_json(shcore::JSON_dumper& dumper) const
 
 // -----------------------------------------------------------------------
 RowResult::RowResult(std::shared_ptr< ::mysqlx::Result> result) :
-BaseResult(result)
-{
+BaseResult(result) {
   add_property("columnCount", "getColumnCount");
   add_property("columns", "getColumns");
   add_property("columnNames", "getColumnNames");
@@ -456,9 +421,9 @@ BaseResult(result)
 * \return the number of columns on the current result.
 */
 #if DOXYGEN_JS
-Integer RowResult::getColumnCount(){};
+Integer RowResult::getColumnCount() {};
 #elif DOXYGEN_PY
-int RowResult::get_column_count(){};
+int RowResult::get_column_count() {};
 #endif
 
 /**
@@ -466,9 +431,9 @@ int RowResult::get_column_count(){};
 * \return A list with the names of the columns returned on the active result.
 */
 #if DOXYGEN_JS
-List RowResult::getColumnNames(){};
+List RowResult::getColumnNames() {};
 #elif DOXYGEN_PY
-list RowResult::get_column_names(){};
+list RowResult::get_column_names() {};
 #endif
 
 /**
@@ -476,22 +441,19 @@ list RowResult::get_column_names(){};
 * \return a list of Column objects containing information about the columns included on the active result.
 */
 #if DOXYGEN_JS
-List RowResult::getColumns(){};
+List RowResult::getColumns() {};
 #elif DOXYGEN_PY
-list RowResult::get_columns(){};
+list RowResult::get_columns() {};
 #endif
 #endif
-shcore::Value RowResult::get_member(const std::string &prop) const
-{
+shcore::Value RowResult::get_member(const std::string &prop) const {
   Value ret_val;
   if (prop == "columnCount")
     ret_val = shcore::Value(get_column_count());
-  else if (prop == "columnNames")
-  {
+  else if (prop == "columnNames") {
     std::shared_ptr<shcore::Value::Array_type> array(new shcore::Value::Array_type);
 
-    if (_result->columnMetadata())
-    {
+    if (_result->columnMetadata()) {
       size_t num_fields = _result->columnMetadata()->size();
 
       for (size_t i = 0; i < num_fields; i++)
@@ -499,8 +461,7 @@ shcore::Value RowResult::get_member(const std::string &prop) const
     }
 
     ret_val = shcore::Value(array);
-  }
-  else if (prop == "columns")
+  } else if (prop == "columns")
     ret_val = shcore::Value(get_columns());
   else
     ret_val = BaseResult::get_member(prop);
@@ -508,8 +469,7 @@ shcore::Value RowResult::get_member(const std::string &prop) const
   return ret_val;
 }
 
-int64_t RowResult::get_column_count() const
-{
+int64_t RowResult::get_column_count() const {
   size_t count = 0;
   if (_result->columnMetadata())
     count = _result->columnMetadata()->size();
@@ -517,12 +477,10 @@ int64_t RowResult::get_column_count() const
   return uint64_t(count);
 }
 
-std::vector<std::string> RowResult::get_column_names() const
-{
+std::vector<std::string> RowResult::get_column_names() const {
   std::vector<std::string> ret_val;
 
-  if (_result->columnMetadata())
-  {
+  if (_result->columnMetadata()) {
     size_t num_fields = _result->columnMetadata()->size();
 
     for (size_t i = 0; i < num_fields; i++)
@@ -532,15 +490,12 @@ std::vector<std::string> RowResult::get_column_names() const
   return ret_val;
 }
 
-shcore::Value::Array_type_ref RowResult::get_columns() const
-{
-  if (!_columns)
-  {
+shcore::Value::Array_type_ref RowResult::get_columns() const {
+  if (!_columns) {
     _columns.reset(new shcore::Value::Array_type);
 
     size_t num_fields = _result->columnMetadata()->size();
-    for (size_t i = 0; i < num_fields; i++)
-    {
+    for (size_t i = 0; i < num_fields; i++) {
       ::mysqlx::FieldType type = _result->columnMetadata()->at(i).type;
       bool is_numeric = type == ::mysqlx::SINT ||
         type == ::mysqlx::UINT ||
@@ -551,13 +506,11 @@ shcore::Value::Array_type_ref RowResult::get_columns() const
       std::string type_name;
       bool is_signed = false;
       bool is_padded = true;
-      switch (_result->columnMetadata()->at(i).type)
-      {
+      switch (_result->columnMetadata()->at(i).type) {
         case ::mysqlx::SINT:
           is_signed = true;
         case ::mysqlx::UINT:
-          switch (_result->columnMetadata()->at(i).length)
-          {
+          switch (_result->columnMetadata()->at(i).length) {
             case 3:
             case 4:
               type_name = "TINYINT";
@@ -597,8 +550,7 @@ shcore::Value::Array_type_ref RowResult::get_columns() const
         case ::mysqlx::BYTES:
           is_padded = is_signed = _result->columnMetadata()->at(i).flags & 0x001;
 
-          switch (_result->columnMetadata()->at(i).content_type & 0x0003)
-          {
+          switch (_result->columnMetadata()->at(i).content_type & 0x0003) {
             case 1:
               type_name = "GEOMETRY";
               break;
@@ -675,35 +627,28 @@ shcore::Value::Array_type_ref RowResult::get_columns() const
 * \return A Row object representing the next record on the result.
 */
 #if DOXYGEN_JS
-Row RowResult::fetchOne(){};
+Row RowResult::fetchOne() {};
 #elif DOXYGEN_PY
-Row RowResult::fetch_one(){};
+Row RowResult::fetch_one() {};
 #endif
-shcore::Value RowResult::fetch_one(const shcore::Argument_list &args) const
-{
+shcore::Value RowResult::fetch_one(const shcore::Argument_list &args) const {
   shcore::Value ret_val;
   args.ensure_count(0, get_function_name("fetchOne").c_str());
 
-  try
-  {
+  try {
     std::shared_ptr<std::vector< ::mysqlx::ColumnMetadata> > metadata = _result->columnMetadata();
-    if (metadata->size() > 0)
-    {
+    if (metadata->size() > 0) {
       std::shared_ptr< ::mysqlx::Row>row = _result->next();
-      if (row)
-      {
+      if (row) {
         mysh::Row *value_row = new mysh::Row();
 
-        for (int index = 0; index < int(metadata->size()); index++)
-        {
+        for (int index = 0; index < int(metadata->size()); index++) {
           Value field_value;
 
           if (row->isNullField(index))
             field_value = Value::Null();
-          else
-          {
-            switch (metadata->at(index).type)
-            {
+          else {
+            switch (metadata->at(index).type) {
               case ::mysqlx::SINT:
                 field_value = Value(row->sInt64Field(index));
                 break;
@@ -761,20 +706,18 @@ shcore::Value RowResult::fetch_one(const shcore::Argument_list &args) const
 * \return A List of DbDoc objects.
 */
 #if DOXYGEN_JS
-List RowResult::fetchAll(){};
+List RowResult::fetchAll() {};
 #elif DOXYGEN_PY
-list RowResult::fetch_all(){};
+list RowResult::fetch_all() {};
 #endif
-shcore::Value RowResult::fetch_all(const shcore::Argument_list &args) const
-{
+shcore::Value RowResult::fetch_all(const shcore::Argument_list &args) const {
   Value::Array_type_ref array(new Value::Array_type());
 
   args.ensure_count(0, get_function_name("fetchAll").c_str());
 
   // Gets the next row
   Value record = fetch_one(args);
-  while (record)
-  {
+  while (record) {
     array->push_back(record);
     record = fetch_one(args);
   }
@@ -782,8 +725,7 @@ shcore::Value RowResult::fetch_all(const shcore::Argument_list &args) const
   return Value(array);
 }
 
-void RowResult::append_json(shcore::JSON_dumper& dumper) const
-{
+void RowResult::append_json(shcore::JSON_dumper& dumper) const {
   bool create_object = (dumper.deep_level() == 0);
 
   if (create_object)
@@ -798,26 +740,23 @@ void RowResult::append_json(shcore::JSON_dumper& dumper) const
 }
 
 SqlResult::SqlResult(std::shared_ptr< ::mysqlx::Result> result) :
-RowResult(result)
-{
+RowResult(result) {
   add_method("hasData", std::bind(&SqlResult::has_data, this, _1), "nothing", shcore::String, NULL);
   add_method("nextDataSet", std::bind(&SqlResult::next_data_set, this, _1), "nothing", shcore::String, NULL);
   add_property("autoIncrementValue", "getAutoIncrementValue");
   add_property("affectedRowCount", "getAffectedRowCount");
 }
 
-
 /**
 * Returns true if the last statement execution has a result set.
 *
 */
 #if DOXYGEN_JS
-Bool SqlResult::hasData(){}
+Bool SqlResult::hasData() {}
 #elif DOXYGEN_PY
-bool SqlResult::has_data(){}
+bool SqlResult::has_data() {}
 #endif
-shcore::Value SqlResult::has_data(const shcore::Argument_list &args) const
-{
+shcore::Value SqlResult::has_data(const shcore::Argument_list &args) const {
   args.ensure_count(0, get_function_name("hasData").c_str());
 
   return Value(_result->has_data());
@@ -839,23 +778,22 @@ shcore::Value SqlResult::has_data(const shcore::Argument_list &args) const
 * Note that this value will only be set if the executed statement inserted a record in the database and an ID was automatically generated.
 */
 #if DOXYGEN_JS
-Integer SqlResult::getAutoIncrementValue(){};
+Integer SqlResult::getAutoIncrementValue() {};
 #elif DOXYGEN_PY
-int SqlResult::get_auto_increment_value(){};
+int SqlResult::get_auto_increment_value() {};
 #endif
 
 /**
 * Returns the number of rows affected by the executed query.
 */
 #if DOXYGEN_JS
-Integer SqlResult::getAffectedRowCount(){};
+Integer SqlResult::getAffectedRowCount() {};
 #elif DOXYGEN_PY
-int SqlResult::get_affected_row_count(){};
+int SqlResult::get_affected_row_count() {};
 #endif
 #endif
 
-shcore::Value SqlResult::get_member(const std::string &prop) const
-{
+shcore::Value SqlResult::get_member(const std::string &prop) const {
   Value ret_val;
   if (prop == "autoIncrementValue")
     ret_val = Value(get_auto_increment_value());
@@ -867,13 +805,11 @@ shcore::Value SqlResult::get_member(const std::string &prop) const
   return ret_val;
 }
 
-int64_t SqlResult::get_affected_row_count() const
-{
+int64_t SqlResult::get_affected_row_count() const {
   return _result->affectedRows();
 }
 
-int64_t SqlResult::get_auto_increment_value() const
-{
+int64_t SqlResult::get_auto_increment_value() const {
   return _result->lastInsertId();
 }
 
@@ -882,19 +818,17 @@ int64_t SqlResult::get_auto_increment_value() const
 * \return A boolean value indicating whether there is another result or not.
 */
 #if DOXYGEN_JS
-Bool SqlResult::nextDataSet(){};
+Bool SqlResult::nextDataSet() {};
 #elif DOXYGEN_PY
-bool SqlResult::next_data_set(){};
+bool SqlResult::next_data_set() {};
 #endif
-shcore::Value SqlResult::next_data_set(const shcore::Argument_list &args)
-{
+shcore::Value SqlResult::next_data_set(const shcore::Argument_list &args) {
   args.ensure_count(0, get_function_name("nextDataSet").c_str());
 
   return shcore::Value(_result->nextDataSet());
 }
 
-void SqlResult::append_json(shcore::JSON_dumper& dumper) const
-{
+void SqlResult::append_json(shcore::JSON_dumper& dumper) const {
   dumper.start_object();
 
   RowResult::append_json(dumper);

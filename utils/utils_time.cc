@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2014, 2015, Oracle and/or its affiliates. All rights reserved.
+* Copyright (c) 2014, 2016, Oracle and/or its affiliates. All rights reserved.
 *
 * This program is free software; you can redistribute it and/or
 * modify it under the terms of the GNU General Public License as
@@ -31,8 +31,7 @@
 #endif
 #endif
 
-unsigned long MySQL_timer::get_time()
-{
+unsigned long MySQL_timer::get_time() {
 #if defined(WIN32)
   return clock();
 #else
@@ -41,13 +40,11 @@ unsigned long MySQL_timer::get_time()
 #endif
 }
 
-unsigned long MySQL_timer::start()
-{
+unsigned long MySQL_timer::start() {
   return (_start = get_time());
 }
 
-unsigned long MySQL_timer::end()
-{
+unsigned long MySQL_timer::end() {
   return (_end = get_time());
 }
 
@@ -56,7 +53,6 @@ unsigned long MySQL_timer::end()
 
  len("4294967296 days, 23 hours, 59 minutes, 60.00 seconds")  ->  52
 
-
  Originally being measured at the client, the raw time was given in CLOCKS so real time was calculated
  dividing raw_time/CLOCKS_PER_SEC.
 
@@ -64,8 +60,7 @@ unsigned long MySQL_timer::end()
  used for such cases where raw time is already time in seconds.
  */
 
-std::string MySQL_timer::format_legacy(unsigned long raw_time, int part_seconds, bool in_seconds)
-{
+std::string MySQL_timer::format_legacy(unsigned long raw_time, int part_seconds, bool in_seconds) {
   std::string str_duration;
 
   int days = 0;
@@ -92,19 +87,16 @@ std::string MySQL_timer::format_legacy(unsigned long raw_time, int part_seconds,
   return str_duration;
 }
 
-void MySQL_timer::parse_duration(unsigned long raw_time, int &days, int &hours, int &minutes, float &seconds, bool in_seconds)
-{
-  
+void MySQL_timer::parse_duration(unsigned long raw_time, int &days, int &hours, int &minutes, float &seconds, bool in_seconds) {
   double duration;
-  
+
   if (in_seconds)
     duration = raw_time;
-  else
-  {
+  else {
     unsigned long closk_per_second = CLOCKS_PER_SEC;
     duration = (double)(raw_time) / closk_per_second;
   }
-  
+
   std::string str_duration;
 
   double minute_seconds = 60.0;
@@ -116,20 +108,17 @@ void MySQL_timer::parse_duration(unsigned long raw_time, int &days, int &hours, 
   minutes = 0;
   seconds = 0;
 
-  if (duration >= day_seconds)
-  {
+  if (duration >= day_seconds) {
     days = (int)floor(duration / day_seconds);
     duration -= days * day_seconds;
   }
 
-  if (duration >= hour_seconds)
-  {
+  if (duration >= hour_seconds) {
     hours = (int)floor(duration / hour_seconds);
     duration -= hours * hour_seconds;
   }
 
-  if (duration >= minute_seconds)
-  {
+  if (duration >= minute_seconds) {
     minutes = (int)floor(duration / minute_seconds);
     duration -= minutes * minute_seconds;
   }

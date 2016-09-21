@@ -499,7 +499,6 @@ void MetadataStorage::drop_replicaset(uint64_t rs_id) {
     execute_sql(query);
   }
 
-
   // Delete the replicaset
   query = shcore::sqlstring("delete from mysql_innodb_cluster_metadata.replicasets where replicaset_id = ?", 0);
   query << rs_id;
@@ -728,8 +727,7 @@ std::string MetadataStorage::get_seed_instance(uint64_t rs_id) {
   return seed_address;
 }
 
-std::shared_ptr<shcore::Value::Array_type> MetadataStorage::get_replicaset_instances(uint64_t rs_id)
-{
+std::shared_ptr<shcore::Value::Array_type> MetadataStorage::get_replicaset_instances(uint64_t rs_id) {
   shcore::sqlstring query;
 
   query = shcore::sqlstring("select mysql_server_uuid, instance_name, role,"

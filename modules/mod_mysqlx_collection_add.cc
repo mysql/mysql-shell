@@ -33,8 +33,7 @@ using namespace mysh::mysqlx;
 using namespace shcore;
 
 CollectionAdd::CollectionAdd(std::shared_ptr<Collection> owner)
-  :Collection_crud_definition(std::static_pointer_cast<DatabaseObject>(owner))
-{
+  :Collection_crud_definition(std::static_pointer_cast<DatabaseObject>(owner)) {
   // Exposes the methods available for chaining
   add_method("add", std::bind(&CollectionAdd::add, this, _1), "data");
 
@@ -96,11 +95,10 @@ CollectionAdd::CollectionAdd(std::shared_ptr<Collection> owner)
 * \sa Usage examples at execute().
 */
 #if DOXYGEN_JS
-CollectionAdd CollectionAdd::add(Document document){}
+CollectionAdd CollectionAdd::add(Document document) {}
 #elif DOXYGEN_PY
-CollectionAdd CollectionAdd::add(Document document){}
+CollectionAdd CollectionAdd::add(Document document) {}
 #endif
-
 
 /**
 * Adds a list of documents into a collection.
@@ -131,48 +129,40 @@ CollectionAdd CollectionAdd::add(Document document){}
 * \sa Usage examples at execute().
 */
 #if DOXYGEN_JS
-CollectionAdd CollectionAdd::add(List documents){}
+CollectionAdd CollectionAdd::add(List documents) {}
 #elif DOXYGEN_PY
-CollectionAdd CollectionAdd::add(list documents){}
+CollectionAdd CollectionAdd::add(list documents) {}
 #endif
 #endif
-shcore::Value CollectionAdd::add(const shcore::Argument_list &args)
-{
+shcore::Value CollectionAdd::add(const shcore::Argument_list &args) {
   // Each method validates the received parameters
   args.ensure_count(1, get_function_name("add").c_str());
 
   std::shared_ptr<DatabaseObject> raw_owner(_owner.lock());
 
-  if (raw_owner)
-  {
+  if (raw_owner) {
     std::shared_ptr<Collection> collection(std::static_pointer_cast<Collection>(raw_owner));
 
-    if (collection)
-    {
-      try
-      {
+    if (collection) {
+      try {
         shcore::Value::Array_type_ref shell_docs;
 
-        if (args[0].type == Map || (args[0].type == Object && args[0].as_object()->class_name() == "Expression"))
-        {
+        if (args[0].type == Map || (args[0].type == Object && args[0].as_object()->class_name() == "Expression")) {
           // On a single document parameter, creates an array and processes it as a list of
           // documents, only advantage of this is avoid duplicating validation and setup logic
           shell_docs.reset(new Value::Array_type());
           shell_docs->push_back(args[0]);
-        }
-        else if (args[0].type == Array)
+        } else if (args[0].type == Array)
           shell_docs = args[0].as_array();
         else
           throw shcore::Exception::argument_error("Argument is expected to be either a document or a list of documents");
 
-        if (shell_docs)
-        {
+        if (shell_docs) {
           if (!_add_statement.get())
             _add_statement.reset(new ::mysqlx::AddStatement(collection->_collection_impl));
 
           size_t index, size = shell_docs->size();
-          for (index = 0; index < size; index++)
-          {
+          for (index = 0; index < size; index++) {
             Value element = shell_docs->at(index);
 
             ::mysqlx::Document inner_doc;
@@ -181,21 +171,18 @@ shcore::Value CollectionAdd::add(const shcore::Argument_list &args)
             // Validation of the incoming parameter
             if (element.type == Map)
                shell_doc = element.as_map();
-            else if (element.type == Object && element.as_object()->class_name() == "Expression")
-            {
+            else if (element.type == Object && element.as_object()->class_name() == "Expression") {
               std::shared_ptr<mysqlx::Expression> expression = std::static_pointer_cast<mysqlx::Expression>(element.as_object());
               shcore::Value document = shcore::Value::parse(expression->get_data());
               if (document.type == Map)
                 shell_doc = document.as_map();
               else
                 throw shcore::Exception::argument_error((boost::format("Element #%1% is expected to be a JSON expression") % (index + 1)).str());
-            }
-            else
+            } else
               throw shcore::Exception::argument_error((boost::format("Element #%1% is expected to be a document or a JSON expression") % (index + 1)).str());
 
             // Verification of the _id existence
-            if (shell_doc)
-            {
+            if (shell_doc) {
               if (!shell_doc->has_key("_id"))
                 (*shell_doc)["_id"] = Value(get_new_uuid());
               else if ((*shell_doc)["_id"].type != shcore::String)
@@ -221,8 +208,7 @@ shcore::Value CollectionAdd::add(const shcore::Argument_list &args)
   return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
 }
 
-std::string CollectionAdd::get_new_uuid()
-{
+std::string CollectionAdd::get_new_uuid() {
   uuid_type uuid;
   generate_uuid(uuid);
 
@@ -259,7 +245,7 @@ std::string CollectionAdd::get_new_uuid()
  * \skip //@ Collection.add execution
  * \until print("Affected Rows Mixed List:", result.affectedItemCount, "\n")
  */
-Result CollectionAdd::execute(){}
+Result CollectionAdd::execute() {}
 #elif DOXYGEN_PY
 /**
  *
@@ -268,14 +254,12 @@ Result CollectionAdd::execute(){}
  * \skip #@ Collection.add execution
  * \until print "Affected Rows Mixed List:", result.affected_item_count, "\n"
  */
-Result CollectionAdd::execute(){}
+Result CollectionAdd::execute() {}
 #endif
-shcore::Value CollectionAdd::execute(const shcore::Argument_list &args)
-{
+shcore::Value CollectionAdd::execute(const shcore::Argument_list &args) {
   mysqlx::Result *result = NULL;
 
-  try
-  {
+  try {
     args.ensure_count(0, get_function_name("execute").c_str());
 
     MySQL_timer timer;

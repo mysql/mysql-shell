@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2016, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -27,71 +27,68 @@
 #include "shellcore/types.h"
 #include "shellcore/types_cpp.h"
 
-namespace shcore
-{
-  class Proxy_object;
+namespace shcore {
+class Proxy_object;
 };
 
-namespace mysh
-{
-  class ShellBaseSession;
-  class CoreSchema;
-  /**
-  * Provides base functionality for database objects.
-  */
-  class SHCORE_PUBLIC DatabaseObject : public shcore::Cpp_object_bridge
-  {
-  public:
-    DatabaseObject(std::shared_ptr<ShellBaseSession> session, std::shared_ptr<DatabaseObject> schema, const std::string &name);
-    ~DatabaseObject();
+namespace mysh {
+class ShellBaseSession;
+class CoreSchema;
+/**
+* Provides base functionality for database objects.
+*/
+class SHCORE_PUBLIC DatabaseObject : public shcore::Cpp_object_bridge {
+public:
+  DatabaseObject(std::shared_ptr<ShellBaseSession> session, std::shared_ptr<DatabaseObject> schema, const std::string &name);
+  ~DatabaseObject();
 
-    virtual std::string &append_descr(std::string &s_out, int indent = -1, int quote_strings = 0) const;
-    virtual std::string &append_repr(std::string &s_out) const;
-    virtual void append_json(shcore::JSON_dumper& dumper) const;
+  virtual std::string &append_descr(std::string &s_out, int indent = -1, int quote_strings = 0) const;
+  virtual std::string &append_repr(std::string &s_out) const;
+  virtual void append_json(shcore::JSON_dumper& dumper) const;
 
-    virtual shcore::Value get_member(const std::string &prop) const;
+  virtual shcore::Value get_member(const std::string &prop) const;
 
-    virtual bool operator == (const Object_bridge &other) const;
+  virtual bool operator == (const Object_bridge &other) const;
 
-    shcore::Value existsInDatabase(const shcore::Argument_list &args);
+  shcore::Value existsInDatabase(const shcore::Argument_list &args);
 
-    virtual std::string get_object_type() { return class_name(); }
+  virtual std::string get_object_type() { return class_name(); }
 
 #if DOXYGEN_JS
-    String name; //!< Same as getName()
-    Object session; //!< Same as getSession()
-    Object schema; //!< Same as getSchema()
+  String name; //!< Same as getName()
+  Object session; //!< Same as getSession()
+  Object schema; //!< Same as getSchema()
 
-    String getName();
-    Object getSession();
-    Object getSchema();
-    Bool existsInDatabase();
+  String getName();
+  Object getSession();
+  Object getSchema();
+  Bool existsInDatabase();
 #elif DOXYGEN_PY
-    str name; //!< Same as get_name()
-    object session; //!< Same as get_session()
-    object schema; //!< Same as get_schema()
+  str name; //!< Same as get_name()
+  object session; //!< Same as get_session()
+  object schema; //!< Same as get_schema()
 
-    str get_name();
-    object get_session();
-    object get_schema();
-    bool exists_in_database();
+  str get_name();
+  object get_session();
+  object get_schema();
+  bool exists_in_database();
 #endif
 
-  protected:
-    std::weak_ptr<ShellBaseSession> _session;
-    std::weak_ptr<DatabaseObject> _schema;
-    std::string _name;
+protected:
+  std::weak_ptr<ShellBaseSession> _session;
+  std::weak_ptr<DatabaseObject> _schema;
+  std::string _name;
 
-  private:
-    void init();
-    // Handling of database object caches
-  public:
-    typedef std::shared_ptr<shcore::Value::Map_type> Cache;
-    static void update_cache(const std::vector<std::string>& names, const std::function<shcore::Value(const std::string &name)>& generator, Cache target_cache, DatabaseObject* target = NULL);
-    static void update_cache(const std::string& name, const std::function<shcore::Value(const std::string &name)>& generator, bool exists, Cache target_cache, DatabaseObject* target = NULL);
-    static void get_object_list(Cache target_cache, shcore::Value::Array_type_ref list);
-    static shcore::Value find_in_cache(const std::string& name, Cache target_cache);
-  };
+private:
+  void init();
+  // Handling of database object caches
+public:
+  typedef std::shared_ptr<shcore::Value::Map_type> Cache;
+  static void update_cache(const std::vector<std::string>& names, const std::function<shcore::Value(const std::string &name)>& generator, Cache target_cache, DatabaseObject* target = NULL);
+  static void update_cache(const std::string& name, const std::function<shcore::Value(const std::string &name)>& generator, bool exists, Cache target_cache, DatabaseObject* target = NULL);
+  static void get_object_list(Cache target_cache, shcore::Value::Array_type_ref list);
+  static shcore::Value find_in_cache(const std::string& name, Cache target_cache);
+};
 };
 
 #endif

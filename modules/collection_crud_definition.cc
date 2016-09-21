@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2016,  Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -23,10 +23,8 @@
 
 using namespace mysh::mysqlx;
 
-::mysqlx::DocumentValue Collection_crud_definition::map_document_value(shcore::Value source)
-{
-  switch (source.type)
-  {
+::mysqlx::DocumentValue Collection_crud_definition::map_document_value(shcore::Value source) {
+  switch (source.type) {
     case shcore::Undefined:
       throw shcore::Exception::argument_error("Invalid value");
     case shcore::Bool:
@@ -46,12 +44,10 @@ using namespace mysh::mysqlx;
 
       std::string object_class = object->class_name();
 
-      if (object_class == "Expression")
-      {
+      if (object_class == "Expression") {
         std::shared_ptr<Expression> expression = std::dynamic_pointer_cast<Expression>(object);
 
-        if (expression)
-        {
+        if (expression) {
           std::string expr_data = expression->get_data();
           if (expr_data.empty())
             throw shcore::Exception::argument_error("Expressions can not be empty.");
@@ -59,13 +55,10 @@ using namespace mysh::mysqlx;
             return ::mysqlx::DocumentValue(expr_data, ::mysqlx::DocumentValue::TExpression);
         }
       }
-      if (object_class == "Date")
-      {
+      if (object_class == "Date") {
         std::string data = source.descr();
         return ::mysqlx::DocumentValue(data);
-      }
-      else
-      {
+      } else {
         std::stringstream str;
         str << "Unsupported value received: " << source.descr() << ".";
         throw shcore::Exception::argument_error(str.str());

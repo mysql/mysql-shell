@@ -22,13 +22,11 @@
 #include "shellcore/types_cpp.h"
 #include "shellcore/object_factory.h"
 
-namespace shcore
-{
-  class SHCORE_PUBLIC Module_base : public shcore::Cpp_object_bridge
-  {
-    // This class is to only allow exporting as modules the objects that are meant to
-    // be modules
-  };
+namespace shcore {
+class SHCORE_PUBLIC Module_base : public shcore::Cpp_object_bridge {
+  // This class is to only allow exporting as modules the objects that are meant to
+  // be modules
+};
 
 #define DECLARE_MODULE(C,N) \
 class SHCORE_PUBLIC C : public shcore::Module_base \
@@ -62,13 +60,11 @@ class SHCORE_PUBLIC C : public shcore::Module_base \
 
 #define INIT_MODULE(X) {X a;}
 
-  template<class ObjectBridgeClass>
-  struct Module_register
-  {
-    Module_register(const std::string &name)
-    {
-      shcore::Object_factory::register_factory("__modules__", name, &ObjectBridgeClass::create);
-    }
-  };
+template<class ObjectBridgeClass>
+struct Module_register {
+  Module_register(const std::string &name) {
+    shcore::Object_factory::register_factory("__modules__", name, &ObjectBridgeClass::create);
+  }
+};
 };
 #endif //_MODULE_REGISTRY_H_

@@ -20,19 +20,14 @@
 #include "interactive_global_schema.h"
 using namespace shcore;
 
-void Global_schema::resolve() const
-{
+void Global_schema::resolve() const {
   auto session = _shell_core.get_dev_session();
 
-  if (session)
-  {
+  if (session) {
     std::string answer;
-    if (prompt("The db variable is not set, do you want to set the active schema? [y/N]:", answer))
-    {
-      if (!answer.compare("y") || !answer.compare("Y"))
-      {
-        if (prompt("Please specify the schema:", answer))
-        {
+    if (prompt("The db variable is not set, do you want to set the active schema? [y/N]:", answer)) {
+      if (!answer.compare("y") || !answer.compare("Y")) {
+        if (prompt("Please specify the schema:", answer)) {
           std::string error;
           if (answer.empty())
             throw shcore::Exception::argument_error("Invalid schema specified.");
@@ -41,7 +36,6 @@ void Global_schema::resolve() const
         }
       }
     }
-  }
-  else
+  } else
     throw shcore::Exception::logic_error("The db variable is not set, establish a global session first.\n");
 }

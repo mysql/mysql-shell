@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2016, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -31,21 +31,18 @@ using namespace mysh::mysqlx;
 using namespace shcore;
 
 Table::Table(std::shared_ptr<Schema> owner, const std::string &name, bool is_view)
-  : DatabaseObject(owner->_session.lock(), std::static_pointer_cast<DatabaseObject>(owner), name), _is_view(is_view)
-{
+  : DatabaseObject(owner->_session.lock(), std::static_pointer_cast<DatabaseObject>(owner), name), _is_view(is_view) {
   _table_impl = owner->_schema_impl->getTable(name);
   init();
 }
 
 Table::Table(std::shared_ptr<const Schema> owner, const std::string &name, bool is_view) :
-DatabaseObject(owner->_session.lock(), std::const_pointer_cast<Schema>(owner), name), _is_view(is_view)
-{
+DatabaseObject(owner->_session.lock(), std::const_pointer_cast<Schema>(owner), name), _is_view(is_view) {
   _table_impl = owner->_schema_impl->getTable(name);
   init();
 }
 
-void Table::init()
-{
+void Table::init() {
   add_method("insert", std::bind(&Table::insert_, this, _1), NULL);
   add_method("update", std::bind(&Table::update_, this, _1), NULL);
   add_method("select", std::bind(&Table::select_, this, _1), "searchCriteria", shcore::Array, NULL);
@@ -53,9 +50,7 @@ void Table::init()
   add_method("isView", std::bind(&Table::is_view_, this, _1), NULL);
 }
 
-Table::~Table()
-{
-}
+Table::~Table() {}
 
 #if DOXYGEN_CPP
 /**
@@ -87,9 +82,9 @@ Table::~Table()
  * \sa TableInsert
  */
 #if DOXYGEN_JS
-TableInsert Table::insert(){}
+TableInsert Table::insert() {}
 #elif DOXYGEN_PY
-TableInsert Table::insert(){}
+TableInsert Table::insert() {}
 #endif
 
 /**
@@ -106,9 +101,9 @@ TableInsert Table::insert(){}
 * \sa TableInsert
 */
 #if DOXYGEN_JS
-TableInsert Table::insert(List columns){}
+TableInsert Table::insert(List columns) {}
 #elif DOXYGEN_PY
-TableInsert Table::insert(list columns){}
+TableInsert Table::insert(list columns) {}
 #endif
 
 /**
@@ -126,13 +121,12 @@ TableInsert Table::insert(list columns){}
 * \sa TableInsert
 */
 #if DOXYGEN_JS
-TableInsert Table::insert(String col1, String col2, ...){}
+TableInsert Table::insert(String col1, String col2, ...) {}
 #elif DOXYGEN_PY
-TableInsert Table::insert(str col1, str col2, ...){}
+TableInsert Table::insert(str col1, str col2, ...) {}
 #endif
 #endif
-shcore::Value Table::insert_(const shcore::Argument_list &args)
-{
+shcore::Value Table::insert_(const shcore::Argument_list &args) {
   std::shared_ptr<TableInsert> tableInsert(new TableInsert(shared_from_this()));
 
   return tableInsert->insert(args);
@@ -151,12 +145,11 @@ shcore::Value Table::insert_(const shcore::Argument_list &args)
 * \sa TableUpdate
 */
 #if DOXYGEN_JS
-TableUpdate Table::update(){}
+TableUpdate Table::update() {}
 #elif DOXYGEN_PY
-TableUpdate Table::update(){}
+TableUpdate Table::update() {}
 #endif
-shcore::Value Table::update_(const shcore::Argument_list &args)
-{
+shcore::Value Table::update_(const shcore::Argument_list &args) {
   std::shared_ptr<TableUpdate> tableUpdate(new TableUpdate(shared_from_this()));
 
   return tableUpdate->update(args);
@@ -175,12 +168,11 @@ shcore::Value Table::update_(const shcore::Argument_list &args)
 * \sa TableDelete
 */
 #if DOXYGEN_JS
-TableDelete Table::delete(){}
+TableDelete Table::delete() {}
 #elif DOXYGEN_PY
-TableDelete Table::delete(){}
+TableDelete Table::delete() {}
 #endif
-shcore::Value Table::delete_(const shcore::Argument_list &args)
-{
+shcore::Value Table::delete_(const shcore::Argument_list &args) {
   std::shared_ptr<TableDelete> tableDelete(new TableDelete(shared_from_this()));
 
   return tableDelete->remove(args);
@@ -218,9 +210,9 @@ shcore::Value Table::delete_(const shcore::Argument_list &args)
 * \sa TableSelect
 */
 #if DOXYGEN_JS
-TableSelect Table::select(){}
+TableSelect Table::select() {}
 #elif DOXYGEN_PY
-TableSelect Table::select(){}
+TableSelect Table::select() {}
 #endif
 
 /**
@@ -241,13 +233,12 @@ TableSelect Table::select(){}
 * \sa TableSelect
 */
 #if DOXYGEN_JS
-TableSelect Table::select(List columns){}
+TableSelect Table::select(List columns) {}
 #elif DOXYGEN_PY
-TableSelect Table::select(list columns){}
+TableSelect Table::select(list columns) {}
 #endif
 #endif
-shcore::Value Table::select_(const shcore::Argument_list &args)
-{
+shcore::Value Table::select_(const shcore::Argument_list &args) {
   std::shared_ptr<TableSelect> tableSelect(new TableSelect(shared_from_this()));
 
   return tableSelect->select(args);
@@ -258,12 +249,11 @@ shcore::Value Table::select_(const shcore::Argument_list &args)
 * \return True if the Table represents a View on the database, False if represents a Table.
 */
 #if DOXYGEN_JS
-Bool Table::isView(){}
+Bool Table::isView() {}
 #elif DOXYGEN_PY
-Bool Table::is_view(){}
+Bool Table::is_view() {}
 #endif
-shcore::Value Table::is_view_(const shcore::Argument_list &args)
-{
+shcore::Value Table::is_view_(const shcore::Argument_list &args) {
   args.ensure_count(0, "Table.isView");
 
   return Value(_is_view);

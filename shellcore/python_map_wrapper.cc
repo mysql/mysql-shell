@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2016, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -32,10 +32,8 @@
 
 using namespace shcore;
 
-static PyObject *dict_keys(PyShDictObject *self, PyObject *args)
-{
-  if (args)
-  {
+static PyObject *dict_keys(PyShDictObject *self, PyObject *args) {
+  if (args) {
     Python_context::set_python_error(PyExc_ValueError, "method takes no arguments");
     return NULL;
   }
@@ -49,10 +47,8 @@ static PyObject *dict_keys(PyShDictObject *self, PyObject *args)
   return list;
 }
 
-static PyObject *dict_items(PyShDictObject *self, PyObject *args)
-{
-  if (args)
-  {
+static PyObject *dict_items(PyShDictObject *self, PyObject *args) {
+  if (args) {
     Python_context::set_python_error(PyExc_ValueError, "method takes no arguments");
     return NULL;
   }
@@ -63,8 +59,7 @@ static PyObject *dict_items(PyShDictObject *self, PyObject *args)
   PyObject *list = PyList_New(self->map->get()->size());
 
   Py_ssize_t i = 0;
-  for (Value::Map_type::const_iterator iter = self->map->get()->begin(); iter != self->map->get()->end(); ++iter)
-  {
+  for (Value::Map_type::const_iterator iter = self->map->get()->begin(); iter != self->map->get()->end(); ++iter) {
     PyObject *tuple = PyTuple_New(2);
     PyTuple_SetItem(tuple, 0, PyString_FromString(iter->first.c_str()));
     PyTuple_SetItem(tuple, 1, ctx->shcore_value_to_pyobj(iter->second));
@@ -73,10 +68,8 @@ static PyObject *dict_items(PyShDictObject *self, PyObject *args)
   return list;
 }
 
-static PyObject *dict_values(PyShDictObject *self, PyObject *args)
-{
-  if (args)
-  {
+static PyObject *dict_values(PyShDictObject *self, PyObject *args) {
+  if (args) {
     Python_context::set_python_error(PyExc_ValueError, "method takes no arguments");
     return NULL;
   }
@@ -92,10 +85,8 @@ static PyObject *dict_values(PyShDictObject *self, PyObject *args)
   return list;
 }
 
-static PyObject *dict_has_key(PyShDictObject *self, PyObject *arg)
-{
-  if (!arg)
-  {
+static PyObject *dict_has_key(PyShDictObject *self, PyObject *arg) {
+  if (!arg) {
     Python_context::set_python_error(PyExc_ValueError, "missing required argument");
     return NULL;
   }
@@ -109,31 +100,25 @@ static PyObject *dict_has_key(PyShDictObject *self, PyObject *arg)
   return PyBool_FromLong(found);
 }
 
-static PyObject *dict_update(PyShDictObject *self, PyObject *arg)
-{
+static PyObject *dict_update(PyShDictObject *self, PyObject *arg) {
   Python_context *ctx = Python_context::get_and_check();
   if (!ctx) return NULL;
 
-  if (!arg)
-  {
+  if (!arg) {
     Python_context::set_python_error(PyExc_ValueError, "dict argument required for update()");
     return NULL;
   }
 
   Value value;
 
-  try
-  {
+  try {
     value = ctx->pyobj_to_shcore_value(arg);
-  }
-  catch (std::exception &exc)
-  {
+  } catch (std::exception &exc) {
     Python_context::set_python_error(exc);
     return NULL;
   }
 
-  if (value.type != Map)
-  {
+  if (value.type != Map) {
     Python_context::set_python_error(PyExc_ValueError, "dict argument is not a dictionary");
     return NULL;
   }
@@ -145,16 +130,14 @@ static PyObject *dict_update(PyShDictObject *self, PyObject *arg)
   Py_RETURN_NONE;
 }
 
-static PyObject *dict_get(PyShDictObject *self, PyObject *arg)
-{
+static PyObject *dict_get(PyShDictObject *self, PyObject *arg) {
   Python_context *ctx = Python_context::get_and_check();
   if (!ctx) return NULL;
 
   PyObject *def = NULL;
   char *key;
 
-  if (!arg)
-  {
+  if (!arg) {
     Python_context::set_python_error(PyExc_ValueError, "dict argument required for get()");
     return NULL;
   }
@@ -162,19 +145,14 @@ static PyObject *dict_get(PyShDictObject *self, PyObject *arg)
   if (!PyArg_ParseTuple(arg, "s|O", &key, &def))
     return NULL;
 
-  if (key)
-  {
+  if (key) {
     if (self->map->get()->has_key(key))
       return ctx->shcore_value_to_pyobj((self->map->get()->find(key))->second);
-    else
-    {
-      if (def)
-      {
+    else {
+      if (def) {
         Py_INCREF(def);
         return def;
-      }
-      else
-      {
+      } else {
         std::string err = std::string("invalid key: ") + key;
         Python_context::set_python_error(PyExc_IndexError, err.c_str());
       }
@@ -184,16 +162,14 @@ static PyObject *dict_get(PyShDictObject *self, PyObject *arg)
   Py_RETURN_NONE;
 }
 
-static PyObject *dict_setdefault(PyShDictObject *self, PyObject *arg)
-{
+static PyObject *dict_setdefault(PyShDictObject *self, PyObject *arg) {
   Python_context *ctx = Python_context::get_and_check();
   if (!ctx) return NULL;
 
   PyObject *def = Py_None;
   char *key;
 
-  if (!arg)
-  {
+  if (!arg) {
     Python_context::set_python_error(PyExc_ValueError, "dict argument required for setdefault()");
     return NULL;
   }
@@ -201,22 +177,17 @@ static PyObject *dict_setdefault(PyShDictObject *self, PyObject *arg)
   if (!PyArg_ParseTuple(arg, "s|O", &key, &def))
     return NULL;
 
-  if (key)
-  {
+  if (key) {
     if (self->map->get()->has_key(key))
       return ctx->shcore_value_to_pyobj((self->map->get()->find(key))->second);
-    else
-    {
+    else {
       if (def != Py_None)
         Py_INCREF(def);
-      try
-      {
+      try {
         shcore::Value::Map_type *map = self->map->get();
         (*map)[key] = ctx->pyobj_to_shcore_value(def);
         return def;
-      }
-      catch (std::exception &exc)
-      {
+      } catch (std::exception &exc) {
         Python_context::set_python_error(exc);
       }
     }
@@ -224,13 +195,11 @@ static PyObject *dict_setdefault(PyShDictObject *self, PyObject *arg)
   Py_RETURN_NONE;
 }
 
-static PyObject *dict_printable(PyShDictObject *self)
-{
+static PyObject *dict_printable(PyShDictObject *self) {
   return PyString_FromString(Value(*self->map).repr().c_str());
 }
 
-static int dict_init(PyShDictObject *self, PyObject *args, PyObject *UNUSED(kwds))
-{
+static int dict_init(PyShDictObject *self, PyObject *args, PyObject *UNUSED(kwds)) {
   PyObject *valueptr = NULL;
 
   if (!PyArg_ParseTuple(args, ""))
@@ -238,26 +207,17 @@ static int dict_init(PyShDictObject *self, PyObject *args, PyObject *UNUSED(kwds
 
   delete self->map;
 
-  if (valueptr)
-  {
-    try
-    {
+  if (valueptr) {
+    try {
       self->map->reset(static_cast<Value::Map_type*>(PyCObject_AsVoidPtr(valueptr)));
-    }
-    catch (std::exception &exc)
-    {
+    } catch (std::exception &exc) {
       Python_context::set_python_error(exc);
       return -1;
     }
-  }
-  else
-  {
-    try
-    {
+  } else {
+    try {
       self->map = new Value::Map_type_ref();
-    }
-    catch (std::exception &exc)
-    {
+    } catch (std::exception &exc) {
       Python_context::set_python_error(exc);
       return -1;
     }
@@ -265,26 +225,22 @@ static int dict_init(PyShDictObject *self, PyObject *args, PyObject *UNUSED(kwds
   return 0;
 }
 
-static void dict_dealloc(PyShDictObject *self)
-{
+static void dict_dealloc(PyShDictObject *self) {
   delete self->map;
 
   self->ob_type->tp_free(self);
 }
 
-static Py_ssize_t dict_length(PyShDictObject *self)
-{
+static Py_ssize_t dict_length(PyShDictObject *self) {
   return self->map->get()->size();
 }
 
-static PyObject *dict_subscript(PyShDictObject *self, PyObject *key)
-{
+static PyObject *dict_subscript(PyShDictObject *self, PyObject *key) {
   AutoPyObject tmp;
   if (PyUnicode_Check(key))
     key = tmp = PyUnicode_AsUTF8String(key);
 
-  if (!PyString_Check(key))
-  {
+  if (!PyString_Check(key)) {
     Python_context::set_python_error(PyExc_KeyError, "shell.Dict key must be a string");
     return NULL;
   }
@@ -294,25 +250,20 @@ static PyObject *dict_subscript(PyShDictObject *self, PyObject *key)
   if (!ctx)
     return NULL;
 
-  try
-  {
+  try {
     return ctx->shcore_value_to_pyobj((self->map->get()->find(k))->second);
-  }
-  catch (std::exception &exc)
-  {
+  } catch (std::exception &exc) {
     Python_context::set_python_error(exc);
   }
   return NULL;
 }
 
-static int dict_as_subscript(PyShDictObject *self, PyObject *key, PyObject *value)
-{
+static int dict_as_subscript(PyShDictObject *self, PyObject *key, PyObject *value) {
   AutoPyObject tmp;
   if (PyUnicode_Check(key))
     key = tmp = PyUnicode_AsUTF8String(key);
 
-  if (!PyString_Check(key))
-  {
+  if (!PyString_Check(key)) {
     Python_context::set_python_error(PyExc_KeyError, "shell.Dict key must be a string");
     return -1;
   }
@@ -321,40 +272,31 @@ static int dict_as_subscript(PyShDictObject *self, PyObject *key, PyObject *valu
   Python_context *ctx = Python_context::get_and_check();
   if (!ctx) return -1;
 
-  try
-  {
+  try {
     if (value == NULL)
       self->map->get()->erase(k);
-    else
-    {
-      try
-      {
+    else {
+      try {
         Value v = ctx->pyobj_to_shcore_value(value);
         shcore::Value::Map_type *map = self->map->get();
         (*map)[k] = v;
-      }
-      catch (std::exception &exc)
-      {
+      } catch (std::exception &exc) {
         Python_context::set_python_error(exc);
       }
     }
     return 0;
-  }
-  catch (std::exception &exc)
-  {
+  } catch (std::exception &exc) {
     Python_context::set_python_error(exc);
   }
   return -1;
 }
 
-static PyObject *dict_getattro(PyShDictObject *self, PyObject *attr_name)
-{
+static PyObject *dict_getattro(PyShDictObject *self, PyObject *attr_name) {
   AutoPyObject tmp;
   if (PyUnicode_Check(attr_name))
     attr_name = tmp = PyUnicode_AsUTF8String(attr_name);
 
-  if (PyString_Check(attr_name))
-  {
+  if (PyString_Check(attr_name)) {
     const char *attrname = PyString_AsString(attr_name);
 
     PyObject *object;
@@ -362,34 +304,25 @@ static PyObject *dict_getattro(PyShDictObject *self, PyObject *attr_name)
       return object;
     PyErr_Clear();
 
-    if (strcmp(attrname, "__members__") == 0)
-    {
+    if (strcmp(attrname, "__members__") == 0) {
       PyObject *members = PyList_New(self->map->get()->size());
 
       int i = 0;
-      for (Value::Map_type::const_iterator iter = self->map->get()->begin(); iter != self->map->get()->end(); ++iter)
-      {
+      for (Value::Map_type::const_iterator iter = self->map->get()->begin(); iter != self->map->get()->end(); ++iter) {
         PyObject *tmp_str = PyString_FromString(iter->first.c_str());
         PyList_SET_ITEM(members, i++, tmp_str);
       }
       return members;
-    }
-    else if (strcmp(attrname, "__methods__") == 0)
-    {
+    } else if (strcmp(attrname, "__methods__") == 0) {
       PyObject *methods = Py_BuildValue("[sssss]", "keys", "items", "values", "has_key", "update", "setdefault");
       return methods;
-    }
-    else
-    {
-      if (self->map->get()->has_key(attrname))
-      {
+    } else {
+      if (self->map->get()->has_key(attrname)) {
         Python_context *ctx = Python_context::get_and_check();
         if (!ctx) return NULL;
 
         return ctx->shcore_value_to_pyobj((**self->map)[attrname]);
-      }
-      else
-      {
+      } else {
         std::string err = std::string("unknown attribute: ") + attrname;
         Python_context::set_python_error(PyExc_IndexError, err.c_str());
         return NULL;
@@ -402,19 +335,19 @@ static PyObject *dict_getattro(PyShDictObject *self, PyObject *attr_name)
 
 PyDoc_STRVAR(PyShDictDoc,
              "Dict() -> shcore Map\n\
-                                                    \n\
-                                                                                                                                  Creates a new instance of a shcore Map object.");
+                                                                              \n\
+                                                                                                                                                                                                                                                                                 Creates a new instance of a shcore Map object.");
 
 static PyMethodDef PyShDictMethods[] = {
   //{"__getitem__", (PyCFunction)dict_subscript, METH_O|METH_COEXIST, getitem_doc},
-  { "keys", (PyCFunction)dict_keys, 0, NULL },
-  { "items", (PyCFunction)dict_items, 0, NULL },
-  { "values", (PyCFunction)dict_values, 0, NULL },
-  { "has_key", (PyCFunction)dict_has_key, 0, NULL },
-  { "update", (PyCFunction)dict_update, 0, NULL },
-  { "get", (PyCFunction)dict_get, METH_VARARGS, NULL },
-  { "setdefault", (PyCFunction)dict_setdefault, 0, NULL },
-  { NULL, NULL, 0, NULL }
+  {"keys", (PyCFunction)dict_keys, 0, NULL},
+  {"items", (PyCFunction)dict_items, 0, NULL},
+  {"values", (PyCFunction)dict_values, 0, NULL},
+  {"has_key", (PyCFunction)dict_has_key, 0, NULL},
+  {"update", (PyCFunction)dict_update, 0, NULL},
+  {"get", (PyCFunction)dict_get, METH_VARARGS, NULL},
+  {"setdefault", (PyCFunction)dict_setdefault, 0, NULL},
+  {NULL, NULL, 0, NULL}
 };
 
 static PyMappingMethods PyShDictObject_as_mapping =
@@ -506,11 +439,9 @@ static PyTypeObject PyShDictObjectType =
 #endif
 };
 
-void Python_context::init_shell_dict_type()
-{
+void Python_context::init_shell_dict_type() {
   PyShDictObjectType.tp_new = PyType_GenericNew;
-  if (PyType_Ready(&PyShDictObjectType) < 0)
-  {
+  if (PyType_Ready(&PyShDictObjectType) < 0) {
     throw std::runtime_error("Could not initialize Shcore Map type in python");
   }
 
@@ -520,20 +451,17 @@ void Python_context::init_shell_dict_type()
   _shell_dict_class = PyDict_GetItemString(PyModule_GetDict(get_shell_module()), "Dict");
 }
 
-PyObject *shcore::wrap(std::shared_ptr<Value::Map_type> map)
-{
+PyObject *shcore::wrap(std::shared_ptr<Value::Map_type> map) {
   PyShDictObject *map_wrapper = PyObject_New(PyShDictObject, &PyShDictObjectType);
   map_wrapper->map = new Value::Map_type_ref(map);
   return reinterpret_cast<PyObject*>(map_wrapper);
 }
 
-bool shcore::unwrap(PyObject *value, std::shared_ptr<Value::Map_type> &ret_object)
-{
+bool shcore::unwrap(PyObject *value, std::shared_ptr<Value::Map_type> &ret_object) {
   Python_context *ctx = Python_context::get_and_check();
   if (!ctx) return false;
 
-  if (PyObject_IsInstance(value, ctx->get_shell_dict_class()))
-  {
+  if (PyObject_IsInstance(value, ctx->get_shell_dict_class())) {
     ret_object = *((PyShDictObject*)value)->map;
     return true;
   }

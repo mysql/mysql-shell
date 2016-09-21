@@ -1,4 +1,4 @@
-/* Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2015, 2016, Oracle and/or its affiliates. All rights reserved.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -22,8 +22,7 @@
 
 using namespace shcore;
 
-Shell_test_output_handler::Shell_test_output_handler()
-{
+Shell_test_output_handler::Shell_test_output_handler() {
   deleg.user_data = this;
   deleg.print = &Shell_test_output_handler::deleg_print;
   deleg.print_error = &Shell_test_output_handler::deleg_print_error;
@@ -31,8 +30,7 @@ Shell_test_output_handler::Shell_test_output_handler()
   deleg.password = &Shell_test_output_handler::deleg_password;
 }
 
-void Shell_test_output_handler::deleg_print(void *user_data, const char *text)
-{
+void Shell_test_output_handler::deleg_print(void *user_data, const char *text) {
   Shell_test_output_handler* target = (Shell_test_output_handler*)(user_data);
 #ifdef TEST_DEBUG
   std::cout << text << std::endl;
@@ -40,8 +38,7 @@ void Shell_test_output_handler::deleg_print(void *user_data, const char *text)
   target->std_out.append(text);
 }
 
-void Shell_test_output_handler::deleg_print_error(void *user_data, const char *text)
-{
+void Shell_test_output_handler::deleg_print_error(void *user_data, const char *text) {
   Shell_test_output_handler* target = (Shell_test_output_handler*)(user_data);
 #ifdef TEST_DEBUG
   std::cerr << text << std::endl;
@@ -49,16 +46,14 @@ void Shell_test_output_handler::deleg_print_error(void *user_data, const char *t
   target->std_err.append(text);
 }
 
-bool Shell_test_output_handler::deleg_prompt(void *user_data, const char *prompt, std::string &ret)
-{
+bool Shell_test_output_handler::deleg_prompt(void *user_data, const char *prompt, std::string &ret) {
   Shell_test_output_handler* target = (Shell_test_output_handler*)(user_data);
   std::string answer;
 
   target->std_out.append(prompt);
 
   bool ret_val = false;
-  if (!target->prompts.empty())
-  {
+  if (!target->prompts.empty()) {
     answer = target->prompts.front();
     target->prompts.pop_front();
 
@@ -69,16 +64,14 @@ bool Shell_test_output_handler::deleg_prompt(void *user_data, const char *prompt
   return ret_val;
 }
 
-bool Shell_test_output_handler::deleg_password(void *user_data, const char *prompt, std::string &ret)
-{
+bool Shell_test_output_handler::deleg_password(void *user_data, const char *prompt, std::string &ret) {
   Shell_test_output_handler* target = (Shell_test_output_handler*)(user_data);
   std::string answer;
 
   target->std_out.append(prompt);
 
   bool ret_val = false;
-  if (!target->passwords.empty())
-  {
+  if (!target->passwords.empty()) {
     answer = target->passwords.front();
     target->passwords.pop_front();
 
@@ -89,12 +82,10 @@ bool Shell_test_output_handler::deleg_password(void *user_data, const char *prom
   return ret_val;
 }
 
-void Shell_test_output_handler::validate_stdout_content(const std::string& content, bool expected)
-{
+void Shell_test_output_handler::validate_stdout_content(const std::string& content, bool expected) {
   bool found = std_out.find(content) != std::string::npos;
 
-  if (found != expected)
-  {
+  if (found != expected) {
     std::string error = expected ? "Missing" : "Unexpected";
     error += " Output: " + content;
     SCOPED_TRACE("STDOUT Actual: " + std_out);
@@ -103,12 +94,10 @@ void Shell_test_output_handler::validate_stdout_content(const std::string& conte
   }
 }
 
-void Shell_test_output_handler::validate_stderr_content(const std::string& content, bool expected)
-{
+void Shell_test_output_handler::validate_stderr_content(const std::string& content, bool expected) {
   bool found = std_err.find(content) != std::string::npos;
 
-  if (found != expected)
-  {
+  if (found != expected) {
     std::string error = expected ? "Missing" : "Unexpected";
     error += " Error: " + content;
     SCOPED_TRACE("STDERR Actual: " + std_err);
@@ -117,8 +106,7 @@ void Shell_test_output_handler::validate_stderr_content(const std::string& conte
   }
 }
 
-void Shell_core_test_wrapper::SetUp()
-{
+void Shell_core_test_wrapper::SetUp() {
   // Initializes the options member
   reset_options();
 
@@ -126,15 +114,13 @@ void Shell_core_test_wrapper::SetUp()
   set_options();
 
   const char *uri = getenv("MYSQL_URI");
-  if (uri)
-  {
+  if (uri) {
     // Creates connection data and recreates URI, this will fix URI if no password is defined
     // So the UT don't prompt for password ever
     shcore::Value::Map_type_ref data = shcore::get_connection_data(uri);
 
     const char *pwd = getenv("MYSQL_PWD");
-    if (pwd)
-    {
+    if (pwd) {
       _pwd.assign(pwd);
       (*data)["dbPassword"] = shcore::Value(_pwd);
     }
@@ -143,8 +129,7 @@ void Shell_core_test_wrapper::SetUp()
     _mysql_uri = _uri;
 
     const char *xport = getenv("MYSQLX_PORT");
-    if (xport)
-    {
+    if (xport) {
       _port.assign(xport);
       (*data)["port"] = shcore::Value(_pwd);
       _uri += ":" + _port;
@@ -152,41 +137,31 @@ void Shell_core_test_wrapper::SetUp()
     _uri_nopasswd = shcore::strip_password(_uri);
 
     const char *port = getenv("MYSQL_PORT");
-    if (port)
-    {
+    if (port) {
       _mysql_port.assign(port);
       _mysql_uri += ":" + _mysql_port;
     }
 
     const char *sandbox_port1 = getenv("MYSQL_SANDBOX_PORT1");
-    if (sandbox_port1)
-    {
+    if (sandbox_port1) {
       _mysql_sandbox_port1.assign(sandbox_port1);
-    }
-    else
-    {
+    } else {
       std::string sandbox_port1 = std::to_string(atoi(port) + 10);
       _mysql_sandbox_port1.assign(sandbox_port1);
     }
 
     const char *sandbox_port2 = getenv("MYSQL_SANDBOX_PORT2");
-    if (sandbox_port2)
-    {
+    if (sandbox_port2) {
       _mysql_sandbox_port2.assign(sandbox_port2);
-    }
-    else
-    {
+    } else {
       std::string sandbox_port2 = std::to_string(atoi(port) + 20);
       _mysql_sandbox_port2.assign(sandbox_port2);
     }
 
     const char *sandbox_port3 = getenv("MYSQL_SANDBOX_PORT3");
-    if (sandbox_port3)
-    {
+    if (sandbox_port3) {
       _mysql_sandbox_port3.assign(sandbox_port3);
-    }
-    else
-    {
+    } else {
       std::string sandbox_port3 = std::to_string(atoi(port) + 30);
       _mysql_sandbox_port3.assign(sandbox_port3);
     }
@@ -202,13 +177,11 @@ void Shell_core_test_wrapper::SetUp()
   reset_shell();
 }
 
-void Shell_core_test_wrapper::TearDown()
-{
+void Shell_core_test_wrapper::TearDown() {
   _interactive_shell.reset();
 }
 
-shcore::Value Shell_core_test_wrapper::execute(const std::string& code)
-{
+shcore::Value Shell_core_test_wrapper::execute(const std::string& code) {
   std::string _code(code);
 
   _interactive_shell->process_line(_code);
@@ -216,8 +189,7 @@ shcore::Value Shell_core_test_wrapper::execute(const std::string& code)
   return _returned_value;
 }
 
-shcore::Value Shell_core_test_wrapper::exec_and_out_equals(const std::string& code, const std::string& out, const std::string& err)
-{
+shcore::Value Shell_core_test_wrapper::exec_and_out_equals(const std::string& code, const std::string& out, const std::string& err) {
   std::string expected_output(out);
   std::string expected_error(err);
 
@@ -243,19 +215,16 @@ shcore::Value Shell_core_test_wrapper::exec_and_out_equals(const std::string& co
   return ret_val;
 }
 
-shcore::Value Shell_core_test_wrapper::exec_and_out_contains(const std::string& code, const std::string& out, const std::string& err)
-{
+shcore::Value Shell_core_test_wrapper::exec_and_out_contains(const std::string& code, const std::string& out, const std::string& err) {
   shcore::Value ret_val = execute(code);
 
-  if (out.length())
-  {
+  if (out.length()) {
     SCOPED_TRACE("STDOUT missing: " + out);
     SCOPED_TRACE("STDOUT actual: " + output_handler.std_out);
     EXPECT_NE(-1, int(output_handler.std_out.find(out)));
   }
 
-  if (err.length())
-  {
+  if (err.length()) {
     SCOPED_TRACE("STDERR missing: " + err);
     SCOPED_TRACE("STDERR actual: " + output_handler.std_err);
     EXPECT_NE(-1, int(output_handler.std_err.find(err)));
@@ -266,15 +235,13 @@ shcore::Value Shell_core_test_wrapper::exec_and_out_contains(const std::string& 
   return ret_val;
 }
 
-void Crud_test_wrapper::set_functions(const std::string &functions)
-{
+void Crud_test_wrapper::set_functions(const std::string &functions) {
   boost::algorithm::split(_functions, functions, boost::is_any_of(", "), boost::token_compress_on);
 }
 
 // Validates only the specified functions are available
 // non listed functions are validated for unavailability
-void Crud_test_wrapper::ensure_available_functions(const std::string& functions)
-{
+void Crud_test_wrapper::ensure_available_functions(const std::string& functions) {
   bool is_js = _interactive_shell->interactive_mode() == shcore::Shell_core::Mode_JScript;
   std::set<std::string> valid_functions;
   boost::algorithm::split(valid_functions, functions, boost::is_any_of(", "), boost::token_compress_on);
@@ -298,12 +265,10 @@ void Crud_test_wrapper::ensure_available_functions(const std::string& functions)
   }
 
   std::set<std::string>::iterator index, end = _functions.end();
-  for (index = _functions.begin(); index != end; index++)
-  {
+  for (index = _functions.begin(); index != end; index++) {
     // If the function is suppossed to be valid it needs to be available on the
     // crud dir
-    if (valid_functions.find(*index) != valid_functions.end())
-    {
+    if (valid_functions.find(*index) != valid_functions.end()) {
       SCOPED_TRACE("Function " + *index + " should be available and is not.");
       if (is_js)
         exec_and_out_equals("print(real_functions.indexOf('" + *index + "') != -1)", "true");
@@ -312,8 +277,7 @@ void Crud_test_wrapper::ensure_available_functions(const std::string& functions)
     }
 
     // If not, should not be on the crud dir and calling it should be illegal
-    else
-    {
+    else {
       SCOPED_TRACE("Function " + *index + " should NOT be available.");
       if (is_js)
         exec_and_out_equals("print(real_functions.indexOf('" + *index + "') == -1)", "true");

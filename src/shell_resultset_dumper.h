@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2016, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -26,23 +26,19 @@
 #include "modules/base_resultset.h"
 #include "shellcore/lang_base.h"
 
-namespace mysh
-{
-  namespace mysqlx
-  {
-    class SqlResult;
-    class RowResult;
-    class Result;
-    class DocResult;
-  };
+namespace mysh {
+namespace mysqlx {
+class SqlResult;
+class RowResult;
+class Result;
+class DocResult;
+};
 
-  namespace mysql
-  {
-    class ClassicResult;
-  };
+namespace mysql {
+class ClassicResult;
+};
 }
-class ResultsetDumper
-{
+class ResultsetDumper {
 public:
   ResultsetDumper(std::shared_ptr<mysh::ShellBaseResult>target, shcore::Interpreter_delegate *output_handler, bool buffer_data);
   virtual void dump();

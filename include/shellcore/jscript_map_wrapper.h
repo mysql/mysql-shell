@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2016, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -17,19 +17,16 @@
  * 02110-1301  USA
  */
 
-
 #ifndef _JSCRIPT_MAP_WRAPPER_H_
 #define _JSCRIPT_MAP_WRAPPER_H_
 
 #include "shellcore/types.h"
 #include "shellcore/include_v8.h"
 
-namespace shcore
-{
+namespace shcore {
 class JScript_context;
 
-class JScript_map_wrapper
-{
+class JScript_map_wrapper {
 public:
   JScript_map_wrapper(JScript_context *context);
   ~JScript_map_wrapper();
@@ -51,8 +48,6 @@ private:
   JScript_context *_context;
   v8::Persistent<v8::ObjectTemplate> _map_template;
 };
-
 };
-
 
 #endif

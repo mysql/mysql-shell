@@ -23,24 +23,23 @@
 #include "shellcore/shell_core.h"
 
 namespace shcore {
-  class Python_context;
+class Python_context;
 
-  class Shell_python : public Shell_language
-  {
-  public:
-    Shell_python(Shell_core *shcore);
-    virtual ~Shell_python();
+class Shell_python : public Shell_language {
+public:
+  Shell_python(Shell_core *shcore);
+  virtual ~Shell_python();
 
-    virtual void set_global(const std::string &name, const Value &value);
+  virtual void set_global(const std::string &name, const Value &value);
 
-    virtual std::string preprocess_input_line(const std::string &s);
-    virtual void handle_input(std::string &code, Interactive_input_state &state, std::function<void(shcore::Value)> result_processor);
+  virtual std::string preprocess_input_line(const std::string &s);
+  virtual void handle_input(std::string &code, Interactive_input_state &state, std::function<void(shcore::Value)> result_processor);
 
-    virtual std::string prompt();
-    virtual void abort();
-  private:
-    std::shared_ptr<Python_context> _py;
-  };
+  virtual std::string prompt();
+  virtual void abort();
+private:
+  std::shared_ptr<Python_context> _py;
+};
 };
 
 #endif

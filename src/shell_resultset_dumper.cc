@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2015 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2016, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -30,22 +30,19 @@ using namespace shcore;
 #define MIN_COLUMN_LENGTH 4
 
 ResultsetDumper::ResultsetDumper(std::shared_ptr<mysh::ShellBaseResult> target, shcore::Interpreter_delegate *output_handler, bool buffer_data) :
-_resultset(target), _output_handler(output_handler), _buffer_data(buffer_data)
-{
+_resultset(target), _output_handler(output_handler), _buffer_data(buffer_data) {
   _format = Shell_core_options::get()->get_string(SHCORE_OUTPUT_FORMAT);
   _interactive = Shell_core_options::get()->get_bool(SHCORE_INTERACTIVE);
   _show_warnings = Shell_core_options::get()->get_bool(SHCORE_SHOW_WARNINGS);
 }
 
-void ResultsetDumper::dump()
-{
+void ResultsetDumper::dump() {
   std::string type = _resultset->class_name();
 
   // Buffers the data remaining on the record
   size_t rset, record;
   bool buffered = false;;
-  if (_buffer_data)
-  {
+  if (_buffer_data) {
     _resultset->buffer();
 
     // Stores the current data set/record position on the result
@@ -62,57 +59,44 @@ void ResultsetDumper::dump()
     _resultset->seek(rset, record);
 }
 
-void ResultsetDumper::dump_json()
-{
+void ResultsetDumper::dump_json() {
   shcore::Value resultset(std::static_pointer_cast<Object_bridge>(_resultset));
 
   _output_handler->print_value(_output_handler->user_data, resultset, "");
 }
 
-void ResultsetDumper::dump_normal()
-{
+void ResultsetDumper::dump_normal() {
   std::string output;
 
   std::string class_name = _resultset->class_name();
 
-  if (class_name == "ClassicResult")
-  {
+  if (class_name == "ClassicResult") {
     std::shared_ptr<mysh::mysql::ClassicResult> resultset = std::static_pointer_cast<mysh::mysql::ClassicResult>(_resultset);
     if (resultset)
       dump_normal(resultset);
-  }
-  else if (class_name == "SqlResult")
-  {
+  } else if (class_name == "SqlResult") {
     std::shared_ptr<mysh::mysqlx::SqlResult> resultset = std::static_pointer_cast<mysh::mysqlx::SqlResult>(_resultset);
     if (resultset)
       dump_normal(resultset);
-  }
-  else if (class_name == "RowResult")
-  {
+  } else if (class_name == "RowResult") {
     std::shared_ptr<mysh::mysqlx::RowResult> resultset = std::static_pointer_cast<mysh::mysqlx::RowResult>(_resultset);
     if (resultset)
       dump_normal(resultset);
-  }
-  else if (class_name == "DocResult")
-  {
+  } else if (class_name == "DocResult") {
     std::shared_ptr<mysh::mysqlx::DocResult> resultset = std::static_pointer_cast<mysh::mysqlx::DocResult>(_resultset);
     if (resultset)
       dump_normal(resultset);
-  }
-  else if (class_name == "Result")
-  {
+  } else if (class_name == "Result") {
     std::shared_ptr<mysh::mysqlx::Result> resultset = std::static_pointer_cast<mysh::mysqlx::Result>(_resultset);
     if (resultset)
       dump_normal(resultset);
   }
 }
 
-void ResultsetDumper::dump_normal(std::shared_ptr<mysh::mysql::ClassicResult> result)
-{
+void ResultsetDumper::dump_normal(std::shared_ptr<mysh::mysql::ClassicResult> result) {
   std::string output;
 
-  do
-  {
+  do {
     if (result->has_data(shcore::Argument_list()).as_bool())
       dump_records(output);
     else if (_interactive)
@@ -120,16 +104,14 @@ void ResultsetDumper::dump_normal(std::shared_ptr<mysh::mysql::ClassicResult> re
 
     // This information output is only printed in interactive mode
     int warning_count = 0;
-    if (_interactive)
-    {
+    if (_interactive) {
       warning_count = get_warning_and_execution_time_stats(output);
 
       _output_handler->print(_output_handler->user_data, output.c_str());
     }
 
     std::string info = result->get_member("info").as_string();
-    if (!info.empty())
-    {
+    if (!info.empty()) {
       info = "\n" + info + "\n";
       _output_handler->print(_output_handler->user_data, info.c_str());
     }
@@ -140,20 +122,17 @@ void ResultsetDumper::dump_normal(std::shared_ptr<mysh::mysql::ClassicResult> re
   } while (result->next_data_set(shcore::Argument_list()).as_bool());
 }
 
-void ResultsetDumper::dump_normal(std::shared_ptr<mysh::mysqlx::SqlResult> result)
-{
+void ResultsetDumper::dump_normal(std::shared_ptr<mysh::mysqlx::SqlResult> result) {
   std::string output;
 
-  do
-  {
+  do {
     if (result->has_data(shcore::Argument_list()).as_bool())
       dump_records(output);
     else if (_interactive)
       output = get_affected_stats("affectedRowCount", "row");
 
     // This information output is only printed in interactive mode
-    if (_interactive)
-    {
+    if (_interactive) {
       int warning_count = get_warning_and_execution_time_stats(output);
 
       _output_handler->print(_output_handler->user_data, output.c_str());
@@ -165,15 +144,13 @@ void ResultsetDumper::dump_normal(std::shared_ptr<mysh::mysqlx::SqlResult> resul
   } while (result->next_data_set(shcore::Argument_list()).as_bool());
 }
 
-void ResultsetDumper::dump_normal(std::shared_ptr<mysh::mysqlx::RowResult> result)
-{
+void ResultsetDumper::dump_normal(std::shared_ptr<mysh::mysqlx::RowResult> result) {
   std::string output;
 
   dump_records(output);
 
   // This information output is only printed in interactive mode
-  if (_interactive)
-  {
+  if (_interactive) {
     int warning_count = get_warning_and_execution_time_stats(output);
 
     _output_handler->print(_output_handler->user_data, output.c_str());
@@ -184,26 +161,22 @@ void ResultsetDumper::dump_normal(std::shared_ptr<mysh::mysqlx::RowResult> resul
   }
 }
 
-void ResultsetDumper::dump_normal(std::shared_ptr<mysh::mysqlx::DocResult> result)
-{
+void ResultsetDumper::dump_normal(std::shared_ptr<mysh::mysqlx::DocResult> result) {
   std::string output;
 
   shcore::Value documents = result->fetch_all(shcore::Argument_list());
   shcore::Value::Array_type_ref array_docs = documents.as_array();
 
-  if (array_docs->size())
-  {
+  if (array_docs->size()) {
     _output_handler->print_value(_output_handler->user_data, documents, "");
 
     int row_count = int(array_docs->size());
     output = (boost::format("%lld %s in set") % row_count % (row_count == 1 ? "document" : "documents")).str();
-  }
-  else
+  } else
     output = "Empty set";
 
   // This information output is only printed in interactive mode
-  if (_interactive)
-  {
+  if (_interactive) {
     int warning_count = get_warning_and_execution_time_stats(output);
 
     _output_handler->print(_output_handler->user_data, output.c_str());
@@ -214,11 +187,9 @@ void ResultsetDumper::dump_normal(std::shared_ptr<mysh::mysqlx::DocResult> resul
   }
 }
 
-void ResultsetDumper::dump_normal(std::shared_ptr<mysh::mysqlx::Result> result)
-{
+void ResultsetDumper::dump_normal(std::shared_ptr<mysh::mysqlx::Result> result) {
   // This information output is only printed in interactive mode
-  if (_interactive)
-  {
+  if (_interactive) {
     std::string output = get_affected_stats("affectedItemCount", "item");
     int warning_count = get_warning_and_execution_time_stats(output);
 
@@ -230,8 +201,7 @@ void ResultsetDumper::dump_normal(std::shared_ptr<mysh::mysqlx::Result> result)
   }
 }
 
-void ResultsetDumper::dump_tabbed(shcore::Value::Array_type_ref records)
-{
+void ResultsetDumper::dump_tabbed(shcore::Value::Array_type_ref records) {
   std::shared_ptr<shcore::Value::Array_type> metadata = _resultset->get_member("columns").as_array();
 
   size_t index = 0;
@@ -240,20 +210,17 @@ void ResultsetDumper::dump_tabbed(shcore::Value::Array_type_ref records)
 
   // Prints the initial separator line and the column headers
   // TODO: Consider the charset information on the length calculations
-  for (index = 0; index < field_count; index++)
-  {
+  for (index = 0; index < field_count; index++) {
     std::shared_ptr<mysh::Column> column = std::static_pointer_cast<mysh::Column>(metadata->at(index).as_object());
     _output_handler->print(_output_handler->user_data, column->get_column_label().c_str());
     _output_handler->print(_output_handler->user_data, index < (field_count - 1) ? "\t" : "\n");
   }
 
   // Now prints the records
-  for (size_t row_index = 0; row_index < records->size(); row_index++)
-  {
+  for (size_t row_index = 0; row_index < records->size(); row_index++) {
     std::shared_ptr<mysh::Row> row = (*records)[row_index].as_object<mysh::Row>();
 
-    for (size_t field_index = 0; field_index < field_count; field_index++)
-    {
+    for (size_t field_index = 0; field_index < field_count; field_index++) {
       std::string raw_value = row->get_member(field_index).descr();
       _output_handler->print(_output_handler->user_data, raw_value.c_str());
       _output_handler->print(_output_handler->user_data, field_index < (field_count - 1) ? "\t" : "\n");
@@ -261,8 +228,7 @@ void ResultsetDumper::dump_tabbed(shcore::Value::Array_type_ref records)
   }
 }
 
-void ResultsetDumper::dump_table(shcore::Value::Array_type_ref records)
-{
+void ResultsetDumper::dump_table(shcore::Value::Array_type_ref records) {
   std::shared_ptr<shcore::Value::Array_type> metadata = _resultset->get_member("columns").as_array();
   std::vector<uint64_t> max_lengths;
   std::vector<std::string> column_names;
@@ -271,8 +237,7 @@ void ResultsetDumper::dump_table(shcore::Value::Array_type_ref records)
   size_t field_count = metadata->size();
 
   // Updates the max_length array with the maximum length between column name, min column length and column max length
-  for (size_t field_index = 0; field_index < field_count; field_index++)
-  {
+  for (size_t field_index = 0; field_index < field_count; field_index++) {
     std::shared_ptr<mysh::Column> column = std::static_pointer_cast<mysh::Column>(metadata->at(field_index).as_object());
 
     column_names.push_back(column->get_column_label());
@@ -284,8 +249,7 @@ void ResultsetDumper::dump_table(shcore::Value::Array_type_ref records)
 
   // Now updates the length with the real column data lengths
   size_t row_index;
-  for (row_index = 0; row_index < records->size(); row_index++)
-  {
+  for (row_index = 0; row_index < records->size(); row_index++) {
     std::shared_ptr<mysh::Row> row = (*records)[row_index].as_object<mysh::Row>();
     for (size_t field_index = 0; field_index < field_count; field_index++)
       max_lengths[field_index] = std::max<uint64_t>(max_lengths[field_index], row->get_member(field_index).descr().length());
@@ -298,8 +262,7 @@ void ResultsetDumper::dump_table(shcore::Value::Array_type_ref records)
 
   // Calculates the max column widths and constructs the separator line.
   std::string separator("+");
-  for (index = 0; index < field_count; index++)
-  {
+  for (index = 0; index < field_count; index++) {
     // Creates the format string to print each field
     formats[index].append(boost::lexical_cast<std::string>(max_lengths[index]));
     if (index == field_count - 1)
@@ -317,8 +280,7 @@ void ResultsetDumper::dump_table(shcore::Value::Array_type_ref records)
   // TODO: Consider the charset information on the length calculations
   _output_handler->print(_output_handler->user_data, separator.c_str());
   _output_handler->print(_output_handler->user_data, +"| ");
-  for (index = 0; index < field_count; index++)
-  {
+  for (index = 0; index < field_count; index++) {
     std::string data = (boost::format(formats[index]) % column_names[index]).str();
     _output_handler->print(_output_handler->user_data, data.c_str());
 
@@ -331,14 +293,12 @@ void ResultsetDumper::dump_table(shcore::Value::Array_type_ref records)
   _output_handler->print(_output_handler->user_data, separator.c_str());
 
   // Now prints the records
-  for (row_index = 0; row_index < records->size(); row_index++)
-  {
+  for (row_index = 0; row_index < records->size(); row_index++) {
     _output_handler->print(_output_handler->user_data, "| ");
 
     std::shared_ptr<mysh::Row> row = (*records)[row_index].as_object<mysh::Row>();
 
-    for (size_t field_index = 0; field_index < field_count; field_index++)
-    {
+    for (size_t field_index = 0; field_index < field_count; field_index++) {
       std::string raw_value = row->get_member(field_index).descr();
       std::string data = (boost::format(formats[field_index]) % (raw_value)).str();
 
@@ -350,8 +310,7 @@ void ResultsetDumper::dump_table(shcore::Value::Array_type_ref records)
   _output_handler->print(_output_handler->user_data, separator.c_str());
 }
 
-std::string ResultsetDumper::get_affected_stats(const std::string& member, const std::string &legend)
-{
+std::string ResultsetDumper::get_affected_stats(const std::string& member, const std::string &legend) {
   std::string output;
 
   // Some queries return -1 since affected rows do not apply to them
@@ -366,12 +325,10 @@ std::string ResultsetDumper::get_affected_stats(const std::string& member, const
   return output;
 }
 
-int ResultsetDumper::get_warning_and_execution_time_stats(std::string& output_stats)
-{
+int ResultsetDumper::get_warning_and_execution_time_stats(std::string& output_stats) {
   int warning_count = 0;
 
-  if (_interactive)
-  {
+  if (_interactive) {
     warning_count = _resultset->get_member("warningCount").as_uint();
 
     if (warning_count)
@@ -385,13 +342,11 @@ int ResultsetDumper::get_warning_and_execution_time_stats(std::string& output_st
   return warning_count;
 }
 
-void ResultsetDumper::dump_records(std::string& output_stats)
-{
+void ResultsetDumper::dump_records(std::string& output_stats) {
   shcore::Value records = _resultset->call("fetchAll", shcore::Argument_list());
   shcore::Value::Array_type_ref array_records = records.as_array();
 
-  if (array_records->size())
-  {
+  if (array_records->size()) {
     // print rows from result, with stats etc
     if (_interactive || _format == "table")
       dump_table(array_records);
@@ -400,22 +355,18 @@ void ResultsetDumper::dump_records(std::string& output_stats)
 
     int row_count = int(array_records->size());
     output_stats = (boost::format("%lld %s in set") % row_count % (row_count == 1 ? "row" : "rows")).str();
-  }
-  else
+  } else
     output_stats = "Empty set";
 }
 
-void ResultsetDumper::dump_warnings()
-{
+void ResultsetDumper::dump_warnings() {
   Value warnings = _resultset->get_member("warnings");
 
-  if (warnings)
-  {
+  if (warnings) {
     Value::Array_type_ref warning_list = warnings.as_array();
     size_t index = 0, size = warning_list->size();
 
-    while (index < size)
-    {
+    while (index < size) {
       Value record = warning_list->at(index);
       std::shared_ptr<mysh::Row> row = record.as_object<mysh::Row>();
 

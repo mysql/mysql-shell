@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2015, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2016, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -44,8 +44,7 @@ using namespace mysh::mysqlx;
  * See the implementation of DatabaseObject for additional valid members.
  */
 #endif
-Value Expression::get_member(const std::string &prop) const
-{
+Value Expression::get_member(const std::string &prop) const {
   // Retrieves the member first from the parent
   Value ret_val;
 
@@ -57,13 +56,11 @@ Value Expression::get_member(const std::string &prop) const
   return ret_val;
 }
 
-bool Expression::operator == (const Object_bridge &other) const
-{
+bool Expression::operator == (const Object_bridge &other) const {
   return class_name() == other.class_name() && this == &other;
 }
 
-std::shared_ptr<shcore::Object_bridge> Expression::create(const shcore::Argument_list &args)
-{
+std::shared_ptr<shcore::Object_bridge> Expression::create(const shcore::Argument_list &args) {
   args.ensure_count(1, "mysqlx.expr");
 
   if (args[0].type != shcore::String)

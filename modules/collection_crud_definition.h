@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2016, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -37,22 +37,19 @@
 #define ATTR_UNUSED
 #endif
 
-namespace mysh
-{
-  namespace mysqlx
-  {
+namespace mysh {
+namespace mysqlx {
 #if DOXYGEN_CPP
-    //! Base class for collection CRUD operations.
+//! Base class for collection CRUD operations.
 #endif
-    class Collection_crud_definition : public Crud_definition
-    {
-    public:
-      Collection_crud_definition(std::shared_ptr<DatabaseObject> owner) :Crud_definition(owner){}
+class Collection_crud_definition : public Crud_definition {
+public:
+  Collection_crud_definition(std::shared_ptr<DatabaseObject> owner) :Crud_definition(owner) {}
 
-    protected:
-      ::mysqlx::DocumentValue map_document_value(shcore::Value source);
-    };
-  }
+protected:
+  ::mysqlx::DocumentValue map_document_value(shcore::Value source);
+};
+}
 }
 
 #endif

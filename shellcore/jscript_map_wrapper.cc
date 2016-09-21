@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2015, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2016, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -24,13 +24,10 @@
 
 using namespace shcore;
 
-
-
 static int magic_pointer = 0;
 
 JScript_map_wrapper::JScript_map_wrapper(JScript_context *context)
-: _context(context)
-{
+  : _context(context) {
   v8::Handle<v8::ObjectTemplate> templ = v8::ObjectTemplate::New(_context->isolate());
   _map_template.Reset(_context->isolate(), templ);
 
@@ -44,22 +41,16 @@ JScript_map_wrapper::JScript_map_wrapper(JScript_context *context)
   templ->SetInternalFieldCount(3);
 }
 
-
-JScript_map_wrapper::~JScript_map_wrapper()
-{
+JScript_map_wrapper::~JScript_map_wrapper() {
   _map_template.Reset();
 }
 
-
-struct shcore::JScript_map_wrapper::Collectable
-{
-    std::shared_ptr<Value::Map_type> data;
-    v8::Persistent<v8::Object> handle;
+struct shcore::JScript_map_wrapper::Collectable {
+  std::shared_ptr<Value::Map_type> data;
+  v8::Persistent<v8::Object> handle;
 };
 
-
-v8::Handle<v8::Object> JScript_map_wrapper::wrap(std::shared_ptr<Value::Map_type> map)
-{
+v8::Handle<v8::Object> JScript_map_wrapper::wrap(std::shared_ptr<Value::Map_type> map) {
   v8::Handle<v8::ObjectTemplate> templ = v8::Local<v8::ObjectTemplate>::New(_context->isolate(), _map_template);
 
   v8::Handle<v8::Object> obj(templ->NewInstance());
@@ -79,9 +70,7 @@ v8::Handle<v8::Object> JScript_map_wrapper::wrap(std::shared_ptr<Value::Map_type
   return obj;
 }
 
-
-void JScript_map_wrapper::wrapper_deleted(const v8::WeakCallbackData<v8::Object, Collectable>& data)
-{
+void JScript_map_wrapper::wrapper_deleted(const v8::WeakCallbackData<v8::Object, Collectable>& data) {
   // the JS wrapper object was deleted, so we also free the shared-ref to the object
   v8::HandleScope hscope(data.GetIsolate());
   data.GetParameter()->data.reset();
@@ -89,9 +78,7 @@ void JScript_map_wrapper::wrapper_deleted(const v8::WeakCallbackData<v8::Object,
   delete data.GetParameter();
 }
 
-
-void JScript_map_wrapper::handler_getter(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info)
-{
+void JScript_map_wrapper::handler_getter(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& info) {
   v8::HandleScope hscope(info.GetIsolate());
   v8::Handle<v8::Object> obj(info.Holder());
   std::shared_ptr<Value::Map_type> *map = static_cast<std::shared_ptr<Value::Map_type>*>(obj->GetAlignedPointerFromInternalField(1));
@@ -104,13 +91,13 @@ void JScript_map_wrapper::handler_getter(v8::Local<v8::String> property, const v
 
   /*if (strcmp(prop, "__members__") == 0)
   {
-    v8::Handle<v8::Array> marray = v8::Array::New(info.GetIsolate());
-    int i = 0;
-    for (Value::Map_type::const_iterator iter = (*map)->begin(); iter != (*map)->end(); ++iter)
-    {
-      marray->Set(i++, v8::String::NewFromUtf8(info.GetIsolate(), iter->first.c_str()));
-    }
-    info.GetReturnValue().Set(marray);
+  v8::Handle<v8::Array> marray = v8::Array::New(info.GetIsolate());
+  int i = 0;
+  for (Value::Map_type::const_iterator iter = (*map)->begin(); iter != (*map)->end(); ++iter)
+  {
+  marray->Set(i++, v8::String::NewFromUtf8(info.GetIsolate(), iter->first.c_str()));
+  }
+  info.GetReturnValue().Set(marray);
   }
   else*/
   {
@@ -122,9 +109,7 @@ void JScript_map_wrapper::handler_getter(v8::Local<v8::String> property, const v
   }
 }
 
-
-void JScript_map_wrapper::handler_setter(v8::Local<v8::String> property, v8::Local<v8::Value> value, const v8::PropertyCallbackInfo<v8::Value>& info)
-{
+void JScript_map_wrapper::handler_setter(v8::Local<v8::String> property, v8::Local<v8::Value> value, const v8::PropertyCallbackInfo<v8::Value>& info) {
   v8::HandleScope hscope(info.GetIsolate());
   v8::Handle<v8::Object> obj(info.Holder());
   std::shared_ptr<Value::Map_type> *map = static_cast<std::shared_ptr<Value::Map_type>*>(obj->GetAlignedPointerFromInternalField(1));
@@ -138,9 +123,7 @@ void JScript_map_wrapper::handler_setter(v8::Local<v8::String> property, v8::Loc
   info.GetReturnValue().Set(value);
 }
 
-
-void JScript_map_wrapper::handler_enumerator(const v8::PropertyCallbackInfo<v8::Array>& info)
-{
+void JScript_map_wrapper::handler_enumerator(const v8::PropertyCallbackInfo<v8::Array>& info) {
   v8::HandleScope hscope(info.GetIsolate());
   v8::Handle<v8::Object> obj(info.Holder());
   std::shared_ptr<Value::Map_type> *map = static_cast<std::shared_ptr<Value::Map_type>*>(obj->GetAlignedPointerFromInternalField(1));
@@ -150,19 +133,14 @@ void JScript_map_wrapper::handler_enumerator(const v8::PropertyCallbackInfo<v8::
 
   v8::Handle<v8::Array> marray = v8::Array::New(info.GetIsolate());
   int i = 0;
-  for (Value::Map_type::const_iterator iter = (*map)->begin(); iter != (*map)->end(); ++iter)
-  {
+  for (Value::Map_type::const_iterator iter = (*map)->begin(); iter != (*map)->end(); ++iter) {
     marray->Set(i++, v8::String::NewFromUtf8(info.GetIsolate(), iter->first.c_str()));
   }
   info.GetReturnValue().Set(marray);
-
 }
 
-
-bool JScript_map_wrapper::unwrap(v8::Handle<v8::Object> value, std::shared_ptr<Value::Map_type> &ret_object)
-{
-  if (value->InternalFieldCount() == 3 && value->GetAlignedPointerFromInternalField(0) == (void*)&magic_pointer)
-  {
+bool JScript_map_wrapper::unwrap(v8::Handle<v8::Object> value, std::shared_ptr<Value::Map_type> &ret_object) {
+  if (value->InternalFieldCount() == 3 && value->GetAlignedPointerFromInternalField(0) == (void*)&magic_pointer) {
     std::shared_ptr<Value::Map_type> *object = static_cast<std::shared_ptr<Value::Map_type>*>(value->GetAlignedPointerFromInternalField(1));
     ret_object = *object;
     return true;

@@ -30,21 +30,18 @@ using namespace shcore;
 using namespace boost::system;
 
 Shell_sql::Shell_sql(IShell_core *owner)
-  : Shell_language(owner)
-{
+  : Shell_language(owner) {
   _delimiter = ";";
 }
 
-void Shell_sql::handle_input(std::string &code, Interactive_input_state &state, std::function<void(shcore::Value)> result_processor)
-{
+void Shell_sql::handle_input(std::string &code, Interactive_input_state &state, std::function<void(shcore::Value)> result_processor) {
   Value ret_val;
   state = Input_ok;
   auto session = _owner->get_dev_session();
 
   _last_handled.clear();
 
-  if (session)
-  {
+  if (session) {
     std::vector<std::pair<size_t, size_t> > ranges;
     size_t statement_count;
 
@@ -77,16 +74,13 @@ void Shell_sql::handle_input(std::string &code, Interactive_input_state &state, 
     // Gets the total number of ranges
     size_t range_count = ranges.size();
     std::vector<std::string> statements;
-    if (statement_count)
-    {
+    if (statement_count) {
       // If cache has data it is part of the found statement so it has to
       // be flushed at this point into the statements list for execution
-      if (!_sql_cache.empty())
-      {
+      if (!_sql_cache.empty()) {
         if (statement_count > range_count)
           statements.push_back(_sql_cache);
-        else
-        {
+        else {
           statements.push_back(_sql_cache.append("\n").append(code.substr(ranges[0].first, ranges[0].second)));
           index++;
         }
@@ -94,8 +88,7 @@ void Shell_sql::handle_input(std::string &code, Interactive_input_state &state, 
         _sql_cache.clear();
       }
 
-      if (range_count)
-      {
+      if (range_count) {
         // Now also adds the rest of the statements for execution
         for (; index < statement_count; index++)
           statements.push_back(code.substr(ranges[index].first, ranges[index].second));
@@ -108,13 +101,11 @@ void Shell_sql::handle_input(std::string &code, Interactive_input_state &state, 
       code = _sql_cache;
 
       // Executes every found statement
-      for (index = 0; index < statements.size(); index++)
-      {
+      for (index = 0; index < statements.size(); index++) {
         shcore::Argument_list query;
         query.push_back(Value(statements[index]));
 
-        try
-        {
+        try {
           // ClassicSession has runSql and returns a ClassicResult object
           if (session->has_member("runSql"))
             ret_val = session->call("runSql", query);
@@ -130,9 +121,7 @@ void Shell_sql::handle_input(std::string &code, Interactive_input_state &state, 
           if (!_killed)
             result_processor(ret_val);
           _killed = false;
-        }
-        catch (shcore::Exception &exc)
-        {
+        } catch (shcore::Exception &exc) {
           print_exception(exc);
         }
 
@@ -141,15 +130,12 @@ void Shell_sql::handle_input(std::string &code, Interactive_input_state &state, 
         else
           _last_handled.append("\n").append(statements[index]).append(_delimiter);
       }
-    }
-    else if (range_count)
-    {
+    } else if (range_count) {
       if (_sql_cache.empty())
         _sql_cache = code.substr(ranges[0].first, ranges[0].second);
       else
         _sql_cache.append("\n").append(code.substr(ranges[0].first, ranges[0].second));
-    }
-    else // Multiline code, all is "processed"
+    } else // Multiline code, all is "processed"
       code = "";
 
     // Nothing was processed so it is not an error
@@ -160,8 +146,7 @@ void Shell_sql::handle_input(std::string &code, Interactive_input_state &state, 
       state = Input_ok;
     else
       state = Input_continued_single;
-  }
-  else
+  } else
     // handle_input implementations are not throwing exceptions
     // They handle the printing internally
     print_exception(shcore::Exception::logic_error("Not connected."));
@@ -177,20 +162,16 @@ void Shell_sql::handle_input(std::string &code, Interactive_input_state &state, 
     result_processor(ret_val);
 }
 
-std::string Shell_sql::prompt()
-{
+std::string Shell_sql::prompt() {
   if (!_parsing_context_stack.empty())
     return (boost::format("%9s> ") % _parsing_context_stack.top().c_str()).str();
-  else
-  {
+  else {
     std::string node_type = "mysql";
     Value session_wrapper = _owner->active_session();
-    if (session_wrapper)
-    {
+    if (session_wrapper) {
       std::shared_ptr<mysh::ShellBaseSession> session = session_wrapper.as_object<mysh::ShellBaseSession>();
 
-      if (session)
-      {
+      if (session) {
         shcore::Value st = session->get_capability("node_type");
 
         if (st)
@@ -202,17 +183,14 @@ std::string Shell_sql::prompt()
   }
 }
 
-bool Shell_sql::print_help(const std::string& topic)
-{
+bool Shell_sql::print_help(const std::string& topic) {
   bool ret_val = true;
   if (topic.empty())
     _owner->print(_shell_command_handler.get_commands("===== SQL Mode Commands ====="));
-  else
-  {
+  else {
     std::string help;
     ret_val = _shell_command_handler.get_command_help(topic, help);
-    if (ret_val)
-    {
+    if (ret_val) {
       help += "\n";
       _owner->print(help);
     }
@@ -221,15 +199,13 @@ bool Shell_sql::print_help(const std::string& topic)
   return ret_val;
 }
 
-void Shell_sql::print_exception(const shcore::Exception &e)
-{
+void Shell_sql::print_exception(const shcore::Exception &e) {
   // Sends a description of the exception data to the error handler wich will define the final format.
   shcore::Value exception(e.error());
   _owner->get_delegate()->print_value(_owner->get_delegate()->user_data, exception, "error");
 }
 
-void Shell_sql::abort()
-{
+void Shell_sql::abort() {
   Value session_wrapper = _owner->active_session();
   std::shared_ptr<mysh::ShellBaseSession> session = session_wrapper.as_object<mysh::ShellBaseSession>();
   // duplicate the connection
@@ -239,36 +215,27 @@ void Shell_sql::abort()
   mysh::mysqlx::NodeSession* node = NULL;
   classic = dynamic_cast<mysh::mysql::ClassicSession*>(session.get());
   node = dynamic_cast<mysh::mysqlx::NodeSession*>(session.get());
-  if (classic)
-  {
+  if (classic) {
     kill_session.reset(new mysh::mysql::ClassicSession(*dynamic_cast<mysh::mysql::ClassicSession*>(classic)));
-  }
-  else
-  {
+  } else {
     kill_session2.reset(new mysh::mysqlx::NodeSession(*dynamic_cast<mysh::mysqlx::NodeSession*>(node)));
   }
   uint64_t connection_id = session->get_connection_id();
-  if (connection_id != 0)
-  {
+  if (connection_id != 0) {
     shcore::Argument_list a;
     a.push_back(shcore::Value(""));
-    if (classic)
-    {
+    if (classic) {
       kill_session->connect(a);
-      if (!kill_session)
-      {
+      if (!kill_session) {
         throw std::runtime_error(boost::format("Error duplicating classic connection").str());
       }
       std::string cmd = (boost::format("kill query %u") % connection_id).str();
       a.clear();
       a.push_back(shcore::Value(cmd));
       kill_session->run_sql(a);
-    }
-    else if (node)
-    {
+    } else if (node) {
       kill_session2->connect(a);
-      if (!kill_session2)
-      {
+      if (!kill_session2) {
         throw std::runtime_error(boost::format("Error duplicating xplugin connection").str());
       }
 

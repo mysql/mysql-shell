@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2016, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -17,7 +17,6 @@
  * 02110-1301  USA
  */
 
-
 // Provides a generic wrapper for shcore::Function objects so that they
 // can be used from JavaScript
 
@@ -27,12 +26,10 @@
 #include "shellcore/types.h"
 #include "shellcore/include_v8.h"
 
-namespace shcore
-{
+namespace shcore {
 class JScript_context;
 
-class JScript_function_wrapper
-{
+class JScript_function_wrapper {
 public:
   JScript_function_wrapper(JScript_context *context);
   ~JScript_function_wrapper();
@@ -51,8 +48,6 @@ private:
   JScript_context *_context;
   v8::Persistent<v8::ObjectTemplate> _object_template;
 };
-
 };
-
 
 #endif

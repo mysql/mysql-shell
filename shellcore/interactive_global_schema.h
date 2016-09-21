@@ -25,16 +25,14 @@
 
 #include "interactive_object_wrapper.h"
 
-namespace shcore
-{
-  //! Interactive wrapper for the global schema
-  class SHCORE_PUBLIC Global_schema : public Interactive_object_wrapper
-  {
-  public:
-    Global_schema(Shell_core& shell_core) : Interactive_object_wrapper("db", shell_core){};
+namespace shcore {
+//! Interactive wrapper for the global schema
+class SHCORE_PUBLIC Global_schema : public Interactive_object_wrapper {
+public:
+  Global_schema(Shell_core& shell_core) : Interactive_object_wrapper("db", shell_core) {};
 
-    virtual void resolve() const;
-  };
+  virtual void resolve() const;
+};
 }
 
 #endif

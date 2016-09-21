@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2016, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -17,10 +17,8 @@
  * 02110-1301  USA
  */
 
-
 #ifndef _TYPES_COMMON_H_
 #define _TYPES_COMMON_H_
-
 
 #ifdef _WIN32
 # ifdef _DLL
@@ -35,7 +33,6 @@
 #else
 # define TYPES_COMMON_PUBLIC
 #endif
-
 
 #ifdef No_mysqlshtypes
 # undef TYPES_COMMON_PUBLIC

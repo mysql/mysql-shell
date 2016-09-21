@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2016, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -28,8 +28,7 @@ using namespace mysh::mysqlx;
 using namespace shcore;
 
 SqlExecute::SqlExecute(std::shared_ptr<NodeSession> owner) :
-Dynamic_object(), _session(owner)
-{
+Dynamic_object(), _session(owner) {
   // Exposes the methods available for chaining
   add_method("sql", std::bind(&SqlExecute::sql, this, _1), "data");
   add_method("bind", std::bind(&SqlExecute::bind, this, _1), "data");
@@ -68,17 +67,15 @@ Dynamic_object(), _session(owner)
 * - execute().
 */
 #if DOXYGEN_JS
-SqlExecute SqlExecute::sql(String statement){}
+SqlExecute SqlExecute::sql(String statement) {}
 #elif DOXYGEN_PY
-SqlExecute SqlExecute::sql(str statement){}
+SqlExecute SqlExecute::sql(str statement) {}
 #endif
-shcore::Value SqlExecute::sql(const shcore::Argument_list &args)
-{
+shcore::Value SqlExecute::sql(const shcore::Argument_list &args) {
   // Each method validates the received parameters
   args.ensure_count(1, get_function_name("sql").c_str());
 
-  try
-  {
+  try {
     _sql = args.string_at(0);
 
     // Updates the exposed functions
@@ -129,9 +126,9 @@ shcore::Value SqlExecute::sql(const shcore::Argument_list &args)
 * - execute().
 */
 #if DOXYGEN_JS
-SqlExecute SqlExecute::bind(Value value){}
+SqlExecute SqlExecute::bind(Value value) {}
 #elif DOXYGEN_PY
-SqlExecute SqlExecute::bind(Value value){}
+SqlExecute SqlExecute::bind(Value value) {}
 #endif
 
 /**
@@ -152,24 +149,21 @@ SqlExecute SqlExecute::bind(Value value){}
 * - execute().
 */
 #if DOXYGEN_JS
-SqlExecute SqlExecute::bind(List values){}
+SqlExecute SqlExecute::bind(List values) {}
 #elif DOXYGEN_PY
-SqlExecute SqlExecute::bind(list values){}
+SqlExecute SqlExecute::bind(list values) {}
 #endif
 #endif
-shcore::Value SqlExecute::bind(const shcore::Argument_list &args)
-{
+shcore::Value SqlExecute::bind(const shcore::Argument_list &args) {
   args.ensure_count(1, get_function_name("bind").c_str());
 
-  if (args[0].type == shcore::Array)
-  {
+  if (args[0].type == shcore::Array) {
     shcore::Value::Array_type_ref array = args.array_at(0);
     Value::Array_type::iterator index, end = array->end();
 
     for (index = array->begin(); index != end; index++)
       _parameters.push_back(*index);
-  }
-  else
+  } else
     _parameters.push_back(args[0]);
 
   return Value(std::static_pointer_cast<Object_bridge>(shared_from_this()));
@@ -185,19 +179,18 @@ shcore::Value SqlExecute::bind(const shcore::Argument_list &args)
 * - bind(List values)
 */
 #if DOXYGEN_JS
-SqlResult SqlExecute::execute(){}
+SqlResult SqlExecute::execute() {}
 #elif DOXYGEN_PY
-SqlResult SqlExecute::execute(){}
+SqlResult SqlExecute::execute() {}
 #endif
-shcore::Value SqlExecute::execute(const shcore::Argument_list &args)
-{
+shcore::Value SqlExecute::execute(const shcore::Argument_list &args) {
   shcore::Value ret_val;
 
   args.ensure_count(0, get_function_name("execute").c_str());
 
   std::shared_ptr<NodeSession> session(std::static_pointer_cast<NodeSession>(_session.lock()));
 
-  if(session)
+  if (session)
     ret_val = session->execute_sql(_sql, _parameters);
   else
     throw shcore::Exception::logic_error("Unable to execute sql, no Session available");

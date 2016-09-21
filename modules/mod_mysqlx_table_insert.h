@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2016, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -25,42 +25,39 @@
 
 #include "table_crud_definition.h"
 
-namespace mysh
-{
-  namespace mysqlx
-  {
-    class Table;
+namespace mysh {
+namespace mysqlx {
+class Table;
 
-    /**
-    * Handler for Insert operations on Tables.
-    */
-    class TableInsert : public Table_crud_definition, public std::enable_shared_from_this<TableInsert>
-    {
-    public:
+/**
+* Handler for Insert operations on Tables.
+*/
+class TableInsert : public Table_crud_definition, public std::enable_shared_from_this<TableInsert> {
+public:
 #if DOXYGEN_JS
-      TableInsert insert();
-      TableInsert insert(List columns);
-      TableInsert insert(String col1, String col2, ...);
-      TableInsert values(Value value, Value value, ...);
-      Result execute();
+  TableInsert insert();
+  TableInsert insert(List columns);
+  TableInsert insert(String col1, String col2, ...);
+  TableInsert values(Value value, Value value, ...);
+  Result execute();
 #elif DOXYGEN_PY
-      TableInsert insert();
-      TableInsert insert(list columns);
-      TableInsert insert(str col1, str col2, ...);
-      TableInsert values(Value value, Value value, ...);
-      Result execute();
+  TableInsert insert();
+  TableInsert insert(list columns);
+  TableInsert insert(str col1, str col2, ...);
+  TableInsert values(Value value, Value value, ...);
+  Result execute();
 #endif
-      TableInsert(std::shared_ptr<Table> owner);
-      virtual std::string class_name() const { return "TableInsert"; }
-      static std::shared_ptr<shcore::Object_bridge> create(const shcore::Argument_list &args);
-      shcore::Value insert(const shcore::Argument_list &args);
-      shcore::Value values(const shcore::Argument_list &args);
+  TableInsert(std::shared_ptr<Table> owner);
+  virtual std::string class_name() const { return "TableInsert"; }
+  static std::shared_ptr<shcore::Object_bridge> create(const shcore::Argument_list &args);
+  shcore::Value insert(const shcore::Argument_list &args);
+  shcore::Value values(const shcore::Argument_list &args);
 
-      virtual shcore::Value execute(const shcore::Argument_list &args);
-    private:
-      std::unique_ptr< ::mysqlx::InsertStatement> _insert_statement;
-    };
-  };
+  virtual shcore::Value execute(const shcore::Argument_list &args);
+private:
+  std::unique_ptr< ::mysqlx::InsertStatement> _insert_statement;
+};
+};
 };
 
 #endif

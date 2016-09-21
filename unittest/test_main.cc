@@ -1,4 +1,4 @@
-/* Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2015, 2016, Oracle and/or its affiliates. All rights reserved.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -22,16 +22,14 @@
 #include <iostream>
 #include <stdlib.h>
 
-int main(int argc, char **argv)
-{
+int main(int argc, char **argv) {
 #ifdef HAVE_V8
   extern void JScript_context_init();
 
   JScript_context_init();
 #endif
 
-  if (!getenv("MYSQL_URI"))
-  {
+  if (!getenv("MYSQL_URI")) {
     std::cerr << "WARNING: The MYSQL_URI MYSQL_PWD and MYSQL_PORT environment variables are not set\n";
     std::cerr << "Note: MYSQL_URI must not contain the port number\n";
     std::cerr << "Note: Use MYSQL_PORT to define the MySQL protocol port (if != 3306)\n";
@@ -41,18 +39,17 @@ int main(int argc, char **argv)
 
   ::testing::InitGoogleTest(&argc, argv);
 
-std::string flags = ::testing::GTEST_FLAG(filter);
+  std::string flags = ::testing::GTEST_FLAG(filter);
 #ifdef WITH_ADMINAPI
-if (flags.empty())
-  flags = "Shell_py_dba_tests.*:Shell_js_dba_tests.*";
+  if (flags.empty())
+    flags = "Shell_py_dba_tests.*:Shell_js_dba_tests.*";
 #else
   flags += "-Shell_py_dba_tests.*:Shell_js_dba_tests.*";
 #endif
-::testing::GTEST_FLAG(filter) = flags.c_str();
+  ::testing::GTEST_FLAG(filter) = flags.c_str();
 
   const char *generate_option = "--generate_test_groups=";
-  if (argc > 1 && strncmp(argv[1], generate_option, strlen(generate_option)) == 0)
-  {
+  if (argc > 1 && strncmp(argv[1], generate_option, strlen(generate_option)) == 0) {
     const char *path = strchr(argv[1], '=') + 1;
     std::ofstream f(path);
 
@@ -60,8 +57,7 @@ if (flags.empty())
     f << "# Automatically generated, use make testgroups to update\n";
 
     ::testing::UnitTest *ut = ::testing::UnitTest::GetInstance();
-    for (int i = 0; i < ut->total_test_case_count(); i++)
-    {
+    for (int i = 0; i < ut->total_test_case_count(); i++) {
       const char *name = ut->GetTestCase(i)->name();
       f << "add_test(" << name << " run_unit_tests --gtest_filter=" << name << ".*)\n";
     }

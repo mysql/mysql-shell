@@ -207,21 +207,21 @@ std::string strip_password(const std::string &connstring) {
     const char *tmp = getenv("USER");
     user_part = tmp ? tmp : "";
 #endif
-} else
-user_part = s.substr(0, p);
+  } else
+  user_part = s.substr(0, p);
 
-if ((p = user_part.find(':')) != std::string::npos) {
-  password = user_part.substr(p + 1);
-  std::string uri_stripped = connstring;
-  std::string::size_type i = uri_stripped.find(":" + password);
-  if (i != std::string::npos)
-    uri_stripped.erase(i, password.length() + 1);
+  if ((p = user_part.find(':')) != std::string::npos) {
+    password = user_part.substr(p + 1);
+    std::string uri_stripped = connstring;
+    std::string::size_type i = uri_stripped.find(":" + password);
+    if (i != std::string::npos)
+      uri_stripped.erase(i, password.length() + 1);
 
-  return uri_stripped;
-}
+    return uri_stripped;
+  }
 
-// no password to strip, return original one
-return connstring;
+  // no password to strip, return original one
+  return connstring;
 }
 
 std::string strip_ssl_args(const std::string &connstring) {
@@ -415,7 +415,7 @@ std::string get_system_user() {
   DWORD username_len = UNLEN + 1;
   if (GetUserName(username, &username_len)) {
     ret_val.assign(username);
-}
+  }
 #else
   char username[30];
   if (!getlogin_r(username, sizeof(username)))

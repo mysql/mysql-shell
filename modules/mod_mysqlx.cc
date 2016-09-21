@@ -26,8 +26,7 @@
 using namespace std::placeholders;
 using namespace mysh::mysqlx;
 
-REGISTER_MODULE(Mysqlx, mysqlx)
-{
+REGISTER_MODULE(Mysqlx, mysqlx) {
   add_property("Type|Type");
   add_property("IndexType|IndexType");
   REGISTER_VARARGS_FUNCTION(Mysqlx, get_session, getSession);
@@ -39,8 +38,7 @@ REGISTER_MODULE(Mysqlx, mysqlx)
   _index_type.reset(new IndexType());
 }
 
-shcore::Value Mysqlx::get_member(const std::string &prop) const
-{
+shcore::Value Mysqlx::get_member(const std::string &prop) const {
   shcore::Value ret_val;
 
   if (prop == "Type")
@@ -53,24 +51,20 @@ shcore::Value Mysqlx::get_member(const std::string &prop) const
   return ret_val;
 }
 
-DEFINE_FUNCTION(Mysqlx, get_session)
-{
+DEFINE_FUNCTION(Mysqlx, get_session) {
   auto session = connect_session(args, mysh::Application);
   return shcore::Value(std::dynamic_pointer_cast<shcore::Object_bridge>(session));
 }
 
-DEFINE_FUNCTION(Mysqlx, get_node_session)
-{
+DEFINE_FUNCTION(Mysqlx, get_node_session) {
   auto session = connect_session(args, mysh::Node);
   return shcore::Value(std::dynamic_pointer_cast<shcore::Object_bridge>(session));
 }
 
-DEFINE_FUNCTION(Mysqlx, expr)
-{
+DEFINE_FUNCTION(Mysqlx, expr) {
   return shcore::Value(Expression::create(args));
 }
 
-DEFINE_FUNCTION(Mysqlx, date_value)
-{
+DEFINE_FUNCTION(Mysqlx, date_value) {
   return shcore::Value(shcore::Date::create(args));
 }

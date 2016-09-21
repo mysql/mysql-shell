@@ -1,4 +1,4 @@
-/* Copyright (c) 2014, 2015, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2014, 2016, Oracle and/or its affiliates. All rights reserved.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published by
@@ -14,21 +14,17 @@
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA */
 #include "shell_script_tester.h"
 
-namespace shcore
-{
-  class Shell_py_tests : public Shell_py_script_tester
-  {
-    virtual void SetUp()
-    {
-      Shell_py_script_tester::SetUp();
+namespace shcore {
+class Shell_py_tests : public Shell_py_script_tester {
+  virtual void SetUp() {
+    Shell_py_script_tester::SetUp();
 
-      set_config_folder("py_devapi");
-      //set_setup_script("setup.py");
-    }
-  };
-
-  TEST_F(Shell_py_tests, built_ins)
-  {
-    validate_interactive("shell_builtins.py");
+    set_config_folder("py_devapi");
+    //set_setup_script("setup.py");
   }
+};
+
+TEST_F(Shell_py_tests, built_ins) {
+  validate_interactive("shell_builtins.py");
+}
 }

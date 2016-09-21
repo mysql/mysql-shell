@@ -570,7 +570,7 @@ bool Shell_core::reconnect_if_needed() {
         print("The global session was successfully reconnected.\n");
         ret_val = true;
       } catch (shcore::Exception &e) {
-          print("The global session could not be reconnected automatically.\nPlease use '\\connect " + _global_dev_session->uri() + "' instead to manually reconnect.\n");
+        print("The global session could not be reconnected automatically.\nPlease use '\\connect " + _global_dev_session->uri() + "' instead to manually reconnect.\n");
       }
     }
 
@@ -708,7 +708,7 @@ bool Shell_command_handler::process(const std::string& command_line) {
 }
 
 void Shell_command_handler::add_command(const std::string& triggers, const std::string& description, const std::string& help, Shell_command_function function) {
-  Shell_command command = { triggers, description, help, function };
+  Shell_command command = {triggers, description, help, function};
   _commands.push_back(command);
 
   std::vector<std::string> tokens;

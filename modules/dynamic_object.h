@@ -28,39 +28,36 @@
 
 #include <set>
 
-namespace mysh
-{
-  namespace mysqlx
-  {
+namespace mysh {
+namespace mysqlx {
 #if DOXYGEN_CPP
-    //! Layer to provide the behavior of objects that can dynamically enable/disable its functions.
+//! Layer to provide the behavior of objects that can dynamically enable/disable its functions.
 #endif
-    class Dynamic_object : public shcore::Cpp_object_bridge
-    {
-      // Overrides to consider enabled/disabled status
-      virtual std::vector<std::string> get_members() const;
-      virtual shcore::Value get_member(const std::string &prop) const;
-      virtual bool has_member(const std::string &prop) const;
-      virtual shcore::Value call(const std::string &name, const shcore::Argument_list &args);
+class Dynamic_object : public shcore::Cpp_object_bridge {
+  // Overrides to consider enabled/disabled status
+  virtual std::vector<std::string> get_members() const;
+  virtual shcore::Value get_member(const std::string &prop) const;
+  virtual bool has_member(const std::string &prop) const;
+  virtual shcore::Value call(const std::string &name, const shcore::Argument_list &args);
 
-      // T the moment will put these since we don't really care about them
-      virtual bool operator == (const Object_bridge &) const { return false; }
+  // T the moment will put these since we don't really care about them
+  virtual bool operator == (const Object_bridge &) const { return false; }
 
-    protected:
-      // Holds the dynamic functions enable/disable status
-      std::map<std::string, bool> _enabled_functions;
+protected:
+  // Holds the dynamic functions enable/disable status
+  std::map<std::string, bool> _enabled_functions;
 
-      // Holds relation of 'enabled' states for every dynamic function
-      std::map<std::string, std::set<std::string> > _enable_paths;
+  // Holds relation of 'enabled' states for every dynamic function
+  std::map<std::string, std::set<std::string> > _enable_paths;
 
-      // Registers a dynamic function and it's associated 'enabled' states
-      void register_dynamic_function(const std::string& name, const std::string& enable_after);
+  // Registers a dynamic function and it's associated 'enabled' states
+  void register_dynamic_function(const std::string& name, const std::string& enable_after);
 
-      // Enable/disable functions based on the received and registered states
-      void update_functions(const std::string& state);
-      void enable_function(const char *name, bool enable);
-    };
-  }
+  // Enable/disable functions based on the received and registered states
+  void update_functions(const std::string& state);
+  void enable_function(const char *name, bool enable);
+};
+}
 }
 
 #endif

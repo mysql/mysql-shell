@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2016, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -28,29 +28,28 @@
 #include "common.h"
 
 namespace shcore {
-  struct TYPES_COMMON_PUBLIC Interpreter_delegate
-  {
-    Interpreter_delegate(){
-      user_data = nullptr;
-      print = nullptr;
-      prompt = nullptr;
-      password = nullptr;
-      source = nullptr;
-      print_value = nullptr;
-      print_error = nullptr;
-      print_error_code = nullptr;
-    }
+struct TYPES_COMMON_PUBLIC Interpreter_delegate {
+  Interpreter_delegate() {
+    user_data = nullptr;
+    print = nullptr;
+    prompt = nullptr;
+    password = nullptr;
+    source = nullptr;
+    print_value = nullptr;
+    print_error = nullptr;
+    print_error_code = nullptr;
+  }
 
-    void *user_data;
-    void(*print)(void *user_data, const char *text);
-    bool(*prompt)(void *user_data, const char *prompt, std::string &ret_input);
-    bool(*password)(void *user_data, const char *prompt, std::string &ret_password);
-    void(*source)(void *user_data, const char *module);
-    void(*print_value)(void *user_data, const shcore::Value &value, const char *tag);
+  void *user_data;
+  void(*print)(void *user_data, const char *text);
+  bool(*prompt)(void *user_data, const char *prompt, std::string &ret_input);
+  bool(*password)(void *user_data, const char *prompt, std::string &ret_password);
+  void(*source)(void *user_data, const char *module);
+  void(*print_value)(void *user_data, const shcore::Value &value, const char *tag);
 
-    void(*print_error)(void *user_data, const char *text);
-    void(*print_error_code)(void *user_data, const char *message, const boost::system::error_code &error);
-  };
+  void(*print_error)(void *user_data, const char *text);
+  void(*print_error_code)(void *user_data, const char *message, const boost::system::error_code &error);
+};
 };
 
 #endif

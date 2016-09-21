@@ -15,7 +15,7 @@
 
 /**
   @file mysys_ssl/my_aes.cc
-*/
+  */
 
 #include "mysh_config.h"
 #include "my_aes.h"
@@ -24,7 +24,6 @@
 #include <stdint.h>
 
 namespace myaes {
-
 /**
   Transforms an arbitrary long key into a fixed length AES key
 
@@ -39,28 +38,25 @@ namespace myaes {
   @param [in] key_length        Length of the key
   @param [out] rkey             Real key (used by OpenSSL/YaSSL)
   @param [out] opmode           encryption mode
-*/
+  */
 
 void my_aes_create_key(const unsigned char *key, uint32_t key_length,
-                       uint8_t *rkey, enum my_aes_opmode opmode)
-{
-  const uint32_t key_size= my_aes_opmode_key_sizes[opmode] / 8;
+                       uint8_t *rkey, enum my_aes_opmode opmode) {
+  const uint32_t key_size = my_aes_opmode_key_sizes[opmode] / 8;
   uint8_t *rkey_end;                              /* Real key boundary */
   uint8_t *ptr;                                   /* Start of the real key*/
   uint8_t *sptr;                                  /* Start of the working key */
-  uint8_t *key_end= ((uint8_t *)key) + key_length;  /* Working key boundary*/
+  uint8_t *key_end = ((uint8_t *)key) + key_length;  /* Working key boundary*/
 
-  rkey_end= rkey + key_size;
+  rkey_end = rkey + key_size;
 
   memset(rkey, 0, key_size);          /* Set initial key  */
 
-  for (ptr= rkey, sptr= (uint8_t *)key; sptr < key_end; ptr++, sptr++)
-  {
+  for (ptr = rkey, sptr = (uint8_t *)key; sptr < key_end; ptr++, sptr++) {
     if (ptr == rkey_end)
       /*  Just loop over tmp_key until we used all key */
-      ptr= rkey;
-    *ptr^= *sptr;
+      ptr = rkey;
+    *ptr ^= *sptr;
   }
 }
-
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2016 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2016, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -32,8 +32,7 @@ using namespace shcore;
 using namespace mysh::mysql;
 
 ClassicResult::ClassicResult(std::shared_ptr<Result> result)
-  : _result(result)
-{
+  : _result(result) {
   add_property("columns", "getColumns");
   add_property("columnCount", "getColumnCount");
   add_property("columnNames", "getColumnNames");
@@ -52,24 +51,21 @@ ClassicResult::ClassicResult(std::shared_ptr<Result> result)
 
 //! Returns true if the last statement execution has a result set.
 #if DOXYGEN_JS
-Bool ClassicResult::hasData(){}
+Bool ClassicResult::hasData() {}
 #elif DOXYGEN_PY
-bool ClassicResult::has_data(){}
+bool ClassicResult::has_data() {}
 #endif
-shcore::Value ClassicResult::has_data(const shcore::Argument_list &args) const
-{
+shcore::Value ClassicResult::has_data(const shcore::Argument_list &args) const {
   args.ensure_count(0, get_function_name("hasData").c_str());
 
   return Value(_result->has_resultset());
 }
 
-shcore::Value ClassicResult::fetch_one(const shcore::Argument_list &args) const
-{
+shcore::Value ClassicResult::fetch_one(const shcore::Argument_list &args) const {
   args.ensure_count(0, get_function_name("fetchOne").c_str());
   Row *inner_row = _result->fetch_one();
 
-  if (inner_row)
-  {
+  if (inner_row) {
     mysh::Row *value_row = new mysh::Row();
 
     std::vector<Field> metadata(_result->get_metadata());
@@ -83,23 +79,20 @@ shcore::Value ClassicResult::fetch_one(const shcore::Argument_list &args) const
   return shcore::Value::Null();
 }
 
-shcore::Value ClassicResult::next_data_set(const shcore::Argument_list &args)
-{
+shcore::Value ClassicResult::next_data_set(const shcore::Argument_list &args) {
   args.ensure_count(0, get_function_name("nextDataSet").c_str());
 
   return shcore::Value(_result->next_data_set());
 }
 
-shcore::Value ClassicResult::fetch_all(const shcore::Argument_list &args) const
-{
+shcore::Value ClassicResult::fetch_all(const shcore::Argument_list &args) const {
   args.ensure_count(0, get_function_name("fetchAll").c_str());
 
   std::shared_ptr<shcore::Value::Array_type> array(new shcore::Value::Array_type);
 
   shcore::Value record = fetch_one(args);
 
-  while (record)
-  {
+  while (record) {
     array->push_back(record);
     record = fetch_one(args);
   }
@@ -130,9 +123,9 @@ shcore::Value ClassicResult::fetch_all(const shcore::Argument_list &args) const
 * \return A Row object representing the next record in the result.
 */
 #if DOXYGEN_JS
-Row ClassicResult::fetchOne(){}
+Row ClassicResult::fetchOne() {}
 #elif DOXYGEN_PY
-Row ClassicResult::fetch_one(){}
+Row ClassicResult::fetch_one() {}
 #endif
 /**
 * Returns a list of Row objects which contains an element for every record left on the result.
@@ -143,9 +136,9 @@ Row ClassicResult::fetch_one(){}
 * If fetchOne is called before this function, when this function is called it will return a Row for each of the remaining records on the resultset.
 */
 #if DOXYGEN_JS
-List ClassicResult::fetchAll(){}
+List ClassicResult::fetchAll() {}
 #elif DOXYGEN_PY
-list ClassicResult::fetch_all(){}
+list ClassicResult::fetch_all() {}
 #endif
 
 /**
@@ -154,9 +147,9 @@ list ClassicResult::fetch_all(){}
 * This is the value of the C API mysql_affected_rows(), see https://dev.mysql.com/doc/refman/5.7/en/mysql-affected-rows.html
 */
 #if DOXYGEN_JS
-Integer ClassicResult::getAffectedRowCount(){}
+Integer ClassicResult::getAffectedRowCount() {}
 #elif DOXYGEN_PY
-int ClassicResult::get_affected_row_count(){}
+int ClassicResult::get_affected_row_count() {}
 #endif
 
 /**
@@ -164,9 +157,9 @@ int ClassicResult::get_affected_row_count(){}
 * \return the number of columns on the current result.
 */
 #if DOXYGEN_JS
-Integer ClassicResult::getColumnCount(){}
+Integer ClassicResult::getColumnCount() {}
 #elif DOXYGEN_PY
-int ClassicResult::get_column_count(){}
+int ClassicResult::get_column_count() {}
 #endif
 
 /**
@@ -174,9 +167,9 @@ int ClassicResult::get_column_count(){}
 * \return A list with the names of the columns returned on the active result.
 */
 #if DOXYGEN_JS
-List ClassicResult::getColumnNames(){}
+List ClassicResult::getColumnNames() {}
 #elif DOXYGEN_PY
-list ClassicResult::get_column_names(){}
+list ClassicResult::get_column_names() {}
 #endif
 
 /**
@@ -184,18 +177,18 @@ list ClassicResult::get_column_names(){}
 * \return a list of column metadata objects containing information about the columns included on the active result.
 */
 #if DOXYGEN_JS
-List ClassicResult::getColumns(){}
+List ClassicResult::getColumns() {}
 #elif DOXYGEN_PY
-list ClassicResult::get_columns(){}
+list ClassicResult::get_columns() {}
 #endif
 
 /**
 * Retrieves a string value indicating the execution time of the executed operation.
 */
 #if DOXYGEN_JS
-String ClassicResult::getExecutionTime(){}
+String ClassicResult::getExecutionTime() {}
 #elif DOXYGEN_PY
-str ClassicResult::get_execution_time(){}
+str ClassicResult::get_execution_time() {}
 #endif
 
 /**
@@ -205,9 +198,9 @@ str ClassicResult::get_execution_time(){}
 * For more details, see: https://dev.mysql.com/doc/refman/5.7/en/mysql-info.html
 */
 #if DOXYGEN_JS
-String ClassicResult::getInfo(){}
+String ClassicResult::getInfo() {}
 #elif DOXYGEN_PY
-str ClassicResult::get_info(){}
+str ClassicResult::get_info() {}
 #endif
 
 /**
@@ -217,9 +210,9 @@ str ClassicResult::get_info(){}
 * For more details, see https://dev.mysql.com/doc/refman/5.7/en/information-functions.html#function_last-insert-id
 */
 #if DOXYGEN_JS
-Integer ClassicResult::getAutoIncrementValue(){}
+Integer ClassicResult::getAutoIncrementValue() {}
 #elif DOXYGEN_PY
-int ClassicResult::get_auto_increment_value(){}
+int ClassicResult::get_auto_increment_value() {}
 #endif
 
 /**
@@ -229,9 +222,9 @@ int ClassicResult::get_auto_increment_value(){}
 * This is the same value than C API mysql_warning_count, see https://dev.mysql.com/doc/refman/5.7/en/mysql-warning-count.html
 */
 #if DOXYGEN_JS
-Integer ClassicResult::getWarningCount(){}
+Integer ClassicResult::getWarningCount() {}
 #elif DOXYGEN_PY
-int ClassicResult::get_warning_count(){}
+int ClassicResult::get_warning_count() {}
 #endif
 
 /**
@@ -243,9 +236,9 @@ int ClassicResult::get_warning_count(){}
 * This information includes: level, code and message.
 */
 #if DOXYGEN_JS
-List ClassicResult::getWarnings(){}
+List ClassicResult::getWarnings() {}
 #elif DOXYGEN_PY
-list ClassicResult::get_warnings(){}
+list ClassicResult::get_warnings() {}
 #endif
 
 /**
@@ -253,21 +246,19 @@ list ClassicResult::get_warnings(){}
 * \return A boolean value indicating whether there is another result or not.
 */
 #if DOXYGEN_JS
-Bool ClassicResult::nextDataSet(){}
+Bool ClassicResult::nextDataSet() {}
 #elif DOXYGEN_PY
-bool ClassicResult::next_data_set(){}
+bool ClassicResult::next_data_set() {}
 #endif
 #endif
-shcore::Value ClassicResult::get_member(const std::string &prop) const
-{
+shcore::Value ClassicResult::get_member(const std::string &prop) const {
   if (prop == "affectedRowCount")
     return shcore::Value((int64_t)((_result->affected_rows() == ~(my_ulonglong)0) ? 0 : _result->affected_rows()));
 
   if (prop == "warningCount")
     return shcore::Value(_result->warning_count());
 
-  if (prop == "warnings")
-  {
+  if (prop == "warnings") {
     Result* inner_warnings = _result->query_warnings();
     std::shared_ptr<ClassicResult> warnings(new ClassicResult(std::shared_ptr<Result>(inner_warnings)));
     return warnings->fetch_all(shcore::Argument_list());
@@ -282,15 +273,13 @@ shcore::Value ClassicResult::get_member(const std::string &prop) const
   if (prop == "info")
     return shcore::Value(_result->info());
 
-  if (prop == "columnCount")
-  {
+  if (prop == "columnCount") {
     size_t count = _result->get_metadata().size();
 
     return shcore::Value((uint64_t)count);
   }
 
-  if (prop == "columnNames")
-  {
+  if (prop == "columnNames") {
     std::vector<Field> metadata(_result->get_metadata());
 
     std::shared_ptr<shcore::Value::Array_type> array(new shcore::Value::Array_type);
@@ -303,16 +292,14 @@ shcore::Value ClassicResult::get_member(const std::string &prop) const
     return shcore::Value(array);
   }
 
-  if (prop == "columns")
-  {
+  if (prop == "columns") {
     std::vector<Field> metadata(_result->get_metadata());
 
     std::shared_ptr<shcore::Value::Array_type> array(new shcore::Value::Array_type);
 
     int num_fields = metadata.size();
 
-    for (int i = 0; i < num_fields; i++)
-    {
+    for (int i = 0; i < num_fields; i++) {
       bool numeric = IS_NUM(metadata[i].type());
       std::shared_ptr<mysh::Column> column(new mysh::Column(
         metadata[i].db(),
@@ -339,8 +326,7 @@ shcore::Value ClassicResult::get_member(const std::string &prop) const
   return ShellBaseResult::get_member(prop);
 }
 
-void ClassicResult::append_json(shcore::JSON_dumper& dumper) const
-{
+void ClassicResult::append_json(shcore::JSON_dumper& dumper) const {
   dumper.start_object();
 
   dumper.append_value("executionTime", get_member("executionTime"));
@@ -348,8 +334,7 @@ void ClassicResult::append_json(shcore::JSON_dumper& dumper) const
   dumper.append_value("info", get_member("info"));
   dumper.append_value("rows", fetch_all(shcore::Argument_list()));
 
-  if (Shell_core_options::get()->get_bool(SHCORE_SHOW_WARNINGS))
-  {
+  if (Shell_core_options::get()->get_bool(SHCORE_SHOW_WARNINGS)) {
     dumper.append_value("warningCount", get_member("warningCount"));
     dumper.append_value("warnings", get_member("warnings"));
   }

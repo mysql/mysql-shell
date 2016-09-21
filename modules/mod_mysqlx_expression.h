@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2016, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -28,30 +28,27 @@
 #include "shellcore/types_cpp.h"
 #include "shellcore/ishell_core.h"
 
-namespace mysh
-{
-  namespace mysqlx
-  {
-    class SHCORE_PUBLIC Expression : public shcore::Cpp_object_bridge
-    {
-    public:
-      Expression(const std::string &expression) { add_property("data"); _data = expression; }
-      virtual ~Expression() {};
+namespace mysh {
+namespace mysqlx {
+class SHCORE_PUBLIC Expression : public shcore::Cpp_object_bridge {
+public:
+  Expression(const std::string &expression) { add_property("data"); _data = expression; }
+  virtual ~Expression() {};
 
-      // Virtual methods from object bridge
-      virtual std::string class_name() const { return "Expression"; };
-      virtual bool operator == (const Object_bridge &other) const;
+  // Virtual methods from object bridge
+  virtual std::string class_name() const { return "Expression"; };
+  virtual bool operator == (const Object_bridge &other) const;
 
-      virtual shcore::Value get_member(const std::string &prop) const;
+  virtual shcore::Value get_member(const std::string &prop) const;
 
-      static std::shared_ptr<shcore::Object_bridge> create(const shcore::Argument_list &args);
+  static std::shared_ptr<shcore::Object_bridge> create(const shcore::Argument_list &args);
 
-      std::string get_data() { return _data; };
+  std::string get_data() { return _data; };
 
-    private:
-      std::string _data;
-    };
-  };
+private:
+  std::string _data;
+};
+};
 };
 
 #endif

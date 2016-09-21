@@ -28,11 +28,9 @@ using namespace mysh;
 using namespace mysh::mysqlx;
 using namespace shcore;
 
-std::vector<std::string> Dynamic_object::get_members() const
-{
+std::vector<std::string> Dynamic_object::get_members() const {
   std::vector<std::string> _members;
-  for (auto i : _funcs)
-  {
+  for (auto i : _funcs) {
     // Only returns the enabled functions
     if (_enabled_functions.find(i.first) != _enabled_functions.end() && _enabled_functions.at(i.first))
       _members.push_back(i.second->name(naming_style));
@@ -54,8 +52,7 @@ std::vector<std::string> Dynamic_object::get_members() const
  *
  */
 #endif
-Value Dynamic_object::get_member(const std::string &prop) const
-{
+Value Dynamic_object::get_member(const std::string &prop) const {
   std::map<std::string, std::shared_ptr<shcore::Cpp_function> >::const_iterator i;
   if ((i = _funcs.find(prop)) == _funcs.end())
     throw shcore::Exception::attrib_error("Invalid object member " + prop);
@@ -65,12 +62,11 @@ Value Dynamic_object::get_member(const std::string &prop) const
     return Value(std::shared_ptr<shcore::Function_base>(i->second));
 }
 
-bool Dynamic_object::has_member(const std::string &prop) const
-{
+bool Dynamic_object::has_member(const std::string &prop) const {
   bool ret_val = false;
 
   // A function is considered only if it is enanbled
-  auto i = std::find_if(_funcs.begin(), _funcs.end(), [this, prop](const FunctionEntry &f){ return f.second->name(naming_style) == prop; });
+  auto i = std::find_if(_funcs.begin(), _funcs.end(), [this, prop](const FunctionEntry &f) { return f.second->name(naming_style) == prop; });
   if (i != _funcs.end())
     ret_val = _enabled_functions.find(i->first) != _enabled_functions.end() && _enabled_functions.at(i->first);
   else
@@ -79,8 +75,7 @@ bool Dynamic_object::has_member(const std::string &prop) const
   return ret_val;
 }
 
-Value Dynamic_object::call(const std::string &name, const shcore::Argument_list &args)
-{
+Value Dynamic_object::call(const std::string &name, const shcore::Argument_list &args) {
   std::map<std::string, std::shared_ptr<shcore::Cpp_function> >::const_iterator i;
   if ((i = _funcs.find(name)) == _funcs.end())
     throw shcore::Exception::attrib_error("Invalid object function " + name);
@@ -95,8 +90,7 @@ Value Dynamic_object::call(const std::string &name, const shcore::Argument_list 
 *   - name: indicates the exposed function to be enabled/disabled.
 *   - enable_after: indicate the "states" under which the function should be enabled.
 */
-void Dynamic_object::register_dynamic_function(const std::string& name, const std::string& enable_after)
-{
+void Dynamic_object::register_dynamic_function(const std::string& name, const std::string& enable_after) {
   // Adds the function to the enabled/disabled state registry
   _enabled_functions[name] = true;
 
@@ -107,19 +101,16 @@ void Dynamic_object::register_dynamic_function(const std::string& name, const st
   _enable_paths[name] = after;
 }
 
-void Dynamic_object::update_functions(const std::string& source)
-{
+void Dynamic_object::update_functions(const std::string& source) {
   std::map<std::string, bool>::iterator it, end = _enabled_functions.end();
 
-  for (it = _enabled_functions.begin(); it != end; it++)
-  {
+  for (it = _enabled_functions.begin(); it != end; it++) {
     size_t count = _enable_paths[it->first].count(source);
     enable_function(it->first.c_str(), count > 0);
   }
 }
 
-void Dynamic_object::enable_function(const char *name, bool enable)
-{
+void Dynamic_object::enable_function(const char *name, bool enable) {
   if (_enabled_functions.find(name) != _enabled_functions.end())
     _enabled_functions[name] = enable;
 }

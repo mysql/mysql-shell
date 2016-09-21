@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2016, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -25,66 +25,62 @@
 
 #include "collection_crud_definition.h"
 
-namespace mysh
-{
-  namespace mysqlx
-  {
-    class Collection;
+namespace mysh {
+namespace mysqlx {
+class Collection;
 
-    /**
-    * Handler for document selection on a Collection.
-    *
-    * This object provides the necessary functions to allow selecting document data from a collection.
-    *
-    * This object should only be created by calling the find function on the collection object from which the documents will be retrieved.
-    *
-    * \sa Collection
-    */
-    class CollectionFind : public Collection_crud_definition, public std::enable_shared_from_this<CollectionFind>
-    {
-    public:
-      CollectionFind(std::shared_ptr<Collection> owner);
-    public:
-      virtual std::string class_name() const { return "CollectionFind"; }
+/**
+* Handler for document selection on a Collection.
+*
+* This object provides the necessary functions to allow selecting document data from a collection.
+*
+* This object should only be created by calling the find function on the collection object from which the documents will be retrieved.
+*
+* \sa Collection
+*/
+class CollectionFind : public Collection_crud_definition, public std::enable_shared_from_this<CollectionFind> {
+public:
+  CollectionFind(std::shared_ptr<Collection> owner);
+public:
+  virtual std::string class_name() const { return "CollectionFind"; }
 #if DOXYGEN_JS
-      CollectionFind find(String searchCondition);
-      CollectionFind fields(List projectedSearchExprStr);
-      CollectionFind fields(DocExpression projection);
-      CollectionFind groupBy(List searchExprStr);
-      CollectionFind having(String searchCondition);
-      CollectionFind sort(List sortExprStr);
-      CollectionFind limit(Integer numberOfRows);
-      CollectionFind skip(Integer limitOffset);
-      CollectionFind bind(String name, Value value);
-      DocResult execute();
+  CollectionFind find(String searchCondition);
+  CollectionFind fields(List projectedSearchExprStr);
+  CollectionFind fields(DocExpression projection);
+  CollectionFind groupBy(List searchExprStr);
+  CollectionFind having(String searchCondition);
+  CollectionFind sort(List sortExprStr);
+  CollectionFind limit(Integer numberOfRows);
+  CollectionFind skip(Integer limitOffset);
+  CollectionFind bind(String name, Value value);
+  DocResult execute();
 #elif DOXYGEN_PY
-      CollectionFind find(str searchCondition);
-      CollectionFind fields(list projectedSearchExprStr);
-      CollectionFind fields(DocExpression projection);
-      CollectionFind group_by(list searchExprStr);
-      CollectionFind having(str searchCondition);
-      CollectionFind sort(list sortExprStr);
-      CollectionFind limit(int numberOfRows);
-      CollectionFind skip(int limitOffset);
-      CollectionFind bind(str name, Value value);
-      DocResult execute();
+  CollectionFind find(str searchCondition);
+  CollectionFind fields(list projectedSearchExprStr);
+  CollectionFind fields(DocExpression projection);
+  CollectionFind group_by(list searchExprStr);
+  CollectionFind having(str searchCondition);
+  CollectionFind sort(list sortExprStr);
+  CollectionFind limit(int numberOfRows);
+  CollectionFind skip(int limitOffset);
+  CollectionFind bind(str name, Value value);
+  DocResult execute();
 #endif
-      shcore::Value find(const shcore::Argument_list &args);
-      shcore::Value fields(const shcore::Argument_list &args);
-      shcore::Value group_by(const shcore::Argument_list &args);
-      shcore::Value having(const shcore::Argument_list &args);
-      shcore::Value sort(const shcore::Argument_list &args);
-      shcore::Value limit(const shcore::Argument_list &args);
-      shcore::Value skip(const shcore::Argument_list &args);
-      shcore::Value bind(const shcore::Argument_list &args);
+  shcore::Value find(const shcore::Argument_list &args);
+  shcore::Value fields(const shcore::Argument_list &args);
+  shcore::Value group_by(const shcore::Argument_list &args);
+  shcore::Value having(const shcore::Argument_list &args);
+  shcore::Value sort(const shcore::Argument_list &args);
+  shcore::Value limit(const shcore::Argument_list &args);
+  shcore::Value skip(const shcore::Argument_list &args);
+  shcore::Value bind(const shcore::Argument_list &args);
 
-      virtual shcore::Value execute(const shcore::Argument_list &args);
+  virtual shcore::Value execute(const shcore::Argument_list &args);
 
-
-    private:
-      std::unique_ptr< ::mysqlx::FindStatement> _find_statement;
-    };
-  };
+private:
+  std::unique_ptr< ::mysqlx::FindStatement> _find_statement;
+};
+};
 };
 
 #endif

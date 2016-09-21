@@ -37,30 +37,18 @@
 * Helper function to ensure the exceptions generated on the mysqlx_connector
 * are properly translated to the corresponding shcore::Exception type
 */
-static void ATTR_UNUSED translate_crud_exception(const std::string& operation)
-{
-  try
-  {
+static void ATTR_UNUSED translate_crud_exception(const std::string& operation) {
+  try {
     throw;
-  }
-  catch (shcore::Exception &e)
-  {
+  } catch (shcore::Exception &e) {
     throw shcore::Exception::argument_error(operation + ": " + e.what());
-  }
-  catch (::mysqlx::Error &e)
-  {
+  } catch (::mysqlx::Error &e) {
     throw shcore::Exception::mysql_error_with_code(e.what(), e.error());
-  }
-  catch (std::runtime_error &e)
-  {
+  } catch (std::runtime_error &e) {
     throw shcore::Exception::runtime_error(operation + ": " + e.what());
-  }
-  catch (std::logic_error &e)
-  {
+  } catch (std::logic_error &e) {
     throw shcore::Exception::logic_error(operation + ": " + e.what());
-  }
-  catch (...)
-  {
+  } catch (...) {
     throw;
   }
 }
@@ -73,26 +61,16 @@ static void ATTR_UNUSED translate_crud_exception(const std::string& operation)
 * Helper function to ensure the exceptions generated on the mysqlx_connector
 * are properly translated to the corresponding shcore::Exception type
 */
-static void ATTR_UNUSED translate_exception()
-{
-  try
-  {
+static void ATTR_UNUSED translate_exception() {
+  try {
     throw;
-  }
-  catch (::mysqlx::Error &e)
-  {
+  } catch (::mysqlx::Error &e) {
     throw shcore::Exception::mysql_error_with_code(e.what(), e.error());
-  }
-  catch (std::runtime_error &e)
-  {
+  } catch (std::runtime_error &e) {
     throw shcore::Exception::runtime_error(e.what());
-  }
-  catch (std::logic_error &e)
-  {
+  } catch (std::logic_error &e) {
     throw shcore::Exception::logic_error(e.what());
-  }
-  catch (...)
-  {
+  } catch (...) {
     throw;
   }
 }

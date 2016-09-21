@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2016, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -37,8 +37,7 @@ using namespace shcore;
 * - Message information that is not provided through the different functions
 */
 TableInsert::TableInsert(std::shared_ptr<Table> owner)
-  :Table_crud_definition(std::static_pointer_cast<DatabaseObject>(owner))
-{
+  :Table_crud_definition(std::static_pointer_cast<DatabaseObject>(owner)) {
   // The values function should not be enabled if values were already given
   add_method("insert", std::bind(&TableInsert::insert, this, _1), "data");
   add_method("values", std::bind(&TableInsert::values, this, _1), "data");
@@ -89,9 +88,9 @@ TableInsert::TableInsert(std::shared_ptr<Table> owner)
 * \sa Usage examples at execute().
 */
 #if DOXYGEN_JS
-TableInsert TableInsert::insert(){}
+TableInsert TableInsert::insert() {}
 #elif DOXYGEN_PY
-TableInsert TableInsert::insert(){}
+TableInsert TableInsert::insert() {}
 #endif
 
 /**
@@ -110,9 +109,9 @@ TableInsert TableInsert::insert(){}
 * \sa Usage examples at execute().
 */
 #if DOXYGEN_JS
-TableInsert TableInsert::insert(List columns){}
+TableInsert TableInsert::insert(List columns) {}
 #elif DOXYGEN_PY
-TableInsert TableInsert::insert(list columns){}
+TableInsert TableInsert::insert(list columns) {}
 #endif
 
 /**
@@ -135,32 +134,27 @@ TableInsert TableInsert::insert(list columns){}
 * \sa Usage examples at execute().
 */
 #if DOXYGEN_JS
-TableInsert TableInsert::insert(String col1, String col2, ...){}
+TableInsert TableInsert::insert(String col1, String col2, ...) {}
 #elif DOXYGEN_PY
-TableInsert TableInsert::insert(str col1, str col2, ...){}
+TableInsert TableInsert::insert(str col1, str col2, ...) {}
 #endif
 #endif
-shcore::Value TableInsert::insert(const shcore::Argument_list &args)
-{
+shcore::Value TableInsert::insert(const shcore::Argument_list &args) {
   std::shared_ptr<Table> table(std::static_pointer_cast<Table>(_owner.lock()));
 
   std::string path;
 
-  if (table)
-  {
-    try
-    {
+  if (table) {
+    try {
       _insert_statement.reset(new ::mysqlx::InsertStatement(table->_table_impl->insert()));
 
-      if (args.size())
-      {
+      if (args.size()) {
         shcore::Value::Map_type_ref sh_columns_and_values;
 
         std::vector < std::string > columns;
 
         // An array with the fields was received as parameter
-        if (args.size() == 1 && args[0].type == Array)
-        {
+        if (args.size() == 1 && args[0].type == Array) {
           path = "Fields";
 
           parse_string_list(args, columns);
@@ -169,16 +163,14 @@ shcore::Value TableInsert::insert(const shcore::Argument_list &args)
         }
 
         // A map with fields and values was received as parameter
-        else if (args.size() == 1 && args[0].type == Map)
-        {
+        else if (args.size() == 1 && args[0].type == Map) {
           std::vector < ::mysqlx::TableValue > values;
           path = "FieldsAndValues";
           sh_columns_and_values = args[0].as_map();
           shcore::Value::Map_type::iterator index = sh_columns_and_values->begin(),
                                             end = sh_columns_and_values->end();
 
-          for (; index != end; index++)
-          {
+          for (; index != end; index++) {
             columns.push_back(index->first);
             values.push_back(map_table_value(index->second));
           }
@@ -188,14 +180,11 @@ shcore::Value TableInsert::insert(const shcore::Argument_list &args)
         }
 
         // Each parameter is a field
-        else
-        {
-          for (unsigned int index = 0; index < args.size(); index++)
-          {
+        else {
+          for (unsigned int index = 0; index < args.size(); index++) {
             if (args[index].type == shcore::String)
               columns.push_back(args.string_at(index));
-            else
-            {
+            else {
               std::string error;
 
               if (args.size() == 1)
@@ -267,21 +256,18 @@ shcore::Value TableInsert::insert(const shcore::Argument_list &args)
 * \sa Usage examples at execute().
 */
 #if DOXYGEN_JS
-TableInsert TableInsert::values(Value value1, Value value2, ...){}
+TableInsert TableInsert::values(Value value1, Value value2, ...) {}
 #elif DOXYGEN_PY
-TableInsert TableInsert::values(Value value1, Value value2, ...){}
+TableInsert TableInsert::values(Value value1, Value value2, ...) {}
 #endif
-shcore::Value TableInsert::values(const shcore::Argument_list &args)
-{
+shcore::Value TableInsert::values(const shcore::Argument_list &args) {
   // Each method validates the received parameters
   args.ensure_at_least(1, get_function_name("values").c_str());
 
-  try
-  {
+  try {
     std::vector < ::mysqlx::TableValue > values;
 
-    for (size_t index = 0; index < args.size(); index++)
-    {
+    for (size_t index = 0; index < args.size(); index++) {
       ::mysqlx::TableValue value = map_table_value(args[index]);
       values.push_back(value);
     }
@@ -314,7 +300,7 @@ shcore::Value TableInsert::values(const shcore::Argument_list &args)
 * \skip //@ Table.insert execution
 * \until print("Affected Rows Document:", result.affectedItemCount, "\n");
 */
-Result TableInsert::execute(){}
+Result TableInsert::execute() {}
 #elif DOXYGEN_PY
 /**
 *
@@ -323,14 +309,12 @@ Result TableInsert::execute(){}
 * \skip #@ Table.insert execution
 * \until print "Affected Rows Document:", result.affected_item_count, "\n"
 */
-Result TableInsert::execute(){}
+Result TableInsert::execute() {}
 #endif
-shcore::Value TableInsert::execute(const shcore::Argument_list &args)
-{
+shcore::Value TableInsert::execute(const shcore::Argument_list &args) {
   mysqlx::Result *result = NULL;
 
-  try
-  {
+  try {
     args.ensure_count(0, get_function_name("execute").c_str());
 
     MySQL_timer timer;

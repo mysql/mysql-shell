@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2016, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -25,48 +25,45 @@
 
 #include "table_crud_definition.h"
 
-namespace mysh
-{
-  namespace mysqlx
-  {
-    class Table;
+namespace mysh {
+namespace mysqlx {
+class Table;
 
-    /**
-    * Handler for Delete operation on Tables.
-    */
-    class TableDelete : public Table_crud_definition, public std::enable_shared_from_this<TableDelete>
-    {
-    public:
-      TableDelete(std::shared_ptr<Table> owner);
-    public:
-      virtual std::string class_name() const { return "TableDelete"; }
-      static std::shared_ptr<shcore::Object_bridge> create(const shcore::Argument_list &args);
-      shcore::Value remove(const shcore::Argument_list &args);
-      shcore::Value where(const shcore::Argument_list &args);
-      shcore::Value order_by(const shcore::Argument_list &args);
-      shcore::Value limit(const shcore::Argument_list &args);
-      shcore::Value bind(const shcore::Argument_list &args);
+/**
+* Handler for Delete operation on Tables.
+*/
+class TableDelete : public Table_crud_definition, public std::enable_shared_from_this<TableDelete> {
+public:
+  TableDelete(std::shared_ptr<Table> owner);
+public:
+  virtual std::string class_name() const { return "TableDelete"; }
+  static std::shared_ptr<shcore::Object_bridge> create(const shcore::Argument_list &args);
+  shcore::Value remove(const shcore::Argument_list &args);
+  shcore::Value where(const shcore::Argument_list &args);
+  shcore::Value order_by(const shcore::Argument_list &args);
+  shcore::Value limit(const shcore::Argument_list &args);
+  shcore::Value bind(const shcore::Argument_list &args);
 
-      virtual shcore::Value execute(const shcore::Argument_list &args);
+  virtual shcore::Value execute(const shcore::Argument_list &args);
 #if DOXYGEN_JS
-      TableDelete delete();
-      TableDelete where(String searchCondition);
-      TableDelete orderBy(List sortExprStr);
-      TableDelete limit(Integer numberOfRows);
-      TableDelete bind(String name, Value value);
-      Result execute();
+  TableDelete delete();
+  TableDelete where(String searchCondition);
+  TableDelete orderBy(List sortExprStr);
+  TableDelete limit(Integer numberOfRows);
+  TableDelete bind(String name, Value value);
+  Result execute();
 #elif DOXYGEN_PY
-      TableDelete delete();
-      TableDelete where(str searchCondition);
-      TableDelete order_by(list sortExprStr);
-      TableDelete limit(int numberOfRows);
-      TableDelete bind(str name, Value value);
-      Result execute();
+  TableDelete delete();
+  TableDelete where(str searchCondition);
+  TableDelete order_by(list sortExprStr);
+  TableDelete limit(int numberOfRows);
+  TableDelete bind(str name, Value value);
+  Result execute();
 #endif
-    private:
-      std::unique_ptr< ::mysqlx::DeleteStatement> _delete_statement;
-    };
-  };
+private:
+  std::unique_ptr< ::mysqlx::DeleteStatement> _delete_statement;
+};
+};
 };
 
 #endif

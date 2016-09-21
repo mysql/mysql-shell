@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2016, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -17,18 +17,14 @@
  * 02110-1301  USA
  */
 
-
 #ifndef _OBJECT_REGISTRY_H_
 #define _OBJECT_REGISTRY_H_
 
 #include "shellcore/types.h"
 #include <list>
 
-namespace shcore
-{
-
-class SHCORE_PUBLIC Object_registry
-{
+namespace shcore {
+class SHCORE_PUBLIC Object_registry {
 public:
   typedef std::list<std::shared_ptr<Object_bridge> > Object_list;
 
@@ -49,7 +45,6 @@ private:
 
   std::shared_ptr<Value::Map_type> _registry; // map of values
 };
-
 };
 
 #endif

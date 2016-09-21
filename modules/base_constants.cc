@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2015, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2016, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -35,15 +35,13 @@ using namespace mysh;
 std::map<std::string, Constant::Module_constants> Constant::_constants;
 
 Constant::Constant(const std::string& module, const std::string& group, const std::string& id, const shcore::Argument_list &args) :
-_module(module), _group(group), _id(id)
-{
+_module(module), _group(group), _id(id) {
   _data = get_constant_value(_module, _group, _id, args);
 
   add_property("data");
 }
 
-Value Constant::get_member(const std::string &prop) const
-{
+Value Constant::get_member(const std::string &prop) const {
   // Retrieves the member first from the parent
   Value ret_val;
 
@@ -55,44 +53,36 @@ Value Constant::get_member(const std::string &prop) const
   return ret_val;
 }
 
-bool Constant::operator == (const Object_bridge &other) const
-{
+bool Constant::operator == (const Object_bridge &other) const {
   return class_name() == other.class_name() && this == &other;
 }
 
-Value Constant::get_constant(const std::string &module, const std::string& group, const std::string& id, const shcore::Argument_list &args)
-{
+Value Constant::get_constant(const std::string &module, const std::string& group, const std::string& id, const shcore::Argument_list &args) {
   Value ret_val;
 
-  if (_constants.find(module) != _constants.end())
-  {
-    if (_constants.at(module).find(group) != _constants.at(module).end())
-    {
+  if (_constants.find(module) != _constants.end()) {
+    if (_constants.at(module).find(group) != _constants.at(module).end()) {
       if (_constants.at(module).at(group).find(id) != _constants.at(module).at(group).end())
         ret_val = shcore::Value(std::static_pointer_cast<shcore::Object_bridge>(_constants.at(module).at(group).at(id)));
     }
   }
 
-  if (!ret_val)
-  {
+  if (!ret_val) {
     std::shared_ptr<Constant> constant(new Constant(module, group, id, args));
 
-    if (constant->data())
-    {
-      if (_constants.find(module) == _constants.end())
-      {
+    if (constant->data()) {
+      if (_constants.find(module) == _constants.end()) {
         Module_constants new_module;
-        _constants.insert({ module, new_module });
+        _constants.insert({module, new_module});
       }
 
-      if (_constants.at(module).find(group) == _constants.at(module).end())
-      {
+      if (_constants.at(module).find(group) == _constants.at(module).end()) {
         Group_constants new_group;
-        _constants.at(module).insert({ group, new_group });
+        _constants.at(module).insert({group, new_group});
       }
 
       if (_constants.at(module).at(group).find(id) == _constants.at(module).at(group).end())
-        _constants.at(module).at(group).insert({ id, constant });
+        _constants.at(module).at(group).insert({id, constant});
 
       ret_val = shcore::Value(std::static_pointer_cast<shcore::Object_bridge>(constant));
     }
@@ -104,8 +94,7 @@ Value Constant::get_constant(const std::string &module, const std::string& group
 // Retrieves the internal constant value based on a Group and ID
 // An exception is produced if invalid group.id data is provided
 // But this should not happen as it is used internally only
-Value Constant::get_constant_value(const std::string &module, const std::string& group, const std::string& id, const shcore::Argument_list &args)
-{
+Value Constant::get_constant_value(const std::string &module, const std::string& group, const std::string& id, const shcore::Argument_list &args) {
   Value ret_val;
 
   // By default all is OK if there are NO params
@@ -115,19 +104,9 @@ Value Constant::get_constant_value(const std::string &module, const std::string&
 
   param_count = args.size();
 
-  if (module == "mysqlx")
-  {
-    if (group == "Type")
-    {
-      if (id == "BIT"){ ret_val = Value("BIT"); }
-      else if (id == "TINYINT"){ ret_val = Value("TINYINT"); }
-      else if (id == "SMALLINT"){ ret_val = Value("SMALLINT"); }
-      else if (id == "MEDIUMINT"){ ret_val = Value("MEDIUMINT"); }
-      else if (id == "INT"){ ret_val = Value("INT"); }
-      else if (id == "BIGINT"){ ret_val = Value("BIGINT"); }
-      else if (id == "FLOAT"){ ret_val = Value("FLOAT"); }
-      else if (id == "DECIMAL"){ ret_val = Value("DECIMAL"); }
-      else if (id == "DOUBLE"){ ret_val = Value("DOUBLE"); }
+  if (module == "mysqlx") {
+    if (group == "Type") {
+      if (id == "BIT") { ret_val = Value("BIT"); } else if (id == "TINYINT") { ret_val = Value("TINYINT"); } else if (id == "SMALLINT") { ret_val = Value("SMALLINT"); } else if (id == "MEDIUMINT") { ret_val = Value("MEDIUMINT"); } else if (id == "INT") { ret_val = Value("INT"); } else if (id == "BIGINT") { ret_val = Value("BIGINT"); } else if (id == "FLOAT") { ret_val = Value("FLOAT"); } else if (id == "DECIMAL") { ret_val = Value("DECIMAL"); } else if (id == "DOUBLE") { ret_val = Value("DOUBLE"); }
       // Commenting this, could be useful when we change all the constats to function calls
       // On MySQL 8 S II
       //       else if (id == "Decimal" || id == "Numeric")
@@ -164,36 +143,21 @@ Value Constant::get_constant_value(const std::string &module, const std::string&
       //       }
 
       // These are new
-      else if (id == "JSON"){ ret_val = Value("JSON"); }
-      else if (id == "STRING"){ ret_val = Value("STRING"); }
-      else if (id == "BYTES"){ ret_val = Value("BYTES"); }
-      else if (id == "TIME"){ ret_val = Value("TIME"); }
-      else if (id == "DATE"){ ret_val = Value("DATE"); }
-      else if (id == "DATETIME"){ ret_val = Value("DATETIME"); }
-      else if (id == "TIMESTAMP"){ ret_val = Value("TIMESTAMP"); }
-      else if (id == "SET"){ ret_val = Value("SET"); }
-      else if (id == "ENUM"){ ret_val = Value("ENUM"); }
-      else if (id == "GEOMETRY"){ ret_val = Value("GEOMETRY"); }
-    }
-    else if (group == "IndexType")
-    {
-      if (id == "UNIQUE"){ ret_val = Value::True(); }
-    }
-    else
+      else if (id == "JSON") { ret_val = Value("JSON"); } else if (id == "STRING") { ret_val = Value("STRING"); } else if (id == "BYTES") { ret_val = Value("BYTES"); } else if (id == "TIME") { ret_val = Value("TIME"); } else if (id == "DATE") { ret_val = Value("DATE"); } else if (id == "DATETIME") { ret_val = Value("DATETIME"); } else if (id == "TIMESTAMP") { ret_val = Value("TIMESTAMP"); } else if (id == "SET") { ret_val = Value("SET"); } else if (id == "ENUM") { ret_val = Value("ENUM"); } else if (id == "GEOMETRY") { ret_val = Value("GEOMETRY"); }
+    } else if (group == "IndexType") {
+      if (id == "UNIQUE") { ret_val = Value::True(); }
+    } else
       throw shcore::Exception::logic_error("Invalid group on constant definition:" + group + "." + id);
-  }
-  else
+  } else
     throw shcore::Exception::logic_error("Invalid module on constant definition:" + group + "." + id);
 
   return ret_val;
 }
 
-std::string &Constant::append_descr(std::string &s_out, int UNUSED(indent), int UNUSED(quote_strings)) const
-{
+std::string &Constant::append_descr(std::string &s_out, int UNUSED(indent), int UNUSED(quote_strings)) const {
   s_out.append("<" + _group + "." + _id);
 
-  if (_data.type == shcore::String)
-  {
+  if (_data.type == shcore::String) {
     std::string data = _data.as_string();
     size_t pos = data.find("(");
     if (pos != std::string::npos)
@@ -205,8 +169,7 @@ std::string &Constant::append_descr(std::string &s_out, int UNUSED(indent), int 
   return s_out;
 }
 
-void Constant::set_param(const std::string& data)
-{
+void Constant::set_param(const std::string& data) {
   std::string temp = _data.as_string();
   temp += "(" + data + ")";
   _data = Value(temp);

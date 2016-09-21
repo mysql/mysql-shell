@@ -41,23 +41,18 @@ using namespace mysh::mysqlx;
 using namespace shcore;
 
 Schema::Schema(std::shared_ptr<BaseSession> session, const std::string &schema)
-  : DatabaseObject(session, std::shared_ptr<DatabaseObject>(), schema), _schema_impl(session->session_obj()->getSchema(schema))
-{
+  : DatabaseObject(session, std::shared_ptr<DatabaseObject>(), schema), _schema_impl(session->session_obj()->getSchema(schema)) {
   init();
 }
 
 Schema::Schema(std::shared_ptr<const BaseSession> session, const std::string &schema) :
-DatabaseObject(std::const_pointer_cast<BaseSession>(session), std::shared_ptr<DatabaseObject>(), schema)
-{
+DatabaseObject(std::const_pointer_cast<BaseSession>(session), std::shared_ptr<DatabaseObject>(), schema) {
   init();
 }
 
-Schema::~Schema()
-{
-}
+Schema::~Schema() {}
 
-void Schema::init()
-{
+void Schema::init() {
   add_method("getTables", std::bind(&Schema::get_tables, this, _1), NULL);
   add_method("getCollections", std::bind(&Schema::get_collections, this, _1), NULL);
 
@@ -72,26 +67,23 @@ void Schema::init()
   _collections = Value::new_map().as_map();
 
   // Setups the cache handlers
-  auto table_generator = [this](const std::string& name){return shcore::Value::wrap<Table>(new Table(shared_from_this(), name, false)); };
-  auto view_generator = [this](const std::string& name){return shcore::Value::wrap<Table>(new Table(shared_from_this(), name, true)); };
-  auto collection_generator = [this](const std::string& name){return shcore::Value::wrap<Collection>(new Collection(shared_from_this(), name)); };
+  auto table_generator = [this](const std::string& name) {return shcore::Value::wrap<Table>(new Table(shared_from_this(), name, false)); };
+  auto view_generator = [this](const std::string& name) {return shcore::Value::wrap<Table>(new Table(shared_from_this(), name, true)); };
+  auto collection_generator = [this](const std::string& name) {return shcore::Value::wrap<Collection>(new Collection(shared_from_this(), name)); };
 
-  update_table_cache = [table_generator, this](const std::string &name, bool exists){DatabaseObject::update_cache(name, table_generator, exists, _tables, this); };
-  update_view_cache = [view_generator, this](const std::string &name, bool exists){DatabaseObject::update_cache(name, view_generator, exists, _views, this); };
-  update_collection_cache = [collection_generator, this](const std::string &name, bool exists){DatabaseObject::update_cache(name, collection_generator, exists, _collections, this); };
+  update_table_cache = [table_generator, this](const std::string &name, bool exists) {DatabaseObject::update_cache(name, table_generator, exists, _tables, this); };
+  update_view_cache = [view_generator, this](const std::string &name, bool exists) {DatabaseObject::update_cache(name, view_generator, exists, _views, this); };
+  update_collection_cache = [collection_generator, this](const std::string &name, bool exists) {DatabaseObject::update_cache(name, collection_generator, exists, _collections, this); };
 
-  update_full_table_cache = [table_generator, this](const std::vector<std::string> &names){DatabaseObject::update_cache(names, table_generator, _tables, this); };
-  update_full_view_cache = [view_generator, this](const std::vector<std::string> &names){DatabaseObject::update_cache(names, view_generator, _views, this); };
-  update_full_collection_cache = [collection_generator, this](const std::vector<std::string> &names){DatabaseObject::update_cache(names, collection_generator, _collections, this); };
+  update_full_table_cache = [table_generator, this](const std::vector<std::string> &names) {DatabaseObject::update_cache(names, table_generator, _tables, this); };
+  update_full_view_cache = [view_generator, this](const std::vector<std::string> &names) {DatabaseObject::update_cache(names, view_generator, _views, this); };
+  update_full_collection_cache = [collection_generator, this](const std::vector<std::string> &names) {DatabaseObject::update_cache(names, collection_generator, _collections, this); };
 }
 
-void Schema::update_cache()
-{
-  try
-  {
+void Schema::update_cache() {
+  try {
     std::shared_ptr<BaseSession> sess(std::static_pointer_cast<BaseSession>(_session.lock()));
-    if (sess)
-    {
+    if (sess) {
       std::vector<std::string> tables;
       std::vector<std::string> collections;
       std::vector<std::string> views;
@@ -107,8 +99,7 @@ void Schema::update_cache()
 
         Value raw_entry;
 
-        while ((raw_entry = my_res->fetch_one(shcore::Argument_list())))
-        {
+        while ((raw_entry = my_res->fetch_one(shcore::Argument_list()))) {
           std::shared_ptr<mysh::Row> row = raw_entry.as_object<mysh::Row>();
           std::string object_name = row->get_member("name").as_string();
           std::string object_type = row->get_member("type").as_string();
@@ -129,8 +120,7 @@ void Schema::update_cache()
         update_full_collection_cache(collections);
 
         // Log errors about unexpected object type
-        if (others.size())
-        {
+        if (others.size()) {
           for (size_t index = 0; index < others.size(); index++)
             log_error("%s", others[index].c_str());
         }
@@ -140,20 +130,14 @@ void Schema::update_cache()
   CATCH_AND_TRANSLATE();
 }
 
-void Schema::_remove_object(const std::string& name, const std::string& type)
-{
-  if (type == "View")
-  {
+void Schema::_remove_object(const std::string& name, const std::string& type) {
+  if (type == "View") {
     if (_views->count(name))
       _views->erase(name);
-  }
-  else if (type == "Table")
-  {
+  } else if (type == "Table") {
     if (_tables->count(name))
       _tables->erase(name);
-  }
-  else if (type == "Collection")
-  {
+  } else if (type == "Collection") {
     if (_collections->count(name))
       _collections->erase(name);
   }
@@ -174,8 +158,7 @@ void Schema::_remove_object(const std::string& name, const std::string& type)
  * See the implementation of DatabaseObject for additional valid members.
  */
 #endif
-Value Schema::get_member(const std::string &prop) const
-{
+Value Schema::get_member(const std::string &prop) const {
   // Searches prop as  a table
   Value ret_val = find_in_cache(prop, _tables);
 
@@ -205,12 +188,11 @@ Value Schema::get_member(const std::string &prop) const
 * Returns a List of available Table objects.
 */
 #if DOXYGEN_JS
-List Schema::getTables(){}
+List Schema::getTables() {}
 #elif DOXYGEN_PY
-list Schema::get_tables(){}
+list Schema::get_tables() {}
 #endif
-shcore::Value Schema::get_tables(const shcore::Argument_list &args)
-{
+shcore::Value Schema::get_tables(const shcore::Argument_list &args) {
   args.ensure_count(0, get_function_name("getTables").c_str());
 
   update_cache();
@@ -235,12 +217,11 @@ shcore::Value Schema::get_tables(const shcore::Argument_list &args)
 * Returns a List of available Collection objects.
 */
 #if DOXYGEN_JS
-List Schema::getCollections(){}
+List Schema::getCollections() {}
 #elif DOXYGEN_PY
-list Schema::get_collections(){}
+list Schema::get_collections() {}
 #endif
-shcore::Value Schema::get_collections(const shcore::Argument_list &args)
-{
+shcore::Value Schema::get_collections(const shcore::Argument_list &args) {
   args.ensure_count(0, get_function_name("getCollections").c_str());
 
   update_cache();
@@ -267,19 +248,17 @@ shcore::Value Schema::get_collections(const shcore::Argument_list &args)
 * \sa Table
 */
 #if DOXYGEN_JS
-Table Schema::getTable(String name){}
+Table Schema::getTable(String name) {}
 #elif DOXYGEN_PY
-Table Schema::get_table(str name){}
+Table Schema::get_table(str name) {}
 #endif
-shcore::Value Schema::get_table(const shcore::Argument_list &args)
-{
+shcore::Value Schema::get_table(const shcore::Argument_list &args) {
   args.ensure_count(1, get_function_name("getTable").c_str());
 
   std::string name = args.string_at(0);
   shcore::Value ret_val;
 
-  if (!name.empty())
-  {
+  if (!name.empty()) {
     std::string found_type;
     std::string real_name;
 
@@ -291,19 +270,15 @@ shcore::Value Schema::get_table(const shcore::Argument_list &args)
 
     bool exists = false;
 
-    if (!real_name.empty())
-    {
-      if (found_type == "TABLE")
-      {
+    if (!real_name.empty()) {
+      if (found_type == "TABLE") {
         exists = true;
 
         // Updates the cache
         update_table_cache(real_name, exists);
 
         ret_val = (*_tables)[real_name];
-      }
-      else if (found_type == "VIEW")
-      {
+      } else if (found_type == "VIEW") {
         exists = true;
 
         // Updates the cache
@@ -315,9 +290,8 @@ shcore::Value Schema::get_table(const shcore::Argument_list &args)
 
     if (!exists)
       throw shcore::Exception::runtime_error("The table " + _name + "." + name + " does not exist");
-}
-  else
-    throw shcore::Exception::argument_error("An empty name is invalid for a table");
+  } else
+      throw shcore::Exception::argument_error("An empty name is invalid for a table");
 
   return ret_val;
 }
@@ -337,24 +311,22 @@ shcore::Value Schema::get_table(const shcore::Argument_list &args)
 * \sa Collection
 */
 #if DOXYGEN_JS
-Collection Schema::getCollection(String name){}
+Collection Schema::getCollection(String name) {}
 #elif DOXYGEN_PY
-Collection Schema::get_collection(str name){}
+Collection Schema::get_collection(str name) {}
 #endif
-shcore::Value Schema::get_collection(const shcore::Argument_list &args)
-{
+shcore::Value Schema::get_collection(const shcore::Argument_list &args) {
   args.ensure_count(1, get_function_name("getCollection").c_str());
 
   std::string name = args.string_at(0);
   shcore::Value ret_val;
 
-  if (!name.empty())
-  {
+  if (!name.empty()) {
     std::string found_type;
     std::string real_name;
 
     auto session = _session.lock();
-    if(session)
+    if (session)
       real_name = session->db_object_exists(found_type, name, _name);
     else
       throw shcore::Exception::logic_error("Unable to retrieve collection '" + name + "', no Session available");
@@ -370,12 +342,11 @@ shcore::Value Schema::get_collection(const shcore::Argument_list &args)
       ret_val = (*_collections)[real_name];
     else
       throw shcore::Exception::runtime_error("The collection " + _name + "." + name + " does not exist");
-  }
-  else
+  } else
     throw shcore::Exception::argument_error("An empty name is invalid for a collection");
 
   return ret_val;
-  }
+}
 
 //! Returns a Table object representing a Collection on the database.
 #if DOXYGEN_CPP
@@ -387,21 +358,19 @@ shcore::Value Schema::get_collection(const shcore::Argument_list &args)
 * \return the Table object representing the collection or undefined.
 */
 #if DOXYGEN_JS
-Collection Schema::getCollectionAsTable(String name){}
+Collection Schema::getCollectionAsTable(String name) {}
 #elif DOXYGEN_PY
-Collection Schema::get_collection_as_table(str name){}
+Collection Schema::get_collection_as_table(str name) {}
 #endif
-shcore::Value Schema::get_collection_as_table(const shcore::Argument_list &args)
-{
+shcore::Value Schema::get_collection_as_table(const shcore::Argument_list &args) {
   args.ensure_count(1, get_function_name("getCollectionAsTable").c_str());
 
   Value ret_val = get_collection(args);
 
-  if (ret_val)
-  {
+  if (ret_val) {
     std::shared_ptr<Table> table(new Table(shared_from_this(), args.string_at(0)));
     ret_val = Value(std::static_pointer_cast<Object_bridge>(table));
-}
+  }
 
   return ret_val;
 }
@@ -418,12 +387,11 @@ shcore::Value Schema::get_collection_as_table(const shcore::Argument_list &args)
 * To specify a name for a collection, follow the naming conventions in MySQL.
 */
 #if DOXYGEN_JS
-Collection Schema::createCollection(String name){}
+Collection Schema::createCollection(String name) {}
 #elif DOXYGEN_PY
-Collection Schema::create_collection(str name){}
+Collection Schema::create_collection(str name) {}
 #endif
-shcore::Value Schema::create_collection(const shcore::Argument_list &args)
-{
+shcore::Value Schema::create_collection(const shcore::Argument_list &args) {
   Value ret_val;
 
   args.ensure_count(1, get_function_name("createCollection").c_str());
@@ -436,15 +404,13 @@ shcore::Value Schema::create_collection(const shcore::Argument_list &args)
 
   std::shared_ptr<BaseSession> sess(std::static_pointer_cast<BaseSession>(_session.lock()));
 
-  if (sess)
-  {
+  if (sess) {
     sess->executeAdminCommand("create_collection", false, command_args);
 
     // If this is reached it implies all went OK on the previous operation
     update_collection_cache(name, true);
     ret_val = (*_collections)[name];
-  }
-  else
+  } else
     throw shcore::Exception::logic_error("Unable to create collection '" + name + "', no Session available");
 
   return ret_val;

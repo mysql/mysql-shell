@@ -1,4 +1,4 @@
-/* Copyright (c) 2014, 2015, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2014, 2016, Oracle and/or its affiliates. All rights reserved.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published by
@@ -98,7 +98,7 @@ public:
     std::string arg;
     arg.append("--").append(option).append("=").append(value);
     SCOPED_TRACE("TESTING: " + arg);
-    char *argv[] = { const_cast<char *>("ut"), const_cast<char *>(arg.c_str()), NULL };
+    char *argv[] = {const_cast<char *>("ut"), const_cast<char *>(arg.c_str()), NULL};
     Shell_command_line_options options(2, argv);
     EXPECT_EQ(0, options.exit_code);
     EXPECT_EQ(connection_data, options.has_connection_data());
@@ -128,7 +128,7 @@ public:
     std::string arg;
     arg.append("--").append(option);
     SCOPED_TRACE("TESTING: " + arg + " " + value);
-    char *argv[] = { const_cast<char *>("ut"), const_cast<char *>(arg.c_str()), const_cast<char *>(value.c_str()), NULL };
+    char *argv[] = {const_cast<char *>("ut"), const_cast<char *>(arg.c_str()), const_cast<char *>(value.c_str()), NULL};
     Shell_command_line_options options(3, argv);
     EXPECT_EQ(0, options.exit_code);
     EXPECT_EQ(connection_data, options.has_connection_data());
@@ -158,7 +158,7 @@ public:
     std::string arg;
     arg.append("-").append(soption).append(value);
     SCOPED_TRACE("TESTING: " + arg);
-    char *argv[] = { const_cast<char *>("ut"), const_cast<char *>(arg.c_str()), NULL };
+    char *argv[] = {const_cast<char *>("ut"), const_cast<char *>(arg.c_str()), NULL};
     Shell_command_line_options options(2, argv);
     EXPECT_EQ(0, options.exit_code);
     EXPECT_EQ(connection_data, options.has_connection_data());
@@ -188,7 +188,7 @@ public:
     std::string arg;
     arg.append("-").append(soption);
     SCOPED_TRACE("TESTING: " + arg + " " + value);
-    char *argv[] = { const_cast<char *>("ut"), const_cast<char *>(arg.c_str()), const_cast<char *>(value.c_str()), NULL };
+    char *argv[] = {const_cast<char *>("ut"), const_cast<char *>(arg.c_str()), const_cast<char *>(value.c_str()), NULL};
     Shell_command_line_options options(3, argv);
     EXPECT_EQ(0, options.exit_code);
     EXPECT_EQ(connection_data, options.has_connection_data());
@@ -218,7 +218,7 @@ public:
     std::string arg;
     arg.append("--").append(option);
     SCOPED_TRACE("TESTING: " + arg);
-    char *argv[] = { const_cast<char *>("ut"), const_cast<char *>(arg.c_str()), NULL };
+    char *argv[] = {const_cast<char *>("ut"), const_cast<char *>(arg.c_str()), NULL};
     Shell_command_line_options options(2, argv);
 
     if (valid) {
@@ -255,7 +255,7 @@ public:
     std::string arg;
     arg.append("--").append(option).append("=");
     SCOPED_TRACE("TESTING: " + arg);
-    char *argv[] = { const_cast<char *>("ut"), const_cast<char *>(arg.c_str()), NULL };
+    char *argv[] = {const_cast<char *>("ut"), const_cast<char *>(arg.c_str()), NULL};
     Shell_command_line_options options(2, argv);
 
     if (valid) {
@@ -303,7 +303,7 @@ public:
     // Tests --option or -o
 
     SCOPED_TRACE("TESTING: " + option);
-    char *argv[] = { const_cast<char *>("ut"), const_cast<char *>(option.c_str()), NULL };
+    char *argv[] = {const_cast<char *>("ut"), const_cast<char *>(option.c_str()), NULL};
     Shell_command_line_options options(2, argv);
 
     EXPECT_EQ(0, options.exit_code);
@@ -321,7 +321,7 @@ public:
 
     {
       SCOPED_TRACE("TESTING: " + firstArg + " " + secondArg);
-      char *argv[] = { const_cast<char *>("ut"), const_cast<char *>(firstArg.c_str()), const_cast<char *>(secondArg.c_str()), NULL };
+      char *argv[] = {const_cast<char *>("ut"), const_cast<char *>(firstArg.c_str()), const_cast<char *>(secondArg.c_str()), NULL};
       Shell_command_line_options options(3, argv);
 
       EXPECT_EQ(ret_code, options.exit_code);

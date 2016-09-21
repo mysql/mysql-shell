@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2016, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -25,44 +25,41 @@
 
 #include "dynamic_object.h"
 
-namespace mysh
-{
-  namespace mysqlx
-  {
-    class Collection;
+namespace mysh {
+namespace mysqlx {
+class Collection;
 
-    /**
-    * Handler for index dropping handler on a Collection.
-    *
-    * This object allows dropping an index from a collection.
-    *
-    * This object should only be created by calling the dropIndex function on the collection object where the index will be removed.
-    *
-    * \sa Collection
-    */
-    class CollectionDropIndex : public Dynamic_object, public std::enable_shared_from_this<CollectionDropIndex>
-    {
-    public:
-      CollectionDropIndex(std::shared_ptr<Collection> owner);
+/**
+* Handler for index dropping handler on a Collection.
+*
+* This object allows dropping an index from a collection.
+*
+* This object should only be created by calling the dropIndex function on the collection object where the index will be removed.
+*
+* \sa Collection
+*/
+class CollectionDropIndex : public Dynamic_object, public std::enable_shared_from_this<CollectionDropIndex> {
+public:
+  CollectionDropIndex(std::shared_ptr<Collection> owner);
 
-      virtual std::string class_name() const { return "CollectionDropIndex"; }
+  virtual std::string class_name() const { return "CollectionDropIndex"; }
 
-      shcore::Value drop_index(const shcore::Argument_list &args);
-      virtual shcore::Value execute(const shcore::Argument_list &args);
+  shcore::Value drop_index(const shcore::Argument_list &args);
+  virtual shcore::Value execute(const shcore::Argument_list &args);
 
 #if DOXYGEN_JS
-      CollectionDropIndex dropIndex(String indexName);
-      Result execute();
+  CollectionDropIndex dropIndex(String indexName);
+  Result execute();
 #elif DOXYGEN_PY
-      CollectionDropIndex drop_index(str indexName);
-      Result execute();
+  CollectionDropIndex drop_index(str indexName);
+  Result execute();
 #endif
 
-    private:
-      std::weak_ptr<Collection> _owner;
-      shcore::Argument_list _drop_index_args;
-    };
-  }
+private:
+  std::weak_ptr<Collection> _owner;
+  shcore::Argument_list _drop_index_args;
+};
+}
 }
 
 #endif

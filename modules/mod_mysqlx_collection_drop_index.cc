@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2016, Oracle and/or its affiliates. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -31,8 +31,7 @@ using namespace mysh::mysqlx;
 using namespace shcore;
 
 CollectionDropIndex::CollectionDropIndex(std::shared_ptr<Collection> owner)
-  :_owner(owner)
-{
+  :_owner(owner) {
   // Exposes the methods available for chaining
   add_method("dropIndex", std::bind(&CollectionDropIndex::drop_index, this, _1), "data");
   add_method("execute", std::bind(&CollectionDropIndex::execute, this, _1), "data");
@@ -60,25 +59,22 @@ CollectionDropIndex::CollectionDropIndex(std::shared_ptr<Collection> owner)
 * This function can be invoked only once but the operation will be performed when the execute() function is invoked.
 */
 #if DOXYGEN_JS
-CollectionDropIndex CollectionDropIndex::dropIndex(String indexName){}
+CollectionDropIndex CollectionDropIndex::dropIndex(String indexName) {}
 #elif DOXYGEN_PY
-CollectionDropIndex CollectionDropIndex::drop_index(str indexName){}
+CollectionDropIndex CollectionDropIndex::drop_index(str indexName) {}
 #endif
-shcore::Value CollectionDropIndex::drop_index(const shcore::Argument_list &args)
-{
+shcore::Value CollectionDropIndex::drop_index(const shcore::Argument_list &args) {
   // Each method validates the received parameters
   args.ensure_count(1, 2, get_function_name("dropIndex").c_str());
 
-  try
-  {
+  try {
     // Does nothing with the values, but just calling the proper getter performs
     // standard data type validation.
     args.string_at(0);
 
     std::shared_ptr<Collection> raw_owner(_owner.lock());
 
-    if (raw_owner)
-    {
+    if (raw_owner) {
       Value schema = raw_owner->get_member("schema");
       _drop_index_args.push_back(schema.as_object()->get_member("name"));
       _drop_index_args.push_back(raw_owner->get_member("name"));
@@ -99,20 +95,18 @@ shcore::Value CollectionDropIndex::drop_index(const shcore::Argument_list &args)
 * This function can be invoked once after:
 */
 #if DOXYGEN_JS
-Result CollectionDropIndex::execute(){}
+Result CollectionDropIndex::execute() {}
 #elif DOXYGEN_PY
-Result CollectionDropIndex::execute(){}
+Result CollectionDropIndex::execute() {}
 #endif
-shcore::Value CollectionDropIndex::execute(const shcore::Argument_list &args)
-{
+shcore::Value CollectionDropIndex::execute(const shcore::Argument_list &args) {
   Value result;
 
   args.ensure_count(0, get_function_name("execute").c_str());
 
   std::shared_ptr<Collection> raw_owner(_owner.lock());
 
-  if (raw_owner)
-  {
+  if (raw_owner) {
     Value session = raw_owner->get_member("session");
     std::shared_ptr<BaseSession> session_obj = std::static_pointer_cast<BaseSession>(session.as_object());
     result = session_obj->executeAdminCommand("drop_collection_index", false, _drop_index_args);

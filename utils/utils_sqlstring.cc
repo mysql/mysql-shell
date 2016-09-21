@@ -258,321 +258,275 @@ static const char *reserved_keywords[] = {
   NULL
 };
 
-namespace shcore
-{
-  //--------------------------------------------------------------------------------------------------
+namespace shcore {
+//--------------------------------------------------------------------------------------------------
 
-  /**
-  * Escape a string to be used in a SQL query
-  * Same code as used by mysql. Handles null bytes in the middle of the string.
-  * If wildcards is true then _ and % are masked as well.
-  */
-  std::string escape_sql_string(const std::string &s, bool wildcards)
-  {
-    std::string result;
-    result.reserve(s.size());
+/**
+* Escape a string to be used in a SQL query
+* Same code as used by mysql. Handles null bytes in the middle of the string.
+* If wildcards is true then _ and % are masked as well.
+*/
+std::string escape_sql_string(const std::string &s, bool wildcards) {
+  std::string result;
+  result.reserve(s.size());
 
-    for (std::string::const_iterator ch = s.begin(); ch != s.end(); ++ch)
-    {
-      char escape = 0;
+  for (std::string::const_iterator ch = s.begin(); ch != s.end(); ++ch) {
+    char escape = 0;
 
-      switch (*ch)
-      {
-        case 0:                             /* Must be escaped for 'mysql' */
-          escape = '0';
-          break;
-        case '\n':                          /* Must be escaped for logs */
-          escape = 'n';
-          break;
-        case '\r':
-          escape = 'r';
-          break;
-        case '\\':
-          escape = '\\';
-          break;
-        case '\'':
-          escape = '\'';
-          break;
-        case '"':                           /* Better safe than sorry */
-          escape = '"';
-          break;
-        case '\032':                        /* This gives problems on Win32 */
-          escape = 'Z';
-          break;
-        case '_':
-          if (wildcards)
-            escape = '_';
-          break;
-        case '%':
-          if (wildcards)
-            escape = '%';
-          break;
-      }
-      if (escape)
-      {
-        result.push_back('\\');
-        result.push_back(escape);
-      }
-      else
-        result.push_back(*ch);
-    }
-    return result;
-  }
-
-  //--------------------------------------------------------------------------------------------------
-
-  // NOTE: This is not the same as escape_sql_string, as embedded ` must be escaped as ``, not \`
-  // and \ ' and " must not be escaped
-  std::string escape_backticks(const std::string &s)
-  {
-    std::string result;
-    result.reserve(s.size());
-
-    for (std::string::const_iterator ch = s.begin(); ch != s.end(); ++ch)
-    {
-      char escape = 0;
-
-      switch (*ch)
-      {
-        case 0:                             /* Must be escaped for 'mysql' */
-          escape = '0';
-          break;
-        case '\n':                          /* Must be escaped for logs */
-          escape = 'n';
-          break;
-        case '\r':
-          escape = 'r';
-          break;
-        case '\032':                        /* This gives problems on Win32 */
-          escape = 'Z';
-          break;
-        case '`':
-          // special case
-          result.push_back('`');
-          break;
-      }
-      if (escape)
-      {
-        result.push_back('\\');
-        result.push_back(escape);
-      }
-      else
-        result.push_back(*ch);
-    }
-    return result;
-  }
-
-  //--------------------------------------------------------------------------------------------------
-
-  bool is_reserved_word(const std::string &word)
-  {
-    std::string upper(word);
-    boost::to_upper(upper);
-    for (const char **kw = reserved_keywords; *kw != NULL; ++kw)
-    {
-      if (upper.compare(*kw) == 0)
-        return true;
-    }
-    return false;
-  }
-
-  //--------------------------------------------------------------------------------------------------
-
-  std::string quote_identifier(const std::string& identifier, const char quote_char)
-  {
-    return quote_char + identifier + quote_char;
-  }
-
-  //--------------------------------------------------------------------------------------------------
-
-  /**
-  * Quotes the given identifier, but only if it needs to be quoted.
-  * http://dev.mysql.com/doc/refman/5.1/en/identifiers.html specifies what is allowed in unquoted identifiers.
-  * Leading numbers are not strictly forbidden but discouraged as they may lead to ambiguous behavior.
-  */
-  std::string quote_identifier_if_needed(const std::string &ident, const char quote_char)
-  {
-    bool needs_quotation = is_reserved_word(ident);  // check whether it's a reserved keyword
-    size_t digits = 0;
-
-    if (!needs_quotation)
-    {
-      for (std::string::const_iterator i = ident.begin(); i != ident.end(); ++i)
-      {
-        if ((*i >= 'a' && *i <= 'z') || (*i >= 'A' && *i <= 'Z') || (*i >= '0' && *i <= '9')
-            || (*i == '_') || (*i == '$') || ((unsigned char)(*i) > 0x7F))
-        {
-          if (*i >= '0' && *i <= '9')
-            digits++;
-
-          continue;
-        }
-        needs_quotation = true;
+    switch (*ch) {
+      case 0:                             /* Must be escaped for 'mysql' */
+        escape = '0';
         break;
-      }
-    }
-
-    if (needs_quotation || digits == ident.length())
-      return quote_char + ident + quote_char;
-    else
-      return ident;
-  }
-
-  const sqlstring sqlstring::null(sqlstring("NULL", 0));
-
-  sqlstring::sqlstring(const char* format_string, const sqlstringformat format)
-    : _format_string_left(format_string), _format(format)
-  {
-    append(consume_until_next_escape());
-  }
-
-  sqlstring::sqlstring(const sqlstring &copy)
-    : _formatted(copy._formatted), _format_string_left(copy._format_string_left), _format(copy._format)
-  {
-  }
-
-  sqlstring::sqlstring()
-    : _format(0)
-  {
-  }
-
-  std::string sqlstring::consume_until_next_escape()
-  {
-    std::string::size_type e = _format_string_left.length(), p = 0;
-    while (p < e)
-    {
-      char ch = _format_string_left[p];
-      if (ch == '?' || ch == '!')
+      case '\n':                          /* Must be escaped for logs */
+        escape = 'n';
         break;
-      ++p;
+      case '\r':
+        escape = 'r';
+        break;
+      case '\\':
+        escape = '\\';
+        break;
+      case '\'':
+        escape = '\'';
+        break;
+      case '"':                           /* Better safe than sorry */
+        escape = '"';
+        break;
+      case '\032':                        /* This gives problems on Win32 */
+        escape = 'Z';
+        break;
+      case '_':
+        if (wildcards)
+          escape = '_';
+        break;
+      case '%':
+        if (wildcards)
+          escape = '%';
+        break;
     }
-    if (p > 0)
-    {
-      std::string s = _format_string_left.substr(0, p);
-      if (p < e)
-        _format_string_left = _format_string_left.substr(p);
-      else
-        _format_string_left.clear();
-      return s;
+    if (escape) {
+      result.push_back('\\');
+      result.push_back(escape);
+    } else
+      result.push_back(*ch);
+  }
+  return result;
+}
+
+//--------------------------------------------------------------------------------------------------
+
+// NOTE: This is not the same as escape_sql_string, as embedded ` must be escaped as ``, not \`
+// and \ ' and " must not be escaped
+std::string escape_backticks(const std::string &s) {
+  std::string result;
+  result.reserve(s.size());
+
+  for (std::string::const_iterator ch = s.begin(); ch != s.end(); ++ch) {
+    char escape = 0;
+
+    switch (*ch) {
+      case 0:                             /* Must be escaped for 'mysql' */
+        escape = '0';
+        break;
+      case '\n':                          /* Must be escaped for logs */
+        escape = 'n';
+        break;
+      case '\r':
+        escape = 'r';
+        break;
+      case '\032':                        /* This gives problems on Win32 */
+        escape = 'Z';
+        break;
+      case '`':
+        // special case
+        result.push_back('`');
+        break;
     }
-    return "";
+    if (escape) {
+      result.push_back('\\');
+      result.push_back(escape);
+    } else
+      result.push_back(*ch);
   }
+  return result;
+}
 
-  int sqlstring::next_escape()
-  {
-    if (_format_string_left.empty())
-      throw std::invalid_argument("Error formatting SQL query: more arguments than escapes");
-    int c = _format_string_left[0];
-    _format_string_left = _format_string_left.substr(1);
-    return c;
-  }
+//--------------------------------------------------------------------------------------------------
 
-  sqlstring &sqlstring::append(const std::string &s)
-  {
-    _formatted.append(s);
-    return *this;
-  }
-
-  sqlstring::operator std::string() const
-  {
-    return _formatted + _format_string_left;
-  }
-
-  std::string sqlstring::str() const
-  {
-    return _formatted + _format_string_left;
-  }
-
-  bool sqlstring::done() const
-  {
-    if (_format_string_left.empty())
+bool is_reserved_word(const std::string &word) {
+  std::string upper(word);
+  boost::to_upper(upper);
+  for (const char **kw = reserved_keywords; *kw != NULL; ++kw) {
+    if (upper.compare(*kw) == 0)
       return true;
-    return _format_string_left[0] != '!' && _format_string_left[0] != '?';
   }
+  return false;
+}
 
-  sqlstring &sqlstring::operator <<(const double v)
-  {
-    int esc = next_escape();
-    if (esc != '?')
-      throw std::invalid_argument("Error formatting SQL query: invalid escape for numeric argument");
+//--------------------------------------------------------------------------------------------------
 
-    append(boost::lexical_cast<std::string>(v));
-    append(consume_until_next_escape());
+std::string quote_identifier(const std::string& identifier, const char quote_char) {
+  return quote_char + identifier + quote_char;
+}
 
-    return *this;
-  }
+//--------------------------------------------------------------------------------------------------
 
-  sqlstring &sqlstring::operator <<(const sqlstringformat format)
-  {
-    _format = format;
-    return *this;
-  }
+/**
+* Quotes the given identifier, but only if it needs to be quoted.
+* http://dev.mysql.com/doc/refman/5.1/en/identifiers.html specifies what is allowed in unquoted identifiers.
+* Leading numbers are not strictly forbidden but discouraged as they may lead to ambiguous behavior.
+*/
+std::string quote_identifier_if_needed(const std::string &ident, const char quote_char) {
+  bool needs_quotation = is_reserved_word(ident);  // check whether it's a reserved keyword
+  size_t digits = 0;
 
-  sqlstring &sqlstring::operator <<(const std::string& v)
-  {
-    int esc = next_escape();
-    if (esc == '!')
-    {
-      std::string escaped = escape_backticks(v);
-      if ((_format._flags & QuoteOnlyIfNeeded) != 0)
-        append(quote_identifier_if_needed(escaped, '`'));
-      else
-        append(quote_identifier(escaped, '`'));
+  if (!needs_quotation) {
+    for (std::string::const_iterator i = ident.begin(); i != ident.end(); ++i) {
+      if ((*i >= 'a' && *i <= 'z') || (*i >= 'A' && *i <= 'Z') || (*i >= '0' && *i <= '9')
+          || (*i == '_') || (*i == '$') || ((unsigned char)(*i) > 0x7F)) {
+        if (*i >= '0' && *i <= '9')
+          digits++;
+
+        continue;
+      }
+      needs_quotation = true;
+      break;
     }
-    else if (esc == '?')
-    {
+  }
+
+  if (needs_quotation || digits == ident.length())
+    return quote_char + ident + quote_char;
+  else
+    return ident;
+}
+
+const sqlstring sqlstring::null(sqlstring("NULL", 0));
+
+sqlstring::sqlstring(const char* format_string, const sqlstringformat format)
+  : _format_string_left(format_string), _format(format) {
+  append(consume_until_next_escape());
+}
+
+sqlstring::sqlstring(const sqlstring &copy)
+  : _formatted(copy._formatted), _format_string_left(copy._format_string_left), _format(copy._format) {}
+
+sqlstring::sqlstring()
+  : _format(0) {}
+
+std::string sqlstring::consume_until_next_escape() {
+  std::string::size_type e = _format_string_left.length(), p = 0;
+  while (p < e) {
+    char ch = _format_string_left[p];
+    if (ch == '?' || ch == '!')
+      break;
+    ++p;
+  }
+  if (p > 0) {
+    std::string s = _format_string_left.substr(0, p);
+    if (p < e)
+      _format_string_left = _format_string_left.substr(p);
+    else
+      _format_string_left.clear();
+    return s;
+  }
+  return "";
+}
+
+int sqlstring::next_escape() {
+  if (_format_string_left.empty())
+    throw std::invalid_argument("Error formatting SQL query: more arguments than escapes");
+  int c = _format_string_left[0];
+  _format_string_left = _format_string_left.substr(1);
+  return c;
+}
+
+sqlstring &sqlstring::append(const std::string &s) {
+  _formatted.append(s);
+  return *this;
+}
+
+sqlstring::operator std::string() const {
+  return _formatted + _format_string_left;
+}
+
+std::string sqlstring::str() const {
+  return _formatted + _format_string_left;
+}
+
+bool sqlstring::done() const {
+  if (_format_string_left.empty())
+    return true;
+  return _format_string_left[0] != '!' && _format_string_left[0] != '?';
+}
+
+sqlstring &sqlstring::operator <<(const double v) {
+  int esc = next_escape();
+  if (esc != '?')
+    throw std::invalid_argument("Error formatting SQL query: invalid escape for numeric argument");
+
+  append(boost::lexical_cast<std::string>(v));
+  append(consume_until_next_escape());
+
+  return *this;
+}
+
+sqlstring &sqlstring::operator <<(const sqlstringformat format) {
+  _format = format;
+  return *this;
+}
+
+sqlstring &sqlstring::operator <<(const std::string& v) {
+  int esc = next_escape();
+  if (esc == '!') {
+    std::string escaped = escape_backticks(v);
+    if ((_format._flags & QuoteOnlyIfNeeded) != 0)
+      append(quote_identifier_if_needed(escaped, '`'));
+    else
+      append(quote_identifier(escaped, '`'));
+  } else if (esc == '?') {
+    if (_format._flags & UseAnsiQuotes)
+      append("\"").append(escape_sql_string(v)).append("\"");
+    else
+      append("'").append(escape_sql_string(v)).append("'");
+  } else // shouldn't happen
+    throw std::invalid_argument("Error formatting SQL query: internal error, expected ? or ! escape got something else");
+  append(consume_until_next_escape());
+
+  return *this;
+}
+
+sqlstring &sqlstring::operator <<(const sqlstring& v) {
+  next_escape();
+
+  append(v);
+  append(consume_until_next_escape());
+
+  return *this;
+}
+
+sqlstring &sqlstring::operator <<(const char* v) {
+  int esc = next_escape();
+
+  if (esc == '!') {
+    if (!v)
+      throw std::invalid_argument("Error formatting SQL query: NULL value found for identifier");
+    std::string quoted = escape_backticks(v);
+    if (quoted == v && (_format._flags & QuoteOnlyIfNeeded))
+      append(quoted);
+    else
+      append("`").append(quoted).append("`");
+  } else if (esc == '?') {
+    if (v) {
       if (_format._flags & UseAnsiQuotes)
         append("\"").append(escape_sql_string(v)).append("\"");
       else
         append("'").append(escape_sql_string(v)).append("'");
-    }
-    else // shouldn't happen
-      throw std::invalid_argument("Error formatting SQL query: internal error, expected ? or ! escape got something else");
-    append(consume_until_next_escape());
+    } else
+      append("NULL");
+  } else // shouldn't happen
+    throw std::invalid_argument("Error formatting SQL query: internal error, expected ? or ! escape got something else");
+  append(consume_until_next_escape());
 
-    return *this;
-  }
-
-  sqlstring &sqlstring::operator <<(const sqlstring& v)
-  {
-    next_escape();
-
-    append(v);
-    append(consume_until_next_escape());
-
-    return *this;
-  }
-
-  sqlstring &sqlstring::operator <<(const char* v)
-  {
-    int esc = next_escape();
-
-    if (esc == '!')
-    {
-      if (!v)
-        throw std::invalid_argument("Error formatting SQL query: NULL value found for identifier");
-      std::string quoted = escape_backticks(v);
-      if (quoted == v && (_format._flags & QuoteOnlyIfNeeded))
-        append(quoted);
-      else
-        append("`").append(quoted).append("`");
-    }
-    else if (esc == '?')
-    {
-      if (v)
-      {
-        if (_format._flags & UseAnsiQuotes)
-          append("\"").append(escape_sql_string(v)).append("\"");
-        else
-          append("'").append(escape_sql_string(v)).append("'");
-      }
-      else
-        append("NULL");
-    }
-    else // shouldn't happen
-      throw std::invalid_argument("Error formatting SQL query: internal error, expected ? or ! escape got something else");
-    append(consume_until_next_escape());
-
-    return *this;
-  }
+  return *this;
+}
 }

@@ -24,10 +24,8 @@
 
 using namespace mysh::mysqlx;
 
-::mysqlx::TableValue Table_crud_definition::map_table_value(shcore::Value source)
-{
-  switch (source.type)
-  {
+::mysqlx::TableValue Table_crud_definition::map_table_value(shcore::Value source) {
+  switch (source.type) {
     case shcore::Null:
       return ::mysqlx::TableValue();
       break;
@@ -52,12 +50,10 @@ using namespace mysh::mysqlx;
 
       std::string object_class = object->class_name();
 
-      if (object_class == "Expression")
-      {
+      if (object_class == "Expression") {
         std::shared_ptr<Expression> expression = std::dynamic_pointer_cast<Expression>(object);
 
-        if (expression)
-        {
+        if (expression) {
           std::string expr_data = expression->get_data();
           if (expr_data.empty())
             throw shcore::Exception::argument_error("Expressions can not be empty.");
@@ -65,13 +61,10 @@ using namespace mysh::mysqlx;
             return ::mysqlx::TableValue(expr_data, ::mysqlx::TableValue::TExpression);
         }
       }
-      if (object_class == "Date")
-      {
+      if (object_class == "Date") {
         std::string data = source.descr();
         return ::mysqlx::TableValue(data);
-      }
-      else
-      {
+      } else {
         std::stringstream str;
         str << "Unsupported value received: " << source.descr() << ".";
         throw shcore::Exception::argument_error(str.str());
