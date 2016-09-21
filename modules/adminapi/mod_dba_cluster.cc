@@ -454,7 +454,7 @@ shcore::Value Cluster::status(const shcore::Argument_list &args) {
   return ret_val;
 }
 
-REGISTER_HELP(CLUSTER_DISSOLVE_BRIEF, "Describe the status of the cluster.");
+REGISTER_HELP(CLUSTER_DISSOLVE_BRIEF, "Dissolves the cluster.");
 REGISTER_HELP(CLUSTER_DISSOLVE_PARAM, "@param options Optional parameter to specify if it should deactivate replication and unregister the ReplicaSets from the cluster.");
 REGISTER_HELP(CLUSTER_DISSOLVE_DETAIL, "This function disables replication on the ReplicaSets, unregisters them and the the cluster from the metadata. ");
 REGISTER_HELP(CLUSTER_DISSOLVE_DETAIL1, "It keeps all the user's data intact.");
@@ -470,9 +470,9 @@ REGISTER_HELP(CLUSTER_DISSOLVE_DETAIL3, "@li force: boolean, confirms that the d
 * $(CLUSTER_DISSOLVE_DETAIL1)
 */
 #if DOXYGEN_JS
-Undefined Cluster::dissolve(Document doc) {}
+Undefined Cluster::dissolve(Document options) {}
 #elif DOXYGEN_PY
-None Cluster::dissolve(Document doc) {}
+None Cluster::dissolve(Document options) {}
 #endif
 
 shcore::Value Cluster::dissolve(const shcore::Argument_list &args) {
