@@ -23,8 +23,8 @@
 #include "shellcore/shell_python.h"
 #include "shellcore/object_registry.h"
 #include "modules/base_session.h"
-#include "interactive_global_schema.h"
-#include "interactive_global_session.h"
+#include "interactive/interactive_global_schema.h"
+#include "interactive/interactive_global_session.h"
 #include <boost/algorithm/string.hpp>
 #include <boost/format.hpp>
 #include "modules/mod_mysqlx.h"
@@ -32,7 +32,7 @@
 #include "utils/utils_general.h"
 
 #ifdef WITH_ADMINAPI
-#include "interactive_global_dba.h"
+#include "interactive/interactive_global_dba.h"
 #include "modules/adminapi/mod_dba.h"
 #endif
 

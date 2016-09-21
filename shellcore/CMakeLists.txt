@@ -67,8 +67,13 @@ file(GLOB libmysqlshcore_SRC
     "${CMAKE_SOURCE_DIR}/utils/uri_parser.cc"
     "${CMAKE_SOURCE_DIR}/utils/utils_help.h"
     "${CMAKE_SOURCE_DIR}/utils/utils_help.cc"
+    "${CMAKE_SOURCE_DIR}/interactive/interactive_global_schema.h"
+    "${CMAKE_SOURCE_DIR}/interactive/interactive_global_schema.cc"
+    "${CMAKE_SOURCE_DIR}/interactive/interactive_global_session.h"
+    "${CMAKE_SOURCE_DIR}/interactive/interactive_global_session.cc"
     "*.cc"
     "*.h"
+
     "${CMAKE_SOURCE_DIR}/common/uuid/src/uuid_gen.cc"
     "${CMAKE_BINARY_DIR}/shellcore/jscript_core_definitions.h"
     "${BOOST_SOURCE_CODE}"
@@ -81,11 +86,10 @@ file(GLOB libmysqlshcore_SRC
 IF ( WITH_ADMINAPI )
   list(APPEND libmysqlshcore_SRC "${CMAKE_SOURCE_DIR}/common/process_launcher/process_launcher.cc")
   list(APPEND libmysqlshcore_SRC "${CMAKE_SOURCE_DIR}/common/common/exception.cc")
-ELSE()
-  list(REMOVE_ITEM libmysqlshcore_SRC "${CMAKE_SOURCE_DIR}/shellcore/interactive_global_dba.h")
-  list(REMOVE_ITEM libmysqlshcore_SRC "${CMAKE_SOURCE_DIR}/shellcore/interactive_global_dba.cc")
-  list(REMOVE_ITEM libmysqlshcore_SRC "${CMAKE_SOURCE_DIR}/shellcore/interactive_dba_cluster.h")
-  list(REMOVE_ITEM libmysqlshcore_SRC "${CMAKE_SOURCE_DIR}/shellcore/interactive_dba_cluster.cc")
+  list(APPEND libmysqlshcore_SRC "${CMAKE_SOURCE_DIR}/interactive/interactive_global_dba.h")
+  list(APPEND libmysqlshcore_SRC "${CMAKE_SOURCE_DIR}/interactive/interactive_global_dba.cc")
+  list(APPEND libmysqlshcore_SRC "${CMAKE_SOURCE_DIR}/interactive/interactive_dba_cluster.h")
+  list(APPEND libmysqlshcore_SRC "${CMAKE_SOURCE_DIR}/interactive/interactive_dba_cluster.cc")
 ENDIF()
 
 #else()

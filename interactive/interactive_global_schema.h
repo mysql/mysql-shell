@@ -20,27 +20,19 @@
 // Interactive DB access module
 // (the one exposed as the db variable in the shell)
 
-#ifndef _INTERACTIVE_DBA_CLUSTER_H_
-#define _INTERACTIVE_DBA_CLUSTER_H_
+#ifndef _INTERACTIVE_GLOBAL_SCHEMA_H_
+#define _INTERACTIVE_GLOBAL_SCHEMA_H_
 
-#include "interactive_object_wrapper.h"
+#include "shellcore/interactive_object_wrapper.h"
 
 namespace shcore {
-class SHCORE_PUBLIC Interactive_dba_cluster : public Interactive_object_wrapper {
+//! Interactive wrapper for the global schema
+class SHCORE_PUBLIC Global_schema : public Interactive_object_wrapper {
 public:
-  Interactive_dba_cluster(Shell_core& shell_core) : Interactive_object_wrapper("dba", shell_core) { init(); }
+  Global_schema(Shell_core& shell_core) : Interactive_object_wrapper("db", shell_core) {};
 
-  void init();
-
-  shcore::Value add_seed_instance(const shcore::Argument_list &args);
-  shcore::Value add_instance(const shcore::Argument_list &args);
-  shcore::Value rejoin_instance(const shcore::Argument_list &args);
-  shcore::Value remove_instance(const shcore::Argument_list &args);
-  shcore::Value dissolve(const shcore::Argument_list &args);
-
-private:
-  bool resolve_instance_options(const std::string& function, const shcore::Argument_list &args, shcore::Value::Map_type_ref &options) const;
+  virtual void resolve() const;
 };
 }
 
-#endif // _INTERACTIVE_DBA_CLUSTER_H_
+#endif

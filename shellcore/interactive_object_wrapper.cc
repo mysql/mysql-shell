@@ -17,7 +17,7 @@
  * 02110-1301  USA
  */
 
-#include "interactive_object_wrapper.h"
+#include "shellcore/interactive_object_wrapper.h"
 using namespace shcore;
 
 Interactive_object_wrapper::Interactive_object_wrapper(const std::string& alias, shcore::Shell_core& core) : _alias(alias), _shell_core(core), _delegate(core.get_delegate()) {};

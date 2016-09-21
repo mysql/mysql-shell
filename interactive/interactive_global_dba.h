@@ -23,7 +23,7 @@
 #ifndef _INTERACTIVE_GLOBAL_DBA_H_
 #define _INTERACTIVE_GLOBAL_DBA_H_
 
-#include "interactive_object_wrapper.h"
+#include "shellcore/interactive_object_wrapper.h"
 
 namespace shcore {
 class SHCORE_PUBLIC Global_dba : public Interactive_object_wrapper {

@@ -19,7 +19,7 @@
 
 #include "interactive_global_dba.h"
 #include "shellcore/shell_registry.h"
-#include "shellcore/interactive_dba_cluster.h"
+#include "interactive/interactive_dba_cluster.h"
 #include "modules/mysqlxtest_utils.h"
 #include "modules/adminapi/mod_dba.h"
 #include "utils/utils_general.h"
