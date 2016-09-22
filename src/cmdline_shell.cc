@@ -50,6 +50,8 @@ Command_line_shell::Command_line_shell(const Shell_options &options) : mysh::Bas
   _delegate.password = &Command_line_shell::deleg_password;
   _delegate.source = &Command_line_shell::deleg_source;
   _delegate.print_value = nullptr;
+  
+  observe_notification("SN_STATEMENT_EXECUTED");
 }
 
 void Command_line_shell::deleg_print(void *cdata, const char *text) {
@@ -225,4 +227,14 @@ void Command_line_shell::print_cmd_line_helper() {
 
   println("");
 }
+
+void Command_line_shell::handle_notification(const std::string &name, shcore::Object_bridge_ref sender, shcore::Value::Map_type_ref data){
+#ifndef WIN32
+  if(name=="SN_STATEMENT_EXECUTED"){
+    std::string executed = data->get_string("statement");
+    add_history(executed.c_str());
+  }
+#endif
+}
+
 }

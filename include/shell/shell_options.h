@@ -27,7 +27,7 @@
 namespace mysh {
 struct SHCORE_PUBLIC Shell_options {
 public:
-  Shell_options::Shell_options();
+  Shell_options();
 
   shcore::IShell_core::Mode initial_mode;
   std::string run_file;

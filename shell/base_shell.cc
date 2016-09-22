@@ -23,6 +23,7 @@
 #include "utils/utils_general.h"
 #include "shellcore/shell_core_options.h" // <---
 #include "shellcore/shell_registry.h"
+#include "shellcore/shell_notifications.h"
 #include "modules/base_resultset.h"
 #include "shell_resultset_dumper.h"
 #include "utils/utils_time.h"
@@ -44,11 +45,6 @@ _options(options) {
   log_path += "mysqlsh.log";
   ngcommon::Logger::create_instance(log_path.c_str(), false, _options.log_level);
   _logger = ngcommon::Logger::singleton();
-
-#ifndef WIN32
-  rl_initialize();
-#endif
-  //  using_history();
 
   _input_mode = shcore::Input_ok;
 
@@ -925,9 +921,9 @@ void Base_shell::process_line(const std::string &line) {
           std::string executed = _shell->get_handled_input();
 
           if (!executed.empty()) {
-#ifndef WIN32
-            add_history(executed.c_str());
-#endif
+	    shcore::Value::Map_type_ref data(new shcore::Value::Map_type());
+	    (*data)["statement"] = shcore::Value(executed);
+	    shcore::ShellNotifications::get()->notify("SN_STATEMENT_EXECUTED", nullptr, data);
           }
         }
       } catch (shcore::Exception &exc) {

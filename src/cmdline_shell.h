@@ -24,11 +24,12 @@
 #endif
 
 #include "shell/shell_options.h"
+#include "shellcore/shell_notifications.h"
 #include "shellcore/types.h"
 #include "shellcore/shell_core.h"
 
 namespace mysh {
-class Command_line_shell :public mysh::Base_shell {
+class Command_line_shell :public mysh::Base_shell, public shcore::NotificationObserver {
 public:
   Command_line_shell(const Shell_options &options);
   void command_loop();
@@ -45,6 +46,8 @@ private:
   static bool deleg_prompt(void *self, const char *text, std::string &ret);
   static bool deleg_password(void *self, const char *text, std::string &ret);
   static void deleg_source(void *self, const char *module);
+  
+  virtual void handle_notification(const std::string &name, shcore::Object_bridge_ref sender, shcore::Value::Map_type_ref data);
 };
 }
 #endif

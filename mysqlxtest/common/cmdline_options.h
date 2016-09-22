@@ -22,7 +22,7 @@
 
 #include <stdlib.h>
 #include <iostream>
-
+#include <cstring>
 class Command_line_options
 {
 public:
