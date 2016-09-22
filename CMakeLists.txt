@@ -305,11 +305,6 @@ if(WIN32)
       )
 endif()
 
-IF(WINDOWS_RUNTIME_MD)
-  # Shell wrapper for managed windows applications
-  add_subdirectory(client)
-ENDIF()
-
 add_executable(mysqlsh ${mysh_SRC} ${BOOST_SOURCE_CODE})
 
 if(WIN32)
