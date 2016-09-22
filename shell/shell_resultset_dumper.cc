@@ -17,23 +17,23 @@
  * 02110-1301  USA
  */
 
-#include "shell_resultset_dumper.h"
+#include "shell/shell_resultset_dumper.h"
 #include "shellcore/shell_core_options.h"
 #include <boost/format.hpp>
 #include <boost/lexical_cast.hpp>
 #include "modules/mod_mysql_resultset.h"
 #include "modules/mod_mysqlx_resultset.h"
 
-using namespace shcore;
-
 #define MAX_COLUMN_LENGTH 1024
 #define MIN_COLUMN_LENGTH 4
 
+using options = shcore::Shell_core_options;
+
 ResultsetDumper::ResultsetDumper(std::shared_ptr<mysh::ShellBaseResult> target, shcore::Interpreter_delegate *output_handler, bool buffer_data) :
 _resultset(target), _output_handler(output_handler), _buffer_data(buffer_data) {
-  _format = Shell_core_options::get()->get_string(SHCORE_OUTPUT_FORMAT);
-  _interactive = Shell_core_options::get()->get_bool(SHCORE_INTERACTIVE);
-  _show_warnings = Shell_core_options::get()->get_bool(SHCORE_SHOW_WARNINGS);
+  _format = options::get()->get_string(SHCORE_OUTPUT_FORMAT);
+  _interactive = options::get()->get_bool(SHCORE_INTERACTIVE);
+  _show_warnings = options::get()->get_bool(SHCORE_SHOW_WARNINGS);
 }
 
 void ResultsetDumper::dump() {
@@ -60,7 +60,7 @@ void ResultsetDumper::dump() {
 }
 
 void ResultsetDumper::dump_json() {
-  shcore::Value resultset(std::static_pointer_cast<Object_bridge>(_resultset));
+  shcore::Value resultset(std::static_pointer_cast<shcore::Object_bridge>(_resultset));
 
   _output_handler->print_value(_output_handler->user_data, resultset, "");
 }
@@ -360,14 +360,14 @@ void ResultsetDumper::dump_records(std::string& output_stats) {
 }
 
 void ResultsetDumper::dump_warnings() {
-  Value warnings = _resultset->get_member("warnings");
+  shcore::Value warnings = _resultset->get_member("warnings");
 
   if (warnings) {
-    Value::Array_type_ref warning_list = warnings.as_array();
+    shcore::Value::Array_type_ref warning_list = warnings.as_array();
     size_t index = 0, size = warning_list->size();
 
     while (index < size) {
-      Value record = warning_list->at(index);
+      shcore::Value record = warning_list->at(index);
       std::shared_ptr<mysh::Row> row = record.as_object<mysh::Row>();
 
       unsigned long error = row->get_member("code").as_int();

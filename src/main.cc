@@ -17,11 +17,13 @@
  * 02110-1301  USA
  */
 
-#include "interactive_shell.h"
+#include "cmdline_shell.h"
+#include "shell_cmdline_options.h"
+#include "shell/shell_options.h"
 #include <sys/stat.h>
 #include <sstream>
 
-Interactive_shell* shell_ptr = NULL;
+mysh::Command_line_shell* shell_ptr = NULL;
 
 #ifdef WIN32
 #  include <io.h>
@@ -72,7 +74,7 @@ void handle_ctrlc_signal(int sig) {
 
 #endif
 
-static int enable_x_protocol(Interactive_shell &shell) {
+static int enable_x_protocol(mysh::Command_line_shell &shell) {
   static const char *script = "function enableXProtocol()\n"\
 "{\n"\
 "  try\n"\
@@ -113,7 +115,7 @@ static int enable_x_protocol(Interactive_shell &shell) {
 
 // Execute a Administrative DB command passed from the command line via the --dba option
 // Currently, only the enableXProtocol command is supported.
-int execute_dba_command(Interactive_shell &shell, const std::string &command) {
+int execute_dba_command(mysh::Command_line_shell &shell, const std::string &command) {
   if (command != "enableXProtocol") {
     shell.print_error("Unsupported dba command " + command);
     return 1;
@@ -136,7 +138,7 @@ int execute_dba_command(Interactive_shell &shell, const std::string &command) {
 // - No file is processed
 //
 // An error occurs when both --file and STDIN redirection are used
-std::string detect_interactive(Shell_command_line_options &options, bool &from_stdin) {
+std::string detect_interactive(mysh::Shell_options &options, bool &from_stdin) {
   bool is_interactive = true;
   std::string error;
 
@@ -184,7 +186,8 @@ int main(int argc, char **argv) {
 
   int ret_val = 0;
 
-  Shell_command_line_options options(argc, argv);
+  Shell_command_line_options cmd_line_options(argc, argv);
+  mysh::Shell_options options = cmd_line_options.get_options();
 
   if (options.exit_code != 0)
     return options.exit_code;
@@ -203,7 +206,7 @@ int main(int argc, char **argv) {
     if (!options.interactive)
       options.wizards = false;
 
-    Interactive_shell shell(options);
+    mysh::Command_line_shell shell(options);
 
     if (!error.empty()) {
       shell.print_error(error);
@@ -238,7 +241,7 @@ int main(int argc, char **argv) {
         std::stringstream stream(options.execute_statement);
         ret_val = shell.process_stream(stream, "(command line)");
       } else if (!options.execute_dba_statement.empty()) {
-        if (options.initial_mode != IShell_core::Mode_JScript) {
+        if (options.initial_mode != shcore::IShell_core::Mode_JScript) {
           shell.print_error("The --dba option cannot be used with --python or --sql options\n");
           ret_val = 1;
         } else

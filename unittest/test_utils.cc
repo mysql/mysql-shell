@@ -16,8 +16,7 @@
 #include "test_utils.h"
 #include <boost/algorithm/string.hpp>
 #include "shellcore/shell_core_options.h"
-#include "src/shell_resultset_dumper.h"
-#include "src/interactive_shell.h"
+#include "shell/shell_resultset_dumper.h"
 #include "utils/utils_general.h"
 
 using namespace shcore;

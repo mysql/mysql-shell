@@ -1,0 +1,1658 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index ad85554..57b0662 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -289,10 +289,8 @@ set(mysh_SRC
+     "${PROJECT_SOURCE_DIR}/src/get_password.cc"
+     "${PROJECT_SOURCE_DIR}/src/shell_cmdline_options.h"
+     "${PROJECT_SOURCE_DIR}/src/shell_cmdline_options.cc"
+-    "${PROJECT_SOURCE_DIR}/src/shell_resultset_dumper.h"
+-    "${PROJECT_SOURCE_DIR}/src/shell_resultset_dumper.cc"
+-    "${PROJECT_SOURCE_DIR}/src/interactive_shell.h"
+-    "${PROJECT_SOURCE_DIR}/src/interactive_shell.cc"
++    "${PROJECT_SOURCE_DIR}/src/cmdline_shell.h"
++    "${PROJECT_SOURCE_DIR}/src/cmdline_shell.cc"
+ )
+ 
+ if(WIN32)
+diff --git a/include/shell/base_shell.h b/include/shell/base_shell.h
+index 523a0f7..ecc7da0 100644
+--- a/include/shell/base_shell.h
++++ b/include/shell/base_shell.h
+@@ -19,25 +19,19 @@
+ #ifndef _INTERACTIVE_SHELL_
+ #define _INTERACTIVE_SHELL_
+ 
+-#ifndef WIN32
+-#  include "editline/readline.h"
+-#endif
+-
+-#include "shell_cmdline_options.h"
++#include "shell/shell_options.h"
+ #include "shellcore/types.h"
+ #include "shellcore/shell_core.h"
+ 
+-using namespace shcore;
+-
+-class Interactive_shell {
++namespace mysh {
++class SHCORE_PUBLIC Base_shell {
+ public:
+-  Interactive_shell(const Shell_command_line_options &options, Interpreter_delegate *custom_delegate = NULL);
+-  void command_loop();
++  Base_shell(const Shell_options &options, shcore::Interpreter_delegate *custom_delegate);
+   int process_stream(std::istream & stream, const std::string& source);
+   int process_file(const std::string& file);
+ 
+   void init_environment();
+-  void init_scripts(Shell_core::Mode mode);
++  void init_scripts(shcore::Shell_core::Mode mode);
+ 
+   bool cmd_process_file(const std::vector<std::string>& params);
+   bool connect(bool primary_session = false);
+@@ -58,10 +52,8 @@ public:
+   bool cmd_status(const std::vector<std::string>& args);
+   bool cmd_use(const std::vector<std::string>& args);
+ 
+-  void print_banner();
+   void print_connection_message(mysh::SessionType type, const std::string& uri, const std::string& sessionid);
+-  void print_cmd_line_helper();
+-  IShell_core::Mode interactive_mode() const { return _shell->interactive_mode(); }
++  shcore::IShell_core::Mode interactive_mode() const { return _shell->interactive_mode(); }
+ 
+   void set_log_level(ngcommon::Logger::LOG_LEVEL level) { if (_logger) _logger->set_log_level(level); }
+ 
+@@ -69,37 +61,31 @@ public:
+   void abort();
+   std::string prompt();
+ 
+-  std::shared_ptr<Shell_core> shell_context() const { return _shell; }
++  std::shared_ptr<shcore::Shell_core> shell_context() const { return _shell; }
+ 
+-private:
+-  Shell_command_line_options _options;
+-  static char *readline(const char *prompt);
++protected:
++  mysh::Shell_options _options;
++  std::shared_ptr<shcore::Shell_core> _shell;
+ 
++private:
+   void process_result(shcore::Value result);
+   ngcommon::Logger* _logger;
+ 
+-  bool switch_shell_mode(Shell_core::Mode mode, const std::vector<std::string> &args);
++  bool switch_shell_mode(shcore::Shell_core::Mode mode, const std::vector<std::string> &args);
+   std::function<void(shcore::Value)> _result_processor;
+ 
+ private:
+   shcore::Value connect_session(const shcore::Argument_list &args, mysh::SessionType session_type, bool recreate_schema);
+ 
+ private:
+-  static void deleg_print(void *self, const char *text);
+-  static void deleg_print_error(void *self, const char *text);
+-  static bool deleg_prompt(void *self, const char *text, std::string &ret);
+-  static bool deleg_password(void *self, const char *text, std::string &ret);
+-  static void deleg_source(void *self, const char *module);
+-
+   bool do_shell_command(const std::string &command);
+ private:
+-  Interpreter_delegate _delegate;
+-
+-  std::shared_ptr<Shell_core> _shell;
++  shcore::Interpreter_delegate _delegate;
+ 
+   std::string _input_buffer;
+-  Interactive_input_state _input_mode;
++  shcore::Interactive_input_state _input_mode;
+ 
+-  Shell_command_handler _shell_command_handler;
++  shcore::Shell_command_handler _shell_command_handler;
+ };
++}
+ #endif
+diff --git a/shell/base_shell.cc b/shell/base_shell.cc
+index dd9ce17..0ea611a 100644
+--- a/shell/base_shell.cc
++++ b/shell/base_shell.cc
+@@ -17,7 +17,8 @@
+  * 02110-1301  USA
+  */
+ 
+-#include "interactive_shell.h"
++#include "shell/base_shell.h"
++#include "modules/base_session.h"
+ #include "utils/utils_file.h"
+ #include "utils/utils_general.h"
+ #include "shellcore/shell_core_options.h" // <---
+@@ -36,9 +37,10 @@
+ //const int MAX_READLINE_BUF = 65536;
+ extern char *mysh_get_tty_password(const char *opt_message);
+ 
+-Interactive_shell::Interactive_shell(const Shell_command_line_options &options, Interpreter_delegate *custom_delegate) :
++namespace mysh {
++Base_shell::Base_shell(const Shell_options &options, shcore::Interpreter_delegate *custom_delegate) :
+ _options(options) {
+-  std::string log_path = get_user_config_path();
++  std::string log_path = shcore::get_user_config_path();
+   log_path += "mysqlsh.log";
+   ngcommon::Logger::create_instance(log_path.c_str(), false, _options.log_level);
+   _logger = ngcommon::Logger::singleton();
+@@ -48,38 +50,19 @@ _options(options) {
+ #endif
+   //  using_history();
+ 
+-  _input_mode = Input_ok;
+-
+-  // The custom delegate function is used only if o
+-  if (custom_delegate) {
+-    _delegate.user_data = custom_delegate->user_data;
+-    _delegate.print = custom_delegate->print;
+-    _delegate.print_error = custom_delegate->print_error;
+-    _delegate.prompt = custom_delegate->prompt;
+-    _delegate.password = custom_delegate->password;
+-    _delegate.source = custom_delegate->source;
+-    _delegate.print_value = custom_delegate->print_value;
+-  } else {
+-    _delegate.user_data = this;
+-    _delegate.print = &Interactive_shell::deleg_print;
+-    _delegate.print_error = &Interactive_shell::deleg_print_error;
+-    _delegate.prompt = &Interactive_shell::deleg_prompt;
+-    _delegate.password = &Interactive_shell::deleg_password;
+-    _delegate.source = &Interactive_shell::deleg_source;
+-    _delegate.print_value = nullptr;
+-  }
++  _input_mode = shcore::Input_ok;
+ 
+   // Sets the global options
+-  Value::Map_type_ref shcore_options = Shell_core_options::get();
++  shcore::Value::Map_type_ref shcore_options = shcore::Shell_core_options::get();
+ 
+   // Updates shell core options that changed upon initialization
+-  (*shcore_options)[SHCORE_BATCH_CONTINUE_ON_ERROR] = Value(_options.force);
+-  (*shcore_options)[SHCORE_INTERACTIVE] = Value(_options.interactive);
+-  (*shcore_options)[SHCORE_USE_WIZARDS] = Value(_options.wizards);
++  (*shcore_options)[SHCORE_BATCH_CONTINUE_ON_ERROR] = shcore::Value(_options.force);
++  (*shcore_options)[SHCORE_INTERACTIVE] = shcore::Value(_options.interactive);
++  (*shcore_options)[SHCORE_USE_WIZARDS] = shcore::Value(_options.wizards);
+   if (!_options.output_format.empty())
+-    (*shcore_options)[SHCORE_OUTPUT_FORMAT] = Value(_options.output_format);
++    (*shcore_options)[SHCORE_OUTPUT_FORMAT] = shcore::Value(_options.output_format);
+ 
+-  _shell.reset(new Shell_core(&_delegate));
++  _shell.reset(new shcore::Shell_core(custom_delegate));
+ 
+   std::string cmd_help_connect =
+     "SYNTAX:\n"
+@@ -118,18 +101,18 @@ _options(options) {
+     "If it is either a Node or Classic session, the current schema will be updated (affects SQL mode).\n"
+     "The global db variable will be updated to hold the requested schema.\n";
+ 
+-  SET_SHELL_COMMAND("\\help|\\?|\\h", "Print this help.", "", Interactive_shell::cmd_print_shell_help);
+-  SET_CUSTOM_SHELL_COMMAND("\\sql", "Switch to SQL processing mode.", "", std::bind(&Interactive_shell::switch_shell_mode, this, Shell_core::Mode_SQL, _1));
+-  SET_CUSTOM_SHELL_COMMAND("\\js", "Switch to JavaScript processing mode.", "", std::bind(&Interactive_shell::switch_shell_mode, this, Shell_core::Mode_JScript, _1));
+-  SET_CUSTOM_SHELL_COMMAND("\\py", "Switch to Python processing mode.", "", std::bind(&Interactive_shell::switch_shell_mode, this, Shell_core::Mode_Python, _1));
+-  SET_SHELL_COMMAND("\\source|\\.", "Execute a script file. Takes a file name as an argument.", cmd_help_source, Interactive_shell::cmd_process_file);
+-  SET_SHELL_COMMAND("\\", "Start multi-line input when in SQL mode.", "", Interactive_shell::cmd_start_multiline);
+-  SET_SHELL_COMMAND("\\quit|\\q|\\exit", "Quit MySQL Shell.", "", Interactive_shell::cmd_quit);
+-  SET_SHELL_COMMAND("\\connect|\\c", "Connect to a server.", cmd_help_connect, Interactive_shell::cmd_connect);
+-  SET_SHELL_COMMAND("\\warnings|\\W", "Show warnings after every statement.", "", Interactive_shell::cmd_warnings);
+-  SET_SHELL_COMMAND("\\nowarnings|\\w", "Don't show warnings after every statement.", "", Interactive_shell::cmd_nowarnings);
+-  SET_SHELL_COMMAND("\\status|\\s", "Print information about the current global connection.", "", Interactive_shell::cmd_status);
+-  SET_SHELL_COMMAND("\\use|\\u", "Set the current schema for the global session.", cmd_help_use, Interactive_shell::cmd_use);
++  SET_SHELL_COMMAND("\\help|\\?|\\h", "Print this help.", "", Base_shell::cmd_print_shell_help);
++  SET_CUSTOM_SHELL_COMMAND("\\sql", "Switch to SQL processing mode.", "", std::bind(&Base_shell::switch_shell_mode, this, shcore::Shell_core::Mode_SQL, _1));
++  SET_CUSTOM_SHELL_COMMAND("\\js", "Switch to JavaScript processing mode.", "", std::bind(&Base_shell::switch_shell_mode, this, shcore::Shell_core::Mode_JScript, _1));
++  SET_CUSTOM_SHELL_COMMAND("\\py", "Switch to Python processing mode.", "", std::bind(&Base_shell::switch_shell_mode, this, shcore::Shell_core::Mode_Python, _1));
++  SET_SHELL_COMMAND("\\source|\\.", "Execute a script file. Takes a file name as an argument.", cmd_help_source, Base_shell::cmd_process_file);
++  SET_SHELL_COMMAND("\\", "Start multi-line input when in SQL mode.", "", Base_shell::cmd_start_multiline);
++  SET_SHELL_COMMAND("\\quit|\\q|\\exit", "Quit MySQL Shell.", "", Base_shell::cmd_quit);
++  SET_SHELL_COMMAND("\\connect|\\c", "Connect to a server.", cmd_help_connect, Base_shell::cmd_connect);
++  SET_SHELL_COMMAND("\\warnings|\\W", "Show warnings after every statement.", "", Base_shell::cmd_warnings);
++  SET_SHELL_COMMAND("\\nowarnings|\\w", "Don't show warnings after every statement.", "", Base_shell::cmd_nowarnings);
++  SET_SHELL_COMMAND("\\status|\\s", "Print information about the current global connection.", "", Base_shell::cmd_status);
++  SET_SHELL_COMMAND("\\use|\\u", "Set the current schema for the global session.", cmd_help_use, Base_shell::cmd_use);
+ 
+   const std::string cmd_help_store_connection =
+     "SYNTAX:\n"
+@@ -148,20 +131,20 @@ _options(options) {
+     "   SESSION_CONFIG_NAME is the name of session configuration to be deleted.\n\n"
+     "EXAMPLES:\n"
+     "   \\rmconn my_config_name\n";
+-  SET_SHELL_COMMAND("\\saveconn|\\savec", "Store a session configuration.", cmd_help_store_connection, Interactive_shell::cmd_store_connection);
+-  SET_SHELL_COMMAND("\\rmconn|\\rmc", "Remove the stored session configuration.", cmd_help_delete_connection, Interactive_shell::cmd_delete_connection);
+-  SET_SHELL_COMMAND("\\lsconn|\\lsc", "List stored session configurations.", "", Interactive_shell::cmd_list_connections);
++  SET_SHELL_COMMAND("\\saveconn|\\savec", "Store a session configuration.", cmd_help_store_connection, Base_shell::cmd_store_connection);
++  SET_SHELL_COMMAND("\\rmconn|\\rmc", "Remove the stored session configuration.", cmd_help_delete_connection, Base_shell::cmd_delete_connection);
++  SET_SHELL_COMMAND("\\lsconn|\\lsc", "List stored session configurations.", "", Base_shell::cmd_list_connections);
+ 
+   bool lang_initialized;
+   _shell->switch_mode(_options.initial_mode, lang_initialized);
+ 
+-  _result_processor = std::bind(&Interactive_shell::process_result, this, _1);
++  _result_processor = std::bind(&Base_shell::process_result, this, _1);
+ 
+   if (lang_initialized)
+     init_scripts(_options.initial_mode);
+ }
+ 
+-bool Interactive_shell::cmd_process_file(const std::vector<std::string>& params) {
++bool Base_shell::cmd_process_file(const std::vector<std::string>& params) {
+   std::string file;
+ 
+   if (params[0].find("\\source") != std::string::npos)
+@@ -171,12 +154,12 @@ bool Interactive_shell::cmd_process_file(const std::vector<std::string>& params)
+ 
+   boost::trim(file);
+ 
+-  Interactive_shell::process_file(file);
++  Base_shell::process_file(file);
+ 
+   return true;
+ }
+ 
+-void Interactive_shell::print_connection_message(mysh::SessionType type, const std::string& uri, const std::string& sessionid) {
++void Base_shell::print_connection_message(mysh::SessionType type, const std::string& uri, const std::string& sessionid) {
+   std::string stype;
+ 
+   switch (type) {
+@@ -203,18 +186,18 @@ void Interactive_shell::print_connection_message(mysh::SessionType type, const s
+   println(message);
+ }
+ 
+-bool Interactive_shell::connect(bool primary_session) {
++bool Base_shell::connect(bool primary_session) {
+   try {
+-    Argument_list args;
+-    Value::Map_type_ref connection_data;
++    shcore::Argument_list args;
++    shcore::Value::Map_type_ref connection_data;
+     bool secure_password = true;
+     if (!_options.app.empty()) {
+-      if (StoredSessions::get_instance()->connections()->has_key(_options.app))
+-        connection_data = (*StoredSessions::get_instance()->connections())[_options.app].as_map();
++      if (shcore::StoredSessions::get_instance()->connections()->has_key(_options.app))
++        connection_data = (*shcore::StoredSessions::get_instance()->connections())[_options.app].as_map();
+       else
+         throw shcore::Exception::argument_error((boost::format("The stored connection %1% was not found") % _options.app).str());
+     } else if (!_options.uri.empty()) {
+-      connection_data = get_connection_data(_options.uri);
++      connection_data = shcore::get_connection_data(_options.uri);
+       if (connection_data->has_key("dbPassword") && !connection_data->get_string("dbPassword").empty())
+         secure_password = false;
+     } else
+@@ -271,10 +254,10 @@ bool Interactive_shell::connect(bool primary_session) {
+     if (_options.interactive)
+       print_connection_message(_options.session_type, shcore::build_connection_string(connection_data, false), _options.app);
+ 
+-    args.push_back(Value(connection_data));
++    args.push_back(shcore::Value(connection_data));
+ 
+     connect_session(args, _options.session_type, primary_session ? _options.recreate_database : false);
+-  } catch (Exception &exc) {
++  } catch (shcore::Exception &exc) {
+     _shell->print_value(shcore::Value(exc.error()), "error");
+     return false;
+   } catch (std::exception &exc) {
+@@ -285,30 +268,30 @@ bool Interactive_shell::connect(bool primary_session) {
+   return true;
+ }
+ 
+-Value Interactive_shell::connect_session(const Argument_list &args, mysh::SessionType session_type, bool recreate_schema) {
++shcore::Value Base_shell::connect_session(const shcore::Argument_list &args, mysh::SessionType session_type, bool recreate_schema) {
+   std::string pass;
+   std::string schema_name;
+ 
+   shcore::Value::Map_type_ref connection_data = args.map_at(0);
+ 
+   // Retrieves the schema on which the session will work on
+-  Argument_list schema_arg;
++  shcore::Argument_list schema_arg;
+   if (connection_data->has_key("schema")) {
+     schema_name = (*connection_data)["schema"].as_string();
+-    schema_arg.push_back(Value(schema_name));
++    schema_arg.push_back(shcore::Value(schema_name));
+   }
+ 
+   if (recreate_schema && schema_name.empty())
+       throw shcore::Exception::runtime_error("Recreate schema requested, but no schema specified");
+ 
+   // Creates the argument list for the real connection call
+-  Argument_list connect_args;
++  shcore::Argument_list connect_args;
+   connect_args.push_back(shcore::Value(connection_data));
+ 
+   // Prompts for the password if needed
+   if (!connection_data->has_key("dbPassword") || _options.prompt_password) {
+     if (_shell->password("Enter password: ", pass))
+-      connect_args.push_back(Value(pass));
++      connect_args.push_back(shcore::Value(pass));
+   }
+ 
+   std::shared_ptr<mysh::ShellDevelopmentSession> old_session(_shell->get_dev_session()),
+@@ -372,16 +355,16 @@ Value Interactive_shell::connect_session(const Argument_list &args, mysh::Sessio
+     println(message);
+   }
+ 
+-  return Value::Null();
++  return shcore::Value::Null();
+ }
+ 
+ // load scripts for standard locations in order to be able to implement standard routines
+-void Interactive_shell::init_scripts(Shell_core::Mode mode) {
++void Base_shell::init_scripts(shcore::Shell_core::Mode mode) {
+   std::string extension;
+ 
+-  if (mode == Shell_core::Mode_JScript)
++  if (mode == shcore::Shell_core::Mode_JScript)
+     extension.append(".js");
+-  else if (mode == Shell_core::Mode_Python)
++  else if (mode == shcore::Shell_core::Mode_Python)
+     extension.append(".py");
+   else
+     return;
+@@ -395,7 +378,7 @@ void Interactive_shell::init_scripts(Shell_core::Mode mode) {
+     std::string path = shcore::get_global_config_path();
+     path.append("shellrc");
+     path.append(extension);
+-    if (file_exists(path))
++    if (shcore::file_exists(path))
+       scripts_paths.push_back(path);
+ 
+     // Checks existence of startup script at MYSQLSH_HOME
+@@ -408,14 +391,14 @@ void Interactive_shell::init_scripts(Shell_core::Mode mode) {
+       path.append("/mysqlshrc");
+     }
+     path.append(extension);
+-    if (file_exists(path))
++    if (shcore::file_exists(path))
+       scripts_paths.push_back(path);
+ 
+     // Checks existence of user startup script
+     path = shcore::get_user_config_path();
+     path.append("mysqlshrc");
+     path.append(extension);
+-    if (file_exists(path))
++    if (shcore::file_exists(path))
+       scripts_paths.push_back(path);
+ 
+     for (std::vector<std::string>::iterator i = scripts_paths.begin(); i != scripts_paths.end(); ++i) {
+@@ -428,26 +411,26 @@ void Interactive_shell::init_scripts(Shell_core::Mode mode) {
+   }
+ }
+ 
+-std::string Interactive_shell::prompt() {
+-  if (_input_mode != Input_ok) {
++std::string Base_shell::prompt() {
++  if (_input_mode != shcore::Input_ok) {
+     return std::string(_shell->prompt().length() - 4, ' ').append("... ");
+   } else
+     return _shell->prompt();
+ }
+ 
+-bool Interactive_shell::switch_shell_mode(Shell_core::Mode mode, const std::vector<std::string> &UNUSED(args)) {
+-  Shell_core::Mode old_mode = _shell->interactive_mode();
++bool Base_shell::switch_shell_mode(shcore::Shell_core::Mode mode, const std::vector<std::string> &UNUSED(args)) {
++  shcore::Shell_core::Mode old_mode = _shell->interactive_mode();
+   bool lang_initialized = false;
+ 
+   if (old_mode != mode) {
+-    _input_mode = Input_ok;
++    _input_mode = shcore::Input_ok;
+     _input_buffer.clear();
+ 
+     //XXX reset the history... history should be specific to each shell mode
+     switch (mode) {
+-      case Shell_core::Mode_None:
++      case shcore::Shell_core::Mode_None:
+         break;
+-      case Shell_core::Mode_SQL:
++      case shcore::Shell_core::Mode_SQL:
+       {
+         auto session = _shell->get_dev_session();
+         if (session && (session->class_name() == "XSession")) {
+@@ -462,7 +445,7 @@ bool Interactive_shell::switch_shell_mode(Shell_core::Mode mode, const std::vect
+         }
+         break;
+       }
+-      case Shell_core::Mode_JScript:
++      case shcore::Shell_core::Mode_JScript:
+ #ifdef HAVE_V8
+         if (_shell->switch_mode(mode, lang_initialized))
+           println("Switching to JavaScript mode...");
+@@ -470,7 +453,7 @@ bool Interactive_shell::switch_shell_mode(Shell_core::Mode mode, const std::vect
+         println("JavaScript mode is not supported, command ignored.");
+ #endif
+         break;
+-      case Shell_core::Mode_Python:
++      case shcore::Shell_core::Mode_Python:
+ #ifdef HAVE_PYTHON
+         if (_shell->switch_mode(mode, lang_initialized))
+           println("Switching to Python mode...");
+@@ -488,15 +471,15 @@ bool Interactive_shell::switch_shell_mode(Shell_core::Mode mode, const std::vect
+   return true;
+ }
+ 
+-void Interactive_shell::println(const std::string &str) {
++void Base_shell::println(const std::string &str) {
+   _shell->println(str);
+ }
+ 
+-void Interactive_shell::print_error(const std::string &error) {
++void Base_shell::print_error(const std::string &error) {
+   _shell->print_error(error);
+ }
+ 
+-bool Interactive_shell::cmd_print_shell_help(const std::vector<std::string>& args) {
++bool Base_shell::cmd_print_shell_help(const std::vector<std::string>& args) {
+   bool printed = false;
+ 
+   // If help came with parameter attempts to print the
+@@ -530,7 +513,7 @@ bool Interactive_shell::cmd_print_shell_help(const std::vector<std::string>& arg
+ 
+       for (auto name : globals) {
+         auto object_val = _shell->get_global(name);
+-        auto object = std::dynamic_pointer_cast<Cpp_object_bridge>(object_val.as_object());
++        auto object = std::dynamic_pointer_cast<shcore::Cpp_object_bridge>(object_val.as_object());
+         auto brief = shcore::get_help_text(object->class_name() + "_BRIEF");
+ 
+         if (!brief.empty())
+@@ -545,10 +528,10 @@ bool Interactive_shell::cmd_print_shell_help(const std::vector<std::string>& arg
+   return true;
+ }
+ 
+-bool Interactive_shell::cmd_start_multiline(const std::vector<std::string>& args) {
++bool Base_shell::cmd_start_multiline(const std::vector<std::string>& args) {
+   // This command is only available for SQL Mode
+-  if (args.size() == 1 && _shell->interactive_mode() == Shell_core::Mode_SQL) {
+-    _input_mode = Input_continued_block;
++  if (args.size() == 1 && _shell->interactive_mode() == shcore::Shell_core::Mode_SQL) {
++    _input_mode = shcore::Input_continued_block;
+ 
+     return true;
+   }
+@@ -556,7 +539,7 @@ bool Interactive_shell::cmd_start_multiline(const std::vector<std::string>& args
+   return false;
+ }
+ 
+-bool Interactive_shell::cmd_connect(const std::vector<std::string>& args) {
++bool Base_shell::cmd_connect(const std::vector<std::string>& args) {
+   bool error = false;
+   bool uri = false;
+   _options.session_type = mysh::Auto;
+@@ -604,7 +587,7 @@ bool Interactive_shell::cmd_connect(const std::vector<std::string>& args) {
+       }
+       connect();
+ 
+-      if (_shell->interactive_mode() == IShell_core::Mode_SQL && _options.session_type == mysh::Application)
++      if (_shell->interactive_mode() == shcore::IShell_core::Mode_SQL && _options.session_type == mysh::Application)
+         println("WARNING: An X Session has been established and SQL execution is not allowed.");
+     }
+   } else
+@@ -616,29 +599,29 @@ bool Interactive_shell::cmd_connect(const std::vector<std::string>& args) {
+   return true;
+ }
+ 
+-bool Interactive_shell::cmd_quit(const std::vector<std::string>& UNUSED(args)) {
++bool Base_shell::cmd_quit(const std::vector<std::string>& UNUSED(args)) {
+   _options.interactive = false;
+ 
+   return true;
+ }
+ 
+-bool Interactive_shell::cmd_warnings(const std::vector<std::string>& UNUSED(args)) {
+-  (*Shell_core_options::get())[SHCORE_SHOW_WARNINGS] = Value::True();
++bool Base_shell::cmd_warnings(const std::vector<std::string>& UNUSED(args)) {
++  (*shcore::Shell_core_options::get())[SHCORE_SHOW_WARNINGS] = shcore::Value::True();
+ 
+   println("Show warnings enabled.");
+ 
+   return true;
+ }
+ 
+-bool Interactive_shell::cmd_nowarnings(const std::vector<std::string>& UNUSED(args)) {
+-  (*Shell_core_options::get())[SHCORE_SHOW_WARNINGS] = Value::False();
++bool Base_shell::cmd_nowarnings(const std::vector<std::string>& UNUSED(args)) {
++  (*shcore::Shell_core_options::get())[SHCORE_SHOW_WARNINGS] = shcore::Value::False();
+ 
+   println("Show warnings disabled.");
+ 
+   return true;
+ }
+ 
+-bool Interactive_shell::cmd_store_connection(const std::vector<std::string>& args) {
++bool Base_shell::cmd_store_connection(const std::vector<std::string>& args) {
+   std::string error;
+   std::string name;
+   std::string uri;
+@@ -694,9 +677,9 @@ bool Interactive_shell::cmd_store_connection(const std::vector<std::string>& arg
+   // Attempsts the store
+   if (error.empty()) {
+     try {
+-      StoredSessions::get_instance()->add_connection(name, uri, overwrite);
++      shcore::StoredSessions::get_instance()->add_connection(name, uri, overwrite);
+ 
+-      std::string uri = shcore::build_connection_string((*StoredSessions::get_instance()->connections())[name].as_map(), false);
++      std::string uri = shcore::build_connection_string((*shcore::StoredSessions::get_instance()->connections())[name].as_map(), false);
+ 
+       println((boost::format("Successfully stored %s as %s.") % uri % name).str().c_str());
+     } catch (std::exception& err) {
+@@ -713,12 +696,12 @@ bool Interactive_shell::cmd_store_connection(const std::vector<std::string>& arg
+   return true;
+ }
+ 
+-bool Interactive_shell::cmd_delete_connection(const std::vector<std::string>& args) {
++bool Base_shell::cmd_delete_connection(const std::vector<std::string>& args) {
+   std::string error;
+ 
+   if (args.size() == 2) {
+     try {
+-      StoredSessions::get_instance()->remove_connection(args[1]);
++      shcore::StoredSessions::get_instance()->remove_connection(args[1]);
+ 
+       println((boost::format("Successfully deleted session configuration named %s.") % args[1]).str().c_str());
+     } catch (std::exception& err) {
+@@ -735,11 +718,11 @@ bool Interactive_shell::cmd_delete_connection(const std::vector<std::string>& ar
+   return true;
+ }
+ 
+-bool Interactive_shell::cmd_list_connections(const std::vector<std::string>& args) {
++bool Base_shell::cmd_list_connections(const std::vector<std::string>& args) {
+   if (args.size() == 1) {
+-    std::string format = (*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string();
++    std::string format = (*shcore::Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string();
+ 
+-    Value::Map_type_ref connections = StoredSessions::get_instance()->connections();
++    shcore::Value::Map_type_ref connections = shcore::StoredSessions::get_instance()->connections();
+     if (format.find("json") != std::string::npos)
+       _shell->print_value(shcore::Value(connections), "");
+     else {
+@@ -756,7 +739,7 @@ bool Interactive_shell::cmd_list_connections(const std::vector<std::string>& arg
+   return true;
+ }
+ 
+-bool Interactive_shell::cmd_status(const std::vector<std::string>& UNUSED(args)) {
++bool Base_shell::cmd_status(const std::vector<std::string>& UNUSED(args)) {
+   std::string version_msg("MySQL Shell Version ");
+   version_msg += MYSH_VERSION;
+   version_msg += " Development Preview\n";
+@@ -764,7 +747,7 @@ bool Interactive_shell::cmd_status(const std::vector<std::string>& UNUSED(args))
+ 
+   if (_shell->get_dev_session() && _shell->get_dev_session()->is_connected()) {
+     shcore::Value raw_status = _shell->get_dev_session()->get_status(shcore::Argument_list());
+-    std::string output_format = (*Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string();
++    std::string output_format = (*shcore::Shell_core_options::get())[SHCORE_OUTPUT_FORMAT].as_string();
+ 
+     if (output_format.find("json") == 0)
+       println(raw_status.json(output_format == "json"));
+@@ -845,7 +828,7 @@ bool Interactive_shell::cmd_status(const std::vector<std::string>& UNUSED(args))
+   return true;
+ }
+ 
+-bool Interactive_shell::cmd_use(const std::vector<std::string>& args) {
++bool Base_shell::cmd_use(const std::vector<std::string>& args) {
+   std::string error;
+   if (_shell->get_dev_session() && _shell->get_dev_session()->is_connected()) {
+     std::string real_param;
+@@ -897,65 +880,7 @@ bool Interactive_shell::cmd_use(const std::vector<std::string>& args) {
+   return true;
+ }
+ 
+-void Interactive_shell::deleg_print(void *cdata, const char *text) {
+-  std::cout << text;
+-}
+-
+-void Interactive_shell::deleg_print_error(void *cdata, const char *text) {
+-  std::cerr << text;
+-}
+-
+-char *Interactive_shell::readline(const char *prompt) {
+-  char *tmp = NULL;
+-#ifndef WIN32
+-  tmp = ::readline(prompt);
+-#else
+-  // TODO: This should be ported from the server, not used from there
+-  /*
+-  tmp = (char *)malloc(MAX_READLINE_BUF);
+-  if (!tmp)
+-  throw Exception::runtime_error("Cannot allocate memory for Interactive_shell::readline buffer.");
+-  my_win_console_fputs(&my_charset_latin1, prompt);
+-  tmp = my_win_console_readline(&my_charset_latin1, tmp, MAX_READLINE_BUF);
+-  */
+-  std::string line;
+-  std::cout << prompt << std::flush;
+-  std::getline(std::cin, line);
+-
+-  if (!std::cin.fail())
+-    tmp = strdup(line.c_str());
+-
+-#endif
+-  return tmp;
+-}
+-
+-bool Interactive_shell::deleg_prompt(void *UNUSED(cdata), const char *prompt, std::string &ret) {
+-  char *tmp = Interactive_shell::readline(prompt);
+-  if (!tmp)
+-    return false;
+-
+-  ret = tmp;
+-  free(tmp);
+-
+-  return true;
+-}
+-
+-bool Interactive_shell::deleg_password(void *cdata, const char *prompt, std::string &ret) {
+-  Interactive_shell *self = (Interactive_shell*)cdata;
+-  char *tmp = self->_options.passwords_from_stdin ? mysh_get_stdin_password(prompt) : mysh_get_tty_password(prompt);
+-  if (!tmp)
+-    return false;
+-  ret = tmp;
+-  free(tmp);
+-  return true;
+-}
+-
+-void Interactive_shell::deleg_source(void *cdata, const char *module) {
+-  Interactive_shell *self = (Interactive_shell*)cdata;
+-  self->process_file(module);
+-}
+-
+-bool Interactive_shell::do_shell_command(const std::string &line) {
++bool Base_shell::do_shell_command(const std::string &line) {
+   // Verifies if the command can be handled by the active shell
+   bool handled = _shell->handle_shell_command(line);
+ 
+@@ -966,11 +891,11 @@ bool Interactive_shell::do_shell_command(const std::string &line) {
+   return handled;
+ }
+ 
+-void Interactive_shell::process_line(const std::string &line) {
++void Base_shell::process_line(const std::string &line) {
+   bool handled_as_command = false;
+ 
+   // check if the line is an escape/shell command
+-  if (_input_buffer.empty() && !line.empty() && _input_mode == Input_ok) {
++  if (_input_buffer.empty() && !line.empty() && _input_mode == shcore::Input_ok) {
+     try {
+       handled_as_command = do_shell_command(line);
+     } catch (std::exception &exc) {
+@@ -981,8 +906,8 @@ void Interactive_shell::process_line(const std::string &line) {
+   }
+ 
+   if (!handled_as_command) {
+-    if (_input_mode == Input_continued_block && line.empty())
+-      _input_mode = Input_ok;
++    if (_input_mode == shcore::Input_continued_block && line.empty())
++      _input_mode = shcore::Input_ok;
+ 
+     // Appends the line, no matter it is an empty line
+     _input_buffer.append(_shell->preprocess_input_line(line));
+@@ -991,12 +916,12 @@ void Interactive_shell::process_line(const std::string &line) {
+     if (!_input_buffer.empty())
+       _input_buffer.append("\n");
+ 
+-    if (_input_mode != Input_continued_block && !_input_buffer.empty()) {
++    if (_input_mode != shcore::Input_continued_block && !_input_buffer.empty()) {
+       try {
+         _shell->handle_input(_input_buffer, _input_mode, _result_processor);
+ 
+         // Here we analyze the input mode as it was let after executing the code
+-        if (_input_mode == Input_ok) {
++        if (_input_mode == shcore::Input_ok) {
+           std::string executed = _shell->get_handled_input();
+ 
+           if (!executed.empty()) {
+@@ -1016,7 +941,7 @@ void Interactive_shell::process_line(const std::string &line) {
+       // TODO: Do we need this cleanup? i.e. in case of exceptions above??
+       // Clears the buffer if OK, if continued, buffer will contain
+       // the non executed code
+-      if (_input_mode == Input_ok)
++      if (_input_mode == shcore::Input_ok)
+         _input_buffer.clear();
+     }
+   }
+@@ -1024,7 +949,7 @@ void Interactive_shell::process_line(const std::string &line) {
+   _shell->reconnect_if_needed();
+ }
+ 
+-void Interactive_shell::abort() {
++void Base_shell::abort() {
+   if (!_shell) return;
+ 
+   if (_shell->is_running_query()) {
+@@ -1036,20 +961,20 @@ void Interactive_shell::abort() {
+   }
+ }
+ 
+-void Interactive_shell::process_result(shcore::Value result) {
+-  if ((*Shell_core_options::get())[SHCORE_INTERACTIVE].as_bool()
+-      || _shell->interactive_mode() == Shell_core::Mode_SQL) {
++void Base_shell::process_result(shcore::Value result) {
++  if ((*shcore::Shell_core_options::get())[SHCORE_INTERACTIVE].as_bool()
++      || _shell->interactive_mode() == shcore::Shell_core::Mode_SQL) {
+     if (result) {
+-      Value shell_hook;
+-      std::shared_ptr<Object_bridge> object;
++      shcore::Value shell_hook;
++      std::shared_ptr<shcore::Object_bridge> object;
+       if (result.type == shcore::Object) {
+         object = result.as_object();
+         if (object && object->has_member("__shell_hook__"))
+           shell_hook = object->get_member("__shell_hook__");
+ 
+         if (shell_hook) {
+-          Argument_list args;
+-          Value hook_result = object->call("__shell_hook__", args);
++          shcore::Argument_list args;
++          shcore::Value hook_result = object->call("__shell_hook__", args);
+ 
+           // Recursive call to continue processing shell hooks if any
+           process_result(hook_result);
+@@ -1063,7 +988,7 @@ void Interactive_shell::process_result(shcore::Value result) {
+           std::shared_ptr<mysh::ShellBaseResult> resultset = std::static_pointer_cast<mysh::ShellBaseResult> (object);
+ 
+           // Result buffering will be done ONLY if on any of the scripting interfaces
+-          ResultsetDumper dumper(resultset, _shell->get_delegate(), _shell->interactive_mode() != IShell_core::Mode_SQL);
++          ResultsetDumper dumper(resultset, _shell->get_delegate(), _shell->interactive_mode() != shcore::IShell_core::Mode_SQL);
+           dumper.dump();
+         } else {
+           // In JSON mode: the json representation is used for Object, Array and Map
+@@ -1083,7 +1008,7 @@ void Interactive_shell::process_result(shcore::Value result) {
+   _shell->set_error_processing();
+ }
+ 
+-int Interactive_shell::process_file(const std::string& file) {
++int Base_shell::process_file(const std::string& file) {
+   // Default return value will be 1 indicating there were errors
+   int ret_val = 1;
+ 
+@@ -1113,11 +1038,11 @@ int Interactive_shell::process_file(const std::string& file) {
+   return ret_val;
+ }
+ 
+-int Interactive_shell::process_stream(std::istream & stream, const std::string& source) {
++int Base_shell::process_stream(std::istream & stream, const std::string& source) {
+   // If interactive is set, it means that the shell was started with the option to
+   // Emulate interactive mode while processing the stream
+   if (_options.interactive) {
+-    bool comment_first_js_line = _shell->interactive_mode() == IShell_core::Mode_JScript;
++    bool comment_first_js_line = _shell->interactive_mode() == shcore::IShell_core::Mode_JScript;
+     while (!stream.eof()) {
+       std::string line;
+ 
+@@ -1144,119 +1069,4 @@ int Interactive_shell::process_stream(std::istream & stream, const std::string&
+     return _shell->process_stream(stream, source, _result_processor);
+   }
+ }
+-
+-void Interactive_shell::command_loop() {
+-  if (_options.interactive) // check if interactive
+-  {
+-    std::string message;
+-    auto session = _shell->get_dev_session();
+-
+-    if (!session || (session && session->class_name() != "XSession"))
+-      message = " Use \\sql to switch to SQL mode and execute queries.";
+-
+-    switch (_shell->interactive_mode()) {
+-      case Shell_core::Mode_SQL:
+-#ifdef HAVE_V8
+-        message = "Currently in SQL mode. Use \\js or \\py to switch the shell to a scripting language.";
+-#else
+-        message = "Currently in SQL mode. Use \\py to switch the shell to python scripting.";
+-#endif
+-        break;
+-      case Shell_core::Mode_JScript:
+-        message = "Currently in JavaScript mode." + message;
+-        break;
+-      case Shell_core::Mode_Python:
+-        message = "Currently in Python mode." + message;
+-        break;
+-      default:
+-        break;
+-    }
+-
+-    println(message);
+-  }
+-
+-  while (_options.interactive) {
+-    char *cmd = Interactive_shell::readline(prompt().c_str());
+-    if (!cmd)
+-      break;
+-
+-    process_line(cmd);
+-    free(cmd);
+-  }
+-
+-  std::cout << "Bye!\n";
+-}
+-
+-void Interactive_shell::print_banner() {
+-  std::string welcome_msg("Welcome to MySQL Shell ");
+-  welcome_msg += MYSH_VERSION;
+-  welcome_msg += " Development Preview\n\n";
+-  welcome_msg += "Copyright (c) 2016, Oracle and/or its affiliates. All rights reserved.\n\n"\
+-                 "Oracle is a registered trademark of Oracle Corporation and/or its\n"\
+-                 "affiliates. Other names may be trademarks of their respective\n"\
+-                 "owners.";
+-  println(welcome_msg);
+-  println();
+-  println("Type '\\help', '\\h' or '\\?' for help, type '\\quit' or '\\q' to exit.");
+-  println();
+-}
+-
+-void Interactive_shell::print_cmd_line_helper() {
+-  std::string help_msg("MySQL Shell ");
+-  help_msg += MYSH_VERSION;
+-  help_msg += " Development Preview";
+-  println(help_msg);
+-  println("");
+-  println("Copyright (c) 2016, Oracle and/or its affiliates. All rights reserved.");
+-  println("");
+-  println("Oracle is a registered trademark of Oracle Corporation and/or its");
+-  println("affiliates. Other names may be trademarks of their respective");
+-  println("owners.");
+-  println("");
+-  println("Usage: mysqlsh [OPTIONS] [db_name]");
+-  println("  --help                   Display this help and exit.");
+-  println("  -f, --file=file          Process file.");
+-  println("  -e, --execute=<cmd>      Execute command and quit.");
+-  println("  --uri                    Connect to Uniform Resource Identifier.");
+-  println("                           Format: [user[:pass]]@host[:port][/db]");
+-  println("                           or user[:pass]@::socket[/db] .");
+-  println("  --app                    Connect to using a Stored Session.");
+-  println("  -h, --host=name          Connect to host.");
+-  println("  -P, --port=#             Port number to use for connection.");
+-  println("  -S, --socket=sock        Socket name to use in UNIX, pipe name to use in Windows (only classic sessions).");
+-  println("  -u, --dbuser=name        User for the connection to the server.");
+-  println("  --user=name              An alias for dbuser.");
+-  println("  --dbpassword=name        Password to use when connecting to server");
+-  println("  --password=name          An alias for dbpassword.");
+-  println("  -p                       Request password prompt to set the password");
+-  println("  -D --schema=name         Schema to use.");
+-  println("  --recreate-schema        Drop and recreate the specified schema. Schema will be deleted if it exists!");
+-  println("  --database=name          An alias for --schema.");
+-  println("  --x                      Uses connection data to create an X Session.");
+-  println("  --node                   Uses connection data to create a Node Session.");
+-  println("  --classic                Uses connection data to create a Classic Session.");
+-  println("  --sql                    Start in SQL mode.");
+-  println("  --sqlc                   Start in SQL mode using a classic session.");
+-  println("  --sqln                   Start in SQL mode using a node session.");
+-  println("  --js                     Start in JavaScript mode.");
+-  println("  --py                     Start in Python mode.");
+-  println("  --json                   Produce output in JSON format.");
+-  println("  --table                  Produce output in table format (default for interactive mode).");
+-  println("                           This option can be used to force that format when running in batch mode.");
+-  println("  -i, --interactive[=full] To use in batch mode, it forces emulation of interactive mode processing.");
+-  println("                           Each line on the batch is processed as if it were in interactive mode.");
+-  println("  --force                  To use in SQL batch mode, forces processing to continue if an error is found.");
+-  println("  --log-level=value        The log level." + ngcommon::Logger::get_level_range_info());
+-  println("  --version                Prints the version of MySQL Shell.");
+-  println("  --ssl                    Enable SSL for connection(automatically enabled with other flags)");
+-  println("  --ssl-key=name           X509 key in PEM format");
+-  println("  --ssl-cert=name          X509 cert in PEM format");
+-  println("  --ssl-ca=name            CA file in PEM format (check OpenSSL docs)");
+-  println("  --passwords-from-stdin   Read passwords from stdin instead of the tty");
+-  println("  --auth-method=method     Authentication method to use");
+-  println("  --show-warnings          Automatically display SQL warnings on SQL mode if available");
+-  println("  --dba enableXProtocol    Enable the X Protocol in the server connected to. Must be used with --classic");
+-  println("  --no-wizard              Disables wizard mode");
+-
+-  println("");
+ }
+diff --git a/shell/shell_resultset_dumper.cc b/shell/shell_resultset_dumper.cc
+index 6eb8af0..996749e 100644
+--- a/shell/shell_resultset_dumper.cc
++++ b/shell/shell_resultset_dumper.cc
+@@ -17,23 +17,23 @@
+  * 02110-1301  USA
+  */
+ 
+-#include "shell_resultset_dumper.h"
++#include "shell/shell_resultset_dumper.h"
+ #include "shellcore/shell_core_options.h"
+ #include <boost/format.hpp>
+ #include <boost/lexical_cast.hpp>
+ #include "modules/mod_mysql_resultset.h"
+ #include "modules/mod_mysqlx_resultset.h"
+ 
+-using namespace shcore;
+-
+ #define MAX_COLUMN_LENGTH 1024
+ #define MIN_COLUMN_LENGTH 4
+ 
++using options = shcore::Shell_core_options;
++
+ ResultsetDumper::ResultsetDumper(std::shared_ptr<mysh::ShellBaseResult> target, shcore::Interpreter_delegate *output_handler, bool buffer_data) :
+ _resultset(target), _output_handler(output_handler), _buffer_data(buffer_data) {
+-  _format = Shell_core_options::get()->get_string(SHCORE_OUTPUT_FORMAT);
+-  _interactive = Shell_core_options::get()->get_bool(SHCORE_INTERACTIVE);
+-  _show_warnings = Shell_core_options::get()->get_bool(SHCORE_SHOW_WARNINGS);
++  _format = options::get()->get_string(SHCORE_OUTPUT_FORMAT);
++  _interactive = options::get()->get_bool(SHCORE_INTERACTIVE);
++  _show_warnings = options::get()->get_bool(SHCORE_SHOW_WARNINGS);
+ }
+ 
+ void ResultsetDumper::dump() {
+@@ -60,7 +60,7 @@ void ResultsetDumper::dump() {
+ }
+ 
+ void ResultsetDumper::dump_json() {
+-  shcore::Value resultset(std::static_pointer_cast<Object_bridge>(_resultset));
++  shcore::Value resultset(std::static_pointer_cast<shcore::Object_bridge>(_resultset));
+ 
+   _output_handler->print_value(_output_handler->user_data, resultset, "");
+ }
+@@ -360,14 +360,14 @@ void ResultsetDumper::dump_records(std::string& output_stats) {
+ }
+ 
+ void ResultsetDumper::dump_warnings() {
+-  Value warnings = _resultset->get_member("warnings");
++  shcore::Value warnings = _resultset->get_member("warnings");
+ 
+   if (warnings) {
+-    Value::Array_type_ref warning_list = warnings.as_array();
++    shcore::Value::Array_type_ref warning_list = warnings.as_array();
+     size_t index = 0, size = warning_list->size();
+ 
+     while (index < size) {
+-      Value record = warning_list->at(index);
++      shcore::Value record = warning_list->at(index);
+       std::shared_ptr<mysh::Row> row = record.as_object<mysh::Row>();
+ 
+       unsigned long error = row->get_member("code").as_int();
+diff --git a/shellcore/CMakeLists.txt b/shellcore/CMakeLists.txt
+index 21a7658..f9cf668 100644
+--- a/shellcore/CMakeLists.txt
++++ b/shellcore/CMakeLists.txt
+@@ -48,6 +48,7 @@ if ( HAVE_V8 )
+ endif()
+ 
+ file(GLOB libmysqlshcore_SRC
++    "${CMAKE_SOURCE_DIR}/include/shell/*.h"
+     "${CMAKE_SOURCE_DIR}/include/shellcore/*.h"
+     "${CMAKE_SOURCE_DIR}/utils/utils_mysql_parsing.h"
+     "${CMAKE_SOURCE_DIR}/utils/utils_mysql_parsing.cc"
+@@ -71,6 +72,10 @@ file(GLOB libmysqlshcore_SRC
+     "${CMAKE_SOURCE_DIR}/interactive/interactive_global_schema.cc"
+     "${CMAKE_SOURCE_DIR}/interactive/interactive_global_session.h"
+     "${CMAKE_SOURCE_DIR}/interactive/interactive_global_session.cc"
++    "${CMAKE_SOURCE_DIR}/shell/base_shell.cc"
++    "${CMAKE_SOURCE_DIR}/shell/shell_resultset_dumper.h"
++    "${CMAKE_SOURCE_DIR}/shell/shell_resultset_dumper.cc"
++    "${CMAKE_SOURCE_DIR}/shell/shell_options.cc"
+     "*.cc"
+     "*.h"
+ 
+diff --git a/src/main.cc b/src/main.cc
+index 3022f95..731fc6a 100644
+--- a/src/main.cc
++++ b/src/main.cc
+@@ -17,11 +17,13 @@
+  * 02110-1301  USA
+  */
+ 
+-#include "interactive_shell.h"
++#include "cmdline_shell.h"
++#include "shell_cmdline_options.h"
++#include "shell/shell_options.h"
+ #include <sys/stat.h>
+ #include <sstream>
+ 
+-Interactive_shell* shell_ptr = NULL;
++mysh::Command_line_shell* shell_ptr = NULL;
+ 
+ #ifdef WIN32
+ #  include <io.h>
+@@ -72,7 +74,7 @@ void handle_ctrlc_signal(int sig) {
+ 
+ #endif
+ 
+-static int enable_x_protocol(Interactive_shell &shell) {
++static int enable_x_protocol(mysh::Command_line_shell &shell) {
+   static const char *script = "function enableXProtocol()\n"\
+ "{\n"\
+ "  try\n"\
+@@ -113,7 +115,7 @@ static int enable_x_protocol(Interactive_shell &shell) {
+ 
+ // Execute a Administrative DB command passed from the command line via the --dba option
+ // Currently, only the enableXProtocol command is supported.
+-int execute_dba_command(Interactive_shell &shell, const std::string &command) {
++int execute_dba_command(mysh::Command_line_shell &shell, const std::string &command) {
+   if (command != "enableXProtocol") {
+     shell.print_error("Unsupported dba command " + command);
+     return 1;
+@@ -136,7 +138,7 @@ int execute_dba_command(Interactive_shell &shell, const std::string &command) {
+ // - No file is processed
+ //
+ // An error occurs when both --file and STDIN redirection are used
+-std::string detect_interactive(Shell_command_line_options &options, bool &from_stdin) {
++std::string detect_interactive(mysh::Shell_options &options, bool &from_stdin) {
+   bool is_interactive = true;
+   std::string error;
+ 
+@@ -184,7 +186,8 @@ int main(int argc, char **argv) {
+ 
+   int ret_val = 0;
+ 
+-  Shell_command_line_options options(argc, argv);
++  Shell_command_line_options cmd_line_options(argc, argv);
++  mysh::Shell_options options = cmd_line_options.get_options();
+ 
+   if (options.exit_code != 0)
+     return options.exit_code;
+@@ -203,7 +206,7 @@ int main(int argc, char **argv) {
+     if (!options.interactive)
+       options.wizards = false;
+ 
+-    Interactive_shell shell(options);
++    mysh::Command_line_shell shell(options);
+ 
+     if (!error.empty()) {
+       shell.print_error(error);
+@@ -238,7 +241,7 @@ int main(int argc, char **argv) {
+         std::stringstream stream(options.execute_statement);
+         ret_val = shell.process_stream(stream, "(command line)");
+       } else if (!options.execute_dba_statement.empty()) {
+-        if (options.initial_mode != IShell_core::Mode_JScript) {
++        if (options.initial_mode != shcore::IShell_core::Mode_JScript) {
+           shell.print_error("The --dba option cannot be used with --python or --sql options\n");
+           ret_val = 1;
+         } else
+diff --git a/src/shell_cmdline_options.cc b/src/shell_cmdline_options.cc
+index 96767de..ffd7d81 100644
+--- a/src/shell_cmdline_options.cc
++++ b/src/shell_cmdline_options.cc
+@@ -26,77 +26,43 @@
+ #include <boost/lexical_cast.hpp>
+ #include <boost/algorithm/string.hpp>
+ 
+-using namespace shcore;
+-
+ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
+-  : Command_line_options(argc, argv), log_level(ngcommon::Logger::LOG_ERROR) {
+-  output_format = "";
+-  print_cmd_line_helper = false;
+-  print_version = false;
+-  execute_statement = "";
+-
+-  session_type = mysh::Auto;
+-  default_session_type = true;
+-
+-#ifdef HAVE_V8
+-  initial_mode = IShell_core::Mode_JScript;
+-#else
+-#ifdef HAVE_PYTHON
+-  initial_mode = IShell_core::Mode_Python;
+-#else
+-  initial_mode = IShell_core::Mode_SQL;
+-#endif
+-#endif
+-
+-  recreate_database = false;
+-  force = false;
+-  interactive = false;
+-  full_interactive = false;
+-  passwords_from_stdin = false;
+-  password = NULL;
+-  prompt_password = false;
+-  trace_protocol = false;
+-  wizards = true;
+-  admin_mode = false;
+-
+-  sock = "";
+-  port = 0;
+-  ssl = 0;
++  : Command_line_options(argc, argv) {
+   int arg_format = 0;
+   for (int i = 1; i < argc && exit_code == 0; i++) {
+     char *value;
+     if (check_arg_with_value(argv, i, "--file", "-f", value))
+-      run_file = value;
++      _options.run_file = value;
+     else if (check_arg_with_value(argv, i, "--uri", NULL, value)) {
+       if (shcore::validate_uri(value))
+-        uri = value;
++        _options.uri = value;
+       else {
+         std::cerr << "Invalid value specified in --uri parameter.\n";
+         exit_code = 1;
+         break;
+       }
+     } else if (check_arg_with_value(argv, i, "--app", NULL, value))
+-      app = value;
++      _options.app = value;
+     else if (check_arg_with_value(argv, i, "--host", "-h", value))
+-      host = value;
++      _options.host = value;
+     else if (check_arg_with_value(argv, i, "--dbuser", "-u", value))
+-      user = value;
++      _options.user = value;
+     else if (check_arg_with_value(argv, i, "--user", NULL, value))
+-      user = value;
++      _options.user = value;
+     else if (check_arg_with_value(argv, i, "--port", "-P", value))
+-      port = atoi(value);
++      _options.port = atoi(value);
+     else if (check_arg_with_value(argv, i, "--socket", "-S", value))
+-      sock = value;
++      _options.sock = value;
+     else if (check_arg_with_value(argv, i, "--schema", "-D", value))
+-      schema = value;
++      _options.schema = value;
+     else if (check_arg_with_value(argv, i, "--database", NULL, value))
+-      schema = value;
++      _options.schema = value;
+     else if (check_arg(argv, i, "--recreate-schema", NULL))
+-      recreate_database = true;
++      _options.recreate_database = true;
+     else if (check_arg_with_value(argv, i, "--execute", "-e", value))
+-      execute_statement = value;
++      _options.execute_statement = value;
+     else if (check_arg_with_value(argv, i, "--dba", NULL, value))
+-      execute_dba_statement = value;
++      _options.execute_dba_statement = value;
+     else if ((arg_format = check_arg_with_value(argv, i, "--dbpassword", NULL, value, true)) ||
+              (arg_format = check_arg_with_value(argv, i, "--password", "-p", value, true))) {
+       // Note that in any connection attempt, password prompt will be done if the password is missing.
+@@ -112,40 +78,40 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
+       if (!value) {
+         // --password=
+         if (arg_format == 3)
+-          password = const_cast<char *>("");
++          _options.password = const_cast<char *>("");
+ 
+         // --password
+         else
+-          prompt_password = true;
++          _options.prompt_password = true;
+       }
+       // --password=value || --pvalue
+       else if (arg_format != 1)
+-        password = value;
++        _options.password = value;
+ 
+       // --password value (value is ignored)
+       else {
+-        prompt_password = true;
++        _options.prompt_password = true;
+         i--;
+       }
+     } else if (check_arg_with_value(argv, i, "--auth-method", NULL, value))
+-      auth_method = value;
++      _options.auth_method = value;
+     else if (check_arg_with_value(argv, i, "--ssl-ca", NULL, value)) {
+-      ssl_ca = value;
+-      ssl = 1;
++      _options.ssl_ca = value;
++      _options.ssl = 1;
+     } else if (check_arg_with_value(argv, i, "--ssl-cert", NULL, value)) {
+-      ssl_cert = value;
+-      ssl = 1;
++      _options.ssl_cert = value;
++      _options.ssl = 1;
+     } else if (check_arg_with_value(argv, i, "--ssl-key", NULL, value)) {
+-      ssl_key = value;
+-      ssl = 1;
++      _options.ssl_key = value;
++      _options.ssl = 1;
+     } else if (check_arg_with_value(argv, i, "--ssl", NULL, value, true)) {
+       if (!value)
+-        ssl = 1;
++        _options.ssl = 1;
+       else {
+         if (boost::iequals(value, "yes") || boost::iequals(value, "1"))
+-          ssl = 1;
++          _options.ssl = 1;
+         else if (boost::iequals(value, "no") || boost::iequals(value, "0"))
+-          ssl = 0;
++          _options.ssl = 0;
+         else {
+           std::cerr << "Value for --ssl must be any of 1|0|yes|no";
+           exit_code = 1;
+@@ -159,10 +125,10 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
+     else if (check_arg(argv, i, "--classic", "--classic"))
+       override_session_type(mysh::Classic, "--classic");
+     else if (check_arg(argv, i, "--sql", "--sql")) {
+-      initial_mode = IShell_core::Mode_SQL;
++      _options.initial_mode = shcore::IShell_core::Mode_SQL;
+     } else if (check_arg(argv, i, "--js", "--javascript")) {
+ #ifdef HAVE_V8
+-      initial_mode = IShell_core::Mode_JScript;
++      _options.initial_mode = shcore::IShell_core::Mode_JScript;
+ #else
+       std::cerr << "JavaScript is not supported.\n";
+       exit_code = 1;
+@@ -170,77 +136,79 @@ Shell_command_line_options::Shell_command_line_options(int argc, char **argv)
+ #endif
+     } else if (check_arg(argv, i, "--py", "--python")) {
+ #ifdef HAVE_PYTHON
+-      initial_mode = IShell_core::Mode_Python;
++      _options.initial_mode = shcore::IShell_core::Mode_Python;
+ #else
+       std::cerr << "Python is not supported.\n";
+       exit_code = 1;
+       break;
+ #endif
+     } else if (check_arg(argv, i, NULL, "--sqlc")) {
+-      initial_mode = IShell_core::Mode_SQL;
++      _options.initial_mode = shcore::IShell_core::Mode_SQL;
+       override_session_type(mysh::Classic, "--sqlc");
+     } else if (check_arg(argv, i, NULL, "--sqln")) {
+-      initial_mode = IShell_core::Mode_SQL;
++      _options.initial_mode = shcore::IShell_core::Mode_SQL;
+       override_session_type(mysh::Node, "--sqln");
+     } else if (check_arg_with_value(argv, i, "--json", NULL, value, true)) {
+       if (!value || strcmp(value, "pretty") == 0)
+-        output_format = "json";
++        _options.output_format = "json";
+       else if (strcmp(value, "raw") == 0)
+-        output_format = "json/raw";
++        _options.output_format = "json/raw";
+       else {
+         std::cerr << "Value for --json must be either pretty or raw.\n";
+         exit_code = 1;
+         break;
+       }
+     } else if (check_arg(argv, i, "--table", "--table"))
+-      output_format = "table";
++      _options.output_format = "table";
+     else if (check_arg(argv, i, "--trace-proto", NULL))
+-      trace_protocol = true;
++      _options.trace_protocol = true;
+     else if (check_arg(argv, i, "--help", "--help")) {
+-      print_cmd_line_helper = true;
++      _options.print_cmd_line_helper = true;
+       exit_code = 0;
+     } else if (check_arg(argv, i, "--version", "-V")) {
+-      print_version = true;
++      _options.print_version = true;
+       exit_code = 0;
+-    } else if (check_arg(argv, i, "--force", "--force"))
+-      force = true;
+-    else if (check_arg(argv, i, "--no-wizard", "--nw"))
+-      wizards = false;
+-    else if (check_arg_with_value(argv, i, "--interactive", "-i", value, true)) {
+-      if (!value) {
+-        interactive = true;
+-        full_interactive = false;
+-      } else if (strcmp(value, "full") == 0) {
+-        interactive = true;
+-        full_interactive = true;
+-      } else {
+-        std::cerr << "Value for --interactive if any, must be full\n";
+-        exit_code = 1;
+-        break;
+-      }
+-    } else if (check_arg(argv, i, NULL, "--passwords-from-stdin"))
+-      passwords_from_stdin = true;
+-    else if (check_arg_with_value(argv, i, "--log-level", NULL, value)) {
+-      ngcommon::Logger::LOG_LEVEL nlog_level;
+-      nlog_level = ngcommon::Logger::get_log_level(value);
+-      if (nlog_level == ngcommon::Logger::LOG_NONE && !ngcommon::Logger::is_level_none(value)) {
+-        std::cerr << ngcommon::Logger::get_level_range_info() << std::endl;
+-        exit_code = 1;
+-        break;
+-      } else
+-        log_level = nlog_level;
+-    } else if (exit_code == 0) {
+-      if (argv[i][0] != '-')
+-        schema = argv[i];
+-      else {
+-        std::cerr << argv[0] << ": unknown option " << argv[i] << "\n";
+-        exit_code = 1;
+-        break;
+-      }
++      } else if (check_arg(argv, i, "--force", "--force"))
++        _options.force = true;
++      else if (check_arg(argv, i, "--no-wizard", "--nw"))
++        _options.wizards = false;
++      else if (check_arg_with_value(argv, i, "--interactive", "-i", value, true)) {
++        if (!value) {
++          _options.interactive = true;
++          _options.full_interactive = false;
++    } else if (strcmp(value, "full") == 0) {
++      _options.interactive = true;
++      _options.full_interactive = true;
++    } else {
++      std::cerr << "Value for --interactive if any, must be full\n";
++      exit_code = 1;
++      break;
++    }
++  } else if (check_arg(argv, i, NULL, "--passwords-from-stdin"))
++    _options.passwords_from_stdin = true;
++  else if (check_arg_with_value(argv, i, "--log-level", NULL, value)) {
++    ngcommon::Logger::LOG_LEVEL nlog_level;
++    nlog_level = ngcommon::Logger::get_log_level(value);
++    if (nlog_level == ngcommon::Logger::LOG_NONE && !ngcommon::Logger::is_level_none(value)) {
++      std::cerr << ngcommon::Logger::get_level_range_info() << std::endl;
++      exit_code = 1;
++      break;
++    } else
++      _options.log_level = nlog_level;
++  } else if (exit_code == 0) {
++    if (argv[i][0] != '-')
++      _options.schema = argv[i];
++    else {
++      std::cerr << argv[0] << ": unknown option " << argv[i] << "\n";
++      exit_code = 1;
++      break;
+     }
+   }
+ }
+ 
++  _options.exit_code = exit_code;
++}
++
+ void Shell_command_line_options::override_session_type(mysh::SessionType new_type, const std::string& option, char* value) {
+   auto get_session_type = [](mysh::SessionType type) {
+     std::string label;
+@@ -261,10 +229,10 @@ void Shell_command_line_options::override_session_type(mysh::SessionType new_typ
+     return label;
+   };
+ 
+-  if (new_type != session_type) {
+-    if (!default_session_type) {
++  if (new_type != _options.session_type) {
++    if (!_options.default_session_type) {
+       std::string msg = "Session type already configured to ";
+-      msg.append(get_session_type(session_type));
++      msg.append(get_session_type(_options.session_type));
+       msg.append(", unable to change to ");
+       msg.append(get_session_type(new_type));
+       msg.append(" with option ");
+@@ -279,23 +247,8 @@ void Shell_command_line_options::override_session_type(mysh::SessionType new_typ
+       exit_code = 1;
+     }
+ 
+-    session_type = new_type;
++    _options.session_type = new_type;
+   }
+ 
+-  default_session_type = false;
+-}
+-
+-bool Shell_command_line_options::has_connection_data() {
+-  return !app.empty() ||
+-         !uri.empty() ||
+-         !user.empty() ||
+-         !host.empty() ||
+-         !schema.empty() ||
+-         port != 0 ||
+-         password != NULL ||
+-         prompt_password ||
+-         ssl == 1 ||
+-         !ssl_ca.empty() ||
+-         !ssl_cert.empty() ||
+-         !ssl_key.empty();
++  _options.default_session_type = false;
+ }
+diff --git a/src/shell_cmdline_options.h b/src/shell_cmdline_options.h
+index f5a1df9..a1ad4b4 100644
+--- a/src/shell_cmdline_options.h
++++ b/src/shell_cmdline_options.h
+@@ -23,58 +23,17 @@
+ #include <stdlib.h>
+ #include <iostream>
+ #include "cmdline_options.h"
+-#include "shellcore/ishell_core.h"
+-#include "modules/base_session.h"
++#include "shell/shell_options.h"
+ 
+ class Shell_command_line_options : public Command_line_options {
+ public:
+-  shcore::IShell_core::Mode initial_mode;
+-  std::string run_file;
+-
+-  // Individual connection parameters
+-  std::string user;
+-  const char *password;
+-  std::string host;
+-  int port;
+-  std::string schema;
+-  std::string sock;
+-  std::string auth_method;
+-
+-  std::string protocol;
+-
+-  // SSL connection parameters
+-  std::string ssl_ca;
+-  std::string ssl_cert;
+-  std::string ssl_key;
+-  int ssl;
+-
+-  std::string uri;
+-  std::string app;
+-
+-  std::string output_format;
+-  mysh::SessionType session_type;
+-  bool default_session_type;
+-  bool print_cmd_line_helper;
+-  bool print_version;
+-  bool force;
+-  bool interactive;
+-  bool full_interactive;
+-  bool passwords_from_stdin;
+-  bool prompt_password;
+-  bool recreate_database;
+-  bool trace_protocol;
+-  std::string execute_statement;
+-  std::string execute_dba_statement;
+-  ngcommon::Logger::LOG_LEVEL log_level;
+-  bool wizards;
+-  bool admin_mode;
+-
+   // Takes the URI and the individual connection parameters and overrides
+   Shell_command_line_options(int argc, char **argv);
+ 
+-  bool has_connection_data();
+-
++  mysh::Shell_options& get_options() { return _options; }
+ private:
+   void override_session_type(mysh::SessionType new_type, const std::string& option, char* value = NULL);
++
++  mysh::Shell_options _options;
+ };
+ #endif
+diff --git a/unittest/shell_cmdline_options_t.cc b/unittest/shell_cmdline_options_t.cc
+index 8e8eb3a..f6801a7 100644
+--- a/unittest/shell_cmdline_options_t.cc
++++ b/unittest/shell_cmdline_options_t.cc
+@@ -31,7 +31,7 @@ class Shell_cmdline_options_t : public ::testing::Test {
+ public:
+   Shell_cmdline_options_t() {}
+ 
+-  std::string get_string(Shell_command_line_options*options, const std::string &option) {
++  std::string get_string(mysh::Shell_options* options, const std::string &option) {
+     if (option == "app")
+       return options->app;
+     else if (option == "host")
+@@ -99,7 +99,8 @@ public:
+     arg.append("--").append(option).append("=").append(value);
+     SCOPED_TRACE("TESTING: " + arg);
+     char *argv[] = {const_cast<char *>("ut"), const_cast<char *>(arg.c_str()), NULL};
+-    Shell_command_line_options options(2, argv);
++    Shell_command_line_options cmd_options(2, argv);
++    mysh::Shell_options options = cmd_options.get_options();
+     EXPECT_EQ(0, options.exit_code);
+     EXPECT_EQ(connection_data, options.has_connection_data());
+ 
+@@ -129,7 +130,8 @@ public:
+     arg.append("--").append(option);
+     SCOPED_TRACE("TESTING: " + arg + " " + value);
+     char *argv[] = {const_cast<char *>("ut"), const_cast<char *>(arg.c_str()), const_cast<char *>(value.c_str()), NULL};
+-    Shell_command_line_options options(3, argv);
++    Shell_command_line_options cmd_options(3, argv);
++    mysh::Shell_options options = cmd_options.get_options();
+     EXPECT_EQ(0, options.exit_code);
+     EXPECT_EQ(connection_data, options.has_connection_data());
+ 
+@@ -159,7 +161,8 @@ public:
+     arg.append("-").append(soption).append(value);
+     SCOPED_TRACE("TESTING: " + arg);
+     char *argv[] = {const_cast<char *>("ut"), const_cast<char *>(arg.c_str()), NULL};
+-    Shell_command_line_options options(2, argv);
++    Shell_command_line_options cmd_options(2, argv);
++    mysh::Shell_options options = cmd_options.get_options();
+     EXPECT_EQ(0, options.exit_code);
+     EXPECT_EQ(connection_data, options.has_connection_data());
+ 
+@@ -189,7 +192,8 @@ public:
+     arg.append("-").append(soption);
+     SCOPED_TRACE("TESTING: " + arg + " " + value);
+     char *argv[] = {const_cast<char *>("ut"), const_cast<char *>(arg.c_str()), const_cast<char *>(value.c_str()), NULL};
+-    Shell_command_line_options options(3, argv);
++    Shell_command_line_options cmd_options(3, argv);
++    mysh::Shell_options options = cmd_options.get_options();
+     EXPECT_EQ(0, options.exit_code);
+     EXPECT_EQ(connection_data, options.has_connection_data());
+ 
+@@ -219,7 +223,8 @@ public:
+     arg.append("--").append(option);
+     SCOPED_TRACE("TESTING: " + arg);
+     char *argv[] = {const_cast<char *>("ut"), const_cast<char *>(arg.c_str()), NULL};
+-    Shell_command_line_options options(2, argv);
++    Shell_command_line_options cmd_options(2, argv);
++    mysh::Shell_options options = cmd_options.get_options();
+ 
+     if (valid) {
+       EXPECT_EQ(0, options.exit_code);
+@@ -304,7 +309,8 @@ public:
+ 
+     SCOPED_TRACE("TESTING: " + option);
+     char *argv[] = {const_cast<char *>("ut"), const_cast<char *>(option.c_str()), NULL};
+-    Shell_command_line_options options(2, argv);
++    Shell_command_line_options cmd_options(2, argv);
++    mysh::Shell_options options = cmd_options.get_options();
+ 
+     EXPECT_EQ(0, options.exit_code);
+     EXPECT_STREQ(target_value.c_str(), get_string(&options, target_option).c_str());
+@@ -336,7 +342,8 @@ TEST(Shell_cmdline_options, default_values) {
+   int argc = 0;
+   char **argv = NULL;
+ 
+-  Shell_command_line_options options(argc, argv);
++  Shell_command_line_options cmd_options(argc, argv);
++  mysh::Shell_options options = cmd_options.get_options();
+ 
+   EXPECT_TRUE(options.app.empty());
+   EXPECT_TRUE(options.exit_code == 0);
+diff --git a/unittest/shell_core_t.cc b/unittest/shell_core_t.cc
+index 60656f0..32a9467 100644
+--- a/unittest/shell_core_t.cc
++++ b/unittest/shell_core_t.cc
+@@ -29,7 +29,7 @@
+ #include "shellcore/shell_sql.h"
+ #include "../modules/base_session.h"
+ #include "../modules/base_resultset.h"
+-#include "../src/shell_resultset_dumper.h"
++#include "shell/shell_resultset_dumper.h"
+ #include "test_utils.h"
+ #include "utils/utils_file.h"
+ 
+diff --git a/unittest/shell_notifications_t.cc b/unittest/shell_notifications_t.cc
+index 22e632a..0c6aad7 100644
+--- a/unittest/shell_notifications_t.cc
++++ b/unittest/shell_notifications_t.cc
+@@ -30,7 +30,7 @@
+ #include "shellcore/shell_notifications.h"
+ #include "../modules/base_session.h"
+ #include "../modules/base_resultset.h"
+-#include "../src/shell_resultset_dumper.h"
++#include "shell/shell_resultset_dumper.h"
+ #include "test_utils.h"
+ #include "utils/utils_file.h"
+ #include <queue>
+diff --git a/unittest/test_utils.cc b/unittest/test_utils.cc
+index e02d94b..4df273c 100644
+--- a/unittest/test_utils.cc
++++ b/unittest/test_utils.cc
+@@ -16,8 +16,7 @@
+ #include "test_utils.h"
+ #include <boost/algorithm/string.hpp>
+ #include "shellcore/shell_core_options.h"
+-#include "src/shell_resultset_dumper.h"
+-#include "src/interactive_shell.h"
++#include "shell/shell_resultset_dumper.h"
+ #include "utils/utils_general.h"
+ 
+ using namespace shcore;
+diff --git a/unittest/test_utils.h b/unittest/test_utils.h
+index 46b62c8..079f4af 100644
+--- a/unittest/test_utils.h
++++ b/unittest/test_utils.h
+@@ -18,15 +18,14 @@
+ #include "shellcore/shell_core.h"
+ #include "shellcore/common.h"
+ #include <set>
+-#include "src/interactive_shell.h"
++#include "shell/base_shell.h"
+ 
+-class Shell_test_output_handler
+-{
++class Shell_test_output_handler {
+ public:
+   // You can define per-test set-up and tear-down logic as usual.
+   Shell_test_output_handler();
+ 
+-  virtual void TearDown(){}
++  virtual void TearDown() {}
+ 
+   static void deleg_print(void *user_data, const char *text);
+   static void deleg_print_error(void *user_data, const char *text);
+@@ -53,13 +52,12 @@ public:
+ #define MY_EXPECT_STDOUT_NOT_CONTAINS(x) output_handler.validate_stdout_content(x,false)
+ #define MY_EXPECT_STDERR_NOT_CONTAINS(x) output_handler.validate_stderr_content(x,false)
+ 
+-class Shell_core_test_wrapper : public ::testing::Test
+-{
++class Shell_core_test_wrapper : public ::testing::Test {
+ protected:
+   // You can define per-test set-up and tear-down logic as usual.
+   virtual void SetUp();
+   virtual void TearDown();
+-  virtual void set_defaults(){};
++  virtual void set_defaults() {};
+ 
+   // void process_result(shcore::Value result);
+   shcore::Value execute(const std::string& code);
+@@ -68,24 +66,22 @@ protected:
+ 
+   // This can be use to reinitialize the interactive shell with different options
+   // First set the options on _options
+-  void reset_options()
+-  {
++  void reset_options() {
+     char **argv = NULL;
+-    _options.reset(new Shell_command_line_options(0, argv));
++    _options.reset(new mysh::Shell_options());
+   }
+ 
+-  virtual void set_options()  {};
++  virtual void set_options() {};
+ 
+-  void reset_shell()
+-  {
+-    _interactive_shell.reset(new Interactive_shell(*_options.get(), &output_handler.deleg));
++  void reset_shell() {
++    _interactive_shell.reset(new mysh::Base_shell(*_options.get(), &output_handler.deleg));
+ 
+     set_defaults();
+   }
+ 
+   Shell_test_output_handler output_handler;
+-  std::shared_ptr<Interactive_shell> _interactive_shell;
+-  std::shared_ptr<Shell_command_line_options> _options;
++  std::shared_ptr<mysh::Base_shell> _interactive_shell;
++  std::shared_ptr<mysh::Shell_options> _options;
+   void wipe_out() { output_handler.wipe_out(); }
+   void wipe_err() { output_handler.wipe_err(); }
+   void wipe_all() { output_handler.wipe_all(); }
+@@ -109,8 +105,7 @@ protected:
+ 
+ // Helper class to ease the creation of tests on the CRUD operations
+ // Specially on the chained methods
+-class Crud_test_wrapper : public ::Shell_core_test_wrapper
+-{
++class Crud_test_wrapper : public ::Shell_core_test_wrapper {
+ protected:
+   std::set<std::string> _functions;
+ 

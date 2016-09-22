@@ -29,7 +29,7 @@
 #include "shellcore/shell_sql.h"
 #include "../modules/base_session.h"
 #include "../modules/base_resultset.h"
-#include "../src/shell_resultset_dumper.h"
+#include "shell/shell_resultset_dumper.h"
 #include "test_utils.h"
 #include "utils/utils_file.h"
 

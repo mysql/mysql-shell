@@ -18,15 +18,14 @@
 #include "shellcore/shell_core.h"
 #include "shellcore/common.h"
 #include <set>
-#include "src/interactive_shell.h"
+#include "shell/base_shell.h"
 
-class Shell_test_output_handler
-{
+class Shell_test_output_handler {
 public:
   // You can define per-test set-up and tear-down logic as usual.
   Shell_test_output_handler();
 
-  virtual void TearDown(){}
+  virtual void TearDown() {}
 
   static void deleg_print(void *user_data, const char *text);
   static void deleg_print_error(void *user_data, const char *text);
@@ -53,13 +52,12 @@ public:
 #define MY_EXPECT_STDOUT_NOT_CONTAINS(x) output_handler.validate_stdout_content(x,false)
 #define MY_EXPECT_STDERR_NOT_CONTAINS(x) output_handler.validate_stderr_content(x,false)
 
-class Shell_core_test_wrapper : public ::testing::Test
-{
+class Shell_core_test_wrapper : public ::testing::Test {
 protected:
   // You can define per-test set-up and tear-down logic as usual.
   virtual void SetUp();
   virtual void TearDown();
-  virtual void set_defaults(){};
+  virtual void set_defaults() {};
 
   // void process_result(shcore::Value result);
   shcore::Value execute(const std::string& code);
@@ -68,24 +66,22 @@ protected:
 
   // This can be use to reinitialize the interactive shell with different options
   // First set the options on _options
-  void reset_options()
-  {
+  void reset_options() {
     char **argv = NULL;
-    _options.reset(new Shell_command_line_options(0, argv));
+    _options.reset(new mysh::Shell_options());
   }
 
-  virtual void set_options()  {};
+  virtual void set_options() {};
 
-  void reset_shell()
-  {
-    _interactive_shell.reset(new Interactive_shell(*_options.get(), &output_handler.deleg));
+  void reset_shell() {
+    _interactive_shell.reset(new mysh::Base_shell(*_options.get(), &output_handler.deleg));
 
     set_defaults();
   }
 
   Shell_test_output_handler output_handler;
-  std::shared_ptr<Interactive_shell> _interactive_shell;
-  std::shared_ptr<Shell_command_line_options> _options;
+  std::shared_ptr<mysh::Base_shell> _interactive_shell;
+  std::shared_ptr<mysh::Shell_options> _options;
   void wipe_out() { output_handler.wipe_out(); }
   void wipe_err() { output_handler.wipe_err(); }
   void wipe_all() { output_handler.wipe_all(); }
@@ -109,8 +105,7 @@ protected:
 
 // Helper class to ease the creation of tests on the CRUD operations
 // Specially on the chained methods
-class Crud_test_wrapper : public ::Shell_core_test_wrapper
-{
+class Crud_test_wrapper : public ::Shell_core_test_wrapper {
 protected:
   std::set<std::string> _functions;
 

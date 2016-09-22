@@ -48,6 +48,7 @@ if ( HAVE_V8 )
 endif()
 
 file(GLOB libmysqlshcore_SRC
+    "${CMAKE_SOURCE_DIR}/include/shell/*.h"
     "${CMAKE_SOURCE_DIR}/include/shellcore/*.h"
     "${CMAKE_SOURCE_DIR}/utils/utils_mysql_parsing.h"
     "${CMAKE_SOURCE_DIR}/utils/utils_mysql_parsing.cc"
@@ -71,6 +72,10 @@ file(GLOB libmysqlshcore_SRC
     "${CMAKE_SOURCE_DIR}/interactive/interactive_global_schema.cc"
     "${CMAKE_SOURCE_DIR}/interactive/interactive_global_session.h"
     "${CMAKE_SOURCE_DIR}/interactive/interactive_global_session.cc"
+    "${CMAKE_SOURCE_DIR}/shell/base_shell.cc"
+    "${CMAKE_SOURCE_DIR}/shell/shell_resultset_dumper.h"
+    "${CMAKE_SOURCE_DIR}/shell/shell_resultset_dumper.cc"
+    "${CMAKE_SOURCE_DIR}/shell/shell_options.cc"
     "*.cc"
     "*.h"
 

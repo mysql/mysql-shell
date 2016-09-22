@@ -31,7 +31,7 @@ class Shell_cmdline_options_t : public ::testing::Test {
 public:
   Shell_cmdline_options_t() {}
 
-  std::string get_string(Shell_command_line_options*options, const std::string &option) {
+  std::string get_string(mysh::Shell_options* options, const std::string &option) {
     if (option == "app")
       return options->app;
     else if (option == "host")
@@ -99,7 +99,8 @@ public:
     arg.append("--").append(option).append("=").append(value);
     SCOPED_TRACE("TESTING: " + arg);
     char *argv[] = {const_cast<char *>("ut"), const_cast<char *>(arg.c_str()), NULL};
-    Shell_command_line_options options(2, argv);
+    Shell_command_line_options cmd_options(2, argv);
+    mysh::Shell_options options = cmd_options.get_options();
     EXPECT_EQ(0, options.exit_code);
     EXPECT_EQ(connection_data, options.has_connection_data());
 
@@ -129,7 +130,8 @@ public:
     arg.append("--").append(option);
     SCOPED_TRACE("TESTING: " + arg + " " + value);
     char *argv[] = {const_cast<char *>("ut"), const_cast<char *>(arg.c_str()), const_cast<char *>(value.c_str()), NULL};
-    Shell_command_line_options options(3, argv);
+    Shell_command_line_options cmd_options(3, argv);
+    mysh::Shell_options options = cmd_options.get_options();
     EXPECT_EQ(0, options.exit_code);
     EXPECT_EQ(connection_data, options.has_connection_data());
 
@@ -159,7 +161,8 @@ public:
     arg.append("-").append(soption).append(value);
     SCOPED_TRACE("TESTING: " + arg);
     char *argv[] = {const_cast<char *>("ut"), const_cast<char *>(arg.c_str()), NULL};
-    Shell_command_line_options options(2, argv);
+    Shell_command_line_options cmd_options(2, argv);
+    mysh::Shell_options options = cmd_options.get_options();
     EXPECT_EQ(0, options.exit_code);
     EXPECT_EQ(connection_data, options.has_connection_data());
 
@@ -189,7 +192,8 @@ public:
     arg.append("-").append(soption);
     SCOPED_TRACE("TESTING: " + arg + " " + value);
     char *argv[] = {const_cast<char *>("ut"), const_cast<char *>(arg.c_str()), const_cast<char *>(value.c_str()), NULL};
-    Shell_command_line_options options(3, argv);
+    Shell_command_line_options cmd_options(3, argv);
+    mysh::Shell_options options = cmd_options.get_options();
     EXPECT_EQ(0, options.exit_code);
     EXPECT_EQ(connection_data, options.has_connection_data());
 
@@ -219,7 +223,8 @@ public:
     arg.append("--").append(option);
     SCOPED_TRACE("TESTING: " + arg);
     char *argv[] = {const_cast<char *>("ut"), const_cast<char *>(arg.c_str()), NULL};
-    Shell_command_line_options options(2, argv);
+    Shell_command_line_options cmd_options(2, argv);
+    mysh::Shell_options options = cmd_options.get_options();
 
     if (valid) {
       EXPECT_EQ(0, options.exit_code);
@@ -304,7 +309,8 @@ public:
 
     SCOPED_TRACE("TESTING: " + option);
     char *argv[] = {const_cast<char *>("ut"), const_cast<char *>(option.c_str()), NULL};
-    Shell_command_line_options options(2, argv);
+    Shell_command_line_options cmd_options(2, argv);
+    mysh::Shell_options options = cmd_options.get_options();
 
     EXPECT_EQ(0, options.exit_code);
     EXPECT_STREQ(target_value.c_str(), get_string(&options, target_option).c_str());
@@ -336,7 +342,8 @@ TEST(Shell_cmdline_options, default_values) {
   int argc = 0;
   char **argv = NULL;
 
-  Shell_command_line_options options(argc, argv);
+  Shell_command_line_options cmd_options(argc, argv);
+  mysh::Shell_options options = cmd_options.get_options();
 
   EXPECT_TRUE(options.app.empty());
   EXPECT_TRUE(options.exit_code == 0);
