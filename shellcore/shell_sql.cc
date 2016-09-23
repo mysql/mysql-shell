@@ -131,10 +131,12 @@ void Shell_sql::handle_input(std::string &code, Interactive_input_state &state, 
           _last_handled.append("\n").append(statements[index]).append(_delimiter);
       }
     } else if (range_count) {
+      std::string line = code.substr(ranges[0].first, ranges[0].second);
+      boost::trim_right_if(line, boost::is_any_of("\n"));
       if (_sql_cache.empty())
-        _sql_cache = code.substr(ranges[0].first, ranges[0].second);
+        _sql_cache = line;
       else
-        _sql_cache.append("\n").append(code.substr(ranges[0].first, ranges[0].second));
+        _sql_cache.append("\n").append(line);
     } else // Multiline code, all is "processed"
       code = "";
 

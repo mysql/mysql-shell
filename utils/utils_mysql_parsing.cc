@@ -92,15 +92,15 @@ size_t determineStatementRanges(const char *sql, size_t length, std::string &del
               input_context_stack.push("/*");
               break;
             } else {
-              if (*++tail == '/') {
-                tail++; // Skip the slash too.
+              if (*(tail + 1) == '/') {
+                tail++;
                 break;
               }
             }
           }
 
           if (!is_hidden_command && !have_content)
-            head = tail; // Skip over the comment.
+            head = tail + 1; // Skip over the comment.
 
           break;
         }
